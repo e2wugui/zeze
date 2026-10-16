@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -70,12 +74,12 @@ public class TestTaskSpec {
 
 	@Test
 	public void testOfActionSubmitNowCritical() throws Exception {
-		var threadName = new AtomicReference<String>();
+		var threadName = new AtomicReference<@Nullable String>();
 		var future = TaskSpec.ofAction(() -> threadName.set(Thread.currentThread().getName()))
 				.name("testOfActionSubmitNowCritical").dispatchMode(DispatchMode.Critical).submitNow();
 		future.get(10, TimeUnit.SECONDS);
 		Assertions.assertNotNull(threadName.get());
-		Assertions.assertTrue(threadName.get().startsWith("ZezeCriticalPool"), threadName.get());
+		Assertions.assertTrue(requireNonNull(threadName.get()).startsWith("ZezeCriticalPool"), threadName.get());
 	}
 
 	@Test
@@ -160,7 +164,7 @@ public class TestTaskSpec {
 		Assertions.assertEquals(-1L, handled.get());
 		// p 非 null 且是请求：onError 收到的就是传入的 p
 		var stub = new StubProtocol();
-		var got = new AtomicReference<Protocol<?>>();
+		var got = new AtomicReference<@Nullable Protocol<?>>();
 		Assertions.assertEquals(2L, TaskSpec.ofFunc(() -> 2L, stub, (p, code) -> {
 			got.set(p);
 			handled.set(code);
@@ -259,7 +263,7 @@ public class TestTaskSpec {
 	public void testOfProcedure() throws Exception {
 		App.Instance.Start();
 		Assertions.assertEquals(0L, (long)TaskSpec.ofProcedure(
-				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.call")).call());
+				requireNonNull(App.Instance.Zeze).newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.call")).call());
 
 		var future = TaskSpec.ofProcedure(
 				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.submitNow")).submitNow();
@@ -281,16 +285,16 @@ public class TestTaskSpec {
 	@Test
 	public void testOfProcedureProtocolDirectInTxnRejected() throws Exception {
 		App.Instance.Start();
-		var result = App.Instance.Zeze.newProcedure(() -> {
+		var result = requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			try {
-				TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.protoProc"), null)
+				TaskSpec.ofProcedure(requireNonNull(App.Instance.Zeze).newProcedure(() -> 0L, "TestTaskSpec.protoProc"), null)
 						.dispatchMode(DispatchMode.Direct).run();
 				Assertions.fail();
 			} catch (IllegalArgumentException expected) {
 				// 预期拒绝
 			}
 			try {
-				TaskSpec.ofProcedureOut(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.protoProcOut"),
+				TaskSpec.ofProcedureOut(requireNonNull(App.Instance.Zeze).newProcedure(() -> 0L, "TestTaskSpec.protoProcOut"),
 						new OutObject<>(), null).dispatchMode(DispatchMode.Direct).run();
 				Assertions.fail();
 			} catch (IllegalArgumentException expected) {
@@ -307,7 +311,7 @@ public class TestTaskSpec {
 		var order = new ArrayList<String>();
 		var txnThread = new AtomicLong();
 		var deferredThread = new AtomicLong();
-		var result = App.Instance.Zeze.newProcedure(() -> {
+		var result = requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			// 运行中的事务内 run：应延迟到事务提交后异步执行
 			txnThread.set(Thread.currentThread().threadId());
 			TaskSpec.ofAction(() -> {
@@ -316,7 +320,7 @@ public class TestTaskSpec {
 					order.add("deferred");
 				}
 			}).name("testRunDeferInTransaction.deferred").run();
-			Transaction.getCurrent().verifyRunning();
+			requireNonNull(Transaction.getCurrent()).verifyRunning();
 			synchronized (order) {
 				order.add("inTxn");
 			}
@@ -338,9 +342,9 @@ public class TestTaskSpec {
 	public void testOfProcedureRunDeferInTransaction() throws Exception {
 		App.Instance.Start();
 		var called = new TaskCompletionSource<Boolean>();
-		var result = App.Instance.Zeze.newProcedure(() -> {
+		var result = requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			// 运行中的事务内 ofProcedure().run()：延迟到提交后执行
-			TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
+			TaskSpec.ofProcedure(requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 				called.setResult(true);
 				return 0L;
 			}, "TestTaskSpec.deferredProc")).run();
@@ -357,7 +361,7 @@ public class TestTaskSpec {
 		var order = new ArrayList<String>();
 		var txnThread = new AtomicLong();
 		var deferredThread = new AtomicLong();
-		var result = App.Instance.Zeze.newProcedure(() -> {
+		var result = requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			// Direct 不再跳过事务：运行中的事务内 run() 同样延迟到事务提交后执行
 			txnThread.set(Thread.currentThread().threadId());
 			TaskSpec.ofAction(() -> {
@@ -382,10 +386,10 @@ public class TestTaskSpec {
 	@Test
 	public void testRunDirectProcedureInTxnRejected() throws Exception {
 		App.Instance.Start();
-		var result = App.Instance.Zeze.newProcedure(() -> {
+		var result = requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			// ofProcedure + Direct 在事务内 run()：commit 回调中无法再开事务，fail-fast 拒绝
 			try {
-				TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.guardProc"))
+				TaskSpec.ofProcedure(requireNonNull(App.Instance.Zeze).newProcedure(() -> 0L, "TestTaskSpec.guardProc"))
 						.dispatchMode(DispatchMode.Direct).run();
 				Assertions.fail();
 			} catch (IllegalArgumentException expected) {
@@ -475,7 +479,7 @@ public class TestTaskSpec {
 		// Procedure 载荷
 		App.Instance.Start();
 		var procCount = new AtomicLong();
-		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(procCount::incrementAndGet,
+		TaskSpec.ofProcedure(requireNonNull(App.Instance.Zeze).newProcedure(procCount::incrementAndGet,
 				"TestTaskSpec.scheduleProc")).scheduleNow(10).get();
 		Assertions.assertEquals(1L, procCount.get());
 	}
@@ -544,7 +548,7 @@ public class TestTaskSpec {
 				counter.incrementAndGet();
 				return 0L;
 			}).executeOneByOne(1L, oo);
-			TaskSpec.<Object>ofFunc0(() -> {
+			TaskSpec.<@Nullable Object>ofFunc0(() -> {
 				counter.incrementAndGet();
 				return null;
 			}).executeOneByOne(2, oo);
@@ -583,7 +587,7 @@ public class TestTaskSpec {
 		TaskSpec.ofAction(counter::incrementAndGet).executeOneByOne("k1", oo);
 		TaskSpec.ofAction(counter::incrementAndGet).name("TestTaskSpec.OneByOneNamedAction").executeOneByOne("k2", oo);
 		TaskSpec.ofFunc(() -> 0L).name("TestTaskSpec.OneByOneNamedFunc").executeOneByOne(3, oo);
-		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.OneByOneProcActionName"))
+		TaskSpec.ofProcedure(requireNonNull(App.Instance.Zeze).newProcedure(() -> 0L, "TestTaskSpec.OneByOneProcActionName"))
 				.executeOneByOne("k4", oo);
 		var dump = oo.toString();
 		Assertions.assertTrue(dump.contains("$Lambda"), dump); // 默认任务名 = lambda 类名
@@ -617,7 +621,7 @@ public class TestTaskSpec {
 		var counter = new AtomicInteger();
 		for (int i = 0; i < 100; i++) {
 			TaskSpec.ofAction(counter::incrementAndGet).executeOneByOne(1, oo);
-			TaskSpec.<Object>ofFunc0(() -> {
+			TaskSpec.<@Nullable Object>ofFunc0(() -> {
 				counter.incrementAndGet();
 				return null;
 			}).executeOneByOne(2L, oo);
@@ -643,7 +647,7 @@ public class TestTaskSpec {
 		}); // no-op executor：任务入队后不执行
 		TaskSpec.ofAction(counter::incrementAndGet).name("TestTaskSpec.Key2NamedAction").executeOneByOne("k1", noop);
 		TaskSpec.ofFunc0(() -> 0).name("TestTaskSpec.Key2NamedFunc0").executeOneByOne(7, noop);
-		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.Key2ProcActionName"))
+		TaskSpec.ofProcedure(requireNonNull(App.Instance.Zeze).newProcedure(() -> 0L, "TestTaskSpec.Key2ProcActionName"))
 				.executeOneByOne("k3", noop);
 		var dump = noop.toString();
 		Assertions.assertTrue(dump.contains("TestTaskSpec.Key2NamedAction"), dump);

@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 
 import harness.Fast;
@@ -57,7 +59,7 @@ public class TestRaftTermMaxReject {
 	public void testOversizedTermRejected() throws Exception {
 		var rocks = new Rocks("127.0.0.1:17650", RocksMode.Pessimism, newRaftConfig(), new Config(), false);
 		try {
-			var ls = rocks.getRaft().getLogSequence();
+			var ls = requireNonNull(rocks.getRaft()).getLogSequence();
 
 			// 正常采纳与比较语义不受影响。
 			assertEquals(LogSequence.SetTermResult.Newer, ls.trySetTerm(5));
@@ -92,7 +94,7 @@ public class TestRaftTermMaxReject {
 		var rocks = new Rocks("127.0.0.1:17650", RocksMode.Pessimism, newRaftConfig(), new Config(), false);
 		try {
 			var raft = rocks.getRaft();
-			var ls = raft.getLogSequence();
+			var ls = requireNonNull(raft).getLogSequence();
 			assertEquals(LogSequence.SetTermResult.Newer, ls.trySetTerm(LogSequence.TERM_MAX));
 
 			// FND6-08补：拒绝选举也必须推进nextVoteTime——原拒绝路径在设置之前return，

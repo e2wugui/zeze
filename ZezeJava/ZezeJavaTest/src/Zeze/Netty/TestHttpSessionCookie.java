@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -27,7 +29,7 @@ public class TestHttpSessionCookie {
 		Task.tryInitThreadPool();
 		var app = App.getInstance();
 		app.Start();
-		app.HttpServer.addHandler(Path, 8192, TransactionLevel.Serializable, DispatchMode.Direct,
+		requireNonNull(app.HttpServer).addHandler(Path, 8192, TransactionLevel.Serializable, DispatchMode.Direct,
 				TestHttpSessionCookie::onRequest);
 		app.HttpServer.addHandler(PathNone, 8192, TransactionLevel.None, DispatchMode.Direct,
 				TestHttpSessionCookie::onRequest);
@@ -35,7 +37,7 @@ public class TestHttpSessionCookie {
 
 	private static void onRequest(HttpExchange x) {
 		var cs = x.getCookieSession();
-		var old = cs.getProperty("count");
+		var old = requireNonNull(cs).getProperty("count");
 		var count = old == null ? 0 : Integer.parseInt(old);
 		cs.setProperty("count", String.valueOf(count + 1));
 		x.sendPlainText(HttpResponseStatus.OK, String.valueOf(count));

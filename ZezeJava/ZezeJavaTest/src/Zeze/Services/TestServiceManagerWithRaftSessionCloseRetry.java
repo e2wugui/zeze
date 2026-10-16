@@ -1,5 +1,11 @@
 package Zeze.Services;
 
+import Zeze.Net.Connector;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
@@ -53,8 +59,8 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
-	private static Peer client;
+	private static @Nullable Path raftXmlFile;
+	private static @Nullable Peer client;
 
 	private static final class Peer extends HandshakeClient {
 		Peer(String name) {
@@ -65,7 +71,7 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 					Login::new, null, TransactionLevel.None, DispatchMode.Direct));
 		}
 
-		private Zeze.Net.Connector connector;
+		private @Nullable Connector connector;
 
 		AsyncSocket connect(int port) throws Exception {
 			// 类并行高负载下WaitReady的5s预算偶发不够（目标是本地监听端口、必然可达，纯墙钟问题，
@@ -137,14 +143,14 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 			client.stop();
 		for (var rocks : rocksList) {
 			try {
-				rocks.getRaft().getServer().stop();
+				requireNonNull(rocks.getRaft()).getServer().stop();
 			} catch (Throwable ignored) {
 			}
 		}
 		for (var server : servers)
 			server.close();
 		servers.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new File(dbHome));
 		dbHomes.clear();
@@ -176,7 +182,7 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		return (Table<String, Zeze.Builtin.ServiceManagerWithRaft.BSession>)field.get(server);
 	}
 
-	private static Rocks leaderRocks() {
+	private static @Nullable Rocks leaderRocks() {
 		for (var rocks : rocksList)
 			if (rocks.isLeader())
 				return rocks;
@@ -219,7 +225,7 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 	private static AsyncSocket loginWithRetry(String sessionName) throws Exception {
 		long deadline = System.currentTimeMillis() + 60_000;
 		while (true) {
-			var sock = client.connect(leaderPort());
+			var sock = requireNonNull(client).connect(leaderPort());
 			var login = new Login();
 			login.Argument.setSessionName(sessionName);
 			login.getUnique().setRequestId(System.nanoTime());
@@ -273,7 +279,7 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		var stopped = new ArrayList<Integer>();
 		for (int i = 0; i < servers.size(); i++) {
 			if (i != leaderIdx) {
-				rocksList.get(i).getRaft().getServer().stop();
+				requireNonNull(rocksList.get(i).getRaft()).getServer().stop();
 				stopped.add(i);
 			}
 		}
@@ -292,7 +298,7 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		for (var i : stopped) {
 			for (int attempt = 1; ; ++attempt) {
 				try {
-					rocksList.get(i).getRaft().getServer().start();
+					requireNonNull(rocksList.get(i).getRaft()).getServer().start();
 					break;
 				} catch (IllegalStateException e) { // TcpSocket构造包装BindException
 					if (attempt >= 20)

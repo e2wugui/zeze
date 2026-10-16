@@ -19,7 +19,6 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -56,7 +55,7 @@ public class TestLoadBaseChainResilience {
 		final AtomicBoolean throwOnce = new AtomicBoolean();
 		final LoadConfig config = new LoadConfig();
 
-		TestLoad(@NotNull Application zeze) {
+		TestLoad(Application zeze) {
 			super(zeze);
 		}
 
@@ -170,7 +169,7 @@ public class TestLoadBaseChainResilience {
 		var messages = new CopyOnWriteArrayList<String>();
 		var appender = new AbstractAppender("load_base_chain_capture", null, null, true, Property.EMPTY_ARRAY) {
 			@Override
-			public void append(@NotNull LogEvent event) {
+			public void append(LogEvent event) {
 				if (event.getLevel() == Level.ERROR)
 					messages.add(event.getMessage().getFormattedMessage());
 			}
@@ -186,7 +185,7 @@ public class TestLoadBaseChainResilience {
 				}
 
 				@Override
-				public @NotNull List<Runnable> shutdownNow() {
+				public List<Runnable> shutdownNow() {
 					return List.of();
 				}
 
@@ -201,12 +200,12 @@ public class TestLoadBaseChainResilience {
 				}
 
 				@Override
-				public boolean awaitTermination(long timeout, @NotNull TimeUnit unit) {
+				public boolean awaitTermination(long timeout, TimeUnit unit) {
 					return true;
 				}
 
 				@Override
-				public void execute(@NotNull Runnable command) {
+				public void execute(Runnable command) {
 					throw new RejectedExecutionException("a6 pool closed");
 				}
 			};

@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 
 import harness.Fast;
@@ -48,10 +54,10 @@ public class TestMap2EncodeStaleChangedKey {
 
 	/** map2 动态 value bean：mapKey 由容器维护（参照 TestMap2FollowerApplyMapKey.BItem）。 */
 	public static final class BStaleItem extends Bean {
-		private transient Object _mapKey;
+		private transient @Nullable Object _mapKey;
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return _mapKey;
 		}
 
@@ -77,7 +83,7 @@ public class TestMap2EncodeStaleChangedKey {
 
 		public void setI(int value) {
 			if (isManaged())
-				Transaction.getCurrent().putLog(new LogInt(this, 1, value));
+				requireNonNull(Transaction.getCurrent()).putLog(new LogInt(this, 1, value));
 			else
 				_i = value;
 		}
@@ -98,7 +104,7 @@ public class TestMap2EncodeStaleChangedKey {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -108,7 +114,7 @@ public class TestMap2EncodeStaleChangedKey {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_i = ((LogInt)vlog).value;
 			}
 		}
@@ -149,7 +155,7 @@ public class TestMap2EncodeStaleChangedKey {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_map.initRootInfo(root, this);
 		}
 
@@ -160,7 +166,7 @@ public class TestMap2EncodeStaleChangedKey {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_map.followerApply(vlog);
 			}
 		}
@@ -206,7 +212,7 @@ public class TestMap2EncodeStaleChangedKey {
 	private static Changes captureChanges(Rocks rocks, FuncLong func) throws Exception {
 		final Transaction[] ts = new Transaction[1];
 		var rc = rocks.newProcedure(() -> {
-			ts[0] = Transaction.getCurrent();
+			ts[0] = requireNonNull(Transaction.getCurrent());
 			return func.call();
 		}).call();
 		assertEquals(Zeze.Transaction.Procedure.RaftRetry, rc); // not leader
@@ -226,14 +232,14 @@ public class TestMap2EncodeStaleChangedKey {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static LogMap2<Long, BStaleItem> findLogMap2(Changes changes) {
+	private static @Nullable LogMap2<Long, BStaleItem> findLogMap2(Changes changes) {
 		for (var r : changes.getRecords().values())
 			for (var logBean : r.getLogBean()) {
 				var vars = logBean.getVariables();
 				if (vars == null)
 					continue;
 				for (var it = vars.iterator(); it.moveToNext(); )
-					if (it.value().getVariableId() == 1)
+					if (requireNonNull(it.value()).getVariableId() == 1)
 						return (LogMap2<Long, BStaleItem>)it.value();
 			}
 		return null;
@@ -242,7 +248,7 @@ public class TestMap2EncodeStaleChangedKey {
 	@Test
 	public void testStaleBeanEditFilteredAtEncode() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BStaleMapBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BStaleMapBean>getTableTemplate(templateName)).openTable(0);
 			seedEmptyRecord(table, 1);
 
 			// 1. put安装条目（followerApply路径），持有bean引用。
@@ -255,7 +261,7 @@ public class TestMap2EncodeStaleChangedKey {
 			var followerPut = new Changes(rocks);
 			followerPut.decode(ByteBuffer.Wrap(putBB.CopyIf()));
 			rocks.followerApply(followerPut, new RaftLog(1, 1, followerPut));
-			var staleItem = ((BStaleMapBean)table.getLruCache().get(1).getValue()).getMap().get(1L);
+			var staleItem = requireNonNull(((BStaleMapBean)requireNonNull(requireNonNull(table.getLruCache()).get(1)).getValue())).getMap().get(1L);
 			assertNotNull(staleItem);
 
 			// 2. 事务删除该条目并应用到follower：map里已无key 1L，但staleItem的
@@ -269,7 +275,7 @@ public class TestMap2EncodeStaleChangedKey {
 			var followerRemove = new Changes(rocks);
 			followerRemove.decode(ByteBuffer.Wrap(removeBB.CopyIf()));
 			rocks.followerApply(followerRemove, new RaftLog(1, 2, followerRemove));
-			assertTrue(((BStaleMapBean)table.getLruCache().get(1).getValue()).getMap().get(1L) == null);
+			assertTrue(requireNonNull(((BStaleMapBean)requireNonNull(table.getLruCache().get(1)).getValue())).getMap().get(1L) == null);
 
 			// 3.【陈旧引用编辑】事务里编辑已删bean：经parent链collect进LogMap2.changed
 			//    （changed非空证明场景真实），但encode时key 1L已不在最终map。

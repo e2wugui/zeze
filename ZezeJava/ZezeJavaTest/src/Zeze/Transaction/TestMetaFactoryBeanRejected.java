@@ -17,7 +17,6 @@ import demo.Module1.AutoKey;
 import demo.Module1.BValue;
 import demo.Module1.Key;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -31,11 +30,11 @@ public class TestMetaFactoryBeanRejected {
 
 	public static class MyBean extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 

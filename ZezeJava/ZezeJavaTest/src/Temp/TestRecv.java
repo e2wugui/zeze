@@ -7,10 +7,9 @@ import Zeze.Net.Selectors;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 public class TestRecv extends Service {
-	public TestRecv(@NotNull String name) {
+	public TestRecv(String name) {
 		super(name);
 
 		var config = new Selectors.Config();
@@ -31,14 +30,14 @@ public class TestRecv extends Service {
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		System.out.println("accept");
 		((TcpSocket)so).setInputSecurityCodec(1, new byte[]{1}, 1);
 
 	}
 
 	@Override
-	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
+	public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Exception {
 		if (input.size() >= 2 * 1024 * 1024) {
 			System.out.println("recv: " + input.size());
 			input.ReadIndex = input.WriteIndex;

@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import java.lang.ref.WeakReference;
@@ -12,6 +14,7 @@ import Zeze.Util.WeakHashSet;
 import org.junit.jupiter.api.Assertions;
 
 @Fast
+@NullMarked
 public class TestLock {
 
 	@Test

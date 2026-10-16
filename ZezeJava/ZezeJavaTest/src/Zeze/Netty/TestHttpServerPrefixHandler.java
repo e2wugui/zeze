@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -13,7 +17,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,12 +30,12 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestHttpServerPrefixHandler {
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
-	private static HttpHandler hExact;
-	private static HttpHandler hPrefixA;
-	private static HttpHandler hPrefixABC;
+	private static @Nullable HttpHandler hExact;
+	private static @Nullable HttpHandler hPrefixA;
+	private static @Nullable HttpHandler hPrefixABC;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -51,15 +54,15 @@ public class TestHttpServerPrefixHandler {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	// 纯逻辑断言:不依赖网络,直接覆盖getHandler的各种匹配分支
 	@Test
 	public void testGetHandlerLogic() {
 		// 嵌套前缀漏配场景(核心缺陷):floorEntry("/abd")="/abc"非前缀,必须回退命中"/a"
-		Assertions.assertSame(hPrefixA, server.getHandler("/abd"));
+		Assertions.assertSame(hPrefixA, requireNonNull(server).getHandler("/abd"));
 
 		// 最长前缀优先:/abcd先命中"/abc"
 		Assertions.assertSame(hPrefixABC, server.getHandler("/abcd"));
@@ -96,7 +99,7 @@ public class TestHttpServerPrefixHandler {
 		Assertions.assertNull(new HttpServer().getHandler("/x"));
 	}
 
-	private static @NotNull HttpHandler newHandler() {
+	private static HttpHandler newHandler() {
 		return new HttpHandler(0, TransactionLevel.None, DispatchMode.Direct, x -> {
 		});
 	}

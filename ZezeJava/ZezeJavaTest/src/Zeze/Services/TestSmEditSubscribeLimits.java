@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -42,7 +46,7 @@ import harness.Fast;
 public class TestSmEditSubscribeLimits {
 	// 固定端口契约见TestTakeoverIdentifySuspect；26114避开26110-26113。
 	private static final int PORT = 26114;
-	private static ServiceManagerServer sm;
+	private static @Nullable ServiceManagerServer sm;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -179,7 +183,7 @@ public class TestSmEditSubscribeLimits {
 			states.clear();
 			// 3个空壳+1个非空壳（含注册）+1个目标名占位。
 			for (var i = 0; i < 3; i++)
-				states.put("smedit-idle-" + i, new ServiceManagerServer.ServiceState(sm, "smedit-idle-" + i));
+				states.put("smedit-idle-" + i, new ServiceManagerServer.ServiceState(requireNonNull(sm), "smedit-idle-" + i));
 			states.put("smedit-live", new ServiceManagerServer.ServiceState(sm, "smedit-live"));
 			states.get("smedit-live").getServiceInfos().put(1L, new HashMap<>()); // 非空壳：有注册
 			states.put("smedit-target", new ServiceManagerServer.ServiceState(sm, "smedit-target"));

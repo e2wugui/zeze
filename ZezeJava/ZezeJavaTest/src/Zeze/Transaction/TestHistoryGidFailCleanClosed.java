@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Path;
 
 import harness.Fast;
@@ -30,8 +34,8 @@ public class TestHistoryGidFailCleanClosed {
 	@TempDir
 	Path tempDir;
 
-	private Application app;
-	private demo.Module1.tflush table;
+	private @Nullable Application app;
+	private demo.Module1.@Nullable tflush table;
 
 	private void startApp(boolean history) throws Exception {
 		var config = new Config();
@@ -54,14 +58,14 @@ public class TestHistoryGidFailCleanClosed {
 	}
 
 	private long runInTransaction(FuncLong action) {
-		return app.newProcedure(action, "TestHistoryGidFailClean").call();
+		return requireNonNull(app).newProcedure(action, "TestHistoryGidFailClean").call();
 	}
 
 	private long insert(long key, long value) {
 		var b = new demo.Module1.BValue();
 		b.setLong2(value);
 		return runInTransaction(() -> {
-				table.insert(key, b);
+				requireNonNull(table).insert(key, b);
 				return 0L;
 			});
 	}
@@ -70,7 +74,7 @@ public class TestHistoryGidFailCleanClosed {
 	private long readValue(long key) {
 		final var out = new long[]{-1};
 		var rc = runInTransaction(() -> {
-			var v = table.get(key);
+			var v = requireNonNull(table).get(key);
 			if (v != null)
 				out[0] = v.getLong2();
 			return 0L;
@@ -88,7 +92,7 @@ public class TestHistoryGidFailCleanClosed {
 			Assertions.assertEquals(100, readValue(KEY));
 
 			// 下次启动装配 History，取号通道必失败：业务数据应用前干净回滚。
-			app.stop();
+			requireNonNull(app).stop();
 			startApp(true);
 			Assertions.assertEquals(Procedure.Closed, insert(KEY2, 200),
 					"取号失败必须干净失败（修复前：Immediately 补刷数据后吞异常报假成功 Success）");
@@ -98,12 +102,12 @@ public class TestHistoryGidFailCleanClosed {
 			// 运行期改配置不能卸载已装配的 History，也不能绕过失败。
 			app.getConfig().setHistory("");
 			Assertions.assertEquals(Procedure.Closed, insert(KEY2, 200));
-			app.stop();
+			requireNonNull(app).stop();
 			startApp(false);
 			Assertions.assertEquals(Procedure.Success, insert(KEY2, 200), "history 关闭后写事务恢复成功");
 			Assertions.assertEquals(200, readValue(KEY2));
 		} finally {
-			app.stop();
+			requireNonNull(app).stop();
 		}
 	}
 }

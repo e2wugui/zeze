@@ -1,5 +1,6 @@
 package harness.proc;
 
+import java.util.Objects;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +46,7 @@ public final class Procs {
 	private static String specFreeClasspath() {
 		var cp = System.getProperty("java.class.path");
 		if (cp == null || !cp.contains(" "))
-			return cp;
+			return Objects.requireNonNull(cp);
 		var kept = new ArrayList<String>();
 		for (var entry : cp.split(File.pathSeparator))
 			if (!entry.contains(" "))

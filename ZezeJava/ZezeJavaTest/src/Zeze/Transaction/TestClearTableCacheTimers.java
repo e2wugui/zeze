@@ -1,5 +1,11 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,6 +31,7 @@ import org.junit.jupiter.api.Test;
  * 同名表会报duplicate table id。
  */
 @Fast
+@NullMarked
 public class TestClearTableCacheTimers {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2组：300/400/500/600起；本类700起）。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_CLEAR_TABLE_CACHE_TIMERS);
@@ -40,7 +47,7 @@ public class TestClearTableCacheTimers {
 		return new Application("TestClearTableCacheTimers@" + conf.getServerId(), conf);
 	}
 
-	private static Object getField(Object obj, String name) throws ReflectiveOperationException {
+	private static @Nullable Object getField(Object obj, String name) throws ReflectiveOperationException {
 		for (Class<?> c = obj.getClass(); c != null; c = c.getSuperclass()) {
 			try {
 				Field f = c.getDeclaredField(name);
@@ -86,7 +93,7 @@ public class TestClearTableCacheTimers {
 			}, "TestClearTableCacheTimers.put")).call();
 			Assertions.assertEquals(0L, rc);
 			app.checkpointRun();
-			Assertions.assertEquals(43, table.selectFromDatabase(key).getInt_1());
+			Assertions.assertEquals(43, requireNonNull(table.selectFromDatabase(key)).getInt_1());
 		} finally {
 			app.stop();
 		}
@@ -103,7 +110,7 @@ public class TestClearTableCacheTimers {
 			TableCache<?, ?> prev = table.getCache();
 			for (int i = 0; i < 5; i++) {
 				table.__ClearTableCacheUnsafe__();
-				Assertions.assertTrue(timersClosed(prev), "第" + i + "次重建后旧cache定时器必须全部取消");
+				Assertions.assertTrue(timersClosed(requireNonNull(prev)), "第" + i + "次重建后旧cache定时器必须全部取消");
 				prev = table.getCache();
 			}
 		} finally {

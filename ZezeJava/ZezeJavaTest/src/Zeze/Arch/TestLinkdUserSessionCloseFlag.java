@@ -5,8 +5,7 @@ import java.net.SocketAddress;
 import java.util.List;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.TimeThrottle;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -67,7 +66,7 @@ public class TestLinkdUserSessionCloseFlag {
 	}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 	}

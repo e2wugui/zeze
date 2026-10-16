@@ -1,12 +1,12 @@
 package Zezex;
 
+import java.util.Objects;
 import Zeze.Component.TestBean;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer;
@@ -56,7 +56,7 @@ public class TestGameTimer {
 		}
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -76,14 +76,14 @@ public class TestGameTimer {
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
-			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			ZezexTestEnv.auth(Objects.requireNonNull(client0.onLinkConnectedFuture).get(), client0, "account0");
 			var role = ZezexTestEnv.getRole(client0);
 			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role0");
 			ZezexTestEnv.login(client0, roleId);
 
-			var timerRole0 = timer0.getRoleTimer();
+			var timerRole0 = Objects.requireNonNull(timer0).getRoleTimer();
 			TestBean bean = new TestBean();
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				//timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, bean);
 				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1).period(1).times(5).endTime(System.currentTimeMillis() + 2000),
 					TestOnlineTimerHandle.class, bean);
@@ -96,14 +96,14 @@ public class TestGameTimer {
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
-			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
+			ZezexTestEnv.auth(Objects.requireNonNull(client1.onLinkConnectedFuture).get(), client1, "account0");
 			ZezexTestEnv.login(client1, roleId);
 			Thread.sleep(200); // 负向断言稳定窗：被踢的timer若残留触发应在此窗内出现
 			Assertions.assertEquals(5, bean.getTestValue()); // 确保客户端0的timer被踢掉了【不变】
 			log("测试二通过");
 
 			TestBean namedBean = new TestBean();
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, namedBean);
 				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
 					TimerSpec.ofDelay(100).period(100).times(5).endTime(System.currentTimeMillis() + 2000),
@@ -112,7 +112,7 @@ public class TestGameTimer {
 			}, "testOnlineWithBean").call());
 			// 在过程中完后注册同名NamedTimer，应该失败
 			TestBean newNamedBean1 = new TestBean();
-			Assertions.assertEquals(Procedure.Exception, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Exception, server0.getZeze().newProcedure(() -> {
 				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 5, System.currentTimeMillis() + 5000, TestOnlineTimerHandle.class, newNamedBean1);
 				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
 					TimerSpec.ofDelay(100).period(100).times(5).endTime(System.currentTimeMillis() + 5000),
@@ -129,7 +129,7 @@ public class TestGameTimer {
 
 			// 在执行完后注册同名NamedTimer，应该成功
 			TestBean newNamedBean2 = new TestBean();
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 10, System.currentTimeMillis() + 5000, TestOnlineTimerHandle.class, newNamedBean2);
 				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
 					TimerSpec.ofDelay(100).period(100).times(10).endTime(System.currentTimeMillis() + 5000),
@@ -153,7 +153,7 @@ public class TestGameTimer {
 		}
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -173,11 +173,11 @@ public class TestGameTimer {
 			var server0 = env.servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
 
-			var timerRole0 = timer0.getRoleTimer();
+			var timerRole0 = Objects.requireNonNull(timer0).getRoleTimer();
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
-			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account1");
+			ZezexTestEnv.auth(Objects.requireNonNull(client0.onLinkConnectedFuture).get(), client0, "account1");
 			var role = ZezexTestEnv.getRole(client0);
 			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role1");
 			ZezexTestEnv.login(client0, roleId);
@@ -186,7 +186,7 @@ public class TestGameTimer {
 			ZezexTestEnv.logout(client0, roleId);
 
 			TestBean bean = new TestBean();
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				//timerRole0.scheduleOffline(roleId, 100, 100, 10, System.currentTimeMillis() + 5000, TestOfflineTimerHandle.class, bean);
 				timerRole0.scheduleOffline(roleId, TimerSpec.ofDelay(100).period(100).times(10).endTime(System.currentTimeMillis() + 5000),
 					TestOfflineTimerHandle.class, bean);
@@ -199,7 +199,7 @@ public class TestGameTimer {
 
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
-			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account1");
+			ZezexTestEnv.auth(Objects.requireNonNull(client1.onLinkConnectedFuture).get(), client1, "account1");
 			ZezexTestEnv.login(client1, roleId);
 		} catch (Throwable e) {
 			env.markDirty();

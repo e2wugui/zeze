@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.io.File;
 import java.nio.file.Path;
@@ -141,7 +143,7 @@ public class TestPrefixWalkDescCursorAboveRange {
 		} finally {
 			for (var dbh2 : nodes) {
 				dbh2.close();
-				LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+				LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 			}
 			agent.close();
 			rocks.close();

@@ -1,5 +1,6 @@
 package Benchmark;
 
+import org.jspecify.annotations.Nullable;
 import demo.Module1.BValue;
 import harness.Bench;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ public class BenchBeanConstruct {
 			= Map2Meta.get(Long.class, demo.Module2.BValue.class);
 
 	// 防止 JIT 对未逃逸对象做标量替换/死码消除，三列同付一次写，保持公平。
-	private static volatile Object last;
+	private static volatile @Nullable Object last;
 
 	@Test
 	public void testBvalueNew() {

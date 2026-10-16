@@ -11,8 +11,7 @@ import Zeze.Net.DatagramSession;
 import Zeze.Net.Service;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +33,7 @@ public class TestDatagramSocketCloseCreate {
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			if (so instanceof DatagramSession ds)
 				closedSessions.add(ds);
 			super.OnSocketClose(so, e);
@@ -75,8 +74,8 @@ public class TestDatagramSocketCloseCreate {
 				final var tokenId = 1000 + round;
 				var socket = service.bindUdp(new InetSocketAddress(0));
 				var barrier = new CountDownLatch(1);
-				var created = new AtomicReference<DatagramSession>();
-				var failure = new AtomicReference<IllegalStateException>();
+				var created = new AtomicReference<@Nullable DatagramSession>();
+				var failure = new AtomicReference<@Nullable IllegalStateException>();
 				var creator = new Thread(() -> {
 					try {
 						barrier.await();

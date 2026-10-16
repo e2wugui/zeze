@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState;
@@ -36,9 +38,9 @@ public class TestRaftExpectedTermCommit {
 		var rocks = new Rocks(null, RocksMode.Pessimism, config, new Config(), false);
 		try {
 			rocks.registerTableTemplate("ExpectedTerm", Integer.class, BAcquiredState.class);
-			var table = rocks.<Integer, BAcquiredState>getTableTemplate("ExpectedTerm").openTable();
+			var table = requireNonNull(rocks.<Integer, BAcquiredState>getTableTemplate("ExpectedTerm")).openTable();
 			var raft = rocks.getRaft();
-			var sequence = raft.getLogSequence();
+			var sequence = requireNonNull(raft).getLogSequence();
 			var commitActions = new AtomicInteger();
 			var rollbackActions = new AtomicInteger();
 			raft.lock();
@@ -51,7 +53,7 @@ public class TestRaftExpectedTermCommit {
 				var expectedTerm = sequence.getTerm();
 				var previousIndex = sequence.getLastIndex();
 				var procedure = rocks.newProcedure(() -> {
-					Transaction.getCurrent().runWhileCommit(commitActions::incrementAndGet);
+					requireNonNull(Transaction.getCurrent()).runWhileCommit(commitActions::incrementAndGet);
 					Transaction.getCurrent().runWhileRollback(rollbackActions::incrementAndGet);
 					table.put(1, new BAcquiredState(1));
 					sequence.trySetTerm(expectedTerm + 1);

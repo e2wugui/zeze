@@ -1,5 +1,9 @@
 package Zeze.Hot;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,8 +51,8 @@ public class TestHotTryDistributeGuard {
 	@TempDir
 	static Path tempDir;
 
-	private static Application app;
-	private static AppBase appBase;
+	private static @Nullable Application app;
+	private static @Nullable AppBase appBase;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -68,7 +72,7 @@ public class TestHotTryDistributeGuard {
 		field.set(app, new Checkpoint(app, CheckpointMode.Table, 0));
 		appBase = new AppBase() {
 			@Override
-			public Application getZeze() {
+			public @Nullable Application getZeze() {
 				return app;
 			}
 		};
@@ -87,7 +91,7 @@ public class TestHotTryDistributeGuard {
 	public void testBadPackageNoSchemasJar() throws Exception {
 		var workingDir = newHotDirs("w1");
 		var distributeDir = workingDir.resolve("distributes");
-		var manager = new HotManager(appBase, workingDir.toString(), distributeDir.toString());
+		var manager = new HotManager(requireNonNull(appBase), workingDir.toString(), distributeDir.toString());
 		// 坏包：有 ready，但没有任何 __hot_schemas__*.jar（也没有模块 jar 对）。
 		var ready = distributeDir.resolve("ready");
 		Files.writeString(ready, "#unit-test\n");
@@ -117,7 +121,7 @@ public class TestHotTryDistributeGuard {
 	public void testTimerSkipsActiveSessionReady() throws Exception {
 		var workingDir = newHotDirs("w3");
 		var distributeDir = workingDir.resolve("distributes");
-		var manager = new HotManager(appBase, workingDir.toString(), distributeDir.toString());
+		var manager = new HotManager(requireNonNull(appBase), workingDir.toString(), distributeDir.toString());
 		var ready = distributeDir.resolve("ready");
 		Files.writeString(ready, "#unit-test\n");
 		// 活跃发布会话：setPrepare 置 state=ePrepare（真实流程中 TryDistribute 在创建
@@ -145,9 +149,9 @@ public class TestHotTryDistributeGuard {
 		var peak = new AtomicInteger();
 		// 匿名子类把 installReadies 变成可控的“慢安装”：记录并发进入数并阻塞到放行，
 		// tryDistribute 的其余部分（互斥锁、ready 检查、失败清理）全部走真实代码。
-		var manager = new HotManager(appBase, workingDir.toString(), distributeDir.toString()) {
+		var manager = new HotManager(requireNonNull(appBase), workingDir.toString(), distributeDir.toString()) {
 			@Override
-			public ArrayList<HotModule> installReadies(boolean atomicAll) {
+			public @Nullable ArrayList<HotModule> installReadies(boolean atomicAll) {
 				inInstall.incrementAndGet();
 				peak.accumulateAndGet(inInstall.get(), Math::max);
 				entered.countDown();

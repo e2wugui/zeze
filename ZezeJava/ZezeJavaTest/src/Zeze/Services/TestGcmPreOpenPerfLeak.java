@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import harness.Fast;
@@ -54,7 +56,7 @@ public class TestGcmPreOpenPerfLeak {
 		return conf;
 	}
 
-	private static Object perfOf(Object gcm) throws Exception {
+	private static @Nullable Object perfOf(Object gcm) throws Exception {
 		var field = gcm.getClass().getDeclaredField("perf");
 		field.setAccessible(true);
 		return field.get(gcm);

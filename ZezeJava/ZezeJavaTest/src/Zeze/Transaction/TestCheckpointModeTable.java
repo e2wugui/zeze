@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -8,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import Zeze.Transaction.Procedure;
 
+@NullMarked
 public class TestCheckpointModeTable{
 
 	@BeforeEach
@@ -21,16 +26,16 @@ public class TestCheckpointModeTable{
 	}
 
 	private static void Check(int expect) throws Exception {
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+					var value = requireNonNull(demo.App.getInstance().demo_Module1).getTableImportant().getOrAdd(1L);
 					return value.getInt_1() == expect ? Procedure.Success : Procedure.LogicError;
 		}, "TestCheckpointModeTable.Check").call());
 	}
 
 	@Test
 	public final void test1() throws Exception {
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+					var value = requireNonNull(demo.App.getInstance().demo_Module1).getTableImportant().getOrAdd(1L);
 					value.setInt_1(0);
 					return Procedure.Success;
 		}, "TestCheckpointModeTable.Init").call());
@@ -73,13 +78,13 @@ public class TestCheckpointModeTable{
 	}
 
 	private static long Add() {
-		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
+		var value = requireNonNull(demo.App.getInstance().demo_Module1).getTableImportant().getOrAdd(1L);
 		value.setInt_1 (value.getInt_1() + 1);
 		return Procedure.Success;
 	}
 
 	private static long Add2() {
-		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
+		var value = requireNonNull(demo.App.getInstance().demo_Module1).getTableImportant().getOrAdd(1L);
 		value.setInt_1(value.getInt_1() + 1);
 		var value2 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 		value2.setInt_1 ( value2.getInt_1() + 1);

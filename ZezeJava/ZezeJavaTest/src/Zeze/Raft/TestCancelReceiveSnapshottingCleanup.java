@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
@@ -28,8 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestCancelReceiveSnapshottingCleanup {
 	private static final String dbHome = "CancelCleanup.raft";
 
-	private Raft raft;
-	private RandomAccessFile file;
+	private @Nullable Raft raft;
+	private @Nullable RandomAccessFile file;
 
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""

@@ -1,9 +1,10 @@
 package Benchmark;
+
+import java.util.Objects;
 import harness.Bench;
 import harness.MacroBench;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Util.TaskSpec;
@@ -45,13 +46,13 @@ public class HReadOnlyConcurrent {
 		try {
 			prepare();
 			if (flushAfterPrepare)
-				App.Instance.Zeze.checkpointRun();
+				App.Instance.getZeze().checkpointRun();
 			MacroBench.run(name, Warmups, Rounds, TxnCount, () -> {
 				var tasks = new ArrayList<Future<?>>(Batch);
 				for (int i = 0; i < TxnCount; ++i) {
 					final long key = i % Keys;
 					tasks.add(TaskSpec.ofProcedure(
-							App.Instance.Zeze.newProcedure(() -> Read(key), "read")).submitNow());
+							App.Instance.getZeze().newProcedure(() -> Read(key), "read")).submitNow());
 					if ((i + 1) % Batch == 0) {
 						for (var task : tasks)
 							task.get();
@@ -61,7 +62,7 @@ public class HReadOnlyConcurrent {
 				for (var task : tasks)
 					task.get();
 			});
-			App.Instance.Zeze.newProcedure(HReadOnlyConcurrent::Check, "check").call();
+			App.Instance.getZeze().newProcedure(HReadOnlyConcurrent::Check, "check").call();
 			clearAll();
 		} finally {
 			//App.Instance.Stop();
@@ -74,7 +75,7 @@ public class HReadOnlyConcurrent {
 	private static long Read(long key) {
 		// 真读路径：get()（可空）而非 getOrAdd()——后者带创建语义，掩盖只读锁路径。
 		// 累加用 LongAdder：池线程热路径上的单 AtomicLong 会缓存行争串行化，污染吞吐
-		var r = App.Instance.demo_Module1.getTable1().get(key);
+		var r = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().get(key);
 		if (r == null)
 			missCount.incrementAndGet();
 		else
@@ -90,8 +91,8 @@ public class HReadOnlyConcurrent {
 		// 是真实的负载病理（全服批量事务后的并发读热点），但其度量属专门变体，不混入本场景。
 		for (long key = 0; key < Keys; ++key) {
 			final long k = key;
-			App.Instance.Zeze.newProcedure(() -> {
-				App.Instance.demo_Module1.getTable1().getOrAdd(k).setLong2(k);
+			App.Instance.getZeze().newProcedure(() -> {
+				Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(k).setLong2(k);
 				return 0L;
 			}, "prepare").call();
 		}
@@ -108,9 +109,9 @@ public class HReadOnlyConcurrent {
 
 	private static void clearAll() throws Exception {
 		readSum.reset();
-		App.Instance.Zeze.newProcedure(() -> {
+		App.Instance.getZeze().newProcedure(() -> {
 			for (long key = 0; key < Keys; ++key)
-				App.Instance.demo_Module1.getTable1().remove(key);
+				Objects.requireNonNull(App.Instance.demo_Module1).getTable1().remove(key);
 			return 0L;
 		}, "clear").call();
 	}

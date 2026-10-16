@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 
 import harness.Fast;
@@ -98,7 +100,7 @@ public class TestAppendEntriesCommitUpToMatch {
 						"commit must be bounded by this batch's matched tail, not local lastIndex");
 				assertEquals(1L, logSequence.getLastApplied(),
 						"old fork suffix must not be applied");
-				assertEquals(2, logSequence.readLog(3).getTerm(),
+				assertEquals(2, requireNonNull(logSequence.readLog(3)).getTerm(),
 						"old fork suffix must survive until a later batch overwrites it");
 
 				// 后续批次覆盖分叉后缀并完成追赶：合法覆盖不得被"已提交"挡住。
@@ -107,7 +109,7 @@ public class TestAppendEntriesCommitUpToMatch {
 
 				assertEquals(3L, logSequence.getCommitIndex());
 				assertEquals(3L, logSequence.getLastApplied());
-				assertEquals(3, logSequence.readLog(2).getTerm(), "fork suffix must be overwritten by the leader's entries");
+				assertEquals(3, requireNonNull(logSequence.readLog(2)).getTerm(), "fork suffix must be overwritten by the leader's entries");
 			} finally {
 				raft.unlock();
 			}

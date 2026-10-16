@@ -10,8 +10,7 @@ import Zeze.Net.TcpSocket;
 import Zeze.Util.CommandConsoleService;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -29,14 +28,14 @@ public class TestCommandConsoleNotReadyClose {
 
 	/** 捕获OnSocketClose原因的CommandConsoleService。 */
 	private static final class CloseReasonService extends CommandConsoleService {
-		final AtomicReference<Throwable> closeReason = new AtomicReference<>();
+		final AtomicReference<@Nullable Throwable> closeReason = new AtomicReference<>();
 
 		CloseReasonService(String name, Config config) {
 			super(name, config);
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			closeReason.compareAndSet(null, e);
 			super.OnSocketClose(so, e);
 		}

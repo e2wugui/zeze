@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import Zeze.BMyBean;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("DataFlowIssue")
 @Fast
+@NullMarked
 public class TestBegin {
 	private final Locks Locks = new Locks();
 

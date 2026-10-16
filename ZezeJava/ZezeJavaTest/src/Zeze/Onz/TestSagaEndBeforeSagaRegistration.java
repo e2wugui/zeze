@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,14 +38,14 @@ public class TestSagaEndBeforeSagaRegistration extends AppBase {
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_SAGA_END_BEFORE_SAGA_REGISTRATION);
 	private static final String ProcName = "r3cD1SagaEndBeforeSaga";
 
-	private Application zeze;
-	private Onz onz;
+	private @Nullable Application zeze;
+	private @Nullable Onz onz;
 	final AtomicInteger bizRuns = new AtomicInteger();
 	final AtomicInteger cancelRuns = new AtomicInteger();
 
 	@Override
 	public Application getZeze() {
-		return zeze;
+		return requireNonNull(zeze);
 	}
 
 	@BeforeEach
@@ -58,7 +62,7 @@ public class TestSagaEndBeforeSagaRegistration extends AppBase {
 		zeze.initialize(this);
 		zeze.start();
 		onz = zeze.getOnz();
-		onz.registerSaga(ProcName,
+		requireNonNull(onz).registerSaga(ProcName,
 				(saga, argument, result) -> {
 					bizRuns.incrementAndGet();
 					return 0;
@@ -87,7 +91,7 @@ public class TestSagaEndBeforeSagaRegistration extends AppBase {
 		endFirst.Argument.setOnzTid(tid);
 		endFirst.Argument.setCancel(true);
 		Assertions.assertEquals(AbstractOnz.eSagaNotFound,
-				Zeze.IModule.getErrorCode(onz.ProcessFuncSagaEndRequest(endFirst)),
+				Zeze.IModule.getErrorCode(requireNonNull(onz).ProcessFuncSagaEndRequest(endFirst)),
 				"乱序窗口：注册前的FuncSagaEnd必须应答eSagaNotFound（线上为moduleId组合值，解码后断言；协调者据此单次延迟重试）");
 
 		// 迟到的 FuncSaga：注册上下文并执行业务。
@@ -100,7 +104,7 @@ public class TestSagaEndBeforeSagaRegistration extends AppBase {
 		sagaRpc.Argument.setOnzTid(tid);
 		sagaRpc.Argument.setFuncName(ProcName);
 		sagaRpc.Argument.setFuncArgument(new Zeze.Net.Binary(java.util.Arrays.copyOf(bb.Bytes, bb.WriteIndex)));
-		var rc = onz.ProcessFuncSagaRequest(sagaRpc);
+		var rc = requireNonNull(onz).ProcessFuncSagaRequest(sagaRpc);
 		Assertions.assertEquals(0L, rc, "迟到FuncSaga的业务必须成功执行");
 		Assertions.assertEquals(1, bizRuns.get(), "业务必须真正执行过");
 		Assertions.assertNotNull(sagasMap().get(tid), "业务成功后上下文留存（等待补偿/结束）");
@@ -109,7 +113,7 @@ public class TestSagaEndBeforeSagaRegistration extends AppBase {
 		var endRetry = new FuncSagaEnd();
 		endRetry.Argument.setOnzTid(tid);
 		endRetry.Argument.setCancel(true);
-		Assertions.assertEquals(0L, onz.ProcessFuncSagaEndRequest(endRetry), "重试的补偿必须成功");
+		Assertions.assertEquals(0L, requireNonNull(onz).ProcessFuncSagaEndRequest(endRetry), "重试的补偿必须成功");
 		Assertions.assertEquals(1, cancelRuns.get(), "补偿函数必须真正执行过");
 		Assertions.assertNull(sagasMap().get(tid), "补偿成功后上下文必须清理");
 	}

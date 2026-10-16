@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.InvocationTargetException;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -58,7 +60,7 @@ public class TestArchReliableQueueIdentity {
 		var online = constructor.newInstance(appBase);
 		try {
 			app.start();
-			var legacy = app.getQueueModule().open("Zeze.Arch.Online.ReliableNotifyQueue:a:b:c", BNotify.class);
+			var legacy = requireNonNull(app.getQueueModule()).open("Zeze.Arch.Online.ReliableNotifyQueue:a:b:c", BNotify.class);
 			assertEquals(0, app.newProcedure(() -> {
 				var firstLogin = online.getOrAddOnline("a:b").getLogins().getOrAdd("c");
 				firstLogin.setReliableNotifyIndex(9);

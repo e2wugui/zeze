@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,7 +40,7 @@ public class TestPMap2PutAllAfterInPlaceModify {
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		var app = new Application("TestPMap2PutAllInPlace" + serverId, conf);
 		app.setSchemas(new demo.Schemas());
-		app.addTable(conf.getTableConf("demo_Module1_tflush").getDatabaseName(), new tflush());
+		app.addTable(requireNonNull(conf.getTableConf("demo_Module1_tflush")).getDatabaseName(), new tflush());
 		app.start();
 		return app;
 	}
@@ -55,22 +57,22 @@ public class TestPMap2PutAllAfterInPlaceModify {
 		var table = (tflush)app.getTable("demo_Module1_tflush");
 		try {
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				table.getOrAdd(1L).getMap41().put(1L, bean(5));
+				requireNonNull(table).getOrAdd(1L).getMap41().put(1L, bean(5));
 				table.getOrAdd(1L).getSortedmap2().put(1, bean(5));
 				return Procedure.Success;
 			}, "seed").call());
 
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
 				// PMap2路径
-				var map = table.getOrAdd(1L).getMap41();
-				var logKey = map.parent().objectId() + map.variableId();
-				Assertions.assertNull(Transaction.getCurrent().getLog(logKey), "操作前不得有日志");
-				map.get(1L).setInt_1(42); // 原位修改：changed按身份关联当前值
+				var map = requireNonNull(table).getOrAdd(1L).getMap41();
+				var logKey = requireNonNull(map.parent()).objectId() + map.variableId();
+				Assertions.assertNull(requireNonNull(Transaction.getCurrent()).getLog(logKey), "操作前不得有日志");
+				requireNonNull(map.get(1L)).setInt_1(42); // 原位修改：changed按身份关联当前值
 				var fresh = bean(42);      // 与修改后内容equals相等的新实例
 				map.putAll(Map.of(1L, fresh));
 
 				var log = (LogMap2<Long, BSimple>)Transaction.getCurrent().getLog(logKey);
-				Assertions.assertTrue(log.getReplaced().containsKey(1L),
+				Assertions.assertTrue(requireNonNull(log).getReplaced().containsKey(1L),
 						"PMap2：原位修改后putAll等值新实例，该键必须记入replaced"
 								+ "（值等过滤与changed身份过滤叠加会整体丢增量）");
 				Assertions.assertSame(fresh, log.getReplaced().get(1L), "记账携带新实例完整值");
@@ -78,22 +80,22 @@ public class TestPMap2PutAllAfterInPlaceModify {
 
 				// PSortedMap2同构路径
 				var smap = table.getOrAdd(1L).getSortedmap2();
-				var sLogKey = smap.parent().objectId() + smap.variableId();
+				var sLogKey = requireNonNull(smap.parent()).objectId() + smap.variableId();
 				Assertions.assertNull(Transaction.getCurrent().getLog(sLogKey), "操作前不得有日志");
-				smap.get(1).setInt_1(42);
+				requireNonNull(smap.get(1)).setInt_1(42);
 				var sFresh = bean(42);
 				smap.putAll(Map.of(1, sFresh));
 
 				var sLog = (LogSortedMap2<Integer, BSimple>)Transaction.getCurrent().getLog(sLogKey);
-				Assertions.assertTrue(sLog.getReplaced().containsKey(1),
+				Assertions.assertTrue(requireNonNull(sLog).getReplaced().containsKey(1),
 						"PSortedMap2：原位修改后putAll等值新实例，该键必须记入replaced");
 				Assertions.assertSame(sFresh, sLog.getReplaced().get(1));
 				return Procedure.Success;
 			}, "delta").call());
 
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				Assertions.assertEquals(42, table.getOrAdd(1L).getMap41().get(1L).getInt_1());
-				Assertions.assertEquals(42, table.getOrAdd(1L).getSortedmap2().get(1).getInt_1());
+				Assertions.assertEquals(42, requireNonNull(requireNonNull(table).getOrAdd(1L).getMap41().get(1L)).getInt_1());
+				Assertions.assertEquals(42, requireNonNull(table.getOrAdd(1L).getSortedmap2().get(1)).getInt_1());
 				return Procedure.Success;
 			}, "verify").call());
 		} finally {

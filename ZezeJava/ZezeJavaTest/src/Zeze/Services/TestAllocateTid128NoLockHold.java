@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -23,7 +27,6 @@ import Zeze.Services.ServiceManager.BUnSubscribeArgument;
 import Zeze.Services.ServiceManager.Id128UdpClient;
 import Zeze.Services.ServiceManager.Id128UdpServer;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -41,8 +44,8 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestAllocateTid128NoLockHold {
 	private static final String NAME = "UnitTest.Tid128NoLockHold";
-	private static Id128UdpServer server;
-	private static TestAgent agent;
+	private static @Nullable Id128UdpServer server;
+	private static @Nullable TestAgent agent;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -55,21 +58,21 @@ public class TestAllocateTid128NoLockHold {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		agent.client.stop();
-		server.stop();
+		requireNonNull(requireNonNull(agent).client).stop();
+		requireNonNull(server).stop();
 	}
 
 	// 不能把pending的future留给下一个测试（毒化释放可能的等待者）。
 	@AfterEach
 	public void completePendingFutures() {
-		var last = agent.getLastTid128CacheFuture(NAME);
+		var last = requireNonNull(agent).getLastTid128CacheFuture(NAME);
 		if (last != null && !last.isDone())
 			Assertions.assertTrue(last.setException(new TimeoutException("test cleanup")));
 	}
 
 	@Test
 	public void testSecondAllocateNotBlockOnPendingFuture() throws Exception {
-		var f1 = agent.allocateTid128CacheFuture(NAME, 200); // pending：工作线程未启动
+		var f1 = requireNonNull(agent).allocateTid128CacheFuture(NAME, 200); // pending：工作线程未启动
 		Assertions.assertFalse(f1.isDone(), "F1应在途（永久pending）");
 
 		// 上一个future在途时，第二个线程分配不得持锁死等。
@@ -80,7 +83,7 @@ public class TestAllocateTid128NoLockHold {
 			return t;
 		});
 		try {
-			var f2Alloc = pool.submit(() -> agent.allocateTid128CacheFuture(NAME, 0));
+			var f2Alloc = pool.submit(() -> requireNonNull(agent).allocateTid128CacheFuture(NAME, 0));
 			var f2 = Assertions.assertDoesNotThrow(() -> f2Alloc.get(2, TimeUnit.SECONDS),
 					"在途future上的并发分配不得持锁死等（FND3-39衍生）");
 			Assertions.assertNotSame(f1, f2);
@@ -93,7 +96,7 @@ public class TestAllocateTid128NoLockHold {
 
 	/** 只实现被测路径（同TestTid128CacheFuturePerName的桩）。 */
 	private static final class TestAgent extends AbstractAgent {
-		Id128UdpClient client;
+		@Nullable Id128UdpClient client;
 
 		private TestAgent() {
 			config = new Config();
@@ -105,13 +108,13 @@ public class TestAllocateTid128NoLockHold {
 		}
 
 		@Override
-		protected void allocate(@NotNull AutoKey autoKey, int pool) {
+		protected void allocate(AutoKey autoKey, int pool) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-										@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		protected boolean allocateAsync(String globalName, int allocCount,
+										ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -124,28 +127,28 @@ public class TestAllocateTid128NoLockHold {
 		}
 
 		@Override
-		public void editService(@NotNull BEditService arg) {
+		public void editService(BEditService arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
-				@NotNull BSubscribeArgument info) {
+		public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
+				BSubscribeArgument info) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+		public void unSubscribeService(BUnSubscribeArgument arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public boolean setServerLoad(@NotNull BServerLoad load) {
+		public boolean setServerLoad(BServerLoad load) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Threading getThreading() {
+		public Threading getThreading() {
 			throw new UnsupportedOperationException();
 		}
 

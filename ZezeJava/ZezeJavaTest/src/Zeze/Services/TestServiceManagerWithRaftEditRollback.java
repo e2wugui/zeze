@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
 import java.nio.file.Files;
@@ -43,7 +47,7 @@ public class TestServiceManagerWithRaftEditRollback {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
+	private static @Nullable Path raftXmlFile;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -86,14 +90,14 @@ public class TestServiceManagerWithRaftEditRollback {
 	public static void tearDown() throws Exception {
 		for (var rocks : rocksList) {
 			try {
-				rocks.getRaft().getServer().stop();
+				requireNonNull(rocks.getRaft()).getServer().stop();
 			} catch (Throwable ignored) {
 			}
 		}
 		for (var server : servers)
 			server.close();
 		servers.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new java.io.File(dbHome));
 		dbHomes.clear();
@@ -103,7 +107,7 @@ public class TestServiceManagerWithRaftEditRollback {
 	@Timeout(200)
 	public void testFailedEditRollsBackLocalRegisters() throws Exception {
 		var config = Config.load();
-		config.getServiceManagerConf().setRaftXml(raftXmlFile.toString());
+		requireNonNull(config.getServiceManagerConf()).setRaftXml(requireNonNull(raftXmlFile).toString());
 		config.getServiceManagerConf().setSessionName("UnitTest.EditRollback.Agent");
 		var agent = new ServiceManagerAgentWithRaft(config);
 		try {
@@ -123,7 +127,7 @@ public class TestServiceManagerWithRaftEditRollback {
 			var stopped = new ArrayList<Integer>();
 			for (int i = 0; i < servers.size(); i++)
 				if (i != leaderIdx) {
-					rocksList.get(i).getRaft().getServer().stop();
+					requireNonNull(rocksList.get(i).getRaft()).getServer().stop();
 					stopped.add(i);
 				}
 			try {
@@ -142,7 +146,7 @@ public class TestServiceManagerWithRaftEditRollback {
 			} finally {
 				// 恢复多数派：closeSession清理与后续重试才能收敛。
 				for (var i : stopped)
-					rocksList.get(i).getRaft().getServer().start();
+					requireNonNull(rocksList.get(i).getRaft()).getServer().start();
 			}
 		} finally {
 			// 先关agent触发服务端closeSession（多数派已恢复），定界等待会话清理收敛后再由

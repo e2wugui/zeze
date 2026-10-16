@@ -1,4 +1,6 @@
 package Zeze.Util;
+
+import static java.util.Objects.requireNonNull;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -31,7 +33,7 @@ public final class TestJsonUnquotSimpleEscape {
 	public void testEscapeAtKeyStart() throws ReflectiveOperationException {
 		// 转义出现在 key 首字符（\a 恒等解码为 'a'），key 解码后为 "abc"
 		Bean b = Json.parse("{\\abc:2}", Bean.class);
-		assertEquals(2, b.abc);
+		assertEquals(2, requireNonNull(b).abc);
 	}
 
 	@Test
@@ -40,7 +42,7 @@ public final class TestJsonUnquotSimpleEscape {
 		// 且 pos 正确前进、后继字段不受影响（修复前 key hash 错乱但不影响本断言，
 		// 本用例锁定"解码一次 + 词法边界正确"的组合行为）
 		Bean b = Json.parse("{a\\tbc:1,x:2}", Bean.class);
-		assertEquals(0, b.abc);
+		assertEquals(0, requireNonNull(b).abc);
 		assertEquals(2, b.x);
 	}
 
@@ -49,7 +51,7 @@ public final class TestJsonUnquotSimpleEscape {
 		// \\ 解码为单个反斜杠（key "a\b"）：转义的反斜杠恰好消费一次，
 		// 不把第二个 '\' 再当转义起点吞掉 'b' 重解码（修复前 hash 彻底错乱的族路径）
 		Bean b = Json.parse("{a\\\\b:1,x:3}", Bean.class);
-		assertEquals(0, b.abc);
+		assertEquals(0, requireNonNull(b).abc);
 		assertEquals(3, b.x);
 	}
 
@@ -57,7 +59,7 @@ public final class TestJsonUnquotSimpleEscape {
 	public void testUnicodeEscapeRegression() throws ReflectiveOperationException {
 		// 回归：'u' 路径（pos+=5）不受影响
 		Bean b = Json.parse("{\\u0061bc:4}", Bean.class);
-		assertEquals(4, b.abc);
+		assertEquals(4, requireNonNull(b).abc);
 	}
 
 	public static void main(String[] args) throws ReflectiveOperationException {

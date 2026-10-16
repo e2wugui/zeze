@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,16 +31,16 @@ public class TestRedirectAllCallbackFailureWakesWaiters {
 		var context = new RedirectAllContext<RedirectResult>(1, binary -> new RedirectResult());
 		long sessionId = service.addManualContextWithTimeout(context, 30_000);
 		var callbackCalls = new AtomicInteger();
-		context.getFuture().OnAllDone(done -> {
+		requireNonNull(context.getFuture()).OnAllDone(done -> {
 			callbackCalls.incrementAndGet();
 			throw new IllegalStateException("completion callback failed");
 		});
 
 		var returned = new CountDownLatch(1);
-		var waiterFailure = new AtomicReference<Throwable>();
+		var waiterFailure = new AtomicReference<@Nullable Throwable>();
 		var waiter = new Thread(() -> {
 			try {
-				context.getFuture().await();
+				requireNonNull(context.getFuture()).await();
 				returned.countDown();
 			} catch (Throwable e) {
 				waiterFailure.set(e);

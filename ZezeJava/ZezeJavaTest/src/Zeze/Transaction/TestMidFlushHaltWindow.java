@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -65,6 +69,7 @@ public class TestMidFlushHaltWindow {
 		final CountDownLatch entered = new CountDownLatch(1);
 		final CountDownLatch release = new CountDownLatch(1);
 
+		@SuppressWarnings("DataFlowIssue") // 此 fake 的 flush 路径只使用下方覆写的 isEnd/sendFlushReady。
 		StalledFlushOnz() {
 			super(null, null, null, null, null); // flush路径只使用isEnd/sendFlushReady
 		}
@@ -87,12 +92,12 @@ public class TestMidFlushHaltWindow {
 	public void testStopWaitsInFlightFlushBeforeCloseDb() throws Exception {
 		var checkpoint = app.getCheckpoint();
 		var onz = new StalledFlushOnz();
-		var flushError = new AtomicReference<Throwable>();
+		var flushError = new AtomicReference<@Nullable Throwable>();
 		var flushDone = new CountDownLatch(1);
 		var flushThread = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				// 空记录集：worker仍会打开LocalRocksCacheDb事务并到达Onz等待点——真实的在飞flush。
-				checkpoint.flush(List.<Record>of(), Set.<OnzProcedure>of(onz), null);
+				requireNonNull(checkpoint).flush(List.<Record>of(), Set.<OnzProcedure>of(onz), null);
 			} catch (Throwable e) {
 				flushError.set(e);
 			} finally {
@@ -102,7 +107,7 @@ public class TestMidFlushHaltWindow {
 		assertTrue(onz.entered.await(10, TimeUnit.SECONDS),
 				"flush必须进入worker内的Onz等待点（此时已打开LocalRocksCacheDb事务）");
 
-		var stopError = new AtomicReference<Throwable>();
+		var stopError = new AtomicReference<@Nullable Throwable>();
 		var stopThread = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				app.stop();

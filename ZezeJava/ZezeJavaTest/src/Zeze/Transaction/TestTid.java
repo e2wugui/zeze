@@ -1,10 +1,15 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.Objects;
 import Zeze.Transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@NullMarked
 public class TestTid {
 	@BeforeEach
 	public void before() throws Exception {
@@ -13,7 +18,7 @@ public class TestTid {
 
 	@Test
 	public void printTid() {
-		var tid = demo.App.getInstance().getZeze().getTransactionIdAutoKey().nextId();
+		var tid = requireNonNull(demo.App.getInstance().getZeze().getTransactionIdAutoKey()).nextId();
 		System.out.println("direct TransactionId=" + tid);
 		// 原先纯打印零断言（2026-09-20审核）：发号必须非零且单调
 		org.junit.jupiter.api.Assertions.assertNotEquals(0L, tid);

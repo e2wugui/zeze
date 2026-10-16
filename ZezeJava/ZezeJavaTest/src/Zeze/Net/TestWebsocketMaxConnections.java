@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
@@ -19,7 +21,6 @@ import Zeze.Net.WebsocketHandle;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +43,7 @@ public class TestWebsocketMaxConnections {
 		}
 
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) {
+		public void OnHandshakeDone(AsyncSocket so) {
 			handshakeDone.incrementAndGet();
 		}
 	}
@@ -64,16 +65,16 @@ public class TestWebsocketMaxConnections {
 		}
 	}
 
-	private static WebSocket.Listener silentListener(CountDownLatch closed) {
+	private static WebSocket.Listener silentListener(@Nullable CountDownLatch closed) {
 		return new WebSocket.Listener() {
 			@Override
-			public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+			public @Nullable CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
 				webSocket.request(1);
 				return null;
 			}
 
 			@Override
-			public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+			public @Nullable CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
 				if (closed != null)
 					closed.countDown();
 				return null;

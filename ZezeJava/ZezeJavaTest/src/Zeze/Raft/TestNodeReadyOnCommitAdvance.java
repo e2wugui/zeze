@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.util.Arrays;
 
@@ -57,7 +61,7 @@ public class TestNodeReadyOnCommitAdvance {
 		}
 	}
 
-	private Raft raft;
+	private @Nullable Raft raft;
 
 	@BeforeEach
 	public void setUp() {
@@ -67,7 +71,7 @@ public class TestNodeReadyOnCommitAdvance {
 
 	@AfterEach
 	public void tearDown() throws Exception {
-		raft.getLogSequence().close();
+		requireNonNull(raft).getLogSequence().close();
 		raft.shutdown();
 		LogSequence.deleteDirectory(new File(dbHome)); // best-effort
 	}

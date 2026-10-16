@@ -1,5 +1,6 @@
 package Game.Fight;
 
+
 public interface IFighter {
 	//BFighterId getId(); // 用来演示接口里面可以用Bean。
 

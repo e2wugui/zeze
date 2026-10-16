@@ -1,5 +1,7 @@
 package Temp;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -24,13 +26,13 @@ public class TestTransactionHalt {
 
 	private static long add() {
 		var rand = ThreadLocalRandom.current();
-		var r1 = App.Instance.demo_Module1.getTable1().getOrAdd(rand.nextLong(KEY_COUNT));
+		var r1 = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(rand.nextLong(KEY_COUNT));
 		var r3 = App.Instance.demo_Module1.getTable3().getOrAdd(rand.nextLong(KEY_COUNT));
 		r1.setInt_1(r1.getInt_1() + 1);
 		r3.setInt_1(r3.getInt_1() + 1);
 		Transaction.whileCommit(() -> {
 			counter.increment();
-			TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add")).run();
+			TaskSpec.ofProcedure(App.Instance.getZeze().newProcedure(TestTransactionHalt::add, "add")).run();
 		});
 		return 0L;
 	}
@@ -47,9 +49,9 @@ public class TestTransactionHalt {
 
 		var total1 = new OutInt();
 		var total3 = new OutInt();
-		App.Instance.Zeze.newProcedure(() -> {
+		App.Instance.getZeze().newProcedure(() -> {
 			for (long k = 0; k < KEY_COUNT; k++) {
-				total1.value += App.Instance.demo_Module1.getTable1().getOrAdd(k).getInt_1();
+				total1.value += Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(k).getInt_1();
 				total3.value += App.Instance.demo_Module1.getTable3().getOrAdd(k).getInt_1();
 			}
 			return 0L;
@@ -57,20 +59,20 @@ public class TestTransactionHalt {
 		if (total1.value != total3.value && args.length == 0)
 			throw new AssertionError("check failed: " + total1.value + " != " + total3.value);
 
-		App.Instance.Zeze.newProcedure(() -> {
+		App.Instance.getZeze().newProcedure(() -> {
 			for (long k = 0; k < KEY_COUNT; k++) {
-				App.Instance.demo_Module1.getTable1().getOrAdd(k).setInt_1(0);
+				Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(k).setInt_1(0);
 				App.Instance.demo_Module1.getTable3().getOrAdd(k).setInt_1(0);
 			}
 			return 0L;
 		}, "init").call();
 
 		// 基本不可能会发生这个情况：setLong2(0) 全部 flush 前就halt了。保险起见判断一下。
-		App.Instance.Zeze.checkpointRun();
+		App.Instance.getZeze().checkpointRun();
 
-		if (App.Instance.demo_Module1.getTable1().getDatabase() instanceof DatabaseRocksDb rocksDb) {
+		if (Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getDatabase() instanceof DatabaseRocksDb rocksDb) {
 			DatabaseRocksDb.verifyAction = () -> {
-				var table1 = App.Instance.demo_Module1.getTable1().getName();
+				var table1 = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getName();
 				var table3 = App.Instance.demo_Module1.getTable3().getName();
 				var query = new HashMap<String, Set<ByteBuffer>>();
 				var keys1 = query.computeIfAbsent(table1, key -> new HashSet<>());
@@ -93,7 +95,7 @@ public class TestTransactionHalt {
 			};
 		}
 		for (int i = 0; i < PROC_CONC; i++)
-			TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add")).run();
+			TaskSpec.ofProcedure(App.Instance.getZeze().newProcedure(TestTransactionHalt::add, "add")).run();
 
 		TaskSpec.ofAction(() -> {
 			System.out.println("transactions: " + counter.sum());
@@ -104,7 +106,7 @@ public class TestTransactionHalt {
 		Thread.sleep(Integer.MAX_VALUE);
 	}
 
-	public static int sum(Map<ByteBuffer, ByteBuffer> rs) {
+	public static int sum(@Nullable Map<ByteBuffer, ByteBuffer> rs) {
 		var sum = 0;
 		if (null != rs) {
 			//var sb = new StringBuilder(); sb.append("{");

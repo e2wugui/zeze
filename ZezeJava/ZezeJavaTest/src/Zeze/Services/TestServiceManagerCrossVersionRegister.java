@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 
 import org.junit.jupiter.api.Assertions;
@@ -45,7 +49,7 @@ public class TestServiceManagerCrossVersionRegister {
 		return new ServiceManagerServer.ServiceState(null, serviceName);
 	}
 
-	private static void assertBucketEmpty(BServiceInfos bucket, String msg) {
+	private static void assertBucketEmpty(@Nullable BServiceInfos bucket, String msg) {
 		Assertions.assertTrue(bucket == null || bucket.getSortedIdentities().isEmpty(), msg);
 	}
 
@@ -97,7 +101,7 @@ public class TestServiceManagerCrossVersionRegister {
 		Assertions.assertNull(state.findNewestInfos(), "注销后不能有任何非空版本桶（幽灵）");
 		Assertions.assertNull(state.findServiceInfoByIdentity("1"));
 		for (var it = state.getServiceInfosVersion().getInfosIterator(); it.moveToNext(); )
-			Assertions.assertTrue(it.value().getSortedIdentities().isEmpty(),
+			Assertions.assertTrue(requireNonNull(it.value()).getSortedIdentities().isEmpty(),
 					"identity=" + it.key() + " 的版本桶必须为空");
 	}
 

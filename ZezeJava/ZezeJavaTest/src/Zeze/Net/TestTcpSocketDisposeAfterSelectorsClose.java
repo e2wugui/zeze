@@ -1,5 +1,9 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.net.Socket;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -11,7 +15,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -29,7 +32,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 		var entered = new CountDownLatch(2);
 		var completed = new CountDownLatch(2);
 		var executions = new AtomicInteger();
-		var taskFailure = new AtomicReference<Throwable>();
+		var taskFailure = new AtomicReference<@Nullable Throwable>();
 		var firstWorker = new Thread(() -> first.addTask(() -> {
 			entered.countDown();
 			try {
@@ -126,7 +129,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 		var release = new CountDownLatch(1);
 		var firstClosed = new CountDownLatch(1);
 		var secondClosed = new CountDownLatch(1);
-		var taskFailure = new AtomicReference<Throwable>();
+		var taskFailure = new AtomicReference<@Nullable Throwable>();
 		var firstCloser = new Thread(() -> {
 			try {
 				selectors.close();
@@ -199,7 +202,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 		var beforeClose = new AtomicInteger();
 		var duringClose = new AtomicInteger();
 		var afterClose = new AtomicInteger();
-		var taskFailure = new AtomicReference<Throwable>();
+		var taskFailure = new AtomicReference<@Nullable Throwable>();
 		var closer = new Thread(() -> {
 			try {
 				selectors.close();
@@ -260,7 +263,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 		final CountDownLatch accepted = new CountDownLatch(1);
 		final CountDownLatch disposed = new CountDownLatch(1);
 		final AtomicInteger disposeCount = new AtomicInteger();
-		volatile TcpSocket socket;
+		volatile @Nullable TcpSocket socket;
 
 		DisposeService(Selectors selectors) {
 			super("test.dispose.stoppedSelectors");
@@ -268,14 +271,14 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 		}
 
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
 			socket = (TcpSocket)so;
 			accepted.countDown();
 		}
 
 		@Override
-		public void OnSocketDisposed(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketDisposed(AsyncSocket so) throws Exception {
 			if (so == socket) {
 				disposeCount.incrementAndGet();
 				try {
@@ -308,7 +311,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 		var selectors = new Selectors("test.dispose.stoppedSelectors", 1);
 		var selector = selectors.choice();
 		var service = new DisposeService(selectors);
-		var buffer = new AtomicReference<OutputBuffer>();
+		var buffer = new AtomicReference<@Nullable OutputBuffer>();
 		var rpc = new KeepAlive();
 		try {
 			var listener = (TcpSocket)service.newServerSocket("127.0.0.1", 0, null);
@@ -320,7 +323,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 				var input = new CloseCountingCodec();
 				var output = new CloseCountingCodec();
 				var installed = new CountDownLatch(2);
-				socket.setInputSecurityCodec((so, sink) -> {
+				requireNonNull(socket).setInputSecurityCodec((so, sink) -> {
 					installed.countDown();
 					return input;
 				});
@@ -336,7 +339,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 				selector.addTask(() -> {
 					// Use the owning thread to leave an actual pooled buffer and an in-flight context.
 					// No timeout is scheduled, so only socket disposal can complete this future.
-					buffer.get().put((byte)1);
+					requireNonNull(buffer.get()).put((byte)1);
 					rpc.setSender(socket);
 					rpc.setFuture(future);
 					rpc.setSessionId(service.addRpcContext(rpc));
@@ -347,7 +350,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 				selectors.close(); // Joins the event loop; subsequent disposal cannot depend on another event.
 				Assertions.assertFalse(selector.isAlive());
 				Assertions.assertFalse(socket.isClosed());
-				Assertions.assertEquals(1, buffer.get().size());
+				Assertions.assertEquals(1, requireNonNull(buffer.get()).size());
 
 				socket.close();
 				socket.close(); // Idempotence must hold even for a stopped-selector fallback.
@@ -356,7 +359,7 @@ public class TestTcpSocketDisposeAfterSelectorsClose {
 				Assertions.assertEquals(1, service.disposeCount.get());
 				Assertions.assertEquals(1, input.closeCount.get());
 				Assertions.assertEquals(1, output.closeCount.get());
-				Assertions.assertEquals(0, buffer.get().size(), "the pooled output buffer must be returned");
+				Assertions.assertEquals(0, requireNonNull(buffer.get()).size(), "the pooled output buffer must be returned");
 				Assertions.assertTrue(service.getRpcContextsToSender(socket).isEmpty());
 				Assertions.assertEquals(Procedure.ErrorSendFail, rpc.getResultCode());
 				var failure = Assertions.assertThrows(Exception.class, () -> future.get(1, TimeUnit.SECONDS));

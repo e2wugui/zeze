@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Arch.ProviderApp;
 import Zeze.Application;
 import Zeze.Netty.HttpSession;
@@ -39,7 +41,7 @@ public class TestHttpSessionModuleLifecycle {
 			Assertions.assertNotNull(session);
 
 			// NY2-F1：ExpiredTimer的查询键（ModuleName=短名）必须命中登记条目
-			Assertions.assertSame(session, zeze.getAppBase().getModules().get(HttpSession.ModuleName),
+			Assertions.assertSame(session, requireNonNull(zeze.getAppBase()).getModules().get(HttpSession.ModuleName),
 					"模块表必须以短名（getName/ModuleName）登记——ExpiredTimer按此键查询");
 			Assertions.assertNull(zeze.getAppBase().getModules().get(HttpSession.ModuleFullName),
 					"全名键下无条目（登记侧从不使用全名）");
@@ -49,7 +51,7 @@ public class TestHttpSessionModuleLifecycle {
 			Assertions.assertNull(zeze.getAppBase().getModules().get(HttpSession.ModuleName),
 					"stop后模块必须注销（getModules查询方不再看到已停模块）");
 			session.start();
-			Assertions.assertSame(session, zeze.getAppBase().getModules().get(HttpSession.ModuleName),
+			Assertions.assertSame(session, requireNonNull(zeze.getAppBase()).getModules().get(HttpSession.ModuleName),
 					"close→start重启后模块必须回到注册表（否则过期清理失效）");
 
 			// NY2-F7附带：无事务路径accessTable行为不回归（CookieSession经短Procedure访问表）

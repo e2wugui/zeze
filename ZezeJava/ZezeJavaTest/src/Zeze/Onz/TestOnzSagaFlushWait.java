@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Config;
 import Zeze.Onz.OnzSaga;
 import Zeze.Onz.OnzServer;
@@ -30,7 +34,7 @@ public class TestOnzSagaFlushWait {
 	private static final long ACCOUNT = 9001;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -43,33 +47,33 @@ public class TestOnzSagaFlushWait {
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
 
 		// saga写入kuafu表（产生脏记录），参与方事务走needFlushNow→Checkpoint.flush→sendFlushAndWait。
-		App.Instance.Zeze.getOnz().registerSaga("sagaKuafu",
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga("sagaKuafu",
 				TestOnzSagaFlushWait::sagaKuafu, TestOnzSagaFlushWait::sagaCancel,
 				BKuafu.class, BKuafuResult.class, EmptyBean.class);
-		zeze2.Zeze.getOnz().registerSaga("sagaKuafu",
+		requireNonNull(requireNonNull(zeze2.Zeze).getOnz()).registerSaga("sagaKuafu",
 				TestOnzSagaFlushWait::sagaKuafu, TestOnzSagaFlushWait::sagaCancel,
 				BKuafu.class, BKuafuResult.class, EmptyBean.class);
 
 		var myConfig = Config.load("zeze.xml");
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		// before() 被 Assumption 跳过时 onzServer 尚未创建
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
 	private static long sagaKuafu(OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -84,8 +88,8 @@ public class TestOnzSagaFlushWait {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)
@@ -101,15 +105,15 @@ public class TestOnzSagaFlushWait {
 		waitOnzReady();
 
 		var txn = new SagaKuafuTransaction();
-		txn.setOnzServer(onzServer);
+		txn.setOnzServer(requireNonNull(onzServer));
 		txn.setFlushTimeout(3_000); // 缩短：未修复时 perform 应挂满该值后降级
 
 		var t0 = System.nanoTime();
-		var rc = onzServer.perform(txn);
+		var rc = requireNonNull(onzServer).perform(txn);
 		var elapsedMs = (System.nanoTime() - t0) / 1_000_000;
 
 		Assertions.assertEquals(0L, rc, "saga事务必须成功");
-		Assertions.assertEquals(1L, (long)txn.getResult().getMoney(), "saga步骤结果必须正确");
+		Assertions.assertEquals(1L, (long)requireNonNull(txn.getResult()).getMoney(), "saga步骤结果必须正确");
 		Assertions.assertTrue(elapsedMs < 2_500,
 				"纯saga事务不得固定挂满flushTimeout再降级（实际 " + elapsedMs + " ms，flushTimeout=3000）");
 		logger.info("saga perform elapsed {} ms", elapsedMs);

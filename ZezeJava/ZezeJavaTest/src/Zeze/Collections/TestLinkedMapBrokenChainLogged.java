@@ -1,5 +1,9 @@
 package Zeze.Collections;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +27,6 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,10 +51,10 @@ public class TestLinkedMapBrokenChainLogged {
 	// 等既有的750族——FND8-26目录锁后同CWD撞号必炸（全量第一轮曾侥幸绿，第二轮并发交错即红）。
 	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_LINKED_MAP_BROKEN_CHAIN_LOGGED);
 
-	private Application app;
+	private @Nullable Application app;
 	private LinkedMap.Module linkedMapModule;
-	private Logger linkedMapLogger;
-	private CapturingAppender appender;
+	private @Nullable Logger linkedMapLogger;
+	private @Nullable CapturingAppender appender;
 
 	static final class CapturingAppender extends AbstractAppender {
 		final List<LogEvent> events = new ArrayList<>();
@@ -61,13 +64,13 @@ public class TestLinkedMapBrokenChainLogged {
 		}
 
 		@Override
-		public void append(@NotNull LogEvent event) {
+		public void append(LogEvent event) {
 			synchronized (events) {
 				events.add(event.toImmutable());
 			}
 		}
 
-		boolean hasErrorContaining(@NotNull String fragment) {
+		boolean hasErrorContaining(String fragment) {
 			synchronized (events) {
 				return events.stream().anyMatch(e ->
 						e.getLevel() == Level.ERROR && e.getMessage().getFormattedMessage().contains(fragment));
@@ -92,7 +95,7 @@ public class TestLinkedMapBrokenChainLogged {
 		linkedMapLogger = (Logger)LogManager.getLogger(LinkedMap.class);
 		appender = new CapturingAppender();
 		appender.start();
-		linkedMapLogger.addAppender(appender);
+		requireNonNull(linkedMapLogger).addAppender(appender);
 	}
 
 	@AfterEach
@@ -109,11 +112,11 @@ public class TestLinkedMapBrokenChainLogged {
 
 	@SuppressWarnings("unchecked")
 	private static TableX<BLinkedMapNodeKey, BLinkedMapNode> tNodes(Application app) {
-		return (TableX<BLinkedMapNodeKey, BLinkedMapNode>)app.getTable("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes");
+		return (TableX<BLinkedMapNodeKey, BLinkedMapNode>)requireNonNull(app.getTable("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes"));
 	}
 
 	private void run(String name, FuncLong action) {
-		var rc = TaskSpec.ofProcedure(app.newProcedure(action, name)).call();
+		var rc = TaskSpec.ofProcedure(requireNonNull(app).newProcedure(action, name)).call();
 		assertEquals(0L, rc);
 	}
 
@@ -121,9 +124,9 @@ public class TestLinkedMapBrokenChainLogged {
 		final long[] out = {0};
 		run("nodeIdOf", () -> {
 			@SuppressWarnings("unchecked")
-			var tIndex = (TableX<BLinkedMapKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId>)app
+			var tIndex = (TableX<BLinkedMapKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId>)requireNonNull(app)
 					.getTable("Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId");
-			var nodeId = tIndex.get(new BLinkedMapKey(mapName, id));
+			var nodeId = requireNonNull(tIndex).get(new BLinkedMapKey(mapName, id));
 			assertTrue(nodeId != null, "前置：映射行必须存在");
 			out[0] = nodeId.getNodeId();
 			return 0L;
@@ -154,7 +157,7 @@ public class TestLinkedMapBrokenChainLogged {
 		});
 		assertTrue(nodeRef[0] != null && out.value != 0, "完好链getFirstNode返回头节点");
 		put("ok1", "b", 2, false); // addTailUnsafe正常路径
-		assertFalse(appender.hasErrorContaining("broken data"), "完好链不得告警");
+		assertFalse(requireNonNull(appender).hasErrorContaining("broken data"), "完好链不得告警");
 	}
 
 	// getFirstNode：头行缺失静默返null谎报空链——必须记error（Queue.peekNode孪生）。
@@ -164,7 +167,7 @@ public class TestLinkedMapBrokenChainLogged {
 		put("g1", "b", 2, true); // 头插：b是头
 		var headNodeId = nodeIdOf("g1", "b");
 		run("forgeDeleteHeadRow", () -> {
-			tNodes(app).remove(new BLinkedMapNodeKey("g1", headNodeId));
+			tNodes(requireNonNull(app)).remove(new BLinkedMapNodeKey("g1", headNodeId));
 			return 0L;
 		});
 		var out = new OutLong();
@@ -174,7 +177,7 @@ public class TestLinkedMapBrokenChainLogged {
 			return 0L;
 		});
 		assertNull(nodeRef[0], "行为不变：仍返回null（不自行修复）");
-		assertTrue(appender.hasErrorContaining("LinkedMap.getFirstNode: head node row missing"),
+		assertTrue(requireNonNull(appender).hasErrorContaining("LinkedMap.getFirstNode: head node row missing"),
 				"头行缺失必须记error留诊断线索");
 	}
 
@@ -185,11 +188,11 @@ public class TestLinkedMapBrokenChainLogged {
 		put("t1", "b", 2, false); // b是尾
 		var tailNodeId = nodeIdOf("t1", "b");
 		run("forgeDeleteTailRow", () -> {
-			tNodes(app).remove(new BLinkedMapNodeKey("t1", tailNodeId));
+			tNodes(requireNonNull(app)).remove(new BLinkedMapNodeKey("t1", tailNodeId));
 			return 0L;
 		});
 		put("t1", "c", 3, false); // addTailUnsafe走"另立新尾"分支
-		assertTrue(appender.hasErrorContaining("LinkedMap.addTailUnsafe: tail node row missing"),
+		assertTrue(requireNonNull(appender).hasErrorContaining("LinkedMap.addTailUnsafe: tail node row missing"),
 				"活链存在时尾行缺失必须记error");
 	}
 
@@ -200,11 +203,11 @@ public class TestLinkedMapBrokenChainLogged {
 		put("h1", "b", 2, true); // b是头
 		var headNodeId = nodeIdOf("h1", "b");
 		run("forgeDeleteHeadRow", () -> {
-			tNodes(app).remove(new BLinkedMapNodeKey("h1", headNodeId));
+			tNodes(requireNonNull(app)).remove(new BLinkedMapNodeKey("h1", headNodeId));
 			return 0L;
 		});
 		put("h1", "c", 3, true); // addHeadUnsafe走"绕过断头重建"分支
-		assertTrue(appender.hasErrorContaining("LinkedMap.addHeadUnsafe: head node row missing"),
+		assertTrue(requireNonNull(appender).hasErrorContaining("LinkedMap.addHeadUnsafe: head node row missing"),
 				"活链存在时头行缺失必须记error");
 	}
 }

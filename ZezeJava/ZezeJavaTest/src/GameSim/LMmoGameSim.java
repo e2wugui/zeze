@@ -1,4 +1,6 @@
 package GameSim;
+
+import java.util.Objects;
 import harness.Bench;
 import harness.MacroBench;
 import org.junit.jupiter.api.Assertions;
@@ -360,7 +362,7 @@ public class LMmoGameSim {
 		long cutoff = scoreRole.isEmpty() ? 0 : scoreRole.get(expectCount - 1)[0];
 		var entries = new ArrayList<long[]>(); // [roleId, score]
 		world.zeze.newProcedure(() -> {
-			for (var e : world.rank.getRankTotal(board).getTableValue().getRankListReadOnly()) {
+			for (var e : Objects.requireNonNull(world.rank.getRankTotal(board).getTableValue()).getRankListReadOnly()) {
 				var score = ((Zeze.Builtin.Game.Rank.BValueLongReadOnly)e.getDynamicReadOnly().getBean()).getValue();
 				entries.add(new long[]{e.getRoleId(), score});
 			}

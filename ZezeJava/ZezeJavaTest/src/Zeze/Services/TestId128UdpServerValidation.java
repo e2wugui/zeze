@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
@@ -31,9 +35,9 @@ import harness.Fast;
 @Fast
 public class TestId128UdpServerValidation {
 	private static final String NAME = "UnitTest.Id128UdpValidate";
-	private static Id128UdpServer server;
-	private static DatagramSocket client;
-	private static InetSocketAddress serverAddress;
+	private static @Nullable Id128UdpServer server;
+	private static @Nullable DatagramSocket client;
+	private static @Nullable InetSocketAddress serverAddress;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -46,8 +50,8 @@ public class TestId128UdpServerValidation {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		client.close();
-		server.stop();
+		requireNonNull(client).close();
+		requireNonNull(server).stop();
 	}
 
 	/** 发一个请求并等待应答（每个报文恰好一个rpc，应答也恰好一个）。 */
@@ -57,7 +61,7 @@ public class TestId128UdpServerValidation {
 		r.Argument.setCount(count);
 		var bb = ByteBuffer.Allocate();
 		r.encode(bb);
-		client.send(new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size(), serverAddress));
+		requireNonNull(client).send(new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size(), requireNonNull(serverAddress)));
 		return receiveOne();
 	}
 
@@ -68,7 +72,7 @@ public class TestId128UdpServerValidation {
 		r.Argument.setCount(count);
 		var bb = ByteBuffer.Allocate();
 		r.encode(bb);
-		client.send(new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size(), serverAddress));
+		requireNonNull(client).send(new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size(), requireNonNull(serverAddress)));
 		Assertions.assertThrows(SocketTimeoutException.class, TestId128UdpServerValidation::receiveOne,
 				"invalid request must be dropped without response: count=" + count);
 	}
@@ -76,7 +80,7 @@ public class TestId128UdpServerValidation {
 	private static AllocateId128 receiveOne() throws Exception {
 		var buf = new byte[2048];
 		var p = new DatagramPacket(buf, buf.length);
-		client.receive(p);
+		requireNonNull(client).receive(p);
 		var r = new AllocateId128();
 		r.decode(ByteBuffer.Wrap(p.getData(), p.getOffset(), p.getLength()));
 		return r;
@@ -101,7 +105,7 @@ public class TestId128UdpServerValidation {
 		}
 		Assertions.assertTrue(requests.size() <= 2048, "请求批次应能放入旧协议接收容量");
 		Assertions.assertTrue(modeledReplies.size() > 2048, "用例须触发应答扩张，不能依赖小值个数猜测字节数");
-		client.send(new DatagramPacket(requests.Bytes, requests.ReadIndex, requests.size(), serverAddress));
+		requireNonNull(client).send(new DatagramPacket(requests.Bytes, requests.ReadIndex, requests.size(), requireNonNull(serverAddress)));
 		var sessions = new java.util.HashSet<Long>();
 		var starts = new java.util.HashSet<String>();
 		int datagrams = 0;
@@ -164,7 +168,7 @@ public class TestId128UdpServerValidation {
 		var bb = ByteBuffer.Allocate();
 		good.encode(bb);
 		bad.encode(bb);
-		client.send(new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size(), serverAddress));
+		requireNonNull(client).send(new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size(), requireNonNull(serverAddress)));
 
 		var resp = receiveOne(); // 只有good的应答。
 		Assertions.assertEquals(1, resp.Result.getCount());

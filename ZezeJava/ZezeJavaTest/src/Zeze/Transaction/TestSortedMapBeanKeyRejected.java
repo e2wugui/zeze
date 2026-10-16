@@ -7,7 +7,6 @@ import Zeze.Transaction.Collections.PSortedMap1;
 import Zeze.Transaction.Collections.PSortedMap2;
 import demo.Module1.BValue;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -23,15 +22,15 @@ public class TestSortedMapBeanKeyRejected {
 
 	public static class MyBean extends Bean implements Comparable<MyBean> {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 
 		@Override
-		public int compareTo(@NotNull MyBean o) {
+		public int compareTo(MyBean o) {
 			return 0; // 等值可比较：正是排序map能接受Bean key的形态
 		}
 	}

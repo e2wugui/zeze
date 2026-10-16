@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +55,7 @@ final class RaftHeadlessSupport {
 	static Changes captureChanges(Rocks rocks, Table<Integer, BListBean> table, int item) throws Exception {
 		final Transaction[] ts = new Transaction[1];
 		var rc = rocks.newProcedure(() -> {
-			ts[0] = Transaction.getCurrent();
+			ts[0] = requireNonNull(Transaction.getCurrent());
 			table.getOrAdd(1).getList().add(item);
 			return 0L;
 		}).call();
@@ -86,7 +88,7 @@ final class RaftHeadlessSupport {
 
 	/** leader式应用一条非unique日志（term=1，原始对象进leaderAppendLogs走leaderApply）。 */
 	static void applyEntry(Rocks rocks, Table<Integer, BListBean> table, long index, int item) throws Exception {
-		var logSequence = rocks.getRaft().getLogSequence();
+		var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 		var raftLog = new RaftLog(1, index, captureChanges(rocks, table, item));
 		logSequence.saveLog(raftLog);
 		leaderAppendLogsOf(logSequence).put(index, raftLog);

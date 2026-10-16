@@ -1,5 +1,7 @@
 package Zeze;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -73,7 +75,7 @@ public class TestSchemasPublishAfterAlter {
 		key.WriteString("zeze.Schemas.V4." + conf.getServerId());
 		var previousBytes = ByteBuffer.Allocate();
 		schemas(1).encode(previousBytes);
-		db.getDirectOperates().saveDataWithSameVersion(key, previousBytes, 0);
+		requireNonNull(db.getDirectOperates()).saveDataWithSameVersion(key, previousBytes, 0);
 
 		// 当前版本增加一列（B: v1+v2），执行兼容检查
 		app.setSchemas(schemas(2));
@@ -83,7 +85,7 @@ public class TestSchemasPublishAfterAlter {
 		// 模拟"ALTER未执行即中断后重启"，重算差分仍应有待加列。
 		var pending = Schemas.newRelationalTable(mapping(),
 				app.getSchemas().tables.get("PublishDeferredTable"),
-				app.getSchemasPrevious().tables.get("PublishDeferredTable"));
+				requireNonNull(app.getSchemasPrevious()).tables.get("PublishDeferredTable"));
 		assertEquals(1, pending.add.size(),
 				"兼容检查不得发布元数据：发布后失败重启拿到空差分，升级被静默跳过");
 
@@ -91,7 +93,7 @@ public class TestSchemasPublishAfterAlter {
 		app.publishSchemas();
 		var saved = db.getDirectOperates().getDataWithVersion(key);
 		var restartPrevious = new Schemas();
-		restartPrevious.decode(saved.data);
+		restartPrevious.decode(requireNonNull(requireNonNull(saved).data));
 		restartPrevious.compile();
 		var afterPublish = Schemas.newRelationalTable(mapping(),
 				app.getSchemas().tables.get("PublishDeferredTable"),

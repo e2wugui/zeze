@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -46,11 +50,11 @@ public class TestCreateTableRetryWhitelist {
 
 		@Override
 		public void createTableAsync(String database, String table,
-									 Action3<Integer, Boolean, MasterTable.Data> callback) {
+									 Action3<Integer, Boolean, MasterTable.@Nullable Data> callback) {
 			attempts.incrementAndGet();
 			var rc = script.poll();
 			try {
-				if (rc == 0)
+				if (requireNonNull(rc) == 0)
 					callback.run(0, true, new MasterTable.Data());
 				else
 					callback.run(rc, false, null);

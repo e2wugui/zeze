@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
@@ -31,12 +33,13 @@ public class TestTransactionKeepsLastKeyOperation {
 		}
 
 		@Override
+		@SuppressWarnings("DataFlowIssue") // 本地 fake 绕过网络，下游 locateBucket 覆写不使用 MasterAgent。
 		public MasterAgent openDatabase(String masterName, String databaseName) {
 			return null; // Stable routing and the real bucket store replace the network boundary.
 		}
 
 		@Override
-		public String locateBucket(MasterAgent masterAgent, String masterName, String databaseName,
+		public String locateBucket(@Nullable MasterAgent masterAgent, String masterName, String databaseName,
 				String tableName, Binary key) {
 			return "local-bucket";
 		}

@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
@@ -131,7 +135,7 @@ public class TestPrefixWalkPositioning {
 			var stubMaster = new MasterAgent(new Config()) {
 				@Override
 				public void createTableAsync(String database, String tableName,
-											 Action3<Integer, Boolean, MasterTable.Data> callback) {
+											 Action3<Integer, Boolean, MasterTable.@Nullable Data> callback) {
 					try {
 						callback.run(0, true, tableData);
 					} catch (Exception e) {
@@ -220,7 +224,7 @@ public class TestPrefixWalkPositioning {
 				manager.stop();
 			for (var dbh2 : nodes) {
 				dbh2.close();
-				LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+				LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 			}
 			agent.close();
 			rocks.close();

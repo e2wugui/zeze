@@ -11,7 +11,6 @@ import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.ProviderDirect.BLoginKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -50,7 +49,7 @@ public class TestArchOnlineSpec {
 	public void testEmptyTargetShortCircuit() {
 		var bomb = new SReliableNotify() {
 			@Override
-			public void encode(@NotNull ByteBuffer bb) {
+			public void encode(ByteBuffer bb) {
 				throw new AssertionError("empty target must not encode");
 			}
 		};

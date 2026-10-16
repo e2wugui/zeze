@@ -2,7 +2,6 @@ package Benchmark;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
-
 import clojure.lang.IEditableCollection;
 import clojure.lang.IPersistentVector;
 import clojure.lang.ITransientVector;
@@ -315,6 +314,7 @@ public class BenchTransientVectorCompare {
 		}
 
 		@Override
+		@SuppressWarnings("ConstantConditions") // 保留对第三方集合返回空值的防御。
 		public int get(Object vec, int index) {
 			var v = kxl(vec).get(index);
 			return v != null ? v : Integer.MIN_VALUE;
@@ -371,6 +371,7 @@ public class BenchTransientVectorCompare {
 		}
 
 		@Override
+		@SuppressWarnings("ConstantConditions") // 保留对第三方集合返回空值的防御。
 		public int snapGet(Object snap, int index) {
 			var v = kxlB(snap).get(index);
 			return v != null ? v : Integer.MIN_VALUE;
@@ -452,6 +453,7 @@ public class BenchTransientVectorCompare {
 		}
 
 		@Override
+		@SuppressWarnings("ConstantConditions") // 保留对第三方集合返回空值的防御。
 		public int get(Object vec, int index) {
 			var v = pcv(vec).get(index);
 			return v != null ? v : Integer.MIN_VALUE;

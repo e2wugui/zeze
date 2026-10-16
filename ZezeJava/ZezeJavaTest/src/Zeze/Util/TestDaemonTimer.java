@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.Calendar;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -143,11 +147,11 @@ public class TestDaemonTimer {
 	@Timeout(30)
 	public void testStopFromBodySkipsWaiting() throws Exception {
 		// body内自调stop：等自己必等满~125s预算（@Timeout兜底即红），组件须识别并跳过等待
-		var ref = new AtomicReference<DaemonTimer>();
+		var ref = new AtomicReference<@Nullable DaemonTimer>();
 		var stopElapsedMs = new AtomicLong(-1); // -1=未触发；跳过等待后耗时<1ms可能舍入为0，不能用>0判触发
 		var daemon = new DaemonTimer("UnitTest.DaemonTimer.selfStop", 80, () -> {
 			var begin = System.nanoTime();
-			ref.get().stop();
+			requireNonNull(ref.get()).stop();
 			stopElapsedMs.set((System.nanoTime() - begin) / 1_000_000);
 		});
 		ref.set(daemon);

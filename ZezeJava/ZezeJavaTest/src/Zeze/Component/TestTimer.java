@@ -1,11 +1,12 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
 import Zeze.Transaction.Procedure;
 import demo.App;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +21,7 @@ public class TestTimer {
 	public final void testInit() throws Exception {
 		System.out.println("Timer Test Init");
 		demo.App.getInstance().Start();
-		App.Instance.Zeze.getTimer().start();
+		requireNonNull(requireNonNull(App.Instance.Zeze).getTimer()).start();
 	}
 
 	@AfterEach
@@ -31,7 +32,7 @@ public class TestTimer {
 
 	public static class TestTimerHandle1 implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext timerContext) {
+		public void onTimer(TimerContext timerContext) {
 			System.out.println(">> Name: " + timerContext.timerName
 					+ " ID: " + timerContext.timerId
 					+ " Now: " + System.currentTimeMillis()
@@ -42,7 +43,7 @@ public class TestTimer {
 
 	public static class TestTimerHandle2 implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext timerContext) {
+		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
 			//noinspection DataFlowIssue
 			bean.addValue();
@@ -57,7 +58,7 @@ public class TestTimer {
 
 	public static class TestTimerHandle3 implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext timerContext) {
+		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
 			//noinspection DataFlowIssue
 			if (bean.checkLiving()) {
@@ -78,7 +79,7 @@ public class TestTimer {
 	@Test
 	public final void test1BasicTimer() throws Exception {
 		System.out.println("========== Testing Basic Timer ==========");
-		var timer = App.getInstance().Zeze.getTimer();
+		var timer = requireNonNull(App.getInstance().Zeze).getTimer();
 		// 定时器周期 50ms：逻辑与原 200ms 版一致，只等比压缩等待墙钟（period×times、睡眠窗口同步缩小）。
 		final int periodMs = 50;
 		final int times = 10;
@@ -86,7 +87,7 @@ public class TestTimer {
 		// Test schedule timer
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle1.class, null);
-			timer.schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle1.class);
+			requireNonNull(timer).schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle1.class);
 			return Procedure.Success;
 		}, "test_CommonSchedule").call());
 
@@ -104,7 +105,7 @@ public class TestTimer {
 
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle2.class, testBean1);
-			timer.schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle2.class, testBean1);
+			requireNonNull(timer).schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle2.class, testBean1);
 			return Procedure.Success;
 		}, "test_ScheduleWithCustomBean").call());
 
@@ -120,7 +121,7 @@ public class TestTimer {
 		TestBean testBean2 = new TestBean();
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle3.class, testBean2);
-			timer.schedule(TimerSpec.ofDelay(1).period(periodMs), TestTimerHandle3.class, testBean2);
+			requireNonNull(timer).schedule(TimerSpec.ofDelay(1).period(periodMs), TestTimerHandle3.class, testBean2);
 			return Procedure.Success;
 		}, "test_CancelSchedule").call());
 

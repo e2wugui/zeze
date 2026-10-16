@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -31,7 +33,7 @@ final class GcOnzFastStubSupport {
 		final Agent agent;
 
 		StubParticipant(int smPort, String smServiceName, String identity, String listenName,
-						int port, Consumer<Service> beforeListen) throws Exception {
+						int port, @Nullable Consumer<Service> beforeListen) throws Exception {
 			service = new Service(listenName, new Config());
 			if (beforeListen != null)
 				beforeListen.accept(service); // 协议工厂先于socket监听注册
@@ -62,9 +64,9 @@ final class GcOnzFastStubSupport {
 		final String smServiceName;
 		final String identity;
 		final int port;
-		final Consumer<Service> beforeListen;
+		final @Nullable Consumer<Service> beforeListen;
 
-		StubSpec(String smServiceName, String identity, int port, Consumer<Service> beforeListen) {
+		StubSpec(String smServiceName, String identity, int port, @Nullable Consumer<Service> beforeListen) {
 			this.smServiceName = smServiceName;
 			this.identity = identity;
 			this.port = port;

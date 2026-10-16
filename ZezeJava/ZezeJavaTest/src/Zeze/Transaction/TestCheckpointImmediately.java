@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.nio.file.Path;
 
@@ -31,8 +35,8 @@ public class TestCheckpointImmediately {
 	@TempDir
 	Path tempDir;
 
-	private Application app;
-	private demo.Module1.tflush table;
+	private @Nullable Application app;
+	private demo.Module1.@Nullable tflush table;
 
 	private void startApp() throws Exception {
 		var config = new Config();
@@ -52,20 +56,20 @@ public class TestCheckpointImmediately {
 	}
 
 	private void stopApp() throws Exception {
-		app.stop();
+		requireNonNull(app).stop();
 		app = null;
 		table = null;
 	}
 
 	private long runInTransaction(FuncLong action) {
-		return app.newProcedure(action, "TestCheckpointImmediately").call();
+		return requireNonNull(app).newProcedure(action, "TestCheckpointImmediately").call();
 	}
 
 	/** 事务内读值；记录不存在返回 -1。 */
 	private long readValue() {
 		final long[] out = {-1};
 		var result = runInTransaction(() -> {
-			var v = table.get(KEY);
+			var v = requireNonNull(table).get(KEY);
 			if (v != null)
 				out[0] = v.getLong2();
 			return 0L;
@@ -81,7 +85,7 @@ public class TestCheckpointImmediately {
 		var value = new demo.Module1.BValue();
 		value.setLong2(100);
 		Assertions.assertEquals(Procedure.Success, runInTransaction(() -> {
-			table.insert(KEY, value);
+			requireNonNull(table).insert(KEY, value);
 			return 0L;
 		}));
 		Assertions.assertEquals(100, readValue());
@@ -91,7 +95,7 @@ public class TestCheckpointImmediately {
 		startApp();
 		Assertions.assertEquals(100, readValue(), "重启后 insert 的数据必须仍在（原缺陷：静默丢失）");
 		Assertions.assertEquals(Procedure.Success, runInTransaction(() -> {
-			table.getOrAdd(KEY).setLong2(200);
+			requireNonNull(table).getOrAdd(KEY).setLong2(200);
 			return 0L;
 		}));
 		stopApp();
@@ -100,7 +104,7 @@ public class TestCheckpointImmediately {
 		startApp();
 		Assertions.assertEquals(200, readValue(), "重启后 in-place 修改必须生效");
 		Assertions.assertEquals(Procedure.Success, runInTransaction(() -> {
-			table.remove(KEY);
+			requireNonNull(table).remove(KEY);
 			return 0L;
 		}));
 		stopApp();

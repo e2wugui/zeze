@@ -1,5 +1,7 @@
 package Game.Skill;
 
+import org.jspecify.annotations.Nullable;
+
 public class Skills {
 	private final long RoleId;
 	public final long getRoleId() {
@@ -12,7 +14,7 @@ public class Skills {
 		this.Bean = bean;
 	}
 
-	public final Skill GetSkill(int id) {
+	public final @Nullable Skill GetSkill(int id) {
 		var skill = Bean.getSkills().get(id);
 		if (null != skill) {
 			var extraTypeId = skill.getExtra().getTypeId();

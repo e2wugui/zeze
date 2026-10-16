@@ -1,5 +1,7 @@
 package Zeze.Game;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -67,7 +69,7 @@ public class TestRankCacheRollbackPollution {
 			var seenOwnWrite = new boolean[1];
 			Assertions.assertEquals(Procedure.LogicError, app.newProcedure(() -> {
 				rank.updateRank((int)roleId, key, roleId, new BValueLong(9999));
-				for (var r : rank.getRankTotal(key).getTableValue().getRankListReadOnly()) {
+				for (var r : requireNonNull(rank.getRankTotal(key).getTableValue()).getRankListReadOnly()) {
 					if (r.getRoleId() == roleId) {
 						seenOwnWrite[0] = true;
 						break;
@@ -82,7 +84,7 @@ public class TestRankCacheRollbackPollution {
 			// 修复后：BuildTime未推进→判过期→以已提交读视图重建→roleId不在榜。
 			var polluted = new boolean[1];
 			Assertions.assertEquals(0L, app.newProcedure(() -> {
-				for (var r : rank.getRankTotal(key).getTableValue().getRankListReadOnly()) {
+				for (var r : requireNonNull(rank.getRankTotal(key).getTableValue()).getRankListReadOnly()) {
 					if (r.getRoleId() == roleId) {
 						polluted[0] = true;
 						break;

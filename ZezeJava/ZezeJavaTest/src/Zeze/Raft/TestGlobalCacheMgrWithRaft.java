@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.net.BindException;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -260,7 +264,7 @@ public class TestGlobalCacheMgrWithRaft {
 	private long ErrorsSum() {
 		long sum = 0;
 		for (var iter = Errors.iterator(); iter.moveToNext(); ) {
-			sum += iter.value();
+			sum += requireNonNull(iter.value());
 		}
 		return sum;
 	}
@@ -282,12 +286,12 @@ public class TestGlobalCacheMgrWithRaft {
 		AtomicInteger finalCount1 = new AtomicInteger();
 		AtomicInteger finalCount2 = new AtomicInteger();
 
-		task2[0] = TaskSpec.ofProcedure(App1.Zeze.newProcedure(() -> {
+		task2[0] = TaskSpec.ofProcedure(requireNonNull(App1.Zeze).newProcedure(() -> {
 			finalCount1.set(TestConcurrency(App1, count, 1));
 			return Procedure.Success;
 		}, testName)).submitNow();
 
-		task2[1] = TaskSpec.ofProcedure(App2.Zeze.newProcedure(() -> {
+		task2[1] = TaskSpec.ofProcedure(requireNonNull(App2.Zeze).newProcedure(() -> {
 			finalCount2.set(TestConcurrency(App2, count, 2));
 			return Procedure.Success;
 		}, testName)).submitNow();
@@ -309,8 +313,8 @@ public class TestGlobalCacheMgrWithRaft {
 	private static int TestConcurrency(App app, int count, int appId) {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; i++) {
-			tasks[i] = TaskSpec.ofProcedure(app.Zeze.newProcedure(() -> {
-				var v = app.demo_Module1.getTable1().getOrAdd(99L);
+			tasks[i] = TaskSpec.ofProcedure(requireNonNull(app.Zeze).newProcedure(() -> {
+				var v = requireNonNull(app.demo_Module1).getTable1().getOrAdd(99L);
 				v.setInt_1(v.getInt_1() + 1);
 
 				System.out.printf("appId %d value %d timestamp %s%n", appId, v.getInt_1(), System.currentTimeMillis());
@@ -347,8 +351,8 @@ public class TestGlobalCacheMgrWithRaft {
 		AtomicLong count = new AtomicLong();
 		int tryCount = 30;
 		for (int i = 0; i < tryCount; i++) {
-			var result = App1.Zeze.newProcedure(() -> {
-				if (0 == App1.demo_Module1.getTable1().getOrAdd(99L).getInt_1() && 0 != this.ExpectCount.get())
+			var result = requireNonNull(App1.Zeze).newProcedure(() -> {
+				if (0 == requireNonNull(App1.demo_Module1).getTable1().getOrAdd(99L).getInt_1() && 0 != this.ExpectCount.get())
 					return Procedure.LogicError;
 				count.set(App1.demo_Module1.getTable1().getOrAdd(99L).getInt_1());
 				return Procedure.Success;
@@ -361,8 +365,8 @@ public class TestGlobalCacheMgrWithRaft {
 
 	private void ClearCurrentCount() {
 		try {
-			App1.Zeze.newProcedure(() -> {
-				var val = App1.demo_Module1.getTable1().get(99L);
+			requireNonNull(App1.Zeze).newProcedure(() -> {
+				var val = requireNonNull(App1.demo_Module1).getTable1().get(99L);
 				if (val != null) {
 					App1.demo_Module1.getTable1().remove(99L);
 				}
@@ -440,7 +444,7 @@ public class TestGlobalCacheMgrWithRaft {
 	}
 
 	public static class TestGlobalRaft extends StateMachine {
-		private Zeze.Services.GlobalCacheManagerWithRaft GlobalCacheManagerWithRaft;
+		private Zeze.Services.@Nullable GlobalCacheManagerWithRaft GlobalCacheManagerWithRaft;
 		private final String GlobalRaftConfigFileName;
 		private final String RaftName;
 
@@ -478,7 +482,7 @@ public class TestGlobalCacheMgrWithRaft {
 			try {
 				if (GlobalCacheManagerWithRaft != null) {
 //					getRaft().getServer().Stop();
-					GlobalCacheManagerWithRaft.getRocks().getRaft().getServer().stop();
+					requireNonNull(GlobalCacheManagerWithRaft.getRocks().getRaft()).getServer().stop();
 				}
 
 				if (GlobalCacheManagerWithRaft != null) {
@@ -502,6 +506,7 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 
 		@Override
+		@SuppressWarnings("DataFlowIssue") // 此 fake 不实现快照，测试路径不消费快照结果。
 		public SnapshotResult snapshot(String path) {
 			return null;
 		}

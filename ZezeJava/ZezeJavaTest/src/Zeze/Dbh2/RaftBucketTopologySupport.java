@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -41,7 +45,7 @@ final class RaftBucketTopologySupport {
 			throws Exception {
 		for (var dbh2 : nodes) {
 			dbh2.close();
-			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+			LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 		}
 		agent.close();
 		database.close();
@@ -59,7 +63,7 @@ final class RaftBucketTopologySupport {
 		throw new IllegalStateException("no leader elected");
 	}
 
-	static Binary get(Dbh2Agent agent, Binary key) {
+	static @Nullable Binary get(Dbh2Agent agent, Binary key) {
 		var kv = agent.get("database", "table1", key);
 		Assertions.assertTrue(kv.getKey());
 		return kv.getValue() == null ? null : new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size());

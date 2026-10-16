@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -19,7 +23,6 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,13 +47,13 @@ public class TestVerifyBatchRcLogged extends AppBase {
 	private static final String ACCOUNT = "verify_rc_acc";
 	private static final long FAIL_RC = 7L;
 
-	private Application zeze;
-	private Online onlineModule;
-	private Logger onlineLogger;
-	private CapturingAppender appender;
+	private @Nullable Application zeze;
+	private @Nullable Online onlineModule;
+	private @Nullable Logger onlineLogger;
+	private @Nullable CapturingAppender appender;
 
 	@Override
-	public Application getZeze() {
+	public @Nullable Application getZeze() {
 		return zeze;
 	}
 
@@ -62,13 +65,13 @@ public class TestVerifyBatchRcLogged extends AppBase {
 		}
 
 		@Override
-		public void append(@NotNull LogEvent event) {
+		public void append(LogEvent event) {
 			synchronized (events) {
 				events.add(event.toImmutable());
 			}
 		}
 
-		boolean hasErrorContaining(@NotNull String fragment) {
+		boolean hasErrorContaining(String fragment) {
 			synchronized (events) {
 				return events.stream().anyMatch(e ->
 						e.getLevel() == Level.ERROR && e.getMessage().getFormattedMessage().contains(fragment));
@@ -95,7 +98,7 @@ public class TestVerifyBatchRcLogged extends AppBase {
 		onlineLogger = (Logger)LogManager.getLogger(Online.class);
 		appender = new CapturingAppender();
 		appender.start();
-		onlineLogger.addAppender(appender);
+		requireNonNull(onlineLogger).addAppender(appender);
 	}
 
 	@AfterEach
@@ -114,21 +117,21 @@ public class TestVerifyBatchRcLogged extends AppBase {
 	@Test
 	public void testFailedBatchLogged() throws Exception {
 		// 订阅者返回非0：tryRemoveLocal→removeLocalAndTrigger→localRemoveEvents失败码回传
-		onlineModule.getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, (sender, arg) -> FAIL_RC);
+		requireNonNull(onlineModule).getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, (sender, arg) -> FAIL_RC);
 
 		// 伪造local行（无online行→login==null→removeLocalAndTrigger）与过期活跃时间
-		assertEquals(Procedure.Success, zeze.newProcedure(() -> {
-			var locals = onlineModule._tlocal.getOrAdd(ACCOUNT);
+		assertEquals(Procedure.Success, requireNonNull(zeze).newProcedure(() -> {
+			var locals = requireNonNull(onlineModule)._tlocal.getOrAdd(ACCOUNT);
 			locals.getLogins().getOrAdd("cid1").setLoginVersion(1L);
 			return Procedure.Success;
 		}, "seedLocal").call());
 		putLocalActiveTime(ACCOUNT, System.currentTimeMillis() - 700_000); // 超过默认600s超时
 
-		var batch = onlineModule.new VerifyBatch();
+		var batch = requireNonNull(onlineModule).new VerifyBatch();
 		batch.add(ACCOUNT); // 过期账号入选
 		batch.perform(); // 失败批次：rc=7回传，须记批级error（perform同步完成）
 
-		assertTrue(appender.hasErrorContaining("tryRemoveLocal fail. account=" + ACCOUNT),
+		assertTrue(requireNonNull(appender).hasErrorContaining("tryRemoveLocal fail. account=" + ACCOUNT),
 				"批内单账号error必须存在（正控：日志捕获通路）");
 		assertTrue(appender.hasErrorContaining("verifyLocal batch failed"),
 				"批级失败必须记error（FND7-32：返回码被丢弃，失败批次静默清空不可观测）");
@@ -141,15 +144,15 @@ public class TestVerifyBatchRcLogged extends AppBase {
 	public void testSuccessfulBatchNotLoggedAsFailed() throws Exception {
 		// 无local行→tryRemoveLocal返回0→批成功；不发批级error
 		putLocalActiveTime(ACCOUNT + "_clean", System.currentTimeMillis() - 700_000);
-		var batch = onlineModule.new VerifyBatch();
+		var batch = requireNonNull(onlineModule).new VerifyBatch();
 		batch.add(ACCOUNT + "_clean");
 		batch.perform();
-		assertTrue(!appender.hasErrorContaining("verifyLocal batch failed"),
+		assertTrue(!requireNonNull(appender).hasErrorContaining("verifyLocal batch failed"),
 				"成功批次不得记批级失败error");
 	}
 
 	@SuppressWarnings("unchecked")
-	private void putLocalActiveTime(@NotNull String account, long timeMillis) throws Exception {
+	private void putLocalActiveTime(String account, long timeMillis) throws Exception {
 		Field field = Online.class.getDeclaredField("localActiveTimes");
 		field.setAccessible(true);
 		var map = (ConcurrentHashMap<String, Long>)field.get(onlineModule);

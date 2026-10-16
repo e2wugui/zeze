@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -95,7 +97,7 @@ public class TestToken {
 		System.setProperty("noDebugMode", "true");
 		Task.tryInitThreadPool();
 		var tokenServer = new Token().start(null, null, 5003);
-		tokenServer.getService().getConfig().getSocketOptions().setOutputBufferMaxSize(10 << 20);
+		requireNonNull(tokenServer.getService()).getConfig().getSocketOptions().setOutputBufferMaxSize(10 << 20);
 		try {
 			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
 			try {

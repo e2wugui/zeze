@@ -1,5 +1,9 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.net.Socket;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -7,7 +11,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Util.Action0;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -18,7 +21,7 @@ public class TestTcpSocketWriteFairness {
 
 	private static final class AcceptService extends Service {
 		final CountDownLatch accepted = new CountDownLatch(1);
-		volatile TcpSocket socket;
+		volatile @Nullable TcpSocket socket;
 
 		AcceptService(String name, Selectors selectors) {
 			super(name);
@@ -26,7 +29,7 @@ public class TestTcpSocketWriteFairness {
 		}
 
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
 			socket = (TcpSocket)so;
 			accepted.countDown();
@@ -56,10 +59,10 @@ public class TestTcpSocketWriteFairness {
 					public void run() {
 						entered.countDown();
 						if (repeat.get())
-							socket.submitAction(this);
+							requireNonNull(socket).submitAction(this);
 					}
 				};
-				Assertions.assertTrue(socket.submitAction(replenish));
+				Assertions.assertTrue(requireNonNull(socket).submitAction(replenish));
 				Assertions.assertTrue(entered.await(5, TimeUnit.SECONDS));
 
 				var taskRan = new CountDownLatch(1);
@@ -96,7 +99,7 @@ public class TestTcpSocketWriteFairness {
 				Assertions.assertTrue(service.accepted.await(5, TimeUnit.SECONDS));
 				var entered = new CountDownLatch(1);
 				var socket = service.socket;
-				socket.setOutputSecurityCodec((so, sink) -> new Codec() {
+				requireNonNull(socket).setOutputSecurityCodec((so, sink) -> new Codec() {
 					@Override
 					public void update(byte c) {
 						sink.update(c);

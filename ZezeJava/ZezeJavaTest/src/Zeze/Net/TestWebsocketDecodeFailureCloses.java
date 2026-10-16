@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import org.jspecify.annotations.Nullable;
+
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,7 +21,6 @@ import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,7 @@ public class TestWebsocketDecodeFailureCloses {
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, java.lang.Throwable e) {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) {
 			closeCount.incrementAndGet();
 			try {
 				super.OnSocketClose(so, e);
@@ -81,7 +82,7 @@ public class TestWebsocketDecodeFailureCloses {
 						}
 
 						@Override
-						public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+						public @Nullable CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
 							webSocket.request(1);
 							return null;
 						}
@@ -92,7 +93,7 @@ public class TestWebsocketDecodeFailureCloses {
 						}
 
 						@Override
-						public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+						public @Nullable CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
 							closed.countDown();
 							return null;
 						}

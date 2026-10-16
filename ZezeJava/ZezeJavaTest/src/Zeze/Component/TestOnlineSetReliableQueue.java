@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
@@ -40,10 +42,10 @@ public class TestOnlineSetReliableQueue {
 				assertEquals(1, oldQueue.size());
 				other.getOrAddOnline(42).setReliableNotifyIndex(10);
 				assertThrows(IllegalStateException.class, () -> other.migrateLegacyReliableNotifyQueue(42));
-				assertEquals(10, other.getOnline(42).getReliableNotifyIndex());
+				assertEquals(10, requireNonNull(other.getOnline(42)).getReliableNotifyIndex());
 				oldQueue.clear();
 				other.migrateLegacyReliableNotifyQueue(42);
-				assertEquals(0, other.getOnline(42).getReliableNotifyIndex());
+				assertEquals(0, requireNonNull(other.getOnline(42)).getReliableNotifyIndex());
 				return 0;
 			}, "isolate-and-migrate").call());
 		} finally {

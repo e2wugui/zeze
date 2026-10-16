@@ -1,6 +1,7 @@
 package Zeze.Transaction;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,12 +18,12 @@ public class TestCollOneFollowerApply {
 		// Record是抽象类，这里只需要它作为RootInfo的载体，桩掉抽象方法即可。
 		var record = new Record(null) {
 			@Override
-			public @NotNull Table getTable() {
+			public Table getTable() {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
-			public @NotNull Object getObjectKey() {
+			public Object getObjectKey() {
 				throw new UnsupportedOperationException();
 			}
 
@@ -40,11 +41,11 @@ public class TestCollOneFollowerApply {
 			}
 
 			@Override
-			public void flush(Database.Transaction t, Database.@NotNull Transaction lct) {
+			public void flush(Database.@Nullable Transaction t, Database.Transaction lct) {
 			}
 
 			@Override
-			public void commit(@NotNull RecordAccessed accessed) {
+			public void commit(RecordAccessed accessed) {
 			}
 
 			@Override

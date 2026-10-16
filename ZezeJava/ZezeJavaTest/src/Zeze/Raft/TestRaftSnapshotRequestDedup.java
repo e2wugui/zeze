@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.List;
@@ -51,10 +53,10 @@ public class TestRaftSnapshotRequestDedup {
 	}
 
 	private Changes applyUniqueEntry(Rocks rocks) throws Exception {
-		var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+		var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 		RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
 		var changes = RaftHeadlessSupport.captureUniqueChanges(rocks, table, clientId, rpcResult);
-		var seq = rocks.getRaft().getLogSequence();
+		var seq = requireNonNull(rocks.getRaft()).getLogSequence();
 		seq.saveLog(new RaftLog(1, 1, changes));
 		seq.tryApply(seq.readLog(1), 1); // 解码后的follower路径也必须持久化终态。
 		assertEquals(1, seq.getLastApplied());
@@ -63,7 +65,7 @@ public class TestRaftSnapshotRequestDedup {
 	}
 
 	private static void assertApplied(Rocks rocks, Login rpc, Binary result) throws Exception {
-		var state = rocks.getRaft().getLogSequence().tryGetRequestState(rpc);
+		var state = requireNonNull(rocks.getRaft()).getLogSequence().tryGetRequestState(rpc);
 		assertNotNull(state);
 		assertTrue(state.isApplied(), "重复请求必须命中已应用的终态");
 		assertEquals(result, state.getRpcResult(), "重试必须回放原应答");
@@ -87,11 +89,11 @@ public class TestRaftSnapshotRequestDedup {
 			var changes = applyUniqueEntry(source);
 			applyUniqueEntry(target); // 接收节点原有终态也会被物理restore替换。
 			assertTrue(source.snapshot(dbHome.resolve("snapshot.zip").toString()).success);
-			target.loadSnapshot(source.getRaft().getLogSequence().getCommittedSnapshotFile());
+			target.loadSnapshot(requireNonNull(source.getRaft()).getLogSequence().getCommittedSnapshotFile());
 			assertApplied(target, RaftHeadlessSupport.newRetriedRpc(changes, clientId), rpcResult);
-			var table = target.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(target.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			assertEquals(List.of(10, 20, 30), RaftHeadlessSupport.readStorage(table, 1));
-			assertEquals(1, target.readAppliedWatermark().index());
+			assertEquals(1, requireNonNull(target.readAppliedWatermark()).index());
 		}
 	}
 
@@ -115,14 +117,14 @@ public class TestRaftSnapshotRequestDedup {
 				oldTable.put(requestKey(rpc), value.CopyIf());
 			}
 			assertTrue(source.snapshot(dbHome.resolve("legacy.snapshot.zip").toString()).success);
-			target.loadSnapshot(source.getRaft().getLogSequence().getCommittedSnapshotFile());
+			target.loadSnapshot(requireNonNull(source.getRaft()).getLogSequence().getCommittedSnapshotFile());
 			rpc.getUnique().setRequestId(1);
 			assertApplied(target, rpc, rpcResult);
 			for (int id = 2; id <= 1026; id++) {
 				rpc.getUnique().setRequestId(id);
 				assertApplied(target, rpc, oldResult);
 			}
-			assertFalse(target.getStorage().getTableMap().containsKey(oldName), "迁移完成后删除旧表");
+			assertFalse(requireNonNull(target.getStorage()).getTableMap().containsKey(oldName), "迁移完成后删除旧表");
 		}
 	}
 
@@ -133,7 +135,7 @@ public class TestRaftSnapshotRequestDedup {
 		String oldName;
 		try (var rocks = newRocks(SOURCE_ID, home)) {
 			changes = applyUniqueEntry(rocks);
-			oldName = legacyTableName(rocks.getRaft().getName(), changes);
+			oldName = legacyTableName(requireNonNull(rocks.getRaft()).getName(), changes);
 			var rpc = RaftHeadlessSupport.newRetriedRpc(changes, clientId);
 			var key = requestKey(rpc);
 			var oldTable = rocks.openTable(oldName);
@@ -141,7 +143,7 @@ public class TestRaftSnapshotRequestDedup {
 			new UniqueRequestState(new RaftLog(1, 1, changes), true).encode(value);
 			oldTable.put(key, value.CopyIf());
 			// 模拟升级前仅有节点前缀存根的状态库。
-			for (var table : rocks.getStorage().getTableMap().values()) {
+			for (var table : requireNonNull(rocks.getStorage()).getTableMap().values()) {
 				if (table.getName().contains(".unique.") && !table.getName().equals(oldName))
 					table.delete(key);
 			}
@@ -149,15 +151,15 @@ public class TestRaftSnapshotRequestDedup {
 			assertTrue(rocks.snapshot(dbHome.resolve("local.snapshot.zip").toString()).success);
 		}
 		try (var rocks = newRocks(SOURCE_ID, home)) {
-			assertEquals(1, rocks.getRaft().getLogSequence().getLastApplied(), "有效水位走增量恢复");
+			assertEquals(1, requireNonNull(rocks.getRaft()).getLogSequence().getLastApplied(), "有效水位走增量恢复");
 			var rpc = RaftHeadlessSupport.newRetriedRpc(changes, clientId);
 			assertApplied(rocks, rpc, rpcResult);
-			assertFalse(rocks.getStorage().getTableMap().containsKey(oldName), "开库时迁移本地旧表");
+			assertFalse(requireNonNull(rocks.getStorage()).getTableMap().containsKey(oldName), "开库时迁移本地旧表");
 			rocks.removeExpiredUniqueStubTables(changes.getCreateTime() + 86_400_000L);
 			assertNull(rocks.getUniqueAppliedStub(rpc), "新格式表也按日期过期");
 			assertTrue(rocks.getStorage().getTableMap().containsKey(oldName + ".suffix"));
 			assertNotNull(rocks.readAppliedWatermark());
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			assertEquals(List.of(10, 20, 30), RaftHeadlessSupport.readStorage(table, 1));
 		}
 	}

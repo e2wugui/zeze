@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketAddress;
@@ -13,8 +15,7 @@ import Zeze.Net.TcpSocket;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -56,7 +57,7 @@ public class TestConnectorConnectedOwnerCheck {
 	}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 	}
@@ -72,7 +73,7 @@ public class TestConnectorConnectedOwnerCheck {
 		}
 
 		@Override
-		protected @NotNull InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
+		protected InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
 			attempts.incrementAndGet();
 			entered.countDown();
 			try {
@@ -103,7 +104,7 @@ public class TestConnectorConnectedOwnerCheck {
 		Connector connector = null;
 		try {
 			var listen = (TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
-			int port = listen.getLocalInet().getPort();
+			int port = requireNonNull(listen.getLocalInet()).getPort();
 			connector = new Connector("127.0.0.1", port, true);
 			connector.SetService(client);
 
@@ -143,7 +144,7 @@ public class TestConnectorConnectedOwnerCheck {
 		Connector connector = null;
 		try {
 			var listen = (TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
-			int port = listen.getLocalInet().getPort();
+			int port = requireNonNull(listen.getLocalInet()).getPort();
 			connector = new Connector("127.0.0.1", port, true);
 			connector.SetService(client);
 			final Connector c = connector;
@@ -153,7 +154,7 @@ public class TestConnectorConnectedOwnerCheck {
 			Assertions.assertTrue(connector.isConnected(), "真实连接的Connected回调须已置位");
 
 			AsyncSocket so = connector.TryGetReadySocket();
-			connector.OnSocketConnected(so); // owner重复回调：放行（幂等）
+			connector.OnSocketConnected(requireNonNull(so)); // owner重复回调：放行（幂等）
 			Assertions.assertTrue(connector.isConnected(), "owner连接的回调必须放行");
 
 			connector.stop();

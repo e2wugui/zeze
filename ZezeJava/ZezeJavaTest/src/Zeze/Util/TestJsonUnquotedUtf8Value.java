@@ -1,4 +1,8 @@
 package Zeze.Util;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -21,13 +25,13 @@ import Zeze.Util.JsonReader;
 @Fast
 public final class TestJsonUnquotedUtf8Value {
 	static class Bean {
-		String name;
+		@Nullable String name;
 		final List<String> list = new ArrayList<>();
 		final Map<String, String> map = new LinkedHashMap<>();
 	}
 
 	private static Bean parse(String json) throws ReflectiveOperationException {
-		return JsonReader.local().buf(json).parse(Bean.class);
+		return requireNonNull(JsonReader.local().buf(json).parse(Bean.class));
 	}
 
 	@Test

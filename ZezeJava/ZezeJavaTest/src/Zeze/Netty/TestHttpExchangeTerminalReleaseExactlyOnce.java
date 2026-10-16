@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +64,7 @@ public class TestHttpExchangeTerminalReleaseExactlyOnce {
 		var server = new HttpServer();
 		var bothInRelease = new CyclicBarrier(2);
 		var request = new GatedRequest(bothInRelease);
-		var workerFailure = new AtomicReference<Throwable>();
+		var workerFailure = new AtomicReference<@Nullable Throwable>();
 		var exchangeReady = new CountDownLatch(1);
 		final HttpExchange[] exchange = new HttpExchange[1];
 		try {

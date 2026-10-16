@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import demo.App;
@@ -27,7 +29,7 @@ public class TestAutoKey {
 
 	private static long makeId(long index) {
 		var bb = ByteBuffer.Allocate(8);
-		var serverId = App.getInstance().Zeze.getConfig().getServerId();
+		var serverId = requireNonNull(App.getInstance().Zeze).getConfig().getServerId();
 		Assertions.assertTrue(serverId >= 0);
 		if (serverId > 0)
 			bb.WriteUInt(serverId);
@@ -39,7 +41,7 @@ public class TestAutoKey {
 	@Test
 	public final void test1_AutoKey() {
 		System.out.println("testAutoKey1");
-		var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
+		var autoKey = requireNonNull(demo.App.getInstance().Zeze).getAutoKey("test1");
 		var seed = autoKey.getSeed();
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			var id = autoKey.nextId();
@@ -56,7 +58,7 @@ public class TestAutoKey {
 	@Test
 	public final void test2_AutoKey() {
 		System.out.println("testAutoKey2");
-		var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
+		var autoKey = requireNonNull(demo.App.getInstance().Zeze).getAutoKey("test1");
 		var seed = autoKey.getSeed();
 		var allocCount = autoKey.getAllocateCount();
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
@@ -76,7 +78,7 @@ public class TestAutoKey {
 	@Test
 	public final void test3_AutoKey() {
 		System.out.println("testAutoKey3");
-		var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
+		var autoKey = requireNonNull(demo.App.getInstance().Zeze).getAutoKey("test1");
 		var seed = autoKey.getSeed();
 		var allocCount = autoKey.getAllocateCount();
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
@@ -103,7 +105,7 @@ public class TestAutoKey {
 		Assertions.assertTrue(ex.getMessage().contains("id must not be 0"),
 				"异常消息必须带语义，实际: " + ex.getMessage());
 		// 合法ID不受影响：与makeId同构构造后可解出serverId
-		var serverId = App.getInstance().Zeze.getConfig().getServerId();
+		var serverId = requireNonNull(App.getInstance().Zeze).getConfig().getServerId();
 		if (serverId > 0)
 			Assertions.assertEquals(serverId, Zeze.Component.AutoKey.getServerIdFromId(makeId(1)));
 	}

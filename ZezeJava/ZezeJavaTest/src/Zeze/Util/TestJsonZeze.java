@@ -1,4 +1,6 @@
 package Zeze.Util;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -76,15 +78,15 @@ public class TestJsonZeze {
 	public void testBytes() throws ReflectiveOperationException {
 		//noinspection EqualsAndHashcode
 		class B {
-			byte[] b1;
-			Binary b2;
-			ByteBuffer b3;
+			byte @Nullable [] b1;
+			@Nullable Binary b2;
+			@Nullable ByteBuffer b3;
 			byte[] b11 = ByteBuffer.Empty;
 			Binary b22 = Binary.Empty;
 			ByteBuffer b33 = ByteBuffer.Wrap(ByteBuffer.Empty);
 
 			@Override
-			public boolean equals(Object o) {
+			public boolean equals(@Nullable Object o) {
 				if (o == null || getClass() != o.getClass())
 					return false;
 				B b = (B)o;
@@ -120,14 +122,14 @@ public class TestJsonZeze {
 	public void testList() throws ReflectiveOperationException {
 		//noinspection EqualsAndHashcode
 		class L {
-			IntList il;
-			LongList ll;
-			FloatList fl;
-			Vector3List v3l;
-			Vector3IntList v3il;
+			@Nullable IntList il;
+			@Nullable LongList ll;
+			@Nullable FloatList fl;
+			@Nullable Vector3List v3l;
+			@Nullable Vector3IntList v3il;
 
 			@Override
-			public boolean equals(Object o) {
+			public boolean equals(@Nullable Object o) {
 				if (o == null || getClass() != o.getClass())
 					return false;
 				L l = (L)o;
@@ -175,11 +177,11 @@ public class TestJsonZeze {
 	public void testSet() throws ReflectiveOperationException {
 		//noinspection EqualsAndHashcode
 		class S {
-			IntHashSet is;
-			LongHashSet ls;
+			@Nullable IntHashSet is;
+			@Nullable LongHashSet ls;
 
 			@Override
-			public boolean equals(Object o) {
+			public boolean equals(@Nullable Object o) {
 				if (o == null || getClass() != o.getClass())
 					return false;
 				S s = (S)o;
@@ -215,12 +217,12 @@ public class TestJsonZeze {
 	public void testMap() throws ReflectiveOperationException {
 		//noinspection EqualsAndHashcode
 		class M {
-			IntHashMap<Integer> im;
-			LongHashMap<Long> lm;
+			@Nullable IntHashMap<Integer> im;
+			@Nullable LongHashMap<Long> lm;
 			final LongMap<Integer> cm = new LongConcurrentHashMap<>();
 
 			@Override
-			public boolean equals(Object o) {
+			public boolean equals(@Nullable Object o) {
 				if (o == null || getClass() != o.getClass())
 					return false;
 				M m = (M)o;

@@ -1,5 +1,7 @@
 package harness;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.util.HashSet;
 import Zeze.Config;
 import Zeze.Services.GlobalCacheManagerAsyncServer;
@@ -41,17 +43,17 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 
 	private static final Logger logger = LogManager.getLogger(TestEnvLauncherListener.class);
 
-	private static ServiceManagerServer serviceManager;
+	private static @Nullable ServiceManagerServer serviceManager;
 
 	// 主SM实例访问器：测试用它做"Identify已在SM侧生效"的确定性同步（轮询会话identifyServerId，
 	// 对齐TestTakeoverIdentifySuspect的修法）——WaitReady只等TCP连接不够（30轮压测实证）。
 	public static ServiceManagerServer serviceManager() {
-		return serviceManager;
+		return Objects.requireNonNull(serviceManager);
 	}
-	private static GlobalCacheManagerAsyncServer globalCacheManager;
+	private static @Nullable GlobalCacheManagerAsyncServer globalCacheManager;
 	private static boolean globalCacheManagerStarted;
-	private static ServiceManagerServer serviceManager2;
-	private static GlobalCacheManagerAsyncServer globalCacheManager2;
+	private static @Nullable ServiceManagerServer serviceManager2;
+	private static @Nullable GlobalCacheManagerAsyncServer globalCacheManager2;
 	private static boolean globalCacheManager2Started;
 	private static boolean envStarted;
 
@@ -122,7 +124,7 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 		if (globalCacheManagerStarted) {
 			globalCacheManagerStarted = false;
 			try {
-				globalCacheManager.stop();
+				Objects.requireNonNull(globalCacheManager).stop();
 			} catch (Exception e) {
 				logger.error("close GlobalCacheManagerAsyncServer failed", e);
 			}
@@ -131,7 +133,7 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 		if (globalCacheManager2Started) {
 			globalCacheManager2Started = false;
 			try {
-				globalCacheManager2.stop();
+				Objects.requireNonNull(globalCacheManager2).stop();
 			} catch (Exception e) {
 				logger.error("close GlobalCacheManagerAsyncServer(5012) failed", e);
 			}

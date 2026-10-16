@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -38,14 +42,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestProviderDirectAllRedoLeak extends AppBase {
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_PROVIDER_DIRECT_ALL_REDO_LEAK);
 
-	private Application zeze;
-	private ProviderApp providerApp;
+	private @Nullable Application zeze;
+	private @Nullable ProviderApp providerApp;
 	private ProviderDirectWithTransmit direct;
 	private ProviderDirectService directService;
 	private Table1 table1;
 
 	@Override
-	public Application getZeze() {
+	public @Nullable Application getZeze() {
 		return zeze;
 	}
 
@@ -61,7 +65,7 @@ public class TestProviderDirectAllRedoLeak extends AppBase {
 		zeze = new Application("TestPDRAllRedoLeak" + conf.getServerId(), conf);
 		zeze.setSchemas(new demo.Schemas());
 		// 表注册必须在zeze.start()（打开数据库）之前完成。
-		zeze.addTable(conf.getTableConf("demo_Module1_Table1").getDatabaseName(), new Table1());
+		zeze.addTable(requireNonNull(conf.getTableConf("demo_Module1_Table1")).getDatabaseName(), new Table1());
 		// 哑构造 ProviderApp（zeze/redirect 就绪，成员 null——7 参构造需要 ServiceManager，
 		// 本测试 SM=disable）：direct 与 directService 本地构造后回填 providerApp（同包可赋值）。
 		providerApp = new ProviderApp(zeze);
@@ -79,7 +83,7 @@ public class TestProviderDirectAllRedoLeak extends AppBase {
 		direct.RegisterProtocols(directService);
 		zeze.initialize(this);
 		zeze.start();
-		table1 = (Table1)zeze.getTable("demo_Module1_Table1");
+		table1 = (Table1)requireNonNull(zeze.getTable("demo_Module1_Table1"));
 		assertNotNull(table1);
 	}
 
@@ -97,19 +101,19 @@ public class TestProviderDirectAllRedoLeak extends AppBase {
 		final int hash = 7;
 		final long key = 9_527L;
 		// 初始值0：第一轮（将被回滚的轮次）读到0；外部事务提交改为1后，redo最终轮读到1抛异常。
-		assertEquals(Procedure.Success, zeze.newProcedure(() -> {
+		assertEquals(Procedure.Success, requireNonNull(zeze).newProcedure(() -> {
 			table1.getOrAdd(key).setInt_1(0);
 			return Procedure.Success;
 		}, "init").call());
 
 		var readByProcedure = new CountDownLatch(1);
 		var modified = new CountDownLatch(1);
-		var modifyError = new AtomicReference<Throwable>();
+		var modifyError = new AtomicReference<@Nullable Throwable>();
 
 		// 用户handle：第一轮读0，等外部事务提交冲突修改后，返回async future并立即由
 		// "非事务副作用"完成；redo最终轮读到1抛异常，过程返回Procedure.Exception。
 		var methodFullName = "TestPDRAllRedoLeak#Test";
-		zeze.redirect.handles.put(methodFullName, new RedirectHandle(
+		requireNonNull(zeze.redirect).handles.put(methodFullName, new RedirectHandle(
 				TransactionLevel.Serializable,
 				(h, params) -> {
 					var v = table1.getOrAdd(key).getInt_1();
@@ -132,7 +136,7 @@ public class TestProviderDirectAllRedoLeak extends AppBase {
 		var modifyThread = new Thread(() -> {
 			try {
 				assertTrue(readByProcedure.await(10, TimeUnit.SECONDS));
-				assertEquals(Procedure.Success, zeze.newProcedure(() -> {
+				assertEquals(Procedure.Success, requireNonNull(zeze).newProcedure(() -> {
 					table1.getOrAdd(key).setInt_1(1);
 					return Procedure.Success;
 				}, "modify").call());
@@ -161,7 +165,7 @@ public class TestProviderDirectAllRedoLeak extends AppBase {
 		if (modifyError.get() != null)
 			throw new AssertionError("modify thread failed", modifyError.get());
 
-		ctx.getFuture().await();
+		requireNonNull(ctx.getFuture()).await();
 		// 该hash必须以过程错误码收尾，而不是把回滚轮次算出的结果当成功上报。
 		var result = ctx.getAllResults().get(hash);
 		assertNotNull(result, "hash result must be reported");

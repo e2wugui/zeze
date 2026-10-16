@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -96,7 +98,7 @@ public class TestRocksDatabaseCloseSafe {
 		var db = new RocksDatabase(tempDir.resolve("db4").toString());
 		var table = db.getOrAddTable("t");
 		table.put(new byte[]{1}, new byte[]{9});
-		assertEquals(9, table.get(new byte[]{1})[0]);
+		assertEquals(9, requireNonNull(table.get(new byte[]{1}))[0]);
 		try (var it2 = table.iterator()) {
 			it2.seekToFirst();
 			assertTrue(it2.isValid());

@@ -1,5 +1,7 @@
 package Zeze.History;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import Zeze.Application;
 import Zeze.Config;
@@ -36,7 +38,7 @@ public class TestHistorySharedTableOwnerNameMismatch {
 		return new Application("TestHistorySharedTableOwner", conf);
 	}
 
-	private static void quietStop(Application app) {
+	private static void quietStop(@Nullable Application app) {
 		if (app == null)
 			return;
 		try {

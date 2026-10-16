@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Serialize.ByteBuffer;
 import demo.ModuleGTable.BValue;
 import demo.ModuleGTable.Bean1;
@@ -48,7 +50,7 @@ public class TestGTableDynamicBinaryCompatibility {
 		var decoded = new BValue();
 		decoded.decode(input);
 		assertTrue(input.isEmpty());
-		assertEquals(17, ((Bean1)decoded.getGTable3().get(1, 2).getBean()).getIntVar());
+		assertEquals(17, ((Bean1)requireNonNull(decoded.getGTable3().get(1, 2)).getBean()).getIntVar());
 	}
 
 	@Test
@@ -69,6 +71,6 @@ public class TestGTableDynamicBinaryCompatibility {
 		var row = new BValue().getGTable3().getPMap2().createValue();
 		row.decode(input);
 		assertTrue(input.isEmpty());
-		assertEquals(47, ((Bean1)row.get(2).getBean()).getIntVar());
+		assertEquals(47, ((Bean1)requireNonNull(row.get(2)).getBean()).getIntVar());
 	}
 }

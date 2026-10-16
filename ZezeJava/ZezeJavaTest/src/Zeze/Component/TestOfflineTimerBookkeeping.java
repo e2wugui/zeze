@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,7 +16,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -35,34 +36,34 @@ public class TestOfflineTimerBookkeeping {
 
 	public static class NormalHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 		}
 	}
 
 	public static class ThrowHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			throw new RuntimeException("fnd872 boom");
 		}
 	}
 
 	// Arch/Game Online的protected构造（load redirect入口）以命名子类放开，构造内为纯内存注册。
 	private static final class TestArchOnline extends Zeze.Arch.Online {
-		TestArchOnline(@NotNull AppBase app) {
+		TestArchOnline(AppBase app) {
 			super(app);
 		}
 	}
 
 	private static final class TestGameOnline extends Zeze.Game.Online {
-		TestGameOnline(@NotNull AppBase app) {
+		TestGameOnline(AppBase app) {
 			super(app);
 		}
 	}
 
 	private static final class TestAppBase extends AppBase {
-		private final @NotNull Application zeze;
+		private final Application zeze;
 
-		TestAppBase(@NotNull Application zeze) {
+		TestAppBase(Application zeze) {
 			this.zeze = zeze;
 		}
 
@@ -76,13 +77,13 @@ public class TestOfflineTimerBookkeeping {
 	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_OFFLINE_TIMER_BOOKKEEPING);
 
 	private static final class Env implements AutoCloseable {
-		final @NotNull Application zeze;
-		final @NotNull Timer timer;
-		final @NotNull TimerAccount accountTimer;
-		final @NotNull TimerRole roleTimer;
-		final @NotNull TestGameOnline gameOnline;
+		final Application zeze;
+		final Timer timer;
+		final TimerAccount accountTimer;
+		final TimerRole roleTimer;
+		final TestGameOnline gameOnline;
 
-		Env(@NotNull String name) throws Exception {
+		Env(String name) throws Exception {
 			Task.tryInitThreadPool();
 			var conf = new Config();
 			conf.setServiceManager("disable");
@@ -121,8 +122,8 @@ public class TestOfflineTimerBookkeeping {
 			implField.set(providerApp, pwo);
 
 			zeze.start();
-			timer = zeze.getTimer();
-			timer.start();
+			timer = java.util.Objects.requireNonNull(zeze.getTimer());
+			requireNonNull(timer).start();
 		}
 
 		@Override
@@ -132,7 +133,7 @@ public class TestOfflineTimerBookkeeping {
 	}
 
 	// 轮询等待条件成立（条件在独立事务内求值），不赌时序。
-	private static boolean await(@NotNull Env env, @NotNull Supplier<Boolean> cond) throws InterruptedException {
+	private static boolean await(Env env, Supplier<Boolean> cond) throws InterruptedException {
 		long deadline = System.currentTimeMillis() + 10_000;
 		while (System.currentTimeMillis() < deadline) {
 			if (cond.get())
@@ -142,7 +143,7 @@ public class TestOfflineTimerBookkeeping {
 		return cond.get();
 	}
 
-	private static boolean indexGone(@NotNull Env env, @NotNull String timerId) {
+	private static boolean indexGone(Env env, String timerId) {
 		var gone = new boolean[1];
 		Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 			gone[0] = env.timer.getTimerIndex(timerId) == null;
@@ -151,7 +152,7 @@ public class TestOfflineTimerBookkeeping {
 		return gone[0];
 	}
 
-	private static boolean roleBookkeepingGone(@NotNull Env env, long roleId, @NotNull String timerId) {
+	private static boolean roleBookkeepingGone(Env env, long roleId, String timerId) {
 		var gone = new boolean[1];
 		Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 			var row = env.gameOnline._tRoleOfflineTimers().get(roleId);
@@ -161,8 +162,8 @@ public class TestOfflineTimerBookkeeping {
 		return gone[0];
 	}
 
-	private static boolean accountBookkeepingGone(@NotNull Env env, @NotNull String account,
-												  @NotNull String clientId, @NotNull String timerId) {
+	private static boolean accountBookkeepingGone(Env env, String account,
+												  String clientId, String timerId) {
 		var gone = new boolean[1];
 		Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 			var row = env.timer.tAccountOfflineTimers().get(new BAccountClientId(account, clientId));

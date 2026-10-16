@@ -7,9 +7,10 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public final class RaftTest {
 	private final class Env implements SimpleRaft.Env {
 		private final SimpleDateFormat dtf = new SimpleDateFormat("yy-MM-dd HH:mm:ss.SSS");
@@ -19,7 +20,7 @@ public final class RaftTest {
 		private final ArrayDeque<Object> events = new ArrayDeque<>(16);
 		private final ArrayDeque<Object> clientEvents = new ArrayDeque<>(16);
 		private final HashMap<Long, SimpleRaft.Log> logMap = new HashMap<>();
-		private SimpleRaft.Log @NotNull [] logs = new SimpleRaft.Log[4]; // 初始容量
+		private SimpleRaft.Log [] logs = new SimpleRaft.Log[4]; // 初始容量
 		private long logCount; // logs的有效数量
 		private long randSeed;
 		private final int id;
@@ -31,7 +32,7 @@ public final class RaftTest {
 			raft = new SimpleRaft(this, RAFT_COUNT, id, curTime);
 		}
 
-		@NotNull SimpleRaft getRaft() {
+		SimpleRaft getRaft() {
 			return raft;
 		}
 
@@ -53,7 +54,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public void sendEvent(int id, @NotNull Object obj) {
+		public void sendEvent(int id, Object obj) {
 			envs[id].events.addLast(obj);
 		}
 
@@ -62,7 +63,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public void sendClientEvent(@NotNull Object obj) {
+		public void sendClientEvent(Object obj) {
 			clientEvents.addLast(obj);
 		}
 
@@ -81,7 +82,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public @NotNull SimpleRaft.Log @NotNull [] getLogs(long indexBegin, long indexEnd) {
+		public SimpleRaft.Log [] getLogs(long indexBegin, long indexEnd) {
 			if (indexBegin < 0 || indexBegin > indexEnd)
 				throw new IllegalArgumentException("invalid indexBegin=" + indexBegin + " or indexEnd=" + indexEnd);
 			if (indexEnd > logCount)
@@ -90,12 +91,12 @@ public final class RaftTest {
 		}
 
 		@Override
-		public @Nullable SimpleRaft.Log getLogByKey(long key) {
+		public SimpleRaft.@Nullable Log getLogByKey(long key) {
 			return null;
 		}
 
 		@Override
-		public boolean appendLog(@NotNull SimpleRaft.Log log) {
+		public boolean appendLog(SimpleRaft.Log log) {
 			if (log.index != logCount)
 				throw new IllegalArgumentException("log.index(" + log.index + ") != logCount(" + logCount + ')');
 			if (logMap.containsKey(log.key))
@@ -110,7 +111,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public void appendLogs(@NotNull SimpleRaft.Log @NotNull [] logs) {
+		public void appendLogs(SimpleRaft.Log [] logs) {
 			int appendCount = logs.length;
 			for (int i = 0; i < appendCount; i++)
 				if (logs[i].index != logCount + i)
@@ -142,7 +143,8 @@ public final class RaftTest {
 		}
 
 		@Override
-		public void traceInfo(@NotNull String info) {
+		@SuppressWarnings("ConstantConditions") // SimpleRaft构造期间可能回调traceInfo，此时raft字段尚未赋值。
+		public void traceInfo(String info) {
 			strBuf.setLength(0);
 			date.setTime(System.currentTimeMillis());
 			dtf.format(date, strBuf, fieldPos);
@@ -152,7 +154,7 @@ public final class RaftTest {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "Env{" + "events=" + events + ", clientEvents=" + clientEvents + ", logs=" + Arrays.toString(logs)
 					+ ", logCount=" + logCount + ", randSeed=" + randSeed + ", raft=" + raft + '}';
 		}
@@ -160,7 +162,7 @@ public final class RaftTest {
 
 	private static final int RAFT_COUNT = 3;
 
-	private final @NotNull Env[] envs = new Env[RAFT_COUNT];
+	private final Env[] envs = new Env[RAFT_COUNT];
 	private final HashSet<Long> sendingSerials = new HashSet<>();
 	private long curTime;
 	private long serialCounter;

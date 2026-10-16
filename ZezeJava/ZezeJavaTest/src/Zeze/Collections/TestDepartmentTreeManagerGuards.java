@@ -1,5 +1,9 @@
 package Zeze.Collections;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
@@ -13,7 +17,6 @@ import Zeze.Util.FuncLong;
 import Zeze.Util.OutLong;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -32,57 +35,57 @@ public class TestDepartmentTreeManagerGuards {
 	// 最小Bean：仅需encode/decode（typeId默认按类名hash）。
 	public static class Manager extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 
 	public static class Member extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 
 	public static class DepartmentMember extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 
 	public static class GroupData extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 
 	public static class DepartmentData extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 
 	private static final long MissingDepartmentId = 999_999;
 
-	private DepartmentTree.Module departmentTreeModule;
+	private DepartmentTree.@Nullable Module departmentTreeModule;
 
 	private Application newApp() throws Exception {
 		var conf = new Config();
@@ -109,7 +112,7 @@ public class TestDepartmentTreeManagerGuards {
 		var app = newApp();
 		try {
 			app.start();
-			var tree = departmentTreeModule.open("guards1",
+			var tree = requireNonNull(departmentTreeModule).open("guards1",
 					Manager.class, Member.class, DepartmentMember.class, GroupData.class, DepartmentData.class);
 			run(app, "create", () -> {
 				tree.create();

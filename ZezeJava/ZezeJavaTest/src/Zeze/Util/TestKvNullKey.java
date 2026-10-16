@@ -31,6 +31,7 @@ public class TestKvNullKey {
 	}
 
 	@Test
+	@SuppressWarnings("DataFlowIssue") // 故意传 null key，验证运行时拒绝非法键。
 	public void testNullKeyRejectedNullValueAllowed() {
 		// key契约（FND6-42终态）：构造点requireNonNull拒绝null key，异常消息为"key"。
 		var e = Assertions.assertThrows(NullPointerException.class, () -> KV.create(null, "v"),

@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
@@ -87,7 +89,7 @@ public class TestSnapshotResidualCleanup {
 			assertEquals(0L, countCheckpointDirs(),
 					"residual checkpoint_* dirs must be swept before generating a new snapshot, "
 							+ "and the current checkpoint must be deleted after success");
-			assertTrue(rocks.getRaft().getLogSequence().genSnapshotPath(result.lastIncludedIndex).toFile().isFile(),
+			assertTrue(requireNonNull(rocks.getRaft()).getLogSequence().genSnapshotPath(result.lastIncludedIndex).toFile().isFile(),
 					"committed generation snapshot file must exist");
 		}
 	}
@@ -114,7 +116,7 @@ public class TestSnapshotResidualCleanup {
 			var result2 = rocks.snapshot(tmpZip2.toString());
 			assertTrue(result2.success);
 			assertEquals(0L, countCheckpointDirs(), "residual must be cleaned once no longer locked");
-			assertTrue(rocks.getRaft().getLogSequence()
+			assertTrue(requireNonNull(rocks.getRaft()).getLogSequence()
 					.genSnapshotPath(result2.lastIncludedIndex).toFile().isFile(),
 					"committed generation snapshot file must exist");
 		}

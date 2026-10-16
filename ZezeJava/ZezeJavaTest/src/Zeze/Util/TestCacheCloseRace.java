@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
@@ -64,7 +66,7 @@ public class TestCacheCloseRace {
 					return o;
 				}));
 
-		var getThrown = new AtomicReference<Throwable>();
+		var getThrown = new AtomicReference<@Nullable Throwable>();
 		var getter = new Thread(() -> {
 			try {
 				cache.get("k1");

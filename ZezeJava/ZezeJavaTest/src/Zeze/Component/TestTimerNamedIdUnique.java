@@ -9,7 +9,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +28,7 @@ public class TestTimerNamedIdUnique {
 
 	public static class TestHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 		}
 	}
 

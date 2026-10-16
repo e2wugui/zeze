@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -55,8 +59,8 @@ public class TestServiceManagerWithRaftAllocateId {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Zeze.Raft.RocksRaft.Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
-	private static Peer client;
+	private static @Nullable Path raftXmlFile;
+	private static @Nullable Peer client;
 	private static final AtomicLong requestIds = new AtomicLong();
 
 	/** 裸协议raft客户端：Login/AllocateId收发；LeaderIs必须注册（服务端会主动推送）。 */
@@ -141,7 +145,7 @@ public class TestServiceManagerWithRaftAllocateId {
 		for (var server : servers)
 			server.close();
 		servers.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new File(dbHome));
 		dbHomes.clear();
@@ -157,7 +161,7 @@ public class TestServiceManagerWithRaftAllocateId {
 		return sb.append("</raft>\n").toString();
 	}
 
-	private static Zeze.Raft.RocksRaft.Rocks leaderRocks() {
+	private static Zeze.Raft.RocksRaft.@Nullable Rocks leaderRocks() {
 		for (int i = 0; i < servers.size(); i++)
 			if (rocksList.get(i).isLeader())
 				return rocksList.get(i);
@@ -205,7 +209,7 @@ public class TestServiceManagerWithRaftAllocateId {
 			var rocks = leaderRocks();
 			if (rocks == null)
 				continue;
-			if (rocks.getRaft().isReadyLeader())
+			if (requireNonNull(rocks.getRaft()).isReadyLeader())
 				return;
 			@SuppressWarnings("unchecked")
 			var table = (Zeze.Raft.RocksRaft.Table<String, Zeze.Builtin.ServiceManagerWithRaft.BAutoKey>)
@@ -245,7 +249,7 @@ public class TestServiceManagerWithRaftAllocateId {
 		Assertions.assertEquals(start1 + 100, start2, "连续两次AllocateId的号段必须连续不重叠");
 	}
 
-	private static AsyncSocket socket;
+	private static @Nullable AsyncSocket socket;
 	private static int socketPort = -1;
 
 	/**
@@ -257,7 +261,7 @@ public class TestServiceManagerWithRaftAllocateId {
 		var port = leaderPort();
 		if (socket != null && socketPort == port && !socket.isClosed())
 			return socket;
-		socket = client.connect(port);
+		socket = requireNonNull(client).connect(port);
 		socketPort = port;
 		login(socket);
 		return socket;

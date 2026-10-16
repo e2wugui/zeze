@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
@@ -102,8 +104,8 @@ public final class TestJsonNoQuoteKeyForceQuote {
 		assertEquals("{\"a/b\":7}", new String(w2.toBytes(), StandardCharsets.UTF_8));
 		// 往返：带引号的特殊键仍能命中字段
 		Bean back = new JsonReader().buf("{\"a b\":7}").parse(json, Bean.class);
-		assertEquals(7, back.n);
+		assertEquals(7, requireNonNull(back).n);
 		Bean back2 = new JsonReader().buf("{\"a/b\":7}").parse(json2, Bean.class);
-		assertEquals(7, back2.n);
+		assertEquals(7, requireNonNull(back2).n);
 	}
 }

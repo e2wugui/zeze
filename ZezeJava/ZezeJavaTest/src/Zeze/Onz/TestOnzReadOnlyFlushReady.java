@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Config;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Onz.OnzServer;
@@ -32,7 +36,7 @@ public class TestOnzReadOnlyFlushReady {
 	private static final long ACCOUNT = 9101;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -45,32 +49,32 @@ public class TestOnzReadOnlyFlushReady {
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
 
 		// 只读：参与方事务只 get 不写（走孤立 mergedSet 路径，mergedSet.recordSet==null）。
-		App.Instance.Zeze.getOnz().register("readOnlyKuafu",
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).register("readOnlyKuafu",
 				TestOnzReadOnlyFlushReady::readOnlyKuafu, BKuafu.class, BKuafuResult.class);
 		// 空访问：参与方业务完全不触碰任何表格（走 locked 为空路径）。
-		zeze2.Zeze.getOnz().register("noTouchKuafu",
+		requireNonNull(requireNonNull(zeze2.Zeze).getOnz()).register("noTouchKuafu",
 				TestOnzReadOnlyFlushReady::noTouchKuafu, BKuafu.class, BKuafuResult.class);
 
 		var myConfig = Config.load("zeze.xml");
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		// before() 被 Assumption 跳过时 onzServer 尚未创建
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
 	private static long readOnlyKuafu(OnzProcedure onzProcedure, BKuafu argument, BKuafuResult result) {
-		var app = (App)onzProcedure.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().get(argument.getAccount()); // 只读
+		var app = (App)requireNonNull(onzProcedure.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().get(argument.getAccount()); // 只读
 		result.setMoney(account != null ? account.getMoney() : 0);
 		return 0;
 	}
@@ -85,8 +89,8 @@ public class TestOnzReadOnlyFlushReady {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)
@@ -102,11 +106,11 @@ public class TestOnzReadOnlyFlushReady {
 		waitOnzReady();
 
 		var txn = new ReadOnlyTransaction();
-		txn.setOnzServer(onzServer);
+		txn.setOnzServer(requireNonNull(onzServer));
 		txn.setFlushTimeout(3_000); // 缩短：未修复时 perform 应挂满该值后降级
 
 		var t0 = System.nanoTime();
-		var rc = onzServer.perform(txn);
+		var rc = requireNonNull(onzServer).perform(txn);
 		var elapsedMs = (System.nanoTime() - t0) / 1_000_000;
 
 		Assertions.assertEquals(0L, rc, "只读/空访问Onz事务必须成功");

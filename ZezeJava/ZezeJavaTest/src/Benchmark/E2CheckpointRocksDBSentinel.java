@@ -1,9 +1,10 @@
 package Benchmark;
+
+import java.util.Objects;
 import harness.Bench;
 import harness.MacroBench;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
 import Zeze.Config;
 import Zeze.Transaction.CheckpointFlushMode;
 import demo.App;
@@ -37,7 +38,7 @@ public class E2CheckpointRocksDBSentinel {
 			MacroBench.runTimed("E2_CheckpointRocksDB_MultiThreadMerge", Warmups, Rounds, Records, () -> {
 				dirtyRecords(++round[0]);
 				long begin = System.nanoTime();
-				App.Instance.Zeze.checkpointRun();
+				App.Instance.getZeze().checkpointRun();
 				return (System.nanoTime() - begin) / 1e9;
 			});
 		} finally {
@@ -49,8 +50,8 @@ public class E2CheckpointRocksDBSentinel {
 		for (long k = 0; k < Records; ++k) {
 			final long key = k;
 			final long value = key + roundNo;
-			App.Instance.Zeze.newProcedure(() -> {
-				App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(value);
+			App.Instance.getZeze().newProcedure(() -> {
+				Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(key).setLong2(value);
 				return 0L;
 			}, "dirty").call();
 		}

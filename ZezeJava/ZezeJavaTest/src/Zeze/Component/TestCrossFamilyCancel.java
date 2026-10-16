@@ -15,8 +15,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -35,113 +34,113 @@ public class TestCrossFamilyCancel {
 
 	/** 在线族定时器桩：存储钩子全部map替身，供cancelOnlineLocal全路径驱动。 */
 	static final class StubOnlineTimers extends TimerOnlineBase<String> {
-		private final @NotNull Timer timer;
-		private final @NotNull ConcurrentHashMap<String, OnlineTimer<String>> onlineTimers = new ConcurrentHashMap<>();
-		private final @NotNull ConcurrentHashMap<String, BOnlineTimers> localTimers = new ConcurrentHashMap<>();
+		private final Timer timer;
+		private final ConcurrentHashMap<String, OnlineTimer<String>> onlineTimers = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, BOnlineTimers> localTimers = new ConcurrentHashMap<>();
 
-		StubOnlineTimers(@NotNull Timer timer) {
+		StubOnlineTimers(Timer timer) {
 			this.timer = timer;
 		}
 
 		@Override
-		@NotNull Timer timer() {
+		Timer timer() {
 			return timer;
 		}
 
 		@Override
-		@NotNull String name() {
+		String name() {
 			return "StubOnlineTimers";
 		}
 
 		@Override
-		@Nullable Long getLocalLoginVersion(@NotNull String id) {
+		Long getLocalLoginVersion(String id) {
 			return 1L;
 		}
 
 		@Override
-		@Nullable Long getSharedLoginVersion(@NotNull String id) {
+		Long getSharedLoginVersion(String id) {
 			return 1L;
 		}
 
 		@Override
-		@Nullable Long getLoginVersion(@NotNull String id) {
+		Long getLoginVersion(String id) {
 			return 1L;
 		}
 
 		@Override
-		@NotNull OnlineTimer<String> newOnlineTimer(@NotNull String id, long loginVersion, long serialId,
-													@NotNull Bean timerObj) {
+		OnlineTimer<String> newOnlineTimer(String id, long loginVersion, long serialId,
+													Bean timerObj) {
 			return new StubOnlineTimer(serialId, timerObj);
 		}
 
 		@Override
-		@Nullable OnlineTimer<String> getOnlineTimer(@NotNull String timerId) {
+		@Nullable OnlineTimer<String> getOnlineTimer(String timerId) {
 			return onlineTimers.get(timerId);
 		}
 
 		@Override
-		void insertOnlineTimer(@NotNull String timerId, @NotNull OnlineTimer<String> onlineTimer) {
+		void insertOnlineTimer(String timerId, OnlineTimer<String> onlineTimer) {
 			onlineTimers.put(timerId, onlineTimer);
 		}
 
 		@Override
-		void removeOnlineTimer(@NotNull String timerId) {
+		void removeOnlineTimer(String timerId) {
 			onlineTimers.remove(timerId);
 		}
 
 		@Override
-		@NotNull BOnlineTimers getOrAddLocalTimers(@NotNull String id) {
+		BOnlineTimers getOrAddLocalTimers(String id) {
 			return localTimers.computeIfAbsent(id, k -> new BOnlineTimers());
 		}
 
 		@Override
-		@Nullable BOnlineTimers getLocalTimers(@NotNull String id) {
+		@Nullable BOnlineTimers getLocalTimers(String id) {
 			return localTimers.get(id);
 		}
 
 		@Override
-		void removeLocalTimers(@NotNull String id) {
+		void removeLocalTimers(String id) {
 			localTimers.remove(id);
 		}
 
 		@Override
-		void transmitSimple(@NotNull String target, @NotNull Zeze.Builtin.Timer.BTransmitSimpleTimer p) {
+		void transmitSimple(String target, Zeze.Builtin.Timer.BTransmitSimpleTimer p) {
 		}
 
 		@Override
-		void transmitCron(@NotNull String target, @NotNull Zeze.Builtin.Timer.BTransmitCronTimer p) {
+		void transmitCron(String target, Zeze.Builtin.Timer.BTransmitCronTimer p) {
 		}
 
 		@Override
-		void transmitCancel(@NotNull String target, @NotNull String timerId, long loginVersion) {
+		void transmitCancel(String target, String timerId, long loginVersion) {
 		}
 
 		@Override
-		@NotNull String identityString(@NotNull String id) {
+		String identityString(String id) {
 			return id;
 		}
 
 		@Override
-		void fillContext(@NotNull String id, @NotNull TimerContext context) {
+		void fillContext(String id, TimerContext context) {
 		}
 	}
 
 	/** 在线族定时器记录桩：cancelOnlineLocal需要identity/serialId/loginVersion。 */
 	static final class StubOnlineTimer extends TimerOnlineBase.OnlineTimer<String> {
 		private final long serialId;
-		private final @NotNull Bean timerObj;
+		private final Bean timerObj;
 
 		StubOnlineTimer(long serialId) {
 			this(serialId, new BSimpleTimer());
 		}
 
-		StubOnlineTimer(long serialId, @NotNull Bean timerObj) {
+		StubOnlineTimer(long serialId, Bean timerObj) {
 			this.serialId = serialId;
 			this.timerObj = timerObj;
 		}
 
 		@Override
-		@NotNull Bean getTimerObj() {
+		Bean getTimerObj() {
 			return timerObj;
 		}
 
@@ -156,14 +155,14 @@ public class TestCrossFamilyCancel {
 		}
 
 		@Override
-		@NotNull String identity() {
+		String identity() {
 			return "owner1";
 		}
 	}
 
 	public static class TestHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 		}
 	}
 
@@ -171,9 +170,9 @@ public class TestCrossFamilyCancel {
 	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_CROSS_FAMILY_CANCEL);
 
 	static final class TestAppBase extends AppBase {
-		private final @NotNull Application zeze;
+		private final Application zeze;
 
-		TestAppBase(@NotNull Application zeze) {
+		TestAppBase(Application zeze) {
 			this.zeze = zeze;
 		}
 
@@ -185,10 +184,10 @@ public class TestCrossFamilyCancel {
 
 	/** 包内共享测试环境：编程式Application（SM=disable、独立Memory桶）+已start的Timer。 */
 	static final class TestEnv implements AutoCloseable {
-		final @NotNull Application app;
-		final @NotNull Timer timer;
+		final Application app;
+		final Timer timer;
 
-		TestEnv(@NotNull String appName) throws Exception {
+		TestEnv(String appName) throws Exception {
 			Task.tryInitThreadPool();
 			var conf = new Config();
 			conf.setServiceManager("disable");

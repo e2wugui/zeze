@@ -236,6 +236,7 @@
 			<groupId>org.jetbrains</groupId>
 			<artifactId>annotations</artifactId>
 			<version>${annotations.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>

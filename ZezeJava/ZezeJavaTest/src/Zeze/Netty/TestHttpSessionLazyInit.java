@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -34,7 +36,7 @@ public class TestHttpSessionLazyInit {
 		var app = App.getInstance();
 		app.Start();
 		// Normal派发(默认):handler在oneByOne队列的池线程事务里执行
-		app.HttpServer.addHandler(Path, 8192, TransactionLevel.Serializable, DispatchMode.Normal,
+		requireNonNull(app.HttpServer).addHandler(Path, 8192, TransactionLevel.Serializable, DispatchMode.Normal,
 				TestHttpSessionLazyInit::onRequest);
 	}
 
@@ -45,7 +47,7 @@ public class TestHttpSessionLazyInit {
 		Assertions.assertFalse(x.channel().eventLoop().inEventLoop(),
 				"session init must not run on the channel EventLoop");
 		Assertions.assertNotNull(Transaction.getCurrent(), "session init should join the caller transaction");
-		var old = cs.getProperty("count");
+		var old = requireNonNull(cs).getProperty("count");
 		var count = old == null ? 0 : Integer.parseInt(old);
 		cs.setProperty("count", String.valueOf(count + 1));
 		x.sendPlainText(HttpResponseStatus.OK, String.valueOf(count));

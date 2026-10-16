@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,7 +79,7 @@ public class TestLeaderRecordCacheEviction {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_list.initRootInfo(root, this);
 		}
 
@@ -84,7 +90,7 @@ public class TestLeaderRecordCacheEviction {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_list.followerApply(vlog);
 			}
 		}
@@ -168,13 +174,13 @@ public class TestLeaderRecordCacheEviction {
 	@Test
 	public void testInUseRecordNotEvicted() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 
 			// 过程内：记录被访问（在用），驱逐回调必须拒绝。
 			var rc = rocks.newProcedure(() -> {
 				assertNotNull(table.get(1));
-				var record = table.getLruCache().get(1);
+				var record = requireNonNull(table.getLruCache()).get(1);
 				assertNotNull(record);
 				var cb = table.getLruCache().getTryRemoveCallback();
 				assertNotNull(cb, "FND7-14: protective tryRemoveCallback must be installed (generated templates register none)");
@@ -185,17 +191,17 @@ public class TestLeaderRecordCacheEviction {
 			assertEquals(0L, rc);
 
 			// 过程结束（perform收尾释放）：驱逐放行，pair-remove生效。
-			var cb = table.getLruCache().getTryRemoveCallback();
+			var cb = requireNonNull(table.getLruCache()).getTryRemoveCallback();
 			var record = table.getLruCache().get(1);
 			assertNotNull(record);
-			assertTrue(cb.test(1, record), "released record must be evictable");
+			assertTrue(requireNonNull(cb).test(1, record), "released record must be evictable");
 			assertNull(table.getLruCache().get(1), "evicted record must be pair-removed from cache");
 
 			// 下次访问经慢路径重装载：新记录、值与storage一致。
 			var out = readInProcedure(rocks, () -> {
 				var v = table.get(1);
 				assertNotNull(v);
-				assertNotSame(record, table.getLruCache().get(1), "next access must load a fresh record");
+				assertNotSame(record, requireNonNull(table.getLruCache()).get(1), "next access must load a fresh record");
 				var items = new ArrayList<Integer>();
 				for (var i : v.getList())
 					items.add(i);
@@ -213,14 +219,14 @@ public class TestLeaderRecordCacheEviction {
 	@Test
 	public void testEvictionCannotStrandStaleRecordAcrossApply() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 
 			// 捕获带修改的Changes（非leader：appendLog抛RaftRetry，过程按失败返回，
 			// 但日志与accessedRecords已收集在事务对象上——即真实leader上提交前的现场）。
 			final Transaction[] ts = new Transaction[1];
 			var rc = rocks.newProcedure(() -> {
-				ts[0] = Transaction.getCurrent();
+				ts[0] = requireNonNull(Transaction.getCurrent());
 				table.getOrAdd(1).getList().add(30); // 原位修改缓存记录：[10] -> [10,30]
 				return 0L;
 			}).call();
@@ -230,7 +236,7 @@ public class TestLeaderRecordCacheEviction {
 			changes.encode(ByteBuffer.Allocate()); // 对齐真实路径：解析出Record.table
 
 			// 过程已返回（在用保护已随perform收尾释放）：此时驱逐是合法的。
-			var cb = table.getLruCache().getTryRemoveCallback();
+			var cb = requireNonNull(table.getLruCache()).getTryRemoveCallback();
 			assertNotNull(cb);
 			var origin = table.getLruCache().get(1);
 			assertNotNull(origin);
@@ -244,7 +250,7 @@ public class TestLeaderRecordCacheEviction {
 			// 后续访问：缓存从storage重装载到提交后的值，无过期读。
 			var out = readInProcedure(rocks, () -> {
 				var items = new ArrayList<Integer>();
-				for (var i : table.get(1).getList())
+				for (var i : requireNonNull(table.get(1)).getList())
 					items.add(i);
 				assertEquals(List.of(10, 30), items);
 				return 0L;
@@ -262,12 +268,12 @@ public class TestLeaderRecordCacheEviction {
 	@Test
 	public void testPendingFlushHoldsAccessUntilConsumed() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 
 			final Transaction[] ts = new Transaction[1];
 			var rc = rocks.newProcedure(() -> {
-				ts[0] = Transaction.getCurrent();
+				ts[0] = requireNonNull(Transaction.getCurrent());
 				table.getOrAdd(1).getList().add(30);
 				return 0L;
 			}).call();
@@ -277,7 +283,7 @@ public class TestLeaderRecordCacheEviction {
 			changes.encode(ByteBuffer.Allocate()); // 对齐真实路径：解析出Record.table
 
 			// 过程返回后（perform已释放业务计数）无补偿登记：可驱逐（基线对照）。
-			var cb = table.getLruCache().getTryRemoveCallback();
+			var cb = requireNonNull(table.getLruCache()).getTryRemoveCallback();
 			assertNotNull(cb);
 			var record = table.getLruCache().get(1);
 			assertNotNull(record);
@@ -329,12 +335,12 @@ public class TestLeaderRecordCacheEviction {
 	@Test
 	public void testFollowerApplyReleasesAccess() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 
 			final Transaction[] ts = new Transaction[1];
 			var rc = rocks.newProcedure(() -> {
-				ts[0] = Transaction.getCurrent();
+				ts[0] = requireNonNull(Transaction.getCurrent());
 				table.getOrAdd(1).getList().add(30);
 				return 0L;
 			}).call();
@@ -345,7 +351,7 @@ public class TestLeaderRecordCacheEviction {
 
 			// 丢弃事务侧的在用登记（perform已释放），再用follower路径装载并应用：
 			// followerApply装载的记录在flush前受保护、成功后释放。
-			var cb = table.getLruCache().getTryRemoveCallback();
+			var cb = requireNonNull(table.getLruCache()).getTryRemoveCallback();
 			assertNotNull(cb);
 			var origin = table.getLruCache().get(1);
 			assertNotNull(origin);

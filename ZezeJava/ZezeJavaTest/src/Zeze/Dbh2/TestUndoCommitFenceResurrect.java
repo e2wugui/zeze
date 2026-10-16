@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -64,7 +68,7 @@ public class TestUndoCommitFenceResurrect {
 	private static Dbh2StateMachine leaderStateMachine(List<Dbh2> nodes) throws InterruptedException {
 		for (var i = 0; i < 300; ++i) { // 选举收敛等待（对齐 harness 常规轮询形态）
 			for (var n : nodes)
-				if (n.getStateMachine().getRaft().isLeader())
+				if (requireNonNull(n.getStateMachine().getRaft()).isLeader())
 					return n.getStateMachine();
 			Thread.sleep(50);
 		}
@@ -74,7 +78,7 @@ public class TestUndoCommitFenceResurrect {
 	private static void stopBucket(List<Dbh2> nodes) {
 		for (var n : nodes) {
 			n.close();
-			Zeze.Raft.LogSequence.deleteDirectory(new java.io.File(n.getRaft().getRaftConfig().getDbHome()));
+			Zeze.Raft.LogSequence.deleteDirectory(new java.io.File(requireNonNull(n.getRaft().getRaftConfig().getDbHome())));
 		}
 	}
 
@@ -111,7 +115,7 @@ public class TestUndoCommitFenceResurrect {
 			leader.undoBatch(100L, false); // 桶侧自主超时 undo（onTimer 形态）
 			leader.commitBatch(100L); // 协调者已持久化 eCommitting 后迟到的 LogCommitBatch
 
-			Assertions.assertEquals(9, leader.getBucket().get(key).bytesUnsafe()[0],
+			Assertions.assertEquals(9, requireNonNull(requireNonNull(leader.getBucket()).get(key)).bytesUnsafe()[0],
 					"围栏冲突必须以提交终局复活（修复前：undo 毁尸、commit 落 not-found warn，数据灭失）");
 		} finally {
 			stopBucket(nodes);
@@ -144,7 +148,7 @@ public class TestUndoCommitFenceResurrect {
 			leader.undoBatch(200L, true); // 协调者 UndoBatch：确认 undo 终局，物理删除
 			leader.commitBatch(200L); // 迟到的重复 commit：不得复活已确认的 undo
 
-			Assertions.assertNull(leader.getBucket().get(key), "已确认 undo 后迟到 commit 不得复活");
+			Assertions.assertNull(requireNonNull(leader.getBucket()).get(key), "已确认 undo 后迟到 commit 不得复活");
 		} finally {
 			stopBucket(nodes);
 			agent.close();
@@ -179,7 +183,7 @@ public class TestUndoCommitFenceResurrect {
 			waitExpiryApplied(leader, 300L); // 等终局日志apply（摘墓碑+物理删除）
 			leader.commitBatch(300L);
 
-			Assertions.assertNull(leader.getBucket().get(key), "超窗墓碑物理删除后迟到 commit 不得复活");
+			Assertions.assertNull(requireNonNull(leader.getBucket()).get(key), "超窗墓碑物理删除后迟到 commit 不得复活");
 			leader.expireDueTombstones(0); // 幂等：空墓碑表再扫不炸
 		} finally {
 			stopBucket(nodes);
@@ -222,7 +226,7 @@ public class TestUndoCommitFenceResurrect {
 			throws InterruptedException {
 		for (var i = 0; i < 300; ++i) {
 			try {
-				var v = sm.getBucket().get(key);
+				var v = requireNonNull(sm.getBucket()).get(key);
 				if (null != v && v.size() > 0 && v.bytesUnsafe()[0] == expected)
 					return;
 			} catch (RocksDBException e) {
@@ -237,7 +241,7 @@ public class TestUndoCommitFenceResurrect {
 	private static void waitTransCleared(Dbh2StateMachine sm, byte[] key, String message) throws InterruptedException {
 		for (var i = 0; i < 300; ++i) {
 			try {
-				if (null == sm.getBucket().getTrans().get(key))
+				if (null == requireNonNull(sm.getBucket()).getTrans().get(key))
 					return;
 			} catch (RocksDBException e) {
 				// 轮询期间 rocks 读失败按未就绪处理
@@ -255,7 +259,7 @@ public class TestUndoCommitFenceResurrect {
 		}
 	}
 
-	private static String rootMessage(Throwable t) {
+	private static String rootMessage(@Nullable Throwable t) {
 		var sb = new StringBuilder();
 		for (var e = t; null != e; e = e.getCause())
 			sb.append(e.getMessage()).append(" <- ");
@@ -338,7 +342,7 @@ public class TestUndoCommitFenceResurrect {
 					var leader = leaderStateMachine(nodes);
 					waitTransactionApplied(leader, 400L);
 					// 桶侧自主undo经raft日志（生产onTimer同款）：全副本墓碑化，锁释放、blob保留
-					leader.getRaft().appendLog(new LogUndoBatch(400L));
+					requireNonNull(leader.getRaft()).appendLog(new LogUndoBatch(400L));
 					waitTombstoned(leader, 400L);
 					prepare(agent, 401L, key); // blob_B：同键重叠blob（锁已释放，prepare成功）
 
@@ -420,7 +424,7 @@ public class TestUndoCommitFenceResurrect {
 
 					// 手工注入两个无marker的重叠blob（升级前磁盘形态）：直写各副本trans列族
 					for (var n : nodes) {
-						var trans = n.getStateMachine().getBucket().getTrans();
+						var trans = requireNonNull(n.getStateMachine().getBucket()).getTrans();
 						trans.put(Dbh2Transaction.transBlobKey(500L), encodeBatch(500L, key, (byte)5));
 						trans.put(Dbh2Transaction.transBlobKey(501L), encodeBatch(501L, key, (byte)6));
 					}
@@ -501,7 +505,7 @@ public class TestUndoCommitFenceResurrect {
 			var leader = leaderStateMachine(nodes);
 			waitTransactionApplied(leader, 600L);
 			// 桶侧自主undo经raft日志（生产onTimer同款）：全副本墓碑化，锁释放、blob保留
-			leader.getRaft().appendLog(new LogUndoBatch(600L));
+			requireNonNull(leader.getRaft()).appendLog(new LogUndoBatch(600L));
 			for (var n : nodes)
 				waitTombstoned(n.getStateMachine(), 600L);
 
@@ -518,7 +522,7 @@ public class TestUndoCommitFenceResurrect {
 			// 三副本终态必须一致：清扫经日志后迟到commit全网一致为空（不得follower复活）
 			for (var n : nodes) {
 				var sm = n.getStateMachine();
-				Assertions.assertNull(sm.getBucket().get(key),
+				Assertions.assertNull(requireNonNull(sm.getBucket()).get(key),
 						"超窗终局后迟到commit必须全网一致为空（不得跨副本分歧）");
 				Assertions.assertFalse(sm.isTombstonedPending(600L),
 						"清扫终局日志apply后墓碑必须出表");

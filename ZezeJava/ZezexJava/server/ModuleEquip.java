@@ -12,7 +12,6 @@ import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 这是初始版本。
@@ -119,7 +118,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	public static class HotTimer implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) throws Exception {
 			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 			var equip = mc.getService();
 			var count = 1; // default is 1

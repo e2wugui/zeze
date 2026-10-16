@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -36,13 +40,13 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestHttpWebSocketOpenSend {
 	private static final long TIMEOUT_MS = 10_000;
-	private static Netty netty;
-	private static HttpServer server;
-	private static Service service;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
+	private static @Nullable Service service;
 	private static int port;
-	private static final AtomicReference<Boolean> openSendResult = new AtomicReference<>();
-	private static final AtomicReference<HttpExchange> closedX = new AtomicReference<>();
-	private static final AtomicReference<Websocket> closedWs = new AtomicReference<>();
+	private static final AtomicReference<@Nullable Boolean> openSendResult = new AtomicReference<>();
+	private static final AtomicReference<@Nullable HttpExchange> closedX = new AtomicReference<>();
+	private static final AtomicReference<@Nullable Websocket> closedWs = new AtomicReference<>();
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -55,7 +59,7 @@ public class TestHttpWebSocketOpenSend {
 		server.addHandler("/direct", 2048, TransactionLevel.None, DispatchMode.Direct, new HttpWebSocketHandle() {
 			@Override
 			public void onOpen(HttpExchange x) {
-				var websocket = new Websocket(x, service);
+				var websocket = new Websocket(x, requireNonNull(service));
 				openSendResult.set(websocket.Send("hello-from-onopen".getBytes(StandardCharsets.UTF_8)));
 			}
 		});
@@ -63,7 +67,7 @@ public class TestHttpWebSocketOpenSend {
 			@Override
 			public void onOpen(HttpExchange x) {
 				closedX.set(x);
-				closedWs.set(new Websocket(x, service));
+				closedWs.set(new Websocket(x, requireNonNull(service)));
 			}
 		});
 		var channel = server.start(netty, 0).sync().channel();
@@ -72,9 +76,9 @@ public class TestHttpWebSocketOpenSend {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		server.close();
-		netty.close();
-		service.stop();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
+		requireNonNull(service).stop();
 	}
 
 	// 修复前:握手成功但onOpen内发送的帧永远不到达(写入HTTP出站管线失败被静默丢弃),本用例等满超时失败
@@ -108,30 +112,30 @@ public class TestHttpWebSocketOpenSend {
 					"channel not closed");
 			var websocket = closedWs.get();
 			Boolean r = x.channel().eventLoop().submit(() ->
-					websocket.Send("after-close".getBytes(StandardCharsets.UTF_8))).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+					requireNonNull(websocket).Send("after-close".getBytes(StandardCharsets.UTF_8))).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
 			Assertions.assertEquals(Boolean.FALSE, r, "Send must return false when write fails");
 		} finally {
 			abort(ws);
 		}
 	}
 
-	private static <T> T awaitRef(AtomicReference<T> ref) throws InterruptedException {
+	private static <T> T awaitRef(AtomicReference<@Nullable T> ref) throws InterruptedException {
 		var deadline = System.currentTimeMillis() + TIMEOUT_MS;
-		T v;
+		@Nullable T v;
 		while ((v = ref.get()) == null && System.currentTimeMillis() < deadline)
 			//noinspection BusyWait
 			Thread.sleep(10);
 		Assertions.assertNotNull(v, "onOpen not called");
-		return v;
+		return requireNonNull(v);
 	}
 
 	// Websocket.Send(byte[])发送的是二进制帧,客户端走onBinary回调
 	private static final class BinaryListener implements WebSocket.Listener {
 		final CountDownLatch binary = new CountDownLatch(1);
-		final AtomicReference<byte[]> binaryRef = new AtomicReference<>();
+		final AtomicReference<byte @Nullable []> binaryRef = new AtomicReference<>();
 
 		@Override
-		public CompletionStage<?> onBinary(WebSocket ws, ByteBuffer message, boolean last) {
+		public @Nullable CompletionStage<?> onBinary(WebSocket ws, ByteBuffer message, boolean last) {
 			var b = new byte[message.remaining()];
 			message.get(b);
 			if (binaryRef.compareAndSet(null, b))

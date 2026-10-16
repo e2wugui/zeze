@@ -12,7 +12,6 @@ import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BUnSubscribeArgument;
 import Zeze.Component.Threading;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * ProviderDirectService单测公共脚手架：disable模式构造Application（不建真实SM、
@@ -35,12 +34,12 @@ final class ProviderDirectTestSupport {
 	/** 全no-op的AbstractAgent：仅提供getSubscribeStates的登记能力。 */
 	static class FakeAgent extends AbstractAgent {
 		@Override
-		protected void allocate(@NotNull AutoKey autoKey, int pool) {
+		protected void allocate(AutoKey autoKey, int pool) {
 		}
 
 		@Override
-		protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-										@NotNull Zeze.Net.ProtocolHandle<
+		protected boolean allocateAsync(String globalName, int allocCount,
+										Zeze.Net.ProtocolHandle<
 												Zeze.Net.Rpc<Zeze.Services.ServiceManager.BAllocateIdArgument,
 														Zeze.Services.ServiceManager.BAllocateIdResult>> callback) {
 			return false;
@@ -55,26 +54,26 @@ final class ProviderDirectTestSupport {
 		}
 
 		@Override
-		public void editService(@NotNull BEditService arg) {
+		public void editService(BEditService arg) {
 		}
 
 		@Override
-		public @NotNull CompletableFuture<List<Agent.SubscribeState>> subscribeServicesAsync(
-				@NotNull Zeze.Services.ServiceManager.BSubscribeArgument arg) {
+		public CompletableFuture<List<Agent.SubscribeState>> subscribeServicesAsync(
+				Zeze.Services.ServiceManager.BSubscribeArgument arg) {
 			return CompletableFuture.completedFuture(List.of());
 		}
 
 		@Override
-		public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+		public void unSubscribeService(BUnSubscribeArgument arg) {
 		}
 
 		@Override
-		public boolean setServerLoad(@NotNull BServerLoad load) {
+		public boolean setServerLoad(BServerLoad load) {
 			return false;
 		}
 
 		@Override
-		public @NotNull Threading getThreading() {
+		public Threading getThreading() {
 			throw new UnsupportedOperationException("not used in these tests");
 		}
 

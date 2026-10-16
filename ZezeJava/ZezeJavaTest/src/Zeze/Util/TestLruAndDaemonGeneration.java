@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -60,7 +64,7 @@ public class TestLruAndDaemonGeneration {
 	@Timeout(20)
 	public void anOldRoundCannotScheduleWhileRestartedRoundIsRunning() throws Exception {
 		Task.tryInitThreadPool();
-		var current = new AtomicReference<DaemonTimer>();
+		var current = new AtomicReference<@Nullable DaemonTimer>();
 		var entered = new CountDownLatch(1);
 		var handoff = new CountDownLatch(1);
 		var restarted = new CountDownLatch(1);
@@ -76,8 +80,8 @@ public class TestLruAndDaemonGeneration {
 				entered.countDown();
 				if (!handoff.await(5, TimeUnit.SECONDS))
 					throw new IllegalStateException("handoff timed out");
-				current.get().stop();
-				current.get().start();
+				requireNonNull(current.get()).stop();
+				requireNonNull(current.get()).start();
 				if (!restarted.await(5, TimeUnit.SECONDS))
 					throw new IllegalStateException("restart timed out");
 			} else {

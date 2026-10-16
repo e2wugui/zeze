@@ -26,7 +26,7 @@ public class TestGetOrAddContract {
 
 	// 违约factory：requireNonNull立即fail-fast，且违约条目不得登记进LRU。
 	// 故意的契约违例（钉运行时强制）——勿被IDEA告警清理"修正"成非null，那会拆掉本钉板。
-	@SuppressWarnings("NullableProblems")
+	@SuppressWarnings({"NullableProblems", "DataFlowIssue"})
 	@Test
 	public void testNullFactoryFailsFastNoRegistration() {
 		var lru = new ConcurrentLruLike<String, String>("TestLru.GetOrAddContract", 4);

@@ -3,8 +3,7 @@ package Zeze.Net;
 import java.net.SocketAddress;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -81,7 +80,7 @@ public class TestRpcNoReuse {
 	}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return sendOk;
 		}
 	}

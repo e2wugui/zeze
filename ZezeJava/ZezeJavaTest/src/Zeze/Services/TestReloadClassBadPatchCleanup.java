@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -32,10 +36,10 @@ import org.junit.jupiter.api.io.TempDir;
 @Fast
 public class TestReloadClassBadPatchCleanup {
 	private static final String TOKEN = "wt5-s3f2-token";
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
-	private static Path reloadDir;
+	private static @Nullable Path reloadDir;
 	private static final HttpClient client = HttpClient.newHttpClient();
 
 	private static final class StubApp extends Zeze.AppBase {
@@ -46,7 +50,7 @@ public class TestReloadClassBadPatchCleanup {
 		}
 
 		@Override
-		public Zeze.Application getZeze() {
+		public Zeze.@Nullable Application getZeze() {
 			return null;
 		}
 
@@ -70,8 +74,8 @@ public class TestReloadClassBadPatchCleanup {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	private static HttpResponse<String> post(String path, byte[] body) throws Exception {
@@ -87,7 +91,7 @@ public class TestReloadClassBadPatchCleanup {
 	public void testNonZipPatchReplies500AndDeleted() throws Exception {
 		var res = post("/wt5/reload?patch=bad1.zip", "this is not a zip file".getBytes(StandardCharsets.ISO_8859_1));
 		Assertions.assertEquals(500, res.statusCode(), "坏补丁必须应答500（原异常穿透无应答）");
-		Assertions.assertFalse(Files.exists(reloadDir.resolve("bad1.zip")),
+		Assertions.assertFalse(Files.exists(requireNonNull(reloadDir).resolve("bad1.zip")),
 				"失败补丁必须删除，维持uploadDir只留可用补丁（否则linkd下次启动必失败）");
 	}
 
@@ -102,6 +106,6 @@ public class TestReloadClassBadPatchCleanup {
 		}
 		var res = post("/wt5/reload?patch=bad2.zip", out.toByteArray());
 		Assertions.assertEquals(500, res.statusCode(), "损坏class的zip必须应答500");
-		Assertions.assertFalse(Files.exists(reloadDir.resolve("bad2.zip")), "失败补丁必须删除");
+		Assertions.assertFalse(Files.exists(requireNonNull(reloadDir).resolve("bad2.zip")), "失败补丁必须删除");
 	}
 }

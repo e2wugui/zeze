@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Zeze.Onz.AbstractOnz;
@@ -35,18 +39,18 @@ public class TestOnzSagaCompensateFailErrorCode {
 	static volatile int CancelCount;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
 		CancelCount = 0;
 		var myConfig = startTwoClusters(zeze2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().registerSaga(SagaName,
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga(SagaName,
 					TestOnzSagaCompensateFailErrorCode::sagaBusiness, TestOnzSagaCompensateFailErrorCode::sagaCancel,
 					BKuafu.class, BKuafuResult.class, Zeze.Transaction.EmptyBean.class);
 
@@ -59,8 +63,8 @@ public class TestOnzSagaCompensateFailErrorCode {
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -75,7 +79,7 @@ public class TestOnzSagaCompensateFailErrorCode {
 	@Test
 	@Timeout(120)
 	public void testCompensateRcTwoNotSwallowedAsNotFound() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		startSagaContext(onzServer, SagaName, 410, CompensateRcTid);
 		writeOrphanRecords(onzServer, CompensateRcTid, AbstractOnz.ePreparing);
 
@@ -83,7 +87,7 @@ public class TestOnzSagaCompensateFailErrorCode {
 		Assertions.assertTrue(CancelCount >= 1, "参与方补偿必须被redo触发");
 		Assertions.assertEquals(1, count(tableOf(onzServer, "commitIndex")),
 				"补偿失败必须保留决策记录（上下文已放回sagas等重发）");
-		Assertions.assertEquals(1, sagaCount(App.Instance.Zeze.getOnz()), "参与方补偿失败后上下文必须仍在");
+		Assertions.assertEquals(1, sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())), "参与方补偿失败后上下文必须仍在");
 
 		// 判别点：rc=2 的失败不得被解码为 eSagaNotFound——第二轮 redo 必须继续重发补偿
 		//（修复前：NotFound 分支跳过重发且按超龄删记录，放回的上下文永无重试）。

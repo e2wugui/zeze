@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -17,7 +19,7 @@ public class TestSelectorsRejectAddAfterClose {
 		var selectors = new Selectors("test.selectors.closedAdd", 1);
 		var original = selectors.choice();
 		var finished = new CountDownLatch(1);
-		var addFailure = new AtomicReference<Throwable>();
+		var addFailure = new AtomicReference<@Nullable Throwable>();
 		var adder = new Thread(() -> {
 			try {
 				selectors.add(1);

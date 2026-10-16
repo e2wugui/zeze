@@ -1,5 +1,7 @@
 package Zeze.Game;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -70,7 +72,7 @@ public class TestRankCountNeedKey {
 			// 单参版本countNeed=rankSize=4：建立4条截断快照（默认timeout内保持新鲜）。
 			var sizeSmall = new int[1];
 			Assertions.assertEquals(0L, app.newProcedure(() -> {
-				sizeSmall[0] = rank.getRankTotal(key).getTableValue().getRankListReadOnly().size();
+				sizeSmall[0] = requireNonNull(rank.getRankTotal(key).getTableValue()).getRankListReadOnly().size();
 				return 0L;
 			}, "small").call());
 			Assertions.assertEquals(4, sizeSmall[0], "单参版本按rankSize截断");
@@ -78,7 +80,7 @@ public class TestRankCountNeedKey {
 			// 大countNeed查询同一key：不得命中countNeed=4的截断快照。
 			var sizeBig = new int[1];
 			Assertions.assertEquals(0L, app.newProcedure(() -> {
-				sizeBig[0] = rank.getRankTotal(key, 8).getTableValue().getRankListReadOnly().size();
+				sizeBig[0] = requireNonNull(rank.getRankTotal(key, 8).getTableValue()).getRankListReadOnly().size();
 				return 0L;
 			}, "big").call());
 			Assertions.assertEquals(8, sizeBig[0], "countNeed=8不得命中countNeed=4的截断快照（FND4-79）");

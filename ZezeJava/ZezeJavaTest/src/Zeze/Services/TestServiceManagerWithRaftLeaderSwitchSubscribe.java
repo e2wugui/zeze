@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -54,7 +58,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
+	private static @Nullable Path raftXmlFile;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -64,7 +68,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 			Zeze.Net.Selectors.getInstance().add(cpuCount - Zeze.Net.Selectors.getInstance().getCount());
 		raftXmlFile = Files.createTempFile(RAFT_NAME, ".xml");
 		var raftXml = raftXmlString();
-		Files.writeString(raftXmlFile, raftXml);
+		Files.writeString(requireNonNull(raftXmlFile), raftXml);
 		var nodeNames = new ArrayList<String>();
 		// Windows下启动前清理，保证全新状态；收尾best-effort。dbHome由节点名(Host_Port)派生，
 		// freePort跨测试/跨轮复用端口号时，Raft会打开含异构raft日志的残留目录（收尾deleteDirectory
@@ -98,14 +102,14 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 	public static void tearDown() throws Exception {
 		for (var rocks : rocksList) {
 			try {
-				rocks.getRaft().getServer().stop();
+				requireNonNull(rocks.getRaft()).getServer().stop();
 			} catch (Throwable ignored) {
 			}
 		}
 		for (var server : servers)
 			server.close();
 		servers.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new java.io.File(dbHome));
 		dbHomes.clear();
@@ -142,7 +146,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 			// 停当前leader（订阅者会话所在节点）：余两节点选出新leader。
 			var oldLeaderIdx = currentLeaderIdx();
 			Assertions.assertTrue(oldLeaderIdx >= 0, "应有leader");
-			rocksList.get(oldLeaderIdx).getRaft().getServer().stop();
+			requireNonNull(rocksList.get(oldLeaderIdx).getRaft()).getServer().stop();
 			try {
 				waitStableLeaderExcept(oldLeaderIdx);
 				// 必须排除被stop的节点：raft对象未shutdown，服务停了收不到更高term，
@@ -150,7 +154,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 				// 误判"未选出新leader"（~20%假红）。
 				var newLeaderIdx = currentLeaderIdx(oldLeaderIdx);
 				Assertions.assertTrue(newLeaderIdx >= 0 && newLeaderIdx != oldLeaderIdx, "应选出新leader");
-				var newLeaderName = rocksList.get(newLeaderIdx).getRaft().getName();
+				var newLeaderName = requireNonNull(rocksList.get(newLeaderIdx).getRaft()).getName();
 
 				// FND5-32核心断言：订阅者必须感知新leader（探测周期30s，含迁移余量给45s）。
 				long deadline = System.currentTimeMillis() + 45_000;
@@ -188,7 +192,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 					registrar2.close();
 				}
 			} finally {
-				rocksList.get(oldLeaderIdx).getRaft().getServer().start();
+				requireNonNull(rocksList.get(oldLeaderIdx).getRaft()).getServer().start();
 			}
 		} finally {
 			agent.close();
@@ -198,13 +202,13 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 
 	private static ServiceManagerAgentWithRaft newAgent(String sessionName) throws Exception {
 		var config = Config.load();
-		config.getServiceManagerConf().setRaftXml(raftXmlFile.toString());
+		requireNonNull(config.getServiceManagerConf()).setRaftXml(requireNonNull(raftXmlFile).toString());
 		config.getServiceManagerConf().setSessionName(sessionName);
 		return new ServiceManagerAgentWithRaft(config);
 	}
 
 	/** 订阅者agent的raft leader名（未选出为null）。 */
-	private static String agentLeaderName(ServiceManagerAgentWithRaft agent) throws Exception {
+	private static @Nullable String agentLeaderName(ServiceManagerAgentWithRaft agent) throws Exception {
 		Field f = ServiceManagerAgentWithRaft.class.getDeclaredField("raftClient");
 		f.setAccessible(true);
 		var leader = ((Agent)f.get(agent)).getLeader();
@@ -223,7 +227,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 		Field f = ServiceManagerWithRaft.class.getDeclaredField("tableSession");
 		f.setAccessible(true);
 		var table = (Table<String, BSession>)f.get(servers.get(leaderIdx));
-		var server = rocksList.get(leaderIdx).getRaft().getServer();
+		var server = requireNonNull(rocksList.get(leaderIdx).getRaft()).getServer();
 		long deadline = System.currentTimeMillis() + timeoutMs;
 		while (true) {
 			var exists = new boolean[1];

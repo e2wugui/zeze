@@ -14,8 +14,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -102,12 +101,12 @@ final class ArchOnlineTestEnv extends AppBase implements AutoCloseable {
 		}
 
 		@Override
-		public @NotNull String getLinkName() {
+		public String getLinkName() {
 			return LINK_NAME;
 		}
 
 		@Override
-		public void respond(@NotNull Protocol<?> protocol) {
+		public void respond(Protocol<?> protocol) {
 			Task.runTxnAware(() -> replies.add(protocol));
 		}
 	}
@@ -123,7 +122,7 @@ final class ArchOnlineTestEnv extends AppBase implements AutoCloseable {
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 

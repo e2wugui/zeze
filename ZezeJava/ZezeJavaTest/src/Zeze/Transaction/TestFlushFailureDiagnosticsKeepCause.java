@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.Iterator;
 import java.util.Set;
 
@@ -21,6 +25,7 @@ import org.junit.jupiter.api.Test;
  * 用两轮各抛不同异常的 rigged 记录集精确构造双重故障。
  */
 @Fast
+@NullMarked
 public class TestFlushFailureDiagnosticsKeepCause {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（16373，growth=1；上限16383）。
 	private static final int SERVER_ID = FastServerIds.TEST_FLUSH_DIAGNOSTICS_KEEP_CAUSE;
@@ -64,7 +69,7 @@ public class TestFlushFailureDiagnosticsKeepCause {
 		try {
 			Checkpoint checkpoint = app.getCheckpoint();
 			var ex = Assertions.assertThrows(RuntimeException.class,
-					() -> checkpoint.flush(failTwice(), Set.of(), null));
+					() -> requireNonNull(checkpoint).flush(failTwice(), Set.of(), null));
 			var cause = ex.getCause();
 			Assertions.assertNotNull(cause, "重抛的失败必须保留原始cause");
 			Assertions.assertInstanceOf(IllegalStateException.class, cause,

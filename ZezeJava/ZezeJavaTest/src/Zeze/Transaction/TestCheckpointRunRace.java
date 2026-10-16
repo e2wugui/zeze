@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -76,7 +78,7 @@ public class TestCheckpointRunRace {
 	 */
 	@Test
 	public void testNoEscapeAcrossStopWindow() throws Exception {
-		var error = new AtomicReference<Throwable>();
+		var error = new AtomicReference<@Nullable Throwable>();
 		var loopDone = new CountDownLatch(1);
 		var looper = Thread.ofPlatform().daemon().start(() -> {
 			try {

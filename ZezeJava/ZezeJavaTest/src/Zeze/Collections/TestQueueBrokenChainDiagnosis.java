@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -18,7 +20,6 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +46,7 @@ public class TestQueueBrokenChainDiagnosis {
 		}
 
 		@Override
-		public void append(@NotNull LogEvent event) {
+		public void append(LogEvent event) {
 			if (event.getLevel() == Level.ERROR)
 				messages.add(event.getMessage().getFormattedMessage());
 		}
@@ -78,7 +79,7 @@ public class TestQueueBrokenChainDiagnosis {
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = module.open("queue.brokenChain.q1", EmptyBean.class, 30);
+			var queue = requireNonNull(module).open("queue.brokenChain.q1", EmptyBean.class, 30);
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean());
 				queue.add(new EmptyBean());
@@ -87,7 +88,7 @@ public class TestQueueBrokenChainDiagnosis {
 			// 模拟数据损坏：直接删除头节点行（正常事务路径不可能产生该状态）。
 			var headKeyHolder = new BQueueNodeKey[1];
 			callInTxn(zeze, () -> {
-				headKeyHolder[0] = module._tQueues.get("queue.brokenChain.q1").getHeadNodeKey();
+				headKeyHolder[0] = requireNonNull(module._tQueues.get("queue.brokenChain.q1")).getHeadNodeKey();
 				module._tQueueNodes.remove(headKeyHolder[0]);
 				return 0L;
 			});
@@ -125,7 +126,7 @@ public class TestQueueBrokenChainDiagnosis {
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = module.open("queue.brokenChain.q2", EmptyBean.class, 1); // nodeSize=1：每个值一个节点
+			var queue = requireNonNull(module).open("queue.brokenChain.q2", EmptyBean.class, 1); // nodeSize=1：每个值一个节点
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean()); // node1 = head = tail
 				queue.add(new EmptyBean()); // node2 = tail（node1.next=node2）
@@ -134,7 +135,7 @@ public class TestQueueBrokenChainDiagnosis {
 			// 模拟尾断：删除尾节点行，head（node1）活链仍在。
 			callInTxn(zeze, () -> {
 				var root = module._tQueues.get("queue.brokenChain.q2");
-				Assertions.assertNotEquals(root.getHeadNodeKey(), root.getTailNodeKey(), "前置：head与tail分属两节点");
+				Assertions.assertNotEquals(requireNonNull(root).getHeadNodeKey(), root.getTailNodeKey(), "前置：head与tail分属两节点");
 				module._tQueueNodes.remove(root.getTailNodeKey());
 				return 0L;
 			});
@@ -161,7 +162,7 @@ public class TestQueueBrokenChainDiagnosis {
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = module.open("queue.brokenChain.q3", EmptyBean.class, 1);
+			var queue = requireNonNull(module).open("queue.brokenChain.q3", EmptyBean.class, 1);
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean());
 				Assertions.assertNotNull(queue.poll(), "排空前必须能取出"); // head与tail同步清0（FND10 coll-01）

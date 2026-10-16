@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
@@ -25,16 +29,18 @@ public class TestConcurrentCallTypesRemainExclusive {
 	}
 
 	private static final class BarrierServer extends OnzServer {
-		CyclicBarrier callers;
+		@Nullable CyclicBarrier callers;
 
+		@SuppressWarnings("DataFlowIssue") // Unsafe.allocateInstance 跳过构造，此 super 调用不可达。
 		BarrierServer() throws Exception {
 			super("unused=unused", null); // Allocated without a constructor; no network/database resources.
 		}
 
 		@Override
+		@SuppressWarnings("DataFlowIssue") // fake 返回 null socket，专门触发 SendForWait 的 Send Fail 路径。
 		public AsyncSocket getZezeInstance(String name) {
 			try {
-				callers.await(5, TimeUnit.SECONDS);
+				requireNonNull(callers).await(5, TimeUnit.SECONDS);
 			} catch (Exception e) {
 				throw new AssertionError(e);
 			}

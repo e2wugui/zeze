@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -52,7 +56,7 @@ public class TestNodeReadyOnInstallSnapshot {
 	// 记录型状态机：loadSnapshot 时捕获实际加载的字节（done 提交路径把它指向
 	// commitSnapshotNow 刚 move 出来的 snapshot.dat）。
 	static final class RecordingStateMachine extends StateMachine {
-		byte[] loadedBytes;
+		byte @Nullable [] loadedBytes;
 
 		@Override
 		public SnapshotResult snapshot(String path) {
@@ -65,7 +69,7 @@ public class TestNodeReadyOnInstallSnapshot {
 		}
 	}
 
-	private Raft raft;
+	private @Nullable Raft raft;
 
 	@BeforeEach
 	public void setUp() {
@@ -75,7 +79,7 @@ public class TestNodeReadyOnInstallSnapshot {
 
 	@AfterEach
 	public void tearDown() throws Exception {
-		raft.getLogSequence().close();
+		requireNonNull(raft).getLogSequence().close();
 		raft.shutdown();
 		LogSequence.deleteDirectory(new File(dbHome)); // best-effort
 	}

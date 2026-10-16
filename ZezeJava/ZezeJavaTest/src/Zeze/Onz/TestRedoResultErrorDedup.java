@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Onz.AbstractOnz;
@@ -41,7 +45,7 @@ public class TestRedoResultErrorDedup {
 	// Commit应答码开关（桩在IO/派发线程执行，volatile AtomicInteger供跨线程读取）
 	static final AtomicInteger CommitRc = new AtomicInteger();
 
-	private GcOnzFastSupport.FastFixture fixture;
+	private GcOnzFastSupport.@Nullable FastFixture fixture;
 
 	@BeforeEach
 	public void before(@TempDir Path tempDir) throws Exception {
@@ -74,7 +78,7 @@ public class TestRedoResultErrorDedup {
 	@Test
 	@Timeout(90)
 	public void testResultErrorWarnsOncePerTidAndRecyclesOnConvergence() throws Exception {
-		RocksDatabase.Table commitIndex = tableOf(fixture.onzServer, "commitIndex");
+		RocksDatabase.Table commitIndex = tableOf(requireNonNull(fixture).onzServer, "commitIndex");
 		RocksDatabase.Table commitPoint = tableOf(fixture.onzServer, "commitPoint");
 
 		// eCommitting孤儿、procedure参与方"zeze1"（无saga=前缀）→ redo发Commit到桩。

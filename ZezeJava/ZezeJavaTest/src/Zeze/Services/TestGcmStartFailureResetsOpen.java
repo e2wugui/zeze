@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -82,7 +84,7 @@ public class TestGcmStartFailureResetsOpen {
 		return field.get(gcm);
 	}
 
-	private static Object keepCheckTimerOf(Object service) throws Exception {
+	private static @Nullable Object keepCheckTimerOf(Object service) throws Exception {
 		var field = Zeze.Net.Service.class.getDeclaredField("keepCheckTimer");
 		field.setAccessible(true);
 		return field.get(service);

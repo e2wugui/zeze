@@ -1,5 +1,9 @@
 package Zeze.Game;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -24,13 +28,13 @@ public class TestBagMoveZero {
 	// 770段：避开200/400/500/700/730/750/760（@Fast类并行，独占RocksCache与Memory库url）。
 	private static final int ServerId = FastServerIds.TEST_BAG_MOVE_ZERO;
 
-	private Application app;
-	private Bag.Module module;
+	private @Nullable Application app;
+	private Bag.@Nullable Module module;
 
 	@AfterEach
 	public void tearDown() throws Exception {
 		if (module != null) {
-			module.UnRegisterZezeTables(app);
+			module.UnRegisterZezeTables(requireNonNull(app));
 			module = null;
 		}
 		if (app != null) {
@@ -58,19 +62,19 @@ public class TestBagMoveZero {
 		app.start();
 
 		var ret = app.newProcedure(() -> {
-			var bag = module.open(1, "zero");
+			var bag = requireNonNull(module).open(1, "zero");
 			bag.setCapacity(10);
 			assertEquals(0, bag.add(100, 50), "50个可堆叠物品应全部进入格子0");
 
 			assertEquals(Bag.Module.ResultCodeNumberInvalid, bag.move(0, 5, 0),
 					"number=0必须在入口拒绝");
 			assertNull(bag.getBean().getItems().get(5), "空格不得被0数量物品占据");
-			assertEquals(50, bag.getBean().getItems().get(0).getNumber(), "源格数量不变");
+			assertEquals(50, requireNonNull(bag.getBean().getItems().get(0)).getNumber(), "源格数量不变");
 
 			// -1=移动全部是文档化契约，守卫不得误伤。
 			assertEquals(0, bag.move(0, 5, -1), "-1应移动全部并成功");
 			assertNull(bag.getBean().getItems().get(0), "移动全部后源格清空");
-			assertEquals(50, bag.getBean().getItems().get(5).getNumber(), "全部数量到达目标格");
+			assertEquals(50, requireNonNull(bag.getBean().getItems().get(5)).getNumber(), "全部数量到达目标格");
 			return Procedure.Success;
 		}, "TestBagMoveZero").call();
 		assertEquals(Procedure.Success, ret);

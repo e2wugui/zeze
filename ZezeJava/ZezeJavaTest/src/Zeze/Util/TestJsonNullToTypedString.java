@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,15 +23,15 @@ import org.junit.jupiter.api.Test;
 public class TestJsonNullToTypedString {
 
 	public static class Bean {
-		public String s;
+		public @Nullable String s;
 		public double d;
-		public Double nd;
-		public ArrayList<String> list = new ArrayList<>();
-		public HashMap<String, String> map = new HashMap<>();
+		public @Nullable Double nd;
+		public ArrayList<@Nullable String> list = new ArrayList<>();
+		public HashMap<String, @Nullable String> map = new HashMap<>();
 	}
 
 	private static Bean parse(String json) throws ReflectiveOperationException {
-		return JsonReader.local().buf(json).parse(Bean.class);
+		return requireNonNull(JsonReader.local().buf(json).parse(Bean.class));
 	}
 
 	@Test
@@ -44,11 +48,11 @@ public class TestJsonNullToTypedString {
 	public void testNullDistinguishedFromWriterNaN() throws ReflectiveOperationException {
 		// writer 的 NaN/Infinity 恒大写：首字符大小写即与 null 区分，typed/无类型路径均不误判
 		Assertions.assertTrue(Double.isNaN(parse("{d:NaN}").d));
-		Assertions.assertTrue(parse("{nd:NaN}").nd.isNaN());
+		Assertions.assertTrue(requireNonNull(parse("{nd:NaN}").nd).isNaN());
 		Assertions.assertEquals(Double.POSITIVE_INFINITY, parse("{d:Infinity}").d);
 		@SuppressWarnings("unchecked")
 		var m = (HashMap<String, Object>)JsonReader.local().buf("{x:NaN,y:null}").parse();
-		Assertions.assertTrue(((Double)m.get("x")).isNaN());
+		Assertions.assertTrue(((Double)requireNonNull(m).get("x")).isNaN());
 		Assertions.assertNull(m.get("y"));
 	}
 
@@ -72,7 +76,7 @@ public class TestJsonNullToTypedString {
 		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_WRITE_NULL).write(b).toString();
 		Assertions.assertEquals("{\"s\":null,\"d\":0.0,\"nd\":null,\"list\":[null],\"map\":{\"k\":null}}", json);
 		Bean r = JsonReader.local().buf(json).parse(Bean.class);
-		Assertions.assertNull(r.s);
+		Assertions.assertNull(requireNonNull(r).s);
 		Assertions.assertNull(r.nd);
 		Assertions.assertNull(r.list.get(0));
 		Assertions.assertNull(r.map.get("k"));
@@ -84,7 +88,7 @@ public class TestJsonNullToTypedString {
 		json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_WRITE_NULL).write(b).toString();
 		Assertions.assertEquals("{\"s\":\"null\",\"d\":0.0,\"nd\":null,\"list\":[\"null\"],\"map\":{\"k\":\"null\"}}", json);
 		r = JsonReader.local().buf(json).parse(Bean.class);
-		Assertions.assertEquals("null", r.s);
+		Assertions.assertEquals("null", requireNonNull(r).s);
 		Assertions.assertEquals(Arrays.asList("null"), r.list);
 		Assertions.assertEquals("null", r.map.get("k"));
 	}

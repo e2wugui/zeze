@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.Test;
  * （tQueues等），addTable同名表会报duplicate table id。
  */
 @Fast
+@NullMarked
 public class TestInvalidDirtyLoad {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2-1组从300起）。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_INVALID_DIRTY_LOAD);
@@ -42,7 +47,7 @@ public class TestInvalidDirtyLoad {
 	@SuppressWarnings("unchecked")
 	private static Record1<Long, BValue> getRecord(Table3 table, long key) throws ReflectiveOperationException {
 		var cache = table.getCache();
-		for (Method m : cache.getClass().getDeclaredMethods()) {
+		for (Method m : requireNonNull(cache).getClass().getDeclaredMethods()) {
 			if (m.getName().equals("get") && m.getParameterCount() == 1) {
 				m.setAccessible(true);
 				return (Record1<Long, BValue>)m.invoke(cache, key);
@@ -106,7 +111,7 @@ public class TestInvalidDirtyLoad {
 
 			// 脏数据最终正常flush，不丢失
 			app.checkpointRun();
-			Assertions.assertEquals(200, table.selectFromDatabase(key).getInt_1());
+			Assertions.assertEquals(200, requireNonNull(table.selectFromDatabase(key)).getInt_1());
 			Assertions.assertEquals(200, getV1(app, table, key));
 		} finally {
 			app.stop();
@@ -136,7 +141,7 @@ public class TestInvalidDirtyLoad {
 
 			// 脏数据最终正常flush，不丢失
 			app.checkpointRun();
-			Assertions.assertEquals(200, table.selectFromDatabase(key).getInt_1());
+			Assertions.assertEquals(200, requireNonNull(table.selectFromDatabase(key)).getInt_1());
 			Assertions.assertEquals(200, getV1(app, table, key));
 		} finally {
 			app.stop();

@@ -1,5 +1,6 @@
 package Game.Fight;
 
+import java.util.Objects;
 import Game.Buf.IModuleBuf;
 import Game.Equip.IModuleEquip;
 import Zeze.Game.LoginArgument;
@@ -13,7 +14,6 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 public final class ModuleFight extends AbstractModule implements IModuleFight {
 	private static final Logger logger = LogManager.getLogger(ModuleFight.class);
@@ -31,14 +31,14 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 
 	public static class LoginEventHandle implements EventDispatcher.EventHandle {
 		@Override
-		public long invoke(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) throws Exception {
+		public long invoke(Object sender, EventDispatcher.EventArgument arg) throws Exception {
 			var online = (Online)sender;
 			var login = (LoginArgument)arg;
-			var context = online.providerApp.zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
-			var service = context.getService();
+			var context = Objects.requireNonNull(online.providerApp.zeze.getHotManager()).getModuleContext("Game.Fight", IModuleFight.class);
+			var service = Objects.requireNonNull(context).getService();
 			OnlineSpec.ofRole(online, login.roleId).sendRpc(new AreYouFight(), (p) -> {
 				logger.info("AreYouFight done.");
-				service.setAreYouFightResult(true);
+				Objects.requireNonNull(service).setAreYouFightResult(true);
 				return 0;
 			});
 			return 0;
@@ -47,7 +47,7 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 
 	@SuppressWarnings("MethodMayBeStatic")
 	public void Start(App app) {
-		app.Provider.getOnline().getLoginEvents().addHot(EventDispatcher.Mode.RunEmbed, LoginEventHandle.class);
+		Objects.requireNonNull(Objects.requireNonNull(app.Provider).getOnline()).getLoginEvents().addHot(EventDispatcher.Mode.RunEmbed, LoginEventHandle.class);
 	}
 
 	public void Stop(App app) {
@@ -63,10 +63,10 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 		Fighter fighter = new Fighter(fighterId, new BFighter());
 		switch (fighterId.getType()) {
 		case BFighterId.TypeRole:
-			var contextBuf = App.Zeze.getHotManager().getModuleContext("Game.Buf", IModuleBuf.class);
-			var contextEquip = App.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
-			contextBuf.getService().getBufs(fighterId.getInstanceId()).calculateFighter(fighter);
-			contextEquip.getService().calculateFighter(fighter);
+			var contextBuf = Objects.requireNonNull(App.getZeze().getHotManager()).getModuleContext("Game.Buf", IModuleBuf.class);
+			var contextEquip = App.getZeze().getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
+			Objects.requireNonNull(Objects.requireNonNull(contextBuf).getService()).getBufs(fighterId.getInstanceId()).calculateFighter(fighter);
+			Objects.requireNonNull(Objects.requireNonNull(contextEquip).getService()).calculateFighter(fighter);
 			break;
 		}
 		_tfighters.getOrAdd(fighterId).assign(fighter.getBean());
@@ -76,7 +76,7 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 	@Override
 	public void StartCalculateFighter(long roleId) {
 		BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
-		TaskSpec.ofProcedure(Game.App.getInstance().Zeze.newProcedure(() -> CalculateFighter(fighterId),
+		TaskSpec.ofProcedure(Objects.requireNonNull(Game.App.getInstance().Zeze).newProcedure(() -> CalculateFighter(fighterId),
 				"CalculateFighter")).run();
 	}
 

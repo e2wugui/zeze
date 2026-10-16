@@ -8,8 +8,7 @@ import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.RedirectToServer;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -100,7 +99,7 @@ public class TestGenModuleInheritedRedirect {
 				"同签名方法去重后必须只生成一次拦截覆盖");
 	}
 
-	private static int countOccurrences(@NotNull String content, @NotNull String token) {
+	private static int countOccurrences(String content, String token) {
 		int count = 0;
 		for (int index = content.indexOf(token); index >= 0; index = content.indexOf(token, index + token.length()))
 			++count;

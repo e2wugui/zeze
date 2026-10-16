@@ -1,5 +1,7 @@
 package Zeze.Transaction.Collections;
 
+import static java.util.Objects.requireNonNull;
+
 import demo.Module1.BValue;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -24,13 +26,13 @@ public class TestCollection2AssignDeepCopy {
 		var dst = new PMap2<>(Long.class, BValue.class);
 		dst.assign(src);
 
-		Assertions.assertEquals(11, dst.get(1L).getInt_1());
+		Assertions.assertEquals(11, requireNonNull(dst.get(1L)).getInt_1());
 		Assertions.assertNotSame(srcBean, dst.get(1L), "深拷贝：不得共享元素实例");
 
 		srcBean.setInt_1(99); // 修改源不影响目标
-		Assertions.assertEquals(11, dst.get(1L).getInt_1());
-		dst.get(1L).setInt_1(22); // 修改目标不影响源
-		Assertions.assertEquals(99, src.get(1L).getInt_1());
+		Assertions.assertEquals(11, requireNonNull(dst.get(1L)).getInt_1());
+		requireNonNull(dst.get(1L)).setInt_1(22); // 修改目标不影响源
+		Assertions.assertEquals(99, requireNonNull(src.get(1L)).getInt_1());
 	}
 
 	@Test
@@ -76,12 +78,12 @@ public class TestCollection2AssignDeepCopy {
 		var dst = new PSortedMap2<>(Long.class, BValue.class);
 		dst.assign(src);
 
-		Assertions.assertEquals(11, dst.get(1L).getInt_1());
+		Assertions.assertEquals(11, requireNonNull(dst.get(1L)).getInt_1());
 		Assertions.assertNotSame(srcBean, dst.get(1L));
 		srcBean.setInt_1(99);
-		Assertions.assertEquals(11, dst.get(1L).getInt_1());
-		dst.get(1L).setInt_1(22);
-		Assertions.assertEquals(99, src.get(1L).getInt_1());
+		Assertions.assertEquals(11, requireNonNull(dst.get(1L)).getInt_1());
+		requireNonNull(dst.get(1L)).setInt_1(22);
+		Assertions.assertEquals(99, requireNonNull(src.get(1L)).getInt_1());
 	}
 
 	/**
@@ -104,7 +106,7 @@ public class TestCollection2AssignDeepCopy {
 		map.put(1L, mb);
 		map.assign(map);
 		Assertions.assertEquals(1, map.size(), "PMap2自赋值不得清空");
-		Assertions.assertEquals(2, map.get(1L).getInt_1());
+		Assertions.assertEquals(2, requireNonNull(map.get(1L)).getInt_1());
 
 		var sorted = new PSortedMap2<>(Long.class, BValue.class);
 		var sb = new BValue();
@@ -112,6 +114,6 @@ public class TestCollection2AssignDeepCopy {
 		sorted.put(1L, sb);
 		sorted.assign(sorted);
 		Assertions.assertEquals(1, sorted.size(), "PSortedMap2自赋值不得清空");
-		Assertions.assertEquals(3, sorted.get(1L).getInt_1());
+		Assertions.assertEquals(3, requireNonNull(sorted.get(1L)).getInt_1());
 	}
 }

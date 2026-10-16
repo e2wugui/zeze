@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletionException;
@@ -108,7 +110,7 @@ public class TestThreadingAcquireTimeoutCompensate {
 
 				await("compensating release", 5_000, () -> !server.releasedNames.isEmpty());
 				var release = server.releasedNames.peek();
-				Assertions.assertEquals("vb1.timeout.semaphore", release[0],
+				Assertions.assertEquals("vb1.timeout.semaphore", requireNonNull(release)[0],
 						"tryAcquire超时后必须对同lockName补发release");
 				Assertions.assertEquals(2, release[1], "补发release必须携带获取的permits");
 				Assertions.assertTrue(server.exitedNames.isEmpty(), "信号量路径不得产生rwlock exit");
@@ -146,7 +148,7 @@ public class TestThreadingAcquireTimeoutCompensate {
 
 				await("compensating exit", 5_000, () -> !server.exitedNames.isEmpty());
 				var exit = server.exitedNames.peek();
-				Assertions.assertEquals("vb1.timeout.rwlock", exit[0],
+				Assertions.assertEquals("vb1.timeout.rwlock", requireNonNull(exit)[0],
 						"tryEnterWrite超时后必须对同lockName补发exit");
 				Assertions.assertEquals(Threading.eExitWrite, exit[1],
 						"补发exit必须与进入模式对称（写进入→写退出）");

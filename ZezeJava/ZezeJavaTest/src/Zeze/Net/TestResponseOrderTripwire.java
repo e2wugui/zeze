@@ -18,7 +18,6 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +35,7 @@ public class TestResponseOrderTripwire {
 		public final ConcurrentLinkedQueue<HttpExchange> created = new ConcurrentLinkedQueue<>();
 
 		@Override
-		public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+		public HttpExchange createHttpExchange(ChannelHandlerContext context) {
 			var x = new HttpExchange(this, context);
 			created.add(x);
 			return x;

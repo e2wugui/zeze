@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import Zeze.Net.Binary;
@@ -40,7 +44,7 @@ public class TestDecodeFailCompletesFuture {
 	private static final String ProcedureName = "decodeFailProc";
 	private static final String SagaName = "decodeFailSaga";
 
-	private GcOnzFastStubSupport.OnzFixture fixture;
+	private GcOnzFastStubSupport.@Nullable OnzFixture fixture;
 
 	private void startFixture(int stubPort) throws Exception {
 		fixture = startNonSharedOnzServer(ServerId, SmPort, java.nio.file.Files.createTempDirectory("decodeFail"),
@@ -64,7 +68,7 @@ public class TestDecodeFailCompletesFuture {
 	public void testProcedureDecodeFailCompletesFutureExceptionally() throws Exception {
 		startFixture(31894);
 		var txn = new DecodeFailTxn();
-		txn.setOnzServer(fixture.onzServer);
+		txn.setOnzServer(requireNonNull(fixture).onzServer);
 		var future = txn.callProcedureAsync(Cluster, ProcedureName, EmptyBean.Data.instance, new EvilDecodeResult());
 		assertDecodeFailCompletes(future, ProcedureName);
 	}
@@ -75,7 +79,7 @@ public class TestDecodeFailCompletesFuture {
 	public void testSagaDecodeFailCompletesFutureExceptionally() throws Exception {
 		startFixture(31895);
 		var txn = new DecodeFailTxn();
-		txn.setOnzServer(fixture.onzServer);
+		txn.setOnzServer(requireNonNull(fixture).onzServer);
 		var future = txn.callSagaAsync(Cluster, SagaName, EmptyBean.Data.instance, new EvilDecodeResult());
 		assertDecodeFailCompletes(future, SagaName);
 	}
@@ -91,7 +95,7 @@ public class TestDecodeFailCompletesFuture {
 	public void testPerformPathFailsFastInsteadOfHanging() throws Exception {
 		startFixture(31896);
 		var txn = new DecodeFailTxn();
-		txn.setOnzServer(fixture.onzServer); // perform契约：业务自设（createTransaction同型）
+		txn.setOnzServer(requireNonNull(fixture).onzServer); // perform契约：业务自设（createTransaction同型）
 		var rc = fixture.onzServer.perform(txn);
 		Assertions.assertEquals(Procedure.Exception, rc,
 				"decode失败必须走perform的catch→rollback失败链快速返回，不得无声挂死");

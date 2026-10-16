@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import Zeze.Application;
@@ -9,8 +11,7 @@ import Zeze.Util.FuncLong;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.parallel.Isolated;
 @Fast
 @Isolated
 public class TestTimerFailedFireNamedReplacement {
-	private static volatile CountDownLatch replacementFired;
+	private static volatile @Nullable CountDownLatch replacementFired;
 
 	public static class BrokenHandle implements TimerHandle {
 		public BrokenHandle() {
@@ -26,15 +27,15 @@ public class TestTimerFailedFireNamedReplacement {
 		}
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			Assertions.fail("Broken handler must not execute");
 		}
 	}
 
 	public static class ReplacementHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
-			Transaction.whileCommit(replacementFired::countDown);
+		public void onTimer(TimerContext context) {
+			Transaction.whileCommit(requireNonNull(replacementFired)::countDown);
 		}
 	}
 
@@ -49,7 +50,7 @@ public class TestTimerFailedFireNamedReplacement {
 
 		@Override
 		public boolean cancel(@Nullable String timerId) {
-			var stack = Transaction.getCurrent().getProcedureStack();
+			var stack = requireNonNull(Transaction.getCurrent()).getProcedureStack();
 			if ("Timer.cancelTimer".equals(stack.getLast().getActionName())) {
 				cleanupEntered.countDown();
 				try {
@@ -111,10 +112,10 @@ public class TestTimerFailedFireNamedReplacement {
 			transaction(app, () -> {
 				Assertions.assertNotNull(timer.getTimerIndex(timerId),
 						"cleanup of the failed registration must preserve the replacement");
-				Assertions.assertEquals(ReplacementHandle.class.getName(), timer.getTimer(timerId).getHandleName());
+				Assertions.assertEquals(ReplacementHandle.class.getName(), requireNonNull(timer.getTimer(timerId)).getHandleName());
 				return 0L;
 			});
-			Assertions.assertTrue(replacementFired.await(5, TimeUnit.SECONDS),
+			Assertions.assertTrue(requireNonNull(replacementFired).await(5, TimeUnit.SECONDS),
 					"replacement must execute its own callback");
 		} finally {
 			timer.releaseCleanup.countDown();

@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Transaction;
 import harness.Fast;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.Test;
  * begin()，不受影响。
  */
 @Fast
+@NullMarked
 public class TestCommitEmptySavepointsThrows {
 
 	@Test

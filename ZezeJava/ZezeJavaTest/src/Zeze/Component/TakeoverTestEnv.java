@@ -1,5 +1,9 @@
 package Zeze.Component;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.util.concurrent.TimeUnit;
 import Zeze.AppBase;
@@ -67,7 +71,7 @@ final class TakeoverTestEnv {
 
 	// 与Takeover.tryTransfer同key投递哨兵，等待队列中排在前面的tryTransfer执行完。
 	static void waitTryTransferQueue() {
-		var done = new TaskCompletionSource<Void>();
+		var done = new TaskCompletionSource<@Nullable Void>();
 		TaskSpec.ofAction(() -> done.setResult(null)).name("TakeoverTestEnv.sentinel")
 				.executeOneByOne(Takeover.TryTransferOneByOneKey, Task.getOneByOne());
 		done.get(5, TimeUnit.SECONDS);
@@ -75,7 +79,7 @@ final class TakeoverTestEnv {
 
 	static void forgeLease(Application app, int serverId, long epoch, long expireAt) {
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
-			var lease = app.getTakeover().getTable().getOrAdd(serverId);
+			var lease = requireNonNull(app.getTakeover()).getTable().getOrAdd(serverId);
 			lease.setEpoch(epoch);
 			lease.setExpireAt(expireAt);
 			return 0L;
@@ -88,7 +92,7 @@ final class TakeoverTestEnv {
 		var out = new long[2];
 		var exists = new boolean[1];
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
-			var lease = app.getTakeover().getTable().get(serverId);
+			var lease = requireNonNull(app.getTakeover()).getTable().get(serverId);
 			if (lease != null) {
 				exists[0] = true;
 				out[0] = lease.getEpoch();

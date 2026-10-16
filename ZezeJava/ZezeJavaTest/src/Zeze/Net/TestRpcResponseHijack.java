@@ -1,5 +1,9 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Config;
 import Zeze.Services.ServiceManager.KeepAlive;
 import Zeze.Services.ServiceManager.Subscribe;
@@ -21,7 +25,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestRpcResponseHijack {
-	private static Service service;
+	private static @Nullable Service service;
 
 	@BeforeAll
 	public static void setUp() {
@@ -30,9 +34,10 @@ public class TestRpcResponseHijack {
 	}
 
 	@Test
+	@SuppressWarnings("DataFlowIssue") // 应答分支无回调，factory 不参与此测试的会合逻辑。
 	public void testTypeMismatchRejected() throws Exception {
 		var ctx = new KeepAlive(); // 上下文（sender=null：连接绑定层对 null 上下文不约束）
-		var sid = service.addRpcContext(ctx);
+		var sid = requireNonNull(service).addRpcContext(ctx);
 
 		// 伪造应答：异协议（Subscribe）的 Response 帧携带目标号。
 		var fake = new Subscribe();
@@ -45,9 +50,10 @@ public class TestRpcResponseHijack {
 	}
 
 	@Test
+	@SuppressWarnings("DataFlowIssue") // 应答分支无回调，factory 不参与此测试的会合逻辑。
 	public void testTypeMatchConsumes() throws Exception {
 		var ctx = new KeepAlive();
-		var sid = service.addRpcContext(ctx);
+		var sid = requireNonNull(service).addRpcContext(ctx);
 
 		// 真实应答：同协议 Response 帧（future/responseHandle 均 null，消费后无操作）。
 		var ok = new KeepAlive();

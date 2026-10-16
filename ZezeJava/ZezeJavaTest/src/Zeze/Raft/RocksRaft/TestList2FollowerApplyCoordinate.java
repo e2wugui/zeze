@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -62,7 +68,7 @@ public class TestList2FollowerApplyCoordinate {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_l.initRootInfo(root, this);
 		}
 
@@ -73,7 +79,7 @@ public class TestList2FollowerApplyCoordinate {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_l.followerApply(vlog);
 			}
 		}
@@ -114,7 +120,7 @@ public class TestList2FollowerApplyCoordinate {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_list.initRootInfo(root, this);
 		}
 
@@ -125,7 +131,7 @@ public class TestList2FollowerApplyCoordinate {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_list.followerApply(vlog);
 			}
 		}

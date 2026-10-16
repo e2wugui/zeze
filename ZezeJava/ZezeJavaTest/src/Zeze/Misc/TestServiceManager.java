@@ -1,5 +1,9 @@
 package Zeze.Misc;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
@@ -38,11 +42,11 @@ public class TestServiceManager {
 		//App.Instance.Stop();
 	}
 
-	TaskCompletionSource<Integer> future;
+	@Nullable TaskCompletionSource<Integer> future;
 
 	@Test
 	public void test1() {
-		if (null == App.Instance.Zeze.getServiceManager())
+		if (null == requireNonNull(App.Instance.Zeze).getServiceManager())
 			return; // disable
 
 		var serviceName = "TestServiceManager";
@@ -52,11 +56,11 @@ public class TestServiceManager {
 		agent.registerService(new BServiceInfo(serviceName, "1", 0, "127.0.0.1", 1234));
 		agent.setOnChanged((state) -> {
 			System.out.println("OnChanged 1:" + state);
-			this.future.setResult(0);
+			requireNonNull(this.future).setResult(0);
 		});
 		agent.setOnSetServerLoad((load) -> {
 			System.out.println("OnSetLoad " + load);
-			this.future.setResult(0);
+			requireNonNull(this.future).setResult(0);
 		});
 		agent.subscribeService(new BSubscribeInfo(serviceName));
 		var load = new BServerLoad();

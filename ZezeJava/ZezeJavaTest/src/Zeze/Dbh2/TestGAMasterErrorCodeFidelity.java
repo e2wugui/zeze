@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import Zeze.Serialize.ByteBuffer;
 import org.junit.jupiter.api.Assertions;
@@ -22,21 +24,21 @@ public class TestGAMasterErrorCodeFidelity {
 		var env = new Dbh2TestEnv();
 		env.prepareNewEnvironment();
 		try {
-			var operates = env.database.getDirectOperates();
+			var operates = requireNonNull(env.database).getDirectOperates();
 			var key = ByteBuffer.Wrap("errcode.key".getBytes());
 			// 首次插入（version以参数0落盘）+ 正常CAS推进到version=1。
-			Assertions.assertTrue(operates.saveDataWithSameVersion(key, ByteBuffer.Wrap(new byte[]{1}), 0).getValue());
-			Assertions.assertTrue(operates.saveDataWithSameVersion(key, ByteBuffer.Wrap(new byte[]{2}), 0).getValue());
+			Assertions.assertTrue(requireNonNull(requireNonNull(operates).saveDataWithSameVersion(key, ByteBuffer.Wrap(new byte[]{1}), 0)).getValue());
+			Assertions.assertTrue(requireNonNull(operates.saveDataWithSameVersion(key, ByteBuffer.Wrap(new byte[]{2}), 0)).getValue());
 
 			// stale CAS：客户端必须收到eVersionMismatch（映射为KV(0,false)）。
 			// 变形时收到eDefaultError走default分支抛RuntimeException。
 			var stale = operates.saveDataWithSameVersion(key, ByteBuffer.Wrap(new byte[]{3}), 0);
-			Assertions.assertFalse(stale.getValue(), "stale CAS必须以eVersionMismatch拒绝，而不是异常变形");
+			Assertions.assertFalse(requireNonNull(stale).getValue(), "stale CAS必须以eVersionMismatch拒绝，而不是异常变形");
 
 			// 数据未被stale覆盖。
 			var loaded = operates.getDataWithVersion(key);
-			Assertions.assertEquals(1, loaded.version);
-			Assertions.assertEquals(1, loaded.data.size());
+			Assertions.assertEquals(1, requireNonNull(loaded).version);
+			Assertions.assertEquals(1, requireNonNull(loaded.data).size());
 		} finally {
 			env.stopAll();
 		}

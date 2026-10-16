@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -102,7 +104,7 @@ public class TestTimerLoadExhaustedCron {
 			nodeIdHolder[0] = index.getNodeId();
 			var node = tNodes().get(index.getNodeId());
 			assertTrue(node != null, "node行必须存在");
-			var cronTimer = (BCronTimer)node.getTimers().get(timerId).getTimerObj().getBean();
+			var cronTimer = (BCronTimer)requireNonNull(node.getTimers().get(timerId)).getTimerObj().getBean();
 			cronTimer.setCronExpression("0 0 0 1 1 ? 2020");
 			cronTimer.setNextExpectedTime(System.currentTimeMillis() - 60_000);
 			return Procedure.Success;

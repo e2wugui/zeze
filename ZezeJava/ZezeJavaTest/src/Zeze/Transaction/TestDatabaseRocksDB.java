@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.Fast;
 import java.nio.file.Path;
 import org.junit.jupiter.api.MethodOrderer;
@@ -20,6 +22,7 @@ import java.net.InetAddress;
 // test2 验证 test1 写入的数据重启db后仍在，依赖同一目录：类级共享临时目录 + 显式方法顺序。
 @Fast
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@NullMarked
 public class TestDatabaseRocksDB {
 
 	static @TempDir Path tempDir;

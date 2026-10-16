@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -41,20 +43,20 @@ public class TestWalkCallbackStopsTraversal {
 		}
 
 		@Override
-		public Walk walk(Binary exclusive, int limit, boolean desc, byte[] prefix,
-				Binary expectedFirst, Binary expectedLast) {
+		public Walk walk(Binary exclusive, int limit, boolean desc, byte @Nullable [] prefix,
+				@Nullable Binary expectedFirst, @Nullable Binary expectedLast) {
 			var reply = new Walk();
-			for (var key : page(desc, expectedFirst))
+			for (var key : page(desc, java.util.Objects.requireNonNull(expectedFirst)))
 				reply.Result.getKeyValues().add(new BWalkKeyValue.Data(key, key));
 			reply.Result.setBucketEnd(true);
 			return reply;
 		}
 
 		@Override
-		public WalkKey walkKey(Binary exclusive, int limit, boolean desc, byte[] prefix,
-				Binary expectedFirst, Binary expectedLast) {
+		public WalkKey walkKey(Binary exclusive, int limit, boolean desc, byte @Nullable [] prefix,
+				@Nullable Binary expectedFirst, @Nullable Binary expectedLast) {
 			var reply = new WalkKey();
-			reply.Result.getKeys().addAll(page(desc, expectedFirst));
+			reply.Result.getKeys().addAll(page(desc, java.util.Objects.requireNonNull(expectedFirst)));
 			reply.Result.setBucketEnd(true);
 			return reply;
 		}

@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.io.File;
 import java.io.IOException;
@@ -49,7 +53,7 @@ public class TestSplitPutTombstone {
 			dbh2.close();
 			// 目录最终由@TempDir清理；这里close后先删一次，给Windows下句柄延迟释放留出重试缓冲，
 			// 降低JUnit收尾删除失败把测试搞红的概率。
-			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+			LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 		}
 		agent.close();
 		database.close();
@@ -65,7 +69,7 @@ public class TestSplitPutTombstone {
 		Assertions.assertEquals(0, r.getResultCode());
 	}
 
-	private static Binary get(Dbh2Agent agent, Binary key) {
+	private static @Nullable Binary get(Dbh2Agent agent, Binary key) {
 		var kv = agent.get("database", "table1", key);
 		Assertions.assertTrue(kv.getKey());
 		return kv.getValue() == null ? null : new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size());

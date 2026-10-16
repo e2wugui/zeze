@@ -1,5 +1,6 @@
 package Temp;
 
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Random;
 import Zeze.Application;
@@ -23,11 +24,11 @@ public class TestDatabaseHalt {
 
 		var config = Config.load();
 		var zeze = new Application("TestDatabaseHalt", config);
-		zeze.getServiceManager().start();
+		Objects.requireNonNull(zeze.getServiceManager()).start();
 		zeze.getServiceManager().waitReady();
 		var defaultDatabaseConf = config.getDatabaseConfMap().get("");
 		logger.info(defaultDatabaseConf.getDatabaseUrl());
-		zeze.getDbh2AgentManager().start();
+		Objects.requireNonNull(zeze.getDbh2AgentManager()).start();
 		var database = Config.createDatabase(zeze, defaultDatabaseConf);
 		var tableCount = 5;
 		var tables = new Database.AbstractKVTable[tableCount];

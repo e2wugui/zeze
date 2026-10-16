@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +29,7 @@ public class TestRedirectFutureCommittedResult {
 			new AtomicInteger(FastServerIds.TEST_REDIRECT_FUTURE_COMMITTED_RESULT);
 	private static final long KEY = 1L;
 	private final AtomicInteger attempts = new AtomicInteger();
-	private Application app;
+	private @Nullable Application app;
 	private Table3 table;
 
 	@BeforeEach
@@ -77,11 +81,11 @@ public class TestRedirectFutureCommittedResult {
 		var firstRead = new CountDownLatch(1);
 		var updateCommitted = new CountDownLatch(1);
 		var transactionFinished = new CountDownLatch(1);
-		var updateFailure = new AtomicReference<Throwable>();
+		var updateFailure = new AtomicReference<@Nullable Throwable>();
 		var updater = new Thread(() -> {
 			try {
 				assertTrue(firstRead.await(5, TimeUnit.SECONDS), "redirect首轮必须读到记录");
-				assertEquals(Procedure.Success, app.newProcedure(() -> {
+				assertEquals(Procedure.Success, requireNonNull(app).newProcedure(() -> {
 					table.getOrAdd(KEY).setInt_1(1);
 					return Procedure.Success;
 				}, "RedirectFutureCommittedResult.concurrentUpdate").call());
@@ -93,7 +97,7 @@ public class TestRedirectFutureCommittedResult {
 		}, "redirect-conflicting-update");
 		updater.start();
 		try {
-			var future = app.redirect.runFuture(TransactionLevel.Serializable, () -> {
+			var future = requireNonNull(requireNonNull(app).redirect).runFuture(TransactionLevel.Serializable, () -> {
 				int attempt = attempts.incrementAndGet();
 				// runNow异步执行；只join冲突写者不能证明redirect事务已完成重做。
 				// 重做不会执行这些终局回调，最终提交或回滚才发出完成信号。

@@ -1,5 +1,7 @@
 package Zeze.Hot;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,7 +17,7 @@ import Zeze.Arch.ProviderApp;
 import Zeze.Config;
 import Zeze.Util.InMemoryJavaCompiler;
 import harness.Fast;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -84,11 +86,11 @@ public class TestHotRedirectLoadFirst {
 	// HotModule惰性持有jar句柄，Windows下不close则@TempDir清理失败。
 	private final ArrayList<HotManager> managers = new ArrayList<>();
 
-	private static Application app;
-	private static AppBase dummyApp;
-	private static Object savedCompilerOptions;
-	private static ClassLoader savedCompilerLoader;
-	private static Object savedBeanFactoryApp;
+	private static @Nullable Application app;
+	private static @Nullable AppBase dummyApp;
+	private static @Nullable Object savedCompilerOptions;
+	private static @Nullable ClassLoader savedCompilerLoader;
+	private static @Nullable Object savedBeanFactoryApp;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -148,9 +150,9 @@ public class TestHotRedirectLoadFirst {
 		var hotModule = manager.findHotModule(NS);
 		Assertions.assertNotNull(hotModule, "HotManager构造后应注册模块");
 		var moduleClass = hotModule.getModuleClass();
-		Assertions.assertSame(hotModule, moduleClass.getClassLoader(), "模块类必须由HotModule装载");
+		Assertions.assertSame(hotModule, requireNonNull(moduleClass).getClassLoader(), "模块类必须由HotModule装载");
 
-		var modules = GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{moduleClass});
+		var modules = GenModule.instance.createRedirectModules(requireNonNull(dummyApp), new Class<?>[]{moduleClass});
 		Assertions.assertNotNull(modules);
 		var service = modules[0];
 		Assertions.assertEquals(REDIRECT_CLASS, service.getClass().getName());
@@ -158,7 +160,7 @@ public class TestHotRedirectLoadFirst {
 				"装载优先：子类来自模块jar（编译兜底会落在编译器装载器上）");
 		Assertions.assertSame(moduleClass, service.getClass().getSuperclass(), "同jar构建产物身份自洽");
 
-		var serverId = (int)app.getConfig().getServerId();
+		var serverId = (int)requireNonNull(app).getConfig().getServerId();
 		service.getClass().getMethod("ping", int.class).invoke(service, serverId);
 		Assertions.assertEquals("v1", moduleClass.getField("marker").get(null), "服务实例必须可执行");
 	}
@@ -171,7 +173,7 @@ public class TestHotRedirectLoadFirst {
 		var workingDir = tempDir.resolve("work2");
 		writeModuleJar(workingDir, Map.of("a1hot/Ahot1/ModuleAhot1.class", v1Bytes));
 		var manager = newHotManager(workingDir);
-		var v1 = manager.findHotModule(NS).getModuleClass();
+		var v1 = requireNonNull(manager.findHotModule(NS)).getModuleClass();
 
 		var cpDir2 = tempDir.resolve("cp2");
 		var v2Bytes = compileModule("v2", cpDir2);
@@ -179,14 +181,14 @@ public class TestHotRedirectLoadFirst {
 		writeModuleJar(workingDir2, Map.of("a1hot/Ahot1/ModuleAhot1.class", v2Bytes));
 		var manager2 = newHotManager(workingDir2);
 		var hotModule2 = manager2.findHotModule(NS);
-		var v2 = hotModule2.getModuleClass();
+		var v2 = requireNonNull(hotModule2).getModuleClass();
 		Assertions.assertNotSame(v1, v2, "测试前提：同名类不同装载器，Class身份不同");
 
 		var compiler = GenModule.instance.getCompiler();
 		compiler.useParentClassLoader(manager2.getHotRedirect()); // = initialize的编译装载器接线
 		compiler.useOptions("-cp", cpDir2 + File.pathSeparator + System.getProperty("java.class.path"));
 
-		var modules = GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{v2});
+		var modules = GenModule.instance.createRedirectModules(requireNonNull(dummyApp), new Class<?>[]{requireNonNull(v2)});
 		Assertions.assertNotNull(modules);
 		var service = modules[0];
 		Assertions.assertEquals(REDIRECT_CLASS, service.getClass().getName());
@@ -195,11 +197,11 @@ public class TestHotRedirectLoadFirst {
 		Assertions.assertSame(v2, service.getClass().getSuperclass(),
 				"兜底编译的生成类必须extends当前代模块类");
 
-		var serverId = (int)app.getConfig().getServerId();
+		var serverId = (int)requireNonNull(app).getConfig().getServerId();
 		service.getClass().getMethod("ping", int.class).invoke(service, serverId);
-		Assertions.assertEquals("v2", v2.getField("marker").get(null),
+		Assertions.assertEquals("v2", requireNonNull(v2).getField("marker").get(null),
 				"回环本地执行（choiceServer为null走super）必须执行新版本实现");
-		Assertions.assertNull(v1.getField("marker").get(null), "旧版本实现不得再被执行");
+		Assertions.assertNull(requireNonNull(v1).getField("marker").get(null), "旧版本实现不得再被执行");
 	}
 
 	/** 冷classpath上存在模块类时（双亲委派可抢先）：HotModule构造必须fail-fast。 */
@@ -215,7 +217,7 @@ public class TestHotRedirectLoadFirst {
 		}
 		var distributeDir = Files.createDirectories(tempDir.resolve("dist4"));
 		Assertions.assertThrows(IllegalStateException.class,
-				() -> new HotManager(dummyApp, workingDir.toString(), distributeDir.toString()),
+				() -> new HotManager(requireNonNull(dummyApp), workingDir.toString(), distributeDir.toString()),
 				"冷抢载必须构造期显式失败，不允许静默失效");
 	}
 
@@ -223,7 +225,7 @@ public class TestHotRedirectLoadFirst {
 		Files.createDirectories(workingDir.resolve("modules"));
 		Files.createDirectories(workingDir.resolve("interfaces"));
 		var distributeDir = Files.createDirectories(tempDir.resolve("dist" + System.nanoTime()));
-		var manager = new HotManager(dummyApp, workingDir.toString(), distributeDir.toString());
+		var manager = new HotManager(requireNonNull(dummyApp), workingDir.toString(), distributeDir.toString());
 		managers.add(manager);
 		return manager;
 	}
@@ -263,7 +265,7 @@ public class TestHotRedirectLoadFirst {
 		return field.get(compiler);
 	}
 
-	private static void writeCompilerField(InMemoryJavaCompiler compiler, String name, Object value) throws Exception {
+	private static void writeCompilerField(InMemoryJavaCompiler compiler, String name, @Nullable Object value) throws Exception {
 		var field = InMemoryJavaCompiler.class.getDeclaredField(name);
 		field.setAccessible(true);
 		field.set(compiler, value);

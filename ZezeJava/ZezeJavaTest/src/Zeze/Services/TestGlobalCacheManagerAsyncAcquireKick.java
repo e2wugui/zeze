@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,14 +51,14 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 	private static final int SERVER_ID_B = 9102;
 	private static final int SERVER_ID_C = 9103;
 
-	private static RawClient clientA;
-	private static RawClient clientB;
-	private static RawClient clientC;
+	private static @Nullable RawClient clientA;
+	private static @Nullable RawClient clientB;
+	private static @Nullable RawClient clientC;
 
 	// 不用getInstance()单例：混合会话（IDEA全量运行等）中TestEnvLauncherListener可能已把单例
 	// 起在5002，start(19711)幂等空转会让客户端Connection refused；单例被本测试stop还会连带
 	// 杀掉共享环境（bench等随即Acquire In Releasing刷屏）。自建实例自起自停，保持固定端口独占契约。
-	private static GlobalCacheManagerAsyncServer gcm;
+	private static @Nullable GlobalCacheManagerAsyncServer gcm;
 
 	/** 裸协议客户端：Login/Acquire正常收发；Reduce到达后park住由测试控制应答时机。 */
 	private static final class RawClient extends Service {
@@ -94,7 +96,7 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		for (var c : new RawClient[]{clientA, clientB, clientC})
+		for (var c : new @Nullable RawClient[]{clientA, clientB, clientC})
 			if (c != null)
 				c.stop();
 		if (gcm != null) {
@@ -112,7 +114,7 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 		Assertions.assertEquals(0, login.getResultCode(), "login resultCode");
 	}
 
-	private static Object cacheStateOf(Binary key) throws Exception {
+	private static @Nullable Object cacheStateOf(Binary key) throws Exception {
 		var field = GlobalCacheManagerAsyncServer.class.getDeclaredField("global");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked")

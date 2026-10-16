@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import Zeze.Util.FastPriorityQueue;
 import Zeze.Util.FastPriorityQueueNode;
@@ -65,10 +67,10 @@ public class TestFastPriorityQueue {
 		}
 		Assertions.assertEquals(testCount, n);
 
-		Assertions.assertEquals(0, fq.first().value);
+		Assertions.assertEquals(0, requireNonNull(fq.first()).value);
 		var node = new Node(Integer.MIN_VALUE);
 		fq.enqueue(node);
-		Assertions.assertEquals(Integer.MIN_VALUE, fq.first().value);
+		Assertions.assertEquals(Integer.MIN_VALUE, requireNonNull(fq.first()).value);
 		fq.remove(node);
 		node.value = Integer.MAX_VALUE;
 		fq.enqueue(node);

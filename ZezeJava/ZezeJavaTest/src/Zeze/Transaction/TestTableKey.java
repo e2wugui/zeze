@@ -1,11 +1,14 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import Zeze.Transaction.*;
 import org.junit.jupiter.api.Assertions;
 
 @Fast
+@NullMarked
 public class TestTableKey {
 	@Test
 	public final void test1() {

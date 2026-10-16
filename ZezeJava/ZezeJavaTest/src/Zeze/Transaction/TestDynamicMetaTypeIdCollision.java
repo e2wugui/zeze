@@ -6,8 +6,7 @@ import Zeze.Transaction.Collections.List2Meta;
 import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.SortedMap2Meta;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +24,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestDynamicMetaTypeIdCollision {
 	// 与生成代码（BValue.createBeanFromSpecialTypeId_N）同构的最小工厂：只认 EmptyBean，其余返回 null。
-	private static long getSpecialTypeId(@NotNull Bean b) {
+	private static long getSpecialTypeId(Bean b) {
 		return b.typeId() == EmptyBean.TYPEID ? EmptyBean.TYPEID : 1L;
 	}
 

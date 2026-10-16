@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
@@ -37,7 +39,7 @@ public class TestRedirectAllMissingSubscription {
 		var info = new BServiceInfo(serviceName, "99", 0, "127.0.0.1", 1);
 		var state = new Agent.SubscribeState(new BSubscribeInfo(serviceName, 1));
 		state.onRegister(info);
-		app.getServiceManager().getSubscribeStates().put(serviceName, state);
+		requireNonNull(app.getServiceManager()).getSubscribeStates().put(serviceName, state);
 		distribute.addServer(info);
 		// SM退订只移除订阅表；一致性哈希环的节点仍在，不能靠空环提前返回掩盖问题。
 		app.getServiceManager().getSubscribeStates().remove(serviceName);
@@ -46,7 +48,7 @@ public class TestRedirectAllMissingSubscription {
 		var context = new RedirectAllContext<RedirectResult>(3, binary -> new RedirectResult());
 		long sessionId = service.addManualContextWithTimeout(context, 30_000);
 		var completed = new CountDownLatch(1);
-		context.getFuture().OnAllDone(done -> completed.countDown());
+		requireNonNull(context.getFuture()).OnAllDone(done -> completed.countDown());
 		var request = new ModuleRedirectAllRequest();
 		request.Argument.setServiceNamePrefix(prefix);
 		request.Argument.setModuleId(direct.getId());
@@ -54,7 +56,7 @@ public class TestRedirectAllMissingSubscription {
 		request.Argument.setSessionId(sessionId);
 		request.Argument.setMethodFullName("MissingSubscription.redirectAll");
 		try {
-			assertDoesNotThrow(() -> app.redirect.redirectAll(direct, request, context),
+			assertDoesNotThrow(() -> requireNonNull(app.redirect).redirectAll(direct, request, context),
 					"退订后的缺失服务必须按hash返回失败，不能解引用null订阅态");
 			assertTrue(completed.await(5, TimeUnit.SECONDS), "所有hash必须立即收尾，无需等待上下文超时");
 			assertEquals(3, context.getAllResults().size());

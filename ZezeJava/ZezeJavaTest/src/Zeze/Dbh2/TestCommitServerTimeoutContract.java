@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
@@ -11,7 +15,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -68,14 +71,14 @@ public class TestCommitServerTimeoutContract {
 		}
 
 		@Override
-		protected void allocate(@NotNull AutoKey autoKey, int pool) {
+		protected void allocate(AutoKey autoKey, int pool) {
 			setCurrentAndCount(autoKey, next, pool);
 			next += pool;
 		}
 
 		@Override
-		protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-										@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		protected boolean allocateAsync(String globalName, int allocCount,
+										ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -90,28 +93,28 @@ public class TestCommitServerTimeoutContract {
 		}
 
 		@Override
-		public void editService(@NotNull BEditService arg) {
+		public void editService(BEditService arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
-				@NotNull BSubscribeArgument info) {
+		public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
+				BSubscribeArgument info) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+		public void unSubscribeService(BUnSubscribeArgument arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public boolean setServerLoad(@NotNull BServerLoad load) {
+		public boolean setServerLoad(BServerLoad load) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Zeze.Component.Threading getThreading() {
+		public Zeze.Component.Threading getThreading() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -142,7 +145,7 @@ public class TestCommitServerTimeoutContract {
 	private static final class StubBucketAgent extends Dbh2Agent {
 		private final boolean redirect;
 		private final AtomicInteger prepareCalls = new AtomicInteger();
-		private volatile TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitFuture;
+		private volatile @Nullable TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> commitFuture;
 
 		StubBucketAgent(boolean redirect) throws Exception {
 			super(RAFT_STUB);
@@ -221,7 +224,7 @@ public class TestCommitServerTimeoutContract {
 	}
 
 	private static CommitRocks getRocks(Dbh2AgentManager manager) throws Exception {
-		return getCommit(manager).getRocks();
+		return java.util.Objects.requireNonNull(getCommit(manager).getRocks());
 	}
 
 	private static Dbh2AgentManager newLocalManager(Path home, int serverId) throws Exception {
@@ -292,7 +295,7 @@ public class TestCommitServerTimeoutContract {
 			var rocks = getRocks(manager);
 
 			var handlerDone = new CountDownLatch(1);
-			var handlerError = new AtomicReference<Throwable>();
+			var handlerError = new AtomicReference<@Nullable Throwable>();
 			var r = new Zeze.Builtin.Dbh2.Commit.Commit();
 			r.Argument = singleBucketBatches();
 			var handler = Thread.ofPlatform().daemon().start(() -> {
@@ -314,7 +317,7 @@ public class TestCommitServerTimeoutContract {
 				Thread.sleep(20);
 			}
 			Assertions.assertNotNull(rocks.query(1L), "commitPoint必须落盘");
-			Assertions.assertEquals(Commit.eCommitting, rocks.query(1L).getState());
+			Assertions.assertEquals(Commit.eCommitting, requireNonNull(rocks.query(1L)).getState());
 
 			// eCommitting落盘后2秒内处理器必须返回（bug时同步等commitBatch投递，阻塞
 			// rpcAwaitTimeoutMs=rpcTimeout+5s）。

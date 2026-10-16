@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Collections.BoolList;
 import Zeze.Util.OutInt;
 import demo.App;
@@ -15,11 +17,11 @@ public class TestBoolList {
 
 	@Test
 	public void testBoolList() {
-		var bl = App.Instance.BoolListModule.open("myBoolListTest");
+		var bl = requireNonNull(App.Instance.BoolListModule).open("myBoolListTest");
 		for (int i = 0; i < 1024; ++i) {
 			Assertions.assertFalse(get(bl, i));
 		}
-		App.Instance.Zeze.newProcedure(() -> {
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			for (int i = 0; i < 1024; ++i) {
 				bl.set(i);
 			}
@@ -28,7 +30,7 @@ public class TestBoolList {
 		for (int i = 0; i < 1024; ++i) {
 			Assertions.assertTrue(get(bl, i));
 		}
-		App.Instance.Zeze.newProcedure(() -> {
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			for (int i = 0; i < 1024; ++i) {
 				bl.clear(i);
 			}
@@ -41,7 +43,7 @@ public class TestBoolList {
 
 	private static boolean get(BoolList bl, int index) {
 		var out = new OutInt();
-		App.Instance.Zeze.newProcedure(() -> {
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			out.value = bl.get(index) ? 1 : 0;
 			return 0;
 		}, "get one").call();

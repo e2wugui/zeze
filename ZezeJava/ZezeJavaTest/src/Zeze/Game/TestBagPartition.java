@@ -1,5 +1,9 @@
 package Zeze.Game;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -52,13 +56,13 @@ public class TestBagPartition {
 		}
 	}
 
-	private Application app;
-	private ExposedModule module;
+	private @Nullable Application app;
+	private @Nullable ExposedModule module;
 
 	@AfterEach
 	public void tearDown() throws Exception {
 		if (module != null) {
-			module.UnRegisterZezeTables(app);
+			module.UnRegisterZezeTables(requireNonNull(app));
 			module = null;
 		}
 		if (app != null) {
@@ -110,7 +114,7 @@ public class TestBagPartition {
 
 		// 受害者的包裹：容量10，格子0放50个物品100。
 		assertEquals(Procedure.Success, app.newProcedure(() -> {
-			var bag = module.open(OwnerId, BagName);
+			var bag = requireNonNull(module).open(OwnerId, BagName);
 			bag.setCapacity(10);
 			assertEquals(0, bag.add(100, 50), "setup添加应全部成功");
 			return Procedure.Success;
@@ -119,18 +123,18 @@ public class TestBagPartition {
 		// 攻击者拿受害者的bagName发Move/Destroy：命中的是(AttackerId, BagName)——
 		// 自己分区里的不存在行，而不是受害者的行。
 		var moveResult = app.newProcedure(
-				() -> module.moveRpc(moveRpc(BagName, AttackerId, 0, 1)), "TestBagForeignMove").call();
+				() -> requireNonNull(module).moveRpc(moveRpc(BagName, AttackerId, 0, 1)), "TestBagForeignMove").call();
 		assertEquals(module.errorCode(Bag.Module.ResultCodeBagNotExist), moveResult, "他人bagName不得触达他人分区");
 
 		var destroyResult = app.newProcedure(
-				() -> module.destroyRpc(destroyRpc(BagName, AttackerId)), "TestBagForeignDestroy").call();
+				() -> requireNonNull(module).destroyRpc(destroyRpc(BagName, AttackerId)), "TestBagForeignDestroy").call();
 		assertEquals(module.errorCode(Bag.Module.ResultCodeBagNotExist), destroyResult, "Destroy同样只在自己分区寻址");
 
 		// 受害者的行原封不动；攻击者分区内没有落任何行（非建行）。
 		assertEquals(Procedure.Success, app.newProcedure(() -> {
-			var victim = module.openOrNull(OwnerId, BagName);
+			var victim = requireNonNull(module).openOrNull(OwnerId, BagName);
 			assertNotNull(victim, "受害者的行必须还在");
-			assertEquals(50, victim.getBean().getItems().get(0).getNumber(), "受害者格子0数量不变");
+			assertEquals(50, requireNonNull(victim.getBean().getItems().get(0)).getNumber(), "受害者格子0数量不变");
 			assertNull(module.getTable().get(new BBagKey(AttackerId, BagName)), "攻击者分区内不得落行");
 			return Procedure.Success;
 		}, "TestBagPartitionVerify").call());
@@ -144,15 +148,15 @@ public class TestBagPartition {
 
 		// 对自己分区内不存在的bagName：BagNotExist，且不得建空行落盘（旧行为destroy恒成功提交空行）。
 		var moveResult = app.newProcedure(
-				() -> module.moveRpc(moveRpc("fresh", AttackerId, 0, 1)), "TestBagFreshMove").call();
+				() -> requireNonNull(module).moveRpc(moveRpc("fresh", AttackerId, 0, 1)), "TestBagFreshMove").call();
 		assertEquals(module.errorCode(Bag.Module.ResultCodeBagNotExist), moveResult, "Move对不存在行必须拒绝");
 
 		var destroyResult = app.newProcedure(
-				() -> module.destroyRpc(destroyRpc("fresh", AttackerId)), "TestBagFreshDestroy").call();
+				() -> requireNonNull(module).destroyRpc(destroyRpc("fresh", AttackerId)), "TestBagFreshDestroy").call();
 		assertEquals(module.errorCode(Bag.Module.ResultCodeBagNotExist), destroyResult, "Destroy对不存在行必须拒绝而非建行成功");
 
 		assertEquals(Procedure.Success, app.newProcedure(() -> {
-			assertNull(module.getTable().get(new BBagKey(AttackerId, "fresh")), "失败请求不得留下空行");
+			assertNull(requireNonNull(module).getTable().get(new BBagKey(AttackerId, "fresh")), "失败请求不得留下空行");
 			return Procedure.Success;
 		}, "TestBagFreshVerify").call());
 	}
@@ -165,7 +169,7 @@ public class TestBagPartition {
 		app.start();
 
 		assertEquals(Procedure.Success, app.newProcedure(() -> {
-			var bag = module.open(AttackerId, "bag#own");
+			var bag = requireNonNull(module).open(AttackerId, "bag#own");
 			bag.setCapacity(10);
 			assertEquals(0, bag.add(100, 50));
 			return Procedure.Success;
@@ -174,7 +178,7 @@ public class TestBagPartition {
 		// 本人对自己已存在的包裹发Move：应穿过非建行访问、到达move的参数校验
 		// （from=5在容量内但为空格→FromNotExist），证明openOrNull命中的是真实行而非一律BagNotExist。
 		var result = app.newProcedure(
-				() -> module.moveRpc(moveRpc("bag#own", AttackerId, 5, 6)), "TestBagOwnedMove").call();
+				() -> requireNonNull(module).moveRpc(moveRpc("bag#own", AttackerId, 5, 6)), "TestBagOwnedMove").call();
 		assertEquals(module.errorCode(Bag.Module.ResultCodeFromNotExist), result, "已存在行应进入move逻辑");
 	}
 }

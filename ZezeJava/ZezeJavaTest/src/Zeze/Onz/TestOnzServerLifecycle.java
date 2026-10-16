@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -26,7 +30,7 @@ import org.junit.jupiter.api.Timeout;
  */
 public class TestOnzServerLifecycle {
 	private final demo.App zeze2 = new demo.App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -41,13 +45,13 @@ public class TestOnzServerLifecycle {
 
 		var myConfig = Config.load("zeze.xml");
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		if (onzServer != null)
-			onzServer.stop(); // 幂等：testStop已经stop过，这里验证重复stop不抛
+			requireNonNull(onzServer).stop(); // 幂等：testStop已经stop过，这里验证重复stop不抛
 		zeze2.Stop();
 	}
 
@@ -56,8 +60,8 @@ public class TestOnzServerLifecycle {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)
@@ -87,7 +91,7 @@ public class TestOnzServerLifecycle {
 		var deadline = System.currentTimeMillis() + 60_000;
 		while (true) {
 			try {
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				break;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)
@@ -106,7 +110,7 @@ public class TestOnzServerLifecycle {
 			var t = new Thread(() -> {
 				try {
 					barrier.await();
-					sockets.add(onzServer.getZezeInstance("zeze1"));
+					sockets.add(requireNonNull(onzServer).getZezeInstance("zeze1"));
 				} catch (Throwable e) {
 					errors.add(e);
 				}
@@ -133,15 +137,15 @@ public class TestOnzServerLifecycle {
 	@Timeout(60)
 	public void testStopLifecycle() throws Exception {
 		waitOnzReady();
-		Assertions.assertFalse(instances(onzServer).isEmpty(), "预热后instances应有缓存connector");
+		Assertions.assertFalse(instances(requireNonNull(onzServer)).isEmpty(), "预热后instances应有缓存connector");
 
-		onzServer.stop();
+		requireNonNull(onzServer).stop();
 
 		// 幂等：重复stop不抛（@AfterEach还会再stop一次）。
 		Assertions.assertDoesNotThrow(onzServer::stop);
 
 		// 停机后拒绝新请求。
-		Assertions.assertThrows(RuntimeException.class, () -> onzServer.getZezeInstance("zeze1"),
+		Assertions.assertThrows(RuntimeException.class, () -> requireNonNull(onzServer).getZezeInstance("zeze1"),
 				"stop后getZezeInstance必须拒绝");
 
 		// 缓存connector已停止并清空（否则自动重连在停机后无限进行）。

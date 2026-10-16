@@ -19,8 +19,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelHandlerContext;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +39,7 @@ public class TestRejectedRequestNoCrossTalk {
 		private final ConcurrentHashMap<ChannelId, AtomicInteger> counts = new ConcurrentHashMap<>();
 
 		@Override
-		public @Nullable HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+		public @Nullable HttpExchange createHttpExchange(ChannelHandlerContext context) {
 			var count = counts.computeIfAbsent(context.channel().id(), k -> new AtomicInteger()).incrementAndGet();
 			return count >= 2 ? null : super.createHttpExchange(context);
 		}

@@ -1,5 +1,7 @@
 package Zeze.Services.ServiceManager;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Properties;
 
@@ -42,7 +44,7 @@ public class TestExporterParseArgs {
 	public void testValidParsingUnchanged() {
 		var shared = new Properties();
 		var services = new ArrayList<String>();
-		var exporters = new ArrayList<KV<String, String>>();
+		var exporters = new ArrayList<KV<String, @Nullable String>>();
 		Exporter.parseArgs(new String[]{"-version", "2", "-e", "Print", "-private", "-file x.cfg",
 				"-s", "svc1", "-s", "svc2", "-d"}, shared, services, exporters);
 		Assertions.assertEquals("2", shared.getProperty("-version"));

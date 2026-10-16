@@ -1,5 +1,6 @@
 package Temp;
 
+import org.jspecify.annotations.Nullable;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Hot.HotManager;
@@ -15,7 +16,7 @@ public class TempApp extends AppBase {
 	}
 
 	@Override
-	public Application getZeze() {
+	public @Nullable Application getZeze() {
 		return null;
 	}
 }

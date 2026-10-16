@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
@@ -16,6 +20,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@NullMarked
 public class TestGTable {
 	@BeforeEach
 	public void before() throws Exception {
@@ -24,14 +29,14 @@ public class TestGTable {
 
 	@Test
 	public void testGTable1Basic() {
-		App.Instance.Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable();
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable();
 			table.remove(1L);
 			return 0;
 		}, "Remove Record").call();
 		// putGTable
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable();
 			var gTable1 = table.getOrAdd(1L);
 			Assertions.assertNull(gTable1.getGTable().get(1, 1));
 			gTable1.getGTable().put(1, 1, 1);
@@ -43,7 +48,7 @@ public class TestGTable {
 		}, "putGTable").call();
 		// check and put 2 and rollback
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable();
 			var gTable1 = table.getOrAdd(1L);
 			Assertions.assertNull(gTable1.getGTable().get(2, 2));
 			gTable1.getGTable().put(2, 2, 2);
@@ -52,7 +57,7 @@ public class TestGTable {
 		}, "putGTableRollback").call();
 		// check 1 exist and 2 null
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable();
 			var gTable1 = table.getOrAdd(1L);
 			Assertions.assertNotNull(gTable1.getGTable().get(1, 1));
 			Assertions.assertNull(gTable1.getGTable().get(2, 2));
@@ -62,14 +67,14 @@ public class TestGTable {
 
 	@Test
 	public void testGTable2Basic() {
-		App.Instance.Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable2();
 			table.remove(1L);
 			return 0;
 		}, "Remove Record").call();
 		// putGTable
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable2();
 			var gTable1 = table.getOrAdd(1L);
 			Assertions.assertNull(gTable1.getGTable().get(1, 1));
 			gTable1.getGTable().put(1, 1, new Bean1());
@@ -78,7 +83,7 @@ public class TestGTable {
 		}, "putGTable").call();
 		// check and put 2 and rollback
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable2();
 			var gTable1 = table.getOrAdd(1L);
 			Assertions.assertNull(gTable1.getGTable().get(2, 2));
 			gTable1.getGTable().put(2, 2, new Bean1());
@@ -87,14 +92,14 @@ public class TestGTable {
 		}, "putGTableRollback").call();
 		// check 1 exist and 2 null
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable2();
 			var gTable1 = table.getOrAdd(1L);
 			Assertions.assertNotNull(gTable1.getGTable().get(1, 1));
 			Assertions.assertNull(gTable1.getGTable().get(2, 2));
 			return 0; // readonly and commit
 		}, "checkGTable").call();
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable2();
 			var gTable1 = table.getOrAdd(1L);
 			var bean1 = gTable1.getGTable().get(1, 1);
 			Assertions.assertNotNull(bean1);
@@ -102,7 +107,7 @@ public class TestGTable {
 			return Procedure.LogicError; // rollback
 		}, "setGTableBeanRollback").call();
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable2();
 			var gTable1 = table.getOrAdd(1L);
 			var bean1 = gTable1.getGTable().get(1, 1);
 			Assertions.assertNotNull(bean1);
@@ -154,13 +159,13 @@ public class TestGTable {
 
 	@Test
 	public void testGTableRowCol() {
-		App.Instance.Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable();
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable();
 			table.remove(1L);
 			return 0;
 		}, "Remove Record").call();
 		App.getInstance().Zeze.newProcedure(() -> {
-			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			var table = requireNonNull(App.getInstance().demo_ModuleGTable).getGTable();
 			var gTable1 = table.getOrAdd(1L);
 			gTable1.getGTable().put(1, 1, 11);
 			gTable1.getGTable().put(1, 2, 12);

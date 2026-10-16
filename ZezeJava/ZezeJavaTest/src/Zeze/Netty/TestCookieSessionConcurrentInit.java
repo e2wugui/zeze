@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -34,7 +38,7 @@ public class TestCookieSessionConcurrentInit {
 		Task.tryInitThreadPool();
 		var app = App.getInstance();
 		app.Start();
-		app.HttpServer.addHandler(Path, 8192, TransactionLevel.Serializable, DispatchMode.Normal,
+		requireNonNull(app.HttpServer).addHandler(Path, 8192, TransactionLevel.Serializable, DispatchMode.Normal,
 				TestCookieSessionConcurrentInit::onRequest);
 	}
 
@@ -42,8 +46,8 @@ public class TestCookieSessionConcurrentInit {
 		x.detach(); // 移交任意线程：制造并发首调窗口
 		var barrier = new CyclicBarrier(2);
 		var done = new CountDownLatch(2);
-		var results = new AtomicReferenceArray<HttpSession.CookieSession>(2);
-		var failure = new AtomicReferenceArray<Throwable>(2);
+		var results = new AtomicReferenceArray<HttpSession.@Nullable CookieSession>(2);
+		var failure = new AtomicReferenceArray<@Nullable Throwable>(2);
 		for (int i = 0; i < 2; i++) {
 			var idx = i;
 			var t = new Thread(() -> {

@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import org.junit.jupiter.api.Test;
 import Zeze.Config;
 import Zeze.Config.DatabaseConf;
@@ -10,6 +12,7 @@ import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseSqlServer;
 import org.junit.jupiter.api.Assertions;
 
+@NullMarked
 public class TestDatabaseSqlServer {
 
 	@Test

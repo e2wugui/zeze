@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.nio.file.Path;
 import java.util.TreeMap;
@@ -39,10 +43,10 @@ public class TestFlushUnitIsolation {
 	@TempDir
 	Path tempDir;
 
-	private Application app;
-	private tPoisonFlush table;
+	private @Nullable Application app;
+	private @Nullable tPoisonFlush table;
 
-	private void startApp(String dbSubName, Consumer<Config> tweak) throws Exception {
+	private void startApp(String dbSubName, @Nullable Consumer<Config> tweak) throws Exception {
 		PoisonBean.poison = false;
 		var config = new Config();
 		config.setServiceManager("disable");
@@ -64,24 +68,24 @@ public class TestFlushUnitIsolation {
 	}
 
 	private void stopApp() throws Exception {
-		app.stop();
+		requireNonNull(app).stop();
 		app = null;
 		table = null;
 	}
 
 	private void putValue(long key, long value) {
-		var result = app.newProcedure((FuncLong)() -> {
+		var result = requireNonNull(app).newProcedure((FuncLong)() -> {
 			var b = new PoisonBean();
 			b.value = value;
-			table.put(key, b);
+			requireNonNull(table).put(key, b);
 			return 0L;
 		}, "TestFlushUnitIsolation.put").call();
 		Assertions.assertEquals(Procedure.Success, result, "put 事务必须成功");
 	}
 
 	/** 后台库中的值；不存在返回 null。 */
-	private Long dbValue(long key) {
-		var v = table.selectFromDatabase(key);
+	private @Nullable Long dbValue(long key) {
+		var v = requireNonNull(table).selectFromDatabase(key);
 		return v != null ? v.value : null;
 	}
 
@@ -110,7 +114,7 @@ public class TestFlushUnitIsolation {
 			PoisonBean.poison = true;
 			// 未修复：毒化单元的异常传播出 flushWhenCheckpoint（SingleThread直接中断迭代饿死其余集合，
 			// parallelStream模式取消未启动任务），runOnce 本身抛出。
-			Assertions.assertDoesNotThrow(() -> app.getCheckpoint().runOnce(),
+			Assertions.assertDoesNotThrow(() -> requireNonNull(requireNonNull(app).getCheckpoint()).runOnce(),
 					mode + ": 毒化单元不能让整轮 checkpoint 失败");
 
 			// 其余照刷：所有成功单元都必须落库（与迭代顺序无关）。
@@ -121,7 +125,7 @@ public class TestFlushUnitIsolation {
 
 			// 解毒后下轮重试成功：验证失败单元保留在 relativeRecordSetMap 的重试语义。
 			PoisonBean.poison = false;
-			app.getCheckpoint().runOnce();
+			requireNonNull(requireNonNull(app).getCheckpoint()).runOnce();
 			Assertions.assertEquals(Long.valueOf(99), dbValue(99), mode + ": 解毒后失败单元必须被重试落库");
 		} finally {
 			PoisonBean.poison = false;
@@ -139,7 +143,7 @@ public class TestFlushUnitIsolation {
 		try {
 			startApp("walkmemory", null);
 			putValue(1, 10);
-			app.getCheckpoint().runOnce(); // 落库+写镜像：镜像里是10
+			requireNonNull(requireNonNull(app).getCheckpoint()).runOnce(); // 落库+写镜像：镜像里是10
 
 			putValue(1, 20); // 内存中已提交新值20（dirty，等checkpoint），镜像仍是10
 
@@ -147,7 +151,7 @@ public class TestFlushUnitIsolation {
 			// lockey.tryEnterReadLock(0) 与写锁互斥，walkMemory 必须回退镜像而不是拷内存值。
 			// ReentrantReadWriteLock 必须由持锁线程解锁（异线程unlock抛IllegalMonitorStateException，
 			// 锁会滞留在死线程上），用单个辅助线程 + 闭锁控制持锁窗口。
-			var lockey = app.getLocks().get(new TableKey(table.getId(), 1L));
+			var lockey = app.getLocks().get(new TableKey(requireNonNull(table).getId(), 1L));
 			var lockEntered = new java.util.concurrent.CountDownLatch(1);
 			var lockRelease = new java.util.concurrent.CountDownLatch(1);
 			var helper = new Thread(() -> {
@@ -183,7 +187,7 @@ public class TestFlushUnitIsolation {
 
 	private TreeMap<Long, Long> walkMemoryValues() throws Exception {
 		var result = new TreeMap<Long, Long>();
-		table.walkMemory((k, v) -> {
+		requireNonNull(table).walkMemory((k, v) -> {
 			result.put(k, v.value);
 			return true;
 		});
@@ -206,7 +210,7 @@ public class TestFlushUnitIsolation {
 		try {
 			startApp("cleannow", c -> {
 				var tableConf = c.getDefaultTableConf();
-				tableConf.setCacheCapacity(1); // realCacheCapacity = floor(1 * 1.0) = 1
+				requireNonNull(tableConf).setCacheCapacity(1); // realCacheCapacity = floor(1 * 1.0) = 1
 				tableConf.setCacheFactor(1.0f);
 				tableConf.setCacheCleanPeriod(500); // 时界 = 500 × 3 = 1500ms
 				tableConf.setCacheCleanPeriodWhenExceedCapacity(100);
@@ -221,18 +225,18 @@ public class TestFlushUnitIsolation {
 			Thread.sleep(500); // 等newLruHot定时器把5条记录所在的节点变成非hot的最老节点
 
 			var t0 = System.nanoTime();
-			table.getCache().cleanNow(); // 未修复：while+sleep无限循环（isStart恒真），占死调度线程
+			requireNonNull(requireNonNull(table).getCache()).cleanNow(); // 未修复：while+sleep无限循环（isStart恒真），占死调度线程
 			var elapsedMs = (System.nanoTime() - t0) / 1_000_000;
 			Assertions.assertTrue(elapsedMs < 15_000,
 					"cleanNow 单次执行必须有时界（实际 " + elapsedMs + " ms）");
-			Assertions.assertEquals(5L, table.getCache().size(), "毒化期间脏记录清不掉，但也不能丢");
+			Assertions.assertEquals(5L, requireNonNull(table.getCache()).size(), "毒化期间脏记录清不掉，但也不能丢");
 
 			// 解毒：flush成功后，下一轮 cleanNow 必须能收敛回收至容量以内。
 			PoisonBean.poison = false;
-			app.getCheckpoint().runOnce();
-			table.getCache().cleanNow();
-			Assertions.assertTrue(table.getCache().size() <= 1,
-					"解毒后必须能回收至容量以内（实际 " + table.getCache().size() + "）");
+			requireNonNull(requireNonNull(app).getCheckpoint()).runOnce();
+			requireNonNull(table.getCache()).cleanNow();
+			Assertions.assertTrue(requireNonNull(table.getCache()).size() <= 1,
+					"解毒后必须能回收至容量以内（实际 " + requireNonNull(table.getCache()).size() + "）");
 		} finally {
 			PoisonBean.poison = false;
 			if (app != null)

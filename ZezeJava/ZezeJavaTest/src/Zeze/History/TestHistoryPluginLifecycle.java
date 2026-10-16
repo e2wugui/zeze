@@ -1,5 +1,9 @@
 package Zeze.History;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import Zeze.Application;
@@ -16,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Fast
 public class TestHistoryPluginLifecycle {
-	private static Object field(Object owner, String name) throws Exception {
+	private static @Nullable Object field(Object owner, String name) throws Exception {
 		var field = owner.getClass().getDeclaredField(name);
 		field.setAccessible(true);
 		return field.get(owner);
@@ -103,7 +107,7 @@ public class TestHistoryPluginLifecycle {
 		httpField.set(module, http);
 		try {
 			assertThrows(IllegalStateException.class, module::close);
-			assertTrue(((DaemonTimer)field(ledger, "sweepDaemon")).isShutdown(),
+			assertTrue(((DaemonTimer)requireNonNull(field(ledger, "sweepDaemon"))).isShutdown(),
 					"HTTP 清理失败不能跳过账本清理");
 			assertNull(app.getTable(module.getHistoryTable().getName()), "仍须注销历史表");
 			module.close(); // 重试上次未完成的 HTTP 清理

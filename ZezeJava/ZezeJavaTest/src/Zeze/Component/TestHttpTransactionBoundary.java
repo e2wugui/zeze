@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -120,14 +122,14 @@ public class TestHttpTransactionBoundary {
 				x.send(HttpResponseStatus.OK, "text/plain", body);
 				Assertions.assertNull(channel.readOutbound(), "提交前不可有网络响应");
 				if (attempt == 1)
-					Transaction.getCurrent().throwRedo(
-							env.app.getTable("Zeze_Builtin_HttpSession_tSession").getId(), "forced HTTP redo");
+					requireNonNull(Transaction.getCurrent()).throwRedo(
+							requireNonNull(env.app.getTable("Zeze_Builtin_HttpSession_tSession")).getId(), "forced HTTP redo");
 				return Procedure.Success;
 			}, "HttpTransactionBoundary.redo").call();
 			Assertions.assertEquals(Procedure.Success, rc);
 			Assertions.assertEquals(2, attempts.get());
 			Assertions.assertNotSame(sessions.get(0), sessions.get(1));
-			Assertions.assertEquals("attempt-2", x.getCookieSession().getProperty("value"));
+			Assertions.assertEquals("attempt-2", requireNonNull(x.getCookieSession()).getProperty("value"));
 			Assertions.assertEquals(3, x.cookieHeaders().size(), "保留无关cookie及提交轮的session/普通cookie");
 			Assertions.assertTrue(x.cookieHeaders().contains("ATTEMPT=attempt-2"));
 			Assertions.assertFalse(x.cookieHeaders().contains("ATTEMPT=attempt-1"));
@@ -193,14 +195,14 @@ public class TestHttpTransactionBoundary {
 			x.addHeader(HttpHeaderNames.SET_COOKIE, "OTHER=keep");
 			long rc = env.app.newProcedure(() -> {
 				old[0] = x.getCookieSession();
-				old[0].setProperty("value", "rolled back");
+				requireNonNull(old[0]).setProperty("value", "rolled back");
 				throw new IllegalStateException("forced terminal rollback");
 			}, "HttpTransactionBoundary.rollback").call();
 			Assertions.assertNotEquals(Procedure.Success, rc);
 			Assertions.assertEquals(java.util.List.of("OTHER=keep"), x.cookieHeaders());
 			var fresh = x.getCookieSession();
 			Assertions.assertNotSame(old[0], fresh);
-			fresh.setProperty("value", "fresh");
+			requireNonNull(fresh).setProperty("value", "fresh");
 			Assertions.assertEquals("fresh", fresh.getProperty("value"));
 			var headers = new DefaultHttpHeaders();
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
@@ -230,8 +232,8 @@ public class TestHttpTransactionBoundary {
 					return Procedure.Unknown;
 				}, "HttpTransactionBoundary.nestedRollback").call());
 				if (attempt == 1)
-					Transaction.getCurrent().throwRedo(
-							env.app.getTable("Zeze_Builtin_HttpSession_tSession").getId(), "forced header redo");
+					requireNonNull(Transaction.getCurrent()).throwRedo(
+							requireNonNull(env.app.getTable("Zeze_Builtin_HttpSession_tSession")).getId(), "forced header redo");
 				x.sendPlainText(HttpResponseStatus.OK, "committed");
 				return Procedure.Success;
 			}, "HttpTransactionBoundary.headers").call());
@@ -302,8 +304,8 @@ public class TestHttpTransactionBoundary {
 				Assertions.assertEquals(0, data.refCnt());
 				Assertions.assertNull(channel.readOutbound());
 				if (attempt == 1)
-					Transaction.getCurrent().throwRedo(
-							env.app.getTable("Zeze_Builtin_HttpSession_tSession").getId(), "forced websocket redo");
+					requireNonNull(Transaction.getCurrent()).throwRedo(
+							requireNonNull(env.app.getTable("Zeze_Builtin_HttpSession_tSession")).getId(), "forced websocket redo");
 				return Procedure.Success;
 			}, "HttpTransactionBoundary.websocket").call());
 			channel.runPendingTasks();

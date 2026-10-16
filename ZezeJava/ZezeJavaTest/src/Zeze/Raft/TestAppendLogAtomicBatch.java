@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.lang.reflect.Field;
 
@@ -66,7 +68,7 @@ public class TestAppendLogAtomicBatch {
 			throws Exception {
 		final Transaction[] ts = new Transaction[1];
 		var rc = rocks.newProcedure(() -> {
-			ts[0] = Transaction.getCurrent();
+			ts[0] = requireNonNull(Transaction.getCurrent());
 			table.getOrAdd(1).getList().add(30);
 			return 0L;
 		}).call();
@@ -91,9 +93,9 @@ public class TestAppendLogAtomicBatch {
 	public void testStubAndLogCommitTogether() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			var raft = rocks.getRaft();
-			var logSequence = raft.getLogSequence();
+			var logSequence = requireNonNull(raft).getLogSequence();
 			logSequence.setWriteOptions(Zeze.Util.RocksDatabase.getDefaultWriteOptions());
 
 			// 先收集（not leader纯收集：事务RaftRetry不触发appendLog），后置Leader——
@@ -123,9 +125,9 @@ public class TestAppendLogAtomicBatch {
 	public void testFailureBetweenStubAndLogLeavesNoOrphan() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			var raft = rocks.getRaft();
-			var logSequence = raft.getLogSequence();
+			var logSequence = requireNonNull(raft).getLogSequence();
 			logSequence.setWriteOptions(Zeze.Util.RocksDatabase.getDefaultWriteOptions());
 
 			// 先收集（not leader），后置Leader——becomeLeader后的newProcedure会真实走
@@ -160,9 +162,9 @@ public class TestAppendLogAtomicBatch {
 	public void testOrphanStubBlocksResend() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			var raft = rocks.getRaft();
-			var logSequence = raft.getLogSequence();
+			var logSequence = requireNonNull(raft).getLogSequence();
 			logSequence.setWriteOptions(Zeze.Util.RocksDatabase.getDefaultWriteOptions());
 
 			var changes = newUniqueChanges(rocks, table);

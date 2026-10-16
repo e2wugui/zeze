@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.AppBase;
@@ -11,7 +13,6 @@ import Zeze.Config;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,7 @@ public class TestTimerStopStartRestart {
 		static final AtomicInteger FireCount = new AtomicInteger();
 
 		@Override
-		public void onTimer(@NotNull TimerContext timerContext) {
+		public void onTimer(TimerContext timerContext) {
 			FireCount.incrementAndGet();
 		}
 	}
@@ -63,7 +64,7 @@ public class TestTimerStopStartRestart {
 		try {
 			zeze.start();
 			var timer = zeze.getTimer();
-			timer.start();
+			requireNonNull(timer).start();
 
 			final int periodMs = 50;
 			RestartCountHandle.FireCount.set(0);
@@ -77,7 +78,7 @@ public class TestTimerStopStartRestart {
 
 			// stop → start（重启）：装载走 loadTimer，安装经 whileCommit 在本线程同步提交。
 			timer.stop();
-			timer.start();
+			requireNonNull(timer).start();
 
 			// 重启后必须继续触发：若 started 晚于 loadTimer 置位，装载期安装被
 			// FND5-20 闸门拒绝，这里等不到新触发即失败。

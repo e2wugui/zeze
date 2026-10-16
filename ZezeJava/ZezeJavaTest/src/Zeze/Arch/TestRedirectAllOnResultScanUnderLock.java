@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash;
@@ -54,7 +56,7 @@ public class TestRedirectAllOnResultScanUnderLock {
 		}, "resultscan-late-writer");
 		var callbackChecked = new AtomicBoolean(false);
 
-		ctx.getFuture().OnResult(r -> {
+		requireNonNull(ctx.getFuture()).OnResult(r -> {
 			// 迟到结果会经生产者路径再次回调本方法（hash 1）；锁语义断言只执行一次。
 			if (!callbackChecked.compareAndSet(false, true))
 				return;
@@ -86,7 +88,7 @@ public class TestRedirectAllOnResultScanUnderLock {
 		ctx.setSessionId(2);
 
 		var count = new long[]{0};
-		ctx.getFuture().OnResult(r -> count[0]++);
+		requireNonNull(ctx.getFuture()).OnResult(r -> count[0]++);
 		Assertions.assertEquals(0, count[0], "注册时不产结果");
 
 		processHashes(ctx, 0);

@@ -1,5 +1,7 @@
 package Game.Login;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import Game.App;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Component.AutoKey;
@@ -7,10 +9,10 @@ import Zeze.Hot.HotService;
 import Zeze.Transaction.Procedure;
 
 public final class ModuleLogin extends AbstractModule implements IModuleLogin {
-	private AutoKey autoKey;
+	private @Nullable AutoKey autoKey;
 
 	public void Start(App app) {
-		autoKey = app.Zeze.getAutoKey("roleId");
+		autoKey = app.getZeze().getAutoKey("roleId");
 	}
 
 	public void Stop(App app) {
@@ -22,7 +24,7 @@ public final class ModuleLogin extends AbstractModule implements IModuleLogin {
 
 		var role = new BRole();
 
-		long roleId = autoKey.nextId();
+		long roleId = Objects.requireNonNull(autoKey).nextId();
 		role.setId(roleId);
 		role.setName(rpc.Argument.getName());
 

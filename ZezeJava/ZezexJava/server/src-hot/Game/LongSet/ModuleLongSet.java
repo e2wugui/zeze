@@ -1,5 +1,7 @@
 package Game.LongSet;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import java.util.Map;
 import java.util.function.Predicate;
 import Zeze.Component.AutoKey;
@@ -12,10 +14,10 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 	private static final Logger logger = LogManager.getLogger(ModuleLongSet.class);
 
 	public static final int CountPerNode = 500;
-	private AutoKey NodeIdGenerator;
+	private @Nullable AutoKey NodeIdGenerator;
 
 	public void Start(Game.App app) throws Exception {
-		NodeIdGenerator = app.Zeze.getAutoKey("Game.LongSet.NodeIdGenerator");
+		NodeIdGenerator = app.getZeze().getAutoKey("Game.LongSet.NodeIdGenerator");
 	}
 
 	public void Stop(Game.App app) throws Exception {
@@ -26,7 +28,7 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 		var root = _tNodeRoot.getOrAdd(name);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) { // no node
-			nodeId = NodeIdGenerator.nextId();
+			nodeId = Objects.requireNonNull(NodeIdGenerator).nextId();
 		}
 		var indexKey = name + "#" + value.getName() + "=" + value.getValue();
 		var index = _tIndexs.get(indexKey);
@@ -47,7 +49,7 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 				} else {
 					// link to root head
 					var head = _tNodes.get(root.getHeadNodeId());
-					head.setPrevNodeId(nodeId);
+					Objects.requireNonNull(head).setPrevNodeId(nodeId);
 					node.setNextNodeId(root.getHeadNodeId());
 					node.setPrevNodeId(root.getTailNodeId());
 					root.setHeadNodeId(nodeId);
@@ -60,7 +62,7 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 				return _tIndexs.tryAdd(indexKey, indexNodeId)
 						&& null == node.getSet().putIfAbsent(value, new Timestamp(System.currentTimeMillis()));
 			}
-			nodeId = NodeIdGenerator.nextId();
+			nodeId = Objects.requireNonNull(NodeIdGenerator).nextId();
 		}
 	}
 
@@ -82,7 +84,7 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 			var next = _tNodes.get(node.getNextNodeId());
 
 			var root = _tNodeRoot.get(name);
-			if (root.getHeadNodeId() == root.getTailNodeId()) {
+			if (Objects.requireNonNull(root).getHeadNodeId() == root.getTailNodeId()) {
 				// only one node and will be removed.
 				root.setHeadNodeId(0L);
 				root.setTailNodeId(0L);
@@ -93,8 +95,8 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 					root.setTailNodeId(node.getPrevNodeId());
 			}
 
-			prev.setNextNodeId(node.getNextNodeId());
-			next.setPrevNodeId(node.getPrevNodeId());
+			Objects.requireNonNull(prev).setNextNodeId(node.getNextNodeId());
+			Objects.requireNonNull(next).setPrevNodeId(node.getPrevNodeId());
 
 			// 把当前空的Node加入垃圾回收。
 			// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
@@ -134,7 +136,7 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 				final var breakNow = new Zeze.Util.OutObject<Boolean>();
 				breakNow.value = false;
 
-				if (0L != TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
+				if (0L != TaskSpec.ofProcedure(App.getZeze().newProcedure(() -> {
 					breakNow.value = func1.test(e);
 					return 0L;
 				}, "_foreach.callback")).call())

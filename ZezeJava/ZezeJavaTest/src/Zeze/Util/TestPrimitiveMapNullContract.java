@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Util.CharHashMap;
 import Zeze.Util.IntHashMap;
@@ -20,7 +22,7 @@ public class TestPrimitiveMapNullContract {
 
 	@Test
 	public void testLongHashMapPutIfAbsentNullEntry() {
-		var m = new LongHashMap<String>();
+		var m = new LongHashMap<@Nullable String>();
 		Assertions.assertNull(m.put(5, null)); // 合法：null值条目
 		Assertions.assertTrue(m.containsKey(5));
 
@@ -42,7 +44,7 @@ public class TestPrimitiveMapNullContract {
 
 	@Test
 	public void testLongHashMapComputeIfAbsentNullEntry() {
-		var m = new LongHashMap<String>();
+		var m = new LongHashMap<@Nullable String>();
 		m.put(5, null);
 		var calls = new AtomicInteger();
 
@@ -76,7 +78,7 @@ public class TestPrimitiveMapNullContract {
 
 	@Test
 	public void testIntHashMapTwins() {
-		var m = new IntHashMap<String>();
+		var m = new IntHashMap<@Nullable String>();
 		m.put(5, null);
 		Assertions.assertNull(m.putIfAbsent(5, "v"));
 		Assertions.assertEquals("v", m.get(5));
@@ -95,7 +97,7 @@ public class TestPrimitiveMapNullContract {
 
 	@Test
 	public void testCharHashMapTwins() {
-		var m = new CharHashMap<String>();
+		var m = new CharHashMap<@Nullable String>();
 		m.put('a', null);
 		Assertions.assertNull(m.putIfAbsent('a', "v"));
 		Assertions.assertEquals("v", m.get('a'));

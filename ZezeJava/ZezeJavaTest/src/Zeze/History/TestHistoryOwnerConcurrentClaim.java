@@ -1,5 +1,9 @@
 package Zeze.History;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
@@ -52,7 +56,7 @@ public class TestHistoryOwnerConcurrentClaim {
 		}
 
 		@Override
-		public Database.DataWithVersion getDataWithVersion(ByteBuffer key) {
+		public Database.@Nullable DataWithVersion getDataWithVersion(ByteBuffer key) {
 			var observed = delegate.getDataWithVersion(key);
 			if (initial) {
 				initial = false;
@@ -69,7 +73,7 @@ public class TestHistoryOwnerConcurrentClaim {
 		}
 
 		@Override
-		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public @Nullable KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			return delegate.saveDataWithSameVersion(key, data, version);
 		}
 
@@ -99,11 +103,11 @@ public class TestHistoryOwnerConcurrentClaim {
 		// DirectOperates CAS protocol and does not claim to exercise cross-Application GCM.
 		var first = newApp(tempDir.toString(), "firstOwner");
 		var second = newApp(tempDir.toString(), "secondOwner");
-		var delayed = new PausedInitialRead(second.getDatabase("").getDirectOperates());
+		var delayed = new PausedInitialRead(requireNonNull(second.getDatabase("").getDirectOperates()));
 		var operationsField = Database.class.getDeclaredField("directOperates");
 		operationsField.setAccessible(true);
 		operationsField.set(second.getDatabase(""), delayed);
-		CompletableFuture<Throwable> competing = null;
+		@Nullable CompletableFuture<@Nullable Throwable> competing = null;
 		try {
 			competing = CompletableFuture.supplyAsync(() -> {
 				try {
@@ -121,7 +125,7 @@ public class TestHistoryOwnerConcurrentClaim {
 				key.WriteString(OwnerCheck.OWNER_KEY);
 				var owner = ByteBuffer.Allocate();
 				owner.WriteString(first.getConfig().getHistory());
-				first.getDatabase("").getDirectOperates().saveDataWithSameVersion(key, owner, 0);
+				requireNonNull(first.getDatabase("").getDirectOperates()).saveDataWithSameVersion(key, owner, 0);
 			}
 			OwnerCheck.verify(first); // a successful startup must make this owner stable
 			delayed.resume.countDown();

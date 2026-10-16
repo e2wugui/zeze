@@ -1,4 +1,6 @@
 package Zeze.Util;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -15,8 +17,8 @@ public final class TestJsonNonFinite {
 	static class B {
 		double d;
 		float f;
-		Double dd;
-		Float ff;
+		@Nullable Double dd;
+		@Nullable Float ff;
 		int i;
 	}
 

@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.Nullable;
+
+import org.jspecify.annotations.NullMarked;
+
 import org.junit.jupiter.api.Test;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -14,6 +18,7 @@ import Zeze.Transaction.DatabaseMySql;
 import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("CallToPrintStackTrace")
+@NullMarked
 public class TestDatabaseMySql {
 	public static boolean checkDriverClassExist(String driverClassName) {
 		try {
@@ -25,7 +30,7 @@ public class TestDatabaseMySql {
 		}
 	}
 
-	public static boolean checkTcpPort(String host, int port) {
+	public static boolean checkTcpPort(@Nullable String host, int port) {
 		try {
 			new Socket(host, port).close();
 			return true;
@@ -34,7 +39,7 @@ public class TestDatabaseMySql {
 		}
 	}
 
-	private static String getPersonalUrl() throws UnknownHostException {
+	private static @Nullable String getPersonalUrl() throws UnknownHostException {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
 		return switch (hostName) {

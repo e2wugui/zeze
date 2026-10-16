@@ -1,5 +1,7 @@
 package Zezex.Linkd;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Arch.*;
@@ -18,7 +20,7 @@ public final class ModuleLinkd extends AbstractModule {
 	@SuppressWarnings("RedundantThrows")
 	public void Stop(@SuppressWarnings("unused") Zezex.App app) throws Exception {
 		if (null != timer) {
-			timer.cancel(true);
+			Objects.requireNonNull(timer).cancel(true);
 			timer = null;
 		}
 	}
@@ -36,11 +38,11 @@ public final class ModuleLinkd extends AbstractModule {
 		Game.App.Instance.LinkdService.GetSocket(account.SocketSessionId)?.Dispose(); // kick, 最好发个协议再踢。如果允许多个连接，去掉这行。
 		account.SocketSessionId = protocol.Sender.SessionId;
 		*/
-		var linkSession = (LinkdUserSession)rpc.getSender().getUserState();
-		linkSession.setAccount(rpc.Argument.getAccount());
+		var linkSession = (LinkdUserSession)Objects.requireNonNull(rpc.getSender()).getUserState();
+		Objects.requireNonNull(linkSession).setAccount(rpc.Argument.getAccount());
 		linkSession.setClientAppVersion(Str.parseVersion(rpc.Argument.getAppVersion()));
 		linkSession.setAuthed();
-		int r = App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken());
+		int r = Objects.requireNonNull(App.LinkdProvider).choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken());
 		if (r != 0) {
 			logger.error("Auth account:{} ip:{} r:{}", linkSession.getAccount(), rpc.getSender().getRemoteAddress(), r);
 			return errorCode(Auth.Error);
@@ -58,27 +60,27 @@ public final class ModuleLinkd extends AbstractModule {
 		res.Send(p.getSender());
 		if (null == timer) {
 			timer = TaskSpec.ofAction(this::sendSc).schedulePeriodNow(1000, 1000);
-			clientId = p.getSender().getSessionId();
+			clientId = Objects.requireNonNull(p.getSender()).getSessionId();
 		}
 		return 0;
 	}
 
 	AtomicInteger sendScCount = new AtomicInteger();
 	long clientId;
-	Future<?> timer;
+	@Nullable Future<?> timer;
 
 	void sendSc() {
 		var count = sendScCount.incrementAndGet();
 		if (count > 3) {
 			sendScCount.set(0);
-			timer.cancel(true);
+			Objects.requireNonNull(timer).cancel(true);
 			timer = null;
 			return;
 		}
 		var res = new Sc();
 		res.Argument.setAccount("Response" + count);
 		logger.info("sendSc: {}", res.Argument.getAccount());
-		res.Send(App.LinkdService.GetSocket(clientId));
+		res.Send(Objects.requireNonNull(App.LinkdService).GetSocket(clientId));
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

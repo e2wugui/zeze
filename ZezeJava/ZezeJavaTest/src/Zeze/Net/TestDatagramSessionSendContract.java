@@ -11,7 +11,6 @@ import Zeze.Net.Service;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -166,12 +165,12 @@ public class TestDatagramSessionSendContract {
 
 	/** 模拟发送缓冲满：覆盖sendTo(byte[])返回false（等价非阻塞send返回0），其余真实。 */
 	private static final class ZeroSendDatagramSocket extends DatagramSocket {
-		ZeroSendDatagramSocket(@NotNull Service service) throws IOException {
+		ZeroSendDatagramSocket(Service service) throws IOException {
 			super(service, new InetSocketAddress(0));
 		}
 
 		@Override
-		public boolean sendTo(@NotNull SocketAddress peer, byte @NotNull [] packet, int offset, int size) {
+		public boolean sendTo(SocketAddress peer, byte [] packet, int offset, int size) {
 			return false;
 		}
 	}

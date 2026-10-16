@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -17,8 +19,7 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,7 +48,7 @@ public class TestLinkdProviderRebind {
 			int moduleId = Zeze.Game.Online.ModuleId;
 			fixture.user.bind(fixture.providers, fixture.link, List.of(moduleId), fixture.oldProvider);
 			var oldSession = (PausingSession)fixture.oldSession;
-			var closeFailure = new AtomicReference<Throwable>();
+			var closeFailure = new AtomicReference<@Nullable Throwable>();
 			var closeThread = new Thread(() -> {
 				try {
 					fixture.providerModule.onProviderClose(fixture.oldProvider);
@@ -113,7 +114,7 @@ public class TestLinkdProviderRebind {
 			int lateModule = Online.ModuleId;
 			fixture.user.bind(fixture.providers, fixture.link, List.of(existingModule), fixture.oldProvider);
 			var session = (PausingSession)fixture.oldSession;
-			var failure = new AtomicReference<Throwable>();
+			var failure = new AtomicReference<@Nullable Throwable>();
 			var close = new Thread(() -> {
 				try {
 					fixture.providerModule.onProviderClose(fixture.oldProvider);
@@ -256,21 +257,21 @@ public class TestLinkdProviderRebind {
 		}
 
 		@Override
-		public boolean Send(@NotNull Protocol<?> protocol) {
+		public boolean Send(Protocol<?> protocol) {
 			if (protocol instanceof ReportError report && report.Argument.getCode() == BReportError.CodeProviderBroken)
 				providerBrokenReports.incrementAndGet();
 			return !isClosed();
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return !isClosed();
 		}
 
 		@Override
 		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 			try {
-				getService().OnSocketClose(this, ex);
+				requireNonNull(getService()).OnSocketClose(this, ex);
 			} catch (Exception e) {
 				throw new AssertionError(e);
 			}

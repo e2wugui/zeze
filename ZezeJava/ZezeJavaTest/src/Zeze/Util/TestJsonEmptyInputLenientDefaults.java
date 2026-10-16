@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import harness.Fast;
@@ -22,7 +26,7 @@ public final class TestJsonEmptyInputLenientDefaults {
 
 	static class Bean {
 		int value;
-		String name;
+		@Nullable String name;
 	}
 
 	/** 空/空白/纯注释输入：bean 解析返回默认对象（与既有的非'{'垃圾输入宽容契约一致），不抛。 */
@@ -47,6 +51,7 @@ public final class TestJsonEmptyInputLenientDefaults {
 
 	/** keyed 路径（keyReaderMap：String/Integer/Object…）：空输入无 token 可读，回退 null 不抛。 */
 	@Test
+	@SuppressWarnings("DataFlowIssue") // Json.parse声明返回Nullable；IDE仍将Object.class泛型空输入误推为非空。
 	public void testEmptyInputKeyedReaderPath() {
 		assertNull(assertDoesNotThrow(() -> Json.parse("", Object.class)),
 				"Object.class 注册为 parseStringKey（Json.java keyReaderMap），耗尽须在分发点回退");
@@ -62,7 +67,7 @@ public final class TestJsonEmptyInputLenientDefaults {
 		assertEquals(0, b.value);
 		// 正常解析不受影响。
 		var ok = Json.parse("{\"value\":42,\"name\":\"n\"}", Bean.class);
-		assertEquals(42, ok.value);
+		assertEquals(42, requireNonNull(ok).value);
 		assertEquals("n", ok.name);
 	}
 }

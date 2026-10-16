@@ -1,5 +1,7 @@
 package Zeze;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -75,7 +77,7 @@ public class TestCheckpointRunThreadSentinel {
 	public void testConcurrentHammerNoOverrun() throws Exception {
 		var field = Application.class.getDeclaredField("checkpointFuture");
 		field.setAccessible(true);
-		var violation = new AtomicReference<String>();
+		var violation = new AtomicReference<@Nullable String>();
 		Runnable hammer = () -> {
 			try {
 				for (var i = 0; i < 2000; i++) {

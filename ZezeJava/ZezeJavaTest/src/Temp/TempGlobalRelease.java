@@ -1,5 +1,6 @@
 package Temp;
 
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Future;
@@ -22,18 +23,18 @@ public class TempGlobalRelease {
 				var prepareFutures = new ArrayList<Future<?>>();
 				for (var i = 0; i < eRecordCountPerTable; ++i) {
 					var key = (long)i;
-					prepareFutures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
-						App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(1L);
+					prepareFutures.add(TaskSpec.ofProcedure(App.Instance.getZeze().newProcedure(() -> {
+						Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(key).setLong2(1L);
 						return 0;
 					}, "prepare data")).submitNow());
 				}
 				for (var future : prepareFutures)
 					future.get();
 				b.report("prepare data", eRecordCountPerTable * tableCount);
-				var gAgent = App.Instance.Zeze.getGlobalAgent();
+				var gAgent = App.Instance.getZeze().getGlobalAgent();
 				assert gAgent != null;
 				for (var i = 0; i < gAgent.getAgentCount(); ++i) {
-					gAgent.getAgent(i).startRelease(App.Instance.Zeze, null);
+					gAgent.getAgent(i).startRelease(App.Instance.getZeze(), null);
 				}
 				var releaseResults = new GlobalAgentBase.CheckReleaseResult[gAgent.getAgentCount()];
 				Arrays.fill(releaseResults, GlobalAgentBase.CheckReleaseResult.Releasing);

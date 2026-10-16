@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -86,7 +88,7 @@ public class TestCacheCloseTodayFileFailure {
 		field.set(cache, stream);
 	}
 
-	private static Object dbFieldOf(Cache cache) throws Exception {
+	private static @Nullable Object dbFieldOf(Cache cache) throws Exception {
 		Field field = Cache.class.getDeclaredField("db");
 		field.setAccessible(true);
 		return field.get(cache);

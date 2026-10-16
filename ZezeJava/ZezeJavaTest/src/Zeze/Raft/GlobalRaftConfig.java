@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +26,7 @@ public final class GlobalRaftConfig {
 	private final Element Self;
 	private final ConcurrentHashMap<String, Node> Nodes = new ConcurrentHashMap<>();
 	private String Name; // 【这个参数不保存】可以在启动的时候从参数读取并设置
-	private String DbHome;
+	private @Nullable String DbHome;
 	private int AppendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
 	private int LeaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
 	private int ElectionRandomMax = 300;
@@ -61,7 +65,7 @@ public final class GlobalRaftConfig {
 		return Nodes.size() / 2;
 	}
 
-	public String getDbHome() {
+	public @Nullable String getDbHome() {
 		return DbHome;
 	}
 
@@ -235,7 +239,7 @@ public final class GlobalRaftConfig {
 			Self.setAttribute("UniqueRequestExpiredDays", String.valueOf(UniqueRequestExpiredDays));
 
 		for (var node : Nodes.values())
-			node.Save(XmlDocument, Self);
+			node.Save(XmlDocument, requireNonNull(Self));
 
 		TransformerFactory.newInstance().newTransformer().transform(
 				new DOMSource(XmlDocument), new StreamResult(new File(XmlFileName)));
@@ -282,6 +286,7 @@ public final class GlobalRaftConfig {
 			return Host + '_' + Port;
 		}
 
+		@SuppressWarnings("ConstantConditions")
 		void Save(Document doc, Element parent) {
 			if (Self == null) {
 				Self = doc.createElement("node");

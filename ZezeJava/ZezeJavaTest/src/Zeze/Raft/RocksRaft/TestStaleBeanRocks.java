@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 
 import harness.Fast;
@@ -49,10 +55,10 @@ public class TestStaleBeanRocks {
 
 	/** map2 动态 value bean：mapKey 由容器维护（参照 TestMap2FollowerApplyMapKey 的 BItem）。 */
 	public static final class BItem extends Bean {
-		private transient Object _mapKey;
+		private transient @Nullable Object _mapKey;
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return _mapKey;
 		}
 
@@ -78,7 +84,7 @@ public class TestStaleBeanRocks {
 
 		public void setI(int value) {
 			if (isManaged())
-				Transaction.getCurrent().putLog(new LogInt(this, 1, value));
+				requireNonNull(Transaction.getCurrent()).putLog(new LogInt(this, 1, value));
 			else
 				_i = value;
 		}
@@ -99,7 +105,7 @@ public class TestStaleBeanRocks {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -109,7 +115,7 @@ public class TestStaleBeanRocks {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_i = ((LogInt)vlog).value;
 			}
 		}
@@ -151,7 +157,7 @@ public class TestStaleBeanRocks {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_map.initRootInfo(root, this);
 		}
 
@@ -162,7 +168,7 @@ public class TestStaleBeanRocks {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_map.followerApply(vlog);
 			}
 		}
@@ -203,7 +209,7 @@ public class TestStaleBeanRocks {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_map.initRootInfo(root, this);
 		}
 
@@ -214,7 +220,7 @@ public class TestStaleBeanRocks {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_map.followerApply(vlog);
 			}
 		}
@@ -254,7 +260,7 @@ public class TestStaleBeanRocks {
 	private static Changes captureChanges(Rocks rocks, FuncLong func) throws Exception {
 		final Transaction[] ts = new Transaction[1];
 		var rc = rocks.newProcedure(() -> {
-			ts[0] = Transaction.getCurrent();
+			ts[0] = requireNonNull(Transaction.getCurrent());
 			return func.call();
 		}).call();
 		assertEquals(Zeze.Transaction.Procedure.RaftRetry, rc); // not leader
@@ -311,7 +317,7 @@ public class TestStaleBeanRocks {
 
 	// 从 Changes 里找到指定类型的 map 日志。
 	@SuppressWarnings("unchecked")
-	private static <T extends Log> T findLog(Changes changes, Class<T> logClass) {
+	private static <T extends Log> @Nullable T findLog(Changes changes, Class<T> logClass) {
 		for (var r : changes.getRecords().values())
 			for (var logBean : r.getLogBean()) {
 				var vars = logBean.getVariables();
@@ -328,7 +334,7 @@ public class TestStaleBeanRocks {
 	public void testMap2StaleRefEditFiltered() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
 			rocks.registerTableTemplate(mapTemplateName, Integer.class, BMapBean.class);
-			var table = rocks.<Integer, BMapBean>getTableTemplate(mapTemplateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BMapBean>getTableTemplate(mapTemplateName)).openTable(0);
 			seedEmptyRecord(table, 1);
 
 			// txn1：装入itemA并应用（capture会回滚本地修改，应用后cache里是
@@ -338,7 +344,7 @@ public class TestStaleBeanRocks {
 				return 0L;
 			});
 			rocks.followerApply(encodeDecode(rocks, put1), new RaftLog(1, 1, put1));
-			var itemA = ((BMapBean)table.getLruCache().get(1).getValue()).getMap().get(1L);
+			var itemA = requireNonNull(((BMapBean)requireNonNull(requireNonNull(table.getLruCache()).get(1)).getValue())).getMap().get(1L);
 			assertNotNull(itemA);
 
 			// txn2：put覆盖为itemB并应用（put不detach：itemA仍managed、mapKey仍是1L）。
@@ -365,7 +371,7 @@ public class TestStaleBeanRocks {
 
 			// 正控：编辑当前值正常携带、正常应用。
 			var editChanges = captureChanges(rocks, () -> {
-				table.getOrAdd(1).getMap().get(1L).setI(42);
+				requireNonNull(table.getOrAdd(1).getMap().get(1L)).setI(42);
 				return 0L;
 			});
 			var followerEdit = encodeDecode(rocks, editChanges);
@@ -381,7 +387,7 @@ public class TestStaleBeanRocks {
 	public void testSortedMap2StaleRefEditFiltered() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
 			rocks.registerTableTemplate(sortedTemplateName, Integer.class, BSortedMapBean.class);
-			var table = rocks.<Integer, BSortedMapBean>getTableTemplate(sortedTemplateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BSortedMapBean>getTableTemplate(sortedTemplateName)).openTable(0);
 			seedEmptyRecord(table, 1);
 
 			var put1 = captureChanges(rocks, () -> {
@@ -389,7 +395,7 @@ public class TestStaleBeanRocks {
 				return 0L;
 			});
 			rocks.followerApply(encodeDecode(rocks, put1), new RaftLog(1, 1, put1));
-			var itemA = ((BSortedMapBean)table.getLruCache().get(1).getValue()).getMap().get(1L);
+			var itemA = requireNonNull(((BSortedMapBean)requireNonNull(requireNonNull(table.getLruCache()).get(1)).getValue())).getMap().get(1L);
 			assertNotNull(itemA);
 
 			var put2 = captureChanges(rocks, () -> {
@@ -412,7 +418,7 @@ public class TestStaleBeanRocks {
 			assertEquals(0, readStorageSortedItemI(table, 1, 1L), "follower存储的当前值不得被陈旧日志污染");
 
 			var editChanges = captureChanges(rocks, () -> {
-				table.getOrAdd(1).getMap().get(1L).setI(42);
+				requireNonNull(table.getOrAdd(1).getMap().get(1L)).setI(42);
 				return 0L;
 			});
 			var followerEdit = encodeDecode(rocks, editChanges);

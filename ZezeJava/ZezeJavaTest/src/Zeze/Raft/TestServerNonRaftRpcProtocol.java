@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 
 import Zeze.Config;
@@ -31,7 +33,7 @@ public class TestServerNonRaftRpcProtocol {
 	private static final String dbHome = "ServerNonRaftRpc.raft";
 	private static final long fakeTypeId = 0x7a3_0411L; // 非任何白名单typeId
 
-	private Raft raft;
+	private @Nullable Raft raft;
 	private Server server;
 
 	private static RaftConfig newRaftConfig() {

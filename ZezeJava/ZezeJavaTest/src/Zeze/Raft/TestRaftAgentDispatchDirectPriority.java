@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -49,14 +53,14 @@ public class TestRaftAgentDispatchDirectPriority {
 			</raft>
 			""";
 
-	private Agent agent;
+	private @Nullable Agent agent;
 	private Agent.NetClient netClient;
 
 	@BeforeEach
 	public void setUp() throws Exception {
 		Task.tryInitThreadPool();
 		agent = new Agent("testDispatchDirectPriority", RaftConfig.loadFromString(RAFT_XML), new Zeze.Config());
-		netClient = agent.getClient();
+		netClient = java.util.Objects.requireNonNull(agent.getClient());
 		// 对齐ServiceManagerAgentWithRaft/GlobalCacheManagerWithRaftAgent的构造配置
 		agent.dispatchProtocolToInternalThreadPool = true;
 	}
@@ -70,7 +74,7 @@ public class TestRaftAgentDispatchDirectPriority {
 	@Test
 	public void testDirectPriorityOverPoolFlag() throws Exception {
 		// 1. flag=true + Direct注册：必须在调用线程同步执行完（修前被flag无条件入池=乱序之源）
-		var directThread = new AtomicReference<Thread>();
+		var directThread = new AtomicReference<@Nullable Thread>();
 		var directHandle = new Service.ProtocolFactoryHandle<>(Edit::new, p -> {
 			directThread.set(Thread.currentThread());
 			return 0;
@@ -80,7 +84,7 @@ public class TestRaftAgentDispatchDirectPriority {
 				"Direct注册的协议必须在调用线程内联执行（flag=true也不得入池）");
 
 		// 2. flag=true + Normal注册：仍入池异步执行——flag语义不被Direct优先规则破坏
-		var normalThread = new AtomicReference<Thread>();
+		var normalThread = new AtomicReference<@Nullable Thread>();
 		var normalDone = new CountDownLatch(1);
 		var normalHandle = new Service.ProtocolFactoryHandle<>(Edit::new, p -> {
 			normalThread.set(Thread.currentThread());
@@ -93,8 +97,8 @@ public class TestRaftAgentDispatchDirectPriority {
 				"flag=true + Normal注册仍应入池执行");
 
 		// 3. flag=false + Direct注册：内联（修复前else分支已如此，锁定该半边不被回归）
-		agent.dispatchProtocolToInternalThreadPool = false;
-		var directNoFlagThread = new AtomicReference<Thread>();
+		requireNonNull(agent).dispatchProtocolToInternalThreadPool = false;
+		var directNoFlagThread = new AtomicReference<@Nullable Thread>();
 		var directNoFlagHandle = new Service.ProtocolFactoryHandle<>(Edit::new, p -> {
 			directNoFlagThread.set(Thread.currentThread());
 			return 0;
@@ -105,7 +109,7 @@ public class TestRaftAgentDispatchDirectPriority {
 
 		// 4. 应答路径（dispatchRpcResponse）必须内联调用线程——Edit内联后与Subscribe应答
 		//    同线程按TCP接收序串行，这是顺序契约的另一半。
-		var responseThread = new AtomicReference<Thread>();
+		var responseThread = new AtomicReference<@Nullable Thread>();
 		netClient.dispatchRpcResponse(new Subscribe(), p -> {
 			responseThread.set(Thread.currentThread());
 			return 0;

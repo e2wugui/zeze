@@ -22,8 +22,7 @@ import Zeze.Netty.Netty;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -45,13 +44,13 @@ public class TestWebsocketDisposeRpc {
 		}
 
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			lastHandshaked = so;
 			super.OnHandshakeDone(so);
 		}
 
 		@Override
-		public void OnSocketDisposed(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketDisposed(AsyncSocket so) throws Exception {
 			disposedCount.incrementAndGet();
 			super.OnSocketDisposed(so);
 		}
@@ -149,7 +148,7 @@ public class TestWebsocketDisposeRpc {
 			var ws = HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(
 					URI.create("ws://127.0.0.1:" + port + "/ws"), new WebSocket.Listener() {
 						@Override
-						public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+						public @Nullable CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
 							webSocket.request(1);
 							return null;
 						}

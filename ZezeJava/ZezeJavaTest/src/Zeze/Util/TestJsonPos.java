@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,20 +25,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Fast
 public class TestJsonPos {
 	public static class Chat { // 消息头：body 只在需要时才回头解析
-		public String cmd;
-		public Json.Pos body; // 不解析 body 的值，只记住它从哪开始
+		public @Nullable String cmd;
+		public Json.@Nullable Pos body; // 不解析 body 的值，只记住它从哪开始
 		public int seq;
 	}
 
 	public static class ChatBody { // body 的真实结构，第二遍解析用
-		public String text;
-		public List<Integer> to;
+		public @Nullable String text;
+		public @Nullable List<Integer> to;
 	}
 
 	public static class TwoPos { // 验证一个类可以有多个 Pos 字段，各自独立记录
-		public Json.Pos first;
+		public Json.@Nullable Pos first;
 		public int mid;
-		public Json.Pos last;
+		public Json.@Nullable Pos last;
 	}
 
 	public static class Batch {
@@ -50,10 +54,10 @@ public class TestJsonPos {
 
 		var chat = new JsonReader(bytes).parse(new Chat());
 
-		assertEquals("聊天", chat.cmd); // 其余字段照常解析
+		assertEquals("聊天", requireNonNull(chat).cmd); // 其余字段照常解析
 		assertEquals(7, chat.seq);
 		// body 的值一个字节都没被消费，偏移恰好指向它的第一个字节 '{'
-		assertEquals(bodyJson, new String(bytes, chat.body.pos,
+		assertEquals(bodyJson, new String(bytes, requireNonNull(chat.body).pos,
 				bodyJson.getBytes(StandardCharsets.UTF_8).length, StandardCharsets.UTF_8));
 	}
 
@@ -64,13 +68,13 @@ public class TestJsonPos {
 
 		var jr = new JsonReader(bytes);
 		var chat = jr.parse(new Chat());
-		assertEquals("chat", chat.cmd);
+		assertEquals("chat", requireNonNull(chat).cmd);
 		assertEquals(7, chat.seq);
 
 		// 游标拨回 body 的偏移，从那里按真实结构二次解析
-		jr.pos(chat.body.pos);
+		jr.pos(requireNonNull(chat.body).pos);
 		var body = jr.parse(new ChatBody());
-		assertEquals("hi", body.text);
+		assertEquals("hi", requireNonNull(body).text);
 		assertEquals(List.of(1, 2), body.to);
 	}
 
@@ -81,10 +85,10 @@ public class TestJsonPos {
 
 		var two = new JsonReader(bytes).parse(new TwoPos());
 
-		assertEquals(9, two.mid);
+		assertEquals(9, requireNonNull(two).mid);
 		// 两个 Pos 字段各自记录各自值的起始字节：first 指向 '['，last 指向 '"'
-		assertEquals('[', (char)bytes[two.first.pos]);
-		assertEquals('"', (char)bytes[two.last.pos]);
+		assertEquals('[', (char)bytes[requireNonNull(two.first).pos]);
+		assertEquals('"', (char)bytes[requireNonNull(two.last).pos]);
 		// 从各自偏移出发都能二次解析出正确的值
 		// 无类型parseArray按parseNumber的规则返回Integer/Long（elemClass版本是给bean用的，数字会被当bean原样返回）
 		var secondPass = new ArrayList<>(); // parseArray就地填充
@@ -101,7 +105,7 @@ public class TestJsonPos {
 
 		var batch = new JsonReader(bytes).parse(new Batch());
 
-		assertEquals(3, batch.offsets.size());
+		assertEquals(3, requireNonNull(batch).offsets.size());
 		// 每个元素记录的是它自己的起始字节，而不是元素值
 		assertEquals('1', (char)bytes[batch.offsets.get(0).pos]);
 		assertEquals('"', (char)bytes[batch.offsets.get(1).pos]);

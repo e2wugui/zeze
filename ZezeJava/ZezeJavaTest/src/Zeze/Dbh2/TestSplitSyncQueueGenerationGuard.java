@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -86,7 +90,7 @@ public class TestSplitSyncQueueGenerationGuard {
 	private static void stopBucket(ArrayList<Zeze.Dbh2.Dbh2> nodes) throws Exception {
 		for (var dbh2 : nodes) {
 			dbh2.close();
-			Zeze.Raft.LogSequence.deleteDirectory(new java.io.File(dbh2.getRaft().getRaftConfig().getDbHome()));
+			Zeze.Raft.LogSequence.deleteDirectory(new java.io.File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 		}
 	}
 
@@ -166,7 +170,7 @@ public class TestSplitSyncQueueGenerationGuard {
 	}
 
 	// 目标侧读：null=不存在（含墓碑）。
-	private static Binary get(Dbh2Agent agent, Binary key) {
+	private static @Nullable Binary get(Dbh2Agent agent, Binary key) {
 		var kv = agent.get("database", "table1", key);
 		Assertions.assertTrue(kv.getKey(), "key必须在桶内");
 		return kv.getValue() == null ? null : new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size());
@@ -193,7 +197,7 @@ public class TestSplitSyncQueueGenerationGuard {
 
 			// 进入分桶：splitting=[5,8)。
 			leader.getRaft().appendLog(new LogSetSplittingMeta(splittingMeta(key(5), key(8), TARGET_RAFT)));
-			waitUntil(10_000, () -> leader.getStateMachine().getBucket().getSplittingMeta() != null,
+			waitUntil(10_000, () -> requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta() != null,
 					"LogSetSplittingMeta apply");
 
 			// 【入队】目标键域puts入队、非目标键域排除；【合并】事务A的v2被事务B的delete墓碑覆盖。
@@ -225,11 +229,11 @@ public class TestSplitSyncQueueGenerationGuard {
 			Assertions.assertNull(leader.getStateMachine().pollSplitSync(10), "排空后无可投递");
 
 			// 【清空换代】EndSplit apply=迁移完结：计数器归零、世代+1。
-			var from = leader.getStateMachine().getBucket().getBucketMeta().copy();
+			var from = requireNonNull(requireNonNull(leader.getStateMachine().getBucket()).getBucketMeta()).copy();
 			from.setKeyLast(key(5));
 			leader.getRaft().appendLog(new LogEndSplit(from, splittingMeta(key(5), key(8), TARGET_RAFT)));
 			waitUntil(10_000,
-					() -> leader.getStateMachine().getBucket().getBucketMeta().getKeyLast().compareTo(key(5)) == 0,
+					() -> requireNonNull(requireNonNull(leader.getStateMachine().getBucket()).getBucketMeta()).getKeyLast().compareTo(key(5)) == 0,
 					"LogEndSplit apply");
 			Assertions.assertEquals(0, smLong(leader, "splitSyncSeq"), "EndSplit清空seq");
 			Assertions.assertEquals(0, smLong(leader, "splitSyncWatermark"), "EndSplit清空水位");
@@ -238,7 +242,7 @@ public class TestSplitSyncQueueGenerationGuard {
 			// 【世代戳】新世代入队后，旧世代（generation=0）迟到ACK不得推进水位——
 			// seq从1重新分配，假推进会跳过新世代未投递记录（endSplit0门槛假通）。
 			leader.getRaft().appendLog(new LogSetSplittingMeta(splittingMeta(key(4), key(5), TARGET_RAFT)));
-			waitUntil(10_000, () -> leader.getStateMachine().getBucket().getSplittingMeta() != null
+			waitUntil(10_000, () -> requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta() != null
 					&& leader.getStateMachine().getBucket().getSplittingMeta().getKeyFirst().compareTo(key(4)) == 0,
 					"LogSetSplittingMeta(新世代) apply");
 			commitPuts(agent, java.util.Map.of(key(4), value(4)));
@@ -287,7 +291,7 @@ public class TestSplitSyncQueueGenerationGuard {
 			commitPuts(sourceAgent, java.util.Map.of(key(6), value(1)));
 
 			leader.getRaft().appendLog(new LogSetSplittingMeta(splittingMeta(key(5), key(8), TARGET_RAFT)));
-			waitUntil(10_000, () -> leader.getStateMachine().getBucket().getSplittingMeta() != null,
+			waitUntil(10_000, () -> requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta() != null,
 					"LogSetSplittingMeta apply");
 
 			// 分桶期间提交v2：入队待投递。

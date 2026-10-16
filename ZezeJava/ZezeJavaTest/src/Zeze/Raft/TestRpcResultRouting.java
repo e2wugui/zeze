@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +27,7 @@ public class TestRpcResultRouting {
 		volatile Binary reply = Binary.Empty;
 
 		@Override
-		public void SendResult(Binary ignored) {
+		public void SendResult(@Nullable Binary ignored) {
 			reply = Result.getData();
 			sends.incrementAndGet();
 		}
@@ -110,7 +112,7 @@ public class TestRpcResultRouting {
 		var proxy = new CapturingProxy();
 		var rpc = new EncodeGateRpc();
 		rpc.setProxyRequest(proxy);
-		var failure = new AtomicReference<Throwable>();
+		var failure = new AtomicReference<@Nullable Throwable>();
 		var winner = new Thread(() -> {
 			try {
 				rpc.SendResultCode(123, new Binary(new byte[]{0, 11, 22}));

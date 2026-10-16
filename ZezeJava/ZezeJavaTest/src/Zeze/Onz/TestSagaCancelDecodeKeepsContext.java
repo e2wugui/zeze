@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,11 +39,11 @@ public class TestSagaCancelDecodeKeepsContext extends AppBase {
 	private static final long TID = 0x00F7_0002L; // 与其他测试不冲突的参与方tid
 	private static final String ProcName = "r2m1DecodeFailSaga";
 
-	private Application zeze;
-	private Onz onz;
+	private @Nullable Application zeze;
+	private @Nullable Onz onz;
 
 	@Override
-	public Application getZeze() {
+	public @Nullable Application getZeze() {
 		return zeze;
 	}
 
@@ -72,7 +76,7 @@ public class TestSagaCancelDecodeKeepsContext extends AppBase {
 	public void testDecodeFailKeepsContextAndRetryWorks() throws Exception {
 		var cancelRuns = new AtomicInteger();
 		// 直接构造stub（不经registerSaga，测试专用过程名）：
-		var stub = new OnzSagaStub<>(onz, ProcName,
+		var stub = new OnzSagaStub<>(requireNonNull(onz), ProcName,
 				(saga, argument, result) -> 0, BKuafu.class, BKuafuResult.class,
 				(saga, cancelArgument) -> {
 					cancelRuns.incrementAndGet();
@@ -106,7 +110,7 @@ public class TestSagaCancelDecodeKeepsContext extends AppBase {
 
 		// 修复前：decode异常且上下文已被remove（永久丢失，重发只得eSagaNotFound）；
 		// 修复后：decode同样异常，但上下文必须保留。
-		Assertions.assertThrows(Exception.class, () -> onz.ProcessFuncSagaEndRequest(bad),
+		Assertions.assertThrows(Exception.class, () -> requireNonNull(onz).ProcessFuncSagaEndRequest(bad),
 				"截断载荷decode必须失败（触发条件）");
 		Assertions.assertSame(saga, sagasMap().get(TID),
 				"decode失败不得删除saga上下文（R2-M①：补偿丢失且重发只得eSagaNotFound）");

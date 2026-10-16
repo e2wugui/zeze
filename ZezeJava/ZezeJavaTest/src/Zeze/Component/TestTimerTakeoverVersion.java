@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Application;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BSimpleTimer;
@@ -8,7 +10,6 @@ import Zeze.Config;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -23,7 +24,7 @@ public class TestTimerTakeoverVersion {
 
 	public static class NoopHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 		}
 	}
 
@@ -82,7 +83,7 @@ public class TestTimerTakeoverVersion {
 				return 0L;
 			});
 			TakeoverTestEnv.forgeLease(first.app, DeadServerId, 1, System.currentTimeMillis() - 1_000);
-			first.app.getTakeover().tryTransfer(DeadServerId);
+			requireNonNull(first.app.getTakeover()).tryTransfer(DeadServerId);
 			TakeoverTestEnv.waitTryTransferQueue();
 			first.transaction(() -> {
 				var index = first.timer.getTimerIndex(TimerId);
@@ -100,15 +101,15 @@ public class TestTimerTakeoverVersion {
 		secondConf.getDatabaseConfMap().get("").setDatabaseUrl(databaseUrl);
 		try (var second = new Env(secondConf)) {
 			TakeoverTestEnv.forgeLease(second.app, firstServerId, firstEpoch, System.currentTimeMillis() - 1_000);
-			second.app.getTakeover().tryTransfer(firstServerId);
+			requireNonNull(second.app.getTakeover()).tryTransfer(firstServerId);
 			TakeoverTestEnv.waitTryTransferQueue();
 
 			Assertions.assertNotEquals(0L, TakeoverTestEnv.readLease(second.app, firstServerId)[1],
 					"older application must veto the inherited timer chain instead of tombstoning its owner");
 			second.transaction(() -> {
-				Assertions.assertEquals(NodeId, second.timer._tNodeRoot.get(firstServerId).getHeadNodeId(),
+				Assertions.assertEquals(NodeId, requireNonNull(second.timer._tNodeRoot.get(firstServerId)).getHeadNodeId(),
 						"veto must preserve the versioned source chain");
-				Assertions.assertEquals(firstServerId, second.timer.getTimerIndex(TimerId).getServerId());
+				Assertions.assertEquals(firstServerId, requireNonNull(second.timer.getTimerIndex(TimerId)).getServerId());
 				return 0L;
 			});
 		}

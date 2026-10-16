@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 public class TestRocksRaftSavepointGuard {
 
 	@Test
+	@SuppressWarnings("DataFlowIssue") // 故意省略日志，验证无 savepoint 时先抛上下文异常。
 	public void testEmptySavepointsThrowsISEWithContext() {
 		var t = new Transaction(); // savepoints为空
 		var ex = Assertions.assertThrows(IllegalStateException.class, () -> t.putLog(null),

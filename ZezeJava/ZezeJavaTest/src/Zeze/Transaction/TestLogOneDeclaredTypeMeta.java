@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.History.Helper;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -7,7 +9,6 @@ import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.LogOne;
 import Zeze.Transaction.Collections.LogOneMeta;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -27,17 +28,17 @@ public class TestLogOneDeclaredTypeMeta {
 		public int x;
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(x);
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			x = bb.ReadInt();
 		}
 
 		@Override
-		public @NotNull Bean copy() {
+		public Bean copy() {
 			var c = new BeanBase();
 			c.x = x;
 			return c;
@@ -52,12 +53,12 @@ public class TestLogOneDeclaredTypeMeta {
 	private static Record.RootInfo newRootInfo() {
 		var record = new Record(null) {
 			@Override
-			public @NotNull Table getTable() {
+			public Table getTable() {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
-			public @NotNull Object getObjectKey() {
+			public Object getObjectKey() {
 				throw new UnsupportedOperationException();
 			}
 
@@ -75,11 +76,11 @@ public class TestLogOneDeclaredTypeMeta {
 			}
 
 			@Override
-			public void flush(Database.Transaction t, Database.@NotNull Transaction lct) {
+			public void flush(Database.@Nullable Transaction t, Database.Transaction lct) {
 			}
 
 			@Override
-			public void commit(@NotNull RecordAccessed accessed) {
+			public void commit(RecordAccessed accessed) {
 			}
 
 			@Override

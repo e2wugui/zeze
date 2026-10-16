@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -149,7 +151,7 @@ public class TestHandshakeMaxConnections {
 		var tokenServer = new Token().start(conf, null, port);
 		try {
 			try (var s1 = new Socket("127.0.0.1", port)) {
-				waitSocketCount(tokenServer.getService(), 1);
+				waitSocketCount(requireNonNull(tokenServer.getService()), 1);
 				try (var s2 = new Socket("127.0.0.1", port)) {
 					assertClosedByServer(s2); // 第 2 个连接必须被拒（修复前会被接受）
 				}

@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
@@ -109,7 +113,7 @@ public class TestInstallSnapshotFinalizing {
 		final InstallSnapshot rpc;
 		final TaskCompletionSource<Boolean> pause = new TaskCompletionSource<>();
 		private final Thread thread;
-		private final AtomicReference<Throwable> error = new AtomicReference<>();
+		private final AtomicReference<@Nullable Throwable> error = new AtomicReference<>();
 
 		DoneWorker(Raft raft, byte[] data) {
 			rpc = newChunk(raft.getLogSequence().getTerm(), leaderId, 5, 0, data, true);
@@ -159,7 +163,7 @@ public class TestInstallSnapshotFinalizing {
 			var logSequence = raft.getLogSequence();
 			var worker = new DoneWorker(raft, new byte[]{1, 2, 3, 4, 5});
 			worker.start(raft);
-			var entryPath = raft.receiveSnapshotting.get(5).path;
+			var entryPath = requireNonNull(raft.receiveSnapshotting.get(5)).path;
 
 			// leader 对 done 块 2s 超时后重装：同 term/leader/边界的首块（offset=0）。
 			var reinstall = newChunk(logSequence.getTerm(), leaderId, 5, 0, new byte[]{9, 9, 9}, false);
@@ -196,7 +200,7 @@ public class TestInstallSnapshotFinalizing {
 			var worker = new DoneWorker(raft, new byte[]{1, 2, 3, 4, 5});
 			worker.start(raft);
 			var entry = raft.receiveSnapshotting.get(5);
-			raft.receiveSnapshotting.removeIdentity(5, entry); // 模拟收尾期间所有权被撤销
+			raft.receiveSnapshotting.removeIdentity(5, requireNonNull(entry)); // 模拟收尾期间所有权被撤销
 
 			worker.releaseAndJoin();
 
@@ -224,7 +228,7 @@ public class TestInstallSnapshotFinalizing {
 			worker.start(raft);
 			var entry = raft.receiveSnapshotting.get(5);
 
-			Files.write(entry.path, new byte[]{1}); // 模拟收尾期间文件被截断
+			Files.write(requireNonNull(entry).path, new byte[]{1}); // 模拟收尾期间文件被截断
 
 			worker.releaseAndJoin();
 

@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,21 +33,21 @@ public final class Dbh2TestEnv {
 	// 每个循环用独立的bucket端口段，避免与上一循环的节点名重叠（duplicate agent node）。
 	private static final java.util.concurrent.atomic.AtomicLong envCycle = new java.util.concurrent.atomic.AtomicLong();
 
-	public Zeze.Dbh2.Master.Main master;
+	public Zeze.Dbh2.Master.@Nullable Main master;
 	public final ArrayList<Dbh2Manager> managers = new ArrayList<>();
-	public Dbh2AgentManager dbh2AgentManager;
-	public Database database;
+	public @Nullable Dbh2AgentManager dbh2AgentManager;
+	public @Nullable Database database;
 	public final ArrayList<AbstractKVTable> tables = new ArrayList<>();
 	public final ByteBuffer value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
 
-	private AbstractAgent serviceManager;
-	private String priorBucketPortId;
+	private @Nullable AbstractAgent serviceManager;
+	private @Nullable String priorBucketPortId;
 	private boolean bucketPortIdTouched;
-	private String priorCommitRocksHome;
+	private @Nullable String priorCommitRocksHome;
 	// master/manager 的持久化状态全部落在这个一次性目录下：cwd 里遗留的旧拓扑（bucket元数据与端口
 	// 种子不一致）会让 reload 出的 agent 与新分配的 bucket 端口重叠，触发 ProxyAgent
 	// "duplicate agent node"（进程级单例注册表，无法注销），见 2026-08-30 13:37 故障。
-	private Path tempHome;
+	private @Nullable Path tempHome;
 
 	private static final String COMMIT_ROCKS_HOME_PROPERTY = "Dbh2CommitRocksHome";
 
@@ -64,7 +68,7 @@ public final class Dbh2TestEnv {
 
 		tempHome = Files.createTempDirectory("dbh2TestEnv");
 		priorCommitRocksHome = System.getProperty(COMMIT_ROCKS_HOME_PROPERTY);
-		System.setProperty(COMMIT_ROCKS_HOME_PROPERTY, tempHome.resolve("CommitRocks").toString());
+		System.setProperty(COMMIT_ROCKS_HOME_PROPERTY, requireNonNull(tempHome).resolve("CommitRocks").toString());
 		master = new Zeze.Dbh2.Master.Main(tempHome.resolve("master").toString(), "zeze.xml");
 		serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
 		assert serviceManager != null;
@@ -95,7 +99,7 @@ public final class Dbh2TestEnv {
 
 	/** manager持久化home（销毁/复活类用例的磁盘断言用）；仅prepareNewEnvironment与stopAll之间有效。 */
 	public Path managerHome(int index) {
-		return tempHome.resolve("manager" + index);
+		return requireNonNull(tempHome).resolve("manager" + index);
 	}
 
 	public void stopAll() throws Exception {

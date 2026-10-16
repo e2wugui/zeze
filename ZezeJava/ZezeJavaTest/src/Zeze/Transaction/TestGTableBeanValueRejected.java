@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -7,7 +9,6 @@ import Zeze.Transaction.GTable.GTable1;
 import Zeze.Util.Json;
 import demo.Module1.BValue;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -23,11 +24,11 @@ public class TestGTableBeanValueRejected {
 
 	public static class MyBean extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 
@@ -52,6 +53,6 @@ public class TestGTableBeanValueRejected {
 		h.g.put(1, 2L, 3.5f);
 		var json = Json.toCompactString(h);
 		var parsed = (H)Json.parse(json, new H());
-		Assertions.assertEquals(3.5f, parsed.g.get(1, 2L), "标量值JSON往返必须原样恢复");
+		Assertions.assertEquals(3.5f, requireNonNull(parsed).g.get(1, 2L), "标量值JSON往返必须原样恢复");
 	}
 }

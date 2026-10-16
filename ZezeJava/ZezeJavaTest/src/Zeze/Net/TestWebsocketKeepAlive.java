@@ -20,8 +20,7 @@ import Zeze.Netty.Netty;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -56,14 +55,14 @@ public class TestWebsocketKeepAlive {
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			closeCount.incrementAndGet();
 			super.OnSocketClose(so, e);
 		}
 
 		@Override
-		public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId,
-		                                    @NotNull Zeze.Serialize.ByteBuffer data) {
+		public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId,
+		                                    Zeze.Serialize.ByteBuffer data) {
 			if (so.getType() == AsyncSocket.Type.eServer)
 				so.Send(new byte[12], 0, 12);
 		}
@@ -138,7 +137,7 @@ public class TestWebsocketKeepAlive {
 			var ws = HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(
 					URI.create("ws://127.0.0.1:" + port + "/ws"), new WebSocket.Listener() {
 						@Override
-						public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+						public @Nullable CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
 							webSocket.request(1);
 							return null;
 						}
@@ -201,7 +200,7 @@ public class TestWebsocketKeepAlive {
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 

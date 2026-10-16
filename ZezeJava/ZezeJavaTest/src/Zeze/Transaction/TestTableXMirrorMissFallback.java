@@ -1,11 +1,14 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -54,8 +57,8 @@ public class TestTableXMirrorMissFallback {
 	@TempDir
 	Path tempDir;
 
-	private Application app;
-	private tMirror table;
+	private @Nullable Application app;
+	private @Nullable tMirror table;
 
 	private void startApp() throws Exception {
 		var config = new Config();
@@ -75,7 +78,7 @@ public class TestTableXMirrorMissFallback {
 	}
 
 	private void stopApp() throws Exception {
-		app.stop();
+		requireNonNull(app).stop();
 		app = null;
 		table = null;
 	}
@@ -109,8 +112,8 @@ public class TestTableXMirrorMissFallback {
 
 	// 种子数据只写旧库，模拟迁移模式下尚未倒库的存量记录（openTable为getOrAdd语义，重复打开安全）。
 	private void seedOldDatabase(long key, long value) throws Exception {
-		var oldDb = app.getDatabase("old");
-		var oldDbTable = oldDb.openTable(table.getName(), table.getId());
+		var oldDb = requireNonNull(app).getDatabase("old");
+		var oldDbTable = oldDb.openTable(requireNonNull(table).getName(), table.getId());
 		var seed = new MirrorBean();
 		seed.value = value;
 		try (var t = oldDb.beginTransaction()) {
@@ -120,17 +123,17 @@ public class TestTableXMirrorMissFallback {
 	}
 
 	private long insert(long key, long value) {
-		return app.newProcedure((FuncLong)() -> {
+		return requireNonNull(app).newProcedure((FuncLong)() -> {
 			var v = new MirrorBean();
 			v.value = value;
-			table.insert(key, v);
+			requireNonNull(table).insert(key, v);
 			return 0L;
 		}, "TestTableXMirrorMissFallback.put").call();
 	}
 
 	private long get(long key, final long[] out) {
-		return app.newProcedure((FuncLong)() -> {
-			var v = table.get(key);
+		return requireNonNull(app).newProcedure((FuncLong)() -> {
+			var v = requireNonNull(table).get(key);
 			if (v != null)
 				out[0] = v.value;
 			return 0L;
@@ -142,7 +145,7 @@ public class TestTableXMirrorMissFallback {
 		startApp();
 		// 故障注入：替换镜像库为beginTransaction()抛异常的子类（真实打开一个临时库以通过构造器，
 		// 但所有事务入口直接抛出——不触任何native路径）。
-		var realMirror = app.getLocalRocksCacheDb();
+		var realMirror = requireNonNull(app).getLocalRocksCacheDb();
 		var brokenMirror = new BrokenMirrorDb(app, tempDir.resolve("brokenMirror"));
 		var field = Application.class.getDeclaredField("LocalRocksCacheDb");
 		field.setAccessible(true);
@@ -151,7 +154,7 @@ public class TestTableXMirrorMissFallback {
 			Assertions.assertEquals(Procedure.Success, insert(KEY_EXISTENT, 300));
 
 			// 制造冷装载条件：清缓存（Immediately下记录已clean落库，__ClearTableCacheUnsafe__仅弃缓存壳）。
-			table.__ClearTableCacheUnsafe__();
+			requireNonNull(table).__ClearTableCacheUnsafe__();
 			Assertions.assertEquals(0, table.getCacheSize());
 
 			try {
@@ -168,7 +171,7 @@ public class TestTableXMirrorMissFallback {
 				Assertions.assertEquals(0, table.getCacheSize(), "失败装载的记录必须被作废出缓存");
 
 				// selectDirty契约变化：事务外脏读在镜像写失败时直接抛出（非事务包装，异常上抛调用方）。
-				Assertions.assertThrows(RuntimeException.class, () -> table.selectDirty(KEY_EXISTENT),
+				Assertions.assertThrows(RuntimeException.class, () -> requireNonNull(table).selectDirty(KEY_EXISTENT),
 						"selectDirty的rocksCachePut失败必须抛出（契约变化：不再吞）");
 			} finally {
 				field.set(app, realMirror); // 恢复真库，stopApp走正常关闭路径
@@ -190,7 +193,7 @@ public class TestTableXMirrorMissFallback {
 	@Test
 	public void testOldTableMirrorWriteFailureFailsLoad() throws Exception {
 		startAppWithOldTable();
-		var realMirror = app.getLocalRocksCacheDb();
+		var realMirror = requireNonNull(app).getLocalRocksCacheDb();
 		var brokenMirror = new BrokenMirrorDb(app, tempDir.resolve("brokenMirrorOld"));
 		var field = Application.class.getDeclaredField("LocalRocksCacheDb");
 		field.setAccessible(true);
@@ -201,11 +204,11 @@ public class TestTableXMirrorMissFallback {
 			var out = new long[1];
 			Assertions.assertEquals(Procedure.Success, get(KEY_OLD, out));
 			Assertions.assertEquals(100, out[0], "倒库装载基线");
-			Assertions.assertTrue(table.getLocalRocksCacheTable().containsKey(table, KEY_OLD), "镜像应已写入");
+			Assertions.assertTrue(requireNonNull(table).getLocalRocksCacheTable().containsKey(table, KEY_OLD), "镜像应已写入");
 			Assertions.assertNull(table.selectFromDatabase(KEY_OLD), "前置：倒库记录仅存旧库+镜像，新库无值");
 
 			// 冷装载条件：清缓存（记录clean，值安全在oldTable）。
-			table.__ClearTableCacheUnsafe__();
+			requireNonNull(table).__ClearTableCacheUnsafe__();
 			Assertions.assertEquals(0, table.getCacheSize());
 
 			try {
@@ -233,11 +236,11 @@ public class TestTableXMirrorMissFallback {
 
 	/** 镜像故障注入：所有事务入口直接抛出（等价磁盘满的"写全失败"形态，纯Java异常零native风险）。 */
 	public static final class BrokenMirrorDb extends DatabaseRocksDb {
-		public BrokenMirrorDb(@NotNull Application app, @NotNull Path dir) {
+		public BrokenMirrorDb(Application app, Path dir) {
 			super(app, brokenConf(dir), true);
 		}
 
-		private static @NotNull Config.DatabaseConf brokenConf(@NotNull Path dir) {
+		private static Config.DatabaseConf brokenConf(Path dir) {
 			var conf = new Config.DatabaseConf();
 			conf.setDatabaseType(Config.DbType.RocksDb);
 			conf.setDatabaseUrl(dir.toString());
@@ -245,7 +248,7 @@ public class TestTableXMirrorMissFallback {
 		}
 
 		@Override
-		public @NotNull Transaction beginTransaction() {
+		public Transaction beginTransaction() {
 			throw new RuntimeException("mirror broken (test injection)");
 		}
 	}
@@ -258,17 +261,17 @@ public class TestTableXMirrorMissFallback {
 		public long value;
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteLong(value);
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			value = bb.ReadLong();
 		}
 
 		@Override
-		public @NotNull Bean copy() {
+		public Bean copy() {
 			var c = new MirrorBean();
 			c.value = value;
 			return c;
@@ -292,12 +295,12 @@ public class TestTableXMirrorMissFallback {
 		}
 
 		@Override
-		public Long decodeKey(@NotNull ByteBuffer bb) {
+		public Long decodeKey(ByteBuffer bb) {
 			return bb.ReadLong();
 		}
 
 		@Override
-		public @NotNull ByteBuffer encodeKey(Long key) {
+		public ByteBuffer encodeKey(Long key) {
 			var bb = ByteBuffer.Allocate(8);
 			bb.WriteLong(key);
 			return bb;
@@ -309,7 +312,7 @@ public class TestTableXMirrorMissFallback {
 		}
 
 		@Override
-		public void encodeKeySQLStatement(@NotNull Zeze.Serialize.SQLStatement st, Long key) {
+		public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Long key) {
 			st.appendLong("__key", key);
 		}
 

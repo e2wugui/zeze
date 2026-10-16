@@ -1,5 +1,7 @@
 package Benchmark;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -16,7 +18,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Simulate {
@@ -47,7 +48,7 @@ public class Simulate {
 
 	private static long keyBegin, keyEnd;
 	private static final AtomicLong keyWindowBegin = new AtomicLong();
-	private static Table5 table5;
+	private static @Nullable Table5 table5;
 
 	private static long randKey() {
 		var rand = ThreadLocalRandom.current();
@@ -61,14 +62,14 @@ public class Simulate {
 
 	private static long read1() {
 		var k = randKey();
-		var r = table5.getOrAdd(k);
+		var r = Objects.requireNonNull(table5).getOrAdd(k);
 		r.getS();
 		return 0;
 	}
 
 	private static long readWrite1() {
 		var k = randKey();
-		var r = table5.getOrAdd(k);
+		var r = Objects.requireNonNull(table5).getOrAdd(k);
 		r.setS(r.getS() + 1);
 		return 0;
 	}
@@ -76,7 +77,7 @@ public class Simulate {
 	private static long read2Write1() {
 		var k1 = randKey();
 		var k2 = randKey();
-		var r1 = table5.getOrAdd(k1);
+		var r1 = Objects.requireNonNull(table5).getOrAdd(k1);
 		var r2 = table5.getOrAdd(k2);
 		r2.setS(r1.getS() + r2.getS());
 		return 0;
@@ -85,7 +86,7 @@ public class Simulate {
 	private static long readWrite2() {
 		var k1 = randKey();
 		var k2 = randKey();
-		var r1 = table5.getOrAdd(k1);
+		var r1 = Objects.requireNonNull(table5).getOrAdd(k1);
 		var r2 = table5.getOrAdd(k2);
 		var v = r1.getS() + r2.getS();
 		r1.setS(v);
@@ -111,7 +112,7 @@ public class Simulate {
 		}
 
 		@Override
-		public @NotNull Thread newThread(@NotNull Runnable r) {
+		public Thread newThread(Runnable r) {
 			var t = super.newThread(r);
 			t.setPriority(Thread.MIN_PRIORITY);
 			return t;

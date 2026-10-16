@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.BMyBean;
 import Zeze.Application;
@@ -57,11 +59,11 @@ public class TestTakeoverFence {
 		var timer = new TakeoverTestEnv.AccessibleTimer(new TakeoverTestEnv.TestAppBase(app));
 		var takeover = app.getTakeover();
 		var fatalCount = new AtomicInteger();
-		takeover.setFatalAction(fatalCount::incrementAndGet); // 替代System.exit
+		requireNonNull(takeover).setFatalAction(fatalCount::incrementAndGet); // 替代System.exit
 		try {
 			app.start();
 			var myId = conf.getServerId();
-			var csq = new CsQueue<>(app.getQueueModule(), "TestTakeoverFenceQ", myId, BMyBean.class, 10);
+			var csq = new CsQueue<>(requireNonNull(app.getQueueModule()), "TestTakeoverFenceQ", myId, BMyBean.class, 10);
 			timer.loadCustomClassAnd();
 			timer.start(); // 加载本地(空)链（接管作用域已在ctor注册、stamp由Takeover.start完成）
 
@@ -130,11 +132,11 @@ public class TestTakeoverFence {
 		var timer = new TakeoverTestEnv.AccessibleTimer(new TakeoverTestEnv.TestAppBase(app));
 		var takeover = app.getTakeover();
 		var fatalCount = new AtomicInteger();
-		takeover.setFatalAction(fatalCount::incrementAndGet);
+		requireNonNull(takeover).setFatalAction(fatalCount::incrementAndGet);
 		try {
 			app.start();
 			var myId = conf.getServerId();
-			var csq = new CsQueue<>(app.getQueueModule(), "TestTakeoverFenceRevivalQ", myId, BMyBean.class, 10);
+			var csq = new CsQueue<>(requireNonNull(app.getQueueModule()), "TestTakeoverFenceRevivalQ", myId, BMyBean.class, 10);
 			timer.loadCustomClassAnd();
 			timer.start();
 

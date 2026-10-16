@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -49,7 +53,7 @@ public class TestOnzRedoPreparingWindow {
 	private static final String ProcName = "kuafuRedoWin";
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 	private String dbHome;
 
 	@BeforeEach
@@ -66,28 +70,28 @@ public class TestOnzRedoPreparingWindow {
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().register(ProcName, TestOnzRedoPreparingWindow::kuaFu, BKuafu.class, BKuafuResult.class);
-		zeze2.Zeze.getOnz().register(ProcName, TestOnzRedoPreparingWindow::kuaFu, BKuafu.class, BKuafuResult.class);
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).register(ProcName, TestOnzRedoPreparingWindow::kuaFu, BKuafu.class, BKuafuResult.class);
+		requireNonNull(requireNonNull(zeze2.Zeze).getOnz()).register(ProcName, TestOnzRedoPreparingWindow::kuaFu, BKuafu.class, BKuafuResult.class);
 
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		// before() 被 Assumption 跳过时 onzServer 尚未创建；stop幂等
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
 	private static long kuaFu(OnzProcedure onzProcedure, BKuafu argument, BKuafuResult result) {
-		var app = (App)onzProcedure.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(onzProcedure.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -123,10 +127,10 @@ public class TestOnzRedoPreparingWindow {
 	public void testRedoSkipsInflightPreparing() throws Exception {
 		waitOnzReady();
 		var txn = new PendingBlockTransaction();
-		txn.setOnzServer(onzServer);
+		txn.setOnzServer(requireNonNull(onzServer));
 		txn.setFlushTimeout(60_000); // 参与方ready等待不在本场景窗口内自愈（FND5-45独立覆盖）
 		var performRc = new long[1];
-		var coordinator = new Thread(() -> performRc[0] = onzServer.perform(txn));
+		var coordinator = new Thread(() -> performRc[0] = requireNonNull(onzServer).perform(txn));
 		coordinator.setDaemon(true);
 		coordinator.start();
 
@@ -165,10 +169,10 @@ public class TestOnzRedoPreparingWindow {
 	public void testLegacyRewriteSkippedWhileRegistered() throws Exception {
 		waitOnzReady();
 		var txn = new PendingBlockTransaction();
-		txn.setOnzServer(onzServer);
+		txn.setOnzServer(requireNonNull(onzServer));
 		txn.setFlushTimeout(60_000);
 		var performRc = new long[1];
-		var coordinator = new Thread(() -> performRc[0] = onzServer.perform(txn));
+		var coordinator = new Thread(() -> performRc[0] = requireNonNull(onzServer).perform(txn));
 		coordinator.setDaemon(true);
 		coordinator.start();
 
@@ -204,10 +208,10 @@ public class TestOnzRedoPreparingWindow {
 	public void testAgedRewriteSkippedWhileRegistered() throws Exception {
 		waitOnzReady();
 		var txn = new PendingBlockTransaction();
-		txn.setOnzServer(onzServer);
+		txn.setOnzServer(requireNonNull(onzServer));
 		txn.setFlushTimeout(60_000);
 		var performRc = new long[1];
-		var coordinator = new Thread(() -> performRc[0] = onzServer.perform(txn));
+		var coordinator = new Thread(() -> performRc[0] = requireNonNull(onzServer).perform(txn));
 		coordinator.setDaemon(true);
 		coordinator.start();
 
@@ -271,8 +275,8 @@ public class TestOnzRedoPreparingWindow {
 
 	private static long getMoney(App app, long account) throws Exception {
 		var holder = new long[1];
-		app.Zeze.newProcedure(() -> {
-			holder[0] = app.demo_Module1.getKuafu().getOrAdd(account).getMoney();
+		requireNonNull(app.Zeze).newProcedure(() -> {
+			holder[0] = requireNonNull(app.demo_Module1).getKuafu().getOrAdd(account).getMoney();
 			return 0;
 		}, "TestOnzRedoPreparingWindow.getMoney").call();
 		return holder[0];
@@ -338,8 +342,8 @@ public class TestOnzRedoPreparingWindow {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)

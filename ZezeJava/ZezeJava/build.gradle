@@ -6,7 +6,8 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.26.0'
     // JSpecify 空安全注解：生成代码与手写代码统一 package @NullMarked（见 ZezeJava/AGENTS.md）。
     implementation 'org.jspecify:jspecify:1.0.0'
-    implementation 'org.jetbrains:annotations:26.1.0'
+    // 仅剩 @Contract（IDE 流分析）与 @UnmodifiableView 使用，编译期足矣，不传递给下游。
+    compileOnly 'org.jetbrains:annotations:26.1.0'
     implementation 'org.pcollections:pcollections:4.0.2'
     // 持久化容器内核（Zeze.Collections.Persistents 后端缝，kt/ktt 档；PSortedMap 仍 pcollections）
     implementation 'org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.7'

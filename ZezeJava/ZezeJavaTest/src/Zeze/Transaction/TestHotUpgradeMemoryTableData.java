@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.Test;
  * 迁移必须直接写入本地Rocks镜像且不置脏。
  */
 @Fast
+@NullMarked
 public class TestHotUpgradeMemoryTableData {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2组：300/400/500/600起）。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_HOT_UPGRADE_MEMORY_TABLE_DATA);
@@ -65,10 +70,11 @@ public class TestHotUpgradeMemoryTableData {
 
 	@SuppressWarnings("unchecked")
 	private static Record1<Long, Bean1> getRecord(tMemorySize table, long key) throws ReflectiveOperationException {
-		return (Record1<Long, Bean1>)invokeOn(table.getCache(), "get", key);
+		return (Record1<Long, Bean1>)invokeOn(requireNonNull(table.getCache()), "get", key);
 	}
 
 	@Test
+	@SuppressWarnings("ConstantConditions") // walkMemory键契约非空，仍保留历史防御检查。
 	public void testDirectPutCacheWritesLocalRocks() throws Exception {
 		var app = newApp();
 		var table = new tMemorySize();
@@ -106,13 +112,13 @@ public class TestHotUpgradeMemoryTableData {
 			value2.setV1(654);
 			table.__direct_put_cache__(key2, value2, GlobalCacheManagerConst.StateModify);
 			@SuppressWarnings("unchecked")
-			var dataMap = (ConcurrentHashMap<Long, Record1<Long, Bean1>>)getField(table.getCache(), "dataMap");
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, Bean1>>)getField(requireNonNull(table.getCache()), "dataMap");
 			Assertions.assertEquals(2, dataMap.size());
 
 			table.getTableConf().setCacheCapacity(1);
 			table.getTableConf().setCacheFactor(1); // realCacheCapacity=1 < 2 触发清理
-			invokeOn(table.getCache(), "newLruHot"); // 当前记录所在块退出热块
-			table.getCache().cleanNow();
+			invokeOn(requireNonNull(table.getCache()), "newLruHot"); // 当前记录所在块退出热块
+			requireNonNull(table.getCache()).cleanNow();
 
 			Assertions.assertEquals(0, dataMap.size(), "非脏的迁移记录必须能被cleanNow清理");
 

@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Created by zyao on 2021/11/24 11:15
  */
+@NullMarked
 public class TestProcedureRedo {
 
 	@BeforeEach

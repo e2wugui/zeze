@@ -1,4 +1,6 @@
 package Zeze.Util;
+
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import harness.Fast;
@@ -59,7 +61,7 @@ public class TestCert {
 	}
 
 	// 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
-	public static void saveKeyStore(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
+	public static void saveKeyStore(OutputStream outputStream, @Nullable String passwd, String alias, PublicKey publicKey,
 									PrivateKey privateKey, String ownerName, int validDays)
 			throws GeneralSecurityException, IOException {
 		var cert = generateRsaCert(ownerName, publicKey, ownerName, privateKey, validDays);

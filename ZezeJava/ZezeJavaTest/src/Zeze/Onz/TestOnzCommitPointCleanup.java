@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -33,7 +37,7 @@ public class TestOnzCommitPointCleanup {
 	private static final String ProcName = "kuafuCpCleanup";
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 	private String dbHome;
 
 	@BeforeEach
@@ -50,27 +54,27 @@ public class TestOnzCommitPointCleanup {
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
-		App.Instance.Zeze.getOnz().register(ProcName, TestOnzCommitPointCleanup::kuaFu, BKuafu.class, BKuafuResult.class);
-		zeze2.Zeze.getOnz().register(ProcName, TestOnzCommitPointCleanup::kuaFu, BKuafu.class, BKuafuResult.class);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).register(ProcName, TestOnzCommitPointCleanup::kuaFu, BKuafu.class, BKuafuResult.class);
+		requireNonNull(requireNonNull(zeze2.Zeze).getOnz()).register(ProcName, TestOnzCommitPointCleanup::kuaFu, BKuafu.class, BKuafuResult.class);
 
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		// before() 被 Assumption 跳过时 onzServer 尚未创建；testCommitPointCleanup已stop过则幂等
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
 	private static long kuaFu(OnzProcedure onzProcedure, BKuafu argument, BKuafuResult result) {
-		var app = (App)onzProcedure.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(onzProcedure.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -104,8 +108,8 @@ public class TestOnzCommitPointCleanup {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)
@@ -138,10 +142,10 @@ public class TestOnzCommitPointCleanup {
 	public void testCommitPointCleanup() throws Exception {
 		waitOnzReady();
 		var txn = new CleanupTransaction();
-		txn.setOnzServer(onzServer);
-		Assertions.assertEquals(0, onzServer.perform(txn), "事务必须成功（否则测试无效）");
+		txn.setOnzServer(requireNonNull(onzServer));
+		Assertions.assertEquals(0, requireNonNull(onzServer).perform(txn), "事务必须成功（否则测试无效）");
 
-		onzServer.stop(); // 关闭句柄后才能重开库检查
+		requireNonNull(onzServer).stop(); // 关闭句柄后才能重开库检查
 		try (var db = new RocksDatabase(dbHome)) {
 			Assertions.assertEquals(0, count(db.getOrAddTable("CommitIndex")),
 					"commitIndex 随补发完成清理（既有行为）");

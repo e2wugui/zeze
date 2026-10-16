@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -55,7 +57,7 @@ public class TestTakeoverLifecycle {
 			var myId = conf.getServerId();
 
 			var scope1 = new RecordingScope("LifecycleScope1");
-			takeover.addScope(scope1); // started：addScope内同步stamp
+			requireNonNull(takeover).addScope(scope1); // started：addScope内同步stamp
 			Assertions.assertTrue(takeover.isScoped(scope1), "addScope后应完成stamp登记");
 
 			// 制造"本生命周期被接管"：租约改成别人的epoch（fresh，不触发扫描），再注册新scope
@@ -105,7 +107,7 @@ public class TestTakeoverLifecycle {
 			app.start();
 			var takeover = app.getTakeover();
 			var myId = conf.getServerId();
-			takeover.setFatalAction(fatalCount::incrementAndGet); // 先注入：旧行为此处会致命退出
+			requireNonNull(takeover).setFatalAction(fatalCount::incrementAndGet); // 先注入：旧行为此处会致命退出
 
 			// 伪造"行存在但epoch==0"的半清表残留（过期态）：renewOnce的自愈条件覆盖此形态，
 			// stampScope旧行为却走lost致命退出——同一异常态两种结局，应统一为自愈。

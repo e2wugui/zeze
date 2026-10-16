@@ -1,13 +1,14 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -37,10 +38,10 @@ import demo.Module1.BValue;
  */
 @Fast
 public class TestProcessRpcResponseResolveOnce {
-	private static Application app;
-	private static ProviderApp providerApp;
-	private static ProviderImplement provider;
-	private static Method processRpcResponse;
+	private static @Nullable Application app;
+	private static @Nullable ProviderApp providerApp;
+	private static @Nullable ProviderImplement provider;
+	private static @Nullable Method processRpcResponse;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -61,7 +62,7 @@ public class TestProcessRpcResponseResolveOnce {
 	}
 
 	public static class TestProviderImplement extends ProviderImplement {
-		public TestProviderImplement(@NotNull ProviderApp app) {
+		public TestProviderImplement(ProviderApp app) {
 			providerApp = app;
 		}
 
@@ -75,7 +76,7 @@ public class TestProcessRpcResponseResolveOnce {
 		}
 
 		@Override
-		protected long ProcessLinkBroken(@NotNull LinkBroken p) {
+		protected long ProcessLinkBroken(LinkBroken p) {
 			return Procedure.Success;
 		}
 	}
@@ -99,32 +100,32 @@ public class TestProcessRpcResponseResolveOnce {
 
 	// 反射调用私有方法。redo 信号 GoBackZeze 是 Error 子类，会被 InvocationTargetException
 	// 包装，解开以原类型重抛，perform 才能识别为 redo 而不是普通异常。
-	private static long callProcessRpcResponse(@NotNull Protocol<?> response) throws Exception {
+	private static long callProcessRpcResponse(Protocol<?> response) throws Exception {
 		try {
-			return (Long)processRpcResponse.invoke(provider, response);
+			return (Long)requireNonNull(processRpcResponse).invoke(provider, response);
 		} catch (InvocationTargetException e) {
 			throw Task.forceThrow(e.getCause());
 		}
 	}
 
 	// 模拟 ProcessDispatch 事务分支的 action：每轮重试重新执行 processRpcResponse。
-	private static long dispatchResponseInTransaction(@NotNull TestRpc response, @NotNull AtomicInteger calls)
+	private static long dispatchResponseInTransaction(TestRpc response, AtomicInteger calls)
 			throws Exception {
 		var action = (FuncLong)() -> {
 			calls.incrementAndGet();
 			return callProcessRpcResponse(response);
 		};
-		return new Procedure(app, action, "TestProcessRpcResponseResolveOnce.Dispatch", null).call();
+		return new Procedure(requireNonNull(app), action, "TestProcessRpcResponseResolveOnce.Dispatch", null).call();
 	}
 
 	@Test
 	public final void testContextResolvedOnceOnRetryThenSuccess() throws Exception {
-		var service = providerApp.providerService;
+		var service = requireNonNull(providerApp).providerService;
 		var context = new TestRpc();
 		var responseHandleCalls = new AtomicInteger();
 		context.setResponseHandle(r -> {
 			if (responseHandleCalls.incrementAndGet() < 3)
-				Transaction.getCurrent().throwRedo(0, "force redo");
+				requireNonNull(Transaction.getCurrent()).throwRedo(0, "force redo");
 			return Procedure.Success;
 		});
 		var sid = service.addRpcContext(context);
@@ -146,12 +147,12 @@ public class TestProcessRpcResponseResolveOnce {
 
 	@Test
 	public final void testContextNotLeakOnTooManyTry() throws Exception {
-		var service = providerApp.providerService;
+		var service = requireNonNull(providerApp).providerService;
 		var context = new TestRpc();
 		var responseHandleCalls = new AtomicInteger();
 		context.setResponseHandle(r -> {
 			responseHandleCalls.incrementAndGet();
-			Transaction.getCurrent().throwRedo(0, "force redo");
+			requireNonNull(Transaction.getCurrent()).throwRedo(0, "force redo");
 			return Procedure.Success;
 		});
 		var sid = service.addRpcContext(context);
@@ -175,15 +176,15 @@ public class TestProcessRpcResponseResolveOnce {
 	public final void testEntryAbsentDuringProcessing() throws Exception {
 		// 响应到达（首轮消费）之后、事务终局之前，条目必须已从表中移除：
 		// 一次性超时任务在处理期间触发时 removeRpcContext 只能得到 null。
-		var service = providerApp.providerService;
+		var service = requireNonNull(providerApp).providerService;
 		var context = new TestRpc();
 		var responseHandleCalls = new AtomicInteger();
-		var stolen = new AtomicReference<Protocol<?>>();
+		var stolen = new AtomicReference<@Nullable Protocol<?>>();
 		context.setResponseHandle(r -> {
 			if (responseHandleCalls.incrementAndGet() < 3) {
 				if (responseHandleCalls.get() == 2)
 					stolen.set(service.removeRpcContext(((TestRpc)r).getSessionId())); // 模拟超时任务抢占
-				Transaction.getCurrent().throwRedo(0, "force redo");
+				requireNonNull(Transaction.getCurrent()).throwRedo(0, "force redo");
 			}
 			return Procedure.Success;
 		});
@@ -219,7 +220,7 @@ public class TestProcessRpcResponseResolveOnce {
 	@Test
 	public final void testNoTransactionDirectConsume() throws Exception {
 		// 无事务分支（应用框架不支持事务或协议配置 NoProcedure）：直接消费，单次执行
-		var service = providerApp.providerService;
+		var service = requireNonNull(providerApp).providerService;
 		var context = new TestRpc();
 		var responseHandleCalls = new AtomicInteger();
 		context.setResponseHandle(r -> {

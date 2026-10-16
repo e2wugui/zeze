@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutInt;
@@ -8,6 +12,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@NullMarked
 public class TestTableNestAction {
 	@BeforeEach
 	public final void testInit() throws Exception {
@@ -79,7 +84,7 @@ public class TestTableNestAction {
 		var zeze = demo.App.getInstance().Zeze;
 		var sb = new StringBuilder();
 
-		zeze.newProcedure(() -> {
+		requireNonNull(zeze).newProcedure(() -> {
 			Transaction.whileCommit(() -> sb.append('0')); // do
 			Transaction.whileRollback(() -> sb.append('1'));
 
@@ -148,7 +153,7 @@ public class TestTableNestAction {
 			return Procedure.Success;
 		}, "nest procedure").call();
 
-		zeze.newProcedure(() -> {
+		requireNonNull(zeze).newProcedure(() -> {
 			Transaction.whileCommit(() -> sb.append('S'));
 			Transaction.whileRollback(() -> sb.append('T')); // do
 

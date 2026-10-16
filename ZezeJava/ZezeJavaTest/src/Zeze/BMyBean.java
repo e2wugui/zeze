@@ -1,10 +1,11 @@
 package Zeze;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 
 public class BMyBean extends Bean {
@@ -19,7 +20,7 @@ public class BMyBean extends Bean {
 	}
 
 	@Override
-	public @NotNull BMyBean copy() {
+	public BMyBean copy() {
 		var copy = new BMyBean();
 		copy._i = getI();
 		return copy;
@@ -34,7 +35,7 @@ public class BMyBean extends Bean {
 
 		@Override
 		public void commit() {
-			((BMyBean)getBelong())._i = value;
+			requireNonNull(((BMyBean)getBelong()))._i = value;
 		}
 	}
 

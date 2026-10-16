@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import java.nio.ByteBuffer;
 
 import Zeze.Transaction.Database;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Test;
  * position=0满缓冲）行为不变。
  */
 @Fast
+@NullMarked
 public class TestDatabaseCopyIfByteBuffer {
 
 	@Test

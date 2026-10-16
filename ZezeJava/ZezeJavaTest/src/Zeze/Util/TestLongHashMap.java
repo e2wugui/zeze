@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Util.LongHashMap;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -17,7 +19,7 @@ public class TestLongHashMap {
 
 	@Test
 	public void testComputeDeletesNullValueEntry() {
-		var map = new LongHashMap<String>(8);
+		var map = new LongHashMap<@Nullable String>(8);
 		map.put(1, null); // 条目存在、值为 null（公开 API 形态）
 		Assertions.assertTrue(map.containsKey(1));
 		Assertions.assertEquals(1, map.size());
@@ -37,7 +39,7 @@ public class TestLongHashMap {
 
 	@Test
 	public void testComputeContractPathsUnchanged() {
-		var map = new LongHashMap<String>(8);
+		var map = new LongHashMap<@Nullable String>(8);
 		map.put(1, "a");
 		Assertions.assertEquals("a", map.compute(1, (k, v) -> v)); // 返回原值 → 保留
 		Assertions.assertEquals(1, map.size());
@@ -53,7 +55,7 @@ public class TestLongHashMap {
 
 	@Test
 	public void testForeachUpdateDeletesNullValueEntry() {
-		var map = new LongHashMap<String>(8);
+		var map = new LongHashMap<@Nullable String>(8);
 		map.put(1, null); // 普通槽位 null 值条目
 		map.put(2, "v2");
 		map.put(0, null); // zero-key null 值条目

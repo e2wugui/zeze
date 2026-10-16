@@ -1,5 +1,9 @@
 package Zeze.Collections;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.BMyBean;
@@ -31,7 +35,7 @@ public class TestLinkedMapBrokenData {
 	// @Fast类并行时Application的本地缓存按serverId一份。
 	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_LINKED_MAP_BROKEN_DATA);
 
-	private LinkedMap.Module linkedMapModule;
+	private LinkedMap.@Nullable Module linkedMapModule;
 
 	private Application newApp() throws Exception {
 		var conf = new Config();
@@ -49,12 +53,12 @@ public class TestLinkedMapBrokenData {
 
 	@SuppressWarnings("unchecked")
 	private static TableX<BLinkedMapNodeKey, BLinkedMapNode> tNodes(Application app) {
-		return (TableX<BLinkedMapNodeKey, BLinkedMapNode>)app.getTable("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes");
+		return (TableX<BLinkedMapNodeKey, BLinkedMapNode>)java.util.Objects.requireNonNull(app.getTable("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes"));
 	}
 
 	@SuppressWarnings("unchecked")
 	private static TableX<BLinkedMapKey, BLinkedMapNodeId> tIndex(Application app) {
-		return (TableX<BLinkedMapKey, BLinkedMapNodeId>)app.getTable("Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId");
+		return (TableX<BLinkedMapKey, BLinkedMapNodeId>)java.util.Objects.requireNonNull(app.getTable("Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId"));
 	}
 
 	private static void run(Application app, String name, FuncLong action) {
@@ -99,7 +103,7 @@ public class TestLinkedMapBrokenData {
 		var app = newApp();
 		try {
 			app.start();
-			var map = linkedMapModule.open("broken1", BMyBean.class, 1);
+			var map = requireNonNull(linkedMapModule).open("broken1", BMyBean.class, 1);
 			run(app, "put", () -> {
 				var bean = new BMyBean();
 				bean.setI(11);
@@ -124,7 +128,7 @@ public class TestLinkedMapBrokenData {
 		var app = newApp();
 		try {
 			app.start();
-			var map = linkedMapModule.open("broken2", BMyBean.class, 1);
+			var map = requireNonNull(linkedMapModule).open("broken2", BMyBean.class, 1);
 			run(app, "putA", () -> {
 				var bean = new BMyBean();
 				bean.setI(1);
@@ -153,7 +157,7 @@ public class TestLinkedMapBrokenData {
 		var app = newApp();
 		try {
 			app.start();
-			var map = linkedMapModule.open("broken3", BMyBean.class, 30);
+			var map = requireNonNull(linkedMapModule).open("broken3", BMyBean.class, 30);
 			run(app, "put", () -> {
 				var bean = new BMyBean();
 				bean.setI(3);
@@ -180,7 +184,7 @@ public class TestLinkedMapBrokenData {
 		var app = newApp();
 		try {
 			app.start();
-			var map = linkedMapModule.open("broken4", BMyBean.class, 1);
+			var map = requireNonNull(linkedMapModule).open("broken4", BMyBean.class, 1);
 			run(app, "put", () -> {
 				var bean = new BMyBean();
 				bean.setI(4);

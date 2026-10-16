@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Application;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.Task;
@@ -27,7 +29,7 @@ public class TestDelayRemoveAddJobBeforeStart {
 			// Application构造即装配DelayRemove（Application.java:227），但delayRemove.start()
 			// 在app.start()内才调用——这正是FND4-47的窗口：app未start时addJob。
 			Assertions.assertThrows(IllegalStateException.class,
-					() -> app.getDelayRemove().addJob("UnitTest.DelayRemoveBeforeStart", EmptyBean.instance),
+					() -> requireNonNull(app.getDelayRemove()).addJob("UnitTest.DelayRemoveBeforeStart", EmptyBean.instance),
 					"start前addJob必须显式拒绝（原NPE）");
 		} finally {
 			// 未start的Application：仅做力所能及的清理，异常忽略。
@@ -49,7 +51,7 @@ public class TestDelayRemoveAddJobBeforeStart {
 		try {
 			app.start();
 			var ise = Assertions.assertThrows(IllegalStateException.class,
-					() -> app.getDelayRemove().addJob("UnitTest.DelayRemoveZombie.unknown", EmptyBean.instance),
+					() -> requireNonNull(app.getDelayRemove()).addJob("UnitTest.DelayRemoveZombie.unknown", EmptyBean.instance),
 					"未注册handleName必须写持久化前拒绝（原静默僵尸化）");
 			Assertions.assertTrue(ise.getMessage().contains("JobHandle not registered"),
 					"错误信息须指向handleName未注册");

@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -127,7 +129,7 @@ public class TestDaemonGlobalOnPeerValidation {
 			Assertions.assertEquals(111, config.serverDaemonTimeout);
 			Assertions.assertEquals(222, config.serverReleaseTimeout);
 		} finally {
-			for (var m : new Object[]{monitorA, monitorB}) {
+			for (var m : new @Nullable Object[]{monitorA, monitorB}) {
 				if (m != null)
 					stopAndJoin.invoke(m); // 关闭mmap句柄并删除文件
 			}

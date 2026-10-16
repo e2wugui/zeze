@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -140,12 +144,12 @@ public class TestOnzRollbackAfterReady {
 		var commits = new AtomicInteger();
 		var rollbacks = new AtomicInteger();
 		var result = new AtomicLong(Long.MIN_VALUE);
-		var error = new AtomicReference<Throwable>();
+		var error = new AtomicReference<@Nullable Throwable>();
 		var txnThread = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				var onzP = new ControlledOnz();
 				result.set(app.newProcedure((FuncLong)() -> {
-					Transaction.getCurrent().setOnzProcedure(onzP);
+					requireNonNull(Transaction.getCurrent()).setOnzProcedure(onzP);
 					Transaction.getCurrent().runWhileCommit(commits::incrementAndGet);
 					Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
 					return Procedure.Success;

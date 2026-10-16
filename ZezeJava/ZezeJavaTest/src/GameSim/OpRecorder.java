@@ -1,5 +1,7 @@
 package GameSim;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -28,7 +30,7 @@ public final class OpRecorder {
 	final AtomicLong[] counts = new AtomicLong[OP_COUNT];
 	final AtomicLong[] errors = new AtomicLong[OP_COUNT];
 
-	private static OpRecorder[] all;
+	private static OpRecorder @Nullable [] all;
 
 	/** players 个玩家槽 + 1 个系统槽（hbScan/mailFanout 等非玩家线程操作） */
 	public static void init(int players) {
@@ -37,13 +39,13 @@ public final class OpRecorder {
 
 	public static OpRecorder create(int playerIndex) {
 		var r = new OpRecorder();
-		all[playerIndex] = r;
+		Objects.requireNonNull(all)[playerIndex] = r;
 		return r;
 	}
 
 	public static OpRecorder createSystem() {
 		var r = new OpRecorder();
-		all[all.length - 1] = r;
+		Objects.requireNonNull(all)[all.length - 1] = r;
 		return r;
 	}
 
@@ -107,7 +109,7 @@ public final class OpRecorder {
 		for (int op = 0; op < OP_COUNT; op++) {
 			int total = 0;
 			long[] merged = new long[0];
-			for (OpRecorder r : all) {
+			for (OpRecorder r : Objects.requireNonNull(all)) {
 				long[] buf = r.samples[slot][op];
 				int len = r.lens[slot][op];
 				if (buf == null || len == 0)
@@ -119,7 +121,7 @@ public final class OpRecorder {
 			}
 			stats[op] = new OpStats(Arrays.copyOf(merged, total));
 		}
-		for (OpRecorder r : all)
+		for (OpRecorder r : Objects.requireNonNull(all))
 			Arrays.fill(r.lens[slot], 0);
 		return stats;
 	}
@@ -129,7 +131,7 @@ public final class OpRecorder {
 		var out = new long[OP_COUNT];
 		for (int op = 0; op < OP_COUNT; op++) {
 			long sum = 0;
-			for (OpRecorder r : all)
+			for (OpRecorder r : Objects.requireNonNull(all))
 				sum += r.counts[op].get();
 			out[op] = sum;
 		}
@@ -140,7 +142,7 @@ public final class OpRecorder {
 		var out = new long[OP_COUNT];
 		for (int op = 0; op < OP_COUNT; op++) {
 			long sum = 0;
-			for (OpRecorder r : all)
+			for (OpRecorder r : Objects.requireNonNull(all))
 				sum += r.errors[op].get();
 			out[op] = sum;
 		}

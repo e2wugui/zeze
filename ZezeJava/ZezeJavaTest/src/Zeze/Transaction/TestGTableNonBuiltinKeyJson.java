@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.Objects;
 
 import Zeze.Serialize.ByteBuffer;
@@ -14,7 +18,6 @@ import Zeze.Transaction.GTable.GTable2;
 import Zeze.Net.Binary;
 import Zeze.Util.Json;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -38,7 +41,7 @@ public class TestGTableNonBuiltinKeyJson {
 
 	/** 手写BeanKey判例：值语义equals/hashCode + 无参构造 + 公开字段（生成BeanKey同形态）。 */
 	public static final class BDeptKey implements BeanKey {
-		public String owner;
+		public @Nullable String owner;
 		public long deptId;
 
 		public BDeptKey() {
@@ -80,7 +83,7 @@ public class TestGTableNonBuiltinKeyJson {
 	public static final class MBean extends Bean {
 		public long v;
 		@SuppressWarnings("FieldNameHidesFieldInSuperclass")
-		private transient Object mapKey;
+		private transient @Nullable Object mapKey;
 
 		public MBean set(long x) {
 			v = x;
@@ -88,12 +91,12 @@ public class TestGTableNonBuiltinKeyJson {
 		}
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return mapKey;
 		}
 
 		@Override
-		public void mapKey(@NotNull Object mapKey) {
+		public void mapKey(Object mapKey) {
 			this.mapKey = mapKey;
 		}
 
@@ -135,7 +138,7 @@ public class TestGTableNonBuiltinKeyJson {
 		h.g.put(new BDeptKey("alice", 5), new BDeptKey("bob", 6), 42);
 		var json = Json.toCompactString(h);
 		var parsed = (H1)Json.parse(json, new H1());
-		var v = parsed.g.get(new BDeptKey("alice", 5), new BDeptKey("bob", 6));
+		var v = requireNonNull(parsed).g.get(new BDeptKey("alice", 5), new BDeptKey("bob", 6));
 		assertNotNull(v, "BeanKey行/列键必须恢复");
 		assertEquals(42, v);
 	}
@@ -147,7 +150,7 @@ public class TestGTableNonBuiltinKeyJson {
 		h.g.put(new BDeptKey("alice", 5), 2L, new MBean().set(7));
 		var json = Json.toCompactString(h);
 		var parsed = (H2)Json.parse(json, new H2());
-		var v = parsed.g.get(new BDeptKey("alice", 5), 2L);
+		var v = requireNonNull(parsed).g.get(new BDeptKey("alice", 5), 2L);
 		assertNotNull(v, "BeanKey行键必须恢复");
 		assertEquals(7L, v.v);
 	}
@@ -159,7 +162,7 @@ public class TestGTableNonBuiltinKeyJson {
 		h.g.put(new Binary(new byte[]{1, 2, 3}), 2L, 11);
 		var json = Json.toCompactString(h);
 		var parsed = (H3)Json.parse(json, new H3());
-		var v = parsed.g.get(new Binary(new byte[]{1, 2, 3}), 2L);
+		var v = requireNonNull(parsed).g.get(new Binary(new byte[]{1, 2, 3}), 2L);
 		assertNotNull(v, "binary行键必须恢复");
 		assertEquals(11, v);
 	}
@@ -174,7 +177,7 @@ public class TestGTableNonBuiltinKeyJson {
 		h.g.put(1, 2L, new Binary(new byte[]{4, 5, 6}));
 		var json = Json.toCompactString(h);
 		var parsed = (H5)Json.parse(json, new H5());
-		var v = parsed.g.get(1, 2L);
+		var v = requireNonNull(parsed).g.get(1, 2L);
 		assertNotNull(v, "binary值必须恢复（修复前为裸空Object）");
 		assertArrayEquals(new byte[]{4, 5, 6}, v.bytesUnsafe());
 	}
@@ -186,7 +189,7 @@ public class TestGTableNonBuiltinKeyJson {
 		h.g.put(1, 2L, new Vector2(1.5f, 2.5f));
 		var json = Json.toCompactString(h);
 		var parsed = (H6)Json.parse(json, new H6());
-		var v = parsed.g.get(1, 2L);
+		var v = requireNonNull(parsed).g.get(1, 2L);
 		assertNotNull(v, "vector2值必须恢复（修复前为裸空Object）");
 		assertEquals(1.5f, v.x);
 		assertEquals(2.5f, v.y);

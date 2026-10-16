@@ -1,5 +1,9 @@
 package Zeze.Hot;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -58,7 +62,7 @@ public class TestInstallRollbackResidue {
 	@TempDir
 	Path tempDir;
 
-	private static AppBase dummyApp;
+	private static @Nullable AppBase dummyApp;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -80,7 +84,7 @@ public class TestInstallRollbackResidue {
 		Files.createDirectories(workingDir.resolve("modules"));
 		Files.createDirectories(workingDir.resolve("interfaces"));
 		var distributeDir = Files.createDirectories(tempDir.resolve("dist"));
-		var manager = new HotManager(dummyApp, workingDir.toString(), distributeDir.toString());
+		var manager = new HotManager(requireNonNull(dummyApp), workingDir.toString(), distributeDir.toString());
 
 		var modulesField = HotManager.class.getDeclaredField("modules");
 		modulesField.setAccessible(true);

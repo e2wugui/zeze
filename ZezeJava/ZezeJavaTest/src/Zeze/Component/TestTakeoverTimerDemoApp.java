@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -16,7 +18,6 @@ import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.TableX;
 import Zeze.Util.TaskSpec;
 import demo.App;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -75,7 +76,7 @@ public class TestTakeoverTimerDemoApp {
 		}
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			FIRED.incrementAndGet();
 		}
 	}
@@ -85,7 +86,7 @@ public class TestTakeoverTimerDemoApp {
 		}
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			SUSPECT_FIRED.incrementAndGet();
 		}
 	}
@@ -99,8 +100,8 @@ public class TestTakeoverTimerDemoApp {
 	@Timeout(60)
 	public void testTimerTakeoverFires() throws Exception {
 		var app = App.Instance.Zeze;
-		Assertions.assertNotNull(app.getTimer(), "demo.App的Timer必须已由ProviderApp.startLast启动");
-		Assertions.assertNotEquals("off", app.getTakeover().getMode(), "demo.App的Takeover必须启用（默认on）");
+		Assertions.assertNotNull(requireNonNull(app).getTimer(), "demo.App的Timer必须已由ProviderApp.startLast启动");
+		Assertions.assertNotEquals("off", requireNonNull(app.getTakeover()).getMode(), "demo.App的Takeover必须启用（默认on）");
 
 		// 伪造死者777的单节点循环链：1个simple timer，1.5秒后触发（接管后应在本进程fire）。
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
@@ -124,7 +125,7 @@ public class TestTakeoverTimerDemoApp {
 
 		// 过期租约（epoch=5与root stamp对齐）→ 直接tryTransfer，等OneByOne队列排空。
 		TakeoverTestEnv.forgeLease(app, deadServerId, 5, System.currentTimeMillis() - 1_000);
-		app.getTakeover().tryTransfer(deadServerId);
+		requireNonNull(app.getTakeover()).tryTransfer(deadServerId);
 		TakeoverTestEnv.waitTryTransferQueue();
 
 		// 1) 接管裁决成功：租约立墓碑。
@@ -167,7 +168,7 @@ public class TestTakeoverTimerDemoApp {
 	@Timeout(60)
 	public void testTimerTakeoverViaSuspectBroadcast() throws Exception {
 		var app = App.Instance.Zeze;
-		Assertions.assertNotNull(app.getTimer());
+		Assertions.assertNotNull(requireNonNull(app).getTimer());
 
 		// 1. 死者的SM会话：轻量Agent连接demo.App所连的同一个SM（默认127.0.0.1:5001，
 		//    integrationTest由TestEnvLauncherListener提供），Identify上报serverId=778。

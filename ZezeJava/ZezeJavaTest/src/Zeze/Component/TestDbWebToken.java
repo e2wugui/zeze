@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -37,9 +39,9 @@ public class TestDbWebToken {
 
 	private static final int ServerId = FastServerIds.TEST_DB_WEB_TOKEN;
 
-	private static Application app;
-	private static HttpServer httpServer;
-	private static Netty netty;
+	private static @Nullable Application app;
+	private static @Nullable HttpServer httpServer;
+	private static @Nullable Netty netty;
 	private static int port;
 
 	@BeforeAll
@@ -58,7 +60,7 @@ public class TestDbWebToken {
 		dbWeb.Initialize(new AppBase() {
 			@Override
 			public Application getZeze() {
-				return app;
+				return java.util.Objects.requireNonNull(app);
 			}
 		});
 		netty = new Netty(1);
@@ -77,7 +79,7 @@ public class TestDbWebToken {
 			app.stop();
 	}
 
-	private static int get(String path, String tokenQuery, String tokenHeader) throws Exception {
+	private static int get(String path, @Nullable String tokenQuery, @Nullable String tokenHeader) throws Exception {
 		var builder = HttpRequest.newBuilder()
 				.uri(URI.create("http://127.0.0.1:" + port + path + (tokenQuery != null ? "?token=" + tokenQuery : "")))
 				.timeout(Duration.ofSeconds(10))

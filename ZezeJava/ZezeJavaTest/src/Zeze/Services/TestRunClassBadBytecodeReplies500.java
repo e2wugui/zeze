@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -25,8 +29,8 @@ import org.junit.jupiter.api.io.TempDir;
 @Fast
 public class TestRunClassBadBytecodeReplies500 {
 	private static final String TOKEN = "wt5-s3f3-token";
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
 	private static final HttpClient client = HttpClient.newHttpClient();
 
@@ -38,7 +42,7 @@ public class TestRunClassBadBytecodeReplies500 {
 		}
 
 		@Override
-		public Zeze.Application getZeze() {
+		public Zeze.@Nullable Application getZeze() {
 			return null;
 		}
 
@@ -61,8 +65,8 @@ public class TestRunClassBadBytecodeReplies500 {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	private static HttpResponse<String> post(String path, byte[] body) throws Exception {
@@ -84,8 +88,8 @@ public class TestRunClassBadBytecodeReplies500 {
 	/** 合法class但无main/Runnable/Callable：getMethod("main")抛NoSuchMethodException（Exception路径）。 */
 	@Test
 	public void testNoEntryPointClassReplies500() throws Exception {
-		var classBytes = getClass().getResourceAsStream(
-				"TestRunClassBadBytecodeReplies500$NoEntryPoint.class").readAllBytes();
+		var classBytes = requireNonNull(getClass().getResourceAsStream(
+				"TestRunClassBadBytecodeReplies500$NoEntryPoint.class")).readAllBytes();
 		var res = post("/wt5/run?patch=NoEntryPoint.class", classBytes);
 		Assertions.assertEquals(500, res.statusCode(), "无入口点的class必须应答500");
 		Assertions.assertTrue(res.body().contains("run failed"), "应答须带异常摘要: " + res.body());

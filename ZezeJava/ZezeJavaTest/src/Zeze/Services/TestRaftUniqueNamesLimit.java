@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.net.ServerSocket;
 import java.nio.file.Files;
@@ -57,8 +61,8 @@ public class TestRaftUniqueNamesLimit {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Zeze.Raft.RocksRaft.Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
-	private static Peer client;
+	private static @Nullable Path raftXmlFile;
+	private static @Nullable Peer client;
 	private static final AtomicLong requestIds = new AtomicLong();
 
 	private static final class Peer extends HandshakeClient {
@@ -132,7 +136,7 @@ public class TestRaftUniqueNamesLimit {
 			server.close();
 		servers.clear();
 		rocksList.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new File(dbHome));
 		dbHomes.clear();
@@ -148,7 +152,7 @@ public class TestRaftUniqueNamesLimit {
 		return sb.append("</raft>\n").toString();
 	}
 
-	private static Zeze.Raft.RocksRaft.Rocks leaderRocks() {
+	private static Zeze.Raft.RocksRaft.@Nullable Rocks leaderRocks() {
 		for (var rocks : rocksList)
 			if (rocks.isLeader())
 				return rocks;
@@ -195,7 +199,7 @@ public class TestRaftUniqueNamesLimit {
 			var rocks = leaderRocks();
 			if (rocks == null)
 				continue;
-			if (rocks.getRaft().isReadyLeader())
+			if (requireNonNull(rocks.getRaft()).isReadyLeader())
 				return;
 			@SuppressWarnings("unchecked")
 			var table = (Zeze.Raft.RocksRaft.Table<String, Zeze.Builtin.ServiceManagerWithRaft.BAutoKey>)
@@ -221,7 +225,7 @@ public class TestRaftUniqueNamesLimit {
 		throw new IllegalStateException("no leader");
 	}
 
-	private static AsyncSocket socket;
+	private static @Nullable AsyncSocket socket;
 	private static int socketPort = -1;
 
 	/**
@@ -232,7 +236,7 @@ public class TestRaftUniqueNamesLimit {
 		var port = leaderPort();
 		if (socket != null && socketPort == port && !socket.isClosed())
 			return socket;
-		socket = client.connect(port);
+		socket = requireNonNull(client).connect(port);
 		socketPort = port;
 		login(socket);
 		return socket;

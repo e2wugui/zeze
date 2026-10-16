@@ -17,8 +17,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.TimeThrottle;
 import demo.Module1.BValue;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -39,13 +38,13 @@ public class TestRpcEncodeExceptionCleanup {
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			if (throwOnEncode())
 				throw new IllegalStateException("boom-encode-fnd851");
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 
@@ -99,7 +98,7 @@ public class TestRpcEncodeExceptionCleanup {
 	}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 	}
@@ -182,7 +181,7 @@ public class TestRpcEncodeExceptionCleanup {
 	}
 
 				@Override
-				public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+				public boolean Send(byte [] bytes, int offset, int length) {
 					return false; // 传输失败：正常false路径
 				}
 			};

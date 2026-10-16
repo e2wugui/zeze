@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -28,7 +32,6 @@ import Zeze.Services.ServiceManager.Id128UdpServer;
 import Zeze.Services.ServiceManager.Tid128Cache;
 import Zeze.Util.Id128;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * S2-1：allocateTid128CacheFuture 遇到异常完成（毒化）的 lastTid128CacheFuture 时必须自愈替换。
@@ -45,8 +48,8 @@ import org.jetbrains.annotations.NotNull;
 @Fast
 public class TestTid128CacheFutureSelfHeal {
 	private static final String globalName = "UnitTest.S2.Tid128CacheFutureSelfHeal";
-	private static Id128UdpServer server;
-	private static TestAgent agent;
+	private static @Nullable Id128UdpServer server;
+	private static @Nullable TestAgent agent;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -59,26 +62,26 @@ public class TestTid128CacheFutureSelfHeal {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		agent.client.stop();
-		server.stop();
+		requireNonNull(requireNonNull(agent).client).stop();
+		requireNonNull(server).stop();
 	}
 
 	// 不能把pending的future留给下一个测试：allocateTid128CacheFuture内部会get()等待上一次分配完成。
 	@AfterEach
 	public void completeLastFutureIfPending() {
-		var last = agent.getLastTid128CacheFuture();
+		var last = requireNonNull(agent).getLastTid128CacheFuture();
 		if (last != null && !last.isDone())
 			Assertions.assertTrue(last.setException(new TimeoutException("test cleanup")));
 	}
 
 	@Test
 	public void testPoisonedLastFutureSelfHeals() {
-		var f1 = agent.allocateTid128CacheFuture(globalName, 0);
+		var f1 = requireNonNull(agent).allocateTid128CacheFuture(globalName, 0);
 		Assertions.assertTrue(f1.setException(new TimeoutException("simulate udp timeout")));
 		Assertions.assertTrue(f1.isCompletedExceptionally());
 
 		// 修复前：这里抛CompletionException，且lastTid128CacheFuture永不被替换（毒化永久保留）。
-		var f2 = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName, 0));
+		var f2 = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).allocateTid128CacheFuture(globalName, 0));
 		Assertions.assertNotSame(f1, f2);
 		Assertions.assertSame(f2, agent.getLastTid128CacheFuture());
 
@@ -90,9 +93,9 @@ public class TestTid128CacheFutureSelfHeal {
 	@Test
 	public void testPoisonSelfHealRepeatable() {
 		for (var i = 0; i < 3; i++) {
-			var poisoned = agent.allocateTid128CacheFuture(globalName, 0);
+			var poisoned = requireNonNull(agent).allocateTid128CacheFuture(globalName, 0);
 			Assertions.assertTrue(poisoned.setException(new TimeoutException("simulate udp timeout " + i)));
-			var next = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName, 0));
+			var next = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).allocateTid128CacheFuture(globalName, 0));
 			Assertions.assertNotSame(poisoned, next);
 			Assertions.assertSame(next, agent.getLastTid128CacheFuture());
 			Assertions.assertTrue(next.setException(new TimeoutException("loop " + i))); // 保持last完成，避免下一轮get()阻塞。
@@ -101,11 +104,11 @@ public class TestTid128CacheFutureSelfHeal {
 
 	@Test
 	public void testNormalCompletedLastFutureStillAdaptive() {
-		var f1 = agent.allocateTid128CacheFuture(globalName, 0);
+		var f1 = requireNonNull(agent).allocateTid128CacheFuture(globalName, 0);
 		Assertions.assertTrue(f1.setResult(new Tid128Cache(globalName, agent, new Id128(0, 0), Tid128Cache.ALLOCATE_COUNT_MAX)));
 
 		// 正常完成的last future走原自适应档位路径，不受毒化检测影响。
-		var f2 = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName, 0));
+		var f2 = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).allocateTid128CacheFuture(globalName, 0));
 		Assertions.assertNotSame(f1, f2);
 		Assertions.assertSame(f2, agent.getLastTid128CacheFuture());
 	}
@@ -113,7 +116,7 @@ public class TestTid128CacheFutureSelfHeal {
 	@Test
 	public void testGetUsableTid128CacheFuture() {
 		// 毒化时兜底替换（finalCommit读取路径的决策）。
-		var f1 = agent.allocateTid128CacheFuture(globalName, 0);
+		var f1 = requireNonNull(agent).allocateTid128CacheFuture(globalName, 0);
 		Assertions.assertTrue(f1.setException(new TimeoutException("simulate udp timeout")));
 		var usable = agent.getUsableTid128CacheFuture(globalName);
 		Assertions.assertNotSame(f1, usable);
@@ -128,7 +131,7 @@ public class TestTid128CacheFutureSelfHeal {
 
 	/** 只实现被测路径需要的行为，其余入口不可用。 */
 	private static final class TestAgent extends AbstractAgent {
-		private Id128UdpClient client;
+		private @Nullable Id128UdpClient client;
 
 		private TestAgent() {
 			config = new Config(); // 默认无global：getHistoryAllocCount()=0(自适应)，对齐本测试的档位/毒化路径
@@ -140,13 +143,13 @@ public class TestTid128CacheFutureSelfHeal {
 		}
 
 		@Override
-		protected void allocate(@NotNull AutoKey autoKey, int pool) {
+		protected void allocate(AutoKey autoKey, int pool) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-										@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		protected boolean allocateAsync(String globalName, int allocCount,
+										ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -161,27 +164,27 @@ public class TestTid128CacheFutureSelfHeal {
 		}
 
 		@Override
-		public void editService(@NotNull BEditService arg) {
+		public void editService(BEditService arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument info) {
+		public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(BSubscribeArgument info) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+		public void unSubscribeService(BUnSubscribeArgument arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public boolean setServerLoad(@NotNull BServerLoad load) {
+		public boolean setServerLoad(BServerLoad load) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Threading getThreading() {
+		public Threading getThreading() {
 			throw new UnsupportedOperationException();
 		}
 

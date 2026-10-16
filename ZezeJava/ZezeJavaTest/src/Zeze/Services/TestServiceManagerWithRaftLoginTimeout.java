@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,8 +45,8 @@ public class TestServiceManagerWithRaftLoginTimeout {
 				<node Host="127.0.0.1" Port="19602"/>
 			</raft>
 			""";
-	private static Path raftXmlFile;
-	private static ExecutorService workers;
+	private static @Nullable Path raftXmlFile;
+	private static @Nullable ExecutorService workers;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -54,20 +58,20 @@ public class TestServiceManagerWithRaftLoginTimeout {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		workers.shutdownNow();
-		Files.deleteIfExists(raftXmlFile);
+		requireNonNull(workers).shutdownNow();
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 	}
 
 	private static ServiceManagerAgentWithRaft newAgent(long loginTimeout) throws Exception {
 		var config = Config.load();
-		config.getServiceManagerConf().setRaftXml(raftXmlFile.toString());
+		requireNonNull(config.getServiceManagerConf()).setRaftXml(requireNonNull(raftXmlFile).toString());
 		config.getServiceManagerConf().setSessionName("UnitTest.S1_4.LoginTimeout");
 		config.getServiceManagerConf().setLoginTimeout(loginTimeout);
 		return new ServiceManagerAgentWithRaft(config);
 	}
 
-	private static Future<Throwable> subscribeInWorker(ServiceManagerAgentWithRaft agent) {
-		return workers.submit(() -> {
+	private static Future<@Nullable Throwable> subscribeInWorker(ServiceManagerAgentWithRaft agent) {
+		return requireNonNull(workers).submit(() -> {
 			try {
 				agent.subscribeService(new BSubscribeInfo("UnitTest.S1_4.Svc"));
 				return null;

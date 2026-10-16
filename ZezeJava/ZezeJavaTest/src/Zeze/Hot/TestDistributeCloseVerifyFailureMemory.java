@@ -1,5 +1,9 @@
 package Zeze.Hot;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,8 +38,8 @@ public class TestDistributeCloseVerifyFailureMemory {
 	@TempDir
 	static Path tempDir;
 
-	private static Application app;
-	private static AppBase appBase;
+	private static @Nullable Application app;
+	private static @Nullable AppBase appBase;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -46,7 +50,7 @@ public class TestDistributeCloseVerifyFailureMemory {
 		app = new Application("TestDistributeCloseVerifyMemory", conf);
 		appBase = new AppBase() {
 			@Override
-			public Application getZeze() {
+			public @Nullable Application getZeze() {
 				return app;
 			}
 		};
@@ -58,7 +62,7 @@ public class TestDistributeCloseVerifyFailureMemory {
 		var workingDir = tempDir.resolve(name).resolve("working");
 		Files.createDirectories(workingDir.resolve("interfaces"));
 		Files.createDirectories(workingDir.resolve("modules"));
-		var hotManager = new HotManager(appBase, workingDir.toString(), distributeDir.toString());
+		var hotManager = new HotManager(requireNonNull(appBase), workingDir.toString(), distributeDir.toString());
 		return new DistributeManager(hotManager);
 	}
 

@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,8 +47,8 @@ public class TestWalkPageRedirectLimit {
 		}
 
 		@Override
-		public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte[] prefix,
-						 Binary expectedKeyFirst, Binary expectedKeyLast) {
+		public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte @Nullable [] prefix,
+						 @Nullable Binary expectedKeyFirst, @Nullable Binary expectedKeyLast) {
 			walkCount.incrementAndGet();
 			var r = new Walk();
 			r.Result.setBucketRefuse(true);

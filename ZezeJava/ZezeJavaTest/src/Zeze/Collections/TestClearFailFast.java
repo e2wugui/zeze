@@ -87,6 +87,7 @@ public class TestClearFailFast {
 
 	// CP1-F3：clearTable删除批失败必须中止报错，不得流式输出done后静默残留。
 	@Test
+	@SuppressWarnings("DataFlowIssue") // 删除批失败必须在流式响应前报错，此路径不使用 exchange。
 	public void testDbWebClearTableThrowsOnFailedProcedure() throws Exception {
 		var list = boolListModule.open("clearfail2_" + System.nanoTime());
 		assertEquals(Procedure.Success, TaskSpec.ofProcedure(app.newProcedure(() -> {

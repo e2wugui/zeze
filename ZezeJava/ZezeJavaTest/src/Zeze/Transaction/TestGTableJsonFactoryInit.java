@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -17,7 +21,6 @@ import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Util.Json;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -44,30 +47,30 @@ public class TestGTableJsonFactoryInit {
 	public static abstract class Marker extends Bean {
 		public long v;
 		@SuppressWarnings("FieldNameHidesFieldInSuperclass")
-		private transient Object mapKey;
+		private transient @Nullable Object mapKey;
 
-		public @NotNull Marker set(long x) {
+		public Marker set(long x) {
 			v = x;
 			return this;
 		}
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return mapKey;
 		}
 
 		@Override
-		public void mapKey(@NotNull Object mapKey) {
+		public void mapKey(Object mapKey) {
 			this.mapKey = mapKey;
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteLong(v);
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			v = bb.ReadLong();
 		}
 	}
@@ -138,7 +141,7 @@ public class TestGTableJsonFactoryInit {
 		var json1 = Json.toCompactString(h1);
 		raceRound(fm1, GTable2.getFactory(Integer.class, Long.class, M1.class), json1, () -> {
 			var parsed = (H1)Json.parse(json1, new H1());
-			var m = parsed.g.get(1, 2L);
+			var m = requireNonNull(parsed).g.get(1, 2L);
 			Assertions.assertNotNull(m, "并发首解析后数据必须恢复");
 			Assertions.assertEquals(3L, m.v);
 		});
@@ -148,7 +151,7 @@ public class TestGTableJsonFactoryInit {
 		var json2 = Json.toCompactString(h2);
 		raceRound(fm1, GTable2.getFactory(Integer.class, Long.class, M2.class), json2, () -> {
 			var parsed = (H2)Json.parse(json2, new H2());
-			var m = parsed.g.get(1, 2L);
+			var m = requireNonNull(parsed).g.get(1, 2L);
 			Assertions.assertNotNull(m);
 			Assertions.assertEquals(4L, m.v);
 		});
@@ -158,7 +161,7 @@ public class TestGTableJsonFactoryInit {
 		var json3 = Json.toCompactString(h3);
 		raceRound(fm1, GTable2.getFactory(Integer.class, Long.class, M3.class), json3, () -> {
 			var parsed = (H3)Json.parse(json3, new H3());
-			var m = parsed.g.get(1, 2L);
+			var m = requireNonNull(parsed).g.get(1, 2L);
 			Assertions.assertNotNull(m);
 			Assertions.assertEquals(5L, m.v);
 		});
@@ -172,7 +175,7 @@ public class TestGTableJsonFactoryInit {
 		var json4 = Json.toCompactString(h4);
 		raceRound(fm1, GTable1.getFactory(Integer.class, Long.class, Float.class), json4, () -> {
 			var parsed = (H4)Json.parse(json4, new H4());
-			var m = parsed.g.get(1, 2L);
+			var m = requireNonNull(parsed).g.get(1, 2L);
 			Assertions.assertNotNull(m);
 			Assertions.assertEquals(3.5f, m);
 		});

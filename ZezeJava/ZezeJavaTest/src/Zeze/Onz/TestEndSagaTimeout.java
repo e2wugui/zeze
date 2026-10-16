@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,17 +41,17 @@ public class TestEndSagaTimeout {
 	private static final long AccountSlow8 = 305;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
 		var myConfig = startTwoClusters(zeze2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().registerSaga(SlowSagaName,
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga(SlowSagaName,
 					TestEndSagaTimeout::sagaSlow8s, TestEndSagaTimeout::sagaCancel,
 					BKuafu.class, BKuafuResult.class, Zeze.Transaction.EmptyBean.class);
 
@@ -63,8 +67,8 @@ public class TestEndSagaTimeout {
 	private static long sagaSlow8s(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) throws Exception {
 		//noinspection BusyWait
 		Thread.sleep(8_000);
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -77,7 +81,7 @@ public class TestEndSagaTimeout {
 	@Test
 	@Timeout(120)
 	public void testEndSagaWaitsFlushTimeoutNotRpcDefault() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 
 		var txn = new NoStepTransaction();
 		txn.setOnzServer(onzServer); // 分配真实onzTid
@@ -104,7 +108,7 @@ public class TestEndSagaTimeout {
 		Assertions.assertTrue(elapsedMs < 18_000,
 				"endSaga应在应答到达即返回，不得挂到flushTimeout量级之外（实际 " + elapsedMs + " ms）");
 
-		waitUntil(() -> sagaCount(App.Instance.Zeze.getOnz()) == 0, 10_000, "FuncSagaEnd处理后参与方上下文必须清理");
+		waitUntil(() -> sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())) == 0, 10_000, "FuncSagaEnd处理后参与方上下文必须清理");
 		waitMoney(AccountSlow8, 5, 10_000, "慢业务必须正常提交（end与业务互斥串行，不影响提交）");
 	}
 
@@ -128,14 +132,14 @@ public class TestEndSagaTimeout {
 		r.Argument.setFuncName(SlowSagaName);
 		r.Argument.setFuncArgument(new Binary(bb.Bytes, 0, bb.WriteIndex));
 		r.Argument.setFlushMode(AbstractOnz.eFlushImmediately);
-		r.SendForWait(onzServer.getZezeInstance("zeze1")); // 不await：业务8s后才应答
-		waitUntil(() -> sagaCount(App.Instance.Zeze.getOnz()) == 1, 30_000, "saga上下文未注册");
+		r.SendForWait(requireNonNull(onzServer).getZezeInstance("zeze1")); // 不await：业务8s后才应答
+		waitUntil(() -> sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())) == 1, 30_000, "saga上下文未注册");
 	}
 
 	private static long getMoney(long account) throws Exception {
 		var holder = new long[1];
-		App.Instance.Zeze.newProcedure(() -> {
-			holder[0] = App.Instance.demo_Module1.getKuafu().getOrAdd(account).getMoney();
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			holder[0] = requireNonNull(App.Instance.demo_Module1).getKuafu().getOrAdd(account).getMoney();
 			return 0L;
 		}, "TestEndSagaTimeout.getMoney").call();
 		return holder[0];

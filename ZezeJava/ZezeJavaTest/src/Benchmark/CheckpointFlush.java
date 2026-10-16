@@ -1,5 +1,6 @@
 package Benchmark;
 
+import java.util.Objects;
 import harness.Bench;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
@@ -47,8 +48,8 @@ public class CheckpointFlush {
 			var futures = new ArrayList<Future<?>>();
 			for (int i = 0; i < count; ++i) {
 				long key = i;
-				futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
-					App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(key);
+				futures.add(TaskSpec.ofProcedure(App.Instance.getZeze().newProcedure(() -> {
+					Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(key).setLong2(key);
 					return 0;
 				}, "modify")).submitNow());
 				if ((i+1) % 100 == 0) {
@@ -60,7 +61,7 @@ public class CheckpointFlush {
 			for (var future : futures)
 				future.get();
 			var b = new Zeze.Util.Benchmark();
-			App.Instance.Zeze.checkpointRun();
+			App.Instance.getZeze().checkpointRun();
 			var name = "flush " + mode;
 			b.report(name, count);
 		} finally {

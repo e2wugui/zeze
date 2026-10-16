@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,7 +46,7 @@ public class TestOnzSagaStalledStepKeepsCompensation {
 	static volatile int CancelCount;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -50,12 +54,12 @@ public class TestOnzSagaStalledStepKeepsCompensation {
 		var myConfig = startTwoClusters(zeze2);
 
 		// fixture隔离（对齐TestOnzSagaCompensateInflightNotFound先例）：收割前序类残留并恢复TTL默认。
-		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
 			App.Instance.Zeze.getOnz().registerSaga(SagaName,
@@ -71,14 +75,14 @@ public class TestOnzSagaStalledStepKeepsCompensation {
 	public void after() throws Exception {
 		stopCoordinator(onzServer, zeze2);
 		// 收割本类残留（滞留FuncSaga执行后注册的上下文），恢复TTL默认。
-		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney()); // 参与方本地提交（发结果即提交）
 		result.setMoney(account.getMoney());
 		return 0;
@@ -106,7 +110,7 @@ public class TestOnzSagaStalledStepKeepsCompensation {
 	@Test
 	@Timeout(120)
 	public void testStalledSagaCompensatedViaRedoAfterGiveUp() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		var commitIndex = tableOf(onzServer, "commitIndex");
 
 		// perform语境的决策记录（rollback()返回false时不删——补偿通道保留）。
@@ -140,7 +144,7 @@ public class TestOnzSagaStalledStepKeepsCompensation {
 
 		Assertions.assertTrue(CancelCount >= 1, "保留的决策记录必须经redo补偿迟到的FuncSaga写入");
 		Assertions.assertEquals(0, count(commitIndex), "补偿成功后redo必须收敛删除决策记录");
-		Assertions.assertEquals(0, sagaCount(App.Instance.Zeze.getOnz()), "补偿成功后参与方上下文清理");
+		Assertions.assertEquals(0, sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())), "补偿成功后参与方上下文清理");
 	}
 
 	private static Field txnField(String name) throws Exception {

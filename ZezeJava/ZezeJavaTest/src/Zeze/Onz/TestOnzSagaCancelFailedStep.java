@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +38,7 @@ public class TestOnzSagaCancelFailedStep {
 		}
 
 		@Override
+		@SuppressWarnings("DataFlowIssue") // fake 返回 null socket，专门触发 SendForWait 的 Send Fail 路径。
 		public AsyncSocket getZezeInstance(String zezeName) {
 			asked.add(zezeName);
 			if (throwFor.contains(zezeName))

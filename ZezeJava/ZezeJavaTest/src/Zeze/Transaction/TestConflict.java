@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import demo.Module1.BValue;
@@ -10,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import Zeze.Transaction.Procedure;
 
+@NullMarked
 public class TestConflict {
 	private int sum;
 
@@ -25,7 +30,7 @@ public class TestConflict {
 
 	@Test
 	public final void testConflictAdd() throws Exception {
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcRemove, "ProcRemove").call());
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(TestConflict::ProcRemove, "ProcRemove").call());
 		var tasks = new ArrayList<Future<?>>();
 		for (int i = 0; i < 2000; ++i) {
 			tasks.add(Zeze.Util.TaskSpec.ofProcedure(
@@ -42,22 +47,22 @@ public class TestConflict {
 		}
 		sum += tasks.size();
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(this::ProcVerify, "ProcVerify").call());
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcRemove, "ProcRemove").call());
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(TestConflict::ProcRemove, "ProcRemove").call());
 	}
 
 	private static long ProcRemove() {
-		demo.App.getInstance().demo_Module1.getTable1().remove(123123L);
+		requireNonNull(demo.App.getInstance().demo_Module1).getTable1().remove(123123L);
 		return Procedure.Success;
 	}
 
 	private static long ProcAdd() {
-		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
+		BValue v = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(123123L);
 		v.setInt_1(v.getInt_1() + 1);
 		return Procedure.Success;
 	}
 
 	private long ProcVerify() {
-		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
+		BValue v = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(123123L);
 		Assertions.assertEquals(v.getInt_1(), sum);
 		return Procedure.Success;
 	}

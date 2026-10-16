@@ -1,5 +1,6 @@
 package Temp;
 
+import org.jspecify.annotations.Nullable;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -45,7 +46,7 @@ public class TestNettyHttp {
 		private static final AsciiString CONTENT_LENGTH = AsciiString.cached(String.valueOf(RES_BODY.length));
 		private static final AsciiString CONTENT_TYPE = AsciiString.cached("text/plain; charset=UTF-8");
 		private static final AsciiString SERVER = AsciiString.cached("Netty");
-		private static String date;
+		private static @Nullable String date;
 
 		@Override
 		public void channelRead(ChannelHandlerContext ctx, Object msg) {

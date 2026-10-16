@@ -1,5 +1,6 @@
 package Temp;
 
+import org.jspecify.annotations.Nullable;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
@@ -54,7 +55,7 @@ public class TestWebSocketServer extends WebSocketServer {
 	}
 
 	@Override
-	public void onError(WebSocket ws, Exception ex) { // 非单个连接引起的异常时ws为null
+	public void onError(@Nullable WebSocket ws, Exception ex) { // 非单个连接引起的异常时ws为null
 		System.out.println("onError: ws=" + (ws != null ? ws.getRemoteSocketAddress() : "null"));
 		ex.printStackTrace();
 		if (ws != null)

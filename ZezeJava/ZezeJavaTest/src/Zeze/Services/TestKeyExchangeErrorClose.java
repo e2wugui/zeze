@@ -13,8 +13,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +44,7 @@ public class TestKeyExchangeErrorClose {
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			closeCount.incrementAndGet();
 			super.OnSocketClose(so, e);
 		}

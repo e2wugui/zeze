@@ -1,5 +1,7 @@
 package Zeze.Arch.Gen;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -40,7 +42,7 @@ public class TestGenModuleWriteFailFast {
 
 	private final AppBase dummyApp = new AppBase() {
 		@Override
-		public Application getZeze() {
+		public @Nullable Application getZeze() {
 			return null; // genModuleCode只读app.getClass()匹配构造器，不触碰zeze
 		}
 	};

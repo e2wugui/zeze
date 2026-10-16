@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
@@ -72,7 +76,7 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
+	private static @Nullable Path raftXmlFile;
 	private static final AtomicLong requestIds = new AtomicLong();
 	private static final HashMap<String, Field> fieldCache = new HashMap<>();
 
@@ -93,10 +97,10 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 					}, TransactionLevel.None, DispatchMode.Direct));
 		}
 
-		private Connector connector;
+		private @Nullable Connector connector;
 
 		/** 当前存活连接：sendLogin无应答重连时更新，调用方后续请求须经peer.sock取最新 */
-		private AsyncSocket sock;
+		private @Nullable AsyncSocket sock;
 
 		AsyncSocket connect(int port) throws Exception {
 			// WaitReady()固定5s超时：全量负载下握手可能超时（TimeoutException，实测偶发），
@@ -172,7 +176,7 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 		}
 		servers.clear();
 		rocksList.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new File(dbHome));
 		dbHomes.clear();
@@ -188,7 +192,7 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 		return sb.append("</raft>\n").toString();
 	}
 
-	private static Rocks leaderRocks() {
+	private static @Nullable Rocks leaderRocks() {
 		for (var rocks : rocksList)
 			if (rocks.isLeader())
 				return rocks;
@@ -228,7 +232,7 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 			var rocks = leaderRocks();
 			if (rocks == null)
 				continue;
-			if (rocks.getRaft().isReadyLeader())
+			if (requireNonNull(rocks.getRaft()).isReadyLeader())
 				return;
 			@SuppressWarnings("unchecked")
 			var table = (Zeze.Raft.RocksRaft.Table<String, Zeze.Builtin.ServiceManagerWithRaft.BServerState>)stateField
@@ -341,11 +345,11 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 			var leaderIdx = leaderIndex();
 			// 阻塞期间老leader心跳应答全部失败，解锁前/后可能退位重选：Session与后续断言必须钉在
 			// 处理Login的这台服务器上，不能再用leaderRocks()（那会拿到新leader）。
-			var loginServer = ((Rocks)field("rocks").get(servers.get(leaderIdx))).getRaft().getServer();
+			var loginServer = requireNonNull(((Rocks)field("rocks").get(servers.get(leaderIdx))).getRaft()).getServer();
 			var followerRafts = new ArrayList<Raft>();
 			for (int i = 0; i < servers.size(); i++) {
 				if (i != leaderIdx)
-					followerRafts.add(((Rocks)field("rocks").get(servers.get(i))).getRaft());
+					followerRafts.add(requireNonNull(((Rocks)field("rocks").get(servers.get(i))).getRaft()));
 			}
 			Assertions.assertEquals(2, followerRafts.size());
 			// 持有两个follower的Raft锁：processAppendEntries需持锁处理（Raft.processAppendEntries），
@@ -384,7 +388,7 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 			waitStableLeader(); // 阻塞窗口可能引发重选，等新leader稳定
 			ensureLeaderReady();
 			peer.sock = peer.connect(leaderPort()); // 连到当前leader（旧连接可能已指向follower）
-			var leaderLog = ((Rocks)field("rocks").get(servers.get(leaderIndex()))).getRaft().getLogSequence();
+			var leaderLog = requireNonNull(((Rocks)field("rocks").get(servers.get(leaderIndex()))).getRaft()).getLogSequence();
 			var before = leaderLog.getCommitIndex();
 			String afterName = "UnitTest.RAC.After." + System.nanoTime();
 			Assertions.assertEquals(0, sendLogin(peer, afterName, 30_000)
@@ -395,7 +399,7 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 			// S1-3断言（确定性红绿）：rc=0证明handler必然执行（成功提交才应答），其Session带keepAlive
 			// 定时器；同一socket再次成功Login覆盖userState后，旧定时器必已取消。
 			// （不依赖blocked会话做此断言：leader抖动时blocked请求可能在派发层被拒，handler未执行。）
-			var afterServer = ((Rocks)field("rocks").get(servers.get(leaderIndex()))).getRaft().getServer();
+			var afterServer = requireNonNull(((Rocks)field("rocks").get(servers.get(leaderIndex()))).getRaft()).getServer();
 			var afterTask = serverSessionKeepAliveTask(afterServer, afterName);
 			Assertions.assertNotNull(afterTask, "成功login的Session必须持有keepAlive定时器");
 			Assertions.assertEquals(0, sendLogin(peer, "UnitTest.RAC.Cover2." + System.nanoTime(), 30_000)

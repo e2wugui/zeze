@@ -1,10 +1,13 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Path;
 
 import harness.Fast;
 import harness.FastServerIds;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,8 +35,8 @@ public class TestRrsReadFastPathOldTableMigration {
 	@TempDir
 	Path tempDir;
 
-	private Application app;
-	private tMigrate table;
+	private @Nullable Application app;
+	private @Nullable tMigrate table;
 
 	private void startAppWithOldTable() throws Exception {
 		var config = new Config();
@@ -62,8 +65,8 @@ public class TestRrsReadFastPathOldTableMigration {
 
 	// 种子数据只写旧库，模拟迁移模式下尚未倒库的存量记录（openTable为getOrAdd语义，重复打开安全）。
 	private void seedOldDatabase(long key, long value) throws Exception {
-		var oldDb = app.getDatabase("old");
-		var oldDbTable = oldDb.openTable(table.getName(), table.getId());
+		var oldDb = requireNonNull(app).getDatabase("old");
+		var oldDbTable = oldDb.openTable(requireNonNull(table).getName(), table.getId());
 		var seed = new MigrateBean();
 		seed.value = value;
 		try (var t = oldDb.beginTransaction()) {
@@ -75,8 +78,8 @@ public class TestRrsReadFastPathOldTableMigration {
 	// 纯读（无任何写）：装载路径触发倒库分支的 setDirty，提交时 hasDirtyWrite=false——
 	// 修复前后谓词在此分叉（修复前走快路、修复后 hasUnregisteredDirty 留在原路径）。
 	private long read(long key, final long[] out) {
-		return app.newProcedure((FuncLong)() -> {
-			var v = table.get(key);
+		return requireNonNull(app).newProcedure((FuncLong)() -> {
+			var v = requireNonNull(table).get(key);
 			if (v != null)
 				out[0] = v.value;
 			return 0L;
@@ -88,7 +91,7 @@ public class TestRrsReadFastPathOldTableMigration {
 		startAppWithOldTable();
 		try {
 			seedOldDatabase(KEY_OLD, 100);
-			Assertions.assertNull(table.selectFromDatabase(KEY_OLD), "前置：倒库记录仅存旧库");
+			Assertions.assertNull(requireNonNull(table).selectFromDatabase(KEY_OLD), "前置：倒库记录仅存旧库");
 
 			// 纯读装载：新库miss→oldTable命中→Table模式读路径setDirty（孤立未注册）。
 			var out = new long[1];
@@ -97,12 +100,12 @@ public class TestRrsReadFastPathOldTableMigration {
 			Assertions.assertNull(table.selectFromDatabase(KEY_OLD), "提交后checkpoint前：尚未落新库");
 
 			// 核心：注册通道必须在——修复前快路吞掉注册，checkpointRun 后新库仍为空。
-			app.checkpointRun();
+			requireNonNull(app).checkpointRun();
 			var migrated = table.selectFromDatabase(KEY_OLD);
 			Assertions.assertNotNull(migrated, "纯读提交必须保留倒库记录的flush注册（readFastPath不得放过未注册脏）");
 			Assertions.assertEquals(100, migrated.value, "迁移落库的值等于旧库值");
 		} finally {
-			app.stop();
+			requireNonNull(app).stop();
 		}
 	}
 
@@ -114,17 +117,17 @@ public class TestRrsReadFastPathOldTableMigration {
 		public long value;
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteLong(value);
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			value = bb.ReadLong();
 		}
 
 		@Override
-		public @NotNull Bean copy() {
+		public Bean copy() {
 			var c = new MigrateBean();
 			c.value = value;
 			return c;
@@ -148,12 +151,12 @@ public class TestRrsReadFastPathOldTableMigration {
 		}
 
 		@Override
-		public Long decodeKey(@NotNull ByteBuffer bb) {
+		public Long decodeKey(ByteBuffer bb) {
 			return bb.ReadLong();
 		}
 
 		@Override
-		public @NotNull ByteBuffer encodeKey(Long key) {
+		public ByteBuffer encodeKey(Long key) {
 			var bb = ByteBuffer.Allocate(8);
 			bb.WriteLong(key);
 			return bb;
@@ -165,7 +168,7 @@ public class TestRrsReadFastPathOldTableMigration {
 		}
 
 		@Override
-		public void encodeKeySQLStatement(@NotNull Zeze.Serialize.SQLStatement st, Long key) {
+		public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Long key) {
 			st.appendLong("__key", key);
 		}
 

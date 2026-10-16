@@ -1,5 +1,8 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
 import org.junit.jupiter.api.Test;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -15,8 +18,9 @@ import Zeze.Transaction.DatabasePostgreSQL;
 import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("CallToPrintStackTrace")
+@NullMarked
 public class TestDatabaseMongoDb {
-	private static String getPersonalUrl() throws UnknownHostException {
+	private static @Nullable String getPersonalUrl() throws UnknownHostException {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
 		if (hostName.equals("doudouwang")) { // lichenghua's computer 2

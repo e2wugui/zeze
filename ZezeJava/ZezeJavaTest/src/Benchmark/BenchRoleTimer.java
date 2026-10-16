@@ -1,5 +1,6 @@
 package Benchmark;
 
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
@@ -23,7 +24,6 @@ import Zeze.Util.TaskSpec;
 import harness.Bench;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("NewClassNamingConvention")
 @Bench
 public class BenchRoleTimer {
-	private static final @NotNull Logger logger = LogManager.getLogger(BenchRoleTimer.class);
+	private static final Logger logger = LogManager.getLogger(BenchRoleTimer.class);
 
 	private final Zezex.ZezexTestEnv env = new Zezex.ZezexTestEnv();
 
@@ -62,13 +62,13 @@ public class BenchRoleTimer {
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteLong(roleId);
 			bb.WriteInt(id);
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			roleId = bb.ReadLong();
 			id = bb.ReadInt();
 		}
@@ -76,7 +76,7 @@ public class BenchRoleTimer {
 
 	public static class TimerBatch implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			var ctxBean = (ContextBatch)context.customData;
 			assert ctxBean != null;
 			var idSet = batchContext.get(ctxBean.getRoleId());
@@ -114,7 +114,7 @@ public class BenchRoleTimer {
 					loginFutures.add(TaskSpec.ofAction(() -> {
 						// token 等待必须有超时兜底：LoginQueue 未接纳（backlog 溢出且不重连）或 token 排队滞留时，
 						// 无超时 get() 要挂到 task-timeout 看门狗 interrupt（~2分钟）才解脱，且 OfAction 吞异常后静默继续。
-						Zezex.ZezexTestEnv.auth(client.onLinkConnectedFuture.get(30, TimeUnit.SECONDS), client, "account" + finalLoginI);
+						Zezex.ZezexTestEnv.auth(Objects.requireNonNull(client.onLinkConnectedFuture).get(30, TimeUnit.SECONDS), client, "account" + finalLoginI);
 						var role = Zezex.ZezexTestEnv.getRole(client);
 						var roleId = null != role ? role.getId() : Zezex.ZezexTestEnv.createRole(client, "role" + finalLoginI);
 						Zezex.ZezexTestEnv.login(client, roleId);
@@ -134,11 +134,11 @@ public class BenchRoleTimer {
 				log("batch login " + loginRoleIds.size() + " complete.");
 
 				var server0 = env.servers.getFirst();
-				var timerRole0 = server0.getZeze().getTimer().getRoleTimer();
+				var timerRole0 = Objects.requireNonNull(server0.getZeze().getTimer()).getRoleTimer();
 
 				for (var roleId : loginRoleIds) {
 					var idSet = batchContext.computeIfAbsent(roleId, (k) -> new ConcurrentHashSet<>());
-					TaskSpec.ofProcedure(server0.Zeze.newProcedure(() -> {
+					TaskSpec.ofProcedure(server0.getZeze().newProcedure(() -> {
 						// 每个角色创建timer。
 						for (var i = 0; i < 10; ++i) {
 							idSet.add(i); // 本来应该事务成功，不过这个目前没有失败的，先这样。
@@ -157,7 +157,7 @@ public class BenchRoleTimer {
 				var logoutFutures = new HashMap<Logout, TaskCompletionSource<EmptyBean>>();
 				for (var client : env.clients) {
 					var logout = new Logout();
-					logoutFutures.put(logout, logout.SendForWait(client.ClientService.GetSocket(), 30_000));
+					logoutFutures.put(logout, logout.SendForWait(Objects.requireNonNull(client.ClientService).GetSocket(), 30_000));
 				}
 				for (var future : logoutFutures.entrySet()) {
 					future.getValue().await();

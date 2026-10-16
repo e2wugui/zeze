@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.Comparator;
 import Zeze.Serialize.Vector2;
 import Zeze.Transaction.Procedure;
@@ -12,6 +16,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@NullMarked
 public class TestProcedure {
 	@BeforeEach
 	public final void testInit() throws Exception {
@@ -25,23 +30,23 @@ public class TestProcedure {
 
 	@Test
 	public final void testVector() {
-		App.getInstance().Zeze.newProcedure(() -> {
-			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(999L);
+		requireNonNull(App.getInstance().Zeze).newProcedure(() -> {
+			var v = requireNonNull(App.getInstance().demo_Module1).getTable1().getOrAdd(999L);
 			v.setVector2(new Vector2(1, 2));
 			Assertions.assertEquals(new Vector2(1, 2), v.getVector2());
 			return 0;
 		}, "testVector1").call();
 
-		App.getInstance().Zeze.newProcedure(() -> {
-			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(999L);
+		requireNonNull(App.getInstance().Zeze).newProcedure(() -> {
+			var v = requireNonNull(App.getInstance().demo_Module1).getTable1().getOrAdd(999L);
 			Assertions.assertEquals(new Vector2(1, 2), v.getVector2());
 			v.setVector2(new Vector2(3, 4));
 			Assertions.assertEquals(new Vector2(3, 4), v.getVector2());
 			return Procedure.LogicError;
 		}, "testVector2").call();
 
-		App.getInstance().Zeze.newProcedure(() -> {
-			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(999L);
+		requireNonNull(App.getInstance().Zeze).newProcedure(() -> {
+			var v = requireNonNull(App.getInstance().demo_Module1).getTable1().getOrAdd(999L);
 			Assertions.assertEquals(new Vector2(1, 2), v.getVector2());
 			App.getInstance().demo_Module1.getTable1().remove(999L);
 			return 0;
@@ -50,15 +55,15 @@ public class TestProcedure {
 
 	@Test
 	public void testNestLogOneLogDynamic() {
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
-			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			var value = requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(18989L);
 			value.setBean12(new BSimple());
 			value.getDynamic14().setBean(new BSimple());
 			value.getSet10().add(1);
 			value.getMap15().put(1L, 1L);
 			value.getList9().add(new demo.Bean1());
-			Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
-				var value2 = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
+			Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+				var value2 = requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(18989L);
 				value2.setBean12(new BSimple());
 				value2.getDynamic14().setBean(new BSimple());
 				value2.getSet10().add(1);
@@ -72,8 +77,8 @@ public class TestProcedure {
 
 	@Test
 	public void testSortList() {
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
-			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18990L);
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			var value = requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(18990L);
 			value.getList9().clear();
 			for (int i = 0; i < 10; i++) {
 				var b1 = new Bean1();
@@ -83,13 +88,13 @@ public class TestProcedure {
 			return 0;
 		}, "testSortList1").call());
 
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
-			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18990L);
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			var value = requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(18990L);
 			value.getList9().sort(Comparator.comparingInt(Bean1::getV1));
 			return 0;
 		}, "testSortList2").call());
 
-		var b = App.Instance.demo_Module1.getTable1().selectDirty(18990L);
+		var b = requireNonNull(App.Instance.demo_Module1).getTable1().selectDirty(18990L);
 		Assertions.assertNotNull(b);
 		var last = Integer.MIN_VALUE;
 		for (Bean1 b1 : b.getList9()) {

@@ -1,9 +1,10 @@
 package Benchmark;
+
+import java.util.Objects;
 import harness.Bench;
 import harness.MacroBench;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
 import demo.App;
 import org.junit.jupiter.api.Assertions;
 
@@ -49,10 +50,10 @@ public class IMmoLiteWorkload {
 				for (int i = 0; i < TxnCount; ++i) {
 					final int seq = i;
 					final int mix = i % 10; // 0-2背包 3-4房间 5-6排行 7-8邮件 9会话
-					App.Instance.Zeze.newProcedure(() -> op(mix, seq), "mmo").call();
+					App.Instance.getZeze().newProcedure(() -> op(mix, seq), "mmo").call();
 				}
 			});
-			App.Instance.Zeze.newProcedure(IMmoLiteWorkload::Check, "check").call();
+			App.Instance.getZeze().newProcedure(IMmoLiteWorkload::Check, "check").call();
 			clearAll();
 		} finally {
 			//App.Instance.Stop();
@@ -66,7 +67,7 @@ public class IMmoLiteWorkload {
 		final long role = (i / 10) % Roles;
 		switch (mix) {
 			case 0, 1, 2 -> { // 背包：加一件+删一件（容器churn，槽位 i 与 i+8 恒不同）
-				var bean = App.Instance.demo_web.getMap2Bean1().getOrAdd(role);
+				var bean = Objects.requireNonNull(App.Instance.demo_web).getMap2Bean1().getOrAdd(role);
 				var item = new demo.Bean1();
 				item.setV1(i);
 				item.getV2().put(0, i);
@@ -75,24 +76,24 @@ public class IMmoLiteWorkload {
 				invOps.incrementAndGet();
 			}
 			case 3, 4 -> { // 房间战斗：同key冲突 + 单事务双字段写
-				var room = App.Instance.demo_Module1.getTable1().getOrAdd((long)((i / 10) % Rooms));
+				var room = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd((long)((i / 10) % Rooms));
 				room.setLong2(room.getLong2() + 1);
 				room.setInt_1(i);
 				roomOps.incrementAndGet();
 			}
 			case 5, 6 -> { // 排行榜：热key有序容器 put+remove
-				var board = App.Instance.demo_Module1.getTable5().getOrAdd(1L);
+				var board = Objects.requireNonNull(App.Instance.demo_Module1).getTable5().getOrAdd(1L);
 				board.getPsortedmap().put(i % RankCap, (int)(role % Roles));
 				board.getPsortedmap().remove((i + RankCap / 2) % RankCap);
 				rankOps.incrementAndGet();
 			}
 			case 7, 8 -> { // 邮件：写多 insert/delete churn
-				App.Instance.demo_Module1.getTable3().getOrAdd((long)(i % MailWindow)).setLong2(i);
+				Objects.requireNonNull(App.Instance.demo_Module1).getTable3().getOrAdd((long)(i % MailWindow)).setLong2(i);
 				App.Instance.demo_Module1.getTable3().remove((long)((i + 1) % MailWindow));
 				mailOps.incrementAndGet();
 			}
 			default -> { // 会话心跳：单字段高频更新
-				App.Instance.demo_Module1.getTableImportant().getOrAdd(role).setLong2(i);
+				Objects.requireNonNull(App.Instance.demo_Module1).getTableImportant().getOrAdd(role).setLong2(i);
 				sessOps.incrementAndGet();
 			}
 		}
@@ -104,7 +105,7 @@ public class IMmoLiteWorkload {
 		// 房间总场次 = roomOps（每 op 恰 +1，且每轮重置——校验的是末轮状态）
 		long roomSum = 0;
 		for (long room = 0; room < Rooms; ++room)
-			roomSum += App.Instance.demo_Module1.getTable1().getOrAdd(room).getLong2();
+			roomSum += Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(room).getLong2();
 		Assertions.assertEquals(roomOps.get() - (long)(totalRounds - 1) * TxnCount / 10 * 2, roomSum,
 				"room hits: only last round survives clearAll");
 
@@ -127,7 +128,7 @@ public class IMmoLiteWorkload {
 		// 背包槽位有界
 		long invRoles = 0;
 		for (long r = 0; r < Roles; ++r) {
-			var m2 = App.Instance.demo_web.getMap2Bean1().getOrAdd(r).getMap2();
+			var m2 = Objects.requireNonNull(App.Instance.demo_web).getMap2Bean1().getOrAdd(r).getMap2();
 			Assertions.assertTrue(m2.size() <= InvSlots, "inventory bounded");
 			if (m2.size() > 0)
 				++invRoles;
@@ -140,18 +141,18 @@ public class IMmoLiteWorkload {
 	}
 
 	private static void clearAll() throws Exception {
-		App.Instance.Zeze.newProcedure(() -> {
+		App.Instance.getZeze().newProcedure(() -> {
 			for (long r = 0; r < Rooms; ++r)
-				App.Instance.demo_Module1.getTable1().remove(r);
+				Objects.requireNonNull(App.Instance.demo_Module1).getTable1().remove(r);
 			App.Instance.demo_Module1.getTable5().remove(1L);
 			for (long m = 0; m < MailWindow; ++m)
 				App.Instance.demo_Module1.getTable3().remove(m);
 			for (long r = 0; r < Roles; ++r)
 				App.Instance.demo_Module1.getTableImportant().remove(r);
 			for (long r = 0; r < Roles; ++r)
-				App.Instance.demo_web.getMap2Bean1().remove(r);
+				Objects.requireNonNull(App.Instance.demo_web).getMap2Bean1().remove(r);
 			return 0L;
 		}, "clear").call();
-		App.Instance.Zeze.checkpointRun();
+		App.Instance.getZeze().checkpointRun();
 	}
 }

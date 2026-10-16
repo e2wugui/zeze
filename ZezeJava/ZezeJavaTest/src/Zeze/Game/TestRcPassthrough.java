@@ -18,8 +18,7 @@ import Zeze.Net.Protocol;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -76,7 +75,7 @@ public class TestRcPassthrough {
 	}
 
 	private static final class TestArchOnline extends Zeze.Arch.Online {
-		TestArchOnline(@NotNull AppBase app) {
+		TestArchOnline(AppBase app) {
 			super(app);
 		}
 
@@ -87,11 +86,11 @@ public class TestRcPassthrough {
 
 	// protected入口以子类放开（跨包继承，方法与字段在子类内可达）。
 	private static final class ArchProvider extends Zeze.Arch.ProviderWithOnline {
-		ArchProvider(@NotNull Zeze.Arch.Online online) {
+		ArchProvider(Zeze.Arch.Online online) {
 			this.online = online;
 		}
 
-		long call(@NotNull LinkBroken p) throws Exception {
+		long call(LinkBroken p) throws Exception {
 			return ProcessLinkBroken(p);
 		}
 	}
@@ -104,16 +103,17 @@ public class TestRcPassthrough {
 		}
 
 		@Override
-		public @Nullable Connector getConnector() {
+		public Connector getConnector() {
 			return new Connector("127.0.0.1", 1) {
 				@Override
-				public @NotNull String getName() {
+				public String getName() {
 					return "link1";
 				}
 			};
 		}
 
 		@Override
+		@SuppressWarnings("DataFlowIssue") // 哑 socket 仅记录发送结果，此测试路径不使用连接类型。
 		public Type getType() {
 			return null;
 		}
@@ -123,7 +123,7 @@ public class TestRcPassthrough {
 		}
 
 		@Override
-		public boolean Send(byte @NotNull[] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return false;
 		}
 
@@ -210,6 +210,7 @@ public class TestRcPassthrough {
 
 	/** 孪生T1：Game.ProcessLogoutRequestOnlineSet透传localLogout失败码，且失败不respond。 */
 	@Test
+	@SuppressWarnings("DataFlowIssue") // Dispatch仅作占位；session覆写全部访问Dispatch的测试路径。
 	public void testGameLogoutRequestRcPassedThrough() throws Exception {
 		var zeze = newApp("RcPassthroughGameLogout");
 		var online = newOnline(zeze);
@@ -224,7 +225,7 @@ public class TestRcPassthrough {
 			// Dispatch仅为类型占位，覆写后不触达；respond覆写为计数（失败路径不得调用）。
 			var session = new ProviderUserSession(null) {
 				@Override
-				public @Nullable Long getRoleId() {
+				public Long getRoleId() {
 					return roleId;
 				}
 
@@ -234,12 +235,12 @@ public class TestRcPassthrough {
 				}
 
 				@Override
-				public @NotNull String getOnlineSetName() {
+				public String getOnlineSetName() {
 					return "";
 				}
 
 				@Override
-				public void respond(@NotNull Protocol<?> p) {
+				public void respond(Protocol<?> p) {
 					respondCalls.incrementAndGet();
 				}
 			};

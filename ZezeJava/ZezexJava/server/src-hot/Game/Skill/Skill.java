@@ -1,5 +1,6 @@
 package Game.Skill;
 
+
 public class Skill {
 	public final BSkill Bean;
 

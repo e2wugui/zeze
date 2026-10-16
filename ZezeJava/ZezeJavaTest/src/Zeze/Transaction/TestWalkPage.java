@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.ArrayList;
 import java.util.List;
 import Zeze.Transaction.DatabaseRedis;
@@ -12,6 +16,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@NullMarked
 public class TestWalkPage {
 	@BeforeEach
 	public final void testInit() throws Exception {
@@ -25,9 +30,9 @@ public class TestWalkPage {
 
 	@Test
 	public void testFind() {
-		var t = App.Instance.demo_Module1.getTable1();
+		var t = requireNonNull(App.Instance.demo_Module1).getTable1();
 		// 原先写入后零校验、rc忽略（2026-09-20审核）：写入必须生效且事务成功
-		var rc = App.Instance.Zeze.newProcedure(() -> {
+		var rc = requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			t.getOrAdd(1L).setInt_1(1);
 			return 0;
 		}, "find").call();
@@ -36,7 +41,7 @@ public class TestWalkPage {
 		// 30/30确定性假红）：读回须在过程内取值、过程外断言（对齐TestSafeBatch.queryBatch的out模式）。
 		var int1 = new int[1];
 		var rcVerify = App.Instance.Zeze.newProcedure(() -> {
-			int1[0] = t.get(1L).getInt_1();
+			int1[0] = requireNonNull(t.get(1L)).getInt_1();
 			return 0;
 		}, "findVerify").call();
 		Assertions.assertEquals(0L, rcVerify, "读回事务必须成功");
@@ -297,8 +302,8 @@ public class TestWalkPage {
 	}
 
 	private static tWalkPage prepareTable() {
-		var t = App.getInstance().demo_Module1.tWalkPage();
-		App.getInstance().Zeze.newProcedure(() -> {
+		var t = requireNonNull(App.getInstance().demo_Module1).tWalkPage();
+		requireNonNull(App.getInstance().Zeze).newProcedure(() -> {
 			t.put(5, new Bean1());
 			t.put(3, new Bean1());
 			t.put(1, new Bean1());
@@ -311,8 +316,8 @@ public class TestWalkPage {
 	}
 
 	private static tWalkPage prepareTableDesc() {
-		var t = App.getInstance().demo_Module1.tWalkPage();
-		App.getInstance().Zeze.newProcedure(() -> {
+		var t = requireNonNull(App.getInstance().demo_Module1).tWalkPage();
+		requireNonNull(App.getInstance().Zeze).newProcedure(() -> {
 			t.put(3, new Bean1());
 			t.put(2, new Bean1());
 			t.put(1, new Bean1());

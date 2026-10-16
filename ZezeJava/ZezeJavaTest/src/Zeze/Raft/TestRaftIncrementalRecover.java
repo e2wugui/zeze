@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -62,11 +66,11 @@ public class TestRaftIncrementalRecover {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
 				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
 
 			RaftHeadlessSupport.applyEntry(rocks, table, 1, 30);
-			var seq = rocks.getRaft().getLogSequence();
+			var seq = requireNonNull(rocks.getRaft()).getLogSequence();
 			var heartbeat = new RaftLog(1, 2, new HeartbeatLog());
 			seq.saveLog(heartbeat);
 			seq.tryApply(heartbeat, 1);
@@ -78,7 +82,7 @@ public class TestRaftIncrementalRecover {
 
 			RaftHeadlessSupport.applyEntry(rocks, table, 3, 50);
 			assertEquals(List.of(10, 20, 30, 50), RaftHeadlessSupport.readStorage(table, 1));
-			assertEquals(3L, rocks.readAppliedWatermark().index());
+			assertEquals(3L, requireNonNull(rocks.readAppliedWatermark()).index());
 		}
 
 		// run2：同DbHome重开=重启。水位有效必须增量恢复：跳过restore、lastApplied定位到
@@ -86,8 +90,8 @@ public class TestRaftIncrementalRecover {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
 				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
-			var logSequence = rocks.getRaft().getLogSequence();
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
+			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 			assertEquals(1, logSequence.getFirstIndex());
 			assertEquals(3, logSequence.getLastIndex());
 			assertTrue(new File(logSequence.getCommittedSnapshotFile()).isFile(), "已提交快照存在");
@@ -98,7 +102,7 @@ public class TestRaftIncrementalRecover {
 			RaftHeadlessSupport.applyEntry(rocks, table, 4, 60);
 			assertEquals(List.of(10, 20, 30, 50, 60), RaftHeadlessSupport.readStorage(table, 1), "前缀存活+新条目恰好一次");
 			assertEquals(4, logSequence.getLastApplied());
-			assertEquals(4L, rocks.readAppliedWatermark().index());
+			assertEquals(4L, requireNonNull(rocks.readAppliedWatermark()).index());
 		}
 	}
 
@@ -108,8 +112,8 @@ public class TestRaftIncrementalRecover {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
 				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
-			var logSequence = rocks.getRaft().getLogSequence();
+			requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
+			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 			assertFalse(logSequence.tryRecoverFromWatermark(), "无水位行必须回退全量恢复");
 			assertEquals(0, logSequence.getLastApplied());
 		}
@@ -119,7 +123,7 @@ public class TestRaftIncrementalRecover {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
 				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
 			assertTrue(rocks.snapshot(Path.of(dbHome, "snapshot.base.zip").toString()).success);
 			RaftHeadlessSupport.applyEntry(rocks, table, 1, 30);
@@ -129,7 +133,7 @@ public class TestRaftIncrementalRecover {
 
 	private void assertRestartRestoresSnapshot() throws Exception {
 		// 捕获构造中的Raft，构造失败时也释放已打开的日志库句柄。
-		var startingRaft = new AtomicReference<Raft>();
+		var startingRaft = new AtomicReference<@Nullable Raft>();
 		try {
 			var rocks = new Rocks(raftName, RocksMode.Pessimism,
 					RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false,
@@ -138,8 +142,8 @@ public class TestRaftIncrementalRecover {
 						return new Server(raft, name, config);
 					}, new TaskOneByOneByKey());
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
-			var seq = rocks.getRaft().getLogSequence();
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
+			var seq = requireNonNull(rocks.getRaft()).getLogSequence();
 			assertEquals(0, seq.getFirstIndex());
 			assertEquals(0, seq.getLastApplied(), "全量恢复回到快照边界");
 			assertNull(rocks.readAppliedWatermark(), "损坏水位不得留在恢复后的库中");

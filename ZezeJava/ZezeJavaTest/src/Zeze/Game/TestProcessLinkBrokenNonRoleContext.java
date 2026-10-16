@@ -12,8 +12,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -66,6 +65,7 @@ public class TestProcessLinkBrokenNonRoleContext {
 		}
 
 		@Override
+		@SuppressWarnings("DataFlowIssue") // 哑 socket 只提供会话编号，此测试路径不使用连接类型。
 		public Type getType() {
 			return null;
 		}
@@ -75,7 +75,7 @@ public class TestProcessLinkBrokenNonRoleContext {
 		}
 
 		@Override
-		public boolean Send(byte @NotNull[] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return false;
 		}
 

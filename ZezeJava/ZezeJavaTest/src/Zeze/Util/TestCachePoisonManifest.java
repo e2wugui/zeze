@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -55,7 +57,7 @@ public class TestCachePoisonManifest {
 		// 退役后 key 从 RocksDb 消失：新实例（loader v2）get 未命中 db、重走 loader 装载 v2。
 		var cache2 = newCache(dir, "v2");
 		var obj = (Zeze.Util.TestCacheAppendTodayResume.Obj)cache2.get("key1");
-		Assertions.assertEquals("v2", obj.value, "退役清单中的 key 必须已从 RocksDb 删除，重行走 loader");
+		Assertions.assertEquals("v2", requireNonNull(obj).value, "退役清单中的 key 必须已从 RocksDb 删除，重行走 loader");
 		cache2.close();
 	}
 

@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,7 @@ public class TestJsonStringLineContinuation {
 
 	private static String parse(String s) {
 		try {
-			return (String)new JsonReader().buf(s).parse();
+			return (String)requireNonNull(new JsonReader().buf(s).parse());
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}

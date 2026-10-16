@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -72,12 +76,12 @@ public class TestStopCommitGate {
 		var inAction = new CountDownLatch(1);
 		var release = new CountDownLatch(1);
 		var result = new AtomicLong(Long.MIN_VALUE);
-		var error = new AtomicReference<Throwable>();
+		var error = new AtomicReference<@Nullable Throwable>();
 		var txnThread = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				result.set(app.newProcedure(() -> {
-					Transaction.getCurrent().runWhileCommit(commits::incrementAndGet);
-					Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
+					requireNonNull(Transaction.getCurrent()).runWhileCommit(commits::incrementAndGet);
+					requireNonNull(Transaction.getCurrent()).runWhileRollback(rollbacks::incrementAndGet);
 					inAction.countDown();
 					// 受控阻塞：事务已过perform入口，等stop()完全结束（终检点已过）再继续。
 					release.await();
@@ -112,12 +116,12 @@ public class TestStopCommitGate {
 		var round2InAction = new CountDownLatch(1);
 		var release = new CountDownLatch(1);
 		var result = new AtomicLong(Long.MIN_VALUE);
-		var error = new AtomicReference<Throwable>();
+		var error = new AtomicReference<@Nullable Throwable>();
 		var txnThread = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				result.set(app.newProcedure(() -> {
 					calls.incrementAndGet();
-					Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
+					requireNonNull(Transaction.getCurrent()).runWhileRollback(rollbacks::incrementAndGet);
 					if (calls.get() == 1)
 						Transaction.getCurrent().throwRedo(0, "StopGate round1 redo");
 					if (calls.get() == 2) {
@@ -150,7 +154,7 @@ public class TestStopCommitGate {
 	public void testNormalCommitUnaffected() throws Exception {
 		var commits = new AtomicInteger();
 		var rc = app.newProcedure(() -> {
-			Transaction.getCurrent().runWhileCommit(commits::incrementAndGet);
+			requireNonNull(Transaction.getCurrent()).runWhileCommit(commits::incrementAndGet);
 			return Procedure.Success;
 		}, "StopGate.NormalCommit").call();
 		assertEquals(Procedure.Success, rc, "运行期正常提交必须成功");
@@ -173,9 +177,9 @@ public class TestStopCommitGate {
 	@Test
 	public void testStopWaitsForCommitPermitAndRejectsOldFlushReference() throws Exception {
 		var checkpoint = app.getCheckpoint();
-		assertTrue(checkpoint.tryBeginCommit());
+		assertTrue(requireNonNull(checkpoint).tryBeginCommit());
 		var stopped = new CountDownLatch(1);
-		var error = new AtomicReference<Throwable>();
+		var error = new AtomicReference<@Nullable Throwable>();
 		var stopThread = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				app.stop();

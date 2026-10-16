@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.concurrent.Future;
 import Zeze.Transaction.Transaction;
 import demo.App;
@@ -8,6 +12,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@NullMarked
 public class TestTransactionLevelSerializable {
 	@BeforeEach
 	public final void testInit() throws Exception {
@@ -23,7 +28,7 @@ public class TestTransactionLevelSerializable {
 
 	@Test
 	public final void Test2() {
-		App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::init, "test_init").call();
+		requireNonNull(App.Instance.Zeze).newProcedure(TestTransactionLevelSerializable::init, "test_init").call();
 		Zeze.Util.TaskSpec.ofAction(this::verify_task).name("verify_task").run();
 		try {
 			Future<?>[] tasks = new Future[20000];
@@ -39,12 +44,12 @@ public class TestTransactionLevelSerializable {
 
 	private void verify_task() {
 		while (InTest) {
-			App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::verify, "test_verify").call();
+			requireNonNull(App.Instance.Zeze).newProcedure(TestTransactionLevelSerializable::verify, "test_verify").call();
 		}
 	}
 
 	private static long verify() {
-		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
+		var v1 = requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(1L);
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		final var total = v1.getInt_1() + v2.getInt_1();
 		// 必须在事务成功时verify，执行过程中是可能失败的。
@@ -53,7 +58,7 @@ public class TestTransactionLevelSerializable {
 	}
 
 	private static long init() {
-		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
+		var v1 = requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(1L);
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		v1.setInt_1(100_000);
 		v2.setInt_1(0);
@@ -61,7 +66,7 @@ public class TestTransactionLevelSerializable {
 	}
 
 	private static long trade() {
-		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
+		var v1 = requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(1L);
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		var money = Zeze.Util.Random.getInstance().nextInt(1000);
 		if (Zeze.Util.Random.getInstance().nextBoolean()) {

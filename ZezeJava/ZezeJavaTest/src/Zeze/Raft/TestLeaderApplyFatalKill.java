@@ -1,5 +1,11 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -79,7 +85,7 @@ public class TestLeaderApplyFatalKill {
 				_int = value;
 				return;
 			}
-			Transaction.getCurrent().putLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 1, value));
+			requireNonNull(Transaction.getCurrent()).putLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 1, value));
 		}
 
 		@Override
@@ -98,7 +104,7 @@ public class TestLeaderApplyFatalKill {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -130,7 +136,7 @@ public class TestLeaderApplyFatalKill {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BThrowBean.class);
 			var raft = rocks.getRaft();
-			var table = rocks.<Integer, BThrowBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BThrowBean>getTableTemplate(templateName)).openTable(0);
 
 			// 直写存储层做初始数据，事务内走Edit路径（日志的belong是bean本身，
 			// leaderApply的日志迭代会调到bean的leaderApplyNoRecursive）。
@@ -146,8 +152,8 @@ public class TestLeaderApplyFatalKill {
 			// 但日志与accessedRecords已收集在事务对象上——即真实leader上apply前的现场）。
 			final Transaction[] ts = new Transaction[1];
 			var rc = rocks.newProcedure(() -> {
-				ts[0] = Transaction.getCurrent();
-				table.get(1).setInt(42);
+				ts[0] = requireNonNull(Transaction.getCurrent());
+				requireNonNull(table.get(1)).setInt(42);
 				return 0L;
 			}).call();
 			assertEquals(Zeze.Transaction.Procedure.RaftRetry, rc); // not leader
@@ -156,7 +162,7 @@ public class TestLeaderApplyFatalKill {
 			changes.encode(ByteBuffer.Allocate()); // 对齐真实路径：解析出Record.table
 
 			var fatalled = new AtomicBoolean(false);
-			raft.setFatalKillHookForTest(() -> fatalled.set(true));
+			requireNonNull(raft).setFatalKillHookForTest(() -> fatalled.set(true));
 
 			// 修复前：IllegalStateException从leaderApply穿出（真实路径上穿到后台apply
 			// 线程仅记日志，lastApplied永久楔死）；修复后：fatalKill（测试钩子）且不再抛出。

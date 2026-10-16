@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -32,8 +36,8 @@ import org.junit.jupiter.api.io.TempDir;
 @Fast
 public class TestRunReloadClassTokenAuth {
 	private static final String TOKEN = "reload-class-token";
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
 	private static final HttpClient client = HttpClient.newHttpClient();
 
@@ -45,7 +49,7 @@ public class TestRunReloadClassTokenAuth {
 		}
 
 		@Override
-		public Zeze.Application getZeze() {
+		public Zeze.@Nullable Application getZeze() {
 			return null;
 		}
 
@@ -77,12 +81,12 @@ public class TestRunReloadClassTokenAuth {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
-	private static HttpResponse<String> post(String path, String tokenHeader, String tokenQuery,
-											  String contentType, byte[] body) throws Exception {
+	private static HttpResponse<String> post(String path, @Nullable String tokenHeader, @Nullable String tokenQuery,
+											  @Nullable String contentType, byte[] body) throws Exception {
 		var url = "http://127.0.0.1:" + port + path;
 		if (tokenQuery != null)
 			url += (path.contains("?") ? "&" : "?") + "token=" + tokenQuery;
@@ -124,8 +128,8 @@ public class TestRunReloadClassTokenAuth {
 				"application/octet-stream", emptyZip()).statusCode(), "正确token必须放行");
 
 		// RunClass：正确token（查询参数携带）+一个带main的真实class字节码→200执行
-		var tinyMain = getClass().getResourceAsStream(
-				"TestRunReloadClassTokenAuth$TinyMain.class").readAllBytes();
+		var tinyMain = requireNonNull(getClass().getResourceAsStream(
+				"TestRunReloadClassTokenAuth$TinyMain.class")).readAllBytes();
 		var res = post("/a5/run?patch=TinyMain.class", null, TOKEN,
 				"application/octet-stream", tinyMain);
 		Assertions.assertEquals(200, res.statusCode(), "正确token(query)必须放行并执行");

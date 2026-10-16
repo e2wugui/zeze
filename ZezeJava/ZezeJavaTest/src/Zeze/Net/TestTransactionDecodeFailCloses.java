@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -18,7 +20,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -76,7 +77,7 @@ public class TestTransactionDecodeFailCloses {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			throw new IllegalStateException("wt4: simulated decode failure");
 		}
 	}
@@ -89,7 +90,7 @@ public class TestTransactionDecodeFailCloses {
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, java.lang.Throwable e) {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) {
 			closeCount.incrementAndGet();
 			try {
 				super.OnSocketClose(so, e);

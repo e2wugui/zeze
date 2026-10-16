@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import java.net.SocketAddress;
+
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,8 +19,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,7 +63,7 @@ public class TestInstallSnapshotPerChunkRpc {
 		}
 
 		@Override
-		public @Nullable java.net.SocketAddress getRemoteAddress() {
+		public @Nullable SocketAddress getRemoteAddress() {
 			return null;
 		}
 
@@ -79,17 +82,17 @@ public class TestInstallSnapshotPerChunkRpc {
 	}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			sendCount++;
 			return true;
 		}
 	}
 
-	private Raft raft;
-	private LogSequence ls;
-	private Server.ConnectorEx c;
-	private InstallSnapshotState st;
-	private CountingSocket socket;
+	private @Nullable Raft raft;
+	private @Nullable LogSequence ls;
+	private Server.@Nullable ConnectorEx c;
+	private @Nullable InstallSnapshotState st;
+	private @Nullable CountingSocket socket;
 
 	// 显式DbHome；3节点仅是Raft构造的配置要求，本测试不启动server，不占用任何端口。
 	private static RaftConfig newRaftConfig() {
@@ -166,7 +169,7 @@ public class TestInstallSnapshotPerChunkRpc {
 		st.setFirstLog(new RaftLog(1, 6, new HeartbeatLog()));
 		st.setTerm(ls.getTerm());
 		st.setLeaderId(raft.getName());
-		st.setLastIncludedIndex(st.getFirstLog().getIndex());
+		st.setLastIncludedIndex(requireNonNull(st.getFirstLog()).getIndex());
 		st.setLastIncludedTerm(st.getFirstLog().getTerm());
 		ls.getSendSnapshotting().put(c.getName(), st);
 	}
@@ -200,8 +203,8 @@ public class TestInstallSnapshotPerChunkRpc {
 	public void testMultiChunkInstallCompletes() throws Exception {
 		setupInstall(40 * 1024);
 
-		st.trySend(ls, c); // 块1
-		assertEquals(1, socket.sendCount, "块1已发出");
+		requireNonNull(st).trySend(requireNonNull(ls), requireNonNull(c)); // 块1
+		assertEquals(1, requireNonNull(socket).sendCount, "块1已发出");
 		assertEquals(32768, st.getOffset(), "块1推进offset");
 		assertTrue(ls.getSendSnapshotting().contains(c.getName()), "安装进行中");
 
@@ -215,7 +218,7 @@ public class TestInstallSnapshotPerChunkRpc {
 		processResult(st, ls, c, newAck(ls, true));
 		assertEquals(2, socket.sendCount, "done后不再发块");
 		assertTrue(ls.getSendSnapshotting().isEmpty(), "end必须清理发送会话");
-		assertFalse(st.getFile().getFD().valid(), "快照文件必须关闭");
+		assertFalse(requireNonNull(st.getFile()).getFD().valid(), "快照文件必须关闭");
 		assertEquals(7, c.getNextIndex(), "nextIndex推进到lastIncludedIndex+1");
 		assertEquals(6, c.getMatchIndex(), "matchIndex推进到lastIncludedIndex");
 	}
@@ -226,8 +229,8 @@ public class TestInstallSnapshotPerChunkRpc {
 	public void testExactChunkBoundaryInstallCompletes() throws Exception {
 		setupInstall(32 * 1024);
 
-		st.trySend(ls, c); // 块1：rc==buffer.length → done=false
-		assertEquals(1, socket.sendCount);
+		requireNonNull(st).trySend(requireNonNull(ls), requireNonNull(c)); // 块1：rc==buffer.length → done=false
+		assertEquals(1, requireNonNull(socket).sendCount);
 		assertFalse(st.getDone(), "读满一块不是done");
 
 		processResult(st, ls, c, newAck(ls, false)); // 块2：EOF 0字节收尾块
@@ -246,9 +249,9 @@ public class TestInstallSnapshotPerChunkRpc {
 	public void testIoExceptionEndsInstall() throws Exception {
 		setupInstall(40 * 1024);
 
-		st.trySend(ls, c); // 块1
-		assertEquals(1, socket.sendCount);
-		st.getFile().close(); // 块2的 file.read 将抛 IOException
+		requireNonNull(st).trySend(requireNonNull(ls), requireNonNull(c)); // 块1
+		assertEquals(1, requireNonNull(socket).sendCount);
+		requireNonNull(st.getFile()).close(); // 块2的 file.read 将抛 IOException
 
 		processResult(st, ls, c, newAck(ls, false)); // 不得抛出
 		assertEquals(1, socket.sendCount, "异常块未发出");

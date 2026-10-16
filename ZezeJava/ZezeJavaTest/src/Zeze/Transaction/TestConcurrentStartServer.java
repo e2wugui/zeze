@@ -1,11 +1,14 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import Zeze.Config;
 import Zeze.Util.OutInt;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("CallToPrintStackTrace")
+@NullMarked
 public class TestConcurrentStartServer {
 	@Test
 	public void testConcurrentStartServer() throws Exception {

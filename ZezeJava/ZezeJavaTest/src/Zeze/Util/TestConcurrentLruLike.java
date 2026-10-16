@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,10 +72,10 @@ public class TestConcurrentLruLike {
 	public void testCleanNowNotStuckOnBusyOldestNode() throws Exception {
 		// 最老node的回调恒失败（模拟TaskOneByOneByKeyLru的队列忙/残留队列），新node的key可删。
 		// 修复前：cleanNow只盯最老node，warn+sleep忙等无限循环，后面的可删条目永远轮不到，且调度线程被占死。
-		var ref = new AtomicReference<ConcurrentLruLike<String, Object>>();
+		var ref = new AtomicReference<@Nullable ConcurrentLruLike<String, Object>>();
 		// period调大，避免测试期间后台newLruHot轮换/clean干扰；多代node由反射显式创建。
 		var lru = new ConcurrentLruLike<String, Object>("testCleanNowNotStuck", 2,
-				(k, v) -> !k.startsWith("busy") && ref.get().remove(k) != null,
+				(k, v) -> !k.startsWith("busy") && requireNonNull(ref.get()).remove(k) != null,
 				600_000, 600_000, 16);
 		ref.set(lru);
 
@@ -191,11 +195,11 @@ public class TestConcurrentLruLike {
 	/** FND3-09：cleanNow（回调路径）对过期登记不得执行回调，直接摘除。 */
 	@Test
 	public void testCleanNowNotCallbackOnStaleEntry() throws Exception {
-		var ref = new AtomicReference<ConcurrentLruLike<String, Object>>();
+		var ref = new AtomicReference<@Nullable ConcurrentLruLike<String, Object>>();
 		var calledKeys = ConcurrentHashMap.newKeySet();
 		var lru = new ConcurrentLruLike<String, Object>("testCleanStaleCb", 2, (k, v) -> {
 			calledKeys.add(k);
-			return ref.get().remove(k) != null;
+			return requireNonNull(ref.get()).remove(k) != null;
 		}, 600_000, 600_000, 16);
 		ref.set(lru);
 		var hot0 = lruHotOf(lru);
@@ -229,7 +233,7 @@ public class TestConcurrentLruLike {
 		invokeTryPollLruQueue(lru);
 
 		var head = lruQueueOf(lru).peek();
-		Assertions.assertSame(dataMapOf(lru).get("live"), head.get("live"), "活条目应迁移到队头");
+		Assertions.assertSame(dataMapOf(lru).get("live"), requireNonNull(head).get("live"), "活条目应迁移到队头");
 		Assertions.assertNull(head.get("dead"), "死条目不得迁移进队头");
 	}
 
@@ -375,13 +379,13 @@ public class TestConcurrentLruLike {
 	private static final class InterleavingHot extends ConcurrentHashMap<Object, Object> {
 		private static final long serialVersionUID = 1L;
 		private volatile boolean armed = true;
-		private volatile Runnable interleave;
+		private volatile @Nullable Runnable interleave;
 
 		@Override
-		public Object putIfAbsent(Object key, Object value) {
+		public @Nullable Object putIfAbsent(Object key, Object value) {
 			if (armed) {
 				armed = false;
-				interleave.run();
+				requireNonNull(interleave).run();
 			}
 			return super.putIfAbsent(key, value);
 		}

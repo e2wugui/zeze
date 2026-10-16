@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -27,8 +31,8 @@ import org.junit.jupiter.api.io.TempDir;
 @Fast
 public class TestUploadFieldGuard {
 	private static final String TOKEN = "upload-guard-token";
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
 	private static final HttpClient client = HttpClient.newHttpClient();
 
@@ -40,7 +44,7 @@ public class TestUploadFieldGuard {
 		}
 
 		@Override
-		public Zeze.Application getZeze() {
+		public Zeze.@Nullable Application getZeze() {
 			return null;
 		}
 
@@ -62,8 +66,8 @@ public class TestUploadFieldGuard {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	/** 构造只含文本字段（无任何文件字段）的multipart body。 */

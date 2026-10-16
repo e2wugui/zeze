@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -11,8 +13,7 @@ import Zeze.Netty.Consul;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -31,8 +32,8 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestNettyConsulRegister {
 	private static final String KeepAlivePath = "/Zeze_Netty_Consul_PassiveKeepAlivePath";
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 
 	// ecwid的ConsulClient按需发起http调用(构造不连网),覆盖agentServiceRegister捕获注册参数。
 	// 扩展点:failRegisterOnce注入一次性注册失败(模拟consul瞬断)、failDeregisterIds按serviceId
@@ -53,7 +54,7 @@ public class TestNettyConsulRegister {
 		}
 
 		@Override
-		public @Nullable Response<Void> agentServiceRegister(@NotNull NewService newService) {
+		public @Nullable Response<Void> agentServiceRegister(NewService newService) {
 			captured = newService;
 			registered.add(newService);
 			var ex = failRegisterOnce;
@@ -65,7 +66,7 @@ public class TestNettyConsulRegister {
 		}
 
 		@Override
-		public @Nullable Response<Void> agentServiceDeregister(@NotNull String serviceId) {
+		public @Nullable Response<Void> agentServiceDeregister(String serviceId) {
 			deregistered.add(serviceId); // 先记录:注入失败的尝试也必须算"被尝试过"
 			if (failDeregisterIds.remove(serviceId))
 				throw new RuntimeException("simulated deregister failure: " + serviceId);
@@ -84,15 +85,15 @@ public class TestNettyConsulRegister {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	@Test
 	public void testRegisterCheckUrl() throws Exception {
 		var capturing = new CapturingClient();
 		var consul = new Consul(capturing);
-		consul.register("testService", server);
+		consul.register("testService", requireNonNull(server));
 
 		var registered = capturing.captured;
 		Assertions.assertNotNull(registered, "agentServiceRegister must be called");
@@ -127,7 +128,7 @@ public class TestNettyConsulRegister {
 	@Test
 	public void testRegisterRollbackOnConsulFailure() throws Exception {
 		var httpServer = new HttpServer();
-		httpServer.start(netty, 0).sync();
+		httpServer.start(requireNonNull(netty), 0).sync();
 		try {
 			var capturing = new CapturingClient();
 			capturing.failRegisterOnce = new RuntimeException("simulated consul down"); // 模拟注册时consul瞬断
@@ -161,7 +162,7 @@ public class TestNettyConsulRegister {
 	@Test
 	public void testRegisterRollbackOnDuplicateHandlerPath() throws Exception {
 		var httpServer = new HttpServer();
-		httpServer.start(netty, 0).sync();
+		httpServer.start(requireNonNull(netty), 0).sync();
 		try {
 			// 预先占用保活path,把失败点定位到try块内的addHandler(agentServiceRegister之前)
 			httpServer.addHandler(KeepAlivePath, 1024, null, null, x -> { });
@@ -194,7 +195,7 @@ public class TestNettyConsulRegister {
 	public void testStopIsolatesDeregisterFailure() throws Exception {
 		var serverA = new HttpServer();
 		var serverB = new HttpServer();
-		serverA.start(netty, 0).sync();
+		serverA.start(requireNonNull(netty), 0).sync();
 		serverB.start(netty, 0).sync();
 		try {
 			var capturing = new CapturingClient();

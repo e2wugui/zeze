@@ -1,5 +1,8 @@
 package Game.Buf;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.NullMarked;
+
 public abstract class Buf implements IBuf {
 	private final BBuf bean;
 

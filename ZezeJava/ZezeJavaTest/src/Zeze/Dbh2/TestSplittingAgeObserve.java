@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
@@ -87,7 +89,7 @@ public class TestSplittingAgeObserve {
 		}
 	}
 
-	private static Long ageCreateTime(MasterDatabase db, String tableName, Binary keyFirst) {
+	private static @Nullable Long ageCreateTime(MasterDatabase db, String tableName, Binary keyFirst) {
 		try {
 			return (Long)MasterDatabase.class.getMethod("getSplittingAgeCreateTime", String.class, Binary.class)
 					.invoke(db, tableName, keyFirst);

@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.io.File;
 import java.nio.file.Path;
@@ -149,12 +151,12 @@ public class TestGetDuringFinalizeNoFalseMiss {
 				var boundary = boundaries[round];
 				put(agent, db, table, key);
 				var before = agent.get(db, table, key).getValue();
-				Assertions.assertEquals(9, before.Bytes[before.ReadIndex], "迁出键收尾前可读");
+				Assertions.assertEquals(9, requireNonNull(before).Bytes[before.ReadIndex], "迁出键收尾前可读");
 
 				var storm = new GetStorm(agent, db, table, key);
 				storm.start();
 				awaitStormCount(storm, 10, 10_000); // 风暴就位（计数驱动替代sleep(300)）
-				var from = leader.getBucket().getBucketMeta().copy();
+				var from = requireNonNull(requireNonNull(leader.getBucket()).getBucketMeta()).copy();
 				from.setKeyLast(boundary);
 				var to = leader.getBucket().getBucketMeta().copy();
 				to.setKeyFirst(boundary);
@@ -174,11 +176,11 @@ public class TestGetDuringFinalizeNoFalseMiss {
 						"迁出键必须已被物理删除");
 			}
 			var survivorValue = agent.get(db, table, survivor).getValue();
-			Assertions.assertEquals(9, survivorValue.Bytes[survivorValue.ReadIndex], "未迁出键收尾后必须仍可读");
+			Assertions.assertEquals(9, requireNonNull(survivorValue).Bytes[survivorValue.ReadIndex], "未迁出键收尾后必须仍可读");
 		} finally {
 			for (var n : nodes) {
 				n.close();
-				LogSequence.deleteDirectory(new File(n.getRaft().getRaftConfig().getDbHome()));
+				LogSequence.deleteDirectory(new File(requireNonNull(n.getRaft().getRaftConfig().getDbHome())));
 			}
 			agent.close();
 			rocks.close();
@@ -206,12 +208,12 @@ public class TestGetDuringFinalizeNoFalseMiss {
 			var key = new Binary(new byte[]{0x55}); // endMove窗口覆盖全桶：任意键
 			put(agent, db, table, key);
 			var before = agent.get(db, table, key).getValue();
-				Assertions.assertEquals(9, before.Bytes[before.ReadIndex], "迁出键收尾前可读");
+				Assertions.assertEquals(9, requireNonNull(before).Bytes[before.ReadIndex], "迁出键收尾前可读");
 
 			var storm = new GetStorm(agent, db, table, key);
 			storm.start();
 			awaitStormCount(storm, 10, 10_000); // 风暴就位（计数驱动替代sleep(300)）
-			var to = leader.getBucket().getBucketMeta().copy();
+			var to = requireNonNull(requireNonNull(leader.getBucket()).getBucketMeta()).copy();
 			to.setRaftConfig(RAFT);
 			var base = storm.total.get();
 			leader.endMove(to); // 收尾置死全桶（原缺陷：全桶键域的假缺失窗口）
@@ -230,7 +232,7 @@ public class TestGetDuringFinalizeNoFalseMiss {
 		} finally {
 			for (var n : nodes) {
 				n.close();
-				LogSequence.deleteDirectory(new File(n.getRaft().getRaftConfig().getDbHome()));
+				LogSequence.deleteDirectory(new File(requireNonNull(n.getRaft().getRaftConfig().getDbHome())));
 			}
 			agent.close();
 			rocks.close();

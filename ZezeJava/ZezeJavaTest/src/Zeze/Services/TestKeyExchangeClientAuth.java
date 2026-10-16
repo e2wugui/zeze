@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAKey;
@@ -17,8 +19,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,7 @@ public class TestKeyExchangeClientAuth {
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			closeCount.incrementAndGet();
 			super.OnSocketClose(so, e);
 		}
@@ -72,14 +73,14 @@ public class TestKeyExchangeClientAuth {
 	// 发起KeyExchange并捕获应答resultCode（不装codec，仅观察握手结果）
 	private static long sendAndCaptureCode(AsyncSocket socket, KeyExchange rpc) throws Exception {
 		var latch = new CountDownLatch(1);
-		var code = new AtomicReference<Long>();
+		var code = new AtomicReference<@Nullable Long>();
 		Assertions.assertTrue(rpc.Send(socket, r -> {
 			code.set(r.getResultCode());
 			latch.countDown();
 			return 0;
 		}), "KeyExchange.Send必须成功提交");
 		Assertions.assertTrue(latch.await(10, TimeUnit.SECONDS), "timeout waiting KeyExchange response");
-		return code.get();
+		return requireNonNull(code.get());
 	}
 
 	// 自造（不在白名单内）公钥：认证模式下必须收到ErrorUnknownClientPubKey且服务端断连

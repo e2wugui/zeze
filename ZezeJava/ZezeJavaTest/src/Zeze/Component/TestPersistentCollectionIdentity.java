@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
@@ -29,7 +31,7 @@ public class TestPersistentCollectionIdentity {
 			app.start();
 			for (var wholeNode : List.of(false, true)) {
 				var name = "full-key-" + wholeNode;
-				var live = new CsQueue<>(app.getQueueModule(), name, app.getConfig().getServerId(), BMyBean.class, 1);
+				var live = new CsQueue<>(requireNonNull(app.getQueueModule()), name, app.getConfig().getServerId(), BMyBean.class, 1);
 				var deadId = app.getConfig().getServerId() + 20_000;
 				var dead = new CsQueue<>(app.getQueueModule(), name, deadId, BMyBean.class, 1);
 				assertEquals(0, app.newProcedure(() -> {
@@ -42,13 +44,13 @@ public class TestPersistentCollectionIdentity {
 					if (wholeNode)
 						assertNotNull(live.pollNode());
 					else
-						assertEquals(1, live.poll().getI());
+						assertEquals(1, requireNonNull(live.poll()).getI());
 					live.push(value(3));
 					live.add(value(4));
 					assertEquals(3, live.size());
-					assertEquals(3, live.poll().getI());
-					assertEquals(2, live.poll().getI());
-					assertEquals(4, live.poll().getI());
+					assertEquals(3, requireNonNull(live.poll()).getI());
+					assertEquals(2, requireNonNull(live.poll()).getI());
+					assertEquals(4, requireNonNull(live.poll()).getI());
 					assertNull(live.poll());
 					return 0;
 				}, "consume-spliced").call());
@@ -76,7 +78,7 @@ public class TestPersistentCollectionIdentity {
 			var cache = (ConcurrentHashMap<String, Object>)cacheField.get(module);
 			cache.remove("fresh");
 			var reopenedFresh = module.openConcurrent("fresh", BMyBean.class);
-			assertEquals(0, app.newProcedure(() -> { assertEquals(7, reopenedFresh.get(highKey).getI()); return 0; }, "read-fresh").call());
+			assertEquals(0, app.newProcedure(() -> { assertEquals(7, requireNonNull(reopenedFresh.get(highKey)).getI()); return 0; }, "read-fresh").call());
 
 			// 只伪造升级前的公开布局：真实LinkedMap.put产生旧256桶业务记录，没有元数据。
 			var openBucket = LinkedMap.Module.class.getDeclaredMethod("_open", String.class, Class.class, int.class);
@@ -88,10 +90,10 @@ public class TestPersistentCollectionIdentity {
 			assertThrows(IllegalStateException.class, () -> module.adoptLegacyConcurrentLayout("legacy", 128));
 			module.adoptLegacyConcurrentLayout("legacy", 256);
 			CHashMap<BMyBean> first = module.openConcurrent("legacy", BMyBean.class);
-			assertEquals(0, app.newProcedure(() -> { assertEquals(9, first.get(highKey).getI()); return 0; }, "legacy-read").call());
+			assertEquals(0, app.newProcedure(() -> { assertEquals(9, requireNonNull(first.get(highKey)).getI()); return 0; }, "legacy-read").call());
 			cache.remove("legacy");
 			var second = module.openConcurrent("legacy", BMyBean.class, 20);
-			assertEquals(0, app.newProcedure(() -> { assertEquals(9, second.get(highKey).getI()); return 0; }, "legacy-read-other-overload").call());
+			assertEquals(0, app.newProcedure(() -> { assertEquals(9, requireNonNull(second.get(highKey)).getI()); return 0; }, "legacy-read-other-overload").call());
 		} finally {
 			app.stop();
 		}
@@ -114,9 +116,9 @@ public class TestPersistentCollectionIdentity {
 				assertEquals(0, tree.moveDepartment(a.value, b.value));
 				return 0;
 			}, "move").call());
-			assertFalse(tree.selectRoot().getChildren().containsKey("A"));
-			assertEquals(2, tree.selectDepartmentTreeNode(1).getParentDepartment());
-			assertEquals(1L, tree.selectDepartmentTreeNode(2).getChildren().get("A").longValue());
+			assertFalse(requireNonNull(tree.selectRoot()).getChildren().containsKey("A"));
+			assertEquals(2, requireNonNull(tree.selectDepartmentTreeNode(1)).getParentDepartment());
+			assertEquals(1L, requireNonNull(requireNonNull(tree.selectDepartmentTreeNode(2)).getChildren().get("A")).longValue());
 		} finally {
 			app.stop();
 		}

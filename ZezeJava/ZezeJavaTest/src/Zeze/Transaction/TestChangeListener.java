@@ -1,5 +1,11 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -23,6 +29,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Procedure;
 
+@NullMarked
 public class TestChangeListener {
 	@BeforeEach
 	public final void testInit() throws Exception {
@@ -35,13 +42,13 @@ public class TestChangeListener {
 	}
 
 	private static void prepare() {
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			requireNonNull(demo.App.getInstance().demo_Module1).getTable1().remove(1L);
 			return Procedure.Success;
 		}, "TestChangeListener.Remove").call());
 
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
 			value.setInt_1(123);
 			value.setLong2(123);
 			value.setString3("123");
@@ -78,8 +85,8 @@ public class TestChangeListener {
 		AddListener();
 
 		init();
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
 			value.setInt_1(124);
 			value.setLong2(124);
 			value.setString3("124");
@@ -111,8 +118,8 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
 			value.getSet10().add(127);
 			value.getSet10().remove(124);
 			value.getMap11().put(5L, new BValue());
@@ -128,8 +135,8 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
 			ArrayList<Integer> except = new ArrayList<>(Arrays.asList(1, 2));
 			//noinspection SlowAbstractSetRemoveAll
 			value.getSet10().removeAll(except);
@@ -138,8 +145,8 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
 			ArrayList<Integer> intersect = new ArrayList<>(Arrays.asList(123, 126));
 			//value.getSet10().IntersectWith(intersect);
 			var set10 = value.getSet10();
@@ -156,8 +163,8 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
 			ArrayList<Integer> SymmetricExcept = new ArrayList<>(Arrays.asList(123, 140));
 			//noinspection SlowAbstractSetRemoveAll
 			value.getSet10().removeAll(SymmetricExcept);
@@ -166,8 +173,8 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
 			ArrayList<Integer> Union = new ArrayList<>(Arrays.asList(123, 140));
 			//value.getSet10().UnionWith(Union);
 			value.getSet10().addAll(Union);
@@ -176,25 +183,25 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.App.getInstance().demo_Module1.getTable1().put(1L, new demo.Module1.BValue());
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			requireNonNull(demo.App.getInstance().demo_Module1).getTable1().put(1L, new demo.Module1.BValue());
 			return Procedure.Success;
 		}, "TestChangeListener.PutRecord").call());
 		verify();
 
 		init();
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			requireNonNull(demo.App.getInstance().demo_Module1).getTable1().remove(1L);
 			return Procedure.Success;
 		}, "TestChangeListener.RemoveRecord").call());
 		verify();
 	}
 
-	private demo.Module1.BValue localValue;
+	private demo.Module1.@Nullable BValue localValue;
 
 	private void init() {
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().get(1L);
 			localValue = value == null ? null : value.copy();
 			return Procedure.Success;
 		}, "TestChangeListener.CopyLocal").call());
@@ -217,8 +224,8 @@ public class TestChangeListener {
 	}
 
 	private void verify() {
-		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().get(1L);
 			localValue = value == null ? null : value.copy();
 			return Procedure.Success;
 		}, "TestChangeListener.CopyLocal").call());
@@ -259,7 +266,7 @@ public class TestChangeListener {
 		ls.Vars.put(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
 		ls.Vars.put(demo.Module1.Table1.VAR_map15, _CLMap15);
 
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().addListener(ls);
+		requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getChangeListenerMap().addListener(ls);
 	}
 
 	private final CLInt1 _CLInt1 = new CLInt1();
@@ -290,7 +297,7 @@ public class TestChangeListener {
 				break;
 			case Changes.Record.Put:
 				for (var var : Vars.values())
-					var.OnChanged(key, r.getValue());
+					var.OnChanged(key, requireNonNull(r.getValue()));
 				break;
 			case Changes.Record.Edit:
 				var logbean = r.getLogBean();
@@ -315,9 +322,9 @@ public class TestChangeListener {
 
 	@SuppressWarnings("UseBulkOperation")
 	private static class CLMap15 implements VarListener {
-		private HashMap<Long, Long> newValue;
+		private @Nullable HashMap<Long, Long> newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			if (null != current) {
 				newValue = new HashMap<>();
 				for (var e : current.getMap15().entrySet()) {
@@ -328,7 +335,7 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertNull(newValue);
 				return;
@@ -337,7 +344,7 @@ public class TestChangeListener {
 			for (var e : current.getMap15().entrySet()) {
 				newValueCopy.put(e.getKey(), e.getValue());
 			}
-			Assertions.assertEquals(newValue.size(), newValueCopy.size());
+			Assertions.assertEquals(requireNonNull(newValue).size(), newValueCopy.size());
 			for (var e : newValue.entrySet()) {
 
 				Long exist = newValueCopy.get(e.getKey());
@@ -360,10 +367,10 @@ public class TestChangeListener {
 			var noteMap1 = (LogMap1<Long, Long>)note;
 
 			for (var a : noteMap1.getReplaced().entrySet()) {
-				newValue.put(a.getKey(), a.getValue());
+				requireNonNull(newValue).put(a.getKey(), a.getValue());
 			}
 			for (var r : noteMap1.getRemoved()) {
-				newValue.remove(r);
+				requireNonNull(newValue).remove(r);
 			}
 		}
 
@@ -374,18 +381,18 @@ public class TestChangeListener {
 	}
 
 	private static class ClDynamic14 implements VarListener {
-		private Bean newValue;
+		private @Nullable Bean newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = current == null ? null : current.getDynamic14().copy();
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertNull(newValue);
 				return;
 			}
-			Assertions.assertEquals(newValue.typeId(), current.getDynamic14().typeId());
+			Assertions.assertEquals(requireNonNull(newValue).typeId(), current.getDynamic14().typeId());
 			if (newValue.typeId() == BSimple.TYPEID) {
 				BSimple newSimple = newValue instanceof BSimple ? (BSimple)newValue : null;
 				Zeze.Transaction.Bean tempVar = current.getDynamic14().getBean();
@@ -403,7 +410,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getDynamic14();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getDynamic14();
 		}
 
 		@Override
@@ -415,11 +422,11 @@ public class TestChangeListener {
 	private static class CLByte13 implements VarListener {
 		private byte newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = (null != current) ? current.getByte13() : (byte)255;
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertEquals(((byte)255), newValue);
 				return;
@@ -434,7 +441,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getByte13();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getByte13();
 		}
 
 		@Override
@@ -444,9 +451,9 @@ public class TestChangeListener {
 	}
 
 	private static class CLBean12 implements VarListener {
-		private BSimple newValue;
+		private @Nullable BSimple newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			if (null != current) {
 				newValue = current.getBean12().copy();
 			} else {
@@ -454,12 +461,12 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertNull(newValue);
 				return;
 			}
-			Assertions.assertEquals(newValue.getInt_1(), current.getBean12().getInt_1());
+			Assertions.assertEquals(requireNonNull(newValue).getInt_1(), current.getBean12().getInt_1());
 		}
 
 		@Override
@@ -469,7 +476,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getBean12().copy();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getBean12().copy();
 		}
 
 		@Override
@@ -480,9 +487,9 @@ public class TestChangeListener {
 
 	@SuppressWarnings("UseBulkOperation")
 	private static class CLMap11 implements VarListener {
-		private HashMap<Long, BValue> newValue;
+		private @Nullable HashMap<Long, BValue> newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			if (null != current) {
 				newValue = new HashMap<>();
 				for (var e : current.getMap11().entrySet()) {
@@ -493,7 +500,7 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertNull(newValue);
 				return;
@@ -502,7 +509,7 @@ public class TestChangeListener {
 			for (var e : current.getMap11().entrySet()) {
 				newValueCopy.put(e.getKey(), e.getValue().copy());
 			}
-			Assertions.assertEquals(newValue.size(), newValueCopy.size());
+			Assertions.assertEquals(requireNonNull(newValue).size(), newValueCopy.size());
 			for (var e : newValue.entrySet()) {
 				BValue exist = newValueCopy.get(e.getKey());
 				Assertions.assertTrue(newValueCopy.containsKey(e.getKey()));
@@ -525,10 +532,10 @@ public class TestChangeListener {
 			noteMap2.mergeChangedToReplaced();
 
 			for (var a : noteMap2.getReplaced().entrySet()) {
-				newValue.put(a.getKey(), a.getValue());
+				requireNonNull(newValue).put(a.getKey(), a.getValue());
 			}
 			for (var r : noteMap2.getRemoved()) {
-				newValue.remove(r);
+				requireNonNull(newValue).remove(r);
 			}
 		}
 
@@ -540,9 +547,9 @@ public class TestChangeListener {
 
 	@SuppressWarnings("UseBulkOperation")
 	private static class CLSet10 implements VarListener {
-		private HashSet<Integer> newValue;
+		private @Nullable HashSet<Integer> newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			if (null != current) {
 				newValue = new HashSet<>();
 				for (var i : current.getSet10()) {
@@ -553,7 +560,7 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertNull(newValue);
 				return;
@@ -562,7 +569,7 @@ public class TestChangeListener {
 			for (var i : current.getSet10()) {
 				newValueCopy.add(i);
 			}
-			Assertions.assertEquals(newValue.size(), newValueCopy.size());
+			Assertions.assertEquals(requireNonNull(newValue).size(), newValueCopy.size());
 			for (var i : newValue) {
 				Assertions.assertTrue(newValueCopy.contains(i));
 			}
@@ -581,10 +588,10 @@ public class TestChangeListener {
 			@SuppressWarnings("unchecked")
 			var noteSet = (LogSet1<Integer>)note;
 			for (var a : noteSet.getAdded()) {
-				newValue.add(a);
+				requireNonNull(newValue).add(a);
 			}
 			for (var r : noteSet.getRemoved()) {
-				newValue.remove(r);
+				requireNonNull(newValue).remove(r);
 			}
 		}
 
@@ -595,9 +602,9 @@ public class TestChangeListener {
 	}
 
 	private static class CLList9 implements VarListener {
-		private ArrayList<demo.Bean1> newValue;
+		private @Nullable ArrayList<demo.Bean1> newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			if (null != current) {
 				newValue = new ArrayList<>();
 				for (var e : current.getList9()) {
@@ -608,12 +615,12 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertNull(newValue);
 				return;
 			}
-			Assertions.assertEquals(newValue.size(), current.getList9().size());
+			Assertions.assertEquals(requireNonNull(newValue).size(), current.getList9().size());
 			for (int i = 0; i < newValue.size(); ++i) {
 				Assertions.assertEquals(newValue.get(i).getV1(), current.getList9().get(i).getV1());
 			}
@@ -630,7 +637,7 @@ public class TestChangeListener {
 		@Override
 		public final void OnChanged(Object key, Log note) {
 			newValue = new ArrayList<>();
-			for (var e : ((demo.Module1.BValue)note.getBelong()).getList9()) {
+			for (var e : requireNonNull(((demo.Module1.BValue)note.getBelong())).getList9()) {
 				newValue.add(e.copy());
 			}
 		}
@@ -642,13 +649,13 @@ public class TestChangeListener {
 	}
 
 	private static class CLBytes8 implements VarListener {
-		private Binary newValue;
+		private @Nullable Binary newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = current == null ? null : current.getBytes8();
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertNull(newValue);
 				return;
@@ -663,7 +670,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getBytes8();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getBytes8();
 		}
 
 		@Override
@@ -675,11 +682,11 @@ public class TestChangeListener {
 	private static class CLDouble7 implements VarListener {
 		private double newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = (null != current) ? current.getDouble7() : 0;
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertEquals(0, newValue, 0.0001);
 				return;
@@ -694,7 +701,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getDouble7();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getDouble7();
 		}
 
 		@Override
@@ -706,11 +713,11 @@ public class TestChangeListener {
 	private static class CLFloat6 implements VarListener {
 		private float newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = (null != current) ? current.getFloat6() : 0;
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertEquals(0, newValue, 0.001);
 				return;
@@ -725,7 +732,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getFloat6();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getFloat6();
 		}
 
 		@Override
@@ -737,11 +744,11 @@ public class TestChangeListener {
 	private static class CLShort5 implements VarListener {
 		private short newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = (null != current) ? current.getShort5() : (short)-1;
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertEquals(-1, newValue);
 				return;
@@ -756,7 +763,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getShort5();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getShort5();
 		}
 
 		@Override
@@ -768,11 +775,11 @@ public class TestChangeListener {
 	private static class CLBool4 implements VarListener {
 		private boolean newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = (null != current) && current.isBool4();
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertFalse(newValue);
 				return;
@@ -787,7 +794,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).isBool4();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).isBool4();
 		}
 
 		@Override
@@ -798,13 +805,13 @@ public class TestChangeListener {
 	}
 
 	private static class CLString3 implements VarListener {
-		private String newValue;
+		private @Nullable String newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = current == null ? null : current.getString3();
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertNull(newValue);
 				return;
@@ -819,7 +826,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getString3();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getString3();
 		}
 
 		@Override
@@ -831,11 +838,11 @@ public class TestChangeListener {
 	private static class ClLong2 implements VarListener {
 		private long newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = (null != current) ? current.getLong2() : -1;
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertEquals(-1, newValue);
 				return;
@@ -850,7 +857,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getLong2();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getLong2();
 		}
 
 		@Override
@@ -862,11 +869,11 @@ public class TestChangeListener {
 	private static class CLInt1 implements VarListener {
 		private int newValue;
 
-		public final void Init(demo.Module1.BValue current) {
+		public final void Init(demo.Module1.@Nullable BValue current) {
 			newValue = (null != current) ? current.getInt_1() : -1;
 		}
 
-		public final void Verify(demo.Module1.BValue current) {
+		public final void Verify(demo.Module1.@Nullable BValue current) {
 			if (null == current) {
 				Assertions.assertEquals(-1, newValue);
 				return;
@@ -881,7 +888,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getInt_1();
+			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getInt_1();
 		}
 
 		@Override

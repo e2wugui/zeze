@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -12,8 +14,7 @@ import Zeze.Transaction.IGlobalAgent;
 import Zeze.Util.TaskSpec;
 import demo.Module1.Table3;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Test;
  * （tQueues等），addTable同名表会报duplicate table id。
  */
 @Fast
+@NullMarked
 public class TestReduceInvalidAllFlush {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2-1组300、T2-2组400起）。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_REDUCE_INVALID_ALL_FLUSH);
@@ -44,17 +46,17 @@ public class TestReduceInvalidAllFlush {
 	/** 最小stub：reduceInvalidAllLocalOnly只使用hashIndex路由。 */
 	private static final IGlobalAgent stubAgent = new IGlobalAgent() {
 		@Override
-		public @Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait) {
+		public AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
 			return AcquireResult.getSuccessResult(state);
 		}
 
 		@Override
-		public int getGlobalCacheManagerHashIndex(@NotNull Binary gkey) {
+		public int getGlobalCacheManagerHashIndex(Binary gkey) {
 			return 0;
 		}
 
 		@Override
-		public @NotNull Zeze.Transaction.GlobalAgentBase getAgent(int index) {
+		public Zeze.Transaction.GlobalAgentBase getAgent(int index) {
 			throw new UnsupportedOperationException();
 		}
 

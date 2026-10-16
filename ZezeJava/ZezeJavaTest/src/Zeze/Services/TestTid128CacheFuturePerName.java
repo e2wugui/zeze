@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -26,7 +30,6 @@ import Zeze.Services.ServiceManager.BUnSubscribeArgument;
 import Zeze.Services.ServiceManager.Id128UdpClient;
 import Zeze.Services.ServiceManager.Id128UdpServer;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * FND2-S2-6：lastTid128CacheFuture 按globalName存取。原agent级单槽不区分名字：
@@ -40,8 +43,8 @@ import org.jetbrains.annotations.NotNull;
 public class TestTid128CacheFuturePerName {
 	private static final String NAME_A = "UnitTest.Tid128PerName.A";
 	private static final String NAME_B = "UnitTest.Tid128PerName.B";
-	private static Id128UdpServer server;
-	private static TestAgent agent;
+	private static @Nullable Id128UdpServer server;
+	private static @Nullable TestAgent agent;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -54,15 +57,15 @@ public class TestTid128CacheFuturePerName {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		agent.client.stop();
-		server.stop();
+		requireNonNull(requireNonNull(agent).client).stop();
+		requireNonNull(server).stop();
 	}
 
 	// 不能把pending的future留给下一个测试：allocateTid128CacheFuture内部会get()等待上一次分配完成。
 	@AfterEach
 	public void completePendingFutures() {
 		for (var name : new String[]{NAME_A, NAME_B}) {
-			var last = agent.getLastTid128CacheFuture(name);
+			var last = requireNonNull(agent).getLastTid128CacheFuture(name);
 			if (last != null && !last.isDone())
 				Assertions.assertTrue(last.setException(new TimeoutException("test cleanup")));
 		}
@@ -71,7 +74,7 @@ public class TestTid128CacheFuturePerName {
 	@SuppressWarnings("deprecation")
 	@Test
 	public void testPerNameIsolation() {
-		var fa = agent.allocateTid128CacheFuture(NAME_A, 0); // pending
+		var fa = requireNonNull(agent).allocateTid128CacheFuture(NAME_A, 0); // pending
 		var fb = agent.allocateTid128CacheFuture(NAME_B, 0);
 		Assertions.assertNotSame(fa, fb);
 
@@ -85,10 +88,10 @@ public class TestTid128CacheFuturePerName {
 
 		// A毒化只影响A：B的pending future原样返回（不触发多余分配、不被牵连）。
 		Assertions.assertTrue(fa.setException(new TimeoutException("simulate udp timeout")));
-		var fb2 = Assertions.assertDoesNotThrow(() -> agent.getUsableTid128CacheFuture(NAME_B));
+		var fb2 = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).getUsableTid128CacheFuture(NAME_B));
 		Assertions.assertSame(fb, fb2);
 		// A按名字自愈重新分配，新的future仍是A名下的。
-		var fa2 = Assertions.assertDoesNotThrow(() -> agent.getUsableTid128CacheFuture(NAME_A));
+		var fa2 = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).getUsableTid128CacheFuture(NAME_A));
 		Assertions.assertNotSame(fa, fa2);
 		Assertions.assertSame(fa2, agent.getLastTid128CacheFuture(NAME_A));
 		Assertions.assertSame(fa2, agent.getLastTid128CacheFuture());
@@ -96,7 +99,7 @@ public class TestTid128CacheFuturePerName {
 
 	/** 只实现被测路径需要的行为，其余入口不可用。 */
 	private static final class TestAgent extends AbstractAgent {
-		private Id128UdpClient client;
+		private @Nullable Id128UdpClient client;
 
 		private TestAgent() {
 			config = new Config(); // 默认无global：getHistoryAllocCount()=0(自适应)，对齐本测试的档位/毒化路径
@@ -108,13 +111,13 @@ public class TestTid128CacheFuturePerName {
 		}
 
 		@Override
-		protected void allocate(@NotNull AutoKey autoKey, int pool) {
+		protected void allocate(AutoKey autoKey, int pool) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-										@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		protected boolean allocateAsync(String globalName, int allocCount,
+										ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -129,27 +132,27 @@ public class TestTid128CacheFuturePerName {
 		}
 
 		@Override
-		public void editService(@NotNull BEditService arg) {
+		public void editService(BEditService arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument info) {
+		public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(BSubscribeArgument info) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+		public void unSubscribeService(BUnSubscribeArgument arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public boolean setServerLoad(@NotNull BServerLoad load) {
+		public boolean setServerLoad(BServerLoad load) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Threading getThreading() {
+		public Threading getThreading() {
 			throw new UnsupportedOperationException();
 		}
 

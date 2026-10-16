@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -61,7 +63,7 @@ public class TestOnzReadyWaitInterrupted {
 	private static FuncProcedure silentRpc() {
 		return new FuncProcedure() {
 			@Override
-			public void SendResult(Binary result) {
+			public void SendResult(@Nullable Binary result) {
 			}
 		};
 	}
@@ -93,7 +95,7 @@ public class TestOnzReadyWaitInterrupted {
 	@Test
 	public void testInterruptAloneMarksTimeoutSentinel() throws Exception {
 		var p = newProcedure(3001L);
-		var thrown = new AtomicReference<Throwable>();
+		var thrown = new AtomicReference<@Nullable Throwable>();
 		var t = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				p.sendReadyAndWait();
@@ -130,7 +132,7 @@ public class TestOnzReadyWaitInterrupted {
 	@Test
 	public void testInterruptAfterDecisionTakenWaitsCommit() throws Exception {
 		var p = newProcedure(3002L);
-		var thrown = new AtomicReference<Throwable>();
+		var thrown = new AtomicReference<@Nullable Throwable>();
 		var t = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				p.sendReadyAndWait();

@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.Future;
@@ -37,7 +39,7 @@ public class TestOnlineLoginRetryLimit {
 			env.seedLogin(1L, 0L, 0L);
 			var handlerThread = Thread.currentThread();
 			var compensatingLogouts = new AtomicInteger();
-			var pendingRival = new AtomicReference<Future<Long>>();
+			var pendingRival = new AtomicReference<@Nullable Future<Long>>();
 			var rivalLogin = env.attach(new Login(), env.session(1L, ""));
 			rivalLogin.Argument.setClientId(ArchOnlineTestEnv.CLIENT_ID);
 			var logoutHook = env.online.getLogoutEvents().add(EventDispatcher.Mode.RunEmbed, (sender, arg) -> {

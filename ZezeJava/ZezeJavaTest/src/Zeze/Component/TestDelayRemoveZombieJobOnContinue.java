@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Application;
 import Zeze.Builtin.DelayRemove.BJob;
 import Zeze.Builtin.DelayRemove.tJobs;
@@ -42,7 +44,7 @@ public class TestDelayRemoveZombieJobOnContinue {
 			app.start();
 			var dr = app.getDelayRemove();
 			var serverId = app.getConfig().getServerId();
-			var tJobs = getJobsTable(dr);
+			var tJobs = getJobsTable(requireNonNull(dr));
 			dr.register("UnitTest.DelayRemoveZombie.legit", (delayRemove, jobId, jobState) -> {
 			});
 
@@ -68,7 +70,7 @@ public class TestDelayRemoveZombieJobOnContinue {
 			// 装载期治理：僵尸行被删除，合法Job不受影响。
 			dr.continueJobs();
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				Assertions.assertNull(tJobs.get(serverId).getJobs().get("injectedZombieJob"),
+				Assertions.assertNull(requireNonNull(tJobs.get(serverId)).getJobs().get("injectedZombieJob"),
 						"僵尸Job行必须被continueJobs删除（FND5-21存量治理）");
 				return Procedure.Success;
 			}, "verifyAfterContinue").call());

@@ -1,5 +1,9 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -60,7 +64,7 @@ public class TestThreadingServerClose {
 			}
 			var mutex = owner.getMutex(name.getName());
 			var rwLock = owner.getReadWriteLock(name.getName());
-			var semaphore = owner.getSemaphore(name.getName()).semaphore;
+			var semaphore = requireNonNull(owner.getSemaphore(name.getName())).semaphore;
 			server.close();
 			owner.join(3_000);
 			assertFalse(owner.isAlive(), "close must stop the resource-owning thread");
@@ -147,7 +151,7 @@ public class TestThreadingServerClose {
 			} finally {
 				server.unlock();
 			}
-			var semaphore = owner.getSemaphore(name.getName()).semaphore;
+			var semaphore = requireNonNull(owner.getSemaphore(name.getName())).semaphore;
 			var deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
 			while (!semaphore.hasQueuedThreads()) {
 				assertTrue(System.nanoTime() < deadline, "first acquisition must enter its timed wait");
@@ -159,7 +163,7 @@ public class TestThreadingServerClose {
 			queued.Argument.setTimeoutMs(60_000);
 			server.ProcessSemaphoreTryAcquireRequest(queued);
 
-			var closeFailure = new AtomicReference<Throwable>();
+			var closeFailure = new AtomicReference<@Nullable Throwable>();
 			closer = new Thread(() -> {
 				try {
 					server.close();

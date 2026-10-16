@@ -1,5 +1,7 @@
 package GameSim;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.util.ArrayDeque;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +40,7 @@ final class PlayerSim implements Runnable {
 	volatile boolean loggedIn;
 	volatile boolean kicked;      // 心跳扫描踢线 → 下轮 step 重登
 	volatile boolean inRoom;
-	private volatile CompletableFuture<Void> roomFuture;
+	private volatile @Nullable CompletableFuture<@Nullable Void> roomFuture;
 
 	private long[] friendIds = new long[0]; // 登录创建时事务外定死
 
@@ -138,7 +140,7 @@ final class PlayerSim implements Runnable {
 		if (inRoom) {
 			// 等房间结束（带超时轮询停机信号）；轮询超时是设计内节奏，不计错误
 			try {
-				roomFuture.get(cfg.wall(500), TimeUnit.MILLISECONDS);
+				Objects.requireNonNull(roomFuture).get(cfg.wall(500), TimeUnit.MILLISECONDS);
 			} catch (java.util.concurrent.TimeoutException ignored) {
 			} catch (java.util.concurrent.ExecutionException e) {
 				// 房间 future 只会正常完成（防御）
@@ -249,7 +251,7 @@ final class PlayerSim implements Runnable {
 	private void applyLoot(LootEvent e) {
 		world.call(rec, OpRecorder.OpType.loot, "GameSim.Loot", () -> {
 			var role = world.tRole.get(roleId); // 角色必有；getOrAdd 仅限建点（login）
-			role.setExp(role.getExp() + e.exp);
+			Objects.requireNonNull(role).setExp(role.getExp() + e.exp);
 			int oldLevel = role.getLevel();
 			while (role.getExp() >= GameConfig.expToNext(role.getLevel())) { // 升级曲线
 				role.setExp(role.getExp() - GameConfig.expToNext(role.getLevel()));
@@ -280,7 +282,7 @@ final class PlayerSim implements Runnable {
 	private void applyDeath(DeathEvent e) {
 		world.call(rec, OpRecorder.OpType.loot, "GameSim.DeathPenalty", () -> {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
-			final long loss = Math.min(role.getMoney(), e.moneyLoss);
+			final long loss = Math.min(Objects.requireNonNull(role).getMoney(), e.moneyLoss);
 			role.setMoney(role.getMoney() - loss);
 			Zeze.Transaction.Transaction.whileCommit(() -> { // 系统销毁
 				world.ledger.money(-loss);
@@ -300,9 +302,9 @@ final class PlayerSim implements Runnable {
 			// 在线⇒已建角，角色一经创建不删——get 缺行=NPE 自然进错误账本，不静默吞
 			var roleA = world.tRole.get(o.from);
 			var roleB = world.tRole.get(roleId);
-			if (roleB.getMoney() < payBack)
+			if (Objects.requireNonNull(roleB).getMoney() < payBack)
 				return 0L;
-			var bagA = roleA.getBag();
+			var bagA = Objects.requireNonNull(roleA).getBag();
 			var itemA = bagA.get(o.slot);
 			if (itemA == null || itemA.getItemId() != o.itemId || itemA.getCount() < o.count)
 				return 0L; // 要约物品已变（过期），放弃
@@ -356,7 +358,7 @@ final class PlayerSim implements Runnable {
 		world.call(rec, OpRecorder.OpType.friendQuery, "GameSim.FriendQuery", () -> {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			int n = 0;
-			for (var id : role.getFriendsReadOnly().keySet())
+			for (var id : Objects.requireNonNull(role).getFriendsReadOnly().keySet())
 				if (world.tSession.selectDirty(id) != null)
 					++n;
 			return 0L;
@@ -369,7 +371,7 @@ final class PlayerSim implements Runnable {
 			return; // 没药或血量健康：不产生事务（避免空事务放大固定提交成本）
 		world.call(rec, OpRecorder.OpType.usePotion, "GameSim.UsePotion", () -> {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
-			var bag = role.getBag();
+			var bag = Objects.requireNonNull(role).getBag();
 			var item = bag.get(slot);
 			if (item == null || item.getItemId() != GameConfig.ItemPotion) {
 				return 0L; // 镜像过期（交易改了背包）：本轮跳过
@@ -397,11 +399,11 @@ final class PlayerSim implements Runnable {
 			return;
 		world.call(rec, OpRecorder.OpType.equip, "GameSim.Wear", () -> {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
-			var equip = role.getEquip();
+			var equip = Objects.requireNonNull(role).getEquip();
 			if (equip.get(0) == null) {
 				// 穿：权威复查（镜像可能被 trade 改过背包），过期则静默跳过（常态防御）
 				int slot = findMirrorSlot(GameConfig.ItemWeapon);
-				var item = role.getBag().get(slot);
+				var item = Objects.requireNonNull(role).getBag().get(slot);
 				if (item == null || item.getItemId() != GameConfig.ItemWeapon)
 					return 0L;
 				role.getBag().remove(slot);
@@ -409,7 +411,7 @@ final class PlayerSim implements Runnable {
 			} else {
 				// 脱：背包需有空位（容量探测，不改动），满则本轮跳过
 				var old = equip.get(0);
-				if (findSlotFor(role, GameConfig.ItemWeapon, old.getCount()) < 0)
+				if (findSlotFor(role, GameConfig.ItemWeapon, Objects.requireNonNull(old).getCount()) < 0)
 					return 0L;
 				equip.remove(0);
 				insertItem(role, GameConfig.ItemWeapon, old.getCount()); // 数值重建回包
@@ -425,7 +427,7 @@ final class PlayerSim implements Runnable {
 			return;
 		world.call(rec, OpRecorder.OpType.equipChange, "GameSim.Equip", () -> {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
-			var bag = role.getBag();
+			var bag = Objects.requireNonNull(role).getBag();
 			var item = bag.get(slot);
 			if (item == null || item.getItemId() != GameConfig.ItemWeapon)
 				return 0L;
@@ -472,7 +474,7 @@ final class PlayerSim implements Runnable {
 			return;
 		world.call(rec, OpRecorder.OpType.sellShop, "GameSim.SellShop", () -> {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
-			var item = role.getBag().get(slot);
+			var item = Objects.requireNonNull(role).getBag().get(slot);
 			if (item == null)
 				return 0L; // 镜像过期
 			final int itemId = item.getItemId();
@@ -510,7 +512,7 @@ final class PlayerSim implements Runnable {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			for (var entry : m.getItems().entrySet()) { // 先验证附件全可入包
 				var it = entry.getValue();
-				if (findSlotFor(role, it.getItemId(), it.getCount()) < 0) {
+				if (findSlotFor(Objects.requireNonNull(role), it.getItemId(), it.getCount()) < 0) {
 					Zeze.Transaction.Transaction.whileCommit(() ->
 							mailbox.add(key)); // 背包满：整封跳过，提交后重塞队尾稍后再试
 					return 0L;
@@ -520,7 +522,7 @@ final class PlayerSim implements Runnable {
 				var it = entry.getValue();
 				insertItem(role, it.getItemId(), it.getCount()); // 堆叠合并（容量已在探测步验证）
 			}
-			role.setMoney(role.getMoney() + m.getMoney());
+			Objects.requireNonNull(role).setMoney(role.getMoney() + m.getMoney());
 			final long mailMoney = m.getMoney();
 			world.tMail.remove(key);
 			Zeze.Transaction.Transaction.whileCommit(() -> {
@@ -544,7 +546,7 @@ final class PlayerSim implements Runnable {
 		long key = world.allocMailKey(); // 号段事务外预分配
 		world.call(rec, OpRecorder.OpType.mailSend, "GameSim.MailSend", () -> {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
-			if (role.getMoney() < 10)
+			if (Objects.requireNonNull(role).getMoney() < 10)
 				return 0L;
 			var item = role.getBag().get(slot);
 			if (item == null || item.getItemId() != GameConfig.ItemPotion)
@@ -650,7 +652,7 @@ final class PlayerSim implements Runnable {
 	/** 从槽位扣 count 个（数量归零移除槽位） */
 	private static void removeAt(Zeze.Transaction.Collections.PMap2<Integer, demo.Game.BItem> bag, int slot, int count) {
 		var it = bag.get(slot);
-		if (it.getCount() > count)
+		if (Objects.requireNonNull(it).getCount() > count)
 			it.setCount(it.getCount() - count);
 		else
 			bag.remove(slot);

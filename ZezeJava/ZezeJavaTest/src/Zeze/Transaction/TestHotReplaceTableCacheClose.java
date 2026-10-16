@@ -1,5 +1,11 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,6 +28,7 @@ import org.junit.jupiter.api.Test;
  * （tQueues等），addTable同名表会报duplicate table id。
  */
 @Fast
+@NullMarked
 public class TestHotReplaceTableCacheClose {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2组：300/400/500起）。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_HOT_REPLACE_TABLE_CACHE_CLOSE);
@@ -37,7 +44,7 @@ public class TestHotReplaceTableCacheClose {
 		return new Application("TestHotReplaceTableCacheClose@" + conf.getServerId(), conf);
 	}
 
-	private static Object getField(Object obj, String name) throws ReflectiveOperationException {
+	private static @Nullable Object getField(Object obj, String name) throws ReflectiveOperationException {
 		for (Class<?> c = obj.getClass(); c != null; c = c.getSuperclass()) {
 			try {
 				Field f = c.getDeclaredField(name);
@@ -82,7 +89,7 @@ public class TestHotReplaceTableCacheClose {
 		app.start();
 		try {
 			var oldCache = oldTable.getCache();
-			Assertions.assertFalse(timersClosed(oldCache));
+			Assertions.assertFalse(timersClosed(requireNonNull(oldCache)));
 			Assertions.assertSame(oldTable, app.getTable(oldTable.getId()));
 
 			// 模拟热更替换（Application.replaceTable -> 新表open(exist) -> 旧表disable）
@@ -100,7 +107,7 @@ public class TestHotReplaceTableCacheClose {
 			}, "TestHotReplaceTableCacheClose.put")).call();
 			Assertions.assertEquals(0L, rc);
 			app.checkpointRun();
-			Assertions.assertEquals(42, newTable.selectFromDatabase(key).getInt_1());
+			Assertions.assertEquals(42, requireNonNull(newTable.selectFromDatabase(key)).getInt_1());
 		} finally {
 			app.stop();
 		}

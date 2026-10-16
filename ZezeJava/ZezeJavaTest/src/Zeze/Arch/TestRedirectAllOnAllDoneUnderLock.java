@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -54,10 +58,10 @@ public class TestRedirectAllOnAllDoneUnderLock {
 		var lockHeldInCallback = new AtomicBoolean(true);
 		var lateFinishedDuringCallback = new AtomicBoolean(false);
 		var resultsSeenInCallback = new AtomicInteger(-1);
-		var lateThread = new AtomicReference<Thread>();
+		var lateThread = new AtomicReference<@Nullable Thread>();
 		var lateRan = new AtomicBoolean(false);
 
-		ctx.getFuture().OnAllDone(c -> {
+		requireNonNull(ctx.getFuture()).OnAllDone(c -> {
 			// 核心断言采集：直跑回调是否持有ctx锁（修复前此处为false）
 			lockHeldInCallback.set(c.isLockHeldByCurrentThread());
 			// 并发迟到结果：回调持有ctx锁期间必须被挡在锁外
@@ -99,7 +103,7 @@ public class TestRedirectAllOnAllDoneUnderLock {
 		var callCount = new AtomicLong();
 		var lockHeldInCallback = new AtomicBoolean(false);
 		var resultsSeenInCallback = new AtomicInteger(-1);
-		ctx.getFuture().OnAllDone(c -> {
+		requireNonNull(ctx.getFuture()).OnAllDone(c -> {
 			callCount.incrementAndGet();
 			lockHeldInCallback.set(c.isLockHeldByCurrentThread());
 			resultsSeenInCallback.set(c.getAllResults().size());

@@ -19,7 +19,6 @@ import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BUnSubscribeArgument;
 import Zeze.Services.ServiceManagerAgentWithRaft;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * FND-S2-2：History + raft版ServiceManager组合下tid128UdpClient恒为null
@@ -57,13 +56,13 @@ public class TestRaftSmHistoryFailFast {
 	/** 不初始化tid128UdpClient的最小Agent（模拟raft版组合的运行期形态）。 */
 	private static final class NullTid128Agent extends AbstractAgent {
 		@Override
-		protected void allocate(@NotNull AutoKey autoKey, int pool) {
+		protected void allocate(AutoKey autoKey, int pool) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-										@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		protected boolean allocateAsync(String globalName, int allocCount,
+										ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -78,27 +77,27 @@ public class TestRaftSmHistoryFailFast {
 		}
 
 		@Override
-		public void editService(@NotNull BEditService arg) {
+		public void editService(BEditService arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument info) {
+		public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(BSubscribeArgument info) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+		public void unSubscribeService(BUnSubscribeArgument arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public boolean setServerLoad(@NotNull BServerLoad load) {
+		public boolean setServerLoad(BServerLoad load) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Threading getThreading() {
+		public Threading getThreading() {
 			throw new UnsupportedOperationException();
 		}
 

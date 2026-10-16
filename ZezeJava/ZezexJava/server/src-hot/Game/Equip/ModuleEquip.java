@@ -1,5 +1,7 @@
 package Game.Equip;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import Game.Fight.*;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Component.TimerContext;
@@ -12,7 +14,6 @@ import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 这是初始版本。
@@ -20,9 +21,9 @@ import org.jetbrains.annotations.NotNull;
 public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	private static final Logger logger = LogManager.getLogger(ModuleEquip.class);
 
-	String timerHot;
+	@Nullable String timerHot;
 	String timerNamed = "ZezexJava.ModuleEquip.HotTimer.Test";
-	String timerOnline;
+	@Nullable String timerOnline;
 	long roleId;
 
 	int onlineTimerCount;
@@ -65,21 +66,21 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	private boolean isHotUpgrade() {
-		var hotManager = App.Zeze.getHotManager();
+		var hotManager = App.getZeze().getHotManager();
 		if (null == hotManager)
 			return false;
 		return hotManager.isUpgrading();
 	}
 
 	public void Start(App app) {
-		App.Zeze.getHotManager().throwIfMatch("start");
+		Objects.requireNonNull(App.getZeze().getHotManager()).throwIfMatch("start");
 
 		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
-		App.Zeze.newProcedure(() -> {
-			var timer = App.Zeze.getTimer();
+		App.getZeze().newProcedure(() -> {
+			var timer = App.getZeze().getTimer();
 			if (!isHotUpgrade()) {
 				var rand = Zeze.Util.Random.getInstance();
-				timer.scheduleNamed(timerNamed,
+				Objects.requireNonNull(timer).scheduleNamed(timerNamed,
 						TimerSpec.ofDelay(rand.nextLong(3000) + 1000).period(rand.nextLong(3000) + 1000),
 						HotTimer.class, new BEquipExtra(0, 2, 0));
 
@@ -93,22 +94,22 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	public void Stop(App app) {
-		App.Zeze.getHotManager().throwIfMatch("stop");
+		Objects.requireNonNull(App.getZeze().getHotManager()).throwIfMatch("stop");
 
 		logger.info("Stop " + this.getFullName());
-		App.Zeze.newProcedure(() -> {
-			var timer = App.Zeze.getTimer();
+		App.getZeze().newProcedure(() -> {
+			var timer = App.getZeze().getTimer();
 			if (!isHotUpgrade()) {
-				timer.cancel(timerNamed);
+				Objects.requireNonNull(timer).cancel(timerNamed);
 				timer.cancel(timerHot);
 			}
-			timer.getRoleTimer().cancel(timerOnline, roleId);
+			Objects.requireNonNull(timer).getRoleTimer().cancel(timerOnline, roleId);
 			return 0;
 		}, "cancel timers").call();
 	}
 
 	@Override
-	public String getTimerHot() {
+	public @Nullable String getTimerHot() {
 		return timerHot;
 	}
 
@@ -119,15 +120,15 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	public static class HotTimer implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
-			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
-			var equip = mc.getService();
+		public void onTimer(TimerContext context) {
+			var mc = Objects.requireNonNull(Objects.requireNonNull(context.timer.zeze).getHotManager()).getModuleContext("Game.Equip", IModuleEquip.class);
+			var equip = Objects.requireNonNull(mc).getService();
 			var count = 1; // default is 1
 			var custom = (BEquipExtra)context.customData;
-			count = switch (custom.getDefence()) {
-				case 1 -> equip.getHotTimerCount();
-				case 2 -> equip.getNamedTimerCount();
-				case 3 -> equip.getOnlineTimerCount();
+			count = switch (Objects.requireNonNull(custom).getDefence()) {
+				case 1 -> Objects.requireNonNull(equip).getHotTimerCount();
+				case 2 -> Objects.requireNonNull(equip).getNamedTimerCount();
+				case 3 -> Objects.requireNonNull(equip).getOnlineTimerCount();
 				default -> count;
 			};
 			if (count != custom.getAttack())
@@ -138,13 +139,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			Transaction.whileCommit(() -> {
 				switch (custom.getDefence()) {
 				case 1:
-					equip.setHotTimerCount(finalCount + 1);
+					Objects.requireNonNull(equip).setHotTimerCount(finalCount + 1);
 					break;
 				case 2:
-					equip.setNamedTimerCount(finalCount + 1);
+					Objects.requireNonNull(equip).setNamedTimerCount(finalCount + 1);
 					break;
 				case 3:
-					equip.setOnlineTimerCount(finalCount + 1);
+					Objects.requireNonNull(equip).setOnlineTimerCount(finalCount + 1);
 					break;
 				}
 			});
@@ -162,30 +163,30 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	private void resetCollections() {
-		var linkedMap = App.LinkedMapModule.open(getLinkedMapName(), BEquipExtra.class);
+		var linkedMap = Objects.requireNonNull(App.LinkedMapModule).open(getLinkedMapName(), BEquipExtra.class);
 		linkedMap.remove(String.valueOf(0));
-		var queue = App.Zeze.getQueueModule().open(getQueueName(), BEquipExtra.class);
+		var queue = Objects.requireNonNull(App.getZeze().getQueueModule()).open(getQueueName(), BEquipExtra.class);
 		queue.clear();
-		var departmentTree = App.DepartmentTreeModule.open(getDtName(),
+		var departmentTree = Objects.requireNonNull(App.DepartmentTreeModule).open(getDtName(),
 				BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class);
 		departmentTree.destroy();
 	}
 
 	private String getLinkedMapName() {
-		return "ZezexJava.HotTest.LinkedMap." + App.Zeze.getConfig().getServerId();
+		return "ZezexJava.HotTest.LinkedMap." + App.getZeze().getConfig().getServerId();
 	}
 
 	private String getQueueName() {
-		return "ZezexJava.HotTest.Queue." + App.Zeze.getConfig().getServerId();
+		return "ZezexJava.HotTest.Queue." + App.getZeze().getConfig().getServerId();
 	}
 
 	private String getDtName() {
-		return "ZezexJava.HotTest.DT." + App.Zeze.getConfig().getServerId();
+		return "ZezexJava.HotTest.DT." + App.getZeze().getConfig().getServerId();
 	}
 
 	private void verifyCollections(int oldAccess) {
 		{
-			var linkedMap = App.LinkedMapModule.open(getLinkedMapName(), BEquipExtra.class);
+			var linkedMap = Objects.requireNonNull(App.LinkedMapModule).open(getLinkedMapName(), BEquipExtra.class);
 			var version0 = linkedMap.getOrAdd(String.valueOf(0));
 			logger.info("verify oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			if (version0.getAttack() != oldAccess)
@@ -193,7 +194,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			version0.setAttack(oldAccess + 1);
 		}
 		{
-			var queue = App.Zeze.getQueueModule().open(getQueueName(), BEquipExtra.class);
+			var queue = Objects.requireNonNull(App.getZeze().getQueueModule()).open(getQueueName(), BEquipExtra.class);
 			var old = queue.poll();
 			if (old != null && oldAccess != old.getAttack())
 				throw new RuntimeException(getQueueName() + " error oldAccess=" + old.getAttack() + ":" + oldAccess);
@@ -202,7 +203,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			queue.add(cur);
 		}
 		{
-			var departmentTree = App.DepartmentTreeModule.open(getDtName(),
+			var departmentTree = Objects.requireNonNull(App.DepartmentTreeModule).open(getDtName(),
 					BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class);
 			var root = departmentTree.getRoot();
 			var next = String.valueOf(oldAccess + 1);
@@ -218,7 +219,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public int hotHelloWorld(int oldAccess) {
-		App.Zeze.newProcedure(() -> {
+		App.getZeze().newProcedure(() -> {
 			accessWillRemoveTable();
 
 			var record = _tHotTest.getOrAdd(1L);
@@ -258,8 +259,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		if (roleId == 0)
 			return; // 还没有登录报告成功，忽略验证。
 
-		var online = App.Provider.getOnline();
-		var bean = online.getUserData(roleId);
+		var online = Objects.requireNonNull(App.Provider).getOnline();
+		var bean = Objects.requireNonNull(online).getUserData(roleId);
 		if (null == bean || bean.typeId() == EmptyBean.TYPEID) {
 			var data = new BRetreatTestLocal();
 			data.setVarInt1(oldAccess + 1);
@@ -279,8 +280,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			return; // 还没有登录报告成功，忽略验证。
 
 		var key = "ZezexJava.HotTest.Online.Local";
-		var online = App.Provider.getOnline();
-		var local = (BRetreatTestLocal)online.getLocalBean(roleId, key);
+		var online = Objects.requireNonNull(App.Provider).getOnline();
+		var local = (BRetreatTestLocal)Objects.requireNonNull(online).getLocalBean(roleId, key);
 		if (null == local) {
 			local = new BRetreatTestLocal();
 			local.setVarInt1(oldAccess + 1);
@@ -304,10 +305,10 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	public void upgrade(HotService old) throws Exception {
-		App.Zeze.getHotManager().throwIfMatch("upgrade");
+		Objects.requireNonNull(App.getZeze().getHotManager()).throwIfMatch("upgrade");
 
 		var oldI = (IModuleEquip)old;
-		App.Zeze.newProcedure(() -> {
+		App.getZeze().newProcedure(() -> {
 			startOnlineTimer(oldI.getRoleId());
 			return 0;
 		}, "startOnlineTimer").call();
@@ -333,9 +334,9 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 				SEquipement changed = new SEquipement();
 				changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordChanged);
-				changed.Argument.getItemsReplace().putAll(bequips.getItems());
+				changed.Argument.getItemsReplace().putAll(Objects.requireNonNull(bequips).getItems());
 
-				OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed);
+				OnlineSpec.ofReliableNotify(Objects.requireNonNull(Game.App.Instance.getProvider().getOnline()), (Long)key, getName()).send(changed);
 				break;
 			case Changes.Record.Edit:
 				// 增量变化，通知变更。
@@ -349,13 +350,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getItemsRemove().add(p);
 					}
-					OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed2);
+					OnlineSpec.ofReliableNotify(Objects.requireNonNull(Game.App.Instance.getProvider().getOnline()), (Long)key, getName()).send(changed2);
 				}
 				break;
 			case Changes.Record.Remove:
 				SEquipement changed3 = new SEquipement();
 				changed3.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
-				OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed3);
+				OnlineSpec.ofReliableNotify(Objects.requireNonNull(Game.App.Instance.getProvider().getOnline()), (Long)key, getName()).send(changed3);
 				break;
 			}
 		}
@@ -436,12 +437,12 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return errorCode(ResultCodeEquipNotFound);
 	}
 
-	public Game.Item.IItem getEquipItem(long roleId, int position) {
+	public Game.Item.@Nullable IItem getEquipItem(long roleId, int position) {
 		BEquips equips = _tequip.getOrAdd(roleId);
 		return getEquipItem(equips, position);
 	}
 
-	public Game.Item.IItem getEquipItem(BEquips equips, int position) {
+	public Game.Item.@Nullable IItem getEquipItem(BEquips equips, int position) {
 		var equip = equips.getItems().get(position);
 		if (null != equip) {
 			var extraTypeId = equip.getExtra().getBean().typeId();
@@ -496,7 +497,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	private void startOnlineTimer(long roleId) {
 		this.roleId = roleId;
-		timerOnline = App.Zeze.getTimer().getRoleTimer().scheduleOnlineHot(
+		timerOnline = Objects.requireNonNull(App.getZeze().getTimer()).getRoleTimer().scheduleOnlineHot(
 				this.roleId, TimerSpec.ofDelay(2000).period(2000).times(-1).endTime(-1),
 				HotTimer.class, new BEquipExtra(0, 3, 0));
 		logger.info("timerOnline=" + timerOnline);

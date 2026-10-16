@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import Zeze.Util.FewModifyList;
 import Zeze.Util.FewModifyMap;
@@ -20,7 +22,7 @@ public class TestFewModifyNullSnapshot {
 
 	@Test
 	public void testListNullElementReadable() {
-		var list = new FewModifyList<String>();
+		var list = new FewModifyList<@Nullable String>();
 		list.add(null);
 		list.add("a");
 		list.add(null);
@@ -41,7 +43,7 @@ public class TestFewModifyNullSnapshot {
 
 	@Test
 	public void testListWriteAfterNullSnapshotRebuilds() {
-		var list = new FewModifyList<String>();
+		var list = new FewModifyList<@Nullable String>();
 		list.add(null);
 		Assertions.assertNull(list.get(0)); // 建成快照
 		list.remove(null); // 写侧移除 null，快照重建
@@ -52,7 +54,7 @@ public class TestFewModifyNullSnapshot {
 
 	@Test
 	public void testMapNullValueReadable() {
-		var map = new FewModifyMap<String, String>();
+		var map = new FewModifyMap<String, @Nullable String>();
 		map.put("k1", null);
 		map.put("k2", "v2");
 
@@ -70,7 +72,7 @@ public class TestFewModifyNullSnapshot {
 
 	@Test
 	public void testMapWriteAfterNullSnapshotRebuilds() {
-		var map = new FewModifyMap<String, String>();
+		var map = new FewModifyMap<String, @Nullable String>();
 		map.put("k", null);
 		Assertions.assertTrue(map.containsKey("k"));
 		map.remove("k");

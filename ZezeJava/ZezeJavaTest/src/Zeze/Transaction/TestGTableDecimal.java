@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import java.math.BigDecimal;
 
 import Zeze.Serialize.ByteBuffer;
@@ -91,7 +93,7 @@ public class TestGTableDecimal {
 		h.g.put(new BigDecimal("1E+2"), 3L, 43); // 负scale
 		var json = Json.toCompactString(h);
 		var parsed = (H1)Json.parse(json, new H1());
-		var v1 = parsed.g.get(new BigDecimal("5.5"), 2L);
+		var v1 = requireNonNull(parsed).g.get(new BigDecimal("5.5"), 2L);
 		assertNotNull(v1, "decimal行键必须恢复");
 		assertEquals(42, v1);
 		var v2 = parsed.g.get(new BigDecimal("1E+2"), 3L);
@@ -106,7 +108,7 @@ public class TestGTableDecimal {
 		h.g.put(1L, new BigDecimal("7.25"), 42);
 		var json = Json.toCompactString(h);
 		var parsed = (H2)Json.parse(json, new H2());
-		var v = parsed.g.get(1L, new BigDecimal("7.25"));
+		var v = requireNonNull(parsed).g.get(1L, new BigDecimal("7.25"));
 		assertNotNull(v, "decimal列键必须恢复");
 		assertEquals(42, v);
 	}
@@ -118,7 +120,7 @@ public class TestGTableDecimal {
 		h.g.put(1L, 2L, new BigDecimal("0.100"));
 		var json = Json.toCompactString(h);
 		var parsed = (H3)Json.parse(json, new H3());
-		var v = parsed.g.get(1L, 2L);
+		var v = requireNonNull(parsed).g.get(1L, 2L);
 		assertNotNull(v, "decimal值必须恢复");
 		assertEquals(new BigDecimal("0.100"), v);
 	}
@@ -130,7 +132,7 @@ public class TestGTableDecimal {
 		h.g.put(new BigDecimal("3.3"), 2L, new TestGTableNonBuiltinKeyJson.MBean().set(9));
 		var json = Json.toCompactString(h);
 		var parsed = (H4)Json.parse(json, new H4());
-		var v = parsed.g.get(new BigDecimal("3.3"), 2L);
+		var v = requireNonNull(parsed).g.get(new BigDecimal("3.3"), 2L);
 		assertNotNull(v, "GTable2 decimal行键必须恢复");
 		assertEquals(9L, v.v);
 	}

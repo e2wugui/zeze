@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +38,7 @@ public class TestEndSagaNotifiesAllParticipants {
 		}
 
 		@Override
+		@SuppressWarnings("DataFlowIssue") // fake 返回 null socket，专门触发 SendForWait 的 Send Fail 路径。
 		public AsyncSocket getZezeInstance(String zezeName) {
 			asked.add(zezeName);
 			if (throwFor.contains(zezeName))
@@ -44,7 +47,7 @@ public class TestEndSagaNotifiesAllParticipants {
 		}
 
 		@Override
-		void saveCommitPoint(byte[] tidBytes, BSavedCommits.Data bState, int state) {
+		void saveCommitPoint(byte[] tidBytes, BSavedCommits.@Nullable Data bState, int state) {
 			// 假服务器：跳过持久化（commit决策点），直接进入endSaga通知阶段。
 		}
 
@@ -62,6 +65,7 @@ public class TestEndSagaNotifiesAllParticipants {
 	}
 
 	@Test
+	@SuppressWarnings("DataFlowIssue") // FakeOnzServer.saveCommitPoint 忽略 state，绕过测试外的持久化边界。
 	public void testEndSagaContinuesAfterParticipantFail() throws Exception {
 		var txn = new FakeTxn();
 		var ok = new TaskCompletionSource<EmptyBean.Data>();

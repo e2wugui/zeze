@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,7 +53,7 @@ final class GcOnzE2eTestSupport {
 	}
 
 	/** after()样板：before()被Assumption跳过时onzServer尚未创建；stop幂等。 */
-	static void stopCoordinator(OnzServer onzServer, App zeze2) throws Exception {
+	static void stopCoordinator(@Nullable OnzServer onzServer, App zeze2) throws Exception {
 		if (onzServer != null) {
 			awaitOnzFlushSettled(onzServer);
 			onzServer.stop();
@@ -160,7 +164,7 @@ final class GcOnzE2eTestSupport {
 		r.Argument.setFuncArgument(new Binary(bb.Bytes, 0, bb.WriteIndex));
 		r.Argument.setFlushMode(AbstractOnz.eFlushImmediately);
 		r.SendForWait(onzServer.getZezeInstance("zeze1")); // 不await：应答要等业务+flush，这里只需上下文就位
-		waitUntil(() -> sagaCount(App.Instance.Zeze.getOnz()) == 1, 30_000, "saga上下文未注册");
+		waitUntil(() -> sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())) == 1, 30_000, "saga上下文未注册");
 	}
 
 	interface Condition {

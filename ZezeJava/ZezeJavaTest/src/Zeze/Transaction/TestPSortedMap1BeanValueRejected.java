@@ -6,7 +6,6 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.PSortedMap1;
 import demo.Module1.BValue;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -21,11 +20,11 @@ public class TestPSortedMap1BeanValueRejected {
 
 	public static class MyBean extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 

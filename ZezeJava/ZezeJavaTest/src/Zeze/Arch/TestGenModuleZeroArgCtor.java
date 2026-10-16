@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Map;
 
 import Zeze.AppBase;
@@ -70,7 +72,7 @@ public class TestGenModuleZeroArgCtor {
 
 		var appBase = new AppBase() {
 			@Override
-			public Zeze.Application getZeze() {
+			public Zeze.@Nullable Application getZeze() {
 				return null; // 0参路径不触达zeze
 			}
 		};

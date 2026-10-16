@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Path;
 
 import Zeze.Builtin.Onz.BSavedCommits;
@@ -229,7 +231,7 @@ public class TestRedoFailAgedSettle {
 	}
 
 	/** 手写超龄孤儿决策两表（TestFnd20GcD01的writeAgedOrphan同型）：ageMs=索引时戳回拨量。 */
-	private static void writeAgedOrphan(OnzServer onzServer, long tid, int state, String onzs, long ageMs) throws Exception {
+	private static void writeAgedOrphan(OnzServer onzServer, long tid, int state, @Nullable String onzs, long ageMs) throws Exception {
 		var key = keyOf(tid);
 		var saved = new BSavedCommits.Data();
 		if (onzs != null)

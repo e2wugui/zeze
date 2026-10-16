@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -111,7 +113,7 @@ public class TestTimerLoadMissfireAsync {
 			assertTrue(index != null, "index行必须存在");
 			var node = tNodes().get(index.getNodeId());
 			assertTrue(node != null, "node行必须存在");
-			var simpleTimer = (BSimpleTimer)node.getTimers().get(timerId).getTimerObj().getBean();
+			var simpleTimer = (BSimpleTimer)requireNonNull(node.getTimers().get(timerId)).getTimerObj().getBean();
 			simpleTimer.setNextExpectedTime(System.currentTimeMillis() - 60_000);
 			return Procedure.Success;
 		}, "TestTimerLoadMissfireAsync.backdate").call();

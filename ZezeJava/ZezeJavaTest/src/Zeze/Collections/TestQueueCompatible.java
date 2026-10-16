@@ -1,5 +1,9 @@
 package Zeze.Collections;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.util.ArrayList;
 import java.util.List;
@@ -117,7 +121,7 @@ public class TestQueueCompatible {
 
 	// 与Takeover.tryTransfer同key投递哨兵，等待队列中排在前面的tryTransfer执行完。
 	private static void waitTryTransferQueue() throws Exception {
-		var done = new TaskCompletionSource<Void>();
+		var done = new TaskCompletionSource<@Nullable Void>();
 		TaskSpec.ofAction(() -> done.setResult(null)).name("TestQueueCompatible.sentinel")
 				.executeOneByOne(Takeover.TryTransferOneByOneKey, Task.getOneByOne());
 		done.get(5, TimeUnit.SECONDS);
@@ -131,7 +135,7 @@ public class TestQueueCompatible {
 		try {
 			app.start();
 			var module = app.getQueueModule();
-			var queue = module.open("TestQueueCompatibleDrain", BMyBean.class);
+			var queue = requireNonNull(module).open("TestQueueCompatibleDrain", BMyBean.class);
 			forgeLegacyQueue(app, "TestQueueCompatibleDrain", 11, 0);
 
 			run(app, "drain.poll", () -> {
@@ -184,7 +188,7 @@ public class TestQueueCompatible {
 			var module = app.getQueueModule();
 			var name = "TestQueueCompatibleSplice";
 			var myId = app.getConfig().getServerId();
-			var live = new CsQueue<>(module, name, myId, BMyBean.class, 10);
+			var live = new CsQueue<>(requireNonNull(module), name, myId, BMyBean.class, 10);
 			final int deadId = 750;
 			forgeLegacyQueue(app, name + "@" + deadId, 33, 0);
 
@@ -232,19 +236,19 @@ public class TestQueueCompatible {
 			app.start();
 			var module = app.getQueueModule();
 			var name = "TestQueueCompatibleTransfer";
-			var live = new CsQueue<>(module, name, conf.getServerId(), BMyBean.class, 10);
+			var live = new CsQueue<>(requireNonNull(module), name, conf.getServerId(), BMyBean.class, 10);
 
 			final int deadId = 751;
 			final long deadEpoch = 5;
 			forgeLegacyQueue(app, name + "@" + deadId, 55, deadEpoch); // 死者root stamp=deadEpoch
 			run(app, "transfer.forgeLease", () -> {
-				var lease = app.getTakeover().getTable().getOrAdd(deadId);
+				var lease = requireNonNull(app.getTakeover()).getTable().getOrAdd(deadId);
 				lease.setEpoch(deadEpoch);
 				lease.setExpireAt(System.currentTimeMillis() - 1_000); // 已过期
 				return 0L;
 			});
 
-			app.getTakeover().tryTransfer(deadId);
+			requireNonNull(app.getTakeover()).tryTransfer(deadId);
 			waitTryTransferQueue();
 
 			Assertions.assertEquals(List.of(55), walk(live), "接管数据应归活者");

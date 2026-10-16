@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Zeze.Onz.AbstractOnz;
@@ -38,7 +42,7 @@ public class TestRedoResultCode {
 	static volatile int CancelCount;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -46,11 +50,11 @@ public class TestRedoResultCode {
 		CancelCount = 0;
 		var myConfig = startTwoClusters(zeze2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().registerSaga(SagaName,
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga(SagaName,
 					TestRedoResultCode::sagaBusiness, TestRedoResultCode::sagaCancel,
 					BKuafu.class, BKuafuResult.class, Zeze.Transaction.EmptyBean.class);
 
@@ -63,8 +67,8 @@ public class TestRedoResultCode {
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney()); // 参与方本地提交（发结果即提交）
 		result.setMoney(account.getMoney());
 		return 0;
@@ -83,7 +87,7 @@ public class TestRedoResultCode {
 	@Test
 	@Timeout(120)
 	public void testRedoKeepsRecordWhenCompensationFails() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		CancelFail = true;
 		startSagaContext(onzServer, SagaName, 310, CancelFailTid);
 		writeOrphanRecords(onzServer, CancelFailTid, AbstractOnz.ePreparing);
@@ -95,7 +99,7 @@ public class TestRedoResultCode {
 				"补偿失败（非0应答）必须保留决策记录等下一轮redo重试"
 						+ "（修复前：await后无条件删除，已提交步骤永久未补偿）");
 		Assertions.assertEquals(1, count(tableOf(onzServer, "commitPoint")), "两表同生命周期（FND4-88）：索引保留则点表保留");
-		Assertions.assertEquals(1, sagaCount(App.Instance.Zeze.getOnz()),
+		Assertions.assertEquals(1, sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())),
 				"参与方补偿失败后上下文必须仍在（按契约放回sagas等重发）");
 
 		// 故障恢复：补偿成功后保留的记录驱动重试，redo完成收敛。
@@ -116,7 +120,7 @@ public class TestRedoResultCode {
 	@Test
 	@Timeout(120)
 	public void testRedoIgnoresSagaNotFound() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		writeOrphanRecords(onzServer, NotFoundTid, AbstractOnz.ePreparing); // 不startSagaContext：参与方无上下文
 
 		invokeRedoTimer(onzServer);

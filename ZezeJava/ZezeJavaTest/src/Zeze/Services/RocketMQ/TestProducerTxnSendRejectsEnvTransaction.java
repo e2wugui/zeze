@@ -1,5 +1,7 @@
 package Zeze.Services.RocketMQ;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -69,7 +71,7 @@ public class TestProducerTxnSendRejectsEnvTransaction {
 	@Test
 	public void sendInsideProcedureActionFailsFastBeforeSideEffects() throws Exception {
 		cleanTSent();
-		var caught = new AtomicReference<UnsupportedOperationException>();
+		var caught = new AtomicReference<@Nullable UnsupportedOperationException>();
 		var msg = new Message("topicEnvTxn", "body".getBytes(StandardCharsets.UTF_8));
 		var rc = app.newProcedure(() -> {
 			try {

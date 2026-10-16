@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.Online.BNotify;
 import Zeze.Builtin.Online.Logout;
@@ -23,7 +25,7 @@ public class TestOnlineReliableLogout {
 	public void finalLogoutAllowsReloginWithResetNotificationIndex() throws Exception {
 		try (var env = new ArchOnlineTestEnv(NEXT_SERVER_ID.getAndIncrement())) {
 			env.seedLogin(1L, 2L, 3L);
-			var queue = env.zeze.getQueueModule().open(
+			var queue = requireNonNull(env.zeze.getQueueModule()).open(
 					"Zeze.Arch.Online.ReliableNotifyQueue:" + ArchOnlineTestEnv.ACCOUNT
 							+ ":" + ArchOnlineTestEnv.CLIENT_ID, BNotify.class);
 			env.run("seedUnconfirmedNotify", () -> {
@@ -60,7 +62,7 @@ public class TestOnlineReliableLogout {
 	public void duplicateReloginPreservesUnconfirmedNotifications() throws Exception {
 		try (var env = new ArchOnlineTestEnv(NEXT_SERVER_ID.getAndIncrement())) {
 			env.seedLogin(1L, 2L, 3L);
-			var queue = env.zeze.getQueueModule().open(
+			var queue = requireNonNull(env.zeze.getQueueModule()).open(
 					"Zeze.Arch.Online.ReliableNotifyQueue:" + ArchOnlineTestEnv.ACCOUNT
 							+ ":" + ArchOnlineTestEnv.CLIENT_ID, BNotify.class);
 			var encoded = new Binary(new byte[]{7});

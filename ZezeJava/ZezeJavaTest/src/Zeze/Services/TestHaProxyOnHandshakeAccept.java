@@ -15,7 +15,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -50,7 +49,7 @@ public class TestHaProxyOnHandshakeAccept {
 		var handshakeDone = new TaskCompletionSource<AsyncSocket>();
 		var server = new HandshakeServer("HaProxySrv", conf) {
 			@Override
-			public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+			public void OnHandshakeDone(AsyncSocket so) throws Exception {
 				super.OnHandshakeDone(so);
 				handshakeDone.setResult(so);
 			}
@@ -66,13 +65,13 @@ public class TestHaProxyOnHandshakeAccept {
 							this::onSHandshake0, TransactionLevel.None, DispatchMode.Direct));
 				}
 
-				private long onSHandshake0(@NotNull SHandshake0 p) {
+				private long onSHandshake0(SHandshake0 p) {
 					CHandshakeDone.instance.Send(p.getSender());
 					return 0L;
 				}
 
 				@Override
-				public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+				public void OnSocketConnected(AsyncSocket so) throws Exception {
 					super.OnSocketConnected(so);
 					so.Send(PROXY_LINE.getBytes(StandardCharsets.ISO_8859_1), 0, PROXY_LINE.length()); // LB视角：协议阶段前先发PROXY头
 				}
@@ -109,7 +108,7 @@ public class TestHaProxyOnHandshakeAccept {
 		var handshakeDone = new TaskCompletionSource<AsyncSocket>();
 		var server = new HandshakeBoth("HaProxyBothSrv", conf) {
 			@Override
-			public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+			public void OnHandshakeDone(AsyncSocket so) throws Exception {
 				super.OnHandshakeDone(so);
 				handshakeDone.setResult(so);
 			}
@@ -122,13 +121,13 @@ public class TestHaProxyOnHandshakeAccept {
 							this::onSHandshake0, TransactionLevel.None, DispatchMode.Direct));
 				}
 
-				private long onSHandshake0(@NotNull SHandshake0 p) {
+				private long onSHandshake0(SHandshake0 p) {
 					CHandshakeDone.instance.Send(p.getSender());
 					return 0L;
 				}
 
 				@Override
-				public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+				public void OnSocketConnected(AsyncSocket so) throws Exception {
 					super.OnSocketConnected(so);
 					so.Send(PROXY_LINE.getBytes(StandardCharsets.ISO_8859_1), 0, PROXY_LINE.length());
 				}

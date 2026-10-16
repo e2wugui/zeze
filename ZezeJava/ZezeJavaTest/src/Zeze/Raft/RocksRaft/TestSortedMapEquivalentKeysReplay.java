@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigDecimal;
 import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Serialize.ByteBuffer;
@@ -16,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestSortedMapEquivalentKeysReplay {
 	public static final class BValue extends Bean {
 		int value;
-		private transient Object key;
+		private transient @Nullable Object key;
 
 		public BValue() {
 		}
@@ -26,7 +32,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		}
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return key;
 		}
 
@@ -36,7 +42,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -134,7 +140,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		@SuppressWarnings("unchecked")
 		var nested = (LogSortedMap1<String, Integer>)log.beginSavepoint();
 		nested.clear();
-		assertSame(comparator, nested.getValue().comparator());
+		assertSame(comparator, requireNonNull(nested.getValue()).comparator());
 		nested.put("ALPHA", 20);
 		nested.endSavepoint(savepoint);
 		var decoded = new LogSortedMap1<String, Integer>(String.class, Integer.class, comparator);
@@ -164,7 +170,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		var follower = new CollSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
 		follower.put(decimal("1.0"), new BValue(10));
 		follower.followerApply(edit);
-		assertEquals(42, follower.get(decimal("1")).value, "正常changed日志须继续回放");
+		assertEquals(42, requireNonNull(follower.get(decimal("1"))).value, "正常changed日志须继续回放");
 		log.remove(decimal("1.00"));
 		var replacement = new BValue(20);
 		replacement.mapKey(decimal("1.000"));
@@ -175,8 +181,8 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertTrue(decoded.getRemoved().isEmpty());
 		follower.followerApply(decoded);
 		assertEquals(1, follower.size());
-		assertEquals(20, follower.get(decimal("1")).value);
-		assertTrue(((BigDecimal)follower.get(decimal("1")).mapKey()).compareTo(decimal("1")) == 0);
+		assertEquals(20, requireNonNull(follower.get(decimal("1"))).value);
+		assertTrue(requireNonNull(((BigDecimal)requireNonNull(follower.get(decimal("1"))).mapKey())).compareTo(decimal("1")) == 0);
 	}
 
 	@Test
@@ -192,8 +198,8 @@ public class TestSortedMapEquivalentKeysReplay {
 		follower.map = TreePMap.empty(comparator);
 		follower.followerApply(decoded);
 		assertEquals(2, follower.size());
-		assertEquals(10, follower.get(decimal("1.0")).value);
-		assertEquals(20, follower.get(decimal("1.00")).value);
+		assertEquals(10, requireNonNull(follower.get(decimal("1.0"))).value);
+		assertEquals(20, requireNonNull(follower.get(decimal("1.00"))).value);
 		follower.clear();
 		assertSame(comparator, follower.map.comparator());
 	}
@@ -214,7 +220,7 @@ public class TestSortedMapEquivalentKeysReplay {
 			var copy = map.copy();
 			assertSame(comparator, copy.map.comparator());
 			assertEquals(1, copy.size());
-			assertEquals(20, copy.get("ALPHA").value);
+			assertEquals(20, requireNonNull(copy.get("ALPHA")).value);
 			assertSame(map.get("alpha"), copy.get("alpha"), "保留已有Bean浅共享契约");
 		} finally {
 			Transaction.destroy();
@@ -247,7 +253,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		var follower = new CollMap2<Integer, BValue>(Integer.class, BValue.class);
 		follower.put(1, new BValue(10));
 		follower.followerApply(decoded);
-		assertEquals(20, follower.get(1).value);
+		assertEquals(20, requireNonNull(follower.get(1)).value);
 	}
 
 	private static BigDecimal decimal(String value) {

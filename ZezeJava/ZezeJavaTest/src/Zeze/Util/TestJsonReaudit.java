@@ -1,4 +1,8 @@
 package Zeze.Util;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -19,14 +23,14 @@ public final class TestJsonReaudit {
 	static class Bean {
 		int authLevel;
 		int b;
-		String s;
+		@Nullable String s;
 		long lv;
 		double dv;
-		List<Integer> a;
+		@Nullable List<Integer> a;
 	}
 
 	private static Bean parse(String json) throws ReflectiveOperationException {
-		return JsonReader.local().buf(json).parse(Bean.class);
+		return requireNonNull(JsonReader.local().buf(json).parse(Bean.class));
 	}
 
 	@Test

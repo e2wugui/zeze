@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -50,7 +52,7 @@ public class Dbh2Test {
 			for (var dbh2 : raftNodes) {
 				dbh2.close();
 				// 这个测试不持久化，为了不影响其他测试（可能使用相同的配置），运行结束删除持久化的目录。
-				LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+				LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 			}
 			try {
 				agent.close();

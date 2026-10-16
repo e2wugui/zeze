@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Config;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Onz.OnzServer;
@@ -20,7 +24,7 @@ public class TestOnz {
 	protected static final Logger logger = LogManager.getLogger(TestOnz.class);
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -33,18 +37,18 @@ public class TestOnz {
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		// 写到App启动里面，不用写两次，这里专门用于这个测试。
-		App.Instance.Zeze.getOnz().register("kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
-		zeze2.Zeze.getOnz().register("kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).register("kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
+		requireNonNull(requireNonNull(zeze2.Zeze).getOnz()).register("kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);
 
 		// 随便load一个，里面的OnzServer远程调用服务没有配置，里面讲不会初始化网络。
 		// 现在这个测试嵌入方式使用OnzServer。
 		var myConfig = Config.load("zeze.xml");
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
@@ -56,14 +60,14 @@ public class TestOnz {
 		// 在途FlushReady（应答.769 vs flush .783，满载派发排队20ms即命中）。
 		if (onzServer != null) {
 			GcOnzE2eTestSupport.awaitOnzFlushSettled(onzServer);
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		}
 		zeze2.Stop();
 	}
 
 	private static long kuaFu(OnzProcedure onzProcedure, BKuafu argument, BKuafuResult result) {
-		var app = (App)onzProcedure.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(onzProcedure.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -76,8 +80,8 @@ public class TestOnz {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)
@@ -91,14 +95,14 @@ public class TestOnz {
 	public void testOnz() throws Exception {
 		waitOnzReady();
 		var txn = new KuafuTransaction(1, 1, 1);
-		txn.setOnzServer(onzServer);
+		txn.setOnzServer(requireNonNull(onzServer));
 		// flushTimeout 默认10s：finalCommit 的 checkpoint flush 对参与者发 FlushReady 等待
 		// 超该值即 finalCommit exception → halt(543543)（产品契约）。机器 stall 晚曾整批炸
 		//（2026-10-08 test5批r4：同JVM存在卡300s的ePreparing事务=stall实证，kuafu事务
 		// flush 超10s → IT相halt）；对齐 LateRegisterTransaction/TestOnzSagaPersistRedo 先例
 		// 调大到30s——功能断言与计时无关，只放大stall容忍窗。
 		txn.setFlushTimeout(30_000);
-		Assertions.assertEquals(0, onzServer.perform(txn)); // 这里出现过断言失败，是rollback了，有异常日志，但很奇怪，不知道哪里调了rollback。
+		Assertions.assertEquals(0, requireNonNull(onzServer).perform(txn)); // 这里出现过断言失败，是rollback了，有异常日志，但很奇怪，不知道哪里调了rollback。
 		logger.info("after perform m1={} m2={}", txn.m1, txn.m2);
 		Assertions.assertEquals(0, txn.m1 + txn.m2);
 	}

@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
@@ -48,7 +52,7 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
+	private static @Nullable Path raftXmlFile;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -88,7 +92,7 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 			var raft = ((Rocks)rocksField.get(server)).getRaft();
 			hookMethod.invoke(raft, (Runnable)() -> {
 				//noinspection CallToPrintStackTrace
-				new Throwable("fatalKill captured on " + raft.getName()).printStackTrace();
+				new Throwable("fatalKill captured on " + requireNonNull(raft).getName()).printStackTrace();
 				fatalKills.incrementAndGet();
 			});
 			rocksList.add((Rocks)rocksField.get(server));
@@ -103,14 +107,14 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 	public static void tearDown() throws Exception {
 		for (var rocks : rocksList) {
 			try {
-				rocks.getRaft().getServer().stop();
+				requireNonNull(rocks.getRaft()).getServer().stop();
 			} catch (Throwable ignored) {
 			}
 		}
 		for (var server : servers)
 			server.close();
 		servers.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new java.io.File(dbHome));
 		dbHomes.clear();
@@ -124,11 +128,11 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 		var adds = new CopyOnWriteArrayList<String>();
 
 		var configA = Config.load();
-		configA.getServiceManagerConf().setRaftXml(raftXmlFile.toString());
+		requireNonNull(configA.getServiceManagerConf()).setRaftXml(requireNonNull(raftXmlFile).toString());
 		configA.getServiceManagerConf().setSessionName(SESSION_A);
 		var agentA = new ServiceManagerAgentWithRaft(configA);
 		var configB = Config.load();
-		configB.getServiceManagerConf().setRaftXml(raftXmlFile.toString());
+		requireNonNull(configB.getServiceManagerConf()).setRaftXml(raftXmlFile.toString());
 		configB.getServiceManagerConf().setSessionName(SESSION_B);
 		var agentB = new ServiceManagerAgentWithRaft(configB);
 		try {
@@ -161,7 +165,7 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 			var stopped = new ArrayList<Integer>();
 			for (int i = 0; i < servers.size(); i++)
 				if (i != leaderIdx) {
-					rocksList.get(i).getRaft().getServer().stop();
+					requireNonNull(rocksList.get(i).getRaft()).getServer().stop();
 					stopped.add(i);
 				}
 			try {
@@ -179,7 +183,7 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 				var killed = new int[]{0};
 				for (var it = socketMap.entryIterator(); it.moveToNext(); ) {
 					var so = it.value();
-					if (so.getRemoteAddress() instanceof java.net.InetSocketAddress rsa && rsa.getPort() == leaderPort) {
+					if (requireNonNull(so).getRemoteAddress() instanceof java.net.InetSocketAddress rsa && rsa.getPort() == leaderPort) {
 						so.close(new Exception("cleanup-notify test kill"));
 						killed[0]++;
 					}
@@ -199,7 +203,7 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 			} finally {
 				// 恢复多数派：清理重试才能收敛。
 				for (var i : stopped)
-					rocksList.get(i).getRaft().getServer().start();
+					requireNonNull(rocksList.get(i).getRaft()).getServer().start();
 			}
 
 			// 恢复多数派：清理事务重试提交成功后，remove经commit actions送达订阅者。

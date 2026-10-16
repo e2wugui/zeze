@@ -1,11 +1,14 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Transaction.Transaction;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -14,19 +17,19 @@ import org.junit.jupiter.api.parallel.Isolated;
 @Isolated
 public class TestTimerNamedReplacement {
 	private static final AtomicInteger OldCalls = new AtomicInteger();
-	private static volatile CountDownLatch replacementFired;
+	private static volatile @Nullable CountDownLatch replacementFired;
 
 	public static class OldHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			Transaction.whileCommit(OldCalls::incrementAndGet);
 		}
 	}
 
 	public static class ReplacementHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
-			Transaction.whileCommit(replacementFired::countDown);
+		public void onTimer(TimerContext context) {
+			Transaction.whileCommit(requireNonNull(replacementFired)::countDown);
 		}
 	}
 
@@ -62,7 +65,7 @@ public class TestTimerNamedReplacement {
 			});
 			queue.drain();
 
-			Assertions.assertTrue(replacementFired.await(5, TimeUnit.SECONDS),
+			Assertions.assertTrue(requireNonNull(replacementFired).await(5, TimeUnit.SECONDS),
 					"replacement must fire even after the old queued fire is discarded");
 			Assertions.assertEquals(0, OldCalls.get(), "replaced timer must not call its old handle");
 		}

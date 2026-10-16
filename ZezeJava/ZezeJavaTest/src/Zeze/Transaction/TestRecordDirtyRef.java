@@ -1,7 +1,6 @@
 package Zeze.Transaction;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -26,12 +25,12 @@ public class TestRecordDirtyRef {
 		}
 
 		@Override
-		public @NotNull Table getTable() {
+		public Table getTable() {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Object getObjectKey() {
+		public Object getObjectKey() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -41,7 +40,7 @@ public class TestRecordDirtyRef {
 		}
 
 		@Override
-		public @Nullable IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait) {
+		public IGlobalAgent.@Nullable AcquireResult acquire(int state, boolean fresh, boolean noWait) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -51,12 +50,12 @@ public class TestRecordDirtyRef {
 		}
 
 		@Override
-		public void flush(@Nullable Database.Transaction t, @NotNull Database.Transaction lct) {
+		public void flush(Database.@Nullable Transaction t, Database.Transaction lct) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void commit(@NotNull RecordAccessed accessed) {
+		public void commit(RecordAccessed accessed) {
 			throw new UnsupportedOperationException();
 		}
 

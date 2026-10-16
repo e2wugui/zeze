@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -33,31 +35,31 @@ public class TestPMap2CopyDeep {
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		var app = new Application("TestT24CopyDeep" + conf.getServerId(), conf);
 		app.setSchemas(new demo.Schemas());
-		app.addTable(conf.getTableConf("demo_Module1_tflush").getDatabaseName(), new tflush());
+		app.addTable(requireNonNull(conf.getTableConf("demo_Module1_tflush")).getDatabaseName(), new tflush());
 		app.start();
 		var table = (tflush)app.getTable("demo_Module1_tflush");
 		try {
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
 				var bs = new BSimple();
 				bs.setInt_1(5);
-				table.getOrAdd(1L).getMap41().put(1L, bs);
+				requireNonNull(table).getOrAdd(1L).getMap41().put(1L, bs);
 				return Procedure.Success;
 			}, "T24.Prepare").call());
 
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				var v = table.getOrAdd(1L);
+				var v = requireNonNull(table).getOrAdd(1L);
 				var copy = v.getMap41ReadOnly().copy();
 				var copied = (BSimple)copy.get(1L);
 				// 核心（红）：副本元素不得是原记录内的受管活Bean（同一实例即后门）
 				Assertions.assertNotSame(v.getMap41().get(1L), copied, "copy()必须深拷贝值Bean");
 				// 修改副本不得影响原记录（红：同一实例，setInt_1经受管路径直达原记录）
-				copied.setInt_1(99);
-				Assertions.assertEquals(5, v.getMap41().get(1L).getInt_1(), "修改副本不得改写原记录");
+				requireNonNull(copied).setInt_1(99);
+				Assertions.assertEquals(5, requireNonNull(v.getMap41().get(1L)).getInt_1(), "修改副本不得改写原记录");
 				return Procedure.Success;
 			}, "T24.CopyAndModify").call());
 
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				Assertions.assertEquals(5, table.getOrAdd(1L).getMap41().get(1L).getInt_1(),
+				Assertions.assertEquals(5, requireNonNull(requireNonNull(table).getOrAdd(1L).getMap41().get(1L)).getInt_1(),
 						"提交后原记录必须保持原值（红：副本修改经共享实例持久化）");
 				return Procedure.Success;
 			}, "T24.Verify").call());

@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -15,7 +19,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -31,8 +34,8 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestUploadOverDefinedSize413 {
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
 
 	@BeforeAll
@@ -48,11 +51,11 @@ public class TestUploadOverDefinedSize413 {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
-	private static @NotNull String sendRawUntilClose(@NotNull String raw) throws IOException {
+	private static String sendRawUntilClose(String raw) throws IOException {
 		try (var sock = connectWithRetry()) {
 			sock.setSoTimeout(15000);
 			var os = sock.getOutputStream();

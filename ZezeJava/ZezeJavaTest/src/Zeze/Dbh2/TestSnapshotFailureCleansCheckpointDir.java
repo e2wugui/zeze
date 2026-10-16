@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.io.File;
 import java.nio.file.Files;
@@ -61,7 +63,7 @@ public class TestSnapshotFailureCleansCheckpointDir {
 		var nodes = startBucket(rocks, tempDir);
 		try {
 			var node = nodes.get(0);
-			var dbHome = Path.of(node.getStateMachine().getDbHome());
+			var dbHome = Path.of(requireNonNull(node.getStateMachine().getDbHome()));
 
 			// 故障注入：backup目标路径被普通文件占据，backup必失败（模拟备份盘满/IO错误）。
 			var backupPath = dbHome.resolve("backup");
@@ -78,7 +80,7 @@ public class TestSnapshotFailureCleansCheckpointDir {
 		} finally {
 			for (var dbh2 : nodes) {
 				dbh2.close();
-				LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+				LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 			}
 			rocks.close();
 		}

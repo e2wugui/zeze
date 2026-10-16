@@ -1,5 +1,7 @@
 package Zeze.Game;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
@@ -73,7 +75,7 @@ public class TestOnlineLateLinkBrokenGhost {
 			var versionAfter = new long[1];
 			Assertions.assertEquals(0, zeze.newProcedure(() -> {
 				var shared = online.getOnlineShared(roleId);
-				linkNameAfter[0] = shared.getLink().getLinkName();
+				linkNameAfter[0] = requireNonNull(shared).getLink().getLinkName();
 				linkSidAfter[0] = shared.getLink().getLinkSid();
 				stateAfter[0] = shared.getLink().getState();
 				versionAfter[0] = shared.getLoginVersion();

@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -15,7 +17,6 @@ import harness.Fast;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +34,7 @@ public class TestHttp2Deep {
 		final ConcurrentLinkedQueue<HttpExchange> created = new ConcurrentLinkedQueue<>();
 
 		@Override
-		public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+		public HttpExchange createHttpExchange(ChannelHandlerContext context) {
 			var x = new HttpExchange(this, context);
 			created.add(x);
 			return x;
@@ -50,7 +51,7 @@ public class TestHttp2Deep {
 		server.addHandler("/slow", 8192, TransactionLevel.None, DispatchMode.Normal, x -> {
 			x.detach();
 			// path()只含纯路径（query被剥），延迟参数从request().uri()取
-			var uri = x.request().uri();
+			var uri = requireNonNull(x.request()).uri();
 			var delay = Long.parseLong(uri.substring(uri.indexOf('=') + 1));
 			TaskSpec.ofAction(() -> x.close(x.sendPlainText(HttpResponseStatus.OK,
 					"done-" + delay))).scheduleNow(delay);

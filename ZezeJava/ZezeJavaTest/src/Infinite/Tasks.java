@@ -1,5 +1,7 @@
 package Infinite;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -35,7 +37,7 @@ public final class Tasks {
 	}
 
 	static LongAdder getKeyCounter(String name, long key) {
-		return getKeyCounters(name).computeIfAbsent(key, __ -> new LongAdder());
+		return Objects.requireNonNull(getKeyCounters(name).computeIfAbsent(key, __ -> new LongAdder()));
 	}
 
 	static LongAdder getRunCounter(String name) {
@@ -58,7 +60,11 @@ public final class Tasks {
 	// 其他类型的key需要再定义新的基类。
 	static abstract class Task implements FuncLong {
 		final Set<Long> Keys = new HashSet<>();
-		demo.App App;
+		demo.@Nullable App App;
+
+		final demo.App getApp() {
+			return Objects.requireNonNull(App);
+		}
 
 		int getKeyNumber() {
 			return 1;
@@ -177,7 +183,7 @@ public final class Tasks {
 		@Override
 		long process() {
 			var key = Keys.iterator().next();
-			var value = App.demo_ModuleGTable.getGTable().getOrAdd(key);
+			var value = Objects.requireNonNull(getApp().demo_ModuleGTable).getGTable().getOrAdd(key);
 			value.getGTable().put(
 				Random.getInstance().nextInt(5),
 				Random.getInstance().nextInt(5),
@@ -200,7 +206,7 @@ public final class Tasks {
 				Random.getInstance().nextInt(5),
 				String.valueOf(Random.getInstance().nextInt(5)),
 				demo.ModuleGTable.BValue.newDynamicBean_GTable4());
-			var value2 = App.demo_ModuleGTable.getGTable2().getOrAdd(key);
+			var value2 = getApp().demo_ModuleGTable.getGTable2().getOrAdd(key);
 			value2.getGTable().put(
 				Random.getInstance().nextInt(5),
 				Random.getInstance().nextInt(5),
@@ -213,7 +219,7 @@ public final class Tasks {
 		@Override
 		long process() {
 			var key = Keys.iterator().next();
-			var value = App.demo_Module1.getTable1().getOrAdd(key);
+			var value = Objects.requireNonNull(getApp().demo_Module1).getTable1().getOrAdd(key);
 			value.getMap15().put(0L, Random.getInstance().nextLong()); // map<long, long>
 			value.getMap41().put(0L, new BSimple()); // map<long, BSimple>
 			value.getSortedmap1().put(1, Random.getInstance().nextInt());
@@ -227,12 +233,12 @@ public final class Tasks {
 		void prepare() throws Exception {
 			// 所有使用 Table1 的测试都可以依赖这个 prepare，不需要单独写了。
 			var app = Simulate.getInstance().randApp().app;
-			app.Zeze.newProcedure(() -> {
+			app.getZeze().newProcedure(() -> {
 				for (long key = 0; key < Simulate.AccessKeyBound; key++)
-					app.demo_Module1.getTable1().remove(key);
+					Objects.requireNonNull(app.demo_Module1).getTable1().remove(key);
 				return 0L;
 			}, Table1Long2Add1.class.getName() + ".prepare").call();
-			app.Zeze.checkpointRun();
+			app.getZeze().checkpointRun();
 		}
 
 		static final LongAdder commitCount = new LongAdder();
@@ -240,16 +246,16 @@ public final class Tasks {
 		@Override
 		long process() {
 			var key = Keys.iterator().next();
-			var value = App.demo_Module1.getTable1().getOrAdd(key);
+			var value = Objects.requireNonNull(getApp().demo_Module1).getTable1().getOrAdd(key);
 			var oldV = value.getLong2();
 			value.setLong2(oldV + 1);
 			var newV = value.getLong2();
 			Transaction.whileCommit(() -> {
-				var newV2 = App.demo_Module1.getTable1().getOrAdd(key).getLong2();
+				var newV2 = Objects.requireNonNull(getApp().demo_Module1).getTable1().getOrAdd(key).getLong2();
 				var level = oldV + 1 != newV || newV != newV2 ? Level.ERROR : Level.INFO;
 				if (level == Level.ERROR || debugTradeSum)
 					Simulate.logger.log(level, "{} --- key:{}, value:{}->{}->{}",
-							App.getZeze().getConfig().getServerId(), key, oldV, newV, newV2);
+							getApp().getZeze().getConfig().getServerId(), key, oldV, newV, newV2);
 				commitCount.increment();
 			});
 			return 0L;
@@ -268,7 +274,7 @@ public final class Tasks {
 				for (int tryCount = 10; ; ) {
 					try {
 						var key = it.next();
-						var v1 = app.demo_Module1.getTable1().selectDirty(key);
+						var v1 = Objects.requireNonNull(app.demo_Module1).getTable1().selectDirty(key);
 						if (v1 == null)
 							Simulate.logger.warn("app.demo_Module1.getTable1().selectDirty({}) = null", key);
 						else {
@@ -292,7 +298,7 @@ public final class Tasks {
 			}
 			if (success != sum) {
 				var a = new OutLong();
-				app.demo_Module1.getTable1().walk((k, v) -> {
+				Objects.requireNonNull(app.demo_Module1).getTable1().walk((k, v) -> {
 					a.value += v.getLong2();
 					return true;
 				});
@@ -307,7 +313,7 @@ public final class Tasks {
 	static class Table1List9AddOrRemove extends Task {
 		@Override
 		long process() {
-			var value = App.demo_Module1.getTable1().getOrAdd(Keys.iterator().next());
+			var value = Objects.requireNonNull(getApp().demo_Module1).getTable1().getOrAdd(Keys.iterator().next());
 			// 使用 bool4 变量：用来决定添加或者删除。
 			if (value.isBool4()) {
 				// Simulate.logger.error("list9.size={}", value.getList9().size());
@@ -356,8 +362,8 @@ public final class Tasks {
 				k2 = it.next();
 				k1 = it.next();
 			}
-			var v1 = App.demo_Module1.getTflush().getOrAdd(k1);
-			var v2 = App.demo_Module1.getTflush().getOrAdd(k2);
+			var v1 = Objects.requireNonNull(getApp().demo_Module1).getTflush().getOrAdd(k1);
+			var v2 = getApp().demo_Module1.getTflush().getOrAdd(k2);
 			var m1 = v1.getInt_1();
 			var m2 = v2.getInt_1();
 			var money = Random.getInstance().nextInt(1000);
@@ -367,7 +373,7 @@ public final class Tasks {
 			var r2 = v2.getInt_1();
 			if (debugTradeSum) {
 				Transaction.whileCommit(() -> Simulate.logger.info("{} --- {}:{}-{}={} {}:{}+{}={}",
-						App.getZeze().getConfig().getServerId(), k1, m1, money, r1, k2, m2, money, r2));
+						getApp().getZeze().getConfig().getServerId(), k1, m1, money, r1, k2, m2, money, r2));
 			}
 			return 0L;
 		}
@@ -382,7 +388,7 @@ public final class Tasks {
 				for (int tryCount = 10; ; ) {
 					try {
 						try {
-							var value = app.demo_Module1.getTable1().selectDirty((long)key);
+							var value = Objects.requireNonNull(app.demo_Module1).getTable1().selectDirty((long)key);
 							if (value != null)
 								sum += value.getInt_1();
 						} catch (IllegalStateException e) {
@@ -409,7 +415,7 @@ public final class Tasks {
 	}
 
 	static class tflushInt1TradeConcurrentVerify extends Task {
-		private static volatile HashSet<ByteBuffer> keys;
+		private static volatile @Nullable HashSet<ByteBuffer> keys;
 
 		@Override
 		int getKeyNumber() {
@@ -423,7 +429,7 @@ public final class Tasks {
 
 		@Override
 		long process() {
-			var table1 = App.demo_Module1.getTflush();
+			var table1 = Objects.requireNonNull(getApp().demo_Module1).getTflush();
 			if (keys == null) {
 				synchronized (tflushInt1TradeConcurrentVerify.class) {
 					if (keys == null) {
@@ -437,7 +443,7 @@ public final class Tasks {
 			var db = table1.getDatabase();
 			if (db instanceof DatabaseMemory) {
 				long sum = 0;
-				var all = ((DatabaseMemory)db).finds(table1.getName(), keys);
+				var all = ((DatabaseMemory)db).finds(table1.getName(), Objects.requireNonNull(keys));
 				for (var valueBytes : all.values()) {
 					if (valueBytes != null)
 						sum += table1.decodeValue(valueBytes).getInt_1();

@@ -1,5 +1,11 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -23,6 +29,7 @@ import org.junit.jupiter.api.Test;
  * 同时本地Rocks是升级迁移（walkMemoryAny）的读取源，升级方向的open同样不得清除。
  */
 @Fast
+@NullMarked
 public class TestHotRollbackMemoryTable {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2组：300/400/500/600/700起）。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_HOT_ROLLBACK_MEMORY_TABLE);
@@ -38,7 +45,7 @@ public class TestHotRollbackMemoryTable {
 		return new Application("TestHotRollbackMemoryTable@" + conf.getServerId(), conf);
 	}
 
-	private static Object invokeOn(Object obj, String name, Object... args) throws ReflectiveOperationException {
+	private static Object invokeOn(Object obj, String name, @Nullable Object... args) throws ReflectiveOperationException {
 		for (Class<?> c = obj.getClass(); c != null; c = c.getSuperclass()) {
 			for (Method m : c.getDeclaredMethods()) {
 				if (m.getName().equals(name) && m.getParameterCount() == args.length) {
@@ -52,7 +59,7 @@ public class TestHotRollbackMemoryTable {
 
 	@SuppressWarnings("unchecked")
 	private static Record1<Long, Bean1> getRecord(tMemorySize table, long key) throws ReflectiveOperationException {
-		return (Record1<Long, Bean1>)invokeOn(table.getCache(), "get", key);
+		return (Record1<Long, Bean1>)invokeOn(requireNonNull(table.getCache()), "get", key);
 	}
 
 	private static void put(Application app, tMemorySize table, long key, int v1) {

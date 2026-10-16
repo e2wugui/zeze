@@ -1,5 +1,7 @@
 package Zezex;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import Zeze.Arch.LinkdApp;
@@ -21,16 +23,16 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	public LinkdProvider LinkdProvider;
+	public @Nullable LinkdProvider LinkdProvider;
 	private final Netty netty = new Netty();
-	private HttpServer httpServer;
+	private @Nullable HttpServer httpServer;
 
 	@Override
 	public HttpServer getHttpServer() {
-		return httpServer;
+		return Objects.requireNonNull(httpServer);
 	}
 
-	private static LoadConfig LoadConfig() {
+	private static @Nullable LoadConfig LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
 			return new JsonReader().buf(bytes).parse(LoadConfig.class);
@@ -41,7 +43,7 @@ public final class App extends Zeze.AppBase {
 		return new LoadConfig();
 	}
 
-	public LinkdApp LinkdApp;
+	public @Nullable LinkdApp LinkdApp;
 
 	public void Start(String[] args) throws Exception {
 		int linkPort = -1;
@@ -73,14 +75,14 @@ public final class App extends Zeze.AppBase {
 		createZeze(config);
 		createService();
 		LinkdProvider = new LinkdProvider();
-		LinkdApp = new LinkdApp("Game.Linkd", Zeze, LinkdProvider, ProviderService, LinkdService, LoadConfig());
+		LinkdApp = new LinkdApp("Game.Linkd", getZeze(), LinkdProvider, Objects.requireNonNull(ProviderService), Objects.requireNonNull(LinkdService), Objects.requireNonNull(LoadConfig()));
 		createModules();
 		// Start
-		Zeze.start(); // 启动数据库
+		getZeze().start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
 		// FND7-19/R3：不再全局安装PersistentAtomicLong发号——多App同JVM（linkd+Game.Server
 		// 拓扑）值域重叠必撞号。Service实例级随机63位基址发号已保证跨JVM/跨App唯一。
-		httpServer = new HttpServer(Zeze);
+		httpServer = new HttpServer(getZeze());
 		// 【安全警示】/reloadClass与/runClass是无鉴权的任意字节码注入/执行端点（见两类
 		// 的类注释），下方挂载后随httpServer监听linkPort+10000且未指定host（bind所有
 		// 网卡）。生产环境请改绑回环/内网管理面（HttpServer.start指定host）或直接移除
@@ -97,9 +99,9 @@ public final class App extends Zeze.AppBase {
 
 	public void Stop() throws Exception {
 		stopService(); // 关闭网络
-		httpServer.close();
+		Objects.requireNonNull(httpServer).close();
 		if (Zeze != null)
-			Zeze.stop(); // 关闭数据库
+			getZeze().stop(); // 关闭数据库
 		stopModules(); // 关闭模块，卸载配置什么的。
 		destroyModules();
 		destroyServices();
@@ -107,16 +109,16 @@ public final class App extends Zeze.AppBase {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public Zezex.LinkdService LinkdService;
-    public Zezex.ProviderService ProviderService;
+    public Zezex.@org.jspecify.annotations.Nullable LinkdService LinkdService;
+    public Zezex.@org.jspecify.annotations.Nullable ProviderService ProviderService;
 
-    public Zezex.Linkd.ModuleLinkd Zezex_Linkd;
+    public Zezex.Linkd.@org.jspecify.annotations.Nullable ModuleLinkd Zezex_Linkd;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -124,7 +126,7 @@ public final class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -140,8 +142,8 @@ public final class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            LinkdService = new Zezex.LinkdService(Zeze);
-            ProviderService = new Zezex.ProviderService(Zeze);
+            LinkdService = new Zezex.LinkdService(getZeze());
+            ProviderService = new Zezex.ProviderService(getZeze());
         } finally {
             unlock();
         }
@@ -157,7 +159,7 @@ public final class App extends Zeze.AppBase {
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.initialize(this);
+            getZeze().initialize(this);
             var _modules_ = createRedirectModules(redirectModuleClasses());
 
             Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)_modules_[0];
@@ -165,7 +167,7 @@ public final class App extends Zeze.AppBase {
             if (modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
                 throw new IllegalStateException("duplicate module name: Zezex_Linkd");
 
-            Zeze.setSchemas(new Zezex.Schemas());
+            getZeze().setSchemas(new Zezex.Schemas());
         } finally {
             unlock();
         }
@@ -203,7 +205,7 @@ public final class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            Zezex_Linkd.Start(this);
+            java.util.Objects.requireNonNull(Zezex_Linkd).Start(this);
         } finally {
             unlock();
         }
@@ -213,7 +215,7 @@ public final class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            Zezex_Linkd.StartLast();
+            java.util.Objects.requireNonNull(Zezex_Linkd).StartLast();
         } finally {
             unlock();
         }
@@ -246,8 +248,8 @@ public final class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            LinkdService.start();
-            ProviderService.start();
+            java.util.Objects.requireNonNull(LinkdService).start();
+            java.util.Objects.requireNonNull(ProviderService).start();
         } finally {
             unlock();
         }

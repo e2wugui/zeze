@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.channels.ClosedChannelException;
@@ -53,7 +57,7 @@ public class TestAtomicScopedWrite {
 
 		var channelField = AtomicOutputFile.class.getDeclaredField("channel");
 		channelField.setAccessible(true);
-		var closeFailure = new java.util.concurrent.atomic.AtomicReference<IOException>();
+		var closeFailure = new java.util.concurrent.atomic.AtomicReference<@Nullable IOException>();
 		try (var out = AtomicFileWriter.openOutput(target)) {
 			out.write("NE".getBytes(java.nio.charset.StandardCharsets.UTF_8)); // 前缀成功（进缓冲）
 			// 真实注入：关掉底层channel，大块write越过缓冲区必然IOException。
@@ -64,8 +68,8 @@ public class TestAtomicScopedWrite {
 			closeFailure.set(e); // TWR退出时的close触发writeFailed防线，必须显式抛出
 		}
 		Assertions.assertNotNull(closeFailure.get(), "写失败后的close必须显式抛出（不得静默装作成功后发布）");
-		Assertions.assertTrue(closeFailure.get().getMessage().contains("write failed"),
-				"close失败必须是writeFailed防线（实际: " + closeFailure.get().getMessage() + "）");
+		Assertions.assertTrue(requireNonNull(closeFailure.get()).getMessage().contains("write failed"),
+				"close失败必须是writeFailed防线（实际: " + requireNonNull(closeFailure.get()).getMessage() + "）");
 		Assertions.assertEquals("GOOD-OLD", Files.readString(target), "写失败后close不得发布残缺前缀，旧目标保持");
 		assertNoTmpResidue();
 	}

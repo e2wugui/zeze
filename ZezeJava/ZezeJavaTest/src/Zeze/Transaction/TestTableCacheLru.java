@@ -1,5 +1,11 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +30,7 @@ import org.junit.jupiter.api.Test;
  * （否则块永不为空，cleanNow 在超容量时死循环）。
  */
 @Fast
+@NullMarked
 public class TestTableCacheLru {
 	// Application并发需要不同serverId：本地zeze_cache_<serverId>目录每serverId一份，
 	// @Fast类并行时共用会撞。从300起避开其他测试（TakeoverTestEnv从100起、伪造死者id 777+）。
@@ -90,7 +97,7 @@ public class TestTableCacheLru {
 		try {
 			var cache = table.getCache();
 			var key = 101L;
-			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(requireNonNull(cache), "dataMap");
 			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
 
 			var rOld = new Record1<>(table, key, null); // getOrAdd 拿到的（过期）引用
@@ -125,7 +132,7 @@ public class TestTableCacheLru {
 		try {
 			var cache = table.getCache();
 			var key = 102L;
-			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(requireNonNull(cache), "dataMap");
 			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
 
 			var r = new Record1<>(table, key, null);
@@ -160,7 +167,7 @@ public class TestTableCacheLru {
 		try {
 			var cache = table.getCache();
 			var key = 103L;
-			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(requireNonNull(cache), "dataMap");
 			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
 
 			var rOther = new Record1<>(table, key, null); // dataMap 当前映射（活的）
@@ -198,7 +205,7 @@ public class TestTableCacheLru {
 		try {
 			var cache = table.getCache();
 			var key = 104L;
-			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(requireNonNull(cache), "dataMap");
 			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
 
 			var r = new Record1<>(table, key, null);
@@ -237,7 +244,7 @@ public class TestTableCacheLru {
 		try {
 			var cache = table.getCache();
 			var key = 105L;
-			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(requireNonNull(cache), "dataMap");
 			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
 
 			var rLive = new Record1<>(table, key, null);
@@ -277,7 +284,7 @@ public class TestTableCacheLru {
 		try {
 			var cache = table.getCache();
 			var key = 106L;
-			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(requireNonNull(cache), "dataMap");
 			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
 
 			var rOld = new Record1<>(table, key, null); // 迁移方：验活时仍活的旧记录
@@ -326,9 +333,9 @@ public class TestTableCacheLru {
 		var cache = table.getCache();
 		try {
 			var key = 107L;
-			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(requireNonNull(cache), "dataMap");
 			var queue = (ConcurrentLinkedQueue<ConcurrentHashMap<Long, Record1<Long, BValue>>>)
-					(ConcurrentLinkedQueue<?>)get(cache, "lruQueue");
+					(ConcurrentLinkedQueue<?>)get(requireNonNull(cache), "lruQueue");
 			queue.clear();
 
 			// 迁移方 r：活映射，登记在被 poll 的块里
@@ -368,7 +375,7 @@ public class TestTableCacheLru {
 		} finally {
 			// 恢复队列结构（清掉 8000+ 占位块，lruHot 重新入队），避免影响 stop 流程
 			var queue = (ConcurrentLinkedQueue<ConcurrentHashMap<Long, Record1<Long, BValue>>>)
-					(ConcurrentLinkedQueue<?>)get(cache, "lruQueue");
+					(ConcurrentLinkedQueue<?>)get(requireNonNull(cache), "lruQueue");
 			queue.clear();
 			invoke(cache, "newLruHot");
 			app.stop();
@@ -380,13 +387,13 @@ public class TestTableCacheLru {
 	private static final class InterleavingNode extends ConcurrentHashMap<Object, Object> {
 		private static final long serialVersionUID = 1L;
 		private volatile boolean armed = true;
-		private volatile Runnable interleave;
+		private volatile @Nullable Runnable interleave;
 
 		@Override
-		public Object putIfAbsent(Object key, Object value) {
+		public @Nullable Object putIfAbsent(Object key, Object value) {
 			if (armed) {
 				armed = false;
-				interleave.run();
+				requireNonNull(interleave).run();
 			}
 			return super.putIfAbsent(key, value);
 		}

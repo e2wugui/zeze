@@ -1,11 +1,12 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -25,10 +26,10 @@ import Zeze.Transaction.GlobalAgentBase;
  */
 @Fast
 public class TestAchillesHeelDaemonReleaseRange {
-	private Application app;
-	private AchillesHeelDaemon daemon;
-	private DatagramSocket peer; // 假装daemon进程，接住Register（不消费，仅保证端口可达）
-	private String oldPort;
+	private @Nullable Application app;
+	private @Nullable AchillesHeelDaemon daemon;
+	private @Nullable DatagramSocket peer; // 假装daemon进程，接住Register（不消费，仅保证端口可达）
+	private @Nullable String oldPort;
 
 	private void setup() throws Exception {
 		peer = new DatagramSocket(0, InetAddress.getLoopbackAddress());
@@ -48,7 +49,7 @@ public class TestAchillesHeelDaemonReleaseRange {
 			}
 
 			@Override
-			public void startRelease(Zeze.@NotNull Application zeze, Runnable endAction) {
+			public void startRelease(Zeze.Application zeze, @Nullable Runnable endAction) {
 				// 测试App未start（checkpoint为null），真Releaser会在checkpointRun上NPE；
 				// 本测试只验证daemon侧Release分支的防御，startRelease语义不属于这里。
 			}

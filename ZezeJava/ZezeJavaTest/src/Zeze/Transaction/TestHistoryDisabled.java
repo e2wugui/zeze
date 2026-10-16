@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
@@ -24,7 +28,7 @@ public class TestHistoryDisabled {
 		return conf;
 	}
 
-	private static Object lazyResource(Application app, String name) throws Exception {
+	private static @Nullable Object lazyResource(Application app, String name) throws Exception {
 		var field = HistoryModule.class.getDeclaredField(name);
 		field.setAccessible(true);
 		return field.get(HistoryModule.get(app));
@@ -87,22 +91,22 @@ public class TestHistoryDisabled {
 				table.getOrAdd(1L).setLong2(10);
 				var trans = Transaction.getCurrent();
 				assertNull(app.getHistory(), "未启用时没有 History 插件");
-				trans.putLog(probe);
+				requireNonNull(trans).putLog(probe);
 				Transaction.whileCommit(callbacks::incrementAndGet);
 				return 0;
 			}, "writeWithoutHistory").call());
 			assertEquals(1, probe.commits);
 			assertEquals(0, probe.categoryReads, "无 History、无监听器时不遍历日志收集变更");
 			assertEquals(1, callbacks.get(), "提交回调仍执行");
-			app.getCheckpoint().runOnce();
-			assertEquals(10, table.selectFromDatabase(1L).getLong2(), "无历史模块时仍正常刷盘");
+			requireNonNull(app.getCheckpoint()).runOnce();
+			assertEquals(10, requireNonNull(table.selectFromDatabase(1L)).getLong2(), "无历史模块时仍正常刷盘");
 
 			var states = new ArrayList<Integer>();
 			var values = new ArrayList<Long>();
 			ChangeListener listener = (key, change) -> {
 				states.add(change.getState());
 				if (change.getState() != Changes.Record.Remove)
-					values.add(((demo.Module1.BValue)change.getValue()).getLong2());
+					values.add(requireNonNull(((demo.Module1.BValue)change.getValue())).getLong2());
 			};
 			table.getChangeListenerMap().addListener(listener);
 			assertEquals(0, app.newProcedure(() -> {
@@ -111,7 +115,7 @@ public class TestHistoryDisabled {
 				return 0;
 			}, "listenerPut").call());
 			assertEquals(0, app.newProcedure(() -> {
-				table.get(2L).setLong2(21);
+				requireNonNull(table.get(2L)).setLong2(21);
 				return 0;
 			}, "listenerEdit").call());
 			assertEquals(0, app.newProcedure(() -> {
@@ -128,7 +132,7 @@ public class TestHistoryDisabled {
 			}, "configurationDoesNotEnableHistory").call(), "运行期修改配置不改变已装配能力");
 			conf.setHistory("");
 			assertEquals(0, app.newProcedure(() -> {
-				assertEquals(30, table.get(3L).getLong2());
+				assertEquals(30, requireNonNull(table.get(3L)).getLong2());
 				return 0;
 			}, "readAfterConfigurationChange").call());
 			assertNull(app.getHistory(), "普通事务与监听通知均不创建历史模块或账本");
@@ -161,7 +165,7 @@ public class TestHistoryDisabled {
 			assertSame(HistoryModule.get(app).getHistoryTable(),
 					app.getTable("Zeze_Builtin_HistoryModule_tHistory"));
 		} finally {
-			app.getHistory().close();
+			requireNonNull(app.getHistory()).close();
 			app.stop();
 		}
 	}

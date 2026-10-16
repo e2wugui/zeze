@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -54,7 +58,7 @@ public class TestInstallSnapshotSameBoundaryRegen {
 	// 记录型状态机：loadSnapshot 时捕获实际加载的字节（done 提交路径把它指向
 	// commitSnapshotNow 刚 move 出来的 snapshot.dat）。
 	static final class RecordingStateMachine extends StateMachine {
-		byte[] loadedBytes;
+		byte @Nullable [] loadedBytes;
 
 		@Override
 		public SnapshotResult snapshot(String path) {
@@ -118,7 +122,7 @@ public class TestInstallSnapshotSameBoundaryRegen {
 			var longSnap = filled(1000, (byte)'A');
 			var first = newChunk(term, leader, 0, longSnap, false);
 			assertEquals(Procedure.Success, processInstallSnapshot(raft, first));
-			var installing = raft.receiveSnapshotting.get(5).path;
+			var installing = requireNonNull(raft.receiveSnapshotting.get(5)).path;
 			assertArrayEquals(longSnap, Files.readAllBytes(installing), "正控：中断后残留半截文件");
 
 			// 同边界重装（短快照，leader 从 offset=0 全量重发）至 done：复用同条目，

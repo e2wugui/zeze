@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,8 +37,8 @@ public class TestSagaBusinessLockSerialization extends AppBase {
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_SAGA_BUSINESS_LOCK_SERIALIZATION);
 	private static final String ProcName = "r3cCBusinessLockSaga";
 
-	private Application zeze;
-	private Onz onz;
+	private @Nullable Application zeze;
+	private @Nullable Onz onz;
 
 	// 业务脚本：blockLatch 卡住业务模拟长事务；fail 为 true 时业务返回失败。
 	final CountDownLatch businessEntered = new CountDownLatch(1);
@@ -44,7 +48,7 @@ public class TestSagaBusinessLockSerialization extends AppBase {
 
 	@Override
 	public Application getZeze() {
-		return zeze;
+		return requireNonNull(zeze);
 	}
 
 	@BeforeEach
@@ -61,7 +65,7 @@ public class TestSagaBusinessLockSerialization extends AppBase {
 		zeze.initialize(this);
 		zeze.start();
 		onz = zeze.getOnz();
-		onz.registerSaga(ProcName,
+		requireNonNull(onz).registerSaga(ProcName,
 				(saga, argument, result) -> {
 					businessEntered.countDown();
 					//noinspection ResultOfMethodCallIgnored
@@ -145,7 +149,7 @@ public class TestSagaBusinessLockSerialization extends AppBase {
 			t.setDaemon(true);
 			return t;
 		});
-		return executor.submit(() -> onz.ProcessFuncSagaRequest(sagaRpc));
+		return executor.submit(() -> requireNonNull(onz).ProcessFuncSagaRequest(sagaRpc));
 	}
 
 	private static final class EndHolder {
@@ -170,7 +174,7 @@ public class TestSagaBusinessLockSerialization extends AppBase {
 		var done = new CountDownLatch(1);
 		return new EndHolder(executor.submit(() -> {
 			try {
-				return onz.ProcessFuncSagaEndRequest(end);
+				return requireNonNull(onz).ProcessFuncSagaEndRequest(end);
 			} finally {
 				done.countDown();
 			}

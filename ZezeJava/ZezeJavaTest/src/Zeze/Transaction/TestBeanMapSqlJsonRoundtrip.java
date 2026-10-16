@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -11,7 +15,6 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.GTable.BeanMap1;
 import Zeze.Transaction.GTable.BeanMap2;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -28,31 +31,31 @@ public class TestBeanMapSqlJsonRoundtrip {
 
 	public static class MB extends Bean {
 		public long v;
-		private transient Object mapKey;
+		private transient @Nullable Object mapKey;
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return mapKey;
 		}
 
 		@Override
-		public void mapKey(@NotNull Object mapKey) {
+		public void mapKey(Object mapKey) {
 			this.mapKey = mapKey;
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteLong(v);
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			v = bb.ReadLong();
 		}
 	}
 
 	/** decodeResultSet唯一依赖getString(String)的最小ResultSet替身。 */
-	private static ResultSet resultSet(String map1, String map2) {
+	private static ResultSet resultSet(@Nullable String map1, @Nullable String map2) {
 		return (ResultSet)Proxy.newProxyInstance(TestBeanMapSqlJsonRoundtrip.class.getClassLoader(),
 				new Class<?>[]{ResultSet.class}, (proxy, method, args) -> {
 					switch (method.getName()) {
@@ -107,7 +110,7 @@ public class TestBeanMapSqlJsonRoundtrip {
 		var got = dst.get(2L);
 		Assertions.assertNotNull(got, "键必须按Long定型解码");
 		Assertions.assertEquals(7L, got.v, "Bean值字段必须恢复");
-		Assertions.assertEquals(8L, dst.get(4L).v);
+		Assertions.assertEquals(8L, requireNonNull(dst.get(4L)).v);
 	}
 
 	@Test

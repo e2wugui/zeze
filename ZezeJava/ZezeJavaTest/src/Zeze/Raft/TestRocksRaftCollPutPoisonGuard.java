@@ -1,5 +1,11 @@
 package Zeze.Raft;
 
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 
 import harness.Fast;
@@ -45,10 +51,10 @@ public class TestRocksRaftCollPutPoisonGuard {
 	/** RR1-F1的value bean：mapKey可观测。 */
 	public static final class BLeaf extends Bean {
 		public int i;
-		private transient Object mapKey_;
+		private transient @Nullable Object mapKey_;
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return mapKey_;
 		}
 
@@ -58,7 +64,7 @@ public class TestRocksRaftCollPutPoisonGuard {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -98,7 +104,7 @@ public class TestRocksRaftCollPutPoisonGuard {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			map2.initRootInfo(root, this);
 		}
 
@@ -137,7 +143,7 @@ public class TestRocksRaftCollPutPoisonGuard {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			list2.initRootInfo(root, this);
 		}
 
@@ -197,8 +203,8 @@ public class TestRocksRaftCollPutPoisonGuard {
 	@Test
 	public void testMapPutHasManagedKeepsMapKey() throws Exception {
 		rocks.registerTableTemplate("TestRocksRaftCollPoison.map", Integer.class, BMapHolder.class);
-		Table<Integer, BMapHolder> table = rocks.<Integer, BMapHolder>getTableTemplate(
-				"TestRocksRaftCollPoison.map").openTable(0);
+		Table<Integer, BMapHolder> table = requireNonNull(rocks.<Integer, BMapHolder>getTableTemplate(
+				"TestRocksRaftCollPoison.map")).openTable(0);
 
 		var rc = rocks.newProcedure(() -> {
 			var h1 = new BMapHolder();
@@ -224,8 +230,8 @@ public class TestRocksRaftCollPutPoisonGuard {
 	@Test
 	public void testListSetOutOfBoundsLeavesBeanClean() throws Exception {
 		rocks.registerTableTemplate("TestRocksRaftCollPoison.list", Integer.class, BListHolder.class);
-		Table<Integer, BListHolder> table = rocks.<Integer, BListHolder>getTableTemplate(
-				"TestRocksRaftCollPoison.list").openTable(0);
+		Table<Integer, BListHolder> table = requireNonNull(rocks.<Integer, BListHolder>getTableTemplate(
+				"TestRocksRaftCollPoison.list")).openTable(0);
 
 		var rc = rocks.newProcedure(() -> {
 			var h1 = new BListHolder();
@@ -254,8 +260,8 @@ public class TestRocksRaftCollPutPoisonGuard {
 	@Test
 	public void testListAddIndexOutOfBoundsLeavesBeanClean() throws Exception {
 		rocks.registerTableTemplate("TestRocksRaftCollPoison.list", Integer.class, BListHolder.class);
-		Table<Integer, BListHolder> table = rocks.<Integer, BListHolder>getTableTemplate(
-				"TestRocksRaftCollPoison.list").openTable(0);
+		Table<Integer, BListHolder> table = requireNonNull(rocks.<Integer, BListHolder>getTableTemplate(
+				"TestRocksRaftCollPoison.list")).openTable(0);
 
 		var rc = rocks.newProcedure(() -> {
 			var h1 = new BListHolder();

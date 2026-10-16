@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,12 +41,12 @@ public class TestTimerFutureSelfCancel {
 	@Test
 	@Timeout(30)
 	public void testSelfCancelReturnsAndStopsRounds() throws Exception {
-		var ref = new AtomicReference<TimerFuture<Long>>();
+		var ref = new AtomicReference<@Nullable TimerFuture<Long>>();
 		var runs = new AtomicInteger();
 		var bodyReturned = new CountDownLatch(1);
 		var future = TaskSpec.ofAction(() -> {
 					runs.incrementAndGet();
-					Assertions.assertTrue(ref.get().cancel(false), "首轮自调cancel必须成功");
+					Assertions.assertTrue(requireNonNull(ref.get()).cancel(false), "首轮自调cancel必须成功");
 					bodyReturned.countDown(); // cancel返回后body正常走完（挂死由@Timeout打红）
 				}).name("UnitTest.TimerFuture.selfCancel")
 				.schedulePeriodNow(100, 100);

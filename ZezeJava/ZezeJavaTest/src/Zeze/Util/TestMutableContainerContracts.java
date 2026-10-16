@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -45,8 +47,8 @@ public class TestMutableContainerContracts {
 		var floats = FloatList.wrap(new float[] {1, 2, 3, 0, 0}, 3);
 		floats.insert(0, floats.array(), 1, 1);
 		assertArrayEquals(new float[] {2, 1, 2, 3}, floats.toArray());
-		var pairs = KVList.wrap(new Object[] {1, 2, 3, null, null},
-				new Object[] {10, 20, 30, null, null}, 3);
+		var pairs = KVList.wrap(new @Nullable Object[] {1, 2, 3, null, null},
+				new @Nullable Object[] {10, 20, 30, null, null}, 3);
 		pairs.insert(0, pairs.keys(), pairs.values(), 1, 1);
 		assertEquals(2, pairs.getKey(0));
 		assertEquals(20, pairs.getValue(0));

@@ -1,5 +1,9 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.ref.SoftReference;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,7 +44,7 @@ public class TestTableCacheReloadDuringEviction {
 		conf.getTableConfMap().put(table.getName(), tableConf);
 		var app = new Application("TestTableCacheReloadDuringEviction", conf);
 		app.addTable("", table);
-		var failure = new AtomicReference<Throwable>();
+		var failure = new AtomicReference<@Nullable Throwable>();
 		var readerEntered = new CountDownLatch(1);
 		var readerLoaded = new CountDownLatch(1);
 		Thread cleaner = null;
@@ -54,14 +58,14 @@ public class TestTableCacheReloadDuringEviction {
 				return Procedure.Success;
 			}, "CacheReload.seed").call());
 			app.checkpointRun();
-			var oldRecord = table.getCache().getOrAdd(KEY, () -> {
+			var oldRecord = requireNonNull(table.getCache()).getOrAdd(KEY, () -> {
 				throw new AssertionError("The seeded record must be resident");
 			});
 			cleaner = new Thread(() -> {
 				try {
 					long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 					while (table.beforeMirrorDelete.getCount() != 0 && System.nanoTime() < deadline) {
-						table.getCache().cleanNow();
+						requireNonNull(table.getCache()).cleanNow();
 						Thread.sleep(10);
 					}
 				} catch (Throwable e) {
@@ -105,20 +109,20 @@ public class TestTableCacheReloadDuringEviction {
 			Assertions.assertFalse(reader.isAlive());
 			Assertions.assertNull(failure.get(), "Controlled eviction and concurrent read must complete");
 
-			var record = table.getCache().getOrAdd(KEY, () -> {
+			var record = requireNonNull(table.getCache()).getOrAdd(KEY, () -> {
 				throw new AssertionError("The concurrent read must leave a resident record");
 			});
 			// 精确模拟 GC 清除 clean 记录的软引用，不删除或直接改写镜像。
 			var softValue = Record.class.getDeclaredField("softValue");
 			softValue.setAccessible(true);
 			((SoftReference<?>)softValue.get(record)).clear();
-			var observed = new AtomicReference<Value>();
+			var observed = new AtomicReference<@Nullable Value>();
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
 				observed.set(table.get(KEY));
 				return Procedure.Success;
 			}, "CacheReload.afterCollection").call());
 			Assertions.assertNotNull(observed.get(), "Eviction must preserve the reloaded value's mirror");
-			Assertions.assertEquals(42, observed.get().number);
+			Assertions.assertEquals(42, requireNonNull(observed.get()).number);
 		} finally {
 			table.resumeMirrorDelete.countDown();
 			if (cleaner != null)
@@ -140,7 +144,7 @@ public class TestTableCacheReloadDuringEviction {
 		final CountDownLatch beforeMirrorDelete = new CountDownLatch(1);
 		final CountDownLatch resumeMirrorDelete = new CountDownLatch(1);
 		final AtomicBoolean pauseOnce = new AtomicBoolean(true);
-		volatile Thread cleanerThread;
+		volatile @Nullable Thread cleanerThread;
 
 		ReloadTable() {
 			super(990_932, "UnitTest_TableCacheReloadDuringEviction");

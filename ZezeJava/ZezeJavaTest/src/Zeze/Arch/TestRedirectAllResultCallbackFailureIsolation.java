@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash;
@@ -31,7 +33,7 @@ public class TestRedirectAllResultCallbackFailureIsolation {
 			assertEquals(3, context.getAllResults().size());
 			var callbackCounts = new HashMap<Integer, Integer>();
 			var calls = new AtomicInteger();
-			assertDoesNotThrow(() -> context.getFuture().OnResult(result -> {
+			assertDoesNotThrow(() -> requireNonNull(context.getFuture()).OnResult(result -> {
 				callbackCounts.merge(result.getHash(), 1, Integer::sum);
 				if (calls.incrementAndGet() == 1)
 					throw new IllegalStateException("first saved result callback failed");
@@ -53,7 +55,7 @@ public class TestRedirectAllResultCallbackFailureIsolation {
 		long sessionId = service.addManualContextWithTimeout(context, 30_000);
 		var callbackCalls = new AtomicInteger();
 		var completionCalls = new AtomicInteger();
-		context.getFuture().OnResult(result -> {
+		requireNonNull(context.getFuture()).OnResult(result -> {
 			if (callbackCalls.incrementAndGet() == 1)
 				throw new IllegalStateException("first result callback failed");
 		});

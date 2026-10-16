@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -47,10 +51,10 @@ public class TestOnzSagaCompensateInflightNotFound {
 	// 补偿闸门：关闭期间把修复前的[remove, putIfAbsent)窗口（=补偿全程）无限期打开；
 	// 修复后形态则是"补偿持有businessLock、重发在锁上排队"的互斥域。放行（countDown）
 	// 后保持打开，后续补偿直通。
-	static volatile CountDownLatch releaseGate;
+	static volatile @Nullable CountDownLatch releaseGate;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -64,12 +68,12 @@ public class TestOnzSagaCompensateInflightNotFound {
 		// 清掉刚注册的上下文；(b)前序类（如TestOnzSagaCompensateFailErrorCode）在sagas留有
 		// 补偿失败放回的上下文，本类用例与共享桩的startSagaContext按sagaCount绝对值等待。
 		// 收割残留并恢复TTL默认。
-		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
 			App.Instance.Zeze.getOnz().registerSaga(SagaName,
@@ -85,12 +89,12 @@ public class TestOnzSagaCompensateInflightNotFound {
 		// 红态失败时闸门可能仍关闭：先放行滞留在闸内/锁上的补偿worker（不泄漏派发线程），
 		// 等在飞补偿归零后再收尾（放回/在场的上下文收割见下，均无锁竞争）。
 		if (releaseGate != null)
-			releaseGate.countDown();
+			requireNonNull(releaseGate).countDown();
 		waitCancelQuiet();
 		stopCoordinator(onzServer, zeze2);
 		// 收割本类残留（补偿恒失败的上下文滞留sagas）：后续按sagaCount绝对值断言的类
 		// （TestOnzSagaCompensateFailErrorCode）不受污染。
-		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 	}
@@ -104,8 +108,8 @@ public class TestOnzSagaCompensateInflightNotFound {
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -116,7 +120,7 @@ public class TestOnzSagaCompensateInflightNotFound {
 		CancelCount++;
 		CancelInFlight++;
 		try {
-			releaseGate.await();
+			requireNonNull(releaseGate).await();
 		} finally {
 			CancelInFlight--;
 		}
@@ -126,7 +130,7 @@ public class TestOnzSagaCompensateInflightNotFound {
 	@Test
 	@Timeout(180)
 	public void testResendDuringInflightCompensateWaitsNotNotFound() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		stopRedoDaemon(); // 唯一驱动源=本测试的同步invokeRedoTimer（轮次串行的前提）
 
 		startSagaContext(onzServer, SagaName, Account, CompensateInflightTid);
@@ -149,7 +153,7 @@ public class TestOnzSagaCompensateInflightNotFound {
 
 		// 放行：worker A失败（eCompensateFail落在已超时的round1死rpc上无人接收）→
 		// 等锁的worker B醒来再次补偿。修复前：无等锁者（记录已删），补偿停在1。
-		releaseGate.countDown();
+		requireNonNull(releaseGate).countDown();
 		waitUntil(() -> CancelCount >= 2 && CancelInFlight == 0, 30_000,
 				"等锁的重复FuncSagaEnd必须再次补偿（修复前：决策记录已被NotFound删除，补偿静默丢失）");
 
@@ -157,7 +161,7 @@ public class TestOnzSagaCompensateInflightNotFound {
 		invokeRedoTimer(onzServer);
 		Assertions.assertEquals(1, count(commitIndex), "eCompensateFail必须保留决策记录交redo重发");
 		Assertions.assertTrue(CancelCount >= 3, "补偿重试链必须存活（修复前停在第1次）");
-		Assertions.assertEquals(1, sagaCount(App.Instance.Zeze.getOnz()),
+		Assertions.assertEquals(1, sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())),
 				"补偿失败的上下文必须仍在sagas等重发（修复前放回后永无重发，仅TTL清理）");
 	}
 

@@ -3,8 +3,7 @@ package Zeze.Transaction;
 import harness.FastServerIds;
 import Zeze.Application;
 import Zeze.Config;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -33,8 +32,8 @@ public class TestAddTableAtomicity {
 		}
 
 		@Override
-		public @Nullable Storage<?, ?> open(@NotNull Application a, @NotNull Database database,
-											@Nullable DatabaseRocksDb.Table localTable) {
+		public @Nullable Storage<?, ?> open(Application a, Database database,
+											DatabaseRocksDb.@Nullable Table localTable) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -48,7 +47,7 @@ public class TestAddTableAtomicity {
 		}
 
 		@Override
-		public @Nullable Database.Table getOldTable() {
+		public Database.@Nullable Table getOldTable() {
 			return null;
 		}
 
@@ -58,18 +57,18 @@ public class TestAddTableAtomicity {
 		}
 
 		@Override
-		public @NotNull Bean newValue() {
+		public Bean newValue() {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void reduceShare(@NotNull Zeze.Services.GlobalCacheManager.Reduce rpc,
-								@NotNull Zeze.Serialize.ByteBuffer bbKey) {
+		public void reduceShare(Zeze.Services.GlobalCacheManager.Reduce rpc,
+								Zeze.Serialize.ByteBuffer bbKey) {
 		}
 
 		@Override
-		public void reduceInvalid(@NotNull Zeze.Services.GlobalCacheManager.Reduce rpc,
-								  @NotNull Zeze.Serialize.ByteBuffer bbKey) {
+		public void reduceInvalid(Zeze.Services.GlobalCacheManager.Reduce rpc,
+								  Zeze.Serialize.ByteBuffer bbKey) {
 		}
 
 		@Override
@@ -77,7 +76,7 @@ public class TestAddTableAtomicity {
 		}
 
 		@Override
-		public void removeEncodedKey(@NotNull Zeze.Net.Binary encodedKey) {
+		public void removeEncodedKey(Zeze.Net.Binary encodedKey) {
 		}
 
 		@Override
@@ -85,12 +84,12 @@ public class TestAddTableAtomicity {
 		}
 
 		@Override
-		public Zeze.Schemas.RelationalTable getRelationalTable() {
+		public Zeze.Schemas.@Nullable RelationalTable getRelationalTable() {
 			return null;
 		}
 
 		@Override
-		public void open(@NotNull Table exist, @NotNull Application a) {
+		public void open(Table exist, Application a) {
 		}
 
 		@Override
@@ -98,36 +97,37 @@ public class TestAddTableAtomicity {
 		}
 
 		@Override
+		@SuppressWarnings("DataFlowIssue") // 此 fake 只测表注册原子性，不访问本地 Rocks 缓存表。
 		public DatabaseRocksDb.Table getLocalRocksCacheTable() {
 			return null;
 		}
 
 		@Override
-		public long walkMemoryAny(@NotNull TableWalkHandle<Object, Bean> handle) {
+		public long walkMemoryAny(TableWalkHandle<Object, Bean> handle) {
 			return 0;
 		}
 
 		@Override
-		public void __direct_put_cache__(@NotNull Object key, @NotNull Bean value, int state) {
+		public void __direct_put_cache__(Object key, Bean value, int state) {
 		}
 
 		@Override
-		public @NotNull Zeze.Serialize.ByteBuffer encodeKey(@NotNull Object key) {
+		public Zeze.Serialize.ByteBuffer encodeKey(Object key) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Object decodeKey(@NotNull Zeze.Serialize.ByteBuffer bb) {
+		public Object decodeKey(Zeze.Serialize.ByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Class<? extends Comparable<?>> getKeyClass() {
+		public Class<? extends Comparable<?>> getKeyClass() {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Class<? extends Bean> getValueClass() {
+		public Class<? extends Bean> getValueClass() {
 			throw new UnsupportedOperationException();
 		}
 

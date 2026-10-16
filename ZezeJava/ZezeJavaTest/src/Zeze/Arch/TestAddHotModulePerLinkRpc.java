@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.SocketAddress;
 
 import Zeze.Application;
@@ -13,8 +15,7 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -33,12 +34,12 @@ public class TestAddHotModulePerLinkRpc {
 	/** 最小IModule桩：仅提供getId（map键）与名字。 */
 	private static final class StubModule implements IModule {
 		@Override
-		public @NotNull String getFullName() {
+		public String getFullName() {
 			return "Zeze.Arch.TestArchHotStubModule";
 		}
 
 		@Override
-		public @NotNull String getName() {
+		public String getName() {
 			return "TestArchHotStubModule";
 		}
 
@@ -52,7 +53,7 @@ public class TestAddHotModulePerLinkRpc {
 	private static final class CountingSocket extends AsyncSocket {
 		int frames;
 
-		CountingSocket(@NotNull Zeze.Net.Service service) {
+		CountingSocket(Zeze.Net.Service service) {
 			super(service);
 		}
 
@@ -62,7 +63,7 @@ public class TestAddHotModulePerLinkRpc {
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			++frames;
 			return true;
 		}
@@ -89,14 +90,14 @@ public class TestAddHotModulePerLinkRpc {
 
 	/** 最小AppBase桩：appBase平时由启动流程initialize，测试直接注入。 */
 	private static final class StubAppBase extends Zeze.AppBase {
-		private final @NotNull Application app;
+		private final Application app;
 
-		StubAppBase(@NotNull Application app) {
+		StubAppBase(Application app) {
 			this.app = app;
 		}
 
 		@Override
-		public @NotNull Application getZeze() {
+		public Application getZeze() {
 			return app;
 		}
 	}
@@ -105,14 +106,15 @@ public class TestAddHotModulePerLinkRpc {
 	 * 避免继承实现的空列表getFirst()抛NoSuchElementException。 */
 	private static final class AddHotModuleAgent extends ProviderDirectTestSupport.FakeAgent {
 		@Override
-		public @NotNull Agent.SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
+		@SuppressWarnings("DataFlowIssue") // addHotModule 丢弃订阅返回值，fake 省略真实订阅结果。
+		public Agent.SubscribeState subscribeService(BSubscribeInfo info) {
 			//noinspection ContractViolation (test stub，返回值被丢弃)
 			return null;
 		}
 	}
 
 	/** 公共装配：disable模式Application + no-op SM + 轻量ProviderApp（回设providerApp）。 */
-	private static ProviderService newProviderService(@NotNull String name) throws Exception {
+	private static ProviderService newProviderService(String name) throws Exception {
 		var conf = new Zeze.Config();
 		conf.setServiceManager("disable");
 		conf.setNoDatabase(true);
@@ -143,7 +145,7 @@ public class TestAddHotModulePerLinkRpc {
 
 		Assertions.assertEquals(1, so1.frames, "link1必须收到新模块的Bind帧");
 		Assertions.assertEquals(1, so2.frames, "link2必须收到新模块的Bind帧（修复前第二个Send抛IllegalStateException，本用例红）");
-		Assertions.assertTrue(providerApp.staticBinds.containsKey(1701), "静态绑定须登记");
+		Assertions.assertTrue(requireNonNull(providerApp).staticBinds.containsKey(1701), "静态绑定须登记");
 	}
 
 	@Test
@@ -162,11 +164,11 @@ public class TestAddHotModulePerLinkRpc {
 
 		Assertions.assertEquals(1, so1.frames, "link1必须收到新模块的Subscribe帧");
 		Assertions.assertEquals(1, so2.frames, "link2必须收到新模块的Subscribe帧（修复前第二个Send抛IllegalStateException，本用例红）");
-		Assertions.assertTrue(providerApp.dynamicModules.containsKey(1701), "动态订阅须登记");
+		Assertions.assertTrue(requireNonNull(providerApp).dynamicModules.containsKey(1701), "动态订阅须登记");
 	}
 
 	/** 构造不连接的Connector，反射把futureSocket直接置为就绪桩（TryGetReadySocket即getNow）。 */
-	private static Connector readyConnector(@NotNull String name, @NotNull AsyncSocket so) throws Exception {
+	private static Connector readyConnector(String name, AsyncSocket so) throws Exception {
 		var connector = new Connector("127.0.0.1", 1, false);
 		var field = Connector.class.getDeclaredField("futureSocket");
 		field.setAccessible(true);

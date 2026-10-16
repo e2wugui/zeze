@@ -1,5 +1,11 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,6 +27,7 @@ import org.junit.jupiter.api.Test;
  * 再挂接，异常类型仍为IOOBE（FND6-02"先验后挂"判例的越界维度）。
  */
 @Fast
+@NullMarked
 public class TestPList2AttachOrder {
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_PLIST2_ATTACH_ORDER);
 
@@ -35,7 +42,7 @@ public class TestPList2AttachOrder {
 		var app = new Application("TestPList2AttachOrder@" + conf.getServerId(), conf);
 		// Table1是关系映射表，open需要Schemas（对齐TestDynamicBeanCollect的搭建方式）。
 		app.setSchemas(new demo.Schemas());
-		app.addTable(conf.getTableConf("demo_Module1_Table1").getDatabaseName(), new Table1());
+		app.addTable(requireNonNull(conf.getTableConf("demo_Module1_Table1")).getDatabaseName(), new Table1());
 		app.start();
 		return app;
 	}
@@ -103,7 +110,7 @@ public class TestPList2AttachOrder {
 			Assertions.assertEquals(2, sizeAfterReuse[0]);
 
 			// 合法index行为不变：set返回旧值，add中间插入。
-			final var oldSet = new Bean1[] {null};
+			final var oldSet = new @Nullable Bean1[] {null};
 			final var sizeAfterLegal = new int[] {-1};
 			Assertions.assertEquals(0L, TaskSpec.ofProcedure(app.newProcedure(() -> {
 				var list = table.getOrAdd(1L).getList9();

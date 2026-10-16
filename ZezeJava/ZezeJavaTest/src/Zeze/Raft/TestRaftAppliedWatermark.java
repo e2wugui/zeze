@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
@@ -65,7 +67,7 @@ public class TestRaftAppliedWatermark {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
 				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
 
 			var changes = RaftHeadlessSupport.captureUniqueChanges(rocks, table, clientId,
@@ -73,7 +75,7 @@ public class TestRaftAppliedWatermark {
 			var raftLog = new RaftLog(1, 1, changes);
 			var callbackCount = new AtomicInteger();
 			raftLog.setLeaderCallback((log, success) -> callbackCount.incrementAndGet());
-			var logSequence = rocks.getRaft().getLogSequence();
+			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 			logSequence.saveLog(raftLog);
 			RaftHeadlessSupport.leaderAppendLogsOf(logSequence).put(1L, raftLog);
 
@@ -113,13 +115,13 @@ public class TestRaftAppliedWatermark {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
 				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
 
 			var changes = RaftHeadlessSupport.captureUniqueChanges(rocks, table, clientId,
 					new Zeze.Net.Binary("fake.rpc.result.appliedWatermark".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
 			var raftLog = new RaftLog(1, 1, changes);
-			var logSequence = rocks.getRaft().getLogSequence();
+			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 			logSequence.saveLog(raftLog);
 			RaftHeadlessSupport.leaderAppendLogsOf(logSequence).put(1L, raftLog);
 			logSequence.tryApply(raftLog, 1);
@@ -157,7 +159,7 @@ public class TestRaftAppliedWatermark {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
 				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20); // 直写存储：无apply，无水位行（旧格式库的等价形态）
 
 			assertNull(rocks.readAppliedWatermark(), "无水位行走legacy路径");
@@ -169,7 +171,7 @@ public class TestRaftAppliedWatermark {
 			var result = rocks.snapshot(Path.of(dbHome, "snapshot.t3.zip").toString());
 			assertFalse(result.success, "legacy路径：pending窗口内必须推迟（短期修复降级为兼容层）");
 			assertFalse(java.nio.file.Files.exists(Path.of(dbHome, "snapshot.t3.zip")), "推迟不得产出快照文件");
-			assertEquals(0, rocks.getRaft().getLogSequence().getFirstIndex(), "推迟不得提交");
+			assertEquals(0, requireNonNull(rocks.getRaft()).getLogSequence().getFirstIndex(), "推迟不得提交");
 		}
 	}
 }

@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.lang.reflect.Method;
 import java.util.concurrent.CountDownLatch;
@@ -13,7 +17,6 @@ import Zeze.Config;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,11 +40,11 @@ public class TestLoginTimesRedoOnce extends AppBase {
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_LOGIN_TIMES_REDO_ONCE);
 	private static final String ACCOUNT = "login_times_acc";
 
-	private Application zeze;
-	private Online onlineModule;
+	private @Nullable Application zeze;
+	private @Nullable Online onlineModule;
 
 	@Override
-	public Application getZeze() {
+	public @Nullable Application getZeze() {
 		return zeze;
 	}
 
@@ -75,14 +78,14 @@ public class TestLoginTimesRedoOnce extends AppBase {
 	@Test
 	public void testRedoCountsLoginOnce() throws Exception {
 		// 种子行：victim与modifier的冲突锚点（生产中同账号并发登录冲突_tonline行）
-		assertEquals(Procedure.Success, zeze.newProcedure(() -> {
-			onlineModule._tonline.getOrAdd(ACCOUNT).setLastLoginVersion(1L);
+		assertEquals(Procedure.Success, requireNonNull(zeze).newProcedure(() -> {
+			requireNonNull(onlineModule)._tonline.getOrAdd(ACCOUNT).setLastLoginVersion(1L);
 			return Procedure.Success;
 		}, "seed").call());
 
 		var readByRun1 = new CountDownLatch(1);
 		var modified = new CountDownLatch(1);
-		var modifyError = new AtomicReference<Throwable>();
+		var modifyError = new AtomicReference<@Nullable Throwable>();
 		var runCount = new AtomicInteger();
 		var loginTrigger = Online.class.getDeclaredMethod("loginTrigger", String.class, String.class);
 		loginTrigger.setAccessible(true);
@@ -90,7 +93,7 @@ public class TestLoginTimesRedoOnce extends AppBase {
 		// victim：仿ProcessLoginRequest的事务形态——同行读写+loginTrigger（私有，反射直调）
 		var victim = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var runs = runCount.incrementAndGet();
-			var row = onlineModule._tonline.getOrAdd(ACCOUNT);
+			var row = requireNonNull(onlineModule)._tonline.getOrAdd(ACCOUNT);
 			row.setLastLoginVersion(row.getLastLoginVersion() + 1L);
 			if (runs == 1) { // 仅第一轮等待冲突修改，redo轮直接重跑
 				readByRun1.countDown();
@@ -105,7 +108,7 @@ public class TestLoginTimesRedoOnce extends AppBase {
 		assertTrue(readByRun1.await(10, TimeUnit.SECONDS), "victim第一轮必须先读行");
 		try {
 			assertEquals(Procedure.Success, zeze.newProcedure(() -> {
-				onlineModule._tonline.getOrAdd(ACCOUNT).setLastLoginVersion(100L);
+				requireNonNull(onlineModule)._tonline.getOrAdd(ACCOUNT).setLastLoginVersion(100L);
 				return Procedure.Success;
 			}, "modify").call());
 		} catch (Throwable t) {
@@ -118,7 +121,7 @@ public class TestLoginTimesRedoOnce extends AppBase {
 
 		victim.get(15, TimeUnit.SECONDS);
 		assertTrue(runCount.get() >= 2, "必须发生redo（否则场景未成立），实际轮次=" + runCount.get());
-		assertEquals(1L, onlineModule.getLoginTimes(),
+		assertEquals(1L, requireNonNull(onlineModule).getLoginTimes(),
 				"redo重跑下裸递增会多计（FND7-31：一次登录只允许计一次）");
 	}
 }

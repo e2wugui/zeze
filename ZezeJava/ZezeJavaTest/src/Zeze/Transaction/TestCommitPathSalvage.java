@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,10 +40,10 @@ public class TestCommitPathSalvage {
 	@TempDir
 	Path tempDir;
 
-	private Application app;
-	private EncodeFailTable table;
+	private @Nullable Application app;
+	private @Nullable EncodeFailTable table;
 
-	private void startApp(CheckpointMode mode, String dbSubName, Consumer<Config> tweak) throws Exception {
+	private void startApp(CheckpointMode mode, String dbSubName, @Nullable Consumer<Config> tweak) throws Exception {
 		EncodeFailBean.encodeFailOnce.set(0);
 		var config = new Config();
 		config.setServiceManager("disable");
@@ -60,24 +64,24 @@ public class TestCommitPathSalvage {
 	}
 
 	private void stopApp() throws Exception {
-		app.stop();
+		requireNonNull(app).stop();
 		app = null;
 		table = null;
 	}
 
 	private void putValue(long key, long value) {
-		var result = app.newProcedure((FuncLong)() -> {
+		var result = requireNonNull(app).newProcedure((FuncLong)() -> {
 			var b = new EncodeFailBean();
 			b.value = value;
-			table.put(key, b);
+			requireNonNull(table).put(key, b);
 			return 0L;
 		}, "TestCommitPathSalvage.put").call();
 		Assertions.assertEquals(Procedure.Success, result, "put 事务必须成功");
 	}
 
 	/** 后台库中的值；不存在返回 null。 */
-	private Long dbValue(long key) {
-		var v = table.selectFromDatabase(key);
+	private @Nullable Long dbValue(long key) {
+		var v = requireNonNull(table).selectFromDatabase(key);
 		return v != null ? v.value : null;
 	}
 
@@ -89,13 +93,13 @@ public class TestCommitPathSalvage {
 	 * 前移到应用前干净失败，不再是此路径的触发形态；编码失败等仍走此语义）。
 	 * 这样异常在测试线程可控地重抛出来（经 perform 则直接 halt 进程，无法在测试内断言）。
 	 */
-	private Exception runManualCommit(long key, long value, boolean failCollect) throws Exception {
-		var trans = Transaction.create(app.getLocks());
+	private @Nullable Exception runManualCommit(long key, long value, boolean failCollect) throws Exception {
+		var trans = Transaction.create(requireNonNull(app).getLocks());
 		try {
 			trans.begin();
 			var b = new EncodeFailBean();
 			b.value = value;
-			table.put(key, b);
+			requireNonNull(table).put(key, b);
 			for (var ar : trans.getAccessedRecords().values())
 				ar.dirty = true; // perform的lockAndCheck在这里把有修改日志的记录置脏
 
@@ -158,7 +162,7 @@ public class TestCommitPathSalvage {
 			try {
 				startApp(mode, "without_history_collector_" + mode, null);
 				Assertions.assertNull(runManualCommit(1L, 20L, false));
-				app.getCheckpoint().runOnce();
+				requireNonNull(requireNonNull(app).getCheckpoint()).runOnce();
 				Assertions.assertEquals(Long.valueOf(20L), dbValue(1L), "无历史收集器时仍正常提交与落库");
 			} finally {
 				if (app != null)
@@ -173,19 +177,19 @@ public class TestCommitPathSalvage {
 		try {
 			startApp(CheckpointMode.Table, "t01", null);
 			putValue(1L, 10L);
-			app.getCheckpoint().runOnce(); // 落库并让记录换上全新的孤立rrs（不进map）
+			requireNonNull(requireNonNull(app).getCheckpoint()).runOnce(); // 落库并让记录换上全新的孤立rrs（不进map）
 			Assertions.assertEquals(Long.valueOf(10L), dbValue(1L));
-			Assertions.assertTrue(app.getCheckpoint().relativeRecordSetMap.isEmpty());
+			Assertions.assertTrue(requireNonNull(app.getCheckpoint()).relativeRecordSetMap.isEmpty());
 
 			var ex = Assertions.assertThrows(Exception.class, () -> runManualCommit(1L, 20L, true),
 					"收集失败必须重抛（perform仍走halt，语义不变）");
 			Assertions.assertTrue(ex.getMessage().contains("post-apply"), "重抛的必须是原始异常");
-			Assertions.assertFalse(app.getCheckpoint().relativeRecordSetMap.isEmpty(),
+			Assertions.assertFalse(requireNonNull(requireNonNull(app).getCheckpoint()).relativeRecordSetMap.isEmpty(),
 					"修复点：重抛前mergedSet必须注册进relativeRecordSetMap（修复前map为空，已应用数据无任何落库通道）");
 
-			app.getCheckpoint().runOnce(); // 模拟perform halt分支的checkpointRun()/后台重试
+			requireNonNull(app.getCheckpoint()).runOnce(); // 模拟perform halt分支的checkpointRun()/后台重试
 			Assertions.assertEquals(Long.valueOf(20L), dbValue(1L), "已应用数据必须经注册的rrs重试落库");
-			Assertions.assertTrue(app.getCheckpoint().relativeRecordSetMap.isEmpty(), "flush后map清空");
+			Assertions.assertTrue(requireNonNull(app.getCheckpoint()).relativeRecordSetMap.isEmpty(), "flush后map清空");
 		} finally {
 			EncodeFailBean.encodeFailOnce.set(0);
 			if (app != null)
@@ -197,7 +201,7 @@ public class TestCommitPathSalvage {
 	@Test
 	public void test02TablePathFlushNowFailRegistersRrs() throws Exception {
 		try {
-			startApp(CheckpointMode.Table, "t02", c -> c.getDefaultTableConf().setCheckpointWhenCommit(true));
+			startApp(CheckpointMode.Table, "t02", c -> requireNonNull(c.getDefaultTableConf()).setCheckpointWhenCommit(true));
 			putValue(1L, 10L); // checkpointWhenCommit：提交点同步落库，记录不进map
 			Assertions.assertEquals(Long.valueOf(10L), dbValue(1L));
 
@@ -207,12 +211,12 @@ public class TestCommitPathSalvage {
 			Assertions.assertNotNull(ex.getCause(), "flushInternal包装重抛，cause为底层异常");
 			Assertions.assertTrue(ex.getCause().getMessage().contains("simulated flush io error"),
 					"重抛的必须是原始异常");
-			Assertions.assertFalse(app.getCheckpoint().relativeRecordSetMap.isEmpty(),
+			Assertions.assertFalse(requireNonNull(requireNonNull(app).getCheckpoint()).relativeRecordSetMap.isEmpty(),
 					"修复点：needFlushNow的flush失败同样先注册mergedSet再重抛");
 
-			app.getCheckpoint().runOnce();
+			requireNonNull(requireNonNull(app).getCheckpoint()).runOnce();
 			Assertions.assertEquals(Long.valueOf(20L), dbValue(1L), "flush失败保dirty重试落库（既有语义的注册延伸）");
-			Assertions.assertTrue(app.getCheckpoint().relativeRecordSetMap.isEmpty());
+			Assertions.assertTrue(requireNonNull(app.getCheckpoint()).relativeRecordSetMap.isEmpty());
 			Assertions.assertEquals(2, EncodeFailBean.encodeFailOnce.get(), "encode只失败一次（毒化自限）");
 		} finally {
 			EncodeFailBean.encodeFailOnce.set(0);
@@ -231,15 +235,15 @@ public class TestCommitPathSalvage {
 		try {
 			startApp(CheckpointMode.Table, "t03", null);
 			putValue(1L, 10L);
-			app.getCheckpoint().runOnce();
+			requireNonNull(requireNonNull(app).getCheckpoint()).runOnce();
 			Assertions.assertEquals(Long.valueOf(10L), dbValue(1L));
 
 			Assertions.assertThrows(Exception.class, () -> runManualCommit(1L, 20L, true)); // 第一笔失败
 			Assertions.assertThrows(Exception.class, () -> runManualCommit(1L, 30L, true)); // 第二笔失败
-			Assertions.assertFalse(app.getCheckpoint().relativeRecordSetMap.isEmpty(),
+			Assertions.assertFalse(requireNonNull(requireNonNull(app).getCheckpoint()).relativeRecordSetMap.isEmpty(),
 					"每笔失败的mergedSet都必须已注册（含第一笔留下的存量脏集）");
 
-			app.getCheckpoint().runOnce();
+			requireNonNull(requireNonNull(app).getCheckpoint()).runOnce();
 			Assertions.assertEquals(Long.valueOf(30L), dbValue(1L),
 					"修复前：两笔孤儿脏集全丢，库中仍是10；修复后：存量随mergedSet得救，最终值30");
 		} finally {

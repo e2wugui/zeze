@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogMap2;
@@ -9,7 +11,6 @@ import Zeze.Transaction.Collections.PSortedMap2;
 import Zeze.Transaction.Logs.LogLong;
 import demo.Module1.BValue;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -155,12 +156,12 @@ public class TestStaleBeanChangedFilter {
 	private static Record newStubRecord() {
 		return new Record(null) {
 			@Override
-			public @NotNull Table getTable() {
+			public Table getTable() {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
-			public @NotNull Object getObjectKey() {
+			public Object getObjectKey() {
 				throw new UnsupportedOperationException();
 			}
 
@@ -178,11 +179,11 @@ public class TestStaleBeanChangedFilter {
 			}
 
 			@Override
-			public void flush(Database.Transaction t, Database.@NotNull Transaction lct) {
+			public void flush(Database.@Nullable Transaction t, Database.Transaction lct) {
 			}
 
 			@Override
-			public void commit(@NotNull RecordAccessed accessed) {
+			public void commit(RecordAccessed accessed) {
 			}
 
 			@Override

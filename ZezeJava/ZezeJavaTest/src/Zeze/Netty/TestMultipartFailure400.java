@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,7 +20,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
 import io.netty.handler.codec.http.multipart.Attribute;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,8 +33,8 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestMultipartFailure400 {
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
 
 	@BeforeAll
@@ -41,7 +44,7 @@ public class TestMultipartFailure400 {
 		server = new HttpServer(); // 无zeze, noProcedure
 		server.addHandler("/mp", TransactionLevel.None, DispatchMode.Normal, new HttpMultipartHandle() {
 			@Override
-			public void onAttribute(@NotNull HttpExchange x, @NotNull Attribute attr) throws Exception {
+			public void onAttribute(HttpExchange x, Attribute attr) throws Exception {
 				throw new RuntimeException("wt4: simulated multipart callback failure");
 			}
 		});
@@ -51,12 +54,12 @@ public class TestMultipartFailure400 {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	// 发送原始请求字节并读到服务器关闭连接(EOF)为止,返回收到的完整响应
-	private static @NotNull String sendRawUntilClose(@NotNull String raw) throws IOException {
+	private static String sendRawUntilClose(String raw) throws IOException {
 		try (var sock = connectWithRetry()) {
 			sock.setSoTimeout(15000);
 			var os = sock.getOutputStream();

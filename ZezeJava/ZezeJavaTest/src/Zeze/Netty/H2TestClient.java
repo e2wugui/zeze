@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import io.netty.handler.codec.http2.Http2FrameCodec;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -27,8 +31,7 @@ import io.netty.handler.codec.http2.Http2MultiplexHandler;
 import io.netty.handler.codec.http2.Http2StreamChannel;
 import io.netty.handler.codec.http2.Http2StreamChannelBootstrap;
 import io.netty.handler.codec.http2.Http2StreamFrameToHttpObjectCodec;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * h2测试客户端（仅测试用）：netty自client栈prior-knowledge连接，共享一条连接按需开stream发请求。
@@ -36,17 +39,17 @@ import org.jetbrains.annotations.Nullable;
  */
 final class H2TestClient implements AutoCloseable {
 	private final NioEventLoopGroup group = new NioEventLoopGroup(1);
-	private Channel connection;
-	private io.netty.handler.codec.http2.Http2FrameCodec frameCodec;
+	private @Nullable Channel connection;
+	private @Nullable Http2FrameCodec frameCodec;
 
-	record Result(HttpResponseStatus status, byte @NotNull [] body) {
-		@NotNull String bodyText() {
+	record Result(HttpResponseStatus status, byte [] body) {
+		String bodyText() {
 			return new String(body, java.nio.charset.StandardCharsets.ISO_8859_1);
 		}
 	}
 
 	interface ResponseFuture {
-		@NotNull CompletableFuture<Result> done();
+		CompletableFuture<Result> done();
 
 		default Result await() throws Exception {
 			return done().get(15, TimeUnit.SECONDS);
@@ -58,7 +61,7 @@ final class H2TestClient implements AutoCloseable {
 				.channel(NioSocketChannel.class)
 				.handler(new ChannelInitializer<SocketChannel>() {
 					@Override
-					protected void initChannel(@NotNull SocketChannel ch) {
+					protected void initChannel(SocketChannel ch) {
 						frameCodec = Http2FrameCodecBuilder.forClient()
 								.initialSettings(new io.netty.handler.codec.http2.Http2Settings()
 										.initialWindowSize(16 * 1024 * 1024)) // 流级接收窗
@@ -66,7 +69,7 @@ final class H2TestClient implements AutoCloseable {
 						ch.pipeline().addLast(frameCodec);
 						ch.pipeline().addLast(new Http2MultiplexHandler(new ChannelInitializer<Http2StreamChannel>() {
 							@Override
-							protected void initChannel(@NotNull Http2StreamChannel s) {
+							protected void initChannel(Http2StreamChannel s) {
 								// 客户端发起的stream由request()开stream后按需装配
 							}
 						}));
@@ -76,9 +79,9 @@ final class H2TestClient implements AutoCloseable {
 	}
 
 	// 共享连接上开一个新stream发请求（并发调用=多stream并发）；body为null即无体GET/HEAD
-	ResponseFuture request(@NotNull HttpMethod method, @NotNull String path, byte @Nullable [] body) throws Exception {
-		var stream = new Http2StreamChannelBootstrap(connection).open().sync().getNow();
-		var collector = new Collector(frameCodec);
+	ResponseFuture request(HttpMethod method, String path, byte @Nullable [] body) throws Exception {
+		var stream = new Http2StreamChannelBootstrap(requireNonNull(connection)).open().sync().getNow();
+		var collector = new Collector(requireNonNull(frameCodec));
 		stream.pipeline().addLast(new Http2StreamFrameToHttpObjectCodec(false)); // client模式
 		stream.pipeline().addLast(collector);
 		ByteBuf content = body == null ? Unpooled.EMPTY_BUFFER : Unpooled.wrappedBuffer(body);
@@ -92,8 +95,8 @@ final class H2TestClient implements AutoCloseable {
 
 	// 开stream发请求后不等待响应直接关闭stream（未完成的stream关闭即向对端发RST_STREAM），
 	// 用于中止流的服务端善后测试（NY1-F2：h2子channel善后按channel id remove+close exchange）。
-	void requestThenReset(@NotNull HttpMethod method, @NotNull String path) throws Exception {
-		var stream = new Http2StreamChannelBootstrap(connection).open().sync().getNow();
+	void requestThenReset(HttpMethod method, String path) throws Exception {
+		var stream = new Http2StreamChannelBootstrap(requireNonNull(connection)).open().sync().getNow();
 		stream.pipeline().addLast(new Http2StreamFrameToHttpObjectCodec(false));
 		var req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, path, Unpooled.EMPTY_BUFFER);
 		req.headers().set(HttpHeaderNames.HOST, "127.0.0.1");
@@ -111,7 +114,7 @@ final class H2TestClient implements AutoCloseable {
 	private static final class Collector extends SimpleChannelInboundHandler<HttpObject> implements ResponseFuture {
 		private final CompletableFuture<Result> done = new CompletableFuture<>();
 		private final io.netty.handler.codec.http2.Http2FrameCodec frameCodec;
-		private HttpResponseStatus status;
+		private @Nullable HttpResponseStatus status;
 		private final java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
 
 		Collector(io.netty.handler.codec.http2.Http2FrameCodec frameCodec) {
@@ -119,12 +122,12 @@ final class H2TestClient implements AutoCloseable {
 		}
 
 		@Override
-		public @NotNull CompletableFuture<Result> done() {
+		public CompletableFuture<Result> done() {
 			return done;
 		}
 
 		@Override
-		protected void channelRead0(@NotNull ChannelHandlerContext ctx, @NotNull HttpObject msg) {
+		protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg) {
 			if (msg instanceof HttpResponse response)
 				status = response.status();
 			if (msg instanceof HttpContent content) {
@@ -134,12 +137,12 @@ final class H2TestClient implements AutoCloseable {
 				b.readBytes(bytes);
 				out.write(bytes, 0, bytes.length);
 				if (msg instanceof LastHttpContent)
-					done.complete(new Result(status, out.toByteArray()));
+					done.complete(new Result(requireNonNull(status), out.toByteArray()));
 			}
 		}
 
 		@Override
-		public void exceptionCaught(@NotNull ChannelHandlerContext ctx, @NotNull Throwable cause) {
+		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 			done.completeExceptionally(cause);
 		}
 	}

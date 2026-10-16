@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
@@ -62,7 +64,7 @@ public class TestRefreshMasterTableResetsOnFailure {
 		return (ConcurrentHashMap<String, MasterAgent>)field.get(manager);
 	}
 
-	private static Future<?> getRefreshTask(Dbh2AgentManager manager) throws Exception {
+	private static @Nullable Future<?> getRefreshTask(Dbh2AgentManager manager) throws Exception {
 		Field field = Dbh2AgentManager.class.getDeclaredField("refreshMasterTableTask");
 		field.setAccessible(true);
 		return (Future<?>)field.get(manager);

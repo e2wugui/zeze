@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -43,8 +45,8 @@ public class TestGcmDaemonOffScheduler {
 	private static final int PORT = 19717; // @Fast固定端口独占（与TestFnd718经ResourceLock串行）
 	private static final int SERVER_ID_A = 9301;
 
-	private static RawClient clientA;
-	private static GlobalCacheManagerServer gcm;
+	private static @Nullable RawClient clientA;
+	private static @Nullable GlobalCacheManagerServer gcm;
 
 	private interface Cond {
 		boolean get() throws Exception;

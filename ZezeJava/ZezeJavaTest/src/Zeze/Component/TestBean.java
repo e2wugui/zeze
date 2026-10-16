@@ -1,15 +1,16 @@
 package Zeze.Component;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.TaskCompletionSource;
-import org.jetbrains.annotations.NotNull;
 
 public class TestBean extends Bean {
 	private boolean isServerLiving = true; // 模拟服务器连接是否存活
 
-	private TaskCompletionSource<Boolean> timerFuture2;
+	private @Nullable TaskCompletionSource<Boolean> timerFuture2;
 	private int hope;
 
 	public void resetFuture(int hope) {
@@ -18,7 +19,7 @@ public class TestBean extends Bean {
 	}
 
 	public TaskCompletionSource<Boolean> getFuture() {
-		return timerFuture2;
+		return java.util.Objects.requireNonNull(timerFuture2);
 	}
 
 	private int testValue;
@@ -46,12 +47,12 @@ public class TestBean extends Bean {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(testValue);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		testValue = bb.ReadInt();
 	}
 }

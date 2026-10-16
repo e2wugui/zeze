@@ -1,5 +1,7 @@
 package Zeze.Services.RocketMQ;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
@@ -69,7 +71,7 @@ public class TestProducerPlainSendRejectsEnvTransaction {
 	 */
 	@Test
 	public void sendInsideProcedureActionFailsFastBeforeNetwork() throws Exception {
-		var caught = new AtomicReference<UnsupportedOperationException>();
+		var caught = new AtomicReference<@Nullable UnsupportedOperationException>();
 		var msg = new Message("topicPlainEnvTxn", "body".getBytes(StandardCharsets.UTF_8));
 		var rc = app.newProcedure(() -> {
 			try {

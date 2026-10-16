@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -46,7 +48,7 @@ public class TestMysqlOperatesProceduresStamp {
 		}
 	}
 
-	private static Object defaultValue(Class<?> type) {
+	private static @Nullable Object defaultValue(Class<?> type) {
 		if (!type.isPrimitive() || type == void.class)
 			return null;
 		if (type == boolean.class)

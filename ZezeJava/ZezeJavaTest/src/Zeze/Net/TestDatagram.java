@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
@@ -15,8 +17,7 @@ import Zeze.Util.ReplayAttackGrowRange2;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -36,11 +37,11 @@ public class TestDatagram {
 		var server = service.bindUdp(new InetSocketAddress(0));
 		var client = service.bindUdp(new InetSocketAddress(0));
 		var sessionServer = server.createSessionServer(
-				new InetSocketAddress("127.0.0.1", client.getLocal().getPort()),
+				new InetSocketAddress("127.0.0.1", requireNonNull(client.getLocal()).getPort()),
 				securityKey, ReplayAttackPolicy.AllowDisorder);
 		// client
 		var session = client.createSession(
-				new InetSocketAddress("127.0.0.1", server.getLocal().getPort()),
+				new InetSocketAddress("127.0.0.1", requireNonNull(server.getLocal()).getPort()),
 				sessionServer.getTokenId(), securityKey, ReplayAttackPolicy.AllowDisorder);
 		assert session != null;
 		var p = new ProtoValue();
@@ -64,7 +65,7 @@ public class TestDatagram {
 
 	private long processServerPValue(ProtoValue p) {
 		if (helloNumber.incrementAndGet() < 3)
-			p.getSender().Send(p);
+			requireNonNull(p.getSender()).Send(p);
 		System.out.println(p.Argument.getString3());
 		return 0;
 	}
@@ -77,7 +78,7 @@ public class TestDatagram {
 		var service = new TestDatagramService();
 		var server = service.bindUdp(new InetSocketAddress(0));
 		var session = server.createSessionServer(
-				new InetSocketAddress("127.0.0.1", server.getLocal().getPort()),
+				new InetSocketAddress("127.0.0.1", requireNonNull(server.getLocal()).getPort()),
 				null, ReplayAttackPolicy.AllowDisorder);
 		Assertions.assertFalse(session.isClosed(), "alive session reported closed");
 		session.close(null);
@@ -228,7 +229,7 @@ class TestDatagramOnCloseService extends Service {
 	}
 
 	@Override
-	public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+	public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 		if (so instanceof DatagramSession ds)
 			closedSessions.add(ds);
 		super.OnSocketClose(so, e);

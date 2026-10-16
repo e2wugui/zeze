@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -77,11 +81,11 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 	private static final int[] ports = new int[3];
 	private static final ArrayList<GlobalCacheManagerWithRaft> nodes = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static GlobalCacheManagerWithRaft gcm; // leader
+	private static @Nullable GlobalCacheManagerWithRaft gcm; // leader
 	private static int leaderIndex;
-	private static Path raftXmlFile;
-	private static Peer clientA;
-	private static Table<Binary, BCacheState> globalStates; // 反射取得，只读
+	private static @Nullable Path raftXmlFile;
+	private static @Nullable Peer clientA;
+	private static @Nullable Table<Binary, BCacheState> globalStates; // 反射取得，只读
 	private static final AtomicLong requestIds = new AtomicLong();
 	private static final boolean[] closed = new boolean[3];
 
@@ -183,7 +187,7 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 				nodes.get(i).close();
 		}
 		nodes.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new File(dbHome));
 		dbHomes.clear();
@@ -241,12 +245,12 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 	 * 用一个raft写强制触发trySendAppendEntries全量重发，解开搁置并等待ready。
 	 */
 	private static void ensureLeaderReady() throws InterruptedException {
-		var raft = gcm.getRocks().getRaft();
+		var raft = requireNonNull(gcm).getRocks().getRaft();
 		long deadline = System.currentTimeMillis() + 30_000;
-		while (!raft.isReadyLeader()) {
+		while (!requireNonNull(raft).isReadyLeader()) {
 			try {
 				gcm.getRocks().newProcedure(() -> {
-					globalStates.put(WARMUP_KEY, new BCacheState());
+					requireNonNull(globalStates).put(WARMUP_KEY, new BCacheState());
 					return 0L;
 				}).call();
 			} catch (Throwable ex) {
@@ -307,8 +311,8 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 	/** 表读取必须在事务内进行（Table.get需要Transaction.getCurrent()），用只读procedure包一层。 */
 	private static int pendingOf(Binary key) throws Exception {
 		var pending = new int[1];
-		gcm.getRocks().newProcedure(() -> {
-			var cs = globalStates.get(key);
+		requireNonNull(gcm).getRocks().newProcedure(() -> {
+			var cs = requireNonNull(globalStates).get(key);
 			pending[0] = cs != null ? cs.getAcquireStatePending() : GlobalCacheManagerConst.StateInvalid;
 			return 0L;
 		}).call();
@@ -318,8 +322,8 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 	/** 记录持有者（-1表示无记录/无持有者），读取理由同pendingOf。 */
 	private static int modifyOf(Binary key) throws Exception {
 		var modify = new int[1];
-		gcm.getRocks().newProcedure(() -> {
-			var cs = globalStates.get(key);
+		requireNonNull(gcm).getRocks().newProcedure(() -> {
+			var cs = requireNonNull(globalStates).get(key);
 			modify[0] = cs != null ? cs.getModify() : -1;
 			return 0L;
 		}).call();
@@ -335,7 +339,7 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 		return holder;
 	}
 
-	private static Method findReleaseMethod() {
+	private static @Nullable Method findReleaseMethod() {
 		for (var m : GlobalCacheManagerWithRaft.class.getDeclaredMethods()) {
 			if (m.getName().equals("release") && m.getParameterCount() == 2
 					&& m.getParameterTypes()[1] == Binary.class)

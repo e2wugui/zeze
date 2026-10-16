@@ -1,5 +1,9 @@
 package Zeze.Collections;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -27,7 +31,7 @@ public class TestDepartmentTreeRootGuards {
 	// 700+、TestDepartmentTreeManagerGuards的730+错开。
 	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_DEPARTMENT_TREE_ROOT_GUARDS);
 
-	private DepartmentTree.Module departmentTreeModule;
+	private DepartmentTree.@Nullable Module departmentTreeModule;
 
 	private Application newApp() throws Exception {
 		var conf = new Config();
@@ -49,7 +53,7 @@ public class TestDepartmentTreeRootGuards {
 		try {
 			app.start();
 			// 不调用tree.create()：根行缺失（等价于已destroy后访问）
-			var tree = departmentTreeModule.open("rootGuards1",
+			var tree = requireNonNull(departmentTreeModule).open("rootGuards1",
 					TestDepartmentTreeManagerGuards.Manager.class, TestDepartmentTreeManagerGuards.Member.class,
 					TestDepartmentTreeManagerGuards.DepartmentMember.class,
 					TestDepartmentTreeManagerGuards.GroupData.class,

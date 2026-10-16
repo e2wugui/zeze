@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,8 +39,8 @@ public class TestServiceManagerEarlyCallback {
 	// 固定端口契约见TestTakeoverIdentifySuspect；26115避开26110-26114（SM同端口绑TCP+UDP）。
 	private static final int PORT = 26115;
 
-	private static ServiceManagerServer sm;
-	private static Client client;
+	private static @Nullable ServiceManagerServer sm;
+	private static @Nullable Client client;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -140,7 +144,7 @@ public class TestServiceManagerEarlyCallback {
 	private AsyncSocket connectOnce() throws Exception {
 		for (int attempt = 1; ; ++attempt) {
 			var connector = new Connector("127.0.0.1", PORT, false);
-			client.getConfig().addConnector(connector);
+			requireNonNull(client).getConfig().addConnector(connector);
 			client.start();
 			try {
 				return connector.WaitReady();

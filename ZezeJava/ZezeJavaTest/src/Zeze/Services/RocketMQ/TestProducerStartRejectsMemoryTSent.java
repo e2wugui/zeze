@@ -1,5 +1,7 @@
 package Zeze.Services.RocketMQ;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -120,7 +122,7 @@ public class TestProducerStartRejectsMemoryTSent {
 				return 0L;
 			}, "TestProducerStartRejectsMemoryTSent.walkAnchor").call();
 			assertEquals(0L, rc, "预插 tSent 行必须成功");
-			app.getCheckpoint().runOnce(); // 提交记录 flush 到 storage（walk 的数据面）
+			requireNonNull(app.getCheckpoint()).runOnce(); // 提交记录 flush 到 storage（walk 的数据面）
 			var keys = new ArrayList<String>();
 			var lastKey = producer._tSent.walk(null, 100, (key, value) -> {
 				if (key.startsWith(keyPrefix))

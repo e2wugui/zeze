@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.Nullable;
+
+import org.jspecify.annotations.NullMarked;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import demo.App;
@@ -10,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("DataFlowIssue")
+@NullMarked
 public class TestCheckpoint {
 	@BeforeEach
 	public final void testInit() throws Exception {
@@ -96,7 +101,7 @@ public class TestCheckpoint {
 		return Procedure.Success;
 	}
 
-	private ByteBuffer bytesInTrans;
+	private @Nullable ByteBuffer bytesInTrans;
 
 	private long ProcChange() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(56L);

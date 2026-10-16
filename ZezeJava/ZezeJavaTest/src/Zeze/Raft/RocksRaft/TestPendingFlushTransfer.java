@@ -1,12 +1,17 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,7 +81,7 @@ public class TestPendingFlushTransfer {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_list.initRootInfo(root, this);
 		}
 
@@ -87,7 +92,7 @@ public class TestPendingFlushTransfer {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_list.followerApply(vlog);
 			}
 		}
@@ -103,13 +108,13 @@ public class TestPendingFlushTransfer {
 	private static final class FailingBatch extends RocksDatabase.Batch {
 		private final AtomicInteger failArmed;
 
-		FailingBatch(@NotNull RocksDatabase outer, @NotNull AtomicInteger failArmed) {
+		FailingBatch(RocksDatabase outer, AtomicInteger failArmed) {
 			outer.super();
 			this.failArmed = failArmed;
 		}
 
 		@Override
-		public void commit(@NotNull WriteOptions options) throws RocksDBException {
+		public void commit(WriteOptions options) throws RocksDBException {
 			if (failArmed.getAndUpdate(x -> x > 0 ? x - 1 : 0) > 0)
 				throw new RocksDBException("FND8-39 simulated flush fail");
 			super.commit(options); // enclosing为真实storage：未armed时正常写真实库
@@ -201,7 +206,7 @@ public class TestPendingFlushTransfer {
 	private static Transaction captureChanges(Rocks rocks, Table<Integer, BListBean> table, int key) throws Exception {
 		final Transaction[] ts = new Transaction[1];
 		var rc = rocks.newProcedure(() -> {
-			ts[0] = Transaction.getCurrent();
+			ts[0] = requireNonNull(Transaction.getCurrent());
 			table.getOrAdd(key).getList().add(30); // [10] -> [10,30]
 			return 0L;
 		}).call();
@@ -218,20 +223,20 @@ public class TestPendingFlushTransfer {
 	public void testFollowerFirstFailTransferKeepsHold() throws Exception {
 		try (var rocks = newRocks()) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 			var ts = captureChanges(rocks, table, 1);
 			var changes = ts.getChanges();
 
 			// 事务结束（perform已释放业务计数）：先驱逐，让followerApply走装载路径持有计数。
-			var cb = table.getLruCache().getTryRemoveCallback();
+			var cb = requireNonNull(table.getLruCache()).getTryRemoveCallback();
 			assertNotNull(cb);
-			assertTrue(cb.test(1, table.getLruCache().get(1)), "no hold: evictable");
+			assertTrue(cb.test(1, requireNonNull(table.getLruCache().get(1))), "no hold: evictable");
 			assertNull(table.getLruCache().get(1));
 
 			var failArmed = new AtomicInteger(1);
 			armFlush(rocks, failArmed, 1);
-			assertThrows(Rocks.FlushException.class, () -> rocks.followerApply(changes, new RaftLog(1, 2, changes)));
+			assertThrows(Rocks.FlushException.class, () -> rocks.followerApply(requireNonNull(changes), new RaftLog(1, 2, changes)));
 
 			// 转移语义：装载计数随失败转入补偿登记，全程未归零——记录仍在缓存、驱逐仍拒绝。
 			var record = table.getLruCache().get(1);
@@ -240,7 +245,7 @@ public class TestPendingFlushTransfer {
 			assertFalse(cb.test(1, record), "record under compensation must NOT be evicted");
 
 			// 重试成功：消费配对释放，不泄漏。
-			rocks.followerApply(changes, new RaftLog(1, 2, changes));
+			rocks.followerApply(requireNonNull(changes), new RaftLog(1, 2, changes));
 			assertFalse(record.isAccessed(), "retry-flush success must release the hold (paired, no leak)");
 			assertEquals(List.of(10, 30), readStorage(table, 1));
 		}
@@ -251,21 +256,21 @@ public class TestPendingFlushTransfer {
 	public void testFollowerRetryReFailTransferNoGapNoLeak() throws Exception {
 		try (var rocks = newRocks()) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 			var ts = captureChanges(rocks, table, 1);
 			var changes = ts.getChanges();
 
-			var cb = table.getLruCache().getTryRemoveCallback();
+			var cb = requireNonNull(table.getLruCache()).getTryRemoveCallback();
 			assertNotNull(cb);
-			assertTrue(cb.test(1, table.getLruCache().get(1)));
+			assertTrue(cb.test(1, requireNonNull(table.getLruCache().get(1))));
 			assertNull(table.getLruCache().get(1));
 
 			// 两个毒Batch：首失败 + 重试再失败。
 			var failArmed = new AtomicInteger(2);
 			armFlush(rocks, failArmed, 2);
-			assertThrows(Rocks.FlushException.class, () -> rocks.followerApply(changes, new RaftLog(1, 2, changes)));
-			assertThrows(Rocks.FlushException.class, () -> rocks.followerApply(changes, new RaftLog(1, 2, changes)),
+			assertThrows(Rocks.FlushException.class, () -> rocks.followerApply(requireNonNull(changes), new RaftLog(1, 2, changes)));
+			assertThrows(Rocks.FlushException.class, () -> rocks.followerApply(requireNonNull(changes), new RaftLog(1, 2, changes)),
 					"重试路径必须仍是FlushException（只重试flush，不重放增量日志）");
 
 			// 重试再失败的换手点：持有原样转移（计数不增不减），不得归零。
@@ -274,7 +279,7 @@ public class TestPendingFlushTransfer {
 			assertTrue(record.isAccessed(), "re-registration must transfer (not drop) the hold");
 			assertFalse(cb.test(1, record), "record under re-registered compensation must NOT be evicted");
 
-			rocks.followerApply(changes, new RaftLog(1, 2, changes)); // 第三次：成功
+			rocks.followerApply(requireNonNull(changes), new RaftLog(1, 2, changes)); // 第三次：成功
 			assertFalse(record.isAccessed(), "multi-cycle compensation must pair exactly (no leak)");
 			assertEquals(List.of(10, 30), readStorage(table, 1));
 			assertTrue(cb.test(1, record), "released record must be evictable again");
@@ -289,12 +294,12 @@ public class TestPendingFlushTransfer {
 	public void testLeaderFirstFailAddRefAndRetryReFailTransfer() throws Exception {
 		try (var rocks = newRocks()) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 			var ts = captureChanges(rocks, table, 1);
 			var changes = ts.getChanges();
 
-			var cb = table.getLruCache().getTryRemoveCallback();
+			var cb = requireNonNull(table.getLruCache()).getTryRemoveCallback();
 			assertNotNull(cb);
 			var origin = table.getLruCache().get(1);
 			assertNotNull(origin);
@@ -304,7 +309,7 @@ public class TestPendingFlushTransfer {
 
 			var failArmed = new AtomicInteger(1);
 			armFlush(rocks, failArmed, 1);
-			assertThrows(Rocks.FlushException.class, () -> ts.leaderApply(changes, new RaftLog(1, 2, changes)));
+			assertThrows(Rocks.FlushException.class, () -> ts.leaderApply(requireNonNull(changes), new RaftLog(1, 2, changes)));
 			assertTrue(origin.isAccessed(), "add-ref registration must add the compensation hold");
 
 			// 业务超时释放（perform finally）：补偿持有仍在，驱逐拒绝。
@@ -315,12 +320,12 @@ public class TestPendingFlushTransfer {
 			// 重试再失败：转移语义（不增不减），仍持有。
 			failArmed.set(1);
 			armFlush(rocks, failArmed, 1);
-			assertThrows(Rocks.FlushException.class, () -> ts.leaderApply(changes, new RaftLog(1, 2, changes)));
+			assertThrows(Rocks.FlushException.class, () -> ts.leaderApply(requireNonNull(changes), new RaftLog(1, 2, changes)));
 			assertTrue(origin.isAccessed(), "retry re-fail must transfer the hold (never zero)");
 			assertFalse(cb.test(1, origin));
 
 			// 重试成功：配对归零，落库正确。
-			ts.leaderApply(changes, new RaftLog(1, 2, changes));
+			ts.leaderApply(requireNonNull(changes), new RaftLog(1, 2, changes));
 			assertFalse(origin.isAccessed(), "final success must release exactly once");
 			assertEquals(List.of(10, 30), readStorage(table, 1));
 		}
@@ -331,19 +336,19 @@ public class TestPendingFlushTransfer {
 	public void testTransferHoldReleasedOnTermMismatch() throws Exception {
 		try (var rocks = newRocks()) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 			var ts = captureChanges(rocks, table, 1);
 			var changes = ts.getChanges();
 
-			var cb = table.getLruCache().getTryRemoveCallback();
+			var cb = requireNonNull(table.getLruCache()).getTryRemoveCallback();
 			assertNotNull(cb);
-			assertTrue(cb.test(1, table.getLruCache().get(1)));
+			assertTrue(cb.test(1, requireNonNull(table.getLruCache().get(1))));
 			assertNull(table.getLruCache().get(1));
 
 			var failArmed = new AtomicInteger(1);
 			armFlush(rocks, failArmed, 1);
-			assertThrows(Rocks.FlushException.class, () -> rocks.followerApply(changes, new RaftLog(1, 2, changes)));
+			assertThrows(Rocks.FlushException.class, () -> rocks.followerApply(requireNonNull(changes), new RaftLog(1, 2, changes)));
 			var record = table.getLruCache().get(1);
 			assertNotNull(record);
 			assertTrue(record.isAccessed());

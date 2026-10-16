@@ -1,5 +1,7 @@
 package Game;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import Zeze.Arch.Gen.GenModule;
@@ -18,7 +20,6 @@ import Zeze.Game.ProviderWithOnline;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.JsonReader;
 import Zeze.Util.TaskSpec;
-import org.jetbrains.annotations.NotNull;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
@@ -29,19 +30,19 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	public ProviderWithOnline Provider;
-	public ProviderApp ProviderApp;
-	public ProviderDirectWithTransmit ProviderDirect;
-	public LinkedMap.Module LinkedMapModule;
-	public DepartmentTree.Module DepartmentTreeModule;
+	public @Nullable ProviderWithOnline Provider;
+	public @Nullable ProviderApp ProviderApp;
+	public @Nullable ProviderDirectWithTransmit ProviderDirect;
+	public LinkedMap.@Nullable Module LinkedMapModule;
+	public DepartmentTree.@Nullable Module DepartmentTreeModule;
 
 	private boolean started = false;
 
 	public ProviderWithOnline getProvider() {
-		return Provider;
+		return Objects.requireNonNull(Provider);
 	}
 
-	private static LoadConfig LoadConfig() {
+	private static @Nullable LoadConfig LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
 			return new JsonReader().buf(bytes).parse(LoadConfig.class);
@@ -55,7 +56,7 @@ public final class App extends Zeze.AppBase {
 	/**
 	 * @return 生成模式的源码根（已生成Redirect源码，不进入正常启动）；null=正常启动。
 	 */
-	public String Start(String[] args) throws Exception {
+	public @Nullable String Start(String[] args) throws Exception {
 		int serverId = -1;
 		int providerDirectPort = -1;
 		String genFileSrcRoot = System.getProperty("GenFileSrcRoot");
@@ -80,7 +81,7 @@ public final class App extends Zeze.AppBase {
 		Start(serverId, providerDirectPort, System.getProperty("GenFileSrcRoot"));
 	}
 
-	public void Start(int serverId, int providerDirectPort, String genFileSrcRoot) throws Exception {
+	public void Start(int serverId, int providerDirectPort, @Nullable String genFileSrcRoot) throws Exception {
 		if (started)
 			return;
 		started = true;
@@ -112,19 +113,19 @@ public final class App extends Zeze.AppBase {
 		Provider.setControlKick(BKick.eControlReportClient);
 
 		ProviderDirect = new ProviderDirectWithTransmit();
-		ProviderApp = new ProviderApp(Zeze, Provider, Server,
+		ProviderApp = new ProviderApp(getZeze(), Provider, Objects.requireNonNull(Server),
 				"Game.Server.Module#",
-				ProviderDirect, ServerDirect, "Game.Linkd", LoadConfig());
+				ProviderDirect, Objects.requireNonNull(ServerDirect), "Game.Linkd", Objects.requireNonNull(LoadConfig()));
 		Provider.create(this);
 
 		createModules();
-		LinkedMapModule = new LinkedMap.Module(Zeze);
-		DepartmentTreeModule = new DepartmentTree.Module(Zeze, LinkedMapModule);
+		LinkedMapModule = new LinkedMap.Module(getZeze());
+		DepartmentTreeModule = new DepartmentTree.Module(getZeze(), LinkedMapModule);
 
-		Zeze.getTimer().initializeOnlineTimer(ProviderApp);
+		Objects.requireNonNull(getZeze().getTimer()).initializeOnlineTimer(ProviderApp);
 
 		// start
-		Zeze.start(); // 启动数据库
+		getZeze().start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
 		Provider.start();
 
@@ -137,23 +138,23 @@ public final class App extends Zeze.AppBase {
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 
 		counterColdTimer = 0;
-		TaskSpec.ofProcedure(Zeze.newProcedure(() -> {
-			coldTimerId = Zeze.getTimer().schedule(TimerSpec.ofDelay(2000).period(2000), ColdTimer.class, new BKick());
+		TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
+			coldTimerId = Objects.requireNonNull(getZeze().getTimer()).schedule(TimerSpec.ofDelay(2000).period(2000), ColdTimer.class, new BKick());
 			//logger.info("XYZ Schedule={}", coldTimerId);
 			return 0;
 		}, "coldTimer")).call();
 	}
 
-	String coldTimerId;
+	@Nullable String coldTimerId;
 	public int counterColdTimer;
 
 	public static class ColdTimer implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
-			var app = (Game.App)context.timer.zeze.getAppBase();
+		public void onTimer(TimerContext context) throws Exception {
+			var app = (Game.App)Objects.requireNonNull(context.timer.zeze).getAppBase();
 			var buf = (BKick)context.customData;
 			//logger.info("XYZ timer={} app={} buf={} counter={}",
-			//		context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), app.counterColdTimer);
+			//		context.timerId, app.getZeze().getConfig().getServerId(), buf.getCode(), app.counterColdTimer);
 			//noinspection DataFlowIssue
 			if (buf.getCode() != app.counterColdTimer)
 				throw new RuntimeException("XYZ verify cold timer error." + buf.getCode() + " counter=" + app.counterColdTimer);
@@ -169,9 +170,9 @@ public final class App extends Zeze.AppBase {
 		if (Zeze == null) // 半启动（Start 在 createZeze 前/中失败）：尚无任何资源可停，直接返回，避免 NPE 掩盖真正的失败原因
 			return;
 
-		TaskSpec.ofProcedure(Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
 			//logger.info("XYZ Stop cancel={}", coldTimerId);
-			Zeze.getTimer().cancel(coldTimerId);
+			Objects.requireNonNull(getZeze().getTimer()).cancel(coldTimerId);
 			return 0;
 		}, "cancelColdTimer")).call();
 
@@ -179,7 +180,7 @@ public final class App extends Zeze.AppBase {
 			Provider.stop();
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
-			Zeze.stop(); // 关闭数据库
+			getZeze().stop(); // 关闭数据库
 			if (DepartmentTreeModule != null) {
 				DepartmentTreeModule.UnRegisterZezeTables(Zeze);
 				DepartmentTreeModule = null;
@@ -196,17 +197,17 @@ public final class App extends Zeze.AppBase {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public Game.Server Server;
-    public Game.ServerDirect ServerDirect;
+    public Game.@org.jspecify.annotations.Nullable Server Server;
+    public Game.@org.jspecify.annotations.Nullable ServerDirect ServerDirect;
 
-    public Game.Map.ModuleMap Game_Map;
-    public Game.Rank.ModuleRank Game_Rank;
+    public Game.Map.@org.jspecify.annotations.Nullable ModuleMap Game_Map;
+    public Game.Rank.@org.jspecify.annotations.Nullable ModuleRank Game_Rank;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -214,7 +215,7 @@ public final class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -230,8 +231,8 @@ public final class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            Server = new Game.Server(Zeze);
-            ServerDirect = new Game.ServerDirect(Zeze);
+            Server = new Game.Server(getZeze());
+            ServerDirect = new Game.ServerDirect(getZeze());
         } finally {
             unlock();
         }
@@ -248,9 +249,9 @@ public final class App extends Zeze.AppBase {
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
-            Zeze.initialize(this);
-            Zeze.getHotManager().initialize(modules);
+            getZeze().setHotManager(new Zeze.Hot.HotManager(this, getZeze().getConfig().getHotWorkingDir(), getZeze().getConfig().getHotDistributeDir()));
+            getZeze().initialize(this);
+            java.util.Objects.requireNonNull(getZeze().getHotManager()).initialize(modules);
             var _modules_ = createRedirectModules(redirectModuleClasses());
 
             Game_Map = (Game.Map.ModuleMap)_modules_[0];
@@ -263,7 +264,7 @@ public final class App extends Zeze.AppBase {
             if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
                 throw new IllegalStateException("duplicate module name: Game_Rank");
 
-            Zeze.setSchemas(new Game.Schemas());
+            getZeze().setSchemas(new Game.Schemas());
         } finally {
             unlock();
         }
@@ -274,9 +275,9 @@ public final class App extends Zeze.AppBase {
         try {
             Game_Rank = null;
             Game_Map = null;
-            if (null != Zeze.getHotManager()) {
-                Zeze.getHotManager().destroyModules();
-                Zeze.setHotManager(null);
+            if (null != getZeze().getHotManager()) {
+                java.util.Objects.requireNonNull(getZeze().getHotManager()).destroyModules();
+                getZeze().setHotManager(null);
             }
             modules.clear();
         } finally {
@@ -306,11 +307,11 @@ public final class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            Game_Map.Start(this);
-            Game_Rank.Start(this);
-            if (null != Zeze.getHotManager()) {
+            java.util.Objects.requireNonNull(Game_Map).Start(this);
+            java.util.Objects.requireNonNull(Game_Rank).Start(this);
+            if (null != getZeze().getHotManager()) {
                 var definedOrder = new java.util.HashSet<String>();
-                Zeze.getHotManager().startModulesExcept(definedOrder);
+                java.util.Objects.requireNonNull(getZeze().getHotManager()).startModulesExcept(definedOrder);
             }
         } finally {
             unlock();
@@ -321,11 +322,11 @@ public final class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            Game_Map.StartLast();
-            Game_Rank.StartLast();
-            if (null != Zeze.getHotManager()) {
+            java.util.Objects.requireNonNull(Game_Map).StartLast();
+            java.util.Objects.requireNonNull(Game_Rank).StartLast();
+            if (null != getZeze().getHotManager()) {
                 var definedOrder = new java.util.HashSet<String>();
-                Zeze.getHotManager().startLastModulesExcept(definedOrder);
+                java.util.Objects.requireNonNull(getZeze().getHotManager()).startLastModulesExcept(definedOrder);
             }
         } finally {
             unlock();
@@ -341,9 +342,9 @@ public final class App extends Zeze.AppBase {
                 Game_Rank.Stop(this);
             if (Game_Map != null)
                 Game_Map.Stop(this);
-            if (null != Zeze.getHotManager()) {
+            if (null != getZeze().getHotManager()) {
                 var definedOrder = new java.util.HashSet<String>();
-                Zeze.getHotManager().stopModulesExcept(definedOrder);
+                java.util.Objects.requireNonNull(getZeze().getHotManager()).stopModulesExcept(definedOrder);
             }
         } finally {
             unlock();
@@ -359,9 +360,9 @@ public final class App extends Zeze.AppBase {
                 Game_Rank.StopBefore();
             if (Game_Map != null)
                 Game_Map.StopBefore();
-            if (null != Zeze.getHotManager()) {
+            if (null != getZeze().getHotManager()) {
                 var definedOrder = new java.util.HashSet<String>();
-                Zeze.getHotManager().stopBeforeModulesExcept(definedOrder);
+                java.util.Objects.requireNonNull(getZeze().getHotManager()).stopBeforeModulesExcept(definedOrder);
             }
         } finally {
             unlock();
@@ -371,8 +372,8 @@ public final class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            Server.start();
-            ServerDirect.start();
+            java.util.Objects.requireNonNull(Server).start();
+            java.util.Objects.requireNonNull(ServerDirect).start();
         } finally {
             unlock();
         }

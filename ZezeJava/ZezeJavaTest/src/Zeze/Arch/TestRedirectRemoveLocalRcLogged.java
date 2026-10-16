@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +21,6 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,13 +49,13 @@ public class TestRedirectRemoveLocalRcLogged extends AppBase {
 	private static final String ACCOUNT = "redirect_rmrc_acc";
 	private static final long FAIL_RC = 7L;
 
-	private Application zeze;
-	private Online onlineModule;
-	private Logger onlineLogger;
-	private CapturingAppender appender;
+	private @Nullable Application zeze;
+	private @Nullable Online onlineModule;
+	private @Nullable Logger onlineLogger;
+	private @Nullable CapturingAppender appender;
 
 	@Override
-	public Application getZeze() {
+	public @Nullable Application getZeze() {
 		return zeze;
 	}
 
@@ -64,13 +67,13 @@ public class TestRedirectRemoveLocalRcLogged extends AppBase {
 		}
 
 		@Override
-		public void append(@NotNull LogEvent event) {
+		public void append(LogEvent event) {
 			synchronized (events) {
 				events.add(event.toImmutable());
 			}
 		}
 
-		boolean hasErrorContaining(@NotNull String fragment) {
+		boolean hasErrorContaining(String fragment) {
 			synchronized (events) {
 				return events.stream().anyMatch(e ->
 						e.getLevel() == Level.ERROR && e.getMessage().getFormattedMessage().contains(fragment));
@@ -97,7 +100,7 @@ public class TestRedirectRemoveLocalRcLogged extends AppBase {
 		onlineLogger = (Logger)LogManager.getLogger(Online.class);
 		appender = new CapturingAppender();
 		appender.start();
-		onlineLogger.addAppender(appender);
+		requireNonNull(onlineLogger).addAppender(appender);
 	}
 
 	@AfterEach
@@ -116,11 +119,11 @@ public class TestRedirectRemoveLocalRcLogged extends AppBase {
 	@Test
 	public void testFailedRedirectRemoveLocalLogged() throws Exception {
 		// 订阅者返回非0：tryRemoveLocal→removeLocalAndTrigger→localRemoveEvents失败码回传
-		onlineModule.getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, (sender, arg) -> FAIL_RC);
+		requireNonNull(onlineModule).getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, (sender, arg) -> FAIL_RC);
 
 		// 伪造local行（无online行→login==null→removeLocalAndTrigger）
-		assertEquals(Procedure.Success, zeze.newProcedure(() -> {
-			var locals = onlineModule._tlocal.getOrAdd(ACCOUNT);
+		assertEquals(Procedure.Success, requireNonNull(zeze).newProcedure(() -> {
+			var locals = requireNonNull(onlineModule)._tlocal.getOrAdd(ACCOUNT);
 			locals.getLogins().getOrAdd("cid1").setLoginVersion(1L);
 			return Procedure.Success;
 		}, "seedLocal").call());
@@ -129,9 +132,9 @@ public class TestRedirectRemoveLocalRcLogged extends AppBase {
 
 		// 正控：rc=7导致过程回滚，local行必须仍在（证明失败确实发生，error缺失才有意义）
 		assertEquals(Procedure.Success, zeze.newProcedure(() ->
-				onlineModule._tlocal.get(ACCOUNT) != null ? Procedure.Success : 1L,
+				requireNonNull(onlineModule)._tlocal.get(ACCOUNT) != null ? Procedure.Success : 1L,
 				"checkLocalRemains").call());
-		assertTrue(appender.hasErrorContaining("redirectRemoveLocal failed"),
+		assertTrue(requireNonNull(appender).hasErrorContaining("redirectRemoveLocal failed"),
 				"redirectRemoveLocal失败必须记error（返回码原先被丢弃，失败完全静默，仅能等verifyLocal周期自愈）");
 		assertTrue(appender.hasErrorContaining("rc=7"),
 				"失败error必须携带返回码");
@@ -140,8 +143,8 @@ public class TestRedirectRemoveLocalRcLogged extends AppBase {
 	/** 成功路径无失败error（兼容红线：成功行为不变）。 */
 	@Test
 	public void testSuccessfulRedirectRemoveLocalNotLoggedAsFailed() throws Exception {
-		onlineModule.redirectRemoveLocal(1, ACCOUNT + "_clean"); // 无local行→tryRemoveLocal返回0
-		assertTrue(!appender.hasErrorContaining("redirectRemoveLocal failed"),
+		requireNonNull(onlineModule).redirectRemoveLocal(1, ACCOUNT + "_clean"); // 无local行→tryRemoveLocal返回0
+		assertTrue(!requireNonNull(appender).hasErrorContaining("redirectRemoveLocal failed"),
 				"成功路径不得记失败error");
 	}
 }

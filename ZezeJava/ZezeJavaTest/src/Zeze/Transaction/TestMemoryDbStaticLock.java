@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.Test;
  * 修复后统一用静态读写锁（对齐 databaseTables 的守卫约定）。
  */
 @Fast
+@NullMarked
 public class TestMemoryDbStaticLock {
 	private static final String url = "memdb_static_lock";
 

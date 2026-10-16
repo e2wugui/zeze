@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -86,9 +90,9 @@ public class TestPendingSettleConditionalOverwrite {
 	private static final class StubMasterService extends Zeze.Net.Service {
 		final AtomicInteger endSplitRequests = new AtomicInteger();
 		final AtomicInteger endMoveRequests = new AtomicInteger();
-		volatile BBucketMeta.Data receivedSplitFrom;
-		volatile BBucketMeta.Data receivedSplitTo;
-		volatile BBucketMeta.Data receivedMoveTo;
+		volatile BBucketMeta.@Nullable Data receivedSplitFrom;
+		volatile BBucketMeta.@Nullable Data receivedSplitTo;
+		volatile BBucketMeta.@Nullable Data receivedMoveTo;
 
 		StubMasterService(int port) {
 			super("stubMasterSettleOverwrite", stubServerConfig(port));
@@ -230,7 +234,7 @@ public class TestPendingSettleConditionalOverwrite {
 	private static void waitFlag(Zeze.Dbh2.Dbh2 leader, boolean expectNull, String message)
 			throws InterruptedException {
 		var deadline = System.currentTimeMillis() + 10_000;
-		while ((leader.getStateMachine().getBucket().getPendingSettle() == null) != expectNull) {
+		while ((requireNonNull(leader.getStateMachine().getBucket()).getPendingSettle() == null) != expectNull) {
 			if (System.currentTimeMillis() > deadline)
 				Assertions.fail(message);
 			//noinspection BusyWait
@@ -242,7 +246,7 @@ public class TestPendingSettleConditionalOverwrite {
 	private static void waitDeadBucket(Zeze.Dbh2.Dbh2 leader, String message) throws InterruptedException {
 		var deadKey = new Binary(new byte[]{1});
 		var deadline = System.currentTimeMillis() + 10_000;
-		while (!(0 == deadKey.compareTo(leader.getStateMachine().getBucket().getBucketMeta().getKeyFirst())
+		while (!(0 == deadKey.compareTo(requireNonNull(requireNonNull(leader.getStateMachine().getBucket()).getBucketMeta()).getKeyFirst())
 				&& 0 == deadKey.compareTo(leader.getStateMachine().getBucket().getBucketMeta().getKeyLast()))) {
 			if (System.currentTimeMillis() > deadline)
 				Assertions.fail(message);
@@ -287,7 +291,7 @@ public class TestPendingSettleConditionalOverwrite {
 
 			// 核心断言（红点）：标志必须仍是旧split的（from非null且to=[5,8)@T1），
 			// bug时被覆写为move形态（from=null且to=[2,8)@T2）。
-			var flag = leader.getStateMachine().getBucket().getPendingSettle();
+			var flag = requireNonNull(leader.getStateMachine().getBucket()).getPendingSettle();
 			Assertions.assertNotNull(flag, "move apply后标志必须存在（旧split的未清标志）");
 			Assertions.assertNotNull(flag.getFrom(),
 					"未清的split标志不得被move覆写（bug：单槽无条件覆盖灭失旧迁移的补发源）");
@@ -304,9 +308,9 @@ public class TestPendingSettleConditionalOverwrite {
 					"补发的必须是未清的旧split标志（EndSplit）");
 			Assertions.assertEquals(0, server.endMoveRequests.get(),
 					"被跳过落标志的move不得占用补发（bug：覆写后补发EndMove，旧split永不结算）");
-			Assertions.assertEquals(0, key(2).compareTo(server.receivedSplitFrom.getKeyFirst()),
+			Assertions.assertEquals(0, key(2).compareTo(requireNonNull(server.receivedSplitFrom).getKeyFirst()),
 					"补发的EndSplit.from=F");
-			Assertions.assertEquals(0, key(5).compareTo(server.receivedSplitTo.getKeyFirst()),
+			Assertions.assertEquals(0, key(5).compareTo(requireNonNull(server.receivedSplitTo).getKeyFirst()),
 					"补发的EndSplit.to.keyFirst=M");
 
 			// 桩回0=终局：onSettled追加LogClearPendingSettle，apply清标志，收敛闭环。
@@ -357,8 +361,8 @@ public class TestPendingSettleConditionalOverwrite {
 			leader.getRaft().appendLog(new LogEndSplit(
 					metaOf(key(2), key(3), ""), metaOf(key(3), key(5), TARGET_RAFT_CONFIG)));
 			waitFlag(leader, false, "槽位清空后新迁移的标志必须照常落下（条件覆写不得永久闭锁）");
-			var flag = leader.getStateMachine().getBucket().getPendingSettle();
-			Assertions.assertNotNull(flag.getFrom(), "新split标志的from必须非null");
+			var flag = requireNonNull(leader.getStateMachine().getBucket()).getPendingSettle();
+			Assertions.assertNotNull(requireNonNull(flag).getFrom(), "新split标志的from必须非null");
 			Assertions.assertEquals(0, key(3).compareTo(flag.getTo().getKeyFirst()), "新split标志的to必须是split2的");
 			invokeRecoverSplitting(leader);
 			waitAnyRequest(server.endSplitRequests, server.endMoveRequests, 2, "split2补发必须到达");

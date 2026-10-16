@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import Zeze.Builtin.HttpSession.BSessionValue;
+
 import harness.Fast;
 import harness.FastServerIds;
 import java.util.List;
@@ -14,8 +16,7 @@ import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -72,7 +73,7 @@ public class TestHttpSessionFixation {
 			app.stop();
 		}
 
-		@Nullable Zeze.Builtin.HttpSession.BSessionValue getRow(String id) {
+		@Nullable BSessionValue getRow(String id) {
 			var row = new OutObject<Zeze.Builtin.HttpSession.BSessionValue>();
 			var rc = app.newProcedure(() -> {
 				row.value = httpSession.tSession().get(id);
@@ -85,6 +86,7 @@ public class TestHttpSessionFixation {
 
 	/** 直填request携带Cookie的HttpExchange（无服务器构造，仅供getCookieSession读写）。 */
 	private static final class TestExchange extends HttpExchange {
+		@SuppressWarnings("DataFlowIssue") // Cookie 内存测试不派发请求，不使用 channel context。
 		TestExchange(@Nullable String cookie) {
 			super(new HttpServer(), null);
 			var req = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/session_fixation");

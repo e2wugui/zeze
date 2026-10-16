@@ -1,6 +1,7 @@
 package Zezex;
-import org.junit.jupiter.api.Test;
 
+import java.util.Objects;
+import org.junit.jupiter.api.Test;
 import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
@@ -34,9 +35,9 @@ public class TestOnline {
 	private void areYouFight() throws Exception {
 		while (true) {
 			for (var server : env.servers) {
-				var service = server.Zeze.getHotManager()
-						.getModuleContext("Game.Fight", Zeze.Hot.HotService.class).getService();
-				var isDone = service.getClass().getMethod("isAreYouFightDone");
+				var service = Objects.requireNonNull(Objects.requireNonNull(server.getZeze().getHotManager())
+						.getModuleContext("Game.Fight", Zeze.Hot.HotService.class)).getService();
+				var isDone = Objects.requireNonNull(service).getClass().getMethod("isAreYouFightDone");
 				if ((boolean)isDone.invoke(service))
 					return;
 			}
@@ -58,7 +59,7 @@ public class TestOnline {
 			// testcase first;
 			logger.info("=== test3 - 1");
 			var client0 = env.clients.getFirst();
-			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			ZezexTestEnv.auth(Objects.requireNonNull(client0.onLinkConnectedFuture).get(), client0, "account0");
 			var role = ZezexTestEnv.getRole(client0);
 			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role0");
 			ZezexTestEnv.login(client0, roleId);
@@ -74,7 +75,7 @@ public class TestOnline {
 			// testcase kick
 			logger.info("=== test3 - 3");
 			var client1 = env.clients.get(1);
-			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
+			ZezexTestEnv.auth(Objects.requireNonNull(client1.onLinkConnectedFuture).get(), client1, "account0");
 			ZezexTestEnv.login(client1, roleId);
 
 			// logout client1: client0 被踢了
@@ -92,7 +93,7 @@ public class TestOnline {
 	private static void relogin(ClientGame.App app, long roleId) {
 		var relogin = new ReLogin();
 		relogin.Argument.setRoleId(roleId);
-		relogin.SendForWait(app.ClientService.GetSocket(), 30_000).await();
+		relogin.SendForWait(Objects.requireNonNull(app.ClientService).GetSocket(), 30_000).await();
 		Assertions.assertEquals(0, relogin.getResultCode());
 	}
 

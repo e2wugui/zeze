@@ -1,5 +1,9 @@
 package Zeze.History;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +20,6 @@ import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -75,13 +78,13 @@ public class TestListDynamicFamilyWarn {
 		}
 
 		@Override
-		public void append(@NotNull LogEvent event) {
+		public void append(LogEvent event) {
 			synchronized (events) {
 				events.add(event.toImmutable());
 			}
 		}
 
-		boolean hasWarnContaining(@NotNull String fragment) {
+		boolean hasWarnContaining(String fragment) {
 			synchronized (events) {
 				return events.stream().anyMatch(e ->
 						e.getLevel() == Level.WARN && e.getMessage().getFormattedMessage().contains(fragment));
@@ -89,8 +92,8 @@ public class TestListDynamicFamilyWarn {
 		}
 	}
 
-	private Logger helperLogger;
-	private CapturingAppender appender;
+	private @Nullable Logger helperLogger;
+	private @Nullable CapturingAppender appender;
 	private Level prevLevel;
 
 	@BeforeEach
@@ -138,7 +141,7 @@ public class TestListDynamicFamilyWarn {
 		assertEquals(1, result.list2Dynamic.size(), "全部dynamic list家族同typeId（固定单值），只保留先注册家族");
 		var kept = result.list2Dynamic.values().iterator().next();
 		assertEquals(HostA.class.getName() + "#members", kept.where, "保留的是先注册家族");
-		assertTrue(appender.hasWarnContaining("keep=" + HostA.class.getName() + "#members"
+		assertTrue(requireNonNull(appender).hasWarnContaining("keep=" + HostA.class.getName() + "#members"
 						+ " drop=" + HostB.class.getName() + "#steps"),
 				"第二个dynamic list家族必须warn留痕（含两个宿主与变量名）——修复前零信号");
 	}
@@ -151,7 +154,7 @@ public class TestListDynamicFamilyWarn {
 		Helper.dependsList(HostA.class, var("members"), "dynamic", result);
 
 		assertEquals(1, result.list2Dynamic.size());
-		assertFalse(appender.hasWarnContaining("drop=" + HostA.class.getName() + "#members"),
+		assertFalse(requireNonNull(appender).hasWarnContaining("drop=" + HostA.class.getName() + "#members"),
 				"相同工厂的重复登记不得误报");
 	}
 }

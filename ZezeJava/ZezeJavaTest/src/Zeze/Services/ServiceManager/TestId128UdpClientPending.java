@@ -1,5 +1,7 @@
 package Zeze.Services.ServiceManager;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,7 +28,7 @@ public class TestId128UdpClientPending {
 		client.stop(); // 关闭udp socket；worker未start，join立即返回
 
 		var future = client.allocateFuture("udpPendingGlobal", 128);
-		assertTrue(future.isCompletedExceptionally(), "发送失败必须异常完成future");
+		assertTrue(requireNonNull(future).isCompletedExceptionally(), "发送失败必须异常完成future");
 
 		var pendingField = Id128UdpClient.FutureNode.class.getDeclaredField("pending");
 		pendingField.setAccessible(true);

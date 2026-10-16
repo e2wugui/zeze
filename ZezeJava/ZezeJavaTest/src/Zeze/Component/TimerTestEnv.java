@@ -1,5 +1,9 @@
 package Zeze.Component;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -15,7 +19,7 @@ final class TimerTestEnv implements AutoCloseable {
 	final Application app;
 	final Timer timer;
 	final TakeoverTestEnv.TestAppBase appBase;
-	final TestOnline online;
+	final @Nullable TestOnline online;
 
 	TimerTestEnv(String name) throws Exception {
 		this(name, false);
@@ -30,8 +34,8 @@ final class TimerTestEnv implements AutoCloseable {
 		app.initialize(appBase);
 		online = withOnline ? new TestOnline(appBase) : null;
 		app.start();
-		timer = app.getTimer();
-		timer.start();
+		timer = java.util.Objects.requireNonNull(app.getTimer());
+		requireNonNull(timer).start();
 	}
 
 	void transaction(FuncLong action) {

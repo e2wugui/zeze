@@ -1,5 +1,9 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +57,7 @@ public class TestSocketDisposedFailsInflightRpc {
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
 				rpc -> {
 					if (kickCount.incrementAndGet() >= 2)
-						rpc.getSender().close(); // 模拟kick：两个请求都在途后不给应答直接断
+						requireNonNull(rpc.getSender()).close(); // 模拟kick：两个请求都在途后不给应答直接断
 					return 0L;
 				}, TransactionLevel.None, DispatchMode.Direct));
 		var client = new Service("DisposeVictimClient", new Config());
@@ -88,7 +92,7 @@ public class TestSocketDisposedFailsInflightRpc {
 			var future = waitRpc.SendForWait(connected, 30_000);
 			// handle形态：Send(handle)，回调被派发即置latch。
 			var handleInvoked = new CountDownLatch(1);
-			var handleResultCode = new AtomicReference<Long>();
+			var handleResultCode = new AtomicReference<@Nullable Long>();
 			var handleRpc = new KeepAlive();
 			Assertions.assertTrue(handleRpc.Send(connected, (ProtocolHandle<Rpc<EmptyBean, EmptyBean>>)rpc -> {
 				handleResultCode.set(rpc.getResultCode());
@@ -109,7 +113,7 @@ public class TestSocketDisposedFailsInflightRpc {
 
 			// future形态：异常类型可诊断（区别于超时），resultCode同步置ErrorSendFail。
 			Assertions.assertTrue(future.isCompletedExceptionally(), "future必须以异常完成");
-			var cause = new AtomicReference<Throwable>();
+			var cause = new AtomicReference<@Nullable Throwable>();
 			try {
 				future.get(1, TimeUnit.SECONDS);
 			} catch (Exception e) {
@@ -120,7 +124,7 @@ public class TestSocketDisposedFailsInflightRpc {
 			Assertions.assertEquals(Procedure.ErrorSendFail, waitRpc.getResultCode());
 			// handle形态：立即派发且带ErrorSendFail。
 			Assertions.assertTrue(handleInvoked.await(5, TimeUnit.SECONDS), "handle必须被立即派发");
-			Assertions.assertEquals(Procedure.ErrorSendFail, (long)handleResultCode.get());
+			Assertions.assertEquals(Procedure.ErrorSendFail, (long)requireNonNull(handleResultCode.get()));
 		} finally {
 			try {
 				client.stop();

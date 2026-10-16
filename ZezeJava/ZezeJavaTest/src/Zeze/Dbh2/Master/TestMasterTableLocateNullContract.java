@@ -1,5 +1,7 @@
 package Zeze.Dbh2.Master;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -47,8 +49,8 @@ public class TestMasterTableLocateNullContract {
 		var data = new MasterTable.Data();
 		data.getBuckets().put(key("m"), meta("m", "raft-1"));
 		assertNull(data.locate(key("a")), "小于首桶first的越界键返回null（修复前NPE）");
-		assertEquals("raft-1", data.locate(key("m")).getRaftConfig(), "命中首桶first");
-		assertEquals("raft-1", data.locate(key("z")).getRaftConfig(), "大于全部桶first命中末桶");
+		assertEquals("raft-1", requireNonNull(data.locate(key("m"))).getRaftConfig(), "命中首桶first");
+		assertEquals("raft-1", requireNonNull(data.locate(key("z"))).getRaftConfig(), "大于全部桶first命中末桶");
 	}
 
 	@Test

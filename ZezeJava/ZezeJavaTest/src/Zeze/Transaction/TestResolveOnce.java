@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import harness.Fast;
@@ -23,7 +27,7 @@ import Zeze.Util.FuncLong;
 public class TestResolveOnce {
 	private static final Object OWNER = new Object();
 
-	private static Application app;
+	private static @Nullable Application app;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -41,9 +45,9 @@ public class TestResolveOnce {
 	public final void testResolvedOnceAcrossRedoRetries() {
 		var calls = new AtomicInteger();
 		var resolves = new AtomicInteger();
-		var result = new Procedure(app, (FuncLong)() -> {
+		var result = new Procedure(requireNonNull(app), (FuncLong)() -> {
 			calls.incrementAndGet();
-			var v = Transaction.getCurrent().resolveOnce(OWNER, 1, k -> {
+			var v = requireNonNull(Transaction.getCurrent()).resolveOnce(OWNER, 1, k -> {
 				resolves.incrementAndGet();
 				return "ctx-" + k;
 			});
@@ -62,9 +66,9 @@ public class TestResolveOnce {
 	public final void testResolvedOnceAcrossTooManyTry() {
 		var calls = new AtomicInteger();
 		var resolves = new AtomicInteger();
-		var result = new Procedure(app, (FuncLong)() -> {
+		var result = new Procedure(requireNonNull(app), (FuncLong)() -> {
 			calls.incrementAndGet();
-			Transaction.getCurrent().resolveOnce(OWNER, 2, k -> {
+			requireNonNull(Transaction.getCurrent()).resolveOnce(OWNER, 2, k -> {
 				resolves.incrementAndGet();
 				return "ctx";
 			});
@@ -82,9 +86,9 @@ public class TestResolveOnce {
 	public final void testNullVerdictCached() {
 		var calls = new AtomicInteger();
 		var resolves = new AtomicInteger();
-		var result = new Procedure(app, (FuncLong)() -> {
+		var result = new Procedure(requireNonNull(app), (FuncLong)() -> {
 			calls.incrementAndGet();
-			var v = Transaction.getCurrent().resolveOnce(OWNER, 3, k -> {
+			var v = requireNonNull(Transaction.getCurrent()).resolveOnce(OWNER, 3, k -> {
 				resolves.incrementAndGet();
 				return null;
 			});
@@ -103,14 +107,14 @@ public class TestResolveOnce {
 	public final void testCacheNotCarriedOverToNextPerform() {
 		var resolves = new AtomicInteger();
 		var action = (FuncLong)() -> {
-			var v = Transaction.getCurrent().resolveOnce(OWNER, 4, k -> {
+			var v = requireNonNull(Transaction.getCurrent()).resolveOnce(OWNER, 4, k -> {
 				resolves.incrementAndGet();
 				return "ctx";
 			});
 			Assertions.assertEquals("ctx", v);
 			return Procedure.Success;
 		};
-		new Procedure(app, action, "TestResolveOnce.First", null).call();
+		new Procedure(requireNonNull(app), action, "TestResolveOnce.First", null).call();
 		new Procedure(app, action, "TestResolveOnce.Second", null).call();
 
 		// 同线程复用 Transaction 对象（ThreadLocal），缓存不跨事务泄漏
@@ -124,8 +128,8 @@ public class TestResolveOnce {
 		var ownerA = new Object();
 		var ownerB = new Object();
 		var resolves = new AtomicInteger();
-		var result = new Procedure(app, (FuncLong)() -> {
-			var va = Transaction.getCurrent().resolveOnce(ownerA, 5, k -> {
+		var result = new Procedure(requireNonNull(app), (FuncLong)() -> {
+			var va = requireNonNull(Transaction.getCurrent()).resolveOnce(ownerA, 5, k -> {
 				resolves.incrementAndGet();
 				return "A";
 			});

@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -42,7 +46,7 @@ public class TestOnzReadyWaitTimeout {
 	private static final String ProcName = "kuafuReadyWait";
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -58,28 +62,28 @@ public class TestOnzReadyWaitTimeout {
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().register(ProcName, TestOnzReadyWaitTimeout::kuaFu, BKuafu.class, BKuafuResult.class);
-		zeze2.Zeze.getOnz().register(ProcName, TestOnzReadyWaitTimeout::kuaFu, BKuafu.class, BKuafuResult.class);
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).register(ProcName, TestOnzReadyWaitTimeout::kuaFu, BKuafu.class, BKuafuResult.class);
+		requireNonNull(requireNonNull(zeze2.Zeze).getOnz()).register(ProcName, TestOnzReadyWaitTimeout::kuaFu, BKuafu.class, BKuafuResult.class);
 
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		// before() 被 Assumption 跳过时 onzServer 尚未创建；stop幂等
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
 	private static long kuaFu(OnzProcedure onzProcedure, BKuafu argument, BKuafuResult result) {
-		var app = (App)onzProcedure.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(onzProcedure.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -107,10 +111,10 @@ public class TestOnzReadyWaitTimeout {
 	public void testParticipantSelfHealsOnCoordinatorCrash() throws Exception {
 		waitOnzReady();
 		var txn = new CrashCoordinatorTransaction();
-		txn.setOnzServer(onzServer);
+		txn.setOnzServer(requireNonNull(onzServer));
 		txn.setFlushTimeout(2_000);
 		var performRc = new long[1];
-		var coordinator = new Thread(() -> performRc[0] = onzServer.perform(txn));
+		var coordinator = new Thread(() -> performRc[0] = requireNonNull(onzServer).perform(txn));
 		coordinator.setDaemon(true);
 		coordinator.start();
 		try {
@@ -118,11 +122,11 @@ public class TestOnzReadyWaitTimeout {
 
 			// 探测：对同一行键的新事务必须能获得锁（参与方超时自愈、行锁释放后）。
 			var probeDone = new CountDownLatch(1);
-			var probeError = new AtomicReference<Throwable>();
+			var probeError = new AtomicReference<@Nullable Throwable>();
 			var probe = new Thread(() -> {
 				try {
-					App.Instance.Zeze.newProcedure(() -> {
-						var account = App.Instance.demo_Module1.getKuafu().getOrAdd(200L);
+					requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+						var account = requireNonNull(App.Instance.demo_Module1).getKuafu().getOrAdd(200L);
 						account.setMoney(account.getMoney() + 1);
 						return 0;
 					}, "TestOnzReadyWaitTimeout.probe").call();
@@ -152,8 +156,8 @@ public class TestOnzReadyWaitTimeout {
 
 	private static long getMoney() throws Exception {
 		var holder = new long[1];
-		App.Instance.Zeze.newProcedure(() -> {
-			holder[0] = App.Instance.demo_Module1.getKuafu().getOrAdd(200L).getMoney();
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			holder[0] = requireNonNull(App.Instance.demo_Module1).getKuafu().getOrAdd(200L).getMoney();
 			return 0;
 		}, "TestOnzReadyWaitTimeout.getMoney").call();
 		return holder[0];
@@ -174,8 +178,8 @@ public class TestOnzReadyWaitTimeout {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)

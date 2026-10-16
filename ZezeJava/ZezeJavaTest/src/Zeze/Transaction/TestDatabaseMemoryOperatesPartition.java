@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseMemory;
@@ -22,6 +26,7 @@ import org.junit.jupiter.api.Test;
  */
 @Isolated
 @Fast
+@NullMarked
 public class TestDatabaseMemoryOperatesPartition {
 	private static DatabaseMemory newMemoryDb(String url) {
 		var conf = new Config.DatabaseConf();
@@ -65,8 +70,8 @@ public class TestDatabaseMemoryOperatesPartition {
 			Assertions.assertNotNull(dvB);
 			Assertions.assertEquals(1, dvA.version);
 			Assertions.assertEquals(0, dvB.version);
-			Assertions.assertEquals("a2", dvA.data.ReadString());
-			Assertions.assertEquals("b1", dvB.data.ReadString());
+			Assertions.assertEquals("a2", requireNonNull(dvA.data).ReadString());
+			Assertions.assertEquals("b1", requireNonNull(dvB.data).ReadString());
 		} finally {
 			dbA.close();
 			dbB.close();

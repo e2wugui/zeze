@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -15,6 +19,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@NullMarked
 public class TestLostRedo {
 	@BeforeEach
 	public void before() throws Exception {
@@ -30,7 +35,7 @@ public class TestLostRedo {
 
 	@Test
 	public void test() throws ExecutionException, InterruptedException {
-		App.Instance.Zeze.newProcedure(TestLostRedo::clear, "clear").call();
+		requireNonNull(App.Instance.Zeze).newProcedure(TestLostRedo::clear, "clear").call();
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 1_0000; ++i) {
 			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::write, "write")).submitNow());
@@ -51,7 +56,7 @@ public class TestLostRedo {
 	}
 
 	private static long verify(long key) {
-		var v1 = App.Instance.demo_Module1.getTable1().get(key);
+		var v1 = requireNonNull(App.Instance.demo_Module1).getTable1().get(key);
 		if (null != v1) {
 			for (var lkey : v1.getLongList())
 				Assertions.assertNotEquals(null, App.Instance.demo_Module1.getTable3().get(lkey));
@@ -60,10 +65,10 @@ public class TestLostRedo {
 	}
 
 	private long write() {
-		var key = App.Instance.Zeze.getAutoKey("lostredo.autokey").nextId();
+		var key = requireNonNull(App.Instance.Zeze).getAutoKey("lostredo.autokey").nextId();
 		var mkey = key % 1000;
 		keys.add(mkey);
-		App.Instance.demo_Module1.getTable1().getOrAdd(mkey).getLongList().add(key);
+		requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(mkey).getLongList().add(key);
 		App.Instance.demo_Module1.getTable3().insert(key, new BValue());
 		return 0;
 	}
@@ -73,7 +78,7 @@ public class TestLostRedo {
 		runTimes.set(0);
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 1_0000; ++i) {
-			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")).submitNow());
+			futures.add(TaskSpec.ofProcedure(requireNonNull(App.Instance.Zeze).newProcedure(this::autoKeyConflict, "write")).submitNow());
 			if ((i+1) % 200 == 0) {
 				for (var future : futures)
 					future.get();
@@ -90,7 +95,7 @@ public class TestLostRedo {
 
 	private long autoKeyConflict() {
 		runTimes.incrementAndGet();
-		var key = App.Instance.Zeze.getAutoKey("conflict.autokey").nextId();
+		var key = requireNonNull(App.Instance.Zeze).getAutoKey("conflict.autokey").nextId();
 		Transaction.whileCommit(() -> Assertions.assertNull(autos.putIfAbsent(key, key)));
 		return 0;
 	}
@@ -100,11 +105,11 @@ public class TestLostRedo {
 		runTimes.set(0);
 
 		var keys = new ArrayList<Long>();
-		App.Instance.Zeze.checkpointRun();
-		App.Instance.demo_Module1.getTable1().walk((key, value) -> keys.add(key));
+		requireNonNull(App.Instance.Zeze).checkpointRun();
+		requireNonNull(App.Instance.demo_Module1).getTable1().walk((key, value) -> keys.add(key));
 		App.Instance.Zeze.newProcedure(() -> {
 			for (var key : keys)
-				App.Instance.demo_Module1.getTable1().remove(key);
+				requireNonNull(App.Instance.demo_Module1).getTable1().remove(key);
 			return 0;
 		}, "clear").call();
 
@@ -129,8 +134,8 @@ public class TestLostRedo {
 
 	private long autoKeyWithInsert() {
 		runTimes.incrementAndGet();
-		var key = App.Instance.Zeze.getAutoKey("insert.autokey").nextId();
-		App.Instance.demo_Module1.getTable1().insert(key, new BValue());
+		var key = requireNonNull(App.Instance.Zeze).getAutoKey("insert.autokey").nextId();
+		requireNonNull(App.Instance.demo_Module1).getTable1().insert(key, new BValue());
 		Transaction.whileCommit(insertOks::incrementAndGet);
 		return 0;
 	}

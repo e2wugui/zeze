@@ -1,5 +1,11 @@
 package Zeze.Onz;
 
+import java.util.function.IntSupplier;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import Zeze.Builtin.Onz.BSavedCommits;
@@ -37,11 +43,11 @@ final class GcOnzFastSupport {
 		final ServiceManagerServer sm;
 		final OnzServer onzServer;
 		/** GC-C03专用：向SM注册"Onz"服务的桩参与方代理（null=无桩）。 */
-		final Agent registerAgent;
+		final @Nullable Agent registerAgent;
 		/** GC-C03专用：应答Commit的桩参与方服务（null=无桩）。 */
-		final Service stubService;
+		final @Nullable Service stubService;
 
-		FastFixture(ServiceManagerServer sm, OnzServer onzServer, Agent registerAgent, Service stubService) {
+		FastFixture(ServiceManagerServer sm, OnzServer onzServer, @Nullable Agent registerAgent, @Nullable Service stubService) {
 			this.sm = sm;
 			this.onzServer = onzServer;
 			this.registerAgent = registerAgent;
@@ -81,7 +87,7 @@ final class GcOnzFastSupport {
 	 * （非0→框架回发该结果码；0→显式SendResult）。
 	 */
 	static FastFixture startOnzServer(int serverId, int smPort, Path tempDir,
-									  int stubPort, java.util.function.IntSupplier stubCommitRc) throws Exception {
+									  int stubPort, @Nullable IntSupplier stubCommitRc) throws Exception {
 		Task.tryInitThreadPool();
 		Files.createDirectories(Path.of("autokeys"));
 		GcOnzE2eTestSupport.deleteRecursively(Path.of("CommitOnzServer" + serverId));
@@ -97,7 +103,7 @@ final class GcOnzFastSupport {
 				stubService = new Service("GcStubParticipant", new Config());
 				stubService.AddFactoryHandle(Zeze.Builtin.Onz.Commit.TypeId_,
 						new Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Commit::new, r -> {
-							var rc = stubCommitRc.getAsInt();
+							var rc = requireNonNull(stubCommitRc).getAsInt();
 							if (rc == 0)
 								r.SendResult(); // 框架仅在非0时回发错误码（TaskSpec契约），0需显式应答
 							return rc;
@@ -143,7 +149,7 @@ final class GcOnzFastSupport {
 	}
 
 	/** 手写孤儿决策两表（协调者崩溃残留形态）；onzs为参与方列表（空=redo无网络即收敛删除）。 */
-	static void writeOrphanRecords(OnzServer onzServer, long tid, int state, String onzs) throws Exception {
+	static void writeOrphanRecords(OnzServer onzServer, long tid, int state, @Nullable String onzs) throws Exception {
 		var key = keyOf(tid);
 		var saved = new BSavedCommits.Data();
 		if (onzs != null)

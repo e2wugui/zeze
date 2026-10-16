@@ -1,5 +1,6 @@
 package demo;
 
+import java.util.Objects;
 import java.io.File;
 import Benchmark.ABasicSimpleAddOneThread;
 import Zeze.Application;
@@ -22,7 +23,7 @@ import Zeze.Services.Daemon;
 import Zeze.Services.RocketMQ.Producer;
 import Zeze.Util.ShutdownHook;
 import org.apache.rocketmq.client.ClientConfig;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class App extends Zeze.AppBase {
 
@@ -36,9 +37,9 @@ public class App extends Zeze.AppBase {
 			while (true) {
 				//noinspection BusyWait
 				Thread.sleep(1000);
-				var result = Instance.Zeze.newProcedure(() ->
+				var result = Instance.getZeze().newProcedure(() ->
 				{
-					Instance.demo_Module1.getTable1().get(1L);
+					Objects.requireNonNull(Instance.demo_Module1).getTable1().get(1L);
 					return 0L;
 				}, "Global Access").call();
 				++i;
@@ -55,15 +56,15 @@ public class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	public BoolList.Module BoolListModule;
-	public LinkedMap.Module LinkedMapModule;
-	public Bag.Module BagModule;
-	public Producer RocketMQProducer;
-	public HttpServer HttpServer;
+	public BoolList.@Nullable Module BoolListModule;
+	public LinkedMap.@Nullable Module LinkedMapModule;
+	public Bag.@Nullable Module BagModule;
+	public @Nullable Producer RocketMQProducer;
+	public @Nullable HttpServer HttpServer;
 
 	@Override
 	public HttpServer getHttpServer() {
-		return HttpServer;
+		return Objects.requireNonNull(HttpServer);
 	}
 
 	public static class MyHttpServer extends HttpServer {
@@ -92,7 +93,7 @@ public class App extends Zeze.AppBase {
 		Start(Config.load("./zeze.xml"));
 	}
 
-	private static void adjustTableConf(Config.TableConf conf) {
+	private static void adjustTableConf(Config.@Nullable TableConf conf) {
 		if (null != conf) {
 			if (conf.getRealCacheCapacity() < ABasicSimpleAddOneThread.AddCount) {
 				conf.setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
@@ -101,7 +102,7 @@ public class App extends Zeze.AppBase {
 		}
 	}
 
-	public ProviderApp providerApp;
+	public @Nullable ProviderApp providerApp;
 	private boolean started = false;
 
 	public void Start(Config config) throws Exception {
@@ -117,21 +118,21 @@ public class App extends Zeze.AppBase {
 		createZeze(config);
 		createService();
 		var provider = new ProviderWithOnline();
-		providerApp = new ProviderApp(Zeze, provider,
-				new ProviderService("Server", Zeze), "DemoApp#", new ProviderDirectWithTransmit(),
-				new ProviderDirectService("ServerDirect", Zeze), "DemoLinkd", new LoadConfig());
+		providerApp = new ProviderApp(getZeze(), provider,
+				new ProviderService("Server", getZeze()), "DemoApp#", new ProviderDirectWithTransmit(),
+				new ProviderDirectService("ServerDirect", getZeze()), "DemoLinkd", new LoadConfig());
 		provider.create(this);
-		HttpServer = new MyHttpServer(Zeze);
+		HttpServer = new MyHttpServer(getZeze());
 		createModules();
 		HttpServer.enableHttpSession(); // 点亮 Netty.HttpSession Cookie 会话（含表注册）；需在 initialize 之后、start 之前
-		LinkedMapModule = new LinkedMap.Module(Zeze);
-		BoolListModule = new BoolList.Module(Zeze);
+		LinkedMapModule = new LinkedMap.Module(getZeze());
+		BoolListModule = new BoolList.Module(getZeze());
 		BagModule = new Bag.Module(providerApp, null);
-		RocketMQProducer = new Producer(Zeze, "testRocketMQ", new ClientConfig());
-		Zeze.start(); // 启动数据库
+		RocketMQProducer = new Producer(getZeze(), "testRocketMQ", new ClientConfig());
+		getZeze().start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的
 		HttpServer.start(netty, 10000);
-		Zeze.endStart();
+		getZeze().endStart();
 		startService(); // 启动网络
 
 		providerApp.startLast(ProviderModuleBinds.load(""), modules);
@@ -144,11 +145,11 @@ public class App extends Zeze.AppBase {
 		started = false;
 		ShutdownHook.remove(this);
 		stopService(); // 关闭网络
-		HttpServer.close();
+		Objects.requireNonNull(HttpServer).close();
 		stopModules(); // 关闭模块，卸载配置什么的。
-		providerApp.providerImplement.stop();
+		Objects.requireNonNull(Objects.requireNonNull(providerApp).providerImplement).stop();
 		if (Zeze != null) {
-			Zeze.stop(); // 关闭数据库
+			getZeze().stop(); // 关闭数据库
 			if (null != BoolListModule) {
 				BoolListModule.UnRegister();
 				BoolListModule = null;
@@ -172,22 +173,22 @@ public class App extends Zeze.AppBase {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public demo.TestServer TestServer;
+    public demo.@org.jspecify.annotations.Nullable TestServer TestServer;
 
-    public demo.Game.ModuleGame demo_Game;
-    public demo.web.ModuleWeb demo_web;
-    public demo.Module1.ModuleModule1 demo_Module1;
-    public demo.Module1.Module11.ModuleModule11 demo_Module1_Module11;
-    public demo.M6.ModuleM6 demo_M6;
-    public demo.M6.M7.ModuleM7 demo_M6_M7;
-    public TaskTest.TaskExt.ModuleTaskExt TaskTest_TaskExt;
-    public demo.ModuleGTable.ModuleModuleGTable demo_ModuleGTable;
+    public demo.Game.@org.jspecify.annotations.Nullable ModuleGame demo_Game;
+    public demo.web.@org.jspecify.annotations.Nullable ModuleWeb demo_web;
+    public demo.Module1.@org.jspecify.annotations.Nullable ModuleModule1 demo_Module1;
+    public demo.Module1.Module11.@org.jspecify.annotations.Nullable ModuleModule11 demo_Module1_Module11;
+    public demo.M6.@org.jspecify.annotations.Nullable ModuleM6 demo_M6;
+    public demo.M6.M7.@org.jspecify.annotations.Nullable ModuleM7 demo_M6_M7;
+    public TaskTest.TaskExt.@org.jspecify.annotations.Nullable ModuleTaskExt TaskTest_TaskExt;
+    public demo.ModuleGTable.@org.jspecify.annotations.Nullable ModuleModuleGTable demo_ModuleGTable;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -195,7 +196,7 @@ public class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -211,7 +212,7 @@ public class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            TestServer = new demo.TestServer(Zeze);
+            TestServer = new demo.TestServer(getZeze());
         } finally {
             unlock();
         }
@@ -234,7 +235,7 @@ public class App extends Zeze.AppBase {
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.initialize(this);
+            getZeze().initialize(this);
             var _modules_ = createRedirectModules(redirectModuleClasses());
 
             demo_Game = (demo.Game.ModuleGame)_modules_[0];
@@ -277,7 +278,7 @@ public class App extends Zeze.AppBase {
             if (modules.put(demo_ModuleGTable.getFullName(), demo_ModuleGTable) != null)
                 throw new IllegalStateException("duplicate module name: demo_ModuleGTable");
 
-            Zeze.setSchemas(new demo.Schemas());
+            getZeze().setSchemas(new demo.Schemas());
         } finally {
             unlock();
         }
@@ -321,14 +322,14 @@ public class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            demo_Game.Start(this);
-            demo_web.Start(this);
-            demo_Module1.Start(this);
-            demo_Module1_Module11.Start(this);
-            demo_M6.Start(this);
-            demo_M6_M7.Start(this);
-            TaskTest_TaskExt.Start(this);
-            demo_ModuleGTable.Start(this);
+            java.util.Objects.requireNonNull(demo_Game).Start(this);
+            java.util.Objects.requireNonNull(demo_web).Start(this);
+            java.util.Objects.requireNonNull(demo_Module1).Start(this);
+            java.util.Objects.requireNonNull(demo_Module1_Module11).Start(this);
+            java.util.Objects.requireNonNull(demo_M6).Start(this);
+            java.util.Objects.requireNonNull(demo_M6_M7).Start(this);
+            java.util.Objects.requireNonNull(TaskTest_TaskExt).Start(this);
+            java.util.Objects.requireNonNull(demo_ModuleGTable).Start(this);
         } finally {
             unlock();
         }
@@ -338,14 +339,14 @@ public class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            demo_Game.StartLast();
-            demo_web.StartLast();
-            demo_Module1.StartLast();
-            demo_Module1_Module11.StartLast();
-            demo_M6.StartLast();
-            demo_M6_M7.StartLast();
-            TaskTest_TaskExt.StartLast();
-            demo_ModuleGTable.StartLast();
+            java.util.Objects.requireNonNull(demo_Game).StartLast();
+            java.util.Objects.requireNonNull(demo_web).StartLast();
+            java.util.Objects.requireNonNull(demo_Module1).StartLast();
+            java.util.Objects.requireNonNull(demo_Module1_Module11).StartLast();
+            java.util.Objects.requireNonNull(demo_M6).StartLast();
+            java.util.Objects.requireNonNull(demo_M6_M7).StartLast();
+            java.util.Objects.requireNonNull(TaskTest_TaskExt).StartLast();
+            java.util.Objects.requireNonNull(demo_ModuleGTable).StartLast();
         } finally {
             unlock();
         }
@@ -406,7 +407,7 @@ public class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            TestServer.start();
+            java.util.Objects.requireNonNull(TestServer).start();
         } finally {
             unlock();
         }

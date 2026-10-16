@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 
@@ -36,7 +40,7 @@ public class TestGTable2Dynamic {
 
 	private static final long TYPE_MYBEAN = 101L;
 	private static final ToLongFunction<Bean> GET = b -> TYPE_MYBEAN;
-	private static final LongFunction<Bean> CREATE = id -> id == TYPE_MYBEAN ? new MDynBean() : null;
+	private static final LongFunction<@Nullable Bean> CREATE = id -> id == TYPE_MYBEAN ? new MDynBean() : null;
 
 	/** 纯字段bean（无事务逻辑，未管理环境直接读写）。 */
 	public static final class MDynBean extends Bean {
@@ -102,7 +106,7 @@ public class TestGTable2Dynamic {
 
 		var json = Json.toCompactString(h);
 		var parsed = (HDyn)Json.parse(json, new HDyn());
-		var v = parsed.g.get("r1", 2L);
+		var v = requireNonNull(parsed).g.get("r1", 2L);
 		assertNotNull(v, "dynamic值必须经JSON往返恢复（原实现put(null)崩溃）");
 		assertNotNull(v.getBean(), "内部bean必须恢复");
 		assertEquals(7L, ((MDynBean)v.getBean()).v);

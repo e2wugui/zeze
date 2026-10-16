@@ -1,11 +1,14 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import Zeze.Transaction.Transaction;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -17,15 +20,15 @@ public class TestCronTimerCallbackContext {
 	}
 
 	private static final ConcurrentLinkedQueue<Snapshot> Callbacks = new ConcurrentLinkedQueue<>();
-	private static volatile CountDownLatch fired;
+	private static volatile @Nullable CountDownLatch fired;
 
 	public static class RecordingHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			var snapshot = new Snapshot(context.happenTimes, context.expectedTimeMills);
 			Transaction.whileCommit(() -> {
 				Callbacks.add(snapshot);
-				fired.countDown();
+				requireNonNull(fired).countDown();
 			});
 		}
 	}
@@ -48,7 +51,7 @@ public class TestCronTimerCallbackContext {
 				env.timer.schedule(TimerSpec.ofCron("* * * * * ?").times(times), RecordingHandle.class);
 				return 0L;
 			});
-			Assertions.assertTrue(fired.await(5, TimeUnit.SECONDS), "all configured callbacks must execute");
+			Assertions.assertTrue(requireNonNull(fired).await(5, TimeUnit.SECONDS), "all configured callbacks must execute");
 			var callbacks = Callbacks.toArray(Snapshot[]::new);
 			Assertions.assertEquals(times, callbacks.length);
 			for (int i = 0; i < callbacks.length; ++i) {

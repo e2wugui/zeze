@@ -1,5 +1,7 @@
 package Zeze.History;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import Zeze.Application;
@@ -49,7 +51,7 @@ public class TestPendingGidLedgerSweepStopsWithApplication {
 		return timer.isShutdown();
 	}
 
-	private static void quietStop(Application app) {
+	private static void quietStop(@Nullable Application app) {
 		if (app == null)
 			return;
 		try {

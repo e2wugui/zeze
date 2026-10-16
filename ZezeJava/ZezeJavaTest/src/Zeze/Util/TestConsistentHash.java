@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import harness.Fast;
@@ -41,7 +43,7 @@ public class TestConsistentHash {
 			var sum = new HashMap<Integer, OutLong>();
 			// 观察分布用（仅打印不断言），100万次足够看出均衡性；fast 车道不跑千万级循环
 			for (int i = 0; i < 100_0000; ++i)
-				sum.computeIfAbsent(consistentHash.get(i), k -> new OutLong()).value += 1;
+				sum.computeIfAbsent(requireNonNull(consistentHash.get(i)), k -> new OutLong()).value += 1;
 			logger.info("sum = {}", sum);
 		}
 
@@ -51,7 +53,7 @@ public class TestConsistentHash {
 			for (var line : Files.readAllLines(nameFile)) {
 				if (line.isEmpty())
 					continue;
-				sum.computeIfAbsent(consistentHash.get(line.hashCode()), k -> new OutLong()).value += 1;
+				sum.computeIfAbsent(requireNonNull(consistentHash.get(line.hashCode())), k -> new OutLong()).value += 1;
 			}
 			System.out.println("name hash name.hashCode()");
 			System.out.println(sum);
@@ -59,7 +61,7 @@ public class TestConsistentHash {
 			for (var line : Files.readAllLines(nameFile)) {
 				if (line.isEmpty())
 					continue;
-				sum.computeIfAbsent(consistentHash.get(Bean.hash32(line)), k -> new OutLong()).value += 1;
+				sum.computeIfAbsent(requireNonNull(consistentHash.get(Bean.hash32(line))), k -> new OutLong()).value += 1;
 			}
 			System.out.println("name hash Bean.hash32(name)");
 			System.out.println(sum);

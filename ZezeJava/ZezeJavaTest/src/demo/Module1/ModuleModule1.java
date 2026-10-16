@@ -5,7 +5,6 @@ import Zeze.Serialize.RawBean;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
-import org.jetbrains.annotations.NotNull;
 
 public class ModuleModule1 extends AbstractModule {
 	public static final BeanFactory beanFactory = new BeanFactory();
@@ -14,7 +13,7 @@ public class ModuleModule1 extends AbstractModule {
 		return s.typeId();
 	}
 
-	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		try {
 			return beanFactory.createBeanFromSpecialTypeId(typeId);
 		} catch (Exception e) {
@@ -26,7 +25,7 @@ public class ModuleModule1 extends AbstractModule {
 		return _tKuafu;
 	}
 
-	public static @NotNull Data createDataFromSpecialTypeId(long typeId) {
+	public static Data createDataFromSpecialTypeId(long typeId) {
 		return beanFactory.createDataFromSpecialTypeId(typeId);
 	}
 

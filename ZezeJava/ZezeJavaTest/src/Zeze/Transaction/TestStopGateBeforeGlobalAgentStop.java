@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -72,12 +76,12 @@ public class TestStopGateBeforeGlobalAgentStop {
 		var inAction = new CountDownLatch(1);
 		var gateRelease = new CountDownLatch(1);
 		var result = new AtomicLong(Long.MIN_VALUE);
-		var error = new AtomicReference<Throwable>();
+		var error = new AtomicReference<@Nullable Throwable>();
 
 		var worker = new Thread(() -> {
 			try {
 				result.set(app.newProcedure(() -> {
-					Transaction.getCurrent().runWhileCommit(commits::incrementAndGet);
+					requireNonNull(Transaction.getCurrent()).runWhileCommit(commits::incrementAndGet);
 					Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
 					inAction.countDown();
 					// 受控阻塞：等globalAgent.stop进入后才继续走到提交点。

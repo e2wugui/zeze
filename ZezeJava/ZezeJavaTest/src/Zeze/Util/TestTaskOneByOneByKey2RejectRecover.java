@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
@@ -29,7 +31,7 @@ public class TestTaskOneByOneByKey2RejectRecover {
 	/** 每次派发新起线程并捕获 run() 逃逸的异常（生产中由线程池吞掉），主线程得以等待与断言。 */
 	private static final class ThreadPerTaskExecutor implements java.util.concurrent.Executor {
 		final AtomicBoolean rejecting = new AtomicBoolean();
-		final AtomicReference<RuntimeException> caught = new AtomicReference<>();
+		final AtomicReference<@Nullable RuntimeException> caught = new AtomicReference<>();
 
 		@Override
 		public void execute(Runnable r) {

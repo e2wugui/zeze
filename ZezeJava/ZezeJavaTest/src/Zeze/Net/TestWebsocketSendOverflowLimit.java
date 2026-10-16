@@ -16,8 +16,7 @@ import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +39,7 @@ public class TestWebsocketSendOverflowLimit {
 		}
 
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			if (so instanceof Websocket ws)
 				lastHandshaked = ws;
 			super.OnHandshakeDone(so);
@@ -71,7 +70,7 @@ public class TestWebsocketSendOverflowLimit {
 						}
 
 						@Override
-						public CompletionStage<?> onBinary(WebSocket webSocket, java.nio.ByteBuffer data, boolean last) {
+						public @Nullable CompletionStage<?> onBinary(WebSocket webSocket, java.nio.ByteBuffer data, boolean last) {
 							webSocket.request(1);
 							return null;
 						}

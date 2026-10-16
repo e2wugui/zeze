@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.charset.StandardCharsets;
 import Zeze.Net.HaProxyHeader;
 import Zeze.Serialize.ByteBuffer;
@@ -52,8 +54,8 @@ public class TestHaProxyV1Validation {
 		var header = new HaProxyHeader("");
 		var bb = wrap("PROXY TCP4 1.2.3.4 5.6.7.8 65535 0\r\n");
 		Assertions.assertTrue(header.decodeHeader(bb));
-		Assertions.assertEquals(65535, header.getRemoteAddress().getPort());
-		Assertions.assertEquals(0, header.getTargetAddress().getPort());
+		Assertions.assertEquals(65535, requireNonNull(header.getRemoteAddress()).getPort());
+		Assertions.assertEquals(0, requireNonNull(header.getTargetAddress()).getPort());
 	}
 
 	@Test
@@ -64,9 +66,9 @@ public class TestHaProxyV1Validation {
 		Assertions.assertTrue(header.decodeHeader(bb));
 		// 消费恰好整行（前缀+line+CRLF），后续协议数据不动
 		Assertions.assertEquals("PROXY TCP4 1.2.3.4 5.6.7.8 12345 80\r\n".length(), bb.ReadIndex);
-		Assertions.assertEquals("1.2.3.4", header.getRemoteAddress().getAddress().getHostAddress());
+		Assertions.assertEquals("1.2.3.4", requireNonNull(header.getRemoteAddress()).getAddress().getHostAddress());
 		Assertions.assertEquals(12345, header.getRemoteAddress().getPort());
-		Assertions.assertEquals("5.6.7.8", header.getTargetAddress().getAddress().getHostAddress());
+		Assertions.assertEquals("5.6.7.8", requireNonNull(header.getTargetAddress()).getAddress().getHostAddress());
 		Assertions.assertEquals(80, header.getTargetAddress().getPort());
 
 		// 规范上限内的最长TCP6行（104字节≤107）照常接受
@@ -74,6 +76,6 @@ public class TestHaProxyV1Validation {
 		var maxV6 = "PROXY TCP6 ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 65535 65535\r\n";
 		Assertions.assertTrue(maxV6.length() <= 107, "测试行本身须在规范上限内: " + maxV6.length());
 		Assertions.assertTrue(header6.decodeHeader(wrap(maxV6)));
-		Assertions.assertEquals(65535, header6.getRemoteAddress().getPort());
+		Assertions.assertEquals(65535, requireNonNull(header6.getRemoteAddress()).getPort());
 	}
 }

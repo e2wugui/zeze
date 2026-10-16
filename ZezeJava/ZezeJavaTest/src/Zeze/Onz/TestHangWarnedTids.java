@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 
 import Zeze.Onz.AbstractOnz;
@@ -25,7 +29,7 @@ import static Zeze.Onz.GcOnzE2eTestSupport.*;
  */
 public class TestHangWarnedTids {
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -41,12 +45,12 @@ public class TestHangWarnedTids {
 	@Test
 	@Timeout(120)
 	public void testHangWarnedTidsRemovedWhenPerformFinishes() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 
 		var txn = new PendingBlockTransaction();
 		txn.setOnzServer(onzServer);
 		var performRc = new long[1];
-		var coordinator = new Thread(() -> performRc[0] = onzServer.perform(txn));
+		var coordinator = new Thread(() -> performRc[0] = requireNonNull(onzServer).perform(txn));
 		coordinator.setDaemon(true);
 		coordinator.start();
 

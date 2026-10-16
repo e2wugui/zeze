@@ -1,4 +1,6 @@
 package Zeze.Util;
+
+import static java.util.Objects.requireNonNull;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,7 +23,7 @@ public class TestConcurrentHashMapOrdered {
 		var itKeys = new ArrayList<String>();
 		for (var it = orderedMap.iterator(); it.hasNext(); ) {
 			it.next();
-			itKeys.add(it.key());
+			itKeys.add(requireNonNull(it.key()));
 		}
 		assertEquals(foreachKeys, keys);
 		assertEquals(itKeys, keys);

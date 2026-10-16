@@ -1,5 +1,6 @@
 package Zeze.Builtin.Game.Online;
 
+import java.util.Objects;
 import Zeze.IModule;
 
 public class ModuleOnline extends AbstractModule {
@@ -12,7 +13,7 @@ public class ModuleOnline extends AbstractModule {
     public void login(long roleId) {
         var r = new Zeze.Builtin.Game.Online.Login();
         r.Argument.setRoleId(roleId);
-        r.SendForWait(App.ClientService.GetSocket(), 30_000).await();
+        r.SendForWait(Objects.requireNonNull(App.ClientService).GetSocket(), 30_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("login error=" + IModule.getErrorCode(r.getResultCode()));
     }

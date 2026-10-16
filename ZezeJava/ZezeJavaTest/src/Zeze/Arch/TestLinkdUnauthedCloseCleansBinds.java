@@ -6,8 +6,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,11 +24,11 @@ public class TestLinkdUnauthedCloseCleansBinds {
 
 	// addSocket是protected（跨包不可见），子类暴露注册入口
 	private static final class TestProviderService extends LinkdProviderService {
-		TestProviderService(@NotNull String name) {
+		TestProviderService(String name) {
 			super(name, null);
 		}
 
-		void register(@NotNull AsyncSocket so) {
+		void register(AsyncSocket so) {
 			addSocket(so);
 		}
 	}
@@ -67,7 +66,7 @@ public class TestLinkdUnauthedCloseCleansBinds {
 	}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 
@@ -124,7 +123,7 @@ public class TestLinkdUnauthedCloseCleansBinds {
 	}
 
 	// removeLinkSession在集合空时连map条目一起删：null视为"不含"。
-	private static boolean containsModuleLinkSid(@NotNull LinkdProviderSession ps, int moduleId, long linkSid) {
+	private static boolean containsModuleLinkSid(LinkdProviderSession ps, int moduleId, long linkSid) {
 		var sids = ps.linkSessionIds.get(moduleId);
 		return sids != null && sids.contains(linkSid);
 	}

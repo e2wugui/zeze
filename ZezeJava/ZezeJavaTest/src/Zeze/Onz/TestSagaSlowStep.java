@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -46,7 +50,7 @@ public class TestSagaSlowStep {
 	private static final long AccountCancelCount = 302;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -62,23 +66,23 @@ public class TestSagaSlowStep {
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().registerSaga(ProcSlow6,
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga(ProcSlow6,
 					TestSagaSlowStep::sagaSlow, TestSagaSlowStep::sagaSlowCancel,
 					BKuafu.class, BKuafuResult.class, EmptyBean.class);
 
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		// before() 被 Assumption 跳过时 onzServer 尚未创建；stop幂等
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
@@ -86,8 +90,8 @@ public class TestSagaSlowStep {
 	private static long sagaSlow(OnzSaga saga, BKuafu argument, BKuafuResult result) throws Exception {
 		//noinspection BusyWait
 		Thread.sleep(6_000);
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(requireNonNull(argument).getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -95,9 +99,9 @@ public class TestSagaSlowStep {
 
 	/** 补偿：按步骤自己的参数扣回写入的金额，并留下补偿计数（getArgument返回原始类型Bean，需cast）。 */
 	private static long sagaSlowCancel(OnzSaga saga, EmptyBean cancelArgument) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
 		var argument = (BKuafu)saga.getArgument();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(requireNonNull(argument).getAccount());
 		account.setMoney(account.getMoney() - argument.getMoney());
 		var counter = app.demo_Module1.getKuafu().getOrAdd(AccountCancelCount);
 		counter.setMoney(counter.getMoney() + 1);
@@ -111,9 +115,9 @@ public class TestSagaSlowStep {
 
 		// 场景A：业务6s < flushTimeout(20s)。修复前：rpc固定5s超时 -> perform失败。
 		var slow = new OneStepTransaction(AccountSlow6, 11);
-		slow.setOnzServer(onzServer);
+		slow.setOnzServer(requireNonNull(onzServer));
 		slow.setFlushTimeout(20_000);
-		Assertions.assertEquals(0, onzServer.perform(slow), "rpc超时复用flushTimeout后慢步骤必须整体成功（FND7-34方案A）");
+		Assertions.assertEquals(0, requireNonNull(onzServer).perform(slow), "rpc超时复用flushTimeout后慢步骤必须整体成功（FND7-34方案A）");
 		Assertions.assertEquals(11, getMoney(AccountSlow6), "成功 saga 步骤的写入必须落库");
 		Assertions.assertEquals(11, slow.resultMoney, "结果必须正常返回");
 		Assertions.assertEquals(0, getMoney(AccountCancelCount), "成功路径不触发补偿");
@@ -125,7 +129,7 @@ public class TestSagaSlowStep {
 		var timeout = new OneStepTransaction(AccountTimeout, 22);
 		timeout.setOnzServer(onzServer);
 		timeout.setFlushTimeout(1_500);
-		Assertions.assertNotEquals(0L, onzServer.perform(timeout), "超过flushTimeout的步骤必须失败");
+		Assertions.assertNotEquals(0L, requireNonNull(onzServer).perform(timeout), "超过flushTimeout的步骤必须失败");
 		waitMoney(AccountTimeout, 0, 30_000, "超时但实际已提交的步骤必须被补偿回0（FND7-34方案B）");
 		waitMoney(AccountCancelCount, 1, 30_000, "补偿函数必须真正执行过（FND7-34方案B）");
 	}
@@ -153,8 +157,8 @@ public class TestSagaSlowStep {
 
 	private static long getMoney(long account) throws Exception {
 		var holder = new long[1];
-		App.Instance.Zeze.newProcedure(() -> {
-			holder[0] = App.Instance.demo_Module1.getKuafu().getOrAdd(account).getMoney();
+		requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			holder[0] = requireNonNull(App.Instance.demo_Module1).getKuafu().getOrAdd(account).getMoney();
 			return 0L;
 		}, "TestSagaSlowStep.getMoney").call();
 		return holder[0];
@@ -177,8 +181,8 @@ public class TestSagaSlowStep {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)

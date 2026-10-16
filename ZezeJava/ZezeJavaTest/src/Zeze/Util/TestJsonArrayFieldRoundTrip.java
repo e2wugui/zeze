@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -29,8 +33,8 @@ public class TestJsonArrayFieldRoundTrip {
 	}
 
 	public static class NullArraysBean {
-		public int[] ints;
-		public String[] names;
+		public int @Nullable [] ints;
+		public String @Nullable [] names;
 	}
 
 	@Test
@@ -58,21 +62,21 @@ public class TestJsonArrayFieldRoundTrip {
 	@Test
 	public void nullArrayFieldReadsIntoFreshArray() throws Exception {
 		var parsed = new JsonReader().buf("{ints:[4,5],names:[\"x\"]}").parse(NullArraysBean.class);
-		assertArrayEquals(new int[]{4, 5}, parsed.ints, "null数组字段读入新数组（此前报abstract field）");
+		assertArrayEquals(new int[]{4, 5}, requireNonNull(parsed).ints, "null数组字段读入新数组（此前报abstract field）");
 		assertArrayEquals(new String[]{"x"}, parsed.names);
 	}
 
 	@Test
 	public void explicitNullKeepsFieldNull() throws Exception {
 		var parsed = new JsonReader().buf("{ints:null}").parse(NullArraysBean.class);
-		assertNull(parsed.ints, "显式null保持null");
+		assertNull(requireNonNull(parsed).ints, "显式null保持null");
 	}
 
 	@Test
 	public void emptyArrayAndRoundTripStability() throws Exception {
 		var parsed = new JsonReader().buf("{ints:[],names:[]}").parse(NullArraysBean.class);
-		assertEquals(0, parsed.ints.length);
-		assertEquals(0, parsed.names.length);
+		assertEquals(0, requireNonNull(requireNonNull(parsed).ints).length);
+		assertEquals(0, requireNonNull(parsed.names).length);
 		var again = Json.toCompactString(parsed);
 		Assertions.assertEquals("{\"ints\":[],\"names\":[]}", again, "空数组往返稳定");
 	}

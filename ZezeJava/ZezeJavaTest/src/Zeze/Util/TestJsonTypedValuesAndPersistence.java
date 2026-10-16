@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,11 +19,11 @@ public class TestJsonTypedValuesAndPersistence {
 		public int value;
 	}
 	public static class Container {
-		public List<Node> list;
-		public Map<String, Node> map;
+		public @Nullable List<@Nullable Node> list;
+		public @Nullable Map<String, Node> map;
 	}
 	public static class BooleanKeys {
-		public Map<Boolean, Integer> values;
+		public @Nullable Map<Boolean, Integer> values;
 	}
 
 	@Test
@@ -33,8 +37,8 @@ public class TestJsonTypedValuesAndPersistence {
 		assertEquals(List.of(true), new JsonReader().buf("[true]").parseArray(null, Boolean.class));
 		assertEquals(List.of(true, false),
 				new JsonReader().buf("[true/**/,false// end\n]").parseArray(null, Boolean.class));
-		assertEquals(Map.of(true, 1, false, 2), new JsonReader().buf("{values:{true:1,false:2}}")
-				.parse(BooleanKeys.class).values);
+		assertEquals(Map.of(true, 1, false, 2), requireNonNull(new JsonReader().buf("{values:{true:1,false:2}}")
+				.parse(BooleanKeys.class)).values);
 		assertEquals(Arrays.asList(true, null, false, 3, "x", Map.of("k", 1), List.of(2, 3)),
 				new JsonReader().buf("[true,null,false,3,\"x\",{k:1},[2,3]]")
 						.parseArray(null, Object.class));
@@ -68,9 +72,9 @@ public class TestJsonTypedValuesAndPersistence {
 		var value = new JsonReader().buf("{list:[null,{value:7}],map:{a:null,b:{value:8}}}")
 				.parse(Container.class);
 		assertNotNull(value);
-		assertNull(value.list.get(0));
-		assertEquals(7, value.list.get(1).value);
-		assertTrue(value.map.containsKey("a"));
+		assertNull(requireNonNull(value.list).get(0));
+		assertEquals(7, requireNonNull(value.list.get(1)).value);
+		assertTrue(requireNonNull(value.map).containsKey("a"));
 		assertNull(value.map.get("a"));
 		assertEquals(8, value.map.get("b").value);
 		assertNull(new JsonReader().buf("null").parse(Node.class));

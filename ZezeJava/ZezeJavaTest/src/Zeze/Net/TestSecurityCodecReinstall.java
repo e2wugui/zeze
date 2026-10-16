@@ -1,8 +1,7 @@
 package Zeze.Net;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import Zeze.Net.AsyncSocket;
@@ -34,14 +33,14 @@ public class TestSecurityCodecReinstall {
 		}
 
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
 			if (so instanceof TcpSocket tcp)
 				tcp.setInputSecurityCodec(Constant.eEncryptTypeDisable, null, Constant.eCompressTypeZstd);
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			super.OnSocketClose(so, e);
 			closeEx = e;
 			closed.countDown();

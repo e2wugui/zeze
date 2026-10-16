@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.Test;
  * Record1.commit 按 strongRef!=null 走 decrement，计数变负。
  */
 @Fast
+@NullMarked
 public class TestMemoryTableSize {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T1组：100起）。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_MEMORY_TABLE_SIZE);

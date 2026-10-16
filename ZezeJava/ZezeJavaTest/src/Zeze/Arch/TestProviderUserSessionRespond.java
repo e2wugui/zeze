@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Online.Login;
 import Zeze.Builtin.Online.SReliableNotify;
@@ -8,7 +10,6 @@ import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,18 +35,18 @@ public class TestProviderUserSessionRespond {
 		int accounted;
 		int fireAndForget;
 
-		ProbeSession(@NotNull Dispatch dispatch) {
+		ProbeSession(Dispatch dispatch) {
 			super(dispatch);
 		}
 
 		@Override
-		protected boolean sendAccounted(long typeId, @NotNull Binary fullEncodedProtocol) {
+		protected boolean sendAccounted(long typeId, Binary fullEncodedProtocol) {
 			accounted++;
 			return true;
 		}
 
 		@Override
-		protected void sendFireAndForgetReal(@NotNull Rpc<?, ?> rpc) {
+		protected void sendFireAndForgetReal(Rpc<?, ?> rpc) {
 			fireAndForget++;
 		}
 	}
@@ -61,7 +62,7 @@ public class TestProviderUserSessionRespond {
 
 		// 事务内：respond 延迟到提交后发送
 		var s2 = new ProbeSession(new Dispatch());
-		demo.App.getInstance().Zeze.newProcedure(() -> {
+		requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			s2.respond(new Login());
 			Assertions.assertEquals(0, s2.accounted, "respond inside transaction must not send before commit");
 			return Procedure.Success;
@@ -70,7 +71,7 @@ public class TestProviderUserSessionRespond {
 
 		// 事务内：respondNow 立即发送（不等提交）
 		var s3 = new ProbeSession(new Dispatch());
-		demo.App.getInstance().Zeze.newProcedure(() -> {
+		requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			s3.respondNow(new Login());
 			Assertions.assertEquals(1, s3.accounted, "respondNow must send immediately even inside transaction");
 			return Procedure.Success;
@@ -79,7 +80,7 @@ public class TestProviderUserSessionRespond {
 
 		// 事务回滚：respond 注册的发送不发出
 		var s4 = new ProbeSession(new Dispatch());
-		demo.App.getInstance().Zeze.newProcedure(() -> {
+		requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			s4.respond(new Login());
 			return Procedure.Exception;
 		}, "respond-rollback-drop").call();
@@ -89,7 +90,7 @@ public class TestProviderUserSessionRespond {
 	@Test
 	public void testRespondWhileRollback() {
 		var s = new ProbeSession(new Dispatch());
-		demo.App.getInstance().Zeze.newProcedure(() -> {
+		requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			s.respondWhileRollback(new Login());
 			Assertions.assertEquals(0, s.accounted, "respondWhileRollback must not send before rollback");
 			return Procedure.Exception;
@@ -109,7 +110,7 @@ public class TestProviderUserSessionRespond {
 
 		// 事务内：延迟到提交后经 fire-and-forget 路径发送，且不经记账
 		var s2 = new ProbeSession(new Dispatch());
-		demo.App.getInstance().Zeze.newProcedure(() -> {
+		requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			s2.respondFireAndForget(new Login());
 			Assertions.assertEquals(0, s2.fireAndForget, "fire-and-forget inside transaction must defer to commit");
 			return Procedure.Success;

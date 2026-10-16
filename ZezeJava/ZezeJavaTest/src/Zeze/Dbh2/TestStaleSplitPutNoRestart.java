@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
@@ -206,7 +208,7 @@ public class TestStaleSplitPutNoRestart {
 	}
 
 	private static RocksIterator newIterator(Zeze.Dbh2.Dbh2 leader) {
-		return leader.getStateMachine().getBucket().getData().iterator();
+		return requireNonNull(leader.getStateMachine().getBucket()).getData().iterator();
 	}
 
 	/**

@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.Test;
  * 断言：必须抛ISE（修复前红：静默容忍正常返回）且旧表保留可用（修复前被无条件disable）。
  */
 @Fast
+@NullMarked
 public class TestUpgradeIncompatibleFailFast {
 	// 独立serverId+url：@Fast类并行时避免本地库互撞（对齐TestHotRollbackMemoryTable；
 	// 810段：避开其800起的递增段）。

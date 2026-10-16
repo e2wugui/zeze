@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -12,8 +14,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,8 +28,8 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestHttpServerPathDecode {
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
 
 	@BeforeAll
@@ -47,13 +48,13 @@ public class TestHttpServerPathDecode {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	// 发送原始请求行并读取一个完整响应。正常响应走keep-alive不关连接,不能像TestHttpServerCleanup
 	// 那样读到EOF,改为按Content-Length定界(send()必带Content-Length):头部收齐后再等body收满。
-	private static @NotNull String sendRawReadOne(@NotNull String rawPath) throws IOException {
+	private static String sendRawReadOne(String rawPath) throws IOException {
 		var raw = "GET " + rawPath + " HTTP/1.1\r\nHost: a\r\n\r\n";
 		try (var sock = new Socket("127.0.0.1", port)) {
 			sock.setSoTimeout(15000);
@@ -79,7 +80,7 @@ public class TestHttpServerPathDecode {
 	}
 
 	// 从响应头部解析Content-Length,缺失或非法返回-1(body收满判定永不成立,最终等soTimeout失败)
-	private static int contentLengthOf(@NotNull String headers) {
+	private static int contentLengthOf(String headers) {
 		for (var line : headers.split("\r\n")) {
 			var i = line.indexOf(':');
 			if (i > 0 && line.substring(0, i).trim().equalsIgnoreCase("Content-Length"))
@@ -94,7 +95,7 @@ public class TestHttpServerPathDecode {
 
 	// rawPath为请求行里的原始(未解码)路径;status为期望状态码;body为期望的响应body(=解码后path,可null不校验)。
 	// 响应按ISO_8859_1读取,body是UTF-8字节流,期望值先做同构转换(ASCII时为恒等)。
-	private static void assertStatus(@NotNull String rawPath, int status, @Nullable String body) throws IOException {
+	private static void assertStatus(String rawPath, int status, @Nullable String body) throws IOException {
 		var res = sendRawReadOne(rawPath);
 		Assertions.assertTrue(res.startsWith("HTTP/1.1 " + status + " "), rawPath + " -> " + res);
 		if (body != null) {

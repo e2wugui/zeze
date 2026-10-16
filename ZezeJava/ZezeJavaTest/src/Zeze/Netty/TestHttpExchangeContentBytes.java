@@ -18,7 +18,12 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestHttpExchangeContentBytes {
 	// context仅在派发时使用,contentBytes/addContent不触碰;无服务器直接构造
-	private final HttpExchange x = new HttpExchange(new HttpServer(), null);
+	private final HttpExchange x = newMemoryExchange();
+
+	@SuppressWarnings("DataFlowIssue") // 仅测内存 content，addContent/contentBytes 不访问 context。
+	private static HttpExchange newMemoryExchange() {
+		return new HttpExchange(new HttpServer(), null);
+	}
 
 	@AfterEach
 	public void tearDown() {

@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.Test;
  * 预初始化防御（恰证 API 语义之坑已被各自绕过），本钉板固化双向契约。
  */
 @Fast
+@NullMarked
 public class TestGetOrAddIsAddContract {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（800段TestHotRollbackMemoryTable、
 	// 810段TestHot02UpgradeIncompatibleFailFast；810曾与本类撞段，同JVM并发FileMutex互斥失败）。

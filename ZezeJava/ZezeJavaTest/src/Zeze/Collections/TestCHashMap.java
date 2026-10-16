@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashSet;
 import Zeze.BMyBean;
 import demo.App;
@@ -15,8 +17,8 @@ public class TestCHashMap {
 
 	@Test
 	public void test1_PutGetWalkClear() throws Exception {
-		var map = App.Instance.LinkedMapModule.openConcurrent("testCHashMap", BMyBean.class);
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+		var map = requireNonNull(App.Instance.LinkedMapModule).openConcurrent("testCHashMap", BMyBean.class);
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			map.clear(); // 幂等
 			for (int i = 0; i < 100; i++) {
 				var b = new BMyBean();
@@ -26,10 +28,10 @@ public class TestCHashMap {
 			return 0;
 		}, "test1.put").call());
 
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			Assertions.assertEquals(100, map.size()); // 提交时刷新的分片缓存计数
 			for (int i = 0; i < 100; i++)
-				Assertions.assertEquals(i, map.get(String.valueOf(i)).getI());
+				Assertions.assertEquals(i, requireNonNull(map.get(String.valueOf(i))).getI());
 			return 0;
 		}, "test1.verify").call());
 
@@ -38,12 +40,12 @@ public class TestCHashMap {
 		Assertions.assertEquals(100, ids.size());
 
 		// clear：分片计数缓存必须同步归零，walk为空
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			map.clear();
 			return 0;
 		}, "test1.clear").call());
 
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			Assertions.assertEquals(0, map.size(), "clear后分片sizes缓存必须归零");
 			Assertions.assertNull(map.get("5"));
 			Assertions.assertTrue(map.isEmpty());
@@ -55,14 +57,14 @@ public class TestCHashMap {
 		Assertions.assertTrue(walked.isEmpty());
 
 		// clear后重建
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			var b = new BMyBean();
 			b.setI(999);
 			map.put("5", b);
 			return 0;
 		}, "test1.rebuild").call());
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
-			Assertions.assertEquals(999, map.get("5").getI());
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
+			Assertions.assertEquals(999, requireNonNull(map.get("5")).getI());
 			Assertions.assertEquals(1, map.size());
 			return 0;
 		}, "test1.verifyRebuild").call());
@@ -70,8 +72,8 @@ public class TestCHashMap {
 
 	@Test
 	public void test2_WalkEarlyStop() throws Exception {
-		var map = App.Instance.LinkedMapModule.openConcurrent("testCHashMap2", BMyBean.class);
-		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+		var map = requireNonNull(App.Instance.LinkedMapModule).openConcurrent("testCHashMap2", BMyBean.class);
+		Assertions.assertEquals(0, requireNonNull(App.Instance.Zeze).newProcedure(() -> {
 			map.clear();
 			for (int i = 0; i < 50; i++) {
 				var b = new BMyBean();

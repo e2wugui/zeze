@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.io.File;
 import java.nio.file.Path;
@@ -91,7 +93,7 @@ public class TestDeadBucketPrepareRedirectsSingleByteKeyFirst {
 			throws Exception {
 		for (var dbh2 : nodes) {
 			dbh2.close();
-			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+			LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 		}
 		agent.close();
 		database.close();
@@ -178,7 +180,7 @@ public class TestDeadBucketPrepareRedirectsSingleByteKeyFirst {
 			var leader = RaftBucketTopologySupport.waitLeader(nodes);
 			agent.setBucketMeta(metaOf(key(2), key(8), SOURCE_RAFT));
 			// 历史仅剩首键条目且指向本桶（超裁剪代的终局形态）。
-			leader.getStateMachine().getBucket().addMoveMetaHistory(metaOf(key(2), key(8), SOURCE_RAFT));
+			requireNonNull(leader.getStateMachine().getBucket()).addMoveMetaHistory(metaOf(key(2), key(8), SOURCE_RAFT));
 
 			var f = agent.prepareBatch(prepareOf(key(9), value(9)));
 			f.await();

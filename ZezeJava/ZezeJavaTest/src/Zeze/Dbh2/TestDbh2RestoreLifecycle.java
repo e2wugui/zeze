@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -45,7 +47,7 @@ public class TestDbh2RestoreLifecycle {
 
 	private static Dbh2 start(Path home) {
 		var conf = config(home);
-		return new Dbh2(null, conf.getName(), null, conf, new Config(), true, new TaskOneByOneByKey());
+		return new Dbh2(null, requireNonNull(conf.getName()), null, conf, new Config(), true, new TaskOneByOneByKey());
 	}
 
 	private static void apply(Dbh2 dbh2, long index, Log log) throws Exception {
@@ -101,7 +103,7 @@ public class TestDbh2RestoreLifecycle {
 				assertEquals(202, next.getBatch().getTid(), "tombstoning releases the recovered lock");
 			}
 			apply(dbh2, 3, commit(101));
-			assertEquals(new Binary(new byte[]{42}), sm.getBucket().get(key));
+			assertEquals(new Binary(new byte[]{42}), requireNonNull(sm.getBucket()).get(key));
 			assertFalse(sm.isTombstonedPending(101));
 		}
 	}
@@ -151,7 +153,7 @@ public class TestDbh2RestoreLifecycle {
 			sm.commitBatch(2);
 			var tidKey = ByteBuffer.Allocate();
 			tidKey.WriteLong(2);
-			assertNull(sm.getBucket().getTrans().get(tidKey.Copy()));
+			assertNull(requireNonNull(sm.getBucket()).getTrans().get(tidKey.Copy()));
 		} finally {
 			raft.shutdown();
 			sm.close();
@@ -165,7 +167,7 @@ public class TestDbh2RestoreLifecycle {
 		var raft = new Raft(sm, null, config(home), new Config());
 		try {
 			sm.openBucket();
-			sm.getBucket().setWriteOptions(RocksDatabase.getSyncWriteOptions());
+			requireNonNull(sm.getBucket()).setWriteOptions(RocksDatabase.getSyncWriteOptions());
 			assertTrue(sm.snapshot(home.resolve("base.zip").toString()).success);
 			sm.loadSnapshot(raft.getLogSequence().getCommittedSnapshotFile());
 			assertTrue(sm.getBucket().getWriteOptions().sync(), "snapshot restore must preserve sync writes");
@@ -179,7 +181,7 @@ public class TestDbh2RestoreLifecycle {
 	public void dbh2EnablesDelayedSnapshotsOnRuntimeConfig(@TempDir Path home) throws Exception {
 		Task.tryInitThreadPool();
 		var conf = config(home);
-		try (var dbh2 = new Dbh2(null, conf.getName(), null, conf, new Config(), true,
+		try (var dbh2 = new Dbh2(null, requireNonNull(conf.getName()), null, conf, new Config(), true,
 				new TaskOneByOneByKey())) {
 			assertTrue(dbh2.getRaft().getRaftConfig().isSnapshotCommitDelayed(),
 					"Dbh2 must set the derived runtime configuration");

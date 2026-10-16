@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import Zeze.Application;
 import Zeze.Config;
@@ -29,7 +33,7 @@ public class TestRemoveServerConditionalRemove {
 	private static final String NEW_IP = "10.0.0.2";
 	private static final int NEW_PORT = 200;
 
-	private Application app;
+	private @Nullable Application app;
 	private ProviderDirectService pds;
 	private Agent.SubscribeState state;
 
@@ -49,7 +53,7 @@ public class TestRemoveServerConditionalRemove {
 		pds.providerApp = new ProviderApp(app); // 轻量构造：removeServer仅使用providerApp.zeze
 
 		state = new Agent.SubscribeState(new BSubscribeInfo(SERVICE_NAME, 0));
-		app.getServiceManager().getSubscribeStates().put(SERVICE_NAME, state);
+		requireNonNull(app.getServiceManager()).getSubscribeStates().put(SERVICE_NAME, state);
 	}
 
 	@AfterEach

@@ -55,6 +55,7 @@ public class TestCyclicBarrierSubmitFailUnlock {
 	/** submit抛出（路径一，任务未入队）：剩余桶补解锁、屏障取消、首异常重抛。
 	 * 两个桶都会抛，无论HashMap先处理哪个，另一个都是"未轮到的泄漏桶"。 */
 	@Test
+	@SuppressWarnings("DataFlowIssue") // submit 必须失败，procedure 不执行，因此无 Application 夹具。
 	public void testSubmitThrowProcedureOverload() {
 		var q0 = new SubmitThrowQueue();
 		var q1 = new SubmitThrowQueue();

@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
@@ -84,7 +86,7 @@ public class TestWalkRecoversWhenBucketSplitsOrMovesMidTraversal {
 	private static void stopBucket(List<Zeze.Dbh2.Dbh2> nodes) throws Exception {
 		for (var dbh2 : nodes) {
 			dbh2.close();
-			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+			LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 		}
 	}
 

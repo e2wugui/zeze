@@ -35,7 +35,6 @@ import io.netty.handler.codec.http2.Http2MultiplexHandler;
 import io.netty.handler.codec.http2.Http2StreamChannel;
 import io.netty.handler.codec.http2.Http2StreamChannelBootstrap;
 import io.netty.handler.codec.http2.Http2StreamFrameToHttpObjectCodec;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -86,11 +85,11 @@ public class TestHttp2PriorKnowledge {
 					.channel(NioSocketChannel.class)
 					.handler(new ChannelInitializer<SocketChannel>() {
 						@Override
-						protected void initChannel(@NotNull SocketChannel ch) {
+						protected void initChannel(SocketChannel ch) {
 							ch.pipeline().addLast(Http2FrameCodecBuilder.forClient().build());
 							ch.pipeline().addLast(new Http2MultiplexHandler(new ChannelInitializer<Http2StreamChannel>() {
 								@Override
-								protected void initChannel(@NotNull Http2StreamChannel s) {
+								protected void initChannel(Http2StreamChannel s) {
 									// 客户端侧stream不自动装配：由open()后按需添加
 								}
 							}));
@@ -116,7 +115,7 @@ public class TestHttp2PriorKnowledge {
 		private final StringBuilder body = new StringBuilder();
 
 		@Override
-		protected void channelRead0(@NotNull ChannelHandlerContext ctx, @NotNull HttpObject msg) {
+		protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg) {
 			if (msg instanceof HttpResponse response)
 				Assertions.assertEquals(HttpResponseStatus.OK, response.status(), "h2响应状态");
 			if (msg instanceof HttpContent content) {
@@ -127,7 +126,7 @@ public class TestHttp2PriorKnowledge {
 		}
 
 		@Override
-		public void exceptionCaught(@NotNull ChannelHandlerContext ctx, @NotNull Throwable cause) {
+		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 			done.completeExceptionally(cause);
 		}
 	}

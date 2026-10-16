@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import Zeze.Serialize.ByteBuffer;
@@ -168,7 +170,7 @@ public class TestSortedMapEquivalentKeysReplay {
 	private static <K extends Comparable<K>> void assertBeanChangeReplay(
 			PSortedMap2<K, BValue> leader, PSortedMap2<K, BValue> follower, K equivalentKey) {
 		var value = leader.get(equivalentKey);
-		value.setLong2(7);
+		requireNonNull(value).setLong2(7);
 		var change = new LogBean(null, 0, value);
 		var field = new LogLong(2); // BValue.long2
 		field.value = 7;
@@ -187,12 +189,13 @@ public class TestSortedMapEquivalentKeysReplay {
 		decoded.decode(input);
 		assertTrue(input.isEmpty());
 		assertEquals(1, decoded.getChangedWithKey().size());
-		assertEquals(7, ((LogLong)decoded.getChangedWithKey().get(equivalentKey)
-				.getVariables().get(2)).value);
+		var changed = requireNonNull(decoded.getChangedWithKey().get(equivalentKey));
+		var valueLog = (LogLong)requireNonNull(requireNonNull(changed.getVariables()).get(2));
+		assertEquals(7, valueLog.value);
 		var followerValue = follower.get(equivalentKey);
 		follower.followerApply(decoded);
 		assertSame(followerValue, follower.get(equivalentKey), "回放须原位编辑已有 Bean");
-		assertEquals(value.getLong2(), followerValue.getLong2());
+		assertEquals(value.getLong2(), requireNonNull(followerValue).getLong2());
 		assertEquals(1, follower.size());
 
 		log.mergeChangedToReplaced();
@@ -255,13 +258,13 @@ public class TestSortedMapEquivalentKeysReplay {
 
 		var beans = newCaseInsensitiveBeanMap();
 		var value = new BValue();
-		value.setLong2(7);
+		requireNonNull(value).setLong2(7);
 		beans.put("Alpha", value);
 		var beanCopy = beans.copy();
 		assertSame(String.CASE_INSENSITIVE_ORDER, beanCopy.comparator());
-		assertEquals(7, beanCopy.get("ALPHA").getLong2());
+		assertEquals(7, requireNonNull(beanCopy.get("ALPHA")).getLong2());
 		assertNotSame(value, beanCopy.get("alpha"), "Bean copy 仍须深拷贝");
-		assertEquals("Alpha", beanCopy.get("alpha").mapKey());
+		assertEquals("Alpha", requireNonNull(beanCopy.get("alpha")).mapKey());
 		var follower = newCaseInsensitiveBeanMap();
 		follower.put("ALPHA", new BValue());
 		assertBeanChangeReplay(beanCopy, follower, "alpha");

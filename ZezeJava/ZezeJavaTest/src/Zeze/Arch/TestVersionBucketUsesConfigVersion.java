@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 
@@ -31,7 +35,7 @@ public class TestVersionBucketUsesConfigVersion {
 	private static final String IP = "127.0.0.1";
 	private static final int PORT = 45123;
 
-	private Application app;
+	private @Nullable Application app;
 	private ProviderDirectService pds;
 	private Agent.SubscribeState state;
 
@@ -56,7 +60,7 @@ public class TestVersionBucketUsesConfigVersion {
 		// 注入订阅状态：版本桶1登记一个(ip,port)与本机direct一致的服务信息。
 		state = new Agent.SubscribeState(new BSubscribeInfo(SERVICE_NAME, 1));
 		state.onRegister(new BServiceInfo(SERVICE_NAME, IDENTITY, 1, IP, PORT));
-		app.getServiceManager().getSubscribeStates().put(SERVICE_NAME, state);
+		requireNonNull(app.getServiceManager()).getSubscribeStates().put(SERVICE_NAME, state);
 
 		// 模块33已注册（ProviderApp的三map，public final）。
 		pds.providerApp.modules.put(MID, new Zeze.Builtin.Provider.BModule.Data());
@@ -88,8 +92,8 @@ public class TestVersionBucketUsesConfigVersion {
 	public void testMismatchedBucketStillSkipped() {
 		var state2 = new Agent.SubscribeState(new BSubscribeInfo(PREFIX + 44, 1));
 		state2.onRegister(new BServiceInfo(PREFIX + 44, "88", 2, IP, PORT)); // 桶2
-		app.getServiceManager().getSubscribeStates().put(PREFIX + 44, state2);
-		pds.providerApp.modules.put(44, new Zeze.Builtin.Provider.BModule.Data());
+		requireNonNull(requireNonNull(app).getServiceManager()).getSubscribeStates().put(PREFIX + 44, state2);
+		requireNonNull(pds.providerApp).modules.put(44, new Zeze.Builtin.Provider.BModule.Data());
 
 		var ps = pds.newSession(88);
 		pds.setRelativeServiceReady(ps, IP, PORT);

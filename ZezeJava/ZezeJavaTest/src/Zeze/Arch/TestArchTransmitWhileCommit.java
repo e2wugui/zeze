@@ -23,8 +23,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
 import harness.FastServerIds;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,7 +48,7 @@ public class TestArchTransmitWhileCommit {
 
 	private static final AtomicInteger NextServerId =
 			new AtomicInteger(FastServerIds.TEST_ARCH_TRANSMIT_WHILE_COMMIT);
-	private static GlobalCacheManagerAsyncServer gcm;
+	private static @Nullable GlobalCacheManagerAsyncServer gcm;
 
 	@BeforeAll
 	public static void setUpGcm() throws Exception {
@@ -83,7 +82,7 @@ public class TestArchTransmitWhileCommit {
 	}
 
 	private static final class TestArchOnline extends Zeze.Arch.Online {
-		TestArchOnline(@NotNull AppBase app) {
+		TestArchOnline(AppBase app) {
 			super(app);
 		}
 	}
@@ -92,18 +91,18 @@ public class TestArchTransmitWhileCommit {
 	private static final class RecordingSocket extends AsyncSocket {
 		final AtomicInteger sends = new AtomicInteger();
 
-		RecordingSocket(@NotNull Service service) {
+		RecordingSocket(Service service) {
 			super(service);
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			sends.incrementAndGet();
 			return true;
 		}
 
 		@Override
-		public @NotNull Type getType() {
+		public Type getType() {
 			return Type.eClient;
 		}
 

@@ -1,10 +1,13 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import Zeze.Transaction.Transaction;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -14,21 +17,21 @@ import org.junit.jupiter.api.parallel.Isolated;
 public class TestSimpleTimerEndTime {
 	private static volatile long endTime;
 	private static volatile long nextAfterFirst;
-	private static volatile CountDownLatch firstFired;
-	private static volatile CountDownLatch afterEndFired;
+	private static volatile @Nullable CountDownLatch firstFired;
+	private static volatile @Nullable CountDownLatch afterEndFired;
 
 	public static class RecordingHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			if (context.happenTimes == 1) {
 				var next = context.nextExpectedTimeMills;
 				Transaction.whileCommit(() -> {
 					nextAfterFirst = next;
-					firstFired.countDown();
+					requireNonNull(firstFired).countDown();
 				});
 			}
 			if (context.expectedTimeMills > endTime)
-				Transaction.whileCommit(afterEndFired::countDown);
+				Transaction.whileCommit(requireNonNull(afterEndFired)::countDown);
 		}
 	}
 
@@ -44,9 +47,9 @@ public class TestSimpleTimerEndTime {
 				return 0L;
 			});
 
-			Assertions.assertTrue(firstFired.await(5, TimeUnit.SECONDS), "the initial tick must execute");
+			Assertions.assertTrue(requireNonNull(firstFired).await(5, TimeUnit.SECONDS), "the initial tick must execute");
 			Assertions.assertEquals(0L, nextAfterFirst, "no next tick may be planned after endTime");
-			Assertions.assertFalse(afterEndFired.await(2_500, TimeUnit.MILLISECONDS),
+			Assertions.assertFalse(requireNonNull(afterEndFired).await(2_500, TimeUnit.MILLISECONDS),
 					"a callback whose expected time is after endTime must not execute");
 		}
 	}

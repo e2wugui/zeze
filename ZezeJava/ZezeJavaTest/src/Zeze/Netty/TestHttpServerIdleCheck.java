@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
@@ -18,7 +22,6 @@ import Zeze.Util.Task;
 import harness.Fast;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.SocketChannel;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,30 +37,30 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestHttpServerIdleCheck {
-	private static Netty netty;
-	private static AffinityServer affinityServer; // 检查间隔设为1小时：测试期间真实调度器永不tick
+	private static @Nullable Netty netty;
+	private static @Nullable AffinityServer affinityServer; // 检查间隔设为1小时：测试期间真实调度器永不tick
 	private static int affinityPort;
-	private static UploadServer uploadServer; // 短超时：真实调度器每秒检查
+	private static @Nullable UploadServer uploadServer; // 短超时：真实调度器每秒检查
 	private static int uploadPort;
 
 	// 亲和性验证用：记录checkTimeout0实际执行的线程与accept的channel
 	public static final class AffinityServer extends HttpServer {
-		public volatile Thread lastCheckThread;
+		public volatile @Nullable Thread lastCheckThread;
 		public final ConcurrentLinkedQueue<Channel> accepted = new ConcurrentLinkedQueue<>();
 
 		@Override
-		protected void initChannel(@NotNull SocketChannel ch) throws Exception {
+		protected void initChannel(SocketChannel ch) throws Exception {
 			super.initChannel(ch);
 			accepted.add(ch);
 		}
 
 		@Override
-		protected void checkTimeout0(@NotNull Channel channel) {
+		protected void checkTimeout0(Channel channel) {
 			lastCheckThread = Thread.currentThread();
 			super.checkTimeout0(channel);
 		}
 
-		public void checkTimeoutForTest(@NotNull Channel channel) {
+		public void checkTimeoutForTest(Channel channel) {
 			checkTimeout(channel);
 		}
 	}
@@ -89,9 +92,9 @@ public class TestHttpServerIdleCheck {
 
 	@AfterAll
 	public static void tearDown() {
-		uploadServer.close();
-		affinityServer.close();
-		netty.close();
+		requireNonNull(uploadServer).close();
+		requireNonNull(affinityServer).close();
+		requireNonNull(netty).close();
 	}
 
 	private static void await(String what, long timeoutMillis, java.util.function.BooleanSupplier cond)
@@ -113,11 +116,11 @@ public class TestHttpServerIdleCheck {
 				.uri(URI.create("http://127.0.0.1:" + affinityPort + "/ok")).GET().build(),
 				HttpResponse.BodyHandlers.ofString());
 		Assertions.assertEquals(200, res.statusCode());
-		await("accepted channel recorded", 10_000, () -> !affinityServer.accepted.isEmpty());
-		var ch = affinityServer.accepted.peek();
+		await("accepted channel recorded", 10_000, () -> !requireNonNull(affinityServer).accepted.isEmpty());
+		var ch = requireNonNull(affinityServer).accepted.peek();
 
 		final Thread[] elThread = new Thread[1];
-		ch.eventLoop().submit(() -> elThread[0] = Thread.currentThread()).await();
+		requireNonNull(ch).eventLoop().submit(() -> elThread[0] = Thread.currentThread()).await();
 		Assertions.assertNotNull(elThread[0]);
 
 		// isActive前后对比（30轮压测轮24假红）：本用例验证的是"手工检查不得关闭无空闲连接"
@@ -126,7 +129,7 @@ public class TestHttpServerIdleCheck {
 		var activeBefore = ch.isActive();
 		affinityServer.lastCheckThread = null;
 		affinityServer.checkTimeoutForTest(ch); // 模拟调度线程发起检查
-		await("check executed", 10_000, () -> affinityServer.lastCheckThread != null);
+		await("check executed", 10_000, () -> requireNonNull(affinityServer).lastCheckThread != null);
 		Assertions.assertSame(elThread[0], affinityServer.lastCheckThread,
 				"checkTimeout必须在channel的EventLoop上执行（与活动清零串行），不得在调度/调用线程上读改写");
 		if (activeBefore)

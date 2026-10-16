@@ -1,5 +1,6 @@
 package Game.Equip;
 
+
 public class Equip implements IEquip {
 	private final BItem item;
 	private final BEquipExtra equip;

@@ -13,8 +13,7 @@ import org.junit.jupiter.api.Timeout;
 import Zeze.Config;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 复审R3回归（FND7-S1①/C③，判例 d2d7cf2bb 同型）：Service.stop 在持 Service 锁时调用
@@ -45,13 +44,13 @@ public class TestServiceStopKeepCheckCancelUnderLock {
 		}
 
 		@Override
-		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketAccept(AsyncSocket so) throws Exception {
 			super.OnSocketAccept(so);
 			so.setActiveRecvTime(); // FND7-63判据要求活跃时间曾被更新才参与检查
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			inCloseCallback.countDown();
 			//noinspection ResultOfMethodCallIgnored
 			proceedToLock.await(); // 停在"已进入回调（tick线程已赢得close的CAS）、未取Service锁"

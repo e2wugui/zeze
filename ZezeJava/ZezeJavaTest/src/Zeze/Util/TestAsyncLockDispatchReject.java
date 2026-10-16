@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,7 +52,7 @@ public class TestAsyncLockDispatchReject {
 		// cb1 快路径占住派发权后先示意再等待；确认 cb1 已在临界区内才启动入队线程，
 		// 排除 enqueuer 先赢 CAS 直跑 cb2 的交错（那会让失败发生在 enqueuer 线程上）。
 		// cb2 趁窗口入队（只入队不派发）；cb1 返回触发的 leave→tryNextAsync 在停机池上派发失败。
-		var thrown = new AtomicReference<Throwable>();
+		var thrown = new AtomicReference<@Nullable Throwable>();
 		var holder = new Thread(() -> {
 			try {
 				lock.enter(() -> {

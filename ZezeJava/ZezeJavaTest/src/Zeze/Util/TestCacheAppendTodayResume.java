@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,8 +29,8 @@ import harness.Fast;
 public class TestCacheAppendTodayResume {
 
 	public static final class Obj implements CacheObject {
-		public String id;
-		public String value;
+		public @Nullable String id;
+		public @Nullable String value;
 
 		public Obj() {
 		}
@@ -38,7 +42,7 @@ public class TestCacheAppendTodayResume {
 
 		@Override
 		public String cacheId() {
-			return id;
+			return requireNonNull(id);
 		}
 
 		@Override

@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
@@ -59,13 +61,13 @@ public class TestGlobalCacheManagerAsyncKickReleaseGeneration {
 	private static final int SERVER_ID_S = 9122;
 	private static final int SERVER_ID_T = 9123;
 
-	private static RawClient clientA;
-	private static RawClient clientS;
-	private static RawClient clientS2;
-	private static RawClient clientT;
+	private static @Nullable RawClient clientA;
+	private static @Nullable RawClient clientS;
+	private static @Nullable RawClient clientS2;
+	private static @Nullable RawClient clientT;
 
 	// 不用getInstance()单例（理由同TestGlobalCacheManagerAsyncAcquireKick）：自建实例自起自停。
-	private static GlobalCacheManagerAsyncServer gcm;
+	private static @Nullable GlobalCacheManagerAsyncServer gcm;
 
 	/** 裸协议客户端：Login/ReLogin/Acquire正常收发；Reduce到达后park住由测试控制应答时机。 */
 	private static final class RawClient extends Service {
@@ -117,7 +119,7 @@ public class TestGlobalCacheManagerAsyncKickReleaseGeneration {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		for (var c : new RawClient[]{clientA, clientS, clientS2, clientT})
+		for (var c : new @Nullable RawClient[]{clientA, clientS, clientS2, clientT})
 			if (c != null)
 				c.stop();
 		if (gcm != null) {
@@ -135,7 +137,7 @@ public class TestGlobalCacheManagerAsyncKickReleaseGeneration {
 		Assertions.assertEquals(0, login.getResultCode(), "login resultCode");
 	}
 
-	private static Object cacheStateOf(Binary key) throws Exception {
+	private static @Nullable Object cacheStateOf(Binary key) throws Exception {
 		var field = GlobalCacheManagerAsyncServer.class.getDeclaredField("global");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked")

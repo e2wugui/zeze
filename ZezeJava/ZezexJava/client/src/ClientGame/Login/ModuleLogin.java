@@ -1,5 +1,6 @@
 package ClientGame.Login;
 
+import java.util.Objects;
 import ClientZezex.Linkd.Auth;
 import Zeze.IModule;
 
@@ -13,14 +14,14 @@ public class ModuleLogin extends AbstractModule {
     public void auth() throws InterruptedException {
         var r = new Auth();
         r.Argument.setAccount("TestHot");
-        r.SendForWait(App.ClientService.GetSocket()).await();
+        r.SendForWait(Objects.requireNonNull(App.ClientService).GetSocket()).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("auth error=" + IModule.getErrorCode(r.getResultCode()));
     }
 
     public BRole getOrCreateRole(String roleName) {
         var r = new GetRoleList();
-        r.SendForWait(App.ClientService.GetSocket(), 30_000).await();
+        r.SendForWait(Objects.requireNonNull(App.ClientService).GetSocket(), 30_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("get role list error=" + IModule.getErrorCode(r.getResultCode()));
 
@@ -34,7 +35,7 @@ public class ModuleLogin extends AbstractModule {
     public BRole createRole(String roleName) {
         var r = new CreateRole();
         r.Argument.setName(roleName);
-        r.SendForWait(App.ClientService.GetSocket(), 30_000).await();
+        r.SendForWait(Objects.requireNonNull(App.ClientService).GetSocket(), 30_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("create role error=" + IModule.getErrorCode(r.getResultCode()));
         return r.Result;

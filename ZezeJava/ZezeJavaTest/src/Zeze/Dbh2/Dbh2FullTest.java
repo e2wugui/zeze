@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Dbh2.Database;
 import Zeze.Serialize.ByteBuffer;
 import org.junit.jupiter.api.Assertions;
@@ -20,7 +22,7 @@ public class Dbh2FullTest {
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 			var key1 = ByteBuffer.Wrap(new byte[]{1});
 
-			try (var trans = env.database.beginTransaction()) {
+			try (var trans = requireNonNull(env.database).beginTransaction()) {
 				table1.replace(trans, key, env.value);
 				table1.replace(trans, key1, env.value);
 				table2.replace(trans, key, env.value);
@@ -71,7 +73,7 @@ public class Dbh2FullTest {
 		try {
 			var table1 = env.tables.getFirst();
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
-			try (var trans = env.database.beginTransaction()) {
+			try (var trans = requireNonNull(env.database).beginTransaction()) {
 				table1.replace(trans, key, env.value);
 				trans.commit();
 			}

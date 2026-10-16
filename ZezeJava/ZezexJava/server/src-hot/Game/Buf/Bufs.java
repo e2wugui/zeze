@@ -1,5 +1,7 @@
 package Game.Buf;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import Game.*;
 import Game.Fight.IModuleFight;
 import Zeze.Util.TaskSpec;
@@ -17,7 +19,7 @@ public class Bufs implements IBufs {
 	}
 
 	@Override
-	public IBuf getBuf(int id) {
+	public @Nullable IBuf getBuf(int id) {
 		var bBuf = bean.getBufs().get(id);
 		if (null != bBuf) {
 			var extraTypeId = bBuf.getExtra().getTypeId();
@@ -33,9 +35,9 @@ public class Bufs implements IBufs {
 			// 因为没有取消Scheduler，所以可能发生删除不存在的buf。
 
 			// context 可以缓存，demo就不考虑了。
-			var context = App.Instance.Zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
-			var fight = context.getService();
-			fight.StartCalculateFighter(getRoleId());
+			var context = Objects.requireNonNull(App.Instance.getZeze().getHotManager()).getModuleContext("Game.Fight", IModuleFight.class);
+			var fight = Objects.requireNonNull(context).getService();
+			Objects.requireNonNull(fight).StartCalculateFighter(getRoleId());
 		}
 	}
 
@@ -56,9 +58,9 @@ public class Bufs implements IBufs {
 
 		TaskSpec.ofAction(() -> detach(buf.getId())).schedule(buf.getContinueTime());
 		// context 可以缓存，demo就不考虑了。
-		var context = App.Instance.Zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
-		var fight = context.getService();
-		fight.StartCalculateFighter(getRoleId());
+		var context = Objects.requireNonNull(App.Instance.getZeze().getHotManager()).getModuleContext("Game.Fight", IModuleFight.class);
+		var fight = Objects.requireNonNull(context).getService();
+		Objects.requireNonNull(fight).StartCalculateFighter(getRoleId());
 	}
 
 	@Override

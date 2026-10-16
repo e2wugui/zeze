@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 
 import harness.Fast;
@@ -66,11 +68,11 @@ public class TestRaftServerManagementProtocolsReachable {
 	 */
 	@Test
 	public void testGetLeaderHandleReachableWithoutLeaderReady() throws Exception {
-		var server = rocks.getRaft().getServer();
+		var server = requireNonNull(rocks.getRaft()).getServer();
 		Assertions.assertFalse(rocks.getRaft().isLeader(), "headless构造无选举，必须处于Follower");
 
 		var p = new GetLeader();
-		server.dispatchProtocol(p, server.findProtocolFactoryHandle(GetLeader.TypeId_));
+		server.dispatchProtocol(p, requireNonNull(server.findProtocolFactoryHandle(GetLeader.TypeId_)));
 
 		// 派发经taskOneByOneByKey异步执行，轮询处理结果（上限5秒）
 		var deadline = System.currentTimeMillis() + 5_000;

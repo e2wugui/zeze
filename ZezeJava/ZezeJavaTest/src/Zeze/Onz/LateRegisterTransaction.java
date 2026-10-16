@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Builtin.Onz.BSavedCommits;
 import demo.Module1.BKuafu;
 import demo.Module1.BKuafuResult;
@@ -11,7 +13,7 @@ import demo.Module1.BKuafuResult;
  * 之后重建快照再调用本commit——捕获传入的state即为eCommitting持久化内容。
  */
 public class LateRegisterTransaction extends OnzTransaction<BKuafu.Data, BKuafuResult.Data> {
-	public volatile BSavedCommits.Data capturedCommitState;
+	public volatile BSavedCommits.@Nullable Data capturedCommitState;
 
 	{
 		// 满负载下参与方flush排队可超产品默认10s（test30-3 IT round10实证：waitFlushReady

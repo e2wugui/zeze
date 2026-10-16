@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -15,7 +17,6 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.TaskCompletionSource;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -60,7 +61,7 @@ public class TestSagaCancelNotFoundRetry {
 		}
 
 		@Override
-		public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketConnected(AsyncSocket so) throws Exception {
 			super.OnSocketConnected(so);
 			connected.setResult(so);
 		}
@@ -160,7 +161,7 @@ public class TestSagaCancelNotFoundRetry {
 			Zeze.Util.Task.tryInitThreadPool();
 
 			var listener = (Zeze.Net.TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
-			int port = listener.getLocalInet().getPort();
+			int port = requireNonNull(listener.getLocalInet()).getPort();
 			client.newClientSocket("127.0.0.1", port, null, null);
 			var socket = client.connected.get();
 			for (var code : scriptCodes)

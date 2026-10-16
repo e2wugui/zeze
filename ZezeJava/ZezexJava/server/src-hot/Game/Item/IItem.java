@@ -1,5 +1,6 @@
 package Game.Item;
 
+
 // item 继承体系演示。
 // 有多层，
 // 纯接口化以后，

@@ -1,5 +1,7 @@
 package Zeze.Misc;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 import demo.App;
@@ -16,8 +18,8 @@ public class TestThreading {
 
 	@Test
 	public void TestTimeout() {
-		var threading = App.Instance.Zeze.getServiceManager().getThreading();
-		threading.openMutex("timeout_mutex").tryLock();
+		var threading = requireNonNull(requireNonNull(App.Instance.Zeze).getServiceManager()).getThreading();
+		requireNonNull(threading).openMutex("timeout_mutex").tryLock();
 		threading.createSemaphore("timeout_semaphore", 10).tryAcquire();
 		threading.openReadWriteLock("timeout_rwlock").tryEnterRead();
 	}
@@ -36,7 +38,7 @@ public class TestThreading {
 
 	@Test
 	public void testMutex() throws InterruptedException {
-		var mutex = App.Instance.Zeze.getServiceManager().getThreading().openMutex("UnitTest.Threading.Mutex1");
+		var mutex = requireNonNull(requireNonNull(requireNonNull(App.Instance.Zeze).getServiceManager()).getThreading()).openMutex("UnitTest.Threading.Mutex1");
 		if (mutex.tryLock(1000)) {
 			new Thread(() -> {
 				if (mutex.tryLock(1000))
@@ -52,7 +54,7 @@ public class TestThreading {
 
 	@Test
 	public void testSemaphore() throws InterruptedException {
-		var s = App.Instance.Zeze.getServiceManager().getThreading().createSemaphore("UnitTest.Threading.Semaphore", 10);
+		var s = requireNonNull(requireNonNull(requireNonNull(App.Instance.Zeze).getServiceManager()).getThreading()).createSemaphore("UnitTest.Threading.Semaphore", 10);
 		if (s.tryAcquire(5, 1000)) {
 			new Thread(() -> {
 				if (s.tryAcquire(5,1000))
@@ -68,7 +70,7 @@ public class TestThreading {
 
 	@Test
 	public void testRWLock() throws InterruptedException {
-		var rwLock = App.Instance.Zeze.getServiceManager().getThreading().openReadWriteLock("UnitTest.Threading.RWLock");
+		var rwLock = requireNonNull(requireNonNull(requireNonNull(App.Instance.Zeze).getServiceManager()).getThreading()).openReadWriteLock("UnitTest.Threading.RWLock");
 		if (rwLock.tryEnterRead(1000)) {
 			new Thread(() -> {
 				if (rwLock.tryEnterWrite(1000))

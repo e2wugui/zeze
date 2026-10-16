@@ -1,4 +1,6 @@
 package Zeze.Util;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -16,7 +18,7 @@ import Zeze.Util.JsonReader;
 @Fast
 public final class TestJsonNestingLimit {
 	static class Node {
-		Node n;
+		@Nullable Node n;
 	}
 
 	private static String nestArray(int depth) {
@@ -66,7 +68,7 @@ public final class TestJsonNestingLimit {
 	public void testUntypedMapOverLimit() {
 		assertThrows(IllegalStateException.class, () -> {
 			@SuppressWarnings("unused")
-			Map<String, Object> m = JsonReader.local().buf(nestMap(2000)).parseMap(null);
+			Map<String, @Nullable Object> m = JsonReader.local().buf(nestMap(2000)).parseMap(null);
 		});
 	}
 

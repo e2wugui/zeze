@@ -1,5 +1,7 @@
 import Zeze.Services.Daemon;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public class Program {
 	public synchronized static void main(String[] args) throws Exception {
 		System.setProperty(Daemon.propertyNameClearInUse, "true");

@@ -1,10 +1,13 @@
 package Zeze.SimpleRaft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Arrays;
 import java.util.HashMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public class SimpleRaft {
 	public static class Log {
 		final long key; // log的唯一key. 防止重复. 由客户端填写
@@ -27,7 +30,7 @@ public class SimpleRaft {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "Log{" + "index=" + index + ", term=" + term + '}';
 		}
 	}
@@ -39,25 +42,25 @@ public class SimpleRaft {
 
 		@Nullable Object recvEvent(); // return null if no event
 
-		void sendEvent(int id, @NotNull Object obj);
+		void sendEvent(int id, Object obj);
 
-		void sendClientEvent(@NotNull Object obj);
+		void sendClientEvent(Object obj);
 
 		long getLogCount();
 
-		Log getLog(long index); // return null if not exist
+		@Nullable Log getLog(long index); // return null if not exist
 
-		@NotNull Log @NotNull [] getLogs(long indexBegin, long indexEnd); // [indexBegin, indexEnd)
+		Log [] getLogs(long indexBegin, long indexEnd); // [indexBegin, indexEnd)
 
 		@Nullable Log getLogByKey(long key); // return null if not exist
 
-		boolean appendLog(@NotNull Log log); // return false if this log(key) is already appended
+		boolean appendLog(Log log); // return false if this log(key) is already appended
 
-		void appendLogs(@NotNull Log @NotNull [] logs); // ignore already appended log(key)s
+		void appendLogs(Log [] logs); // ignore already appended log(key)s
 
 		void truncateLogs(long logCount);
 
-		void traceInfo(@NotNull String format);
+		void traceInfo(String format);
 	}
 
 	private static final class RequestVote {
@@ -74,7 +77,7 @@ public class SimpleRaft {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "RequestVote{" + "term=" + term + ", candidateId=" + candidateId + ", lastLogIndex=" + lastLogIndex
 					+ ", lastLogTerm=" + lastLogTerm + '}';
 		}
@@ -90,7 +93,7 @@ public class SimpleRaft {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "RequestVoteRe{" + "term=" + term + ", voteGranted=" + voteGranted + '}';
 		}
 	}
@@ -100,10 +103,10 @@ public class SimpleRaft {
 		final int leaderId;
 		final long prevLogIndex;
 		final long prevLogTerm;
-		final @NotNull Log @NotNull [] entries;
+		final Log [] entries;
 		final long leaderCommit;
 
-		AppendEntries(long term, int leaderId, long prevLogIndex, long prevLogTerm, @NotNull Log @NotNull [] entries,
+		AppendEntries(long term, int leaderId, long prevLogIndex, long prevLogTerm, Log [] entries,
 					  long leaderCommit) {
 			this.term = term;
 			this.leaderId = leaderId;
@@ -114,7 +117,7 @@ public class SimpleRaft {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "AppendEntries{" + "term=" + term + ", leaderId=" + leaderId + ", prevLogIndex=" + prevLogIndex
 					+ ", prevLogTerm=" + prevLogTerm + ", entries=" + Arrays.toString(entries) + ", leaderCommit="
 					+ leaderCommit + '}';
@@ -135,7 +138,7 @@ public class SimpleRaft {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "AppendEntriesRe{" + "term=" + term + ", success=" + success + ", followerId=" + followerId
 					+ ", nextLogIndex=" + nextLogIndex + '}';
 		}
@@ -143,15 +146,15 @@ public class SimpleRaft {
 
 	public static final class AddLog { // 客户端发起AddLog请求. 客户端通过Env.sendEvent发送,服务器通过Env.recvEvent接收处理
 		final long serial; // 请求的序列号,每次请求应该都不同,便于与AddLogRe对应
-		final @NotNull Log log; // 准备增加的Log,可以是子类对象,不能为null
+		final Log log; // 准备增加的Log,可以是子类对象,不能为null
 
-		AddLog(long serial, @NotNull Log log) {
+		AddLog(long serial, Log log) {
 			this.serial = serial;
 			this.log = log;
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "AddLog{" + "serial=" + serial + ", log=" + log + '}';
 		}
 	}
@@ -168,7 +171,7 @@ public class SimpleRaft {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "AddLogRe{" + "serial=" + serial + ", result=" + result + ", leaderId=" + leaderId + '}';
 		}
 	}
@@ -180,7 +183,7 @@ public class SimpleRaft {
 	private static final int APPEND_LOG_MAX = 100;
 	private static final Log[] NO_LOG = new Log[0];
 
-	private final @NotNull Env env;
+	private final Env env;
 	private final byte raftCount; // 所有raft节点数量. 有效值:[2,127]
 	private final byte selfId; // 自身节点ID. 有效值>=0
 	private byte leaderId = -1; // 当前的leader节点ID. -1表示自己是follower, -2-n表示自己是candidate(已有n个投票)
@@ -188,11 +191,11 @@ public class SimpleRaft {
 	private long timeout; // 下次投票的超时时间戳(毫秒). `<=当前时间戳`表示应该触发超时
 	private long currentTerm = -1; // 已知的最新term. 实际有效值一定>=0
 	private long commitIndex = -1; // 当前最大的已经执行的log索引
-	private final long @NotNull [] nextIndexes; // [仅leader用] 各节点下次需要复制的log索引
-	private final long @NotNull [] appendingTimeouts; // [仅leader用] 各节点AppendEntries请求超时的时间戳(毫秒)
+	private final long [] nextIndexes; // [仅leader用] 各节点下次需要复制的log索引
+	private final long [] appendingTimeouts; // [仅leader用] 各节点AppendEntries请求超时的时间戳(毫秒)
 	private final HashMap<Long, Long> appendingLogMap = new HashMap<>(); // <index, serial>
 
-	public SimpleRaft(final @NotNull Env env, final int raftCount, final int selfId, final long curTime) {
+	public SimpleRaft(final Env env, final int raftCount, final int selfId, final long curTime) {
 		if (raftCount < 2 || raftCount > 127)
 			throw new IllegalArgumentException("raftCount=" + raftCount + " is not in [2,127]");
 		if (selfId < 0 || selfId >= raftCount)
@@ -245,7 +248,7 @@ public class SimpleRaft {
 			for (int i = 0; i < raftCount; i++)
 				if (i != selfId && appendingTimeouts[i] < curTime) {
 					final long prevIndex = nextIndexes[i] - 1;
-					final long prevTerm = prevIndex >= 0 ? env.getLog(prevIndex).term : -1;
+					final long prevTerm = prevIndex >= 0 ? requireNonNull(env.getLog(prevIndex)).term : -1;
 					appendingTimeouts[i] = curTime + APPEND_TIMEOUT;
 					env.sendEvent(i, new AppendEntries(currentTerm, selfId, prevIndex, prevTerm, NO_LOG, commitIndex));
 				}
@@ -255,7 +258,7 @@ public class SimpleRaft {
 			timeout = curTime + VOTE_TIMEOUT + env.random(RANDOM_TIMEOUT_MAX);
 			final long term = ++currentTerm;
 			final long lastIndex = env.getLogCount() - 1;
-			final long lastTerm = lastIndex >= 0 ? env.getLog(lastIndex).term : -1;
+			final long lastTerm = lastIndex >= 0 ? requireNonNull(env.getLog(lastIndex)).term : -1;
 			if (ENABLE_TRACE)
 				env.traceInfo("candidate begin: lastIndex=" + lastIndex + ", lastTerm=" + lastTerm);
 			for (int i = 0; i < raftCount; i++)
@@ -273,7 +276,7 @@ public class SimpleRaft {
 		}
 	}
 
-	private void onProcess(final @NotNull RequestVote req, final long curTime) {
+	private void onProcess(final RequestVote req, final long curTime) {
 		if (currentTerm < req.term) {
 			currentTerm = req.term;
 			votedFor = -1;
@@ -285,7 +288,7 @@ public class SimpleRaft {
 		boolean voteGranted = false;
 		if (currentTerm == req.term && (votedFor == -1 || votedFor == req.candidateId)) {
 			final long lastIndex = env.getLogCount() - 1;
-			final long lastTerm = lastIndex >= 0 ? env.getLog(lastIndex).term : -1;
+			final long lastTerm = lastIndex >= 0 ? requireNonNull(env.getLog(lastIndex)).term : -1;
 			if (lastTerm < req.lastLogTerm || lastTerm == req.lastLogTerm && lastIndex <= req.lastLogIndex) {
 				votedFor = (byte)req.candidateId;
 				voteGranted = true;
@@ -298,7 +301,7 @@ public class SimpleRaft {
 		env.sendEvent(req.candidateId, new RequestVoteRe(currentTerm, voteGranted));
 	}
 
-	private void onProcess(final @NotNull RequestVoteRe res, final long curTime) {
+	private void onProcess(final RequestVoteRe res, final long curTime) {
 		if (currentTerm < res.term) {
 			currentTerm = res.term;
 			votedFor = -1;
@@ -326,7 +329,7 @@ public class SimpleRaft {
 		if (curVoteCount > (raftCount >> 1)) { // 过半投票成功
 			leaderId = selfId;
 			final long prevIndex = env.getLogCount() - 1;
-			final long prevTerm = prevIndex >= 0 ? env.getLog(prevIndex).term : -1;
+			final long prevTerm = prevIndex >= 0 ? requireNonNull(env.getLog(prevIndex)).term : -1;
 			final long appendTimeout = curTime + APPEND_TIMEOUT;
 			if (ENABLE_TRACE) {
 				env.traceInfo("leader begin: prevIndex=" + prevIndex + ", prevTerm=" + prevTerm
@@ -341,7 +344,7 @@ public class SimpleRaft {
 		}
 	}
 
-	private void onProcess(final @NotNull AppendEntries req, final long curTime) {
+	private void onProcess(final AppendEntries req, final long curTime) {
 		if (currentTerm > req.term) {
 			if (ENABLE_TRACE)
 				env.traceInfo("ignore(term) " + req);
@@ -389,11 +392,11 @@ public class SimpleRaft {
 		if (ENABLE_TRACE && lastApplied != commitIndex)
 			env.traceInfo("follower: commitIndex=" + lastApplied + "=>" + commitIndex + ", logCount=" + nextIndex);
 		while (lastApplied < commitIndex)
-			env.getLog(++lastApplied).execute();
+			requireNonNull(env.getLog(++lastApplied)).execute();
 		env.sendEvent(req.leaderId, new AppendEntriesRe(currentTerm, true, selfId, nextIndex));
 	}
 
-	private void onProcess(final @NotNull AppendEntriesRe res, final long curTime) {
+	private void onProcess(final AppendEntriesRe res, final long curTime) {
 		if (currentTerm != res.term) { // 忽略term不一致
 			if (ENABLE_TRACE)
 				env.traceInfo("ignore(term) " + res);
@@ -417,7 +420,7 @@ public class SimpleRaft {
 			if (ENABLE_TRACE && lastApplied != commitIndex)
 				env.traceInfo("leader: commitIndex=" + lastApplied + "=>" + commitIndex + ", logCount=" + logCount);
 			while (lastApplied < commitIndex) {
-				env.getLog(++lastApplied).execute();
+				requireNonNull(env.getLog(++lastApplied)).execute();
 				final Long serial = appendingLogMap.remove(lastApplied);
 				if (serial != null)
 					env.sendClientEvent(new AddLogRe(serial, 0, leaderId));
@@ -426,7 +429,7 @@ public class SimpleRaft {
 				return;
 		} else // 退到上一版试试
 			nextIndexes[followerId] = nextIndex = Math.max(Math.min(nextIndexes[followerId] - 1, res.nextLogIndex), 0);
-		final long prevTerm = nextIndex > 0 ? env.getLog(nextIndex - 1).term : -1;
+		final long prevTerm = nextIndex > 0 ? requireNonNull(env.getLog(nextIndex - 1)).term : -1;
 		final long nextEndIndex = Math.min(nextIndex + APPEND_LOG_MAX, logCount);
 		if (ENABLE_TRACE && res.success)
 			env.traceInfo("continue appending to " + followerId + ": [" + nextIndex + ',' + nextEndIndex + ')');
@@ -434,7 +437,7 @@ public class SimpleRaft {
 				env.getLogs(nextIndex, nextEndIndex) : NO_LOG, commitIndex));
 	}
 
-	private void onProcess(final @NotNull AddLog req) {
+	private void onProcess(final AddLog req) {
 		if (selfId != leaderId) {
 			env.sendClientEvent(new AddLogRe(req.serial, -1, leaderId));
 			return;
@@ -456,7 +459,7 @@ public class SimpleRaft {
 				if (i != selfId && nextIndexes[i] == nextIndex) { // 只对完成同步的立即复制
 					if (logs == null) {
 						logs = new Log[]{log};
-						prevTerm = prevIndex >= 0 ? env.getLog(prevIndex).term : -1;
+						prevTerm = prevIndex >= 0 ? requireNonNull(env.getLog(prevIndex)).term : -1;
 					}
 					if (ENABLE_TRACE)
 						env.traceInfo("append to " + i + ": index=" + nextIndex + ", prevTerm=" + prevTerm);
@@ -479,7 +482,7 @@ public class SimpleRaft {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "SimpleRaft{" + "raftCount=" + raftCount + ", selfId=" + selfId + ", leaderId=" + leaderId + ", votedFor="
 				+ votedFor + ", timeout=" + timeout + ", currentTerm=" + currentTerm + ", commitIndex=" + commitIndex
 				+ ", nextIndexes=" + Arrays.toString(nextIndexes) + ", appendingTimeouts="

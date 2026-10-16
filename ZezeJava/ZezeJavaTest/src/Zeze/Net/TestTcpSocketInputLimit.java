@@ -1,8 +1,7 @@
 package Zeze.Net;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import Zeze.Net.AsyncSocket;
@@ -47,22 +46,22 @@ public class TestTcpSocketInputLimit {
 		}
 
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
 			if (so instanceof TcpSocket tcp)
 				tcp.setInputSecurityCodec(Constant.eEncryptTypeDisable, null, compressType);
 		}
 
 		@Override
-		public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId,
-		                                    @NotNull ByteBuffer data) {
+		public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId,
+		                                    ByteBuffer data) {
 			// 默认实现抛UnsupportedOperationException会关连接；这里记录大小证明帧被完整接收。
 			receivedBodySize = data.size(); // decode窗口内：ReadIndex跳过帧头、WriteIndex=帧尾，恰为body大小
 			received.countDown();
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			super.OnSocketClose(so, e);
 			closeEx = e;
 			closed.countDown();
@@ -92,7 +91,7 @@ public class TestTcpSocketInputLimit {
 		return local.getPort();
 	}
 
-	private static byte[] compressMppc(byte @NotNull [] payload) {
+	private static byte[] compressMppc(byte [] payload) {
 		var sink = new BufferCodec();
 		var cp = new Compress(sink);
 		cp.update(payload, 0, payload.length);
@@ -100,7 +99,7 @@ public class TestTcpSocketInputLimit {
 		return Arrays.copyOfRange(sink.Bytes, sink.ReadIndex, sink.WriteIndex);
 	}
 
-	private static byte[] compressZstd(byte @NotNull [] payload) {
+	private static byte[] compressZstd(byte [] payload) {
 		var sink = new BufferCodec();
 		var cp = new CompressZstd(sink);
 		cp.update(payload, 0, payload.length);
@@ -122,7 +121,7 @@ public class TestTcpSocketInputLimit {
 		return Arrays.copyOfRange(payload.Bytes, payload.ReadIndex, payload.WriteIndex);
 	}
 
-	private static void sendAfterCodec(Server server, int port, byte @NotNull [] wireBytes) throws Exception {
+	private static void sendAfterCodec(Server server, int port, byte [] wireBytes) throws Exception {
 		try (Socket client = new Socket("127.0.0.1", port)) {
 			// 原先裸sleep(300)等codec装配（2026-09-20审核：假同步点，满载下codec未装即发送
 			// →压缩帧被当裸帧解码→假红）。确定性轮询服务端socket的inputCodecChain非空。
@@ -187,8 +186,8 @@ public class TestTcpSocketInputLimit {
 			var allReceived = new CountDownLatch(200);
 			var server = new Server("TestTcpSocketInputLimit.Batch." + compressType, compressType, 64 * 1024) {
 				@Override
-				public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId,
-				                                    @NotNull ByteBuffer data) {
+				public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId,
+				                                    ByteBuffer data) {
 					Assertions.assertEquals(1024, data.size());
 					allReceived.countDown();
 				}

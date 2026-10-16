@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -257,7 +259,7 @@ public class TestSettleStuckRecord {
 	}
 
 	/** 手写超龄孤儿决策两表（TestFnd19GcD04的ageMs版）：ageMs=索引时戳回拨量（support版定龄121s不够超龄分诊）。 */
-	private static void writeAgedOrphan(OnzServer onzServer, long tid, int state, String onzs, long ageMs) throws Exception {
+	private static void writeAgedOrphan(OnzServer onzServer, long tid, int state, @Nullable String onzs, long ageMs) throws Exception {
 		var key = keyOf(tid);
 		var saved = new BSavedCommits.Data();
 		if (onzs != null)

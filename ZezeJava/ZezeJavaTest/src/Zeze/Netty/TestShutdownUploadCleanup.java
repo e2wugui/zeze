@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,7 +17,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import io.netty.channel.ChannelHandlerContext;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +36,7 @@ public class TestShutdownUploadCleanup {
 		public final ConcurrentLinkedQueue<HttpExchange> created = new ConcurrentLinkedQueue<>();
 
 		@Override
-		public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+		public HttpExchange createHttpExchange(ChannelHandlerContext context) {
 			var x = new HttpExchange(this, context);
 			created.add(x);
 			return x;
@@ -76,13 +77,13 @@ public class TestShutdownUploadCleanup {
 				await("upload exchange created", 10_000, () -> !server.created.isEmpty());
 				var x = server.created.peek();
 				await("fileUpload in channel attr", 10_000,
-						() -> x.channel().attr(HttpFileUploadHandle.fileUploadKey).get() != null);
+						() -> requireNonNull(x).channel().attr(HttpFileUploadHandle.fileUploadKey).get() != null);
 
 				// 停机：closeConnectionNow→closeInEventLoop→fireEndStreamHandle提交即被shutdown清扫→
 				// 内联onCancel。修复前cancel只close，attr永驻；修复后getAndSet取走并release。
 				server.close();
 				await("fileUpload released by cancel compensation", 10_000,
-						() -> x.channel().attr(HttpFileUploadHandle.fileUploadKey).get() == null);
+						() -> requireNonNull(x).channel().attr(HttpFileUploadHandle.fileUploadKey).get() == null);
 			}
 		} finally {
 			server.close();
@@ -113,7 +114,7 @@ public class TestShutdownUploadCleanup {
 				var x = server.created.peek();
 				// onEndStream的getAndSet(null)先取走销毁（200 OK后attr必空）
 				await("upload completed and attr cleaned by normal path", 10_000,
-						() -> x.channel().attr(HttpFileUploadHandle.fileUploadKey).get() == null);
+						() -> requireNonNull(x).channel().attr(HttpFileUploadHandle.fileUploadKey).get() == null);
 				// 收尾响应到达（200），连接未因停机误杀而异常
 				InputStream is = sock.getInputStream();
 				var buf = new byte[4096];

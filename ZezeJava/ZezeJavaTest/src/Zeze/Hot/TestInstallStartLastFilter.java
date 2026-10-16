@@ -1,5 +1,9 @@
 package Zeze.Hot;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
@@ -80,8 +84,8 @@ public class TestInstallStartLastFilter {
 	@TempDir
 	Path tempDir;
 
-	private static AppBase dummyApp;
-	private static Application app;
+	private static @Nullable AppBase dummyApp;
+	private static @Nullable Application app;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -96,7 +100,7 @@ public class TestInstallStartLastFilter {
 		app = new Application("hotstartlast", config);
 		dummyApp = new AppBase() {
 			@Override
-			public Application getZeze() {
+			public @Nullable Application getZeze() {
 				return app;
 			}
 		};
@@ -107,7 +111,7 @@ public class TestInstallStartLastFilter {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		if (app.getStartState() != Application.StartState.eStopped)
+		if (requireNonNull(app).getStartState() != Application.StartState.eStopped)
 			app.stop();
 	}
 
@@ -117,9 +121,9 @@ public class TestInstallStartLastFilter {
 		Files.createDirectories(workingDir.resolve("modules"));
 		Files.createDirectories(workingDir.resolve("interfaces"));
 		var distributeDir = Files.createDirectories(tempDir.resolve("dist"));
-		var manager = new HotManager(dummyApp, workingDir.toString(), distributeDir.toString());
+		var manager = new HotManager(requireNonNull(dummyApp), workingDir.toString(), distributeDir.toString());
 		// install 不可回滚区的 BeanFactory.resetHot 读 app.getHotManager()（生产由 App 装配，测试注入）。
-		app.setHotManager(manager);
+		requireNonNull(app).setHotManager(manager);
 
 		var modulesField = HotManager.class.getDeclaredField("modules");
 		modulesField.setAccessible(true);
@@ -149,7 +153,7 @@ public class TestInstallStartLastFilter {
 					"hotstartlast/Schemas.class", schemasBytes));
 
 			result = manager.installReadies(false);
-			Assertions.assertEquals(2, result.size(), "两个模块都应完成安装流程");
+			Assertions.assertEquals(2, requireNonNull(result).size(), "两个模块都应完成安装流程");
 
 			var flag1 = startLastFlag(result, NS1);
 			var flag2 = startLastFlag(result, NS2);
@@ -185,7 +189,7 @@ public class TestInstallStartLastFilter {
 		for (var module : result) {
 			if (module.getName().equals(namespace)) { // HotModule.getName()=命名空间（modules表键）
 				// 旗标在 jar 类装载器加载的 Class 上，须从模块类反射读取（跨装载器静态不共享）。
-				Field flag = module.getModuleClass().getField("STARTED_LAST");
+				Field flag = requireNonNull(module.getModuleClass()).getField("STARTED_LAST");
 				return flag.getBoolean(null);
 			}
 		}

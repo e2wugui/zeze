@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Fast
 public class TestZstdConfigurationLifecycle {
 	@Test
+	@SuppressWarnings("DataFlowIssue") // 已关闭状态必须先拒绝配置，字典参数故意省略。
 	public void compressedStreamRejectsNativeConfigurationAfterClose() throws Exception {
 		var stream = new ZstdFactory.ZstdCompressStream();
 		stream.setLevel(1);
@@ -26,6 +27,7 @@ public class TestZstdConfigurationLifecycle {
 	}
 
 	@Test
+	@SuppressWarnings("DataFlowIssue") // 已关闭状态必须先拒绝配置，字典参数故意省略。
 	public void decompressedStreamRejectsNativeConfigurationAfterClose() throws Exception {
 		var stream = new ZstdFactory.ZstdDecompressStream();
 		stream.setLongMax(0);

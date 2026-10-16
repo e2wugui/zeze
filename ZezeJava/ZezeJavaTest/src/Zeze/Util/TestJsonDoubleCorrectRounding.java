@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import harness.Fast;
@@ -61,7 +63,7 @@ public final class TestJsonDoubleCorrectRounding {
 			b.d = d;
 			String json = Json.toCompactString(b);
 			B back = Json.parse(json, B.class);
-			assertEquals(Double.doubleToLongBits(d), Double.doubleToLongBits(back.d), json);
+			assertEquals(Double.doubleToLongBits(d), Double.doubleToLongBits(requireNonNull(back).d), json);
 		}
 	}
 

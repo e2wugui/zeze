@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -56,7 +58,7 @@ public class TestPrepareGateTotalOrder {
 	private static Dbh2StateMachine leaderStateMachine(List<Dbh2> nodes) throws InterruptedException {
 		for (var i = 0; i < 300; ++i) { // 选举收敛等待（对齐 harness 常规轮询形态）
 			for (var n : nodes)
-				if (n.getStateMachine().getRaft().isLeader())
+				if (requireNonNull(n.getStateMachine().getRaft()).isLeader())
 					return n.getStateMachine();
 			Thread.sleep(50);
 		}
@@ -66,7 +68,7 @@ public class TestPrepareGateTotalOrder {
 	private static void stopBucket(List<Dbh2> nodes) {
 		for (var n : nodes) {
 			n.close();
-			Zeze.Raft.LogSequence.deleteDirectory(new java.io.File(n.getRaft().getRaftConfig().getDbHome()));
+			Zeze.Raft.LogSequence.deleteDirectory(new java.io.File(requireNonNull(n.getRaft().getRaftConfig().getDbHome())));
 		}
 	}
 
@@ -127,7 +129,7 @@ public class TestPrepareGateTotalOrder {
 
 			// 堵住 raft 串行执行器（FIFO）：其后提交的任务全部排队，测试控制串行序。
 			var fifoEntered = new CountDownLatch(1);
-			leader.getRaft().executeUserTask(() -> {
+			requireNonNull(leader.getRaft()).executeUserTask(() -> {
 				fifoEntered.countDown();
 				//noinspection ResultOfMethodCallIgnored
 				fifoBlocked.await(30, TimeUnit.SECONDS);

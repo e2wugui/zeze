@@ -16,8 +16,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseMemory;
 import Zeze.Util.Id128;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -55,12 +54,12 @@ public class TestApplyCursorPersistence {
 		}
 
 		@Override
-		public @NotNull IApplyTable open(@NotNull String tableName) {
+		public IApplyTable open(String tableName) {
 			return inner.open(tableName);
 		}
 
 		@Override
-		public @NotNull IApplyRecordTxn beginRecordTxn() {
+		public IApplyRecordTxn beginRecordTxn() {
 			recordTxns.incrementAndGet();
 			return inner.beginRecordTxn();
 		}
@@ -71,7 +70,7 @@ public class TestApplyCursorPersistence {
 		}
 
 		@Override
-		public void saveCursor(@NotNull Id128 key, @NotNull IApplyRecordTxn txn) throws Exception {
+		public void saveCursor(Id128 key, IApplyRecordTxn txn) throws Exception {
 			inner.saveCursor(key, txn); // txn即inner的RecordTxn：__cursor__随记录同一dbTxn提交
 		}
 	}

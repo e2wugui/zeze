@@ -1,5 +1,7 @@
 package Benchmark;
 
+import java.util.Objects;
+
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Dbh2.Dbh2TestEnv;
@@ -40,10 +42,10 @@ public class BenchDbh2FullTransaction {
 			for (var t = 0; t < threads; ++t) {
 				var keyStart = t * count;
 				var keyEnd = keyStart + count;
-				futures.add(startBench(keyStart, keyEnd, env.database, env.tables.get(t % env.tables.size()), env.value));
+				futures.add(startBench(keyStart, keyEnd, Objects.requireNonNull(env.database), env.tables.get(t % env.tables.size()), env.value));
 			}
 			Thread.sleep(1000); // 等待agent都连上，然后dump出来。此时任务在并发执行。
-			env.dbh2AgentManager.dumpAgents();
+			Objects.requireNonNull(env.dbh2AgentManager).dumpAgents();
 			for (var future : futures)
 				future.get();
 			b.report("Bench Dbh2 Full Transaction", count * threads);

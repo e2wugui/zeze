@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import static java.util.Objects.requireNonNull;
+
 import demo.App;
 import demo.Bean1;
 import org.junit.jupiter.api.Assertions;
@@ -24,10 +26,10 @@ public class TestOpenCsQueueNoRecursiveUpdate {
 
 	@Test
 	public void testOpenManyNamesNoRecursiveUpdate() {
-		var qm = App.getInstance().Zeze.getQueueModule();
+		var qm = requireNonNull(App.getInstance().Zeze).getQueueModule();
 		for (int i = 0; i < 8000; i++) {
 			var name = "OpenCsQueue#" + i;
-			var csq = qm.openCsQueue(name, Bean1.class);
+			var csq = requireNonNull(qm).openCsQueue(name, Bean1.class);
 			Assertions.assertEquals(name, csq.getName());
 		}
 	}

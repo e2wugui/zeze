@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import java.io.File;
 import java.io.IOException;
@@ -31,8 +33,7 @@ import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AttributeKey;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,20 +41,20 @@ import org.junit.jupiter.api.Test;
 
 @Fast
 public class TestNettyHttpServer {
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
-	private static File sendFileTmp;
-	private static byte @NotNull [] sendFileData;
+	private static @Nullable File sendFileTmp;
+	private static byte @Nullable [] sendFileData;
 
 	@Http.Get(transactionLevel = TransactionLevel.Serializable, dispatchMode = DispatchMode.Direct)
-	public static void testFull(@NotNull HttpExchange x) {
+	public static void testFull(HttpExchange x) {
 		x.sendPlainText(HttpResponseStatus.OK, "fullBody");
 	}
 
 	@Http.Get(transactionLevel = TransactionLevel.Serializable, dispatchMode = DispatchMode.Direct)
-	public static void testSendFile(@NotNull HttpExchange x) throws Exception {
-		x.sendFile(sendFileTmp, 10);
+	public static void testSendFile(HttpExchange x) throws Exception {
+		x.sendFile(requireNonNull(sendFileTmp), 10);
 	}
 
 	@BeforeAll
@@ -72,13 +73,13 @@ public class TestNettyHttpServer {
 
 		Http.register(server, TestNettyHttpServer.class);
 
-		var ck = AttributeKey.<CompositeByteBuf>valueOf("c");
+		var ck = AttributeKey.<@Nullable CompositeByteBuf>valueOf("c");
 		server.addHandler("/testStream", TransactionLevel.Serializable, DispatchMode.Direct,
 				(x, from, to, size) -> x.attributes().attr(ck).set(x.channel().alloc().compositeBuffer()),
-				(x, c) -> x.attributes().attr(ck).get().addComponent(true, c.content().retain()),
+				(x, c) -> requireNonNull(x.attributes().attr(ck).get()).addComponent(true, c.content().retain()),
 				x -> {
 					var b = x.attributes().attr(ck).getAndSet(null);
-					x.sendPlainText(HttpResponseStatus.OK, b.toString(StandardCharsets.UTF_8));
+					x.sendPlainText(HttpResponseStatus.OK, requireNonNull(b).toString(StandardCharsets.UTF_8));
 					b.release();
 				});
 
@@ -101,10 +102,10 @@ public class TestNettyHttpServer {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 		//noinspection ResultOfMethodCallIgnored
-		sendFileTmp.delete();
+		requireNonNull(sendFileTmp).delete();
 	}
 
 	public static final class HttpResponseStringBody implements HttpResponse.BodySubscriber<String> {
@@ -203,7 +204,7 @@ public class TestNettyHttpServer {
 		Assertions.assertEquals("streamBody", res.body());
 	}
 
-	private static byte @NotNull [] rangeGet(@Nullable String range, int expectStatus, long from, long toExcl)
+	private static byte [] rangeGet(@Nullable String range, int expectStatus, long from, long toExcl)
 			throws Exception {
 		var b = HttpRequest.newBuilder().uri(URI.create("http://127.0.0.1:" + port + "/testSendFile")).GET();
 		if (range != null)
@@ -211,7 +212,7 @@ public class TestNettyHttpServer {
 		var res = HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofByteArray());
 		Assertions.assertEquals(expectStatus, res.statusCode(), "status, range=" + range);
 		Assertions.assertEquals(toExcl - from, res.body().length, "body length, range=" + range);
-		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(sendFileData, (int)from, (int)toExcl), res.body(),
+		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(requireNonNull(sendFileData), (int)from, (int)toExcl), res.body(),
 				"body content, range=" + range);
 		return res.body();
 	}
@@ -229,7 +230,7 @@ public class TestNettyHttpServer {
 				.header("Range", "bytes=0-499").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
 		Assertions.assertEquals(206, res.statusCode());
 		Assertions.assertEquals(500, res.body().length);
-		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(sendFileData, 0, 500), res.body());
+		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(requireNonNull(sendFileData), 0, 500), res.body());
 		Assertions.assertEquals("bytes 0-499/1000", res.headers().firstValue("content-range").orElse(""));
 
 		// bytes=100-199: 100字节
@@ -286,7 +287,7 @@ public class TestNettyHttpServer {
 					private final StringBuilder sb = new StringBuilder();
 
 					@Override
-					public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
+					public @Nullable CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
 						sb.append(data);
 						if (last) {
 							Assertions.assertEquals("webSocketText", sb.toString());
@@ -299,7 +300,7 @@ public class TestNettyHttpServer {
 					}
 
 					@Override
-					public CompletionStage<?> onClose(WebSocket webSocket, int status, String reason) {
+					public @Nullable CompletionStage<?> onClose(WebSocket webSocket, int status, String reason) {
 						System.out.println("client onClose: " + status + ", " + reason);
 						return null;
 					}

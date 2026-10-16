@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 
 import Zeze.Util.Task;
@@ -30,8 +32,8 @@ public class TestRaftConfigNotMutated {
 	private static final String dirA = nameA.replace(':', '_');
 	private static final String dirB = nameB.replace(':', '_');
 
-	private Raft raftA;
-	private Raft raftB;
+	private @Nullable Raft raftA;
+	private @Nullable Raft raftB;
 
 	// 不配DbHome：dbHome与Name相关，改名时联动派生（原语义）。
 	private static RaftConfig newSharedConfig() {
@@ -65,7 +67,7 @@ public class TestRaftConfigNotMutated {
 
 	@AfterEach
 	public void tearDown() throws Exception {
-		for (var raft : new Raft[]{raftA, raftB}) {
+		for (var raft : new @Nullable Raft[]{raftA, raftB}) {
 			if (raft != null) {
 				try {
 					raft.getLogSequence().close();

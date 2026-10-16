@@ -1,4 +1,6 @@
 package Zeze.Util;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -13,7 +15,7 @@ public final class TestJson5 {
 	private int checkCount;
 
 	private void checkObj(String json5, String resJson) throws ReflectiveOperationException {
-		final Map<String, Object> map = JsonReader.local().buf(json5).parseMap(new LinkedHashMap<>());
+		final Map<String, @Nullable Object> map = JsonReader.local().buf(json5).parseMap(new LinkedHashMap<>());
 		final String res = JsonWriter.local().clear().setFlags(0x10_0000).setNoQuoteKey(true).write(map).toString();
 		assertEquals(resJson, res);
 		checkCount++;

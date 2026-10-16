@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -16,7 +20,6 @@ import Zeze.Netty.Netty;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,8 +33,8 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestHttpWebSocketContentLimit {
 	private static final int MaxFrame = 2048;
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
 
 	@BeforeAll
@@ -42,7 +45,7 @@ public class TestHttpWebSocketContentLimit {
 		// maxFrameLength=2048:既是单帧上限(maxFramePayloadLength)也是分片消息累积上限(修复后)
 		server.addHandler("/ws", MaxFrame, TransactionLevel.None, DispatchMode.Direct, new HttpWebSocketHandle() {
 			@Override
-			public void onText(HttpExchange x, @NotNull String text) {
+			public void onText(HttpExchange x, String text) {
 				x.sendWebSocket(text); // 回显完整消息
 			}
 		});
@@ -53,7 +56,7 @@ public class TestHttpWebSocketContentLimit {
 			final java.util.concurrent.atomic.AtomicLong rawBytes = new java.util.concurrent.atomic.AtomicLong();
 
 			@Override
-			public void onContent(@NotNull HttpExchange x, @NotNull io.netty.buffer.ByteBuf content,
+			public void onContent(HttpExchange x, io.netty.buffer.ByteBuf content,
 								  boolean isText, boolean isFinal) {
 				rawBytes.addAndGet(content.readableBytes()); // 自行消化分片，不写入exchange.content
 			}
@@ -64,21 +67,21 @@ public class TestHttpWebSocketContentLimit {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
-	private static @NotNull String repeat(char c, int n) {
+	private static String repeat(char c, int n) {
 		return String.valueOf(c).repeat(n);
 	}
 
 	private static final class Listener implements WebSocket.Listener {
 		final StringBuilder text = new StringBuilder();
 		final CountDownLatch done = new CountDownLatch(1);
-		final AtomicReference<Integer> closeStatus = new AtomicReference<>();
+		final AtomicReference<@Nullable Integer> closeStatus = new AtomicReference<>();
 
 		@Override
-		public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
+		public @Nullable CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
 			text.append(data);
 			if (last)
 				done.countDown();
@@ -87,14 +90,14 @@ public class TestHttpWebSocketContentLimit {
 		}
 
 		@Override
-		public CompletionStage<?> onClose(WebSocket ws, int statusCode, @NotNull String reason) {
+		public @Nullable CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
 			closeStatus.set(statusCode);
 			done.countDown();
 			return null;
 		}
 
 		@Override
-		public void onError(WebSocket ws, @NotNull Throwable ex) {
+		public void onError(WebSocket ws, Throwable ex) {
 			done.countDown();
 		}
 	}

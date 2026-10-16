@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Zeze.Builtin.Onz.BSavedCommits;
@@ -54,7 +58,7 @@ public class TestSagaTtlNotFound {
 	static volatile int CancelCount;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -63,7 +67,7 @@ public class TestSagaTtlNotFound {
 		var myConfig = startTwoClusters(zeze2);
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().registerSaga(SagaName,
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga(SagaName,
 					TestSagaTtlNotFound::sagaBusiness, TestSagaTtlNotFound::sagaCancel,
 					BKuafu.class, BKuafuResult.class, Zeze.Transaction.EmptyBean.class);
 
@@ -75,13 +79,13 @@ public class TestSagaTtlNotFound {
 		if (onzServer != null)
 			// 恢复TTL默认：App.Instance跨测试类持久，残留的小超时会被60s周期清理定时器
 			// 用于后续测试类的上下文（TestOnzSagaCleanup族同因未恢复而心存此患，这里止损）。
-			App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 		stopCoordinator(onzServer, zeze2);
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney()); // 参与方本地提交（发结果即提交）
 		result.setMoney(account.getMoney());
 		return 0;
@@ -100,12 +104,12 @@ public class TestSagaTtlNotFound {
 	@Test
 	@Timeout(120)
 	public void testCleanupTimesByLastActiveTime() throws Exception {
-		waitOnzReady(onzServer);
-		var onz = App.Instance.Zeze.getOnz();
+		waitOnzReady(requireNonNull(onzServer));
+		var onz = requireNonNull(App.Instance.Zeze).getOnz();
 
 		// 构造上下文（业务立即提交成功，滞留等FuncSagaEnd）
 		sendFuncSaga(TtlTid);
-		waitUntil(() -> sagaCount(onz) == 1, 30_000, "saga上下文未注册");
+		waitUntil(() -> sagaCount(requireNonNull(onz)) == 1, 30_000, "saga上下文未注册");
 
 		// 拉开构造年龄：≥1s > 判定预算500ms
 		Thread.sleep(1_000);
@@ -114,7 +118,7 @@ public class TestSagaTtlNotFound {
 		CancelFail = true;
 		awaitFutureQuietly(sendFuncSagaEnd(TtlTid, true));
 		Assertions.assertEquals(1, CancelCount, "补偿必须恰好执行一次且失败");
-		Assertions.assertEquals(1, sagaCount(onz), "补偿失败后上下文必须放回sagas等重发");
+		Assertions.assertEquals(1, sagaCount(requireNonNull(onz)), "补偿失败后上下文必须放回sagas等重发");
 
 		// 构造年龄(≥1s)超预算、最后活动年龄（刚刷新，毫秒级）未超：不得清理。
 		onz.setSagaContextTimeoutMs(500);
@@ -136,7 +140,7 @@ public class TestSagaTtlNotFound {
 	@Test
 	@Timeout(120)
 	public void testRedoAgedRollbackNotFoundKeepsRecordAndWarnsOnce() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		// 无参与方上下文（不sendFuncSaga）：redo补发FuncSagaEnd(cancel)必得eSagaNotFound。
 		writeOrphanRecords(AgedTid, AbstractOnz.ePreparing, Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs + 100_000);
 
@@ -168,7 +172,7 @@ public class TestSagaTtlNotFound {
 	@Test
 	@Timeout(120)
 	public void testRedoAgedCommitNotFoundKeepsRecordForSettle() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		writeOrphanRecords(AgedCommitTid, AbstractOnz.eCommitting, Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs + 100_000);
 
 		invokeRedoTimer(onzServer);
@@ -187,7 +191,7 @@ public class TestSagaTtlNotFound {
 
 		// 终清（harness可达：settleStuckRecord公开方法，守卫=agedNotFoundWarnedTids等滞留集合）：
 		// 人工清算通道删除两表并回收告警去重tid——超龄保留不是永久滞留。
-		Assertions.assertTrue(onzServer.settleStuckRecord(AgedCommitTid),
+		Assertions.assertTrue(requireNonNull(onzServer).settleStuckRecord(AgedCommitTid),
 				"已分诊滞留的tid必须可被settleStuckRecord清算（守卫放行agedNotFoundWarnedTids成员）");
 		Assertions.assertEquals(0, count(tableOf(onzServer, "commitIndex")), "settle终清索引");
 		Assertions.assertEquals(0, count(tableOf(onzServer, "commitPoint")), "settle终清点表（单batch原子双删）");
@@ -208,7 +212,7 @@ public class TestSagaTtlNotFound {
 		r.Argument.setFuncName(SagaName);
 		r.Argument.setFuncArgument(new Binary(bb.Bytes, 0, bb.WriteIndex));
 		r.Argument.setFlushMode(AbstractOnz.eFlushImmediately);
-		r.SendForWait(onzServer.getZezeInstance("zeze1")); // 不await：应答要等业务+flush，这里只需上下文就位
+		r.SendForWait(requireNonNull(onzServer).getZezeInstance("zeze1")); // 不await：应答要等业务+flush，这里只需上下文就位
 	}
 
 	/** 手动发送FuncSagaEnd（补偿失败注入路径），future由调用方收尾等待。 */
@@ -216,7 +220,7 @@ public class TestSagaTtlNotFound {
 		var r = new Zeze.Builtin.Onz.FuncSagaEnd();
 		r.Argument.setOnzTid(tid);
 		r.Argument.setCancel(cancel);
-		return r.SendForWait(onzServer.getZezeInstance("zeze1"), 60_000);
+		return r.SendForWait(requireNonNull(onzServer).getZezeInstance("zeze1"), 60_000);
 	}
 
 	/** 应答收尾等待：补偿失败应答rc=100，这里只保证参与方处理完成（放回+刷新已发生）。 */
@@ -235,7 +239,7 @@ public class TestSagaTtlNotFound {
 		saved.getOnzs().add("saga=zeze1"); // OH1-F1持久化编码：前缀区分saga参与方
 		var bbState = ByteBuffer.Allocate();
 		saved.encode(bbState);
-		tableOf(onzServer, "commitPoint").put(key, java.util.Arrays.copyOf(bbState.Bytes, bbState.WriteIndex));
+		tableOf(requireNonNull(onzServer), "commitPoint").put(key, java.util.Arrays.copyOf(bbState.Bytes, bbState.WriteIndex));
 		var bbIndex = ByteBuffer.Allocate();
 		bbIndex.WriteUInt(state);
 		bbIndex.WriteLong8BE(System.currentTimeMillis() - ageMs);

@@ -18,7 +18,6 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -49,7 +48,7 @@ public class TestTransmitUnknownAction {
 	}
 
 	private static final class TestArchOnline extends Zeze.Arch.Online {
-		TestArchOnline(@NotNull AppBase app) {
+		TestArchOnline(AppBase app) {
 			super(app);
 		}
 	}
@@ -62,7 +61,7 @@ public class TestTransmitUnknownAction {
 		}
 
 		@Override
-		public void append(@NotNull LogEvent event) {
+		public void append(LogEvent event) {
 			if (event.getLevel() == Level.ERROR)
 				messages.add(event.getMessage().getFormattedMessage());
 		}

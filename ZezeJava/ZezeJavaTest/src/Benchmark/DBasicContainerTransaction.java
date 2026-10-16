@@ -1,9 +1,10 @@
 package Benchmark;
+
+import java.util.Objects;
 import harness.Bench;
 import harness.MacroBench;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
 import demo.App;
 import org.junit.jupiter.api.Assertions;
 
@@ -29,10 +30,10 @@ public class DBasicContainerTransaction {
 				for (int i = 0; i < TxnCount; ++i) {
 					final int key = i % Keys;
 					final int value = i;
-					App.Instance.Zeze.newProcedure(() -> add(key, value), "add").call();
+					App.Instance.getZeze().newProcedure(() -> add(key, value), "add").call();
 				}
 			});
-			App.Instance.Zeze.newProcedure(DBasicContainerTransaction::check, "check").call();
+			App.Instance.getZeze().newProcedure(DBasicContainerTransaction::check, "check").call();
 			clearAll();
 		} finally {
 			//App.Instance.Stop();
@@ -40,7 +41,7 @@ public class DBasicContainerTransaction {
 	}
 
 	private static long add(long key, int i) {
-		var bean = App.Instance.demo_web.getMap2Bean1().getOrAdd(key);
+		var bean = Objects.requireNonNull(App.Instance.demo_web).getMap2Bean1().getOrAdd(key);
 		var b1 = new demo.Bean1();
 		b1.setV1(i);
 		for (int j = 0; j < 4; ++j)
@@ -52,7 +53,7 @@ public class DBasicContainerTransaction {
 	private static long check() {
 		int entries = 0;
 		for (long key = 0; key < Keys; ++key) {
-			var bean = App.Instance.demo_web.getMap2Bean1().getOrAdd(key);
+			var bean = Objects.requireNonNull(App.Instance.demo_web).getMap2Bean1().getOrAdd(key);
 			entries += bean.getMap2().size();
 			for (var b1 : bean.getMap2().values())
 				Assertions.assertEquals(4, b1.getV2().size());
@@ -62,9 +63,9 @@ public class DBasicContainerTransaction {
 	}
 
 	private static void clearAll() throws Exception {
-		App.Instance.Zeze.newProcedure(() -> {
+		App.Instance.getZeze().newProcedure(() -> {
 			for (long key = 0; key < Keys; ++key)
-				App.Instance.demo_web.getMap2Bean1().remove(key);
+				Objects.requireNonNull(App.Instance.demo_web).getMap2Bean1().remove(key);
 			return 0L;
 		}, "clear").call();
 	}

@@ -1,5 +1,7 @@
 package ClientGame;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Config;
 import Zeze.Net.Connector;
@@ -12,27 +14,27 @@ public class App extends Zeze.AppBase {
     public static App getInstance() {
         return Instance;
     }
-    public Connector Connector;
+    public @Nullable Connector Connector;
     public LoginQueueClient loginQueueClient = new LoginQueueClient();
-    public TaskCompletionSource<BLoginToken.Data> onLinkConnectedFuture;
+    public @Nullable TaskCompletionSource<BLoginToken.Data> onLinkConnectedFuture;
 
     public void Start(String ip, int port) throws Exception {
         var config = Config.load("client.xml");
         createZeze(config);
         createService();
         createModules();
-        Zeze.start(); // 启动数据库
+        getZeze().start(); // 启动数据库
         startModules(); // 启动模块，装载配置什么的。
         startService(); // 启动网络
 
 		onLinkConnectedFuture = new TaskCompletionSource<>();
         loginQueueClient.setLoginToken((loginToken) -> {
             var c = new OutObject<Connector>();
-            ClientService.getConfig().tryGetOrAddConnector(loginToken.getLinkIp(), loginToken.getLinkPort(), true, c);
-            Connector = c.value;
+            Objects.requireNonNull(ClientService).getConfig().tryGetOrAddConnector(loginToken.getLinkIp(), loginToken.getLinkPort(), true, c);
+            Connector = Objects.requireNonNull(c.value);
             Connector.start();
             Connector.WaitReady();
-            onLinkConnectedFuture.setResult(loginToken);
+            Objects.requireNonNull(onLinkConnectedFuture).setResult(loginToken);
         });
         loginQueueClient.connect("127.0.0.1", 5020);
     }
@@ -42,7 +44,7 @@ public class App extends Zeze.AppBase {
         createZeze(config);
         createService();
         createModules();
-        Zeze.start(); // 启动数据库
+        getZeze().start(); // 启动数据库
         startModules(); // 启动模块，装载配置什么的。
         startService(); // 启动网络
 
@@ -52,10 +54,10 @@ public class App extends Zeze.AppBase {
                     + ":" + (loginToken.getLinkPort() + 10000) + "/websocket";
             Connector = new Connector(true, url);
             System.out.println("wsUrl =========== " + url);
-            ClientService.getConfig().addConnector(Connector);
+            Objects.requireNonNull(ClientService).getConfig().addConnector(Connector);
             Connector.start();
             Connector.WaitReady();
-            onLinkConnectedFuture.setResult(loginToken);
+            Objects.requireNonNull(onLinkConnectedFuture).setResult(loginToken);
         });
         loginQueueClient.connect("127.0.0.1", 5020);
     }
@@ -64,28 +66,28 @@ public class App extends Zeze.AppBase {
         stopService(); // 关闭网络
         stopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)
-            Zeze.stop(); // 关闭数据库
+            getZeze().stop(); // 关闭数据库
         destroyModules();
         destroyServices();
         destroyZeze();
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public ClientGame.ClientService ClientService;
+    public ClientGame.@org.jspecify.annotations.Nullable ClientService ClientService;
 
-    public Zeze.Builtin.Game.Online.ModuleOnline Zeze_Builtin_Game_Online;
-    public Zeze.Builtin.Game.Bag.ModuleBag Zeze_Builtin_Game_Bag;
-    public Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase;
-    public ClientZezex.Linkd.ModuleLinkd ClientZezex_Linkd;
-    public ClientGame.Login.ModuleLogin ClientGame_Login;
-    public ClientGame.Fight.ModuleFight ClientGame_Fight;
-    public ClientGame.Equip.ModuleEquip ClientGame_Equip;
+    public Zeze.Builtin.Game.Online.@org.jspecify.annotations.Nullable ModuleOnline Zeze_Builtin_Game_Online;
+    public Zeze.Builtin.Game.Bag.@org.jspecify.annotations.Nullable ModuleBag Zeze_Builtin_Game_Bag;
+    public Zeze.Builtin.LinkdBase.@org.jspecify.annotations.Nullable ModuleLinkdBase Zeze_Builtin_LinkdBase;
+    public ClientZezex.Linkd.@org.jspecify.annotations.Nullable ModuleLinkd ClientZezex_Linkd;
+    public ClientGame.Login.@org.jspecify.annotations.Nullable ModuleLogin ClientGame_Login;
+    public ClientGame.Fight.@org.jspecify.annotations.Nullable ModuleFight ClientGame_Fight;
+    public ClientGame.Equip.@org.jspecify.annotations.Nullable ModuleEquip ClientGame_Equip;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -93,7 +95,7 @@ public class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -109,7 +111,7 @@ public class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            ClientService = new ClientGame.ClientService(Zeze);
+            ClientService = new ClientGame.ClientService(getZeze());
         } finally {
             unlock();
         }
@@ -131,7 +133,7 @@ public class App extends Zeze.AppBase {
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.initialize(this);
+            getZeze().initialize(this);
             var _modules_ = createRedirectModules(redirectModuleClasses());
 
             Zeze_Builtin_Game_Online = (Zeze.Builtin.Game.Online.ModuleOnline)_modules_[0];
@@ -169,7 +171,7 @@ public class App extends Zeze.AppBase {
             if (modules.put(ClientGame_Equip.getFullName(), ClientGame_Equip) != null)
                 throw new IllegalStateException("duplicate module name: ClientGame_Equip");
 
-            Zeze.setSchemas(new ClientGame.Schemas());
+            getZeze().setSchemas(new ClientGame.Schemas());
         } finally {
             unlock();
         }
@@ -212,13 +214,13 @@ public class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            Zeze_Builtin_Game_Online.Start(this);
-            Zeze_Builtin_Game_Bag.Start(this);
-            Zeze_Builtin_LinkdBase.Start(this);
-            ClientZezex_Linkd.Start(this);
-            ClientGame_Login.Start(this);
-            ClientGame_Fight.Start(this);
-            ClientGame_Equip.Start(this);
+            java.util.Objects.requireNonNull(Zeze_Builtin_Game_Online).Start(this);
+            java.util.Objects.requireNonNull(Zeze_Builtin_Game_Bag).Start(this);
+            java.util.Objects.requireNonNull(Zeze_Builtin_LinkdBase).Start(this);
+            java.util.Objects.requireNonNull(ClientZezex_Linkd).Start(this);
+            java.util.Objects.requireNonNull(ClientGame_Login).Start(this);
+            java.util.Objects.requireNonNull(ClientGame_Fight).Start(this);
+            java.util.Objects.requireNonNull(ClientGame_Equip).Start(this);
         } finally {
             unlock();
         }
@@ -228,13 +230,13 @@ public class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            Zeze_Builtin_Game_Online.StartLast();
-            Zeze_Builtin_Game_Bag.StartLast();
-            Zeze_Builtin_LinkdBase.StartLast();
-            ClientZezex_Linkd.StartLast();
-            ClientGame_Login.StartLast();
-            ClientGame_Fight.StartLast();
-            ClientGame_Equip.StartLast();
+            java.util.Objects.requireNonNull(Zeze_Builtin_Game_Online).StartLast();
+            java.util.Objects.requireNonNull(Zeze_Builtin_Game_Bag).StartLast();
+            java.util.Objects.requireNonNull(Zeze_Builtin_LinkdBase).StartLast();
+            java.util.Objects.requireNonNull(ClientZezex_Linkd).StartLast();
+            java.util.Objects.requireNonNull(ClientGame_Login).StartLast();
+            java.util.Objects.requireNonNull(ClientGame_Fight).StartLast();
+            java.util.Objects.requireNonNull(ClientGame_Equip).StartLast();
         } finally {
             unlock();
         }
@@ -291,7 +293,7 @@ public class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            ClientService.start();
+            java.util.Objects.requireNonNull(ClientService).start();
         } finally {
             unlock();
         }

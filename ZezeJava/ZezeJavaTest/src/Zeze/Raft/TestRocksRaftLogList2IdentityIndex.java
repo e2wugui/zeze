@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -53,7 +57,7 @@ public class TestRocksRaftLogList2IdentityIndex {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override

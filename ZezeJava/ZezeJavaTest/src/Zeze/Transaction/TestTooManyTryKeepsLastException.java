@@ -1,5 +1,11 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
+import org.jspecify.annotations.NullMarked;
+
 import java.util.concurrent.atomic.AtomicReference;
 
 import Zeze.Application;
@@ -23,6 +29,7 @@ import org.junit.jupiter.api.Test;
  * 持锁不释放不 sleep，256 轮快速耗尽），断言 TooManyTry 后事务上仍能读到末轮异常。
  */
 @Fast
+@NullMarked
 public class TestTooManyTryKeepsLastException {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（16375，growth=1；上限16383）。
 	private static final int SERVER_ID = FastServerIds.TEST_TOO_MANY_TRY_LAST_EXCEPTION;
@@ -43,15 +50,15 @@ public class TestTooManyTryKeepsLastException {
 		var app = newApp();
 		app.start();
 		try {
-			var txnRef = new AtomicReference<Transaction>();
+			var txnRef = new AtomicReference<@Nullable Transaction>();
 			var result = app.newProcedure(() -> {
 				txnRef.set(Transaction.getCurrent());
-				Transaction.getCurrent().throwRedo(0, "Redo: constant conflict");
+				requireNonNull(Transaction.getCurrent()).throwRedo(0, "Redo: constant conflict");
 				return Procedure.Success; // unreachable
 			}, "alwaysRedo").call();
 
 			Assertions.assertEquals(Procedure.TooManyTry, result);
-			var last = txnRef.get().getLastRoundException();
+			var last = requireNonNull(txnRef.get()).getLastRoundException();
 			Assertions.assertNotNull(last, "重试耗尽后应能读到最后一个异常轮的原始异常");
 			Assertions.assertInstanceOf(GoBackZeze.class, last);
 			Assertions.assertTrue(last.getMessage().contains("constant conflict"),
@@ -66,16 +73,16 @@ public class TestTooManyTryKeepsLastException {
 		var app = newApp();
 		app.start();
 		try {
-			var txnRef = new AtomicReference<Transaction>();
+			var txnRef = new AtomicReference<@Nullable Transaction>();
 			Assertions.assertEquals(Procedure.TooManyTry, app.newProcedure(() -> {
 				txnRef.set(Transaction.getCurrent());
-				Transaction.getCurrent().throwRedo(0, "Redo: constant conflict");
+				requireNonNull(Transaction.getCurrent()).throwRedo(0, "Redo: constant conflict");
 				return Procedure.Success;
 			}, "alwaysRedo").call());
 
 			// 同线程下一笔正常事务：诊断残留必须清零，不得串笔。
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> Procedure.Success, "clean").call());
-			Assertions.assertNull(txnRef.get().getLastRoundException(),
+			Assertions.assertNull(requireNonNull(txnRef.get()).getLastRoundException(),
 					"新事务 perform 开始时 lastRoundException 应清零");
 		} finally {
 			app.stop();

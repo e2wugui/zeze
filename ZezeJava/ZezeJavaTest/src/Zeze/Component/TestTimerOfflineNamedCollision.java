@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.AppBase;
 import Zeze.Arch.ProviderApp;
 import Zeze.Application;
@@ -12,7 +14,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -37,21 +38,21 @@ public class TestTimerOfflineNamedCollision {
 
 	public static class TestHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 		}
 	}
 
 	// Arch.Online的protected构造（load redirect用）以命名子类放开super访问；
 	// 构造内RegisterProtocols/RegisterZezeTables均为纯内存注册。
 	private static final class TestArchOnline extends Zeze.Arch.Online {
-		TestArchOnline(@NotNull AppBase app) {
+		TestArchOnline(AppBase app) {
 			super(app);
 		}
 	}
 
 	// Game.Online同上；其构造内即创建真实TimerRole（timerRole = new TimerRole(this)）。
 	private static final class TestGameOnline extends Zeze.Game.Online {
-		TestGameOnline(@NotNull AppBase app) {
+		TestGameOnline(AppBase app) {
 			super(app);
 		}
 	}
@@ -80,8 +81,8 @@ public class TestTimerOfflineNamedCollision {
 			roleTimer = new TestGameOnline(appBase).getTimerRole();
 
 			zeze.start();
-			timer = zeze.getTimer();
-			timer.start();
+			timer = java.util.Objects.requireNonNull(zeze.getTimer());
+			requireNonNull(timer).start();
 		}
 
 		@Override

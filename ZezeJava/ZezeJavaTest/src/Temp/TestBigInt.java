@@ -1,4 +1,6 @@
 package Temp;
+
+import java.util.Objects;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -29,7 +31,7 @@ public class TestBigInt {
 		assertEquals(1, gb.fields.size()); // field count
 		var e = gb.fields.entrySet().iterator().next();
 		assertEquals(1, e.getKey().intValue()); // varId
-		assertEquals(ArrayList.class, e.getValue().getClass());
+		assertEquals(ArrayList.class, Objects.requireNonNull(e.getValue()).getClass());
 		var list = (ArrayList<?>)e.getValue();
 		assertEquals(2, list.size());
 		var high = list.get(0);

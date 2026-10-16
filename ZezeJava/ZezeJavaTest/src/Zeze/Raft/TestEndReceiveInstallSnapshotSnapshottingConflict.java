@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
@@ -66,7 +68,7 @@ public class TestEndReceiveInstallSnapshotSnapshottingConflict {
 	public void testSnapshottingConflictAbortsReset() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
 			var raft = rocks.getRaft();
-			var logSequence = raft.getLogSequence();
+			var logSequence = requireNonNull(raft).getLogSequence();
 
 			// 模拟 processInstallSnapshot done 分支之后的进入状态：
 			// Argument.term 与当前 term 一致，done=true 的最后一个 trunk。

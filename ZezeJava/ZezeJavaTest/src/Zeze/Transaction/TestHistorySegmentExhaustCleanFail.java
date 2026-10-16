@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,7 +34,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * FND33 history-03 回归：段耗尽的续段取号必须整体发生在数据应用之前。修复前
@@ -53,9 +56,9 @@ public class TestHistorySegmentExhaustCleanFail {
 	private static final int SERVER_ID = FastServerIds.TEST_HISTORY_SEGMENT_EXHAUST_CLEAN_FAIL;
 	private static final String HISTORY_NAME = "UnitTest.SegmentExhaust";
 
-	private static Id128UdpServer server;
-	private static InjectedAgent agent;
-	private static Id128UdpClient client;
+	private static @Nullable Id128UdpServer server;
+	private static @Nullable InjectedAgent agent;
+	private static @Nullable Id128UdpClient client;
 
 	/** 手工控制的 Agent：future 由测试完成；detachClient 后任何新分配同步失败。 */
 	private static final class InjectedAgent extends AbstractAgent {
@@ -72,13 +75,13 @@ public class TestHistorySegmentExhaustCleanFail {
 		}
 
 		@Override
-		protected void allocate(@NotNull AutoKey autoKey, int pool) {
+		protected void allocate(AutoKey autoKey, int pool) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-										@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		protected boolean allocateAsync(String globalName, int allocCount,
+										ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -92,27 +95,27 @@ public class TestHistorySegmentExhaustCleanFail {
 		}
 
 		@Override
-		public void editService(@NotNull BEditService arg) {
+		public void editService(BEditService arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument info) {
+		public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(BSubscribeArgument info) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+		public void unSubscribeService(BUnSubscribeArgument arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public boolean setServerLoad(@NotNull BServerLoad load) {
+		public boolean setServerLoad(BServerLoad load) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Threading getThreading() {
+		public Threading getThreading() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -134,8 +137,8 @@ public class TestHistorySegmentExhaustCleanFail {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		client.stop();
-		server.stop();
+		requireNonNull(client).stop();
+		requireNonNull(server).stop();
 	}
 
 	private static Application newApp() throws Exception {
@@ -155,7 +158,7 @@ public class TestHistorySegmentExhaustCleanFail {
 	@Test
 	public void testSegmentExhaustFailsCleanBeforeApply() throws Exception {
 		// 预置仅 1 个号的号段（start=(0,0)，count=1）：首笔写事务耗尽它，第二笔必走续段分配。
-		var planted = agent.allocateTid128CacheFuture(HISTORY_NAME, 0);
+		var planted = requireNonNull(agent).allocateTid128CacheFuture(HISTORY_NAME, 0);
 		Assertions.assertTrue(planted.setResult(new Tid128Cache(HISTORY_NAME, agent, new Id128(0, 0), 1)),
 				"预置号段 future 必须成功完成");
 		agent.detachClient(); // 续段分配自此同步失败（SM 不可达的确定性等价）

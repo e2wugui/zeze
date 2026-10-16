@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 
 import harness.Fast;
@@ -52,7 +54,7 @@ public class TestRocksReset {
 		return new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false);
 	}
 
-	private static byte[] get(Rocks rocks) throws Exception {
+	private static byte @Nullable [] get(Rocks rocks) throws Exception {
 		return rocks.openTable(tableName).get(key);
 	}
 

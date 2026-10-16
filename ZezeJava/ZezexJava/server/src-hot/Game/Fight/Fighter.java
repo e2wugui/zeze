@@ -1,5 +1,6 @@
 package Game.Fight;
 
+
 public class Fighter implements IFighter {
 	private final BFighterId id;
 	private final BFighter bean;

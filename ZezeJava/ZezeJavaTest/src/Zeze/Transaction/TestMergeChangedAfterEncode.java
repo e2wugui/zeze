@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogMap2;
@@ -110,7 +112,7 @@ public class TestMergeChangedAfterEncode {
 		decoded.decode(encodeThenWrap(log)); // merge 后再 encode：changed 并入 replaced，等价表示
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "已并入 replaced 的 changed 不得重复编码");
 		follower.followerApply(decoded);
-		assertEquals(7, follower.get("k").getLong2(), "merge 后 encode 的重放不得丢原位修改");
+		assertEquals(7, requireNonNull(follower.get("k")).getLong2(), "merge 后 encode 的重放不得丢原位修改");
 	}
 
 	@Test
@@ -134,6 +136,6 @@ public class TestMergeChangedAfterEncode {
 		decoded.decode(encodeThenWrap(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "已并入 replaced 的 changed 不得重复编码");
 		follower.followerApply(decoded);
-		assertEquals(7, follower.get("k").getLong2(), "merge 后 encode 的重放不得丢原位修改");
+		assertEquals(7, requireNonNull(follower.get("k")).getLong2(), "merge 后 encode 的重放不得丢原位修改");
 	}
 }

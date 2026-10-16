@@ -1,6 +1,8 @@
 package Game.Buf;
 
+import org.jspecify.annotations.Nullable;
+
 public interface IBufs {
-	IBuf getBuf(int id);
+	@Nullable IBuf getBuf(int id);
 	void calculateFighter(Game.Fight.IFighter fighter);
 }

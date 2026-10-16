@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import Zeze.Collections.CsQueue;
@@ -27,7 +29,7 @@ public class TestCsQueue {
 	}
 
 	private static void clear(CsQueue<Bean1> csq) {
-		Assertions.assertEquals(0, App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(0, requireNonNull(App.getInstance().Zeze).newProcedure(() -> {
 			while (csq.poll() != null) {
 				// nothing.
 			}
@@ -38,7 +40,7 @@ public class TestCsQueue {
 	// Queue.size()走TableX.get，必须在事务内调用。
 	private static long size(CsQueue<Bean1> csq) {
 		var out = new Zeze.Util.OutLong();
-		App.getInstance().Zeze.newProcedure(() -> {
+		requireNonNull(App.getInstance().Zeze).newProcedure(() -> {
 			out.value = csq.size();
 			return 0;
 		}, "csq.size").call();
@@ -47,8 +49,8 @@ public class TestCsQueue {
 
 	@Test
 	public void testCsQueue() throws Exception {
-		var qm = demo.App.getInstance().Zeze.getQueueModule();
-		var csq0 = new CsQueue<>(qm, "TestCsQueue", 0, Bean1.class, 100);
+		var qm = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
+		var csq0 = new CsQueue<>(requireNonNull(qm), "TestCsQueue", 0, Bean1.class, 100);
 		// clear
 		clear(csq0);
 
@@ -80,8 +82,8 @@ public class TestCsQueue {
 	@Test
 	public void testCsQueueSpliceEmpty() throws Exception {
 		// 接管到空队列后继续add：新数据必须可达（修复前：dst.tail未被设置，新节点成为孤岛，poll/walk永远看不到）。
-		var qm = demo.App.getInstance().Zeze.getQueueModule();
-		var csq0 = new CsQueue<>(qm, "TestCsQueueSpliceEmpty", 0, Bean1.class, 100);
+		var qm = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
+		var csq0 = new CsQueue<>(requireNonNull(qm), "TestCsQueueSpliceEmpty", 0, Bean1.class, 100);
 		clear(csq0); // dst 保持为空队列
 
 		var csq1 = new CsQueue<>(qm, "TestCsQueueSpliceEmpty", 1, Bean1.class, 100);
@@ -108,8 +110,8 @@ public class TestCsQueue {
 	public void testCsQueueSpliceRejectsStaleSerial() throws Exception {
 		// 方案甲的接收端防线：代际号不匹配（对方已重连/重启用出新代，在途通知携带旧代）时必须拒绝接管。
 		// 这就是"已经活过来了"分支，2022年起存在但此前零测试覆盖。
-		var qm = demo.App.getInstance().Zeze.getQueueModule();
-		var csq0 = new CsQueue<>(qm, "TestCsQueueSerial", 0, Bean1.class, 100);
+		var qm = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
+		var csq0 = new CsQueue<>(requireNonNull(qm), "TestCsQueueSerial", 0, Bean1.class, 100);
 		clear(csq0); // 接管方保持为空
 
 		var csq1 = new CsQueue<>(qm, "TestCsQueueSerial", 1, Bean1.class, 100);

@@ -15,7 +15,6 @@ import Zeze.Util.Task;
 import harness.Fast;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +32,7 @@ public class TestHttpPipeliningShutdownCleanup {
 		public final ConcurrentLinkedQueue<HttpExchange> created = new ConcurrentLinkedQueue<>();
 
 		@Override
-		public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+		public HttpExchange createHttpExchange(ChannelHandlerContext context) {
 			var x = new HttpExchange(this, context);
 			created.add(x);
 			return x;

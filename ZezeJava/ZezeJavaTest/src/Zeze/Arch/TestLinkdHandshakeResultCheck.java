@@ -8,8 +8,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +40,7 @@ public class TestLinkdHandshakeResultCheck {
 	/** 最小AsyncSocket桩：记录close调用，不触碰网络。 */
 	private static final class FakeSocket extends AsyncSocket {
 		boolean closed;
-		Throwable closeReason;
+		@Nullable Throwable closeReason;
 
 		FakeSocket(Zeze.Net.Service service) {
 			super(service);
@@ -58,7 +57,7 @@ public class TestLinkdHandshakeResultCheck {
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 

@@ -17,7 +17,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.StringBuilderCs;
 import harness.Fast;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -33,10 +33,10 @@ import org.junit.jupiter.api.io.TempDir;
 public class TestRedirectAllResultFieldInit {
 
 	public static class ResultWithFields extends RedirectResult {
-		public java.util.List<Long> xs; // 主缺陷：未初始化抽象集合字段
+		public java.util.@Nullable List<Long> xs; // 主缺陷：未初始化抽象集合字段
 		public java.util.List<Long> ys = new java.util.LinkedList<>(); // 已初始化：保留用户实现选择
-		public java.util.ArrayList<Long> zs; // 具体类型：原有无条件new路径
-		public java.util.Map<Long, String> m0; // 未初始化抽象映射字段
+		public java.util.@Nullable ArrayList<Long> zs; // 具体类型：原有无条件new路径
+		public java.util.@Nullable Map<Long, String> m0; // 未初始化抽象映射字段
 	}
 
 	public abstract static class AbstractResultBean extends Bean {
@@ -55,7 +55,7 @@ public class TestRedirectAllResultFieldInit {
 	/** T1：抽象Serializable结果字段未初始化——生成期拒绝。 */
 	@SuppressWarnings("unused")
 	public static class ResultAbstractFieldNotInit extends RedirectResult {
-		public AbstractResultBean bad;
+		public @Nullable AbstractResultBean bad;
 	}
 
 	/** T1护栏：声明处初始化的抽象Serializable字段——允许，decode原位decode。 */

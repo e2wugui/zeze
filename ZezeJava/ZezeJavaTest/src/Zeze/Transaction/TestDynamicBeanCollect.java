@@ -1,5 +1,11 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,18 +36,19 @@ import org.junit.jupiter.api.Test;
  * 编码只剩内部bean字段日志，follower应用后typeId与bean替换永久丢失。
  */
 @Fast
+@NullMarked
 public class TestDynamicBeanCollect {
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_DYNAMIC_BEAN_COLLECT);
 
-	private Table1 table1;
+	private @Nullable Table1 table1;
 	private final Collector collector = new Collector();
 	private long fieldKey; // savepoint日志key：内部bean.objectId+1
 	private long dynKey;   // savepoint日志key：record value.objectId+VAR_dynamic14
 
 	/** 捕获listener视图里dynamic14与bean12(CollOne)的变量日志。 */
 	private static final class Collector implements ChangeListener {
-		private Log dynamicLog;
-		private Log bean12Log;
+		private @Nullable Log dynamicLog;
+		private @Nullable Log bean12Log;
 
 		void reset() {
 			dynamicLog = null;
@@ -78,7 +85,7 @@ public class TestDynamicBeanCollect {
 		app.setSchemas(new demo.Schemas());
 		// 生成的Module注册依赖完整demo.App（协议工厂等），这里直接注册本测试用到的表；
 		// 表注册必须在app.start()（打开数据库）之前完成。
-		app.addTable(conf.getTableConf("demo_Module1_Table1").getDatabaseName(), new Table1());
+		app.addTable(requireNonNull(conf.getTableConf("demo_Module1_Table1")).getDatabaseName(), new Table1());
 		app.start();
 		table1 = (Table1)app.getTable("demo_Module1_Table1");
 		Assertions.assertNotNull(table1);
@@ -97,7 +104,7 @@ public class TestDynamicBeanCollect {
 					new demo.Bean1(); // 扰动objectId分配，使两种桶序都能出现
 				modifyInnerThenSetBean(app, 8_000_000L + i);
 				// 不变量：任意迭代顺序下，collect出的日志都必须携带setBean信息
-				assertFollowerHasSetBean(collector.dynamicLog);
+				assertFollowerHasSetBean(requireNonNull(collector.dynamicLog));
 				if (fieldLogIteratesFirst(fieldKey, dynKey))
 					seenFieldLogFirst = true;
 				else
@@ -119,13 +126,13 @@ public class TestDynamicBeanCollect {
 				a.setV1(111);
 				var bv = new BValue();
 				bv.setDynamic14(a);
-				table1.put(8_100_000L, bv);
+				requireNonNull(table1).put(8_100_000L, bv);
 				return Procedure.Success;
 			}, "TestDynamicBeanCollect.Prepare").call());
 
 			collector.reset();
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				var v = table1.getOrAdd(8_100_000L);
+				var v = requireNonNull(table1).getOrAdd(8_100_000L);
 				((demo.Bean1)v.getDynamic14().getBean()).setV1(222); // 只改内部字段，无setBean
 				v.getBean12().setInt_1(123); // 同时确认CollOne(Collection)路径不受影响
 				return Procedure.Success;
@@ -156,13 +163,13 @@ public class TestDynamicBeanCollect {
 			a.setV1(111);
 			var bv = new BValue();
 			bv.setDynamic14(a);
-			table1.put(key, bv);
+			requireNonNull(table1).put(key, bv);
 			return Procedure.Success;
 		}, "TestDynamicBeanCollect.Prepare").call());
 
 		collector.reset();
 		Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-			var v = table1.getOrAdd(key);
+			var v = requireNonNull(table1).getOrAdd(key);
 			var a = (demo.Bean1)v.getDynamic14().getBean();
 			a.setV1(222); // savepoint put顺序：先字段日志(key=a.objectId+1)
 			var bs = new BSimple();
@@ -194,7 +201,7 @@ public class TestDynamicBeanCollect {
 
 	/** 复现savepoint日志map的迭代顺序：相同两个key、相同put顺序（字段日志先put）。 */
 	private static boolean fieldLogIteratesFirst(long fieldKey, long dynKey) {
-		var probe = new LongHashMap<Object>();
+		var probe = new LongHashMap<@Nullable Object>();
 		probe.put(fieldKey, null);
 		probe.put(dynKey, null);
 		for (var it = probe.iterator(); it.moveToNext(); )

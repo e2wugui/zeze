@@ -1,10 +1,11 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import java.math.BigDecimal;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Logs.LogDecimal;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -17,14 +18,14 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestLogDecimalPrecision {
 
-	private static @NotNull BigDecimal roundTrip(@NotNull BigDecimal origin) {
+	private static BigDecimal roundTrip(BigDecimal origin) {
 		var log = new LogDecimal(0);
 		log.value = origin;
 		var bb = ByteBuffer.Allocate();
 		log.encode(bb);
 		var decoded = new LogDecimal(0);
 		decoded.decode(bb);
-		return decoded.value;
+		return requireNonNull(decoded.value);
 	}
 
 	@Test

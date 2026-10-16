@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -60,12 +62,12 @@ public class TestGTableStaleRowAndPhantomRow {
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		var app = new Application("TestT27PhantomRow" + conf.getServerId(), conf);
 		app.setSchemas(new demo.Schemas());
-		app.addTable(conf.getTableConf("demo_ModuleGTable_tGTable2").getDatabaseName(), new tGTable2());
+		app.addTable(requireNonNull(conf.getTableConf("demo_ModuleGTable_tGTable2")).getDatabaseName(), new tGTable2());
 		app.start();
 		var table = (tGTable2)app.getTable("demo_ModuleGTable_tGTable2");
 		try {
 			var result = app.newProcedure(() -> {
-				var g = table.getOrAdd(1L).getGTable();
+				var g = requireNonNull(table).getOrAdd(1L).getGTable();
 				var shared = new Bean1();
 				g.put(1, 1, shared); // shared进入行1（受管）
 				try {
@@ -79,7 +81,7 @@ public class TestGTableStaleRowAndPhantomRow {
 			Assertions.assertEquals(Procedure.Success, result);
 
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				var g = table.getOrAdd(1L).getGTable();
+				var g = requireNonNull(table).getOrAdd(1L).getGTable();
 				// 核心（红）：异常行2不得作为空行残留并提交持久化
 				Assertions.assertFalse(g.containsRow(2), "内层失败的行不得以幻影空行残留");
 				Assertions.assertTrue(g.containsRow(1));

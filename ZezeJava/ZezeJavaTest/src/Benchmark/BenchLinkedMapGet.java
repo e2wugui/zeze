@@ -1,5 +1,6 @@
 package Benchmark;
 
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.BMyBean;
@@ -32,8 +33,8 @@ public class BenchLinkedMapGet {
 	}
 
 	private void fill() throws Exception {
-		App.Instance.Zeze.newProcedure(() -> {
-			var map = App.Instance.LinkedMapModule.open("benchGet", BMyBean.class);
+		App.Instance.getZeze().newProcedure(() -> {
+			var map = Objects.requireNonNull(App.Instance.LinkedMapModule).open("benchGet", BMyBean.class);
 			map.clear();
 			for (int i = 0; i < EntryCount; i++) {
 				var bean = new BMyBean();
@@ -45,12 +46,12 @@ public class BenchLinkedMapGet {
 	}
 
 	private void doGet(int ops, AtomicInteger counter) {
-		var map = App.Instance.LinkedMapModule.open("benchGet", BMyBean.class);
+		var map = Objects.requireNonNull(App.Instance.LinkedMapModule).open("benchGet", BMyBean.class);
 		var random = Random.getInstance();
 		for (int i = 0; i < ops; i++) {
 			var key = String.valueOf(random.nextInt(EntryCount));
 			try {
-				App.Instance.Zeze.newProcedure(() -> {
+				App.Instance.getZeze().newProcedure(() -> {
 					if (null == map.get(key))
 						throw new IllegalStateException("benchGet missing " + key);
 					counter.incrementAndGet();

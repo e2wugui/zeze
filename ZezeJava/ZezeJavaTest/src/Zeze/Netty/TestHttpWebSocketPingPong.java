@@ -1,5 +1,11 @@
 package Zeze.Netty;
 
+import io.netty.channel.EventLoop;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -33,11 +39,11 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestHttpWebSocketPingPong {
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
-	private static final AtomicReference<Thread> openThread = new AtomicReference<>();
-	private static final AtomicReference<io.netty.channel.EventLoop> openEventLoop = new AtomicReference<>();
+	private static final AtomicReference<@Nullable Thread> openThread = new AtomicReference<>();
+	private static final AtomicReference<@Nullable EventLoop> openEventLoop = new AtomicReference<>();
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -59,16 +65,16 @@ public class TestHttpWebSocketPingPong {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	private static final class Listener implements WebSocket.Listener {
 		final CountDownLatch pong = new CountDownLatch(1);
-		final AtomicReference<byte[]> pongPayload = new AtomicReference<>();
+		final AtomicReference<byte @Nullable []> pongPayload = new AtomicReference<>();
 
 		@Override
-		public CompletionStage<?> onPong(WebSocket ws, ByteBuffer message) {
+		public @Nullable CompletionStage<?> onPong(WebSocket ws, ByteBuffer message) {
 			var b = new byte[message.remaining()];
 			message.get(b);
 			pongPayload.set(b);
@@ -114,7 +120,7 @@ public class TestHttpWebSocketPingPong {
 			Assertions.assertTrue(listener.pong.await(10, TimeUnit.SECONDS), "pong not received");
 			var t = openThread.get();
 			Assertions.assertNotNull(t, "onOpen not called");
-			Assertions.assertFalse(openEventLoop.get().inEventLoop(t),
+			Assertions.assertFalse(requireNonNull(openEventLoop.get()).inEventLoop(t),
 					"onOpen must not run inline on the channel EventLoop, thread=" + t);
 			ws.sendClose(WebSocket.NORMAL_CLOSURE, "").get(10, TimeUnit.SECONDS);
 		} finally {

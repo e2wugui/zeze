@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -24,8 +26,8 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestHttpServerRestart {
-	private Netty netty;
-	private HttpServer server;
+	private @Nullable Netty netty;
+	private @Nullable HttpServer server;
 
 	// Normal模式(noProcedure):请求经task11Executor派发执行,正是重启后会被黑洞的路径
 	private static HttpServer newServer() {

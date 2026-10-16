@@ -1,5 +1,6 @@
 package Infinite;
 
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.Future;
@@ -16,7 +17,7 @@ import demo.Module1.BRemoved2;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
 import demo.Module1.Key;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class CoverHistory {
 	//private static final Logger logger = LogManager.getLogger(CoverHistory.class);
@@ -80,7 +81,7 @@ public class CoverHistory {
 	public Future<?> submitTasks(int i) {
 		var seed = randSeed.nextLong();
 		//logger.info("submitTasks: seed={}", s);
-		return TaskSpec.ofProcedure(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob")).submitNow();
+		return TaskSpec.ofProcedure(app.getZeze().newProcedure(() -> runJobs(seed, null), "runJob")).submitNow();
 	}
 
 	public static StableRandom getRandom() {
@@ -104,7 +105,7 @@ public class CoverHistory {
 			if (jobIndexes.add(index)) { // 随机可能重复，确保运行足够的limit次数。当jobs足够多，limit足够小，冲突应该不大。
 				limit--;
 				jobs.get(index).run(r != null ? r
-						: app.demo_Module1.getTableCoverHistory().getOrAdd(getRandom().nextLong(eKeyRange)));
+						: Objects.requireNonNull(app.demo_Module1).getTableCoverHistory().getOrAdd(getRandom().nextLong(eKeyRange)));
 			}
 		}
 		return 0;
@@ -272,7 +273,7 @@ public class CoverHistory {
 			}
 		}
 
-		private static demo.Module2.BValue getRandItem(PMap2<Long, demo.Module2.BValue> map2) {
+		private static demo.Module2.@Nullable BValue getRandItem(PMap2<Long, demo.Module2.BValue> map2) {
 			if (map2.isEmpty())
 				return null;
 			var index = getRandom().nextInt(map2.size());
@@ -431,7 +432,7 @@ public class CoverHistory {
 			testKey2BSimple(map);
 		}
 
-		public static BSimple getRandItem(PMap2<Key, BSimple> map2) {
+		public static @Nullable BSimple getRandItem(PMap2<Key, BSimple> map2) {
 			if (map2.isEmpty())
 				return null;
 			var index = getRandom().nextInt(map2.size());
@@ -559,7 +560,7 @@ public class CoverHistory {
 			}
 		}
 
-		private static DynamicBean getRandItem(PMap2<Key, DynamicBean> map2) {
+		private static @Nullable DynamicBean getRandItem(PMap2<Key, DynamicBean> map2) {
 			if (map2.isEmpty())
 				return null;
 			var index = getRandom().nextInt(map2.size());
@@ -950,7 +951,7 @@ public class CoverHistory {
 			}
 		}
 
-		private static BSimple getRandItem(PMap2<Long, BSimple> map2) {
+		private static @Nullable BSimple getRandItem(PMap2<Long, BSimple> map2) {
 			if (map2.isEmpty())
 				return null;
 			var index = getRandom().nextInt(map2.size());
@@ -981,7 +982,7 @@ public class CoverHistory {
 			var k = getRandom().nextLong(eKeyRange);
 ///            var v = app.demo_Module1.getTableCoverHistory().get(k);
 ///			logger.info("RemoveRecord: remove {} {}", k, v != null ? v.objectId() : null);
-			app.demo_Module1.getTableCoverHistory().remove(k);
+			Objects.requireNonNull(app.demo_Module1).getTableCoverHistory().remove(k);
 		}
 	}
 
@@ -989,7 +990,7 @@ public class CoverHistory {
 		@Override
 		public void run(BValue value) {
 			var k = getRandom().nextLong(eKeyRange);
-			var v = app.demo_Module1.getTableCoverHistory().getOrAdd(k);
+			var v = Objects.requireNonNull(app.demo_Module1).getTableCoverHistory().getOrAdd(k);
 			v.setLong2(12345);
 ///            logger.info("Combo: remove {}", v.objectId());
 			app.demo_Module1.getTableCoverHistory().remove(k);

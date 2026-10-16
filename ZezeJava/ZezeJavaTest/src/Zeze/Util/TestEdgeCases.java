@@ -1,4 +1,8 @@
 package Zeze.Util;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -32,10 +36,10 @@ public final class TestEdgeCases {
 	@Test
 	public void testUntypedNull() throws Exception {
 		var m = (Map<String, Object>)JsonReader.local().buf("{\"a\":null}").parse();
-		assertNull(m.get("a"), "untyped null 应解析成 null 而不是 NaN");
+		assertNull(requireNonNull(m).get("a"), "untyped null 应解析成 null 而不是 NaN");
 
 		var list = (List<Object>)JsonReader.local().buf("[null,1]").parse();
-		assertEquals(2, list.size());
+		assertEquals(2, requireNonNull(list).size());
 		assertNull(list.get(0));
 		assertEquals(1, list.get(1));
 	}
@@ -43,7 +47,7 @@ public final class TestEdgeCases {
 	@Test
 	public void testUntypedNaNStillWorks() throws Exception { // 回归：大写 NaN 词法不受影响；小写 nan 一律 null token（FND3-08，写侧 NaN 恒大写）
 		var list = (List<?>)JsonReader.local().buf("[NaN,nan,null]").parse();
-		assertEquals(Double.NaN, list.get(0));
+		assertEquals(Double.NaN, requireNonNull(list).get(0));
 		assertNull(list.get(1));
 		assertNull(list.get(2));
 	}
@@ -51,20 +55,20 @@ public final class TestEdgeCases {
 	// ---------- FND-U1-20：TYPE_OBJECT 字段重复解析先清空容器 ----------
 
 	public static class BeanObjectField {
-		public Object o;
+		public @Nullable Object o;
 	}
 
 	@Test
 	public void testObjectFieldReparseNoAppend() {
 		var b = Json.parse("{\"o\":[1,2]}", BeanObjectField.class);
-		assertNotNull(b.o);
-		assertEquals(2, ((List<?>)b.o).size());
+		assertNotNull(requireNonNull(b).o);
+		assertEquals(2, requireNonNull(((List<?>)requireNonNull(b).o)).size());
 		// 同一对象再次解析：元素不应翻倍
 		b = Json.parse("{\"o\":[1,2]}", b);
-		assertEquals(2, ((List<?>)b.o).size());
+		assertEquals(2, requireNonNull(((List<?>)requireNonNull(b).o)).size());
 		// null 值应把字段置 null（而不是 NaN 或残留）
 		b = Json.parse("{\"o\":null}", b);
-		assertNull(b.o);
+		assertNull(requireNonNull(b).o);
 	}
 
 	// ---------- CARRY-2：无引号 key 的转义解码（parseKeyHashNoQuot） ----------
@@ -76,7 +80,7 @@ public final class TestEdgeCases {
 	@Test
 	public void testUnquotEscapedKey() {
 		var b = Json.parse("{\\u0061bc:1}", BeanUnquotKey.class);
-		assertEquals(1, b.abc, "\\u0061bc 应解码后匹配字段 abc");
+		assertEquals(1, requireNonNull(b).abc, "\\u0061bc 应解码后匹配字段 abc");
 	}
 
 	// ---------- CARRY-4：parseNumber 的 Infinity/NaN 分支 return 前设置 pos ----------
@@ -94,7 +98,7 @@ public final class TestEdgeCases {
 
 	@Test
 	public void testIntHashMapComputeNullRemoves() {
-		var map = new IntHashMap<String>();
+		var map = new IntHashMap<@Nullable String>();
 		map.put(1, null); // 本 map 允许 null 值
 		assertEquals(1, map.size());
 		assertNull(map.compute(1, (k, v) -> null), "既有 null 值条目经 compute(k,x->null) 应被删除");
@@ -110,7 +114,7 @@ public final class TestEdgeCases {
 
 	@Test
 	public void testCharHashMapComputeNullRemoves() {
-		var map = new CharHashMap<String>();
+		var map = new CharHashMap<@Nullable String>();
 		map.put('a', null);
 		assertEquals(1, map.size());
 		assertNull(map.compute('a', (k, v) -> null));
@@ -123,7 +127,7 @@ public final class TestEdgeCases {
 
 	@Test
 	public void testIntHashMapComputeRetainSemantics() { // 回归：非 null 路径语义不变
-		var map = new IntHashMap<String>();
+		var map = new IntHashMap<@Nullable String>();
 		map.put(1, "a");
 		assertEquals("a", map.compute(1, (k, v) -> v)); // 保留
 		assertEquals("b", map.compute(1, (k, v) -> "b")); // 更新

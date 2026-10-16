@@ -1,5 +1,6 @@
 package Game.Rank;
 
+import java.util.Objects;
 import java.util.List;
 import java.util.Map;
 import Game.App;
@@ -20,7 +21,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 基本排行榜，实现了按long value从大到小进榜。
@@ -59,7 +60,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	public RedirectFuture<TestToServerResult> TestToServer(int serverId, int in) { // 首个参数serverId是固定必要的特殊参数,后面是自定义输入参数
 		var result = new TestToServerResult();
 		result.setOut(in);
-		result.setServerId(App.Zeze.getConfig().getServerId());
+		result.setServerId(App.getZeze().getConfig().getServerId());
 		return RedirectFuture.finish(result); // 同步完成则先finish再返回,异步则可在返回后在其它位置调用finish完成
 	}
 
@@ -68,11 +69,11 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	@RedirectHash(version = 2) // 单发给某个hash值指定的server执行,可能是本服,找不到hash节点也会在本服执行. 返回类型同ToServer
 	public RedirectFuture<TestHashResult> TestHash(int hash, int in) { // 首个参数hash是固定必要的特殊参数,后面是自定义输入参数
 		var f = new RedirectFuture<TestHashResult>();
-		TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.getZeze().newProcedure(() -> {
 			TestHashResult result = new TestHashResult();
 			result.setHash(hash);
 			result.setOut(in);
-			result.setServerId(App.Zeze.getConfig().getServerId());
+			result.setServerId(App.getZeze().getConfig().getServerId());
 			f.setResult(result); // 异步完成
 			return Procedure.Success;
 		}, "TestHashAsync")).run();
@@ -95,7 +96,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		case 4: // local async
 		case 5: // remote async
 			var future = RedirectAllFuture.<TestToAllResult>async(); // 启用异步方式,之后在future.asyncResult()时回复结果
-			TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
+			TaskSpec.ofProcedure(App.getZeze().newProcedure(() -> {
 				var result1 = new TestToAllResult();
 				result1.out = in;
 				future.asyncResult(result1);
@@ -135,7 +136,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	public static class GenericResult<T extends Serializable> {
 		public long resultCode;
 		public T ser = (T)new BBeanResult(); // FND8-84：抽象Serializable字段须声明处初始化（decode原位反序列化，线格式不含实际类型）；本类唯一使用点T=BBeanResult
-		public java.io.Serializable obj; // 而java序列化允许构造时以null初始化
+		public java.io.@Nullable Serializable obj; // 而java序列化允许构造时以null初始化
 	}
 
 	@RedirectHash(timeout = 2000)

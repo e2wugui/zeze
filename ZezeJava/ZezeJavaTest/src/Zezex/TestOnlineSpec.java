@@ -1,8 +1,8 @@
 package Zezex;
 
+import java.util.Objects;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import ClientGame.Equip.SEquipement;
 import ClientGame.Fight.AreYouFight;
 import Zeze.Builtin.Game.Online.SReliableNotify;
@@ -15,7 +15,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +32,7 @@ import org.junit.jupiter.api.Test;
  */
 @org.junit.jupiter.api.parallel.Isolated // ZezexTestEnv固定端口(5020-5022族)串行，套件内并行互撞bind
 public class TestOnlineSpec {
-	private static final @NotNull Logger logger = LogManager.getLogger(TestOnlineSpec.class);
+	private static final Logger logger = LogManager.getLogger(TestOnlineSpec.class);
 
 	final ZezexTestEnv env = new ZezexTestEnv();
 
@@ -46,7 +45,7 @@ public class TestOnlineSpec {
 	/** 把客户端已注册的协议 handle 替换为计数 handle（AddFactoryHandle 重复注册会抛异常，只能替换）。 */
 	@SuppressWarnings("unchecked")
 	private static void installCountHandle(ClientGame.App client, long typeId, AtomicInteger counter) {
-		var fh = (Service.ProtocolFactoryHandle<Protocol<?>>)client.ClientService.findProtocolFactoryHandle(typeId);
+		var fh = (Service.ProtocolFactoryHandle<Protocol<?>>)Objects.requireNonNull(client.ClientService).findProtocolFactoryHandle(typeId);
 		Assertions.assertNotNull(fh);
 		fh.Handle = p -> {
 			counter.incrementAndGet();
@@ -69,17 +68,17 @@ public class TestOnlineSpec {
 			var client1 = env.clients.get(1);
 			var server0 = env.servers.getFirst();
 
-			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			ZezexTestEnv.auth(Objects.requireNonNull(client0.onLinkConnectedFuture).get(), client0, "account0");
 			var role0 = ZezexTestEnv.getRole(client0);
 			var roleId0 = null != role0 ? role0.getId() : ZezexTestEnv.createRole(client0, "role0");
 			ZezexTestEnv.login(client0, roleId0);
 
-			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account1");
+			ZezexTestEnv.auth(Objects.requireNonNull(client1.onLinkConnectedFuture).get(), client1, "account1");
 			var role1 = ZezexTestEnv.getRole(client1);
 			var roleId1 = null != role1 ? role1.getId() : ZezexTestEnv.createRole(client1, "role1");
 			ZezexTestEnv.login(client1, roleId1);
 
-			var online = server0.Provider.getOnline();
+			var online = Objects.requireNonNull(server0.Provider).getOnline();
 			// 登录流程结束后再替换 handle，避免登录期间的推送干扰计数基准。
 			installCountHandle(client0, SEquipement.TypeId_, sEquipCount0);
 			installCountHandle(client1, SEquipement.TypeId_, sEquipCount1);
@@ -90,11 +89,11 @@ public class TestOnlineSpec {
 			logger.info("=== 1 empty target");
 			var encodeBomb = new SEquipement() {
 				@Override
-				public void encode(@NotNull ByteBuffer bb) {
+				public void encode(ByteBuffer bb) {
 					throw new AssertionError("empty target must not encode");
 				}
 			};
-			OnlineSpec.ofRoles(online, List.of()).send(encodeBomb);
+			OnlineSpec.ofRoles(Objects.requireNonNull(online), List.of()).send(encodeBomb);
 			OnlineSpec.ofRoles(online, List.of()).send(encodeBomb.getTypeId(), new Binary(new byte[0]));
 			OnlineSpec.ofAllOnline(online, List.of()).send(encodeBomb);
 			Thread.sleep(200); // 负向稳定窗
@@ -115,13 +114,13 @@ public class TestOnlineSpec {
 
 			// ---- §8-3 事务内 send：commit 前未收到，commit 后收到；rollback 后不收到 ----
 			logger.info("=== 3 txn send");
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).send(new SEquipement());
 				Assertions.assertEquals(3, sEquipCount0.get()); // commit 前未收到
 				return Procedure.Success;
 			}, "testTxnSend").call());
 			awaitCount(sEquipCount0, 4); // commit 后收到
-			Assertions.assertEquals(1L, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(1L, server0.getZeze().newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).send(new SEquipement());
 				return 1L; // 非 Success 触发回滚
 			}, "testTxnSendRollback").call());
@@ -130,7 +129,7 @@ public class TestOnlineSpec {
 
 			// ---- §8-4 事务内 sendNow：立即收到（不等 commit） ----
 			logger.info("=== 4 sendNow");
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).sendNow(new SEquipement());
 				awaitCount(sEquipCount0, 5); // 事务体内、commit 前即收到
 				return Procedure.Success;
@@ -138,12 +137,12 @@ public class TestOnlineSpec {
 
 			// ---- §8-5 sendWhileRollback：rollback 后收到；commit 后不收到 ----
 			logger.info("=== 5 sendWhileRollback");
-			Assertions.assertEquals(1L, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(1L, server0.getZeze().newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).sendWhileRollback(new SEquipement());
 				return 1L; // 回滚
 			}, "testSendWhileRollback").call());
 			awaitCount(sEquipCount0, 6); // rollback 后收到
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).sendWhileRollback(new SEquipement());
 				return Procedure.Success;
 			}, "testSendWhileRollbackCommit").call());
@@ -163,13 +162,13 @@ public class TestOnlineSpec {
 
 			// ---- §8-7 ofReliableNotify：send / sendWhileRollback 正常投递 ----
 			logger.info("=== 7 reliableNotify");
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				online.addReliableNotifyMark(roleId0, "testListener");
 				return Procedure.Success;
 			}, "addReliableNotifyMark").call());
 			OnlineSpec.ofReliableNotify(online, roleId0, "testListener").send(new SEquipement());
 			awaitCount(sReliableCount0, 1);
-			Assertions.assertEquals(1L, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(1L, server0.getZeze().newProcedure(() -> {
 				OnlineSpec.ofReliableNotify(online, roleId0, "testListener").sendWhileRollback(new SEquipement());
 				return 1L;
 			}, "testReliableWhileRollback").call());
@@ -190,7 +189,7 @@ public class TestOnlineSpec {
 
 			// ---- §8-9 事务内 sendRpcForWait → IllegalStateException ----
 			logger.info("=== 9 sendRpcForWait in txn");
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				Assertions.assertThrows(IllegalStateException.class,
 						() -> OnlineSpec.ofRole(online, roleId0).sendRpcForWait(new AreYouFight()));
 				return Procedure.Success;
@@ -208,7 +207,7 @@ public class TestOnlineSpec {
 			// ---- §8-12 冻结：事务内 send(p1) 后改选项再 send(p2)，commit 后两者都送达 ----
 			logger.info("=== 12 freeze");
 			var base12 = sEquipCount0.get();
-			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				var s = OnlineSpec.ofRole(online, roleId0);
 				s.quietWhenAbsent(false).send(new SEquipement()); // p1 冻结 quietWhenAbsent=false
 				s.quietWhenAbsent(true).send(new SEquipement()); // p2 冻结 quietWhenAbsent=true，不影响已排队的 p1

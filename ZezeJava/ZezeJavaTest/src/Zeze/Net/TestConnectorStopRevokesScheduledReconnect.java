@@ -9,8 +9,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +30,7 @@ public class TestConnectorStopRevokesScheduledReconnect {
 		}
 
 		@Override
-		protected @NotNull InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
+		protected InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
 			attempts.incrementAndGet();
 			throw new UnknownHostException("simulated resolve failure");
 		}

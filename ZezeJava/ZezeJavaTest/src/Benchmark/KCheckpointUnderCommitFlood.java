@@ -1,9 +1,10 @@
 package Benchmark;
+
+import java.util.Objects;
 import harness.Bench;
 import harness.MacroBench;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
@@ -53,7 +54,7 @@ public class KCheckpointUnderCommitFlood {
 					while (!stop.get()) {
 						var t0 = System.nanoTime();
 						try {
-							App.Instance.Zeze.checkpointRun();
+							App.Instance.getZeze().checkpointRun();
 						} catch (Exception e) {
 							throw Task.forceThrow(e);
 						}
@@ -70,9 +71,9 @@ public class KCheckpointUnderCommitFlood {
 					for (int i = 0; i < TxnCount; ++i) {
 						final long key = i % Keys;
 						permits.acquire();
-						tasks.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
+						tasks.add(TaskSpec.ofProcedure(App.Instance.getZeze().newProcedure(() -> {
 							try {
-								var r = App.Instance.demo_Module1.getTable1().getOrAdd(key);
+								var r = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(key);
 								r.setLong2(r.getLong2() + 1);
 							} finally {
 								completed.increment();
@@ -94,7 +95,7 @@ public class KCheckpointUnderCommitFlood {
 			// 活性断言：任何一轮里 flusher 都必须持续推进（迭代数随轮次单调增长是软信号；
 			// 硬故障形态是饥饿导致的停顿，由上面的 maxFlushMs 与 flushLockWait 分布呈报）。
 			Assertions.assertTrue(flushIterations.get() >= Rounds, "flusher 整轮未推进，疑似饿死");
-			App.Instance.Zeze.newProcedure(KCheckpointUnderCommitFlood::Check, "check").call();
+			App.Instance.getZeze().newProcedure(KCheckpointUnderCommitFlood::Check, "check").call();
 		} finally {
 			//App.Instance.Stop();
 		}
@@ -106,7 +107,7 @@ public class KCheckpointUnderCommitFlood {
 		long base = TxnCount / Keys, rem = TxnCount % Keys;
 		for (long k = 0; k < Keys; ++k) {
 			long expectPerKey = (long)(Warmups + Rounds) * (base + (k < rem ? 1 : 0));
-			Assertions.assertEquals(expectPerKey, App.Instance.demo_Module1.getTable1().getOrAdd(k).getLong2(),
+			Assertions.assertEquals(expectPerKey, Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(k).getLong2(),
 					"key=" + k);
 		}
 		return 0;
@@ -117,11 +118,11 @@ public class KCheckpointUnderCommitFlood {
 		// 随后冲散，让测量轮从干净编组状态开始。
 		for (long key = 0; key < Keys; ++key) {
 			final long k = key;
-			App.Instance.Zeze.newProcedure(() -> {
-				App.Instance.demo_Module1.getTable1().getOrAdd(k).setLong2(0L);
+			App.Instance.getZeze().newProcedure(() -> {
+				Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(k).setLong2(0L);
 				return 0L;
 			}, "prepare").call();
 		}
-		App.Instance.Zeze.checkpointRun();
+		App.Instance.getZeze().checkpointRun();
 	}
 }

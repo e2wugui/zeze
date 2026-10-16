@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.io.File;
 import java.nio.file.Path;
@@ -123,7 +127,7 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 	private static void closeNodes(List<Zeze.Dbh2.Dbh2> nodes, RocksDatabase rocks) throws Exception {
 		for (var n : nodes) {
 			n.close();
-			LogSequence.deleteDirectory(new File(n.getRaft().getRaftConfig().getDbHome()));
+			LogSequence.deleteDirectory(new File(requireNonNull(n.getRaft().getRaftConfig().getDbHome())));
 		}
 		rocks.close();
 	}
@@ -158,7 +162,7 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			get.Argument.setTable(table);
 			get.Argument.setKey(key);
 			var rc = new AtomicLong(-1);
-			var getError = new AtomicReference<Throwable>();
+			var getError = new AtomicReference<@Nullable Throwable>();
 			var getThread = new Thread(() -> {
 				try {
 					rc.set(leaderNode.ProcessGetRequest(get));
@@ -167,9 +171,9 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 				}
 			});
 			getThread.start();
-			var from = leader.getBucket().getBucketMeta().copy();
+			var from = requireNonNull(requireNonNull(leader.getBucket()).getBucketMeta()).copy();
 			from.setKeyLast(new Binary(new byte[]{0x28}));
-			var to = leader.getBucket().getBucketMeta().copy();
+			var to = requireNonNull(leader.getBucket()).getBucketMeta().copy();
 			to.setKeyFirst(new Binary(new byte[]{0x28}));
 			to.setRaftConfig(RAFT);
 			interleave.runFinalizeAndRelease(() -> leader.endSplit(from, to));
@@ -217,7 +221,7 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			get.Argument.setTable(table);
 			get.Argument.setKey(key);
 			var rc = new AtomicLong(-1);
-			var getError = new AtomicReference<Throwable>();
+			var getError = new AtomicReference<@Nullable Throwable>();
 			var getThread = new Thread(() -> {
 				try {
 					rc.set(leaderNode.ProcessGetRequest(get));
@@ -226,7 +230,7 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 				}
 			});
 			getThread.start();
-			var to = leader.getBucket().getBucketMeta().copy();
+			var to = requireNonNull(requireNonNull(leader.getBucket()).getBucketMeta()).copy();
 			to.setRaftConfig(RAFT);
 			interleave.runFinalizeAndRelease(() -> leader.endMove(to));
 			getThread.join(30_000);
@@ -266,8 +270,8 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 				if (arg.getExclusiveStartKey().equals(cursorKey))
 					interleave.pauseUntilFinalized();
 			};
-			var walkResult = new AtomicReference<Zeze.Builtin.Dbh2.Walk>();
-			var walkError = new AtomicReference<Throwable>();
+			var walkResult = new AtomicReference<Zeze.Builtin.Dbh2.@Nullable Walk>();
+			var walkError = new AtomicReference<@Nullable Throwable>();
 			var walkThread = new Thread(() -> {
 				try {
 					// 真实rpc路径：服务端oneByOne工作线程在钩子点暂停。
@@ -277,9 +281,9 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 				}
 			});
 			walkThread.start();
-			var from = leader.getBucket().getBucketMeta().copy();
+			var from = requireNonNull(requireNonNull(leader.getBucket()).getBucketMeta()).copy();
 			from.setKeyLast(new Binary(new byte[]{5}));
-			var to = leader.getBucket().getBucketMeta().copy();
+			var to = requireNonNull(leader.getBucket()).getBucketMeta().copy();
 			to.setKeyFirst(new Binary(new byte[]{5}));
 			to.setRaftConfig(RAFT);
 			interleave.runFinalizeAndRelease(() -> leader.endSplit(from, to));
@@ -289,7 +293,7 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			var r = walkResult.get();
 			// 缺陷形态：迭代器创建晚于deleteRange，7..9已删→0行+bucketEnd=true正常应答，
 			// 客户端陈旧视图按桶尾推进（本桶即视图尾桶时遍历静默终止），7..9整段丢失。
-			Assertions.assertTrue(r.Result.isBucketRefuse(),
+			Assertions.assertTrue(requireNonNull(r).Result.isBucketRefuse(),
 					"正向交错下Walk必须bucketRefuse（reload重定位），不得按正常桶尾应答");
 			Assertions.assertEquals(0, r.Result.getKeyValues().size(), "refuse应答不得携带行");
 		} finally {

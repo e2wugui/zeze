@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -71,12 +75,12 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 	private static final int[] ports = new int[3];
 	private static final ArrayList<GlobalCacheManagerWithRaft> nodes = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static GlobalCacheManagerWithRaft gcm; // leader
+	private static @Nullable GlobalCacheManagerWithRaft gcm; // leader
 	private static int leaderPort;
-	private static Path raftXmlFile;
-	private static Peer clientA;
-	private static Peer clientB;
-	private static Table<Binary, BCacheState> globalStates; // 反射取得，只读
+	private static @Nullable Path raftXmlFile;
+	private static @Nullable Peer clientA;
+	private static @Nullable Peer clientB;
+	private static @Nullable Table<Binary, BCacheState> globalStates; // 反射取得，只读
 	private static final AtomicLong requestIds = new AtomicLong();
 
 	/** 裸协议raft客户端：Login/Acquire正常收发；Reduce到达后park住由测试控制应答时机。 */
@@ -185,7 +189,7 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		for (var node : nodes)
 			node.close();
 		nodes.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new File(dbHome));
 		dbHomes.clear();
@@ -240,12 +244,12 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 	 * 用一个raft写强制触发trySendAppendEntries全量重发，解开搁置并等待ready。
 	 */
 	private static void ensureLeaderReady() throws InterruptedException {
-		var raft = gcm.getRocks().getRaft();
+		var raft = requireNonNull(gcm).getRocks().getRaft();
 		long deadline = System.currentTimeMillis() + 30_000;
-		while (!raft.isReadyLeader()) {
+		while (!requireNonNull(raft).isReadyLeader()) {
 			try {
 				gcm.getRocks().newProcedure(() -> {
-					globalStates.put(WARMUP_KEY, new BCacheState());
+					requireNonNull(globalStates).put(WARMUP_KEY, new BCacheState());
 					return 0L;
 				}).call();
 			} catch (Throwable ex) {
@@ -309,8 +313,8 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 	/** 表读取必须在事务内进行（Table.get需要Transaction.getCurrent()），用只读procedure包一层。 */
 	private static int pendingOf(Binary key) throws Exception {
 		var pending = new int[1];
-		gcm.getRocks().newProcedure(() -> {
-			var cs = globalStates.get(key);
+		requireNonNull(gcm).getRocks().newProcedure(() -> {
+			var cs = requireNonNull(globalStates).get(key);
 			pending[0] = cs != null ? cs.getAcquireStatePending() : GlobalCacheManagerConst.StateInvalid;
 			return 0L;
 		}).call();
@@ -332,7 +336,7 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		var sessionIdField = holder.getClass().getDeclaredField("sessionId");
 		sessionIdField.setAccessible(true);
 		long sessionId = sessionIdField.getLong(holder);
-		var socket = gcm.getRocks().getRaft().getServer().GetSocket(sessionId);
+		var socket = requireNonNull(requireNonNull(gcm).getRocks().getRaft()).getServer().GetSocket(sessionId);
 		Assertions.assertNotNull(socket, "server socket of session " + serverId);
 		return socket;
 	}
@@ -349,7 +353,7 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 	}
 
 	/** 找三参release(CacheHolder,Binary,boolean)：测试自带newProcedure包装（保留call()返回码）。 */
-	private static Method findReleaseMethod() {
+	private static @Nullable Method findReleaseMethod() {
 		for (var m : GlobalCacheManagerWithRaft.class.getDeclaredMethods()) {
 			if (m.getName().equals("release") && m.getParameterCount() == 3
 					&& m.getParameterTypes()[1] == Binary.class)
@@ -399,7 +403,7 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 
 		var acquireShare = GlobalCacheManagerWithRaft.class.getDeclaredMethod("acquireShare", Acquire.class);
 		acquireShare.setAccessible(true);
-		var proc = gcm.getRocks().newProcedure(() -> {
+		var proc = requireNonNull(gcm).getRocks().newProcedure(() -> {
 			acquireShare.invoke(gcm, rpcB);
 			return 0L;
 		});
@@ -454,11 +458,11 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		Assertions.assertNotNull(release, "release(CacheHolder,Binary,boolean)方法必须存在");
 		release.setAccessible(true);
 		var releaseDone = new CountDownLatch(1);
-		var releaseError = new AtomicReference<Throwable>();
+		var releaseError = new AtomicReference<@Nullable Throwable>();
 		var releaser = new Thread(() -> {
 			try {
 				for (int attempt = 1; ; ++attempt) {
-					var target = currentLeaderOr(gcm);
+					var target = currentLeaderOr(requireNonNull(gcm));
 					var holder = target == gcm ? holderA : newCacheHolderOn(target, SERVER_ID_A, holderA);
 					try {
 						var rc = target.getRocks().newProcedure(() -> {
@@ -512,7 +516,7 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		long deadline = System.currentTimeMillis() + 10_000;
 		while (true) {
 			gcm.getRocks().newProcedure(() -> {
-				exists[0] = globalStates.get(KEY) != null;
+				exists[0] = requireNonNull(globalStates).get(KEY) != null;
 				return 0L;
 			}).call();
 			if (!exists[0] || System.currentTimeMillis() >= deadline)

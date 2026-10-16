@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
@@ -59,7 +63,7 @@ public class TestServiceManagerWithRaftLoginSessionName {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
+	private static @Nullable Path raftXmlFile;
 	private static final AtomicLong requestIds = new AtomicLong();
 
 	/** 裸协议raft客户端：仅需Login应答与LeaderIs解码。 */
@@ -140,7 +144,7 @@ public class TestServiceManagerWithRaftLoginSessionName {
 		}
 		servers.clear();
 		rocksList.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new File(dbHome));
 		dbHomes.clear();

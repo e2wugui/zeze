@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.Future;
 import Zeze.Util.Task;
 import Zeze.Util.TimeCounter;
@@ -48,7 +50,7 @@ public class TestTimeCounterClose {
 		Assertions.assertDoesNotThrow(tc::close);
 	}
 
-	private static Future<?> discardTimerOf(TimeCounter tc) {
+	private static @Nullable Future<?> discardTimerOf(TimeCounter tc) {
 		try {
 			var f = TimeCounter.class.getDeclaredField("discardTimer");
 			f.setAccessible(true);

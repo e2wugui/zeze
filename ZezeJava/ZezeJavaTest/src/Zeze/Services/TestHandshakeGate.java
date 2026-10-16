@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -20,7 +24,6 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -72,7 +75,7 @@ public class TestHandshakeGate {
 
 	// accepted非null时在OnSocketAccept计数：单调递增的"连接已到达服务端"信号（满载假红加固用）
 	private static HandshakeServer newGateServer(String name, int encryptType, AtomicBoolean processed,
-												 java.util.concurrent.atomic.AtomicInteger accepted) {
+												 @Nullable AtomicInteger accepted) {
 		var conf = new Config();
 		var sconf = new ServiceConf();
 		sconf.getHandshakeOptions().setEncryptType(encryptType);
@@ -86,7 +89,7 @@ public class TestHandshakeGate {
 			}
 
 			@Override
-			public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+			public void OnSocketAccept(AsyncSocket so) throws Exception {
 				super.OnSocketAccept(so);
 				if (accepted != null)
 					accepted.incrementAndGet();
@@ -132,7 +135,7 @@ public class TestHandshakeGate {
 				}
 
 				@Override
-				public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+				public void OnSocketConnected(AsyncSocket so) throws Exception {
 					super.OnSocketConnected(so);
 					new PlaintextEcho().Send(so); // 不握手，明文直发应用协议（FND7-23 主路径）
 				}
@@ -168,7 +171,7 @@ public class TestHandshakeGate {
 				}
 
 				@Override
-				public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+				public void OnSocketConnected(AsyncSocket so) throws Exception {
 					super.OnSocketConnected(so);
 					new PlaintextEcho().Send(so);
 				}
@@ -197,7 +200,7 @@ public class TestHandshakeGate {
 			var port = listenPort(server);
 			var client = new HandshakeClient("HandshakeLegitClient", new Config()) {
 				@Override
-				public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+				public void OnHandshakeDone(AsyncSocket so) throws Exception {
 					super.OnHandshakeDone(so);
 					new PlaintextEcho().Send(so); // 握手完成后才发送（走加密通道）
 				}
@@ -240,7 +243,7 @@ public class TestHandshakeGate {
 				}
 
 				@Override
-				public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+				public void OnSocketConnected(AsyncSocket so) throws Exception {
 					super.OnSocketConnected(so);
 					// 伪造合法CHandshake+明文协议拼进同一ByteBuffer单次写出，服务端单次decode同缓冲区处理。
 					var ch = new CHandshake();

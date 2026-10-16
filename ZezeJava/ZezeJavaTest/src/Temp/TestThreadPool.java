@@ -1,5 +1,7 @@
 package Temp;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -8,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 public class TestThreadPool {
 	public static long count;
 	public static final int ThreadCount = 10000;
-	private static ThreadPoolExecutor threadPool;
+	private static @Nullable ThreadPoolExecutor threadPool;
 
 	public static void add() {
 		for (int i = 0; i < 1000; i++) {
@@ -17,17 +19,17 @@ public class TestThreadPool {
 	}
 
 	public static void tryNotifyAdd() {
-		if (threadPool.getQueue().size() < ThreadCount)
+		if (Objects.requireNonNull(threadPool).getQueue().size() < ThreadCount)
 			//noinspection SynchronizeOnNonFinalField
-			synchronized (threadPool) {
-				threadPool.notify();
+			synchronized (Objects.requireNonNull(threadPool)) {
+				Objects.requireNonNull(threadPool).notify();
 			}
 	}
 
 	public static void waitAdd() throws InterruptedException {
 		//noinspection SynchronizeOnNonFinalField
-		synchronized (threadPool) {
-			threadPool.wait();
+		synchronized (Objects.requireNonNull(threadPool)) {
+			Objects.requireNonNull(threadPool).wait();
 		}
 	}
 
@@ -57,18 +59,18 @@ public class TestThreadPool {
 		var lastReportTime = System.currentTimeMillis();
 		var lastCompletedTaskCount = 0L;
 		for (int i = 0; i < ThreadCount; i++) {
-			threadPool.execute(new ThreadTask());
+			Objects.requireNonNull(threadPool).execute(new ThreadTask());
 		}
 		//noinspection InfiniteLoopStatement
 		while (true) {
-			var need = ThreadCount * 2 - threadPool.getQueue().size();
+			var need = ThreadCount * 2 - Objects.requireNonNull(threadPool).getQueue().size();
 			for (int i = 0; i < need; ++i) {
-				threadPool.execute(new ThreadTask());
+				Objects.requireNonNull(threadPool).execute(new ThreadTask());
 			}
 			var now = System.currentTimeMillis();
 			var elapsed = now - lastReportTime;
 			if (elapsed > 10 * 1000) {
-				var completedTaskCount = threadPool.getCompletedTaskCount();
+				var completedTaskCount = Objects.requireNonNull(threadPool).getCompletedTaskCount();
 				System.out.println((float)(completedTaskCount - lastCompletedTaskCount) / elapsed * 1000.0f);
 				lastCompletedTaskCount = completedTaskCount;
 				lastReportTime = now;

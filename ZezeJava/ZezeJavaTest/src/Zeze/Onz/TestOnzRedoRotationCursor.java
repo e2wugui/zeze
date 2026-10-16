@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,10 +57,10 @@ public class TestOnzRedoRotationCursor {
 	// 到达顺序=记录处理顺序，确定性）。
 	private final ConcurrentLinkedQueue<Long> commitArrivals = new ConcurrentLinkedQueue<>();
 
-	private ServiceManagerServer sm;
-	private Agent registerAgent;
-	private Service stubService;
-	private OnzServer onzServer;
+	private @Nullable ServiceManagerServer sm;
+	private @Nullable Agent registerAgent;
+	private @Nullable Service stubService;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before(@TempDir Path tempDir) throws Exception {
@@ -101,13 +105,13 @@ public class TestOnzRedoRotationCursor {
 			myConfig.getServiceConfMap().put(Agent.defaultServiceName, sc);
 
 			onzServer = new OnzServer("zeze1=" + zeze1Xml, myConfig);
-			onzServer.start();
+			requireNonNull(onzServer).start();
 
 			// 参与方地址发现就绪（注册先于OnzServer构造，通常零等待；慢机兜底轮询）。
 			var deadline = System.currentTimeMillis() + 30_000;
 			for (;;) {
 				try {
-					onzServer.getZezeInstance("zeze1");
+					requireNonNull(onzServer).getZezeInstance("zeze1");
 					break;
 				} catch (RuntimeException e) {
 					Assertions.assertTrue(System.currentTimeMillis() < deadline, "zeze1参与方地址未就绪");
@@ -124,7 +128,7 @@ public class TestOnzRedoRotationCursor {
 	public void after() throws Exception {
 		if (onzServer != null) {
 			try {
-				onzServer.stop();
+				requireNonNull(onzServer).stop();
 			} catch (Exception e) {
 			}
 		}
@@ -158,7 +162,7 @@ public class TestOnzRedoRotationCursor {
 	@Timeout(90)
 	public void testRotationCursorScansInUnsignedKeyOrder() throws Exception {
 		// 三条eCommitting孤儿（procedure参与方zeze1→桩）：无年龄闸、登记表无记录，全部进快照。
-		writeOrphanRecords(onzServer, TidA, AbstractOnz.eCommitting, "zeze1");
+		writeOrphanRecords(requireNonNull(onzServer), TidA, AbstractOnz.eCommitting, "zeze1");
 		writeOrphanRecords(onzServer, TidB, AbstractOnz.eCommitting, "zeze1");
 		writeOrphanRecords(onzServer, TidC, AbstractOnz.eCommitting, "zeze1");
 
@@ -179,7 +183,7 @@ public class TestOnzRedoRotationCursor {
 		f.set(onzServer, key);
 	}
 
-	private static Object redoResumeKeyOf(OnzServer onzServer) throws Exception {
+	private static @Nullable Object redoResumeKeyOf(OnzServer onzServer) throws Exception {
 		return redoResumeKeyField().get(onzServer);
 	}
 

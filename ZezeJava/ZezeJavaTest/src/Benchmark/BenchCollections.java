@@ -1,5 +1,6 @@
 package Benchmark;
 
+import java.util.Objects;
 import demo.App;
 import demo.Bean1;
 import harness.Bench;
@@ -17,8 +18,8 @@ public class BenchCollections {
 	@BeforeAll
 	public static void testInit() throws Exception {
 		App.Instance.Start();
-		App.Instance.Zeze.newProcedure(() -> {
-			App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+		App.Instance.getZeze().newProcedure(() -> {
+			Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 			return 0;
 
 		}, "createRecordAndLoad").call();
@@ -29,8 +30,8 @@ public class BenchCollections {
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < totalCount; i++) {
 			// 模拟典型应用操作
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var list = record.getList9();
 				// append to tail
 				list.add(new Bean1());
@@ -46,8 +47,8 @@ public class BenchCollections {
 				// 有数据提交进去。
 				return 0;
 			}, "testList").call();
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var list = record.getList9();
 				// remove tail 故意不用clear。
 				while (!list.isEmpty())
@@ -65,8 +66,8 @@ public class BenchCollections {
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < totalCount; i++) {
 			// 模拟典型应用操作
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var map = record.getMap15();
 				map.put(2L, 2L);
 				map.put(4L, 4L);
@@ -78,15 +79,15 @@ public class BenchCollections {
 						++dummy;
 				return 0;
 			}, "testMap").call();
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var map = record.getMap15();
 				map.remove(1L);
 				map.remove(3L);
 				return 0;
 			}, "testMap").call();
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var map = record.getMap15();
 				map.clear();
 				return 0;
@@ -100,8 +101,8 @@ public class BenchCollections {
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < totalCount; i++) {
 			// 模拟典型应用操作
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var set = record.getSet10();
 				set.add(3);
 				set.add(1);
@@ -113,15 +114,15 @@ public class BenchCollections {
 						++dummy;
 				return 0;
 			}, "testSet").call();
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var set = record.getSet10();
 				set.remove(1);
 				set.remove(2);
 				return 0;
 			}, "testSet").call();
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var set = record.getSet10();
 				set.clear();
 				return 0;
@@ -135,8 +136,8 @@ public class BenchCollections {
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < totalCount; i++) {
 			// 模拟典型应用操作
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var sortedmap = record.getSortedmap1();
 				sortedmap.put(1, 1);
 				sortedmap.put(3, 3);
@@ -148,15 +149,15 @@ public class BenchCollections {
 						++dummy;
 				return 0;
 			}, "testSortedmap").call();
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var sortedmap = record.getSortedmap1();
 				sortedmap.remove(1);
 				sortedmap.remove(3);
 				return 0;
 			}, "testSortedmap").call();
-			App.Instance.Zeze.newProcedure(() -> {
-				var record = App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			App.Instance.getZeze().newProcedure(() -> {
+				var record = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(123L);
 				var sortedmap = record.getSortedmap1();
 				sortedmap.clear();
 				return 0;

@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Fast
 @Timeout(10)
 public class TestAsyncLifecycleBehavior {
-	private static Object waitHead(TaskCompletionSource<?> source) throws Exception {
+	private static @Nullable Object waitHead(TaskCompletionSource<?> source) throws Exception {
 		var field = TaskCompletionSource.class.getDeclaredField("waitHead");
 		field.setAccessible(true);
 		return field.get(source);
@@ -37,7 +39,7 @@ public class TestAsyncLifecycleBehavior {
 			assertThrows(TimeoutException.class, () -> source.get(1, TimeUnit.NANOSECONDS));
 		}
 		assertNull(waitHead(source), "长期 pending Future 不得保留历史轮询者");
-		var exit = new AtomicReference<Throwable>();
+		var exit = new AtomicReference<@Nullable Throwable>();
 		var waiter = Thread.ofPlatform().daemon().start(() -> {
 			try {
 				source.get();
@@ -61,7 +63,7 @@ public class TestAsyncLifecycleBehavior {
 	@Test
 	public void testExpiredWaiterDoesNotLoseAnotherWaitersWakeup() throws Exception {
 		var source = new TaskCompletionSource<Integer>();
-		var value = new AtomicReference<Integer>();
+		var value = new AtomicReference<@Nullable Integer>();
 		var waiter = Thread.ofPlatform().daemon().start(() -> value.set(source.get()));
 		try {
 			awaitWaiter(source);

@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.Test;
  *    第3轮 selectCopy 不再抛出，事务正常提交。
  */
 @Fast
+@NullMarked
 public class TestAlwaysReleaseLockWhenRedo {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2组：700起；本类750起）。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_ALWAYS_RELEASE_LOCK_WHEN_REDO);

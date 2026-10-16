@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import java.lang.reflect.InvocationTargetException;
 
 import Zeze.Transaction.DatabasePostgreSQL;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
  * 字符串/二进制用 ? 参数），按内容检测可靠。
  */
 @Fast
+@NullMarked
 public class TestPostgrePagedWalkBooleanKey {
 
 	private static String pagedKeyWhere(String table, String sql, boolean asc) throws Exception {

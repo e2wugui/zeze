@@ -18,8 +18,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -67,7 +66,7 @@ public class TestHandshakeNegotiationIntegrity {
 			var port = listenPort(server);
 
 			// 攻击者视角：吞掉服务器的SHandshake0/SHandshake，直接发"被篡改推荐后客户端会发出的"CHandshake{2}
-			final var closed = new TaskCompletionSource<Throwable>();
+			final var closed = new TaskCompletionSource<@Nullable Throwable>();
 			var attacker = new Service("TestHsDowngradeAttacker", new Config()) {
 				{
 					AddFactoryHandle(SHandshake0.TypeId_, new ProtocolFactoryHandle<>(SHandshake0::new,
@@ -77,7 +76,7 @@ public class TestHandshakeNegotiationIntegrity {
 				}
 
 				@Override
-				public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+				public void OnSocketConnected(AsyncSocket so) throws Exception {
 					super.OnSocketConnected(so);
 					var p = new CHandshake();
 					p.Argument.encryptType = Constant.eEncryptTypeAesNoSecureIp; // 被降级的类型2
@@ -86,7 +85,7 @@ public class TestHandshakeNegotiationIntegrity {
 				}
 
 				@Override
-				public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+				public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 					super.OnSocketClose(so, e);
 					closed.setResult(e);
 				}
@@ -133,14 +132,14 @@ public class TestHandshakeNegotiationIntegrity {
 			}
 
 			@Override
-			public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+			public void OnSocketAccept(AsyncSocket so) throws Exception {
 				super.OnSocketAccept(so);
 				var hand0 = new SHandshake0();
 				hand0.Argument.encryptType = Constant.eEncryptTypeAesNoSecureIp; // 模拟被篡改的推荐位
 				hand0.Send(so);
 			}
 
-			private long onCHandshake(@NotNull CHandshake p) throws Exception {
+			private long onCHandshake(CHandshake p) throws Exception {
 				var sh = new SHandshake();
 				sh.Argument.encryptType = Constant.eEncryptTypeAes; // 回显与请求不一致（模拟篡改）
 				sh.Argument.encryptParam = Helper.generateDHResponse(1, Helper.makeDHRandom()).toByteArray();
@@ -151,10 +150,10 @@ public class TestHandshakeNegotiationIntegrity {
 		try {
 			var port = listenPort(fakeServer);
 
-			final var closed = new TaskCompletionSource<Throwable>();
+			final var closed = new TaskCompletionSource<@Nullable Throwable>();
 			var victim = new HandshakeClient("TestHsEchoVictimClient", new Config()) {
 				@Override
-				public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+				public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 					super.OnSocketClose(so, e);
 					closed.setResult(e);
 				}

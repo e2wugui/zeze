@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -88,7 +90,7 @@ public class TestMapBeanLogRoundTrip {
 			assertSame(oldBean, follower.map().get("k"));
 			assertEquals(7, oldBean.getLong2());
 
-			((LogLong)index(decoded).get("k").getVariables().get(2)).value = 11;
+			requireNonNull(((LogLong)requireNonNull(index(decoded).get("k").getVariables()).get(2))).value = 11;
 			follower.log().decode(encode(decoded));
 			follower.apply().accept(follower.log());
 			assertEquals(11, oldBean.getLong2());
@@ -169,7 +171,7 @@ public class TestMapBeanLogRoundTrip {
 		assertSame(oldBean, follower.get(0));
 		assertEquals(7, oldBean.getLong2());
 		var entry = decoded.getChanged().entrySet().iterator().next();
-		((LogLong)entry.getKey().getVariables().get(2)).value = 11;
+		requireNonNull(((LogLong)requireNonNull(entry.getKey().getVariables()).get(2))).value = 11;
 		entry.getValue().value = 1;
 		replay.decode(encode(decoded));
 		follower.followerApply(replay);

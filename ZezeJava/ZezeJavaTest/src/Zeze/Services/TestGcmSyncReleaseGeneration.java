@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,11 +66,11 @@ public class TestGcmSyncReleaseGeneration {
 	private static final int SERVER_ID_S = 9132;
 	private static final int SERVER_ID_T = 9133;
 
-	private static RawClient clientS;
-	private static RawClient clientS2;
-	private static RawClient clientT;
+	private static @Nullable RawClient clientS;
+	private static @Nullable RawClient clientS2;
+	private static @Nullable RawClient clientT;
 
-	private static GlobalCacheManagerServer gcm;
+	private static @Nullable GlobalCacheManagerServer gcm;
 
 	/** 裸协议客户端：Login/ReLogin/Acquire正常收发；Reduce到达后park住由测试控制应答时机。 */
 	private static final class RawClient extends Service {
@@ -121,7 +123,7 @@ public class TestGcmSyncReleaseGeneration {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		for (var c : new RawClient[]{clientS, clientS2, clientT})
+		for (var c : new @Nullable RawClient[]{clientS, clientS2, clientT})
 			if (c != null)
 				c.stop();
 		if (gcm != null) {
@@ -145,7 +147,7 @@ public class TestGcmSyncReleaseGeneration {
 		Assertions.assertEquals(0, acquire.getResultCode(), "acquire resultCode " + key);
 	}
 
-	private static Object cacheStateOf(Binary key) throws Exception {
+	private static @Nullable Object cacheStateOf(Binary key) throws Exception {
 		var field = GlobalCacheManagerServer.class.getDeclaredField("global");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked")

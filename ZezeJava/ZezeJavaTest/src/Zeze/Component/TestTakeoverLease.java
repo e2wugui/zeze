@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import Zeze.Application;
@@ -23,7 +25,7 @@ public class TestTakeoverLease {
 	private static long[] readLease(Application app, int serverId) {
 		var out = new long[2];
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
-			var lease = app.getTakeover().getTable().get(serverId);
+			var lease = requireNonNull(app.getTakeover()).getTable().get(serverId);
 			if (lease != null) {
 				out[0] = lease.getEpoch();
 				out[1] = lease.getExpireAt();

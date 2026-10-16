@@ -13,8 +13,7 @@ import Zeze.Services.Handshake.Constant;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 复审R2回归（FND7-S2②）：processSHandshake0对服务端"全Disable推荐"无条件走明文快速
@@ -52,7 +51,7 @@ public class TestHandshakeClientRefusesPlaintextDowngrade {
 			}
 			var listener = (TcpSocket)server.newServerSocket(new InetSocketAddress("127.0.0.1", port), null);
 			try {
-				final var closed = new TaskCompletionSource<Throwable>();
+				final var closed = new TaskCompletionSource<@Nullable Throwable>();
 				final var handshakeDone = new java.util.concurrent.atomic.AtomicBoolean();
 				// 客户端配置了加密诉求：EncryptType=AesNoSecureIp
 				var clientConf = new Config();
@@ -61,13 +60,13 @@ public class TestHandshakeClientRefusesPlaintextDowngrade {
 				clientConf.getServiceConfMap().put("TestHsR2VictimClient", csconf);
 				var victim = new HandshakeClient("TestHsR2VictimClient", clientConf) {
 					@Override
-					public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+					public void OnHandshakeDone(AsyncSocket so) throws Exception {
 						super.OnHandshakeDone(so);
 						handshakeDone.set(true);
 					}
 
 					@Override
-					public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+					public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 						super.OnSocketClose(so, e);
 						closed.setResult(e);
 					}
@@ -116,7 +115,7 @@ public class TestHandshakeClientRefusesPlaintextDowngrade {
 			}
 			var listener = (TcpSocket)server.newServerSocket(new InetSocketAddress("127.0.0.1", port), null);
 			try {
-				final var closed = new TaskCompletionSource<Throwable>();
+				final var closed = new TaskCompletionSource<@Nullable Throwable>();
 				final var handshakeDone = new java.util.concurrent.atomic.AtomicBoolean();
 				// 客户端配置了加密诉求：EncryptType=AesNoSecureIp
 				var clientConf = new Config();
@@ -125,13 +124,13 @@ public class TestHandshakeClientRefusesPlaintextDowngrade {
 				clientConf.getServiceConfMap().put("TestHsR3VictimClient", csconf);
 				var victim = new HandshakeClient("TestHsR3VictimClient", clientConf) {
 					@Override
-					public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+					public void OnHandshakeDone(AsyncSocket so) throws Exception {
 						super.OnHandshakeDone(so);
 						handshakeDone.set(true);
 					}
 
 					@Override
-					public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+					public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 						super.OnSocketClose(so, e);
 						closed.setResult(e);
 					}

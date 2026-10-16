@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -64,7 +66,7 @@ public class TestRaftEndInstallSnapshotNullFileGuard {
 	 */
 	@Test
 	public void testEndInstallSnapshotWithNullFileSafe() throws Exception {
-		var ls = rocks.getRaft().getLogSequence();
+		var ls = requireNonNull(rocks.getRaft()).getLogSequence();
 
 		// 构造半初始化条目：InstallSnapshotState（file==null，即open失败留下的状态）
 		var stateClass = Class.forName("Zeze.Raft.InstallSnapshotState");

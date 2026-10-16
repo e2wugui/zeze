@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -32,7 +34,7 @@ public class TestSnapshotManifestReconcile {
 	private static final String raftName = "127.0.0.1:26370";
 	private static final String dbHome = "SnapshotManifest.raft";
 
-	private Raft raft;
+	private @Nullable Raft raft;
 
 	// 显式DbHome；3节点仅是Raft构造的配置要求，本测试不启动server，不占用任何端口。
 	private static RaftConfig newRaftConfig() {
@@ -89,7 +91,7 @@ public class TestSnapshotManifestReconcile {
 	}
 
 	// 伪造legacy磁盘形态：logs=[0,5..12]、rafts.firstIndex=F、snapshot.dat带manifest S。
-	private void forgeLegacyState(long firstIndex, Long manifest) throws Exception {
+	private void forgeLegacyState(long firstIndex, @Nullable Long manifest) throws Exception {
 		var r = newRaft();
 		var ls = r.getLogSequence();
 		for (long i = 5; i <= 12; i++)
@@ -180,7 +182,7 @@ public class TestSnapshotManifestReconcile {
 	}
 
 	// 构造测试用快照zip（manifest为null时不含manifest entry）。
-	private static Path newZipWithManifest(Long manifest) throws Exception {
+	private static Path newZipWithManifest(@Nullable Long manifest) throws Exception {
 		var zipPath = Files.createTempFile("snapshot-manifest-snap", ".zip");
 		Files.delete(zipPath); // 空文件不是合法zip，删除后由ZipFileSystem新建
 		try (var zipFs = FileSystems.newFileSystem(zipPath, Map.of("create", "true"))) {

@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +27,7 @@ public class TestSnapshotGenerationCommit {
 	private static final String raftName = "127.0.0.1:26380";
 	private static final String dbHome = "a3_TestSnapshotGenCommit.raft";
 
-	private Raft raft;
+	private @Nullable Raft raft;
 
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""

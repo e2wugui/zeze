@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,7 +90,7 @@ public class TestNestRollbackPutLog {
 	}
 
 	private Table<Integer, BValue> table() {
-		return rocks.<Integer, BValue>getTableTemplate("TestNestRollbackPutLog.table").openTable(0);
+		return requireNonNull(rocks.<Integer, BValue>getTableTemplate("TestNestRollbackPutLog.table")).openTable(0);
 	}
 
 	/** 嵌套put回滚后，外层get必须返回null（记录不存在），不得读到已回滚的值。 */
@@ -129,7 +131,7 @@ public class TestNestRollbackPutLog {
 				return -1L; // 回滚覆盖
 			}).call();
 
-			assertEquals(1, table.get(1).i, "nested overwrite rolled back: outer put must survive");
+			assertEquals(1, requireNonNull(table.get(1)).i, "nested overwrite rolled back: outer put must survive");
 			return -1L;
 		}).call();
 		assertEquals(-1L, rc);

@@ -1,11 +1,14 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Transaction.Transaction;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -14,19 +17,19 @@ import org.junit.jupiter.api.parallel.Isolated;
 @Isolated
 public class TestCrossFamilyNamedReplacement {
 	private static final AtomicInteger OldCalls = new AtomicInteger();
-	private static volatile CountDownLatch replacementFired;
+	private static volatile @Nullable CountDownLatch replacementFired;
 
 	public static class OldHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			Transaction.whileCommit(OldCalls::incrementAndGet);
 		}
 	}
 
 	public static class ReplacementHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
-			Transaction.whileCommit(replacementFired::countDown);
+		public void onTimer(TimerContext context) {
+			Transaction.whileCommit(requireNonNull(replacementFired)::countDown);
 		}
 	}
 
@@ -57,13 +60,13 @@ public class TestCrossFamilyNamedReplacement {
 			 var queue = new TimerTestEnv.QueueBlock("cross-family-replacement-" + env.app.getConfig().getServerId())) {
 			long roleId = 1;
 			env.transaction(() -> {
-				env.online.getOrAddOnlineShared(roleId).setLoginVersion(1);
+				requireNonNull(env.online).getOrAddOnlineShared(roleId).setLoginVersion(1);
 				env.online.getOrAddOnlineShared(roleId).setLink(
 						new Zeze.Builtin.Game.Online.BLink("test", 1, Zeze.Game.Online.eLogined));
 				env.online.getTLocal().getOrAdd(roleId).setLoginVersion(1);
 				return 0L;
 			});
-			var roleTimer = env.online.getTimerRole();
+			var roleTimer = requireNonNull(env.online).getTimerRole();
 			var timerId = "cross-family-named-replacement";
 			TimerSpec original = cron
 					? TimerSpec.ofCron("* * * * * ?").times(1).oneByOneKey(queue.key)
@@ -90,7 +93,7 @@ public class TestCrossFamilyNamedReplacement {
 			});
 			queue.drain();
 
-			Assertions.assertTrue(replacementFired.await(5, TimeUnit.SECONDS),
+			Assertions.assertTrue(requireNonNull(replacementFired).await(5, TimeUnit.SECONDS),
 					"a replacement in another timer family must still execute its own handle");
 			Assertions.assertEquals(0, OldCalls.get(), "canceled timer must not execute its old handle");
 		}

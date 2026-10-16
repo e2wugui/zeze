@@ -8,8 +8,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,8 +24,8 @@ public class TestSocketDisposedContinuesAfterDispatchFailure {
 		}
 
 		@Override
-		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc,
-				@NotNull ProtocolHandle<P> responseHandle, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+		public <P extends Protocol<?>> void dispatchRpcResponse(P rpc,
+				ProtocolHandle<P> responseHandle, ProtocolFactoryHandle<?> factoryHandle)
 				throws Exception {
 			if (!rejected) {
 				rejected = true;
@@ -61,7 +60,7 @@ public class TestSocketDisposedContinuesAfterDispatchFailure {
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 	}

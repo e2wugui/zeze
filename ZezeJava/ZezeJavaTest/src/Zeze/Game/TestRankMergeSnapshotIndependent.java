@@ -1,5 +1,7 @@
 package Zeze.Game;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Fast;
 import harness.FastServerIds;
 import org.junit.jupiter.api.AfterEach;
@@ -118,7 +120,7 @@ public class TestRankMergeSnapshotIndependent {
 		}, "update-table").call());
 
 		// 旧快照引用保持旧值：快照与表彻底别名隔离，表更新不改变已发出的快照。
-		var oldEntry = holder[0].getTableValue().getRankListReadOnly().get(0);
+		var oldEntry = requireNonNull(holder[0].getTableValue()).getRankListReadOnly().get(0);
 		Assertions.assertEquals(200L, ((BValueLong)oldEntry.getDynamicReadOnly().getBean()).getValue(),
 				"旧快照内容不得随表更新变化");
 		Assertions.assertEquals(88L, oldEntry.getRoleId());

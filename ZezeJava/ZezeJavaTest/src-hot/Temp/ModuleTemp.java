@@ -1,8 +1,11 @@
 package Temp;
 
+import java.util.Objects;
 import Zeze.Hot.HotService;
+import org.jspecify.annotations.NullMarked;
 import Zeze.IModule;
 
+@NullMarked
 public class ModuleTemp implements IModuleInterface, IModule {
 	private final TempApp app;
 
@@ -24,11 +27,11 @@ public class ModuleTemp implements IModuleInterface, IModule {
 	public void start() {
 		var manager = app.manager;
 		var module = manager.getModuleContext("Temp", IModuleInterface.class);
-		var service = module.getService();
+		var service = Objects.requireNonNull(module).getService();
 		if (service == this)
 			System.out.println("Just Me!");
 		System.out.println(module.getClass().getClassLoader());
-		System.out.println(service.getClass().getClassLoader());
+		System.out.println(Objects.requireNonNull(service).getClass().getClassLoader());
 		service.helloWorld();
 	}
 

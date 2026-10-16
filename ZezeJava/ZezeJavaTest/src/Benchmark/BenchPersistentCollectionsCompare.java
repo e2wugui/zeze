@@ -2,7 +2,6 @@ package Benchmark;
 
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
-
 import harness.Bench;
 import kotlinx.collections.immutable.ExtensionsKt;
 import kotlinx.collections.immutable.PersistentMap;
@@ -122,6 +121,7 @@ public class BenchPersistentCollectionsCompare {
 		}
 
 		@Override
+		@SuppressWarnings("ConstantConditions") // 保留对第三方集合返回空值的防御。
 		public int get(Object map, int key) {
 			var v = vavr(map).get(key).getOrNull();
 			return v != null ? v : Integer.MIN_VALUE;

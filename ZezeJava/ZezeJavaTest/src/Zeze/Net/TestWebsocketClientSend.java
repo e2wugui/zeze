@@ -17,7 +17,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -83,7 +82,7 @@ public class TestWebsocketClientSend {
 		}
 	}
 
-	private static void injectWebSocket(@NotNull WebsocketClient so, @NotNull WebSocket stub) throws Exception {
+	private static void injectWebSocket(WebsocketClient so, WebSocket stub) throws Exception {
 		Field field = WebsocketClient.class.getDeclaredField("webSocket");
 		field.setAccessible(true);
 		field.set(so, stub);

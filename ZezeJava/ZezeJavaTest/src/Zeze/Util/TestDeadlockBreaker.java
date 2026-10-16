@@ -309,6 +309,7 @@ public class TestDeadlockBreaker {
 	}
 
 	/** detect()是实例私有方法且不使用Application，反射调用以验证集成路径。 */
+	@SuppressWarnings("DataFlowIssue") // 此 helper 仅反射调用不使用 Application 的 detect。
 	private static boolean invokeDetect() throws Exception {
 		var breaker = new DeadlockBreaker(null); // detect()不使用zeze，仅为构造
 		var method = DeadlockBreaker.class.getDeclaredMethod("detect");

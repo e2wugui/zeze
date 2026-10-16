@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,6 +23,7 @@ import org.junit.jupiter.api.Test;
  * （典型是 Rpc 应答，丢失即静默丢语义）。修复后逐项 try-catch（与 triggerActions 同型）。
  */
 @Fast
+@NullMarked
 public class TestFinalActionsIsolation {
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_FINAL_ACTIONS_ISOLATION);
 
@@ -44,7 +49,7 @@ public class TestFinalActionsIsolation {
 			var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
 				var t = Transaction.getCurrent();
 				// 第一个logAction抛错，第二个必须仍执行。
-				t.addLogAction(() -> {
+				requireNonNull(t).addLogAction(() -> {
 					throw new RuntimeException("logAction boom-commit");
 				});
 				t.addLogAction(ran::incrementAndGet);
@@ -69,7 +74,7 @@ public class TestFinalActionsIsolation {
 			var ran = new AtomicInteger();
 			var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
 				var t = Transaction.getCurrent();
-				t.addLogAction(() -> {
+				requireNonNull(t).addLogAction(() -> {
 					throw new RuntimeException("logAction boom-rollback");
 				});
 				t.addLogAction(ran::incrementAndGet);

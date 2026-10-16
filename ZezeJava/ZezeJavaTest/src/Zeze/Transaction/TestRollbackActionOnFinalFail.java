@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import harness.Fast;
@@ -24,7 +28,7 @@ import Zeze.Util.FuncLong;
  */
 @Fast
 public class TestRollbackActionOnFinalFail {
-	private static Application app;
+	private static @Nullable Application app;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -41,8 +45,8 @@ public class TestRollbackActionOnFinalFail {
 	@Test
 	public final void testRollbackActionOnAbort() {
 		var rollbacks = new AtomicInteger();
-		var result = new Procedure(app, (FuncLong)() -> {
-			Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
+		var result = new Procedure(requireNonNull(app), (FuncLong)() -> {
+			requireNonNull(Transaction.getCurrent()).runWhileRollback(rollbacks::incrementAndGet);
 			Transaction.getCurrent().throwAbort("force abort after rollback action registered", null);
 			return Procedure.Success; // 不可达：throwAbort 必抛
 		}, "TestRollbackActionOnFinalFail.Abort", null).call();
@@ -55,8 +59,8 @@ public class TestRollbackActionOnFinalFail {
 	@Test
 	public final void testRollbackActionOnErrorSavepoint() {
 		var rollbacks = new AtomicInteger();
-		var result = new Procedure(app, (FuncLong)() -> {
-			Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
+		var result = new Procedure(requireNonNull(app), (FuncLong)() -> {
+			requireNonNull(Transaction.getCurrent()).runWhileRollback(rollbacks::incrementAndGet);
 			Transaction.getCurrent().begin(); // Begin/End 不配对：错误码路径留下残留 savepoint
 			return 100L;
 		}, "TestRollbackActionOnFinalFail.ErrorSavepoint", null).call();
@@ -69,8 +73,8 @@ public class TestRollbackActionOnFinalFail {
 	@Test
 	public final void testRollbackActionOnTooManyTry() {
 		var rollbacks = new AtomicInteger();
-		var result = new Procedure(app, (FuncLong)() -> {
-			Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
+		var result = new Procedure(requireNonNull(app), (FuncLong)() -> {
+			requireNonNull(Transaction.getCurrent()).runWhileRollback(rollbacks::incrementAndGet);
 			Transaction.getCurrent().throwRedo(0, "force redo");
 			return Procedure.Success; // 不可达：throwRedo 必抛
 		}, "TestRollbackActionOnFinalFail.TooManyTry", null).call();
@@ -85,9 +89,9 @@ public class TestRollbackActionOnFinalFail {
 		var rollbacks = new AtomicInteger();
 		var commits = new AtomicInteger();
 		var calls = new AtomicInteger();
-		var result = new Procedure(app, (FuncLong)() -> {
+		var result = new Procedure(requireNonNull(app), (FuncLong)() -> {
 			calls.incrementAndGet();
-			Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
+			requireNonNull(Transaction.getCurrent()).runWhileRollback(rollbacks::incrementAndGet);
 			Transaction.getCurrent().runWhileCommit(commits::incrementAndGet);
 			if (calls.get() < 3)
 				Transaction.getCurrent().throwRedo(0, "force redo");

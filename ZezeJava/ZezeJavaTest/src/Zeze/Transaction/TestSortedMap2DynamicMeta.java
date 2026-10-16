@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Transaction.Bean;
@@ -20,7 +22,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestSortedMap2DynamicMeta {
 	private static final ToLongFunction<Bean> GET = b -> 1L;
-	private static final LongFunction<Bean> CREATE = t -> null;
+	private static final LongFunction<@Nullable Bean> CREATE = t -> null;
 
 	@Test
 	public void testDynamicSortedMapUsesSortedMap2Family() {

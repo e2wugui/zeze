@@ -1,17 +1,21 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import Zeze.Component.SafeBatch;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import demo.App;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.NavigableMap;
 
+@NullMarked
 public class TestSafeBatch {
 	@BeforeEach
 	public void before() throws Exception {
@@ -21,7 +25,7 @@ public class TestSafeBatch {
 	@Test
 	public void testSafeBatch() throws Exception {
 		App.getInstance().getZeze().newProcedure(() -> {
-			var table = App.getInstance().demo_Module1.getTable5();
+			var table = requireNonNull(App.getInstance().demo_Module1).getTable5();
 			var value1 = table.getOrAdd(1L);
 			value1.setS(1);
 
@@ -43,8 +47,8 @@ public class TestSafeBatch {
 		App.getInstance().getZeze().checkpointRun(); // walk 需要保存数据。
 
 		App.getInstance().getZeze().newProcedure(() -> {
-			App.getInstance().getZeze().getSafeBatch().startWalkTable(
-				App.getInstance().demo_Module1.getTable5(),
+			requireNonNull(App.getInstance().getZeze().getSafeBatch()).startWalkTable(
+				requireNonNull(App.getInstance().demo_Module1).getTable5(),
 				(safeBatch, key, value) -> {
 					walkedTableKeys.add(key);
 					System.out.println("SafeBatch: " + key + ", " + value.getS());
@@ -54,15 +58,15 @@ public class TestSafeBatch {
 		}, "startWalkTable").call();
 
 		App.getInstance().getZeze().newProcedure(() -> {
-			App.getInstance().getZeze().getSafeBatch().startWalkList(
-				App.getInstance().demo_Module1.getTable5(), 1L, new WalkList(), 1000, 1);
+			requireNonNull(App.getInstance().getZeze().getSafeBatch()).startWalkList(
+				requireNonNull(App.getInstance().demo_Module1).getTable5(), 1L, new WalkList(), 1000, 1);
 			return 0;
 		}, "startWalkList").call();
 
 
 		App.getInstance().getZeze().newProcedure(() -> {
-			App.getInstance().getZeze().getSafeBatch().startWalkSortedMap(
-				App.getInstance().demo_Module1.getTable5(), 1L, new WalkSortedMap(), 1000, 1);
+			requireNonNull(App.getInstance().getZeze().getSafeBatch()).startWalkSortedMap(
+				requireNonNull(App.getInstance().demo_Module1).getTable5(), 1L, new WalkSortedMap(), 1000, 1);
 			return 0;
 		}, "startWalkSortedMap").call();
 
@@ -103,14 +107,14 @@ public class TestSafeBatch {
 	// Timer 与 Timer 表 BBatch 记录永不清理（僵尸批处理），getBatch 恒非空。
 	@Test
 	public void testRecordMissingStopsBatch() throws Exception {
-		var table = App.getInstance().demo_Module1.getTable5();
+		var table = requireNonNull(App.getInstance().demo_Module1).getTable5();
 		var safeBatch = App.getInstance().getZeze().getSafeBatch();
 
 		var jobIdList = new String[1];
 		var jobIdMap = new String[1];
 		App.getInstance().getZeze().newProcedure(() -> {
 			// 记录 99 不存在：WalkList/WalkSortedMap 的 get*OutTransaction 均返回 null
-			jobIdList[0] = safeBatch.startWalkList(table, 99L, new WalkList(), 200, 1);
+			jobIdList[0] = requireNonNull(safeBatch).startWalkList(table, 99L, new WalkList(), 200, 1);
 			jobIdMap[0] = safeBatch.startWalkSortedMap(table, 99L, new WalkSortedMap(), 200, 1);
 			return 0;
 		}, "startMissingRecordBatches").call();
@@ -129,7 +133,7 @@ public class TestSafeBatch {
 	private @Nullable Object queryBatch(String jobId) {
 		var out = new Object[1];
 		App.getInstance().getZeze().newProcedure(() -> {
-			out[0] = App.getInstance().getZeze().getSafeBatch().getBatch(jobId);
+			out[0] = requireNonNull(App.getInstance().getZeze().getSafeBatch()).getBatch(jobId);
 			return 0;
 		}, "queryBatch_" + jobId).call();
 		return out[0];
@@ -144,8 +148,8 @@ public class TestSafeBatch {
 		}
 
 		@Override
-		public @Nullable ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey,
-		                                        @NotNull Integer mapKey) {
+		public @Nullable ByteBuffer encodeMapKey(TableX<?, ?> table, ByteBuffer tableKey,
+		                                        Integer mapKey) {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value)
@@ -154,7 +158,7 @@ public class TestSafeBatch {
 		}
 
 		@Override
-		public @NotNull Integer decodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull ByteBuffer bb) {
+		public Integer decodeMapKey(TableX<?, ?> table, ByteBuffer tableKey, ByteBuffer bb) {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value)
@@ -164,7 +168,7 @@ public class TestSafeBatch {
 
 		@Override
 		public @Nullable NavigableMap<Integer, Integer> getSortedMapOutTransaction(
-			@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) {
+			TableX<?, ?> table, ByteBuffer tableKey) {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value) {
@@ -183,8 +187,8 @@ public class TestSafeBatch {
 		}
 
 		@Override
-		public @Nullable java.util.List<Integer> getListOutTransaction(@NotNull TableX<?, ?> table,
-		                                                              @NotNull ByteBuffer tableKey) {
+		public java.util.@Nullable List<Integer> getListOutTransaction(TableX<?, ?> table,
+		                                                              ByteBuffer tableKey) {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value) {

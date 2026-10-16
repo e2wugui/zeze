@@ -1,5 +1,7 @@
 package Infinite;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Transaction.DatabaseMemory;
@@ -27,10 +29,10 @@ public final class Simulate {
 	public final static int BatchTaskCount = 20000;
 	public final static int CacheCapacity = 1000;
 	public final static int AccessKeyBound = (int)(CacheCapacity * 1.2f);
-	private static Simulate instance;
+	private static @Nullable Simulate instance;
 
 	public static Simulate getInstance() {
-		return instance;
+		return Objects.requireNonNull(instance);
 	}
 
 	private final ArrayList<App> Apps = new ArrayList<>();
@@ -69,11 +71,11 @@ public final class Simulate {
 		var allTFlush = new ArrayList<Zeze.Transaction.TableX<Long, BValue>>();
 		var allTable1 = new ArrayList<Zeze.Transaction.TableX<Long, BValue>>();
 		for (var app : Apps) {
-			allTFlush.add(app.app.demo_Module1.getTflush());
+			allTFlush.add(Objects.requireNonNull(app.app.demo_Module1).getTflush());
 			allTable1.add(app.app.demo_Module1.getTable1());
 		}
 		for (var app : Apps) {
-			app.app.demo_Module1.getTflush().getSimulateTables = () -> allTFlush;
+			Objects.requireNonNull(app.app.demo_Module1).getTflush().getSimulateTables = () -> allTFlush;
 			app.app.demo_Module1.getTable1().getSimulateTables = () -> allTable1;
 		}
 	}
@@ -84,7 +86,7 @@ public final class Simulate {
 			return;
 		logger.fatal("After");
 		for (var app : Apps) {
-			app.app.demo_Module1.getTflush().getSimulateTables = null;
+			Objects.requireNonNull(app.app.demo_Module1).getTflush().getSimulateTables = null;
 			app.app.demo_Module1.getTable1().getSimulateTables = null;
 		}
 		for (var app : Apps)
@@ -127,12 +129,12 @@ public final class Simulate {
 			Tasks.prepare();
 			++BatchNumber;
 			logger.fatal("Run {}", BatchNumber);
-			if (Apps.getFirst().app.Zeze.getConfig().isHistory()) {
+			if (Objects.requireNonNull(Apps.getFirst().app.Zeze).getConfig().isHistory()) {
 				// 先把pending的History记录落盘：BeforeEach的App.Start（Takeover.claim/Timer等）写的
 				// 记录还暂存在各app的rrs里，若不先checkpointRun就清History存储=空清，之后Verify前的
 				// checkpointRun会把它们（对残留行的Edit，无前置Put）flush进来，Verify回放NPE。
 				for (var a : Apps)
-					a.app.Zeze.checkpointRun();
+					a.app.getZeze().checkpointRun();
 				// 每个app都执行clearTables：__ClearTableCacheUnsafe__只清单实例缓存，存储清一次即可但
 				// 各app的表实例缓存都要清——残留缓存行会令getOrAdd命中直接Edit（History无前置Put，Verify回放NPE）。
 				for (var a : Apps)
@@ -140,12 +142,12 @@ public final class Simulate {
 				// Takeover租约行是启动期簿记（claim不受History管控）：批间一并清掉，且每个app的缓存都要清，
 				// 否则各自的renew会用缓存里的旧行复活存储；renew对缺行会自愈重写（重写会被History记录，verify一致）。
 				for (var a : Apps)
-					App.clearDbTable((Zeze.Transaction.TableX<?, ?>)a.app.getZeze()
-							.getTable("Zeze_Builtin_Takeover_tTakeoverLease"));
+					App.clearDbTable((Zeze.Transaction.TableX<?, ?>)Objects.requireNonNull(a.app.getZeze()
+							.getTable("Zeze_Builtin_Takeover_tTakeoverLease")));
 			}
 			for (var app : Apps) {
-				if (!app.app.Zeze.getConfig().isHistory())
-					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());
+				if (!app.app.getZeze().getConfig().isHistory())
+					logger.info("app {} history disable.", app.app.getZeze().getConfig().getServerId());
 			}
 			perf.resetCounter();
 			logger.info("timeNow={}", CoverHistory.timeNow);
@@ -167,8 +169,8 @@ public final class Simulate {
 			}
 			logger.fatal("Verify {}", BatchNumber);
 			for (var app : Apps)
-				app.app.Zeze.checkpointRun();
-			if (Apps.getFirst().app.Zeze.getConfig().isHistory())
+				app.app.getZeze().checkpointRun();
+			if (Apps.getFirst().app.getZeze().getConfig().isHistory())
 				Zeze.History.Verify.run(Apps.getFirst().app.Zeze); // 只需要验证一个App，History只有一份。
 			//Thread.sleep(4000);
 			Tasks.verify();

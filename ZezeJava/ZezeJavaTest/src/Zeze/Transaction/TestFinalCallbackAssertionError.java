@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Transaction.Procedure;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.Test;
  * 处单独接住重抛（数据已落库，不进 halt 路径）向上传播。
  */
 @Fast
+@NullMarked
 public class TestFinalCallbackAssertionError {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（16374，growth=1；上限16383）。
 	private static final int SERVER_ID = FastServerIds.TEST_FINAL_CALLBACK_ASSERTION;

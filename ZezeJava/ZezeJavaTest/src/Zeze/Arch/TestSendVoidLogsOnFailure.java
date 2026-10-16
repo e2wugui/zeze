@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -17,7 +19,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -81,7 +83,7 @@ public class TestSendVoidLogsOnFailure {
 		appender.start();
 		logger.addAppender(appender);
 		try {
-			redirect.sendVoid(null, new ModuleRedirect(), "sendvoidlogs:cancel");
+			requireNonNull(redirect).sendVoid(null, new ModuleRedirect(), "sendvoidlogs:cancel");
 		} finally {
 			logger.removeAppender(appender);
 			appender.stop();

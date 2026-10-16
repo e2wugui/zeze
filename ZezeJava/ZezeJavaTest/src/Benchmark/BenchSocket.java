@@ -1,5 +1,6 @@
 package Benchmark;
 
+import java.util.Objects;
 import harness.Bench;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +29,6 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Util.OutInt;
 import Zeze.Util.StableRandom;
 import demo.Module1.BValue;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -267,7 +267,7 @@ public class BenchSocket {
 		}
 
 		@Override
-		public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId, @NotNull ByteBuffer data) throws Exception {
+		public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Exception {
 			if (moduleId == 0 && protocolId == BenchProtocol.ProtocolId_)
 				return; // 忽略压测协议，不进行decode，增加流量。
 
@@ -668,7 +668,7 @@ public class BenchSocket {
 				var benchProtocol = new BenchProtocol(randBValue).encode();
 				sum += benchProtocol.size();
 				++count;
-				socket.Send(benchProtocol);
+				Objects.requireNonNull(socket).Send(benchProtocol);
 			}
 			var benchEnd = new BenchEnd();
 			benchEnd.SendForWait(socket, Integer.MAX_VALUE).await();

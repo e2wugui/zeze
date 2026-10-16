@@ -1,5 +1,9 @@
 package Zeze.Trans;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.NullMarked;
+
 import org.junit.jupiter.api.Test;
 import java.util.Objects;
 import java.util.concurrent.Future;
@@ -17,6 +21,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 
 @SuppressWarnings("CallToPrintStackTrace")
+@NullMarked
 public class TestGlobal {
 	public static class PrintLog extends LogSpecial<BValue, BValue> {
 		private static final Logger logger = LogManager.getLogger(TestGlobal.class);
@@ -41,7 +46,7 @@ public class TestGlobal {
 
 		@Override
 		public long getLogKey() {
-			return getBelong().objectId() + Bean.OBJECT_ID_STEP - 1;
+			return requireNonNull(getBelong()).objectId() + Bean.OBJECT_ID_STEP - 1;
 		}
 
 		@Override
@@ -77,18 +82,18 @@ public class TestGlobal {
 		app1.Start(config1);
 		app2.Start(config2);
 		try {
-			Assertions.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
-				app1.demo_Module1.getTable1().getOrAdd(6785L);
+			Assertions.assertEquals(Procedure.Success, requireNonNull(app1.Zeze).newProcedure(() -> {
+				requireNonNull(app1.demo_Module1).getTable1().getOrAdd(6785L);
 				return Procedure.Success;
 			}, "RemoveClean").call());
-			Assertions.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
-				app2.demo_Module1.getTable1().getOrAdd(6785L);
+			Assertions.assertEquals(Procedure.Success, requireNonNull(app2.Zeze).newProcedure(() -> {
+				requireNonNull(app2.demo_Module1).getTable1().getOrAdd(6785L);
 				return Procedure.Success;
 			}, "RemoveClean").call());
 
 			// 只删除一个app里面的记录就够了。
-			Assertions.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
-				app1.demo_Module1.getTable1().remove(6785L);
+			Assertions.assertEquals(Procedure.Success, requireNonNull(app1.Zeze).newProcedure(() -> {
+				requireNonNull(app1.demo_Module1).getTable1().remove(6785L);
 				return Procedure.Success;
 			}, "RemoveClean").call());
 
@@ -109,14 +114,14 @@ public class TestGlobal {
 			if (countAll != count * 2)
 				Thread.sleep(5000); // wait for globalForbidPeriod
 
-			Assertions.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
-				int last1 = Objects.requireNonNull(app1.demo_Module1.getTable1().get(6785L)).getInt_1();
+			Assertions.assertEquals(Procedure.Success, requireNonNull(app1.Zeze).newProcedure(() -> {
+				int last1 = Objects.requireNonNull(requireNonNull(app1.demo_Module1).getTable1().get(6785L)).getInt_1();
 				System.out.println("app1 " + last1);
 				Assertions.assertEquals(countAll, last1);
 				return Procedure.Success;
 			}, "CheckResult1").call());
-			Assertions.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
-				int last2 = Objects.requireNonNull(app2.demo_Module1.getTable1().get(6785L)).getInt_1();
+			Assertions.assertEquals(Procedure.Success, requireNonNull(app2.Zeze).newProcedure(() -> {
+				int last2 = Objects.requireNonNull(requireNonNull(app2.demo_Module1).getTable1().get(6785L)).getInt_1();
 				System.out.println("app2 " + last2);
 				Assertions.assertEquals(countAll, last2);
 				return Procedure.Success;
@@ -141,8 +146,8 @@ public class TestGlobal {
 			@SuppressWarnings("unchecked")
 			Future<Long>[] tasks = new Future[n];
 			for (int i = 0; i < n; ++i) {
-				tasks[i] = Zeze.Util.TaskSpec.ofProcedure(app.Zeze.newProcedure(() -> {
-					BValue b = app.demo_Module1.getTable1().getOrAdd(6785L);
+				tasks[i] = Zeze.Util.TaskSpec.ofProcedure(requireNonNull(app.Zeze).newProcedure(() -> {
+					BValue b = requireNonNull(app.demo_Module1).getTable1().getOrAdd(6785L);
 					b.setInt_1(b.getInt_1() + 1);
 					PrintLog log = new PrintLog(b, b, appId);
 					//noinspection DataFlowIssue

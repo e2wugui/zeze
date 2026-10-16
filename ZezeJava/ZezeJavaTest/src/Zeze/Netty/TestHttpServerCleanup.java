@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,7 +24,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import io.netty.channel.ChannelId;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,13 +37,13 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestHttpServerCleanup {
-	private static Netty netty;
-	private static TestServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable TestServer server;
 	private static int port;
 
 	// 暴露基类protected的exchanges给断言用
 	public static final class TestServer extends HttpServer {
-		public @NotNull ConcurrentHashMap<ChannelId, HttpExchange> exchangesView() {
+		public ConcurrentHashMap<ChannelId, HttpExchange> exchangesView() {
 			return exchanges;
 		}
 	}
@@ -58,13 +61,13 @@ public class TestHttpServerCleanup {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	// 发送原始请求字节并读到服务器关闭连接(EOF)为止,返回收到的完整响应。
 	// read返回-1即证明连接被服务器关闭;若服务器一直不关,soTimeout超时会让本测试失败。
-	private static @NotNull String sendRawUntilClose(@NotNull String raw) throws IOException {
+	private static String sendRawUntilClose(String raw) throws IOException {
 		try (var sock = new Socket("127.0.0.1", port)) {
 			sock.setSoTimeout(15000);
 			var os = sock.getOutputStream();
@@ -83,7 +86,7 @@ public class TestHttpServerCleanup {
 	// 连接关闭后exchanges最终必须为空(留出异步清理的时间);修复前畸形请求的exchange永不移除,这里会等满超时失败
 	private static void awaitExchangesEmpty() throws InterruptedException {
 		var deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-		while (!server.exchangesView().isEmpty()) {
+		while (!requireNonNull(server).exchangesView().isEmpty()) {
 			Assertions.assertTrue(System.nanoTime() < deadline,
 					"exchanges not cleaned up after connection closed: " + server.exchangesView().keySet());
 			//noinspection BusyWait

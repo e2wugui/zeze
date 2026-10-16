@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -66,19 +70,19 @@ public class TestDbh2IncrementalRecover {
 			node.apply(2, new LogAllocateTid(64));
 			node.save(3, put("tail", "last")); // 日志已提交到日志库，状态机批次尚未应用。
 			assertEquals(2, node.sequence().getLastApplied());
-			assertEquals(64, node.machine.getBucket().getTid());
+			assertEquals(64, requireNonNull(node.machine.getBucket()).getTid());
 			assertNull(node.machine.getBucket().get(binary("tail")));
 		}
 
 		try (var node = new HeadlessNode(dbHome)) {
 			assertEquals(2, node.sequence().getLastApplied(), "首次快照前的重启也应定位到应用水位");
 			assertEquals(0, node.machine.snapshotLoads, "有效水位无需装载快照");
-			assertEquals(binary("first"), node.machine.getBucket().get(binary("applied")));
+			assertEquals(binary("first"), requireNonNull(node.machine.getBucket()).get(binary("applied")));
 			assertEquals(64, node.machine.getBucket().getTid(), "已应用的分号日志不得再次增加上界");
 			node.sequence().tryApply(node.sequence().readLog(3), 10);
 			assertEquals(1, node.machine.splitApplies, "只应用水位之后尚未完成的日志");
 			assertEquals(binary("last"), node.machine.getBucket().get(binary("tail")));
-			assertEquals(64, node.machine.getBucket().getTid());
+			assertEquals(64, requireNonNull(node.machine.getBucket()).getTid());
 		}
 	}
 
@@ -98,11 +102,11 @@ public class TestDbh2IncrementalRecover {
 			assertEquals(1, node.sequence().getFirstIndex());
 			assertEquals(3, node.sequence().getLastApplied(), "保留快照后已落盘的状态机前缀");
 			assertEquals(0, node.machine.snapshotLoads, "有效水位应跳过 restore");
-			assertEquals(binary("newer"), node.machine.getBucket().get(binary("applied")));
+			assertEquals(binary("newer"), requireNonNull(node.machine.getBucket()).get(binary("applied")));
 			node.sequence().tryApply(node.sequence().readLog(4), 10);
 			assertEquals(1, node.machine.splitApplies);
 			assertEquals(binary("last"), node.machine.getBucket().get(binary("tail")));
-			assertEquals(64, node.machine.getBucket().getTid());
+			assertEquals(64, requireNonNull(node.machine.getBucket()).getTid());
 		}
 	}
 
@@ -116,9 +120,9 @@ public class TestDbh2IncrementalRecover {
 			assertEquals(0, node.machine.tidBeforeCommit, "Tid 区间不得在上界和水位落盘前发布给发号线程");
 			assertInstanceOf(RaftRetryException.class, node.machine.tidBeforeCommitError,
 					"提交前没有区间，headless follower 重新申请号段应被拒绝");
-			assertEquals(64, node.machine.getBucket().getTid());
-			assertEquals(1, node.machine.readAppliedWatermark().index());
-			assertEquals(1, node.machine.getTidAllocator().next(node.machine), "提交成功后才可发出区间首号");
+			assertEquals(64, requireNonNull(node.machine.getBucket()).getTid());
+			assertEquals(1, requireNonNull(node.machine.readAppliedWatermark()).index());
+			assertEquals(1, requireNonNull(node.machine.getTidAllocator()).next(node.machine), "提交成功后才可发出区间首号");
 		}
 	}
 
@@ -130,10 +134,10 @@ public class TestDbh2IncrementalRecover {
 		}
 		try (var node = new HeadlessNode(dbHome)) {
 			assertEquals(0, node.sequence().getLastApplied());
-			assertNull(node.machine.getBucket().get(binary("applied")), "旧格式无快照库先清库，再从日志恢复");
+			assertNull(requireNonNull(node.machine.getBucket()).get(binary("applied")), "旧格式无快照库先清库，再从日志恢复");
 			node.sequence().tryApply(node.sequence().readLog(1), 10);
-			assertEquals(binary("first"), node.machine.getBucket().get(binary("applied")));
-			assertEquals(1, node.machine.readAppliedWatermark().index());
+			assertEquals(binary("first"), requireNonNull(node.machine.getBucket()).get(binary("applied")));
+			assertEquals(1, requireNonNull(node.machine.readAppliedWatermark()).index());
 		}
 	}
 
@@ -150,7 +154,7 @@ public class TestDbh2IncrementalRecover {
 			assertEquals(1, node.machine.snapshotLoads, "无水位必须回退已提交快照");
 			assertEquals(1, node.sequence().getLastApplied());
 			assertNull(node.machine.readAppliedWatermark());
-			assertEquals(binary("snapshot"), node.machine.getBucket().get(binary("base")));
+			assertEquals(binary("snapshot"), requireNonNull(node.machine.getBucket()).get(binary("base")));
 			assertNull(node.machine.getBucket().get(binary("suffix")), "restore 必须丢弃超前内容");
 			node.sequence().tryApply(node.sequence().readLog(2), 10);
 			assertEquals(1, node.machine.splitApplies);
@@ -207,7 +211,7 @@ public class TestDbh2IncrementalRecover {
 			assertFalse(node.machine.getTransactions().containsKey(202L));
 			node.apply(4, new LogUndoBatch(202, true));
 			assertFalse(tombstones(node.machine).containsKey(202L));
-			assertNull(node.machine.getBucket().getTrans().get(transactionKey(202, false)));
+			assertNull(requireNonNull(node.machine.getBucket()).getTrans().get(transactionKey(202, false)));
 			assertNull(node.machine.getBucket().getTrans().get(transactionKey(202, true)));
 		}
 	}
@@ -225,7 +229,7 @@ public class TestDbh2IncrementalRecover {
 			var holder = source.save(4, uniqueLog);
 			source.sequence().tryApply(source.sequence().readLog(holder.getIndex()), 1); // follower 解码路径
 			assertAppliedRequest(source, request);
-			assertEquals(4, source.machine.readAppliedWatermark().index());
+			assertEquals(4, requireNonNull(source.machine.readAppliedWatermark()).index());
 			assertTrue(source.machine.snapshot(Path.of(dbHome, "snapshot.cross-node.zip").toString()).success);
 
 			target.apply(1, prepare(303));
@@ -236,8 +240,8 @@ public class TestDbh2IncrementalRecover {
 			target.machine.loadSnapshot(source.sequence().getCommittedSnapshotFile());
 
 			assertAppliedRequest(target, request);
-			assertEquals(binary("committed"), target.machine.getBucket().get(binary("source")));
-			assertEquals(4, target.machine.readAppliedWatermark().index());
+			assertEquals(binary("committed"), requireNonNull(target.machine.getBucket()).get(binary("source")));
+			assertEquals(4, requireNonNull(target.machine.readAppliedWatermark()).index());
 			assertEquals(1, target.machine.getTransactions().size());
 			assertTrue(target.machine.getTransactions().containsKey(101L));
 			assertFalse(target.machine.getTransactions().containsKey(404L));
@@ -253,15 +257,15 @@ public class TestDbh2IncrementalRecover {
 		var request = uniquePut("crash-tail", "new", createTime);
 		try (var node = new HeadlessNode(dbHome)) {
 			assertEquals(2, node.sequence().getLastApplied(), "未提交批次不得推进水位");
-			assertEquals(2, node.machine.readAppliedWatermark().index());
-			assertEquals(binary("first"), node.machine.getBucket().get(binary("base")));
-			assertEquals(64, node.machine.getBucket().getTid());
+			assertEquals(2, requireNonNull(node.machine.readAppliedWatermark()).index());
+			assertEquals(binary("first"), requireNonNull(node.machine.getBucket()).get(binary("base")));
+			assertEquals(64, requireNonNull(node.machine.getBucket()).getTid());
 			assertNull(node.machine.getBucket().get(binary("crash-tail")), "业务数据和终态不能先于水位提交");
 			assertNull(node.machine.getUniqueAppliedStub(request));
 			node.sequence().tryApply(node.sequence().readLog(3), 10);
 			assertEquals(1, node.machine.splitApplies);
-			assertEquals(binary("new"), node.machine.getBucket().get(binary("crash-tail")));
-			assertEquals(3, node.machine.readAppliedWatermark().index());
+			assertEquals(binary("new"), requireNonNull(node.machine.getBucket()).get(binary("crash-tail")));
+			assertEquals(3, requireNonNull(node.machine.readAppliedWatermark()).index());
 			assertAppliedRequest(node, request);
 		}
 	}
@@ -273,8 +277,8 @@ public class TestDbh2IncrementalRecover {
 		var request = uniquePut("crash-tail", "new", createTime);
 		try (var node = new HeadlessNode(dbHome)) {
 			assertEquals(3, node.sequence().getLastApplied(), "批次提交后尚未推进内存 lastApplied 也应恢复到水位");
-			assertEquals(3, node.machine.readAppliedWatermark().index());
-			assertEquals(binary("new"), node.machine.getBucket().get(binary("crash-tail")));
+			assertEquals(3, requireNonNull(node.machine.readAppliedWatermark()).index());
+			assertEquals(binary("new"), requireNonNull(node.machine.getBucket()).get(binary("crash-tail")));
 			assertAppliedRequest(node, request);
 			node.sequence().tryApply(node.sequence().readLog(3), 10);
 			assertEquals(0, node.machine.splitApplies, "已提交日志不重复应用");
@@ -290,18 +294,18 @@ public class TestDbh2IncrementalRecover {
 		var request = uniqueCommit(202, createTime);
 		try (var node = new HeadlessNode(dbHome)) {
 			assertEquals(2, node.sequence().getLastApplied());
-			assertEquals(binary("old"), node.machine.getBucket().get(binary("crash-transaction")));
+			assertEquals(binary("old"), requireNonNull(node.machine.getBucket()).get(binary("crash-transaction")));
 			assertNotNull(node.machine.getBucket().getTrans().get(transactionKey(202, false)), "未提交时事务 blob 必须保留");
 			assertNotNull(node.machine.getBucket().getTrans().get(transactionKey(202, true)), "未提交时墓碑 marker 必须保留");
 			assertTrue(tombstones(node.machine).containsKey(202L));
 			assertNull(node.machine.getUniqueAppliedStub(request));
 			node.sequence().tryApply(node.sequence().readLog(3), 10);
 			assertEquals(1, node.machine.commitApplies);
-			assertEquals(binary("new"), node.machine.getBucket().get(binary("crash-transaction")));
-			assertNull(node.machine.getBucket().getTrans().get(transactionKey(202, false)));
+			assertEquals(binary("new"), requireNonNull(node.machine.getBucket()).get(binary("crash-transaction")));
+			assertNull(requireNonNull(node.machine.getBucket()).getTrans().get(transactionKey(202, false)));
 			assertNull(node.machine.getBucket().getTrans().get(transactionKey(202, true)));
 			assertFalse(tombstones(node.machine).containsKey(202L));
-			assertEquals(3, node.machine.readAppliedWatermark().index());
+			assertEquals(3, requireNonNull(node.machine.readAppliedWatermark()).index());
 			assertAppliedRequest(node, request);
 		}
 	}
@@ -313,8 +317,8 @@ public class TestDbh2IncrementalRecover {
 		var request = uniqueCommit(202, createTime);
 		try (var node = new HeadlessNode(dbHome)) {
 			assertEquals(3, node.sequence().getLastApplied());
-			assertEquals(binary("new"), node.machine.getBucket().get(binary("crash-transaction")));
-			assertNull(node.machine.getBucket().getTrans().get(transactionKey(202, false)));
+			assertEquals(binary("new"), requireNonNull(node.machine.getBucket()).get(binary("crash-transaction")));
+			assertNull(requireNonNull(node.machine.getBucket()).getTrans().get(transactionKey(202, false)));
 			assertNull(node.machine.getBucket().getTrans().get(transactionKey(202, true)));
 			assertFalse(tombstones(node.machine).containsKey(202L));
 			assertAppliedRequest(node, request);
@@ -324,7 +328,7 @@ public class TestDbh2IncrementalRecover {
 	}
 
 	private static void deleteWatermark(HeadlessNode node) throws Exception {
-		node.machine.getBucket().getDb().getOrAddTable(WATERMARK_TABLE).delete(new byte[]{0});
+		requireNonNull(node.machine.getBucket()).getDb().getOrAddTable(WATERMARK_TABLE).delete(new byte[]{0});
 	}
 
 	private void writeWatermark(long index, long term) throws Exception {
@@ -348,13 +352,13 @@ public class TestDbh2IncrementalRecover {
 		try (var node = new HeadlessNode(dbHome)) {
 			assertEquals(1, node.machine.snapshotLoads, "无效水位必须恢复已提交快照");
 			assertEquals(1, node.sequence().getLastApplied());
-			assertEquals(1, node.machine.readAppliedWatermark().index(), "损坏水位由快照中的有效水位替换");
-			assertEquals(binary("snapshot"), node.machine.getBucket().get(binary("base")));
+			assertEquals(1, requireNonNull(node.machine.readAppliedWatermark()).index(), "损坏水位由快照中的有效水位替换");
+			assertEquals(binary("snapshot"), requireNonNull(node.machine.getBucket()).get(binary("base")));
 			assertNull(node.machine.getBucket().get(binary("suffix")));
 			node.sequence().tryApply(node.sequence().readLog(2), 10);
 			assertEquals(1, node.machine.splitApplies);
 			assertEquals(binary("newer"), node.machine.getBucket().get(binary("suffix")));
-			assertEquals(2, node.machine.readAppliedWatermark().index());
+			assertEquals(2, requireNonNull(node.machine.readAppliedWatermark()).index());
 		}
 	}
 
@@ -475,9 +479,9 @@ public class TestDbh2IncrementalRecover {
 		private int commitApplies;
 		private boolean probeTidBeforeCommit;
 		private long tidBeforeCommit;
-		private Throwable tidBeforeCommitError;
-		private String crashPhase;
-		private String crashOperation;
+		private @Nullable Throwable tidBeforeCommitError;
+		private @Nullable String crashPhase;
+		private @Nullable String crashOperation;
 
 		private CountingStateMachine() {
 			super(null);
@@ -510,7 +514,7 @@ public class TestDbh2IncrementalRecover {
 			super.allocateTid(range);
 			if (probeTidBeforeCommit) {
 				try {
-					tidBeforeCommit = getTidAllocator().next(this);
+					tidBeforeCommit = requireNonNull(getTidAllocator()).next(this);
 				} catch (Throwable error) {
 					tidBeforeCommitError = error;
 				}
@@ -579,7 +583,7 @@ public class TestDbh2IncrementalRecover {
 					var batch = new BBatch.Data();
 					batch.setTid(202);
 					batch.getPuts().put(binary("crash-transaction"), binary("new"));
-					initial.machine.getBucket().getTrans().put(transactionKey(202, false), ByteBuffer.encode(batch).CopyIf());
+					requireNonNull(initial.machine.getBucket()).getTrans().put(transactionKey(202, false), ByteBuffer.encode(batch).CopyIf());
 					initial.machine.getBucket().getTrans().put(transactionKey(202, true), ByteBuffer.Empty);
 				}
 				node = new HeadlessNode(args[0]);

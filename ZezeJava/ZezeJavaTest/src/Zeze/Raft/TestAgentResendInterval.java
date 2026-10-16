@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
@@ -47,7 +49,7 @@ public class TestAgentResendInterval {
 		Task.tryInitThreadPool();
 		var agent = new Agent("TestAgentResendInterval", newRaftConfig(), new Config());
 		try {
-			agent.getClient().start();
+			requireNonNull(agent.getClient()).start();
 			var rpc = new GetLeader();
 			rpc.setTimeout(30_000); // 大于重发门槛：请求在窗口内只重发、不判死
 			agent.sendForWait(rpc);
@@ -69,7 +71,7 @@ public class TestAgentResendInterval {
 		Task.tryInitThreadPool();
 		var agent = new Agent("TestAgentResendInterval", newRaftConfig(), new Config());
 		try {
-			agent.getClient().start();
+			requireNonNull(agent.getClient()).start();
 			var rpc = new GetLeader();
 			rpc.setTimeout(2500);
 			var future = agent.sendForWait(rpc);

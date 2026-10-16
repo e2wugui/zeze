@@ -7,7 +7,6 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Schemas;
 import Zeze.Transaction.Database;
-import org.jetbrains.annotations.NotNull;
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,17 +39,17 @@ public class TestRenameTableAfterCompatCheck {
 		}
 
 		@Override
-		public @NotNull Database.Table openTable(@NotNull String name, int id) {
+		public Database.Table openTable(String name, int id) {
 			throw new UnsupportedOperationException("not used in this test");
 		}
 
 		@Override
-		public @NotNull Database.Transaction beginTransaction() {
+		public Database.Transaction beginTransaction() {
 			throw new UnsupportedOperationException("not used in this test");
 		}
 
 		@Override
-		public void renameTable(@NotNull String tableOldName, @NotNull String tableNewName) {
+		public void renameTable(String tableOldName, String tableNewName) {
 			renames.add(tableOldName + "->" + tableNewName);
 		}
 	}

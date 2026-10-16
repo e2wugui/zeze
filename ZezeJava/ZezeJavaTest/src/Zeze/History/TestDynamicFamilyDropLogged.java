@@ -1,5 +1,9 @@
 package Zeze.History;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +19,6 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,13 +67,13 @@ public class TestDynamicFamilyDropLogged {
 		}
 
 		@Override
-		public void append(@NotNull LogEvent event) {
+		public void append(LogEvent event) {
 			synchronized (events) {
 				events.add(event.toImmutable());
 			}
 		}
 
-		boolean hasWarnContaining(@NotNull String fragment) {
+		boolean hasWarnContaining(String fragment) {
 			synchronized (events) {
 				return events.stream().anyMatch(e ->
 						e.getLevel() == Level.WARN && e.getMessage().getFormattedMessage().contains(fragment));
@@ -78,15 +81,15 @@ public class TestDynamicFamilyDropLogged {
 		}
 	}
 
-	private Logger helperLogger;
-	private CapturingAppender appender;
+	private @Nullable Logger helperLogger;
+	private @Nullable CapturingAppender appender;
 
 	@BeforeEach
 	public void setUp() {
 		helperLogger = (Logger)LogManager.getLogger(Helper.class);
 		appender = new CapturingAppender();
 		appender.start();
-		helperLogger.addAppender(appender);
+		requireNonNull(helperLogger).addAppender(appender);
 	}
 
 	@AfterEach
@@ -118,7 +121,7 @@ public class TestDynamicFamilyDropLogged {
 		assertEquals(1, result.map2Dynamic.size(), "同typeId只保留先注册家族（注册语义不变）");
 		var kept = result.map2Dynamic.values().iterator().next();
 		assertEquals(HostA.class.getName() + "#managers", kept.where, "保留的是先注册家族");
-		assertTrue(appender.hasWarnContaining("keep=" + HostA.class.getName() + "#managers"
+		assertTrue(requireNonNull(appender).hasWarnContaining("keep=" + HostA.class.getName() + "#managers"
 						+ " drop=" + HostB.class.getName() + "#items"),
 				"丢弃第二个家族必须warn留痕（含两个宿主与变量名）");
 
@@ -136,7 +139,7 @@ public class TestDynamicFamilyDropLogged {
 		Helper.dependsSortedMap(HostB.class, var("items"), "long", "dynamic", result);
 
 		assertEquals(1, result.sortedMap2Dynamic.size());
-		assertTrue(appender.hasWarnContaining("keep=" + HostA.class.getName() + "#managers"
+		assertTrue(requireNonNull(appender).hasWarnContaining("keep=" + HostA.class.getName() + "#managers"
 				+ " drop=" + HostB.class.getName() + "#items"), "sortedmap丢弃第二家族必须warn");
 	}
 
@@ -148,6 +151,6 @@ public class TestDynamicFamilyDropLogged {
 		Helper.dependsMap(HostB.class, var("items"), "long", "dynamic", result);
 
 		assertEquals(2, result.map2Dynamic.size(), "不同keyClass不同typeId，都保留");
-		assertFalse(appender.hasWarnContaining("dynamic collection family dropped"), "不得误报");
+		assertFalse(requireNonNull(appender).hasWarnContaining("dynamic collection family dropped"), "不得误报");
 	}
 }

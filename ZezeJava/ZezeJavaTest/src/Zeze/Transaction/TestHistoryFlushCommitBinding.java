@@ -1,13 +1,14 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeMap;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -42,10 +43,10 @@ public class TestHistoryFlushCommitBinding {
 	private static final int SERVER_ID = FastServerIds.TEST_HISTORY_FLUSH_COMMIT_BINDING;
 	private static final String tHistoryName = "Zeze_Builtin_HistoryModule_tHistory";
 
-	private Application app;
-	private FlakyDatabase flaky;
-	private HistoryModule historyModule;
-	private tSimple table;
+	private @Nullable Application app;
+	private @Nullable FlakyDatabase flaky;
+	private @Nullable HistoryModule historyModule;
+	private @Nullable tSimple table;
 
 	private void startApp(String dbSubName) throws Exception {
 		var conf = new Config();
@@ -80,8 +81,8 @@ public class TestHistoryFlushCommitBinding {
 	}
 
 	private void stopApp() throws Exception {
-		app.getCheckpoint().runOnce();
-		historyModule.close();
+		requireNonNull(requireNonNull(app).getCheckpoint()).runOnce();
+		requireNonNull(historyModule).close();
 		app.stop();
 		app = null;
 		flaky = null;
@@ -89,31 +90,31 @@ public class TestHistoryFlushCommitBinding {
 	}
 
 	private void putValue(long key, long value) {
-		var result = app.newProcedure((FuncLong)() -> {
+		var result = requireNonNull(app).newProcedure((FuncLong)() -> {
 			var b = new SimpleBean();
 			b.value = value;
-			table.put(key, b);
+			requireNonNull(table).put(key, b);
 			return 0L;
 		}, "TestHistoryFlushCommitBinding.put").call();
 		Assertions.assertEquals(Procedure.Success, result, "put 事务必须成功");
 	}
 
 	/** 后台库中的值；不存在返回 null。 */
-	private Long dbValue(long key) {
-		var v = table.selectFromDatabase(key);
+	private @Nullable Long dbValue(long key) {
+		var v = requireNonNull(table).selectFromDatabase(key);
 		return v != null ? v.value : null;
 	}
 
 	/** 手工向 rrs 夹带一条历史记录：绕开 SM 发号（构造期 History 采集需要 tid128），
 	 * 直接构造 BLogChanges.Data 挂进事务留下的 rrs，走真实 flush 路径。 */
 	private Id128 smuggleHistory(long key, long serialLo) {
-		var record = table.getCache().get(key);
-		var rrs = record.getRelativeRecordSet();
+		var record = requireNonNull(requireNonNull(table).getCache()).get(key);
+		var rrs = requireNonNull(record).getRelativeRecordSet();
 		var serial = new Id128(0x51D3L, serialLo);
 		var lc = new BLogChanges.Data();
 		lc.setGlobalSerialId(serial.clone());
 		lc.setTimestamp(System.currentTimeMillis());
-		rrs.addHistory(new History(historyModule.getHistoryTable(), historyModule.getPendingGidLedger(), lc));
+		rrs.addHistory(new History(requireNonNull(historyModule).getHistoryTable(), historyModule.getPendingGidLedger(), lc));
 		return serial;
 	}
 
@@ -122,13 +123,13 @@ public class TestHistoryFlushCommitBinding {
 		var field = PendingGidLedger.class.getDeclaredField("pendingCommitGids");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked")
-		var map = (java.util.Map<Id128, Long>)field.get(historyModule.getPendingGidLedger());
+		var map = (java.util.Map<Id128, Long>)field.get(requireNonNull(historyModule).getPendingGidLedger());
 		return map.containsKey(gid);
 	}
 
 	private HashSet<ByteBuffer> tHistoryKeys() throws Exception {
 		var keys = new HashSet<ByteBuffer>();
-		var t = (FlakyDatabase.FlakyTable)flaky.openTable(tHistoryName, 0);
+		var t = (FlakyDatabase.FlakyTable)requireNonNull(flaky).openTable(tHistoryName, 0);
 		t.walk((key, value) -> {
 			keys.add(ByteBuffer.Wrap(key));
 			return true;
@@ -153,19 +154,19 @@ public class TestHistoryFlushCommitBinding {
 	private void flushFailRetryScenario(CheckpointFlushMode mode) throws Exception {
 		try {
 			startApp(mode.name());
-			app.getConfig().setCheckpointFlushMode(mode);
+			requireNonNull(app).getConfig().setCheckpointFlushMode(mode);
 			putValue(1, 11);
 
 			var serial = smuggleHistory(1L, 7);
 
 			// 毒化 commit：flush 走到写库之后、提交时失败，回滚，rrs 留待下轮重试。
 			FlakyDatabase.poisonCommit = true;
-			Assertions.assertDoesNotThrow(() -> app.getCheckpoint().runOnce(),
+			Assertions.assertDoesNotThrow(() -> requireNonNull(requireNonNull(app).getCheckpoint()).runOnce(),
 					mode + ": 毒化单元必须被单元隔离吞掉，保留重试");
 
 			// 解毒重试：数据记录与 tHistory 行都必须落库。
 			FlakyDatabase.poisonCommit = false;
-			app.getCheckpoint().runOnce();
+			requireNonNull(app.getCheckpoint()).runOnce();
 
 			Assertions.assertEquals(Long.valueOf(11), dbValue(1), mode + ": 重试后数据记录必须落库");
 			Assertions.assertTrue(tHistoryKeys().contains(encodedKey(serial)),
@@ -230,17 +231,17 @@ public class TestHistoryFlushCommitBinding {
 			startApp("regroup_ghost");
 			putValue(1, 11); // rrs A
 			putValue(2, 22); // rrs B（两条记录无事务交集，各自独立成集）
-			var rrsA = table.getCache().get(1L).getRelativeRecordSet();
-			var rrsB = table.getCache().get(2L).getRelativeRecordSet();
+			var rrsA = requireNonNull(requireNonNull(requireNonNull(table).getCache()).get(1L)).getRelativeRecordSet();
+			var rrsB = requireNonNull(requireNonNull(table.getCache()).get(2L)).getRelativeRecordSet();
 			Assertions.assertNotSame(rrsA, rrsB, "无交集的两条记录必须留在不同 rrs");
 			var g7 = smuggleHistory(1L, 7);
 			var g8 = smuggleHistory(2L, 8);
-			var ledger = historyModule.getPendingGidLedger();
+			var ledger = requireNonNull(historyModule).getPendingGidLedger();
 			ledger.register(g7, System.nanoTime());
 			ledger.register(g8, System.nanoTime());
 
 			// 轮1：{A,B} 合并组在提交期毒化失败——失败形态对齐既有语义（回滚、成员留待下轮）。
-			var fs1 = new RelativeRecordSet.FlushSet(app.getCheckpoint());
+			var fs1 = new RelativeRecordSet.FlushSet(requireNonNull(requireNonNull(app).getCheckpoint()));
 			fs1.add(rrsA);
 			fs1.add(rrsB);
 			FlakyDatabase.poisonCommit = true;
@@ -248,7 +249,7 @@ public class TestHistoryFlushCommitBinding {
 			FlakyDatabase.poisonCommit = false;
 
 			// 轮2：重分组——A 单独成组成功（B 被拆去别的组是 parallelStream 重组的常态形态）。
-			var fs2 = new RelativeRecordSet.FlushSet(app.getCheckpoint());
+			var fs2 = new RelativeRecordSet.FlushSet(requireNonNull(app.getCheckpoint()));
 			fs2.add(rrsA);
 			fs2.flush();
 
@@ -261,7 +262,7 @@ public class TestHistoryFlushCommitBinding {
 					"B 的 gid 登记不得被 A 的组跨组核销（对账账本击穿，缺口永远扫不出来）");
 
 			// 轮3：B 的组此后持续失败——g8 行永不落库，账本登记必须保留（缺口可告警）。
-			var fs3 = new RelativeRecordSet.FlushSet(app.getCheckpoint());
+			var fs3 = new RelativeRecordSet.FlushSet(requireNonNull(app.getCheckpoint()));
 			fs3.add(rrsB);
 			FlakyDatabase.poisonCommit = true;
 			Assertions.assertThrows(Throwable.class, fs3::flush, "B 的组持续失败");
@@ -433,18 +434,18 @@ public class TestHistoryFlushCommitBinding {
 
 		private final TreeMap<String, FlakyTable> tables = new TreeMap<>();
 
-		FlakyDatabase(@NotNull Config.DatabaseConf conf) {
+		FlakyDatabase(Config.DatabaseConf conf) {
 			super(null, conf);
 			setDirectOperates(new NullOperates());
 		}
 
 		@Override
-		public synchronized @NotNull Table openTable(@NotNull String name, int id) {
+		public synchronized Table openTable(String name, int id) {
 			return tables.computeIfAbsent(name, FlakyTable::new);
 		}
 
 		@Override
-		public @NotNull Transaction beginTransaction() {
+		public Transaction beginTransaction() {
 			return new FlakyTrans();
 		}
 
@@ -479,16 +480,16 @@ public class TestHistoryFlushCommitBinding {
 			public void close() {
 			}
 
-			private void put(@NotNull String name, @NotNull ByteBuffer key, byte @Nullable [] value) {
+			private void put(String name, ByteBuffer key, byte @Nullable [] value) {
 				batch.computeIfAbsent(name, __ -> new HashMap<>())
 						.put(ByteBuffer.Wrap(key.Copy()), value);
 			}
 
-			void replace(@NotNull String name, @NotNull ByteBuffer key, byte @NotNull [] value) {
+			void replace(String name, ByteBuffer key, byte [] value) {
 				put(name, key, value.clone());
 			}
 
-			void remove(@NotNull String name, @NotNull ByteBuffer key) {
+			void remove(String name, ByteBuffer key) {
 				put(name, key, null);
 			}
 		}
@@ -497,16 +498,16 @@ public class TestHistoryFlushCommitBinding {
 			public final String name;
 			final TreeMap<ByteBuffer, byte[]> map = new TreeMap<>(ByteBuffer::compareTo);
 
-			FlakyTable(@NotNull String name) {
+			FlakyTable(String name) {
 				this.name = name;
 			}
 
 			@Override
-			public @NotNull Database getDatabase() {
+			public Database getDatabase() {
 				return FlakyDatabase.this;
 			}
 
-			public @NotNull String getName() {
+			public String getName() {
 				return name;
 			}
 
@@ -520,7 +521,7 @@ public class TestHistoryFlushCommitBinding {
 			}
 
 			@Override
-			public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+			public @Nullable ByteBuffer find(ByteBuffer key) {
 				byte[] value;
 				synchronized (FlakyDatabase.this) {
 					value = map.get(key);
@@ -529,17 +530,17 @@ public class TestHistoryFlushCommitBinding {
 			}
 
 			@Override
-			public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+			public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 				((FlakyTrans)t).replace(name, key, value.Copy());
 			}
 
 			@Override
-			public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+			public void remove(Transaction t, ByteBuffer key) {
 				((FlakyTrans)t).remove(name, key);
 			}
 
 			@Override
-			public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
+			public long walk(TableWalkHandleRaw callback) throws Exception {
 				java.util.List<ByteBuffer> keys;
 				java.util.List<byte[]> values;
 				synchronized (FlakyDatabase.this) {
@@ -556,7 +557,7 @@ public class TestHistoryFlushCommitBinding {
 			}
 
 			@Override
-			public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+			public long walkKey(TableWalkKeyRaw callback) throws Exception {
 				java.util.List<ByteBuffer> keys;
 				synchronized (FlakyDatabase.this) {
 					keys = new java.util.ArrayList<>(map.keySet());
@@ -571,36 +572,36 @@ public class TestHistoryFlushCommitBinding {
 			}
 
 			@Override
-			public long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
+			public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
-			public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
+			public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
 			public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											 @NotNull TableWalkHandleRaw callback) throws Exception {
+											 TableWalkHandleRaw callback) throws Exception {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
 			public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												@NotNull TableWalkKeyRaw callback) throws Exception {
+												TableWalkKeyRaw callback) throws Exception {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
 			public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												 @NotNull TableWalkHandleRaw callback) throws Exception {
+												 TableWalkHandleRaw callback) throws Exception {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
 			public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-													@NotNull TableWalkKeyRaw callback) throws Exception {
+													TableWalkKeyRaw callback) throws Exception {
 				throw new UnsupportedOperationException();
 			}
 		}

@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,7 +48,7 @@ public class TestOnzSagaAnsweredStepContextLost {
 	static volatile int CancelCount;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -52,12 +56,12 @@ public class TestOnzSagaAnsweredStepContextLost {
 		var myConfig = startTwoClusters(zeze2);
 
 		// fixture隔离（对齐TestOnzSagaCompensateInflightNotFound先例）：收割前序类残留并恢复TTL默认。
-		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
 			App.Instance.Zeze.getOnz().registerSaga(SagaName,
@@ -73,14 +77,14 @@ public class TestOnzSagaAnsweredStepContextLost {
 	public void after() throws Exception {
 		stopCoordinator(onzServer, zeze2);
 		// 收割本类残留（清 sagas 后注册的上下文），恢复TTL默认。
-		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney()); // 参与方本地提交（发结果即提交）
 		result.setMoney(account.getMoney());
 		return 0;
@@ -114,14 +118,14 @@ public class TestOnzSagaAnsweredStepContextLost {
 	@Test
 	@Timeout(120)
 	public void testAnsweredSuccessNotFoundKeepsRecordForRedo() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		var commitIndex = tableOf(onzServer, "commitIndex");
 
 		// 参与方重启形态：真实注册上下文（业务提交、滞留等FuncSagaEnd）后清空sagas——
 		// 写已持久化、补偿上下文丢失（进程内模拟重启）。
 		startSagaContext(onzServer, SagaName, Account, LostTid);
 		clearSagaContexts();
-		Assertions.assertEquals(0, sagaCount(App.Instance.Zeze.getOnz()), "模拟重启：上下文必须已清空");
+		Assertions.assertEquals(0, sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())), "模拟重启：上下文必须已清空");
 
 		// 协调者cancel决策：该步骤曾应答成功（future正常完成），cancel命中eSagaNotFound。
 		var ok = new TaskCompletionSource<EmptyBean.Data>();
@@ -151,7 +155,7 @@ public class TestOnzSagaAnsweredStepContextLost {
 	@Test
 	@Timeout(120)
 	public void testAnsweredFailNotFoundStaysBenign() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 
 		// 该tid从未注册上下文（参与方失败自清理后的缺席终态），cancel必得eSagaNotFound。
 		var answeredFail = new TaskCompletionSource<EmptyBean.Data>();
@@ -181,10 +185,10 @@ public class TestOnzSagaAnsweredStepContextLost {
 
 	/** 清空本参与方sagas（进程内模拟重启丢上下文）：TTL压1+收割+恢复默认，等业务完成后再清。 */
 	private static void clearSagaContexts() throws Exception {
-		var onz = App.Instance.Zeze.getOnz();
+		var onz = requireNonNull(App.Instance.Zeze).getOnz();
 		// 业务在途（businessLock被占）的条目本轮跳过：给业务收尾留出窗口后重试收割。
 		waitUntil(() -> {
-			onz.setSagaContextTimeoutMs(1);
+			requireNonNull(onz).setSagaContextTimeoutMs(1);
 			try {
 				Thread.sleep(50);
 			} catch (InterruptedException e) {

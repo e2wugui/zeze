@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
@@ -29,7 +31,6 @@ import Zeze.Services.ServiceManager.BUnSubscribeArgument;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -57,14 +58,14 @@ public class TestPrepareTimeoutUndoFailRemovesRecord {
 		}
 
 		@Override
-		protected void allocate(@NotNull AutoKey autoKey, int pool) {
+		protected void allocate(AutoKey autoKey, int pool) {
 			setCurrentAndCount(autoKey, next, pool);
 			next += pool;
 		}
 
 		@Override
-		protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-										@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		protected boolean allocateAsync(String globalName, int allocCount,
+										ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -79,28 +80,28 @@ public class TestPrepareTimeoutUndoFailRemovesRecord {
 		}
 
 		@Override
-		public void editService(@NotNull BEditService arg) {
+		public void editService(BEditService arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
-				@NotNull BSubscribeArgument info) {
+		public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
+				BSubscribeArgument info) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+		public void unSubscribeService(BUnSubscribeArgument arg) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public boolean setServerLoad(@NotNull BServerLoad load) {
+		public boolean setServerLoad(BServerLoad load) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public @NotNull Zeze.Component.Threading getThreading() {
+		public Zeze.Component.Threading getThreading() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -166,7 +167,7 @@ public class TestPrepareTimeoutUndoFailRemovesRecord {
 	private static CommitRocks getCommitRocks(Dbh2AgentManager manager) throws Exception {
 		Field field = Dbh2AgentManager.class.getDeclaredField("commit");
 		field.setAccessible(true);
-		return ((Commit)field.get(manager)).getRocks();
+		return requireNonNull(((Commit)field.get(manager)).getRocks());
 	}
 
 	private static int inflightCount(CommitRocks rocks) throws Exception {

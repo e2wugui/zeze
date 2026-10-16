@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.io.File;
 import java.io.IOException;
@@ -76,7 +78,7 @@ public class TestDbh2MultiBucketWalk {
 			dbh2.close();
 			// 目录最终由@TempDir清理；这里close后先删一次，给Windows下句柄延迟释放留出重试缓冲，
 			// 降低JUnit收尾删除失败把测试搞红的概率。
-			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
+			LogSequence.deleteDirectory(new File(requireNonNull(dbh2.getRaft().getRaftConfig().getDbHome())));
 		}
 		agent.close();
 	}

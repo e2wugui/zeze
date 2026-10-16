@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -15,7 +19,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
 import io.netty.channel.ChannelHandlerContext;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +57,7 @@ public class TestEndStreamCloseDuringHandlerKeepsBody {
 		final java.util.concurrent.ConcurrentLinkedQueue<HttpExchange> created = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
 		@Override
-		public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+		public HttpExchange createHttpExchange(ChannelHandlerContext context) {
 			var x = new HttpExchange(this, context);
 			created.add(x);
 			return x;
@@ -66,8 +69,8 @@ public class TestEndStreamCloseDuringHandlerKeepsBody {
 		var handlerEntered = new CountDownLatch(1);
 		var releaseHandler = new CountDownLatch(1);
 		var handlerDone = new CountDownLatch(1);
-		var bodySeen = new AtomicReference<Integer>();
-		var requestSeen = new AtomicReference<Boolean>();
+		var bodySeen = new AtomicReference<@Nullable Integer>();
+		var requestSeen = new AtomicReference<@Nullable Boolean>();
 
 		// Normal模式：onEndStream经task11Executor派发（正是endStreamTaskPending保护的排队窗口）；
 		// 非流模式body由框架缓冲在content
@@ -98,7 +101,7 @@ public class TestEndStreamCloseDuringHandlerKeepsBody {
 			Assertions.assertTrue(handlerEntered.await(10, TimeUnit.SECONDS), "handler must start");
 
 			// 并发close（任意线程）：closeInEventLoop在EL上执行，与运行中的回调并发
-			((ExchangeCollectingServer)server).created.peek().closeConnectionNow();
+			requireNonNull(((ExchangeCollectingServer)server).created.peek()).closeConnectionNow();
 
 			// 放行回调：此刻修复前content已被releaseTerminal清空（读到0/null）
 			releaseHandler.countDown();
@@ -106,7 +109,7 @@ public class TestEndStreamCloseDuringHandlerKeepsBody {
 
 			Assertions.assertEquals(BodySize, bodySeen.get(),
 					"close不得提前release：运行中的onEndStream回调必须读到完整body");
-			Assertions.assertTrue(requestSeen.get(), "close不得提前release：运行中的回调必须读到request");
+			Assertions.assertTrue(requireNonNull(requestSeen.get()), "close不得提前release：运行中的回调必须读到request");
 		}
 	}
 }

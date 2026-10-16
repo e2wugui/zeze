@@ -1,5 +1,7 @@
 package Zeze.Game;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -68,7 +70,7 @@ public class TestRankSingleSegmentMerge {
 			// getRankTotal默认countNeed=rankSize=4：快照必须截断到4条（值最高的前4名）。
 			var size = new int[1];
 			Assertions.assertEquals(0L, app.newProcedure(() -> {
-				size[0] = rank.getRankTotal(key).getTableValue().getRankListReadOnly().size();
+				size[0] = requireNonNull(rank.getRankTotal(key).getTableValue()).getRankListReadOnly().size();
 				return 0L;
 			}, "total").call());
 			Assertions.assertEquals(4, size[0], "单段快照也必须按rankSize截断（FND7-35）");

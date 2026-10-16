@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -29,8 +33,8 @@ import org.junit.jupiter.api.Test;
 public class TestDynamicBeanElementLogKey {
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_DYNAMIC_BEAN_ELEMENT_LOG_KEY);
 
-	private Application app;
-	private Table1 table1;
+	private @Nullable Application app;
+	private @Nullable Table1 table1;
 
 	private Application startApp() throws Exception {
 		Helper.registerLogs();
@@ -44,7 +48,7 @@ public class TestDynamicBeanElementLogKey {
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		app = new Application("TestDynamicBeanElementLogKey" + conf.getServerId(), conf);
 		app.setSchemas(new demo.Schemas());
-		app.addTable(conf.getTableConf("demo_Module1_Table1").getDatabaseName(), new Table1());
+		app.addTable(requireNonNull(conf.getTableConf("demo_Module1_Table1")).getDatabaseName(), new Table1());
 		app.start();
 		table1 = (Table1)app.getTable("demo_Module1_Table1");
 		Assertions.assertNotNull(table1);
@@ -59,7 +63,7 @@ public class TestDynamicBeanElementLogKey {
 
 	/** 准备：list43=[e1(int_1=1), e2(int_1=2)]。 */
 	private void prepareTwoElements(long key) throws Exception {
-		Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, requireNonNull(app).newProcedure(() -> {
 			var bv = new BValue();
 			var list = bv.getList43();
 			var e1 = BValue.newDynamicBean_List43();
@@ -68,7 +72,7 @@ public class TestDynamicBeanElementLogKey {
 			var e2 = BValue.newDynamicBean_List43();
 			e2.setBean(simple(2));
 			list.add(e2);
-			table1.put(key, bv);
+			requireNonNull(table1).put(key, bv);
 			return Procedure.Success;
 		}, "TestDynamicBeanElementLogKey.Prepare").call());
 	}
@@ -76,8 +80,8 @@ public class TestDynamicBeanElementLogKey {
 	/** 同事务内对e1、e2先后setBean，捕获e2在e1.setBean之后、e1在e2.setBean之后的读值。 */
 	private int[] modifyBothElementsSameTxn(long key) throws Exception {
 		final int[] readDuringTxn = {0, 0};
-		Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-			var list = table1.getOrAdd(key).getList43();
+		Assertions.assertEquals(Procedure.Success, requireNonNull(app).newProcedure(() -> {
+			var list = requireNonNull(table1).getOrAdd(key).getList43();
 			var e1 = list.get(0);
 			var e2 = list.get(1);
 			e1.setBean(simple(111));
@@ -90,8 +94,8 @@ public class TestDynamicBeanElementLogKey {
 	}
 
 	private void verifyBothElements(long key, int expectE1, int expectE2) throws Exception {
-		Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-			var list = table1.getOrAdd(key).getList43();
+		Assertions.assertEquals(Procedure.Success, requireNonNull(app).newProcedure(() -> {
+			var list = requireNonNull(table1).getOrAdd(key).getList43();
 			Assertions.assertEquals(expectE1, ((BSimple)list.get(0).getBean()).getInt_1(),
 					"e1的setBean结果不得被e2覆盖（错写）");
 			Assertions.assertEquals(expectE2, ((BSimple)list.get(1).getBean()).getInt_1(),
@@ -111,7 +115,7 @@ public class TestDynamicBeanElementLogKey {
 			Assertions.assertEquals(111, read[1], "同事务内e1.getBean()不得被e2的setBean覆盖");
 			verifyBothElements(8_200_000L, 111, 222);
 		} finally {
-			app.stop();
+			requireNonNull(app).stop();
 		}
 	}
 
@@ -121,14 +125,14 @@ public class TestDynamicBeanElementLogKey {
 		startApp();
 		try {
 			prepareTwoElements(8_201_000L);
-			app.stop();
+			requireNonNull(app).stop();
 			startApp(); // 重启走decode装载，元素varId=0
 			var read = modifyBothElementsSameTxn(8_201_000L);
 			Assertions.assertEquals(2, read[0], "重启decode元素同样不得读污染");
 			Assertions.assertEquals(111, read[1], "重启decode元素同样不得被覆盖");
 			verifyBothElements(8_201_000L, 111, 222);
 		} finally {
-			app.stop();
+			requireNonNull(app).stop();
 		}
 	}
 }

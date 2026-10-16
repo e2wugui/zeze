@@ -7,8 +7,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -38,14 +37,14 @@ public class TestSocketAcceptCloseOnce {
 		}
 
 		@Override
-		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketAccept(AsyncSocket so) throws Exception {
 			if (throwAfterAdd)
 				addSocket(so); // 入册后再抛
 			throw new RuntimeException("simulated OnSocketAccept failure");
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			super.OnSocketClose(so, e); // 出册+统计转移
 			closeCount.incrementAndGet();
 		}

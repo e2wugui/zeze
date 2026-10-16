@@ -1,5 +1,6 @@
 package Infinite;
 
+import java.util.Objects;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
@@ -38,7 +39,7 @@ public class App {
 
 		var tdef = config.getDefaultTableConf();
 		// 提高并发
-		tdef.setCacheCleanPeriod(1000);
+		Objects.requireNonNull(tdef).setCacheCleanPeriod(1000);
 		// 超出容量时，快速尝试。
 		tdef.setCacheCleanPeriodWhenExceedCapacity(100);
 		// 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
@@ -89,10 +90,11 @@ public class App {
 		}
 		Tasks.getRunCounter(name).increment();
 		Simulate.getInstance().RunningTasks.add(task.IsProcedure()
-				? TaskSpec.ofProcedure(app.Zeze.newProcedure(task, name)).submitNow()
+				? TaskSpec.ofProcedure(app.getZeze().newProcedure(task, name)).submitNow()
 				: TaskSpec.ofAction(task::call).name(name).submitNow());
 		}
 
+	@SuppressWarnings("ConstantConditions") // 保留生命周期结束时的缓存表防御检查。
 	public static <K extends Comparable<K>> void clearDbTable(TableX<K, ?> table) throws Exception {
 		var t = System.nanoTime();
 		table.__ClearTableCacheUnsafe__();
@@ -152,10 +154,10 @@ public class App {
 		// 但__ClearTableCacheUnsafe__只清传入实例的缓存——必须对每个app的表实例都执行本方法
 		//（Simulate侧循环调用），否则残留缓存行令getOrAdd命中直接Edit，History无前置Put，
 		// Verify回放NPE。Takeover租约行早有同款注释，此处补齐业务表与AutoKey。
-		clearDbTable(app.demo_Module1.getTable1());
+		clearDbTable(Objects.requireNonNull(app.demo_Module1).getTable1());
 		clearDbTable(app.demo_Module1.getTflush());
 		clearDbTable(app.demo_Module1.getTableCoverHistory());
-		clearDbTable(app.demo_ModuleGTable.getGTable());
+		clearDbTable(Objects.requireNonNull(app.demo_ModuleGTable).getGTable());
 		clearDbTable(app.demo_ModuleGTable.getGTable2());
 
 		//noinspection DataFlowIssue

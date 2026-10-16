@@ -1,5 +1,7 @@
 package Zeze.Arch.Gen;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.List;
 
@@ -28,8 +30,8 @@ public class TestGenDataParamTypeidSymmetry {
 	/** Data与Bean静态类型形参/结果字段的载体：走Serializable分支的两条路径。 */
 	@SuppressWarnings("unused")
 	public static class Fixture {
-		public Bean bean; // 既有对称路径护栏
-		public Data row; // 缺陷路径
+		public @Nullable Bean bean; // 既有对称路径护栏
+		public @Nullable Data row; // 缺陷路径
 		public int plain; // 已知序列化器路径护栏
 	}
 

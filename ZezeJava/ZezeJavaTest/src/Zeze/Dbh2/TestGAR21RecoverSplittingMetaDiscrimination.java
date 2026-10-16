@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -226,7 +230,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 		Assertions.assertEquals(0, agent.commitBatch(batch.getBatch().getTid()).await().get().getResultCode(), "删除提交必须成功");
 	}
 
-	private static Binary getValue(Dbh2Agent agent, int k) {
+	private static @Nullable Binary getValue(Dbh2Agent agent, int k) {
 		var kv = agent.get("database", "table1", key(k));
 		Assertions.assertTrue(kv.getKey(), "get必须命中属主桶");
 		return kv.getValue() == null ? null
@@ -242,7 +246,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 
 	private static void waitSplittingApplied(Zeze.Dbh2.Dbh2 leader) throws Exception {
 		var deadline = System.currentTimeMillis() + 10_000;
-		while (leader.getStateMachine().getBucket().getSplittingMeta() == null) {
+		while (requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta() == null) {
 			if (System.currentTimeMillis() > deadline)
 				throw new IllegalStateException("LogSetSplittingMeta未apply（注入失败）");
 			//noinspection BusyWait
@@ -253,7 +257,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 	// 终态=源桶splitting消费完毕+收尾通知（endSplit2的EndSplit/EndMove）到达桩master。
 	private static void waitFinished(Zeze.Dbh2.Dbh2 leader, StubMasterService server) throws Exception {
 		var deadline = System.currentTimeMillis() + 30_000;
-		while (leader.getStateMachine().getBucket().getSplittingMeta() != null || server.endRequests.get() == 0) {
+		while (requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta() != null || server.endRequests.get() == 0) {
 			if (System.currentTimeMillis() > deadline)
 				throw new IllegalStateException("recoverSplitting收尾链未完成（卡死）");
 			//noinspection BusyWait
@@ -310,8 +314,8 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 			waitFinished(leader, server);
 
 			// split收尾：源桶收窄为[F,M)=[2,5)（bug走move收尾置死桶{1},{1}）。
-			var meta = leader.getStateMachine().getBucket().getBucketMeta();
-			Assertions.assertEquals(0, key(2).compareTo(meta.getKeyFirst()),
+			var meta = requireNonNull(leader.getStateMachine().getBucket()).getBucketMeta();
+			Assertions.assertEquals(0, key(2).compareTo(requireNonNull(meta).getKeyFirst()),
 					"split收尾源桶keyFirst必须保持F（bug：move收尾置死桶）");
 			Assertions.assertEquals(0, key(5).compareTo(meta.getKeyLast()),
 					"split收尾源桶必须收窄为[F,M)=[2,5)（bug：move收尾源桶keyLast=死桶标记{1}）");
@@ -335,7 +339,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 			Assertions.assertEquals(value(7), getValue(targetAgent, 7), "[M,L)数据必须复制到新桶");
 			var targetLeader = RaftBucketTopologySupport.waitLeader(target);
 			Assertions.assertEquals(0, key(5).compareTo(
-					targetLeader.getStateMachine().getBucket().getBucketMeta().getKeyFirst()), "新桶meta.keyFirst=M");
+					requireNonNull(requireNonNull(targetLeader.getStateMachine().getBucket()).getBucketMeta()).getKeyFirst()), "新桶meta.keyFirst=M");
 			Assertions.assertEquals(0, key(8).compareTo(
 					targetLeader.getStateMachine().getBucket().getBucketMeta().getKeyLast()), "新桶meta.keyLast=L");
 
@@ -401,8 +405,8 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 			waitFinished(leader, server);
 
 			// move收尾：源桶死桶{1},{1}（bug误判split收尾源桶meta=[2,2)空区间桶）。
-			var meta = leader.getStateMachine().getBucket().getBucketMeta();
-			Assertions.assertEquals(0, new Binary(new byte[]{1}).compareTo(meta.getKeyFirst()),
+			var meta = requireNonNull(leader.getStateMachine().getBucket()).getBucketMeta();
+			Assertions.assertEquals(0, new Binary(new byte[]{1}).compareTo(requireNonNull(meta).getKeyFirst()),
 					"move收尾源桶必须置死桶标记{1}（bug：误判split收尾keyFirst=F=[2,2)空区间桶）");
 			Assertions.assertEquals(0, new Binary(new byte[]{1}).compareTo(meta.getKeyLast()),
 					"move收尾源桶keyLast必须置死桶标记{1}");
@@ -413,7 +417,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 			Assertions.assertEquals(value(7), getValue(targetAgent, 7), "move必须全量复制存活数据");
 			var targetLeader = RaftBucketTopologySupport.waitLeader(target);
 			Assertions.assertEquals(0, key(2).compareTo(
-					targetLeader.getStateMachine().getBucket().getBucketMeta().getKeyFirst()), "move目标桶meta.keyFirst=F");
+					requireNonNull(requireNonNull(targetLeader.getStateMachine().getBucket()).getBucketMeta()).getKeyFirst()), "move目标桶meta.keyFirst=F");
 			Assertions.assertEquals(0, key(8).compareTo(
 					targetLeader.getStateMachine().getBucket().getBucketMeta().getKeyLast()), "move目标桶meta.keyLast=L");
 

@@ -1,5 +1,9 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,7 +32,7 @@ import demo.Module1.BValue;
  */
 @Fast
 public class TestRpcHandleResolveOnce {
-	private static Application app;
+	private static @Nullable Application app;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -67,7 +71,7 @@ public class TestRpcHandleResolveOnce {
 			var factoryHandle = new Service.ProtocolFactoryHandle<>(TestRpc.class, response.getTypeId());
 			return response.handle(service, factoryHandle);
 		};
-		return new Procedure(app, action, "TestRpcHandleResolveOnce.Dispatch", null).call();
+		return new Procedure(requireNonNull(app), action, "TestRpcHandleResolveOnce.Dispatch", null).call();
 	}
 
 	@Test
@@ -77,7 +81,7 @@ public class TestRpcHandleResolveOnce {
 		var responseHandleCalls = new AtomicInteger();
 		context.setResponseHandle(r -> {
 			responseHandleCalls.incrementAndGet();
-			Transaction.getCurrent().throwRedo(0, "force redo");
+			requireNonNull(Transaction.getCurrent()).throwRedo(0, "force redo");
 			return Procedure.Success;
 		});
 		var sid = service.addRpcContext(context);
@@ -104,7 +108,7 @@ public class TestRpcHandleResolveOnce {
 		var responseHandleCalls = new AtomicInteger();
 		context.setResponseHandle(r -> {
 			if (responseHandleCalls.incrementAndGet() < 3)
-				Transaction.getCurrent().throwRedo(0, "force redo");
+				requireNonNull(Transaction.getCurrent()).throwRedo(0, "force redo");
 			return Procedure.Success;
 		});
 		var sid = service.addRpcContext(context);
@@ -132,12 +136,12 @@ public class TestRpcHandleResolveOnce {
 		var service = new Service("TestRpcHandleResolveOnce.Absent");
 		var context = new TestRpc();
 		var responseHandleCalls = new AtomicInteger();
-		var stolen = new AtomicReference<Protocol<?>>();
+		var stolen = new AtomicReference<@Nullable Protocol<?>>();
 		context.setResponseHandle(r -> {
 			if (responseHandleCalls.incrementAndGet() < 3) {
 				if (responseHandleCalls.get() == 2)
 					stolen.set(service.removeRpcContext(((TestRpc)r).getSessionId())); // 模拟超时任务抢占
-				Transaction.getCurrent().throwRedo(0, "force redo");
+				requireNonNull(Transaction.getCurrent()).throwRedo(0, "force redo");
 			}
 			return Procedure.Success;
 		});

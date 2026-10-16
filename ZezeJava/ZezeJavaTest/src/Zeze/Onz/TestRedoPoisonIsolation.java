@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Zeze.Builtin.Onz.BSavedCommits;
@@ -36,17 +40,17 @@ public class TestRedoPoisonIsolation {
 	private static final long PoisonCorruptTid = 0x5CA1BEEF00000333L; // 点表值截断 → decode异常
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
 		var myConfig = startTwoClusters(zeze2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().registerSaga(SagaName,
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga(SagaName,
 					TestRedoPoisonIsolation::sagaBusiness, TestRedoPoisonIsolation::sagaCancel,
 					BKuafu.class, BKuafuResult.class, Zeze.Transaction.EmptyBean.class);
 
@@ -59,8 +63,8 @@ public class TestRedoPoisonIsolation {
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -78,7 +82,7 @@ public class TestRedoPoisonIsolation {
 	@Test
 	@Timeout(120)
 	public void testPoisonRecordIsolatedNotBlockingIteration() throws Exception {
-		waitOnzReady(onzServer);
+		waitOnzReady(requireNonNull(onzServer));
 		startSagaContext(onzServer, SagaName, 320, ValidTid); // 有效记录的参与方上下文就位，等FuncSagaEnd结束
 
 		writeIndexOnly(PoisonMissingTid, AbstractOnz.eCommitting);
@@ -87,7 +91,7 @@ public class TestRedoPoisonIsolation {
 
 		invokeRedoTimer(onzServer);
 
-		Assertions.assertEquals(0, sagaCount(App.Instance.Zeze.getOnz()),
+		Assertions.assertEquals(0, sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())),
 				"毒记录不得阻塞其后有效记录的redo（修复前：迭代在毒记录上中止，上下文永久滞留）");
 		Assertions.assertEquals(2, count(tableOf(onzServer, "commitIndex")),
 				"毒记录留库人工排查、有效记录被redo清理（修复前：3条全滞留）");
@@ -100,7 +104,7 @@ public class TestRedoPoisonIsolation {
 		var bbIndex = ByteBuffer.Allocate();
 		bbIndex.WriteUInt(state);
 		bbIndex.WriteLong8BE(System.currentTimeMillis() - 121_000);
-		tableOf(onzServer, "commitIndex").put(keyOf(tid), java.util.Arrays.copyOf(bbIndex.Bytes, bbIndex.WriteIndex));
+		tableOf(requireNonNull(onzServer), "commitIndex").put(keyOf(tid), java.util.Arrays.copyOf(bbIndex.Bytes, bbIndex.WriteIndex));
 	}
 
 	/** 点表值截断（bit rot/半写形态）：decode读到一半必然越界抛运行时异常。 */
@@ -109,7 +113,7 @@ public class TestRedoPoisonIsolation {
 		saved.getOnzs().add("saga=zeze1____________pad"); // 长串：4字节截断后解码必越界
 		var bbState = ByteBuffer.Allocate();
 		saved.encode(bbState);
-		tableOf(onzServer, "commitPoint").put(keyOf(tid), java.util.Arrays.copyOf(bbState.Bytes, 4));
+		tableOf(requireNonNull(onzServer), "commitPoint").put(keyOf(tid), java.util.Arrays.copyOf(bbState.Bytes, 4));
 		var bbIndex = ByteBuffer.Allocate();
 		bbIndex.WriteUInt(state);
 		bbIndex.WriteLong8BE(System.currentTimeMillis() - 121_000);

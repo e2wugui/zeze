@@ -1,5 +1,6 @@
 package harness;
 
+import java.util.Objects;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.HashSet;
@@ -8,7 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class TestEnv {
-	private static final @org.jetbrains.annotations.NotNull Logger logger = LogManager.getLogger(TestEnv.class);
+	private static final Logger logger = LogManager.getLogger(TestEnv.class);
 
 	private TestEnv() {
 	}
@@ -42,7 +43,7 @@ public final class TestEnv {
 		int polls = 0;
 		while (!missing.isEmpty()) {
 			Thread.sleep(100);
-			for (var state : app.getServiceManager().getSubscribeStates().values()) {
+			for (var state : Objects.requireNonNull(app.getServiceManager()).getSubscribeStates().values()) {
 				for (var it = missing.iterator(); it.hasNext(); ) {
 					if (state.findServiceInfoByIdentity(String.valueOf(it.next())) != null)
 						it.remove();

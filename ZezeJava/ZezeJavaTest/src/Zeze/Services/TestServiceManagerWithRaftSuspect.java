@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,7 +46,7 @@ public class TestServiceManagerWithRaftSuspect {
 				<node Host="127.0.0.1" Port="19513"/>
 			</raft>
 			""";
-	private static Path raftXmlFile;
+	private static @Nullable Path raftXmlFile;
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 
 	@BeforeAll
@@ -61,7 +65,7 @@ public class TestServiceManagerWithRaftSuspect {
 		for (var sm : servers)
 			sm.close();
 		servers.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		cleanDirs();
 	}
 
@@ -77,7 +81,7 @@ public class TestServiceManagerWithRaftSuspect {
 	private static ServiceManagerAgentWithRaft newAgent(String sessionName, int serverId) throws Exception {
 		var config = Config.load();
 		config.setServerId(serverId);
-		config.getServiceManagerConf().setRaftXml(raftXmlFile.toString());
+		requireNonNull(config.getServiceManagerConf()).setRaftXml(requireNonNull(raftXmlFile).toString());
 		config.getServiceManagerConf().setSessionName(sessionName);
 		var agent = new ServiceManagerAgentWithRaft(config);
 		agent.start();

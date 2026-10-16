@@ -1,13 +1,14 @@
 package Zeze.Net;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,7 +38,7 @@ import demo.Module1.BValue;
  */
 @Fast
 public class TestRpcTimeoutScheduleOnRollback {
-	private static Application app;
+	private static @Nullable Application app;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -99,7 +100,7 @@ public class TestRpcTimeoutScheduleOnRollback {
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return true;
 		}
 	}
@@ -107,7 +108,7 @@ public class TestRpcTimeoutScheduleOnRollback {
 	private static void callInProcedureAndAbort(FuncLong action) {
 		// throwAbort 置事务 state=Abort，perform 返回 Procedure.AbortException 错误码，
 		// call() 以非零返回码结束（不抛出）——过程已回滚正是要构造的终局。
-		var rc = new Procedure(app, action, "TestRpcTimeoutScheduleOnRollback.Rollback", null).call();
+		var rc = new Procedure(requireNonNull(app), action, "TestRpcTimeoutScheduleOnRollback.Rollback", null).call();
 		Assertions.assertNotEquals(Procedure.Success, rc, "procedure should abort");
 	}
 
@@ -120,7 +121,7 @@ public class TestRpcTimeoutScheduleOnRollback {
 	@Test
 	public final void testManualContextTimeoutSurvivesRollback() throws Exception {
 		var service = new Service("TestRpcTimeoutScheduleOnRollback.Manual");
-		var removed = new AtomicReference<Service.ManualContext>();
+		var removed = new AtomicReference<Service.@Nullable ManualContext>();
 		var removedByTimeout = new AtomicBoolean();
 		var context = new Service.ManualContext() {
 			@Override
@@ -132,7 +133,7 @@ public class TestRpcTimeoutScheduleOnRollback {
 		var sessionId = new long[1];
 		callInProcedureAndAbort(() -> {
 			sessionId[0] = service.addManualContextWithTimeout(context, 200);
-			Transaction.getCurrent().throwAbort("force abort after manual context registered", null);
+			requireNonNull(Transaction.getCurrent()).throwAbort("force abort after manual context registered", null);
 			return Procedure.Success; // 不可达：throwAbort 必抛
 		});
 		// 注册立即生效，不随回滚撤销
@@ -154,7 +155,7 @@ public class TestRpcTimeoutScheduleOnRollback {
 		callInProcedureAndAbort(() -> {
 			rpc.Send(so, r -> Procedure.Success, 200);
 			sessionId[0] = rpc.getSessionId();
-			Transaction.getCurrent().throwAbort("force abort after rpc context registered", null);
+			requireNonNull(Transaction.getCurrent()).throwAbort("force abort after rpc context registered", null);
 			return Procedure.Success; // 不可达：throwAbort 必抛
 		});
 		// 注册立即生效，不随回滚撤销（Protocol 基类无 sessionId，用恒等匹配定位注册的 rpc 上下文）

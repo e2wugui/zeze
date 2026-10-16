@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -111,7 +113,7 @@ public class TestSemaphoreCompensateGuard {
 
 				semaphore.release(1); // 显式释放才是合法路径
 				await("explicit release", 5_000, () -> !server.releasedNames.isEmpty());
-				Assertions.assertEquals(1, server.releasedNames.peek()[1], "显式release必须携带permits");
+				Assertions.assertEquals(1, requireNonNull(server.releasedNames.peek())[1], "显式release必须携带permits");
 			} finally {
 				threading.close();
 			}
@@ -147,7 +149,7 @@ public class TestSemaphoreCompensateGuard {
 				Assertions.assertFalse(semaphore.tryAcquire(2, 0), "迟到应答下客户端按未获取处理");
 				await("compensating release", 6_500, () -> !server.releasedNames.isEmpty());
 				var release = server.releasedNames.peek();
-				Assertions.assertEquals("semaphore.zero", release[0], "计数==0时超时必须补发release（FND7-64）");
+				Assertions.assertEquals("semaphore.zero", requireNonNull(release)[0], "计数==0时超时必须补发release（FND7-64）");
 				Assertions.assertEquals(2, release[1], "补发必须携带本次获取的permits");
 			} finally {
 				threading.close();

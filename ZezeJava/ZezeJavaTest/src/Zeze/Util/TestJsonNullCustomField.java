@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Util.Json;
 import Zeze.Util.JsonWriter;
 import harness.Fast;
@@ -21,7 +25,7 @@ public class TestJsonNullCustomField {
 	}
 
 	public static class Holder {
-		public Inner inner;
+		public @Nullable Inner inner;
 		public String name = "n";
 	}
 
@@ -39,7 +43,7 @@ public class TestJsonNullCustomField {
 		var jsonStr = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_WRITE_NULL).write(holder).toString();
 		Assertions.assertTrue(jsonStr.contains("\"inner\":null"), "写侧必须输出显式null: " + jsonStr);
 		var back = Json.parse(jsonStr, Holder.class);
-		Assertions.assertNull(back.inner, "roundtrip后null不得变为空对象（FND5-09）");
+		Assertions.assertNull(requireNonNull(back).inner, "roundtrip后null不得变为空对象（FND5-09）");
 	}
 
 	@Test
@@ -48,7 +52,7 @@ public class TestJsonNullCustomField {
 		holder.inner = new Inner();
 		holder.inner.x = 42;
 		var back = Json.parse(JsonWriter.local().clear().write(holder).toString(), Holder.class);
-		Assertions.assertNotNull(back.inner);
+		Assertions.assertNotNull(requireNonNull(back).inner);
 		Assertions.assertEquals(42, back.inner.x, "非null自定义字段解析不变");
 	}
 }

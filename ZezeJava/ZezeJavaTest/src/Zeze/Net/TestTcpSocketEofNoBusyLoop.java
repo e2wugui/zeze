@@ -13,7 +13,6 @@ import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +35,7 @@ public class TestTcpSocketEofNoBusyLoop {
 		}
 
 		@Override
-		public void OnSocketInputClosed(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketInputClosed(AsyncSocket so) throws Exception {
 			eofCount.incrementAndGet();
 			if (so instanceof TcpSocket tcp)
 				tcp.pauseReceive();
@@ -44,7 +43,7 @@ public class TestTcpSocketEofNoBusyLoop {
 		}
 
 		@Override
-		public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull Zeze.Serialize.ByteBuffer input)
+		public boolean OnSocketProcessInputBuffer(AsyncSocket so, Zeze.Serialize.ByteBuffer input)
 				throws Exception {
 			input.ReadIndex = input.WriteIndex; // 静默吞掉载荷（本测试只关心EOF语义，不参与协议解码）
 			return true;

@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.net.ServerSocket;
 import java.nio.file.Files;
@@ -217,7 +219,7 @@ public class TestSelfReferenceGuard {
 	private static void waitSplittingApplied(Zeze.Dbh2.Dbh2 leader, boolean expectNull, String message)
 			throws InterruptedException {
 		var deadline = System.currentTimeMillis() + 5_000;
-		while ((leader.getStateMachine().getBucket().getSplittingMeta() == null) == expectNull) {
+		while ((requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta() == null) == expectNull) {
 			if (System.currentTimeMillis() > deadline)
 				Assertions.fail(message);
 			//noinspection BusyWait
@@ -262,10 +264,10 @@ public class TestSelfReferenceGuard {
 			// 守卫中止：LogSetSplittingMeta不得append（bug时毫秒级apply可见）。
 			//noinspection BusyWait
 			Thread.sleep(1_000);
-			Assertions.assertNull(leader.getStateMachine().getBucket().getSplittingMeta(),
+			Assertions.assertNull(requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta(),
 					"自指条目必须中止本轮（bug：LogSetSplittingMeta已apply——自身对自身拷贝后endMove删全量置死桶，数据灭失）");
 			// 桶保持完整服务：数据仍在，meta未动。
-			Assertions.assertEquals(0, key(2).compareTo(leader.getStateMachine().getBucket().getBucketMeta().getKeyFirst()),
+			Assertions.assertEquals(0, key(2).compareTo(requireNonNull(leader.getStateMachine().getBucket().getBucketMeta()).getKeyFirst()),
 					"中止后源桶meta不得被动");
 			var kv = sourceAgent.get("database", "table1", key(5));
 			Assertions.assertTrue(kv.getKey(), "中止后桶必须保持完整服务可读");
@@ -316,8 +318,8 @@ public class TestSelfReferenceGuard {
 
 			// 全流程完成：源桶收窄[F,M)=[2,5)，数据复制到目标桶，splitting消费。
 			var deadline = System.currentTimeMillis() + 30_000;
-			while (leader.getStateMachine().getBucket().getSplittingMeta() != null
-					|| leader.getStateMachine().getBucket().getBucketMeta().getKeyLast().compareTo(key(5)) != 0) {
+			while (requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta() != null
+					|| requireNonNull(leader.getStateMachine().getBucket().getBucketMeta()).getKeyLast().compareTo(key(5)) != 0) {
 				if (System.currentTimeMillis() > deadline)
 					Assertions.fail("非自指分桶全流程未完成（收窄未达[F,M)=[2,5)）");
 				//noinspection BusyWait
@@ -325,7 +327,7 @@ public class TestSelfReferenceGuard {
 			}
 			var targetLeader = RaftBucketTopologySupport.waitLeader(target);
 			Assertions.assertEquals(0, key(5).compareTo(
-					targetLeader.getStateMachine().getBucket().getBucketMeta().getKeyFirst()), "目标桶meta.keyFirst=M");
+					requireNonNull(requireNonNull(targetLeader.getStateMachine().getBucket()).getBucketMeta()).getKeyFirst()), "目标桶meta.keyFirst=M");
 			var kv = targetAgent.get("database", "table1", key(5));
 			Assertions.assertTrue(kv.getKey(), "目标桶必须可读");
 			Assertions.assertNotNull(kv.getValue(), "[M,L)数据必须复制到目标桶");

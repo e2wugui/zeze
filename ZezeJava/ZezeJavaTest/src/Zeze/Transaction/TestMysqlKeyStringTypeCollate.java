@@ -1,12 +1,13 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import Zeze.Config;
 import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabaseRelationalMapping;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,11 +51,13 @@ public class TestMysqlKeyStringTypeCollate {
 		// 接口默认值保持不变（PostgreSQL 依赖它：text 等值恒为字节精确，无需覆写）。
 		DatabaseRelationalMapping mapping = new DatabaseRelationalMapping() {
 			@Override
-			public Zeze.Transaction.Database.@NotNull Table openRelationalTable(@NotNull String name) {
+			@SuppressWarnings("DataFlowIssue") // 此 fake 仅调用默认 key 类型，不会打开关系表。
+			public Zeze.Transaction.Database.Table openRelationalTable(String name) {
 				return null;
 			}
 
 			@Override
+			@SuppressWarnings("DataFlowIssue") // 此 fake 仅调用默认 key 类型，不读取 SQL 字段映射。
 			public java.util.Map<String, String> getSqlTypeMap() {
 				return null;
 			}

@@ -1,5 +1,7 @@
 package Zeze.Misc;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +21,6 @@ import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.jetbrains.annotations.NotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -46,7 +47,7 @@ public class TestRocketMQ {
 
 	@Test
 	public void testProducer() throws Exception {
-		App.Instance.RocketMQProducer.start();
+		requireNonNull(App.Instance.RocketMQProducer).start();
 		var consumer = createConsumer();
 
 		try {
@@ -80,8 +81,8 @@ public class TestRocketMQ {
 		}
 	}
 
-	private static @NotNull Consumer createConsumer() throws MQClientException {
-		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", new ClientConfig());
+	private static Consumer createConsumer() throws MQClientException {
+		var consumer = new Consumer(requireNonNull(App.Instance.Zeze), "testRocketMQ", new ClientConfig());
 
 		consumer.setMessageListener((MessageListenerConcurrently)(msgs, context) -> {
 			for (MessageExt msg : msgs) {

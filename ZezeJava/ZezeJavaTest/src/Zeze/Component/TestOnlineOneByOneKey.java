@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Transaction.Procedure;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -24,11 +23,11 @@ public class TestOnlineOneByOneKey {
 
 	/** A的回调：进入即发信号，然后阻塞占住oneByOne队列。 */
 	public static class BlockingHandle implements TimerHandle {
-		static volatile @NotNull CountDownLatch entered = new CountDownLatch(1);
-		static volatile @NotNull CountDownLatch release = new CountDownLatch(1);
+		static volatile CountDownLatch entered = new CountDownLatch(1);
+		static volatile CountDownLatch release = new CountDownLatch(1);
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) throws Exception {
 			entered.countDown();
 			release.await();
 		}
@@ -39,7 +38,7 @@ public class TestOnlineOneByOneKey {
 		static final AtomicInteger RUNS = new AtomicInteger();
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) {
+		public void onTimer(TimerContext context) {
 			RUNS.incrementAndGet();
 		}
 	}

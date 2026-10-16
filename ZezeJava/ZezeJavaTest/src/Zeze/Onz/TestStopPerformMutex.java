@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.net.BindException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +35,6 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,15 +64,15 @@ import org.junit.jupiter.api.io.TempDir;
 @Fast
 @ResourceLock("onz-server-logger") // 共享log4j2 OnzServer logger操纵的测试类互斥（addAppender/setLevel竞态，FND22门禁插曲）
 public class TestStopPerformMutex {
-	private Logger onzServerLogger;
-	private CapturingAppender appender;
+	private @Nullable Logger onzServerLogger;
+	private @Nullable CapturingAppender appender;
 
 	@BeforeEach
 	public void before() {
 		onzServerLogger = (Logger)LogManager.getLogger(OnzServer.class);
 		appender = new CapturingAppender();
 		appender.start();
-		onzServerLogger.addAppender(appender);
+		requireNonNull(onzServerLogger).addAppender(appender);
 	}
 
 	@AfterEach
@@ -98,7 +101,7 @@ public class TestStopPerformMutex {
 			txn.setOnzServer(fixture.onzServer);
 
 			var rc = new AtomicLong(Long.MIN_VALUE);
-			var threadError = new AtomicReference<Throwable>();
+			var threadError = new AtomicReference<@Nullable Throwable>();
 			var performer = new Thread(() -> {
 				try {
 					rc.set(fixture.onzServer.perform(txn));
@@ -117,7 +120,7 @@ public class TestStopPerformMutex {
 			Assertions.assertNull(threadError.get(), "perform 不得向调用方抛异常");
 			Assertions.assertEquals(Procedure.Exception, rc.get(),
 					"停机时在飞事务必须显式失败（Procedure.Exception），不是崩溃也不是成功");
-			Assertions.assertTrue(appender.hasErrorThrownContaining("OnzServer stopped: saveCommitPoint rejected"),
+			Assertions.assertTrue(requireNonNull(appender).hasErrorThrownContaining("OnzServer stopped: saveCommitPoint rejected"),
 					"失败成因必须是写点拒写（锁内stopped复查），不是对已关库的native写");
 		}
 	}
@@ -147,7 +150,7 @@ public class TestStopPerformMutex {
 
 			Assertions.assertDoesNotThrow(() -> fixture.onzServer.removeCommitRecord(tidBytes),
 					"removeCommitRecord拒删是no-op不是错误（记录留库由重启redo恢复）");
-			Assertions.assertTrue(appender.hasMessageContaining("removeCommitRecord rejected"),
+			Assertions.assertTrue(requireNonNull(appender).hasMessageContaining("removeCommitRecord rejected"),
 					"拒删必须留痕（含tid），与RocksDBException分支同形态");
 		}
 	}
@@ -265,7 +268,7 @@ public class TestStopPerformMutex {
 		}
 
 		@Override
-		public void append(@NotNull LogEvent event) {
+		public void append(LogEvent event) {
 			synchronized (events) {
 				events.add(event.toImmutable());
 			}

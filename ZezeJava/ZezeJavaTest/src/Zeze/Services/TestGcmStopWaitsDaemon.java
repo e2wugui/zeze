@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -47,10 +51,10 @@ public class TestGcmStopWaitsDaemon {
 	private static final int SERVER_ID_A = 9401;
 	private static final int SERVER_ID_B = 9402;
 
-	private static RawClient clientA;
-	private static RawClient clientB;
-	private static GlobalCacheManagerServer gcm;
-	private static ExecutorService stopExecutor;
+	private static @Nullable RawClient clientA;
+	private static @Nullable RawClient clientB;
+	private static @Nullable GlobalCacheManagerServer gcm;
+	private static @Nullable ExecutorService stopExecutor;
 
 	/** 裸协议客户端：只需Login（kick由服务端单向发起）。 */
 	private static final class RawClient extends Service {
@@ -86,7 +90,7 @@ public class TestGcmStopWaitsDaemon {
 	public static void tearDown() throws Exception {
 		if (stopExecutor != null)
 			stopExecutor.shutdownNow();
-		for (var c : new RawClient[]{clientA, clientB})
+		for (var c : new @Nullable RawClient[]{clientA, clientB})
 			if (c != null)
 				c.stop();
 		if (gcm != null)
@@ -184,8 +188,8 @@ public class TestGcmStopWaitsDaemon {
 
 			// 3. stop()不得在扫描被阻塞期间完成：缺等待的形态下cancel(false)只挡住派发动作，
 			//    随后立即拆依赖（server=null）
-			Future<?> stopFuture = stopExecutor.submit(() -> {
-				gcm.stop();
+			Future<?> stopFuture = requireNonNull(stopExecutor).submit(() -> {
+				requireNonNull(gcm).stop();
 				return null;
 			});
 			try {

@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 
 import harness.Fast;
@@ -52,10 +58,10 @@ public class TestMap2FollowerApplyMapKey {
 
 	/** map2 动态 value bean：mapKey 由容器维护（参照 RocksRaft/Test.java 的 Bean1）。 */
 	public static final class BItem extends Bean {
-		private transient Object _mapKey;
+		private transient @Nullable Object _mapKey;
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return _mapKey;
 		}
 
@@ -81,7 +87,7 @@ public class TestMap2FollowerApplyMapKey {
 
 		public void setI(int value) {
 			if (isManaged())
-				Transaction.getCurrent().putLog(new LogInt(this, 1, value));
+				requireNonNull(Transaction.getCurrent()).putLog(new LogInt(this, 1, value));
 			else
 				_i = value;
 		}
@@ -102,7 +108,7 @@ public class TestMap2FollowerApplyMapKey {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -112,7 +118,7 @@ public class TestMap2FollowerApplyMapKey {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_i = ((LogInt)vlog).value;
 			}
 		}
@@ -153,7 +159,7 @@ public class TestMap2FollowerApplyMapKey {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_map.initRootInfo(root, this);
 		}
 
@@ -164,7 +170,7 @@ public class TestMap2FollowerApplyMapKey {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_map.followerApply(vlog);
 			}
 		}
@@ -210,7 +216,7 @@ public class TestMap2FollowerApplyMapKey {
 	private static Changes captureChanges(Rocks rocks, FuncLong func) throws Exception {
 		final Transaction[] ts = new Transaction[1];
 		var rc = rocks.newProcedure(() -> {
-			ts[0] = Transaction.getCurrent();
+			ts[0] = requireNonNull(Transaction.getCurrent());
 			return func.call();
 		}).call();
 		assertEquals(Zeze.Transaction.Procedure.RaftRetry, rc); // not leader
@@ -243,14 +249,14 @@ public class TestMap2FollowerApplyMapKey {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static LogMap2<Long, BItem> findLogMap2(Changes changes) {
+	private static @Nullable LogMap2<Long, BItem> findLogMap2(Changes changes) {
 		for (var r : changes.getRecords().values())
 			for (var logBean : r.getLogBean()) {
 				var vars = logBean.getVariables();
 				if (vars == null)
 					continue;
 				for (var it = vars.iterator(); it.moveToNext(); )
-					if (it.value().getVariableId() == 1)
+					if (requireNonNull(it.value()).getVariableId() == 1)
 						return (LogMap2<Long, BItem>)it.value();
 			}
 		return null;
@@ -259,7 +265,7 @@ public class TestMap2FollowerApplyMapKey {
 	@Test
 	public void testFailoverEditFollowerInstalledEntry() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BMapBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BMapBean>getTableTemplate(templateName)).openTable(0);
 			seedEmptyRecord(table, 1);
 
 			// 1.【旧leader】事务 put map 条目（put() 在 leader 侧设置 bucket 的 mapKey），
@@ -279,14 +285,14 @@ public class TestMap2FollowerApplyMapKey {
 			rocks.followerApply(followerPut, new RaftLog(1, 1, followerPut));
 
 			// 安装后的 bucket 必须携带 mapKey（修复前：null——failover 后编辑即 NPE/丢key）。
-			var installed = ((BMapBean)table.getLruCache().get(1).getValue()).getMap().get(1L);
+			var installed = requireNonNull(((BMapBean)requireNonNull(requireNonNull(table.getLruCache()).get(1)).getValue())).getMap().get(1L);
 			assertNotNull(installed);
 			assertEquals(1L, installed.mapKey());
 
 			// 3.【failover：原 follower 当选新 leader，条目仍在 lruCache】编辑该条目
 			//   并编码日志：LogMap2.encode 用 bucket.mapKey() 作为 changed 条目的 key。
 			var editChanges = captureChanges(rocks, () -> {
-				table.getOrAdd(1).getMap().get(1L).setI(42);
+				requireNonNull(table.getOrAdd(1).getMap().get(1L)).setI(42);
 				return 0L;
 			});
 			var editBB = ByteBuffer.Allocate();

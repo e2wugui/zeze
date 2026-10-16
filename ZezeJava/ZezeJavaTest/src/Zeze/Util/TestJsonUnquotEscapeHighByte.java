@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Util.JsonReader;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
@@ -24,12 +26,12 @@ public final class TestJsonUnquotEscapeHighByte {
 	public void testNoQuotKeyHighByteEscape() throws ReflectiveOperationException {
 		var m = new JsonReader().buf(new byte[]{'{', '\\', (byte)0xC3, 'x', ':', '1', '}'})
 				.parseMap(new HashMap<>());
-		assertEquals(Set.of("\u00C3x"), m.keySet(), "修复前为 \\uFFC3x（符号扩展）");
+		assertEquals(Set.of("\u00C3x"), requireNonNull(m).keySet(), "修复前为 \\uFFC3x（符号扩展）");
 		assertEquals(1, m.get("\u00C3x"));
 
 		var m2 = new JsonReader().buf(new byte[]{'{', '"', '\\', (byte)0xC3, 'x', '"', ':', '2', '}'})
 				.parseMap(new HashMap<>());
-		assertEquals(Set.of("\u00C3x"), m2.keySet());
+		assertEquals(Set.of("\u00C3x"), requireNonNull(m2).keySet());
 		assertEquals(2, m2.get("\u00C3x"));
 
 		// 两路径解码一致

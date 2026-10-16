@@ -1,4 +1,8 @@
 package Zeze.Util;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -29,8 +33,8 @@ public final class TestJson {
 	}
 
 	static class C {
-		A a = new B();
-		C c;
+		@Nullable A a = new B();
+		@Nullable C c;
 		Map<A, Integer> m = new HashMap<>();
 	}
 
@@ -48,20 +52,20 @@ public final class TestJson {
 	public void test2() throws ReflectiveOperationException {
 		C c = JsonReader.local().buf("{a:{a:1,b:2}}").parse(C.class);
 		assertNotNull(c);
-		assertEquals(B.class, c.a.getClass());
+		assertEquals(B.class, requireNonNull(c.a).getClass());
 		assertEquals(1, c.a.a);
 		assertEquals(2, ((B)c.a).b);
 
 		c.a = new A();
 		c = JsonReader.local().buf("{a:{a:3,b:4}}").parse(c);
 		assertNotNull(c);
-		assertEquals(A.class, c.a.getClass());
+		assertEquals(A.class, requireNonNull(c.a).getClass());
 		assertEquals(3, c.a.a);
 
 		c.a = null;
 		c = JsonReader.local().buf("{a:{a:5,b:6}}").parse(c);
 		assertNotNull(c);
-		assertEquals(A.class, c.a.getClass());
+		assertEquals(A.class, requireNonNull(c.a).getClass());
 		assertEquals(5, c.a.a);
 
 		Json.instance.getClassMeta(A.class).setParser((json, __, ___, ____, _____) -> json.parse(B.class));
@@ -69,7 +73,7 @@ public final class TestJson {
 			c.a = null;
 			c = JsonReader.local().buf("{a:{a:7,b:8}}").parse(c);
 			assertNotNull(c);
-			assertEquals(B.class, c.a.getClass());
+			assertEquals(B.class, requireNonNull(c.a).getClass());
 			assertEquals(7, c.a.a);
 			assertEquals(8, ((B)c.a).b);
 		} finally {
@@ -88,7 +92,7 @@ public final class TestJson {
 
 	public void test3() {
 		C c = new C();
-		c.a.a = 1;
+		requireNonNull(c.a).a = 1;
 		((B)c.a).b = -1;
 		String json = JsonWriter.local().clear().setNoQuoteKey(false).write(c).toString();
 		assertEquals("{\"a\":{\"a\":1,\"b\":-1},\"m\":{}}", json);
@@ -98,7 +102,7 @@ public final class TestJson {
 
 	public void test4() {
 		C c = new C();
-		c.a.a = 1;
+		requireNonNull(c.a).a = 1;
 		((B)c.a).b = -1;
 		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_PRETTY_FORMAT).write(c).toString();
 		assertEquals("{\n" +
@@ -114,7 +118,7 @@ public final class TestJson {
 
 	public void test5() {
 		C c = new C();
-		c.a.a = 1;
+		requireNonNull(c.a).a = 1;
 		((B)c.a).b = -1;
 		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_NO_QUOTE_KEY).write(c).toString();
 		assertEquals("{a:{a:1,b:-1},m:{}}", json);
@@ -124,7 +128,7 @@ public final class TestJson {
 
 	public void test6() {
 		C c = new C();
-		c.a.a = 1;
+		requireNonNull(c.a).a = 1;
 		((B)c.a).b = -1;
 		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_WRITE_NULL).write(c).toString();
 		assertEquals("{\"a\":{\"a\":1,\"b\":-1},\"c\":null,\"m\":{}}", json);
@@ -158,7 +162,7 @@ public final class TestJson {
 
 	static class E {
 		int a;
-		E e;
+		@Nullable E e;
 	}
 
 	@Test
@@ -182,11 +186,11 @@ public final class TestJson {
 
 	static class G {
 		final Set<Integer> set1 = new HashSet<>();
-		HashSet<Integer> set2;
-		Set<Integer> set3;
-		Map<String, String> e1;
-		F1 f1;
-		F2 f2;
+		@Nullable HashSet<Integer> set2;
+		@Nullable Set<Integer> set3;
+		@Nullable Map<String, String> e1;
+		@Nullable F1 f1;
+		@Nullable F2 f2;
 	}
 
 	@Test
@@ -200,7 +204,7 @@ public final class TestJson {
 		assertEquals(HashSet.class, g.set2.getClass());
 		assertNotNull(g.set3);
 		assertEquals(HashSet.class, g.set3.getClass());
-		assertEquals(222, ((Number)g.f2.get(0)).intValue());
+		assertEquals(222, ((Number)requireNonNull(g.f2).get(0)).intValue());
 	}
 
 	@Test
@@ -350,7 +354,7 @@ public final class TestJson {
 	}
 
 	static class H {
-		String s;
+		@Nullable String s;
 		int v;
 	}
 

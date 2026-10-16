@@ -1,5 +1,7 @@
 package Zezex;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import ClientGame.Login.BRole;
@@ -15,7 +17,6 @@ import Zeze.Transaction.DatabaseMemory;
 import Zezex.Linkd.Auth;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 
 /**
@@ -28,7 +29,7 @@ import org.junit.jupiter.api.Assertions;
  *    检测 isDirty() 后整体 stopAll+prepare 重建，保留失败隔离（TestRoleTimer/TestGameTimer）。
  */
 public final class ZezexTestEnv {
-	private static final @NotNull Logger logger = LogManager.getLogger(ZezexTestEnv.class);
+	private static final Logger logger = LogManager.getLogger(ZezexTestEnv.class);
 
 	/** 客户端拨号口味：TCP 走 ClientService 直连；WEBSOCKET 走 Start2 的 ws 拨号（linkd 端口+10000）。 */
 	public enum ClientStartMode { TCP, WEBSOCKET }
@@ -37,7 +38,7 @@ public final class ZezexTestEnv {
 	public final ArrayList<Zezex.App> links = new ArrayList<>();
 	public final ArrayList<Game.App> servers = new ArrayList<>();
 
-	private LoginQueue loginQueue;
+	private @Nullable LoginQueue loginQueue;
 	private boolean dirty; // 类级共享用法：上一方法失败时置位，下一方法据此整体重建环境
 
 	public boolean isDirty() {
@@ -86,7 +87,7 @@ public final class ZezexTestEnv {
 			for (int i = 0; i < serverCount; ++i)
 				servers.get(i).Start(serverIdBase + i, 20000 + i);
 			for (var link : links)
-				harness.TestEnv.waitServerRegisteredRange(link.Zeze, serverIdBase, serverCount); // 等所有provider注册可见（替代盲等1秒）
+				harness.TestEnv.waitServerRegisteredRange(link.getZeze(), serverIdBase, serverCount); // 等所有provider注册可见（替代盲等1秒）
 
 			startClients(clientCount, ClientStartMode.TCP);
 		} catch (Exception e) {
@@ -153,7 +154,7 @@ public final class ZezexTestEnv {
 	private void startClient(ClientGame.App c, int index, ClientStartMode mode) throws Exception {
 		if (mode == ClientStartMode.WEBSOCKET) {
 			// Start2 的 wsUrl 实参实际未被使用（token 回调内按 LoginQueue 下发的 link 地址重建），此处构造仅为表意
-			var ipPort = links.get(index % links.size()).LinkdService.getOnePassiveAddress();
+			var ipPort = Objects.requireNonNull(links.get(index % links.size()).LinkdService).getOnePassiveAddress();
 			c.Start2("ws://" + ipPort.getKey() + ":" + (ipPort.getValue() + 10000) + "/websocket");
 		} else {
 			c.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
@@ -213,13 +214,13 @@ public final class ZezexTestEnv {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
 		auth.Argument.setLoginQueueToken(token.getToken());
-		auth.SendForWait(app.ClientService.GetSocket(), 30_000).await();
+		auth.SendForWait(Objects.requireNonNull(app.ClientService).GetSocket(), 30_000).await();
 		Assertions.assertEquals(0, auth.getResultCode());
 	}
 
-	public static BRole getRole(ClientGame.App app) {
+	public static @Nullable BRole getRole(ClientGame.App app) {
 		var get = new GetRoleList();
-		get.SendForWait(app.ClientService.GetSocket(), 30_000).await();
+		get.SendForWait(Objects.requireNonNull(app.ClientService).GetSocket(), 30_000).await();
 		Assertions.assertEquals(0, get.getResultCode());
 		if (get.Result.getRoleList().isEmpty())
 			return null;
@@ -229,7 +230,7 @@ public final class ZezexTestEnv {
 	public static long createRole(ClientGame.App app, String role) {
 		var createRole = new CreateRole();
 		createRole.Argument.setName(role);
-		createRole.SendForWait(app.ClientService.GetSocket(), 30_000).await();
+		createRole.SendForWait(Objects.requireNonNull(app.ClientService).GetSocket(), 30_000).await();
 		Assertions.assertEquals(0, createRole.getResultCode());
 		return createRole.Result.getId();
 	}
@@ -237,7 +238,7 @@ public final class ZezexTestEnv {
 	public static void login(ClientGame.App app, long roleId) {
 		var login = new Zeze.Builtin.Game.Online.Login();
 		login.Argument.setRoleId(roleId);
-		login.SendForWait(app.ClientService.GetSocket(), 30_000).await();
+		login.SendForWait(Objects.requireNonNull(app.ClientService).GetSocket(), 30_000).await();
 		Assertions.assertEquals(0, login.getResultCode());
 	}
 
@@ -248,7 +249,7 @@ public final class ZezexTestEnv {
 		for (int attempt = 1; ; ++attempt) {
 			var logout = new Logout();
 			try {
-				logout.SendForWait(app.ClientService.GetSocket(), 30_000).await();
+				logout.SendForWait(Objects.requireNonNull(app.ClientService).GetSocket(), 30_000).await();
 			} catch (java.util.concurrent.CompletionException e) {
 				if (e.getCause() instanceof Zeze.Net.RpcTimeoutException && attempt < 6) {
 					try {

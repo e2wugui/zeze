@@ -3,7 +3,6 @@ package Zeze.Util;
 import harness.Fast;
 import java.io.IOException;
 import Zeze.Util.StringChecker;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +17,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestStringCheckerOverlap {
 
-	private static @NotNull StringChecker of(@NotNull String... words) throws IOException {
+	private static StringChecker of(String... words) throws IOException {
 		var c = new StringChecker();
 		for (var w : words)
 			c.addNewLine(w);

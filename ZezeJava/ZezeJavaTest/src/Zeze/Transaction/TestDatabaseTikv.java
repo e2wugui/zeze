@@ -1,4 +1,6 @@
 package Zeze.Trans;
+
+import org.jspecify.annotations.NullMarked;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +21,7 @@ import org.tikv.txn.KVClient;
 import org.tikv.txn.TwoPhaseCommitter;
 
 @Disabled
+@NullMarked
 public final class TestDatabaseTikv {
 	private static final String serverAddr = "10.12.7.140:5379";
 

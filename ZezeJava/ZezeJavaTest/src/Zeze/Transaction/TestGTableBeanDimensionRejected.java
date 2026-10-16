@@ -9,7 +9,6 @@ import demo.Module1.AutoKey;
 import demo.Module1.BValue;
 import demo.Module1.Key;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -26,16 +25,16 @@ public class TestGTableBeanDimensionRejected {
 
 	public static class MyBean extends Bean {
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 		}
 	}
 
 	private static void assertDimensionRejected(Executable ctor,
-	                                             @NotNull String table, @NotNull String dimension) {
+	                                             String table, String dimension) {
 		var ex = Assertions.assertThrows(IllegalArgumentException.class, ctor,
 				table + "必须拒绝Bean " + dimension + "键（哈希put/get失真，工厂层判例FND6-41同族）");
 		Assertions.assertTrue(ex.getMessage().contains(table), "报错必须点名" + table + "而非深层日志家族名");

@@ -1,5 +1,7 @@
 package Zeze.Arch.Gen;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,7 +13,7 @@ import Zeze.Arch.ProviderApp;
 import Zeze.Config;
 import Zeze.Util.InMemoryJavaCompiler;
 import harness.Fast;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,7 +39,7 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 
 	/** 模拟HotRedirect：模块包名横向转发给"当前HotModule装载器"，其余按标准路线走双亲。 */
 	private static final class HotLikeRedirectLoader extends ClassLoader {
-		volatile ClassLoader currentModuleLoader;
+		volatile @Nullable ClassLoader currentModuleLoader;
 
 		HotLikeRedirectLoader(ClassLoader parent) {
 			super(parent);
@@ -46,7 +48,7 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 		@Override
 		protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
 			if (name.startsWith("modcache.") && currentModuleLoader != null)
-				return currentModuleLoader.loadClass(name);
+				return requireNonNull(currentModuleLoader).loadClass(name);
 			return super.loadClass(name, resolve);
 		}
 	}
@@ -99,11 +101,11 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 	@TempDir
 	Path tempDir;
 
-	private static Application app;
-	private static AppBase dummyApp;
-	private static HotLikeRedirectLoader hotLike;
-	private static Object savedCompilerOptions;
-	private static ClassLoader savedCompilerLoader;
+	private static @Nullable Application app;
+	private static @Nullable AppBase dummyApp;
+	private static @Nullable HotLikeRedirectLoader hotLike;
+	private static @Nullable Object savedCompilerOptions;
+	private static @Nullable ClassLoader savedCompilerLoader;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -141,14 +143,14 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 	@Test
 	public void testStaleColdCacheFailsFast() throws Exception {
 		var v1 = compileAndLoadModule("HotModuleUp", tempDir.resolve("cp1"));
-		var m1 = GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{v1});
+		var m1 = GenModule.instance.createRedirectModules(requireNonNull(dummyApp), new Class<?>[]{v1});
 		Assertions.assertNotNull(m1);
 		Assertions.assertSame(v1, m1[0].getClass().getSuperclass(), "首装生成类必须extends传入模块类");
 
 		var v2 = compileAndLoadModule("HotModuleUp", tempDir.resolve("cp2"));
 		Assertions.assertNotSame(v1, v2, "测试前提：同名类不同装载器，Class身份不同");
 		Assertions.assertThrows(IllegalStateException.class,
-				() -> GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{v2}),
+				() -> GenModule.instance.createRedirectModules(requireNonNull(dummyApp), new Class<?>[]{v2}),
 				"冷缓存命中陈旧父类必须显式失败，不得静默复用旧生成类");
 	}
 
@@ -156,7 +158,7 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 	@Test
 	public void testColdCacheHitReused() throws Exception {
 		var v = compileAndLoadModule("HotModuleHit", tempDir.resolve("cp"));
-		var m1 = GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{v});
+		var m1 = GenModule.instance.createRedirectModules(requireNonNull(dummyApp), new Class<?>[]{v});
 		var m2 = GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{v});
 		Assertions.assertNotNull(m1);
 		Assertions.assertNotNull(m2);
@@ -176,11 +178,11 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 		var classFile = cpDir.resolve("modcache").resolve(simpleName + ".class");
 		Files.createDirectories(classFile.getParent());
 		Files.write(classFile, bytes);
-		hotLike.currentModuleLoader = new HotLikeModuleLoader(
+		requireNonNull(hotLike).currentModuleLoader = new HotLikeModuleLoader(
 				TestGenModuleCacheInvalidOnUpgrade.class.getClassLoader(), className, bytes);
 		GenModule.instance.getCompiler().useOptions("-cp",
 				cpDir + File.pathSeparator + System.getProperty("java.class.path"));
-		return hotLike.currentModuleLoader.loadClass(className);
+		return requireNonNull(hotLike.currentModuleLoader).loadClass(className);
 	}
 
 	private static Object readCompilerField(InMemoryJavaCompiler compiler, String name) throws Exception {
@@ -189,7 +191,7 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 		return field.get(compiler);
 	}
 
-	private static void writeCompilerField(InMemoryJavaCompiler compiler, String name, Object value) throws Exception {
+	private static void writeCompilerField(InMemoryJavaCompiler compiler, String name, @Nullable Object value) throws Exception {
 		var field = InMemoryJavaCompiler.class.getDeclaredField(name);
 		field.setAccessible(true);
 		field.set(compiler, value);

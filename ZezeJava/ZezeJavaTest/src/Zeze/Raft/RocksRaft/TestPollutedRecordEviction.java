@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +80,7 @@ public class TestPollutedRecordEviction {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_list.initRootInfo(root, this);
 		}
 
@@ -85,7 +91,7 @@ public class TestPollutedRecordEviction {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_list.followerApply(vlog);
 			}
 		}
@@ -132,7 +138,7 @@ public class TestPollutedRecordEviction {
 	private static Changes captureChanges(Rocks rocks, FuncLong func) throws Exception {
 		final Transaction[] ts = new Transaction[1];
 		var rc = rocks.newProcedure(() -> {
-			ts[0] = Transaction.getCurrent();
+			ts[0] = requireNonNull(Transaction.getCurrent());
 			return func.call();
 		}).call();
 		assertEquals(Zeze.Transaction.Procedure.RaftRetry, rc); // not leader
@@ -173,7 +179,7 @@ public class TestPollutedRecordEviction {
 	@Test
 	public void testTermMismatchDiscardEvictsPollutedRecord() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10, 20); // 截断前已提交基线 [10,20]
 
 			// 旧条目（index=2, term=1）：Edit add(30)。leaderApply 已把缓存 bean 改到
@@ -183,7 +189,7 @@ public class TestPollutedRecordEviction {
 				return 0L;
 			});
 			oldEntryChanges.encode(ByteBuffer.Allocate()); // 对齐真实路径：解析出Record.table
-			var polluted = table.getLruCache().get(1);
+			var polluted = requireNonNull(table.getLruCache()).get(1);
 			assertNotNull(polluted);
 			rocks.putPendingFlush(2, 1, List.of(polluted));
 			assertTrue(polluted.isAccessed(), "compensation must hold the polluted record in-use");
@@ -218,13 +224,13 @@ public class TestPollutedRecordEviction {
 	@Test
 	public void testEvictionSkippedWhileInUse() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10);
 
 			final Record<?>[] holder = new Record<?>[1];
 			var rc = rocks.newProcedure(() -> {
 				assertNotNull(table.get(1)); // 业务访问：beginAccess持有
-				var record = table.getLruCache().get(1);
+				var record = requireNonNull(table.getLruCache()).get(1);
 				assertNotNull(record);
 				holder[0] = record;
 				rocks.putPendingFlush(3, 1, List.of(record)); // 补偿持有（模拟flush失败）
@@ -243,7 +249,7 @@ public class TestPollutedRecordEviction {
 			var record = holder[0];
 			assertNotNull(record);
 			assertFalse(record.isAccessed());
-			assertSame(record, table.getLruCache().get(1));
+			assertSame(record, requireNonNull(table.getLruCache()).get(1));
 		}
 	}
 }

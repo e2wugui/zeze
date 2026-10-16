@@ -1,9 +1,10 @@
 package Benchmark;
+
+import java.util.Objects;
 import harness.Bench;
 import harness.MacroBench;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
 import Zeze.Config;
 import demo.App;
 import org.junit.jupiter.api.Assertions;
@@ -38,7 +39,7 @@ public class GCacheThrashing {
 			MacroBench.run("G_CacheThrashing", Warmups, Rounds, TxnCount, () -> {
 				for (int i = 0; i < TxnCount; ++i) {
 					final long key = i % Keys;
-					App.Instance.Zeze.newProcedure(() -> Add(key), "Add").call();
+					App.Instance.getZeze().newProcedure(() -> Add(key), "Add").call();
 				}
 			});
 			check();
@@ -49,7 +50,7 @@ public class GCacheThrashing {
 	}
 
 	private static long Add(long key) {
-		var r = App.Instance.demo_Module1.getTable1().getOrAdd(key);
+		var r = Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(key);
 		r.setLong2(r.getLong2() + 1);
 		return 0;
 	}
@@ -60,10 +61,10 @@ public class GCacheThrashing {
 		// 全量校验在测量轮外：每 key 应得 (Warmups+Rounds)*TxnCount/Keys 次自增
 		//（校验本身再触发一轮全量 miss 装载）。过程返回 0，结果经字段带出——
 		// 非零返回码会触发 defaultLogAction 逐次记日志。
-		App.Instance.Zeze.newProcedure(() -> {
+		App.Instance.getZeze().newProcedure(() -> {
 			long sum = 0;
 			for (long key = 0; key < Keys; ++key)
-				sum += App.Instance.demo_Module1.getTable1().getOrAdd(key).getLong2();
+				sum += Objects.requireNonNull(App.Instance.demo_Module1).getTable1().getOrAdd(key).getLong2();
 			checkSum = sum;
 			return 0L;
 		}, "check").call();
@@ -72,11 +73,11 @@ public class GCacheThrashing {
 	}
 
 	private static void clearAll() throws Exception {
-		App.Instance.Zeze.newProcedure(() -> {
+		App.Instance.getZeze().newProcedure(() -> {
 			for (long key = 0; key < Keys; ++key)
-				App.Instance.demo_Module1.getTable1().remove(key);
+				Objects.requireNonNull(App.Instance.demo_Module1).getTable1().remove(key);
 			return 0L;
 		}, "clear").call();
-		App.Instance.Zeze.checkpointRun();
+		App.Instance.getZeze().checkpointRun();
 	}
 }

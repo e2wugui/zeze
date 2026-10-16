@@ -1,5 +1,11 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.util.function.BiPredicate;
 
@@ -69,7 +75,7 @@ public class TestRocksRaftTableTemplateCallback {
 		BiPredicate<Integer, Record<Integer>> second = (k, r) -> true;
 
 		// 首次打开：新表携带callback
-		Table<Integer, ?> t1 = template.openTable(0, first);
+		Table<Integer, ?> t1 = requireNonNull(template).openTable(0, first);
 		Assertions.assertSame(first, t1.getLruTryRemoveCallback());
 
 		// 再次打开（表已存在）：callback不得被静默丢弃，最后一次调用生效
@@ -82,7 +88,7 @@ public class TestRocksRaftTableTemplateCallback {
 	/** 最小测试bean。 */
 	public static final class TestBean extends Bean {
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override

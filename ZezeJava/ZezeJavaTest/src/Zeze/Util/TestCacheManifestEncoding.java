@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,11 +42,11 @@ public class TestCacheManifestEncoding {
 			var clean = Cache.class.getDeclaredMethod("tryRemove");
 			clean.setAccessible(true);
 			clean.invoke(cache);
-			assertEquals("old", ((TestCacheAppendTodayResume.Obj)cache.get("a")).value);
-			assertEquals("old", ((TestCacheAppendTodayResume.Obj)cache.get("b")).value);
+			assertEquals("old", requireNonNull(((TestCacheAppendTodayResume.Obj)cache.get("a"))).value);
+			assertEquals("old", requireNonNull(((TestCacheAppendTodayResume.Obj)cache.get("b"))).value);
 			assertEquals(0, loads.get());
-			assertEquals("new", ((TestCacheAppendTodayResume.Obj)cache.get("a\nb")).value);
-			assertEquals("new", ((TestCacheAppendTodayResume.Obj)cache.get("legacy")).value);
+			assertEquals("new", requireNonNull(((TestCacheAppendTodayResume.Obj)cache.get("a\nb"))).value);
+			assertEquals("new", requireNonNull(((TestCacheAppendTodayResume.Obj)cache.get("legacy"))).value);
 			assertEquals(2, loads.get());
 		} finally {
 			cache.close();

@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Raft.RocksRaft.TestSortedMapEquivalentKeysReplay.BValue;
 import Zeze.Serialize.ByteBuffer;
@@ -39,7 +41,7 @@ public class TestRocksCollectionLogLifecycle {
 			map.put(2, new BValue(30));
 			list.clear();
 			list.add(new BValue(40));
-			assertEquals(30, map.copy().get(2).value);
+			assertEquals(30, requireNonNull(map.copy().get(2)).value);
 			assertEquals(40, list.copy().get(0).value);
 			transaction.rollback();
 			assertEquals(1, map.copy().size());
@@ -72,7 +74,7 @@ public class TestRocksCollectionLogLifecycle {
 		follower.add(new BValue(20));
 		follower.followerApply(replay);
 		assertEquals(10, follower.get(0).value);
-		assertEquals(42, follower.get(1).value);
+		assertEquals(42, requireNonNull(follower.get(1)).value);
 	}
 
 	@Test
@@ -94,7 +96,7 @@ public class TestRocksCollectionLogLifecycle {
 		var follower = new CollMap2<Integer, BValue>(Integer.class, BValue.class);
 		follower.put(1, new BValue(10));
 		follower.followerApply(replay);
-		assertEquals(42, follower.get(1).value, "wire中的42不能被旧source中的99替换");
+		assertEquals(42, requireNonNull(follower.get(1)).value, "wire中的42不能被旧source中的99替换");
 	}
 
 	@Test
@@ -116,7 +118,7 @@ public class TestRocksCollectionLogLifecycle {
 		var follower = new CollSortedMap2<Integer, BValue>(Integer.class, BValue.class);
 		follower.put(1, new BValue(10));
 		follower.followerApply(replay);
-		assertEquals(42, follower.get(1).value);
+		assertEquals(42, requireNonNull(follower.get(1)).value);
 	}
 
 	private static LogBean change(BValue bean, int value) {

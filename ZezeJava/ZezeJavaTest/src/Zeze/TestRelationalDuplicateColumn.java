@@ -6,7 +6,6 @@ import java.util.Map;
 import Zeze.Schemas;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseRelationalMapping;
-import org.jetbrains.annotations.NotNull;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +27,7 @@ public class TestRelationalDuplicateColumn {
 	/** 最小关系映射：仅提供toSqlType所需的类型表。 */
 	private static final DatabaseRelationalMapping MAPPING = new DatabaseRelationalMapping() {
 		@Override
-		public @NotNull Database.Table openRelationalTable(@NotNull String name) {
+		public Database.Table openRelationalTable(String name) {
 			throw new UnsupportedOperationException("not used in this test");
 		}
 

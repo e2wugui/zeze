@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogMap2;
@@ -28,7 +30,7 @@ public class TestPMap2CopyMapKeyReplay {
 		var copy = source.copy();
 		var value = copy.get("original-key");
 		assertNotSame(original, value);
-		assertEquals("original-key", value.mapKey());
+		assertEquals("original-key", requireNonNull(value).mapKey());
 		value.setLong2(7);
 		assertEquals(3, original.getLong2(), "复制值的原位修改不得改变源记录");
 
@@ -53,7 +55,7 @@ public class TestPMap2CopyMapKeyReplay {
 		assertTrue(input.isEmpty());
 		follower.followerApply(decoded);
 		assertSame(followerValue, follower.get("original-key"), "回放须修改原有值Bean而非换记录");
-		assertEquals(7, followerValue.getLong2());
+		assertEquals(7, requireNonNull(followerValue).getLong2());
 		assertEquals(1, follower.size());
 	}
 }

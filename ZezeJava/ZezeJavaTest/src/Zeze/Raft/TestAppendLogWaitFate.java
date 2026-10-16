@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.lang.reflect.Method;
 
@@ -76,7 +78,7 @@ public class TestAppendLogWaitFate {
 	@Test
 	public void testAppliedReturnsImmediately() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
-			var logSequence = rocks.getRaft().getLogSequence();
+			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 			assertTrue(logSequence.getLastApplied() >= 0);
 
 			var begin = System.nanoTime();
@@ -89,7 +91,7 @@ public class TestAppendLogWaitFate {
 	@Test
 	public void testMissingReturnsImmediately() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
-			var logSequence = rocks.getRaft().getLogSequence();
+			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 
 			var begin = System.nanoTime();
 			logSequence.waitLogFateDetermined(99, 60_000);
@@ -102,7 +104,7 @@ public class TestAppendLogWaitFate {
 	@Test
 	public void testPendingWaitsUntilBoundedTimeout() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
-			var logSequence = rocks.getRaft().getLogSequence();
+			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 			var pendingIndex = logSequence.getLastIndex() + 1; // saveLog 不推进 lastIndex 字段
 			savePendingLog(logSequence, 1, pendingIndex);
 
@@ -119,7 +121,7 @@ public class TestAppendLogWaitFate {
 	public void testShutdownReturnsWhilePending() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
 			var raft = rocks.getRaft();
-			var logSequence = raft.getLogSequence();
+			var logSequence = requireNonNull(raft).getLogSequence();
 			var pendingIndex = logSequence.getLastIndex() + 1; // saveLog 不推进 lastIndex 字段
 			savePendingLog(logSequence, 1, pendingIndex);
 

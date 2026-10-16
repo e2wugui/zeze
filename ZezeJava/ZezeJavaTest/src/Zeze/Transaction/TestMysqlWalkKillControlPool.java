@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -42,7 +44,7 @@ public class TestMysqlWalkKillControlPool {
 	// 借出的物理连接计数：业务连接+控制连接各至少一条，证明KILL走的是独立连接。
 	static final AtomicInteger physicalConnections = new AtomicInteger();
 
-	private static Object defaultValue(Class<?> type) {
+	private static @Nullable Object defaultValue(Class<?> type) {
 		if (!type.isPrimitive() || type == void.class)
 			return null;
 		if (type == boolean.class)
@@ -161,7 +163,7 @@ public class TestMysqlWalkKillControlPool {
 
 			var callbackReached = new CountDownLatch(1);
 			var done = new CountDownLatch(1);
-			var failure = new AtomicReference<Throwable>();
+			var failure = new AtomicReference<@Nullable Throwable>();
 			var worker = new Thread(() -> {
 				try {
 					method.invoke(db, "SELECT id FROM test_data", (DatabaseJdbc.JdbcWalkRow)rs -> {

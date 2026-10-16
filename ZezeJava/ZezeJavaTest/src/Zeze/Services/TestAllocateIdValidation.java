@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -40,7 +42,7 @@ public class TestAllocateIdValidation {
 	// 固定端口契约与选段说明见TestTakeoverIdentifySuspect；26113避开26110/26111/26112
 	//（SM在同端口号绑TCP+UDP，本测试只触碰TCP面；UDP面的同构防护由TestId128UniqueNamesLimit钉板）。
 	private static final int PORT = 26113;
-	private static ServiceManagerServer sm;
+	private static @Nullable ServiceManagerServer sm;
 
 	@BeforeAll
 	public static void setUp() throws Exception {

@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,7 +54,7 @@ public class TestOnzSagaPersistRedo {
 	static volatile int CancelCount;
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 	private String dbHome;
 
 	@BeforeEach
@@ -74,14 +78,14 @@ public class TestOnzSagaPersistRedo {
 		// 本类用例按sagaCount绝对值断言（==1/==0），残留使首个waitUntil提前通过、
 		// 末个waitUntil永不归零。清理残留并恢复TTL默认（对齐TestGcD04SagaTtlNotFound
 		// 的止损先例：先1ms+cleanupTimeoutSagas收割存量，再恢复默认隔离周期清理）。
-		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
-		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
-		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(zeze2.demo_Module1).getKuafu());
+		Infinite.App.clearDbTable(requireNonNull(App.Instance.demo_Module1).getKuafu());
 
 		// zeze1: saga参与方（快业务+记账cancel/end）；zeze2: procedure参与方（OH1-F4迟到注册用）
 		if (registeredOnAppInstance.compareAndSet(false, true)) {
@@ -91,24 +95,24 @@ public class TestOnzSagaPersistRedo {
 			App.Instance.Zeze.getOnz().register(ProcName,
 					TestOnzSagaPersistRedo::procBusiness, BKuafu.class, BKuafuResult.class);
 		}
-		zeze2.Zeze.getOnz().register(ProcName,
+		requireNonNull(requireNonNull(zeze2.Zeze).getOnz()).register(ProcName,
 				TestOnzSagaPersistRedo::procBusiness, BKuafu.class, BKuafuResult.class);
 
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		// before() 被 Assumption 跳过时 onzServer 尚未创建；stop幂等
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
-		var app = (App)saga.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(saga.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney()); // 参与方本地提交（sendReadyAndWait=发结果即提交）
 		result.setMoney(account.getMoney());
 		return 0;
@@ -120,8 +124,8 @@ public class TestOnzSagaPersistRedo {
 	}
 
 	private static long procBusiness(Zeze.Onz.OnzProcedure onzProcedure, BKuafu argument, BKuafuResult result) {
-		var app = (App)onzProcedure.getStub().getOnz().getZeze().getAppBase();
-		var account = app.demo_Module1.getKuafu().getOrAdd(argument.getAccount());
+		var app = (App)requireNonNull(onzProcedure.getStub()).getOnz().getZeze().getAppBase();
+		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
 		result.setMoney(account.getMoney());
 		return 0;
@@ -138,10 +142,10 @@ public class TestOnzSagaPersistRedo {
 	public void testCommitSnapshotIncludesPendingAsyncParticipants() throws Exception {
 		waitOnzReady();
 		var txn = new Zeze.Onz.LateRegisterTransaction();
-		txn.setOnzServer(onzServer);
-		Assertions.assertEquals(0L, onzServer.perform(txn), "perform必须成功");
+		txn.setOnzServer(requireNonNull(onzServer));
+		Assertions.assertEquals(0L, requireNonNull(onzServer).perform(txn), "perform必须成功");
 
-		var onzs = txn.capturedCommitState.getOnzs();
+		var onzs = requireNonNull(txn.capturedCommitState).getOnzs();
 		Assertions.assertTrue(onzs.contains("zeze2"), "同步注册的参与方必须在快照内");
 		Assertions.assertTrue(onzs.contains("zeze1"),
 				"pendingAsync窗口内注册的参与方必须进入commit快照（修复前快照定格在窗口之前）");
@@ -193,7 +197,7 @@ public class TestOnzSagaPersistRedo {
 
 		invokeRedoTimer();
 
-		waitUntil(() -> sagaCount(App.Instance.Zeze.getOnz()) == 0, 30_000, "saga上下文必须被FuncSagaEnd结束清理");
+		waitUntil(() -> sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())) == 0, 30_000, "saga上下文必须被FuncSagaEnd结束清理");
 		Assertions.assertEquals(0, CancelCount, "eCommitting补发的是结束不是补偿");
 		Assertions.assertEquals(0, count(tableOf("commitIndex")), "redo完成后索引清理");
 	}
@@ -210,8 +214,8 @@ public class TestOnzSagaPersistRedo {
 		r.Argument.setFuncName(SagaName);
 		r.Argument.setFuncArgument(new Binary(bb.Bytes, 0, bb.WriteIndex));
 		r.Argument.setFlushMode(AbstractOnz.eFlushImmediately);
-		r.SendForWait(onzServer.getZezeInstance("zeze1")); // 不await：应答要等业务+flush，这里只需上下文就位
-		waitUntil(() -> sagaCount(App.Instance.Zeze.getOnz()) == 1, 30_000, "saga上下文未注册");
+		r.SendForWait(requireNonNull(onzServer).getZezeInstance("zeze1")); // 不await：应答要等业务+flush，这里只需上下文就位
+		waitUntil(() -> sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())) == 1, 30_000, "saga上下文未注册");
 	}
 
 	/** 手写孤儿决策两表（协调者崩溃残留形态，含"saga="前缀参与方）。 */
@@ -277,8 +281,8 @@ public class TestOnzSagaPersistRedo {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)

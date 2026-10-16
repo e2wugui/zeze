@@ -3,7 +3,6 @@ package Benchmark;
 import java.lang.management.ManagementFactory;
 import java.util.Random;
 import java.util.TreeMap;
-
 import harness.Bench;
 import org.junit.jupiter.api.Test;
 import org.openjdk.jol.info.GraphLayout;
@@ -155,6 +154,7 @@ public class BenchPersistentSortedMapCompare {
 		}
 
 		@Override
+		@SuppressWarnings("ConstantConditions") // 保留对第三方集合返回空值的防御。
 		public int get(Object map, int key) {
 			var v = vavr(map).get(key).getOrNull();
 			return v != null ? v : Integer.MIN_VALUE;

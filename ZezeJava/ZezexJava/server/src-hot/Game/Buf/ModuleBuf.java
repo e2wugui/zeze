@@ -1,5 +1,7 @@
 package Game.Buf;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import java.util.concurrent.Future;
 import Game.Equip.IModuleEquip;
 import Zeze.Component.TimerContext;
@@ -13,12 +15,11 @@ import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	private static final Logger logger = LogManager.getLogger(ModuleBuf.class);
 
-	private Future<?> timerIdHot;
+	private @Nullable Future<?> timerIdHot;
 	public int counterHotTimer;
 
 	@Override
@@ -33,12 +34,12 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 	public static class HotTimer implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
-			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Buf", IModuleBuf.class);
-			var ibuf = mc.getService();
+		public void onTimer(TimerContext context) throws Exception {
+			var mc = Objects.requireNonNull(Objects.requireNonNull(context.timer.zeze).getHotManager()).getModuleContext("Game.Buf", IModuleBuf.class);
+			var ibuf = Objects.requireNonNull(mc).getService();
 			var buf = (BBuf)context.customData;
-			var count = ibuf.getCounter();
-			if (buf.getId() != count)
+			var count = Objects.requireNonNull(ibuf).getCounter();
+			if (Objects.requireNonNull(buf).getId() != count)
 				throw new RuntimeException("buf " + buf.getId() + ":" + count);
 			buf.setId(count + 1);
 			Transaction.whileCommit(() -> ibuf.setCounter(count + 1));
@@ -52,15 +53,15 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 		var rand = Zeze.Util.Random.getInstance();
 		timerIdHot = TaskSpec.ofAction(
 				() -> {
-					var module = App.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
-					var service = module.getService();
-					oldAccess = service.hotHelloWorld(oldAccess);
+					var module = Objects.requireNonNull(App.getZeze().getHotManager()).getModuleContext("Game.Equip", IModuleEquip.class);
+					var service = Objects.requireNonNull(module).getService();
+					oldAccess = Objects.requireNonNull(service).hotHelloWorld(oldAccess);
 				}).schedulePeriodNow(
 				rand.nextLong(3000) + 1000,
 				rand.nextLong(3000) + 1000);
 
-		TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
-			hotTimerId = App.Zeze.getTimer().schedule(
+		TaskSpec.ofProcedure(App.getZeze().newProcedure(() -> {
+			hotTimerId = Objects.requireNonNull(App.getZeze().getTimer()).schedule(
 					TimerSpec.ofDelay(rand.nextLong(3000) + 1000).period(rand.nextLong(3000) + 1000),
 					HotTimer.class, new BBuf());
 			return 0;
@@ -72,7 +73,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	public final void Start(App app) {
 	}
 
-	String hotTimerId;
+	@Nullable String hotTimerId;
 
 	@Override
 	public void stopBefore() throws Exception {
@@ -86,8 +87,8 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 			timerIdHot.cancel(true);
 			timerIdHot = null;
 		}
-		TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
-			App.Zeze.getTimer().cancel(hotTimerId);
+		TaskSpec.ofProcedure(App.getZeze().newProcedure(() -> {
+			Objects.requireNonNull(App.getZeze().getTimer()).cancel(hotTimerId);
 			return 0;
 		}, "hotTimer")).call();
 	}
@@ -135,9 +136,9 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 				SChanged changed1 = new SChanged();
 				changed1.Argument.setChangeTag(BBufChanged.ChangeTagRecordChanged);
-				changed1.Argument.getReplace().putAll(record.getBufs());
+				changed1.Argument.getReplace().putAll(Objects.requireNonNull(record).getBufs());
 
-				OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed1);
+				OnlineSpec.ofReliableNotify(Objects.requireNonNull(Game.App.Instance.getProvider().getOnline()), (Long)key, getName()).send(changed1);
 				break;
 			case Changes.Record.Edit:
 				// 增量变化，通知变更。
@@ -151,13 +152,13 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getRemove().add(p);
 					}
-					OnlineSpec.ofReliableNotify(Game.App.getInstance().getProvider().getOnline(), (Long)key, getName()).send(changed2);
+					OnlineSpec.ofReliableNotify(Objects.requireNonNull(Game.App.getInstance().getProvider().getOnline()), (Long)key, getName()).send(changed2);
 				}
 				break;
 			case Changes.Record.Remove:
 				SChanged changed3 = new SChanged();
 				changed3.Argument.setChangeTag(BBufChanged.ChangeTagRecordIsRemoved);
-				OnlineSpec.ofReliableNotify(Game.App.getInstance().getProvider().getOnline(), (Long)key, getName()).send(changed3);
+				OnlineSpec.ofReliableNotify(Objects.requireNonNull(Game.App.getInstance().getProvider().getOnline()), (Long)key, getName()).send(changed3);
 				break;
 			}
 		}

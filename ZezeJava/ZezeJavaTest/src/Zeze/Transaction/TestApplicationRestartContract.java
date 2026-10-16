@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import harness.FastServerIds;
 import org.junit.jupiter.api.AfterEach;
@@ -23,7 +25,7 @@ public class TestApplicationRestartContract {
 	// 30轮压测2026-09-19轮17）——固定字面量不得落在他类计数器基点的增长范围内，迁7470独占。
 	private static final int SERVER_ID = FastServerIds.TEST_APPLICATION_RESTART_CONTRACT;
 
-	private Application app;
+	private @Nullable Application app;
 
 	private Application newApp() throws Exception {
 		var config = new Config();

@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,7 +24,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import io.netty.channel.ChannelId;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,13 +38,13 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestHttpServerMalformedChunk {
-	private static Netty netty;
-	private static TestServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable TestServer server;
 	private static int port;
 
 	// 暴露基类protected的exchanges给断言用
 	public static final class TestServer extends HttpServer {
-		public @NotNull ConcurrentHashMap<ChannelId, HttpExchange> exchangesView() {
+		public ConcurrentHashMap<ChannelId, HttpExchange> exchangesView() {
 			return exchanges;
 		}
 	}
@@ -60,11 +63,11 @@ public class TestHttpServerMalformedChunk {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
-	private static @NotNull String sendRawUntilClose(@NotNull String raw) throws IOException {
+	private static String sendRawUntilClose(String raw) throws IOException {
 		try (var sock = new Socket("127.0.0.1", port)) {
 			sock.setSoTimeout(15000);
 			var os = sock.getOutputStream();
@@ -82,7 +85,7 @@ public class TestHttpServerMalformedChunk {
 
 	private static void awaitExchangesEmpty() throws InterruptedException {
 		var deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-		while (!server.exchangesView().isEmpty()) {
+		while (!requireNonNull(server).exchangesView().isEmpty()) {
 			Assertions.assertTrue(System.nanoTime() < deadline,
 					"exchanges not cleaned up after connection closed: " + server.exchangesView().keySet());
 			//noinspection BusyWait
@@ -119,7 +122,7 @@ public class TestHttpServerMalformedChunk {
 	private static final class ChunkedStringBody implements HttpRequest.BodyPublisher {
 		private final byte[] body;
 
-		ChunkedStringBody(@NotNull String body) {
+		ChunkedStringBody(String body) {
 			this.body = body.getBytes(StandardCharsets.UTF_8);
 		}
 

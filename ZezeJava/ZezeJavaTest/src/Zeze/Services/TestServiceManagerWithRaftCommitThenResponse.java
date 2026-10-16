@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
@@ -75,7 +79,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
-	private static Path raftXmlFile;
+	private static @Nullable Path raftXmlFile;
 	private static final AtomicLong requestIds = new AtomicLong();
 	private static final HashMap<String, Field> fieldCache = new HashMap<>();
 
@@ -172,7 +176,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		}
 		servers.clear();
 		rocksList.clear();
-		Files.deleteIfExists(raftXmlFile);
+		Files.deleteIfExists(requireNonNull(raftXmlFile));
 		for (var dbHome : dbHomes)
 			LogSequence.deleteDirectory(new File(dbHome));
 		dbHomes.clear();
@@ -188,7 +192,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		return sb.append("</raft>\n").toString();
 	}
 
-	private static Rocks leaderRocks() {
+	private static @Nullable Rocks leaderRocks() {
 		for (var rocks : rocksList)
 			if (rocks.isLeader())
 				return rocks;
@@ -228,7 +232,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			var rocks = leaderRocks();
 			if (rocks == null)
 				continue;
-			if (rocks.getRaft().isReadyLeader())
+			if (requireNonNull(rocks.getRaft()).isReadyLeader())
 				return;
 			@SuppressWarnings("unchecked")
 			var table = (Table<String, BServerState>)stateField.get(servers.get(rocksList.indexOf(rocks)));
@@ -350,12 +354,12 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 	}
 
 	/** leader上procedure直读（leader内存必含已提交写；只读不产生日志）。 */
-	private static BSession readSession(String sessionName) throws Exception {
+	private static @Nullable BSession readSession(String sessionName) throws Exception {
 		var rocks = leaderRocks();
 		Assertions.assertNotNull(rocks, "必须有leader");
 		@SuppressWarnings("unchecked")
 		var table = (Table<String, BSession>)field("tableSession").get(servers.get(rocksList.indexOf(rocks)));
-		final BSession[] out = new BSession[1];
+		final @Nullable BSession[] out = new @Nullable BSession[1];
 		rocks.newProcedure(() -> {
 			out[0] = table.get(sessionName);
 			return 0L;
@@ -365,8 +369,8 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 
 	/** 轮询等待tSession行满足条件（leader漂移时新leader的本地apply可能滞后，对齐
 	 * TestServiceManagerWithRaftCrossVersionRegister 的轮询模式）。 */
-	private static BSession waitSession(String sessionName, boolean expectPresent, String msg) throws Exception {
-		BSession session = null;
+	private static @Nullable BSession waitSession(String sessionName, boolean expectPresent, String msg) throws Exception {
+		@Nullable BSession session = null;
 		long deadline = System.currentTimeMillis() + 10_000;
 		while (System.currentTimeMillis() < deadline) {
 			session = readSession(sessionName);
@@ -379,12 +383,12 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		return session;
 	}
 
-	private static BServerState readServerState(String serviceName) throws Exception {
+	private static @Nullable BServerState readServerState(String serviceName) throws Exception {
 		var rocks = leaderRocks();
 		Assertions.assertNotNull(rocks, "必须有leader");
 		@SuppressWarnings("unchecked")
 		var table = (Table<String, BServerState>)field("tableServerState").get(servers.get(rocksList.indexOf(rocks)));
-		final BServerState[] out = new BServerState[1];
+		final @Nullable BServerState[] out = new @Nullable BServerState[1];
 		rocks.newProcedure(() -> {
 			out[0] = table.get(serviceName);
 			return 0L;

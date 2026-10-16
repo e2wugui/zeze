@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,7 +10,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import Zeze.Util.TaskOneByOneQueue;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,7 @@ public class TestTaskOneByOneQueueShutdown {
 	static final class RecordingTask extends TaskOneByOneQueue.Task {
 		private final Runnable onProcess;
 
-		RecordingTask(String name, Runnable onProcess, Runnable onCancel) {
+		RecordingTask(String name, Runnable onProcess, @Nullable Runnable onCancel) {
 			super(name, onCancel == null ? null : onCancel::run, null);
 			this.onProcess = onProcess;
 		}
@@ -37,13 +38,13 @@ public class TestTaskOneByOneQueueShutdown {
 		}
 
 		@Override
-		public boolean process(@NotNull TaskOneByOneQueue.BatchTask batch) {
+		public boolean process(TaskOneByOneQueue.BatchTask batch) {
 			onProcess.run();
 			return true;
 		}
 	}
 
-	private static void runLatch(@NotNull CountDownLatch latch) {
+	private static void runLatch(CountDownLatch latch) {
 		try {
 			Assertions.assertTrue(latch.await(10, TimeUnit.SECONDS));
 		} catch (InterruptedException e) {

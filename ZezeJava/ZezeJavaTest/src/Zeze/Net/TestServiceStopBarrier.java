@@ -3,8 +3,7 @@ package Zeze.Net;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.concurrent.CountDownLatch;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
@@ -38,7 +37,7 @@ public class TestServiceStopBarrier {
 		}
 
 		@Override
-		protected @NotNull InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
+		protected InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
 			try {
 				dnsGate.await();
 			} catch (InterruptedException e) {

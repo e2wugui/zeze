@@ -1,5 +1,9 @@
 package Zeze.Component;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -217,7 +221,7 @@ public class TestTakeoverVersionTier {
 		}
 	}
 
-	private static void stopAll(Agent... agents) {
+	private static void stopAll(@Nullable Agent... agents) {
 		for (var a : agents) {
 			if (a == null)
 				continue;

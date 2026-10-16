@@ -19,6 +19,7 @@ import Zeze.Util.OutInt;
 @Fast
 public class TestLogList2EncodeChangedIndex {
 
+	@SuppressWarnings("DataFlowIssue") // 此encode夹具只使用value/changed，不访问meta。
 	private static LogList2<BValue> newLog(List<BValue> finalList) {
 		// belong/self/meta仅为encode之外的场景服务，encode只读ctor传入的最终列表
 		return new LogList2<>(null, 0, null, TreePVector.from(finalList), null);

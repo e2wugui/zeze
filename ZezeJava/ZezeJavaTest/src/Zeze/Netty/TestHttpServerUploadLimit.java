@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,7 +22,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,8 +36,8 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestHttpServerUploadLimit {
 	private static final int MaxUpload = 8192;
-	private static Netty netty;
-	private static HttpServer server;
+	private static @Nullable Netty netty;
+	private static @Nullable HttpServer server;
 	private static int port;
 
 	@BeforeAll
@@ -54,12 +57,12 @@ public class TestHttpServerUploadLimit {
 
 	@AfterAll
 	public static void tearDown() {
-		server.close();
-		netty.close();
+		requireNonNull(server).close();
+		requireNonNull(netty).close();
 	}
 
 	// 发送原始请求字节并读到服务器关闭连接(EOF)为止,返回收到的完整响应
-	private static @NotNull String sendRawUntilClose(@NotNull String raw) throws IOException {
+	private static String sendRawUntilClose(String raw) throws IOException {
 		try (var sock = connectWithRetry()) {
 			sock.setSoTimeout(15000);
 			var os = sock.getOutputStream();
@@ -97,7 +100,7 @@ public class TestHttpServerUploadLimit {
 
 	// 只发count块、不带终止块:让服务器在读完全部已发数据后恰好触发超限关闭,
 	// 避免接收缓冲残留未读数据导致close时内核发RST抹掉413响应
-	private static @NotNull String chunkedBodyNoEnd(int chunkSize, int chunkCount) {
+	private static String chunkedBodyNoEnd(int chunkSize, int chunkCount) {
 		var sb = new StringBuilder();
 		var chunk = new String(new char[chunkSize]).replace('\0', 'x');
 		for (int i = 0; i < chunkCount; i++)

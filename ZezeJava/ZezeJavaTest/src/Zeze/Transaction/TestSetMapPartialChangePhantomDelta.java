@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Files;
@@ -56,13 +58,13 @@ public class TestSetMapPartialChangePhantomDelta {
 
 			var result = app.newProcedure(() -> {
 				var set = table.getOrAdd(7082L).getSet10();
-				var logKey = set.parent().objectId() + set.variableId();
-				Assertions.assertNull(Transaction.getCurrent().getLog(logKey), "第二事务在批量操作前不得有日志");
+				var logKey = requireNonNull(set.parent()).objectId() + set.variableId();
+				Assertions.assertNull(requireNonNull(Transaction.getCurrent()).getLog(logKey), "第二事务在批量操作前不得有日志");
 
 				// set={1}：addAll([1,2])中1已存在——真实新增只有2
 				Assertions.assertTrue(set.addAll(List.of(1, 2)));
 				var log = (LogSet1<Integer>)Transaction.getCurrent().getLog(logKey);
-				Assertions.assertEquals(Set.of(2), log.getAdded(), "部分命中addAll的added不得含已存在元素（幻影add）");
+				Assertions.assertEquals(Set.of(2), requireNonNull(log).getAdded(), "部分命中addAll的added不得含已存在元素（幻影add）");
 
 				// set={1,2}：removeAll([1,9])中9不存在——真实移除只有1
 				Assertions.assertTrue(set.removeAll(List.of(1, 9)));
@@ -104,20 +106,20 @@ public class TestSetMapPartialChangePhantomDelta {
 
 			var result = app.newProcedure(() -> {
 				var map = table.getOrAdd(7083L).getMap40();
-				var mapLogKey = map.parent().objectId() + map.variableId();
-				Assertions.assertNull(Transaction.getCurrent().getLog(mapLogKey), "第二事务在putAll前不得有日志");
+				var mapLogKey = requireNonNull(map.parent()).objectId() + map.variableId();
+				Assertions.assertNull(requireNonNull(Transaction.getCurrent()).getLog(mapLogKey), "第二事务在putAll前不得有日志");
 
 				// {1:100}上putAll({1:100, 2:200})：键1值未变——真实变化只有键2
 				map.putAll(Map.of(1, 100, 2, 200));
 				var log = (LogMap1<Integer, Integer>)Transaction.getCurrent().getLog(mapLogKey);
-				Assertions.assertEquals(Map.of(2, 200), log.getReplaced(),
+				Assertions.assertEquals(Map.of(2, 200), requireNonNull(log).getReplaced(),
 						"部分变化putAll的replaced不得含值未变的键（幻影replaced）");
 
 				var smap = table.getOrAdd(7083L).getSortedmap1();
-				var smapLogKey = smap.parent().objectId() + smap.variableId();
+				var smapLogKey = requireNonNull(smap.parent()).objectId() + smap.variableId();
 				smap.putAll(Map.of(1, 100, 3, 300));
 				var slog = (LogSortedMap1<Integer, Integer>)Transaction.getCurrent().getLog(smapLogKey);
-				Assertions.assertEquals(Map.of(3, 300), slog.getReplaced(),
+				Assertions.assertEquals(Map.of(3, 300), requireNonNull(slog).getReplaced(),
 						"LogSortedMap1.putAll同构：replaced不得含值未变的键");
 				return Procedure.Success;
 			}, "T25.MapDelta").call();

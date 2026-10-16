@@ -1,5 +1,9 @@
 package Zeze.Hot;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import harness.FastServerIds;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,8 +68,8 @@ public class TestTryDistributeSuccessDeleteFail {
 	@TempDir
 	Path tempDir;
 
-	private static AppBase dummyApp;
-	private static Application app;
+	private static @Nullable AppBase dummyApp;
+	private static @Nullable Application app;
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -80,7 +84,7 @@ public class TestTryDistributeSuccessDeleteFail {
 		app = new Application("hottrydist", config);
 		dummyApp = new AppBase() {
 			@Override
-			public Application getZeze() {
+			public @Nullable Application getZeze() {
 				return app;
 			}
 		};
@@ -90,7 +94,7 @@ public class TestTryDistributeSuccessDeleteFail {
 
 	@AfterAll
 	public static void tearDown() throws Exception {
-		if (app.getStartState() != Application.StartState.eStopped)
+		if (requireNonNull(app).getStartState() != Application.StartState.eStopped)
 			app.stop();
 	}
 
@@ -100,8 +104,8 @@ public class TestTryDistributeSuccessDeleteFail {
 		Files.createDirectories(workingDir.resolve("modules"));
 		Files.createDirectories(workingDir.resolve("interfaces"));
 		var distributeDir = Files.createDirectories(tempDir.resolve("dist"));
-		var manager = new HotManager(dummyApp, workingDir.toString(), distributeDir.toString());
-		app.setHotManager(manager); // install 不可回滚区的 BeanFactory.resetHot 读 app.getHotManager()
+		var manager = new HotManager(requireNonNull(dummyApp), workingDir.toString(), distributeDir.toString());
+		requireNonNull(app).setHotManager(manager); // install 不可回滚区的 BeanFactory.resetHot 读 app.getHotManager()
 
 		var modulesField = HotManager.class.getDeclaredField("modules");
 		modulesField.setAccessible(true);
@@ -134,7 +138,7 @@ public class TestTryDistributeSuccessDeleteFail {
 
 			Assertions.assertTrue(modules.containsKey(NS), "模块必须真实安装成功在册");
 			var module = modules.get(NS);
-			var flag = module.getModuleClass().getField("STARTED_LAST");
+			var flag = requireNonNull(module.getModuleClass()).getField("STARTED_LAST");
 			Assertions.assertTrue(flag.getBoolean(null), "正常模块的startLast必须已执行（证明安装真实成功）");
 		} finally {
 			readyLock.close(); // 释放句柄，ready 残留交给 @TempDir 清理

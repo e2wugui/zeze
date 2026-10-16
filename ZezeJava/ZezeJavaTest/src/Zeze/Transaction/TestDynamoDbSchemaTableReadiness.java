@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import Zeze.Config;
@@ -32,8 +36,8 @@ public class TestDynamoDbSchemaTableReadiness {
 	public void newlyCreatedSchemaTableCanBeReadImmediately() {
 		var database = new DatabaseDynamoDb(null, config(), new CreatingSchemaClient(false));
 		try {
-			var result = database.getDirectOperates().getDataWithVersion(key());
-			assertEquals(0, result.version);
+			var result = requireNonNull(database.getDirectOperates()).getDataWithVersion(key());
+			assertEquals(0, requireNonNull(result).version);
 			assertNull(result.data);
 		} finally {
 			database.close();
@@ -45,12 +49,12 @@ public class TestDynamoDbSchemaTableReadiness {
 		var database = new DatabaseDynamoDb(null, config(), new CreatingSchemaClient(false));
 		try {
 			var data = new byte[]{11, 22, 33};
-			var saved = database.getDirectOperates().saveDataWithSameVersion(key(), ByteBuffer.Wrap(data), 0);
-			assertTrue(saved.getValue());
+			var saved = requireNonNull(database.getDirectOperates()).saveDataWithSameVersion(key(), ByteBuffer.Wrap(data), 0);
+			assertTrue(requireNonNull(saved).getValue());
 			assertEquals(1, saved.getKey());
-			var result = database.getDirectOperates().getDataWithVersion(key());
-			assertEquals(1, result.version);
-			assertArrayEquals(data, result.data.Copy());
+			var result = requireNonNull(database.getDirectOperates()).getDataWithVersion(key());
+			assertEquals(1, requireNonNull(result).version);
+			assertArrayEquals(data, requireNonNull(result.data).Copy());
 		} finally {
 			database.close();
 		}
@@ -60,8 +64,8 @@ public class TestDynamoDbSchemaTableReadiness {
 	public void schemaTableBeingCreatedByAnotherInstanceCanBeReadImmediately() {
 		var database = new DatabaseDynamoDb(null, config(), new CreatingSchemaClient(true));
 		try {
-			var result = database.getDirectOperates().getDataWithVersion(key());
-			assertEquals(0, result.version);
+			var result = requireNonNull(database.getDirectOperates()).getDataWithVersion(key());
+			assertEquals(0, requireNonNull(result).version);
 			assertNull(result.data);
 		} finally {
 			database.close();
@@ -85,7 +89,7 @@ public class TestDynamoDbSchemaTableReadiness {
 	private static final class CreatingSchemaClient extends AbstractAmazonDynamoDB {
 		private final boolean alreadyCreating;
 		private TableStatus status = TableStatus.CREATING;
-		private byte[] value;
+		private byte @Nullable [] value;
 
 		private CreatingSchemaClient(boolean alreadyCreating) {
 			this.alreadyCreating = alreadyCreating;

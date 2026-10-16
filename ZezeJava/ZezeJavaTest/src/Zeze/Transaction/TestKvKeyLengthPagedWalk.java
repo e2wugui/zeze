@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.Test;
  * 未开表的 tAutoKeyRandom（binary key）逐一验证入口（检查发生在触及 storage 之前）。
  */
 @Fast
+@NullMarked
 public class TestKvKeyLengthPagedWalk {
 
 	private static Database.Table rawTable() {

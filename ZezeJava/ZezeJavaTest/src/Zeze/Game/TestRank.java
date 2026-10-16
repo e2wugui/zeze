@@ -1,4 +1,6 @@
 package Zeze.Game;
+
+import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +45,7 @@ public class TestRank {
 				TestEnv.waitServerRegisteredRange(app.getZeze(), SERVER_ID_BEGIN, APP_COUNT);
 			for (int i = 0; i < APP_COUNT; i++) {
 				System.out.format("waitServerRegistered app%d done:%n", SERVER_ID_BEGIN + i);
-				apps[i].getZeze().getServiceManager().getSubscribeStates().forEach((name, state) -> {
+				requireNonNull(apps[i].getZeze().getServiceManager()).getSubscribeStates().forEach((name, state) -> {
 					System.out.format("  '%s':%n", name);
 					state.getLocalStates().forEach((k, v) -> System.out.format("    { %s, %s }%n", k, v));
 				});
@@ -78,7 +80,7 @@ public class TestRank {
 			System.out.println("------ testRank begin");
 			SimpleApp app = apps[0]; // 可以随便取一个, 不过都是对称的, 应该不用都测
 
-			app.rank.setFuncConcurrentLevel(rankType -> CONC_LEVEL);
+			requireNonNull(app.rank).setFuncConcurrentLevel(rankType -> CONC_LEVEL);
 			int concLevel = app.rank.getConcurrentLevel(RANK_TYPE);
 			var rankKey = Rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
 			LongUnaryOperator roleId2Value = roleId -> roleId * 10;
@@ -87,7 +89,7 @@ public class TestRank {
 				int h = hash;
 				long roleId = ROLE_ID_BEGIN + h;
 				app.getZeze().newProcedure(() -> {
-					app.rank.updateRank(h, rankKey, roleId, new BValueLong(roleId2Value.applyAsLong(roleId))).await().onSuccess(r -> {
+					requireNonNull(app.rank).updateRank(h, rankKey, roleId, new BValueLong(roleId2Value.applyAsLong(roleId))).await().onSuccess(r -> {
 						assertNotNull(r);
 						assertEquals(Procedure.Success, r.longValue());
 					}).onFail(e -> {
@@ -100,7 +102,7 @@ public class TestRank {
 
 			app.getZeze().newProcedure(() -> {
 				// 直接从数据库读取并合并
-				var result = app.rank.getRankDirect(rankKey);
+				var result = requireNonNull(app.rank).getRankDirect(rankKey);
 //				System.out.format("--- getRankDirect: concurrent=%d, rankList=[%d]:%s%n",
 //						concLevel, result.getRankList().size(), result);
 				assertEquals(concLevel, result.getRankList().size());
@@ -127,13 +129,13 @@ public class TestRank {
 		if (disableTest)
 			return;
 		var app = apps[0];
-		app.rank.setFuncConcurrentLevel(rankType -> CONC_LEVEL);
+		requireNonNull(app.rank).setFuncConcurrentLevel(rankType -> CONC_LEVEL);
 		var rankKey = Rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
 
 		app.getZeze().newProcedure(() -> {
 			// 造榜+建缓存：非空快照
 			updateOk(app, 0, rankKey, ROLE_ID_BEGIN, 100);
-			assertFalse(app.rank.getRankTotal(rankKey).getTableValue().getRankListReadOnly().isEmpty(),
+			assertFalse(requireNonNull(requireNonNull(app.rank).getRankTotal(rankKey).getTableValue()).getRankListReadOnly().isEmpty(),
 					"预置：缓存建立且非空");
 			// 删榜：写路径必须失效缓存
 			app.rank.deleteRank(rankKey);
@@ -142,7 +144,7 @@ public class TestRank {
 
 		// 红断言（新事务）：删除后立即查询必须空榜（原实现命中未过期缓存返回旧榜）
 		app.getZeze().newProcedure(() -> {
-			assertTrue(app.rank.getRankTotal(rankKey).getTableValue().getRankListReadOnly().isEmpty(),
+			assertTrue(requireNonNull(requireNonNull(app.rank).getRankTotal(rankKey).getTableValue()).getRankListReadOnly().isEmpty(),
 					"deleteRank后不得返回旧榜缓存（FND4-77）");
 			return Procedure.Success;
 		}, "Rank.getRankTotalAfterDelete").call();
@@ -152,7 +154,7 @@ public class TestRank {
 		var toKey = new BConcurrentKey(RANK_TYPE, 0, BConcurrentKey.TimeTypeTotal, 2026, 222);
 		app.getZeze().newProcedure(() -> {
 			updateOk(app, 0, toKey, ROLE_ID_BEGIN, 50);
-			assertFalse(app.rank.getRankTotal(toKey).getTableValue().getRankListReadOnly().isEmpty(),
+			assertFalse(requireNonNull(requireNonNull(app.rank).getRankTotal(toKey).getTableValue()).getRankListReadOnly().isEmpty(),
 					"预置：to榜缓存建立且非空");
 			updateOk(app, 0, fromKey, ROLE_ID_BEGIN + 1, 200);
 			updateOk(app, 0, fromKey, ROLE_ID_BEGIN + 2, 300);
@@ -162,7 +164,7 @@ public class TestRank {
 
 		// 红断言（新事务）：合并后立即查询必须包含from成员（原实现返回合并前旧快照）
 		app.getZeze().newProcedure(() -> {
-			var merged = app.rank.getRankTotal(toKey).getTableValue().getRankListReadOnly();
+			var merged = requireNonNull(requireNonNull(app.rank).getRankTotal(toKey).getTableValue()).getRankListReadOnly();
 			assertEquals(3, merged.size(), "mergeRank后不得返回旧快照（FND4-77）");
 			boolean hasFrom = false;
 			for (var v : merged)
@@ -173,7 +175,7 @@ public class TestRank {
 	}
 
 	private void updateOk(SimpleApp app, int hash, BConcurrentKey key, long roleId, long value) {
-		app.rank.updateRank(hash, key, roleId, new BValueLong(value)).await().onSuccess(r ->
+		requireNonNull(app.rank).updateRank(hash, key, roleId, new BValueLong(value)).await().onSuccess(r ->
 				assertEquals(Procedure.Success, r.longValue())).onFail(e -> {
 			e.printStackTrace();
 			fail();
@@ -188,7 +190,7 @@ public class TestRank {
 		if (disableTest)
 			return;
 		var app = apps[0];
-		app.rank.setFuncConcurrentLevel(rankType -> 0);
+		requireNonNull(app.rank).setFuncConcurrentLevel(rankType -> 0);
 		try {
 			assertEquals(1, app.rank.getConcurrentLevel(RANK_TYPE),
 					"并发级别0必须钳制到1（修复前remainderUnsigned(hash,0)抛ArithmeticException）");
@@ -221,12 +223,12 @@ public class TestRank {
 		// 修复前：(double)3000/100=30 → 1000-30*(1000-3)=-28910（深度负数的域外名次）
 		var guessed = new long[1];
 		app.getZeze().newProcedure(() -> {
-			guessed[0] = app.rank.getRankPositionWithGuess(rankKey, ROLE_ID_BEGIN + 999, 3000, 1000);
+			guessed[0] = requireNonNull(app.rank).getRankPositionWithGuess(rankKey, ROLE_ID_BEGIN + 999, 3000, 1000);
 			return Procedure.Success;
 		}, "G1F2.guessHigh").call();
 		assertTrue(guessed[0] >= 1 && guessed[0] <= 1000,
 				"高分未上榜者的估计名次必须在[1,totalUser]域内，实际=" + guessed[0]);
-		var tailPosition = app.rank.getRankTotal(rankKey).getTableValue().getRankListReadOnly().size();
+		var tailPosition = requireNonNull(requireNonNull(app.rank).getRankTotal(rankKey).getTableValue()).getRankListReadOnly().size();
 		assertTrue(guessed[0] >= tailPosition,
 				"比值钳制后估计名次不得好于榜尾（保守返回lastRankPosition量级），实际=" + guessed[0]
 						+ " 榜尾位次=" + tailPosition);
@@ -234,7 +236,7 @@ public class TestRank {
 		// 榜内分数的估计不受影响（比值<1路径）
 		var inRange = new long[1];
 		app.getZeze().newProcedure(() -> {
-			inRange[0] = app.rank.getRankPositionWithGuess(rankKey, ROLE_ID_BEGIN + 999, 50, 1000);
+			inRange[0] = requireNonNull(app.rank).getRankPositionWithGuess(rankKey, ROLE_ID_BEGIN + 999, 50, 1000);
 			return Procedure.Success;
 		}, "G1F2.guessLow").call();
 		assertTrue(inRange[0] >= 1 && inRange[0] <= 1000, "低分估计也必须在域内，实际=" + inRange[0]);

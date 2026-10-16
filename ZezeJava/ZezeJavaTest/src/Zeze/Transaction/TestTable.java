@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import org.jspecify.annotations.NullMarked;
+
 import demo.App;
 import demo.Module1.BValue;
 import org.junit.jupiter.api.AfterEach;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import Zeze.Transaction.Procedure;
 
 @SuppressWarnings("DataFlowIssue")
+@NullMarked
 public class TestTable {
 	@BeforeEach
 	public final void testInit() throws Exception {

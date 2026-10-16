@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,7 +26,7 @@ public class TestFastLockOwnership {
 		lock.lock();
 		Assertions.assertTrue(lock.isHeldByCurrentThread());
 
-		var thrown = new AtomicReference<Throwable>();
+		var thrown = new AtomicReference<@Nullable Throwable>();
 		var other = new Thread(() -> {
 			try {
 				lock.unlock();
@@ -54,7 +56,7 @@ public class TestFastLockOwnership {
 		var cond = lock.newCondition();
 		lock.lock();
 
-		var awaitThrown = new AtomicReference<Throwable>();
+		var awaitThrown = new AtomicReference<@Nullable Throwable>();
 		var awaiter = new Thread(() -> {
 			try {
 				cond.await();
@@ -69,7 +71,7 @@ public class TestFastLockOwnership {
 		Assertions.assertInstanceOf(IllegalMonitorStateException.class, awaitThrown.get());
 		Assertions.assertTrue(lock.isHeldByCurrentThread(), "非持有者await不得释放持有者的锁");
 
-		var signalThrown = new AtomicReference<Throwable>();
+		var signalThrown = new AtomicReference<@Nullable Throwable>();
 		var signaler = new Thread(() -> {
 			try {
 				cond.signal();

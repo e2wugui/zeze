@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -14,7 +18,7 @@ import org.junit.jupiter.api.Test;
 public class TestJsonCommentTermination {
 
 
-	private static Object parse(String s) {
+	private static @Nullable Object parse(String s) {
 		try {
 			return new JsonReader().buf(s).parse();
 		} catch (ReflectiveOperationException e) {
@@ -31,15 +35,15 @@ public class TestJsonCommentTermination {
 	@Test
 	public void carriageReturnTerminatesLineComment() throws Exception {
 		var bean = parse("//comment\r1");
-		Assertions.assertEquals(1L, ((Number)bean).longValue(), "CR是合法行终止符，注释后的值必须可见");
+		Assertions.assertEquals(1L, requireNonNull(((Number)bean)).longValue(), "CR是合法行终止符，注释后的值必须可见");
 		var crlf = parse("//comment\r\n1");
-		Assertions.assertEquals(1L, ((Number)crlf).longValue(), "CRLF同样结束行注释");
+		Assertions.assertEquals(1L, requireNonNull(((Number)crlf)).longValue(), "CRLF同样结束行注释");
 	}
 
 	@Test
 	public void lfLineCommentStillWorks() throws Exception {
 		Assertions.assertNull(parse("//comment\n"));
-		Assertions.assertEquals(1L, ((Number)parse("//comment\n1")).longValue());
+		Assertions.assertEquals(1L, requireNonNull(((Number)parse("//comment\n1"))).longValue());
 		Assertions.assertNull(parse("/* comment */"));
 	}
 

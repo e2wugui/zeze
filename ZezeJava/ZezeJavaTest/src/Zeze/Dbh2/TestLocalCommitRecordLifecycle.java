@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,12 +65,12 @@ public class TestLocalCommitRecordLifecycle {
 			// === GA-C03：客户端事务完结后，协调者的commitPoint/commitIndex必须都已清空 ===
 			var table1 = env.tables.getFirst();
 			var key = ByteBuffer.Wrap(new byte[]{1});
-			try (var trans = env.database.beginTransaction()) {
+			try (var trans = requireNonNull(env.database).beginTransaction()) {
 				table1.replace(trans, key, env.value);
 				trans.commit();
 			}
-			var rocks = getCommit(env.dbh2AgentManager).getRocks();
-			Assertions.assertEquals(0, countEntries(rocks, "commitIndex"),
+			var rocks = getCommit(requireNonNull(env.dbh2AgentManager)).getRocks();
+			Assertions.assertEquals(0, countEntries(requireNonNull(rocks), "commitIndex"),
 					"commitIndex must be cleaned after commit");
 			Assertions.assertEquals(0, countEntries(rocks, "commitPoint"),
 					"commitPoint must be cleaned together with commitIndex (bug: grows unbounded)");
@@ -76,12 +78,12 @@ public class TestLocalCommitRecordLifecycle {
 			// === GA-C07：save/get往返与"不存在→null" ===
 			var operates = env.database.getDirectOperates();
 			var gkey = ByteBuffer.Wrap("localCommitKey".getBytes());
-			KV<Long, Boolean> saved = operates.saveDataWithSameVersion(gkey, ByteBuffer.Wrap(new byte[]{1, 2}), 0);
-			Assertions.assertTrue(saved.getValue());
+			KV<Long, Boolean> saved = requireNonNull(operates).saveDataWithSameVersion(gkey, ByteBuffer.Wrap(new byte[]{1, 2}), 0);
+			Assertions.assertTrue(requireNonNull(saved).getValue());
 			var loaded = operates.getDataWithVersion(gkey);
 			Assertions.assertNotNull(loaded);
 			Assertions.assertEquals(0, loaded.version); // 首次插入以参数version落盘
-			Assertions.assertEquals(2, loaded.data.size());
+			Assertions.assertEquals(2, requireNonNull(loaded.data).size());
 			Assertions.assertNull(operates.getDataWithVersion(ByteBuffer.Wrap("localCommitMissing".getBytes())),
 					"only eDataNotExists maps to null");
 

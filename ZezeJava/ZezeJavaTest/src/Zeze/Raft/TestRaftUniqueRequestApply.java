@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import static java.util.Objects.requireNonNull;
+
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Config;
@@ -92,7 +94,7 @@ public class TestRaftUniqueRequestApply {
 			assertEquals(1, sm.applied);
 			assertEquals(1, seq.getLastApplied());
 			assertNotSame(UniqueRequestState.NOT_FOUND, applied);
-			assertTrue(applied.isApplied());
+			assertTrue(requireNonNull(applied).isApplied());
 			assertEquals(log.getRpcResult(), applied.getRpcResult());
 			assertEquals(leader ? 1 : 0, callbacks.get());
 		} finally {

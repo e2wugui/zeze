@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,7 +32,7 @@ public class TestProviderAppStartLast {
 	// 避开 TestRank 的 1..3 段与 TakeoverTimer demo.App 的 0。
 	private static final int SERVER_ID = 90;
 
-	private SimpleApp app;
+	private @Nullable SimpleApp app;
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -44,11 +48,11 @@ public class TestProviderAppStartLast {
 
 	@Test
 	public void testReentryFailFast() {
-		Map<String, IModule> modules = app.getModules();
+		Map<String, IModule> modules = requireNonNull(app).getModules();
 		// 必须炸在入口守卫上：旧代码会先重跑绑定/订阅/timer再被别处绊倒（或无agentConf时静默重跑），
 		// 同为IllegalStateException但不是同一个错，用消息区分。
 		var ex = assertThrows(IllegalStateException.class,
-				() -> app.getProviderApp().startLast(ProviderModuleBinds.load(""), modules));
+				() -> requireNonNull(app).getProviderApp().startLast(ProviderModuleBinds.load(""), modules));
 		assertTrue(ex.getMessage().contains("already called"),
 				"必须是入口重入守卫失败，而不是重跑半途被其它错误绊倒: " + ex.getMessage());
 	}
@@ -58,15 +62,15 @@ public class TestProviderAppStartLast {
 		var preset = new PresetAgentApp(SERVER_ID + 1);
 		try {
 			preset.start(); // server.xml 配有 LoginQueueAgent 节：旧实现会新建覆盖预置实例
-			LoadBase load = preset.getProviderApp().providerImplement.getLoad();
-			assertSame(preset.agent, load.getLoginQueueAgent(), "预置的LoginQueueAgent必须被复用，不得新建覆盖");
+			LoadBase load = requireNonNull(preset.getProviderApp().providerImplement).getLoad();
+			assertSame(preset.agent, requireNonNull(load).getLoginQueueAgent(), "预置的LoginQueueAgent必须被复用，不得新建覆盖");
 		} finally {
 			preset.stop();
 		}
 	}
 
 	private static class PresetAgentApp extends SimpleApp {
-		LoginQueueAgent agent;
+		@Nullable LoginQueueAgent agent;
 
 		PresetAgentApp(int serverId) throws Exception {
 			super(serverId);
@@ -74,9 +78,9 @@ public class TestProviderAppStartLast {
 
 		@Override
 		protected void beforeStartLast() {
-			var load = getProviderApp().providerImplement.getLoad();
+			var load = requireNonNull(getProviderApp().providerImplement).getLoad();
 			agent = new LoginQueueAgent(getZeze().getConfig(),
-					getZeze().getConfig().getServerId(), load.getServiceIp(), load.getServicePort());
+					getZeze().getConfig().getServerId(), requireNonNull(requireNonNull(load).getServiceIp()), load.getServicePort());
 			load.setLoginQueueAgent(agent);
 		}
 	}

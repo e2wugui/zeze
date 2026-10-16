@@ -1,4 +1,8 @@
 package Zeze.Util;
+
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -17,15 +21,15 @@ public final class TestJsonHexInteger {
 	static class B {
 		int i;
 		long l;
-		Integer ii;
-		Long ll;
+		@Nullable Integer ii;
+		@Nullable Long ll;
 		int x;
 	}
 
 	static class D {
 		double d;
 		float f;
-		Double dd;
+		@Nullable Double dd;
 		double x;
 	}
 
@@ -34,16 +38,16 @@ public final class TestJsonHexInteger {
 	@Test
 	public void testDoubleHex() throws ReflectiveOperationException {
 		var d = Json.parse("{\"d\":0x10,\"f\":0x20,\"dd\":0xff}", D.class);
-		assertEquals(16.0, d.d, 0.0);
+		assertEquals(16.0, requireNonNull(d).d, 0.0);
 		assertEquals(32.0f, d.f, 0.0f);
-		assertEquals(255.0, d.dd, 0.0);
+		assertEquals(255.0, requireNonNull(d.dd), 0.0);
 
 		d = Json.parse("{\"d\":-0x10}", D.class);
-		assertEquals(-16.0, d.d, 0.0);
+		assertEquals(-16.0, requireNonNull(d).d, 0.0);
 
 		// hex 词解析完 pos 必须停在词尾，后继字段不受影响
 		d = Json.parse("{\"d\":0X1F,\"x\":5}", D.class);
-		assertEquals(31.0, d.d, 0.0);
+		assertEquals(31.0, requireNonNull(d).d, 0.0);
 		assertEquals(5.0, d.x, 0.0);
 	}
 
@@ -51,29 +55,29 @@ public final class TestJsonHexInteger {
 	public void testIntHex() throws ReflectiveOperationException {
 		B b = Json.parse("{\"i\":0x10}", B.class);
 		assertNotNull(b);
-		assertEquals(16, b.i);
+		assertEquals(16, requireNonNull(b).i);
 
 		b = Json.parse("{\"i\":0X1F}", B.class); // 大写 X / 大写 hex
-		assertEquals(31, b.i);
+		assertEquals(31, requireNonNull(b).i);
 
 		b = Json.parse("{\"i\":-0x10}", B.class);
-		assertEquals(-16, b.i);
+		assertEquals(-16, requireNonNull(b).i);
 
 		b = Json.parse("{\"ii\":0xff}", B.class); // 包装类型走同一 TYPE_INT 路径
-		assertNotNull(b.ii);
+		assertNotNull(requireNonNull(b).ii);
 		assertEquals(255, b.ii);
 	}
 
 	@Test
 	public void testLongHex() throws ReflectiveOperationException {
 		B b = Json.parse("{\"l\":0x10}", B.class);
-		assertEquals(16L, b.l);
+		assertEquals(16L, requireNonNull(b).l);
 
 		b = Json.parse("{\"l\":0x7FFFFFFFFFFFFFFF}", B.class);
-		assertEquals(Long.MAX_VALUE, b.l);
+		assertEquals(Long.MAX_VALUE, requireNonNull(b).l);
 
 		b = Json.parse("{\"ll\":0x10}", B.class);
-		assertNotNull(b.ll);
+		assertNotNull(requireNonNull(b).ll);
 		assertEquals(16L, b.ll);
 	}
 
@@ -81,45 +85,45 @@ public final class TestJsonHexInteger {
 	public void testHexNextFieldKept() throws ReflectiveOperationException {
 		// hex 词解析完 pos 必须停在词尾，后继字段不受影响（修复前停在 'x'，垃圾扫过殃及后续）
 		B b = Json.parse("{\"i\":0x10,\"x\":5}", B.class);
-		assertEquals(16, b.i);
+		assertEquals(16, requireNonNull(b).i);
 		assertEquals(5, b.x);
 	}
 
 	@Test
 	public void testIntNonFiniteClamp() throws ReflectiveOperationException {
 		B b = Json.parse("{\"i\":Infinity,\"x\":1}", B.class);
-		assertEquals(Integer.MAX_VALUE, b.i);
+		assertEquals(Integer.MAX_VALUE, requireNonNull(b).i);
 		assertEquals(1, b.x);
 
 		b = Json.parse("{\"i\":-Infinity}", B.class);
-		assertEquals(Integer.MIN_VALUE, b.i);
+		assertEquals(Integer.MIN_VALUE, requireNonNull(b).i);
 
 		b = Json.parse("{\"i\":NaN}", B.class);
-		assertEquals(0, b.i);
+		assertEquals(0, requireNonNull(b).i);
 	}
 
 	@Test
 	public void testLongNonFiniteClamp() throws ReflectiveOperationException {
 		B b = Json.parse("{\"l\":Infinity,\"x\":2}", B.class);
-		assertEquals(Long.MAX_VALUE, b.l);
+		assertEquals(Long.MAX_VALUE, requireNonNull(b).l);
 		assertEquals(2, b.x);
 
 		b = Json.parse("{\"l\":-Infinity}", B.class);
-		assertEquals(Long.MIN_VALUE, b.l);
+		assertEquals(Long.MIN_VALUE, requireNonNull(b).l);
 
 		b = Json.parse("{\"l\":NaN}", B.class);
-		assertEquals(0L, b.l);
+		assertEquals(0L, requireNonNull(b).l);
 	}
 
 	@Test
 	public void testDecimalRegression() throws ReflectiveOperationException {
 		// 回归：十进制/负数/包装类型语义不变
 		B b = Json.parse("{\"i\":-42,\"l\":12345678901,\"ii\":7,\"ll\":99}", B.class);
-		assertEquals(-42, b.i);
+		assertEquals(-42, requireNonNull(b).i);
 		assertEquals(12345678901L, b.l);
-		assertNotNull(b.ii);
+		assertNotNull(requireNonNull(b).ii);
 		assertEquals(7, b.ii);
-		assertNotNull(b.ll);
+		assertNotNull(requireNonNull(b).ll);
 		assertEquals(99L, b.ll);
 	}
 

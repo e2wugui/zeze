@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Config;
 import Zeze.Onz.OnzSaga;
 import Zeze.Onz.OnzServer;
@@ -27,7 +31,7 @@ public class TestOnzSagaCleanup {
 	protected static final Logger logger = LogManager.getLogger(TestOnzSagaCleanup.class);
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -41,22 +45,22 @@ public class TestOnzSagaCleanup {
 		zeze2.Start(config2);
 
 		// zeze1: 成功步骤；zeze2: 失败步骤。cancel 参数当前未填充，用 EmptyBean。
-		App.Instance.Zeze.getOnz().registerSaga("sagaOk",
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga("sagaOk",
 				TestOnzSagaCleanup::sagaOk, TestOnzSagaCleanup::sagaCancel,
 				BKuafu.class, BKuafuResult.class, EmptyBean.class);
-		zeze2.Zeze.getOnz().registerSaga("sagaFail",
+		requireNonNull(requireNonNull(zeze2.Zeze).getOnz()).registerSaga("sagaFail",
 				TestOnzSagaCleanup::sagaFail, TestOnzSagaCleanup::sagaCancel,
 				BKuafu.class, BKuafuResult.class, EmptyBean.class);
 
 		var myConfig = Config.load("zeze.xml");
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
@@ -78,8 +82,8 @@ public class TestOnzSagaCleanup {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)
@@ -103,16 +107,16 @@ public class TestOnzSagaCleanup {
 		waitOnzReady();
 
 		var txn = new FailSagaTransaction();
-		txn.setOnzServer(onzServer);
-		var rc = onzServer.perform(txn);
+		txn.setOnzServer(requireNonNull(onzServer));
+		var rc = requireNonNull(onzServer).perform(txn);
 		Assertions.assertNotEquals(0L, rc, "失败saga事务的perform必须返回非0");
 
 		// 核心断言：失败步骤（zeze2）的上下文在 ProcessFuncSagaRequest 内自行清理。
 		// 修复前：协调者 cancelSaga 跳过失败步骤，条目永久滞留。
-		Assertions.assertEquals(0, sagaCount(zeze2.Zeze.getOnz()), "失败步骤的sagas上下文必须清理");
+		Assertions.assertEquals(0, sagaCount(requireNonNull(requireNonNull(zeze2.Zeze).getOnz())), "失败步骤的sagas上下文必须清理");
 
 		// 控制组：成功步骤（zeze1）经 FuncSagaEnd(cancel) 正常清理。
-		Assertions.assertEquals(0, sagaCount(App.Instance.Zeze.getOnz()), "成功步骤收到cancel后必须清理");
+		Assertions.assertEquals(0, sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())), "成功步骤收到cancel后必须清理");
 
 		// 冒烟：超时清理入口对空表幂等（正常路径已清空，这里只验证可调用、无异常）。
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);

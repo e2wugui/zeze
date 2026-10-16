@@ -1,5 +1,6 @@
 package Game.Buf;
 
+
 public class BufExtra extends Buf {
 	public final BBufExtra extra;
 

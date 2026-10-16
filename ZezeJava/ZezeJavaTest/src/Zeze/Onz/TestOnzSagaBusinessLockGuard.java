@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Onz.AbstractOnz;
@@ -64,7 +68,7 @@ public class TestOnzSagaBusinessLockGuard {
 	}
 
 	private final App zeze2 = new App();
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 
 	@BeforeEach
 	public void before() throws Exception {
@@ -82,7 +86,7 @@ public class TestOnzSagaBusinessLockGuard {
 		zeze2.Start(config2);
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
-			App.Instance.Zeze.getOnz().registerSaga(SlowSagaName,
+			requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).registerSaga(SlowSagaName,
 					TestOnzSagaBusinessLockGuard::slowBusiness, TestOnzSagaBusinessLockGuard::sagaCancel,
 					BKuafu.class, BKuafuResult.class, Zeze.Transaction.EmptyBean.class);
 
@@ -90,14 +94,14 @@ public class TestOnzSagaBusinessLockGuard {
 		// 同serverId的CommitOnzServer rocks目录被多个Onz测试类共用，清理避免跨类残留被redoTimer处理
 		deleteRecursively(java.nio.file.Path.of("CommitOnzServer" + myConfig.getServerId()));
 		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		requireNonNull(onzServer).start();
 	}
 
 	@AfterEach
 	public void after() throws Exception {
 		BusinessRelease.countDown(); // 断言失败也放行阻塞的业务
 		if (onzServer != null)
-			onzServer.stop();
+			requireNonNull(onzServer).stop();
 		zeze2.Stop();
 	}
 
@@ -133,7 +137,7 @@ public class TestOnzSagaBusinessLockGuard {
 		var cancelFuture = sendFuncSagaEnd(SlowTid, true);
 
 		// 超时条件成立（业务期间无活动刷新，最后活动时间=构造时刻，早已超龄），业务仍在执行：清理必须跳过
-		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		requireNonNull(requireNonNull(App.Instance.Zeze).getOnz()).setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 
 		// 核心（红断言）：在途业务的上下文不得被清理删除
@@ -142,7 +146,7 @@ public class TestOnzSagaBusinessLockGuard {
 
 		// 放行业务：cancel串行在业务完成后执行，补偿恰一次
 		BusinessRelease.countDown();
-		waitUntil(() -> CancelCount >= 1 && sagaCount(App.Instance.Zeze.getOnz()) == 0, 30_000,
+		waitUntil(() -> CancelCount >= 1 && sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())) == 0, 30_000,
 				"业务完成后等待中的cancel必须执行补偿并清理上下文");
 		Assertions.assertTrue(BusinessDone, "补偿必须发生在业务完成之后（businessLock串行）");
 		awaitFutureQuietly(cancelFuture); // 应答收尾，不检查结果码
@@ -168,7 +172,7 @@ public class TestOnzSagaBusinessLockGuard {
 
 		BusinessRelease.countDown(); // 业务完成（上下文保留，end未置）
 
-		waitUntil(() -> CancelCount >= 1 && sagaCount(App.Instance.Zeze.getOnz()) == 0, 30_000,
+		waitUntil(() -> CancelCount >= 1 && sagaCount(requireNonNull(requireNonNull(App.Instance.Zeze).getOnz())) == 0, 30_000,
 				"业务完成后的cancel必须完成补偿并清理上下文");
 		Assertions.assertEquals(1, CancelCount, "补偿恰一次");
 		Assertions.assertTrue(BusinessDone, "补偿必须观察到业务已完成（串行不变量）");
@@ -187,7 +191,7 @@ public class TestOnzSagaBusinessLockGuard {
 		r.Argument.setFuncName(SlowSagaName);
 		r.Argument.setFuncArgument(new Binary(bb.Bytes, 0, bb.WriteIndex));
 		r.Argument.setFlushMode(AbstractOnz.eFlushImmediately);
-		r.SendForWait(onzServer.getZezeInstance("zeze1"));
+		r.SendForWait(requireNonNull(onzServer).getZezeInstance("zeze1"));
 	}
 
 	/** 手动发送FuncSagaEnd，返回future供收尾等待。 */
@@ -195,7 +199,7 @@ public class TestOnzSagaBusinessLockGuard {
 		var r = new Zeze.Builtin.Onz.FuncSagaEnd();
 		r.Argument.setOnzTid(tid);
 		r.Argument.setCancel(cancel);
-		return r.SendForWait(onzServer.getZezeInstance("zeze1"), 60_000);
+		return r.SendForWait(requireNonNull(onzServer).getZezeInstance("zeze1"), 60_000);
 	}
 
 	/** 应答收尾等待：结果码与异常均不关心（断言已由CancelCount/sagaCount覆盖）。 */
@@ -231,8 +235,8 @@ public class TestOnzSagaBusinessLockGuard {
 		var deadline = System.currentTimeMillis() + 60_000;
 		for (;;) {
 			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
+				requireNonNull(onzServer).getZezeInstance("zeze1");
+				requireNonNull(onzServer).getZezeInstance("zeze2");
 				return;
 			} catch (RuntimeException e) {
 				if (System.currentTimeMillis() > deadline)

@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -55,7 +57,7 @@ public class TestHttpSessionCleanupKeepsRenewed {
 
 			// 窗口内"renewed"被合法续期并提交
 			Assertions.assertEquals(0L, app.newProcedure(() -> {
-				tSession.get("renewed").setExpireTime(now + 3600_000);
+				requireNonNull(tSession.get("renewed")).setExpireTime(now + 3600_000);
 				return 0L;
 			}, "renew").call());
 

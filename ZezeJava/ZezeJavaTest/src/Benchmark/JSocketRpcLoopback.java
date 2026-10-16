@@ -1,11 +1,12 @@
 package Benchmark;
+
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import harness.Bench;
 import harness.MacroBench;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
 import java.util.concurrent.Future;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
@@ -37,13 +38,13 @@ public class JSocketRpcLoopback {
 		public final long[] values = new long[32];
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			for (var v : values)
 				bb.WriteLong(v);
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			for (int i = 0; i < values.length; ++i)
 				values[i] = bb.ReadLong();
 		}
@@ -73,9 +74,9 @@ public class JSocketRpcLoopback {
 		return Procedure.Success;
 	}
 
-	private static Service server;
-	private static Service client;
-	private static AsyncSocket clientSocket;
+	private static @Nullable Service server;
+	private static @Nullable Service client;
+	private static @Nullable AsyncSocket clientSocket;
 
 	@Test
 	public void testBenchmark() throws Exception {
@@ -114,11 +115,11 @@ public class JSocketRpcLoopback {
 		var rpc = new BenchRpc();
 		server.AddFactoryHandle(rpc.getTypeId(), new Service.ProtocolFactoryHandle<>(BenchRpc::new, JSocketRpcLoopback::ProcessEcho));
 		var listener = (Zeze.Net.TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
-		int port = listener.getLocalInet().getPort();
+		int port = Objects.requireNonNull(listener.getLocalInet()).getPort();
 
 		client = new Service("JSocketRpc.Client") {
 			@Override
-			public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+			public void OnSocketConnected(AsyncSocket so) throws Exception {
 				super.OnSocketConnected(so);
 				connected.setResult(so);
 			}

@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +82,7 @@ public class TestFlushRetryApply {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 			_list.initRootInfo(root, this);
 		}
 
@@ -87,7 +93,7 @@ public class TestFlushRetryApply {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				if (vlog.getVariableId() == 1)
+				if (requireNonNull(vlog).getVariableId() == 1)
 					_list.followerApply(vlog);
 			}
 		}
@@ -133,7 +139,7 @@ public class TestFlushRetryApply {
 	private static Changes captureChanges(Rocks rocks, FuncLong func) throws Exception {
 		final Transaction[] ts = new Transaction[1];
 		var rc = rocks.newProcedure(() -> {
-			ts[0] = Transaction.getCurrent();
+			ts[0] = requireNonNull(Transaction.getCurrent());
 			return func.call();
 		}).call();
 		assertEquals(Zeze.Transaction.Procedure.RaftRetry, rc); // not leader
@@ -172,7 +178,7 @@ public class TestFlushRetryApply {
 	@Test
 	public void testFlushFailRetryIsIdempotent() throws Exception {
 		try (var rocks = newRocks()) {
-			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			seedStorage(table, 1, 10, 20); // 初始 [10,20]
 
 			// Edit状态的增量修改：list.add(30) -> LogList1 OP_ADD。
@@ -195,7 +201,7 @@ public class TestFlushRetryApply {
 			// 2. 模拟"上次apply已完成内存变更但flush失败"：生产代码在 FlushException
 			//    时把已应用的记录集合记入 pendingFlushApplies。重试同一(term,index)：
 			//    必须跳过增量重放（否则[10,20,30,30]双重应用）只重试flush。
-			var record = table.getLruCache().get(1);
+			var record = requireNonNull(table.getLruCache()).get(1);
 			assertNotNull(record);
 			rocks.putPendingFlush(2, 1, List.of(record));
 			rocks.followerApply(editChanges, holder);

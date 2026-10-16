@@ -1,5 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import Zeze.Raft.RocksRaft.Record.RootInfo;
+
+import static java.util.Objects.requireNonNull;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -56,7 +62,7 @@ public class TestRaftTableLruLifecycle {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -139,7 +145,7 @@ public class TestRaftTableLruLifecycle {
 	public void testResetAndCloseCancelOldLruTimers() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BEmptyBean.class);
-			var table = rocks.<Integer, BEmptyBean>getTableTemplate(templateName).openTable(0);
+			var table = requireNonNull(rocks.<Integer, BEmptyBean>getTableTemplate(templateName)).openTable(0);
 
 			// 1. 初代缓存：轮转任务运行中。
 			var lru1 = table.getLruCache();

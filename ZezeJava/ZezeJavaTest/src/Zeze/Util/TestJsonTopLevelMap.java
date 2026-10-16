@@ -1,4 +1,6 @@
 package Zeze.Util;
+
+import static java.util.Objects.requireNonNull;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -43,7 +45,7 @@ public final class TestJsonTopLevelMap {
 	public void testTypedFieldStillParses() throws ReflectiveOperationException {
 		// 回归：带具体值类型的字段级路径不受影响（paramTypes[0] 为 Class，正常取值解析）
 		Bean b = Json.parse("{\"typed\":{\"1\":\"a\",\"2\":\"b\"},\"typedLong\":{\"7\":\"z\"}}", Bean.class);
-		assertEquals("a", b.typed.get(1));
+		assertEquals("a", requireNonNull(b).typed.get(1));
 		assertEquals("b", b.typed.get(2));
 		assertEquals("z", b.typedLong.get(7L));
 	}

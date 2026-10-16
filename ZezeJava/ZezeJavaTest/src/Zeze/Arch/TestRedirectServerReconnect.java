@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -8,8 +10,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -64,11 +65,11 @@ public class TestRedirectServerReconnect {
 		var newSession = service.newSession(REMOTE_SERVER_ID);
 		newSession.sessionId = liveSocket.getSessionId();
 		liveSocket.setUserState(newSession);
-		var chosenSocket = new AtomicReference<AsyncSocket>();
-		var routingFailure = new AtomicReference<Throwable>();
+		var chosenSocket = new AtomicReference<@Nullable AsyncSocket>();
+		var routingFailure = new AtomicReference<@Nullable Throwable>();
 		var chooser = new Thread(() -> {
 			try {
-				chosenSocket.set(app.redirect.choiceServer(new ProviderDirect(), REMOTE_SERVER_ID));
+				chosenSocket.set(requireNonNull(app.redirect).choiceServer(new ProviderDirect(), REMOTE_SERVER_ID));
 			} catch (Throwable e) {
 				routingFailure.set(e);
 			}
@@ -127,14 +128,14 @@ public class TestRedirectServerReconnect {
 		@Override
 		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 			try {
-				getService().OnSocketClose(this, ex);
+				requireNonNull(getService()).OnSocketClose(this, ex);
 			} catch (Exception e) {
 				throw new AssertionError(e);
 			}
 		}
 
 		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+		public boolean Send(byte [] bytes, int offset, int length) {
 			return !isClosed();
 		}
 

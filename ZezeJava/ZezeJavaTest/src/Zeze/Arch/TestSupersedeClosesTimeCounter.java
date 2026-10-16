@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import org.jspecify.annotations.Nullable;
+
 import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.Future;
@@ -24,7 +26,7 @@ public class TestSupersedeClosesTimeCounter {
 	private static final String IP = "127.0.0.1";
 	private static final int PORT = 45201;
 
-	private Application app;
+	private @Nullable Application app;
 	private ProviderDirectService pds;
 
 	@BeforeEach

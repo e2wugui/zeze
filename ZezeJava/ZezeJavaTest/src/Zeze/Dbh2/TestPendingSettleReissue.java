@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import static java.util.Objects.requireNonNull;
+
+import org.jspecify.annotations.Nullable;
+
 import harness.Extra;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -90,8 +94,8 @@ public class TestPendingSettleReissue {
 		final AtomicInteger endSplitRequests = new AtomicInteger();
 		final AtomicInteger endMoveRequests = new AtomicInteger();
 		volatile int splitReplyCode = 0;
-		volatile List<BBucketMeta.Data> receivedFrom;
-		volatile BBucketMeta.Data receivedTo;
+		volatile @Nullable List<BBucketMeta.Data> receivedFrom;
+		volatile BBucketMeta.@Nullable Data receivedTo;
 
 		StubMasterService(int port) {
 			super("stubMasterSettleReissue", stubServerConfig(port));
@@ -222,7 +226,7 @@ public class TestPendingSettleReissue {
 
 	// pending-settle标志读取（反射接缝，对齐TestFnd20GAC05口径）：旧基线无Bucket.getPendingSettle
 	//（GA-D01 A1修复不存在）返回null——测试仍可编译运行，由断言消息显式判红，红因=真实行为差异。
-	private static Object pendingSettleOf(Zeze.Dbh2.Dbh2 node) {
+	private static @Nullable Object pendingSettleOf(Zeze.Dbh2.Dbh2 node) {
 		try {
 			return Zeze.Dbh2.Bucket.class.getMethod("getPendingSettle")
 					.invoke(node.getStateMachine().getBucket());
@@ -291,12 +295,12 @@ public class TestPendingSettleReissue {
 
 			// 桩master回0=终局：onSettled追加清除日志，apply后标志收回。
 			waitPendingSettle(leader, true, "settle终局（rc==0）必须经LogClearPendingSettle清除标志");
-			Assertions.assertNull(leader.getStateMachine().getBucket().getSplittingMeta(),
+			Assertions.assertNull(requireNonNull(leader.getStateMachine().getBucket()).getSplittingMeta(),
 					"补发路径不得复活splittingMeta");
 			Assertions.assertNotNull(server.receivedFrom, "补发的EndSplit必须携带完整from/to");
-			Assertions.assertEquals(0, key(2).compareTo(server.receivedFrom.get(0).getKeyFirst()),
+			Assertions.assertEquals(0, key(2).compareTo(requireNonNull(server.receivedFrom).get(0).getKeyFirst()),
 					"补发from.keyFirst=F");
-			Assertions.assertEquals(0, key(5).compareTo(server.receivedTo.getKeyFirst()),
+			Assertions.assertEquals(0, key(5).compareTo(requireNonNull(server.receivedTo).getKeyFirst()),
 					"补发to.keyFirst=M");
 		} finally {
 			sourceAgent.close();
@@ -339,8 +343,8 @@ public class TestPendingSettleReissue {
 			waitPendingSettle(leader, true, "move终局同样清除标志");
 
 			// move终态保持：源桶死桶{1},{1}（补发不改源桶数据面）。
-			var meta = leader.getStateMachine().getBucket().getBucketMeta();
-			Assertions.assertEquals(0, new Binary(new byte[]{1}).compareTo(meta.getKeyFirst()),
+			var meta = requireNonNull(leader.getStateMachine().getBucket()).getBucketMeta();
+			Assertions.assertEquals(0, new Binary(new byte[]{1}).compareTo(requireNonNull(meta).getKeyFirst()),
 					"move收尾源桶必须保持死桶标记");
 			Assertions.assertNull(pendingSettleOf(leader), "标志必须已清除");
 		} finally {

@@ -1,5 +1,7 @@
 package demo;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.util.HashMap;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -16,11 +18,11 @@ import Zeze.IModule;
 
 // 简单的无需读配置文件的App
 public class SimpleApp extends AppBase {
-	private Application zeze;
-	private ProviderApp providerApp;
+	private @Nullable Application zeze;
+	private @Nullable ProviderApp providerApp;
 
 	// public Bag.Module bag;
-	public Rank rank;
+	public @Nullable Rank rank;
 
 	public SimpleApp(int serverId) throws Exception {
 		this(serverId, 20000 + serverId + 1, 20000);
@@ -43,12 +45,12 @@ public class SimpleApp extends AppBase {
 
 	@Override
 	public Application getZeze() {
-		return zeze;
+		return Objects.requireNonNull(zeze);
 	}
 
 	public void start() throws Exception {
 		var provider = new ProviderWithOnline();
-		providerApp = new ProviderApp(zeze, provider,
+		providerApp = new ProviderApp(Objects.requireNonNull(zeze), provider,
 				new ProviderService("Server", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
 				new ProviderDirectService("ServerDirect", zeze), "SimpleLinkd", new LoadConfig());
 		provider.create(this);
@@ -72,15 +74,15 @@ public class SimpleApp extends AppBase {
 
 		zeze.setSchemas(new demo.Schemas());
 		zeze.start();
-		((ProviderWithOnline)providerApp.providerImplement).start();
+		Objects.requireNonNull(((ProviderWithOnline)providerApp.providerImplement)).start();
 		providerApp.providerService.start();
-		providerApp.providerDirectService.start();
+		Objects.requireNonNull(providerApp.providerDirectService).start();
 		beforeStartLast();
 		providerApp.startLast(ProviderModuleBinds.load(""), modules);
 	}
 
 	public ProviderApp getProviderApp() {
-		return providerApp;
+		return Objects.requireNonNull(providerApp);
 	}
 
 	/** startLast 前的注入点（测试预置 LoginQueueAgent 等场景用）。 */
@@ -89,8 +91,8 @@ public class SimpleApp extends AppBase {
 
 	public void stop() throws Exception {
 		if (providerApp != null) {
-			providerApp.providerImplement.stop();
-			providerApp.providerDirectService.stop();
+			Objects.requireNonNull(providerApp.providerImplement).stop();
+			Objects.requireNonNull(providerApp.providerDirectService).stop();
 			providerApp.providerService.stop();
 			providerApp = null;
 		}
