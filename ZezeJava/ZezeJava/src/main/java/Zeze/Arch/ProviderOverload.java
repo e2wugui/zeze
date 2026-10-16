@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Config;
@@ -87,7 +88,7 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 	private static final class ThreadPoolMonitor implements AutoCloseable {
 		private final ExecutorService threadPool;
 		private final Config config;
-		private volatile long overload = BLoad.eWorkFine;
+		private final AtomicLong overload = new AtomicLong(BLoad.eWorkFine);
 		private volatile boolean stopped;
 
 		public ThreadPoolMonitor(ExecutorService threadPool, Config config) {
@@ -117,7 +118,8 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 		}
 
 		private void detecting() {
-			overload = (overload & 3) | (System.nanoTime() & ~3L); // 保留低2位保存的上次负载状态
+			var startTime = System.nanoTime() & ~3L;
+			overload.updateAndGet(previous -> (previous & 3) | startTime); // 保留低2位保存的上次负载状态
 
 			// todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
 			// 检测体异常不得跳过尾部重排（否则断链后overload()按起始时间戳
@@ -126,9 +128,9 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 			try {
 				threadPool.execute(() -> {
 					try {
-						var elapse = (System.nanoTime() - overload) / 1_000_000;
+						var elapse = (System.nanoTime() - overload.get()) / 1_000_000;
 						var o = calcOverload(elapse);
-						overload = o;
+						overload.set(o);
 						if (o != BLoad.eWorkFine)
 							logger.warn("detect overload={} elapse={}ms", o, elapse);
 					} finally {
@@ -141,7 +143,7 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 		}
 
 		public int overload() {
-			var startTime = overload; // 如果高位是0,则表示当前未开始检测,就取上次的负载结果,否则计算上次和当前的最大值
+			var startTime = overload.get(); // 如果高位是0,则表示当前未开始检测,就取上次的负载结果,否则计算上次和当前的最大值
 			return (startTime & ~3L) == 0
 					? (int)startTime
 					: Math.max((int)startTime & 3, calcOverload((System.nanoTime() - startTime) / 1_000_000));
