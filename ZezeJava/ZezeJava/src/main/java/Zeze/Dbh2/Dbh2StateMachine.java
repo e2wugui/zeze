@@ -64,7 +64,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private @Nullable Table splitSyncTable;
 	private volatile long splitSyncSeq;
 	private volatile long splitSyncWatermark;
-	private volatile long splitSyncGeneration;
+	private long splitSyncGeneration;
 	// advance与clear互斥：世代守卫是check-then-act（读世代→写水位→持久化{7}），不互斥时apply线程
 	// 的clear可插进守卫与写之间——陈旧ACK把旧世代seq写回水位并复活磁盘{7}（重启经openBucket复活），
 	// hasPendingSplitSync假通使endSplit0门槛失守、deleteToEnd灭失未投递记录。叶子锁：apply线程在
@@ -782,8 +782,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			requireBucket().delete(Objects.requireNonNull(splitSyncTable), SplitSyncWatermarkKey);
 			splitSyncSeq = 0;
 			splitSyncWatermark = 0;
-			// 单写者=apply线程串行（见字段区线程约束），++无丢失更新，volatile只为跨线程读可见
-			//noinspection NonAtomicOperationOnVolatileField
 			splitSyncGeneration++; // 换代：作废一切在途/未决的旧世代投递ACK（seq即将从1重新分配）
 		} finally {
 			splitSyncLock.unlock();
