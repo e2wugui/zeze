@@ -147,7 +147,7 @@ public final class StringFuzzySearch {
 		if (list != null) {
 			for (int i = 0, n = list.size(); i < n; i++) {
 				final var k = list.get(i);
-				Objects.requireNonNull(m.computeIfAbsent(k, __ -> new OutLong())).value += (int)(k >>> 48) * f;
+				Objects.requireNonNull(m.computeIfAbsent(k, __ -> new OutLong())).value += (long)(int)(k >>> 48) * f;
 			}
 		}
 	}
