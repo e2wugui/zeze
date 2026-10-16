@@ -637,7 +637,7 @@ public final class Application extends ReentrantLock {
 			var newData = ByteBuffer.Allocate(1024);
 			schemas.encode(newData);
 			var versionRc = Objects.requireNonNull(defaultDb.getDirectOperates()).saveDataWithSameVersion(keyOfSchemas, newData, version);
-			if (versionRc == null || versionRc.getValue())
+			if (versionRc == null || Boolean.TRUE.equals(versionRc.getValue()))
 				break;
 		}
 	}
