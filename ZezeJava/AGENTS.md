@@ -34,31 +34,18 @@ test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench �
 
 ## @Fast 准入（并行安全）
 
-test 任务同 JVM 类级并行（fixed 8），@Fast 类必须彼此互不干扰。约束由代码承载：
-`harness/FastServerIds` 号段桌是 serverId/url 全景的唯一真相，
-`Zeze/TestFastAdmissionGuard` 自检区间两两不重叠——本文件不再登记号段。
+test 任务同 JVM 类级并行（fixed 8），@Fast 类必须互不干扰。
+serverId 号段与固定内存库 url 统一登记在 `harness/FastServerIds`，
+由 `Zeze/TestFastAdmissionGuard` 检查冲突，不在本文件登记。
 
-需要 serverId 的 @Fast 测试三选一：
-
-- `TakeoverTestEnv.newConf` 动态发号（桌已预留 100-199 段）。
-- 固定号：在 FastServerIds 加一行 `seg(持有类, 基点, growth)`，站点引用桌常量。
-  growth=该类一次全量运行的最大发号数（≈@Test 数×发号调用点）；growth 低估时
-  `Application.start` 的 FileMutex fail-fast（先锁后删 `zeze_cache_<serverId>`，
-  同段并发必炸）是运行时兜底。
-- `setNoDatabase(true)`（含负 serverId）不建缓存目录，免登记。
-
-DatabaseMemory 同 JVM 按 url 静态分桶，同名 url 的库实例静默共享存储串数据：
-固定字面量 url 须登记为 FastServerIds 的 `memUrl(...)` 常量（guard 查重）；
-`"前缀_" + serverId` 派生式随号段唯一，免登记；裸 `new Config.DatabaseConf()`
-落默认空串共享桶，禁止。
-
-净层组件（无 Application：Agent/OnzServer/Daemon/GCM/SM 等）不建缓存目录，
-serverId 不入桌；固定端口与静态状态用 `@ResourceLock`/`@Isolated` 串行隔离。
-绕过桌私写 serverId/url 字面量无静态拦截，防线=FileMutex 运行时兜底+评审时
-本地字面量是 grep 异常（迁移后全树仅桌内出现号段数字）。
-
-判例：2026-09 两轮人工选号/迁号仍留 10 处同段互撞（含迁移批自身回撞、计数器
-基点落进动态池预留段），故收口为机械守门。
+- serverId：用 `TakeoverTestEnv.newConf` 动态发号；固定号登记
+  `seg(持有类, 基点, growth)` 并引用常量，growth 覆盖该类全量运行的最大发号数。
+  `Application.start` 的 FileMutex 负责运行时冲突兜底。
+- DatabaseMemory 按 url 共享存储：固定 url 用 `memUrl(...)` 常量；
+  `"前缀_" + serverId` 随唯一号段派生，免登记。禁止裸 `new Config.DatabaseConf()`
+  使用默认空串共享桶，也不要绕过登记私写 serverId/url 字面量。
+- `setNoDatabase(true)`（含负 serverId）及无 Application 的组件不建缓存目录，
+  serverId 免登记；固定端口、静态状态用 `@ResourceLock`/`@Isolated` 隔离。
 
 ## 测试类命名
 
@@ -67,54 +54,33 @@ serverId 不入桌；固定端口与静态状态用 `@ResourceLock`/`@Isolated` 
 
 ## GCM 与后端同库约定
 
-**体系约束：一个部署里 GCM（全局缓存管理器）是同一个，且所有 Application 与 GCM
-的后端必须是同一个数据库**——跨 app 的全局锁/缓存一致性由同库事务保证，这是 zeze
-多 app 协作（Simulate 式跨 app 场景、History 回放、gid 序）的地基。
+一个部署共用一个 GCM，所有 Application 与 GCM 必须使用同一个后端数据库，
+以同库事务保证跨 app 的全局锁与缓存一致性。
 
-**测试现状违反此约定**：测试普遍 `new Config()`（默认库）或各自
-`setDatabaseUrl("test_xxx")` 的 DatabaseMemory——每个 app 一个独立内存库，GCM 状态与
-app 表不在同一个库里。**后果：持久化语义与跨 app 语义在当前测试配置下不验证真实拓扑**
-（重启恢复、跨 app 锁一致性、Simulate 回放等的结论只对"每 app 独立内存库"成立）。
-
-写涉及多 app/GCM/持久化的测试时必须显式意识到这一局限；需要真实验证时：让全部
-app 与 GCM 显式配置**同一个 DatabaseConf**（同 url 同类型），或在测试注释里明确声明
-"本用例仅在独立内存库语义下成立"。存量测试迁移到同库配置是系统性技术债，逐步偿还。
+存量测试常用各 app 独立的 DatabaseMemory，不能据此验证真实部署的重启恢复、
+跨 app 锁一致性或回放语义。涉及多 app/GCM/持久化的测试，应为全部 app 与 GCM
+显式配置同一个 DatabaseConf（同 url、同类型）；若仅验证独立内存库语义，
+须在测试注释中声明。存量测试逐步迁移到同库配置。
 
 ## 空安全注解（JSpecify）
 
-体系统一到 **JSpecify**（`org.jspecify:jspecify`，ZezeJava `implementation` 依赖，传递给下游；
-jetbrains annotations 已降级 `compileOnly`，仅剩 `@Contract` 与 `@UnmodifiableView` 在用——
-JSpecify 没有 @Contract 等价物，别删）。
+统一使用 JSpecify（`org.jspecify:jspecify`，ZezeJava 的 `implementation` 依赖）。
+不要新增 JetBrains `@NotNull`/`@Nullable`；保留其 `compileOnly` 依赖及
+仍在使用的 `@Contract`、`@UnmodifiableView`。
 
-**生成代码（已完成）**：Gen 为每个生成包发 `package-info.java`（`@NullMarked`，非空为默认），
-真正可空的点标 `@Nullable`——动态 Bean 工厂兜底 `return null`、表格 `getReadOnly`、
-`mapKey()`、unknown 字段的 `unknown()`。生成文件头不再压制 `NullableProblems`。
-改 Gen 相关逻辑后照常 PublishGen.bat 重发、gen_use_publish.bat 重生成；生成文件不要手改。
-默认包的 4 个 `Redirect_*.java` 是手写维护文件，用类级 `@NullMarked`。
-
-**手写代码**：主库、Test 与 Zezex 已统一使用 JSpecify；各活跃源集通过包级
-`@NullMarked` 覆盖，默认包与不能共享 package-info 的独立源集用类级标记。
-可空字段、参数、返回值及泛型类型实参用 `org.jspecify.annotations.Nullable`；
-不要新增 jetbrains `@NotNull`/`@Nullable`。
-
-标注必须保留实际空值语义：查找未命中、尚未装配或已经停用的对象可能合法返回 null，
-这类 getter 直接返回 `@Nullable` 原值，不要为消除告警改成抛异常。
-只有真正需要非空值的解引用、拆箱等使用点才加检查；透传给本来接受 null 的方法时不要提前检查。
-
-**注解书写风格**（javac 对 type-use 注解有硬约束）：
-
-- 首选 **import 类型 + 简单名前缀**：`import ...RocksDatabase.Table;` + `private @Nullable Table logs;`。
-- 撞名或需要明示命名空间时，注解贴限定名**最后一段**：`RocksDatabase.@Nullable Table`
-  （`@Nullable RocksDatabase.Table` 前缀写法 javac 直接编译错误，字段/返回值/参数位置都一样）。
-- 数组**引用**可空必须后缀：`ByteBuffer @Nullable [] buf`；前缀写法语义会变成"注解元素"。
-
-**给改 Gen 的人**：生成代码同样优先 import 风格（tableKey、表格 getReadOnly 已是）；
-工厂兜底（`Zeze.Transaction.@Nullable Bean`）与 toData（嵌套 Data 撞名）保留最后段写法。
-
-**IDE 验收口径**：IntelliJ 2023.2+ 内建 JSpecify 支持（nullable/notnull 注解配置默认已含
-org.jspecify）。本仓库口径：**手写与生成代码自身 nullity 警告清零**；第三方未标注库（Netty 等）
-产生的 unknown 黄条容忍，不修。`ConstantConditions`/`ConstantValue` 已列入生成文件头压制
-（setter 空参防御检查等"契约上恒真"的模式），不要顺手删。
+- 默认非空：包级 `package-info.java` 用 `@NullMarked`；默认包及不能共享
+  package-info 的独立源集用类级标记，包括手写的 `Redirect_*.java`。
+  可空字段、参数、返回值及泛型实参用 `org.jspecify.annotations.Nullable`。
+- 保留实际空值语义：合法返回 null 的 getter 直接返回 `@Nullable` 原值，
+  不为消除告警改成抛异常。只在解引用、拆箱等需要非空值的使用点检查，
+  向接受 null 的方法透传时不提前检查。
+- 书写优先 import 类型后用简单名，如 `private @Nullable Table logs;`。
+  限定名的注解贴最后一段，如 `RocksDatabase.@Nullable Table`；
+  数组引用可空写作 `ByteBuffer @Nullable [] buf`，前缀注解作用于元素。
+- 生成代码遵循相同规则；工厂兜底及嵌套 Data 撞名时保留限定名最后段写法。
+  修改 Gen 后运行根目录 `PublishGen.bat`、`gen_use_publish.bat`，不要手改生成文件。
+- 验收：手写与生成代码自身 nullity 警告清零，容忍未标注第三方库产生的 unknown 警告。
+  生成文件头不压制 `NullableProblems`，保留 `ConstantConditions`/`ConstantValue` 压制。
 
 
 ## 修复提交的信息格式
