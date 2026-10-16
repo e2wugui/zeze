@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Zeze.Util;
@@ -393,10 +393,10 @@ namespace Zeze.Gen.java
                         //if (table.IsMemory) // 暂时禁掉。这是模块状态的一部分了，需要 upgrade 支持。【已经允许了】
                         //    throw new Exception("hot module can not use memory table.");
 
-                        sw.WriteLine($"{indent}{zezeVar}.replaceTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                        sw.WriteLine($"{indent}{zezeVar}.replaceTable(java.util.Objects.requireNonNull({zezeVar}.getConfig().getTableConf(_{table.Name}.getName())).getDatabaseName(), _{table.Name});");
                     }
                     else
-                        sw.WriteLine($"{indent}{zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                        sw.WriteLine($"{indent}{zezeVar}.addTable(java.util.Objects.requireNonNull({zezeVar}.getConfig().getTableConf(_{table.Name}.getName())).getDatabaseName(), _{table.Name});");
                 }
             }
             if (!first)
@@ -434,7 +434,7 @@ namespace Zeze.Gen.java
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
                     if (!module.Hot || !project.Hot)
-                        sw.WriteLine($"        {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                        sw.WriteLine($"        {zezeVar}.removeTable(java.util.Objects.requireNonNull({zezeVar}.getConfig().getTableConf(_{table.Name}.getName())).getDatabaseName(), _{table.Name});");
                 }
             }
         }
@@ -716,6 +716,8 @@ namespace Zeze.Gen.java
 
         public void MakeInterface()
         {
+            JSpecify.GenPackageInfo(module, genDir);
+
             using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.java");
             if (sw == null)
                 return;
@@ -726,7 +728,7 @@ namespace Zeze.Gen.java
             if (module.Comment.Length > 0)
                 sw.WriteLine(module.Comment);
             var classBase = (!project.EnableBase || string.IsNullOrEmpty(module.ClassBase)) ? "" : $"extends {module.ClassBase} ";
-            sw.WriteLine("@SuppressWarnings({\"NullableProblems\", \"RedundantSuppression\", \"RedundantThrows\", \"SameReturnValue\"})");
+            sw.WriteLine("@SuppressWarnings({\"ConstantConditions\", \"ConstantValue\", \"RedundantSuppression\", \"RedundantThrows\", \"SameReturnValue\"})");
             sw.WriteLine($"public abstract class AbstractModule {classBase}implements Zeze.IModule {{");
             sw.WriteLine($"    public static final int ModuleId = {module.Id};");
             sw.WriteLine($"    public static final String ModuleName = \"{moduleName}\";");

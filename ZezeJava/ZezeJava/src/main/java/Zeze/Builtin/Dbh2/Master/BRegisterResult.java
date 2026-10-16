@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BRegisterResult extends Zeze.Transaction.Bean implements BRegisterResultReadOnly {
     public static final long TYPEID = -2064985392838431218L;
 
@@ -127,9 +128,9 @@ public final class BRegisterResult extends Zeze.Transaction.Bean implements BReg
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -181,7 +182,7 @@ public final class BRegisterResult extends Zeze.Transaction.Bean implements BReg
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BRegisterResult))
@@ -258,7 +259,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Builtin.Dbh2.Master.BDbh2Config.Data> _Dbh2Configs_) {
+    public Data(java.util.@Nullable ArrayList<Zeze.Builtin.Dbh2.Master.BDbh2Config.Data> _Dbh2Configs_) {
         if (_Dbh2Configs_ == null)
             _Dbh2Configs_ = new java.util.ArrayList<>();
         _Dbh2Configs = _Dbh2Configs_;
@@ -402,7 +403,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BRegisterResult.Data))

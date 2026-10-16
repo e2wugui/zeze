@@ -4,8 +4,10 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.Online.BOnlinesReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
         implements TableReadOnly<String, Zeze.Builtin.Online.BOnlines, Zeze.Builtin.Online.BOnlinesReadOnly> {
     public tonline() {
@@ -64,7 +66,7 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
     }
 
     @Override
-    public Zeze.Builtin.Online.BOnlinesReadOnly getReadOnly(String _k_) {
+    public @Nullable BOnlinesReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

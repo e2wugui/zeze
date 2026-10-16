@@ -3,9 +3,10 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // link to gs
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchReadOnly {
     public static final long TYPEID = -496680173908943081L;
 
@@ -200,7 +201,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     }
 
     @SuppressWarnings("deprecation")
-    public BDispatch(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
+    public BDispatch(long _linkSid_, @Nullable String _account_, long _protocolType_, Zeze.Net.@Nullable Binary _protocolData_, @Nullable String _context_, Zeze.Net.@Nullable Binary _contextx_, @Nullable String _onlineSetName_) {
         _linkSid = _linkSid_;
         if (_account_ == null)
             _account_ = "";
@@ -321,9 +322,9 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -428,7 +429,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BDispatch))
@@ -613,7 +614,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
+    public Data(long _linkSid_, @Nullable String _account_, long _protocolType_, Zeze.Net.@Nullable Binary _protocolData_, @Nullable String _context_, Zeze.Net.@Nullable Binary _contextx_, @Nullable String _onlineSetName_) {
         _linkSid = _linkSid_;
         if (_account_ == null)
             _account_ = "";
@@ -824,7 +825,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BDispatch.Data))

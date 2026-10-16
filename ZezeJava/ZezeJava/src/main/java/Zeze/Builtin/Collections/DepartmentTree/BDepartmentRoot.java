@@ -3,8 +3,9 @@ package Zeze.Builtin.Collections.DepartmentTree;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDepartmentRootReadOnly {
     public static final long TYPEID = 50884757418508709L;
 
@@ -137,7 +138,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     }
 
     @SuppressWarnings("deprecation")
-    public BDepartmentRoot(String _Root_, long _NextDepartmentId_) {
+    public BDepartmentRoot(@Nullable String _Root_, long _NextDepartmentId_) {
         if (_Root_ == null)
             _Root_ = "";
         _Root = _Root_;
@@ -256,9 +257,9 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -378,7 +379,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BDepartmentRoot))

@@ -3,18 +3,19 @@ package Zeze.Builtin.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implements BModuleRedirectAllHashReadOnly {
     public static final long TYPEID = 5611412794338295457L;
 
     private long _ReturnCode;
     private Zeze.Net.Binary _Params;
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -84,7 +85,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     }
 
     @SuppressWarnings("deprecation")
-    public BModuleRedirectAllHash(long _ReturnCode_, Zeze.Net.Binary _Params_) {
+    public BModuleRedirectAllHash(long _ReturnCode_, Zeze.Net.@Nullable Binary _Params_) {
         _ReturnCode = _ReturnCode_;
         if (_Params_ == null)
             _Params_ = Zeze.Net.Binary.Empty;
@@ -172,9 +173,9 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -224,7 +225,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BModuleRedirectAllHash))
@@ -313,7 +314,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _ReturnCode_, Zeze.Net.Binary _Params_) {
+    public Data(long _ReturnCode_, Zeze.Net.@Nullable Binary _Params_) {
         _ReturnCode = _ReturnCode_;
         if (_Params_ == null)
             _Params_ = Zeze.Net.Binary.Empty;
@@ -436,7 +437,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BModuleRedirectAllHash.Data))

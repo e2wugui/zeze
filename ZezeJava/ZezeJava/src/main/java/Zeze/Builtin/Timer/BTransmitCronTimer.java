@@ -3,8 +3,9 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements BTransmitCronTimerReadOnly {
     public static final long TYPEID = 2513103118161345176L;
 
@@ -192,7 +193,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     }
 
     @SuppressWarnings("deprecation")
-    public BTransmitCronTimer(String _TimerId_, String _HandleClass_, String _CustomClass_, Zeze.Net.Binary _CustomBean_, long _LoginVersion_, boolean _Hot_) {
+    public BTransmitCronTimer(@Nullable String _TimerId_, @Nullable String _HandleClass_, @Nullable String _CustomClass_, Zeze.Net.@Nullable Binary _CustomBean_, long _LoginVersion_, boolean _Hot_) {
         if (_TimerId_ == null)
             _TimerId_ = "";
         _TimerId = _TimerId_;
@@ -291,9 +292,9 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -401,7 +402,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTransmitCronTimer))

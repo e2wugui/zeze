@@ -3,6 +3,7 @@ package Zeze.Builtin.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 /*
 				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。5. 用作Stack时也可以从Head添加。
@@ -23,7 +24,7 @@ import Zeze.Serialize.IByteBuffer;
 				}
 				3. Splice两个Queue时，指向另一个Queue的NodeKey需要先处理好，即已经是新版的结构。现在的代码刚好符合。
 */
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnly {
     public static final long TYPEID = -4684745065046332255L;
 
@@ -216,7 +217,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_, long _LoadSerialNo_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _HeadNodeKey_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _TailNodeKey_) {
+    public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_, long _LoadSerialNo_, Zeze.Builtin.Collections.Queue.@Nullable BQueueNodeKey _HeadNodeKey_, Zeze.Builtin.Collections.Queue.@Nullable BQueueNodeKey _TailNodeKey_) {
         _HeadNodeId = _HeadNodeId_;
         _TailNodeId = _TailNodeId_;
         _Count = _Count_;
@@ -312,9 +313,9 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -425,7 +426,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BQueue))

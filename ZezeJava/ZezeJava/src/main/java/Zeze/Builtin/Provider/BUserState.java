@@ -3,8 +3,9 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BUserState extends Zeze.Transaction.Bean implements BUserStateReadOnly {
     public static final long TYPEID = 5802054934505091577L;
 
@@ -101,7 +102,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     }
 
     @SuppressWarnings("deprecation")
-    public BUserState(String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
+    public BUserState(@Nullable String _context_, Zeze.Net.@Nullable Binary _contextx_, @Nullable String _onlineSetName_) {
         if (_context_ == null)
             _context_ = "";
         _context = _context_;
@@ -198,9 +199,9 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -261,7 +262,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BUserState))
@@ -368,7 +369,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _context_, Zeze.Net.Binary _contextx_, String _onlineSetName_) {
+    public Data(@Nullable String _context_, Zeze.Net.@Nullable Binary _contextx_, @Nullable String _onlineSetName_) {
         if (_context_ == null)
             _context_ = "";
         _context = _context_;
@@ -511,7 +512,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BUserState.Data))

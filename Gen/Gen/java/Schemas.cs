@@ -37,6 +37,8 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
+            JSpecify.GenPackageInfo(Project.Solution, GenDir);
+
             using StreamWriter sw = Project.Solution.OpenWriter(GenDir, "Schemas.java");
             if (sw == null)
                 return;

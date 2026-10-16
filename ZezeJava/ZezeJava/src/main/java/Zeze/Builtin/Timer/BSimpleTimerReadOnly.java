@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Timer;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // 固定周期触发的timer
 public interface BSimpleTimerReadOnly {
     long typeId();
@@ -12,7 +15,7 @@ public interface BSimpleTimerReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 

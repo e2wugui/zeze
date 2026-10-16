@@ -3,9 +3,10 @@ package Zeze.Builtin.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // tables
-@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
+@SuppressWarnings({"MethodMayBeStatic", "ConstantConditions", "ConstantValue", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> {
     private String _LinkName;
     private long _LinkSid;
@@ -116,7 +117,7 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLink))

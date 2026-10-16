@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Zeze.Util;
 
@@ -95,11 +95,11 @@ namespace Zeze.Gen.java
 
         void AppGen(StreamWriter sw)
         {
-            sw.WriteLine("    public Zeze.Application Zeze;");
+            sw.WriteLine("    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;");
             sw.WriteLine();
 
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("    public " + m.FullName + " " + m.Name + ";");
+                sw.WriteLine("    public " + JSpecify.NullableOnLastName(m.FullName).Replace("@Nullable", "@org.jspecify.annotations.Nullable") + " " + m.Name + ";");
             if (project.Services.Count > 0)
                 sw.WriteLine();
 
@@ -110,7 +110,7 @@ namespace Zeze.Gen.java
                     // 非热更模块生成全局唯一变量。
                     string moduleName = Program.Upper1(m.Name);
                     var fullname = m.Path("_");
-                    sw.WriteLine($"    public {m.Path(".", $"Module{moduleName}")} {fullname};");
+                    sw.WriteLine($"    public {JSpecify.NullableOnLastName(m.Path(".", $"Module{moduleName}")).Replace("@Nullable", "@org.jspecify.annotations.Nullable")} {fullname};");
                 }
             }
             if (project.AllOrderDefineModules.Count > 0)
@@ -118,7 +118,7 @@ namespace Zeze.Gen.java
 
             sw.WriteLine("    @Override");
             sw.WriteLine("    public Zeze.Application getZeze() {");
-            sw.WriteLine("        return Zeze;");
+            sw.WriteLine("        return java.util.Objects.requireNonNull(Zeze, \"Zeze has not been created\");");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public void createZeze() throws Exception {");
@@ -126,7 +126,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public void createZeze(Zeze.Config config) throws Exception {");
+            sw.WriteLine("    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {");
             sw.WriteLine("        lock();");
             sw.WriteLine("        try {");
             sw.WriteLine("            if (Zeze != null)");
@@ -143,7 +143,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        lock();");
             sw.WriteLine("        try {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("            " + m.Name + " = new " + m.FullName + "(Zeze);");
+                sw.WriteLine("            " + m.Name + " = new " + m.FullName + "(getZeze());");
             sw.WriteLine("        } finally {");
             sw.WriteLine("            unlock();");
             sw.WriteLine("        }");
@@ -167,10 +167,10 @@ namespace Zeze.Gen.java
             sw.WriteLine("        lock();");
             sw.WriteLine("        try {");
             if (project.Hot)
-                sw.WriteLine("            Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));");
-            sw.WriteLine("            Zeze.initialize(this);");
+                sw.WriteLine("            getZeze().setHotManager(new Zeze.Hot.HotManager(this, getZeze().getConfig().getHotWorkingDir(), getZeze().getConfig().getHotDistributeDir()));");
+            sw.WriteLine("            getZeze().initialize(this);");
             if (project.Hot)
-                sw.WriteLine("            Zeze.getHotManager().initialize(modules);");
+                sw.WriteLine("            java.util.Objects.requireNonNull(getZeze().getHotManager()).initialize(modules);");
 
             if (project.AllOrderDefineModules.Count > 0)
             {
@@ -192,7 +192,7 @@ namespace Zeze.Gen.java
                     }
                 }
             }
-            sw.WriteLine("            Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
+            sw.WriteLine("            getZeze().setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("        } finally {");
             sw.WriteLine("            unlock();");
             sw.WriteLine("        }");
@@ -212,9 +212,9 @@ namespace Zeze.Gen.java
             }
             if (project.Hot)
             {
-                sw.WriteLine("            if (null != Zeze.getHotManager()) {");
-                sw.WriteLine("                Zeze.getHotManager().destroyModules();");
-                sw.WriteLine("                Zeze.setHotManager(null);");
+                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
+                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).destroyModules();");
+                sw.WriteLine("                getZeze().setHotManager(null);");
                 sw.WriteLine("            }");
             }
             sw.WriteLine("            modules.clear();");
@@ -249,28 +249,28 @@ namespace Zeze.Gen.java
             {
                 if (false == project.Hot || false == m.Hot)
                 {
-                    sw.WriteLine("            " + m.Path("_") + ".Start(this);");
+                    sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").Start(this);");
                 }
                 else
                 {
                     // hot module start
-                    sw.WriteLine($"            Zeze.getHotManager().startModule(\"{m.Path()}\");");
+                    sw.WriteLine($"            java.util.Objects.requireNonNull(getZeze().getHotManager()).startModule(\"{m.Path()}\");");
                 }
             }
             foreach (Module m in project.AllOrderDefineModules)
             {
                 if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
-                    sw.WriteLine("            " + m.Path("_") + ".Start(this);");
+                    sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").Start(this);");
             }
             if (project.Hot)
             {
-                sw.WriteLine("            if (null != Zeze.getHotManager()) {");
+                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
                 sw.WriteLine("                var definedOrder = new java.util.HashSet<String>();");
                 foreach (var m in project.ModuleStartOrder)
                 {
                     sw.WriteLine($"                definedOrder.add(\"{m.Path()}\");");
                 }
-                sw.WriteLine("                Zeze.getHotManager().startModulesExcept(definedOrder);");
+                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).startModulesExcept(definedOrder);");
                 sw.WriteLine("            }");
             }
             sw.WriteLine("        } finally {");
@@ -286,28 +286,28 @@ namespace Zeze.Gen.java
             {
                 if (false == project.Hot || false == m.Hot)
                 {
-                    sw.WriteLine("            " + m.Path("_") + ".StartLast();");
+                    sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").StartLast();");
                 }
                 else
                 {
                     // hot module start
-                    sw.WriteLine($"            Zeze.getHotManager().startLastModule(\"{m.Path()}\");");
+                    sw.WriteLine($"            java.util.Objects.requireNonNull(getZeze().getHotManager()).startLastModule(\"{m.Path()}\");");
                 }
             }
             foreach (Module m in project.AllOrderDefineModules)
             {
                 if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
-                    sw.WriteLine("            " + m.Path("_") + ".StartLast();");
+                    sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").StartLast();");
             }
             if (project.Hot)
             {
-                sw.WriteLine("            if (null != Zeze.getHotManager()) {");
+                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
                 sw.WriteLine("                var definedOrder = new java.util.HashSet<String>();");
                 foreach (var m in project.ModuleStartOrder)
                 {
                     sw.WriteLine($"                definedOrder.add(\"{m.Path()}\");");
                 }
-                sw.WriteLine("                Zeze.getHotManager().startLastModulesExcept(definedOrder);");
+                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).startLastModulesExcept(definedOrder);");
                 sw.WriteLine("            }");
             }
             sw.WriteLine("        } finally {");
@@ -332,13 +332,13 @@ namespace Zeze.Gen.java
             }
             if (project.Hot)
             {
-                sw.WriteLine("            if (null != Zeze.getHotManager()) {");
+                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
                 sw.WriteLine("                var definedOrder = new java.util.HashSet<String>();");
                 foreach (var m in project.ModuleStartOrder)
                 {
                     sw.WriteLine($"                definedOrder.add(\"{m.Path()}\");");
                 }
-                sw.WriteLine("                Zeze.getHotManager().stopModulesExcept(definedOrder);");
+                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).stopModulesExcept(definedOrder);");
                 sw.WriteLine("            }");
             }
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
@@ -353,7 +353,7 @@ namespace Zeze.Gen.java
                 else
                 {
                     // hot module stop
-                    sw.WriteLine($"            Zeze.getHotManager().stopModule(\"{m.Path()}\");");
+                    sw.WriteLine($"            java.util.Objects.requireNonNull(getZeze().getHotManager()).stopModule(\"{m.Path()}\");");
                 }
             }
             sw.WriteLine("        } finally {");
@@ -378,13 +378,13 @@ namespace Zeze.Gen.java
             }
             if (project.Hot)
             {
-                sw.WriteLine("            if (null != Zeze.getHotManager()) {");
+                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
                 sw.WriteLine("                var definedOrder = new java.util.HashSet<String>();");
                 foreach (var m in project.ModuleStartOrder)
                 {
                     sw.WriteLine($"                definedOrder.add(\"{m.Path()}\");");
                 }
-                sw.WriteLine("                Zeze.getHotManager().stopBeforeModulesExcept(definedOrder);");
+                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).stopBeforeModulesExcept(definedOrder);");
                 sw.WriteLine("            }");
             }
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
@@ -399,7 +399,7 @@ namespace Zeze.Gen.java
                 else
                 {
                     // hot module stop
-                    sw.WriteLine($"            Zeze.getHotManager().stopBeforeModule(\"{m.Path()}\");");
+                    sw.WriteLine($"            java.util.Objects.requireNonNull(getZeze().getHotManager()).stopBeforeModule(\"{m.Path()}\");");
                 }
             }
             sw.WriteLine("        } finally {");
@@ -411,7 +411,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        lock();");
             sw.WriteLine("        try {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("            " + m.Name + ".start();");
+                sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Name + ").start();");
             sw.WriteLine("        } finally {");
             sw.WriteLine("            unlock();");
             sw.WriteLine("        }");

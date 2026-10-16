@@ -3,8 +3,9 @@ package Zeze.Builtin.DelayRemove;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyReadOnly {
     public static final long TYPEID = 6060766480176216446L;
 
@@ -98,7 +99,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     }
 
     @SuppressWarnings("deprecation")
-    public BTableKey(String _TableName_, Zeze.Net.Binary _EncodedKey_, long _EnqueueTime_) {
+    public BTableKey(@Nullable String _TableName_, Zeze.Net.@Nullable Binary _EncodedKey_, long _EnqueueTime_) {
         if (_TableName_ == null)
             _TableName_ = "";
         _TableName = _TableName_;
@@ -174,9 +175,9 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -237,7 +238,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTableKey))

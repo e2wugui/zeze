@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketMetaReadOnly {
     public static final long TYPEID = 8589859502117192635L;
 
@@ -167,7 +168,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     }
 
     @SuppressWarnings("deprecation")
-    public BBucketMeta(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_) {
+    public BBucketMeta(@Nullable String _DatabaseName_, @Nullable String _TableName_, Zeze.Net.@Nullable Binary _KeyFirst_, Zeze.Net.@Nullable Binary _KeyLast_, @Nullable String _RaftConfig_) {
         if (_DatabaseName_ == null)
             _DatabaseName_ = "";
         _DatabaseName = _DatabaseName_;
@@ -300,9 +301,9 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -414,7 +415,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BBucketMeta))
@@ -587,7 +588,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_, java.util.HashMap<String, String> _Host2Raft_) {
+    public Data(@Nullable String _DatabaseName_, @Nullable String _TableName_, Zeze.Net.@Nullable Binary _KeyFirst_, Zeze.Net.@Nullable Binary _KeyLast_, @Nullable String _RaftConfig_, java.util.@Nullable HashMap<String, String> _Host2Raft_) {
         if (_DatabaseName_ == null)
             _DatabaseName_ = "";
         _DatabaseName = _DatabaseName_;
@@ -819,7 +820,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BBucketMeta.Data))

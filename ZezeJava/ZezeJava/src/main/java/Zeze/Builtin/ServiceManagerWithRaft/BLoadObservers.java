@@ -3,9 +3,10 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // load observers
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "SuspiciousNameCombination"})
 public final class BLoadObservers extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = -2506288796041147342L;
 
@@ -121,7 +122,7 @@ public final class BLoadObservers extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.@Nullable RootInfo root) {
         _Observers.initRootInfo(root, this);
     }
 

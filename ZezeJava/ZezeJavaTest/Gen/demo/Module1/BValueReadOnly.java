@@ -1,0 +1,76 @@
+// auto-generated @formatter:off
+package demo.Module1;
+
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
+public interface BValueReadOnly {
+    long typeId();
+    int preAllocSize();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_);
+    boolean negativeCheck();
+    BValue copy();
+    BValue.Data toData();
+    void buildString(StringBuilder _s_, int _l_);
+    long objectId();
+    int variableId();
+    @Nullable TableKey tableKey();
+    boolean isManaged();
+    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+
+    int getInt_1();
+    long getLong2();
+    String getString3();
+    boolean isBool4();
+    short getShort5();
+    float getFloat6();
+    double getDouble7();
+    Zeze.Net.Binary getBytes8();
+    Zeze.Transaction.Collections.PList2ReadOnly<demo.Bean1, demo.Bean1ReadOnly> getList9ReadOnly();
+    Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getSet10ReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<Long, demo.Module2.BValue, demo.Module2.BValueReadOnly> getMap11ReadOnly();
+    demo.Module1.BSimpleReadOnly getBean12ReadOnly();
+    byte getByte13();
+    Zeze.Transaction.DynamicBeanReadOnly getDynamic14ReadOnly();
+    demo.Bean1ReadOnly getDynamic14_demo_Bean1ReadOnly();
+    demo.Module1.BSimpleReadOnly getDynamic14_demo_Module1_BSimpleReadOnly();
+    demo.Module1.BItemReadOnly getDynamic14_demo_Module1_BItemReadOnly();
+    Zeze.Transaction.Collections.PMap1ReadOnly<Long, Long> getMap15ReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<demo.Module1.Key, demo.Module1.BSimple, demo.Module1.BSimpleReadOnly> getMap16ReadOnly();
+    Zeze.Serialize.Vector2 getVector2();
+    Zeze.Serialize.Vector2Int getVector2Int();
+    Zeze.Serialize.Vector3 getVector3();
+    Zeze.Serialize.Vector3Int getVector3Int();
+    Zeze.Serialize.Vector4 getVector4();
+    Zeze.Serialize.Quaternion getQuaternion();
+    Zeze.Transaction.DynamicBeanReadOnly getDynamic23ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Serialize.Vector2Int> getListVector2IntReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<demo.Module1.Key, demo.Module1.BSimple, demo.Module1.BSimpleReadOnly> getMap25ReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<demo.Module1.Key, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> getMap26ReadOnly();
+    Zeze.Transaction.DynamicBeanReadOnly getDynamic27ReadOnly();
+    demo.Module1.BSimpleReadOnly getDynamic27_demo_Module1_BSimpleReadOnly();
+    demo.Module1.Key getKey28();
+    Zeze.Transaction.Collections.PList1ReadOnly<Float> getArray29ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Integer> getList30ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Long> getList31ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Float> getList32ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Serialize.Vector2> getList33ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Serialize.Vector3> getList34ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Serialize.Vector4> getList35ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Serialize.Vector2Int> getList36ReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Serialize.Vector3Int> getList37ReadOnly();
+    Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getSet38ReadOnly();
+    Zeze.Transaction.Collections.PSet1ReadOnly<Long> getSet39ReadOnly();
+    Zeze.Transaction.Collections.PMap1ReadOnly<Integer, Integer> getMap40ReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<Long, demo.Module1.BSimple, demo.Module1.BSimpleReadOnly> getMap41ReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<Long, demo.Module1.BValue, demo.Module1.BValueReadOnly> getMap42RecursiveReadOnly();
+    Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> getList43ReadOnly();
+    String getJsonObject();
+    String getJsonArray();
+    long getRelationalMappingAlter();
+    Zeze.Transaction.Collections.PSortedMap1ReadOnly<Integer, Integer> getSortedmap1ReadOnly();
+    Zeze.Transaction.Collections.PSortedMap2ReadOnly<Integer, demo.Module1.BSimple, demo.Module1.BSimpleReadOnly> getSortedmap2ReadOnly();
+    long version();
+    Zeze.Transaction.Collections.PList1ReadOnly<Long> getLongListReadOnly();
+}

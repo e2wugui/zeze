@@ -3,8 +3,9 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBrokenReadOnly {
     public static final long TYPEID = 1424702393060691138L;
 
@@ -115,7 +116,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     @SuppressWarnings("deprecation")
-    public BLinkBroken(String _account_, long _linkSid_, int _reason_) {
+    public BLinkBroken(@Nullable String _account_, long _linkSid_, int _reason_) {
         if (_account_ == null)
             _account_ = "";
         _account = _account_;
@@ -218,9 +219,9 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -295,7 +296,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLinkBroken))
@@ -437,7 +438,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _account_, long _linkSid_, int _reason_, Zeze.Builtin.Provider.BUserState.Data _userState_) {
+    public Data(@Nullable String _account_, long _linkSid_, int _reason_, Zeze.Builtin.Provider.BUserState.@Nullable Data _userState_) {
         if (_account_ == null)
             _account_ = "";
         _account = _account_;
@@ -599,7 +600,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLinkBroken.Data))

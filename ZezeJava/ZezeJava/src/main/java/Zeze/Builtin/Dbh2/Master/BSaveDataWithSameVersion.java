@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implements BSaveDataWithSameVersionReadOnly {
     public static final long TYPEID = -2351623358007351459L;
 
@@ -103,7 +104,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
     }
 
     @SuppressWarnings("deprecation")
-    public BSaveDataWithSameVersion(Zeze.Net.Binary _Key_, Zeze.Net.Binary _Data_, long _Version_) {
+    public BSaveDataWithSameVersion(Zeze.Net.@Nullable Binary _Key_, Zeze.Net.@Nullable Binary _Data_, long _Version_) {
         if (_Key_ == null)
             _Key_ = Zeze.Net.Binary.Empty;
         _Key = _Key_;
@@ -198,9 +199,9 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -261,7 +262,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSaveDataWithSameVersion))
@@ -373,7 +374,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _Key_, Zeze.Net.Binary _Data_, long _Version_) {
+    public Data(Zeze.Net.@Nullable Binary _Key_, Zeze.Net.@Nullable Binary _Data_, long _Version_) {
         if (_Key_ == null)
             _Key_ = Zeze.Net.Binary.Empty;
         _Key = _Key_;
@@ -514,7 +515,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSaveDataWithSameVersion.Data))

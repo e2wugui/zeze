@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Timer;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // 用于Zeze.Game.Online.tRoleTimers内存表的value, 只处理玩家在线时的定时器
 public interface BGameOnlineTimerReadOnly {
     long typeId();
@@ -12,7 +15,7 @@ public interface BGameOnlineTimerReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 

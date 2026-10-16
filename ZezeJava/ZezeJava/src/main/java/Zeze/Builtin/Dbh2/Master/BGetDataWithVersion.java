@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements BGetDataWithVersionReadOnly {
     public static final long TYPEID = 7905452008753397388L;
 
@@ -51,7 +52,7 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
     }
 
     @SuppressWarnings("deprecation")
-    public BGetDataWithVersion(Zeze.Net.Binary _Key_) {
+    public BGetDataWithVersion(Zeze.Net.@Nullable Binary _Key_) {
         if (_Key_ == null)
             _Key_ = Zeze.Net.Binary.Empty;
         _Key = _Key_;
@@ -134,9 +135,9 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -175,7 +176,7 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetDataWithVersion))
@@ -244,7 +245,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _Key_) {
+    public Data(Zeze.Net.@Nullable Binary _Key_) {
         if (_Key_ == null)
             _Key_ = Zeze.Net.Binary.Empty;
         _Key = _Key_;
@@ -351,7 +352,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetDataWithVersion.Data))

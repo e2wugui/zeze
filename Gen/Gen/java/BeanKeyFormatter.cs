@@ -14,6 +14,8 @@ namespace Zeze.Gen.java
 
         public void Make(string baseDir)
         {
+            JSpecify.GenPackageInfo(beanKey.Space, baseDir);
+
             using StreamWriter sw = beanKey.Space.OpenWriter(baseDir, beanKey.Name + ".java");
             if (sw == null)
                 return;
@@ -23,10 +25,11 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine("import Zeze.Serialize.IByteBuffer;");
+            sw.WriteLine(JSpecify.NullableImport);
             sw.WriteLine();
             if (beanKey.Comment.Length > 0)
                 sw.WriteLine(beanKey.Comment);
-            sw.WriteLine("@SuppressWarnings({\"MethodMayBeStatic\", \"NullableProblems\", \"PatternVariableCanBeUsed\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"UnusedAssignment\"})");
+            sw.WriteLine("@SuppressWarnings({\"MethodMayBeStatic\", \"ConstantConditions\", \"ConstantValue\", \"PatternVariableCanBeUsed\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"UnusedAssignment\"})");
             sw.WriteLine($"public final class {beanKey.Name} implements Zeze.Transaction.BeanKey, Comparable<{beanKey.Name}> {{");
 
             // declare enums

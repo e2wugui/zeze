@@ -3,8 +3,9 @@ package Zeze.Builtin.LoginQueueServer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BServerLoad extends Zeze.Transaction.Bean implements BServerLoadReadOnly {
     public static final long TYPEID = 721066858319381566L;
 
@@ -113,7 +114,7 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
     }
 
     @SuppressWarnings("deprecation")
-    public BServerLoad(int _ServerId_, String _ServiceIp_, int _ServicePort_) {
+    public BServerLoad(int _ServerId_, @Nullable String _ServiceIp_, int _ServicePort_) {
         _ServerId = _ServerId_;
         if (_ServiceIp_ == null)
             _ServiceIp_ = "";
@@ -216,9 +217,9 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -293,7 +294,7 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BServerLoad))
@@ -435,7 +436,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _ServerId_, String _ServiceIp_, int _ServicePort_, Zeze.Builtin.Provider.BLoad.Data _Load_) {
+    public Data(int _ServerId_, @Nullable String _ServiceIp_, int _ServicePort_, Zeze.Builtin.Provider.BLoad.@Nullable Data _Load_) {
         _ServerId = _ServerId_;
         if (_ServiceIp_ == null)
             _ServiceIp_ = "";
@@ -597,7 +598,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BServerLoad.Data))

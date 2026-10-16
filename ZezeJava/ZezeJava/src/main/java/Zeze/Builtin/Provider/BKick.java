@@ -3,8 +3,9 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly {
     public static final long TYPEID = -6855697390328479333L;
 
@@ -130,7 +131,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BKick(long _linksid_, int _code_, String _desc_, int _control_) {
+    public BKick(long _linksid_, int _code_, @Nullable String _desc_, int _control_) {
         _linksid = _linksid_;
         _code = _code_;
         if (_desc_ == null)
@@ -228,9 +229,9 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -302,7 +303,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BKick))
@@ -439,7 +440,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _linksid_, int _code_, String _desc_, int _control_) {
+    public Data(long _linksid_, int _code_, @Nullable String _desc_, int _control_) {
         _linksid = _linksid_;
         _code = _code_;
         if (_desc_ == null)
@@ -594,7 +595,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BKick.Data))

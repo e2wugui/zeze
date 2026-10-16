@@ -3,9 +3,10 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // 使用cron表达式触发时间的timer
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTimerReadOnly {
     public static final long TYPEID = -6995089347718168392L;
 
@@ -237,7 +238,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     }
 
     @SuppressWarnings("deprecation")
-    public BCronTimer(String _CronExpression_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, long _RemainTimes_, long _EndTime_, int _MissfirePolicy_, String _OneByOneKey_, long _HappenTimes_) {
+    public BCronTimer(@Nullable String _CronExpression_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, long _RemainTimes_, long _EndTime_, int _MissfirePolicy_, @Nullable String _OneByOneKey_, long _HappenTimes_) {
         if (_CronExpression_ == null)
             _CronExpression_ = "";
         _CronExpression = _CronExpression_;
@@ -337,9 +338,9 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -466,7 +467,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BCronTimer))

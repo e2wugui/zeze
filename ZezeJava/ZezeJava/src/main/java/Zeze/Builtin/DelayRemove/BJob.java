@@ -3,18 +3,19 @@ package Zeze.Builtin.DelayRemove;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     public static final long TYPEID = -489344497836886892L;
 
     private String _JobHandleName;
     private Zeze.Net.Binary _JobState;
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -87,7 +88,7 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     }
 
     @SuppressWarnings("deprecation")
-    public BJob(String _JobHandleName_, Zeze.Net.Binary _JobState_) {
+    public BJob(@Nullable String _JobHandleName_, Zeze.Net.@Nullable Binary _JobState_) {
         if (_JobHandleName_ == null)
             _JobHandleName_ = "";
         _JobHandleName = _JobHandleName_;
@@ -159,9 +160,9 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -211,7 +212,7 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BJob))

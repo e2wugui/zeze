@@ -3,8 +3,9 @@ package Zeze.Builtin.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "ForLoopReplaceableByForEach", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "ForLoopReplaceableByForEach", "RedundantIfStatement", "RedundantSuppression", "UnusedAssignment"})
 public final class BModuleRedirectResult extends Zeze.Transaction.Data {
     public static final long TYPEID = 6325051164605397555L;
 
@@ -53,7 +54,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BModuleRedirectResult(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_, boolean _NullParam_) {
+    public BModuleRedirectResult(int _ModuleId_, int _ServerId_, Zeze.Net.@Nullable Binary _Params_, boolean _NullParam_) {
         _ModuleId = _ModuleId_;
         _ServerId = _ServerId_;
         if (_Params_ == null)
@@ -201,7 +202,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BModuleRedirectResult))

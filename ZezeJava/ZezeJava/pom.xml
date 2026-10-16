@@ -190,6 +190,7 @@
 		<maven.compiler.target>21</maven.compiler.target>
 		<log4j.version>2.26.0</log4j.version>
 		<annotations.version>26.1.0</annotations.version>
+		<jspecify.version>1.0.0</jspecify.version>
 		<pcollectons.version>4.0.2</pcollectons.version>
 		<kotlinx-collections-immutable.version>0.3.7</kotlinx-collections-immutable.version>
 		<rocksdbjni.version>10.10.1.1</rocksdbjni.version>
@@ -235,6 +236,12 @@
 			<groupId>org.jetbrains</groupId>
 			<artifactId>annotations</artifactId>
 			<version>${annotations.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jspecify</groupId>
+			<artifactId>jspecify</artifactId>
+			<version>${jspecify.version}</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.pcollections/pcollections -->

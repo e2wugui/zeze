@@ -3,8 +3,9 @@ package Zeze.Builtin.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTransmitAccountReadOnly {
     public static final long TYPEID = 2637210793748287339L;
 
@@ -142,7 +143,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     }
 
     @SuppressWarnings("deprecation")
-    public BTransmitAccount(String _ActionName_, Zeze.Net.Binary _Parameter_, String _SenderAccount_, String _SenderClientId_) {
+    public BTransmitAccount(@Nullable String _ActionName_, Zeze.Net.@Nullable Binary _Parameter_, @Nullable String _SenderAccount_, @Nullable String _SenderClientId_) {
         if (_ActionName_ == null)
             _ActionName_ = "";
         _ActionName = _ActionName_;
@@ -269,9 +270,9 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -367,7 +368,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTransmitAccount))
@@ -522,7 +523,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _ActionName_, Zeze.Net.Binary _Parameter_, java.util.HashSet<Zeze.Builtin.ProviderDirect.BLoginKey> _Targets_, String _SenderAccount_, String _SenderClientId_) {
+    public Data(@Nullable String _ActionName_, Zeze.Net.@Nullable Binary _Parameter_, java.util.@Nullable HashSet<Zeze.Builtin.ProviderDirect.BLoginKey> _Targets_, @Nullable String _SenderAccount_, @Nullable String _SenderClientId_) {
         if (_ActionName_ == null)
             _ActionName_ = "";
         _ActionName = _ActionName_;
@@ -732,7 +733,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTransmitAccount.Data))

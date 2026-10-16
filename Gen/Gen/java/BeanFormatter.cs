@@ -46,8 +46,9 @@ namespace Zeze.Gen.java
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + bean.Space.Path() + ";");
             sw.WriteLine();
-            //sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
-            //sw.WriteLine();
+            sw.WriteLine("import org.jspecify.annotations.Nullable;");
+            sw.WriteLine("import Zeze.Transaction.TableKey;");
+            sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
             sw.WriteLine($"public interface {bean.Name}ReadOnly {{");
@@ -57,6 +58,8 @@ namespace Zeze.Gen.java
 
         public void Make(string baseDir, Project project)
         {
+            JSpecify.GenPackageInfo(bean.Space, baseDir);
+
             if (bean.RedirectResult)
             {
                 MakeRedirectResult(baseDir, project);
@@ -75,6 +78,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine("import Zeze.Serialize.IByteBuffer;");
+            if (JSpecify.BeanNeedsNullableImport(bean))
+                sw.WriteLine(JSpecify.NullableImport);
             sw.WriteLine();
             if (Program.isOnlyData(bean))
                 new javadata.BeanFormatter(bean).Make(sw, bean.Name);
@@ -85,7 +90,7 @@ namespace Zeze.Gen.java
                 var extraSuppress1 = bean.GenEquals ? "" : "\"EqualsAndHashcode\", ";
                 var extraSuppress2 = Program.isData(bean) ? ", \"UnnecessarilyQualifiedInnerClassAccess\"" : "";
                 var extraSuppress3 = bean.Interface == "" ? "" : ", \"override\"";
-                sw.WriteLine($"@SuppressWarnings({{{extraSuppress1}\"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"SwitchStatementWithTooFewBranches\"{extraSuppress2}, \"UnusedAssignment\"{extraSuppress3}}})");
+                sw.WriteLine($"@SuppressWarnings({{{extraSuppress1}\"ConstantConditions\", \"ConstantValue\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"SwitchStatementWithTooFewBranches\"{extraSuppress2}, \"UnusedAssignment\"{extraSuppress3}}})");
                 var final = bean.Extendable ? "" : "final ";
                 var extraInterface = bean.Interface == "" ? "" : ", " + bean.Interface;
                 sw.WriteLine($"public {final}class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly{extraInterface} {{");
@@ -248,7 +253,11 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_{var.Id}(long _t_) {{");
+            // 兜底 return null 只存在于按配置生成 switch 的变体；转发变体的可空性跟随目标方法自身契约。
+            var factoryReturn = string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)
+                ? "Zeze.Transaction.@Nullable Bean"
+                : "Zeze.Transaction.Bean";
+            sw.WriteLine($"{prefix}public static {factoryReturn} createBeanFromSpecialTypeId_{var.Id}(long _t_) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {

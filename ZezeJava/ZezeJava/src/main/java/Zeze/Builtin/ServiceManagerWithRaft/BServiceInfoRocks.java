@@ -3,8 +3,9 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "SuspiciousNameCombination"})
 public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = 4382889566588005308L;
 
@@ -16,10 +17,10 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     private String _SessionName;
     private long _Version;
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -372,7 +373,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.@Nullable RootInfo root) {
     }
 
     @Override

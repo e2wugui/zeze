@@ -3,8 +3,9 @@ package Zeze.Builtin.Token;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTokenResReadOnly {
     public static final long TYPEID = 4780430105301681046L;
 
@@ -121,7 +122,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @SuppressWarnings("deprecation")
-    public BGetTokenRes(Zeze.Net.Binary _context_, long _count_, long _time_, String _addr_) {
+    public BGetTokenRes(Zeze.Net.@Nullable Binary _context_, long _count_, long _time_, @Nullable String _addr_) {
         if (_context_ == null)
             _context_ = Zeze.Net.Binary.Empty;
         _context = _context_;
@@ -221,9 +222,9 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -295,7 +296,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetTokenRes))
@@ -421,7 +422,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _context_, long _count_, long _time_, String _addr_) {
+    public Data(Zeze.Net.@Nullable Binary _context_, long _count_, long _time_, @Nullable String _addr_) {
         if (_context_ == null)
             _context_ = Zeze.Net.Binary.Empty;
         _context = _context_;
@@ -578,7 +579,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetTokenRes.Data))

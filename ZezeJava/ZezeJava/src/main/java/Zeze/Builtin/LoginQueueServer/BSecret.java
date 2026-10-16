@@ -3,8 +3,9 @@ package Zeze.Builtin.LoginQueueServer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BSecret extends Zeze.Transaction.Bean implements BSecretReadOnly {
     public static final long TYPEID = -1086547097778874201L;
 
@@ -75,7 +76,7 @@ public final class BSecret extends Zeze.Transaction.Bean implements BSecretReadO
     }
 
     @SuppressWarnings("deprecation")
-    public BSecret(Zeze.Net.Binary _SecretKey_, Zeze.Net.Binary _SecretIv_) {
+    public BSecret(Zeze.Net.@Nullable Binary _SecretKey_, Zeze.Net.@Nullable Binary _SecretIv_) {
         if (_SecretKey_ == null)
             _SecretKey_ = Zeze.Net.Binary.Empty;
         _SecretKey = _SecretKey_;
@@ -165,9 +166,9 @@ public final class BSecret extends Zeze.Transaction.Bean implements BSecretReadO
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -217,7 +218,7 @@ public final class BSecret extends Zeze.Transaction.Bean implements BSecretReadO
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSecret))
@@ -302,7 +303,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _SecretKey_, Zeze.Net.Binary _SecretIv_) {
+    public Data(Zeze.Net.@Nullable Binary _SecretKey_, Zeze.Net.@Nullable Binary _SecretIv_) {
         if (_SecretKey_ == null)
             _SecretKey_ = Zeze.Net.Binary.Empty;
         _SecretKey = _SecretKey_;
@@ -427,7 +428,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSecret.Data))

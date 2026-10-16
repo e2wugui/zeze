@@ -3,8 +3,9 @@ package Zeze.Builtin.Game.Bag;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly {
     public static final long TYPEID = -7346236832819011963L;
 
@@ -118,7 +119,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BMove(String _BagName_, int _PositionFrom_, int _PositionTo_, int _number_) {
+    public BMove(@Nullable String _BagName_, int _PositionFrom_, int _PositionTo_, int _number_) {
         if (_BagName_ == null)
             _BagName_ = "";
         _BagName = _BagName_;
@@ -196,9 +197,9 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -270,7 +271,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BMove))

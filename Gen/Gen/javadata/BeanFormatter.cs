@@ -22,7 +22,7 @@ namespace Zeze.Gen.javadata
             {
                 var extraSuppress1 = bean.GenEquals ? "" : "\"EqualsAndHashcode\", ";
                 var extraSuppress2 = bean.Interface == "" ? "" : ", \"override\"";
-                sw.WriteLine($"@SuppressWarnings({{{extraSuppress1}\"ForLoopReplaceableByForEach\", \"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"UnusedAssignment\"{extraSuppress2}}})");
+                sw.WriteLine($"@SuppressWarnings({{{extraSuppress1}\"ConstantConditions\", \"ConstantValue\", \"ForLoopReplaceableByForEach\", \"RedundantIfStatement\", \"RedundantSuppression\", \"UnusedAssignment\"{extraSuppress2}}})");
             }
             else
                 sw.WriteLine("@SuppressWarnings(\"ForLoopReplaceableByForEach\")");
@@ -75,7 +75,11 @@ namespace Zeze.Gen.javadata
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}@Override");
-            sw.WriteLine($"{prefix}public Zeze.Transaction.Data toData(long _t_) {{");
+            // 兜底 return null 只存在于按配置生成 switch 的变体；转发变体的可空性跟随目标方法自身契约。
+            var toDataReturn = string.IsNullOrEmpty(type.DynamicParams.CreateDataFromSpecialTypeId)
+                ? "Zeze.Transaction.@Nullable Data"
+                : "Zeze.Transaction.Data";
+            sw.WriteLine($"{prefix}public {toDataReturn} toData(long _t_) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateDataFromSpecialTypeId))
             {

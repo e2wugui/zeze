@@ -4,8 +4,10 @@ package Zeze.Builtin.DelayRemove;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.DelayRemove.BJobsReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
         implements TableReadOnly<Integer, Zeze.Builtin.DelayRemove.BJobs, Zeze.Builtin.DelayRemove.BJobsReadOnly> {
     public tJobs() {
@@ -60,7 +62,7 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
     }
 
     @Override
-    public Zeze.Builtin.DelayRemove.BJobsReadOnly getReadOnly(Integer _k_) {
+    public @Nullable BJobsReadOnly getReadOnly(Integer _k_) {
         return get(_k_);
     }
 }

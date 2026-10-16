@@ -4,8 +4,10 @@ package Zeze.Builtin.Collections.DepartmentTree;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode>
         implements TableReadOnly<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly> {
     public tDepartmentTree() {
@@ -70,7 +72,7 @@ public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.Depar
     }
 
     @Override
-    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly getReadOnly(Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey _k_) {
+    public @Nullable BDepartmentTreeNodeReadOnly getReadOnly(Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey _k_) {
         return get(_k_);
     }
 }

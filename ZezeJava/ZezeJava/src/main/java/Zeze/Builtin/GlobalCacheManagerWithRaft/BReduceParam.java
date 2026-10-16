@@ -3,8 +3,9 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BReduceParam extends Zeze.Transaction.Bean implements BReduceParamReadOnly {
     public static final long TYPEID = -7052326232144455304L;
 
@@ -102,7 +103,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
     }
 
     @SuppressWarnings("deprecation")
-    public BReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_, Zeze.Util.Id128 _ReduceTid_) {
+    public BReduceParam(Zeze.Net.@Nullable Binary _GlobalKey_, int _State_, Zeze.Util.@Nullable Id128 _ReduceTid_) {
         if (_GlobalKey_ == null)
             _GlobalKey_ = Zeze.Net.Binary.Empty;
         _GlobalKey = _GlobalKey_;
@@ -180,9 +181,9 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -246,7 +247,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BReduceParam))

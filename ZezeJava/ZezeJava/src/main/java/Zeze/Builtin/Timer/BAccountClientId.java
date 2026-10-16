@@ -3,8 +3,9 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
+@SuppressWarnings({"MethodMayBeStatic", "ConstantConditions", "ConstantValue", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BAccountClientId implements Zeze.Transaction.BeanKey, Comparable<BAccountClientId> {
     private String _Account; // 账号名
     private String _ClientId; // 客户端ID
@@ -102,7 +103,7 @@ public final class BAccountClientId implements Zeze.Transaction.BeanKey, Compara
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BAccountClientId))

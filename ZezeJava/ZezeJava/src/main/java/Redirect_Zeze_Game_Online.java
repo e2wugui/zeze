@@ -1,5 +1,8 @@
 // auto-generated @formatter:off
 
+import org.jspecify.annotations.NullMarked;
+
+@NullMarked
 public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
     private final Zeze.Arch.RedirectBase _redirect_;
 

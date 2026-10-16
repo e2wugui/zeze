@@ -1,5 +1,8 @@
 // auto-generated @formatter:off
 
+import org.jspecify.annotations.NullMarked;
+
+@NullMarked
 public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
     private final Zeze.Arch.RedirectBase _redirect_;
 

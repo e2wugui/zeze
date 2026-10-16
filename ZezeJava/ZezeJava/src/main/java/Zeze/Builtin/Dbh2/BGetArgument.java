@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArgumentReadOnly {
     public static final long TYPEID = 4922212073054736979L;
 
@@ -101,7 +102,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     }
 
     @SuppressWarnings("deprecation")
-    public BGetArgument(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
+    public BGetArgument(@Nullable String _Database_, @Nullable String _Table_, Zeze.Net.@Nullable Binary _Key_) {
         if (_Database_ == null)
             _Database_ = "";
         _Database = _Database_;
@@ -198,9 +199,9 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -261,7 +262,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetArgument))
@@ -368,7 +369,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
+    public Data(@Nullable String _Database_, @Nullable String _Table_, Zeze.Net.@Nullable Binary _Key_) {
         if (_Database_ == null)
             _Database_ = "";
         _Database = _Database_;
@@ -511,7 +512,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetArgument.Data))

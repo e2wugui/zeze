@@ -4,9 +4,11 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Timer.BGameOnlineTimerReadOnly;
 // 玩家在线时的定时器, 表名为"Zeze_Game_Online_tRoleTimers__{onlineSetName}", key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tRoleTimers extends TableX<String, Zeze.Builtin.Timer.BGameOnlineTimer>
         implements TableReadOnly<String, Zeze.Builtin.Timer.BGameOnlineTimer, Zeze.Builtin.Timer.BGameOnlineTimerReadOnly> {
     public tRoleTimers() {
@@ -71,7 +73,7 @@ public final class tRoleTimers extends TableX<String, Zeze.Builtin.Timer.BGameOn
     }
 
     @Override
-    public Zeze.Builtin.Timer.BGameOnlineTimerReadOnly getReadOnly(String _k_) {
+    public @Nullable BGameOnlineTimerReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

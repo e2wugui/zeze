@@ -3,8 +3,9 @@ package Zeze.Builtin.HotDistribute;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BCloseFileResult extends Zeze.Transaction.Bean implements BCloseFileResultReadOnly {
     public static final long TYPEID = -1067681292779130649L;
 
@@ -79,9 +80,9 @@ public final class BCloseFileResult extends Zeze.Transaction.Bean implements BCl
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -109,7 +110,7 @@ public final class BCloseFileResult extends Zeze.Transaction.Bean implements BCl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         return _o_ instanceof BCloseFileResult;
     }
 
@@ -220,7 +221,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         return _o_ instanceof BCloseFileResult.Data;
     }
 }

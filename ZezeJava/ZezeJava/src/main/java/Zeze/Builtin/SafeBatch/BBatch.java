@@ -3,8 +3,9 @@ package Zeze.Builtin.SafeBatch;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnly {
     public static final long TYPEID = -7789763943994450899L;
 
@@ -199,7 +200,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BBatch(String _AppInstanceId_, String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastKey_, int _ProposeLimit_, String _JobClass_, int _Worker_) {
+    public BBatch(@Nullable String _AppInstanceId_, @Nullable String _TableName_, Zeze.Net.@Nullable Binary _RecordKey_, Zeze.Net.@Nullable Binary _LastKey_, int _ProposeLimit_, @Nullable String _JobClass_, int _Worker_) {
         if (_AppInstanceId_ == null)
             _AppInstanceId_ = "";
         _AppInstanceId = _AppInstanceId_;
@@ -320,9 +321,9 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -427,7 +428,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BBatch))
@@ -611,7 +612,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _AppInstanceId_, String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastKey_, int _ProposeLimit_, String _JobClass_, int _Worker_) {
+    public Data(@Nullable String _AppInstanceId_, @Nullable String _TableName_, Zeze.Net.@Nullable Binary _RecordKey_, Zeze.Net.@Nullable Binary _LastKey_, int _ProposeLimit_, @Nullable String _JobClass_, int _Worker_) {
         if (_AppInstanceId_ == null)
             _AppInstanceId_ = "";
         _AppInstanceId = _AppInstanceId_;
@@ -822,7 +823,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BBatch.Data))

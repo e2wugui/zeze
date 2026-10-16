@@ -4,9 +4,11 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Timer.BOfflineTimersReadOnly;
 // 角色离线时触发的定时器反向索引, 表名为"Zeze_Game_Online_tRoleOfflineTimers__{onlineSetName}", key是角色ID
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BOfflineTimers>
         implements TableReadOnly<Long, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {
     public tRoleOfflineTimers() {
@@ -61,7 +63,7 @@ public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BO
     }
 
     @Override
-    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Long _k_) {
+    public @Nullable BOfflineTimersReadOnly getReadOnly(Long _k_) {
         return get(_k_);
     }
 }

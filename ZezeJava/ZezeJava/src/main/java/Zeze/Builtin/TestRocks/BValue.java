@@ -3,8 +3,9 @@ package Zeze.Builtin.TestRocks;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "SuspiciousNameCombination"})
 public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = -7620770686653123067L;
 
@@ -20,10 +21,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     private final Zeze.Raft.RocksRaft.CollMap2<Integer, Zeze.Builtin.TestRocks.BValue> _MapBean;
     private Zeze.Builtin.TestRocks.BeanKey _Beankey;
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -549,7 +550,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.@Nullable RootInfo root) {
         _SetInt.initRootInfo(root, this);
         _SetBeankey.initRootInfo(root, this);
         _MapInt.initRootInfo(root, this);

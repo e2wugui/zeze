@@ -3,8 +3,9 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
+@SuppressWarnings({"MethodMayBeStatic", "ConstantConditions", "ConstantValue", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Comparable<BServiceInfoKeyRocks> {
     private String _ServiceName;
     private String _ServiceIdentity;
@@ -102,7 +103,7 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BServiceInfoKeyRocks))

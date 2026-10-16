@@ -3,9 +3,10 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // table
-@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "SuspiciousNameCombination"})
 public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = 2494905368101749954L;
 
@@ -180,7 +181,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.@Nullable RootInfo root) {
         _Share.initRootInfo(root, this);
     }
 

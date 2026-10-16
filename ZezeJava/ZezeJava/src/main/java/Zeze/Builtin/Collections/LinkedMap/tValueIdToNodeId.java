@@ -4,8 +4,10 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId>
         implements TableReadOnly<Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly> {
     public tValueIdToNodeId() {
@@ -67,7 +69,7 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
     }
 
     @Override
-    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly getReadOnly(Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey _k_) {
+    public @Nullable BLinkedMapNodeIdReadOnly getReadOnly(Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey _k_) {
         return get(_k_);
     }
 }

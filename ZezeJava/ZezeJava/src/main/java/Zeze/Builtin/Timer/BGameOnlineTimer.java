@@ -3,9 +3,10 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // 用于Zeze.Game.Online.tRoleTimers内存表的value, 只处理玩家在线时的定时器
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGameOnlineTimerReadOnly {
     public static final long TYPEID = -3455653027701280193L;
 
@@ -31,7 +32,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BGameOnlineTimer:TimerObj:" + _t_);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long _t_) {
+    public static Zeze.Transaction.@Nullable Bean createBeanFromSpecialTypeId_2(long _t_) {
         if (_t_ == -6995089347718168392L)
             return new Zeze.Builtin.Timer.BCronTimer();
         if (_t_ == 1832177636612857692L)
@@ -238,9 +239,9 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -312,7 +313,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGameOnlineTimer))

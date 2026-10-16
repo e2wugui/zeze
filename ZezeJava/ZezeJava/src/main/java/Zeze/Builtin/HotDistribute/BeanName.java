@@ -3,8 +3,9 @@ package Zeze.Builtin.HotDistribute;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BeanName extends Zeze.Transaction.Bean implements BeanNameReadOnly {
     public static final long TYPEID = -1975096028535811269L;
 
@@ -49,7 +50,7 @@ public final class BeanName extends Zeze.Transaction.Bean implements BeanNameRea
     }
 
     @SuppressWarnings("deprecation")
-    public BeanName(String _Name_) {
+    public BeanName(@Nullable String _Name_) {
         if (_Name_ == null)
             _Name_ = "";
         _Name = _Name_;
@@ -132,9 +133,9 @@ public final class BeanName extends Zeze.Transaction.Bean implements BeanNameRea
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -173,7 +174,7 @@ public final class BeanName extends Zeze.Transaction.Bean implements BeanNameRea
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BeanName))
@@ -242,7 +243,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Name_) {
+    public Data(@Nullable String _Name_) {
         if (_Name_ == null)
             _Name_ = "";
         _Name = _Name_;
@@ -349,7 +350,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BeanName.Data))

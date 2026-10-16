@@ -3,8 +3,9 @@ package Zeze.Builtin.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements BDelayLogoutCustomReadOnly {
     public static final long TYPEID = 8209690781023670883L;
 
@@ -124,7 +125,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
     }
 
     @SuppressWarnings("deprecation")
-    public BDelayLogoutCustom(String _Account_, String _ClientId_, long _LoginVersion_, String _ProjectName_) {
+    public BDelayLogoutCustom(@Nullable String _Account_, @Nullable String _ClientId_, long _LoginVersion_, @Nullable String _ProjectName_) {
         if (_Account_ == null)
             _Account_ = "";
         _Account = _Account_;
@@ -206,9 +207,9 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -280,7 +281,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BDelayLogoutCustom))

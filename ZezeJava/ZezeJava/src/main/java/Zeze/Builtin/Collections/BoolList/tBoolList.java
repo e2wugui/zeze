@@ -4,8 +4,10 @@ package Zeze.Builtin.Collections.BoolList;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.Collections.BoolList.BValueReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BKey, Zeze.Builtin.Collections.BoolList.BValue>
         implements TableReadOnly<Zeze.Builtin.Collections.BoolList.BKey, Zeze.Builtin.Collections.BoolList.BValue, Zeze.Builtin.Collections.BoolList.BValueReadOnly> {
     public tBoolList() {
@@ -73,7 +75,7 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
     }
 
     @Override
-    public Zeze.Builtin.Collections.BoolList.BValueReadOnly getReadOnly(Zeze.Builtin.Collections.BoolList.BKey _k_) {
+    public @Nullable BValueReadOnly getReadOnly(Zeze.Builtin.Collections.BoolList.BKey _k_) {
         return get(_k_);
     }
 }

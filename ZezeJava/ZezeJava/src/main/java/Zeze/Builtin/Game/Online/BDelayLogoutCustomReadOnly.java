@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Online;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // 用于BTimer.CustomData
 public interface BDelayLogoutCustomReadOnly {
     long typeId();
@@ -12,7 +15,7 @@ public interface BDelayLogoutCustomReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 

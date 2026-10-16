@@ -4,9 +4,11 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Game.Online.BOnlineSharedReadOnly;
 // 登录相关状态的大版本共享的持久化表, 表名为"Zeze_Game_Online_tOnlineShared__{onlineSetName}", key是角色ID
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tOnlineShared extends TableX<Long, Zeze.Builtin.Game.Online.BOnlineShared>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BOnlineShared, Zeze.Builtin.Game.Online.BOnlineSharedReadOnly> {
     public tOnlineShared() {
@@ -65,7 +67,7 @@ public final class tOnlineShared extends TableX<Long, Zeze.Builtin.Game.Online.B
     }
 
     @Override
-    public Zeze.Builtin.Game.Online.BOnlineSharedReadOnly getReadOnly(Long _k_) {
+    public @Nullable BOnlineSharedReadOnly getReadOnly(Long _k_) {
         return get(_k_);
     }
 }

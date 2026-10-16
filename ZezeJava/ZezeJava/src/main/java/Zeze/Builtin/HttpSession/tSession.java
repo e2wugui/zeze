@@ -4,9 +4,11 @@ package Zeze.Builtin.HttpSession;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.HttpSession.BSessionValueReadOnly;
 // key is http sessionid from cookie
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tSession extends TableX<String, Zeze.Builtin.HttpSession.BSessionValue>
         implements TableReadOnly<String, Zeze.Builtin.HttpSession.BSessionValue, Zeze.Builtin.HttpSession.BSessionValueReadOnly> {
     public tSession() {
@@ -65,7 +67,7 @@ public final class tSession extends TableX<String, Zeze.Builtin.HttpSession.BSes
     }
 
     @Override
-    public Zeze.Builtin.HttpSession.BSessionValueReadOnly getReadOnly(String _k_) {
+    public @Nullable BSessionValueReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

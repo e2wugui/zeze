@@ -3,8 +3,9 @@ package Zeze.Builtin.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implements BModuleRedirectAllResultReadOnly {
     public static final long TYPEID = -6979067915808179070L;
 
@@ -155,7 +156,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     }
 
     @SuppressWarnings("deprecation")
-    public BModuleRedirectAllResult(int _ModuleId_, int _ServerId_, long _SourceProvider_, String _MethodFullName_, long _SessionId_) {
+    public BModuleRedirectAllResult(int _ModuleId_, int _ServerId_, long _SourceProvider_, @Nullable String _MethodFullName_, long _SessionId_) {
         _ModuleId = _ModuleId_;
         _ServerId = _ServerId_;
         _SourceProvider = _SourceProvider_;
@@ -288,9 +289,9 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -402,7 +403,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BModuleRedirectAllResult))
@@ -576,7 +577,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _ModuleId_, int _ServerId_, long _SourceProvider_, String _MethodFullName_, long _SessionId_, java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _Hashes_) {
+    public Data(int _ModuleId_, int _ServerId_, long _SourceProvider_, @Nullable String _MethodFullName_, long _SessionId_, java.util.@Nullable HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _Hashes_) {
         _ModuleId = _ModuleId_;
         _ServerId = _ServerId_;
         _SourceProvider = _SourceProvider_;
@@ -807,7 +808,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BModuleRedirectAllResult.Data))

@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BRefused extends Zeze.Transaction.Bean implements BRefusedReadOnly {
     public static final long TYPEID = 7657223106255732406L;
 
@@ -128,9 +129,9 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -187,7 +188,7 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BRefused))
@@ -273,7 +274,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.HashMap<String, Zeze.Builtin.Dbh2.BBatch.Data> _Refused_) {
+    public Data(java.util.@Nullable HashMap<String, Zeze.Builtin.Dbh2.BBatch.Data> _Refused_) {
         if (_Refused_ == null)
             _Refused_ = new java.util.HashMap<>();
         _Refused = _Refused_;
@@ -422,7 +423,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BRefused.Data))

@@ -3,6 +3,7 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 /*
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
@@ -10,7 +11,7 @@ import Zeze.Serialize.IByteBuffer;
 				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFirst），但感觉不好。
 				所以LocateBucket先不用，仅使用GetBuckets。
 */
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocateBucketReadOnly {
     public static final long TYPEID = 8564400157292168322L;
 
@@ -107,7 +108,7 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
     }
 
     @SuppressWarnings("deprecation")
-    public BLocateBucket(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
+    public BLocateBucket(@Nullable String _Database_, @Nullable String _Table_, Zeze.Net.@Nullable Binary _Key_) {
         if (_Database_ == null)
             _Database_ = "";
         _Database = _Database_;
@@ -204,9 +205,9 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -267,7 +268,7 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLocateBucket))
@@ -380,7 +381,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
+    public Data(@Nullable String _Database_, @Nullable String _Table_, Zeze.Net.@Nullable Binary _Key_) {
         if (_Database_ == null)
             _Database_ = "";
         _Database = _Database_;
@@ -523,7 +524,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLocateBucket.Data))

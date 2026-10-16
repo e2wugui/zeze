@@ -3,8 +3,9 @@ package Zeze.Builtin.HistoryModule;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesReadOnly {
     public static final long TYPEID = 395935719895809559L;
 
@@ -143,7 +144,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     }
 
     @SuppressWarnings("deprecation")
-    public BLogChanges(Zeze.Util.Id128 _GlobalSerialId_, String _ProtocolClassName_, Zeze.Net.Binary _ProtocolArgument_, long _Timestamp_) {
+    public BLogChanges(Zeze.Util.@Nullable Id128 _GlobalSerialId_, @Nullable String _ProtocolClassName_, Zeze.Net.@Nullable Binary _ProtocolArgument_, long _Timestamp_) {
         if (_GlobalSerialId_ == null)
             _GlobalSerialId_ = new Zeze.Util.Id128();
         _GlobalSerialId = _GlobalSerialId_;
@@ -271,9 +272,9 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -377,7 +378,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLogChanges))
@@ -536,7 +537,7 @@ public static class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Util.Id128 _GlobalSerialId_, String _ProtocolClassName_, Zeze.Net.Binary _ProtocolArgument_, java.util.HashMap<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> _Changes_, long _Timestamp_) {
+    public Data(Zeze.Util.@Nullable Id128 _GlobalSerialId_, @Nullable String _ProtocolClassName_, Zeze.Net.@Nullable Binary _ProtocolArgument_, java.util.@Nullable HashMap<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> _Changes_, long _Timestamp_) {
         if (_GlobalSerialId_ == null)
             _GlobalSerialId_ = new Zeze.Util.Id128();
         _GlobalSerialId = _GlobalSerialId_;
@@ -755,7 +756,7 @@ public static class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLogChanges.Data))

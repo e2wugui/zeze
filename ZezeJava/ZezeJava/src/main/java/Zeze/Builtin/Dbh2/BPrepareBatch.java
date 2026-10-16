@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepareBatchReadOnly {
     public static final long TYPEID = 216908947802855063L;
 
@@ -15,10 +16,10 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Dbh2.BBatch> meta1_Batch
             = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Dbh2.BBatch.class);
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -131,7 +132,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     }
 
     @SuppressWarnings("deprecation")
-    public BPrepareBatch(String _Master_, String _Database_, String _Table_) {
+    public BPrepareBatch(@Nullable String _Master_, @Nullable String _Database_, @Nullable String _Table_) {
         if (_Master_ == null)
             _Master_ = "";
         _Master = _Master_;
@@ -238,9 +239,9 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -315,7 +316,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BPrepareBatch))
@@ -463,7 +464,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Master_, String _Database_, String _Table_, Zeze.Builtin.Dbh2.BBatch.Data _Batch_) {
+    public Data(@Nullable String _Master_, @Nullable String _Database_, @Nullable String _Table_, Zeze.Builtin.Dbh2.BBatch.@Nullable Data _Batch_) {
         if (_Master_ == null)
             _Master_ = "";
         _Master = _Master_;
@@ -629,7 +630,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BPrepareBatch.Data))

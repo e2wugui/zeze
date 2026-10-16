@@ -3,8 +3,9 @@ package Zeze.Builtin.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean implements BModuleRedirectAllRequestReadOnly {
     public static final long TYPEID = -1938324199607833342L;
 
@@ -231,7 +232,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     @SuppressWarnings("deprecation")
-    public BModuleRedirectAllRequest(int _ModuleId_, int _HashCodeConcurrentLevel_, long _SourceProvider_, long _SessionId_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_, int _Version_) {
+    public BModuleRedirectAllRequest(int _ModuleId_, int _HashCodeConcurrentLevel_, long _SourceProvider_, long _SessionId_, @Nullable String _MethodFullName_, Zeze.Net.@Nullable Binary _Params_, @Nullable String _ServiceNamePrefix_, int _Version_) {
         _ModuleId = _ModuleId_;
         _HashCodeConcurrentLevel = _HashCodeConcurrentLevel_;
         _HashCodes = new Zeze.Transaction.Collections.PSet1<>(meta1_HashCodes);
@@ -374,9 +375,9 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -516,7 +517,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BModuleRedirectAllRequest))
@@ -745,7 +746,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _ModuleId_, int _HashCodeConcurrentLevel_, java.util.HashSet<Integer> _HashCodes_, long _SourceProvider_, long _SessionId_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_, int _Version_) {
+    public Data(int _ModuleId_, int _HashCodeConcurrentLevel_, java.util.@Nullable HashSet<Integer> _HashCodes_, long _SourceProvider_, long _SessionId_, @Nullable String _MethodFullName_, Zeze.Net.@Nullable Binary _Params_, @Nullable String _ServiceNamePrefix_, int _Version_) {
         _ModuleId = _ModuleId_;
         _HashCodeConcurrentLevel = _HashCodeConcurrentLevel_;
         if (_HashCodes_ == null)
@@ -1015,7 +1016,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BModuleRedirectAllRequest.Data))

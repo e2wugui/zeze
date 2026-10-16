@@ -3,8 +3,9 @@ package Zeze.Builtin.RedoQueue;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTaskReadOnly {
     public static final long TYPEID = 3220291684741669511L;
 
@@ -144,7 +145,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     }
 
     @SuppressWarnings("deprecation")
-    public BQueueTask(String _QueueName_, int _TaskType_, long _TaskId_, Zeze.Net.Binary _TaskParam_, long _PrevTaskId_) {
+    public BQueueTask(@Nullable String _QueueName_, int _TaskType_, long _TaskId_, Zeze.Net.@Nullable Binary _TaskParam_, long _PrevTaskId_) {
         if (_QueueName_ == null)
             _QueueName_ = "";
         _QueueName = _QueueName_;
@@ -228,9 +229,9 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -313,7 +314,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BQueueTask))

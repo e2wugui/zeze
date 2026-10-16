@@ -3,8 +3,9 @@ package Zeze.Builtin.Token;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTokenArgReadOnly {
     public static final long TYPEID = 2668590583481037382L;
 
@@ -72,7 +73,7 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @SuppressWarnings("deprecation")
-    public BNewTokenArg(Zeze.Net.Binary _context_, long _ttl_) {
+    public BNewTokenArg(Zeze.Net.@Nullable Binary _context_, long _ttl_) {
         if (_context_ == null)
             _context_ = Zeze.Net.Binary.Empty;
         _context = _context_;
@@ -160,9 +161,9 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -212,7 +213,7 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BNewTokenArg))
@@ -301,7 +302,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _context_, long _ttl_) {
+    public Data(Zeze.Net.@Nullable Binary _context_, long _ttl_) {
         if (_context_ == null)
             _context_ = Zeze.Net.Binary.Empty;
         _context = _context_;
@@ -424,7 +425,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BNewTokenArg.Data))

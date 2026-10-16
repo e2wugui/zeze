@@ -4,9 +4,11 @@ package Zeze.Builtin.Collections.DepartmentTree;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly;
 // 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot>
         implements TableReadOnly<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly> {
     public tDepartment() {
@@ -67,7 +69,7 @@ public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.D
     }
 
     @Override
-    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly getReadOnly(String _k_) {
+    public @Nullable BDepartmentRootReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

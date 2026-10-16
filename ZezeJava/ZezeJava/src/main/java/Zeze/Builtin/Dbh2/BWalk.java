@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly {
     public static final long TYPEID = 2689376469133093665L;
 
@@ -196,7 +197,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BWalk(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.Binary _Prefix_, boolean _VerifyBucketMeta_, Zeze.Net.Binary _ExpectedKeyFirst_, Zeze.Net.Binary _ExpectedKeyLast_) {
+    public BWalk(Zeze.Net.@Nullable Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.@Nullable Binary _Prefix_, boolean _VerifyBucketMeta_, Zeze.Net.@Nullable Binary _ExpectedKeyFirst_, Zeze.Net.@Nullable Binary _ExpectedKeyLast_) {
         if (_ExclusiveStartKey_ == null)
             _ExclusiveStartKey_ = Zeze.Net.Binary.Empty;
         _ExclusiveStartKey = _ExclusiveStartKey_;
@@ -315,9 +316,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -422,7 +423,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BWalk))
@@ -595,7 +596,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.Binary _Prefix_, boolean _VerifyBucketMeta_, Zeze.Net.Binary _ExpectedKeyFirst_, Zeze.Net.Binary _ExpectedKeyLast_) {
+    public Data(Zeze.Net.@Nullable Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.@Nullable Binary _Prefix_, boolean _VerifyBucketMeta_, Zeze.Net.@Nullable Binary _ExpectedKeyFirst_, Zeze.Net.@Nullable Binary _ExpectedKeyLast_) {
         if (_ExclusiveStartKey_ == null)
             _ExclusiveStartKey_ = Zeze.Net.Binary.Empty;
         _ExclusiveStartKey = _ExclusiveStartKey_;
@@ -804,7 +805,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BWalk.Data))

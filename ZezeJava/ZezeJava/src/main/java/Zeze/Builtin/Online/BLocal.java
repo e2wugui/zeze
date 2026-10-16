@@ -3,8 +3,9 @@ package Zeze.Builtin.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnly {
     public static final long TYPEID = -6330089022826554666L;
 
@@ -13,10 +14,10 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Builtin.Online.BAny> meta2_Datas
             = Zeze.Transaction.Collections.Map2Meta.get(String.class, Zeze.Builtin.Online.BAny.class);
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -160,9 +161,9 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -230,7 +231,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLocal))

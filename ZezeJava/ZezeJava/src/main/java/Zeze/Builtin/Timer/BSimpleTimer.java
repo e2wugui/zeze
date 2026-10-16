@@ -3,9 +3,10 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // 固定周期触发的timer
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimpleTimerReadOnly {
     public static final long TYPEID = 1832177636612857692L;
 
@@ -280,7 +281,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     }
 
     @SuppressWarnings("deprecation")
-    public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTime_, long _EndTime_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, int _MissfirePolicy_, String _OneByOneKey_) {
+    public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTime_, long _EndTime_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, int _MissfirePolicy_, @Nullable String _OneByOneKey_) {
         _Delay = _Delay_;
         _Period = _Period_;
         _RemainTimes = _RemainTimes_;
@@ -386,9 +387,9 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -537,7 +538,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSimpleTimer))

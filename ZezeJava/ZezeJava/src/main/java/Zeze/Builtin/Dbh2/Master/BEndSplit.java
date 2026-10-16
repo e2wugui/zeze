@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitReadOnly {
     public static final long TYPEID = 7116513531049088703L;
 
@@ -139,9 +140,9 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -197,7 +198,7 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BEndSplit))
@@ -300,7 +301,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.Dbh2.BBucketMeta.Data _From_, Zeze.Builtin.Dbh2.BBucketMeta.Data _To_) {
+    public Data(Zeze.Builtin.Dbh2.BBucketMeta.@Nullable Data _From_, Zeze.Builtin.Dbh2.BBucketMeta.@Nullable Data _To_) {
         if (_From_ == null)
             _From_ = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
         _From = _From_;
@@ -435,7 +436,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BEndSplit.Data))

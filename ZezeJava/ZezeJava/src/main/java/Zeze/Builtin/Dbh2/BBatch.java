@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnly {
     public static final long TYPEID = -2614323448581124612L;
 
@@ -20,10 +21,10 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     private int _QueryPort;
     private long _Tid;
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -137,7 +138,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BBatch(String _QueryIp_, int _QueryPort_, long _Tid_) {
+    public BBatch(@Nullable String _QueryIp_, int _QueryPort_, long _Tid_) {
         _Puts = new Zeze.Transaction.Collections.PMap1<>(meta2_Puts);
         _Puts.variableId(1);
         _Deletes = new Zeze.Transaction.Collections.PSet1<>(meta1_Deletes);
@@ -272,9 +273,9 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -388,7 +389,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BBatch))
@@ -544,7 +545,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.HashMap<Zeze.Net.Binary, Zeze.Net.Binary> _Puts_, java.util.HashSet<Zeze.Net.Binary> _Deletes_, String _QueryIp_, int _QueryPort_, long _Tid_) {
+    public Data(java.util.@Nullable HashMap<Zeze.Net.Binary, Zeze.Net.Binary> _Puts_, java.util.@Nullable HashSet<Zeze.Net.Binary> _Deletes_, @Nullable String _QueryIp_, int _QueryPort_, long _Tid_) {
         if (_Puts_ == null)
             _Puts_ = new java.util.HashMap<>();
         _Puts = _Puts_;
@@ -782,7 +783,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BBatch.Data))

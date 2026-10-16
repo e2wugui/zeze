@@ -3,8 +3,9 @@ package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     public static final long TYPEID = 5085416693215220301L;
 
@@ -22,10 +23,10 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         return Zeze.Game.Online.createBeanFromSpecialTypeId(_t_);
     }
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -110,9 +111,9 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -151,7 +152,7 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BAny))

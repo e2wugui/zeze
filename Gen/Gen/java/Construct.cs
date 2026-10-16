@@ -37,7 +37,10 @@ namespace Zeze.Gen.java
                             first = false;
                         else
                             sw.Write(", ");
-                        sw.Write($"{TypeName.GetName(var.VariableType)} {var.NamePrivate}_");
+                        var typeName = TypeName.GetName(var.VariableType);
+                        if (!var.VariableType.IsJavaPrimitive)
+                            typeName = JSpecify.NullableOnLastName(typeName);
+                        sw.Write($"{typeName} {var.NamePrivate}_");
                     }
                 }
 

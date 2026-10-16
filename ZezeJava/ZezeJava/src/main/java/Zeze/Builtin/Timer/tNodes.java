@@ -4,9 +4,11 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Timer.BNodeReadOnly;
 // 节点表, key是节点ID(AutoKey分配)
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
         implements TableReadOnly<Long, Zeze.Builtin.Timer.BNode, Zeze.Builtin.Timer.BNodeReadOnly> {
     public tNodes() {
@@ -63,7 +65,7 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
     }
 
     @Override
-    public Zeze.Builtin.Timer.BNodeReadOnly getReadOnly(Long _k_) {
+    public @Nullable BNodeReadOnly getReadOnly(Long _k_) {
         return get(_k_);
     }
 }

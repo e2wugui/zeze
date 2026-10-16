@@ -3,8 +3,9 @@ package Zeze.Builtin.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadOnly {
     public static final long TYPEID = -7786403987996508020L;
 
@@ -19,10 +20,10 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     private int _ServerId;
     private long _LogoutVersion;
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -195,7 +196,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     @SuppressWarnings("deprecation")
-    public BOnline(Zeze.Builtin.Online.BLink _Link_, long _LoginVersion_, long _ReliableNotifyIndex_, long _ReliableNotifyConfirmIndex_, int _ServerId_, long _LogoutVersion_) {
+    public BOnline(Zeze.Builtin.Online.@Nullable BLink _Link_, long _LoginVersion_, long _ReliableNotifyIndex_, long _ReliableNotifyConfirmIndex_, int _ServerId_, long _LogoutVersion_) {
         if (_Link_ == null)
             _Link_ = new Zeze.Builtin.Online.BLink();
         _Link = _Link_;
@@ -302,9 +303,9 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -425,7 +426,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BOnline))

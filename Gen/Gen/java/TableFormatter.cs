@@ -16,6 +16,8 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
+            JSpecify.GenPackageInfo(table.Space, genDir);
+
             using StreamWriter sw = table.Space.OpenWriter(genDir, table.Name + ".java");
             if (sw == null)
                 return;
@@ -26,12 +28,15 @@ namespace Zeze.Gen.java
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine("import Zeze.Transaction.TableX;");
             sw.WriteLine("import Zeze.Transaction.TableReadOnly;");
+            sw.WriteLine("import org.jspecify.annotations.Nullable;");
             sw.WriteLine();
             string value = TypeName.GetName(table.ValueType);
+            // 简单名前缀注解（限定名前缀写法 javac 非法），ReadOnly 接口随 value 一起 import。
+            sw.WriteLine("import " + value + "ReadOnly;");
             string keyboxing = BoxingName.GetBoxingName(table.KeyType);
             if (table.Comment.Length > 0)
                 sw.WriteLine(table.Comment);
-            sw.WriteLine("@SuppressWarnings({\"DuplicateBranchesInSwitch\", \"NullableProblems\", \"RedundantSuppression\"})");
+            sw.WriteLine("@SuppressWarnings({\"ConstantConditions\", \"ConstantValue\", \"DuplicateBranchesInSwitch\", \"RedundantSuppression\"})");
             sw.WriteLine("public final class " + table.Name + $" extends TableX<{keyboxing}, {value}>");
             sw.WriteLine($"        implements TableReadOnly<{keyboxing}, {value}, {value}ReadOnly> {{");
             sw.WriteLine("    public " + table.Name + "() {");
@@ -141,7 +146,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine($"    public {value}ReadOnly getReadOnly({keyboxing} _k_) {{");
+            // import {value}ReadOnly 后用简单名前缀注解（限定名前缀写法 javac 非法）。
+            sw.WriteLine($"    public @Nullable {value.Substring(value.LastIndexOf('.') + 1)}ReadOnly getReadOnly({keyboxing} _k_) {{");
             sw.WriteLine($"        return get(_k_);");
             sw.WriteLine("    }");
             //sw.WriteLine();

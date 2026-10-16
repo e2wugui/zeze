@@ -3,8 +3,9 @@ package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadOnly {
     public static final long TYPEID = 663625160021568926L;
 
@@ -49,7 +50,7 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     }
 
     @SuppressWarnings("deprecation")
-    public BNotify(Zeze.Net.Binary _FullEncodedProtocol_) {
+    public BNotify(Zeze.Net.@Nullable Binary _FullEncodedProtocol_) {
         if (_FullEncodedProtocol_ == null)
             _FullEncodedProtocol_ = Zeze.Net.Binary.Empty;
         _FullEncodedProtocol = _FullEncodedProtocol_;
@@ -115,9 +116,9 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -156,7 +157,7 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BNotify))

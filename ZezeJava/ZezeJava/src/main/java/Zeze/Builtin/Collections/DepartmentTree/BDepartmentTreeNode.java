@@ -3,8 +3,9 @@ package Zeze.Builtin.Collections.DepartmentTree;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements BDepartmentTreeNodeReadOnly {
     public static final long TYPEID = 2712461973987809351L;
 
@@ -137,7 +138,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @SuppressWarnings("deprecation")
-    public BDepartmentTreeNode(long _ParentDepartment_, String _Name_) {
+    public BDepartmentTreeNode(long _ParentDepartment_, @Nullable String _Name_) {
         _ParentDepartment = _ParentDepartment_;
         _Children = new Zeze.Transaction.Collections.PMap1<>(meta2_Children);
         _Children.variableId(2);
@@ -256,9 +257,9 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -378,7 +379,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BDepartmentTreeNode))

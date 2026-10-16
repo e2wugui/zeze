@@ -14,6 +14,8 @@ namespace Zeze.Gen.rrjava
 
         public void Make(string baseDir)
         {
+            java.JSpecify.GenPackageInfo(bean.Space, baseDir);
+
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
             if (sw == null)
                 return;
@@ -23,12 +25,13 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine("import Zeze.Serialize.IByteBuffer;");
+            sw.WriteLine(java.JSpecify.NullableImport);
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
             var extraInterface = bean.Interface == "" ? "" : " implements " + bean.Interface;
             var extraSuppress = bean.Interface == "" ? "" : ", \"override\"";
-            sw.WriteLine($"@SuppressWarnings({{\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\", \"NullableProblems\", \"SuspiciousNameCombination\"{extraSuppress}}})");
+            sw.WriteLine($"@SuppressWarnings({{\"ConstantConditions\", \"ConstantValue\", \"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\", \"SuspiciousNameCombination\"{extraSuppress}}})");
             sw.WriteLine($"public final class {bean.Name} extends Zeze.Raft.RocksRaft.Bean{extraInterface} {{"); // extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly
             WriteDefine(sw);
             sw.WriteLine("}");

@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Onz;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // <enum name="eFlushPeriod" value="3"/>
 public interface BFuncProcedureReadOnly {
     long typeId();
@@ -13,7 +16,7 @@ public interface BFuncProcedureReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 

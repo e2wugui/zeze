@@ -4,9 +4,11 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Timer.BOfflineTimersReadOnly;
 // 账号离线时触发的定时器反向索引, key是账号名和客户端ID
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAccountClientId, Zeze.Builtin.Timer.BOfflineTimers>
         implements TableReadOnly<Zeze.Builtin.Timer.BAccountClientId, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {
     public tAccountOfflineTimers() {
@@ -67,7 +69,7 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
     }
 
     @Override
-    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Zeze.Builtin.Timer.BAccountClientId _k_) {
+    public @Nullable BOfflineTimersReadOnly getReadOnly(Zeze.Builtin.Timer.BAccountClientId _k_) {
         return get(_k_);
     }
 }

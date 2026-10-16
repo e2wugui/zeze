@@ -3,8 +3,9 @@ package Zeze.Builtin.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitReadOnly {
     public static final long TYPEID = 7395081565293443928L;
 
@@ -139,7 +140,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @SuppressWarnings("deprecation")
-    public BTransmit(String _ActionName_, long _Sender_, Zeze.Net.Binary _Parameter_, String _OnlineSetName_) {
+    public BTransmit(@Nullable String _ActionName_, long _Sender_, Zeze.Net.@Nullable Binary _Parameter_, @Nullable String _OnlineSetName_) {
         if (_ActionName_ == null)
             _ActionName_ = "";
         _ActionName = _ActionName_;
@@ -262,9 +263,9 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -360,7 +361,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTransmit))
@@ -521,7 +522,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _ActionName_, java.util.HashSet<Long> _Roles_, long _Sender_, Zeze.Net.Binary _Parameter_, String _OnlineSetName_) {
+    public Data(@Nullable String _ActionName_, java.util.@Nullable HashSet<Long> _Roles_, long _Sender_, Zeze.Net.@Nullable Binary _Parameter_, @Nullable String _OnlineSetName_) {
         if (_ActionName_ == null)
             _ActionName_ = "";
         _ActionName = _ActionName_;
@@ -727,7 +728,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTransmit.Data))

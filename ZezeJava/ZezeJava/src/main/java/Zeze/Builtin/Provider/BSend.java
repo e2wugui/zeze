@@ -3,8 +3,9 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     public static final long TYPEID = 545774009128015305L;
 
@@ -87,7 +88,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     @SuppressWarnings("deprecation")
-    public BSend(long _protocolType_, Zeze.Net.Binary _protocolWholeData_) {
+    public BSend(long _protocolType_, Zeze.Net.@Nullable Binary _protocolWholeData_) {
         _linkSids = new Zeze.Transaction.Collections.PList1<>(meta1_linkSids);
         _linkSids.variableId(1);
         _protocolType = _protocolType_;
@@ -196,9 +197,9 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -272,7 +273,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSend))
@@ -393,7 +394,7 @@ public static class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Long> _linkSids_, long _protocolType_, Zeze.Net.Binary _protocolWholeData_) {
+    public Data(java.util.@Nullable ArrayList<Long> _linkSids_, long _protocolType_, Zeze.Net.@Nullable Binary _protocolWholeData_) {
         if (_linkSids_ == null)
             _linkSids_ = new java.util.ArrayList<>();
         _linkSids = _linkSids_;
@@ -564,7 +565,7 @@ public static class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSend.Data))

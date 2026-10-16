@@ -4,8 +4,10 @@ package Zeze.Builtin.Game.Rank;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.Game.Rank.BRankListReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList>
         implements TableReadOnly<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly> {
     public trank() {
@@ -66,7 +68,7 @@ public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Z
     }
 
     @Override
-    public Zeze.Builtin.Game.Rank.BRankListReadOnly getReadOnly(Zeze.Builtin.Game.Rank.BConcurrentKey _k_) {
+    public @Nullable BRankListReadOnly getReadOnly(Zeze.Builtin.Game.Rank.BConcurrentKey _k_) {
         return get(_k_);
     }
 }

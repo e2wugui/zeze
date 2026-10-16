@@ -3,8 +3,9 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnly {
     public static final long TYPEID = -3414862908883999968L;
 
@@ -49,7 +50,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BLogin(String _SessionName_) {
+    public BLogin(@Nullable String _SessionName_) {
         if (_SessionName_ == null)
             _SessionName_ = "";
         _SessionName = _SessionName_;
@@ -115,9 +116,9 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -156,7 +157,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLogin))

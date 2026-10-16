@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveReadOnly {
     public static final long TYPEID = 1744858924397766646L;
 
@@ -112,9 +113,9 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -156,7 +157,7 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BEndMove))
@@ -235,7 +236,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.Dbh2.BBucketMeta.Data _To_) {
+    public Data(Zeze.Builtin.Dbh2.BBucketMeta.@Nullable Data _To_) {
         if (_To_ == null)
             _To_ = new Zeze.Builtin.Dbh2.BBucketMeta.Data();
         _To = _To_;
@@ -347,7 +348,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BEndMove.Data))

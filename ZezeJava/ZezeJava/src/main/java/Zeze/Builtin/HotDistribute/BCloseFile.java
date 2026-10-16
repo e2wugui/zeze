@@ -3,8 +3,9 @@ package Zeze.Builtin.HotDistribute;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFileReadOnly {
     public static final long TYPEID = -2195521187339200956L;
 
@@ -75,7 +76,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     }
 
     @SuppressWarnings("deprecation")
-    public BCloseFile(String _FileName_, Zeze.Net.Binary _Md5_) {
+    public BCloseFile(@Nullable String _FileName_, Zeze.Net.@Nullable Binary _Md5_) {
         if (_FileName_ == null)
             _FileName_ = "";
         _FileName = _FileName_;
@@ -165,9 +166,9 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -217,7 +218,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BCloseFile))
@@ -304,7 +305,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _FileName_, Zeze.Net.Binary _Md5_) {
+    public Data(@Nullable String _FileName_, Zeze.Net.@Nullable Binary _Md5_) {
         if (_FileName_ == null)
             _FileName_ = "";
         _FileName = _FileName_;
@@ -429,7 +430,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BCloseFile.Data))

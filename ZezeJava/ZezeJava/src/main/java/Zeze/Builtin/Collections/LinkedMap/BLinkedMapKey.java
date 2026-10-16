@@ -3,8 +3,9 @@ package Zeze.Builtin.Collections.LinkedMap;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
+@SuppressWarnings({"MethodMayBeStatic", "ConstantConditions", "ConstantValue", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BLinkedMapKey implements Zeze.Transaction.BeanKey, Comparable<BLinkedMapKey> {
     private String _Name; // LinkedMap的Name
     private String _ValueId; // LinkedMap的Key转成字符串类型
@@ -102,7 +103,7 @@ public final class BLinkedMapKey implements Zeze.Transaction.BeanKey, Comparable
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLinkedMapKey))

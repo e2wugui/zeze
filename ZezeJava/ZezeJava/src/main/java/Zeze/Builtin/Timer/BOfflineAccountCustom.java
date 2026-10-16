@@ -3,9 +3,10 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // Offline Timer
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implements BOfflineAccountCustomReadOnly {
     public static final long TYPEID = -8019295337231502138L;
 
@@ -175,7 +176,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     }
 
     @SuppressWarnings("deprecation")
-    public BOfflineAccountCustom(String _TimerName_, String _Account_, String _ClientId_, long _LoginVersion_, String _HandleName_) {
+    public BOfflineAccountCustom(@Nullable String _TimerName_, @Nullable String _Account_, @Nullable String _ClientId_, long _LoginVersion_, @Nullable String _HandleName_) {
         if (_TimerName_ == null)
             _TimerName_ = "";
         _TimerName = _TimerName_;
@@ -269,9 +270,9 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -366,7 +367,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BOfflineAccountCustom))

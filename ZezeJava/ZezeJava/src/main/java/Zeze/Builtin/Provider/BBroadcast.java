@@ -3,8 +3,9 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcastReadOnly {
     public static final long TYPEID = -6926497733546172658L;
 
@@ -118,7 +119,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
     }
 
     @SuppressWarnings("deprecation")
-    public BBroadcast(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_, boolean _onlySameVersion_) {
+    public BBroadcast(long _protocolType_, Zeze.Net.@Nullable Binary _protocolWholeData_, int _time_, boolean _onlySameVersion_) {
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)
             _protocolWholeData_ = Zeze.Net.Binary.Empty;
@@ -216,9 +217,9 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -290,7 +291,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BBroadcast))
@@ -411,7 +412,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_, boolean _onlySameVersion_) {
+    public Data(long _protocolType_, Zeze.Net.@Nullable Binary _protocolWholeData_, int _time_, boolean _onlySameVersion_) {
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)
             _protocolWholeData_ = Zeze.Net.Binary.Empty;
@@ -566,7 +567,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BBroadcast.Data))

@@ -3,8 +3,9 @@ package Zeze.Builtin.Token;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnly {
     public static final long TYPEID = -8399522464290840620L;
 
@@ -49,7 +50,7 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BTopic(String _topic_) {
+    public BTopic(@Nullable String _topic_) {
         if (_topic_ == null)
             _topic_ = "";
         _topic = _topic_;
@@ -132,9 +133,9 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -173,7 +174,7 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTopic))
@@ -242,7 +243,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _topic_) {
+    public Data(@Nullable String _topic_) {
         if (_topic_ == null)
             _topic_ = "";
         _topic = _topic_;
@@ -349,7 +350,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTopic.Data))

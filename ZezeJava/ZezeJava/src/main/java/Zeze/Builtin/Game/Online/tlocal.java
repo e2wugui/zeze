@@ -4,9 +4,11 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Game.Online.BLocalReadOnly;
 // 每个server各自保存不同表的模板表, 表名为"Zeze_Game_Online_tlocal__{onlineSetName}__{serverId}", key是角色ID
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tlocal extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly> {
     public tlocal() {
@@ -63,7 +65,7 @@ public final class tlocal extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
     }
 
     @Override
-    public Zeze.Builtin.Game.Online.BLocalReadOnly getReadOnly(Long _k_) {
+    public @Nullable BLocalReadOnly getReadOnly(Long _k_) {
         return get(_k_);
     }
 }

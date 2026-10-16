@@ -3,9 +3,10 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // 用于Zeze.Timer.tAccountTimers内存表的value, 只处理账号在线时的定时器
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BArchOnlineTimerReadOnly {
     public static final long TYPEID = -1410268970794351805L;
 
@@ -32,7 +33,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BArchOnlineTimer:TimerObj:" + _t_);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long _t_) {
+    public static Zeze.Transaction.@Nullable Bean createBeanFromSpecialTypeId_3(long _t_) {
         if (_t_ == -6995089347718168392L)
             return new Zeze.Builtin.Timer.BCronTimer();
         if (_t_ == 1832177636612857692L)
@@ -189,7 +190,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     }
 
     @SuppressWarnings("deprecation")
-    public BArchOnlineTimer(String _Account_, String _ClientId_, long _LoginVersion_, long _SerialId_) {
+    public BArchOnlineTimer(@Nullable String _Account_, @Nullable String _ClientId_, long _LoginVersion_, long _SerialId_) {
         if (_Account_ == null)
             _Account_ = "";
         _Account = _Account_;
@@ -275,9 +276,9 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -360,7 +361,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BArchOnlineTimer))

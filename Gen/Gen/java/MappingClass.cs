@@ -28,6 +28,7 @@ namespace Zeze.Gen.java
             }
             List<Bean> inherits = new() { Bean };
             var clsName = Bean.MappingClassName(inherits);
+            JSpecify.GenPackageInfo(Bean.Space, GenDir);
             using var sw = Bean.Space.OpenWriter(GenDir, $"Mapping{clsName}.java");
             if (sw == null)
                 return;

@@ -4,8 +4,10 @@ package Zeze.Builtin.Game.Bag;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.Game.Bag.BBagReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tbag extends TableX<Zeze.Builtin.Game.Bag.BBagKey, Zeze.Builtin.Game.Bag.BBag>
         implements TableReadOnly<Zeze.Builtin.Game.Bag.BBagKey, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly> {
     public tbag() {
@@ -67,7 +69,7 @@ public final class tbag extends TableX<Zeze.Builtin.Game.Bag.BBagKey, Zeze.Built
     }
 
     @Override
-    public Zeze.Builtin.Game.Bag.BBagReadOnly getReadOnly(Zeze.Builtin.Game.Bag.BBagKey _k_) {
+    public @Nullable BBagReadOnly getReadOnly(Zeze.Builtin.Game.Bag.BBagKey _k_) {
         return get(_k_);
     }
 }

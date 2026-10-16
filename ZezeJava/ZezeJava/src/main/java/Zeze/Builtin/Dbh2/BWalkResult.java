@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkResultReadOnly {
     public static final long TYPEID = -5849543620068480348L;
 
@@ -199,9 +200,9 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -275,7 +276,7 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BWalkResult))
@@ -382,7 +383,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Builtin.Dbh2.BWalkKeyValue.Data> _KeyValues_, boolean _BucketEnd_, boolean _BucketRefuse_) {
+    public Data(java.util.@Nullable ArrayList<Zeze.Builtin.Dbh2.BWalkKeyValue.Data> _KeyValues_, boolean _BucketEnd_, boolean _BucketRefuse_) {
         if (_KeyValues_ == null)
             _KeyValues_ = new java.util.ArrayList<>();
         _KeyValues = _KeyValues_;
@@ -558,7 +559,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BWalkResult.Data))

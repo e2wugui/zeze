@@ -28,6 +28,8 @@ namespace Zeze.Gen.java
 
         public void MakePartialInGen()
         {
+            JSpecify.GenPackageInfo(service.Project.Solution, genDir);
+
             using StreamWriter sw = service.Project.Solution.OpenWriter(genDir, service.Name + "Base.java");
             if (sw == null)
                 return;

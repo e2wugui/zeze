@@ -13,10 +13,10 @@ namespace Zeze.Gen.java
         {
             if (bean.MapKeyTypes.Count > 0)
             {
-                sw.WriteLine($"{prefix}private transient Object __zeze_map_key__;");
+                sw.WriteLine($"{prefix}private transient @Nullable Object __zeze_map_key__;");
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public Object mapKey() {{");
+                sw.WriteLine($"{prefix}public @Nullable Object mapKey() {{");
                 sw.WriteLine($"{prefix}    return __zeze_map_key__;");
                 sw.WriteLine($"{prefix}}}");
                 sw.WriteLine();

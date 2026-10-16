@@ -4,8 +4,10 @@ package Zeze.Builtin.AutoKey;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.AutoKey.BAutoKeyReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey>
         implements TableReadOnly<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey, Zeze.Builtin.AutoKey.BAutoKeyReadOnly> {
     public tAutoKeys() {
@@ -66,7 +68,7 @@ public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKey.BSeedKey, Zeze.
     }
 
     @Override
-    public Zeze.Builtin.AutoKey.BAutoKeyReadOnly getReadOnly(Zeze.Builtin.AutoKey.BSeedKey _k_) {
+    public @Nullable BAutoKeyReadOnly getReadOnly(Zeze.Builtin.AutoKey.BSeedKey _k_) {
         return get(_k_);
     }
 }

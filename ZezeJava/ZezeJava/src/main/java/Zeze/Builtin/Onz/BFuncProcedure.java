@@ -3,9 +3,10 @@ package Zeze.Builtin.Onz;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // <enum name="eFlushPeriod" value="3"/>
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFuncProcedureReadOnly {
     public static final long TYPEID = 2028535493874213798L;
 
@@ -145,7 +146,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     }
 
     @SuppressWarnings("deprecation")
-    public BFuncProcedure(long _OnzTid_, String _FuncName_, Zeze.Net.Binary _FuncArgument_, int _FlushMode_, int _FlushTimeout_) {
+    public BFuncProcedure(long _OnzTid_, @Nullable String _FuncName_, Zeze.Net.@Nullable Binary _FuncArgument_, int _FlushMode_, int _FlushTimeout_) {
         _OnzTid = _OnzTid_;
         if (_FuncName_ == null)
             _FuncName_ = "";
@@ -250,9 +251,9 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -335,7 +336,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BFuncProcedure))
@@ -479,7 +480,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _OnzTid_, String _FuncName_, Zeze.Net.Binary _FuncArgument_, int _FlushMode_, int _FlushTimeout_) {
+    public Data(long _OnzTid_, @Nullable String _FuncName_, Zeze.Net.@Nullable Binary _FuncArgument_, int _FlushMode_, int _FlushTimeout_) {
         _OnzTid = _OnzTid_;
         if (_FuncName_ == null)
             _FuncName_ = "";
@@ -652,7 +653,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BFuncProcedure.Data))

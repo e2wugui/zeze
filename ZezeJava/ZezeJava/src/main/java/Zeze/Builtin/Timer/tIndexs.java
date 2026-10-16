@@ -4,9 +4,11 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Timer.BIndexReadOnly;
 // timer索引, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID)
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
         implements TableReadOnly<String, Zeze.Builtin.Timer.BIndex, Zeze.Builtin.Timer.BIndexReadOnly> {
     public tIndexs() {
@@ -66,7 +68,7 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
     }
 
     @Override
-    public Zeze.Builtin.Timer.BIndexReadOnly getReadOnly(String _k_) {
+    public @Nullable BIndexReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

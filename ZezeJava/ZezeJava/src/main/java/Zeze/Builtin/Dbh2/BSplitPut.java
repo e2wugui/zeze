@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutReadOnly {
     public static final long TYPEID = 5420980520394401381L;
 
@@ -163,9 +164,9 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -233,7 +234,7 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSplitPut))
@@ -325,7 +326,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(boolean _fromTransaction_, java.util.HashMap<Zeze.Net.Binary, Zeze.Net.Binary> _Puts_) {
+    public Data(boolean _fromTransaction_, java.util.@Nullable HashMap<Zeze.Net.Binary, Zeze.Net.Binary> _Puts_) {
         _fromTransaction = _fromTransaction_;
         if (_Puts_ == null)
             _Puts_ = new java.util.HashMap<>();
@@ -483,7 +484,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSplitPut.Data))

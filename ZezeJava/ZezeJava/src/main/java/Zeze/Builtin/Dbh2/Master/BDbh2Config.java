@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BDbh2Config extends Zeze.Transaction.Bean implements BDbh2ConfigReadOnly {
     public static final long TYPEID = 1761638729449220740L;
 
@@ -101,7 +102,7 @@ public final class BDbh2Config extends Zeze.Transaction.Bean implements BDbh2Con
     }
 
     @SuppressWarnings("deprecation")
-    public BDbh2Config(String _Database_, String _Table_, String _RaftConfig_) {
+    public BDbh2Config(@Nullable String _Database_, @Nullable String _Table_, @Nullable String _RaftConfig_) {
         if (_Database_ == null)
             _Database_ = "";
         _Database = _Database_;
@@ -198,9 +199,9 @@ public final class BDbh2Config extends Zeze.Transaction.Bean implements BDbh2Con
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -261,7 +262,7 @@ public final class BDbh2Config extends Zeze.Transaction.Bean implements BDbh2Con
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BDbh2Config))
@@ -370,7 +371,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Database_, String _Table_, String _RaftConfig_) {
+    public Data(@Nullable String _Database_, @Nullable String _Table_, @Nullable String _RaftConfig_) {
         if (_Database_ == null)
             _Database_ = "";
         _Database = _Database_;
@@ -513,7 +514,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BDbh2Config.Data))

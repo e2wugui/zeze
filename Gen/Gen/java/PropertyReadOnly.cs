@@ -22,7 +22,8 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}void buildString(StringBuilder _s_, int _l_);");
             sw.WriteLine($"{prefix}long objectId();");
             sw.WriteLine($"{prefix}int variableId();");
-            sw.WriteLine($"{prefix}Zeze.Transaction.TableKey tableKey();");
+            // 与基类 Zeze.Transaction.Bean.tableKey() 的可空契约保持一致（rootInfo 未定时返回 null）。
+            sw.WriteLine($"{prefix}@Nullable TableKey tableKey();");
             sw.WriteLine($"{prefix}boolean isManaged();");
             sw.WriteLine($"{prefix}java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();");
             if (bean.Variables.Count > 0)

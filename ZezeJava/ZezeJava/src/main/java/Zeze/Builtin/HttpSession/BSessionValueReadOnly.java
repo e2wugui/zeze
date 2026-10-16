@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.HttpSession;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 public interface BSessionValueReadOnly {
     long typeId();
     int preAllocSize();
@@ -11,7 +14,7 @@ public interface BSessionValueReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 

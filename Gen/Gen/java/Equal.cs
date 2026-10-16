@@ -17,7 +17,7 @@ namespace Zeze.Gen.java
         public static void Make(BeanKey bean, StreamWriter sw, string prefix, bool isData)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public boolean equals(Object _o_) {");
+            sw.WriteLine(prefix + "public boolean equals(@Nullable Object _o_) {");
             if (bean.Variables.Count > 0)
             {
                 sw.WriteLine(prefix + "    if (_o_ == this)");
@@ -47,7 +47,7 @@ namespace Zeze.Gen.java
         {
             var className = isData ? bean.Name + ".Data" : bean.Name;
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public boolean equals(Object _o_) {");
+            sw.WriteLine(prefix + "public boolean equals(@Nullable Object _o_) {");
             if (bean.Variables.Count > 0)
             {
                 sw.WriteLine(prefix + "    if (_o_ == this)");

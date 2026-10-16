@@ -4,9 +4,11 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly;
 // key: LinkedMap的Name
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap>
         implements TableReadOnly<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly> {
     public tLinkedMaps() {
@@ -67,7 +69,7 @@ public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.L
     }
 
     @Override
-    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly getReadOnly(String _k_) {
+    public @Nullable BLinkedMapReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

@@ -4,9 +4,11 @@ package Zeze.Builtin.Collections.Queue;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Collections.Queue.BQueueReadOnly;
 // key: Queue的Name
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue.BQueue>
         implements TableReadOnly<String, Zeze.Builtin.Collections.Queue.BQueue, Zeze.Builtin.Collections.Queue.BQueueReadOnly> {
     public tQueues() {
@@ -69,7 +71,7 @@ public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue
     }
 
     @Override
-    public Zeze.Builtin.Collections.Queue.BQueueReadOnly getReadOnly(String _k_) {
+    public @Nullable BQueueReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

@@ -4,8 +4,10 @@ package Zeze.Builtin.RedoQueue;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.RedoQueue.BTaskIdReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueue.BTaskId>
         implements TableReadOnly<String, Zeze.Builtin.RedoQueue.BTaskId, Zeze.Builtin.RedoQueue.BTaskIdReadOnly> {
     public tQueueLastTaskId() {
@@ -62,7 +64,7 @@ public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueu
     }
 
     @Override
-    public Zeze.Builtin.RedoQueue.BTaskIdReadOnly getReadOnly(String _k_) {
+    public @Nullable BTaskIdReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

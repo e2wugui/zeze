@@ -3,8 +3,9 @@ package Zeze.Builtin.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implements BReliableNotifyConfirmReadOnly {
     public static final long TYPEID = 7657736965823286884L;
 
@@ -95,7 +96,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
     }
 
     @SuppressWarnings("deprecation")
-    public BReliableNotifyConfirm(String _ClientId_, long _ReliableNotifyConfirmIndex_, boolean _Sync_) {
+    public BReliableNotifyConfirm(@Nullable String _ClientId_, long _ReliableNotifyConfirmIndex_, boolean _Sync_) {
         if (_ClientId_ == null)
             _ClientId_ = "";
         _ClientId = _ClientId_;
@@ -169,9 +170,9 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -232,7 +233,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BReliableNotifyConfirm))

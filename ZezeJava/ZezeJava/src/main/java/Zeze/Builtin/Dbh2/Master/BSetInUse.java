@@ -3,9 +3,10 @@ package Zeze.Builtin.Dbh2.Master;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // Zeze.Transaction.Database.Operates 实现协议
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BSetInUse extends Zeze.Transaction.Bean implements BSetInUseReadOnly {
     public static final long TYPEID = -6535947444840410706L;
 
@@ -81,7 +82,7 @@ public final class BSetInUse extends Zeze.Transaction.Bean implements BSetInUseR
     }
 
     @SuppressWarnings("deprecation")
-    public BSetInUse(int _LocalId_, String _Global_) {
+    public BSetInUse(int _LocalId_, @Nullable String _Global_) {
         _LocalId = _LocalId_;
         if (_Global_ == null)
             _Global_ = "";
@@ -169,9 +170,9 @@ public final class BSetInUse extends Zeze.Transaction.Bean implements BSetInUseR
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -221,7 +222,7 @@ public final class BSetInUse extends Zeze.Transaction.Bean implements BSetInUseR
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSetInUse))
@@ -321,7 +322,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _LocalId_, String _Global_) {
+    public Data(int _LocalId_, @Nullable String _Global_) {
         _LocalId = _LocalId_;
         if (_Global_ == null)
             _Global_ = "";
@@ -444,7 +445,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSetInUse.Data))

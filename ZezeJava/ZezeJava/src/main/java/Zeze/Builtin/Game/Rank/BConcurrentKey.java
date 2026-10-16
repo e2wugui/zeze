@@ -3,8 +3,9 @@ package Zeze.Builtin.Game.Rank;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
+@SuppressWarnings({"MethodMayBeStatic", "ConstantConditions", "ConstantValue", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparable<BConcurrentKey> {
     public static final int TimeTypeTotal = 0; // 所有时间
     public static final int TimeTypeDay = 1; // 每天：Year为当前时间的年份，Offset为天
@@ -153,7 +154,7 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BConcurrentKey))

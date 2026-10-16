@@ -3,8 +3,9 @@ package Zeze.Builtin.Onz;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSagaEndReadOnly {
     public static final long TYPEID = -5966280333833227562L;
 
@@ -95,7 +96,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
     }
 
     @SuppressWarnings("deprecation")
-    public BFuncSagaEnd(long _OnzTid_, boolean _Cancel_, Zeze.Net.Binary _FuncArgument_) {
+    public BFuncSagaEnd(long _OnzTid_, boolean _Cancel_, Zeze.Net.@Nullable Binary _FuncArgument_) {
         _OnzTid = _OnzTid_;
         _Cancel = _Cancel_;
         if (_FuncArgument_ == null)
@@ -188,9 +189,9 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -251,7 +252,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BFuncSagaEnd))
@@ -355,7 +356,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _OnzTid_, boolean _Cancel_, Zeze.Net.Binary _FuncArgument_) {
+    public Data(long _OnzTid_, boolean _Cancel_, Zeze.Net.@Nullable Binary _FuncArgument_) {
         _OnzTid = _OnzTid_;
         _Cancel = _Cancel_;
         if (_FuncArgument_ == null)
@@ -494,7 +495,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BFuncSagaEnd.Data))

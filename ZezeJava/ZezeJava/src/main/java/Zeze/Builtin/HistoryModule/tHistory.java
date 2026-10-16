@@ -4,8 +4,10 @@ package Zeze.Builtin.HistoryModule;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.HistoryModule.BLogChangesReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tHistory extends TableX<Zeze.Util.Id128, Zeze.Builtin.HistoryModule.BLogChanges>
         implements TableReadOnly<Zeze.Util.Id128, Zeze.Builtin.HistoryModule.BLogChanges, Zeze.Builtin.HistoryModule.BLogChangesReadOnly> {
     public tHistory() {
@@ -70,7 +72,7 @@ public final class tHistory extends TableX<Zeze.Util.Id128, Zeze.Builtin.History
     }
 
     @Override
-    public Zeze.Builtin.HistoryModule.BLogChangesReadOnly getReadOnly(Zeze.Util.Id128 _k_) {
+    public @Nullable BLogChangesReadOnly getReadOnly(Zeze.Util.Id128 _k_) {
         return get(_k_);
     }
 }

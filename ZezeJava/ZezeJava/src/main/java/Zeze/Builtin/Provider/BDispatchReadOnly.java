@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Provider;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // link to gs
 public interface BDispatchReadOnly {
     long typeId();
@@ -13,7 +16,7 @@ public interface BDispatchReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 

@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalkKeyResultReadOnly {
     public static final long TYPEID = 7613011447108499443L;
 
@@ -191,9 +192,9 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -267,7 +268,7 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BWalkKeyResult))
@@ -374,7 +375,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Net.Binary> _Keys_, boolean _BucketEnd_, boolean _BucketRefuse_) {
+    public Data(java.util.@Nullable ArrayList<Zeze.Net.Binary> _Keys_, boolean _BucketEnd_, boolean _BucketRefuse_) {
         if (_Keys_ == null)
             _Keys_ = new java.util.ArrayList<>();
         _Keys = _Keys_;
@@ -543,7 +544,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BWalkKeyResult.Data))

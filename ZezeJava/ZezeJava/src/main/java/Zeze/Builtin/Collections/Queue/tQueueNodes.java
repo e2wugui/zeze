@@ -4,8 +4,10 @@ package Zeze.Builtin.Collections.Queue;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode>
         implements TableReadOnly<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode, Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly> {
     public tQueueNodes() {
@@ -68,7 +70,7 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
     }
 
     @Override
-    public Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly getReadOnly(Zeze.Builtin.Collections.Queue.BQueueNodeKey _k_) {
+    public @Nullable BQueueNodeReadOnly getReadOnly(Zeze.Builtin.Collections.Queue.BQueueNodeKey _k_) {
         return get(_k_);
     }
 }

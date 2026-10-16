@@ -3,8 +3,9 @@ package Zeze.Builtin.LoginQueue;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BLoginToken extends Zeze.Transaction.Bean implements BLoginTokenReadOnly {
     public static final long TYPEID = 4624437118588347002L;
 
@@ -98,7 +99,7 @@ public final class BLoginToken extends Zeze.Transaction.Bean implements BLoginTo
     }
 
     @SuppressWarnings("deprecation")
-    public BLoginToken(Zeze.Net.Binary _Token_, String _LinkIp_, int _LinkPort_) {
+    public BLoginToken(Zeze.Net.@Nullable Binary _Token_, @Nullable String _LinkIp_, int _LinkPort_) {
         if (_Token_ == null)
             _Token_ = Zeze.Net.Binary.Empty;
         _Token = _Token_;
@@ -193,9 +194,9 @@ public final class BLoginToken extends Zeze.Transaction.Bean implements BLoginTo
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -256,7 +257,7 @@ public final class BLoginToken extends Zeze.Transaction.Bean implements BLoginTo
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLoginToken))
@@ -365,7 +366,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _Token_, String _LinkIp_, int _LinkPort_) {
+    public Data(Zeze.Net.@Nullable Binary _Token_, @Nullable String _LinkIp_, int _LinkPort_) {
         if (_Token_ == null)
             _Token_ = Zeze.Net.Binary.Empty;
         _Token = _Token_;
@@ -506,7 +507,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLoginToken.Data))

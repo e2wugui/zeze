@@ -3,9 +3,10 @@ package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // tables
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlineSharedReadOnly {
     public static final long TYPEID = -281067677727319713L;
 
@@ -149,7 +150,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @SuppressWarnings("deprecation")
-    public BOnlineShared(String _Account_, Zeze.Builtin.Game.Online.BLink _Link_, long _LoginVersion_, long _LogoutVersion_) {
+    public BOnlineShared(@Nullable String _Account_, Zeze.Builtin.Game.Online.@Nullable BLink _Link_, long _LoginVersion_, long _LogoutVersion_) {
         if (_Account_ == null)
             _Account_ = "";
         _Account = _Account_;
@@ -237,9 +238,9 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -325,7 +326,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BOnlineShared))

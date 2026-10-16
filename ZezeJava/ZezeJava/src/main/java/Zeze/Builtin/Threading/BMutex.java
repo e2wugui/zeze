@@ -3,8 +3,9 @@ package Zeze.Builtin.Threading;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnly {
     public static final long TYPEID = 7224301299276482451L;
 
@@ -76,7 +77,7 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BMutex(Zeze.Builtin.Threading.BLockName _LockName_, int _TimeoutMs_) {
+    public BMutex(Zeze.Builtin.Threading.@Nullable BLockName _LockName_, int _TimeoutMs_) {
         if (_LockName_ == null)
             _LockName_ = new Zeze.Builtin.Threading.BLockName();
         _LockName = _LockName_;
@@ -166,9 +167,9 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -221,7 +222,7 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BMutex))
@@ -316,7 +317,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.Threading.BLockName _LockName_, int _TimeoutMs_) {
+    public Data(Zeze.Builtin.Threading.@Nullable BLockName _LockName_, int _TimeoutMs_) {
         if (_LockName_ == null)
             _LockName_ = new Zeze.Builtin.Threading.BLockName();
         _LockName = _LockName_;
@@ -444,7 +445,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BMutex.Data))

@@ -3,9 +3,10 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // 用于BTimer.CustomData,关联角色的offline timer上下文数据
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements BOfflineRoleCustomReadOnly {
     public static final long TYPEID = -124522910617189691L;
 
@@ -173,7 +174,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     }
 
     @SuppressWarnings("deprecation")
-    public BOfflineRoleCustom(String _TimerName_, long _RoleId_, long _LoginVersion_, String _HandleName_, String _OnlineSetName_) {
+    public BOfflineRoleCustom(@Nullable String _TimerName_, long _RoleId_, long _LoginVersion_, @Nullable String _HandleName_, @Nullable String _OnlineSetName_) {
         if (_TimerName_ == null)
             _TimerName_ = "";
         _TimerName = _TimerName_;
@@ -265,9 +266,9 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -362,7 +363,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BOfflineRoleCustom))

@@ -34,9 +34,10 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             if (withUnknown)
             {
-                sw.WriteLine(prefix + "private byte[] _unknown_;");
+                // 数组引用可空须写成 byte @Nullable []（前缀写法会注解到基元元素上）。
+                sw.WriteLine(prefix + "private byte @Nullable [] _unknown_;");
                 sw.WriteLine();
-                sw.WriteLine(prefix + "public byte[] unknown() {");
+                sw.WriteLine(prefix + "public byte @Nullable [] unknown() {");
                 sw.WriteLine(prefix + "    return _unknown_;");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();

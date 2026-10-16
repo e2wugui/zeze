@@ -14,6 +14,8 @@ namespace Zeze.Gen.java
 
         public void Make(string baseDir)
         {
+            JSpecify.GenPackageInfo(p.Space, baseDir);
+
             using var sw = p.Space.OpenWriter(baseDir, p.Name + ".java");
             if (sw == null)
                 return;

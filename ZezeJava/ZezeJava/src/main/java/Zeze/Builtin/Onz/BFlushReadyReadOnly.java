@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Onz;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // Flush阶段控制协议
 public interface BFlushReadyReadOnly {
     long typeId();
@@ -13,7 +16,7 @@ public interface BFlushReadyReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 

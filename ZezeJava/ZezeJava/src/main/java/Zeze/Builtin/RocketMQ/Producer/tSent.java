@@ -4,8 +4,10 @@ package Zeze.Builtin.RocketMQ.Producer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResultReadOnly;
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult>
         implements TableReadOnly<String, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResultReadOnly> {
     public tSent() {
@@ -63,7 +65,7 @@ public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.B
     }
 
     @Override
-    public Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResultReadOnly getReadOnly(String _k_) {
+    public @Nullable BTransactionMessageResultReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

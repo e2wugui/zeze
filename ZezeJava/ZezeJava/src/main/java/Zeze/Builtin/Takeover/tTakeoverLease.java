@@ -4,9 +4,11 @@ package Zeze.Builtin.Takeover;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
+import Zeze.Builtin.Takeover.BTakeoverLeaseReadOnly;
 // key是serverId，与数据表同库：裁决与搬运同一zeze事务
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tTakeoverLease extends TableX<Integer, Zeze.Builtin.Takeover.BTakeoverLease>
         implements TableReadOnly<Integer, Zeze.Builtin.Takeover.BTakeoverLease, Zeze.Builtin.Takeover.BTakeoverLeaseReadOnly> {
     public tTakeoverLease() {
@@ -62,7 +64,7 @@ public final class tTakeoverLease extends TableX<Integer, Zeze.Builtin.Takeover.
     }
 
     @Override
-    public Zeze.Builtin.Takeover.BTakeoverLeaseReadOnly getReadOnly(Integer _k_) {
+    public @Nullable BTakeoverLeaseReadOnly getReadOnly(Integer _k_) {
         return get(_k_);
     }
 }

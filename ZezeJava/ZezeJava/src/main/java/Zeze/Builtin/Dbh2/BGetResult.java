@@ -3,8 +3,9 @@ package Zeze.Builtin.Dbh2;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BGetResult extends Zeze.Transaction.Bean implements BGetResultReadOnly {
     public static final long TYPEID = -3248537090181056461L;
 
@@ -72,7 +73,7 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     }
 
     @SuppressWarnings("deprecation")
-    public BGetResult(boolean _Null_, Zeze.Net.Binary _Value_) {
+    public BGetResult(boolean _Null_, Zeze.Net.@Nullable Binary _Value_) {
         _Null = _Null_;
         if (_Value_ == null)
             _Value_ = Zeze.Net.Binary.Empty;
@@ -160,9 +161,9 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -212,7 +213,7 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetResult))
@@ -294,7 +295,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(boolean _Null_, Zeze.Net.Binary _Value_) {
+    public Data(boolean _Null_, Zeze.Net.@Nullable Binary _Value_) {
         _Null = _Null_;
         if (_Value_ == null)
             _Value_ = Zeze.Net.Binary.Empty;
@@ -417,7 +418,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetResult.Data))
