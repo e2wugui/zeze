@@ -215,7 +215,7 @@ public final class Transaction {
 			// 才暴露，难定位。
 			throw new IllegalStateException("commit: savepoints is empty. begin/commit not paired.");
 		if (saveSize > 1)
-			savepoints.get(saveSize - 2).mergeCommitFrom(savepoints.remove(savepoints.size() - 1)); // 嵌套事务，把日志合并到上一层。
+			savepoints.get(saveSize - 2).mergeCommitFrom(savepoints.removeLast()); // 嵌套事务，把日志合并到上一层。
 		// 最外层存储过程提交在 Perform 中处理
 	}
 
