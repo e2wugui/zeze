@@ -58,10 +58,10 @@ public final class TestTaskOneByOneByKey2BarrierCancel {
 		// 修复前：毒桶队列头的屏障任务押死认领，该桶映射的 key 计数短缺。
 		for (int k = 0; k < 64; k++) {
 			final var kk = k;
-			key2.Execute(kk, () -> {
+			TaskSpec.ofFunc0(() -> {
 				ranCount.incrementAndGet();
 				return null;
-			});
+			}).executeOneByOne(kk, key2);
 		}
 		assertEquals(64, ranCount.get(), "屏障失败后全部桶必须继续可用（FND12 util-03）");
 	}

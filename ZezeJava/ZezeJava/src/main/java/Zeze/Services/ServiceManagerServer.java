@@ -17,7 +17,6 @@ import Zeze.Component.ThreadingServer;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
@@ -762,7 +761,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	/** 档间超时：无回执升到"更高存活version的最小值"；没有更高档=放弃（scan兜底）。 */
 	private void scheduleNextTier(int deadServerId, long deadSessionId, SuspectTier tier) {
-		tier.timer = Task.scheduleUnsafe(conf.takeoverNotifyStepMs, () -> {
+		tier.timer = TaskSpec.ofAction(() -> {
 			var cur = suspectTiers.get(deadServerId);
 			if (cur != tier)
 				return; // 已被回执移除/被新周期覆盖
@@ -790,7 +789,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			cur.tierVersion = next[0];
 			broadcastSuspectTier(deadServerId, deadSessionIdRef, cur.deadVersion, next[0]);
 			scheduleNextTier(deadServerId, deadSessionIdRef, cur);
-		});
+		}).scheduleNow(conf.takeoverNotifyStepMs);
 	}
 
 	// 只写session上字段（Direct派发内完成、无锁）。回执到达即整条梯队停止（需求④）。

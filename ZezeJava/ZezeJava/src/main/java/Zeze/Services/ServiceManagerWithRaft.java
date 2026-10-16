@@ -621,7 +621,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	/** 档间超时：无回执升到"更高存活version的最小值"；没有更高档=放弃（scan兜底）。 */
 	private void scheduleNextTier(int deadServerId, long deadSessionId, SuspectTier tier) {
-		tier.timer = Zeze.Util.Task.scheduleUnsafe(takeoverNotifyStepMs, () -> {
+		tier.timer = TaskSpec.ofAction(() -> {
 			var cur = suspectTiers.get(deadServerId);
 			if (cur != tier)
 				return; // 已被回执移除/被新周期覆盖
@@ -649,7 +649,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			cur.tierVersion = next[0];
 			broadcastSuspectTier(deadServerId, deadSessionIdRef, cur.deadVersion, next[0]);
 			scheduleNextTier(deadServerId, deadSessionIdRef, cur);
-		});
+		}).scheduleNow(takeoverNotifyStepMs);
 	}
 
 	@Override
