@@ -475,7 +475,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				return;
 			inputCodecChain = creator.apply(this, Objects.requireNonNull(inputBuffer));
 			securityCodecInstalled((byte)1);
-			//noinspection DataFlowIssue
 			logger.info("setInputSecurityCodec: {} class={}", this, inputCodecChain.getClass().getName());
 		});
 	}
@@ -527,7 +526,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				return;
 			outputCodecChain = creator.apply(this, Objects.requireNonNull(outputBuffer));
 			securityCodecInstalled((byte)2);
-			//noinspection DataFlowIssue
 			logger.info("setOutputSecurityCodec: {} class={}", this, outputCodecChain.getClass().getName());
 		});
 	}

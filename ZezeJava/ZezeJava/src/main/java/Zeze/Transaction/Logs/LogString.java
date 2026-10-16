@@ -4,7 +4,6 @@ import java.util.Objects;
 
 import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import Zeze.Net.Binary;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;

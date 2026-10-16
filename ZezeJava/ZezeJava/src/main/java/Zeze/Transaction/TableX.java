@@ -10,7 +10,6 @@ import java.util.function.Supplier;
 import Zeze.Application;
 import Zeze.Component.AutoKey;
 import Zeze.Net.Binary;
-import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManager.Reduce;

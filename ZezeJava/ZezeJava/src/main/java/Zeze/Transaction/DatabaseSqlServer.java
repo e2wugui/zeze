@@ -3,7 +3,6 @@ package Zeze.Transaction;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -329,7 +328,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 
-				//noinspection SpellCheckingInspection
 				String TableInstances = "if not exists (select * from sysobjects where name='_ZezeInstances_' and xtype='U')"
 						+ " CREATE TABLE _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)";
 				try (var cmd = connection.prepareStatement(TableInstances)) {

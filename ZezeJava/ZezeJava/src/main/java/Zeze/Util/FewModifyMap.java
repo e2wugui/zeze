@@ -47,7 +47,6 @@ public class FewModifyMap<K extends @Nullable Object, V extends @Nullable Object
 					// HashMap 拷贝允许 null value（对齐 FewModifySortedMap 的 TreeMap 快照）：
 					// Map.copyOf 遇 null value/key 抛 NPE 且快照建不成（read 恒 null），此后任意读
 					// 方法重复抛 NPE，读侧永久瘫痪。unmodifiable 包装保持快照只读契约不弱化。
-					//noinspection Java9CollectionFactory
 					read = r = Collections.unmodifiableMap(new HashMap<>(write));
 				}
 			} finally {

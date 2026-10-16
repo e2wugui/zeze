@@ -9,7 +9,6 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import java.util.Map.Entry;
 
 import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;

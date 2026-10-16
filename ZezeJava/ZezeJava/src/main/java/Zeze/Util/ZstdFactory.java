@@ -132,7 +132,6 @@ public final class ZstdFactory {
 				ctxPtr = 0;
 				if (ptr != 0) {
 					try {
-						//noinspection UnusedAssignment
 						int r = (int)mhFreeCStream.invokeExact(ptr);
 					} catch (Throwable ignored) {
 						// 释放失败无法补救，优先重抛原始构造异常
@@ -393,7 +392,6 @@ public final class ZstdFactory {
 				ctxPtr = 0;
 				if (ptr != 0) {
 					try {
-						//noinspection UnusedAssignment
 						int r = (int)mhFreeDStream.invokeExact(ptr);
 					} catch (Throwable ignored) {
 						// 释放失败无法补救，优先重抛原始构造异常

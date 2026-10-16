@@ -57,7 +57,7 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 					var pos = (this.position + i) % (range.length * 8);
 					var index = pos / 8;
 					var bit = 1 << (pos % 8);
-					range[index] &= ~bit;
+					range[index] = (byte)(range[index] & ~bit);
 				}
 			}
 			long newPosition = (long)position + increase; // int 相加溢出会回绕成负下标
@@ -69,7 +69,7 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 			{
 				var index = position / 8;
 				var bit = 1 << (position % 8);
-				range[index] |= bit;
+				range[index] = (byte)(range[index] | bit);
 				max = serialId;
 			}
 			return false; // allow
@@ -87,7 +87,7 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 		var bit = 1 << (pos % 8);
 		if ((range[index] & bit) != 0)
 			return true; // duplicate
-		range[index] |= bit;
+		range[index] = (byte)(range[index] | bit);
 		return false;
 	}
 }

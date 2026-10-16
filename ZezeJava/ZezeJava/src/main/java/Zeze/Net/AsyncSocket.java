@@ -64,7 +64,6 @@ public abstract class AsyncSocket {
 
 	protected AsyncSocket(@Nullable Service service) {
 		this.service = service;
-		//noinspection ConstantValue
 		this.sessionId = service != null ? service.nextSessionId() : nullServiceSessionIdGen.getAndIncrement();
 	}
 

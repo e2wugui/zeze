@@ -50,12 +50,12 @@ public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
 
 	@Override
 	public @Nullable V get(Object key) {
-		return kt.get((K)key);
+		return kt.get(key);
 	}
 
 	@Override
 	public boolean containsKey(Object key) {
-		return kt.containsKey((K)key);
+		return kt.containsKey(key);
 	}
 
 	@Override

@@ -946,7 +946,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public long onSendError(String account, long roleId,
-							String linkName, long linkSid) throws Exception {
+							String linkName, long linkSid) {
 		// 幂等标记器契约（极简）：onSendError只做"当前link的首个失败报告"标记eLinkBroken，
 		// 不触发登出/事件/清理/调度，全部由既有驱动收敛：
 		//  - 登出：linkBroken的DelayLogout宽限timer；timer失败残留→verifyLocal的eLinkBroken

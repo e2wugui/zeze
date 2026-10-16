@@ -128,7 +128,6 @@ public final class OutputBuffer implements Codec, Closeable {
 				var tail = Objects.requireNonNull(this.tail); // 队列不空时,tail肯定不为null
 				outputs[0] = head;
 				outputs[1] = tail;
-				//noinspection DataFlowIssue
 				int writePos = tail.position();
 				tail.limit(writePos);
 				tail.position(0);

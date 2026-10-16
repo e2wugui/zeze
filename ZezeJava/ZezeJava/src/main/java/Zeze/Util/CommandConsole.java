@@ -177,7 +177,6 @@ public class CommandConsole {
 		try {
 			words = parseWords(line);
 		} catch (IllegalStateException ex) { // unclosed quote
-			//noinspection ConstantValue
 			if (sender != null)
 				sender.Send("error command format: " + line + "\r\n");
 			return;
@@ -188,7 +187,6 @@ public class CommandConsole {
 			return;
 		var cmd = commands.get(words.getFirst());
 		if (cmd == null) {
-			//noinspection ConstantValue
 			if (sender != null) // sender 可为 null（如类内 main 以 cc.input(null, ...) 驱动）
 				sender.Send("unknown command: " + words.getFirst() + "\r\n");
 			return;
@@ -196,7 +194,6 @@ public class CommandConsole {
 		try {
 			cmd.run(sender, words.subList(1, words.size()));
 		} catch (Throwable ex) { // print stacktrace.
-			//noinspection ConstantValue
 			if (sender != null) { // 同上：与上面的判空保持一致
 				sender.Send(Str.stacktrace(ex));
 				sender.Send("\r\n" + line + "\r\n");

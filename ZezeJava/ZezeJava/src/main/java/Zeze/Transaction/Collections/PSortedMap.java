@@ -18,7 +18,6 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
-import java.util.Map.Entry;
 
 /** 事务 SortedMap 基类：基于 pcollections 持久化有序映射的 NavigableMap 视图，托管下的修改经 LogSortedMap 记账。 */
 public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
