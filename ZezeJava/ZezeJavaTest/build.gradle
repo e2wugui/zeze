@@ -115,8 +115,8 @@ sourceSets {
 }
 
 // gradle test：只跑自包含测试（@Fast / @Tag("fast")），不依赖任何外部进程。
-// @Extra（不常用功能族：history/dbh2/mq/rocketmq；zoker 与 log4jquery 族已随 ZokerManager
-// 迁至 projects/ZokerManager 自有构建）被排除——它们由
+// @Extra（不常用功能族：history/dbh2/rocketmq；zoker 与 log4jquery 族已随 ZokerManager
+// 迁至 projects/ZokerManager 自有构建；Zeze.MQ 模块整体删除 2026-10-16）被排除——它们由
 // extraTest 按需执行，不进默认链（test.bat 亦不含）。
 tasks.named('test', Test) {
     useJUnitPlatform {
