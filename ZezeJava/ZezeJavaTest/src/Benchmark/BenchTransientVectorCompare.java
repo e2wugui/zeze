@@ -57,6 +57,11 @@ public class BenchTransientVectorCompare {
 
 	/** 防止死码消除的结果汇聚点。 */
 	public static volatile long sink;
+	/** 运行时读 kotlinx 内核 jar 版本（基准头部标签；曾硬编码 0.3.7 在升级 A/B 时误导过归档）。 */
+	private static String kxVersion() {
+		var v = kotlinx.collections.immutable.PersistentList.class.getPackage().getImplementationVersion();
+		return v != null ? v : "unknown";
+	}
 
 	private interface Lib {
 		String name();
@@ -674,7 +679,7 @@ public class BenchTransientVectorCompare {
 		System.out.printf("JVM=%s maxHeap=%,dMB N=%,d OPS=%,d CYCLES=%d BEGIN_ITERS=%,d%n",
 				System.getProperty("java.vm.version"), Runtime.getRuntime().maxMemory() >> 20,
 				N, OPS, CYCLES, BEGIN_ITERS);
-		System.out.println("Clojure=1.12.0(PersistentVector transient)  kotlinx=0.3.7(PersistentList builder)  "
+		System.out.println("Clojure=1.12.0(PersistentVector transient)  kotlinx=" + kxVersion() + "(PersistentList builder)  "
 				+ "pcollections=4.0.2(TreePVector,无快照)  ArrayList=参考(原地写)");
 		System.out.println("insertMid/removeMid：Clojure PersistentVector 无此 API 跳过；ArrayList 参考 O(n) 搬移\n");
 

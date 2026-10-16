@@ -20,6 +20,10 @@ import org.pcollections.PVector;
  *       （TreePVector/HashPMap/MapPSet），行为与历史版本完全一致，零包装开销。</li>
  * </ul>
  *
+ * <p>内核 kotlinx.collections.immutable 0.5.2（2026-10-16 升级裁定，生产不开 -ea 时与 0.3.7
+ * 持平或略优；其热路径 assert 仅在 -ea 车道付出 ~2× 容器热路径代价，详见 BENCHMARK.md
+ * "持久化容器后端对照"节；适配器用旧名 API——0.5.x 的新名 putting 系委托旧名，跨版兼容）。
+ *
  * <p>事务集合（Zeze.Transaction.Collections）的写路径依赖"无变更操作返回同一实例"（{@code !=}
  * 判定）检测无变化，三个后端都必须保持该契约（回归测试钉住）。PSortedMap 族不经此工厂，
  * 永久保留 pcollections TreePMap。

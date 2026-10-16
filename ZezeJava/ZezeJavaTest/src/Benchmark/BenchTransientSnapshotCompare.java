@@ -56,6 +56,11 @@ public class BenchTransientSnapshotCompare {
 
 	/** 防止死码消除的结果汇聚点。 */
 	public static volatile long sink;
+	/** 运行时读 kotlinx 内核 jar 版本（基准头部标签；曾硬编码 0.3.7 在升级 A/B 时误导过归档）。 */
+	private static String kxVersion() {
+		var v = kotlinx.collections.immutable.PersistentList.class.getPackage().getImplementationVersion();
+		return v != null ? v : "unknown";
+	}
 
 	private interface Lib {
 		String name();
@@ -514,7 +519,7 @@ public class BenchTransientSnapshotCompare {
 		System.out.printf("JVM=%s maxHeap=%,dMB N=%,d OPS=%,d CYCLES=%d BEGIN_ITERS=%,d%n",
 				System.getProperty("java.vm.version"), Runtime.getRuntime().maxMemory() >> 20,
 				N, OPS, CYCLES, BEGIN_ITERS);
-		System.out.println("Clojure=1.12.0(transient)  kotlinx=0.3.7(builder/CHAMP)  "
+		System.out.println("Clojure=1.12.0(transient)  kotlinx=" + kxVersion() + "(builder/CHAMP)  "
 				+ "pcollections=4.0.2(HashTreePMap,无快照)  HashMap=参考(原地写)\n");
 
 		for (var lib : new Lib[] { CLOJURE, KOTLINX, PCOLLECTIONS, HASHMAP }) {

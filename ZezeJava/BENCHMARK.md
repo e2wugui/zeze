@@ -310,13 +310,20 @@ plusAll"（经典侧 5 文件，RR 侧 raft 路径不动），ktt 下批量构�
 - **裁定（2026-10-16）：默认后端改 ktt**。`zeze.collections.backend` 保留为回退杠杆
   （pcollections=逃生门，kt=中间档）；benchGame 的 collBackend fallback 同步 ktt；
   显式 pcollections 档继续写历史档名 L_MmoGameSim.json（可与旧档案直接配对）。
-- **kotlinx 升 0.5.2 评估：实测回退，钉 0.3.7**（2026-10-16，BenchTransientSnapshotCompare
-  两轮复现）：持久化单 op **addNew 257→590ns（+130%）**、beginCommit1 510→1021ns（+100%）、
-  overwrite/remove +21~35%、bulkAdd +9~65%；builder 快照路径（snapAdd/snapOverwrite）持平。
-  ktt 生产热路径（每笔事务 map 写=持久化单 op put）正中 addNew/overwrite 回退，GameSim 冒烟
-  bulkReward p50 47→100-133µs 同向佐证。0.5.x 的分词改名（add→adding）与 0.3.x 二进制兼容，
-  但内核插入路径变慢——升级须待其回退消除后复测（注意：基准头部的版本标签是硬编码字符串，
-  A/B 时以构建声明的版本为准）。
+- **kotlinx 升 0.5.2 评估：`-ea` 假回退（根因已钉）→ 裁定升级**（2026-10-16）。
+  现象：bench 车道（`-ea`）持久化单 op addNew 257→590ns（+130%）、beginCommit1 +100%（两轮复现），
+  GameSim 冒烟 bulkReward p50 47→133µs 同向。**根因（源码 diff+javap+四路交替实测钉死）**：
+  0.5.x 恢复了 0.3.7 注释掉的热路径 assert（insertEntryAt/moveEntryToNode×2/makeNode/
+  updateValueAtIndex/indexSegment 等十余处 `// assert` → `assert {}`），编译为
+  `CommonFunctionsKt.ASSERTIONS_ENABLED` 守卫，其值=`Class.desiredAssertionStatus()`——即 JVM
+  `-ea` 开关。`-ea` 下每次 put 执行 2-8 个断言判定（分配不变：B/op 逐位相同 695.8）。
+  **无 `-ea`（生产形态，用户确认生产不开 -ea）0.5.2 ≈ 0.3.7 甚至略优**（jshell 四组+同会话
+  四路交替 R3[52-da] vs R4[37-da] addNew +9% 在噪声带内）；0.5.x 另有真改进（collision
+  同实例短路、putAll 空集短路、MAX_SHIFT collision 修正）。旧名假设排除：新名 `putting`
+  委托旧名 `put`（主实现即旧名），分词改名与 0.3.x 二进制兼容，适配器保持旧名即可跨两版。
+  **裁定：升 0.5.2**（kotlin-stdlib 传递依赖 1.9→2.3）。注意：`-ea` 车道（test/IT/bench）
+  容器热路径 ~2× 为永久口径，容器篇微观基准跨版本对比须同 `-ea` 状态；三基准头部版本标签
+  已改运行时动态读取（曾硬编码 0.3.7 在升级 A/B 时误导归档）。
 
 
 
