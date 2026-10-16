@@ -301,7 +301,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		// 与ProcessBindRequest/ProcessSubscribeRequest的写入互斥（同一把monitor），
 		// 保证"bind写入"与"close清理"全序：要么bind先完成（这里能清到），
 		// 要么close先完成（bind在锁内发现isClosed跳过写入）。
-		synchronized (providerSession) {
+		synchronized (providerSession.moduleBindsMonitor) {
 			unBindModules(provider, Objects.requireNonNull(providerSession).getStaticBinds().keySet(), true);
 			Objects.requireNonNull(providerSession).getStaticBinds().clear();
 			// 动态模块（Subscribe注册的）同样清理：unBindModules内按sessionId条件移除，
@@ -368,7 +368,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				// 锁内检查isClosed得到全序——close已完成则跳过写入（否则写入的死sessionId状态无人清理），
 				// close未发生则本次写入必被随后的onProviderClose清理（staticBinds已登记）。
 				// subscribeService的阻塞等待必须留在锁外。
-				synchronized (providerSession) {
+				synchronized (providerSession.moduleBindsMonitor) {
 					if (Objects.requireNonNull(rpc.getSender()).isClosed())
 						break;
 					subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);
@@ -409,7 +409,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 			// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
 			// 与ProcessBindRequest同理：防止subscribeService等待期间连接关闭后写入死sessionId状态。
-			synchronized (providerSession) {
+			synchronized (providerSession.moduleBindsMonitor) {
 				if (Objects.requireNonNull(rpc.getSender()).isClosed())
 					break;
 				subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);

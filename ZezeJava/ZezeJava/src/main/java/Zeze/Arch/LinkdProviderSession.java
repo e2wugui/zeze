@@ -14,6 +14,7 @@ import Zeze.Util.LongHashSet;
  * Linkd 侧 Provider 连接会话：记录 Provider 宣告信息与其上绑定的 LinkSession、静态/动态模块集合。
  */
 public class LinkdProviderSession extends ProviderSession {
+	final Object moduleBindsMonitor = new Object();
 	protected BAnnounceProviderInfo.@Nullable Data info;
 
 	/**
