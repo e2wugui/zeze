@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Config;
@@ -1227,6 +1228,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private static final class CacheHolder extends ReentrantLock {
+		private static final AtomicLongFieldUpdater<CacheHolder> generationUpdater =
+				AtomicLongFieldUpdater.newUpdater(CacheHolder.class, "generation");
 		// 必须持有owner实例：server/achillesHeelConfig/perf都属于各自的服务器实例，
 		// 静态引用单例的话，多实例同JVM时静默串用对方状态，自建实例在单例未启动时NPE。
 		private final GlobalCacheManagerAsyncServer owner;
@@ -1264,7 +1267,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		void kick() {
 			lock();
 			try {
-				++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
+				generationUpdater.incrementAndGet(this); // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
 				// 墓碑化后裸解引用安全：server引用稳定（stop只停止对象不杀引用），已停止Service的
 				// GetSocket返回null即跳过；不存在读到null引用的NPE窗口。
 				var peer = owner.getServer().GetSocket(sessionId);
@@ -1302,7 +1305,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				var socket = owner.getServer().GetSocket(sessionId);
 				if (socket == null) {
 					// old socket not exist or has lost.
-					++generation; // 重绑即新世代：kick前在飞的release到此为止全部过期
+					generationUpdater.incrementAndGet(this); // 重绑即新世代：kick前在飞的release到此为止全部过期
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
 					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;

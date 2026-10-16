@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState;
@@ -1090,6 +1091,8 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	private static final class CacheHolder extends ReentrantLock {
+		private static final AtomicLongFieldUpdater<CacheHolder> generationUpdater =
+				AtomicLongFieldUpdater.newUpdater(CacheHolder.class, "generation");
 		final GlobalCacheManagerWithRaft globalRaft;
 		final int serverId;
 		private long sessionId;
@@ -1103,7 +1106,7 @@ public class GlobalCacheManagerWithRaft
 		void kick() {
 			lock();
 			try {
-				++generation;
+				generationUpdater.incrementAndGet(this);
 				var raft = globalRaft.getRocks().getRaft();
 				if (raft != null) {
 					var peer = raft.getServer().GetSocket(sessionId);
@@ -1155,7 +1158,7 @@ public class GlobalCacheManagerWithRaft
 					// old socket not exist or has lost.
 					// 同一socket重复Login也开启新的清理轮次；ReLogin只恢复连接，不清理权限。
 					if (newLogin || sessionId != newSocket.getSessionId())
-						++generation;
+						generationUpdater.incrementAndGet(this);
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
 					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
