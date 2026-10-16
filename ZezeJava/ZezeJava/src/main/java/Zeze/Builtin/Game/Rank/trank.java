@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Game.Rank.BRankListReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList>
         implements TableReadOnly<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly> {

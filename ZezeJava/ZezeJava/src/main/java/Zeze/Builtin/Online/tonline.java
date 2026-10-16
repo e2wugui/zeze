@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Online.BOnlinesReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
         implements TableReadOnly<String, Zeze.Builtin.Online.BOnlines, Zeze.Builtin.Online.BOnlinesReadOnly> {

@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import demo.Module1.BValueReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tflush extends TableX<Long, demo.Module1.BValue>
         implements TableReadOnly<Long, demo.Module1.BValue, demo.Module1.BValueReadOnly> {

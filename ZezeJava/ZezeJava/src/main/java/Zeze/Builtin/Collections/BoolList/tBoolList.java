@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Collections.BoolList.BValueReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BKey, Zeze.Builtin.Collections.BoolList.BValue>
         implements TableReadOnly<Zeze.Builtin.Collections.BoolList.BKey, Zeze.Builtin.Collections.BoolList.BValue, Zeze.Builtin.Collections.BoolList.BValueReadOnly> {

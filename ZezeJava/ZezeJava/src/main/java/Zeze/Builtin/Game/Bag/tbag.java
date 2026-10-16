@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Game.Bag.BBagReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tbag extends TableX<Zeze.Builtin.Game.Bag.BBagKey, Zeze.Builtin.Game.Bag.BBag>
         implements TableReadOnly<Zeze.Builtin.Game.Bag.BBagKey, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly> {

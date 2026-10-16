@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Login.BRoleReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class trole extends TableX<Long, Game.Login.BRole>
         implements TableReadOnly<Long, Game.Login.BRole, Game.Login.BRoleReadOnly> {

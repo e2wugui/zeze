@@ -3,8 +3,9 @@ package Zeze.Builtin.LogService;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly {
     public static final long TYPEID = 2743837942654367657L;
 
@@ -49,7 +50,7 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BJson(String _Json_) {
+    public BJson(@Nullable String _Json_) {
         if (_Json_ == null)
             _Json_ = "";
         _Json = _Json_;
@@ -132,9 +133,9 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -173,7 +174,7 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BJson))
@@ -242,7 +243,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Json_) {
+    public Data(@Nullable String _Json_) {
         if (_Json_ == null)
             _Json_ = "";
         _Json = _Json_;
@@ -349,7 +350,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BJson.Data))

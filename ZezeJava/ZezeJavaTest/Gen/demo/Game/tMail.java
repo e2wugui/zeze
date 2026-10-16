@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import demo.Game.BMailReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tMail extends TableX<Long, demo.Game.BMail>
         implements TableReadOnly<Long, demo.Game.BMail, demo.Game.BMailReadOnly> {

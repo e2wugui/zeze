@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Zoker;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // 服务：查询，启动，关闭
 public interface BServiceReadOnly {
     long typeId();
@@ -13,7 +16,7 @@ public interface BServiceReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 

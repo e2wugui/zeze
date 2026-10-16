@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Timer.BNodeReadOnly;
 // 节点表, key是节点ID(AutoKey分配)
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>

@@ -31,8 +31,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("import org.jspecify.annotations.Nullable;");
             sw.WriteLine();
             string value = TypeName.GetName(table.ValueType);
-            // 简单名前缀注解（限定名前缀写法 javac 非法），ReadOnly 接口随 value 一起 import。
-            sw.WriteLine("import " + value + "ReadOnly;");
+            if (value.Substring(0, value.LastIndexOf('.')) != table.Space.Path())
+                sw.WriteLine("import " + value + "ReadOnly;");
             string keyboxing = BoxingName.GetBoxingName(table.KeyType);
             if (table.Comment.Length > 0)
                 sw.WriteLine(table.Comment);

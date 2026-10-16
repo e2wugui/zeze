@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResultReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult>
         implements TableReadOnly<String, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult, Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResultReadOnly> {

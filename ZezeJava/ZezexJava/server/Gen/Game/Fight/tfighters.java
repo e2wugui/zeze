@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Fight.BFighterReadOnly;
 // key is fighter id. 战斗属性是计算值，每次登录或改变时重新计算。
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tfighters extends TableX<Game.Fight.BFighterId, Game.Fight.BFighter>

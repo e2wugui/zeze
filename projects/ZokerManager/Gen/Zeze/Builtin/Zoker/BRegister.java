@@ -3,8 +3,9 @@ package Zeze.Builtin.Zoker;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BRegister extends Zeze.Transaction.Bean implements BRegisterReadOnly {
     public static final long TYPEID = -6705392585502947760L;
 
@@ -49,7 +50,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @SuppressWarnings("deprecation")
-    public BRegister(String _ZokerName_) {
+    public BRegister(@Nullable String _ZokerName_) {
         if (_ZokerName_ == null)
             _ZokerName_ = "";
         _ZokerName = _ZokerName_;
@@ -132,9 +133,9 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -173,7 +174,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BRegister))
@@ -242,7 +243,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _ZokerName_) {
+    public Data(@Nullable String _ZokerName_) {
         if (_ZokerName_ == null)
             _ZokerName_ = "";
         _ZokerName = _ZokerName_;
@@ -349,7 +350,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BRegister.Data))

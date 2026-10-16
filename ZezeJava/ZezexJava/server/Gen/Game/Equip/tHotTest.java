@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Equip.BEquipExtraReadOnly;
 // 新版热更模块修改这个这张表的Value结构定义。
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tHotTest extends TableX<Long, Game.Equip.BEquipExtra>

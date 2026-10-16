@@ -3,8 +3,9 @@ package Zeze.Builtin.Zoker;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BStopService extends Zeze.Transaction.Bean implements BStopServiceReadOnly {
     public static final long TYPEID = 9090863522815062458L;
 
@@ -72,7 +73,7 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
     }
 
     @SuppressWarnings("deprecation")
-    public BStopService(String _ServiceName_, boolean _Force_) {
+    public BStopService(@Nullable String _ServiceName_, boolean _Force_) {
         if (_ServiceName_ == null)
             _ServiceName_ = "";
         _ServiceName = _ServiceName_;
@@ -160,9 +161,9 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -212,7 +213,7 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BStopService))
@@ -296,7 +297,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _ServiceName_, boolean _Force_) {
+    public Data(@Nullable String _ServiceName_, boolean _Force_) {
         if (_ServiceName_ == null)
             _ServiceName_ = "";
         _ServiceName = _ServiceName_;
@@ -419,7 +420,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BStopService.Data))

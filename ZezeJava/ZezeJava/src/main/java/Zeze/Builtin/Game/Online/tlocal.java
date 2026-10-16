@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Game.Online.BLocalReadOnly;
 // 每个server各自保存不同表的模板表, 表名为"Zeze_Game_Online_tlocal__{onlineSetName}__{serverId}", key是角色ID
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tlocal extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>

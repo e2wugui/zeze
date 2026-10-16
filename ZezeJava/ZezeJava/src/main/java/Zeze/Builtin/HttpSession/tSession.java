@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.HttpSession.BSessionValueReadOnly;
 // key is http sessionid from cookie
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tSession extends TableX<String, Zeze.Builtin.HttpSession.BSessionValue>

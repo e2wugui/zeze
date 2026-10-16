@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Equip.BRelationalReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tRelationalTest extends TableX<Long, Game.Equip.BRelational>
         implements TableReadOnly<Long, Game.Equip.BRelational, Game.Equip.BRelationalReadOnly> {

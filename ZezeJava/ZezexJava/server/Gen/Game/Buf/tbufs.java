@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Buf.BBufsReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tbufs extends TableX<Long, Game.Buf.BBufs>
         implements TableReadOnly<Long, Game.Buf.BBufs, Game.Buf.BBufsReadOnly> {

@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Game.Online.BOnlineSharedReadOnly;
 // 登录相关状态的大版本共享的持久化表, 表名为"Zeze_Game_Online_tOnlineShared__{onlineSetName}", key是角色ID
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tOnlineShared extends TableX<Long, Zeze.Builtin.Game.Online.BOnlineShared>

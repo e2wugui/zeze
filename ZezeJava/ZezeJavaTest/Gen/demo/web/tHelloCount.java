@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import demo.web.BCountReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tHelloCount extends TableX<Long, demo.web.BCount>
         implements TableReadOnly<Long, demo.web.BCount, demo.web.BCountReadOnly> {

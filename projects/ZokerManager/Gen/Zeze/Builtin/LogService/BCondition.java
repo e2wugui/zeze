@@ -3,8 +3,9 @@ package Zeze.Builtin.LogService;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BCondition extends Zeze.Transaction.Bean implements BConditionReadOnly {
     public static final long TYPEID = -4711929821698256188L;
 
@@ -137,7 +138,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     }
 
     @SuppressWarnings("deprecation")
-    public BCondition(long _BeginTime_, long _EndTime_, int _ContainsType_, String _Pattern_) {
+    public BCondition(long _BeginTime_, long _EndTime_, int _ContainsType_, @Nullable String _Pattern_) {
         _BeginTime = _BeginTime_;
         _EndTime = _EndTime_;
         _Words = new Zeze.Transaction.Collections.PList1<>(meta1_Words);
@@ -256,9 +257,9 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -354,7 +355,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BCondition))
@@ -511,7 +512,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _BeginTime_, long _EndTime_, java.util.ArrayList<String> _Words_, int _ContainsType_, String _Pattern_) {
+    public Data(long _BeginTime_, long _EndTime_, java.util.@Nullable ArrayList<String> _Words_, int _ContainsType_, @Nullable String _Pattern_) {
         _BeginTime = _BeginTime_;
         _EndTime = _EndTime_;
         if (_Words_ == null)
@@ -714,7 +715,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BCondition.Data))

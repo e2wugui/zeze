@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import demo.ModuleGTable.BValue2ReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tGTable2 extends TableX<Long, demo.ModuleGTable.BValue2>
         implements TableReadOnly<Long, demo.ModuleGTable.BValue2, demo.ModuleGTable.BValue2ReadOnly> {

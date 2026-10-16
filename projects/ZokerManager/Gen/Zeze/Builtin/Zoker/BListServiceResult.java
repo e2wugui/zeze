@@ -3,8 +3,9 @@ package Zeze.Builtin.Zoker;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BListServiceResult extends Zeze.Transaction.Bean implements BListServiceResultReadOnly {
     public static final long TYPEID = -2243510208432437687L;
 
@@ -127,9 +128,9 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -181,7 +182,7 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BListServiceResult))
@@ -258,7 +259,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Builtin.Zoker.BService.Data> _Services_) {
+    public Data(java.util.@Nullable ArrayList<Zeze.Builtin.Zoker.BService.Data> _Services_) {
         if (_Services_ == null)
             _Services_ = new java.util.ArrayList<>();
         _Services = _Services_;
@@ -402,7 +403,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BListServiceResult.Data))

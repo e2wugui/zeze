@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import demo.Module1.BAutoValueReadOnly;
 // table的注释
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tAutokey extends TableX<demo.Module1.AutoKey, demo.Module1.BAutoValue>

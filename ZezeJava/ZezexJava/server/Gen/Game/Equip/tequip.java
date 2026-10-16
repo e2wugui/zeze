@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Equip.BEquipsReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tequip extends TableX<Long, Game.Equip.BEquips>
         implements TableReadOnly<Long, Game.Equip.BEquips, Game.Equip.BEquipsReadOnly> {

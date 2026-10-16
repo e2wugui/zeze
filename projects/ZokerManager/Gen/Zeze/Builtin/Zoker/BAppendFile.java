@@ -3,8 +3,9 @@ package Zeze.Builtin.Zoker;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendFileReadOnly {
     public static final long TYPEID = -5838123267142656915L;
 
@@ -124,7 +125,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     }
 
     @SuppressWarnings("deprecation")
-    public BAppendFile(String _ServiceName_, String _FileName_, long _Offset_, Zeze.Net.Binary _Chunk_) {
+    public BAppendFile(@Nullable String _ServiceName_, @Nullable String _FileName_, long _Offset_, Zeze.Net.@Nullable Binary _Chunk_) {
         if (_ServiceName_ == null)
             _ServiceName_ = "";
         _ServiceName = _ServiceName_;
@@ -226,9 +227,9 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -300,7 +301,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BAppendFile))
@@ -429,7 +430,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _ServiceName_, String _FileName_, long _Offset_, Zeze.Net.Binary _Chunk_) {
+    public Data(@Nullable String _ServiceName_, @Nullable String _FileName_, long _Offset_, Zeze.Net.@Nullable Binary _Chunk_) {
         if (_ServiceName_ == null)
             _ServiceName_ = "";
         _ServiceName = _ServiceName_;
@@ -588,7 +589,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BAppendFile.Data))

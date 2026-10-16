@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import demo.Module1.BTestSchemasReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tTestSchemas extends TableX<Long, demo.Module1.BTestSchemas>
         implements TableReadOnly<Long, demo.Module1.BTestSchemas, demo.Module1.BTestSchemasReadOnly> {

@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Login.BAccountReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class taccount extends TableX<String, Game.Login.BAccount>
         implements TableReadOnly<String, Game.Login.BAccount, Game.Login.BAccountReadOnly> {

@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Game.Online.BOnlineReadOnly;
 // 登录相关状态的大版本隔离的持久化模板表, 表名为"Zeze_Game_Online_tOnline__{onlineSetName}__{appMainVersion}", key是角色ID
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tOnline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline>

@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import demo.web.BMap2Bean1ReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tMap2Bean1 extends TableX<Long, demo.web.BMap2Bean1>
         implements TableReadOnly<Long, demo.web.BMap2Bean1, demo.web.BMap2Bean1ReadOnly> {

@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Timer.BNodeRootReadOnly;
 // key is serverid 每一台server拥有自己的链表。
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tNodeRoot extends TableX<Integer, Game.Timer.BNodeRoot>

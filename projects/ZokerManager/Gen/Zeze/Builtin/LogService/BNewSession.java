@@ -3,8 +3,9 @@ package Zeze.Builtin.LogService;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BNewSession extends Zeze.Transaction.Bean implements BNewSessionReadOnly {
     public static final long TYPEID = 4447234831022031083L;
 
@@ -49,7 +50,7 @@ public final class BNewSession extends Zeze.Transaction.Bean implements BNewSess
     }
 
     @SuppressWarnings("deprecation")
-    public BNewSession(String _LogName_) {
+    public BNewSession(@Nullable String _LogName_) {
         if (_LogName_ == null)
             _LogName_ = "";
         _LogName = _LogName_;
@@ -132,9 +133,9 @@ public final class BNewSession extends Zeze.Transaction.Bean implements BNewSess
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -173,7 +174,7 @@ public final class BNewSession extends Zeze.Transaction.Bean implements BNewSess
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BNewSession))
@@ -242,7 +243,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _LogName_) {
+    public Data(@Nullable String _LogName_) {
         if (_LogName_ == null)
             _LogName_ = "";
         _LogName = _LogName_;
@@ -349,7 +350,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BNewSession.Data))

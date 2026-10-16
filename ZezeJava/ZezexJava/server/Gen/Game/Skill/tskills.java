@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Skill.BSkillsReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tskills extends TableX<Long, Game.Skill.BSkills>
         implements TableReadOnly<Long, Game.Skill.BSkills, Game.Skill.BSkillsReadOnly> {

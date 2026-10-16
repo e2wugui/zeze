@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Timer.BArchOnlineTimerReadOnly;
 // 账号在线时的定时器, key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArchOnlineTimer>

@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.LongSet.BNodeRootReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tNodeRoot extends TableX<String, Game.LongSet.BNodeRoot>
         implements TableReadOnly<String, Game.LongSet.BNodeRoot, Game.LongSet.BNodeRootReadOnly> {

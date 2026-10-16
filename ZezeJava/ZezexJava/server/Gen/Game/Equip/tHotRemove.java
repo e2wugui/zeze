@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Equip.BEquipExtraReadOnly;
 // 新版热更模块删除这张表（zeze内的表并不会关闭，后端数据库的表更不会删除）
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tHotRemove extends TableX<Long, Game.Equip.BEquipExtra>

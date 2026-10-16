@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Takeover.BTakeoverLeaseReadOnly;
 // key是serverId，与数据表同库：裁决与搬运同一zeze事务
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tTakeoverLease extends TableX<Integer, Zeze.Builtin.Takeover.BTakeoverLease>

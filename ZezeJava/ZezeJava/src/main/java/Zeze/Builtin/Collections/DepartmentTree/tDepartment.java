@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly;
 // 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot>

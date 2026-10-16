@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import demo.Module1.BKuafuReadOnly;
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tKuafu extends TableX<Long, demo.Module1.BKuafu>
         implements TableReadOnly<Long, demo.Module1.BKuafu, demo.Module1.BKuafuReadOnly> {

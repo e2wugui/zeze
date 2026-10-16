@@ -6,7 +6,6 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 import org.jspecify.annotations.Nullable;
 
-import Game.Equip.BEquipExtraReadOnly;
 // 不会倒数据，清空，正常访问即可。
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tMemoryToNormal extends TableX<Long, Game.Equip.BEquipExtra>
