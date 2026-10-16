@@ -557,7 +557,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return transactions.computeIfAbsent(batch.getTid(),
 				_tid -> {
 					try {
-						return new Dbh2Transaction(Objects.requireNonNull(dbh2), batch);
+						// dbh2 可空是设计内（快照/墓碑生命周期测试脱离真实 Dbh2 直驱状态机）：
+						// 空 batch 的 puts/deletes 遍历为空、不触键锁，null 被天然容忍；
+						// 真正的解引用点在 Dbh2Transaction.acquire（非空 batch 才到达）。
+						return new Dbh2Transaction(dbh2, batch);
 					} catch (Exception e) {
 						throw new RuntimeException(e);
 					}

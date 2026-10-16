@@ -6,7 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import Zeze.Config;
 import Zeze.Dbh2.Dbh2AgentManager;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -37,10 +37,11 @@ public class TestCommitServerFailFast {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static KV<String, Integer> choiceCommitServer(Dbh2AgentManager manager) throws Exception {
+	private static KVNotNull<String, Integer> choiceCommitServer(Dbh2AgentManager manager) throws Exception {
 		Method method = Dbh2AgentManager.class.getDeclaredMethod("choiceCommitServer");
 		method.setAccessible(true);
-		return (KV<String, Integer>)method.invoke(manager);
+		// 203b4e6e2 返回类型 KV→KVNotNull（非空结果契约），反射强转随签跟进。
+		return (KVNotNull<String, Integer>)method.invoke(manager);
 	}
 
 	@Test
