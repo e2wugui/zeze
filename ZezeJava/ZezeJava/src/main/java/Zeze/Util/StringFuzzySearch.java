@@ -125,8 +125,12 @@ public final class StringFuzzySearch {
 		int i = 0, e = m.size();
 		final var f = 0x1_0000_0000L / n;
 		final var is = new long[e];
-		for (final var it = m.iterator(); it.moveToNext(); )
-			is[i++] = ((it.key() & 0xffff_ffff_ffffL) + (Math.min((it.value().value * f) >>> 32, 0xffff) << 48)) ^ Long.MIN_VALUE;
+		for (final var it = m.iterator(); it.moveToNext(); ) {
+			var score = it.value();
+			if (score == null)
+				throw new IllegalStateException("Missing fuzzy-search score for id: " + it.key());
+			is[i++] = ((it.key() & 0xffff_ffff_ffffL) + (Math.min((score.value * f) >>> 32, 0xffff) << 48)) ^ Long.MIN_VALUE;
+		}
 		// 翻转符号位把unsigned packed(score16+sid48)顺序映射到signed long顺序，线内格式不变。
 		Arrays.sort(is);
 		for (i = 0; i < max && --e >= 0; i++) {

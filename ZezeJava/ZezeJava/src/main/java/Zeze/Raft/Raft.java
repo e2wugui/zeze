@@ -559,7 +559,7 @@ public final class Raft {
 			var volatileTmp = leaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
 			while (isLeader()) {
 				if (volatileTmp.isDone())
-					return volatileTmp.get();
+					return Boolean.TRUE.equals(volatileTmp.get());
 				// 多数派失联的分区场景下，SetLeaderReadyEvent永远无法提交，
 				// 且没有更高term的消息到达（不会有signalAll唤醒），无期限的await()会让
 				// 派发进来的请求任务无限堆积（每请求占一个unique串行桶+一个线程）。
@@ -580,7 +580,7 @@ public final class Raft {
 		lock();
 		try {
 			var volatileTmp = leaderReadyFuture;
-			return isLeader() && volatileTmp.isDone() && volatileTmp.get();
+			return isLeader() && volatileTmp.isDone() && Boolean.TRUE.equals(volatileTmp.get());
 		} finally {
 			unlock();
 		}

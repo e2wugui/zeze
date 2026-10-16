@@ -28,7 +28,7 @@ import Zeze.Util.Action1;
 import Zeze.Util.Factory;
 import Zeze.Util.FuncLong;
 import Zeze.Util.GlobalTimer;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
@@ -934,7 +934,7 @@ public class Service extends ReentrantLock {
 	 * 则回退为最后一个遍历到的 Acceptor 条目（ip 可能为空串、port 可能为 0），
 	 * 调用方需自行处理这种"未显式配置"的回退值（可参考 getOnePassiveAddress）。
 	 */
-	public KV<String, Integer> getOneAcceptorAddress() {
+	public KVNotNull<String, Integer> getOneAcceptorAddress() {
 		// KV.key构造后不变：先累积再create。
 		var ip = new String[]{""};
 		var port = new int[]{0};
@@ -951,10 +951,10 @@ public class Service extends ReentrantLock {
 			return true;
 		});
 
-		return KV.create(ip[0], port[0]);
+		return KVNotNull.create(ip[0], port[0]);
 	}
 
-	public KV<String, Integer> getOnePassiveAddress() {
+	public KVNotNull<String, Integer> getOnePassiveAddress() {
 		var ipPort = getOneAcceptorAddress();
 		// 允许系统来选择端口。
 
@@ -969,7 +969,7 @@ public class Service extends ReentrantLock {
 			logger.warn("PassiveAddress No Config. set ip to 127.0.0.1");
 			ip = "127.0.0.1";
 		}
-		return KV.create(ip, ipPort.getValue());
+		return KVNotNull.create(ip, ipPort.getValue());
 	}
 
 	public void onServerSocketBind(ServerSocket port) {

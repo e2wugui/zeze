@@ -60,6 +60,6 @@ public class TidCache {
 			break;
 		}
 		// 递归！
-		return agent.allocateTidCacheFuture(name).get().next();
+		return agent.allocateTidCacheFuture(name).getNonNull().next();
 	}
 }

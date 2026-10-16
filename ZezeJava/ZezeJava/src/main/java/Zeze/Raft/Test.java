@@ -234,8 +234,12 @@ public class Test {
 
 	private long errorsSum() {
 		long sum = 0;
-		for (var it = errors.iterator(); it.moveToNext(); )
-			sum += it.value();
+		for (var it = errors.iterator(); it.moveToNext(); ) {
+			var count = it.value();
+			if (count == null)
+				throw new IllegalStateException("Missing error count for result code: " + it.key());
+			sum += count;
+		}
 		return sum;
 	}
 

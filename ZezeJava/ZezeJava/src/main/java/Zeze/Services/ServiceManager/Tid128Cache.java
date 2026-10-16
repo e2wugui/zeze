@@ -70,6 +70,6 @@ public class Tid128Cache extends FastLock {
 		}
 		// 段耗尽，同步分配新段并立即取号。HistoryAllocCount=1（多app部署）时，段请求时刻=取号时刻
 		// （调用方在rrs锁内、依赖已建立），SM按请求到达序发号 ⇒ gid序=提交序（History回放/审计的顺序保证）。
-		return getAgent().allocateTid128CacheFuture(name, Objects.requireNonNull(getAgent().config).getHistoryAllocCount()).get().next();
+		return getAgent().allocateTid128CacheFuture(name, Objects.requireNonNull(getAgent().config).getHistoryAllocCount()).getNonNull().next();
 	}
 }

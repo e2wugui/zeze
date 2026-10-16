@@ -25,7 +25,7 @@ import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.Action2;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.TaskSpec;
@@ -146,7 +146,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		return tidAutoKey.next();
 	}
 
-	public KV<String, Integer> commitServiceAcceptor() {
+	public KVNotNull<String, Integer> commitServiceAcceptor() {
 		// KV.key构造后不变：累积首个acceptor后create，不再setKey。
 		var ip = new String[1];
 		var port = new int[1];
@@ -157,7 +157,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		});
 		if (ip[0] == null || port[0] == 0)
 			throw new RuntimeException("Commit Query Acceptor Not Set.");
-		return KV.create(ip[0], port[0]);
+		return KVNotNull.create(ip[0], port[0]);
 	}
 
 	public void commitBreakAfterPrepareForDebugOnly(BPrepareBatches.Data batches) {
@@ -168,9 +168,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 		}
 	}
 
-	private KV<String, Integer> choiceCommitServer() {
+	private KVNotNull<String, Integer> choiceCommitServer() {
 		// 配置直连：Dbh2Config的CommitServerAddress，单实例；构造期已fail-fast校验过配置存在。
-		return KV.create(Objects.requireNonNull(dbh2Config.getCommitServerHost()), dbh2Config.getCommitServerPort());
+		return KVNotNull.create(Objects.requireNonNull(dbh2Config.getCommitServerHost()), dbh2Config.getCommitServerPort());
 	}
 
 	public void commit(BPrepareBatches.Data batches) {

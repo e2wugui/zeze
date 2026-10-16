@@ -14,7 +14,7 @@ import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Util.ConsistentHash;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.SortedMap;
@@ -141,7 +141,7 @@ public class ProviderDistribute extends ReentrantLock {
 			return false;
 
 		var list = serviceInfos.getSortedIdentities();
-		var frees = new ArrayList<KV<ProviderSession, Integer>>(list.size());
+		var frees = new ArrayList<KVNotNull<ProviderSession, Integer>>(list.size());
 		var all = new ArrayList<ProviderSession>(list.size());
 		int TotalWeight = 0;
 
@@ -175,7 +175,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (weight <= 0)
 				continue;
 
-			frees.add(KV.create(ps, weight));
+			frees.add(KVNotNull.create(ps, weight));
 			TotalWeight += weight;
 		}
 		if (TotalWeight > 0) {
@@ -205,7 +205,7 @@ public class ProviderDistribute extends ReentrantLock {
 			return false;
 
 		var list = serviceInfos.getSortedIdentities();
-		var frees = new ArrayList<KV<ProviderSession, Long>>(list.size());
+		var frees = new ArrayList<KVNotNull<ProviderSession, Long>>(list.size());
 		var all = new ArrayList<ProviderSession>(list.size());
 		long TotalWeight = 0;
 		long maxWeight = 0;
@@ -236,7 +236,7 @@ public class ProviderDistribute extends ReentrantLock {
 			long weight = ps.timeCounter.count();
 			if (weight > maxWeight)
 				maxWeight = weight;
-			frees.add(KV.create(ps, weight));
+			frees.add(KVNotNull.create(ps, weight));
 			TotalWeight += weight;
 		}
 		maxWeight += 10000; // 让最大的请求provider也有机会选中。

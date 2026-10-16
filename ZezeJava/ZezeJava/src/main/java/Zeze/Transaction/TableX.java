@@ -14,7 +14,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.ZezeCounter;
@@ -573,7 +573,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var globalAgent = getZeze().getGlobalAgent();
 		var locks = getZeze().getLocks();
 		// 第一轮parallelStream的多个worker会并发add拿锁失败的记录，必须线程安全。
-		var remain = Collections.synchronizedList(new ArrayList<KV<Lockey, Record1<K, V>>>(requireCache().getDataMap().size()));
+		var remain = Collections.synchronizedList(new ArrayList<KVNotNull<Lockey, Record1<K, V>>>(requireCache().getDataMap().size()));
 		logger.info("ReduceInvalidAllLocalOnly Table={} CacheSize={}", getName(), requireCache().getDataMap().size());
 		// 专用dbIo池：reduce/flush走阻塞DB IO，退出commonPool（阻塞任务互抢可整体停摆）。
 		Zeze.Util.Task.runInDbIoPool(() -> requireCache().getDataMap().entrySet().parallelStream().forEach((e) -> {
@@ -597,13 +597,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 								v.exitFairLock();
 							}
 						} else {
-							remain.add(KV.create(lockey, v));
+							remain.add(KVNotNull.create(lockey, v));
 						}
 					} finally {
 						lockey.exitWriteLock();
 					}
 				} else {
-					remain.add(KV.create(lockey, v));
+					remain.add(KVNotNull.create(lockey, v));
 				}
 			}
 		}));

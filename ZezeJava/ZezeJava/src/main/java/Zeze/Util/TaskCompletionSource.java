@@ -10,6 +10,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import Zeze.Transaction.Profiler;
 import org.jspecify.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 // 可手动完成（setResult/setException）的 Future 实现：CAS 单槽结果 + 无锁等待线程栈
 public class TaskCompletionSource<R extends @Nullable Object> implements Future<R> {
@@ -196,6 +197,28 @@ public class TaskCompletionSource<R extends @Nullable Object> implements Future<
 	static long remainingNanos(long started, long duration, long now) {
 		// nanoTime 起点可为负、也可回绕；相减仅依赖不足 2^63 纳秒的经过时间。
 		return duration - (now - started);
+	}
+
+	/**
+	 * 等待必须非空的结果；允许 null 的结果继续使用 {@link #get()}。
+	 * @throws IllegalStateException 任务以 null 结果完成。
+	 */
+	public @NonNull R getNonNull() {
+		return nonNullResult(get());
+	}
+
+	/**
+	 * 有界等待必须非空的结果，保留 {@link #get(long, TimeUnit)} 的异常语义。
+	 * @throws IllegalStateException 任务以 null 结果完成。
+	 */
+	public @NonNull R getNonNull(long timeout, TimeUnit unit) {
+		return nonNullResult(get(timeout, unit));
+	}
+
+	private @NonNull R nonNullResult(R value) {
+		if (value == null)
+			throw new IllegalStateException("Task completed with a null result");
+		return value;
 	}
 
 	protected R toResult(Object o) { // throws CompletionException

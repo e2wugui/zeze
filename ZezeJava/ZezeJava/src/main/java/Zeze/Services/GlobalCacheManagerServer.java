@@ -31,7 +31,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.Id128;
 import Zeze.Util.IdentityHashSet;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
@@ -875,7 +875,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					return;
 				}
 
-				ArrayList<KV<CacheHolder, Reduce>> reducePending = new ArrayList<>();
+				ArrayList<KVNotNull<CacheHolder, Reduce>> reducePending = new ArrayList<>();
 				IdentityHashSet<CacheHolder> reduceSucceed = new IdentityHashSet<>();
 				boolean senderIsShare = false;
 				// 先把降级请求全部发送给出去。
@@ -893,7 +893,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						// 已经发出去的降级请求要等待并处理结果。后面处理。
 						break;
 					}
-					reducePending.add(KV.create(c, reduce));
+					reducePending.add(KVNotNull.create(c, reduce));
 				}
 
 				// 两种情况不需要发reduce

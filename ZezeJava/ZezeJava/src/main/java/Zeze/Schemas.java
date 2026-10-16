@@ -12,7 +12,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DatabaseRelationalMapping;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
@@ -741,7 +741,7 @@ public class Schemas implements Serializable {
 		// 版本升级的renameTable必须等全部兼容检查通过后再统一执行：
 		// 否则rename副作用先于失败的兼容检查提交。序列本身仍非原子，中断后重启的重跑由各后端
 		// renameTable的幂等性兜底（源不存在而目标存在视为已完成，跳过）。
-		var renames = new ArrayList<KV<Table, Table>>();
+		var renames = new ArrayList<KVNotNull<Table, Table>>();
 		boolean res = true;
 		for (var table : tables.values()) {
 			var otherTable = other.tables.get(table.name);
@@ -753,7 +753,7 @@ public class Schemas implements Serializable {
 				if (table.version > otherTable.version) {
 					if (!Objects.requireNonNull(table.name).equals(otherTable.name))
 						throw new IllegalStateException(Str.format("table name is not matched {} -> {}", table.name, otherTable.name));
-					renames.add(KV.create(table, otherTable));
+					renames.add(KVNotNull.create(table, otherTable));
 				}
 				// 继续Table的类型的兼容检查。
 				if (!table.isCompatible(otherTable, context)) {
@@ -925,18 +925,18 @@ public class Schemas implements Serializable {
 			return sb.toString();
 		}
 
-		private static KV<Integer, Integer> catType(String type) {
+		private static KVNotNull<Integer, Integer> catType(String type) {
 			return switch (type) {
 				//@formatter:off
-			case "bool","byte"->KV.create(0, 1); // bool<->byte
-			case "short"->KV.create(0, 2); // byte->short->int->long->float->double
-			case "int"->KV.create(0, 3);case "long"->KV.create(0, 4);case "float"->KV.create(0, 5);case "double"->KV.create(0, 6);case "string"->KV.create(1, 1); // string->binary
-			case "binary"->KV.create(1, 2);case "vector2int","vector3int"->KV.create(2, 1); // 允许互转
+			case "bool","byte"->KVNotNull.create(0, 1); // bool<->byte
+			case "short"->KVNotNull.create(0, 2); // byte->short->int->long->float->double
+			case "int"->KVNotNull.create(0, 3);case "long"->KVNotNull.create(0, 4);case "float"->KVNotNull.create(0, 5);case "double"->KVNotNull.create(0, 6);case "string"->KVNotNull.create(1, 1); // string->binary
+			case "binary"->KVNotNull.create(1, 2);case "vector2int","vector3int"->KVNotNull.create(2, 1); // 允许互转
 
-			case "vector2","vector3","vector4","quaternion"->KV.create(3, 1); // 允许自由互转，返回同一个值即可。
+			case "vector2","vector3","vector4","quaternion"->KVNotNull.create(3, 1); // 允许自由互转，返回同一个值即可。
 
-			case "dynamic","list","array","set","map"->KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
-			case "gtable"->KV.create(5, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
+			case "dynamic","list","array","set","map"->KVNotNull.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
+			case "gtable"->KVNotNull.create(5, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
 			//@formatter:on
 				default -> throw new UnsupportedOperationException("unknown type=" + type);
 			};

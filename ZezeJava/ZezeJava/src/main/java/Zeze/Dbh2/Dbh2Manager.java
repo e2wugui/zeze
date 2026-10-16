@@ -22,7 +22,7 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Raft.LogSequence;
 import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.DaemonTimer;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -167,7 +167,7 @@ public class Dbh2Manager {
 			TaskSpec.ofAction(m::reRegister).name("Dbh2Manager.reRegister").submitNow();
 		}
 
-		public KV<String, Integer> getAcceptorAddress() {
+		public KVNotNull<String, Integer> getAcceptorAddress() {
 			// 优先查找代理配置，
 			return null != proxyServer
 					? proxyServer.getOneAcceptorAddress()

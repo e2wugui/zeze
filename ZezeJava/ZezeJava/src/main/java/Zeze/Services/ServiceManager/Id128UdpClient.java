@@ -282,8 +282,8 @@ public class Id128UdpClient {
 		var client = new Id128UdpClient(null, "127.0.0.1", server.getLocalPort(), nextSessionId::incrementAndGet);
 		client.start();
 		try {
-			System.out.println(client.allocateFuture("testGlobal1", 128).get().next());
-			System.out.println(client.allocateFuture("testGlobal1", 128).get().next());
+			System.out.println(client.allocateFuture("testGlobal1", 128).getNonNull().next());
+			System.out.println(client.allocateFuture("testGlobal1", 128).getNonNull().next());
 			var futures = new ArrayList<TaskCompletionSource<Tid128Cache>>();
 			futures.add(client.allocateFuture("testGlobal1", 128));
 			futures.add(client.allocateFuture("testGlobal1", 128));
@@ -291,7 +291,7 @@ public class Id128UdpClient {
 			futures.add(client.allocateFuture("testGlobal1", 128));
 			System.out.println("concurrent-->");
 			for (var future : futures)
-				System.out.println(future.get().next());
+				System.out.println(future.getNonNull().next());
 		} finally {
 			client.stop();
 			server.stop();

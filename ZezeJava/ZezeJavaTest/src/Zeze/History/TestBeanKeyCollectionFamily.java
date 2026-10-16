@@ -3,7 +3,7 @@ package Zeze.History;
 import harness.Extra;
 import Zeze.Builtin.AutoKey.BSeedKey;
 import Zeze.Builtin.HotDistribute.BVariable;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ public class TestBeanKeyCollectionFamily {
 	public void testMapValueBeanKeyRegistersFamily1() throws Exception {
 		var result = new Helper.DependsResult();
 		Helper.dependsMap(TestBeanKeyCollectionFamily.class, var(), "string", BEAN_KEY, result);
-		Assertions.assertTrue(result.map1.contains(KV.create(String.class, BSeedKey.class)),
+		Assertions.assertTrue(result.map1.contains(KVNotNull.create(String.class, BSeedKey.class)),
 				"beankey值map须落1族（PMap1/LogMap1）");
 		Assertions.assertTrue(result.map2.isEmpty());
 	}
@@ -50,7 +50,7 @@ public class TestBeanKeyCollectionFamily {
 	public void testSortedMapValueBeanKeyRegistersFamily1() throws Exception {
 		var result = new Helper.DependsResult();
 		Helper.dependsSortedMap(TestBeanKeyCollectionFamily.class, var(), "long", BEAN_KEY, result);
-		Assertions.assertTrue(result.sortedMap1.contains(KV.create(Long.class, BSeedKey.class)),
+		Assertions.assertTrue(result.sortedMap1.contains(KVNotNull.create(Long.class, BSeedKey.class)),
 				"beankey值sortedMap须落1族（PSortedMap1/LogSortedMap1）");
 		Assertions.assertTrue(result.sortedMap2.isEmpty());
 	}

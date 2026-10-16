@@ -385,19 +385,19 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			// 持续分发流量。只记录本次真实变更（新增/覆盖旧值/真实删除）；重放路径的幂等put
 			// 键已存在（prev==reg），不属于变更，回滚不得清空重放源。
 			var added = new ArrayList<BServiceInfo>();
-			var replaced = new java.util.ArrayList<Zeze.Util.KV<BServiceInfo, BServiceInfo>>();
-			var removed = new java.util.ArrayList<Zeze.Util.KV<BServiceInfo, BServiceInfo>>();
+			var replaced = new java.util.ArrayList<Zeze.Util.KVNotNull<BServiceInfo, BServiceInfo>>();
+			var removed = new java.util.ArrayList<Zeze.Util.KVNotNull<BServiceInfo, BServiceInfo>>();
 			for (var unReg : arg.getRemove()) {
 				var old = registers.remove(unReg);
 				if (old != null)
-					removed.add(Zeze.Util.KV.create(unReg, old));
+					removed.add(Zeze.Util.KVNotNull.create(unReg, old));
 			}
 			for (var reg : arg.getAdd()) {
 				var prev = registers.put(reg, reg);
 				if (prev == null)
 					added.add(reg);
 				else if (prev != reg)
-					replaced.add(Zeze.Util.KV.create(reg, prev)); // 同key新版本对象，回滚需还原旧值
+					replaced.add(Zeze.Util.KVNotNull.create(reg, prev)); // 同key新版本对象，回滚需还原旧值
 			}
 			try {
 				waitLoginReady();

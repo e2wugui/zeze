@@ -57,6 +57,7 @@ import Zeze.Transaction.Logs.LogVector3Int;
 import Zeze.Transaction.Logs.LogVector4;
 import Zeze.Transaction.Table;
 import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
@@ -72,10 +73,10 @@ public class Helper {
 
 	/** dynamic家族：工厂对+来源（宿主bean类#变量名），供同typeId多家族留痕。 */
 	public static final class DynamicFamily {
-		public final KV<ToLongFunction<@Nullable Bean>, LongFunction<@Nullable Bean>> factories;
+		public final KVNotNull<ToLongFunction<@Nullable Bean>, LongFunction<@Nullable Bean>> factories;
 		public final String where;
 
-		DynamicFamily(KV<ToLongFunction<@Nullable Bean>, LongFunction<@Nullable Bean>> factories, String where) {
+		DynamicFamily(KVNotNull<ToLongFunction<@Nullable Bean>, LongFunction<@Nullable Bean>> factories, String where) {
 			this.factories = factories;
 			this.where = where;
 		}
@@ -102,8 +103,8 @@ public class Helper {
 		// typeId 是全局固定单值（Meta1.dynamicBeanTypeId，连 keyClass 分桶都没有）——任意两个
 		// dynamic list 变量必然同 typeId，全部家族同键（哨兵）恰好表达"任意两个都冲突"。
 		public final HashMap<KV<Class<?>, Class<?>>, DynamicFamily> list2Dynamic = new HashMap<>();
-		public final HashSet<KV<Class<?>, Class<?>>> map1 = new HashSet<>();
-		public final HashSet<KV<Class<?>, Class<? extends Bean>>> map2 = new HashSet<>();
+		public final HashSet<KVNotNull<Class<?>, Class<?>>> map1 = new HashSet<>();
+		public final HashSet<KVNotNull<Class<?>, Class<? extends Bean>>> map2 = new HashSet<>();
 		public final HashMap<KV<Class<?>, Class<? extends Bean>>, DynamicFamily> map2Dynamic = new HashMap<>();
 		public final HashSet<Map1Meta<?, ?>> map1Metas = new HashSet<>();
 		public final HashSet<Map2Meta<?, ? extends Bean>> map2Metas = new HashSet<>();
@@ -115,8 +116,8 @@ public class Helper {
 		// map2Dynamic 的 (keyClass,DynamicBean) 决胜，键补齐外层维度 (rowClass,colClass)。
 		public final HashMap<KV<Class<?>, Class<?>>, DynamicMetaFamily> map2MetasDynamic = new HashMap<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
-		public final HashSet<KV<Class<? extends Comparable<?>>, Class<?>>> sortedMap1 = new HashSet<>();
-		public final HashSet<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
+		public final HashSet<KVNotNull<Class<? extends Comparable<?>>, Class<?>>> sortedMap1 = new HashSet<>();
+		public final HashSet<KVNotNull<Class<? extends Comparable<?>>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
 		public final HashMap<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>, DynamicFamily>
 				sortedMap2Dynamic = new HashMap<>();
 		public final HashSet<SortedMap1Meta<? extends Comparable<?>, ?>> sortedMap1Metas = new HashSet<>();
@@ -292,7 +293,7 @@ public class Helper {
 			var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
 					+ Character.toUpperCase(v.getName().charAt(0))
 					+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
-			return new DynamicFamily(KV.create(db.getGetBean(), db.getCreateBean()),
+			return new DynamicFamily(KVNotNull.create(db.getGetBean(), db.getCreateBean()),
 					beanClass.getName() + '#' + v.getName());
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
@@ -433,13 +434,13 @@ public class Helper {
 			dependsBean(valueClass, result);
 			// 选族须与生成器一致（IsNormalBean ? '2' : '1'）：beankey 值生成"1"族（PSortedMap1/LogSortedMap1）。
 			if (BeanKey.class.isAssignableFrom(valueClass))
-				result.sortedMap1.add(KV.create(keyClass, valueClass));
+				result.sortedMap1.add(KVNotNull.create(keyClass, valueClass));
 			else
-				result.sortedMap2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
+				result.sortedMap2.add(KVNotNull.create(keyClass, (Class<? extends Bean>)valueClass));
 		} else if (valueClass == DynamicBean.class) {
 			putDynamicFamily(result.sortedMap2Dynamic, KV.create(keyClass, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
-			result.sortedMap1.add(KV.create(keyClass, valueClass));
+			result.sortedMap1.add(KVNotNull.create(keyClass, valueClass));
 		}
 	}
 
@@ -457,13 +458,13 @@ public class Helper {
 			dependsBean(valueClass, result);
 			// 选族须与生成器一致（IsNormalBean ? '2' : '1'）：beankey 值生成"1"族（PMap1/LogMap1）。
 			if (BeanKey.class.isAssignableFrom(valueClass))
-				result.map1.add(KV.create(keyClass, valueClass));
+				result.map1.add(KVNotNull.create(keyClass, valueClass));
 			else
-				result.map2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
+				result.map2.add(KVNotNull.create(keyClass, (Class<? extends Bean>)valueClass));
 		} else if (valueClass == DynamicBean.class) {
 			putDynamicFamily(result.map2Dynamic, KV.create(keyClass, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
-			result.map1.add(KV.create(keyClass, valueClass));
+			result.map1.add(KVNotNull.create(keyClass, valueClass));
 		}
 	}
 

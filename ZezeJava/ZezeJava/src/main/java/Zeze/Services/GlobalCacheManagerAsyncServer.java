@@ -38,7 +38,7 @@ import Zeze.Util.AsyncLock;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.Id128;
 import Zeze.Util.IdentityHashSet;
-import Zeze.Util.KV;
+import Zeze.Util.KVNotNull;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -1070,7 +1070,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					return;
 				}
 
-				var reducePending = new ArrayList<KV<CacheHolder, Reduce>>();
+				var reducePending = new ArrayList<KVNotNull<CacheHolder, Reduce>>();
 				var reduceSucceed = new IdentityHashSet<CacheHolder>();
 				var allReduceFuture = new CountDownFuture();
 				var senderIsShareTmp = false;
@@ -1096,7 +1096,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 						allReduceFuture.finishOne();
 						break;
 					}
-					reducePending.add(KV.create(c, reduce));
+					reducePending.add(KVNotNull.create(c, reduce));
 				}
 				boolean senderIsShare = senderIsShareTmp;
 
