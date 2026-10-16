@@ -26,6 +26,7 @@ public class GenericBean {
 		 * @param bb    当前的bb,如果要继续walk则需要bb.ReadIndex移过当前字段
 		 * @return 是否继续walk
 		 */
+		@SuppressWarnings("BooleanMethodIsAlwaysInverted")
 		boolean handleField(int varId, int type, IByteBuffer bb);
 	}
 
@@ -65,54 +66,48 @@ public class GenericBean {
 	}
 
 	public static Object decodeField(IByteBuffer bb, int type) {
-		switch (type) {
-		case ByteBuffer.INTEGER:
-			var vl = bb.ReadLong();
-			int vi = (int)vl;
-			return vi == vl ? (Object)vi : (Object)vl;
-		case ByteBuffer.FLOAT:
-			return bb.ReadFloat();
-		case ByteBuffer.DOUBLE:
-			return bb.ReadDouble();
-		case ByteBuffer.BYTES:
-			var b = bb.ReadBytes();
-			return likeString(b) ? new String(b, StandardCharsets.UTF_8) : b;
-		case ByteBuffer.LIST:
-			int t = bb.ReadByte();
-			int n = bb.ReadTagSize(t);
-			t &= ByteBuffer.TAG_MASK;
-			var list = new ArrayList<>(Math.min(n, 0x10000));
-			for (int i = 0; i < n; i++)
-				list.add(decodeField(bb, t));
-			return list;
-		case ByteBuffer.MAP:
-			t = bb.ReadByte();
-			n = bb.ReadUInt();
-			int tk = (t >> 4) & ByteBuffer.TAG_MASK;
-			t &= ByteBuffer.TAG_MASK;
-			var map = new HashMap<>(Math.min((int)Math.ceil(n / 0.75f), 0x10000));
-			for (int i = 0; i < n; i++) {
-				Object k = decodeField(bb, tk);
-				map.put(k, decodeField(bb, t));
+		return switch (type) {
+			case ByteBuffer.INTEGER -> {
+				var vl = bb.ReadLong();
+				int vi = (int)vl;
+				yield vi == vl ? (Object)vi : (Object)vl;
 			}
-			return map;
-		case ByteBuffer.BEAN:
-			return new GenericBean().decode(bb);
-		case ByteBuffer.DYNAMIC:
-			return new GenericDynamicBean().decode(bb);
-		case ByteBuffer.VECTOR2:
-			return bb.ReadVector2();
-		case ByteBuffer.VECTOR2INT:
-			return bb.ReadVector2Int();
-		case ByteBuffer.VECTOR3:
-			return bb.ReadVector3();
-		case ByteBuffer.VECTOR3INT:
-			return bb.ReadVector3Int();
-		case ByteBuffer.VECTOR4:
-			return bb.ReadVector4();
-		default:
-			throw new IllegalStateException("invalid type=" + type);
-		}
+			case ByteBuffer.FLOAT -> bb.ReadFloat();
+			case ByteBuffer.DOUBLE -> bb.ReadDouble();
+			case ByteBuffer.BYTES -> {
+				var b = bb.ReadBytes();
+				yield likeString(b) ? new String(b, StandardCharsets.UTF_8) : b;
+			}
+			case ByteBuffer.LIST -> {
+				int t = bb.ReadByte();
+				int n = bb.ReadTagSize(t);
+				t &= ByteBuffer.TAG_MASK;
+				var list = new ArrayList<>(Math.min(n, 0x10000));
+				for (int i = 0; i < n; i++)
+					list.add(decodeField(bb, t));
+				yield list;
+			}
+			case ByteBuffer.MAP -> {
+				var t = bb.ReadByte();
+				var n = bb.ReadUInt();
+				int tk = (t >> 4) & ByteBuffer.TAG_MASK;
+				t &= ByteBuffer.TAG_MASK;
+				var map = new HashMap<>(Math.min((int)Math.ceil(n / 0.75f), 0x10000));
+				for (int i = 0; i < n; i++) {
+					Object k = decodeField(bb, tk);
+					map.put(k, decodeField(bb, t));
+				}
+				yield map;
+			}
+			case ByteBuffer.BEAN -> new GenericBean().decode(bb);
+			case ByteBuffer.DYNAMIC -> new GenericDynamicBean().decode(bb);
+			case ByteBuffer.VECTOR2 -> bb.ReadVector2();
+			case ByteBuffer.VECTOR2INT -> bb.ReadVector2Int();
+			case ByteBuffer.VECTOR3 -> bb.ReadVector3();
+			case ByteBuffer.VECTOR3INT -> bb.ReadVector3Int();
+			case ByteBuffer.VECTOR4 -> bb.ReadVector4();
+			default -> throw new IllegalStateException("invalid type=" + type);
+		};
 	}
 
 	// 判断b是否合法的UTF-8字符串
