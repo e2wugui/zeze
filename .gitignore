@@ -15,6 +15,7 @@ x64/
 /audit-*/
 /confcs/confcs
 /Gen/Properties
+/publish/Gen.pdb
 /TypeScript/**/*.js
 /TypeScript/**/*.js.map
 /TypeScript/**/gen.ts
