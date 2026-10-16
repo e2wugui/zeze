@@ -60,7 +60,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private @Nullable Commit commit;
 	private @Nullable CommitAgent commitAgent;
-	private volatile @Nullable Future<?> refreshMasterTableTask; // 任务线程会置null（见startRefreshMasterTable），需要可见性
+	private @Nullable Future<?> refreshMasterTableTask;
 	// stop后置位且不可复位（本类无重启路径）。后台刷新任务体整体持本管理器锁与stop串行：
 	// stopped的检查-执行与stop的清理互斥，锁外检查会让stop在检查后清理前重建MasterAgent并回填buckets。
 	private volatile boolean stopped;

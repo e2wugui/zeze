@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Config;
-import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,7 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 钉住三件事：失败后槽位必须回到null；失败后再次触发必须真的重新执行reload（自愈）；
  * 成功路径行为不变（reload成功后槽位同样回到null）。
  * serverId 880段为本用例预留。形态：桩MasterAgent.getBuckets按脚本抛异常/回数据，
- * 反射观测私有volatile槽位（不启真实master，@Fast无全局状态）。
+ * 持管理器锁反射观测私有槽位（不启真实master，@Fast无全局状态）。
  */
 @Fast
 @Extra
@@ -67,7 +66,12 @@ public class TestRefreshMasterTableResetsOnFailure {
 	private static @Nullable Future<?> getRefreshTask(Dbh2AgentManager manager) throws Exception {
 		Field field = Dbh2AgentManager.class.getDeclaredField("refreshMasterTableTask");
 		field.setAccessible(true);
-		return (Future<?>)field.get(manager);
+		manager.lock();
+		try {
+			return (Future<?>)field.get(manager);
+		} finally {
+			manager.unlock();
+		}
 	}
 
 	// BooleanSupplier不容checked异常：反射读取包一层。
