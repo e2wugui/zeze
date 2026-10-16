@@ -1,5 +1,7 @@
 package Zeze.Game;
 
+import java.util.Objects;
+
 import Zeze.Arch.ProviderDirect;
 import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Transaction.Procedure;
@@ -15,7 +17,7 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 	@Override
 	protected long ProcessTransmit(Transmit p) {
 		var name = p.Argument.getOnlineSetName();
-		var online = ((ProviderWithOnline)providerApp.providerImplement).getOnline(name);
+		var online = Objects.requireNonNull(((ProviderWithOnline)Objects.requireNonNull(Objects.requireNonNull(providerApp).providerImplement))).getOnline(name);
 		if (online != null)
 			online.processTransmit(p.Argument.getSender(), p.Argument.getActionName(), p.Argument.getRoles(), p.Argument.getParameter());
 		else

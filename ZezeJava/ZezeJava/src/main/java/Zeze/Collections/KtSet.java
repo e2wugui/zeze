@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import kotlinx.collections.immutable.ExtensionsKt;
 import kotlinx.collections.immutable.PersistentSet;
-import org.jetbrains.annotations.NotNull;
+
 import org.pcollections.PSet;
 
 /**
@@ -24,13 +24,13 @@ import org.pcollections.PSet;
  * </ul>
  */
 public final class KtSet<E> extends AbstractSet<E> implements PSet<E> {
-	private final @NotNull PersistentSet<E> kt;
+	private final PersistentSet<E> kt;
 
-	private KtSet(@NotNull PersistentSet<E> kt) {
+	private KtSet(PersistentSet<E> kt) {
 		this.kt = kt;
 	}
 
-	public static <E> @NotNull KtSet<E> empty() {
+	public static <E> KtSet<E> empty() {
 		return new KtSet<>(ExtensionsKt.<E>persistentHashSetOf());
 	}
 
@@ -47,32 +47,32 @@ public final class KtSet<E> extends AbstractSet<E> implements PSet<E> {
 	}
 
 	@Override
-	public boolean contains(@NotNull Object o) {
+	public boolean contains(Object o) {
 		return kt.contains(o);
 	}
 
 	/** 直接走内核迭代器（AbstractSet 默认经 iterator 链，少一层转发）。 */
 	@Override
-	public @NotNull Iterator<E> iterator() {
+	public Iterator<E> iterator() {
 		return kt.iterator();
 	}
 
 	// ===== 持久化写 =====
 
 	@Override
-	public @NotNull PSet<E> plus(@NotNull E e) {
+	public PSet<E> plus(E e) {
 		var n = kt.add(e);
 		return n == kt ? this : new KtSet<>(n);
 	}
 
 	@Override
-	public @NotNull PSet<E> minus(@NotNull Object e) {
+	public PSet<E> minus(Object e) {
 		var n = kt.remove((E)e);
 		return n == kt ? this : new KtSet<>(n);
 	}
 
 	@Override
-	public @NotNull PSet<E> plusAll(@NotNull Collection<? extends E> c) {
+	public PSet<E> plusAll(Collection<? extends E> c) {
 		if (c.isEmpty())
 			return this;
 		if (!Persistents.BULK) {
@@ -87,7 +87,7 @@ public final class KtSet<E> extends AbstractSet<E> implements PSet<E> {
 	}
 
 	@Override
-	public @NotNull PSet<E> minusAll(@NotNull Collection<?> c) {
+	public PSet<E> minusAll(Collection<?> c) {
 		if (c.isEmpty())
 			return this;
 		if (!Persistents.BULK) {
@@ -106,12 +106,12 @@ public final class KtSet<E> extends AbstractSet<E> implements PSet<E> {
 	// ===== 可变写：不可变实现恒 UOE =====
 
 	@Override
-	public boolean add(@NotNull E e) {
+	public boolean add(E e) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public boolean remove(@NotNull Object o) {
+	public boolean remove(Object o) {
 		throw new UnsupportedOperationException();
 	}
 }

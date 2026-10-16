@@ -3,7 +3,6 @@ package Zeze.Hot;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 热更守卫锁句柄：构造加锁、close 解锁，用于热更期间阻塞普通任务派发。
@@ -43,7 +42,7 @@ public class HotGuard implements AutoCloseable {
 		}
 
 		@Override
-		public boolean tryLock(long time, @NotNull TimeUnit unit) {
+		public boolean tryLock(long time, TimeUnit unit) {
 			return true;
 		}
 
@@ -51,7 +50,6 @@ public class HotGuard implements AutoCloseable {
 		public void unlock() {
 		}
 
-		@NotNull
 		@Override
 		public Condition newCondition() {
 			throw new UnsupportedOperationException();

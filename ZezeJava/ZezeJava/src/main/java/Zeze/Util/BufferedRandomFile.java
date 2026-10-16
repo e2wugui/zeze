@@ -10,7 +10,7 @@ import java.nio.charset.Charset;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.locks.ReentrantLock;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 目标：
@@ -77,7 +77,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 	 * @return n read bytes, -1 means eof.
 	 * @throws IOException exception
 	 */
-	public int read(byte @NotNull [] buf, int off, int len) throws IOException {
+	public int read(byte [] buf, int off, int len) throws IOException {
 		lock();
 		try {
 			var n = 0;
@@ -133,7 +133,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 		return buffer.get() & 0xff;
 	}
 
-	public String readLine() throws IOException {
+	public @Nullable String readLine() throws IOException {
 		lock();
 		try {
 			var line = Zeze.Serialize.ByteBuffer.Allocate(4096);

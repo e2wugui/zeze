@@ -10,8 +10,7 @@ import Zeze.Transaction.Database;
 import Zeze.Transaction.IHistory;
 import Zeze.Transaction.Table;
 import Zeze.Util.Id128;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 一个事务关联集合（rrs）的tHistory变更缓冲，两段流水线：
@@ -26,25 +25,25 @@ import org.jetbrains.annotations.Nullable;
  * 防止跨 Application 写库或核销数值重叠的 gid。
  */
 public class History implements IHistory.PendingHistory {
-	private final @NotNull Table table;
-	private final @NotNull PendingGidLedger ledger;
+	private final Table table;
+	private final PendingGidLedger ledger;
 
 	// 每个待刷缓冲创建时已有一条历史，快照也复制完整容器，无须再维护惰性字段状态。
 	private final ConcurrentHashMap<Id128, BLogChanges.Data> logChanges = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Id128, Binary> encoded = new ConcurrentHashMap<>();
 
-	public History(@NotNull Table table, @NotNull PendingGidLedger ledger, @NotNull BLogChanges.Data firstData) {
+	public History(Table table, PendingGidLedger ledger, BLogChanges.Data firstData) {
 		this(table, ledger);
 		logChanges.put(firstData.getGlobalSerialId(), firstData);
 	}
 
-	private History(@NotNull Table table, @NotNull PendingGidLedger ledger) {
+	private History(Table table, PendingGidLedger ledger) {
 		this.table = table;
 		this.ledger = ledger;
 	}
 
 	@Override
-	public @NotNull Table getTable() {
+	public Table getTable() {
 		return table;
 	}
 
@@ -64,7 +63,7 @@ public class History implements IHistory.PendingHistory {
 
 	/** 把 encoded 写入tHistory事务。只写不清空，清理由 onPersisted 绑定提交结果。 */
 	@Override
-	public void writeOnly(@NotNull Database.Table table, @NotNull Database.Transaction txn) {
+	public void writeOnly(Database.Table table, Database.Transaction txn) {
 		// 但仅仅Checkpoint访问，不需要加锁。现实也在锁内。
 		for (var e : encoded.entrySet()) {
 			var key = ByteBuffer.Allocate();
@@ -87,7 +86,7 @@ public class History implements IHistory.PendingHistory {
 	}
 
 	@Override
-	public void mergeFrom(@NotNull IHistory.PendingHistory from) {
+	public void mergeFrom(IHistory.PendingHistory from) {
 		if (!(from instanceof History other) || table != other.table || ledger != other.ledger)
 			throw new IllegalArgumentException("history buffers must belong to the same Application and table");
 		if (other == this)
@@ -97,7 +96,7 @@ public class History implements IHistory.PendingHistory {
 	}
 
 	@Override
-	public @NotNull History snapshot() {
+	public History snapshot() {
 		var copy = new History(table, ledger);
 		copy.mergeFrom(this);
 		return copy;
@@ -106,8 +105,9 @@ public class History implements IHistory.PendingHistory {
 	/** 用已解析的 gid 编码日志变更。gid 必须在日志应用前解析并登记对账账本（调用方
 	 * HistoryModule.prepareCommit：取号失败=数据未应用即干净失败；成功即入账，此后任何失败
 	 * 都留下账本痕迹），tHistory 行随数据库事务提交成功由 onPersisted 核销。 */
-	public static @NotNull BLogChanges.Data buildLogChanges(@NotNull Id128 globalSerialId,
-															@NotNull Changes changes,
+	@SuppressWarnings("ConstantConditions")
+	public static BLogChanges.Data buildLogChanges(Id128 globalSerialId,
+															Changes changes,
 															@Nullable String protocolClassName,
 															@Nullable Binary protocolArgument) {
 		var logChanges = new BLogChanges.Data();

@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -9,7 +11,7 @@ import Zeze.Transaction.Bean;
  */
 final class BRequestVoteArgument extends Bean {
 	private long term;
-	private String candidateId;
+	private @Nullable String candidateId;
 	private long lastLogIndex;
 	private long lastLogTerm;
 	private boolean nodeReady;
@@ -22,7 +24,7 @@ final class BRequestVoteArgument extends Bean {
 		term = value;
 	}
 
-	public String getCandidateId() {
+	public @Nullable String getCandidateId() {
 		return candidateId;
 	}
 

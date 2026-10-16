@@ -6,8 +6,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Json.*;
 
 // JSON 输出序列化器：分块字节缓冲 + Grisu2 浮点最短表示，供 Json 反射序列化与手工写出
@@ -95,26 +94,28 @@ public final class JsonWriter {
 	private static final byte[] EMPTY = new byte[0];
 
 	public interface BlockAllocator {
-		@NotNull Block alloc(int minLen);
+		Block alloc(int minLen);
 
-		default @NotNull Block alloc() {
+		default Block alloc() {
 			return alloc(4096);
 		}
 
-		default void free(@SuppressWarnings("unused") @NotNull Block block) {
+		default void free(@SuppressWarnings("unused") Block block) {
 		}
 	}
 
 	public static class Block {
+		@SuppressWarnings("NotNullFieldNotInitialized") // Filled by BlockAllocator before this block is used.
 		public byte[] buf;
 		public int len; // current len of buf for non-tail
+		@SuppressWarnings("NotNullFieldNotInitialized") // Linked by JsonWriter before this block is used.
 		Block next; // always non-null
 	}
 
-	private static final @NotNull ThreadLocal<JsonWriter> localWriters = ensureNotNull(
+	private static final ThreadLocal<JsonWriter> localWriters = ensureNotNull(
 			ThreadLocal.withInitial(JsonWriter::new));
 
-	public static @NotNull JsonWriter local() {
+	public static JsonWriter local() {
 		return ensureNotNull(localWriters.get());
 	}
 
@@ -122,9 +123,9 @@ public final class JsonWriter {
 		localWriters.remove();
 	}
 
-	private final @NotNull BlockAllocator allocator;
-	private @NotNull Block tail; // the last block of circular linked list; head = tail.next
-	private byte[] buf; // tail.buf
+	private final BlockAllocator allocator;
+	private @Nullable Block tail; // the last block of circular linked list; head = ensureNotNull(tail).next
+	private byte[] buf; // ensureNotNull(tail).buf
 	private int pos; // current pos of buf
 	private int size; // sum of len in all blocks except tail
 	private int flags = 0x10_0000; // (depth=16) << 16
@@ -168,7 +169,7 @@ public final class JsonWriter {
 	// 复杂Map键的子writer：继承深度相关flags并共享剩余深度预算——此前新writer
 	// 从零深度起且丢弃调用方flags，含循环的键图绕过FLAG_THROW_ON_DEPTH_LIMIT
 	// 直接StackOverflowError，超深复杂键也绕过调用方预算。
-	private byte @NotNull [] writeComplexKey(@NotNull Json json, @NotNull Object k) {
+	private byte [] writeComplexKey(Json json, Object k) {
 		return new JsonWriter()
 				.setFlags(flags & (FLAG_NO_QUOTE_KEY | FLAG_THROW_ON_DEPTH_LIMIT))
 				.setDepthLimit(Math.max(getDepthLimit() - tabs, 0))
@@ -176,7 +177,7 @@ public final class JsonWriter {
 				.toBytes();
 	}
 
-	public @NotNull JsonWriter setDepthLimit(int depth) {
+	public JsonWriter setDepthLimit(int depth) {
 		flags = (flags & FLAG_ALL) | (depth << 16);
 		return this;
 	}
@@ -185,12 +186,12 @@ public final class JsonWriter {
 		return flags & FLAG_ALL;
 	}
 
-	public @NotNull JsonWriter setFlags(int flags) {
+	public JsonWriter setFlags(int flags) {
 		this.flags = this.flags & ~FLAG_ALL | flags & FLAG_ALL;
 		return this;
 	}
 
-	public @NotNull JsonWriter setFlagsAndDepthLimit(int flags, int depth) {
+	public JsonWriter setFlagsAndDepthLimit(int flags, int depth) {
 		this.flags = (flags & FLAG_ALL) | (depth << 16);
 		return this;
 	}
@@ -199,7 +200,7 @@ public final class JsonWriter {
 		return (flags & FLAG_PRETTY_FORMAT) != 0;
 	}
 
-	public @NotNull JsonWriter setPrettyFormat(boolean enable) {
+	public JsonWriter setPrettyFormat(boolean enable) {
 		if (enable)
 			flags |= FLAG_PRETTY_FORMAT;
 		else
@@ -211,7 +212,7 @@ public final class JsonWriter {
 		return (flags & FLAG_NO_QUOTE_KEY) != 0;
 	}
 
-	public @NotNull JsonWriter setNoQuoteKey(boolean enable) {
+	public JsonWriter setNoQuoteKey(boolean enable) {
 		if (enable)
 			flags |= FLAG_NO_QUOTE_KEY;
 		else
@@ -223,7 +224,7 @@ public final class JsonWriter {
 		return (flags & FLAG_WRITE_NULL) != 0;
 	}
 
-	public @NotNull JsonWriter setWriteNull(boolean enable) {
+	public JsonWriter setWriteNull(boolean enable) {
 		if (enable)
 			flags |= FLAG_WRITE_NULL;
 		else
@@ -235,7 +236,7 @@ public final class JsonWriter {
 		return (flags & FLAG_WRAP_ELEMENT) != 0;
 	}
 
-	public @NotNull JsonWriter setWrapElement(boolean enable) {
+	public JsonWriter setWrapElement(boolean enable) {
 		if (enable)
 			flags |= FLAG_WRAP_ELEMENT;
 		else
@@ -243,8 +244,8 @@ public final class JsonWriter {
 		return this;
 	}
 
-	public @NotNull JsonWriter clear() { // leave the empty head block
-		Block head = ensureNotNull(tail.next);
+	public JsonWriter clear() { // leave the empty head block
+		Block head = ensureNotNull(ensureNotNull(tail).next);
 		for (Block block = head.next; block != head; block = block.next)
 			allocator.free(ensureNotNull(block));
 		tail = head;
@@ -267,8 +268,8 @@ public final class JsonWriter {
 	 * 无跨线程移除途径），目标线程随后的 local() 仍会取回已释放实例，clear() 首行 tail.next
 	 * 即 NPE——该用法属线程封闭违约，本方法对此不设防。
 	 */
-	public @NotNull JsonWriter free() {
-		for (Block block = tail.next; ; block = block.next) {
+	public JsonWriter free() {
+		for (Block block = ensureNotNull(tail).next; ; block = block.next) {
 			allocator.free(ensureNotNull(block));
 			if (block == tail)
 				break;
@@ -294,8 +295,8 @@ public final class JsonWriter {
 
 	public int charSize() {
 		int len = 0;
-		tail.len = pos;
-		for (Block block = tail.next; ; block = block.next) {
+		ensureNotNull(tail).len = pos;
+		for (Block block = ensureNotNull(tail).next; ; block = block.next) {
 			byte[] buffer = block.buf;
 			for (int i = 0, n = block.len; i < n; len++) {
 				int b = buffer[i];
@@ -314,8 +315,8 @@ public final class JsonWriter {
 	}
 
 	public boolean hasWideChar() {
-		tail.len = pos;
-		for (Block block = tail.next; ; block = block.next) {
+		ensureNotNull(tail).len = pos;
+		for (Block block = ensureNotNull(tail).next; ; block = block.next) {
 			byte[] buffer = block.buf;
 			for (int i = 0, n = block.len; i < n; i++)
 				if (buffer[i] < 0)
@@ -330,9 +331,9 @@ public final class JsonWriter {
 		Block block = allocator.alloc(len);
 		//noinspection ConstantConditions
 		if (tail != null) {
-			block.next = tail.next;
-			tail.next = block;
-			tail.len = pos;
+			block.next = ensureNotNull(tail).next;
+			ensureNotNull(tail).next = block;
+			ensureNotNull(tail).len = pos;
 			size += pos;
 			pos = 0;
 		} else
@@ -373,12 +374,12 @@ public final class JsonWriter {
 	}
 
 	// ensure +1
-	public @NotNull JsonWriter write(@Nullable Object obj) {
+	public JsonWriter write(@Nullable Object obj) {
 		return write(Json.instance, obj);
 	}
 
 	// ensure +1
-	public @NotNull JsonWriter write(@NotNull Json json, @Nullable Object obj) {
+	public JsonWriter write(Json json, @Nullable Object obj) {
 		if (obj == null) {
 			ensure(5);
 			buf[pos++] = 'n';
@@ -701,10 +702,10 @@ public final class JsonWriter {
 	}
 
 	public byte[] toBytes() {
-		Block block = tail.next;
+		Block block = ensureNotNull(tail).next;
 		if (block == tail)
 			return Arrays.copyOf(buf, pos);
-		tail.len = pos;
+		ensureNotNull(tail).len = pos;
 		int p = 0;
 		for (; ; block = block.next) {
 			p += block.len;
@@ -713,7 +714,7 @@ public final class JsonWriter {
 		}
 		byte[] res = new byte[p];
 		p = 0;
-		for (block = tail.next; ; block = block.next) {
+		for (block = ensureNotNull(tail).next; ; block = block.next) {
 			System.arraycopy(block.buf, 0, res, p, block.len);
 			p += block.len;
 			if (block == tail)
@@ -724,8 +725,8 @@ public final class JsonWriter {
 	public char[] toChars() {
 		char[] res = new char[charSize()];
 		int p = 0;
-		tail.len = pos;
-		for (Block block = tail.next; ; block = block.next) {
+		ensureNotNull(tail).len = pos;
+		for (Block block = ensureNotNull(tail).next; ; block = block.next) {
 			byte[] buffer = block.buf;
 			for (int i = 0, n = block.len; i < n; ) {
 				int b = buffer[i];
@@ -755,10 +756,10 @@ public final class JsonWriter {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		byte[] b;
 		int i, n;
-		if (tail == tail.next) {
+		if (tail == ensureNotNull(tail).next) {
 			b = buf;
 			n = pos;
 		} else {
@@ -1240,7 +1241,7 @@ public final class JsonWriter {
 		return c <= ' ' || c == ':' || c == ',' || c == '}' || c == ']' || c == '"' || c == '\'' || c == '\\' || c == '/';
 	}
 
-	private static boolean needQuoteKey(@NotNull String s) {
+	private static boolean needQuoteKey(String s) {
 		if (s.isEmpty())
 			return true;
 		for (int i = 0, n = s.length(); i < n; i++)
@@ -1249,7 +1250,7 @@ public final class JsonWriter {
 		return false;
 	}
 
-	private static boolean needQuoteKey(byte @NotNull [] s) {
+	private static boolean needQuoteKey(byte [] s) {
 		if (s.length == 0)
 			return true;
 		for (byte b : s)
@@ -1291,7 +1292,7 @@ public final class JsonWriter {
 			buf[pos++] = '"';
 	}
 
-	public void write(final @NotNull String str, final boolean noQuote) {
+	public void write(final String str, final boolean noQuote) {
 		if (!noQuote)
 			buf[pos++] = '"';
 		if (unsafe.getByte(str, STRING_CODE_OFFSET) == 0) // LATIN1（compact strings）
@@ -1302,7 +1303,7 @@ public final class JsonWriter {
 			buf[pos++] = '"';
 	}
 
-	private void writeLatin1(final byte @NotNull [] str) {
+	private void writeLatin1(final byte [] str) {
 		for (int c : str) {
 			if (c >= 0) {
 				byte b = ESCAPE[c];
@@ -1325,7 +1326,7 @@ public final class JsonWriter {
 		}
 	}
 
-	private void write8(final @NotNull String str) {
+	private void write8(final String str) {
 		for (int i = 0, n = str.length(), d; i < n; i++) {
 			int c = str.charAt(i);
 			if (c < 0x80) {

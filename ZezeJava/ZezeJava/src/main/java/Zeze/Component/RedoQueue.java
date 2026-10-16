@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Objects;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.Future;
@@ -17,8 +19,9 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
-import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
+import org.jspecify.annotations.Nullable;
+import Zeze.Util.RocksDatabase.Table;
 
 /**
  * 连接：
@@ -29,16 +32,16 @@ import org.rocksdb.RocksDBException;
 public class RedoQueue extends HandshakeClient {
 	private static final org.apache.logging.log4j.Logger logger =
 			org.apache.logging.log4j.LogManager.getLogger(RedoQueue.class);
-	private RocksDatabase db;
-	private RocksDatabase.Table tableLastDoneTaskId;
-	private RocksDatabase.Table tableTaskQueue;
+	private @Nullable RocksDatabase db;
+	private @Nullable Table tableLastDoneTaskId;
+	private @Nullable Table tableTaskQueue;
 	private long lastTaskId;
 	private long lastDoneTaskId;
 	private final byte[] lastDoneTaskIdKey = "LastDoneTaskId".getBytes(StandardCharsets.UTF_8);
-	private RunTask pending;
-	private AsyncSocket socket;
+	private @Nullable RunTask pending;
+	private @Nullable AsyncSocket socket;
 	// 失败/超时后的延迟重试，单flight（已在途则不重复排）。stop必须取消，否则触发时tableTaskQueue已close。
-	private Future<?> retryTask;
+	private @Nullable Future<?> retryTask;
 	private static final long RETRY_DELAY_MS = 5_000;
 
 	public RedoQueue(String name, Config config) {
@@ -119,7 +122,7 @@ public class RedoQueue extends HandshakeClient {
 			task.encode(value);
 
 			// 保存完整的rpc请求，重新发送的时候不用再次打包。
-			tableTaskQueue.put(key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			Objects.requireNonNull(tableTaskQueue).put(key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 			lastTaskId = newTaskId;
 			tryStartSendNextTask(task, null);
 		} catch (RocksDBException e) {
@@ -139,11 +142,11 @@ public class RedoQueue extends HandshakeClient {
 		first.WriteLong(0);
 		var end = ByteBuffer.Allocate(9);
 		end.WriteLong(lastDoneTaskId + 1);
-		tableTaskQueue.deleteRange(Arrays.copyOf(first.Bytes, first.WriteIndex),
+		Objects.requireNonNull(tableTaskQueue).deleteRange(Arrays.copyOf(first.Bytes, first.WriteIndex),
 				Arrays.copyOf(end.Bytes, end.WriteIndex));
 	}
 
-	private void tryStartSendNextTask(BQueueTask add, AsyncSocket socket) throws RocksDBException {
+	private void tryStartSendNextTask(@Nullable BQueueTask add, @Nullable AsyncSocket socket) throws RocksDBException {
 		if (pending != null)
 			return;
 
@@ -156,7 +159,7 @@ public class RedoQueue extends HandshakeClient {
 				// 最近加入的不是要发送的，从Db中读取。
 				var key = ByteBuffer.Allocate(9);
 				key.WriteLong(taskId);
-				var value = tableTaskQueue.get(key.Bytes, 0, key.WriteIndex);
+				var value = Objects.requireNonNull(tableTaskQueue).get(key.Bytes, 0, key.WriteIndex);
 				if (value == null) {
 					// 水位下一跳任务在DB中不存在（历史put失败留下的空洞，或外部
 					// 删数据）。洞不会自愈：重启后lastTaskId从DB最大键恢复，水位之下的洞
@@ -208,7 +211,7 @@ public class RedoQueue extends HandshakeClient {
 				}
 				var value = ByteBuffer.Allocate(9);
 				value.WriteLong(lastDoneTaskId);
-				tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
+				Objects.requireNonNull(tableLastDoneTaskId).put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
 				deleteDoneTasks();
 				tryStartSendNextTask(null, rpc.getSender());
 				return 0L;
@@ -246,7 +249,7 @@ public class RedoQueue extends HandshakeClient {
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 		lock();
 		try {
@@ -257,7 +260,7 @@ public class RedoQueue extends HandshakeClient {
 	}
 
 	@Override
-	public void OnSocketClose(@NotNull AsyncSocket so, Throwable ex) throws Exception {
+	public void OnSocketClose(AsyncSocket so, @Nullable Throwable ex) throws Exception {
 		super.OnSocketClose(so, ex);
 		lock();
 		try {

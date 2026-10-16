@@ -2,8 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import java.util.Properties;
 import Zeze.Util.PropertiesHelper;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 导出器参数配置：共享Properties叠加-private私有参数，统一参数名分配与读取。
@@ -35,21 +34,21 @@ public class ExporterConfig {
 		return p;
 	}
 
-	public String getReload() {
+	public @Nullable String getReload() {
 		return getString("-reload", null);
 	}
 
 	////////////////////////////////////////////////////////////////////////////
 	// 下面是实现。
 	private final Properties share;
-	private final Properties privates;
+	private final @Nullable Properties privates;
 
-	public ExporterConfig(@NotNull Properties share, @Nullable String privateParam) {
+	public ExporterConfig(Properties share, @Nullable String privateParam) {
 		this.share = share;
 		this.privates = null == privateParam ? null : PropertiesHelper.parse(privateParam);
 	}
 
-	public String getString(String name, String def) {
+	public @Nullable String getString(String name, @Nullable String def) {
 		String p;
 		if (null != privates && (p = privates.getProperty(name)) != null)
 			return p;

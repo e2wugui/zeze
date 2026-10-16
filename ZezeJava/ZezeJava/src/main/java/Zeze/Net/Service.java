@@ -9,6 +9,7 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,22 +39,21 @@ import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 网络服务基类：管理连接（socket）生命周期、协议工厂注册、协议解码与事务派发。
  */
 public class Service extends ReentrantLock {
-	protected static final @NotNull Logger logger = LogManager.getLogger(Service.class);
+	protected static final Logger logger = LogManager.getLogger(Service.class);
 	// 默认共享发号流随机63位基址——同JVM内全Service共享一条流保证不撞号，
 	// 随机基址使跨JVM/leader代碰撞概率2^-63量级（ServiceManagerWithRaft按sessionId判活，
 	// 固定从1起号跨代必撞）。
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(
 			(System.nanoTime() ^ new java.security.SecureRandom().nextLong()) & Long.MAX_VALUE);
-	private static final @NotNull VarHandle closedRecvCountHandle, closedRecvSizeHandle;
-	private static final @NotNull VarHandle closedSendCountHandle, closedSendSizeHandle, closedSendRawSizeHandle;
-	protected static final @NotNull VarHandle overflowSizeHandle, overflowCountHandle;
+	private static final VarHandle closedRecvCountHandle, closedRecvSizeHandle;
+	private static final VarHandle closedSendCountHandle, closedSendSizeHandle, closedSendRawSizeHandle;
+	protected static final VarHandle overflowSizeHandle, overflowCountHandle;
 	protected static final IOException serviceStoppedException = new IOException("serviceStopped");
 	protected static final IOException inputClosedException = new IOException("inputClosed");
 	protected static final IOException throttleException = new IOException("checkThrottle failed");
@@ -74,12 +74,12 @@ public class Service extends ReentrantLock {
 		}
 	}
 
-	private final @NotNull String name;
-	private @NotNull String instanceName = ""; // 用来区分多实例的Service，用于日志，不影响逻辑。
-	private final Application zeze;
-	private @NotNull SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
-	private @NotNull ServiceConf config;
-	private @NotNull LongSupplier sessionIdGenerator = staticSessionIdAtomicLong::getAndIncrement;
+	private final String name;
+	private String instanceName = ""; // 用来区分多实例的Service，用于日志，不影响逻辑。
+	private final @Nullable Application zeze;
+	private SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
+	private ServiceConf config;
+	private LongSupplier sessionIdGenerator = staticSessionIdAtomicLong::getAndIncrement;
 	protected final LongConcurrentHashMap<AsyncSocket> socketMap = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> factorys = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<Protocol<?>> rpcContexts = new LongConcurrentHashMap<>();
@@ -95,7 +95,7 @@ public class Service extends ReentrantLock {
 	private @Nullable Selectors selectors;
 	private boolean noProcedure;
 	// volatile：tryStartKeepAliveCheckTimer的无锁快路径在Service锁外读它。
-	protected volatile Future<?> keepCheckTimer;
+	protected volatile @Nullable Future<?> keepCheckTimer;
 	// keepalive定时器随服务生命周期管理：start启动（keepCheckPeriod默认0禁用时无开销）、
 	// stop熔断。同时保留TcpSocket构造的兜底启动：Token/GlobalAgent/OnzServer等
 	// 手工connector路径不经过Service.start()，仍依赖懒启动。
@@ -104,11 +104,11 @@ public class Service extends ReentrantLock {
 	// 门禁白名单：非空即布防——未完成密钥交换的连接仅放行白名单内的协议。
 	private final LongHashSet decodeAdmissionWhitelist = new LongHashSet();
 
-	public @NotNull String getInstanceName() {
+	public String getInstanceName() {
 		return instanceName;
 	}
 
-	public void setInstanceName(@NotNull String instanceName) {
+	public void setInstanceName(String instanceName) {
 		this.instanceName = instanceName;
 	}
 
@@ -116,19 +116,19 @@ public class Service extends ReentrantLock {
 	// 命中即自查自关——与stop的关闭循环两序either-way必被一方关闭，迟到连接不再泄漏。
 	private volatile boolean stopped;
 
-	public Service(@NotNull String name) {
+	public Service(String name) {
 		this(name, null, null);
 	}
 
-	public Service(@NotNull String name, @Nullable Config config) {
+	public Service(String name, @Nullable Config config) {
 		this(name, null, config);
 	}
 
-	public Service(@NotNull String name, @Nullable Application app) {
+	public Service(String name, @Nullable Application app) {
 		this(name, app, app != null ? app.getConfig() : null);
 	}
 
-	public Service(@NotNull String name, @Nullable Application app, @Nullable Config config) {
+	public Service(String name, @Nullable Application app, @Nullable Config config) {
 		this.name = name;
 		zeze = app;
 		this.config = initConfig(config);
@@ -171,7 +171,7 @@ public class Service extends ReentrantLock {
 		}
 	}
 
-	private @NotNull ServiceConf initConfig(@Nullable Config config) {
+	private ServiceConf initConfig(@Nullable Config config) {
 		var sc = config != null ? config.getServiceConf(name) : null;
 		if (sc == null) {
 			// setup program default
@@ -190,39 +190,39 @@ public class Service extends ReentrantLock {
 		this.selectors = selectors;
 	}
 
-	public @NotNull Selectors getSelectors() {
+	public Selectors getSelectors() {
 		return null != selectors ? selectors : Selectors.getInstance();
 	}
 
-	public final @NotNull String getName() {
+	public final String getName() {
 		return name;
 	}
 
-	public final Application getZeze() {
+	public final @Nullable Application getZeze() {
 		return zeze;
 	}
 
-	public @NotNull SocketOptions getSocketOptions() {
+	public SocketOptions getSocketOptions() {
 		return socketOptions;
 	}
 
-	public void setSocketOptions(@NotNull SocketOptions ops) {
+	public void setSocketOptions(SocketOptions ops) {
 		//noinspection ConstantValue
 		if (ops != null)
 			socketOptions = ops;
 	}
 
-	public @NotNull ServiceConf getConfig() {
+	public ServiceConf getConfig() {
 		return config;
 	}
 
-	public void setConfig(@NotNull ServiceConf conf) {
+	public void setConfig(ServiceConf conf) {
 		//noinspection ConstantValue
 		if (conf != null)
 			config = conf;
 	}
 
-	public final @NotNull LongSupplier getSessionIdGenerator() {
+	public final LongSupplier getSessionIdGenerator() {
 		return sessionIdGenerator;
 	}
 
@@ -243,7 +243,7 @@ public class Service extends ReentrantLock {
 	 * 返回false=同号互撞或socket已close：撞号时打error日志并关闭新连接（保留先注册者），
 	 * 已close的迟到登记被拒；调用方不得再对该连接回调OnHandshakeDone。
 	 */
-	protected final boolean addSocket(@NotNull AsyncSocket so) {
+	protected final boolean addSocket(AsyncSocket so) {
 		var existing = so.runIfOpen(() -> {
 			var e = socketMap.putIfAbsent(so.getSessionId(), so);
 			return e != null ? e : so; // 插入成功以so自身为哨兵，与runIfOpen的closed-null区分
@@ -367,7 +367,7 @@ public class Service extends ReentrantLock {
 			keepTimer.cancel(true);
 	}
 
-	public final @NotNull AsyncSocket newServerSocket(@Nullable String ipaddress, int port,
+	public final AsyncSocket newServerSocket(@Nullable String ipaddress, int port,
 													  @Nullable Acceptor acceptor) {
 		try {
 			return newServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
@@ -376,27 +376,27 @@ public class Service extends ReentrantLock {
 		}
 	}
 
-	public final @NotNull AsyncSocket newServerSocket(@Nullable InetAddress ipaddress, int port,
+	public final AsyncSocket newServerSocket(@Nullable InetAddress ipaddress, int port,
 													  @Nullable Acceptor acceptor) {
 		return newServerSocket(new InetSocketAddress(ipaddress, port), acceptor);
 	}
 
-	public final @NotNull AsyncSocket newServerSocket(@Nullable InetSocketAddress localEP, @Nullable Acceptor acceptor) {
+	public final AsyncSocket newServerSocket(@Nullable InetSocketAddress localEP, @Nullable Acceptor acceptor) {
 		return new TcpSocket(this, localEP, acceptor);
 	}
 
-	public final @NotNull AsyncSocket newClientSocket(@Nullable String hostNameOrAddress, int port,
+	public final AsyncSocket newClientSocket(@Nullable String hostNameOrAddress, int port,
 													  @Nullable Object userState, @Nullable Connector connector) {
 		return new TcpSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
 	/** 客户端连接DNS解析点：TcpSocket在专用resolver线程上异步调用，允许阻塞；可覆写（测试门控/自定义resolver）。 */
-	protected @NotNull InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
+	protected InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
 		return InetAddress.getByName(hostNameOrAddress);
 	}
 
 	// 契约：客户端socket构造微秒级非阻塞（可在Connector锁内调用），覆写不得阻塞
-	public @NotNull AsyncSocket newWebsocketClient(@NotNull String url,
+	public AsyncSocket newWebsocketClient(String url,
 												   @Nullable Object userState, @Nullable Connector connector) {
 		return new WebsocketClient(this, url, userState, connector);
 	}
@@ -407,7 +407,7 @@ public class Service extends ReentrantLock {
 	 * @param so closing socket
 	 * @param e  caught exception, null for none.
 	 */
-	public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+	public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 		if (socketMap.remove(so.getSessionId(), so)) {
 			closedRecvCountHandle.getAndAdd(this, so.getRecvCount());
 			closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
@@ -432,7 +432,7 @@ public class Service extends ReentrantLock {
 	 *
 	 * @param so after socket closed. last callback.
 	 */
-	public void OnSocketDisposed(@NotNull AsyncSocket so) throws Exception {
+	public void OnSocketDisposed(AsyncSocket so) throws Exception {
 		var ctxSends = getRpcContextsToSender(so);
 		if (ctxSends.isEmpty())
 			return;
@@ -465,7 +465,7 @@ public class Service extends ReentrantLock {
 		}
 	}
 
-	public final @NotNull Collection<Protocol<?>> removeRpcContexts(@NotNull Collection<Long> sids) {
+	public final Collection<Protocol<?>> removeRpcContexts(Collection<Long> sids) {
 		var result = new ArrayList<Protocol<?>>(sids.size());
 		for (var sid : sids) {
 			var ctx = removeRpcContext(sid);
@@ -481,7 +481,7 @@ public class Service extends ReentrantLock {
 	 * 不回调OnHandshakeDone。推迟OnHandshakeDone的接受路径（Handshake家族/Token覆写）不走本方法，
 	 * 自行checkMaxConnections+setupHaProxyHeader+按addSocket返回值短路。
 	 */
-	protected final void tryAccept(@NotNull AsyncSocket so) throws Exception {
+	protected final void tryAccept(AsyncSocket so) throws Exception {
 		if (socketMap.size() >= config.getMaxConnections()) // 这里可能有并发原子性问题,不能保证限制在max以内
 			throw new IllegalStateException("too many connections");
 		setupHaProxyHeader(so);
@@ -495,7 +495,7 @@ public class Service extends ReentrantLock {
 	 *
 	 * @param so new socket accepted.
 	 */
-	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
 		tryAccept(so); // 超限抛出由accept流程catch关闭（既有契约）；撞号静默返回
 	}
 
@@ -506,13 +506,13 @@ public class Service extends ReentrantLock {
 	 * 会被当作协议帧头解码成未知协议，所有连接被拒且零告警。覆写点必须在收到任何数据前
 	 * 调用本方法恢复（对齐 HandshakeBase.checkMaxConnections 的判例）。
 	 */
-	protected final void setupHaProxyHeader(@NotNull AsyncSocket so) {
+	protected final void setupHaProxyHeader(AsyncSocket so) {
 		if (config.getHaProxyKey() != null && so instanceof TcpSocket tcp)
 			tcp.setHaProxyHeader(new HaProxyHeader(config.getHaProxyKey()));
 	}
 
 	@SuppressWarnings({"RedundantThrows", "MethodMayBeStatic"})
-	public void OnSocketAcceptError(@NotNull AsyncSocket listener, @NotNull Throwable e) throws Exception {
+	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) throws Exception {
 		logger.error("OnSocketAcceptError: {} exception:", listener, e);
 	}
 
@@ -522,7 +522,7 @@ public class Service extends ReentrantLock {
 	 * 加密压缩的连接在相应的方法中调用（see Services\Handshake.cs）。
 	 * 注意：修改OnHandshakeDone的时机，需要重载OnSocketAccept OnSocketConnected，并且不再调用Service的默认实现。
 	 */
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		so.setHandshakeDone(true);
 		if (so.getConnector() != null)
 			so.getConnector().OnSocketHandshakeDone(so);
@@ -535,7 +535,7 @@ public class Service extends ReentrantLock {
 	 * @param e  exception caught
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void OnSocketConnectError(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+	public void OnSocketConnectError(AsyncSocket so, @Nullable Throwable e) throws Exception {
 		socketMap.remove(so.getSessionId(), so);
 	}
 
@@ -544,7 +544,7 @@ public class Service extends ReentrantLock {
 	 *
 	 * @param so connect succeed
 	 */
-	public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+	public void OnSocketConnected(AsyncSocket so) throws Exception {
 		if (!addSocket(so))
 			return;
 		OnHandshakeDone(so);
@@ -559,7 +559,7 @@ public class Service extends ReentrantLock {
 	 *              处理了多少要体现在input.ReadIndex上,剩下的等下次收到数据后会继续在此处理.
 	 * @return 是否可以立即再次从socket接收数据(如果缓冲区还有数据的话), 否则会等下次select循环再处理
 	 */
-	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
+	public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Exception {
 		if (so instanceof TcpSocket tcp) {
 			var haProxyHeader = tcp.getHaProxyHeader();
 			if (haProxyHeader != null && !haProxyHeader.decodeHeader(input))
@@ -594,20 +594,20 @@ public class Service extends ReentrantLock {
 	 * 理论上无法得知对方是否还可以接收数据, 只能靠上层协商行为规范.
 	 */
 	@SuppressWarnings({"RedundantThrows"})
-	public void OnSocketInputClosed(@NotNull AsyncSocket so) throws Exception {
+	public void OnSocketInputClosed(AsyncSocket so) throws Exception {
 		so.close(inputClosedException);
 	}
 
 	// 用来派发异步rpc回调。
 	@SuppressWarnings("RedundantThrows")
-	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle)
+	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
-			TaskSpec.ofProcedure(zeze.newProcedure(() -> responseHandle.handle(rpc),
+			TaskSpec.ofProcedure(Objects.requireNonNull(zeze, "service has no application").newProcedure(() -> responseHandle.handle(rpc),
 					rpc.getClass().getName() + ":Response", factoryHandle.Level))
 					.dispatchMode(factoryHandle.Mode).runNow();
 		} else
@@ -618,17 +618,17 @@ public class Service extends ReentrantLock {
 		return false;
 	}
 
-	public final @NotNull Protocol<?> decodeProtocol(long typeId, @NotNull ByteBuffer bb,
-													 @NotNull ProtocolFactoryHandle<?> factoryHandle,
+	public final Protocol<?> decodeProtocol(long typeId, ByteBuffer bb,
+													 ProtocolFactoryHandle<?> factoryHandle,
 													 @Nullable AsyncSocket so) {
 		return decodeProtocol(typeId, bb, factoryHandle, so, true);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public @NotNull Protocol<?> decodeProtocol(long typeId, @NotNull ByteBuffer bb,
-											   @NotNull ProtocolFactoryHandle<?> factoryHandle,
+	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb,
+											   ProtocolFactoryHandle<?> factoryHandle,
 											   @Nullable AsyncSocket so, boolean needLog) {
-		var p = factoryHandle.Factory.create();
+		var p = Objects.requireNonNull(factoryHandle.Factory).create();
 		p.decode(bb);
 		// 不强制协议完整解码（不检查bb是否读完），方便应用设计兼容协议。
 		p.setSender(so);
@@ -638,7 +638,7 @@ public class Service extends ReentrantLock {
 	}
 
 	// 用来派发已经decode的协议，不支持事务重做时重置协议参数。
-	public void dispatchProtocol(@NotNull Protocol<?> p) throws Exception {
+	public void dispatchProtocol(Protocol<?> p) throws Exception {
 		var factoryHandle = findProtocolFactoryHandle(p.getTypeId());
 		if (factoryHandle != null)
 			dispatchProtocol(p, factoryHandle);
@@ -646,23 +646,23 @@ public class Service extends ReentrantLock {
 			logger.warn("dispatchProtocol: not found protocol factory: {}", p);
 	}
 
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
 			var protocolClassName = p.getClass().getName();
-			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName, factoryHandle.Level);
-			TaskSpec.ofProcedure(proc, p, Protocol::trySendResultCode)
+			var proc = Objects.requireNonNull(zeze, "service has no application").newProcedure(() -> p.handle(this, factoryHandle), protocolClassName, factoryHandle.Level);
+			TaskSpec.ofProcedure(proc, p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 					.dispatchMode(factoryHandle.Mode).runNow();
 		} else {
-			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 					.dispatchMode(factoryHandle.Mode).runNow();
 		}
 	}
 
-	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle,
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle,
 								 @Nullable AsyncSocket so) throws Exception {
 		if (isHandshakeProtocol(typeId)) {
 			// handshake protocol call direct in io-thread.
@@ -688,13 +688,13 @@ public class Service extends ReentrantLock {
 				return p.handle(this, factoryHandle);
 			};
 			Procedure proc;
-			if (zeze.getConfig().isHistory()) {
-				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level,
+			if (Objects.requireNonNull(zeze, "service has no application").getConfig().isHistory()) {
+				proc = Objects.requireNonNull(zeze, "service has no application").newProcedure(action, protocolClassName, factoryHandle.Level,
 						protocolClassName, new Binary(bytesCopy));
 			} else
-				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level);
+				proc = Objects.requireNonNull(zeze, "service has no application").newProcedure(action, protocolClassName, factoryHandle.Level);
 			// p==null当且仅当action内decodeProtocol抛出（outProtocol.value未赋值），
-			// 方法引用Protocol::trySendResultCode不容忍null会NPE吞掉错误处置。此时对齐非事务
+			// 方法引用(protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)不容忍null会NPE吞掉错误处置。此时对齐非事务
 			// 分支（decode异常上抛即断连）的语义close连接——Rpc.Send经连接关闭路径感知
 			// （OnSocketDisposed对在飞上下文立即失败），不再干等超时。
 			TaskSpec.ofProcedureOut(proc, outProtocol, (p, code) -> {
@@ -715,14 +715,14 @@ public class Service extends ReentrantLock {
 	 * @param data 方法外绝对不能持有data及其Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId, @NotNull ByteBuffer data)
+	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data)
 			throws Exception {
 		throw new UnsupportedOperationException(getName() + " Unknown Protocol (" + moduleId + ", " + protocolId
 				+ ") size=" + data.size() + " so=" + so);
 	}
 
 	@SuppressWarnings({"RedundantThrows", "BooleanMethodIsAlwaysInverted"})
-	public boolean checkOverflow(@NotNull AsyncSocket so, long newSize, byte @NotNull [] bytes, int offset, int length)
+	public boolean checkOverflow(AsyncSocket so, long newSize, byte [] bytes, int offset, int length)
 			throws Exception {
 		var maxSize = getSocketOptions().getOutputBufferMaxSize();
 		if (newSize <= maxSize)
@@ -742,37 +742,37 @@ public class Service extends ReentrantLock {
 	 * 协议工厂
 	 */
 	public static class ProtocolFactoryHandle<P extends Protocol<?>> {
-		public final @NotNull Class<P> Class;
+		public final Class<P> Class;
 		public final long TypeId;
-		public Factory<P> Factory;
+		public @Nullable Factory<P> Factory;
 		public @Nullable ProtocolHandle<P> Handle;
 		public TransactionLevel Level;
 		public DispatchMode Mode;
 		public int CriticalLevel = Protocol.eCriticalPlus;
 
-		public ProtocolFactoryHandle(@NotNull Class<P> protocolClass, long typeId) {
+		public ProtocolFactoryHandle(Class<P> protocolClass, long typeId) {
 			Class = protocolClass;
 			TypeId = typeId;
 			Level = TransactionLevel.Serializable;
 			Mode = DispatchMode.Normal;
 		}
 
-		public ProtocolFactoryHandle(@NotNull Factory<P> factory) {
+		public ProtocolFactoryHandle(Factory<P> factory) {
 			this(factory, null, TransactionLevel.Serializable, DispatchMode.Normal);
 		}
 
-		public ProtocolFactoryHandle(@NotNull Factory<P> factory, @Nullable ProtocolHandle<P> handle) {
+		public ProtocolFactoryHandle(Factory<P> factory, @Nullable ProtocolHandle<P> handle) {
 			this(factory, handle, TransactionLevel.Serializable, DispatchMode.Normal);
 		}
 
-		public ProtocolFactoryHandle(@NotNull Factory<P> factory, @Nullable ProtocolHandle<P> handle,
-									 @NotNull TransactionLevel level) {
+		public ProtocolFactoryHandle(Factory<P> factory, @Nullable ProtocolHandle<P> handle,
+									 TransactionLevel level) {
 			this(factory, handle, level, DispatchMode.Normal);
 		}
 
 		@SuppressWarnings("unchecked")
-		public ProtocolFactoryHandle(@NotNull Factory<P> factory, @Nullable ProtocolHandle<P> handle,
-									 @NotNull TransactionLevel level, @NotNull DispatchMode mode) {
+		public ProtocolFactoryHandle(Factory<P> factory, @Nullable ProtocolHandle<P> handle,
+									 TransactionLevel level, DispatchMode mode) {
 			P p = factory.create();
 			Class = (Class<P>)p.getClass();
 			TypeId = p.getTypeId();
@@ -784,11 +784,11 @@ public class Service extends ReentrantLock {
 		}
 	}
 
-	public final @NotNull LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> getFactorys() {
+	public final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> getFactorys() {
 		return factorys;
 	}
 
-	public void AddFactoryHandle(long type, @NotNull ProtocolFactoryHandle<? extends Protocol<?>> factory) {
+	public void AddFactoryHandle(long type, ProtocolFactoryHandle<? extends Protocol<?>> factory) {
 		if (factorys.putIfAbsent(type, factory) != null)
 			throw new IllegalStateException(String.format("duplicate factory type=%d moduleId=%d id=%d",
 					type, type >>> 32, type & 0xffff_ffffL));
@@ -801,7 +801,7 @@ public class Service extends ReentrantLock {
 	/**
 	 * Rpc Context. 模板不好放进去，使用基类 Protocol
 	 */
-	public final long addRpcContext(@NotNull Protocol<?> p) {
+	public final long addRpcContext(Protocol<?> p) {
 		while (true) {
 			long sessionId = nextSessionId();
 			if (rpcContexts.putIfAbsent(sessionId, p) == null)
@@ -820,19 +820,19 @@ public class Service extends ReentrantLock {
 		return rpcContexts.get(sid);
 	}
 
-	public final boolean removeRpcContext(long sid, @NotNull Protocol<?> ctx) {
+	public final boolean removeRpcContext(long sid, Protocol<?> ctx) {
 		return rpcContexts.remove(sid, ctx);
 	}
 
-	public final @NotNull LongHashMap<Protocol<?>> getRpcContextsToSender(@NotNull AsyncSocket sender) {
+	public final LongHashMap<Protocol<?>> getRpcContextsToSender(AsyncSocket sender) {
 		return getRpcContexts(p -> p.getSender() == sender);
 	}
 
-	public final @NotNull LongHashMap<Protocol<?>> getRpcContexts(@NotNull Predicate<Protocol<?>> filter) {
+	public final LongHashMap<Protocol<?>> getRpcContexts(Predicate<Protocol<?>> filter) {
 		var result = new LongHashMap<Protocol<?>>(Math.max(rpcContexts.size(), 1024)); // 初始容量先别定太大,可能只过滤出一小部分
 		for (var it = rpcContexts.entryIterator(); it.moveToNext(); ) {
-			if (filter.test(it.value()))
-				result.put(it.key(), it.value());
+			if (filter.test(Objects.requireNonNull(it.value())))
+				result.put(it.key(), Objects.requireNonNull(it.value()));
 		}
 		return result;
 	}
@@ -841,7 +841,7 @@ public class Service extends ReentrantLock {
 		private long sessionId;
 		private @Nullable Object userState;
 		private boolean isTimeout;
-		private Service service;
+		private @Nullable Service service;
 
 		public final long getSessionId() {
 			return sessionId;
@@ -867,7 +867,7 @@ public class Service extends ReentrantLock {
 			isTimeout = value;
 		}
 
-		public Service getService() {
+		public @Nullable Service getService() {
 			return service;
 		}
 
@@ -880,11 +880,11 @@ public class Service extends ReentrantLock {
 		}
 	}
 
-	public final long addManualContextWithTimeout(@NotNull ManualContext context) {
+	public final long addManualContextWithTimeout(ManualContext context) {
 		return addManualContextWithTimeout(context, 10 * 1000);
 	}
 
-	public final long addManualContextWithTimeout(@NotNull ManualContext context, long timeout) { // 毫秒
+	public final long addManualContextWithTimeout(ManualContext context, long timeout) { // 毫秒
 		while (true) {
 			long sessionId = nextSessionId();
 			if (manualContexts.putIfAbsent(sessionId, context) == null) {
@@ -923,7 +923,7 @@ public class Service extends ReentrantLock {
 
 	// 不直接暴露内部的容器，提供这个方法给外面用。以后如果有问题，可以改这里。
 
-	public final void foreach(@NotNull Action1<@NotNull AsyncSocket> action) throws Exception {
+	public final void foreach(Action1<AsyncSocket> action) throws Exception {
 		for (var socket : socketMap)
 			action.run(socket);
 	}
@@ -934,7 +934,7 @@ public class Service extends ReentrantLock {
 	 * 则回退为最后一个遍历到的 Acceptor 条目（ip 可能为空串、port 可能为 0），
 	 * 调用方需自行处理这种"未显式配置"的回退值（可参考 getOnePassiveAddress）。
 	 */
-	public @NotNull KV<@NotNull String, @NotNull Integer> getOneAcceptorAddress() {
+	public KV<String, Integer> getOneAcceptorAddress() {
 		// KV.key构造后不变：先累积再create。
 		var ip = new String[]{""};
 		var port = new int[]{0};
@@ -954,7 +954,7 @@ public class Service extends ReentrantLock {
 		return KV.create(ip[0], port[0]);
 	}
 
-	public @NotNull KV<@NotNull String, @NotNull Integer> getOnePassiveAddress() {
+	public KV<String, Integer> getOnePassiveAddress() {
 		var ipPort = getOneAcceptorAddress();
 		// 允许系统来选择端口。
 
@@ -972,7 +972,7 @@ public class Service extends ReentrantLock {
 		return KV.create(ip, ipPort.getValue());
 	}
 
-	public void onServerSocketBind(@NotNull ServerSocket port) {
+	public void onServerSocketBind(ServerSocket port) {
 	}
 
 	/**
@@ -981,7 +981,7 @@ public class Service extends ReentrantLock {
 	 * @return 是否检查通过, false则丢弃该协议(也可以同时关闭连接)
 	 */
 	@SuppressWarnings("MethodMayBeStatic")
-	public boolean checkThrottle(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size) {
+	public boolean checkThrottle(AsyncSocket sender, int moduleId, int protocolId, int size) {
 		var throttle = sender.getTimeThrottle();
 		if (null != throttle && !throttle.checkNow(size)) {
 			// trySendResultCode(Procedure.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
@@ -991,11 +991,11 @@ public class Service extends ReentrantLock {
 		return true;
 	}
 
-	public boolean discard(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
+	public boolean discard(AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
 		return false;
 	}
 
-	public @NotNull ScheduledFuture<?> startStatisticLog(int periodSec) {
+	public ScheduledFuture<?> startStatisticLog(int periodSec) {
 		lock();
 		try {
 			if (servicePerf == null)
@@ -1016,7 +1016,7 @@ public class Service extends ReentrantLock {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public void onRpcLostContext(@NotNull Rpc<?, ?> rpc) {
+	public void onRpcLostContext(Rpc<?, ?> rpc) {
 		logger.warn("rpc response: lost context, maybe timeout. {}", rpc);
 	}
 
@@ -1080,7 +1080,7 @@ public class Service extends ReentrantLock {
 	}
 
 	@SuppressWarnings({"MethodMayBeStatic", "RedundantThrows"})
-	protected void onKeepAliveTimeout(@NotNull AsyncSocket socket) throws Exception {
+	protected void onKeepAliveTimeout(AsyncSocket socket) throws Exception {
 		socket.close(keepAliveException);
 	}
 
@@ -1092,21 +1092,21 @@ public class Service extends ReentrantLock {
 	 * @param socket 当前连接
 	 */
 	@SuppressWarnings("MethodMayBeStatic")
-	protected void onSendKeepAlive(@NotNull AsyncSocket socket) {
+	protected void onSendKeepAlive(AsyncSocket socket) {
 		new KeepAlive().Send(socket); // skip result
 	}
 
-	public @NotNull DatagramSocket bindUdp(@NotNull InetSocketAddress local) throws IOException {
+	public DatagramSocket bindUdp(InetSocketAddress local) throws IOException {
 		return new DatagramSocket(this, local);
 	}
 
-	public final void connect(@NotNull String hostNameOrAddress, int port) {
+	public final void connect(String hostNameOrAddress, int port) {
 		connect(hostNameOrAddress, port, true);
 	}
 
 	public void connect(String hostNameOrAddress, int port, boolean autoReconnect) {
 		var out = new OutObject<Connector>();
 		config.tryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out);
-		out.value.start();
+		Objects.requireNonNull(out.value).start();
 	}
 }

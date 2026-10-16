@@ -1,9 +1,13 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.BBucketMeta.Data;
 import Zeze.Builtin.Dbh2.BWalk;
 import Zeze.Builtin.Dbh2.BWalkKeyValue;
 import Zeze.Builtin.Dbh2.CommitBatch;
@@ -37,9 +41,9 @@ import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Dbh2 单桶 Raft 服务节点：负责一个桶的数据存储、协议处理与分桶/迁移流程。
@@ -50,22 +54,22 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	// 非final：构造半失败的catch清理需null检查后引用（blank final在catch中读取不通过确定赋值检查）。
 	private Raft raft;
 	private Dbh2StateMachine stateMachine;
-	private final Dbh2Manager manager;
+	private final @Nullable Dbh2Manager manager;
 	private final Locks locks = new Locks();
 
 	// 正向交错的确定性测试钩子（生产恒null，热路径仅一次null检查；先例：
 	// Dbh2AgentManager.commitBreakAfterPrepareForDebugOnly）：在Get/Walk/WalkKey的
 	// "meta入口校验通过"之后、"读数据"之前回调，测试线程在此暂停，令收尾apply在查询
 	// 两读之间完整执行。消费方须自行过滤请求（@Fast类级并行）并在finally中置回null。
-	static volatile java.util.function.Consumer<Zeze.Builtin.Dbh2.Get> interposeGetAfterMetaCheckForTest;
-	static volatile java.util.function.Consumer<BWalk.Data> interposeWalkAfterMetaCheckForTest;
+	static volatile @Nullable Consumer<Get> interposeGetAfterMetaCheckForTest;
+	static volatile @Nullable Consumer<BWalk.Data> interposeWalkAfterMetaCheckForTest;
 
 	public Locks getLocks() {
 		return locks;
 	}
 
 	// 性能统计。
-	public static String formatMeta(BBucketMeta.Data meta) {
+	public static String formatMeta(@Nullable Data meta) {
 		return meta == null ? "" : meta.getDatabaseName() + '.' + meta.getTableName() +
 				'[' + meta.getKeyFirst() + ',' + meta.getKeyLast() + ']';
 	}
@@ -77,7 +81,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 
 		private final FastLock prepareQueueLock = new FastLock();
-		private ConcurrentLinkedQueue<Action0> prepareQueue;
+		private @Nullable ConcurrentLinkedQueue<Action0> prepareQueue;
 
 		public void setupPrepareQueue() {
 			prepareQueueLock.lock();
@@ -89,7 +93,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			}
 		}
 
-		public ConcurrentLinkedQueue<Action0> takePrepareQueue() {
+		public @Nullable ConcurrentLinkedQueue<Action0> takePrepareQueue() {
 			prepareQueueLock.lock();
 			try {
 				var tmp = prepareQueue;
@@ -166,7 +170,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	// 路径可辨识、可重试。SetBucketMeta/SplitPut不拦——前者即初始化入口，后者是目标桶
 	// 在meta就位前的数据灌入通道。
 	private boolean isBucketNotReady() {
-		return stateMachine.getBucket().getBucketMeta() == null;
+		return Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta() == null;
 	}
 
 	public Raft getRaft() {
@@ -177,7 +181,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return stateMachine;
 	}
 
-	public Dbh2Manager getManager() {
+	public @Nullable Dbh2Manager getManager() {
 		return manager;
 	}
 
@@ -185,8 +189,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return dbh2Config;
 	}
 
-	public Dbh2(Dbh2Manager manager, String raftName, RocksDatabase database,
-				RaftConfig raftConf, Config config, boolean writeOptionSync,
+	public Dbh2(@Nullable Dbh2Manager manager, String raftName, @Nullable RocksDatabase database,
+				RaftConfig raftConf, @Nullable Config config, boolean writeOptionSync,
 				TaskOneByOneByKey taskOneByOne) {
 		this.manager = manager;
 
@@ -303,13 +307,13 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return errorCode(eBucketNotReady);
 		stateMachine.counterGet.incrementAndGet();
 		// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
-		var bucket = stateMachine.getBucket();
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		// 正向交错复核（seqlock式）：查询与raft apply的收尾（endSplit/endMove：meta先整体
 		// 替换、deleteToEnd后行）并发，miss可能是apply在"meta校验通过"与"读数据"之间跨骑
 		// 所致（已迁往新桶的键读到已删状态）。miss时重读meta复核：身份不等（整体替换、
 		// 无ABA）或键出新界→eBucketMismatch走KV(false)重路由，不得当权威"不存在"；
 		// 身份相等即权威miss（deleteToEnd后于替换，读到删除效果⟹复核必见新meta）。
-		var metaOnCheck = bucket.getBucketMeta();
+		var metaOnCheck = Objects.requireNonNull(bucket.getBucketMeta());
 		if (!bucket.inBucket(metaOnCheck, r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
 			return errorCode(eBucketMismatch);
 		var interpose = interposeGetAfterMetaCheckForTest;
@@ -344,18 +348,18 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		try {
 			if (null != stateMachine.getTransactions().putIfAbsent(r.Argument.getBatch().getTid(), txn))
 				return errorCode(eDuplicateTid);
-			if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
+			if (!Objects.requireNonNull(stateMachine.getBucket()).inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
 				return errorCode(eBucketMismatch);
 
 			var refused = r.Result;
-			var splitHistory = stateMachine.getBucket().getSplitMetaHistory();
+			var splitHistory = Objects.requireNonNull(stateMachine.getBucket()).getSplitMetaHistory();
 			for (var e : r.Argument.getBatch().getPuts().entrySet()) {
 				var key = e.getKey();
 				var value = e.getValue();
-				if (!stateMachine.getBucket().inBucket(key)) {
+				if (!Objects.requireNonNull(stateMachine.getBucket()).inBucket(key)) {
 					var locate = splitHistory.locate(key);
 
-					if (null == locate || isLocateSelf(stateMachine.getBucket().getBucketMeta(), locate))
+					if (null == locate || isLocateSelf(Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()), locate))
 						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
 
 					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
@@ -363,10 +367,10 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				}
 			}
 			for (var del : r.Argument.getBatch().getDeletes()) {
-				if (!stateMachine.getBucket().inBucket(del)) {
+				if (!Objects.requireNonNull(stateMachine.getBucket()).inBucket(del)) {
 					var locate = splitHistory.locate(del);
 
-					if (null == locate || isLocateSelf(stateMachine.getBucket().getBucketMeta(), locate))
+					if (null == locate || isLocateSelf(Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()), locate))
 						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
 
 					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
@@ -415,7 +419,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	private boolean walkDesc(Binary exclusiveStartKey, int proposeLimit, Binary prefix,
 							 Action2<Binary, RocksIterator> fill) throws Exception {
-		try (var it = stateMachine.getBucket().getData().iterator()) {
+		try (var it = Objects.requireNonNull(stateMachine.getBucket()).getData().iterator()) {
 			if (exclusiveStartKey.size() > 0) {
 				// 越上界游标归一：游标高于前缀上界时seekForPrev(游标)落在非前缀键上会被
 				// 判桶尾，整段前缀键静默跳过——统一seekForPrev(prefixUpper)定位（等上界
@@ -430,7 +434,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				}
 			} else {
 				// 分桶过程中，可能存在Last之后的数据，必须根据Last的情况定位，不能直接使用seekToLast。
-				var lastKey = stateMachine.getBucket().getBucketMeta().getKeyLast();
+				var lastKey = Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()).getKeyLast();
 				// 定位与过滤一致：prefix时定位到目标前缀的结尾（与keyLast取更小者），否则桶内混存的
 				// 更大前缀key会让首个循环立即判定桶尾，本桶目标前缀的记录被静默跳过。
 				var prefixUpper = prefix.size() > 0 ? prefixUpperBound(prefix) : null;
@@ -469,7 +473,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	// prefix的上界（大于一切以prefix开头的key的最小byte串）：从后往前找首个非0xFF字节加一截断；
 	// 全0xFF时无有限上界返回null（该前缀即最大可能前缀，桶内最大key就是目标前缀的结尾，走keyLast/seekToLast定位）。
-	private static Binary prefixUpperBound(Binary prefix) {
+	private static @Nullable Binary prefixUpperBound(Binary prefix) {
 		var bytes = prefix.toBytes(); // 必须副本：原地加一会改掉调用方的prefix
 		for (var i = bytes.length - 1; i >= 0; --i) {
 			if (bytes[i] != -1) {
@@ -486,7 +490,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return walkDesc(exclusiveStartKey, proposeLimit, prefix, fill);
 		}
 
-		try (var it = stateMachine.getBucket().getData().iterator()) {
+		try (var it = Objects.requireNonNull(stateMachine.getBucket()).getData().iterator()) {
 			if (exclusiveStartKey.size() > 0)
 				it.seek(exclusiveStartKey.copyIf());
 			else if (prefix.size() > 0)
@@ -499,7 +503,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 			var count = proposeLimit;
 			var bucketEnd = false;
-			var keyLast = stateMachine.getBucket().getBucketMeta().getKeyLast();
+			var keyLast = Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()).getKeyLast();
 			for (; it.isValid() && count > 0; it.next()) {
 				var key = new Binary(it.key());
 				if (keyLast.size() > 0 && key.compareTo(keyLast) >= 0) {
@@ -533,7 +537,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				&& Bucket.DeadBucketMetaBound.equals(meta.getKeyLast()))
 			return true;
 		var exclusiveStartKey = argument.getExclusiveStartKey();
-		if (exclusiveStartKey.size() > 0 && !stateMachine.getBucket().inBucket(meta, exclusiveStartKey))
+		if (exclusiveStartKey.size() > 0 && !Objects.requireNonNull(stateMachine.getBucket()).inBucket(meta, exclusiveStartKey))
 			return true;
 		return argument.isVerifyBucketMeta()
 				&& (!meta.getKeyFirst().equals(argument.getExpectedKeyFirst())
@@ -544,8 +548,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	protected long ProcessWalkRequest(Walk r) throws Exception {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
-		var bucket = stateMachine.getBucket();
-		var metaOnCheck = bucket.getBucketMeta();
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
+		var metaOnCheck = Objects.requireNonNull(bucket.getBucketMeta());
 		if (isWalkBucketRefuse(r.Argument, metaOnCheck)) {
 			r.Result.setBucketRefuse(true);
 			r.SendResult();
@@ -579,8 +583,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	protected long ProcessWalkKeyRequest(WalkKey r) throws Exception {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
-		var bucket = stateMachine.getBucket();
-		var metaOnCheck = bucket.getBucketMeta();
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
+		var metaOnCheck = Objects.requireNonNull(bucket.getBucketMeta());
 		if (isWalkBucketRefuse(r.Argument, metaOnCheck)) {
 			r.Result.setBucketRefuse(true);
 			r.SendResult();
@@ -614,8 +618,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 
 		@Override
-		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-																@NotNull ProtocolFactoryHandle<?> factoryHandle) {
+		public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+																ProtocolFactoryHandle<?> factoryHandle) {
 			raft.executeUserTask(() -> {
 				try {
 					responseHandle.handle(rpc);
@@ -626,16 +630,16 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 
 		@Override
-		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+		public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			if (p.getTypeId() == Zeze.Raft.LeaderIs.TypeId_) {
-				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
+				Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else {
 				raft.executeUserTask(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p).runNow());
 			}
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) throws Exception {
 			// 不支持事务，传统dispatch即可。
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			p.dispatch(this, factoryHandle);
@@ -646,7 +650,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		if (!raft.isLeader())
 			return;
 
-		var bucket = stateMachine.getBucket();
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		var splitting = bucket.getSplittingMeta();
 		if (null != splitting) {
 			logger.info("start but in splitting or ending. {}->{}", formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
@@ -683,7 +687,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		// 避免旧leader在途投递rpc迟到覆盖，见driveSplitSync注释）。
 		splitLeaderReadyTime = System.currentTimeMillis();
 		stateMachine.setLoadSwitch(true);
-		var bucket = stateMachine.getBucket();
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		var splitting = bucket.getSplittingMeta();
 		if (null != splitting) {
 			// move/split身份=纯元数据判别不变式（startSplit准备段构造splitting时成立，
@@ -704,7 +708,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			//    MasterDatabase.settleSplitting守卫兜底（from.keyFirst>=to.keyFirst不put from），
 			//    保留为防御层。
 			// 不改raft日志schema：判别信息本来就在LogSetSplittingMeta持久化的meta边界里。
-			var bucketMeta = bucket.getBucketMeta();
+			var bucketMeta = Objects.requireNonNull(bucket.getBucketMeta());
 			boolean isMove = splitting.getKeyFirst().compareTo(bucketMeta.getKeyFirst()) == 0
 					&& splitting.getKeyLast().compareTo(bucketMeta.getKeyLast()) == 0;
 			// onLeaderReady在持raft.mutex的apply线程上执行，禁止同步进入startSplit（锁序见startSplitAsync）。
@@ -724,11 +728,12 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		if (null != pending) {
 			logger.info("recoverSplitting pending-settle reissue. isMove={} from={} to={}",
 					null == pending.getFrom(), formatMeta(pending.getFrom()), formatMeta(pending.getTo()));
-			if (null != pending.getFrom())
-				manager.getMasterAgent().endSplitWithRetryAsync(pending.getFrom(), pending.getTo(),
+			var from = pending.getFrom();
+			if (from != null)
+				Objects.requireNonNull(manager).getMasterAgent().endSplitWithRetryAsync(from, pending.getTo(),
 						() -> appendClearPendingSettle(pending.getTo()));
 			else
-				manager.getMasterAgent().endMoveWithRetryAsync(pending.getTo(),
+				Objects.requireNonNull(manager).getMasterAgent().endMoveWithRetryAsync(pending.getTo(),
 						() -> appendClearPendingSettle(pending.getTo()));
 		}
 	}
@@ -746,14 +751,14 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	}
 
 	private volatile long splitSerialNo;
-	private volatile Dbh2Agent dbh2Splitting;
+	private volatile @Nullable Dbh2Agent dbh2Splitting;
 	// 事务同步投递链状态（持久队列在Dbh2StateMachine.splitSync*，dbh2-01）。inFlight保证同一时刻
 	// 至多一个投递rpc在途（提交序FIFO）；leaderReadyTime是换主围栏锚点（见driveSplitSync注释）。
 	private final AtomicBoolean splitSyncInFlight = new AtomicBoolean();
 	private volatile long splitLeaderReadyTime;
 
-	private RocksIterator locateFirst() {
-		var bucket = stateMachine.getBucket();
+	private @Nullable RocksIterator locateFirst() {
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		var it = bucket.getData().iterator();
 		it.seekToFirst();
 		if (it.isValid())
@@ -776,8 +781,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
-	private RocksIterator locateMiddle() throws RocksDBException {
-		var bucket = stateMachine.getBucket();
+	private @Nullable RocksIterator locateMiddle() throws RocksDBException {
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		var it = bucket.getData().iterator();
 		var keyNumbers = bucket.getData().getKeyNumbers();
 		var count = keyNumbers / 2;
@@ -794,12 +799,12 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 		logger.info("splitting start locateMiddle keyNumbers={} middle={} {}",
 				keyNumbers, new Binary(it.key()),
-				formatMeta(stateMachine.getBucket().getBucketMeta()));
+				formatMeta(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()));
 		return it;
 	}
 
-	private RocksIterator locateMiddle(Binary middleKey) {
-		var it = stateMachine.getBucket().getData().iterator();
+	private @Nullable RocksIterator locateMiddle(Binary middleKey) {
+		var it = Objects.requireNonNull(stateMachine.getBucket()).getData().iterator();
 		it.seek(Database.copyIf(middleKey.bytesUnsafe(), middleKey.getOffset(), middleKey.size()));
 		if (!it.isValid()) {
 			it.close();
@@ -808,7 +813,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return it;
 	}
 
-	private static void performPrepareQueue(ConcurrentLinkedQueue<Action0> tmpQueue) {
+	private static void performPrepareQueue(@Nullable ConcurrentLinkedQueue<Action0> tmpQueue) {
 		if (null != tmpQueue) {
 			for (var trans : tmpQueue) {
 				try {
@@ -846,9 +851,9 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			if (!getRaft().isLeader())
 				return;
 
-			var serialNo = manager.atomicSerialNo.incrementAndGet();
+			var serialNo = Objects.requireNonNull(manager).atomicSerialNo.incrementAndGet();
 			splitSerialNo = serialNo;
-			var bucket = stateMachine.getBucket();
+			var bucket = Objects.requireNonNull(stateMachine.getBucket());
 			RocksIterator it = null;
 			try {
 			var splitting = bucket.getSplittingMeta(); // 对于timer，这个会调用两次。
@@ -856,7 +861,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				// 第一次开始分桶，准备阶段。
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
 				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
-				if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
+				if (Objects.requireNonNull(manager).getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
 					logger.warn("splitting not enough free manager. isMove={}", isMove);
 					return;
 				}
@@ -871,13 +876,13 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					logger.info("splitting break start: it is null. isMove={}", isMove);
 					return; // empty？不需要执行后续操作。break progress.
 				}
-				var newMeta = stateMachine.getBucket().getBucketMeta().copy();
+				var newMeta = Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()).copy();
 				newMeta.setRaftConfig("");
 				if (!isMove)
 					newMeta.setKeyFirst(new Binary(locateIt.key()));
 				locateIt.close(); // 不跨rpc持有钉定视图
 
-				splitting = manager.getMasterAgent().createSplitBucket(newMeta);
+				splitting = Objects.requireNonNull(manager).getMasterAgent().createSplitBucket(newMeta);
 
 				// 自指守卫：resume撞上指向自身的陈旧splitting条目——自搬运
 				// 形态：move1(A→B)完成而endMove未达master，B的loadMonitor再决策move，同四元组
@@ -902,7 +907,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 			if (null == dbh2Splitting) {
 				dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
-				dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
+				Objects.requireNonNull(Objects.requireNonNull(dbh2Splitting).getRaftAgent()).setPendingLimit(Integer.MAX_VALUE);
 			}
 
 			var server = (Dbh2RaftServer)getRaft().getServer();
@@ -937,7 +942,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				// 且one-shot被消耗后prepare队列永久积压）。等待期间仅阻塞其它startSplit重入
 				// （Dbh2.lock不被raft apply路径持有），不影响正常读写。
 				var waitCount = 0;
-				while (null == stateMachine.getBucket().getSplittingMeta()) {
+				while (null == Objects.requireNonNull(stateMachine.getBucket()).getSplittingMeta()) {
 					if (++waitCount > 1500) { // 30s：apply需多数派往返，正常毫秒级；超时属raft异常
 						logger.warn("splitting wait splittingMeta apply timeout. isMove={}", isMove);
 						return; // 放弃本轮，桶保持可写；换主后recoverSplitting自愈
@@ -956,7 +961,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
 			var puts = buildSplitPut(it);
 			var fit = it;
-			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
+			Objects.requireNonNull(Objects.requireNonNull(dbh2Splitting).getRaftAgent()).send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
 			it = null;
 			} finally {
 				if (null != it)
@@ -988,7 +993,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				it.close();
 				// 身份失配不重试：重试的前提是回调仍代表当前轮（本机leader且serialNo未失配），
 				// 对齐下面hasError分支"本机仍leader才重试"的本意。失配分支的经典来源：新轮启动后
-				// （recoverSplitting重入），endSplit2的dbh2Splitting.close()以
+				// （recoverSplitting重入），endSplit2的Objects.requireNonNull(dbh2Splitting).close()以
 				// Procedure.Timeout同步触发旧轮悬挂中的SplitPut回调——此时要么已有更新的轮次接管
 				// （重试职责属于它），要么分桶已完结（是否再分桶交还loadMonitor决策）。以陈旧上下文
 				// 无差别重试startSplit，会在无人决策的情况下发起一轮全新的分桶：再建桶、全量拷贝、
@@ -1013,7 +1018,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				return 0; // split done.
 			}
 
-			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, it, serialNo));
+			Objects.requireNonNull(Objects.requireNonNull(dbh2Splitting).getRaftAgent()).send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, it, serialNo));
 		} catch (Exception ex) {
 			it.close(); // 异常路径统一释放迭代器；close幂等，前面分支已关闭过时安全
 			logger.error("isMove={}", isMove, ex);
@@ -1034,8 +1039,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	}
 
 	private void blockPrepareUntilNoTransaction(boolean isMove) {
-		var meta = stateMachine.getBucket().getBucketMeta();
-		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
+		var meta = Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta();
+		var splittingMeta = Objects.requireNonNull(stateMachine.getBucket()).getSplittingMeta();
 		logger.info("splitting end ... isMove={} {}->{}",
 				isMove, formatMeta(meta), formatMeta(splittingMeta));
 
@@ -1065,7 +1070,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private void endSplit0(boolean isMove) {
 		if (!raft.isLeader())
 			return; // 掉主：重试链就此终止，新leader经recoverSplitting→startSplit续走全流程
-		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
+		var splittingMeta = Objects.requireNonNull(stateMachine.getBucket()).getSplittingMeta();
 		if (null == splittingMeta) {
 			// 安全网：任何路径在LogSetSplittingMeta apply前触达这里都不能带null继续——
 			// setBucketMetaAsync(null)必NPE，且one-shot已被消耗、prepare队列永久积压。
@@ -1087,7 +1092,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return;
 		}
 		// 第一步，设置新桶的meta
-		dbh2Splitting.setBucketMetaAsync(splittingMeta, (p) -> endSplit1(p, isMove));
+		Objects.requireNonNull(dbh2Splitting).setBucketMetaAsync(splittingMeta, (p) -> endSplit1(p, isMove));
 	}
 
 	private long endSplit1(Protocol<?> p, boolean isMove) {
@@ -1101,14 +1106,14 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return 0;
 		}
 
-		var bucket = stateMachine.getBucket();
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		if (isMove) {
-			getRaft().appendLog(new LogEndMove(bucket.getSplittingMeta()),
+			getRaft().appendLog(new LogEndMove(Objects.requireNonNull(bucket.getSplittingMeta())),
 					(raftLog, result) -> endSplit2(raftLog, result, true));
 		} else {
 			// 原子化设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
-			var from = bucket.getBucketMeta().copy();
-			var to = bucket.getSplittingMeta();
+			var from = Objects.requireNonNull(bucket.getBucketMeta()).copy();
+			var to = Objects.requireNonNull(bucket.getSplittingMeta());
 			from.setKeyLast(to.getKeyFirst());
 			getRaft().appendLog(new LogEndSplit(from, to),
 					(raftLog, result) -> endSplit2(raftLog, result, false));
@@ -1134,25 +1139,25 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 		// 关闭到新桶连接。
 		try {
-			dbh2Splitting.close();
+			Objects.requireNonNull(dbh2Splitting).close();
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
 		dbh2Splitting = null;
 
-		var meta = stateMachine.getBucket().getBucketMeta();
+		var meta = Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta();
 		if (isMove) {
 			var endMove = (LogEndMove)raftLog.getLog();
 			// onSettled终局回调：settle成功（rc==0）或eSplittingBucketNotFound
 			// （已结算证据）时追加标志清除日志——apply侧随LogEndMove落下的pending-settle
 			// 标志由此收回；进程在终局前死亡则标志留存，下轮leader-ready补发终局后同样清除。
-			manager.getMasterAgent().endMoveWithRetryAsync(endMove.getTo(),
-					() -> appendClearPendingSettle(endMove.getTo()));
+			Objects.requireNonNull(manager).getMasterAgent().endMoveWithRetryAsync(Objects.requireNonNull(Objects.requireNonNull(endMove).getTo()),
+					() -> appendClearPendingSettle(Objects.requireNonNull(Objects.requireNonNull(endMove).getTo())));
 		} else {
 			// 可以安全的发布新旧桶的信息到Master了。
 			var endSplit = (LogEndSplit)raftLog.getLog();
-			manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo(),
-					() -> appendClearPendingSettle(endSplit.getTo()));
+			Objects.requireNonNull(manager).getMasterAgent().endSplitWithRetryAsync(Objects.requireNonNull(Objects.requireNonNull(endSplit).getFrom()), Objects.requireNonNull(Objects.requireNonNull(endSplit).getTo()),
+					() -> appendClearPendingSettle(Objects.requireNonNull(Objects.requireNonNull(endSplit).getTo())));
 		}
 		logger.info("splitting end done. isMove={} {}", isMove, formatMeta(meta));
 	}

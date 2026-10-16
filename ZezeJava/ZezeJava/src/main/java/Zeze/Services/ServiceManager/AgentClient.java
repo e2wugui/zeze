@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.Objects;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
@@ -7,7 +8,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeClient;
 import Zeze.Util.TaskSpec;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 服务管理器Agent的单连接网络客户端：与SM之间只保持一个握手连接，不支持事务。
@@ -18,7 +19,7 @@ public final class AgentClient extends HandshakeClient {
 	 * 和注册服务器之间只保持一个连接。并且不处理任何协议状态。
 	 * 网络线程写、其他线程通过getSocket()读，需要volatile保证可见性。
 	 */
-	private volatile AsyncSocket socket;
+	private volatile @Nullable AsyncSocket socket;
 
 	public AgentClient(Agent agent, Config config) {
 		super(Agent.defaultServiceName, config);
@@ -34,12 +35,12 @@ public final class AgentClient extends HandshakeClient {
 		return agent;
 	}
 
-	public AsyncSocket getSocket() {
+	public @Nullable AsyncSocket getSocket() {
 		return socket;
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		var firstConnected = socket == null;
 		if (firstConnected)
 			socket = so; // 下面这行可能导致等待future的其它线程开始执行,所以先给socket赋值
@@ -52,7 +53,7 @@ public final class AgentClient extends HandshakeClient {
 	}
 
 	@Override
-	public void OnSocketClose(@NotNull AsyncSocket so, Throwable e) throws Exception {
+	public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 		if (socket == so) {
 			socket = null;
 		}
@@ -60,7 +61,7 @@ public final class AgentClient extends HandshakeClient {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so)
 			throws Exception {
 		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
@@ -68,16 +69,16 @@ public final class AgentClient extends HandshakeClient {
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 不支持事务
-		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 				.dispatchMode(factoryHandle.Mode).runNow();
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle)
+	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 不支持事务
 		TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();

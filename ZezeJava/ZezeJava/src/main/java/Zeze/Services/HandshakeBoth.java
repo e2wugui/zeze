@@ -4,27 +4,26 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Services.Handshake.SHandshake0;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 双向握手服务基类：同时具备客户端与服务端握手能力（Server+Client两侧流程）。
  */
 public class HandshakeBoth extends HandshakeBase {
-	public HandshakeBoth(@NotNull String name, @Nullable Config config) {
+	public HandshakeBoth(String name, @Nullable Config config) {
 		super(name, config);
 		addHandshakeClientFactoryHandle();
 		addHandshakeServerFactoryHandle();
 	}
 
-	public HandshakeBoth(@NotNull String name, @Nullable Application app) {
+	public HandshakeBoth(String name, @Nullable Application app) {
 		super(name, app);
 		addHandshakeClientFactoryHandle();
 		addHandshakeServerFactoryHandle();
 	}
 
 	@Override
-	public void OnSocketAccept(@NotNull AsyncSocket so) {
+	public void OnSocketAccept(AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		checkMaxConnections(); // 覆写丢掉了 Service.OnSocketAccept 的连接数上限检查，这里补回
 		setupHaProxyHeader(so); // 覆写丢掉了 Service.OnSocketAccept 的HaProxy头安装，这里补回
@@ -42,7 +41,7 @@ public class HandshakeBoth extends HandshakeBase {
 	}
 
 	@Override
-	public void OnSocketConnected(@NotNull AsyncSocket so) {
+	public void OnSocketConnected(AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		if (!addSocket(so)) // 撞号连接已被addSocket关闭，不得再走后续接受流程
 			return;

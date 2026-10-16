@@ -5,16 +5,16 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /** short 字段原子修改日志：携带新值，commit 经 VarHandle 写回，序列化为 int。 */
 public class LogShort extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<short>");
 
-	private final VarHandle vh;
+	private final @Nullable VarHandle vh;
 	public short value;
 
-	public LogShort(Bean belong, int varId, VarHandle vh, short value) {
+	public LogShort(@Nullable Bean belong, int varId, @Nullable VarHandle vh, short value) {
 		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
@@ -26,7 +26,7 @@ public class LogShort extends Log {
 	}
 
 	@Override
-	public @NotNull Category category() {
+	public Category category() {
 		return Category.eHistory;
 	}
 
@@ -42,17 +42,17 @@ public class LogShort extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(value);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = (short)bb.ReadInt();
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.valueOf(value);
 	}
 

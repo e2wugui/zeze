@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import org.jetbrains.annotations.NotNull;
 
 // 持久化原子递增 id 发生器：按块预分配水位，崩溃安全地落到定宽水位文件
 public class PersistentAtomicLong {
@@ -18,9 +17,9 @@ public class PersistentAtomicLong {
 	private final AtomicLong currentId = new AtomicLong();
 	private volatile long allocatedEnd;
 
-	private final @NotNull String name;
-	private final @NotNull String fileName;
-	private final @NotNull TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
+	private final String name;
+	private final String fileName;
+	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 
 	private static final ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
 
@@ -32,13 +31,13 @@ public class PersistentAtomicLong {
 	 *                            有多个实例时，需要另一个Id区分，这里不能使用进程id（pid），需要稳定的。
 	 *                            对于网络程序，可以使用"进程名+Main.Acceptor.Name"
 	 */
-	public static @NotNull PersistentAtomicLong getOrAdd(@NotNull String ProgramInstanceName) {
+	public static PersistentAtomicLong getOrAdd(String ProgramInstanceName) {
 		var name = ProgramInstanceName.replace(':', '.');
 		// 这样写，不小心重名也能工作。
 		return pals.computeIfAbsent(name, PersistentAtomicLong::new);
 	}
 
-	private PersistentAtomicLong(@NotNull String ProgramInstanceName) {
+	private PersistentAtomicLong(String ProgramInstanceName) {
 		name = ProgramInstanceName;
 		fileName = ProgramInstanceName + ".zeze.pal";
 
@@ -63,7 +62,7 @@ public class PersistentAtomicLong {
 		}
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return name;
 	}
 
@@ -93,7 +92,7 @@ public class PersistentAtomicLong {
 	public static class FileWithLock extends RandomAccessFile {
 		public final FastLock thisLock = new FastLock();
 
-		public FileWithLock(@NotNull String name, @NotNull String mode) throws FileNotFoundException {
+		public FileWithLock(String name, String mode) throws FileNotFoundException {
 			super(name, mode);
 		}
 
@@ -108,7 +107,7 @@ public class PersistentAtomicLong {
 
 	private static final ConcurrentHashMap<String, FileWithLock> allocFiles = new ConcurrentHashMap<>();
 
-	private static @NotNull FileWithLock open(@NotNull String fileName) {
+	private static FileWithLock open(String fileName) {
 		return allocFiles.computeIfAbsent(fileName, k -> {
 			try {
 				return new FileWithLock(k, "rw");

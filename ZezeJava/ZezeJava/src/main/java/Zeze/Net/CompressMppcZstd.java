@@ -3,16 +3,15 @@ package Zeze.Net;
 import java.io.Closeable;
 import Zeze.Util.ZstdFactory;
 import Zeze.Util.ZstdFactory.ZstdCompressStream;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * MPPC 与 zstd 混合压缩 codec：常规 MPPC 流中可内嵌 zstd 压缩块（块模式）。
  */
 public final class CompressMppcZstd extends Compress implements Closeable {
 	public static final class SinkWrapper implements Codec {
-		private final @NotNull Codec sink;
+		private final Codec sink;
 
-		public SinkWrapper(@NotNull Codec sink) {
+		public SinkWrapper(Codec sink) {
 			this.sink = sink;
 		}
 
@@ -23,7 +22,7 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 		}
 
 		@Override
-		public void update(byte @NotNull [] b, int off, int len) {
+		public void update(byte [] b, int off, int len) {
 			if (len <= 0)
 				return; // 0是flush标记（见flush），不能作为长度前缀写出
 			int v = len; // varint编码用副本，写数据必须用原始len
@@ -42,11 +41,11 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 		}
 	}
 
-	private final @NotNull SinkWrapper sinkWrapper;
-	private final @NotNull ZstdCompressStream cs;
+	private final SinkWrapper sinkWrapper;
+	private final ZstdCompressStream cs;
 	private boolean blockMode;
 
-	public CompressMppcZstd(@NotNull Codec sink, int dstBufSize, int compressLevel, int windowLog) {
+	public CompressMppcZstd(Codec sink, int dstBufSize, int compressLevel, int windowLog) {
 		super(sink);
 		sinkWrapper = new SinkWrapper(sink);
 		cs = ZstdFactory.newCompressStream(dstBufSize, compressLevel, windowLog);
@@ -60,7 +59,7 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 	}
 
 	@Override
-	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
+	public void update(byte [] data, int off, int len) throws CodecException {
 		if (blockMode)
 			flushBlock();
 		super.update(data, off, len);
@@ -74,7 +73,7 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 			super.flush();
 	}
 
-	public void updateBlock(byte @NotNull [] data, int off, int len) {
+	public void updateBlock(byte [] data, int off, int len) {
 		if (!blockMode) {
 			flushPending(); // 进块模式前先落盘挂起的literal/match——逃逸码+块数据必须晚于挂起输出
 			blockMode = true;

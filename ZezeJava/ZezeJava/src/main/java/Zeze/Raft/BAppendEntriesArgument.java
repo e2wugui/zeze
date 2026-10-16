@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -11,7 +13,7 @@ import Zeze.Transaction.Bean;
  */
 final class BAppendEntriesArgument extends Bean {
 	private long term;
-	private String leaderId;
+	private @Nullable String leaderId;
 	private long prevLogIndex;
 	private long prevLogTerm;
 	private final ArrayList<Binary> entries = new ArrayList<>();
@@ -29,7 +31,7 @@ final class BAppendEntriesArgument extends Bean {
 		term = value;
 	}
 
-	public String getLeaderId() {
+	public @Nullable String getLeaderId() {
 		return leaderId;
 	}
 

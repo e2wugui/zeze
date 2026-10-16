@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.function.IntFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -13,18 +17,18 @@ import Zeze.Util.Action2;
 public final class RaftLog implements Serializable {
 	private long term;
 	private long index;
-	private Log log;
+	private @Nullable Log log;
 
-	private transient IntFunction<Log> logFactory; // 不会被序列化。Local Only.
-	private transient Action2<RaftLog, Boolean> leaderCallback;
+	private transient @Nullable IntFunction<@Nullable Log> logFactory; // 不会被序列化。Local Only.
+	private transient @Nullable Action2<RaftLog, Boolean> leaderCallback;
 
-	public RaftLog(long term, long index, Log log) {
+	public RaftLog(long term, long index, @Nullable Log log) {
 		this.term = term;
 		this.index = index;
 		this.log = log;
 	}
 
-	public RaftLog(IntFunction<Log> logFactory) {
+	public RaftLog(IntFunction<@Nullable Log> logFactory) {
 		this.logFactory = logFactory;
 	}
 
@@ -36,11 +40,11 @@ public final class RaftLog implements Serializable {
 		return index;
 	}
 
-	public Log getLog() {
+	public @Nullable Log getLog() {
 		return log;
 	}
 
-	public IntFunction<Log> getLogFactory() {
+	public @Nullable IntFunction<@Nullable Log> getLogFactory() {
 		return logFactory;
 	}
 
@@ -58,7 +62,7 @@ public final class RaftLog implements Serializable {
 		return null != leaderCallback;
 	}
 
-	public void setLeaderCallback(Action2<RaftLog, Boolean> leaderCallback) {
+	public void setLeaderCallback(@Nullable Action2<RaftLog, Boolean> leaderCallback) {
 		this.leaderCallback = leaderCallback;
 	}
 
@@ -66,16 +70,16 @@ public final class RaftLog implements Serializable {
 	public void encode(ByteBuffer bb) {
 		bb.WriteLong(term);
 		bb.WriteLong(index);
-		bb.WriteInt4((int)log.typeId());
-		log.encode(bb);
+		bb.WriteInt4((int)Objects.requireNonNull(log).typeId());
+		Objects.requireNonNull(log).encode(bb);
 	}
 
 	@Override
 	public void decode(IByteBuffer bb) {
 		term = bb.ReadLong();
 		index = bb.ReadLong();
-		log = logFactory.apply(bb.ReadInt4());
-		log.decode(bb);
+		log = Objects.requireNonNull(logFactory).apply(bb.ReadInt4());
+		Objects.requireNonNull(log).decode(bb);
 	}
 
 	public ByteBuffer encode() {
@@ -84,7 +88,7 @@ public final class RaftLog implements Serializable {
 		return bb;
 	}
 
-	public static RaftLog decode(Binary data, IntFunction<Log> logFactory) {
+	public static RaftLog decode(Binary data, IntFunction<@Nullable Log> logFactory) {
 		RaftLog raftLog = new RaftLog(logFactory);
 		data.decode(raftLog);
 		return raftLog;

@@ -1,6 +1,6 @@
 package Zeze.Net;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * socket 与网络相关的可配置选项（系统层与应用层）。

@@ -1,27 +1,28 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Util.Task;
 import Zeze.Util.ZezeCounter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 记录锁键：包装 TableKey 并持有其读写锁；相同 TableKey 必须通过 Locks 获取同一个 Lockey 实例，
  * 事务间按 TableKey 全序加锁以防死锁。
  */
 public final class Lockey implements Zeze.Util.Lockey<Lockey> {
-	private final @NotNull TableKey tableKey;
-	private ReentrantReadWriteLock rwLock;
+	private final TableKey tableKey;
+	private @Nullable ReentrantReadWriteLock rwLock;
 	// 锁路径统计句柄缓存（对齐 ProcedureCounter"调用点缓存复用，热路径零名字解析"惯例）：
 	// tableCounter 每次调用要解析 (tableId,metric) → counter 的映射（PerfCounter 为 map 查找），
 	// 锁获取是每事务多次的最热路径之一，句柄在 alloc 时一次解析终身复用（同 tableId 的
 	// Lockey 实例由 Locks 去重，缓存按 key 摊销）。实现保证句柄稳定（Noop 返回单例）。
-	private ZezeCounter.LongCounter readLockCounter;
-	private ZezeCounter.LongCounter writeLockCounter;
-	private ZezeCounter.LongCounter tryReadLockCounter;
-	private ZezeCounter.LongCounter tryWriteLockCounter;
+	private ZezeCounter.@Nullable LongCounter readLockCounter;
+	private ZezeCounter.@Nullable LongCounter writeLockCounter;
+	private ZezeCounter.@Nullable LongCounter tryReadLockCounter;
+	private ZezeCounter.@Nullable LongCounter tryWriteLockCounter;
 
 	/**
 	 * 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
@@ -29,11 +30,11 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	 *
 	 * @param key table key
 	 */
-	public Lockey(@NotNull TableKey key) {
+	public Lockey(TableKey key) {
 		tableKey = key;
 	}
 
-	public @NotNull TableKey getTableKey() {
+	public TableKey getTableKey() {
 		return tableKey;
 	}
 
@@ -41,7 +42,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	 * 创建真正的锁对象。
 	 */
 	@Override
-	public @NotNull Lockey alloc() {
+	public Lockey alloc() {
 		// 非公平构造是取舍而非疏忽（对照Record.fairLock的公平锁）：记录锁读多写少、
 		// 持锁区间短，公平锁的排队唤醒开销在吞吐上不划算。代价是极端连续读下写者
 		// 排队较久（非公平锁固有）；若实测出现写者饥饿需公平化，应以基准数据支持再改。
@@ -54,8 +55,8 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void enterReadLock() {
-		readLockCounter.increment();
-		var readLock = rwLock.readLock();
+		Objects.requireNonNull(readLockCounter).increment();
+		var readLock = Objects.requireNonNull(rwLock).readLock();
 		if (readLock.tryLock())
 			return;
 		try (var ignored = Profiler.begin("LockeyWaitReadLock", tableKey)) {
@@ -64,13 +65,13 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void exitReadLock() {
-		rwLock.readLock().unlock();
+		Objects.requireNonNull(rwLock).readLock().unlock();
 	}
 
 	public void enterWriteLock() {
-		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
-			writeLockCounter.increment();
-		var writeLock = rwLock.writeLock();
+		if (!Objects.requireNonNull(rwLock).isWriteLockedByCurrentThread()) // 第一次才计数
+			Objects.requireNonNull(writeLockCounter).increment();
+		var writeLock = Objects.requireNonNull(rwLock).writeLock();
 		if (writeLock.tryLock())
 			return;
 		try (var ignored = Profiler.begin("LockeyWaitWriteLock", tableKey)) {
@@ -79,13 +80,13 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void exitWriteLock() {
-		rwLock.writeLock().unlock();
+		Objects.requireNonNull(rwLock).writeLock().unlock();
 	}
 
 	public boolean tryEnterReadLock(int millisecondsTimeout) {
-		tryReadLockCounter.increment();
+		Objects.requireNonNull(tryReadLockCounter).increment();
 		try {
-			var readLock = rwLock.readLock();
+			var readLock = Objects.requireNonNull(rwLock).readLock();
 			if (millisecondsTimeout > 0)
 				return readLock.tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 			return readLock.tryLock();
@@ -95,10 +96,10 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public boolean tryEnterWriteLock(int millisecondsTimeout) {
-		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，失败了也计数。
-			tryWriteLockCounter.increment();
+		if (!Objects.requireNonNull(rwLock).isWriteLockedByCurrentThread()) // 第一次才计数，失败了也计数。
+			Objects.requireNonNull(tryWriteLockCounter).increment();
 		try {
-			var writeLock = rwLock.writeLock();
+			var writeLock = Objects.requireNonNull(rwLock).writeLock();
 			if (millisecondsTimeout > 0)
 				return writeLock.tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 			return writeLock.tryLock();
@@ -108,7 +109,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public boolean isWriteLockHeld() {
-		return rwLock.isWriteLockedByCurrentThread();
+		return Objects.requireNonNull(rwLock).isWriteLockedByCurrentThread();
 	}
 
 	/**
@@ -134,10 +135,10 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	 * exitReadLock配对释放，不得依赖本方法收尾。
 	 */
 	public void exitLock() {
-		if (rwLock.isWriteLockedByCurrentThread()) {
-			rwLock.writeLock().unlock();
+		if (Objects.requireNonNull(rwLock).isWriteLockedByCurrentThread()) {
+			Objects.requireNonNull(rwLock).writeLock().unlock();
 		} else {
-			rwLock.readLock().unlock();
+			Objects.requireNonNull(rwLock).readLock().unlock();
 		}
 		// java 没有提供判断是否拥有读锁的手段，此处不严格检查状态。
 	}

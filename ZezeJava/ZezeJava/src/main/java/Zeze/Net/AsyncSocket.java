@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -16,8 +18,7 @@ import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 异步连接抽象基类：定义生命周期状态机（置死/登记互斥）、解码准入与收发统计。
@@ -26,14 +27,14 @@ import org.jetbrains.annotations.Nullable;
  * 		或 {@link #closeGracefully()}。
  */
 public abstract class AsyncSocket {
-	private static final @NotNull Logger logger = LogManager.getLogger(AsyncSocket.class);
-	public static final @NotNull Level PROTOCOL_LOG_LEVEL = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
+	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
+	public static final Level PROTOCOL_LOG_LEVEL = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = PROTOCOL_LOG_LEVEL != Level.OFF && logger.isEnabled(PROTOCOL_LOG_LEVEL);
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
 	public static final boolean ENABLE_PROTOCOL_LOG_OLD = "true".equalsIgnoreCase(System.getProperty("protocolLogOld"));
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
 
-	protected volatile Object userState;
+	protected volatile @Nullable Object userState;
 
 	static {
 		var str = System.getProperty("protocolLogExcept");
@@ -48,11 +49,11 @@ public abstract class AsyncSocket {
 		ShutdownHook.init();
 	}
 
-	private final @NotNull Service service;
+	private final @Nullable Service service;
 
 	// 生命周期状态机的置死/登记互斥锁（不变式见构造器后）；remove不经本锁（虚回调链，
 	// 纳入成锁序边）；锁内只做标志转移与登记动作。
-	private final @NotNull Object lifecycleLock = new Object();
+	private final Object lifecycleLock = new Object();
 	private volatile boolean lifecycleClosed; // volatile供isClosed无锁读（Send等热路径）
 
 	// 测试桩等少数路径以null service构造（@NotNull之外的事实用法），发号保底走
@@ -61,7 +62,7 @@ public abstract class AsyncSocket {
 			new java.util.concurrent.atomic.AtomicLong(
 					(System.nanoTime() ^ new java.security.SecureRandom().nextLong()) & Long.MAX_VALUE);
 
-	protected AsyncSocket(@NotNull Service service) {
+	protected AsyncSocket(@Nullable Service service) {
 		this.service = service;
 		//noinspection ConstantValue
 		this.sessionId = service != null ? service.nextSessionId() : nullServiceSessionIdGen.getAndIncrement();
@@ -82,7 +83,7 @@ public abstract class AsyncSocket {
 	}
 
 	/** 登记临界区（addSocket专用）：置死互斥下执行action，已closed返回null。 */
-	final <T> @Nullable T runIfOpen(@NotNull Supplier<T> action) {
+	final <T> @Nullable T runIfOpen(Supplier<T> action) {
 		synchronized (lifecycleLock) {
 			if (lifecycleClosed)
 				return null;
@@ -94,7 +95,7 @@ public abstract class AsyncSocket {
 		return lifecycleClosed;
 	}
 
-	public @NotNull Service getService() {
+	public @Nullable Service getService() {
 		return service;
 	}
 
@@ -119,7 +120,7 @@ public abstract class AsyncSocket {
 	// DatagramSession/Websocket/WebsocketClient共用。
 	protected final void fireOnSocketDisposed() {
 		try {
-			getService().OnSocketDisposed(this);
+			Objects.requireNonNull(getService()).OnSocketDisposed(this);
 		} catch (Exception e) {
 			logger.error("Service.OnSocketDisposed exception:", e);
 		}
@@ -129,11 +130,11 @@ public abstract class AsyncSocket {
 		return !protocolLogExcept.contains(protocolTypeId);
 	}
 
-	public Object getUserState() {
+	public @Nullable Object getUserState() {
 		return userState;
 	}
 
-	public void setUserState(Object value) {
+	public void setUserState(@Nullable Object value) {
 		userState = value;
 	}
 
@@ -218,9 +219,9 @@ public abstract class AsyncSocket {
 	/** 子类死亡流程（回调与资源释放）；重入已由close()的markClosed挡住，无需自查。 */
 	protected abstract void doClose(@Nullable Throwable ex, boolean gracefully);
 
-	public abstract boolean Send(byte @NotNull [] bytes, int offset, int length);
+	public abstract boolean Send(byte [] bytes, int offset, int length);
 
-	public boolean Send(@NotNull Protocol<?> p) {
+	public boolean Send(Protocol<?> p) {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", getSessionId(), p);
 		var bb = p.encode();
@@ -231,23 +232,23 @@ public abstract class AsyncSocket {
 		return r;
 	}
 
-	public boolean Send(@NotNull ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了
+	public boolean Send(ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了
 		return Send(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
-	public boolean Send(@NotNull Binary binary) {
+	public boolean Send(Binary binary) {
 		return Send(binary.bytesUnsafe(), binary.getOffset(), binary.size());
 	}
 
-	public boolean Send(@NotNull String str) {
+	public boolean Send(String str) {
 		return Send(str.getBytes(StandardCharsets.UTF_8));
 	}
 
-	public boolean Send(byte @NotNull [] bytes) { // 返回true则bytes不能再修改了
+	public boolean Send(byte [] bytes) { // 返回true则bytes不能再修改了
 		return Send(bytes, 0, bytes.length);
 	}
 
-	public static void log(@NotNull String action, long id, @NotNull Protocol<?> p) {
+	public static void log(String action, long id, Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
 		boolean logResultCode;
@@ -266,7 +267,7 @@ public abstract class AsyncSocket {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public static void log(@NotNull String action, long id, String platform, @NotNull Protocol<?> p) {
+	public static void log(String action, long id, @Nullable String platform, Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id);
 		if (platform != null && !platform.isEmpty())
@@ -288,7 +289,7 @@ public abstract class AsyncSocket {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public static void log(@NotNull String action, @NotNull String id, @NotNull Protocol<?> p) {
+	public static void log(String action, String id, Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
 		boolean logResultCode;
@@ -307,7 +308,7 @@ public abstract class AsyncSocket {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public static void log(@NotNull String action, long sessionId, int moduleId, int protocolId, @NotNull ByteBuffer bb) {
+	public static void log(String action, long sessionId, int moduleId, int protocolId, ByteBuffer bb) {
 		int beginReadIndex = bb.ReadIndex;
 		int header = -1;
 		int familyClass = 0;
@@ -335,7 +336,7 @@ public abstract class AsyncSocket {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public static void log(@NotNull String action, @NotNull Object idStr, long typeId, @NotNull ByteBuffer bb) {
+	public static void log(String action, Object idStr, long typeId, ByteBuffer bb) {
 		int moduleId = Protocol.getModuleId(typeId);
 		int protocolId = Protocol.getProtocolId(typeId);
 		int beginReadIndex = bb.ReadIndex;
@@ -365,7 +366,7 @@ public abstract class AsyncSocket {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public static @NotNull String toStr(@Nullable Object obj) {
+	public static String toStr(@Nullable Object obj) {
 		if (ENABLE_PROTOCOL_LOG_OLD)
 			return String.valueOf(obj);
 		var jw = JsonWriter.local();

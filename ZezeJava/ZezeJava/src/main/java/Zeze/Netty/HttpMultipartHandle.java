@@ -1,5 +1,6 @@
 package Zeze.Netty;
 
+import java.util.Objects;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -10,15 +11,14 @@ import io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import io.netty.util.AttributeKey;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * multipart/form-data 上传处理接口：基于 netty 解码器分发属性/文件字段回调。
  */
 @SuppressWarnings("RedundantThrows")
 public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamContentHandle, HttpEndStreamHandle {
-	@NotNull AttributeKey<InterfaceHttpPostRequestDecoder> decoderKey = AttributeKey.valueOf("HttpMultipartHandleContext");
+	AttributeKey<@Nullable InterfaceHttpPostRequestDecoder> decoderKey = AttributeKey.valueOf("HttpMultipartHandleContext");
 	HttpDataFactory defaultHttpDataFactory = newDefaultHttpDataFactory();
 
 	private static HttpDataFactory newDefaultHttpDataFactory() {
@@ -33,38 +33,38 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	/**
 	 * 请求过程中上传完一个属性字段时回调
 	 */
-	default void onAttribute(@NotNull HttpExchange x, @NotNull Attribute attr) throws Exception {
+	default void onAttribute(HttpExchange x, Attribute attr) throws Exception {
 	}
 
 	/**
 	 * 请求过程中上传完一个文件字段时回调。
 	 * 可用 fileUpload.renameTo(new File("目标目录", "目标文件")) 把临时文件/数据移动到指定位置的文件。
 	 */
-	default void onFileCompleted(@NotNull HttpExchange x, @NotNull FileUpload fileUpload) throws Exception {
+	default void onFileCompleted(HttpExchange x, FileUpload fileUpload) throws Exception {
 	}
 
 	/**
 	 * 请求完成时的回调。可用 decoder.getBodyHttpDatas() 获取所有的Multipart字段。
 	 */
-	default void onEndRequest(@NotNull HttpExchange x,
-							  @NotNull InterfaceHttpPostRequestDecoder decoder) throws Exception {
+	default void onEndRequest(HttpExchange x,
+							  InterfaceHttpPostRequestDecoder decoder) throws Exception {
 		x.close(x.sendPlainText(HttpResponseStatus.OK, (String)null));
 	}
 
-	default @NotNull HttpDataFactory getHttpDataFactory(@NotNull HttpExchange x) {
+	default HttpDataFactory getHttpDataFactory(HttpExchange x) {
 		return defaultHttpDataFactory;
 	}
 
-	default @NotNull InterfaceHttpPostRequestDecoder newDecoder(@NotNull HttpExchange x) {
+	default InterfaceHttpPostRequestDecoder newDecoder(HttpExchange x) {
 		assert x.request != null;
-		return new HttpPostMultipartRequestDecoder(getHttpDataFactory(x), x.request);
+		return new HttpPostMultipartRequestDecoder(getHttpDataFactory(x), Objects.requireNonNull(x.request));
 	}
 
-	default @Nullable InterfaceHttpPostRequestDecoder getDecoder(@NotNull HttpExchange x) {
+	default @Nullable InterfaceHttpPostRequestDecoder getDecoder(HttpExchange x) {
 		return x.channel().attr(decoderKey).get();
 	}
 
-	default @Nullable InterfaceHttpPostRequestDecoder getAndSetDecoder(@NotNull HttpExchange x,
+	default @Nullable InterfaceHttpPostRequestDecoder getAndSetDecoder(HttpExchange x,
 																	   @Nullable InterfaceHttpPostRequestDecoder decoder) {
 		return x.channel().attr(decoderKey).getAndSet(decoder);
 	}
@@ -85,18 +85,18 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	}
 
 	/** channel attr取走即销毁（"取走即负责"幂等语义），attr无值时no-op。 */
-	static void destroyChannelDecoder(@NotNull HttpExchange x) {
+	static void destroyChannelDecoder(HttpExchange x) {
 		destroyDecoder(x.channel().attr(decoderKey).getAndSet(null));
 	}
 
 	@Override
-	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) throws Exception {
+	default void onBeginStream(HttpExchange x, long from, long to, long size) throws Exception {
 		var oldDecoder = getAndSetDecoder(x, newDecoder(x));
 		destroyDecoder(oldDecoder); // 以防万一：attr残留旧解码器时销毁
 	}
 
 	@Override
-	default void onStreamContent(@NotNull HttpExchange x, @NotNull HttpContent content) throws Exception {
+	default void onStreamContent(HttpExchange x, HttpContent content) throws Exception {
 		var decoder = getDecoder(x);
 		if (decoder == null)
 			throw new IllegalStateException("no decoder");
@@ -127,7 +127,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	}
 
 	@Override
-	default void onEndStream(@NotNull HttpExchange x) throws Exception {
+	default void onEndStream(HttpExchange x) throws Exception {
 		var decoder = getAndSetDecoder(x, null);
 		if (decoder != null) {
 			try {

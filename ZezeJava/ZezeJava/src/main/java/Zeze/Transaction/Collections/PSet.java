@@ -6,24 +6,24 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 Set 基类：基于 pcollections 持久化集合的 Set 视图，托管下的修改经 LogSet 记账。 */
 public abstract class PSet<V> extends Collection implements Set<V> {
-	@NotNull org.pcollections.PSet<V> set = Persistents.set();
+	org.pcollections.PSet<V> set = Persistents.set();
 
 	@Override
-	public abstract boolean add(@NotNull V item);
+	public abstract boolean add(V item);
 
 	@Override
-	public abstract boolean remove(@NotNull Object item);
+	public abstract boolean remove(Object item);
 
 	@Override
 	public abstract void clear();
 
-	public final @NotNull org.pcollections.PSet<V> getSet() {
+	public final org.pcollections.PSet<V> getSet() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
@@ -50,41 +50,41 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 	}
 
 	@Override
-	public final boolean contains(@NotNull Object v) {
+	public final boolean contains(Object v) {
 		return getSet().contains(v);
 	}
 
 	@Override
-	public boolean containsAll(@NotNull java.util.Collection<?> c) {
+	public boolean containsAll(java.util.Collection<?> c) {
 		return getSet().containsAll(c);
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public boolean retainAll(@NotNull java.util.Collection<?> c) {
+	public boolean retainAll(java.util.Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
-	public final void copyTo(V @NotNull [] array, int arrayIndex) {
+	public final void copyTo(V [] array, int arrayIndex) {
 		for (V v : getSet())
 			array[arrayIndex++] = v;
 	}
 
 	@Override
-	public Object @NotNull [] toArray() {
+	public Object [] toArray() {
 		return getSet().toArray();
 	}
 
 	@Override
-	public <T> T @NotNull [] toArray(T @NotNull [] a) {
+	public <T> T [] toArray(T [] a) {
 		return getSet().toArray(a);
 	}
 
 	@Override
-	public @NotNull Iterator<V> iterator() {
+	public Iterator<V> iterator() {
 		return new Iterator<>() {
 			private final Iterator<V> it = getSet().iterator();
-			private V next;
+			private @Nullable V next;
 
 			@Override
 			public boolean hasNext() {
@@ -123,7 +123,7 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, getSet());
 		return sb.toString();

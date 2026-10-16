@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,7 +39,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 数据库管理 Web 端点：全库读/写/删/清表（token 鉴权）。
@@ -53,6 +54,10 @@ public class DbWeb extends AbstractDbWeb {
 	private static final String TOKEN_QUERY_KEY = "token";
 	private final String token;
 
+	private Application requireZeze() {
+		return Objects.requireNonNull(zeze, "DbWeb has not been initialized");
+	}
+
 	public DbWeb() {
 		this(null);
 	}
@@ -62,7 +67,7 @@ public class DbWeb extends AbstractDbWeb {
 	 *
 	 * @param token 鉴权token；null/空白时自动生成随机token并打日志（默认强制鉴权、零配置可用）
 	 */
-	public DbWeb(String token) {
+	public DbWeb(@Nullable String token) {
 		this.token = token != null && !token.isBlank() ? token : generateToken();
 		logger.warn("DbWeb enabled: db web endpoints require token"
 						+ " (pass via '{}' header or '{}' query param). token={}",
@@ -94,10 +99,10 @@ public class DbWeb extends AbstractDbWeb {
 		return false;
 	}
 
-	private Application zeze;
-	private String indexHtml;
+	private @Nullable Application zeze;
+	private @Nullable String indexHtml;
 
-	public static String toJsonForView(Object obj) {
+	public static String toJsonForView(@Nullable Object obj) {
 		var jw = JsonWriter.local();
 		try {
 			return jw.clear().setFlagsAndDepthLimit(JsonWriter.FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT, 16)
@@ -107,7 +112,7 @@ public class DbWeb extends AbstractDbWeb {
 		}
 	}
 
-	public static String toJsonForCompact(Object obj) {
+	public static String toJsonForCompact(@Nullable Object obj) {
 		var jw = JsonWriter.local();
 		try {
 			return jw.clear().setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16).write(obj).toString();
@@ -117,7 +122,7 @@ public class DbWeb extends AbstractDbWeb {
 	}
 
 	@Override
-	public void Initialize(@NotNull AppBase app) throws Exception {
+	public void Initialize(AppBase app) throws Exception {
 		logger.debug("start db web");
 		super.Initialize(app);
 		zeze = app.getZeze();
@@ -140,7 +145,7 @@ public class DbWeb extends AbstractDbWeb {
 
 	@Override
 	protected void OnServletIndex(HttpExchange x) {
-		x.sendHtml(HttpResponseStatus.OK, indexHtml);
+		x.sendHtml(HttpResponseStatus.OK, Objects.requireNonNull(indexHtml));
 	}
 
 	@Override
@@ -148,7 +153,7 @@ public class DbWeb extends AbstractDbWeb {
 		if (!checkAuth(x))
 			return;
 		try {
-			var tables = zeze.getTables().values().stream().map(Table::getName).toArray();
+			var tables = requireZeze().getTables().values().stream().map(Table::getName).toArray();
 			x.sendJson(HttpResponseStatus.OK, toJsonForView(tables));
 		} catch (Exception e) {
 			x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
@@ -174,17 +179,17 @@ public class DbWeb extends AbstractDbWeb {
 			k = Json.parse(key, (Class<?>)keyType);
 		else
 			throw new IllegalStateException("ERROR: unsupported key of " + keyType + " for table " + table.getName());
-		return k;
+		return Objects.requireNonNull(k);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <K extends Comparable<K>, V extends Bean> K walkKey(TableX<?, ?> table, Object exclusiveStartKey,
+	public static <K extends Comparable<K>, V extends Bean> @Nullable K walkKey(TableX<?, ?> table, @Nullable Object exclusiveStartKey,
 																	  int proposeLimit, TableWalkKey<?> callback) throws Exception {
 		return ((TableX<K, V>)table).walkKey((K)exclusiveStartKey, proposeLimit, (TableWalkKey<K>)callback);
 	}
 
 	static class WalkTableResult {
-		public List<String> keys;
+		public @Nullable List<String> keys;
 		public boolean hasMore;
 	}
 
@@ -200,7 +205,7 @@ public class DbWeb extends AbstractDbWeb {
 			Objects.requireNonNull(tableName, "tableName");
 			// 下界钳制到1：n<=0时试探逻辑会退化为空页+hasMore=true（分页死循环）甚至remove(-1)回500
 			var count = n != null ? Math.max(1, Math.min(Integer.parseInt(n), 1_000_000)) : 100;
-			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			var table = (TableX<?, ?>)requireZeze().getTable(tableName);
 			if (table == null) {
 				x.sendPlainText(HttpResponseStatus.OK, "not found table: \"" + tableName + '"');
 				return;
@@ -229,7 +234,7 @@ public class DbWeb extends AbstractDbWeb {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <K extends Comparable<K>> Bean selectDirty(TableX<?, ?> table, Object key) {
+	private static <K extends Comparable<K>> @Nullable Bean selectDirty(TableX<?, ?> table, Object key) {
 		return ((TableX<K, ?>)table).selectDirty((K)key);
 	}
 
@@ -243,7 +248,7 @@ public class DbWeb extends AbstractDbWeb {
 			var key = qm.get("k");
 			Objects.requireNonNull(tableName, "tableName");
 			Objects.requireNonNull(key, "key");
-			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			var table = (TableX<?, ?>)requireZeze().getTable(tableName);
 			if (table == null) {
 				x.sendPlainText(HttpResponseStatus.OK, "not found table: \"" + tableName + '"');
 				return;
@@ -273,7 +278,7 @@ public class DbWeb extends AbstractDbWeb {
 			Objects.requireNonNull(tableName, "tableName");
 			Objects.requireNonNull(key, "key");
 			Objects.requireNonNull(value, "value");
-			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			var table = (TableX<?, ?>)requireZeze().getTable(tableName);
 			if (table == null) {
 				x.sendPlainText(HttpResponseStatus.OK, "not found table: \"" + tableName + '"');
 				return;
@@ -308,7 +313,7 @@ public class DbWeb extends AbstractDbWeb {
 			var key = qm.get("k");
 			Objects.requireNonNull(tableName, "tableName");
 			Objects.requireNonNull(key, "key");
-			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			var table = (TableX<?, ?>)requireZeze().getTable(tableName);
 			if (table == null) {
 				x.sendPlainText(HttpResponseStatus.BAD_REQUEST, "not found table: \"" + tableName + '"');
 				return;
@@ -321,7 +326,7 @@ public class DbWeb extends AbstractDbWeb {
 		}
 	}
 
-	public <K extends Comparable<K>, V extends Bean> void clearTable(TableX<K, V> table, Predicate<K> batchCallback) throws Exception {
+	public <K extends Comparable<K>, V extends Bean> void clearTable(TableX<K, V> table, @Nullable Predicate<@Nullable K> batchCallback) throws Exception {
 		final var DELETE_BATCH_COUNT = 100;
 		K lastKey = null;
 		do {
@@ -331,7 +336,7 @@ public class DbWeb extends AbstractDbWeb {
 				keys.add(k);
 				return keys.size() < DELETE_BATCH_COUNT;
 			});
-			var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
+			var rc = TaskSpec.ofProcedure(requireZeze().newProcedure(() -> {
 				for (var key : keys)
 					table.remove(key);
 				return Procedure.Success;
@@ -356,7 +361,7 @@ public class DbWeb extends AbstractDbWeb {
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
 			Objects.requireNonNull(tableName, "tableName");
-			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			var table = (TableX<?, ?>)requireZeze().getTable(tableName);
 			x.beginStream(HttpResponseStatus.OK, HttpServer.setDate(new DefaultHttpHeaders())
 					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
 			beginStream = true;

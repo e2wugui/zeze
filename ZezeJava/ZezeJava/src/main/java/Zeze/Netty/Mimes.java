@@ -11,8 +11,7 @@ import java.util.Locale;
 import java.util.Properties;
 import Zeze.Util.StringSpan;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 文件扩展名到 MIME 类型的映射表（默认表来自 nginx mime.types，可用 mimes.properties 覆盖）。
@@ -135,7 +134,7 @@ public class Mimes {
 	private static final String mimeDefault = "text/plain";
 	private static final HashMap<String, String> mimesMap = new HashMap<>();
 
-	private static void load(@NotNull Reader input) throws IOException {
+	private static void load(Reader input) throws IOException {
 		var p = new Properties();
 		p.load(input);
 		for (var e : p.entrySet())
@@ -160,13 +159,13 @@ public class Mimes {
 	}
 
 	// 注意：扩展名不包含字符'.'
-	public static @NotNull String fromFileExtension(@NotNull Object extName) {
+	public static String fromFileExtension(Object extName) {
 		// 键全小写，查找前归一化——大写扩展名（Windows环境常见，如LOGO.PNG）不得回落text/plain。
 		var mime = mimesMap.get(String.valueOf(extName).toLowerCase(Locale.ROOT));
 		return mime != null ? mime : mimeDefault;
 	}
 
-	public static @NotNull String fromFileName(@Nullable String file) {
+	public static String fromFileName(@Nullable String file) {
 		if (file != null) {
 			var index = file.lastIndexOf('.');
 			if (index >= 0)

@@ -1,5 +1,7 @@
 package Zeze.Dbh2.Master;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -22,6 +24,7 @@ import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Dbh2 Master 服务：管理数据库与表的元数据、manager 注册与负载调度、全局实例数据。
@@ -286,7 +289,7 @@ public class Master extends AbstractMaster {
 		} finally {
 			table.unlock();
 		}
-		r.Result = bucket;
+		r.Result = Objects.requireNonNull(bucket);
 		r.SendResult();
 		return 0;
 	}
@@ -311,7 +314,7 @@ public class Master extends AbstractMaster {
 					break;
 				}
 			}
-			managers.add(new Manager(r.getSender(), r.Argument));
+			managers.add(new Manager(Objects.requireNonNull(r.getSender()), r.Argument));
 		} finally {
 			unlock();
 		}
@@ -340,7 +343,7 @@ public class Master extends AbstractMaster {
 		return 0;
 	}
 
-	private Manager findManager(AsyncSocket sender) {
+	private @Nullable Manager findManager(AsyncSocket sender) {
 		for (var manager : managers)
 			if (manager.socket == sender)
 				return manager;
@@ -350,7 +353,7 @@ public class Master extends AbstractMaster {
 	// 按注册身份（acceptorName_port，与splitting条目host2Raft的key同构）查manager（FND29
 	// dbh2-04孤儿raft回收用）。master锁内串行（managers为普通ArrayList，对齐findManager的
 	// 调用形态）。
-	public Manager findManagerByIdentity(String managerHostPort) {
+	public @Nullable Manager findManagerByIdentity(String managerHostPort) {
 		lock();
 		try {
 			for (var e : managers)
@@ -366,7 +369,7 @@ public class Master extends AbstractMaster {
 	protected long ProcessReportLoadRequest(ReportLoad r) throws Exception {
 		lock();
 		try {
-			var manager = findManager(r.getSender());
+			var manager = findManager(Objects.requireNonNull(r.getSender()));
 			if (null == manager)
 				return errorCode(eManagerNotFound);
 			manager.load = r.Argument.getLoad();
@@ -405,7 +408,7 @@ public class Master extends AbstractMaster {
 	protected long ProcessReportBucketCountRequest(ReportBucketCount r) throws Exception {
 		lock();
 		try {
-			var manager = findManager(r.getSender());
+			var manager = findManager(Objects.requireNonNull(r.getSender()));
 			if (null == manager)
 				return errorCode(eManagerNotFound);
 			manager.data.setBucketCount(r.Argument.getCount());
@@ -572,7 +575,7 @@ public class Master extends AbstractMaster {
 		// 设置dbh2进入准备好模式，可以接受新的bucket的分配等操作。
 		lock();
 		try {
-			var manager = findManager(r.getSender());
+			var manager = findManager(Objects.requireNonNull(r.getSender()));
 			if (null == manager)
 				return errorCode(eManagerNotFound);
 			manager.ready = true;
@@ -592,7 +595,7 @@ public class Master extends AbstractMaster {
 			if (null == exist)
 				return errorCode(BGetDataWithVersion.eDataNotExists);
 			var dv = Database.DataWithVersion.decode(exist);
-			r.Result.setData(new Binary(dv.data));
+			r.Result.setData(new Binary(Objects.requireNonNull(dv.data)));
 			r.Result.setVersion(dv.version);
 			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
 			return 0;

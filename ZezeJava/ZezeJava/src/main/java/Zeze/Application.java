@@ -1,5 +1,7 @@
 package Zeze;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -64,46 +66,45 @@ import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 /**
  * Zeze 应用核心：组装数据库、表、锁、组件（Timer/AutoKey/Queue 等）与服务管理器，编排 start/stop 生命周期。
  */
 public final class Application extends ReentrantLock {
-	static final @NotNull Logger logger = LogManager.getLogger(Application.class);
+	static final Logger logger = LogManager.getLogger(Application.class);
 
 	// 终检点后等待在飞flush归零/被中断时重join检查点线程的上限，超时告警继续关库。
 	private static final long CHECKPOINT_DRAIN_TIMEOUT_MILLIS = 30_000;
 
-	private final @NotNull String projectName;
-	private final @NotNull Config conf;
-	private final @NotNull HashMap<String, Database> databases = new HashMap<>();
+	private final String projectName;
+	private final Config conf;
+	private final HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
 	private final Locks locks = new Locks();
-	private final AbstractAgent serviceManager;
-	private AutoKey.Module autoKey;
-	private AutoKey transactionIdAutoKey;
-	private Timer timer;
-	private SafeBatch safeBatch;
-	private Zeze.Collections.Queue.Module queueModule;
-	private DelayRemove delayRemove;
-	private volatile Takeover takeover;
+	private final @Nullable AbstractAgent serviceManager;
+	private AutoKey.@Nullable Module autoKey;
+	private @Nullable AutoKey transactionIdAutoKey;
+	private @Nullable Timer timer;
+	private @Nullable SafeBatch safeBatch;
+	private Zeze.Collections.Queue.@Nullable Module queueModule;
+	private @Nullable DelayRemove delayRemove;
+	private volatile @Nullable Takeover takeover;
 	private @Nullable IHistory history;
-	private IGlobalAgent globalAgent;
-	private AchillesHeelDaemon achillesHeelDaemon;
-	private DeadlockBreaker deadlockBreaker;
+	private @Nullable IGlobalAgent globalAgent;
+	private @Nullable AchillesHeelDaemon achillesHeelDaemon;
+	private @Nullable DeadlockBreaker deadlockBreaker;
 	// volatile——停机拒绝契约（perform轮次间/tryUpdateAndCheckpoint入口/落库点、
 	// TableX.flushWhenReduce）依赖事务线程及时读到stop()的置null；plain字段无happens-before，
 	// redo轮次里的检查可能长期读到旧引用，注册进已结束终检点的checkpoint（孤儿脏集=原bug复活）。
 	// 读频次每事务个位数，volatile代价可忽略。
-	private volatile Checkpoint checkpoint;
+	private volatile @Nullable Checkpoint checkpoint;
 	private @Nullable Future<?> flushWhenReduceTimerTask;
-	private Schemas schemas;
+	private @Nullable Schemas schemas;
 	private @Nullable Schemas schemasPrevious;
-	private final @NotNull ProcedureLockWatcher procedureLockWatcher;
+	private final ProcedureLockWatcher procedureLockWatcher;
 
 	public enum StartState {
 		eUninitialized, // 构造完成，从未start。
@@ -113,10 +114,10 @@ public final class Application extends ReentrantLock {
 		eStopped, // stop()完成，终态：构造期组件已拆除且start不重建，实例不可复用。
 	}
 
-	private volatile @NotNull StartState startState = StartState.eUninitialized;
-	public RedirectBase redirect;
+	private volatile StartState startState = StartState.eUninitialized;
+	public @Nullable RedirectBase redirect;
 
-	private Onz onz;
+	private @Nullable Onz onz;
 
 	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
 
@@ -126,7 +127,7 @@ public final class Application extends ReentrantLock {
 	 * 2. 不需要在里面注册表(Database.AddTable)。
 	 * 3. Flush的时候特殊处理。see Checkpoint。
 	 */
-	private DatabaseRocksDb LocalRocksCacheDb;
+	private @Nullable DatabaseRocksDb LocalRocksCacheDb;
 
 	// LocalRocksCacheDb目录（zeze_cache_<serverId>，目录名仅含serverId，同JVM
 	// 多App撞号或跨进程同CWD误配时互删活跃目录）的互斥锁，持有覆盖start与stop两个
@@ -134,33 +135,33 @@ public final class Application extends ReentrantLock {
 	private @Nullable FileMutex localRocksCacheMutex;
 
 	private @Nullable Dbh2AgentManager dbh2AgentManager;
-	private HotManager hotManager;
+	private @Nullable HotManager hotManager;
 
-	private AppBase appBase;
-	private ProviderApp providerApp;
+	private @Nullable AppBase appBase;
+	private @Nullable ProviderApp providerApp;
 
 	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
 	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
 
 	// 只由持锁者（checkpointRunThread/stop）读写；"checkpoint在跑中"=非null且未完成。
-	private Future<?> checkpointFuture;
+	private @Nullable Future<?> checkpointFuture;
 
 	private static final ConcurrentHashMap<String, Application> instances = new ConcurrentHashMap<>();
 
 	// 根据实例Id得到Application实例。
-	public static @Nullable Application getAppInstance(@NotNull String projectName) {
+	public static @Nullable Application getAppInstance(String projectName) {
 		return instances.get(projectName);
 	}
 
-	public @NotNull ProcedureLockWatcher getProcedureLockWatcher() {
+	public ProcedureLockWatcher getProcedureLockWatcher() {
 		return procedureLockWatcher;
 	}
 
-	public @NotNull HotHandle<EventDispatcher.EventHandle> getHotHandle() {
+	public HotHandle<EventDispatcher.EventHandle> getHotHandle() {
 		return hotHandle;
 	}
 
-	public Onz getOnz() {
+	public @Nullable Onz getOnz() {
 		return onz;
 	}
 
@@ -182,18 +183,18 @@ public final class Application extends ReentrantLock {
 
 	// verifyCallerNotHot(jdk.internal.reflect.Reflection.getCallerClass());
 	// caller必须外部调用得到。
-	public void verifyCallerCold(@NotNull Class<?> caller) {
+	public void verifyCallerCold(Class<?> caller) {
 		var callerCl = caller.getClassLoader();
 		// 只限制我们自己的HotModule，其他都允许。
 		if (hotManager != null && HotManager.isHotModule(callerCl))
 			throw new IllegalStateException("caller must not hot.");
 	}
 
-	public void setHotManager(HotManager value) {
+	public void setHotManager(@Nullable HotManager value) {
 		hotManager = value;
 	}
 
-	public HotManager getHotManager() {
+	public @Nullable HotManager getHotManager() {
 		return hotManager;
 	}
 
@@ -201,22 +202,22 @@ public final class Application extends ReentrantLock {
 		return dbh2AgentManager;
 	}
 
-	public @NotNull Dbh2AgentManager tryNewDbh2AgentManager() throws Exception {
+	public Dbh2AgentManager tryNewDbh2AgentManager() throws Exception {
 		if (dbh2AgentManager == null)
-			dbh2AgentManager = new Dbh2AgentManager(serviceManager, conf);
+			dbh2AgentManager = new Dbh2AgentManager(Objects.requireNonNull(serviceManager), conf);
 		return dbh2AgentManager;
 	}
 
-	public Application(@NotNull String solutionName) throws Exception {
+	public Application(String solutionName) throws Exception {
 		this(solutionName, null);
 	}
 
-	public static @Nullable AbstractAgent createServiceManager(@NotNull Config conf,
-															   @NotNull String raftSessionNamePrefix) throws Exception {
+	public static @Nullable AbstractAgent createServiceManager(Config conf,
+															   String raftSessionNamePrefix) throws Exception {
 		return switch (conf.getServiceManager()) {
 			case "raft" -> {
-				if (conf.getServiceManagerConf().getSessionName().isEmpty())
-					conf.getServiceManagerConf().setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
+				if (Objects.requireNonNull(conf.getServiceManagerConf()).getSessionName().isEmpty())
+					Objects.requireNonNull(conf.getServiceManagerConf()).setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
 				yield new ServiceManagerAgentWithRaft(conf);
 			}
 			case "disable" -> null;
@@ -224,7 +225,7 @@ public final class Application extends ReentrantLock {
 		};
 	}
 
-	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
+	public Application(String projectName, @Nullable Config config) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
 		if (conf.getServerId() > 0x3FFF) // 16383 encoded size = 2 bytes
@@ -249,11 +250,11 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
-	public AppBase getAppBase() {
+	public @Nullable AppBase getAppBase() {
 		return appBase;
 	}
 
-	public ProviderApp getProviderApp() {
+	public @Nullable ProviderApp getProviderApp() {
 		return providerApp;
 	}
 
@@ -261,7 +262,7 @@ public final class Application extends ReentrantLock {
 		this.providerApp = providerApp;
 	}
 
-	public void initialize(@NotNull AppBase app) {
+	public void initialize(AppBase app) {
 		lock();
 		try {
 			appBase = app;
@@ -278,11 +279,11 @@ public final class Application extends ReentrantLock {
 		return conf.isNoDatabase() || conf.getServerId() < 0;
 	}
 
-	public @NotNull HashMap<String, Database> getDatabases() {
+	public HashMap<String, Database> getDatabases() {
 		return databases;
 	}
 
-	public @NotNull Config getConfig() {
+	public Config getConfig() {
 		return conf;
 	}
 
@@ -290,23 +291,25 @@ public final class Application extends ReentrantLock {
 		return startState == StartState.eStarted;
 	}
 
-	public AbstractAgent getServiceManager() {
+	public @Nullable AbstractAgent getServiceManager() {
 		return serviceManager;
 	}
 
-	public IGlobalAgent getGlobalAgent() {
+	// GCM 未启用（未注册 GlobalCacheManager 组件）时为 null，调用方须判空。
+	public @Nullable IGlobalAgent getGlobalAgent() {
 		return globalAgent;
 	}
 
-	public Checkpoint getCheckpoint() {
+	// 停机窗口（stop 后）为 null，调用方须判空（flushWhenReduce 等以其为 fail-safe 依据）。
+	public @Nullable Checkpoint getCheckpoint() {
 		return checkpoint;
 	}
 
-	public @NotNull Locks getLocks() {
+	public Locks getLocks() {
 		return locks;
 	}
 
-	public Schemas getSchemas() {
+	public @Nullable Schemas getSchemas() {
 		return schemas;
 	}
 
@@ -318,19 +321,19 @@ public final class Application extends ReentrantLock {
 		schemas = value;
 	}
 
-	public @NotNull String getProjectName() {
+	public String getProjectName() {
 		return projectName;
 	}
 
-	public AchillesHeelDaemon getAchillesHeelDaemon() {
+	public @Nullable AchillesHeelDaemon getAchillesHeelDaemon() {
 		return achillesHeelDaemon;
 	}
 
-	public DatabaseRocksDb getLocalRocksCacheDb() {
+	public @Nullable DatabaseRocksDb getLocalRocksCacheDb() {
 		return LocalRocksCacheDb;
 	}
 
-	public @NotNull Database addTable(@NotNull String dbName, @NotNull Table table) {
+	public Database addTable(String dbName, Table table) {
 		var db = getDatabase(dbName);
 		// 两道唯一性校验全部通过后再统一登记（异常路径原子化）：TableKey.tables.put与
 		// tables.putIfAbsent先于校验执行时，表名冲突抛异常后tables残留半注册幻影表（从未open），
@@ -379,13 +382,13 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
-	public @NotNull ArrayList<HotUpgradeMemoryTable> __get_upgrade_memory_table__() {
+	public ArrayList<HotUpgradeMemoryTable> __get_upgrade_memory_table__() {
 		return hotUpgradeMemoryTables;
 	}
 
 	// 用于热更的时候替换Table.
 	// 热更不会调用addTable,removeTable。
-	public @NotNull Database replaceTable(@NotNull String dbName, @NotNull Table table) {
+	public Database replaceTable(String dbName, Table table) {
 		replaceTableRecent.add(table);
 		TableKey.tables.put(table.getId(), table.getName()); // always put
 		var exist = tables.put(table.getId(), table);
@@ -419,11 +422,11 @@ public final class Application extends ReentrantLock {
 		return db;
 	}
 
-	public @NotNull StartState getStartState() {
+	public StartState getStartState() {
 		return startState;
 	}
 
-	public void openDynamicTable(@NotNull String dbName, @NotNull Table table) {
+	public void openDynamicTable(String dbName, Table table) {
 		lock();
 		try {
 			// 与启动期 atomicOpenDatabase 的顺序同构：先注册回放日志工厂再开表，
@@ -441,7 +444,7 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
-	public void removeTable(@NotNull String dbName, @NotNull Table table) {
+	public void removeTable(String dbName, Table table) {
 		tables.remove(table.getId());
 		tableNameMap.remove(table.getName());
 		getDatabase(dbName).removeTable(table);
@@ -451,38 +454,38 @@ public final class Application extends ReentrantLock {
 		return tables.get(id);
 	}
 
-	public @Nullable Table getTable(@NotNull String name) {
+	public @Nullable Table getTable(String name) {
 		return tableNameMap.get(name);
 	}
 
-	public @NotNull @UnmodifiableView Map<String, Table> getTables() {
+	public @UnmodifiableView Map<String, Table> getTables() {
 		return Collections.unmodifiableMap(tableNameMap);
 	}
 
-	public @NotNull Database getDatabase(@NotNull String name) {
+	public Database getDatabase(String name) {
 		var db = databases.get(name);
 		if (db == null)
 			throw new IllegalStateException("database not exist name=" + name);
 		return db;
 	}
 
-	public @NotNull AutoKey getAutoKey(@NotNull String name) {
-		return autoKey.getOrAdd(name);
+	public AutoKey getAutoKey(String name) {
+		return Objects.requireNonNull(autoKey).getOrAdd(name);
 	}
 
-	public AutoKey getTransactionIdAutoKey() {
+	public @Nullable AutoKey getTransactionIdAutoKey() {
 		return transactionIdAutoKey;
 	}
 
-	public Timer getTimer() {
+	public @Nullable Timer getTimer() {
 		return timer;
 	}
 
-	public SafeBatch getSafeBatch() {
+	public @Nullable SafeBatch getSafeBatch() {
 		return safeBatch;
 	}
 
-	public Zeze.Collections.Queue.Module getQueueModule() {
+	public Zeze.Collections.Queue.@Nullable Module getQueueModule() {
 		return queueModule;
 	}
 
@@ -491,19 +494,19 @@ public final class Application extends ReentrantLock {
 		return history;
 	}
 
-	public DelayRemove getDelayRemove() {
+	public @Nullable DelayRemove getDelayRemove() {
 		return delayRemove;
 	}
 
-	public Takeover getTakeover() {
+	public @Nullable Takeover getTakeover() {
 		return takeover;
 	}
 
-	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName) {
+	public Procedure newProcedure(FuncLong action, @Nullable String actionName) {
 		return newProcedure(action, actionName, TransactionLevel.Serializable);
 	}
 
-	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
+	public Procedure newProcedure(FuncLong action, @Nullable String actionName,
 										   @Nullable TransactionLevel level) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
@@ -512,9 +515,9 @@ public final class Application extends ReentrantLock {
 		return new Procedure(this, action, actionName, level);
 	}
 
-	public @NotNull ProtocolProcedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
-												   @Nullable TransactionLevel level, @NotNull String protocolClassName,
-												   @NotNull Binary protocolRawArgument) {
+	public ProtocolProcedure newProcedure(FuncLong action, @Nullable String actionName,
+												   @Nullable TransactionLevel level, String protocolClassName,
+												   Binary protocolRawArgument) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
 				+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
@@ -522,7 +525,7 @@ public final class Application extends ReentrantLock {
 		return new ProtocolProcedure(this, action, actionName, level, protocolClassName, protocolRawArgument);
 	}
 
-	public static void deleteDirectory(@NotNull File directoryToBeDeleted) throws IOException, InterruptedException {
+	public static void deleteDirectory(File directoryToBeDeleted) throws IOException, InterruptedException {
 		var allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {
 			for (File file : allContents)
@@ -541,7 +544,7 @@ public final class Application extends ReentrantLock {
 	}
 
 	// 先把要删的目录改名再删除,会更安全一些,降低并发访问目录中文件的可能性
-	public static void renameAndDeleteDirectory(@NotNull File directoryToBeDeleted)
+	public static void renameAndDeleteDirectory(File directoryToBeDeleted)
 		throws IOException, InterruptedException {
 		if (directoryToBeDeleted.isDirectory()) {
 			var path = directoryToBeDeleted.getAbsolutePath();
@@ -565,14 +568,14 @@ public final class Application extends ReentrantLock {
 	// 数据库Meta兼容检查，初始化。
 	// 包内可见：同包回归测试直接驱动检查/发布分界（元数据不得先于物理DDL发布）。
 	void schemasCompatible() throws Exception {
-		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+		var defaultDb = getDatabase(Objects.requireNonNull(conf.getDefaultTableConf()).getDatabaseName());
 		if (schemas != null) {
 			schemas.compile();
 			schemas.setAppVersion(conf.getAppVersion());
 			var keyOfSchemas = ByteBuffer.Allocate(32);
 			var serverId = conf.getServerId();
 			keyOfSchemas.WriteString("zeze.Schemas.V4." + serverId);
-			var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
+			var dataVersion = Objects.requireNonNull(defaultDb.getDirectOperates()).getDataWithVersion(keyOfSchemas);
 			if (dataVersion != null && dataVersion.data != null) {
 				schemasPrevious = new Schemas();
 				try {
@@ -607,12 +610,12 @@ public final class Application extends ReentrantLock {
 			return;
 		if (schemasPrevious != null && schemas.getAppVersion() < schemasPrevious.getAppVersion())
 			return; // OldAppVersion Skip：不发布（与schemasCompatible判定一致）。
-		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+		var defaultDb = getDatabase(Objects.requireNonNull(conf.getDefaultTableConf()).getDatabaseName());
 		var keyOfSchemas = ByteBuffer.Allocate(32);
 		var serverId = conf.getServerId();
 		keyOfSchemas.WriteString("zeze.Schemas.V4." + serverId);
 		while (true) {
-			var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
+			var dataVersion = Objects.requireNonNull(defaultDb.getDirectOperates()).getDataWithVersion(keyOfSchemas);
 			long version = 0;
 			if (dataVersion != null && dataVersion.data != null) {
 				schemasPrevious = new Schemas();
@@ -633,16 +636,16 @@ public final class Application extends ReentrantLock {
 			}
 			var newData = ByteBuffer.Allocate(1024);
 			schemas.encode(newData);
-			var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
+			var versionRc = Objects.requireNonNull(defaultDb.getDirectOperates()).saveDataWithSameVersion(keyOfSchemas, newData, version);
 			if (versionRc == null || versionRc.getValue())
 				break;
 		}
 	}
 
 	private void atomicOpenDatabase() throws Exception {
-		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+		var defaultDb = getDatabase(Objects.requireNonNull(conf.getDefaultTableConf()).getDatabaseName());
 		while (true) {
-			if (!defaultDb.getDirectOperates().tryLock()) {
+			if (!Objects.requireNonNull(defaultDb.getDirectOperates()).tryLock()) {
 				logger.info("lock default database fail. sleep and try again...");
 				// alter 可能很慢，这里多睡一下也行，但是为了兼容不是关系表，选一个合适的值吧。
 				//noinspection BusyWait
@@ -684,7 +687,7 @@ public final class Application extends ReentrantLock {
 				// 升级被静默跳过；发布前的崩溃重启由tryAlter的物理列幂等过滤重放兜底。
 				publishSchemas();
 			} finally {
-				defaultDb.getDirectOperates().unlock();
+				Objects.requireNonNull(defaultDb.getDirectOperates()).unlock();
 			}
 			break; // done
 		}
@@ -751,7 +754,7 @@ public final class Application extends ReentrantLock {
 
 				// Set Database InUse
 				for (var db : databases.values())
-					db.getDirectOperates().setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
+					Objects.requireNonNull(db.getDirectOperates()).setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
 				addShutdownHook();
 
 				// Open RocksCache
@@ -809,7 +812,7 @@ public final class Application extends ReentrantLock {
 				deadlockBreaker = new DeadlockBreaker(this);
 				// Checkpoint
 				checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
-				checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+				Objects.requireNonNull(checkpoint).start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
 				// start last
 				if (achillesHeelDaemon != null)
@@ -818,13 +821,13 @@ public final class Application extends ReentrantLock {
 				// 接管租约：Application.start()返回前claim完成（需Checkpoint已建立），
 				// 此后Timer.start/startLast、CsQueue构造全走addScope晚注册stamp。
 				if (takeover != null) {
-					takeover.start();
+					Objects.requireNonNull(takeover).start();
 					// SM Suspect提示→tryTransfer（非raft与raft版SM都会在会话断开时广播Suspect）。
 					if (serviceManager != null)
-						serviceManager.setOnSuspect(deadServerId -> takeover.tryTransfer(deadServerId));
+						serviceManager.setOnSuspect(deadServerId -> Objects.requireNonNull(takeover).tryTransfer(deadServerId));
 				}
 
-				delayRemove.start();
+				Objects.requireNonNull(delayRemove).start();
 				if (timer != null)
 					timer.loadCustomClassAnd();
 				if (deadlockBreaker != null)
@@ -885,7 +888,7 @@ public final class Application extends ReentrantLock {
 			logger.info("Stop ServerId={}", conf.getServerId());
 
 			if (takeover != null) // 早期释放：正常关闭刷新租约宽限期，一个TTL后可被接管（缩容；数据库尚未关闭）。
-				stopStep("takeover.release", takeover::release);
+				stopStep("takeover.release", Objects.requireNonNull(takeover)::release);
 
 			if (achillesHeelDaemon != null) {
 				stopStep("achillesHeelDaemon.stopAndJoin", achillesHeelDaemon::stopAndJoin);
@@ -924,7 +927,7 @@ public final class Application extends ReentrantLock {
 			if (checkpoint != null) {
 				// 先撤销入口；stopAndJoin关闭提交使用权并等待已取得使用权的提交完成登记/落库，
 				// 此后终检点才运行，不会漏掉仍持有旧checkpoint引用的迟到登记。
-				var cp = checkpoint;
+				var cp = Objects.requireNonNull(checkpoint);
 				checkpoint = null;
 				stopStep("checkpoint.stopAndJoin", () -> {
 					try {
@@ -999,7 +1002,7 @@ public final class Application extends ReentrantLock {
 				transactionIdAutoKey = null;
 			}
 			if (takeover != null) {
-				var tk = takeover;
+				var tk = Objects.requireNonNull(takeover);
 				stopStep("takeover.UnRegisterZezeTables", () -> tk.UnRegisterZezeTables(this));
 				takeover = null;
 			}
@@ -1024,7 +1027,7 @@ public final class Application extends ReentrantLock {
 	// stopAndJoin的join中断forceThrow等）只记日志继续，不得跳过其后步骤
 	// （db.close/clearInUse/各UnRegister），保证终态必达eStopped
 	// （对齐GlobalAgent.stop的per-agent兜底）。
-	private static void stopStep(@NotNull String name, @NotNull Action0 action) {
+	private static void stopStep(String name, Action0 action) {
 		try {
 			action.run();
 		} catch (InterruptedException e) {
@@ -1050,7 +1053,7 @@ public final class Application extends ReentrantLock {
 	 * checkpointRun/LogManager失败不得吞掉halt本身。fatal自身再包独立try，
 	 * 日志系统异常也不得拦下终态。
 	 */
-	public static void haltAfterCheckpoint(@NotNull Application zeze, int exitCode) {
+	public static void haltAfterCheckpoint(Application zeze, int exitCode) {
 		haltWithDeadline(HALT_DEADLINE_MS, () -> {
 			try {
 				zeze.checkpointRun();
@@ -1077,7 +1080,7 @@ public final class Application extends ReentrantLock {
 
 	/** 独立watchdog保证截止必达：主线程尽力保存后执行终止动作，超时由watchdog执行。
 	 * 终止动作最多执行一次（CAS仲裁；真实halt下进程随第一次执行退出，第二次本不可达）。 */
-	static void haltWithDeadline(long deadlineMs, @NotNull Action0 bestEffort, @NotNull Runnable halt) {
+	static void haltWithDeadline(long deadlineMs, Action0 bestEffort, Runnable halt) {
 		var halted = new java.util.concurrent.atomic.AtomicBoolean();
 		Runnable haltOnce = () -> {
 			if (halted.compareAndSet(false, true))
@@ -1085,7 +1088,6 @@ public final class Application extends ReentrantLock {
 		};
 		var watchdog = Thread.ofPlatform().daemon(true).name("HaltDeadlineWatchdog").unstarted(() -> {
 			try {
-				//noinspection BusyWait
 				Thread.sleep(deadlineMs);
 			} catch (InterruptedException ignored) {
 				return; // 主路径已先完成终止动作
@@ -1116,7 +1118,7 @@ public final class Application extends ReentrantLock {
 			// 迟到赋值会留下已完成的哨兵future，后续调用被永久阻断。
 			// 字段只由持锁者（本方法/stop）读写，任务不触碰。
 			if (startState == StartState.eStarted && (f == null || f.isDone()))
-				checkpointFuture = TaskSpec.ofAction(checkpoint::runOnce)
+				checkpointFuture = TaskSpec.ofAction(Objects.requireNonNull(checkpoint)::runOnce)
 					.name("CheckpointRunThread").submitNow();
 		} finally {
 			unlock();
@@ -1126,21 +1128,21 @@ public final class Application extends ReentrantLock {
 	/** @deprecated 请直接使用 {@link Task#getOneByOne()}。 */
 	@Deprecated
 	@SuppressWarnings("MethodMayBeStatic")
-	public @NotNull TaskOneByOneByKey getTaskOneByOneByKey() {
+	public TaskOneByOneByKey getTaskOneByOneByKey() {
 		return Task.getOneByOne();
 	}
 
-	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
+	public void runTaskOneByOneByKey(Object oneByOneKey, @Nullable String actionName, FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
 			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 
-	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
+	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
 			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 
-	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
+	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
 			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}

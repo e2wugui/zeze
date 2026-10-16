@@ -1,19 +1,20 @@
 package Zeze.Services.ServiceManager;
 
+import org.jspecify.annotations.Nullable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 /** AllocateId请求bean：全局名与申请数量。 */
 public final class BAllocateIdArgument implements Serializable {
-	private String name;
+	private @Nullable String name;
 	private int count;
 
-	public String getName() {
+	public @Nullable String getName() {
 		return name;
 	}
 
-	public void setName(String value) {
+	public void setName(@Nullable String value) {
 		name = value;
 	}
 

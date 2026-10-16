@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 键值语义去重的锁注册表：
@@ -15,14 +14,14 @@ public class Locks<T extends Lockey<T>> {
 	private static final int MAX_SEGMENTS = 1 << 16; // slightly conservative
 	private final int segmentShift;
 	private final int segmentMask;
-	private final @NotNull Segment<T> @NotNull [] segments;
+	private final Segment<T> [] segments;
 
 	/* ---------------- hash算法和映射规则都是来自 ConcurrentHashMap. -------------- */
 
 	/**
 	 * Returns the segment that should be used for key with given hash.
 	 */
-	private @NotNull Segment<T> segmentFor(T lockey) {
+	private Segment<T> segmentFor(T lockey) {
 		/*
 		 * Applies a supplemental hash function to a given hashCode, which defends
 		 * against poor quality hash functions. This is critical because
@@ -73,7 +72,7 @@ public class Locks<T extends Lockey<T>> {
 	private static final class Segment<T extends Lockey<T>> extends FastLock {
 		private final WeakHashSet<T> locks = new WeakHashSet<>();
 
-		public boolean contains(@NotNull T key) {
+		public boolean contains(T key) {
 			lock();
 			try {
 				// 需要lock，get不是线程安全的
@@ -83,7 +82,7 @@ public class Locks<T extends Lockey<T>> {
 			}
 		}
 
-		public @NotNull T get(@NotNull T key) {
+		public T get(T key) {
 			lock();
 			try {
 				var exist = locks.get(key);
@@ -97,11 +96,11 @@ public class Locks<T extends Lockey<T>> {
 		}
 	}
 
-	public boolean contains(@NotNull T lockey) {
+	public boolean contains(T lockey) {
 		return segmentFor(lockey).contains(lockey);
 	}
 
-	public @NotNull T get(@NotNull T lockey) {
+	public T get(T lockey) {
 		return segmentFor(lockey).get(lockey);
 	}
 }

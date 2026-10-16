@@ -3,8 +3,7 @@ package Zeze.Util;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Transaction.Procedure;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 任务载荷的统一抽象，{@link TaskSpec} 各工厂（Action0/FuncLong/Procedure/Func0 及协议版变体）的密封实现。
@@ -20,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * @param <R> 结果类型：OfAction/OfFunc/OfProcedure 归一为 Long；OfFunc0 携带真实返回值类型
  */
-public sealed interface TaskBody<R> {
+public sealed interface TaskBody<R extends @Nullable Object> {
 	/**
 	 * 带策略调用，供 Task 的 call/submit/execute/schedule 家族使用：
 	 * OfAction 吞异常记日志返回 0；OfFunc/OfProcedure 翻错误码并走 logAndStatistics；
@@ -45,7 +44,7 @@ public sealed interface TaskBody<R> {
 	 * 异常日志与任务名解析：OfProcedure 固定 getActionName()（name 参数无效）；
 	 * 其余 name 优先，空则载荷类名。
 	 */
-	@NotNull String logName(@Nullable String name);
+	String logName(@Nullable String name);
 
 	/**
 	 * ZezeCounter 计数 key（name 优先，空则载荷 Class）；
@@ -65,7 +64,7 @@ public sealed interface TaskBody<R> {
 	/**
 	 * Action0 载荷：吞异常记日志，结果归一为 Long(0)。
 	 */
-	record OfAction(@NotNull Action0 action) implements TaskBody<Long> {
+	record OfAction(Action0 action) implements TaskBody<Long> {
 		@Override
 		public Long call(@Nullable String name) {
 			try {
@@ -83,12 +82,12 @@ public sealed interface TaskBody<R> {
 		}
 
 		@Override
-		public @NotNull String logName(@Nullable String name) {
+		public String logName(@Nullable String name) {
 			return name != null ? name : action.getClass().getName();
 		}
 
 		@Override
-		public @NotNull Object statsKey(@Nullable String name) {
+		public Object statsKey(@Nullable String name) {
 			return name != null ? name : action.getClass();
 		}
 	}
@@ -96,7 +95,7 @@ public sealed interface TaskBody<R> {
 	/**
 	 * FuncLong 载荷：异常翻错误码并走 logAndStatistics（日志与统计在 callFuncCore 内完成）。
 	 */
-	record OfFunc(@NotNull FuncLong func) implements TaskBody<Long> {
+	record OfFunc(FuncLong func) implements TaskBody<Long> {
 		@Override
 		public Long call(@Nullable String name) {
 			try {
@@ -118,7 +117,7 @@ public sealed interface TaskBody<R> {
 		}
 
 		@Override
-		public @NotNull String logName(@Nullable String name) {
+		public String logName(@Nullable String name) {
 			return name != null ? name : func.getClass().getName();
 		}
 
@@ -133,7 +132,7 @@ public sealed interface TaskBody<R> {
 	 * 结果非 0 且是请求时的错误回发、协议版日志与统计，全部在 callFuncCore 内完成。
 	 * Error（callFuncCore 只捕获 Exception）原样传播：submit 家族经 Future 异常完成，不被吞成错误码。
 	 */
-	record OfProtocolFunc(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	record OfProtocolFunc(FuncLong func, @Nullable Protocol<?> p,
 						  @Nullable ProtocolErrorHandle onError) implements TaskBody<Long> {
 		@Override
 		public Long call(@Nullable String name) {
@@ -151,7 +150,7 @@ public sealed interface TaskBody<R> {
 		}
 
 		@Override
-		public @NotNull String logName(@Nullable String name) {
+		public String logName(@Nullable String name) {
 			return name != null ? name : p != null ? p.getClass().getName() : func.getClass().getName();
 		}
 
@@ -164,7 +163,7 @@ public sealed interface TaskBody<R> {
 	/**
 	 * Procedure 载荷：同 OfFunc，日志名固定使用 getActionName()（name 参数无效）。
 	 */
-	record OfProcedure(@NotNull Procedure procedure) implements TaskBody<Long> {
+	record OfProcedure(Procedure procedure) implements TaskBody<Long> {
 		@Override
 		public Long call(@Nullable String name) {
 			try {
@@ -186,7 +185,7 @@ public sealed interface TaskBody<R> {
 		}
 
 		@Override
-		public @NotNull String logName(@Nullable String name) {
+		public String logName(@Nullable String name) {
 			return procedure.getActionName();
 		}
 
@@ -205,7 +204,7 @@ public sealed interface TaskBody<R> {
 	 * Procedure + 触发协议载荷（TaskSpec.ofProcedure(procedure, from[, onError])）：同 OfProcedure，
 	 * 但携带 from 用于日志、统计与错误回发；Error 原样传播（见 {@link OfProtocolFunc}）。
 	 */
-	record OfProtocolProcedure(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	record OfProtocolProcedure(Procedure procedure, @Nullable Protocol<?> from,
 							   @Nullable ProtocolErrorHandle onError) implements TaskBody<Long> {
 		@Override
 		public Long call(@Nullable String name) {
@@ -223,7 +222,7 @@ public sealed interface TaskBody<R> {
 		}
 
 		@Override
-		public @NotNull String logName(@Nullable String name) {
+		public String logName(@Nullable String name) {
 			return procedure.getActionName();
 		}
 
@@ -242,7 +241,7 @@ public sealed interface TaskBody<R> {
 	 * Procedure + 过程内解码协议载荷（TaskSpec.ofProcedureOut）：协议由过程内部 decode 并经 outProtocol
 	 * 带出（支持 redo 时重新解码），错误回发与日志按带出后的协议判断（value 未设置时视 from 为 null）。
 	 */
-	record OfProcedureOut(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	record OfProcedureOut(Procedure procedure, OutObject<Protocol<?>> outProtocol,
 						  @Nullable ProtocolErrorHandle onError) implements TaskBody<Long> {
 		@Override
 		public Long call(@Nullable String name) {
@@ -260,7 +259,7 @@ public sealed interface TaskBody<R> {
 		}
 
 		@Override
-		public @NotNull String logName(@Nullable String name) {
+		public String logName(@Nullable String name) {
 			return procedure.getActionName();
 		}
 
@@ -278,7 +277,7 @@ public sealed interface TaskBody<R> {
 	/**
 	 * Func0 载荷：返回值与异常都原样传播（异常 sneaky throw，由外层 core 记日志并决定是否经 Future 传播）。
 	 */
-	record OfFunc0<R>(@NotNull Func0<R> func) implements TaskBody<R> {
+	record OfFunc0<R extends @Nullable Object>(Func0<R> func) implements TaskBody<R> {
 		@Override
 		public R call(@Nullable String name) {
 			try {
@@ -294,12 +293,12 @@ public sealed interface TaskBody<R> {
 		}
 
 		@Override
-		public @NotNull String logName(@Nullable String name) {
+		public String logName(@Nullable String name) {
 			return name != null ? name : func.getClass().getName();
 		}
 
 		@Override
-		public @NotNull Object statsKey(@Nullable String name) {
+		public Object statsKey(@Nullable String name) {
 			return name != null ? name : func.getClass();
 		}
 	}

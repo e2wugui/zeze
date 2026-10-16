@@ -1,5 +1,7 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Objects;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -8,23 +10,22 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.LogDynamic;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Bean 自身的日志：聚合各成员变量的子日志，按 variableId 索引，随事务收集向上传递。 */
 public class LogBean extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
 
-	private final Bean self;
+	private final @Nullable Bean self;
 	private @Nullable IntHashMap<Log> variables;
 
-	public LogBean(Bean belong, int varId, Bean self) {
+	public LogBean(@Nullable Bean belong, int varId, @Nullable Bean self) {
 		super(belong, varId);
 		this.self = self;
 	}
 
 	@Override
-	public @NotNull Category category() {
+	public Category category() {
 		return Category.eHistory;
 	}
 
@@ -37,14 +38,14 @@ public class LogBean extends Log {
 		return variables;
 	}
 
-	public final @NotNull IntHashMap<Log> getVariablesOrNew() {
+	public final IntHashMap<Log> getVariablesOrNew() {
 		var variables = this.variables;
 		if (variables == null)
 			this.variables = variables = new IntHashMap<>();
 		return variables;
 	}
 
-	public final Bean getThis() {
+	public final @Nullable Bean getThis() {
 		return self;
 	}
 
@@ -55,23 +56,23 @@ public class LogBean extends Log {
 
 	// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
 	@Override
-	public @NotNull Log beginSavepoint() {
+	public Log beginSavepoint() {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void endSavepoint(@NotNull Savepoint currentSp) {
+	public void endSavepoint(Savepoint currentSp) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var vars = variables;
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				Log log = it.value();
-				bb.WriteInt4(log.getTypeId());
+				bb.WriteInt4(Objects.requireNonNull(log).getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);
 			}
@@ -80,7 +81,7 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		int n = bb.ReadUInt();
 		if (n > 0) {
 			var variables = getVariablesOrNew();
@@ -98,19 +99,19 @@ public class LogBean extends Log {
 
 	// 仅发生在事务执行期间。decode-Apply不会执行到这里。
 	@Override
-	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		if (getVariablesOrNew().putIfAbsent(vlog.getVariableId(), vlog) == null)
 			changes.collect(recent, this); // 向上传递
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildSortedString(sb, variables);
 		return sb.toString();
 	}
 
-	public static void encodeLogBean(@NotNull ByteBuffer bb, @NotNull LogBean logBean) {
+	public static void encodeLogBean(ByteBuffer bb, LogBean logBean) {
 		// 使用byte，未来可能扩展其他LogBean子类。
 		if (logBean instanceof LogDynamic)
 			bb.WriteByte(1);
@@ -119,7 +120,7 @@ public class LogBean extends Log {
 		logBean.encode(bb);
 	}
 
-	public static @NotNull LogBean decodeLogBean(@NotNull IByteBuffer bb) {
+	public static LogBean decodeLogBean(IByteBuffer bb) {
 		int type = bb.ReadByte();
 		LogBean logBean = switch (type) {
 			case 0 -> new LogBean(null, 0, null);

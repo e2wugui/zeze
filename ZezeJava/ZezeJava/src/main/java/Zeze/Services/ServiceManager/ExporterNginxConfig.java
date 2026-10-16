@@ -6,14 +6,14 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
-import org.jetbrains.annotations.NotNull;
 import Zeze.Util.AtomicFileWriter;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Nginx配置文件导出器：把SM服务地址写入nginx upstream块，未命中块时追加，可执行reload命令。
  */
 public class ExporterNginxConfig implements IExporter {
-	private static final @NotNull org.apache.logging.log4j.Logger logger =
+	private static final org.apache.logging.log4j.Logger logger =
 			org.apache.logging.log4j.LogManager.getLogger(ExporterNginxConfig.class);
 
 	@Override
@@ -103,7 +103,7 @@ public class ExporterNginxConfig implements IExporter {
 	}
 
 	/** 仅词法扫描：引号、转义和注释中的大括号不参与块边界。 */
-	private static Token nextToken(String text, int offset) throws IOException {
+	private static @Nullable Token nextToken(String text, int offset) throws IOException {
 		int length = text.length();
 		while (offset < length) {
 			char ch = text.charAt(offset);
@@ -182,7 +182,7 @@ public class ExporterNginxConfig implements IExporter {
 
 	private final String file;
 	private final long version;
-	private final String reload;
+	private final @Nullable String reload;
 
 	private void reload() throws IOException {
 		if (null == reload || reload.isBlank())
@@ -218,7 +218,7 @@ public class ExporterNginxConfig implements IExporter {
 	 * 构造Nginx配置文件输出器。
 	 * 当SM信息发生变化，会把服务列表输出到配置文件。
 	 */
-	public ExporterNginxConfig(@NotNull ExporterConfig config) {
+	public ExporterNginxConfig(ExporterConfig config) {
 		this.file = config.getFile();
 		this.version = config.getVersion();
 		this.reload = config.getReload();

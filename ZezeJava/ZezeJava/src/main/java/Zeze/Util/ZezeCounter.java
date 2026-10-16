@@ -5,20 +5,19 @@ import java.util.Map;
 import Zeze.Net.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 统计接口：protocol/procedure/table/task 等维度的计数与耗时观察者，instance 按系统属性选择实现
 public interface ZezeCounter {
-	@NotNull Logger logger = LogManager.getLogger("StatLog");
+	Logger logger = LogManager.getLogger("StatLog");
 
 	/** 禁用统计（-DZezeCounter为空或"null"）时落入的空实现，所有方法无操作。 */
-	@NotNull ZezeCounter instance = createInstance();
+	ZezeCounter instance = createInstance();
 
 	/** 真实实现存在（instance不是NoopCounter）时为true，用于省略热路径上的nanoTime等采样开销。 */
 	boolean ENABLE = !(instance instanceof NoopCounter);
 
-	private static @NotNull ZezeCounter createInstance() {
+	private static ZezeCounter createInstance() {
 		var className = System.getProperty("ZezeCounter", "Zeze.Util.PerfCounter");
 		if (className.isBlank() || className.equalsIgnoreCase("null"))
 			return NoopCounter.instance;
@@ -46,11 +45,11 @@ public interface ZezeCounter {
 	}
 
 	interface LabeledCounterCreator {
-		@NotNull LongCounter labelValues(@NotNull String... labels);
+		LongCounter labelValues(String... labels);
 	}
 
 	interface LabeledObserverCreator {
-		@NotNull LongObserver labelValues(@NotNull String... labels);
+		LongObserver labelValues(String... labels);
 	}
 
 	/** 表级度量。key为快照与Prometheus label使用的驼峰名。 */
@@ -87,32 +86,32 @@ public interface ZezeCounter {
 	 * 注意: name重复时的行为由实现决定——Prometheus实现重名register抛IllegalArgumentException，
 	 * 其余实现（Noop/Perf）总是分配新的,通常用于初始化全局的累加器,数量不应过多
 	 */
-	@NotNull LongCounter allocCounter(@NotNull String name);
+	LongCounter allocCounter(String name);
 
 	/**
 	 * @return 有标签的Counter指标
 	 */
-	@NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames);
+	LabeledCounterCreator allocLabeledCounterCreator(String name, String... labelNames);
 
 	/**
 	 * @return 有标签的数据分布指标
 	 */
-	@NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name, @NotNull String... labelNames);
+	LabeledObserverCreator allocRunTimeObserverCreator(String name, String... labelNames);
 
 	/**
 	 * 通过指定的key获取其绑定的累加器. 通过equals方法判断绑定的key
 	 */
-	@NotNull LongObserver getRunTimeObserver(@NotNull Object key);
+	LongObserver getRunTimeObserver(Object key);
 
 	/**
 	 * 服务开启
 	 */
-	void serviceStart(@NotNull Service service);
+	void serviceStart(Service service);
 
 	/**
 	 * 服务停止
 	 */
-	void serviceStop(@NotNull Service service);
+	void serviceStop(Service service);
 
 	/**
 	 * 事务（存储过程）度量handle：通过 {@link #allocProcedureCounter(String)} 按name解析一次，
@@ -138,12 +137,12 @@ public interface ZezeCounter {
 	/**
 	 * 通过name分配事务度量handle。同name多次分配安全（各实现内部按name聚合统计）。
 	 */
-	@NotNull ProcedureCounter allocProcedureCounter(@NotNull String name);
+	ProcedureCounter allocProcedureCounter(String name);
 
 	/**
 	 * 通过表ID与度量获取其绑定的表统计器
 	 */
-	@NotNull LongCounter tableCounter(long tableId, @NotNull TableMetric metric);
+	LongCounter tableCounter(long tableId, TableMetric metric);
 
 	/**
 	 * 统计快照（不可变值对象）。不支持周期快照的实现返回空快照。
@@ -155,13 +154,13 @@ public interface ZezeCounter {
 	 * @param tableResults     tableName -&gt; 度量名 -&gt; 最近周期计数
 	 * @param formattedLog     最近一次格式化日志
 	 */
-	record Snapshot(@NotNull Map<String, @NotNull Map<Long, Long>> procedureResults,
-					@NotNull Map<String, @NotNull Map<String, Long>> tableResults,
-					@NotNull String formattedLog) {
+	record Snapshot(Map<String, Map<Long, Long>> procedureResults,
+					Map<String, Map<String, Long>> tableResults,
+					String formattedLog) {
 		// 接口内record的规范构造器隐式public，紧凑形态访问级冲突，显式声明
-		public Snapshot(@NotNull Map<String, @NotNull Map<Long, Long>> procedureResults,
-						@NotNull Map<String, @NotNull Map<String, Long>> tableResults,
-						@NotNull String formattedLog) {
+		public Snapshot(Map<String, Map<Long, Long>> procedureResults,
+						Map<String, Map<String, Long>> tableResults,
+						String formattedLog) {
 			this.procedureResults = procedureResults.entrySet().stream().collect(
 					java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> Map.copyOf(e.getValue())));
 			this.tableResults = tableResults.entrySet().stream().collect(
@@ -169,20 +168,20 @@ public interface ZezeCounter {
 			this.formattedLog = formattedLog;
 		}
 
-		public static final @NotNull Snapshot EMPTY = new Snapshot(Map.of(), Map.of(), "");
+		public static final Snapshot EMPTY = new Snapshot(Map.of(), Map.of(), "");
 	}
 
 	/**
 	 * 收集并重置统计，返回快照。仅PerfCounter等日志型实现支持；拉模型实现（Prometheus）返回空快照。
 	 */
-	default @NotNull Snapshot collectAndReset() {
+	default Snapshot collectAndReset() {
 		return Snapshot.EMPTY;
 	}
 
 	/**
 	 * 最近一次发布的快照（不收集不重置）；从未收集过返回空快照。
 	 */
-	default @NotNull Snapshot getLast() {
+	default Snapshot getLast() {
 		return Snapshot.EMPTY;
 	}
 

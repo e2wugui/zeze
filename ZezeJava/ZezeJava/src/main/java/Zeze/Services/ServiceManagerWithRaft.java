@@ -1,12 +1,12 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Future;
-
 import Zeze.Builtin.ServiceManagerWithRaft.*;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
@@ -35,8 +35,7 @@ import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 基于Raft共识的服务管理器：多节点部署下提供与ServiceManagerServer一致的服务注册/
@@ -46,26 +45,26 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	static {
 	}
 
-	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
-	private final @NotNull Rocks rocks;
+	private static final Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
+	private final Rocks rocks;
 	// 会话清理对账周期守护：body进worker池不占调度线程，close时有界等待在飞一轮。
 	private final DaemonTimer reconcileDaemon = new DaemonTimer("ServiceManagerWithRaft.reconcileSessions", 60_000, this::reconcileSessions);
 	// close标记：置位后，SM锁串行的raft侧任务体（dispatchRaftRequest/RpcResponse、closeSession、
 	// reconcileSessions）在锁内首查即退出，不再触碰rocks。与close()的锁屏障配合，见close()。
 	private volatile boolean closed;
-	private final @NotNull Table<String, BAutoKey> tableAutoKey;
-	private final @NotNull Table<String, BSession> tableSession;
-	private final @NotNull Table<String, BLoadObservers> tableLoadObservers;
-	private final @NotNull Table<String, BServerState> tableServerState;
+	private final Table<String, BAutoKey> tableAutoKey;
+	private final Table<String, BSession> tableSession;
+	private final Table<String, BLoadObservers> tableLoadObservers;
+	private final Table<String, BServerState> tableServerState;
 
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final ServiceManagerServer.Conf conf = new ServiceManagerServer.Conf();
 
-	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf) throws Exception {
+	public ServiceManagerWithRaft(String raftName, @Nullable RaftConfig raftConf) throws Exception {
 		this(raftName, raftConf, Config.load(), false);
 	}
 
-	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
+	public ServiceManagerWithRaft(String raftName, @Nullable RaftConfig raftConf, @Nullable Config config,
 								  boolean RocksDbWriteOptionSync) throws Exception {
 		ZezeCounter.tryInit();
 		ServiceManagerServer.applyLogLevelProperty(); // 显式启动动作（仅显式指定logLevel属性才动配置）
@@ -78,13 +77,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			SMServer::new, new TaskOneByOneByKey());
 
 		RegisterRocksTables(rocks);
-		RegisterProtocols(rocks.getRaft().getServer());
-		rocks.getRaft().getServer().start();
+		RegisterProtocols(Objects.requireNonNull(rocks.getRaft()).getServer());
+		Objects.requireNonNull(rocks.getRaft()).getServer().start();
 
-		tableAutoKey = rocks.<String, BAutoKey>getTableTemplate("tAutoKey").openTable();
-		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
-		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
-		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
+		tableAutoKey = Objects.requireNonNull(rocks.<String, BAutoKey>getTableTemplate("tAutoKey")).openTable();
+		tableSession = Objects.requireNonNull(rocks.<String, BSession>getTableTemplate("tSession")).openTable();
+		tableLoadObservers = Objects.requireNonNull(rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers")).openTable();
+		tableServerState = Objects.requireNonNull(rocks.<String, BServerState>getTableTemplate("tServerState")).openTable();
 
 		// 会话清理对账：60s粒度足够，快速路径由closeSession的退避重试承担。
 		reconcileDaemon.start();
@@ -95,7 +94,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 关停清理：取消全部Takeover梯队升档定时器（900s级长定时器挂着会拖死JVM收尾）。
 		for (var tier : suspectTiers.values())
 			if (tier.timer != null)
-				tier.timer.cancel(false);
+				Objects.requireNonNull(tier.timer).cancel(false);
 		suspectTiers.clear();
 		reconcileDaemon.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s）；超预算逃逸轮由closed+锁屏障挡
 		closed = true;
@@ -124,7 +123,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			// 轮次见closed即退出——isWorkingLeader在锁外先摸rocks会撞"过墓碑后关库"的竞态窗口。
 			if (closed)
 				return;
-			if (!raft.isWorkingLeader())
+			if (!Objects.requireNonNull(raft).isWorkingLeader())
 				return;
 			var server = raft.getServer();
 			record DeadSession(String name, long sessionId) {
@@ -244,12 +243,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 						if (closed)
 							return Zeze.Transaction.Procedure.RaftRetry;
 						if (logger.isDebugEnabled()) {
-							var netSession = (Session)p.getSender().getUserState();
+							var netSession = (Session)Objects.requireNonNull(p.getSender()).getUserState();
 							var ssName = null != netSession ? netSession.name : "";
 							logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
 						}
 						var procedure = new Procedure(rocks, func);
-						return TaskSpec.ofFunc(procedure::call, p, Protocol::SendResultCode).call();
+						return TaskSpec.ofFunc(procedure::call, p,
+								(protocol, code) -> Objects.requireNonNull(protocol).SendResultCode(code)).call();
 					} finally {
 						unlock();
 					}
@@ -258,7 +258,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			var netSession = (Session)so.getUserState();
 			if (null != netSession)
 				closeSession(netSession, 0);
@@ -318,7 +318,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	public class Session {
 		private final String name;
 		private final long sessionId;
-		private final Future<?> keepAliveTimerTask;
+		private final @Nullable Future<?> keepAliveTimerTask;
 		// Identify上报的serverId；-1=未上报。断线时据此广播Suspect。
 		// 仅内存：换leader后agent重新Login+Identify（raftOnSetLeader），无需raft持久化。
 		private volatile int identifyServerId = -1;
@@ -330,7 +330,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 			if (conf.keepAlivePeriod > 0) {
 				keepAliveTimerTask = TaskSpec.ofAction(() -> {
-					var s = rocks.getRaft().getServer().GetSocket(sessionId);
+					var s = Objects.requireNonNull(rocks.getRaft()).getServer().GetSocket(sessionId);
 					// socket已不存在（会话断开，GetSocket返回null）：正常断开态而非错误，
 					// 无从发送也无需关闭，会话清理由OnSocketClose负责；null穿透到Send失败
 					// 分支的sock.close直接NPE，被外层catch吞成周期性error日志。
@@ -393,7 +393,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 重复Login（raftOnSetLeader超时递归重发等）在同一socket上覆盖userState前，先取消旧Session
 		// 的keepAliveTimerTask：OnSocketClose只回调最后userState的onClose，被覆盖的
 		// Session定时器永不取消——socket关闭后GetSocket(sessionId)恒null，周期性error日志，永不停止。
-		var oldSession = r.getSender().getUserState();
+		var oldSession = Objects.requireNonNull(r.getSender()).getUserState();
 		if (oldSession instanceof Session old)
 			old.cancelKeepAlive();
 		r.getSender().setUserState(new Session(r.Argument.getSessionName(), r.getSender().getSessionId()));
@@ -423,8 +423,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 该端口无认证（raft对等端口同时服务应用协议，四种EncryptType均密钥协商），name/count
 		// 均对端可控，无界唯一name直接成为tAutoKey持久键并经共识复制放大到全节点。
 		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX
-			|| name.getBytes(StandardCharsets.UTF_8).length > 128) {
-			warnAllocateIdRejected("invalid count=" + count + " name.chars=" + name.length());
+			|| Objects.requireNonNull(name).getBytes(StandardCharsets.UTF_8).length > 128) {
+			warnAllocateIdRejected("invalid count=" + count + " name.chars=" + Objects.requireNonNull(name).length());
 			return Zeze.Transaction.Procedure.ErrorRequestId;
 		}
 		// 唯一名上限。raft表逐出不可移植：BAutoKey.Current是已交付位置（无独立
@@ -466,7 +466,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	// 请求按包记日志可耗尽日志盘/CPU（日志刷屏DoS），60秒一条。
 	private volatile long lastAllocateIdRejectLogMs;
 
-	private void warnAllocateIdRejected(@NotNull String reason) {
+	private void warnAllocateIdRejected(String reason) {
 		var now = System.currentTimeMillis();
 		var last = lastAllocateIdRejectLogMs;
 		if (now - last < 60_000)
@@ -490,7 +490,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private volatile long lastSvcRejectLogMs;
 
-	private void warnSvcRejected(@NotNull String reason) {
+	private void warnSvcRejected(String reason) {
 		var now = System.currentTimeMillis();
 		var last = lastSvcRejectLogMs;
 		if (now - last < 60_000)
@@ -506,7 +506,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	 * 拷贝（RocksRaft.Table.walk不附着事务），只收集key、修改经remove落库——
 	 * 同cleanupSessionRow的负载观察者清理。
 	 */
-	private boolean checkUniqueServiceName(@NotNull String name) {
+	private boolean checkUniqueServiceName(String name) {
 		var plan = planUniqueServiceNames(Set.of(name), Set.of(), "");
 		if (plan == null)
 			return false;
@@ -515,7 +515,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return true;
 	}
 
-	private ArrayList<String> planUniqueServiceNames(Set<String> requested, Set<BServiceInfoKeyRocks> removes, String sessionName) {
+	private @Nullable ArrayList<String> planUniqueServiceNames(Set<String> requested, Set<BServiceInfoKeyRocks> removes, String sessionName) {
 		int needed = 0;
 		for (var name : requested) {
 			if (tableServerState.get(name) == null)
@@ -559,7 +559,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	// 但不写rocks表，不产生共识复制；换leader后agent重新Login时会重发Identify。
 	@Override
 	protected long ProcessIdentifyRequest(Identify r) {
-		var netSession = (Session)r.getSender().getUserState();
+		var netSession = (Session)Objects.requireNonNull(r.getSender()).getUserState();
 		if (netSession != null) {
 			netSession.identifyServerId = r.Argument.serverId;
 			netSession.identifyVersion = r.Argument.version;
@@ -579,7 +579,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private static final class SuspectTier {
 		final long deadVersion;
 		volatile long tierVersion;
-		volatile @Nullable java.util.concurrent.Future<?> timer;
+		volatile @Nullable Future<?> timer;
 		SuspectTier(long deadVersion, long tierVersion) {
 			this.deadVersion = deadVersion;
 			this.tierVersion = tierVersion;
@@ -594,7 +594,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		suspect.Argument.serverId = deadServerId;
 		suspect.Argument.version = deadVersion;
 		try {
-			rocks.getRaft().getServer().foreach(so -> {
+			Objects.requireNonNull(rocks.getRaft()).getServer().foreach(so -> {
 				if (so.getSessionId() == deadSessionId)
 					return; // 刚断线的会话本身不报信
 				var netSession = (Session)so.getUserState();
@@ -614,7 +614,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var tier = new SuspectTier(deadVersion, deadVersion);
 		var old = suspectTiers.put(deadServerId, tier);
 		if (old != null && old.timer != null)
-			old.timer.cancel(false); // 死者反复闪断：新周期覆盖旧升档链
+			Objects.requireNonNull(old.timer).cancel(false); // 死者反复闪断：新周期覆盖旧升档链
 		broadcastSuspectTier(deadServerId, deadSessionId, deadVersion, deadVersion);
 		scheduleNextTier(deadServerId, deadSessionId, tier);
 	}
@@ -628,7 +628,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			var next = new long[]{Long.MAX_VALUE};
 			final var deadSessionIdRef = deadSessionId;
 			try {
-				rocks.getRaft().getServer().foreach(so -> {
+				Objects.requireNonNull(rocks.getRaft()).getServer().foreach(so -> {
 					if (so.getSessionId() == deadSessionIdRef)
 						return;
 					var netSession = (Session)so.getUserState();
@@ -656,7 +656,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	protected long ProcessTakeoverDoneRequest(TakeoverDone r) {
 		var tier = suspectTiers.remove(r.Argument.deadServerId);
 		if (tier != null && tier.timer != null)
-			tier.timer.cancel(false);
+			Objects.requireNonNull(tier.timer).cancel(false);
 		logger.info("TakeoverDone serverId={} taker={} version={} tier={}",
 				r.Argument.deadServerId, r.Argument.takerServerId, r.Argument.takerVersion,
 				tier == null ? -1 : tier.tierVersion);
@@ -696,7 +696,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		for (var observer : observers) {
 			try {
 				var session = tableSession.get(observer);
-				if (null != session && set.Send(rocks.getRaft().getServer().GetSocket(session.getSessionId())))
+				if (null != session && set.Send(Objects.requireNonNull(rocks.getRaft()).getServer().GetSocket(session.getSessionId())))
 					continue;
 			} catch (Throwable ignored) {
 			}
@@ -727,7 +727,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	// 对齐非raft版ServiceManagerServer.isLegalServiceIdentity：
 	// 非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧BServiceInfos.comparer
 	// 在排序上抛NumberFormatException，打断同批全部合法变更的处理。
-	private static boolean isLegalServiceIdentity(@NotNull String identity) {
+	private static boolean isLegalServiceIdentity(String identity) {
 		if (identity.startsWith("@") || identity.startsWith("#"))
 			return true;
 		try {
@@ -767,18 +767,19 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	 * 时tableSession.get(name)为null，直接解引用NPE（错误码不明确、日志噪声、
 	 * 恶意可稳定触发服务端NPE路径）。统一应答ErrorNotLogin并返回null，调用方立即返回。
 	 */
-	private @Nullable Session requireSession(@NotNull Zeze.Net.Rpc<?, ?> r) {
-		if (!(r.getSender().getUserState() instanceof Session netSession))
+	private @Nullable Session requireSession(Zeze.Net.Rpc<?, ?> r) {
+		if (!(Objects.requireNonNull(r.getSender()).getUserState() instanceof Session netSession))
 			return notLogin(r);
 		return tableSession.get(netSession.name) != null ? netSession : notLogin(r);
 	}
 
-	private @Nullable Session notLogin(@NotNull Zeze.Net.Rpc<?, ?> r) {
+	private @Nullable Session notLogin(Zeze.Net.Rpc<?, ?> r) {
 		r.SendResultCode(ErrorNotLogin);
 		return null;
 	}
 
 	@Override
+	@SuppressWarnings("ConstantConditions") // 保留非空 extraInfo 契约之外的防御判断。
 	protected long ProcessEditRequest(Edit r) {
 		// 服务端注册入口校验identity（对齐非raft版isLegalServiceIdentity）：
 		// 非法identity会令订阅者侧BServiceInfos.comparer的Long.parseLong抛NumberFormatException，
@@ -813,7 +814,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 		var sessionRow = tableSession.get(netSession.name);
 		var finalRegisters = new HashSet<BServiceInfoKeyRocks>();
-		for (var key : sessionRow.getRegisters().keys())
+		for (var key : Objects.requireNonNull(sessionRow).getRegisters().keys())
 			finalRegisters.add(key);
 		var removeKeys = new HashSet<BServiceInfoKeyRocks>();
 		for (var info : r.Argument.getRemove()) {
@@ -840,7 +841,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			if (state != null)
 				removeAndCollectNotifyAllVersions(state, unReg.getServiceIdentity(), netSession.name, notifies);
 			var session = tableSession.get(netSession.name);
-			session.getRegisters().remove(toRocksKey(unReg)); // ignore remove failed
+			Objects.requireNonNull(session).getRegisters().remove(toRocksKey(unReg)); // ignore remove failed
 		}
 
 		for (var name : evictions)
@@ -850,7 +851,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		for (var reg : r.Argument.getAdd()) {
 			var session = tableSession.get(netSession.name);
 			// 允许重复登录，断线重连Agent不好原子实现重发。
-			session.getRegisters().put(toRocksKey(reg), toRocks(reg, netSession.name));
+			Objects.requireNonNull(session).getRegisters().put(toRocksKey(reg), toRocks(reg, netSession.name));
 			var state = tableServerState.getOrAdd(reg.getServiceName());
 			if (!state.getServiceName().equals(reg.getServiceName()))
 				state.setServiceName(reg.getServiceName());
@@ -913,7 +914,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				var session = tableSession.get(sessionName);
 				if (null == session)
 					continue;
-				var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+				var peer = Objects.requireNonNull(rocks.getRaft()).getServer().GetSocket(session.getSessionId());
 				if (null == peer)
 					continue;
 
@@ -938,7 +939,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			return Zeze.Transaction.Procedure.ErrorRequestId;
 		}
 		var finalSubscriptions = new HashSet<String>();
-		for (var name : tableSession.get(netSession.name).getSubscribes().keys())
+		for (var name : Objects.requireNonNull(tableSession.get(netSession.name)).getSubscribes().keys())
 			finalSubscriptions.add(name);
 		var requestedNames = new HashSet<String>();
 		for (var info : r.Argument.subs) {
@@ -960,7 +961,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			tableServerState.remove(name);
 		var session = tableSession.get(netSession.name);
 		for (var info : r.Argument.subs) {
-			session.getSubscribes().put(info.getServiceName(), toRocks(info));
+			Objects.requireNonNull(session).getSubscribes().put(info.getServiceName(), toRocks(info));
 			var state = tableServerState.getOrAdd(info.getServiceName());
 			if (!state.getServiceName().equals(info.getServiceName()))
 				state.setServiceName(info.getServiceName());
@@ -1020,7 +1021,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			return 0; // 未Login已应答ErrorNotLogin
 		var session = tableSession.get(netSession.name);
 		for (var serviceName : r.Argument.serviceNames) {
-			var sub = session.getSubscribes().get(serviceName);
+			var sub = Objects.requireNonNull(session).getSubscribes().get(serviceName);
 			session.getSubscribes().remove(serviceName);
 			if (sub != null) {
 				unSubscribeNow(netSession.name, serviceName);
@@ -1036,7 +1037,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	public BServerState unSubscribeNow(String sessionName, String serviceName) {
+	public @Nullable BServerState unSubscribeNow(String sessionName, String serviceName) {
 		var state = tableServerState.get(serviceName);
 		if (state != null) {
 			var removed = state.getSimple().get(sessionName);
@@ -1052,9 +1053,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		state.getSimple().put(ssName, toRocks(subInfo));
 		r.Result.map.put(state.getServiceName(), new BServiceInfosVersion(subInfo.getVersion(), state));
 
-		var netSession = (Session)r.getSender().getUserState();
+		var netSession = (Session)Objects.requireNonNull(r.getSender()).getUserState();
 		for (var versions : state.getServiceInfosVersion().values())
 			for (var info : versions.getServiceInfos().values())
-				addLoadObserver(info.getPassiveIp(), info.getPassivePort(), netSession.name);
+				addLoadObserver(info.getPassiveIp(), info.getPassivePort(), Objects.requireNonNull(netSession).name);
 	}
 }

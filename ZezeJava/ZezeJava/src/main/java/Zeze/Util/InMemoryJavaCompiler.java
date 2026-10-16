@@ -19,6 +19,7 @@ import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Compile Java sources in-memory (not thread safe for one instance)
@@ -27,7 +28,7 @@ import javax.tools.ToolProvider;
 public class InMemoryJavaCompiler {
 	private final JavaCompiler javac;
 	private DynamicClassLoader classLoader;
-	private Iterable<String> options;
+	private @Nullable Iterable<String> options;
 	private final ArrayList<SourceCode> sourceCodes = new ArrayList<>();
 	private int ignoreWarningLevel = 2; // 0:>=OTHER 1:>=NOTE 2:>=MANDATORY_WARNING 3:>=WARNING 4:>=ERROR
 
@@ -87,7 +88,7 @@ public class InMemoryJavaCompiler {
 	/**
 	 * @return warning/error message or null for compiling success
 	 */
-	public String compileAll() {
+	public @Nullable String compileAll() {
 		if (sourceCodes.isEmpty())
 			return null;
 		DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
@@ -212,7 +213,7 @@ public class InMemoryJavaCompiler {
 			customCompiledCode.put(cc.getName(), cc);
 		}
 
-		byte[] getCode(String name) {
+		byte @Nullable [] getCode(String name) {
 			CompiledCode cc = customCompiledCode.get(name);
 			return cc != null ? cc.getByteCode() : null;
 		}

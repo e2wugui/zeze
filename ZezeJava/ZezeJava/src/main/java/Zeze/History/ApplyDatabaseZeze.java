@@ -1,5 +1,7 @@
 package Zeze.History;
 
+import java.util.Objects;
+
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Net.Binary;
@@ -13,8 +15,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * IApplyDatabase 的 Zeze Database 实现：apply 数据与回放游标持久化到独立的 KV 库。
@@ -36,14 +37,14 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	private final Database.AbstractKVTable cursorStorage;
 	private final ConcurrentHashMap<String, ApplyTableZeze> tables = new ConcurrentHashMap<>();
 	// 当前打开的记录级事务。apply在ApplyHelper锁内单线程驱动，同一时刻至多一个。
-	private IApplyRecordTxn activeRecordTxn;
+	private @Nullable IApplyRecordTxn activeRecordTxn;
 	// 记录级事务的驱动线程（hist-03断言式守卫）：activeRecordTxn活跃期间，其他线程经
 	// IApplyTable的put/remove会被静默路由进该事务的底层dbTxn（commit时随别人一起生效/回滚）。
 	// begin时记录驱动线程，路由处核对当前线程——fail-fast暴露并发误用。非同步字段：
 	// 断言式防御不引入锁，最坏漏检（可见性），不误报。
-	private Thread recordTxnOwner;
+	private @Nullable Thread recordTxnOwner;
 
-	public ApplyDatabaseZeze(@NotNull Application zeze, @NotNull String applyDbName) {
+	public ApplyDatabaseZeze(Application zeze, String applyDbName) {
 		if (applyDbName.isBlank())
 			throw new RuntimeException("apply database must have a name.");
 		dbForApply = zeze.getDatabase(applyDbName);
@@ -73,12 +74,12 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	}
 
 	@Override
-	public @NotNull IApplyTable open(@NotNull String tableName) {
+	public IApplyTable open(String tableName) {
 		return tables.computeIfAbsent(tableName, (key) -> new ApplyTableZeze(tableName));
 	}
 
 	@Override
-	public @NotNull IApplyRecordTxn beginRecordTxn() {
+	public IApplyRecordTxn beginRecordTxn() {
 		if (activeRecordTxn != null)
 			throw new IllegalStateException("record txn already begun."); // 防御：apply单线程，不应嵌套/泄漏
 		var txn = new RecordTxn();
@@ -106,7 +107,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	}
 
 	@Override
-	public void saveCursor(@NotNull Id128 key, @NotNull IApplyRecordTxn txn) {
+	public void saveCursor(Id128 key, IApplyRecordTxn txn) {
 		// 必须走当前记录级事务的底层dbTxn：游标与记录数据同事务提交，杜绝
 		// "数据持久而进度丢失"的错配（重启后游标归零整段重放，Edit非幂等即污染）。
 		if (!(txn instanceof RecordTxn recordTxn))
@@ -127,13 +128,13 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		private boolean finished;
 
 		@Override
-		public void put(@NotNull String tableName, @NotNull Binary key, @NotNull Binary value) {
+		public void put(String tableName, Binary key, Binary value) {
 			tables.computeIfAbsent(tableName, ApplyTableZeze::new).storage
 					.replace(dbTxn, ByteBuffer.Wrap(key), ByteBuffer.Wrap(value));
 		}
 
 		@Override
-		public void remove(@NotNull String tableName, @NotNull Binary key) {
+		public void remove(String tableName, Binary key) {
 			tables.computeIfAbsent(tableName, ApplyTableZeze::new).storage
 					.remove(dbTxn, ByteBuffer.Wrap(key));
 		}
@@ -200,9 +201,9 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		private final String tableName;
 		private final Database.AbstractKVTable storage;
 
-		public ApplyTableZeze(@NotNull String tableName) {
+		public ApplyTableZeze(String tableName) {
 			this.tableName = tableName;
-			var table = dbForApply.getZeze().getTable(tableName);
+			var table = Objects.requireNonNull(dbForApply.getZeze()).getTable(tableName);
 			if (null == table)
 				throw new RuntimeException("table not exist in zeze. name=" + tableName);
 			// 兜底判据（同构造器，hist-02）：本表在apply库中打开，业务表却登记在apply库上
@@ -219,12 +220,12 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		}
 
 		@Override
-		public @NotNull String getTableName() {
+		public String getTableName() {
 			return tableName;
 		}
 
 		@Override
-		public @Nullable Binary get(byte @NotNull [] key, int offset, int length) {
+		public @Nullable Binary get(byte [] key, int offset, int length) {
 			var value = storage.find(ByteBuffer.Wrap(key, offset, length));
 			if (null == value)
 				return null;
@@ -232,7 +233,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		}
 
 		@Override
-		public void put(byte @NotNull [] key, int keyOffset, int keyLength, byte @NotNull [] value, int valueOffset, int valueLength) throws Exception {
+		public void put(byte [] key, int keyOffset, int keyLength, byte [] value, int valueOffset, int valueLength) throws Exception {
 			var recordTxn = activeRecordTxn;
 			if (recordTxn != null) {
 				// 单线程契约守卫：事务内写入只应来自驱动线程，其他线程的写入立即暴露而非静默错挂
@@ -255,7 +256,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		}
 
 		@Override
-		public void remove(byte @NotNull [] key, int offset, int length) throws Exception {
+		public void remove(byte [] key, int offset, int length) throws Exception {
 			var recordTxn = activeRecordTxn;
 			if (recordTxn != null) {
 				checkRecordTxnOwner();
@@ -286,11 +287,11 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 				empty.value = false;
 				return false;
 			});
-			return empty.value;
+			return Objects.requireNonNull(empty.value);
 		}
 
 		@Override
-		public void walk(@NotNull TableWalkHandleRaw walker) throws Exception {
+		public void walk(TableWalkHandleRaw walker) throws Exception {
 			storage.walk(walker);
 		}
 	}

@@ -6,7 +6,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.LongList;
 import Zeze.Util.Str;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * linkd 发送协议的参数 bean：目标 linkSids、协议类型与完整打包数据。
@@ -16,9 +15,9 @@ public class BSend implements Serializable {
 
 	private final LongList _linkSids = new LongList();
 	private long _protocolType;
-	private @NotNull Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
+	private Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
-	public @NotNull LongList getLinkSids() {
+	public LongList getLinkSids() {
 		return _linkSids;
 	}
 
@@ -30,11 +29,11 @@ public class BSend implements Serializable {
 		_protocolType = value;
 	}
 
-	public @NotNull Binary getProtocolWholeData() {
+	public Binary getProtocolWholeData() {
 		return _protocolWholeData;
 	}
 
-	public void setProtocolWholeData(@NotNull Binary value) {
+	public void setProtocolWholeData(Binary value) {
 		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException();
@@ -45,7 +44,7 @@ public class BSend implements Serializable {
 		_protocolWholeData = Binary.Empty;
 	}
 
-	public BSend(long _protocolType_, @NotNull Binary _protocolWholeData_) {
+	public BSend(long _protocolType_, Binary _protocolWholeData_) {
 		_protocolType = _protocolType_;
 		//noinspection ConstantValue
 		if (_protocolWholeData_ == null)
@@ -59,13 +58,13 @@ public class BSend implements Serializable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		buildString(sb, 0);
 		return sb.toString();
 	}
 
-	public void buildString(@NotNull StringBuilder sb, int level) {
+	public void buildString(StringBuilder sb, int level) {
 		var i1 = Str.indent(level + 4);
 		var i2 = Str.indent(level + 8);
 		sb.append("Zeze.Arch.Beans.BSend: {\n");
@@ -96,7 +95,7 @@ public class BSend implements Serializable {
 
 	@SuppressWarnings("UnusedAssignment")
 	@Override
-	public void encode(@NotNull ByteBuffer _o_) {
+	public void encode(ByteBuffer _o_) {
 		int _i_ = 0;
 		{
 			var _x_ = _linkSids;
@@ -127,7 +126,7 @@ public class BSend implements Serializable {
 
 	@SuppressWarnings("UnusedAssignment")
 	@Override
-	public void decode(@NotNull IByteBuffer _o_) {
+	public void decode(IByteBuffer _o_) {
 		int _t_ = _o_.ReadByte();
 		int _i_ = _o_.ReadTagSize(_t_);
 		if (_i_ == 1) {

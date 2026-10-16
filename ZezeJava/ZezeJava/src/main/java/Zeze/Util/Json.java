@@ -19,8 +19,7 @@ import Zeze.Transaction.Data;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.GTable.BeanMap2;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import sun.misc.Unsafe;
 
 // Compile with JDK11+; Run with JDK8+ (JDK9+ is recommended); Android is NOT supported
@@ -44,7 +43,7 @@ public final class Json implements Cloneable {
 	static final int TYPE_ARRAY_FLAG = 0x40; // T[]<1~10>（写侧的数组输出与读侧适配对称；byte[]走既有字符串codec）
 
 	public interface KeyReader {
-		@NotNull Object parse(@NotNull JsonReader jr, int b) throws ReflectiveOperationException;
+		Object parse(JsonReader jr, int b) throws ReflectiveOperationException;
 	}
 
 	public interface Creator<T> {
@@ -55,17 +54,17 @@ public final class Json implements Cloneable {
 		public final int hash; // for FieldMetaMap
 		public final int type; // defined above
 		public final int offset; // for unsafe access
-		public final @NotNull Class<?> klass; // TYPE_CUSTOM:fieldClass; TYPE_LIST_FLAG/TYPE_MAP_FLAG:subValueClass; TYPE_ARRAY_FLAG:componentClass
+		public final Class<?> klass; // TYPE_CUSTOM:fieldClass; TYPE_LIST_FLAG/TYPE_MAP_FLAG:subValueClass; TYPE_ARRAY_FLAG:componentClass
 		transient @Nullable ClassMeta<?> classMeta; // from klass, lazy assigned
 		transient @Nullable FieldMeta next; // for FieldMetaMap
 		public final byte[] name; // field name
 		public final @Nullable Creator<?> ctor; // for TYPE_LIST_FLAG/TYPE_MAP_FLAG
 		public final @Nullable KeyReader keyParser; // for TYPE_MAP_FLAG
-		public final @NotNull Field field;
-		public final @Nullable Type[] paramTypes;
+		public final Field field;
+		public final Type @Nullable [] paramTypes;
 
-		public FieldMeta(int type, int offset, @NotNull String name, @NotNull Class<?> klass, @Nullable Creator<?> ctor,
-						 @Nullable KeyReader keyReader, @NotNull Field field) {
+		public FieldMeta(int type, int offset, String name, Class<?> klass, @Nullable Creator<?> ctor,
+						 @Nullable KeyReader keyReader, Field field) {
 			this.name = name.getBytes(StandardCharsets.UTF_8);
 			this.hash = getKeyHash(this.name, 0, this.name.length);
 			this.type = type;
@@ -79,17 +78,17 @@ public final class Json implements Cloneable {
 					? ((ParameterizedType)geneType).getActualTypeArguments() : null;
 		}
 
-		public @NotNull String getName() {
+		public String getName() {
 			return new String(name, StandardCharsets.UTF_8);
 		}
 	}
 
 	public interface Parser<T> {
-		@Nullable T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable FieldMeta fieldMeta,
+		@Nullable T parse(JsonReader reader, ClassMeta<T> classMeta, @Nullable FieldMeta fieldMeta,
 						  @Nullable T obj, @Nullable Object parent) throws ReflectiveOperationException;
 
 		@SuppressWarnings("unchecked")
-		default @Nullable T parse0(@NotNull JsonReader reader, @NotNull ClassMeta<?> classMeta,
+		default @Nullable T parse0(JsonReader reader, ClassMeta<?> classMeta,
 								   @Nullable FieldMeta fieldMeta, @Nullable Object obj,
 								   @Nullable Object parent) throws ReflectiveOperationException {
 			return parse(reader, (ClassMeta<T>)classMeta, fieldMeta, (T)obj, parent);
@@ -97,11 +96,11 @@ public final class Json implements Cloneable {
 	}
 
 	public interface Writer<T> {
-		void write(@NotNull JsonWriter writer, @NotNull ClassMeta<T> classMeta, @Nullable T obj);
+		void write(JsonWriter writer, ClassMeta<T> classMeta, @Nullable T obj);
 
 		// ensure +1
 		@SuppressWarnings("unchecked")
-		default void write0(@NotNull JsonWriter writer, @NotNull ClassMeta<?> classMeta, @Nullable Object obj) {
+		default void write0(JsonWriter writer, ClassMeta<?> classMeta, @Nullable Object obj) {
 			write(writer, (ClassMeta<T>)classMeta, (T)obj);
 		}
 	}
@@ -118,13 +117,13 @@ public final class Json implements Cloneable {
 	}
 
 	public static final class ClassMeta<T> {
-		private static final @NotNull HashMap<Class<?>, Integer> typeMap = new HashMap<>(32);
-		private static final @NotNull HashMap<Type, KeyReader> keyReaderMap = new HashMap<>(16);
+		private static final HashMap<Class<?>, Integer> typeMap = new HashMap<>(32);
+		private static final HashMap<Type, KeyReader> keyReaderMap = new HashMap<>(16);
 
-		final @NotNull Json json;
-		final @NotNull Class<T> klass;
-		final @NotNull Creator<T> ctor;
-		private final FieldMeta[] valueTable;
+		final Json json;
+		final Class<T> klass;
+		final Creator<T> ctor;
+		private final @Nullable FieldMeta[] valueTable;
 		final FieldMeta[] fieldMetas;
 		transient @Nullable Parser<T> parser; // user custom parser
 		transient @Nullable Writer<T> writer; // user custom writer
@@ -168,7 +167,7 @@ public final class Json implements Cloneable {
 			return keyReaderMap.containsKey(klass);
 		}
 
-		public static KeyReader getKeyReader(Class<?> klass) {
+		public static @Nullable KeyReader getKeyReader(Class<?> klass) {
 			return keyReaderMap.get(klass);
 		}
 
@@ -176,8 +175,8 @@ public final class Json implements Cloneable {
 		// 与写侧（JsonWriter对非内建键整体序列化为带引号JSON串）往返对称。
 		// 手建FieldMeta处（GTable1/GTable2/Helper.decodeJsonTypedMap）与ClassMeta
 		// 构造器一律经本工厂取keyParser，避免两份回退逻辑漂移。
-		public static KeyReader getKeyReaderOrFallback(@NotNull Json json, @NotNull Class<?> keyClass,
-													   @NotNull String where) {
+		public static KeyReader getKeyReaderOrFallback(Json json, Class<?> keyClass,
+													   String where) {
 			var keyReader = keyReaderMap.get(keyClass);
 			if (keyReader != null)
 				return keyReader;
@@ -194,12 +193,12 @@ public final class Json implements Cloneable {
 			};
 		}
 
-		static boolean isAbstract(@NotNull Class<?> klass) {
+		static boolean isAbstract(Class<?> klass) {
 			return (klass.getModifiers() & (Modifier.INTERFACE | Modifier.ABSTRACT)) != 0;
 		}
 
 		@SuppressWarnings("unchecked")
-		public static <T> @NotNull Creator<T> getDefCtor(@NotNull Class<T> klass) {
+		public static <T> Creator<T> getDefCtor(Class<T> klass) {
 			try {
 				for (Constructor<?> c : klass.getDeclaredConstructors()) {
 					if (c.getParameterCount() == 0) {
@@ -256,7 +255,7 @@ public final class Json implements Cloneable {
 			return Object.class;
 		}
 
-		private static Type[] getMapSubClasses(Type geneType) { // X<K,V>, X extends Y<K,V>, X implements Y<K,V>
+		private static Type @Nullable [] getMapSubClasses(Type geneType) { // X<K,V>, X extends Y<K,V>, X implements Y<K,V>
 			if (geneType instanceof ParameterizedType) {
 				//noinspection PatternVariableCanBeUsed
 				ParameterizedType paraType = (ParameterizedType)geneType;
@@ -282,11 +281,11 @@ public final class Json implements Cloneable {
 			return null;
 		}
 
-		ClassMeta(@NotNull Json json, @NotNull Class<T> klass) {
+		ClassMeta(Json json, Class<T> klass) {
 			this.json = json;
 			this.klass = klass;
 			ctor = getDefCtor(klass);
-			BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
+			BiFunction<Class<?>, Field, @Nullable String> fieldNameFilter = json.fieldNameFilter;
 			int size = 0;
 			for (Class<?> c = klass; c != null; c = c.getSuperclass())
 				for (Field field : getDeclaredFields(c))
@@ -379,7 +378,7 @@ public final class Json implements Cloneable {
 			return type != null ? type : TYPE_CUSTOM;
 		}
 
-		public @NotNull Creator<T> getCtor() {
+		public Creator<T> getCtor() {
 			return ctor;
 		}
 
@@ -412,7 +411,7 @@ public final class Json implements Cloneable {
 			return null;
 		}
 
-		void put(int idx, @NotNull FieldMeta fieldMeta) {
+		void put(int idx, FieldMeta fieldMeta) {
 			fieldMeta.next = null;
 			fieldMetas[idx] = fieldMeta;
 			int hash = fieldMeta.hash;
@@ -437,18 +436,18 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	private static final @NotNull MethodHandles.Lookup lookup = MethodHandles.lookup();
-	static final @NotNull Unsafe unsafe;
-	private static final @NotNull MethodHandle getDeclaredFields0MH;
-	static final @NotNull MethodHandle objectFieldOffsetMH;
-	static final @NotNull MethodHandle stringCtorMH;
+	private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
+	static final Unsafe unsafe;
+	private static final MethodHandle getDeclaredFields0MH;
+	static final MethodHandle objectFieldOffsetMH;
+	static final MethodHandle stringCtorMH;
 	private static final long OVERRIDE_OFFSET;
 	static final long STRING_VALUE_OFFSET, STRING_CODE_OFFSET;
 	static final int keyHashMultiplier = 0x100_0193; // 1677_7619 can be changed to another prime number
 	public static final Json instance = new Json();
 
-	private final @NotNull ConcurrentHashMap<Class<?>, ClassMeta<?>> classMetas = new ConcurrentHashMap<>();
-	public BiFunction<Class<?>, Field, String> fieldNameFilter;
+	private final ConcurrentHashMap<Class<?>, ClassMeta<?>> classMetas = new ConcurrentHashMap<>();
+	public @Nullable BiFunction<Class<?>, Field, @Nullable String> fieldNameFilter;
 
 	/**
 	 * 克隆共享全部 ClassMeta 实例（浅拷贝），语义易踩坑：
@@ -460,7 +459,7 @@ public final class Json implements Cloneable {
 	@Deprecated // ClassMeta共享语义易误用，复用请显式new Json()
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public @NotNull Json clone() {
+	public Json clone() {
 		Json json = new Json();
 		json.classMetas.putAll(classMetas);
 		json.fieldNameFilter = fieldNameFilter;
@@ -503,11 +502,11 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	public static @NotNull Unsafe getUnsafe() {
+	public static Unsafe getUnsafe() {
 		return unsafe;
 	}
 
-	public static long objectFieldOffset(@NotNull Field field) {
+	public static long objectFieldOffset(Field field) {
 		try {
 			return (long)objectFieldOffsetMH.invoke(field);
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -515,7 +514,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	static @NotNull Field @NotNull [] getDeclaredFields(@NotNull Class<?> klass) {
+	static Field [] getDeclaredFields(Class<?> klass) {
 		try {
 			return (Field[])getDeclaredFields0MH.invokeExact(klass, false);
 		} catch (RuntimeException | Error e) {
@@ -526,24 +525,24 @@ public final class Json implements Cloneable {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	static @Nullable Field getDeclaredField(@NotNull Class<?> klass, @NotNull String fieldName) {
+	static @Nullable Field getDeclaredField(Class<?> klass, String fieldName) {
 		for (Field field : getDeclaredFields(klass))
 			if (field.getName().equals(fieldName))
 				return field;
 		return null;
 	}
 
-	public static <T extends AccessibleObject> @NotNull T setAccessible(@NotNull T ao) {
+	public static <T extends AccessibleObject> T setAccessible(T ao) {
 		unsafe.putBoolean(ao, OVERRIDE_OFFSET, true);
 		return ao;
 	}
 
-	public static <T> @NotNull T ensureNotNull(@Nullable T obj) {
+	public static <T> T ensureNotNull(@Nullable T obj) {
 		assert obj != null;
 		return obj;
 	}
 
-	public static int getKeyHash(byte @NotNull [] buf, int pos, int end) {
+	public static int getKeyHash(byte [] buf, int pos, int end) {
 		if (pos >= end)
 			return 0;
 		//noinspection UnnecessaryLocalVariable
@@ -553,7 +552,7 @@ public final class Json implements Cloneable {
 		return h;
 	}
 
-	static @NotNull String newByteString(byte @NotNull [] buf, int pos, int end) {
+	static String newByteString(byte [] buf, int pos, int end) {
 		try {
 			return (String)stringCtorMH.invokeExact(Arrays.copyOfRange(buf, pos, end), (byte)0); // LATIN1
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -562,7 +561,7 @@ public final class Json implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> @NotNull ClassMeta<T> getClassMeta(@NotNull Class<T> klass) {
+	public <T> ClassMeta<T> getClassMeta(Class<T> klass) {
 		ClassMeta<?> cm = classMetas.get(klass);
 		if (cm == null)
 			cm = classMetas.computeIfAbsent(klass, c -> new ClassMeta<>(this, c));
@@ -576,17 +575,17 @@ public final class Json implements Cloneable {
 	// ThreadLocal 实例复用的重入保护：外层解析/序列化进行中时，嵌套调用静态入口（典型场景：自定义
 	// Parser/Writer 内部再调 Json.parse/toCompactString）会通过同一个 ThreadLocal 实例的
 	// buf()/reset()/clear() 覆盖或清空外层状态，导致外层 NPE/输出损坏。此时改用独立实例。
-	private static @NotNull JsonReader acquireLocalReader() {
+	private static JsonReader acquireLocalReader() {
 		JsonReader jr = JsonReader.local();
 		return jr.buf() != null ? new JsonReader() : jr; // buf 非空 = 外层解析进行中
 	}
 
-	private static @NotNull JsonWriter acquireLocalWriter() {
+	private static JsonWriter acquireLocalWriter() {
 		JsonWriter jw = JsonWriter.local();
 		return jw.busy() ? new JsonWriter() : jw;
 	}
 
-	public static <T> @Nullable T parse(@NotNull String jsonStr, @Nullable Class<T> klass) {
+	public static <T> @Nullable T parse(String jsonStr, @Nullable Class<T> klass) {
 		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr).parse(klass);
@@ -597,7 +596,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, @Nullable Class<T> klass) {
+	public static <T> @Nullable T parse(byte [] jsonStr, @Nullable Class<T> klass) {
 		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr).parse(klass);
@@ -608,7 +607,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, int pos, @Nullable Class<T> klass) {
+	public static <T> @Nullable T parse(byte [] jsonStr, int pos, @Nullable Class<T> klass) {
 		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr, pos).parse(klass);
@@ -619,7 +618,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	public static <T> @Nullable T parse(@NotNull String jsonStr, @Nullable T obj) {
+	public static <T> @Nullable T parse(String jsonStr, @Nullable T obj) {
 		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr).parse(obj);
@@ -630,7 +629,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, @Nullable T obj) {
+	public static <T> @Nullable T parse(byte [] jsonStr, @Nullable T obj) {
 		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr).parse(obj);
@@ -641,7 +640,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, int pos, @Nullable T obj) {
+	public static <T> @Nullable T parse(byte [] jsonStr, int pos, @Nullable T obj) {
 		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr, pos).parse(obj);
@@ -652,7 +651,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	public static @NotNull String toCompactString(@Nullable Object obj) {
+	public static String toCompactString(@Nullable Object obj) {
 		JsonWriter jw = acquireLocalWriter();
 		try {
 			jw.inUse = true; // 标记占用：嵌套静态入口会通过 busy() 检测并改用独立实例
@@ -663,7 +662,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
-	public static byte @NotNull [] toCompactBytes(@Nullable Object obj) {
+	public static byte [] toCompactBytes(@Nullable Object obj) {
 		JsonWriter jw = acquireLocalWriter();
 		try {
 			jw.inUse = true;
@@ -1128,7 +1127,7 @@ public final class Json implements Cloneable {
 				int k = JsonReader.parseIntegerKey(reader, b);
 				reader.skipColon();
 				@SuppressWarnings({"unchecked", "unused"})
-				Object __ = obj.put(k, reader.parseNested(valueMeta));
+				Object __ = ((IntHashMap<@Nullable Object>)obj).put(k, reader.parseNested(valueMeta));
 			}
 			reader.skip(1);
 			return obj;
@@ -1223,7 +1222,7 @@ public final class Json implements Cloneable {
 				long k = JsonReader.parseLongKey(reader, b);
 				reader.skipColon();
 				@SuppressWarnings({"unchecked", "unused"})
-				Object __ = obj.put(k, reader.parseNested(valueMeta));
+				Object __ = ((LongHashMap<@Nullable Object>)obj).put(k, reader.parseNested(valueMeta));
 			}
 			reader.skip(1);
 			return obj;
@@ -1318,7 +1317,7 @@ public final class Json implements Cloneable {
 				long k = JsonReader.parseLongKey(reader, b);
 				reader.skipColon();
 				@SuppressWarnings({"unchecked", "unused"})
-				Object __ = obj.put(k, reader.parseNested(valueMeta));
+				Object __ = obj.put(k, ensureNotNull(reader.parseNested(valueMeta)));
 			}
 			reader.skip(1);
 			return obj;

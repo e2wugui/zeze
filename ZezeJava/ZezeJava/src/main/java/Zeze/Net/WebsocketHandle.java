@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Netty.HttpExchange;
@@ -8,7 +10,7 @@ import Zeze.Netty.HttpWebSocketHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import io.netty.buffer.ByteBuf;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Element;
 
 /**
@@ -16,11 +18,11 @@ import org.w3c.dom.Element;
  */
 public class WebsocketHandle implements HttpWebSocketHandle {
 	private final String path;
-	private Zeze.Netty.HttpServer httpServer;
-	private Service service;
+	private @Nullable HttpServer httpServer;
+	private @Nullable Service service;
 	private final ConcurrentHashMap<HttpExchange, Websocket> websockets = new ConcurrentHashMap<>();
 
-	public WebsocketHandle(@NotNull String path, @NotNull HttpServer httpServer) {
+	public WebsocketHandle(String path, HttpServer httpServer) {
 		this.path = path;
 		this.httpServer = httpServer;
 	}
@@ -31,7 +33,7 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 
 	public void start() {
 		if (null == httpServer)
-			httpServer = service.getZeze().getAppBase().getHttpServer();
+			httpServer = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(getService()).getZeze()).getAppBase()).getHttpServer();
 		if (null == httpServer)
 			throw new IllegalStateException("httpServer not found.");
 		httpServer.addHandler(path, TransactionLevel.None, DispatchMode.Direct,this);
@@ -43,8 +45,8 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 	}
 
 	@Override
-	public void onOpen(@NotNull HttpExchange x) throws Exception {
-		var websocket = new Websocket(x, service);
+	public void onOpen(HttpExchange x) throws Exception {
+		var websocket = new Websocket(x, Objects.requireNonNull(getService()));
 		if (null != websockets.putIfAbsent(x, websocket))
 			throw new IllegalStateException("duplicate onOpen for a HttpExchange.");
 		// 统一走Service.tryAccept（限流+注册+握手完成），websocket接受路径不再
@@ -52,7 +54,7 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 		// 清理走onClose级联，链路迂回）；撞号（addSocket false，连接已被关闭）不再回调
 		// OnHandshakeDone。
 		try {
-			service.tryAccept(websocket);
+			getService().tryAccept(websocket);
 		} catch (IllegalStateException e) { // too many connections
 			websocket.close(e);
 		}
@@ -60,14 +62,14 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 
 	// status==WebSocketCloseStatus.ABNORMAL_CLOSURE.code()时表示连接被强制关闭
 	@Override
-	public void onClose(@NotNull HttpExchange x, int status, @NotNull String reason) throws Exception {
+	public void onClose(HttpExchange x, int status, String reason) throws Exception {
 		var websocket = websockets.remove(x);
 		if (null != websocket)
 			websocket.close(new IOException("peer closed. status=" + status + " reason=" + reason));
 	}
 
 	@Override
-	public void onContent(@NotNull HttpExchange x, @NotNull ByteBuf content, boolean isText, boolean isFinal) throws Exception {
+	public void onContent(HttpExchange x, ByteBuf content, boolean isText, boolean isFinal) throws Exception {
 		var websocket = websockets.get(x);
 		if (null != websocket)
 			websocket.processInput(content);
@@ -75,15 +77,15 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 			x.closeConnectionNow();
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return path;
 	}
 
-	public void setService(@NotNull Service service) {
+	public void setService(Service service) {
 		this.service = service;
 	}
 
-	public @NotNull Service getService() {
-		return this.service;
+	public @Nullable Service getService() {
+		return service;
 	}
 }

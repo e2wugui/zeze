@@ -13,8 +13,7 @@ import Zeze.Transaction.TransactionLevel;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.Attribute;
 import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 【安全警示】任意字节码执行端点：上传的class字节码被直接defineClass并实例化执行
@@ -25,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
  * 答403。
  */
 public class RunClassServer implements HttpFileUploadHandle {
-	private static final @NotNull org.apache.logging.log4j.Logger logger =
+	private static final org.apache.logging.log4j.Logger logger =
 			org.apache.logging.log4j.LogManager.getLogger(RunClassServer.class);
 	private final String uploadDir;
 	private final String fileVarName;
@@ -41,10 +40,10 @@ public class RunClassServer implements HttpFileUploadHandle {
 	 *                    比如直接上传的url:/upload?fileVarName=xxx
 	 *                    或者表单中&lt;input type="file" name="fileVarName" multiple&gt;
 	 */
-	public RunClassServer(@NotNull AppBase app,
-						  @NotNull String urlPath,
-						  @NotNull String uploadDir,
-						  @NotNull String fileVarName) {
+	public RunClassServer(AppBase app,
+						  String urlPath,
+						  String uploadDir,
+						  String fileVarName) {
 		this(app, urlPath, uploadDir, fileVarName, null);
 	}
 
@@ -54,10 +53,10 @@ public class RunClassServer implements HttpFileUploadHandle {
 	 * @param token 鉴权token；null/空白时自动生成随机token并打日志（默认强制鉴权、
 	 *              零配置可用）
 	 */
-	public RunClassServer(@NotNull AppBase app,
-						  @NotNull String urlPath,
-						  @NotNull String uploadDir,
-					  @NotNull String fileVarName,
+	public RunClassServer(AppBase app,
+						  String urlPath,
+						  String uploadDir,
+					  String fileVarName,
 					  @Nullable String token) {
 		this.uploadDir = uploadDir;
 		this.fileVarName = fileVarName;
@@ -70,13 +69,13 @@ public class RunClassServer implements HttpFileUploadHandle {
 	}
 
 	@Override
-	public @NotNull String getFileNameQueryKey() {
+	public String getFileNameQueryKey() {
 		return fileVarName;
 	}
 
 	@Override
-	public void onEndRequest(@NotNull HttpExchange x,
-							 @NotNull InterfaceHttpPostRequestDecoder decoder) throws Exception {
+	public void onEndRequest(HttpExchange x,
+							 InterfaceHttpPostRequestDecoder decoder) throws Exception {
 		var fileUpload = ReloadClassServer.checkTokenAndTakeUpload(logger, "RunClassServer", "run",
 				token, x, decoder, getFileNameQueryKey());
 		if (fileUpload == null)
@@ -130,7 +129,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 		x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, "Bad Request"));
 	}
 
-	private static @NotNull String @NotNull [] getArgs(@NotNull HttpExchange x) {
+	private static String [] getArgs(HttpExchange x) {
 		var args = new ArrayList<String>();
 		var queryMap = x.queryMap();
 		for (int i = 0; ; i++) {
@@ -141,7 +140,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 		}
 	}
 
-	private static @NotNull String @NotNull [] getArgs(@NotNull InterfaceHttpPostRequestDecoder decoder) throws IOException {
+	private static String [] getArgs(InterfaceHttpPostRequestDecoder decoder) throws IOException {
 		var args = new ArrayList<String>();
 		for (int i = 0; ; i++) {
 			var httpData = decoder.getBodyHttpData("arg" + i);

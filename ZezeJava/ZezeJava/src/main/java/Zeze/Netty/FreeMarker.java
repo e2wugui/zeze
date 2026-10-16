@@ -8,19 +8,18 @@ import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * FreeMarker 模板渲染服务：渲染页面并通过 HttpExchange 发送（按大小在流式/缓冲两种 writer 间切换）。
  */
 public class FreeMarker {
-	private static final @NotNull Logger logger = LogManager.getLogger(FreeMarker.class);
+	private static final Logger logger = LogManager.getLogger(FreeMarker.class);
 
 	private final Configuration freeMarker = new Configuration(Configuration.VERSION_2_3_32);
 	private final ConcurrentHashSet<String> withContentLength = new ConcurrentHashSet<>();
 
-	public FreeMarker(@NotNull File templateDir) throws Exception {
+	public FreeMarker(File templateDir) throws Exception {
 		freeMarker.setDirectoryForTemplateLoading(templateDir);
 
 		// Recommended settings for new projects:
@@ -34,7 +33,7 @@ public class FreeMarker {
 		freeMarker.setTemplateUpdateDelayMilliseconds(5000); // 5 seconds
 	}
 
-	public @NotNull Configuration getConfiguration() {
+	public Configuration getConfiguration() {
 		return freeMarker;
 	}
 
@@ -44,7 +43,7 @@ public class FreeMarker {
 	 * @param x         http context.
 	 * @param modelBean Map Or JavaBean.
 	 */
-	public void sendResponse(@NotNull HttpExchange x, @Nullable Object modelBean) throws Exception {
+	public void sendResponse(HttpExchange x, @Nullable Object modelBean) throws Exception {
 		var url = x.path() + ".ftlh";
 		Template tmpl;
 		try {

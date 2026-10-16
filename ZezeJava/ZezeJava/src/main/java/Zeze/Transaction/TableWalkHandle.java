@@ -1,10 +1,9 @@
 package Zeze.Transaction;
 
-import org.jetbrains.annotations.NotNull;
 
 @FunctionalInterface
 public interface TableWalkHandle<K, V> {
-	boolean handle(@NotNull K key, @NotNull V value) throws Exception;
+	boolean handle(K key, V value) throws Exception;
 
 	/**
 	 * walk 结束时回调（含 handle 返回 false 中断后的提前结束），返回值即 walk 方法的返回值。

@@ -4,28 +4,27 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Vector4;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 用Vector4List要记得它本质就是FloatList,除了下面多出一些专用方法外,都以float数组的方式操作.
  * 如果float数组长度不被4整除,则以Vector4为单位处理时忽略结尾多余的float值.
  */
 public class Vector4List extends FloatList {
-	public static @NotNull Vector4List wrap(float @NotNull [] data, int count) {
+	public static Vector4List wrap(float [] data, int count) {
 		Vector4List o = new Vector4List();
 		o.buffer = data;
 		o.count = count > data.length ? data.length : Math.max(count, 0);
 		return o;
 	}
 
-	public static @NotNull Vector4List wrap(float @NotNull [] data) {
+	public static Vector4List wrap(float [] data) {
 		Vector4List o = new Vector4List();
 		o.buffer = data;
 		o.count = data.length;
 		return o;
 	}
 
-	public static @NotNull Vector4List createSpace(int count) {
+	public static Vector4List createSpace(int count) {
 		Vector4List o = new Vector4List();
 		if (count > 0) {
 			o.buffer = new float[count];
@@ -41,15 +40,15 @@ public class Vector4List extends FloatList {
 		reserveSpace(count);
 	}
 
-	public Vector4List(@NotNull FloatList fl) {
+	public Vector4List(FloatList fl) {
 		replace(fl);
 	}
 
-	public Vector4List(float @NotNull [] data) {
+	public Vector4List(float [] data) {
 		replace(data);
 	}
 
-	public Vector4List(float @NotNull [] data, int fromIdx, int count) {
+	public Vector4List(float [] data, int fromIdx, int count) {
 		replace(data, fromIdx, count);
 	}
 
@@ -145,17 +144,17 @@ public class Vector4List extends FloatList {
 		buf[idx + 3] += w;
 	}
 
-	public float @NotNull [] toArrayVector(int fromIdx, int count) {
+	public float [] toArrayVector(int fromIdx, int count) {
 		return toArray(VectorListBounds.rangeIndex(fromIdx, 4), VectorListBounds.count(count, 4));
 	}
 
-	public @NotNull Vector4List wrapsVector(float @NotNull [] data, int count) {
+	public Vector4List wrapsVector(float [] data, int count) {
 		super.wraps(data, VectorListBounds.count(count, 4));
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector4List wraps(float @NotNull [] data) {
+	public Vector4List wraps(float [] data) {
 		super.wraps(data);
 		return this;
 	}
@@ -176,11 +175,11 @@ public class Vector4List extends FloatList {
 		resize(VectorListBounds.count(count, 4));
 	}
 
-	public void replaceVector(float @NotNull [] data, int fromIdx, int count) {
+	public void replaceVector(float [] data, int fromIdx, int count) {
 		replace(data, VectorListBounds.rangeIndex(fromIdx, 4), VectorListBounds.count(count, 4));
 	}
 
-	public @NotNull Vector4List add(float x, float y, float z, float w) {
+	public Vector4List add(float x, float y, float z, float w) {
 		int n = count;
 		int nNew = Math.addExact(n, 4);
 		reserve(nNew);
@@ -193,35 +192,35 @@ public class Vector4List extends FloatList {
 		return this;
 	}
 
-	public @NotNull Vector4List add(Vector4 v) {
+	public Vector4List add(Vector4 v) {
 		return add(v.x, v.y, v.z, v.w);
 	}
 
 	@Override
-	public @NotNull Vector4List addAll(float[] data, int fromIdx, int count) {
+	public Vector4List addAll(float[] data, int fromIdx, int count) {
 		super.addAll(data, fromIdx, count);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector4List addAll(float @NotNull [] data) {
+	public Vector4List addAll(float [] data) {
 		super.addAll(data);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector4List addAll(@NotNull FloatList fl) {
+	public Vector4List addAll(FloatList fl) {
 		super.addAll(fl);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector4List addAll(@NotNull Collection<Float> c) {
+	public Vector4List addAll(Collection<Float> c) {
 		super.addAll(c);
 		return this;
 	}
 
-	public @NotNull Vector4List addAllVector(@NotNull Collection<Vector4> c) {
+	public Vector4List addAllVector(Collection<Vector4> c) {
 		int n = count;
 		reserve(Math.addExact(n, VectorListBounds.count(c.size(), 4)));
 		float[] buf = buffer;
@@ -235,13 +234,13 @@ public class Vector4List extends FloatList {
 		return this;
 	}
 
-	public void addAllToVector(@NotNull Collection<Vector4> c) {
+	public void addAllToVector(Collection<Vector4> c) {
 		float[] buf = buffer;
 		for (int i = 0, n = count - 3; i < n; i += 4)
 			c.add(new Vector4(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]));
 	}
 
-	public @NotNull Vector4List insertVector(int fromIdx, float x, float y, float z, float w) {
+	public Vector4List insertVector(int fromIdx, float x, float y, float z, float w) {
 		fromIdx = VectorListBounds.rangeIndex(fromIdx, 4);
 		int n = count;
 		if (fromIdx < 0)
@@ -260,24 +259,24 @@ public class Vector4List extends FloatList {
 	}
 
 	@Override
-	public @NotNull Vector4List insert(int fromIdx, float @NotNull [] data, int idx, int count) {
+	public Vector4List insert(int fromIdx, float [] data, int idx, int count) {
 		super.insert(fromIdx, data, idx, count);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector4List insert(int fromIdx, float @NotNull [] data) {
+	public Vector4List insert(int fromIdx, float [] data) {
 		super.insert(fromIdx, data);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector4List insert(int fromIdx, @NotNull FloatList fl) {
+	public Vector4List insert(int fromIdx, FloatList fl) {
 		super.insert(fromIdx, fl);
 		return this;
 	}
 
-	public @NotNull Vector4List removeVector(int idx) {
+	public Vector4List removeVector(int idx) {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 4);
@@ -290,7 +289,7 @@ public class Vector4List extends FloatList {
 		return this;
 	}
 
-	public @NotNull Vector4List removeAndExchangeLastVector(int idx) {
+	public Vector4List removeAndExchangeLastVector(int idx) {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 4);
@@ -309,12 +308,12 @@ public class Vector4List extends FloatList {
 		return this;
 	}
 
-	public @NotNull Vector4List eraseVector(int fromIdx, int toIdx) {
+	public Vector4List eraseVector(int fromIdx, int toIdx) {
 		super.erase(VectorListBounds.rangeIndex(fromIdx, 4), VectorListBounds.rangeIndex(toIdx, 4));
 		return this;
 	}
 
-	public @NotNull Vector4List eraseFrontVector(int count) {
+	public Vector4List eraseFrontVector(int count) {
 		super.eraseFront(VectorListBounds.rangeIndex(count, 4));
 		return this;
 	}
@@ -334,7 +333,7 @@ public class Vector4List extends FloatList {
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public @NotNull Vector4List clone() {
+	public Vector4List clone() {
 		return new Vector4List(this);
 	}
 
@@ -342,7 +341,7 @@ public class Vector4List extends FloatList {
 		void accept(float x, float y, float z, float w);
 	}
 
-	public void foreach(@NotNull Vector4Consumer consumer) {
+	public void foreach(Vector4Consumer consumer) {
 		float[] buf = buffer;
 		for (int i = 0, n = count - 3; i < n; i += 4)
 			consumer.accept(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]);
@@ -352,7 +351,7 @@ public class Vector4List extends FloatList {
 		boolean test(float x, float y, float z, float w);
 	}
 
-	public boolean foreachPred(@NotNull Vector4Predicate predicate) {
+	public boolean foreachPred(Vector4Predicate predicate) {
 		float[] buf = buffer;
 		for (int i = 0, n = count - 3; i < n; i += 4) {
 			if (!predicate.test(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]))
@@ -362,7 +361,7 @@ public class Vector4List extends FloatList {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		int n = count >> 2;
 		bb.WriteUInt(n);
 		if (n > 0)
@@ -370,7 +369,7 @@ public class Vector4List extends FloatList {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb, int n) {
+	public void encode(ByteBuffer bb, int n) {
 		int count = this.count >> 2;
 		if (count != n)
 			throw new java.util.ConcurrentModificationException(String.valueOf(count));
@@ -379,7 +378,7 @@ public class Vector4List extends FloatList {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb, int n) {
+	public void decode(IByteBuffer bb, int n) {
 		// n*K 的 int 溢出会绕过基类负长度防线：如 n=0x80000001 时 n*2==2，
 		// 毒长度按极小 count 静默解码、流位置错位。上限校验放在乘法之前。
 		if (n < 0 || n > Integer.MAX_VALUE / 4)

@@ -1,15 +1,16 @@
 package Zeze.Services.GlobalCacheManager;
 
+import java.util.Objects;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Id128;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 全局键状态bean：globalKey、锁状态与被降级方事务Id。 */
 public class BGlobalKeyState implements Serializable {
-	public Binary globalKey; // 没有初始化，使用时注意
+	public @Nullable Binary globalKey; // 没有初始化，使用时注意
 	public int state;
 	public @Nullable Id128 reducedTid; // 被降级方的事务Id
 
@@ -23,7 +24,7 @@ public class BGlobalKeyState implements Serializable {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBinary(globalKey);
+		bb.WriteBinary(Objects.requireNonNull(globalKey));
 		bb.WriteUInt(state);
 		var tid = reducedTid;
 		(tid != null ? tid : Id128.Zero).encodeRaw(bb);

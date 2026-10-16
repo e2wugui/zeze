@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import org.jspecify.annotations.Nullable;
 import Zeze.Application;
 import Zeze.Builtin.LinksInfo.BLinkInfo;
 import Zeze.Config;
@@ -11,7 +12,6 @@ import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.PropertiesHelper;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 import static Zeze.Util.Args.requireValue;
 
 /**
@@ -19,15 +19,16 @@ import static Zeze.Util.Args.requireValue;
  */
 public class LinksInfo extends AbstractLinksInfo {
 	private final Netty netty = new Netty();
-	private final @NotNull HttpServer httpServer;
+	private final HttpServer httpServer;
 	private final AbstractAgent agent;
-	private String defaultLinkServiceName;
+	private @Nullable String defaultLinkServiceName;
 
 	public LinksInfo() throws Exception {
 		var conf = Config.load();
-		agent = Application.createServiceManager(conf, "LinksInfo");
-		if (agent == null)
+		var serviceManager = Application.createServiceManager(conf, "LinksInfo");
+		if (serviceManager == null)
 			throw new IllegalStateException("agent is null. check your config for ServiceManager.");
+		agent = serviceManager;
 		httpServer = new HttpServer();
 		RegisterHttpServlet(httpServer);
 	}
@@ -44,13 +45,13 @@ public class LinksInfo extends AbstractLinksInfo {
 		netty.close();
 	}
 
-	public void subscribeLinkService(@NotNull String linkServiceName) {
+	public void subscribeLinkService(String linkServiceName) {
 		if (defaultLinkServiceName == null)
 			defaultLinkServiceName = linkServiceName;
 		agent.subscribeService(new BSubscribeInfo(linkServiceName));
 	}
 
-	public static void main(String @NotNull [] args) throws Exception {
+	public static void main(String [] args) throws Exception {
 		var linksInfo = new LinksInfo();
 		try {
 			linksInfo.start(); // start失败也要stop,释放已部分启动的资源

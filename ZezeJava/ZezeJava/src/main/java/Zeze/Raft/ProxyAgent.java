@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
 import Zeze.IModule;
@@ -13,6 +15,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutObject;
+import org.jspecify.annotations.Nullable;
+import Zeze.Raft.Agent.ConnectorProxy;
 
 /**
  * 当raft节点运行在一个进程内时，可以通过代理方式复用同一个连接。
@@ -47,7 +51,7 @@ public class ProxyAgent extends Service {
 			return Procedure.ProviderNotExist;
 		var client = agent.getClient();
 		var outFactoryHandle = new OutObject<Service.ProtocolFactoryHandle<?>>();
-		var p = Protocol.decode(client::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
+		var p = Protocol.decode(Objects.requireNonNull(client)::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
 		if (null == p)
 			return Procedure.NotImplement;
 
@@ -56,7 +60,7 @@ public class ProxyAgent extends Service {
 
 		proxyable.setProxyRequest(r);
 		// 重新派发一次，有点浪费线程切换，以后再考虑优化。
-		client.dispatchProtocol(p, outFactoryHandle.value);
+		client.dispatchProtocol(p, Objects.requireNonNull(outFactoryHandle.value));
 		return 0;
 	}
 
@@ -81,15 +85,15 @@ public class ProxyAgent extends Service {
 	 * @param node leader node config
 	 * @return Agent.ConnectorEx
 	 */
-	public Agent.ConnectorProxy getLeader(RaftConfig.Node node) {
+	public @Nullable ConnectorProxy getLeader(RaftConfig.Node node) {
 		if (!node.getProxyHost().isBlank() && node.getProxyPort() != 0) {
 			var outConnector = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(
 					node.getProxyHost(), node.getProxyPort(),
 					true, outConnector, ConnectorEx::new)) {
-				outConnector.value.start();
+				Objects.requireNonNull(outConnector.value).start();
 			}
-			return ((ConnectorEx)outConnector.value).getConnectorProxy(node.getName());
+			return Objects.requireNonNull(((ConnectorEx)outConnector.value)).getConnectorProxy(node.getName());
 		}
 		return null;
 	}
@@ -126,11 +130,11 @@ public class ProxyAgent extends Service {
 	 * @see ProxyServer send
 	 */
 	@SuppressWarnings("unchecked")
-	public static boolean send(Service localService,
-							   ProxyAgent proxyAgent,
+	public static boolean send(@Nullable Service localService,
+							   @Nullable ProxyAgent proxyAgent,
 							   RaftRpc<?, ?> rpc,
-							   Agent.ConnectorProxy leader,
-							   AsyncSocket leaderSocket) {
+							   Agent.@Nullable ConnectorProxy leader,
+							   @Nullable AsyncSocket leaderSocket) {
 
 		if (null != proxyAgent) {
 			if (null != leader) {
@@ -141,14 +145,14 @@ public class ProxyAgent extends Service {
 					if (proxyRpc.getResultCode() == 0) {
 						var outFh = new OutObject<Service.ProtocolFactoryHandle<?>>();
 						var resultRpc = (Rpc<?, ?>)Protocol.decode(
-								localService::findProtocolFactoryHandle,
+								Objects.requireNonNull(localService)::findProtocolFactoryHandle,
 								ByteBuffer.Wrap(proxyRpc.Result.getData()),
 								outFh);
 						if (null != resultRpc) {
 							if (null != rpc.getResponseHandle()) {
 								@SuppressWarnings("rawtypes")
 								var originHandle = (ProtocolHandle)rpc.getResponseHandle();
-								localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+								localService.dispatchRpcResponse(resultRpc, originHandle, Objects.requireNonNull(outFh.value));
 							} else if (rpc.getFuture() != null){
 							// 对齐 Agent.sendForWaitHandle 的收尾：结果（含ResultCode）
 							// 拷回原始rpc再完成future。只setRawResult(resultRpc.Result)会丢弃

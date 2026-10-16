@@ -9,8 +9,7 @@ import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 任务提交参数的统一描述，用来替代 {@link Task} 与 TaskOneByOne 家族的大量重载。
@@ -55,8 +54,8 @@ import org.jetbrains.annotations.Nullable;
  *     onCancel 仅 base 家族（含全局队列）支持，Key2 + onCancel → IllegalArgumentException。</li>
  * </ul>
  */
-public final class TaskSpec<R> {
-	private final @NotNull TaskBody<R> body; // 任务载荷；终结方法不做类型分派，统一委托 Task 的 core
+public final class TaskSpec<R extends @Nullable Object> {
+	private final TaskBody<R> body; // 任务载荷；终结方法不做类型分派，统一委托 Task 的 core
 
 	private boolean consumed;
 	private @Nullable String name;
@@ -67,7 +66,7 @@ public final class TaskSpec<R> {
 	private boolean timeoutSet;
 	private boolean onCancelSet;
 
-	private TaskSpec(@NotNull TaskBody<R> body) {
+	private TaskSpec(TaskBody<R> body) {
 		this.body = body;
 	}
 
@@ -76,7 +75,7 @@ public final class TaskSpec<R> {
 	 *
 	 * @param action 不能为空
 	 */
-	public static @NotNull TaskSpec<Long> ofAction(@NotNull Action0 action) {
+	public static TaskSpec<Long> ofAction(Action0 action) {
 		return new TaskSpec<>(new TaskBody.OfAction(Objects.requireNonNull(action)));
 	}
 
@@ -85,7 +84,7 @@ public final class TaskSpec<R> {
 	 *
 	 * @param func 不能为空
 	 */
-	public static @NotNull TaskSpec<Long> ofFunc(@NotNull FuncLong func) {
+	public static TaskSpec<Long> ofFunc(FuncLong func) {
 		return new TaskSpec<>(new TaskBody.OfFunc(Objects.requireNonNull(func)));
 	}
 
@@ -95,7 +94,7 @@ public final class TaskSpec<R> {
 	 * @param func 不能为空
 	 * @param p 关联协议，可为空
 	 */
-	public static @NotNull TaskSpec<Long> ofFunc(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+	public static TaskSpec<Long> ofFunc(FuncLong func, @Nullable Protocol<?> p) {
 		return new TaskSpec<>(new TaskBody.OfProtocolFunc(Objects.requireNonNull(func), p, null));
 	}
 
@@ -106,7 +105,7 @@ public final class TaskSpec<R> {
 	 * @param p 关联协议，可为空
 	 * @param onError 错误回发回调，可为空
 	 */
-	public static @NotNull TaskSpec<Long> ofFunc(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static TaskSpec<Long> ofFunc(FuncLong func, @Nullable Protocol<?> p,
 												 @Nullable ProtocolErrorHandle onError) {
 		return new TaskSpec<>(new TaskBody.OfProtocolFunc(Objects.requireNonNull(func), p, onError));
 	}
@@ -116,7 +115,7 @@ public final class TaskSpec<R> {
 	 *
 	 * @param func 不能为空
 	 */
-	public static <R> @NotNull TaskSpec<R> ofFunc0(@NotNull Func0<R> func) {
+	public static <R extends @Nullable Object> TaskSpec<R> ofFunc0(Func0<R> func) {
 		return new TaskSpec<>(new TaskBody.OfFunc0<>(Objects.requireNonNull(func)));
 	}
 
@@ -125,7 +124,7 @@ public final class TaskSpec<R> {
 	 *
 	 * @param procedure 不能为空
 	 */
-	public static @NotNull TaskSpec<Long> ofProcedure(@NotNull Procedure procedure) {
+	public static TaskSpec<Long> ofProcedure(Procedure procedure) {
 		return new TaskSpec<>(new TaskBody.OfProcedure(Objects.requireNonNull(procedure)));
 	}
 
@@ -135,7 +134,7 @@ public final class TaskSpec<R> {
 	 * @param procedure 不能为空
 	 * @param from 触发本过程的原协议，可为空
 	 */
-	public static @NotNull TaskSpec<Long> ofProcedure(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
+	public static TaskSpec<Long> ofProcedure(Procedure procedure, @Nullable Protocol<?> from) {
 		return new TaskSpec<>(new TaskBody.OfProtocolProcedure(Objects.requireNonNull(procedure), from, null));
 	}
 
@@ -146,7 +145,7 @@ public final class TaskSpec<R> {
 	 * @param from 触发本过程的原协议，可为空
 	 * @param onError 错误回发回调，可为空
 	 */
-	public static @NotNull TaskSpec<Long> ofProcedure(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static TaskSpec<Long> ofProcedure(Procedure procedure, @Nullable Protocol<?> from,
 													  @Nullable ProtocolErrorHandle onError) {
 		return new TaskSpec<>(new TaskBody.OfProtocolProcedure(Objects.requireNonNull(procedure), from, onError));
 	}
@@ -160,8 +159,8 @@ public final class TaskSpec<R> {
 	 * @param outProtocol 过程内部解码出的协议经它带出，不能为空
 	 * @param onError 错误回发回调，可为空
 	 */
-	public static @NotNull TaskSpec<Long> ofProcedureOut(@NotNull Procedure procedure,
-														 @NotNull OutObject<Protocol<?>> outProtocol,
+	public static TaskSpec<Long> ofProcedureOut(Procedure procedure,
+														 OutObject<Protocol<?>> outProtocol,
 														 @Nullable ProtocolErrorHandle onError) {
 		return new TaskSpec<>(new TaskBody.OfProcedureOut(Objects.requireNonNull(procedure),
 				Objects.requireNonNull(outProtocol), onError));
@@ -170,7 +169,7 @@ public final class TaskSpec<R> {
 	/**
 	 * @param name 任务名，用于日志与统计，默认使用载荷的类名；Procedure 载荷固定使用 getActionName()，此设置无效
 	 */
-	public @NotNull TaskSpec<R> name(@Nullable String name) {
+	public TaskSpec<R> name(@Nullable String name) {
 		checkNotConsumed();
 		this.name = name;
 		return this;
@@ -180,7 +179,7 @@ public final class TaskSpec<R> {
 	 * @param dispatchMode 异步分发目标（Normal=默认池 / Critical=关键池 / Direct=调用线程），null 等同 Normal；
 	 *                     call() 与 schedule 族不消费它（显式设置会抛 IllegalArgumentException）
 	 */
-	public @NotNull TaskSpec<R> dispatchMode(@Nullable DispatchMode dispatchMode) {
+	public TaskSpec<R> dispatchMode(@Nullable DispatchMode dispatchMode) {
 		checkNotConsumed();
 		this.dispatchMode = dispatchMode;
 		this.dispatchModeSet = true;
@@ -191,7 +190,7 @@ public final class TaskSpec<R> {
 	 * @param timeout 任务超时(毫秒)，不设置或小于0时，终结方法执行时取 Task.defaultTimeout；
 	 *                call() 与 executeOneByOne 族不消费它（显式设置会抛 IllegalArgumentException）
 	 */
-	public @NotNull TaskSpec<R> timeout(long timeout) {
+	public TaskSpec<R> timeout(long timeout) {
 		checkNotConsumed();
 		this.timeout = timeout;
 		this.timeoutSet = true;
@@ -202,7 +201,7 @@ public final class TaskSpec<R> {
 	 * @param onCancel 队列 shutdown(true) 丢弃本任务时的补偿回调，可为空；
 	 *                 仅 executeOneByOne 的 base 家族（含全局队列）消费它
 	 */
-	public @NotNull TaskSpec<R> onCancel(@Nullable Action0 onCancel) {
+	public TaskSpec<R> onCancel(@Nullable Action0 onCancel) {
 		checkNotConsumed();
 		this.onCancel = onCancel;
 		this.onCancelSet = true;
@@ -223,7 +222,7 @@ public final class TaskSpec<R> {
 		return timeout < 0 ? Task.defaultTimeout : timeout;
 	}
 
-	private @NotNull DispatchMode dispatchModeOrDefault() {
+	private DispatchMode dispatchModeOrDefault() {
 		return dispatchMode != null ? dispatchMode : DispatchMode.Normal;
 	}
 
@@ -278,7 +277,7 @@ public final class TaskSpec<R> {
 	 * ofFunc/ofProcedure 为结果码，ofFunc0 的返回值与异常经 Future 传播。
 	 * 显式设置过 onCancel 时抛 IllegalArgumentException。
 	 */
-	public @NotNull Future<R> submitNow() {
+	public Future<R> submitNow() {
 		checkRunOptions();
 		consume();
 		return Task.submitCore(body, name, dispatchMode, timeoutOrDefault());
@@ -328,7 +327,7 @@ public final class TaskSpec<R> {
 	 * 立即注册延迟调度(毫秒)，不等事务提交（"now" 指注册不等提交，delay 后触发照旧），返回句柄。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）；ofFunc/ofProcedure 的结果码经 Future 传播。
 	 */
-	public @NotNull ScheduledFuture<R> scheduleNow(long delay) {
+	public ScheduledFuture<R> scheduleNow(long delay) {
 		consumeSchedule();
 		return Task.scheduleCore(delay, body, name, timeoutOrDefault());
 	}
@@ -338,7 +337,7 @@ public final class TaskSpec<R> {
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
 	 */
-	public @NotNull TimerFuture<R> schedulePeriodNow(long delay, long period) {
+	public TimerFuture<R> schedulePeriodNow(long delay, long period) {
 		consumeSchedulePeriod(period);
 		return Task.schedulePeriodCore(delay, period, body, name, timeoutOrDefault());
 	}
@@ -372,7 +371,7 @@ public final class TaskSpec<R> {
 	 * 立即注册每天 hour:minute 单次调度，不等事务提交，返回句柄（周期版见 {@link #scheduleAtPeriodNow}）。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）；ofFunc/ofProcedure 的结果码经 Future 传播。
 	 */
-	public @NotNull ScheduledFuture<R> scheduleAtNow(int hour, int minute) {
+	public ScheduledFuture<R> scheduleAtNow(int hour, int minute) {
 		consumeSchedule();
 		return Task.scheduleCore(Task.delayUntilNextDaily(hour, minute),body, name, timeoutOrDefault());
 	}
@@ -382,7 +381,7 @@ public final class TaskSpec<R> {
 	 * {@link #schedulePeriodNow}），不等事务提交，返回句柄。
 	 * period &lt;= 0 时抛 IllegalArgumentException。忽略 dispatchMode/onCancel（显式设置抛错）。
 	 */
-	public @NotNull TimerFuture<R> scheduleAtPeriodNow(int hour, int minute, long period) {
+	public TimerFuture<R> scheduleAtPeriodNow(int hour, int minute, long period) {
 		consumeSchedulePeriod(period);
 		return Task.schedulePeriodCore(Task.delayUntilNextDaily(hour, minute), period, body, name, timeoutOrDefault());
 	}
@@ -412,7 +411,7 @@ public final class TaskSpec<R> {
 	 * 提交到全局 {@link Task#getOneByOne()}，相同 key 的任务串行执行。
 	 * 显式设置过 timeout 时抛 IllegalArgumentException（队列引擎无此概念）。
 	 */
-	public void executeOneByOne(@NotNull Object key) {
+	public void executeOneByOne(Object key) {
 		executeOneByOne(key, Task.getOneByOne());
 	}
 
@@ -435,7 +434,7 @@ public final class TaskSpec<R> {
 	 * 重载绑定与旧 Execute 一致：字面量 int/long 绑原生版本，显式包装类型走 Object 版（hashCode）。
 	 * 显式设置过 timeout 时抛 IllegalArgumentException。ofFunc0 载荷的结果丢弃（队列语义无返回值消费者）。
 	 */
-	public void executeOneByOne(@NotNull Object key, @NotNull TaskOneByOneBase queue) {
+	public void executeOneByOne(Object key, TaskOneByOneBase queue) {
 		consumeBase();
 		queue.execute(Objects.requireNonNull(key), newQueueTask());
 	}
@@ -443,7 +442,7 @@ public final class TaskSpec<R> {
 	/**
 	 * 提交到指定 {@link TaskOneByOneBase}，int key 不装箱。
 	 */
-	public void executeOneByOne(int key, @NotNull TaskOneByOneBase queue) {
+	public void executeOneByOne(int key, TaskOneByOneBase queue) {
 		consumeBase();
 		queue.execute(key, newQueueTask());
 	}
@@ -451,7 +450,7 @@ public final class TaskSpec<R> {
 	/**
 	 * 提交到指定 {@link TaskOneByOneBase}，long key 不装箱。
 	 */
-	public void executeOneByOne(long key, @NotNull TaskOneByOneBase queue) {
+	public void executeOneByOne(long key, TaskOneByOneBase queue) {
 		consumeBase();
 		queue.execute(key, newQueueTask());
 	}
@@ -460,7 +459,7 @@ public final class TaskSpec<R> {
 	 * 提交到指定 {@link TaskOneByOneByKey2}（Object key 取 hashCode 后委托 int 核心，与旧重载一致）。
 	 * 显式设置过 timeout 时抛 IllegalArgumentException；onCancel 不支持 Key2。
 	 */
-	public void executeOneByOne(@NotNull Object key, @NotNull TaskOneByOneByKey2 queue) {
+	public void executeOneByOne(Object key, TaskOneByOneByKey2 queue) {
 		consumeKey2();
 		executeKey2(Objects.requireNonNull(key).hashCode(), queue);
 	}
@@ -468,7 +467,7 @@ public final class TaskSpec<R> {
 	/**
 	 * 提交到指定 {@link TaskOneByOneByKey2}，int key 不装箱（直传 int 核心）。
 	 */
-	public void executeOneByOne(int key, @NotNull TaskOneByOneByKey2 queue) {
+	public void executeOneByOne(int key, TaskOneByOneByKey2 queue) {
 		consumeKey2();
 		executeKey2(key, queue);
 	}
@@ -476,7 +475,7 @@ public final class TaskSpec<R> {
 	/**
 	 * 提交到指定 {@link TaskOneByOneByKey2}，long key 取 Long.hashCode 后委托 int 核心（与旧重载一致）。
 	 */
-	public void executeOneByOne(long key, @NotNull TaskOneByOneByKey2 queue) {
+	public void executeOneByOne(long key, TaskOneByOneByKey2 queue) {
 		consumeKey2();
 		executeKey2(Long.hashCode(key), queue);
 	}
@@ -493,11 +492,11 @@ public final class TaskSpec<R> {
 		consumeBase();
 	}
 
-	private @NotNull TaskOneByOneQueue.Task newQueueTask() {
+	private TaskOneByOneQueue.Task newQueueTask() {
 		return new TaskOneByOneQueue.TaskBodyTask(body, name, onCancel, dispatchModeOrDefault());
 	}
 
-	private void executeKey2(int hashKey, @NotNull TaskOneByOneByKey2 queue) {
+	private void executeKey2(int hashKey, TaskOneByOneByKey2 queue) {
 		queue.executeCore(hashKey, body, name, dispatchModeOrDefault());
 	}
 }

@@ -4,8 +4,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 服务信息bean：服务名+identity（equals/key语义）、版本、被动地址与扩展信息。
@@ -14,36 +13,36 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 	/**
 	 * 服务名，比如"GameServer"
 	 */
-	private @NotNull String serviceName = "";
+	private String serviceName = "";
 
 	/**
 	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
 	 * 这里使用类型 string 是为了更好的支持扩展。
 	 */
-	private @NotNull String serviceIdentity = "";
+	private String serviceIdentity = "";
 	private long version;
 
 	/**
 	 * 服务ip-port，如果没有，保持空和0.
 	 */
-	private @NotNull String passiveIp = "";
+	private String passiveIp = "";
 	private int passivePort;
 
 	// 服务扩展信息，可选。
-	private @NotNull Binary extraInfo = Binary.Empty;
+	private Binary extraInfo = Binary.Empty;
 
 	// ServiceManager用来存储服务器的SessionId。算是一个优化吧。
 	private transient @Nullable Long sessionId;
 
-	public @NotNull String getServiceName() {
+	public String getServiceName() {
 		return serviceName;
 	}
 
-	public @NotNull String getServiceIdentity() {
+	public String getServiceIdentity() {
 		return serviceIdentity;
 	}
 
-	public @NotNull String getPassiveIp() {
+	public String getPassiveIp() {
 		return passiveIp;
 	}
 
@@ -51,7 +50,7 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 		return sessionId;
 	}
 
-	public void setSessionId(@NotNull Long sessionId) {
+	public void setSessionId(Long sessionId) {
 		this.sessionId = sessionId;
 	}
 
@@ -59,7 +58,7 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 		return version;
 	}
 
-	public void setPassiveIp(@NotNull String value) {
+	public void setPassiveIp(String value) {
 		passiveIp = value;
 	}
 
@@ -71,7 +70,7 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 		passivePort = value;
 	}
 
-	public @NotNull Binary getExtraInfo() {
+	public Binary getExtraInfo() {
 		return extraInfo;
 	}
 
@@ -79,27 +78,27 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 		extraInfo = value != null ? value : Binary.Empty;
 	}
 
-	public BServiceInfo(@NotNull IByteBuffer bb) {
+	public BServiceInfo(IByteBuffer bb) {
 		decode(bb);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity) {
+	public BServiceInfo(String name, String identity) {
 		this(name, identity, 0, null, 0, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, long version) {
+	public BServiceInfo(String name, String identity, long version) {
 		this(name, identity, version, null, 0, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip) {
+	public BServiceInfo(String name, String identity, long version, @Nullable String ip) {
 		this(name, identity, version, ip, 0, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip, int port) {
+	public BServiceInfo(String name, String identity, long version, @Nullable String ip, int port) {
 		this(name, identity, version, ip, port, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip, int port,
+	public BServiceInfo(String name, String identity, long version, @Nullable String ip, int port,
 						@Nullable Binary extraInfo) {
 		serviceName = name;
 		serviceIdentity = identity;
@@ -112,7 +111,7 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		serviceName = bb.ReadString();
 		serviceIdentity = bb.ReadString();
 		version = bb.ReadLong();
@@ -122,7 +121,7 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteString(serviceName);
 		bb.WriteString(serviceIdentity);
 		bb.WriteLong(version);
@@ -173,13 +172,13 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 	}
 
 	@Override
-	public int compareTo(@NotNull BServiceInfo o) {
+	public int compareTo(BServiceInfo o) {
 		int c = serviceName.compareTo(o.serviceName);
 		return c != 0 ? c : serviceIdentity.compareTo(o.serviceIdentity);
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "BServiceInfo{serviceName='" + serviceName
 				+ "', serviceIdentity='" + serviceIdentity
 				+ "', version=" + version

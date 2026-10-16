@@ -16,21 +16,20 @@ import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 生成代码的编解码辅助：向量/四元数的 SQL 列装卸载，以及各容器类型的 JSON 解码。 */
 public class Helper {
-	public static @NotNull Vector2 decodeVector2(@NotNull ArrayList<String> parents,
-												 @NotNull ResultSet rs) throws SQLException {
+	public static Vector2 decodeVector2(ArrayList<String> parents,
+												 ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
 		var y = rs.getFloat(_parents_name_ + "y");
 		return new Vector2(x, y);
 	}
 
-	public static @NotNull Vector3 decodeVector3(@NotNull ArrayList<String> parents,
-												 @NotNull ResultSet rs) throws SQLException {
+	public static Vector3 decodeVector3(ArrayList<String> parents,
+												 ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
 		var y = rs.getFloat(_parents_name_ + "y");
@@ -38,8 +37,8 @@ public class Helper {
 		return new Vector3(x, y, z);
 	}
 
-	public static @NotNull Vector4 decodeVector4(@NotNull ArrayList<String> parents,
-												 @NotNull ResultSet rs) throws SQLException {
+	public static Vector4 decodeVector4(ArrayList<String> parents,
+												 ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
 		var y = rs.getFloat(_parents_name_ + "y");
@@ -48,8 +47,8 @@ public class Helper {
 		return new Vector4(x, y, z, w);
 	}
 
-	public static @NotNull Quaternion decodeQuaternion(@NotNull ArrayList<String> parents,
-													   @NotNull ResultSet rs) throws SQLException {
+	public static Quaternion decodeQuaternion(ArrayList<String> parents,
+													   ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
 		var y = rs.getFloat(_parents_name_ + "y");
@@ -58,16 +57,16 @@ public class Helper {
 		return new Quaternion(x, y, z, w);
 	}
 
-	public static @NotNull Vector2Int decodeVector2Int(@NotNull ArrayList<String> parents,
-													   @NotNull ResultSet rs) throws SQLException {
+	public static Vector2Int decodeVector2Int(ArrayList<String> parents,
+													   ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getInt(_parents_name_ + "x");
 		var y = rs.getInt(_parents_name_ + "y");
 		return new Vector2Int(x, y);
 	}
 
-	public static @NotNull Vector3Int decodeVector3Int(@NotNull ArrayList<String> parents,
-													   @NotNull ResultSet rs) throws SQLException {
+	public static Vector3Int decodeVector3Int(ArrayList<String> parents,
+													   ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getInt(_parents_name_ + "x");
 		var y = rs.getInt(_parents_name_ + "y");
@@ -75,32 +74,23 @@ public class Helper {
 		return new Vector3Int(x, y, z);
 	}
 
-	public static void encodeVector2(@NotNull Vector2 value, @NotNull ArrayList<String> parents,
-									 @NotNull SQLStatement st) {
+	public static void encodeVector2(Vector2 value, ArrayList<String> parents,
+									 SQLStatement st) {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		st.appendFloat(_parents_name_ + "x", value.x);
 		st.appendFloat(_parents_name_ + "y", value.y);
 	}
 
-	public static void encodeVector3(@NotNull Vector3 value, @NotNull ArrayList<String> parents,
-									 @NotNull SQLStatement st) {
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		st.appendFloat(_parents_name_ + "x", value.x);
-		st.appendFloat(_parents_name_ + "y", value.y);
-		st.appendFloat(_parents_name_ + "z", value.z);
-	}
-
-	public static void encodeVector4(@NotNull Vector4 value, @NotNull ArrayList<String> parents,
-									 @NotNull SQLStatement st) {
+	public static void encodeVector3(Vector3 value, ArrayList<String> parents,
+									 SQLStatement st) {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		st.appendFloat(_parents_name_ + "x", value.x);
 		st.appendFloat(_parents_name_ + "y", value.y);
 		st.appendFloat(_parents_name_ + "z", value.z);
-		st.appendFloat(_parents_name_ + "w", value.w);
 	}
 
-	public static void encodeQuaternion(@NotNull Quaternion value, @NotNull ArrayList<String> parents,
-										@NotNull SQLStatement st) {
+	public static void encodeVector4(Vector4 value, ArrayList<String> parents,
+									 SQLStatement st) {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		st.appendFloat(_parents_name_ + "x", value.x);
 		st.appendFloat(_parents_name_ + "y", value.y);
@@ -108,25 +98,34 @@ public class Helper {
 		st.appendFloat(_parents_name_ + "w", value.w);
 	}
 
-	public static void encodeVector2Int(@NotNull Vector2Int value, @NotNull ArrayList<String> parents,
-										@NotNull SQLStatement st) {
+	public static void encodeQuaternion(Quaternion value, ArrayList<String> parents,
+										SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendFloat(_parents_name_ + "x", value.x);
+		st.appendFloat(_parents_name_ + "y", value.y);
+		st.appendFloat(_parents_name_ + "z", value.z);
+		st.appendFloat(_parents_name_ + "w", value.w);
+	}
+
+	public static void encodeVector2Int(Vector2Int value, ArrayList<String> parents,
+										SQLStatement st) {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		st.appendInt(_parents_name_ + "x", value.x);
 		st.appendInt(_parents_name_ + "y", value.y);
 	}
 
-	public static void encodeVector3Int(@NotNull Vector3Int value, @NotNull ArrayList<String> parents,
-										@NotNull SQLStatement st) {
+	public static void encodeVector3Int(Vector3Int value, ArrayList<String> parents,
+										SQLStatement st) {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		st.appendInt(_parents_name_ + "x", value.x);
 		st.appendInt(_parents_name_ + "y", value.y);
 		st.appendInt(_parents_name_ + "z", value.z);
 	}
 
-	private static final @NotNull Json json = Json.instance;
-	private static final @NotNull Json.ClassMeta<DynamicBean> dynamicBeanMeta = json.getClassMeta(DynamicBean.class);
+	private static final Json json = Json.instance;
+	private static final Json.ClassMeta<DynamicBean> dynamicBeanMeta = json.getClassMeta(DynamicBean.class);
 
-	public static void decodeJsonDynamic(@NotNull DynamicBean bean, @Nullable String jsonStr) {
+	public static void decodeJsonDynamic(DynamicBean bean, @Nullable String jsonStr) {
 		if (jsonStr == null)
 			bean.reset();
 		else {
@@ -141,7 +140,7 @@ public class Helper {
 		}
 	}
 
-	public static <T> void decodeJsonList(@NotNull List<T> list, @NotNull Class<T> valueClass,
+	public static <T> void decodeJsonList(List<T> list, Class<T> valueClass,
 										  @Nullable String jsonStr) {
 		list.clear();
 		if (jsonStr != null) {
@@ -156,7 +155,7 @@ public class Helper {
 		}
 	}
 
-	public static <T> void decodeJsonSet(@NotNull Set<T> set, @NotNull Class<T> valueClass, @Nullable String jsonStr) {
+	public static <T> void decodeJsonSet(Set<T> set, Class<T> valueClass, @Nullable String jsonStr) {
 		set.clear();
 		if (jsonStr != null) {
 			var jr = JsonReader.local();
@@ -178,7 +177,7 @@ public class Helper {
 	 * 新增手写调用方若不确定字段名能否匹配，请优先使用decodeJsonTypedMap。
 	 */
 	@SuppressWarnings("unchecked")
-	public static void decodeJsonMap(@NotNull Bean parentBean, @NotNull String fieldName, @NotNull Map<?, ?> map,
+	public static void decodeJsonMap(Bean parentBean, String fieldName, Map<?, ?> map,
 									 @Nullable String jsonStr) {
 		map.clear();
 		if (jsonStr != null) {
@@ -200,10 +199,10 @@ public class Helper {
 	// 且clear()清空现有数据；且行bean的泛型C/V在声明处是类型变量，反射路径退化为
 	// Map<String,Object>（键成String，类型化get全miss）。本方法按meta构建FieldMeta直接
 	// parseMap0（与GTable1/GTable2解析器同款模式），键值按真实类型解码；FieldMeta按meta缓存。
-	private static final @NotNull ConcurrentHashMap<Meta2<?, ?>, Json.FieldMeta> jsonMapFieldMetas
+	private static final ConcurrentHashMap<Meta2<?, ?>, Json.FieldMeta> jsonMapFieldMetas
 			= new ConcurrentHashMap<>();
 
-	public static <K, V> void decodeJsonTypedMap(@NotNull Map<?, ?> map, @NotNull Meta2<K, V> meta,
+	public static <K, V> void decodeJsonTypedMap(Map<?, ?> map, Meta2<K, V> meta,
 												 @Nullable String jsonStr) {
 		map.clear();
 		if (jsonStr == null)
@@ -234,8 +233,8 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void decodeJsonGTable1(@NotNull Bean parentBean, @NotNull String fieldName,
-										 @NotNull Object map, @Nullable String jsonStr) {
+	public static void decodeJsonGTable1(Bean parentBean, String fieldName,
+										 Object map, @Nullable String jsonStr) {
 		((GTable1<?, ?, ?>)map).clear();
 		if (jsonStr != null) {
 			var jr = JsonReader.local();
@@ -251,8 +250,8 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void decodeJsonGTable2(@NotNull Bean parentBean, @NotNull String fieldName,
-										 @NotNull Object map, @Nullable String jsonStr) {
+	public static void decodeJsonGTable2(Bean parentBean, String fieldName,
+										 Object map, @Nullable String jsonStr) {
 		((GTable2<?, ?, ?, ?>)map).clear();
 		if (jsonStr != null) {
 			var jr = JsonReader.local();
@@ -267,7 +266,7 @@ public class Helper {
 		}
 	}
 
-	public static @NotNull String encodeJson(@Nullable Object obj) {
+	public static String encodeJson(@Nullable Object obj) {
 		var jw = JsonWriter.local();
 		int previousFlags = jw.getFlags();
 		int previousDepth = jw.getDepthLimit();

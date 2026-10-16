@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.util.List;
@@ -23,21 +25,20 @@ import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Bean/Data 的 typeId 注册表与工厂：支持热更重定向、懒加载与动态bean创建。
  */
 public final class BeanFactory {
-	private static final @NotNull Logger logger = LogManager.getLogger(BeanFactory.class);
+	private static final Logger logger = LogManager.getLogger(BeanFactory.class);
 	private static final LongHashMap<Object> allClassNameMap = new LongHashMap<>();
 	private static final LongHashMap<Object> allDataClassNameMap = new LongHashMap<>();
 	// 两张map是同一个"类名/typeId注册表"的两个方向, 加载器必须同时持有两者,
 	// 所以只用一把读写锁: 否则 findClass(先Bean后Data) 与 findDataClass(先Data后Bean)
 	// 会形成 AB-BA 锁序反转, 在首次惰性加载并发时互等死锁.
-	private static final @NotNull ReentrantReadWriteLock.ReadLock allMapReadLock;
-	private static final @NotNull ReentrantReadWriteLock.WriteLock allMapWriteLock;
+	private static final ReentrantReadWriteLock.ReadLock allMapReadLock;
+	private static final ReentrantReadWriteLock.WriteLock allMapWriteLock;
 	private static @Nullable Application zeze;
 
 	static {
@@ -55,24 +56,24 @@ public final class BeanFactory {
 	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
 	private final ConcurrentHashMap<Class<?>, MethodHandle> registeredClasses = new ConcurrentHashMap<>();
 
-	public void registerWatch(@NotNull Consumer<Class<?>> consumer) {
+	public void registerWatch(Consumer<Class<?>> consumer) {
 		globalToLocalWatchers.add(consumer);
 	}
 
-	public void unregisterWatch(@NotNull Consumer<Class<?>> consumer) {
+	public void unregisterWatch(Consumer<Class<?>> consumer) {
 		globalToLocalWatchers.remove(consumer);
 	}
 
-	private void notifyAllWatcher(@NotNull Class<?> cls) {
+	private void notifyAllWatcher(Class<?> cls) {
 		for (var consumer : globalToLocalWatchers)
 			consumer.accept(cls);
 	}
 
-	public static void setApplication(@NotNull Application zeze) {
+	public static void setApplication(Application zeze) {
 		BeanFactory.zeze = zeze;
 	}
 
-	public static long typeId(@NotNull Class<? extends Bean> beanClass) {
+	public static long typeId(Class<? extends Bean> beanClass) {
 		try {
 			return beanClass.getConstructor((Class<?>[])null).newInstance((Object[])null).typeId();
 		} catch (Exception ex) {
@@ -91,9 +92,9 @@ public final class BeanFactory {
 	 *                      可被并行改写，取回为null时NPE会落入install不可回滚区halt(111222)
 	 *                      （本文件220/303/348行对null hotManager均有防御回退）。
 	 */
-	public static void resetHot(@NotNull Map<BeanFactory, List<Class<?>>> beanFactories,
-								@NotNull List<JarFile> hotModules,
-								@NotNull HotRedirect hotRedirect) {
+	public static void resetHot(Map<BeanFactory, List<Class<?>>> beanFactories,
+								List<JarFile> hotModules,
+								HotRedirect hotRedirect) {
 		for (JarFile jf : hotModules)
 			reloadClassesFromJar(jf);
 
@@ -108,7 +109,7 @@ public final class BeanFactory {
 			try {
 				bf.writingBeanFactory.foreachUpdate((typeId, oldCtor) -> {
 					try {
-						var oldCls = oldCtor.type().returnType();
+						var oldCls = Objects.requireNonNull(oldCtor).type().returnType();
 						var newCls = hotRedirect.loadClass(oldCls.getName());
 						classes.add(newCls);
 						var ctor = Reflect.getDefaultConstructor(newCls);
@@ -129,7 +130,7 @@ public final class BeanFactory {
 			try {
 				bf.writingDataFactory.foreachUpdate((typeId, oldCtor) -> {
 					try {
-						var oldCls = oldCtor.type().returnType();
+						var oldCls = Objects.requireNonNull(oldCtor).type().returnType();
 						var newCls = hotRedirect.loadClass(oldCls.getName());
 						classes.add(newCls);
 						var ctor = Reflect.getDefaultConstructor(newCls);
@@ -155,7 +156,7 @@ public final class BeanFactory {
 	 * @param initClasses 是否初始化类
 	 * @return 本次加载数量
 	 */
-	public static int loadAllClasses(@NotNull String classPrefix, boolean initClasses) {
+	public static int loadAllClasses(String classPrefix, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
 		allMapWriteLock.lock();
@@ -172,7 +173,7 @@ public final class BeanFactory {
 		return n;
 	}
 
-	public static int loadClassesFromPath(@NotNull String path, boolean initClasses) {
+	public static int loadClassesFromPath(String path, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
 		allMapWriteLock.lock();
@@ -189,7 +190,7 @@ public final class BeanFactory {
 		return n;
 	}
 
-	public static int loadClassesFromJar(@NotNull String jarFile, boolean initClasses) throws IOException {
+	public static int loadClassesFromJar(String jarFile, boolean initClasses) throws IOException {
 		var timeBegin = System.nanoTime();
 		int n = 0;
 		allMapWriteLock.lock();
@@ -206,7 +207,7 @@ public final class BeanFactory {
 		return n;
 	}
 
-	public static int reloadClassesFromJar(@NotNull JarFile jarFile) {
+	public static int reloadClassesFromJar(JarFile jarFile) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
 		allMapWriteLock.lock();
@@ -224,7 +225,7 @@ public final class BeanFactory {
 	}
 
 	@SuppressWarnings("deprecation")
-	private static boolean loadClass(@NotNull String className) {
+	private static boolean loadClass(String className) {
 		try {
 			long typeId;
 			Object oldObj;
@@ -250,7 +251,7 @@ public final class BeanFactory {
 		return false;
 	}
 
-	private static boolean loadClassName(@NotNull String className) {
+	private static boolean loadClassName(String className) {
 		long typeId;
 		LongHashMap<Object> classNameMap;
 		if (className.endsWith("$Data")) {
@@ -275,7 +276,7 @@ public final class BeanFactory {
 		return true;
 	}
 
-	private static void reloadClassName(@NotNull String className) {
+	private static void reloadClassName(String className) {
 		long typeId;
 		LongHashMap<Object> classNameMap;
 		if (className.endsWith("$Data")) {
@@ -379,7 +380,7 @@ public final class BeanFactory {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T extends Serializable> T invoke(@NotNull MethodHandle methodHandle) {
+	public static <T extends Serializable> T invoke(MethodHandle methodHandle) {
 		try {
 			return (T)methodHandle.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -387,7 +388,7 @@ public final class BeanFactory {
 		}
 	}
 
-	public @NotNull MethodHandle register(@NotNull Class<? extends Serializable> cls) {
+	public MethodHandle register(Class<? extends Serializable> cls) {
 		var ctor = registeredClasses.get(cls);
 		if (ctor != null)
 			return ctor;
@@ -401,7 +402,7 @@ public final class BeanFactory {
 		return register(cls, s, ctor);
 	}
 
-	public @NotNull MethodHandle register(@NotNull Serializable s) {
+	public MethodHandle register(Serializable s) {
 		var cls = s.getClass();
 		var ctor = registeredClasses.get(cls);
 		if (ctor != null)
@@ -410,16 +411,16 @@ public final class BeanFactory {
 		return register(cls, s, ctor);
 	}
 
-	private @NotNull MethodHandle register(@NotNull Class<? extends Serializable> cls, @NotNull Serializable s,
-										   @NotNull MethodHandle ctor) {
+	private MethodHandle register(Class<? extends Serializable> cls, Serializable s,
+										   MethodHandle ctor) {
 		if (s instanceof Bean) {
 			writingBeanFactoryLock.lock();
 			try {
 				var oldCtor = writingBeanFactory.put(s.typeId(), ctor);
 				if (oldCtor != ctor) {
-					if (oldCtor != null && oldCtor.type().returnType() != cls) {
+					if (oldCtor != null && Objects.requireNonNull(oldCtor).type().returnType() != cls) {
 						logger.warn("overwrite bean factory for typeId={},class={}=>{}",
-								s.typeId(), oldCtor.type().returnType().getName(), cls.getName());
+								s.typeId(), Objects.requireNonNull(oldCtor).type().returnType().getName(), cls.getName());
 					}
 					readingBeanFactory = null;
 					registeredClasses.put(cls, ctor);
@@ -432,9 +433,9 @@ public final class BeanFactory {
 			try {
 				var oldCtor = writingDataFactory.put(s.typeId(), ctor);
 				if (oldCtor != ctor) {
-					if (oldCtor != null && oldCtor.type().returnType() != cls) {
+					if (oldCtor != null && Objects.requireNonNull(oldCtor).type().returnType() != cls) {
 						logger.warn("overwrite data factory for typeId={},class={}=>{}",
-								s.typeId(), oldCtor.type().returnType().getName(), cls.getName());
+								s.typeId(), Objects.requireNonNull(oldCtor).type().returnType().getName(), cls.getName());
 					}
 					readingDataFactory = null;
 					registeredClasses.put(cls, ctor);
@@ -447,14 +448,14 @@ public final class BeanFactory {
 		return ctor;
 	}
 
-	private void registerBean(@NotNull Class<? extends Bean> cls, long typeId, @NotNull MethodHandle ctor) {
+	private void registerBean(Class<? extends Bean> cls, long typeId, MethodHandle ctor) {
 		writingBeanFactoryLock.lock();
 		try {
 			var oldCtor = writingBeanFactory.put(typeId, ctor);
 			if (oldCtor != ctor) {
-				if (oldCtor != null && oldCtor.type().returnType() != cls) {
+				if (oldCtor != null && Objects.requireNonNull(oldCtor).type().returnType() != cls) {
 					logger.warn("overwrite bean factory for typeId={}, class={}=>{}",
-							typeId, oldCtor.type().returnType().getName(), cls.getName());
+							typeId, Objects.requireNonNull(oldCtor).type().returnType().getName(), cls.getName());
 				}
 				readingBeanFactory = null;
 				registeredClasses.put(cls, ctor);
@@ -464,14 +465,14 @@ public final class BeanFactory {
 		}
 	}
 
-	private void registerData(@NotNull Class<? extends Data> cls, long typeId, @NotNull MethodHandle ctor) {
+	private void registerData(Class<? extends Data> cls, long typeId, MethodHandle ctor) {
 		writingDataFactoryLock.lock();
 		try {
 			var oldCtor = writingDataFactory.put(typeId, ctor);
 			if (oldCtor != ctor) {
-				if (oldCtor != null && oldCtor.type().returnType() != cls) {
+				if (oldCtor != null && Objects.requireNonNull(oldCtor).type().returnType() != cls) {
 					logger.warn("overwrite data factory for typeId={}, class={}=>{}",
-							typeId, oldCtor.type().returnType().getName(), cls.getName());
+							typeId, Objects.requireNonNull(oldCtor).type().returnType().getName(), cls.getName());
 				}
 				readingDataFactory = null;
 				registeredClasses.put(cls, ctor);
@@ -481,11 +482,11 @@ public final class BeanFactory {
 		}
 	}
 
-	public static long getSpecialTypeIdFromBean(@NotNull Serializable s) {
+	public static long getSpecialTypeIdFromBean(Serializable s) {
 		return s.typeId();
 	}
 
-	public @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
+	public Bean createBeanFromSpecialTypeId(long typeId) {
 		try {
 			var factory = readingBeanFactory;
 			if (factory == null) {
@@ -534,7 +535,7 @@ public final class BeanFactory {
 		}
 	}
 
-	public @NotNull Data createDataFromSpecialTypeId(long typeId) {
+	public Data createDataFromSpecialTypeId(long typeId) {
 		try {
 			var factory = readingDataFactory;
 			if (factory == null) {
@@ -582,7 +583,7 @@ public final class BeanFactory {
 		}
 	}
 
-	public static @NotNull ByteBuffer toByteBuffer(@NotNull Serializable s, @Nullable ByteBuffer bb) {
+	public static ByteBuffer toByteBuffer(Serializable s, @Nullable ByteBuffer bb) {
 		int preAllocSize = s.preAllocSize();
 		if (bb == null)
 			bb = ByteBuffer.Allocate(Math.min(8 + preAllocSize, 65536));
@@ -597,7 +598,7 @@ public final class BeanFactory {
 		return bb;
 	}
 
-	public static @NotNull Binary toBinary(@NotNull Serializable s) {
+	public static Binary toBinary(Serializable s) {
 		int preAllocSize = s.preAllocSize();
 		var bb = ByteBuffer.Allocate(Math.min(8 + preAllocSize, 65536));
 		bb.WriteLong8(s.typeId());
@@ -608,25 +609,25 @@ public final class BeanFactory {
 		return new Binary(bb);
 	}
 
-	public @NotNull Bean toBean(@NotNull ByteBuffer bb) {
+	public Bean toBean(ByteBuffer bb) {
 		var typeId = bb.ReadLong8();
 		var bean = createBeanFromSpecialTypeId(typeId);
 		bean.decode(bb);
 		return bean;
 	}
 
-	public @NotNull Bean toBean(@NotNull Binary b) {
+	public Bean toBean(Binary b) {
 		return toBean(b.Wrap());
 	}
 
-	public @NotNull Data toData(@NotNull ByteBuffer bb) {
+	public Data toData(ByteBuffer bb) {
 		var typeId = bb.ReadLong8();
 		var data = createDataFromSpecialTypeId(typeId);
 		data.decode(bb);
 		return data;
 	}
 
-	public @NotNull Data toData(@NotNull Binary b) {
+	public Data toData(Binary b) {
 		return toData(b.Wrap());
 	}
 }

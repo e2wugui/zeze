@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -27,8 +28,7 @@ import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RocketMQ 事务消息生产者：本地 Zeze 过程与半消息 COMMIT/ROLLBACK 绑定，并维护事务回查表 tSent。
@@ -65,13 +65,13 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  */
 public class Producer extends AbstractProducer implements TransactionListener {
-	private static final @NotNull Logger logger = LogManager.getLogger(Producer.class);
+	private static final Logger logger = LogManager.getLogger(Producer.class);
 
 	// 同 JVM 多实例计数（FND29 rocketmq-02 告警面）：多 app 同进程（如 Infinite.Simulate 五 app
 	// 拓扑）仅构造未 start 的实例是惰性的，硬拒绝会把合法拓扑一刀切死（终验 Simulate 级联
 	// 139 败实锤）——降级为 warn 保留可观测性；真正危险的是多实例同时在线（同组回查路由
 	// 串本地 tSent 台），部署契约见类 javadoc，跨机形态本进程无法防御。
-	private static final @NotNull AtomicInteger liveInstances = new AtomicInteger();
+	private static final AtomicInteger liveInstances = new AtomicInteger();
 
 	// tSent过期行的保留时长（毫秒），默认7天：行须存活到 broker 事务回查窗口结束——回查对已删行
 	// 答 UNKNOW（checkLocalTransaction），仍在恢复窗口内的 COMMIT 行被删即失去 COMMIT 丢失时的
@@ -93,19 +93,19 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	//（endTransactionOneway）须在producer.shutdown()之前的客户端存活窗口内发出。
 	private static final long STOP_AWAIT_MILLIS = 10_000L;
 
-	public final @NotNull Application zeze;
-	private final @NotNull TransactionMQProducer producer;
-	private final @NotNull ThreadPoolExecutor checkExecutor;
+	public final Application zeze;
+	private final TransactionMQProducer producer;
+	private final ThreadPoolExecutor checkExecutor;
 	private @Nullable TimerFuture<?> tSentCleanFuture;
 	// stop 幂等标志：stop 里 shutdown 族调用天然幂等，唯 liveInstances 递减不是——
 	// 重复 stop 必须由本标志 CAS 抢占整体只执行一次，否则计数下漂瓦解多实例告警判据。
-	private final @NotNull AtomicBoolean stopped = new AtomicBoolean();
+	private final AtomicBoolean stopped = new AtomicBoolean();
 
 	/**
 	 * @param clientConfig 传入即生效：namesrvAddr/namespace/instanceName 等路由/身份字段透传给
 	 *                     内部 producer（见 {@link ClientConfigs}），未列字段可经 {@link #getProducer()} 设置。
 	 */
-	public Producer(@NotNull Application zeze, @NotNull String producerGroup, @NotNull ClientConfig clientConfig) {
+	public Producer(Application zeze, String producerGroup, ClientConfig clientConfig) {
 		boolean initialized = false;
 		// 注册成功标记：失败回滚只反注册自己成功注册过的表——RegisterZezeTables自身抛出
 		//（duplicate table，注册未发生）时反注册会摘掉注册者的活表（removeTable按id/name删）。
@@ -155,7 +155,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		// 与producer.start次序皆可）；库名失配（null）不在此拦——Application打开表时自会
 		// 响亮失败。测试普遍以内存库构造但不调start()；联调/demo经豁免属性放行。
 		var dbConf = zeze.getConfig().getDatabaseConfMap()
-				.get(zeze.getConfig().getTableConf(_tSent.getName()).getDatabaseName());
+				.get(Objects.requireNonNull(zeze.getConfig().getTableConf(_tSent.getName())).getDatabaseName());
 		if (dbConf != null && dbConf.getDatabaseType() == Config.DbType.Memory
 				&& !Boolean.getBoolean(TSENT_ALLOW_MEMORY_PROPERTY))
 			throw new IllegalStateException("RocketMQ.Producer tSent must reside in a persistent database,"
@@ -214,7 +214,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		liveInstances.decrementAndGet();
 	}
 
-	public @NotNull TransactionMQProducer getProducer() {
+	public TransactionMQProducer getProducer() {
 		return producer;
 	}
 
@@ -227,7 +227,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	 * {@code TaskSpec.ofAction(() -> producer.send(msg)).run()} 注册到外层事务的 whileCommit
 	 * （提交后执行、回滚跳过）。
 	 */
-	public SendResult sendMessage(@NotNull Message msg) throws Exception {
+	public SendResult sendMessage(Message msg) throws Exception {
 		// 环境事务内禁发（与sendMessageWithTransaction同款判据 Transaction.getCurrent() 非空；
 		// 不用 isRunning() 收窄——whileCommit 回调在事务 Completed 后、线程归还前执行仍非空）：
 		// 普通消息同步立即投递与外层提交/回滚脱钩，回滚即幽灵消息、redo 重跑每轮再发。
@@ -247,8 +247,8 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	 * 立即抛 {@link UnsupportedOperationException}（本方法第一行 fail-fast，先于一切副作用）。
 	 * 事务联动发送（外层事务提交后再发 COMMIT）需独立设计，当前不支持。
 	 */
-	public @Nullable TransactionSendResult sendMessageWithTransaction(@NotNull Message msg,
-																	  @NotNull FuncLong procedureAction)
+	public @Nullable TransactionSendResult sendMessageWithTransaction(Message msg,
+																	  FuncLong procedureAction)
 			throws MQClientException {
 		// 环境事务内禁发事务消息。判据与 Procedure.call() 选择嵌套路径的判据完全一致
 		//（Transaction.getCurrent() 非空）：此时 executeLocalTransaction 里的本地事务走
@@ -281,7 +281,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	}
 
 	@Override
-	public @NotNull LocalTransactionState executeLocalTransaction(@NotNull Message msg, Object arg) {
+	public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
 		if (!(arg instanceof TxnAction action)) {
 			logger.error("executeLocalTransaction: arg is not TxnAction: {}", arg);
 			return LocalTransactionState.UNKNOW;
@@ -344,7 +344,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	 * 不是放宽本方法的回答。
 	 */
 	@Override
-	public @NotNull LocalTransactionState checkLocalTransaction(@NotNull MessageExt msg) {
+	public LocalTransactionState checkLocalTransaction(MessageExt msg) {
 		var uniqKey = msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
 		var sent = uniqKey != null ? _tSent.selectDirty(uniqKey) : null;
 		if (sent == null)

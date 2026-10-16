@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,29 +29,29 @@ import com.amazonaws.services.dynamodbv2.model.TransactWriteItem;
 import com.amazonaws.services.dynamodbv2.model.TransactWriteItemsRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * AWS DynamoDB 数据库后端：KV 表以 TransactWriteItems 事务落库，
  * Operates 用条件写实现同版本保存。
  */
 public class DatabaseDynamoDb extends Database {
-	private static final @NotNull Logger logger = LogManager.getLogger(DatabaseDynamoDb.class);
+	private static final Logger logger = LogManager.getLogger(DatabaseDynamoDb.class);
 
 	private final AmazonDynamoDB dynamoDbClient;
 
-	public DatabaseDynamoDb(Application zeze, Config.DatabaseConf conf) {
+	public DatabaseDynamoDb(@Nullable Application zeze, Config.DatabaseConf conf) {
 		this(zeze, conf, createClient(conf));
 	}
 
-	DatabaseDynamoDb(Application zeze, Config.DatabaseConf conf, AmazonDynamoDB client) {
+	DatabaseDynamoDb(@Nullable Application zeze, Config.DatabaseConf conf, AmazonDynamoDB client) {
 		super(zeze, conf);
 		dynamoDbClient = client;
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesDynamoDb());
 	}
 
 	private static AmazonDynamoDB createClient(Config.DatabaseConf conf) {
-		var dynamoConf = conf.getDynamoConf();
+		var dynamoConf = Objects.requireNonNull(conf.getDynamoConf());
 		// 证书经配置文件指定的profile解析；endpoint按region解析并启用discovery——
 		// 显式指定endpoint（便于测试指向本地模拟器）需扩展DynamoConf增加endpoint字段，
 		// 当前配置无该字段。
@@ -76,12 +78,12 @@ public class DatabaseDynamoDb extends Database {
 	}
 
 	@Override
-	public @NotNull Table openTable(@NotNull String name, int id) {
+	public Table openTable(String name, int id) {
 		return new TableDynamoDb(name);
 	}
 
 	@Override
-	public @NotNull Transaction beginTransaction() {
+	public Transaction beginTransaction() {
 		return new TransDynamoDb();
 	}
 
@@ -96,18 +98,18 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public void setInUse(int localId, @NotNull String global) {
+		public void setInUse(int localId, String global) {
 			// 暂时不支持
 		}
 
 		@Override
-		public int clearInUse(int localId, @NotNull String global) {
+		public int clearInUse(int localId, String global) {
 			// 暂时不支持
 			return 0;
 		}
 
 		@Override
-		public KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			// 读-判-写必须原子：多实例并发启动（tryLock 恒真的后端）同时进入 schemasCompatible 时，
 			// 读-判-写会丢失更新，级联出重复 renameTable 丢表数据。
 			// 这里用“完整旧值”做服务端条件写（PutItem + ConditionExpression）：
@@ -148,7 +150,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
 			var result = new DataWithVersion();
 			var bb = dataWithVersion.find(key);
 			if (bb != null)
@@ -255,12 +257,12 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public @NotNull Database getDatabase() {
+		public Database getDatabase() {
 			return DatabaseDynamoDb.this;
 		}
 
 		@Override
-		public ByteBuffer find(@NotNull ByteBuffer key) {
+		public @Nullable ByteBuffer find(ByteBuffer key) {
 			checkKvKeyLengthForLegacyAccess(name, key);
 			var keyPrimary = new HashMap<String, AttributeValue>();
 			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
@@ -277,21 +279,21 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			checkKvKeyLength(name, key);
 			var myt = (TransDynamoDb)t;
 			myt.replace(name, key, value);
 		}
 
 		@Override
-		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			checkKvKeyLengthForLegacyAccess(name, key);
 			var myt = (TransDynamoDb)t;
 			myt.remove(name, key);
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			var attributesToGet = new ArrayList<String>();
 			attributesToGet.add("key");
 			attributesToGet.add("value");
@@ -323,7 +325,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			var attributesToGet = new ArrayList<String>();
 			attributesToGet.add("key");
 			var req = new ScanRequest();
@@ -352,27 +354,27 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
+		public long walkDesc(TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
+		public long walkKeyDesc(TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			// 主要是 SafeBatch 的问题：它把返回的游标持久化进 BBatch 供下一轮续扫，而 Scan 的
 			// ExclusiveStartKey 只是"从该 item 的扫描位置继续"的翻页书签——书签 item 可能已被
 			// 删除、表增长引发分区分裂后位置同样失效（AWS 只承诺回传 LastEvaluatedKey，自造
@@ -383,7 +385,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			// 同 walk：Scan 无 key 序且 SafeBatch 游标语义未定义。
 			throw new UnsupportedOperationException();
 		}

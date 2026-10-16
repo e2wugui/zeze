@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.net.InetAddress;
@@ -54,10 +55,10 @@ import Zeze.Util.ThreadFactoryWithName;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
+import Zeze.Util.RocksDatabase.Table;
 
 /**
  * Token服务：生成/核销一次性令牌（内存SoftReference缓存+RocksDB落库），附带主题订阅广播。
@@ -65,7 +66,7 @@ import static Zeze.Util.Args.requireValue;
 public final class Token extends AbstractToken {
 	// 缓存缺失回载、迁移落库、核销删除必须共用稳定锁；TokenState锁随缓存条目更换，不能仲裁回载。
 	private final java.util.concurrent.locks.ReentrantLock tokenStoreLock = new java.util.concurrent.locks.ReentrantLock();
-	private static final @NotNull Logger logger = LogManager.getLogger(Token.class);
+	private static final Logger logger = LogManager.getLogger(Token.class);
 	private static final int DEFAULT_PORT = 5003;
 	private static final int TOKEN_CHAR_USED = 62; // 10+26+26
 	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
@@ -88,7 +89,7 @@ public final class Token extends AbstractToken {
 	}
 
 	// 生成24个字符的Token字符串. 每个字符只会出现半角的数字和字母共62种. 24个半角字符的字符串正好对齐64位,内存利用率高.
-	public static @NotNull String genToken(@NotNull Random random) {
+	public static String genToken(Random random) {
 		var tokenBytes = new byte[24];
 		var v = System.currentTimeMillis() / 1000;
 		for (int i = 0; i < 5; i++, v /= TOKEN_CHAR_USED)
@@ -104,12 +105,12 @@ public final class Token extends AbstractToken {
 		return new String(tokenBytes, StandardCharsets.ISO_8859_1);
 	}
 
-	private @NotNull String genToken() {
+	private String genToken() {
 		return genToken(tokenRandom);
 	}
 
 	public static class TokenClient extends HandshakeClient {
-		private Connector connector;
+		private @Nullable Connector connector;
 		private final ConcurrentHashMap<String, Consumer<NotifyTopic>> notifyTopicHandlers = new ConcurrentHashMap<>();
 		private final ConcurrentHashSet<String> subTopics = new ConcurrentHashSet<>();
 
@@ -139,7 +140,7 @@ public final class Token extends AbstractToken {
 				opt.setKeepSendTimeout(30);
 		}
 
-		public boolean registerNotifyTopicHandler(@NotNull String topic, @Nullable Consumer<NotifyTopic> handler) {
+		public boolean registerNotifyTopicHandler(String topic, @Nullable Consumer<NotifyTopic> handler) {
 			return handler != null
 					? notifyTopicHandlers.put(topic, handler) == null
 					: notifyTopicHandlers.remove(topic) != null;
@@ -162,7 +163,7 @@ public final class Token extends AbstractToken {
 			}
 		}
 
-		public @NotNull TokenClient start(@NotNull String host, int port) throws Exception {
+		public TokenClient start(String host, int port) throws Exception {
 			lock();
 			try {
 				if (connector != null)
@@ -195,11 +196,11 @@ public final class Token extends AbstractToken {
 		}
 
 		public void waitReady() {
-			connector.WaitReady();
+			Objects.requireNonNull(connector).WaitReady();
 		}
 
 		public @Nullable AsyncSocket getSocket() {
-			return connector.getSocket();
+			return Objects.requireNonNull(connector).getSocket();
 		}
 
 		// 不覆写OnSocketConnected保留"全Disable连上即完成握手"的快速路径：
@@ -210,63 +211,63 @@ public final class Token extends AbstractToken {
 		// WaitReady（futureSocket由OnHandshakeDone链完成）亦随之推迟到握手完成后，
 		// waitReady后立即可发的RPC不再与门禁冲突。全Disable互联代价为一次额外往返。
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
 			for (var topic : subTopics)
-				new SubTopic(new BTopic.Data(topic)).Send(connector.getSocket());
+				new SubTopic(new BTopic.Data(topic)).Send(Objects.requireNonNull(connector).getSocket());
 		}
 
-		public @NotNull TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
-			return new NewToken(new BNewTokenArg.Data(context, ttl)).SendForWait(connector.getSocket());
+		public TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
+			return new NewToken(new BNewTokenArg.Data(context, ttl)).SendForWait(Objects.requireNonNull(connector).getSocket());
 		}
 
 		public boolean newToken(@Nullable Binary context, long ttl,
-								@NotNull ProtocolHandle<Rpc<BNewTokenArg.Data, BNewTokenRes.Data>> handler) {
-			return new NewToken(new BNewTokenArg.Data(context, ttl)).Send(connector.getSocket(), handler);
+								ProtocolHandle<Rpc<BNewTokenArg.Data, BNewTokenRes.Data>> handler) {
+			return new NewToken(new BNewTokenArg.Data(context, ttl)).Send(Objects.requireNonNull(connector).getSocket(), handler);
 		}
 
-		public @NotNull TaskCompletionSource<BGetTokenRes.Data> getToken(@NotNull String token, long maxCount) {
-			return new GetToken(new BGetTokenArg.Data(token, maxCount)).SendForWait(connector.getSocket());
+		public TaskCompletionSource<BGetTokenRes.Data> getToken(String token, long maxCount) {
+			return new GetToken(new BGetTokenArg.Data(token, maxCount)).SendForWait(Objects.requireNonNull(connector).getSocket());
 		}
 
-		public boolean getToken(@NotNull String token, long maxCount,
-								@NotNull ProtocolHandle<Rpc<BGetTokenArg.Data, BGetTokenRes.Data>> handler) {
-			return new GetToken(new BGetTokenArg.Data(token, maxCount)).Send(connector.getSocket(), handler);
+		public boolean getToken(String token, long maxCount,
+								ProtocolHandle<Rpc<BGetTokenArg.Data, BGetTokenRes.Data>> handler) {
+			return new GetToken(new BGetTokenArg.Data(token, maxCount)).Send(Objects.requireNonNull(connector).getSocket(), handler);
 		}
 
-		public @NotNull TaskCompletionSource<EmptyBean.Data> subTopic(@NotNull String topic) {
+		public TaskCompletionSource<EmptyBean.Data> subTopic(String topic) {
 			subTopics.add(topic);
-			return new SubTopic(new BTopic.Data(topic)).SendForWait(connector.getSocket());
+			return new SubTopic(new BTopic.Data(topic)).SendForWait(Objects.requireNonNull(connector).getSocket());
 		}
 
-		public boolean subTopic(@NotNull String topic,
-								@NotNull ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
+		public boolean subTopic(String topic,
+								ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
 			subTopics.add(topic);
-			return new SubTopic(new BTopic.Data(topic)).Send(connector.getSocket(), handler);
+			return new SubTopic(new BTopic.Data(topic)).Send(Objects.requireNonNull(connector).getSocket(), handler);
 		}
 
-		public @NotNull TaskCompletionSource<EmptyBean.Data> unsubTopic(@NotNull String topic) {
+		public TaskCompletionSource<EmptyBean.Data> unsubTopic(String topic) {
 			subTopics.remove(topic);
-			return new UnsubTopic(new BTopic.Data(topic)).SendForWait(connector.getSocket());
+			return new UnsubTopic(new BTopic.Data(topic)).SendForWait(Objects.requireNonNull(connector).getSocket());
 		}
 
-		public boolean unsubTopic(@NotNull String topic,
-								  @NotNull ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
+		public boolean unsubTopic(String topic,
+								  ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
 			subTopics.remove(topic);
-			return new UnsubTopic(new BTopic.Data(topic)).Send(connector.getSocket(), handler);
+			return new UnsubTopic(new BTopic.Data(topic)).Send(Objects.requireNonNull(connector).getSocket(), handler);
 		}
 
-		public @NotNull TaskCompletionSource<EmptyBean.Data> pubTopic(@NotNull String topic, @Nullable Binary content,
+		public TaskCompletionSource<EmptyBean.Data> pubTopic(String topic, @Nullable Binary content,
 																	  boolean broadcast) {
-			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).SendForWait(connector.getSocket());
+			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).SendForWait(Objects.requireNonNull(connector).getSocket());
 		}
 
-		public boolean pubTopic(@NotNull String topic, @Nullable Binary content, boolean broadcast,
-								@NotNull ProtocolHandle<Rpc<BPubTopic.Data, EmptyBean.Data>> handler) {
-			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).Send(connector.getSocket(), handler);
+		public boolean pubTopic(String topic, @Nullable Binary content, boolean broadcast,
+								ProtocolHandle<Rpc<BPubTopic.Data, EmptyBean.Data>> handler) {
+			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).Send(Objects.requireNonNull(connector).getSocket(), handler);
 		}
 
-		protected long ProcessNotifyTopic(@NotNull NotifyTopic p) {
+		protected long ProcessNotifyTopic(NotifyTopic p) {
 			var handler = notifyTopicHandlers.get(p.Argument.getTopic());
 			if (handler == null)
 				return Procedure.NotImplement;
@@ -277,10 +278,10 @@ public final class Token extends AbstractToken {
 
 	public static final class TokenServer extends HandshakeServer {
 		private static final class Session {
-			final @NotNull AsyncSocket so;
+			final AsyncSocket so;
 			final HashSet<String> subTopics = new HashSet<>(); // 该session已订阅的主题,只在Session所在的IO线程访问,不需要考虑并发
 
-			Session(@NotNull AsyncSocket so) {
+			Session(AsyncSocket so) {
 				this.so = so;
 			}
 		}
@@ -299,7 +300,7 @@ public final class Token extends AbstractToken {
 				opt.setKeepSendTimeout(30);
 		}
 
-		boolean subTopic(@NotNull Session session, @NotNull String topic) {
+		boolean subTopic(Session session, String topic) {
 			if (!session.subTopics.add(topic))
 				return false;
 			// compute的remapping对同一key互斥执行：退订的"remove+isEmpty删条目"与订阅的"建表+add"若各自拆成
@@ -313,7 +314,7 @@ public final class Token extends AbstractToken {
 			return true;
 		}
 
-		boolean unsubTopic(@NotNull Session session, @NotNull String topic) {
+		boolean unsubTopic(Session session, String topic) {
 			if (!session.subTopics.remove(topic))
 				return false;
 			// remove+isEmpty判定放进同一remapping原子段，与subTopic的compute互斥，消除静默丢失窗口。
@@ -324,7 +325,7 @@ public final class Token extends AbstractToken {
 			return true;
 		}
 
-		void unsubAllTopics(@NotNull Session session) {
+		void unsubAllTopics(Session session) {
 			for (var topic : session.subTopics) {
 				topicMap.computeIfPresent(topic, (__, ss) -> {
 					ss.remove(session);
@@ -341,12 +342,12 @@ public final class Token extends AbstractToken {
 		// 加密TokenClient对接全Disable本服务端的错误配置，由客户端的降级拒绝
 		// 显式断连（否则是握手永不发生的静默挂起，可诊断性更好）。
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			so.setUserState(new Session(so));
 		}
 
 		@Override
-		public void OnSocketDisposed(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketDisposed(AsyncSocket so) throws Exception {
 			super.OnSocketDisposed(so);
 			var session = (Session)so.getUserState();
 			if (session != null) {
@@ -356,8 +357,8 @@ public final class Token extends AbstractToken {
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
-									 @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so)
+		public void dispatchProtocol(long typeId, ByteBuffer bb,
+									 ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so)
 				throws Exception {
 			try {
 				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
@@ -369,17 +370,17 @@ public final class Token extends AbstractToken {
 
 	// TokenState+Object+key+lock+context+CHM.Note+CHM.table: 80+16+(24+16+24)+32+(24+16+X)+32+4 = 268+X bytes
 	private static final class TokenState extends SoftReference<Object> {
-		final @NotNull Token token;
-		final @NotNull String key;
+		final Token token;
+		final String key;
 		final FastLock lock = new FastLock();
 		final @Nullable InetSocketAddress remoteAddr;
-		final @NotNull Binary context; // 绑定的上下文
+		final Binary context; // 绑定的上下文
 		final long createTime; // 创建时间戳(毫秒)
 		final long endTime; // 失效时间戳(毫秒)
 		long count; // 已访问次数. -1表示刚刚删除
 
-		TokenState(@NotNull Token token, @NotNull String key, @Nullable SocketAddress remoteAddr,
-				   @NotNull Binary context, long ttl) {
+		TokenState(Token token, String key, @Nullable SocketAddress remoteAddr,
+				   Binary context, long ttl) {
 			super(new Object(), Token.refQueue);
 			this.token = token;
 			this.key = key;
@@ -389,7 +390,7 @@ public final class Token extends AbstractToken {
 			this.endTime = createTime + ttl;
 		}
 
-		TokenState(@NotNull Token token, @NotNull String key, @NotNull ByteBuffer bb) {
+		TokenState(Token token, String key, ByteBuffer bb) {
 			super(new Object(), Token.refQueue);
 			this.token = token;
 			this.key = key;
@@ -414,7 +415,7 @@ public final class Token extends AbstractToken {
 			count = Math.max(bb.ReadLong(), 0);
 		}
 
-		static long decodeEndTime(@NotNull ByteBuffer bb) {
+		static long decodeEndTime(ByteBuffer bb) {
 			int v = bb.ReadByte();
 			if (v == 1) {
 				bb.ReadBytes(); // ip
@@ -427,7 +428,7 @@ public final class Token extends AbstractToken {
 			// bb.ReadLong(); // count
 		}
 
-		@NotNull ByteBuffer encode(@Nullable ByteBuffer bb) {
+		ByteBuffer encode(@Nullable ByteBuffer bb) {
 			if (bb == null)
 				bb = ByteBuffer.Allocate(32);
 			bb.WriteByte(remoteAddr != null ? 1 : 0);
@@ -442,13 +443,13 @@ public final class Token extends AbstractToken {
 			return bb;
 		}
 
-		@NotNull String getRemoteAddr() {
+		String getRemoteAddr() {
 			var addr = remoteAddr != null ? remoteAddr.getAddress().getHostAddress() : null;
 			return addr != null ? addr : "";
 		}
 	}
 
-	private static boolean moveToDB(@NotNull TokenState state, @NotNull ByteBuffer bb, boolean waitLock) {
+	private static boolean moveToDB(TokenState state, ByteBuffer bb, boolean waitLock) {
 		var storeLock = state.token.tokenStoreLock;
 		if (waitLock)
 			storeLock.lock();
@@ -461,7 +462,7 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private static boolean moveToDBLocked(@NotNull TokenState state, @NotNull ByteBuffer bb, boolean waitLock) {
+	private static boolean moveToDBLocked(TokenState state, ByteBuffer bb, boolean waitLock) {
 		FastLock lock = null;
 		try {
 			var k = state.key.getBytes(StandardCharsets.UTF_8);
@@ -474,7 +475,7 @@ public final class Token extends AbstractToken {
 				if (System.currentTimeMillis() <= state.endTime) {
 					bb.Reset();
 					var v = state.encode(bb);
-					state.token.tokenMapTable.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+					Objects.requireNonNull(state.token.tokenMapTable).put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
 				}
 				state.count = -1;
 				state.token.tokenMap.remove(state.key, state);
@@ -518,9 +519,9 @@ public final class Token extends AbstractToken {
 	private final ConcurrentHashMap<String, TokenState> tokenMap = new ConcurrentHashMap<>();
 	private final LongAdder newCounter = new LongAdder(); // 分配计数
 	// volatile：start/closeDb在锁内写，协议任务与cleanTokenMapTable线程无锁读。
-	private volatile RocksDatabase rocksdb;
-	private volatile RocksDatabase.Table tokenMapTable;
-	private TokenServer service;
+	private volatile @Nullable RocksDatabase rocksdb;
+	private volatile @Nullable Table tokenMapTable;
+	private @Nullable TokenServer service;
 	// 周期守护：cleanTokenMap(1s内存扫描，state.tryLock非阻塞)进worker池；stop锁外有界等待
 	// 在飞一轮——模块锁不跨任何join（若用TimerFuture.cancel在Token锁内join，body变重后
 	// 会演化为持模块锁无界等）。
@@ -532,7 +533,7 @@ public final class Token extends AbstractToken {
 	private final DaemonTimer cleanTokenMapTableDaemon = new DaemonTimer("Token.cleanTokenMapTable",
 			() -> Task.delayUntilNextDaily(3, 14), 0, this::cleanTokenMapTableOnce);
 
-	public TokenServer getService() {
+	public @Nullable TokenServer getService() {
 		return service;
 	}
 
@@ -563,7 +564,7 @@ public final class Token extends AbstractToken {
 			ZezeCounter.tryInit();
 
 			try {
-				tokenMapTable = rocksdb.getOrAddTable("tokenMap");
+				tokenMapTable = Objects.requireNonNull(rocksdb).getOrAddTable("tokenMap");
 				service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
 				RegisterProtocols(service);
 				var sc = service.getConfig();
@@ -658,7 +659,7 @@ public final class Token extends AbstractToken {
 		tokenStoreLock.lock();
 		try {
 			if (rocksdb != null) {
-				rocksdb.close();
+				Objects.requireNonNull(rocksdb).close();
 				rocksdb = null;
 			}
 			tokenMapTable = null;
@@ -702,13 +703,13 @@ public final class Token extends AbstractToken {
 		long n = 0, d = 0;
 		// newBatch用try-with-resources包住（对齐saveDB）——WriteBatch持有native内存，
 		// 不close的话周期任务逐次泄漏累积。
-		try (var batch = rocksdb.newBatch()) {
-			try (var it = tokenMapTable.iterator()) {
+		try (var batch = Objects.requireNonNull(rocksdb).newBatch()) {
+			try (var it = Objects.requireNonNull(tokenMapTable).iterator()) {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					try {
 						bb.wraps(it.value());
 						if (TokenState.decodeEndTime(bb) < now) {
-							tokenMapTable.delete(batch, it.key());
+							Objects.requireNonNull(tokenMapTable).delete(batch, it.key());
 							d++;
 						}
 						n++;
@@ -743,7 +744,7 @@ public final class Token extends AbstractToken {
 			long n = 0;
 			var saved = new java.util.ArrayList<TokenState>();
 			var bb = ByteBuffer.Allocate(32);
-			try (var batch = rocksdb.newBatch()) {
+			try (var batch = Objects.requireNonNull(rocksdb).newBatch()) {
 				var now = System.currentTimeMillis();
 				for (var state : tokenMap.values()) {
 					var k = state.key.getBytes(StandardCharsets.UTF_8);
@@ -753,7 +754,7 @@ public final class Token extends AbstractToken {
 							if (now <= state.endTime) {
 								bb.Reset();
 								var v = state.encode(bb);
-								tokenMapTable.put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+								Objects.requireNonNull(tokenMapTable).put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
 							}
 							saved.add(state);
 							n++;
@@ -783,7 +784,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessNewTokenRequest(@NotNull Zeze.Builtin.Token.NewToken r) {
+	protected long ProcessNewTokenRequest(Zeze.Builtin.Token.NewToken r) {
 		tokenStoreLock.lock();
 		try {
 			if (tokenMapTable == null) {
@@ -796,14 +797,14 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private long newTokenLocked(@NotNull Zeze.Builtin.Token.NewToken r) {
+	private long newTokenLocked(Zeze.Builtin.Token.NewToken r) {
 		var arg = r.Argument;
 		var ttl = arg.getTtl();
 		if (ttl <= 0) {
 			r.SendResultCode(-1);
 			return Procedure.Success;
 		}
-		var remoteAddr = r.getSender().getRemoteAddress();
+		var remoteAddr = Objects.requireNonNull(r.getSender()).getRemoteAddress();
 		String token;
 		var created = new OutObject<>(false);
 		do {
@@ -813,7 +814,7 @@ public final class Token extends AbstractToken {
 				created.value = true;
 				return new TokenState(this, t, remoteAddr, arg.getContext(), ttl);
 			});
-		} while (!created.value);
+		} while (!Objects.requireNonNull(created.value));
 		newCounter.increment();
 		r.Result.setToken(token);
 		r.SendResultCode(0);
@@ -821,7 +822,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessGetTokenRequest(@NotNull Zeze.Builtin.Token.GetToken r) {
+	protected long ProcessGetTokenRequest(Zeze.Builtin.Token.GetToken r) {
 		tokenStoreLock.lock();
 		try {
 			return getTokenLocked(r);
@@ -830,7 +831,7 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private long getTokenLocked(@NotNull Zeze.Builtin.Token.GetToken r) {
+	private long getTokenLocked(Zeze.Builtin.Token.GetToken r) {
 		var arg = r.Argument;
 		var res = r.Result;
 		if (tokenMapTable == null) {
@@ -906,7 +907,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessTokenStatusRequest(@NotNull TokenStatus r) {
+	protected long ProcessTokenStatusRequest(TokenStatus r) {
 		var res = r.Result;
 		res.setNewCount(newCounter.sum());
 		res.setCurCount(tokenMap.size());
@@ -918,8 +919,8 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessSubTopicRequest(@NotNull SubTopic r) {
-		var session = ((TokenServer.Session)r.getSender().getUserState());
+	protected long ProcessSubTopicRequest(SubTopic r) {
+		var session = ((TokenServer.Session)Objects.requireNonNull(r.getSender()).getUserState());
 		if (session == null) {
 			r.SendResultCode(-1);
 			return Procedure.Success;
@@ -934,8 +935,8 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessUnsubTopicRequest(@NotNull UnsubTopic r) {
-		var session = ((TokenServer.Session)r.getSender().getUserState());
+	protected long ProcessUnsubTopicRequest(UnsubTopic r) {
+		var session = ((TokenServer.Session)Objects.requireNonNull(r.getSender()).getUserState());
 		if (session == null) {
 			r.SendResultCode(-1);
 			return Procedure.Success;
@@ -950,7 +951,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessPubTopicRequest(@NotNull PubTopic r) {
+	protected long ProcessPubTopicRequest(PubTopic r) {
 		var service = r.getService();
 		if (!(service instanceof TokenServer)) {
 			r.SendResultCode(-1);
@@ -1004,7 +1005,7 @@ public final class Token extends AbstractToken {
 		return Procedure.Success;
 	}
 
-	public static void main(@NotNull String @NotNull [] args) throws Exception {
+	public static void main(String [] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();

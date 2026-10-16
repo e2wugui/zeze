@@ -1,5 +1,6 @@
 package Zeze.Netty;
 
+import java.util.Objects;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,14 +14,13 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.MixedFileUpload;
 import io.netty.util.AttributeKey;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 文件上传处理接口：支持 multipart 与 raw（查询参数指定文件名）两种上传形态。
  */
 public interface HttpFileUploadHandle extends HttpMultipartHandle {
-	@NotNull AttributeKey<MixedFileUpload> fileUploadKey = AttributeKey.valueOf("HttpFileUploadHandleContext");
+	AttributeKey<@Nullable MixedFileUpload> fileUploadKey = AttributeKey.valueOf("HttpFileUploadHandleContext");
 	int MemoryBufSize = 16 * 1024;
 
 	/**
@@ -30,7 +30,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	 * （可覆盖启动脚本/jar，结合重启形成RCE链）。非法名抛IllegalArgumentException，
 	 * 调用方应答400。
 	 */
-	static @NotNull File sanitizeDestFile(@NotNull File uploadDir, @NotNull String clientFileName) throws IOException {
+	static File sanitizeDestFile(File uploadDir, String clientFileName) throws IOException {
 		var name = clientFileName.replace('\\', '/');
 		name = name.substring(name.lastIndexOf('/') + 1); // 仅留basename，剥掉全部目录成分
 		var destFile = new File(uploadDir, name);
@@ -39,11 +39,11 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 		return destFile;
 	}
 
-	default @NotNull String getFileNameQueryKey() {
+	default String getFileNameQueryKey() {
 		return "filename";
 	}
 
-	default @NotNull String getDefaultFileName() {
+	default String getDefaultFileName() {
 		return "upload";
 	}
 
@@ -63,14 +63,14 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	}
 
 	/** channel attr取走即释放（"取走即负责"幂等语义），attr无值时no-op。 */
-	static void releaseChannelFileUpload(@NotNull HttpExchange x) {
+	static void releaseChannelFileUpload(HttpExchange x) {
 		releaseFileUpload(x.channel().attr(fileUploadKey).getAndSet(null));
 	}
 
 	@Override
-	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) throws Exception {
+	default void onBeginStream(HttpExchange x, long from, long to, long size) throws Exception {
 		assert x.request != null;
-		if (HttpPostRequestDecoder.isMultipart(x.request))
+		if (HttpPostRequestDecoder.isMultipart(Objects.requireNonNull(x.request)))
 			HttpMultipartHandle.super.onBeginStream(x, from, to, size);
 		else {
 			var fileNameKey = getFileNameQueryKey();
@@ -86,7 +86,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	}
 
 	@Override
-	default void onStreamContent(@NotNull HttpExchange x, @NotNull HttpContent content) throws Exception {
+	default void onStreamContent(HttpExchange x, HttpContent content) throws Exception {
 		var fileUpload = x.channel().attr(fileUploadKey).get();
 		if (fileUpload == null)
 			HttpMultipartHandle.super.onStreamContent(x, content);
@@ -107,7 +107,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	}
 
 	@Override
-	default void onEndStream(@NotNull HttpExchange x) throws Exception {
+	default void onEndStream(HttpExchange x) throws Exception {
 		var fileUpload = x.channel().attr(fileUploadKey).getAndSet(null);
 		if (fileUpload == null)
 			HttpMultipartHandle.super.onEndStream(x);
@@ -125,7 +125,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 				onFileCompleted(x, fileUpload);
 				assert x.request != null;
 				var decoder = new InterfaceHttpPostRequestDecoder() {
-					private final @NotNull FileUpload fileUploadInDecoder = fileUpload.retain();
+					private final FileUpload fileUploadInDecoder = fileUpload.retain();
 					private boolean nextCalled;
 
 					@Override
@@ -154,7 +154,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 					}
 
 					@Override
-					public InterfaceHttpData getBodyHttpData(String name) {
+					public @Nullable InterfaceHttpData getBodyHttpData(String name) {
 						return fileUploadInDecoder.getName().equals(name) ? fileUploadInDecoder : null;
 					}
 
@@ -169,7 +169,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 					}
 
 					@Override
-					public InterfaceHttpData next() {
+					public @Nullable InterfaceHttpData next() {
 						if (nextCalled)
 							return null;
 						nextCalled = true;
@@ -177,7 +177,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 					}
 
 					@Override
-					public InterfaceHttpData currentPartialHttpData() {
+					public @Nullable InterfaceHttpData currentPartialHttpData() {
 						return null;
 					}
 

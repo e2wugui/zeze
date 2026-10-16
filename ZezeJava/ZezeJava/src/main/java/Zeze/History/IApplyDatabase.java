@@ -1,14 +1,13 @@
 package Zeze.History;
 
 import Zeze.Util.Id128;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 回放库后端接口：打开回放表、开启“单条tHistory记录”级原子事务、保存/恢复回放游标。
  */
 public interface IApplyDatabase {
-	@NotNull IApplyTable open(@NotNull String tableName);
+	IApplyTable open(String tableName);
 
 	/**
 	 * 开启“单条tHistory记录”级别的原子应用单元（记录级事务）。
@@ -17,7 +16,7 @@ public interface IApplyDatabase {
 	 * 不即时落库；全部entry成功commit一次性生效，任一异常rollback整条丢弃。
 	 * 由ApplyHelper.apply在锁内单线程驱动，不支持嵌套开启。
 	 */
-	@NotNull IApplyRecordTxn beginRecordTxn();
+	IApplyRecordTxn beginRecordTxn();
 
 	/**
 	 * 恢复回放游标（ApplyHelper构造时调用一次）。
@@ -34,6 +33,6 @@ public interface IApplyDatabase {
 	 * 保存回放游标——必须在当前记录级事务内与记录数据同原子单元写入
 	 * （commit成功才生效）；default覆盖内存后端：丢弃。
 	 */
-	default void saveCursor(@NotNull Id128 key, @NotNull IApplyRecordTxn txn) throws Exception {
+	default void saveCursor(Id128 key, IApplyRecordTxn txn) throws Exception {
 	}
 }

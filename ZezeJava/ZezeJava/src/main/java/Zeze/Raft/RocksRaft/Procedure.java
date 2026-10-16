@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Net.Protocol;
 import Zeze.Raft.RaftRetryException;
 import Zeze.Raft.RaftRpc;
@@ -15,12 +17,12 @@ import org.apache.logging.log4j.Logger;
 public class Procedure {
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
 
-	private Rocks rocks;
-	private FuncLong func;
+	private @Nullable Rocks rocks;
+	private @Nullable FuncLong func;
 	private long expectedTerm = -1;
 
-	public RaftRpc<?, ?> uniqueRequest;
-	public Protocol<?> autoResponse;
+	public @Nullable RaftRpc<?, ?> uniqueRequest;
+	public @Nullable Protocol<?> autoResponse;
 
 	public final void setAutoResponseResultCode(long code) {
 		if (null != autoResponse)
@@ -35,7 +37,7 @@ public class Procedure {
 		this.func = func;
 	}
 
-	public final Rocks getRocks() {
+	public final @Nullable Rocks getRocks() {
 		return rocks;
 	}
 
@@ -43,11 +45,11 @@ public class Procedure {
 		rocks = value;
 	}
 
-	public final FuncLong getFunc() {
+	public final @Nullable FuncLong getFunc() {
 		return func;
 	}
 
-	public final void setFunc(FuncLong value) {
+	public final void setFunc(@Nullable FuncLong value) {
 		func = value;
 	}
 

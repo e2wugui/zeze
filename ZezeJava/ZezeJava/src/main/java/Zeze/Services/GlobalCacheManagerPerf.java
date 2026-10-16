@@ -12,21 +12,20 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 全局缓存管理器的性能统计：按Acquire状态统计计数/耗时/最大值与resultCode分布，
  * 附带Reduce统计、在飞条目与其他事件计数，1s周期汇总输出日志。
  */
 public class GlobalCacheManagerPerf extends ReentrantLock {
-	private static final @NotNull String[] ACQUIRE_STATE_NAMES = {"Invalid", "Share  ", "Modify "};
+	private static final String[] ACQUIRE_STATE_NAMES = {"Invalid", "Share  ", "Modify "};
 	private static final int ACQUIRE_STATE_COUNT = ACQUIRE_STATE_NAMES.length;
-	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerPerf.class);
+	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerPerf.class);
 
-	private final @NotNull String perfName;
-	private final @NotNull AtomicLong serialIdGenerator;
+	private final String perfName;
+	private final AtomicLong serialIdGenerator;
 	private long lastSerialId;
-	private final @NotNull Future<?> reportTimer;
+	private final Future<?> reportTimer;
 
 	private final ConcurrentHashMap<Protocol<?>, Long> acquires = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Protocol<?>, Long> reduces = new ConcurrentHashMap<>();
@@ -42,7 +41,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 	private final ConcurrentSkipListMap<Long, LongAdder> totalReduceResults = new ConcurrentSkipListMap<>();
 	private final ConcurrentSkipListMap<String, LongAdder> others = new ConcurrentSkipListMap<>();
 
-	GlobalCacheManagerPerf(@NotNull String perfName, @NotNull AtomicLong serialIdGenerator) {
+	GlobalCacheManagerPerf(String perfName, AtomicLong serialIdGenerator) {
 		this.perfName = perfName;
 		this.serialIdGenerator = serialIdGenerator;
 		lastSerialId = serialIdGenerator.get();
@@ -60,13 +59,13 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 		reportTimer.cancel(false);
 	}
 
-	void onAcquireBegin(@NotNull Protocol<?> rpc, int state) {
+	void onAcquireBegin(Protocol<?> rpc, int state) {
 		if (Integer.compareUnsigned(state, ACQUIRE_STATE_COUNT) < 0
 				&& acquires.put(rpc, System.nanoTime()) != null)
 			logger.warn("onAcquireBegin again");
 	}
 
-	void onAcquireEnd(@NotNull Protocol<?> rpc, int state) {
+	void onAcquireEnd(Protocol<?> rpc, int state) {
 		var beginTime = acquires.remove(rpc);
 		if (beginTime != null) {
 			// 防御式上界检查（对齐onAcquireBegin）：begin只登记合法state的rpc，end与begin的
@@ -87,17 +86,17 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 		}
 	}
 
-	void onReduceBegin(@NotNull Protocol<?> rpc) {
+	void onReduceBegin(Protocol<?> rpc) {
 		if (reduces.put(rpc, System.nanoTime()) != null)
 			logger.warn("already onReduceBegin: {}", rpc);
 	}
 
-	void onReduceCancel(@NotNull Protocol<?> rpc) {
+	void onReduceCancel(Protocol<?> rpc) {
 		if (reduces.remove(rpc) == null)
 			logger.warn("already onReduceCancel: {}", rpc);
 	}
 
-	void onReduceEnd(@NotNull Protocol<?> rpc) {
+	void onReduceEnd(Protocol<?> rpc) {
 		var beginTime = reduces.remove(rpc);
 		if (beginTime != null) {
 			var time = System.nanoTime() - beginTime;
@@ -113,7 +112,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			logger.warn("already onReduceEnd: {}", rpc);
 	}
 
-	void onOthers(@NotNull String info) {
+	void onOthers(String info) {
 		others.computeIfAbsent(info, __ -> new LongAdder()).increment();
 	}
 

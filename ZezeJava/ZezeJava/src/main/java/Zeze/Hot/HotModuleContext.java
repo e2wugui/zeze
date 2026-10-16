@@ -1,6 +1,7 @@
 package Zeze.Hot;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
+
 
 /**
  * module 引用其他 module 时，可以保存下来获得服务，
@@ -8,19 +9,19 @@ import org.jetbrains.annotations.NotNull;
  */
 public class HotModuleContext<T extends HotService> {
 	private final String moduleName;
-	private volatile HotModule module;
+	private volatile @Nullable HotModule module;
 
-	HotModuleContext(@NotNull HotModule module) {
+	HotModuleContext(HotModule module) {
 		this.module = module;
 		this.moduleName = module.getName();
 	}
 
-	void setModule(HotModule module) {
+	void setModule(@Nullable HotModule module) {
 		this.module = module;
 	}
 
 	@SuppressWarnings("unchecked")
-	public T getService() {
+	public @Nullable T getService() {
 		var m = module;
 		// module为null：所属模块stop失败被disable（永久）或正处于热更的stopInternal→start窗口。
 		// 此时以裸NPE失败没有任何诊断信息（跨模块引用恰恰在模块异常停止时最需要可诊断）。

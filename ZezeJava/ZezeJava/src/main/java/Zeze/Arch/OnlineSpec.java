@@ -10,7 +10,6 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 在线发送的统一描述：工厂收目标，setter 收选项，终结方法定时机。
@@ -22,66 +21,66 @@ import org.jetbrains.annotations.NotNull;
  * 从不捕获 spec 实例；调用后修改选项不影响已排队的发送。
  */
 public class OnlineSpec {
-	final @NotNull Online online;
-	final @NotNull OnlineTarget target;
+	final Online online;
+	final OnlineTarget target;
 	boolean quietWhenAbsent;
 
-	OnlineSpec(@NotNull Online online, @NotNull OnlineTarget target) {
+	OnlineSpec(Online online, OnlineTarget target) {
 		this.online = online;
 		this.target = target;
 	}
 
 	// ---------------- 工厂 ----------------
 
-	public static @NotNull LoginOnlineSpec ofLogin(@NotNull Online online,
-												   @NotNull String account, @NotNull String clientId) {
+	public static LoginOnlineSpec ofLogin(Online online,
+												   String account, String clientId) {
 		return new LoginOnlineSpec(online, account, clientId);
 	}
 
-	public static @NotNull OnlineSpec ofLogins(@NotNull Online online, @NotNull Collection<BLoginKey> logins) {
+	public static OnlineSpec ofLogins(Online online, Collection<BLoginKey> logins) {
 		return new OnlineSpec(online, new OnlineTarget.Logins(logins));
 	}
 
-	public static @NotNull OnlineSpec ofAccount(@NotNull Online online, @NotNull String account) {
+	public static OnlineSpec ofAccount(Online online, String account) {
 		return new OnlineSpec(online, new OnlineTarget.Account(account));
 	}
 
-	public static @NotNull OnlineSpec ofAccounts(@NotNull Online online, @NotNull Collection<String> accounts) {
+	public static OnlineSpec ofAccounts(Online online, Collection<String> accounts) {
 		return new OnlineSpec(online, new OnlineTarget.Accounts(accounts));
 	}
 
-	public static @NotNull OnlineSpec ofReliableNotify(@NotNull Online online,
-													   @NotNull String account, @NotNull String clientId,
-													   @NotNull String listenerName) {
+	public static OnlineSpec ofReliableNotify(Online online,
+													   String account, String clientId,
+													   String listenerName) {
 		return new OnlineSpec(online, new OnlineTarget.Reliable(account, clientId, listenerName));
 	}
 
-	public static @NotNull TransmitOnlineSpec ofTransmit(@NotNull Online online,
-														 @NotNull String senderAccount, @NotNull String senderClientId,
-														 @NotNull String actionName,
-														 @NotNull String targetAccount, @NotNull String targetClientId) {
+	public static TransmitOnlineSpec ofTransmit(Online online,
+														 String senderAccount, String senderClientId,
+														 String actionName,
+														 String targetAccount, String targetClientId) {
 		return new TransmitOnlineSpec(online, senderAccount, senderClientId, actionName,
 				List.of(new BLoginKey(targetAccount, targetClientId)));
 	}
 
-	public static @NotNull TransmitOnlineSpec ofTransmit(@NotNull Online online,
-														 @NotNull String senderAccount, @NotNull String senderClientId,
-														 @NotNull String actionName,
-														 @NotNull Collection<BLoginKey> targets) {
+	public static TransmitOnlineSpec ofTransmit(Online online,
+														 String senderAccount, String senderClientId,
+														 String actionName,
+														 Collection<BLoginKey> targets) {
 		return new TransmitOnlineSpec(online, senderAccount, senderClientId, actionName, targets);
 	}
 
 	// ---------------- 选项 ----------------
 
 	/** 目标缺席（不在线/查无此登录/未登录完成）时是否静默跳过（不记缺席日志）；默认 false 记 info/debug 日志便于排障。reliable 目标忽略此选项（底层 sendReliableNotifyDirect 不支持）。 */
-	public @NotNull OnlineSpec quietWhenAbsent(boolean quietWhenAbsent) {
+	public OnlineSpec quietWhenAbsent(boolean quietWhenAbsent) {
 		this.quietWhenAbsent = quietWhenAbsent;
 		return this;
 	}
 
 	// ---------------- 内部 ----------------
 
-	private void tryLog(long typeId, @NotNull Protocol<?> p) {
+	private void tryLog(long typeId, Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
 			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendResponse");
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
@@ -91,7 +90,7 @@ public class OnlineSpec {
 	// ---------------- 终结方法 ----------------
 
 	/** 事务感知发送：运行中的事务内延迟到 commit 发送，否则立即发送。 */
-	public void send(@NotNull Protocol<?> p) {
+	public void send(Protocol<?> p) {
 		if (target.isEmpty())
 			return; // 空目标不编码
 		var typeId = p.getTypeId();
@@ -99,13 +98,13 @@ public class OnlineSpec {
 		send0(typeId, new Binary(p.encode()));
 	}
 
-	public void send(long typeId, @NotNull Binary fullEncodedProtocol) {
+	public void send(long typeId, Binary fullEncodedProtocol) {
 		if (target.isEmpty())
 			return;
 		send0(typeId, fullEncodedProtocol);
 	}
 
-	private void send0(long typeId, @NotNull Binary data) {
+	private void send0(long typeId, Binary data) {
 		var ol = online; // 字段读进局部变量：延迟闭包只捕获局部变量，不捕获 spec 实例
 		var tg = target;
 		var quiet = quietWhenAbsent;
@@ -117,7 +116,7 @@ public class OnlineSpec {
 	 *
 	 * @return 发送数（空目标 0；仅供日志/统计参考，不保证等于实际送达数）
 	 */
-	public int sendNow(@NotNull Protocol<?> p) {
+	public int sendNow(Protocol<?> p) {
 		if (target.isEmpty())
 			return 0; // 空目标不编码
 		var typeId = p.getTypeId();
@@ -126,14 +125,14 @@ public class OnlineSpec {
 	}
 
 	/** 同 {@link #sendNow(Protocol)}，载荷为已编码协议（typeId + 全编码字节）。 */
-	public int sendNow(long typeId, @NotNull Binary fullEncodedProtocol) {
+	public int sendNow(long typeId, Binary fullEncodedProtocol) {
 		if (target.isEmpty())
 			return 0;
 		return target.send(online, typeId, fullEncodedProtocol, quietWhenAbsent);
 	}
 
 	/** 事务回滚时发送。 */
-	public void sendWhileRollback(@NotNull Protocol<?> p) {
+	public void sendWhileRollback(Protocol<?> p) {
 		if (target.isEmpty())
 			return;
 		var typeId = p.getTypeId();
@@ -145,7 +144,7 @@ public class OnlineSpec {
 		Transaction.whileRollback(() -> tg.send(ol, typeId, data, quiet));
 	}
 
-	public void sendWhileRollback(long typeId, @NotNull Binary fullEncodedProtocol) {
+	public void sendWhileRollback(long typeId, Binary fullEncodedProtocol) {
 		if (target.isEmpty())
 			return;
 		var ol = online;

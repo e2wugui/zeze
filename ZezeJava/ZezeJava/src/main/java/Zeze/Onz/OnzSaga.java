@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import java.util.Objects;
+
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Onz.BFuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
@@ -66,8 +68,8 @@ public class OnzSaga extends OnzProcedure {
 	public void sendReadyAndWait() {
 		var req = (FuncSaga)getRpc();
 		var bbResult = ByteBuffer.Allocate();
-		getResult().encode(bbResult);
-		req.Result.setFuncResult(new Binary(bbResult));
+		Objects.requireNonNull(getResult()).encode(bbResult);
+		Objects.requireNonNull(req).Result.setFuncResult(new Binary(bbResult));
 		req.SendResult();
 
 		// saga模式，执行阶段不需要任何等待。

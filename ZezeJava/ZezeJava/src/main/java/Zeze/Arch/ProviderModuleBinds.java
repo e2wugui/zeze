@@ -11,8 +11,7 @@ import Zeze.IModule;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -22,11 +21,11 @@ import org.w3c.dom.NodeList;
  * provider.module.binds.xml 配置解析：定义各模块的静态/动态绑定与 choiceType、providers 归属。
  */
 public final class ProviderModuleBinds {
-	public static @NotNull ProviderModuleBinds load() {
+	public static ProviderModuleBinds load() {
 		return load(null);
 	}
 
-	public static @NotNull ProviderModuleBinds load(@Nullable String xmlFile) {
+	public static ProviderModuleBinds load(@Nullable String xmlFile) {
 		if (xmlFile == null)
 			xmlFile = "provider.module.binds.xml";
 
@@ -46,12 +45,12 @@ public final class ProviderModuleBinds {
 	}
 
 	public static class Module {
-		private final @NotNull String fullName;
+		private final String fullName;
 		private final int choiceType;
 		private boolean dynamic; // 为了兼容，没有配置的话，从其他条件推导出来。
 		private final IntHashSet providers = new IntHashSet();
 
-		public final @NotNull String getFullName() {
+		public final String getFullName() {
 			return fullName;
 		}
 
@@ -63,11 +62,11 @@ public final class ProviderModuleBinds {
 			return dynamic;
 		}
 
-		public final @NotNull IntHashSet getProviders() {
+		public final IntHashSet getProviders() {
 			return providers;
 		}
 
-		private static int getChoiceType(@NotNull Element self) {
+		private static int getChoiceType(Element self) {
 			return switch (self.getAttribute("ChoiceType")) {
 				case "ChoiceTypeHashAccount" -> BModule.ChoiceTypeHashAccount;
 				case "ChoiceTypeHashRoleId" -> BModule.ChoiceTypeHashRoleId;
@@ -78,7 +77,7 @@ public final class ProviderModuleBinds {
 		}
 
 		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
-		public Module(@NotNull Element self) {
+		public Module(Element self) {
 			if (!self.getAttribute("ConfigType").isEmpty())
 				throw new RuntimeException("use 'dynamic=\"true|false\"' instead.");
 
@@ -91,14 +90,14 @@ public final class ProviderModuleBinds {
 		}
 	}
 
-	private Module defaultModule;
+	private @Nullable Module defaultModule;
 	private final HashMap<String, Module> modules = new HashMap<>();
 	private final IntHashSet providerNoDefaultModule = new IntHashSet();
 
 	private ProviderModuleBinds() {
 	}
 
-	private ProviderModuleBinds(@NotNull Element self) {
+	private ProviderModuleBinds(Element self) {
 		if (!self.getNodeName().equals("ProviderModuleBinds"))
 			throw new IllegalStateException("is it a ProviderModuleBinds config?");
 
@@ -130,7 +129,7 @@ public final class ProviderModuleBinds {
 		}
 	}
 
-	private static void splitIntoSet(@NotNull String providers, @NotNull IntHashSet set) {
+	private static void splitIntoSet(String providers, IntHashSet set) {
 		if (providers.equals("*")) {
 			// 这个表示匹配所有provider，此时保持set为空，后面build逻辑会把空看成匹配成功。
 			set.clear();
@@ -143,19 +142,19 @@ public final class ProviderModuleBinds {
 		}
 	}
 
-	public @NotNull HashMap<String, Module> getModules() {
+	public HashMap<String, Module> getModules() {
 		return modules;
 	}
 
-	public @NotNull IntHashSet getProviderNoDefaultModule() {
+	public IntHashSet getProviderNoDefaultModule() {
 		return providerNoDefaultModule;
 	}
 
 	// 非动态模块都为静态模块, 其中providers不为空的只有指定providers会注册该模块
 	// providers为空或"*"的所有providers都会注册
 	// 其它未在绑定配置定义的模块只要不在ProviderNoDefaultModule配置里的providers都会注册
-	public void buildStaticBinds(@NotNull Map<String, IModule> AllModules, int serverId,
-								 @NotNull IntHashMap<BModule.Data> out) {
+	public void buildStaticBinds(Map<String, IModule> AllModules, int serverId,
+								 IntHashMap<BModule.Data> out) {
 		var noDefaultModule = providerNoDefaultModule.contains(serverId);
 		for (var m : AllModules.values()) {
 			var cm = modules.get(m.getFullName());
@@ -176,8 +175,8 @@ public final class ProviderModuleBinds {
 
 	// 动态模块必须在绑定配置里声明dynamic="true"
 	// 动态模块的providers为空则表示所有providers都可以注册该模块, 否则只有指定的providers可以注册
-	public void buildDynamicBinds(@NotNull Map<String, IModule> AllModules, int serverId,
-								  @NotNull IntHashMap<BModule.Data> out) {
+	public void buildDynamicBinds(Map<String, IModule> AllModules, int serverId,
+								  IntHashMap<BModule.Data> out) {
 		for (var m : AllModules.values()) {
 			var cm = modules.get(m.getFullName());
 			if (cm != null && cm.dynamic &&

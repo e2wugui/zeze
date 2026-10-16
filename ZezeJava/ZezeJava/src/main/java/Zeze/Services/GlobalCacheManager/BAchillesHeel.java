@@ -1,5 +1,6 @@
 package Zeze.Services.GlobalCacheManager;
 
+import org.jspecify.annotations.Nullable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -7,7 +8,7 @@ import Zeze.Serialize.Serializable;
 /** Cleanup协议参数bean：serverId与安全验证字段。 */
 public class BAchillesHeel implements Serializable {
 	public int serverId; // 必须的。
-	public String secureKey; // 安全验证
+	public @Nullable String secureKey; // 安全验证
 	public int globalCacheManagerHashIndex; // 安全验证
 
 	@Override

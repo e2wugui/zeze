@@ -11,17 +11,16 @@ import java.util.RandomAccess;
 import java.util.Spliterator;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.UnaryOperator;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 写少读多的List：写侧ArrayList加锁修改，读侧走不可变快照（写后首次读重建）。
  * null契约与ArrayList一致：允许null元素（快照为ArrayList拷贝，
  * 不因null元素建不成）。
  */
-public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
+public class FewModifyList<E extends @Nullable Object> implements List<E>, RandomAccess, Cloneable {
 	private transient volatile @Nullable List<E> read;
-	private final @NotNull ArrayList<E> write;
+	private final ArrayList<E> write;
 	private transient final ReentrantLock writeLock = new ReentrantLock();
 
 	public FewModifyList() {
@@ -32,11 +31,11 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 		write = new ArrayList<>(initialCapacity);
 	}
 
-	public FewModifyList(@NotNull Collection<? extends E> m) {
+	public FewModifyList(Collection<? extends E> m) {
 		write = new ArrayList<>(m);
 	}
 
-	private @NotNull List<E> prepareRead() {
+	private List<E> prepareRead() {
 		var r = read;
 		if (r == null) {
 			writeLock.lock();
@@ -55,7 +54,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 		return r;
 	}
 
-	public @NotNull List<E> snapshot() {
+	public List<E> snapshot() {
 		return prepareRead();
 	}
 
@@ -100,27 +99,27 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public int indexOf(Object o) {
+	public int indexOf(@Nullable Object o) {
 		return prepareRead().indexOf(o);
 	}
 
 	@Override
-	public int lastIndexOf(Object o) {
+	public int lastIndexOf(@Nullable Object o) {
 		return prepareRead().lastIndexOf(o);
 	}
 
 	@Override
-	public @NotNull ListIterator<E> listIterator() {
+	public ListIterator<E> listIterator() {
 		return prepareRead().listIterator();
 	}
 
 	@Override
-	public @NotNull ListIterator<E> listIterator(int index) {
+	public ListIterator<E> listIterator(int index) {
 		return prepareRead().listIterator(index);
 	}
 
 	@Override
-	public @NotNull List<E> subList(int fromIndex, int toIndex) {
+	public List<E> subList(int fromIndex, int toIndex) {
 		return prepareRead().subList(fromIndex, toIndex);
 	}
 
@@ -135,22 +134,22 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public boolean contains(Object o) {
+	public boolean contains(@Nullable Object o) {
 		return prepareRead().contains(o);
 	}
 
 	@Override
-	public @NotNull Iterator<E> iterator() {
+	public Iterator<E> iterator() {
 		return prepareRead().iterator();
 	}
 
 	@Override
-	public Object @NotNull [] toArray() {
+	public Object [] toArray() {
 		return prepareRead().toArray();
 	}
 
 	@Override
-	public <T> T @NotNull [] toArray(T @NotNull [] a) {
+	public <T> T [] toArray(T [] a) {
 		return prepareRead().toArray(a);
 	}
 
@@ -168,7 +167,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public boolean remove(Object o) {
+	public boolean remove(@Nullable Object o) {
 		writeLock.lock();
 		try {
 			if (!write.remove(o))
@@ -181,13 +180,13 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public boolean containsAll(@NotNull Collection<?> c) {
+	public boolean containsAll(Collection<?> c) {
 		//noinspection SlowListContainsAll
 		return prepareRead().containsAll(c);
 	}
 
 	@Override
-	public boolean addAll(@NotNull Collection<? extends E> c) {
+	public boolean addAll(Collection<? extends E> c) {
 		var snapshot = new ArrayList<>(c);
 		writeLock.lock();
 		try {
@@ -201,7 +200,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public boolean addAll(int index, @NotNull Collection<? extends E> c) {
+	public boolean addAll(int index, Collection<? extends E> c) {
 		var snapshot = new ArrayList<>(c);
 		writeLock.lock();
 		try {
@@ -215,7 +214,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public boolean removeAll(@NotNull Collection<?> c) {
+	public boolean removeAll(Collection<?> c) {
 		var membership = c instanceof FewModifyList<?> other ? other.snapshot() : c;
 		writeLock.lock();
 		try {
@@ -227,7 +226,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public boolean retainAll(@NotNull Collection<?> c) {
+	public boolean retainAll(Collection<?> c) {
 		var membership = c instanceof FewModifyList<?> other ? other.snapshot() : c;
 		writeLock.lock();
 		try {
@@ -239,7 +238,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public void replaceAll(@NotNull UnaryOperator<E> operator) {
+	public void replaceAll(UnaryOperator<E> operator) {
 		writeLock.lock();
 		try {
 			write.replaceAll(operator);
@@ -274,20 +273,20 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	}
 
 	@Override
-	public @NotNull Spliterator<E> spliterator() {
+	public Spliterator<E> spliterator() {
 		return prepareRead().spliterator();
 	}
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public @NotNull FewModifyList<E> clone() throws CloneNotSupportedException {
+	public FewModifyList<E> clone() throws CloneNotSupportedException {
 		if (getClass() == FewModifyList.class)
 			return new FewModifyList<>(prepareRead());
 		throw new CloneNotSupportedException();
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return prepareRead().toString();
 	}
 

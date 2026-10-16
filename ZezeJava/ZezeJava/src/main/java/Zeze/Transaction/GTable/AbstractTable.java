@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Skeletal, implementation-agnostic implementation of the {@link Table} interface.
@@ -30,12 +30,12 @@ import javax.annotation.CheckForNull;
  */
 abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
   @Override
-  public boolean containsRow(@CheckForNull Object rowKey) {
+  public boolean containsRow(@Nullable Object rowKey) {
     return Utils.safeContainsKey(rowMap(), rowKey);
   }
 
   @Override
-  public boolean containsColumn(@CheckForNull Object columnKey) {
+  public boolean containsColumn(@Nullable Object columnKey) {
     return Utils.safeContainsKey(columnMap(), columnKey);
   }
 
@@ -50,7 +50,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
   }
 
   @Override
-  public boolean containsValue(@CheckForNull Object value) {
+  public boolean containsValue(@Nullable Object value) {
     for (Map<C, V> row : rowMap().values()) {
 		//noinspection SuspiciousMethodCalls
 		if (row.containsValue(value)) {
@@ -61,14 +61,14 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
   }
 
   @Override
-  public boolean contains(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+  public boolean contains(@Nullable Object rowKey, @Nullable Object columnKey) {
     Map<C, V> row = Utils.safeGet(rowMap(), rowKey);
     return row != null && Utils.safeContainsKey(row, columnKey);
   }
 
   @Override
-  @CheckForNull
-  public V get(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+  @Nullable
+  public V get(@Nullable Object rowKey, @Nullable Object columnKey) {
     Map<C, V> row = Utils.safeGet(rowMap(), rowKey);
     return (row == null) ? null : Utils.safeGet(row, columnKey);
   }
@@ -84,14 +84,14 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
   }
 
   @Override
-  @CheckForNull
-  public V remove(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+  @Nullable
+  public V remove(@Nullable Object rowKey, @Nullable Object columnKey) {
     Map<C, V> row = Utils.safeGet(rowMap(), rowKey);
     return (row == null) ? null : Utils.safeRemove(row, columnKey);
   }
 
   @Override
-  @CheckForNull
+  @Nullable
   public V put(
       R rowKey, C columnKey, V value) {
     return row(rowKey).put(columnKey, value);
@@ -104,7 +104,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
     }
   }
 
-  @CheckForNull private transient Set<Cell<R, C, V>> cellSet;
+  @Nullable private transient Set<Cell<R, C, V>> cellSet;
 
   @Override
   public Set<Cell<R, C, V>> cellSet() {
@@ -122,7 +122,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
 
   class CellSet extends AbstractSet<Cell<R, C, V>> {
     @Override
-    public boolean contains(@CheckForNull Object o) {
+    public boolean contains(@Nullable Object o) {
       if (o instanceof Cell<?, ?, ?> cell) {
 		  Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
         return row != null
@@ -133,7 +133,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
     }
 
     @Override
-    public boolean remove(@CheckForNull Object o) {
+    public boolean remove(@Nullable Object o) {
       if (o instanceof Cell<?, ?, ?> cell) {
 		  Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
         return row != null
@@ -164,7 +164,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
     }
   }
 
-  @CheckForNull private transient Collection<V> values;
+  @Nullable private transient Collection<V> values;
 
   @Override
   public Collection<V> values() {
@@ -201,7 +201,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
     }
 
     @Override
-    public boolean contains(@CheckForNull Object o) {
+    public boolean contains(@Nullable Object o) {
       return containsValue(o);
     }
 
@@ -218,7 +218,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
 
   @SuppressWarnings("EqualsDoesntCheckParameterClass")
   @Override
-  public boolean equals(@CheckForNull Object obj) {
+  public boolean equals(@Nullable Object obj) {
     return Utils.equalsImpl(this, obj);
   }
 

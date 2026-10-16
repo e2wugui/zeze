@@ -1,10 +1,11 @@
 package Zeze.Raft.RocksRaft.Log1;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * double 落盘日志：序列化 double 字段的新值。
@@ -18,7 +19,7 @@ public class LogDouble extends Log {
 		super(TYPE_ID);
 	}
 
-	public LogDouble(Bean belong, int varId, double value) {
+	public LogDouble(@Nullable Bean belong, int varId, double value) {
 		this();
 		setBelong(belong);
 		setVariableId(varId);
@@ -26,12 +27,12 @@ public class LogDouble extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteDouble(value);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadDouble();
 	}
 

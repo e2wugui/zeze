@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -13,16 +15,15 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 单桶串行任务队列（按 key 分桶后每桶一个）：批量调度、屏障任务、shutdown(true) 补偿与 waitComplete
 public class TaskOneByOneQueue extends ReentrantLock {
-	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneQueue.class);
+	private static final Logger logger = LogManager.getLogger(TaskOneByOneQueue.class);
 	private static final ConcurrentHashMap<Dispatch, Executor> pendingDispatches = new ConcurrentHashMap<>();
-	private final @NotNull Condition cond = newCondition();
+	private final Condition cond = newCondition();
 	private final BatchTask batch = new BatchTask();
-	private @NotNull ArrayDeque<Task> queue = new ArrayDeque<>();
+	private ArrayDeque<Task> queue = new ArrayDeque<>();
 	private final @Nullable Executor executor;
 	private volatile boolean isShutdown;
 	private boolean shutdownCancel; // shutdown(cancel) 的模式，runNext 收尾判断用；锁内读写
@@ -58,7 +59,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	public final class BatchTask implements Runnable {
-		Task[] tasks;
+		@Nullable Task @Nullable [] tasks;
 		int count;
 		@Nullable DispatchMode mode;
 		int processedCount;
@@ -88,7 +89,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		@Override
 		public void run() {
 			for (processedCount = 0; processedCount < count; ) {
-				var task = tasks[processedCount];
+				var task = Objects.requireNonNull(Objects.requireNonNull(tasks)[processedCount]);
 				tasks[processedCount++] = null; // gc, 下标索引转换成count。
 				if (!task.process(this))
 					return; // 任务调度终端，当前任务以后完成的时候会触发runNext;
@@ -105,12 +106,12 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
-	private @NotNull Executor getExecutor(@Nullable DispatchMode mode) {
+	private Executor getExecutor(@Nullable DispatchMode mode) {
 		return executor != null ? executor
 			: Zeze.Util.Task.poolOrThrow(mode == DispatchMode.Critical);
 	}
 
-	public Runnable submit(@NotNull Task task) {
+	public @Nullable Runnable submit(Task task) {
 		if (!isShutdown) {
 			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败——
 			// 任务入队后派发抛异常会让队列非空且再无派发点（后续 submit 全走 size!=1 分支），
@@ -170,7 +171,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			batch.run();
 		}
 
-		void cancelBeforeRun(@NotNull RuntimeException cause) {
+		void cancelBeforeRun(RuntimeException cause) {
 			if (!compareAndSet(0, 2))
 				return;
 			pendingDispatches.remove(this);
@@ -178,7 +179,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
-	static void cancelPendingDispatches(@NotNull Executor executor) {
+	static void cancelPendingDispatches(Executor executor) {
 		var cause = new RejectedExecutionException("one-by-one dispatch canceled by pool shutdownNow");
 		for (var entry : pendingDispatches.entrySet()) {
 			if (entry.getValue() == executor)
@@ -188,7 +189,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 
 	/** 回滚认领：批量从未开跑（execute抛出即未执行），整队回收补偿并唤醒等待者。
 	 * 提交方与runNext派发共用（runNext尾部的锁外execute同型，姊妹点一并收口）。 */
-	private void rollbackRejectedDispatch(@NotNull RuntimeException cause) {
+	private void rollbackRejectedDispatch(RuntimeException cause) {
 		ArrayDeque<Task> cancels;
 		int cancelCount;
 		lock();
@@ -252,7 +253,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		executeOrRollback(batch.mode);
 	}
 
-	private static void runCancel(@NotNull ArrayDeque<Task> tasks) {
+	private static void runCancel(ArrayDeque<Task> tasks) {
 		for (Task task; (task = tasks.pollFirst()) != null; ) {
 			if (task.cancel != null) {
 				try {
@@ -264,7 +265,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
-	private void runCancelAndSignal(@NotNull ArrayDeque<Task> tasks) {
+	private void runCancelAndSignal(ArrayDeque<Task> tasks) {
 		try {
 			runCancel(tasks);
 		} finally {
@@ -318,7 +319,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder().append('[');
 		lock();
 		try {
@@ -334,11 +335,11 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	public static abstract class Task {
-		final @NotNull String name;
+		final String name;
 		final @Nullable Action0 cancel;
 		final @Nullable DispatchMode mode;
 
-		public Task(@NotNull String name, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
+		public Task(String name, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 			this.name = name;
 			this.cancel = cancel;
 			this.mode = mode;
@@ -346,7 +347,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 
 		public abstract boolean isBarrier();
 
-		public abstract boolean process(@NotNull BatchTask batch);
+		public abstract boolean process(BatchTask batch);
 	}
 
 	/**
@@ -354,9 +355,9 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	 * 队列语义无返回值消费者，callRaw 的结果丢弃；名字解析见 {@link TaskBody#logName}。
 	 */
 	public static final class TaskBodyTask extends Task {
-		private final @NotNull TaskBody<?> body;
+		private final TaskBody<?> body;
 
-		public TaskBodyTask(@NotNull TaskBody<?> body, @Nullable String name, @Nullable Action0 cancel,
+		public TaskBodyTask(TaskBody<?> body, @Nullable String name, @Nullable Action0 cancel,
 		                    @Nullable DispatchMode mode) {
 			super(body.logName(name), cancel, mode);
 			this.body = body;
@@ -368,7 +369,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 
 		@Override
-		public boolean process(@NotNull BatchTask batch) {
+		public boolean process(BatchTask batch) {
 			try {
 				body.callRaw();
 			} catch (Throwable e) { // logger.error
@@ -379,10 +380,10 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	public static final class TaskBarrierProcedure extends Task {
-		private final @NotNull BarrierProcedure barrier;
+		private final BarrierProcedure barrier;
 		private final int sum;
 
-		public TaskBarrierProcedure(@NotNull BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
+		public TaskBarrierProcedure(BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
 			super(barrier.getName(), barrier::cancel, mode);
 			this.barrier = barrier;
 			this.sum = sum;
@@ -394,16 +395,16 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 
 		@Override
-		public boolean process(@NotNull BatchTask batch) {
+		public boolean process(BatchTask batch) {
 			return barrier.reach(batch, sum);
 		}
 	}
 
 	public static final class TaskBarrierAction extends Task {
-		private final @NotNull BarrierAction barrier;
+		private final BarrierAction barrier;
 		private final int sum;
 
-		public TaskBarrierAction(@NotNull BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
+		public TaskBarrierAction(BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
 			super(barrier.actionName, barrier::cancel, mode);
 			this.barrier = barrier;
 			this.sum = sum;
@@ -415,7 +416,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 
 		@Override
-		public boolean process(@NotNull BatchTask batch) {
+		public boolean process(BatchTask batch) {
 			return barrier.reach(batch, sum);
 		}
 	}
@@ -431,7 +432,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			this.count = count;
 		}
 
-		public abstract @NotNull String getName();
+		public abstract String getName();
 
 		public abstract void run() throws Exception;
 
@@ -466,7 +467,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				throw failure;
 		}
 
-		public boolean reach(@NotNull BatchTask batch, int sum) {
+		public boolean reach(BatchTask batch, int sum) {
 			lock();
 			try {
 				if (canceled)
@@ -516,15 +517,15 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	public static final class BarrierProcedure extends Barrier {
-		private final @NotNull Procedure procedure;
+		private final Procedure procedure;
 
-		public BarrierProcedure(@NotNull Procedure procedure, int count, @Nullable Action0 cancelAction) {
+		public BarrierProcedure(Procedure procedure, int count, @Nullable Action0 cancelAction) {
 			super(count, cancelAction);
 			this.procedure = procedure;
 		}
 
 		@Override
-		public @NotNull String getName() {
+		public String getName() {
 			return procedure.getActionName();
 		}
 
@@ -535,17 +536,17 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	public static final class BarrierAction extends Barrier {
-		private final @NotNull Action0 action;
-		private final @NotNull String actionName;
+		private final Action0 action;
+		private final String actionName;
 
-		public BarrierAction(@NotNull String actionName, @NotNull Action0 action, int count, @Nullable Action0 cancelAction) {
+		public BarrierAction(String actionName, Action0 action, int count, @Nullable Action0 cancelAction) {
 			super(count, cancelAction);
 			this.action = action;
 			this.actionName = actionName;
 		}
 
 		@Override
-		public @NotNull String getName() {
+		public String getName() {
 			return actionName;
 		}
 

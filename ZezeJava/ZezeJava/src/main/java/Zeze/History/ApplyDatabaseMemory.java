@@ -6,8 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
 import Zeze.Transaction.TableWalkHandleRaw;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * IApplyDatabase 的内存实现：apply 数据保存在进程内内存表中，不持久化（游标恒为null）。
@@ -15,20 +14,20 @@ import org.jetbrains.annotations.Nullable;
 public class ApplyDatabaseMemory implements IApplyDatabase {
 	private final ConcurrentHashMap<String, ApplyTableMemory> tables = new ConcurrentHashMap<>();
 	// 当前打开的记录级事务。apply在ApplyHelper锁内单线程驱动，同一时刻至多一个。
-	private IApplyRecordTxn activeRecordTxn;
+	private @Nullable IApplyRecordTxn activeRecordTxn;
 	// 记录级事务的驱动线程（hist-03断言式守卫）：activeRecordTxn活跃期间，其他线程经
 	// IApplyTable的put/remove会被静默路由进该事务（commit时随别人一起生效/回滚）。
 	// begin时记录驱动线程，路由处核对当前线程——fail-fast暴露并发误用。非同步字段：
 	// 断言式防御不引入锁，最坏漏检（可见性），不误报。
-	private Thread recordTxnOwner;
+	private @Nullable Thread recordTxnOwner;
 
 	@Override
-	public @NotNull IApplyTable open(@NotNull String tableName) {
+	public IApplyTable open(String tableName) {
 		return tables.computeIfAbsent(tableName, ApplyTableMemory::new);
 	}
 
 	@Override
-	public @NotNull IApplyRecordTxn beginRecordTxn() {
+	public IApplyRecordTxn beginRecordTxn() {
 		if (activeRecordTxn != null)
 			throw new IllegalStateException("record txn already begun."); // 防御：apply单线程，不应嵌套/泄漏
 		var txn = new RecordTxn();
@@ -53,16 +52,16 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 	private class RecordTxn implements IApplyRecordTxn {
 		// 暂存：表名→(键→新值；value为null表示remove)。LinkedHashMap保持entry应用顺序，
 		// 同键后写覆盖先写（一条记录内changes以BTableKey为键本就唯一，防御性保留最后语义）。
-		private final Map<String, LinkedHashMap<Binary, Binary>> staged = new HashMap<>();
+		private final Map<String, LinkedHashMap<Binary, @Nullable Binary>> staged = new HashMap<>();
 		private boolean finished;
 
 		@Override
-		public void put(@NotNull String tableName, @NotNull Binary key, @NotNull Binary value) {
+		public void put(String tableName, Binary key, Binary value) {
 			staged.computeIfAbsent(tableName, __ -> new LinkedHashMap<>()).put(key, value);
 		}
 
 		@Override
-		public void remove(@NotNull String tableName, @NotNull Binary key) {
+		public void remove(String tableName, Binary key) {
 			staged.computeIfAbsent(tableName, __ -> new LinkedHashMap<>()).put(key, null);
 		}
 
@@ -110,28 +109,28 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 
 	// 非static内部类：put/remove需路由到外层库的activeRecordTxn
 	private class ApplyTableMemory implements IApplyTable {
-		private final @NotNull String tableName;
+		private final String tableName;
 		private final ConcurrentHashMap<Binary, Binary> dataMap = new ConcurrentHashMap<>();
 
-		public ApplyTableMemory(@NotNull String tableName) {
+		public ApplyTableMemory(String tableName) {
 			this.tableName = tableName;
 		}
 
 		@Override
-		public @NotNull String getTableName() {
+		public String getTableName() {
 			return tableName;
 		}
 
 		@Override
-		public @Nullable Binary get(byte @NotNull [] key, int offset, int length) {
+		public @Nullable Binary get(byte [] key, int offset, int length) {
 			// 事务内get仍读真实表：记录内changes按BTableKey唯一，同键不存在先写后读，
 			// 跨键读取与暂存互不影响；同键读写一致性由ApplyTable的LRU保证。
 			return dataMap.get(new Binary(key, offset, length));
 		}
 
 		@Override
-		public void put(byte @NotNull [] key, int keyOffset, int keyLength,
-						byte @NotNull [] value, int valueOffset, int valueLength) throws Exception {
+		public void put(byte [] key, int keyOffset, int keyLength,
+						byte [] value, int valueOffset, int valueLength) throws Exception {
 			var recordTxn = activeRecordTxn;
 			if (recordTxn != null) {
 				// 单线程契约守卫：事务内写入只应来自驱动线程，其他线程的写入立即暴露而非静默错挂
@@ -145,7 +144,7 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 		}
 
 		@Override
-		public void remove(byte @NotNull [] key, int offset, int length) throws Exception {
+		public void remove(byte [] key, int offset, int length) throws Exception {
 			var recordTxn = activeRecordTxn;
 			if (recordTxn != null) {
 				checkRecordTxnOwner();
@@ -162,7 +161,7 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 		}
 
 		@Override
-		public void walk(@NotNull TableWalkHandleRaw walker) throws Exception {
+		public void walk(TableWalkHandleRaw walker) throws Exception {
 			for (var e : dataMap.entrySet()) {
 				if (!walker.handle(e.getKey().copyIf(), e.getValue().copyIf()))
 					break;

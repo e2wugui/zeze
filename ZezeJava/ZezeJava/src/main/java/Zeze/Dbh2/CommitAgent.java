@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Builtin.Dbh2.Commit.BTransactionState;
@@ -33,12 +35,12 @@ public class CommitAgent extends AbstractCommitAgent {
 			var out = new OutObject<Connector>();
 			if (service.getConfig().tryGetOrAddConnector(host, port, true, out)) {
 				try {
-					out.value.start();
+					Objects.requireNonNull(out.value).start();
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
 			}
-			return out.value;
+			return Objects.requireNonNull(out.value);
 		});
 		return connector.GetReadySocket();
 	}

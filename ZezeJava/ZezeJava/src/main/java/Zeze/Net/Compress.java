@@ -1,13 +1,12 @@
 package Zeze.Net;
 
 import java.util.Arrays;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * MPPC 压缩 codec（RFC2118）。
  */
 public class Compress implements Codec {
-	private final @NotNull Codec sink;
+	private final Codec sink;
 	private int pos;
 	private int rem;
 	private final byte[] dict = new byte[8192];
@@ -18,7 +17,7 @@ public class Compress implements Codec {
 	private int match_len;
 	private boolean flushed = true;
 
-	public Compress(@NotNull Codec sink) {
+	public Compress(Codec sink) {
 		this.sink = sink;
 		Arrays.fill(hash, (short)-1);
 	}

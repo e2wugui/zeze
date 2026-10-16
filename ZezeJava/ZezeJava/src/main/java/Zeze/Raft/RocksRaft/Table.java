@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
 import java.lang.invoke.MethodHandle;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
@@ -14,6 +16,7 @@ import Zeze.Util.Reflect;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import org.rocksdb.RocksDBException;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RocksRaft 的表：{@link Record} 缓存（{@link ConcurrentLruLike}）+ RocksDB 存储的读写面。
@@ -36,14 +39,14 @@ public final class Table<K, V extends Bean> {
 	private final MethodHandle valueFactory;
 	private int cacheCapacity = 10000;
 	private RocksDatabase.Table rocksTable;
-	private ConcurrentLruLike<K, Record<K>> lruCache;
-	private BiPredicate<K, Record<K>> lruTryRemoveCallback;
+	private @Nullable ConcurrentLruLike<K, Record<K>> lruCache;
+	private @Nullable BiPredicate<K, Record<K>> lruTryRemoveCallback;
 
-	public ConcurrentLruLike<K, Record<K>> getLruCache() {
+	public @Nullable ConcurrentLruLike<K, Record<K>> getLruCache() {
 		return lruCache;
 	}
 
-	public Table(Rocks rocks, String templateName, int templateId, Class<K> keyClass, Class<V> valueClass, BiPredicate<K, Record<K>> callback) {
+	public Table(Rocks rocks, String templateName, int templateId, Class<K> keyClass, Class<V> valueClass, @Nullable BiPredicate<K, Record<K>> callback) {
 		this.rocks = rocks;
 		this.templateName = templateName;
 		this.templateId = templateId;
@@ -107,7 +110,7 @@ public final class Table<K, V extends Bean> {
 			if (r.isAccessed()) // 复查：beginAccess在r.mutex内，与此处互斥
 				return false;
 			r.setRemoved(true);
-			return lruCache.remove(key, r); // pair-remove：仅当映射仍是本记录时删除
+			return Objects.requireNonNull(lruCache).remove(key, r); // pair-remove：仅当映射仍是本记录时删除
 		} finally {
 			r.mutex.unlock();
 		}
@@ -141,7 +144,7 @@ public final class Table<K, V extends Bean> {
 		return rocksTable;
 	}
 
-	public BiPredicate<K, Record<K>> getLruTryRemoveCallback() {
+	public @Nullable BiPredicate<K, Record<K>> getLruTryRemoveCallback() {
 		return lruTryRemoveCallback;
 	}
 
@@ -179,7 +182,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public V get(K key) {
+	public @Nullable V get(K key) {
 		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);
 
@@ -208,7 +211,7 @@ public final class Table<K, V extends Bean> {
 			cr = new Transaction.RecordAccessed(currentT, r);
 			currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 			if (r.getValue() != null)
-				return (V)r.getValue();
+				return (V)Objects.requireNonNull(r.getValue());
 			// add
 		}
 
@@ -222,10 +225,10 @@ public final class Table<K, V extends Bean> {
 		return getOrLoad(key, null);
 	}
 
-	private Record<K> getOrLoad(K key, Bean putValue) {
+	private Record<K> getOrLoad(K key, @Nullable Bean putValue) {
 		TableKey tkey = new TableKey(name, key);
 		while (true) {
-			var r = lruCache.getOrAdd(key, () -> {
+			var r = Objects.requireNonNull(lruCache).getOrAdd(key, () -> {
 				var newR = new Record<>(keyEncodeFunc);
 				newR.setTable(this);
 				newR.setKey(key);
@@ -239,14 +242,14 @@ public final class Table<K, V extends Bean> {
 				if (putValue != null) {
 					// from followerApply
 					r.setValue(putValue);
-					r.getValue().initRootInfo(r.createRootInfoIfNeed(tkey), null);
+					Objects.requireNonNull(r.getValue()).initRootInfo(r.createRootInfoIfNeed(tkey), null);
 					r.setTimestamp(Record.getNextTimestamp());
 					r.setState(Record.StateLoad);
 				} else if (r.getState() == Record.StateNew) {
 					// fresh record
 					r.setValue(storageLoad(key));
 					if (r.getValue() != null)
-						r.getValue().initRootInfo(r.createRootInfoIfNeed(tkey), null);
+						Objects.requireNonNull(r.getValue()).initRootInfo(r.createRootInfoIfNeed(tkey), null);
 					r.setTimestamp(Record.getNextTimestamp());
 					r.setState(Record.StateLoad);
 				}
@@ -261,7 +264,7 @@ public final class Table<K, V extends Bean> {
 		}
 	}
 
-	private V storageLoad(K key) {
+	private @Nullable V storageLoad(K key) {
 		var keyBB = ByteBuffer.Allocate();
 		keyEncodeFunc.accept(keyBB, key);
 		byte[] valueBytes;
@@ -279,7 +282,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public V selectDirty(K key) {
+	public @Nullable V selectDirty(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		if (currentT != null) {
 			var cr = currentT.getRecordAccessed(new TableKey(name, key));
@@ -296,7 +299,7 @@ public final class Table<K, V extends Bean> {
 		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);
 		var cr = currentT.getRecordAccessed(tkey);
-		value.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
+		value.initRootInfo(Objects.requireNonNull(cr).getOrigin().createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, value);
 		return true;
 	}
@@ -316,7 +319,7 @@ public final class Table<K, V extends Bean> {
 			cr = new Transaction.RecordAccessed(currentT, r);
 			currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 		}
-		value.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
+		value.initRootInfo(Objects.requireNonNull(cr).getOrigin().createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, value);
 	}
 
@@ -379,7 +382,7 @@ public final class Table<K, V extends Bean> {
 			// record不存在即先行分歧：直接getValue().followerApply抛NPE，由Rocks.followerApply
 			// 统一catch并fatalKill（宁死不糊），不再内联防御。
 			for (var log : rLog.getLogBean())
-				r.getValue().followerApply(log); // 最多一个。
+				Objects.requireNonNull(r.getValue()).followerApply(log); // 最多一个。
 			break;
 
 		default:

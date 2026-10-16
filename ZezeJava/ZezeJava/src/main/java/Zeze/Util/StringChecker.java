@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -10,14 +12,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 字符串匹配大量固定子串的高效算法. 使用trie树结构搭配AC自动机算法, 内存占用大概是所有子串的30倍大小
  */
 public final class StringChecker {
-	private static final @NotNull Logger logger = LogManager.getLogger(StringChecker.class);
+	private static final Logger logger = LogManager.getLogger(StringChecker.class);
 
 	/** 词条长度上限：calFail按词条长度递归（每字符约3帧，栈深=词长），超长词条
 	 * （词库被污染/误粘整段文本）会以StackOverflowError击穿reload。实测4096字符在默认
@@ -25,11 +26,11 @@ public final class StringChecker {
 	private static final int MAX_WORD_LENGTH = 1024;
 	private static final class Trie extends CharHashMap<Trie> {
 		private int deep;
-		private Trie fail;
+		private @Nullable Trie fail;
 		private boolean end; // 词尾：root到此节点的路径是一个完整词条（终止状态显式化）
 		private int maxWordLen; // 仅根节点使用：已添加的最大词条长度
 
-		void add(@NotNull String str, int i, int e) {
+		void add(String str, int i, int e) {
 			int len = e - i;
 			if (len > maxWordLen) // add总是从根节点进入，在根上跟踪最大词条长度
 				maxWordLen = len;
@@ -54,7 +55,7 @@ public final class StringChecker {
 			}
 		}
 
-		void calFail(@NotNull Trie root, char @NotNull [] stack, int i) {
+		void calFail(Trie root, char [] stack, int i) {
 			fail = root;
 			for (int j = 1; j < i; j++) {
 				Trie t = root;
@@ -74,7 +75,7 @@ public final class StringChecker {
 			});
 		}
 
-		boolean contains(@NotNull String str) {
+		boolean contains(String str) {
 			Trie trie = this;
 			for (int i = 0, n = str.length(); i < n; ) {
 				Trie next = trie.get(str.charAt(i));
@@ -83,14 +84,14 @@ public final class StringChecker {
 						i++;
 						continue;
 					}
-					trie = trie.fail;
+					trie = Objects.requireNonNull(trie.fail);
 					continue;
 				}
 				if (next.end)
 					return true;
 				// 成功转移后沿fail链检查输出：词条是另一词条真后缀时，
 				// 命中信号经由长词前缀路径的fail链到达，只查转移目标自身会漏检。
-				for (Trie t = next.fail; ; t = t.fail) {
+				for (Trie t = Objects.requireNonNull(next.fail); ; t = Objects.requireNonNull(t.fail)) {
 					if (t.end)
 						return true;
 					if (t == t.fail) // root：后缀枚举完
@@ -103,7 +104,7 @@ public final class StringChecker {
 		}
 
 		@SuppressWarnings("UnusedReturnValue")
-		boolean replace(char @NotNull [] chars, char replaceChar) {
+		boolean replace(char [] chars, char replaceChar) {
 			Trie trie = this;
 			int iLast = 0, eLast = 0;
 			boolean replaced = false;
@@ -118,14 +119,14 @@ public final class StringChecker {
 							chars[iLast++] = replaceChar;
 						while (iLast < eLast);
 						replaced = true;
-						trie = trie.fail;
+						trie = Objects.requireNonNull(trie.fail);
 						continue;
 					}
 					if (trie == this) {
 						i++;
 						continue;
 					}
-					trie = trie.fail;
+					trie = Objects.requireNonNull(trie.fail);
 					continue;
 				}
 				if (next.end && next.isEmpty()) {
@@ -136,7 +137,7 @@ public final class StringChecker {
 					for (int j = i + 1 - next.deep; j <= i; j++)
 						chars[j] = replaceChar;
 					replaced = true;
-					trie = next.fail;
+					trie = Objects.requireNonNull(next.fail);
 					i++;
 					continue;
 				}
@@ -147,7 +148,7 @@ public final class StringChecker {
 				if (next.end)
 					wordLen = next.deep;
 				else {
-					for (Trie t = next.fail; ; t = t.fail) {
+					for (Trie t = Objects.requireNonNull(next.fail); ; t = Objects.requireNonNull(t.fail)) {
 						if (t.end) {
 							wordLen = t.deep;
 							break;
@@ -193,7 +194,7 @@ public final class StringChecker {
 	private final HashSet<String> newAdds = new HashSet<>(); // 动态添加的部分
 	private final FastLock newAddsLock = new FastLock();
 
-	private static boolean addLine(@NotNull Trie trie, @NotNull String line) {
+	private static boolean addLine(Trie trie, String line) {
 		line = line.trim();
 		int e = line.length();
 		if (e == 0)
@@ -235,7 +236,7 @@ public final class StringChecker {
 		return n;
 	}
 
-	public int reload(@NotNull String filename, @Nullable Charset charset) throws IOException {
+	public int reload(String filename, @Nullable Charset charset) throws IOException {
 		if (charset == null)
 			charset = StandardCharsets.UTF_8;
 		try (Reader reader = new InputStreamReader(new FileInputStream(filename), charset)) {
@@ -243,7 +244,7 @@ public final class StringChecker {
 		}
 	}
 
-	public void addNewLine(@NotNull String line) { // 添加后需要reload才能生效
+	public void addNewLine(String line) { // 添加后需要reload才能生效
 		newAddsLock.lock();
 		try {
 			newAdds.add(line);
@@ -252,12 +253,12 @@ public final class StringChecker {
 		}
 	}
 
-	public boolean contains(@NotNull String str) {
+	public boolean contains(String str) {
 		var trie = root; // volatile字段先拷贝到局部，避免判空与使用间被并发修改
 		return trie != null && trie.contains(str);
 	}
 
-	public @NotNull String replace(@NotNull String str, char replaceChar) {
+	public String replace(String str, char replaceChar) {
 		var trie = root; // 快照一次，让检查与替换落在同一代trie上
 		if (trie == null || !trie.contains(str))
 			return str;

@@ -1,5 +1,7 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Objects;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -12,8 +14,7 @@ import Zeze.Transaction.Savepoint;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.PVector;
 
 /** PList2 的变更日志：在 LogList1 的 OpLog 序列之外，另记 changed（元素 Bean 的原位修改日志及最终下标）。 */
@@ -22,16 +23,16 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	private @Nullable IdentityHashSet<V> addSet;
 	private boolean decoded; // 解码日志的下标已在 wire 中，元素日志不再持有原始 Bean。
 
-	public LogList2(Bean belong, int varId, Bean self, @NotNull PVector<V> value, @NotNull Meta1<V> meta) {
+	public LogList2(@Nullable Bean belong, int varId, @Nullable Bean self, PVector<V> value, Meta1<V> meta) {
 		super(belong, varId, self, value, meta);
 	}
 
-	public final @NotNull HashMap<LogBean, OutInt> getChanged() {
+	public final HashMap<LogBean, OutInt> getChanged() {
 		return changed;
 	}
 
 	@Override
-	public boolean add(@NotNull V item) {
+	public boolean add(V item) {
 		if (!super.add(item))
 			return false;
 		if (addSet == null)
@@ -41,7 +42,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public boolean addAll(@NotNull Collection<? extends V> items) {
+	public boolean addAll(Collection<? extends V> items) {
 		int addIndex = getValue().size();
 		var list = getValue().plusAll(items);
 		if (list == getValue())
@@ -64,7 +65,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void add(int index, @NotNull V item) {
+	public void add(int index, V item) {
 		super.add(index, item);
 		if (addSet == null)
 			addSet = new IdentityHashSet<>();
@@ -72,7 +73,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public @NotNull V set(int index, @NotNull V item) {
+	public V set(int index, V item) {
 		V old = super.set(index, item);
 		if (addSet == null)
 			addSet = new IdentityHashSet<>();
@@ -82,7 +83,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public @NotNull V remove(int index) {
+	public V remove(int index) {
 		V old = super.remove(index);
 		if (addSet == null)
 			addSet = new IdentityHashSet<>();
@@ -91,7 +92,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void endSavepoint(@NotNull Savepoint currentSp) {
+	public void endSavepoint(Savepoint currentSp) {
 		Log log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
@@ -102,7 +103,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			currentSp.putLog(this);
 	}
 
-	private void merge(@NotNull LogList2<V> from) {
+	private void merge(LogList2<V> from) {
 		if (!from.opLogs.isEmpty()) {
 			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
 				opLogs.clear();
@@ -117,12 +118,12 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public @NotNull Log beginSavepoint() {
+	public Log beginSavepoint() {
 		return new LogList2<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		if (!decoded && !changed.isEmpty()) {
 			var curList = getValue();
 			// 下标按身份预建一遍（O(changed+size)）：逐changed线性扫在
@@ -135,7 +136,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				var e = it.next();
 				var bean = e.getKey().getThis();
 				var idxExist = indexByIdentity.get(bean);
-				if (idxExist == null || addSet != null && addSet.contains(bean))
+				if (idxExist == null || addSet != null && addSet.contains(Objects.requireNonNull(bean)))
 					it.remove();
 				else
 					e.getValue().value = idxExist;
@@ -153,14 +154,14 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
 				if (opLog.op < OpLog.OP_REMOVE)
-					opLog.value.encode(bb);
+					Objects.requireNonNull(opLog.value).encode(bb);
 			}
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		addSet = null;
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
@@ -176,7 +177,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
 				V v = null;
 				if (op < OpLog.OP_REMOVE) {
-					v = (V)meta.valueFactory.invoke();
+					v = (V)Objects.requireNonNull(meta.valueFactory).invoke();
 					v.decode(bb);
 				}
 				opLogs.add(new OpLog<>(op, index, v));
@@ -188,13 +189,13 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		if (changed.putIfAbsent((LogBean)vlog, new OutInt()) == null)
 			changes.collect(recent, this);
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(" opLogs:");
 		ByteBuffer.BuildSortedString(sb, getOpLogs());

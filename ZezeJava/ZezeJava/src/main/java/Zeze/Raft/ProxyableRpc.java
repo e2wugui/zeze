@@ -3,15 +3,15 @@ package Zeze.Raft;
 import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 可走代理的 Rpc：持有 ProxyRequest，所有应答入口在代理路径下改经 proxyRequest 应答。
  */
 public abstract class ProxyableRpc<A extends Serializable, R extends Serializable> extends Rpc<A, R> {
-	private ProxyRequest proxyRequest;
+	private @Nullable ProxyRequest proxyRequest;
 
-	public void setProxyRequest(ProxyRequest proxyRequest) {
+	public void setProxyRequest(@Nullable ProxyRequest proxyRequest) {
 		this.proxyRequest = proxyRequest;
 	}
 

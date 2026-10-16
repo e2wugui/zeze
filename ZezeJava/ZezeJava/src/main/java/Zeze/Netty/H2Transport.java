@@ -18,7 +18,6 @@ import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.codec.http2.Http2StreamChannel;
 import io.netty.handler.codec.http2.Http2StreamFrameToHttpObjectCodec;
 import io.netty.handler.stream.ChunkedWriteHandler;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * HTTP/2传输栈工厂（明文h2c prior-knowledge/Upgrade与ALPN共用）。
@@ -48,11 +47,11 @@ public final class H2Transport {
 	public static final long MaxHeaderListSize = 1 << 20; // 1MB
 
 	// 连接级h2栈：帧codec+多路复用（每stream子channel走createStreamInitializer装配）
-	public static @NotNull ChannelHandler createMultiplex(@NotNull HttpServer server) {
+	public static ChannelHandler createMultiplex(HttpServer server) {
 		return new Http2MultiplexHandler(createStreamInitializer(server));
 	}
 
-	public static @NotNull Http2FrameCodec createFrameCodec() {
+	public static Http2FrameCodec createFrameCodec() {
 		var settings = new Http2Settings()
 				.maxConcurrentStreams(MaxConcurrentStreams)
 				.maxFrameSize(MaxFrameSize)
@@ -64,10 +63,10 @@ public final class H2Transport {
 
 	// 每stream子channel装配：帧翻译→ChunkedWriteHandler→HttpServer(@Sharable复用)→h2标志。
 	// h2StreamKey置位后HttpExchange.isH2()为真，驱动各h1专属分支跳过。
-	private static @NotNull ChannelHandler createStreamInitializer(@NotNull HttpServer server) {
+	private static ChannelHandler createStreamInitializer(HttpServer server) {
 		return new ChannelInitializer<Http2StreamChannel>() {
 			@Override
-			protected void initChannel(@NotNull Http2StreamChannel ch) {
+			protected void initChannel(Http2StreamChannel ch) {
 				ch.pipeline().addLast(new Http2StreamFrameToHttpObjectCodec(true));
 				ch.pipeline().addLast(new ChunkedWriteHandler());
 				ch.pipeline().addLast(server);
@@ -87,20 +86,20 @@ public final class H2Transport {
 	 * 形态的源编解码器，与本服务的自定义encoder/decoder管线不合，需要适配层）。
 	 */
 	static final class PrefaceDetector extends ByteToMessageDecoder {
-		private final @NotNull HttpServer server;
+		private final HttpServer server;
 		private boolean resolved;
 
 		// 完整24字节魔数：裸"PRI"前缀会误判自定义PRI前缀方法（RFC 9110扩展方法token）；
 		// 字节不足继续累积，不匹配自移除回退h1。
 		private static final byte[] H2_PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".getBytes(StandardCharsets.US_ASCII);
 
-		PrefaceDetector(@NotNull HttpServer server) {
+		PrefaceDetector(HttpServer server) {
 			this.server = server;
 		}
 
 		@Override
-		protected void decode(@NotNull ChannelHandlerContext ctx, @NotNull ByteBuf in,
-							  @NotNull List<Object> out) {
+		protected void decode(ChannelHandlerContext ctx, ByteBuf in,
+							  List<Object> out) {
 			if (resolved)
 				return; // 已决议则等待移除（decodeLast重放兜底）
 			var pipeline = ctx.pipeline();
@@ -142,7 +141,7 @@ public final class H2Transport {
 	// 帧写出同样改变它，天然覆盖h2）。
 	private static final class H2ReadActivityMarker extends ChannelInboundHandlerAdapter {
 		@Override
-		public void channelRead(@NotNull ChannelHandlerContext ctx, @NotNull Object msg) throws Exception {
+		public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 			ctx.channel().attr(HttpServer.idleTimeKey).set(null);
 			super.channelRead(ctx, msg);
 		}

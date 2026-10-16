@@ -1,7 +1,6 @@
 package Zeze.Serialize;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 三维单精度向量值类型（float x/y/z），继承 Vector2，提供加减/点叉积/归一化等运算。 */
 public class Vector3 extends Vector2 {
@@ -14,22 +13,22 @@ public class Vector3 extends Vector2 {
 		this.z = z;
 	}
 
-	public Vector3(@NotNull Vector3 v3) {
+	public Vector3(Vector3 v3) {
 		super(v3);
 		z = v3.z;
 	}
 
-	public Vector3(@NotNull Vector3Int v3) {
+	public Vector3(Vector3Int v3) {
 		super(v3);
 		z = v3.z;
 	}
 
-	public Vector3(@NotNull Vector2 v2) {
+	public Vector3(Vector2 v2) {
 		super(v2);
 		z = 0;
 	}
 
-	public Vector3(@NotNull Vector2Int v2) {
+	public Vector3(Vector2Int v2) {
 		super(v2);
 		z = 0;
 	}
@@ -40,7 +39,7 @@ public class Vector3 extends Vector2 {
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2 v) {
+	public int compareTo(Vector2 v) {
 		int c = Float.compare(x, v.x);
 		if (c != 0)
 			return c;
@@ -73,27 +72,27 @@ public class Vector3 extends Vector2 {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "Vector3(" + x + ',' + y + ',' + z + ')';
 	}
 
-	public @NotNull Vector3 add(@NotNull Vector3 b) {
+	public Vector3 add(Vector3 b) {
 		return new Vector3(x + b.x, y + b.y, z + b.z);
 	}
 
-	public @NotNull Vector3 sub(@NotNull Vector3 b) {
+	public Vector3 sub(Vector3 b) {
 		return new Vector3(x - b.x, y - b.y, z - b.z);
 	}
 
-	public @NotNull Vector3 subtract(@NotNull Vector3 b) {
+	public Vector3 subtract(Vector3 b) {
 		return sub(b);
 	}
 
-	public @NotNull Vector3 multiply(float m) {
+	public Vector3 multiply(float m) {
 		return new Vector3(x * m, y * m, z * m);
 	}
 
-	public @NotNull Vector3 normalized() {
+	public Vector3 normalized() {
 		double magnitude = Math.sqrt((double)x * x + (double)y * y + (double)z * z);
 		if (magnitude > 1e-6f) {
 			double f = 1 / magnitude;
@@ -110,14 +109,14 @@ public class Vector3 extends Vector2 {
 		return (float)Math.sqrt((double)x * x + (double)y * y + (double)z * z);
 	}
 
-	public static @NotNull Vector3 cross(@NotNull Vector3 u, @NotNull Vector3 v) {
+	public static Vector3 cross(Vector3 u, Vector3 v) {
 		double x = (double)u.y * v.z - (double)u.z * v.y;
 		double y = (double)u.z * v.x - (double)u.x * v.z;
 		double z = (double)u.x * v.y - (double)u.y * v.x;
 		return new Vector3((float)x, (float)y, (float)z);
 	}
 
-	public static float dot(@NotNull Vector3 u, @NotNull Vector3 v) {
+	public static float dot(Vector3 u, Vector3 v) {
 		return (float)((double)u.x * v.x + (double)u.y * v.y + (double)u.z * v.z);
 	}
 }

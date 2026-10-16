@@ -8,8 +8,7 @@ import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 网络与缓冲相关的辅助工具。
@@ -38,7 +37,7 @@ public final class Helper {
 	 * @param increment 需要增加的空间。
 	 * @return 剩余空间足够的buffer。
 	 */
-	public static @NotNull ByteBuffer realloc(@Nullable ByteBuffer buffer, int increment) {
+	public static ByteBuffer realloc(@Nullable ByteBuffer buffer, int increment) {
 		if (null == buffer) {
 			return ByteBuffer.allocate(roundup(increment));
 		}
@@ -73,7 +72,7 @@ public final class Helper {
 	/**
 	 * 把整数形式保存的 IpAddress 和 port 转换成 InetSocketAddress。
 	 */
-	public static @NotNull InetSocketAddress inetSocketAddress(int address, int port) {
+	public static InetSocketAddress inetSocketAddress(int address, int port) {
 		return new InetSocketAddress(inetAddress(address), port);
 	}
 
@@ -82,7 +81,7 @@ public final class Helper {
 	 *
 	 * @throws IllegalArgumentException if addr is not a ip4 address
 	 */
-	public static int ip4(@NotNull InetAddress addr) {
+	public static int ip4(InetAddress addr) {
 		byte[] addrs = addr.getAddress();
 		if (addrs.length != 4)
 			throw new IllegalArgumentException(addr + " is not a ip4 address");
@@ -92,7 +91,7 @@ public final class Helper {
 	/**
 	 * 把整数(大端)形式保存的 IpAddress 转换成 InetAddress。
 	 */
-	public static @NotNull InetAddress inetAddress(int address) {
+	public static InetAddress inetAddress(int address) {
 		try {
 			byte[] addr = new byte[4];
 			Zeze.Serialize.ByteBuffer.intBeHandler.set(addr, 0, address);
@@ -103,7 +102,7 @@ public final class Helper {
 	}
 
 	// 域名解析
-	public static @NotNull InetAddress toInetAddress(@Nullable String hostOrAddress) throws UnknownHostException {
+	public static InetAddress toInetAddress(@Nullable String hostOrAddress) throws UnknownHostException {
 		return InetAddress.getByName(hostOrAddress);
 	}
 
@@ -127,7 +126,7 @@ public final class Helper {
 
 	// preferInternal=true 优先级: IPv4 SiteLocal > IPv6 SiteLocal > IPv4 External > IPv6 External > IPv4 Loopback > IPv6 Loopback
 	// preferInternal=false优先级: IPv4 External > IPv6 External > IPv4 SiteLocal > IPv6 SiteLocal > IPv4 Loopback > IPv6 Loopback
-	public static @NotNull String selectOneIpAddress(boolean preferInternal) {
+	public static String selectOneIpAddress(boolean preferInternal) {
 		try {
 			InetAddress bestAddr = null;
 			int bestLevel = 6;
@@ -148,7 +147,7 @@ public final class Helper {
 	}
 
 	// 枚举并输出本机的所有网卡的所有IP地址
-	public static void main(String @NotNull [] args) throws Exception {
+	public static void main(String [] args) throws Exception {
 		System.out.println("@internal: " + selectOneIpAddress(true));
 		System.out.println("@external: " + selectOneIpAddress(false));
 		System.out.println("Loopback : " + InetAddress.getLoopbackAddress());

@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import java.nio.file.Path;
 import java.util.Arrays;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -14,6 +16,8 @@ import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteOptions;
+import org.jspecify.annotations.Nullable;
+import Zeze.Builtin.Dbh2.BBucketMeta.Data;
 
 /**
  * 桶管理一张表的局部范围的记录。
@@ -25,10 +29,10 @@ public class Bucket {
 	private final RocksDatabase.Table trans;
 	private final RocksDatabase.Table meta;
 	private final RocksDatabase.Batch batch;
-	private Thread applyingThread; // Raft apply独占；其他线程的ACK不加入本批次
+	private @Nullable Thread applyingThread; // Raft apply独占；其他线程的ACK不加入本批次
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
-	private volatile BBucketMeta.Data bucketMeta;
-	private volatile BBucketMeta.Data splittingMeta;
+	private volatile @Nullable Data bucketMeta;
+	private volatile @Nullable Data splittingMeta;
 	private final MasterTable.Data splitMetaHistory;
 	private long tid;
 	private final byte[] metaKey = new byte[]{1};
@@ -52,15 +56,15 @@ public class Bucket {
 	 * 据此幂等补发。from为null即move。
 	 */
 	public static final class PendingSettle {
-		private final BBucketMeta.Data from; // null=move
+		private final @Nullable Data from; // null=move
 		private final BBucketMeta.Data to;
 
-		PendingSettle(BBucketMeta.Data from, BBucketMeta.Data to) {
+		PendingSettle(@Nullable Data from, BBucketMeta.Data to) {
 			this.from = from;
 			this.to = to;
 		}
 
-		public BBucketMeta.Data getFrom() {
+		public @Nullable Data getFrom() {
 			return from;
 		}
 
@@ -74,7 +78,7 @@ public class Bucket {
 	// 活桶边界不可能同时为{1}（首桶keyFirst=Empty）。
 	public static final Binary DeadBucketMetaBound = new Binary(new byte[]{1});
 
-	private volatile PendingSettle pendingSettle;
+	private volatile @Nullable PendingSettle pendingSettle;
 
 	public WriteOptions getWriteOptions() {
 		return writeOptions;
@@ -96,7 +100,7 @@ public class Bucket {
 		return trans;
 	}
 
-	public BBucketMeta.Data getSplittingMeta() {
+	public @Nullable Data getSplittingMeta() {
 		return splittingMeta;
 	}
 
@@ -158,7 +162,7 @@ public class Bucket {
 		RocksDatabase.Batch openingBatch = null;
 		try {
 			// 读取meta，meta创建在Bucket创建流程中写入。
-			var path = Path.of(raftConfig.getDbHome(), "statemachine").toAbsolutePath().toString();
+			var path = Path.of(Objects.requireNonNull(raftConfig.getDbHome()), "statemachine").toAbsolutePath().toString();
 			db = opening = new RocksDatabase(path, RocksDatabase.DbType.eRocksDb);
 			data = db.getOrAddTable("data");
 			trans = db.getOrAddTable("transaction");
@@ -167,14 +171,16 @@ public class Bucket {
 			var metaValue = meta.get(metaKey);
 			if (null != metaValue) {
 				var bb = ByteBuffer.Wrap(metaValue);
-				this.bucketMeta = new BBucketMeta.Data();
-				this.bucketMeta.decode(bb);
+				var bucket = new BBucketMeta.Data();
+				bucket.decode(bb);
+				this.bucketMeta = bucket;
 			}
 			var splittingMetaValue = meta.get(metaSplittingKey);
 			if (null != splittingMetaValue) {
 				var bb = ByteBuffer.Wrap(splittingMetaValue);
-				this.splittingMeta = new BBucketMeta.Data();
-				this.splittingMeta.decode(bb);
+				var splitting = new BBucketMeta.Data();
+				splitting.decode(bb);
+				this.splittingMeta = splitting;
 			}
 			var pendingSettleValue = meta.get(metaPendingSettleKey);
 			if (null != pendingSettleValue) {
@@ -235,7 +241,7 @@ public class Bucket {
 		return meta;
 	}
 
-	public PendingSettle getPendingSettle() {
+	public @Nullable PendingSettle getPendingSettle() {
 		return pendingSettle;
 	}
 
@@ -249,7 +255,7 @@ public class Bucket {
 	// 同身份重设幂等放行（raft日志每节点恰apply一次，仅防御）。堆叠窗口已由tryStartSplit对
 	// pending!=null加闸闭口（新迁移不再于旧标志未清时启动，见Dbh2.tryStartSplit），本条件
 	// 覆写保留为闸失效时的防御层。
-	public void setPendingSettle(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
+	public void setPendingSettle(@Nullable Data from, BBucketMeta.Data to) throws RocksDBException {
 		var current = pendingSettle;
 		if (null != current && !sameMeta(current.getTo(), to)) {
 			logger.error("setPendingSettle keep uncleared old flag, skip set. old.from={} old.to={} skip.to={}",
@@ -328,7 +334,7 @@ public class Bucket {
 		return tid;
 	}
 
-	public Binary get(Binary key) throws RocksDBException {
+	public @Nullable Binary get(Binary key) throws RocksDBException {
 		var value = data.get(key.bytesUnsafe(), key.getOffset(), key.size());
 		if (null == value)
 			return null;
@@ -352,15 +358,16 @@ public class Bucket {
 	}
 
 	public boolean inBucket(String databaseName, String tableName) {
+		var bucketMeta = Objects.requireNonNull(this.bucketMeta);
 		return databaseName.equals(bucketMeta.getDatabaseName()) && tableName.equals(bucketMeta.getTableName());
 	}
 
 	public boolean inBucket(Binary key) {
-		return inBucket(bucketMeta, key);
+		return inBucket(Objects.requireNonNull(bucketMeta), key);
 	}
 
 	public boolean inBucket(String databaseName, String tableName, Binary key) {
-		return inBucket(bucketMeta, databaseName, tableName, key);
+		return inBucket(Objects.requireNonNull(bucketMeta), databaseName, tableName, key);
 	}
 
 	public void close() {
@@ -368,7 +375,7 @@ public class Bucket {
 		db.close();
 	}
 
-	public BBucketMeta.Data getBucketMeta() {
+	public @Nullable Data getBucketMeta() {
 		return bucketMeta;
 	}
 }

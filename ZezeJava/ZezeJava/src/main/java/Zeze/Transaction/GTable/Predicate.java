@@ -14,7 +14,7 @@ package Zeze.Transaction.GTable;
  * the License.
  */
 
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Legacy version of {@link java.util.function.Predicate java.util.function.Predicate}. Determines a
@@ -63,7 +63,7 @@ public interface Predicate<T> extends java.util.function.Predicate<T> {
 	 * predicates are known <i>not</i> to be interchangeable.
 	 */
 	@Override
-	boolean equals(@CheckForNull Object object);
+	boolean equals(@Nullable Object object);
 
 	@Override
 	default boolean test(T input) {

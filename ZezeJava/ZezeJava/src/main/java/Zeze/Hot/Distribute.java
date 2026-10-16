@@ -1,5 +1,7 @@
 package Zeze.Hot;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,6 +28,7 @@ import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Args.requireValue;
 
 /**
@@ -36,14 +39,14 @@ public class Distribute {
 	private final Path classesHome;
 	private final boolean exportBean;
 	private final String workingDir;
-	private Set<String> hotModules;
-	private String projectName;
+	private @Nullable Set<String> hotModules;
+	private @Nullable String projectName;
 	private final String providerModuleBinds;
 	private final String configXml;
 	private final boolean atomicAll;
 
 	private final HashMap<String, JarOutputStream> hotModuleJars = new HashMap<>();
-	private JarOutputStream projectJar; // 所有非热更代码都打包到这里。
+	private @Nullable JarOutputStream projectJar; // 所有非热更代码都打包到这里。
 	private final IdentityHashMap<JarOutputStream, AtomicOutputFile> pendingJars = new IdentityHashMap<>();
 
 	private JarOutputStream openJar(Path path, Manifest manifest) throws IOException {
@@ -156,11 +159,11 @@ public class Distribute {
 						.getConstructor((Class<?>[])null).newInstance((Object[])null);
 				appBase.createZeze(config);
 				appBase.createService();
-				var providerApp = new ProviderApp(appBase.getZeze());
+				var providerApp = new ProviderApp(Objects.requireNonNull(appBase.getZeze()));
 				appBase.createModules();
 				providerApp.buildProviderModuleBinds(ProviderModuleBinds.load(providerModuleBinds), appBase.getModules());
 				// 打包配置到module.jar里面，前面的关闭需要移到后面。
-				providerApp.modules.foreach((key, value) -> packModuleConfig(findModule(appBase, key), value));
+				providerApp.modules.foreach((key, value) -> packModuleConfig(Objects.requireNonNull(findModule(appBase, key)), value));
 			} else
 				System.out.println("hotWorkingDir not exist, please prepare and re-run distribute.");
 		} else
@@ -303,7 +306,7 @@ public class Distribute {
 		}
 	}
 
-	private static IModule findModule(AppBase appBase, int moduleId) {
+	private static @Nullable IModule findModule(AppBase appBase, int moduleId) {
 		for (var module : appBase.getModules().values()) {
 			if (module.getId() == moduleId)
 				return module;

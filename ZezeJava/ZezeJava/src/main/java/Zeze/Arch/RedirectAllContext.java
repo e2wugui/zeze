@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
@@ -7,8 +9,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.IntHashMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RedirectAll 的汇聚上下文：按并发级别收集各 hash 分组的结果，完成或超时后触发 future。
@@ -16,11 +17,11 @@ import org.jetbrains.annotations.Nullable;
 public final class RedirectAllContext<R extends RedirectResult> extends Service.ManualContext {
 	private final int concurrentLevel;
 	private final IntHashMap<R> hashResults = new IntHashMap<>(); // <hash, result>
-	private final @Nullable Function<Binary, R> resultDecoder;
+	private final @Nullable Function<@Nullable Binary, R> resultDecoder;
 	private final @Nullable RedirectAllFutureImpl<R> future;
 	private final ReentrantLock lock = new ReentrantLock();
 
-	public RedirectAllContext(int concurrentLevel, @Nullable Function<Binary, R> resultDecoder) {
+	public RedirectAllContext(int concurrentLevel, @Nullable Function<@Nullable Binary, R> resultDecoder) {
 		this.concurrentLevel = concurrentLevel;
 		this.resultDecoder = resultDecoder;
 		future = resultDecoder != null ? new RedirectAllFutureImpl<>() : null;
@@ -31,11 +32,11 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 	}
 
 	// 只用于AllDone时获取所有结果, 此时不会再修改hashResults所以没有并发问题
-	public @NotNull IntHashMap<R> getAllResults() {
+	public IntHashMap<R> getAllResults() {
 		return hashResults;
 	}
 
-	public RedirectAllFuture<R> getFuture() {
+	public @Nullable RedirectAllFuture<R> getFuture() {
 		return future;
 	}
 
@@ -68,7 +69,7 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 	}
 
 	// 这里处理真正redirect发生时，从远程返回的结果。
-	public void processResult(@NotNull ModuleRedirectAllResult res) {
+	public void processResult(ModuleRedirectAllResult res) {
 		lock();
 		try {
 			if (isCompleted())
@@ -89,7 +90,7 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 					hashResults.put(hash, null);
 			}
 			if (hashResults.size() >= concurrentLevel)
-				getService().tryRemoveManualContext(getSessionId());
+				Objects.requireNonNull(getService()).tryRemoveManualContext(getSessionId());
 		} finally {
 			unlock();
 		}

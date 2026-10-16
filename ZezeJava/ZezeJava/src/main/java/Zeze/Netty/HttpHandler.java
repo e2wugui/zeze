@@ -2,23 +2,22 @@ package Zeze.Netty;
 
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * HTTP 路径处理器配置：事务级别/派发模式与请求、流式、WebSocket 回调的组合。
  */
 public class HttpHandler {
 	public final int MaxContentLength; // HTTP请求的body长度限制(只限GET请求时可以限制0长度)以及WebSocket的上传帧长度限制, 只用于非流模式
-	public final @NotNull TransactionLevel Level; // 事务级别
-	public final @NotNull DispatchMode Mode; // 线程派发模式
+	public final TransactionLevel Level; // 事务级别
+	public final DispatchMode Mode; // 线程派发模式
 	public final @Nullable HttpBeginStreamHandle BeginStreamHandle; // 上行流处理函数。
 	public final @Nullable HttpStreamContentHandle StreamContentHandle;
 	public final @Nullable HttpEndStreamHandle EndStreamHandle; // 也用于普通请求处理函数，不是流处理方式时，如果需要内部会自动把流合并到一个请求里面。
 	public final @Nullable HttpWebSocketHandle WebSocketHandle;
 
 	public HttpHandler(int maxContentLength, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
-					   @NotNull HttpEndStreamHandle fullHandle) {
+					   HttpEndStreamHandle fullHandle) {
 		//noinspection ConstantValue
 		if (fullHandle == null)
 			throw new IllegalArgumentException("fullHandle is null");
@@ -32,8 +31,8 @@ public class HttpHandler {
 	}
 
 	public HttpHandler(@Nullable TransactionLevel level, @Nullable DispatchMode mode,
-					   @NotNull HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
-					   @NotNull HttpEndStreamHandle endStream) {
+					   HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
+					   HttpEndStreamHandle endStream) {
 		//noinspection ConstantValue
 		if (beginStream == null)
 			throw new IllegalArgumentException("beginStream is null");
@@ -50,7 +49,7 @@ public class HttpHandler {
 	}
 
 	public HttpHandler(int maxFrameLength, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
-					   @NotNull HttpWebSocketHandle webSocketHandle) {
+					   HttpWebSocketHandle webSocketHandle) {
 		//noinspection ConstantValue
 		if (webSocketHandle == null)
 			throw new IllegalArgumentException("webSocketHandle is null");

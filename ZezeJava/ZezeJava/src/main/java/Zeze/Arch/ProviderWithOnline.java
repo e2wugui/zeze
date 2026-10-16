@@ -1,19 +1,21 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import Zeze.AppBase;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 带在线表的 Provider 实现模板：组合 Arch.Online，处理 LinkBroken 下线与负载上报。
  */
 public class ProviderWithOnline extends ProviderImplement {
-	protected Online online; // 需要外面初始化。App.Start.
-	private ProviderLoadWithOnline load;
+	protected @Nullable Online online; // 需要外面初始化。App.Start.
+	private @Nullable ProviderLoadWithOnline load;
 
-	public Online getOnline() {
+	public @Nullable Online getOnline() {
 		return online;
 	}
 
@@ -27,8 +29,8 @@ public class ProviderWithOnline extends ProviderImplement {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getUserState().getContext().isEmpty()) {
 			// 失败码外传整体回滚（对齐Online.linkBroken的内部外传契约与Game版入口）。
-			return online.linkBroken(p.Argument.getAccount(), p.Argument.getUserState().getContext(),
-					ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
+			return Objects.requireNonNull(online).linkBroken(p.Argument.getAccount(), p.Argument.getUserState().getContext(),
+					ProviderService.getLinkName(Objects.requireNonNull(p.getSender())), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
 	}
@@ -37,13 +39,13 @@ public class ProviderWithOnline extends ProviderImplement {
 		online = Online.create(app);
 		online.Initialize(app);
 		load = new ProviderLoadWithOnline(online);
-		var config = app.getZeze().getConfig();
-		load.getOverload().register(Task.getThreadPool(), config);
+		var config = Objects.requireNonNull(app.getZeze()).getConfig();
+		load.getOverload().register(Objects.requireNonNull(Task.getThreadPool()), config);
 	}
 
 	public void start() {
-		load.start();
-		online.start();
+		Objects.requireNonNull(load).start();
+		Objects.requireNonNull(online).start();
 	}
 
 	@Override

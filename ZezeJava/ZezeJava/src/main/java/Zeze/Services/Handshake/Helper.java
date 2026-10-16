@@ -2,7 +2,6 @@ package Zeze.Services.Handshake;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * DH密钥交换辅助：标准DH群参数（按RFC组号索引）、安全随机数与DH计算。
@@ -32,7 +31,7 @@ public final class Helper {
 	};
 	private static final SecureRandom random = new SecureRandom();
 
-	public static byte @NotNull [] makeRandValues(int bytes) {
+	public static byte [] makeRandValues(int bytes) {
 		byte[] v = new byte[bytes];
 		random.nextBytes(v);
 		return v;
@@ -42,17 +41,17 @@ public final class Helper {
 		return Integer.compareUnsigned(group, dh_group.length) < 0 && !dh_group[group].equals(BigInteger.ZERO);
 	}
 
-	public static @NotNull BigInteger makeDHRandom() {
+	public static BigInteger makeDHRandom() {
 		byte[] r = makeRandValues(17);
 		r[0] = 0; // big-endian
 		return new BigInteger(r);
 	}
 
-	public static @NotNull BigInteger generateDHResponse(int group, @NotNull BigInteger rand) {
+	public static BigInteger generateDHResponse(int group, BigInteger rand) {
 		return dh_g.modPow(rand, dh_group[group]);
 	}
 
-	public static @NotNull BigInteger computeDHKey(int group, @NotNull BigInteger response, @NotNull BigInteger rand) {
+	public static BigInteger computeDHKey(int group, BigInteger response, BigInteger rand) {
 		return response.modPow(rand, dh_group[group]);
 	}
 }

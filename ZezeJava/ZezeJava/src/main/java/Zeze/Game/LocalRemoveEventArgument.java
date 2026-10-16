@@ -2,7 +2,7 @@ package Zeze.Game;
 
 import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Util.EventDispatcher;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 本地在线移除事件的参数：roleId 与移除时的本地在线数据。

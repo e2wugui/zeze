@@ -18,7 +18,7 @@ package Zeze.Transaction.GTable;
 
 import java.util.Map;
 import java.util.Map.Entry;
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A map entry which forwards all its method calls to another map entry. Subclasses should override
@@ -43,7 +43,7 @@ import javax.annotation.CheckForNull;
  * @author Louis Wasserman
  * @since 2.0
  */
-public abstract class ForwardingMapEntry<K, V> extends ForwardingObject implements Map.Entry<K, V> {
+public abstract class ForwardingMapEntry<K extends @Nullable Object, V extends @Nullable Object> extends ForwardingObject implements Map.Entry<K, V> {
 	/** Constructor for use by subclasses. */
 	protected ForwardingMapEntry() {}
 
@@ -67,7 +67,7 @@ public abstract class ForwardingMapEntry<K, V> extends ForwardingObject implemen
 
 	@SuppressWarnings("EqualsDoesntCheckParameterClass")
 	@Override
-	public boolean equals(@CheckForNull Object object) {
+	public boolean equals(@Nullable Object object) {
 		return delegate().equals(object);
 	}
 
@@ -83,7 +83,7 @@ public abstract class ForwardingMapEntry<K, V> extends ForwardingObject implemen
 	 *
 	 * @since 7.0
 	 */
-	protected boolean standardEquals(@CheckForNull Object object) {
+	protected boolean standardEquals(@Nullable Object object) {
 		if (object instanceof Entry<?, ?> that) {
 			return Utils.equal(this.getKey(), that.getKey())
 					&& Utils.equal(this.getValue(), that.getValue());

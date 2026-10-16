@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +14,7 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 import org.tikv.common.BytePairWrapper;
 import org.tikv.common.ByteWrapper;
 import org.tikv.common.TiConfiguration;
@@ -34,8 +36,8 @@ import org.tikv.txn.TwoPhaseCommitter;
 public class DatabaseTikv extends Database {
 	private final TiConfiguration config;
 	private final TiSession session;
-	private final RawKVClient client;
-	private final KVClient txnClient;
+	private final @Nullable RawKVClient client;
+	private final @Nullable KVClient txnClient;
 	private final boolean distTxn; // 是否启用分布式事务. 注意两种模式的数据不能互通
 
 	public DatabaseTikv(Application zeze, Config.DatabaseConf conf) {
@@ -79,12 +81,12 @@ public class DatabaseTikv extends Database {
 	}
 
 	@Override
-	public @NotNull AbstractKVTable openTable(@NotNull String name, int id) {
+	public AbstractKVTable openTable(String name, int id) {
 		return new TikvTable(name);
 	}
 
 	@Override
-	public @NotNull Transaction beginTransaction() {
+	public Transaction beginTransaction() {
 		return distTxn ? new TikvDistTrans() : new TikvTrans();
 	}
 
@@ -92,9 +94,9 @@ public class DatabaseTikv extends Database {
 	public void close() {
 		try {
 			if (distTxn)
-				txnClient.close();
+				Objects.requireNonNull(txnClient).close();
 			else
-				client.close();
+				Objects.requireNonNull(client).close();
 		} catch (Exception e) {
 			logger.error("", e);
 		}
@@ -115,7 +117,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			lock();
 			try {
 				return distTxn ? saveDataWithSameVersionDistTxn(key, data, version)
@@ -131,10 +133,10 @@ public class DatabaseTikv extends Database {
 		// compareAndSet 以完整旧值为条件原子替换（旧值null=仅键不存在时写入），冲突返回 false
 		// 交给 Application.schemasCompatible 既有 CAS 重试环路。
 		private KV<Long, Boolean> saveDataWithSameVersionRaw(
-				@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
+				ByteBuffer key, ByteBuffer data, long version) {
 			var keyBs = table.prefixedKey(key);
 			@SuppressWarnings("DataFlowIssue")
-			var oldValue = client.get(keyBs);
+			var oldValue = Objects.requireNonNull(client).get(keyBs);
 			var oldRaw = oldValue.isEmpty() || oldValue.get().isEmpty() ? null : oldValue.get();
 			if (oldRaw != null) {
 				var oldDv = new DataWithVersion();
@@ -150,7 +152,7 @@ public class DatabaseTikv extends Database {
 			dv.encode(bb);
 			var newBs = ByteString.copyFrom(bb.Bytes, bb.ReadIndex, bb.size());
 			try {
-				client.compareAndSet(keyBs, Optional.ofNullable(oldRaw), newBs);
+				Objects.requireNonNull(client).compareAndSet(keyBs, Optional.ofNullable(oldRaw), newBs);
 			} catch (RawCASConflictException e) {
 				return KV.create(version, false);
 			}
@@ -162,11 +164,11 @@ public class DatabaseTikv extends Database {
 		// start_ts——并发提交发生在两次取 ts 之间时 prewrite 检测不到，照样覆盖丢更新。
 		// 这里 start_ts → 同 ts 快照读 → 同 start_ts 两阶段提交，标准 OCC。
 		private KV<Long, Boolean> saveDataWithSameVersionDistTxn(
-				@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
+				ByteBuffer key, ByteBuffer data, long version) {
 			var keyBs = table.prefixedKey(key);
 			var startTs = session.getTimestamp().getVersion();
 			@SuppressWarnings("DataFlowIssue")
-			var oldRead = txnClient.get(keyBs, startTs);
+			var oldRead = Objects.requireNonNull(txnClient).get(keyBs, startTs);
 			var oldRaw = oldRead == null || oldRead.isEmpty() ? null : oldRead;
 			if (oldRaw != null) {
 				var oldDv = new DataWithVersion();
@@ -190,7 +192,7 @@ public class DatabaseTikv extends Database {
 				// 诊断重读自身失败（TiKV持续不可达）不得替换原始提交异常——排障时
 				// 看到的必须是真正的提交错误；suppress后照常抛原始异常。
 				try {
-					var current = txnClient.get(keyBs, session.getTimestamp().getVersion());
+					var current = Objects.requireNonNull(txnClient).get(keyBs, session.getTimestamp().getVersion());
 					var curDv = new DataWithVersion();
 					if (current != null && !current.isEmpty()) {
 						curDv.decode(ByteBuffer.Wrap(current.toByteArray()));
@@ -206,7 +208,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
 			lock();
 			try {
 				var dv = new DataWithVersion();
@@ -220,11 +222,11 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void setInUse(int localId, @NotNull String global) {
+		public void setInUse(int localId, String global) {
 		}
 
 		@Override
-		public int clearInUse(int localId, @NotNull String global) {
+		public int clearInUse(int localId, String global) {
 			return 0;
 		}
 	}
@@ -234,7 +236,7 @@ public class DatabaseTikv extends Database {
 		private final String name;
 
 		@Override
-		public @NotNull DatabaseTikv getDatabase() {
+		public DatabaseTikv getDatabase() {
 			return DatabaseTikv.this;
 		}
 
@@ -257,26 +259,26 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public ByteBuffer find(@NotNull ByteBuffer key) {
+		public @Nullable ByteBuffer find(ByteBuffer key) {
 			checkKvKeyLengthForLegacyAccess(name, key);
 			if (distTxn) {
 				// 快照读必须现取 TSO 时间戳：本进程缓存的快照永远看不到其他进程已提交的数据
 				// （多进程接管记录时 cache miss 读到旧值，之后基于旧值覆盖写会丢失对方的更新）。
 				// find 仅在本地 cache miss、记录失效重载、selectFromDatabase 时被调用，
 				// 一次 TSO 往返（PD get_tso，无批量，约一次小 RPC）的代价换取读到最新已提交数据。
-				ByteString value = txnClient.get(addKeyPrefixBS(key), session.getTimestamp().getVersion());
+				ByteString value = Objects.requireNonNull(txnClient).get(addKeyPrefixBS(key), session.getTimestamp().getVersion());
 				if (value == null)
 					return null;
 				// distTxn 空值=删除标记（TwoPhaseCommitter 对 empty 一律按 Op.Del 提交，无法写入空值）
 				return value.isEmpty() ? null : ByteBuffer.Wrap(value.toByteArray());
 			}
 			// raw 模式 0 字节值是合法数据（zeze 契约允许，如全默认值记录），只把 key 不存在映射为 null
-			var result = client.get(addKeyPrefixBS(key));
+			var result = Objects.requireNonNull(client).get(addKeyPrefixBS(key));
 			return result.isEmpty() ? null : ByteBuffer.Wrap(result.get().toByteArray());
 		}
 
 		@Override
-		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			checkKvKeyLengthForLegacyAccess(name, key);
 			if (distTxn)
 				((TikvDistTrans)t).delete(addKeyPrefixBB(key));
@@ -285,7 +287,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			checkKvKeyLength(name, key);
 			if (distTxn) {
 				// distTxn 的 TwoPhaseCommitter 对空值一律按 Op.Del 提交：0字节value的replace
@@ -298,7 +300,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
@@ -308,7 +310,7 @@ public class DatabaseTikv extends Database {
 				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey,
 						session.getTimestamp().getVersion());
 			else
-				it = client.scan0(startKey, endKey);
+				it = Objects.requireNonNull(client).scan0(startKey, endKey);
 			while (it.hasNext()) {
 				var kv = it.next();
 				var value = kv.getValue();
@@ -322,7 +324,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
@@ -332,7 +334,7 @@ public class DatabaseTikv extends Database {
 				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey,
 						session.getTimestamp().getVersion());
 			else
-				it = client.scan0(startKey, endKey);
+				it = Objects.requireNonNull(client).scan0(startKey, endKey);
 			while (it.hasNext()) {
 				var kv = it.next();
 				if (distTxn && kv.getValue().isEmpty()) // distTxn空值=删除标记；raw的0字节值是合法数据
@@ -345,37 +347,37 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
+		public long walkDesc(TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
+		public long walkKeyDesc(TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		// OperatesTikv 条件写用：带长度校验的完整 key。
-		ByteString prefixedKey(@NotNull ByteBuffer key) {
+		ByteString prefixedKey(ByteBuffer key) {
 			checkKvKeyLength(name, key);
 			return addKeyPrefixBS(key);
 		}
@@ -400,8 +402,8 @@ public class DatabaseTikv extends Database {
 	}
 
 	private final class TikvTrans implements Transaction {
-		private Map<ByteString, ByteString> datas;
-		private List<ByteString> deleteKeys;
+		private @Nullable Map<ByteString, ByteString> datas;
+		private @Nullable List<ByteString> deleteKeys;
 
 		private Map<ByteString, ByteString> getDatas() {
 			var d = datas;
@@ -435,7 +437,7 @@ public class DatabaseTikv extends Database {
 		public void commit() {
 			if (datas != null && !datas.isEmpty()) {
 				//noinspection ConstantConditions
-				client.batchPut(datas);
+				Objects.requireNonNull(client).batchPut(datas);
 				datas.clear();
 			}
 			if (deleteKeys != null && !deleteKeys.isEmpty()) {
@@ -444,7 +446,7 @@ public class DatabaseTikv extends Database {
 				// 重启后已删记录复活；异常路径安全（保脏重试幂等）。
 				// 需要原子性的部署应使用distTxn模式。
 				//noinspection ConstantConditions
-				client.batchDelete(deleteKeys);
+				Objects.requireNonNull(client).batchDelete(deleteKeys);
 				deleteKeys.clear();
 			}
 		}
@@ -463,7 +465,7 @@ public class DatabaseTikv extends Database {
 	}
 
 	private final class TikvDistTrans implements Transaction {
-		private Map<ByteBuffer, byte[]> datas;
+		private @Nullable Map<ByteBuffer, byte[]> datas;
 
 		private Map<ByteBuffer, byte[]> getDatas() {
 			var d = datas;

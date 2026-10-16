@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import Zeze.Netty.HttpExchange;
@@ -9,19 +11,24 @@ import Zeze.Util.TimeThrottle;
 import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 服务端 websocket 连接（基于 HttpExchange 的 AsyncSocket 适配）。
  */
 public class Websocket extends AsyncSocket {
-	private static final @NotNull Logger logger = LogManager.getLogger(Websocket.class);
+	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
+	@Override
+	public Service getService() {
+		return Objects.requireNonNull(super.getService());
+	}
+
+	private static final Logger logger = LogManager.getLogger(Websocket.class);
 
 	private final HttpExchange x;
 	private final ByteBuffer input = ByteBuffer.Allocate();
 	private final SocketAddress remote;
-	private final TimeThrottle timeThrottle;
+	private final @Nullable TimeThrottle timeThrottle;
 
 	private final FastLock lock = new FastLock();
 
@@ -39,7 +46,7 @@ public class Websocket extends AsyncSocket {
 	}
 
 	@Override
-	public TimeThrottle getTimeThrottle() {
+	public @Nullable TimeThrottle getTimeThrottle() {
 		return timeThrottle;
 	}
 
@@ -89,7 +96,7 @@ public class Websocket extends AsyncSocket {
 	}
 
 	@Override
-	public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+	public boolean Send(byte [] bytes, int offset, int length) {
 		lock.lock();
 		try {
 			// 这里是多线程访问的。

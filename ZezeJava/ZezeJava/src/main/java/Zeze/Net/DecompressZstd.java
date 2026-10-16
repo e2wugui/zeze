@@ -1,7 +1,6 @@
 package Zeze.Net;
 
 import Zeze.Util.ZstdFactory;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Zstandard 流式解压 codec。
@@ -9,18 +8,18 @@ import org.jetbrains.annotations.NotNull;
 public final class DecompressZstd implements Codec {
 	public static final int DEFAULT_SRC_BUF_SIZE = 1024;
 
-	private final @NotNull Codec sink;
-	private final @NotNull ZstdFactory.ZstdDecompressStream ds;
-	private final byte @NotNull [] srcBuf;
+	private final Codec sink;
+	private final ZstdFactory.ZstdDecompressStream ds;
+	private final byte [] srcBuf;
 	private int srcBufLen;
 
-	public DecompressZstd(@NotNull Codec sink) {
+	public DecompressZstd(Codec sink) {
 		this.sink = sink;
 		ds = ZstdFactory.newDecompressStream();
 		srcBuf = new byte[DEFAULT_SRC_BUF_SIZE];
 	}
 
-	public DecompressZstd(@NotNull Codec sink, int srcBufSize, int dstBufSize) {
+	public DecompressZstd(Codec sink, int srcBufSize, int dstBufSize) {
 		this.sink = sink;
 		ds = ZstdFactory.newDecompressStream(dstBufSize);
 		srcBuf = new byte[Math.max(srcBufSize, 1)];
@@ -36,7 +35,7 @@ public final class DecompressZstd implements Codec {
 	}
 
 	@Override
-	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
+	public void update(byte [] data, int off, int len) throws CodecException {
 		if (srcBufLen > 0) {
 			int n = Math.min(srcBuf.length - srcBufLen, len);
 			System.arraycopy(data, off, srcBuf, srcBufLen, n);

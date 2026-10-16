@@ -7,14 +7,13 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** PMap2 的只读视图：值以只读类型暴露，修改入口抛 UnsupportedOperationException。 */
 public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map.Entry<K, VReadOnly>> {
-	private final @NotNull PMap2<K, V> map;
+	private final PMap2<K, V> map;
 
-	public PMap2ReadOnly(@NotNull PMap2<K, V> map) {
+	public PMap2ReadOnly(PMap2<K, V> map) {
 		this.map = map;
 	}
 
@@ -27,30 +26,30 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	}
 
 	@SuppressWarnings("unchecked")
-	public @Nullable VReadOnly get(@NotNull K key) {
+	public @Nullable VReadOnly get(K key) {
 		return (VReadOnly)map.get(key);
 	}
 
-	public boolean containsValue(@NotNull VReadOnly v) {
+	public boolean containsValue(VReadOnly v) {
 		//noinspection SuspiciousMethodCalls
 		return map.containsValue(v);
 	}
 
-	public boolean containsKey(@NotNull K key) {
+	public boolean containsKey(K key) {
 		return map.containsKey(key);
 	}
 
-	public void copyTo(Map.Entry<K, VReadOnly> @NotNull [] array, int arrayIndex) {
+	public void copyTo(Map.Entry<K, VReadOnly> [] array, int arrayIndex) {
 		for (var e : entrySet())
 			array[arrayIndex++] = e;
 	}
 
-	public @NotNull Set<K> keySet() {
+	public Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<K> iterator() {
+			public Iterator<K> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
+					private final Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -76,12 +75,12 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 		};
 	}
 
-	public @NotNull java.util.Collection<VReadOnly> values() {
+	public java.util.Collection<VReadOnly> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NotNull Iterator<VReadOnly> iterator() {
+			public Iterator<VReadOnly> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
+					private final Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -108,9 +107,9 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	}
 
 	private static class ReadOnlyEntry<K, V, VReadOnly> implements Map.Entry<K, VReadOnly> {
-		private final @NotNull Map.Entry<K, V> e;
+		private final Map.Entry<K, V> e;
 
-		ReadOnlyEntry(@NotNull Map.Entry<K, V> e) {
+		ReadOnlyEntry(Map.Entry<K, V> e) {
 			this.e = e;
 		}
 
@@ -145,12 +144,12 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 		}
 	}
 
-	public @NotNull Set<Map.Entry<K, VReadOnly>> entrySet() {
+	public Set<Map.Entry<K, VReadOnly>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<Map.Entry<K, VReadOnly>> iterator() {
+			public Iterator<Map.Entry<K, VReadOnly>> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -158,7 +157,7 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 					}
 
 					@Override
-					public @NotNull Map.Entry<K, VReadOnly> next() {
+					public Map.Entry<K, VReadOnly> next() {
 						return new ReadOnlyEntry<>(it.next());
 					}
 
@@ -177,15 +176,15 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	}
 
 	@Override
-	public @NotNull Iterator<Map.Entry<K, VReadOnly>> iterator() {
+	public Iterator<Map.Entry<K, VReadOnly>> iterator() {
 		return entrySet().iterator();
 	}
 
-	public @NotNull PMap2<K, V> copy() {
+	public PMap2<K, V> copy() {
 		return map.copy();
 	}
 
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		map.encode(bb);
 	}
 
@@ -200,7 +199,7 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return map.toString();
 	}
 }

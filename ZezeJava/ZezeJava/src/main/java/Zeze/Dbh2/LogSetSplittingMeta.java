@@ -1,12 +1,15 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 设置分桶中（Splitting）桶元数据的 Raft 日志。
@@ -14,13 +17,13 @@ import org.jetbrains.annotations.NotNull;
 public class LogSetSplittingMeta extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogSetSplittingMeta.class.getName());
 
-	private BBucketMeta.Data argument;
+	private BBucketMeta.@Nullable Data argument;
 
 	public LogSetSplittingMeta() {
 		this(null);
 	}
 
-	public LogSetSplittingMeta(BBucketMeta.Data meta) {
+	public LogSetSplittingMeta(BBucketMeta.@Nullable Data meta) {
 		super(null);
 		argument = meta;
 	}
@@ -33,17 +36,17 @@ public class LogSetSplittingMeta extends Log {
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
 		var sm = (Dbh2StateMachine)stateMachine;
-		sm.setSplittingMeta(argument);
+		sm.setSplittingMeta(Objects.requireNonNull(argument));
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		argument.encode(bb);
+		Objects.requireNonNull(argument).encode(bb);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		argument = new BBucketMeta.Data();
 		argument.decode(bb);

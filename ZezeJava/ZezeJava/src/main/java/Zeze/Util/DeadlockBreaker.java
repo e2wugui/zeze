@@ -13,17 +13,16 @@ import java.util.concurrent.locks.LockSupport;
 import Zeze.Application;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 死锁检测守护线程：monitor/AQS 死锁走 ThreadMXBean，FastLock 等待环（含虚拟线程）走登记表，报告并尝试打断
 public class DeadlockBreaker extends ThreadHelper {
-	private static final @NotNull Logger logger = LogManager.getLogger(DeadlockBreaker.class);
+	private static final Logger logger = LogManager.getLogger(DeadlockBreaker.class);
 
 	/**
 	 * @return root thread group
 	 */
-	public static @NotNull ThreadGroup getRootThreadGroup() {
+	public static ThreadGroup getRootThreadGroup() {
 		ThreadGroup root = Thread.currentThread().getThreadGroup();
 		for (ThreadGroup p = root.getParent(); p != null; p = p.getParent())
 			root = p;
@@ -38,8 +37,8 @@ public class DeadlockBreaker extends ThreadHelper {
 	 *                groups that are subgroups of the thread group.
 	 * @return thread in the group
 	 */
-	public static @NotNull Map<Long, Thread> enumerate(@NotNull ThreadGroup group, boolean recurse) {
-		Thread[] threads = new Thread[512];
+	public static Map<Long, Thread> enumerate(ThreadGroup group, boolean recurse) {
+		@Nullable Thread[] threads = new Thread[512];
 		while (true) {
 			int size = group.enumerate(threads, recurse);
 			if (size < threads.length) {
@@ -58,13 +57,13 @@ public class DeadlockBreaker extends ThreadHelper {
 		}
 	}
 
-	private final @NotNull ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-	private final @NotNull Application zeze;
-	private final @NotNull ThreadGroup rootThreadGroup;
+	private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+	private final Application zeze;
+	private final ThreadGroup rootThreadGroup;
 	private int sleepIdleMs = 1000;
 	private int detectCount = 0;
 
-	public DeadlockBreaker(@NotNull Application zeze) {
+	public DeadlockBreaker(Application zeze) {
 		super("Zeze.Util.DeadlockBreaker");
 		this.zeze = zeze;
 		rootThreadGroup = getRootThreadGroup();
@@ -193,7 +192,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	 *
 	 * @return 本轮发现的死锁环（每环为构成环的线程列表）。
 	 */
-	public static @NotNull List<List<Thread>> findLockWaitDeadlockCycles() {
+	public static List<List<Thread>> findLockWaitDeadlockCycles() {
 		// 等待边：等待线程 -> 锁持有者。
 		var edges = new HashMap<Thread, Thread>();
 		for (var entry : FastLock.waitingThreads.entrySet()) {
@@ -260,7 +259,7 @@ public class DeadlockBreaker extends ThreadHelper {
 		return reported;
 	}
 
-	private static void dumpThreadTo(@NotNull Thread t, @NotNull StringBuilder sb) {
+	private static void dumpThreadTo(Thread t, StringBuilder sb) {
 		var lockWaiting = FastLock.waitingThreads.get(t);
 		sb.append('"').append(t.getName()).append('"');
 		sb.append(" Id=").append(t.threadId()).append(' ').append(t.getState());
@@ -282,7 +281,7 @@ public class DeadlockBreaker extends ThreadHelper {
 		sb.append('\n');
 	}
 
-	public static void dumpThreadInfoTo(@NotNull ThreadInfo tInfo, @NotNull StringBuilder sb) {
+	public static void dumpThreadInfoTo(ThreadInfo tInfo, StringBuilder sb) {
 		sb.append('"').append(tInfo.getThreadName()).append('"');
 		sb.append(" Id=").append(tInfo.getThreadId()).append(' ').append(tInfo.getThreadState());
 		if (tInfo.getLockName() != null)
@@ -330,7 +329,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	/**
 	 * 中断线程，吃掉所有错误。
 	 */
-	private @Nullable Map<Long, Thread> interrupt(@NotNull ThreadInfo tInfo, @Nullable Map<Long, Thread> allThreads) {
+	private @Nullable Map<Long, Thread> interrupt(ThreadInfo tInfo, @Nullable Map<Long, Thread> allThreads) {
 		try {
 			// 当死锁线程不是Worker时，查找系统内的所有线程，也尝试中断。
 			if (allThreads == null)

@@ -1,5 +1,7 @@
 package Zeze.Transaction.GTable;
 
+import java.util.Objects;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -7,15 +9,14 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Map1Meta;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<C, V> {
 	public static final long TYPEID = -105464877273786005L;
 
 	private final Zeze.Transaction.Collections.PMap1<C, V> pMap1;
-	private Object mapKey;
+	private @Nullable Object mapKey;
 
 	@Override
 	public void mapKey(Object mapKey) {
@@ -23,7 +24,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	}
 
 	@Override
-	public Object mapKey() {
+	public @Nullable Object mapKey() {
 		return mapKey;
 	}
 
@@ -118,9 +119,9 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		_PRE_ALLOC_SIZE_ = _s_;
 	}
 
-	private byte[] _unknown_;
+	private byte @Nullable [] _unknown_;
 
-	public byte[] unknown() {
+	public byte @Nullable [] unknown() {
 		return _unknown_;
 	}
 
@@ -143,7 +144,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 				_o_.WriteMapType(_n_, meta.keyEncodeType, meta.valueEncodeType);
 				for (var _e_ : _x_.entrySet()) {
 					meta.keyEncoder.accept(_o_, _e_.getKey());
-					meta.valueEncoder.accept(_o_, _e_.getValue());
+					Objects.requireNonNull(meta.valueEncoder).accept(_o_, _e_.getValue());
 					_n_--;
 				}
 				if (_n_ != 0)
@@ -167,7 +168,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 				int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
 				for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
 					var _k_ = meta.keyDecoderWithType.apply(_o_, _s_);
-					var _v_ = meta.valueDecoderWithType.apply(_o_, _t_);
+					var _v_ = Objects.requireNonNull(meta.valueDecoderWithType).apply(_o_, _t_);
 					_x_.put(_k_, _v_);
 				}
 			} else
@@ -199,7 +200,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	}
 
 	@Override
-	public V get(Object key) {
+	public @Nullable V get(Object key) {
 		return pMap1.get(key);
 	}
 
@@ -210,12 +211,12 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	}
 
 	@Override
-	public V remove(Object key) {
+	public @Nullable V remove(Object key) {
 		return pMap1.remove(key);
 	}
 
 	@Override
-	public void putAll(@NotNull Map<? extends C, ? extends V> m) {
+	public void putAll(Map<? extends C, ? extends V> m) {
 		pMap1.putAll(m);
 	}
 
@@ -224,19 +225,16 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		pMap1.clear();
 	}
 
-	@NotNull
 	@Override
 	public Set<C> keySet() {
 		return pMap1.keySet();
 	}
 
-	@NotNull
 	@Override
 	public Collection<V> values() {
 		return pMap1.values();
 	}
 
-	@NotNull
 	@Override
 	public Set<Entry<C, V>> entrySet() {
 		return pMap1.entrySet();
@@ -275,7 +273,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 			return;
 		for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
 			var _v_ = _i_.value();
-			switch (_v_.getVariableId()) {
+			switch (Objects.requireNonNull(_v_).getVariableId()) {
 			case 1:
 				pMap1.followerApply(_v_);
 				break;

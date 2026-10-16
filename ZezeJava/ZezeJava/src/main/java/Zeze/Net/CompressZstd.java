@@ -3,7 +3,6 @@ package Zeze.Net;
 import java.io.Closeable;
 import Zeze.Util.ZstdFactory;
 import Zeze.Util.ZstdFactory.ZstdCompressStream;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Zstandard 流式压缩 codec。
@@ -11,18 +10,18 @@ import org.jetbrains.annotations.NotNull;
 public final class CompressZstd implements Codec, Closeable {
 	public static final int DEFAULT_SRC_BUF_SIZE = 1024;
 
-	private final @NotNull Codec sink;
-	private final @NotNull ZstdCompressStream cs;
-	private final byte @NotNull [] srcBuf;
+	private final Codec sink;
+	private final ZstdCompressStream cs;
+	private final byte [] srcBuf;
 	private int srcBufLen;
 
-	public CompressZstd(@NotNull Codec sink) {
+	public CompressZstd(Codec sink) {
 		this.sink = sink;
 		cs = ZstdFactory.newCompressStream();
 		srcBuf = new byte[DEFAULT_SRC_BUF_SIZE];
 	}
 
-	public CompressZstd(@NotNull Codec sink, int srcBufSize, int dstBufSize, int compressLevel, int windowLog) {
+	public CompressZstd(Codec sink, int srcBufSize, int dstBufSize, int compressLevel, int windowLog) {
 		this.sink = sink;
 		cs = ZstdFactory.newCompressStream(dstBufSize, compressLevel, windowLog);
 		srcBuf = new byte[Math.max(srcBufSize, 1)];
@@ -38,7 +37,7 @@ public final class CompressZstd implements Codec, Closeable {
 	}
 
 	@Override
-	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
+	public void update(byte [] data, int off, int len) throws CodecException {
 		if (srcBufLen > 0) {
 			int n = Math.min(srcBuf.length - srcBufLen, len);
 			System.arraycopy(data, off, srcBuf, srcBufLen, n);

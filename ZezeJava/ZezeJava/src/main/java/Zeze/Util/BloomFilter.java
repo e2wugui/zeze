@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
 
 // 布隆过滤器：LevelDB 式双哈希探测，位存储由可插拔 BitArray 提供
 public class BloomFilter {
@@ -12,7 +11,7 @@ public class BloomFilter {
 		boolean getBit(long index); // index:[0,capacity)
 	}
 
-	private final @NotNull BitArray bitArray;
+	private final BitArray bitArray;
 	private final long capacity; // maxIndex+1
 	private final long mask; // capacity-1 if isPowerOfTwo(capacity) else 0
 	private final int bitsPerKey; // set/test bit count per key
@@ -32,7 +31,7 @@ public class BloomFilter {
 	/**
 	 * @param bitsPerKey 每个key的hash计算次数和设置/判断bit的次数. 这个次数可通过下面main方法测量出一个合适的值
 	 */
-	public BloomFilter(@NotNull BitArray bitArray, int bitsPerKey) {
+	public BloomFilter(BitArray bitArray, int bitsPerKey) {
 		capacity = bitArray.getCapacity();
 		if (capacity <= 0)
 			// isPowerOfTwo(0)==true会让mask=-1，keyHash&mask传出全范围64位索引，

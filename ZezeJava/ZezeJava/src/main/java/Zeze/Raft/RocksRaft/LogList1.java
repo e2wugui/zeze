@@ -1,11 +1,15 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import org.jetbrains.annotations.NotNull;
+
 import Zeze.Collections.Persistents;
 
 /**
@@ -14,7 +18,7 @@ import Zeze.Collections.Persistents;
 public class LogList1<V> extends LogList<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList1<");
 
-	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
+	protected final SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
 	protected static final class OpLog<V> {
@@ -25,9 +29,9 @@ public class LogList1<V> extends LogList<V> {
 
 		final int op;
 		final int index;
-		final V value;
+		final @Nullable V value;
 
-		OpLog(int op, int index, V value) {
+		OpLog(int op, int index, @Nullable V value) {
 			this.op = op;
 			this.index = index;
 			this.value = value;
@@ -44,7 +48,7 @@ public class LogList1<V> extends LogList<V> {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
-	LogList1(int typeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
+	LogList1(int typeId, SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs) {
 		super(typeId);
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
@@ -55,17 +59,18 @@ public class LogList1<V> extends LogList<V> {
 
 	// 可变方法非final：LogList2覆写它们同步维护addSet（encode侧身份过滤依赖，
 	// 对齐经典 Transaction.Collections.LogList1/LogList2 的结构）。
+	@SuppressWarnings("ConstantConditions")
 	public void add(V item) {
 		if (item == null)
 			throw new IllegalArgumentException("null item");
-		var list = getValue();
+		var list = Objects.requireNonNull(getValue());
 		setValue(list.plus(item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, list.size(), item));
 	}
 
 	public boolean addAll(Collection<? extends V> items) {
-		int addIndex = getValue().size();
-		var list = getValue().plusAll(items);
+		int addIndex = Objects.requireNonNull(getValue()).size();
+		var list = Objects.requireNonNull(getValue()).plusAll(items);
 		if (list == getValue())
 			return false;
 		setValue(list);
@@ -76,7 +81,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final boolean remove(V item) {
-		var index = getValue().indexOf(item);
+		var index = Objects.requireNonNull(getValue()).indexOf(item);
 		if (index < 0)
 			return false;
 		remove(index);
@@ -90,12 +95,12 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public void add(int index, V item) {
-		setValue(getValue().plus(index, item));
+		setValue(Objects.requireNonNull(getValue()).plus(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 	}
 
 	public V set(int index, V item) {
-		var list = getValue();
+		var list = Objects.requireNonNull(getValue());
 		var old = list.get(index);
 		setValue(list.with(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_MODIFY, index, item));
@@ -103,7 +108,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public V remove(int index) {
-		var list = getValue();
+		var list = Objects.requireNonNull(getValue());
 		var old = list.get(index);
 		setValue(list.minus(index));
 		opLogs.add(new OpLog<>(OpLog.OP_REMOVE, index, old));
@@ -111,27 +116,27 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
-		var encoder = valueCodecFuncs.encoder;
+	public void encode(ByteBuffer bb) {
+		var encoder = Objects.requireNonNull(valueCodecFuncs).encoder;
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
 			bb.WriteUInt(opLog.op);
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
 				if (opLog.op < OpLog.OP_REMOVE)
-					encoder.accept(bb, opLog.value);
+					encoder.accept(bb, Objects.requireNonNull(opLog.value));
 			}
 		}
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
-		var decoder = valueCodecFuncs.decoder;
+	public void decode(IByteBuffer bb) {
+		var decoder = Objects.requireNonNull(valueCodecFuncs).decoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
 			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
-			opLogs.add(new OpLog<>(op, index, op < OpLog.OP_REMOVE ? decoder.apply(bb) : null));
+			opLogs.add(new OpLog<V>(op, index, op < OpLog.OP_REMOVE ? decoder.apply(bb) : null));
 		}
 	}
 

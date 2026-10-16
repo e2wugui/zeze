@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Provider.BAnnounceProviderInfo;
 import Zeze.Util.ConcurrentHashSet;
@@ -10,7 +14,7 @@ import Zeze.Util.LongHashSet;
  * Linkd 侧 Provider 连接会话：记录 Provider 宣告信息与其上绑定的 LinkSession、静态/动态模块集合。
  */
 public class LinkdProviderSession extends ProviderSession {
-	protected BAnnounceProviderInfo.Data info;
+	protected BAnnounceProviderInfo.@Nullable Data info;
 
 	/**
 	 * 维护此Provider上绑定的LinkSession，用来在Provider关闭的时候，进行 UnBind。
@@ -40,7 +44,7 @@ public class LinkdProviderSession extends ProviderSession {
 		super.disableChoice = true; // link-gs 连接新建立的时候，默认禁止选择。
 	}
 
-	public BAnnounceProviderInfo.Data getInfo() {
+	public BAnnounceProviderInfo.@Nullable Data getInfo() {
 		return info;
 	}
 
@@ -65,7 +69,7 @@ public class LinkdProviderSession extends ProviderSession {
 		try {
 			if (linkSessionsClosed)
 				return false;
-			linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet()).add(linkSessionId);
+			Objects.requireNonNull(linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet())).add(linkSessionId);
 			return true;
 		} finally {
 			linkSessionIdsLock.unlock();

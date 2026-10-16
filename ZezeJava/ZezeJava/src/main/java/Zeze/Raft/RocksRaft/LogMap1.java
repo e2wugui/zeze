@@ -1,12 +1,15 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 基础类型 Map 容器的增量日志：记录 putted/removed 两个键集差量。
@@ -15,7 +18,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap1<");
 
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
-	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
+	protected final SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs;
 
 	private final HashMap<K, V> putted = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
@@ -30,7 +33,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
-	LogMap1(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
+	LogMap1(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs) {
 		super(typeId);
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueCodecFuncs = valueCodecFuncs;
@@ -45,7 +48,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final V get(K key) {
-		return getValue().get(key);
+		return Objects.requireNonNull(getValue()).get(key);
 	}
 
 	public final void add(K key, V value) {
@@ -53,28 +56,28 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final void put(K key, V value) {
-		setValue(getValue().plus(key, value));
+		setValue(Objects.requireNonNull(getValue()).plus(key, value));
 		putted.put(key, value);
 		removed.remove(key);
 	}
 
 	public final void remove(K key) {
-		setValue(getValue().minus(key));
+		setValue(Objects.requireNonNull(getValue()).minus(key));
 		putted.remove(key);
 		removed.add(key);
 	}
 
 	public final void clear() {
-		for (var key : getValue().keySet())
+		for (var key : Objects.requireNonNull(getValue()).keySet())
 			remove(key);
 		setValue(Zeze.Collections.Persistents.map());
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(putted.size());
 		var keyEncoder = keyCodecFuncs.encoder;
-		var valueEncoder = valueCodecFuncs.encoder;
+		var valueEncoder = Objects.requireNonNull(valueCodecFuncs).encoder;
 		for (var p : putted.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
 			valueEncoder.accept(bb, p.getValue());
@@ -86,10 +89,10 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		putted.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
-		var valueDecoder = valueCodecFuncs.decoder;
+		var valueDecoder = Objects.requireNonNull(valueCodecFuncs).decoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			var key = keyDecoder.apply(bb);
 			var value = valueDecoder.apply(bb);

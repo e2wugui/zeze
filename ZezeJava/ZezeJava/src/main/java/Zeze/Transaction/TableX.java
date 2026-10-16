@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -19,29 +21,29 @@ import Zeze.Util.Random;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
+import Zeze.Schemas.RelationalTable;
 
 /**
  * 强类型泛型表：管理记录缓存（TableCache）、本地 Rocks 镜像与后台 Storage，
  * 提供事务内 CRUD、GCM 降级处理与各类遍历接口。
  */
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
-	private static final @NotNull Logger logger = LogManager.getLogger(TableX.class);
+	private static final Logger logger = LogManager.getLogger(TableX.class);
 	private static final boolean isTraceEnabled = logger.isTraceEnabled();
 
 	private @Nullable AutoKey autoKey;
-	private volatile TableCache<K, V> cache;
+	private volatile @Nullable TableCache<K, V> cache;
 	private volatile @Nullable Storage<K, V> storage;
-	private @Nullable Database.Table oldTable;
-	private DatabaseRocksDb.Table localRocksCacheTable;
+	private Database.@Nullable Table oldTable;
+	private DatabaseRocksDb.@Nullable Table localRocksCacheTable;
 
 	@Override
-	public void open(@NotNull Table exist, @NotNull Application app) {
+	public void open(Table exist, Application app) {
 		if (getId() != exist.getId())
 			throw new IllegalStateException("hot table's id changed.");
 
@@ -64,7 +66,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (oldCache != null)
 				oldCache.close();
 		}
-		relationalTable = isRelationalMapping() ? getZeze().getSchemas().newRelationalTable(getZeze(), this) : null;
+		relationalTable = isRelationalMapping() ? Objects.requireNonNull(getZeze().getSchemas()).newRelationalTable(getZeze(), this) : null;
 		storage = isMemory() ? null : new Storage<>(this, database, getName()); // New
 		database.replaceStorage(exist.getStorage(), storage);
 
@@ -75,12 +77,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		// 也是受限容量walkMemory的数据源，清除后记录永久丢失。
 		// 非内存表（或内存表配置改变）清除是安全的：数据在后台库，镜像可重新装载。
 		if (!isMemory() || !exist.isMemory())
-			localRocksCacheTable.clear();
+			getLocalRocksCacheTable().clear();
 	}
 
 	@Override
 	public DatabaseRocksDb.Table getLocalRocksCacheTable() {
-		return localRocksCacheTable;
+		var t = localRocksCacheTable;
+		if (t == null)
+			throw new IllegalStateException("table cache not opened: " + getName());
+		return t;
 	}
 
 	@Override
@@ -97,26 +102,33 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		this.storage = null; // 【这里不处理storage的关闭】
 	}
 
-	public TableX(int id, @NotNull String name) {
+	public TableX(int id, String name) {
 		super(id, name);
 	}
 
-	public TableX(int id, @NotNull String name, @Nullable String suffix) {
+	public TableX(int id, String name, @Nullable String suffix) {
 		super(id, name, suffix);
 	}
 
-	public TableCache<K, V> getCache() {
+	public @Nullable TableCache<K, V> getCache() {
 		return cache;
 	}
 
-	public final @NotNull AutoKey getAutoKey() {
+	final TableCache<K, V> requireCache() {
+		var c = cache;
+		if (c == null)
+			throw new IllegalStateException("table cache not opened: " + getName());
+		return c;
+	}
+
+	public final AutoKey getAutoKey() {
 		var autoKey = this.autoKey;
 		if (autoKey == null)
 			throw new IllegalStateException("no autokey for table: " + getName());
 		return autoKey;
 	}
 
-	public final @Nullable Storage<K, V> internalGetStorageForTestOnly(@NotNull String IAmSure) {
+	public final @Nullable Storage<K, V> internalGetStorageForTestOnly(String IAmSure) {
 		if (!IAmSure.equals("IKnownWhatIAmDoing"))
 			throw new IllegalArgumentException();
 		return storage;
@@ -128,7 +140,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	final @Nullable Database.Table getOldTable() {
+	final Database.@Nullable Table getOldTable() {
 		return oldTable;
 	}
 
@@ -138,30 +150,31 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final int getCacheSize() {
-		return cache != null ? (int)cache.size() : 0;
+		var c = cache;
+		return c != null ? (int)c.size() : 0;
 	}
 
 	// 镜像写失败不得吞。镜像不变式（clean+Share记录 ⇒ 镜像条目存在且==storage真相）
 	// 是softValue被GC后快路径正确性的唯一依托：吞掉写失败会让记录以clean状态失去/背离镜像备份——
 	// 缺失方向把存量记录读成"不存在"（续写覆盖丢数据）；陈旧方向在租约间隙（驱逐/GCM reduce释放后
 	// 其他进程改storage，本进程驱逐remove与重装载put相继被吞）后返回旧值或复活已删记录（磁盘满=
-	// 写全失败读全正常时系统性发生）。失败必须抛出：装载路径由load既有异常出口作废记录（cache.remove）
+	// 写全失败读全正常时系统性发生）。失败必须抛出：装载路径由load既有异常出口作废记录（requireCache().remove）
 	// 并上报（perform回滚返回Procedure.Exception，单次失败不自动redo）；flush路径本就抛出保dirty重试。
 	// 记录永远进不了"clean且靠镜像支撑"的状态，不变式由构造保证而非检测补救。信任只随整体重建恢复
 	// （启动deleteDirectory/热更clear），进程内逐条"自愈"无法证明全镜像健康。仿__direct_put_cache__
 	// 包RuntimeException携带表/key上下文；异常由perform错误日志记录，抛出点不重复log。
-	final void rocksCachePut(@NotNull K key, @NotNull V value) {
-		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
-			localRocksCacheTable.replace(t, encodeKey(key), ByteBuffer.encode(value));
+	final void rocksCachePut(K key, V value) {
+		try (var t = Objects.requireNonNull(getZeze().getLocalRocksCacheDb()).beginTransaction()) {
+			getLocalRocksCacheTable().replace(t, encodeKey(key), ByteBuffer.encode(value));
 			t.commit();
 		} catch (Exception e) {
 			throw new RuntimeException("rocksCachePut failed: " + this + " " + key, e);
 		}
 	}
 
-	final void rocksCacheRemove(@NotNull K key) {
-		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
-			localRocksCacheTable.remove(t, encodeKey(key));
+	final void rocksCacheRemove(K key) {
+		try (var t = Objects.requireNonNull(getZeze().getLocalRocksCacheDb()).beginTransaction()) {
+			getLocalRocksCacheTable().remove(t, encodeKey(key));
 			t.commit();
 		} catch (Exception e) {
 			throw new RuntimeException("rocksCacheRemove failed: " + this + " " + key, e);
@@ -170,16 +183,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public @Nullable Supplier<ArrayList<TableX<K, V>>> getSimulateTables; // only for temp debug
 
-	private void verifyGlobalRecordState(@NotNull K key, boolean isModify) { // only for temp debug
+	private void verifyGlobalRecordState(K key, boolean isModify) { // only for temp debug
 		var getSimulateTables = this.getSimulateTables;
 		if (getSimulateTables == null)
 			return;
 
 		var checkState = isModify ? StateInvalid : StateShare;
 		for (var table : getSimulateTables.get()) {
-			if (table == this || table.cache == null)
+			var c = table.cache;
+			if (table == this || c == null)
 				continue; // skip self
-			var r = table.cache.get(key);
+			var r = c.get(key);
 			int rs;
 			if (r != null && (rs = r.getState()) > checkState && rs != StateRemoved) {
 				logger.error("VerifyGlobalRecordState failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
@@ -192,10 +206,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@SuppressWarnings("unchecked")
-	private @NotNull AtomicTupleRecord<K, V> load(@NotNull K key) {
+	private AtomicTupleRecord<K, V> load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
-			var r = cache.getOrAdd(key, () -> new Record1<>(this, key, null));
+			var r = requireCache().getOrAdd(key, () -> new Record1<>(this, key, null));
 			r.enterFairLock(); // 对同一个记录，不允许重入。
 			V strongRef = null;
 			try {
@@ -207,7 +221,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					var beforeTimestamp = r.getTimestamp(); // read timestamp before read value。see Record1.Commit
 					strongRef = (V)r.getSoftValue();
 					if (strongRef == null && !r.getDirty()) {
-						var find = localRocksCacheTable.find(this, key);
+						var find = getLocalRocksCacheTable().find(this, key);
 						if (find != null) {
 							strongRef = find;
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
@@ -275,7 +289,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 									if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
 										// Immediately 模式这里直接保存到 RocksCache 与 OldTable，
 										// 不设置脏标记（脏记录流程不会处理它，会永久滞留强引用）。
-										var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
+										var lct = Objects.requireNonNull(getZeze().getLocalRocksCacheDb()).beginTransaction();
 										var t = oldTable.getDatabase().beginTransaction();
 										try {
 											// 两侧都必须传编码后的key/value：replace(Transaction,Object,Object)
@@ -286,7 +300,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 											var bbKey = encodeKey(key);
 											var bbValue = ByteBuffer.encode(old);
 											oldTable.replace(t, bbKey, bbValue);
-											localRocksCacheTable.replace(lct, bbKey, bbValue);
+											getLocalRocksCacheTable().replace(lct, bbKey, bbValue);
 											lct.commit();
 											t.commit();
 										} catch (Throwable ex) {
@@ -323,7 +337,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					} else {
 						// 内存表如果限制了内存（capacity）大小，执行了clean，才会执行这里的逻辑。
 						// 从本地硬盘缓存装载数据。
-						var find = localRocksCacheTable.find(this, key);
+						var find = getLocalRocksCacheTable().find(this, key);
 						if (find != null) {
 							strongRef = find;
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
@@ -335,7 +349,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 				} catch (Throwable e) { // rethrow
 					if (!r.getDirty())
-						cache.remove(key, r, storage != null); // 异常情况就从缓存中移除非dirty的记录,避免下次访问得到不正常的记录
+						requireCache().remove(key, r, storage != null); // 异常情况就从缓存中移除非dirty的记录,避免下次访问得到不正常的记录
 					throw e;
 				}
 			} finally {
@@ -345,7 +359,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public final void reduceShare(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey) {
+	public final void reduceShare(Reduce rpc, ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 		rpc.Result.globalKey = rpc.Argument.globalKey;
@@ -357,7 +371,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var lockey = getZeze().getLocks().get(new TableKey(getId(), key));
 		lockey.enterWriteLock();
 		try {
-			var r = cache.get(key);
+			var r = requireCache().get(key);
 			if (isTraceEnabled)
 				logger.trace("reduceShare NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
@@ -429,7 +443,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	private void flushWhenReduce(@NotNull Record r) {
+	private void flushWhenReduce(Record r) {
 		switch (getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
 			break;
@@ -450,7 +464,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public final void reduceInvalid(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey) {
+	public final void reduceInvalid(Reduce rpc, ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 		rpc.Result.globalKey = rpc.Argument.globalKey;
@@ -466,7 +480,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					getName(), key, timeNs / 1_000_000);
 		}
 		try {
-			var r = cache.get(key);
+			var r = requireCache().get(key);
 			if (isTraceEnabled)
 				logger.trace("reduceInvalid NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
@@ -547,7 +561,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	public final @NotNull Binary encodeGlobalKey(@NotNull K key) {
+	public final Binary encodeGlobalKey(K key) {
 		var bbKey = encodeKey(key);
 		var bb = ByteBuffer.Allocate(4 + bbKey.size());
 		bb.WriteInt4(getId());
@@ -560,13 +574,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var globalAgent = getZeze().getGlobalAgent();
 		var locks = getZeze().getLocks();
 		// 第一轮parallelStream的多个worker会并发add拿锁失败的记录，必须线程安全。
-		var remain = Collections.synchronizedList(new ArrayList<KV<Lockey, Record1<K, V>>>(cache.getDataMap().size()));
-		logger.info("ReduceInvalidAllLocalOnly Table={} CacheSize={}", getName(), cache.getDataMap().size());
+		var remain = Collections.synchronizedList(new ArrayList<KV<Lockey, Record1<K, V>>>(requireCache().getDataMap().size()));
+		logger.info("ReduceInvalidAllLocalOnly Table={} CacheSize={}", getName(), requireCache().getDataMap().size());
 		// 专用dbIo池：reduce/flush走阻塞DB IO，退出commonPool（阻塞任务互抢可整体停摆）。
-		Zeze.Util.Task.runInDbIoPool(() -> cache.getDataMap().entrySet().parallelStream().forEach((e) -> {
+		Zeze.Util.Task.runInDbIoPool(() -> requireCache().getDataMap().entrySet().parallelStream().forEach((e) -> {
 			var k = e.getKey();
 			var v = e.getValue();
-			if (globalAgent.getGlobalCacheManagerHashIndex(encodeGlobalKey(k)) == GlobalCacheManagerHashIndex) {
+			if (Objects.requireNonNull(globalAgent).getGlobalCacheManagerHashIndex(encodeGlobalKey(k)) == GlobalCacheManagerHashIndex) {
 				var lockey = locks.get(new TableKey(getId(), k));
 				if (lockey.tryEnterWriteLock(0)) {
 					try {
@@ -618,7 +632,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	public final @Nullable V get(@NotNull K key) {
+	public final @Nullable V get(K key) {
 		var currentT = Transaction.getCurrent();
 		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
@@ -643,15 +657,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return v;
 	}
 
-	public final boolean contains(@NotNull K key) {
+	public final boolean contains(K key) {
 		return get(key) != null;
 	}
 
-	public final @NotNull V getOrAdd(@NotNull K key) {
+	public final V getOrAdd(K key) {
 		return getOrAdd(key, null);
 	}
 
-	public final @NotNull V getOrAdd(@NotNull K key, @Nullable OutObject<Boolean> isAdd) {
+	public final V getOrAdd(K key, @Nullable OutObject<Boolean> isAdd) {
 		var currentT = Transaction.getCurrent();
 		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
@@ -693,7 +707,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return add;
 	}
 
-	public final boolean tryAdd(@NotNull K key, @NotNull V value) {
+	public final boolean tryAdd(K key, V value) {
 		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException("value is null");
@@ -713,14 +727,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return true;
 	}
 
-	public final void insert(@NotNull K key, @NotNull V value) {
+	public final void insert(K key, V value) {
 		if (!tryAdd(key, value)) {
 			throw new IllegalArgumentException(String.format("table:%s insert key:%s exists",
 					getClass().getName(), key));
 		}
 	}
 
-	public final void put(@NotNull K key, @NotNull V value) {
+	public final void put(K key, V value) {
 		var currentT = Transaction.getCurrent();
 		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
@@ -744,13 +758,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public void removeEncodedKey(@NotNull Binary encodedKey) {
+	public void removeEncodedKey(Binary encodedKey) {
 		var key = decodeKey(ByteBuffer.Wrap(encodedKey));
 		remove(key);
 	}
 
 	// 逻辑几乎和Put一样，故意保持独立实现。
-	public final void remove(@NotNull K key) {
+	public final void remove(K key) {
 		var currentT = Transaction.getCurrent();
 		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
@@ -773,8 +787,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public final @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
-	                                          @Nullable DatabaseRocksDb.Table localTable) {
+	public final @Nullable Storage<?, ?> open(Application app, Database database,
+	                                          DatabaseRocksDb.@Nullable Table localTable) {
 		if (cache != null)
 			throw new IllegalStateException("table has opened: " + getName());
 
@@ -786,11 +800,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
-		relationalTable = isRelationalMapping() ? getZeze().getSchemas().newRelationalTable(getZeze(), this) : null;
+		relationalTable = isRelationalMapping() ? Objects.requireNonNull(getZeze().getSchemas()).newRelationalTable(getZeze(), this) : null;
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
 				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName(), getId()) : null;
-		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName(), getId());
+		localRocksCacheTable = localTable != null ? localTable : Objects.requireNonNull(app.getLocalRocksCacheDb()).openTable(getName(), getId());
 		return storage;
 	}
 
@@ -809,44 +823,44 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
-	public abstract @NotNull ByteBuffer encodeKey(@NotNull K key);
+	public abstract ByteBuffer encodeKey(K key);
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public @NotNull ByteBuffer encodeKey(@NotNull Object key) {
+	public ByteBuffer encodeKey(Object key) {
 		return encodeKey((K)key);
 	}
 
-	public @NotNull K decodeKey(byte @NotNull [] bytes) {
+	public K decodeKey(byte [] bytes) {
 		int keyOffset = keyOffsetInRawKey();
 		return decodeKey(ByteBuffer.Wrap(bytes, keyOffset, bytes.length - keyOffset));
 	}
 
 	@Override
-	public abstract @NotNull K decodeKey(@NotNull ByteBuffer bb);
+	public abstract K decodeKey(ByteBuffer bb);
 
-	public abstract @NotNull K decodeKeyResultSet(@NotNull ResultSet rs) throws SQLException;
+	public abstract K decodeKeyResultSet(ResultSet rs) throws SQLException;
 
-	public abstract void encodeKeySQLStatement(@NotNull SQLStatement st, @NotNull K _v_);
+	public abstract void encodeKeySQLStatement(SQLStatement st, K _v_);
 
-	private Schemas.RelationalTable relationalTable;
+	private @Nullable RelationalTable relationalTable;
 
 	@Override
-	public Schemas.RelationalTable getRelationalTable() {
+	public @Nullable RelationalTable getRelationalTable() {
 		return relationalTable;
 	}
 
 	@SuppressWarnings("unchecked")
-	public void encodeKeySQLStatement(@NotNull SQLStatement st, @NotNull Object _v_) {
+	public void encodeKeySQLStatement(SQLStatement st, Object _v_) {
 		encodeKeySQLStatement(st, (K)_v_);
 	}
 
-	public final void delayRemove(@NotNull K key) {
-		getZeze().getDelayRemove().remove(this, key);
+	public final void delayRemove(K key) {
+		Objects.requireNonNull(getZeze().getDelayRemove()).remove(this, key);
 	}
 
 	@Override
-	public abstract @NotNull V newValue();
+	public abstract V newValue();
 
 	/**
 	 * 解码系列化的数据到对象。
@@ -854,13 +868,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param bb bean encoded data
 	 * @return Value
 	 */
-	public final @NotNull V decodeValue(@NotNull ByteBuffer bb) {
+	public final V decodeValue(ByteBuffer bb) {
 		V value = newValue();
 		value.decode(bb);
 		return value;
 	}
 
-	public final @NotNull V decodeValue(byte @NotNull [] bytes) {
+	public final V decodeValue(byte [] bytes) {
 		return decodeValue(ByteBuffer.Wrap(bytes));
 	}
 
@@ -879,7 +893,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walk(@Nullable K exclusiveStartKey, int proposeLimit,
-	                              @NotNull TableWalkHandle<K, V> callback) throws Exception {
+	                              TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -887,7 +901,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                  @NotNull TableWalkHandle<K, V> callback) throws Exception {
+	                                  TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -895,7 +909,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkKey(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                 @NotNull TableWalkKey<K> callback) throws Exception {
+	                                 TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -903,7 +917,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                     @NotNull TableWalkKey<K> callback) throws Exception {
+	                                     TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -919,36 +933,36 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long walk(@NotNull TableWalkHandle<K, V> callback) throws Exception {
+	public final long walk(TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walk(this, callback);
 	}
 
-	public final long walkDesc(@NotNull TableWalkHandle<K, V> callback) throws Exception {
+	public final long walkDesc(TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDesc(this, callback);
 	}
 
-	public final long walkKey(@NotNull TableWalkKey<K> callback) throws Exception {
+	public final long walkKey(TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkKey(this, callback);
 	}
 
-	public final long walkKeyDesc(@NotNull TableWalkKey<K> callback) throws Exception {
+	public final long walkKeyDesc(TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkKeyDesc(this, callback);
 	}
 
-	public final long walkCacheKey(@NotNull TableWalkKey<K> callback) throws Exception {
-		return cache.walkKey(callback);
+	public final long walkCacheKey(TableWalkKey<K> callback) throws Exception {
+		return requireCache().walkKey(callback);
 	}
 
 	/**
@@ -958,7 +972,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long walkDatabaseRaw(@NotNull TableWalkHandleRaw callback) throws Exception {
+	public final long walkDatabaseRaw(TableWalkHandleRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -967,7 +981,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
-	public final long walkDatabaseRawDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
+	public final long walkDatabaseRawDesc(TableWalkHandleRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -976,7 +990,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
-	public final long walkDatabaseRawKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+	public final long walkDatabaseRawKey(TableWalkKeyRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -985,7 +999,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
-	public final long walkDatabaseRawKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
+	public final long walkDatabaseRawKeyDesc(TableWalkKeyRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -995,7 +1009,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRaw(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-	                                                  @NotNull TableWalkHandleRaw callback) throws Exception {
+	                                                  TableWalkHandleRaw callback) throws Exception {
 		if (exclusiveStartKey != null)
 			Database.checkKvKeyLengthForLegacyAccess(getName(), exclusiveStartKey);
 		var storage = this.storage;
@@ -1008,7 +1022,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-	                                                      @NotNull TableWalkHandleRaw callback) throws Exception {
+	                                                      TableWalkHandleRaw callback) throws Exception {
 		if (exclusiveStartKey != null)
 			Database.checkKvKeyLengthForLegacyAccess(getName(), exclusiveStartKey);
 		var storage = this.storage;
@@ -1021,7 +1035,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-	                                                     @NotNull TableWalkKeyRaw callback) throws Exception {
+	                                                     TableWalkKeyRaw callback) throws Exception {
 		if (exclusiveStartKey != null)
 			Database.checkKvKeyLengthForLegacyAccess(getName(), exclusiveStartKey);
 		var storage = this.storage;
@@ -1034,7 +1048,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-	                                                         @NotNull TableWalkKeyRaw callback) throws Exception {
+	                                                         TableWalkKeyRaw callback) throws Exception {
 		if (exclusiveStartKey != null)
 			Database.checkKvKeyLengthForLegacyAccess(getName(), exclusiveStartKey);
 		var storage = this.storage;
@@ -1053,28 +1067,28 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long walkDatabase(@NotNull TableWalkHandle<K, V> callback) throws Exception {
+	public final long walkDatabase(TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabase(this, callback);
 	}
 
-	public final long walkDatabaseDesc(@NotNull TableWalkHandle<K, V> callback) throws Exception {
+	public final long walkDatabaseDesc(TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabaseDesc(this, callback);
 	}
 
-	public final long walkDatabaseKey(@NotNull TableWalkKey<K> callback) throws Exception {
+	public final long walkDatabaseKey(TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabaseKey(this, callback);
 	}
 
-	public final long walkDatabaseKeyDesc(@NotNull TableWalkKey<K> callback) throws Exception {
+	public final long walkDatabaseKeyDesc(TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1082,7 +1096,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabase(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                      @NotNull TableWalkHandle<K, V> callback) throws Exception {
+	                                      TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1090,7 +1104,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                          @NotNull TableWalkHandle<K, V> callback) throws Exception {
+	                                          TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1098,7 +1112,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseKey(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                         @NotNull TableWalkKey<K> callback) throws Exception {
+	                                         TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1106,7 +1120,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                             @NotNull TableWalkKey<K> callback) throws Exception {
+	                                             TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1114,16 +1128,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public long walkMemoryAny(@NotNull TableWalkHandle<Object, Bean> handle) throws Exception {
+	public long walkMemoryAny(TableWalkHandle<Object, Bean> handle) throws Exception {
 		return walkMemory(handle::handle);
 	}
 
 	@Override
-	public void __direct_put_cache__(@NotNull Object key, @NotNull Bean value, int state) {
+	public void __direct_put_cache__(Object key, Bean value, int state) {
 		@SuppressWarnings("unchecked")
 		var kk = (K)key;
 		var tKey = new TableKey(getId(), key);
-		var r = cache.getOrAdd(kk, () -> new Record1<>(this, kk, null));
+		var r = requireCache().getOrAdd(kk, () -> new Record1<>(this, kk, null));
 		value.initRootInfo(r.createRootInfoIfNeed(tKey), null);
 		r.setState(state);
 		// 直写缓存必须同步维护sizeCounter，与Record1.commit的内存表记账同口径
@@ -1133,14 +1147,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var hadValue = r.getSoftValue() != null;
 		r.setSoftValue(value);
 		if (isMemory() && !hadValue)
-			cache.getSizeCounter().increment();
+			requireCache().getSizeCounter().increment();
 		r.setTimestamp(Record.getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 		// 直接写入本地Rocks镜像（walkMemory与软引用回收后loadValue恢复的数据源），不设置脏标记：
 		// 脏记录必须进入rrs才能被checkpoint flush，这里的记录不在任何rrs中，置脏后
 		// checkpoint永远flush不到它（数据永不落localRocks），受限容量时cleanNow也永远清不掉（死循环）。
 		// 写失败直接抛出中止热更，静默吞掉会丢失内存表的唯一持久副本。
-		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
-			localRocksCacheTable.replace(t, encodeKey(kk), ByteBuffer.encode(value));
+		try (var t = Objects.requireNonNull(getZeze().getLocalRocksCacheDb()).beginTransaction()) {
+			getLocalRocksCacheTable().replace(t, encodeKey(kk), ByteBuffer.encode(value));
 			t.commit();
 		} catch (Exception e) {
 			throw new RuntimeException("__direct_put_cache__ write localRocks failed: " + this + " " + key, e);
@@ -1153,18 +1167,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 *
 	 * @return count
 	 */
-	public final long walkMemory(@NotNull TableWalkHandle<K, V> callback) throws Exception {
+	public final long walkMemory(TableWalkHandle<K, V> callback) throws Exception {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 		// 还是先不限制，可以用于特殊地方。
 
 		// 内存表并且限制了容量，使用本地缓存的walk。
 		if (isMemory() && getTableConf().getRealCacheCapacity() >= 0)
-			return localRocksCacheTable.walk(this, callback);
+			return getLocalRocksCacheTable().walk(this, callback);
 
 		// 内存表不限制容量或者非内存表walk内存里面的缓存，直接访问内存的map。
 		int count = 0;
-		for (var entry : cache.getDataMap().entrySet()) {
+		for (var entry : requireCache().getDataMap().entrySet()) {
 			var r = entry.getValue();
 			var v = cacheCopy(r);
 			if (v != null) {
@@ -1176,7 +1190,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return callback.endWalk(count);
 	}
 
-	private @Nullable V cacheCopy(@NotNull Record1<K, V> r) {
+	private @Nullable V cacheCopy(Record1<K, V> r) {
 		r.enterFairLock();
 		try {
 			// 这个条件表示本地拥有读或写状态的才能遍历到。对于内存表，能看到全部。
@@ -1205,7 +1219,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return record value
 	 */
 	@SuppressWarnings("unchecked")
-	public final @Nullable V selectCopy(@NotNull K key) {
+	public final @Nullable V selectCopy(K key) {
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
@@ -1225,9 +1239,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			try {
 				V v;
 				if (isMemory()) {
-					var r = cache.get(key);
+					var r = requireCache().get(key);
 					if (r == null)
-						return localRocksCacheTable.find(this, key);
+						return getLocalRocksCacheTable().find(this, key);
 					r.enterFairLock();
 					try {
 						return r.copyValue();
@@ -1247,7 +1261,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						lockey.exitReadLock();
 					}
 				}
-				return localRocksCacheTable.find(this, key);
+				return getLocalRocksCacheTable().find(this, key);
 			} catch (GoBackZeze e) {
 				if (currentT != null && currentT.isRunning() || tryCount >= 256)
 					throw e;
@@ -1266,7 +1280,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	/**
 	 * @see #selectDirty(Comparable, int)
 	 */
-	public final @Nullable V selectDirty(@NotNull K key) {
+	public final @Nullable V selectDirty(K key) {
 		return selectDirty(key, 3_000);
 	}
 
@@ -1276,7 +1290,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param cacheTTL 可以接受读取本地缓存的有效时长(毫秒),避免读取过旧的值,0表示总是直接从数据库中取最新值,默认3秒
 	 */
 	@SuppressWarnings("unchecked")
-	public final @Nullable V selectDirty(@NotNull K key, int cacheTTL) {
+	public final @Nullable V selectDirty(K key, int cacheTTL) {
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
@@ -1289,9 +1303,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		if (isMemory()) {
-			var r = cache.get(key);
+			var r = requireCache().get(key);
 			if (r == null)
-				return localRocksCacheTable.find(this, key);
+				return getLocalRocksCacheTable().find(this, key);
 			r.enterFairLock();
 			try {
 				return r.loadValue();
@@ -1301,7 +1315,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		while (true) {
-			var r = cache.getOrAdd(key, () -> new Record1<>(this, key, null));
+			var r = requireCache().getOrAdd(key, () -> new Record1<>(this, key, null));
 			r.enterFairLock(); // 对同一个记录，不允许重入。
 			try {
 				if (r.getState() == StateRemoved)
@@ -1344,7 +1358,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param key key
 	 * @return value
 	 */
-	public V selectFromDatabase(@NotNull K key) {
+	public @Nullable V selectFromDatabase(K key) {
 		var st = storage;
 		if (st == null)
 			throw new IllegalStateException("no database");
@@ -1367,8 +1381,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param r           Changes.Record From ChangeListener
 	 * @return ByteBuffer Encoded Change Log
 	 */
-	public @NotNull ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName, @NotNull Object key,
-	                                                               @NotNull Changes.Record r) {
+	public ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName, Object key,
+	                                                               Changes.Record r) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(specialName != null ? specialName : getName());
 		bb.WriteByteBuffer(encodeKey(key));

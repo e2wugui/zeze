@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -7,8 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Element;
 
 /**
@@ -22,13 +23,13 @@ import org.w3c.dom.Element;
 public class Connector extends ReentrantLock {
 	private static final int READY_TIMEOUT = 5000;
 
-	private final @NotNull String hostNameOrAddress;
+	private final String hostNameOrAddress;
 	private final int port;
 	private final @Nullable String url;
-	private final @NotNull String name;
-	private Service service;
-	private volatile AsyncSocket socket; // getSocket()无锁读，需要可见性保证
-	private volatile @NotNull TaskCompletionSource<AsyncSocket> futureSocket = new TaskCompletionSource<>();
+	private final String name;
+	private @Nullable Service service;
+	private volatile @Nullable AsyncSocket socket; // getSocket()无锁读，需要可见性保证
+	private volatile TaskCompletionSource<AsyncSocket> futureSocket = new TaskCompletionSource<>();
 
 	public volatile @Nullable Object userState;
 
@@ -42,7 +43,7 @@ public class Connector extends ReentrantLock {
 	private int reConnectDelay;
 	private long brokenTime = System.currentTimeMillis();
 
-	public static @NotNull Connector Create(@NotNull Element e) {
+	public static Connector Create(Element e) {
 		String className = e.getAttribute("Class");
 		if (className.isEmpty())
 			return new Connector(e);
@@ -54,7 +55,7 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
-	public Connector(@NotNull String hostAndPort, boolean autoReconnect) {
+	public Connector(String hostAndPort, boolean autoReconnect) {
 		var ipp = hostAndPort.split("_");
 		this.hostNameOrAddress = ipp[0];
 		this.port = Integer.parseInt(ipp[1]);
@@ -63,11 +64,11 @@ public class Connector extends ReentrantLock {
 		this.isAutoReconnect = autoReconnect;
 	}
 
-	public Connector(@NotNull String host, int port) {
+	public Connector(String host, int port) {
 		this(host, port, true);
 	}
 
-	public Connector(boolean autoReconnect, @NotNull String url) {
+	public Connector(boolean autoReconnect, String url) {
 		if (url.isBlank())
 			throw new RuntimeException("url is blank.");
 		this.hostNameOrAddress = "";
@@ -77,7 +78,7 @@ public class Connector extends ReentrantLock {
 		this.isAutoReconnect = autoReconnect;
 	}
 
-	public Connector(@NotNull String host, int port, boolean autoReconnect) {
+	public Connector(String host, int port, boolean autoReconnect) {
 		this.hostNameOrAddress = host;
 		this.port = port;
 		this.url = null;
@@ -85,7 +86,7 @@ public class Connector extends ReentrantLock {
 		this.isAutoReconnect = autoReconnect;
 	}
 
-	public Connector(@NotNull Element self) {
+	public Connector(Element self) {
 		hostNameOrAddress = self.getAttribute("HostNameOrAddress");
 		this.url = self.getAttribute("Url");
 		if (url.isBlank()) {
@@ -110,7 +111,7 @@ public class Connector extends ReentrantLock {
 		maxReconnectDelay = Math.max(value, 1000);
 	}
 
-	public final @NotNull String getHostNameOrAddress() {
+	public final String getHostNameOrAddress() {
 		return hostNameOrAddress;
 	}
 
@@ -122,15 +123,15 @@ public class Connector extends ReentrantLock {
 		return url;
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return name;
 	}
 
-	public final Service getService() {
+	public final @Nullable Service getService() {
 		return service;
 	}
 
-	public final AsyncSocket getSocket() {
+	public final @Nullable AsyncSocket getSocket() {
 		return socket;
 	}
 
@@ -164,7 +165,7 @@ public class Connector extends ReentrantLock {
 		return TryGetReadySocket() != null;
 	}
 
-	public final void SetService(@NotNull Service service) {
+	public final void SetService(@Nullable Service service) {
 		lock();
 		try {
 			if (this.service != null)
@@ -176,11 +177,11 @@ public class Connector extends ReentrantLock {
 	}
 
 	// 允许子类重新定义Ready.
-	public @NotNull AsyncSocket WaitReady() {
+	public AsyncSocket WaitReady() {
 		return GetReadySocket();
 	}
 
-	public final @NotNull AsyncSocket GetReadySocket() {
+	public final AsyncSocket GetReadySocket() {
 		return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
 	}
 
@@ -206,7 +207,7 @@ public class Connector extends ReentrantLock {
 	 * as.close(e)，"socket==closed ⇒ 已置死"使其恒为no-op；否则doClose将在Connector锁内展开
 	 * （含取Service锁），违反Service锁→回调锁单向锁序（见Service.stop契约）。
 	 */
-	public void OnSocketClose(@NotNull AsyncSocket closed, @Nullable Throwable e) throws Exception {
+	public void OnSocketClose(AsyncSocket closed, @Nullable Throwable e) throws Exception {
 		lock();
 		try {
 			if (socket == closed) {
@@ -219,7 +220,7 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
-	public void OnSocketConnected(@NotNull AsyncSocket so) {
+	public void OnSocketConnected(AsyncSocket so) {
 		lock();
 		try {
 			// socket!=so为stale回调（stop已置null或已被新一代取代）：不得置isConnected
@@ -248,7 +249,7 @@ public class Connector extends ReentrantLock {
 	}
 
 	// 需要逻辑相关的握手行为时，重载这个方法。
-	public void OnSocketHandshakeDone(@NotNull AsyncSocket so) {
+	public void OnSocketHandshakeDone(AsyncSocket so) {
 		lock();
 		try {
 			if (socket == so) {
@@ -300,8 +301,8 @@ public class Connector extends ReentrantLock {
 		try {
 			// 构造非阻塞：锁内同步发布所有权（不变量前提，见字段区注释）
 			socket = null == url || url.isBlank()
-					? service.newClientSocket(hostNameOrAddress, port, userState, this)
-					: service.newWebsocketClient(url, userState, this);
+					? Objects.requireNonNull(getService()).newClientSocket(hostNameOrAddress, port, userState, this)
+					: Objects.requireNonNull(getService()).newWebsocketClient(url, userState, this);
 		} catch (Exception e) {
 			tryReconnect(); // 同步构造失败（配置/编程错误）仍续排重试，保持原契约
 			throw e;
@@ -335,6 +336,6 @@ public class Connector extends ReentrantLock {
 			unlock();
 		}
 		// 在途连接（含DNS/建连未完成）直接close，resolver侧isClosed检查点放弃
-		as.close(e);
+		Objects.requireNonNull(as).close(e);
 	}
 }

@@ -3,18 +3,17 @@ package Zeze.Transaction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.Json;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** DynamicBean 的纯数据形态：按 typeId 持有可替换的内部 Data，用于快照与序列化。 */
 public abstract class DynamicData extends Data {
-	protected @NotNull Data data = EmptyBean.Data.instance;
+	protected Data data = EmptyBean.Data.instance;
 	protected long typeId = EmptyBean.Data.TYPEID;
 
 	protected DynamicData() {
 	}
 
-	public @NotNull Data getData() {
+	public Data getData() {
 		return data;
 	}
 
@@ -24,7 +23,7 @@ public abstract class DynamicData extends Data {
 		setDataWithSpecialTypeId(toTypeId(data), data);
 	}
 
-	private void setDataWithSpecialTypeId(long specialTypeId, @NotNull Data data) {
+	private void setDataWithSpecialTypeId(long specialTypeId, Data data) {
 		if (data instanceof DynamicData) // 不允许嵌套放入DynamicData,否则序列化会输出错误的数据流
 			data = ((DynamicData)data).data;
 		typeId = specialTypeId;
@@ -40,11 +39,12 @@ public abstract class DynamicData extends Data {
 		return typeId;
 	}
 
-	public abstract long toTypeId(@NotNull Data data);
+	public abstract long toTypeId(Data data);
 
-	public abstract Data toData(long typeId);
+	// 未知 typeId 时返回 null（生成侧工厂兜底），调用方须判空或走 newData 的兜底路径。
+	public abstract @Nullable Data toData(long typeId);
 
-	public @NotNull Data newData(long typeId) {
+	public Data newData(long typeId) {
 		var data = toData(typeId);
 		if (data == null) {
 			if (typeId == EmptyBean.Data.TYPEID)
@@ -57,22 +57,22 @@ public abstract class DynamicData extends Data {
 		return data;
 	}
 
-	public void assign(@NotNull DynamicData other) {
+	public void assign(DynamicData other) {
 		setData(other.data.copy());
 	}
 
-	public void assign(@NotNull DynamicBean other) {
+	public void assign(DynamicBean other) {
 		setData(other.getBean().toData());
 	}
 
 	@Override
-	public void assign(@NotNull Bean bean) {
+	public void assign(Bean bean) {
 		assign((DynamicBean)bean);
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public @NotNull DynamicBean toBean() {
+	public DynamicBean toBean() {
 		throw new UnsupportedOperationException();
 	}
 
@@ -87,20 +87,20 @@ public abstract class DynamicData extends Data {
 	}
 
 	@Override
-	public @NotNull DynamicData copy() {
+	public DynamicData copy() {
 		var copy = (DynamicData)clone();
 		copy.data = data.copy();
 		return copy;
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteLong(typeId);
 		data.encode(bb);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var newTypeId = bb.ReadLong();
 		var newData = toData(newTypeId);
 		if (newData == null) {
@@ -140,7 +140,8 @@ public abstract class DynamicData extends Data {
 		return typeId == that.typeId && data.equals(that.data);
 	}
 
-	public static void registerJsonParser(@NotNull Class<? extends DynamicData> cls) {
+	@SuppressWarnings("ConstantConditions") // 反射构造器成功时非空，保留扩展用的兜底分支。
+	public static void registerJsonParser(Class<? extends DynamicData> cls) {
 		Json.instance.getClassMeta(cls).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			if (obj == null) {
 				obj = classMeta.getCtor().create();

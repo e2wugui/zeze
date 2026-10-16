@@ -1,54 +1,53 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // C# 风格的 StringBuilder 便捷封装：appendLine/格式化 append 链式调用
 public class StringBuilderCs {
 	private final StringBuilder sb = new StringBuilder();
 
-	public @NotNull StringBuilderCs appendLine() {
+	public StringBuilderCs appendLine() {
 		sb.append('\n');
 		return this;
 	}
 
-	public @NotNull StringBuilderCs appendLine(@Nullable String line) {
+	public StringBuilderCs appendLine(@Nullable String line) {
 		sb.append(line).append('\n');
 		return this;
 	}
 
-	public @NotNull StringBuilderCs appendLine(@NotNull String format, @Nullable Object... params) {
+	public StringBuilderCs appendLine(String format, @Nullable Object... params) {
 		sb.append(Str.format(format, params)).append('\n');
 		return this;
 	}
 
-	public @NotNull StringBuilderCs append(@Nullable String s) {
+	public StringBuilderCs append(@Nullable String s) {
 		sb.append(s);
 		return this;
 	}
 
-	public @NotNull StringBuilderCs append(@NotNull String format, @Nullable Object... params) {
+	public StringBuilderCs append(String format, @Nullable Object... params) {
 		sb.append(Str.format(format, params));
 		return this;
 	}
 
-	public @NotNull StringBuilderCs append(char c) {
+	public StringBuilderCs append(char c) {
 		sb.append(c);
 		return this;
 	}
 
-	public @NotNull StringBuilderCs append(int i) {
+	public StringBuilderCs append(int i) {
 		sb.append(i);
 		return this;
 	}
 
-	public @NotNull StringBuilderCs append(long l) {
+	public StringBuilderCs append(long l) {
 		sb.append(l);
 		return this;
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return sb.toString();
 	}
 }

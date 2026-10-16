@@ -1,11 +1,12 @@
 package Zeze.Transaction.Collections;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * LogMap2 家族（PMap2/GTable2）元数据：Bean 值受管，支持原位修改。
@@ -17,23 +18,23 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Map2Meta<?, ?>>> metas
 			= new ConcurrentHashMap<>();
 
-	Map2Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	Map2Meta(Class<K> keyClass, Class<V> valueClass) {
 		super("LogMap2:", headHash, keyClass, valueClass);
 	}
 
-	Map2Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
+	Map2Meta(Class<K> keyClass, Class<V> valueClass, Supplier<V> valueCtor) {
 		super("LogMap2:", headHash, keyClass, valueClass, valueCtor);
 	}
 
-	Map2Meta(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
+	Map2Meta(Class<K> keyClass, ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) {
 		super("LogMap2:", headHash, keyClass, get, create);
 	}
 
 	// GTable外层专用。家族头/name前缀由调用方提供（GTable1/GTable2各自常量，
 	// 与PMap2的LogMap2命名空间分流），valueIdentity为完整列/值身份串。
-	Map2Meta(@NotNull String familyHead, long familyHeadHash, @NotNull String namePrefix,
-			 @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
-			 @NotNull String valueIdentity, @NotNull Supplier<V> valueCtor) {
+	Map2Meta(String familyHead, long familyHeadHash, String namePrefix,
+			 Class<K> keyClass, Class<V> valueClass,
+			 String valueIdentity, Supplier<V> valueCtor) {
 		super(namePrefix, familyHeadHash, keyClass, valueClass, valueIdentity, valueCtor);
 	}
 
@@ -45,8 +46,8 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	 * 在日志反序列化（Log.create 按 typeId 查表）中永远不生效。
 	 */
 	@SuppressWarnings("unchecked")
-	public static <K, V extends Bean> @NotNull Map2Meta<K, V> get(@NotNull Class<K> keyClass,
-	                                                              @NotNull Class<V> valueClass) {
+	public static <K, V extends Bean> Map2Meta<K, V> get(Class<K> keyClass,
+	                                                              Class<V> valueClass) {
 		var map = metas.computeIfAbsent(keyClass, kc -> {
 			checkNonBeanKey("PMap2/GTable2 (LogMap2)", kc);
 			return new ConcurrentHashMap<>();
@@ -65,16 +66,16 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	 * Log 工厂表后 typeId 先到先得，两者不等价时后注册方的 ctor 被静默忽略，日志
 	 * 反序列化拿到错误构造的实例（如 History 增量回放数据损坏）。
 	 */
-	public static <K, V extends Bean> @NotNull Map2Meta<K, V> create(@NotNull Class<K> keyClass,
-	                                                                  @NotNull Class<V> valueClass,
-	                                                                  @NotNull Supplier<V> valueCtor) {
+	public static <K, V extends Bean> Map2Meta<K, V> create(Class<K> keyClass,
+	                                                                  Class<V> valueClass,
+	                                                                  Supplier<V> valueCtor) {
 		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
 		return new Map2Meta<>(keyClass, valueClass, valueCtor);
 	}
 
-	public static <K, V extends Bean> @NotNull Map2Meta<K, V> createDynamic(@NotNull Class<K> keyClass,
-	                                                                         @NotNull ToLongFunction<Bean> get,
-	                                                                         @NotNull LongFunction<Bean> create) {
+	public static <K, V extends Bean> Map2Meta<K, V> createDynamic(Class<K> keyClass,
+	                                                                         ToLongFunction<@Nullable Bean> get,
+	                                                                         LongFunction<@Nullable Bean> create) {
 		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
 		return new Map2Meta<>(keyClass, get, create);
 	}
@@ -86,10 +87,10 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	 * 不进共享缓存，调用方按(row,col,val)自行缓存。wire兼容由调用方裁定（History无生产
 	 * 启用时可直接切换）。
 	 */
-	public static <K, V extends Bean> @NotNull Map2Meta<K, V> createWithFamily(
-			@NotNull String familyHead, @NotNull String namePrefix,
-			@NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
-			@NotNull String valueIdentity, @NotNull Supplier<V> valueCtor) {
+	public static <K, V extends Bean> Map2Meta<K, V> createWithFamily(
+			String familyHead, String namePrefix,
+			Class<K> keyClass, Class<V> valueClass,
+			String valueIdentity, Supplier<V> valueCtor) {
 		checkNonBeanKey("GTable outer (" + namePrefix + ")", keyClass);
 		return new Map2Meta<>(familyHead, Bean.hash64(familyHead), namePrefix, keyClass, valueClass, valueIdentity, valueCtor);
 	}

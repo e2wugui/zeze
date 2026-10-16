@@ -19,7 +19,7 @@ import java.util.Spliterators;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 
 import static java.lang.Math.ceil;
 import static java.util.logging.Level.WARNING;
@@ -77,16 +77,18 @@ public class Utils {
 		return (int) value;
 	}
 
-	public static <T> T requireNonNull(T obj) {
+	public static <T> T requireNonNull(@Nullable T obj) {
 		if (obj == null)
 			throw new NullPointerException();
 		return obj;
 	}
-	static <T> T uncheckedCastNullableTToT(@CheckForNull T t) {
+	// Guava 的空数组迭代器哨兵也走此强制转换；不能把它改成运行时非空检查。
+	@SuppressWarnings("DataFlowIssue")
+	static <T> T uncheckedCastNullableTToT(@Nullable T t) {
 		return t;
 	}
 
-	public static void checkState(boolean expression, @CheckForNull Object errorMessage) {
+	public static void checkState(boolean expression, @Nullable Object errorMessage) {
 		if (!expression) {
 			throw new IllegalStateException(String.valueOf(errorMessage));
 		}
@@ -115,7 +117,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean equals(@CheckForNull Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			if (obj instanceof InPredicate<?> that) {
 				return target.equals(that.target);
 			}
@@ -147,7 +149,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean apply(@CheckForNull Object o) {
+		public boolean apply(@Nullable Object o) {
 			return target.equals(o);
 		}
 
@@ -157,7 +159,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean equals(@CheckForNull Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			if (obj instanceof IsEqualToPredicate that) {
 				return target.equals(that.target);
 			}
@@ -181,7 +183,7 @@ public class Utils {
 		return ObjectPredicate.IS_NULL.withNarrowedType();
 	}
 
-	public static <T> Predicate<T> equalTo(T target) {
+	public static <T> Predicate<T> equalTo(@Nullable T target) {
 		return (target == null)
 				? isNull()
 				: new IsEqualToPredicate(target).withNarrowedType();
@@ -205,7 +207,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean equals(@CheckForNull Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			if (obj instanceof NotPredicate<?> that) {
 				return predicate.equals(that.predicate);
 			}
@@ -227,7 +229,7 @@ public class Utils {
 	enum ObjectPredicate implements Predicate<Object> {
 		ALWAYS_TRUE {
 			@Override
-			public boolean apply(@CheckForNull Object o) {
+			public boolean apply(@Nullable Object o) {
 				return true;
 			}
 
@@ -238,7 +240,7 @@ public class Utils {
 		},
 		ALWAYS_FALSE {
 			@Override
-			public boolean apply(@CheckForNull Object o) {
+			public boolean apply(@Nullable Object o) {
 				return false;
 			}
 
@@ -249,7 +251,7 @@ public class Utils {
 		},
 		IS_NULL {
 			@Override
-			public boolean apply(@CheckForNull Object o) {
+			public boolean apply(@Nullable Object o) {
 				return o == null;
 			}
 
@@ -260,7 +262,7 @@ public class Utils {
 		},
 		NOT_NULL {
 			@Override
-			public boolean apply(@CheckForNull Object o) {
+			public boolean apply(@Nullable Object o) {
 				return o != null;
 			}
 
@@ -280,12 +282,12 @@ public class Utils {
 		return ObjectPredicate.ALWAYS_TRUE.withNarrowedType();
 	}
 
-	public static void checkArgument(boolean expression, @CheckForNull Object errorMessage) {
+	public static void checkArgument(boolean expression, @Nullable Object errorMessage) {
 		if (!expression) {
 			throw new IllegalArgumentException(String.valueOf(errorMessage));
 		}
 	}
-	private static String lenientToString(@CheckForNull Object o) {
+	private static String lenientToString(@Nullable Object o) {
 		if (o == null) {
 			return "null";
 		}
@@ -303,7 +305,7 @@ public class Utils {
 	}
 
 	public static String lenientFormat(
-			@CheckForNull String template, @CheckForNull Object... args) {
+			@Nullable String template, @Nullable Object @Nullable ... args) {
 		template = String.valueOf(template); // null -> "null"
 
 		if (args == null) {
@@ -347,7 +349,7 @@ public class Utils {
 		return new ImmutableEntry<>(key, value);
 	}
 
-	public static boolean equal(@CheckForNull Object a, @CheckForNull Object b) {
+	public static boolean equal(@Nullable Object a, @Nullable Object b) {
 		return Objects.equals(a, b);
 	}
 
@@ -384,8 +386,8 @@ public class Utils {
 		}
 	}
 
-	@CheckForNull
-	static <V> V safeRemove(Map<?, V> map, @CheckForNull Object key) {
+	@Nullable
+	static <V> V safeRemove(Map<?, V> map, @Nullable Object key) {
 		checkNotNull(map);
 		try {
 			return map.remove(key);
@@ -402,7 +404,7 @@ public class Utils {
 		}
 	}
 
-	static boolean equalsImpl(Table<?, ?, ?> table, @CheckForNull Object obj) {
+	static boolean equalsImpl(Table<?, ?, ?> table, @Nullable Object obj) {
 		if (obj == table) {
 			return true;
 		}
@@ -412,7 +414,7 @@ public class Utils {
 		return false;
 	}
 
-	static boolean safeContainsKey(Map<?, ?> map, Object key) {
+	static boolean safeContainsKey(Map<?, ?> map, @Nullable Object key) {
 		checkNotNull(map);
 
 		try {
@@ -422,7 +424,7 @@ public class Utils {
 		}
 	}
 
-	static <V> V safeGet(Map<?, V> map, Object key) {
+	static <V> @Nullable V safeGet(Map<?, V> map, @Nullable Object key) {
 		checkNotNull(map);
 
 		try {
@@ -442,7 +444,7 @@ public class Utils {
 		};
 	}
 
-	static boolean safeContains(Collection<?> collection, @CheckForNull Object object) {
+	static boolean safeContains(Collection<?> collection, @Nullable Object object) {
 		checkNotNull(collection);
 		try {
 			return collection.contains(object);
@@ -485,7 +487,7 @@ public class Utils {
 		 */
 		abstract Set<Entry<K, V>> createEntrySet();
 
-		@CheckForNull private transient Set<Entry<K, V>> entrySet;
+		@Nullable private transient Set<Entry<K, V>> entrySet;
 
 		@Override
 		public Set<Entry<K, V>> entrySet() {
@@ -493,7 +495,7 @@ public class Utils {
 			return (result == null) ? entrySet = createEntrySet() : result;
 		}
 
-		@CheckForNull private transient Set<K> keySet;
+		@Nullable private transient Set<K> keySet;
 
 		@Override
 		public Set<K> keySet() {
@@ -505,7 +507,7 @@ public class Utils {
 			return new KeySet<>(this);
 		}
 
-		@CheckForNull private transient Collection<V> values;
+		@Nullable private transient Collection<V> values;
 
 		@Override
 		public Collection<V> values() {
@@ -546,7 +548,7 @@ public class Utils {
 		return (Iterator<T>) EmptyModifiableIterator.INSTANCE;
 	}
 
-	public static <T> T checkNotNull(@CheckForNull T reference) {
+	public static <T> T checkNotNull(@Nullable T reference) {
 		if (reference == null) {
 			throw new NullPointerException();
 		}
@@ -568,7 +570,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean equals(@CheckForNull Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			if (obj instanceof CompositionPredicate<?, ?> that) {
 				return f.equals(that.f) && p.equals(that.p);
 			}
@@ -681,13 +683,13 @@ public class Utils {
 		}
 
 		@Override
-		public boolean contains(@CheckForNull Object o) {
+		public boolean contains(@Nullable Object o) {
 			//noinspection SuspiciousMethodCalls
 			return map().containsKey(o);
 		}
 
 		@Override
-		public boolean remove(@CheckForNull Object o) {
+		public boolean remove(@Nullable Object o) {
 			if (contains(o)) {
 				map().remove(o);
 				return true;
@@ -774,7 +776,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean remove(@CheckForNull Object o) {
+		public boolean remove(@Nullable Object o) {
 			try {
 				return super.remove(o);
 			} catch (UnsupportedOperationException e) {
@@ -829,7 +831,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean contains(@CheckForNull Object o) {
+		public boolean contains(@Nullable Object o) {
 			//noinspection SuspiciousMethodCalls
 			return map().containsValue(o);
 		}
@@ -854,7 +856,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean contains(@CheckForNull Object o) {
+		public boolean contains(@Nullable Object o) {
 			if (o instanceof Map.Entry<?, ?> entry) {
 				Object key = entry.getKey();
 				V value = Utils.safeGet(map(), key);
@@ -870,7 +872,7 @@ public class Utils {
 		}
 
 		@Override
-		public boolean remove(@CheckForNull Object o) {
+		public boolean remove(@Nullable Object o) {
 			/*
 			 * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
 			 * nullness checker.
@@ -966,14 +968,14 @@ public class Utils {
 	private enum EntryFunction implements Function<Map.Entry<?, ?>, Object> {
 		KEY {
 			@Override
-			@CheckForNull
+			@Nullable
 			public Object apply(Map.Entry<?, ?> entry) {
 				return entry.getKey();
 			}
 		},
 		VALUE {
 			@Override
-			@CheckForNull
+			@Nullable
 			public Object apply(Map.Entry<?, ?> entry) {
 				return entry.getValue();
 			}
@@ -990,7 +992,7 @@ public class Utils {
 		AbstractCell() {}
 
 		@Override
-		public boolean equals(@CheckForNull Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			if (obj == this) {
 				return true;
 			}
@@ -1013,7 +1015,7 @@ public class Utils {
 		}
 	}
 
-	public static int hashCode(@CheckForNull Object... objects) {
+	public static int hashCode(@Nullable Object... objects) {
 		return Arrays.hashCode(objects);
 	}
 	/**

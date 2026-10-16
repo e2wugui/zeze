@@ -3,7 +3,7 @@ package Zeze.Transaction.GTable;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 import static java.lang.Math.max;
 
 public class CollectSpliterators2 {
@@ -26,7 +26,7 @@ public class CollectSpliterators2 {
 			}
 
 			@Override
-			@CheckForNull
+			@Nullable
 			public Spliterator<OutElementT> trySplit() {
 				Spliterator<InElementT> fromSplit = fromSpliterator.trySplit();
 				return (fromSplit != null) ? map(fromSplit, function) : null;
@@ -72,24 +72,24 @@ public class CollectSpliterators2 {
 		@FunctionalInterface
 		interface Factory<InElementT, OutSpliteratorT extends Spliterator<?>> {
 			OutSpliteratorT newFlatMapSpliterator(
-					@CheckForNull OutSpliteratorT prefix,
+					@Nullable OutSpliteratorT prefix,
 					Spliterator<InElementT> fromSplit,
-					Function<? super InElementT, OutSpliteratorT> function,
+					Function<? super InElementT, @Nullable OutSpliteratorT> function,
 					int splitCharacteristics,
 					long estSplitSize);
 		}
 
-		@CheckForNull OutSpliteratorT prefix;
+		@Nullable OutSpliteratorT prefix;
 		final Spliterator<InElementT> from;
-		final Function<? super InElementT, OutSpliteratorT> function;
+		final Function<? super InElementT, @Nullable OutSpliteratorT> function;
 		final Factory<InElementT, OutSpliteratorT> factory;
 		int characteristics;
 		long estimatedSize;
 
 		FlatMapSpliterator(
-				@CheckForNull OutSpliteratorT prefix,
+				@Nullable OutSpliteratorT prefix,
 				Spliterator<InElementT> from,
-				Function<? super InElementT, OutSpliteratorT> function,
+				Function<? super InElementT, @Nullable OutSpliteratorT> function,
 				Factory<InElementT, OutSpliteratorT> factory,
 				int characteristics,
 				long estimatedSize) {
@@ -141,7 +141,7 @@ public class CollectSpliterators2 {
 		}
 
 		@Override
-		@CheckForNull
+		@Nullable
 		public final OutSpliteratorT trySplit() {
 			Spliterator<InElementT> fromSplit = from.trySplit();
 			if (fromSplit != null) {
@@ -184,7 +184,7 @@ public class CollectSpliterators2 {
 	static final class FlatMapSpliteratorOfObject<InElementT, OutElementT>
 			extends FlatMapSpliterator<InElementT, OutElementT, Spliterator<OutElementT>> {
 		FlatMapSpliteratorOfObject(
-				@CheckForNull Spliterator<OutElementT> prefix,
+				@Nullable Spliterator<OutElementT> prefix,
 				Spliterator<InElementT> from,
 				Function<? super InElementT, Spliterator<OutElementT>> function,
 				int characteristics,

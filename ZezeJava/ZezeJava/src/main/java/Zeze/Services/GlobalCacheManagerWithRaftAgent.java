@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
@@ -22,15 +23,14 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Raft版全局缓存管理器的客户端Agent：按gkey哈希分片到多个raft分片Agent（RaftAgent），
  * 代替进程内全局锁表执行Acquire/Reduce并处理服务端下发的Reduce请求。
  */
 public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerWithRaftAgent implements IGlobalAgent {
-	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
+	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
 
 	private final Application zz;
 	private final RaftAgent[] agents;
@@ -45,7 +45,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public @NotNull GlobalAgentBase getAgent(int index) {
+	public GlobalAgentBase getAgent(int index) {
 		return agents[index];
 	}
 
@@ -67,7 +67,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		lock();
 		try {
 			for (var agent : agents)
-				agent.getRaftClient().getClient().start();
+				Objects.requireNonNull(agent.getRaftClient().getClient()).start();
 
 			for (var agent : agents) {
 				try {
@@ -137,7 +137,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			// 补转发被降级方tid——TableX在bridge（sync族Result）上设置reducedTid，
 			// 桥接原本只转state与resultCode，该字段在Raft链路恒为默认值（同步/异步版服务器
 			// 均中继真实值），协议契约静默断裂。
-			real.Result.setReduceTid(Result.reducedTid);
+			real.Result.setReduceTid(Objects.requireNonNull(Result.reducedTid));
 			// real也先CAS再设置code；代理路径继续由ProxyableRpc的hook路由。
 			real.SendResultCode(getResultCode(), result);
 		}
@@ -185,12 +185,12 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public final int getGlobalCacheManagerHashIndex(@NotNull Binary gkey) {
+	public final int getGlobalCacheManagerHashIndex(Binary gkey) {
 		return Integer.remainderUnsigned(gkey.hashCode(), agents.length);
 	}
 
 	@Override
-	public @Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait) {
+	public @Nullable AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
 		var agent = agents[getGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
 			agent.setFastFail();
@@ -278,7 +278,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		@SuppressWarnings("SameParameterValue")
 		@Contract("_, _ -> fail")
-		private static void throwException(String msg, Throwable cause) {
+		private static void throwException(String msg, @Nullable Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
 				txn.throwAbort(msg, cause);
@@ -291,6 +291,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		@Override
+		@SuppressWarnings("ConstantConditions") // 保留对登录 Future 快照的防御检查。
 		protected void cancelPending() {
 			var tmp = loginFuture;
 			if (null != tmp) {
@@ -310,16 +311,16 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Application zeze,
-						 int _GlobalCacheManagerHashIndex, RaftConfig raftConf) throws Exception {
+						 int _GlobalCacheManagerHashIndex, @Nullable RaftConfig raftConf) throws Exception {
 			super(zeze);
 			globalCacheManagerWithRaftAgent = global;
 			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-			raftClient = new Agent("global.raft", zeze, raftConf, Agent.NetClient::new);
+			raftClient = new Agent("global.raft", zeze, Objects.requireNonNull(raftConf), Agent.NetClient::new);
 			raftClient.setOnSetLeader(this::raftOnSetLeader);
 			// Reduce处理（table.reduceInvalid/reduceShare）会等待本地锁，必须入池执行；
 			// Direct优先规则（Agent.NetClient.dispatchProtocol）不影响本Agent——注册协议全为Normal。
 			raftClient.dispatchProtocolToInternalThreadPool = true;
-			getGlobalCacheManagerWithRaftAgent().RegisterProtocols(raftClient.getClient());
+			getGlobalCacheManagerWithRaftAgent().RegisterProtocols(Objects.requireNonNull(raftClient.getClient()));
 		}
 
 		public final GlobalCacheManagerWithRaftAgent getGlobalCacheManagerWithRaftAgent() {

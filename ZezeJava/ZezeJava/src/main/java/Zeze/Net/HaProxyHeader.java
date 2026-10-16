@@ -11,8 +11,7 @@ import java.util.Arrays;
 import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 解析haproxy header，把信息保存下来。
@@ -21,10 +20,10 @@ import org.jetbrains.annotations.Nullable;
  * <a href="https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt">proxy-protocol.txt</a>
  */
 public class HaProxyHeader {
-	private static final @NotNull Logger logger = LogManager.getLogger(HaProxyHeader.class);
+	private static final Logger logger = LogManager.getLogger(HaProxyHeader.class);
 
 	private boolean done = false;
-	private final String key;
+	private final @Nullable String key;
 	private volatile @Nullable InetSocketAddress remoteAddress;
 	private volatile @Nullable InetSocketAddress targetAddress;
 	// v1 懒解析：decodeHeader 在 selector 线程调用，InetAddress.getByName 对非字面量主机名会
@@ -35,11 +34,11 @@ public class HaProxyHeader {
 	private int remotePort;
 	private int targetPort;
 
-	public HaProxyHeader(String key) {
+	public HaProxyHeader(@Nullable String key) {
 		this.key = key;
 	}
 
-	public String getKey() {
+	public @Nullable String getKey() {
 		return key;
 	}
 
@@ -63,7 +62,7 @@ public class HaProxyHeader {
 		return targetAddress = resolve(host, targetPort);
 	}
 
-	private static @Nullable InetSocketAddress resolve(@NotNull String host, int port) {
+	private static @Nullable InetSocketAddress resolve(String host, int port) {
 		try {
 			// 字面量IP不查DNS；主机名会同步解析，调用方线程需容忍可能的阻塞（但绝不能是selector线程）。
 			return new InetSocketAddress(InetAddress.getByName(host), port);
@@ -84,17 +83,17 @@ public class HaProxyHeader {
 	 * @param bb 数据buffer
 	 * @return true start with v2sig
 	 */
-	public static boolean startWithV2sig(byte @NotNull [] bb, int offset) {
+	public static boolean startWithV2sig(byte [] bb, int offset) {
 		return Arrays.equals(bb, offset, offset + v2sig.length, v2sig, 0, v2sig.length);
 	}
 
-	public static boolean startWithV1sig(byte @NotNull [] bb, int offset) {
+	public static boolean startWithV1sig(byte [] bb, int offset) {
 		return Arrays.equals(bb, offset, offset + v1sig.length, v1sig, 0, v1sig.length);
 	}
 
 	// null=尚未出现CRLF（等待更多数据）；""=CRLF紧跟前缀（空行，畸形头）。
 	// 两态必须区分：空行若走"等待"路径，连接将永久停在头解析态。
-	public static @Nullable String findV1Line(byte @NotNull [] bytes, int offset, int end) {
+	public static @Nullable String findV1Line(byte [] bytes, int offset, int end) {
 		end--;
 		for (int i = offset; i < end; i++) {
 			if (bytes[i] == '\r' && bytes[i + 1] == '\n')
@@ -112,7 +111,7 @@ public class HaProxyHeader {
 	}
 
 	// 保留throws UnknownHostException仅为兼容既有调用方的catch；解析移到getter后本方法不抛出。
-	public boolean decodeHeader(@NotNull ByteBuffer bb) throws UnknownHostException {
+	public boolean decodeHeader(ByteBuffer bb) throws UnknownHostException {
 		if (done)
 			return true;
 
@@ -207,7 +206,7 @@ public class HaProxyHeader {
 
 	// 端口为16位：畸形输入在解析处fail-fast断连（规范"不匹配即断连"），
 	// 不把越界值留到getter的InetSocketAddress构造再抛未捕获异常。
-	private static int parsePort(@NotNull String token) {
+	private static int parsePort(String token) {
 		int port;
 		try {
 			port = Integer.parseInt(token);

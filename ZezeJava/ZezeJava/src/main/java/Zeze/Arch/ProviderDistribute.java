@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,8 +18,7 @@ import Zeze.Util.KV;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.SortedMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provider负载分发算法。
@@ -46,30 +47,30 @@ public class ProviderDistribute extends ReentrantLock {
 		return appVersion >>> 48;
 	}
 
-	private static final @NotNull SortedMap.HashFunc<Integer, BServiceInfo> hashFunc = (key, value, index) ->
+	private static final SortedMap.HashFunc<Integer, BServiceInfo> hashFunc = (key, value, index) ->
 			Bean.hash64(Bean.hash64(((long)key << 32) + index, value.getServiceName()), value.getServiceIdentity());
 
-	public void addServer(@NotNull BServiceInfo s) {
+	public void addServer(BServiceInfo s) {
 		consistentHashes.computeIfAbsent(s.getServiceName(), __ -> new ConsistentHash<>(hashFunc))
 				.add(s.getServiceIdentity(), s);
 	}
 
-	public void removeServer(@NotNull BServiceInfo s) {
+	public void removeServer(BServiceInfo s) {
 		var consistentHash = consistentHashes.get(s.getServiceName());
 		if (consistentHash != null)
 			consistentHash.remove(s);
 	}
 
-	public static @NotNull String makeServiceName(@NotNull String serviceNamePrefix, int moduleId) {
+	public static String makeServiceName(@Nullable String serviceNamePrefix, int moduleId) {
 		return serviceNamePrefix + moduleId;
 	}
 
-	public @Nullable ConsistentHash<BServiceInfo> getConsistentHash(@NotNull String name) {
+	public @Nullable ConsistentHash<BServiceInfo> getConsistentHash(String name) {
 		return consistentHashes.get(name);
 	}
 
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
-	public @Nullable BServiceInfo choiceDataIndex(@NotNull Agent.SubscribeState providers,
+	public @Nullable BServiceInfo choiceDataIndex(Agent.SubscribeState providers,
 												  @Nullable ConsistentHash<BServiceInfo> consistentHash,
 												  int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
@@ -77,7 +78,7 @@ public class ProviderDistribute extends ReentrantLock {
 		var serviceInfo = consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 		if (serviceInfo != null) {
 			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
-					serviceInfo.getServiceIdentity());
+					Objects.requireNonNull(serviceInfo).getServiceIdentity());
 			if (providerModuleState == null)
 				return null;
 			if (providerModuleState.sessionId == 0)
@@ -86,13 +87,13 @@ public class ProviderDistribute extends ReentrantLock {
 			if (providerSocket == null)
 				return null;
 			var ps = (ProviderSession)providerSocket.getUserState();
-			if (ps.load.getOverload() == BLoad.eOverload)
+			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload)
 				return null;
 		}
 		return serviceInfo;
 	}
 
-	public @Nullable BServiceInfo choiceHash(@NotNull Agent.SubscribeState providers, int hash,
+	public @Nullable BServiceInfo choiceHash(Agent.SubscribeState providers, int hash,
 											 int dataConcurrentLevel) {
 		var consistentHash = consistentHashes.get(providers.getServiceName());
 		// 订阅状态先于一致性哈希环构建可见（Agent同步更新serviceInfos，
@@ -109,17 +110,17 @@ public class ProviderDistribute extends ReentrantLock {
 				dataConcurrentLevel);
 	}
 
-	public @Nullable BServiceInfo choiceHash(@NotNull Agent.SubscribeState providers, int hash) {
+	public @Nullable BServiceInfo choiceHash(Agent.SubscribeState providers, int hash) {
 		return choiceHash(providers, hash, 0);
 	}
 
-	public boolean choiceHash(@NotNull Agent.SubscribeState providers, int hash, @NotNull OutLong provider) {
+	public boolean choiceHash(Agent.SubscribeState providers, int hash, OutLong provider) {
 		provider.value = 0L;
 		var serviceInfo = choiceHash(providers, hash);
 		if (serviceInfo == null)
 			return false;
 
-		var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(serviceInfo.getServiceIdentity());
+		var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(Objects.requireNonNull(serviceInfo).getServiceIdentity());
 		if (providerModuleState == null)
 			return false;
 
@@ -133,7 +134,7 @@ public class ProviderDistribute extends ReentrantLock {
 		return (serverAppVersion >>> 48) == (clientAppVersion >>> 48); // 主版本必须一致
 	}
 
-	public boolean choiceLoad(@NotNull Agent.SubscribeState providers, @NotNull OutLong provider) {
+	public boolean choiceLoad(Agent.SubscribeState providers, OutLong provider) {
 		provider.value = 0L;
 		var serviceInfos = providers.getServiceInfos(getAppMainVersion());
 		if (serviceInfos == null)
@@ -148,7 +149,7 @@ public class ProviderDistribute extends ReentrantLock {
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
 			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
-					serviceInfo.getServiceIdentity());
+					Objects.requireNonNull(serviceInfo).getServiceIdentity());
 			if (providerModuleState == null) {
 				continue;
 			}
@@ -159,7 +160,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (ps == null)
 				continue; // 这里发现关闭的服务，仅仅忽略.
 
-			if (ps.load.getOverload() == BLoad.eOverload)
+			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload)
 				continue; // 忽略过载的服务器
 
 			if (!checkAppVersion(ps.appVersion, appVersion))
@@ -167,10 +168,10 @@ public class ProviderDistribute extends ReentrantLock {
 
 			all.add(ps);
 
-			if (ps.load.getOnlineNew() > ps.load.getMaxOnlineNew())
+			if (Objects.requireNonNull(ps).load.getOnlineNew() > Objects.requireNonNull(ps).load.getMaxOnlineNew())
 				continue;
 
-			int weight = ps.load.getProposeMaxOnline() - ps.load.getOnline();
+			int weight = Objects.requireNonNull(ps).load.getProposeMaxOnline() - Objects.requireNonNull(ps).load.getOnline();
 			if (weight <= 0)
 				continue;
 
@@ -197,7 +198,7 @@ public class ProviderDistribute extends ReentrantLock {
 		return false;
 	}
 
-	public boolean choiceRequest(@NotNull Agent.SubscribeState providers, @NotNull OutLong provider) {
+	public boolean choiceRequest(Agent.SubscribeState providers, OutLong provider) {
 		provider.value = 0L;
 		var serviceInfos = providers.getServiceInfos(getAppMainVersion());
 		if (serviceInfos == null)
@@ -213,7 +214,7 @@ public class ProviderDistribute extends ReentrantLock {
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
 			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
-					serviceInfo.getServiceIdentity());
+					Objects.requireNonNull(serviceInfo).getServiceIdentity());
 			if (providerModuleState == null) {
 				continue;
 			}
@@ -224,7 +225,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (ps == null)
 				continue; // 这里发现关闭的服务，仅仅忽略.
 
-			if (ps.load.getOverload() == BLoad.eOverload)
+			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload)
 				continue; // 忽略过载的服务器
 
 			if (!checkAppVersion(ps.appVersion, appVersion))
@@ -261,7 +262,7 @@ public class ProviderDistribute extends ReentrantLock {
 	}
 
 	// 查找时增加索引，和喂饱时增加索引，需要原子化。
-	public boolean choiceFeedFullOneByOne(@NotNull Agent.SubscribeState providers, @NotNull OutLong provider) {
+	public boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider) {
 		lock();
 		try {
 			provider.value = 0L;
@@ -275,7 +276,7 @@ public class ProviderDistribute extends ReentrantLock {
 				var index = Integer.remainderUnsigned(feedFullOneByOneIndex.get(), list.size()); // current
 				var serviceInfo = list.get(index);
 				var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
-						serviceInfo.getServiceIdentity());
+						Objects.requireNonNull(serviceInfo).getServiceIdentity());
 				if (providerModuleState == null)
 					continue;
 				var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
@@ -287,18 +288,18 @@ public class ProviderDistribute extends ReentrantLock {
 				if (ps == null)
 					continue;
 
-				if (ps.load.getOverload() == BLoad.eOverload)
+				if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload)
 					continue; // 忽略过载服务器。
 
 				// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-				if (ps.load.getOnlineNew() > ps.load.getMaxOnlineNew())
+				if (Objects.requireNonNull(ps).load.getOnlineNew() > Objects.requireNonNull(ps).load.getMaxOnlineNew())
 					continue;
 
 				if (!checkAppVersion(ps.appVersion, appVersion))
 					continue;
 
 				provider.value = ps.getSessionId();
-				if (ps.load.getOnline() >= ps.load.getProposeMaxOnline())
+				if (Objects.requireNonNull(ps).load.getOnline() >= Objects.requireNonNull(ps).load.getProposeMaxOnline())
 					feedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
 				return true;
 			}
@@ -308,8 +309,8 @@ public class ProviderDistribute extends ReentrantLock {
 		}
 	}
 
-	public boolean choiceProviderByServerId(@NotNull String serviceNamePrefix, int moduleId, int serverId,
-											@NotNull OutLong provider) {
+	public boolean choiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId,
+											OutLong provider) {
 		provider.value = 0L;
 		var serviceName = makeServiceName(serviceNamePrefix, moduleId);
 		//noinspection DataFlowIssue

@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
@@ -19,20 +21,19 @@ import Zeze.Services.GlobalCacheManagerConst;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 单点 GlobalCacheManager 的代理实现：管理多个 Agent 连接，分发 acquire/reduce 并汇总停机。 */
 public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
-	private static final @NotNull Logger logger = LogManager.getLogger(GlobalAgent.class);
+	private static final Logger logger = LogManager.getLogger(GlobalAgent.class);
 
 	public static final class Agent extends GlobalAgentBase {
-		private final @NotNull Connector connector;
+		private final Connector connector;
 		private final AtomicLong loginTimes = new AtomicLong();
 		private boolean activeClose;
 		private volatile long lastErrorTime;
 
-		public Agent(@NotNull Application zeze, @NotNull GlobalClient client, @NotNull String host, int port,
+		public Agent(Application zeze, GlobalClient client, String host, int port,
 					 int globalCacheManagerHashIndex) {
 			super(zeze);
 			connector = new Connector(host, port, true);
@@ -56,7 +57,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 			}, getConfig().keepAliveTimeout);
 		}
 
-		public @NotNull AtomicLong getLoginTimes() {
+		public AtomicLong getLoginTimes() {
 			return loginTimes;
 		}
 
@@ -65,7 +66,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		}
 
 		@Contract("_, _ -> fail")
-		private static void throwException(@NotNull String msg, @Nullable Throwable cause) {
+		private static void throwException(String msg, @Nullable Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
 				txn.throwAbort(msg, cause);
@@ -83,7 +84,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 				lastErrorTime = now;
 		}
 
-		public @NotNull AsyncSocket connect() {
+		public AsyncSocket connect() {
 			try {
 				var so = connector.TryGetReadySocket();
 				return so != null ? so : connector.WaitReady();
@@ -114,7 +115,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		}
 
 		@Override
-		public void startRelease(@NotNull Application zeze, @Nullable Runnable endAction) {
+		public void startRelease(Application zeze, @Nullable Runnable endAction) {
 			super.startRelease(zeze, endAction);
 			var socket = connector.TryGetReadySocket();
 			if (socket != null)
@@ -122,11 +123,11 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		}
 	}
 
-	private final @NotNull Application zeze;
-	private final @NotNull GlobalClient client;
-	private final @NotNull Agent @NotNull [] agents;
+	private final Application zeze;
+	private final GlobalClient client;
+	private final Agent [] agents;
 
-	public @NotNull Agent @NotNull [] getAgents() {
+	public Agent [] getAgents() {
 		return agents;
 	}
 
@@ -136,11 +137,11 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 	}
 
 	@Override
-	public @NotNull GlobalAgentBase getAgent(int index) {
+	public GlobalAgentBase getAgent(int index) {
 		return agents[index];
 	}
 
-	public GlobalAgent(@NotNull Application app, @NotNull String @NotNull [] hostNameOrAddress, int port) {
+	public GlobalAgent(Application app, String [] hostNameOrAddress, int port) {
 		zeze = app;
 
 		client = new GlobalClient(this, zeze);
@@ -165,21 +166,21 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		}
 	}
 
-	public @NotNull Application getZeze() {
+	public Application getZeze() {
 		return zeze;
 	}
 
-	public @NotNull GlobalClient getClient() {
+	public GlobalClient getClient() {
 		return client;
 	}
 
 	@Override
-	public int getGlobalCacheManagerHashIndex(@NotNull Binary gkey) {
+	public int getGlobalCacheManagerHashIndex(Binary gkey) {
 		return Integer.remainderUnsigned(gkey.hashCode(), agents.length);
 	}
 
 	@Override
-	public @Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait) {
+	public @Nullable AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
 		var agent = agents[getGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
 			agent.setFastFail();
@@ -229,10 +230,10 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 				new AcquireResult(rc, state, rpc.Result.reducedTid);
 	}
 
-	public int processReduceRequest(@NotNull Reduce rpc) {
+	public int processReduceRequest(Reduce rpc) {
 		switch (rpc.Argument.state) {
 		case GlobalCacheManagerConst.StateInvalid: {
-			var bb = ByteBuffer.Wrap(rpc.Argument.globalKey);
+			var bb = ByteBuffer.Wrap(Objects.requireNonNull(rpc.Argument.globalKey));
 			var tableId = bb.ReadInt4();
 			var table1 = zeze.getTable(tableId);
 			if (table1 == null) {
@@ -247,7 +248,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 			break;
 		}
 		case GlobalCacheManagerConst.StateShare: {
-			var bb = ByteBuffer.Wrap(rpc.Argument.globalKey);
+			var bb = ByteBuffer.Wrap(Objects.requireNonNull(rpc.Argument.globalKey));
 			var tableId = bb.ReadInt4();
 			var table = zeze.getTable(tableId);
 			if (table == null) {

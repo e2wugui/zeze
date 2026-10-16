@@ -27,15 +27,15 @@ public abstract class AbstractLinkedMap implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tLinkedMapNodes.getName()).getDatabaseName(), _tLinkedMapNodes);
-        zeze.addTable(zeze.getConfig().getTableConf(_tLinkedMaps.getName()).getDatabaseName(), _tLinkedMaps);
-        zeze.addTable(zeze.getConfig().getTableConf(_tValueIdToNodeId.getName()).getDatabaseName(), _tValueIdToNodeId);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tLinkedMapNodes.getName())).getDatabaseName(), _tLinkedMapNodes);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tLinkedMaps.getName())).getDatabaseName(), _tLinkedMaps);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tValueIdToNodeId.getName())).getDatabaseName(), _tValueIdToNodeId);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tLinkedMapNodes.getName()).getDatabaseName(), _tLinkedMapNodes);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tLinkedMaps.getName()).getDatabaseName(), _tLinkedMaps);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tValueIdToNodeId.getName()).getDatabaseName(), _tValueIdToNodeId);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tLinkedMapNodes.getName())).getDatabaseName(), _tLinkedMapNodes);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tLinkedMaps.getName())).getDatabaseName(), _tLinkedMaps);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tValueIdToNodeId.getName())).getDatabaseName(), _tValueIdToNodeId);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
 
 // 时间自适应配额：按消费间隔对 fund 倍增/减半（PersistentAtomicLong 按块分配预算用）
 public class TimeAdaptedFund {
@@ -24,7 +23,7 @@ public class TimeAdaptedFund {
 	 *
 	 * @return 一个新的实例
 	 */
-	public static @NotNull TimeAdaptedFund getDefaultFund() {
+	public static TimeAdaptedFund getDefaultFund() {
 		return new TimeAdaptedFund(16, 30_000, 120_000);
 	}
 

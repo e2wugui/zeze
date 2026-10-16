@@ -1,9 +1,9 @@
 package Zeze.Transaction;
 
 import Zeze.Net.Binary;
+import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Id128;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 全局缓存管理代理接口：封装对 GlobalCacheManager 集群的 acquire/reduce 权限协调，
@@ -11,14 +11,14 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface IGlobalAgent {
 	record AcquireResult(long resultCode, int resultState, @Nullable Id128 reducedTid) {
-			private static final @NotNull AcquireResult @NotNull [] successResults = new AcquireResult[4];
+			private static final AcquireResult [] successResults = new AcquireResult[4];
 
 			static {
 				for (int i = 0; i < successResults.length; i++)
 					successResults[i] = new AcquireResult(0, i, null);
 			}
 
-			public static @NotNull AcquireResult getSuccessResult(int state) {
+			public static AcquireResult getSuccessResult(int state) {
 				if (state < 0 || state >= successResults.length) // 越界state原为AIOOBE，此处给可诊断的参数错
 					throw new IllegalArgumentException("state=" + state + " not in [0," + successResults.length + ")");
 				return successResults[state];
@@ -38,11 +38,11 @@ public interface IGlobalAgent {
 	 * 调用方按"零成功、非零失败"处理，保留原始码记日志，勿按具体负值分支。
 	 * reducedTid 非空表示结果与该事务号的 reduce 相关，不适用为 null。
 	 */
-	@Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait);
+	@Nullable AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait);
 
-	int getGlobalCacheManagerHashIndex(@NotNull Binary gkey);
+	int getGlobalCacheManagerHashIndex(Binary gkey);
 
-	@NotNull GlobalAgentBase getAgent(int index);
+	GlobalAgentBase getAgent(int index);
 
 	int getAgentCount();
 

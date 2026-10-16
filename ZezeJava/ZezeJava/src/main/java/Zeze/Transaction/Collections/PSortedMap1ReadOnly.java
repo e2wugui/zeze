@@ -10,14 +10,14 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedMap;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import java.util.Map.Entry;
 
 /** PSortedMap1 的只读视图：仅暴露查询与遍历，修改入口抛 UnsupportedOperationException。 */
 public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable<Map.Entry<K, V>> {
-	private final @NotNull PSortedMap1<K, V> map;
+	private final PSortedMap1<K, V> map;
 
-	public PSortedMap1ReadOnly(@NotNull PSortedMap1<K, V> map) {
+	public PSortedMap1ReadOnly(PSortedMap1<K, V> map) {
 		this.map = map;
 	}
 
@@ -29,19 +29,19 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		return map.size();
 	}
 
-	public @Nullable V get(@NotNull K key) {
+	public @Nullable V get(K key) {
 		return map.get(key);
 	}
 
-	public boolean containsValue(@NotNull V v) {
+	public boolean containsValue(V v) {
 		return map.containsValue(v);
 	}
 
-	public boolean containsKey(@NotNull K key) {
+	public boolean containsKey(K key) {
 		return map.containsKey(key);
 	}
 
-	public void copyTo(Map.Entry<K, V> @NotNull [] array, int arrayIndex) {
+	public void copyTo(Map.Entry<K, V> [] array, int arrayIndex) {
 		for (var e : entrySet())
 			array[arrayIndex++] = e;
 	}
@@ -51,7 +51,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 	// pcollections 返回的 NavigableMap / NavigableSet 视图本身就是只读的，无需再包一层。
 	// 注意：pollFirstEntry / pollLastEntry 是破坏性方法，不暴露。
 
-	public Map.Entry<K, V> lowerEntry(K key) {
+	public @Nullable Entry<K, V> lowerEntry(K key) {
 		return map.lowerEntry(key);
 	}
 
@@ -59,7 +59,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		return map.lowerKey(key);
 	}
 
-	public Map.Entry<K, V> floorEntry(K key) {
+	public @Nullable Entry<K, V> floorEntry(K key) {
 		return map.floorEntry(key);
 	}
 
@@ -67,7 +67,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		return map.floorKey(key);
 	}
 
-	public Map.Entry<K, V> ceilingEntry(K key) {
+	public @Nullable Entry<K, V> ceilingEntry(K key) {
 		return map.ceilingEntry(key);
 	}
 
@@ -75,7 +75,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		return map.ceilingKey(key);
 	}
 
-	public Map.Entry<K, V> higherEntry(K key) {
+	public @Nullable Entry<K, V> higherEntry(K key) {
 		return map.higherEntry(key);
 	}
 
@@ -83,35 +83,35 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		return map.higherKey(key);
 	}
 
-	public Map.Entry<K, V> firstEntry() {
+	public @Nullable Entry<K, V> firstEntry() {
 		return map.firstEntry();
 	}
 
-	public Map.Entry<K, V> lastEntry() {
+	public @Nullable Entry<K, V> lastEntry() {
 		return map.lastEntry();
 	}
 
-	public @NotNull NavigableMap<K, V> descendingMap() {
+	public NavigableMap<K, V> descendingMap() {
 		return map.descendingMap();
 	}
 
-	public @NotNull NavigableSet<K> navigableKeySet() {
+	public NavigableSet<K> navigableKeySet() {
 		return map.navigableKeySet();
 	}
 
-	public @NotNull NavigableSet<K> descendingKeySet() {
+	public NavigableSet<K> descendingKeySet() {
 		return map.descendingKeySet();
 	}
 
-	public @NotNull NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
+	public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
 		return map.subMap(fromKey, fromInclusive, toKey, toInclusive);
 	}
 
-	public @NotNull NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
+	public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
 		return map.headMap(toKey, inclusive);
 	}
 
-	public @NotNull NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
+	public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
 		return map.tailMap(fromKey, inclusive);
 	}
 
@@ -119,15 +119,15 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		return map.comparator();
 	}
 
-	public @NotNull SortedMap<K, V> subMap(K fromKey, K toKey) {
+	public SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return map.subMap(fromKey, toKey);
 	}
 
-	public @NotNull SortedMap<K, V> headMap(K toKey) {
+	public SortedMap<K, V> headMap(K toKey) {
 		return map.headMap(toKey);
 	}
 
-	public @NotNull SortedMap<K, V> tailMap(K fromKey) {
+	public SortedMap<K, V> tailMap(K fromKey) {
 		return map.tailMap(fromKey);
 	}
 
@@ -139,12 +139,12 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		return map.lastKey();
 	}
 
-	public @NotNull Set<K> keySet() {
+	public Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<K> iterator() {
+			public Iterator<K> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -170,12 +170,12 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		};
 	}
 
-	public @NotNull java.util.Collection<V> values() {
+	public java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NotNull Iterator<V> iterator() {
+			public Iterator<V> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -201,14 +201,14 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		};
 	}
 
-	public @NotNull Set<Map.Entry<K, V>> entrySet() {
+	public Set<Map.Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<Map.Entry<K, V>> iterator() {
+			public Iterator<Map.Entry<K, V>> iterator() {
 				return new Iterator<>() {
 					// PSortedMap.entrySet() 返回的迭代器 remove() 是可变的，这里包一层禁掉。
 					// next() 返回的 Entry 来自 pcollections，本身就是 immutable 的。
-					private final @NotNull Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -235,15 +235,15 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 	}
 
 	@Override
-	public @NotNull Iterator<Map.Entry<K, V>> iterator() {
+	public Iterator<Map.Entry<K, V>> iterator() {
 		return entrySet().iterator();
 	}
 
-	public @NotNull PSortedMap1<K, V> copy() {
+	public PSortedMap1<K, V> copy() {
 		return map.copy();
 	}
 
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		map.encode(bb);
 	}
 
@@ -258,7 +258,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return map.toString();
 	}
 }

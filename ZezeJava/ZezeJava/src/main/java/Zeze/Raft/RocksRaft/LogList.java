@@ -1,22 +1,24 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
 import org.pcollections.PVector;
 
 /**
  * List 容器日志基类：在 LogBean 之上携带容器的当前值（PVector）。
  */
 public abstract class LogList<V> extends LogBean {
-	private PVector<V> value;
+	private @Nullable PVector<V> value;
 
 	public LogList(int typeId) {
 		super(typeId);
 	}
 
-	final PVector<V> getValue() {
+	final @Nullable PVector<V> getValue() {
 		return value;
 	}
 
-	final void setValue(PVector<V> value) {
+	final void setValue(@Nullable PVector<V> value) {
 		this.value = value;
 	}
 

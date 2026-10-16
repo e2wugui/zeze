@@ -47,6 +47,7 @@ public final class BCHandshakeArgument implements Serializable {
 	}
 
 	@Override
+	@SuppressWarnings("ConstantConditions") // 保留对协议参数的防御输出。
 	public String toString() {
 		return "BCHandshakeArgument{encryptType=" + encryptType
 				+ ",encryptParam=[" + (encryptParam != null ? encryptParam.length : -1)

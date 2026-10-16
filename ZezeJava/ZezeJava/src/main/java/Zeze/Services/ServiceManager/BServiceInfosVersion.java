@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.Objects;
 import java.util.HashMap;
 import java.util.ArrayList;
 import Zeze.Builtin.ServiceManagerWithRaft.BServerState;
@@ -9,8 +10,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Services.ServiceManagerServer;
 import Zeze.Util.LongHashMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 按版本分桶的服务地址集合：version→BServiceInfos，version=0通常表示全部版本。
@@ -24,16 +24,16 @@ public class BServiceInfosVersion implements Serializable {
 	/** 浅拷贝快照：桶集合（LongHashMap）独立，桶内BServiceInfos引用共享（其FewModifyList读为
 	 * copy-on-read快照安全）。供SubscribeState.getServiceInfosVersion()持锁构造，隔离无锁读者
 	 * 与onRegister/onUnRegister对LongHashMap的结构性修改。 */
-	public BServiceInfosVersion(@NotNull BServiceInfosVersion other) {
+	public BServiceInfosVersion(BServiceInfosVersion other) {
 		for (var it = other.infosVersion.iterator(); it.moveToNext(); )
 			infosVersion.put(it.key(), it.value());
 	}
 
-	public BServiceInfosVersion(@NotNull IByteBuffer bb) {
+	public BServiceInfosVersion(IByteBuffer bb) {
 		decode(bb);
 	}
 
-	public BServiceInfosVersion(long hopeVersion, @NotNull ServiceManagerServer.ServiceState state) {
+	public BServiceInfosVersion(long hopeVersion, ServiceManagerServer.ServiceState state) {
 		if (hopeVersion != 0) {
 			var identityMap = state.getServiceInfos().get(hopeVersion);
 			if (identityMap != null)
@@ -44,7 +44,7 @@ public class BServiceInfosVersion implements Serializable {
 		}
 	}
 
-	public BServiceInfosVersion(long hopeVersion, @NotNull BServerState state) {
+	public BServiceInfosVersion(long hopeVersion, BServerState state) {
 		if (hopeVersion != 0) {
 			var identityMap = state.getServiceInfosVersion().get(hopeVersion);
 			if (identityMap != null)
@@ -55,7 +55,7 @@ public class BServiceInfosVersion implements Serializable {
 		}
 	}
 
-	private void copyAndSortIdentityMap(long version, @NotNull HashMap<String, BServiceInfo> identityMap) {
+	private void copyAndSortIdentityMap(long version, HashMap<String, BServiceInfo> identityMap) {
 		if (!identityMap.isEmpty()) {
 			var infos = new BServiceInfos();
 			infos.getSortedIdentities().addAll(identityMap.values());
@@ -64,7 +64,7 @@ public class BServiceInfosVersion implements Serializable {
 		}
 	}
 
-	private void copyAndSortIdentityMap(long version, @NotNull BServiceInfosVersionRocks identityMap) {
+	private void copyAndSortIdentityMap(long version, BServiceInfosVersionRocks identityMap) {
 		if (identityMap.getServiceInfos().size() > 0) {
 			var infos = new BServiceInfos();
 			for (var info : identityMap.getServiceInfos().values()) {
@@ -83,7 +83,7 @@ public class BServiceInfosVersion implements Serializable {
 		var maxVersion = Long.MIN_VALUE;
 		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
 			// onUnRegister移空最后一个条目后空桶仍残留在map里，跳过，避免"最新版本"指向空列表。
-			if (!it.value().getSortedIdentities().isEmpty() && maxVersion <= it.key()) {
+			if (!Objects.requireNonNull(it.value()).getSortedIdentities().isEmpty() && maxVersion <= it.key()) {
 				maxVersion = it.key();
 				resultInfos = it.value();
 			}
@@ -95,18 +95,18 @@ public class BServiceInfosVersion implements Serializable {
 		return infosVersion.get(version);
 	}
 
-	public @NotNull BServiceInfos getOrAddInfos(long version) {
-		return infosVersion.computeIfAbsent(version, (key) -> new BServiceInfos());
+	public BServiceInfos getOrAddInfos(long version) {
+		return Objects.requireNonNull(infosVersion.computeIfAbsent(version, (key) -> new BServiceInfos()));
 	}
 
-	public @NotNull LongHashMap<BServiceInfos>.Iterator getInfosIterator() {
+	public LongHashMap<BServiceInfos>.Iterator getInfosIterator() {
 		return infosVersion.iterator();
 	}
 
 	void pruneEmptyVersions() {
 		var empty = new ArrayList<Long>();
 		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
-			if (it.value().getSortedIdentities().isEmpty())
+			if (Objects.requireNonNull(it.value()).getSortedIdentities().isEmpty())
 				empty.add(it.key());
 		}
 		for (var version : empty)
@@ -118,16 +118,16 @@ public class BServiceInfosVersion implements Serializable {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(infosVersion.size());
 		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
 			bb.WriteLong(it.key());
-			it.value().encode(bb);
+			Objects.requireNonNull(it.value()).encode(bb);
 		}
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var version = bb.ReadLong();
 			var infos = new BServiceInfos();
@@ -150,7 +150,7 @@ public class BServiceInfosVersion implements Serializable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "BServiceInfosVersion" + infosVersion;
 	}
 }

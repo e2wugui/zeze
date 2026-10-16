@@ -1,7 +1,6 @@
 package Zeze.Services.RocketMQ;
 
 import org.apache.rocketmq.client.ClientConfig;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * {@link ClientConfig} 的构造期透传：{@link Consumer}/{@link Producer} 构造器接收
@@ -21,7 +20,7 @@ final class ClientConfigs {
 	 * 懒推导语义——如 namespace 由 endpoint 形态 namesrvAddr 懒推导；布尔/枚举字段两端
 	 * 默认值相同，无条件复制为无害覆盖）。
 	 */
-	static void copyRoutingIdentity(@NotNull ClientConfig src, @NotNull ClientConfig dst) {
+	static void copyRoutingIdentity(ClientConfig src, ClientConfig dst) {
 		dst.setNamesrvAddr(src.getNamesrvAddr());
 		// namespace 与 namespaceV2 是 ClientConfig 的两个独立字段（5.x 里 V2 不是 V1 的
 		// 等价新名——0d4824c07"去idea警告"把 V1 改读 V2 曾致：用户 setNamespace("NS1")

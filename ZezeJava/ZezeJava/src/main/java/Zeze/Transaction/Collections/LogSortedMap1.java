@@ -5,8 +5,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
 import org.pcollections.TreePMap;
 
@@ -17,12 +16,12 @@ import java.util.TreeSet;
 
 /** PSortedMap1 的变更日志：以 replaced/removed 增量记录事务内对持久化有序 Map 的修改。 */
 public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V> {
-	protected final @NotNull Meta2<K, V> meta;
+	protected final Meta2<K, V> meta;
 	private final Map<K, V> replaced;
 	private final Set<K> removed;
 
-	public LogSortedMap1(Bean belong, int varId, Bean self, @NotNull org.pcollections.PSortedMap<K, V> value,
-	               @NotNull Meta2<K, V> meta) {
+	public LogSortedMap1(@Nullable Bean belong, int varId, @Nullable Bean self, org.pcollections.PSortedMap<K, V> value,
+	               Meta2<K, V> meta) {
 		super(belong, varId, self, value);
 		this.meta = meta;
 		// 增量与底层有序映射必须使用同一键等价关系（如 Decimal 的 1.0 与 1.00）。
@@ -36,15 +35,15 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	public @NotNull String getTypeName() {
+	public String getTypeName() {
 		return meta.name;
 	}
 
-	public final @NotNull Map<K, V> getReplaced() {
+	public final Map<K, V> getReplaced() {
 		return replaced;
 	}
 
-	public final @NotNull Set<K> getRemoved() {
+	public final Set<K> getRemoved() {
 		return removed;
 	}
 
@@ -52,11 +51,11 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 		return getValue().get(key);
 	}
 
-	public final void add(@NotNull K key, @NotNull V value) {
+	public final void add(K key, V value) {
 		put(key, value);
 	}
 
-	public final @Nullable V put(@NotNull K key, @NotNull V value) {
+	public final @Nullable V put(K key, V value) {
 		V exist = getValue().get(key);
 		setValue(getValue().plus(key, value));
 		removed.remove(key);
@@ -64,7 +63,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 		return exist;
 	}
 
-	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(Map<? extends K, ? extends V> m) {
 		var old = getValue();
 		var newMap = old.plusAll(m);
 		if (newMap != old) {
@@ -82,11 +81,11 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	/** putAll的值变化判定：1系值不可变，equals相等即无变化。 */
-	protected boolean isValueChanged(V oldValue, V newValue) {
+	protected boolean isValueChanged(@Nullable V oldValue, V newValue) {
 		return !java.util.Objects.equals(oldValue, newValue);
 	}
 
-	public final @Nullable V remove(@NotNull K key) {
+	public final @Nullable V remove(K key) {
 		V old = getValue().get(key);
 		if (old != null) {
 			setValue(getValue().minus(key));
@@ -96,7 +95,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 		return old;
 	}
 
-	public final boolean remove(@NotNull K key, @NotNull V value) {
+	public final boolean remove(K key, V value) {
 		V old = getValue().get(key);
 		if (value.equals(old)) {
 			setValue(getValue().minus(key));
@@ -117,7 +116,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var keyEncoder = meta.keyEncoder;
 		var valueEncoder = meta.valueEncoder;
 		bb.WriteUInt(replaced.size());
@@ -133,7 +132,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		replaced.clear();
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;
@@ -150,7 +149,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	public void endSavepoint(@NotNull Savepoint currentSp) {
+	public void endSavepoint(Savepoint currentSp) {
 		Log log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
@@ -161,7 +160,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 			currentSp.putLog(this);
 	}
 
-	private void mergeChangeNote(@NotNull LogSortedMap1<K, V> another) {
+	private void mergeChangeNote(LogSortedMap1<K, V> another) {
 		for (var e : another.replaced.entrySet()) {
 			K k = e.getKey();
 			removed.remove(k);
@@ -174,12 +173,12 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	public @NotNull Log beginSavepoint() {
+	public Log beginSavepoint() {
 		return new LogSortedMap1<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(" replaced:");
 		ByteBuffer.BuildSortedString(sb, replaced);

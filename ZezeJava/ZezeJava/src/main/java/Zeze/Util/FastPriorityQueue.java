@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -12,7 +16,7 @@ import java.util.Iterator;
 public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements Iterable<T> {
 	private final int maxCapacity;
 	private int numNodes;
-	private T[] nodes;
+	private @Nullable T[] nodes;
 
 	/**
 	 * Instantiate a new Priority Queue
@@ -80,9 +84,9 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 		int i = node.getQueueIndex();
 		if (i <= 0)
 			return;
-		T[] nodes = this.nodes;
+		@Nullable T[] nodes = this.nodes;
 		int parent = (i - 1) >> 1;
-		T parentNode = nodes[parent];
+		T parentNode = Objects.requireNonNull(nodes[parent]);
 		if (!node.hasHigherPriority(parentNode))
 			return;
 
@@ -95,7 +99,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 			if (parent == 0)
 				break;
 			parent = (parent - 1) >> 1;
-			parentNode = nodes[parent];
+			parentNode = Objects.requireNonNull(nodes[parent]);
 		} while (node.hasHigherPriority(parentNode));
 
 		node.setQueueIndex(i);
@@ -113,9 +117,9 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 			return;
 
 		// Check if the left-child is higher-priority than the current node
-		T[] nodes = this.nodes;
+		@Nullable T[] nodes = this.nodes;
 		int childRightIndex = childLeftIndex + 1;
-		T childLeft = nodes[childLeftIndex];
+		T childLeft = Objects.requireNonNull(nodes[childLeftIndex]);
 		if (childLeft.hasHigherPriority(node)) {
 			// Check if there is a right child. If not, swap and finish.
 			if (childRightIndex >= numNodes) {
@@ -127,7 +131,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 			}
 
 			// Check if the left-child is higher-priority than the right-child
-			T childRight = nodes[childRightIndex];
+			T childRight = Objects.requireNonNull(nodes[childRightIndex]);
 			if (childLeft.hasHigherPriority(childRight)) { // left is highest, move it up and continue
 				childLeft.setQueueIndex(finalQueueIndex);
 				nodes[finalQueueIndex] = childLeft;
@@ -141,7 +145,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 			return;
 		else {
 			// Check if the right-child is higher-priority than the current node
-			T childRight = nodes[childRightIndex];
+			T childRight = Objects.requireNonNull(nodes[childRightIndex]);
 			if (childRight.hasHigherPriority(node)) {
 				childRight.setQueueIndex(finalQueueIndex);
 				nodes[finalQueueIndex] = childRight;
@@ -162,7 +166,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 
 			// Check if the left-child is higher-priority than the current node
 			childRightIndex = childLeftIndex + 1;
-			childLeft = nodes[childLeftIndex];
+			childLeft = Objects.requireNonNull(nodes[childLeftIndex]);
 			if (childLeft.hasHigherPriority(node)) {
 				// Check if there is a right child. If not, swap and finish.
 				if (childRightIndex >= numNodes) {
@@ -174,7 +178,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 				}
 
 				// Check if the left-child is higher-priority than the right-child
-				T childRight = nodes[childRightIndex];
+				T childRight = Objects.requireNonNull(nodes[childRightIndex]);
 				if (childLeft.hasHigherPriority(childRight)) { // left is highest, move it up and continue
 					childLeft.setQueueIndex(finalQueueIndex);
 					nodes[finalQueueIndex] = childLeft;
@@ -189,7 +193,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 				nodes[finalQueueIndex] = node;
 				break;
 			} else { // Check if the right-child is higher-priority than the current node
-				T childRight = nodes[childRightIndex];
+				T childRight = Objects.requireNonNull(nodes[childRightIndex]);
 				if (childRight.hasHigherPriority(node)) {
 					childRight.setQueueIndex(finalQueueIndex);
 					nodes[finalQueueIndex] = childRight;
@@ -209,15 +213,15 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	 * O(log n)
 	 */
 	public T dequeue() {
-		T[] nodes = this.nodes;
-		T returnMe = nodes[0];
+		@Nullable T[] nodes = this.nodes;
+		T returnMe = Objects.requireNonNull(nodes[0]);
 		int numNodes = this.numNodes;
 		this.numNodes = --numNodes;
 		if (numNodes == 0) // If the node is already the last node, we can remove it immediately
 			nodes[0] = null;
 		else {
 			// Swap the node with the last node
-			T formerLastNode = nodes[numNodes];
+			T formerLastNode = Objects.requireNonNull(nodes[numNodes]);
 			formerLastNode.setQueueIndex(0);
 			nodes[0] = formerLastNode;
 			nodes[numNodes] = null;
@@ -251,7 +255,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	 * If the queue is empty, behavior is undefined.
 	 * O(1)
 	 */
-	public T first() {
+	public @Nullable T first() {
 		return nodes[0];
 	}
 
@@ -268,7 +272,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	private void onNodeUpdated(T node) {
 		// Bubble the updated node up or down as appropriate
 		int parentIndex = (node.getQueueIndex() - 1) >> 1;
-		if (parentIndex >= 0 && node.hasHigherPriority(nodes[parentIndex]))
+		if (parentIndex >= 0 && node.hasHigherPriority(Objects.requireNonNull(nodes[parentIndex])))
 			cascadeUp(node);
 		else // Note that CascadeDown will be called if parentNode == node (that is, node is the root)
 			cascadeDown(node);
@@ -280,7 +284,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	 * O(log n)
 	 */
 	public void remove(final T node) {
-		T[] nodes = this.nodes;
+		@Nullable T[] nodes = this.nodes;
 		int numNodes = this.numNodes;
 		this.numNodes = --numNodes;
 		int i = node.getQueueIndex();
@@ -288,7 +292,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 			nodes[numNodes] = null;
 		else {
 			// Swap the node with the last node
-			T formerLastNode = nodes[numNodes];
+			T formerLastNode = Objects.requireNonNull(nodes[numNodes]);
 			nodes[i] = formerLastNode;
 			formerLastNode.setQueueIndex(i);
 			nodes[numNodes] = null;
@@ -310,7 +314,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 
 			@Override
 			public T next() {
-				return nodes[i++];
+				return Objects.requireNonNull(nodes[i++]);
 			}
 		};
 	}
@@ -320,18 +324,18 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	 * Checks to make sure the queue is still in a valid state.  Used for testing/debugging the queue.
 	 */
 	public boolean isValidQueue() {
-		T[] nodes = this.nodes;
+		@Nullable T[] nodes = this.nodes;
 		int n = nodes.length;
 		for (int i = 0; i < n; i++) {
 			if (nodes[i] != null) {
 				int childLeftIndex = (i << 1) + 1;
 				if (childLeftIndex < n && nodes[childLeftIndex] != null &&
-						nodes[childLeftIndex].hasHigherPriority(nodes[i]))
+						Objects.requireNonNull(nodes[childLeftIndex]).hasHigherPriority(Objects.requireNonNull(nodes[i])))
 					return false;
 
 				int childRightIndex = childLeftIndex + 1;
 				if (childRightIndex < n && nodes[childRightIndex] != null &&
-						nodes[childRightIndex].hasHigherPriority(nodes[i]))
+						Objects.requireNonNull(nodes[childRightIndex]).hasHigherPriority(Objects.requireNonNull(nodes[i])))
 					return false;
 			}
 		}

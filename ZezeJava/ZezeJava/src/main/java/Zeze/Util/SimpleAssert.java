@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 // 轻量断言辅助：失败抛 ThrowAgainException（框架不捕获，用于测试）
@@ -9,7 +11,7 @@ public final class SimpleAssert {
 			throw new ThrowAgainException();
 	}
 
-	public static void isNull(Object o) {
+	public static void isNull(@Nullable Object o) {
 		if (o != null)
 			throw new ThrowAgainException(o + " != null");
 	}

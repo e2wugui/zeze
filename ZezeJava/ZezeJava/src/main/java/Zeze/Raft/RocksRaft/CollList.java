@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.Iterator;
 import Zeze.Serialize.ByteBuffer;
 import org.pcollections.PVector;
@@ -27,12 +31,12 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 			var t = Transaction.getCurrent();
 			if (t == null)
 				return list;
-			Log log = t.getLog(parent().objectId() + variableId());
+			Log log = t.getLog(Objects.requireNonNull(parent()).objectId() + variableId());
 			if (log == null)
 				return list;
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList<V>)log;
-			return listLog.getValue();
+			return Objects.requireNonNull(listLog.getValue());
 		}
 		return list;
 	}
@@ -65,7 +69,7 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 	public Iterator<V> iterator() {
 		return new Iterator<>() {
 			private final Iterator<V> it = getList().iterator();
-			private V next;
+			private @Nullable V next;
 
 			@Override
 			public boolean hasNext() {
@@ -79,7 +83,7 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 
 			@Override
 			public void remove() {
-				CollList.this.remove(next);
+				CollList.this.remove(Objects.requireNonNull(next));
 			}
 		};
 	}

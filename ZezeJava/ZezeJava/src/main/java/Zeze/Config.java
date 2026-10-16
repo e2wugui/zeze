@@ -1,5 +1,7 @@
 package Zeze;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,8 +25,7 @@ import com.amazonaws.regions.Regions;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -34,11 +35,11 @@ import org.w3c.dom.NodeList;
  * zeze.xml 配置装载与解析：全局参数、数据库/表/服务配置节与自定义扩展节。
  */
 public final class Config {
-	private static final @NotNull Logger logger = LogManager.getLogger(Config.class);
+	private static final Logger logger = LogManager.getLogger(Config.class);
 	public interface ICustomize {
-		@NotNull String getName();
+		String getName();
 
-		void parse(@NotNull Element self);
+		void parse(Element self);
 	}
 
 	public enum DbType {
@@ -53,20 +54,20 @@ public final class Config {
 		MongoDb,
 	}
 
-	private @NotNull String name = "";
+	private String name = "";
 	private int scheduledThreads;
 	private int workerThreads;
 	private int completionPortThreads;
 	private int checkpointPeriod = 60000;
-	private @NotNull CheckpointFlushMode checkpointFlushMode = CheckpointFlushMode.MultiThreadMerge;
+	private CheckpointFlushMode checkpointFlushMode = CheckpointFlushMode.MultiThreadMerge;
 	private int checkpointModeTableFlushSetCount = 50;
-	private @NotNull CheckpointMode checkpointMode = CheckpointMode.Table;
-	private @NotNull Level processReturnErrorLogLevel = Level.INFO;
+	private CheckpointMode checkpointMode = CheckpointMode.Table;
+	private Level processReturnErrorLogLevel = Level.INFO;
 	private int serverId;
 	private boolean noDatabase = false;
-	private @NotNull String globalCacheManagerHostNameOrAddress = "";
+	private String globalCacheManagerHostNameOrAddress = "";
 
-	private @NotNull String serviceManager = ""; // ""|"raft"|"disable", default: enable service manager
+	private String serviceManager = ""; // ""|"raft"|"disable", default: enable service manager
 	// raft：本来可以直接在这里配置raftXmlFile。但是，
 	// 1. 文件名名字空间属于自定义的，不污染这里了，
 	// 2. 这里定义服务类型，raft配置可以留在文件中，
@@ -76,8 +77,8 @@ public final class Config {
 	// 分成多行配置，支持多HostNameOrAddress或者多raft.xml。
 	// 多行的时候，所有服务器的顺序必须保持一致。
 	// 为了保持原来接口不变，多行会被编码成一个string保存到GlobalCacheManagerHostNameOrAddress中。
-	public GlobalCacheManagersConf globalCacheManagers;
-	public ServiceManagerConf serviceManagerConf;
+	public @Nullable GlobalCacheManagersConf globalCacheManagers;
+	public @Nullable ServiceManagerConf serviceManagerConf;
 
 	private int globalCacheManagerPort;
 	// GCM Login/ReLogin 的RPC超时（毫秒）。默认5000与RPC全局默认一致：GCM端
@@ -85,7 +86,7 @@ public final class Config {
 	// 触发重连风暴而服务端其实还在处理，此场景可调大本值。
 	private int globalCacheManagerLoginTimeout = 5000;
 	private final ConcurrentHashMap<String, TableConf> tableConfMap = new ConcurrentHashMap<>();
-	private TableConf defaultTableConf;
+	private @Nullable TableConf defaultTableConf;
 	private boolean allowReadWhenRecordNotAccessed = true;
 	private boolean allowSchemasReuseVariableIdWithSameType = true;
 	private boolean fastRedoWhenConflict = false;
@@ -93,7 +94,7 @@ public final class Config {
 	private boolean autoResetTable = false;
 	private final ConcurrentHashMap<String, DatabaseConf> databaseConfMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, ServiceConf> serviceConfMap = new ConcurrentHashMap<>();
-	private @NotNull ServiceConf defaultServiceConf = new ServiceConf();
+	private ServiceConf defaultServiceConf = new ServiceConf();
 
 	private int onlineLogoutDelay = 60_000; // 1 minute
 
@@ -108,20 +109,20 @@ public final class Config {
 
 	private long procedureStatisticsReportPeriod = 60000;
 	private long tableStatisticsReportPeriod = 60000;
-	private @NotNull String hotWorkingDir = "";
-	private @NotNull String hotDistributeDir = "distributes";
+	private String hotWorkingDir = "";
+	private String hotDistributeDir = "distributes";
 	private int deadLockBreakerPeriod = 60000;
 
 	private int procedureLockWatcherMin = 50;
 	private long appVersion;
-	private @NotNull String history = "";
+	private String history = "";
 	private int checkpointTransactionPeriod = 30_0000;
 	private boolean enableGlobalFastFail = false;
 
 	// Takeover 接管租约（attr: TakeoverTtl/TakeoverScanPeriod/TakeoverMode）。
 	private long takeoverTtl = 600 * 1000; // 租约TTL(毫秒)，保守起步，可配小。正常关闭后亦刷新为此宽限期，到期被接管（缩容）。
 	private long takeoverScanPeriod = 30 * 1000; // 扫描兜底周期(毫秒)。
-	private @NotNull String takeoverMode = "on"; // off|dryrun|on；off完全关闭，dryrun只做租约簿记+dry-run日志，on全量接管（默认）。
+	private String takeoverMode = "on"; // off|dryrun|on；off完全关闭，dryrun只做租约簿记+dry-run日志，on全量接管（默认）。
 
 	public boolean getEnableGlobalFastFail() {
 		return enableGlobalFastFail;
@@ -147,7 +148,7 @@ public final class Config {
 		takeoverScanPeriod = value;
 	}
 
-	public @NotNull String getTakeoverMode() {
+	public String getTakeoverMode() {
 		return takeoverMode;
 	}
 
@@ -167,7 +168,7 @@ public final class Config {
 		return !history.isEmpty();
 	}
 
-	public @NotNull String getHistory() {
+	public String getHistory() {
 		return history;
 	}
 
@@ -183,11 +184,11 @@ public final class Config {
 		this.procedureLockWatcherMin = procedureLockWatcherMin;
 	}
 
-	public @NotNull String getHotWorkingDir() {
+	public String getHotWorkingDir() {
 		return hotWorkingDir;
 	}
 
-	public @NotNull String getHotDistributeDir() {
+	public String getHotDistributeDir() {
 		return hotDistributeDir;
 	}
 
@@ -239,7 +240,7 @@ public final class Config {
 		providerOverload = value;
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return name;
 	}
 
@@ -301,7 +302,7 @@ public final class Config {
 		checkpointPeriod = value;
 	}
 
-	public @NotNull CheckpointFlushMode getCheckpointFlushMode() {
+	public CheckpointFlushMode getCheckpointFlushMode() {
 		return checkpointFlushMode;
 	}
 
@@ -325,7 +326,7 @@ public final class Config {
 		dbh2LocalCommit = value;
 	}
 
-	public @NotNull CheckpointMode getCheckpointMode() {
+	public CheckpointMode getCheckpointMode() {
 		return checkpointMode;
 	}
 
@@ -333,7 +334,7 @@ public final class Config {
 		checkpointMode = value != null ? value : CheckpointMode.Table;
 	}
 
-	public @NotNull Level getProcessReturnErrorLogLevel() {
+	public Level getProcessReturnErrorLogLevel() {
 		return processReturnErrorLogLevel;
 	}
 
@@ -357,7 +358,7 @@ public final class Config {
 		noDatabase = value;
 	}
 
-	public @NotNull String getGlobalCacheManagerHostNameOrAddress() {
+	public String getGlobalCacheManagerHostNameOrAddress() {
 		return globalCacheManagerHostNameOrAddress;
 	}
 
@@ -365,7 +366,7 @@ public final class Config {
 		globalCacheManagerHostNameOrAddress = value != null ? value : "";
 	}
 
-	public @NotNull String getServiceManager() {
+	public String getServiceManager() {
 		return serviceManager;
 	}
 
@@ -373,11 +374,11 @@ public final class Config {
 		this.serviceManager = serviceManager != null ? serviceManager : "";
 	}
 
-	public GlobalCacheManagersConf getGlobalCacheManagers() {
+	public @Nullable GlobalCacheManagersConf getGlobalCacheManagers() {
 		return globalCacheManagers;
 	}
 
-	public ServiceManagerConf getServiceManagerConf() {
+	public @Nullable ServiceManagerConf getServiceManagerConf() {
 		return serviceManagerConf;
 	}
 
@@ -397,15 +398,15 @@ public final class Config {
 		globalCacheManagerLoginTimeout = value;
 	}
 
-	public @NotNull ConcurrentHashMap<String, TableConf> getTableConfMap() {
+	public ConcurrentHashMap<String, TableConf> getTableConfMap() {
 		return tableConfMap;
 	}
 
-	public TableConf getDefaultTableConf() {
+	public @Nullable TableConf getDefaultTableConf() {
 		return defaultTableConf;
 	}
 
-	public void setDefaultTableConf(TableConf value) {
+	public void setDefaultTableConf(@Nullable TableConf value) {
 		defaultTableConf = value;
 	}
 
@@ -445,7 +446,7 @@ public final class Config {
 		appVersion = version;
 	}
 
-	public @NotNull ConcurrentHashMap<String, Element> getCustomizes() {
+	public ConcurrentHashMap<String, Element> getCustomizes() {
 		return customizes;
 	}
 
@@ -471,22 +472,22 @@ public final class Config {
 		return hasGlobal() ? 1 : 0;
 	}
 
-	public void parseCustomize(@NotNull ICustomize c) {
+	public void parseCustomize(ICustomize c) {
 		var self = customizes.get(c.getName());
 		if (self != null)
 			c.parse(self);
 	}
 
-	public TableConf getTableConf(String name) {
+	public @Nullable TableConf getTableConf(String name) {
 		var tableConf = getTableConfMap().get(name);
 		return tableConf != null ? tableConf : getDefaultTableConf();
 	}
 
-	public @NotNull ConcurrentHashMap<String, DatabaseConf> getDatabaseConfMap() {
+	public ConcurrentHashMap<String, DatabaseConf> getDatabaseConfMap() {
 		return databaseConfMap;
 	}
 
-	public static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws Exception {
+	public static Database createDatabase(Application zeze, DatabaseConf conf) throws Exception {
 		return switch (conf.databaseType) {
 			case Memory -> new DatabaseMemory(zeze, conf);
 			case MySql -> new DatabaseMySql(zeze, conf);
@@ -504,7 +505,7 @@ public final class Config {
 		};
 	}
 
-	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) throws Exception {
+	public void createDatabase(Application zeze, HashMap<String, Database> map) throws Exception {
 		// add other database
 		// 逐库构造无失败清理时，先建库的原生句柄/LOCK随半成品Application不可达而泄漏，
 		// 进程内重试将永久"lock held by current process"——失败时逐个close已放入map的Database再重抛，
@@ -524,13 +525,13 @@ public final class Config {
 		}
 	}
 
-	public void clearInUse(@NotNull HashMap<String, Database> databases) {
+	public void clearInUse(HashMap<String, Database> databases) {
 		// 不close：实例所有权在调用方（Application.stop的db.close步骤自会关）。
 		for (var db : databases.values())
-			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+			Objects.requireNonNull(db.getDirectOperates()).clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 	}
 
-	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze) throws Exception {
+	public void clearInUseAndIAmSureAppStopped(Application zeze) throws Exception {
 		// 建的整批Database（连接池/RocksDB句柄等）用完必须close——增量建表：
 		// createDatabase中途失败已建实例也在finally被关；
 		var created = new HashMap<String, Database>();
@@ -538,7 +539,7 @@ public final class Config {
 			createDatabase(zeze, created);
 			for (var db : created.values()) {
 				try {
-					db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+					Objects.requireNonNull(db.getDirectOperates()).clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 				} catch (Throwable e) { // logger.error
 					logger.error("clearInUse '{}' exception, continue", db.getDatabaseUrl(), e);
 				}
@@ -582,25 +583,25 @@ public final class Config {
 	}
 
 	public void clearOpenDatabaseFlag() {
-		var databaseName = getDefaultTableConf().getDatabaseName();
+		var databaseName = Objects.requireNonNull(getDefaultTableConf()).getDatabaseName();
 		var defDbConf = getDatabaseConfMap().get(databaseName);
 		if (defDbConf == null) // 对齐Application.getDatabase判例：失配带名报错而非裸NPE
 			throw new IllegalStateException("database not exist name=" + databaseName);
 		if (defDbConf.databaseType == DbType.MySql) {
 			var db = new DatabaseMySql(null, defDbConf);
 			try {
-				db.getDirectOperates().unlock();
+				Objects.requireNonNull(db.getDirectOperates()).unlock();
 			} finally {
 				db.close();
 			}
 		}
 	}
 
-	public @NotNull ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
+	public ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
 		return serviceConfMap;
 	}
 
-	public @NotNull ServiceConf getDefaultServiceConf() {
+	public ServiceConf getDefaultServiceConf() {
 		return defaultServiceConf;
 	}
 
@@ -609,23 +610,23 @@ public final class Config {
 			defaultServiceConf = value;
 	}
 
-	public @Nullable ServiceConf getServiceConf(@NotNull String name) {
+	public @Nullable ServiceConf getServiceConf(String name) {
 		return getServiceConfMap().get(name);
 	}
 
-	public static @NotNull Config load() {
+	public static Config load() {
 		return load("zeze.xml");
 	}
 
-	public static @NotNull Config load(@NotNull String xmlFile) {
+	public static Config load(String xmlFile) {
 		return new Config().loadAndParse(xmlFile);
 	}
 
-	public @NotNull Config loadAndParse() {
+	public Config loadAndParse() {
 		return loadAndParse("zeze.xml");
 	}
 
-	public @NotNull Config loadAndParse(@NotNull String xmlFile) {
+	public Config loadAndParse(String xmlFile) {
 		if (new File(xmlFile).isFile()) {
 			DocumentBuilderFactory db = DocumentBuilderFactory.newInstance();
 			db.setXIncludeAware(true);
@@ -648,7 +649,7 @@ public final class Config {
 		return this;
 	}
 
-	public void parse(@NotNull Element self) {
+	public void parse(Element self) {
 		if (!self.getNodeName().equals("zeze"))
 			throw new IllegalStateException("is it a zeze config?");
 
@@ -872,7 +873,7 @@ public final class Config {
 		private String raftXml;
 		private long loginTimeout = 12000;
 
-		public ServiceManagerConf(@NotNull Config conf, @NotNull Element self) {
+		public ServiceManagerConf(Config conf, Element self) {
 			sessionName = self.getAttribute("sessionName").trim();
 			raftXml = self.getAttribute("raftXml").trim();
 			String attr = self.getAttribute("loginTimeout").trim();
@@ -910,7 +911,7 @@ public final class Config {
 	public static final class GlobalCacheManagersConf {
 		private final List<String> hosts = new ArrayList<>();
 
-		public GlobalCacheManagersConf(@NotNull Config conf, @NotNull Element self) {
+		public GlobalCacheManagersConf(Config conf, Element self) {
 			NodeList childNodes = self.getChildNodes();
 			for (int i = 0, n = childNodes.getLength(); i < n; i++) {
 				Node node = childNodes.item(i);
@@ -934,7 +935,7 @@ public final class Config {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			var sb = new StringBuilder();
 			boolean first = true;
 			for (var host : hosts) {
@@ -949,12 +950,12 @@ public final class Config {
 	}
 
 	public static final class DynamoConf {
-		public @NotNull Regions region = Regions.CN_NORTH_1;
+		public Regions region = Regions.CN_NORTH_1;
 
 		public DynamoConf() {
 		}
 
-		public DynamoConf(@NotNull Element self) {
+		public DynamoConf(Element self) {
 			var attr = self.getAttribute("region");
 			if (!attr.isBlank())
 				region = Regions.valueOf(attr);
@@ -962,28 +963,28 @@ public final class Config {
 	}
 
 	public static final class DruidConf {
-		public String driverClassName;
-		public String userName;
-		public String password;
-		public Integer initialSize;
-		public Integer minIdle;
-		public Integer maxActive;
-		public Long maxWait;
-		public Integer maxOpenPreparedStatements;
-		public Integer phyMaxUseCount;
-		public Long phyTimeoutMillis;
+		public @Nullable String driverClassName;
+		public @Nullable String userName;
+		public @Nullable String password;
+		public @Nullable Integer initialSize;
+		public @Nullable Integer minIdle;
+		public @Nullable Integer maxActive;
+		public @Nullable Long maxWait;
+		public @Nullable Integer maxOpenPreparedStatements;
+		public @Nullable Integer phyMaxUseCount;
+		public @Nullable Long phyTimeoutMillis;
 
-		private static @Nullable String EmptyToNullString(@NotNull String attr) {
+		private static @Nullable String EmptyToNullString(String attr) {
 			var trim = attr.trim();
 			return trim.isBlank() ? null : trim;
 		}
 
-		private static @Nullable Integer EmptyToNullInteger(@NotNull String attr) {
+		private static @Nullable Integer EmptyToNullInteger(String attr) {
 			var str = EmptyToNullString(attr);
 			return str == null ? null : Integer.parseInt(str);
 		}
 
-		private static @Nullable Long EmptyToNullLong(@NotNull String attr) {
+		private static @Nullable Long EmptyToNullLong(String attr) {
 			var str = EmptyToNullString(attr);
 			return str == null ? null : Long.parseLong(str);
 		}
@@ -991,7 +992,7 @@ public final class Config {
 		public DruidConf() {
 		}
 
-		public DruidConf(@NotNull Element self) {
+		public DruidConf(Element self) {
 			driverClassName = EmptyToNullString(self.getAttribute("DriverClassName"));
 			userName = EmptyToNullString(self.getAttribute("UserName"));
 			password = EmptyToNullString(self.getAttribute("Password"));
@@ -1006,24 +1007,24 @@ public final class Config {
 	}
 
 	public static final class DatabaseConf {
-		private @NotNull String name = "";
-		private @NotNull String databaseName = "zeze_mongodb";
-		private @NotNull DbType databaseType = DbType.Memory;
-		private @NotNull String databaseUrl = "";
-		private DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
-		private DynamoConf dynamoConf; // only valid when dynamodb
+		private String name = "";
+		private String databaseName = "zeze_mongodb";
+		private DbType databaseType = DbType.Memory;
+		private String databaseUrl = "";
+		private @Nullable DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
+		private @Nullable DynamoConf dynamoConf; // only valid when dynamodb
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 		private boolean disableOperates;
 
-		public @NotNull String getName() {
+		public String getName() {
 			return name;
 		}
 
-		public @NotNull String getDatabaseName() {
+		public String getDatabaseName() {
 			return databaseName;
 		}
 
-		public void setDatabaseName(@NotNull String value) {
+		public void setDatabaseName(String value) {
 			databaseName  = value.isBlank() ? "zeze_mongodb" : value;
 		}
 
@@ -1031,16 +1032,16 @@ public final class Config {
 			this.name = name != null ? name : "";
 		}
 
-		public @NotNull DbType getDatabaseType() {
+		public DbType getDatabaseType() {
 			return databaseType;
 		}
 
-		public void setDatabaseType(@NotNull DbType databaseType) {
+		public void setDatabaseType(DbType databaseType) {
 			//noinspection ConstantValue
 			this.databaseType = databaseType != null ? databaseType : DbType.Memory;
 		}
 
-		public @NotNull String getDatabaseUrl() {
+		public String getDatabaseUrl() {
 			return databaseUrl;
 		}
 
@@ -1048,7 +1049,7 @@ public final class Config {
 			this.databaseUrl = databaseUrl != null ? databaseUrl : "";
 		}
 
-		public DruidConf getDruidConf() {
+		public @Nullable DruidConf getDruidConf() {
 			return druidConf;
 		}
 
@@ -1056,7 +1057,7 @@ public final class Config {
 			druidConf = conf;
 		}
 
-		public DynamoConf getDynamoConf() {
+		public @Nullable DynamoConf getDynamoConf() {
 			return dynamoConf;
 		}
 
@@ -1083,7 +1084,7 @@ public final class Config {
 		public DatabaseConf() {
 		}
 
-		public DatabaseConf(@NotNull Config conf, @NotNull Element self) {
+		public DatabaseConf(Config conf, Element self) {
 			name = self.getAttribute("Name").trim();
 			setDatabaseName(self.getAttribute("DatabaseName").trim()); // mongodb databaseName 需要独立指名，有默认值。
 
@@ -1136,7 +1137,7 @@ public final class Config {
 	}
 
 	public static final class TableConf {
-		private @NotNull String name = "";
+		private String name = "";
 		private int cacheCapacity = 20000;
 		private int cacheInitialCapacity;
 		private int cacheNewAccessHotThreshold;
@@ -1150,11 +1151,11 @@ public final class Config {
 		// 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，
 		// Open 的时候找到旧库并打开Database.Table用来读取。
 		// 内存表不支持倒库。
-		private @NotNull String databaseName = "";
-		private @NotNull String databaseOldName = "";
+		private String databaseName = "";
+		private String databaseOldName = "";
 		private int databaseOldMode;
 
-		public @NotNull String getName() {
+		public String getName() {
 			return name;
 		}
 
@@ -1234,15 +1235,15 @@ public final class Config {
 			checkpointWhenCommit = value;
 		}
 
-		public @NotNull String getDatabaseName() {
+		public String getDatabaseName() {
 			return databaseName;
 		}
 
-		public @NotNull String getDatabaseOldName() {
+		public String getDatabaseOldName() {
 			return databaseOldName;
 		}
 
-		public void setDatabaseOldName(@NotNull String value) {
+		public void setDatabaseOldName(String value) {
 			databaseOldName = value;
 		}
 
@@ -1257,7 +1258,7 @@ public final class Config {
 		public TableConf() {
 		}
 
-		public TableConf(@NotNull Config conf, @NotNull Element self) {
+		public TableConf(Config conf, Element self) {
 			name = self.getAttribute("Name").trim();
 
 			String attr = self.getAttribute("CacheCapacity");

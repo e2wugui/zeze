@@ -9,14 +9,13 @@ import java.util.TreeMap;
 import Zeze.Net.Binary;
 import Zeze.Util.BitConverter;
 import Zeze.Util.Str;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 泛型解码 Bean：不依赖具体 schema，按 varId 将序列化数据解码为通用字段树，供分析与遍历。 */
 public class GenericBean {
 	public static final int INDENT = 4;
 
-	public final Map<Integer, Object> fields = new TreeMap<>(); // key=0 for parent bean
+	public final Map<Integer, @Nullable Object> fields = new TreeMap<>(); // key=0 for parent bean
 
 	public interface Walker {
 		/**
@@ -27,13 +26,13 @@ public class GenericBean {
 		 * @param bb    当前的bb,如果要继续walk则需要bb.ReadIndex移过当前字段
 		 * @return 是否继续walk
 		 */
-		boolean handleField(int varId, int type, @NotNull IByteBuffer bb);
+		boolean handleField(int varId, int type, IByteBuffer bb);
 	}
 
 	/**
 	 * @return 如果全部遍历完则返回true; 如果walker中途返回了false则立即返回false
 	 */
-	public static boolean walk(@NotNull IByteBuffer bb, @NotNull Walker walker) {
+	public static boolean walk(IByteBuffer bb, Walker walker) {
 		for (int id = 0; ; ) {
 			int tag = bb.ReadByte() & 0xff;
 			if (tag < 0x10) {
@@ -49,7 +48,7 @@ public class GenericBean {
 		}
 	}
 
-	public @NotNull GenericBean decode(@NotNull IByteBuffer bb) {
+	public GenericBean decode(IByteBuffer bb) {
 		fields.clear();
 		for (int id = 0; ; ) {
 			int tag = bb.ReadByte() & 0xff;
@@ -65,7 +64,7 @@ public class GenericBean {
 		}
 	}
 
-	public static @NotNull Object decodeField(@NotNull IByteBuffer bb, int type) {
+	public static Object decodeField(IByteBuffer bb, int type) {
 		switch (type) {
 		case ByteBuffer.INTEGER:
 			var vl = bb.ReadLong();
@@ -117,7 +116,7 @@ public class GenericBean {
 	}
 
 	// 判断b是否合法的UTF-8字符串
-	public static boolean likeString(byte @NotNull [] b) {
+	public static boolean likeString(byte [] b) {
 		for (int i = 0, n = b.length; i < n; i++) {
 			int c = b[i] & 0xff;
 			if (c < 0x20)
@@ -171,11 +170,11 @@ public class GenericBean {
 		return true;
 	}
 
-	public @NotNull StringBuilder buildString(@NotNull StringBuilder sb) {
+	public StringBuilder buildString(StringBuilder sb) {
 		return buildString(sb, 0);
 	}
 
-	public @NotNull StringBuilder buildString(@NotNull StringBuilder sb, int level) {
+	public StringBuilder buildString(StringBuilder sb, int level) {
 		sb.append('{');
 		String i1, i2;
 		if (level >= 0) {
@@ -233,7 +232,7 @@ public class GenericBean {
 		return sb;
 	}
 
-	private static void buildString(@NotNull StringBuilder sb, int level, @Nullable Object o) {
+	private static void buildString(StringBuilder sb, int level, @Nullable Object o) {
 		switch (o) {
 		case String s -> sb.append('"').append(s).append('"');
 		case byte[] bytes -> sb.append(BitConverter.toStringWithLimit(bytes, 16, 4));
@@ -243,7 +242,7 @@ public class GenericBean {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return buildString(new StringBuilder()).toString();
 	}
 

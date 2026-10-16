@@ -3,35 +3,34 @@ package Zeze.Services.ServiceManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 订阅信息bean：服务名、订阅过滤版本（0=全部版本）与本地附着状态。 */
 public final class BSubscribeInfo implements Serializable {
-	private @NotNull String serviceName;
+	private String serviceName;
 	private long version;
 	private transient @Nullable Object localState;
 
-	public BSubscribeInfo(@NotNull IByteBuffer bb) {
+	public BSubscribeInfo(IByteBuffer bb) {
 		serviceName = "";
 		decode(bb);
 	}
 
-	public BSubscribeInfo(@NotNull String name) {
+	public BSubscribeInfo(String name) {
 		this(name, 0, null);
 	}
 
-	public BSubscribeInfo(@NotNull String name, long version) {
+	public BSubscribeInfo(String name, long version) {
 		this(name, version, null);
 	}
 
-	public BSubscribeInfo(@NotNull String name, long version, @Nullable Object state) {
+	public BSubscribeInfo(String name, long version, @Nullable Object state) {
 		serviceName = name;
 		this.version = version;
 		localState = state;
 	}
 
-	public @NotNull String getServiceName() {
+	public String getServiceName() {
 		return serviceName;
 	}
 
@@ -48,13 +47,13 @@ public final class BSubscribeInfo implements Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		serviceName = bb.ReadString();
 		version = bb.ReadLong();
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteString(serviceName);
 		bb.WriteLong(version);
 	}
@@ -88,7 +87,7 @@ public final class BSubscribeInfo implements Serializable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return serviceName + ':' + version;
 	}
 }

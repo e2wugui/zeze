@@ -2,8 +2,7 @@ package Zeze.Util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 以有序Entry(K+V)数组为存储结构的Map
@@ -14,29 +13,29 @@ import org.jetbrains.annotations.Nullable;
  */
 public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 	public static class Entry<K extends Comparable<K>, V extends Comparable<V>> implements Comparable<Entry<K, V>> {
-		private final @NotNull K key;
-		private final @NotNull V value;
+		private final K key;
+		private final V value;
 		private final long hash; // 主要用于公平地比较
 		private @Nullable Entry<K, V> next; // 相同key的下个节点
 
-		private Entry(@NotNull K key, @NotNull V value, long hash) {
+		private Entry(K key, V value, long hash) {
 			this.key = key;
 			this.value = value;
 			this.hash = hash;
 		}
 
-		public @NotNull K getKey() {
+		public K getKey() {
 			return key;
 		}
 
-		public @NotNull V getValue() {
+		public V getValue() {
 			return value;
 		}
 
 		/**
 		 * @return 0:e加入到非头节点; 1:e加入到头节点; -1:已加过过相同节点
 		 */
-		private int addEntry(@NotNull Entry<K, V> e) {
+		private int addEntry(Entry<K, V> e) {
 			assert key.equals(e.key);
 			int c = compareTo(e);
 			if (c > 0) {
@@ -69,7 +68,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		/**
 		 * @return 被移除的节点. null表示没找到指定节点
 		 */
-		private @Nullable Entry<K, V> removeEntry(@NotNull V value, long hash) {
+		private @Nullable Entry<K, V> removeEntry(V value, long hash) {
 			if (this.hash == hash && this.value.equals(value))
 				return this;
 			for (var s = this; ; ) {
@@ -85,13 +84,13 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		}
 
 		@Override
-		public int compareTo(@NotNull Entry<K, V> o) {
+		public int compareTo(Entry<K, V> o) {
 			int c = Long.compare(hash, o.hash);
 			return c != 0 ? c : value.compareTo(o.value);
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			var sb = new StringBuilder(32);
 			sb.append('(').append(key).append(':').append(value).append(';').append(hash);
 			for (var s = next; s != null; s = s.next)
@@ -108,11 +107,11 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		/**
 		 * 相同(equals)的value和index必须得到一致的hash值,尽量能在64位全范围分散开
 		 */
-		long hash(@NotNull K key, @NotNull V value, int index);
+		long hash(K key, V value, int index);
 	}
 
-	private @NotNull ArrayList<Entry<K, V>> elements = new ArrayList<>();
-	private final @NotNull HashFunc<K, V> hashFunc;
+	private ArrayList<Entry<K, V>> elements = new ArrayList<>();
+	private final HashFunc<K, V> hashFunc;
 	private int size;
 
 	public SortedMap() {
@@ -135,7 +134,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		return elements.size();
 	}
 
-	public @NotNull Entry<K, V> getAt(int index) {
+	public Entry<K, V> getAt(int index) {
 		return elements.get(index);
 	}
 
@@ -144,13 +143,13 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		return es.isEmpty() ? null : es.getFirst();
 	}
 
-	public @Nullable Entry<K, V> lowerBound(@NotNull K key) {
+	public @Nullable Entry<K, V> lowerBound(K key) {
 		var es = elements;
 		int i = lowerBoundIndex(key);
 		return i < es.size() ? es.get(i) : null;
 	}
 
-	public @Nullable Entry<K, V> upperBound(@NotNull K key) {
+	public @Nullable Entry<K, V> upperBound(K key) {
 		var es = elements;
 		int i = upperBoundIndex(key);
 		return i < es.size() ? es.get(i) : null;
@@ -161,7 +160,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 	 *
 	 * @return index. 不存在时返回size
 	 */
-	public int lowerBoundIndex(@NotNull K key) {
+	public int lowerBoundIndex(K key) {
 		var es = elements;
 		int b = 0, e = es.size();
 		while (b < e) {
@@ -182,7 +181,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 	 *
 	 * @return index. 不存在时返回size
 	 */
-	public int upperBoundIndex(@NotNull K key) {
+	public int upperBoundIndex(K key) {
 		var es = elements;
 		int b = 0, e = es.size();
 		while (b < e) {
@@ -203,7 +202,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 	 *
 	 * @return index. 不存在时返回-1
 	 */
-	public int findIndex(@NotNull K key) {
+	public int findIndex(K key) {
 		var es = elements;
 		int b = 0, e = es.size();
 		while (b < e) {
@@ -219,13 +218,13 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		return -1;
 	}
 
-	public @Nullable Entry<K, V> get(@NotNull K key) {
+	public @Nullable Entry<K, V> get(K key) {
 		int i = findIndex(key);
 		return i >= 0 ? elements.get(i) : null;
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return elements.toString();
 	}
 
@@ -236,7 +235,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		size = 0;
 	}
 
-	public void add(@NotNull K key, @NotNull V value, int index) {
+	public void add(K key, V value, int index) {
 		var es = elements;
 		int i = lowerBoundIndex(key);
 		Entry<K, V> oldE, newE = new Entry<>(key, value, hashFunc.hash(key, value, index));
@@ -254,12 +253,12 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		size++;
 	}
 
-	public void addAll(@NotNull K @NotNull [] keys, @NotNull V value) {
+	public void addAll(K [] keys, V value) {
 		Arrays.sort(keys);
 		addSortedAll(keys, value);
 	}
 
-	public void addSortedAll(@NotNull K @NotNull [] keys, @NotNull V value) {
+	public void addSortedAll(K [] keys, V value) {
 		int jn = keys.length;
 		if (jn > 0) {
 			var es = elements;
@@ -331,7 +330,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		}
 	}
 
-	public @Nullable Entry<K, V> remove(@NotNull K key, @NotNull V value, int index) {
+	public @Nullable Entry<K, V> remove(K key, V value, int index) {
 		var es = elements;
 		int i = findIndex(key);
 		if (i < 0)
@@ -352,12 +351,12 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		return oldE;
 	}
 
-	public void removeAll(@NotNull K @NotNull [] keys, @NotNull V value) {
+	public void removeAll(K [] keys, V value) {
 		Arrays.sort(keys);
 		removeSortedAll(keys, value);
 	}
 
-	public void removeSortedAll(@NotNull K @NotNull [] keys, @NotNull V value) {
+	public void removeSortedAll(K [] keys, V value) {
 		int jn = keys.length;
 		if (jn > 0) {
 			var es = elements;

@@ -1,7 +1,6 @@
 package Zeze.Serialize;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 二维单精度向量值类型（float x/y），按位比较相等，可比较可序列化为 vector2。 */
 public class Vector2 implements Comparable<Vector2> {
@@ -15,12 +14,12 @@ public class Vector2 implements Comparable<Vector2> {
 		this.y = y;
 	}
 
-	public Vector2(@NotNull Vector2 v2) {
+	public Vector2(Vector2 v2) {
 		x = v2.x;
 		y = v2.y;
 	}
 
-	public Vector2(@NotNull Vector2Int v2) {
+	public Vector2(Vector2Int v2) {
 		x = v2.x;
 		y = v2.y;
 	}
@@ -30,7 +29,7 @@ public class Vector2 implements Comparable<Vector2> {
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2 v) {
+	public int compareTo(Vector2 v) {
 		int c = Float.compare(x, v.x);
 		if (c != 0)
 			return c;
@@ -57,7 +56,7 @@ public class Vector2 implements Comparable<Vector2> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "Vector2(" + x + ',' + y + ')';
 	}
 }

@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
 import java.lang.invoke.MethodHandle;
 import java.util.Collection;
 import java.util.HashMap;
@@ -10,7 +12,7 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 管理 Bean 的 List 容器增量日志：结构操作记 OpLog，值 bean 的字段修改记 changed，
@@ -23,7 +25,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	// 本日志记录过的结构op携带的bean身份（对齐经典 Transaction.Collections.LogList2.addSet）：
 	// 这些bean的最终状态由opLogs携带的value编码（提交时刻才encode，含后续编辑），其changed条目
 	// 是冗余的——follower侧全量应用changed，冗余条目会叠加应用两次（内部非幂等op双重执行）。
-	private IdentityHashSet<V> addSet;
+	private @Nullable IdentityHashSet<V> addSet;
 	private final MethodHandle valueFactory;
 	private boolean decoded; // 解码后的下标来自wire，不能按无源Bean的身份重新计算。
 
@@ -129,7 +131,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var curList = getValue();
 		if (!decoded && curList != null) {
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
@@ -148,7 +150,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				}
 				// 不在最终列表（已被结构op移除）或∈addSet（由结构op携带最终状态）的
 				// 条目剔除：follower侧changed按最终index全量应用，冗余条目会双重应用。
-				if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
+				if (idxExist >= curList.size() || addSet != null && addSet.contains(Objects.requireNonNull(bean)))
 					it.remove();
 				else
 					e.getValue().value = idxExist;
@@ -167,14 +169,14 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
 				if (opLog.op < OpLog.OP_REMOVE)
-					opLog.value.encode(bb);
+					Objects.requireNonNull(opLog.value).encode(bb);
 			}
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		addSet = null;
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {

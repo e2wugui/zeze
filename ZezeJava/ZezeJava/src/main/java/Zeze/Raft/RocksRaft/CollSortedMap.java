@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +18,7 @@ public abstract class CollSortedMap<K extends Comparable<K>, V> extends Collecti
 		implements Iterable<Map.Entry<K, V>> {
 	public org.pcollections.PSortedMap<K, V> map = org.pcollections.Empty.sortedMap();
 
-	public final V get(K key) {
+	public final @Nullable V get(K key) {
 		return getMap().get(key);
 	}
 
@@ -35,12 +39,12 @@ public abstract class CollSortedMap<K extends Comparable<K>, V> extends Collecti
 			var t = Transaction.getCurrent();
 			if (t == null)
 				return map;
-			var log = t.getLog(parent().objectId() + variableId());
+			var log = t.getLog(Objects.requireNonNull(parent()).objectId() + variableId());
 			if (log == null)
 				return map;
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)log;
-			return mapLog.getValue();
+			return Objects.requireNonNull(mapLog.getValue());
 		}
 		return map;
 	}

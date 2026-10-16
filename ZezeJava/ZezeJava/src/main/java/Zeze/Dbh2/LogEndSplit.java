@@ -1,12 +1,15 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 结束桶分裂的 Raft 日志。
@@ -14,8 +17,8 @@ import org.jetbrains.annotations.NotNull;
 public class LogEndSplit extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogEndSplit.class.getName());
 
-	private BBucketMeta.Data from;
-	private BBucketMeta.Data to;
+	private BBucketMeta.@Nullable Data from;
+	private BBucketMeta.@Nullable Data to;
 
 	public LogEndSplit() {
 		super(null);
@@ -27,11 +30,11 @@ public class LogEndSplit extends Log {
 		this.to = to;
 	}
 
-	public BBucketMeta.Data getFrom() {
+	public BBucketMeta.@Nullable Data getFrom() {
 		return from;
 	}
 
-	public BBucketMeta.Data getTo() {
+	public BBucketMeta.@Nullable Data getTo() {
 		return to;
 	}
 
@@ -43,18 +46,18 @@ public class LogEndSplit extends Log {
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
 		var sm = (Dbh2StateMachine)stateMachine;
-		sm.endSplit(from, to);
+		sm.endSplit(Objects.requireNonNull(from), Objects.requireNonNull(to));
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		from.encode(bb);
-		to.encode(bb);
+		Objects.requireNonNull(from).encode(bb);
+		Objects.requireNonNull(to).encode(bb);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		from = new BBucketMeta.Data();
 		from.decode(bb);

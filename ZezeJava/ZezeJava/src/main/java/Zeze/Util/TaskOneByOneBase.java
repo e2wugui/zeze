@@ -12,15 +12,14 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // one-by-one 队列引擎抽象基类：按 key 取桶队列（getAndLockQueue）、屏障与批量聚合提交，旧 Execute 委托 TaskSpec
 public abstract class TaskOneByOneBase extends ReentrantLock {
-	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneBase.class);
+	private static final Logger logger = LogManager.getLogger(TaskOneByOneBase.class);
 
 	/** 【副作用】keys 将被就地排序（Comparable升序）：分组前先定序，调用方持有的列表顺序会改变。 */
-	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull Procedure procedure,
+	public <T extends Comparable<T>> void executeCyclicBarrier(List<T> keys, Procedure procedure,
 															   @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		lock();
 		try {
@@ -42,8 +41,8 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	}
 
 	/** 【副作用】keys 将被就地排序（Comparable升序）：分组前先定序，调用方持有的列表顺序会改变。 */
-	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull String actionName,
-															   @NotNull Action0 action, @Nullable Action0 cancel,
+	public <T extends Comparable<T>> void executeCyclicBarrier(List<T> keys, String actionName,
+															   Action0 action, @Nullable Action0 cancel,
 															   @Nullable DispatchMode mode) {
 		lock();
 		try {
@@ -68,9 +67,9 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	 * 当前桶的锁已由 executeAndUnlock 的 finally 解开，但剩余桶的队列锁不能跟着异常
 	 * 一起泄漏——补解锁后取消屏障（幂等；已提交桶的 barrier 任务 count 永不归零，
 	 * 队列非空且再无派发点，必须由 cancel 的 runNext 收尾），最后重抛首个异常。 */
-	private static void submitBarrierAndUnlock(@NotNull HashMap<TaskOneByOneQueue, OutInt> group,
-											   @NotNull TaskOneByOneQueue.Barrier barrier,
-											   @NotNull IntFunction<TaskOneByOneQueue.Task> newTask) {
+	private static void submitBarrierAndUnlock(HashMap<TaskOneByOneQueue, OutInt> group,
+											   TaskOneByOneQueue.Barrier barrier,
+											   IntFunction<TaskOneByOneQueue.Task> newTask) {
 		var buckets = new ArrayList<>(group.entrySet());
 		for (var i = 0; i < buckets.size(); ++i) {
 			var sum = buckets.get(i).getValue().value;
@@ -89,11 +88,11 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	}
 
 	public static class Batch<T> {
-		private final @NotNull AtomicInteger keysCount;
-		private final @NotNull Action1<T> action;
-		private final @NotNull Action0 batchEnd;
+		private final AtomicInteger keysCount;
+		private final Action1<T> action;
+		private final Action0 batchEnd;
 
-		public Batch(int keysSize, @NotNull Action1<T> action, @NotNull Action0 batchEnd) {
+		public Batch(int keysSize, Action1<T> action, Action0 batchEnd) {
 			this.keysCount = new AtomicInteger(keysSize);
 			this.action = action;
 			this.batchEnd = batchEnd;
@@ -103,7 +102,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 		 * submit的isShutdown静默丢、rollbackRejectedDispatch清队、shutdown(cancel)）、提交失败
 		 * （executeBatch的catch）可能对同一key触发，CAS保证恰好核销一次。 */
 		public final class Settle implements Action0 {
-			private final @NotNull AtomicBoolean settled = new AtomicBoolean();
+			private final AtomicBoolean settled = new AtomicBoolean();
 
 			@Override
 			public void run() {
@@ -114,11 +113,11 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			}
 		}
 
-		public @NotNull Settle newSettle() {
+		public Settle newSettle() {
 			return new Settle();
 		}
 
-		public void run(@NotNull T key, @NotNull Settle settle) throws Exception {
+		public void run(T key, Settle settle) throws Exception {
 			try {
 				action.run(key);
 			} finally {
@@ -133,7 +132,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 		}
 	}
 
-	private static void runBatchEndDirect(@NotNull Action0 batchEnd) {
+	private static void runBatchEndDirect(Action0 batchEnd) {
 		try {
 			batchEnd.run();
 		} catch (Throwable e) { // logger.error
@@ -141,7 +140,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 		}
 	}
 
-	public <T> void executeBatch(@NotNull Collection<T> keys, @NotNull Action1<T> action, @NotNull Action0 batchEnd,
+	public <T> void executeBatch(Collection<T> keys, Action1<T> action, Action0 batchEnd,
 								 @Nullable DispatchMode mode) {
 		if (keys.isEmpty()) {
 			runBatchEndDirect(batchEnd);
@@ -166,7 +165,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 		}
 	}
 
-	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
+	public void executeBatch(LongList keys, Action1<Long> action, Action0 batchEnd,
 							 @Nullable DispatchMode mode) {
 		if (keys.isEmpty()) {
 			runBatchEndDirect(batchEnd);
@@ -190,161 +189,161 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action) {
+	public void Execute(Object key, Action0 action) {
 		TaskSpec.ofAction(action).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable DispatchMode mode) {
+	public void Execute(Object key, Action0 action, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name) {
+	public void Execute(Object key, Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name,
+	public void Execute(Object key, Action0 action, @Nullable String name,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
+	public void Execute(Object key, Action0 action, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull FuncLong func) {
+	public void Execute(Object key, FuncLong func) {
 		TaskSpec.ofFunc(func).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable DispatchMode mode) {
+	public void Execute(Object key, FuncLong func, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name) {
+	public void Execute(Object key, FuncLong func, @Nullable String name) {
 		TaskSpec.ofFunc(func).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name,
+	public void Execute(Object key, FuncLong func, @Nullable String name,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
+	public void Execute(Object key, FuncLong func, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure) {
+	public void Execute(Object key, Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public void Execute(Object key, Procedure procedure, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable Action0 cancel,
+	public void Execute(Object key, Procedure procedure, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action) {
+	public void Execute(int key, Action0 action) {
 		TaskSpec.ofAction(action).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action, @Nullable DispatchMode mode) {
+	public void Execute(int key, Action0 action, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action, @Nullable String name) {
+	public void Execute(int key, Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+	public void Execute(int key, Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
+	public void Execute(int key, Action0 action, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
-	protected abstract @NotNull TaskOneByOneQueue getAndLockQueue(@NotNull Object key);
+	protected abstract TaskOneByOneQueue getAndLockQueue(Object key);
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull FuncLong func) {
+	public void Execute(int key, FuncLong func) {
 		TaskSpec.ofFunc(func).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull FuncLong func, @Nullable DispatchMode mode) {
+	public void Execute(int key, FuncLong func, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull FuncLong func, @Nullable String name) {
+	public void Execute(int key, FuncLong func, @Nullable String name) {
 		TaskSpec.ofFunc(func).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull FuncLong func, @Nullable String name, @Nullable DispatchMode mode) {
+	public void Execute(int key, FuncLong func, @Nullable String name, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	// 为了避免装箱,这里区分出类型,子类需要优化的时候重载.
-	protected void execute(int key, @NotNull TaskOneByOneQueue.Task task) {
+	protected void execute(int key, TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
 	// 为了避免装箱,这里区分出类型,子类需要优化的时候重载.
-	protected void execute(long key, @NotNull TaskOneByOneQueue.Task task) {
+	protected void execute(long key, TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
 	// 其他类型.
-	protected void execute(@NotNull Object key, @NotNull TaskOneByOneQueue.Task task) {
+	protected void execute(Object key, TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
-	protected static void executeAndUnlock(@NotNull TaskOneByOneQueue lockedQueue,
-										   @NotNull TaskOneByOneQueue.Task task) {
+	protected static void executeAndUnlock(TaskOneByOneQueue lockedQueue,
+										   TaskOneByOneQueue.Task task) {
 		Runnable submit;
 		try {
 			submit = lockedQueue.submit(task);
@@ -355,8 +354,8 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			submit.run();
 	}
 
-	protected static void executeAndUnlock(@NotNull TaskOneByOneQueue lockedQueue,
-										   @NotNull TaskOneByOneQueue.Task task, int lockTimes) {
+	protected static void executeAndUnlock(TaskOneByOneQueue lockedQueue,
+										   TaskOneByOneQueue.Task task, int lockTimes) {
 		Runnable submit;
 		try {
 			submit = lockedQueue.submit(task);
@@ -370,106 +369,106 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
+	public void Execute(int key, FuncLong func, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Procedure procedure) {
+	public void Execute(int key, Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public void Execute(int key, Procedure procedure, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Procedure procedure, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
+	public void Execute(int key, Procedure procedure, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action) {
+	public void Execute(long key, Action0 action) {
 		TaskSpec.ofAction(action).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action, @Nullable DispatchMode mode) {
+	public void Execute(long key, Action0 action, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action, @Nullable String name) {
+	public void Execute(long key, Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+	public void Execute(long key, Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
+	public void Execute(long key, Action0 action, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull FuncLong func) {
+	public void Execute(long key, FuncLong func) {
 		TaskSpec.ofFunc(func).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull FuncLong func, @Nullable DispatchMode mode) {
+	public void Execute(long key, FuncLong func, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull FuncLong func, @Nullable String name) {
+	public void Execute(long key, FuncLong func, @Nullable String name) {
 		TaskSpec.ofFunc(func).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull FuncLong func, @Nullable String name, @Nullable DispatchMode mode) {
+	public void Execute(long key, FuncLong func, @Nullable String name, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
+	public void Execute(long key, FuncLong func, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func).name(name).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Procedure procedure) {
+	public void Execute(long key, Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public void Execute(long key, Procedure procedure, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Procedure procedure, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
+	public void Execute(long key, Procedure procedure, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).onCancel(cancel).dispatchMode(mode).executeOneByOne(key, this);
 	}
 

@@ -4,28 +4,27 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Vector2Int;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 用Vector2IntList要记得它本质就是IntList,除了下面多出一些专用方法外,都以int数组的方式操作.
  * 如果int数组长度不被2整除,则以Vector2Int为单位处理时忽略结尾多余的int值.
  */
 public class Vector2IntList extends IntList {
-	public static @NotNull Vector2IntList wrap(int @NotNull [] data, int count) {
+	public static Vector2IntList wrap(int [] data, int count) {
 		Vector2IntList o = new Vector2IntList();
 		o.buffer = data;
 		o.count = count > data.length ? data.length : Math.max(count, 0);
 		return o;
 	}
 
-	public static @NotNull Vector2IntList wrap(int @NotNull [] data) {
+	public static Vector2IntList wrap(int [] data) {
 		Vector2IntList o = new Vector2IntList();
 		o.buffer = data;
 		o.count = data.length;
 		return o;
 	}
 
-	public static @NotNull Vector2IntList createSpace(int count) {
+	public static Vector2IntList createSpace(int count) {
 		Vector2IntList o = new Vector2IntList();
 		if (count > 0) {
 			o.buffer = new int[count];
@@ -41,15 +40,15 @@ public class Vector2IntList extends IntList {
 		reserveSpace(count);
 	}
 
-	public Vector2IntList(@NotNull IntList fl) {
+	public Vector2IntList(IntList fl) {
 		replace(fl);
 	}
 
-	public Vector2IntList(int @NotNull [] data) {
+	public Vector2IntList(int [] data) {
 		replace(data);
 	}
 
-	public Vector2IntList(int @NotNull [] data, int fromIdx, int count) {
+	public Vector2IntList(int [] data, int fromIdx, int count) {
 		replace(data, fromIdx, count);
 	}
 
@@ -111,17 +110,17 @@ public class Vector2IntList extends IntList {
 		buf[idx + 1] += y;
 	}
 
-	public int @NotNull [] toArrayVector(int fromIdx, int count) {
+	public int [] toArrayVector(int fromIdx, int count) {
 		return toArray(VectorListBounds.rangeIndex(fromIdx, 2), VectorListBounds.count(count, 2));
 	}
 
-	public @NotNull Vector2IntList wrapsVector(int @NotNull [] data, int count) {
+	public Vector2IntList wrapsVector(int [] data, int count) {
 		super.wraps(data, VectorListBounds.count(count, 2));
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector2IntList wraps(int @NotNull [] data) {
+	public Vector2IntList wraps(int [] data) {
 		super.wraps(data);
 		return this;
 	}
@@ -142,11 +141,11 @@ public class Vector2IntList extends IntList {
 		resize(VectorListBounds.count(count, 2));
 	}
 
-	public void replaceVector(int @NotNull [] data, int fromIdx, int count) {
+	public void replaceVector(int [] data, int fromIdx, int count) {
 		replace(data, VectorListBounds.rangeIndex(fromIdx, 2), VectorListBounds.count(count, 2));
 	}
 
-	public @NotNull Vector2IntList add(int x, int y) {
+	public Vector2IntList add(int x, int y) {
 		int n = count;
 		int nNew = Math.addExact(n, 2);
 		reserve(nNew);
@@ -157,35 +156,35 @@ public class Vector2IntList extends IntList {
 		return this;
 	}
 
-	public @NotNull Vector2IntList add(Vector2Int v) {
+	public Vector2IntList add(Vector2Int v) {
 		return add(v.x, v.y);
 	}
 
 	@Override
-	public @NotNull Vector2IntList addAll(int[] data, int fromIdx, int count) {
+	public Vector2IntList addAll(int[] data, int fromIdx, int count) {
 		super.addAll(data, fromIdx, count);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector2IntList addAll(int @NotNull [] data) {
+	public Vector2IntList addAll(int [] data) {
 		super.addAll(data);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector2IntList addAll(@NotNull IntList fl) {
+	public Vector2IntList addAll(IntList fl) {
 		super.addAll(fl);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector2IntList addAll(@NotNull Collection<Integer> c) {
+	public Vector2IntList addAll(Collection<Integer> c) {
 		super.addAll(c);
 		return this;
 	}
 
-	public @NotNull Vector2IntList addAllVector(@NotNull Collection<Vector2Int> c) {
+	public Vector2IntList addAllVector(Collection<Vector2Int> c) {
 		int n = count;
 		reserve(Math.addExact(n, VectorListBounds.count(c.size(), 2)));
 		int[] buf = buffer;
@@ -197,13 +196,13 @@ public class Vector2IntList extends IntList {
 		return this;
 	}
 
-	public void addAllToVector(@NotNull Collection<Vector2Int> c) {
+	public void addAllToVector(Collection<Vector2Int> c) {
 		int[] buf = buffer;
 		for (int i = 0, n = count - 1; i < n; i += 2)
 			c.add(new Vector2Int(buf[i], buf[i + 1]));
 	}
 
-	public @NotNull Vector2IntList insertVector(int fromIdx, int x, int y) {
+	public Vector2IntList insertVector(int fromIdx, int x, int y) {
 		fromIdx = VectorListBounds.rangeIndex(fromIdx, 2);
 		int n = count;
 		if (fromIdx < 0)
@@ -220,24 +219,24 @@ public class Vector2IntList extends IntList {
 	}
 
 	@Override
-	public @NotNull Vector2IntList insert(int fromIdx, int @NotNull [] data, int idx, int count) {
+	public Vector2IntList insert(int fromIdx, int [] data, int idx, int count) {
 		super.insert(fromIdx, data, idx, count);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector2IntList insert(int fromIdx, int @NotNull [] data) {
+	public Vector2IntList insert(int fromIdx, int [] data) {
 		super.insert(fromIdx, data);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector2IntList insert(int fromIdx, @NotNull IntList fl) {
+	public Vector2IntList insert(int fromIdx, IntList fl) {
 		super.insert(fromIdx, fl);
 		return this;
 	}
 
-	public @NotNull Vector2IntList removeVector(int idx) {
+	public Vector2IntList removeVector(int idx) {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 2);
@@ -250,7 +249,7 @@ public class Vector2IntList extends IntList {
 		return this;
 	}
 
-	public @NotNull Vector2IntList removeAndExchangeLastVector(int idx) {
+	public Vector2IntList removeAndExchangeLastVector(int idx) {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 2);
@@ -269,12 +268,12 @@ public class Vector2IntList extends IntList {
 		return this;
 	}
 
-	public @NotNull Vector2IntList eraseVector(int fromIdx, int toIdx) {
+	public Vector2IntList eraseVector(int fromIdx, int toIdx) {
 		super.erase(VectorListBounds.rangeIndex(fromIdx, 2), VectorListBounds.rangeIndex(toIdx, 2));
 		return this;
 	}
 
-	public @NotNull Vector2IntList eraseFrontVector(int count) {
+	public Vector2IntList eraseFrontVector(int count) {
 		super.eraseFront(VectorListBounds.rangeIndex(count, 2));
 		return this;
 	}
@@ -294,7 +293,7 @@ public class Vector2IntList extends IntList {
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public @NotNull Vector2IntList clone() {
+	public Vector2IntList clone() {
 		return new Vector2IntList(this);
 	}
 
@@ -302,7 +301,7 @@ public class Vector2IntList extends IntList {
 		void accept(int x, int y);
 	}
 
-	public void foreach(@NotNull Vector2IntConsumer consumer) {
+	public void foreach(Vector2IntConsumer consumer) {
 		int[] buf = buffer;
 		for (int i = 0, n = count - 1; i < n; i += 2)
 			consumer.accept(buf[i], buf[i + 1]);
@@ -312,7 +311,7 @@ public class Vector2IntList extends IntList {
 		boolean test(int x, int y);
 	}
 
-	public boolean foreachPred(@NotNull Vector2IntPredicate predicate) {
+	public boolean foreachPred(Vector2IntPredicate predicate) {
 		int[] buf = buffer;
 		for (int i = 0, n = count - 1; i < n; i += 2) {
 			if (!predicate.test(buf[i], buf[i + 1]))
@@ -322,7 +321,7 @@ public class Vector2IntList extends IntList {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		int n = count >> 1;
 		bb.WriteUInt(n);
 		if (n > 0) {
@@ -334,7 +333,7 @@ public class Vector2IntList extends IntList {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb, int n) {
+	public void encode(ByteBuffer bb, int n) {
 		int count = this.count >> 1;
 		if (count != n)
 			throw new java.util.ConcurrentModificationException(String.valueOf(count));
@@ -347,7 +346,7 @@ public class Vector2IntList extends IntList {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb, int n) {
+	public void decode(IByteBuffer bb, int n) {
 		// n*K 的 int 溢出会绕过基类负长度防线：如 n=0x80000001 时 n*2==2，
 		// 毒长度按极小 count 静默解码、流位置错位。上限校验放在乘法之前。
 		if (n < 0 || n > Integer.MAX_VALUE / 2)

@@ -13,8 +13,9 @@ import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.ZezeCounter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.IHistory.PendingHistory;
+import Zeze.Transaction.IHistory.PreparedCommit;
 
 /**
  * see zeze/README.md －＞ 18) 事务提交模式
@@ -31,7 +32,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private @Nullable HashSet<Record> recordSet;
 	private volatile @Nullable RelativeRecordSet mergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
 	private @Nullable Set<OnzProcedure> onzProcedures;
-	private volatile @Nullable IHistory.PendingHistory history;
+	private volatile @Nullable PendingHistory history;
 
 	// RRS锁等待观测（提交/落库双通道）：Profiler通道在生产慢事务(≥3s)时间线内按过程名
 	// 归因（对齐Record.enterFairLock的RecordWaitFairLock惯例）；ZezeCounter通道聚合分布，
@@ -60,11 +61,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 		super(false);
 	}
 
-	public @Nullable IHistory.PendingHistory getHistory() {
+	public @Nullable PendingHistory getHistory() {
 		return history;
 	}
 
-	void addHistory(@NotNull IHistory.PendingHistory pending) {
+	void addHistory(IHistory.PendingHistory pending) {
 		var currentHistory = history;
 		if (currentHistory == null)
 			history = pending;
@@ -97,7 +98,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private void merge(@NotNull Record r) {
+	private void merge(Record r) {
 		if (recordSet == null)
 			recordSet = new HashSet<>();
 		recordSet.add(r);
@@ -107,7 +108,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private void merge(@NotNull RelativeRecordSet rrs) {
+	private void merge(RelativeRecordSet rrs) {
 		if (rrs == this) // 这个方法仅用于合并其他rrs
 			throw new IllegalStateException("Merge Self! " + rrs);
 
@@ -149,7 +150,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	// 提交路径取锁：快路tryLock（非公平锁下与lock()首CAS等价，无争零额外开销）；
 	// 慢路进Profiler（慢事务时间线按过程名归因）+ ZezeCounter聚合等待分布。
-	private static void lockCommit(@NotNull RelativeRecordSet rrs) {
+	private static void lockCommit(RelativeRecordSet rrs) {
 		if (rrs.tryLock())
 			return;
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -164,7 +165,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	// 落库路径取锁：返回本次等待纳秒（供FlushSet整组累计告警）。flusher线程无当前
 	// 事务，Profiler.begin安全no-op；聚合走ZezeCounter。统计禁用时返回0——FlushSet的
 	// 饿死告警与聚合同源于等待时长，随统计开关一起静默（禁用态典型为压测基线，不收告警噪音）。
-	private static long lockFlush(@NotNull RelativeRecordSet rrs) {
+	private static long lockFlush(RelativeRecordSet rrs) {
 		if (rrs.tryLock())
 			return 0;
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -176,21 +177,21 @@ public final class RelativeRecordSet extends ReentrantLock {
 		return waited;
 	}
 
-	private static @Nullable IHistory.PreparedCommit prepareHistory(@NotNull Procedure procedure,
+	private static @Nullable PreparedCommit prepareHistory(Procedure procedure,
 			@Nullable Changes changes, @Nullable IHistory history) throws IHistory.CommitRejectedException {
 		if (history == null || changes == null)
 			return null;
 		return Objects.requireNonNull(history.prepareCommit(procedure), "History.prepareCommit returned null");
 	}
 
-	private static @Nullable IHistory.PendingHistory collectAndCaptureHistory(@NotNull Transaction trans,
-			@Nullable Changes changes, @Nullable IHistory.PreparedCommit prepared) {
+	private static @Nullable PendingHistory collectAndCaptureHistory(Transaction trans,
+			@Nullable Changes changes, @Nullable PreparedCommit prepared) {
 		try {
 			if (changes != null)
 				trans.collectChanges(changes);
 			if (prepared == null)
 				return null;
-			return Objects.requireNonNull(prepared.capture(changes), "History.capture returned null");
+			return Objects.requireNonNull(prepared.capture(Objects.requireNonNull(changes)), "History.capture returned null");
 		} catch (Throwable ex) {
 			// 数据已应用。包成普通异常，不能落入只服务于终局回调断言的 AssertionError 旁路。
 			if (prepared != null)
@@ -199,8 +200,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
-									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
+	static void tryUpdateAndCheckpoint(Transaction trans, Procedure procedure,
+									   Runnable commit, @Nullable OnzProcedure onzProcedure,
 									   @Nullable Changes changes, @Nullable IHistory historyPlugin) throws Exception {
 		var checkpoint = procedure.getZeze().getCheckpoint();
 		// 入口终检点检查：所有模式（含空事务）停机后统一显式拒绝（Closed语义）。
@@ -353,8 +354,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static void verify(@NotNull TreeMap<String, ArrayList<Object>> group,
-							   @NotNull TreeMap<String, ArrayList<Object>> result) {
+	private static void verify(TreeMap<String, ArrayList<Object>> group,
+							   TreeMap<String, ArrayList<Object>> result) {
 		for (var g : group.entrySet()) {
 			for (var value : g.getValue()) {
 				var keys = result.get(g.getKey());
@@ -368,9 +369,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	@SuppressWarnings("unused")
-	private static void verify(@NotNull ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked,
-							   @NotNull TreeMap<String, ArrayList<Object>> groupTrans,
-							   @NotNull RelativeRecordSet result) {
+	private static void verify(ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked,
+							   TreeMap<String, ArrayList<Object>> groupTrans,
+							   RelativeRecordSet result) {
 		var groupResult = new TreeMap<String, ArrayList<Object>>();
 		if (result.recordSet != null) {
 			for (var r : result.recordSet)
@@ -391,7 +392,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	@SuppressWarnings("unused")
-	private static void build(@NotNull Transaction trans, @NotNull TreeMap<String, ArrayList<Object>> groupTrans) {
+	private static void build(Transaction trans, TreeMap<String, ArrayList<Object>> groupTrans) {
 		for (var ar : trans.getAccessedRecords().values()) {
 			groupTrans.computeIfAbsent(ar.atomicTupleRecord.record().getTable().getName(), __ -> new ArrayList<>())
 				.add(ar.atomicTupleRecord.record().getObjectKey());
@@ -399,8 +400,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	@SuppressWarnings("unused")
-	private static void build(@NotNull ArrayList<RelativeRecordSet> locked,
-							  @NotNull ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked) {
+	private static void build(ArrayList<RelativeRecordSet> locked,
+							  ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked) {
 		for (var rrs : locked) {
 			var group = new TreeMap<String, ArrayList<Object>>();
 			if (rrs.recordSet != null) {
@@ -412,8 +413,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static @NotNull RelativeRecordSet _merge_(@NotNull ArrayList<RelativeRecordSet> locked,
-													  @NotNull Transaction trans, boolean allRead) {
+	private static RelativeRecordSet _merge_(ArrayList<RelativeRecordSet> locked,
+													  Transaction trans, boolean allRead) {
 		// find largest
 		var largest = locked.getFirst();
 		for (int index = 1; index < locked.size(); ++index) {
@@ -443,9 +444,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 		return largest;
 	}
 
-	private static void _lock_(@NotNull ArrayList<RelativeRecordSet> locked,
-							   @NotNull TreeMap<Long, RelativeRecordSet> all,
-							   @NotNull HashSet<Record> transAccessRecords) {
+	private static void _lock_(ArrayList<RelativeRecordSet> locked,
+							   TreeMap<Long, RelativeRecordSet> all,
+							   HashSet<Record> transAccessRecords) {
 		while (true) {
 			var GotoLabelLockRelativeRecordSets = false;
 			int index = 0;
@@ -491,10 +492,10 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static boolean _lock_and_check_(@NotNull ArrayList<RelativeRecordSet> locked,
-											@NotNull TreeMap<Long, RelativeRecordSet> all,
-											@NotNull RelativeRecordSet rrs,
-											@NotNull HashSet<Record> transAccessRecords) {
+	private static boolean _lock_and_check_(ArrayList<RelativeRecordSet> locked,
+											TreeMap<Long, RelativeRecordSet> all,
+											RelativeRecordSet rrs,
+											HashSet<Record> transAccessRecords) {
 		lockCommit(rrs);
 		var mergeTo = rrs.mergeTo;
 		if (mergeTo != null) {
@@ -521,16 +522,16 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	static class FlushSet {
-		private final @NotNull Checkpoint checkpoint;
+		private final Checkpoint checkpoint;
 		private final TreeMap<Long, RelativeRecordSet> sortedRrs = new TreeMap<>();
 		private int sumHint;
 
-		public FlushSet(@NotNull Checkpoint cp) {
+		public FlushSet(Checkpoint cp) {
 			checkpoint = cp;
 		}
 
 		// package-private：测试需手工组装分组复现失败轮重分组形态。
-		boolean add(@NotNull RelativeRecordSet rrs) {
+		boolean add(RelativeRecordSet rrs) {
 			if (sortedRrs.putIfAbsent(rrs.id, rrs) != null)
 				throw new IllegalStateException("duplicate rrs");
 			if (null != rrs.recordSet) {
@@ -615,7 +616,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	static void flush(@NotNull Checkpoint checkpoint, @NotNull RelativeRecordSet rrs) {
+	static void flush(Checkpoint checkpoint, RelativeRecordSet rrs) {
 
 		// 编码统一由 Checkpoint.flush 锁内 encode0 承担。不得锁外 encodeN 预编码：
 		// 它与并发轮的 writeOnly/onPersisted、并发事务 merge 存在桶级交错：搬运者
@@ -634,7 +635,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	static void flushWhenCheckpoint(@NotNull Checkpoint checkpoint) {
+	static void flushWhenCheckpoint(Checkpoint checkpoint) {
 		// 根据选项执行不同的flush模式。
 		// 单元隔离：任一rrs（Merge模式为FlushSet）flush失败（编码异常、关系库约束冲突、db连接抖动等）
 		// 只记error，失败单元保留在relativeRecordSetMap中（flush成功才会remove），留待下轮checkpoint重试；
@@ -704,7 +705,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static void flushTail(@NotNull FlushSet flushSet) {
+	private static void flushTail(FlushSet flushSet) {
 		if (flushSet.size() <= 0)
 			return;
 		try {
@@ -714,12 +715,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static @NotNull FlushSet parallelFlushSet(@NotNull Checkpoint checkpoint,
-													  @NotNull ConcurrentHashMap<Thread, FlushSet> map) {
+	private static FlushSet parallelFlushSet(Checkpoint checkpoint,
+													  ConcurrentHashMap<Thread, FlushSet> map) {
 		return map.computeIfAbsent(Thread.currentThread(), __ -> new FlushSet(checkpoint));
 	}
 
-	static void flushWhenReduce(@NotNull Record r, @NotNull Checkpoint checkpoint) {
+	static void flushWhenReduce(Record r, Checkpoint checkpoint) {
 		var rrs = r.getRelativeRecordSet();
 		while (rrs != null) {
 			r.enterFairLock(); // 用来保护State的查看。
@@ -733,8 +734,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static @Nullable RelativeRecordSet flushWhenReduce(@NotNull RelativeRecordSet rrs,
-															   @NotNull Checkpoint checkpoint) {
+	private static @Nullable RelativeRecordSet flushWhenReduce(RelativeRecordSet rrs,
+															   Checkpoint checkpoint) {
 		lockFlush(rrs);
 		try {
 			var mergeTo = rrs.mergeTo;
@@ -759,7 +760,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		lock();
 		try {
 			var mergeTo = this.mergeTo;
@@ -773,7 +774,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	public static @NotNull String relativeRecordSetMapToString(@NotNull Checkpoint checkpoint) {
+	public static String relativeRecordSetMapToString(Checkpoint checkpoint) {
 		return checkpoint.relativeRecordSetMap.toString();
 	}
 }

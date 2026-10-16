@@ -3,18 +3,17 @@ package Zeze.Net;
 import java.net.InetSocketAddress;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Element;
 
 /**
  * 服务端监听项：绑定 ip/port 配置并持有监听 socket。
  */
 public class Acceptor extends ReentrantLock {
-	private @NotNull String ip;
+	private String ip;
 	private int port;
-	private Service service;
-	private AsyncSocket socket;
+	private @Nullable Service service;
+	private @Nullable AsyncSocket socket;
 
 	public Acceptor(int port, @Nullable String ip) {
 		this.ip = ip != null ? ip : "";
@@ -22,7 +21,7 @@ public class Acceptor extends ReentrantLock {
 		fixIp();
 	}
 
-	public Acceptor(@NotNull Element self) {
+	public Acceptor(Element self) {
 		ip = self.getAttribute("Ip");
 		String attr = self.getAttribute("Port");
 		port = attr.isEmpty() ? 0 : Integer.parseInt(attr);
@@ -41,7 +40,7 @@ public class Acceptor extends ReentrantLock {
 			throw new IllegalStateException("Acceptor.Ip invalid: " + ip);
 	}
 
-	public final @NotNull String getIp() {
+	public final String getIp() {
 		return ip;
 	}
 
@@ -57,19 +56,19 @@ public class Acceptor extends ReentrantLock {
 		this.port = port;
 	}
 
-	public final @NotNull String getName() {
+	public final String getName() {
 		return ip + '_' + port;
 	}
 
-	public final Service getService() {
+	public final @Nullable Service getService() {
 		return service;
 	}
 
-	public final AsyncSocket getSocket() {
+	public final @Nullable AsyncSocket getSocket() {
 		return socket;
 	}
 
-	public final void SetService(Service service) {
+	public final void SetService(@Nullable Service service) {
 		lock();
 		try {
 			if (this.service != null)
@@ -86,8 +85,8 @@ public class Acceptor extends ReentrantLock {
 		try {
 			if (socket == null) {
 				socket = ip.isEmpty()
-						? service.newServerSocket(new InetSocketAddress(port), this)
-						: service.newServerSocket(ip, port, this);
+						? getService().newServerSocket(new InetSocketAddress(port), this)
+						: getService().newServerSocket(ip, port, this);
 			}
 		} finally {
 			unlock();

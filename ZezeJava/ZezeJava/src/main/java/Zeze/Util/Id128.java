@@ -5,14 +5,13 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.BeanKey;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 128 位复合 id（high+low 两个无符号 long）：BeanKey/Serializable，支持递增与比较
 public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneable {
 	public static final Id128 Zero = new Id128() {
 		@Override
-		public void assign(@NotNull Id128 id128) {
+		public void assign(Id128 id128) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -27,12 +26,12 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		}
 
 		@Override
-		public void decodeRaw(@NotNull IByteBuffer bb) {
+		public void decodeRaw(IByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 	};
@@ -65,7 +64,7 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		this.high = high;
 	}
 
-	public void assign(@NotNull Id128 id128) {
+	public void assign(Id128 id128) {
 		low = id128.low;
 		high = id128.high;
 	}
@@ -87,14 +86,14 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	 * @param num num is unsigned
 	 * @return new Id128 instance that added.
 	 */
-	public @NotNull Id128 add(long num) {
+	public Id128 add(long num) {
 		var result = new Id128(high, low);
 		result.increment(num);
 		return result;
 	}
 
 	@Override
-	public @NotNull Id128 clone() {
+	public Id128 clone() {
 		try {
 			return (Id128)super.clone();
 		} catch (CloneNotSupportedException e) {
@@ -102,18 +101,18 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		}
 	}
 
-	public void encodeRaw(@NotNull ByteBuffer bb) {
+	public void encodeRaw(ByteBuffer bb) {
 		bb.WriteULong(high);
 		bb.WriteULong(low);
 	}
 
-	public void decodeRaw(@NotNull IByteBuffer bb) {
+	public void decodeRaw(IByteBuffer bb) {
 		high = bb.ReadULong();
 		low = bb.ReadULong();
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteByte((1 << ByteBuffer.TAG_SHIFT) + ByteBuffer.LIST); // varId=1, type=LIST
 		bb.WriteListType(2, ByteBuffer.INTEGER); // LIST.size=2, LIST.type=INTEGER
 		bb.WriteLong(high);
@@ -122,7 +121,7 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		int t = bb.ReadByte();
 		if (bb.ReadTagSize(t) == 1) { // varId=1
 			t &= ByteBuffer.TAG_MASK; // type=LIST
@@ -157,20 +156,20 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	}
 
 	@Override
-	public int compareTo(@NotNull Id128 o) {
+	public int compareTo(Id128 o) {
 		var c = Long.compareUnsigned(high, o.high);
 		return c != 0 ? c : Long.compareUnsigned(low, o.low);
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var bytes = new byte[24];
 		ByteBuffer.longBeHandler.set(bytes, 8, high);
 		ByteBuffer.longBeHandler.set(bytes, 16, low);
 		return new BigInteger(bytes, 7, 17).toString();
 	}
 
-	public void buildString(@NotNull StringBuilder sb, int level) {
+	public void buildString(StringBuilder sb, int level) {
 		sb.append(Str.indent(level)).append(this);
 	}
 }

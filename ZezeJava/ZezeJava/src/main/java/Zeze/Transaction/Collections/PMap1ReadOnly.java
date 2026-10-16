@@ -6,14 +6,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** PMap1 的只读视图：仅暴露查询与遍历，所有修改入口抛 UnsupportedOperationException。 */
 public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
-	private final @NotNull PMap1<K, V> map;
+	private final PMap1<K, V> map;
 
-	public PMap1ReadOnly(@NotNull PMap1<K, V> map) {
+	public PMap1ReadOnly(PMap1<K, V> map) {
 		this.map = map;
 	}
 
@@ -25,28 +24,28 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 		return map.size();
 	}
 
-	public @Nullable V get(@NotNull K key) {
+	public @Nullable V get(K key) {
 		return map.get(key);
 	}
 
-	public boolean containsValue(@NotNull V v) {
+	public boolean containsValue(V v) {
 		return map.containsValue(v);
 	}
 
-	public boolean containsKey(@NotNull K key) {
+	public boolean containsKey(K key) {
 		return map.containsKey(key);
 	}
 
-	public void copyTo(Map.Entry<K, V> @NotNull [] array, int arrayIndex) {
+	public void copyTo(Map.Entry<K, V> [] array, int arrayIndex) {
 		map.copyTo(array, arrayIndex);
 	}
 
-	public @NotNull Set<K> keySet() {
+	public Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<K> iterator() {
+			public Iterator<K> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -72,12 +71,12 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 		};
 	}
 
-	public @NotNull java.util.Collection<V> values() {
+	public java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NotNull Iterator<V> iterator() {
+			public Iterator<V> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -103,12 +102,12 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 		};
 	}
 
-	public @NotNull Set<Map.Entry<K, V>> entrySet() {
+	public Set<Map.Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<Map.Entry<K, V>> iterator() {
+			public Iterator<Map.Entry<K, V>> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -135,15 +134,15 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	}
 
 	@Override
-	public @NotNull Iterator<Map.Entry<K, V>> iterator() {
+	public Iterator<Map.Entry<K, V>> iterator() {
 		return entrySet().iterator();
 	}
 
-	public @NotNull PMap1<K, V> copy() {
+	public PMap1<K, V> copy() {
 		return map.copy();
 	}
 
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		map.encode(bb);
 	}
 
@@ -158,7 +157,7 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return map.toString();
 	}
 }

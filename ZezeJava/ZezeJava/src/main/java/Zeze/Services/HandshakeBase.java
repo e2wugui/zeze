@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.concurrent.Future;
@@ -26,26 +27,25 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 连接加密握手基类：实现DH/RSA密钥交换与压缩协商协议族（CHandshake/SHandshake0/SHandshake/
  * CHandshakeDone/KeepAlive），握手完成以OnHandshakeDone回调；子类选择承担服务端/客户端角色。
  */
 public class HandshakeBase extends Service {
-	private static final @NotNull Logger logger = LogManager.getLogger(HandshakeBase.class);
+	private static final Logger logger = LogManager.getLogger(HandshakeBase.class);
 
 	// 是否承担握手服务端角色（接受CHandshake）：构造期由addHandshakeServerFactoryHandle置位，
 	// 必然早于start()里的checkAesSecureIp（告警仅服务角色）。
 	private boolean serverRole;
 
 	static class Context {
-		final @NotNull Object context;
+		final Object context;
 		final int encryptType; // 本次握手请求使用的加密类型（CHandshake.Argument.encryptType），用于校验SHandshake回显一致
 		@Nullable Future<?> timeoutTask;
 
-		Context(@NotNull Object context, int encryptType) {
+		Context(Object context, int encryptType) {
 			this.context = context;
 			this.encryptType = encryptType;
 		}
@@ -54,11 +54,11 @@ public class HandshakeBase extends Service {
 	// For Client Only
 	private final LongConcurrentHashMap<Context> dhContext = new LongConcurrentHashMap<>();
 
-	public HandshakeBase(@NotNull String name, @Nullable Config config) {
+	public HandshakeBase(String name, @Nullable Config config) {
 		super(name, config);
 	}
 
-	public HandshakeBase(@NotNull String name, @Nullable Application app) {
+	public HandshakeBase(String name, @Nullable Application app) {
 		super(name, app);
 	}
 
@@ -141,18 +141,18 @@ public class HandshakeBase extends Service {
 				HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 	}
 
-	private static long processKeepAliveRequest(@NotNull KeepAlive r) {
+	private static long processKeepAliveRequest(KeepAlive r) {
 		r.SendResult();
 		return 0L;
 	}
 
-	private long processCHandshakeDone(@NotNull CHandshakeDone p) {
+	private long processCHandshakeDone(CHandshakeDone p) {
 		try {
-			((TcpSocket)p.getSender()).verifySecurity();
+			Objects.requireNonNull(((TcpSocket)p.getSender())).verifySecurity();
 			OnHandshakeDone(p.getSender());
 			return 0L;
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
-			p.getSender().close(ex);
+			Objects.requireNonNull(p.getSender()).close(ex);
 			return 0L;
 		}
 	}
@@ -177,7 +177,8 @@ public class HandshakeBase extends Service {
 		return Constant.eCompressTypeMppc; // 跟客户端选择的不兼容,就强制以MPPC作为兜底的压缩,客户端如果还不支持就无法继续通信了
 	}
 
-	private long processCHandshake(@NotNull CHandshake p) {
+	@SuppressWarnings("ConstantConditions") // 保留对解密实现返回值的防御检查。
+	private long processCHandshake(CHandshake p) {
 		try {
 			// 重复握手守卫：连接已进入安全态后再收CHandshake只可能是重放/畸形（正常流每连接握手一次）。
 			// 放行会重装配codec链，旧链（zstd native上下文）无人close永久泄漏。
@@ -200,7 +201,7 @@ public class HandshakeBase extends Service {
 				BigInteger data = new BigInteger(p.Argument.encryptParam);
 				BigInteger rand = Helper.makeDHRandom();
 				byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
-				var localInet = ((TcpSocket)p.getSender()).getLocalInet();
+				var localInet = Objects.requireNonNull(((TcpSocket)p.getSender())).getLocalInet();
 				byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
 						? getConfig().getHandshakeOptions().getSecureIp()
 						: (localInet != null ? localInet.getAddress().getAddress() : ByteBuffer.Empty);
@@ -237,7 +238,7 @@ public class HandshakeBase extends Service {
 			}
 			var s2c = serverCompressS2c(p.Argument.compressS2c);
 			var c2s = serverCompressC2s(p.Argument.compressC2s);
-			((TcpSocket)p.getSender()).setInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
+			Objects.requireNonNull(((TcpSocket)p.getSender())).setInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
 
 			var sHandshake = new SHandshake();
 			sHandshake.Argument.encryptParam = response;
@@ -254,12 +255,12 @@ public class HandshakeBase extends Service {
 
 			return 0L;
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
-			p.getSender().close(ex);
+			Objects.requireNonNull(p.getSender()).close(ex);
 			return 0L;
 		}
 	}
 
-	private long processSHandshake0(@NotNull SHandshake0 p) {
+	private long processSHandshake0(SHandshake0 p) {
 		try {
 			// 重复握手守卫（镜像服务端processCHandshake）：已进入安全态的连接再收SHandshake0只可能是
 			// 恶意服务端驱动二次握手重装配codec链（客户端侧同型泄漏），拒绝。
@@ -281,21 +282,21 @@ public class HandshakeBase extends Service {
 			if (p.Argument.encryptType != Constant.eEncryptTypeDisable
 					|| p.Argument.compressS2c != Constant.eCompressTypeDisable
 					|| p.Argument.compressC2s != Constant.eCompressTypeDisable) {
-				startHandshake(p.Argument, p.getSender());
+				startHandshake(p.Argument, Objects.requireNonNull(p.getSender()));
 			} else {
 				CHandshakeDone.instance.Send(p.getSender());
-				OnHandshakeDone(p.getSender());
+				OnHandshakeDone(Objects.requireNonNull(p.getSender()));
 			}
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
-			p.getSender().close(ex);
+			Objects.requireNonNull(p.getSender()).close(ex);
 		}
 		return 0L;
 	}
 
-	private long processSHandshake(@NotNull SHandshake p) {
+	private long processSHandshake(SHandshake p) {
 		Context ctx = null;
 		try {
-			ctx = dhContext.remove(p.getSender().getSessionId());
+			ctx = dhContext.remove(Objects.requireNonNull(p.getSender()).getSessionId());
 			if (ctx != null) {
 				// 协商一致性检查：SHandshake回显的加密类型必须与CHandshake请求的一致，否则握手可能已被篡改，拒绝。
 				if (p.Argument.encryptType != ctx.encryptType)
@@ -334,12 +335,12 @@ public class HandshakeBase extends Service {
 				((TcpSocket)p.getSender()).setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
 				((TcpSocket)p.getSender()).setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
 				CHandshakeDone.instance.Send(p.getSender());
-				((TcpSocket)p.getSender()).submitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
+				((TcpSocket)Objects.requireNonNull(p.getSender())).submitAction(() -> OnHandshakeDone(Objects.requireNonNull(p.getSender()))); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
 			}
 			p.getSender().close(new IllegalStateException("handshake lost context."));
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
-			p.getSender().close(ex);
+			Objects.requireNonNull(p.getSender()).close(ex);
 		} finally {
 			if (null != ctx && null != ctx.timeoutTask)
 				ctx.timeoutTask.cancel(false);
@@ -359,7 +360,7 @@ public class HandshakeBase extends Service {
 		return Constant.eCompressTypeMppc; // 使用最老的压缩。
 	}
 
-	protected final void startHandshake(@NotNull BSHandshake0Argument arg, @NotNull AsyncSocket so) {
+	protected final void startHandshake(BSHandshake0Argument arg, AsyncSocket so) {
 		try {
 			Object context;
 			byte[] encryptParam;

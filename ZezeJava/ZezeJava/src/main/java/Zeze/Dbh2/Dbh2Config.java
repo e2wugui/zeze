@@ -1,8 +1,7 @@
 package Zeze.Dbh2;
 
 import Zeze.Config;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Element;
 
 /**
@@ -94,7 +93,7 @@ public class Dbh2Config implements Config.ICustomize {
 	}
 
 	@Override
-	public @NotNull String getName() {
+	public String getName() {
 		return "Dbh2Config";
 	}
 
@@ -115,7 +114,7 @@ public class Dbh2Config implements Config.ICustomize {
 	}
 
 	@Override
-	public void parse(@NotNull Element self) {
+	public void parse(Element self) {
 
 		var attr = self.getAttribute("RpcTimeout");
 		if (!attr.isBlank())

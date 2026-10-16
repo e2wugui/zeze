@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
 import Zeze.Builtin.LoginQueueServer.AnnounceSecret;
 import Zeze.Builtin.LoginQueueServer.BSecret;
 import Zeze.Builtin.LoginQueueServer.ReportLinkLoad;
@@ -24,11 +25,11 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 
 	private final LoginQueueAgentService service;
 	// 协议处理线程写、linkd的Auth处理线程读，跨线程发布需要volatile（与onConnected一致）。
-	private volatile BSecret.Data secret;
+	private volatile BSecret.@Nullable Data secret;
 	private final int serverId;
 	private final String serviceIp;
 	private final int servicePort;
-	private volatile Runnable onConnected;
+	private volatile @Nullable Runnable onConnected;
 
 	public LoginQueueAgent(Config config, int serverId, String serviceIp, int servicePort) {
 		this.serverId = serverId;
@@ -47,12 +48,12 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 		service.stop();
 	}
 
-	public BSecret.Data getSecret() {
+	public BSecret.@Nullable Data getSecret() {
 		return secret;
 	}
 
 	/** 连接建立（收到AnnounceSecret）后回调；LoadBase用它立即上报一次负载，消除冷启动后LoginQueue看不到本服务的窗口。 */
-	public void setOnConnected(Runnable onConnected) {
+	public void setOnConnected(@Nullable Runnable onConnected) {
 		this.onConnected = onConnected;
 	}
 

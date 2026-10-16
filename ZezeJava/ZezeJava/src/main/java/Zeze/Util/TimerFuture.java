@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
@@ -8,8 +10,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 周期任务句柄（{@link Task#schedulePeriodCore} 创建，TaskSpec.schedulePeriodNow 返回）。
@@ -20,18 +21,18 @@ import org.jetbrains.annotations.Nullable;
  * 代价：cancel 成为阻塞原语，受 {@link #cancel} 的 ABBA 调用约束；等锁超过任务自身的看门狗
  * 预算+{@link #CANCEL_HANG_MARGIN_MS} 时发出双栈告警（无声挂死→有声，契约不变）。
  */
-public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> {
+public class TimerFuture<V extends @Nullable Object> extends ReentrantLock implements ScheduledFuture<V> {
 	// 告警阈值的余量：诊断线程按30s周期扫描超时（ThreadDiagnosable.startDiagnose(30_000)），
 	// 到达阈值即"合法长体应已被看门狗打断仍未结束"——告警近乎确诊而非噪音。volatile：测试可调短。
 	public static volatile long CANCEL_HANG_MARGIN_MS = 35_000;
 
-	private static final @NotNull Logger logger = LogManager.getLogger(TimerFuture.class);
+	private static final Logger logger = LogManager.getLogger(TimerFuture.class);
 
 	private final @Nullable String name; // 日志名（body.logName(name)），仅用于告警定位
 	private final long timeoutMs; // 任务体看门狗预算，与余量共同构成挂死告警阈值
 
 	// volatile：setFuture（调度方）与cancel/isCancelled（取消方、任务线程）跨线程读写
-	private volatile ScheduledFuture<V> future;
+	private volatile @Nullable ScheduledFuture<V> future;
 	// volatile: isCancelled() 在任务线程中无锁轮询，需与 cancel() 的写入保持可见性
 	private volatile boolean canceled;
 	private volatile boolean interruptRequested;
@@ -42,7 +43,7 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 	}
 
 	@SuppressWarnings("unchecked")
-	public void setFuture(@NotNull ScheduledFuture<?> future) {
+	public void setFuture(ScheduledFuture<?> future) {
 		this.future = (ScheduledFuture<V>)future;
 		if (canceled)
 			future.cancel(interruptRequested); // 取消可能先于调度句柄发布。
@@ -113,13 +114,13 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 	}
 
 	@Override
-	public long getDelay(@NotNull TimeUnit unit) {
-		return future.getDelay(unit);
+	public long getDelay(TimeUnit unit) {
+		return Objects.requireNonNull(future, "timer is not scheduled").getDelay(unit);
 	}
 
 	@Override
-	public int compareTo(@NotNull Delayed o) {
-		return future.compareTo(o);
+	public int compareTo(Delayed o) {
+		return Objects.requireNonNull(future, "timer is not scheduled").compareTo(o);
 	}
 
 	@Override
@@ -129,17 +130,17 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 
 	@Override
 	public boolean isDone() {
-		return future.isDone();
+		return Objects.requireNonNull(future, "timer is not scheduled").isDone();
 	}
 
 	@Override
 	public V get() throws InterruptedException, ExecutionException {
-		return future.get();
+		return Objects.requireNonNull(future, "timer is not scheduled").get();
 	}
 
 	@Override
-	public V get(long timeout, @NotNull TimeUnit unit)
+	public V get(long timeout, TimeUnit unit)
 			throws InterruptedException, ExecutionException, TimeoutException {
-		return future.get(timeout, unit);
+		return Objects.requireNonNull(future, "timer is not scheduled").get(timeout, unit);
 	}
 }

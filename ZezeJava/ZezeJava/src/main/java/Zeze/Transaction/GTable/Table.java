@@ -19,7 +19,7 @@ package Zeze.Transaction.GTable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A collection that associates an ordered pair of keys, called a row key and a column key, with a
@@ -63,29 +63,29 @@ public interface Table<R, C, V> {
    * @param columnKey key of column to search for
    */
   boolean contains(
-      @CheckForNull Object rowKey,
-      @CheckForNull Object columnKey);
+      @Nullable Object rowKey,
+      @Nullable Object columnKey);
 
   /**
    * Returns {@code true} if the table contains a mapping with the specified row key.
    *
    * @param rowKey key of row to search for
    */
-  boolean containsRow(@CheckForNull Object rowKey);
+  boolean containsRow(@Nullable Object rowKey);
 
   /**
    * Returns {@code true} if the table contains a mapping with the specified column.
    *
    * @param columnKey key of column to search for
    */
-  boolean containsColumn(@CheckForNull Object columnKey);
+  boolean containsColumn(@Nullable Object columnKey);
 
   /**
    * Returns {@code true} if the table contains a mapping with the specified value.
    *
    * @param value value to search for
    */
-  boolean containsValue(@CheckForNull Object value);
+  boolean containsValue(@Nullable Object value);
 
   /**
    * Returns the value corresponding to the given row and column keys, or {@code null} if no such
@@ -94,10 +94,10 @@ public interface Table<R, C, V> {
    * @param rowKey key of row to search for
    * @param columnKey key of column to search for
    */
-  @CheckForNull
+  @Nullable
   V get(
-      @CheckForNull Object rowKey,
-      @CheckForNull Object columnKey);
+      @Nullable Object rowKey,
+      @Nullable Object columnKey);
 
   /** Returns {@code true} if the table contains no mappings. */
   boolean isEmpty();
@@ -110,7 +110,7 @@ public interface Table<R, C, V> {
    * cell views, as returned by {@link #cellSet}, are equal.
    */
   @Override
-  boolean equals(@CheckForNull Object obj);
+  boolean equals(@Nullable Object obj);
 
   /**
    * Returns the hash code for this table.
@@ -137,7 +137,7 @@ public interface Table<R, C, V> {
    * @return the value previously associated with the keys, or {@code null} if no mapping existed
    *     for the keys
    */
-  @CheckForNull
+  @Nullable
   V put(R rowKey, C columnKey, V value);
 
   /**
@@ -155,10 +155,10 @@ public interface Table<R, C, V> {
    * @param columnKey column key of mapping to be removed
    * @return the value previously associated with the keys, or {@code null} if no such value existed
    */
-  @CheckForNull
+  @Nullable
   V remove(
-      @CheckForNull Object rowKey,
-      @CheckForNull Object columnKey);
+      @Nullable Object rowKey,
+      @Nullable Object columnKey);
 
   // Views
 
@@ -265,7 +265,7 @@ public interface Table<R, C, V> {
      * equal row keys, column keys, and values.
      */
     @Override
-    boolean equals(@CheckForNull Object obj);
+    boolean equals(@Nullable Object obj);
 
     /**
      * Returns the hash code of this cell.

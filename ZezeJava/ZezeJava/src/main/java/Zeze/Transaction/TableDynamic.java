@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.function.Function;
@@ -7,21 +9,20 @@ import Zeze.Application;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Util.Factory;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 具体做法是正常定义母表，然后动态表使用相同的 K,V 创建。
  */
 public class TableDynamic<K extends Comparable<K>, V extends Bean> extends TableX<K, V> {
-	private final @NotNull Function<K, ByteBuffer> keyEncoder;
-	private final @NotNull Function<ByteBuffer, K> keyDecoder;
-	private final @NotNull Factory<V> valueFactory;
+	private final Function<K, ByteBuffer> keyEncoder;
+	private final Function<ByteBuffer, K> keyDecoder;
+	private final Factory<V> valueFactory;
 	private final boolean isAutoKey;
-	private final @NotNull Class<? extends Comparable<?>> keyClass;
-	private final @NotNull Class<? extends Bean> valueClass;
+	private final Class<? extends Comparable<?>> keyClass;
+	private final Class<? extends Bean> valueClass;
 
-	public TableDynamic(@NotNull Application zeze, @NotNull String tableName, @NotNull TableX<K, V> template) {
+	public TableDynamic(Application zeze, String tableName, TableX<K, V> template) {
 		this(zeze, tableName,
 				template::encodeKey,
 				template::decodeKey,
@@ -39,12 +40,12 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	 *
 	 * @param tplTableName 模板表名, 如果为null，则使用tableName作为配置名。
 	 */
-	public TableDynamic(@NotNull Application zeze, @NotNull String tableName,
-						@NotNull Function<K, ByteBuffer> keyEncoder,
-						@NotNull Function<ByteBuffer, K> keyDecoder,
-						@NotNull Factory<V> valueFactory, boolean isAutoKey, @Nullable String tplTableName,
-						@NotNull Class<? extends Comparable<?>> keyClass,
-						@NotNull Class<? extends Bean> valueClass) {
+	public TableDynamic(Application zeze, String tableName,
+						Function<K, ByteBuffer> keyEncoder,
+						Function<ByteBuffer, K> keyDecoder,
+						Factory<V> valueFactory, boolean isAutoKey, @Nullable String tplTableName,
+						Class<? extends Comparable<?>> keyClass,
+						Class<? extends Bean> valueClass) {
 		super(Bean.hash32(tableName), tableName);
 
 		this.keyEncoder = keyEncoder;
@@ -56,41 +57,41 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 
 		if (tplTableName == null)
 			tplTableName = tableName;
-		zeze.openDynamicTable(zeze.getConfig().getTableConf(tplTableName).getDatabaseName(), this);
+		zeze.openDynamicTable(Objects.requireNonNull(zeze.getConfig().getTableConf(tplTableName)).getDatabaseName(), this);
 	}
 
 	@Override
-	public @NotNull Class<? extends Comparable<?>> getKeyClass() {
+	public Class<? extends Comparable<?>> getKeyClass() {
 		return keyClass;
 	}
 
 	@Override
-	public @NotNull Class<? extends Bean> getValueClass() {
+	public Class<? extends Bean> getValueClass() {
 		return valueClass;
 	}
 
 	@Override
-	public @NotNull ByteBuffer encodeKey(@NotNull K key) {
+	public ByteBuffer encodeKey(K key) {
 		return keyEncoder.apply(key);
 	}
 
 	@Override
-	public @NotNull K decodeKey(@NotNull ByteBuffer bb) {
+	public K decodeKey(ByteBuffer bb) {
 		return keyDecoder.apply(bb);
 	}
 
 	@Override
-	public @NotNull K decodeKeyResultSet(@NotNull ResultSet rs) throws SQLException {
+	public K decodeKeyResultSet(ResultSet rs) throws SQLException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void encodeKeySQLStatement(@NotNull SQLStatement st, @NotNull K _v_) {
+	public void encodeKeySQLStatement(SQLStatement st, K _v_) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public @NotNull V newValue() {
+	public V newValue() {
 		return valueFactory.create();
 	}
 

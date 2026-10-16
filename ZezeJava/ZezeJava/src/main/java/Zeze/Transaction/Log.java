@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.math.BigDecimal;
 import java.util.function.IntFunction;
 import Zeze.Net.Binary;
@@ -15,8 +17,7 @@ import Zeze.Serialize.Vector4;
 import Zeze.Util.LongConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 操作日志。
@@ -24,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
  * 用于其他非 bean 的日志时，也需要构造一个 bean，用来包装日志。
  */
 public abstract class Log implements Serializable {
-	private static final @NotNull Logger logger = LogManager.getLogger(Log.class);
+	private static final Logger logger = LogManager.getLogger(Log.class);
 
 	public enum Category {
 		eHistory, // 只有这个类被会被收集到增量日志里面
@@ -34,7 +35,7 @@ public abstract class Log implements Serializable {
 
 	private static final LongConcurrentHashMap<IntFunction<Log>> factories = new LongConcurrentHashMap<>();
 
-	public static void register(@NotNull IntFunction<Log> s) {
+	public static void register(IntFunction<Log> s) {
 		var ins = s.apply(0);
 		var old = factories.putIfAbsent(ins.getTypeId(), s);
 		if (old == null) {
@@ -54,7 +55,7 @@ public abstract class Log implements Serializable {
 		}
 	}
 
-	public static @NotNull Log create(int typeId, int varId) {
+	public static Log create(int typeId, int varId) {
 		var factory = factories.get(typeId);
 		if (factory != null)
 			return factory.apply(varId);
@@ -70,20 +71,20 @@ public abstract class Log implements Serializable {
 	/** 条件替换（按对象身份）：仅当 typeId 当前占用者为 expect 时替换为 update。
 	 * 供 Helper 跨批次字典序决胜在确认槽位确为自己先前登记的 dynamic 家族工厂后
 	 * 定向接管——不会误伤其他子系统的注册（工厂闭包无 equals 语义，身份即相等）。 */
-	public static boolean replaceRegistered(int typeId, @NotNull IntFunction<Log> expect,
-											@NotNull IntFunction<Log> update) {
+	public static boolean replaceRegistered(int typeId, IntFunction<Log> expect,
+											IntFunction<Log> update) {
 		return factories.replace(typeId, expect, update);
 	}
 
-	private final Bean belong;
+	private final @Nullable Bean belong;
 	private final int varId;
 
-	protected Log(Bean belong, int varId) {
+	protected Log(@Nullable Bean belong, int varId) {
 		this.belong = belong;
 		this.varId = varId;
 	}
 
-	public final Bean getBelong() {
+	public final @Nullable Bean getBelong() {
 		return belong;
 	}
 
@@ -91,39 +92,39 @@ public abstract class Log implements Serializable {
 		return varId;
 	}
 
-	public abstract @NotNull Category category();
+	public abstract Category category();
 
 	public abstract int getTypeId();
 
-	public @NotNull String getTypeName() {
+	public String getTypeName() {
 		return getClass().getSimpleName();
 	}
 
 	public long getLogKey() {
-		return belong.objectId() + getVariableId();
+		return Objects.requireNonNull(belong).objectId() + getVariableId();
 	}
 
-	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		// LogBean LogCollection 需要实现这个方法收集日志.
 	}
 
-	public @NotNull Log beginSavepoint() {
+	public Log beginSavepoint() {
 		return this;
 	}
 
-	public void endSavepoint(@NotNull Savepoint currentSp) {
+	public void endSavepoint(Savepoint currentSp) {
 		currentSp.putLog(this);
 	}
 
 	public abstract void commit();
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		throw new UnsupportedOperationException(getTypeName());
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		throw new UnsupportedOperationException(getTypeName());
 	}
 
@@ -155,39 +156,39 @@ public abstract class Log implements Serializable {
 		throw new UnsupportedOperationException(getTypeName());
 	}
 
-	public @NotNull Binary binaryValue() {
+	public Binary binaryValue() {
 		throw new UnsupportedOperationException(getTypeName());
 	}
 
-	public @NotNull String stringValue() {
+	public String stringValue() {
 		throw new UnsupportedOperationException(getTypeName());
 	}
 
-	public @NotNull BigDecimal decimalValue() {
+	public BigDecimal decimalValue() {
 		throw new UnsupportedOperationException(getTypeName());
 	}
 
-	public @NotNull Vector2 vector2Value() {
+	public Vector2 vector2Value() {
 		return new Vector2(floatValue(), 0);
 	}
 
-	public @NotNull Vector2Int vector2IntValue() {
+	public Vector2Int vector2IntValue() {
 		return new Vector2Int(intValue(), 0);
 	}
 
-	public @NotNull Vector3 vector3Value() {
+	public Vector3 vector3Value() {
 		return new Vector3(floatValue(), 0, 0);
 	}
 
-	public @NotNull Vector3Int vector3IntValue() {
+	public Vector3Int vector3IntValue() {
 		return new Vector3Int(intValue(), 0, 0);
 	}
 
-	public @NotNull Vector4 vector4Value() {
+	public Vector4 vector4Value() {
 		return new Vector4(floatValue(), 0, 0, 0);
 	}
 
-	public @NotNull Quaternion quaternionValue() {
+	public Quaternion quaternionValue() {
 		return new Quaternion(floatValue(), 0, 0, 0);
 	}
 }

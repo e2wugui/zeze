@@ -11,15 +11,14 @@ import Zeze.Util.ProtocolFactoryFinder;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 协议基类：帧编解码（moduleId+protocolId+size 头）、类型注册与派发。
  */
 public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
-	private static final @NotNull Logger logger = LogManager.getLogger(Protocol.class);
+	private static final Logger logger = LogManager.getLogger(Protocol.class);
 	private static final LongConcurrentHashMap<Class<? extends Protocol<?>>> protocolClasses = new LongConcurrentHashMap<>();
 	protected static final IOException noHandlerException = new IOException("noHandler");
 
@@ -28,8 +27,9 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	public static final int eNormal = 2;
 	public static final int eSheddable = 3;
 
-	private transient AsyncSocket sender; // AsyncSocket
+	private transient @Nullable AsyncSocket sender; // AsyncSocket
 	private transient volatile @Nullable Object userState;
+	@SuppressWarnings("NotNullFieldNotInitialized") // Initialized by each concrete protocol constructor.
 	public TArgument Argument;
 	protected long resultCode;
 
@@ -41,11 +41,11 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return FamilyClass.Protocol;
 	}
 
-	public AsyncSocket getSender() {
+	public @Nullable AsyncSocket getSender() {
 		return sender;
 	}
 
-	public void setSender(AsyncSocket sender) {
+	public void setSender(@Nullable AsyncSocket sender) {
 		this.sender = sender;
 	}
 
@@ -81,7 +81,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return Argument;
 	}
 
-	public Serializable getResultBean() {
+	public @Nullable Serializable getResultBean() {
 		return null;
 	}
 
@@ -105,7 +105,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return (int)typeId;
 	}
 
-	protected static void register(long typeId, @NotNull Class<? extends Protocol<?>> cls) {
+	protected static void register(long typeId, Class<? extends Protocol<?>> cls) {
 		var oldClass = protocolClasses.put(typeId, cls);
 		if (oldClass != null && oldClass != cls && !oldClass.getName().equals(cls.getName()))
 			logger.warn("register duplicate typeId={}: {} and {}", typeId, oldClass.getName(), cls.getName());
@@ -116,7 +116,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		if (resultCode == 0)
 			bb.WriteUInt(FamilyClass.Protocol);
 		else {
@@ -127,7 +127,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var header = bb.ReadUInt();
 		if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol) {
 			throw new IllegalStateException("invalid header(" + header + ") for decoding protocol: "
@@ -147,14 +147,14 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		Argument.preAllocSize(size - 1); // [1]familyClass
 	}
 
-	public final @NotNull ByteBuffer encode() {
+	public final ByteBuffer encode() {
 		int preAllocSize = preAllocSize();
 		var bb = ByteBuffer.Allocate(Math.min(HEADER_SIZE + preAllocSize, 65536));
 		encodeWithHead(bb);
 		return bb;
 	}
 
-	public final void encodeWithHead(@NotNull ByteBuffer bb) {
+	public final void encodeWithHead(ByteBuffer bb) {
 		bb.WriteInt4s(getModuleId(), getProtocolId());
 		int saveSize = bb.BeginWriteWithSize4();
 		encode(bb);
@@ -172,7 +172,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return so.Send(this);
 	}
 
-	public boolean Send(@NotNull Service service) {
+	public boolean Send(Service service) {
 		return Send(service.GetSocket());
 	}
 
@@ -206,14 +206,14 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return true;
 	}
 
-	public void dispatch(@NotNull Service service,
-	                     @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatch(Service service,
+	                     Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		service.dispatchProtocol(this, factoryHandle);
 	}
 
 	@SuppressWarnings("unchecked")
-	public long handle(@NotNull Service service,
-	                   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public long handle(Service service,
+	                   Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
 		if (handle != null)
 			return ((ProtocolHandle<Protocol<?>>)handle).handle(this);
@@ -234,8 +234,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 * @param singleEncodedProtocol 单个完整的协议包。
 	 * @return decoded protocol instance. if decode fail return null.
 	 */
-	public static @Nullable Protocol<?> decode(@NotNull ProtocolFactoryFinder service,
-	                                           @NotNull ByteBuffer singleEncodedProtocol,
+	public static @Nullable Protocol<?> decode(ProtocolFactoryFinder service,
+	                                           ByteBuffer singleEncodedProtocol,
 	                                           @Nullable OutObject<Service.ProtocolFactoryHandle<?>> outFactoryHandle) {
 		int moduleId = singleEncodedProtocol.ReadInt4();
 		int protocolId = singleEncodedProtocol.ReadInt4();
@@ -265,15 +265,15 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return p;
 	}
 
-	public static @Nullable Protocol<?> decode(@NotNull Service service,
-	                                           @NotNull ByteBuffer singleEncodedProtocol) {
+	public static @Nullable Protocol<?> decode(Service service,
+	                                           ByteBuffer singleEncodedProtocol) {
 		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol, null);
 	}
 
 	/**
 	 * moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
 	 */
-	public static void decode(@NotNull Service service, @NotNull AsyncSocket so, @NotNull ByteBuffer bb)
+	public static void decode(Service service, AsyncSocket so, ByteBuffer bb)
 			throws Exception {
 		// 每缓冲区读一次=快照：按接收时刻的准入状态逐帧判决，中途撤销不影响本缓冲区。null不设防。
 		var admission = so.getDecodeAdmission();
@@ -332,7 +332,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.format("%s ResultCode=%d\nArgument=%s", getClass().getName(), resultCode, Argument);
 	}
 }

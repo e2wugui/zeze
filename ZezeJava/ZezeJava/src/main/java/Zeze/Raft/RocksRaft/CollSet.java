@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
 import java.util.Iterator;
 import Zeze.Serialize.ByteBuffer;
 
@@ -20,12 +22,12 @@ public abstract class CollSet<V> extends Collection implements Iterable<V> {
 			var t = Transaction.getCurrent();
 			if (t == null)
 				return set;
-			Log log = t.getLog(parent().objectId() + variableId());
+			Log log = t.getLog(Objects.requireNonNull(parent()).objectId() + variableId());
 			if (log == null)
 				return set;
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)log;
-			return setLog.getValue();
+			return Objects.requireNonNull(setLog.getValue());
 		}
 		return set;
 	}

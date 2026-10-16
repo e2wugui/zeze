@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -14,31 +16,36 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Util.TimeThrottle;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 客户端 websocket 连接（基于 JDK HttpClient WebSocket 的 AsyncSocket 适配）。
  */
 public class WebsocketClient extends AsyncSocket {
-	private static final @NotNull Logger logger = LogManager.getLogger(WebsocketClient.class);
+	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
+	@Override
+	public Service getService() {
+		return Objects.requireNonNull(super.getService());
+	}
+
+	private static final Logger logger = LogManager.getLogger(WebsocketClient.class);
 
 	private volatile @Nullable WebSocket webSocket;
-	private final @NotNull HttpClient httpClient;
+	private final HttpClient httpClient;
 	private final @Nullable TimeThrottle timeThrottle;
-	private final @NotNull SocketAddress remote;
+	private final SocketAddress remote;
 	private final @Nullable Connector connector;
 
 	// sendBinary串行化（JDK WebSocketImpl单在途约束）：专用锁对象，不用公共monitor
 	//（见onOpen注释的锁序顾虑；这里只在追加链节点时短暂持有，不跨用户回调）。
-	private final @NotNull Object sendLock = new Object();
-	private @NotNull CompletableFuture<Void> sendChain = CompletableFuture.completedFuture(null); // sendLock守护
+	private final Object sendLock = new Object();
+	private CompletableFuture<@Nullable Void> sendChain = CompletableFuture.completedFuture(null); // sendLock守护
 
 	// sendChain在途字节（入队加/链节点完成减，sendLock内check-then-add）。排队的
 	// thenCompose节点钉住调用方byte[]，对端零窗口时链不前进，无上限时在途数据无界驻留。
-	private final @NotNull AtomicLong sendPendingBytes = new AtomicLong();
+	private final AtomicLong sendPendingBytes = new AtomicLong();
 
-	public WebsocketClient(@NotNull Service service, @NotNull String wsUrl, @Nullable Object userState,
+	public WebsocketClient(Service service, String wsUrl, @Nullable Object userState,
 						   @Nullable Connector connector) {
 		super(service);
 		super.userState = userState;
@@ -52,7 +59,7 @@ public class WebsocketClient extends AsyncSocket {
 		timeThrottle = TimeThrottle.create(getService().getSocketOptions());
 		httpClient = HttpClient.newHttpClient();
 		httpClient.newWebSocketBuilder().buildAsync(uri, new WebSocket.Listener() {
-			final @NotNull Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
+			final Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
 
 			@Override
 			public void onOpen(WebSocket webSocket) {
@@ -87,7 +94,7 @@ public class WebsocketClient extends AsyncSocket {
 			}
 
 			@Override
-			public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+			public @Nullable CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
 				setActiveRecvTime(); // 维护活跃时间，checkKeepAlive才能回收静默死链
 				webSocket.request(1);
 				var n = data.remaining();
@@ -106,7 +113,7 @@ public class WebsocketClient extends AsyncSocket {
 			}
 
 			@Override
-			public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+			public @Nullable CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
 				var ex = new Exception("peer closed. status=" + statusCode + " reason=" + reason);
 				WebsocketClient.this.close(ex);
 				return null;
@@ -172,12 +179,12 @@ public class WebsocketClient extends AsyncSocket {
 	}
 
 	// whenComplete/exceptionNow 交付的异常可能被 CompletionException 包装，关闭日志取根因
-	private static @NotNull Throwable unwrap(@NotNull Throwable ex) {
+	private static Throwable unwrap(Throwable ex) {
 		return ex instanceof CompletionException && ex.getCause() != null ? ex.getCause() : ex;
 	}
 
 	@Override
-	public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+	public boolean Send(byte [] bytes, int offset, int length) {
 		var ws = webSocket;
 		if (ws == null) // 握手未完成或已关闭
 			return false;

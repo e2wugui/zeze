@@ -12,15 +12,15 @@ import java.util.Set;
 import java.util.SortedMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import java.util.Map.Entry;
 
 /** PSortedMap2 的只读视图：值以只读类型暴露，修改入口抛 UnsupportedOperationException。 */
 public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadOnly>
 		implements Iterable<Map.Entry<K, VReadOnly>> {
-	private final @NotNull PSortedMap2<K, V> map;
+	private final PSortedMap2<K, V> map;
 
-	public PSortedMap2ReadOnly(@NotNull PSortedMap2<K, V> map) {
+	public PSortedMap2ReadOnly(PSortedMap2<K, V> map) {
 		this.map = map;
 	}
 
@@ -33,20 +33,20 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 	}
 
 	@SuppressWarnings("unchecked")
-	public @Nullable VReadOnly get(@NotNull K key) {
+	public @Nullable VReadOnly get(K key) {
 		return (VReadOnly)map.get(key);
 	}
 
-	public boolean containsValue(@NotNull VReadOnly v) {
+	public boolean containsValue(VReadOnly v) {
 		//noinspection SuspiciousMethodCalls
 		return map.containsValue(v);
 	}
 
-	public boolean containsKey(@NotNull K key) {
+	public boolean containsKey(K key) {
 		return map.containsKey(key);
 	}
 
-	public void copyTo(Map.Entry<K, VReadOnly> @NotNull [] array, int arrayIndex) {
+	public void copyTo(Map.Entry<K, VReadOnly> [] array, int arrayIndex) {
 		for (var e : entrySet())
 			array[arrayIndex++] = e;
 	}
@@ -61,7 +61,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 	// - 返回 K 或 NavigableSet<K> 的方法：直接透传，无类型问题。
 	// - pollFirstEntry/pollLastEntry 是破坏性方法，不暴露。
 
-	public Map.Entry<K, VReadOnly> lowerEntry(K key) {
+	public @Nullable Entry<K, VReadOnly> lowerEntry(K key) {
 		return wrap(map.lowerEntry(key));
 	}
 
@@ -69,7 +69,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return map.lowerKey(key);
 	}
 
-	public Map.Entry<K, VReadOnly> floorEntry(K key) {
+	public @Nullable Entry<K, VReadOnly> floorEntry(K key) {
 		return wrap(map.floorEntry(key));
 	}
 
@@ -77,7 +77,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return map.floorKey(key);
 	}
 
-	public Map.Entry<K, VReadOnly> ceilingEntry(K key) {
+	public @Nullable Entry<K, VReadOnly> ceilingEntry(K key) {
 		return wrap(map.ceilingEntry(key));
 	}
 
@@ -85,7 +85,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return map.ceilingKey(key);
 	}
 
-	public Map.Entry<K, VReadOnly> higherEntry(K key) {
+	public @Nullable Entry<K, VReadOnly> higherEntry(K key) {
 		return wrap(map.higherEntry(key));
 	}
 
@@ -93,39 +93,39 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return map.higherKey(key);
 	}
 
-	public Map.Entry<K, VReadOnly> firstEntry() {
+	public @Nullable Entry<K, VReadOnly> firstEntry() {
 		return wrap(map.firstEntry());
 	}
 
-	public Map.Entry<K, VReadOnly> lastEntry() {
+	public @Nullable Entry<K, VReadOnly> lastEntry() {
 		return wrap(map.lastEntry());
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull NavigableMap<K, VReadOnly> descendingMap() {
+	public NavigableMap<K, VReadOnly> descendingMap() {
 		return (NavigableMap<K, VReadOnly>)map.descendingMap();
 	}
 
-	public @NotNull NavigableSet<K> navigableKeySet() {
+	public NavigableSet<K> navigableKeySet() {
 		return map.navigableKeySet();
 	}
 
-	public @NotNull NavigableSet<K> descendingKeySet() {
+	public NavigableSet<K> descendingKeySet() {
 		return map.descendingKeySet();
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull NavigableMap<K, VReadOnly> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
+	public NavigableMap<K, VReadOnly> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
 		return (NavigableMap<K, VReadOnly>)map.subMap(fromKey, fromInclusive, toKey, toInclusive);
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull NavigableMap<K, VReadOnly> headMap(K toKey, boolean inclusive) {
+	public NavigableMap<K, VReadOnly> headMap(K toKey, boolean inclusive) {
 		return (NavigableMap<K, VReadOnly>)map.headMap(toKey, inclusive);
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull NavigableMap<K, VReadOnly> tailMap(K fromKey, boolean inclusive) {
+	public NavigableMap<K, VReadOnly> tailMap(K fromKey, boolean inclusive) {
 		return (NavigableMap<K, VReadOnly>)map.tailMap(fromKey, inclusive);
 	}
 
@@ -134,17 +134,17 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull SortedMap<K, VReadOnly> subMap(K fromKey, K toKey) {
+	public SortedMap<K, VReadOnly> subMap(K fromKey, K toKey) {
 		return (SortedMap<K, VReadOnly>)map.subMap(fromKey, toKey);
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull SortedMap<K, VReadOnly> headMap(K toKey) {
+	public SortedMap<K, VReadOnly> headMap(K toKey) {
 		return (SortedMap<K, VReadOnly>)map.headMap(toKey);
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull SortedMap<K, VReadOnly> tailMap(K fromKey) {
+	public SortedMap<K, VReadOnly> tailMap(K fromKey) {
 		return (SortedMap<K, VReadOnly>)map.tailMap(fromKey);
 	}
 
@@ -156,12 +156,12 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return map.lastKey();
 	}
 
-	public @NotNull Set<K> keySet() {
+	public Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<K> iterator() {
+			public Iterator<K> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
+					private final Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -187,12 +187,12 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		};
 	}
 
-	public @NotNull java.util.Collection<VReadOnly> values() {
+	public java.util.Collection<VReadOnly> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NotNull Iterator<VReadOnly> iterator() {
+			public Iterator<VReadOnly> iterator() {
 				return new Iterator<>() {
-					private final @NotNull Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
+					private final Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -218,14 +218,14 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		};
 	}
 
-	public @NotNull Set<Map.Entry<K, VReadOnly>> entrySet() {
+	public Set<Map.Entry<K, VReadOnly>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<Map.Entry<K, VReadOnly>> iterator() {
+			public Iterator<Map.Entry<K, VReadOnly>> iterator() {
 				return new Iterator<>() {
 					// PSortedMap.entrySet() 的 iterator.remove() 是可变的，这里包一层禁掉；
 					// 同时用 ReadOnlyEntry 把每个 Entry<K,V> 转成 Entry<K,VReadOnly>。
-					private final @NotNull Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -233,7 +233,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 					}
 
 					@Override
-					public @NotNull Map.Entry<K, VReadOnly> next() {
+					public Map.Entry<K, VReadOnly> next() {
 						return new ReadOnlyEntry<>(it.next());
 					}
 
@@ -252,15 +252,15 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 	}
 
 	@Override
-	public @NotNull Iterator<Map.Entry<K, VReadOnly>> iterator() {
+	public Iterator<Map.Entry<K, VReadOnly>> iterator() {
 		return entrySet().iterator();
 	}
 
-	public @NotNull PSortedMap2<K, V> copy() {
+	public PSortedMap2<K, V> copy() {
 		return map.copy();
 	}
 
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		map.encode(bb);
 	}
 
@@ -275,20 +275,20 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return map.toString();
 	}
 
 	// ---- helpers ----
 
-	private static <K, V, VReadOnly> Map.@Nullable Entry<K, VReadOnly> wrap(Map.@Nullable Entry<K, V> e) {
+	private static <K, V, VReadOnly> @Nullable Entry<K, VReadOnly> wrap(@Nullable Entry<K, V> e) {
 		return e == null ? null : new ReadOnlyEntry<>(e);
 	}
 
 	private static final class ReadOnlyEntry<K, V, VReadOnly> implements Map.Entry<K, VReadOnly> {
-		private final @NotNull Map.Entry<K, V> e;
+		private final Map.Entry<K, V> e;
 
-		ReadOnlyEntry(@NotNull Map.Entry<K, V> e) {
+		ReadOnlyEntry(Map.Entry<K, V> e) {
 			this.e = e;
 		}
 

@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.function.ToLongFunction;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.FamilyClass;
@@ -8,7 +10,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.TaskCompletionSource;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Raft 应用请求 Rpc 基类：携带唯一请求标识（UniqueRequestId/createTime），
@@ -20,8 +21,8 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	private UniqueRequestId unique = new UniqueRequestId();
 	private long sendTime;
 
-	TaskCompletionSource<RaftRpc<TArgument, TResult>> future;
-	ToLongFunction<Protocol<?>> handle;
+	@Nullable TaskCompletionSource<RaftRpc<TArgument, TResult>> future;
+	@Nullable ToLongFunction<Protocol<?>> handle;
 
 	@Override
 	public int getFamilyClass() {
@@ -59,7 +60,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	@Override
-	public boolean Send(AsyncSocket socket) {
+	public boolean Send(@Nullable AsyncSocket socket) {
 		// 1.
 		// 通过原始raft连接方式发送请求。
 		// 由于每次发送需要新的rpc.sessionId，所以这里新建了一个桥接类发送，
@@ -80,7 +81,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var header = getFamilyClass();
 		if (resultCode == 0)
 			bb.WriteUInt(header);
@@ -105,7 +106,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var header = bb.ReadUInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRaftRpc(familyClass))
@@ -124,7 +125,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		AsyncSocket sender = getSender();
 		return String.format("(Client=%s Unique=%s %s)",
 				sender != null ? sender.getRemoteAddress() : null, unique, super.toString());

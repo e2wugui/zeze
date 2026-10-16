@@ -6,8 +6,7 @@ import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Table 只读接口。
@@ -18,11 +17,11 @@ public interface TableReadOnly<K extends Comparable<K>, V extends Bean, VReadOnl
 
 	int getId();
 
-	@NotNull String getOriginalName();
+	String getOriginalName();
 
-	@NotNull String getName();
+	String getName();
 
-	@NotNull String getSuffix();
+	String getSuffix();
 
 	Application getZeze();
 
@@ -32,106 +31,106 @@ public interface TableReadOnly<K extends Comparable<K>, V extends Bean, VReadOnl
 
 	int getCacheSize();
 
-	@NotNull Binary encodeGlobalKey(@NotNull K key);
+	Binary encodeGlobalKey(K key);
 
-	@Nullable VReadOnly getReadOnly(@NotNull K key);
+	@Nullable VReadOnly getReadOnly(K key);
 
-	boolean contains(@NotNull K key);
+	boolean contains(K key);
 
-	@NotNull ByteBuffer encodeKey(@NotNull K key);
+	ByteBuffer encodeKey(K key);
 
-	@NotNull ByteBuffer encodeKey(@NotNull Object key);
+	ByteBuffer encodeKey(Object key);
 
-	@NotNull K decodeKey(@NotNull ByteBuffer bb);
+	K decodeKey(ByteBuffer bb);
 
-	@NotNull K decodeKey(byte @NotNull [] bytes);
+	K decodeKey(byte [] bytes);
 
-	@NotNull K decodeKeyResultSet(@NotNull ResultSet rs) throws SQLException;
+	K decodeKeyResultSet(ResultSet rs) throws SQLException;
 
-	void encodeKeySQLStatement(@NotNull SQLStatement st, @NotNull K _v_);
+	void encodeKeySQLStatement(SQLStatement st, K _v_);
 
-	void encodeKeySQLStatement(@NotNull SQLStatement st, @NotNull Object _v_);
+	void encodeKeySQLStatement(SQLStatement st, Object _v_);
 
-	@NotNull V newValue();
+	V newValue();
 
-	@NotNull V decodeValue(@NotNull ByteBuffer bb);
+	V decodeValue(ByteBuffer bb);
 
-	@NotNull V decodeValue(byte @NotNull [] bytes);
+	V decodeValue(byte [] bytes);
 
 	@Nullable K walk(@Nullable K exclusiveStartKey, int proposeLimit,
-					 @NotNull TableWalkHandle<K, V> callback) throws Exception;
+					 TableWalkHandle<K, V> callback) throws Exception;
 
 	@Nullable K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-						 @NotNull TableWalkHandle<K, V> callback) throws Exception;
+						 TableWalkHandle<K, V> callback) throws Exception;
 
 	@Nullable K walkKey(@Nullable K exclusiveStartKey, int proposeLimit,
-						@NotNull TableWalkKey<K> callback) throws Exception;
+						TableWalkKey<K> callback) throws Exception;
 
 	@Nullable K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-							@NotNull TableWalkKey<K> callback) throws Exception;
+							TableWalkKey<K> callback) throws Exception;
 
-	long walk(@NotNull TableWalkHandle<K, V> callback) throws Exception;
+	long walk(TableWalkHandle<K, V> callback) throws Exception;
 
-	long walkDesc(@NotNull TableWalkHandle<K, V> callback) throws Exception;
+	long walkDesc(TableWalkHandle<K, V> callback) throws Exception;
 
-	long walkKey(@NotNull TableWalkKey<K> callback) throws Exception;
+	long walkKey(TableWalkKey<K> callback) throws Exception;
 
-	long walkKeyDesc(@NotNull TableWalkKey<K> callback) throws Exception;
+	long walkKeyDesc(TableWalkKey<K> callback) throws Exception;
 
-	long walkCacheKey(@NotNull TableWalkKey<K> callback) throws Exception;
+	long walkCacheKey(TableWalkKey<K> callback) throws Exception;
 
-	long walkDatabaseRaw(@NotNull TableWalkHandleRaw callback) throws Exception;
+	long walkDatabaseRaw(TableWalkHandleRaw callback) throws Exception;
 
-	long walkDatabaseRawDesc(@NotNull TableWalkHandleRaw callback) throws Exception;
+	long walkDatabaseRawDesc(TableWalkHandleRaw callback) throws Exception;
 
-	long walkDatabaseRawKey(@NotNull TableWalkKeyRaw callback) throws Exception;
+	long walkDatabaseRawKey(TableWalkKeyRaw callback) throws Exception;
 
-	long walkDatabaseRawKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception;
+	long walkDatabaseRawKeyDesc(TableWalkKeyRaw callback) throws Exception;
 
 	@Nullable ByteBuffer walkDatabaseRaw(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-										 @NotNull TableWalkHandleRaw callback) throws Exception;
+										 TableWalkHandleRaw callback) throws Exception;
 
 	@Nullable ByteBuffer walkDatabaseRawDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											 @NotNull TableWalkHandleRaw callback) throws Exception;
+											 TableWalkHandleRaw callback) throws Exception;
 
 	@Nullable ByteBuffer walkDatabaseRawKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											@NotNull TableWalkKeyRaw callback) throws Exception;
+											TableWalkKeyRaw callback) throws Exception;
 
 	@Nullable ByteBuffer walkDatabaseRawKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												@NotNull TableWalkKeyRaw callback) throws Exception;
+												TableWalkKeyRaw callback) throws Exception;
 
-	long walkDatabase(@NotNull TableWalkHandle<K, V> callback) throws Exception;
+	long walkDatabase(TableWalkHandle<K, V> callback) throws Exception;
 
-	long walkDatabaseDesc(@NotNull TableWalkHandle<K, V> callback) throws Exception;
+	long walkDatabaseDesc(TableWalkHandle<K, V> callback) throws Exception;
 
-	long walkDatabaseKey(@NotNull TableWalkKey<K> callback) throws Exception;
+	long walkDatabaseKey(TableWalkKey<K> callback) throws Exception;
 
-	long walkDatabaseKeyDesc(@NotNull TableWalkKey<K> callback) throws Exception;
+	long walkDatabaseKeyDesc(TableWalkKey<K> callback) throws Exception;
 
 	@Nullable K walkDatabase(@Nullable K exclusiveStartKey, int proposeLimit,
-							 @NotNull TableWalkHandle<K, V> callback) throws Exception;
+							 TableWalkHandle<K, V> callback) throws Exception;
 
 	@Nullable K walkDatabaseDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-								 @NotNull TableWalkHandle<K, V> callback) throws Exception;
+								 TableWalkHandle<K, V> callback) throws Exception;
 
 	@Nullable K walkDatabaseKey(@Nullable K exclusiveStartKey, int proposeLimit,
-								@NotNull TableWalkKey<K> callback) throws Exception;
+								TableWalkKey<K> callback) throws Exception;
 
 	@Nullable K walkDatabaseKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-									@NotNull TableWalkKey<K> callback) throws Exception;
+									TableWalkKey<K> callback) throws Exception;
 
 	long walkMemoryAny(TableWalkHandle<Object, Bean> handle) throws Exception;
 
-	long walkMemory(@NotNull TableWalkHandle<K, V> callback) throws Exception;
+	long walkMemory(TableWalkHandle<K, V> callback) throws Exception;
 
-	@Nullable V selectCopy(@NotNull K key);
+	@Nullable V selectCopy(K key);
 
-	@Nullable V selectDirty(@NotNull K key);
+	@Nullable V selectDirty(K key);
 
-	@Nullable V selectDirty(@NotNull K key, int ttl);
+	@Nullable V selectDirty(K key, int ttl);
 
 	boolean isNew();
 
-	@NotNull ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName, @NotNull Object key,
-															@NotNull Changes.Record r);
+	ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName, Object key,
+															Changes.Record r);
 }

@@ -1,6 +1,9 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.util.concurrent.Future;
+import org.jspecify.annotations.Nullable;
 import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Binary;
@@ -8,7 +11,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.LoginQueueAgent;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Util.TaskSpec;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 负载上报基类：定时链周期采集在线数与过载状态，向 ServiceManager 与 LoginQueueServer 报告。
@@ -17,7 +19,7 @@ public abstract class LoadBase {
 	private long lastLoginTime;
 	private int reportDelaySeconds;
 	private int timeoutDelaySeconds;
-	private Future<?> timerTask;
+	private @Nullable Future<?> timerTask;
 	// 停机标志。定时器是onTimerTask自续的链条：stop置位后，已排定的下一次触发进门即返回、不再重排，
 	// 链最多多醒一次即自然终止，stop无需与重排竞争取消。volatile保证定时线程醒来即见。
 	private volatile boolean stopped;
@@ -25,7 +27,7 @@ public abstract class LoadBase {
 	private final ProviderOverload overload = new ProviderOverload();
 	// volatile：setup线程写一次（ensureLoginQueueAgent或应用预置），定时线程(report)、
 	// 停机线程(stop)、choiceProvider等多线程读，无锁发布。
-	private volatile LoginQueueAgent loginQueueAgent;
+	private volatile @Nullable LoginQueueAgent loginQueueAgent;
 
 	public Application getZeze() {
 		return zeze;
@@ -35,13 +37,13 @@ public abstract class LoadBase {
 		this.zeze = zeze;
 	}
 
-	public void setLoginQueueAgent(LoginQueueAgent loginQueueAgent) {
+	public void setLoginQueueAgent(@Nullable LoginQueueAgent loginQueueAgent) {
 		this.loginQueueAgent = loginQueueAgent;
 		if (null != loginQueueAgent)
 			loginQueueAgent.setOnConnected(this::reportNow);
 	}
 
-	public LoginQueueAgent getLoginQueueAgent() {
+	public @Nullable LoginQueueAgent getLoginQueueAgent() {
 		return loginQueueAgent;
 	}
 
@@ -51,14 +53,14 @@ public abstract class LoadBase {
 	 * 已启动的agent被覆盖即泄漏，并以相同(serverId,ip,port)向LoginQueueServer重复注册。
 	 * 创建原料（config/serverId/serviceIp/servicePort）全是load自身状态与抽象，配方收口在所有者。
 	 */
-	public final synchronized LoginQueueAgent ensureLoginQueueAgent() {
+	public final synchronized @Nullable LoginQueueAgent ensureLoginQueueAgent() {
 		if (loginQueueAgent == null && zeze.getConfig().getServiceConf("LoginQueueAgent") != null)
 			setLoginQueueAgent(new LoginQueueAgent(zeze.getConfig(), zeze.getConfig().getServerId(),
-					getServiceIp(), getServicePort()));
+					Objects.requireNonNull(getServiceIp()), getServicePort()));
 		return loginQueueAgent;
 	}
 
-	public @NotNull ProviderOverload getOverload() {
+	public ProviderOverload getOverload() {
 		return overload;
 	}
 
@@ -85,8 +87,9 @@ public abstract class LoadBase {
 		// 零锁：不与onTimerTask的重排竞争，靠stopped让链条自灭。停机后最多多醒一次（进门即返回）。
 		stopped = true;
 		overload.close();
-		if (null != loginQueueAgent)
-			loginQueueAgent.stop();
+		var agent = loginQueueAgent;
+		if (agent != null)
+			agent.stop();
 	}
 
 	public abstract int getOnlineLocalCount();
@@ -95,7 +98,7 @@ public abstract class LoadBase {
 
 	public abstract LoadConfig getLoadConfig();
 
-	public abstract String getServiceIp();
+	public abstract @Nullable String getServiceIp();
 
 	public abstract int getServicePort();
 
@@ -187,8 +190,9 @@ public abstract class LoadBase {
 		this.zeze.getServiceManager().setServerLoad(loadServer);
 
 		// 向LoginQueueServer报告load。
-		if (loginQueueAgent != null)
-			reportLoginQueueLoad(loginQueueAgent, load);
+		var agent = loginQueueAgent;
+		if (agent != null)
+			reportLoginQueueLoad(agent, load);
 	}
 
 	// LinkdLoad 需要重载。

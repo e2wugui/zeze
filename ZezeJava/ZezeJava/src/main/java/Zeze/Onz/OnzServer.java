@@ -35,9 +35,9 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.DaemonTimer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 开发onz服务器基础
@@ -47,7 +47,7 @@ import org.rocksdb.WriteOptions;
  * 不同的server实例功能可以交叉也可以完全不同，
  */
 public class OnzServer extends AbstractOnz {
-	private static final @NotNull Logger logger = LogManager.getLogger(OnzServer.class);
+	private static final Logger logger = LogManager.getLogger(OnzServer.class);
 
 	private final OnzAgent onzAgent;
 	private final boolean sharedServiceManager;
@@ -93,7 +93,7 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	/** 构造/start失败回滚时的best-effort释放（对齐stop的分步容错口径），失败仅记日志。 */
-	private static void rollbackClose(String what, java.io.Closeable resource) {
+	private static void rollbackClose(String what, java.io.@Nullable Closeable resource) {
 		if (resource == null)
 			return;
 		try {
@@ -120,9 +120,10 @@ public class OnzServer extends AbstractOnz {
 	 * zeze1.xml,zeze2.xml是不同zeze集群的配置文件path。
 	 */
 	public OnzServer(String zezeConfigs, Config myConfig) throws Exception {
-		myServiceManager = Application.createServiceManager(myConfig, "OnzServerMyServiceManager");
-		if (myServiceManager == null)
+		var createdServiceManager = Application.createServiceManager(myConfig, "OnzServerMyServiceManager");
+		if (createdServiceManager == null)
 			throw new RuntimeException("My ServiceManager not found");
+		myServiceManager = createdServiceManager;
 		RocksDatabase db = null;
 		try {
 			startAgentAndWaitReady(myServiceManager);
@@ -428,7 +429,7 @@ public class OnzServer extends AbstractOnz {
 	// redo轮转游标：上一轮预算耗尽时最后尝试过的key（null=下轮从头开始）。
 	// 仅redo轮线程读写（无锁）：DaemonTimer链式排期（下一轮在上一轮收尾的
 	// finishRound内才排）保证轮次串行；start()的首轮同步调用先于redoDaemon.start()。
-	private byte[] redoResumeKey;
+	private byte @Nullable [] redoResumeKey;
 
 	/** redo候选的锁内快照（onz-04两段式）：collectRedoCandidates在dbLock内构建，
 	 * 锁外重发段使用——锁外不得触碰database。
@@ -632,7 +633,7 @@ public class OnzServer extends AbstractOnz {
 	// 等待超时见RedoSagaEndTimeoutMs），procedure参与方发Commit/Rollback。
 	// future入列供统一await，返回rpc供结果码检查。
 	private static Rpc<?, ?> sendRedoDecision(AsyncSocket socket, long tid,
-			String sagaName, boolean commitDecision, List<TaskCompletionSource<?>> futures) {
+			@Nullable String sagaName, boolean commitDecision, List<TaskCompletionSource<?>> futures) {
 		if (sagaName != null) {
 			var r = new FuncSagaEnd();
 			r.Argument.setOnzTid(tid);
@@ -971,9 +972,10 @@ public class OnzServer extends AbstractOnz {
 	 * @param specialZezeNames 共享配置时，已经配置成不同的zeze集群的唯一名字的列表，OnzServer不再自定义命名。
 	 */
 	public OnzServer(String sharedZezeConfig, String specialZezeNames, Config myConfig) throws Exception {
-		myServiceManager = Application.createServiceManager(myConfig, "OnzServerMyServiceManager");
-		if (myServiceManager == null)
+		var createdServiceManager = Application.createServiceManager(myConfig, "OnzServerMyServiceManager");
+		if (createdServiceManager == null)
 			throw new RuntimeException("My ServiceManager not found");
+		myServiceManager = createdServiceManager;
 		AbstractAgent sharedAgent = null;
 		RocksDatabase db = null;
 		try {
@@ -1106,8 +1108,8 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	/** connector目标（ip_port）是否仍在SM的通告名单内。 */
-	private static boolean isAdvertised(@NotNull AbstractAgent.SubscribeState onzServices,
-										@NotNull String connectorName) {
+	private static boolean isAdvertised(AbstractAgent.SubscribeState onzServices,
+										String connectorName) {
 		var serviceInfos = onzServices.getServiceInfos(0);
 		if (serviceInfos == null)
 			return false;
@@ -1301,7 +1303,7 @@ public class OnzServer extends AbstractOnz {
 			return rc;
 
 		var bbResult = ByteBuffer.Allocate();
-		txn.getResult().encode(bbResult);
+		Objects.requireNonNull(txn.getResult()).encode(bbResult);
 		r.Result.setFuncResult(new Binary(bbResult));
 		r.SendResult();
 		return 0;

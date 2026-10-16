@@ -3,13 +3,12 @@ package Zeze.Util;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.IntConsumer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // int 基本类型开放寻址哈希 Set（0 键走特例槽），非线程安全
 public class IntHashSet implements Cloneable {
 	private int size;
-	private int @NotNull [] keyTable;
+	private int [] keyTable;
 	private final float loadFactor;
 	private int threshold;
 	private byte shift;
@@ -33,7 +32,7 @@ public class IntHashSet implements Cloneable {
 		keyTable = new int[tableSize];
 	}
 
-	public IntHashSet(@NotNull IntHashSet set) {
+	public IntHashSet(IntHashSet set) {
 		size = set.size;
 		keyTable = set.keyTable.clone();
 		loadFactor = set.loadFactor;
@@ -51,7 +50,7 @@ public class IntHashSet implements Cloneable {
 		return (int)((key * 0x9E3779B97F4A7C15L) >>> shift);
 	}
 
-	public int @NotNull [] getKeyTable() {
+	public int [] getKeyTable() {
 		return keyTable;
 	}
 
@@ -107,7 +106,7 @@ public class IntHashSet implements Cloneable {
 		}
 	}
 
-	public void addAll(@NotNull IntHashSet set) {
+	public void addAll(IntHashSet set) {
 		if (set.hasZeroKey && !hasZeroKey) {
 			hasZeroKey = true;
 			size++;
@@ -117,12 +116,12 @@ public class IntHashSet implements Cloneable {
 				add(k);
 	}
 
-	public void addAll(@NotNull Collection<Integer> set) {
+	public void addAll(Collection<Integer> set) {
 		for (int v : set)
 			add(v);
 	}
 
-	public void addAllTo(@NotNull Collection<Integer> set) {
+	public void addAllTo(Collection<Integer> set) {
 		foreach(set::add);
 	}
 
@@ -205,7 +204,7 @@ public class IntHashSet implements Cloneable {
 		keyTable = kt;
 	}
 
-	public void foreach(@NotNull IntConsumer consumer) {
+	public void foreach(IntConsumer consumer) {
 		if (hasZeroKey)
 			consumer.accept(0);
 		for (int k : keyTable)
@@ -214,10 +213,10 @@ public class IntHashSet implements Cloneable {
 	}
 
 	public interface IntSetPredicate {
-		boolean test(@NotNull IntHashSet set, int key);
+		boolean test(IntHashSet set, int key);
 	}
 
-	public boolean foreachTest(@NotNull IntSetPredicate tester) {
+	public boolean foreachTest(IntSetPredicate tester) {
 		if (hasZeroKey && !tester.test(this, 0))
 			return false;
 		for (int k : keyTable)
@@ -247,12 +246,12 @@ public class IntHashSet implements Cloneable {
 		}
 	}
 
-	public @NotNull Iterator iterator() {
+	public Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public @NotNull IntHashSet clone() throws CloneNotSupportedException {
+	public IntHashSet clone() throws CloneNotSupportedException {
 		IntHashSet set = (IntHashSet)super.clone();
 		set.keyTable = keyTable.clone();
 		return set;
@@ -282,7 +281,7 @@ public class IntHashSet implements Cloneable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		if (size == 0)
 			return "{}";
 		final StringBuilder sb = new StringBuilder(32).append('{');

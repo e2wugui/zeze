@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 import java.util.ArrayList;
-import org.jetbrains.annotations.NotNull;
 
 // 整数区间集合（内部半开 [first,last)，字符串形如 "1-5,7"），支持包含与冲突检查
 public final class Ranges {
@@ -9,7 +8,7 @@ public final class Ranges {
 		private final int first; // [first, last)
 		private final int last;
 
-		public Range(String @NotNull [] pair) {
+		public Range(String [] pair) {
 			first = Integer.parseInt(pair[0]);
 			last = pair.length > 1 ? Integer.parseInt(pair[1]) + 1 : first + 1;
 			if (first < 0 || last < 0 || first >= last) {
@@ -24,12 +23,12 @@ public final class Ranges {
 			this.last = last;
 		}
 
-		public boolean hasIntersection(@NotNull Range r) {
+		public boolean hasIntersection(Range r) {
 			return !(r.last <= first || r.first >= last);
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			if (first + 1 == last) {
 				return String.valueOf(first);
 			}
@@ -38,7 +37,7 @@ public final class Ranges {
 			return first + "-" + (last - 1);
 		}
 
-		public boolean include(@NotNull Range r) {
+		public boolean include(Range r) {
 			return r.first >= first && r.last <= last;
 		}
 	}
@@ -48,7 +47,7 @@ public final class Ranges {
 	public Ranges() {
 	}
 
-	public Ranges(@NotNull String str) {
+	public Ranges(String str) {
 		for (String s : str.split(",", -1)) {
 			if (s.isEmpty())
 				continue;
@@ -61,12 +60,12 @@ public final class Ranges {
 		}
 	}
 
-	public void checkAdd(@NotNull Ranges rs) {
+	public void checkAdd(Ranges rs) {
 		for (Range r : rs.ranges)
 			checkAdd(r);
 	}
 
-	public void checkAdd(@NotNull Range r) {
+	public void checkAdd(Range r) {
 		for (Range _r : ranges) {
 			if (_r.hasIntersection(r))
 				throw new IllegalStateException(ranges + " checkAdd " + r);
@@ -78,7 +77,7 @@ public final class Ranges {
 		checkAdd(new Range(type, type + 1));
 	}
 
-	public boolean include(@NotNull Ranges rs) {
+	public boolean include(Ranges rs) {
 		// 全包含语义（rs ⊆ this），与assertInclude(Ranges)一致，而非"任一命中即真"。
 		for (Range r : rs.ranges) {
 			if (!include(r))
@@ -87,7 +86,7 @@ public final class Ranges {
 		return true;
 	}
 
-	public boolean include(@NotNull Range r) {
+	public boolean include(Range r) {
 		for (Range _r : ranges) {
 			if (_r.include(r))
 				return true;
@@ -95,12 +94,12 @@ public final class Ranges {
 		return false;
 	}
 
-	public void assertInclude(@NotNull Range r) {
+	public void assertInclude(Range r) {
 		if (!include(r))
 			throw new AssertionError(ranges + " NOT Include " + r);
 	}
 
-	public void assertInclude(@NotNull Ranges rs) {
+	public void assertInclude(Ranges rs) {
 		if (!include(rs))
 			throw new AssertionError(ranges + " NOT Include " + rs);
 	}
@@ -112,7 +111,7 @@ public final class Ranges {
 	// 逗号分隔的闭区间串，与构造解析同构：parse(toString(rs)) == rs，
 	// 同时让 checkAdd/assertInclude 的冲突消息可读。
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		for (var r : ranges) {
 			if (!sb.isEmpty())

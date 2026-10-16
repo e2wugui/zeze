@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -16,19 +18,19 @@ import Zeze.Util.ZezeCounter;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.IHistory.PendingHistory;
 
 /**
  * 检查点：按模式（Immediately/Table）把脏记录集（RelativeRecordSet）成批落库，
  * 协调多数据库事务与本地 Rocks 镜像的最终持久化，并管理检查点线程的启停与终检点。
  */
 public final class Checkpoint {
-	static final @NotNull Logger logger = LogManager.getLogger(Checkpoint.class);
+	static final Logger logger = LogManager.getLogger(Checkpoint.class);
 
-	final @NotNull Application zeze;
-	private final @NotNull CheckpointMode mode;
-	private final @NotNull Thread checkpointThread;
+	final Application zeze;
+	private final CheckpointMode mode;
+	private final Thread checkpointThread;
 	private final FastLock lock = new FastLock();
 	private final Condition cond = lock.newCondition();
 	private int period;
@@ -40,7 +42,7 @@ public final class Checkpoint {
 	// 业务线程的checkpoint.flush、Reduce降级flush、checkpointRun的runOnce）：它们已打开
 	// LocalRocksCacheDb事务，与close/deleteDirectory并发是native UAF类。
 	// monitor只在计数增减与等待处短暂持有，flush体内不持有——与rrs锁、Application锁无嵌套。
-	private final @NotNull Object activeFlushMonitor = new Object();
+	private final Object activeFlushMonitor = new Object();
 	private int activeFlush; // guarded by activeFlushMonitor
 	private boolean acceptingFlushes = true; // guarded by activeFlushMonitor
 
@@ -53,8 +55,8 @@ public final class Checkpoint {
 	// 唤醒无遗漏：停收CAS与计数增减线性一致地钉在同一字上——若某次退出的prev仍见门开，
 	// 停机线程的停收CAS必然晚于它，其停收后的读数已含这次退出，计数已见0不等待；
 	// 若prev见门已关，计数归零的那次退出负责进monitor notifyAll。
-	private final @NotNull AtomicInteger commitState = new AtomicInteger(Integer.MIN_VALUE);
-	private final @NotNull Object commitMonitor = new Object();
+	private final AtomicInteger commitState = new AtomicInteger(Integer.MIN_VALUE);
+	private final Object commitMonitor = new Object();
 
 	boolean tryBeginCommit() {
 		// 先自增后验门：门开即成功——热路径恰好一次RMW（get+CAS的合成）。门关时误加的
@@ -108,11 +110,11 @@ public final class Checkpoint {
 			Thread.currentThread().interrupt();
 	}
 
-	public Checkpoint(@NotNull Application zeze, @NotNull CheckpointMode mode, int serverId) {
+	public Checkpoint(Application zeze, CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);
 	}
 
-	public Checkpoint(@NotNull Application zeze, @NotNull CheckpointMode mode, @Nullable Iterable<Database> dbs,
+	public Checkpoint(Application zeze, CheckpointMode mode, @Nullable Iterable<Database> dbs,
 					  int serverId) {
 		this.zeze = zeze;
 		this.mode = mode;
@@ -124,15 +126,15 @@ public final class Checkpoint {
 		checkpointThread.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
 	}
 
-	public @NotNull Application getZeze() {
+	public Application getZeze() {
 		return zeze;
 	}
 
-	public @NotNull CheckpointMode getCheckpointMode() {
+	public CheckpointMode getCheckpointMode() {
 		return mode;
 	}
 
-	public @NotNull Checkpoint add(@NotNull Iterable<Database> databases) {
+	public Checkpoint add(Iterable<Database> databases) {
 		// 登记的databases集合从未被读取（flush按relativeRecordSetMap分组），
 		// 保留入口仅为兼容既有调用形态，不再存储。
 		return this;
@@ -298,7 +300,7 @@ public final class Checkpoint {
 		logger.info("final checkpoint end.");
 	}
 
-	public void flush(@NotNull Transaction trans, @Nullable OnzProcedure onzProcedure, @Nullable IHistory.PendingHistory history) {
+	public void flush(Transaction trans, @Nullable OnzProcedure onzProcedure, @Nullable PendingHistory history) {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.dirty)
@@ -307,7 +309,7 @@ public final class Checkpoint {
 		flush(records, onzProcedure != null ? Set.of(onzProcedure) : Set.of(), history);
 	}
 
-	private String extractTableNames(Iterable<Record> rs, IHistory.PendingHistory history) {
+	private String extractTableNames(Iterable<Record> rs, IHistory.@Nullable PendingHistory history) {
 		var tables = new HashSet<String>();
 		for (var r : rs)
 			tables.add(r.getTable().getName());
@@ -316,8 +318,8 @@ public final class Checkpoint {
 		return tables.toString();
 	}
 
-	public void flush(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
-					  @Nullable IHistory.PendingHistory history) {
+	public void flush(Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
+					  @Nullable PendingHistory history) {
 		// 在飞计数从首个数据库触碰（LocalRocksCacheDb.beginTransaction）前开始，
 		// 覆盖整个落库过程——stop的waitNoActiveFlush据此等待后才能close/delete目录。
 		synchronized (activeFlushMonitor) {
@@ -335,10 +337,10 @@ public final class Checkpoint {
 		}
 	}
 
-	private void flushInternal(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
-							   @Nullable IHistory.PendingHistory history) {
+	private void flushInternal(Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
+							   @Nullable PendingHistory history) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
-		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
+			Database.Transaction localCacheTransaction = Objects.requireNonNull(zeze.getLocalRocksCacheDb()).beginTransaction();
 
 		// history.logChanges原子的和数据一起flush。
 		try {
@@ -438,7 +440,7 @@ public final class Checkpoint {
 	}
 
 	// under lock(rs)
-	public void flush(@NotNull RelativeRecordSet rs) {
+	public void flush(RelativeRecordSet rs) {
 		// rs.MergeTo == null &&  check outside
 		if (rs.getRecordSet() != null)
 			flush(rs.getRecordSet(), rs.getOnzProcedures(), rs.getHistory()); // 脏标记在 flush(Iterable) 保存成功后统一清除。

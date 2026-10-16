@@ -1,11 +1,12 @@
 package Zeze.Transaction.Collections;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * LogSortedMap2 家族（PSortedMap2）元数据：Bean 值受管，支持原位修改，键有序。
@@ -17,22 +18,22 @@ public final class SortedMap2Meta<K, V> extends Meta2<K, V> {
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, SortedMap2Meta<?, ?>>> metas
 			= new ConcurrentHashMap<>();
 
-	SortedMap2Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	SortedMap2Meta(Class<K> keyClass, Class<V> valueClass) {
 		super("LogSortedMap2:", headHash, keyClass, valueClass);
 	}
 
-	SortedMap2Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
+	SortedMap2Meta(Class<K> keyClass, Class<V> valueClass, Supplier<V> valueCtor) {
 		super("LogSortedMap2:", headHash, keyClass, valueClass, valueCtor);
 	}
 
-	SortedMap2Meta(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get,
-	               @NotNull LongFunction<Bean> create) {
+	SortedMap2Meta(Class<K> keyClass, ToLongFunction<@Nullable Bean> get,
+	               LongFunction<@Nullable Bean> create) {
 		super("LogSortedMap2:", headHash, keyClass, get, create);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <K, V extends Bean> @NotNull SortedMap2Meta<K, V> get(@NotNull Class<K> keyClass,
-	                                                                     @NotNull Class<V> valueClass) {
+	public static <K, V extends Bean> SortedMap2Meta<K, V> get(Class<K> keyClass,
+	                                                                     Class<V> valueClass) {
 		var map = metas.computeIfAbsent(keyClass, kc -> {
 			checkNonBeanKey("PSortedMap2 (LogSortedMap2)", kc);
 			return new ConcurrentHashMap<>();
@@ -44,16 +45,16 @@ public final class SortedMap2Meta<K, V> extends Meta2<K, V> {
 				vc -> new SortedMap2Meta<>(keyClass, (Class<V>)vc));
 	}
 
-	public static <K, V extends Bean> @NotNull SortedMap2Meta<K, V> create(@NotNull Class<K> keyClass,
-	                                                                        @NotNull Class<V> valueClass,
-	                                                                        @NotNull Supplier<V> valueCtor) {
+	public static <K, V extends Bean> SortedMap2Meta<K, V> create(Class<K> keyClass,
+	                                                                        Class<V> valueClass,
+	                                                                        Supplier<V> valueCtor) {
 		checkNonBeanKey("PSortedMap2 (LogSortedMap2)", keyClass);
 		return new SortedMap2Meta<>(keyClass, valueClass, valueCtor);
 	}
 
-	public static <K, V extends Bean> @NotNull SortedMap2Meta<K, V> createDynamic(@NotNull Class<K> keyClass,
-	                                                                               @NotNull ToLongFunction<Bean> get,
-	                                                                               @NotNull LongFunction<Bean> create) {
+	public static <K, V extends Bean> SortedMap2Meta<K, V> createDynamic(Class<K> keyClass,
+	                                                                               ToLongFunction<@Nullable Bean> get,
+	                                                                               LongFunction<@Nullable Bean> create) {
 		checkNonBeanKey("PSortedMap2 (LogSortedMap2)", keyClass);
 		return new SortedMap2Meta<>(keyClass, get, create);
 	}

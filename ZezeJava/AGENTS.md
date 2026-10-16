@@ -80,10 +80,41 @@ app 表不在同一个库里。**后果：持久化语义与跨 app 语义在当
 app 与 GCM 显式配置**同一个 DatabaseConf**（同 url 同类型），或在测试注释里明确声明
 "本用例仅在独立内存库语义下成立"。存量测试迁移到同库配置是系统性技术债，逐步偿还。
 
-## 空安全注解
+## 空安全注解（JSpecify）
 
-用 jetbrains 的 `@NotNull` / `@Nullable`（`org.jetbrains.annotations`），
-不要用 jspecify 的 `@NonNull` / `@Nullable`（`org.jspecify.annotations`）。
+体系统一到 **JSpecify**（`org.jspecify:jspecify`，ZezeJava `implementation` 依赖，传递给下游；
+jetbrains annotations 已降级 `compileOnly`，仅剩 `@Contract` 与 `@UnmodifiableView` 在用——
+JSpecify 没有 @Contract 等价物，别删）。
+
+**生成代码（已完成）**：Gen 为每个生成包发 `package-info.java`（`@NullMarked`，非空为默认），
+真正可空的点标 `@Nullable`——动态 Bean 工厂兜底 `return null`、表格 `getReadOnly`、
+`mapKey()`、unknown 字段的 `unknown()`。生成文件头不再压制 `NullableProblems`。
+改 Gen 相关逻辑后照常 PublishGen.bat 重发、gen_use_publish.bat 重生成；生成文件不要手改。
+默认包的 4 个 `Redirect_*.java` 是手写维护文件，用类级 `@NullMarked`。
+
+**手写代码**：主库、Test 与 Zezex 已统一使用 JSpecify；各活跃源集通过包级
+`@NullMarked` 覆盖，默认包与不能共享 package-info 的独立源集用类级标记。
+可空字段、参数、返回值及泛型类型实参用 `org.jspecify.annotations.Nullable`；
+不要新增 jetbrains `@NotNull`/`@Nullable`。
+
+标注必须保留实际空值语义：查找未命中、尚未装配或已经停用的对象可能合法返回 null，
+这类 getter 直接返回 `@Nullable` 原值，不要为消除告警改成抛异常。
+只有真正需要非空值的解引用、拆箱等使用点才加检查；透传给本来接受 null 的方法时不要提前检查。
+
+**注解书写风格**（javac 对 type-use 注解有硬约束）：
+
+- 首选 **import 类型 + 简单名前缀**：`import ...RocksDatabase.Table;` + `private @Nullable Table logs;`。
+- 撞名或需要明示命名空间时，注解贴限定名**最后一段**：`RocksDatabase.@Nullable Table`
+  （`@Nullable RocksDatabase.Table` 前缀写法 javac 直接编译错误，字段/返回值/参数位置都一样）。
+- 数组**引用**可空必须后缀：`ByteBuffer @Nullable [] buf`；前缀写法语义会变成"注解元素"。
+
+**给改 Gen 的人**：生成代码同样优先 import 风格（tableKey、表格 getReadOnly 已是）；
+工厂兜底（`Zeze.Transaction.@Nullable Bean`）与 toData（嵌套 Data 撞名）保留最后段写法。
+
+**IDE 验收口径**：IntelliJ 2023.2+ 内建 JSpecify 支持（nullable/notnull 注解配置默认已含
+org.jspecify）。本仓库口径：**手写与生成代码自身 nullity 警告清零**；第三方未标注库（Netty 等）
+产生的 unknown 黄条容忍，不修。`ConstantConditions`/`ConstantValue` 已列入生成文件头压制
+（setter 空参防御检查等"契约上恒真"的模式），不要顺手删。
 
 
 ## 修复提交的信息格式

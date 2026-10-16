@@ -1,5 +1,9 @@
 package Zeze.Arch.Gen;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -32,7 +36,6 @@ import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 把模块的方法调用发送到其他服务器实例上执行。
@@ -62,7 +65,7 @@ public final class GenModule extends ReentrantLock {
 		compiler.ignoreWarnings();
 	}
 
-	public static <T extends IModule> Constructor<T> getCtor(@NotNull Class<?> cls, @NotNull AppBase app) throws ReflectiveOperationException {
+	public static <T extends IModule> Constructor<T> getCtor(Class<?> cls, AppBase app) throws ReflectiveOperationException {
 		var appClass = app.getClass();
 		@SuppressWarnings("unchecked")
 		var ctors = (Constructor<T>[])cls.getDeclaredConstructors();
@@ -78,7 +81,7 @@ public final class GenModule extends ReentrantLock {
 		throw new NoSuchMethodException("No suitable constructor for redirect module: " + cls.getName());
 	}
 
-	public static <T extends IModule> T newModule(@NotNull Class<?> cls, @NotNull AppBase app) throws ReflectiveOperationException {
+	public static <T extends IModule> T newModule(Class<?> cls, AppBase app) throws ReflectiveOperationException {
 		// 0参构造器模块放行实例化。createRedirectModules对无redirect方法
 		// 的模块直接用原始类实例化（javadoc承诺），getCtor的0参回退（genModuleCode同为活
 		// 消费方）与IModule.Initialize(AppBase)后注入钩子均支持该形态——硬拒会使
@@ -88,7 +91,7 @@ public final class GenModule extends ReentrantLock {
 		return ctor.getParameterCount() == 1 ? ctor.newInstance(app) : ctor.newInstance();
 	}
 
-	private static String getRedirectClassName(@NotNull Class<?> moduleClass) {
+	private static String getRedirectClassName(Class<?> moduleClass) {
 		String className = moduleClass.getName();
 		return className.startsWith(REDIRECT_PREFIX) ? className : REDIRECT_PREFIX + className.replace('.', '_');
 	}
@@ -112,7 +115,7 @@ public final class GenModule extends ReentrantLock {
 		Class<?> defineRedirectClass(String className, byte[] byteCode);
 	}
 
-	public static <T extends IModule> @NotNull T createRedirectModule(@NotNull Class<T> moduleClass, @NotNull AppBase app) {
+	public static <T extends IModule> T createRedirectModule(Class<T> moduleClass, AppBase app) {
 		try {
 			Class<?> genClass;
 			// 热模块：只从模块jar装载打包子类（与批量路径同契约）；冷模块走classpath。
@@ -135,7 +138,7 @@ public final class GenModule extends ReentrantLock {
 	// redirect方法既不生成拦截子类方法、也不注册redirect.handles，调用静默本地执行且远程
 	// 不可达、无任何告警，与方法签名非法时的fail-fast形成反差。同签名（名字+参数类型）去重，
 	// 派生类声明优先（覆盖者的注解生效）。空=没有需要重定向的方法。
-	private static ArrayList<MethodOverride> collectOverrides(@NotNull Class<?> moduleClass) {
+	private static ArrayList<MethodOverride> collectOverrides(Class<?> moduleClass) {
 		var overridesBySignature = new LinkedHashMap<String, MethodOverride>();
 		for (var cls = moduleClass; cls != null && cls != IModule.class; cls = cls.getSuperclass()) {
 			for (var method : cls.getDeclaredMethods()) {
@@ -156,7 +159,7 @@ public final class GenModule extends ReentrantLock {
 		return overrides;
 	}
 
-	private static String methodKey(@NotNull Method method) {
+	private static String methodKey(Method method) {
 		var sb = new StringBuilder(method.getName());
 		for (var paramType : method.getParameterTypes())
 			sb.append(':').append(paramType.getName());
@@ -169,8 +172,8 @@ public final class GenModule extends ReentrantLock {
 	 *
 	 * @param tryCompile 写盘前逐模块内存javac试编译，不可编译产物不落盘（默认false）
 	 */
-	public void generateRedirectSources(@NotNull String srcRoot, @NotNull AppBase userApp,
-										@NotNull Class<?> @NotNull [] moduleClasses, boolean tryCompile) {
+	public void generateRedirectSources(String srcRoot, AppBase userApp,
+										Class<?> [] moduleClasses, boolean tryCompile) {
 		lock();
 		try {
 			for (Class<?> moduleClass : moduleClasses) {
@@ -216,7 +219,7 @@ public final class GenModule extends ReentrantLock {
 
 	// ③装载不命中路径的待编译条目：源码与编译产物的归属装载器绑定（热模块为其
 	// HotModule；冷模块null=编译器装载器），同批收集后单次javac。
-	private record PendingCompile(String genClassName, String code, RedirectClassSink sink) {
+	private record PendingCompile(String genClassName, String code, @Nullable RedirectClassSink sink) {
 	}
 
 	/**
@@ -225,15 +228,15 @@ public final class GenModule extends ReentrantLock {
 	 * classpath装载已存在的子类；③装载不命中的生成源码，批量编译后按归属define（热模块
 	 * 进其HotModule，冷模块进编译器装载器）。无redirect方法的模块直接用原始模块类实例化。
 	 */
-	public @NotNull IModule @NotNull [] createRedirectModules(@NotNull AppBase userApp,
-															  @NotNull Class<?> @NotNull [] moduleClasses) {
+	public IModule [] createRedirectModules(AppBase userApp,
+															  Class<?> [] moduleClasses) {
 		lock();
 		try {
 			int n = moduleClasses.length;
 			// 与moduleClasses索引对齐，同一下标互斥占用：就绪的子类（装载命中或编译后
 			// 回填）/待编译条目；两者皆null=该模块没有redirect方法。
 			var genClasses = new Class<?>[n];
-			var pending = new PendingCompile[n];
+			var pending = new @Nullable PendingCompile[n];
 			for (var i = 0; i < n; i++) {
 				var moduleClass = moduleClasses[i];
 				try {
@@ -297,7 +300,7 @@ public final class GenModule extends ReentrantLock {
 	// 批量编译（单次javac）③的待编译条目，产物按归属define后回填genClasses：
 	// 热模块产物进其HotModule（每代隔离、失败安装零残留）；冷模块产物进编译器
 	// 装载器并写入genClassMap进程级缓存（冷类身份不变，下次直接装载）。
-	private void compilePending(PendingCompile[] pending, Class<?>[] genClasses) throws ClassNotFoundException {
+	private void compilePending(@Nullable PendingCompile[] pending, Class<?>[] genClasses) throws ClassNotFoundException {
 		var codes = new HashMap<String, String>();
 		for (var p : pending)
 			if (p != null)
@@ -321,8 +324,8 @@ public final class GenModule extends ReentrantLock {
 
 	// 装载命中的生成类必须extends传入的moduleClass（身份自洽）：jar产物与模块类同批
 	// 构建、冷缓存类身份进程内不变——错配即手搓jar或装载器混用，fail-fast。
-	private static void checkRedirectSuperclass(@NotNull Class<?> genClass, @NotNull Class<?> moduleClass,
-												@NotNull String source) {
+	private static void checkRedirectSuperclass(Class<?> genClass, Class<?> moduleClass,
+												String source) {
 		if (genClass.getSuperclass() != moduleClass)
 			throw new IllegalStateException("redirect class mismatch (" + source + "): " + genClass.getName()
 					+ ", superclass=" + genClass.getSuperclass().getName()
@@ -332,8 +335,8 @@ public final class GenModule extends ReentrantLock {
 	// 方法去重键——同签名（名字+参数类型）视为同一个覆盖点，类层级收集中
 	// 用于"派生类声明优先、基类声明忽略"。
 
-	private static String genModuleCode(@NotNull String genClassName, @NotNull Class<?> moduleClass,
-										@NotNull List<MethodOverride> overrides, @NotNull AppBase userApp) throws Exception {
+	private static String genModuleCode(String genClassName, Class<?> moduleClass,
+										List<MethodOverride> overrides, AppBase userApp) throws Exception {
 		checkBeanFactorySymbol(moduleClass, overrides);
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
@@ -450,7 +453,7 @@ public final class GenModule extends ReentrantLock {
 						sb.appendLine("{}    if (_rpc_.Result.isNullParam())", prefix);
 						sb.appendLine("{}        _r_ = null;", prefix);
 						sb.appendLine("{}    else {", prefix);
-						if (Serializable.class.isAssignableFrom(m.resultClass)) {
+						if (Serializable.class.isAssignableFrom(Objects.requireNonNull(m.resultClass))) {
 							sb.appendLine("{}        _r_ = new {}();", prefix, genericPat.matcher(m.resultTypeName).replaceAll("<>"));
 							sb.appendLine("{}        _r_.decode(_rpc_.Result.getParams().Wrap());", prefix);
 						} else {
@@ -481,7 +484,7 @@ public final class GenModule extends ReentrantLock {
 				sb.appendLine();
 
 				// Handles
-				sbHandles.appendLine("        _app_.getZeze().redirect.handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", moduleFullName, m.method.getName());
+				sbHandles.appendLine("        java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect).handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", moduleFullName, m.method.getName());
 				sbHandles.appendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.transactionLevel);
 				boolean genLocal = false;
 				for (int i = 0; i < m.inputParameters.size(); ++i) {
@@ -502,7 +505,7 @@ public final class GenModule extends ReentrantLock {
 						sbHandles.appendLine("                //noinspection CodeBlock2Expr");
 					sbHandles.appendLine("                return super.{}(_hash_{}{});", methodNameHash, sep, normalCall);
 				}
-				if (m.resultType != null && Serializable.class.isAssignableFrom(m.resultClass)) {
+				if (m.resultType != null && Serializable.class.isAssignableFrom(Objects.requireNonNull(m.resultClass))) {
 					sbHandles.appendLine("            }, _result_ -> {");
 					sbHandles.appendLine("                if (_result_ == null)");
 					sbHandles.appendLine("                    return Zeze.Net.Binary.Empty;");
@@ -538,7 +541,7 @@ public final class GenModule extends ReentrantLock {
 			sb.appendLine("        super(_app_);");
 		} else
 			sb.appendLine("    public {}(Zeze.AppBase _app_) {", genClassName);
-		sb.appendLine("        _redirect_ = _app_.getZeze().redirect;");
+		sb.appendLine("        _redirect_ = java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect);");
 		sb.appendLine();
 		sb.append(sbHandles.toString());
 		sb.appendLine("    }");
@@ -549,7 +552,7 @@ public final class GenModule extends ReentrantLock {
 	// decode生成引用未限定的beanFactory，按"模块类父类链自带可访问静态
 	// beanFactory"惯例解析（IModule无此契约）——生成期校验并给出修复提示。
 	private static void checkBeanFactorySymbol
-	(@NotNull Class<?> moduleClass, @NotNull List<MethodOverride> overrides) {
+	(Class<?> moduleClass, List<MethodOverride> overrides) {
 		var methodsNeedingFactory = new ArrayList<String>();
 		for (var m : overrides) {
 			var need = false;
@@ -663,7 +666,7 @@ public final class GenModule extends ReentrantLock {
 		sb.appendLine();
 
 		// handles
-		sbHandles.appendLine("        _app_.getZeze().redirect.handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", moduleFullName, m.method.getName());
+		sbHandles.appendLine("        java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect).handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", moduleFullName, m.method.getName());
 		sbHandles.appendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.transactionLevel);
 		if (!m.inputParameters.isEmpty()) {
 			sbHandles.appendLine("                var _b_ = _params_.Wrap();");

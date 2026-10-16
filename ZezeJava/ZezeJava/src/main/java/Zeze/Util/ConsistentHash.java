@@ -3,8 +3,8 @@ package Zeze.Util;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import Zeze.Util.SortedMap.HashFunc;
 
 /**
  * 稳定公平的一致性hash
@@ -13,10 +13,10 @@ import org.jetbrains.annotations.Nullable;
  * @param <E> 要求实现equals和compareTo
  */
 public class ConsistentHash<E extends Comparable<E>> extends FastRWLock {
-	private final @NotNull SortedMap<Integer, E> circle;
+	private final SortedMap<Integer, E> circle;
 	private final HashMap<E, String> nodes = new HashMap<>(); // <node,nodeKey>
 
-	public ConsistentHash(@Nullable SortedMap.HashFunc<Integer, E> hashFunc) {
+	public ConsistentHash(@Nullable HashFunc<Integer, E> hashFunc) {
 		circle = new SortedMap<>(hashFunc);
 	}
 
@@ -72,7 +72,7 @@ public class ConsistentHash<E extends Comparable<E>> extends FastRWLock {
 		}
 	}
 
-	public @NotNull E @NotNull [] toArray(E @NotNull [] array) {
+	public E [] toArray(E [] array) {
 		readLock();
 		try {
 			return nodes.keySet().toArray(array);
@@ -82,7 +82,7 @@ public class ConsistentHash<E extends Comparable<E>> extends FastRWLock {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		readLock();
 		try {
 			return circle.toString();
@@ -103,7 +103,7 @@ public class ConsistentHash<E extends Comparable<E>> extends FastRWLock {
 		}
 	}
 
-	private static @NotNull Integer @NotNull [] genVirtualIds(@NotNull String nodeKey) {
+	private static Integer [] genVirtualIds(String nodeKey) {
 		var virtual = new Integer[160];
 		var r = new StableRandom(Bean.hash64(nodeKey));
 		for (int i = 0, n = virtual.length; i < n; i++)
@@ -111,7 +111,7 @@ public class ConsistentHash<E extends Comparable<E>> extends FastRWLock {
 		return virtual;
 	}
 
-	public void add(@NotNull String nodeKey, @NotNull E node) {
+	public void add(String nodeKey, E node) {
 		//noinspection ConstantValue
 		if (node == null)
 			throw new NullPointerException("node");
@@ -126,7 +126,7 @@ public class ConsistentHash<E extends Comparable<E>> extends FastRWLock {
 		}
 	}
 
-	public void remove(@NotNull E node) {
+	public void remove(E node) {
 		//noinspection ConstantValue
 		if (node == null)
 			throw new NullPointerException("node");

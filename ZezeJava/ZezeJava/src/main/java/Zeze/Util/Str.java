@@ -12,8 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import Zeze.Net.Binary;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 字符串工具集：格式化、缩进、字符集查找、大小/版本号解析与 {var} 模板展开
 public final class Str {
@@ -25,7 +24,7 @@ public final class Str {
 	private Str() {
 	}
 
-	public static @NotNull Charset lookupCharset(@NotNull String csn) throws UnsupportedEncodingException {
+	public static Charset lookupCharset(String csn) throws UnsupportedEncodingException {
 		Objects.requireNonNull(csn);
 		try {
 			return Charset.forName(csn);
@@ -39,11 +38,11 @@ public final class Str {
 			INDENTS[i] = " ".repeat(i);
 	}
 
-	public static @NotNull String format(@NotNull String f, @Nullable Object... params) {
+	public static String format(String f, @Nullable Object... params) {
 		return Formatter.newMessage(f, params).getFormattedMessage();
 	}
 
-	public static @NotNull String indent(int n) {
+	public static String indent(int n) {
 		if (n <= 0)
 			return "";
 		if (n >= INDENT_MAX)
@@ -51,25 +50,29 @@ public final class Str {
 		return INDENTS[n];
 	}
 
-	public static String @NotNull [] trim(String @Nullable [] strs) {
+	public static String [] trim(@Nullable String @Nullable [] strs) {
 		if (strs == null)
 			return EMPTY;
 		int n = 0;
-		for (int i = 0; i < strs.length; i++)
-			if (strs[i] != null && !(strs[i] = strs[i].trim()).isEmpty())
+		for (int i = 0; i < strs.length; i++) {
+			var str = strs[i];
+			if (str != null && !(strs[i] = str.trim()).isEmpty())
 				n++;
+		}
 		if (n == strs.length)
-			return strs;
+			return (String[])strs;
 		if (n == 0)
 			return EMPTY;
 		String[] newStrs = new String[n];
-		for (int i = 0, j = 0; i < strs.length; i++)
-			if (strs[i] != null && !strs[i].isEmpty())
-				newStrs[j++] = strs[i];
+		for (int i = 0, j = 0; i < strs.length; i++) {
+			var str = strs[i];
+			if (str != null && !str.isEmpty())
+				newStrs[j++] = str;
+		}
 		return newStrs;
 	}
 
-	public static @NotNull String stacktrace(@NotNull Throwable ex) {
+	public static String stacktrace(Throwable ex) {
 		try (var out = new ByteArrayOutputStream();
 			 var ps = new PrintStream(out, false, StandardCharsets.UTF_8)) {
 			ex.printStackTrace(ps);
@@ -79,7 +82,7 @@ public final class Str {
 		}
 	}
 
-	public static @NotNull String fromBinary(@NotNull Binary b) {
+	public static String fromBinary(Binary b) {
 		return new String(b.bytesUnsafe(), b.getOffset(), b.size(), StandardCharsets.UTF_8);
 	}
 
@@ -188,7 +191,7 @@ public final class Str {
 
 	// 单位字符之后仅允许间隔符到串尾，否则"1e3"按1E、"10Mx"按10M被静默接受
 	// ——与本方法对单位前非法字符的fail-fast语义自相矛盾，畸形配置无告警进入内存分配。
-	private static void checkUnitTail(@NotNull String s, int unitIndex) {
+	private static void checkUnitTail(String s, int unitIndex) {
 		for (int i = unitIndex + 1, n = s.length(); i < n; i++) {
 			char c = s.charAt(i);
 			switch (c) {
@@ -205,7 +208,7 @@ public final class Str {
 		}
 	}
 
-	public static long parseVersion(@NotNull String version) {
+	public static long parseVersion(String version) {
 		long v = 0;
 		int t = 0, s = 48;
 		for (int i = 0, n = version.length(); i < n; i++) {
@@ -228,12 +231,12 @@ public final class Str {
 		return v + ((long)t << s);
 	}
 
-	public static @NotNull String toVersionStr(long version) {
+	public static String toVersionStr(long version) {
 		return String.format("%d.%d.%d.%d",
 				version >>> 48, (version >> 32) & 0xffff, (version >> 16) & 0xffff, version & 0xffff);
 	}
 
-	public static @NotNull String format(@NotNull String str, @NotNull Map<String, Object> params) {
+	public static String format(String str, Map<String, Object> params) {
 		var sb = new StringBuilder();
 		String varName;
 		var fromIndex = new OutInt(0);
@@ -254,8 +257,8 @@ public final class Str {
 		return sb.toString();
 	}
 
-	private static @Nullable String parseVar(@NotNull StringBuilder sb, @NotNull String str,
-											 @NotNull OutInt fromIndex) {
+	private static @Nullable String parseVar(StringBuilder sb, String str,
+											 OutInt fromIndex) {
 		var quoteLeft = str.indexOf('{', fromIndex.value);
 		if (quoteLeft < 0) {
 			sb.append(str, fromIndex.value, str.length());

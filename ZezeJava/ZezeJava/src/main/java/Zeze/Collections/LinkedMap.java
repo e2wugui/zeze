@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import java.util.Objects;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.LinkedMap.BClearJobState;
@@ -27,8 +29,7 @@ import Zeze.Util.Action1;
 import Zeze.Util.OutLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 持久化链表 Map：按 id 访问的有序 map，节点分片存储、支持链表序分页读取与 O(1) clear。
@@ -37,11 +38,11 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	private static final Logger logger = LogManager.getLogger(LinkedMap.class);
 	public static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
+	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
-	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
@@ -89,7 +90,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 	public static class Module extends AbstractLinkedMap {
 		private final ConcurrentHashMap<String, Object> linkedMaps = new ConcurrentHashMap<>();
-		public final @NotNull Zeze.Application zeze;
+		public final Zeze.Application zeze;
 		public static final String eClearJobHandleName = "Zeze.Collections.LinkedMap.Clear";
 		// delayClearJob每个事务清理的节点数：事务数降为1/K（行删除日志只记key，K个节点的事务仍然小）。
 		// K越大，与"clear后立刻按旧id重建"的并发写冲突窗口越大（映射行读写交叉），失败整批回滚重试，自愈。
@@ -98,7 +99,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		// 公共名字禁止'@'，内部桶名以非空业务名字开头，所以该元数据名字不能与业务根/桶冲突。
 		private static final String concurrentLayoutPrefix = "@CHashMap.Layout/";
 
-		public Module(@NotNull Zeze.Application zeze) {
+		public Module(Zeze.Application zeze) {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 
@@ -107,15 +108,15 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			_tLinkedMapNodes.getChangeListenerMap().addListener(this::OnLinkedMapNodeChange);
 			_tLinkedMaps.getChangeListenerMap().addListener(this::OnLinkedMapRootChange);
 
-			this.zeze.getDelayRemove().register(eClearJobHandleName, this::delayClearJob);
+			Objects.requireNonNull(this.zeze.getDelayRemove()).register(eClearJobHandleName, this::delayClearJob);
 		}
 
-		public @NotNull ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName,
-																	   @NotNull Object key, @NotNull Changes.Record r) {
+		public ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName,
+																	   Object key, Changes.Record r) {
 			return _tLinkedMapNodes.encodeChangeListenerWithSpecialName(specialName, key, r);
 		}
 
-		private void OnLinkedMapNodeChange(@NotNull Object key, @NotNull Changes.Record r) {
+		private void OnLinkedMapNodeChange(Object key, Changes.Record r) {
 			var nodeKey = (BLinkedMapNodeKey)key;
 			var indexOf = nodeKey.getName().lastIndexOf('@');
 			if (indexOf >= 0) {
@@ -126,7 +127,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			}
 		}
 
-		private void OnLinkedMapRootChange(@NotNull Object key, @NotNull Changes.Record r) {
+		private void OnLinkedMapRootChange(Object key, Changes.Record r) {
 			var name = (String)key;
 			var indexOf = name.lastIndexOf('@');
 			if (indexOf >= 0) {
@@ -143,7 +144,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		}
 
 		@SuppressWarnings("unchecked")
-		<T extends Bean> @NotNull LinkedMap<T> _open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
+		<T extends Bean> LinkedMap<T> _open(String name, Class<T> valueClass, int nodeSize) {
 			if (nodeSize < 1)
 				throw new IllegalArgumentException("nodeSize < 1");
 			if (name.isEmpty())
@@ -152,23 +153,23 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			return (LinkedMap<T>)linkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, nodeSize));
 		}
 
-		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
+		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass, int nodeSize) {
 			if (name.contains("@"))
 				throw new IllegalArgumentException("name contains '@', that is reserved.");
 			return _open(name, valueClass, nodeSize);
 		}
 
-		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass) {
+		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass) {
 			return open(name, valueClass, 30);
 		}
 
-		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
-				@NotNull String name, @NotNull Class<T> valueClass) {
+		public <T extends Bean> CHashMap<T> openConcurrent(
+				String name, Class<T> valueClass) {
 			return openConcurrent(name, valueClass, 30);
 		}
 
-		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
-				@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
+		public <T extends Bean> CHashMap<T> openConcurrent(
+				String name, Class<T> valueClass, int nodeSize) {
 			return openConcurrentWithLayout(name, valueClass, nodeSize);
 		}
 
@@ -177,7 +178,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		 * 不重排业务记录：以后所有普通openConcurrent重载均使用持久登记的布局。
 		 * 已混用两个旧布局的数据必须先由业务方核对合并，不能通过本入口自动判断。
 		 */
-		public void adoptLegacyConcurrentLayout(@NotNull String name, int bucketCount) {
+		public void adoptLegacyConcurrentLayout(String name, int bucketCount) {
 			validateConcurrentName(name);
 			if (bucketCount != 128 && bucketCount != 256)
 				throw new IllegalArgumentException("legacy bucketCount must be 128 or 256");
@@ -199,14 +200,14 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 				throw new IllegalStateException("adoptLegacyConcurrentLayout failed, rc=" + rc);
 		}
 
-		private static void validateConcurrentName(@NotNull String name) {
+		private static void validateConcurrentName(String name) {
 			if (name.isEmpty() || name.contains("@"))
 				throw new IllegalArgumentException("concurrent name must be nonempty and cannot contain '@'");
 		}
 
 		@SuppressWarnings("unchecked")
-		private <T extends Bean> @NotNull CHashMap<T> openConcurrentWithLayout(
-				@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
+		private <T extends Bean> CHashMap<T> openConcurrentWithLayout(
+				String name, Class<T> valueClass, int nodeSize) {
 			if (name.isEmpty())
 				throw new IllegalArgumentException("name is empty.");
 			if (nodeSize < 1)
@@ -254,7 +255,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		public final ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
 		public final ConcurrentHashMap<String, ChangeListener> RootListeners = new ConcurrentHashMap<>();
 
-		private void delayClearJob(@NotNull DelayRemove delayRemove, @NotNull String jobId, @NotNull Binary jobState) {
+		private void delayClearJob(DelayRemove delayRemove, String jobId, Binary jobState) {
 			var state = new BClearJobState();
 			state.decode(ByteBuffer.Wrap(jobState));
 			// 空map的clear会提交head=0的job，立即删除job行
@@ -313,12 +314,12 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		}
 	}
 
-	private final @NotNull Module module;
-	private final @NotNull String name;
+	private final Module module;
+	private final String name;
 	private final int nodeSize;
 	private final long valueTypeId;
 
-	private LinkedMap(@NotNull Module module, @NotNull String name, @NotNull Class<V> valueClass, int nodeSize) {
+	private LinkedMap(Module module, String name, Class<V> valueClass, int nodeSize) {
 		var hotManager = module.zeze.getHotManager();
 		if (null != hotManager) {
 			hotManager.addHotBeanFactory(this);
@@ -333,7 +334,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		this.valueTypeId = BeanFactory.typeId(valueClass);
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return name;
 	}
 
@@ -362,7 +363,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	/**
 	 * 返回头节点，并把nodeId.value设为头节点Id，供分页读取协议首发使用。map未创建或空链返回null。
 	 */
-	public @Nullable BLinkedMapNodeReadOnly getFirstNode(@NotNull OutLong nodeId) {
+	public @Nullable BLinkedMapNodeReadOnly getFirstNode(OutLong nodeId) {
 		var root = getRoot();
 		if (null == root)
 			return null;
@@ -388,15 +389,15 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		return root != null ? root.getCount() : 0;
 	}
 
-	public long moveAhead(@NotNull String id) {
+	public long moveAhead(String id) {
 		return move(id, true);
 	}
 
-	public long moveTail(@NotNull String id) {
+	public long moveTail(String id) {
 		return move(id, false);
 	}
 
-	private long move(@NotNull String id, boolean ahead) {
+	private long move(String id, boolean ahead) {
 		var nodeId = getValidNodeId(id);
 		if (nodeId == null)
 			return 0;
@@ -446,7 +447,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	// map
 	// 查索引并验代际：索引缺失或SerialNo与root不相等（clear前旧代映射）都返回null（当作不存在）。
 	// 必须在同一事务内读root验章：root进入read-set后与并发clear的提交冲突重试，消灭"事务跨clear窗口"的幽灵读。
-	private @Nullable BLinkedMapNodeId getValidNodeId(@NotNull String id) {
+	private @Nullable BLinkedMapNodeId getValidNodeId(String id) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (nodeId == null)
 			return null;
@@ -457,7 +458,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull V getOrAdd(@NotNull String id) {
+	public V getOrAdd(String id) {
 		var value = get(id);
 		if (null != value)
 			return value;
@@ -466,15 +467,15 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		return value;
 	}
 
-	public @Nullable V put(long id, @NotNull V value) {
+	public @Nullable V put(long id, V value) {
 		return put(String.valueOf(id), value, true);
 	}
 
-	public @Nullable V put(@NotNull String id, @NotNull V value) {
+	public @Nullable V put(String id, V value) {
 		return put(id, value, true);
 	}
 
-	public @Nullable V put(@NotNull String id, @NotNull V value, boolean ahead) {
+	public @Nullable V put(String id, V value, boolean ahead) {
 		var nodeIdKey = new BLinkedMapKey(name, id);
 		var mappedNodeId = module._tValueIdToNodeId.get(nodeIdKey);
 		var root = getRoot();
@@ -518,7 +519,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		return get(String.valueOf(id));
 	}
 
-	public @Nullable V get(@NotNull String id) {
+	public @Nullable V get(String id) {
 		var nodeId = getValidNodeId(id);
 		if (nodeId == null)
 			return null;
@@ -542,7 +543,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	@SuppressWarnings("unchecked")
-	public @Nullable V remove(@NotNull String id) {
+	public @Nullable V remove(String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
 		var nodeId = getValidNodeId(id); // 旧代映射当作不存在：不再把count减成负数、不再写已摘链节点
 		if (nodeId == null)
@@ -582,7 +583,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			root.setHeadNodeId(0);
 			root.setTailNodeId(0);
 			root.setCount(0);
-			module.zeze.getDelayRemove().addJob(Module.eClearJobHandleName, new BClearJobState(headerNodeId, name));
+			Objects.requireNonNull(module.zeze.getDelayRemove()).addJob(Module.eClearJobHandleName, new BClearJobState(headerNodeId, name));
 		}
 	}
 
@@ -592,7 +593,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	 * 抛IllegalStateException终止而不是静默返回部分计数——与Queue.walk的"宁停不错"语义对齐。
 	 */
 	@SuppressWarnings("unchecked")
-	public long walk(@NotNull TableWalkHandle<String, V> func) throws Exception {
+	public long walk(TableWalkHandle<String, V> func) throws Exception {
 		long count = 0L;
 		long missingNodeId = 0; // 上一次断链位置：重启后仍断在同一节点=持久断链（循环内nodeId恒非0）
 		while (true) {
@@ -625,7 +626,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	// inner
-	private long addHeadUnsafe(@NotNull BLinkedMapNodeValue nodeValue) {
+	private long addHeadUnsafe(BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var headNodeId = root.getHeadNodeId();
 		var head = headNodeId != 0 ? getNodePrivate(headNodeId) : null;
@@ -656,7 +657,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		return newNodeId;
 	}
 
-	private long addTailUnsafe(@NotNull BLinkedMapNodeValue nodeValue) {
+	private long addTailUnsafe(BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var tailNodeId = root.getTailNodeId();
 		var tail = tailNodeId != 0 ? getNodePrivate(tailNodeId) : null;
@@ -686,7 +687,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		return newNodeId;
 	}
 
-	private void removeNodeUnsafe(long nodeId, @NotNull BLinkedMapNode node) {
+	private void removeNodeUnsafe(long nodeId, BLinkedMapNode node) {
 		var root = getRoot();
 		if (null == root)
 			throw new IllegalStateException("root is null. maybe operate before create.");

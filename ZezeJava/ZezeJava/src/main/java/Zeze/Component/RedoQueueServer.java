@@ -24,7 +24,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	@Override
 	public void UnRegister() {
 		UnRegisterProtocols(server);
-		UnRegisterZezeTables(server.getZeze());
+		UnRegisterZezeTables(java.util.Objects.requireNonNull(server.getZeze()));
 	}
 
 	public void start() throws Exception {

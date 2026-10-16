@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 // Binary 内容去重池（intern）：同一内容返回同一引用，读写锁分护探测与插入
 public class BinaryPool {
@@ -20,11 +19,11 @@ public class BinaryPool {
 		wLock = rwLock.writeLock();
 	}
 
-	public @NotNull Binary intern(byte @NotNull [] bytes) {
+	public Binary intern(byte [] bytes) {
 		return intern(bytes, 0, bytes.length);
 	}
 
-	public @NotNull Binary intern(byte @NotNull [] bytes, int beginIndex, int endIndex) {
+	public Binary intern(byte [] bytes, int beginIndex, int endIndex) {
 		var hash64 = hash64(HASH_BASE, bytes, beginIndex, endIndex);
 		Binary b;
 		rLock.lock();
@@ -59,7 +58,7 @@ public class BinaryPool {
 		return b;
 	}
 
-	public @NotNull Binary intern(@NotNull java.nio.ByteBuffer bb, int beginIndex, int endIndex) {
+	public Binary intern(java.nio.ByteBuffer bb, int beginIndex, int endIndex) {
 		var hash64 = hash64(HASH_BASE, bb, beginIndex, endIndex);
 		Binary b;
 		rLock.lock();
@@ -99,19 +98,19 @@ public class BinaryPool {
 		return b;
 	}
 
-	private static long hash64(long hash64, byte @NotNull [] bytes, int beginIndex, int endIndex) {
+	private static long hash64(long hash64, byte [] bytes, int beginIndex, int endIndex) {
 		for (int i = beginIndex; i < endIndex; i++)
 			hash64 = (hash64 + bytes[i]) * 3074457345618258799L;
 		return hash64;
 	}
 
-	private static long hash64(long hash64, @NotNull java.nio.ByteBuffer bb, int beginIndex, int endIndex) {
+	private static long hash64(long hash64, java.nio.ByteBuffer bb, int beginIndex, int endIndex) {
 		for (int i = beginIndex; i < endIndex; i++)
 			hash64 = (hash64 + bb.get(i)) * 3074457345618258799L;
 		return hash64;
 	}
 
-	private static boolean equals(@NotNull Binary b, @NotNull java.nio.ByteBuffer bb, int beginIndex, int endIndex) {
+	private static boolean equals(Binary b, java.nio.ByteBuffer bb, int beginIndex, int endIndex) {
 		int n = b.size();
 		if (n != endIndex - beginIndex)
 			return false;

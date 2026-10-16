@@ -1,5 +1,7 @@
 package Zeze.Hot;
 
+import java.util.Objects;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -49,7 +51,7 @@ public class HotAgent extends AbstractHotAgent {
 
 		var out = new OutObject<Connector>();
 		hotAgentService.getConfig().tryGetOrAddConnector(ip, port, true, out);
-		connector = out.value;
+		connector = Objects.requireNonNull(out.value);
 	}
 
 	public String getPeer() {
@@ -63,7 +65,7 @@ public class HotAgent extends AbstractHotAgent {
 
 		var out = new OutObject<Connector>();
 		hotAgentService.getConfig().tryGetOrAddConnector(ip, port, true, out);
-		connector = out.value;
+		connector = Objects.requireNonNull(out.value);
 	}
 
 	public void start() {

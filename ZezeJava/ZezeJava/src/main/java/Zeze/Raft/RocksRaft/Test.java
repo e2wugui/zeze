@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -11,6 +13,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.SimpleAssert;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RocksRaft 状态机测试：三节点集群上验证变更收集（Changes）、嵌套过程与换主后的数据读取。
@@ -23,15 +26,15 @@ public final class Test {
 		private final Bean2 _bean2;
 		private final CollMap2<Integer, Bean1> _map2;
 
-		private transient Object _Int32MapKey_;
+		private transient @Nullable Object _Int32MapKey_;
 
 		@Override
-		public Object mapKey() {
+		public @Nullable Object mapKey() {
 			return _Int32MapKey_;
 		}
 
 		@Override
-		public void mapKey(Object mapKey) {
+		public void mapKey(@Nullable Object mapKey) {
 			_Int32MapKey_ = mapKey;
 		}
 
@@ -39,7 +42,7 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _i;
-				var log = Transaction.getCurrent().getLog(objectId() + 1);
+				var log = Objects.requireNonNull(Transaction.getCurrent()).getLog(objectId() + 1);
 				if (log == null)
 					return _i;
 				return ((LogInt)log).value;
@@ -49,7 +52,7 @@ public final class Test {
 
 		public void setI(int value) {
 			if (isManaged())
-				Transaction.getCurrent().putLog(new LogInt(this, 1, value));
+				Objects.requireNonNull(Transaction.getCurrent()).putLog(new LogInt(this, 1, value));
 			else
 				_i = value;
 		}
@@ -63,7 +66,7 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _l;
-				var log = Transaction.getCurrent().getLog(objectId() + 2);
+				var log = Objects.requireNonNull(Transaction.getCurrent()).getLog(objectId() + 2);
 				if (log == null)
 					return _l;
 				return ((LogLong)log).value;
@@ -73,7 +76,7 @@ public final class Test {
 
 		public void setL(long value) {
 			if (isManaged())
-				Transaction.getCurrent().putLog(new LogLong(this, 2, value));
+				Objects.requireNonNull(Transaction.getCurrent()).putLog(new LogLong(this, 2, value));
 			else
 				_l = value;
 		}
@@ -97,7 +100,7 @@ public final class Test {
 				return;
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
-				switch (vlog.getVariableId()) {
+				switch (Objects.requireNonNull(vlog).getVariableId()) {
 				case 1:
 					_i = ((LogInt)vlog).value;
 					break;
@@ -167,7 +170,7 @@ public final class Test {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(Record.@Nullable RootInfo root) {
 			_map1.initRootInfo(root, this);
 			_bean2.initRootInfo(root, this);
 			_map2.initRootInfo(root, this);
@@ -192,7 +195,7 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _i;
-				var log = Transaction.getCurrent().getLog(objectId() + 1);
+				var log = Objects.requireNonNull(Transaction.getCurrent()).getLog(objectId() + 1);
 				if (log == null)
 					return _i;
 				return ((LogInt)log).value;
@@ -202,7 +205,7 @@ public final class Test {
 
 		public void setI(int value) {
 			if (isManaged())
-				Transaction.getCurrent().putLog(new LogInt(this, 1, value));
+				Objects.requireNonNull(Transaction.getCurrent()).putLog(new LogInt(this, 1, value));
 			else
 				_i = value;
 		}
@@ -218,7 +221,7 @@ public final class Test {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(Record.@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -234,7 +237,7 @@ public final class Test {
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				var vlog = it.value();
 				//noinspection SwitchStatementWithTooFewBranches
-				switch (vlog.getVariableId()) {
+				switch (Objects.requireNonNull(vlog).getVariableId()) {
 				case 1:
 					_i = ((LogInt)vlog).value;
 					break;
@@ -257,10 +260,10 @@ public final class Test {
 		rocks.newProcedure(() -> {
 			table.remove(1);
 
-			Transaction.getCurrent().runWhileCommit(() ->
+			Objects.requireNonNull(Transaction.getCurrent()).runWhileCommit(() ->
 			{
-				var c = Transaction.getCurrent().getChanges();
-				SimpleAssert.isTrue(c.getBeans().size() == 1);
+				var c = Objects.requireNonNull(Transaction.getCurrent()).getChanges();
+				SimpleAssert.isTrue(Objects.requireNonNull(c).getBeans().size() == 1);
 				SimpleAssert.isTrue(c.getRecords().size() == 1);
 
 				var r = c.getRecords().get(new TableKey(table.getName(), 1));
@@ -294,11 +297,11 @@ public final class Test {
 		bean1.setI(5 + num);
 	}
 
-	private static void verifyChanges(String expected) {
-		Transaction.getCurrent().runWhileCommit(() -> {
-			var Changes = Transaction.getCurrent().getChanges();
+	private static void verifyChanges(@Nullable String expected) {
+		Objects.requireNonNull(Transaction.getCurrent()).runWhileCommit(() -> {
+			var Changes = Objects.requireNonNull(Transaction.getCurrent()).getChanges();
 			var sb = new StringBuilder();
-			ByteBuffer.BuildString(sb, Changes.getRecords());
+			ByteBuffer.BuildString(sb, Objects.requireNonNull(Changes).getRecords());
 			if (expected == null || expected.isEmpty())
 				System.out.println(sb);
 			else
@@ -306,7 +309,7 @@ public final class Test {
 		});
 	}
 
-	private static void verifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Exception {
+	private static void verifyData(Rocks rocks, Table<Integer, Bean1> table, @Nullable String expected) throws Exception {
 		rocks.newProcedure(() -> {
 			var value = table.getOrAdd(1);
 			var current = value.toString();
@@ -358,7 +361,7 @@ public final class Test {
 		rocks.newProcedure(() -> {
 			var value = table.getOrAdd(1);
 			var edit = value.getMap2().get(14);
-			edit.getBean2().setI(2222);
+			Objects.requireNonNull(edit).getBean2().setI(2222);
 			verifyChanges("""
 					{(tRocksRaft#0,1):State=2 PutValue=null
 					Log=[{5: Putted:{} Removed:[] Changed:[{4:{1:Value=2222}}]}]
@@ -370,12 +373,12 @@ public final class Test {
 	private static void nestProcedure(Rocks rocks, Table<Integer, Bean1> table) throws Exception {
 		rocks.newProcedure(() -> {
 			var value = table.get(1);
-			value.getBean2().setI(3333);
+			Objects.requireNonNull(value).getBean2().setI(3333);
 
 			rocks.newProcedure(() ->
 			{
 				var value2 = table.get(1);
-				value2.getBean2().setI(4444);
+				Objects.requireNonNull(value2).getBean2().setI(4444);
 				SimpleAssert.areEqual(4444, value2.getBean2().getI());
 				return -1L;
 			}).call();
@@ -392,7 +395,7 @@ public final class Test {
 		rocks.newProcedure(() -> {
 			rocks.newProcedure(() -> {
 				var value = table.get(1);
-				value.getMap2().put(4444, new Bean1());
+				Objects.requireNonNull(value).getMap2().put(4444, new Bean1());
 				value.getMap1().put(4444, 4444);
 				value.getMap1().remove(3);
 				value.getMap2().remove(4);
@@ -407,7 +410,7 @@ public final class Test {
 		}).call();
 	}
 
-	private static Rocks getLeader(List<Rocks> rocks, Rocks skip) throws InterruptedException {
+	private static Rocks getLeader(List<Rocks> rocks, @Nullable Rocks skip) throws InterruptedException {
 		while (true) {
 			for (var rock : rocks) {
 				if (rock != skip && rock.isLeader())
@@ -423,7 +426,7 @@ public final class Test {
 	// 负载高时verifyData会读到滞后状态而偶发断言失败。轮询lastApplied>=lastIndex消除竞态
 	// （新leader追加SetLeaderReadyEvent并提交应用后两值相等且不再变动）。
 	private static void waitLeaderCatchUp(Rocks leader) throws InterruptedException {
-		var logSequence = leader.getRaft().getLogSequence();
+		var logSequence = Objects.requireNonNull(leader.getRaft()).getLogSequence();
 		while (logSequence.getLastApplied() < logSequence.getLastIndex())
 			//noinspection BusyWait
 			Thread.sleep(100);
@@ -444,24 +447,24 @@ public final class Test {
 			for (var rr : rocksList)
 				rr.registerTableTemplate("tRocksRaft", Integer.class, Bean1.class);
 
-			rocks1.getRaft().getServer().start();
-			rocks2.getRaft().getServer().start();
-			rocks3.getRaft().getServer().start();
+			Objects.requireNonNull(rocks1.getRaft()).getServer().start();
+			Objects.requireNonNull(rocks2.getRaft()).getServer().start();
+			Objects.requireNonNull(rocks3.getRaft()).getServer().start();
 
 			var leader = getLeader(rocksList, null);
 			runLeader(leader);
-			leader.getRaft().getServer().stop();
+			Objects.requireNonNull(leader.getRaft()).getServer().stop();
 
 			// 只简单验证一下最新的数据。
 			var newLeader = getLeader(rocksList, leader);
 			waitLeaderCatchUp(newLeader);
-			verifyData(newLeader, newLeader.<Integer, Bean1>getTableTemplate("tRocksRaft")
+			verifyData(newLeader, Objects.requireNonNull(newLeader.<Integer, Bean1>getTableTemplate("tRocksRaft"))
 					.openTable(0), "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 		}
 	}
 
 	private static void runLeader(Rocks rocks) throws Exception {
-		var table = rocks.<Integer, Bean1>getTableTemplate("tRocksRaft").openTable(0);
+		var table = Objects.requireNonNull(rocks.<Integer, Bean1>getTableTemplate("tRocksRaft")).openTable(0);
 		remove1(rocks, table);
 
 		putAndEdit(rocks, table);

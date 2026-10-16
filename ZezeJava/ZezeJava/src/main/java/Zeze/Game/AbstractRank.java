@@ -25,11 +25,11 @@ public abstract class AbstractRank implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_trank.getName()).getDatabaseName(), _trank);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_trank.getName())).getDatabaseName(), _trank);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_trank.getName()).getDatabaseName(), _trank);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_trank.getName())).getDatabaseName(), _trank);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

@@ -10,8 +10,7 @@ import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.DynamicData;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Zeze 缓冲区读取接口：定义变长整数、向量、Bean 及未知字段的解码与跳过协议。 */
 public interface IByteBuffer {
@@ -50,9 +49,9 @@ public interface IByteBuffer {
 
 	void FreeInternalBuffer();
 
-	byte @NotNull [] Copy();
+	byte [] Copy();
 
-	byte @NotNull [] getBytes(int offset, int length);
+	byte [] getBytes(int offset, int length);
 
 	void Reset();
 
@@ -69,11 +68,11 @@ public interface IByteBuffer {
 
 	int ReadInt4();
 
-	void ReadInt4s(int @NotNull [] buf, int offset, int length);
+	void ReadInt4s(int [] buf, int offset, int length);
 
 	long ReadLong8();
 
-	void ReadLong8s(long @NotNull [] buf, int offset, int length);
+	void ReadLong8s(long [] buf, int offset, int length);
 
 	// 返回值应被看作是无符号32位整数
 	default int ReadUInt() {
@@ -211,24 +210,24 @@ public interface IByteBuffer {
 
 	float ReadFloat();
 
-	void ReadFloats(float @NotNull [] buf, int offset, int length);
+	void ReadFloats(float [] buf, int offset, int length);
 
 	double ReadDouble();
 
-	void ReadDoubles(double @NotNull [] buf, int offset, int length);
+	void ReadDoubles(double [] buf, int offset, int length);
 
-	@NotNull String ReadString();
+	String ReadString();
 
-	default @NotNull Binary ReadBinary() {
+	default Binary ReadBinary() {
 		var bytes = ReadBytes();
 		return bytes.length > 0 ? new Binary(bytes) : Binary.Empty;
 	}
 
-	byte @NotNull [] ReadBytes();
+	byte [] ReadBytes();
 
 	void Skip(int n);
 
-	@NotNull ByteBuffer ReadByteBuffer();
+	ByteBuffer ReadByteBuffer();
 
 	@SuppressWarnings("unchecked")
 	default <T extends java.io.Serializable> T ReadJavaObject() {
@@ -259,7 +258,7 @@ public interface IByteBuffer {
 		Skip(n);
 	}
 
-	default <T extends Serializable> void decode(@NotNull Collection<T> c, @NotNull Supplier<T> factory) {
+	default <T extends Serializable> void decode(Collection<T> c, Supplier<T> factory) {
 		for (int n = ReadUIntPositive(); n > 0; n--) {
 			T v = factory.get();
 			v.decode(this);
@@ -404,7 +403,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default @NotNull Binary ReadBinary(int tag) {
+	default Binary ReadBinary(int tag) {
 		int type = tag & TAG_MASK;
 		if (type == BYTES)
 			return ReadBinary();
@@ -416,7 +415,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default @NotNull String ReadString(int tag) {
+	default String ReadString(int tag) {
 		int type = tag & TAG_MASK;
 		if (type == BYTES)
 			return ReadString();
@@ -428,13 +427,13 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	@NotNull Vector2 ReadVector2();
+	Vector2 ReadVector2();
 
-	@NotNull Vector3 ReadVector3();
+	Vector3 ReadVector3();
 
-	@NotNull Vector4 ReadVector4();
+	Vector4 ReadVector4();
 
-	@NotNull Quaternion ReadQuaternion();
+	Quaternion ReadQuaternion();
 
 	@Nullable ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown);
 
@@ -452,20 +451,20 @@ public interface IByteBuffer {
 		return unknown != null ? unknown.CopyIf() : null;
 	}
 
-	default @NotNull Vector2Int ReadVector2Int() {
+	default Vector2Int ReadVector2Int() {
 		int x = ReadInt();
 		int y = ReadInt();
 		return new Vector2Int(x, y);
 	}
 
-	default @NotNull Vector3Int ReadVector3Int() {
+	default Vector3Int ReadVector3Int() {
 		int x = ReadInt();
 		int y = ReadInt();
 		int z = ReadInt();
 		return new Vector3Int(x, y, z);
 	}
 
-	default @NotNull Vector2 ReadVector2(int tag) {
+	default Vector2 ReadVector2(int tag) {
 		int type = tag & TAG_MASK;
 		if (type == VECTOR2)
 			return ReadVector2();
@@ -491,7 +490,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default @NotNull Vector3 ReadVector3(int tag) {
+	default Vector3 ReadVector3(int tag) {
 		int type = tag & TAG_MASK;
 		if (type == VECTOR3)
 			return ReadVector3();
@@ -517,7 +516,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default @NotNull Vector4 ReadVector4(int tag) {
+	default Vector4 ReadVector4(int tag) {
 		int type = tag & TAG_MASK;
 		if (type == VECTOR4)
 			return ReadVector4();
@@ -543,7 +542,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default @NotNull Quaternion ReadQuaternion(int tag) {
+	default Quaternion ReadQuaternion(int tag) {
 		int type = tag & TAG_MASK;
 		if (type == VECTOR4)
 			return ReadQuaternion();
@@ -569,7 +568,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default @NotNull Vector2Int ReadVector2Int(int tag) {
+	default Vector2Int ReadVector2Int(int tag) {
 		int type = tag & TAG_MASK;
 		if (type == VECTOR2INT)
 			return ReadVector2Int();
@@ -595,7 +594,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default @NotNull Vector3Int ReadVector3Int(int tag) {
+	default Vector3Int ReadVector3Int(int tag) {
 		int type = tag & TAG_MASK;
 		if (type == VECTOR3INT)
 			return ReadVector3Int();
@@ -621,7 +620,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default <T extends Serializable> @NotNull T ReadBean(@NotNull T bean, int tag) {
+	default <T extends Serializable> T ReadBean(T bean, int tag) {
 		int type = tag & TAG_MASK;
 		if (type == BEAN)
 			bean.decode(this);
@@ -637,7 +636,7 @@ public interface IByteBuffer {
 		return bean;
 	}
 
-	default @NotNull DynamicBean ReadDynamic(@NotNull DynamicBean dynBean, int tag) {
+	default DynamicBean ReadDynamic(DynamicBean dynBean, int tag) {
 		int type = tag & TAG_MASK;
 		if (type == DYNAMIC)
 			dynBean.decode(this);
@@ -652,7 +651,7 @@ public interface IByteBuffer {
 		return dynBean;
 	}
 
-	default @NotNull DynamicData ReadDynamic(@NotNull DynamicData dynBean, int tag) {
+	default DynamicData ReadDynamic(DynamicData dynBean, int tag) {
 		int type = tag & TAG_MASK;
 		if (type == DYNAMIC) {
 			dynBean.decode(this);
@@ -673,7 +672,7 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	default void SkipUnknownFieldOrThrow(int tag, @NotNull String curType) {
+	default void SkipUnknownFieldOrThrow(int tag, String curType) {
 		if (IGNORE_INCOMPATIBLE_FIELD)
 			SkipUnknownField(tag);
 		else {

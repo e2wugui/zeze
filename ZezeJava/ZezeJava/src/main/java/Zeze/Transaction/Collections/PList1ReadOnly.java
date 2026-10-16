@@ -2,14 +2,13 @@ package Zeze.Transaction.Collections;
 
 import java.util.Iterator;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** PList1 的只读视图：仅暴露查询与遍历，修改入口抛 UnsupportedOperationException。 */
 public class PList1ReadOnly<V> implements Iterable<V> {
-	private final @NotNull PList1<V> list;
+	private final PList1<V> list;
 
-	public PList1ReadOnly(@NotNull PList1<V> list) {
+	public PList1ReadOnly(PList1<V> list) {
 		this.list = list;
 	}
 
@@ -21,43 +20,43 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 		return list.size();
 	}
 
-	public @NotNull V get(int index) {
+	public V get(int index) {
 		return list.get(index);
 	}
 
-	public boolean contains(@NotNull V v) {
+	public boolean contains(V v) {
 		return list.contains(v);
 	}
 
-	public boolean containsAll(@NotNull java.util.Collection<? extends V> c) {
+	public boolean containsAll(java.util.Collection<? extends V> c) {
 		//noinspection SlowListContainsAll
 		return list.containsAll(c);
 	}
 
-	public int indexOf(@NotNull V v) {
+	public int indexOf(V v) {
 		return list.indexOf(v);
 	}
 
-	public int lastIndexOf(@NotNull V v) {
+	public int lastIndexOf(V v) {
 		return list.lastIndexOf(v);
 	}
 
-	public void copyTo(V @NotNull [] array, int arrayIndex) {
+	public void copyTo(V [] array, int arrayIndex) {
 		list.copyTo(array, arrayIndex);
 	}
 
-	public Object @NotNull [] toArray() {
+	public Object [] toArray() {
 		return list.toArray();
 	}
 
-	public <T> T @NotNull [] toArray(T @NotNull [] a) {
+	public <T> T [] toArray(T [] a) {
 		return list.toArray(a);
 	}
 
 	@Override
-	public @NotNull Iterator<V> iterator() {
+	public Iterator<V> iterator() {
 		return new Iterator<>() {
-			private final @NotNull Iterator<V> it = list.iterator();
+			private final Iterator<V> it = list.iterator();
 
 			@Override
 			public boolean hasNext() {
@@ -76,11 +75,11 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 		};
 	}
 
-	public @NotNull PList1<V> copy() {
+	public PList1<V> copy() {
 		return list.copy();
 	}
 
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		list.encode(bb);
 	}
 
@@ -95,7 +94,7 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return list.toString();
 	}
 }

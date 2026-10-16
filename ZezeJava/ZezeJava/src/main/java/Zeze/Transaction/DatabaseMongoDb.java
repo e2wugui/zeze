@@ -22,15 +22,14 @@ import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.Binary;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** MongoDB 数据库后端：collection 承载 KV 表，会话事务落库，条件写实现 Operates。 */
 public class DatabaseMongoDb extends Database {
-	final @NotNull MongoClient mongoClient;
-	final @NotNull MongoDatabase mongoDatabase;
+	final MongoClient mongoClient;
+	final MongoDatabase mongoDatabase;
 
-	public DatabaseMongoDb(@Nullable Application zeze, @NotNull Config.DatabaseConf conf) {
+	public DatabaseMongoDb(@Nullable Application zeze, Config.DatabaseConf conf) {
 		super(zeze, conf);
 		mongoClient = MongoClients.create(conf.getDatabaseUrl());
 		mongoDatabase = mongoClient.getDatabase(conf.getDatabaseName());
@@ -38,7 +37,7 @@ public class DatabaseMongoDb extends Database {
 	}
 
 	@Override
-	public @NotNull Table openTable(@NotNull String name, int id) {
+	public Table openTable(String name, int id) {
 		return new TableMongoDb(name);
 	}
 
@@ -61,7 +60,7 @@ public class DatabaseMongoDb extends Database {
 	}
 
 	@Override
-	public @NotNull Transaction beginTransaction() {
+	public Transaction beginTransaction() {
 		return new MongoTrans(mongoClient.startSession());
 	}
 
@@ -77,7 +76,7 @@ public class DatabaseMongoDb extends Database {
 	}
 
 	private class OperatesMongoDb implements Operates {
-		private final @NotNull TableMongoDb dataWithVersion;
+		private final TableMongoDb dataWithVersion;
 
 		public OperatesMongoDb() {
 			var schemaTableName = "Zeze_OperatesMongoDb_Schemas";
@@ -85,17 +84,17 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public void setInUse(int localId, @NotNull String global) {
+		public void setInUse(int localId, String global) {
 
 		}
 
 		@Override
-		public int clearInUse(int localId, @NotNull String global) {
+		public int clearInUse(int localId, String global) {
 			return 0;
 		}
 
 		@Override
-		public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
 																	long version) {
 			// 读-判-写必须原子：多实例并发启动（tryLock 恒真的后端）同时进入 schemasCompatible 时，
 			// 读-判-写会丢失更新，级联出重复 renameTable 丢表数据。
@@ -134,7 +133,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @NotNull DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
 			var result = new DataWithVersion();
 			var bb = dataWithVersion.find(key);
 			if (bb != null)
@@ -145,14 +144,14 @@ public class DatabaseMongoDb extends Database {
 
 	@SuppressWarnings("ClassCanBeRecord")
 	public static class MongoTrans implements Transaction {
-		private final @NotNull ClientSession session;
+		private final ClientSession session;
 
-		public MongoTrans(@NotNull ClientSession session) {
+		public MongoTrans(ClientSession session) {
 			this.session = session;
 			session.startTransaction();
 		}
 
-		public @NotNull ClientSession getSession() {
+		public ClientSession getSession() {
 			return session;
 		}
 
@@ -172,7 +171,7 @@ public class DatabaseMongoDb extends Database {
 		}
 	}
 
-	public static byte @NotNull [] getByteArray(@NotNull Document doc, @NotNull String fieldName) {
+	public static byte [] getByteArray(Document doc, String fieldName) {
 		Object value = doc.get(fieldName);
 		return switch (value) {
 			case null -> throw new NullPointerException(fieldName + " is null");
@@ -184,12 +183,12 @@ public class DatabaseMongoDb extends Database {
 	}
 
 	public final class TableMongoDb extends AbstractKVTable {
-		private final @NotNull String name;
-		private final @NotNull MongoCollection<Document> collection;
+		private final String name;
+		private final MongoCollection<Document> collection;
 		private final boolean isNew;
 		private boolean dropped;
 
-		public TableMongoDb(@NotNull String name) {
+		public TableMongoDb(String name) {
 			this.name = name;
 			var isNew = true;
 			try {
@@ -205,7 +204,8 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+		@SuppressWarnings("ConstantConditions")
+		public @Nullable ByteBuffer find(ByteBuffer key) {
 			if (dropped)
 				return null;
 
@@ -222,7 +222,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			if (dropped)
 				return;
 
@@ -239,7 +239,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			if (dropped)
 				return;
 
@@ -251,7 +251,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return 0;
 			var iterable = collection.find();
@@ -274,7 +274,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return 0;
 			var iterable = collection.find();
@@ -294,7 +294,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return 0;
 			var iterable = collection.find();
@@ -314,7 +314,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return 0;
 			var iterable = collection.find();
@@ -335,7 +335,7 @@ public class DatabaseMongoDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-										 @NotNull TableWalkHandleRaw callback) throws Exception {
+										 TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return null;
 			if (proposeLimit <= 0) // mongo 驱动 limit(0) 表示"不限制"，必须防护，否则一次调用扫全表
@@ -361,7 +361,7 @@ public class DatabaseMongoDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											@NotNull TableWalkKeyRaw callback) throws Exception {
+											TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return null;
 			if (proposeLimit <= 0)
@@ -387,7 +387,7 @@ public class DatabaseMongoDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											 @NotNull TableWalkHandleRaw callback) throws Exception {
+											 TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return null;
 			if (proposeLimit <= 0)
@@ -413,7 +413,7 @@ public class DatabaseMongoDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												@NotNull TableWalkKeyRaw callback) throws Exception {
+												TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return null;
 			if (proposeLimit <= 0)
@@ -437,7 +437,7 @@ public class DatabaseMongoDb extends Database {
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
-		public @NotNull String getName() {
+		public String getName() {
 			return name;
 		}
 
@@ -447,7 +447,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @NotNull Database getDatabase() {
+		public Database getDatabase() {
 			return DatabaseMongoDb.this;
 		}
 

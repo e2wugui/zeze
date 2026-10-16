@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
@@ -39,8 +41,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // ZezeCounter 的 Prometheus 实现：指标注册到 prometheus-client 并经 /metrics HTTP 暴露
 public class PrometheusCounter implements ZezeCounter {
@@ -64,7 +65,7 @@ public class PrometheusCounter implements ZezeCounter {
 	static class HealthyHandler implements HttpEndStreamHandle {
 
 		@Override
-		public void onEndStream(@NotNull HttpExchange x) {
+		public void onEndStream(HttpExchange x) {
 			x.sendPlainText(HttpResponseStatus.OK, "Exporter is healthy.\n");
 		}
 	}
@@ -73,7 +74,7 @@ public class PrometheusCounter implements ZezeCounter {
 		private final PrometheusScrapeHandler prometheusScrapeHandler = new PrometheusScrapeHandler();
 
 		@Override
-		public void onEndStream(@NotNull HttpExchange x) throws Exception {
+		public void onEndStream(HttpExchange x) throws Exception {
 			prometheusScrapeHandler.handleRequest(new HttpExchangeAdapter(x));
 		}
 	}
@@ -86,7 +87,7 @@ public class PrometheusCounter implements ZezeCounter {
 		class HttpRequestAdaptor implements PrometheusHttpRequest {
 
 			@Override
-			public String getQueryString() {
+			public @Nullable String getQueryString() {
 				return httpExchange.query();
 			}
 
@@ -131,7 +132,7 @@ public class PrometheusCounter implements ZezeCounter {
 			}
 		}
 
-		public HttpExchangeAdapter(@NotNull HttpExchange x) {
+		public HttpExchangeAdapter(HttpExchange x) {
 			httpExchange = x;
 		}
 
@@ -276,13 +277,13 @@ public class PrometheusCounter implements ZezeCounter {
 			}).register();
 
 	@Override
-	public @NotNull LongCounter allocCounter(@NotNull String name) {
+	public LongCounter allocCounter(String name) {
 		Counter counter = Counter.builder().name(PrometheusNaming.sanitizeMetricName(name)).register();
 		return counter::inc;
 	}
 
 	@Override
-	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames) {
+	public LabeledCounterCreator allocLabeledCounterCreator(String name, String... labelNames) {
 		if (labelNames.length == 0) {
 			throw new IllegalArgumentException("labelNames empty");
 		}
@@ -296,7 +297,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name, @NotNull String... labelNames) {
+	public LabeledObserverCreator allocRunTimeObserverCreator(String name, String... labelNames) {
 		if (labelNames.length == 0) {
 			throw new IllegalArgumentException("labelNames empty");
 		}
@@ -308,7 +309,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
+	public LongObserver getRunTimeObserver(Object key) {
 		// 标签形态：task_duration_seconds{task="<键>"}——指标名承载语义、label承载维度，
 		// 跨任务聚合（histogram_quantile by task）与注册表规模（单一指标族）都优于逐键指标名。
 		// label 值无名字合法性约束，原 sanitize/prometheusName 规范化与指标名碰撞去重
@@ -340,7 +341,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public void serviceStart(@NotNull Service service) {
+	public void serviceStart(Service service) {
 		serviceMapMutex.lock();
 		try {
 			String name = service.getName();
@@ -361,7 +362,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public void serviceStop(@NotNull Service service) {
+	public void serviceStop(Service service) {
 		serviceMapMutex.lock();
 		try {
 			String name = service.getName();
@@ -392,26 +393,26 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
+	public ProcedureCounter allocProcedureCounter(String name) {
 		return fastGetOrAdd(procedureCounterMap, name, PromProcedureCounter::new);
 	}
 
 	// 每name一次预绑定全部DataPoint；end的result_code维度在handle内按码缓存
 	// （基数被ResultCodeCap封顶，默认20+other），调用路径零labelValues解析零分配。
 	private final class PromProcedureCounter implements ProcedureCounter {
-		private final @NotNull String name;
-		private final @NotNull CounterDataPoint started;
-		private final @NotNull CounterDataPoint redo;
-		private final @NotNull CounterDataPoint redoAndReleaseLock;
-		private final @NotNull DistributionDataPoint manyLocks;
-		private final @NotNull ResultCodeCap codeCap = new ResultCodeCap();
-		private final @NotNull LongConcurrentHashMap<Completed> completedByCode = new LongConcurrentHashMap<>();
+		private final String name;
+		private final CounterDataPoint started;
+		private final CounterDataPoint redo;
+		private final CounterDataPoint redoAndReleaseLock;
+		private final DistributionDataPoint manyLocks;
+		private final ResultCodeCap codeCap = new ResultCodeCap();
+		private final LongConcurrentHashMap<Completed> completedByCode = new LongConcurrentHashMap<>();
 		private volatile @Nullable Completed otherCompleted;
 
-		private record Completed(@NotNull CounterDataPoint count, @NotNull DistributionDataPoint duration) {
+		private record Completed(CounterDataPoint count, DistributionDataPoint duration) {
 		}
 
-		PromProcedureCounter(@NotNull String name) {
+		PromProcedureCounter(String name) {
 			this.name = name;
 			started = procedure_started.labelValues(name);
 			redo = procedure_redo.labelValues(name);
@@ -419,18 +420,18 @@ public class PrometheusCounter implements ZezeCounter {
 			manyLocks = procedure_many_locks.labelValues(name);
 		}
 
-		private @NotNull Completed newCompleted(@NotNull String codeLabel) {
+		private Completed newCompleted(String codeLabel) {
 			return new Completed(procedure_completed.labelValues(name, codeLabel),
 					procedure_duration_seconds.labelValues(name, codeLabel));
 		}
 
-		private @NotNull Completed completed(long resultCode) {
+		private Completed completed(long resultCode) {
 			var c = completedByCode.get(resultCode);
 			if (c != null)
 				return c;
 			// result_code基数封顶：超出上限归入other，防业务错误码撑爆series
 			if (codeCap.accept(resultCode))
-				return completedByCode.computeIfAbsent(resultCode, code -> newCompleted(String.valueOf(code)));
+				return Objects.requireNonNull(completedByCode.computeIfAbsent(resultCode, code -> newCompleted(String.valueOf(code))));
 			var o = otherCompleted;
 			if (o == null)
 				otherCompleted = o = newCompleted(ResultCodeCap.OTHER);
@@ -466,7 +467,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull LongCounter tableCounter(long tableId, @NotNull TableMetric metric) {
+	public LongCounter tableCounter(long tableId, TableMetric metric) {
 		// 每表一次构建全部DataPoint并缓存，调用路径零分配
 		var counters = fastGetOrAdd(tableCounterMap, tableId, k -> {
 			var tableName = TableKey.tables.get(tableId);

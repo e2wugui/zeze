@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -28,14 +27,14 @@ public final class AtomicFileWriter {
 	 * close即提交的句柄语义对try-with-resources是脚枪——主体异常后TWR的close照样发布
 	 * 残缺内容；持有本句柄的调用方必须遵守"任何失败路径先abort后不管close"的纪律。
 	 */
-	public static @NotNull AtomicOutputFile openOutput(@NotNull Path target) throws IOException {
+	public static AtomicOutputFile openOutput(Path target) throws IOException {
 		return new AtomicOutputFile(target);
 	}
 
 	/**
 	 * 便捷重载：全量内容一次换版（小文件用），语义与Stream版一致。
 	 */
-	public static void writeAtomically(@NotNull Path target, byte[] content) throws IOException {
+	public static void writeAtomically(Path target, byte[] content) throws IOException {
 		writeAtomically(target, out -> out.write(content));
 	}
 
@@ -46,7 +45,7 @@ public final class AtomicFileWriter {
 	 * "内容未完成"，只有作用域知道writer未正常返回。writer内不得close底层流之外再
 	 * 依赖它（close即提交，之后异常已无法撤销发布）。
 	 */
-	public static void writeAtomically(@NotNull Path target, @NotNull Stream writer) throws IOException {
+	public static void writeAtomically(Path target, Stream writer) throws IOException {
 		var out = new AtomicOutputFile(target);
 		try {
 			writer.write(out);
@@ -59,11 +58,11 @@ public final class AtomicFileWriter {
 
 	@FunctionalInterface
 	public interface Stream {
-		void write(@NotNull OutputStream out) throws IOException;
+		void write(OutputStream out) throws IOException;
 	}
 
 	/** 对已写完的文件补齐fsync（分块接收等按路径写的落盘收口）：force必须先于任何rename。 */
-	public static void fsync(@NotNull Path file) throws IOException {
+	public static void fsync(Path file) throws IOException {
 		try (var channel = FileChannel.open(file, StandardOpenOption.WRITE)) {
 			channel.force(true);
 		}

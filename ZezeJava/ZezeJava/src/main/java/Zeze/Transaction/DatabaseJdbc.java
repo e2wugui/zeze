@@ -8,8 +8,7 @@ import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Util.Task;
 import com.alibaba.druid.pool.DruidDataSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** JDBC 数据库公共基类：统一 Druid 连接池配置与 JdbcTrans 连接事务的借还管理。 */
 public abstract class DatabaseJdbc extends Database {
@@ -22,10 +21,10 @@ public abstract class DatabaseJdbc extends Database {
 		boolean handle(ResultSet rs) throws Exception; // false=中断walk
 	}
 
-	public DatabaseJdbc(@Nullable Application zeze, @NotNull DatabaseConf conf) {
+	public DatabaseJdbc(@Nullable Application zeze, DatabaseConf conf) {
 		super(zeze, conf);
 
-		var dc = conf.getDruidConf();
+		var dc = Objects.requireNonNull(conf.getDruidConf());
 		var ds = dataSource;
 
 		// 数据库连接的URL: jdbc:mysql://localhost:3306/dbname?user=root&password=xxxx&useSSL=false&serverTimezone=UTC
@@ -83,7 +82,7 @@ public abstract class DatabaseJdbc extends Database {
 	}
 
 	@Override
-	public @NotNull Transaction beginTransaction() {
+	public Transaction beginTransaction() {
 		Connection conn = null;
 		try {
 			conn = dataSource.getConnection();
@@ -103,9 +102,9 @@ public abstract class DatabaseJdbc extends Database {
 	}
 
 	public static class JdbcTrans implements Transaction {
-		final @NotNull Connection conn;
+		final Connection conn;
 
-		public JdbcTrans(@NotNull Connection conn) throws SQLException {
+		public JdbcTrans(Connection conn) throws SQLException {
 			conn.setAutoCommit(false);
 			this.conn = conn;
 		}

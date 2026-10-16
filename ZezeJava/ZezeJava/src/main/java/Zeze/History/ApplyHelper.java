@@ -14,7 +14,7 @@ import Zeze.Transaction.TableKey;
 import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
 import Zeze.Util.OutObject;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * tHistory 历史记录的回放驱动：在自身锁内单线程按序消费记录，经记录级事务应用到回放库，
@@ -48,16 +48,16 @@ public class ApplyHelper extends FastLock {
 	// ApplyTable的LRU缓存与本map的结构修改均无并发保护，经公开API泄漏内部map
 	// 即引入结构性损坏；外部需要的是apply(count)的返回值（受影响表与键）。
 	private final ConcurrentHashMap<Integer, ApplyTable<?, ?>> applyTables = new ConcurrentHashMap<>();
-	private Id128 exclusiveStartKey;
+	private @Nullable Id128 exclusiveStartKey;
 	// 当前阻塞游标的空洞（空洞前一个已确认的key）及首次发现时刻。老化计时用单调时钟
 	// System.nanoTime（hist-05）：只测"停了多久"，墙钟回拨（NTP）会使墙钟差为负、空洞永不
 	// 老化；与业务timestamp的墙钟边界判定解耦。进程内字段不持久化，重启后随holeAfterKey
 	// （null）一起重新登记，不受nanoTime原点跨进程变化影响。
-	private Id128 holeAfterKey;
+	private @Nullable Id128 holeAfterKey;
 	private long holeSinceNanos;
 	// 已告警的未来时间戳记录（hist-04去重标记）：该记录把游标挡在时间边界上时warn一次，
 	// 游标越过它（已应用）之前不重复告警。
-	private Id128 futureAfterKey;
+	private @Nullable Id128 futureAfterKey;
 
 	public ApplyHelper(Application zeze, tHistory historyTable,
 					   IApplyDatabase dbApplied, int beforeTimeMs) {

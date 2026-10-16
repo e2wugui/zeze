@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,12 +59,12 @@ public final class SendSnapshotting {
 	}
 
 	// 会话收口：关文件；done且成功则复位索引并续复制。map移除由调用方完成。
-	private void end(InstallSnapshotState state) throws Exception {
+	private void end(@Nullable InstallSnapshotState state) throws Exception {
 		if (state == null)
 			return;
 		var c = state.getConnector();
 		logger.info("{} InstallSnapshot LastIncludedIndex={} Done={} c={}", logSequence.getRaft().getName(),
-				state.getLastIncludedIndex(), state.getDone(), c.getName());
+				state.getLastIncludedIndex(), state.getDone(), Objects.requireNonNull(c).getName());
 		// 防御：start打开文件失败留下的会话file==null，原样NPE会沿shutdown路径的
 		// cancelAll打断后续logSequence.close。
 		if (state.getFile() != null)

@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.Objects;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -18,22 +19,21 @@ import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Id128 UDP发号客户端：按name合并请求批量向Id128UdpServer申请号段，FutureNode链表
  * 等待应答或超时，供Tid128Cache发放。
  */
 public class Id128UdpClient {
-	private static final @NotNull Logger logger = LogManager.getLogger(Id128UdpClient.class);
+	private static final Logger logger = LogManager.getLogger(Id128UdpClient.class);
 	private static final int eSoTimeoutTick = 15;
 	private static final int eMaxUdpPacketSize = 256;
 	private static final int eSendImmediatelyGuard = 1; // >1会导致Simulate测试跑得太慢,还需要分析原因
 	private static final int eRpcTimeoutChecker = 1500;
 	private static final int eRpcTimeout = 5000;
 
-	private final AbstractAgent agent;
+	private final @Nullable AbstractAgent agent;
 	private final DatagramSocket udp = new DatagramSocket();
 	private final Thread worker = new Thread(this::run, "Id128UdpClient");
 	private boolean running = true;
@@ -42,9 +42,9 @@ public class Id128UdpClient {
 	private final LongConcurrentHashMap<AllocateId128> pendingRpc = new LongConcurrentHashMap<>();
 	private long lastProcessTickTime = System.currentTimeMillis();
 	private long lastRpcTimeoutCheckTime = System.currentTimeMillis();
-	private final @NotNull FuncLong nextSessionIdFunc;
+	private final FuncLong nextSessionIdFunc;
 
-	public Id128UdpClient(AbstractAgent agent, @NotNull String ip, int port, @NotNull FuncLong nextSessionIdFunc)
+	public Id128UdpClient(@Nullable AbstractAgent agent, String ip, int port, FuncLong nextSessionIdFunc)
 			throws IOException {
 		this.agent = agent;
 		this.nextSessionIdFunc = nextSessionIdFunc;
@@ -71,7 +71,7 @@ public class Id128UdpClient {
 		}
 	}
 
-	public @NotNull FutureNode allocateFuture(@NotNull String globalName, int allocateCount) {
+	public FutureNode allocateFuture(String globalName, int allocateCount) {
 		// 多次请求的allocateCount不一样,只记住第一次的.
 		var outFuture = new OutObject<FutureNode>();
 		currentFuture.compute(globalName, (key, value) -> {
@@ -116,7 +116,7 @@ public class Id128UdpClient {
 			// 3.删除
 			return null;
 		});
-		return outFuture.value;
+		return Objects.requireNonNull(outFuture.value);
 	}
 
 	public void stop() throws Exception {
@@ -136,11 +136,11 @@ public class Id128UdpClient {
 			completeIfPending(futureNode, stopped);
 		tailFuture.clear();
 		for (var eIt = pendingRpc.entryIterator(); eIt.moveToNext(); )
-			completeIfPending(eIt.value().getFutureNode(), stopped);
+			completeIfPending(Objects.requireNonNull(Objects.requireNonNull(eIt.value()).getFutureNode()), stopped);
 		pendingRpc.clear();
 	}
 
-	private static void completeIfPending(@NotNull FutureNode futureNode, @NotNull Exception ex) {
+	private static void completeIfPending(FutureNode futureNode, Exception ex) {
 		if (futureNode.pending.getAndSet(0) > 0)
 			futureNode.setException(ex);
 	}
@@ -171,12 +171,12 @@ public class Id128UdpClient {
 	}
 
 	// 单线程
-	private void processResult(@NotNull AllocateId128 r) {
+	private void processResult(AllocateId128 r) {
 		var context = pendingRpc.remove(r.getSessionId());
 		if (context != null) {
 			var futureNode = context.getFutureNode();
 			// 判断是否已经设置过结果.迟到或乱序的rpc.
-			if (futureNode.pending.get() > 0) {
+			if (Objects.requireNonNull(futureNode).pending.get() > 0) {
 				var futureContext = futureNode;
 				// 响应rpc只解码Result,Argument保持默认空值,所以这里只能用请求对象的name.
 				var globalName = context.Argument.getName();
@@ -257,7 +257,7 @@ public class Id128UdpClient {
 			lastRpcTimeoutCheckTime = now;
 			for (var eIt = pendingRpc.entryIterator(); eIt.moveToNext(); ) {
 				var r = eIt.value();
-				var remain = r.getTimeout() - period;
+				var remain = Objects.requireNonNull(r).getTimeout() - period;
 				if (remain > 0) {
 					r.setTimeout(remain);
 					continue;
@@ -266,7 +266,7 @@ public class Id128UdpClient {
 				// 1. 仅给当前的future报告错误,链表保持不变(残留),以后的设置结果和报错由future保证不会重复.
 				// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面代码刚好可以工作.
 				var futureNode = r.getFutureNode();
-				if (futureNode.pending.get() > 0) {
+				if (Objects.requireNonNull(futureNode).pending.get() > 0) {
 					futureNode.setException(new TimeoutException());
 					futureNode.pending.set(0); // 用来标记futureNode已经设置过结果.
 				}

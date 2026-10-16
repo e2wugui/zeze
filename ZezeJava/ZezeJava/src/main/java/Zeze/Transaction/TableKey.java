@@ -1,8 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Util.LongConcurrentHashMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 记录锁的全序键：表 id + 记录 key，按 (id,key) 字典序比较以统一加锁顺序防死锁。 */
 public final class TableKey implements Comparable<TableKey> {
@@ -10,9 +9,9 @@ public final class TableKey implements Comparable<TableKey> {
 	public static final LongConcurrentHashMap<String> tables = new LongConcurrentHashMap<>();
 
 	private final int id;
-	private final @NotNull Object key;
+	private final Object key;
 
-	public TableKey(int id, @NotNull Object key) {
+	public TableKey(int id, Object key) {
 		this.id = id;
 		this.key = key;
 	}
@@ -21,7 +20,7 @@ public final class TableKey implements Comparable<TableKey> {
 		return id;
 	}
 
-	public @NotNull Object getKey() {
+	public Object getKey() {
 		return key;
 	}
 
@@ -43,13 +42,13 @@ public final class TableKey implements Comparable<TableKey> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public int compareTo(@NotNull TableKey other) {
+	public int compareTo(TableKey other) {
 		int c = Integer.compare(id, other.id);
 		return c != 0 ? c : ((Comparable<Object>)key).compareTo(other.key);
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.format("tkey(%s:%s)", tables.get(id), key);
 	}
 }

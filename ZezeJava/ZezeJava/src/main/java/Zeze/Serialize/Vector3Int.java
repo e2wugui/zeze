@@ -1,7 +1,6 @@
 package Zeze.Serialize;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 三维整型向量值类型（int x/y/z），继承 Vector2Int。 */
 public class Vector3Int extends Vector2Int {
@@ -14,22 +13,22 @@ public class Vector3Int extends Vector2Int {
 		this.z = z;
 	}
 
-	public Vector3Int(@NotNull Vector3Int v3) {
+	public Vector3Int(Vector3Int v3) {
 		super(v3);
 		z = v3.z;
 	}
 
-	public Vector3Int(@NotNull Vector3 v3) {
+	public Vector3Int(Vector3 v3) {
 		super(v3);
 		z = (int)v3.z;
 	}
 
-	public Vector3Int(@NotNull Vector2Int v2) {
+	public Vector3Int(Vector2Int v2) {
 		super(v2);
 		z = 0;
 	}
 
-	public Vector3Int(@NotNull Vector2 v2) {
+	public Vector3Int(Vector2 v2) {
 		super(v2);
 		z = 0;
 	}
@@ -40,7 +39,7 @@ public class Vector3Int extends Vector2Int {
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2Int v) {
+	public int compareTo(Vector2Int v) {
 		int c = Integer.compare(x, v.x);
 		if (c != 0)
 			return c;
@@ -71,7 +70,7 @@ public class Vector3Int extends Vector2Int {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "Vector3Int(" + x + ',' + y + ',' + z + ')';
 	}
 }

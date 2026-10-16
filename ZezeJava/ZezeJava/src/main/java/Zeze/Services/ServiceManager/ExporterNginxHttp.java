@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.Objects;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -11,7 +12,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /*
 curl -d "server 127.0.0.1:8089;server 127.0.0.1:8088;" 127.0.0.1:8081/upstream/dyhost
@@ -20,16 +20,16 @@ curl -d "server 127.0.0.1:8089;server 127.0.0.1:8088;" 127.0.0.1:8081/upstream/d
  * Nginx dyups HTTP导出器：把SM服务地址经HTTP POST写入dyups接口（用法见下方curl示例）。
  */
 public class ExporterNginxHttp implements IExporter {
-	private static final @NotNull Logger logger = LogManager.getLogger(ExporterNginxHttp.class);
+	private static final Logger logger = LogManager.getLogger(ExporterNginxHttp.class);
 
 	// 提为字段：HttpClient（jdk17）自身没有关闭接口，其executor线程若不显式关闭，
 	// 进程停机时线程泄漏（非守护线程阻止退出）。由close()统一关闭，Exporter.stop()触发。
-	private final @NotNull ExecutorService executor = Executors.newSingleThreadExecutor();
-	private final @NotNull HttpClient httpClient = HttpClient.newBuilder()
+	private final ExecutorService executor = Executors.newSingleThreadExecutor();
+	private final HttpClient httpClient = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.executor(executor)
 			.build();
-	private final @NotNull String url;
+	private final String url;
 	private final long version;
 	// 选桶不匹配只warn一次（事件风暴下不刷屏）；onEdit由one-by-one单worker串行
 	// 调用，volatile仅防御对调用线程模型的隐含依赖（对齐Exporter.failedServices风格）。
@@ -39,19 +39,19 @@ public class ExporterNginxHttp implements IExporter {
 	 * 构造Nginx配置HTTP输出器。
 	 * 当SM信息发生变化，会把服务列表通过http接口，输出Nginx中。
 	 */
-	public ExporterNginxHttp(@NotNull ExporterConfig config) {
+	public ExporterNginxHttp(ExporterConfig config) {
 		var param = config.getUrl();
 		url = param.endsWith("/") ? param : param + "/";
 		version = config.getVersion();
 	}
 
 	@Override
-	public @NotNull Type getType() {
+	public Type getType() {
 		return Type.eAll;
 	}
 
 	@Override
-	public void exportAll(@NotNull String serviceName, @NotNull BServiceInfosVersion all) throws Exception {
+	public void exportAll(String serviceName, BServiceInfosVersion all) throws Exception {
 		var ver0 = all.getInfos(version);
 		if (ver0 == null) {
 			// 可观测性：-version是选桶（SM按BServiceInfo注册时的version分桶，导出只取
@@ -61,7 +61,7 @@ public class ExporterNginxHttp implements IExporter {
 			if (!versionBucketEmptyWarned) {
 				var buckets = new StringBuilder();
 				for (var it = all.getInfosIterator(); it.moveToNext(); ) {
-					if (!it.value().getSortedIdentities().isEmpty()) {
+					if (!Objects.requireNonNull(it.value()).getSortedIdentities().isEmpty()) {
 						if (!buckets.isEmpty())
 							buckets.append(',');
 						buckets.append(it.key());

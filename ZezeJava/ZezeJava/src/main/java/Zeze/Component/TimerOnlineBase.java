@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Objects;
+
 import Zeze.Application;
 import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BOnlineTimers;
@@ -17,8 +19,7 @@ import Zeze.Util.Reflect;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * TimerRole/TimerAccount的公共基类，实现online定时器的调度、触发、取消、转发逻辑。
@@ -27,86 +28,86 @@ import org.jetbrains.annotations.Nullable;
  * @param <I> 在线身份类型(Long=roleId, BAccountClientId=account+clientId)
  */
 abstract class TimerOnlineBase<I> {
-	private static final @NotNull Logger logger = LogManager.getLogger(TimerOnlineBase.class);
+	private static final Logger logger = LogManager.getLogger(TimerOnlineBase.class);
 
 	/**
 	 * 在线定时器记录的适配器，屏蔽BGameOnlineTimer/BArchOnlineTimer的差异。
 	 */
 	abstract static class OnlineTimer<I> {
-		abstract @NotNull Bean getTimerObj();
+		abstract Bean getTimerObj();
 
 		abstract long getSerialId();
 
 		abstract long getLoginVersion();
 
-		abstract @NotNull I identity();
+		abstract I identity();
 	}
 
 	// ///////////////////////////////////////////////////////////////
 	// 子类钩子
-	abstract @NotNull Timer timer();
+	abstract Timer timer();
 
-	abstract @NotNull String name(); // 日志和存储过程命名用
+	abstract String name(); // 日志和存储过程命名用
 
-	abstract @Nullable Long getLocalLoginVersion(@NotNull I id);
+	abstract @Nullable Long getLocalLoginVersion(I id);
 
-	abstract @Nullable Long getSharedLoginVersion(@NotNull I id);
+	abstract @Nullable Long getSharedLoginVersion(I id);
 
-	abstract @Nullable Long getLoginVersion(@NotNull I id); // 触发时校验用
+	abstract @Nullable Long getLoginVersion(I id); // 触发时校验用
 
-	abstract @NotNull OnlineTimer<I> newOnlineTimer(@NotNull I id, long loginVersion, long serialId,
-													@NotNull Bean timerObj);
+	abstract OnlineTimer<I> newOnlineTimer(I id, long loginVersion, long serialId,
+													Bean timerObj);
 
-	abstract @Nullable OnlineTimer<I> getOnlineTimer(@NotNull String timerId);
+	abstract @Nullable OnlineTimer<I> getOnlineTimer(String timerId);
 
-	abstract void insertOnlineTimer(@NotNull String timerId, @NotNull OnlineTimer<I> onlineTimer);
+	abstract void insertOnlineTimer(String timerId, OnlineTimer<I> onlineTimer);
 
-	abstract void removeOnlineTimer(@NotNull String timerId);
+	abstract void removeOnlineTimer(String timerId);
 
-	abstract @NotNull BOnlineTimers getOrAddLocalTimers(@NotNull I id);
+	abstract BOnlineTimers getOrAddLocalTimers(I id);
 
-	abstract @Nullable BOnlineTimers getLocalTimers(@NotNull I id);
+	abstract @Nullable BOnlineTimers getLocalTimers(I id);
 
-	abstract void removeLocalTimers(@NotNull I id);
+	abstract void removeLocalTimers(I id);
 
-	abstract void transmitSimple(@NotNull I target, @NotNull BTransmitSimpleTimer p);
+	abstract void transmitSimple(I target, BTransmitSimpleTimer p);
 
-	abstract void transmitCron(@NotNull I target, @NotNull BTransmitCronTimer p);
+	abstract void transmitCron(I target, BTransmitCronTimer p);
 
-	abstract void transmitCancel(@NotNull I target, @NotNull String timerId, long loginVersion);
+	abstract void transmitCancel(I target, String timerId, long loginVersion);
 
-	abstract @NotNull String identityString(@NotNull I id); // 日志用
+	abstract String identityString(I id); // 日志用
 
-	abstract void fillContext(@NotNull I id, @NotNull TimerContext context);
+	abstract void fillContext(I id, TimerContext context);
 
-	final @NotNull Application zeze() {
-		return timer().zeze;
+	final Application zeze() {
+		return timer().getZeze();
 	}
 
 	// 检查命名timerId格式合法（非法抛异常）且全局唯一：统一经Timer.isNamedTimerIdOccupied
 	// 查全局/离线索引+全部onlineSet的Role在线表+Account在线表。只查本表会让三套查重互不相通
 	// ——同名online/offline/global定时器并存并共用timerFutures相互覆盖。
-	final boolean isNamedTimerIdOccupied(@NotNull String timerId) {
+	final boolean isNamedTimerIdOccupied(String timerId) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		return timer().isNamedTimerIdOccupied(timerId);
 	}
 
 	// 供Timer.isOnlineTimerIdOccupied逐set查重：本onlineSet在线表是否已有该timerId。
-	final boolean isOnlineTimerOccupied(@NotNull String timerId) {
+	final boolean isOnlineTimerOccupied(String timerId) {
 		return getOnlineTimer(timerId) != null;
 	}
 
-	final @NotNull String newAutoTimerId() {
-		return '@' + timer().timerIdAutoKey.nextString();
+	final String newAutoTimerId() {
+		return '@' + Objects.requireNonNull(timer().timerIdAutoKey).nextString();
 	}
 
 	// ///////////////////////////////////////////////////////////////
 	// 调度（cold/hot共用）
 	// hot=false时在调度时解析handle(要求cold调用者，由入口方法verifyCallerCold保证)，
 	// hot=true时在触发时按名字解析handle(支持热更新模块)。
-	final void scheduleOnline(boolean hot, @NotNull I id, @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
-							  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+	final void scheduleOnline(boolean hot, I id, String timerId, BSimpleTimer simpleTimer,
+							  Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 							  boolean fromTransmit) {
 		Reflect.checkDefaultConstructor(handleClass);
 		var localVersion = getLocalLoginVersion(id);
@@ -136,7 +137,7 @@ abstract class TimerOnlineBase<I> {
 			throw new IllegalStateException("not online " + identityString(id) + ", " + timerId);
 		}
 
-		insertOnlineTimer(timerId, newOnlineTimer(id, localVersion, timer().timerSerialId.nextId(), simpleTimer));
+		insertOnlineTimer(timerId, newOnlineTimer(id, localVersion, Objects.requireNonNull(timer().timerSerialId).nextId(), simpleTimer));
 		logger.debug("add online {}simple timer: timerId={}, {} handle={}",
 				hot ? "hot " : "", timerId, identityString(id), handleClass.getName());
 
@@ -156,8 +157,8 @@ abstract class TimerOnlineBase<I> {
 			scheduleOnlineSimple(timerId, delay, timer().findTimerHandle(handleClass.getName()), oneByOneKey);
 	}
 
-	final void scheduleOnline(boolean hot, @NotNull I id, @NotNull String timerId, @NotNull BCronTimer cronTimer,
-							  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+	final void scheduleOnline(boolean hot, I id, String timerId, BCronTimer cronTimer,
+							  Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 							  boolean fromTransmit) {
 		Reflect.checkDefaultConstructor(handleClass);
 		var localVersion = getLocalLoginVersion(id);
@@ -187,7 +188,7 @@ abstract class TimerOnlineBase<I> {
 			throw new IllegalStateException("not online " + identityString(id) + ", " + timerId);
 		}
 
-		insertOnlineTimer(timerId, newOnlineTimer(id, localVersion, timer().timerSerialId.nextId(), cronTimer));
+		insertOnlineTimer(timerId, newOnlineTimer(id, localVersion, Objects.requireNonNull(timer().timerSerialId).nextId(), cronTimer));
 		logger.debug("add online {}cron timer: timerId={}, {} handle={}",
 				hot ? "hot " : "", timerId, identityString(id), handleClass.getName());
 
@@ -206,7 +207,7 @@ abstract class TimerOnlineBase<I> {
 
 	// ///////////////////////////////////////////////////////////////
 	// 取消
-	final boolean cancelOnline(@Nullable String timerId, @NotNull I id, boolean fromTransmit) {
+	final boolean cancelOnline(@Nullable String timerId, I id, boolean fromTransmit) {
 		if (timerId == null)
 			return true; // 取消不存在的timer，认为成功。
 
@@ -270,7 +271,7 @@ abstract class TimerOnlineBase<I> {
 
 	// ///////////////////////////////////////////////////////////////
 	// transmit接收，target是定时器归属者(不是发送者)。
-	final long onTransmitSimpleTimer(@NotNull I target, @Nullable Binary parameter)
+	final long onTransmitSimpleTimer(I target, @Nullable Binary parameter)
 			throws ReflectiveOperationException {
 		if (parameter == null)
 			return 0;
@@ -291,7 +292,7 @@ abstract class TimerOnlineBase<I> {
 		return 0;
 	}
 
-	final long onTransmitCronTimer(@NotNull I target, @Nullable Binary parameter)
+	final long onTransmitCronTimer(I target, @Nullable Binary parameter)
 			throws ReflectiveOperationException {
 		if (parameter == null)
 			return 0;
@@ -312,7 +313,7 @@ abstract class TimerOnlineBase<I> {
 		return 0;
 	}
 
-	final void onTransmitCancel(@NotNull String timerId, @NotNull I id, long loginVersion) {
+	final void onTransmitCancel(String timerId, I id, long loginVersion) {
 		var sharedVersion = getSharedLoginVersion(id);
 		if (sharedVersion != null && loginVersion == sharedVersion)
 			cancelOnline(timerId, id, true);
@@ -321,7 +322,7 @@ abstract class TimerOnlineBase<I> {
 					identityString(id), timerId);
 	}
 
-	private @Nullable Bean decodeCustom(@NotNull String customClass, @NotNull Binary customBean)
+	private @Nullable Bean decodeCustom(String customClass, Binary customBean)
 			throws ReflectiveOperationException {
 		if (customClass.isEmpty())
 			return null;
@@ -334,7 +335,7 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	// Online.Local删除时，取消这个用户所有的在线定时器。
-	final void onLocalRemove(@NotNull BOnlineTimers timers) {
+	final void onLocalRemove(BOnlineTimers timers) {
 		for (var timerId : timers.getTimerIds().keySet())
 			cancelOnlineLocal(timerId, null); // 系统级清理：timers行本身即归属者的本地行
 	}
@@ -343,9 +344,9 @@ abstract class TimerOnlineBase<I> {
 	// 安装到ThreadPool与触发
 	// oneByOneKey非空时fire经Timer.dispatchFire包executeOneByOne（对齐全局族
 	// scheduleSimple/scheduleCronNext），共用key的online定时器回调按key串行。
-	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle,
+	private void scheduleOnlineSimple(String timerId, long delay, @Nullable TimerHandle handle,
 									  @Nullable String oneByOneKey) {
-		var timerSerialId = getOnlineTimer(timerId).getSerialId();
+		var timerSerialId = Objects.requireNonNull(getOnlineTimer(timerId)).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
@@ -362,7 +363,7 @@ abstract class TimerOnlineBase<I> {
 	// 异常发生在fireOnline之前（实参求值），不进入handle==null→cancelOnlineLocal与
 	// ret!=0→cancel的保护；TaskSpec.ofAction吞异常记日志后future静默消耗，
 	// tRoleTimers行残留成僵尸。解析失败返回null，让fireOnline走既有的清理分支。
-	private @Nullable TimerHandle findTimerHandleSafely(@NotNull String handleClassName) {
+	private @Nullable TimerHandle findTimerHandleSafely(String handleClassName) {
 		try {
 			return timer().findTimerHandle(handleClassName);
 		} catch (Throwable e) { // 含NoClassDefFoundError等链接错误
@@ -371,10 +372,10 @@ abstract class TimerOnlineBase<I> {
 		}
 	}
 
-	private void scheduleOnlineSimpleHot(@NotNull String timerId, long delay,
-										 @NotNull Class<? extends TimerHandle> handleClass,
+	private void scheduleOnlineSimpleHot(String timerId, long delay,
+										 Class<? extends TimerHandle> handleClass,
 										 @Nullable String oneByOneKey) {
-		var timerSerialId = getOnlineTimer(timerId).getSerialId();
+		var timerSerialId = Objects.requireNonNull(getOnlineTimer(timerId)).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
@@ -388,7 +389,7 @@ abstract class TimerOnlineBase<I> {
 		});
 	}
 
-	private void scheduleOnlineCron(@NotNull String timerId, @NotNull BCronTimer cron, @Nullable TimerHandle handle,
+	private void scheduleOnlineCron(String timerId, BCronTimer cron, @Nullable TimerHandle handle,
 									 @Nullable String oneByOneKey) {
 		try {
 			scheduleOnlineCronNext(timerId,
@@ -398,8 +399,8 @@ abstract class TimerOnlineBase<I> {
 		}
 	}
 
-	private void scheduleOnlineCronHot(@NotNull String timerId, @NotNull BCronTimer cron,
-									   @NotNull Class<? extends TimerHandle> handleClass,
+	private void scheduleOnlineCronHot(String timerId, BCronTimer cron,
+									   Class<? extends TimerHandle> handleClass,
 									   @Nullable String oneByOneKey) {
 		try {
 			scheduleOnlineCronNextHot(timerId,
@@ -410,9 +411,9 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
-	private void scheduleOnlineCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle handle,
+	private void scheduleOnlineCronNext(String timerId, long delay, @Nullable TimerHandle handle,
 										@Nullable String oneByOneKey) {
-		var timerSerialId = getOnlineTimer(timerId).getSerialId();
+		var timerSerialId = Objects.requireNonNull(getOnlineTimer(timerId)).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
@@ -424,10 +425,10 @@ abstract class TimerOnlineBase<I> {
 		});
 	}
 
-	private void scheduleOnlineCronNextHot(@NotNull String timerId, long delay,
-										   @NotNull Class<? extends TimerHandle> handleClass,
+	private void scheduleOnlineCronNextHot(String timerId, long delay,
+										   Class<? extends TimerHandle> handleClass,
 										   @Nullable String oneByOneKey) {
-		var timerSerialId = getOnlineTimer(timerId).getSerialId();
+		var timerSerialId = Objects.requireNonNull(getOnlineTimer(timerId)).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
@@ -441,12 +442,12 @@ abstract class TimerOnlineBase<I> {
 		});
 	}
 
-	private void fireOnlineCron(@NotNull String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot) {
+	private void fireOnlineCron(String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot) {
 		fireOnline(timerId, timerSerialId, handle, hot, "Cron", new FireKind<>() {
 			private boolean hasNextFlag;
 
 			@Override
-			public long execute(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle)
+			public long execute(OnlineTimer<I> bTimer, I id, TimerHandle handle)
 					throws Exception {
 				var cronTimer = (BCronTimer)bTimer.getTimerObj();
 				if (cronTimer.getEndTime() > 0 && cronTimer.getNextExpectedTime() > cronTimer.getEndTime())
@@ -472,12 +473,12 @@ abstract class TimerOnlineBase<I> {
 			}
 
 			@Override
-			public boolean hasNext(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle) {
+			public boolean hasNext(OnlineTimer<I> bTimer, I id, TimerHandle handle) {
 				return hasNextFlag;
 			}
 
 			@Override
-			public void scheduleNext(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle,
+			public void scheduleNext(OnlineTimer<I> bTimer, I id, TimerHandle handle,
 									 boolean hot) {
 				var cronTimer = (BCronTimer)bTimer.getTimerObj();
 				var delay = Math.max(cronTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
@@ -490,10 +491,10 @@ abstract class TimerOnlineBase<I> {
 		});
 	}
 
-	private void fireOnlineSimple(@NotNull String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot) {
+	private void fireOnlineSimple(String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot) {
 		fireOnline(timerId, timerSerialId, handle, hot, "Simple", new FireKind<>() {
 			@Override
-			public long execute(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle) {
+			public long execute(OnlineTimer<I> bTimer, I id, TimerHandle handle) {
 				var simpleTimer = (BSimpleTimer)bTimer.getTimerObj();
 				if (simpleTimer.getEndTime() > 0 && simpleTimer.getNextExpectedTime() > simpleTimer.getEndTime()) {
 					simpleTimer.setNextExpectedTime(0);
@@ -522,12 +523,12 @@ abstract class TimerOnlineBase<I> {
 			}
 
 			@Override
-			public boolean hasNext(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle) {
+			public boolean hasNext(OnlineTimer<I> bTimer, I id, TimerHandle handle) {
 				return ((BSimpleTimer)bTimer.getTimerObj()).getNextExpectedTime() != 0;
 			}
 
 			@Override
-			public void scheduleNext(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle,
+			public void scheduleNext(OnlineTimer<I> bTimer, I id, TimerHandle handle,
 									 boolean hot) {
 				var simpleTimer = (BSimpleTimer)bTimer.getTimerObj();
 				var delay = Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
@@ -541,15 +542,15 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	private interface FireKind<T> {
-		long execute(@NotNull OnlineTimer<T> bTimer, @NotNull T id, @NotNull TimerHandle handle) throws Exception;
+		long execute(OnlineTimer<T> bTimer, T id, TimerHandle handle) throws Exception;
 
-		boolean hasNext(@NotNull OnlineTimer<T> bTimer, @NotNull T id, @NotNull TimerHandle handle);
+		boolean hasNext(OnlineTimer<T> bTimer, T id, TimerHandle handle);
 
-		void scheduleNext(@NotNull OnlineTimer<T> bTimer, @NotNull T id, @NotNull TimerHandle handle, boolean hot);
+		void scheduleNext(OnlineTimer<T> bTimer, T id, TimerHandle handle, boolean hot);
 	}
 
-	private void fireOnline(@NotNull String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot,
-							@NotNull String kind, @NotNull FireKind<I> fireKind) {
+	private void fireOnline(String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot,
+							String kind, FireKind<I> fireKind) {
 		if (!timer().isStarted())
 			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		var timer = timer();

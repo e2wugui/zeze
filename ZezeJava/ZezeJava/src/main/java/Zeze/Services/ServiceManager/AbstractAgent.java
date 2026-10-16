@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.Objects;
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.Map;
@@ -18,9 +19,10 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.List;
+import java.util.Map.Entry;
+import Zeze.Services.ServiceManager.Id128UdpClient.FutureNode;
 
 /*
  * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
@@ -29,13 +31,13 @@ import java.util.List;
  * UnSubscribe		无								无
  */
 public abstract class AbstractAgent extends ReentrantLock implements Closeable {
-	static final @NotNull Logger logger = LogManager.getLogger(AbstractAgent.class);
+	static final Logger logger = LogManager.getLogger(AbstractAgent.class);
 
 	// key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
 	// ServiceName ->
 	protected final ConcurrentHashMap<String, Agent.SubscribeState> subscribeStates = new ConcurrentHashMap<>();
 
-	protected Config config;
+	protected @Nullable Config config;
 
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
@@ -54,7 +56,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	private final ConcurrentHashMap<String, Id128UdpClient.FutureNode> tid128CacheFutures = new ConcurrentHashMap<>();
 	// 最近一次分配的future（无论名字）：仅作为无参getLastTid128CacheFuture()的兼容镜像（供测试/诊断），
 	// 正确性路径一律按名字存取，不读它。
-	private volatile @Nullable Id128UdpClient.FutureNode lastTid128CacheFuture;
+	private volatile @Nullable FutureNode lastTid128CacheFuture;
 	protected @Nullable Id128UdpClient tid128UdpClient; // 子类初始化。
 
 	protected final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
@@ -65,8 +67,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return subscribeStates;
 	}
 
-	public @NotNull Config getConfig() {
-		return config;
+	public Config getConfig() {
+		return Objects.requireNonNull(config);
 	}
 
 	/**
@@ -105,13 +107,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		onSuspect = value;
 	}
 
-	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
+	protected abstract void allocate(AutoKey autoKey, int pool);
 
 	public @Nullable TaskCompletionSource<TidCache> getLastTidCacheFuture() {
 		return lastTidCacheFuture;
 	}
 
-	public @NotNull TaskCompletionSource<TidCache> allocateTidCacheFuture(@NotNull String globalName) {
+	public TaskCompletionSource<TidCache> allocateTidCacheFuture(String globalName) {
 		var future = new TaskCompletionSource<TidCache>();
 		lock();
 		try {
@@ -156,7 +158,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return future;
 	}
 
-	public @Nullable Id128UdpClient.FutureNode getLastTid128CacheFuture(@NotNull String globalName) {
+	public @Nullable FutureNode getLastTid128CacheFuture(String globalName) {
 		return tid128CacheFutures.get(globalName);
 	}
 
@@ -165,7 +167,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	 *     正确性路径使用 {@link #getLastTid128CacheFuture(String)}。
 	 */
 	@Deprecated
-	public @Nullable Id128UdpClient.FutureNode getLastTid128CacheFuture() {
+	public @Nullable FutureNode getLastTid128CacheFuture() {
 		return lastTid128CacheFuture;
 	}
 
@@ -176,7 +178,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	 *                      &gt;0（如多app部署的1）时每次按该个数分配。
 	 * @return 可等待的future，到达后get()得到Tid128Cache号段。
 	 */
-	public @NotNull Id128UdpClient.FutureNode allocateTid128CacheFuture(@NotNull String globalName, int allocateCount) {
+	public Id128UdpClient.FutureNode allocateTid128CacheFuture(String globalName, int allocateCount) {
 		lock();
 		try {
 			var future = tid128CacheFutures.get(globalName);
@@ -217,15 +219,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	 * 上一次分配异常完成（Udp超时等毒化状态）或尚未分配过时，发起新分配并替换（自愈），
 	 * 避免读取毒化的future后get()抛异常，导致finalCommit失败halt。
 	 */
-	public @NotNull Id128UdpClient.FutureNode getUsableTid128CacheFuture(@NotNull String globalName) {
+	public Id128UdpClient.FutureNode getUsableTid128CacheFuture(String globalName) {
 		var future = getLastTid128CacheFuture(globalName);
 		if (future == null || future.isCompletedExceptionally())
-			return allocateTid128CacheFuture(globalName, config.getHistoryAllocCount());
+			return allocateTid128CacheFuture(globalName, Objects.requireNonNull(config).getHistoryAllocCount());
 		return future;
 	}
 
-	protected abstract boolean allocateAsync(@NotNull String globalName, int allocCount,
-											 @NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback);
+	protected abstract boolean allocateAsync(String globalName, int allocCount,
+											 ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback);
 
 	public abstract void start() throws Exception;
 
@@ -233,7 +235,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	private static final String SMCallbackOneByOneKey = "SMCallbackOneByOneKey";
 
-	protected void triggerOnChanged(@NotNull BEditService edit) {
+	protected void triggerOnChanged(BEditService edit) {
 		if (onChanged != null) {
 			TaskSpec.ofAction(() -> {
 				try {
@@ -252,18 +254,18 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
 	public static final class SubscribeState extends ReentrantLock {
-		private volatile @NotNull BSubscribeInfo subscribeInfo;
-		private volatile @NotNull BServiceInfosVersion serviceInfos = new BServiceInfosVersion();
+		private volatile BSubscribeInfo subscribeInfo;
+		private volatile BServiceInfosVersion serviceInfos = new BServiceInfosVersion();
 
 		// 服务准备好。
 		private final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
 		private @Nullable Iterator<Map.Entry<String, Object>> localStatesIterator;
 
-		public SubscribeState(@NotNull BSubscribeInfo info) {
+		public SubscribeState(BSubscribeInfo info) {
 			subscribeInfo = info;
 		}
 
-		public @Nullable Map.Entry<String, Object> getNextStateEntry() {
+		public @Nullable Entry<String, Object> getNextStateEntry() {
 			lock();
 			try {
 				if (localStatesIterator == null || !localStatesIterator.hasNext())
@@ -275,18 +277,18 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return serviceInfos.toString();
 		}
 
-		public @NotNull BSubscribeInfo getSubscribeInfo() {
+		public BSubscribeInfo getSubscribeInfo() {
 			return subscribeInfo;
 		}
 
 		// 同名重订阅时同步本地过滤版本（FND-S2-8）：请求subs里携带的是新version，服务器simple表
 		// 已被本次请求覆盖，但computeIfAbsent命中旧state保留旧subscribeInfo——断线重连的
 		// onConnected会用它重放，把服务器订阅过滤回退到旧版本桶（灰度切换被重连悄悄回滚）。
-		public void updateSubscribeInfo(@NotNull BSubscribeInfo info) {
+		public void updateSubscribeInfo(BSubscribeInfo info) {
 			lock();
 			try {
 				if (subscribeInfo != info)
@@ -296,7 +298,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public @NotNull String getServiceName() {
+		public String getServiceName() {
 			return subscribeInfo.getServiceName();
 		}
 
@@ -306,7 +308,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		 * 期间get可错桶漏桶。桶内BServiceInfos引用共享，其读API（getSortedIdentities）为
 		 * copy-on-read快照，仍然安全。
 		 */
-		public @NotNull BServiceInfosVersion getServiceInfosVersion() {
+		public BServiceInfosVersion getServiceInfosVersion() {
 			lock();
 			try {
 				return new BServiceInfosVersion(serviceInfos);
@@ -341,11 +343,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public @Nullable BServiceInfo findServiceInfoByIdentity(@NotNull String identity) {
+		public @Nullable BServiceInfo findServiceInfoByIdentity(String identity) {
 			lock();
 			try {
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
-					var info = it.value().findServiceInfoByIdentity(identity);
+					var info = Objects.requireNonNull(it.value()).findServiceInfoByIdentity(identity);
 					if (info != null)
 						return info;
 				}
@@ -361,11 +363,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 		// NOT UNDER LOCK
 
-		public @NotNull ConcurrentHashMap<String, Object> getLocalStates() {
+		public ConcurrentHashMap<String, Object> getLocalStates() {
 			return localStates;
 		}
 
-		public void setIdentityLocalState(@NotNull String identity, @Nullable Object state) {
+		public void setIdentityLocalState(String identity, @Nullable Object state) {
 			if (state == null)
 				localStates.remove(identity);
 			else
@@ -375,7 +377,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		/**
 		 * @return 被替换的旧BServiceInfo; 无更新或无变化则返回null
 		 */
-		public @Nullable BServiceInfo onRegister(@NotNull BServiceInfo info) {
+		public @Nullable BServiceInfo onRegister(BServiceInfo info) {
 			lock();
 			try {
 				// BEditService.add声明AddOrUpdate以name+id为key：同identity重注册到新版本时，
@@ -385,7 +387,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
 					if (it.key() == info.getVersion())
 						continue;
-					var old = it.value().remove(info);
+					var old = Objects.requireNonNull(it.value()).remove(info);
 					if (old != null && !old.fullEquals(info) && oldNotSame == null)
 						oldNotSame = old;
 				}
@@ -400,14 +402,14 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public boolean onUnRegister(@NotNull BServiceInfo info) {
+		public boolean onUnRegister(BServiceInfo info) {
 			lock();
 			try {
 				// 注销同样以name+id为key跨全部版本桶收敛（与onRegister、服务端removeAndCollectNotify
 				// 一致），移除同identity的全部残留，避免死地址留存在任何版本桶里。
 				var removed = false;
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
-					if (it.value().remove(info) != null)
+					if (Objects.requireNonNull(it.value()).remove(info) != null)
 						removed = true;
 				}
 				serviceInfos.pruneEmptyVersions();
@@ -417,18 +419,18 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public void onFirstCommit(@NotNull BServiceInfosVersion infos, @NotNull BEditService edits) {
+		public void onFirstCommit(BServiceInfosVersion infos, BEditService edits) {
 			lock();
 			try {
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
 					var current = infos.getInfos(it.key());
-					for (var old : it.value().getSortedIdentities()) {
+					for (var old : Objects.requireNonNull(it.value()).getSortedIdentities()) {
 						if (current == null || current.findServiceInfo(old) == null)
 							edits.getRemove().add(old);
 					}
 				}
 				for (var it = infos.getInfosIterator(); it.moveToNext(); )
-					edits.getAdd().addAll(it.value().getSortedIdentities());
+					edits.getAdd().addAll(Objects.requireNonNull(it.value()).getSortedIdentities());
 				serviceInfos = infos;
 			} finally {
 				unlock();
@@ -436,7 +438,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	protected static void verify(@NotNull String identity) {
+	protected static void verify(String identity) {
 		if (!identity.startsWith("@") && !identity.startsWith("#")) {
 			// 这里特意使用Integer.parseInt，因为现在只开放int(serverId)当作identity。
 			//noinspection ResultOfMethodCallIgnored
@@ -444,27 +446,27 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public void registerService(@NotNull BServiceInfo info) {
+	public void registerService(BServiceInfo info) {
 		var edit = new BEditService();
 		edit.getAdd().add(info);
 		editService(edit);
 	}
 
-	public void unRegisterService(@NotNull BServiceInfo info) {
+	public void unRegisterService(BServiceInfo info) {
 		var edit = new BEditService();
 		edit.getRemove().add(info);
 		editService(edit);
 	}
 
-	public abstract void editService(@NotNull BEditService arg);
+	public abstract void editService(BEditService arg);
 
-	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
+	public SubscribeState subscribeService(BSubscribeInfo info) {
 		var infos = new BSubscribeArgument();
 		infos.subs.add(info);
 		return subscribeServices(infos).getFirst();
 	}
 
-	public @NotNull List<SubscribeState> subscribeServices(@NotNull BSubscribeArgument infos) {
+	public List<SubscribeState> subscribeServices(BSubscribeArgument infos) {
 		try {
 			return subscribeServicesAsync(infos).get();
 		} catch (InterruptedException | ExecutionException e) {
@@ -472,26 +474,26 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public abstract @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
-			@NotNull BSubscribeArgument info);
+	public abstract CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
+			BSubscribeArgument info);
 
-	public void unSubscribeService(@NotNull String serviceName) {
+	public void unSubscribeService(String serviceName) {
 		var arg = new BUnSubscribeArgument();
 		arg.serviceNames.add(serviceName);
 		unSubscribeService(arg);
 	}
 
-	public abstract void unSubscribeService(@NotNull BUnSubscribeArgument arg);
+	public abstract void unSubscribeService(BUnSubscribeArgument arg);
 
-	public @NotNull AutoKey getAutoKey(@NotNull String name) {
+	public AutoKey getAutoKey(String name) {
 		return autoKeys.computeIfAbsent(name, k -> new AutoKey(k, this));
 	}
 
-	public abstract boolean setServerLoad(@NotNull BServerLoad load);
+	public abstract boolean setServerLoad(BServerLoad load);
 
-	protected static void setCurrentAndCount(@NotNull AutoKey autoKey, long current, int count) {
+	protected static void setCurrentAndCount(AutoKey autoKey, long current, int count) {
 		autoKey.setCurrentAndCount(current, count);
 	}
 
-	public abstract @NotNull Threading getThreading();
+	public abstract @Nullable Threading getThreading();
 }

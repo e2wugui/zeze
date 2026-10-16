@@ -14,36 +14,36 @@ import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 Map（2系）：Bean 值受管，原位修改同样记账。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
-	protected final @NotNull Map2Meta<K, V> meta;
+	protected final Map2Meta<K, V> meta;
 
-	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	public PMap2(Class<K> keyClass, Class<V> valueClass) {
 		meta = Map2Meta.get(keyClass, valueClass);
 	}
 
-	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
+	public PMap2(Class<K> keyClass, Class<V> valueClass, Supplier<V> valueCtor) {
 		meta = Map2Meta.create(keyClass, valueClass, valueCtor);
 	}
 
-	public PMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
+	public PMap2(Class<K> keyClass, ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) { // only for DynamicBean value
 		meta = Map2Meta.createDynamic(keyClass, get, create);
 	}
 
-	public PMap2(@NotNull Map2Meta<K, V> meta) {
+	public PMap2(Map2Meta<K, V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull Map2Meta<K, V> getMeta() {
+	public Map2Meta<K, V> getMeta() {
 		return meta;
 	}
 
-	public @NotNull V createValue() {
+	public V createValue() {
 		try {
 			return (V)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -51,7 +51,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		}
 	}
 
-	public @NotNull V getOrAdd(@NotNull K key) {
+	public V getOrAdd(K key) {
 		V exist = get(key);
 		if (exist == null) {
 			exist = createValue();
@@ -61,7 +61,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public @Nullable V put(@NotNull K key, @NotNull V value) {
+	public @Nullable V put(K key, V value) {
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("null key");
@@ -84,7 +84,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
 		if (m instanceof PMap2)
@@ -126,7 +126,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public @Nullable V remove(@NotNull Object key) {
+	public @Nullable V remove(Object key) {
 		if (isManaged()) {
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -138,7 +138,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public boolean remove(@NotNull Entry<K, V> item) {
+	public boolean remove(Entry<K, V> item) {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
@@ -167,7 +167,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public void followerApply(@NotNull Log _log) {
+	public void followerApply(Log _log) {
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
 		for (var e : log.getReplaced().entrySet()) {
@@ -193,24 +193,24 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogMap2<>(parent(), variableId(), this, map, meta);
 	}
 
 	@Override
-	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		for (V v : map.values())
 			v.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
 		for (V v : map.values())
 			v.initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public @NotNull PMap2<K, V> copy() {
+	public PMap2<K, V> copy() {
 		// 深拷贝值Bean：浅拷贝共享原记录树内的受管活Bean，经ReadOnly.copy()交出的“副本”
 		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
 		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
@@ -227,7 +227,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
-	public void assign(@NotNull PMap2<K, V> pmap) {
+	public void assign(PMap2<K, V> pmap) {
 		if (this == pmap)
 			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
 		var copy = pmap.copy(); // 先备输入再发布：copy抛出时目标保持原值
@@ -236,7 +236,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.keyEncoder;
@@ -247,7 +247,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		var decoder = meta.keyDecoder;
 		int n = bb.ReadUIntPositive();
@@ -269,15 +269,15 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		putAll(m);
 	}
 
-	public <D extends Data> void putAllData(@NotNull Map<K, D> dataMap) {
+	public <D extends Data> void putAllData(Map<K, D> dataMap) {
 		Bean.toBeanMap(dataMap, this);
 	}
 
-	public <D extends Data> void toDataMap(@NotNull Map<K, D> dataMap) {
+	public <D extends Data> void toDataMap(Map<K, D> dataMap) {
 		Bean.toDataMap(getMap(), dataMap);
 	}
 
-	public <D extends Data> @NotNull HashMap<K, D> toDataMap() {
+	public <D extends Data> HashMap<K, D> toDataMap() {
 		var beanMap = getMap();
 		var dataMap = new HashMap<K, D>(((beanMap.size() + 2) / 3) * 4);
 		Bean.toDataMap(beanMap, dataMap);

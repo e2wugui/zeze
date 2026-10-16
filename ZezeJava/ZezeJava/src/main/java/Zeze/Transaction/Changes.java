@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -10,32 +12,31 @@ import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.LongHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 事务提交的变更收集器：汇总日志树与记录级变更（Put/Remove/Edit），
  * 用于通知 ChangeListener 与序列化传输（History/客户端同步）。
  */
 public final class Changes {
-	private static final @NotNull Logger logger = LogManager.getLogger(Changes.class);
+	private static final Logger logger = LogManager.getLogger(Changes.class);
 
 	// 无 History、无监听者的提交不创建 Changes；有消费者但无字段日志（如整条 Put）
 	// 时仍无须分配 beans。getBeans 保持返回非空容器的契约。
 	private @Nullable LongHashMap<LogBean> beans; // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
-	private final HashMap<@NotNull TableKey, @NotNull Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
-	private final @Nullable IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners;
+	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
+	private final @Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners;
 	private final boolean collectAll;
 
 	private Changes(boolean collectAll,
-			@Nullable IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners) {
+			@Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners) {
 		this.collectAll = collectAll;
 		this.listeners = listeners;
 	}
 
 	/** 先确认脏写，再决定是否全量采集。纯读、无监听器的普通提交不分配 Changes。 */
-	static @Nullable Changes createIfNeeded(@NotNull Transaction t, boolean collectAll) {
-		IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> snapshot = null;
+	static @Nullable Changes createIfNeeded(Transaction t, boolean collectAll) {
+		IdentityHashMap<Table, Set<ChangeListener>> snapshot = null;
 		boolean hasDirty = false;
 		for (var ar : t.getAccessedRecords().values()) {
 			if (!ar.dirty)
@@ -52,12 +53,12 @@ public final class Changes {
 		return (collectAll && hasDirty) || snapshot != null ? new Changes(collectAll, snapshot) : null;
 	}
 
-	public @NotNull LongHashMap<LogBean> getBeans() {
+	public LongHashMap<LogBean> getBeans() {
 		var b = beans;
 		return b != null ? b : (beans = new LongHashMap<>());
 	}
 
-	public @NotNull HashMap<@NotNull TableKey, @NotNull Record> getRecords() {
+	public HashMap<TableKey, Record> getRecords() {
 		return records;
 	}
 
@@ -73,7 +74,7 @@ public final class Changes {
 		private @Nullable Bean value;
 		private int state;
 
-		public Record(@NotNull Table table) {
+		public Record(Table table) {
 			this.table = table;
 		}
 
@@ -92,7 +93,7 @@ public final class Changes {
 			return null;
 		}
 
-		public @NotNull IdentityHashMap<Bean, LogBean> getLogBeans() {
+		public IdentityHashMap<Bean, LogBean> getLogBeans() {
 			return logBeans;
 		}
 
@@ -108,7 +109,7 @@ public final class Changes {
 			return table;
 		}
 
-		public void collect(@NotNull RecordAccessed ar) {
+		public void collect(RecordAccessed ar) {
 			if (ar.committedPutLog != null) { // put or remove
 				var put = ar.committedPutLog.getValue();
 				if (put != null) {
@@ -129,7 +130,7 @@ public final class Changes {
 			}
 		}
 
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteUInt(state);
 			switch (state) {
 			case Remove:
@@ -144,7 +145,7 @@ public final class Changes {
 			}
 		}
 
-		public void decode(@NotNull ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			state = bb.ReadUInt();
 			switch (state) {
 			case Remove:
@@ -160,7 +161,7 @@ public final class Changes {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			var sb = new StringBuilder();
 			sb.append("State=").append(state).append(" PutValue=").append(value);
 			sb.append("\nLog=");
@@ -171,21 +172,20 @@ public final class Changes {
 		}
 	}
 
-	public void collect(@NotNull Bean recent, @NotNull Log log) {
+	public void collect(Bean recent, Log log) {
+		var rootInfo = recent.rootInfo;
 		// is table has listener
-		//noinspection DataFlowIssue
-		if (!collectAll && (listeners == null || listeners.get(recent.rootInfo.record().getTable()) == null))
+		if (!collectAll && (listeners == null || listeners.get(Objects.requireNonNull(Objects.requireNonNull(rootInfo).record()).getTable()) == null))
 			return;
 
 		var belong = log.getBelong();
 		if (belong == null) {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-			var r = records.get(recent.tableKey());
+			var tableKey = Objects.requireNonNull(rootInfo).tableKey();
+			var r = records.get(tableKey);
 			if (r == null) {
-				//noinspection DataFlowIssue
-				r = new Record(recent.rootInfo.record().getTable());
-				//noinspection DataFlowIssue
-				records.put(recent.tableKey(), r);
+				r = new Record(Objects.requireNonNull(rootInfo.record()).getTable());
+				records.put(tableKey, r);
 			}
 			r.logBeans.put(recent, (LogBean)log);
 			return; // root
@@ -210,7 +210,7 @@ public final class Changes {
 		logBean.collect(this, belong, log);
 	}
 
-	public void collectRecord(@NotNull RecordAccessed ar) {
+	public void collectRecord(RecordAccessed ar) {
 		// is table has listener
 		if (!collectAll && (listeners == null || listeners.get(ar.atomicTupleRecord.record().getTable()) == null))
 			return;
@@ -228,7 +228,7 @@ public final class Changes {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, records);
 		return sb.toString();

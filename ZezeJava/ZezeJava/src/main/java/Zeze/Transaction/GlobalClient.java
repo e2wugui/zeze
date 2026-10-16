@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
@@ -12,33 +14,32 @@ import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 与 GlobalCacheManager 的客户端连接服务：负责 Login/ReLogin 握手与 Reduce 等协议的关键派发。 */
 public final class GlobalClient extends Service {
 	private static final IOException loginException = new IOException("login failed");
 	private static final IOException reloginTimeoutException = new IOException("relogin timeout");
 
-	public GlobalClient(@NotNull GlobalAgent agent, @Nullable Application zeze) {
+	public GlobalClient(GlobalAgent agent, @Nullable Application zeze) {
 		super(agent.getZeze().getProjectName() + ".GlobalClient", zeze);
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) {
+	public void OnHandshakeDone(AsyncSocket so) {
 		// HandshakeDone 在 login|reLogin 完成以后才设置。
 
 		var agent = (GlobalAgent.Agent)so.getUserState();
-		if (agent.getLoginTimes().get() > 0) {
+		if (Objects.requireNonNull(agent).getLoginTimes().get() > 0) {
 			var reLogin = new ReLogin();
-			reLogin.Argument.serverId = getZeze().getConfig().getServerId();
+			reLogin.Argument.serverId = Objects.requireNonNull(getZeze()).getConfig().getServerId();
 			reLogin.Argument.globalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			// 必须携带debugMode：GCM端processReLogin会以本字段覆盖会话的调试豁免，
 			// 漏传即静默清除——断点调试期间闪断重连后daemon超时kick会话回收锁，调试现场被破坏。
 			reLogin.Argument.debugMode = Reflect.inDebugMode;
 			// GCM端processLogin/ReLogin应答前逐key release无界，实例多时应答可能超过RPC默认5s
 			// ——超时触发重连风暴而服务端还在处理；超时可配（默认维持5s）。
-			reLogin.setTimeout(getZeze().getConfig().getGlobalCacheManagerLoginTimeout());
+			reLogin.setTimeout(Objects.requireNonNull(getZeze()).getConfig().getGlobalCacheManagerLoginTimeout());
 			logger.debug("GlobalClient Send ReLogin: {}", reLogin.Argument);
 			reLogin.Send(so, (ThisRpc) -> {
 				if (reLogin.isTimeout()) {
@@ -52,13 +53,13 @@ public final class GlobalClient extends Service {
 					// 2. 开始清理，由守护线程保护，必须成功。
 					agent.startRelease(getZeze(), () -> {
 						// 3. 重置登录次数，下一次连接成功，会发送Login。
-						agent.getLoginTimes().getAndSet(0);
+						Objects.requireNonNull(agent).getLoginTimes().getAndSet(0);
 						// 4. 开始网络连接。
-						so.getConnector().start();
+						Objects.requireNonNull(so.getConnector()).start();
 					});
 				} else {
 					logger.debug("GlobalClient Recv Login 1");
-					agent.getLoginTimes().getAndIncrement();
+					Objects.requireNonNull(agent).getLoginTimes().getAndIncrement();
 					agent.setActiveTime(System.currentTimeMillis());
 					super.OnHandshakeDone(so);
 				}
@@ -66,10 +67,10 @@ public final class GlobalClient extends Service {
 			});
 		} else {
 			var login = new Login();
-			login.Argument.serverId = getZeze().getConfig().getServerId();
+			login.Argument.serverId = Objects.requireNonNull(getZeze()).getConfig().getServerId();
 			login.Argument.globalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			login.Argument.debugMode = Reflect.inDebugMode;
-			login.setTimeout(getZeze().getConfig().getGlobalCacheManagerLoginTimeout()); // 同ReLogin
+			login.setTimeout(Objects.requireNonNull(getZeze()).getConfig().getGlobalCacheManagerLoginTimeout()); // 同ReLogin
 			logger.debug("GlobalClient Send Login: {}", login.Argument);
 			login.Send(so, (ThisRpc) -> {
 				if (login.isTimeout() || login.getResultCode() != 0) {
@@ -79,7 +80,7 @@ public final class GlobalClient extends Service {
 				} else {
 					logger.debug("GlobalClient Recv Login 2");
 					agent.setActiveTime(System.currentTimeMillis());
-					agent.getLoginTimes().getAndIncrement();
+					Objects.requireNonNull(agent).getLoginTimes().getAndIncrement();
 					agent.initialize(login.Result.maxNetPing,
 							login.Result.serverProcessTime, login.Result.serverReleaseTimeout);
 					super.OnHandshakeDone(so);
@@ -90,7 +91,7 @@ public final class GlobalClient extends Service {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle,
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle,
 								 @Nullable AsyncSocket so) throws Exception {
 		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
@@ -98,16 +99,16 @@ public final class GlobalClient extends Service {
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p,
-								 @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(Protocol<?> p,
+								 ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-		Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p).call());
+		Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p).call());
 	}
 
 	@Override
 	public <P extends Protocol<?>>
-	void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-							 @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+							 ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// global rpc 没有异步调用，仅仅future.setResult。直接io线程调用。
 		try {
 			responseHandle.handle(rpc);

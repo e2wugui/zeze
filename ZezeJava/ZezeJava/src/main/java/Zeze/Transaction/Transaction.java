@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,14 +20,13 @@ import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Zeze 事务核心：管理保存点、修改日志与记录访问，配合记录锁驱动 redo 重试，直至最终提交或回滚。
  */
 public final class Transaction {
-	private static final @NotNull Logger logger = LogManager.getLogger(Transaction.class);
+	private static final Logger logger = LogManager.getLogger(Transaction.class);
 
 	// perform Abort限频+计数：环境异常（如GCM被停的Acquire In Releasing）
 	// 时bench类负载每笔事务一条带整栈的Abort warn，百万级迭代打成日志洪水拖垮执行。
@@ -36,10 +37,10 @@ public final class Transaction {
 	// 且默认 Root=DEBUG 配置下逐条格式化+落盘吞掉一个数量级的冲突吞吐。
 	private static final LongAdder redoInfoCount = new LongAdder();
 	private static volatile long lastRedoInfoTime;
-	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
-	private static final @NotNull Object NULL_VALUE = new Object(); // resolveOnce 已解析为 null 的哨兵
+	private static final ThreadLocal<@Nullable Transaction> threadLocal = new ThreadLocal<>();
+	private static final Object NULL_VALUE = new Object(); // resolveOnce 已解析为 null 的哨兵
 
-	public static @NotNull Transaction create(@NotNull Locks locks) {
+	public static Transaction create(Locks locks) {
 		var t = threadLocal.get();
 		if (t == null)
 			threadLocal.set(t = new Transaction());
@@ -59,12 +60,12 @@ public final class Transaction {
 		return t != null && t.created ? t : null;
 	}
 
-	public static @Nullable Transaction getCurrentVerifyRead(@NotNull Bean bean) {
+	public static @Nullable Transaction getCurrentVerifyRead(Bean bean) {
 		// 读操作全部允许，所以实际上不做验证，这个函数只是为了语义完备，定义在这里。
 		return getCurrent();
 	}
 
-	public static @NotNull Transaction getCurrentVerifyWrite(@NotNull Bean bean) {
+	public static Transaction getCurrentVerifyWrite(Bean bean) {
 		var t = getCurrent();
 		if (t == null)
 			throw new IllegalStateException("not in transaction");
@@ -83,8 +84,8 @@ public final class Transaction {
 	// 重试耗尽时随 error 全栈带出并可经 getLastRoundException() 读取；perform() 开始时清零。
 	private @Nullable Throwable lastRoundException;
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
-	private Locks locks;
-	private @NotNull TransactionState state = TransactionState.Running;
+	private @Nullable Locks locks;
+	private TransactionState state = TransactionState.Running;
 	private boolean created;
 	private boolean alwaysReleaseLockWhenRedo;
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
@@ -92,25 +93,29 @@ public final class Transaction {
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
-	private volatile Long tid;
+	private volatile @Nullable Long tid;
 
 	private Transaction() {
 	}
 
-	public @NotNull ArrayList<Procedure> getProcedureStack() {
+	public ArrayList<Procedure> getProcedureStack() {
 		return procedureStack;
 	}
 
 	public long getTransactionId() {
-		if (null != tid)
-			return tid;
+		// tid 是 volatile：判空后须走局部变量返回，避免检查与使用之间被并发重置读到 null。
+		var current = tid;
+		if (current != null)
+			return current;
 		synchronized (this) {
-			if (null != tid)
-				return tid;
+			current = tid;
+			if (current != null)
+				return current;
 			var topProcedure = getTopProcedure();
-			if (null != topProcedure) {
-				tid = topProcedure.getZeze().getTransactionIdAutoKey().nextId();
-				return tid;
+			if (topProcedure != null) {
+				current = Objects.requireNonNull(topProcedure.getZeze().getTransactionIdAutoKey()).nextId();
+				tid = current;
+				return current;
 			}
 		}
 		return 0;
@@ -122,7 +127,7 @@ public final class Transaction {
 		logActions.add(action);
 	}
 
-	@NotNull TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
+	TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
 		return accessedRecords;
 	}
 
@@ -176,7 +181,7 @@ public final class Transaction {
 		profiler.reset();
 	}
 
-	void reuseTransactionForRedo(@NotNull CheckResult checkResult) {
+	void reuseTransactionForRedo(CheckResult checkResult) {
 		if (checkResult == CheckResult.RedoAndReleaseLock) {
 			holdLocks.forEach(Lockey::exitLock);
 			holdLocks.clear();
@@ -232,7 +237,7 @@ public final class Transaction {
 			last.mergeRollbackActions(actions);
 	}
 
-	public @NotNull Log logGetOrAdd(long logKey, @NotNull Supplier<@NotNull Log> logFactory) {
+	public Log logGetOrAdd(long logKey, Supplier<Log> logFactory) {
 		var log = getLog(logKey);
 		if (log == null)
 			putLog(log = logFactory.get());
@@ -246,7 +251,7 @@ public final class Transaction {
 		return saveSize > 0 ? savepoints.get(saveSize - 1).getLog(key) : null;
 	}
 
-	public void putLog(@NotNull Log log) {
+	public void putLog(Log log) {
 		verifyRunning();
 		savepoints.getLast().putLog(log);
 	}
@@ -267,7 +272,7 @@ public final class Transaction {
 	 * 同一属主内要求 key 唯一标识资源（默认 sessionId 生成器进程内唯一，满足此约束）。
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> T resolveOnce(@NotNull Object owner, long key, @NotNull LongFunction<T> resolver) {
+	public <T> @Nullable T resolveOnce(Object owner, long key, LongFunction<@Nullable T> resolver) {
 		var cache = onceResolved;
 		if (cache == null)
 			onceResolved = cache = new HashMap<>();
@@ -283,17 +288,17 @@ public final class Transaction {
 	/**
 	 * 当前在事务内，执行事务的resolveOnce，否则直接返回resolver.apply(key)。
 	 */
-	public static <T> T resolveOnceOrApply(@NotNull Object owner, long key, @NotNull LongFunction<T> resolver) {
+	public static <T> @Nullable T resolveOnceOrApply(Object owner, long key, LongFunction<@Nullable T> resolver) {
 		var txn = getCurrent();
 		if (null != txn)
 			return txn.resolveOnce(owner, key, resolver);
 		return resolver.apply(key);
 	}
 
-	private record ResolveKey(@NotNull Object owner, long key) {
+	private record ResolveKey(Object owner, long key) {
 	}
 
-	static void whileRedo(@NotNull Bean b) {
+	static void whileRedo(Bean b) {
 		// 这个目前仅用来重置Bean.RootInfo。
 		// 而RootInfo的设置可能在事务外使用，此时忽略action的执行。
 		// 【bean所有权语义】登记进redoBeans的bean即被本事务占有：redo重试在
@@ -305,21 +310,21 @@ public final class Transaction {
 			current.redoBeans.add(b);
 	}
 
-	public static void whileCommit(@NotNull Runnable action) {
+	public static void whileCommit(Runnable action) {
 		var current = getCurrent();
 		if (current == null) // 事务外裸NPE难定位：显式ISE
 			throw new IllegalStateException("no current transaction for whileCommit");
 		current.runWhileCommit(action);
 	}
 
-	public static void whileRollback(@NotNull Runnable action) {
+	public static void whileRollback(Runnable action) {
 		var current = getCurrent();
 		if (current == null)
 			throw new IllegalStateException("no current transaction for whileRollback");
 		current.runWhileRollback(action);
 	}
 
-	public void runWhileCommit(@NotNull Runnable action) {
+	public void runWhileCommit(Runnable action) {
 		if (state == TransactionState.Completed) {
 			actions.add(new Savepoint.Action(Savepoint.ActionType.COMMIT, action));
 			return;
@@ -328,7 +333,7 @@ public final class Transaction {
 		savepoints.getLast().addCommitAction(action);
 	}
 
-	public void runWhileRollback(@NotNull Runnable action) {
+	public void runWhileRollback(Runnable action) {
 		if (state == TransactionState.Completed) {
 			actions.add(new Savepoint.Action(Savepoint.ActionType.ROLLBACK, action));
 			return;
@@ -348,7 +353,7 @@ public final class Transaction {
 	 *
 	 * @param procedure first procedure
 	 */
-	public long perform(@NotNull Procedure procedure) {
+	public long perform(Procedure procedure) {
 		if (null != onceResolved)
 			onceResolved.clear(); // 一次性解析缓存的生命周期 = 一次 perform（含redo重试），不跨事务
 		if (redoRollbackActions != null)
@@ -601,7 +606,7 @@ public final class Transaction {
 		}
 	}
 
-	private void triggerActions(@NotNull Procedure procedure) {
+	private void triggerActions(Procedure procedure) {
 		//noinspection ForLoopReplaceableByForEach
 		for (var i = 0; i < actions.size(); ++i) { // size可能会在循环中增加
 			var action = actions.get(i);
@@ -625,11 +630,11 @@ public final class Transaction {
 		}
 	}
 
-	private void triggerCommitActions(@NotNull Procedure procedure) {
+	private void triggerCommitActions(Procedure procedure) {
 		triggerActions(procedure);
 	}
 
-	private void triggerRollbackActions(@NotNull Procedure procedure) {
+	private void triggerRollbackActions(Procedure procedure) {
 		triggerActions(procedure);
 	}
 
@@ -638,12 +643,12 @@ public final class Transaction {
 	}
 
 	/** History 与监听器共用的变更采集，必须在 PutLog.commit 填充 committedPutLog 后执行。 */
-	void collectChanges(@NotNull Changes changes) {
+	void collectChanges(Changes changes) {
 		var lastSp = savepoints.getLast();
 		var it = lastSp.logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
-				var log = it.value();
+				var log = Objects.requireNonNull(it.value());
 				if (log.category() != Log.Category.eHistory)
 					continue;
 				var logBelong = log.getBelong();
@@ -658,7 +663,7 @@ public final class Transaction {
 		}
 	}
 
-	private void finalCommit(@NotNull Procedure proc, @Nullable OnzProcedure flushMode) throws Exception {
+	private void finalCommit(Procedure proc, @Nullable OnzProcedure flushMode) throws Exception {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		proc.getZeze().getProcedureLockWatcher().doWatch(proc, accessedRecords);
 		var lastSp = savepoints.getLast();
@@ -717,7 +722,7 @@ public final class Transaction {
 		}
 	}
 
-	private void finalRollback(@NotNull Procedure procedure) {
+	private void finalRollback(Procedure procedure) {
 		for (var ra : accessedRecords.values())
 			ra.atomicTupleRecord.record().setNotFresh();
 		// Begin/End 不配对（ErrorSavepoint 路径）时，savepoints 中可能残留未汇入的 whileRollback 回调，一并触发。
@@ -748,23 +753,23 @@ public final class Transaction {
 	/**
 	 * 只能添加一次。
 	 */
-	void addRecordAccessed(@NotNull Record.RootInfo root, @NotNull RecordAccessed ra,
+	void addRecordAccessed(Record.RootInfo root, RecordAccessed ra,
 						   @SuppressWarnings("unused") boolean removeWhileRollback) {
 		verifyRunning();
 		ra.initRootInfo(root, null);
 		accessedRecords.put(root.tableKey(), ra);
 	}
 
-	public @Nullable RecordAccessed getRecordAccessed(@NotNull TableKey key) {
+	public @Nullable RecordAccessed getRecordAccessed(TableKey key) {
 		// 允许读取事务内访问过的记录。
 		verifyRunningOrCompleted();
 		return accessedRecords.get(key);
 	}
 
-	public void verifyRecordForWrite(@NotNull Bean bean) {
+	public void verifyRecordForWrite(Bean bean) {
 		var ri = bean.rootInfo;
 		//noinspection DataFlowIssue
-		if (ri.record().getState() == GlobalCacheManagerConst.StateRemoved)
+		if (Objects.requireNonNull(ri.record()).getState() == GlobalCacheManagerConst.StateRemoved)
 			throwRedo(ri.tableKey().getId(), "Redo: StateRemoved: " + bean.tableKey()); // 这个错误需要redo。不是逻辑错误。
 		//noinspection DataFlowIssue
 		var ra = getRecordAccessed(bean.tableKey());
@@ -789,8 +794,8 @@ public final class Transaction {
 		RedoAndReleaseLock
 	}
 
-	private static @NotNull CheckResult _check_(boolean writeLock,
-												@NotNull RecordAccessed e) {
+	private static CheckResult _check_(boolean writeLock,
+												RecordAccessed e) {
 		e.atomicTupleRecord.record().enterFairLock();
 		try {
 			if (writeLock) {
@@ -842,11 +847,14 @@ public final class Transaction {
 		}
 	}
 
-	@NotNull Lockey getLockey(@NotNull TableKey key) {
-		return locks.get(key);
+	Lockey getLockey(TableKey key) {
+		var l = locks;
+		if (l == null)
+			throw new IllegalStateException("transaction has no locks (not in perform): " + tid);
+		return l.get(key);
 	}
 
-	private @NotNull CheckResult lockAndCheck(@NotNull Map.Entry<TableKey, RecordAccessed> e) {
+	private CheckResult lockAndCheck(Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = getLockey(e.getKey());
 		boolean writeLock = e.getValue().dirty;
 		lockey.enterLock(writeLock);
@@ -854,7 +862,7 @@ public final class Transaction {
 		return _check_(writeLock, e.getValue());
 	}
 
-	private @NotNull CheckResult lockAndCheck(@NotNull Procedure procedure) {
+	private CheckResult lockAndCheck(Procedure procedure) {
 		var level = procedure.getTransactionLevel();
 		boolean allRead = true;
 		var saveSize = savepoints.size();
@@ -866,7 +874,7 @@ public final class Transaction {
 				while (it.moveToNext()) {
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
-					var belong = it.value().getBelong();
+					var belong = Objects.requireNonNull(it.value()).getBelong();
 					if (belong == null)
 						continue;
 
@@ -993,7 +1001,7 @@ public final class Transaction {
 	}
 
 	@Contract("_, _ -> fail")
-	public void throwAbort(@NotNull String msg, @Nullable Throwable cause) {
+	public void throwAbort(String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Abort: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.Abort;
@@ -1001,7 +1009,7 @@ public final class Transaction {
 	}
 
 	@Contract("_, _, _ -> fail")
-	public void throwRedoAndReleaseLock(int tableId, @NotNull String msg, @Nullable Throwable cause) {
+	public void throwRedoAndReleaseLock(int tableId, String msg, @Nullable Throwable cause) {
 		ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.REDO).increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
@@ -1010,7 +1018,7 @@ public final class Transaction {
 	}
 
 	@Contract("_, _ -> fail")
-	public void throwRedo(int tableId, @NotNull String msg) {
+	public void throwRedo(int tableId, String msg) {
 		ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.REDO).increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Redo: State Is Not Running: " + state);
@@ -1038,7 +1046,7 @@ public final class Transaction {
 		@Serial
 		private static final long serialVersionUID = 0L;
 
-		RejectWhileStopping(@NotNull String msg) {
+		RejectWhileStopping(String msg) {
 			super(msg);
 		}
 	}

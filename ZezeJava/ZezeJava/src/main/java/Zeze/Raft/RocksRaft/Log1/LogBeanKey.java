@@ -1,6 +1,9 @@
 package Zeze.Raft.RocksRaft.Log1;
 
+import java.util.Objects;
+
 import java.lang.invoke.MethodHandle;
+import org.jspecify.annotations.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
@@ -9,7 +12,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 
 /** RocksRaft 存储的 BeanKey 字段修改日志；亦兼作记录 put/remove（value=null 即 remove）。 */
 public class LogBeanKey<T extends Serializable> extends Log {
@@ -25,7 +27,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 		}
 	}
 
-	public T value;
+	public @Nullable T value;
 	private final MethodHandle valueFactory;
 
 	public LogBeanKey(Class<T> valueClass) {
@@ -38,7 +40,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	// 事务修改过程中不需要Factory。
-	public LogBeanKey(Class<T> cls, Bean belong, int varId, T value) {
+	public LogBeanKey(Class<T> cls, Bean belong, int varId, @Nullable T value) {
 		this(cls);
 		setBelong(belong);
 		setVariableId(varId);
@@ -46,19 +48,19 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
-		value.encode(bb);
+	public void encode(ByteBuffer bb) {
+		Objects.requireNonNull(value).encode(bb);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		try {
 			value = (T)valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
-		value.decode(bb);
+		Objects.requireNonNull(value).decode(bb);
 	}
 
 	@Override

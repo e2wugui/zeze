@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -16,8 +18,7 @@ import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -31,12 +32,12 @@ import org.rocksdb.RocksDBException;
  * - **null cache**：loader返回null时放5分钟NullCache占位（不落RocksDb），防止对不存在的id反复穿透。
  */
 public class Cache {
-	private static final @NotNull Logger logger = LogManager.getLogger(Cache.class);
-	private final @NotNull String name;
-	private final @NotNull Function<String, CacheObject> loader;
-	private final @NotNull BiFunction<String, ByteBuffer, CacheObject> decoder;
-	private RocksDB db;
-	private ConcurrentLruLike<String, CacheObject> lru;
+	private static final Logger logger = LogManager.getLogger(Cache.class);
+	private final String name;
+	private final Function<String, @Nullable CacheObject> loader;
+	private final BiFunction<String, ByteBuffer, @Nullable CacheObject> decoder;
+	private @Nullable RocksDB db;
+	private @Nullable ConcurrentLruLike<String, CacheObject> lru;
 	private final ScheduledFuture<?> cleanTimer;
 	// 保护当天清单状态（todayDays/todayFile）：开新流、写清单、关旧流、close关流都必须同处其临界区，
 	// 否则无锁的写者可能拿到刚被关闭的旧流而抛"Stream Closed"，该key当天的清单条目丢失。
@@ -44,7 +45,7 @@ public class Cache {
 	// tryRemove 的清理筛选在锁外读（见那里的说明），保持 volatile。
 	private volatile long todayDays;
 	// 只在持有 todayLock 时访问。
-	private FileOutputStream todayFile;
+	private @Nullable FileOutputStream todayFile;
 	// 终态标志：在 close() 的 todayLock 临界区内置位，appendToday 在同一锁下检查，
 	// 密闭地拦住"close后写当日清单"——null流NPE与关后重开新流泄漏两种形态一并消灭。
 	private volatile boolean closed;
@@ -57,8 +58,8 @@ public class Cache {
 	 * @param loader      根据id装载对象实例的。
 	 * @param decoder     根据id和数据创建出对象实例。
 	 */
-	public Cache(@NotNull String name, int lruCapacity, @NotNull Function<String, CacheObject> loader,
-				 @NotNull BiFunction<String, ByteBuffer, CacheObject> decoder) throws RocksDBException {
+	public Cache(String name, int lruCapacity, Function<String, @Nullable CacheObject> loader,
+				 BiFunction<String, ByteBuffer, @Nullable CacheObject> decoder) throws RocksDBException {
 		this.name = name;
 		this.loader = loader;
 		this.decoder = decoder;
@@ -103,7 +104,7 @@ public class Cache {
 			lru.close();
 	}
 
-	public @Nullable CacheObject get(@NotNull String id) throws RocksDBException, IOException {
+	public @Nullable CacheObject get(String id) throws RocksDBException, IOException {
 		if (id.isEmpty())
 			throw new IllegalArgumentException();
 
@@ -159,7 +160,7 @@ public class Cache {
 		return CacheObject.isNull(loaded) ? null : loaded;
 	}
 
-	private void dbSave(@NotNull CacheObject value) throws RocksDBException, IOException {
+	private void dbSave(CacheObject value) throws RocksDBException, IOException {
 		var id = value.cacheId();
 		if (id.isEmpty())
 			throw new IllegalArgumentException();
@@ -181,7 +182,7 @@ public class Cache {
 
 	// 当天清单的唯一写入口：取流（含跨天滚动开新流、关旧流）与写流同处一个临界区。
 	// 该key当天的清单条目一旦丢失，它的db记录从此再没有退役记录。
-	private void appendToday(@NotNull String id) throws IOException {
+	private void appendToday(String id) throws IOException {
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
 		todayLock.lock();
 		try {
@@ -199,7 +200,7 @@ public class Cache {
 			}
 			// 新文件显式标记编码版本；旧 days_N 清单继续按原格式读取。
 			String encoded = Base64.getEncoder().encodeToString(id.getBytes(StandardCharsets.UTF_8));
-			todayFile.write((encoded + "\n").getBytes(StandardCharsets.US_ASCII));
+			Objects.requireNonNull(todayFile).write((encoded + "\n").getBytes(StandardCharsets.US_ASCII));
 		} finally {
 			todayLock.unlock();
 		}
@@ -251,8 +252,8 @@ public class Cache {
 		}
 	}
 
-	private static @NotNull ArrayList<String> tryRemove(@NotNull RocksDB db, @NotNull ConcurrentLruLike<String, CacheObject> lru,
-														@NotNull File file) throws IOException, RocksDBException {
+	private static ArrayList<String> tryRemove(RocksDB db, ConcurrentLruLike<String, CacheObject> lru,
+														File file) throws IOException, RocksDBException {
 		var skipped = new ArrayList<String>();
 		boolean encoded = file.getName().endsWith(".b64");
 		try (var r = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {

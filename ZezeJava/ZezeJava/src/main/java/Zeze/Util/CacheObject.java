@@ -3,7 +3,6 @@ package Zeze.Util;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
 
 // Cache 缓存对象接口：cacheId 为缓存键（NullCache 哨兵表示负缓存占位）
 public interface CacheObject extends Serializable {
@@ -20,12 +19,12 @@ public interface CacheObject extends Serializable {
 		public final long CreateTime = System.currentTimeMillis();
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 

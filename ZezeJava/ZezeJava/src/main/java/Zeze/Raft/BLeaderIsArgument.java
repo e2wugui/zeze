@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -9,7 +13,7 @@ import Zeze.Transaction.Bean;
  */
 final class BLeaderIsArgument extends Bean {
 	private long term;
-	private String leaderId;
+	private @Nullable String leaderId;
 	private boolean isLeader;
 
 	public long getTerm() {
@@ -20,11 +24,11 @@ final class BLeaderIsArgument extends Bean {
 		term = value;
 	}
 
-	public String getLeaderId() {
+	public @Nullable String getLeaderId() {
 		return leaderId;
 	}
 
-	public void setLeaderId(String value) {
+	public void setLeaderId(@Nullable String value) {
 		leaderId = value;
 	}
 
@@ -53,7 +57,7 @@ final class BLeaderIsArgument extends Bean {
 	@Override
 	public int hashCode() {
 		final int _prime_ = 31;
-		return Long.hashCode(term) * _prime_ + leaderId.hashCode();
+		return Long.hashCode(term) * _prime_ + Objects.requireNonNull(leaderId).hashCode();
 	}
 
 	@Override
@@ -62,7 +66,7 @@ final class BLeaderIsArgument extends Bean {
 			return true;
 		if (!(obj instanceof BLeaderIsArgument other))
 			return false;
-		return term == other.term && leaderId.equals(other.leaderId);
+		return term == other.term && Objects.requireNonNull(leaderId).equals(other.leaderId);
 	}
 
 	@Override

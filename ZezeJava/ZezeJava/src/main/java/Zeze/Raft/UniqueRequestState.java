@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -14,7 +18,7 @@ public class UniqueRequestState implements Serializable {
 
 	private long logIndex;
 	private boolean isApplied;
-	private Binary rpcResult;
+	private @Nullable Binary rpcResult;
 
 	public UniqueRequestState() {
 	}
@@ -22,14 +26,14 @@ public class UniqueRequestState implements Serializable {
 	public UniqueRequestState(RaftLog raftLog, boolean isApplied) {
 		logIndex = raftLog.getIndex();
 		this.isApplied = isApplied;
-		rpcResult = raftLog.getLog().getRpcResult();
+		rpcResult = Objects.requireNonNull(raftLog.getLog()).getRpcResult();
 	}
 
 	public boolean isApplied() {
 		return isApplied;
 	}
 
-	public Binary getRpcResult() {
+	public @Nullable Binary getRpcResult() {
 		return rpcResult;
 	}
 
@@ -37,7 +41,7 @@ public class UniqueRequestState implements Serializable {
 	public final void encode(ByteBuffer bb) {
 		bb.WriteLong(logIndex);
 		bb.WriteBool(isApplied);
-		bb.WriteBinary(rpcResult);
+		bb.WriteBinary(Objects.requireNonNull(rpcResult));
 	}
 
 	@Override

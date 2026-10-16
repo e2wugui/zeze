@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -18,25 +20,29 @@ import Zeze.Services.HandshakeServer;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Linkd 上接受 Provider 连接的服务：处理 Provider 握手宣告与 Bind/Subscribe 协议派发。
  */
 public class LinkdProviderService extends HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
-	private static final String dumpFilename = System.getProperty("dumpProviderInput");
+	private static final @Nullable String dumpFilename = System.getProperty("dumpProviderInput");
 	private static final boolean enableDump = dumpFilename != null;
 
-	protected LinkdApp linkdApp;
+	protected @Nullable LinkdApp linkdApp;
+
+	protected final LinkdApp requireLinkdApp() {
+		return Objects.requireNonNull(linkdApp, "linkd service is not attached to an application");
+	}
 	protected final ConcurrentHashMap<String, ProviderSession> providerSessions = new ConcurrentHashMap<>();
-	protected FileOutputStream dumpFile;
-	protected AsyncSocket dumpSocket;
+	protected @Nullable FileOutputStream dumpFile;
+	protected @Nullable AsyncSocket dumpSocket;
 	// 私有锁: 避免暴露this监视器,Service实例被外部广泛共享;锁内做文件IO,ReentrantLock避免虚拟线程持锁阻塞时pin载体(JDK21-23)
 	private final ReentrantLock dumpLock = new ReentrantLock();
 	private boolean dumpClosed;
 
-	public LinkdProviderService(String name, Application zeze) {
+	public LinkdProviderService(String name, @Nullable Application zeze) {
 		super(name, zeze);
 		setNoProcedure(true);
 	}
@@ -48,7 +54,7 @@ public class LinkdProviderService extends HandshakeServer {
 			if (dumpClosed)
 				return;
 			if (dumpFile == null) {
-				dumpFile = new FileOutputStream(dumpFilename);
+				dumpFile = new FileOutputStream(Objects.requireNonNull(dumpFilename));
 				dumpSocket = s;
 			}
 			if (dumpSocket == s)
@@ -80,7 +86,7 @@ public class LinkdProviderService extends HandshakeServer {
 	}
 
 	@Override
-	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket s, @NotNull ByteBuffer input) throws Exception {
+	public boolean OnSocketProcessInputBuffer(AsyncSocket s, ByteBuffer input) throws Exception {
 		if (enableDump)
 			tryDump(s, input);
 		return super.OnSocketProcessInputBuffer(s, input);
@@ -88,14 +94,14 @@ public class LinkdProviderService extends HandshakeServer {
 
 	// 重载需要的方法。
 	@Override
-	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) throws Exception {
 		// 不支持事务。
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		p.dispatch(this, factoryHandle);
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
 			// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 			// 不要直接在io-thread里面执行。
@@ -114,8 +120,8 @@ public class LinkdProviderService extends HandshakeServer {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// 不支持事务。runNow捕获回调异常记日志（对齐基类Service与ProviderDirectService）——
 		// call()会把异常抛回IO解码路径，断整条provider连接（onProviderClose全链广播）。
 		TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
@@ -127,13 +133,13 @@ public class LinkdProviderService extends HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
 		so.setUserState(newSession(so));
 		super.OnSocketAccept(so);
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 
 		var announce = new AnnounceLinkInfo();
@@ -141,14 +147,14 @@ public class LinkdProviderService extends HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketClose(@NotNull AsyncSocket so, Throwable e) throws Exception {
+	public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 		// 先unbind。这样避免有时间窗口。
-		linkdApp.linkdProvider.onProviderClose(so);
+		requireLinkdApp().linkdProvider.onProviderClose(so);
 		super.OnSocketClose(so, e);
 	}
 
 	@Override
-	public void onServerSocketBind(@NotNull ServerSocket ss) {
-		linkdApp.providerPort = ss.getLocalPort();
+	public void onServerSocketBind(ServerSocket ss) {
+		requireLinkdApp().providerPort = ss.getLocalPort();
 	}
 }

@@ -8,8 +8,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.handler.codec.http.*;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 完全构建于HttpExchange公开流式API（beginStream/sendStream/endStream）之上的OutputStream适配层，
@@ -23,8 +22,8 @@ public final class HttpResponseWithBodyStream {
 	private HttpResponseWithBodyStream() {
 	}
 
-	public static @NotNull OutputStream sendHeadersAndGetBody(@NotNull HttpExchange x,
-															  @NotNull HttpResponseStatus status,
+	public static OutputStream sendHeadersAndGetBody(HttpExchange x,
+															  HttpResponseStatus status,
 															  @Nullable Map<String, Object> headers,
 															  int contentLength) {
 		var httpHeaders = new DefaultHttpHeaders();
@@ -60,11 +59,11 @@ public final class HttpResponseWithBodyStream {
 	 * 固定长度模式（contentLength > 0）：全部缓冲，close时一次性送出（上限即承诺的contentLength）
 	 */
 	private static class FixedLengthBodyStream extends OutputStream {
-		private final @NotNull HttpExchange x;
-		private final @NotNull ByteBuf buffer;
+		private final HttpExchange x;
+		private final ByteBuf buffer;
 		private boolean closed;
 
-		public FixedLengthBodyStream(@NotNull HttpExchange x, int contentLength) {
+		public FixedLengthBodyStream(HttpExchange x, int contentLength) {
 			this.x = x;
 			this.buffer = x.context().alloc().buffer(contentLength);
 		}
@@ -77,7 +76,7 @@ public final class HttpResponseWithBodyStream {
 		}
 
 		@Override
-		public void write(byte @NotNull [] b, int off, int len) {
+		public void write(byte [] b, int off, int len) {
 			checkOpen();
 			ensureCapacity(len);
 			buffer.writeBytes(b, off, len);
@@ -130,10 +129,10 @@ public final class HttpResponseWithBodyStream {
 		// 写空闲超时（writeIdleTimeout，60s级）兜底，此处只需约束线程占用时长。
 		private static final long SlowPeerTimeoutMillis = 5_000;
 
-		private final @NotNull HttpExchange x;
+		private final HttpExchange x;
 		private boolean closed;
 
-		public ChunkedBodyStream(@NotNull HttpExchange x) {
+		public ChunkedBodyStream(HttpExchange x) {
 			this.x = x;
 		}
 
@@ -145,7 +144,7 @@ public final class HttpResponseWithBodyStream {
 		}
 
 		@Override
-		public void write(byte @NotNull [] b, int off, int len) throws IOException {
+		public void write(byte [] b, int off, int len) throws IOException {
 			checkOpen();
 			awaitWritable();
 			// OutputStream契约：write返回后调用方即可复用缓冲（GZIPOutputStream的deflate循环
@@ -192,7 +191,7 @@ public final class HttpResponseWithBodyStream {
 		}
 
 		@Override
-		public void write(byte @NotNull [] b, int off, int len) {
+		public void write(byte [] b, int off, int len) {
 			throw new IllegalStateException("No body allowed");
 		}
 

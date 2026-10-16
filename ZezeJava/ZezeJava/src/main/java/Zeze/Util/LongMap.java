@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.function.LongFunction;
+import org.jspecify.annotations.Nullable;
 
 /** Same as 'java.util.Map' but uses primitive 'long' keys to minimise boxing (and GC) overhead. */
 public interface LongMap<V> extends Iterable<V> {
@@ -25,7 +26,7 @@ public interface LongMap<V> extends Iterable<V> {
 	 * @return the value of the mapping with the specified key, or {@code null}
 	 * 		if no mapping for the specified key is found.
 	 */
-	V get(long key);
+	@Nullable V get(long key);
 
 	V getOrDefault(long key, V defaultValue);
 
@@ -37,15 +38,15 @@ public interface LongMap<V> extends Iterable<V> {
 	 * @return the value of any previous mapping with the specified key or
 	 *        {@code null} if there was no such mapping.
 	 */
-	V put(long key, V value);
+	@Nullable V put(long key, V value);
 
-	V putIfAbsent(long key, V value);
+	@Nullable V putIfAbsent(long key, V value);
 
-	V replace(long key, V value);
+	@Nullable V replace(long key, V value);
 
 	boolean replace(long key, V oldValue, V newValue);
 
-	V computeIfAbsent(long key, LongFunction<? extends V> mappingFunction);
+	@Nullable V computeIfAbsent(long key, LongFunction<? extends @Nullable V> mappingFunction);
 
 	/**
 	 * Removes the mapping from this map
@@ -53,7 +54,7 @@ public interface LongMap<V> extends Iterable<V> {
 	 * @param key to remove
 	 * @return value contained under this key, or null if value did not exist
 	 */
-	V remove(long key);
+	@Nullable V remove(long key);
 
 	boolean remove(long key, V value);
 
@@ -77,12 +78,12 @@ public interface LongMap<V> extends Iterable<V> {
 
 		long key();
 
-		V value();
+		@Nullable V value();
 
 		void remove();
 	}
 
-	static <V> boolean equals(LongMap<V> a, LongMap<V> b) {
+	static <V> boolean equals(@Nullable LongMap<V> a, @Nullable LongMap<V> b) {
 		if (a == b)
 			return true;
 		if (a == null || b == null || a.size() != b.size())

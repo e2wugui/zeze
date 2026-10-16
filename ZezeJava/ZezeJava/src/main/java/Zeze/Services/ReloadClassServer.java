@@ -15,8 +15,7 @@ import Zeze.Util.ClassReloader;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 【安全警示】任意字节码注入端点：上传的zip内class被ClassReloader直接替换进已加载类
@@ -26,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
  * 取token）；请求须以X-Zeze-Token头或"token"查询参数携带，常量时间比较，失配答403。
  */
 public class ReloadClassServer implements HttpFileUploadHandle {
-	private static final @NotNull org.apache.logging.log4j.Logger logger =
+	private static final org.apache.logging.log4j.Logger logger =
 			org.apache.logging.log4j.LogManager.getLogger(ReloadClassServer.class);
 	static final String TOKEN_HEADER = "X-Zeze-Token";
 	static final String TOKEN_QUERY_KEY = "token";
@@ -44,10 +43,10 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 	 *                    比如直接上传的url:/upload?fileVarName=xxx
 	 *                    或者表单中&lt;input type="file" name="fileVarName" multiple&gt;
 	 */
-	public ReloadClassServer(@NotNull AppBase app,
-							 @NotNull String urlPath,
-							 @NotNull String uploadDir,
-							 @NotNull String fileVarName) {
+	public ReloadClassServer(AppBase app,
+							 String urlPath,
+							 String uploadDir,
+							 String fileVarName) {
 		this(app, urlPath, uploadDir, fileVarName, null);
 	}
 
@@ -57,10 +56,10 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 	 * @param token 鉴权token；null/空白时自动生成随机token并打日志（默认强制鉴权、
 	 *              零配置可用）
 	 */
-	public ReloadClassServer(@NotNull AppBase app,
-							 @NotNull String urlPath,
-							 @NotNull String uploadDir,
-							 @NotNull String fileVarName,
+	public ReloadClassServer(AppBase app,
+							 String urlPath,
+							 String uploadDir,
+							 String fileVarName,
 							 @Nullable String token) {
 		this.uploadDir = uploadDir;
 		this.fileVarName = fileVarName;
@@ -72,14 +71,14 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 		app.getHttpServer().addHandler(urlPath, TransactionLevel.None, DispatchMode.Normal, this);
 	}
 
-	static @NotNull String generateToken() {
+	static String generateToken() {
 		var bytes = new byte[24];
 		new SecureRandom().nextBytes(bytes);
 		return Base64.getEncoder().encodeToString(bytes);
 	}
 
 	/** token校验：X-Zeze-Token头或token查询参数携带，MessageDigest常量时间比较。 */
-	static boolean checkToken(@NotNull String token, @NotNull HttpExchange x) {
+	static boolean checkToken(String token, HttpExchange x) {
 		var request = x.request();
 		var presented = request != null ? request.headers().get(TOKEN_HEADER) : null;
 		if (presented == null)
@@ -91,11 +90,11 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 	/** ReloadClassServer/RunClassServer的onEndRequest共用前置守卫：
 	 * token鉴权+multipart字段校验。拒绝路径已代回应答并关闭exchange（403/400），
 	 * 返回null；通过时返回解出的FileUpload。owner/action仅用于403日志归因。 */
-	static @Nullable FileUpload checkTokenAndTakeUpload(@NotNull org.apache.logging.log4j.Logger logger,
-														@NotNull String owner, @NotNull String action,
-														@NotNull String token, @NotNull HttpExchange x,
-														@NotNull InterfaceHttpPostRequestDecoder decoder,
-														@NotNull String fileVarName) {
+	static @Nullable FileUpload checkTokenAndTakeUpload(org.apache.logging.log4j.Logger logger,
+														String owner, String action,
+														String token, HttpExchange x,
+														InterfaceHttpPostRequestDecoder decoder,
+														String fileVarName) {
 		// 鉴权前置：失配403并记录来源，不进入热更/执行路径
 		if (!checkToken(token, x)) {
 			logger.warn("{}: reject unauthorized {} request from {}", owner, action, x.channel().remoteAddress());
@@ -116,7 +115,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 	}
 
 	@Override
-	public @NotNull String getFileNameQueryKey() {
+	public String getFileNameQueryKey() {
 		return fileVarName;
 	}
 
@@ -132,8 +131,8 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 	}
 
 	@Override
-	public void onEndRequest(@NotNull HttpExchange x,
-							 @NotNull InterfaceHttpPostRequestDecoder decoder) throws Exception {
+	public void onEndRequest(HttpExchange x,
+							 InterfaceHttpPostRequestDecoder decoder) throws Exception {
 		var fileUpload = checkTokenAndTakeUpload(logger, "ReloadClassServer", "reload",
 				token, x, decoder, getFileNameQueryKey());
 		if (fileUpload == null)
@@ -179,7 +178,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 	}
 
 	/** 维持start()的"目录内唯一补丁"不变式：成功热更后清理目录内其他文件（含不同文件名的历史补丁）。 */
-	static void cleanupOtherPatchFiles(@NotNull File dir, @NotNull File keep) {
+	static void cleanupOtherPatchFiles(File dir, File keep) {
 		var files = dir.listFiles();
 		if (files == null)
 			return;

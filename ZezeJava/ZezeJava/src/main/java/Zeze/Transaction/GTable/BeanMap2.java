@@ -1,5 +1,7 @@
 package Zeze.Transaction.GTable;
 
+import java.util.Objects;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -8,15 +10,14 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.DynamicBean;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implements Map<C, V>, BeanMap2ReadOnly<C, V, VReadOnly> {
 	public static final long TYPEID = 2968992468344472794L;
 
 	private final Zeze.Transaction.Collections.PMap2<C, V> pMap2;
-	private Object mapKey;
+	private @Nullable Object mapKey;
 
 	@Override
 	public void mapKey(Object mapKey) {
@@ -24,7 +25,7 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 	}
 
 	@Override
-	public Object mapKey() {
+	public @Nullable Object mapKey() {
 		return mapKey;
 	}
 
@@ -130,9 +131,9 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 		_PRE_ALLOC_SIZE_ = _s_;
 	}
 
-	private byte[] _unknown_;
+	private byte @Nullable [] _unknown_;
 
-	public byte[] unknown() {
+	public byte @Nullable [] unknown() {
 		return _unknown_;
 	}
 
@@ -217,7 +218,7 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 	}
 
 	@Override
-	public V get(Object key) {
+	public @Nullable V get(Object key) {
 		return pMap2.get(key);
 	}
 
@@ -228,12 +229,12 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 	}
 
 	@Override
-	public V remove(Object key) {
+	public @Nullable V remove(Object key) {
 		return pMap2.remove(key);
 	}
 
 	@Override
-	public void putAll(@NotNull Map<? extends C, ? extends V> m) {
+	public void putAll(Map<? extends C, ? extends V> m) {
 		pMap2.putAll(m);
 	}
 
@@ -242,19 +243,16 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 		pMap2.clear();
 	}
 
-	@NotNull
 	@Override
 	public Set<C> keySet() {
 		return pMap2.keySet();
 	}
 
-	@NotNull
 	@Override
 	public Collection<V> values() {
 		return pMap2.values();
 	}
 
-	@NotNull
 	@Override
 	public Set<Entry<C, V>> entrySet() {
 		return pMap2.entrySet();
@@ -302,7 +300,7 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 			return;
 		for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
 			var _v_ = _i_.value();
-			switch (_v_.getVariableId()) {
+			switch (Objects.requireNonNull(_v_).getVariableId()) {
 			case 1:
 				pMap2.followerApply(_v_);
 				break;

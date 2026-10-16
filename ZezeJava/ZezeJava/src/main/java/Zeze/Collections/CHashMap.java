@@ -1,12 +1,13 @@
 package Zeze.Collections;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicLongArray;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.TaskSpec;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 分片并发 HashMap：按 hash 分桶到多个 LinkedMap，降低单行写冲突。
@@ -45,7 +46,7 @@ public class CHashMap<V extends Bean> {
 		return 0;
 	}
 
-	public V get(String key) {
+	public @Nullable V get(String key) {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		return buckets[index].get(key);
 	}
@@ -58,7 +59,7 @@ public class CHashMap<V extends Bean> {
 		return result;
 	}
 
-	public V put(String key, V value) {
+	public @Nullable V put(String key, V value) {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.put(key, value);
@@ -66,7 +67,7 @@ public class CHashMap<V extends Bean> {
 		return result;
 	}
 
-	public V remove(String key) {
+	public @Nullable V remove(String key) {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.remove(key);
@@ -84,7 +85,7 @@ public class CHashMap<V extends Bean> {
 		});
 	}
 
-	public long walk(@NotNull TableWalkHandle<String, V> func) throws Exception {
+	public long walk(TableWalkHandle<String, V> func) throws Exception {
 		long count = 0L;
 		var stopped = new boolean[1];
 		for (var bucket : buckets) {

@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 稳定(确定性)的随机算法, 用于多端同时以相同的种子获取随机值,能得到一致的结果(包括随机浮点数)
@@ -11,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 public class StableRandom {
 	private static final long MULTIPLIER = 6364136223846793005L; // 源自 Donald Knuth
 	private static final long ADDEND = 1442695040888963407L; // 源自 Donald Knuth
-	private static final @NotNull ThreadLocal<StableRandom> rand =
+	private static final ThreadLocal<StableRandom> rand =
 			ThreadLocal.withInitial(() -> new StableRandom(ThreadLocalRandom.current().nextLong()));
 
 	private long seed;
@@ -19,14 +18,14 @@ public class StableRandom {
 	/**
 	 * @return 当前线程共享的StableRandom
 	 */
-	public static @NotNull StableRandom local() {
+	public static StableRandom local() {
 		return rand.get();
 	}
 
 	/**
 	 * @return 当前线程共享的StableRandom, 并重置其seed
 	 */
-	public static @NotNull StableRandom local(long seed) {
+	public static StableRandom local(long seed) {
 		return rand.get().setSeed(seed);
 	}
 
@@ -38,7 +37,7 @@ public class StableRandom {
 		return seed;
 	}
 
-	public @NotNull StableRandom setSeed(long seed) {
+	public StableRandom setSeed(long seed) {
 		this.seed = seed;
 		return this;
 	}
@@ -190,7 +189,7 @@ public class StableRandom {
 		return next() < 0;
 	}
 
-	public byte @NotNull [] nextBytes(byte @NotNull [] bytes, int pos, int len) {
+	public byte [] nextBytes(byte [] bytes, int pos, int len) {
 		for (len += pos; pos < len; ) {
 			for (int r = next(), n = Math.min(len - pos, 4); --n >= 0; r >>= 8)
 				bytes[pos++] = (byte)r;
@@ -198,11 +197,11 @@ public class StableRandom {
 		return bytes;
 	}
 
-	public byte @NotNull [] nextBytes(byte @NotNull [] bytes) {
+	public byte [] nextBytes(byte [] bytes) {
 		return nextBytes(bytes, 0, bytes.length);
 	}
 
-	public byte @NotNull [] nextBytes(int size) {
+	public byte [] nextBytes(int size) {
 		return nextBytes(new byte[size]);
 	}
 
@@ -212,7 +211,7 @@ public class StableRandom {
 	 * @param weightList 权重列表，需按叠加值排序，如原始权重数组为[40,60]则需转化为[40,100]
 	 * @return weightList命中索引，小于0表示没有命中项
 	 */
-	public int randWeights(@NotNull List<Integer> weightList) {
+	public int randWeights(List<Integer> weightList) {
 		int size = weightList.size();
 		if (size == 0)
 			return -1;
@@ -229,7 +228,7 @@ public class StableRandom {
 		return -1;
 	}
 
-	public void randSelect(int n, int m, @NotNull List<Integer> ret) {
+	public void randSelect(int n, int m, List<Integer> ret) {
 		if (m >= n) {
 			for (int j = 0; j < n; j++)
 				ret.add(j + 1);
@@ -248,7 +247,7 @@ public class StableRandom {
 		}
 	}
 
-	public void randSelect(@NotNull IntList randList, int n) {
+	public void randSelect(IntList randList, int n) {
 		int size = randList.size();
 		if (n >= size)
 			return;

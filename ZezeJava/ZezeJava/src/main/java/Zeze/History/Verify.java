@@ -13,13 +13,12 @@ import Zeze.Util.Id128;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * tHistory 回放全量校验：独立重放历史到内存库，逐表比对业务库与回放副本。
  */
 public class Verify {
-	private static final @NotNull Logger logger = LogManager.getLogger(Verify.class);
+	private static final Logger logger = LogManager.getLogger(Verify.class);
 
 	/**
 	 * 校验历史回放与源表一致。前置：所有app已checkpoint且当前app已停写（如先
@@ -87,7 +86,7 @@ public class Verify {
 		logger.info("history verify success!!!!!!!!!!!!!!!!!!!!!!");
 	}
 
-	public static @NotNull String toString(@NotNull BLogChanges.Data b) {
+	public static String toString(BLogChanges.Data b) {
 		var sb = new StringBuilder();
 		sb.append("{\n");
 		sb.append("  GlobalSerialId: ").append(b.getGlobalSerialId()).append('\n');

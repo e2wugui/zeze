@@ -1,7 +1,7 @@
 package Zeze.Transaction.GTable;
 
 import java.util.NoSuchElementException;
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 
 public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 	private State state = State.NOT_READY;
@@ -23,7 +23,7 @@ public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 		FAILED,
 	}
 
-	@CheckForNull private T next;
+	@Nullable private T next;
 
 	/**
 	 * Returns the next element. <b>Note:</b> the implementation must call {@link #endOfData()} when
@@ -49,7 +49,7 @@ public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 	 *     this method. Any further attempts to use the iterator will result in an {@link
 	 *     IllegalStateException}.
 	 */
-	@CheckForNull
+	@Nullable
 	protected abstract T computeNext();
 
 	/**
@@ -59,7 +59,7 @@ public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 	 * @return {@code null}; a convenience so your {@code computeNext} implementation can use the
 	 *     simple statement {@code return endOfData();}
 	 */
-	@CheckForNull
+	@Nullable
 	protected final T endOfData() {
 		state = State.DONE;
 		return null;

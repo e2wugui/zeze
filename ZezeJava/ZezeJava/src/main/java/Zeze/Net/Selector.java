@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
@@ -13,13 +15,12 @@ import Zeze.Util.PlatformMetrics;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * selector 事件循环线程：多路复用 IO 事件、执行排队任务并管理本地/全局 buffer 池。
  */
 public class Selector extends Thread implements ByteBufferAllocator {
-	private static final @NotNull Logger logger = LogManager.getLogger(Selector.class);
+	private static final Logger logger = LogManager.getLogger(Selector.class);
 
 	// 以下常量为临时兼容,以后会去掉,应该改用Selectors里的
 	public static final int DEFAULT_BUFFER_SIZE = 32 * 1024; // 单个buffer的字节容量
@@ -28,9 +29,9 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	public static final int DEFAULT_BBPOOL_GLOBAL_CAPACITY = 100 * DEFAULT_BBPOOL_MOVE_COUNT; // 全局池的最大buffer数量
 	public static final int DEFAULT_SELECT_TIMEOUT = 0; // 0表示无超时,>0表示每次select的超时毫秒数
 
-	private final @NotNull Selectors selectors;
-	private final @NotNull java.nio.channels.Selector selector;
-	private final @NotNull ByteBuffer readBuffer; // 此线程共享的buffer,只能临时使用
+	private final Selectors selectors;
+	private final java.nio.channels.Selector selector;
+	private final ByteBuffer readBuffer; // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>(); // 当前selector的本地池,不会并发
 	private final ConcurrentLinkedQueue<Runnable> taskQueue = new ConcurrentLinkedQueue<>();
@@ -41,7 +42,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private boolean firstAction;
 	private volatile boolean running = true;
 
-	public Selector(@NotNull Selectors selectors, @NotNull String threadName) throws IOException {
+	public Selector(Selectors selectors, String threadName) throws IOException {
 		super(threadName);
 		setDaemon(true);
 		this.selectors = selectors;
@@ -49,11 +50,11 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		readBuffer = ByteBuffer.allocate(selectors.getReadBufferSize());
 	}
 
-	public @NotNull Selectors getSelectors() {
+	public Selectors getSelectors() {
 		return selectors;
 	}
 
-	@NotNull ByteBuffer getReadBuffer() {
+	ByteBuffer getReadBuffer() {
 		return readBuffer;
 	}
 
@@ -61,7 +62,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		return selectCount;
 	}
 
-	public void addTask(@NotNull Runnable task) {
+	public void addTask(Runnable task) {
 		boolean drain;
 		taskLock.lock();
 		try {
@@ -74,7 +75,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			drainClosedTasks();
 	}
 
-	private static void runTask(@NotNull Runnable task) {
+	private static void runTask(Runnable task) {
 		try {
 			task.run();
 		} catch (Throwable e) {
@@ -121,7 +122,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	}
 
 	@Override
-	public @NotNull ByteBuffer alloc() {
+	public ByteBuffer alloc() {
 		int n = bbPool.size();
 		if (n == 0) {
 			var bbPoolGlobalCapacity = selectors.getBbPoolGlobalCapacity();
@@ -157,7 +158,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	}
 
 	@Override
-	public void free(@NotNull ByteBuffer bb) {
+	public void free(ByteBuffer bb) {
 		int bbPoolLocalCapacity = selectors.getBbPoolLocalCapacity();
 		int bbPoolMoveCount = selectors.getBbPoolMoveCount();
 		int n = bbPool.size();
@@ -181,7 +182,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		bbPool.add(bb);
 	}
 
-	@NotNull SelectionKey register(@NotNull SelectableChannel sc, int ops, @NotNull SelectorHandle handle) {
+	SelectionKey register(SelectableChannel sc, int ops, SelectorHandle handle) {
 		try {
 			//noinspection MagicConstant
 			SelectionKey key = sc.register(selector, ops, handle);
@@ -198,7 +199,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 	public void close() {
 		if (Thread.currentThread() == this) {
-			Task.getCriticalThreadPool().execute(this::close);
+			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(this::close);
 			return;
 		}
 
@@ -245,7 +246,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			thread.start();
 		}
 
-		public static void postWakeup(@NotNull java.nio.channels.Selector selector) {
+		public static void postWakeup(java.nio.channels.Selector selector) {
 			if (!wakeupQueue.offer(selector))
 				selector.wakeup();
 		}

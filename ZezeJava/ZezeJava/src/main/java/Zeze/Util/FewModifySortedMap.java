@@ -14,15 +14,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // K必须可比较：内部TreeMap默认按自然排序（Comparator构造器只覆盖排序方式，不豁免可比性）。
 // null契约与TreeMap一致：key不允许null、须可比较；允许null value（家族差异：
 // FewModifyMap/FewModifyList 为 HashMap/ArrayList 契约，允许 null key/元素）。
 public class FewModifySortedMap<K extends Comparable<? super K>, V> implements NavigableMap<K, V>, Cloneable {
 	private transient volatile @Nullable NavigableMap<K, V> read;
-	private final @NotNull TreeMap<K, V> write;
+	private final TreeMap<K, V> write;
 	private transient final ReentrantLock writeLock = new ReentrantLock();
 
 	public FewModifySortedMap() {
@@ -33,11 +32,11 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		write = new TreeMap<>(comparator);
 	}
 
-	public FewModifySortedMap(@NotNull Map<? extends K, ? extends V> m) {
+	public FewModifySortedMap(Map<? extends K, ? extends V> m) {
 		write = new TreeMap<>(m);
 	}
 
-	private @NotNull NavigableMap<K, V> prepareRead() {
+	private NavigableMap<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
 			writeLock.lock();
@@ -62,7 +61,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	// 只读快照：prepareRead已unmodifiable包装，误写直接抛UnsupportedOperationException。
-	public @NotNull NavigableMap<K, V> snapshot() {
+	public NavigableMap<K, V> snapshot() {
 		return prepareRead();
 	}
 
@@ -166,7 +165,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
 		var snapshot = new LinkedHashMap<K, V>(m);
@@ -180,7 +179,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public void replaceAll(@NotNull BiFunction<? super K, ? super V, ? extends V> function) {
+	public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
 		writeLock.lock();
 		try {
 			if (write.isEmpty())
@@ -212,19 +211,19 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 
 	// 必须只读,不允许写,虽然不会抛异常
 	@Override
-	public @NotNull SortedMap<K, V> subMap(K fromKey, K toKey) {
+	public SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return prepareRead().subMap(fromKey, toKey);
 	}
 
 	// 必须只读,不允许写,虽然不会抛异常
 	@Override
-	public @NotNull SortedMap<K, V> headMap(K toKey) {
+	public SortedMap<K, V> headMap(K toKey) {
 		return prepareRead().headMap(toKey);
 	}
 
 	// 必须只读,不允许写,虽然不会抛异常
 	@Override
-	public @NotNull SortedMap<K, V> tailMap(K fromKey) {
+	public SortedMap<K, V> tailMap(K fromKey) {
 		return prepareRead().tailMap(fromKey);
 	}
 
@@ -240,24 +239,24 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 
 	// 必须只读,不允许写,虽然不会抛异常
 	@Override
-	public @NotNull Set<K> keySet() {
+	public Set<K> keySet() {
 		return prepareRead().keySet();
 	}
 
 	// 必须只读,不允许写,虽然不会抛异常
 	@Override
-	public @NotNull Collection<V> values() {
+	public Collection<V> values() {
 		return prepareRead().values();
 	}
 
 	// 必须只读,不允许写,虽然不会抛异常
 	@Override
-	public @NotNull Set<Entry<K, V>> entrySet() {
+	public Set<Entry<K, V>> entrySet() {
 		return prepareRead().entrySet();
 	}
 
 	@Override
-	public Entry<K, V> lowerEntry(K key) {
+	public @Nullable Entry<K, V> lowerEntry(K key) {
 		return prepareRead().lowerEntry(key);
 	}
 
@@ -267,7 +266,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public Entry<K, V> floorEntry(K key) {
+	public @Nullable Entry<K, V> floorEntry(K key) {
 		return prepareRead().floorEntry(key);
 	}
 
@@ -277,7 +276,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public Entry<K, V> ceilingEntry(K key) {
+	public @Nullable Entry<K, V> ceilingEntry(K key) {
 		return prepareRead().ceilingEntry(key);
 	}
 
@@ -287,7 +286,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public Entry<K, V> higherEntry(K key) {
+	public @Nullable Entry<K, V> higherEntry(K key) {
 		return prepareRead().higherEntry(key);
 	}
 
@@ -335,7 +334,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 
 	// 必须只读,不允许写,虽然不会抛异常
 	@Override
-	public @NotNull NavigableMap<K, V> descendingMap() {
+	public NavigableMap<K, V> descendingMap() {
 		return prepareRead().descendingMap();
 	}
 
@@ -370,7 +369,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public @Nullable V compute(K key, @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.compute(key, remappingFunction);
@@ -382,7 +381,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public @Nullable V computeIfAbsent(K key, @NotNull Function<? super K, ? extends V> mappingFunction) {
+	public @Nullable V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.computeIfAbsent(key, mappingFunction);
@@ -394,7 +393,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public @Nullable V computeIfPresent(K key, @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.computeIfPresent(key, remappingFunction);
@@ -406,7 +405,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public @Nullable V merge(K key, @NotNull V value, @NotNull BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.merge(key, value, remappingFunction);
@@ -419,7 +418,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public @NotNull FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
+	public FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
 		if (getClass() == FewModifySortedMap.class) {
 			// clone同源继承比较器：Map构造器的TreeMap(Map)按自然序建，
 			// 会重演prepareRead丢失比较器的问题。
@@ -432,7 +431,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return prepareRead().toString();
 	}
 

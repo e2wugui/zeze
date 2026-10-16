@@ -5,25 +5,24 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
 import org.pcollections.TreePMap;
 
 /** 事务 SortedMap（1系）：Comparable 键，不可变值按值拷贝记账。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
-	protected final @NotNull SortedMap1Meta<K, V> meta;
+	protected final SortedMap1Meta<K, V> meta;
 
-	public PSortedMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	public PSortedMap1(Class<K> keyClass, Class<V> valueClass) {
 		meta = SortedMap1Meta.get(keyClass, valueClass);
 	}
 
-	public PSortedMap1(@NotNull SortedMap1Meta<K, V> meta) {
+	public PSortedMap1(SortedMap1Meta<K, V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull SortedMap1Meta<K, V> getMeta() {
+	public SortedMap1Meta<K, V> getMeta() {
 		return meta;
 	}
 
@@ -35,12 +34,12 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
-	public K decodeKey(@NotNull ByteBuffer bb) {
+	public K decodeKey(ByteBuffer bb) {
 		return meta.keyDecoder.apply(bb);
 	}
 
 	@Override
-	public @Nullable V put(@NotNull K key, @NotNull V value) {
+	public @Nullable V put(K key, V value) {
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("null key");
@@ -59,7 +58,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
-	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
 		if (m instanceof PSortedMap1)
@@ -81,7 +80,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
-	public @Nullable V remove(@NotNull Object key) {
+	public @Nullable V remove(Object key) {
 		if (isManaged()) {
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -93,7 +92,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
-	public boolean remove(@NotNull Entry<K, V> item) {
+	public boolean remove(Entry<K, V> item) {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
@@ -124,17 +123,17 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
-	public void followerApply(@NotNull Log _log) {
+	public void followerApply(Log _log) {
 		var log = (LogSortedMap1<K, V>)_log;
 		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogSortedMap1<>(parent(), variableId(), this, map, meta);
 	}
 
-	public void assign(@NotNull PSortedMap1<K, V> pmap) {
+	public void assign(PSortedMap1<K, V> pmap) {
 		var items = pmap.getMap();
 		if (isManaged()) {
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -146,14 +145,14 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
-	public @NotNull PSortedMap1<K, V> copy() {
+	public PSortedMap1<K, V> copy() {
 		var copy = new PSortedMap1<>(meta);
 		copy.map = getMap();
 		return copy;
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var keyEncoder = meta.keyEncoder;
@@ -165,7 +164,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;

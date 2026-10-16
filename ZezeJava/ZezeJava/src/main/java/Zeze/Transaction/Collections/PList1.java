@@ -8,26 +8,26 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 List（1系）：不可变值按值拷贝记账，不支持 Bean 值。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PList1<V> extends PList<V> {
-	protected final @NotNull List1Meta<V> meta;
+	protected final List1Meta<V> meta;
 
-	public PList1(@NotNull Class<V> valueClass) {
+	public PList1(Class<V> valueClass) {
 		meta = List1Meta.get(valueClass);
 	}
 
 	// meta须来自List1Meta工厂（公开唯一构建入口，已过Bean拦截），供生成代码常量化/调用点静态持有。
-	public PList1(@NotNull List1Meta<V> meta) {
+	public PList1(List1Meta<V> meta) {
 		this.meta = meta;
 	}
 
 	@Override
-	public boolean add(@NotNull V item) {
+	public boolean add(V item) {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
@@ -42,7 +42,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public boolean remove(@NotNull Object item) {
+	public boolean remove(Object item) {
 		if (isManaged()) {
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -68,7 +68,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public @NotNull V set(int index, @NotNull V item) {
+	public V set(int index, V item) {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
@@ -84,7 +84,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void add(int index, @NotNull V item) {
+	public void add(int index, V item) {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
@@ -98,7 +98,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public @NotNull V remove(int index) {
+	public V remove(int index) {
 		if (isManaged()) {
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -110,7 +110,8 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public boolean addAll(@NotNull Collection<? extends V> items) {
+	@SuppressWarnings("ConstantConditions")
+	public boolean addAll(Collection<? extends V> items) {
 		if (items.isEmpty())
 			return false;
 		if (items instanceof PList1)
@@ -130,7 +131,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public boolean removeAll(@NotNull Collection<?> c) {
+	public boolean removeAll(Collection<?> c) {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
@@ -153,7 +154,8 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void replaceAll(@NotNull UnaryOperator<V> operator) {
+	@SuppressWarnings("ConstantConditions")
+	public void replaceAll(UnaryOperator<V> operator) {
 		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<V>(size());
@@ -188,12 +190,12 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogList1<>(parent(), variableId(), this, list, meta);
 	}
 
 	@Override
-	public void followerApply(@NotNull Log _log) {
+	public void followerApply(Log _log) {
 		var log = (LogList1<V>)_log;
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
@@ -208,7 +210,7 @@ public class PList1<V> extends PList<V> {
 		list = tmp;
 	}
 
-	public void assign(@NotNull PList1<V> plist) {
+	public void assign(PList1<V> plist) {
 		var items = plist.getList();
 		if (isManaged()) {
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -220,14 +222,14 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public @NotNull PList1<V> copy() {
+	public PList1<V> copy() {
 		var copy = new PList1<>(meta);
 		copy.list = getList();
 		return copy;
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.valueEncoder;
@@ -236,7 +238,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		var decoder = meta.valueDecoder;
 		int n = bb.ReadUIntPositive();

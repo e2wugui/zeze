@@ -4,8 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Lock;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 利用AbstractQueuedSynchronizer实现简单高效的不可重入锁,性能比ReentrantLock略高一点,开启压缩指针时包括对象头共32字节
 public class FastLock extends AbstractQueuedSynchronizer implements Lock {
@@ -13,7 +12,7 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 	// （ThreadGroup.enumerate与Thread.getAllStackTraces均不含VT），findDeadlockedThreads
 	// 也不检测VT的AQS死锁；竞争失败进入慢路径（已是park级开销）的线程在此登记，
 	// DeadlockBreaker据此构建等待图。快路径CAS成功零额外开销。
-	static final @NotNull ConcurrentHashMap<Thread, FastLock> waitingThreads = new ConcurrentHashMap<>();
+	static final ConcurrentHashMap<Thread, FastLock> waitingThreads = new ConcurrentHashMap<>();
 
 	@Override
 	public boolean tryLock() {
@@ -25,7 +24,7 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 	}
 
 	@Override
-	public boolean tryLock(long time, @NotNull TimeUnit unit) throws InterruptedException {
+	public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
 		if (Thread.interrupted())
 			throw new InterruptedException();
 		if (tryLock())
@@ -70,7 +69,7 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 	}
 
 	@Override
-	public @NotNull ConditionObject newCondition() {
+	public ConditionObject newCondition() {
 		return new ConditionObject();
 	}
 

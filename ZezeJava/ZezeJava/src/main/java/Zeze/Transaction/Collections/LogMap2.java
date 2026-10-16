@@ -1,5 +1,7 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Objects;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -10,7 +12,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /** PMap2 的变更日志：在 replaced/removed 增量之上另记 changed（值 Bean 的原位修改日志，按 key 关联）。 */
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
@@ -22,21 +24,21 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	// encode 先行置 built=true，监听器合并若复用 built 会被短路成 no-op，增量通知丢失原位修改。
 	private boolean merged;
 
-	public LogMap2(Bean belong, int varId, Bean self, @NotNull org.pcollections.PMap<K, V> value,
-				   @NotNull Meta2<K, V> meta) {
+	public LogMap2(@Nullable Bean belong, int varId, @Nullable Bean self, org.pcollections.PMap<K, V> value,
+				   Meta2<K, V> meta) {
 		super(belong, varId, self, value, meta);
 	}
 
-	public final @NotNull Set<LogBean> getChanged() {
+	public final Set<LogBean> getChanged() {
 		return changed;
 	}
 
-	public final @NotNull HashMap<K, LogBean> getChangedWithKey() {
+	public final HashMap<K, LogBean> getChangedWithKey() {
 		return changedWithKey;
 	}
 
 	@Override
-	public @NotNull Log beginSavepoint() {
+	public Log beginSavepoint() {
 		return new LogMap2<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
@@ -45,13 +47,13 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			built = true;
 			for (var c : changed) {
 				@SuppressWarnings("unchecked")
-				K k = (K)c.getThis().mapKey();
+				K k = (K)Objects.requireNonNull(c.getThis()).mapKey();
 				if (!getReplaced().containsKey(k) // 新增的值是最新的，它的changed忽略。
 						&& !getRemoved().contains(k) // 删除的值不用管了，它的changed忽略。
 						&& c.getThis() == getValue().get(k) // 必须是key当前值本身：put覆盖后旧bean不
 						// detach、mapKey不清，陈旧引用的字段日志不得应用到覆盖后的新值上。
 				)
-					changedWithKey.put(k, c);
+					changedWithKey.put(Objects.requireNonNull(k), c);
 			}
 			return true;
 		}
@@ -68,12 +70,12 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			merged = true;
 			buildChangedWithKey(); // encode 先行时 changedWithKey 已构建（built==true），直接复用
 			for (var e : changedWithKey.entrySet())
-				getReplaced().put(e.getKey(), (V)e.getValue().getThis());
+				getReplaced().put(e.getKey(), (V)Objects.requireNonNull(e.getValue().getThis()));
 		}
 	}
 
 	@Override
-	protected boolean isValueChanged(V oldValue, V newValue) {
+	protected boolean isValueChanged(@Nullable V oldValue, V newValue) {
 		// 2系值可变，按身份判定（1系的equals过滤只对不可变值成立）：原位修改（changed按
 		// 身份关联当前值）后再putAll一个与修改后内容equals相等的新实例时，equals过滤
 		// 不记replaced，changed又因旧bean非当前值被丢弃——该键增量整体丢失，
@@ -82,7 +84,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		if (!decoded) {
 			built = false;
 			changedWithKey.clear();
@@ -107,7 +109,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		changed.clear();
 		merged = false;
 		changedWithKey.clear();
@@ -123,7 +125,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			for (int i = bb.ReadUInt(); i > 0; i--) {
 				K k = keyDecoder.apply(bb);
 				@SuppressWarnings("unchecked")
-				V v = (V)meta.valueFactory.invoke();
+				V v = (V)Objects.requireNonNull(meta.valueFactory).invoke();
 				v.decode(bb);
 				getReplaced().put(k, v);
 			}
@@ -137,13 +139,13 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		if (changed.add((LogBean)vlog))
 			changes.collect(recent, this);
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(" replaced:");
 		ByteBuffer.BuildSortedString(sb, getReplaced());

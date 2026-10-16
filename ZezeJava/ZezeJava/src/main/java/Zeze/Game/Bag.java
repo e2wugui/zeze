@@ -1,5 +1,7 @@
 package Zeze.Game;
 
+import java.util.Objects;
+
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import Zeze.Builtin.Game.Bag.tbag;
 import Zeze.Collections.BeanFactory;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 游戏背包：按格子管理物品的堆叠、拆分、移动与排序，配套内建 Move/Destroy 协议模块。
@@ -289,7 +292,7 @@ public class Bag {
 		return 0;
 	}
 
-	public final void sort(Comparator<Map.Entry<Integer, BItem>> comparison) {
+	public final void sort(@Nullable Comparator<Map.Entry<Integer, BItem>> comparison) {
 		if (null == comparison)
 			comparison = Comparator.comparingLong(x -> x.getValue().getId());
 
@@ -308,19 +311,19 @@ public class Bag {
 	}
 
 	public static class Module extends AbstractBag {
-		public ProviderApp providerApp;
+		public @Nullable ProviderApp providerApp;
 		public final Application zeze;
-		public volatile IntUnaryOperator funcItemPileMax;
+		public volatile @Nullable IntUnaryOperator funcItemPileMax;
 
 		// 根据物品Id查询物品堆叠数量。不设置这个方法，全部max==1，都不能堆叠。
 
 		// 用于UserApp服务，可以处理客户端发送的协议。
-		public Module(ProviderApp pa, IntUnaryOperator funcItemPileMax) {
+		public Module(ProviderApp pa, @Nullable IntUnaryOperator funcItemPileMax) {
 			providerApp = pa;
 			zeze = providerApp.zeze;
 			RegisterProtocols(providerApp.providerService);
 			RegisterZezeTables(zeze);
-			providerApp.builtinModules.put(this.getFullName(), this);
+			Objects.requireNonNull(providerApp).builtinModules.put(this.getFullName(), this);
 			this.funcItemPileMax = funcItemPileMax;
 		}
 
@@ -335,6 +338,7 @@ public class Bag {
 		}
 
 		@Override
+		@SuppressWarnings("ConstantConditions")
 		public void UnRegister() {
 			if (null != providerApp) {
 				UnRegisterProtocols(providerApp.providerService);
@@ -365,7 +369,7 @@ public class Bag {
 		// 供内建协议(Move/Destroy)使用——bagName虽来自客户端载荷，但表键roleId取自会话，
 		// 寻址被限制在本角色分区内（跨角色越权随BBagKey改造在键结构上关闭）；
 		// 不建行是因为destroy对空行恒成功，getOrAdd会让任意bagName的空行随事务提交落盘。
-		public Bag openOrNull(long roleId, String bagName) {
+		public @Nullable Bag openOrNull(long roleId, String bagName) {
 			var b = _tbag.get(new BBagKey(roleId, bagName));
 			return null != b ? new Bag(this, b, bagName) : null;
 		}
@@ -375,7 +379,7 @@ public class Bag {
 		}
 
 		public void start(Application zeze) {
-			providerApp.builtinModules.put(this.getFullName(), this);
+			Objects.requireNonNull(providerApp).builtinModules.put(this.getFullName(), this);
 		}
 
 		public void stop() {

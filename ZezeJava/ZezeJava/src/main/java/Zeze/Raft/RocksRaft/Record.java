@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -17,15 +21,15 @@ import org.rocksdb.RocksDBException;
 public final class Record<K> {
 	private static final Logger logger = LogManager.getLogger(Record.class);
 	public static final class RootInfo {
-		private final Record<?> record;
+		private final @Nullable Record<?> record;
 		private final TableKey tableKey;
 
-		public RootInfo(Record<?> record, TableKey tableKey) {
+		public RootInfo(@Nullable Record<?> record, TableKey tableKey) {
 			this.record = record;
 			this.tableKey = tableKey;
 		}
 
-		public Record<?> getRecord() {
+		public @Nullable Record<?> getRecord() {
 			return record;
 		}
 
@@ -46,13 +50,13 @@ public final class Record<K> {
 	private int state = StateNew;
 	private long timestamp;
 	private boolean removed;
-	private Table<K, ?> table;
-	private K key;
+	private @Nullable Table<K, ?> table;
+	private @Nullable K key;
 	// 跨线程发布：apply线程在raft锁内setValue发布业务线程构造的bean，
 	// 读线程（另一业务过程）经Table.get→r.mutex读取——两锁无交点，JMM上无
 	// happens-before保障。volatile让发布语义由字段自身保证（写侧仍在raft锁内，
 	// 语义不变；x86上无额外开销语义变化）。
-	private volatile Bean value;
+	private volatile @Nullable Bean value;
 	final FastLock mutex = new FastLock();
 
 	// 在用计数：Table.getOrLoad在r.mutex临界区内beginAccess，驱逐回调在
@@ -113,7 +117,7 @@ public final class Record<K> {
 				return;
 			}
 			setRemoved(true); // 并发getOrLoad竞争者经removed重试环换新记录
-			lru.remove(key, this); // pair-remove：仅当映射仍是本记录时删除
+			lru.remove(Objects.requireNonNull(getKey()), this); // pair-remove：仅当映射仍是本记录时删除
 		} finally {
 			mutex.unlock();
 		}
@@ -151,7 +155,7 @@ public final class Record<K> {
 		removed = value;
 	}
 
-	public Table<K, ?> getTable() {
+	public @Nullable Table<K, ?> getTable() {
 		return table;
 	}
 
@@ -159,7 +163,7 @@ public final class Record<K> {
 		table = value;
 	}
 
-	public K getKey() {
+	public @Nullable K getKey() {
 		return key;
 	}
 
@@ -167,15 +171,16 @@ public final class Record<K> {
 		key = value;
 	}
 
-	public Bean getValue() {
+	public @Nullable Bean getValue() {
 		return value;
 	}
 
-	public void setValue(Bean value) {
+	public void setValue(@Nullable Bean value) {
 		this.value = value;
 	}
 
 	public RootInfo createRootInfoIfNeed(TableKey tkey) {
+		var value = this.value;
 		var cur = value != null ? value.rootInfo() : null;
 		return cur != null ? cur : new RootInfo(this, tkey);
 	}
@@ -188,7 +193,8 @@ public final class Record<K> {
 
 	public void flush(RocksDatabase.Batch batch) throws RocksDBException {
 		var keyBB = ByteBuffer.Allocate();
-		keyEncodeFunc.accept(keyBB, key);
+		keyEncodeFunc.accept(keyBB, Objects.requireNonNull(getKey()));
+		var value = this.value;
 		if (value != null) {
 			int preAllocSize = value.preAllocSize();
 			ByteBuffer valueBB = ByteBuffer.Allocate(Math.min(preAllocSize, 65536));
@@ -196,8 +202,8 @@ public final class Record<K> {
 			int size = valueBB.WriteIndex;
 			if (size > preAllocSize)
 				value.preAllocSize(size);
-			table.getRocksTable().put(batch, keyBB.Bytes, keyBB.WriteIndex, valueBB.Bytes, size);
+			Objects.requireNonNull(getTable()).getRocksTable().put(batch, keyBB.Bytes, keyBB.WriteIndex, valueBB.Bytes, size);
 		} else
-			table.getRocksTable().delete(batch, keyBB.Bytes, keyBB.WriteIndex);
+			Objects.requireNonNull(getTable()).getRocksTable().delete(batch, keyBB.Bytes, keyBB.WriteIndex);
 	}
 }

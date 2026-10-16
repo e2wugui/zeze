@@ -10,8 +10,7 @@ import java.util.Comparator;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -76,9 +75,9 @@ public final class DumpRocksDb {
 		}
 	}
 
-	private static void run(@NotNull String inputDbPath, @Nullable String columnFamilyName,
+	private static void run(String inputDbPath, @Nullable String columnFamilyName,
 							@Nullable String outputTxtFile,
-							@NotNull ColumnFamilyOptions cfOptions, @NotNull DBOptions dbOptions) throws Exception {
+							ColumnFamilyOptions cfOptions, DBOptions dbOptions) throws Exception {
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		try (var opt = new Options()) {
 			for (var cf : RocksDB.listColumnFamilies(opt, inputDbPath))
@@ -262,7 +261,7 @@ public final class DumpRocksDb {
 
 	// open(...,outHandles)返回的ColumnFamilyHandle是调用方负责的native对象，
 	// 须在db.close之前逐个close（与RocksDatabase.close的destroy顺序一致）；容错吞二次异常。
-	private static void closeHandles(@NotNull Iterable<ColumnFamilyHandle> handles) {
+	private static void closeHandles(Iterable<ColumnFamilyHandle> handles) {
 		for (var h : handles) {
 			try {
 				h.close();
@@ -273,42 +272,42 @@ public final class DumpRocksDb {
 
 	// 部分RocksDB版本的getLiveFilesMetaData().fileName带前导'/'，compactFiles要求
 	// 相对db目录的文件名——meta与compact1两个分支统一剥离（不剥离时file not found）。
-	private static @NotNull String stripLeadingSlash(@NotNull String fileName) {
+	private static String stripLeadingSlash(String fileName) {
 		return fileName.startsWith("/") ? fileName.substring(1) : fileName;
 	}
 
-	private static void dump(@NotNull OutputStream os, @NotNull String fmt,
+	private static void dump(OutputStream os, String fmt,
 							 @Nullable Object... params) throws IOException {
 		os.write(String.format(fmt, params).getBytes(UTF_8));
 	}
 
-	private static void dumpRaw(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
+	private static void dumpRaw(OutputStream os, ByteBuffer bb) throws IOException {
 		os.write('\'');
 		dumpBytes(os, bb.Bytes);
 		os.write('\'');
 	}
 
-	private static void dumpLong(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
+	private static void dumpLong(OutputStream os, ByteBuffer bb) throws IOException {
 		dump(os, "%d", bb.ReadLong());
 	}
 
-	private static void dumpString(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
+	private static void dumpString(OutputStream os, ByteBuffer bb) throws IOException {
 		os.write('"');
 		dumpString(os, bb.Bytes);
 		os.write('"');
 	}
 
-	private static void dumpNString(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
+	private static void dumpNString(OutputStream os, ByteBuffer bb) throws IOException {
 		os.write('"');
 		dumpString(os, bb.ReadBytes());
 		os.write('"');
 	}
 
-	private static void dumpBean(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws IOException {
+	private static void dumpBean(OutputStream os, ByteBuffer bb) throws IOException {
 		dumpVar(os, bb, ByteBuffer.BEAN);
 	}
 
-	private static void dumpRaftLog(@NotNull OutputStream os, @NotNull ByteBuffer bb) throws Exception {
+	private static void dumpRaftLog(OutputStream os, ByteBuffer bb) throws Exception {
 		dump(os, "{term:%d, index:%d, log:", bb.ReadLong(), bb.ReadLong());
 		var logType = bb.ReadInt4();
 		if (logType == logTypeChanges) {
@@ -356,7 +355,7 @@ public final class DumpRocksDb {
 		os.write('\n');
 	}
 
-	private static void dumpString(@NotNull OutputStream os, byte @NotNull [] bytes) throws IOException {
+	private static void dumpString(OutputStream os, byte [] bytes) throws IOException {
 		for (var b : bytes) {
 			if (b == '"' || b == '\\') // escape
 				os.write('\\');
@@ -364,7 +363,7 @@ public final class DumpRocksDb {
 		}
 	}
 
-	private static void dumpBytes(@NotNull OutputStream os, byte @NotNull [] bytes) throws IOException {
+	private static void dumpBytes(OutputStream os, byte [] bytes) throws IOException {
 		for (var b : bytes) {
 			if (b >= 0x20 && b <= 0x7e) { // printable
 				if (b == '\'' || b == '\\') // escape
@@ -378,7 +377,7 @@ public final class DumpRocksDb {
 		}
 	}
 
-	private static String toStr(byte @NotNull [] bytes) {
+	private static String toStr(byte [] bytes) {
 		var sb = new StringBuilder(bytes.length * 3);
 		for (int b : bytes) {
 			if (b >= 0x20 && b <= 0x7e) { // printable
@@ -394,7 +393,7 @@ public final class DumpRocksDb {
 		return sb.toString();
 	}
 
-	private static boolean isPrintableUtf8(byte @NotNull [] bytes) {
+	private static boolean isPrintableUtf8(byte [] bytes) {
 		for (int i = 0, n = bytes.length; i < n; i++) {
 			int b = bytes[i];
 			if (b >= 0) { // 0xxx xxxx
@@ -417,7 +416,7 @@ public final class DumpRocksDb {
 		return true;
 	}
 
-	private static void dumpVar(@NotNull OutputStream os, @NotNull ByteBuffer bb, int type) throws IOException {
+	private static void dumpVar(OutputStream os, ByteBuffer bb, int type) throws IOException {
 		switch (type & ByteBuffer.TAG_MASK) {
 		case ByteBuffer.INTEGER:
 			dump(os, "%d", bb.ReadLong());
@@ -505,7 +504,7 @@ public final class DumpRocksDb {
 	private static final int logTypeChanges = hash32("Zeze.Raft.RocksRaft.Changes");
 	private static final int logTypeHeartbeat = hash32("Zeze.Raft.HeartbeatLog");
 	private static final IntHashMap<Action2<OutputStream, ByteBuffer>> logDecoders = new IntHashMap<>();
-	private static final @NotNull Action2<OutputStream, ByteBuffer> logBeanDecoder;
+	private static final Action2<OutputStream, ByteBuffer> logBeanDecoder;
 
 	static {
 		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<bool>"), (os, bb) -> dump(os, "b:%b", bb.ReadBool()));

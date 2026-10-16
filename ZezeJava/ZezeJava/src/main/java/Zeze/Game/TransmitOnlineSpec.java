@@ -7,8 +7,7 @@ import java.util.List;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * transmit 操作的统一描述：工厂收目标，setter 收选项，终结方法定时机。
@@ -16,16 +15,16 @@ import org.jetbrains.annotations.Nullable;
  * 实例可复用、非线程安全；延迟闭包只捕获局部变量，从不捕获 spec 实例。
  */
 public final class TransmitOnlineSpec {
-	private final @NotNull Online online;
+	private final Online online;
 	private final long sender;
-	private final @NotNull String actionName;
-	private final @NotNull List<Long> targets; // 构造时快照
+	private final String actionName;
+	private final List<Long> targets; // 构造时快照
 	private @Nullable Serializable parameter;
 	private boolean processNotOnline = true; // 默认值
 	private boolean withContext;
 
-	TransmitOnlineSpec(@NotNull Online online, long sender, @NotNull String actionName,
-					   @NotNull Iterable<Long> targets) {
+	TransmitOnlineSpec(Online online, long sender, String actionName,
+					   Iterable<Long> targets) {
 		this.online = online;
 		this.sender = sender;
 		this.actionName = actionName;
@@ -39,29 +38,29 @@ public final class TransmitOnlineSpec {
 		}
 	}
 
-	public @NotNull TransmitOnlineSpec parameter(@Nullable Serializable p) {
+	public TransmitOnlineSpec parameter(@Nullable Serializable p) {
 		this.parameter = p;
 		return this;
 	}
 
 	/** 是否处理不在线，默认 true。 */
-	public @NotNull TransmitOnlineSpec processNotOnline(boolean processNotOnline) {
+	public TransmitOnlineSpec processNotOnline(boolean processNotOnline) {
 		this.processNotOnline = processNotOnline;
 		return this;
 	}
 
 	/** 按当前上下文选择 Online 实例（OnlineSet）；默认直接用本 Online。终结方法调用时刻解析并固定。 */
-	public @NotNull TransmitOnlineSpec withContext() {
+	public TransmitOnlineSpec withContext() {
 		this.withContext = true;
 		return this;
 	}
 
-	private void verify(@NotNull Online resolvedOnline) { // 校验实际执行的OnlineSet。
+	private void verify(Online resolvedOnline) { // 校验实际执行的OnlineSet。
 		if (!resolvedOnline.getTransmitActions().containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 	}
 
-	private @NotNull Online resolveOnline() {
+	private Online resolveOnline() {
 		return withContext ? online.getOnlineByContext() : online;
 	}
 

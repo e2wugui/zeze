@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.util.Map;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.Dispatch;
@@ -15,8 +17,7 @@ import Zeze.Util.Task;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 用户登录会话。
@@ -25,29 +26,29 @@ import org.jetbrains.annotations.Nullable;
 public class ProviderUserSession {
 	private static final Logger logger = LogManager.getLogger(ProviderUserSession.class);
 
-	protected final @NotNull Dispatch dispatch;
+	protected final Dispatch dispatch;
 
-	public ProviderUserSession(@NotNull Dispatch dispatch) {
+	public ProviderUserSession(Dispatch dispatch) {
 		this.dispatch = dispatch;
 	}
 
-	public void kick(int code, @NotNull String desc) {
+	public void kick(int code, String desc) {
 		ProviderImplement.sendKick(getLink(), getLinkSid(), code, desc);
 	}
 
-	public @NotNull ProviderService getService() {
-		return (ProviderService)dispatch.getSender().getService();
+	public @Nullable ProviderService getService() {
+		return (ProviderService)Objects.requireNonNull(dispatch.getSender()).getService();
 	}
 
-	public @NotNull String getAccount() {
+	public String getAccount() {
 		return dispatch.Argument.getAccount();
 	}
 
-	public @NotNull String getContext() {
+	public String getContext() {
 		return dispatch.Argument.getContext();
 	}
 
-	public @NotNull String getOnlineSetName() {
+	public String getOnlineSetName() {
 		return dispatch.Argument.getOnlineSetName();
 	}
 
@@ -79,11 +80,11 @@ public class ProviderUserSession {
 		return dispatch.Argument.getLinkSid();
 	}
 
-	public @NotNull String getLinkName() {
-		return ProviderService.getLinkName(getLink());
+	public String getLinkName() {
+		return ProviderService.getLinkName(Objects.requireNonNull(getLink()));
 	}
 
-	public AsyncSocket getLink() {
+	public @Nullable AsyncSocket getLink() {
 		return dispatch.getSender();
 	}
 
@@ -93,19 +94,19 @@ public class ProviderUserSession {
 	// ——幂等标记eLinkBroken，登出由linkBroken的DelayLogout宽限timer或verifyLocal收敛，不立即下线。
 
 	/** 事务感知发送响应/推送：运行中的事务内延迟到 commit 发送（回滚不发），否则立即发送。 */
-	public void respond(@NotNull Protocol<?> p) {
+	public void respond(Protocol<?> p) {
 		Task.runTxnAware(() -> respondNow(p));
 	}
 
 	/** 立即发送，不等事务提交（即使在事务内；之后 rollback/redo 无法撤销）。 */
-	public void respondNow(@NotNull Protocol<?> p) {
+	public void respondNow(Protocol<?> p) {
 		p.setRequest(false);
 		protocolLogSend(p);
 		sendAccounted(p.getTypeId(), new Binary(p.encode()));
 	}
 
 	/** 事务回滚时发送。要求当前存在运行中的事务。 */
-	public void respondWhileRollback(@NotNull Protocol<?> p) {
+	public void respondWhileRollback(Protocol<?> p) {
 		Transaction.whileRollback(() -> respondNow(p));
 	}
 
@@ -113,11 +114,11 @@ public class ProviderUserSession {
 	 * 事务感知发送 rpc 响应，fire-and-forget：绕过 Online 失败记账，发送失败静默丢弃，不触发 onSendError 下线流程。
 	 * 下线感知主路径是 LinkBroken 协议，记账只是加速/兜底。适用：Rpc 响应 ack、高频推送等不需要失败追责的场景。
 	 */
-	public void respondFireAndForget(@NotNull Rpc<?, ?> rpc) {
+	public void respondFireAndForget(Rpc<?, ?> rpc) {
 		Task.runTxnAware(() -> sendFireAndForgetReal(rpc));
 	}
 
-	protected void sendFireAndForgetReal(@NotNull Rpc<?, ?> rpc) {
+	protected void sendFireAndForgetReal(Rpc<?, ?> rpc) {
 		rpc.setRequest(false);
 		protocolLogSend(rpc);
 		var pdata = new Binary(rpc.encode());
@@ -131,7 +132,7 @@ public class ProviderUserSession {
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠。
-		var connector = getService().getLinks().get(getLinkName());
+		var connector = Objects.requireNonNull(getService()).getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
 			send.Send(link);
@@ -140,7 +141,7 @@ public class ProviderUserSession {
 
 	/** @deprecated 使用 {@link #respondFireAndForget(Rpc)} 替代（语义不变：事务感知 + 绕过 Online 失败记账）。 */
 	@Deprecated
-	public void sendResponseDirect(@NotNull Rpc<?, ?> rpc) {
+	public void sendResponseDirect(Rpc<?, ?> rpc) {
 		var t = Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(() -> sendFireAndForgetReal(rpc));
@@ -150,7 +151,7 @@ public class ProviderUserSession {
 
 	/** @deprecated 使用 {@link #respondNow(Protocol)}（内部自行编码）或 respond 家族替代。 */
 	@Deprecated
-	public void sendResponse(@NotNull Binary fullEncodedProtocol) {
+	public void sendResponse(Binary fullEncodedProtocol) {
 		var bytes = fullEncodedProtocol.bytesUnsafe();
 		var offset = fullEncodedProtocol.getOffset();
 		var moduleId = ByteBuffer.ToInt(bytes, offset);
@@ -158,15 +159,15 @@ public class ProviderUserSession {
 		sendResponse(Protocol.makeTypeId(moduleId, protocolId), fullEncodedProtocol);
 	}
 
-	protected boolean sendOnline(AsyncSocket link, @NotNull Send send) {
-		var providerImpl = getService().providerApp.providerImplement;
+	protected boolean sendOnline(@Nullable AsyncSocket link, Send send) {
+		var providerImpl = Objects.requireNonNull(getService()).requireProviderApp().providerImplement;
 		if (providerImpl instanceof Zeze.Game.ProviderWithOnline gameProvider) {
 			var roleId = getRoleId();
 			if (roleId != null) {
 				var name = dispatch.Argument.getOnlineSetName();
 				var online = gameProvider.getOnline(name);
 				if (online != null)
-					return online.send(link, Map.of(getLinkSid(), roleId), send);
+					return Objects.requireNonNull(online).send(Objects.requireNonNull(link), Map.of(getLinkSid(), roleId), send);
 				logger.error("unknown onlineSetName: {}", name);
 			}
 			// 没有登录的会话不需要转给Online处理。转给Online是为了处理发送失败的结果。
@@ -178,7 +179,7 @@ public class ProviderUserSession {
 			var context = getContext();
 			var loginKey = new BLoginKey(getAccount(), context);
 			if (!context.isEmpty())
-				return online.send(link, Map.of(getLinkSid(), loginKey), send);
+				return Objects.requireNonNull(online).send(Objects.requireNonNull(link), Map.of(getLinkSid(), loginKey), send);
 			// 没有登录的会话不需要转给Online处理。转给Online是为了处理发送失败的结果。
 			// 这种情况下，忽略发送结果。
 			return send.Send(link);
@@ -186,7 +187,7 @@ public class ProviderUserSession {
 		return send.Send(link);
 	}
 
-	protected boolean sendAccounted(long typeId, @NotNull Binary fullEncodedProtocol) {
+	protected boolean sendAccounted(long typeId, Binary fullEncodedProtocol) {
 		ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
@@ -195,7 +196,7 @@ public class ProviderUserSession {
 		if (link != null && !link.isClosed())
 			return sendOnline(link, send);
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠。
-		var connector = getService().getLinks().get(getLinkName());
+		var connector = Objects.requireNonNull(getService()).getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
 			return sendOnline(link, send);
@@ -205,11 +206,11 @@ public class ProviderUserSession {
 
 	/** @deprecated 使用 {@link #respondNow(Protocol)}（内部自行编码）或 respond 家族替代。 */
 	@Deprecated
-	public boolean sendResponse(long typeId, @NotNull Binary fullEncodedProtocol) {
+	public boolean sendResponse(long typeId, Binary fullEncodedProtocol) {
 		return sendAccounted(typeId, fullEncodedProtocol);
 	}
 
-	private void protocolLogSend(@NotNull Protocol<?> p) {
+	private void protocolLogSend(Protocol<?> p) {
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
 			var roleId = getRoleId();
 			if (roleId == null)
@@ -222,7 +223,7 @@ public class ProviderUserSession {
 	 * onError 钩子配套：仅当 p 是尚未回复的 Rpc 请求时，以 resultCode 立即回错误响应
 	 * （Now：不等外层事务）；handler 已回复过或非 Rpc 则静默跳过。
 	 */
-	public void tryRespondErrorNow(@NotNull Protocol<?> p, long resultCode) {
+	public void tryRespondErrorNow(@Nullable Protocol<?> p, long resultCode) {
 		if (p instanceof Rpc && p.isRequest()) {
 			p.setResultCode(resultCode);
 			respondNow(p);
@@ -231,7 +232,7 @@ public class ProviderUserSession {
 
 	/** @deprecated 使用 {@link #tryRespondErrorNow(Protocol, long)} 替代。 */
 	@Deprecated
-	public void trySendResponse(@NotNull Protocol<?> p, long resultCode) {
+	public void trySendResponse(@Nullable Protocol<?> p, long resultCode) {
 		tryRespondErrorNow(p, resultCode);
 	}
 
@@ -239,7 +240,7 @@ public class ProviderUserSession {
 	 * @deprecated 立即发送语义不变，使用 {@link #respondNow(Protocol)} 替代；事务感知请用 {@link #respond(Protocol)}。
 	 */
 	@Deprecated
-	public void sendResponse(@NotNull Protocol<?> p) {
+	public void sendResponse(Protocol<?> p) {
 		p.setRequest(false);
 		protocolLogSend(p);
 		sendResponse(p.getTypeId(), new Binary(p.encode()));
@@ -247,42 +248,42 @@ public class ProviderUserSession {
 
 	/** @deprecated 使用 {@link #respond(Protocol)} 替代（事务感知：无事务时立即发送，不再要求事务存在）。 */
 	@Deprecated
-	public void sendResponseWhileCommit(long typeId, @NotNull Binary fullEncodedProtocol) {
+	public void sendResponseWhileCommit(long typeId, Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	/** @deprecated 使用 {@link #respond(Protocol)} 替代（事务感知：无事务时立即发送，不再要求事务存在）。 */
 	@Deprecated
-	public void sendResponseWhileCommit(@NotNull Binary fullEncodedProtocol) {
+	public void sendResponseWhileCommit(Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
 	/** @deprecated 使用 {@link #respond(Protocol)} 替代（事务感知：无事务时立即发送，不再要求事务存在）。 */
 	@Deprecated
-	public void sendResponseWhileCommit(@NotNull Protocol<?> p) {
+	public void sendResponseWhileCommit(Protocol<?> p) {
 		Transaction.whileCommit(() -> sendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc。
 	@SuppressWarnings("unused")
 	@Deprecated
-	protected void sendResponseWhileRollback(long typeId, @NotNull Binary fullEncodedProtocol) {
+	protected void sendResponseWhileRollback(long typeId, Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("unused")
 	@Deprecated
-	protected void sendResponseWhileRollback(@NotNull Binary fullEncodedProtocol) {
+	protected void sendResponseWhileRollback(Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendResponse(fullEncodedProtocol));
 	}
 
 	/** @deprecated 使用 {@link #respondWhileRollback(Protocol)} 替代。 */
 	@Deprecated
-	public void sendResponseWhileRollback(@NotNull Protocol<?> p) {
+	public void sendResponseWhileRollback(Protocol<?> p) {
 		Transaction.whileRollback(() -> sendResponse(p));
 	}
 
-	public static @NotNull ProviderUserSession get(@NotNull Protocol<?> context) {
+	public static ProviderUserSession get(Protocol<?> context) {
 		var state = context.getUserState();
 		if (state == null)
 			throw new IllegalStateException("not auth");

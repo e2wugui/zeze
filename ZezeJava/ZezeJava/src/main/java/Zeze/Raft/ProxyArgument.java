@@ -1,17 +1,18 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 代理协议的请求参数。
  */
 public class ProxyArgument implements Serializable {
-	private String raftId;
+	private @Nullable String raftId;
 	private Binary rpc = Binary.Empty;
 
 	public ProxyArgument() {
@@ -22,7 +23,7 @@ public class ProxyArgument implements Serializable {
 		this.rpc = new Binary(rr.encode());
 	}
 
-	public String getRaftName() {
+	public @Nullable String getRaftName() {
 		return raftId;
 	}
 
@@ -31,13 +32,13 @@ public class ProxyArgument implements Serializable {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteString(raftId);
 		bb.WriteBinary(rpc);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		raftId = bb.ReadString();
 		rpc = bb.ReadBinary();
 	}

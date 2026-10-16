@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
 import java.util.concurrent.RejectedExecutionException;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
@@ -18,8 +20,7 @@ import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 同时配置 Acceptor 和 Connector。
@@ -35,13 +36,13 @@ public class Server extends HandshakeBoth {
 
 	private final Raft raft;
 	protected final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
-	private volatile ProxyServer proxyServer;
+	private volatile @Nullable ProxyServer proxyServer;
 
-	public ProxyServer getProxyServer() {
+	public @Nullable ProxyServer getProxyServer() {
 		return proxyServer;
 	}
 
-	public void setProxyServer(ProxyServer proxyServer) {
+	public void setProxyServer(@Nullable ProxyServer proxyServer) {
 		lock();
 		try {
 			this.proxyServer = proxyServer;
@@ -70,7 +71,7 @@ public class Server extends HandshakeBoth {
 		private long matchIndex;
 
 		// 每个连接只允许存在一个AppendEntries。
-		private AppendEntries pending;
+		private @Nullable AppendEntries pending;
 
 		private long appendLogActiveTime = System.currentTimeMillis();
 		private long heartbeatTime = System.currentTimeMillis();
@@ -96,11 +97,11 @@ public class Server extends HandshakeBoth {
 			matchIndex = value;
 		}
 
-		AppendEntries getPending() {
+		@Nullable AppendEntries getPending() {
 			return pending;
 		}
 
-		void setPending(AppendEntries value) {
+		void setPending(@Nullable AppendEntries value) {
 			pending = value;
 		}
 
@@ -121,8 +122,8 @@ public class Server extends HandshakeBoth {
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket closed, @Nullable Throwable e) throws Exception {
-			Raft raft = ((Server)closed.getService()).getRaft();
+		public void OnSocketClose(AsyncSocket closed, @Nullable Throwable e) throws Exception {
+			Raft raft = Objects.requireNonNull(((Server)closed.getService())).getRaft();
 			Raft.executeImportantTask(() -> {
 				// avoid deadlock: lock(socket), lock (Raft).
 				raft.lock();
@@ -139,9 +140,9 @@ public class Server extends HandshakeBoth {
 		}
 
 		@Override
-		public void OnSocketHandshakeDone(@NotNull AsyncSocket so) {
+		public void OnSocketHandshakeDone(AsyncSocket so) {
 			super.OnSocketHandshakeDone(so);
-			Raft raft = ((Server)getService()).getRaft();
+			Raft raft = Objects.requireNonNull(((Server)getService())).getRaft();
 			Raft.executeImportantTask(() -> TaskSpec.ofAction(() -> {
 				raft.lock();
 				try {
@@ -155,7 +156,7 @@ public class Server extends HandshakeBoth {
 
 	public static void createConnector(Service service, RaftConfig raftConf) {
 		for (var node : raftConf.getNodes().values()) {
-			if (raftConf.getName().equals(node.getName()))
+			if (Objects.requireNonNull(raftConf.getName()).equals(node.getName()))
 				continue; // skip self.
 			service.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
 		}
@@ -181,7 +182,7 @@ public class Server extends HandshakeBoth {
 	// 应用协议为IRaftRpc族；内部Raft协议与握手协议（自身不是IRaftRpc）白名单放行，
 	// 误注册拦在启动期，而非Leader态强转杀连接。
 	@Override
-	public void AddFactoryHandle(long type, @NotNull ProtocolFactoryHandle<? extends Protocol<?>> factory) {
+	public void AddFactoryHandle(long type, ProtocolFactoryHandle<? extends Protocol<?>> factory) {
 		if (!IRaftRpc.class.isAssignableFrom(factory.Class)
 				&& !isImportantProtocol(type) && !isHandshakeProtocol(type) && type != ProxyRequest.TypeId_)
 			throw new IllegalArgumentException("Raft.Server only accepts IRaftRpc application protocols"
@@ -191,8 +192,8 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P p, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public <P extends Protocol<?>> void dispatchRpcResponse(P p, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			try {
@@ -219,7 +220,7 @@ public class Server extends HandshakeBoth {
 					if (state != UniqueRequestState.NOT_FOUND) {
 						if (state.isApplied()) {
 							p.SendResultCode(Procedure.RaftApplied,
-									state.getRpcResult().size() > 0 ? state.getRpcResult() : null);
+									Objects.requireNonNull(state.getRpcResult()).size() > 0 ? state.getRpcResult() : null);
 							return 0L;
 						}
 						p.SendResultCode(Procedure.DuplicateRequest);
@@ -232,14 +233,14 @@ public class Server extends HandshakeBoth {
 			}
 			trySendLeaderIs(p.getSender());
 			return 0L;
-		}, p, Protocol::trySendResultCode).call();
+		}, p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)).call();
 	}
 
 	/**
 	 * Raft.Server 的派发模式：总是完全派发（不使用事务）。
 	 */
 	@Override
-	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so)
 			throws Exception {
 		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
@@ -247,7 +248,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
@@ -267,7 +268,7 @@ public class Server extends HandshakeBoth {
 			// processStopServer在唯一发送路径上不可达；保留dispatchRaftRequest包装、错误码回发
 			// 与RaftRetry错误路径（与processRequest内的包装同构，仅去掉门槛与去重校验）。
 			dispatchRaftRequest(p, () -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle),
-							p, Protocol::trySendResultCode).call(),
+							p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)).call(),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
@@ -308,7 +309,7 @@ public class Server extends HandshakeBoth {
 				.executeOneByOne(((IRaftRpc)p).getUnique(), taskOneByOne);
 	}
 
-	public void trySendLeaderIs(AsyncSocket sender) {
+	public void trySendLeaderIs(@Nullable AsyncSocket sender) {
 		String leaderId = raft.getLeaderId();
 		if (leaderId == null || leaderId.isEmpty())
 			return;
@@ -323,7 +324,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 
 		// 没有判断是否和其他Raft-Node的连接。

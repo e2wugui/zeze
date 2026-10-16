@@ -17,6 +17,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /** Onz分布式事务参与方：嵌入zeze应用，注册本地procedure/saga，处理两阶段提交的ready/Commit/Rollback与flush应答，并管理saga上下文生命周期。 */
 public class Onz extends AbstractOnz {
@@ -27,7 +28,7 @@ public class Onz extends AbstractOnz {
 	private final ConcurrentHashMap<String, OnzProcedureStub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<OnzProcedure> readyProcedures = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
-	private final OnzService service;
+	private final @Nullable OnzService service;
 	private final Application zeze;
 	// 本集群的Onz参与方身份（FlushReady.Participant，协调者按它去重计数）。
 	// 组成=projectName#serverId（对齐raft版SM会话名的缺省全局唯一约定，见
@@ -50,7 +51,7 @@ public class Onz extends AbstractOnz {
 	// 挂死业务等满后放弃本次处理交redo重发（详见ProcessFuncSagaEndRequest）。
 	private static final long SAGA_END_LOCK_WAIT_MS = 120_000;
 	private long sagaContextTimeoutMs = eDefaultSagaContextTimeoutMs;
-	private Future<?> sagaCleanupTimer;
+	private @Nullable Future<?> sagaCleanupTimer;
 	// ready等待超时自愈回滚的tid记账（值=回滚时刻，有界），仅供
 	// 过期清理循迹；决定性状态在readyProcedures的槽位哨兵（TimeoutRolledBackMarker）——
 	//「取走登记」（Commit/Rollback的remove）与「自愈标记」（replace CAS置哨兵）在同一
@@ -156,7 +157,7 @@ public class Onz extends AbstractOnz {
 	 * 事务则幂等放行应答（OnzAgent.ProcessFlushReadyRequest），参与方得以落库；flush闸门本为
 	 * 尽力同时性（waitFlushDone超时降级随意放行），落库是数据保全方向。
 	 */
-	AsyncSocket resolveFlushSocket(AsyncSocket sender) {
+	@Nullable AsyncSocket resolveFlushSocket(@Nullable AsyncSocket sender) {
 		if (null != sender && !sender.isClosed())
 			return sender;
 		var remote = null != sender ? sender.getRemoteInet() : null;
@@ -225,11 +226,11 @@ public class Onz extends AbstractOnz {
 			var ip = kv.getKey();
 			var port = kv.getValue();
 			var zeze = service.getZeze();
-			var config = zeze.getConfig();
+			var config = Objects.requireNonNull(zeze).getConfig();
 			var identity = String.valueOf(config.getServerId());
 			// 注册名可配：共享SM部署下各集群以唯一名注册（协调者按名订阅路由），
 			// 非共享缺省"Onz"（协调者按"Onz"订阅，见registerServiceName注释）。
-			zeze.getServiceManager().registerService(new BServiceInfo(registerServiceName, identity, 0, ip, port));
+			Objects.requireNonNull(zeze.getServiceManager()).registerService(new BServiceInfo(registerServiceName, identity, 0, ip, port));
 		}
 		sagaCleanupTimer = TaskSpec.ofAction(this::cleanupTimeoutSagas).schedulePeriodNow(60_000, 60_000);
 	}
@@ -352,7 +353,7 @@ public class Onz extends AbstractOnz {
 		// onz-07：全量检查点在派发worker内同步执行（预算推导与"为何只告警不改执行模型"见
 		// CheckpointRunSlowWarnMs注释）——度量占用时长，超门槛warn暴露worker被独占。
 		var begin = System.currentTimeMillis();
-		service.getZeze().checkpointRun();
+		Objects.requireNonNull(Objects.requireNonNull(service).getZeze()).checkpointRun();
 		var elapsed = System.currentTimeMillis() - begin;
 		if (elapsed >= CheckpointRunSlowWarnMs)
 			logger.warn("onz checkpointRun slow: {}ms (dispatch worker occupied;"
@@ -437,7 +438,7 @@ public class Onz extends AbstractOnz {
 		}
 		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
 		var procedure = stub.newProcedure(r, r.Argument, buffer);
-		return TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
+		return Objects.requireNonNull(TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call());
 	}
 
 	@Override
@@ -476,7 +477,7 @@ public class Onz extends AbstractOnz {
 			// finally的两参remove对本实例（不在map中）是no-op，不会误删已存在的条目。
 			if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
 				return errorCode(eSagaTidExist);
-			rc = TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
+			rc = Objects.requireNonNull(TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call());
 		} finally {
 			// 失败清理必须在businessLock之内、解锁之前：解锁与remove的间隙里，
 			// 等锁的FuncSagaEnd(cancel)会抢先 acquire 并在sagas.remove(tid,context)成功后
@@ -543,13 +544,13 @@ public class Onz extends AbstractOnz {
 				// decode 先于补偿执行：decode 抛出时条目原样在表（redo 可重试），
 				// 由 cleanupTimeoutSagas（默认1小时）兜底。
 				final var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
-				final var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
+				final var cancelArgument = Objects.requireNonNull(stub).decodeCancelArgument(r.Argument.getFuncArgument());
 				// 在场复核（锁内观察点）：get 命中的引用可能在等锁期间被业务失败自清理摘除，
 				// 其写从未落库，补偿即过补偿；条目不在/已换实例=缺席终态，不得执行补偿。
 				if (sagas.get(tid) != context)
 					return errorCode(eSagaNotFound);
 				var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
-				if (rc != 0) {
+				if (Objects.requireNonNull(rc) != 0) {
 					// 补偿失败：条目留在sagas等redo重发，由cleanupTimeoutSagas超时兜底（默认1小时）。
 					// refreshLastActive：等待重发的窗口不消耗TTL预算。
 					context.refreshLastActive();

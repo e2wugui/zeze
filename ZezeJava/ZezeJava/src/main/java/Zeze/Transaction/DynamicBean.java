@@ -7,25 +7,24 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 动态类型 Bean：运行时按 typeId 持有可替换的内部 bean，替换以 LogDynamic 日志参与事务与序列化。 */
 public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
-	@NotNull Bean bean = new EmptyBean();
+	Bean bean = new EmptyBean();
 	long typeId = EmptyBean.TYPEID;
-	private transient final @NotNull ToLongFunction<Bean> getBean;
-	private transient final @NotNull LongFunction<Bean> createBean;
-	private transient Object mapKey;
+	private transient final ToLongFunction<@Nullable Bean> getBean;
+	private transient final LongFunction<@Nullable Bean> createBean;
+	private transient @Nullable Object mapKey;
 
-	public DynamicBean(int variableId, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
+	public DynamicBean(int variableId, ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) {
 		super(variableId);
 		getBean = get;
 		createBean = create;
 	}
 
 	@Override
-	public @NotNull Bean getBean() {
+	public Bean getBean() {
 		if (!isManaged())
 			return bean;
 		var txn = Transaction.getCurrentVerifyRead(this);
@@ -43,7 +42,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@SuppressWarnings("deprecation")
-	private void setBeanWithSpecialTypeId(long specialTypeId, @NotNull Bean bean) {
+	private void setBeanWithSpecialTypeId(long specialTypeId, Bean bean) {
 		if (bean instanceof DynamicBean) // 不允许嵌套放入DynamicBean,否则序列化会输出错误的数据流
 			bean = ((DynamicBean)bean).getBean();
 		if (bean instanceof Collection) {
@@ -95,15 +94,15 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return getTypeId();
 	}
 
-	public @NotNull ToLongFunction<Bean> getGetBean() {
+	public ToLongFunction<@Nullable Bean> getGetBean() {
 		return getBean;
 	}
 
-	public @NotNull LongFunction<Bean> getCreateBean() {
+	public LongFunction<@Nullable Bean> getCreateBean() {
 		return createBean;
 	}
 
-	public @NotNull Bean newBean(long typeId) {
+	public Bean newBean(long typeId) {
 		var bean = createBean.apply(typeId);
 		if (bean == null) {
 			if (typeId == EmptyBean.TYPEID)
@@ -116,16 +115,16 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return bean;
 	}
 
-	public void assign(@NotNull DynamicBean other) {
+	public void assign(DynamicBean other) {
 		setBean(other.getBean().copy());
 	}
 
-	public void assign(@NotNull DynamicData other) {
+	public void assign(DynamicData other) {
 		setBean(other.getData().toBean());
 	}
 
 	@Override
-	public void assign(@NotNull Data data) {
+	public void assign(Data data) {
 		assign((DynamicData)data);
 	}
 
@@ -144,7 +143,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public @NotNull DynamicBean copy() {
+	public DynamicBean copy() {
 		var copy = new DynamicBean(variableId(), getBean, createBean);
 		copy.bean = getBean().copy();
 		copy.typeId = getTypeId();
@@ -152,13 +151,13 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteLong(getTypeId());
 		getBean().encode(bb);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		// 由于可能在事务中执行，这里仅修改Bean
 		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
 		var newTypeId = bb.ReadLong();
@@ -186,28 +185,28 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		bean.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
 		bean.initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public @NotNull Object mapKey() {
+	public @Nullable Object mapKey() {
 		return mapKey;
 	}
 
 	@Override
-	public void mapKey(@NotNull Object mapKey) {
+	public void mapKey(Object mapKey) {
 		this.mapKey = mapKey;
 	}
 
 	@SuppressWarnings("deprecation")
 	@Override
-	public void followerApply(@NotNull Log log) {
+	public void followerApply(Log log) {
 		var dLog = (LogDynamic)log;
 		if (dLog.value != null) {
 			typeId = dLog.specialTypeId;
@@ -222,7 +221,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogDynamic(parent(), variableId(), this);
 	}
 

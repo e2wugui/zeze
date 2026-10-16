@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -31,7 +30,7 @@ public final class AtomicOutputFile extends OutputStream {
 	// 但流不知道），那类场景由AtomicFileWriter.writeAtomically的作用域裁决。
 	private boolean writeFailed;
 
-	AtomicOutputFile(@NotNull Path target) throws IOException {
+	AtomicOutputFile(Path target) throws IOException {
 		this.target = target.toAbsolutePath().normalize();
 		// temp必须与target同目录：rename不跨文件系统才可能原子。
 		this.temp = Files.createTempFile(this.target.getParent(),
@@ -127,7 +126,8 @@ public final class AtomicOutputFile extends OutputStream {
 	}
 
 	// temp继承既有目标的POSIX权限：createTempFile的0600会随rename落到目标。Windows跳过。
-	private static void inheritPosixAttributesBestEffort(@NotNull Path target, @NotNull Path temp) {
+	@SuppressWarnings("ConstantConditions")
+	private static void inheritPosixAttributesBestEffort(Path target, Path temp) {
 		try {
 			if (null == Files.getFileAttributeView(target, PosixFileAttributeView.class))
 				return;
@@ -139,7 +139,7 @@ public final class AtomicOutputFile extends OutputStream {
 	}
 
 	// POSIX尽力；Windows打不开目录句柄，静默降级。
-	private static void fsyncDirBestEffort(@NotNull Path dir) {
+	private static void fsyncDirBestEffort(Path dir) {
 		try (FileChannel dirChannel = FileChannel.open(dir, StandardOpenOption.READ)) {
 			dirChannel.force(true);
 		} catch (IOException | UnsupportedOperationException e) {

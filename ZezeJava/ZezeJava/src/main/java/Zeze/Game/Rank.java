@@ -1,5 +1,9 @@
 package Zeze.Game;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -24,7 +28,6 @@ import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutObject;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 分布式排行榜：按并发分段存储、RedirectHash 路由更新，合并分段生成全量快照并缓存。
@@ -33,10 +36,10 @@ public class Rank extends AbstractRank {
 	private final AppBase app;
 	protected static final BeanFactory beanFactory = new BeanFactory();
 
-	private volatile IntUnaryOperator funcRankSize;
-	private volatile IntUnaryOperator funcConcurrentLevel;
-	private volatile LongUnaryOperator funcRankCacheTimeout;
-	private volatile IntUnaryOperator funcRankCacheCapacity;
+	private volatile @Nullable IntUnaryOperator funcRankSize;
+	private volatile @Nullable IntUnaryOperator funcConcurrentLevel;
+	private volatile @Nullable LongUnaryOperator funcRankCacheTimeout;
+	private volatile @Nullable IntUnaryOperator funcRankCacheCapacity;
 
 	@SuppressWarnings("CanBeFinal")
 	private volatile float computeFactor = 2.5f;
@@ -51,35 +54,35 @@ public class Rank extends AbstractRank {
 		}
 	}
 
-	public void setFuncConcurrentLevel(IntUnaryOperator funcConcurrentLevel) {
+	public void setFuncConcurrentLevel(@Nullable IntUnaryOperator funcConcurrentLevel) {
 		this.funcConcurrentLevel = funcConcurrentLevel;
 	}
 
-	public IntUnaryOperator getFuncConcurrentLevel() {
+	public @Nullable IntUnaryOperator getFuncConcurrentLevel() {
 		return funcConcurrentLevel;
 	}
 
-	public void setFuncRankCacheTimeout(LongUnaryOperator funcRankCacheTimeout) {
+	public void setFuncRankCacheTimeout(@Nullable LongUnaryOperator funcRankCacheTimeout) {
 		this.funcRankCacheTimeout = funcRankCacheTimeout;
 	}
 
-	public LongUnaryOperator getFuncRankCacheTimeout() {
+	public @Nullable LongUnaryOperator getFuncRankCacheTimeout() {
 		return funcRankCacheTimeout;
 	}
 
-	public void setFuncRankCacheCapacity(IntUnaryOperator funcRankCacheCapacity) {
+	public void setFuncRankCacheCapacity(@Nullable IntUnaryOperator funcRankCacheCapacity) {
 		this.funcRankCacheCapacity = funcRankCacheCapacity;
 	}
 
-	public IntUnaryOperator getFuncRankCacheCapacity() {
+	public @Nullable IntUnaryOperator getFuncRankCacheCapacity() {
 		return funcRankCacheCapacity;
 	}
 
-	public void setFuncRankSize(IntUnaryOperator funcRankSize) {
+	public void setFuncRankSize(@Nullable IntUnaryOperator funcRankSize) {
 		this.funcRankSize = funcRankSize;
 	}
 
-	public IntUnaryOperator getFuncRankSize() {
+	public @Nullable IntUnaryOperator getFuncRankSize() {
 		return funcRankSize;
 	}
 
@@ -103,41 +106,41 @@ public class Rank extends AbstractRank {
 		return GenModule.createRedirectModule(Rank.class, app);
 	}
 
-	protected Rank(AppBase app) {
+	protected Rank(@Nullable AppBase app) {
 		if (app == null)
 			throw new NullPointerException();
 		this.app = app;
 	}
 
 	@Override
-	public void Initialize(@NotNull AppBase app) {
+	public void Initialize(AppBase app) {
 		if (app != this.app)
 			throw new IllegalArgumentException();
-		RegisterZezeTables(app.getZeze());
-		RegisterProtocols(app.getZeze().redirect.providerApp.providerService);
+		RegisterZezeTables(Objects.requireNonNull(app.getZeze()));
+		RegisterProtocols(Objects.requireNonNull(app.getZeze().redirect).providerApp.providerService);
 	}
 
-	public static void register(@NotNull Class<? extends Serializable> cls) {
+	public static void register(Class<? extends Serializable> cls) {
 		beanFactory.register(cls);
 	}
 
-	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
+	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return bean.typeId();
 	}
 
-	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
 	@Override
 	public void UnRegister() {
-		UnRegisterProtocols(app.getZeze().redirect.providerApp.providerService);
-		UnRegisterZezeTables(app.getZeze());
+		UnRegisterProtocols(Objects.requireNonNull(Objects.requireNonNull(app.getZeze()).redirect).providerApp.providerService);
+		UnRegisterZezeTables(Objects.requireNonNull(app.getZeze()));
 	}
 
 	public void Start(String serviceNamePrefix, String providerDirectIp, int providerDirectPort) {
 		var name = ProviderDistribute.makeServiceName(serviceNamePrefix, getId());
-		var identity = String.valueOf(app.getZeze().getConfig().getServerId());
+		var identity = String.valueOf(Objects.requireNonNull(app.getZeze()).getConfig().getServerId());
 		//noinspection DataFlowIssue
 		app.getZeze().getServiceManager().registerService(new BServiceInfo(
 				name, identity, app.getZeze().getConfig().getAppMainVersion(), providerDirectIp, providerDirectPort));
@@ -287,7 +290,7 @@ public class Rank extends AbstractRank {
 		return RedirectFuture.finish(0L);
 	}
 
-	private BRankList _removeRank(int hash, BConcurrentKey keyHint, long roleId, OutObject<BRankValue> outExist) {
+	private BRankList _removeRank(int hash, BConcurrentKey keyHint, long roleId, @Nullable OutObject<BRankValue> outExist) {
 		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
 
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(),
@@ -380,7 +383,7 @@ public class Rank extends AbstractRank {
 		// volatile：TableValue在getRankPosition等处锁外读。写序必须先TableValue后BuildTime，
 		// volatile写读序保证读者看到新BuildTime必见新TableValue（"旧time+新value"只会被判过期重建，无害）。
 		private volatile long BuildTime;
-		private volatile BRankListReadOnly TableValue;
+		private volatile @Nullable BRankListReadOnly TableValue;
 		private final BConcurrentKey keyHint;
 
 		public RankTotal(BConcurrentKey keyHint) {
@@ -399,7 +402,7 @@ public class Rank extends AbstractRank {
 			BuildTime = value;
 		}
 
-		public final BRankListReadOnly getTableValue() {
+		public final @Nullable BRankListReadOnly getTableValue() {
 			return TableValue;
 		}
 
@@ -494,14 +497,14 @@ public class Rank extends AbstractRank {
 		return getRankPosition(keyHint, roleId, null);
 	}
 
-	public long getRankPosition(BConcurrentKey keyHint, long roleId, OutObject<RankTotal> out) {
+	public long getRankPosition(BConcurrentKey keyHint, long roleId, @Nullable OutObject<RankTotal> out) {
 		var total = getRankTotal(keyHint);
 		if (null != out)
 			out.value = total;
 
 		// 判断是否在版内，并且得到排名位置。
 		var position = 0;
-		for (var r : total.getTableValue().getRankListReadOnly()) {
+		for (var r : Objects.requireNonNull(total.getTableValue()).getRankListReadOnly()) {
 			position++;
 			if (r.getRoleId() == roleId) {
 				return position;
@@ -517,7 +520,7 @@ public class Rank extends AbstractRank {
 		if (pos > 0)
 			return pos;
 
-		var list = total.value.getTableValue().getRankListReadOnly();
+		var list = Objects.requireNonNull(Objects.requireNonNull(total.value).getTableValue()).getRankListReadOnly();
 		if (list.isEmpty())
 			return totalUser; // 空榜无法估计，按排在所有人之后处理（取list.get(-1)会越界）。
 		var bean = list.get(list.size() - 1).getDynamicReadOnly().getBean();

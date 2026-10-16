@@ -10,8 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.NioByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.BitConverter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Bean 类型 binary 的辅助类。
@@ -21,14 +20,14 @@ import org.jetbrains.annotations.Nullable;
 public final class Binary implements Comparable<Binary> {
 	public static final Binary Empty = new Binary(ByteBuffer.Empty);
 
-	private final byte @NotNull [] bytes;
+	private final byte [] bytes;
 	private final int offset;
 	private final int count;
 
 	/**
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 */
-	public Binary(byte @NotNull [] bytes) {
+	public Binary(byte [] bytes) {
 		this.bytes = bytes;
 		this.offset = 0;
 		this.count = bytes.length;
@@ -44,7 +43,7 @@ public final class Binary implements Comparable<Binary> {
 	/**
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 */
-	public Binary(byte @NotNull [] bytes, int count) {
+	public Binary(byte [] bytes, int count) {
 		ByteBuffer.VerifyArrayIndex(bytes, count);
 		this.bytes = bytes;
 		this.offset = 0;
@@ -54,7 +53,7 @@ public final class Binary implements Comparable<Binary> {
 	/**
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 */
-	public Binary(byte @NotNull [] bytes, int offset, int count) {
+	public Binary(byte [] bytes, int offset, int count) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, count);
 		this.bytes = bytes;
 		this.offset = offset;
@@ -65,35 +64,35 @@ public final class Binary implements Comparable<Binary> {
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 * 【一般用于临时存储】
 	 */
-	public Binary(@NotNull ByteBuffer bb) {
+	public Binary(ByteBuffer bb) {
 		this(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
-	public Binary(@NotNull Serializable s) {
+	public Binary(Serializable s) {
 		this(ByteBuffer.encode(s));
 	}
 
-	public Binary(@NotNull String s) {
+	public Binary(String s) {
 		this(s.getBytes(StandardCharsets.UTF_8));
 	}
 
-	public byte @NotNull [] bytesUnsafe() {
+	public byte [] bytesUnsafe() {
 		return bytes;
 	}
 
-	public byte @NotNull [] copyIf() {
+	public byte [] copyIf() {
 		return Database.copyIf(bytes, offset, count);
 	}
 
-	public byte @NotNull [] toBytes() {
+	public byte [] toBytes() {
 		return Arrays.copyOfRange(bytes, offset, offset + count);
 	}
 
-	public void writeToFile(@NotNull RandomAccessFile file) throws IOException {
+	public void writeToFile(RandomAccessFile file) throws IOException {
 		file.write(bytes, offset, count);
 	}
 
-	public @NotNull ByteBuffer Wrap() {
+	public ByteBuffer Wrap() {
 		return ByteBuffer.Wrap(bytes, offset, count);
 	}
 
@@ -109,20 +108,20 @@ public final class Binary implements Comparable<Binary> {
 		return count;
 	}
 
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteBytes(bytes, offset, count);
 	}
 
-	public void decode(@NotNull Serializable _s_) {
+	public void decode(Serializable _s_) {
 		_s_.decode(ByteBuffer.Wrap(bytes, offset, count));
 	}
 
-	public @NotNull String toString(@NotNull Charset charset) {
+	public String toString(Charset charset) {
 		return new String(bytes, offset, count, charset);
 	}
 
 	@Override
-	public int compareTo(@NotNull Binary other) {
+	public int compareTo(Binary other) {
 		return Arrays.compareUnsigned(bytes, offset, offset + count,
 				other.bytes, other.offset, other.offset + other.count);
 	}
@@ -147,7 +146,7 @@ public final class Binary implements Comparable<Binary> {
 	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
 	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
 	 * 会落错桶静默miss。跨类型内容比较走本方法（对齐String.contentEquals惯例）。 */
-	public boolean contentEquals(byte @NotNull [] other) {
+	public boolean contentEquals(byte [] other) {
 		return Arrays.equals(bytes, offset, offset + count, other, 0, other.length);
 	}
 
@@ -157,7 +156,7 @@ public final class Binary implements Comparable<Binary> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return BitConverter.toStringWithLimit(bytes, offset, count, 16, 4);
 	}
 }

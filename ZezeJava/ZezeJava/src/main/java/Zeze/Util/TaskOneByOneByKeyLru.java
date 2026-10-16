@@ -1,6 +1,7 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
+
 
 import java.util.concurrent.Executor;
 
@@ -39,13 +40,13 @@ import java.util.concurrent.Executor;
  */
 public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 	private final ConcurrentLruLike<Object, TaskOneByOneQueue> queues;
-	private final Executor executor;
+	private final @Nullable Executor executor;
 
 	public TaskOneByOneByKeyLru() {
 		this("Zeze.Util.TaskOneByOneMapKey", 10_0000, null);
 	}
 
-	public TaskOneByOneByKeyLru(Executor executor) {
+	public TaskOneByOneByKeyLru(@Nullable Executor executor) {
 		this("Zeze.Util.TaskOneByOneMapKey", 10_0000, executor);
 	}
 
@@ -53,7 +54,7 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 		this(name, capacity, null);
 	}
 
-	public TaskOneByOneByKeyLru(String name, int capacity, Executor executor) {
+	public TaskOneByOneByKeyLru(String name, int capacity, @Nullable Executor executor) {
 		this.queues = new ConcurrentLruLike<>(name, capacity, this::tryRemove);
 		this.executor = executor;
 	}
@@ -77,7 +78,7 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 	}
 
 	@Override
-	protected @NotNull TaskOneByOneQueue getAndLockQueue(@NotNull Object key) {
+	protected TaskOneByOneQueue getAndLockQueue(Object key) {
 		while (true) {
 			var queue = queues.getOrAdd(key, () -> new TaskOneByOneQueue(executor));
 			queue.lock();

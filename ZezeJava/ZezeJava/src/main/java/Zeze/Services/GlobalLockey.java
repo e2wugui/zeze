@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -12,8 +14,8 @@ import Zeze.Raft.RocksRaft.PessimismLock;
  */
 public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLock {
 	private final Binary globalKey;
-	private Lock lock;
-	private Condition cond;
+	private @Nullable Lock lock;
+	private @Nullable Condition cond;
 
 	/**
 	 * 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
@@ -33,7 +35,7 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 	}
 
 	public boolean tryLock() {
-		return lock.tryLock();
+		return Objects.requireNonNull(lock).tryLock();
 	}
 
 	@Override
@@ -42,23 +44,23 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 	}
 
 	public void enter() {
-		lock.lock();
+		Objects.requireNonNull(lock).lock();
 	}
 
 	public void await() throws InterruptedException {
-		cond.await();
+		Objects.requireNonNull(cond).await();
 	}
 
 	public void pulse() {
-		cond.signal();
+		Objects.requireNonNull(cond).signal();
 	}
 
 	public void pulseAll() {
-		cond.signalAll();
+		Objects.requireNonNull(cond).signalAll();
 	}
 
 	public void exit() {
-		lock.unlock();
+		Objects.requireNonNull(lock).unlock();
 	}
 
 	GlobalLockey alloc() {
@@ -68,7 +70,7 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 	}
 
 	@Override
-	public int compareTo(GlobalLockey other) {
+	public int compareTo(@Nullable GlobalLockey other) {
 		if (other == null)
 			return 1; // null always small
 
@@ -81,7 +83,7 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
 

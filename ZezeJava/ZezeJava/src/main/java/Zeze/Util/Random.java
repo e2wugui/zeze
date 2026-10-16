@@ -3,25 +3,24 @@ package Zeze.Util;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Net.Binary;
-import org.jetbrains.annotations.NotNull;
 
 // 随机数工具集：ThreadLocalRandom 入口与 byte/Binary 等随机填充
 public final class Random {
-	public static @NotNull ThreadLocalRandom getInstance() {
+	public static ThreadLocalRandom getInstance() {
 		return ThreadLocalRandom.current();
 	}
 
-	public static byte @NotNull [] nextBytes(int size) {
+	public static byte [] nextBytes(int size) {
 		var bytes = new byte[size];
 		getInstance().nextBytes(bytes);
 		return bytes;
 	}
 
-	public static @NotNull Binary nextBinary(int size) {
+	public static Binary nextBinary(int size) {
 		return new Binary(nextBytes(size));
 	}
 
-	public static <T> @NotNull List<T> shuffle(@NotNull List<T> list) {
+	public static <T> List<T> shuffle(List<T> list) {
 		var random = getInstance();
 		for (int i = 1, n = list.size(); i < n; i++) {
 			int pos = random.nextInt(i + 1);
@@ -32,7 +31,7 @@ public final class Random {
 		return list;
 	}
 
-	public static <T> T @NotNull [] shuffle(T @NotNull [] list) {
+	public static <T> T [] shuffle(T [] list) {
 		var random = getInstance();
 		for (int i = 1, n = list.length; i < n; i++) {
 			int pos = random.nextInt(i + 1);
@@ -43,7 +42,7 @@ public final class Random {
 		return list;
 	}
 
-	public static int @NotNull [] shuffle(int @NotNull [] list) {
+	public static int [] shuffle(int [] list) {
 		var random = getInstance();
 		for (int i = 1, n = list.length; i < n; i++) {
 			int pos = random.nextInt(i + 1);
@@ -54,7 +53,7 @@ public final class Random {
 		return list;
 	}
 
-	public static long @NotNull [] shuffle(long @NotNull [] list) {
+	public static long [] shuffle(long [] list) {
 		var random = getInstance();
 		for (int i = 1, n = list.length; i < n; i++) {
 			int pos = random.nextInt(i + 1);

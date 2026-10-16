@@ -8,8 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 使用ConcurrentHashMap和ConcurrentLinkedQueue包装实现的简单Map实现，
@@ -29,9 +28,9 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	 * 下 clear 与 put 的胜负本就未定义），新 state 的计数与内容恒一致。
 	 */
 	private static final class State<K, V> {
-		final @NotNull ConcurrentHashMap<K, Entry<K, V>> map;
-		final @NotNull ConcurrentLinkedQueue<Entry<K, V>> queue = new ConcurrentLinkedQueue<>();
-		final @NotNull AtomicInteger size = new AtomicInteger();
+		final ConcurrentHashMap<K, Entry<K, V>> map;
+		final ConcurrentLinkedQueue<Entry<K, V>> queue = new ConcurrentLinkedQueue<>();
+		final AtomicInteger size = new AtomicInteger();
 
 		State(int initialCapacity) {
 			map = new ConcurrentHashMap<>(initialCapacity);
@@ -62,7 +61,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		}
 	}
 
-	private final @NotNull AtomicReference<State<K, V>> state;
+	private final AtomicReference<State<K, V>> state;
 
 	public ConcurrentHashMapOrdered() {
 		state = new AtomicReference<>(new State<>(16));
@@ -80,11 +79,11 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		return state.get().size.get() == 0;
 	}
 
-	public boolean containsKey(@NotNull K key) {
+	public boolean containsKey(K key) {
 		return get(key) != null;
 	}
 
-	public boolean containsValue(@NotNull V value) {
+	public boolean containsValue(V value) {
 		for (var entry : state.get().map.values())
 			if (!entry.dead && Objects.equals(entry.value, value))
 				return true;
@@ -96,12 +95,12 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public class OrderedIterator implements Iterator<V> {
-		private final @NotNull State<K, V> snapshot = state.get(); // 迭代期间固定在一个整体快照上
-		private final @NotNull Iterator<Entry<K, V>> queueIt = snapshot.queue.iterator();
-		private K key;
-		private V value;
+		private final State<K, V> snapshot = state.get(); // 迭代期间固定在一个整体快照上
+		private final Iterator<Entry<K, V>> queueIt = snapshot.queue.iterator();
+		private @Nullable K key;
+		private @Nullable V value;
 
-		public K key() {
+		public @Nullable K key() {
 			return key;
 		}
 
@@ -124,22 +123,22 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		}
 
 		@Override
-		public @NotNull V next() {
+		public V next() {
 			if (!hasNext())
 				throw new NoSuchElementException();
 
-			V next = value;
+			V next = Objects.requireNonNull(value);
 			value = null;
 			return next;
 		}
 	}
 
 	@Override
-	public @NotNull OrderedIterator iterator() {
+	public OrderedIterator iterator() {
 		return new OrderedIterator();
 	}
 
-	public void foreach(@NotNull BiConsumer<K, V> consumer) {
+	public void foreach(BiConsumer<K, V> consumer) {
 		var s = state.get();
 		for (var it = s.queue.iterator(); it.hasNext(); ) {
 			var entry = it.next();
@@ -151,7 +150,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		}
 	}
 
-	public @Nullable V put(@NotNull K key, @NotNull V value) {
+	public @Nullable V put(K key, V value) {
 		var s = state.get();
 		var oldValue = new OutObject<V>();
 		s.map.compute(key, (k, existing) -> {
@@ -168,7 +167,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		return oldValue.value;
 	}
 
-	public @Nullable V putIfAbsent(@NotNull K key, @NotNull V value) {
+	public @Nullable V putIfAbsent(K key, V value) {
 		var s = state.get();
 		var oldValue = new OutObject<V>();
 		s.map.compute(key, (k, existing) -> {
@@ -184,17 +183,17 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		return oldValue.value;
 	}
 
-	public @Nullable V get(@NotNull K key) {
+	public @Nullable V get(K key) {
 		var entry = state.get().map.get(key);
 		return entry != null && !entry.dead ? entry.value : null;
 	}
 
-	public V getOrDefault(@NotNull K key, V defaultValue) {
+	public V getOrDefault(K key, V defaultValue) {
 		var v = get(key);
 		return v != null ? v : defaultValue;
 	}
 
-	public @Nullable V remove(@NotNull K key) {
+	public @Nullable V remove(K key) {
 		var s = state.get();
 		var oldValue = new OutObject<V>();
 		s.map.computeIfPresent(key, (k, entry) -> {
@@ -208,7 +207,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		return oldValue.value;
 	}
 
-	public boolean remove(@NotNull K key, @NotNull V value) {
+	public boolean remove(K key, V value) {
 		var s = state.get();
 		var removed = new boolean[1];
 		s.map.computeIfPresent(key, (k, entry) -> {
@@ -224,7 +223,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		return removed[0];
 	}
 
-	public @Nullable V replace(@NotNull K key, @NotNull V value) {
+	public @Nullable V replace(K key, V value) {
 		var s = state.get();
 		var oldValue = new OutObject<V>();
 		s.map.computeIfPresent(key, (k, entry) -> {
@@ -237,7 +236,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		return oldValue.value;
 	}
 
-	public boolean replace(@NotNull K key, @NotNull V oldValue, @NotNull V newValue) {
+	public boolean replace(K key, V oldValue, V newValue) {
 		var s = state.get();
 		var replaced = new boolean[1];
 		s.map.computeIfPresent(key, (k, entry) -> {
@@ -253,7 +252,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder("{");
 		var first = true;
 		for (var entry : state.get().map.values()) {

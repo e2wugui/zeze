@@ -12,27 +12,26 @@ import com.github.luben.zstd.BufferPool;
 import com.github.luben.zstd.Zstd;
 import com.github.luben.zstd.ZstdInputStreamNoFinalizer;
 import com.github.luben.zstd.ZstdOutputStreamNoFinalizer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // zstd-jni 无 finalizer 流式压缩/解压封装：直接驱动 native stream 上下文，封死 InputStream/OutputStream 多态面
 public final class ZstdFactory {
-	private static final @NotNull Field fCStream, fCSrcPos, fCDstPos;
-	private static final @NotNull Field fDStream, fDSrcPos, fDDstPos;
-	private static final @NotNull MethodHandle mhResetCStream, mhCompressStream, mhFlushStream;
-	private static final @NotNull MethodHandle mhFreeCStream;
-	private static final @NotNull MethodHandle mhDecompressStream;
-	private static final @NotNull MethodHandle mhFreeDStream;
+	private static final Field fCStream, fCSrcPos, fCDstPos;
+	private static final Field fDStream, fDSrcPos, fDDstPos;
+	private static final MethodHandle mhResetCStream, mhCompressStream, mhFlushStream;
+	private static final MethodHandle mhFreeCStream;
+	private static final MethodHandle mhDecompressStream;
+	private static final MethodHandle mhFreeDStream;
 
-	private static @NotNull Field getField(@NotNull Class<?> cls,
-										   @NotNull String fieldName) throws ReflectiveOperationException {
+	private static Field getField(Class<?> cls,
+										   String fieldName) throws ReflectiveOperationException {
 		var field = cls.getDeclaredField(fieldName);
 		field.setAccessible(true);
 		return field;
 	}
 
-	private static @NotNull MethodHandle getMethodHandle(@NotNull MethodHandles.Lookup lookup, @NotNull Class<?> cls,
-														 @NotNull String methodName,
+	private static MethodHandle getMethodHandle(MethodHandles.Lookup lookup, Class<?> cls,
+														 String methodName,
 														 Class<?>... paramTypes) throws ReflectiveOperationException {
 		var method = cls.getDeclaredMethod(methodName, paramTypes);
 		method.setAccessible(true);
@@ -81,16 +80,16 @@ public final class ZstdFactory {
 	}
 
 	public static final class DummyBufferPool implements BufferPool {
-		public static final @NotNull java.nio.ByteBuffer empty = java.nio.ByteBuffer.allocate(0);
+		public static final java.nio.ByteBuffer empty = java.nio.ByteBuffer.allocate(0);
 		public static final DummyBufferPool instance = new DummyBufferPool();
 
 		@Override
-		public @NotNull java.nio.ByteBuffer get(int capacity) {
+		public java.nio.ByteBuffer get(int capacity) {
 			return empty;
 		}
 
 		@Override
-		public void release(@NotNull java.nio.ByteBuffer buffer) {
+		public void release(java.nio.ByteBuffer buffer) {
 		}
 	}
 
@@ -100,7 +99,7 @@ public final class ZstdFactory {
 		public static final int DEFAULT_WINDOW_LOG = -1;
 
 		private long ctxPtr;
-		private final byte @NotNull [] dstBuf;
+		private final byte [] dstBuf;
 
 		public ZstdCompressStream() throws IOException {
 			this(DEFAULT_DST_BUF_SIZE, DEFAULT_COMPRESS_LEVEL, DEFAULT_WINDOW_LOG);
@@ -150,111 +149,111 @@ public final class ZstdFactory {
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setChecksum(boolean value) throws IOException {
+		public synchronized ZstdCompressStream setChecksum(boolean value) throws IOException {
 			ensureOpen();
 			super.setChecksum(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setLevel(int value) throws IOException {
+		public synchronized ZstdCompressStream setLevel(int value) throws IOException {
 			ensureOpen();
 			super.setLevel(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setLong(int value) throws IOException {
+		public synchronized ZstdCompressStream setLong(int value) throws IOException {
 			ensureOpen();
 			super.setLong(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setWorkers(int value) throws IOException {
+		public synchronized ZstdCompressStream setWorkers(int value) throws IOException {
 			ensureOpen();
 			super.setWorkers(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setOverlapLog(int value) throws IOException {
+		public synchronized ZstdCompressStream setOverlapLog(int value) throws IOException {
 			ensureOpen();
 			super.setOverlapLog(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setJobSize(int value) throws IOException {
+		public synchronized ZstdCompressStream setJobSize(int value) throws IOException {
 			ensureOpen();
 			super.setJobSize(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setTargetLength(int value) throws IOException {
+		public synchronized ZstdCompressStream setTargetLength(int value) throws IOException {
 			ensureOpen();
 			super.setTargetLength(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setMinMatch(int value) throws IOException {
+		public synchronized ZstdCompressStream setMinMatch(int value) throws IOException {
 			ensureOpen();
 			super.setMinMatch(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setSearchLog(int value) throws IOException {
+		public synchronized ZstdCompressStream setSearchLog(int value) throws IOException {
 			ensureOpen();
 			super.setSearchLog(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setChainLog(int value) throws IOException {
+		public synchronized ZstdCompressStream setChainLog(int value) throws IOException {
 			ensureOpen();
 			super.setChainLog(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setHashLog(int value) throws IOException {
+		public synchronized ZstdCompressStream setHashLog(int value) throws IOException {
 			ensureOpen();
 			super.setHashLog(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setWindowLog(int value) throws IOException {
+		public synchronized ZstdCompressStream setWindowLog(int value) throws IOException {
 			ensureOpen();
 			super.setWindowLog(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setStrategy(int value) throws IOException {
+		public synchronized ZstdCompressStream setStrategy(int value) throws IOException {
 			ensureOpen();
 			super.setStrategy(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setDict(byte @NotNull [] value) throws IOException {
+		public synchronized ZstdCompressStream setDict(byte [] value) throws IOException {
 			ensureOpen();
 			super.setDict(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdCompressStream setDict(com.github.luben.zstd.ZstdDictCompress value) throws IOException {
+		public synchronized ZstdCompressStream setDict(com.github.luben.zstd.ZstdDictCompress value) throws IOException {
 			ensureOpen();
 			super.setDict(value);
 			return this;
 		}
 
-		public synchronized void compress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
+		public synchronized void compress(byte [] src, int srcPos, int srcEnd, ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -272,7 +271,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public synchronized void compress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull Codec dst) {
+		public synchronized void compress(byte [] src, int srcPos, int srcEnd, Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -290,7 +289,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public synchronized void flush(@NotNull ByteBuffer dst) {
+		public synchronized void flush(ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -307,7 +306,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public synchronized void flush(@NotNull Codec dst) {
+		public synchronized void flush(Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -334,7 +333,7 @@ public final class ZstdFactory {
 		}
 
 		@Override
-		public void write(byte @NotNull [] b, int off, int len) {
+		public void write(byte [] b, int off, int len) {
 			throw new UnsupportedOperationException("use compress(...) instead");
 		}
 
@@ -411,34 +410,34 @@ public final class ZstdFactory {
 		}
 
 		@Override
-		public synchronized @NotNull ZstdDecompressStream setDict(byte @NotNull [] value) throws IOException {
+		public synchronized ZstdDecompressStream setDict(byte [] value) throws IOException {
 			ensureOpen();
 			super.setDict(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdDecompressStream setDict(com.github.luben.zstd.ZstdDictDecompress value) throws IOException {
+		public synchronized ZstdDecompressStream setDict(com.github.luben.zstd.ZstdDictDecompress value) throws IOException {
 			ensureOpen();
 			super.setDict(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdDecompressStream setLongMax(int value) throws IOException {
+		public synchronized ZstdDecompressStream setLongMax(int value) throws IOException {
 			ensureOpen();
 			super.setLongMax(value);
 			return this;
 		}
 
 		@Override
-		public synchronized @NotNull ZstdDecompressStream setRefMultipleDDicts(boolean value) throws IOException {
+		public synchronized ZstdDecompressStream setRefMultipleDDicts(boolean value) throws IOException {
 			ensureOpen();
 			super.setRefMultipleDDicts(value);
 			return this;
 		}
 
-		public synchronized void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
+		public synchronized void decompress(byte [] src, int srcPos, int srcEnd, ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -488,7 +487,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public synchronized void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull Codec dst) {
+		public synchronized void decompress(byte [] src, int srcPos, int srcEnd, Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			if (dstBuf == null)
@@ -534,7 +533,7 @@ public final class ZstdFactory {
 		}
 
 		@Override
-		public int read(byte @NotNull [] b, int off, int len) {
+		public int read(byte [] b, int off, int len) {
 			throw new UnsupportedOperationException("use decompress(...) instead");
 		}
 
@@ -566,7 +565,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static @NotNull ZstdCompressStream newCompressStream() {
+	public static ZstdCompressStream newCompressStream() {
 		try {
 			return new ZstdCompressStream();
 		} catch (IOException e) {
@@ -574,7 +573,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static @NotNull ZstdCompressStream newCompressStream(int dstBufSize, int compressLevel, int windowLog) {
+	public static ZstdCompressStream newCompressStream(int dstBufSize, int compressLevel, int windowLog) {
 		try {
 			return new ZstdCompressStream(dstBufSize, compressLevel, windowLog);
 		} catch (IOException e) {
@@ -582,7 +581,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static @NotNull ZstdDecompressStream newDecompressStream() {
+	public static ZstdDecompressStream newDecompressStream() {
 		try {
 			return new ZstdDecompressStream();
 		} catch (IOException e) {
@@ -590,7 +589,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static @NotNull ZstdDecompressStream newDecompressStream(int dstBufSize) {
+	public static ZstdDecompressStream newDecompressStream(int dstBufSize) {
 		try {
 			return new ZstdDecompressStream(dstBufSize);
 		} catch (IOException e) {

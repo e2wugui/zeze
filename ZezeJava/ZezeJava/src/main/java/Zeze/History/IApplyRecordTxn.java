@@ -1,7 +1,6 @@
 package Zeze.History;
 
 import Zeze.Net.Binary;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 单条tHistory记录级别的原子应用单元（记录级事务）。
@@ -19,12 +18,12 @@ public interface IApplyRecordTxn extends AutoCloseable {
 	/**
 	 * 事务内put：暂存待提交（内存实现）或写入记录级底层事务（Zeze实现），不即时生效。
 	 */
-	void put(@NotNull String tableName, @NotNull Binary key, @NotNull Binary value) throws Exception;
+	void put(String tableName, Binary key, Binary value) throws Exception;
 
 	/**
 	 * 事务内remove：同 {@link #put}，提交时才生效。
 	 */
-	void remove(@NotNull String tableName, @NotNull Binary key) throws Exception;
+	void remove(String tableName, Binary key) throws Exception;
 
 	/**
 	 * 提交：记录内全部entry成功后一次性生效。

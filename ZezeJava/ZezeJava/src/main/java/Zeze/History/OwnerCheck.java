@@ -1,10 +1,11 @@
 package Zeze.History;
 
+import java.util.Objects;
+
 import Zeze.Application;
 import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * tHistory 物理表归属校验：gid 数值空间绑定 history 发号名（Config.getHistory），不同
@@ -30,11 +31,12 @@ public final class OwnerCheck {
 	private OwnerCheck() {
 	}
 
-	public static void verify(@NotNull Application zeze) {
+	public static void verify(Application zeze) {
 		verify(HistoryModule.get(zeze));
 	}
 
-	static void verify(@NotNull HistoryModule module) {
+	@SuppressWarnings("ConstantConditions")
+	static void verify(HistoryModule module) {
 		// 经表的实际注册解析数据库（Table.getDatabase）：tHistory 可能被改挂到非配置库
 		//（如测试的 FlakyDatabase），归属检测必须锚定实际物理存储而非配置名。
 		var table = (Zeze.Transaction.Table)module.getHistoryTable();
@@ -45,7 +47,7 @@ public final class OwnerCheck {
 		var key = ByteBuffer.Allocate(64);
 		key.WriteString(OWNER_KEY);
 		var ops = db.getDirectOperates();
-		var exist = ops.getDataWithVersion(key);
+		var exist = Objects.requireNonNull(ops).getDataWithVersion(key);
 		if (exist == null || exist.data == null) {
 			// 首见：认领（version=0 插入）。此版本仍能被旧空读覆盖，尚不能返回成功。
 			ops.saveDataWithSameVersion(key, encodeName(name), 0);
@@ -76,7 +78,7 @@ public final class OwnerCheck {
 		logger.info("tHistory owner verified: db={} historyName={}", db.getDatabaseUrl(), name);
 	}
 
-	private static @NotNull ByteBuffer encodeName(@NotNull String name) {
+	private static ByteBuffer encodeName(String name) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(name);
 		return bb;

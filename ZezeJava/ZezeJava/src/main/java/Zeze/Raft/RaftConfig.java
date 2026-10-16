@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -19,10 +21,10 @@ import Zeze.Net.Binary;
 import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Raft 集群配置：xml/字符串装载、节点表、选举/复制/快照等参数及其校验，支持按 RaftName 派生副本。
@@ -31,9 +33,9 @@ public final class RaftConfig {
 	public static final int DefaultAppendEntriesTimeout = 2000;
 	public static final int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 200;
 
-	private final Document xmlDocument;
-	private final String xmlFileName;
-	private final Element self;
+	private final @Nullable Document xmlDocument;
+	private final @Nullable String xmlFileName;
+	private final @Nullable Element self;
 	private final ConcurrentHashMap<String, Node> nodes = new ConcurrentHashMap<>();
 
 	// 整个node排序编码以后，可以作为key。
@@ -41,8 +43,8 @@ public final class RaftConfig {
 	private final byte[] sortedNamesUtf8;
 	private final Binary sortedNamesBinary;
 
-	private String name; // 这个参数不保存，可以在启动的时候从参数读取并设置
-	private String dbHome;
+	private @Nullable String name; // 这个参数不保存，可以在启动的时候从参数读取并设置
+	private @Nullable String dbHome;
 	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
 	private int leaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
 	private int electionRandomMax = 1000; // 默认给足抖动预算：heartbeat+100+rand(1000)，避免单次心跳抖动引发选举
@@ -57,7 +59,7 @@ public final class RaftConfig {
 	private int backgroundApplyCount = 500; // 需要的时间应小于LeaderHeartbeatTimer
 	private int uniqueRequestExpiredDays = 7;
 
-	public String getXmlFileName() {
+	public @Nullable String getXmlFileName() {
 		return xmlFileName;
 	}
 
@@ -89,7 +91,7 @@ public final class RaftConfig {
 		return sb.toString();
 	}
 
-	public String getName() {
+	public @Nullable String getName() {
 		return name;
 	}
 
@@ -101,6 +103,7 @@ public final class RaftConfig {
 	 * raft 所在服务器的ip地址，从name中提取。
 	 */
 	public String getHostIp() {
+		var name = Objects.requireNonNull(this.name);
 		var p = name.indexOf('_');
 		if (p < 0)
 			return name;
@@ -111,6 +114,7 @@ public final class RaftConfig {
 	 * raft 所在服务器的端口，从name中提取。
 	 */
 	public int getHostPort() {
+		var name = Objects.requireNonNull(this.name);
 		var p = name.indexOf('_');
 		if (p < 0)
 			throw new RuntimeException("port not found.");
@@ -126,7 +130,7 @@ public final class RaftConfig {
 		return (nodes.size() >>> 1) + 1;
 	}
 
-	public String getDbHome() {
+	public @Nullable String getDbHome() {
 		return dbHome;
 	}
 
@@ -243,7 +247,7 @@ public final class RaftConfig {
 	// 污染Name/DbHome，getSnapshotFullName等路径错位造成跨实例数据覆盖。
 	// 派生副本共享不可变部分（xmlDocument/nodes条目/sortedNames），复制全部可变标量；
 	// 保留原联动语义：仅当DbHome与Name相关（未特别配置）时才跟随RaftName改写。
-	RaftConfig derive(String raftName) {
+	RaftConfig derive(@Nullable String raftName) {
 		var copy = new RaftConfig(xmlDocument, xmlFileName, self, nodes,
 				sortedNames, sortedNamesUtf8, sortedNamesBinary);
 		copy.name = name;
@@ -260,7 +264,7 @@ public final class RaftConfig {
 		if (raftName != null && !raftName.isEmpty()) {
 			// 如果 DbHome 和 Name 相关，一般表示没有特别配置。
 			// 此处特别设置 Raft.Name 时，需要一起更新。
-			if (copy.dbHome.equals(copy.name.replace(':', '_')))
+			if (Objects.requireNonNull(copy.dbHome).equals(Objects.requireNonNull(copy.name).replace(':', '_')))
 				copy.dbHome = raftName.replace(':', '_');
 			copy.setName(raftName);
 		}
@@ -269,7 +273,7 @@ public final class RaftConfig {
 
 	// derive的拷贝构造：共享只读的xml与节点（构造后不再变化），nodes
 	// 复制进自己的map（addNode只在装载期发生，条目本身全final不可变）。
-	private RaftConfig(Document xmlDocument, String xmlFileName, Element self,
+	private RaftConfig(@Nullable Document xmlDocument, @Nullable String xmlFileName, @Nullable Element self,
 					   ConcurrentHashMap<String, Node> nodes,
 					   String sortedNames, byte[] sortedNamesUtf8, Binary sortedNamesBinary) {
 		this.xmlDocument = xmlDocument;
@@ -281,11 +285,11 @@ public final class RaftConfig {
 		this.sortedNamesBinary = sortedNamesBinary;
 	}
 
-	private RaftConfig(Document xml, String filename, Element self) {
+	private RaftConfig(@Nullable Document xml, @Nullable String filename, @Nullable Element self) {
 		xmlDocument = xml;
 		xmlFileName = filename;
 		this.self = self;
-		name = self.getAttribute("Name");
+		name = Objects.requireNonNull(self).getAttribute("Name");
 		if (name.indexOf('_') < 0) {
 			int p = name.lastIndexOf(':');
 			if (p >= 0)
@@ -396,11 +400,11 @@ public final class RaftConfig {
 		}
 	}
 
-	public static @NotNull RaftConfig load() throws Exception {
+	public static RaftConfig load() throws Exception {
 		return load("raft.xml");
 	}
 
-	public static @NotNull RaftConfig load(String xmlFile) throws Exception {
+	public static RaftConfig load(String xmlFile) throws Exception {
 		if (new File(xmlFile).isFile()) {
 			var factory = DocumentBuilderFactory.newInstance();
 			// 与 save() 安全设置一致；合法配置不含 DOCTYPE，行为不变
@@ -413,11 +417,11 @@ public final class RaftConfig {
 		throw new FileNotFoundException(String.format("Raft.Config: '%s' not exists.", xmlFile));
 	}
 
-	public static @NotNull RaftConfig loadFromSortedNames(String names) {
+	public static RaftConfig loadFromSortedNames(String names) {
 		return new RaftConfig(names);
 	}
 
-	public static @NotNull RaftConfig loadFromString(String content) {
+	public static RaftConfig loadFromString(String content) {
 		try {
 			var is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 			var factory = DocumentBuilderFactory.newInstance();
@@ -450,7 +454,7 @@ public final class RaftConfig {
 		// 这个配置用来区分是否主机房。
 		// 默认true，所有的节点都在主机房。
 		private final boolean suggestMajority;
-		private Element self;
+		private @Nullable Element self;
 
 		Node(Element self) {
 			this.self = self;
@@ -500,7 +504,7 @@ public final class RaftConfig {
 				self = doc.createElement("node");
 				parent.appendChild(self);
 			}
-			self.setAttribute("Host", host);
+			Objects.requireNonNull(self).setAttribute("Host", host);
 			self.setAttribute("Port", String.valueOf(port));
 			self.setAttribute("ProxyHost", proxyHost);
 			self.setAttribute("ProxyPort", String.valueOf(proxyPort));

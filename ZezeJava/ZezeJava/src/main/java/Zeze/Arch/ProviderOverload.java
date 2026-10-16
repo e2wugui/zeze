@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -12,7 +14,6 @@ import Zeze.Util.Random;
 import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Provider 过载监测：周期向线程池投递探测任务，按任务从入队到执行的延迟判定过载级别。
@@ -25,9 +26,9 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 	// getOverload位于ProcessDispatch热路径且无锁遍历，而register/set（含close置null）
 	// 会结构性修改ArrayList——普通ArrayList无happens-before，无锁读侧可见旧数组。
 	// CopyOnWriteArrayList读无锁安全；写只发生在启动/热更期，复制成本可忽略。
-	private final CopyOnWriteArrayList<ThreadPoolMonitor> threadPools = new CopyOnWriteArrayList<>();
+	private final CopyOnWriteArrayList<@Nullable ThreadPoolMonitor> threadPools = new CopyOnWriteArrayList<>();
 
-	public boolean register(@NotNull ExecutorService threadPool, @NotNull Config config) {
+	public boolean register(ExecutorService threadPool, Config config) {
 		lock();
 		try {
 			int emptyIdx = -1;
@@ -84,12 +85,12 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 	}
 
 	private static final class ThreadPoolMonitor implements AutoCloseable {
-		private final @NotNull ExecutorService threadPool;
-		private final @NotNull Config config;
+		private final ExecutorService threadPool;
+		private final Config config;
 		private volatile long overload = BLoad.eWorkFine;
 		private volatile boolean stopped;
 
-		public ThreadPoolMonitor(@NotNull ExecutorService threadPool, @NotNull Config config) {
+		public ThreadPoolMonitor(ExecutorService threadPool, Config config) {
 			this.threadPool = threadPool;
 			this.config = config;
 			startDetectDelay();

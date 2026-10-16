@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
@@ -12,20 +14,19 @@ import Zeze.Util.IntHashSet;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RedirectAll 的结果回调句柄：onResult 逐 hash 回调，onAllDone 完成回调，await 同步等待。
  */
 public interface RedirectAllFuture<R extends RedirectResult> {
 	// 返回的future不能调用下面的接口方法,只用于给框架提供结果
-	static <R extends RedirectResult> @NotNull RedirectAllFuture<R> result(R r) {
+	static <R extends RedirectResult> RedirectAllFuture<R> result(R r) {
 		return new RedirectAllFutureFinished<>(r);
 	}
 
 	// 返回的future只能调用下面的asyncResult方法
-	static <R extends RedirectResult> @NotNull RedirectAllFuture<R> async() {
+	static <R extends RedirectResult> RedirectAllFuture<R> async() {
 		return new RedirectAllFutureAsync<>();
 	}
 
@@ -35,26 +36,26 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 	}
 
 	// 只用于RedirectAll方法返回的future, 同一future的情况下,此方法不会跟其它的onResult和onAllDone并发,每个结果回调一次
-	default @NotNull RedirectAllFuture<R> onResult(@NotNull Action1<R> onResult) throws Exception {
+	default RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
 		throw new IllegalStateException();
 	}
 
-	default @NotNull RedirectAllFuture<R> OnResult(@NotNull Action1<R> onResult) {
+	default RedirectAllFuture<R> OnResult(Action1<R> onResult) {
 		throw new IllegalStateException();
 	}
 
 	// 只用于RedirectAll方法返回的future. 同一future的情况下,此方法不会跟onResult并发,只会回调一次
-	default @NotNull RedirectAllFuture<R> onAllDone(@NotNull Action1<RedirectAllContext<R>> onAllDone)
+	default RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone)
 			throws Exception {
 		throw new IllegalStateException();
 	}
 
-	default @NotNull RedirectAllFuture<R> OnAllDone(@NotNull Action1<RedirectAllContext<R>> onAllDone) {
+	default RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
 		throw new IllegalStateException();
 	}
 
 	// 只用于RedirectAll方法返回的future
-	default @NotNull RedirectAllFuture<R> await() {
+	default RedirectAllFuture<R> await() {
 		throw new IllegalStateException();
 	}
 }
@@ -74,7 +75,7 @@ final class RedirectAllFutureFinished<R extends RedirectResult> implements Redir
 
 /** async() 的单结果实现：结果与回调经 VarHandle 原子交换，先到的一方暂存，后到的一方立即执行。 */
 final class RedirectAllFutureAsync<R extends RedirectResult> implements RedirectAllFuture<R> {
-	private static final @NotNull VarHandle RESULT;
+	private static final VarHandle RESULT;
 
 	static {
 		try {
@@ -85,7 +86,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 	}
 
 	@SuppressWarnings("unused")
-	private volatile Object result;
+	private volatile @Nullable Object result;
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -104,7 +105,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public @NotNull RedirectAllFuture<R> onResult(@NotNull Action1<R> onResult) throws Exception {
+	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
 		Object r = RESULT.getAndSet(this, onResult);
 		if (r != null) {
 			if (r instanceof RedirectResult)
@@ -119,7 +120,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 /** RedirectAll 返回的 future 实现：按 hash 去重地回调 onResult，全部完成后回调 onAllDone，并支持 await 同步等待。 */
 final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock implements RedirectAllFuture<R> {
 	private static final Logger logger = LogManager.getLogger(RedirectAllFutureImpl.class);
-	private static final @NotNull VarHandle ON_ALL_DONE;
+	private static final VarHandle ON_ALL_DONE;
 
 	static {
 		try {
@@ -133,9 +134,9 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	private volatile @Nullable Action1<RedirectAllContext<R>> onAllDone;
 	private volatile @Nullable RedirectAllContext<R> ctx;
 	private volatile @Nullable IntHashSet finishedHashes; // lazy-init
-	private final @NotNull Condition cond = newCondition();
+	private final Condition cond = newCondition();
 
-	private @NotNull IntHashSet getFinishedHashes() {
+	private IntHashSet getFinishedHashes() {
 		var hashes = finishedHashes;
 		if (hashes == null) {
 			var newHashes = new IntHashSet();
@@ -150,7 +151,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		return hashes;
 	}
 
-	void result(@NotNull RedirectAllContext<R> ctx, @NotNull R result) {
+	void result(RedirectAllContext<R> ctx, R result) {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		var onRes = onResult;
@@ -167,13 +168,13 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		invokeResult(getTransactionalApp(ctx), result, onRes, "RedirectAllFutureImpl.result");
 	}
 
-	private static @Nullable Application getTransactionalApp(@NotNull RedirectAllContext<?> ctx) {
-		var zeze = ctx.getService().getZeze();
+	private static @Nullable Application getTransactionalApp(RedirectAllContext<?> ctx) {
+		var zeze = Objects.requireNonNull(ctx.getService()).getZeze();
 		return zeze != null && !zeze.isNoDatabase() ? zeze : null;
 	}
 
-	private void invokeResult(@Nullable Application zeze, @NotNull R result,
-			@NotNull Action1<R> callback, @NotNull String actionName) {
+	private void invokeResult(@Nullable Application zeze, R result,
+			Action1<R> callback, String actionName) {
 		if (zeze != null) {
 			zeze.newProcedure(() -> {
 				callback.run(result);
@@ -190,7 +191,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 
 	@SuppressWarnings("RedundantThrows")
 	@Override
-	public @NotNull RedirectAllFuture<R> onResult(@NotNull Action1<R> onResult) throws Exception {
+	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
 		//noinspection ConstantValue
 		if (onResult == null)
 			throw new IllegalArgumentException("null onResult");
@@ -210,7 +211,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 				lock(); // synchronized (hashes)
 				try {
 					if (hashes.add(it.key())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
-						readyResults.add(it.value());
+						readyResults.add(Objects.requireNonNull(it.value()));
 				} finally {
 					unlock();
 				}
@@ -225,7 +226,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	}
 
 	@Override
-	public @NotNull RedirectAllFuture<R> OnResult(@NotNull Action1<R> onResult) {
+	public RedirectAllFuture<R> OnResult(Action1<R> onResult) {
 		try {
 			return onResult(onResult);
 		} catch (Exception e) {
@@ -233,14 +234,14 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		}
 	}
 
-	void allDone(@NotNull RedirectAllContext<R> ctx) {
+	void allDone(RedirectAllContext<R> ctx) {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		@SuppressWarnings("unchecked")
 		var onA = (Action1<RedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
 		try {
 			if (onA != null) {
-				var zeze = ctx.getService().getZeze();
+				var zeze = Objects.requireNonNull(ctx.getService()).getZeze();
 				if (zeze != null && !zeze.isNoDatabase()) {
 					zeze.newProcedure(() -> {
 						onA.run(ctx);
@@ -266,7 +267,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 
 	@SuppressWarnings("RedundantThrows")
 	@Override
-	public @NotNull RedirectAllFuture<R> onAllDone(@NotNull Action1<RedirectAllContext<R>> onAllDone) throws Exception {
+	public RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Exception {
 		//noinspection ConstantValue
 		if (onAllDone == null)
 			throw new IllegalArgumentException("null onAllDone");
@@ -281,7 +282,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		// onRemoved→allDone锁内跑回调先例对齐；ctx锁可重入，锁序保持既有ctx→future。
 		c.lock();
 		try {
-			var zeze = c.getService().getZeze();
+			var zeze = Objects.requireNonNull(c.getService()).getZeze();
 			if (zeze != null && !zeze.isNoDatabase()) {
 				var c1 = c;
 				zeze.newProcedure(() -> {
@@ -297,7 +298,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	}
 
 	@Override
-	public @NotNull RedirectAllFuture<R> OnAllDone(@NotNull Action1<RedirectAllContext<R>> onAllDone) {
+	public RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
 		try {
 			return onAllDone(onAllDone);
 		} catch (Exception e) {
@@ -306,7 +307,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	}
 
 	@Override
-	public @NotNull RedirectAllFuture<R> await() {
+	public RedirectAllFuture<R> await() {
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
 			// onResult回调在ctx锁内同步执行（生产者路径processResult持ctx锁调用result，

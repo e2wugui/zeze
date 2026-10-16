@@ -1,12 +1,11 @@
 package Zeze.Net;
 
-import org.jetbrains.annotations.NotNull;
 
 /**
  * MPPC 解压 codec（RFC2118）。
  */
 public class Decompress implements Codec {
-	protected final @NotNull Codec sink;
+	protected final Codec sink;
 	protected int rem;
 	protected int pos;
 	protected int off = -1;
@@ -16,7 +15,7 @@ public class Decompress implements Codec {
 	public static class DecompressException extends CodecException {
 	}
 
-	public Decompress(@NotNull Codec sink) {
+	public Decompress(Codec sink) {
 		this.sink = sink;
 	}
 

@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,25 +27,28 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provider 连接 Linkd 的客户端服务：维护到各 Linkd 的连接，握手时宣告自身信息并完成模块 Bind/Subscribe。
  */
 public class ProviderService extends HandshakeClient {
-	private static final @NotNull Logger logger = LogManager.getLogger(ProviderService.class);
+	private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
-	protected ProviderApp providerApp;
+	protected @Nullable ProviderApp providerApp;
+
+	protected final ProviderApp requireProviderApp() {
+		return Objects.requireNonNull(providerApp, "provider is not attached to an application");
+	}
 	private final ConcurrentHashMap<String, Connector> links = new ConcurrentHashMap<>();
-	private volatile @NotNull Connector @NotNull [] linkConnectors = new Connector[0];
+	private volatile Connector [] linkConnectors = new Connector[0];
 	private final AtomicInteger linkRandomIndex = new AtomicInteger();
 
 	// 用来同步等待Provider的静态绑定完成。
 	public final TaskCompletionSource<Boolean> providerStaticBindCompleted = new TaskCompletionSource<>();
 	public final TaskCompletionSource<Boolean> providerDynamicSubscribeCompleted = new TaskCompletionSource<>();
 
-	public ProviderService(@NotNull String name, @NotNull Application zeze) {
+	public ProviderService(String name, Application zeze) {
 		super(name, zeze);
 	}
 
@@ -52,16 +57,16 @@ public class ProviderService extends HandshakeClient {
 	 * 这里要求 linkName 在所有 provider 中都一样。
 	 * 使用 Connector 配置得到名字，只要保证配置一样。
 	 */
-	public static @NotNull String getLinkName(@NotNull AsyncSocket sender) {
+	public static String getLinkName(AsyncSocket sender) {
 		//noinspection DataFlowIssue
 		return sender.getConnector().getName();
 	}
 
-	public static @NotNull String getLinkName(@NotNull BServiceInfo serviceInfo) {
+	public static String getLinkName(BServiceInfo serviceInfo) {
 		return serviceInfo.getPassiveIp() + "_" + serviceInfo.getPassivePort();
 	}
 
-	public void kick(@NotNull String linkName, long linkSid, int code, @NotNull String desc) {
+	public void kick(String linkName, long linkSid, int code, String desc) {
 		if (linkSid == 0)
 			return;
 
@@ -78,14 +83,14 @@ public class ProviderService extends HandshakeClient {
 		super.start();
 	}
 
-	public boolean applyPut(@NotNull BServiceInfo link) {
+	public boolean applyPut(BServiceInfo link) {
 		var linkName = getLinkName(link);
 		var isNew = new OutObject<>(false);
 		links.computeIfAbsent(linkName, __ -> {
 			var outC = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 				try {
-					outC.value.start();
+					Objects.requireNonNull(outC.value).start();
 					isNew.value = true;
 				} catch (Exception e) {
 					throw Task.forceThrow(e);
@@ -93,10 +98,10 @@ public class ProviderService extends HandshakeClient {
 			}
 			return outC.value;
 		});
-		return isNew.value;
+		return Objects.requireNonNull(isNew.value);
 	}
 
-	public boolean applyRemove(@NotNull BServiceInfo link) {
+	public boolean applyRemove(BServiceInfo link) {
 		var linkName = getLinkName(link);
 		var removed = links.remove(linkName);
 		if (removed != null) {
@@ -112,16 +117,16 @@ public class ProviderService extends HandshakeClient {
 	}
 
 	public static class LinkSession {
-		public final @NotNull String name;
+		public final String name;
 		public final long sessionId;
 
-		public LinkSession(@NotNull AsyncSocket so) {
+		public LinkSession(AsyncSocket so) {
 			name = getLinkName(so);
 			sessionId = so.getSessionId();
 		}
 	}
 
-	public @NotNull ConcurrentHashMap<String, Connector> getLinks() {
+	public ConcurrentHashMap<String, Connector> getLinks() {
 		return links;
 	}
 
@@ -139,15 +144,15 @@ public class ProviderService extends HandshakeClient {
 	public void setDisableChoiceFromLinks(boolean value) {
 		// ProviderApp 构造的时候初始化，相当于final了。
 		// 这样写是为了用户不用在构造ProviderService的时候传参数。
-		providerApp.lock();
+		requireProviderApp().lock();
 		try {
-			if (!providerApp.isOnlineReady())
+			if (!requireProviderApp().isOnlineReady())
 				throw new RuntimeException("online not ready.");
-			providerApp.setUserDisableChoice(value);
+			requireProviderApp().setUserDisableChoice(value);
 			for (var link : links.values())
 				sendDisableChoiceToLink(link, value);
 		} finally {
-			providerApp.unlock();
+			requireProviderApp().unlock();
 		}
 	}
 
@@ -156,12 +161,12 @@ public class ProviderService extends HandshakeClient {
 			trySetLinkChoice(link);
 	}
 
-	private void trySetLinkChoice(@NotNull Connector link) {
-		if (providerApp.isOnlineReady())
-			sendDisableChoiceToLink(link, providerApp.isUserDisableChoice());
+	private void trySetLinkChoice(Connector link) {
+		if (requireProviderApp().isOnlineReady())
+			sendDisableChoiceToLink(link, requireProviderApp().isUserDisableChoice());
 	}
 
-	private static void sendDisableChoiceToLink(@NotNull Connector link, boolean value) {
+	private static void sendDisableChoiceToLink(Connector link, boolean value) {
 		var r = new SetDisableChoice();
 		r.Argument.setDisableChoice(value);
 		r.sendCallbackAlways(link.getSocket(), (p) -> {
@@ -184,22 +189,22 @@ public class ProviderService extends HandshakeClient {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public @NotNull LinkSession newSession(@NotNull AsyncSocket so) {
+	public LinkSession newSession(AsyncSocket so) {
 		return new LinkSession(so);
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 		so.setUserState(newSession(so));
 
 		var announce = new AnnounceProviderInfo();
-		announce.Argument.setServiceNamePrefix(providerApp.serverServiceNamePrefix);
-		announce.Argument.setServiceIdentity(String.valueOf(getZeze().getConfig().getServerId()));
-		announce.Argument.setProviderDirectIp(providerApp.directIp);
-		announce.Argument.setProviderDirectPort(providerApp.directPort);
-		announce.Argument.setAppVersion(providerApp.zeze.getConfig().getAppVersion());
-		announce.Argument.setDisableChoice(disableChoice || providerApp.isUserDisableChoice());
+		announce.Argument.setServiceNamePrefix(Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix));
+		announce.Argument.setServiceIdentity(String.valueOf(Objects.requireNonNull(getZeze()).getConfig().getServerId()));
+		announce.Argument.setProviderDirectIp(Objects.requireNonNull(requireProviderApp().directIp));
+		announce.Argument.setProviderDirectPort(requireProviderApp().directPort);
+		announce.Argument.setAppVersion(requireProviderApp().zeze.getConfig().getAppVersion());
+		announce.Argument.setDisableChoice(disableChoice || requireProviderApp().isUserDisableChoice());
 
 		announce.Send(so);
 
@@ -207,11 +212,11 @@ public class ProviderService extends HandshakeClient {
 		// staticBinds/dynamicModules/modules为非线程安全IntHashMap：写点（startLast、addHotModule）
 		// 与全部读点统一providerApp锁，防止热更线程写与linkd重连握手线程读并发时resize撕裂。
 		var bind = new Bind();
-		providerApp.lock();
+		requireProviderApp().lock();
 		try {
-			providerApp.staticBinds.foreach(bind.Argument.getModules()::put);
+			requireProviderApp().staticBinds.foreach(bind.Argument.getModules()::put);
 		} finally {
-			providerApp.unlock();
+			requireProviderApp().unlock();
 		}
 		var linkName = getLinkName(so);
 		bind.Send(so, rpc -> {
@@ -222,11 +227,11 @@ public class ProviderService extends HandshakeClient {
 			return 0;
 		});
 		var sub = new Subscribe();
-		providerApp.lock();
+		requireProviderApp().lock();
 		try {
-			providerApp.dynamicModules.foreach(sub.Argument.getModules()::put);
+			requireProviderApp().dynamicModules.foreach(sub.Argument.getModules()::put);
 		} finally {
-			providerApp.unlock();
+			requireProviderApp().unlock();
 		}
 		sub.Send(so, rpc -> {
 			if (checkLinkdHandshakeResult(rpc, so, linkName, "Subscribe"))
@@ -244,8 +249,8 @@ public class ProviderService extends HandshakeClient {
 	// 天然以新实例重试），且失败不置位完成信号，由真实成功最终置位。对齐GlobalClient登录
 	// 失败so.close走重连、本文件sendDisableChoiceToLink检查isTimeout/resultCode的判例。
 	// 返回true表示应答成功；多link为first-wins语义。
-	static boolean checkLinkdHandshakeResult(@NotNull Rpc<?, ?> rpc, @NotNull AsyncSocket so,
-	                                         @NotNull String linkName, @NotNull String what) {
+	static boolean checkLinkdHandshakeResult(Rpc<?, ?> rpc, AsyncSocket so,
+	                                         String linkName, String what) {
 		if (rpc.isTimeout() || rpc.getResultCode() != 0) {
 			logger.error("linkd {} fail. link={}, isTimeout={}, code={}",
 					what, linkName, rpc.isTimeout(), rpc.getResultCode());
@@ -259,27 +264,27 @@ public class ProviderService extends HandshakeClient {
 	// 热更新增模块。
 	// 1. 热更才会调用；
 	// 2. 只有新增模块才会调用；
-	public void addHotModule(@NotNull IModule module, @NotNull BModule.Data config) {
+	public void addHotModule(IModule module, BModule.Data config) {
 		{
 			// 全局数据更新（providerApp锁内写三map，读写统一锁契约见OnHandshakeDone处注释）
-			providerApp.lock();
+			requireProviderApp().lock();
 			try {
-				providerApp.zeze.getAppBase().addModule(module);
-				providerApp.modules.put(module.getId(), config);
+				Objects.requireNonNull(requireProviderApp().zeze.getAppBase()).addModule(module);
+				requireProviderApp().modules.put(module.getId(), config);
 			} finally {
-				providerApp.unlock();
+				requireProviderApp().unlock();
 			}
 		}
 		{
 			// 注册订阅服务。
-			var sm = providerApp.zeze.getServiceManager();
-			var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
+			var sm = Objects.requireNonNull(requireProviderApp().zeze.getServiceManager());
+			var identity = String.valueOf(requireProviderApp().zeze.getConfig().getServerId());
 			sm.registerService(new BServiceInfo(
-					providerApp.serverServiceNamePrefix + module.getId(), identity,
-					providerApp.zeze.getConfig().getAppMainVersion(),
-					providerApp.directIp, providerApp.directPort));
-			sm.subscribeService(new BSubscribeInfo(providerApp.serverServiceNamePrefix + module.getId(),
-					providerApp.zeze.getConfig().getAppMainVersion()));
+					requireProviderApp().serverServiceNamePrefix + module.getId(), identity,
+					requireProviderApp().zeze.getConfig().getAppMainVersion(),
+					requireProviderApp().directIp, requireProviderApp().directPort));
+			sm.subscribeService(new BSubscribeInfo(requireProviderApp().serverServiceNamePrefix + module.getId(),
+					requireProviderApp().zeze.getConfig().getAppMainVersion()));
 		}
 
 		// 并通知所有links。
@@ -287,11 +292,11 @@ public class ProviderService extends HandshakeClient {
 		// 发送，对齐 OnHandshakeDone 的每连接新实例形态——复用单实例在 ≥2 条就绪连接时第二次
 		// Send 必抛 IllegalStateException，直落热更不可回滚区 halt。
 		if (!config.isDynamic()) {
-			providerApp.lock();
+			requireProviderApp().lock();
 			try {
-				providerApp.staticBinds.put(module.getId(), config);
+				requireProviderApp().staticBinds.put(module.getId(), config);
 			} finally {
-				providerApp.unlock();
+				requireProviderApp().unlock();
 			}
 			for (var link : links.values()) {
 				var bind = new Bind();
@@ -299,11 +304,11 @@ public class ProviderService extends HandshakeClient {
 				bind.Send(link.TryGetReadySocket());
 			}
 		} else {
-			providerApp.lock();
+			requireProviderApp().lock();
 			try {
-				providerApp.dynamicModules.put(module.getId(), config);
+				requireProviderApp().dynamicModules.put(module.getId(), config);
 			} finally {
-				providerApp.unlock();
+				requireProviderApp().unlock();
 			}
 			for (var link : links.values()) {
 				var sub = new Subscribe();
@@ -315,12 +320,12 @@ public class ProviderService extends HandshakeClient {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		if (p instanceof Dispatch d) {
 			//noinspection DataFlowIssue
 			TaskSpec.ofFunc(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p), p,
-							Protocol::trySendResultCode)
+							(protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 					.dispatchMode(factoryHandle.Mode)
 					.executeOneByOne(d.Argument.getAccount());
 		} else

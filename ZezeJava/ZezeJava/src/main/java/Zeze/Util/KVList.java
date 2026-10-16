@@ -7,19 +7,27 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 平行数组的键值对列表（keys/values 同下标成对），可克隆
-public class KVList<K, V> implements Cloneable {
-	public static final Object[] EMPTY = new Object[0];
+public class KVList<K extends @Nullable Object, V extends @Nullable Object> implements Cloneable {
+	public static final @Nullable Object[] EMPTY = new Object[0];
 	public static final int DEFAULT_SIZE = 8;
 
-	private Object @NotNull [] keys = EMPTY;
-	private Object @NotNull [] values = EMPTY;
+	private @Nullable Object [] keys = EMPTY;
+	private @Nullable Object [] values = EMPTY;
 	private int count;
 
-	public static <K, V> @NotNull KVList<K, V> wrap(K @NotNull [] keys, V @NotNull [] values, int count) {
+	// Called only within count; nullable backing slots outside the live prefix do not constrain K or V.
+	private K keyForPresentIndex(@Nullable K key) {
+		return key;
+	}
+
+	private V valueForPresentIndex(@Nullable V value) {
+		return value;
+	}
+
+	public static <K extends @Nullable Object, V extends @Nullable Object> KVList<K, V> wrap(@Nullable K [] keys, @Nullable V [] values, int count) {
 		KVList<K, V> kvl = new KVList<>();
 		kvl.keys = keys;
 		kvl.values = values;
@@ -27,7 +35,7 @@ public class KVList<K, V> implements Cloneable {
 		return kvl;
 	}
 
-	public static <K, V> @NotNull KVList<K, V> wrap(K @NotNull [] keys, V @NotNull [] values) {
+	public static <K extends @Nullable Object, V extends @Nullable Object> KVList<K, V> wrap(@Nullable K [] keys, @Nullable V [] values) {
 		KVList<K, V> kvl = new KVList<>();
 		kvl.keys = keys;
 		kvl.values = values;
@@ -35,7 +43,7 @@ public class KVList<K, V> implements Cloneable {
 		return kvl;
 	}
 
-	public static <K, V> @NotNull KVList<K, V> createSpace(int count) {
+	public static <K extends @Nullable Object, V extends @Nullable Object> KVList<K, V> createSpace(int count) {
 		KVList<K, V> kvl = new KVList<>();
 		if (count > 0) {
 			kvl.keys = new Object[count];
@@ -53,23 +61,23 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	@SuppressWarnings("CopyConstructorMissesField")
-	public KVList(@NotNull KVList<K, V> kvl) {
+	public KVList(KVList<K, V> kvl) {
 		replace(kvl);
 	}
 
-	public KVList(K @NotNull [] keys, V @NotNull [] values) {
+	public KVList(@Nullable K [] keys, @Nullable V [] values) {
 		replace(keys, values);
 	}
 
-	public KVList(K @NotNull [] keys, V @NotNull [] values, int fromIdx, int count) {
+	public KVList(@Nullable K [] keys, @Nullable V [] values, int fromIdx, int count) {
 		replace(keys, values, fromIdx, count);
 	}
 
-	public Object @NotNull [] keys() {
+	public @Nullable Object[] keys() {
 		return keys;
 	}
 
-	public Object @NotNull [] values() {
+	public @Nullable Object[] values() {
 		return values;
 	}
 
@@ -87,12 +95,12 @@ public class KVList<K, V> implements Cloneable {
 
 	@SuppressWarnings("unchecked")
 	public K getKey(int idx) {
-		return (K)keys[idx];
+		return keyForPresentIndex((K)keys[idx]);
 	}
 
 	@SuppressWarnings("unchecked")
 	public V getValue(int idx) {
-		return (V)values[idx];
+		return valueForPresentIndex((V)values[idx]);
 	}
 
 	public void setKey(int idx, K key) {
@@ -114,7 +122,7 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	@SuppressWarnings({"unchecked", "SuspiciousSystemArraycopy"})
-	public K @NotNull [] toKeyArray(K @NotNull [] a) {
+	public K [] toKeyArray(K [] a) {
 		if (a.length < count)
 			return (K[])Arrays.copyOf(keys, count, a.getClass());
 		System.arraycopy(keys, 0, a, 0, count);
@@ -122,21 +130,21 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	@SuppressWarnings({"unchecked", "SuspiciousSystemArraycopy"})
-	public V @NotNull [] toValueArray(V @NotNull [] a) {
+	public V [] toValueArray(V [] a) {
 		if (a.length < count)
 			return (V[])Arrays.copyOf(values, count, a.getClass());
 		System.arraycopy(values, 0, a, 0, count);
 		return a;
 	}
 
-	public @NotNull KVList<K, V> wraps(K @NotNull [] keys, V @NotNull [] values, int count) {
+	public KVList<K, V> wraps(@Nullable K [] keys, @Nullable V [] values, int count) {
 		this.keys = keys;
 		this.values = values;
 		this.count = Math.clamp(count, 0, Math.min(keys.length, values.length));
 		return this;
 	}
 
-	public @NotNull KVList<K, V> wraps(K @NotNull [] keys, V @NotNull [] values) {
+	public KVList<K, V> wraps(@Nullable K [] keys, @Nullable V [] values) {
 		this.keys = keys;
 		this.values = values;
 		this.count = Math.min(keys.length, values.length);
@@ -144,7 +152,7 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	public void shrink(int count) {
-		Object[] buffer;
+		@Nullable Object[] buffer;
 		int n = this.count;
 		if (n <= 0) {
 			reset();
@@ -153,12 +161,12 @@ public class KVList<K, V> implements Cloneable {
 		if (count < n)
 			count = n;
 		if (count < (buffer = keys).length) {
-			Object[] buf = new Object[count];
+			@Nullable Object[] buf = new Object[count];
 			System.arraycopy(buffer, 0, buf, 0, n);
 			keys = buf;
 		}
 		if (count < (buffer = values).length) {
-			Object[] buf = new Object[count];
+			@Nullable Object[] buf = new Object[count];
 			System.arraycopy(buffer, 0, buf, 0, n);
 			values = buf;
 		}
@@ -176,9 +184,9 @@ public class KVList<K, V> implements Cloneable {
 			}
 			if (cap < 0) // count > 2^30：倍增 cap 溢出为负，原实现死循环
 				throw new OutOfMemoryError("KVList reserve count too large: " + count);
-			Object[] buffer = keys;
+			@Nullable Object[] buffer = keys;
 			if (count > buffer.length) {
-				Object[] buf = new Object[cap];
+				@Nullable Object[] buf = new Object[cap];
 				int n = this.count;
 				if (n > 0)
 					System.arraycopy(buffer, 0, buf, 0, n);
@@ -186,7 +194,7 @@ public class KVList<K, V> implements Cloneable {
 			}
 			buffer = values;
 			if (count > buffer.length) {
-				Object[] buf = new Object[cap];
+				@Nullable Object[] buf = new Object[cap];
 				int n = this.count;
 				if (n > 0)
 					System.arraycopy(buffer, 0, buf, 0, n);
@@ -218,7 +226,7 @@ public class KVList<K, V> implements Cloneable {
 		this.count = count;
 	}
 
-	public void replace(K @NotNull [] keys, V @NotNull [] values, int fromIdx, int count) {
+	public void replace(@Nullable K [] keys, @Nullable V [] values, int fromIdx, int count) {
 		if (count <= 0) {
 			this.count = 0;
 			return;
@@ -238,20 +246,20 @@ public class KVList<K, V> implements Cloneable {
 		this.count = count;
 	}
 
-	public void replace(K @NotNull [] keys, V @NotNull [] values) {
+	public void replace(@Nullable K [] keys, @Nullable V [] values) {
 		replace(keys, values, 0, Math.min(keys.length, values.length));
 	}
 
 	@SuppressWarnings("unchecked")
-	public void replace(@NotNull KVList<K, V> kvl) {
+	public void replace(KVList<K, V> kvl) {
 		replace((K[])kvl.keys, (V[])kvl.values, 0, kvl.count);
 	}
 
-	public void swap(@NotNull KVList<K, V> kvl) {
+	public void swap(KVList<K, V> kvl) {
 		int count = this.count;
 		this.count = kvl.count;
 		kvl.count = count;
-		Object[] buf = kvl.keys;
+		@Nullable Object[] buf = kvl.keys;
 		kvl.keys = keys;
 		keys = buf;
 		buf = kvl.values;
@@ -259,7 +267,7 @@ public class KVList<K, V> implements Cloneable {
 		values = buf;
 	}
 
-	public @NotNull KVList<K, V> add(K key, V value) {
+	public KVList<K, V> add(K key, V value) {
 		int n = count;
 		int nNew = n + 1;
 		reserve(nNew);
@@ -269,7 +277,7 @@ public class KVList<K, V> implements Cloneable {
 		return this;
 	}
 
-	public @NotNull KVList<K, V> addAll(K @NotNull [] keys, V @NotNull [] values, int fromIdx, int count) {
+	public KVList<K, V> addAll(@Nullable K [] keys, @Nullable V [] values, int fromIdx, int count) {
 		if (count <= 0)
 			return this;
 		int len = Math.min(keys.length, values.length);
@@ -287,21 +295,21 @@ public class KVList<K, V> implements Cloneable {
 		return this;
 	}
 
-	public @NotNull KVList<K, V> addAll(K @NotNull [] keys, V @NotNull [] values) {
+	public KVList<K, V> addAll(@Nullable K [] keys, @Nullable V [] values) {
 		return addAll(keys, values, 0, Math.min(keys.length, values.length));
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull KVList<K, V> addAll(@NotNull KVList<K, V> kvl) {
+	public KVList<K, V> addAll(KVList<K, V> kvl) {
 		return addAll((K[])kvl.keys, (V[])kvl.values, 0, kvl.count);
 	}
 
-	public @NotNull KVList<K, V> addAll(@NotNull Collection<K> keys, @NotNull Collection<V> values) {
+	public KVList<K, V> addAll(Collection<K> keys, Collection<V> values) {
 		int n = count;
 		int s = Math.min(keys.size(), values.size());
 		reserve(n + s);
 		int end = n + s; // 与数组版addAll的min截断语义对齐，集合大小不一致时按s截断，避免越界或错位
-		Object[] buf = this.keys;
+		@Nullable Object[] buf = this.keys;
 		for (K k : keys) {
 			if (n >= end)
 				break;
@@ -319,23 +327,23 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void addAllTo(@NotNull Collection<K> keys, @NotNull Collection<V> values) {
-		Object[] ks = this.keys;
-		Object[] vs = this.values;
+	public void addAllTo(Collection<K> keys, Collection<V> values) {
+		@Nullable Object[] ks = this.keys;
+		@Nullable Object[] vs = this.values;
 		for (int i = 0, n = count; i < n; i++) {
-			keys.add((K)ks[i]);
-			values.add((V)vs[i]);
+			keys.add(keyForPresentIndex((K)ks[i]));
+			values.add(valueForPresentIndex((V)vs[i]));
 		}
 	}
 
-	public @NotNull KVList<K, V> insert(int fromIdx, K key, V value) {
+	public KVList<K, V> insert(int fromIdx, K key, V value) {
 		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= n)
 			return add(key, value);
 		reserve(n + 1);
-		Object[] buf = keys;
+		@Nullable Object[] buf = keys;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + 1, n - fromIdx);
 		buf[fromIdx] = key;
 		buf = values;
@@ -345,7 +353,7 @@ public class KVList<K, V> implements Cloneable {
 		return this;
 	}
 
-	public @NotNull KVList<K, V> insert(int fromIdx, K @NotNull [] keys, V @NotNull [] values, int idx, int count) {
+	public KVList<K, V> insert(int fromIdx, @Nullable K [] keys, @Nullable V [] values, int idx, int count) {
 		int n = this.count;
 		if (fromIdx < 0)
 			fromIdx = 0;
@@ -366,7 +374,7 @@ public class KVList<K, V> implements Cloneable {
 			idx = 0;
 		}
 		reserve(n + count);
-		Object[] buf = this.keys;
+		@Nullable Object[] buf = this.keys;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + count, n - fromIdx);
 		System.arraycopy(keys, idx, buf, fromIdx, count);
 		buf = this.values;
@@ -376,16 +384,16 @@ public class KVList<K, V> implements Cloneable {
 		return this;
 	}
 
-	public @NotNull KVList<K, V> insert(int fromIdx, K @NotNull [] keys, V @NotNull [] values) {
+	public KVList<K, V> insert(int fromIdx, @Nullable K [] keys, @Nullable V [] values) {
 		return insert(fromIdx, keys, values, 0, Math.min(keys.length, values.length));
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull KVList<K, V> insert(int fromIdx, @NotNull KVList<K, V> kvl) {
+	public KVList<K, V> insert(int fromIdx, KVList<K, V> kvl) {
 		return insert(fromIdx, (K[])kvl.keys, (V[])kvl.values, 0, kvl.count);
 	}
 
-	public @NotNull KVList<K, V> remove(int idx) {
+	public KVList<K, V> remove(int idx) {
 		int lastIdx = count;
 		if (Integer.compareUnsigned(idx, lastIdx) < 0) {
 			count = --lastIdx;
@@ -397,7 +405,7 @@ public class KVList<K, V> implements Cloneable {
 		return this;
 	}
 
-	public @NotNull KVList<K, V> removeAndExchangeLast(int idx) {
+	public KVList<K, V> removeAndExchangeLast(int idx) {
 		int lastIdx = count;
 		if (Integer.compareUnsigned(idx, lastIdx) < 0) {
 			count = --lastIdx;
@@ -407,7 +415,7 @@ public class KVList<K, V> implements Cloneable {
 		return this;
 	}
 
-	public @NotNull KVList<K, V> erase(int fromIdx, int toIdx) {
+	public KVList<K, V> erase(int fromIdx, int toIdx) {
 		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
@@ -423,7 +431,7 @@ public class KVList<K, V> implements Cloneable {
 		return this;
 	}
 
-	public @NotNull KVList<K, V> eraseFront(int count) {
+	public KVList<K, V> eraseFront(int count) {
 		int n = this.count;
 		if (count >= n)
 			this.count = 0;
@@ -440,7 +448,7 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	public int indexOfKey(K key, int fromIdx) {
-		Object[] buf = keys;
+		@Nullable Object[] buf = keys;
 		int n = count;
 		for (int i = fromIdx; i < n; i++) {
 			if (Objects.equals(buf[i], key))
@@ -451,14 +459,14 @@ public class KVList<K, V> implements Cloneable {
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public @NotNull KVList<K, V> clone() {
+	public KVList<K, V> clone() {
 		return new KVList<>(this);
 	}
 
 	@Override
 	public int hashCode() {
-		Object[] ks = keys;
-		Object[] vs = values;
+		@Nullable Object[] ks = keys;
+		@Nullable Object[] vs = values;
 		int n = count;
 		long result = n;
 		if (n <= 32) {
@@ -483,10 +491,10 @@ public class KVList<K, V> implements Cloneable {
 		int n = count;
 		if (n != kvl.count)
 			return false;
-		Object[] ks = keys;
-		Object[] vs = values;
-		Object[] oks = kvl.keys;
-		Object[] ovs = kvl.values;
+		@Nullable Object[] ks = keys;
+		@Nullable Object[] vs = values;
+		@Nullable Object[] oks = kvl.keys;
+		@Nullable Object[] ovs = kvl.values;
 		for (int i = 0; i < n; i++) {
 			if (!Objects.equals(ks[i], oks[i]) || !Objects.equals(vs[i], ovs[i]))
 				return false;
@@ -502,10 +510,10 @@ public class KVList<K, V> implements Cloneable {
 		int n = count;
 		if (n != kvl.count)
 			return false;
-		Object[] ks = keys;
-		Object[] vs = values;
-		Object[] oks = kvl.keys;
-		Object[] ovs = kvl.values;
+		@Nullable Object[] ks = keys;
+		@Nullable Object[] vs = values;
+		@Nullable Object[] oks = kvl.keys;
+		@Nullable Object[] ovs = kvl.values;
 		for (int i = 0; i < n; i++) {
 			if (!Objects.equals(ks[i], oks[i]) || !Objects.equals(vs[i], ovs[i]))
 				return false;
@@ -514,68 +522,68 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void foreach(@NotNull BiConsumer<K, V> consumer) {
-		Object[] ks = keys;
-		Object[] vs = values;
+	public void foreach(BiConsumer<K, V> consumer) {
+		@Nullable Object[] ks = keys;
+		@Nullable Object[] vs = values;
 		int n = count;
 		for (int i = 0; i < n; i++)
-			consumer.accept((K)ks[i], (V)vs[i]);
+			consumer.accept(keyForPresentIndex((K)ks[i]), valueForPresentIndex((V)vs[i]));
 	}
 
 	@SuppressWarnings("unchecked")
-	public void foreachKey(@NotNull Consumer<K> consumer) {
-		Object[] buf = keys;
+	public void foreachKey(Consumer<K> consumer) {
+		@Nullable Object[] buf = keys;
 		int n = count;
 		for (int i = 0; i < n; i++)
-			consumer.accept((K)buf[i]);
+			consumer.accept(keyForPresentIndex((K)buf[i]));
 	}
 
 	@SuppressWarnings("unchecked")
-	public void foreachValue(@NotNull Consumer<V> consumer) {
-		Object[] buf = values;
+	public void foreachValue(Consumer<V> consumer) {
+		@Nullable Object[] buf = values;
 		int n = count;
 		for (int i = 0; i < n; i++)
-			consumer.accept((V)buf[i]);
+			consumer.accept(valueForPresentIndex((V)buf[i]));
 	}
 
 	@SuppressWarnings("unchecked")
-	public boolean foreachPred(@NotNull BiPredicate<K, V> predicate) {
-		Object[] ks = keys;
-		Object[] vs = values;
+	public boolean foreachPred(BiPredicate<K, V> predicate) {
+		@Nullable Object[] ks = keys;
+		@Nullable Object[] vs = values;
 		int n = count;
 		for (int i = 0; i < n; i++) {
-			if (!predicate.test((K)ks[i], (V)vs[i]))
+			if (!predicate.test(keyForPresentIndex((K)ks[i]), valueForPresentIndex((V)vs[i])))
 				return false;
 		}
 		return true;
 	}
 
 	@SuppressWarnings("unchecked")
-	public boolean foreachKeyPred(@NotNull Predicate<K> predicate) {
-		Object[] buf = keys;
+	public boolean foreachKeyPred(Predicate<K> predicate) {
+		@Nullable Object[] buf = keys;
 		int n = count;
 		for (int i = 0; i < n; i++) {
-			if (!predicate.test((K)buf[i]))
+			if (!predicate.test(keyForPresentIndex((K)buf[i])))
 				return false;
 		}
 		return true;
 	}
 
 	@SuppressWarnings("unchecked")
-	public boolean foreachValuePred(@NotNull Predicate<V> predicate) {
-		Object[] buf = values;
+	public boolean foreachValuePred(Predicate<V> predicate) {
+		@Nullable Object[] buf = values;
 		int n = count;
 		for (int i = 0; i < n; i++) {
-			if (!predicate.test((V)buf[i]))
+			if (!predicate.test(valueForPresentIndex((V)buf[i])))
 				return false;
 		}
 		return true;
 	}
 
-	public @NotNull StringBuilder dump(@NotNull StringBuilder sb) {
+	public StringBuilder dump(StringBuilder sb) {
 		sb.append('[');
-		Object[] ks = keys;
-		Object[] vs = values;
+		@Nullable Object[] ks = keys;
+		@Nullable Object[] vs = values;
 		int n = count;
 		if (n > 0) {
 			for (int i = 0; ; ) {
@@ -588,13 +596,13 @@ public class KVList<K, V> implements Cloneable {
 		return sb.append(']');
 	}
 
-	public @NotNull String dump() {
+	public String dump() {
 		int n = count;
 		return n > 0 ? dump(new StringBuilder(n * 16)).toString() : "[]";
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "[" + count + "/" + capacity() + "]";
 	}
 }

@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -29,8 +30,7 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 看门狗守护进程：监管一个子进程（游戏服务器），经UDP接收子进程注册，按mmap中的
@@ -39,13 +39,13 @@ import org.jetbrains.annotations.Nullable;
 public class Daemon {
 	public static final String propertyNamePort = "Zeze.ProcessDaemon.Port";
 	public static final String propertyNameClearInUse = "Zeze.Database.ClearInUse";
-	private static final @NotNull Logger logger = LogManager.getLogger(Daemon.class);
+	private static final Logger logger = LogManager.getLogger(Daemon.class);
 
 	// Key Is ServerId。每个Server对应一个Monitor。
 	// 正常使用是一个Daemon对应一个Server。
 	// 写成支持多个Server是为了跑Simulate测试。
 	private static final LongConcurrentHashMap<Monitor> monitors = new LongConcurrentHashMap<>();
-	private static DatagramSocket udpSocket;
+	private static @Nullable DatagramSocket udpSocket;
 	private static volatile @Nullable Process subprocess;
 
 	private static final LongConcurrentHashMap<PendingPacket> pendings = new LongConcurrentHashMap<>();
@@ -118,7 +118,7 @@ public class Daemon {
 				// 轮询：等待Global配置以及等待子进程退出。
 				Command cmd = null;
 				try {
-					cmd = receiveCommand(udpSocket);
+					cmd = receiveCommand(Objects.requireNonNull(udpSocket));
 				} catch (SocketTimeoutException ex) {
 					// skip
 				} catch (Throwable ex) {
@@ -132,7 +132,7 @@ public class Daemon {
 					// 合法CommonResult与Release在本switch无分支无动作（Daemon只发不收），统一拦截
 					// 零副作用；任意本地进程伪造报文不得触达状态变更/销毁路径。
 					// 残余风险：对端地址校验可被"抢先自注册"满足（Register无发送者凭据）。
-					if (cmd.command() != Register.Command && !isRegisteredPeer(cmd.peer)) {
+					if (cmd.command() != Register.Command && !isRegisteredPeer(Objects.requireNonNull(cmd.peer))) {
 						logger.error("Command {} rejected: unregistered peer={}", cmd.command(), cmd.peer);
 					} else
 					switch (cmd.command()) {
@@ -157,7 +157,7 @@ public class Daemon {
 								code = 2;
 							}
 						}
-						sendCommand(udpSocket, cmd.peer, new CommonResult(reg.reliableSerialNo, code));
+						sendCommand(udpSocket, Objects.requireNonNull(cmd.peer), new CommonResult(reg.reliableSerialNo, code));
 						logger.info("Register! Server={} code={}", reg.serverId, code);
 						break;
 
@@ -189,14 +189,14 @@ public class Daemon {
 									on.serverId, on.globalConfig.serverDaemonTimeout, on.globalConfig.serverReleaseTimeout);
 							code = 1;
 						}
-						sendCommand(udpSocket, cmd.peer, new CommonResult(on.reliableSerialNo, code));
+						sendCommand(udpSocket, Objects.requireNonNull(cmd.peer), new CommonResult(on.reliableSerialNo, code));
 						break;
 
 					case DeadlockReport.Command:
 						// 弱校验：DeadlockReport不带任何字段，子进程侧与Register
 						// 走同一个udpSocket（对端地址相同），仅接受已注册Monitor对端的报告——
 						// 任意本地进程伪造报文不得销毁被监管子进程并连带令守护整体退出。
-						if (!isRegisteredPeer(cmd.peer)) {
+						if (!isRegisteredPeer(Objects.requireNonNull(cmd.peer))) {
 							logger.error("DeadlockReport rejected: peer={}", cmd.peer);
 							break;
 						}
@@ -224,11 +224,11 @@ public class Daemon {
 	// 整体catch：Path.of对Windows非法路径字符抛InvalidPathException（合法
 	// 编码的Register报文即可携带），不包则逃逸到mainRun外层catch的fatalExit——单报文
 	// 仍可halt看门狗。非信任输入的解析异常一律按拒绝处理。
-	private static boolean isValidRegister(@NotNull Register reg) {
+	private static boolean isValidRegister(Register reg) {
 		try {
 			if (reg.globalCount <= 0 || reg.globalCount > 1024)
 				return false;
-			var fileName = Path.of(reg.mmapFileName);
+			var fileName = Path.of(Objects.requireNonNull(reg.mmapFileName));
 			if (!Files.isRegularFile(fileName))
 				return false;
 			var parent = fileName.getParent();
@@ -243,7 +243,7 @@ public class Daemon {
 		}
 	}
 
-	private static boolean isRegisteredPeer(@NotNull SocketAddress peer) {
+	private static boolean isRegisteredPeer(SocketAddress peer) {
 		for (var monitor : monitors) {
 			if (monitor.peerSocketAddress.equals(peer))
 				return true;
@@ -274,6 +274,7 @@ public class Daemon {
 	// 正阻塞在本锁的monitorenter上时，会形成"持锁者join等锁者"的循环死锁，看门狗
 	// 整体冻结且不可自愈。锁外join后，Monitor等锁者很快拿到锁、发现销毁已在途返回，再由
 	// stopAndJoin置running=false退出循环，join必然返回。
+	@SuppressWarnings("ConstantConditions") // 保留锁外对子进程快照的防御检查。
 	private static void destroySubprocess() throws InterruptedException {
 		Process p;
 		synchronized (Daemon.class) {
@@ -366,7 +367,7 @@ public class Daemon {
 							var now = System.currentTimeMillis();
 							for (var it = pendings.entryIterator(); it.moveToNext(); ) {
 								var pending = it.value();
-								if (now - pending.sendTime > 1000) {
+								if (now - Objects.requireNonNull(pending).sendTime > 1000) {
 									pending.sendTime = now;
 									try {
 										pending.socket.send(pending.packet);
@@ -424,7 +425,7 @@ public class Daemon {
 
 	private static class Monitor extends Thread {
 		private final SocketAddress peerSocketAddress;
-		private final AtomicReferenceArray<AchillesHeelConfig> globalConfigs;
+		private final AtomicReferenceArray<@Nullable AchillesHeelConfig> globalConfigs;
 		private final String fileName;
 		private final RandomAccessFile raf;
 		private final FileChannel channel;
@@ -433,10 +434,10 @@ public class Daemon {
 		private volatile boolean running = true;
 
 		public Monitor(Register reg) throws Exception {
-			peerSocketAddress = reg.peer;
+			peerSocketAddress = Objects.requireNonNull(reg.peer);
 			globalConfigs = new AtomicReferenceArray<>(reg.globalCount);
-			fileName = reg.mmapFileName;
-			var tmpRaf = new RandomAccessFile(new File(fileName), "rw");
+			fileName = Objects.requireNonNull(reg.mmapFileName);
+			var tmpRaf = new RandomAccessFile(new File(Objects.requireNonNull(fileName)), "rw");
 			try {
 				var tmpChannel = tmpRaf.getChannel();
 				// 构造期复核尺寸：isValidRegister校验与本构造之间存在TOCTOU窗口，
@@ -458,7 +459,7 @@ public class Daemon {
 			}
 		}
 
-		public AchillesHeelConfig getConfig(int index) {
+		public @Nullable AchillesHeelConfig getConfig(int index) {
 			return globalConfigs.get(index);
 		}
 
@@ -524,7 +525,7 @@ public class Daemon {
 							// 重复命令的处理由Server完成，
 							// 这里重发也是需要的，刚好解决Udp不可靠性。
 							try {
-								sendCommand(udpSocket, peerSocketAddress, new Release(i));
+								sendCommand(Objects.requireNonNull(udpSocket), peerSocketAddress, new Release(i));
 							} catch (IOException e) {
 								// Release为fire-and-forget且每轮重发：单次失败跳过本轮即可，不得让外层catch(Throwable)杀死看门狗。
 								logger.warn("sendCommand Release-{} failed, skip this round.", i, e);
@@ -566,7 +567,7 @@ public class Daemon {
 	public static abstract class Command implements Serializable {
 		private static final AtomicLong seed = new AtomicLong();
 
-		public SocketAddress peer;
+		public @Nullable SocketAddress peer;
 		public long reliableSerialNo;
 		private boolean isRequest;
 
@@ -617,7 +618,7 @@ public class Daemon {
 
 		public int serverId;
 		public int globalCount;
-		public String mmapFileName;
+		public @Nullable String mmapFileName;
 
 		public Register(int serverId, int c, String name) {
 			this.serverId = serverId;

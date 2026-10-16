@@ -13,8 +13,7 @@ import Zeze.Util.Factory;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 
@@ -32,14 +31,14 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private static final Zeze.Util.ZezeCounter.LongObserver evictAcquireObserver =
 			Zeze.Util.ZezeCounter.instance.getRunTimeObserver("TableCache.evictAcquire");
 
-	private static final @NotNull Logger logger = LogManager.getLogger(TableCache.class);
+	private static final Logger logger = LogManager.getLogger(TableCache.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
 	// cleanNow超容量循环的单次执行时界（CacheCleanPeriod的倍数）：超界即break，剩余留给下一轮调度。
 	private static final int CLEAN_TIME_LIMIT_PERIODS = 3;
 
-	private final @NotNull TableX<K, V> table;
-	private final @NotNull ConcurrentHashMap<K, Record1<K, V>> dataMap;
+	private final TableX<K, V> table;
+	private final ConcurrentHashMap<K, Record1<K, V>> dataMap;
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
 	private volatile ConcurrentHashMap<K, Record1<K, V>> lruHot;
 	private @Nullable Future<?> timerNewHot;
@@ -55,7 +54,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return table.isMemory() ? sizeCounter.sum() : dataMap.size();
 	}
 
-	TableCache(Application ignoredApp, @NotNull TableX<K, V> table) {
+	TableCache(Application ignoredApp, TableX<K, V> table) {
 		this.table = table;
 		dataMap = new ConcurrentHashMap<>(getCacheInitialCapacity());
 		newLruHot();
@@ -72,7 +71,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	final @NotNull ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
+	final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
 		return dataMap;
 	}
 
@@ -82,7 +81,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Math.max(table.getTableConf().getCacheInitialCapacity(), 31);
 	}
 
-	public long walkKey(@NotNull TableWalkKey<K> callback) throws Exception {
+	public long walkKey(TableWalkKey<K> callback) throws Exception {
 		long cw = 0;
 		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))
@@ -120,7 +119,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	public final @NotNull Record1<K, V> getOrAdd(@NotNull K key, @NotNull Factory<Record1<K, V>> valueFactory) {
+	public final Record1<K, V> getOrAdd(K key, Factory<Record1<K, V>> valueFactory) {
 		var lruHot = this.lruHot;
 		var result = dataMap.get(key);
 		if (result == null) { // slow-path
@@ -147,8 +146,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	// 仅当key仍映射到result（活记录）时才登记进热点块。
 	// 并发Remove可能在getOrAdd读取dataMap之后完成：死记录登记进块将永久滞留
 	//（Remove的摘除可能读到null的lruNode而跳过），cleanNow反复对它加锁尝试且节点永不为空。
-	private void adjustLru(@NotNull K key, @NotNull Record1<K, V> result,
-						   @NotNull ConcurrentHashMap<K, Record1<K, V>> curLruHot) {
+	private void adjustLru(K key, Record1<K, V> result,
+						   ConcurrentHashMap<K, Record1<K, V>> curLruHot) {
 		var oldNode = result.getAndSetLruNodeNull();
 		if (oldNode == null)
 			return;
@@ -182,6 +181,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return dataMap.get(key);
 	}
 
+	@SuppressWarnings("ConstantConditions") // poll 在队列被清空时确实允许返回 null。
 	private void tryPollLruQueue() {
 		if (lruQueue.size() <= MAX_NODE_COUNT)
 			return;
@@ -324,7 +324,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	// 不持 lockey 的路径依赖 fairLock 的记录级全序 + StateRemoved 自愈：
 	// 并发访问者见到 StateRemoved 即重走 GetOrAdd 建新记录（TableX.load/GetOrAdd 的
 	// StateRemoved continue 分支），不会观察到删除中间态。
-	void remove(@NotNull K k, @NotNull Record1<K, V> r, boolean removeLocalRocks) {
+	void remove(K k, Record1<K, V> r, boolean removeLocalRocks) {
 		// 镜像清理必须先于摘除 dataMap：本方法持有 r.fairLock，映射仍在时同键
 		// load 会等待旧记录；若先摘映射，新 load 可建新记录并写好镜像，随后被旧
 		// 记录的清理删掉，软引用回收后新记录就会把镜像 miss 当成不存在。
@@ -358,7 +358,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	private boolean tryRemoveRecordUnderLock(@NotNull Map.Entry<K, Record1<K, V>> p) {
+	private boolean tryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
 		if (table.isMemory()) {
 			// 容量回收：timerClean对内存表同样调度，超容量即到达本分支。
 			// 仅回收非脏驻留（数据在localRocks，重载经TableX.load以非null strongRef返回，commit不会重复计数）。
@@ -407,7 +407,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return true;
 	}
 
-	private boolean tryRemoveRecord(@NotNull Map.Entry<K, Record1<K, V>> p) {
+	private boolean tryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
 		// lockey 第一优先，和事务并发。
 		final TableKey tkey = new TableKey(table.getId(), p.getKey());
 		final Locks locks = table.getZeze().getLocks();

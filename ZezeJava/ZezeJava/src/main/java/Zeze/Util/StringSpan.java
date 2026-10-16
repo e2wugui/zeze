@@ -1,7 +1,6 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 字符串零拷贝视图（string + offset + length），避免substring分配。
@@ -13,29 +12,29 @@ import org.jetbrains.annotations.Nullable;
  * 哈希桶命中而equals静默miss。compareTo对异类恒返-1，同为单向。
  */
 public class StringSpan implements Comparable<Object> {
-	private @NotNull String string;
+	private String string;
 	private int offset;
 	private int length;
 
-	public StringSpan(@NotNull String string) {
+	public StringSpan(String string) {
 		this(string, 0, string.length());
 	}
 
-	public StringSpan(@NotNull String string, int length) {
+	public StringSpan(String string, int length) {
 		this(string, 0, length);
 	}
 
-	public StringSpan(@NotNull String string, int offset, int length) {
+	public StringSpan(String string, int offset, int length) {
 		this.string = string;
 		this.offset = offset;
 		this.length = length;
 	}
 
-	public @NotNull String getString() {
+	public String getString() {
 		return string;
 	}
 
-	public void setString(@NotNull String string) {
+	public void setString(String string) {
 		this.string = string;
 	}
 
@@ -134,7 +133,7 @@ public class StringSpan implements Comparable<Object> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return string.substring(offset, offset + length);
 	}
 }

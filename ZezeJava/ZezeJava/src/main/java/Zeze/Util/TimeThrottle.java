@@ -1,8 +1,7 @@
 package Zeze.Util;
 
 import Zeze.Net.SocketOptions;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 限流器接口：按配置名创建 queue（滑动窗口）或 counter（固定窗口）实现
 public interface TimeThrottle extends AutoCloseable {
@@ -12,7 +11,7 @@ public interface TimeThrottle extends AutoCloseable {
 	default void close() {
 	}
 
-	static @Nullable TimeThrottle create(@NotNull SocketOptions options) {
+	static @Nullable TimeThrottle create(SocketOptions options) {
 		return create(options.getTimeThrottle(), options.getTimeThrottleSeconds(),
 				options.getTimeThrottleLimit(), options.getTimeThrottleBandwidth());
 	}

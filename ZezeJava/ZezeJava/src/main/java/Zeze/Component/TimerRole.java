@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Objects;
+
 import java.util.List;
 import Zeze.Application;
 import Zeze.Builtin.Timer.BGameOnlineTimer;
@@ -22,8 +24,7 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
@@ -34,15 +35,15 @@ import org.jetbrains.annotations.Nullable;
  * online定时器的调度、触发、取消、转发逻辑在 {@link TimerOnlineBase} 中实现。
  */
 public class TimerRole extends TimerOnlineBase<Long> {
-	private static final @NotNull Logger logger = LogManager.getLogger(TimerRole.class);
+	private static final Logger logger = LogManager.getLogger(TimerRole.class);
 	public static final String eOnlineTimers = "Zeze.Component.TimerGameOnline";
 	public static final String eTransmitCronTimer = "Zeze.TimerRole.TransmitCronTimer";
 	public static final String eTransmitSimpleTimer = "Zeze.TimerRole.TransmitSimpleTimer";
 	public static final String eTransmitCancelRoleTimer = "Zeze.TimerRole.TransmitCancelRoleTimer";
 
-	private final @NotNull Online online;
+	private final Online online;
 
-	public TimerRole(@NotNull Online online) {
+	public TimerRole(Online online) {
 		this.online = online;
 
 		online.getTransmitActions().put(eTransmitCronTimer, this::transmitOnlineCronTimer);
@@ -57,14 +58,14 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	// ///////////////////////////////////////////////////////////////
 	// TimerOnlineBase 钩子实现
 	private static final class GameOnlineTimer extends OnlineTimer<Long> {
-		private final @NotNull BGameOnlineTimer bTimer;
+		private final BGameOnlineTimer bTimer;
 
-		GameOnlineTimer(@NotNull BGameOnlineTimer bTimer) {
+		GameOnlineTimer(BGameOnlineTimer bTimer) {
 			this.bTimer = bTimer;
 		}
 
 		@Override
-		@NotNull Bean getTimerObj() {
+		Bean getTimerObj() {
 			return bTimer.getTimerObj().getBean();
 		}
 
@@ -79,90 +80,90 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		}
 
 		@Override
-		@NotNull Long identity() {
+		Long identity() {
 			return bTimer.getRoleId();
 		}
 	}
 
 	@Override
-	@NotNull Timer timer() {
-		return online.providerApp.zeze.getTimer();
+	Timer timer() {
+		return Objects.requireNonNull(online.providerApp.zeze.getTimer());
 	}
 
 	@Override
-	@NotNull String name() {
+	String name() {
 		return "TimerRole";
 	}
 
 	@Override
-	@Nullable Long getLocalLoginVersion(@NotNull Long roleId) {
+	@Nullable Long getLocalLoginVersion(Long roleId) {
 		return online.getLocalLoginVersion(roleId);
 	}
 
 	@Override
-	@Nullable Long getSharedLoginVersion(@NotNull Long roleId) {
+	@Nullable Long getSharedLoginVersion(Long roleId) {
 		var shared = online.getLoginOnlineShared(roleId);
 		return shared != null ? shared.getLoginVersion() : null;
 	}
 
 	@Override
-	@Nullable Long getLoginVersion(@NotNull Long roleId) {
+	@Nullable Long getLoginVersion(Long roleId) {
 		return online.getLoginVersion(roleId);
 	}
 
 	@Override
-	@NotNull OnlineTimer<Long> newOnlineTimer(@NotNull Long roleId, long loginVersion, long serialId,
-											  @NotNull Bean timerObj) {
+	OnlineTimer<Long> newOnlineTimer(Long roleId, long loginVersion, long serialId,
+											  Bean timerObj) {
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, serialId);
 		onlineTimer.getTimerObj().setBean(timerObj);
 		return new GameOnlineTimer(onlineTimer);
 	}
 
 	@Override
-	@Nullable OnlineTimer<Long> getOnlineTimer(@NotNull String timerId) {
+	@Nullable OnlineTimer<Long> getOnlineTimer(String timerId) {
 		var bTimer = online._tRoleTimers().get(timerId);
 		return bTimer != null ? new GameOnlineTimer(bTimer) : null;
 	}
 
 	@Override
-	void insertOnlineTimer(@NotNull String timerId, @NotNull OnlineTimer<Long> onlineTimer) {
+	void insertOnlineTimer(String timerId, OnlineTimer<Long> onlineTimer) {
 		online._tRoleTimers().insert(timerId, ((GameOnlineTimer)onlineTimer).bTimer);
 	}
 
 	@Override
-	void removeOnlineTimer(@NotNull String timerId) {
+	void removeOnlineTimer(String timerId) {
 		online._tRoleTimers().remove(timerId);
 	}
 
 	@Override
-	@NotNull BOnlineTimers getOrAddLocalTimers(@NotNull Long roleId) {
+	BOnlineTimers getOrAddLocalTimers(Long roleId) {
 		return online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 	}
 
 	@Override
-	@Nullable BOnlineTimers getLocalTimers(@NotNull Long roleId) {
+	@Nullable BOnlineTimers getLocalTimers(Long roleId) {
 		return online.getLocalBean(roleId, eOnlineTimers);
 	}
 
 	@Override
-	void removeLocalTimers(@NotNull Long roleId) {
+	void removeLocalTimers(Long roleId) {
 		online.removeLocalBean(roleId, eOnlineTimers);
 	}
 
 	@Override
-	void transmitSimple(@NotNull Long target, @NotNull BTransmitSimpleTimer p) {
+	void transmitSimple(Long target, BTransmitSimpleTimer p) {
 		online.transmitEmbed(target, eTransmitSimpleTimer, List.of(target),
 				new Binary(ByteBuffer.encode(p)), false);
 	}
 
 	@Override
-	void transmitCron(@NotNull Long target, @NotNull BTransmitCronTimer p) {
+	void transmitCron(Long target, BTransmitCronTimer p) {
 		online.transmitEmbed(target, eTransmitCronTimer, List.of(target),
 				new Binary(ByteBuffer.encode(p)), false);
 	}
 
 	@Override
-	void transmitCancel(@NotNull Long target, @NotNull String timerId, long loginVersion) {
+	void transmitCancel(Long target, String timerId, long loginVersion) {
 		var p = new BTransmitCancelRoleTimer();
 		p.setTimerId(timerId);
 		p.setRoleId(target);
@@ -172,12 +173,12 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	}
 
 	@Override
-	@NotNull String identityString(@NotNull Long roleId) {
+	String identityString(Long roleId) {
 		return "roleId=" + roleId;
 	}
 
 	@Override
-	void fillContext(@NotNull Long roleId, @NotNull TimerContext context) {
+	void fillContext(Long roleId, TimerContext context) {
 		context.roleId = roleId;
 	}
 
@@ -189,8 +190,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamed(long, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, long delay, long period, long times,
-									   long endTime, @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamed(long roleId, String timerId, long delay, long period, long times,
+									   long endTime, Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
@@ -200,9 +201,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamed(long, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, long delay, long period, long times,
-									   long endTime, @NotNull Class<? extends TimerHandle> handleClass,
-									   @Nullable Bean customData, @NotNull String oneByOneKey) {
+	public boolean scheduleOnlineNamed(long roleId, String timerId, long delay, long period, long times,
+									   long endTime, Class<? extends TimerHandle> handleClass,
+									   @Nullable Bean customData, String oneByOneKey) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
 			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
@@ -214,8 +215,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(long, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, long delay, long period, long times,
-										  long endTime, @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamedHot(long roleId, String timerId, long delay, long period, long times,
+										  long endTime, Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
@@ -225,9 +226,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(long, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, long delay, long period, long times,
-										  long endTime, @NotNull Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData, @NotNull String oneByOneKey) {
+	public boolean scheduleOnlineNamedHot(long roleId, String timerId, long delay, long period, long times,
+										  long endTime, Class<? extends TimerHandle> handleClass,
+										  @Nullable Bean customData, String oneByOneKey) {
 		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -236,8 +237,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamed(long, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull String cron, long times,
-									   long endTime, @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamed(long roleId, String timerId, String cron, long times,
+									   long endTime, Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
@@ -247,9 +248,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamed(long, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull String cron, long times,
-									   long endTime, @NotNull Class<? extends TimerHandle> handleClass,
-									   @Nullable Bean customData, @NotNull String oneByOneKey) {
+	public boolean scheduleOnlineNamed(long roleId, String timerId, String cron, long times,
+									   long endTime, Class<? extends TimerHandle> handleClass,
+									   @Nullable Bean customData, String oneByOneKey) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
 			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
@@ -261,8 +262,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(long, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull String cron, long times,
-										  long endTime, @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamedHot(long roleId, String timerId, String cron, long times,
+										  long endTime, Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofCron(cron).times(times)
 				.endTime(endTime), handleClass, customData);
@@ -272,10 +273,10 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(long, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull String cron, long times,
-										  long endTime, @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamedHot(long roleId, String timerId, String cron, long times,
+										  long endTime, Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData,
-										  @NotNull String oneByOneKey) {
+										  String oneByOneKey) {
 		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -287,8 +288,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
-										  @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
+										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		return scheduleOnline(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
@@ -298,9 +299,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
-										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										  @NotNull String oneByOneKey) {
+	public String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
+										  Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										  String oneByOneKey) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
 			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
@@ -312,8 +313,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineHot(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnlineHot(long roleId, long delay, long period, long times, long endTime,
-											 @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnlineHot(long roleId, long delay, long period, long times, long endTime,
+											 Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		return scheduleOnlineHot(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
@@ -323,9 +324,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineHot(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnlineHot(long roleId, long delay, long period, long times, long endTime,
-											 @NotNull Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData, @NotNull String oneByOneKey) {
+	public String scheduleOnlineHot(long roleId, long delay, long period, long times, long endTime,
+											 Class<? extends TimerHandle> handleClass,
+											 @Nullable Bean customData, String oneByOneKey) {
 		return scheduleOnlineHot(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -334,8 +335,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnline(long roleId, @NotNull String cron, long times, long endTime,
-										  @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnline(long roleId, String cron, long times, long endTime,
+										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		return scheduleOnline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
@@ -345,9 +346,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnline(long roleId, @NotNull String cron, long times, long endTime,
-										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										  @NotNull String oneByOneKey) {
+	public String scheduleOnline(long roleId, String cron, long times, long endTime,
+										  Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										  String oneByOneKey) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
 			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
@@ -359,8 +360,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineHot(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnlineHot(long roleId, @NotNull String cron, long times, long endTime,
-											 @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnlineHot(long roleId, String cron, long times, long endTime,
+											 Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		return scheduleOnlineHot(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
@@ -370,10 +371,10 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOnlineHot(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnlineHot(long roleId, @NotNull String cron, long times, long endTime,
-											 @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnlineHot(long roleId, String cron, long times, long endTime,
+											 Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData,
-											 @NotNull String oneByOneKey) {
+											 String oneByOneKey) {
 		return scheduleOnlineHot(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -382,8 +383,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	// Spec 入口
 	// 推荐使用TimerSpec描述调度参数，避免超长的参数列表。
 
-	public @NotNull String scheduleOnline(long roleId, @NotNull TimerSpec spec,
-										  @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnline(long roleId, TimerSpec spec,
+										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
@@ -391,8 +392,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return scheduleOnlineImpl(roleId, spec, handleClass, customData);
 	}
 
-	@NotNull String scheduleOnlineImpl(long roleId, @NotNull TimerSpec spec,
-									   @NotNull Class<? extends TimerHandle> handleClass,
+	String scheduleOnlineImpl(long roleId, TimerSpec spec,
+									   Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
 		switch (spec) {
@@ -402,8 +403,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return timerId;
 	}
 
-	public @NotNull String scheduleOnlineHot(long roleId, @NotNull TimerSpec spec,
-											 @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnlineHot(long roleId, TimerSpec spec,
+											 Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
 		switch (spec) {
@@ -413,8 +414,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return timerId;
 	}
 
-	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
-									   @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamed(long roleId, String timerId, TimerSpec spec,
+									   Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
@@ -422,8 +423,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return scheduleOnlineNamedImpl(roleId, timerId, spec, handleClass, customData);
 	}
 
-	boolean scheduleOnlineNamedImpl(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
-									@NotNull Class<? extends TimerHandle> handleClass,
+	boolean scheduleOnlineNamedImpl(long roleId, String timerId, TimerSpec spec,
+									Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) {
 		if (isNamedTimerIdOccupied(timerId))
 			return false;
@@ -434,8 +435,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return true;
 	}
 
-	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
-										  @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamedHot(long roleId, String timerId, TimerSpec spec,
+										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		if (isNamedTimerIdOccupied(timerId))
 			return false;
@@ -468,7 +469,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 			return true; // 取消不存在的timer，认为成功。
 
 		var timer = online.providerApp.zeze.getTimer();
-		var index = timer.tIndexs().get(timerId);
+		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
 		if (index == null)
 			return false;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -491,7 +492,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		// 归属校验（对齐TimerAccount.cancelOffline）：无校验直接timer.cancel时，
 		// 传入任意timerId（他人offline timer、全局命名timer）都会被越权取消，
 		// 且按调用者传入的roleId清理_tRoleOfflineTimers（typo时误删他行/真实归属行残留脏条目）。
-		var index = timer.tIndexs().get(timerId);
+		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
 		if (index == null)
 			return false;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -524,9 +525,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, long delay, long period,
+	public boolean scheduleOfflineNamed(String timerId, long roleId, long delay, long period,
 										long times, long endTime, int missfirePolicy,
-										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+										Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		return scheduleOfflineNamed(timerId, roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).missfirePolicy(missfirePolicy), handleClass, customData);
 	}
@@ -535,16 +536,16 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, long delay, long period,
+	public boolean scheduleOfflineNamed(String timerId, long roleId, long delay, long period,
 										long times, long endTime, int missfirePolicy,
-										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										@NotNull String oneByOneKey) {
+										Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										String oneByOneKey) {
 		return scheduleOfflineNamed(timerId, roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
-	private void scheduleOffline(@NotNull String timerId, long roleId, @NotNull SimpleTimerSpec builder,
-								 @NotNull Class<? extends TimerHandle> handleClass,
+	private void scheduleOffline(String timerId, long roleId, SimpleTimerSpec builder,
+								 Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) {
 		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(roleId);
@@ -557,10 +558,10 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			timer.tryRecordBeanHotModuleWhileCommit(customData);
+			Objects.requireNonNull(timer).tryRecordBeanHotModuleWhileCommit(customData);
 		}
-		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
-		var config = timer.zeze.getConfig();
+		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
+		var config = timer.getZeze().getConfig();
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			logger.error("scheduleOffline(simple): too many timers. roleId={}, timerId={}, handle={}, size={} > {}",
@@ -577,8 +578,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOffline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
-										   int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+										   int missfirePolicy, Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		return scheduleOffline(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).missfirePolicy(missfirePolicy), handleClass, customData);
@@ -588,9 +589,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOffline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
-										   int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
-										   @Nullable Bean customData, @NotNull String oneByOneKey) {
+	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+										   int missfirePolicy, Class<? extends TimerHandle> handleClass,
+										   @Nullable Bean customData, String oneByOneKey) {
 		return scheduleOffline(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -599,8 +600,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOffline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
-										   @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+										   Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		return scheduleOffline(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
@@ -610,9 +611,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, @NotNull String cron,
+	public boolean scheduleOfflineNamed(String timerId, long roleId, String cron,
 										long times, long endTime, int missfirePolicy,
-										@NotNull Class<? extends TimerHandle> handleClass,
+										Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 		return scheduleOfflineNamed(timerId, roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy), handleClass, customData);
@@ -622,17 +623,17 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, @NotNull String cron,
+	public boolean scheduleOfflineNamed(String timerId, long roleId, String cron,
 										long times, long endTime, int missfirePolicy,
-										@NotNull Class<? extends TimerHandle> handleClass,
+										Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData,
-										@NotNull String oneByOneKey) {
+										String oneByOneKey) {
 		return scheduleOfflineNamed(timerId, roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
-	private void scheduleOffline(@NotNull String timerId, long roleId, @NotNull CronTimerSpec builder,
-								 @NotNull Class<? extends TimerHandle> handleClass,
+	private void scheduleOffline(String timerId, long roleId, CronTimerSpec builder,
+								 Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData,
 								 @Nullable BIndex index) {
 		Reflect.checkDefaultConstructor(handleClass);
@@ -646,15 +647,15 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			timer.tryRecordBeanHotModuleWhileCommit(customData);
+			Objects.requireNonNull(timer).tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
-			if (timer.cronEquals(index, timerId, builder, OfflineHandle.class, custom))
+			if (Objects.requireNonNull(timer).cronEquals(index, timerId, builder, OfflineHandle.class, custom))
 				return;
 			cancel(timerId, roleId); // 先取消,下面再重建
 		}
-		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
-		var config = timer.zeze.getConfig();
+		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
+		var config = timer.getZeze().getConfig();
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			logger.error("scheduleOffline(cron): too many timers. roleId={}, timerId={}, handle={}, size={} > {}",
@@ -671,8 +672,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOffline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
-										   int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOffline(long roleId, String cron, long times, long endTime,
+										   int missfirePolicy, Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		return scheduleOffline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy), handleClass, customData);
@@ -682,10 +683,10 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOffline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
-										   int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOffline(long roleId, String cron, long times, long endTime,
+										   int missfirePolicy, Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData,
-										   @NotNull String oneByOneKey) {
+										   String oneByOneKey) {
 		return scheduleOffline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -694,8 +695,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	 * @deprecated 使用 {@link #scheduleOffline(long, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
-										   @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOffline(long roleId, String cron, long times, long endTime,
+										   Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		return scheduleOffline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
@@ -704,8 +705,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	// ///////////////////////////////////////////////////////////////
 	// Offline Spec 入口
 
-	public @NotNull String scheduleOffline(long roleId, @NotNull TimerSpec spec,
-										   @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOffline(long roleId, TimerSpec spec,
+										   Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
 		switch (spec) {
@@ -717,8 +718,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 
 	// 查timerId当前登记的角色offline timer归属，查表路径仿cancelOffline：
 	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
-	private static @Nullable BOfflineRoleCustom getRoleOfflineCustom(@NotNull Timer timer, @NotNull String timerId) {
-		var index = timer.tIndexs().get(timerId);
+	private static @Nullable BOfflineRoleCustom getRoleOfflineCustom(Timer timer, String timerId) {
+		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
 		if (index == null)
 			return null;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -728,16 +729,16 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return bTimer.getCustomData().getBean() instanceof BOfflineRoleCustom custom ? custom : null;
 	}
 
-	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, @NotNull TimerSpec spec,
-										@NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOfflineNamed(String timerId, long roleId, TimerSpec spec,
+										Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
-		if (timer.isOnlineTimerIdOccupied(timerId))
+		if (Objects.requireNonNull(timer).isOnlineTimerIdOccupied(timerId))
 			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
-		var index = timer.tIndexs().get(timerId);
+		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
 		// 族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
@@ -768,7 +769,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		// onTimerCancel钩子同步清簿记，与onLoginEvent一致，杜绝"index已删簿记残留"
 		// 使同名重调度putIfAbsent撞残留抛IllegalStateException。
 		@Override
-		public void onTimerCancel(@NotNull BTimer bTimer) {
+		public void onTimerCancel(BTimer bTimer) {
 			if (!(bTimer.getCustomData().getBean() instanceof BOfflineRoleCustom custom))
 				return;
 			try {
@@ -779,7 +780,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 				var providerApp = zeze.getProviderApp();
 				var providerImpl = providerApp != null ? providerApp.providerImplement : null;
 				var online = providerImpl instanceof ProviderWithOnline p
-						? p.getOnline(custom.getOnlineSetName()) : zeze.getTimer().getDefaultOnline();
+						? p.getOnline(custom.getOnlineSetName()) : Objects.requireNonNull(zeze.getTimer()).getDefaultOnline();
 				if (online == null)
 					return;
 				var roleId = custom.getRoleId();
@@ -798,7 +799,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		}
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineRoleCustom)context.customData;
 			//noinspection DataFlowIssue
 			var roleId = offlineCustom.getRoleId();
@@ -813,8 +814,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 				timer.findTimerHandle(offlineCustom.getHandleName()).onTimer(context);
 			} else {
 				var timerId = offlineCustom.getTimerName();
-				timer.cancel(timerId);
-				var providerImpl = timer.zeze.getProviderApp().providerImplement;
+				Objects.requireNonNull(timer).cancel(timerId);
+				var providerImpl = Objects.requireNonNull(timer.getZeze().getProviderApp()).providerImplement;
 				var online = providerImpl instanceof ProviderWithOnline
 						? ((ProviderWithOnline)providerImpl).getOnline(onlineSetName)
 						: timer.getDefaultOnline();
@@ -832,13 +833,13 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		}
 	}
 
-	private long onLoginEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
+	private long onLoginEvent(Object sender, EventDispatcher.EventArgument arg) {
 		var roleId = ((LoginArgument)arg).roleId;
 		var offlineTimers = online._tRoleOfflineTimers().get(roleId);
 		if (offlineTimers != null) {
 			var timer = online.providerApp.zeze.getTimer();
 			for (var timerId : offlineTimers.getOfflineTimers().keySet())
-				timer.cancel(timerId);
+				Objects.requireNonNull(timer).cancel(timerId);
 			// 嵌入本地服务器事件事务中，
 			// 删除之后，如果上面的redirectCancel失败，
 			// 那么该timer触发的时候会检测到版本号不一致，
@@ -851,7 +852,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	}
 
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
-	private long onLocalRemoveEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
+	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) {
 		var local = ((LocalRemoveEventArgument)arg).local;
 		if (local != null) {
 			var bAny = local.getDatas().get(eOnlineTimers);

@@ -17,8 +17,7 @@ import Zeze.Util.LongHashMap;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
@@ -36,13 +35,13 @@ import org.jetbrains.annotations.Nullable;
  * 所以这个功能暂时先不提供了。
  */
 public class Schemas implements Serializable {
-	private static final @NotNull Logger logger = LogManager.getLogger(Schemas.class);
+	private static final Logger logger = LogManager.getLogger(Schemas.class);
 
 	public static final class Checked {
-		private Bean previous;
-		private Bean current;
+		private @Nullable Bean previous;
+		private @Nullable Bean current;
 
-		public Bean getPrevious() {
+		public @Nullable Bean getPrevious() {
 			return previous;
 		}
 
@@ -50,7 +49,7 @@ public class Schemas implements Serializable {
 			previous = value;
 		}
 
-		public Bean getCurrent() {
+		public @Nullable Bean getCurrent() {
 			return current;
 		}
 
@@ -60,7 +59,7 @@ public class Schemas implements Serializable {
 
 		@Override
 		public int hashCode() {
-			return previous.name.hashCode() * 31 + current.name.hashCode();
+			return Objects.requireNonNull(previous).name.hashCode() * 31 + Objects.requireNonNull(current).name.hashCode();
 		}
 
 		@Override
@@ -74,7 +73,7 @@ public class Schemas implements Serializable {
 	}
 
 	public static final class CheckResult {
-		private Bean bean;
+		private @Nullable Bean bean;
 		private final ArrayList<Consumer<Bean>> updates = new ArrayList<>();
 		private final ArrayList<Consumer<Bean>> updateVariables = new ArrayList<>();
 
@@ -91,19 +90,19 @@ public class Schemas implements Serializable {
 
 		public void update() {
 			for (var update : updates)
-				update.accept(bean);
+				update.accept(Objects.requireNonNull(bean));
 			for (var update : updateVariables)
-				update.accept(bean);
+				update.accept(Objects.requireNonNull(bean));
 		}
 	}
 
 	public static final class Context {
-		private Schemas current;
-		private Schemas previous;
+		private @Nullable Schemas current;
+		private @Nullable Schemas previous;
 		private final HashMap<Checked, CheckResult> checked = new HashMap<>();
-		private Config config;
+		private @Nullable Config config;
 
-		public Schemas getCurrent() {
+		public @Nullable Schemas getCurrent() {
 			return current;
 		}
 
@@ -111,7 +110,7 @@ public class Schemas implements Serializable {
 			current = value;
 		}
 
-		public Schemas getPrevious() {
+		public @Nullable Schemas getPrevious() {
 			return previous;
 		}
 
@@ -119,11 +118,11 @@ public class Schemas implements Serializable {
 			previous = value;
 		}
 
-		public @NotNull HashMap<Checked, CheckResult> getChecked() {
+		public HashMap<Checked, CheckResult> getChecked() {
 			return checked;
 		}
 
-		public Config getConfig() {
+		public @Nullable Config getConfig() {
 			return config;
 		}
 
@@ -138,7 +137,7 @@ public class Schemas implements Serializable {
 			return checked.get(tempVar);
 		}
 
-		public void addCheckResult(Bean previous, Bean current, @NotNull CheckResult result) {
+		public void addCheckResult(Bean previous, Bean current, CheckResult result) {
 			var tempVar = new Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
@@ -153,9 +152,9 @@ public class Schemas implements Serializable {
 	}
 
 	public static class Type implements Serializable {
-		public @NotNull String name = "";
-		public @NotNull String keyName = "";
-		public @NotNull String valueName = "";
+		public String name = "";
+		public String keyName = "";
+		public String valueName = "";
 		public transient @Nullable Type key;
 		public transient @Nullable Type value;
 
@@ -187,7 +186,7 @@ public class Schemas implements Serializable {
 		}
 		//VectorBean
 
-		private static boolean isTypeNameCompatible(@NotNull String typeName0, @NotNull String typeName1) {
+		private static boolean isTypeNameCompatible(String typeName0, String typeName1) {
 			if (typeName0.equals(typeName1))
 				return true;
 			var t0 = compatibleTable.get(typeName0);
@@ -195,7 +194,7 @@ public class Schemas implements Serializable {
 			return t0 != null && t0.equals(t1);
 		}
 
-		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
+		public boolean isCompatible(String parent, @Nullable Type other, Context context,
 									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
 			if (other == this)
 				return true;
@@ -235,20 +234,20 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			name = bb.ReadString();
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteString(name);
 			bb.WriteString(keyName);
 			bb.WriteString(valueName);
 		}
 
-		public void compile(@NotNull Schemas s) {
+		public void compile(Schemas s) {
 			key = s.compile(keyName, "", "");
 			if (key != null && key instanceof Bean)
 				((Bean)key).keyRefCount++;
@@ -258,7 +257,7 @@ public class Schemas implements Serializable {
 				((Bean)value).keyRefCount++;
 		}
 
-		public @NotNull String toSqlType(boolean isKey, DatabaseRelationalMapping mapping) {
+		public String toSqlType(boolean isKey, DatabaseRelationalMapping mapping) {
 			var sqlType = mapping.getSqlTypeMap().get(name);
 			if (sqlType == null)
 				throw new UnsupportedOperationException("unknown sql type=" + name);
@@ -267,7 +266,7 @@ public class Schemas implements Serializable {
 			return sqlType;
 		}
 
-		public static @NotNull String toColumnName(@NotNull ArrayList<String> varNames) {
+		public static String toColumnName(ArrayList<String> varNames) {
 			var sb = new StringBuilder();
 			sb.append(varNames.getFirst());
 			for (int i = 1; i < varNames.size(); ++i)
@@ -275,7 +274,7 @@ public class Schemas implements Serializable {
 			return sb.toString();
 		}
 
-		public static @NotNull String toColumnName(@NotNull ArrayList<String> varNames, @NotNull String lastName) {
+		public static String toColumnName(ArrayList<String> varNames, String lastName) {
 			var sb = new StringBuilder();
 			sb.append(varNames.getFirst());
 			for (int i = 1; i < varNames.size(); ++i)
@@ -284,7 +283,7 @@ public class Schemas implements Serializable {
 			return sb.toString();
 		}
 
-		public static int @NotNull [] toVarIds(@NotNull ArrayList<Integer> varIds, int lastId) {
+		public static int [] toVarIds(ArrayList<Integer> varIds, int lastId) {
 			var ids = new int[varIds.size() + 1];
 			for (var i = 0; i < varIds.size(); ++i)
 				ids[i] = varIds.get(i);
@@ -292,9 +291,9 @@ public class Schemas implements Serializable {
 			return ids;
 		}
 
-		public void buildRelationalColumns(boolean isKey, @NotNull Variable variable,
-										   @NotNull ArrayList<String> varNames, @NotNull ArrayList<Integer> varIds,
-										   @NotNull ArrayList<Column> columns, DatabaseRelationalMapping mapping) {
+		public void buildRelationalColumns(boolean isKey, Variable variable,
+										   ArrayList<String> varNames, ArrayList<Integer> varIds,
+										   ArrayList<Column> columns, DatabaseRelationalMapping mapping) {
 			switch (name) {
 			case "vector2":
 			case "vector2int":
@@ -329,18 +328,18 @@ public class Schemas implements Serializable {
 
 	public static class Variable implements Serializable {
 		public int id;
-		public @NotNull String name = "";
-		public @NotNull String typeName = "";
-		public @NotNull String keyName = "";
-		public @NotNull String valueName = "";
-		public transient Type type;
+		public String name = "";
+		public String typeName = "";
+		public String keyName = "";
+		public String valueName = "";
+		public transient @Nullable Type type;
 
 		// 如果是dynamic，下面的变量定义它静态包含的可能的Beans；
 		// 错误检查定义：1. 旧的映射不能被删除；2. typeId映射的className不能改变；
 		public final LongHashMap<String> dynamicBeans = new LongHashMap<>();
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			id = bb.ReadInt();
 			name = bb.ReadString();
 			typeName = bb.ReadString();
@@ -355,7 +354,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(id);
 			bb.WriteString(name);
 			bb.WriteString(typeName);
@@ -369,11 +368,11 @@ public class Schemas implements Serializable {
 			}
 		}
 
-		public void compile(@NotNull Schemas s) {
+		public void compile(Schemas s) {
 			type = s.compile(typeName, keyName, valueName);
 		}
 
-		public boolean isCompatible(@NotNull String parent, @NotNull Variable other, @NotNull Context context) {
+		public boolean isCompatible(String parent, Variable other, Context context) {
 			boolean res = true;
 			// dynamic 兼容检查。
 			if (typeName.equals("dynamic")) {
@@ -396,17 +395,17 @@ public class Schemas implements Serializable {
 				}
 			}
 
-			return type.isCompatible(parent + '.' + name, other.type, context, bean -> {
+			return Objects.requireNonNull(type).isCompatible(parent + '.' + name, other.type, context, bean -> {
 				typeName = bean.name;
 				type = bean;
 			}, bean -> {
-				keyName = type.keyName;
+				keyName = Objects.requireNonNull(type).keyName;
 				valueName = type.valueName;
 			}) && res;
 		}
 
 		public final void update() {
-			keyName = type.keyName;
+			keyName = Objects.requireNonNull(type).keyName;
 			valueName = type.valueName;
 		}
 	}
@@ -417,7 +416,7 @@ public class Schemas implements Serializable {
 		private transient int keyRefCount;
 		private final ConcurrentHashMap<Integer, Variable> deletedVars = new ConcurrentHashMap<>();
 
-		public final @NotNull ConcurrentHashMap<Integer, Variable> getVariables() {
+		public final ConcurrentHashMap<Integer, Variable> getVariables() {
 			return variables;
 		}
 
@@ -436,12 +435,12 @@ public class Schemas implements Serializable {
 		public Bean() {
 		}
 
-		public Bean(@NotNull String name, boolean isBeanKey) {
+		public Bean(String name, boolean isBeanKey) {
 			this.name = name;
 			this.isBeanKey = isBeanKey;
 		}
 
-		public @NotNull String getName() {
+		public String getName() {
 			return name;
 		}
 
@@ -453,7 +452,7 @@ public class Schemas implements Serializable {
 		 * @return true: compatible
 		 */
 		@Override
-		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
+		public boolean isCompatible(String parent, @Nullable Type other, Context context,
 									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
 			// 去重只认本次比较的Context（以previous/current对为键）：实例级缓存会跨比较保留，
 			// 失败的检查也置位，重试（调用方重试/热更失败重试/CAS重读）直接按已检查通过放行。
@@ -483,7 +482,7 @@ public class Schemas implements Serializable {
 			for (var vOldDeleted : beanOther.deletedVars.values()) {
 				var vThis = variables.get(vOldDeleted.id);
 				if (vThis != null) {
-					if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType()
+					if (Objects.requireNonNull(context.getConfig()).getAllowSchemasReuseVariableIdWithSameType()
 							&& vThis.isCompatible(getName(), vOldDeleted, context)) {
 						// 反悔
 						logger.info("Regret Success. Variable={}.{}", getName(), vThis.name);
@@ -536,7 +535,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			name = bb.ReadString();
 			isBeanKey = bb.ReadBool();
 			for (int count = bb.ReadInt(); count > 0; --count) {
@@ -552,7 +551,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteString(name);
 			bb.WriteBool(isBeanKey);
 			bb.WriteInt(getVariables().size());
@@ -564,29 +563,29 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void compile(@NotNull Schemas s) {
+		public void compile(Schemas s) {
 			for (var v : getVariables().values())
 				v.compile(s);
 			for (var v : getDeletedVars().values())
 				v.compile(s);
 		}
 
-		public final void addVariable(@NotNull Variable var) {
+		public final void addVariable(Variable var) {
 			getVariables().put(var.id, var);
 		}
 
 		@Override
 		public void buildRelationalColumns(boolean isKey,
-										   @NotNull Variable variable,
-										   @NotNull ArrayList<String> varNames,
-										   @NotNull ArrayList<Integer> varIds,
-										   @NotNull ArrayList<Column> columns,
-										   @NotNull DatabaseRelationalMapping mapping) {
+										   Variable variable,
+										   ArrayList<String> varNames,
+										   ArrayList<Integer> varIds,
+										   ArrayList<Column> columns,
+										   DatabaseRelationalMapping mapping) {
 			for (var e : variables.entrySet()) {
 				var value = e.getValue();
 				varNames.add(value.name);
 				varIds.add(value.id);
-				value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns, mapping);
+				Objects.requireNonNull(value.type).buildRelationalColumns(isKey, value, varNames, varIds, columns, mapping);
 				varIds.removeLast();
 				varNames.removeLast();
 			}
@@ -594,21 +593,21 @@ public class Schemas implements Serializable {
 	}
 
 	public static class Table implements Serializable {
-		public String name; // FullName, sample: demo_Module1_Table1
-		public String keyName;
-		public String valueName;
+		public @Nullable String name; // FullName, sample: demo_Module1_Table1
+		public @Nullable String keyName;
+		public @Nullable String valueName;
 		public int version;
-		public transient Type keyType;
-		public transient Type valueType;
+		public transient @Nullable Type keyType;
+		public transient @Nullable Type valueType;
 
 		public Table() {
 		}
 
-		public Table(@NotNull String n, @NotNull String k, @NotNull String v) {
+		public Table(String n, String k, String v) {
 			this(n, k, v, 0);
 		}
 
-		public Table(@NotNull String n, @NotNull String k, @NotNull String v, int version) {
+		public Table(String n, String k, String v, int version) {
 			if (n.isBlank())
 				throw new IllegalArgumentException("table name is blank");
 			name = n;
@@ -618,7 +617,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			name = bb.ReadString();
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
@@ -626,30 +625,30 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteString(name);
 			bb.WriteString(keyName);
 			bb.WriteString(valueName);
 			bb.WriteInt(version);
 		}
 
-		public boolean isCompatible(@NotNull Table other, @NotNull Context context) {
-			if (!name.equals(other.name)) {
+		public boolean isCompatible(Table other, Context context) {
+			if (!Objects.requireNonNull(name).equals(other.name)) {
 				logger.error("table name is not matched: {} -> {}", other.name, name);
 				return false;
 			}
 
-			boolean res = keyType.isCompatible(name, other.keyType, context, bean -> {
+			boolean res = Objects.requireNonNull(keyType).isCompatible(Objects.requireNonNull(name), other.keyType, context, bean -> {
 				keyName = bean.name;
 				keyType = bean;
 			}, null);
-			return valueType.isCompatible(name, other.valueType, context, bean -> {
+			return Objects.requireNonNull(valueType).isCompatible(Objects.requireNonNull(name), other.valueType, context, bean -> {
 				valueName = bean.name;
 				valueType = bean;
 			}, null) && res;
 		}
 
-		public void compile(@NotNull Schemas s) {
+		public void compile(Schemas s) {
 			keyType = s.compile(keyName, "", "");
 			if (keyType instanceof Bean bean) {
 				bean.keyRefCount++;
@@ -657,14 +656,14 @@ public class Schemas implements Serializable {
 			valueType = s.compile(valueName, "", "");
 		}
 
-		public @NotNull String buildRelationalColumns(@NotNull ArrayList<Column> columns, @NotNull DatabaseRelationalMapping mapping) {
+		public String buildRelationalColumns(ArrayList<Column> columns, DatabaseRelationalMapping mapping) {
 			String keyColumns;
 
 			// 构造一个虚拟变量。Column需要用到。
 			var varKey = new Variable();
 			varKey.name = "__key";
 			varKey.id = 1; // 这里用"1"，因为关系表Table(Key,Value)，需要加一级虚拟Bean，只要保证这一级varId不重复即可，见后面的"2"。
-			varKey.typeName = keyType.name;
+			varKey.typeName = Objects.requireNonNull(keyType).name;
 			varKey.type = keyType;
 			if (keyType instanceof Bean) {
 				// 肯定是BeanKey。
@@ -690,7 +689,7 @@ public class Schemas implements Serializable {
 			var varIds = new ArrayList<Integer>();
 			varIds.add(2); // 这里用"2"，因为关系表Table(Key,Value)，需要加一级虚拟Bean，只要保证这一级varId不重复即可，见上面的"1"。
 			// 【注意】valueType 肯定是Bean，下面调用的参数”Variable varKey“并不会被用到，这里用它是为了避免@NotNull警告。
-			valueType.buildRelationalColumns(false, varKey, varNames, varIds, columns, mapping);
+			Objects.requireNonNull(valueType).buildRelationalColumns(false, varKey, varNames, varIds, columns, mapping);
 
 			// 构建好就排序，不能再diff的时候排序，有可能diff不会被调用。
 			var comparator = new ColumnComparator();
@@ -728,7 +727,7 @@ public class Schemas implements Serializable {
 		appVersion = version;
 	}
 
-	public void checkCompatible(@Nullable Schemas other, @NotNull Application app) throws Exception {
+	public void checkCompatible(@Nullable Schemas other, Application app) throws Exception {
 		if (other == null)
 			return;
 
@@ -752,7 +751,7 @@ public class Schemas implements Serializable {
 					throw new IllegalStateException("table version less than current version");
 				// 版本发生了变更：一般意味着不兼容修改，此时renameTable。延迟到检查全部通过后执行。
 				if (table.version > otherTable.version) {
-					if (!table.name.equals(otherTable.name))
+					if (!Objects.requireNonNull(table.name).equals(otherTable.name))
 						throw new IllegalStateException(Str.format("table name is not matched {} -> {}", table.name, otherTable.name));
 					renames.add(KV.create(table, otherTable));
 				}
@@ -775,7 +774,7 @@ public class Schemas implements Serializable {
 			throw new IllegalStateException("Found Incompatible Table or Bean! Fix them or Clear DB");
 
 		for (var rename : renames) {
-			var db = app.getDatabase(app.getConfig().getTableConf(rename.getKey().name).getDatabaseName());
+			var db = app.getDatabase(Objects.requireNonNull(app.getConfig().getTableConf(Objects.requireNonNull(rename.getKey().name))).getDatabaseName());
 			db.renameTable(rename.getKey().name, "zeze_backup_" + rename.getKey().name + "_" + rename.getValue().version);
 		}
 
@@ -783,11 +782,11 @@ public class Schemas implements Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		for (int count = bb.ReadInt(); count > 0; --count) {
 			var table = new Table();
 			table.decode(bb);
-			if (tables.put(table.name, table) != null)
+			if (tables.put(Objects.requireNonNull(table.name), table) != null)
 				throw new IllegalStateException("duplicate table=" + table.name);
 		}
 		for (int count = bb.ReadInt(); count > 0; --count) {
@@ -802,7 +801,7 @@ public class Schemas implements Serializable {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(tables.size());
 		for (var table : tables.values())
 			table.encode(bb);
@@ -819,7 +818,7 @@ public class Schemas implements Serializable {
 			bean.compile(this);
 	}
 
-	public @Nullable Type compile(@Nullable String type, @NotNull String key, @NotNull String value) {
+	public @Nullable Type compile(@Nullable String type, String key, String value) {
 		if (type == null || type.isEmpty())
 			return null;
 
@@ -845,55 +844,55 @@ public class Schemas implements Serializable {
 		return n;
 	}
 
-	public void addBean(@NotNull Bean bean) {
+	public void addBean(Bean bean) {
 		if (beans.put(bean.name, bean) != null)
 			throw new IllegalStateException("AddBean duplicate=" + bean.name);
 	}
 
-	public void addTable(@NotNull Table table) {
-		if (tables.put(table.name, table) != null)
+	public void addTable(Table table) {
+		if (tables.put(Objects.requireNonNull(table.name), table) != null)
 			throw new IllegalStateException("AddTable duplicate=" + table.name);
 	}
 
 	public static class Column {
-		public final @NotNull String name;
-		public final int @NotNull [] varIds;
-		public final @NotNull String sqlType;
+		public final String name;
+		public final int [] varIds;
+		public final String sqlType;
 
 		// 辅助信息
 		public final int variableId;
 		public final String variableTypeName;
 
 		// diff 时设置，可能。
-		public Column change;
+		public @Nullable Column change;
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return name + ':' + variableId + ":" + sqlType;
 		}
 
-		public Column(@NotNull String name, int @NotNull [] varIds, @NotNull Variable variable,
-					  @NotNull String sqlType) {
+		public Column(String name, int [] varIds, Variable variable,
+					  String sqlType) {
 			this.name = name;
 			this.varIds = varIds;
 			this.variableId = variable.id;
-			this.variableTypeName = variable.type.name;
+			this.variableTypeName = Objects.requireNonNull(variable.type).name;
 			this.sqlType = sqlType;
 		}
 	}
 
 	public static class ColumnComparator implements Comparator<Column> {
 		@Override
-		public int compare(@NotNull Column o1, @NotNull Column o2) {
+		public int compare(Column o1, Column o2) {
 			return Arrays.compare(o1.varIds, o2.varIds);
 		}
 	}
 
 	public static class RelationalTable {
-		public final @NotNull String tableName;
+		public final String tableName;
 		public final ArrayList<Column> current = new ArrayList<>();
-		public String currentKeyColumns;
-		public String previousKeyColumns; // 旧key列序（主键未变时不重建，避免InnoDB整表拷贝）
+		public @Nullable String currentKeyColumns;
+		public @Nullable String previousKeyColumns; // 旧key列序（主键未变时不重建，避免InnoDB整表拷贝）
 		public final ArrayList<Column> previous = new ArrayList<>();
 
 		// diff 结果
@@ -909,11 +908,11 @@ public class Schemas implements Serializable {
 					" remove:" + remove;
 		}
 
-		public RelationalTable(@NotNull String name) {
+		public RelationalTable(String name) {
 			tableName = name;
 		}
 
-		public @NotNull String createTableSql() {
+		public String createTableSql() {
 			if (current.isEmpty())
 				throw new IllegalStateException("no column");
 			var sb = new StringBuilder();
@@ -926,7 +925,7 @@ public class Schemas implements Serializable {
 			return sb.toString();
 		}
 
-		private static @NotNull KV<Integer, Integer> catType(@NotNull String type) {
+		private static KV<Integer, Integer> catType(String type) {
 			return switch (type) {
 				//@formatter:off
 			case "bool","byte"->KV.create(0, 1); // bool<->byte
@@ -944,7 +943,7 @@ public class Schemas implements Serializable {
 		}
 
 		// 检查兼容，并返回列是否需要change。
-		private static boolean checkCompatibleAndChange(@NotNull Column a, @NotNull Column b) {
+		private static boolean checkCompatibleAndChange(Column a, Column b) {
 			var aType = catType(a.variableTypeName);
 			var bType = catType(b.variableTypeName);
 			if (!Objects.equals(aType.getKey(), bType.getKey()))
@@ -1009,8 +1008,8 @@ public class Schemas implements Serializable {
 		}
 	}
 
-	public static @NotNull RelationalTable newRelationalTable(@NotNull DatabaseRelationalMapping mapping, @NotNull Table cur, @Nullable Table other) {
-		var relational = new RelationalTable(cur.name);
+	public static RelationalTable newRelationalTable(DatabaseRelationalMapping mapping, Table cur, @Nullable Table other) {
+		var relational = new RelationalTable(Objects.requireNonNull(cur.name));
 		relational.currentKeyColumns = cur.buildRelationalColumns(relational.current, mapping);
 
 		// build other. prepare to alter.
@@ -1025,7 +1024,7 @@ public class Schemas implements Serializable {
 		return relational;
 	}
 
-	public RelationalTable newRelationalTable(@NotNull Application zeze , @NotNull Zeze.Transaction.Table table) {
+	public @Nullable RelationalTable newRelationalTable(Application zeze , Zeze.Transaction.Table table) {
 		if (table.getDatabase() instanceof DatabaseRelationalMapping mapping) {
 			var cur = tables.get(table.getName());
 			var previous = zeze.getSchemasPrevious();

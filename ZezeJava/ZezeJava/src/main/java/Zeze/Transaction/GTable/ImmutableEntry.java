@@ -18,6 +18,7 @@ package Zeze.Transaction.GTable;
 
 import java.io.Serial;
 import java.io.Serializable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An immutable {@code Map.Entry}, used both by
@@ -44,7 +45,7 @@ class ImmutableEntry<K, V> extends AbstractMapEntry<K, V> implements Serializabl
 	}
 
 	@Override
-	public final V setValue(V value) {
+	public final V setValue(@Nullable V value) {
 		throw new UnsupportedOperationException();
 	}
 

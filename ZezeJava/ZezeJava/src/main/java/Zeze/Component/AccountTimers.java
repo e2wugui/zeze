@@ -2,8 +2,7 @@ package Zeze.Component;
 
 import Zeze.Application;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 账号定时器门面，把TimerAccount的三类定时器组织成统一入口。
@@ -14,21 +13,21 @@ import org.jetbrains.annotations.Nullable;
  * }</pre>
  */
 public final class AccountTimers {
-	private final @NotNull TimerAccount timerAccount;
-	private final @NotNull String account;
-	private final @NotNull String clientId;
+	private final TimerAccount timerAccount;
+	private final String account;
+	private final String clientId;
 
-	AccountTimers(@NotNull TimerAccount timerAccount, @NotNull String account, @NotNull String clientId) {
+	AccountTimers(TimerAccount timerAccount, String account, String clientId) {
 		this.timerAccount = timerAccount;
 		this.account = account;
 		this.clientId = clientId;
 	}
 
-	public @NotNull String account() {
+	public String account() {
 		return account;
 	}
 
-	public @NotNull String clientId() {
+	public String clientId() {
 		return clientId;
 	}
 
@@ -36,7 +35,7 @@ public final class AccountTimers {
 	 * 在线定时器(cold handle)：仅当账号登录在本服务器时触发，handle在调度时解析。
 	 * 不允许热更新模块调用。
 	 */
-	public @NotNull TimerScope online() {
+	public TimerScope online() {
 		return new OnlineScope();
 	}
 
@@ -44,14 +43,14 @@ public final class AccountTimers {
 	 * 在线定时器(hot handle)：仅当账号登录在本服务器时触发，handle在触发时按名字解析。
 	 * 支持热更新模块调用。
 	 */
-	public @NotNull TimerScope onlineHot() {
+	public TimerScope onlineHot() {
 		return new OnlineHotScope();
 	}
 
 	/**
 	 * 离线定时器：账号不在线时也能触发。
 	 */
-	public @NotNull TimerScope offline() {
+	public TimerScope offline() {
 		return new OfflineScope();
 	}
 
@@ -64,7 +63,7 @@ public final class AccountTimers {
 
 	private final class OnlineScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
+		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			var zeze = timerAccount.zeze();
 			if (zeze.isHotVerifyEnabled())
@@ -73,8 +72,8 @@ public final class AccountTimers {
 		}
 
 		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
-									 @NotNull Class<? extends TimerHandle> handleClass,
+		public boolean scheduleNamed(String timerId, TimerSpec spec,
+									 Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
 			var zeze = timerAccount.zeze();
 			if (zeze.isHotVerifyEnabled())
@@ -90,14 +89,14 @@ public final class AccountTimers {
 
 	private final class OnlineHotScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
+		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			return timerAccount.scheduleOnlineHot(account, clientId, spec, handleClass, customData);
 		}
 
 		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
-									 @NotNull Class<? extends TimerHandle> handleClass,
+		public boolean scheduleNamed(String timerId, TimerSpec spec,
+									 Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
 			return timerAccount.scheduleOnlineNamedHot(account, clientId, timerId, spec, handleClass, customData);
 		}
@@ -110,14 +109,14 @@ public final class AccountTimers {
 
 	private final class OfflineScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
+		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			return timerAccount.scheduleOffline(account, clientId, spec, handleClass, customData);
 		}
 
 		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
-									 @NotNull Class<? extends TimerHandle> handleClass,
+		public boolean scheduleNamed(String timerId, TimerSpec spec,
+									 Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
 			return timerAccount.scheduleOfflineNamed(timerId, account, clientId, spec, handleClass, customData);
 		}

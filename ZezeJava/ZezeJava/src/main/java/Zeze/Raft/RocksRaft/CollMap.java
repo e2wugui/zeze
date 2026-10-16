@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -11,7 +15,7 @@ import Zeze.Serialize.ByteBuffer;
 public abstract class CollMap<K, V> extends Collection implements Iterable<Map.Entry<K, V>> {
 	public org.pcollections.PMap<K, V> map = Zeze.Collections.Persistents.map();
 
-	public final V get(K key) {
+	public final @Nullable V get(K key) {
 		return getMap().get(key);
 	}
 
@@ -32,12 +36,12 @@ public abstract class CollMap<K, V> extends Collection implements Iterable<Map.E
 			var t = Transaction.getCurrent();
 			if (t == null)
 				return map;
-			var log = t.getLog(parent().objectId() + variableId());
+			var log = t.getLog(Objects.requireNonNull(parent()).objectId() + variableId());
 			if (log == null)
 				return map;
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)log;
-			return mapLog.getValue();
+			return Objects.requireNonNull(mapLog.getValue());
 		}
 		return map;
 	}

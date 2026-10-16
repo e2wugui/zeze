@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.net.ServerSocket;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -24,22 +26,25 @@ import Zeze.Util.TaskSpec;
 import Zeze.Util.TimerFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Linkd 对客户端的监听服务：完成握手认证、按绑定关系把客户端协议转发给 Provider，并处理过载丢弃。
  */
 public class LinkdService extends HandshakeServer {
-	private static final @NotNull Logger logger = LogManager.getLogger(LinkdService.class);
-	protected LinkdApp linkdApp;
+	private static final Logger logger = LogManager.getLogger(LinkdService.class);
+	protected @Nullable LinkdApp linkdApp;
+
+	protected final LinkdApp requireLinkdApp() {
+		return Objects.requireNonNull(linkdApp, "linkd service is not attached to an application");
+	}
 	protected volatile long curSendSpeed; // bytes/sec
 	private final AtomicLong loginTimes = new AtomicLong();
 	private final LongAdder busyParseFailures = new LongAdder();
 	private volatile long lastBusyParseWarnTime;
-	private final TimerFuture limitSpeedFuture; // 限速周期任务句柄：stop时cancel
+	private final @Nullable TimerFuture limitSpeedFuture; // 限速周期任务句柄：stop时cancel
 
-	public LinkdService(@NotNull String name, Application zeze) {
+	public LinkdService(String name, Application zeze) {
 		super(name, zeze);
 		setNoProcedure(true); // 不启用事务。
 
@@ -67,12 +72,12 @@ public class LinkdService extends HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
 		super.OnSocketAccept(so);
 		loginTimes.incrementAndGet();
 	}
 
-	private void reportError(@NotNull Dispatch dispatch) {
+	private void reportError(Dispatch dispatch) {
 		// 如果是 rpc.request 直接返回Procedure.Busy错误。
 		// see Zeze.Net.Rpc.decode/encode
 		var bb = ByteBuffer.Wrap(dispatch.Argument.getProtocolData());
@@ -159,7 +164,7 @@ public class LinkdService extends HandshakeServer {
 		}
 	}
 
-	public @Nullable LinkdUserSession getAuthedSession(@NotNull AsyncSocket socket) {
+	public @Nullable LinkdUserSession getAuthedSession(AsyncSocket socket) {
 		var linkSession = (LinkdUserSession)socket.getUserState();
 		if (linkSession == null || !linkSession.isAuthed()) {
 			reportError(socket.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
@@ -169,16 +174,16 @@ public class LinkdService extends HandshakeServer {
 	}
 
 	// 注意这里为了优化拷贝开销,返回的Dispatch引用了参数data中的byte数组,调用者要确保Dispatch用完之前不能修改data数据,否则应该传入data.Copy()
-	public static @NotNull Dispatch createDispatch(@NotNull LinkdUserSession linkSession, @NotNull AsyncSocket so,
-												   int moduleId, int protocolId, @NotNull ByteBuffer data) {
+	public static Dispatch createDispatch(LinkdUserSession linkSession, AsyncSocket so,
+												   int moduleId, int protocolId, ByteBuffer data) {
 		var userState = linkSession.getUserState();
 		return new Dispatch(new BDispatch.Data(so.getSessionId(), linkSession.getAccount(),
 				Protocol.makeTypeId(moduleId, protocolId), new Binary(data),
 				userState.getContext(), userState.getContextx(), userState.getOnlineSetName()));
 	}
 
-	private boolean tryReportError(@NotNull LinkdUserSession linkSession, int moduleId, @NotNull Dispatch dispatch) {
-		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
+	private boolean tryReportError(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {
+		var pms = requireLinkdApp().linkdProvider.getProviderModuleState(moduleId);
 		if (null == pms)
 			return false;
 		if (pms.dynamic) {
@@ -190,15 +195,15 @@ public class LinkdService extends HandshakeServer {
 		return false;
 	}
 
-	public boolean findSend(@NotNull LinkdUserSession linkSession, int moduleId, @NotNull Dispatch dispatch) {
+	public boolean findSend(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {
 		var providerSessionId = linkSession.tryGetProvider(moduleId);
 		if (providerSessionId != null) {
-			var socket = linkdApp.linkdProviderService.GetSocket(providerSessionId);
+			var socket = requireLinkdApp().linkdProviderService.GetSocket(providerSessionId);
 			if (socket == null)
 				return tryReportError(linkSession, moduleId, dispatch);
 
 			var ps = (LinkdProviderSession)socket.getUserState();
-			if (ps.load.getOverload() == BLoad.eOverload) {
+			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload) {
 				// 过载时会直接拒绝请求以及报告错误。
 				reportError(dispatch);
 				// 但是不能继续派发了。所以这里返回true，表示处理完成。
@@ -218,11 +223,11 @@ public class LinkdService extends HandshakeServer {
 	/**
 	 * @return 错误码. 0表示成功; [1,999]表示错误
 	 */
-	public int choiceBindSend(@NotNull LinkdUserSession linkSession, @NotNull AsyncSocket so, int moduleId,
-							  @NotNull Dispatch dispatch) {
+	public int choiceBindSend(LinkdUserSession linkSession, AsyncSocket so, int moduleId,
+							  Dispatch dispatch) {
 		var provider = new OutLong();
 
-		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
+		var pms = requireLinkdApp().linkdProvider.getProviderModuleState(moduleId);
 		if (null != pms && pms.dynamic) {
 			logger.warn("dynamic module do not need choice. moduleId={}, protocolType={}",
 					moduleId, dispatch.Argument.getProtocolType());
@@ -234,14 +239,14 @@ public class LinkdService extends HandshakeServer {
 			return 0; // skip ...
 		}
 
-		int r = linkdApp.linkdProvider.choiceProviderAndBind(moduleId, linkSession.clientAppVersion, so, provider);
+		int r = requireLinkdApp().linkdProvider.choiceProviderAndBind(moduleId, linkSession.clientAppVersion, so, provider);
 		if (r == 0) {
-			var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
+			var providerSocket = requireLinkdApp().linkdProviderService.GetSocket(provider.value);
 			if (providerSocket == null)
 				return 101;
 
 			var ps = (LinkdProviderSession)providerSocket.getUserState();
-			if (ps.load.getOverload() == BLoad.eOverload) {
+			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload) {
 				// 过载时会直接拒绝请求以及报告错误。
 				reportError(dispatch);
 				// 但是不能继续派发了。所以这里返回true，表示处理完成。
@@ -261,8 +266,8 @@ public class LinkdService extends HandshakeServer {
 	}
 
 	@Override
-	public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId,
-										@NotNull ByteBuffer data) {
+	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId,
+										ByteBuffer data) {
 		var linkSession = getAuthedSession(so);
 		if (linkSession == null)
 			return;
@@ -277,14 +282,14 @@ public class LinkdService extends HandshakeServer {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle,
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle,
 								 @Nullable AsyncSocket so) throws Exception {
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		p.dispatch(this, factoryHandle);
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		try {
 			var isRequestSaved = p.isRequest();
@@ -295,13 +300,13 @@ public class LinkdService extends HandshakeServer {
 		} catch (Exception ex) {
 			p.trySendResultCode(Procedure.Exception);
 			logger.error("{} exception:", p.getClass().getName(), ex);
-			p.getSender().close(ex, true); // link 在异常时关闭连接。
+			Objects.requireNonNull(p.getSender()).close(ex, true); // link 在异常时关闭连接。
 		}
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle) {
+	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle) {
 		// Raft RPC 的回复处理应该都不是block的,直接在IO线程处理,避免线程池堆满等待又无法唤醒导致死锁
 		try {
 			responseHandle.handle(rpc);
@@ -311,29 +316,29 @@ public class LinkdService extends HandshakeServer {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public @NotNull LinkdUserSession newSession(@NotNull AsyncSocket so) {
+	public LinkdUserSession newSession(AsyncSocket so) {
 		return new LinkdUserSession(so.getSessionId());
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		so.setUserState(newSession(so));
 		super.OnHandshakeDone(so);
 	}
 
 	@Override
-	public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+	public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null)
-			((LinkdUserSession)so.getUserState()).onClose(linkdApp.linkdProviderService);
+			((LinkdUserSession)so.getUserState()).onClose(requireLinkdApp().linkdProviderService);
 	}
 
 	@Override
-	public void onServerSocketBind(@NotNull ServerSocket ss) {
+	public void onServerSocketBind(ServerSocket ss) {
 		// 需要LinkdService实现自己的查询服务器，在这里把实际绑定的地址和端口注册到名字服务器。
 		try {
-			if (linkdApp.onServerSocketBindAction != null)
-				linkdApp.onServerSocketBindAction.run(ss);
+			if (requireLinkdApp().onServerSocketBindAction != null)
+				requireLinkdApp().onServerSocketBindAction.run(ss);
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
 		}
@@ -341,7 +346,7 @@ public class LinkdService extends HandshakeServer {
 
 	@SuppressWarnings("RedundantThrows")
 	@Override
-	public boolean discard(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
+	public boolean discard(AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
 		/*
 		【忽略ProviderService的带宽过载配置，
 		因为ProviderService的输入最终也会反映到LinkdService的输出。
@@ -358,8 +363,8 @@ public class LinkdService extends HandshakeServer {
 		if (rate < getSocketOptions().getOverBandwidthNormalRate()) // 0.7
 			return false; // 整体负载小于0.7,全部不丢弃
 
-		if (linkdApp.discardAction != null)
-			return linkdApp.discardAction.call(sender, moduleId, protocolId, size, rate);
+		if (requireLinkdApp().discardAction != null)
+			return requireLinkdApp().discardAction.call(sender, moduleId, protocolId, size, rate);
 
 		// 应用没有定制丢弃策略，那么熔断前都不丢弃。
 		return false;

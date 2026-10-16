@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -15,9 +16,9 @@ import Zeze.Util.IntHashSet;
  */
 public class HandshakeOptions {
 	private IntHashSet dhGroups = new IntHashSet(); // for HandshakeServer
-	private byte[] secureIp; // for eEncryptTypeAes
-	private PublicKey rsaPubKey; // for eEncryptTypeRsaAes client
-	private PrivateKey rsaPriKey; // for eEncryptTypeRsaAes server
+	private byte @Nullable [] secureIp; // for eEncryptTypeAes
+	private @Nullable PublicKey rsaPubKey; // for eEncryptTypeRsaAes client
+	private @Nullable PrivateKey rsaPriKey; // for eEncryptTypeRsaAes server
 	private int compressS2c = Constant.eCompressTypeDisable;
 	private int compressC2s = Constant.eCompressTypeDisable;
 	private int encryptType = Constant.eEncryptTypeDisable;
@@ -94,7 +95,7 @@ public class HandshakeOptions {
 		supportedCompress.add(c);
 	}
 
-	public final void setDhGroups(IntHashSet value) {
+	public final void setDhGroups(@Nullable IntHashSet value) {
 		if (value != null)
 			dhGroups = value;
 		else
@@ -109,27 +110,27 @@ public class HandshakeOptions {
 		encryptType = value;
 	}
 
-	public final byte[] getSecureIp() {
+	public final byte @Nullable [] getSecureIp() {
 		return secureIp;
 	}
 
-	public final void setSecureIp(byte[] value) {
+	public final void setSecureIp(byte @Nullable [] value) {
 		secureIp = value;
 	}
 
-	public final PublicKey getRsaPubKey() {
+	public final @Nullable PublicKey getRsaPubKey() {
 		return rsaPubKey;
 	}
 
-	public final void setRsaPubKey(PublicKey rsaPubKey) {
+	public final void setRsaPubKey(@Nullable PublicKey rsaPubKey) {
 		this.rsaPubKey = rsaPubKey;
 	}
 
-	public final PrivateKey getRsaPriKey() {
+	public final @Nullable PrivateKey getRsaPriKey() {
 		return rsaPriKey;
 	}
 
-	public final void setRsaPriKey(PrivateKey rsaPriKey) {
+	public final void setRsaPriKey(@Nullable PrivateKey rsaPriKey) {
 		this.rsaPriKey = rsaPriKey;
 	}
 

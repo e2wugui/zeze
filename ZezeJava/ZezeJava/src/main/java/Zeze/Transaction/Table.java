@@ -6,26 +6,27 @@ import Zeze.Net.Binary;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import Zeze.Config.TableConf;
+import Zeze.Schemas.RelationalTable;
 
 /** 表基类：持有 id/名字/配置/数据库绑定与变更监听器，定义存储打开与 GCM 降级等表级抽象。 */
 public abstract class Table {
 	private final int originalId;
 	private final int id;
-	private final @NotNull String originalName;
-	private final @NotNull String name;
-	private final @NotNull String suffix;
+	private final String originalName;
+	private final String name;
+	private final String suffix;
 	private final ChangeListenerMap changeListenerMap = new ChangeListenerMap();
-	private Application zeze;
-	private Config.TableConf tableConf;
-	private Database database;
+	private @Nullable Application zeze;
+	private @Nullable TableConf tableConf;
+	private @Nullable Database database;
 
-	public Table(int id, @NotNull String name) {
+	public Table(int id, String name) {
 		this(id, name, null);
 	}
 
-	public Table(int id, @NotNull String name, @Nullable String suffix) {
+	public Table(int id, String name, @Nullable String suffix) {
 		this.originalId = id;
 		this.originalName = name;
 		if (suffix != null && !suffix.isEmpty()) {
@@ -49,58 +50,68 @@ public abstract class Table {
 		return id;
 	}
 
-	public final @NotNull String getOriginalName() {
+	public final String getOriginalName() {
 		return originalName;
 	}
 
-	public final @NotNull String getName() {
+	public final String getName() {
 		return name;
 	}
 
-	public @NotNull String getSuffix() {
+	public String getSuffix() {
 		return suffix;
 	}
 
-	public final @NotNull ChangeListenerMap getChangeListenerMap() {
+	public final ChangeListenerMap getChangeListenerMap() {
 		return changeListenerMap;
 	}
 
+	// 生命周期注入字段：open() 前为 null，getter 以显式异常给出可诊断失败（房例同 TableX.getCache）。
 	public final Application getZeze() {
-		return zeze;
+		var app = zeze;
+		if (app == null)
+			throw new IllegalStateException("table not opened: " + name);
+		return app;
 	}
 
-	final void setZeze(@NotNull Application value) {
+	final void setZeze(Application value) {
 		zeze = value;
 	}
 
 	public final Config.TableConf getTableConf() {
-		return tableConf;
+		var conf = tableConf;
+		if (conf == null)
+			throw new IllegalStateException("table not opened: " + name);
+		return conf;
 	}
 
-	final void setTableConf(Config.TableConf value) {
+	final void setTableConf(Config.@Nullable TableConf value) {
 		tableConf = value;
 	}
 
 	public final Database getDatabase() {
-		return database;
+		var db = database;
+		if (db == null)
+			throw new IllegalStateException("table not opened: " + name);
+		return db;
 	}
 
-	final void setDatabase(@NotNull Database db) {
+	final void setDatabase(Database db) {
 		database = db;
 	}
 
-	public abstract @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
-												 @Nullable DatabaseRocksDb.Table localTable);
+	public abstract @Nullable Storage<?, ?> open(Application app, Database database,
+												 DatabaseRocksDb.@Nullable Table localTable);
 
 	abstract void close();
 
 	abstract @Nullable Storage<?, ?> getStorage();
 
-	abstract @Nullable Database.Table getOldTable();
+	abstract Database.@Nullable Table getOldTable();
 
 	public abstract boolean isNew();
 
-	public abstract @NotNull Bean newValue();
+	public abstract Bean newValue();
 
 	public boolean isMemory() {
 		return false;
@@ -110,13 +121,13 @@ public abstract class Table {
 		return false;
 	}
 
-	public abstract void reduceShare(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
+	public abstract void reduceShare(Reduce rpc, ByteBuffer bbKey);
 
-	public abstract void reduceInvalid(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
+	public abstract void reduceInvalid(Reduce rpc, ByteBuffer bbKey);
 
 	abstract void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
 
-	public abstract void removeEncodedKey(@NotNull Binary encodedKey);
+	public abstract void removeEncodedKey(Binary encodedKey);
 
 	public boolean isRelationalMapping() {
 		return false;
@@ -124,24 +135,24 @@ public abstract class Table {
 
 	public abstract void tryAlter();
 
-	public abstract Schemas.RelationalTable getRelationalTable();
+	public abstract @Nullable RelationalTable getRelationalTable();
 
-	public abstract void open(@NotNull Table exist, @NotNull Application app);
+	public abstract void open(Table exist, Application app);
 
 	public abstract void disable();
 
 	public abstract DatabaseRocksDb.Table getLocalRocksCacheTable();
 
-	public abstract long walkMemoryAny(@NotNull TableWalkHandle<Object, Bean> handle) throws Exception;
+	public abstract long walkMemoryAny(TableWalkHandle<Object, Bean> handle) throws Exception;
 
-	public abstract void __direct_put_cache__(@NotNull Object key, @NotNull Bean value, int state);
+	public abstract void __direct_put_cache__(Object key, Bean value, int state);
 
-	public abstract @NotNull ByteBuffer encodeKey(@NotNull Object key);
+	public abstract ByteBuffer encodeKey(Object key);
 
-	public abstract @NotNull Object decodeKey(@NotNull ByteBuffer bb);
+	public abstract Object decodeKey(ByteBuffer bb);
 
-	public abstract @NotNull Class<? extends Comparable<?>> getKeyClass();
+	public abstract Class<? extends Comparable<?>> getKeyClass();
 
-	public abstract @NotNull Class<? extends Bean> getValueClass();
+	public abstract Class<? extends Bean> getValueClass();
 
 }

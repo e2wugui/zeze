@@ -1,5 +1,7 @@
 package Zeze.Transaction.Logs;
 
+import java.util.Objects;
+
 import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -8,32 +10,32 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.BeanKeyMeta;
 import Zeze.Transaction.Log;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /** BeanKey（值语义）字段的修改日志：整体替换，typeId 按值类型派生。 */
 public class LogBeanKey<T extends Serializable> extends Log {
-	private final @NotNull BeanKeyMeta<T> meta;
-	private final VarHandle vh;
-	public T value;
+	private final BeanKeyMeta<T> meta;
+	private final @Nullable VarHandle vh;
+	public @Nullable T value;
 
 	// meta 由两端各自按声明类预建（写端：生成器meta_静态字段；
 	// 读端：History/Helper.registerLogBeanKey 注册工厂），天然对称，勿改用
 	// 子类实例构造本Log（生成器保证BeanKey无子类）。
-	public LogBeanKey(Bean belong, int varId, VarHandle vh, @NotNull BeanKeyMeta<T> meta, @NotNull T value) {
+	public LogBeanKey(@Nullable Bean belong, int varId, @Nullable VarHandle vh, BeanKeyMeta<T> meta, T value) {
 		super(belong, varId);
 		this.meta = meta;
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogBeanKey(int varId, @NotNull BeanKeyMeta<T> meta) { // for decode
+	public LogBeanKey(int varId, BeanKeyMeta<T> meta) { // for decode
 		super(null, varId);
 		this.meta = meta;
 		vh = null;
 	}
 
 	@Override
-	public @NotNull Category category() {
+	public Category category() {
 		return Category.eHistory;
 	}
 
@@ -43,7 +45,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
-	public @NotNull String getTypeName() {
+	public String getTypeName() {
 		return meta.name;
 	}
 
@@ -54,25 +56,25 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
-		value.encode(bb);
+	public void encode(ByteBuffer bb) {
+		Objects.requireNonNull(value).encode(bb);
 	}
 
 	// (T)强转在JDK21的-Xlint:unchecked下不报（签名多态invoke返回值的强转，JDK26起会报），
 	// 注解而非noinspection：对齐Raft孪生Log1.LogBeanKey.decode，IDE与javac任一语义都压制。
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		try {
-			value = (T)meta.valueFactory.invoke();
+			value = (T)Objects.requireNonNull(meta.valueFactory).invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
-		value.decode(bb);
+		Objects.requireNonNull(value).decode(bb);
 	}
 
 	@Override
 	public String toString() {
-		return value.toString();
+		return Objects.requireNonNull(value).toString();
 	}
 }

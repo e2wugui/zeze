@@ -21,7 +21,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLException;
-
 import Zeze.Application;
 import Zeze.Net.Helper;
 import Zeze.Services.ServiceManager.AbstractAgent;
@@ -71,8 +70,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 基于 Netty 的 HTTP 服务器（h1/h2c）：handler 注册与查找、请求派发（事务/线程模型）、
@@ -80,12 +78,12 @@ import org.jetbrains.annotations.Nullable;
  */
 @Sharable
 public class HttpServer extends ChannelInboundHandlerAdapter implements Closeable {
-	public static final @NotNull Charset defaultCharset = StandardCharsets.UTF_8;
+	public static final Charset defaultCharset = StandardCharsets.UTF_8;
 
 	protected static final int sendStackTrace = PropertiesHelper.getInt("HttpServer.sendStackTrace", 1);
-	protected static final AttributeKey<Integer> idleTimeKey = AttributeKey.valueOf("ZezeIdleTime");
-	protected static final AttributeKey<Integer> outBufHashKey = AttributeKey.valueOf("ZezeOutBufHash"); // 用于判断输出buffer是否有变化
-	protected static final @NotNull ZoneId zoneId = ZoneId.of("GMT");
+	protected static final AttributeKey<@Nullable Integer> idleTimeKey = AttributeKey.valueOf("ZezeIdleTime");
+	protected static final AttributeKey<@Nullable Integer> outBufHashKey = AttributeKey.valueOf("ZezeOutBufHash"); // 用于判断输出buffer是否有变化
+	protected static final ZoneId zoneId = ZoneId.of("GMT");
 	protected static final HttpDecoderConfig decCfg = new HttpDecoderConfig()
 		.setMaxInitialLineLength(4096)
 		.setMaxHeaderSize(8192)
@@ -93,8 +91,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		.setChunkedSupported(true)
 		.setValidateHeaders(false);
 	protected static long lastSecond;
-	protected static String lastDateStr;
-	protected final Application zeze; // 只用于通过事务处理HTTP请求
+	protected static @Nullable String lastDateStr;
+	protected final @Nullable Application zeze; // 只用于通过事务处理HTTP请求
 	protected final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 	protected final FewModifySortedMap<String, HttpHandler> prefixHandlers = new FewModifySortedMap<>();
 	protected final ConcurrentHashSet<Channel> channels = new ConcurrentHashSet<>();
@@ -113,7 +111,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	protected int writeIdleTimeout = 60; // 服务端无发送的超时时间(秒)
 	protected @Nullable SslContext sslCtx;
 	protected @Nullable Future<?> scheduler;
-	protected ChannelFuture channelFuture;
+	protected @Nullable ChannelFuture channelFuture;
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected @Nullable HttpSession httpSession;
 	protected final boolean noProcedure;
@@ -121,10 +119,10 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	// 各EventLoop/池线程并发调用：两个静态字段的检查-更新无同步时，读者可观察到
 	// 新lastSecond配旧lastDateStr（两写之间无happens-before），返回错位的Date串。
 	// 竞争窗口每秒一次、临界区为一次缓存比较，synchronized开销可忽略。
-	public static synchronized @NotNull String getDate() {
+	public static synchronized String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
 		if (second == lastSecond)
-			return lastDateStr;
+			return Objects.requireNonNull(lastDateStr);
 		var dateStr = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
 			LocalDateTime.ofEpochSecond(second, 0, ZoneOffset.UTC), zoneId));
 		lastDateStr = dateStr;
@@ -132,12 +130,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		return dateStr;
 	}
 
-	public static @NotNull String getDate(long epochSecond) {
+	public static String getDate(long epochSecond) {
 		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
 			LocalDateTime.ofEpochSecond(epochSecond, 0, ZoneOffset.UTC), zoneId));
 	}
 
-	public static long parseDate(@NotNull String dateStr) {
+	public static long parseDate(String dateStr) {
 		try {
 			return LocalDateTime.parse(dateStr, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond(ZoneOffset.UTC);
 		} catch (Exception ignored) { // 无法解析的日期按RFC7232忽略，返回-1使调用方比较永不命中
@@ -149,7 +147,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		return lastSecond;
 	}
 
-	public static @NotNull HttpHeaders setDate(@NotNull HttpHeaders headers) {
+	public static HttpHeaders setDate(HttpHeaders headers) {
 		headers.set(HttpHeaderNames.DATE, getDate());
 		return headers;
 	}
@@ -187,7 +185,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			return;
 		httpSession = new HttpSession(zeze);
 		// 注册会话表：不注册的话 _tSession 不属于任何Database，表访问必失败。
-		var dbName = zeze.getConfig().getTableConf(httpSession.tSession().getName()).getDatabaseName();
+		var dbName = Objects.requireNonNull(zeze.getConfig().getTableConf(httpSession.tSession().getName())).getDatabaseName();
 		if (zeze.isStart())
 			zeze.openDynamicTable(dbName, httpSession.tSession());
 		else
@@ -238,7 +236,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		this.writeIdleTimeout = writeIdleTimeout;
 	}
 
-	public void setSsl(@NotNull PrivateKey priKey, @Nullable String keyPassword,
+	public void setSsl(PrivateKey priKey, @Nullable String keyPassword,
 					   @Nullable X509Certificate... keyCertChain) throws SSLException {
 		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
 	}
@@ -254,11 +252,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		return null;
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) throws Exception {
+	public ChannelFuture start(Netty netty, int port) throws Exception {
 		return start(netty, null, port);
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) throws Exception {
+	public ChannelFuture start(Netty netty, @Nullable String host, int port) throws Exception {
 		lock();
 
 		try {
@@ -289,7 +287,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				.channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
 				.childHandler(new ChannelInitializer<SocketChannel>() {
 					@Override
-					public void initChannel(@NotNull SocketChannel ch) throws Exception {
+					public void initChannel(SocketChannel ch) throws Exception {
 						HttpServer.this.initChannel(ch);
 					}
 				});
@@ -313,7 +311,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		}
 	}
 
-	public ChannelFuture getChannelFuture() {
+	public @Nullable ChannelFuture getChannelFuture() {
 		return channelFuture;
 	}
 
@@ -341,7 +339,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	 *
 	 * @throws IllegalStateException 无法获取时会抛出
 	 */
-	public @NotNull String getExportIp() {
+	public String getExportIp() {
 		var addr = getLocalAddress();
 		if (addr == null)
 			throw new IllegalStateException();
@@ -365,7 +363,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public void publishService(String serviceName) {
 		if (zeze == null)
 			throw new IllegalStateException("without zeze env. use another publishService method with your special agent");
-		publishService(serviceName, 0, zeze.getServiceManager());
+		publishService(serviceName, 0, Objects.requireNonNull(zeze.getServiceManager()));
 	}
 
 	/**
@@ -374,7 +372,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	 * @param serviceName 服务名
 	 * @param version     服务版本
 	 */
-	public void publishService(@NotNull String serviceName, long version, @NotNull AbstractAgent agent) {
+	public void publishService(String serviceName, long version, AbstractAgent agent) {
 		var ip = getExportIp();
 		int port = getPort();
 		agent.registerService(new BServiceInfo(serviceName, "@" + ip + ":" + port, version, ip, port));
@@ -424,7 +422,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	}
 
 	// 这是一个低开销的检测空闲超时的方法,不准确但只会比预设的超时时间长,写超时可能会多出readIdleTimeout的时长
-	protected void checkTimeout(@NotNull Channel channel) {
+	protected void checkTimeout(Channel channel) {
 		//noinspection resource
 		var eventLoop = channel.eventLoop();
 		if (eventLoop.inEventLoop()) {
@@ -443,7 +441,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		}
 	}
 
-	protected void checkTimeout0(@NotNull Channel channel) {
+	protected void checkTimeout0(Channel channel) {
 		var idleTimeAttr = channel.attr(idleTimeKey);
 		var idleTimeObj = idleTimeAttr.get();
 		int idleTime = idleTimeObj != null ? idleTimeObj : 0;
@@ -472,44 +470,44 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		}
 	}
 
-	protected static void onBeforeWrite(@NotNull Channel channel) {
+	protected static void onBeforeWrite(Channel channel) {
 		var outBufHashAttr = channel.attr(outBufHashKey);
 		if (outBufHashAttr.get() == null)
 			outBufHashAttr.set(0);
 	}
 
 	// h2子channel判定（H2Transport的stream初始化器置h2StreamKey；h1连接/父channel恒false）
-	static boolean isH2Channel(@NotNull io.netty.channel.Channel ch) {
+	static boolean isH2Channel(io.netty.channel.Channel ch) {
 		return ch.attr(HttpExchange.h2StreamKey).get() != null;
 	}
 
-	public void addHandler(@NotNull String path, int maxContentLength, @Nullable TransactionLevel level,
-						   @Nullable DispatchMode mode, @NotNull HttpEndStreamHandle fullHandle) {
+	public void addHandler(String path, int maxContentLength, @Nullable TransactionLevel level,
+						   @Nullable DispatchMode mode, HttpEndStreamHandle fullHandle) {
 		addHandler(path, new HttpHandler(maxContentLength, level, mode, fullHandle));
 	}
 
-	public void addHandler(@NotNull String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
-						   @NotNull HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
-						   @NotNull HttpEndStreamHandle endStream) {
+	public void addHandler(String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
+						   HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
+						   HttpEndStreamHandle endStream) {
 		addHandler(path, new HttpHandler(level, mode, beginStream, streamContent, endStream));
 	}
 
-	public void addHandler(@NotNull String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
-						   @NotNull HttpMultipartHandle multipartHandle) {
+	public void addHandler(String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
+						   HttpMultipartHandle multipartHandle) {
 		addHandler(path, new HttpHandler(level, mode, multipartHandle, multipartHandle, multipartHandle));
 	}
 
-	public void addHandler(@NotNull String path, int maxFrameLength, @Nullable TransactionLevel level,
-						   @Nullable DispatchMode mode, @NotNull HttpWebSocketHandle webSocketHandle) {
+	public void addHandler(String path, int maxFrameLength, @Nullable TransactionLevel level,
+						   @Nullable DispatchMode mode, HttpWebSocketHandle webSocketHandle) {
 		addHandler(path, new HttpHandler(maxFrameLength, level, mode, webSocketHandle));
 	}
 
-	public void addHandler(@NotNull String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
-						   @NotNull HttpWebSocketHandle webSocketHandle) {
+	public void addHandler(String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
+						   HttpWebSocketHandle webSocketHandle) {
 		addHandler(path, new HttpHandler(64 * 1024, level, mode, webSocketHandle));
 	}
 
-	public void addHandler(@NotNull String path, @NotNull HttpHandler handler) {
+	public void addHandler(String path, HttpHandler handler) {
 		if (handlers.putIfAbsent(path, handler) != null)
 			throw new IllegalStateException("add handler: duplicate path=" + path);
 		Netty.logger.debug("addHandler: {}", path);
@@ -518,17 +516,17 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	/**
 	 * @param pathPrefix 匹配路径前缀,优先匹配最长前缀
 	 */
-	public void addPrefixHandler(@NotNull String pathPrefix, @NotNull HttpHandler handler) {
+	public void addPrefixHandler(String pathPrefix, HttpHandler handler) {
 		if (prefixHandlers.putIfAbsent(pathPrefix, handler) != null)
 			throw new IllegalStateException("add handler: duplicate path=" + pathPrefix);
 		Netty.logger.debug("addPrefixHandler: {}", pathPrefix);
 	}
 
-	public void addFileHandler(@NotNull String pathPrefix, @NotNull String fileRootPath) {
+	public void addFileHandler(String pathPrefix, String fileRootPath) {
 		addFileHandler(pathPrefix, fileRootPath, false, 10 * 60);
 	}
 
-	public void addFileHandler(@NotNull String pathPrefix, @NotNull String fileRootPath, boolean canListPath) {
+	public void addFileHandler(String pathPrefix, String fileRootPath, boolean canListPath) {
 		addFileHandler(pathPrefix, fileRootPath, canListPath, 10 * 60);
 	}
 
@@ -538,7 +536,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	 * @param canListPath      是否提供文件目录的访问(展示文件列表)
 	 * @param fileCacheSeconds 通知客户端文件下载的缓存时间(秒)
 	 */
-	public void addFileHandler(@NotNull String pathPrefix, @NotNull String fileRootPath, boolean canListPath,
+	public void addFileHandler(String pathPrefix, String fileRootPath, boolean canListPath,
 							   int fileCacheSeconds) {
 		var pathPrefixLen = pathPrefix.length();
 		//noinspection DynamicRegexReplaceableByCompiledPattern
@@ -566,17 +564,17 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		}));
 	}
 
-	public void removeHandler(@NotNull String path) {
+	public void removeHandler(String path) {
 		if (handlers.remove(path) != null)
 			Netty.logger.debug("removeHandler: {}", path);
 	}
 
-	public void removePrefixHandler(@NotNull String path) {
+	public void removePrefixHandler(String path) {
 		if (prefixHandlers.remove(path) != null)
 			Netty.logger.debug("removePrefixHandler: {}", path);
 	}
 
-	public @Nullable HttpHandler getHandler(@NotNull String path) {
+	public @Nullable HttpHandler getHandler(String path) {
 		var handler = handlers.get(path);
 		if (handler == null) {
 			// 从字典序最大的候选(floorEntry(path))向下回退,第一个是path前缀的键即最长匹配前缀。
@@ -595,12 +593,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	// 允许扩展HttpExchange类。返回null表示忽略处理：框架将代回503并关闭连接（含该连接上在途的
 	// exchange）；返回null前请勿自行写响应。使用恰当策略提前忽略可以避免同时接收太多请求数据导致OOM。
-	public @Nullable HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+	public @Nullable HttpExchange createHttpExchange(ChannelHandlerContext context) {
 		return new HttpExchange(this, context);
 	}
 
 	@SuppressWarnings("RedundantThrows")
-	protected void initChannel(@NotNull SocketChannel ch) throws Exception {
+	protected void initChannel(SocketChannel ch) throws Exception {
 		Netty.logger.info("accept: {}", ch.remoteAddress());
 		var p = ch.pipeline();
 		if (sslCtx != null)
@@ -631,7 +629,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	}
 
 	@Override
-	public void channelInactive(@NotNull ChannelHandlerContext ctx) throws Exception {
+	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		var ch = ctx.channel();
 		Netty.logger.info("closed: {}", ch.remoteAddress());
 		channels.remove(ch);
@@ -645,7 +643,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	// janitor善后：h2子channel不经响应序化器（无responseOrderKey），closeInFlightExchanges
 	// 对其恒no-op——中止流（RST_STREAM关stream）的exchange永久滞留exchanges表（retain的request与
 	// content泄漏）。seq==null时按channel id取出exchange直接close（复用既有幂等机制）。
-	private void closeInFlightIncludingH2(@NotNull Channel ch, int method) {
+	private void closeInFlightIncludingH2(Channel ch, int method) {
 		if (!HttpExchange.closeInFlightExchanges(ch, method)) {
 			var x = exchanges.remove(ch.id());
 			if (x != null)
@@ -654,7 +652,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	}
 
 	@Override
-	public void channelRead(@NotNull ChannelHandlerContext ctx, @Nullable Object msg) {
+	public void channelRead(ChannelHandlerContext ctx, @Nullable Object msg) {
 		try {
 			var channelId = ctx.channel().id();
 			// 拦截解码失败的消息(如畸形chunk size):Netty对此类错误不抛异常,而是产出带失败DecoderResult的
@@ -698,7 +696,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	//（先移除,后续消息不再派发）——停机/创建策略拒绝与解码失败共用处置。
 	// 头部在途响应已开始写时直写会拼接进其响应体中途：只关连接不写响应（宁断连不错序，
 	// 诊断已由调用方记录；未开始写时的pipelining错位归属为已知限制）。
-	private void rejectAndClose(@NotNull ChannelHandlerContext ctx, @NotNull HttpResponseStatus status) {
+	private void rejectAndClose(ChannelHandlerContext ctx, HttpResponseStatus status) {
 		var ch = ctx.channel();
 		var seq = ch.attr(HttpExchange.responseOrderKey).get();
 		var head = seq != null ? seq.entries.get(seq.writingOrderId) : null;
@@ -720,13 +718,13 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	// 畸形http消息(非法chunk size/坏头等):解码器产出DecoderResult.failure的HttpObject而不是抛异常。
 	// 统一记录日志,回400并关闭连接;同时清理可能已半处理的exchange(release retain的request和已累积的content)。
-	protected void onDecodeFailure(@NotNull ChannelHandlerContext ctx, @NotNull HttpObject obj) {
+	protected void onDecodeFailure(ChannelHandlerContext ctx, HttpObject obj) {
 		Netty.logger.error("http decode failure from {}: {}", ctx.channel().remoteAddress(), obj.decoderResult().cause());
 		rejectAndClose(ctx, HttpResponseStatus.BAD_REQUEST);
 	}
 
 	@Override
-	public void userEventTriggered(@NotNull ChannelHandlerContext ctx, @Nullable Object evt) throws Exception {
+	public void userEventTriggered(ChannelHandlerContext ctx, @Nullable Object evt) throws Exception {
 		if (evt == ChannelInputShutdownEvent.INSTANCE) {
 			// 客户端半关闭（发完请求即FIN，合法的HTTP半双工用法，childOption已开ALLOW_HALF_CLOSURE）：
 			// 只标记willCloseConnection，让在途handler的响应发送完再关连接（响应完成后closeInEventLoop
@@ -752,7 +750,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	}
 
 	@Override
-	public void channelWritabilityChanged(@NotNull ChannelHandlerContext ctx) throws Exception {
+	public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
 		var ch = ctx.channel();
 		// 背压而非断连：越过水位（writePendingLimit）只记日志，由写方感知isWritable/等待积压排出
 		// （HttpResponseWithBodyStream已内置阻塞等待）。直接flush().close()杀连接会让
@@ -769,7 +767,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	}
 
 	@Override
-	public void exceptionCaught(@NotNull ChannelHandlerContext ctx, @NotNull Throwable cause) {
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 		try {
 			var ch = ctx.channel();
 			var addr = ch.remoteAddress();

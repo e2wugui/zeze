@@ -5,6 +5,7 @@ import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Component.Timer;
 import Zeze.Game.Rank;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 1. 所有需要Redirect支持的内建模块在这里生成代码。
@@ -25,7 +26,7 @@ public final class RedirectGenMain {
 
 		var app = new AppBase() {
 			@Override
-			public Application getZeze() {
+			public @Nullable Application getZeze() {
 				return null;
 			}
 		};

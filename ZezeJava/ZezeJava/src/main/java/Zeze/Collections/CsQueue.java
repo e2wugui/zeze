@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import java.util.Objects;
+
 import Zeze.Builtin.Collections.Queue.BQueueNode;
 import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
 import Zeze.Component.Takeover;
@@ -8,7 +10,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.OutLong;
 import Zeze.Util.TaskSpec;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Concurrent Server Queue.
@@ -70,7 +72,7 @@ public class CsQueue<V extends Bean> {
 
 			// splice 单向链表，新接管的数据拼到开头。
 			var dstName = name + "@" + module.zeze.getConfig().getServerId();
-			var dstRoot = Queue.compatible(module._tQueues.getOrAdd(dstName), dstName);
+			var dstRoot = Objects.requireNonNull(Queue.compatible(module._tQueues.getOrAdd(dstName), dstName));
 			var srcTailNodeKey = src.getTailNodeKey();
 			var srcTail = Queue.compatible(srcTailNodeKey, module._tQueueNodes.get(srcTailNodeKey));
 			if (null == srcTail)
@@ -125,7 +127,7 @@ public class CsQueue<V extends Bean> {
 
 			// prepare splice
 			var dstName = name + "@" + module.zeze.getConfig().getServerId();
-			var dstRoot = Queue.compatible(module._tQueues.getOrAdd(dstName), dstName);
+			var dstRoot = Objects.requireNonNull(Queue.compatible(module._tQueues.getOrAdd(dstName), dstName));
 			var srcTailNodeKey = src.getTailNodeKey();
 			var srcTail = Queue.compatible(srcTailNodeKey, module._tQueueNodes.get(srcTailNodeKey));
 
@@ -186,7 +188,7 @@ public class CsQueue<V extends Bean> {
 		takeover.checkFence(takeoverScope, stamp);
 	}
 
-	public BQueueNode pollNode() {
+	public @Nullable BQueueNode pollNode() {
 		checkFence();
 		return queue.pollNode();
 	}
@@ -196,16 +198,16 @@ public class CsQueue<V extends Bean> {
 		queue.clear();
 	}
 
-	public BQueueNode peekNode() {
+	public @Nullable BQueueNode peekNode() {
 		return queue.peekNode();
 	}
 
-	public V poll() {
+	public @Nullable V poll() {
 		checkFence();
 		return queue.poll();
 	}
 
-	public V peek() {
+	public @Nullable V peek() {
 		return queue.peek();
 	}
 
@@ -223,7 +225,7 @@ public class CsQueue<V extends Bean> {
 		queue.push(value);
 	}
 
-	public V pop() {
+	public @Nullable V pop() {
 		checkFence();
 		return queue.pop();
 	}

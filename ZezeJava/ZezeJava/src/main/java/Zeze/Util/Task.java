@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,13 +31,13 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import java.util.concurrent.ForkJoinPool;
 
 @SuppressWarnings("resource")
 // 任务调度静态门面：默认线程池/调度池管理与 Action/Func/Procedure 载荷的 call/run/submit/schedule 执行家族（旧 API 委托 TaskSpec）
 public final class Task {
-	static final @NotNull Logger logger = LogManager.getLogger(Task.class);
+	static final Logger logger = LogManager.getLogger(Task.class);
 	// 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
 	private static final boolean USE_VIRTUAL_THREAD = PropertiesHelper.getBool("useVirtualThread", true);
 	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = USE_VIRTUAL_THREAD
@@ -44,7 +46,7 @@ public final class Task {
 	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
 	// 开启热更时，由App.HotManager初始化的时候设置。
 	@SuppressWarnings("CanBeFinal")
-	public static volatile @NotNull Factory<HotGuard> hotGuard = () -> HotGuard.None;
+	public static volatile Factory<HotGuard> hotGuard = () -> HotGuard.None;
 	private static final FastLock taskLock = new FastLock();
 	private static final TaskOneByOneByKey oneByOne = new TaskOneByOneByKey();
 	private static final TaskOneByOneByKey systemOneByOne = new TaskOneByOneByKey();
@@ -55,19 +57,19 @@ public final class Task {
 
 	@FunctionalInterface
 	public interface ILogAction {
-		void run(@Nullable Throwable ex, long result, @Nullable Protocol<?> p, @NotNull String actionName);
+		void run(@Nullable Throwable ex, long result, @Nullable Protocol<?> p, String actionName);
 	}
 
 	@SuppressWarnings("CanBeFinal")
 	public static volatile long defaultTimeout = 120_000; // 2 minutes
 
 	// volatile: shutdown 会将字段置 null，需保证对其他线程可见
-	private static volatile ExecutorService threadPoolDefault;
-	private static volatile ScheduledExecutorService threadPoolScheduled;
-	private static volatile ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
+	private static volatile @Nullable ExecutorService threadPoolDefault;
+	private static volatile @Nullable ScheduledExecutorService threadPoolScheduled;
+	private static volatile @Nullable ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
 	// 数据库IO并行池：flush/reduce等阻塞DB操作退出ForkJoinPool.commonPool——commonPool面向CPU任务，
 	// 阻塞任务互抢可整体停摆并拖垮进程内其他parallelStream使用者。与三个默认池同生命周期。
-	private static volatile java.util.concurrent.ForkJoinPool threadPoolDbIo;
+	private static volatile @Nullable ForkJoinPool threadPoolDbIo;
 	// volatile: 运行期可被替换（如热替换/应用层定制日志），需对读线程立即可见
 	public static volatile @Nullable ILogAction logAction = Task::DefaultLogAction;
 
@@ -94,7 +96,7 @@ public final class Task {
 		return false;
 	}
 
-	public static @NotNull TaskOneByOneByKey getOneByOne() {
+	public static TaskOneByOneByKey getOneByOne() {
 		return oneByOne;
 	}
 
@@ -142,27 +144,27 @@ public final class Task {
 		TaskSpec.ofProcedure(proc).executeSystemOneByOne();
 	}
 
-	public static ExecutorService getThreadPool() {
+	public static @Nullable ExecutorService getThreadPool() {
 		return threadPoolDefault;
 	}
 
-	public static ScheduledExecutorService getScheduledThreadPool() {
+	public static @Nullable ScheduledExecutorService getScheduledThreadPool() {
 		return threadPoolScheduled;
 	}
 
 	// 注意：shutdown 后返回 null（与 getThreadPool/getScheduledThreadPool 一致），调用方需判空
-	public static ExecutorService getCriticalThreadPool() {
+	public static @Nullable ExecutorService getCriticalThreadPool() {
 		return threadPoolCritical;
 	}
 
 	// 注意：shutdown 后返回 null（同上），调用方需判空
-	public static java.util.concurrent.ForkJoinPool getDbIoPool() {
+	public static @Nullable ForkJoinPool getDbIoPool() {
 		return threadPoolDbIo;
 	}
 
 	// 在数据库IO并行池中执行阻塞型并行流的终端操作：提交线程阻塞等待，
 	// 流的分裂发生在池内worker上（parallelStream默认走commonPool）。
-	public static void runInDbIoPool(@NotNull Action0 action) {
+	public static void runInDbIoPool(Action0 action) {
 		var pool = threadPoolDbIo;
 		if (pool == null)
 			throw new IllegalStateException("Task thread pools not initialized or shut down: dbIo pool is null");
@@ -281,7 +283,7 @@ public final class Task {
 	// 提交/执行/调度路径的池选择：池未初始化或已 shutdown（字段为null）时抛明确异常，替代裸NPE。
 	// 不自动重建池：停机后的提交应显式失败，静默复活可能吞掉停机语义（如 ShutdownHook 内的 flush 任务派发）。
 	// 包内可见：one-by-one 队列引擎的入队前校验共用（入队后派发失败会把队列永久卡死）。
-	static @NotNull ExecutorService poolOrThrow(boolean critical) {
+	static ExecutorService poolOrThrow(boolean critical) {
 		var pool = critical ? threadPoolCritical : threadPoolDefault;
 		if (pool == null)
 			throw new IllegalStateException("Task thread pools not initialized or shut down: "
@@ -289,7 +291,7 @@ public final class Task {
 		return pool;
 	}
 
-	private static @NotNull ScheduledExecutorService scheduledPoolOrThrow() {
+	private static ScheduledExecutorService scheduledPoolOrThrow() {
 		var pool = threadPoolScheduled;
 		if (pool == null)
 			throw new IllegalStateException("Task thread pools not initialized or shut down: scheduled pool is null");
@@ -297,7 +299,7 @@ public final class Task {
 	}
 
 	// 固定数量的线程池, 普通优先级, 自动优先使用支持虚拟线程(不限制数量), 用于处理普通任务
-	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
+	public static ExecutorService newFixedThreadPool(int threadCount, String threadNamePrefix) {
 		if (USE_UNLIMITED_VIRTUAL_THREAD && isVirtualThreadEnabled()) {
 			logger.info("newFixedThreadPool({},{}) use unlimited virtual thread pool", threadCount, threadNamePrefix);
 			return Executors.newThreadPerTaskExecutor(new ThreadFactoryWithName(threadNamePrefix));
@@ -312,7 +314,7 @@ public final class Task {
 	}
 
 	// 关键线程池, 不使用虚拟线程时设为普通优先级+2, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
-	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
+	public static ExecutorService newCriticalThreadPool(String threadNamePrefix) {
 		if (USE_UNLIMITED_VIRTUAL_THREAD && isVirtualThreadEnabled()) {
 			logger.info("newCriticalThreadPool({}) use unlimited virtual thread pool", threadNamePrefix);
 			return Executors.newThreadPerTaskExecutor(new ThreadFactoryWithName(threadNamePrefix));
@@ -320,8 +322,8 @@ public final class Task {
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY + 2));
 	}
 
-	public static void initThreadPool(@NotNull ExecutorService pool,
-									  @NotNull ScheduledExecutorService scheduled) {
+	public static void initThreadPool(ExecutorService pool,
+									  ScheduledExecutorService scheduled) {
 		taskLock.lock();
 		try {
 			//noinspection ConstantValue
@@ -397,18 +399,18 @@ public final class Task {
 	}
 
 	// 注意必须使用try包装,确保create和close配对
-	public static @NotNull ThreadDiagnosable.Timeout createTimeout(long timeout) {
+	public static ThreadDiagnosable.Timeout createTimeout(long timeout) {
 		return new ThreadDiagnosable.Timeout(timeout);
 	}
 
 	// 注意必须使用try包装,确保create和close配对
-	public static @NotNull ThreadDiagnosable.Critical enterCritical(boolean critical) {
+	public static ThreadDiagnosable.Critical enterCritical(boolean critical) {
 		return new ThreadDiagnosable.Critical(critical);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).call()}。 */
 	@Deprecated
-	public static void call(@NotNull Action0 action, @Nullable String name) {
+	public static void call(Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).call();
 	}
 
@@ -426,7 +428,7 @@ public final class Task {
 
 	// TaskBody 统一核心：载荷间差异（异常/结果策略、日志名、统计位置）由 TaskBody 实现封装，
 	// 各执行家族只保留一份样板（池选择/hotGuard/timeout/计数）。
-	static <R> R callCore(@NotNull TaskBody<R> body, @Nullable String name) {
+	static <R extends @Nullable Object> R callCore(TaskBody<R> body, @Nullable String name) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try {
 			return body.call(name);
@@ -437,8 +439,8 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).call()}。 */
 	@Deprecated
-	public static long call(@NotNull FuncLong func, @Nullable String name) {
-		return TaskSpec.ofFunc(func).name(name).call();
+	public static long call(FuncLong func, @Nullable String name) {
+		return Objects.requireNonNull(TaskSpec.ofFunc(func).name(name).call());
 	}
 
 	/**
@@ -448,7 +450,7 @@ public final class Task {
 	 * 不能再访问表或开新事务（需要事务的工作应在 action 内转入线程池执行）。
 	 * 供 TaskSpec 与 Arch/Game 等框架层复用。
 	 */
-	public static void runTxnAware(@NotNull Runnable action) {
+	public static void runTxnAware(Runnable action) {
 		Transaction t;
 		if ((t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(action);
@@ -458,13 +460,13 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).run()}。 */
 	@Deprecated
-	public static void run(@NotNull Action0 action, @Nullable String name) {
+	public static void run(Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
-	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+	public static void run(Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(action).name(name).dispatchMode(mode).runNow();
 			return;
@@ -474,7 +476,7 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
-	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode, long timeout) {
+	public static void run(Action0 action, @Nullable String name, @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(action).name(name).dispatchMode(mode).timeout(timeout).runNow();
 			return;
@@ -486,25 +488,25 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name) {
+	public static Future<?> runUnsafe(Action0 action, @Nullable String name) {
 		return TaskSpec.ofAction(action).name(name).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
+	public static Future<?> runUnsafe(Action0 action, @Nullable String name,
 											   @Nullable DispatchMode mode) {
 		return TaskSpec.ofAction(action).name(name).dispatchMode(mode).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).timeout(timeout).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
+	public static Future<?> runUnsafe(Action0 action, @Nullable String name,
 											   @Nullable DispatchMode mode, long timeout) {
 		return TaskSpec.ofAction(action).name(name).dispatchMode(mode).timeout(timeout).submitNow();
 	}
 
-	static <R> @NotNull Future<R> submitCore(@NotNull TaskBody<R> body, @Nullable String name,
+	static <R extends @Nullable Object> Future<R> submitCore(TaskBody<R> body, @Nullable String name,
 											 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -535,26 +537,26 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name) {
+	public static void executeUnsafe(Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
+	public static void executeUnsafe(Action0 action, @Nullable String name,
 									 @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).dispatchMode(mode).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).timeout(timeout).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
+	public static void executeUnsafe(Action0 action, @Nullable String name,
 									 @Nullable DispatchMode mode, long timeout) {
 		TaskSpec.ofAction(action).name(name).dispatchMode(mode).timeout(timeout).runNow();
 	}
 
 	// 无 Future 消费者的入池执行：异常只记日志（body.call 的策略已先处理一轮，这里兜住 OfFunc0 的传播）
-	static void executeCore(@NotNull TaskBody<?> body, @Nullable String name,
+	static void executeCore(TaskBody<?> body, @Nullable String name,
 							@Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -582,29 +584,29 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).schedule(initialDelay)}。 */
 	@Deprecated
-	public static void schedule(long initialDelay, @NotNull Action0 action) {
+	public static void schedule(long initialDelay, Action0 action) {
 		TaskSpec.ofAction(action).schedule(initialDelay);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).timeout(timeout).schedule(initialDelay)}。 */
 	@Deprecated
-	public static void schedule(long initialDelay, @NotNull Action0 action, long timeout) {
+	public static void schedule(long initialDelay, Action0 action, long timeout) {
 		TaskSpec.ofAction(action).timeout(timeout).schedule(initialDelay);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).scheduleNow(initialDelay)}。 */
 	@Deprecated
-	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
+	public static ScheduledFuture<?> scheduleUnsafe(long initialDelay, Action0 action) {
 		return TaskSpec.ofAction(action).scheduleNow(initialDelay);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).timeout(timeout).scheduleNow(initialDelay)}。 */
 	@Deprecated
-	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action, long timeout) {
+	public static ScheduledFuture<?> scheduleUnsafe(long initialDelay, Action0 action, long timeout) {
 		return TaskSpec.ofAction(action).timeout(timeout).scheduleNow(initialDelay);
 	}
 
-	static <R> @NotNull ScheduledFuture<R> scheduleCore(long initialDelay, @NotNull TaskBody<R> body,
+	static <R extends @Nullable Object> ScheduledFuture<R> scheduleCore(long initialDelay, TaskBody<R> body,
 														@Nullable String name, long timeout) {
 		return scheduledPoolOrThrow().schedule(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -621,13 +623,13 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).scheduleNow(initialDelay)}。 */
 	@Deprecated
-	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
+	public static <R extends @Nullable Object> Future<R> scheduleUnsafe(long initialDelay, Func0<R> func) {
 		return TaskSpec.ofFunc0(func).scheduleNow(initialDelay);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).timeout(timeout).scheduleNow(initialDelay)}。 */
 	@Deprecated
-	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func, long timeout) {
+	public static <R extends @Nullable Object> Future<R> scheduleUnsafe(long initialDelay, Func0<R> func, long timeout) {
 		return TaskSpec.ofFunc0(func).timeout(timeout).scheduleNow(initialDelay);
 	}
 
@@ -635,7 +637,7 @@ public final class Task {
 	// 【锁契约】任务体在 future.lock 内执行（与 TimerFuture.cancel 互斥）：cancel 天然 join 在飞的一轮
 	// 任务体；因此任务体内可以获取自己的业务锁，但 cancel 的调用方不得持有任务体可能获取的锁（ABBA，见
 	// TimerFuture.cancel 的 javadoc）。
-	static <R> @NotNull TimerFuture<R> schedulePeriodCore(long initialDelay, long period, @NotNull TaskBody<R> body,
+	static <R extends @Nullable Object> TimerFuture<R> schedulePeriodCore(long initialDelay, long period, TaskBody<R> body,
 														  @Nullable String name, long timeout) {
 		var future = new TimerFuture<R>(body.logName(name), timeout); // name+timeout供cancel挂死告警定位与阈值
 		future.setFuture(scheduledPoolOrThrow().scheduleWithFixedDelay(() -> {
@@ -657,39 +659,39 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).scheduleAt(hour, minute)}。 */
 	@Deprecated
-	public static void scheduleAt(int hour, int minute, @NotNull Action0 action) {
+	public static void scheduleAt(int hour, int minute, Action0 action) {
 		TaskSpec.ofAction(action).scheduleAt(hour, minute);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).scheduleAtPeriod(hour, minute, period)}。 */
 	@Deprecated
-	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action) {
+	public static void scheduleAt(int hour, int minute, long period, Action0 action) {
 		TaskSpec.ofAction(action).scheduleAtPeriod(hour, minute, period);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).timeout(timeout).scheduleAtPeriod(hour, minute, period)}。 */
 	@Deprecated
-	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action, long timeout) {
+	public static void scheduleAt(int hour, int minute, long period, Action0 action, long timeout) {
 		TaskSpec.ofAction(action).timeout(timeout).scheduleAtPeriod(hour, minute, period);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).scheduleAtNow(hour, minute)}。 */
 	@Deprecated
-	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, @NotNull Action0 action) {
+	public static ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, Action0 action) {
 		return TaskSpec.ofAction(action).scheduleAtNow(hour, minute);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).scheduleAtPeriodNow(hour, minute, period)}。 */
 	@Deprecated
-	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
-															   @NotNull Action0 action) {
+	public static ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
+															   Action0 action) {
 		return TaskSpec.ofAction(action).scheduleAtPeriodNow(hour, minute, period);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).timeout(timeout).scheduleAtPeriodNow(hour, minute, period)}。 */
 	@Deprecated
-	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
-															   @NotNull Action0 action, long timeout) {
+	public static ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
+															   Action0 action, long timeout) {
 		return TaskSpec.ofAction(action).timeout(timeout).scheduleAtPeriodNow(hour, minute, period);
 	}
 
@@ -709,31 +711,31 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).schedulePeriod(initialDelay, period)}。 */
 	@Deprecated
-	public static void schedule(long initialDelay, long period, @NotNull Action0 action) {
+	public static void schedule(long initialDelay, long period, Action0 action) {
 		TaskSpec.ofAction(action).schedulePeriod(initialDelay, period);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).timeout(timeout).schedulePeriod(initialDelay, period)}。 */
 	@Deprecated
-	public static void schedule(long initialDelay, long period, @NotNull Action0 action, long timeout) {
+	public static void schedule(long initialDelay, long period, Action0 action, long timeout) {
 		TaskSpec.ofAction(action).timeout(timeout).schedulePeriod(initialDelay, period);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).schedulePeriodNow(initialDelay, period)}。 */
 	@Deprecated
-	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
+	public static TimerFuture<?> scheduleUnsafe(long initialDelay, long period, Action0 action) {
 		return TaskSpec.ofAction(action).schedulePeriodNow(initialDelay, period);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).timeout(timeout).schedulePeriodNow(initialDelay, period)}。 */
 	@Deprecated
-	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action,
+	public static TimerFuture<?> scheduleUnsafe(long initialDelay, long period, Action0 action,
 														 long timeout) {
 		return TaskSpec.ofAction(action).timeout(timeout).schedulePeriodNow(initialDelay, period);
 	}
 
 	public static void DefaultLogAction(@Nullable Throwable ex, long result, @Nullable Protocol<?> p,
-										@NotNull String actionName) {
+										String actionName) {
 		// exception -> Error
 		// 0 != result -> level from p or Info
 		// others -> Trace
@@ -798,18 +800,18 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).call()}。 */
 	@Deprecated
-	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		return TaskSpec.ofFunc(func, p).call();
+	public static long call(FuncLong func, @Nullable Protocol<?> p) {
+		return Objects.requireNonNull(TaskSpec.ofFunc(func, p).call());
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).call()}。 */
 	@Deprecated
-	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static long call(FuncLong func, @Nullable Protocol<?> p,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return TaskSpec.ofFunc(func, p, actionWhenError).call();
+		return Objects.requireNonNull(TaskSpec.ofFunc(func, p, actionWhenError).call());
 	}
 
-	public static @NotNull Throwable getRootCause(@NotNull Throwable e) {
+	public static Throwable getRootCause(Throwable e) {
 		for (int depth = 0; ; depth++) {
 			var c = e.getCause();
 			if (c == null)
@@ -822,13 +824,13 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).call()}。 */
 	@Deprecated
-	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static long call(FuncLong func, @Nullable Protocol<?> p,
 							@Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
-		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).call();
+		return Objects.requireNonNull(TaskSpec.ofFunc(func, p, actionWhenError).name(aName).call());
 	}
 
 	/** 协议版 Func 载荷的叶子核心（TaskBody.OfProtocolFunc 调用）：异常翻错误码、错误回发、协议日志与统计。 */
-	static long callFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	static long callFuncCore(FuncLong func, @Nullable Protocol<?> p,
 							 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		boolean isRequestSaved = p == null || p.isRequest(); // 记住这个，以后可能会被改变。
@@ -872,27 +874,27 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).run()}。 */
 	@Deprecated
-	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+	public static void run(FuncLong func, @Nullable Protocol<?> p) {
 		TaskSpec.ofFunc(func, p).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).run()}。 */
 	@Deprecated
-	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void run(FuncLong func, @Nullable Protocol<?> p,
 						   @Nullable ProtocolErrorHandle actionWhenError) {
 		TaskSpec.ofFunc(func, p, actionWhenError).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).run()}。 */
 	@Deprecated
-	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void run(FuncLong func, @Nullable Protocol<?> p,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
-	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void run(FuncLong func, @Nullable Protocol<?> p,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 						   @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
@@ -905,7 +907,7 @@ public final class Task {
 	/** @deprecated
 	 * 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
-	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void run(FuncLong func, @Nullable Protocol<?> p,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 						   @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
@@ -917,27 +919,27 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+	public static Future<Long> runUnsafe(FuncLong func, @Nullable Protocol<?> p) {
 		return TaskSpec.ofFunc(func, p).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static Future<Long> runUnsafe(FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError) {
 		return TaskSpec.ofFunc(func, p, actionWhenError).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static Future<Long> runUnsafe(FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError, String aName) {
 		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static Future<Long> runUnsafe(FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 												  @Nullable DispatchMode mode) {
 		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).submitNow();
@@ -945,7 +947,7 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static Future<Long> runUnsafe(FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 												  @Nullable DispatchMode mode, long timeout) {
 		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).submitNow();
@@ -953,27 +955,27 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+	public static void executeUnsafe(FuncLong func, @Nullable Protocol<?> p) {
 		TaskSpec.ofFunc(func, p).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void executeUnsafe(FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError) {
 		TaskSpec.ofFunc(func, p, actionWhenError).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void executeUnsafe(FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError, String aName) {
 		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void executeUnsafe(FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 									 @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).runNow();
@@ -981,7 +983,7 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void executeUnsafe(FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 									 @Nullable DispatchMode mode, long timeout) {
 		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).runNow();
@@ -989,25 +991,25 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).call()}。 */
 	@Deprecated
-	public static long call(@NotNull Procedure procedure) {
-		return TaskSpec.ofProcedure(procedure).call();
+	public static long call(Procedure procedure) {
+		return Objects.requireNonNull(TaskSpec.ofProcedure(procedure).call());
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).call()}。 */
 	@Deprecated
-	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
-		return TaskSpec.ofProcedure(procedure, from).call();
+	public static long call(Procedure procedure, @Nullable Protocol<?> from) {
+		return Objects.requireNonNull(TaskSpec.ofProcedure(procedure, from).call());
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).call()}。 */
 	@Deprecated
-	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static long call(Procedure procedure, @Nullable Protocol<?> from,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return TaskSpec.ofProcedure(procedure, from, actionWhenError).call();
+		return Objects.requireNonNull(TaskSpec.ofProcedure(procedure, from, actionWhenError).call());
 	}
 
 	/** 协议版 Procedure 载荷的叶子核心（TaskBody.OfProtocolProcedure 调用）。 */
-	static long callProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	static long callProcCore(Procedure procedure, @Nullable Protocol<?> from,
 							 @Nullable ProtocolErrorHandle actionWhenError) {
 		boolean isRequestSaved = from == null || from.isRequest();
 		try {
@@ -1034,13 +1036,13 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).call()}。 */
 	@Deprecated
-	public static long call(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	public static long call(Procedure procedure, OutObject<Protocol<?>> outProtocol,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).call();
+		return Objects.requireNonNull(TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).call());
 	}
 
 	/** 过程内解码协议载荷的叶子核心（TaskBody.OfProcedureOut 调用）。 */
-	static long callProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	static long callProcOutCore(Procedure procedure, OutObject<Protocol<?>> outProtocol,
 								@Nullable ProtocolErrorHandle actionWhenError) {
 		Protocol<?> from = null;
 		try {
@@ -1068,26 +1070,26 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).run()}。 */
 	@Deprecated
-	public static void run(@NotNull Procedure procedure) {
+	public static void run(Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).run()}。 */
 	@Deprecated
-	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
+	public static void run(Procedure procedure, @Nullable Protocol<?> from) {
 		TaskSpec.ofProcedure(procedure, from).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).run()}。 */
 	@Deprecated
-	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static void run(Procedure procedure, @Nullable Protocol<?> from,
 						   @Nullable ProtocolErrorHandle actionWhenError) {
 		TaskSpec.ofProcedure(procedure, from, actionWhenError).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
-	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static void run(Procedure procedure, @Nullable Protocol<?> from,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).runNow();
@@ -1099,7 +1101,7 @@ public final class Task {
 	/** @deprecated
 	 * 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
-	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static void run(Procedure procedure, @Nullable Protocol<?> from,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
@@ -1110,32 +1112,32 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure) {
+	public static Future<Long> runUnsafe(Procedure procedure) {
 		return TaskSpec.ofProcedure(procedure).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
+	public static Future<Long> runUnsafe(Procedure procedure, @Nullable Protocol<?> from) {
 		return TaskSpec.ofProcedure(procedure, from).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static Future<Long> runUnsafe(Procedure procedure, @Nullable Protocol<?> from,
 												  @Nullable ProtocolErrorHandle actionWhenError) {
 		return TaskSpec.ofProcedure(procedure, from, actionWhenError).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public static Future<Long> runUnsafe(Procedure procedure, @Nullable DispatchMode mode) {
 		return TaskSpec.ofProcedure(procedure).dispatchMode(mode).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static Future<Long> runUnsafe(Procedure procedure, @Nullable Protocol<?> from,
 												  @Nullable ProtocolErrorHandle actionWhenError,
 												  @Nullable DispatchMode mode) {
 		return TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).submitNow();
@@ -1143,7 +1145,7 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static Future<Long> runUnsafe(Procedure procedure, @Nullable Protocol<?> from,
 												  @Nullable ProtocolErrorHandle actionWhenError,
 												  @Nullable DispatchMode mode, long timeout) {
 		return TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).submitNow();
@@ -1151,8 +1153,8 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
-												  @NotNull OutObject<Protocol<?>> outProtocol,
+	public static Future<Long> runUnsafe(Procedure procedure,
+												  OutObject<Protocol<?>> outProtocol,
 												  @Nullable ProtocolErrorHandle actionWhenError,
 												  @Nullable DispatchMode mode) {
 		return TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).submitNow();
@@ -1160,8 +1162,8 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).timeout(timeout).submitNow()}。 */
 	@Deprecated
-	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
-												  @NotNull OutObject<Protocol<?>> outProtocol,
+	public static Future<Long> runUnsafe(Procedure procedure,
+												  OutObject<Protocol<?>> outProtocol,
 												  @Nullable ProtocolErrorHandle actionWhenError,
 												  @Nullable DispatchMode mode, long timeout) {
 		return TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).timeout(timeout).submitNow();
@@ -1169,39 +1171,39 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Procedure procedure) {
+	public static void executeUnsafe(Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
+	public static void executeUnsafe(Procedure procedure, @Nullable Protocol<?> from) {
 		TaskSpec.ofProcedure(procedure, from).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static void executeUnsafe(Procedure procedure, @Nullable Protocol<?> from,
 									 @Nullable ProtocolErrorHandle actionWhenError) {
 		TaskSpec.ofProcedure(procedure, from, actionWhenError).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public static void executeUnsafe(Procedure procedure, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static void executeUnsafe(Procedure procedure, @Nullable Protocol<?> from,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	public static void executeUnsafe(Procedure procedure, @Nullable Protocol<?> from,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 									 long timeout) {
 		TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
@@ -1209,14 +1211,14 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	public static void executeUnsafe(Procedure procedure, OutObject<Protocol<?>> outProtocol,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).timeout(timeout).runNow()}。 */
 	@Deprecated
-	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	public static void executeUnsafe(Procedure procedure, OutObject<Protocol<?>> outProtocol,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 									 long timeout) {
 		TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
@@ -1226,13 +1228,13 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).run()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void runRpcResponse(@NotNull Procedure procedure) {
+	public static void runRpcResponse(Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void runRpcResponse(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public static void runRpcResponse(Procedure procedure, @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			TaskSpec.ofProcedure(procedure).dispatchMode(mode).runNow();
 			return;
@@ -1242,7 +1244,7 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void runRpcResponse(@NotNull Procedure procedure, @Nullable DispatchMode mode, long timeout) {
+	public static void runRpcResponse(Procedure procedure, @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).runNow();
 			return;
@@ -1252,13 +1254,13 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).run()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+	public static void runRpcResponse(FuncLong func, @Nullable Protocol<?> p) {
 		TaskSpec.ofFunc(func, p).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode) {
+	public static void runRpcResponse(FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			TaskSpec.ofFunc(func, p).dispatchMode(mode).runNow();
 			return;
@@ -1268,7 +1270,7 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode,
+	public static void runRpcResponse(FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode,
 									  long timeout) {
 		if (mode == DispatchMode.Direct) {
 			TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow();
@@ -1279,84 +1281,84 @@ public final class Task {
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure) {
+	public static Future<Long> runRpcResponseUnsafe(Procedure procedure) {
 		return TaskSpec.ofProcedure(procedure).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
+	public static Future<Long> runRpcResponseUnsafe(Procedure procedure,
 															 @Nullable DispatchMode mode) {
 		return TaskSpec.ofProcedure(procedure).dispatchMode(mode).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
+	public static Future<Long> runRpcResponseUnsafe(Procedure procedure,
 															 @Nullable DispatchMode mode, long timeout) {
 		return TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+	public static Future<Long> runRpcResponseUnsafe(FuncLong func, @Nullable Protocol<?> p) {
 		return TaskSpec.ofFunc(func, p).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static Future<Long> runRpcResponseUnsafe(FuncLong func, @Nullable Protocol<?> p,
 															 @Nullable DispatchMode mode) {
 		return TaskSpec.ofFunc(func, p).dispatchMode(mode).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static Future<Long> runRpcResponseUnsafe(FuncLong func, @Nullable Protocol<?> p,
 															 @Nullable DispatchMode mode, long timeout) {
 		return TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure) {
+	public static void executeRpcResponseUnsafe(Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public static void executeRpcResponseUnsafe(Procedure procedure, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode,
+	public static void executeRpcResponseUnsafe(Procedure procedure, @Nullable DispatchMode mode,
 												long timeout) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+	public static void executeRpcResponseUnsafe(FuncLong func, @Nullable Protocol<?> p) {
 		TaskSpec.ofFunc(func, p).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void executeRpcResponseUnsafe(FuncLong func, @Nullable Protocol<?> p,
 												@Nullable DispatchMode mode) {
 		TaskSpec.ofFunc(func, p).dispatchMode(mode).runNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
-	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	public static void executeRpcResponseUnsafe(FuncLong func, @Nullable Protocol<?> p,
 												@Nullable DispatchMode mode, long timeout) {
 		TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow();
 	}
 
-	public static void waitAll(@NotNull Collection<Future<?>> tasks) {
+	public static void waitAll(Collection<Future<?>> tasks) {
 		for (var task : tasks) {
 			try {
 				task.get();
@@ -1366,7 +1368,7 @@ public final class Task {
 		}
 	}
 
-	public static void waitAll(Future<?> @NotNull [] tasks) {
+	public static void waitAll(Future<?> [] tasks) {
 		for (var task : tasks) {
 			try {
 				task.get();
@@ -1379,7 +1381,7 @@ public final class Task {
 	// 利用编译器的漏洞(?)强制抛出任何异常,调用者不必声明throws或包装成RuntimeException,建议只在必要时使用
 	@SuppressWarnings("unchecked")
 	@Contract("_ -> fail")
-	public static <E extends Throwable> RuntimeException forceThrow(@NotNull Throwable e) throws E {
+	public static <E extends Throwable> RuntimeException forceThrow(Throwable e) throws E {
 		throw (E)e;
 	}
 

@@ -1,16 +1,19 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import Zeze.Builtin.Dbh2.Commit.DummyImportBean;
 import Zeze.Config;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.DispatchModeAnnotation;
 import org.rocksdb.RocksDBException;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Dbh2 事务提交服务，组合本地 CommitRocks 存储与网络协议处理。
  */
 public class Commit extends AbstractCommit {
-	private CommitRocks rocks;
+	private @Nullable CommitRocks rocks;
 	private final CommitService service;
 
 	public Commit(Dbh2AgentManager manager, Config config) throws RocksDBException {
@@ -20,7 +23,7 @@ public class Commit extends AbstractCommit {
 	}
 
 	public void start() throws Exception {
-		rocks.start();
+		Objects.requireNonNull(rocks).start();
 		service.start(); // 网络后启动。
 	}
 
@@ -37,7 +40,7 @@ public class Commit extends AbstractCommit {
 		}
 	}
 
-	public CommitRocks getRocks() {
+	public @Nullable CommitRocks getRocks() {
 		return rocks;
 	}
 
@@ -47,7 +50,7 @@ public class Commit extends AbstractCommit {
 
 	@Override
 	protected long ProcessCommitRequest(Zeze.Builtin.Dbh2.Commit.Commit r) throws Exception {
-		var query = rocks.getManager().commitServiceAcceptor();
+		var query = Objects.requireNonNull(rocks).getManager().commitServiceAcceptor();
 		// 应答与投递解绑：decide（prepare+saveCommitPoint(eCommitting)）同步完成后立即应答，
 		// 应答0 ⇔ eCommitting已持久化、事务终局为提交；commitBatch投递异步执行，
 		// 失败/超时由redoTimer兜底重发。
@@ -55,9 +58,9 @@ public class Commit extends AbstractCommit {
 		r.SendResult();
 		var pool = Zeze.Util.Task.getThreadPool();
 		if (null != pool)
-			pool.execute(() -> rocks.commitDeliver(decision));
+			pool.execute(() -> Objects.requireNonNull(rocks).commitDeliver(decision));
 		else
-			rocks.commitDeliver(decision); // 池不可用时同步兜底，投递必达
+			Objects.requireNonNull(rocks).commitDeliver(decision); // 池不可用时同步兜底，投递必达
 		return 0;
 	}
 
@@ -69,7 +72,7 @@ public class Commit extends AbstractCommit {
 	@DispatchModeAnnotation(mode = DispatchMode.Critical)
 	@Override
 	protected long ProcessQueryRequest(Zeze.Builtin.Dbh2.Commit.Query r) throws Exception {
-		var state = rocks.query(r.Argument.getTid());
+		var state = Objects.requireNonNull(rocks).query(r.Argument.getTid());
 		if (null == state)
 			r.Result.setState(Commit.eCommitNotExist);
 		else

@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import Zeze.Net.Protocol;
@@ -15,6 +16,7 @@ import Zeze.Util.Action0;
 import Zeze.Util.ThrowAgainException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RocksRaft 事务：线程绑定的事务上下文——savepoint 日志栈、访问记录集与悲观锁，
@@ -22,7 +24,7 @@ import org.apache.logging.log4j.Logger;
  */
 public final class Transaction {
 	private static final Logger logger = LogManager.getLogger(Transaction.class);
-	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
+	private static final ThreadLocal<@Nullable Transaction> threadLocal = new ThreadLocal<>();
 
 	public static Transaction create() {
 		var t = threadLocal.get();
@@ -35,7 +37,7 @@ public final class Transaction {
 		threadLocal.remove();
 	}
 
-	public static Transaction getCurrent() {
+	public static @Nullable Transaction getCurrent() {
 		return threadLocal.get();
 	}
 
@@ -70,14 +72,14 @@ public final class Transaction {
 		}
 
 		@SuppressWarnings("unchecked")
-		public LogBeanKey<Bean> getPutLog() {
+		public @Nullable LogBeanKey<Bean> getPutLog() {
 			// 从当前（最外层未弹出的）savepoint查put意图：嵌套回滚后查不到即正确回落。
 			// 查询键=LogBeanKey的belong(this).objectId()+variableId(0)（Log.getLogKey）。
 			var log = owner.getLog(objectId());
 			return log instanceof LogBeanKey<?> putLog ? (LogBeanKey<Bean>)putLog : null;
 		}
 
-		public Bean newestValue() {
+		public @Nullable Bean newestValue() {
 			var putLog = getPutLog();
 			if (putLog != null)
 				return putLog.value;
@@ -89,7 +91,7 @@ public final class Transaction {
 			throw new UnsupportedOperationException();
 		}
 
-		public void put(Transaction current, Bean value) {
+		public void put(Transaction current, @Nullable Bean value) {
 			current.putLog(new LogBeanKey<>(Bean.class, this, 0, value));
 		}
 
@@ -98,7 +100,7 @@ public final class Transaction {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(Record.@Nullable RootInfo root) {
 		}
 
 		@Override
@@ -125,10 +127,10 @@ public final class Transaction {
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
 	private final ArrayList<Savepoint> savepoints = new ArrayList<>();
 	private final HashSet<PessimismLock> pessimismLocks = new HashSet<>();
-	private Changes changes;
-	private List<Action0> lastRollbackActions;
+	private @Nullable Changes changes;
+	private @Nullable List<Action0> lastRollbackActions;
 
-	public Changes getChanges() {
+	public @Nullable Changes getChanges() {
 		return changes;
 	}
 
@@ -138,7 +140,7 @@ public final class Transaction {
 		return pLock;
 	}
 
-	public Log getLog(long logKey) {
+	public @Nullable Log getLog(long logKey) {
 		var saveSize = savepoints.size();
 		return saveSize > 0 ? savepoints.get(saveSize - 1).getLog(logKey) : null;
 	}
@@ -173,7 +175,7 @@ public final class Transaction {
 		accessedRecords.put(root.getTableKey(), r);
 	}
 
-	public RecordAccessed getRecordAccessed(TableKey key) {
+	public @Nullable RecordAccessed getRecordAccessed(TableKey key) {
 		return accessedRecords.get(key);
 	}
 
@@ -250,7 +252,7 @@ public final class Transaction {
 	}
 
 	public void leaderApply(Changes changes, RaftLog holder) {
-		var rocks = changes.getRocks();
+		var rocks = Objects.requireNonNull(changes.getRocks());
 		try {
 			leaderApplyInternal(changes, holder, rocks);
 		} catch (Rocks.FlushException e) {
@@ -265,8 +267,8 @@ public final class Transaction {
 			// 换主后需要InstallSnapshot追赶。与follower路径对称：fatalKill把静默分歧
 			// 变成显性crash。FlushException的pendingFlush重试语义不变。
 			logger.fatal("{} leaderApply divergence, fatalKill. logIndex={} term={}",
-					rocks.getRaft().getName(), holder.getIndex(), holder.getTerm(), e);
-			rocks.getRaft().fatalKill();
+					Objects.requireNonNull(rocks.getRaft()).getName(), holder.getIndex(), holder.getTerm(), e);
+			Objects.requireNonNull(rocks.getRaft()).fatalKill();
 		}
 	}
 
@@ -294,9 +296,9 @@ public final class Transaction {
 		var it = lastSavepoint("leaderApply").logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
-				var log = it.value();
+				var log = Objects.requireNonNull(it.value());
 				if (log.getBelong() != null)
-					log.getBelong().leaderApplyNoRecursive(log);
+					Objects.requireNonNull(log.getBelong()).leaderApplyNoRecursive(log);
 			}
 		}
 		var rs = new ArrayList<Record<?>>();
@@ -331,13 +333,13 @@ public final class Transaction {
 			var it = savepoints.get(saveSize - 1).logIterator();
 			if (it != null) {
 				while (it.moveToNext()) {
-					var log = it.value();
+					var log = Objects.requireNonNull(it.value());
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
 					if (log.getBelong() == null)
 						continue;
 
-					TableKey tkey = log.getBelong().tableKey();
+					TableKey tkey = Objects.requireNonNull(log.getBelong()).tableKey();
 					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.setDirty(true);
@@ -356,14 +358,14 @@ public final class Transaction {
 		var it = sp.logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
-				var log = it.value();
+				var log = Objects.requireNonNull(it.value());
 				// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
 				if (log.getBelong() == null)
 					continue;
 
 				// 当changes.Collect在日志往上一级传递时调用，
 				// 第一个参数Owner为null，表示bean属于record，到达root了。
-				changes.collect(log.getBelong(), log);
+				changes.collect(Objects.requireNonNull(log.getBelong()), log);
 			}
 		}
 
@@ -373,9 +375,9 @@ public final class Transaction {
 		}
 
 		if (!changes.getRecords().isEmpty()) { // has changes
-			procedure.getRocks().updateAtomicLongs(changes.getAtomicLongs());
+			Objects.requireNonNull(procedure.getRocks()).updateAtomicLongs(changes.getAtomicLongs());
 			var resultBean = null != procedure.uniqueRequest ? procedure.uniqueRequest.getResultBean() : null;
-			procedure.getRocks().getRaft().appendLog(changes, resultBean, procedure.getExpectedTerm());
+			Objects.requireNonNull(Objects.requireNonNull(procedure.getRocks()).getRaft()).appendLog(changes, resultBean, procedure.getExpectedTerm());
 		}
 
 		_trigger_commit_actions_(procedure, sp);

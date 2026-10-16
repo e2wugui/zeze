@@ -6,7 +6,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 按类名缓存的热更句柄表：模块停止时自动清除属于该模块的句柄缓存。
@@ -21,7 +20,7 @@ public class HotHandle<THandle> extends ReentrantLock {
 	// 固定为实例字段只求值一次：同一HotHandle的登记幂等（总量有界：HotHandle实例数）。
 	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
 
-	private void onHotModuleStop(@NotNull HotModule hot) {
+	private void onHotModuleStop(HotModule hot) {
 		var classNames = classNameWithHotModule.remove(hot);
 		if (classNames != null) {
 			for (var name : classNames)
@@ -29,7 +28,7 @@ public class HotHandle<THandle> extends ReentrantLock {
 		}
 	}
 
-	public static @NotNull Class<?> findClass(@NotNull Application zeze, @NotNull String handleClassName)
+	public static Class<?> findClass(Application zeze, String handleClassName)
 			throws ClassNotFoundException {
 		var hotManager = zeze.getHotManager();
 		return hotManager == null
@@ -38,7 +37,7 @@ public class HotHandle<THandle> extends ReentrantLock {
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull THandle findHandle(@NotNull Application zeze, @NotNull String handleClassName) {
+	public THandle findHandle(Application zeze, String handleClassName) {
 		var handle = handleCache.get(handleClassName);
 		if (handle != null)
 			return handle;

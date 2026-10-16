@@ -7,22 +7,21 @@ import Zeze.Util.Random;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 每Service的网络收发统计周期日志（select/recv/send速率与发送缓冲积压）。 */
 public final class ServiceStatisticLog implements Action0 {
-	private static final @NotNull Logger logger = LogManager.getLogger("StatLog"); // 沿用统计日志通道
-	private final @NotNull Service service;
+	private static final Logger logger = LogManager.getLogger("StatLog"); // 沿用统计日志通道
+	private final Service service;
 	private @Nullable ScheduledFuture<?> statisticLogFuture;
 	private int periodSec;
 	private final long[] lastSizes = new long[]{-1, 0, 0, 0, 0, 0}; // [0]=-1哨兵：跳过首轮速率计算，见run()
 
-	public ServiceStatisticLog(@NotNull Service service) {
+	public ServiceStatisticLog(Service service) {
 		this.service = service;
 	}
 
-	public @NotNull ScheduledFuture<?> startStatisticLog(int periodSec) {
+	public ScheduledFuture<?> startStatisticLog(int periodSec) {
 		if (periodSec <= 0)
 			throw new IllegalArgumentException("periodSec(" + periodSec + ") < 0");
 		var f = statisticLogFuture;

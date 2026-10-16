@@ -1,7 +1,7 @@
 package Zeze.Util;
 
 import java.util.concurrent.locks.ReentrantLock;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 用于几秒内的计数，

@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import kotlinx.collections.immutable.ExtensionsKt;
 import kotlinx.collections.immutable.PersistentList;
-import org.jetbrains.annotations.NotNull;
+
 import org.pcollections.PVector;
 
 /**
@@ -25,20 +25,20 @@ import org.pcollections.PVector;
  * <p>{@link #subList(int, int)} 不支持（Zeze 事务 PList 层本就拒绝 subList，无消费方）。
  */
 public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
-	private final @NotNull PersistentList<E> kt;
+	private final PersistentList<E> kt;
 
-	private KtVector(@NotNull PersistentList<E> kt) {
+	private KtVector(PersistentList<E> kt) {
 		this.kt = kt;
 	}
 
-	public static <E> @NotNull KtVector<E> empty() {
+	public static <E> KtVector<E> empty() {
 		return new KtVector<>(ExtensionsKt.<E>persistentListOf());
 	}
 
 	// ===== 读 =====
 
 	@Override
-	public @NotNull E get(int index) {
+	public E get(int index) {
 		return kt.get(index);
 	}
 
@@ -54,40 +54,40 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 
 	/** 直接走内核迭代器（AbstractList 默认迭代经 get(i)，多付一层 O(log32 n) 寻址）。 */
 	@Override
-	public @NotNull Iterator<E> iterator() {
+	public Iterator<E> iterator() {
 		return kt.iterator();
 	}
 
 	// ===== 持久化写 =====
 
 	@Override
-	public @NotNull PVector<E> plus(@NotNull E e) {
+	public PVector<E> plus(E e) {
 		return new KtVector<>(kt.add(e));
 	}
 
 	@Override
-	public @NotNull PVector<E> plus(int index, @NotNull E e) {
+	public PVector<E> plus(int index, E e) {
 		return new KtVector<>(kt.add(index, e));
 	}
 
 	@Override
-	public @NotNull PVector<E> with(int index, @NotNull E e) {
+	public PVector<E> with(int index, E e) {
 		return new KtVector<>(kt.set(index, e));
 	}
 
 	@Override
-	public @NotNull PVector<E> minus(int index) {
+	public PVector<E> minus(int index) {
 		return new KtVector<>(kt.removeAt(index));
 	}
 
 	@Override
-	public @NotNull PVector<E> minus(@NotNull Object e) {
+	public PVector<E> minus(Object e) {
 		var n = kt.remove((E)e);
 		return n == kt ? this : new KtVector<>(n);
 	}
 
 	@Override
-	public @NotNull PVector<E> plusAll(@NotNull Collection<? extends E> c) {
+	public PVector<E> plusAll(Collection<? extends E> c) {
 		if (c.isEmpty())
 			return this;
 		if (!Persistents.BULK) {
@@ -102,7 +102,7 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 	}
 
 	@Override
-	public @NotNull PVector<E> plusAll(int index, @NotNull Collection<? extends E> c) {
+	public PVector<E> plusAll(int index, Collection<? extends E> c) {
 		if (c.isEmpty())
 			return this;
 		if (!Persistents.BULK) {
@@ -117,7 +117,7 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 	}
 
 	@Override
-	public @NotNull PVector<E> minusAll(@NotNull Collection<?> c) {
+	public PVector<E> minusAll(Collection<?> c) {
 		if (c.isEmpty())
 			return this;
 		if (!Persistents.BULK) {
@@ -134,29 +134,29 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 	}
 
 	@Override
-	public @NotNull PVector<E> subList(int fromIndex, int toIndex) {
+	public PVector<E> subList(int fromIndex, int toIndex) {
 		throw new UnsupportedOperationException("subList");
 	}
 
 	// ===== 可变写：不可变实现恒 UOE =====
 
 	@Override
-	public @NotNull E set(int index, @NotNull E element) {
+	public E set(int index, E element) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void add(int index, @NotNull E element) {
+	public void add(int index, E element) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public @NotNull E remove(int index) {
+	public E remove(int index) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public boolean addAll(int index, @NotNull Collection<? extends E> c) {
+	public boolean addAll(int index, Collection<? extends E> c) {
 		throw new UnsupportedOperationException();
 	}
 }

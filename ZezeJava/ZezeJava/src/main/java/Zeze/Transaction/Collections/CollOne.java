@@ -10,27 +10,26 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 单值 Bean 容器：普通 bean 字段的宿主，受管后修改经 LogOne 记账。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public final class CollOne<V extends Bean> extends Collection {
-	@NotNull V value;
+	V value;
 	// 按声明类预建的meta（生成端meta1_静态字段，手写Class构造器现建）；
 	// null时LogOne退回运行时类。读端工厂按声明类注册（Helper.dependsBean→registerLogOne）。
 	final @Nullable LogOneMeta<V> meta;
 
-	public CollOne(@NotNull V value, @Nullable Class<V> valueClass) {
+	public CollOne(V value, @Nullable Class<V> valueClass) {
 		this(value, valueClass != null ? LogOneMeta.get(valueClass) : null);
 	}
 
-	public CollOne(@NotNull V value, @Nullable LogOneMeta<V> meta) {
+	public CollOne(V value, @Nullable LogOneMeta<V> meta) {
 		this.value = value;
 		this.meta = meta;
 	}
 
-	public @NotNull V getValue() {
+	public V getValue() {
 		if (!isManaged())
 			return value;
 
@@ -42,7 +41,7 @@ public final class CollOne<V extends Bean> extends Collection {
 		return log != null ? log.value : value;
 	}
 
-	public void setValue(@NotNull V value) {
+	public void setValue(V value) {
 		//noinspection ConstantValue
 		if (value == null)
 			throw new NullPointerException("value");
@@ -57,7 +56,7 @@ public final class CollOne<V extends Bean> extends Collection {
 			this.value = value;
 	}
 
-	public void assign(@NotNull CollOne<V> other) {
+	public void assign(CollOne<V> other) {
 		setValue((V)other.getValue().copy());
 	}
 
@@ -76,32 +75,32 @@ public final class CollOne<V extends Bean> extends Collection {
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogOne<>(parent(), variableId(), this, getValue());
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		getValue().decode(bb);
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		getValue().encode(bb);
 	}
 
 	@Override
-	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		getValue().initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
 		getValue().initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public void followerApply(@NotNull Log _log) {
+	public void followerApply(Log _log) {
 		var log = (LogOne<V>)_log;
 		if (log.value != null) {
 			log.value.initRootInfo(rootInfo, this); // 与PList2/PMap2等全部同类实现保持一致
@@ -111,12 +110,12 @@ public final class CollOne<V extends Bean> extends Collection {
 	}
 
 	@Override
-	public @NotNull CollOne<V> copy() {
+	public CollOne<V> copy() {
 		return new CollOne<>((V)getValue().copy(), meta); // 声明类型meta随副本传递
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return getValue().toString();
 	}
 

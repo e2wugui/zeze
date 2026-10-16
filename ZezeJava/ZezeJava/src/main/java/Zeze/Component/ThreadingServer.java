@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Objects;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +25,7 @@ import Zeze.Util.Action1;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 分布式线程同步组件服务端：为每个全局线程维护 SimulateThread，仲裁 Mutex/Semaphore/ReadWriteLock。
@@ -103,7 +106,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	// 动作队列元素：携带发起该动作的rpc句柄，供SimulateThread.runAction()在动作异常时统一补应答。
 	// rpc允许为null：内部动作（如超时release）没有对应的客户端请求，异常时只记日志不补应答。
-	private record SimulateThreadAction(Rpc<?, ?> rpc, Action1<SimulateThread> action) {
+	private record SimulateThreadAction(@Nullable Rpc<?, ?> rpc, Action1<SimulateThread> action) {
 		void reject() {
 			if (rpc != null)
 				rpc.trySendResultCode(ResultCodeInvalidArgument);
@@ -139,7 +142,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			return mutexes.computeIfAbsent(name, (k) -> new ReentrantLock());
 		}
 
-		SemaphoreAcquired getSemaphore(String name) {
+		@Nullable SemaphoreAcquired getSemaphore(String name) {
 			// ref cache
 			var semaphoreAcq = semaphoreRefs.get(name);
 			if (null != semaphoreAcq)
@@ -252,7 +255,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 		private final int serverId;
 		// lastAppSerial依赖"同连接的KeepAlive按接收序串行处理"（见ProcessKeepAlive的Direct注解）：
 		// IO线程内联执行保证同连接有序；volatile兜不同连接各自IO线程间的可见性。
-		private volatile BKeepAlive.Data lastAppSerial;
+		private volatile BKeepAlive.@Nullable Data lastAppSerial;
 
 		public SimulateThreads(int serverId) {
 			this.serverId = serverId;
@@ -294,12 +297,12 @@ public class ThreadingServer extends AbstractThreadingServer {
 				threads.lastAppSerial = p.Argument;
 				return 0; // first keepAlive。record only。
 			}
-			if (threads.lastAppSerial.getAppSerialId() != p.Argument.getAppSerialId()) {
+			if (Objects.requireNonNull(threads.lastAppSerial).getAppSerialId() != p.Argument.getAppSerialId()) {
 				// serial无单调性判据——同serverId双实例（重建窗口内旧keepAliveTask在途、
 				// 或错误配置双客户端）时两个appSerialId交替到达，10秒一轮互解，正常持锁者被持续
 				// 强制释放。appSerialId为PersistentAtomicLong单调递增：仅更高的serial接管（release
 				// 旧资源），更低的视为旧实例迟到，忽略不release。
-				if (p.Argument.getAppSerialId() > threads.lastAppSerial.getAppSerialId()) {
+				if (p.Argument.getAppSerialId() > Objects.requireNonNull(threads.lastAppSerial).getAppSerialId()) {
 					threads.release();
 					threads.lastAppSerial = p.Argument;
 				}

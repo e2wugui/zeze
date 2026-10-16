@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 稳定(确定性)的随机算法, 用于多端同时以相同的种子获取随机值,能得到一致的结果(包括随机浮点数)
@@ -10,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
  * 基于lfsr258算法
  */
 public class StableRandom2 {
-	private static final @NotNull ThreadLocal<StableRandom2> rand =
+	private static final ThreadLocal<StableRandom2> rand =
 			ThreadLocal.withInitial(() -> {
 				var r = ThreadLocalRandom.current();
 				return new StableRandom2(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong());
@@ -23,14 +22,14 @@ public class StableRandom2 {
 	/**
 	 * @return 当前线程共享的StableRandom2
 	 */
-	public static @NotNull StableRandom2 local() {
+	public static StableRandom2 local() {
 		return rand.get();
 	}
 
 	/**
 	 * @return 当前线程共享的StableRandom2, 并重置其seed
 	 */
-	public static @NotNull StableRandom2 local(long s1, long s2, long s3, long s4, long s5) {
+	public static StableRandom2 local(long s1, long s2, long s3, long s4, long s5) {
 		return rand.get().setSeed(s1, s2, s3, s4, s5);
 	}
 
@@ -55,7 +54,7 @@ public class StableRandom2 {
 		};
 	}
 
-	public @NotNull StableRandom2 setSeed(long s1, long s2, long s3, long s4, long s5) {
+	public StableRandom2 setSeed(long s1, long s2, long s3, long s4, long s5) {
 		bits = 0; // 清空位缓存(nextBits/nextBits64的剩余位)，保证重置种子后输出与全新实例一致，不依赖对象历史
 		this.s1 = ensureLarger(s1, 1);
 		this.s2 = ensureLarger(s2, 0x1ff);
@@ -236,7 +235,7 @@ public class StableRandom2 {
 		return nextBits(1) != 0;
 	}
 
-	public byte @NotNull [] nextBytes(byte @NotNull [] bytes, int pos, int len) {
+	public byte [] nextBytes(byte [] bytes, int pos, int len) {
 		for (len += pos; pos < len; ) {
 			for (int r = next(), n = Math.min(len - pos, 4); --n >= 0; r >>= 8)
 				bytes[pos++] = (byte)r;
@@ -244,11 +243,11 @@ public class StableRandom2 {
 		return bytes;
 	}
 
-	public byte @NotNull [] nextBytes(byte @NotNull [] bytes) {
+	public byte [] nextBytes(byte [] bytes) {
 		return nextBytes(bytes, 0, bytes.length);
 	}
 
-	public byte @NotNull [] nextBytes(int size) {
+	public byte [] nextBytes(int size) {
 		return nextBytes(new byte[size]);
 	}
 
@@ -258,7 +257,7 @@ public class StableRandom2 {
 	 * @param weightList 权重列表，需按叠加值排序，如原始权重数组为[40,60]则需转化为[40,100]
 	 * @return weightList命中索引，小于0表示没有命中项
 	 */
-	public int randWeights(@NotNull List<Integer> weightList) {
+	public int randWeights(List<Integer> weightList) {
 		int size = weightList.size();
 		if (size == 0)
 			return -1;
@@ -275,7 +274,7 @@ public class StableRandom2 {
 		return -1;
 	}
 
-	public void randSelect(int n, int m, @NotNull List<Integer> ret) {
+	public void randSelect(int n, int m, List<Integer> ret) {
 		if (m >= n) {
 			for (int j = 0; j < n; j++)
 				ret.add(j + 1);
@@ -294,7 +293,7 @@ public class StableRandom2 {
 		}
 	}
 
-	public void randSelect(@NotNull IntList randList, int n) {
+	public void randSelect(IntList randList, int n) {
 		int size = randList.size();
 		if (n >= size)
 			return;

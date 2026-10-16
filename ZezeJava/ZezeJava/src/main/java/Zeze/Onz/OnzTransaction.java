@@ -1,5 +1,9 @@
 package Zeze.Onz;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
@@ -24,17 +28,16 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /** 协调者侧的Onz分布式事务抽象：由业务实现perform，经callProcedure/callSaga驱动参与方，并负责Commit/Rollback决策与flush等待。 */
 public abstract class OnzTransaction<A extends Data, R extends Data> extends ReentrantLock {
-	protected static final @NotNull Logger logger = LogManager.getLogger(OnzTransaction.class);
+	protected static final Logger logger = LogManager.getLogger(OnzTransaction.class);
 
-	private OnzServer onzServer;
+	private @Nullable OnzServer onzServer;
 	private int flushMode = Onz.eFlushImmediately;
 	private int flushTimeout = 10_000;
-	private A argument;
-	private R result;
+	private @Nullable A argument;
+	private @Nullable R result;
 	private boolean pendingAsync = false;
 	private final Condition thisCond = newCondition();
 
@@ -82,6 +85,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 	protected abstract long perform() throws Exception;
 
+	private OnzServer getOnzServer() {
+		return Objects.requireNonNull(onzServer);
+	}
+
 	public void setOnzServer(OnzServer onzServer) {
 		this.onzServer = onzServer;
 		this.onzTid = onzServer.nextOnzTid();
@@ -95,11 +102,11 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		return flushTimeout;
 	}
 
-	public A getArgument() {
+	public @Nullable A getArgument() {
 		return argument;
 	}
 
-	public R getResult() {
+	public @Nullable R getResult() {
 		return result;
 	}
 
@@ -131,7 +138,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		// procedure saga 互斥。
 		if (!zezeSagas.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. saga has called.");
-		var zezeInstance = onzServer.getZezeInstance(zezeName);
+		var zezeInstance = getOnzServer().getZezeInstance(zezeName);
 		lock();
 		try {
 			// 与saga登记同锁复核：建连期间并发续作可能已登记另一种调用。
@@ -155,7 +162,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		// procedure saga 互斥。
 		if (!zezeProcedures.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
-		var zezeInstance = onzServer.getZezeInstance(zezeName);
+		var zezeInstance = getOnzServer().getZezeInstance(zezeName);
 		// 限制每个zeze集群最多一个调用：键为集群名。
 		var newCall = new OutObject<TaskCompletionSource<R2>>();
 		// 注册与崩溃窗口先落在本事务锁内成对串行（onz-01）：并发续作同时注册多个saga步骤时，
@@ -177,7 +184,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			// onz-01：saga参与方"发结果即本地提交"，先落的ePreparing快照是perform业务窗口
 			// （时长无上界）内进程崩溃时已提交步骤唯一的补偿通道（redo分诊见OnzServer.
 			// collectRedoCandidates：在途登记skip+年龄闸），best-effort不外抛。
-			onzServer.saveSagaPreparingForCrashWindow(this);
+			getOnzServer().saveSagaPreparingForCrashWindow(this);
 			return newCall.value;
 		} finally {
 			unlock();
@@ -215,7 +222,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 同cancelSaga：FuncSagaEnd在参与方侧与在途业务/flush互斥（businessLock），
 				// 应答可能慢于rpc默认超时，等待沿用flushTimeout——默认5s超时只会产生噪声
 				// error日志，不改变任何决策（end无数据效应）。
-				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey()), flushTimeout));
+				futures.add(r.SendForWait(getOnzServer().getZezeInstance(e.getKey()), flushTimeout));
 				rpcs.add(r);
 				stepZeze.add(e.getKey());
 			} catch (Exception ex) {
@@ -310,7 +317,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// cancel目标可能正是执行超时的慢参与方：FuncSagaEnd的处理在参与方侧与仍在
 				// 执行的业务互斥（OnzSaga.businessLock）后才补偿，慢步骤的应答自然来得慢，
 				// 等待沿用flushTimeout，不用默认5s过早放弃。
-				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey()), flushTimeout));
+				futures.add(r.SendForWait(getOnzServer().getZezeInstance(e.getKey()), flushTimeout));
 				rpcs.add(r);
 				stepAnswer.add(answer);
 				stepZeze.add(e.getKey());
@@ -340,7 +347,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 						// 上下文或TTL超龄清理——补偿丢失嫌疑。保留决策记录交redo幂等重发并
 						// 登记嫌疑（noteSagaContextLost），终结走人工清算。
 						allDelivered = false;
-						onzServer.noteSagaContextLost(onzTid, stepZeze.get(i));
+						getOnzServer().noteSagaContextLost(onzTid, stepZeze.get(i));
 					}
 					// ANSWERED_FAIL：失败步骤自清理，NotFound良性终态，可辨识忽略（无信号，防噪声）。
 					continue;
@@ -390,7 +397,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	 * @return true=该步骤补偿已了结（补发成功）；false=重试仍NotFound（未证缺席，保留
 	 * 决策记录交redo重发确认）或补发投递不确定/致命应答，调用方保留决策记录交redo。
 	 */
-	private boolean retryCancelNotFoundOnce(@NotNull String zezeName) {
+	private boolean retryCancelNotFoundOnce(String zezeName) {
 		try {
 			Thread.sleep(flushTimeout);
 		} catch (InterruptedException ie) {
@@ -402,7 +409,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			var r = new FuncSagaEnd();
 			r.Argument.setOnzTid(onzTid);
 			r.Argument.setCancel(true);
-			r.SendForWait(onzServer.getZezeInstance(zezeName), flushTimeout).get();
+			r.SendForWait(getOnzServer().getZezeInstance(zezeName), flushTimeout).get();
 			var code = IModule.getErrorCode(r.getResultCode()); // 线上为moduleId组合值，解码后比较
 			if (code == AbstractOnz.eSagaNotFound) {
 				logger.warn("cancel saga retry still not found, keep decision record for redo."
@@ -433,7 +440,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	}
 
 	/** 解码持久化条目：saga参与方返回集群名，procedure参与方返回null。 */
-	static String decodeSagaParticipant(String savedOnz) {
+	static @Nullable String decodeSagaParticipant(String savedOnz) {
 		return savedOnz.startsWith(SagaParticipantPrefix)
 				? savedOnz.substring(SagaParticipantPrefix.length())
 				: null;
@@ -466,14 +473,14 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		//  本质的核心问题是Onz的zeze端没有持久化ready，导致即使补发commit也无法非常可靠。
 
 		try {
-			onzServer.saveCommitPoint(tidBytes, state, AbstractOnz.eCommitting);
+			getOnzServer().saveCommitPoint(tidBytes, state, AbstractOnz.eCommitting);
 		} catch (Throwable ex) {
 			// rollback全部投递了结才删记录：补偿投递不确定（发送失败/超时）或致命应答时
 			// 保留ePreparing记录交redo补发收敛（对齐stopped拒删保记录的语义）——删了则未确认
 			// 的Rollback/FuncSagaEnd(cancel)失去唯一自动补发通道（saga参与方只能等TTL丢弃，
 			// 已提交步骤的补偿永久丢失）；单故障（仅持久化失败、rollback全成）时删记录避免redo空转。
 			if (rollback())
-				onzServer.removeCommitRecord(tidBytes);
+				getOnzServer().removeCommitRecord(tidBytes);
 			throw new RuntimeException(ex);
 		}
 
@@ -487,7 +494,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			var r = new Commit();
 			r.Argument.setOnzTid(onzTid);
 			try {
-				r.SendForWait(onzServer.getZezeInstance(zeze)).await();
+				r.SendForWait(getOnzServer().getZezeInstance(zeze)).await();
 			} catch (Exception ex) { // await 不声明受检异常（中断在内部分理），统一捕获
 				commitFail = true;
 				// 投递失败者从flush闸门分母剔除（不发FlushReady）：死/慢参与方不再占用
@@ -536,7 +543,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		}
 
 		if (!commitFail)
-			onzServer.removeCommitRecord(tidBytes);
+			getOnzServer().removeCommitRecord(tidBytes);
 		// else: 保留eCommitting索引，redoTimer重发Commit，全部应答后由redo清理。
 	}
 
@@ -550,7 +557,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			var r = new Rollback();
 			r.Argument.setOnzTid(onzTid);
 			try {
-				r.SendForWait(onzServer.getZezeInstance(zeze)).await();
+				r.SendForWait(getOnzServer().getZezeInstance(zeze)).await();
 				if (r.getResultCode() != 0) {
 					// onz-01（FND25裁定）：与commit()同源的eDivergence特判——已超时自愈回滚的
 					// 参与方收到迟到Rollback。Rollback决策下结局一致（两侧均已回滚，本参与方无数据
@@ -610,7 +617,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// ——已实际提交的事务报告假阴性，调用方重发导致业务重复执行。
 			for (var zeze : zezeProcedures.keySet()) {
 				try {
-					checkpoint(onzServer.getZezeInstance(zeze));
+					checkpoint(getOnzServer().getZezeInstance(zeze));
 				} catch (Exception ex) { // logger.fatal
 					logger.fatal("waitFlushDone checkpoint fail. tid={}, zeze={}", onzTid, zeze, ex);
 				}

@@ -12,36 +12,35 @@ import Zeze.Util.Lru;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 回放侧的业务表封装：带 LRU 缓存读写回放库表，按 tHistory 记录中的 Put/Remove/Edit 变更应用。
  */
 public class ApplyTable<K extends Comparable<K>, V extends Bean> {
-	private static final @NotNull Logger logger = LogManager.getLogger(ApplyTable.class);
-	private static final @NotNull Pattern diffPat = Pattern.compile("\r?\n");
+	private static final Logger logger = LogManager.getLogger(ApplyTable.class);
+	private static final Pattern diffPat = Pattern.compile("\r?\n");
 	private final Lru<K, V> lru = new Lru<>(4096);
-	private final @NotNull IApplyTable table;
-	private final @NotNull TableX<K, V> originTable;
+	private final IApplyTable table;
+	private final TableX<K, V> originTable;
 
-	public static @NotNull ApplyTable<?, ?> create(@NotNull Table table, @NotNull IApplyDatabase db) {
+	public static ApplyTable<?, ?> create(Table table, IApplyDatabase db) {
 		if (!(table instanceof TableX<?, ?> origin))
 			throw new IllegalArgumentException("history replay requires TableX: " + table.getName());
 		return new ApplyTable<>(origin, db);
 	}
 
-	public ApplyTable(@NotNull TableX<K, V> originTable, @NotNull IApplyDatabase db) {
+	public ApplyTable(TableX<K, V> originTable, IApplyDatabase db) {
 		this.originTable = originTable;
 		var tableName = originTable.getName();
 		table = db.open(tableName);
 	}
 
-	public @NotNull Table getOriginTable() {
+	public Table getOriginTable() {
 		return originTable;
 	}
 
-	public @Nullable V get(@NotNull K key) {
+	public @Nullable V get(K key) {
 		var value = lru.get(key);
 		if (value != null)
 			return value;
@@ -56,7 +55,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public K apply(@NotNull BTableKey tableKey, @NotNull Binary changes) throws Exception {
+	public K apply(BTableKey tableKey, Binary changes) throws Exception {
 		var logRecord = new Changes.Record(originTable);
 		logRecord.decode(ByteBuffer.Wrap(changes));
 		var key = originTable.decodeKey(ByteBuffer.Wrap(tableKey.getKeyEncoded()));
@@ -93,7 +92,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		return key;
 	}
 
-	public void put(@NotNull K key, @NotNull V value) throws Exception {
+	public void put(K key, V value) throws Exception {
 		var bbKey = originTable.encodeKey(key);
 		var bbValue = ByteBuffer.Allocate();
 		value.encode(bbValue);
@@ -101,7 +100,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		table.put(bbKey.Bytes, bbKey.ReadIndex, bbKey.size(), bbValue.Bytes, bbValue.ReadIndex, bbValue.size());
 	}
 
-	public void remove(@NotNull K key) throws Exception {
+	public void remove(K key) throws Exception {
 		lru.remove(key);
 		var bbKey = originTable.encodeKey(key);
 		table.remove(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
@@ -114,11 +113,11 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	 * LRU中残留的脏值必须同步失效——否则重试同条记录时get命中脏缓存，
 	 * 相当于对已回滚的entry二次应用（非幂等日志会叠加出重复元素）。
 	 */
-	public void invalidate(@NotNull BTableKey tableKey) {
+	public void invalidate(BTableKey tableKey) {
 		lru.remove(originTable.decodeKey(ByteBuffer.Wrap(tableKey.getKeyEncoded())));
 	}
 
-	public static String diff(String strA, String strB, String skipIfContains) {
+	public static String diff(String strA, String strB, @Nullable String skipIfContains) {
 		var a = diffPat.split(strA);
 		var b = diffPat.split(strB);
 

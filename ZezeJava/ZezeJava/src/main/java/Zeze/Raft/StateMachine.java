@@ -1,10 +1,11 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import Zeze.Util.LongConcurrentHashMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,18 +16,18 @@ import org.apache.logging.log4j.Logger;
 public abstract class StateMachine extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(StateMachine.class);
 
-	private Raft raft;
+	private @Nullable Raft raft;
 	private final LongConcurrentHashMap<Supplier<Log>> logFactorys = new LongConcurrentHashMap<>();
 
 	public StateMachine() {
 		addFactory(HeartbeatLog.TypeId_, HeartbeatLog::new);
 	}
 
-	public Raft getRaft() {
+	public @Nullable Raft getRaft() {
 		return raft;
 	}
 
-	protected void setRaft(Raft value) {
+	protected void setRaft(@Nullable Raft value) {
 		raft = value;
 	}
 
@@ -36,18 +37,18 @@ public abstract class StateMachine extends ReentrantLock {
 			throw new IllegalStateException("Duplicate Log Id");
 	}
 
-	public Log logFactory(int logTypeId) {
+	public @Nullable Log logFactory(int logTypeId) {
 		Supplier<Log> factory = logFactorys.get(logTypeId);
 		if (factory != null)
 			return factory.get();
 		logger.fatal("Unknown Log: {}", logTypeId, new Exception());
-		raft.fatalKill();
+		Objects.requireNonNull(raft).fatalKill();
 		return null;
 	}
 
 	/** 一条日志的应用入口；持久化状态机可将业务修改与应用完成事实同批提交。调用方持有Raft锁。 */
-	public void apply(@NotNull RaftLog log) throws Exception {
-		log.getLog().apply(log, this);
+	public void apply(RaftLog log) throws Exception {
+		Objects.requireNonNull(log.getLog()).apply(log, this);
 	}
 
 	/** 内部心跳可能触发leader-ready回调，原子状态机须先提交水位再触发它。 */
@@ -68,7 +69,7 @@ public abstract class StateMachine extends ReentrantLock {
 		return false;
 	}
 
-	public @Nullable UniqueRequestState getUniqueAppliedStub(@NotNull IRaftRpc rpc) throws RocksDBException {
+	public @Nullable UniqueRequestState getUniqueAppliedStub(IRaftRpc rpc) throws RocksDBException {
 		return null;
 	}
 

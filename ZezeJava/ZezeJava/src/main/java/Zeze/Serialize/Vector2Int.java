@@ -1,7 +1,6 @@
 package Zeze.Serialize;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 二维整型向量值类型（int x/y），可比较可序列化为 vector2int。 */
 public class Vector2Int implements Comparable<Vector2Int> {
@@ -15,12 +14,12 @@ public class Vector2Int implements Comparable<Vector2Int> {
 		this.y = y;
 	}
 
-	public Vector2Int(@NotNull Vector2Int v2) {
+	public Vector2Int(Vector2Int v2) {
 		x = v2.x;
 		y = v2.y;
 	}
 
-	public Vector2Int(@NotNull Vector2 v2) {
+	public Vector2Int(Vector2 v2) {
 		x = (int)v2.x;
 		y = (int)v2.y;
 	}
@@ -30,7 +29,7 @@ public class Vector2Int implements Comparable<Vector2Int> {
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2Int v) {
+	public int compareTo(Vector2Int v) {
 		int c = Integer.compare(x, v.x);
 		if (c != 0)
 			return c;
@@ -56,7 +55,7 @@ public class Vector2Int implements Comparable<Vector2Int> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "Vector2Int(" + x + ',' + y + ')';
 	}
 }

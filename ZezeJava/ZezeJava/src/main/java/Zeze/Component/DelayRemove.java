@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Objects;
+
 import java.util.Calendar;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -17,6 +19,7 @@ import Zeze.Util.Random;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 每个ServerId分配一个独立的GC队列。Server之间不会争抢。如果一个Server一直没有起来，那么它的GC就一直不会执行。
@@ -34,14 +37,14 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	private final Zeze.Collections.Queue<BTableKey> queue;
 	public final Application zeze;
-	private Future<?> timer;
-	private AutoKey jobIdAutoKey;
+	private @Nullable Future<?> timer;
+	private @Nullable AutoKey jobIdAutoKey;
 
 	public DelayRemove(Application zz) {
 		this.zeze = zz;
 
 		var serverId = zz.getConfig().getServerId();
-		queue = zz.getQueueModule().open("__GCTableQueue#" + serverId, BTableKey.class);
+		queue = Objects.requireNonNull(zz.getQueueModule()).open("__GCTableQueue#" + serverId, BTableKey.class);
 		RegisterZezeTables(zeze);
 	}
 
@@ -117,7 +120,7 @@ public class DelayRemove extends AbstractDelayRemove {
 	 * @param jobId jobId
 	 * @param state state, null means job is done.
 	 */
-	public void setJobState(String jobId, Bean state) {
+	public void setJobState(String jobId, @Nullable Bean state) {
 		if (null != state) {
 			// 修改数据表中的状态。
 			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
@@ -189,7 +192,7 @@ public class DelayRemove extends AbstractDelayRemove {
 			days = 7; // 至少保留7天。
 		long diffMills = (long)days * 24 * 3600 * 1000;
 		var removing = new OutObject<>(true);
-		while (removing.value) {
+		while (java.util.Objects.requireNonNull(removing.value)) {
 			var rc = zeze.newProcedure(() -> {
 				var node = queue.peekNode(); // 先peek检查：未到期时节点不出队（pollNode会删行，事务提交后登记就脱离GC追踪）。
 				if (node == null) {

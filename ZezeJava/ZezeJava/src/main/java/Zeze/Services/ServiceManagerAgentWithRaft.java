@@ -1,11 +1,11 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Builtin.ServiceManagerWithRaft.Identify;
@@ -38,27 +38,26 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Raft版服务管理器客户端Agent：经raft连接ServiceManagerWithRaft，注册/订阅断线重连后
  * 自动重放，不支持Id128 UDP发号（History组合构造即fail-fast）。
  */
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
-	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
-	private final @NotNull Agent raftClient;
-	private volatile @NotNull TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
+	private static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
+	private final Agent raftClient;
+	private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	// 断线（换leader）重连后重放用：服务端行按name持久化，但flap时行可能已被onClose删除，
 	// 重放注册/订阅才能恢复服务端状态（对齐非raft版Agent.onConnected）。
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
 
 	@Override
-	public @NotNull Threading getThreading() {
+	public Threading getThreading() {
 		throw new UnsupportedOperationException();
 	}
 
-	public ServiceManagerAgentWithRaft(@NotNull Config config) throws Exception {
+	public ServiceManagerAgentWithRaft(Config config) throws Exception {
 		// raft版不支持Id128 UDP发号（tid128UdpClient不初始化），而开启History的事务在
 		// finalCommit（getUsableTid128CacheFuture）/Tid128Cache.next两个入口都依赖它：
 		// 该组合下写事务全量NPE失败、热事务finalCommit失败直接halt(543543)。
@@ -82,16 +81,16 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		raftClient = new Agent("servicemanager.raft", raftConf, config);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
-		RegisterProtocols(raftClient.getClient());
+		RegisterProtocols(Objects.requireNonNull(raftClient.getClient()));
 		// 不初始化tid128UdpClient（raft版不支持Id128 UDP发号）：不支持组合已在构造fail-fast拦截。
 	}
 
-	private void raftOnSetLeader(@NotNull Agent agent) {
+	private void raftOnSetLeader(Agent agent) {
 		// 直接使用自身持有的config。raftClient以Config构造（无Application），getClient().getZeze()为null，
 		// 经zeze round-trip取配置会在null检查处直接return，Login永远不发送。
 		var future = startNewLogin();
 		var login = new Login();
-		login.Argument.setSessionName(config.getServiceManagerConf().getSessionName());
+		login.Argument.setSessionName(Objects.requireNonNull(Objects.requireNonNull(config).getServiceManagerConf()).getSessionName());
 
 		agent.send(login, p -> {
 			var rpc = (Login)p;
@@ -117,7 +116,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		// 重发=恢复提示资格（与正确性无关，正确性由Takeover租约裁决）。
 		try {
 			var identify = new Identify();
-			identify.Argument.serverId = config.getServerId();
+			identify.Argument.serverId = Objects.requireNonNull(config).getServerId();
 			identify.Argument.version = config.getAppMainVersion();
 			raftClient.send(identify, __ -> 0L);
 		} catch (Throwable ex) {
@@ -191,9 +190,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	/// /////////////////////////////////////////////////////////////////////
 	@Override
-	protected long ProcessKeepAliveRequest(@NotNull KeepAlive r) {
+	protected long ProcessKeepAliveRequest(KeepAlive r) {
 		if (onKeepAlive != null)
-			Task.getCriticalThreadPool().execute(onKeepAlive);
+			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(onKeepAlive);
 		r.SendResult();
 		return Procedure.Success;
 	}
@@ -201,11 +200,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	// Suspect仅是提示：转化为onSuspect回调（应用接takeover.tryTransfer），
 	// 租约未过期时tryTransfer内部安排到过期时刻精确重试，不会误接管。
 	@Override
-	protected long ProcessSuspectRequest(@NotNull Suspect r) {
+	protected long ProcessSuspectRequest(Suspect r) {
 		var on = onSuspect;
 		if (on != null) {
 			// version过滤（防御层，主过滤在SM梯队广播侧）：本进程版本低于死者=永不参与（数据降级防护）。
-			if (config.getAppMainVersion() < r.Argument.version) {
+			if (Objects.requireNonNull(config).getAppMainVersion() < r.Argument.version) {
 				logger.debug("ProcessSuspectRequest ignored: myVersion={} < deadVersion={} serverId={}",
 						config.getAppMainVersion(), r.Argument.version, r.Argument.serverId);
 				r.SendResult();
@@ -226,7 +225,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		try {
 			var done = new Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone();
 			done.Argument.deadServerId = deadServerId;
-			done.Argument.takerServerId = config.getServerId();
+			done.Argument.takerServerId = Objects.requireNonNull(config).getServerId();
 			done.Argument.takerVersion = config.getAppMainVersion();
 			raftClient.send(done, __ -> 0L);
 		} catch (Throwable ex) {
@@ -240,7 +239,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	// triggerOnChanged投oneByOne池），内联执行不阻塞IO线程。
 	@Override
 	@DispatchModeAnnotation(mode = DispatchMode.Direct)
-	protected long ProcessEditRequest(@NotNull Edit r) {
+	protected long ProcessEditRequest(Edit r) {
 		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); /**/) {
 			var unReg = it.next();
 			var state = subscribeStates.get(unReg.getServiceName());
@@ -271,10 +270,10 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessSetServerLoadRequest(@NotNull SetServerLoad r) {
+	protected long ProcessSetServerLoadRequest(SetServerLoad r) {
 		loads.put(r.Argument.getName(), r.Argument);
 		if (onSetServerLoad != null) {
-			Task.getCriticalThreadPool().execute(() -> {
+			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> {
 				try {
 					var onSetLoad = onSetServerLoad;
 					if (onSetLoad != null) {
@@ -290,8 +289,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-									@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+	protected boolean allocateAsync(String globalName, int allocCount,
+									ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 		if (allocCount < 1)
 			throw new IllegalArgumentException();
 		var r = new AllocateId();
@@ -308,7 +307,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected void allocate(@NotNull AutoKey autoKey, int pool) {
+	protected void allocate(AutoKey autoKey, int pool) {
 		if (pool < 1)
 			throw new IllegalArgumentException();
 		var r = new AllocateId();
@@ -330,14 +329,14 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	 * RaftApplied附原始结果应答（Raft.Server.processRequest去重命中），与Dbh2Agent等
 	 * raft调用方"rc==0||rc==RaftApplied"的成功判定一致；allocate据此拿回原号段。
 	 */
-	private static void checkResultCode(@NotNull Rpc<?, ?> r) {
+	private static void checkResultCode(Rpc<?, ?> r) {
 		var rc = r.getResultCode();
 		if (rc != 0 && rc != Procedure.RaftApplied)
 			throw new IllegalStateException("Rpc Invalid ResultCode=" + rc + " " + r);
 	}
 
 	private void waitLoginReady() {
-		var deadline = System.currentTimeMillis() + super.config.getServiceManagerConf().getLoginTimeout();
+		var deadline = System.currentTimeMillis() + Objects.requireNonNull(Objects.requireNonNull(super.config).getServiceManagerConf()).getLoginTimeout();
 		for (; ; ) {
 			var volatileTmp = loginFuture;
 			// await超时或被取消都返回false，此时不能再调get()：未完成的future上get()会无限期park，
@@ -356,7 +355,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		}
 	}
 
-	private @NotNull TaskCompletionSource<Boolean> startNewLogin() {
+	private TaskCompletionSource<Boolean> startNewLogin() {
 		lock();
 		try {
 			loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
@@ -376,7 +375,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	private final Object editServiceLock = new Object();
 
 	@Override
-	public void editService(@NotNull BEditService arg) {
+	public void editService(BEditService arg) {
 		synchronized (editServiceLock) {
 			for (var info : arg.getAdd())
 				verify(info.getServiceIdentity());
@@ -425,13 +424,13 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
+	public SubscribeState subscribeService(BSubscribeInfo info) {
 		waitLoginReady();
 		return super.subscribeService(info);
 	}
 
 	@Override
-	public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument arg) {
+	public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(BSubscribeArgument arg) {
 		waitLoginReady();
 		logger.debug("subscribeServicesAsync: {}", arg);
 		var cf = new CompletableFuture<List<SubscribeState>>();
@@ -465,7 +464,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+	public void unSubscribeService(BUnSubscribeArgument arg) {
 		waitLoginReady();
 		logger.debug("UnSubscribeService {}", arg);
 		var r = new UnSubscribe(arg);
@@ -476,7 +475,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public boolean setServerLoad(@NotNull BServerLoad load) {
+	public boolean setServerLoad(BServerLoad load) {
 		raftClient.send(new SetServerLoad(load), p -> 0);
 		return true;
 	}
@@ -500,7 +499,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void start() throws Exception {
-		raftClient.getClient().start();
+		Objects.requireNonNull(raftClient.getClient()).start();
 	}
 
 	@Override

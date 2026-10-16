@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -10,20 +12,20 @@ import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.RocksDBException;
+import Zeze.Util.RocksDatabase.Batch;
 
 /** RocksDB 数据库后端：列族承载 KV 表，WAL 写入与 Operates 条件写；也用作本地镜像缓存库。 */
 public class DatabaseRocksDb extends Database {
-	private final @NotNull RocksDatabase rocksDb;
+	private final RocksDatabase rocksDb;
 	// 由构造参数显式指定：Application 启动时为 LocalRocksCacheDb 传入 true，其余（含 XML 配置的主库）为 false。
 	// LocalRocksCacheDb 是纯本地缓存：每次启动前整目录删除重建，数据可随时从后端库重读，写路径不需要也不应付出 fsync 代价。
 	// 而主库的 flush 要求 WAL 落盘：CheckpointWhenCommit 表"提交即物理落库"的承诺必须覆盖掉电场景
 	// （非 sync 写只写 OS 页缓存，进程崩溃可由 WAL 恢复，主机掉电则丢失 WAL 尾部，如 AutoKey 水位回退重发已发出的号）。
 	private final boolean isLocalRocksCache;
 
-	public DatabaseRocksDb(@Nullable Application zeze, @NotNull Config.DatabaseConf conf, boolean localRocksCache) {
+	public DatabaseRocksDb(@Nullable Application zeze, Config.DatabaseConf conf, boolean localRocksCache) {
 		super(zeze, conf);
 
 		isLocalRocksCache = localRocksCache;
@@ -79,14 +81,14 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	@Override
-	public @NotNull Transaction beginTransaction() {
+	public Transaction beginTransaction() {
 		return new RocksDbTrans();
 	}
 
 	public static @Nullable Runnable verifyAction;
 
 	// 多表原子查询。
-	public @NotNull HashMap<String, Map<ByteBuffer, ByteBuffer>> finds(@NotNull Map<String, Set<ByteBuffer>> tableKeys) {
+	public HashMap<String, Map<ByteBuffer, ByteBuffer>> finds(Map<String, Set<ByteBuffer>> tableKeys) {
 		if (verifyAction == null)
 			throw new IllegalStateException("only work with flushAtomicTest=true");
 
@@ -116,16 +118,16 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	private final class RocksDbTrans implements Transaction {
-		private @Nullable RocksDatabase.Batch batch;
+		private @Nullable Batch batch;
 
-		private @NotNull RocksDatabase.Batch getBatch() {
+		private RocksDatabase.Batch getBatch() {
 			var wb = batch;
 			if (wb == null)
 				batch = wb = rocksDb.borrowBatch();
 			return wb;
 		}
 
-		void put(byte @NotNull [] key, byte @NotNull [] value, @NotNull RocksDatabase.Table table) {
+		void put(byte [] key, byte [] value, RocksDatabase.Table table) {
 			try {
 				table.put(getBatch(), key, value);
 			} catch (RocksDBException e) {
@@ -133,7 +135,7 @@ public class DatabaseRocksDb extends Database {
 			}
 		}
 
-		void remove(byte @NotNull [] key, @NotNull RocksDatabase.Table table) {
+		void remove(byte [] key, RocksDatabase.Table table) {
 			try {
 				table.delete(getBatch(), key);
 			} catch (RocksDBException e) {
@@ -179,7 +181,7 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
-	private @NotNull RocksDatabase.Table getOrAddTable(@NotNull String name, @Nullable OutObject<Boolean> isNew) {
+	private RocksDatabase.Table getOrAddTable(String name, @Nullable OutObject<Boolean> isNew) {
 		lock();
 		try {
 			return rocksDb.getOrAddTable(name, isNew);
@@ -191,14 +193,14 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	@Override
-	public @NotNull Table openTable(@NotNull String name, int id) {
+	public Table openTable(String name, int id) {
 		var isNew = new OutObject<Boolean>();
 		var table = getOrAddTable(name, isNew);
-		return new TableRocksDb(table, isNew.value);
+		return new TableRocksDb(table, Objects.requireNonNull(isNew.value));
 	}
 
 	@Override
-	public @NotNull Table @NotNull [] openTables(String @NotNull [] names, int @NotNull [] ids) {
+	public Table [] openTables(String [] names, int [] ids) {
 		lock();
 		try {
 			var n = names.length;
@@ -216,10 +218,10 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	private final class TableRocksDb extends Database.AbstractKVTable {
-		private final @NotNull RocksDatabase.Table table;
+		private final RocksDatabase.Table table;
 		private final boolean isNew;
 
-		TableRocksDb(@NotNull RocksDatabase.Table table, boolean isNew) {
+		TableRocksDb(RocksDatabase.Table table, boolean isNew) {
 			this.table = table;
 			this.isNew = isNew;
 		}
@@ -234,7 +236,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public @NotNull DatabaseRocksDb getDatabase() {
+		public DatabaseRocksDb getDatabase() {
 			return DatabaseRocksDb.this;
 		}
 
@@ -248,7 +250,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+		public @Nullable ByteBuffer find(ByteBuffer key) {
 			checkKvKeyLengthForLegacyAccess(table.getName(), key);
 			try {
 				var value = table.get(key.Bytes, key.ReadIndex, key.size());
@@ -259,13 +261,13 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public void remove(@NotNull Transaction txn, @NotNull ByteBuffer key) {
+		public void remove(Transaction txn, ByteBuffer key) {
 			checkKvKeyLengthForLegacyAccess(table.getName(), key);
 			((RocksDbTrans)txn).remove(key.CopyIf(), table);
 		}
 
 		@Override
-		public void replace(@NotNull Transaction txn, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+		public void replace(Transaction txn, ByteBuffer key, ByteBuffer value) {
 			checkKvKeyLength(table.getName(), key);
 			((RocksDbTrans)txn).put(key.CopyIf(), value.CopyIf(), table);
 		}
@@ -290,7 +292,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -303,7 +305,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -316,7 +318,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
 				for (it.seekToLast(); it.isValid(); it.prev()) {
@@ -329,7 +331,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
 				for (it.seekToLast(); it.isValid(); it.prev()) {
@@ -343,7 +345,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-										 @NotNull TableWalkHandleRaw callback) throws Exception {
+										 TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			try (var it = table.iterator()) {
@@ -368,7 +370,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											@NotNull TableWalkKeyRaw callback) throws Exception {
+											TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			try (var it = table.iterator()) {
@@ -393,7 +395,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											 @NotNull TableWalkHandleRaw callback) throws Exception {
+											 TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			try (var it = table.iterator()) {
@@ -418,7 +420,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												@NotNull TableWalkKeyRaw callback) throws Exception {
+												TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			try (var it = table.iterator()) {
@@ -446,7 +448,7 @@ public class DatabaseRocksDb extends Database {
 		private final RocksDatabase.Table table = getOrAddTable("Zeze_OperatesRocksDb_Schemas", null);
 
 		@Override
-		public @NotNull DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
 			lock();
 			try {
 				return DataWithVersion.decode(table.get(key.Bytes, key.ReadIndex, key.size()));
@@ -458,7 +460,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
 																  long version) {
 			lock();
 			try {
@@ -484,12 +486,12 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public void setInUse(int localId, @NotNull String global) {
+		public void setInUse(int localId, String global) {
 			// rocksdb 独占由它自己打开的时候保证。
 		}
 
 		@Override
-		public int clearInUse(int localId, @NotNull String global) {
+		public int clearInUse(int localId, String global) {
 			// rocksdb 独占由它自己打开的时候保证。
 			return 0;
 		}

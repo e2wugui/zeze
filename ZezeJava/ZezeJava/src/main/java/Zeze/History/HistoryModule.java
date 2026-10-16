@@ -1,5 +1,7 @@
 package Zeze.History;
 
+import java.util.Objects;
+
 import java.util.Map;
 import java.util.Set;
 import Zeze.Application;
@@ -13,8 +15,7 @@ import Zeze.Transaction.ProtocolProcedure;
 import Zeze.Transaction.Table;
 import Zeze.Util.Id128;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 回放消费链为实验特性：内存后端、不跨重启、仅进程内演示。
@@ -31,13 +32,13 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	private boolean tablesRegistered;
 
 	/** 工具入口只取已有模块，关闭配置时不隐式创建。 */
-	public static @NotNull HistoryModule get(@NotNull Application zeze) {
+	public static HistoryModule get(Application zeze) {
 		if (zeze.getHistory() instanceof HistoryModule module)
 			return module;
 		throw new IllegalStateException("History is not initialized for " + zeze.getProjectName());
 	}
 
-	public @NotNull String getHistoryName() {
+	public String getHistoryName() {
 		return historyName;
 	}
 
@@ -46,7 +47,7 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 			throw new IllegalStateException("History is closed");
 	}
 
-	public @NotNull PendingGidLedger getPendingGidLedger() {
+	public PendingGidLedger getPendingGidLedger() {
 		// 已创建的账本不与在飞回放争锁，首次创建仍与关闭互斥。
 		var ledger = pendingGidLedger;
 		if (ledger != null) {
@@ -58,14 +59,14 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 			ensureOpen();
 			if (pendingGidLedger == null)
 				pendingGidLedger = new PendingGidLedger(zeze.getProjectName());
-			return pendingGidLedger;
+			return Objects.requireNonNull(pendingGidLedger);
 		} finally {
 			unlock();
 		}
 	}
 
 	@Override
-	public void registerLogs(@NotNull Iterable<Table> tables) throws Exception {
+	public void registerLogs(Iterable<Table> tables) throws Exception {
 		Helper.registerTableLogs(tables);
 	}
 
@@ -75,7 +76,7 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	}
 
 	@Override
-	public @NotNull PreparedCommit prepareCommit(@NotNull Procedure procedure) throws CommitRejectedException {
+	public PreparedCommit prepareCommit(Procedure procedure) throws CommitRejectedException {
 		if (procedure.getZeze() != zeze)
 			throw new IllegalArgumentException("procedure belongs to another Application");
 		var ledger = getPendingGidLedger();
@@ -84,7 +85,7 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 			private boolean captured;
 
 			@Override
-			public @NotNull IHistory.PendingHistory capture(@NotNull Changes changes) {
+			public IHistory.PendingHistory capture(Changes changes) {
 				if (captured)
 					throw new IllegalStateException("history commit already captured");
 				captured = true;
@@ -97,7 +98,8 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	}
 
 	/** 取号和登记共同构成应用数据前的准备阶段，受控失败只在这里转换。 */
-	private @NotNull Id128 allocateAndRegisterGid(@NotNull Procedure procedure, @NotNull PendingGidLedger ledger)
+	@SuppressWarnings("ConstantConditions")
+	private Id128 allocateAndRegisterGid(Procedure procedure, PendingGidLedger ledger)
 			throws CommitRejectedException {
 		try {
 			var sm = zeze.getServiceManager();
@@ -138,7 +140,7 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	 * 规范）；httpServer字段只在成功后发布，失败不闩死幂等分支，修复后重调即进入。
 	 * netty为调用方持有，不在此回收。
 	 */
-	public void startHttpServer(Netty netty, String host, int port) throws Exception {
+	public void startHttpServer(Netty netty, @Nullable String host, int port) throws Exception {
 		lock();
 		try {
 			ensureOpen();
@@ -221,7 +223,7 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 		}
 	}
 
-	private static @Nullable Throwable closeStep(@Nullable Throwable failure, @NotNull Runnable action) {
+	private static @Nullable Throwable closeStep(@Nullable Throwable failure, Runnable action) {
 		try {
 			action.run();
 		} catch (Throwable ex) {

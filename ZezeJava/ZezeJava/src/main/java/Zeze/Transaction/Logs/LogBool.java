@@ -5,16 +5,16 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /** bool 字段原子修改日志：携带新值，commit 经 VarHandle 写回，序列化为布尔字节。 */
 public class LogBool extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<bool>");
 
-	private final VarHandle vh;
+	private final @Nullable VarHandle vh;
 	public boolean value;
 
-	public LogBool(Bean belong, int varId, VarHandle vh, boolean value) {
+	public LogBool(@Nullable Bean belong, int varId, @Nullable VarHandle vh, boolean value) {
 		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
@@ -26,7 +26,7 @@ public class LogBool extends Log {
 	}
 
 	@Override
-	public @NotNull Category category() {
+	public Category category() {
 		return Category.eHistory;
 	}
 
@@ -42,17 +42,17 @@ public class LogBool extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteBool(value);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadBool();
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.valueOf(value);
 	}
 

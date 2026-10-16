@@ -20,8 +20,7 @@ import Zeze.Util.IntHashSet;
 import Zeze.Util.OutObject;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -31,9 +30,9 @@ import org.w3c.dom.NodeList;
  */
 public final class ServiceConf extends ReentrantLock {
 	private @Nullable Service service;
-	private final @NotNull String name;
-	private @NotNull SocketOptions socketOptions = new SocketOptions();
-	private @NotNull HandshakeOptions handshakeOptions = new HandshakeOptions();
+	private final String name;
+	private SocketOptions socketOptions = new SocketOptions();
+	private HandshakeOptions handshakeOptions = new HandshakeOptions();
 	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, WebsocketHandle> websockets = new ConcurrentHashMap<>();
@@ -44,25 +43,25 @@ public final class ServiceConf extends ReentrantLock {
 		return service;
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return name;
 	}
 
-	public @NotNull SocketOptions getSocketOptions() {
+	public SocketOptions getSocketOptions() {
 		return socketOptions;
 	}
 
-	public void setSocketOptions(@NotNull SocketOptions value) {
+	public void setSocketOptions(SocketOptions value) {
 		//noinspection ConstantValue
 		if (value != null)
 			socketOptions = value;
 	}
 
-	public @NotNull HandshakeOptions getHandshakeOptions() {
+	public HandshakeOptions getHandshakeOptions() {
 		return handshakeOptions;
 	}
 
-	public void setHandshakeOptions(@NotNull HandshakeOptions value) {
+	public void setHandshakeOptions(HandshakeOptions value) {
 		//noinspection ConstantValue
 		if (value != null)
 			handshakeOptions = value;
@@ -95,7 +94,7 @@ public final class ServiceConf extends ReentrantLock {
 		}
 	}
 
-	public void addWebsocket(@NotNull WebsocketHandle websocket) {
+	public void addWebsocket(WebsocketHandle websocket) {
 		if (null != websockets.putIfAbsent(websocket.getName(), websocket)) {
 			throw new IllegalStateException("Duplicate Connector=" + websocket.getName());
 		}
@@ -103,7 +102,7 @@ public final class ServiceConf extends ReentrantLock {
 			websocket.setService(service);
 	}
 
-	public void addConnector(@NotNull Connector connector) {
+	public void addConnector(Connector connector) {
 		if (null != connectors.putIfAbsent(connector.getName(), connector)) {
 			throw new IllegalStateException("Duplicate Connector=" + connector.getName());
 		}
@@ -111,11 +110,11 @@ public final class ServiceConf extends ReentrantLock {
 			connector.SetService(service);
 	}
 
-	public @Nullable Connector findConnector(@NotNull String name) {
+	public @Nullable Connector findConnector(String name) {
 		return connectors.get(name);
 	}
 
-	public @Nullable Connector findConnector(@NotNull String host, int port) {
+	public @Nullable Connector findConnector(String host, int port) {
 		return findConnector(host + "_" + port);
 	}
 
@@ -128,12 +127,12 @@ public final class ServiceConf extends ReentrantLock {
 	 * @param getOrAdd      out. connector returned.
 	 * @return true if addNew
 	 */
-	public boolean tryGetOrAddConnector(@NotNull String host, int port, boolean autoReconnect,
+	public boolean tryGetOrAddConnector(String host, int port, boolean autoReconnect,
 										@Nullable OutObject<Connector> getOrAdd) {
 		return tryGetOrAddConnector(host, port, autoReconnect, getOrAdd, Connector::new);
 	}
 
-	public boolean tryGetOrAddConnector(@NotNull String host, int port, boolean autoReconnect,
+	public boolean tryGetOrAddConnector(String host, int port, boolean autoReconnect,
 										@Nullable OutObject<Connector> getOrAdd,
 										Func3<String, Integer, Boolean, Connector> cf) {
 		var name = host + "_" + port;
@@ -155,17 +154,17 @@ public final class ServiceConf extends ReentrantLock {
 		return addNew.value != null;
 	}
 
-	public void removeConnector(@NotNull Connector c) {
+	public void removeConnector(Connector c) {
 		connectors.remove(c.getName(), c);
 	}
 
-	public void ForEachConnector(@NotNull Action1<Connector> action) throws Exception {
+	public void ForEachConnector(Action1<Connector> action) throws Exception {
 		for (var c : connectors.values()) {
 			action.run(c);
 		}
 	}
 
-	public void forEachConnector(@NotNull Consumer<Connector> action) {
+	public void forEachConnector(Consumer<Connector> action) {
 		for (var a : connectors.values())
 			action.accept(a);
 	}
@@ -174,7 +173,7 @@ public final class ServiceConf extends ReentrantLock {
 		return connectors.size();
 	}
 
-	public boolean forEachConnector2(@NotNull Predicate<Connector> func) {
+	public boolean forEachConnector2(Predicate<Connector> func) {
 		for (var c : connectors.values()) {
 			if (!func.test(c))
 				return false;
@@ -182,28 +181,28 @@ public final class ServiceConf extends ReentrantLock {
 		return true;
 	}
 
-	public void addAcceptor(@NotNull Acceptor a) {
+	public void addAcceptor(Acceptor a) {
 		if (null != acceptors.putIfAbsent(a.getName(), a)) {
 			throw new IllegalStateException("Duplicate Acceptor=" + a.getName());
 		}
 		a.SetService(service);
 	}
 
-	public void removeAcceptor(@NotNull Acceptor a) {
+	public void removeAcceptor(Acceptor a) {
 		acceptors.remove(a.getName(), a);
 	}
 
-	public void ForEachAcceptor(@NotNull Action1<Acceptor> action) throws Exception {
+	public void ForEachAcceptor(Action1<Acceptor> action) throws Exception {
 		for (var a : acceptors.values())
 			action.run(a);
 	}
 
-	public void forEachAcceptor(@NotNull Consumer<Acceptor> action) {
+	public void forEachAcceptor(Consumer<Acceptor> action) {
 		for (var a : acceptors.values())
 			action.accept(a);
 	}
 
-	public boolean forEachAcceptor2(@NotNull Function<Acceptor, Boolean> func) {
+	public boolean forEachAcceptor2(Function<Acceptor, Boolean> func) {
 		for (var a : acceptors.values()) {
 			if (!func.apply(a))
 				return false;
@@ -211,7 +210,7 @@ public final class ServiceConf extends ReentrantLock {
 		return true;
 	}
 
-	public void forEachWebsocket(@NotNull Consumer<WebsocketHandle> action) {
+	public void forEachWebsocket(Consumer<WebsocketHandle> action) {
 		for (var w : websockets.values())
 			action.accept(w);
 	}
@@ -224,7 +223,7 @@ public final class ServiceConf extends ReentrantLock {
 		name = "";
 	}
 
-	public ServiceConf(@NotNull Config conf, @NotNull Element self) {
+	public ServiceConf(Config conf, Element self) {
 		name = self.getAttribute("Name").trim();
 
 		String attr;

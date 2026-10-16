@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -45,8 +49,8 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 			value.initRootInfo(rootInfo(), this);
 			value.mapKey(key);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogSortedMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else {
 			value.mapKey(key);
@@ -58,8 +62,8 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	public void remove(K key) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogSortedMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
 		} else
 			map = map.minus(key);
@@ -69,8 +73,8 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogSortedMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
 			map = map.minusAll(map.keySet()); // 清空仍保留原比较器。
@@ -104,7 +108,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	@SuppressWarnings("unchecked")
 	@Override
 	public void leaderApplyNoRecursive(Log _log) {
-		map = ((LogSortedMap2<K, V>)_log).getValue();
+		map = Objects.requireNonNull(((LogSortedMap2<K, V>)_log).getValue());
 	}
 
 	@Override
@@ -118,7 +122,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.@Nullable RootInfo root) {
 		for (var v : map.values())
 			v.initRootInfo(root, this);
 	}

@@ -1,5 +1,7 @@
 package Zeze.Hot;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -41,6 +43,7 @@ import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 装载所有的模块接口。
@@ -134,7 +137,7 @@ public class HotManager extends ClassLoader {
 
 		for (var module : modules.values()) {
 			var iModule = (IModule)module.getService();
-			iModule.Initialize(zeze.getAppBase());
+			Objects.requireNonNull(iModule).Initialize(Objects.requireNonNull(zeze.getAppBase()));
 			modulesOut.put(module.getName(), iModule);
 		}
 	}
@@ -147,7 +150,7 @@ public class HotManager extends ClassLoader {
 		return new HotGuard(hotLock.writeLock());
 	}
 
-	public HotModule findHotModule(String className) {
+	public @Nullable HotModule findHotModule(String className) {
 		// 因为存在子模块：
 		// 优先匹配长的名字。
 		for (var e : modules.descendingMap().entrySet()) {
@@ -157,7 +160,7 @@ public class HotManager extends ClassLoader {
 		return null;
 	}
 
-	public <T extends HotService> HotModuleContext<T> getModuleContext(String moduleNamespace, Class<T> serviceClass) {
+	public <T extends HotService> @Nullable HotModuleContext<T> getModuleContext(String moduleNamespace, Class<T> serviceClass) {
 		var module = modules.get(moduleNamespace);
 		if (null == module)
 			return null; // 允许外面主动判断，用于动态判断服务。
@@ -189,10 +192,11 @@ public class HotManager extends ClassLoader {
 		// 每次批量生成前刷新编译-cp：install新装的模块jar不在initialize时设置的旧cp里，
 		// 兜底编译（模块jar未打包Redirect_子类）需要它解析符号。
 		GenModule.instance.getCompiler().useOptions("-cp", buildCp());
-		return GenModule.instance.createRedirectModules(zeze.getAppBase(), moduleClasses);
+		return GenModule.instance.createRedirectModules(Objects.requireNonNull(zeze.getAppBase()), moduleClasses);
 	}
 
-	private static Bean retreat(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Bean bean) {
+	@SuppressWarnings("ConstantConditions") // 保留对新模块列表条目的防御检查。
+	private static @Nullable Bean retreat(ArrayList<@Nullable HotModule> removes, ArrayList<HotModule> currents, Bean bean) {
 		// 判断是否当前正在热更的模块创建的。
 		try {
 			var cl = bean.getClass().getClassLoader();
@@ -262,7 +266,7 @@ public class HotManager extends ClassLoader {
 		return upgrading;
 	}
 
-	private void recoverModules(ArrayList<HotModule> exists, int reverseErrorIndex) {
+	private void recoverModules(ArrayList<@Nullable HotModule> exists, int reverseErrorIndex) {
 		// 1. 停止是从exists后面反过来遍历的。
 		// 2. reverseErrorIndex 不恢复。
 		// 3. 重启过程错误的不恢复。
@@ -273,7 +277,7 @@ public class HotManager extends ClassLoader {
 			if (null == exist)
 				continue;
 			try {
-				((IModule)exist.getService()).Register(); // 已经注销过，重启需要再次注册。
+				Objects.requireNonNull((IModule)exist.getService()).Register(); // 已经注销过，重启需要再次注册。
 				exist.start();
 				modules.put(exist.getName(), exist);
 			} catch (Throwable ex) {
@@ -288,12 +292,12 @@ public class HotManager extends ClassLoader {
 				continue;
 			modules.put(exist.getName(), exist);
 		}
-		if (!getReadyLines().isEmpty() && getReadyLines().getFirst().startsWith("stop")) {
+		if (!Objects.requireNonNull(getReadyLines()).isEmpty() && getReadyLines().getFirst().startsWith("stop")) {
 			// 停止服务时，即使当前停止错误的模块也恢复。【调试代码】
 			if (reverseErrorIndex >= 0) {
 				var exist = exists.get(reverseErrorIndex);
 				try {
-					((IModule)exist.getService()).Register(); // 已经注销过，重启需要再次注册。
+					Objects.requireNonNull((IModule)Objects.requireNonNull(exist).getService()).Register(); // 已经注销过，重启需要再次注册。
 					exist.start();
 					modules.put(exist.getName(), exist);
 				} catch (Throwable ex) {
@@ -303,17 +307,17 @@ public class HotManager extends ClassLoader {
 			}
 		} else if (reverseErrorIndex >= 0) {
 			// 发生错误的禁止暴露服务。
-			exists.get(reverseErrorIndex).disable();
+			Objects.requireNonNull(exists.get(reverseErrorIndex)).disable();
 		}
 	}
 
 	public class MainRollbackAction implements Action0 {
 		private final Zeze.Application zeze;
-		private final ArrayList<HotModule> exists;
-		private final Schemas oldSchemas;
+		private final ArrayList<@Nullable HotModule> exists;
+		private final @Nullable Schemas oldSchemas;
 		private boolean hasAlter = false;
 
-		public MainRollbackAction(Zeze.Application zeze, ArrayList<HotModule> exists, Schemas oldSchemas) {
+		public MainRollbackAction(Zeze.Application zeze, ArrayList<@Nullable HotModule> exists, @Nullable Schemas oldSchemas) {
 			this.zeze = zeze;
 			this.exists = exists;
 			this.oldSchemas = oldSchemas;
@@ -339,12 +343,12 @@ public class HotManager extends ClassLoader {
 	}
 
 	@SuppressWarnings("resource")
-	private ArrayList<HotModule> install(List<String> namespaces, boolean atomicAll) throws Exception {
+	private @Nullable ArrayList<HotModule> install(List<String> namespaces, boolean atomicAll) throws Exception {
 		logger.info("________________ install ________________ {}", namespaces);
 		try {
 			upgrading = true;
 			// 首先查询得到现有的模块，不存在也加入null。
-			var exists = new ArrayList<HotModule>(namespaces.size());
+			var exists = new ArrayList<@Nullable HotModule>(namespaces.size());
 			for (var namespace : namespaces)
 				exists.add(modules.get(namespace));
 			// 锁外执行stopBefore
@@ -358,7 +362,7 @@ public class HotManager extends ClassLoader {
 			try (var ignored = enterWriteLock()) {
 				var app = zeze.getAppBase();
 				// 先保存现有的数据
-				app.getZeze().checkpointRun();
+				Objects.requireNonNull(Objects.requireNonNull(app).getZeze()).checkpointRun();
 				// remove
 				for (var namespace : namespaces) {
 					modules.remove(namespace);
@@ -505,7 +509,7 @@ public class HotManager extends ClassLoader {
 							if (startErrors.contains(module))
 								continue;
 							var moduleConfig = module.loadModuleConfig();
-							providerApp.providerService.addHotModule((IModule)module.getService(), moduleConfig);
+							providerApp.providerService.addHotModule((IModule)Objects.requireNonNull(module.getService()), moduleConfig);
 						}
 					}
 
@@ -683,7 +687,7 @@ public class HotManager extends ClassLoader {
 	}
 
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
-		hotManagerService = new HotManagerService(app.getZeze().getConfig());
+		hotManagerService = new HotManagerService(Objects.requireNonNull(app.getZeze()).getConfig());
 
 		BeanFactory.setApplication(app.getZeze());
 
@@ -805,16 +809,16 @@ public class HotManager extends ClassLoader {
 
 		// 定时器只投递不执行：install 的长阻塞（checkpointRun+模块停启）不得占用
 		// 共享 scheduledPool；与远程发布安装共用单线程执行器，天然串行。
-		Task.getScheduledThreadPool().scheduleAtFixedRate(
+		Objects.requireNonNull(Task.getScheduledThreadPool()).scheduleAtFixedRate(
 				() -> installExecutor.execute(() -> tryDistribute(false, true)), 10000, 10000, TimeUnit.MILLISECONDS);
 		Task.hotGuard = this::enterReadLock;
 		hotManagerService.start();
 	}
 
-	private volatile java.util.List<String> readyLines;
+	private volatile @Nullable List<String> readyLines;
 
 	// 用来控制错误模拟，目前是调试用的。
-	public java.util.List<String> getReadyLines() {
+	public @Nullable List<String> getReadyLines() {
 		return readyLines;
 	}
 
@@ -953,7 +957,7 @@ public class HotManager extends ClassLoader {
 		return super.findClass(className);
 	}
 
-	public ArrayList<HotModule> installReadies(boolean atomicAll) throws Exception {
+	public @Nullable ArrayList<HotModule> installReadies(boolean atomicAll) throws Exception {
 		var foundJars = new HashSet<String>();
 		var readies = new HashSet<String>();
 		loadExistDistributes(foundJars, readies);

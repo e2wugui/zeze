@@ -14,7 +14,7 @@ import Zeze.Util.KV;
 import Zeze.Util.Task;
 import Zeze.Util.ZezeCounter;
 import com.alibaba.druid.pool.DruidDataSource;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Microsoft SQL Server 数据库后端：KV 表与存储过程版 Operates（同版本保存、带租期全局锁）。
@@ -29,13 +29,13 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	// 少一个占位符会导致参数索引越界（mssql-jdbc: "The index 4 is out of range"），带 schemas 启动即失败。
 	private static final String saveDataWithSameVersionCall = "{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?, ?)}";
 
-	public DatabaseSqlServer(Application zeze, DatabaseConf conf) {
+	public DatabaseSqlServer(@Nullable Application zeze, DatabaseConf conf) {
 		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesSqlServer());
 	}
 
 	@Override
-	public Database.@NotNull Table openTable(@NotNull String name, int id) {
+	public Database.Table openTable(String name, int id) {
 		return new TableSqlServer(name);
 	}
 
@@ -154,7 +154,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public void setInUse(int localId, @NotNull String global) {
+		public void setInUse(int localId, String global) {
 			// 并发双实例首启：insert全局行与count(*)扫描互等成环（1205死锁）——对齐MySQL/PG
 			// 重试64次（SP整体事务，重试安全）。
 			for (int i = 0; i < 64; ++i) {
@@ -194,7 +194,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public int clearInUse(int localId, @NotNull String global) {
+		public int clearInUse(int localId, String global) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
@@ -211,7 +211,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
+		public @Nullable DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				String sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?";
@@ -233,7 +233,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			if (key.isEmpty())
 				throw new IllegalArgumentException("key is empty.");
 
@@ -463,7 +463,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		private boolean dropped;
 
 		@Override
-		public @NotNull DatabaseSqlServer getDatabase() {
+		public DatabaseSqlServer getDatabase() {
 			return DatabaseSqlServer.this;
 		}
 
@@ -510,7 +510,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer find(@NotNull ByteBuffer key) {
+		public @Nullable ByteBuffer find(ByteBuffer key) {
 			if (dropped)
 				return null;
 
@@ -541,7 +541,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			if (dropped)
 				return;
 
@@ -560,7 +560,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			if (dropped)
 				return;
 
@@ -585,22 +585,22 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			return walk(callback, true);
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			return walkKey(callback, true);
 		}
 
 		@Override
-		public long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			return walk(callback, false);
 		}
 
 		@Override
-		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			return walkKey(callback, false);
 		}
 
@@ -667,7 +667,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
+		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -698,7 +698,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -729,7 +729,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -760,7 +760,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -821,7 +821,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 	}
 
-	public static long queryLong1(@NotNull DruidDataSource dataSource, @NotNull String sql) {
+	public static long queryLong1(DruidDataSource dataSource, String sql) {
 		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql); var rs = ps.executeQuery()) {
 			return rs.next() ? rs.getLong(1) : -1;
 		} catch (SQLException e) {

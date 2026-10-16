@@ -1,7 +1,6 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // long 输出参数包装（模拟 C# out 参数）
 public class OutLong {
@@ -25,7 +24,7 @@ public class OutLong {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.valueOf(value);
 	}
 }

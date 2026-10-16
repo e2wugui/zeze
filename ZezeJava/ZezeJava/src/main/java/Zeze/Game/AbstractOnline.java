@@ -93,19 +93,19 @@ public abstract class AbstractOnline implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
-        zeze.addTable(zeze.getConfig().getTableConf(_tOnline.getName()).getDatabaseName(), _tOnline);
-        zeze.addTable(zeze.getConfig().getTableConf(_tOnlineShared.getName()).getDatabaseName(), _tOnlineShared);
-        zeze.addTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
-        zeze.addTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tlocal.getName())).getDatabaseName(), _tlocal);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tOnline.getName())).getDatabaseName(), _tOnline);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tOnlineShared.getName())).getDatabaseName(), _tOnlineShared);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName())).getDatabaseName(), _tRoleOfflineTimers);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tRoleTimers.getName())).getDatabaseName(), _tRoleTimers);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tOnline.getName()).getDatabaseName(), _tOnline);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tOnlineShared.getName()).getDatabaseName(), _tOnlineShared);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tlocal.getName())).getDatabaseName(), _tlocal);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tOnline.getName())).getDatabaseName(), _tOnline);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tOnlineShared.getName())).getDatabaseName(), _tOnlineShared);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName())).getDatabaseName(), _tRoleOfflineTimers);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tRoleTimers.getName())).getDatabaseName(), _tRoleTimers);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

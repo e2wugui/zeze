@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -15,27 +17,32 @@ import Zeze.Util.TimeThrottle;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * UDP 会话：以 tokenId 标识的单条 UDP 虚拟连接（AsyncSocket 的数据报适配）。
  */
 public class DatagramSession extends AsyncSocket {
-	private static final @NotNull Logger logger = LogManager.getLogger(DatagramSession.class);
-	private final @NotNull DatagramSocket socket;
+	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
+	@Override
+	public Service getService() {
+		return Objects.requireNonNull(super.getService());
+	}
+
+	private static final Logger logger = LogManager.getLogger(DatagramSession.class);
+	private final DatagramSocket socket;
 	// 跨线程可见性——selector线程在processDatagram写（NAT重绑），Send可在任意业务线程读；
 	// 无happens-before边时应答持续发往失效地址。单引用读写无复合操作，volatile即可。
-	private volatile @NotNull InetSocketAddress remote;
+	private volatile InetSocketAddress remote;
 	private final long tokenId;
 	private final AtomicLong serialIdGen = new AtomicLong();
 	private final @Nullable Encrypt2 encrypt;
 	private final @Nullable Decrypt2 decrypt;
-	private final @NotNull ReplayAttack replayAttack;
+	private final ReplayAttack replayAttack;
 	private final LongAdder malformedPackets = new LongAdder();
 	private volatile long lastMalformedWarnTime;
 
-	public @NotNull DatagramSocket getSocket() {
+	public DatagramSocket getSocket() {
 		return socket;
 	}
 
@@ -44,7 +51,7 @@ public class DatagramSession extends AsyncSocket {
 	}
 
 	@Override
-	public @NotNull SocketAddress getRemoteAddress() {
+	public SocketAddress getRemoteAddress() {
 		return remote;
 	}
 
@@ -52,8 +59,8 @@ public class DatagramSession extends AsyncSocket {
 		return tokenId;
 	}
 
-	DatagramSession(@NotNull DatagramSocket socket, @NotNull InetSocketAddress remote, long tokenId,
-					byte @Nullable [] securityKey, @NotNull ReplayAttackPolicy policy) {
+	DatagramSession(DatagramSocket socket, InetSocketAddress remote, long tokenId,
+					byte @Nullable [] securityKey, ReplayAttackPolicy policy) {
 		super(socket.getService());
 		this.socket = socket;
 		this.remote = remote;
@@ -81,7 +88,7 @@ public class DatagramSession extends AsyncSocket {
 	// [8]tokenId | [8]serialId | packet
 	// [8]tokenId | [8]serialId | encrypt{ packet | [8]tokenId | [8]serialId }
 	@Override
-	public boolean Send(byte @NotNull [] packet, int offset, int size) {
+	public boolean Send(byte [] packet, int offset, int size) {
 		if (isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
 			return false;
 		var serialId = serialIdGen.incrementAndGet();
@@ -120,7 +127,7 @@ public class DatagramSession extends AsyncSocket {
 	// [8]tokenId | [8]serialId | [4]moduleId | [4]protocolId | [4]size | protocolData
 	// [8]tokenId | [8]serialId | encrypt{ [4]moduleId | [4]protocolId | [4]size | protocolData | [8]tokenId | [8]serialId }
 	@Override
-	public boolean Send(@NotNull Protocol<?> p) {
+	public boolean Send(Protocol<?> p) {
 		if (isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
 			return false;
 		int preAllocSize = p.preAllocSize();
@@ -160,7 +167,7 @@ public class DatagramSession extends AsyncSocket {
 	/**
 	 * @param bb 有效数据范围:[0,WriteIndex]. 方法外绝对不能持有bb.Bytes的引用! 也就是只能在方法内访问bb.
 	 */
-	public void onProcessDatagram(@NotNull InetSocketAddress remote, @NotNull ByteBuffer bb) {
+	public void onProcessDatagram(InetSocketAddress remote, ByteBuffer bb) {
 		// 畸形包（解密CodecException/协议decode异常等）按包捕获：数据报独立成帧、无流失步，
 		// 丢包即可；异常抛到Selector会强制关闭整个channel（全部会话陪葬）。限频warn+计数防日志洪水。
 		try {
@@ -176,7 +183,7 @@ public class DatagramSession extends AsyncSocket {
 		}
 	}
 
-	private void processDatagram(@NotNull InetSocketAddress remote, @NotNull ByteBuffer bb) throws Exception {
+	private void processDatagram(InetSocketAddress remote, ByteBuffer bb) throws Exception {
 		int endPos = bb.WriteIndex;
 		if (decrypt != null) {
 			if (endPos < 32) // minimal packet size ([8]tokenId + [8]serialId + [8]tokenId + [8]serialId)
@@ -205,7 +212,7 @@ public class DatagramSession extends AsyncSocket {
 	}
 
 	@Override
-	public @NotNull Type getType() {
+	public Type getType() {
 		return Type.eClient;
 	}
 
@@ -228,7 +235,7 @@ public class DatagramSession extends AsyncSocket {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return socket.toString() + '-' + remote + '[' + tokenId + ']';
 	}
 }

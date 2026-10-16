@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -27,8 +31,8 @@ public class CollList1<V> extends CollList<V> {
 	public boolean add(V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			listLog.add(item);
 		} else
 			list = list.plus(item);
@@ -39,8 +43,8 @@ public class CollList1<V> extends CollList<V> {
 	public boolean remove(V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			return listLog.remove(item);
 		}
 		var newList = list.minus(item);
@@ -54,8 +58,8 @@ public class CollList1<V> extends CollList<V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 		} else
 			list = Zeze.Collections.Persistents.vector();
@@ -65,8 +69,8 @@ public class CollList1<V> extends CollList<V> {
 	public V set(int index, V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			return listLog.set(index, item);
 		}
 		var old = list.get(index);
@@ -78,8 +82,8 @@ public class CollList1<V> extends CollList<V> {
 	public void add(int index, V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			listLog.add(index, item);
 		} else
 			list = list.plus(index, item);
@@ -89,8 +93,8 @@ public class CollList1<V> extends CollList<V> {
 	public V remove(int index) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			return listLog.remove(index);
 		}
 		var old = list.get(index);
@@ -115,10 +119,10 @@ public class CollList1<V> extends CollList<V> {
 		for (var opLog : log.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
-				list = list.with(opLog.index, opLog.value);
+				list = list.with(opLog.index, Objects.requireNonNull(opLog.value));
 				break;
 			case LogList1.OpLog.OP_ADD:
-				list = list.plus(opLog.index, opLog.value);
+				list = list.plus(opLog.index, Objects.requireNonNull(opLog.value));
 				break;
 			case LogList1.OpLog.OP_REMOVE:
 				list = list.minus(opLog.index);
@@ -133,11 +137,11 @@ public class CollList1<V> extends CollList<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void leaderApplyNoRecursive(Log _log) {
-		list = ((LogList1<V>)_log).getValue();
+		list = Objects.requireNonNull(((LogList1<V>)_log).getValue());
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.@Nullable RootInfo root) {
 	}
 
 	@Override

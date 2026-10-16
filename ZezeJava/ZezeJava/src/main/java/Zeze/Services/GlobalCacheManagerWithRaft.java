@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -42,7 +43,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Raft版全局缓存管理器服务器：全局锁所有权状态（Global表）与各Server已获取记录
@@ -56,7 +57,7 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	private static final boolean ENABLE_PERF = true;
-	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaft.class);
+	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaft.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	public static final int GlobalSerialIdAtomicLongIndex = 0;
 
@@ -100,7 +101,7 @@ public class GlobalCacheManagerWithRaft
 	private volatile boolean warnedStorageNull;
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
-	public @NotNull GlobalCacheManagerServer.GCMConfig getGcmConfig() {
+	public GlobalCacheManagerServer.GCMConfig getGcmConfig() {
 		return gcmConfig;
 	}
 
@@ -108,15 +109,15 @@ public class GlobalCacheManagerWithRaft
 		this(raftName, null, null, false);
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf) throws Exception {
+	public GlobalCacheManagerWithRaft(String raftName, @Nullable RaftConfig raftConf) throws Exception {
 		this(raftName, raftConf, null, false);
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Config config) throws Exception {
+	public GlobalCacheManagerWithRaft(String raftName, @Nullable RaftConfig raftConf, @Nullable Config config) throws Exception {
 		this(raftName, raftConf, config, false);
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
+	public GlobalCacheManagerWithRaft(String raftName, @Nullable RaftConfig raftConf, @Nullable Config config,
 									  boolean RocksDbWriteOptionSync) throws Exception {
 		if (config == null)
 			config = Config.load();
@@ -124,19 +125,19 @@ public class GlobalCacheManagerWithRaft
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync);
 
 		RegisterRocksTables(rocks);
-		RegisterProtocols(rocks.getRaft().getServer());
+		RegisterProtocols(Objects.requireNonNull(rocks.getRaft()).getServer());
 
 		var globalTemplate = rocks.<Binary, BCacheState>getTableTemplate("Global");
-		globalTemplate.setLruTryRemoveCallback(this::globalLruTryRemove);
+		Objects.requireNonNull(globalTemplate).setLruTryRemoveCallback(this::globalLruTryRemove);
 		globalStates = globalTemplate.openTable(0);
-		serverAcquiredTemplate = rocks.getTableTemplate("Session");
+		serverAcquiredTemplate = Objects.requireNonNull(rocks.getTableTemplate("Session"));
 
 		// 就任即刻重建会话视图，消除daemon首个tick最多5s的盲窗。onLeaderReady在
 		// raft的apply路径内执行（持Raft锁），回调必须快且不得抛异常——重建只遍历storage
 		// tableMap的内存键集并putIfAbsent（幂等），异常兜底记日志。GCM独占自己的Raft实例
 		// （本rocks私有，Dbh2等注册的是各自实例），单槽回调无占用冲突。须在server.start()
 		// 之前注册，保证不漏首次就任。
-		rocks.getRaft().setOnLeaderReady(() -> {
+		Objects.requireNonNull(rocks.getRaft()).setOnLeaderReady(() -> {
 			try {
 				rebuildSessionsFromStorage();
 			} catch (Throwable e) {
@@ -146,7 +147,7 @@ public class GlobalCacheManagerWithRaft
 
 		ZezeCounter.tryInit();
 
-		rocks.getRaft().getServer().start();
+		Objects.requireNonNull(rocks.getRaft()).getServer().start();
 
 		// perf 须在 server.start() 成功之后创建：构造中途失败时实例不可达、close() 永不可达，
 		// 先创建则 1s 周期任务泄漏；perf 在 start() 前无引用方，时序安全
@@ -190,7 +191,7 @@ public class GlobalCacheManagerWithRaft
 				logger.error("RebuildSessionsFromStorage exception", e);
 			}
 			sessions.forEach(session -> {
-				session.lock();
+				Objects.requireNonNull(session).lock();
 				try {
 					// 超时检查必须在锁内复查（理由同同步版）：检查在锁外时，同serverId新
 					// incarnation恰在"检查→加锁"窗口内Login（bind持锁刷新activeTime），daemon会
@@ -286,7 +287,7 @@ public class GlobalCacheManagerWithRaft
 		var acquireState = rpc.Argument.getState();
 		if (ENABLE_PERF)
 			perf.onAcquireBegin(rpc, acquireState);
-		var sender = (CacheHolder)rpc.getSender().getUserState();
+		var sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
 		if (sender != null)
 			sender.setActiveTime(System.currentTimeMillis());
 		rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
@@ -356,7 +357,7 @@ public class GlobalCacheManagerWithRaft
 			// 记录从Cache中清除后，可以再次从RocksDb中装载。
 			var cs = (BCacheState)r.getValue(); // null when record removed
 			if (cs == null || cs.getAcquireStatePending() == StateInvalid) {
-				globalStates.getLruCache().remove(key);
+				Objects.requireNonNull(globalStates.getLruCache()).remove(key);
 				return true;
 			}
 			return false;
@@ -366,13 +367,13 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	private long acquireShare(Acquire rpc) throws InterruptedException {
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+		CacheHolder sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
 		var globalTableKey = rpc.Argument.getGlobalKey();
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 
 		while (true) {
-			var lockey = Transaction.getCurrent().addPessimismLock(locks.get(globalTableKey));
+			var lockey = Objects.requireNonNull(Transaction.getCurrent()).addPessimismLock(locks.get(globalTableKey));
 
 			BCacheState cs = globalStates.getOrAdd(globalTableKey);
 			if (cs.getAcquireStatePending() == StateRemoved)
@@ -387,7 +388,7 @@ public class GlobalCacheManagerWithRaft
 					if (cs.getModify() == -1)
 						throw new IllegalStateException("CacheState state error");
 
-					if (cs.getModify() == sender.serverId) {
+					if (cs.getModify() == Objects.requireNonNull(sender).serverId) {
 						if (isDebugEnabled)
 							logger.debug("1 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
@@ -395,7 +396,7 @@ public class GlobalCacheManagerWithRaft
 					}
 					break;
 				case StateModify:
-					if (cs.getModify() == sender.serverId || cs.getShare().Contains(sender.serverId)) {
+					if (cs.getModify() == Objects.requireNonNull(sender).serverId || cs.getShare().Contains(sender.serverId)) {
 						if (isDebugEnabled)
 							logger.debug("2 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
@@ -428,7 +429,7 @@ public class GlobalCacheManagerWithRaft
 				}
 			});
 			serialId.getAndIncrement();
-			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
+			var SenderAcquired = serverAcquiredTemplate.openTable(Objects.requireNonNull(sender).serverId);
 			var reduceTid = new OutObject<>(Id128.Zero);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.serverId) {
@@ -476,7 +477,7 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
-				switch (reduceResultState.value) {
+				switch (Objects.requireNonNull(reduceResultState.value)) {
 				case StateShare:
 					ModifyAcquired.put(globalTableKey, newAcquiredState(StateShare));
 					cs.getShare().add(cs.getModify()); // 降级成功。
@@ -515,7 +516,7 @@ public class GlobalCacheManagerWithRaft
 				if (isDebugEnabled)
 					logger.debug("6 {} {} {}", sender, StateShare, cs);
 				lockey.pulseAll();
-				rpc.Result.setReduceTid(reduceTid.value);
+				rpc.Result.setReduceTid(Objects.requireNonNull(reduceTid.value));
 				return 0; // 成功也会自动发送结果.
 			}
 
@@ -525,19 +526,19 @@ public class GlobalCacheManagerWithRaft
 			if (isDebugEnabled)
 				logger.debug("7 {} {} {}", sender, StateShare, cs);
 			lockey.pulseAll();
-			rpc.Result.setReduceTid(reduceTid.value);
+			rpc.Result.setReduceTid(Objects.requireNonNull(reduceTid.value));
 			return 0; // 成功也会自动发送结果.
 		}
 	}
 
 	private long acquireModify(Acquire rpc) throws InterruptedException {
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+		CacheHolder sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
 		var globalTableKey = rpc.Argument.getGlobalKey();
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 
 		while (true) {
-			var lockey = Transaction.getCurrent().addPessimismLock(locks.get(globalTableKey));
+			var lockey = Objects.requireNonNull(Transaction.getCurrent()).addPessimismLock(locks.get(globalTableKey));
 
 			BCacheState cs = globalStates.getOrAdd(globalTableKey);
 			if (cs.getAcquireStatePending() == StateRemoved)
@@ -553,7 +554,7 @@ public class GlobalCacheManagerWithRaft
 						logger.error("cs state must be modify");
 						throw new IllegalStateException("CacheState state error");
 					}
-					if (cs.getModify() == sender.serverId) {
+					if (cs.getModify() == Objects.requireNonNull(sender).serverId) {
 						if (isDebugEnabled)
 							logger.debug("1 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
@@ -561,7 +562,7 @@ public class GlobalCacheManagerWithRaft
 					}
 					break;
 				case StateModify:
-					if (cs.getModify() == sender.serverId || cs.getShare().Contains(sender.serverId)) {
+					if (cs.getModify() == Objects.requireNonNull(sender).serverId || cs.getShare().Contains(sender.serverId)) {
 						if (isDebugEnabled)
 							logger.debug("2 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
@@ -590,7 +591,7 @@ public class GlobalCacheManagerWithRaft
 				}
 			});
 			serialId.getAndIncrement();
-			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
+			var SenderAcquired = serverAcquiredTemplate.openTable(Objects.requireNonNull(sender).serverId);
 			var reduceTid = new OutObject<>(Id128.Zero);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.serverId) {
@@ -636,7 +637,7 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
-				switch (reduceResultState.value) {
+				switch (Objects.requireNonNull(reduceResultState.value)) {
 				case StateInvalid:
 					ModifyAcquired.remove(globalTableKey);
 					break; // reduce success
@@ -669,7 +670,7 @@ public class GlobalCacheManagerWithRaft
 
 				if (isDebugEnabled)
 					logger.debug("6 {} {} {}", sender, StateModify, cs);
-				rpc.Result.setReduceTid(reduceTid.value);
+				rpc.Result.setReduceTid(Objects.requireNonNull(reduceTid.value));
 				return 0;
 			}
 
@@ -787,10 +788,10 @@ public class GlobalCacheManagerWithRaft
 					perf.onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
 				rpc.Result.setState(StateInvalid);
 				lockey.pulseAll();
-				rpc.setResultCode(errorFreshAcquire.value
+				rpc.setResultCode(Objects.requireNonNull(errorFreshAcquire.value)
 						? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
 						: AcquireModifyFailed); // 这个错误码导致Server事务失败。
-				rpc.Result.setReduceTid(reduceTid.value);
+				rpc.Result.setReduceTid(Objects.requireNonNull(reduceTid.value));
 				return 0; // 可能存在部分reduce成功，需要提交事务。
 			}
 
@@ -800,7 +801,7 @@ public class GlobalCacheManagerWithRaft
 			if (isDebugEnabled)
 				logger.debug("8 {} {} {}", sender, StateModify, cs);
 			lockey.pulseAll();
-			rpc.Result.setReduceTid(reduceTid.value);
+			rpc.Result.setReduceTid(Objects.requireNonNull(reduceTid.value));
 			return 0; // 成功也会自动发送结果.
 		}
 	}
@@ -829,7 +830,7 @@ public class GlobalCacheManagerWithRaft
 	private int release(CacheHolder sender, Binary gkey, boolean noWait, long generation, long term)
 			throws InterruptedException {
 		while (true) {
-			var lockey = Transaction.getCurrent().addPessimismLock(locks.get(gkey));
+			var lockey = Objects.requireNonNull(Transaction.getCurrent()).addPessimismLock(locks.get(gkey));
 
 			BCacheState cs = globalStates.getOrAdd(gkey);
 			// 正常不可达（有Release请求意味着有持有者，不会进入StateRemoved）；提交失败回滚会把
@@ -913,16 +914,16 @@ public class GlobalCacheManagerWithRaft
 		var releaseKeys = new ArrayList<Binary>();
 		long generation;
 		long term;
-		session.lock();
+		Objects.requireNonNull(session).lock();
 		try {
-				if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex(), true)) {
+				if (!session.tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.getGlobalCacheManagerHashIndex(), true)) {
 				rpc.SendResultCode(LoginBindSocketFail);
 				return 0;
 			}
 			session.setActiveTime(System.currentTimeMillis());
 			session.setDebugMode(rpc.Argument.isDebugMode());
 			generation = session.generation;
-			term = rocks.getRaft().getLogSequence().getTerm();
+			term = Objects.requireNonNull(rocks.getRaft()).getLogSequence().getTerm();
 			serverAcquiredTemplate.openTable(session.serverId).walkKey(key -> {
 				releaseKeys.add(key);
 				return true;
@@ -943,27 +944,27 @@ public class GlobalCacheManagerWithRaft
 		rpc.Result.setServerReleaseTimeout(gcmConfig.serverReleaseTimeout);
 
 		rpc.SendResultCode(0);
-		logger.info("Login {} {}.", rocks.getRaft().getName(), rpc.getSender());
+		logger.info("Login {} {}.", Objects.requireNonNull(rocks.getRaft()).getName(), rpc.getSender());
 		return 0;
 	}
 
 	@Override
 	protected long ProcessReLoginRequest(ReLogin rpc) {
 		var session = sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder(this, (int)serverId));
-		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
+		if (!Objects.requireNonNull(session).tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.getGlobalCacheManagerHashIndex())) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
 		session.setActiveTime(System.currentTimeMillis());
 		session.setDebugMode(rpc.Argument.isDebugMode());
 		rpc.SendResultCode(0);
-		logger.info("ReLogin {} {}.", rocks.getRaft().getName(), rpc.getSender());
+		logger.info("ReLogin {} {}.", Objects.requireNonNull(rocks.getRaft()).getName(), rpc.getSender());
 		return 0;
 	}
 
 	@Override
 	protected long ProcessNormalCloseRequest(NormalClose rpc) throws Exception {
-		Object userState = rpc.getSender().getUserState();
+		Object userState = Objects.requireNonNull(rpc.getSender()).getUserState();
 		if (!(userState instanceof CacheHolder session)) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
@@ -1001,11 +1002,12 @@ public class GlobalCacheManagerWithRaft
 		for (var key : releaseKeys)
 			release(session, key, generation, term);
 		rpc.SendResultCode(0);
-		logger.info("NormalClose {} {}", rocks.getRaft().getName(), rpc.getSender());
+		logger.info("NormalClose {} {}", Objects.requireNonNull(rocks.getRaft()).getName(), rpc.getSender());
 		return 0;
 	}
 
 	@Override
+	@SuppressWarnings("ConstantConditions") // 保留对最终初始化配置的防御检查。
 	protected long ProcessCleanupRequest(Cleanup rpc) throws Exception {
 		if (achillesHeelConfig != null) { // disable cleanup.
 			rpc.SendResultCode(CleanupErrorDisabled);
@@ -1030,13 +1032,13 @@ public class GlobalCacheManagerWithRaft
 			return 0;
 		}
 
-		if (rocks.getRaft().getServer().GetSocket(session.sessionId) != null) {
+		if (Objects.requireNonNull(rocks.getRaft()).getServer().GetSocket(session.sessionId) != null) {
 			// 连接存在，禁止cleanup。
 			rpc.SendResultCode(CleanupErrorHasConnection);
 			return 0;
 		}
 			generation = session.generation;
-			term = rocks.getRaft().getLogSequence().getTerm();
+			term = Objects.requireNonNull(rocks.getRaft()).getLogSequence().getTerm();
 			serverAcquiredTemplate.openTable(session.serverId).walkKey(key -> {
 				releaseKeys.add(key);
 				return true;
@@ -1059,7 +1061,7 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessKeepAliveRequest(KeepAlive rpc) {
-		var sender = (CacheHolder)rpc.getSender().getUserState();
+		var sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
 		if (null == sender) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;
@@ -1212,8 +1214,8 @@ public class GlobalCacheManagerWithRaft
 			return session.reduce(gkey, fresh, response);
 		}
 
-		static KV<CacheHolder, Reduce> reduceWaitLater(LongConcurrentHashMap<CacheHolder> sessions, int serverId,
-													   Binary gkey, long fresh) {
+		static @Nullable KV<CacheHolder, Reduce> reduceWaitLater(LongConcurrentHashMap<CacheHolder> sessions, int serverId,
+																 Binary gkey, long fresh) {
 			CacheHolder session = sessions.get(serverId);
 			if (session == null)
 				return null;
@@ -1228,7 +1230,7 @@ public class GlobalCacheManagerWithRaft
 			try {
 				if (System.currentTimeMillis() - lastErrorTime < globalRaft.achillesHeelConfig.globalForbidPeriod)
 					return false;
-				AsyncSocket peer = globalRaft.getRocks().getRaft().getServer().GetSocket(sessionId);
+				AsyncSocket peer = Objects.requireNonNull(globalRaft.getRocks().getRaft()).getServer().GetSocket(sessionId);
 				if (peer != null) {
 					reduce = new Reduce();
 					reduce.setResultCode(fresh);
@@ -1256,12 +1258,12 @@ public class GlobalCacheManagerWithRaft
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce reduceWaitLater(Binary gkey, long fresh) {
+		@Nullable Reduce reduceWaitLater(Binary gkey, long fresh) {
 			Reduce reduce = null;
 			try {
 				if (System.currentTimeMillis() - lastErrorTime < globalRaft.achillesHeelConfig.globalForbidPeriod)
 					return null;
-				AsyncSocket peer = globalRaft.getRocks().getRaft().getServer().GetSocket(sessionId);
+				AsyncSocket peer = Objects.requireNonNull(globalRaft.getRocks().getRaft()).getServer().GetSocket(sessionId);
 				if (peer != null) {
 					reduce = new Reduce();
 					reduce.setResultCode(fresh);

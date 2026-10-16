@@ -6,13 +6,12 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
-public class IntHashMap<V> implements Cloneable {
+public class IntHashMap<V extends @Nullable Object> implements Cloneable {
 	private int size;
 	private int[] keyTable;
-	private @Nullable V @NotNull [] valueTable;
+	private @Nullable V [] valueTable;
 	private @Nullable V zeroValue;
 	private boolean hasZeroKey;
 	private final float loadFactor;
@@ -41,7 +40,7 @@ public class IntHashMap<V> implements Cloneable {
 		valueTable = (V[])new Object[tableSize];
 	}
 
-	public IntHashMap(@NotNull IntHashMap<? extends V> map) {
+	public IntHashMap(IntHashMap<? extends V> map) {
 		size = map.size;
 		keyTable = map.keyTable.clone();
 		valueTable = map.valueTable.clone();
@@ -62,11 +61,11 @@ public class IntHashMap<V> implements Cloneable {
 		return (int)((key * 0x9E3779B97F4A7C15L) >>> shift);
 	}
 
-	public int @NotNull [] getKeyTable() {
+	public int [] getKeyTable() {
 		return keyTable;
 	}
 
-	public @Nullable Object @NotNull [] getValueTable() {
+	public @Nullable Object [] getValueTable() {
 		return valueTable;
 	}
 
@@ -113,7 +112,7 @@ public class IntHashMap<V> implements Cloneable {
 			if (hasZeroKey && zeroValue == null)
 				return true;
 			final int[] kt = keyTable;
-			final V[] vt = valueTable;
+			final @Nullable V[] vt = valueTable;
 			for (int i = 0, n = kt.length; i < n; i++)
 				if (kt[i] != 0 && vt[i] == null)
 					return true;
@@ -121,7 +120,7 @@ public class IntHashMap<V> implements Cloneable {
 			if (hasZeroKey && value.equals(zeroValue))
 				return true;
 			final int[] kt = keyTable;
-			final V[] vt = valueTable;
+			final @Nullable V[] vt = valueTable;
 			for (int i = 0, n = kt.length; i < n; i++)
 				if (kt[i] != 0 && value.equals(vt[i]))
 					return true;
@@ -133,7 +132,7 @@ public class IntHashMap<V> implements Cloneable {
 		if (key == 0)
 			return hasZeroKey && Objects.equals(zeroValue, value);
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final int k = kt[i];
@@ -158,7 +157,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V getOrDefault(int key, @Nullable V defaultValue) {
+	public @Nullable V getOrDefault(int key, @Nullable V defaultValue) {
 		if (key == 0)
 			return hasZeroKey ? zeroValue : defaultValue;
 		final int[] kt = keyTable;
@@ -172,7 +171,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public @Nullable V put(int key, @Nullable V value) {
+	public @Nullable V put(int key, V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			zeroValue = value;
@@ -183,7 +182,7 @@ public class IntHashMap<V> implements Cloneable {
 			return oldV;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final int k = kt[i];
@@ -202,7 +201,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public void putAll(@NotNull IntHashMap<? extends V> map) {
+	public void putAll(IntHashMap<? extends V> map) {
 		if (map.hasZeroKey) {
 			if (!hasZeroKey) {
 				hasZeroKey = true;
@@ -211,7 +210,7 @@ public class IntHashMap<V> implements Cloneable {
 			zeroValue = map.zeroValue;
 		}
 		final int[] mapKt = map.keyTable;
-		final V[] mapVt = map.valueTable;
+		final @Nullable V[] mapVt = map.valueTable;
 		for (int i = 0, n = mapKt.length; i < n; i++) {
 			final int k = mapKt[i];
 			if (k != 0)
@@ -219,16 +218,16 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public void putAll(@NotNull Map<Integer, ? extends V> map) {
+	public void putAll(Map<Integer, ? extends V> map) {
 		for (Map.Entry<Integer, ? extends V> e : map.entrySet())
 			put(e.getKey(), e.getValue());
 	}
 
-	public void putAllTo(@NotNull Map<Integer, ? super V> map) {
+	public void putAllTo(Map<Integer, ? super V> map) {
 		foreach(map::put);
 	}
 
-	public @Nullable V putIfAbsent(int key, @Nullable V value) {
+	public @Nullable V putIfAbsent(int key, V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			// 值为null的既有条目按Map契约视为absent：写入新值
@@ -242,7 +241,7 @@ public class IntHashMap<V> implements Cloneable {
 			return oldV;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final int k = kt[i];
@@ -263,7 +262,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V computeIfAbsent(int key, @NotNull IntFunction<? extends V> mappingFunction) {
+	public @Nullable V computeIfAbsent(int key, IntFunction<? extends @Nullable V> mappingFunction) {
 		if (key == 0) {
 			V v = zeroValue;
 			// 值为null的既有条目按Map契约视为absent：需要重算；
@@ -281,7 +280,7 @@ public class IntHashMap<V> implements Cloneable {
 			return v;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final int k = kt[i];
@@ -309,7 +308,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public @Nullable V replace(int key, @Nullable V value) {
+	public @Nullable V replace(int key, V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			if (hasZeroKey)
@@ -317,7 +316,7 @@ public class IntHashMap<V> implements Cloneable {
 			return oldV;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final int k = kt[i];
@@ -331,7 +330,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public boolean replace(int key, @Nullable V oldValue, @Nullable V newValue) {
+	public boolean replace(int key, @Nullable V oldValue, V newValue) {
 		if (key == 0) {
 			if (!hasZeroKey || !Objects.equals(oldValue, zeroValue))
 				return false;
@@ -339,7 +338,7 @@ public class IntHashMap<V> implements Cloneable {
 			return true;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = hash(key), m = mask; ; i = (i + 1) & m) {
 			final int k = kt[i];
 			if (k == key) {
@@ -353,11 +352,11 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public interface IntObjectFunction<V> {
-		@Nullable V apply(int key, V value);
+	public interface IntObjectFunction<V extends @Nullable Object> {
+		@Nullable V apply(int key, @Nullable V value);
 	}
 
-	public V compute(int key, @NotNull IntObjectFunction<V> op) {
+	public @Nullable V compute(int key, IntObjectFunction<V> op) {
 		if (key == 0) {
 			final V oldV = hasZeroKey ? zeroValue : null;
 			final V v = op.apply(key, oldV);
@@ -379,7 +378,7 @@ public class IntHashMap<V> implements Cloneable {
 			return v;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = hash(key), m = mask; ; i = (i + 1) & m) {
 			final int k = kt[i];
 			if (k == key) {
@@ -425,7 +424,7 @@ public class IntHashMap<V> implements Cloneable {
 			return oldV;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		int i;
 		for (i = hash(key); ; i = (i + 1) & m) {
@@ -460,7 +459,7 @@ public class IntHashMap<V> implements Cloneable {
 			return true;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		int i;
 		for (i = hash(key); ; i = (i + 1) & m) {
@@ -529,10 +528,10 @@ public class IntHashMap<V> implements Cloneable {
 		mask = m;
 		shift = Long.numberOfLeadingZeros(m);
 		final int[] kt = new int[newSize];
-		@SuppressWarnings("unchecked") final V[] vt = (V[])new Object[newSize];
+		@SuppressWarnings("unchecked") final @Nullable V[] vt = (V[])new Object[newSize];
 		if (size != 0) {
 			final int[] oldKt = keyTable;
-			final V[] oldVt = valueTable;
+			final @Nullable V[] oldVt = valueTable;
 			for (int j = 0, n = oldKt.length; j < n; j++) {
 				final int k = oldKt[j];
 				if (k != 0) {
@@ -550,7 +549,7 @@ public class IntHashMap<V> implements Cloneable {
 		valueTable = vt;
 	}
 
-	public void foreachKey(@NotNull IntConsumer consumer) {
+	public void foreachKey(IntConsumer consumer) {
 		if (hasZeroKey)
 			consumer.accept(0);
 		for (final int k : keyTable)
@@ -558,41 +557,47 @@ public class IntHashMap<V> implements Cloneable {
 				consumer.accept(k);
 	}
 
-	public void foreachValue(@NotNull Consumer<V> consumer) {
+	public void foreachValue(Consumer<? super V> consumer) {
 		if (hasZeroKey)
 			consumer.accept(zeroValue);
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = 0, n = kt.length; i < n; i++)
 			if (kt[i] != 0)
 				consumer.accept(vt[i]);
 	}
 
-	public interface IntObjectConsumer<V> {
+	public interface IntObjectConsumer<V extends @Nullable Object> {
 		void accept(int key, V value);
 	}
 
-	public void foreach(@NotNull IntObjectConsumer<V> consumer) {
+	// Called only for present keys. Nullable slots represent both absent keys and nullable V values.
+	private V valueForPresentKey(@Nullable V value) {
+		return value;
+	}
+
+	// A present key guarantees a V value; the nullable array component also represents empty slots.
+	public void foreach(IntObjectConsumer<? super V> consumer) {
 		if (hasZeroKey)
-			consumer.accept(0, zeroValue);
+			consumer.accept(0, valueForPresentKey(zeroValue));
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = 0, n = kt.length; i < n; i++) {
 			final int k = kt[i];
 			if (k != 0)
-				consumer.accept(k, vt[i]);
+				consumer.accept(k, valueForPresentKey(vt[i]));
 		}
 	}
 
-	public interface IntObjectMapPredicate<V> {
-		boolean test(@NotNull IntHashMap<V> map, int key, V value);
+	public interface IntObjectMapPredicate<V extends @Nullable Object> {
+		boolean test(IntHashMap<V> map, int key, V value);
 	}
 
-	public boolean foreachTest(@NotNull IntObjectMapPredicate<V> tester) {
+	public boolean foreachTest(IntObjectMapPredicate<V> tester) {
 		if (hasZeroKey && !tester.test(this, 0, zeroValue))
 			return false;
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = 0, n = kt.length; i < n; i++) {
 			final int k = kt[i];
 			if (k != 0 && !tester.test(this, k, vt[i]))
@@ -601,7 +606,7 @@ public class IntHashMap<V> implements Cloneable {
 		return true;
 	}
 
-	public void foreachUpdate(@NotNull IntObjectFunction<V> func) {
+	public void foreachUpdate(IntObjectFunction<V> func) {
 		if (hasZeroKey) {
 			final V oldV = zeroValue;
 			final V v = func.apply(0, oldV);
@@ -614,7 +619,7 @@ public class IntHashMap<V> implements Cloneable {
 				zeroValue = v;
 		}
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		// 两遍：第一遍只应用func（更新值、记录返回null的待删除key），第二遍用remove统一做结构删除。
 		// 原实现就地backward-shift删除会把同探测链的后续条目搬进已遍历区域，导致func跳过它们。
 		int[] removedKeys = null;
@@ -667,12 +672,12 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public @NotNull Iterator iterator() {
+	public Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public @NotNull IntHashMap<V> clone() throws CloneNotSupportedException {
+	public IntHashMap<V> clone() throws CloneNotSupportedException {
 		@SuppressWarnings("unchecked") final IntHashMap<V> map = (IntHashMap<V>)super.clone();
 		map.keyTable = keyTable.clone();
 		map.valueTable = valueTable.clone();
@@ -683,7 +688,7 @@ public class IntHashMap<V> implements Cloneable {
 	public int hashCode() {
 		int h = 0;
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = 0, n = kt.length; i < n; i++) {
 			final int k = kt[i];
 			if (k != 0)
@@ -704,7 +709,7 @@ public class IntHashMap<V> implements Cloneable {
 				|| hasZeroKey && !Objects.equals(zeroValue, im.zeroValue))
 			return false;
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = 0, n = kt.length; i < n; i++) {
 			final int k = kt[i];
 			if (k != 0 && !im.contains(k, vt[i]))
@@ -714,12 +719,12 @@ public class IntHashMap<V> implements Cloneable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		if (size == 0)
 			return "{}";
 		final StringBuilder sb = new StringBuilder(32).append('{');
 		final int[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int n = kt.length;
 		int k, i = 0;
 		if (hasZeroKey)

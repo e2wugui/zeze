@@ -36,9 +36,9 @@ import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Args.requireValue;
 
 /**
@@ -50,10 +50,10 @@ public class Test {
 
 	private String raftConfigFileName = "raft.xml";
 	private final ConcurrentHashMap<String, TestRaft> rafts = new ConcurrentHashMap<>();
-	private Agent agent;
+	private @Nullable Agent agent;
 	private final AtomicLong expectCount = new AtomicLong();
 	private final LongHashMap<Long> errors = new LongHashMap<>();
-	private Future<?> snapshotTimer;
+	private @Nullable Future<?> snapshotTimer;
 	private final ArrayList<FailAction> failActions = new ArrayList<>();
 	private boolean running = true;
 
@@ -99,7 +99,7 @@ public class Test {
 	}
 
 	// dump装载源：最大index的gen快照（不持LogSequence实例无法问指针），回退legacy名。
-	private static Path findDumpSnapshot(String dbHome) {
+	private static @Nullable Path findDumpSnapshot(String dbHome) {
 		Path best = null;
 		long bestIndex = -1;
 		var files = new File(dbHome).listFiles();
@@ -154,7 +154,7 @@ public class Test {
 
 		if (command.equals("RaftDump")) {
 			for (var node : raftConfigStart.getNodes().values())
-				logDump(String.format("%s_%d", node.getHost(), node.getPort()), raftConfigStart.getName());
+				logDump(String.format("%s_%d", node.getHost(), node.getPort()), Objects.requireNonNull(raftConfigStart.getName()));
 			return;
 		}
 
@@ -167,11 +167,11 @@ public class Test {
 		}
 
 		for (var raft : rafts.values())
-			raft.raft.getServer().start();
+			Objects.requireNonNull(raft.raft).getServer().start();
 
 		agent = new Agent("Zeze.Raft.Agent.Test", raftConfigStart);
 		Agent.NetClient client = agent.getClient();
-		client.AddFactoryHandle(AddCount.TypeId_, new Service.ProtocolFactoryHandle<>(AddCount::new));
+		Objects.requireNonNull(client).AddFactoryHandle(AddCount.TypeId_, new Service.ProtocolFactoryHandle<>(AddCount::new));
 		client.AddFactoryHandle(GetCount.TypeId_, new Service.ProtocolFactoryHandle<>(GetCount::new));
 		client.start();
 
@@ -216,7 +216,7 @@ public class Test {
 		while (true) {
 			try {
 				var r = new GetCount();
-				agent.sendForWait(r).await();
+				Objects.requireNonNull(agent).sendForWait(r).await();
 				if (!r.isTimeout() && r.getResultCode() == 0)
 					return r.Result.count;
 			} catch (Exception ignored) {
@@ -277,7 +277,7 @@ public class Test {
 			try {
 				var req = new AddCount();
 				req.setTimeout(3600_000);
-				tasks.add(agent.sendForWait(req));
+				tasks.add(Objects.requireNonNull(agent).sendForWait(req));
 				requests.add(req);
 			} catch (Exception e) {
 				//发送错误不统计。
@@ -320,7 +320,7 @@ public class Test {
 	public void runTrace() throws Exception {
 		// 基本测试
 		logger.debug("基本测试");
-		agent.sendForWait(new AddCount()).await();
+		Objects.requireNonNull(agent).sendForWait(new AddCount()).await();
 		expectCount.incrementAndGet();
 		checkCurrentCount("TestAddCount");
 
@@ -354,7 +354,7 @@ public class Test {
 		logger.debug("Leader节点重启网络，【选举】");
 		{
 			var leader = getLeader();
-			leader.raft.getServer().stop();
+			Objects.requireNonNull(leader.raft).getServer().stop();
 			TaskSpec.ofAction(leader.raft.getServer()::start)
 					.schedule(leader.raft.getRaftConfig().getElectionTimeoutMax());
 		}
@@ -383,7 +383,7 @@ public class Test {
 		logger.debug("Leader节点重启");
 		{
 			var leader = getLeader();
-			var StartDelay = leader.raft.getRaftConfig().getElectionTimeoutMax();
+			var StartDelay = Objects.requireNonNull(leader.raft).getRaftConfig().getElectionTimeoutMax();
 			leader.stopRaft();
 			TaskSpec.ofAction(leader::startRaft).schedule(StartDelay);
 		}
@@ -392,7 +392,7 @@ public class Test {
 		// Snapshot & Load
 		{
 			var leader = getLeader();
-			leader.raft.getLogSequence().snapshot();
+			Objects.requireNonNull(leader.raft).getLogSequence().snapshot();
 			leader.stopRaft();
 			leader.startRaft();
 		}
@@ -428,7 +428,7 @@ public class Test {
 		failActions.add(new FailAction("RestartLeaderNetForVote", () ->
 		{
 			var leader = getLeader();
-			leader.raft.getServer().stop();
+			Objects.requireNonNull(leader.raft).getServer().stop();
 			// delay for vote
 			Thread.sleep(leader.raft.getRaftConfig().getElectionTimeoutMax());
 			leader.raft.getServer().start();
@@ -460,7 +460,7 @@ public class Test {
 		failActions.add(new FailAction("RestartLeaderRaftForVote", () ->
 		{
 			var leader = getLeader();
-			var startVoteDelay = leader.raft.getRaftConfig().getElectionTimeoutMax();
+			var startVoteDelay = Objects.requireNonNull(leader.raft).getRaftConfig().getElectionTimeoutMax();
 			leader.stopRaft();
 			// delay for vote
 			Thread.sleep(startVoteDelay);
@@ -538,6 +538,7 @@ public class Test {
 		}
 	}
 
+	@SuppressWarnings("ConstantConditions") // Preserve defensive lifecycle checks in the fault-injection harness.
 	private void randomTriggerFailActions() throws Exception {
 		while (running) {
 			var fa = failActions.get(Random.getInstance().nextInt(failActions.size()));
@@ -587,7 +588,7 @@ public class Test {
 	private ArrayList<TestRaft> getNodeNotLeaders() {
 		var NotLeader = new ArrayList<TestRaft>();
 		for (var raft : rafts.values()) {
-			if (!raft.raft.isLeader())
+			if (!Objects.requireNonNull(raft.raft).isLeader())
 				NotLeader.add(raft);
 		}
 		return NotLeader;
@@ -695,7 +696,7 @@ public class Test {
 
 		public void addCountAndWait(Test.AddCount req) {
 			req.Result.count = count;
-			getRaft().appendLog(new AddCount(req), req.Result);
+			Objects.requireNonNull(getRaft()).appendLog(new AddCount(req), req.Result);
 		}
 
 		public static final class AddCount extends Log {
@@ -706,7 +707,7 @@ public class Test {
 				return TypeId_;
 			}
 
-			public AddCount(IRaftRpc req) {
+			public AddCount(@Nullable IRaftRpc req) {
 				super(req);
 			}
 
@@ -717,12 +718,12 @@ public class Test {
 			}
 
 			@Override
-			public void encode(@NotNull ByteBuffer bb) {
+			public void encode(ByteBuffer bb) {
 				super.encode(bb);
 			}
 
 			@Override
-			public void decode(@NotNull IByteBuffer bb) {
+			public void decode(IByteBuffer bb) {
 				super.decode(bb);
 			}
 		}
@@ -738,14 +739,15 @@ public class Test {
 		@Override
 		public void loadSnapshot(String path) throws IOException {
 			_loadSnapshot(path);
-			logger.info("{} LoadSnapshot Count={}", getRaft().getName(), count);
+			logger.info("{} LoadSnapshot Count={}", Objects.requireNonNull(getRaft()).getName(), count);
 		}
 
 		// 这里没有处理重入，调用者需要保证。
 		@Override
+		@SuppressWarnings("ConstantConditions") // Preserve defensive snapshot checks in the fault-injection harness.
 		public SnapshotResult snapshot(String path) throws IOException, RocksDBException {
 			SnapshotResult result = new SnapshotResult();
-			getRaft().lock();
+			Objects.requireNonNull(getRaft()).lock();
 			try {
 				if (getRaft().getLogSequence() != null) {
 					var lastAppliedLog = getRaft().getLogSequence().lastAppliedLogTermIndex();
@@ -769,8 +771,8 @@ public class Test {
 	}
 
 	public static class TestRaft extends ReentrantLock {
-		private Raft raft;
-		private TestStateMachine stateMachine;
+		private @Nullable Raft raft;
+		private @Nullable TestStateMachine stateMachine;
 		private final String raftConfigFileName;
 		private final String raftName;
 
@@ -784,11 +786,11 @@ public class Test {
 			}
 		}
 
-		public Raft getRaft() {
+		public @Nullable Raft getRaft() {
 			return raft;
 		}
 
-		public TestStateMachine getStateMachine() {
+		public @Nullable TestStateMachine getStateMachine() {
 			return stateMachine;
 		}
 
@@ -907,10 +909,10 @@ public class Test {
 		}
 
 		private long processAddCount(AddCount r) {
-			if (!raft.isLeader())
+			if (!Objects.requireNonNull(raft).isLeader())
 				return Procedure.RaftRetry; // fast fail
 
-			TestStateMachine sm = stateMachine;
+			TestStateMachine sm = Objects.requireNonNull(stateMachine);
 			sm.lock();
 			try {
 				sm.addCountAndWait(r);
@@ -923,7 +925,7 @@ public class Test {
 
 		@SuppressWarnings("SameReturnValue")
 		private long processGetCount(GetCount r) {
-			stateMachine.lock();
+			Objects.requireNonNull(stateMachine).lock();
 			try {
 				r.Result.count = stateMachine.count;
 				r.SendResult();

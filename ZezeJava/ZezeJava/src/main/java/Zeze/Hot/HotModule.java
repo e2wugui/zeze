@@ -2,6 +2,7 @@ package Zeze.Hot;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -13,6 +14,7 @@ import Zeze.Util.Action1;
 import Zeze.Util.ConcurrentHashSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 // 目录管理规则
 // 1. 目录是一个模块目录时，开启一个新的热更单位；
@@ -22,21 +24,21 @@ import org.apache.logging.log4j.Logger;
 public class HotModule extends ClassLoader implements AutoCloseable, GenModule.RedirectClassSink {
 	private static final Logger logger = LogManager.getLogger(HotModule.class);
 	private final File jarFile;
-	private JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
-	private final Class<?> moduleClass;
-	private HotService service;
+	private @Nullable JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
+	private final @Nullable Class<?> moduleClass;
+	private @Nullable HotService service;
 	private final boolean isLoadSchemas;
 	// isLoadSchemas时强制从本jar装载的类名（solutionName + ".Schemas"）。
 	// solution名不一定是"Game"，不能硬编码：写死会把非Game命名的solution的
 	// Schemas类走双亲委派命中冷类路径上的旧类，schema热更静默失效。
-	private final String schemasClassName;
+	private final @Nullable String schemasClassName;
 
 	// 每个版本的接口一个上下文。
 	private final ConcurrentHashMap<Class<?>, HotModuleContext<?>> contexts = new ConcurrentHashMap<>();
 	public final ConcurrentHashSet<Action1<HotModule>> stopEvents = new ConcurrentHashSet<>();
 
 	// 为了支持批量装载redirect.class，构造只初始化moduleClass，service下一步处理。
-	public HotModule(HotManager parent, String namespace, File jarFile) throws Exception {
+	public HotModule(@Nullable HotManager parent, String namespace, File jarFile) throws Exception {
 		super(namespace, parent);
 		this.jarFile = jarFile;
 		// App.ModuleClassName：MySolution.MyName.ModuleMyName，namespace=MySolution.MyName
@@ -73,7 +75,7 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 		return jar;
 	}
 
-	Class<?> getModuleClass() {
+	@Nullable Class<?> getModuleClass() {
 		return moduleClass;
 	}
 
@@ -91,7 +93,7 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 		return (HotModuleContext<T>)contexts.computeIfAbsent(serviceClass, (key) -> new HotModuleContext<T>(this));
 	}
 
-	public HotService getService() {
+	public @Nullable HotService getService() {
 		return service;
 	}
 
@@ -99,7 +101,7 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 	public void start() throws Exception {
 		if (null == this.jar)
 			this.jar = new JarFile(jarFile);
-		service.start();
+		Objects.requireNonNull(service).start();
 		// 安装过程中可能需要重启，因为停止时清除了引用，这里需要重新设置。
 		for (var context : contexts.values()) {
 			context.setModule(this);
@@ -107,7 +109,7 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 	}
 
 	public void startLast() throws Exception {
-		service.startLast();
+		Objects.requireNonNull(service).startLast();
 	}
 
 	void disable() {
@@ -135,14 +137,14 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 	public void stop() throws Exception {
 		// app Unregister
 		var iModule = (IModule)service;
-		iModule.UnRegister();
+		Objects.requireNonNull(iModule).UnRegister();
 		// app stop
-		service.stop();
+		Objects.requireNonNull(service).stop();
 		close();
 	}
 
 	public void stopBefore() throws Exception {
-		service.stopBefore();
+		Objects.requireNonNull(service).stopBefore();
 	}
 
 	// 先用这个类管理所有热更需求。
@@ -151,7 +153,7 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 		for (var context : contexts.values()) {
 			context.setModule(this);
 		}
-		service.upgrade(old.service);
+		Objects.requireNonNull(service).upgrade(Objects.requireNonNull(old.service));
 	}
 
 	@Override

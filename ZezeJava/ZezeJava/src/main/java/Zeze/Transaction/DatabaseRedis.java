@@ -15,8 +15,7 @@ import Zeze.Util.KV;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -33,11 +32,11 @@ import redis.clients.jedis.params.SetParams;
 // hget, hset, hdel, hscan
 // multi, exec, discard
 public class DatabaseRedis extends Database {
-	private static final @NotNull Logger logger = LogManager.getLogger(DatabaseRedis.class);
+	private static final Logger logger = LogManager.getLogger(DatabaseRedis.class);
 
-	private final @NotNull JedisPool pool;
+	private final JedisPool pool;
 
-	public DatabaseRedis(@Nullable Application zeze, @NotNull Config.DatabaseConf conf) {
+	public DatabaseRedis(@Nullable Application zeze, Config.DatabaseConf conf) {
 		super(zeze, conf);
 		try {
 			logger.info("open: {}", getDatabaseUrl());
@@ -65,31 +64,31 @@ public class DatabaseRedis extends Database {
 	}
 
 	@Override
-	public @NotNull Table openTable(@NotNull String name, int id) {
+	public Table openTable(String name, int id) {
 		return new RedisTable(name);
 	}
 
 	@Override
-	public @NotNull Transaction beginTransaction() {
+	public Transaction beginTransaction() {
 		return new RedisTransaction(pool);
 	}
 
 	public static final class RedisTransaction implements Transaction {
-		private final @NotNull Jedis jedis;
-		private final @NotNull redis.clients.jedis.Transaction jedisTrans;
+		private final Jedis jedis;
+		private final redis.clients.jedis.Transaction jedisTrans;
 		private int n;
 
-		public RedisTransaction(@NotNull JedisPool pool) {
+		public RedisTransaction(JedisPool pool) {
 			jedis = pool.getResource();
 			jedisTrans = new redis.clients.jedis.Transaction(jedis);
 		}
 
-		public void replace(byte @NotNull [] table, byte @NotNull [] key, byte @NotNull [] value) {
+		public void replace(byte [] table, byte [] key, byte [] value) {
 			jedisTrans.hset(table, key, value);
 			n++;
 		}
 
-		public void remove(byte @NotNull [] table, byte @NotNull [] key) {
+		public void remove(byte [] table, byte [] key) {
 			jedisTrans.hdel(table, key);
 			n++;
 		}
@@ -130,10 +129,10 @@ public class DatabaseRedis extends Database {
 	}
 
 	public final class RedisTable extends AbstractKVTable {
-		private final byte @NotNull [] keyOfSet;
-		private final @NotNull String name;
+		private final byte [] keyOfSet;
+		private final String name;
 
-		public RedisTable(@NotNull String name) {
+		public RedisTable(String name) {
 			this.name = name;
 			keyOfSet = name.getBytes(StandardCharsets.UTF_8);
 		}
@@ -144,7 +143,7 @@ public class DatabaseRedis extends Database {
 		}
 
 		@Override
-		public @NotNull Database getDatabase() {
+		public Database getDatabase() {
 			return DatabaseRedis.this;
 		}
 
@@ -153,7 +152,7 @@ public class DatabaseRedis extends Database {
 		}
 
 		@Override
-		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+		public @Nullable ByteBuffer find(ByteBuffer key) {
 			checkKvKeyLengthForLegacyAccess(name, key);
 			try (var jedis = pool.getResource()) {
 				var value = jedis.hget(keyOfSet, key.CopyIf());
@@ -162,21 +161,21 @@ public class DatabaseRedis extends Database {
 		}
 
 		@Override
-		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			checkKvKeyLength(name, key);
 			var redisT = (RedisTransaction)t;
 			redisT.replace(keyOfSet, key.CopyIf(), value.CopyIf());
 		}
 
 		@Override
-		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			checkKvKeyLengthForLegacyAccess(name, key);
 			var redisT = (RedisTransaction)t;
 			redisT.remove(keyOfSet, key.CopyIf());
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			var count = 0L;
 			var cursor = ScanParams.SCAN_POINTER_START_BINARY;
 			try (var jedis = pool.getResource()) {
@@ -195,51 +194,51 @@ public class DatabaseRedis extends Database {
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			return walk((key, value) -> callback.handle(key));
 		}
 
 		@Override
-		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
+		public long walkDesc(TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
+		public long walkKeyDesc(TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
 		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-										 @NotNull TableWalkHandleRaw callback) {
+										 TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											@NotNull TableWalkKeyRaw callback) {
+											TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											 @NotNull TableWalkHandleRaw callback) {
+											 TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												@NotNull TableWalkKeyRaw callback) {
+												TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 	}
 
 	public static final class InUse implements Serializable {
 		public final IntHashSet instances = new IntHashSet();
-		public String global;
+		public @Nullable String global;
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteUInt(instances.size());
 			for (var it = instances.iterator(); it.moveToNext(); )
 				bb.WriteInt(it.value());
@@ -247,20 +246,20 @@ public class DatabaseRedis extends Database {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			for (var count = bb.ReadUInt(); count > 0; count--)
 				instances.add(bb.ReadInt());
 			global = bb.ReadString();
 		}
 
-		public static @NotNull InUse decode(byte @Nullable [] bytes) {
+		public static InUse decode(byte @Nullable [] bytes) {
 			var inUse = new InUse();
 			if (bytes != null)
 				inUse.decode(ByteBuffer.Wrap(bytes));
 			return inUse;
 		}
 
-		public @NotNull ByteBuffer encode() {
+		public ByteBuffer encode() {
 			var bb = ByteBuffer.Allocate();
 			encode(bb);
 			return bb;
@@ -268,8 +267,8 @@ public class DatabaseRedis extends Database {
 	}
 
 	public static final class OperatesRedis implements Operates {
-		private static final byte @NotNull [] keyDataVersion = "_ZezeDataWithVersion_".getBytes(StandardCharsets.UTF_8);
-		private static final byte @NotNull [] keyInUse = "_ZezeInstances_".getBytes(StandardCharsets.UTF_8);
+		private static final byte [] keyDataVersion = "_ZezeDataWithVersion_".getBytes(StandardCharsets.UTF_8);
+		private static final byte [] keyInUse = "_ZezeInstances_".getBytes(StandardCharsets.UTF_8);
 		private static final String lockKey = "_Zeze_Redis_Global_Lock_";
 		// 全局锁的租期：必须显著大于持锁窗口的最坏耗时（atomicOpenDatabase 全程，含 renameTable
 		// 与大表 tryAlter，分钟级），避免正常启动期间锁被误过期导致两实例并发进入 schemasCompatible；
@@ -277,15 +276,15 @@ public class DatabaseRedis extends Database {
 		// 每秒轮询 tryLock，锁到期后自动获取，无需再人工 redis-cli DEL。
 		private static final int LOCK_LEASE_SECONDS = 600;
 
-		private final @NotNull JedisPool pool;
+		private final JedisPool pool;
 		private final ReentrantLockHelper lockHelper = new ReentrantLockHelper();
 
-		public OperatesRedis(@NotNull JedisPool pool) {
+		public OperatesRedis(JedisPool pool) {
 			this.pool = pool;
 		}
 
 		@Override
-		public void setInUse(int localId, @NotNull String global) {
+		public void setInUse(int localId, String global) {
 			for (int i = 0; i < 64; ++i) {
 				if (tryLock()) {
 					try (var jedis = pool.getResource()) {
@@ -326,7 +325,7 @@ public class DatabaseRedis extends Database {
 		// Daemon 自动重启，clearInUse 将 64 次（约 9.6s）耗尽失败→启动短命退出→
 		// Daemon 按 MinAliveTime 判定终结守护，需人工重启——响亮失败优于无界停摆。
 		@Override
-		public int clearInUse(int localId, @NotNull String global) {
+		public int clearInUse(int localId, String global) {
 			for (int i = 0; i < 64; ++i) {
 				if (tryLock()) {
 					try (var jedis = pool.getResource()) {
@@ -398,7 +397,7 @@ public class DatabaseRedis extends Database {
 				""";
 
 		@Override
-		public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
 																  long version) {
 			try (var jedis = pool.getResource()) {
 				var dv = new DataWithVersion();
@@ -419,13 +418,13 @@ public class DatabaseRedis extends Database {
 		}
 
 		@Override
-		public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
+		public @Nullable DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try (var jedis = pool.getResource()) {
 				return getDataWithVersion(jedis, key.CopyIf());
 			}
 		}
 
-		private static @Nullable DataWithVersion getDataWithVersion(@NotNull Jedis jedis, byte @NotNull [] field) {
+		private static @Nullable DataWithVersion getDataWithVersion(Jedis jedis, byte [] field) {
 			var value = jedis.hget(keyDataVersion, field);
 			if (value == null)
 				return null; // no data version

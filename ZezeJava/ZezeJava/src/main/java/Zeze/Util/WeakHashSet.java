@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.lang.ref.WeakReference;
+import org.jspecify.annotations.Nullable;
 
 // 弱引用元素 Set：条目随元素被 GC 自动清除（派生自 WeakHashMap 的设计）
 public final class WeakHashSet<K> {
@@ -24,7 +25,7 @@ public final class WeakHashSet<K> {
 	 * The table, resized as necessary. Length MUST Always be a power of two.
 	 */
 	@SuppressWarnings("rawtypes")
-	private Entry[] table;
+	private @Nullable Entry[] table;
 
 	/**
 	 * The number of key-value mappings contained in this weak hash map.
@@ -152,8 +153,8 @@ public final class WeakHashSet<K> {
 	 *
 	 * @see #add(Object)
 	 */
-	@SuppressWarnings("unchecked")
-	public K get(final K k) {
+	@SuppressWarnings({"unchecked", "ConstantConditions"})
+	public @Nullable K get(final K k) {
 		if (k == null)
 			throw new NullPointerException();
 		int h = hash(k.hashCode());
@@ -191,7 +192,7 @@ public final class WeakHashSet<K> {
 	 *
 	 * @return the added element or the old element if an equal one exists
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	public K add(final K k) {
 		if (k == null)
 			throw new NullPointerException();
@@ -244,7 +245,7 @@ public final class WeakHashSet<K> {
 			return;
 		}
 		int n2 = n + n;
-		Entry[] dest = new Entry[n2];
+		@Nullable Entry[] dest = new Entry[n2];
 		/* Transfers all entries from table to dest tables */
 		for (Entry<K> entry : table) {
 			Entry<K> e = entry;
@@ -272,12 +273,12 @@ public final class WeakHashSet<K> {
 	 */
 	private static final class Entry<K> extends WeakReference<K> {
 		private final int hash;
-		private Entry<K> next;
+		private @Nullable Entry<K> next;
 
 		/**
 		 * Creates new entry.
 		 */
-		Entry(K key, int hash, Entry<K> next) {
+		Entry(K key, int hash, @Nullable Entry<K> next) {
 			super(key);
 			this.hash = hash;
 			this.next = next;

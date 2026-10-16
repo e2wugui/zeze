@@ -1,7 +1,6 @@
 package Zeze.Util;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // int 输出参数包装（模拟 C# out 参数）
 public class OutInt {
@@ -25,7 +24,7 @@ public class OutInt {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.valueOf(value);
 	}
 }

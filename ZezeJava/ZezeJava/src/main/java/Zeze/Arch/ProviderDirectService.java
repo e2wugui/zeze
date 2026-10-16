@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.net.ServerSocket;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
@@ -23,28 +25,31 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provider之间直连网络管理服务。
  */
 public class ProviderDirectService extends HandshakeBoth {
-	private static final @NotNull Logger logger = LogManager.getLogger(ProviderDirectService.class);
+	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
 
-	protected ProviderApp providerApp;
+	protected @Nullable ProviderApp providerApp;
+
+	protected final ProviderApp requireProviderApp() {
+		return Objects.requireNonNull(providerApp, "provider is not attached to an application");
+	}
 	public final ConcurrentHashMap<String, ProviderSession> providerByLoadName = new ConcurrentHashMap<>();
 	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
 
-	public ProviderDirectService(@NotNull String name, @NotNull Application zeze) {
+	public ProviderDirectService(String name, Application zeze) {
 		super(name, zeze);
 	}
 
-	public void removeServer(@NotNull BServiceInfo pm) {
+	public void removeServer(BServiceInfo pm) {
 		lock();
 		try {
-			var ss = providerApp.zeze.getServiceManager().getSubscribeStates().get(pm.getServiceName());
+			var ss = Objects.requireNonNull(requireProviderApp().zeze.getServiceManager()).getSubscribeStates().get(pm.getServiceName());
 			if (null != ss) {
 				var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
 				var conn = getConfig().findConnector(connName);
@@ -67,7 +72,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 	}
 
-	public void addServer(@NotNull BServiceInfo pm) {
+	public void addServer(BServiceInfo pm) {
 		lock();
 		try {
 			var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
@@ -75,14 +80,14 @@ public class ProviderDirectService extends HandshakeBoth {
 			if (ps != null) {
 				// connection has ready.
 				var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
-				// providerApp.modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
+				// requireProviderApp().modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
 				// 锁序：PDS锁→providerApp锁，单向，无反向路径。只锁读取，setReady保持锁外。
 				BModule.Data m;
-				providerApp.lock();
+				requireProviderApp().lock();
 				try {
-					m = providerApp.modules.get(mid);
+					m = requireProviderApp().modules.get(mid);
 				} finally {
-					providerApp.unlock();
+					requireProviderApp().unlock();
 				}
 				if (m != null)
 					setReady(pm.getServiceName(), pm, ps, mid, m);
@@ -93,16 +98,16 @@ public class ProviderDirectService extends HandshakeBoth {
 			if (pm.getServiceIdentity().startsWith("@")) // from linkd
 				return;
 			var serverId = Integer.parseInt(pm.getServiceIdentity());
-			if (serverId < getZeze().getConfig().getServerId())
+			if (serverId < Objects.requireNonNull(getZeze()).getConfig().getServerId())
 				return;
-			if (serverId == getZeze().getConfig().getServerId()) {
-				setRelativeServiceReady(newSession(serverId), providerApp.directIp, providerApp.directPort);
+			if (serverId == Objects.requireNonNull(getZeze()).getConfig().getServerId()) {
+				setRelativeServiceReady(newSession(serverId), requireProviderApp().directIp, requireProviderApp().directPort);
 				return;
 			}
 			var out = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 				// 新建的Connector。开始连接。
-				out.value.userState = newSession(serverId);
+				Objects.requireNonNull(out.value).userState = newSession(serverId);
 				out.value.start();
 			}
 		} finally {
@@ -111,21 +116,21 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public @NotNull ProviderSession newSession(int serverId) {
+	public ProviderSession newSession(int serverId) {
 		var session = new ProviderSession();
 		session.serverId = serverId;
 		return session;
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public @NotNull ProviderSession newSession(@NotNull AsyncSocket so) {
+	public ProviderSession newSession(AsyncSocket so) {
 		var session = new ProviderSession();
 		session.sessionId = so.getSessionId();
 		return session;
 	}
 
 	@Override
-	public void OnSocketAccept(@NotNull AsyncSocket so) {
+	public void OnSocketAccept(AsyncSocket so) {
 		if (so.getConnector() == null) {
 			// 被动连接等待对方报告信息时再处理。
 			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
@@ -135,7 +140,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		// call base
 		super.OnHandshakeDone(so);
 
@@ -143,13 +148,13 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (c != null) {
 			// 主动连接。
 			var ps = (ProviderSession)so.getUserState();
-			ps.sessionId = so.getSessionId();
+			Objects.requireNonNull(ps).sessionId = so.getSessionId();
 			setRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
 
 			var r = new AnnounceProviderInfo();
-			r.Argument.setIp(providerApp.directIp);
-			r.Argument.setPort(providerApp.directPort);
-			r.Argument.setServerId(providerApp.zeze.getConfig().getServerId());
+			r.Argument.setIp(Objects.requireNonNull(requireProviderApp().directIp));
+			r.Argument.setPort(requireProviderApp().directPort);
+			r.Argument.setServerId(requireProviderApp().zeze.getConfig().getServerId());
 			r.Send(so, (_r) -> 0L); // skip result
 		}
 	}
@@ -165,19 +170,19 @@ public class ProviderDirectService extends HandshakeBoth {
 			waitDirectServerReady(serverId, callback);
 			future.await(timeout);
 		} finally {
-			serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).remove(callback);
+			Objects.requireNonNull(serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>())).remove(callback);
 		}
 	}
 
-	public void waitDirectServerReady(int serverId, @NotNull Action0 callback) {
+	public void waitDirectServerReady(int serverId, Action0 callback) {
 		lock();
 		try {
 			var ps = providerByServerId.get(serverId);
 			var socket = ps != null ? GetSocket(ps.getSessionId()) : null;
 			boolean local = ps != null && ps.getSessionId() == 0
-					&& serverId == getZeze().getConfig().getServerId();
+					&& serverId == Objects.requireNonNull(getZeze()).getConfig().getServerId();
 			if (!local && (socket == null || socket.isClosed())) {
-				serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
+				Objects.requireNonNull(serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>())).add(callback);
 				return;
 			}
 		} finally {
@@ -195,7 +200,7 @@ public class ProviderDirectService extends HandshakeBoth {
 
 	// under lock
 	private void notifyServerReady(int serverId) {
-		var watchers = serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>());
+		var watchers = Objects.requireNonNull(serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()));
 		for (var w : watchers) {
 			try {
 				w.run();
@@ -206,7 +211,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		watchers.clear();
 	}
 
-	void setRelativeServiceReady(@NotNull ProviderSession ps, @NotNull String ip, int port) {
+	void setRelativeServiceReady(ProviderSession ps, @Nullable String ip, int port) {
 		lock();
 		try {
 			ps.serverLoadIp = ip;
@@ -221,7 +226,7 @@ public class ProviderDirectService extends HandshakeBoth {
 				// （新会话从未注册），且存活的新连接不再重连/announce——注册永久丢失无法自愈。
 				// 先put再踢，读侧无空窗；被踢会话的OnSocketClose条件删除因所有权已换而空转，
 				// 不会误删现任注册。
-				if (ps.getServerId() != getZeze().getConfig().getServerId())
+				if (ps.getServerId() != Objects.requireNonNull(getZeze()).getConfig().getServerId())
 					logger.warn("setRelativeServiceReady: supersede old session {} with new {} for {}",
 							old, ps, ps.getServerLoadName());
 				providerByLoadName.put(ps.getServerLoadName(), ps);
@@ -239,21 +244,21 @@ public class ProviderDirectService extends HandshakeBoth {
 			providerByServerId.put(ps.getServerId(), ps);
 
 			// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
-			for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
-				if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
+			for (var ss : Objects.requireNonNull(Objects.requireNonNull(getZeze()).getServiceManager()).getSubscribeStates().values()) {
+				if (ss.getServiceName().startsWith(Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix))) {
 					// ps.appVersion 属于linkd侧会话（announce时设置），direct会话永远为0，
 					// 配置AppVersion后用0查版本桶会得到null导致setReady全部跳过，改用本机配置版本。
-					var infos = ss.getServiceInfos(getZeze().getConfig().getAppMainVersion());
+					var infos = ss.getServiceInfos(Objects.requireNonNull(getZeze()).getConfig().getAppMainVersion());
 					if (infos == null)
 						continue;
 					var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
-					// providerApp.modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
+					// requireProviderApp().modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
 					BModule.Data m;
-					providerApp.lock();
+					requireProviderApp().lock();
 					try {
-						m = providerApp.modules.get(mid);
+						m = requireProviderApp().modules.get(mid);
 					} finally {
-						providerApp.unlock();
+						requireProviderApp().unlock();
 					}
 					if (m == null) {
 						logger.error("setRelativeServiceReady: not found module: {}", ss.getServiceName());
@@ -274,9 +279,9 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 	}
 
-	private void setReady(@NotNull String serviceName, @NotNull BServiceInfo server, @NotNull ProviderSession ps,
-						  int mid, @NotNull BModule.Data m) {
-		var ss = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
+	private void setReady(String serviceName, BServiceInfo server, ProviderSession ps,
+						  int mid, BModule.Data m) {
+		var ss = Objects.requireNonNull(requireProviderApp().zeze.getServiceManager()).getSubscribeStates().get(serviceName);
 		if (null != ss) {
 			var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.isDynamic());
 			ps.getOrAddServiceReadyState(serviceName).put(server.getServiceIdentity(), pms);
@@ -285,11 +290,11 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public void OnSocketClose(@NotNull AsyncSocket socket, @Nullable Throwable ex) throws Exception {
+	public void OnSocketClose(AsyncSocket socket, @Nullable Throwable ex) throws Exception {
 		var ps = (ProviderSession)socket.getUserState();
 		if (ps != null) {
 			for (var service : ps.ServiceReadyStates.entrySet()) {
-				var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
+				var subs = Objects.requireNonNull(Objects.requireNonNull(getZeze()).getServiceManager()).getSubscribeStates().get(service.getKey());
 				if (subs == null)
 					continue; // 服务已取消订阅（subscribeStates条目已移除）。不判空会在下面NPE，跳过后面的清理。
 				for (var stateEntry : service.getValue().entrySet()) {
@@ -309,23 +314,23 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle,
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle,
 								 @Nullable AsyncSocket so) throws Exception {
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		p.dispatch(this, factoryHandle);
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			var r = (ModuleRedirect)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 			if (r.Argument.isNoOneByOne()) {
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 						.name(r.Argument.getMethodFullName()).dispatchMode(factoryHandle.Mode).runNow();
 			} else {
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 						.name(r.Argument.getMethodFullName())
 						.dispatchMode(factoryHandle.Mode)
 						.executeOneByOne(r.Argument.getKey());
@@ -335,18 +340,18 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
 			var r = (ModuleRedirectAllResult)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 					.name(r.Argument.getMethodFullName()).dispatchMode(factoryHandle.Mode).runNow();
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 				.dispatchMode(factoryHandle.Mode).runNow();
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle) {
+	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle) {
 		if (rpc.getTypeId() == ModuleRedirect.TypeId_) {
 			var r = (ModuleRedirect)rpc;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
@@ -366,7 +371,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public void onServerSocketBind(@NotNull ServerSocket ss) {
-		providerApp.directPort = ss.getLocalPort();
+	public void onServerSocketBind(ServerSocket ss) {
+		requireProviderApp().directPort = ss.getLocalPort();
 	}
 }

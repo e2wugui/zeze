@@ -25,11 +25,11 @@ public abstract class AbstractHttpSession implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tSession.getName()).getDatabaseName(), _tSession);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tSession.getName())).getDatabaseName(), _tSession);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tSession.getName()).getDatabaseName(), _tSession);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tSession.getName())).getDatabaseName(), _tSession);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

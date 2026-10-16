@@ -1,7 +1,6 @@
 package Zeze.Services.ServiceManager;
 
 import java.util.concurrent.atomic.AtomicLong;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 客户端侧long号段缓存：持有[start,end)号段CAS递增发放，耗尽时经Agent申请新段。
@@ -10,13 +9,13 @@ public class TidCache {
 	public static final int ALLOCATE_COUNT_MIN = 16;
 	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 
-	private final @NotNull String name;
-	private final @NotNull AbstractAgent agent;
+	private final String name;
+	private final AbstractAgent agent;
 	private final long start;
-	private final @NotNull AtomicLong current;
+	private final AtomicLong current;
 	private final long end;
 
-	public TidCache(@NotNull String name, @NotNull AbstractAgent agent, long start, int count) {
+	public TidCache(String name, AbstractAgent agent, long start, int count) {
 		this.name = name;
 		this.agent = agent;
 		this.start = start;
@@ -24,11 +23,11 @@ public class TidCache {
 		this.end = start + count;
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return name;
 	}
 
-	public @NotNull AbstractAgent getAgent() {
+	public AbstractAgent getAgent() {
 		return agent;
 	}
 

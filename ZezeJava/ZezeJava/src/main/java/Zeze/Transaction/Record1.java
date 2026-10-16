@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
@@ -12,17 +14,18 @@ import Zeze.Util.Id128;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.IGlobalAgent.AcquireResult;
+import Zeze.Transaction.Database.Transaction;
 
 /**
  * 强类型表记录实现：绑定 TableX 与具体 key，管理软引用值、LRU 节点、
  * 编码快照（encode0）与落库 flush/cleanup 生命周期。
  */
 public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
-	private static final @NotNull Logger logger = LogManager.getLogger(Record1.class);
+	private static final Logger logger = LogManager.getLogger(Record1.class);
 	private static final boolean isTraceEnabled = logger.isTraceEnabled();
-	private static final @NotNull VarHandle LRU_NODE_HANDLE;
+	private static final VarHandle LRU_NODE_HANDLE;
 
 	static {
 		try {
@@ -32,12 +35,12 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 	}
 
-	private final @NotNull TableX<K, V> table;
-	private final @NotNull K key;
-	private Object snapshotKey;
-	private Object snapshotValue;
-	private Object snapshotKeyLocal;
-	private Object snapshotValueLocal;
+	private final TableX<K, V> table;
+	private final K key;
+	private @Nullable Object snapshotKey;
+	private @Nullable Object snapshotValue;
+	private @Nullable Object snapshotKeyLocal;
+	private @Nullable Object snapshotValueLocal;
 	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
 	private @Nullable Id128 tid;
 
@@ -49,7 +52,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return tid;
 	}
 
-	public Record1(@NotNull TableX<K, V> table, @NotNull K key, @Nullable V value) {
+	public Record1(TableX<K, V> table, K key, @Nullable V value) {
 		super(value);
 		this.table = table;
 		this.key = key;
@@ -95,12 +98,12 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public @NotNull TableX<K, V> getTable() {
+	public TableX<K, V> getTable() {
 		return table;
 	}
 
 	@Override
-	public @NotNull K getObjectKey() {
+	public K getObjectKey() {
 		return key;
 	}
 
@@ -108,7 +111,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return lruNode;
 	}
 
-	void setLruNode(@NotNull ConcurrentHashMap<K, Record1<K, V>> value) {
+	void setLruNode(ConcurrentHashMap<K, Record1<K, V>> value) {
 		lruNode = value;
 	}
 
@@ -117,18 +120,18 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
 	}
 
-	boolean compareAndSetLruNodeNull(@NotNull ConcurrentHashMap<K, Record1<K, V>> c) {
+	boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
 		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.format("T=%s K=%s S=%d T=%d", table.getName(), key, getState(), getTimestamp());
 		// 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
 	}
 
 	@Override
-	public @Nullable IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait) {
+	public @Nullable AcquireResult acquire(int state, boolean fresh, boolean noWait) {
 		IGlobalAgent agent;
 		if (table.isMemory() || (agent = table.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
@@ -151,7 +154,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public void commit(@NotNull RecordAccessed accessed) {
+	public void commit(RecordAccessed accessed) {
 		enterFairLock();
 		try {
 			var committedPutLog = accessed.committedPutLog;
@@ -161,9 +164,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				// 计算内存表的大小。
 				if (table.isMemory()) {
 					if (accessed.atomicTupleRecord.strongRef() == null && committedPutLog.getValue() != null) // add
-						table.getCache().getSizeCounter().increment();
+						table.requireCache().getSizeCounter().increment();
 					else if (accessed.atomicTupleRecord.strongRef() != null && committedPutLog.getValue() == null) // remove
-						table.getCache().getSizeCounter().decrement();
+						table.requireCache().getSizeCounter().decrement();
 				}
 			}
 			setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
@@ -214,17 +217,20 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public void flush(@Nullable Database.Transaction t, @NotNull Database.Transaction lct) {
+	public void flush(@Nullable Transaction t, Database.Transaction lct) {
 		if (!getDirty())
 			return;
 
+		var snapshotKey = Objects.requireNonNull(this.snapshotKey);
+		var snapshotKeyLocal = Objects.requireNonNull(this.snapshotKeyLocal);
 		var storage = table.getStorage();
 		if (snapshotValue != null) {
 			// changed
 			if (storage != null && t != null)
 				storage.getDatabaseTable().replace(t, snapshotKey, snapshotValue);
 
-			table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
+			table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal,
+					Objects.requireNonNull(snapshotValueLocal));
 		} else {
 			// removed
 			if (storage != null && t != null)

@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,8 +33,8 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Args.requireInt;
 
 /**
@@ -79,7 +81,7 @@ public class Dbh2Manager {
 		logger.info("CreateBucket: db={}, table={}, config={}",
 				databaseName, tableName, raftConfigStr);
 		var raftConfig = RaftConfig.loadFromString(raftConfigStr);
-		var portId = Integer.parseInt(raftConfig.getName().split("_")[1]);
+		var portId = Integer.parseInt(Objects.requireNonNull(raftConfig.getName()).split("_")[1]);
 		var bucketDir = Path.of(
 				home,
 				databaseName,
@@ -95,7 +97,7 @@ public class Dbh2Manager {
 		// 原子落盘：Files.writeString默认截断，崩溃留半截xml。
 		AtomicFileWriter.writeAtomically(file.toPath(), raftConfigStr.getBytes(StandardCharsets.UTF_8));
 		dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
-			var dbh2 = new Dbh2(this, raftConfig.getName(),
+			var dbh2 = new Dbh2(this, Objects.requireNonNull(raftConfig.getName()),
 					database, raftConfig,
 					null, false, taskOneByOne);
 			proxyServer.addRaft(dbh2.getRaft());
@@ -116,7 +118,7 @@ public class Dbh2Manager {
 	// 复活。幂等：raft不存在（从未建或已销毁）也删目录并成功返回。包内可见供同包测试直驱。
 	void destroyBucket(String databaseName, String tableName, String raftConfigStr) throws IOException {
 		var raftConfig = RaftConfig.loadFromString(raftConfigStr);
-		var portId = Integer.parseInt(raftConfig.getName().split("_")[1]);
+		var portId = Integer.parseInt(Objects.requireNonNull(raftConfig.getName()).split("_")[1]);
 		var bucketDir = Path.of(home, databaseName, tableName, String.valueOf(portId));
 		logger.info("DestroyBucket: db={}, table={}, raftName='{}'", databaseName, tableName, raftConfig.getName());
 		var dbh2 = dbh2s.remove(raftConfig.getSortedNames());
@@ -139,8 +141,8 @@ public class Dbh2Manager {
 	}
 
 	public static class Service extends MasterAgent.Service {
-		private final ProxyServer proxyServer;
-		private volatile Dbh2Manager manager;
+		private final @Nullable ProxyServer proxyServer;
+		private volatile @Nullable Dbh2Manager manager;
 
 		public Service(Config config) {
 			super(config);
@@ -157,7 +159,7 @@ public class Dbh2Manager {
 		}
 
 		@Override
-		protected void OnMasterConnected(@NotNull AsyncSocket so) {
+		protected void OnMasterConnected(AsyncSocket so) {
 			var m = manager;
 			if (null == m)
 				return;
@@ -209,7 +211,7 @@ public class Dbh2Manager {
 				var raftConfig = RaftConfig.loadFromString(raftStr);
 				raftConfig.setDbHome(raftXml.getParent());
 				dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
-					var dbh2 = new Dbh2(this, raftConfig.getName(),
+					var dbh2 = new Dbh2(this, Objects.requireNonNull(raftConfig.getName()),
 							database, raftConfig,
 							null, false, taskOneByOne);
 					proxyServer.addRaft(dbh2.getRaft());

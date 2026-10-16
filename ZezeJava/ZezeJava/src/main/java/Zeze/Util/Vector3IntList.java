@@ -4,28 +4,27 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Vector3Int;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 用Vector3IntList要记得它本质就是IntList,除了下面多出一些专用方法外,都以int数组的方式操作.
  * 如果int数组长度不被3整除,则以Vector3Int为单位处理时忽略结尾多余的int值.
  */
 public class Vector3IntList extends IntList {
-	public static @NotNull Vector3IntList wrap(int @NotNull [] data, int count) {
+	public static Vector3IntList wrap(int [] data, int count) {
 		Vector3IntList o = new Vector3IntList();
 		o.buffer = data;
 		o.count = count > data.length ? data.length : Math.max(count, 0);
 		return o;
 	}
 
-	public static @NotNull Vector3IntList wrap(int @NotNull [] data) {
+	public static Vector3IntList wrap(int [] data) {
 		Vector3IntList o = new Vector3IntList();
 		o.buffer = data;
 		o.count = data.length;
 		return o;
 	}
 
-	public static @NotNull Vector3IntList createSpace(int count) {
+	public static Vector3IntList createSpace(int count) {
 		Vector3IntList o = new Vector3IntList();
 		if (count > 0) {
 			o.buffer = new int[count];
@@ -41,15 +40,15 @@ public class Vector3IntList extends IntList {
 		reserveSpace(count);
 	}
 
-	public Vector3IntList(@NotNull IntList fl) {
+	public Vector3IntList(IntList fl) {
 		replace(fl);
 	}
 
-	public Vector3IntList(int @NotNull [] data) {
+	public Vector3IntList(int [] data) {
 		replace(data);
 	}
 
-	public Vector3IntList(int @NotNull [] data, int fromIdx, int count) {
+	public Vector3IntList(int [] data, int fromIdx, int count) {
 		replace(data, fromIdx, count);
 	}
 
@@ -128,17 +127,17 @@ public class Vector3IntList extends IntList {
 		buf[idx + 2] += z;
 	}
 
-	public int @NotNull [] toArrayVector(int fromIdx, int count) {
+	public int [] toArrayVector(int fromIdx, int count) {
 		return toArray(VectorListBounds.rangeIndex(fromIdx, 3), VectorListBounds.count(count, 3));
 	}
 
-	public @NotNull Vector3IntList wrapsVector(int @NotNull [] data, int count) {
+	public Vector3IntList wrapsVector(int [] data, int count) {
 		super.wraps(data, VectorListBounds.count(count, 3));
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector3IntList wraps(int @NotNull [] data) {
+	public Vector3IntList wraps(int [] data) {
 		super.wraps(data);
 		return this;
 	}
@@ -159,11 +158,11 @@ public class Vector3IntList extends IntList {
 		resize(VectorListBounds.count(count, 3));
 	}
 
-	public void replaceVector(int @NotNull [] data, int fromIdx, int count) {
+	public void replaceVector(int [] data, int fromIdx, int count) {
 		replace(data, VectorListBounds.rangeIndex(fromIdx, 3), VectorListBounds.count(count, 3));
 	}
 
-	public @NotNull Vector3IntList add(int x, int y, int z) {
+	public Vector3IntList add(int x, int y, int z) {
 		int n = count;
 		int nNew = Math.addExact(n, 3);
 		reserve(nNew);
@@ -175,35 +174,35 @@ public class Vector3IntList extends IntList {
 		return this;
 	}
 
-	public @NotNull Vector3IntList add(Vector3Int v) {
+	public Vector3IntList add(Vector3Int v) {
 		return add(v.x, v.y, v.z);
 	}
 
 	@Override
-	public @NotNull Vector3IntList addAll(int[] data, int fromIdx, int count) {
+	public Vector3IntList addAll(int[] data, int fromIdx, int count) {
 		super.addAll(data, fromIdx, count);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector3IntList addAll(int @NotNull [] data) {
+	public Vector3IntList addAll(int [] data) {
 		super.addAll(data);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector3IntList addAll(@NotNull IntList fl) {
+	public Vector3IntList addAll(IntList fl) {
 		super.addAll(fl);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector3IntList addAll(@NotNull Collection<Integer> c) {
+	public Vector3IntList addAll(Collection<Integer> c) {
 		super.addAll(c);
 		return this;
 	}
 
-	public @NotNull Vector3IntList addAllVector(@NotNull Collection<Vector3Int> c) {
+	public Vector3IntList addAllVector(Collection<Vector3Int> c) {
 		int n = count;
 		reserve(Math.addExact(n, VectorListBounds.count(c.size(), 3)));
 		int[] buf = buffer;
@@ -216,13 +215,13 @@ public class Vector3IntList extends IntList {
 		return this;
 	}
 
-	public void addAllToVector(@NotNull Collection<Vector3Int> c) {
+	public void addAllToVector(Collection<Vector3Int> c) {
 		int[] buf = buffer;
 		for (int i = 0, n = count - 2; i < n; i += 3)
 			c.add(new Vector3Int(buf[i], buf[i + 1], buf[i + 2]));
 	}
 
-	public @NotNull Vector3IntList insertVector(int fromIdx, int x, int y, int z) {
+	public Vector3IntList insertVector(int fromIdx, int x, int y, int z) {
 		fromIdx = VectorListBounds.rangeIndex(fromIdx, 3);
 		int n = count;
 		if (fromIdx < 0)
@@ -240,24 +239,24 @@ public class Vector3IntList extends IntList {
 	}
 
 	@Override
-	public @NotNull Vector3IntList insert(int fromIdx, int @NotNull [] data, int idx, int count) {
+	public Vector3IntList insert(int fromIdx, int [] data, int idx, int count) {
 		super.insert(fromIdx, data, idx, count);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector3IntList insert(int fromIdx, int @NotNull [] data) {
+	public Vector3IntList insert(int fromIdx, int [] data) {
 		super.insert(fromIdx, data);
 		return this;
 	}
 
 	@Override
-	public @NotNull Vector3IntList insert(int fromIdx, @NotNull IntList fl) {
+	public Vector3IntList insert(int fromIdx, IntList fl) {
 		super.insert(fromIdx, fl);
 		return this;
 	}
 
-	public @NotNull Vector3IntList removeVector(int idx) {
+	public Vector3IntList removeVector(int idx) {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 3);
@@ -270,7 +269,7 @@ public class Vector3IntList extends IntList {
 		return this;
 	}
 
-	public @NotNull Vector3IntList removeAndExchangeLastVector(int idx) {
+	public Vector3IntList removeAndExchangeLastVector(int idx) {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 3);
@@ -289,12 +288,12 @@ public class Vector3IntList extends IntList {
 		return this;
 	}
 
-	public @NotNull Vector3IntList eraseVector(int fromIdx, int toIdx) {
+	public Vector3IntList eraseVector(int fromIdx, int toIdx) {
 		super.erase(VectorListBounds.rangeIndex(fromIdx, 3), VectorListBounds.rangeIndex(toIdx, 3));
 		return this;
 	}
 
-	public @NotNull Vector3IntList eraseFrontVector(int count) {
+	public Vector3IntList eraseFrontVector(int count) {
 		super.eraseFront(VectorListBounds.rangeIndex(count, 3));
 		return this;
 	}
@@ -314,7 +313,7 @@ public class Vector3IntList extends IntList {
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public @NotNull Vector3IntList clone() {
+	public Vector3IntList clone() {
 		return new Vector3IntList(this);
 	}
 
@@ -322,7 +321,7 @@ public class Vector3IntList extends IntList {
 		void accept(int x, int y, int z);
 	}
 
-	public void foreach(@NotNull Vector3IntConsumer consumer) {
+	public void foreach(Vector3IntConsumer consumer) {
 		int[] buf = buffer;
 		for (int i = 0, n = count - 2; i < n; i += 3)
 			consumer.accept(buf[i], buf[i + 1], buf[i + 2]);
@@ -332,7 +331,7 @@ public class Vector3IntList extends IntList {
 		boolean test(int x, int y, int z);
 	}
 
-	public boolean foreachPred(@NotNull Vector3IntPredicate predicate) {
+	public boolean foreachPred(Vector3IntPredicate predicate) {
 		int[] buf = buffer;
 		for (int i = 0, n = count - 2; i < n; i += 3) {
 			if (!predicate.test(buf[i], buf[i + 1], buf[i + 2]))
@@ -342,7 +341,7 @@ public class Vector3IntList extends IntList {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		int n = count / 3;
 		bb.WriteUInt(n);
 		if (n > 0) {
@@ -354,7 +353,7 @@ public class Vector3IntList extends IntList {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb, int n) {
+	public void encode(ByteBuffer bb, int n) {
 		int count = this.count / 3;
 		if (count != n)
 			throw new java.util.ConcurrentModificationException(String.valueOf(count));
@@ -367,7 +366,7 @@ public class Vector3IntList extends IntList {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb, int n) {
+	public void decode(IByteBuffer bb, int n) {
 		// n*K 的 int 溢出会绕过基类负长度防线：如 n=0x80000001 时 n*2==2，
 		// 毒长度按极小 count 静默解码、流位置错位。上限校验放在乘法之前。
 		if (n < 0 || n > Integer.MAX_VALUE / 3)

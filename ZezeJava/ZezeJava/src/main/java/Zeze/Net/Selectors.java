@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -8,8 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Util.FastLock;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Selector 线程组：管理 selector 池、buffer 池配置与轮询分发（choice）。
@@ -19,7 +20,7 @@ public class Selectors extends ReentrantLock {
 		private static final Selectors instance = new Selectors("Selector");
 	}
 
-	public static @NotNull Selectors getInstance() {
+	public static Selectors getInstance() {
 		return InstanceHolder.instance;
 	}
 
@@ -48,7 +49,7 @@ public class Selectors extends ReentrantLock {
 		}
 	}
 
-	private final @NotNull String name;
+	private final String name;
 	private final int bbPoolBlockSize;
 	private final int bbPoolLocalCapacity;
 	private final int bbPoolMoveCount;
@@ -57,20 +58,20 @@ public class Selectors extends ReentrantLock {
 	private final int readBufferSize;
 	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池,需要考虑并发访问
 	private final FastLock bbGlobalPoolLock = new FastLock(); // 全局池的锁
-	private volatile @NotNull Selector[] selectorList;
-	private @Nullable Selector[] closingSelectors; // 管理器锁内移交；并发close等待同一批线程。
+	private volatile @Nullable Selector @Nullable [] selectorList;
+	private @Nullable Selector @Nullable [] closingSelectors; // 管理器锁内移交；并发close等待同一批线程。
 	private volatile boolean closed;
 	private final AtomicLong choiceCount = new AtomicLong();
 
-	public Selectors(@NotNull String name) {
+	public Selectors(String name) {
 		this(name, 1, null);
 	}
 
-	public Selectors(@NotNull String name, int count) {
+	public Selectors(String name, int count) {
 		this(name, count, null);
 	}
 
-	public Selectors(@NotNull String name, int count, @Nullable Config config) {
+	public Selectors(String name, int count, @Nullable Config config) {
 		this.name = name;
 		if (config == null)
 			config = new Config();
@@ -108,26 +109,26 @@ public class Selectors extends ReentrantLock {
 		return readBufferSize;
 	}
 
-	@NotNull ArrayList<ByteBuffer> getBbGlobalPool() {
+	ArrayList<ByteBuffer> getBbGlobalPool() {
 		return bbGlobalPool;
 	}
 
-	@NotNull FastLock getBbGlobalPoolLock() {
+	FastLock getBbGlobalPoolLock() {
 		return bbGlobalPoolLock;
 	}
 
 	public int getCount() {
-		return selectorList.length;
+		return Objects.requireNonNull(selectorList, "selectors are closed").length;
 	}
 
 	public long getSelectCount() {
 		long count = 0;
-		for (var selector : selectorList)
-			count += selector.getSelectCount();
+		for (var selector : Objects.requireNonNull(selectorList, "selectors are closed"))
+			count += Objects.requireNonNull(selector).getSelectCount();
 		return count;
 	}
 
-	public @NotNull Selectors add(int count) {
+	public Selectors add(int count) {
 		if (count < 0)
 			throw new IllegalArgumentException("negative selector count: " + count);
 		// 持锁：add必须整体互斥——无锁的"读selectorList→copyOf→start→赋值"check-then-act
@@ -137,7 +138,7 @@ public class Selectors extends ReentrantLock {
 		try {
 			if (closed) // 与close的状态变更互斥，排队中的add也不得复活线程。
 				throw new IllegalStateException("closed");
-			Selector[] tmp = selectorList;
+			@Nullable Selector[] tmp = selectorList;
 			int i, n;
 			if (tmp == null) {
 				i = 0;
@@ -153,7 +154,7 @@ public class Selectors extends ReentrantLock {
 			try {
 				for (; i < n; i++) {
 					tmp[i] = new Selector(this, name + '-' + i);
-					tmp[i].start();
+					Objects.requireNonNull(tmp[i]).start();
 				}
 			} catch (IOException e) {
 				// 本批已创建/已启动的Selector不在selectorList（数组赋值在循环成功之后），
@@ -162,7 +163,7 @@ public class Selectors extends ReentrantLock {
 				for (int k = batchStart; k < n; k++) {
 					var s = tmp[k];
 					if (s != null)
-						s.close();
+						Objects.requireNonNull(s).close();
 				}
 				throw Task.forceThrow(e);
 			}
@@ -173,22 +174,22 @@ public class Selectors extends ReentrantLock {
 		}
 	}
 
-	public @NotNull Selector choice() {
-		Selector[] tmp = selectorList; // thread safe
+	public Selector choice() {
+		@Nullable Selector[] tmp = selectorList; // thread safe
 		if (tmp == null)
 			throw new IllegalStateException("closed");
 
 		long count = choiceCount.getAndIncrement();
 		int index = (int)Long.remainderUnsigned(count, tmp.length);
-		return tmp[index];
+		return Objects.requireNonNull(tmp[index]);
 	}
 
 	public void close() {
 		if (Thread.currentThread() instanceof Selector current && current.getSelectors() == this) {
-			Task.getCriticalThreadPool().execute(this::close);
+			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(this::close);
 			return;
 		}
-		Selector[] tmp;
+		@Nullable Selector[] tmp;
 		lock();
 		try {
 			closed = true;
@@ -204,11 +205,11 @@ public class Selectors extends ReentrantLock {
 		// dispose回调可能访问Selectors，等待线程终止时不能持有管理器锁。
 		if (tmp != null) {
 			for (Selector s : tmp)
-				s.close();
+				Objects.requireNonNull(s).close();
 			lock();
 			try {
 				for (Selector s : tmp) {
-					if (s.isAlive())
+					if (Objects.requireNonNull(s).isAlive())
 						return;
 				}
 				if (closingSelectors == tmp)

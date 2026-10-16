@@ -21,8 +21,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 应用需要继承实现必要的方法，创建实例并保存。需要继承的可能性不大, 需要的话直接设置Application.Redirect
@@ -31,17 +30,17 @@ public class RedirectBase {
 	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
 
 	public final ConcurrentHashMap<String, RedirectHandle> handles = new ConcurrentHashMap<>();
-	public final @NotNull ProviderApp providerApp;
+	public final ProviderApp providerApp;
 
-	public RedirectBase(@NotNull ProviderApp app) {
+	public RedirectBase(ProviderApp app) {
 		providerApp = app;
 	}
 
-	public @Nullable AsyncSocket choiceServer(@NotNull IModule module, int serverId) {
+	public @Nullable AsyncSocket choiceServer(IModule module, int serverId) {
 		return choiceServer(module, serverId, false);
 	}
 
-	public @Nullable AsyncSocket choiceServer(@NotNull IModule module, int serverId, boolean orOtherServer) {
+	public @Nullable AsyncSocket choiceServer(IModule module, int serverId, boolean orOtherServer) {
 		if (serverId == providerApp.zeze.getConfig().getServerId()) {
 			if (!providerApp.isStartLast()) {
 				logger.warn("", new IllegalStateException("choiceServer: not after startLast for module="
@@ -49,14 +48,14 @@ public class RedirectBase {
 			}
 			return null; // is Local
 		}
-		var ps = providerApp.providerDirectService.providerByServerId.get(serverId);
+		var ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(serverId);
 		if (ps == null) {
 			if (!providerApp.isStartLast()) {
 				throw new IllegalStateException("choiceServer: not after startLast for module="
 						+ module.getFullName() + ", serverId=" + serverId);
 			}
-			providerApp.providerDirectService.waitDirectServerReady(serverId, 120_000);
-			ps = providerApp.providerDirectService.providerByServerId.get(serverId);
+			Objects.requireNonNull(providerApp.providerDirectService).waitDirectServerReady(serverId, 120_000);
+			ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(serverId);
 			if (ps == null) {
 				if (orOtherServer)
 					return choiceHash(module, serverId, 1);
@@ -64,15 +63,15 @@ public class RedirectBase {
 						"choiceServer: not found session for serverId=" + serverId);
 			}
 		}
-		var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
+		var socket = Objects.requireNonNull(providerApp.providerDirectService).GetSocket(ps.getSessionId());
 		if (socket == null || socket.isClosed()) {
 			if (!providerApp.isStartLast()) {
 				throw new IllegalStateException("choiceServer: not after startLast for module="
 						+ module.getFullName() + ", serverId=" + serverId);
 			}
-			providerApp.providerDirectService.waitDirectServerReady(serverId, 120_000);
-			ps = providerApp.providerDirectService.providerByServerId.get(serverId);
-			socket = ps != null ? providerApp.providerDirectService.GetSocket(ps.getSessionId()) : null;
+			Objects.requireNonNull(providerApp.providerDirectService).waitDirectServerReady(serverId, 120_000);
+			ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(serverId);
+			socket = ps != null ? Objects.requireNonNull(providerApp.providerDirectService).GetSocket(ps.getSessionId()) : null;
 			if (socket == null || socket.isClosed()) {
 				if (orOtherServer)
 					return choiceHash(module, serverId, 1);
@@ -83,7 +82,7 @@ public class RedirectBase {
 		return socket;
 	}
 
-	public @Nullable AsyncSocket choiceHash(@NotNull IModule module, int hash, int dataConcurrentLevel) {
+	public @Nullable AsyncSocket choiceHash(IModule module, int hash, int dataConcurrentLevel) {
 		//noinspection DataFlowIssue
 		var subscribes = providerApp.zeze.getServiceManager().getSubscribeStates();
 		var serviceName = ProviderDistribute.makeServiceName(providerApp.serverServiceNamePrefix, module.getId());
@@ -94,7 +93,7 @@ public class RedirectBase {
 					"choiceHash: not found service for serviceName=" + serviceName);
 		}
 
-		var serviceInfo = providerApp.distribute.choiceHash(servers, hash, dataConcurrentLevel);
+		var serviceInfo = Objects.requireNonNull(providerApp.distribute).choiceHash(servers, hash, dataConcurrentLevel);
 		if (serviceInfo == null) {
 			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
 					"choiceHash: not found server for serviceName=" + serviceName + ", hash=" + hash
@@ -107,7 +106,7 @@ public class RedirectBase {
 		AsyncSocket socket;
 		var service = providerApp.providerDirectService;
 		var ps = (ProviderModuleState)servers.getLocalStates().get(serviceInfo.getServiceIdentity());
-		if (ps != null && (socket = service.GetSocket(ps.sessionId)) != null && !socket.isClosed())
+		if (ps != null && (socket = Objects.requireNonNull(service).GetSocket(ps.sessionId)) != null && !socket.isClosed())
 			return socket;
 
 		if (dataConcurrentLevel <= 1) {
@@ -117,7 +116,7 @@ public class RedirectBase {
 					var e = servers.getNextStateEntry();
 					if (e == null)
 						break;
-					socket = service.GetSocket(((ProviderModuleState)e.getValue()).sessionId);
+					socket = Objects.requireNonNull(service).GetSocket(((ProviderModuleState)e.getValue()).sessionId);
 					if (socket != null && !socket.isClosed())
 						return socket;
 				}
@@ -132,13 +131,13 @@ public class RedirectBase {
 						+ ", count=" + servers.getLocalStates().size());
 	}
 
-	private static void addMiss(@NotNull ModuleRedirectAllResult miss, int i,
+	private static void addMiss(ModuleRedirectAllResult miss, int i,
 								@SuppressWarnings("SameParameterValue") long rc) {
 		miss.Argument.getHashes().put(i, new BModuleRedirectAllHash.Data(rc, null));
 	}
 
-	private static void addTransmits(@NotNull LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index,
-									 @NotNull ModuleRedirectAllRequest req) {
+	private static void addTransmits(LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index,
+									 ModuleRedirectAllRequest req) {
 		var exist = transmits.get(provider);
 		if (exist == null) {
 			exist = new ModuleRedirectAllRequest();
@@ -154,20 +153,20 @@ public class RedirectBase {
 		exist.Argument.getHashCodes().add(index);
 	}
 
-	public <T extends RedirectResult> RedirectAllFuture<T> redirectAll(@NotNull IModule module,
-																	   @NotNull ModuleRedirectAllRequest req,
-																	   @NotNull RedirectAllContext<T> ctx) {
+	public <T extends RedirectResult> @Nullable RedirectAllFuture<T> redirectAll(IModule module,
+																	   ModuleRedirectAllRequest req,
+																	   RedirectAllContext<T> ctx) {
 		var future = ctx.getFuture();
 		var arg = req.Argument;
 		if (arg.getHashCodeConcurrentLevel() <= 0) {
-			providerApp.providerDirectService.tryRemoveManualContext(arg.getSessionId());
+			Objects.requireNonNull(providerApp.providerDirectService).tryRemoveManualContext(arg.getSessionId());
 			return future;
 		}
 
 		var transmits = new LongHashMap<ModuleRedirectAllRequest>(); // <sessionId, request>
 		var miss = new ModuleRedirectAllResult();
 		var serviceName = ProviderDistribute.makeServiceName(arg.getServiceNamePrefix(), arg.getModuleId());
-		var consistent = providerApp.distribute.getConsistentHash(serviceName);
+		var consistent = Objects.requireNonNull(providerApp.distribute).getConsistentHash(serviceName);
 		//noinspection DataFlowIssue
 		var providers = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		var localServiceIdentity = String.valueOf(providerApp.zeze.getConfig().getServerId());
@@ -176,7 +175,7 @@ public class RedirectBase {
 				addMiss(miss, i, Procedure.ProviderNotExist);
 				continue;
 			}
-			var target = providerApp.distribute.choiceDataIndex(providers, consistent, i,
+			var target = Objects.requireNonNull(providerApp.distribute).choiceDataIndex(providers, consistent, i,
 					arg.getHashCodeConcurrentLevel());
 			if (target == null) {
 				addMiss(miss, i, Procedure.ProviderNotExist);
@@ -198,7 +197,7 @@ public class RedirectBase {
 		for (var it = transmits.iterator(); it.moveToNext(); ) {
 			var sessionId = it.key();
 			var request = it.value();
-			var socket = providerApp.providerDirectService.GetSocket(sessionId);
+			var socket = Objects.requireNonNull(providerApp.providerDirectService).GetSocket(sessionId);
 			if (socket == null || !request.Send(socket)) {
 				if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
 					try {
@@ -206,7 +205,7 @@ public class RedirectBase {
 						// 为了完整支持事务重置传入的协议，这里需要编码一次。
 						var bb = ByteBuffer.Allocate(32);
 						request.encode(bb);
-						service.dispatchProtocol(request.getTypeId(), bb,
+						Objects.requireNonNull(service).dispatchProtocol(request.getTypeId(), bb,
 								Objects.requireNonNull(service.findProtocolFactoryHandle(request.getTypeId())), null);
 					} catch (Exception e) {
 						logger.error("", e);
@@ -232,7 +231,7 @@ public class RedirectBase {
 				var service = providerApp.providerDirectService;
 				var bb = ByteBuffer.Allocate(32);
 				miss.encode(bb);
-				service.dispatchProtocol(miss.getTypeId(), bb,
+				Objects.requireNonNull(service).dispatchProtocol(miss.getTypeId(), bb,
 						Objects.requireNonNull(service.findProtocolFactoryHandle(miss.getTypeId())), null);
 			} catch (Exception e) {
 				logger.error("", e);
@@ -241,17 +240,19 @@ public class RedirectBase {
 		return future;
 	}
 
-	public <T> @NotNull RedirectFuture<T> runFuture(@Nullable TransactionLevel level,
-													@NotNull Func0<RedirectFuture<T>> func) {
+	public <T extends @Nullable Object> RedirectFuture<T> runFuture(@Nullable TransactionLevel level,
+													Func0<RedirectFuture<T>> func) {
 		return runFuture(level, func, "RedirectLoopBack");
 	}
 
-	public <T> @NotNull RedirectFuture<T> runFuture(@Nullable TransactionLevel level,
-													@NotNull Func0<RedirectFuture<T>> func,
-													@NotNull String actionName) {
+	public <T extends @Nullable Object> RedirectFuture<T> runFuture(@Nullable TransactionLevel level,
+													Func0<RedirectFuture<T>> func,
+													String actionName) {
 		Transaction t;
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
+				// Func0 has a nullable bound, but this type argument is a non-null future; T describes its result.
+				//noinspection DataFlowIssue
 				return func.call();
 			} catch (Exception e) {
 				var f = new RedirectFuture<T>();
@@ -265,8 +266,8 @@ public class RedirectBase {
 		return future;
 	}
 
-	private <T> void runFutureInTransaction(@Nullable TransactionLevel level,
-			@NotNull Func0<RedirectFuture<T>> func, @NotNull String actionName, @NotNull RedirectFuture<T> future) {
+	private <T extends @Nullable Object> void runFutureInTransaction(@Nullable TransactionLevel level,
+			Func0<RedirectFuture<T>> func, String actionName, RedirectFuture<T> future) {
 		// 本体立即在独立事务运行，候选结果只在最终提交成功后关联到外层future。
 		// Procedure.call内部可重做，不能让已回滚轮次的成功值抢先完成外层future。
 		var candidate = new OutObject<RedirectFuture<T>>();
@@ -284,7 +285,7 @@ public class RedirectBase {
 				return Procedure.Success;
 			}, actionName, level).call();
 			if (rc == Procedure.Success)
-				candidate.value.onSuccess(future::setResult).onFail(future::setException);
+				Objects.requireNonNull(candidate.value).onSuccess(future::setResult).onFail(future::setException);
 			else
 				future.setException(failure.value != null ? failure.value
 						: new RedirectException(RedirectException.LOCAL_EXECUTION,
@@ -294,7 +295,7 @@ public class RedirectBase {
 		}
 	}
 
-	public void runVoid(@Nullable TransactionLevel level, @NotNull Action0 action) {
+	public void runVoid(@Nullable TransactionLevel level, Action0 action) {
 		runVoid(level, action, "RedirectLoopBack");
 	}
 
@@ -307,12 +308,12 @@ public class RedirectBase {
 	 * runVoid失败有日志不对称。失败时记带方法名的error日志；内建方法的既有自愈补偿不变。
 	 */
 	@SuppressWarnings("MethodMayBeStatic")
-	public void sendVoid(@Nullable AsyncSocket so, @NotNull Rpc<?, ?> p, @NotNull String methodFullName) {
+	public void sendVoid(@Nullable AsyncSocket so, Rpc<?, ?> p, String methodFullName) {
 		if (!p.Send(so, null))
 			logger.error("redirect send fail: method={}, socket={}", methodFullName, so);
 	}
 
-	public void runVoid(@Nullable TransactionLevel level, @NotNull Action0 action, @NotNull String actionName) {
+	public void runVoid(@Nullable TransactionLevel level, Action0 action, String actionName) {
 		Transaction t;
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {

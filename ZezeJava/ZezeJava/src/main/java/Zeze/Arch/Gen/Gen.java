@@ -1,5 +1,7 @@
 package Zeze.Arch.Gen;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -26,7 +28,6 @@ import Zeze.Transaction.Data;
 import Zeze.Util.Action3;
 import Zeze.Util.Action4;
 import Zeze.Util.StringBuilderCs;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * redirect 生成器的编解码源码片段生成：内置类型序列化器表、容器/Bean 形参与结果字段的 encode/decode 生成。
@@ -199,11 +200,11 @@ final class Gen {
 		return type.toString().replace('$', '.'); // ParameterizedType
 	}
 
-	static boolean isAbstract(@NotNull Class<?> klass) {
+	static boolean isAbstract(Class<?> klass) {
 		return (klass.getModifiers() & (Modifier.INTERFACE | Modifier.ABSTRACT)) != 0;
 	}
 
-	private static Class<?> getCollectionType(@NotNull Class<?> klass) {
+	private static Class<?> getCollectionType(Class<?> klass) {
 		if (isAbstract(klass)) {
 			if (klass.isAssignableFrom(ArrayList.class))
 				klass = ArrayList.class;
@@ -221,7 +222,7 @@ final class Gen {
 		return klass;
 	}
 
-	private static Class<?> getMapType(@NotNull Class<?> klass) {
+	private static Class<?> getMapType(Class<?> klass) {
 		if (isAbstract(klass)) {
 			if (klass.isAssignableFrom(HashMap.class))
 				klass = HashMap.class;
@@ -237,7 +238,7 @@ final class Gen {
 
 	// 形参/结果字段的编解码资格校验，encode/decode两侧共用；容器元素不满足
 	// Zeze编码谓词时走Java序列化兜底（元素须java.io.Serializable），统一在生成期拒绝。
-	private void checkGenElement(@NotNull AnnotatedElement e, @NotNull Class<?> cls, @NotNull Type type,
+	private void checkGenElement(AnnotatedElement e, Class<?> cls, Type type,
 	                             boolean isField) {
 		if (cls.isPrimitive() || serializers.containsKey(cls))
 			return;
@@ -273,7 +274,7 @@ final class Gen {
 	}
 
 	// 容器走Java序列化兜底时元素须java.io.Serializable，生成期拒绝。
-	private void checkGenContainerElement(@NotNull Class<?> elemClass, @NotNull String where, @NotNull String role) {
+	private void checkGenContainerElement(Class<?> elemClass, String where, String role) {
 		var serializer = serializers.get(elemClass);
 		if (!(!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))))
 			throw new UnsupportedOperationException("redirect param unsupported " + role + " type: "
@@ -282,7 +283,7 @@ final class Gen {
 	}
 
 	// 实例化探测字段初始化器（有实例化副作用）；探测失败视为未初始化。
-	private static boolean isFieldInitializerPresent(@NotNull AnnotatedElement e) {
+	private static boolean isFieldInitializerPresent(AnnotatedElement e) {
 		if (e instanceof Field f) {
 			try {
 				var instance = f.getDeclaringClass().getConstructor().newInstance();
@@ -294,7 +295,7 @@ final class Gen {
 		return false;
 	}
 
-	private static @NotNull String describeGenElement(@NotNull AnnotatedElement e, @NotNull Type type) {
+	private static String describeGenElement(AnnotatedElement e, Type type) {
 		if (e instanceof Parameter p) {
 			var params = p.getDeclaringExecutable().getParameters();
 			int index = -1;
@@ -515,10 +516,10 @@ final class Gen {
 		throw new UnsupportedOperationException("unsupported param type: " + type.getName());
 	}
 
-	@SuppressWarnings("SameParameterValue")
+	@SuppressWarnings({"SameParameterValue", "ConstantConditions"})
 	void genEncode(StringBuilderCs sb, String prefix, String bbName, String mName,
 	               String fieldPrefix, List<? extends AnnotatedElement> elements,
-	               Parameter redirectKeyParam) throws Exception {
+	               @Nullable Parameter redirectKeyParam) throws Exception {
 		if (elements.isEmpty())
 			return;
 		if (elements.size() > 64)
@@ -577,6 +578,7 @@ final class Gen {
 		}
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	void genDecode(StringBuilderCs sb, String prefix, String bbName, String mName, String fieldPrefix,
 	               List<? extends AnnotatedElement> elements) throws Exception {
 		if (elements.isEmpty())

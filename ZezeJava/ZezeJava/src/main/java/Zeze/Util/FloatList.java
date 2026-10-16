@@ -6,32 +6,31 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // float 基本类型动态数组：可比较/可克隆/可序列化（Vector*List 的基类）
 public class FloatList implements Comparable<FloatList>, Cloneable, Serializable {
 	public static final float[] EMPTY = new float[0];
 	public static final int DEFAULT_SIZE = 8;
 
-	protected float @NotNull [] buffer = EMPTY;
+	protected float [] buffer = EMPTY;
 	protected int count;
 
-	public static @NotNull FloatList wrap(float @NotNull [] data, int count) {
+	public static FloatList wrap(float [] data, int count) {
 		FloatList fl = new FloatList();
 		fl.buffer = data;
 		fl.count = count > data.length ? data.length : Math.max(count, 0);
 		return fl;
 	}
 
-	public static @NotNull FloatList wrap(float @NotNull [] data) {
+	public static FloatList wrap(float [] data) {
 		FloatList fl = new FloatList();
 		fl.buffer = data;
 		fl.count = data.length;
 		return fl;
 	}
 
-	public static @NotNull FloatList createSpace(int count) {
+	public static FloatList createSpace(int count) {
 		FloatList fl = new FloatList();
 		if (count > 0) {
 			fl.buffer = new float[count];
@@ -48,19 +47,19 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	}
 
 	@SuppressWarnings("CopyConstructorMissesField")
-	public FloatList(@NotNull FloatList fl) {
+	public FloatList(FloatList fl) {
 		replace(fl);
 	}
 
-	public FloatList(float @NotNull [] data) {
+	public FloatList(float [] data) {
 		replace(data);
 	}
 
-	public FloatList(float @NotNull [] data, int fromIdx, int count) {
+	public FloatList(float [] data, int fromIdx, int count) {
 		replace(data, fromIdx, count);
 	}
 
-	public float @NotNull [] array() {
+	public float [] array() {
 		return buffer;
 	}
 
@@ -98,7 +97,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		count = 0;
 	}
 
-	public float @NotNull [] toArray() {
+	public float [] toArray() {
 		int n = count;
 		if (n <= 0)
 			return EMPTY;
@@ -107,7 +106,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return buf;
 	}
 
-	public float @NotNull [] toArray(int fromIdx, int count) {
+	public float [] toArray(int fromIdx, int count) {
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= this.count || count <= 0)
@@ -119,13 +118,13 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return buf;
 	}
 
-	public @NotNull FloatList wraps(float @NotNull [] data, int count) {
+	public FloatList wraps(float [] data, int count) {
 		buffer = data;
 		this.count = count > data.length ? data.length : Math.max(count, 0);
 		return this;
 	}
 
-	public @NotNull FloatList wraps(float @NotNull [] data) {
+	public FloatList wraps(float [] data) {
 		buffer = data;
 		count = data.length;
 		return this;
@@ -188,7 +187,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		this.count = count;
 	}
 
-	public void replace(float @NotNull [] data, int fromIdx, int count) {
+	public void replace(float [] data, int fromIdx, int count) {
 		if (count <= 0) {
 			this.count = 0;
 			return;
@@ -207,15 +206,15 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		this.count = count;
 	}
 
-	public void replace(float @NotNull [] data) {
+	public void replace(float [] data) {
 		replace(data, 0, data.length);
 	}
 
-	public void replace(@NotNull FloatList fl) {
+	public void replace(FloatList fl) {
 		replace(fl.buffer, 0, fl.count);
 	}
 
-	public void swap(@NotNull FloatList fl) {
+	public void swap(FloatList fl) {
 		int count = this.count;
 		this.count = fl.count;
 		fl.count = count;
@@ -224,7 +223,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		buffer = buf;
 	}
 
-	public @NotNull FloatList add(float value) {
+	public FloatList add(float value) {
 		int n = count;
 		int nNew = n + 1;
 		reserve(nNew);
@@ -233,7 +232,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public @NotNull FloatList addAll(float[] data, int fromIdx, int count) {
+	public FloatList addAll(float[] data, int fromIdx, int count) {
 		if (count <= 0)
 			return this;
 		int len = data.length;
@@ -250,15 +249,15 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public @NotNull FloatList addAll(float @NotNull [] data) {
+	public FloatList addAll(float [] data) {
 		return addAll(data, 0, data.length);
 	}
 
-	public @NotNull FloatList addAll(@NotNull FloatList fl) {
+	public FloatList addAll(FloatList fl) {
 		return addAll(fl.buffer, 0, fl.count);
 	}
 
-	public @NotNull FloatList addAll(@NotNull Collection<Float> c) {
+	public FloatList addAll(Collection<Float> c) {
 		int n = count;
 		reserve(n + c.size());
 		float[] buf = buffer;
@@ -268,13 +267,13 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public void addAllTo(@NotNull Collection<Float> c) {
+	public void addAllTo(Collection<Float> c) {
 		float[] buf = buffer;
 		for (int i = 0, n = count; i < n; i++)
 			c.add(buf[i]);
 	}
 
-	public @NotNull FloatList insert(int fromIdx, float data) {
+	public FloatList insert(int fromIdx, float data) {
 		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
@@ -288,7 +287,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public @NotNull FloatList insert(int fromIdx, float @NotNull [] data, int idx, int count) {
+	public FloatList insert(int fromIdx, float [] data, int idx, int count) {
 		int n = this.count;
 		if (fromIdx < 0)
 			fromIdx = 0;
@@ -315,15 +314,15 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public @NotNull FloatList insert(int fromIdx, float @NotNull [] data) {
+	public FloatList insert(int fromIdx, float [] data) {
 		return insert(fromIdx, data, 0, data.length);
 	}
 
-	public @NotNull FloatList insert(int fromIdx, @NotNull FloatList fl) {
+	public FloatList insert(int fromIdx, FloatList fl) {
 		return insert(fromIdx, fl.buffer, 0, fl.count);
 	}
 
-	public @NotNull FloatList remove(int idx) {
+	public FloatList remove(int idx) {
 		int lastIdx = count;
 		if (Integer.compareUnsigned(idx, lastIdx) < 0) {
 			count = --lastIdx;
@@ -333,7 +332,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public @NotNull FloatList removeAndExchangeLast(int idx) {
+	public FloatList removeAndExchangeLast(int idx) {
 		int lastIdx = count;
 		if (Integer.compareUnsigned(idx, lastIdx) < 0) {
 			count = --lastIdx;
@@ -342,7 +341,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public @NotNull FloatList erase(int fromIdx, int toIdx) {
+	public FloatList erase(int fromIdx, int toIdx) {
 		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
@@ -357,7 +356,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public @NotNull FloatList eraseFront(int count) {
+	public FloatList eraseFront(int count) {
 		int n = this.count;
 		if (count >= n)
 			this.count = 0;
@@ -384,7 +383,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public @NotNull FloatList clone() {
+	public FloatList clone() {
 		return new FloatList(this);
 	}
 
@@ -468,7 +467,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		void accept(float value);
 	}
 
-	public void foreach(@NotNull FloatConsumer consumer) {
+	public void foreach(FloatConsumer consumer) {
 		float[] buf = buffer;
 		int n = count;
 		for (int i = 0; i < n; i++)
@@ -479,7 +478,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		boolean test(float value);
 	}
 
-	public boolean foreachPred(@NotNull FloatPredicate predicate) {
+	public boolean foreachPred(FloatPredicate predicate) {
 		float[] buf = buffer;
 		int n = count;
 		for (int i = 0; i < n; i++) {
@@ -489,7 +488,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return true;
 	}
 
-	public @NotNull StringBuilder dump(@NotNull StringBuilder sb) {
+	public StringBuilder dump(StringBuilder sb) {
 		sb.append('[');
 		float[] buf = buffer;
 		int n = count;
@@ -504,13 +503,13 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return sb.append(']');
 	}
 
-	public @NotNull String dump() {
+	public String dump() {
 		int n = count;
 		return n > 0 ? dump(new StringBuilder(n * 8)).toString() : "[]";
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		int n = count;
 		bb.WriteUInt(n);
 		if (n > 0)
@@ -518,18 +517,18 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		decode(bb, bb.ReadUInt());
 	}
 
-	public void encode(@NotNull ByteBuffer bb, int n) {
+	public void encode(ByteBuffer bb, int n) {
 		if (count != n)
 			throw new java.util.ConcurrentModificationException(String.valueOf(count));
 		if (n > 0)
 			bb.WriteFloats(buffer, 0, n);
 	}
 
-	public void decode(@NotNull IByteBuffer bb, int n) {
+	public void decode(IByteBuffer bb, int n) {
 		if (n < 0) // 同 IntList.decode：负长度会把 count 毒化成负数
 			throw new IllegalArgumentException("negative count: " + n);
 		reserveSpace(n);
@@ -538,7 +537,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "[" + count + "/" + buffer.length + "]";
 	}
 }

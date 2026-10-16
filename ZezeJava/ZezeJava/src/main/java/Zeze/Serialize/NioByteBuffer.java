@@ -3,50 +3,49 @@ package Zeze.Serialize;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import Zeze.Net.Binary;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 基于 java.nio.ByteBuffer 的缓冲实现：暂时只支持读，不支持写。 */
 public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public static final java.nio.ByteBuffer Empty = java.nio.ByteBuffer.wrap(ByteBuffer.Empty);
 
-	public @NotNull java.nio.ByteBuffer bb;
+	public java.nio.ByteBuffer bb;
 
-	public static @NotNull NioByteBuffer Wrap(@NotNull java.nio.ByteBuffer bb) {
+	public static NioByteBuffer Wrap(java.nio.ByteBuffer bb) {
 		return new NioByteBuffer(bb);
 	}
 
-	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes) {
+	public static NioByteBuffer Wrap(byte [] bytes) {
 		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes));
 	}
 
-	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes, int length) {
+	public static NioByteBuffer Wrap(byte [] bytes, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, length);
 		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes, 0, length));
 	}
 
-	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes, int offset, int length) {
+	public static NioByteBuffer Wrap(byte [] bytes, int offset, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes, offset, length));
 	}
 
-	public static @NotNull NioByteBuffer Wrap(@NotNull Binary binary) {
+	public static NioByteBuffer Wrap(Binary binary) {
 		return new NioByteBuffer(java.nio.ByteBuffer.wrap(binary.bytesUnsafe(), binary.getOffset(), binary.size()));
 	}
 
-	public static @NotNull NioByteBuffer allocate(int capacity) {
+	public static NioByteBuffer allocate(int capacity) {
 		return new NioByteBuffer(java.nio.ByteBuffer.allocate(capacity));
 	}
 
-	public static @NotNull NioByteBuffer allocateDirect(int capacity) {
+	public static NioByteBuffer allocateDirect(int capacity) {
 		return new NioByteBuffer(java.nio.ByteBuffer.allocateDirect(capacity));
 	}
 
-	protected NioByteBuffer(@NotNull java.nio.ByteBuffer bb) {
+	protected NioByteBuffer(java.nio.ByteBuffer bb) {
 		this.bb = bb;
 	}
 
-	public @NotNull java.nio.ByteBuffer getNioByteBuffer() {
+	public java.nio.ByteBuffer getNioByteBuffer() {
 		return bb;
 	}
 
@@ -86,7 +85,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public byte @NotNull [] Copy() {
+	public byte [] Copy() {
 		int size = size();
 		if (size == 0)
 			return ByteBuffer.Empty;
@@ -98,7 +97,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public byte @NotNull [] getBytes(int offset, int length) {
+	public byte [] getBytes(int offset, int length) {
 		int pos = bb.position();
 		bb.position(offset);
 		var copy = new byte[length];
@@ -146,7 +145,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public void ReadInt4s(int @NotNull [] buf, int offset, int length) {
+	public void ReadInt4s(int [] buf, int offset, int length) {
 		int n = length * 4;
 		ensureRead(n);
 		int readIndex = bb.position();
@@ -164,7 +163,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public void ReadLong8s(long @NotNull [] buf, int offset, int length) {
+	public void ReadLong8s(long [] buf, int offset, int length) {
 		int n = length * 8;
 		ensureRead(n);
 		int readIndex = bb.position();
@@ -258,7 +257,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public void ReadFloats(float @NotNull [] buf, int offset, int length) {
+	public void ReadFloats(float [] buf, int offset, int length) {
 		int n = length * 4;
 		ensureRead(n);
 		int readIndex = bb.position();
@@ -276,7 +275,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public void ReadDoubles(double @NotNull [] buf, int offset, int length) {
+	public void ReadDoubles(double [] buf, int offset, int length) {
 		int n = length * 8;
 		ensureRead(n);
 		int readIndex = bb.position();
@@ -287,7 +286,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public @NotNull String ReadString() {
+	public String ReadString() {
 		int n = ReadUInt();
 		if (n == 0)
 			return "";
@@ -307,7 +306,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public byte @NotNull [] ReadBytes() {
+	public byte [] ReadBytes() {
 		int n = ReadUInt();
 		if (n == 0)
 			return ByteBuffer.Empty;
@@ -328,7 +327,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public @NotNull ByteBuffer ReadByteBuffer() {
+	public ByteBuffer ReadByteBuffer() {
 		return ByteBuffer.Wrap(ReadBytes());
 	}
 
@@ -351,7 +350,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
 	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
 	 * 会落错桶静默miss。 */
-	public boolean contentEquals(byte @NotNull [] other) {
+	public boolean contentEquals(byte [] other) {
 		return bb.equals(java.nio.ByteBuffer.wrap(other));
 	}
 
@@ -368,7 +367,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public @NotNull Vector2 ReadVector2() {
+	public Vector2 ReadVector2() {
 		ensureRead(8);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		float x = bb.getFloat();
@@ -377,7 +376,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public @NotNull Vector3 ReadVector3() {
+	public Vector3 ReadVector3() {
 		ensureRead(12);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		float x = bb.getFloat();
@@ -387,7 +386,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public @NotNull Vector4 ReadVector4() {
+	public Vector4 ReadVector4() {
 		ensureRead(16);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		float x = bb.getFloat();
@@ -398,7 +397,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public @NotNull Quaternion ReadQuaternion() {
+	public Quaternion ReadQuaternion() {
 		ensureRead(16);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		float x = bb.getFloat();
@@ -429,7 +428,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
-	public int compareTo(@NotNull NioByteBuffer nbb) {
+	public int compareTo(NioByteBuffer nbb) {
 		return bb.compareTo(nbb.bb);
 	}
 }

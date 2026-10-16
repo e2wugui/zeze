@@ -1,5 +1,6 @@
 package Zeze.Netty;
 
+import java.util.Objects;
 import java.io.File;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -12,7 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
-
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
@@ -77,9 +77,9 @@ import io.netty.util.AttributeKey;
 import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.collection.LongObjectHashMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.thymeleaf.context.Context;
+import Zeze.Netty.HttpSession.CookieSession;
 
 /**
  * 一个HTTP请求从生到死的交换载体（对标JDK的com.sun.net.httpserver.HttpExchange）：
@@ -100,7 +100,7 @@ public class HttpExchange {
 	protected static final int CLOSE_TIMEOUT = 3; // 同上,只是因idle超时而关闭
 	protected static final int CLOSE_PASSIVE = 4; // 同上,只是因远程主动关闭而关闭
 
-	protected static final @NotNull VarHandle detachedHandle;
+	protected static final VarHandle detachedHandle;
 	protected static final HttpDataFactory httpDataFactory = new DefaultHttpDataFactory(false);
 	protected static final HttpHeadersFactory headersFactory = DefaultHttpHeadersFactory.headersFactory().withValidation(false);
 	protected static final HttpHeadersFactory trailersFactory = DefaultHttpHeadersFactory.trailersFactory().withValidation(false);
@@ -113,13 +113,13 @@ public class HttpExchange {
 		}
 	}
 
-	protected final @NotNull HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
-	protected final @NotNull ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
+	protected final HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
+	protected final ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
 	// request/content可跨线程观察（content()/request()读、releaseContent提前释放、
 	// EventLoop终态释放），volatile保证置空/换EMPTY后及时可见；判后改的原子性由各自释放入口保证
 	protected volatile @Nullable HttpRequest request; // 收到完整HTTP header部分会赋值
 	protected @Nullable HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
-	protected volatile @NotNull ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
+	protected volatile ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
 	protected @Nullable Object userState;
 	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
 	private @Nullable EmptyBean responseHeadersBean; // 仅事务内修改header时分配独立objectId，this守护
@@ -138,7 +138,7 @@ public class HttpExchange {
 		}
 
 		@Override
-		public @NotNull Category category() {
+		public Category category() {
 			return Category.eUser;
 		}
 
@@ -148,7 +148,7 @@ public class HttpExchange {
 		}
 
 		@Override
-		public @NotNull Log beginSavepoint() {
+		public Log beginSavepoint() {
 			var copy = new HeadersLog(new ArrayList<>(headers), sessionCookie);
 			copy.response = response;
 			copy.closeMethod = closeMethod;
@@ -213,7 +213,7 @@ public class HttpExchange {
 	protected @Nullable List<Cookie> cookies;
 	// volatile+锁双检：detach后允许多线程并发首调getCookieSession（detach文档"任意线程、任意时机"），
 	// 无同步的双跑会各建会话各发一条Set-Cookie、字段后写覆盖先写。
-	protected volatile @Nullable HttpSession.CookieSession cookieSession;
+	protected volatile @Nullable CookieSession cookieSession;
 	protected @Nullable String path;
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 	// end-stream派发任务已提交未跑完期间（LastHttpContent入队任务→任务finally释放，
@@ -233,7 +233,7 @@ public class HttpExchange {
 	//（Direct内联在EventLoop，非Direct经task11Executor同队列串行），无并发访问。
 	protected long webSocketContentTotal;
 
-	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
+	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
 		this.context = context;
 	}
@@ -253,7 +253,7 @@ public class HttpExchange {
 	// lazy初始化:首次调用时在调用方线程完成(通常已运行在用户handler的事务内,同事务访问session表)。
 	// 不由channelRead在EventLoop上同步执行DB事务:那会让DB延迟/乐观锁redo直接阻塞IO线程,
 	// DB抖动期间该EventLoop上所有连接的读写/握手/心跳全部停摆。未启用httpSession时返回null。
-	public @Nullable HttpSession.CookieSession getCookieSession() {
+	public @Nullable CookieSession getCookieSession() {
 		var cs = cookieSession;
 		var t = Transaction.getCurrent();
 		if (cs != null && (t == null || !t.isRunning()))
@@ -264,7 +264,7 @@ public class HttpExchange {
 		try {
 			synchronized (this) { // detach后并发首调：双检保证会话只建一次、Set-Cookie只发一条
 				// 事务redo会丢弃首轮插入，普通Java缓存不会回滚；每轮从当前事务视图核对行。
-				if (cookieSession == null || t != null && t.isRunning() && !cookieSession.existsInCurrentTransaction()) {
+				if (cookieSession == null || t != null && t.isRunning() && !Objects.requireNonNull(cookieSession).existsInCurrentTransaction()) {
 					cookieSession = httpSession.getCookieSession(this);
 					if (t != null && t.isRunning()) {
 						var initialized = cookieSession;
@@ -285,7 +285,7 @@ public class HttpExchange {
 
 	private @Nullable String sessionCookieHeader;
 
-	void setSessionCookieHeader(@NotNull String value) {
+	void setSessionCookieHeader(String value) {
 		synchronized (this) {
 			var t = Transaction.getCurrent();
 			if (t != null && t.isRunning()) {
@@ -334,7 +334,7 @@ public class HttpExchange {
 	/**
 	 * @param key 建议从Netty的HttpHeaderNames类里取字符串常量
 	 */
-	public synchronized void addHeader(@NotNull CharSequence key, @NotNull Object value) {
+	public synchronized void addHeader(CharSequence key, Object value) {
 		var t = Transaction.getCurrent();
 		ArrayList<Object> headers;
 		if (t != null && t.isRunning()) {
@@ -349,7 +349,7 @@ public class HttpExchange {
 		headers.add(value);
 	}
 
-	private synchronized @NotNull ArrayList<Object> responseHeaders() {
+	private synchronized ArrayList<Object> responseHeaders() {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning() && responseHeadersBean != null) {
 			var log = (HeadersLog)t.getLog(responseHeadersBean.objectId());
@@ -359,11 +359,11 @@ public class HttpExchange {
 		return resHeaders != null ? new ArrayList<>(resHeaders) : new ArrayList<>();
 	}
 
-	public void addCookie(@NotNull String name, @NotNull String value) {
+	public void addCookie(String name, String value) {
 		setCookie(name, value, null, null, -1);
 	}
 
-	public void removeCookie(@NotNull String name) {
+	public void removeCookie(String name) {
 		setCookie(name, "", null, null, 0);
 	}
 
@@ -372,7 +372,7 @@ public class HttpExchange {
 	 * @param path   路径. 如"/","/path/". 默认是当前请求路径到最后一个"/"的部分
 	 * @param maxAge 有效期. 小于0表示浏览器(内存)生命期(默认);0表示删除;大于0表示有效时长(秒)
 	 */
-	public void setCookie(@NotNull String name, @NotNull String value,
+	public void setCookie(String name, String value,
 						  @Nullable String domain, @Nullable String path, long maxAge) {
 		var cookie = new DefaultCookie(name, value);
 		if (domain != null)
@@ -387,7 +387,7 @@ public class HttpExchange {
 	/**
 	 * @return 不可修改的Cookie容器
 	 */
-	public @NotNull List<Cookie> getCookieList() {
+	public List<Cookie> getCookieList() {
 		var cs = cookies;
 		if (cs != null)
 			return cs;
@@ -401,7 +401,7 @@ public class HttpExchange {
 		return cs;
 	}
 
-	public @Nullable String getCookie(@NotNull String name) {
+	public @Nullable String getCookie(String name) {
 		var cookies = getCookieList();
 		if (!cookies.isEmpty()) {
 			for (var cookie : cookies) {
@@ -425,11 +425,11 @@ public class HttpExchange {
 	 * 通常不需要获取context，只给特殊需要时使用netty内部的方法。
 	 * 注意：绕过响应写唯一入口直接经context写响应头会被出站tripwire拒绝（宁可断连不可错序）。
 	 */
-	public @NotNull ChannelHandlerContext context() {
+	public ChannelHandlerContext context() {
 		return context;
 	}
 
-	public @NotNull Channel channel() {
+	public Channel channel() {
 		return context.channel();
 	}
 
@@ -439,7 +439,7 @@ public class HttpExchange {
 		return context.channel().isWritable();
 	}
 
-	public @NotNull AttributeMap attributes() {
+	public AttributeMap attributes() {
 		return context.channel();
 	}
 
@@ -447,15 +447,15 @@ public class HttpExchange {
 		return request;
 	}
 
-	public @NotNull ByteBuf content() {
+	public ByteBuf content() {
 		return content;
 	}
 
-	public @NotNull String contentString() {
+	public String contentString() {
 		return content.toString(HttpServer.defaultCharset);
 	}
 
-	public byte @NotNull [] contentBytes() {
+	public byte [] contentBytes() {
 		var c = content;
 		var size = c.readableBytes();
 		if (size <= 0)
@@ -482,7 +482,7 @@ public class HttpExchange {
 		c.release();
 	}
 
-	public @NotNull HttpPostMultipartRequestDecoder contentMultipart() {
+	public HttpPostMultipartRequestDecoder contentMultipart() {
 		var req = request;
 		if (req == null)
 			throw new IllegalStateException();
@@ -497,31 +497,31 @@ public class HttpExchange {
 		return multipart;
 	}
 
-	public static @NotNull String getMultipartString(@NotNull HttpPostMultipartRequestDecoder multipart,
-													 @NotNull String key) {
+	public static String getMultipartString(HttpPostMultipartRequestDecoder multipart,
+													 String key) {
 		var httpData = multipart.getBodyHttpData(key);
 		return httpData instanceof MemoryAttribute ? ((MemoryAttribute)httpData).getValue() : "";
 	}
 
-	public static byte @NotNull [] getMultipartBytes(@NotNull HttpPostMultipartRequestDecoder multipart,
-													 @NotNull String key) {
+	public static byte [] getMultipartBytes(HttpPostMultipartRequestDecoder multipart,
+													 String key) {
 		var httpData = multipart.getBodyHttpData(key);
 		return httpData instanceof MemoryAttribute ? ((MemoryAttribute)httpData).get() : ByteBuffer.Empty;
 	}
 
-	public static byte @NotNull [] getMultipartFile(@NotNull HttpPostMultipartRequestDecoder multipart,
-													@NotNull String key) {
+	public static byte [] getMultipartFile(HttpPostMultipartRequestDecoder multipart,
+													String key) {
 		var httpData = multipart.getBodyHttpData(key);
 		return httpData instanceof MemoryFileUpload ? ((MemoryFileUpload)httpData).get() : ByteBuffer.Empty;
 	}
 
-	public static @Nullable FileUpload getMultipartFileUpload(@NotNull HttpPostMultipartRequestDecoder multipart,
-															  @NotNull String key) {
+	public static @Nullable FileUpload getMultipartFileUpload(HttpPostMultipartRequestDecoder multipart,
+															  String key) {
 		var httpData = multipart.getBodyHttpData(key);
 		return httpData instanceof MemoryFileUpload ? (MemoryFileUpload)httpData : null;
 	}
 
-	public static @NotNull String urlDecode(@NotNull String s) {
+	public static String urlDecode(String s) {
 		for (int i = 0, n = s.length(); i < n; i++) {
 			var c = s.charAt(i);
 			if (c == '%' || c == '+')
@@ -536,7 +536,7 @@ public class HttpExchange {
 	// Character.digit(char,16)（会额外接受Unicode Nd数字如'٢'，比URLDecoder语义更宽）。
 	// 畸形/不完整的%序列保持抛IllegalArgumentException（消息沿用URLDecoder风格，异常路径
 	// 500+关连接的既有契约不变）。
-	private static @NotNull String pathDecode(@NotNull String s) {
+	private static String pathDecode(String s) {
 		if (s.indexOf('%') < 0)
 			return s;
 		var sb = new StringBuilder(s.length());
@@ -570,7 +570,7 @@ public class HttpExchange {
 		return sb.toString();
 	}
 
-	public @NotNull String path() {
+	public String path() {
 		if (path != null)
 			return path;
 		var req = request;
@@ -590,7 +590,7 @@ public class HttpExchange {
 		return i >= 0 ? uri.substring(i + 1) : null;
 	}
 
-	public static @NotNull Map<String, String> parseQuery(@Nullable String s) {
+	public static Map<String, String> parseQuery(@Nullable String s) {
 		if (s == null)
 			return Map.of();
 		var m = new LinkedHashMap<String, String>();
@@ -607,11 +607,11 @@ public class HttpExchange {
 		}
 	}
 
-	public @NotNull Map<String, String> queryMap() {
+	public Map<String, String> queryMap() {
 		return parseQuery(query());
 	}
 
-	public @NotNull Map<String, String> contentQueryMap() {
+	public Map<String, String> contentQueryMap() {
 		return parseQuery(content().toString(HttpServer.defaultCharset));
 	}
 
@@ -634,7 +634,7 @@ public class HttpExchange {
 							headersFactory, trailersFactory), true, null));
 					return;
 				}
-				if (context.pipeline().get(WebSocketServerProtocolHandler.class) == null) {
+				if (context.pipeline().<@Nullable WebSocketServerProtocolHandler>get(WebSocketServerProtocolHandler.class) == null) {
 					context.pipeline().addLast(new WebSocketServerProtocolHandler(WebSocketServerProtocolConfig.newBuilder()
 							.websocketPath(path).decoderConfig(WebSocketDecoderConfig.newBuilder().withUTF8Validator(false)
 									.maxFramePayloadLength(handler.MaxContentLength).build()).build()));
@@ -734,7 +734,7 @@ public class HttpExchange {
 	}
 
 	// newContent会被转移所有权,调用者需要继续用的话,应该retain一次再传. 返回当前累积的content
-	public @NotNull ByteBuf addContent(@NotNull ByteBuf newContent) {
+	public ByteBuf addContent(ByteBuf newContent) {
 		var c = content;
 		if (c == Unpooled.EMPTY_BUFFER)
 			content = c = newContent;
@@ -746,7 +746,7 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("DataFlowIssue")
-	protected void fireBeginStream(@NotNull HttpRequest req) {
+	protected void fireBeginStream(HttpRequest req) {
 		if (handler == null)
 			return;
 		var r = HttpFileService.parseRange(req, HttpHeaderNames.CONTENT_RANGE);
@@ -770,7 +770,7 @@ public class HttpExchange {
 		}
 	}
 
-	protected void fireStreamContentHandle(@NotNull HttpContent c) {
+	protected void fireStreamContentHandle(HttpContent c) {
 		var handle = handler != null ? handler.StreamContentHandle : null;
 		if (handle == null)
 			return;
@@ -815,7 +815,7 @@ public class HttpExchange {
 	 * 可在任意线程、任意时机补发响应（sendXxx/beginStream/sendFile）并close。
 	 * 不detach也不在handler内close视为悬挂，由idle超时/janitor兜底回收。
 	 */
-	public @NotNull HttpExchange detach() {
+	public HttpExchange detach() {
 		detachedHandle.compareAndSet(this, 0, 1);
 		return this;
 	}
@@ -837,7 +837,7 @@ public class HttpExchange {
 		// 见rejectAndClose——未开始写的pipelining错位归属为已知限制）、HttpResponseWithBodyStream
 		// 的异常中止路径（连接将亡）。豁免之外的响应头直写由出站tripwire（checkResponseOrder，
 		// HttpServer的encoder write钩子）当场拒绝。
-	static final AttributeKey<ResponseSequencer> responseOrderKey = AttributeKey.valueOf("ZezeHttpResponseOrder");
+	static final AttributeKey<@Nullable ResponseSequencer> responseOrderKey = AttributeKey.valueOf("ZezeHttpResponseOrder");
 	// 单exchange挂起响应写上限：防pipelining滥用驻留内存（每挂起写持有一个响应消息）。
 	private static final int MaxPendingResponseWrites = 256;
 	// 每channel在途（已登记未出队）请求序深度上限：防深度pipelining滥用，超出按滥用关闭连接。
@@ -848,13 +848,13 @@ public class HttpExchange {
 	static final class ResponseSequencer {
 		long nextOrderId = 1; // 下一个到达序（registerResponseOrder分配）
 		long writingOrderId = 1; // 当前持笔orderId：此前的已全部写出出队
-		final LongObjectHashMap<OrderEntry> entries = new LongObjectHashMap<>(); // 在途entry
+		final LongObjectHashMap<@Nullable OrderEntry> entries = new LongObjectHashMap<>(); // 在途entry
 	}
 
 	// 在途exchange的序化条目（仅EventLoop线程访问）。
 	static final class OrderEntry {
 		final HttpExchange x;
-		ArrayDeque<DeferredWrite> pending; // 未轮到时的挂起响应写，懒建
+	@Nullable ArrayDeque<DeferredWrite> pending; // 未轮到时的挂起响应写，懒建
 		boolean finished; // exchange已close/endStream（FINISH族挂起写仍按序送出）
 		boolean started; // 本entry的按序写已开始（出站tripwire的判定依据）
 
@@ -866,7 +866,7 @@ public class HttpExchange {
 	/**
 	 * @param promise 调用方给定的promise（可为voidPromise），提交时原样传递
 	 */
-	record DeferredWrite(@NotNull Object msg, @NotNull ChannelPromise promise) {
+	record DeferredWrite(Object msg, ChannelPromise promise) {
 	}
 
 	// 响应序化状态：仅EventLoop线程访问，登记（先于任何响应写）时赋值。
@@ -875,12 +875,12 @@ public class HttpExchange {
 	private @Nullable OrderEntry responseEntry; // 本exchange的序化条目（出队时清引用）
 
 	// 框架直写豁免标志（rejectAndClose设置）：声明该channel的后续直写响应合法（随即关连接），免清理。
-	static final AttributeKey<Boolean> responseOrderBypassKey = AttributeKey.valueOf("ZezeHttpResponseOrderBypass");
+	static final AttributeKey<@Nullable Boolean> responseOrderBypassKey = AttributeKey.valueOf("ZezeHttpResponseOrderBypass");
 
 	// h2子channel标志（H2Transport.streamInitializer置位；h1连接无此attr）。h2每stream一个子channel，
 	// 恒单在途请求：序化器/tripwire天然no-op（seq==null直写），本标志用于跳过h1专属语义分支
 	//（Connection头/100-continue/WebSocket升级）。
-	static final AttributeKey<Boolean> h2StreamKey = AttributeKey.valueOf("ZezeHttpH2Stream");
+	static final AttributeKey<@Nullable Boolean> h2StreamKey = AttributeKey.valueOf("ZezeHttpH2Stream");
 
 	public boolean isH2() {
 		return context.channel().attr(h2StreamKey).get() != null;
@@ -891,13 +891,13 @@ public class HttpExchange {
 	// →关连接），把"pipelining客户端静默拿到错配响应"变成测试期响亮失败。宁可断连不可错序。
 	// 豁免：WebSocket升级（管线含协议处理器时整条连接跳过，升级后已无HTTP响应语义）、框架400/503
 	// 拒绝（responseOrderBypassKey声明）。限制：在途全部出队后的迟到直写无法归因，不检查。
-	static void checkResponseOrder(@NotNull Channel ch, @NotNull Object msg) {
+	static void checkResponseOrder(Channel ch, Object msg) {
 		if (!(msg instanceof HttpResponse))
 			return;
 		var seq = ch.attr(responseOrderKey).get();
 		if (seq == null) // 无登记（首请求即被拒/直接构造）：无序化语义可违反
 			return;
-		if (ch.pipeline().get(WebSocketServerProtocolHandler.class) != null)
+		if (ch.pipeline().<@Nullable WebSocketServerProtocolHandler>get(WebSocketServerProtocolHandler.class) != null)
 			return;
 		if (ch.attr(responseOrderBypassKey).get() != null)
 			return;
@@ -935,7 +935,7 @@ public class HttpExchange {
 	// 表内最新一个，pipelining下被后续请求覆盖出表的前序exchange无人close（泄漏retain的request、
 	// 累积content、挂起响应写）。entries为EL状态：非EL调用跳EL执行。返回是否有exchange被关闭
 	//（仅EL内联调用有意义，异步路径恒false）。
-	static boolean closeInFlightExchanges(@NotNull Channel ch, int method) {
+	static boolean closeInFlightExchanges(Channel ch, int method) {
 		var seq = ch.attr(responseOrderKey).get();
 		if (seq == null)
 			return false;
@@ -951,7 +951,7 @@ public class HttpExchange {
 	}
 
 	// 仅channel EventLoop线程调用。先快照再逐个close：close的release会修改entries。
-	private static boolean closeInFlightExchanges0(@NotNull ResponseSequencer seq, int method) {
+	private static boolean closeInFlightExchanges0(ResponseSequencer seq, int method) {
 		if (seq.entries.isEmpty())
 			return false;
 		var inFlight = seq.entries.values().toArray(new OrderEntry[0]);
@@ -964,7 +964,7 @@ public class HttpExchange {
 	// 共用；包内可见——唯一协作方为HttpFileService（包内静态文件服务），出站tripwire在wire层守门）：
 	// 决策与写出都在EventLoop上（单写者）。promise为null时新建（桥接挂起写，调用方listener/close(future)
 	// 语义在真实写出时兑现）。
-	ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
+	ChannelFuture writeResponse(Object msg, boolean flush, @Nullable ChannelPromise promise) {
 		if (promise == null)
 			promise = context.newPromise();
 		var t = Transaction.getCurrent();
@@ -1027,7 +1027,7 @@ public class HttpExchange {
 
 	// 仅EventLoop线程调用：按orderId与writingOrderId的关系及entry终结态直写/挂起/拒绝迟到写。
 	@SuppressWarnings("ConstantConditions")
-	private void writeResponse0(@NotNull Object msg, boolean flush, @NotNull ChannelPromise promise) {
+	private void writeResponse0(Object msg, boolean flush, ChannelPromise promise) {
 		var seq = responseSequencer;
 		if (seq == null) { // 未登记（直接构造的exchange）：不序化，保持原行为
 			submit(msg, promise, flush);
@@ -1063,7 +1063,7 @@ public class HttpExchange {
 	}
 
 	// 仅channel EventLoop线程调用：写出（或提交）一条消息。同步异常补失败并释放，防挂起promise与泄漏。
-	private ChannelFuture submit(@NotNull Object msg, @NotNull ChannelPromise promise, boolean flush) {
+	private ChannelFuture submit(Object msg, ChannelPromise promise, boolean flush) {
 		try {
 			return flush ? context.writeAndFlush(msg, promise) : context.write(msg, promise);
 		} catch (Throwable e) {
@@ -1113,7 +1113,7 @@ public class HttpExchange {
 
 	// 仅EventLoop线程、持笔者让位时调用：冲刷头部挂起写（末尾单次flush合并），已完成的entry出队
 	// 并链式推进，遇存活entry停（其后续写直写）。
-	private static void advance(@NotNull ResponseSequencer seq) {
+	private static void advance(ResponseSequencer seq) {
 		for (; ; ) {
 			var e = seq.entries.get(seq.writingOrderId);
 			if (e == null)
@@ -1128,7 +1128,7 @@ public class HttpExchange {
 	}
 
 	// 仅EventLoop线程调用：冲刷entry全部挂起写，末尾单次flush。
-	private static void drainPending(@NotNull OrderEntry e) {
+	private static void drainPending(OrderEntry e) {
 		var pending = e.pending;
 		if (pending == null || pending.isEmpty())
 			return;
@@ -1219,14 +1219,14 @@ public class HttpExchange {
 		}
 	}
 
-	private long callEndStreamProcedure(@NotNull Procedure procedure) {
+	private long callEndStreamProcedure(Procedure procedure) {
 		long rc = procedure.call();
 		if (rc != Procedure.Success && detached != 2)
 			close(sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, "HTTP handler transaction failed"));
 		return rc;
 	}
 
-	protected void fireWebSocket(@NotNull WebSocketFrame frame) {
+	protected void fireWebSocket(WebSocketFrame frame) {
 		if (handler == null)
 			return;
 		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
@@ -1269,7 +1269,7 @@ public class HttpExchange {
 	// 都在EventLoop上内联执行:用户回调阻塞IO线程,且与在途的onContent派发任务并发访问用户状态,
 	// 绕过了"同连接回调串行"的派发契约(纯非Direct配置也触发)。
 	@SuppressWarnings("ConstantConditions")
-	protected void fireWebSocketNotify(@NotNull String name, @NotNull Action0 notify) {
+	protected void fireWebSocketNotify(String name, Action0 notify) {
 		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				notify.run();
@@ -1293,10 +1293,10 @@ public class HttpExchange {
 	// 单帧本身已受maxFramePayloadLength限制,这里挡的是分片累积总量(按webSocketContentTotal
 	// 真实累积)。超限按RFC6455回1009(Message Too Big)并关闭连接。
 	// 返回false表示已超限并关闭连接,调用方不应再继续分发本帧。
-	protected boolean checkWebSocketContentSize(@NotNull WebSocketFrame frame) {
+	protected boolean checkWebSocketContentSize(WebSocketFrame frame) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			return t.resolveOnce(new FrameIdentity(frame), 0, __ -> checkWebSocketContentSizeOnce(frame));
+			return Objects.requireNonNull(t.resolveOnce(new FrameIdentity(frame), 0, __ -> checkWebSocketContentSizeOnce(frame)));
 		return checkWebSocketContentSizeOnce(frame);
 	}
 
@@ -1312,7 +1312,7 @@ public class HttpExchange {
 		}
 	}
 
-	private boolean checkWebSocketContentSizeOnce(@NotNull WebSocketFrame frame) {
+	private boolean checkWebSocketContentSizeOnce(WebSocketFrame frame) {
 		if (!(frame instanceof ContinuationWebSocketFrame))
 			webSocketContentTotal = 0; // 新消息（Binary/Text首帧）：重新累计
 		webSocketContentTotal += frame.content().readableBytes();
@@ -1331,7 +1331,7 @@ public class HttpExchange {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	protected void fireWebSocket0(@NotNull WebSocketFrame frame) throws Exception {
+	protected void fireWebSocket0(WebSocketFrame frame) throws Exception {
 		switch (frame) {
 		case BinaryWebSocketFrame ignored -> {
 			isWebSocketTextContent = false;
@@ -1489,7 +1489,7 @@ public class HttpExchange {
 
 	/// //////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// send response
-	public @NotNull ChannelFuture send(@NotNull HttpResponseStatus status, @Nullable String contentType,
+	public ChannelFuture send(HttpResponseStatus status, @Nullable String contentType,
 									   @Nullable ByteBuf content) { // content所有权会被转移
 		if (content == null)
 			content = Unpooled.EMPTY_BUFFER;
@@ -1506,35 +1506,35 @@ public class HttpExchange {
 		return writeResponse(res, true, null); // 响应经per-channel序化器，pipelining按请求序写出
 	}
 
-	public @NotNull ChannelFuture send(@NotNull HttpResponseStatus status, @Nullable String contentType,
+	public ChannelFuture send(HttpResponseStatus status, @Nullable String contentType,
 									   @Nullable String content) {
 		return send(status, contentType, content == null || content.isEmpty() ? Unpooled.EMPTY_BUFFER
 				: Unpooled.wrappedBuffer(content.getBytes(HttpServer.defaultCharset)));
 	}
 
-	public @NotNull ChannelFuture sendPlainText(@NotNull HttpResponseStatus status, @Nullable String text) {
+	public ChannelFuture sendPlainText(HttpResponseStatus status, @Nullable String text) {
 		return send(status, "text/plain; charset=utf-8", text);
 	}
 
-	public @NotNull ChannelFuture sendPlainText(@NotNull HttpResponseStatus status, byte @Nullable [] text) {
+	public ChannelFuture sendPlainText(HttpResponseStatus status, byte @Nullable [] text) {
 		return send(status, "text/plain; charset=utf-8", text == null || text.length == 0 ? Unpooled.EMPTY_BUFFER
 				: Unpooled.wrappedBuffer(text));
 	}
 
-	public @NotNull ChannelFuture sendHtml(@NotNull HttpResponseStatus status, @Nullable String html) {
+	public ChannelFuture sendHtml(HttpResponseStatus status, @Nullable String html) {
 		return send(status, "text/html; charset=utf-8", html);
 	}
 
-	public @NotNull ChannelFuture sendJson(@NotNull HttpResponseStatus status, @Nullable String json) {
+	public ChannelFuture sendJson(HttpResponseStatus status, @Nullable String json) {
 		return send(status, "application/json; charset=utf-8", json);
 	}
 
-	public @NotNull ChannelFuture sendJson(@NotNull HttpResponseStatus status, byte @Nullable [] json) {
+	public ChannelFuture sendJson(HttpResponseStatus status, byte @Nullable [] json) {
 		return send(status, "application/json; charset=utf-8", json == null || json.length == 0 ? Unpooled.EMPTY_BUFFER
 				: Unpooled.wrappedBuffer(json));
 	}
 
-	public @NotNull ChannelFuture sendXml(@NotNull HttpResponseStatus status, @Nullable String xml) {
+	public ChannelFuture sendXml(HttpResponseStatus status, @Nullable String xml) {
 		return send(status, "text/xml; charset=utf-8", xml);
 	}
 
@@ -1581,7 +1581,7 @@ public class HttpExchange {
 			thymeleaf.sendResponse(this, context);
 	}
 
-	public void sendFile(@NotNull File file) throws Exception {
+	public void sendFile(File file) throws Exception {
 		requireNonTransactionalStreaming();
 		HttpFileService.sendFile(this, file, 10 * 60);
 	}
@@ -1592,29 +1592,29 @@ public class HttpExchange {
 	 *
 	 * @param fileCacheSeconds 客户端缓存秒数（Expires与max-age）
 	 */
-	public void sendFile(@NotNull File file, int fileCacheSeconds) throws Exception {
+	public void sendFile(File file, int fileCacheSeconds) throws Exception {
 		requireNonTransactionalStreaming();
 		HttpFileService.sendFile(this, file, fileCacheSeconds);
 		}
 
-	public void sendPath(@NotNull File file) {
+	public void sendPath(File file) {
 		requireNonTransactionalStreaming();
 		HttpFileService.sendPath(this, file);
 		}
 
-	public @NotNull ChannelFuture send404() {
+	public ChannelFuture send404() {
 		return sendPlainText(HttpResponseStatus.NOT_FOUND, (byte[])null);
 	}
 
-	public @NotNull ChannelFuture send500(@NotNull Throwable ex) {
+	public ChannelFuture send500(Throwable ex) {
 		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, Str.stacktrace(ex));
 	}
 
-	public @NotNull ChannelFuture send500(@Nullable String text) {
+	public ChannelFuture send500(@Nullable String text) {
 		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, text);
 	}
 
-	public @NotNull ChannelFuture sendWebSocket(@NotNull WebSocketFrame frame) { // frame所有权会被转移
+	public ChannelFuture sendWebSocket(WebSocketFrame frame) { // frame所有权会被转移
 		var t = Transaction.getCurrent();
 		if (t == null || !t.isRunning())
 			return context.writeAndFlush(frame);
@@ -1659,15 +1659,15 @@ public class HttpExchange {
 		return promise;
 	}
 
-	public @NotNull ChannelFuture sendWebSocket(@NotNull String text) {
+	public ChannelFuture sendWebSocket(String text) {
 		return sendWebSocket(new TextWebSocketFrame(text));
 	}
 
-	public @NotNull ChannelFuture sendWebSocket(byte @NotNull [] data) {
+	public ChannelFuture sendWebSocket(byte [] data) {
 		return sendWebSocket(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, 0, data.length)));
 	}
 
-	public @NotNull ChannelFuture sendWebSocket(byte @NotNull [] data, int offset, int count) {
+	public ChannelFuture sendWebSocket(byte [] data, int offset, int count) {
 		return sendWebSocket(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, offset, count)));
 	}
 
@@ -1680,7 +1680,7 @@ public class HttpExchange {
 	 * 本族接口功能最大化、不做校验（状态/头部正确性自负）。后续用{@link #sendStream}发块、
 	 * {@link #endStream}收尾；高吞吐大流量建议按块检查{@link #isWritable()}（背压）。
 	 */
-	public @NotNull ChannelFuture beginStream(@NotNull HttpResponseStatus status, @NotNull HttpHeaders headers) {
+	public ChannelFuture beginStream(HttpResponseStatus status, HttpHeaders headers) {
 		requireNonTransactionalStreaming();
 		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))
 			headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
@@ -1688,34 +1688,34 @@ public class HttpExchange {
 	}
 
 	// 发送后data内容在回调前不能修改（所有权转移）
-	public @NotNull ChannelFuture sendStream(@NotNull ByteBuf data) {
+	public ChannelFuture sendStream(ByteBuf data) {
 		return writeResponse(new DefaultHttpContent(data), true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
-	public @NotNull ChannelFuture sendStream(byte @NotNull [] data) {
+	public ChannelFuture sendStream(byte [] data) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(data, 0, data.length)), true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
-	public @NotNull ChannelFuture sendStream(byte @NotNull [] data, int offset, int count) {
+	public ChannelFuture sendStream(byte [] data, int offset, int count) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(data, offset, count)), true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
-	public @NotNull ChannelFuture sendStream(@NotNull Binary b) {
+	public ChannelFuture sendStream(Binary b) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(b.bytesUnsafe(), b.getOffset(), b.size())),
 				true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
-	public @NotNull ChannelFuture sendStream(@NotNull ByteBuffer bb) {
+	public ChannelFuture sendStream(ByteBuffer bb) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(bb.Bytes, bb.ReadIndex, bb.size())),
 				true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
-	public @NotNull ChannelFuture sendStream(@NotNull java.nio.ByteBuffer bb) {
+	public ChannelFuture sendStream(java.nio.ByteBuffer bb) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(bb)), true, null);
 	}
 

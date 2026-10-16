@@ -1,10 +1,10 @@
 package Zeze.Raft;
 
 import Zeze.Net.Binary;
+import org.jspecify.annotations.Nullable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Raft 应用日志基类：状态机操作的单位，由 apply 应用到 StateMachine。
@@ -32,7 +32,7 @@ public abstract class Log implements Serializable {
 	private long createTime;
 	private Binary rpcResult = Binary.Empty;
 
-	public Log(IRaftRpc req) {
+	public Log(@Nullable IRaftRpc req) {
 		if (req != null) {
 			unique = req.getUnique();
 			setCreateTime(req.getCreateTime());
@@ -65,14 +65,14 @@ public abstract class Log implements Serializable {
 	public abstract void apply(RaftLog holder, StateMachine stateMachine) throws Exception;
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		unique.encode(bb);
 		bb.WriteLong(createTime);
 		bb.WriteBinary(rpcResult);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		unique.decode(bb);
 		createTime = bb.ReadLong();
 		rpcResult = bb.ReadBinary();

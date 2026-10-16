@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
@@ -8,7 +12,6 @@ import java.util.TreeSet;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 与 LogMap1 完全对应，只是继承自 LogSortedMap，value 使用 PSortedMap。
@@ -17,7 +20,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogSortedMap1<");
 
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
-	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
+	protected final SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs;
 
 	private Map<K, V> putted;
 	private Set<K> removed;
@@ -27,7 +30,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	/** 自定义比较器须在复制双方的日志工厂一致配置；wire不携带比较器。 */
-	public LogSortedMap1(Class<K> keyClass, Class<V> valueClass, Comparator<? super K> comparator) {
+	public LogSortedMap1(Class<K> keyClass, Class<V> valueClass, @Nullable Comparator<? super K> comparator) {
 		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass, comparator);
 	}
 
@@ -35,7 +38,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 		this(typeId, keyClass, valueClass, null);
 	}
 
-	LogSortedMap1(int typeId, Class<K> keyClass, Class<V> valueClass, Comparator<? super K> comparator) {
+	LogSortedMap1(int typeId, Class<K> keyClass, Class<V> valueClass, @Nullable Comparator<? super K> comparator) {
 		super(typeId, comparator);
 		putted = new TreeMap<>(comparator);
 		removed = new TreeSet<>(comparator);
@@ -43,7 +46,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
-	LogSortedMap1(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
+	LogSortedMap1(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs) {
 		super(typeId);
 		putted = new TreeMap<>();
 		removed = new TreeSet<>();
@@ -60,7 +63,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	protected void onComparatorChanged(Comparator<? super K> comparator) {
+	protected void onComparatorChanged(@Nullable Comparator<? super K> comparator) {
 		var newPutted = new TreeMap<K, V>(comparator);
 		newPutted.putAll(putted);
 		putted = newPutted;
@@ -70,7 +73,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	public final V get(K key) {
-		return getValue().get(key);
+		return Objects.requireNonNull(getValue()).get(key);
 	}
 
 	public final void add(K key, V value) {
@@ -78,27 +81,27 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	public final void put(K key, V value) {
-		setValue(getValue().plus(key, value));
+		setValue(Objects.requireNonNull(getValue()).plus(key, value));
 		putted.put(key, value);
 		removed.remove(key);
 	}
 
 	public final void remove(K key) {
-		setValue(getValue().minus(key));
+		setValue(Objects.requireNonNull(getValue()).minus(key));
 		putted.remove(key);
 		removed.add(key);
 	}
 
 	public final void clear() {
-		for (var key : getValue().keySet())
+		for (var key : Objects.requireNonNull(getValue()).keySet())
 			remove(key);
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(putted.size());
 		var keyEncoder = keyCodecFuncs.encoder;
-		var valueEncoder = valueCodecFuncs.encoder;
+		var valueEncoder = Objects.requireNonNull(valueCodecFuncs).encoder;
 		for (var p : putted.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
 			valueEncoder.accept(bb, p.getValue());
@@ -110,10 +113,10 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		putted.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
-		var valueDecoder = valueCodecFuncs.decoder;
+		var valueDecoder = Objects.requireNonNull(valueCodecFuncs).decoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			var key = keyDecoder.apply(bb);
 			var value = valueDecoder.apply(bb);

@@ -1,9 +1,10 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.util.Arrays;
 import java.util.HashMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 字符串模糊匹配算法. 使用1-2-3-4哈希的倒排索引
@@ -25,7 +26,7 @@ public final class StringFuzzySearch {
 	}
 
 	// 修改,需要加写锁
-	public boolean add(final @NotNull String s) {
+	public boolean add(final String s) {
 		final int n = s.length();
 		if (n == 0 || strSet.containsKey(s))
 			return false;
@@ -34,24 +35,24 @@ public final class StringFuzzySearch {
 		strSet.put(s, sid);
 		final var v = ((long)(0xfff / n) << 48) + sid;
 		for (int i = 0; i < n; i++)
-			index1.computeIfAbsent(s.charAt(i), __ -> new LongList()).add(v);
+			Objects.requireNonNull(index1.computeIfAbsent(s.charAt(i), __ -> new LongList())).add(v);
 		for (int i = 1, j = s.charAt(0); i < n; i++)
-			index2.computeIfAbsent(j = (j << 16) + s.charAt(i), __ -> new LongList()).add(v);
+			Objects.requireNonNull(index2.computeIfAbsent(j = (j << 16) + s.charAt(i), __ -> new LongList())).add(v);
 		if (n >= 3) {
 			var k = ((long)s.charAt(0) << 16) + s.charAt(1);
 			for (int i = 2; i < n; i++)
-				index3.computeIfAbsent(k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL, __ -> new LongList()).add(v);
+				Objects.requireNonNull(index3.computeIfAbsent(k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL, __ -> new LongList())).add(v);
 			if (n >= 4) {
 				k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + s.charAt(2);
 				for (int i = 3; i < n; i++)
-					index4.computeIfAbsent(k = (k << 16) + s.charAt(i), __ -> new LongList()).add(v);
+					Objects.requireNonNull(index4.computeIfAbsent(k = (k << 16) + s.charAt(i), __ -> new LongList())).add(v);
 			}
 		}
 		return true;
 	}
 
 	// 修改,需要加写锁
-	public boolean remove(final @NotNull String s) {
+	public boolean remove(final String s) {
 		final var obj = strSet.remove(s);
 		if (obj == null)
 			return false;
@@ -97,7 +98,7 @@ public final class StringFuzzySearch {
 	}
 
 	// 只读,可加读锁
-	public int search(final @NotNull String s, final @NotNull String @NotNull [] res) {
+	public int search(final String s, final String [] res) {
 		final int max = res.length;
 		final int n = s.length();
 		if (n == 0) // 空串不参与索引合并，后面 0x1_0000_0000L / n 会除零
@@ -138,11 +139,11 @@ public final class StringFuzzySearch {
 		return i;
 	}
 
-	private static void merge(final @NotNull LongHashMap<OutLong> m, final @Nullable LongList list, final int f) {
+	private static void merge(final LongHashMap<OutLong> m, final @Nullable LongList list, final int f) {
 		if (list != null) {
 			for (int i = 0, n = list.size(); i < n; i++) {
 				final var k = list.get(i);
-				m.computeIfAbsent(k, __ -> new OutLong()).value += (int)(k >>> 48) * f;
+				Objects.requireNonNull(m.computeIfAbsent(k, __ -> new OutLong())).value += (int)(k >>> 48) * f;
 			}
 		}
 	}

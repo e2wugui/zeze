@@ -2,28 +2,27 @@ package Zeze.Util;
 
 import java.util.Objects;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 不可变二元组：key 与 value 均参与 hashCode/equals
 @SuppressWarnings("ClassCanBeRecord")
-public class KV<K, V> {
+public class KV<K, V extends @Nullable Object> {
 	// 任一字段可变都会破坏HashMap/HashSet键不变式（原地改后同桶查找失效），故两者皆final、
 	// 不提供setKey/setValue。null：key在构造点拒绝（NPE变可诊断契约）；value允许为null。
-	private final @NotNull K key;
+	private final K key;
 	private final V value;
 
-	public KV(@NotNull K key, V value) {
+	public KV(K key, V value) {
 		// key在构造点拒绝，null key从hashCode处延迟NPE提前到构造点。
 		this.key = Objects.requireNonNull(key, "key");
 		this.value = value;
 	}
 
-	public static <K, V> KV<K, V> create(@NotNull K key, V value) {
+	public static <K, V extends @Nullable Object> KV<K, V> create(K key, V value) {
 		return new KV<>(key, value);
 	}
 
-	public final @NotNull K getKey() {
+	public final K getKey() {
 		return key;
 	}
 
@@ -32,7 +31,7 @@ public class KV<K, V> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "(" + key + ',' + value + ')';
 	}
 

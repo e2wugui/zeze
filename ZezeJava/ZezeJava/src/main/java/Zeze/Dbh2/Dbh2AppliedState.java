@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import java.util.Date;
 import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.LogSequence;
@@ -8,7 +10,7 @@ import Zeze.Raft.StateMachine.AppliedWatermark;
 import Zeze.Raft.UniqueRequestState;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 
 /** 应用完成记录与桶数据同库、同批写入，水位和请求终态存根随桶快照恢复。 */
@@ -61,9 +63,9 @@ final class Dbh2AppliedState {
 	/** 只追加到调用者的业务批次；提交成功之前不发布应用完成事实。 */
 	void addToBatch(RaftLog holder, RocksDatabase.Batch batch) throws RocksDBException {
 		var log = holder.getLog();
-		if (log.getUnique().getRequestId() > 0) {
+		if (Objects.requireNonNull(log).getUnique().getRequestId() > 0) {
 			var key = ByteBuffer.Allocate();
-			log.getUnique().encode(key);
+			Objects.requireNonNull(log).getUnique().encode(key);
 			var value = ByteBuffer.encode(new UniqueRequestState(holder, true));
 			database.getOrAddTable(uniqueAppliedTableName(log.getCreateTime()))
 					.put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);

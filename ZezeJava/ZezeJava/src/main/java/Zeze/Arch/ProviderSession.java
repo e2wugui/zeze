@@ -1,21 +1,22 @@
 package Zeze.Arch;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Util.Str;
 import Zeze.Util.TimeCounter;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Provider 连接会话基类：保存对端服务器标识、负载、版本与订阅 Ready 状态。
  */
 public class ProviderSession {
-	protected volatile @NotNull BLoad load = new BLoad();
+	protected volatile BLoad load = new BLoad();
 	protected final TimeCounter timeCounter = new TimeCounter(5);
 
 	protected volatile int serverId;
 	protected volatile long sessionId;
-	protected volatile @NotNull String serverLoadIp = "";
+	protected volatile @Nullable String serverLoadIp = "";
 	protected volatile long appVersion;
 	protected volatile int serverLoadPort;
 	protected volatile boolean disableChoice = false;
@@ -26,12 +27,12 @@ public class ProviderSession {
 	 */
 	protected final ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
 
-	public @NotNull String getServerLoadName() {
+	public String getServerLoadName() {
 		return serverLoadIp + '_' + serverLoadPort;
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return '(' + serverLoadIp + ',' + serverLoadPort + ',' + sessionId + ',' + Str.toVersionStr(appVersion) + ')';
 	}
 
@@ -47,7 +48,7 @@ public class ProviderSession {
 		return serverId;
 	}
 
-	public @NotNull ConcurrentHashMap<String, ProviderModuleState> getOrAddServiceReadyState(@NotNull String serviceName) {
+	public ConcurrentHashMap<String, ProviderModuleState> getOrAddServiceReadyState(String serviceName) {
 		return ServiceReadyStates.computeIfAbsent(serviceName, __ -> new ConcurrentHashMap<>());
 	}
 

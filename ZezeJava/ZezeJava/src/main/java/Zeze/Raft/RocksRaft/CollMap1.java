@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -31,8 +35,8 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void add(K key, V value) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.add(key, value);
 		} else
 			map = map.plus(key, value);
@@ -42,8 +46,8 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void put(K key, V value) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else
 			map = map.plus(key, value);
@@ -53,8 +57,8 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void remove(K key) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
 		} else
 			map = map.minus(key);
@@ -64,8 +68,8 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
 			map = Zeze.Collections.Persistents.map();
@@ -81,7 +85,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void leaderApplyNoRecursive(Log _log) {
-		map = ((LogMap1<K, V>)_log).getValue();
+		map = Objects.requireNonNull(((LogMap1<K, V>)_log).getValue());
 	}
 
 	@Override
@@ -95,7 +99,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.@Nullable RootInfo root) {
 	}
 
 	@Override

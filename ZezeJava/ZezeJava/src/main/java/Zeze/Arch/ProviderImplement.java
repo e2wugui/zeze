@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
@@ -29,17 +31,20 @@ import Zeze.Util.TransactionLevelAnnotation;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provider 协议实现基类：处理客户端协议的 Dispatch 派发、过载熔断应答与 Kick 发送。
  */
 public abstract class ProviderImplement extends AbstractProviderImplement {
-	protected static final @NotNull Logger logger = LogManager.getLogger(ProviderImplement.class);
-	private static final ThreadLocal<Dispatch> localDispatch = new ThreadLocal<>();
+	protected static final Logger logger = LogManager.getLogger(ProviderImplement.class);
+	private static final ThreadLocal<@Nullable Dispatch> localDispatch = new ThreadLocal<>();
 
-	protected ProviderApp providerApp;
+	protected @Nullable ProviderApp providerApp;
+
+	protected final ProviderApp requireProviderApp() {
+		return Objects.requireNonNull(providerApp, "provider is not attached to an application");
+	}
 	private volatile int controlKick = BKick.eControlClose;
 	private final LongAdder busyParseFailures = new LongAdder();
 	private volatile long lastBusyParseWarnTime;
@@ -67,19 +72,19 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 * 迭代staticBinds/dynamicModules/modules属三map读写统一锁契约（见ProviderApp字段注释）。
 	 */
 	public void registerModulesAndSubscribeLinkd() {
-		var sm = providerApp.zeze.getServiceManager();
-		var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
+		var sm = requireProviderApp().zeze.getServiceManager();
+		var identity = String.valueOf(requireProviderApp().zeze.getConfig().getServerId());
 		var edit = new BEditService();
-		var appMainVersion = providerApp.zeze.getConfig().getAppMainVersion();
+		var appMainVersion = requireProviderApp().zeze.getConfig().getAppMainVersion();
 		// 注册本provider的静态服务
-		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {
-			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity, appMainVersion,
-				providerApp.directIp, providerApp.directPort));
+		for (var it = requireProviderApp().staticBinds.iterator(); it.moveToNext(); ) {
+			edit.getAdd().add(new BServiceInfo(requireProviderApp().serverServiceNamePrefix + it.key(), identity, appMainVersion,
+				requireProviderApp().directIp, requireProviderApp().directPort));
 		}
 		// 注册本provider的动态服务
-		for (var it = providerApp.dynamicModules.iterator(); it.moveToNext(); ) {
-			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity, appMainVersion,
-				providerApp.directIp, providerApp.directPort));
+		for (var it = requireProviderApp().dynamicModules.iterator(); it.moveToNext(); ) {
+			edit.getAdd().add(new BServiceInfo(requireProviderApp().serverServiceNamePrefix + it.key(), identity, appMainVersion,
+				requireProviderApp().directIp, requireProviderApp().directPort));
 		}
 		//noinspection DataFlowIssue
 		sm.editService(edit);
@@ -87,18 +92,18 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		// 订阅服务
 		var sub = new BSubscribeArgument();
 		// 订阅provider直连发现服务
-		for (var it = providerApp.modules.iterator(); it.moveToNext(); )
-			sub.subs.add(new BSubscribeInfo(providerApp.serverServiceNamePrefix + it.key(), appMainVersion));
+		for (var it = requireProviderApp().modules.iterator(); it.moveToNext(); )
+			sub.subs.add(new BSubscribeInfo(requireProviderApp().serverServiceNamePrefix + it.key(), appMainVersion));
 		// 订阅linkd发现服务。
-		sub.subs.add(new BSubscribeInfo(providerApp.linkdServiceName, 0)); // link 服务没有使用版本号。
+		sub.subs.add(new BSubscribeInfo(Objects.requireNonNull(requireProviderApp().linkdServiceName), 0)); // link 服务没有使用版本号。
 		sm.subscribeServices(sub);
 	}
 
-	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, @NotNull String desc) {
+	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, String desc) {
 		sendKick(sender, linkSid, code, desc, BKick.eControlClose);
 	}
 
-	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, @NotNull String desc,
+	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, String desc,
 								int control) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			logger.info("sendKick[{}]: linkSid={}, code={}, desc={}",
@@ -108,13 +113,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public @NotNull ProviderUserSession newSession(@NotNull Dispatch p) {
+	public ProviderUserSession newSession(Dispatch p) {
 		return new ProviderUserSession(p);
 	}
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessDispatch(@NotNull Dispatch p) {
+	protected long ProcessDispatch(Dispatch p) {
 		var sender = p.getSender();
 		var arg = p.Argument;
 		var linkSid = arg.getLinkSid();
@@ -122,7 +127,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		Protocol<?> p2 = null;
 
 		// 先检查是否未知协议
-		var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
+		var factoryHandle = requireProviderApp().providerService.findProtocolFactoryHandle(typeId);
 		if (factoryHandle == null) {
 			sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId, controlKick);
 			return Procedure.LogicError;
@@ -188,7 +193,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			localDispatch.set(p);
 			int psize = arg.getProtocolData().size();
 			var session = newSession(p);
-			var zeze = sender.getService().getZeze();
+			var zeze = Objects.requireNonNull(Objects.requireNonNull(sender).getService()).getZeze();
 			var txn = Transaction.getCurrent();
 			if (txn == null && zeze != null && factoryHandle.Level != TransactionLevel.None) {
 				var outProtocol = new OutObject<Protocol<?>>();
@@ -198,7 +203,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var procName = factoryHandle.Class.getName()
 						+ ((header & FamilyClass.FamilyClassMask) == FamilyClass.Response ? ":Response" : "");
 				var r = TaskSpec.ofProcedureOut(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
-						var p3 = factoryHandle.Factory.create();
+						var p3 = Objects.requireNonNull(factoryHandle.Factory).create();
 						p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 						p3.setSender(sender);
 						p3.setUserState(session);
@@ -233,7 +238,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				return r;
 			}
 
-			p2 = factoryHandle.Factory.create();
+			p2 = Objects.requireNonNull(factoryHandle.Factory).create();
 			p2.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 			p2.setSender(sender);
 			p2.setUserState(session);
@@ -270,9 +275,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-	private long processRpcResponse(@NotNull Protocol<?> p3) throws Exception {
+	private long processRpcResponse(Protocol<?> p3) throws Exception {
 		var res = (Rpc<?, ?>)p3;
-		var service = providerApp.providerService;
+		var service = requireProviderApp().providerService;
 		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
 		// 首轮解析并缓存到当前事务（含null判定），重试直接复用，与 Rpc.handle 同一约定。
 		// 会合前校验typeId一致+原连接绑定（见Rpc.removeRpcContextChecked）。
@@ -290,10 +295,10 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	@Override
-	protected long ProcessAnnounceLinkInfo(@NotNull AnnounceLinkInfo protocol) {
+	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			logger.info("AnnounceLinkInfo[{}]: {}",
-				protocol.getSender().getSessionId(), AsyncSocket.toStr(protocol.Argument));
+				Objects.requireNonNull(protocol.getSender()).getSessionId(), AsyncSocket.toStr(protocol.Argument));
 		}
 		return Procedure.Success;
 	}

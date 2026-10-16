@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import java.util.Objects;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.DepartmentTree.*;
@@ -12,6 +14,7 @@ import Zeze.Transaction.DynamicBean;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Action1;
 import Zeze.Util.OutLong;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 部门树集合：树/部门/管理员/成员的存储与管理员权限检查（事务表实现）。
@@ -179,7 +182,7 @@ public class DepartmentTree<
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	@SuppressWarnings("unchecked")
-	public TManager getManagerData(BDepartmentRoot root, String account) {
+	public @Nullable TManager getManagerData(BDepartmentRoot root, String account) {
 		var dynamicManager = root.getManagers().get(account);
 		if (null == dynamicManager)
 			return null;
@@ -187,7 +190,7 @@ public class DepartmentTree<
 	}
 
 	@SuppressWarnings("unchecked")
-	public TManager getManagerData(BDepartmentTreeNode department, String account) {
+	public @Nullable TManager getManagerData(BDepartmentTreeNode department, String account) {
 		var dynamicManager = department.getManagers().get(account);
 		if (null == dynamicManager)
 			return null;
@@ -257,11 +260,11 @@ public class DepartmentTree<
 		return module.errorCode(Module.ErrorManagePermission);
 	}
 
-	public BDepartmentRoot getRoot() {
+	public @Nullable BDepartmentRoot getRoot() {
 		return module._tDepartment.get(name);
 	}
 
-	public BDepartmentTreeNode getDepartmentTreeNode(long departmentId) {
+	public @Nullable BDepartmentTreeNode getDepartmentTreeNode(long departmentId) {
 		if (departmentId == 0)
 			throw new IllegalArgumentException("root can not access use this method.");
 		return module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
@@ -285,11 +288,11 @@ public class DepartmentTree<
 		return module.linkedMaps._open("0@" + name, memberClass, 30);
 	}
 
-	public BDepartmentRoot selectRoot() {
+	public @Nullable BDepartmentRoot selectRoot() {
 		return module._tDepartment.selectDirty(name);
 	}
 
-	public BDepartmentTreeNode selectDepartmentTreeNode(long departmentId) {
+	public @Nullable BDepartmentTreeNode selectDepartmentTreeNode(long departmentId) {
 		return module._tDepartmentTree.selectDirty(new BDepartmentKey(name, departmentId));
 	}
 
@@ -331,7 +334,7 @@ public class DepartmentTree<
 	private TManager getOrAddRootManager(String account) {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		return (TManager)dRoot.getManagers().computeIfAbsent(account, key -> {
-			var value = new DynamicBean(0, DepartmentTree::getSpecialTypeIdFromBean, DepartmentTree::createBeanFromSpecialTypeId);
+			var value = new DynamicBean(0, bean -> getSpecialTypeIdFromBean(Objects.requireNonNull(bean)), DepartmentTree::createBeanFromSpecialTypeId);
 			value.setBean(beanFactory.createBeanFromSpecialTypeId(managerTypeId));
 			return value;
 		}).getBean();
@@ -348,14 +351,14 @@ public class DepartmentTree<
 		if (null == d)
 			throw new IllegalArgumentException("department not found: " + departmentId);
 		return (TManager)d.getManagers().computeIfAbsent(name, key -> {
-			var value = new DynamicBean(0, DepartmentTree::getSpecialTypeIdFromBean, DepartmentTree::createBeanFromSpecialTypeId);
+			var value = new DynamicBean(0, bean -> getSpecialTypeIdFromBean(Objects.requireNonNull(bean)), DepartmentTree::createBeanFromSpecialTypeId);
 			value.setBean(beanFactory.createBeanFromSpecialTypeId(managerTypeId));
 			return value;
 		}).getBean();
 	}
 
 	@SuppressWarnings("unchecked")
-	private TManager deleteRootManager(String name) {
+	private @Nullable TManager deleteRootManager(String name) {
 		// 表key是树名(this.name)，managers的key是账号(参数name)。
 		var dRoot = module._tDepartment.getOrAdd(this.name);
 		var m = dRoot.getManagers().remove(name);
@@ -365,7 +368,7 @@ public class DepartmentTree<
 	}
 
 	@SuppressWarnings("unchecked")
-	public TManager deleteManager(long departmentId, String name) {
+	public @Nullable TManager deleteManager(long departmentId, String name) {
 		if (departmentId == 0)
 			return deleteRootManager(name);
 
@@ -378,7 +381,7 @@ public class DepartmentTree<
 		return m != null ? (TManager)m.getBean() : null;
 	}
 
-	public long createDepartment(long departmentParent, String dName, int childrenLimit, OutLong outDepartmentId) {
+	public long createDepartment(long departmentParent, String dName, int childrenLimit, @Nullable OutLong outDepartmentId) {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		var dId = dRoot.getNextDepartmentId() + 1;
 

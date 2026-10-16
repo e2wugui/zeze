@@ -5,15 +5,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Random;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.IGlobalAgent.AcquireResult;
+import Zeze.Transaction.Database.Transaction;
 
 /**
  * 表格记录：缓存中一条记录的运行时载体，持有软引用值、脏事实、时间戳、
  * 全局缓存状态（GCM）与所属关联记录集。
  */
 public abstract class Record extends ReentrantLock {
-	public record RootInfo(@NotNull Record record, @NotNull TableKey tableKey) {
+	public record RootInfo(@Nullable Record record, TableKey tableKey) {
 	}
 
 	// 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
@@ -39,20 +40,20 @@ public abstract class Record extends ReentrantLock {
 	 * 清脏（Checkpoint.flush成功后，不持记录fairLock）交错在两读之间会拿到null当作"记录不存在"
 	 * ——已提交未读出的内存脏数据被静默丢弃。单volatile引用使每次读取自洽，缺陷从结构上消除。
 	 */
-	private static final @NotNull Object DIRTY_NULL = new Object(); // 脏删除哨兵：有脏事实无脏值
+	private static final Object DIRTY_NULL = new Object(); // 脏删除哨兵：有脏事实无脏值
 	private volatile @Nullable Object dirtyRef;
 
 	private volatile long timestamp; // 正值表示load方式加载/修改的自增值;负值表示上次用dirty方式读取时间戳的负值
-	private volatile @NotNull SoftReference<Bean> softValue;
-	private volatile @NotNull RelativeRecordSet relativeRecordSet = new RelativeRecordSet();
+	private volatile SoftReference<@Nullable Bean> softValue;
+	private volatile RelativeRecordSet relativeRecordSet = new RelativeRecordSet();
 	private volatile int state = GlobalCacheManagerConst.StateInvalid;
 
 	// too many try
 	private boolean fresh;
 	private long acquireTime; // 存放过期时间
 
-	private @Nullable Database.Transaction databaseTransactionTmp;
-	private @Nullable Database.Transaction databaseTransactionOldTmp;
+	private @Nullable Transaction databaseTransactionTmp;
+	private @Nullable Transaction databaseTransactionOldTmp;
 
 	public Record(@Nullable Bean value) {
 		super(true);
@@ -119,11 +120,11 @@ public abstract class Record extends ReentrantLock {
 		softValue = new SoftReference<>(value);
 	}
 
-	final @NotNull RelativeRecordSet getRelativeRecordSet() {
+	final RelativeRecordSet getRelativeRecordSet() {
 		return relativeRecordSet;
 	}
 
-	final void setRelativeRecordSet(@NotNull RelativeRecordSet value) {
+	final void setRelativeRecordSet(RelativeRecordSet value) {
 		relativeRecordSet = value;
 	}
 
@@ -152,41 +153,41 @@ public abstract class Record extends ReentrantLock {
 		fresh = true;
 	}
 
-	final @Nullable Database.Transaction getDatabaseTransactionTmp() {
+	final @Nullable Transaction getDatabaseTransactionTmp() {
 		return databaseTransactionTmp;
 	}
 
-	final @Nullable Database.Transaction getDatabaseTransactionOldTmp() {
+	final @Nullable Transaction getDatabaseTransactionOldTmp() {
 		return databaseTransactionOldTmp;
 	}
 
-	final void setDatabaseTransactionTmp(@Nullable Database.Transaction value) {
+	final void setDatabaseTransactionTmp(@Nullable Transaction value) {
 		databaseTransactionTmp = value;
 	}
 
-	final void setDatabaseTransactionOldTmp(@Nullable Database.Transaction value) {
+	final void setDatabaseTransactionOldTmp(@Nullable Transaction value) {
 		databaseTransactionOldTmp = value;
 	}
 
-	public final @NotNull RootInfo createRootInfoIfNeed(@NotNull TableKey tkey) {
+	public final RootInfo createRootInfoIfNeed(TableKey tkey) {
 		var strongRef = getSoftValue();
 		var cur = strongRef != null ? strongRef.rootInfo : null;
 		return cur != null ? cur : new RootInfo(this, tkey);
 	}
 
-	public abstract @NotNull Table getTable();
+	public abstract Table getTable();
 
-	public abstract @NotNull Object getObjectKey();
+	public abstract Object getObjectKey();
 
 	public abstract void setDirty();
 
-	public abstract @Nullable IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait);
+	public abstract @Nullable AcquireResult acquire(int state, boolean fresh, boolean noWait);
 
 	public abstract void encode0();
 
-	public abstract void flush(@Nullable Database.Transaction t, @NotNull Database.Transaction lct);
+	public abstract void flush(@Nullable Transaction t, Database.Transaction lct);
 
-	public abstract void commit(@NotNull RecordAccessed accessed);
+	public abstract void commit(RecordAccessed accessed);
 
 	public abstract void cleanup();
 }

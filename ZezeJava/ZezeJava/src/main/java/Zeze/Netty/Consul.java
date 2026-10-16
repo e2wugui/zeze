@@ -4,7 +4,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.agent.model.NewService;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 向 Consul 注册 HttpServer 服务，便于第三方（比如Nginx)发现。
@@ -13,23 +12,23 @@ import org.jetbrains.annotations.NotNull;
 public class Consul {
 	// 这个path对所有的httpserver都一样。
 	private static final String PassiveKeepAlivePath = "/Zeze_Netty_Consul_PassiveKeepAlivePath";
-	private final @NotNull ConsulClient client;
+	private final ConsulClient client;
 	private final ConcurrentHashMap<HttpServer, String> services = new ConcurrentHashMap<>();
 
-	public Consul(@NotNull String consulHost) {
+	public Consul(String consulHost) {
 		this(new ConsulClient(consulHost));
 	}
 
 	// 复用外部构建的client(也便于测试注入mock)
-	public Consul(@NotNull ConsulClient client) {
+	public Consul(ConsulClient client) {
 		this.client = client;
 	}
 
-	public @NotNull ConsulClient getClient() {
+	public ConsulClient getClient() {
 		return client;
 	}
 
-	public void register(@NotNull String serviceName, @NotNull HttpServer httpServer) throws Exception {
+	public void register(String serviceName, HttpServer httpServer) throws Exception {
 		var ip = httpServer.getExportIp();
 		var port = httpServer.getPort();
 
@@ -99,7 +98,7 @@ public class Consul {
 		services.clear();
 	}
 
-	private static void passiveKeepAlive(@NotNull HttpExchange x) {
+	private static void passiveKeepAlive(HttpExchange x) {
 		x.sendPlainText(HttpResponseStatus.OK, ""); // todo consul被动保活结果有没有什么规定
 	}
 }

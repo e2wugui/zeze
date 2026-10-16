@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.io.Closeable;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
@@ -12,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-
 import Zeze.Component.ThreadingServer;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
@@ -40,11 +40,9 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 import org.w3c.dom.Element;
-
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
@@ -103,7 +101,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				.setLevel(Level.toLevel(levelProperty, Level.INFO));
 	}
 
-	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerServer.class);
+	private static final Logger logger = LogManager.getLogger(ServiceManagerServer.class);
 
 	// ServiceInfo.Name -> ServiceState
 	private final ConcurrentHashMap<String, ServiceState> serviceStates = new ConcurrentHashMap<>();
@@ -114,10 +112,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private final ConcurrentHashMap<String, LoadObservers> loads = new ConcurrentHashMap<>();
 
 	private static final class LoadObservers extends FastLock {
-		private final @NotNull ServiceManagerServer serviceManager;
+		private final ServiceManagerServer serviceManager;
 		private final LongHashSet observers = new LongHashSet();
 
-		public LoadObservers(@NotNull ServiceManagerServer m) {
+		public LoadObservers(ServiceManagerServer m) {
 			serviceManager = m;
 		}
 
@@ -130,7 +128,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void setLoad(@NotNull BServerLoad load) {
+		public void setLoad(BServerLoad load) {
 			lock();
 			try {
 				var set = new SetServerLoad(load);
@@ -138,7 +136,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				for (var it = observers.iterator(); it.moveToNext(); ) {
 					long observer = it.value();
 					try {
-						if (set.Send(serviceManager.server.GetSocket(observer)))
+						if (set.Send(Objects.requireNonNull(serviceManager.server).GetSocket(observer)))
 							continue;
 					} catch (Throwable ignored) {
 					}
@@ -168,10 +166,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final Conf conf = new Conf();
-	private NetServer server;
-	private final @NotNull AsyncSocket serverSocket;
-	private final @NotNull RocksDatabase autoKeysDb;
-	private final @NotNull RocksDatabase.Table autoKeyTable;
+	private @Nullable NetServer server;
+	private final AsyncSocket serverSocket;
+	private final RocksDatabase autoKeysDb;
+	private final RocksDatabase.Table autoKeyTable;
 	private final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 	private final Id128UdpServer id128Server;
 
@@ -183,17 +181,17 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// 偏小会让高版本提前进场与同版本分食scope）。
 		public long takeoverNotifyStepMs = 900_000;
 		public int retryNotifyDelayWhenNotAllReady = 30 * 1000;
-		public @NotNull String dbHome = ".";
+		public String dbHome = ".";
 
 		public long threadingReleaseTimeout = 30 * 60 * 1000;
 
 		@Override
-		public @NotNull String getName() {
+		public String getName() {
 			return "Zeze.Services.ServiceManager";
 		}
 
 		@Override
-		public void parse(@NotNull Element self) {
+		public void parse(Element self) {
 			String attr = self.getAttribute("KeepAlivePeriod");
 			if (!attr.isEmpty())
 				keepAlivePeriod = Integer.parseInt(attr);
@@ -211,14 +209,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	// 每个服务的状态
 	public static final class ServiceState {
-		private final @NotNull ServiceManagerServer serviceManager;
-		private final @NotNull String serviceName;
+		private final ServiceManagerServer serviceManager;
+		private final String serviceName;
 		// version -> map<identity, serviceInfo>
 		// 记录一下SessionId，方便以后找到服务所在的连接。
 		private final HashMap<Long, HashMap<String, BServiceInfo>> serviceInfos = new HashMap<>(); // <version,<serverId,info>>
 		private final LongHashMap<BSubscribeInfo> simple = new LongHashMap<>(); // key:sessionId
 
-		public ServiceState(@NotNull ServiceManagerServer sm, @NotNull String serviceName) {
+		public ServiceState(ServiceManagerServer sm, String serviceName) {
 			serviceManager = sm;
 			this.serviceName = serviceName;
 		}
@@ -228,12 +226,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		// 通知订阅了info版本的会话（version==0订阅全部版本）。info的版本决定通知过滤。
-		private void collectNotify(@NotNull BServiceInfo info, boolean isAdd,
-								   @NotNull HashMap<AsyncSocket, EditService> result) {
+		private void collectNotify(BServiceInfo info, boolean isAdd,
+								   HashMap<AsyncSocket, EditService> result) {
 			for (var it = simple.iterator(); it.moveToNext(); ) {
-				var itVersion = it.value().getVersion();
+				var itVersion = Objects.requireNonNull(it.value()).getVersion();
 				if (itVersion == 0 || itVersion == info.getVersion()) {
-					var peer = serviceManager.server.GetSocket(it.key());
+					var peer = Objects.requireNonNull(serviceManager.server).GetSocket(it.key());
 					if (peer != null) {
 						var notify = result.computeIfAbsent(peer, __ -> new EditService());
 						if (isAdd)
@@ -245,7 +243,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void addAndCollectNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
+		public void addAndCollectNotify(BServiceInfo info, HashMap<AsyncSocket, EditService> result) {
 			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 			// 更新以name+id为key（BEditService.add声明的语义）：同identity重注册到新版本时，
 			// 先从其他版本桶移除旧记录并通知其版本订阅者remove，
@@ -268,8 +266,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), it.key());
 		}
 
-		public void removeAndCollectNotify(@NotNull BServiceInfo info, long sessionId,
-										   @NotNull HashMap<AsyncSocket, EditService> result) {
+		public void removeAndCollectNotify(BServiceInfo info, long sessionId,
+										   HashMap<AsyncSocket, EditService> result) {
 			// 注销同样以name+id为key跨全部版本桶收敛（与addAndCollectNotify、客户端onUnRegister一致）。
 			for (var e : serviceInfos.entrySet()) {
 				var exist = e.getValue().get(info.getServiceIdentity());
@@ -282,20 +280,20 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			serviceInfos.values().removeIf(HashMap::isEmpty);
 		}
 
-		public void subscribeAndCollectResult(@NotNull Subscribe r, @NotNull BSubscribeInfo subInfo, long sessionId) {
+		public void subscribeAndCollectResult(Subscribe r, BSubscribeInfo subInfo, long sessionId) {
 			// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
 			simple.put(sessionId, subInfo);
 			r.Result.map.put(serviceName, new BServiceInfosVersion(subInfo.getVersion(), this));
 			for (var versions : serviceInfos.values()) {
 				for (var info : versions.values())
-					serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
+					serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), Objects.requireNonNull(r.getSender()));
 			}
 		}
 	}
 
 	// 每个server连接的状态
 	public static final class Session {
-		private final @NotNull ServiceManagerServer serviceManager;
+		private final ServiceManagerServer serviceManager;
 		private final long sessionId;
 		private final ConcurrentHashSet<BServiceInfo> registers = new ConcurrentHashSet<>(); // 以'服务名+ID'作为key的set
 		// key is ServiceName: 会话订阅
@@ -304,14 +302,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		private volatile int identifyServerId = -1; // Identify上报的serverId；-1=未上报。断线时据此广播Suspect。
 		private volatile long identifyVersion = -1; // Identify上报的进程数据格式版本；-1=未上报（旧客户端按0）。断线时据此做接管梯队。
 
-		public Session(@NotNull ServiceManagerServer sm, long sid) {
+		public Session(ServiceManagerServer sm, long sid) {
 			serviceManager = sm;
 			sessionId = sid;
 			if (serviceManager.conf.keepAlivePeriod > 0) {
 				keepAliveTimerTask = TaskSpec.ofAction(() -> {
 					AsyncSocket s = null;
 					try {
-						s = serviceManager.server.GetSocket(sessionId);
+						s = Objects.requireNonNull(serviceManager.server).GetSocket(sessionId);
 						if (s == null)
 							return; // 会话已关闭/已被清理，KeepAlive 无事可做
 						var r = new KeepAlive();
@@ -377,13 +375,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	}
 
-	private void addLoadObserver(@NotNull String ip, int port, @NotNull AsyncSocket sender) {
+	private void addLoadObserver(String ip, int port, AsyncSocket sender) {
 		addLoadObserver(ip, port, sender.getSessionId());
 	}
 
 	// 观察者按sessionId登记（sessionId在连接存活期内稳定；重连产生新id，死观察者由
 	// LoadObservers.setLoad转发失败时惰性剔除）。
-	private void addLoadObserver(@NotNull String ip, int port, long sessionId) {
+	private void addLoadObserver(String ip, int port, long sessionId) {
 		if (!ip.isEmpty() && port != 0)
 			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sessionId);
 	}
@@ -402,8 +400,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// socketMap摘除再清理（清理持editLock），故锁内GetSocket==sender⟹摘除未发生⟹清理未开始，
 	// 本次处理的写入会被随后的清理收走；GetSocket!=sender⟹会话已死，拒绝即不产生死会话残留。
 	// sessionId由全局AtomicLong发号不复用，不存在同号新连接误判。
-	private boolean isSenderAlive(@NotNull AsyncSocket sender) {
-		return server.GetSocket(sender.getSessionId()) == sender;
+	private boolean isSenderAlive(AsyncSocket sender) {
+		return Objects.requireNonNull(server).GetSocket(sender.getSessionId()) == sender;
 	}
 
 	private static void sendNotifies(HashMap<AsyncSocket, EditService> notifies) {
@@ -417,7 +415,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// 排序前提）：非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧
 	// insert的binarySearch在Long.parseLong上抛NumberFormatException，打断同批全部合法
 	// 变更的处理。畸形请求整批拒绝（错误码经派发层onError应答，客户端SendAndWait感知失败）。
-	private static boolean isLegalServiceIdentity(@NotNull String identity) {
+	private static boolean isLegalServiceIdentity(String identity) {
 		if (identity.startsWith("@") || identity.startsWith("#"))
 			return true;
 		try {
@@ -449,7 +447,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// 拒绝告警限频（同Id128UdpServer.warnRejected，60秒一条防日志刷屏DoS）。
 	private volatile long lastSvcRejectLogMs;
 
-	private void warnSvcRejected(@NotNull String reason) {
+	private void warnSvcRejected(String reason) {
 		var now = System.currentTimeMillis();
 		var last = lastSvcRejectLogMs;
 		if (now - last < 60_000)
@@ -462,7 +460,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// 满员时逐出一个空壳行（无注册无订阅）腾位。editLock内调用（Edit/Subscribe/清理
 	// 全序串行，无并发），excludeName为本请求正要使用的名字。非raft行是内存态、内容
 	// 可由客户端重发恢复，逐出无损。
-	private boolean evictIdleServiceState(@NotNull String excludeName) {
+	private boolean evictIdleServiceState(String excludeName) {
 		for (var it = serviceStates.entrySet().iterator(); it.hasNext(); ) {
 			var e = it.next();
 			if (!e.getKey().equals(excludeName)
@@ -475,7 +473,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	// 只规划、不修改：整批验证成功后，先注销，再应用逐出计划，最后注册/订阅并通知。
-	private ArrayList<String> planServiceNames(Set<String> requested, Set<BServiceInfo> removes, long sessionId) {
+	private @Nullable ArrayList<String> planServiceNames(Set<String> requested, Set<BServiceInfo> removes, long sessionId) {
 		int needed = 0;
 		for (var name : requested) {
 			if (!serviceStates.containsKey(name))
@@ -509,7 +507,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return null;
 	}
 
-	private long processEditService(@NotNull EditService r) {
+	private long processEditService(EditService r) {
 		var add = r.Argument.getAdd();
 		var remove = r.Argument.getRemove();
 		if (add.size() + remove.size() > SVC_EDIT_BATCH_MAX) {
@@ -531,7 +529,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		for (var info : r.Argument.getRemove())
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Procedure.ErrorRequestId;
-		var session = (Session)r.getSender().getUserState();
+		var session = (Session)Objects.requireNonNull(r.getSender()).getUserState();
 		var notifies = new HashMap<AsyncSocket, EditService>();
 		// 原子的完成所有编辑的修改和通知。
 		editLock.lock();
@@ -541,7 +539,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				return Procedure.Success;
 			}
 			var finalRegisters = new HashSet<BServiceInfo>();
-			for (var info : session.registers)
+			for (var info : Objects.requireNonNull(session).registers)
 				finalRegisters.add(info);
 			finalRegisters.removeAll(remove);
 			finalRegisters.addAll(add);
@@ -606,9 +604,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return Procedure.Success;
 	}
 
-	private long processSubscribe(@NotNull Subscribe r) {
+	private long processSubscribe(Subscribe r) {
 		logger.info("{}: Subscribe {}", r.getSender(), r.Argument);
-		var session = (Session)r.getSender().getUserState();
+		var session = (Session)Objects.requireNonNull(r.getSender()).getUserState();
 
 		if (r.Argument.subs.size() > SVC_EDIT_BATCH_MAX) {
 			warnSvcRejected("subscribe batch exceeded " + SVC_EDIT_BATCH_MAX + ": " + r.Argument.subs.size());
@@ -625,7 +623,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
 			}
-			var finalSubscriptions = new HashSet<>(session.subscribes.keySet());
+			var finalSubscriptions = new HashSet<>(Objects.requireNonNull(session).subscribes.keySet());
 			var requestedNames = new HashSet<String>();
 			for (var sub : r.Argument.subs) {
 				finalSubscriptions.add(sub.getServiceName());
@@ -651,15 +649,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return Procedure.Success;
 	}
 
-	private void unSubscribeNow(long sessionId, @NotNull String serviceName) {
+	private void unSubscribeNow(long sessionId, String serviceName) {
 		var state = serviceStates.get(serviceName);
 		if (state != null)
 			state.simple.remove(sessionId);
 	}
 
-	private long processUnSubscribe(@NotNull UnSubscribe r) {
+	private long processUnSubscribe(UnSubscribe r) {
 		logger.info("{}: UnSubscribe {}", r.getSender(), r.Argument);
-		var session = (Session)r.getSender().getUserState();
+		var session = (Session)Objects.requireNonNull(r.getSender()).getUserState();
 
 		editLock.lock();
 		try {
@@ -668,7 +666,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				return Procedure.Success;
 			}
 			for (var serviceName : r.Argument.serviceNames) {
-				session.subscribes.remove(serviceName); // continue if not exist
+				Objects.requireNonNull(session).subscribes.remove(serviceName); // continue if not exist
 				unSubscribeNow(session.sessionId, serviceName);
 			}
 			r.SendResult();
@@ -678,7 +676,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return Procedure.Success;
 	}
 
-	private long processSetLoad(@NotNull SetServerLoad setServerLoad) {
+	private long processSetLoad(SetServerLoad setServerLoad) {
 		// loads键（name）客户端可控——长度校验（空行自愈已有：removeLoadObservers
 		// 在任意会话关闭时按isEmpty扫除）。
 		if (isOverUtf8Bytes(setServerLoad.Argument.getName(), SVC_NAME_MAX_BYTES)
@@ -691,7 +689,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			// 迟到的SetLoad会为死会话重建零观察者地址行（绕过会话联动清理）；
 			// 判活与removeLoadObservers（onClose，editLock内）串行。SetServerLoad非Rpc，
 			// 死连接本就收不到应答，拒绝即静默丢弃。
-			if (!isSenderAlive(setServerLoad.getSender()))
+			if (!isSenderAlive(Objects.requireNonNull(setServerLoad.getSender())))
 				return 0;
 			loads.computeIfAbsent(setServerLoad.Argument.getName(), __ -> new LoadObservers(this))
 				.setLoad(setServerLoad.Argument);
@@ -703,8 +701,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	// 只写session上一个int（Direct派发内完成、无锁、无取消语义）。
 	@SuppressWarnings("MethodMayBeStatic")
-	private long processIdentify(@NotNull Identify r) {
-		var session = (Session)r.getSender().getUserState();
+	private long processIdentify(Identify r) {
+		var session = (Session)Objects.requireNonNull(r.getSender()).getUserState();
 		if (session != null) {
 			session.identifyServerId = r.Argument.serverId;
 			session.identifyVersion = r.Argument.version;
@@ -722,7 +720,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private static final class SuspectTier {
 		final long deadVersion;
 		volatile long tierVersion; // 已广播到的档位
-		volatile @Nullable java.util.concurrent.Future<?> timer;
+		volatile @Nullable Future<?> timer;
 		SuspectTier(long deadVersion, long tierVersion) {
 			this.deadVersion = deadVersion;
 			this.tierVersion = tierVersion;
@@ -737,7 +735,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		suspect.Argument.serverId = deadServerId;
 		suspect.Argument.version = deadVersion;
 		try {
-			server.foreach(so -> {
+			Objects.requireNonNull(server).foreach(so -> {
 				if (so.getSessionId() == deadSessionId)
 					return; // 刚断线的会话本身不报信
 				var netSession = (Session)so.getUserState();
@@ -757,7 +755,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		var tier = new SuspectTier(deadVersion, deadVersion);
 		var old = suspectTiers.put(deadServerId, tier);
 		if (old != null && old.timer != null)
-			old.timer.cancel(false); // 死者反复闪断：新周期覆盖旧升档链
+			Objects.requireNonNull(old.timer).cancel(false); // 死者反复闪断：新周期覆盖旧升档链
 		broadcastSuspectTier(deadServerId, deadSessionId, deadVersion, deadVersion);
 		scheduleNextTier(deadServerId, deadSessionId, tier);
 	}
@@ -771,7 +769,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var next = new long[]{Long.MAX_VALUE};
 			final var deadSessionIdRef = deadSessionId;
 			try {
-				server.foreach(so -> {
+				Objects.requireNonNull(server).foreach(so -> {
 					if (so.getSessionId() == deadSessionIdRef)
 						return;
 					var netSession = (Session)so.getUserState();
@@ -797,10 +795,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	// 只写session上字段（Direct派发内完成、无锁）。回执到达即整条梯队停止（需求④）。
 	@SuppressWarnings("MethodMayBeStatic")
-	private long processTakeoverDone(@NotNull TakeoverDone r) {
+	private long processTakeoverDone(TakeoverDone r) {
 		var tier = suspectTiers.remove(r.Argument.deadServerId);
 		if (tier != null && tier.timer != null)
-			tier.timer.cancel(false);
+			Objects.requireNonNull(tier.timer).cancel(false);
 		logger.info("TakeoverDone serverId={} taker={} version={} tier={}",
 				r.Argument.deadServerId, r.Argument.takerServerId, r.Argument.takerVersion,
 				tier == null ? -1 : tier.tierVersion);
@@ -812,7 +810,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// 关停清理：取消全部Takeover梯队升档定时器（900s级长定时器挂着会拖死JVM收尾）。
 		for (var tier : suspectTiers.values())
 			if (tier.timer != null)
-				tier.timer.cancel(false);
+				Objects.requireNonNull(tier.timer).cancel(false);
 		suspectTiers.clear();
 		try {
 			stop();
@@ -821,16 +819,16 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	private final @NotNull ThreadingServer threading;
+	private final ThreadingServer threading;
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-								@NotNull Config config) throws Exception {
+								Config config) throws Exception {
 		this(ipaddress, port, config, "autokeys");
 	}
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-								@NotNull Config config,
-								@NotNull String autokeys) throws Exception {
+								Config config,
+								String autokeys) throws Exception {
 		ZezeCounter.tryInit();
 		applyLogLevelProperty(); // 显式启动动作（仅显式指定logLevel属性才动配置）
 		config.parseCustomize(this.conf);
@@ -926,12 +924,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private static final class AutoKey extends FastLock {
-		private final @NotNull ServiceManagerServer sms;
-		private final byte @NotNull [] key;
+		private final ServiceManagerServer sms;
+		private final byte [] key;
 		private final AtomicLong current = new AtomicLong();
 		private volatile long max; // 当前可分配的上限(不含)
 
-		public AutoKey(@NotNull String name, @NotNull ServiceManagerServer sms) {
+		public AutoKey(String name, ServiceManagerServer sms) {
 			this.sms = sms;
 			var nameBytes = name.getBytes(StandardCharsets.UTF_8);
 			var bb = ByteBuffer.Allocate(ByteBuffer.WriteUIntSize(nameBytes.length) + nameBytes.length);
@@ -949,7 +947,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// 无锁CAS快路径与满员逐出（evictIdleAutoKey的tryLock）不相容——CAS推进不持锁，
 		// 逐出可越过在途分配移除条目，重建后current从持久max前移，与孤儿AutoKey的越界
 		// 慢路径交付重叠重号。持锁后读-推进线性化，CAS循环不再需要。
-		public void allocateLocked(@NotNull AllocateId rpc, int count) {
+		public void allocateLocked(AllocateId rpc, int count) {
 			var c = current.get();
 			if (c + count > max) {
 				var m = max + count * 10L;
@@ -968,7 +966,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	private long processAllocateId(@NotNull AllocateId r) {
+	private long processAllocateId(AllocateId r) {
 		var name = r.Argument.getName();
 		var count = r.Argument.getCount();
 		// 入口校验（同端口UDP面Id128UdpServer同口径）：该TCP端口
@@ -980,7 +978,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			r.SendResultCode(Procedure.ErrorRequestId);
 			return Procedure.Success;
 		}
-		if (name.getBytes(StandardCharsets.UTF_8).length > 128) {
+		if (Objects.requireNonNull(name).getBytes(StandardCharsets.UTF_8).length > 128) {
 			warnAllocateIdRejected("name too long: chars=" + name.length());
 			r.SendResultCode(Procedure.ErrorRequestId);
 			return Procedure.Success;
@@ -1034,7 +1032,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// 请求按包记日志可耗尽日志盘/CPU（日志刷屏DoS），60秒一条。
 	private volatile long lastAllocateIdRejectLogMs;
 
-	private void warnAllocateIdRejected(@NotNull String reason) {
+	private void warnAllocateIdRejected(String reason) {
 		var now = System.currentTimeMillis();
 		var last = lastAllocateIdRejectLogMs;
 		if (now - last < 60_000)
@@ -1062,23 +1060,23 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	public static final class NetServer extends HandshakeServer {
-		private final @NotNull ServiceManagerServer serviceManager;
+		private final ServiceManagerServer serviceManager;
 		private final TaskOneByOneByKey oneByOneByKey = new TaskOneByOneByKey();
 
-		public NetServer(@NotNull ServiceManagerServer sm, Config config) {
+		public NetServer(ServiceManagerServer sm, Config config) {
 			super("Zeze.Services.ServiceManager", config);
 			serviceManager = sm;
 		}
 
 		@Override
-		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketAccept(AsyncSocket so) throws Exception {
 			logger.info("OnSocketAccept: {} sessionId={}", so, so.getSessionId());
 			so.setUserState(new Session(serviceManager, so.getSessionId()));
 			super.OnSocketAccept(so);
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			logger.info("OnSocketClose: {} sessionId={}", so, so.getSessionId());
 			// 先经基类从socketMap摘除，再做会话清理——摘除成为关闭的第一可见步骤，
 			// process*的锁内判活（isSenderAlive）才有全序：判活通过⟹清理尚未开始（本次处理
@@ -1090,16 +1088,16 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
-									 @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
+		public void dispatchProtocol(long typeId, ByteBuffer bb,
+									 ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			if (factoryHandle.Mode == DispatchMode.Direct) {
 				// 有几个direct方式的协议,为了性能就不考虑和其它非direct协议的处理顺序了,但因为在IO线程串行处理,这些协议本身的处理还是有顺序的
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode).call();
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)).call();
 			} else {
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
 					.dispatchMode(factoryHandle.Mode)
-					.executeOneByOne(p.getSender(), oneByOneByKey);
+					.executeOneByOne(Objects.requireNonNull(p.getSender()), oneByOneByKey);
 			}
 			// 不支持事务，由于这里直接OneByOne执行，所以下面两个方法就不重载了。
 		}

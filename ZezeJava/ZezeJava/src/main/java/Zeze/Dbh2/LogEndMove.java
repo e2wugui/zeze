@@ -1,12 +1,15 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 结束桶迁移的 Raft 日志。
@@ -14,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 public class LogEndMove extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogEndMove.class.getName());
 
-	private BBucketMeta.Data to;
+	private BBucketMeta.@Nullable Data to;
 
 	public LogEndMove() {
 		super(null);
@@ -25,7 +28,7 @@ public class LogEndMove extends Log {
 		this.to = to;
 	}
 
-	public BBucketMeta.Data getTo() {
+	public BBucketMeta.@Nullable Data getTo() {
 		return to;
 	}
 
@@ -37,17 +40,17 @@ public class LogEndMove extends Log {
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
 		var sm = (Dbh2StateMachine)stateMachine;
-		sm.endMove(to);
+		sm.endMove(Objects.requireNonNull(to));
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		to.encode(bb);
+		Objects.requireNonNull(to).encode(bb);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		to = new BBucketMeta.Data();
 		to.decode(bb);

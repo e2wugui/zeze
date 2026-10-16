@@ -4,7 +4,6 @@ import Zeze.Util.PerfCounter;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TimerFuture;
 import Zeze.Util.ZezeCounter;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 过程执行速率监视：按名称周期统计 QPS，达到阈值时触发回调（如动态降级）。
@@ -17,8 +16,8 @@ public final class ProcedureStatistics {
 	private ProcedureStatistics() {
 	}
 
-	public static @NotNull TimerFuture<?> watch(@NotNull String procedureName, long reachPerSecond,
-												@NotNull Runnable handle) {
+	public static TimerFuture<?> watch(String procedureName, long reachPerSecond,
+												Runnable handle) {
 		var watcher = new Watcher(procedureName, reachPerSecond, handle);
 		return TaskSpec.ofAction(watcher::check).schedulePeriodNow(Watcher.CheckPeriod, Watcher.CheckPeriod);
 	}
@@ -26,19 +25,19 @@ public final class ProcedureStatistics {
 	static final class Watcher {
 		static final int CheckPeriod = 30_000; // 毫秒
 
-		private final @NotNull String procedureName;
+		private final String procedureName;
 		private final long reach;
-		private final @NotNull Runnable reachHandle;
+		private final Runnable reachHandle;
 		private long last;
 
-		Watcher(@NotNull String procedureName, long reachPerSecond, @NotNull Runnable handle) {
+		Watcher(String procedureName, long reachPerSecond, Runnable handle) {
 			this.procedureName = procedureName;
 			last = getTotalCount(procedureName);
 			reach = reachPerSecond;
 			reachHandle = handle;
 		}
 
-		static long getTotalCount(@NotNull String procedureName) {
+		static long getTotalCount(String procedureName) {
 			// 不能用周期快照（getLast().procedureResults()）做差分：快照每轮换新且
 			// 只含上一周期计数，(total-last)在稳态恒0永不触发，收集边界恰好落入
 			// 检查间隔时又把整周期计数当30s速率（约3.3倍高估）。

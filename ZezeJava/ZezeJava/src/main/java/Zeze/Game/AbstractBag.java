@@ -52,11 +52,11 @@ public abstract class AbstractBag implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tbag.getName()).getDatabaseName(), _tbag);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tbag.getName())).getDatabaseName(), _tbag);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tbag.getName()).getDatabaseName(), _tbag);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tbag.getName())).getDatabaseName(), _tbag);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

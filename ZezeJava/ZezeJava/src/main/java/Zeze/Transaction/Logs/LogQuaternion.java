@@ -1,5 +1,7 @@
 package Zeze.Transaction.Logs;
 
+import java.util.Objects;
+
 import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -7,16 +9,16 @@ import Zeze.Serialize.Quaternion;
 import Zeze.Serialize.Vector3Int;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /** quaternion 字段原子修改日志：携带新值，commit 经 VarHandle 写回，序列化为四个 float 分量。 */
 public class LogQuaternion extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<quaternion>");
 
-	private final VarHandle vh;
-	public Quaternion value;
+	private final @Nullable VarHandle vh;
+	public @Nullable Quaternion value;
 
-	public LogQuaternion(Bean belong, int varId, VarHandle vh, Quaternion value) {
+	public LogQuaternion(@Nullable Bean belong, int varId, @Nullable VarHandle vh, Quaternion value) {
 		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
@@ -28,7 +30,7 @@ public class LogQuaternion extends Log {
 	}
 
 	@Override
-	public @NotNull Category category() {
+	public Category category() {
 		return Category.eHistory;
 	}
 
@@ -44,47 +46,47 @@ public class LogQuaternion extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteQuaternion(value);
+	public void encode(ByteBuffer bb) {
+		bb.WriteQuaternion(Objects.requireNonNull(value));
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadQuaternion();
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.valueOf(value);
 	}
 
 	@Override
-	public @NotNull Quaternion vector2Value() {
-		return value;
+	public Quaternion vector2Value() {
+		return Objects.requireNonNull(value);
 	}
 
 	@Override
-	public @NotNull Vector3Int vector2IntValue() {
-		return new Vector3Int(value);
+	public Vector3Int vector2IntValue() {
+		return new Vector3Int(Objects.requireNonNull(value));
 	}
 
 	@Override
-	public @NotNull Quaternion vector3Value() {
-		return value;
+	public Quaternion vector3Value() {
+		return Objects.requireNonNull(value);
 	}
 
 	@Override
-	public @NotNull Vector3Int vector3IntValue() {
-		return new Vector3Int(value);
+	public Vector3Int vector3IntValue() {
+		return new Vector3Int(Objects.requireNonNull(value));
 	}
 
 	@Override
-	public @NotNull Quaternion vector4Value() {
-		return value;
+	public Quaternion vector4Value() {
+		return Objects.requireNonNull(value);
 	}
 
 	@Override
-	public @NotNull Quaternion quaternionValue() {
-		return value;
+	public Quaternion quaternionValue() {
+		return Objects.requireNonNull(value);
 	}
 }

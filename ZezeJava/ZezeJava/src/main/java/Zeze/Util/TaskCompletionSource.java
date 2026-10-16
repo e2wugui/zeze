@@ -9,22 +9,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import Zeze.Transaction.Profiler;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 可手动完成（setResult/setException）的 Future 实现：CAS 单槽结果 + 无锁等待线程栈
-public class TaskCompletionSource<R> implements Future<R> {
-	private static final @NotNull VarHandle RESULT, WAIT_HEAD;
+public class TaskCompletionSource<R extends @Nullable Object> implements Future<R> {
+	private static final VarHandle RESULT, WAIT_HEAD;
 	protected static final AltResult NULL_RESULT = new AltResult(null);
 
-	private volatile @SuppressWarnings("unused") Object result;
-	private volatile @SuppressWarnings("unused") Node waitHead;
+	private volatile @SuppressWarnings("unused") @Nullable Object result;
+	private volatile @SuppressWarnings("unused") @Nullable Node waitHead;
 
 	private static final class Node {
 		volatile @Nullable Thread thread;
 		volatile @Nullable Node next;
 
-		Node(@NotNull Thread thread) {
+		Node(Thread thread) {
 			this.thread = thread;
 		}
 	}
@@ -47,7 +46,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		}
 	}
 
-	private @NotNull Node push(@NotNull Thread t) {
+	private Node push(Thread t) {
 		var node = new Node(t);
 		for (; ; ) {
 			var h = waitHead;
@@ -57,7 +56,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		}
 	}
 
-	private void removeWaiter(@NotNull Node node) {
+	private void removeWaiter(Node node) {
 		node.thread = null;
 		retry:
 		for (; ; ) {
@@ -100,18 +99,18 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return result;
 	}
 
-	public boolean setRawResult(@NotNull Object r) {
+	public boolean setRawResult(Object r) {
 		if (!RESULT.compareAndSet(this, null, r))
 			return false;
 		unparkAll();
 		return true;
 	}
 
-	public boolean setResult(@Nullable R r) {
+	public boolean setResult(R r) {
 		return setRawResult(r != null ? r : NULL_RESULT);
 	}
 
-	public boolean setException(@NotNull Throwable e) {
+	public boolean setException(Throwable e) {
 		//noinspection ConstantValue
 		if (e == null)
 			throw new NullPointerException();
@@ -164,7 +163,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 	}
 
 	@Override
-	public R get(long timeout, @NotNull TimeUnit unit) { // throws InterruptedException, TimeoutException, CompletionException, CancellationException
+	public R get(long timeout, TimeUnit unit) { // throws InterruptedException, TimeoutException, CompletionException, CancellationException
 		var r = result;
 		if (r == null) {
 			var duration = unit.toNanos(timeout);
@@ -199,7 +198,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return duration - (now - started);
 	}
 
-	protected @Nullable R toResult(@NotNull Object o) { // throws CompletionException
+	protected R toResult(Object o) { // throws CompletionException
 		if (o instanceof AltResult) {
 			var e = ((AltResult)o).e;
 			if (e == null)
@@ -227,7 +226,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return get();
 	}
 
-	public @NotNull TaskCompletionSource<R> await() { // throws InterruptedException, CompletionException, CancellationException
+	public TaskCompletionSource<R> await() { // throws InterruptedException, CompletionException, CancellationException
 		get();
 		return this;
 	}
@@ -235,7 +234,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 	// 带超时的await（FND29 dbh2-02）：超时抛TimeoutException（同get(timeout,unit)的既有形态，
 	// 经forceThrow以未检查异常传播）。rpc等待等"future完成路径可能整体失效"（如发送容器已关闭）
 	// 的场景必须用带超时版本兜底，不得使用无参await无界悬挂。返回this保持链式（await()同款）。
-	public @NotNull TaskCompletionSource<R> await(long timeout, @NotNull TimeUnit unit) { // throws InterruptedException, TimeoutException, CompletionException, CancellationException
+	public TaskCompletionSource<R> await(long timeout, TimeUnit unit) { // throws InterruptedException, TimeoutException, CompletionException, CancellationException
 		get(timeout, unit);
 		return this;
 	}

@@ -1,5 +1,7 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Objects;
+
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
 import java.util.Comparator;
@@ -14,16 +16,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
+import java.util.Map.Entry;
 
 /** 事务 SortedMap 基类：基于 pcollections 持久化有序映射的 NavigableMap 视图，托管下的修改经 LogSortedMap 记账。 */
 public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 		implements NavigableMap<K, V>, Iterable<Map.Entry<K, V>> {
-	@NotNull org.pcollections.PSortedMap<K, V> map = Empty.sortedMap();
+	org.pcollections.PSortedMap<K, V> map = Empty.sortedMap();
 
-	public final @NotNull org.pcollections.PSortedMap<K, V> getMap() {
+	public final org.pcollections.PSortedMap<K, V> getMap() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
@@ -40,22 +42,22 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public abstract void encode(@NotNull ByteBuffer bb);
+	public abstract void encode(ByteBuffer bb);
 
 	@Override
-	public abstract void decode(@NotNull IByteBuffer bb);
+	public abstract void decode(IByteBuffer bb);
 
 	public abstract ByteBuffer encodeKey(K key);
 
-	public abstract K decodeKey(@NotNull ByteBuffer bb);
+	public abstract K decodeKey(ByteBuffer bb);
 
 	@Override
-	public @NotNull Iterator<Entry<K, V>> iterator() {
+	public Iterator<Entry<K, V>> iterator() {
 		return entrySet().iterator();
 	}
 
 	@Override
-	public Entry<K, V> lowerEntry(K key) {
+	public @Nullable Entry<K, V> lowerEntry(K key) {
 		return getMap().lowerEntry(key);
 	}
 
@@ -65,7 +67,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public Entry<K, V> floorEntry(K key) {
+	public @Nullable Entry<K, V> floorEntry(K key) {
 		return getMap().floorEntry(key);
 	}
 
@@ -75,7 +77,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public Entry<K, V> ceilingEntry(K key) {
+	public @Nullable Entry<K, V> ceilingEntry(K key) {
 		return getMap().ceilingEntry(key);
 	}
 
@@ -85,7 +87,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public Entry<K, V> higherEntry(K key) {
+	public @Nullable Entry<K, V> higherEntry(K key) {
 		return getMap().higherEntry(key);
 	}
 
@@ -95,17 +97,17 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public Entry<K, V> firstEntry() {
+	public @Nullable Entry<K, V> firstEntry() {
 		return getMap().firstEntry();
 	}
 
 	@Override
-	public Entry<K, V> lastEntry() {
+	public @Nullable Entry<K, V> lastEntry() {
 		return getMap().lastEntry();
 	}
 
 	@Override
-	public Entry<K, V> pollFirstEntry() {
+	public @Nullable Entry<K, V> pollFirstEntry() {
 		var first = getMap().firstEntry();
 		if (first != null)
 			remove(first.getKey());
@@ -113,7 +115,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public Entry<K, V> pollLastEntry() {
+	public @Nullable Entry<K, V> pollLastEntry() {
 		var last = getMap().lastEntry();
 		if (last != null)
 			remove(last.getKey());
@@ -151,22 +153,22 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public Comparator<? super K> comparator() {
+	public @Nullable Comparator<? super K> comparator() {
 		return getMap().comparator();
 	}
 
 	@Override
-	public @NotNull SortedMap<K, V> subMap(K fromKey, K toKey) {
+	public SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return getMap().subMap(fromKey, toKey);
 	}
 
 	@Override
-	public @NotNull SortedMap<K, V> headMap(K toKey) {
+	public SortedMap<K, V> headMap(K toKey) {
 		return getMap().headMap(toKey);
 	}
 
 	@Override
-	public @NotNull SortedMap<K, V> tailMap(K fromKey) {
+	public SortedMap<K, V> tailMap(K fromKey) {
 		return getMap().tailMap(fromKey);
 	}
 
@@ -201,7 +203,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public V get(Object key) {
+	public @Nullable V get(Object key) {
 		return getMap().get(key);
 	}
 
@@ -209,21 +211,21 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	public abstract @Nullable V put(K key, V value);
 
 	@Override
-	public abstract V remove(Object key);
+	public abstract @Nullable V remove(Object key);
 
-	public abstract boolean remove(@NotNull Map.Entry<K, V> item);
+	public abstract boolean remove(Map.Entry<K, V> item);
 
 	@Override
-	public abstract void putAll(@NotNull Map<? extends K, ? extends V> m);
+	public abstract void putAll(Map<? extends K, ? extends V> m);
 
 	@Override
 	public abstract void clear();
 
 	@Override
-	public @NotNull Set<K> keySet() {
+	public Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<K> iterator() {
+			public Iterator<K> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Entry<K, V>> it = entrySet().iterator();
 
@@ -269,7 +271,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 
 			@Override
 			public boolean retainAll(java.util.Collection<?> keys) {
-				java.util.Objects.requireNonNull(keys);
+				Objects.requireNonNull(keys);
 				var comparator = getMap().comparator();
 				boolean changed = false;
 				for (var it = iterator(); it.hasNext(); ) {
@@ -292,10 +294,10 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public @NotNull java.util.Collection<V> values() {
+	public java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NotNull Iterator<V> iterator() {
+			public Iterator<V> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Entry<K, V>> it = entrySet().iterator();
 
@@ -324,13 +326,13 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public @NotNull Set<Entry<K, V>> entrySet() {
+	public Set<Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<Entry<K, V>> iterator() {
+			public Iterator<Entry<K, V>> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Map.Entry<K, V>> it = getMap().entrySet().iterator();
-					private Map.Entry<K, V> next;
+					private @Nullable Entry<K, V> next;
 
 					@Override
 					public boolean hasNext() {
@@ -388,7 +390,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 
 			@Override
 			public boolean retainAll(java.util.Collection<?> entries) {
-				java.util.Objects.requireNonNull(entries);
+				Objects.requireNonNull(entries);
 				var comparator = getMap().comparator();
 				boolean changed = false;
 				for (var it = iterator(); it.hasNext(); ) {
@@ -413,8 +415,8 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <K extends Comparable<K>> boolean equivalentKey(Comparator<? super K> comparator,
-			K key, Object candidate) {
+	private static <K extends Comparable<K>> boolean equivalentKey(@Nullable Comparator<? super K> comparator,
+			K key, @Nullable Object candidate) {
 		if (candidate == null)
 			return false;
 		try {
@@ -436,7 +438,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, getMap());
 		return sb.toString();

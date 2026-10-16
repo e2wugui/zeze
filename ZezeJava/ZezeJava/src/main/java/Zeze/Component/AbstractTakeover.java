@@ -25,11 +25,11 @@ public abstract class AbstractTakeover implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tTakeoverLease.getName()).getDatabaseName(), _tTakeoverLease);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tTakeoverLease.getName())).getDatabaseName(), _tTakeoverLease);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tTakeoverLease.getName()).getDatabaseName(), _tTakeoverLease);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tTakeoverLease.getName())).getDatabaseName(), _tTakeoverLease);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

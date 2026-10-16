@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
@@ -10,7 +11,7 @@ import Zeze.Game.ProviderWithOnline;
 import Zeze.IModule;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Util.IntHashMap;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 记录实现一个Provider需要的对象，
@@ -18,22 +19,22 @@ import org.jetbrains.annotations.NotNull;
  * 初始化。
  */
 public class ProviderApp extends ReentrantLock {
-	public final @NotNull Application zeze;
+	public final Application zeze;
 
-	public final @NotNull ProviderImplement providerImplement;
-	public final @NotNull ProviderService providerService;
-	public final @NotNull String serverServiceNamePrefix;
+	public final @Nullable ProviderImplement providerImplement;
+	public final ProviderService providerService;
+	public final @Nullable String serverServiceNamePrefix;
 
-	public final @NotNull ProviderDirect providerDirect;
-	public final @NotNull ProviderDirectService providerDirectService;
+	public final @Nullable ProviderDirect providerDirect;
+	public final @Nullable ProviderDirectService providerDirectService;
 
-	public final @NotNull String linkdServiceName;
+	public final @Nullable String linkdServiceName;
 
 	// 这两个参数可以自动设置，但不够可靠，生产环境最好手动设置。
-	public final @NotNull String directIp;
+	public final @Nullable String directIp;
 	public int directPort;
 
-	public final @NotNull ProviderDistribute distribute;
+	public final @Nullable ProviderDistribute distribute;
 
 	// 三个map均为非线程安全IntHashMap：所有写点（startLast、ProviderService.addHotModule）
 	// 与全部读点（ProviderService.OnHandshakeDone、ProviderDirectService.addServer/
@@ -59,14 +60,14 @@ public class ProviderApp extends ReentrantLock {
 		return startLast;
 	}
 
-	public ProviderApp(@NotNull Application zeze,
-					   @NotNull ProviderImplement server,
-					   @NotNull ProviderService toLinkdService,
-					   @NotNull String providerModulePrefixNameOnServiceManager,
-					   @NotNull ProviderDirect direct,
-					   @NotNull ProviderDirectService toOtherProviderService,
-					   @NotNull String linkdNameOnServiceManager,
-					   @NotNull LoadConfig loadConfig) {
+	public ProviderApp(Application zeze,
+					   ProviderImplement server,
+					   ProviderService toLinkdService,
+					   String providerModulePrefixNameOnServiceManager,
+					   ProviderDirect direct,
+					   ProviderDirectService toOtherProviderService,
+					   String linkdNameOnServiceManager,
+					   LoadConfig loadConfig) {
 		this.zeze = zeze;
 		this.zeze.setProviderApp(this);
 		this.zeze.redirect = new RedirectBase(this);
@@ -90,7 +91,7 @@ public class ProviderApp extends ReentrantLock {
 
 		this.providerImplement.RegisterProtocols(providerService);
 
-		this.zeze.getServiceManager().setOnSetServerLoad((serverLoad) -> {
+		Objects.requireNonNull(this.zeze.getServiceManager()).setOnSetServerLoad((serverLoad) -> {
 			var ps = providerDirectService.providerByLoadName.get(serverLoad.getName());
 			if (ps != null) {
 				var load = new BLoad();
@@ -101,26 +102,26 @@ public class ProviderApp extends ReentrantLock {
 
 		this.distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService,
 				zeze.getConfig().getAppVersion());
-		this.zeze.getServiceManager().setOnChanged(this::applyOnChanged);
+		Objects.requireNonNull(this.zeze.getServiceManager()).setOnChanged(this::applyOnChanged);
 		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
 
-	void applyOnChanged(@NotNull BEditService edit) {
+	void applyOnChanged(BEditService edit) {
 		var refresh = false;
 		for (var r : edit.getRemove()) {
 			if (r.getServiceName().equals(linkdServiceName))
 				refresh |= providerService.applyRemove(r);
-			else if (r.getServiceName().startsWith(serverServiceNamePrefix)) {
-				providerDirectService.removeServer(r);
-				distribute.removeServer(r);
+			else if (r.getServiceName().startsWith(Objects.requireNonNull(serverServiceNamePrefix))) {
+				Objects.requireNonNull(providerDirectService).removeServer(r);
+				Objects.requireNonNull(distribute).removeServer(r);
 			}
 		}
 		for (var p : edit.getAdd()) {
 			if (p.getServiceName().equals(linkdServiceName))
 				refresh |= providerService.applyPut(p);
-			else if (p.getServiceName().startsWith(serverServiceNamePrefix)) {
-				providerDirectService.addServer(p);
-				distribute.addServer(p);
+			else if (p.getServiceName().startsWith(Objects.requireNonNull(serverServiceNamePrefix))) {
+				Objects.requireNonNull(providerDirectService).addServer(p);
+				Objects.requireNonNull(distribute).addServer(p);
 			}
 		}
 		if (refresh)
@@ -131,7 +132,7 @@ public class ProviderApp extends ReentrantLock {
 	 * 这是为了发布打包的时候，用来构建模块配置，所有的变量都不需要使用。
 	 */
 	@SuppressWarnings("DataFlowIssue")
-	public ProviderApp(@NotNull Application zeze) {
+	public ProviderApp(Application zeze) {
 		this.zeze = zeze;
 		this.zeze.setProviderApp(this);
 		this.zeze.redirect = new RedirectBase(this);
@@ -145,8 +146,8 @@ public class ProviderApp extends ReentrantLock {
 		this.distribute = null;
 	}
 
-	public void buildProviderModuleBinds(@NotNull ProviderModuleBinds binds,
-										 @NotNull Map<String, IModule> modules) {
+	public void buildProviderModuleBinds(ProviderModuleBinds binds,
+										 Map<String, IModule> modules) {
 		for (var builtin : builtinModules.values())
 			modules.put(builtin.getFullName(), builtin);
 
@@ -176,7 +177,7 @@ public class ProviderApp extends ReentrantLock {
 		isUserDisableChoice = userDisableChoice;
 	}
 
-	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) throws Exception {
+	public void startLast(ProviderModuleBinds binds, Map<String, IModule> modules) throws Exception {
 		lock();
 		try {
 			// 本方法恰好执行一次。ProviderApp没有stop、实例不可重启（对齐Application不可复用契约），
@@ -184,14 +185,14 @@ public class ProviderApp extends ReentrantLock {
 			if (startLast)
 				throw new IllegalStateException("ProviderApp.startLast() already called.");
 			buildProviderModuleBinds(binds, modules);
-			providerImplement.registerModulesAndSubscribeLinkd();
+			Objects.requireNonNull(providerImplement).registerModulesAndSubscribeLinkd();
 			startLast = true;
-			zeze.getTimer().start();
-			zeze.getSafeBatch().start();
-			zeze.getAppBase().startLastModules();
+			Objects.requireNonNull(zeze.getTimer()).start();
+			Objects.requireNonNull(zeze.getSafeBatch()).start();
+			Objects.requireNonNull(zeze.getAppBase()).startLastModules();
 
 			if (providerImplement instanceof ProviderWithOnline)
-				((ProviderWithOnline)providerImplement).getOnline().startAfter();
+				Objects.requireNonNull(((ProviderWithOnline)providerImplement).getOnline()).startAfter();
 			// 这个应该在Online.Start里面设置更合理。
 			// 但是Online有多个版本，而且跨包设置需要方法，就这里直接设置了。
 			// 是启动流程的一部分。
@@ -210,7 +211,7 @@ public class ProviderApp extends ReentrantLock {
 	// LoginQueueAgent启动：创建收口在LoadBase.ensureLoginQueueAgent——
 	// load没有且配置启用才建，预置/已建复用；不覆盖（覆盖即泄漏+同身份重复注册）。
 	private void startLoginQueueAgent() throws Exception {
-		var load = providerImplement.getLoad();
+		var load = Objects.requireNonNull(providerImplement).getLoad();
 		if (load == null)
 			return;
 		var agent = load.ensureLoginQueueAgent();

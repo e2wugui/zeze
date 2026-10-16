@@ -14,8 +14,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 同TaskOneByOneByKey,只是用ConcurrentLinkedQueue代替ArrayDeque和锁.
@@ -23,8 +22,8 @@ import org.jetbrains.annotations.Nullable;
  * 例外：executeCyclicBarrier 的桶派发失败需要内部 canceled 收尾，见 Barrier。
  */
 public final class TaskOneByOneByKey2 extends ReentrantLock {
-	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
-	private static final @NotNull VarHandle vhSubmitted;
+	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
+	private static final VarHandle vhSubmitted;
 	private static final ConcurrentHashMap<TaskOneByOne.Dispatch, Executor> pendingDispatches = new ConcurrentHashMap<>();
 
 	static {
@@ -35,7 +34,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 	}
 
-	private final @NotNull TaskOneByOne @NotNull [] concurrency;
+	private final TaskOneByOne [] concurrency;
 	private final int hashMask;
 	private final @Nullable Executor executor;
 
@@ -74,7 +73,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	static abstract class Barrier {
-		private static final @NotNull VarHandle vhCount;
+		private static final VarHandle vhCount;
 
 		static {
 			try {
@@ -93,7 +92,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			this.count = count;
 		}
 
-		abstract @NotNull String getName();
+		abstract String getName();
 
 		abstract void run() throws Exception;
 
@@ -127,7 +126,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		 * @return true 屏障已取消：任务照常消费，队列继续；false 认领已押给屏障
 		 * （集齐后由 reachedRunNext/cancel 解冻），process 返回 false 等待 runNext。
 		 */
-		boolean reach(@NotNull TaskOneByOne taskOneByOne, int sum) {
+		boolean reach(TaskOneByOne taskOneByOne, int sum) {
 			synchronized (this) {
 				if (canceled)
 					return true;
@@ -167,15 +166,15 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	static final class BarrierProcedure extends Barrier {
-		private final @NotNull Procedure procedure;
+		private final Procedure procedure;
 
-		BarrierProcedure(@NotNull Procedure procedure, int count) {
+		BarrierProcedure(Procedure procedure, int count) {
 			super(count);
 			this.procedure = procedure;
 		}
 
 		@Override
-		@NotNull String getName() {
+		String getName() {
 			return procedure.getActionName();
 		}
 
@@ -186,17 +185,17 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	static final class BarrierAction extends Barrier {
-		private final @NotNull Action0 action;
-		private final @NotNull String actionName;
+		private final Action0 action;
+		private final String actionName;
 
-		BarrierAction(@NotNull String actionName, @NotNull Action0 action, int count) {
+		BarrierAction(String actionName, Action0 action, int count) {
 			super(count);
 			this.action = action;
 			this.actionName = actionName;
 		}
 
 		@Override
-		@NotNull String getName() {
+		String getName() {
 			return actionName;
 		}
 
@@ -206,7 +205,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 	}
 
-	public <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull Procedure procedure,
+	public <T> void executeCyclicBarrier(Collection<T> keys, Procedure procedure,
 										 @Nullable DispatchMode mode) {
 		lock();
 		try {
@@ -236,8 +235,8 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 	}
 
-	public <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull String actionName,
-										 @NotNull Action0 action, @Nullable DispatchMode mode) {
+	public <T> void executeCyclicBarrier(Collection<T> keys, String actionName,
+										 Action0 action, @Nullable DispatchMode mode) {
 		lock();
 		try {
 			if (keys.isEmpty())
@@ -266,11 +265,11 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	public static class Batch<T> {
-		private final @NotNull AtomicInteger keysCount;
-		private final @NotNull Action1<T> action;
-		private final @NotNull Action0 batchEnd;
+		private final AtomicInteger keysCount;
+		private final Action1<T> action;
+		private final Action0 batchEnd;
 
-		public Batch(int keysSize, @NotNull Action1<T> action, @NotNull Action0 batchEnd) {
+		public Batch(int keysSize, Action1<T> action, Action0 batchEnd) {
 			this.keysCount = new AtomicInteger(keysSize);
 			this.action = action;
 			this.batchEnd = batchEnd;
@@ -279,7 +278,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		/** 每key一次性核销：正常完成（run的finally）、入队前校验失败（notEnqueued回调）、
 		 * 提交循环中断（abandon）可能对同一key触发，CAS保证恰好核销一次。 */
 		public final class Settle implements Action0 {
-			private final @NotNull AtomicBoolean settled = new AtomicBoolean();
+			private final AtomicBoolean settled = new AtomicBoolean();
 
 			@Override
 			public void run() {
@@ -290,11 +289,11 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			}
 		}
 
-		public @NotNull Settle newSettle() {
+		public Settle newSettle() {
 			return new Settle();
 		}
 
-		public void run(@NotNull T key, @NotNull Settle settle) throws Exception {
+		public void run(T key, Settle settle) throws Exception {
 			try {
 				action.run(key);
 			} finally {
@@ -309,7 +308,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 	}
 
-	private static void runBatchEndDirect(@NotNull Action0 batchEnd) {
+	private static void runBatchEndDirect(Action0 batchEnd) {
 		try {
 			batchEnd.run();
 		} catch (Throwable e) { // logger.error
@@ -317,7 +316,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 	}
 
-	public <T> void executeBatch(@NotNull Collection<T> keys, @NotNull Action1<T> action, @NotNull Action0 batchEnd,
+	public <T> void executeBatch(Collection<T> keys, Action1<T> action, Action0 batchEnd,
 								 @Nullable DispatchMode mode) {
 		if (keys.isEmpty()) {
 			runBatchEndDirect(batchEnd);
@@ -341,7 +340,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 	}
 
-	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
+	public void executeBatch(LongList keys, Action1<Long> action, Action0 batchEnd,
 							 @Nullable DispatchMode mode) {
 		if (keys.isEmpty()) {
 			runBatchEndDirect(batchEnd);
@@ -363,203 +362,203 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 	// 统一核心：所有 Execute 重载与 TaskSpec.executeOneByOne 最终都委托到这里。
 	// 载荷差异（调用形态/名字解析）由 TaskBody 封装，队列语义无返回值消费者。
-	void executeCore(int key, @NotNull TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode) {
+	void executeCore(int key, TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode) {
 		concurrency[hash(key) & hashMask].execute(body, name, mode);
 	}
 
-	void executeCore(int key, @NotNull TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode,
+	void executeCore(int key, TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode,
 					 @Nullable Action0 notEnqueued) {
 		concurrency[hash(key) & hashMask].execute(body, name, mode, notEnqueued);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action) {
+	public void Execute(Object key, Action0 action) {
 		TaskSpec.ofAction(action).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable DispatchMode mode) {
+	public void Execute(Object key, Action0 action, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name) {
+	public void Execute(Object key, Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name,
+	public void Execute(Object key, Action0 action, @Nullable String name,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func) {
+	public void Execute(Object key, Func0<?> func) {
 		TaskSpec.ofFunc0(func).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
+	public void Execute(Object key, Func0<?> func, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc0(func).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable String name) {
+	public void Execute(Object key, Func0<?> func, @Nullable String name) {
 		TaskSpec.ofFunc0(func).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable String name,
+	public void Execute(Object key, Func0<?> func, @Nullable String name,
 						@Nullable DispatchMode mode) {
 		TaskSpec.ofFunc0(func).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure) {
+	public void Execute(Object key, Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public void Execute(Object key, Procedure procedure, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action) {
+	public void Execute(int key, Action0 action) {
 		TaskSpec.ofAction(action).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action, @Nullable DispatchMode mode) {
+	public void Execute(int key, Action0 action, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action, @Nullable String name) {
+	public void Execute(int key, Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+	public void Execute(int key, Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
-	private @NotNull TaskOneByOne bucket(@NotNull Object key) {
+	private TaskOneByOne bucket(Object key) {
 		return concurrency[hash(key.hashCode()) & hashMask];
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Func0<?> func) {
+	public void Execute(int key, Func0<?> func) {
 		TaskSpec.ofFunc0(func).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
+	public void Execute(int key, Func0<?> func, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc0(func).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Func0<?> func, @Nullable String name) {
+	public void Execute(int key, Func0<?> func, @Nullable String name) {
 		TaskSpec.ofFunc0(func).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
+	public void Execute(int key, Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc0(func).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Procedure procedure) {
+	public void Execute(int key, Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(int key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public void Execute(int key, Procedure procedure, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action) {
+	public void Execute(long key, Action0 action) {
 		TaskSpec.ofAction(action).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action, @Nullable DispatchMode mode) {
+	public void Execute(long key, Action0 action, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action, @Nullable String name) {
+	public void Execute(long key, Action0 action, @Nullable String name) {
 		TaskSpec.ofAction(action).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+	public void Execute(long key, Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		TaskSpec.ofAction(action).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Func0<?> func) {
+	public void Execute(long key, Func0<?> func) {
 		TaskSpec.ofFunc0(func).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
+	public void Execute(long key, Func0<?> func, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc0(func).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).name(name).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Func0<?> func, @Nullable String name) {
+	public void Execute(long key, Func0<?> func, @Nullable String name) {
 		TaskSpec.ofFunc0(func).name(name).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc0(func).name(name).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
+	public void Execute(long key, Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
 		TaskSpec.ofFunc0(func).name(name).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Procedure procedure) {
+	public void Execute(long key, Procedure procedure) {
 		TaskSpec.ofProcedure(procedure).executeOneByOne(key, this);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this)}。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
+	public void Execute(long key, Procedure procedure, @Nullable DispatchMode mode) {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).executeOneByOne(key, this);
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		for (int i = 0; i < concurrency.length; i++) {
 			var s = concurrency[i].toString();
@@ -584,12 +583,12 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		return (h ^ (h >>> 7) ^ (h >>> 4));
 	}
 
-	private @NotNull Executor getExecutor(@Nullable DispatchMode mode) {
+	private Executor getExecutor(@Nullable DispatchMode mode) {
 		return executor != null ? executor
 				: Zeze.Util.Task.poolOrThrow(mode == DispatchMode.Critical);
 	}
 
-	static void cancelPendingDispatches(@NotNull Executor executor) {
+	static void cancelPendingDispatches(Executor executor) {
 		for (var entry : pendingDispatches.entrySet()) {
 			if (entry.getValue() == executor)
 				entry.getKey().cancelBeforeRun();
@@ -597,10 +596,10 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	static abstract class Task {
-		final @NotNull String name;
+		final String name;
 		final @Nullable DispatchMode mode;
 
-		Task(@NotNull String name, @Nullable DispatchMode mode) {
+		Task(String name, @Nullable DispatchMode mode) {
 			this.name = name;
 			this.mode = mode;
 		}
@@ -613,9 +612,9 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	 * 队列语义无返回值消费者，callRaw 的结果丢弃；名字解析见 {@link TaskBody#logName}。
 	 */
 	static final class TaskBodyTask extends Task {
-		private final @NotNull TaskBody<?> body;
+		private final TaskBody<?> body;
 
-		TaskBodyTask(@NotNull TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode) {
+		TaskBodyTask(TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode) {
 			super(body.logName(name), mode);
 			this.body = body;
 		}
@@ -633,10 +632,10 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 	final class TaskOneByOne implements Runnable {
 		final class TaskBarrierProcedure extends Task {
-			private final @NotNull BarrierProcedure barrier;
+			private final BarrierProcedure barrier;
 			private final int sum;
 
-			TaskBarrierProcedure(@NotNull BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
+			TaskBarrierProcedure(BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
 				super(barrier.getName(), mode);
 				this.barrier = barrier;
 				this.sum = sum;
@@ -650,10 +649,10 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 
 		final class TaskBarrierAction extends Task {
-			private final @NotNull BarrierAction barrier;
+			private final BarrierAction barrier;
 			private final int sum;
 
-			TaskBarrierAction(@NotNull BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
+			TaskBarrierAction(BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
 				super(barrier.actionName, mode);
 				this.barrier = barrier;
 				this.sum = sum;
@@ -669,29 +668,29 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		private final ConcurrentLinkedQueue<Task> queue = new ConcurrentLinkedQueue<>();
 		private volatile boolean submitted;
 
-		void execute(@NotNull TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode) {
+		void execute(TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode) {
 			submit(new TaskBodyTask(body, name, mode));
 		}
 
-		void execute(@NotNull TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode,
+		void execute(TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode,
 					 @Nullable Action0 notEnqueued) {
 			submit(new TaskBodyTask(body, name, mode), notEnqueued);
 		}
 
-		void executeBarrier(@NotNull BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
+		void executeBarrier(BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
 			submit(new TaskBarrierProcedure(barrier, sum, mode));
 		}
 
-		void executeBarrier(@NotNull BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
+		void executeBarrier(BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
 			submit(new TaskBarrierAction(barrier, sum, mode));
 		}
 
-		private void submit(@NotNull Task task) {
+		private void submit(Task task) {
 			submit(task, null);
 		}
 
 		/** notEnqueued：入队前校验失败（任务确认未入队）时的核销回调，executeBatch用。 */
-		private void submit(@NotNull Task task, @Nullable Action0 notEnqueued) {
+		private void submit(Task task, @Nullable Action0 notEnqueued) {
 			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败，不入队 doomed 任务
 			//（派发失败虽已有回滚认领兜底，见 executeOrRollback，但早失败更干净）。
 			try {
@@ -724,6 +723,8 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			}
 		}
 
+		// Another producer may publish between the two reads of this concurrent queue.
+		@SuppressWarnings("ConstantConditions")
 		private @Nullable Task peekTask() {
 			for (; ; ) {
 				var task = queue.peek();
@@ -750,7 +751,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		 * submit 路径同步反馈调用方；run/barrier 路径异常会被 executor 吞掉，回滚内 warn 保证可诊断。
 		 * 队列保留不清：Key2 无 onCancel 补偿钩子，清队列会静默丢任务；积压任务由后续
 		 * submit 重新认领派发（executor 恢复后照常执行）。 */
-		private void executeOrRollback(@NotNull Task task) {
+		private void executeOrRollback(Task task) {
 			Dispatch dispatch = null;
 			try {
 				var target = getExecutor(task.mode);
@@ -809,7 +810,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			var sb = new StringBuilder().append('[');
 			for (var task : queue)
 				sb.append(task.name).append(',');

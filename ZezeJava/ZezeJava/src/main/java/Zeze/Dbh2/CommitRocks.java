@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +27,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
+import org.jspecify.annotations.Nullable;
+import Zeze.Builtin.Dbh2.Commit.BTransactionState.Data;
 
 /**
  * Dbh2 事务提交点存储（RocksDB），负责事务 prepare/commit/undo 记录与失败重做。
@@ -147,7 +151,7 @@ public class CommitRocks {
 		return commitPoint;
 	}
 
-	public BTransactionState.Data query(long tid) throws RocksDBException {
+	public @Nullable Data query(long tid) throws RocksDBException {
 		var tidBytes = new byte[8];
 		ByteBuffer.longBeHandler.set(tidBytes, 0, tid);
 		var value = commitPoint.get(tidBytes);
@@ -201,7 +205,7 @@ public class CommitRocks {
 	}
 
 	public long prepare(String queryHost, int queryPort, BTransactionState.Data state, BPrepareBatches.Data batches,
-						byte[] tidEncoded) {
+						byte @Nullable [] tidEncoded) {
 		var tid = manager.nextTransactionId();
 		var tidBytes = null != tidEncoded ? tidEncoded : new byte[8];
 		ByteBuffer.longBeHandler.set(tidBytes, 0, tid);
@@ -235,7 +239,7 @@ public class CommitRocks {
 				futures = processPrepareFutures(tid, queryHost, queryPort, futures);
 				if (!futures.isEmpty()) {
 					for (var future : futures) {
-						state.getBuckets().add((String)future.getContext());
+						state.getBuckets().add((String)Objects.requireNonNull(future.getContext()));
 					}
 					saveCommitPoint(tidBytes, state, Commit.ePreparing);
 				}

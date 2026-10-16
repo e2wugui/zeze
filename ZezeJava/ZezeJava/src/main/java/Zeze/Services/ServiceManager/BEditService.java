@@ -3,7 +3,6 @@ package Zeze.Services.ServiceManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,23 +12,23 @@ import java.util.List;
 public class BEditService implements Serializable {
 	private static final List<BServiceInfo> empty = List.of();
 
-	private @NotNull List<BServiceInfo> remove = empty; // 注销，删除，忽略不存在的。只以name和id为准
-	private @NotNull List<BServiceInfo> add = empty; // 注册，增加或更新。更新时以name和id为key
+	private List<BServiceInfo> remove = empty; // 注销，删除，忽略不存在的。只以name和id为准
+	private List<BServiceInfo> add = empty; // 注册，增加或更新。更新时以name和id为key
 
 	// 处理顺序：remove,add。
 	// 当不同的集合中存在相同的服务时，要注意这个处理顺序。
 	// 也就是说 add 等级更高，服务优先能找到。
 
-	public @NotNull List<BServiceInfo> getRemove() {
+	public List<BServiceInfo> getRemove() {
 		return remove == empty ? (remove = new ArrayList<>()) : remove;
 	}
 
-	public @NotNull List<BServiceInfo> getAdd() {
+	public List<BServiceInfo> getAdd() {
 		return add == empty ? (add = new ArrayList<>()) : add;
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(remove.size());
 		for (var r : remove)
 			r.encode(bb);
@@ -39,7 +38,7 @@ public class BEditService implements Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var i = bb.ReadUInt();
 		if (i > 0) {
 			var r = getRemove();

@@ -1,13 +1,14 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * DynamicBean 的修改日志：记录 setBean 整体替换（specialTypeId+新bean），
@@ -20,7 +21,7 @@ public class LogDynamic extends LogBean {
 	@Nullable Bean value;
 	@Nullable LogBean logBean;
 
-	public LogDynamic(Bean belong, int varId, Bean self) {
+	public LogDynamic(@Nullable Bean belong, int varId, @Nullable Bean self) {
 		super(belong, varId, self);
 	}
 
@@ -44,7 +45,7 @@ public class LogDynamic extends LogBean {
 	}
 
 	@Override
-	public @NotNull Log beginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogDynamic(getBelong(), getVariableId(), getThis());
 		dup.specialTypeId = specialTypeId;
 		dup.value = value;
@@ -52,14 +53,14 @@ public class LogDynamic extends LogBean {
 	}
 
 	@Override
-	public void endSavepoint(@NotNull Savepoint currentSp) {
+	public void endSavepoint(Savepoint currentSp) {
 		// 结束保存点，直接覆盖到当前的日志里面即可。
 		currentSp.putLog(this);
 	}
 
 	// 收集内部的Bean发生了改变。
 	@Override
-	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		if (logBean == null) {
 			logBean = (LogBean)vlog;
 			changes.collect(recent, this);
@@ -69,21 +70,21 @@ public class LogDynamic extends LogBean {
 	@Override
 	public void commit() {
 		if (value != null) {
-			var self = (DynamicBean)getThis();
+			var self = (DynamicBean)Objects.requireNonNull(getThis());
 			self.bean = value;
 			self.typeId = specialTypeId;
 		}
 	}
 
-	void setValue(long typeId, @NotNull Bean bean) {
+	void setValue(long typeId, Bean bean) {
 		specialTypeId = typeId;
 		value = bean;
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		// encode Value & SpecialTypeId. Value maybe null.
-		var self = (DynamicBean)getThis();
+		var self = (DynamicBean)Objects.requireNonNull(getThis());
 		var parent = self.parent();
 		var varId = self.variableId();
 		if (parent instanceof Collection) {
@@ -111,7 +112,7 @@ public class LogDynamic extends LogBean {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var parentTypeName = bb.ReadString();
 		var varId = bb.ReadUInt();
 		if (bb.ReadBool()) { // hasValue

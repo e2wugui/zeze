@@ -3,7 +3,6 @@ package Zeze.Services.ServiceManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 
 /** Subscribe请求bean：订阅信息列表（每个serviceName只订阅一次，覆盖之前的）。 */
@@ -11,14 +10,14 @@ public class BSubscribeArgument implements Serializable {
 	public final ArrayList<BSubscribeInfo> subs = new ArrayList<>(); // 每个serviceName只能订阅一次,覆盖之前的
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(subs.size());
 		for (var sub : subs)
 			sub.encode(bb);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		for (var i = bb.ReadUInt(); i > 0; --i)
 			subs.add(new BSubscribeInfo(bb));
 	}
@@ -36,7 +35,7 @@ public class BSubscribeArgument implements Serializable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "BSubscribeArgument" + subs;
 	}
 }

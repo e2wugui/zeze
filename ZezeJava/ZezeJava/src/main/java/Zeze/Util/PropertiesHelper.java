@@ -10,23 +10,23 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 // 配置读取辅助：类型化 getProperty 与 "-key [value]" 串解析
 public final class PropertiesHelper {
-	private static final @NotNull Logger logger = LogManager.getLogger(PropertiesHelper.class);
-	private static final @NotNull Pattern PATTERN_SPACES = Pattern.compile("\\s+");
+	private static final Logger logger = LogManager.getLogger(PropertiesHelper.class);
+	private static final Pattern PATTERN_SPACES = Pattern.compile("\\s+");
 
 	private PropertiesHelper() {
 	}
 
-	@Contract("_, _, null -> null")
-	public static String getString(@NotNull Map<String, String> anyProps, @NotNull String key, String def) {
+	@Contract("_, _, !null -> !null")
+	public static @Nullable String getString(Map<String, String> anyProps, String key, @Nullable String def) {
 		var value = anyProps.get(key);
 		return value != null ? value : def;
 	}
 
-	public static int getInt(@NotNull Map<String, String> anyProps, @NotNull String key, int def) {
+	public static int getInt(Map<String, String> anyProps, String key, int def) {
 		var value = anyProps.get(key);
 		return value != null ? Integer.parseInt(value) : def;
 	}
@@ -37,7 +37,7 @@ public final class PropertiesHelper {
 	 * 2. value 不存在时，设为""写入Properties。
 	 * 3. 只支持按空白简单分割，不支持双引号括起来的值。
 	 */
-	public static @NotNull Properties parse(@NotNull String props) {
+	public static Properties parse(String props) {
 		// trim+\\s+：容忍连续/首尾空白。split(" ") 会把连续空格产生的空 token 当作“无 -key 的 value”误报。
 		var args = PATTERN_SPACES.split(props.trim());
 
@@ -56,7 +56,7 @@ public final class PropertiesHelper {
 		return result;
 	}
 
-	public static int loadProperties(@NotNull String fileName) throws IOException {
+	public static int loadProperties(String fileName) throws IOException {
 		var file = new File(fileName);
 		if (!file.isFile())
 			return -1;
@@ -68,7 +68,7 @@ public final class PropertiesHelper {
 		return props.size();
 	}
 
-	public static boolean getBool(@NotNull String key, boolean def) {
+	public static boolean getBool(String key, boolean def) {
 		var value = System.getProperty(key);
 		if (value == null || (value = value.trim()).isEmpty())
 			return def;
@@ -82,7 +82,7 @@ public final class PropertiesHelper {
 		return def;
 	}
 
-	public static int getInt(@NotNull String key, int def) {
+	public static int getInt(String key, int def) {
 		var value = System.getProperty(key);
 		if (value == null || (value = value.trim()).isEmpty())
 			return def;
@@ -94,7 +94,7 @@ public final class PropertiesHelper {
 		}
 	}
 
-	public static long getLong(@NotNull String key, long def) {
+	public static long getLong(String key, long def) {
 		var value = System.getProperty(key);
 		if (value == null || (value = value.trim()).isEmpty())
 			return def;
@@ -106,7 +106,7 @@ public final class PropertiesHelper {
 		}
 	}
 
-	public static float getFloat(@NotNull String key, float def) {
+	public static float getFloat(String key, float def) {
 		var value = System.getProperty(key);
 		if (value == null || (value = value.trim()).isEmpty())
 			return def;
@@ -118,7 +118,7 @@ public final class PropertiesHelper {
 		}
 	}
 
-	public static double getDouble(@NotNull String key, double def) {
+	public static double getDouble(String key, double def) {
 		var value = System.getProperty(key);
 		if (value == null || (value = value.trim()).isEmpty())
 			return def;
@@ -130,8 +130,8 @@ public final class PropertiesHelper {
 		}
 	}
 
-	@Contract("_, null -> null")
-	public static String getString(@NotNull String key, String def) {
+	@Contract("_, !null -> !null")
+	public static @Nullable String getString(String key, @Nullable String def) {
 		var value = System.getProperty(key);
 		return value != null ? value : def;
 	}

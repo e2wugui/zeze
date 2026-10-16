@@ -1,10 +1,11 @@
 package Zeze.Transaction.Collections;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * LogList2 家族（PList2）元数据：Bean 值受管（IdentityHashSet+身份比较是既有约定，见LogList2）。
@@ -15,21 +16,21 @@ public final class List2Meta<V> extends Meta1<V> {
 	private static final long headHash = Bean.hash64(HEAD);
 	private static final ConcurrentHashMap<Class<?>, List2Meta<?>> metas = new ConcurrentHashMap<>();
 
-	List2Meta(@NotNull Class<V> valueClass) {
+	List2Meta(Class<V> valueClass) {
 		super("LogList2:", headHash, valueClass);
 	}
 
-	List2Meta(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
+	List2Meta(ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) {
 		super(get, create);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <V extends Bean> @NotNull List2Meta<V> get(@NotNull Class<V> valueClass) {
+	public static <V extends Bean> List2Meta<V> get(Class<V> valueClass) {
 		return (List2Meta<V>)metas.computeIfAbsent(valueClass, vc -> new List2Meta<>((Class<V>)vc));
 	}
 
-	public static <V extends Bean> @NotNull List2Meta<V> createDynamic(@NotNull ToLongFunction<Bean> get,
-																	   @NotNull LongFunction<Bean> create) {
+	public static <V extends Bean> List2Meta<V> createDynamic(ToLongFunction<@Nullable Bean> get,
+																	   LongFunction<@Nullable Bean> create) {
 		return new List2Meta<>(get, create);
 	}
 }

@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.function.BiPredicate;
 
 /**
@@ -10,7 +12,7 @@ public final class TableTemplate<K, V extends Bean> {
 	private final Rocks rocks;
 	private final Class<K> keyClass;
 	private final Class<V> valueClass;
-	private BiPredicate<K, Record<K>> lruTryRemoveCallback;
+	private @Nullable BiPredicate<K, Record<K>> lruTryRemoveCallback;
 
 	public String getName() {
 		return name;
@@ -20,7 +22,7 @@ public final class TableTemplate<K, V extends Bean> {
 		return rocks;
 	}
 
-	public void setLruTryRemoveCallback(BiPredicate<K, Record<K>> callback) {
+	public void setLruTryRemoveCallback(@Nullable BiPredicate<K, Record<K>> callback) {
 		lruTryRemoveCallback = callback;
 	}
 
@@ -41,12 +43,12 @@ public final class TableTemplate<K, V extends Bean> {
 				__ -> new Table<>(rocks, name, templateId, keyClass, valueClass, lruTryRemoveCallback));
 	}
 
-	public Table<K, V> openTable(BiPredicate<K, Record<K>> callback) {
+	public Table<K, V> openTable(@Nullable BiPredicate<K, Record<K>> callback) {
 		return openTable(0, callback);
 	}
 
 	@SuppressWarnings("unchecked")
-	public Table<K, V> openTable(int templateId, BiPredicate<K, Record<K>> callback) {
+	public Table<K, V> openTable(int templateId, @Nullable BiPredicate<K, Record<K>> callback) {
 		var t = (Table<K, V>)rocks.getTables().computeIfAbsent(name + "#" + templateId,
 				__ -> new Table<>(rocks, name, templateId, keyClass, valueClass, callback));
 		// 命中已存在表时callback参数不得被静默丢弃（否则带callback重载的存在意义即被废掉）：

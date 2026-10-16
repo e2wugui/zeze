@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,8 +25,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.ZezeCounter;
 import com.alibaba.druid.pool.DruidDataSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
@@ -42,7 +43,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	// SQLException.getMessage()无契约保证非null（驱动包装异常、本地化场景可为null），
 	// catch块内直接contains会NPE：本应幂等继续/死锁重试的路径变成启动失败且掩盖原始异常。
 	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径。
-	private static boolean sqlMessageContains(@NotNull SQLException e, @NotNull String token) {
+	private static boolean sqlMessageContains(SQLException e, String token) {
 		var msg = e.getMessage();
 		return msg != null && msg.contains(token);
 	}
@@ -51,7 +52,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	// 报duplicate_table(42P07)或pg_class唯一约束(23505)——"tuple concurrently updated"
 	// 令牌属于并发CREATE OR REPLACE FUNCTION，匹配不到会误把竞态当硬错误。
 	// 按SQLState判定，竞态视为表已存在（isNew=false）。
-	private static boolean isConcurrentCreateTableExists(@NotNull SQLException e) {
+	private static boolean isConcurrentCreateTableExists(SQLException e) {
 		var state = e.getSQLState();
 		return "42P07".equals(state) || "23505".equals(state)
 				|| sqlMessageContains(e, "tuple concurrently updated");
@@ -64,7 +65,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	// 游标分批下回调处理期间会话处于idle-in-transaction，若部署设置了
 	// idle_in_transaction_session_timeout（vanilla PG默认0，部分托管PG会设）会在批间断连，
 	// 用SET LOCAL在本事务内关闭（随commit自动失效，无需恢复）。
-	private long walkCursor(@NotNull String sql, @NotNull JdbcWalkRow row) throws Exception {
+	private long walkCursor(String sql, JdbcWalkRow row) throws Exception {
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(false);
 			try (var ps = conn.prepareStatement(sql)) {
@@ -96,9 +97,9 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	private static final ZezeCounter.LongObserver postgreSelectCounter = postgreObserverCreator.labelValues("select");
 	private static final ZezeCounter.LongObserver postgreDeleteCounter = postgreObserverCreator.labelValues("delete");
 	private static final ZezeCounter.LongObserver postgreReplaceCounter = postgreObserverCreator.labelValues("replace");
-	private static final @NotNull Pattern PATTERN_COMMA = Pattern.compile(", ");
+	private static final Pattern PATTERN_COMMA = Pattern.compile(", ");
 
-	public DatabasePostgreSQL(@Nullable Application zeze, @NotNull DatabaseConf conf) {
+	public DatabasePostgreSQL(@Nullable Application zeze, DatabaseConf conf) {
 		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesPostgreSQL());
 	}
@@ -137,17 +138,17 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	@Override
-	public @NotNull Database.Table openTable(@NotNull String name, int id) {
+	public Database.Table openTable(String name, int id) {
 		return new TablePostgreSQL(name);
 	}
 
 	@Override
-	public @NotNull Database.Table openRelationalTable(@NotNull String name) {
+	public Database.Table openRelationalTable(String name) {
 		return new TablePostgreSQLRelational(name);
 	}
 
 	@Override
-	public void dropTable(@NotNull String name) {
+	public void dropTable(String name) {
 		var table = getTable(name);
 		if (table != null) {
 			var storage = table.getStorage();
@@ -391,7 +392,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		private static final int LOCK_LEASE_SECONDS = 600;
 
 		@Override
-		public void setInUse(int localId, @NotNull String global) {
+		public void setInUse(int localId, String global) {
 			for (int i = 0; i < 64; ++i) {
 				try (var conn = dataSource.getConnection()) {
 					conn.setAutoCommit(true);
@@ -428,7 +429,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public int clearInUse(int localId, @NotNull String global) {
+		public int clearInUse(int localId, String global) {
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var ps = conn.prepareCall("{CALL _ZezeClearInUse_(?,?,?)}")) {
@@ -444,7 +445,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
+		public @Nullable DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var ps = conn.prepareStatement("SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?")) {
@@ -465,8 +466,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key,
-																  @NotNull ByteBuffer data, long version) {
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key,
+																  ByteBuffer data, long version) {
 			if (key.isEmpty())
 				throw new IllegalArgumentException("key is empty");
 
@@ -573,8 +574,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 	}
 
-	private static void setParams(@NotNull PreparedStatement pre, int start,
-								  @NotNull ArrayList<Object> params) throws SQLException {
+	private static void setParams(PreparedStatement pre, int start,
+								  ArrayList<Object> params) throws SQLException {
 		for (int i = 0; i < params.size(); ++i) {
 			var p = params.get(i);
 			if (p instanceof String)
@@ -585,12 +586,12 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
-	boolean invokeCallback(@NotNull TableX<K, V> table, @NotNull ResultSet rs, @NotNull TableWalkHandle<K, V> callback,
+	boolean invokeCallback(TableX<K, V> table, ResultSet rs, TableWalkHandle<K, V> callback,
 						   @Nullable OutObject<K> outKey) throws Exception {
 		K k = table.decodeKeyResultSet(rs);
 		if (outKey != null)
 			outKey.value = k;
-		var r = table.getCache().get(k);
+		var r = table.requireCache().get(k);
 		if (r != null) {
 			V v = null;
 			r.enterFairLock();
@@ -617,18 +618,18 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
-	@NotNull String buildOrder(@NotNull TableX<K, V> table) {
+	String buildOrder(TableX<K, V> table) {
 		// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
-		return " ORDER BY " + table.getRelationalTable().currentKeyColumns;
+		return " ORDER BY " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns;
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
-	@NotNull String buildOrderByDesc(@NotNull TableX<K, V> table) {
-		return " ORDER BY " + table.getRelationalTable().currentKeyColumns.replace(",", " DESC,") + " DESC";
+	String buildOrderByDesc(TableX<K, V> table) {
+		return " ORDER BY " + Objects.requireNonNull(Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns).replace(",", " DESC,") + " DESC";
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
-	@NotNull String buildKeyWhere(@NotNull TableX<K, V> table, @NotNull SQLStatement st, @Nullable K exclusiveStartKey,
+	String buildKeyWhere(TableX<K, V> table, SQLStatement st, @Nullable K exclusiveStartKey,
 								  boolean asc) {
 		if (exclusiveStartKey == null)
 			return "";
@@ -643,7 +644,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	 * "=true"/"=false"字面量只能来自SQLStatement.appendBoolean（数值内联数字、
 	 * 字符串/二进制用?参数），按内容检测可靠。
 	 */
-	static @NotNull String pagedKeyWhere(@NotNull String tableName, @NotNull String sql, boolean asc) {
+	static String pagedKeyWhere(String tableName, String sql, boolean asc) {
 		if (sql.contains("=true") || sql.contains("=false"))
 			throw new IllegalStateException("paged walk with boolean key column is not supported on PostgreSQL: "
 					+ tableName + ", exclusiveStartKey" + sql.replace(',', ';'));
@@ -662,17 +663,17 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		return " WHERE (" + columns + ") " + (asc ? '>' : '<') + " (" + values + ")";
 	}
 
-	private static @NotNull String buildKeyWhere(@NotNull SQLStatement st) {
+	private static String buildKeyWhere(SQLStatement st) {
 		return st.getSql().toString().replace(",", " AND ");
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
-	boolean invokeKeyCallback(@NotNull TableX<K, V> table, @NotNull ResultSet rs, @NotNull TableWalkKey<K> callback,
+	boolean invokeKeyCallback(TableX<K, V> table, ResultSet rs, TableWalkKey<K> callback,
 							  @Nullable OutObject<K> outKey) throws Exception {
 		K k = table.decodeKeyResultSet(rs);
 		if (outKey != null)
 			outKey.value = k;
-		var r = table.getCache().get(k);
+		var r = table.requireCache().get(k);
 		if (r != null) {
 			r.enterFairLock();
 			try {
@@ -700,8 +701,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		return false;
 	}
 
-	private static void parseSqlStatement(@NotNull SQLStatement st, @NotNull ArrayList<String> columns,
-										  @NotNull StringBuilder values) {
+	private static void parseSqlStatement(SQLStatement st, ArrayList<String> columns,
+										  StringBuilder values) {
 		var sql = st.getSql().toString();
 		var kvs = sql.split(",");
 		for (var kv : kvs) {
@@ -713,7 +714,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 	}
 
-	private static void appendStringBuilder(@NotNull StringBuilder sb, @NotNull ArrayList<String> columns) {
+	private static void appendStringBuilder(StringBuilder sb, ArrayList<String> columns) {
 		for (var i = 0; i < columns.size(); ++i) {
 			if (i > 0)
 				sb.append(",");
@@ -732,12 +733,12 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					+ " WHERE table_schema = current_schema AND table_name = ? AND constraint_type = 'PRIMARY KEY'";
 
 	public final class TablePostgreSQLRelational implements Table {
-		private final @NotNull String name;
+		private final String name;
 		private boolean isNew;
 		// volatile：flush线程与drop调用线程可能不同，可见性不得依赖锁外的巧合调度
 		private volatile boolean dropped;
 
-		public TablePostgreSQLRelational(@NotNull String name) {
+		public TablePostgreSQLRelational(String name) {
 			this.name = name; // pg 表名被统一转换成小写的了。
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			// create table if not exists 在表已存在时返回warning，由此检测isNew（原子性由数据库保证）。
@@ -745,7 +746,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			var table = getDatabase().getTable(name);
 			if (table == null)
 				throw new IllegalStateException("not found table: " + name);
-			var sql = table.getRelationalTable().createTableSql();
+			var sql = Objects.requireNonNull(table.getRelationalTable()).createTableSql();
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var ps = conn.prepareStatement(sql)) {
@@ -760,11 +761,11 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public @NotNull DatabasePostgreSQL getDatabase() {
+		public DatabasePostgreSQL getDatabase() {
 			return DatabasePostgreSQL.this;
 		}
 
-		public @NotNull String getName() {
+		public String getName() {
 			return name;
 		}
 
@@ -810,7 +811,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		// 实际存在的物理列（幂等重放的判定目录）。PG把标识符折叠为小写，
 		// 与建表DDL及information_schema查询一致，统一小写比较。schema限定见SQL_PHYSICAL_COLUMNS。
-		private java.util.@NotNull HashSet<String> getPhysicalColumns() throws SQLException {
+		private java.util.HashSet<String> getPhysicalColumns() throws SQLException {
 			var columns = new java.util.HashSet<String>();
 			try (var conn = dataSource.getConnection()) {
 				try (var ps = conn.prepareStatement(SQL_PHYSICAL_COLUMNS)) {
@@ -833,7 +834,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			var table = getDatabase().getTable(name);
 			if (table == null)
 				throw new IllegalStateException("not found table: " + name);
-			var r = table.getRelationalTable();
+			var r = Objects.requireNonNull(table.getRelationalTable());
 			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty()) {
 				logger.info("tryAlter no change {}", name);
 				return; // do nothing
@@ -846,7 +847,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				var physical = getPhysicalColumns();
 				r.add.removeIf(c -> physical.contains(c.name.toLowerCase(java.util.Locale.ROOT)));
 				r.remove.removeIf(c -> !physical.contains(c.name.toLowerCase(java.util.Locale.ROOT)));
-				r.change.removeIf(c -> !physical.contains(c.change.name.toLowerCase(java.util.Locale.ROOT)));
+				r.change.removeIf(c -> !physical.contains(Objects.requireNonNull(c.change).name.toLowerCase(java.util.Locale.ROOT)));
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
@@ -880,13 +881,13 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				else
 					sb.append(", ");
 				// 先改类型
-				sb.append(" ALTER COLUMN ").append(c.change.name).append(" TYPE ").append(c.sqlType);
+				sb.append(" ALTER COLUMN ").append(Objects.requireNonNull(c.change).name).append(" TYPE ").append(c.sqlType);
 				// 再rename（mysql可以一起修改）
-				if (!c.change.name.equals(c.name)) {
+				if (!Objects.requireNonNull(c.change).name.equals(c.name)) {
 					var rename = new StringBuilder();
 					renames.add(rename);
 					rename.append("ALTER TABLE ").append(name)
-							.append(" RENAME COLUMN ").append(c.change.name).append(" TO ").append(c.name);
+							.append(" RENAME COLUMN ").append(Objects.requireNonNull(c.change).name).append(" TO ").append(c.name);
 				}
 			}
 			// 需要独立语句。
@@ -917,7 +918,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 				// key列序未变且已有主键时不重建（整表重写代价）；key变化必然表现为列diff。
 				// 旧表无主键则必须补建：无PK的表后续ON CONFLICT upsert报错且远离根因。
-				if (pkName == null || !r.currentKeyColumns.equals(r.previousKeyColumns)) {
+				if (pkName == null || !Objects.requireNonNull(r.currentKeyColumns).equals(r.previousKeyColumns)) {
 					if (pkName != null) {
 						try (var stDropPk = conn.prepareStatement("ALTER TABLE " + name + " DROP CONSTRAINT " + pkName)) {
 							stDropPk.executeUpdate();
@@ -937,8 +938,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> @Nullable V find(@NotNull TableX<K, V> table,
-																		  @NotNull Object key) {
+		public <K extends Comparable<K>, V extends Bean> @Nullable V find(TableX<K, V> table,
+																		  Object key) {
 			if (dropped)
 				return null;
 
@@ -964,8 +965,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> boolean containsKey(@NotNull TableX<K, V> table,
-																			 @NotNull Object key) {
+		public <K extends Comparable<K>, V extends Bean> boolean containsKey(TableX<K, V> table,
+																			 Object key) {
 			if (dropped)
 				return false;
 
@@ -988,7 +989,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public void replace(@NotNull Transaction t, @NotNull Object key, @NotNull Object value) {
+		public void replace(Transaction t, Object key, Object value) {
 			if (dropped)
 				return;
 
@@ -1042,7 +1043,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public void remove(@NotNull Transaction t, @NotNull Object key) {
+		public void remove(Transaction t, Object key) {
 			if (dropped)
 				return;
 
@@ -1061,8 +1062,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		long walk(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback,
-				  @NotNull String orderBy) throws Exception {
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback,
+				  String orderBy) throws Exception {
 			if (dropped)
 				return callback.endWalk(0);
 
@@ -1072,44 +1073,44 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		long walkKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback,
-					 @NotNull String orderBy) throws Exception {
+		long walkKey(TableX<K, V> table, TableWalkKey<K> callback,
+					 String orderBy) throws Exception {
 			if (dropped)
 				return callback.endWalk(0);
 
-			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
+			var s = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + name + orderBy;
 			var count = walkCursor(s, rs -> invokeKeyCallback(table, rs, callback, null));
 			return callback.endWalk(count);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walk(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception {
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback) throws Exception {
 			return walk(table, callback, buildOrder(table)); // 正序
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception {
+		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) throws Exception {
 			return walk(table, callback, buildOrderByDesc(table)); // 反序
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception {
+		long walkKey(TableX<K, V> table, TableWalkKey<K> callback) throws Exception {
 			return walkKey(table, callback, buildOrder(table)); // 正序
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception {
+		long walkKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) throws Exception {
 			return walkKey(table, callback, buildOrderByDesc(table)); // 反序
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		@Nullable K walk(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-						 @NotNull TableWalkHandle<K, V> callback,
-						 @NotNull String orderBy, boolean asc) throws Exception {
+		@Nullable K walk(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+						 TableWalkHandle<K, V> callback,
+						 String orderBy, boolean asc) throws Exception {
 			if (dropped || proposeLimit <= 0) {
 				callback.endWalk(0);
 				return null;
@@ -1136,8 +1137,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		@Nullable K walkKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-							@NotNull TableWalkKey<K> callback, @NotNull String orderBy, boolean asc) throws Exception {
+		@Nullable K walkKey(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+							TableWalkKey<K> callback, String orderBy, boolean asc) throws Exception {
 			if (dropped || proposeLimit <= 0) {
 				callback.endWalk(0);
 				return null;
@@ -1145,7 +1146,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
+			var sql = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName()
 					+ keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
@@ -1166,35 +1167,35 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walk(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-			   @NotNull TableWalkHandle<K, V> callback) throws Exception {
+		@Nullable K walk(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+			   TableWalkHandle<K, V> callback) throws Exception {
 			return walk(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table), true);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-				   @NotNull TableWalkHandle<K, V> callback) throws Exception {
+		@Nullable K walkDesc(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+			   TableWalkHandle<K, V> callback) throws Exception {
 			return walk(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table), false);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-				  @NotNull TableWalkKey<K> callback) throws Exception {
+		@Nullable K walkKey(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+			  TableWalkKey<K> callback) throws Exception {
 			return walkKey(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table), true);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-					  @NotNull TableWalkKey<K> callback) throws Exception {
+		@Nullable K walkKeyDesc(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+			  TableWalkKey<K> callback) throws Exception {
 			return walkKey(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table), false);
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		long walkDatabase(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback,
-						  @NotNull String orderBy) throws Exception {
+		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback,
+						  String orderBy) throws Exception {
 			if (dropped)
 				return callback.endWalk(0);
 
@@ -1218,12 +1219,12 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback,
-							 @NotNull String orderBy) throws Exception {
+		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback,
+							 String orderBy) throws Exception {
 			if (dropped)
 				return callback.endWalk(0);
 
-			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + orderBy;
+			var s = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName() + orderBy;
 			var count = 0L;
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
 				while (rs.next()) {
@@ -1239,32 +1240,32 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabase(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception {
+		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) throws Exception {
 			return walkDatabase(table, callback, buildOrder(table));
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception {
+		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) throws Exception {
 			return walkDatabase(table, callback, buildOrderByDesc(table));
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception {
+		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) throws Exception {
 			return walkDatabaseKey(table, callback, buildOrder(table));
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception {
+		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) throws Exception {
 			return walkDatabaseKey(table, callback, buildOrderByDesc(table));
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		@Nullable K walkDatabase(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-								 @NotNull TableWalkHandle<K, V> callback,
-								 @NotNull String orderBy, boolean asc) throws Exception {
+		@Nullable K walkDatabase(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+								 TableWalkHandle<K, V> callback,
+								 String orderBy, boolean asc) throws Exception {
 			if (dropped || proposeLimit <= 0) {
 				callback.endWalk(0);
 				return null;
@@ -1297,9 +1298,9 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
-		@Nullable K walkDatabaseKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-									@NotNull TableWalkKey<K> callback,
-									@NotNull String orderBy, boolean asc) throws Exception {
+		@Nullable K walkDatabaseKey(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+									TableWalkKey<K> callback,
+									String orderBy, boolean asc) throws Exception {
 			if (dropped || proposeLimit <= 0) {
 				callback.endWalk(0);
 				return null;
@@ -1307,7 +1308,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
+			var sql = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName()
 					+ keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
@@ -1330,41 +1331,41 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		@Nullable K walkDatabase(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-								 @NotNull TableWalkHandle<K, V> callback) throws Exception {
+		@Nullable K walkDatabase(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+								 TableWalkHandle<K, V> callback) throws Exception {
 			return walkDatabase(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table), true);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		@Nullable K walkDatabaseDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-									 @NotNull TableWalkHandle<K, V> callback) throws Exception {
+		@Nullable K walkDatabaseDesc(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+									 TableWalkHandle<K, V> callback) throws Exception {
 			return walkDatabase(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table), false);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		@Nullable K walkDatabaseKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-									@NotNull TableWalkKey<K> callback) throws Exception {
+		@Nullable K walkDatabaseKey(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+									TableWalkKey<K> callback) throws Exception {
 			return walkDatabaseKey(table, exclusiveStartKey, proposeLimit, callback, buildOrder(table), true);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		@Nullable K walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-										@NotNull TableWalkKey<K> callback) throws Exception {
+		@Nullable K walkDatabaseKeyDesc(TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+										TableWalkKey<K> callback) throws Exception {
 			return walkDatabaseKey(table, exclusiveStartKey, proposeLimit, callback, buildOrderByDesc(table), false);
 		}
 	}
 
 	public final class TablePostgreSQL extends AbstractKVTable {
-		private final @NotNull String name;
-		private final @NotNull String sqlFind, sqlRemove, sqlReplace;
+		private final String name;
+		private final String sqlFind, sqlRemove, sqlReplace;
 		private final boolean isNew;
 		// volatile：flush线程与drop调用线程可能不同，可见性不得依赖锁外的巧合调度
 		private volatile boolean dropped;
 
-		public TablePostgreSQL(@NotNull String name) {
+		public TablePostgreSQL(String name) {
 			this.name = name;
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			// create table if not exists 在表已存在时返回warning，由此检测isNew（原子性由数据库保证）。
@@ -1390,11 +1391,11 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public @NotNull DatabasePostgreSQL getDatabase() {
+		public DatabasePostgreSQL getDatabase() {
 			return DatabasePostgreSQL.this;
 		}
 
-		public @NotNull String getName() {
+		public String getName() {
 			return name;
 		}
 
@@ -1438,7 +1439,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+		public @Nullable ByteBuffer find(ByteBuffer key) {
 			if (dropped)
 				return null;
 
@@ -1462,7 +1463,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			if (dropped)
 				return;
 
@@ -1481,7 +1482,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			if (dropped)
 				return;
 
@@ -1502,26 +1503,26 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			return walk(callback, true);
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			return walkKey(callback, true);
 		}
 
 		@Override
-		public long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
+		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			return walk(callback, false);
 		}
 
 		@Override
-		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
+		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			return walkKey(callback, false);
 		}
 
-		private long walk(@NotNull TableWalkHandleRaw callback, boolean asc) throws Exception {
+		private long walk(TableWalkHandleRaw callback, boolean asc) throws Exception {
 			if (dropped)
 				return 0;
 
@@ -1529,7 +1530,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			return walkCursor(s, rs -> callback.handle(rs.getBytes(1), rs.getBytes(2)));
 		}
 
-		private long walkKey(@NotNull TableWalkKeyRaw callback, boolean asc) throws Exception {
+		private long walkKey(TableWalkKeyRaw callback, boolean asc) throws Exception {
 			if (dropped)
 				return 0;
 
@@ -1539,7 +1540,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-										 @NotNull TableWalkHandleRaw callback) throws Exception {
+										 TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -1566,7 +1567,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											@NotNull TableWalkKeyRaw callback) throws Exception {
+											TableWalkKeyRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -1593,7 +1594,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											 @NotNull TableWalkHandleRaw callback) throws Exception {
+											 TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -1620,7 +1621,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												@NotNull TableWalkKeyRaw callback) throws Exception {
+												TableWalkKeyRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
@@ -1646,7 +1647,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 	}
 
-	public static long queryLong1(@NotNull DruidDataSource dataSource, @NotNull String sql) {
+	public static long queryLong1(DruidDataSource dataSource, String sql) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql); var rs = ps.executeQuery()) {
 			return rs.next() ? rs.getLong(1) : -1;

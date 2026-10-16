@@ -10,8 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 周期守护定时器：
@@ -23,9 +22,9 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class DaemonTimer {
 
-	private static final @NotNull Logger logger = LogManager.getLogger(DaemonTimer.class);
+	private static final Logger logger = LogManager.getLogger(DaemonTimer.class);
 
-	private final @NotNull String name;
+	private final String name;
 	// volatile：setPeriodMs运行期调整，下一次续约（rescheduleLocked）读取生效，已排期pending不重排
 	private volatile long periodMs;
 	// 逐轮延迟策略：null=常量周期（用periodMs）；非null=每次续约时求值（锚点重对齐/退避/抖动），
@@ -33,19 +32,19 @@ public final class DaemonTimer {
 	private final @Nullable LongSupplier nextDelayMs;
 	// 每轮executeCore看门狗预算；stop等待预算=timeoutMs+5s。构造时快照，实例期内确定
 	private final long timeoutMs;
-	private final @NotNull Action0 body;
+	private final Action0 body;
 	// gate守护shutdown/pending/inFlight；gate内不做任何等待与阻塞调用。
 	private final ReentrantLock gate = new ReentrantLock();
 	// volatile：runBody入口锁外复查作废迟到轮（与inFlight的处置一致），转换仍全在gate内
 	private volatile boolean shutdown = true; // 未启动即关门
 	// 在飞一轮的完成信号：fire派发前置位，一轮收尾时完成（无论成败）。stop据此限时等待。
-	private volatile CompletableFuture<Void> inFlight;
-	private ScheduledFuture<?> pending; // 已排期未触发的下一次fire；fire触发时消费置null
+	private volatile @Nullable CompletableFuture<@Nullable Void> inFlight;
+	private @Nullable ScheduledFuture<?> pending; // 已排期未触发的下一次fire；fire触发时消费置null
 	private long generation; // gate 内递增；已取消的旧 tick 不得进入重新启动后的链。
 	// 在飞body的执行线程：fire清场、runBody入口置位、finishRound归属清除；stop据此识别body内自调。
-	private volatile Thread bodyThread;
+	private volatile @Nullable Thread bodyThread;
 
-	public DaemonTimer(@NotNull String name, long periodMs, @NotNull Action0 body) {
+	public DaemonTimer(String name, long periodMs, Action0 body) {
 		this(name, periodMs, 0, body);
 	}
 
@@ -53,7 +52,7 @@ public final class DaemonTimer {
 	 * @param timeoutMs 每轮看门狗超时(毫秒)，&lt;=0 时取 {@link Task#defaultTimeout}；
 	 *                  stop等待预算=timeoutMs+5s（构造时快照）
 	 */
-	public DaemonTimer(@NotNull String name, long periodMs, long timeoutMs, @NotNull Action0 body) {
+	public DaemonTimer(String name, long periodMs, long timeoutMs, Action0 body) {
 		if (periodMs <= 0)
 			throw new IllegalArgumentException("periodMs <= 0");
 		this.name = name;
@@ -73,7 +72,7 @@ public final class DaemonTimer {
 	 * @param timeoutMs 每轮看门狗超时(毫秒)，&lt;=0 时取 {@link Task#defaultTimeout}；
 	 *                  stop等待预算=timeoutMs+5s（构造时快照）
 	 */
-	public DaemonTimer(@NotNull String name, @NotNull LongSupplier nextDelayMs, long timeoutMs, @NotNull Action0 body) {
+	public DaemonTimer(String name, LongSupplier nextDelayMs, long timeoutMs, Action0 body) {
 		this.name = name;
 		this.periodMs = -1; // 供应商模式不使用
 		this.nextDelayMs = Objects.requireNonNull(nextDelayMs);
@@ -112,7 +111,7 @@ public final class DaemonTimer {
 	 */
 	public void stop() {
 		ScheduledFuture<?> p;
-		CompletableFuture<Void> f;
+		CompletableFuture<@Nullable Void> f;
 		Thread t;
 		gate.lock();
 		try {
@@ -155,7 +154,7 @@ public final class DaemonTimer {
 
 	// 调度线程上的tick入口：只判关门+置在飞+派发，微秒级，绝不内联执行守护体。
 	private void fire(long expectedGeneration) {
-		final CompletableFuture<Void> f;
+		final CompletableFuture<@Nullable Void> f;
 		gate.lock();
 		try {
 			if (shutdown || generation != expectedGeneration)
@@ -175,7 +174,7 @@ public final class DaemonTimer {
 		}
 	}
 
-	private void runBody(@NotNull CompletableFuture<Void> f) {
+	private void runBody(CompletableFuture<@Nullable Void> f) {
 		boolean obsolete;
 		gate.lock();
 		try {
@@ -200,7 +199,7 @@ public final class DaemonTimer {
 
 	// 一轮收尾：gate内清在飞归属+续约，锁外完成在飞信号（stop的等待线程醒来后不再触碰gate）。
 	// inFlight==f的归属检查挡掉stop超预算逃逸的晚到一轮——逃逸轮不占链，不得清新一轮的在飞标志。
-	private void finishRound(@NotNull CompletableFuture<Void> f) {
+	private void finishRound(CompletableFuture<@Nullable Void> f) {
 		gate.lock();
 		try {
 			if (inFlight == f) {
@@ -241,7 +240,7 @@ public final class DaemonTimer {
 		}
 	}
 
-	private void awaitIdle(@NotNull CompletableFuture<Void> f) {
+	private void awaitIdle(CompletableFuture<@Nullable Void> f) {
 		var budget = Math.max(1, timeoutMs + 5_000); // 对齐每轮看门狗，超时即逃逸轮
 		try {
 			f.get(budget, TimeUnit.MILLISECONDS);

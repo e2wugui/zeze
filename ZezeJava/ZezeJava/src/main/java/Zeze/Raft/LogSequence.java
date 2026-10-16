@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +35,9 @@ import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.WriteOptions;
+import Zeze.Util.RocksDatabase.Table;
 
 /**
  * Raft 日志序列：日志与 term/voteFor/firstIndex 等元数据的 RocksDB 持久化、快照的代际提交与清扫、
@@ -48,7 +52,7 @@ public class LogSequence {
 	static final String snapshotManifestEntryName = "zeze.snapshot.manifest";
 
 	// 读legacy快照内嵌代次；无entry、文件不存在或损坏返回null（迁移按N=F处理）。
-	static Long readSnapshotManifest(Path snapshotPath) {
+	static @Nullable Long readSnapshotManifest(Path snapshotPath) {
 		if (!Files.isRegularFile(snapshotPath))
 			return null;
 		try (var zip = new ZipFile(snapshotPath.toFile())) {
@@ -75,16 +79,16 @@ public class LogSequence {
 	private boolean nodeReady;
 	private long lastLeaderCommitIndex;
 
-	public volatile TaskCompletionSource<Boolean> removeLogBeforeFuture;
+	public volatile @Nullable TaskCompletionSource<Boolean> removeLogBeforeFuture;
 	public volatile boolean logsAvailable;
 
 	private long leaderActiveTime = System.currentTimeMillis(); // Leader, Follower
 
 	private WriteOptions writeOptions = RocksDatabase.getSyncWriteOptions();
-	private RocksDatabase.Table logs;
-	private RocksDatabase database;
+	private @Nullable Table logs;
+	private @Nullable RocksDatabase database;
 	private final boolean sharedDatabase;
-	private RocksDatabase.Table rafts;
+	private @Nullable Table rafts;
 	private final LongConcurrentHashMap<UniqueRequestSet> uniqueRequestSets = new LongConcurrentHashMap<>();
 
 	private final byte[] raftsTermKey;
@@ -93,7 +97,7 @@ public class LogSequence {
 	private final byte[] raftsNodeReadyKey; // 只会被写一次，与其他key统一形式。
 	private final byte[] lastSnapshotIndexKey;
 
-	public volatile TaskCompletionSource<Boolean> applyFuture; // follower background apply task
+	public volatile @Nullable TaskCompletionSource<Boolean> applyFuture; // follower background apply task
 	private final LongConcurrentHashMap<RaftLog> leaderAppendLogs = new LongConcurrentHashMap<>();
 
 	// leader侧InstallSnapshot发送会话登记表（构造仅存引用，运行时经本类延迟读取）。
@@ -145,13 +149,13 @@ public class LogSequence {
 	// 所以下面方法不会返回空。
 	// 除非什么例外发生。那就抛空指针异常吧。
 	public RaftLog lastAppliedLogTermIndex() throws RocksDBException {
-		return RaftLog.decodeTermIndex(readLogBytes(lastApplied));
+		return RaftLog.decodeTermIndex(Objects.requireNonNull(readLogBytes(lastApplied)));
 	}
 
 	private void saveFirstIndex(long newFirstIndex) throws RocksDBException {
 		var firstIndexValue = ByteBuffer.Allocate(9);
 		firstIndexValue.WriteLong(newFirstIndex);
-		rafts.put(writeOptions, raftsFirstIndexKey, 0, raftsFirstIndexKey.length,
+		Objects.requireNonNull(rafts).put(writeOptions, raftsFirstIndexKey, 0, raftsFirstIndexKey.length,
 				firstIndexValue.Bytes, 0, firstIndexValue.WriteIndex);
 		firstIndex = newFirstIndex;
 	}
@@ -237,8 +241,8 @@ public class LogSequence {
 		}
 	}
 
-	private File[] listDbHomeFiles() {
-		return new File(raft.getRaftConfig().getDbHome()).listFiles();
+	private File @Nullable [] listDbHomeFiles() {
+		return new File(Objects.requireNonNull(raft.getRaftConfig().getDbHome())).listFiles();
 	}
 
 	// held候选：index>firstIndex的gen文件，按index排序。调用方持raft锁。
@@ -256,7 +260,7 @@ public class LogSequence {
 	}
 
 	// gen文件名解析：snapshot.dat.<纯数字>→index；其他返回null。package-private供dump助手复用。
-	static Long parseGenSnapshotIndex(File file) {
+	static @Nullable Long parseGenSnapshotIndex(File file) {
 		if (!file.isFile())
 			return null;
 		var fileName = file.getName();
@@ -313,7 +317,7 @@ public class LogSequence {
 	private RocksIterator newLogsIterator() {
 		raft.lock();
 		try {
-			return logs.iterator();
+			return Objects.requireNonNull(logs).iterator();
 		} finally {
 			raft.unlock();
 		}
@@ -343,7 +347,7 @@ public class LogSequence {
 						}
 
 						var key = it.key();
-						logs.delete(writeOptions, key);
+						Objects.requireNonNull(logs).delete(writeOptions, key);
 
 						// 删除快照前的日志时不删唯一请求存根（快照建立时刻稍前的请求仍需唯一保证），存根自行过期清理。
 						// 注意：完全崩溃换新机后仍有小概率无法判断唯一，较好的做法是从工作节点复制unique/作为初始数据。
@@ -388,7 +392,7 @@ public class LogSequence {
 
 		public UniqueRequestSet(String tableName) {
 			try {
-				table = database.getOrAddTable(tableName);
+				table = Objects.requireNonNull(database).getOrAddTable(tableName);
 			} catch (RocksDBException e) {
 				throw Task.forceThrow(e);
 			}
@@ -400,9 +404,9 @@ public class LogSequence {
 
 		// batch形态——存根与日志合入同一WriteBatch原子提交（见appendLog）。
 		// 查重读（默认ReadOptions）仍在组装期执行，与单写形态语义一致。
-		private void put(RaftLog log, boolean isApply, RocksDatabase.Batch batch) throws RocksDBException {
+		private void put(RaftLog log, boolean isApply, RocksDatabase.@Nullable Batch batch) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
-			log.getLog().getUnique().encode(key);
+			Objects.requireNonNull(log.getLog()).getUnique().encode(key);
 
 			// 先读取并检查状态，减少写操作。
 			var existBytes = table.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
@@ -428,7 +432,7 @@ public class LogSequence {
 			put(log, false);
 		}
 
-		public void save(RaftLog log, RocksDatabase.Batch batch) throws RocksDBException {
+		public void save(RaftLog log, RocksDatabase.@Nullable Batch batch) throws RocksDBException {
 			put(log, false, batch);
 		}
 
@@ -438,11 +442,11 @@ public class LogSequence {
 
 		public void remove(RaftLog log) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
-			log.getLog().getUnique().encode(key);
+			Objects.requireNonNull(log.getLog()).getUnique().encode(key);
 			table.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
 		}
 
-		public UniqueRequestState getRequestState(IRaftRpc raftRpc) throws RocksDBException {
+		public @Nullable UniqueRequestState getRequestState(IRaftRpc raftRpc) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			raftRpc.getUnique().encode(key);
 			var val = table.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
@@ -490,7 +494,7 @@ public class LogSequence {
 		// unique表名实际是 <raftName>.unique.<yyyy>.<M>.<d>（see makeUniqueRequestTableName），
 		// 必须按本raft的名字过滤；多raft共享同一database时，database里还有其他raft的表，
 		// 只能清理本raft的（其他raft由自己的清理任务负责）。
-		for (var tableName : database.getTableMap().keySet()) {
+		for (var tableName : Objects.requireNonNull(database).getTableMap().keySet()) {
 			var date = parseUniqueRequestDate(raft.getName(), tableName);
 			if (date == null || date.getTime() >= expired)
 				continue;
@@ -546,12 +550,12 @@ public class LogSequence {
 		this(raft, null);
 	}
 
-	public LogSequence(Raft raft, RocksDatabase database) throws RocksDBException {
+	public LogSequence(Raft raft, @Nullable RocksDatabase database) throws RocksDBException {
 		this.raft = raft;
 		this.sharedDatabase = database != null;
 		this.database = database;
 		if (this.database == null)
-			this.database = new RocksDatabase(Paths.get(raft.getRaftConfig().getDbHome(), "db").toString());
+			this.database = new RocksDatabase(Paths.get(Objects.requireNonNull(raft.getRaftConfig().getDbHome()), "db").toString());
 
 		this.rafts = this.database.getOrAddTable(raft.getName() + ".rafts");
 		{
@@ -636,7 +640,7 @@ public class LogSequence {
 							lastSnapshotIndex = manifestIndex;
 							var lsiValue = ByteBuffer.Allocate(9);
 							lsiValue.WriteLong(lastSnapshotIndex);
-							rafts.put(writeOptions, lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
+							Objects.requireNonNull(rafts).put(writeOptions, lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
 									lsiValue.Bytes, 0, lsiValue.WriteIndex);
 						} else if (manifestIndex != null && manifestIndex < firstIndex) {
 							logger.warn("{} legacy migrate: snapshot manifest index({}) < firstIndex({}),"
@@ -674,7 +678,7 @@ public class LogSequence {
 								+ " endReceiveInstallSnapshot crashed after boundary saveLog?",
 						raft.getName(), firstIndex, lastIndex);
 				try {
-					logs.drop(); // 声明throws Exception（实际只抛RocksDBException），收窄到构造器的异常签名
+					Objects.requireNonNull(logs).drop(); // 声明throws Exception（实际只抛RocksDBException），收窄到构造器的异常签名
 				} catch (RocksDBException e) {
 					throw e;
 				} catch (Exception e) {
@@ -728,7 +732,7 @@ public class LogSequence {
 
 		var value = ByteBuffer.Allocate(1);
 		value.WriteBool(true);
-		rafts.put(writeOptions, raftsNodeReadyKey, 0, raftsNodeReadyKey.length, value.Bytes, 0, value.WriteIndex);
+		Objects.requireNonNull(rafts).put(writeOptions, raftsNodeReadyKey, 0, raftsNodeReadyKey.length, value.Bytes, 0, value.WriteIndex);
 	}
 
 	/**
@@ -742,7 +746,7 @@ public class LogSequence {
 	 * @return state
 	 * @throws RocksDBException RocksDBException
 	 */
-	UniqueRequestState tryGetRequestState(Protocol<?> p) throws RocksDBException {
+	@Nullable UniqueRequestState tryGetRequestState(Protocol<?> p) throws RocksDBException {
 		var raftRpc = (IRaftRpc)p;
 
 		var create = raftRpc.getCreateTime();
@@ -771,8 +775,8 @@ public class LogSequence {
 	}
 
 	private UniqueRequestSet openUniqueRequests(long time) {
-		return uniqueRequestSets.computeIfAbsent(toUniqueRequestKey(new Date(time)),
-				k -> new UniqueRequestSet(makeUniqueRequestTableName(raft.getName(), k)));
+		return Objects.requireNonNull(uniqueRequestSets.computeIfAbsent(toUniqueRequestKey(new Date(time)),
+				k -> new UniqueRequestSet(makeUniqueRequestTableName(raft.getName(), k))));
 	}
 
 	// 唯一请求存根按天建表，表名：<raftName>.unique.<yyyy>.<M>.<d>，key由toUniqueRequestKey生成。
@@ -782,7 +786,7 @@ public class LogSequence {
 	}
 
 	// 解析唯一请求存根表名中的日期（当天0点）；不是本raft的unique表（前缀不匹配或日期非法）返回null。
-	public static Date parseUniqueRequestDate(String raftName, String tableName) {
+	public static @Nullable Date parseUniqueRequestDate(String raftName, String tableName) {
 		var prefix = raftName + ".unique.";
 		if (!tableName.startsWith(prefix))
 			return null;
@@ -817,24 +821,24 @@ public class LogSequence {
 	}
 
 	// batch形态——与unique存根同一WriteBatch原子提交（见appendLog）。
-	void saveLog(RaftLog log, RocksDatabase.Batch batch) throws RocksDBException {
+	void saveLog(RaftLog log, RocksDatabase.@Nullable Batch batch) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(log.getIndex());
 		var value = log.encode();
 		if (batch != null)
-			logs.put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			Objects.requireNonNull(logs).put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 		else
-			logs.put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			Objects.requireNonNull(logs).put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 
 		if (isDebugEnabled)
 			logger.debug("{}-{} RequestId={} Index={} Count={}", raft.getName(), raft.isLeader(),
-					log.getLog().getUnique().getRequestId(), log.getIndex(), getTestStateMachineCount());
+					Objects.requireNonNull(log.getLog()).getUnique().getRequestId(), log.getIndex(), getTestStateMachineCount());
 	}
 
 	private void saveLogRaw(long index, Binary rawValue) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(index);
-		logs.put(writeOptions, key.Bytes, 0, key.WriteIndex,
+		Objects.requireNonNull(logs).put(writeOptions, key.Bytes, 0, key.WriteIndex,
 				rawValue.bytesUnsafe(), rawValue.getOffset(), rawValue.size());
 
 		if (isDebugEnabled)
@@ -842,14 +846,14 @@ public class LogSequence {
 					raft.getName(), raft.isLeader(), index, getTestStateMachineCount());
 	}
 
-	private byte[] readLogBytes(long index) throws RocksDBException {
+	private byte @Nullable [] readLogBytes(long index) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(index);
 		var logs = this.logs;
 		return logs != null ? logs.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex) : null;
 	}
 
-	RaftLog readLog(long index) throws RocksDBException { // package-private：SendSnapshotting读边界日志
+	@Nullable RaftLog readLog(long index) throws RocksDBException { // package-private：SendSnapshotting读边界日志
 		var value = readLogBytes(index);
 		return value != null ? RaftLog.decode(new Binary(value), raft.getStateMachine()::logFactory) : null;
 	}
@@ -860,7 +864,7 @@ public class LogSequence {
 	 * 当选后集群写入全卡在此——宁死不糊，fatalKill。RocksDBException（瞬时IO错误）向上传播
 	 * 保持重试语义；apply阶段异常同样重试（结构性错误由状态机内部自行fatalKill）。
 	 */
-	private RaftLog readLogForApply(long index, String where) throws RocksDBException {
+	private @Nullable RaftLog readLogForApply(long index, String where) throws RocksDBException {
 		try {
 			return readLog(index);
 		} catch (RocksDBException e) {
@@ -913,8 +917,8 @@ public class LogSequence {
 			var voteForValue = ByteBuffer.Allocate(1);
 			voteForValue.WriteString("");
 			// 任期推进与清空投票必须同生共死，且持久化成功后才能改变内存状态。
-			try (var batch = database.borrowBatch()) {
-				rafts.put(batch, raftsTermKey, 0, raftsTermKey.length, termValue.Bytes, 0, termValue.WriteIndex);
+			try (var batch = Objects.requireNonNull(database).borrowBatch()) {
+				Objects.requireNonNull(rafts).put(batch, raftsTermKey, 0, raftsTermKey.length, termValue.Bytes, 0, termValue.WriteIndex);
 				rafts.put(batch, raftsVoteForKey, 0, raftsVoteForKey.length,
 						voteForValue.Bytes, 0, voteForValue.WriteIndex);
 				batch.commit(writeOptions);
@@ -928,7 +932,9 @@ public class LogSequence {
 		return term == this.term ? SetTermResult.Same : SetTermResult.Older;
 	}
 
-	public boolean canVoteFor(String voteFor) {
+	// Retain the defensive check for vote state loaded from storage.
+	@SuppressWarnings("ConstantConditions")
+	public boolean canVoteFor(@Nullable String voteFor) {
 		String thisVoteFor = this.voteFor;
 		return thisVoteFor == null || thisVoteFor.isEmpty() || thisVoteFor.equals(voteFor);
 	}
@@ -937,7 +943,7 @@ public class LogSequence {
 		if (!this.voteFor.equals(voteFor)) {
 			var voteForValue = ByteBuffer.Allocate(5 + voteFor.length());
 			voteForValue.WriteString(voteFor);
-			rafts.put(writeOptions, raftsVoteForKey, 0, raftsVoteForKey.length,
+			Objects.requireNonNull(rafts).put(writeOptions, raftsVoteForKey, 0, raftsVoteForKey.length,
 					voteForValue.Bytes, 0, voteForValue.WriteIndex);
 			this.voteFor = voteFor;
 		}
@@ -982,7 +988,7 @@ public class LogSequence {
 	}
 
 	// under lock (Raft)
-	private void tryStartApplyTask(RaftLog lastApplicableLog) throws Exception {
+	private void tryStartApplyTask(@Nullable RaftLog lastApplicableLog) throws Exception {
 		if (applyFuture == null && !raft.isShutdown) {
 			// 仅在没有 apply 进行中才尝试进行处理。
 			if (commitIndex - lastApplied < raft.getRaftConfig().getBackgroundApplyCount()) {
@@ -994,7 +1000,7 @@ public class LogSequence {
 			applyFuture = new TaskCompletionSource<>();
 			Raft.executeImportantTask(() -> {
 				try {
-					applyFuture.setResult(TaskSpec.ofFunc(this::backgroundApply).name("BackgroundApply").call() == 0); // 如果有人等待。
+					Objects.requireNonNull(applyFuture).setResult(TaskSpec.ofFunc(this::backgroundApply).name("BackgroundApply").call() == 0); // 如果有人等待。
 				} finally {
 					applyFuture = null; // 允许再次启动，不需要等待了。
 				}
@@ -1022,10 +1028,10 @@ public class LogSequence {
 	// 测试钩子（一次性）：非null时在appendLog内存根写之后、日志写/提交之前抛出——
 	// 合批前=两笔独立写，此位置失败留孤儿存根；合批后=组装失败两笔同弃（try-with-resources
 	// 丢弃未提交batch）。
-	Action0 testHookBetweenStubAndLog;
+	@Nullable Action0 testHookBetweenStubAndLog;
 
 	// package-private：headless单测直接驱动应用循环，理由同saveLog。
-	void tryApply(RaftLog lastApplicableLog, long count) throws Exception {
+	void tryApply(@Nullable RaftLog lastApplicableLog, long count) throws Exception {
 		if (lastApplicableLog == null) {
 			logger.error("lastApplicableLog is null.");
 			return;
@@ -1054,7 +1060,7 @@ public class LogSequence {
 				throw e;
 			}
 			// 支持原子应用的状态机已同批提交存根；其他状态机沿用日志库路径。
-			if (!raft.getStateMachine().hasAtomicAppliedState() && raftLog.getLog().getUnique().getRequestId() > 0) {
+			if (!raft.getStateMachine().hasAtomicAppliedState() && Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId() > 0) {
 				try {
 					openUniqueRequests(raftLog.getLog().getCreateTime()).apply(raftLog);
 				} catch (RocksDBException e) {
@@ -1070,7 +1076,7 @@ public class LogSequence {
 			if (isDebugEnabled && lastIndex - lastApplied < 10) {
 				logger.debug("{}-{} {} RequestId={} LastIndex={} LastApplied={} Count={}",
 						raft.getName(), raft.isLeader(), raft.getRaftConfig().getDbHome(),
-						raftLog.getLog().getUnique().getRequestId(), lastIndex, lastApplied,
+						Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId(), lastIndex, lastApplied,
 						getTestStateMachineCount());
 			}
 			raftLog.invokeCallback();
@@ -1085,7 +1091,7 @@ public class LogSequence {
 				lastSnapshotIndex = lastApplied;
 				var bb = ByteBuffer.Allocate();
 				bb.WriteLong(lastSnapshotIndex);
-				rafts.put(writeOptions,
+				Objects.requireNonNull(rafts).put(writeOptions,
 						lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
 						bb.Bytes, bb.ReadIndex, bb.size());
 				TaskSpec.ofAction(this::snapshot).name("Snapshot").run();
@@ -1276,11 +1282,11 @@ public class LogSequence {
 		return LogFate.Undetermined;
 	}
 
-	public AppendLogResult appendLog(Log log, Action2<RaftLog, Boolean> callback) throws Exception {
+	public AppendLogResult appendLog(Log log, @Nullable Action2<RaftLog, Boolean> callback) throws Exception {
 		return appendLog(log, callback, -1);
 	}
 
-	public AppendLogResult appendLog(Log log, Action2<RaftLog, Boolean> callback, long expectedTerm) throws Exception {
+	public AppendLogResult appendLog(Log log, @Nullable Action2<RaftLog, Boolean> callback, long expectedTerm) throws Exception {
 		raft.lock();
 		try {
 			if (!raft.isLeader())
@@ -1297,8 +1303,8 @@ public class LogSequence {
 			// 存根先：反序在存根写失败时lastIndex未推进，重发以同一(term,index)复用index重写日志——
 			// 破坏日志匹配不变式（见下方lastIndex注释），双重执行+状态机分叉双害。合批后两行同生
 			// 共死，兼省一次fsync。
-			try (var batch = database.borrowBatch()) {
-				if (raftLog.getLog().getUnique().getRequestId() > 0)
+			try (var batch = Objects.requireNonNull(database).borrowBatch()) {
+				if (Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId() > 0)
 					openUniqueRequests(raftLog.getLog().getCreateTime()).save(raftLog, batch);
 				if (testHookBetweenStubAndLog != null) {
 					var hook = testHookBetweenStubAndLog;
@@ -1346,12 +1352,12 @@ public class LogSequence {
 	}
 
 	public String getSnapshotFullName() {
-		return Paths.get(raft.getRaftConfig().getDbHome(), snapshotFileName).toString();
+		return Paths.get(Objects.requireNonNull(raft.getRaftConfig().getDbHome()), snapshotFileName).toString();
 	}
 
 	// 代际快照文件：写入后不可变，只整体删除。
 	public Path genSnapshotPath(long lastIncludedIndex) {
-		return Paths.get(raft.getRaftConfig().getDbHome(), snapshotFileName + "." + lastIncludedIndex);
+		return Paths.get(Objects.requireNonNull(raft.getRaftConfig().getDbHome()), snapshotFileName + "." + lastIncludedIndex);
 	}
 
 	// 已提交快照=firstIndex指认的gen文件；无快照时返回legacy名（不存在）。
@@ -1473,7 +1479,7 @@ public class LogSequence {
 					lastIndex = r.Argument.getLastIncludedIndex();
 					commitIndex = firstIndex; // commitSnapshotNow已把firstIndex推进为X
 					lastApplied = firstIndex;
-					setVoteFor(raft.getLeaderId()); // 放弃当前Term的投票（对齐完整路径）
+					setVoteFor(Objects.requireNonNull(raft.getLeaderId())); // 放弃当前Term的投票（对齐完整路径）
 					long t = System.nanoTime();
 					try {
 						raft.getStateMachine().loadSnapshot(getCommittedSnapshotFile());
@@ -1494,8 +1500,8 @@ public class LogSequence {
 				// 所以最后一个trunk带上LastIncludedLog，接收者清除log后插入这条边界日志。
 				logger.info("endReceiveInstallSnapshot: close logs: {}", raft.getRaftConfig().getDbHome());
 				cancelPendingAppendLogFutures();
-				logs.drop();
-				logs = database.getOrAddTable(raft.getName() + ".logs");
+				Objects.requireNonNull(logs).drop();
+				logs = Objects.requireNonNull(database).getOrAddTable(raft.getName() + ".logs");
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
 				saveLog(lastIncludedLog);
@@ -1506,7 +1512,7 @@ public class LogSequence {
 				lastApplied = firstIndex;
 
 				// 放弃当前Term的投票。
-				setVoteFor(raft.getLeaderId());
+				setVoteFor(Objects.requireNonNull(raft.getLeaderId()));
 
 				// 8. Reset state machine using snapshot contents (and load
 				// snapshot's cluster configuration)
@@ -1627,7 +1633,7 @@ public class LogSequence {
 		}
 	}
 
-	void trySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending) throws Exception {
+	void trySendAppendEntries(Server.ConnectorEx connector, @Nullable AppendEntries pending) throws Exception {
 		// Pending 处理必须完成。
 		connector.setAppendLogActiveTime(System.currentTimeMillis());
 		if (connector.getPending() != pending)
@@ -1666,7 +1672,7 @@ public class LogSequence {
 			return;
 
 		connector.setPending(new AppendEntries());
-		connector.getPending().Argument.setTerm(term);
+		Objects.requireNonNull(connector.getPending()).Argument.setTerm(term);
 		connector.getPending().Argument.setLeaderId(raft.getName());
 		connector.getPending().Argument.setLeaderCommit(commitIndex);
 
@@ -1683,7 +1689,7 @@ public class LogSequence {
 			connector.getPending().Argument.getEntries().add(new Binary(copyLog.encode()));
 		}
 		connector.getPending().Argument.setLastEntryIndex(lastCopyLog.getIndex());
-		if (!connector.getPending().Send(socket, (p) ->
+		if (!Objects.requireNonNull(connector.getPending()).Send(socket, (p) ->
 				processAppendEntriesResult(connector, p), raft.getRaftConfig().getAppendEntriesTimeout())) {
 			connector.setPending(null);
 			// Heartbeat Will Retry
@@ -1691,7 +1697,7 @@ public class LogSequence {
 	}
 
 	public RaftLog lastRaftLogTermIndex() throws RocksDBException {
-		return RaftLog.decodeTermIndex(readLogBytes(lastIndex));
+		return RaftLog.decodeTermIndex(Objects.requireNonNull(readLogBytes(lastIndex)));
 	}
 
 	private void removeLogAndCancelStart(long startIndex, long endIndex) throws Exception {
@@ -1714,8 +1720,8 @@ public class LogSequence {
 		if (raftLog != null) {
 			var key = ByteBuffer.Allocate(9);
 			key.WriteLong(index);
-			logs.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
-			if (raftLog.getLog().getUnique().getRequestId() > 0)
+			Objects.requireNonNull(logs).delete(writeOptions, key.Bytes, 0, key.WriteIndex);
+			if (Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId() > 0)
 				openUniqueRequests(raftLog.getLog().getCreateTime()).remove(raftLog);
 		}
 	}

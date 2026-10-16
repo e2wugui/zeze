@@ -2,14 +2,13 @@ package Zeze.Util;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import org.jetbrains.annotations.NotNull;
 
 // 全局低精度时钟：后台任务每秒采样 epoch 时间缓存，热路径 opaque 读免系统调用
 public final class GlobalTimer {
 	// 当前的秒级时间戳,由定时器更新,为了性能用opaque方式读写而不用volatile,多数CPU都能让所有线程及时看到最新值
 	@SuppressWarnings("unused")
 	private static long curMs, curSec;
-	private static final @NotNull VarHandle vhCurMs, vhCurSec;
+	private static final VarHandle vhCurMs, vhCurSec;
 
 	static {
 		try {

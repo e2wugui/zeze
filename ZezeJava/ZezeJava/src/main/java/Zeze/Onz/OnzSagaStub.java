@@ -1,5 +1,7 @@
 package Zeze.Onz;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Builtin.Onz.BFuncProcedure;
 import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
@@ -38,7 +40,7 @@ public class OnzSagaStub<A extends Bean, R extends Bean, T extends Bean> extends
 		return func.call((OnzSaga)onzProcedure, (A)argument, (R)result);
 	}
 
-	public Bean decodeCancelArgument(Binary argument) throws Exception {
+	public Bean decodeCancelArgument(@Nullable Binary argument) throws Exception {
 		var bean = cancelClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 		// 协调者cancelSaga/endSaga不填充FuncArgument（协调侧不知道参与方的补偿
 		// bean类型），到达这里是空Binary——任何Bean.decode都要求至少1个字节（结尾tag），

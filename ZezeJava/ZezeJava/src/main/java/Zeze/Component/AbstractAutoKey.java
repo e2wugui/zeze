@@ -25,11 +25,11 @@ public abstract class AbstractAutoKey implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tAutoKeys.getName()).getDatabaseName(), _tAutoKeys);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tAutoKeys.getName())).getDatabaseName(), _tAutoKeys);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tAutoKeys.getName()).getDatabaseName(), _tAutoKeys);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tAutoKeys.getName())).getDatabaseName(), _tAutoKeys);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

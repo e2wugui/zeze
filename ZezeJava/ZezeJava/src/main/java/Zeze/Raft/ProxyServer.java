@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
@@ -72,10 +76,10 @@ public class ProxyServer extends Service {
 			}
 
 			server.dispatchRaftRequest(p,
-					() -> server.processRequest(p, outFactoryHandle.value),
+					() -> server.processRequest(p, Objects.requireNonNull(outFactoryHandle.value)),
 					p.getClass().getName(),
 					() -> p.SendResultCode(Procedure.RaftRetry),
-					outFactoryHandle.value.Mode);
+					Objects.requireNonNull(outFactoryHandle.value).Mode);
 			return 0;
 		}
 
@@ -113,7 +117,7 @@ public class ProxyServer extends Service {
 	 * @see ProxyAgent send
 	 */
 	@SuppressWarnings("unchecked")
-	public static boolean send(Service localService, ProxyServer proxyServer, Rpc<?, ?> rpc, String raftName, AsyncSocket sender) {
+	public static boolean send(Service localService, @Nullable ProxyServer proxyServer, Rpc<?, ?> rpc, String raftName, @Nullable AsyncSocket sender) {
 		if (null == sender)
 			return false; // 没有连接，直接失败。
 
@@ -131,7 +135,7 @@ public class ProxyServer extends Service {
 						if (null != rpc.getResponseHandle()) {
 							@SuppressWarnings("rawtypes")
 							var originHandle = (ProtocolHandle)rpc.getResponseHandle();
-							localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+							localService.dispatchRpcResponse(resultRpc, originHandle, Objects.requireNonNull(outFh.value));
 						} else if (rpc.getFuture() != null) {
 						// 补全future路径（与ProxyAgent.send对齐）：无responseHandle的结果如不处理
 						// 会被静默丢弃，future等待方永远等不到结果，只能等rpc超时；

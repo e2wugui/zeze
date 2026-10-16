@@ -8,8 +8,7 @@ import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Record;
 import Zeze.Util.Json;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Json.ensureNotNull;
 
 /** 事务二维表（行键×列键→受管 Bean 值）：外层 PMap2 装 BeanMap2 行 Bean。
@@ -28,12 +27,12 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	static final String OUTER_NAME_PREFIX = "GTable2:";
 
 	public static final class Factory<R, C, V extends Bean, VReadOnly> implements Supplier<Map<C, V>> {
-		private final @NotNull Map2Meta<R, BeanMap2<C, V, VReadOnly>> pmapMeta;
-		private final @NotNull Map2Meta<C, V> bmapMeta;
-		private final @NotNull Json.FieldMeta fm1;
-		private final @NotNull Json.FieldMeta fm2;
+		private final Map2Meta<R, BeanMap2<C, V, VReadOnly>> pmapMeta;
+		private final Map2Meta<C, V> bmapMeta;
+		private final Json.FieldMeta fm1;
+		private final Json.FieldMeta fm2;
 
-		Factory(@NotNull Map2Meta<R, BeanMap2<C, V, VReadOnly>> pmapMeta, @NotNull Map2Meta<C, V> bmapMeta) {
+		Factory(Map2Meta<R, BeanMap2<C, V, VReadOnly>> pmapMeta, Map2Meta<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
 			// fm1/fm2在构造期一次性构建：惰性初始化只校验fm1且两写分离，
@@ -60,16 +59,16 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 			}
 		}
 
-		public @NotNull Map2Meta<R, BeanMap2<C, V, VReadOnly>> getPmapMeta() {
+		public Map2Meta<R, BeanMap2<C, V, VReadOnly>> getPmapMeta() {
 			return pmapMeta;
 		}
 
-		public @NotNull Map2Meta<C, V> getBmapMeta() {
+		public Map2Meta<C, V> getBmapMeta() {
 			return bmapMeta;
 		}
 
 		@Override
-		public @NotNull Map<C, V> get() {
+		public Map<C, V> get() {
 			return new BeanMap2<>(bmapMeta);
 		}
 	}
@@ -103,18 +102,18 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Factory<?, ?, ?, ?>>>>
 			factories = new ConcurrentHashMap<>();
 
-	private final @NotNull PMap2<R, BeanMap2<C, V, VReadOnly>> pMap2;
+	private final PMap2<R, BeanMap2<C, V, VReadOnly>> pMap2;
 
 	@SuppressWarnings("deprecation")
 	public void variableId(int id) {
 		pMap2.variableId(id);
 	}
 
-	public final void initRootInfoWithRedo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
+	public final void initRootInfoWithRedo(Record.RootInfo rootInfo, @Nullable Bean parent) {
 		pMap2.initRootInfoWithRedo(rootInfo, parent);
 	}
 
-	public final void initRootInfo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
+	public final void initRootInfo(Record.RootInfo rootInfo, @Nullable Bean parent) {
 		pMap2.initRootInfo(rootInfo, parent);
 	}
 
@@ -157,14 +156,14 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	// equals配身份hashCode（可变bean不覆写hashCode防哈希漂移），行/列任一Bean维度的哈希
 	// put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/TypeGTable.cs要求
 	// IsKeyable，Types.Bean的IsKeyable=false）。前置报错点名维度，工厂层拦截保留（防御纵深）。
-	private static void checkNonBeanDimension(@NotNull String dimension, @NotNull Class<?> keyClass) {
+	private static void checkNonBeanDimension(String dimension, Class<?> keyClass) {
 		if (Bean.class.isAssignableFrom(keyClass))
 			throw new IllegalArgumentException(
 					"GTable2 does not support Bean " + dimension + " key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
 							+ keyClass.getName());
 	}
 
-	public GTable2(@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
+	public GTable2(Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
 		checkNonBeanDimension("row", rowClass);
 		checkNonBeanDimension("column", colClass);
 		var factory = GTable2.<R, C, V, VReadOnly>getFactory(rowClass, colClass, valClass);
@@ -175,14 +174,14 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 
 	// Factory唯一来源是getFactory（meta经工厂层Bean拦截），不重复维度check。
 	// 供生成代码常量化（static final Factory + 本构造器），消除每实例化的三层缓存探测。
-	public GTable2(@NotNull Factory<R, C, V, VReadOnly> factory) {
+	public GTable2(Factory<R, C, V, VReadOnly> factory) {
 		this.pMap2 = new PMap2<>(factory.pmapMeta);
 		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
 		super.factory = factory;
 	}
 
-	public static <R, C, V extends Bean, VReadOnly> @NotNull Factory<R, C, V, VReadOnly> getFactory(
-			@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
+	public static <R, C, V extends Bean, VReadOnly> Factory<R, C, V, VReadOnly> getFactory(
+			Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
 		// DynamicBean没有无参构造器，Map2Meta.get的深反射抛不带
 		// "dynamic不支持"信息的NoSuchMethodException——指名拒绝，dynamic值走带
 		// get/create工厂的重载。
@@ -210,10 +209,10 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	// DynamicBean——同(row,col)的dynamic变量共享外层typeId是接受的风险现状而非安全
 	// 契约：回放解码经Helper侧决胜选出的家族create闭包（非自描述，hist-01外层收口后
 	// 胜者按来源名字典序跨JVM恒定），损坏形态与外层typeId共享风险同构。
-	public static <R, C, VReadOnly> @NotNull Factory<R, C, Zeze.Transaction.DynamicBean, VReadOnly> getFactory(
-			@NotNull Class<R> rowClass, @NotNull Class<C> colClass,
-			@NotNull java.util.function.ToLongFunction<Bean> get,
-			@NotNull java.util.function.LongFunction<Bean> create) {
+	public static <R, C, VReadOnly> Factory<R, C, Zeze.Transaction.DynamicBean, VReadOnly> getFactory(
+			Class<R> rowClass, Class<C> colClass,
+			java.util.function.ToLongFunction<@Nullable Bean> get,
+			java.util.function.LongFunction<@Nullable Bean> create) {
 		var bmapMeta = Map2Meta.<C, Zeze.Transaction.DynamicBean>createDynamic(colClass, get, create);
 		var pmapMeta = Map2Meta.createWithFamily(OUTER_HEAD, OUTER_NAME_PREFIX, rowClass,
 				(Class<BeanMap2<C, Zeze.Transaction.DynamicBean, VReadOnly>>)(Class<?>)BeanMap2.class,
@@ -228,7 +227,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	 * 框架内部使用。外部代码勿直接 put——空行（行存在但内层为空）违反 GTable 不变量，
 	 * 会破坏遍历与容量驱逐；常规读写走 Table API。
 	 */
-	public @NotNull PMap2<R, BeanMap2<C, V, VReadOnly>> getPMap2() {
+	public PMap2<R, BeanMap2<C, V, VReadOnly>> getPMap2() {
 		return pMap2;
 	}
 }

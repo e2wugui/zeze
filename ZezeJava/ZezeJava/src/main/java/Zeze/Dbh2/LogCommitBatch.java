@@ -1,12 +1,13 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 事务批量提交的 Raft 日志。
@@ -20,7 +21,7 @@ public class LogCommitBatch extends Log {
 		this(null);
 	}
 
-	public LogCommitBatch(CommitBatch req) {
+	public LogCommitBatch(@Nullable CommitBatch req) {
 		super(req);
 		if (null != req)
 			tid = req.Argument.getTid();
@@ -38,13 +39,13 @@ public class LogCommitBatch extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		super.encode(bb);
 		bb.WriteLong(tid);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		tid = bb.ReadLong();
 	}

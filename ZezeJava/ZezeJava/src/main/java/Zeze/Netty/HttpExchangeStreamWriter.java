@@ -7,17 +7,16 @@ import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 流式（chunked）模板输出 Writer：逐块发送，fail 时改断连使客户端可检测截断。
  */
 public class HttpExchangeStreamWriter extends Writer {
-	private final @NotNull HttpExchange x;
+	private final HttpExchange x;
 	private int contentLength;
 	private boolean failed; // 渲染中途异常由调用方置位：close不得把截断页面按正常终结符收尾
 
-	public HttpExchangeStreamWriter(@NotNull HttpExchange x) {
+	public HttpExchangeStreamWriter(HttpExchange x) {
 		this.x = x;
 		x.beginStream(HttpResponseStatus.OK, HttpServer.setDate(new DefaultHttpHeaders())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
@@ -33,7 +32,7 @@ public class HttpExchangeStreamWriter extends Writer {
 	}
 
 	@Override
-	public void write(char @NotNull [] cbuf, int off, int len) {
+	public void write(char [] cbuf, int off, int len) {
 		var byteBuffer = HttpServer.defaultCharset.encode(CharBuffer.wrap(cbuf, off, len));
 		contentLength += byteBuffer.remaining();
 		x.sendStream(byteBuffer);

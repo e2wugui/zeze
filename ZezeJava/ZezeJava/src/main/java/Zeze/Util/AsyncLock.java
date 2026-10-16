@@ -4,8 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 异步锁. 不支持重入.
 // 派发模式由构造参数决定(实例级不可变配置)：
@@ -13,8 +12,8 @@ import org.jetbrains.annotations.Nullable;
 // 同步：拿到派发权的线程在dispatchLoop里同线程顺序内联执行整个队列，循环独占释放，
 // leave()只清ownerThread/current、不派发(重入派发不可能发生，深队列无SOE)。
 public final class AsyncLock {
-	private static final @NotNull VarHandle stateHandle;
-	private static final @NotNull VarHandle inlineDriverThreadHandle;
+	private static final VarHandle stateHandle;
+	private static final VarHandle inlineDriverThreadHandle;
 
 	static {
 		try {
@@ -52,7 +51,7 @@ public final class AsyncLock {
 	}
 
 	// 获取锁成功时回调onEnter,回调回程中可以leave,回调完成时也会强制leave
-	public void enter(@NotNull Action0 onEnter) {
+	public void enter(Action0 onEnter) {
 		if (syncDispatch) {
 			// 入队后进派发循环：快路径同样排队，严格FIFO不插队
 			readyQueue.offer(onEnter);
@@ -71,7 +70,7 @@ public final class AsyncLock {
 
 	// 异步模式回调执行：finally必经leave()（回调内已显式leave()则空过）保证释放并继续派发。
 	// 调用者线程不限：enter快路径为进入线程，tryNextAsync为线程池线程。
-	private void runWithLeave(@NotNull Action0 onReady) {
+	private void runWithLeave(Action0 onReady) {
 		try {
 			ownerThread = Thread.currentThread();
 			current = onReady;
@@ -141,7 +140,7 @@ public final class AsyncLock {
 	// 不再递归SOE。驱动线程的leave()只清owner/current、不派发（inlineDriverThread标记），
 	// 派发由本循环推进；整个队列就地内联耗尽后释放派发权，池恢复由其后的正常派发路径
 	// 检测（驱动中逐个探测投递会因逐回调告警日志拖垮深队列）。
-	private void driveRejectedInline(@NotNull Action0 first) {
+	private void driveRejectedInline(Action0 first) {
 		inlineDriverThread = Thread.currentThread();
 		try {
 			var onReady = first;

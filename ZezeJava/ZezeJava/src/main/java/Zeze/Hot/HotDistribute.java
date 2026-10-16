@@ -1,5 +1,7 @@
 package Zeze.Hot;
 
+import java.util.Objects;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
@@ -18,6 +20,7 @@ import Zeze.Util.DispatchModeAnnotation;
 import Zeze.Util.FastLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 热更发布控制台。
@@ -26,13 +29,13 @@ import org.apache.logging.log4j.Logger;
  */
 public class HotDistribute extends AbstractHotDistribute {
     private static final Logger logger = LogManager.getLogger(HotDistribute.class);
-    private final DistributeManager distributeManager;
+    private final @Nullable DistributeManager distributeManager;
     private final FastLock lock = new FastLock();
     private final Condition cond = lock.newCondition();
     private int state = eIdle;
     private long distributeId = 0; // 由于发布不能并发，这个参数用于错误检查，没有实质作用。
-    private TryDistribute tryDistribute;
-    private Commit commit;
+    private @Nullable TryDistribute tryDistribute;
+    private @Nullable Commit commit;
 
     // ePrepare上传会话（OpenFile/AppendFile/CloseFile）最近活动时间。
     // PrepareDistribute之后控制台崩溃/断链时state永停ePrepare且没有任何收敛路径
@@ -41,7 +44,7 @@ public class HotDistribute extends AbstractHotDistribute {
     // 上传会话无活动超时：超过即视为死会话（控制台崩溃/断链），允许下一轮发布回收。
     private static final long prepareTimeoutMillis = 10 * 60 * 1000;
 
-    public HotDistribute(DistributeManager distributeManager) {
+    public HotDistribute(@Nullable DistributeManager distributeManager) {
         this.distributeManager = distributeManager;
     }
 
@@ -63,7 +66,7 @@ public class HotDistribute extends AbstractHotDistribute {
             }
 
             // 新发布会话开始：上一会话崩溃/断链遗留的未CloseFile的FileBin在此回收。
-            distributeManager.closeAll();
+            Objects.requireNonNull(distributeManager).closeAll();
             state = ePrepare;
             this.distributeId = distributeId;
             prepareActiveTime = System.currentTimeMillis();
@@ -117,7 +120,7 @@ public class HotDistribute extends AbstractHotDistribute {
             lock.unlock();
         }
         try {
-            distributeManager.commitDistribute(); // Files.createFile(ready)：ready已存在/IO错误时抛
+            Objects.requireNonNull(distributeManager).commitDistribute(); // Files.createFile(ready)：ready已存在/IO错误时抛
         } catch (Exception ex) {
             // 此时state已置eTryDistribute且rpc r已存入this.tryDistribute，异常逃出handler会
             // 同时卡死状态机（tryDistribute安装流程未进入，setIdle永不执行，死到重启）与
@@ -233,7 +236,7 @@ public class HotDistribute extends AbstractHotDistribute {
                 return;
             }
             // 会话结束：本会话中未走到CloseFile的残留FileBin（上传中断、md5失败）在此回收。
-            distributeManager.closeAll();
+            Objects.requireNonNull(distributeManager).closeAll();
             state = eIdle;
             distributeId = 0;
 
@@ -290,7 +293,7 @@ public class HotDistribute extends AbstractHotDistribute {
     @Override
     protected long ProcessOpenFileRequest(OpenFile r) throws Exception {
         touchPrepareActive();
-        var fileBin = distributeManager.open(r.Argument.getFileName());
+        var fileBin = Objects.requireNonNull(distributeManager).open(r.Argument.getFileName());
         r.Result.setOffset(fileBin.getLength());
         r.SendResult();
         return 0;
@@ -299,7 +302,7 @@ public class HotDistribute extends AbstractHotDistribute {
     @Override
     protected long ProcessAppendFileRequest(AppendFile r) throws Exception {
         touchPrepareActive();
-        distributeManager.append(
+        Objects.requireNonNull(distributeManager).append(
                 r.Argument.getFileName(),
                 r.Argument.getOffset(),
                 r.Argument.getChunk());
@@ -310,7 +313,7 @@ public class HotDistribute extends AbstractHotDistribute {
     @Override
     protected long ProcessCloseFileRequest(CloseFile r) throws Exception {
         touchPrepareActive();
-        if (!distributeManager.closeAndVerify(r.Argument.getFileName(), r.Argument.getMd5()))
+        if (!Objects.requireNonNull(distributeManager).closeAndVerify(r.Argument.getFileName(), r.Argument.getMd5()))
             return errorCode(eMd5Mismatch);
         r.SendResult();
         return 0;

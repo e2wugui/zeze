@@ -1,9 +1,9 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-
 import Zeze.Builtin.LoginQueue.BToken;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
 import Zeze.Builtin.LoginQueue.PutQueueFull;
@@ -16,8 +16,7 @@ import Zeze.Util.DaemonTimer;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import Zeze.Util.TimeThrottleCounter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Args.requireBool;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
@@ -36,13 +35,13 @@ public class LoginQueue extends AbstractLoginQueue {
 		}
 
 		@Override
-		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+		public void OnSocketAccept(AsyncSocket so) throws Exception {
 			if (LoginQueue.this.tryOnAccept(so)) // 先触发逻辑，super默认的检查maxConnections后来处理。
 				super.OnSocketAccept(so);
 		}
 
 		@Override
-		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			LoginQueue.this.onClose(so);
 			super.OnSocketClose(so, e);
 		}
@@ -224,7 +223,7 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	boolean tryOnAccept(AsyncSocket so) throws Exception {
-		if (queue.size() >= so.getService().getConfig().getMaxConnections()) {
+		if (queue.size() >= Objects.requireNonNull(so.getService()).getConfig().getMaxConnections()) {
 			new PutQueueFull().Send(so);
 			so.closeGracefully();
 			return false;

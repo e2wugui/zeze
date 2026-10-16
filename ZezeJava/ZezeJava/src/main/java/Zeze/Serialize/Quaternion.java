@@ -1,7 +1,6 @@
 package Zeze.Serialize;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 @SuppressWarnings("EqualsAndHashcode")
 /** 四元数（x/y/z/w）：复用 Vector4 的分量语义，序列化为 quaternion。 */
@@ -12,28 +11,28 @@ public class Quaternion extends Vector4 {
 		super(x, y, z, w);
 	}
 
-	public Quaternion(@NotNull Vector4 v4) {
+	public Quaternion(Vector4 v4) {
 		super(v4);
 	}
 
-	public Quaternion(@NotNull Vector3 v3) {
+	public Quaternion(Vector3 v3) {
 		super(v3);
 	}
 
-	public Quaternion(@NotNull Vector3Int v3) {
+	public Quaternion(Vector3Int v3) {
 		super(v3);
 	}
 
-	public Quaternion(@NotNull Vector2 v2) {
+	public Quaternion(Vector2 v2) {
 		super(v2);
 	}
 
-	public Quaternion(@NotNull Vector2Int v2) {
+	public Quaternion(Vector2Int v2) {
 		super(v2);
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2 v) {
+	public int compareTo(Vector2 v) {
 		int c = Float.compare(x, v.x);
 		if (c != 0)
 			return c;
@@ -68,12 +67,12 @@ public class Quaternion extends Vector4 {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "Quaternion(" + x + ',' + y + ',' + z + ',' + w + ')';
 	}
 
 	@Override
-	public @NotNull Quaternion normalized() {
+	public Quaternion normalized() {
 		double magnitude = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
 		if (magnitude > 1e-6f) {
 			double f = 1 / magnitude;

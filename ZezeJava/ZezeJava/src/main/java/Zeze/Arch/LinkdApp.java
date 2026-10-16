@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.net.ServerSocket;
 import Zeze.Application;
 import Zeze.Builtin.LinksInfo.BLinkInfo;
@@ -11,26 +13,26 @@ import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import Zeze.Builtin.LinksInfo.BLinkInfo.Data;
 
 /**
  * Linkd 应用组装入口：聚合 LinkdService、LinkdProvider 与负载上报，并向服务管理器注册链接服务。
  */
 public class LinkdApp {
-	public final @NotNull String linkdServiceName;
-	public final @NotNull Application zeze;
-	public final @NotNull LinkdProvider linkdProvider;
-	public final @NotNull LinkdProviderService linkdProviderService;
-	public final @NotNull LinkdService linkdService;
+	public final String linkdServiceName;
+	public final Application zeze;
+	public final LinkdProvider linkdProvider;
+	public final LinkdProviderService linkdProviderService;
+	public final LinkdService linkdService;
 	// 这两个参数可以自动设置，但不够可靠，生产环境最好手动设置。
-	public final @NotNull String providerIp;
+	public final String providerIp;
 	public int providerPort;
 	public @Nullable Action1<ServerSocket> onServerSocketBindAction;
-	private LinkdLoad linkdLoad;
+	private @Nullable LinkdLoad linkdLoad;
 
 	public interface DiscardAction {
-		boolean call(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size, double rate);
+		boolean call(AsyncSocket sender, int moduleId, int protocolId, int size, double rate);
 	}
 
 	public @Nullable DiscardAction discardAction;
@@ -48,14 +50,14 @@ public class LinkdApp {
 	 * 这个在最好在调用 LinkdApp.registerService 之前设置，这样命令行服务就准备好。
 	 * 也可以任意时候设置，但是新设置的命令处理仅在新接受的连接中生效。
 	 */
-	public final @NotNull CommandConsoleService commandConsoleService;
+	public final CommandConsoleService commandConsoleService;
 
-	public LinkdApp(@NotNull String linkdServiceName,
-					@NotNull Application zeze,
-					@NotNull LinkdProvider linkdProvider,
-					@NotNull LinkdProviderService linkdProviderService,
-					@NotNull LinkdService linkdService,
-					@NotNull LoadConfig loadConfig) {
+	public LinkdApp(String linkdServiceName,
+					Application zeze,
+					LinkdProvider linkdProvider,
+					LinkdProviderService linkdProviderService,
+					LinkdService linkdService,
+					LoadConfig loadConfig) {
 		this.linkdServiceName = linkdServiceName;
 		this.zeze = zeze;
 		this.linkdProvider = linkdProvider;
@@ -68,9 +70,9 @@ public class LinkdApp {
 		this.linkdProvider.distributes = new ProviderDistributeVersion(zeze, loadConfig, linkdProviderService);
 		this.linkdProvider.RegisterProtocols(this.linkdProviderService);
 
-		this.zeze.getServiceManager().setOnChanged(this::applyOnChanged);
+		Objects.requireNonNull(this.zeze.getServiceManager()).setOnChanged(this::applyOnChanged);
 
-		this.zeze.getServiceManager().setOnSetServerLoad(serverLoad -> {
+		Objects.requireNonNull(this.zeze.getServiceManager()).setOnSetServerLoad(serverLoad -> {
 			var ps = this.linkdProviderService.providerSessions.get(serverLoad.getName());
 			if (ps != null) {
 				var bb = ByteBuffer.Wrap(serverLoad.param);
@@ -92,20 +94,20 @@ public class LinkdApp {
 		}
 	}
 
-	void applyOnChanged(@NotNull BEditService edit) {
+	void applyOnChanged(BEditService edit) {
 		for (var r : edit.getRemove()) {
-			linkdProvider.distributes.removeServer(r);
+			Objects.requireNonNull(linkdProvider.distributes).removeServer(r);
 		}
 		for (var p : edit.getAdd()) {
-			linkdProvider.distributes.addServer(p);
+			Objects.requireNonNull(linkdProvider.distributes).addServer(p);
 		}
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return linkdServiceName + "." + providerIp + "_" + providerPort;
 	}
 
-	public void registerService(@Nullable BLinkInfo.Data extra) throws Exception {
+	public void registerService(@Nullable Data extra) throws Exception {
 		commandConsoleService.start();
 		var linkInfo = extra;
 		if (null == linkInfo)
@@ -123,17 +125,17 @@ public class LinkdApp {
 		var edit = new BEditService();
 		// linkService 总是使用版本0，不开启AppVersion.
 		edit.getAdd().add(new BServiceInfo(linkdServiceName, identity, 0, providerIp, providerPort, new Binary(bb)));
-		zeze.getServiceManager().editService(edit);
+		Objects.requireNonNull(zeze.getServiceManager()).editService(edit);
 
 		// 启动load服务和LoginQueueAgent网络服务。
 		// LinkdApp没有stop，不停止这两个服务。
 		if (null != linkdLoad) {
-			linkdLoad.getLoginQueueAgent().start();
+			Objects.requireNonNull(linkdLoad.getLoginQueueAgent()).start();
 			linkdLoad.start();
 		}
 	}
 
-	public LinkdLoad getLinkdLoad() {
+	public @Nullable LinkdLoad getLinkdLoad() {
 		return linkdLoad;
 	}
 }

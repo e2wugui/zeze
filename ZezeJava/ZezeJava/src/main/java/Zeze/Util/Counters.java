@@ -8,8 +8,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 简单命名计数器集合：周期输出各计数与增量报告
 public class Counters extends ReentrantLock {
@@ -23,7 +22,7 @@ public class Counters extends ReentrantLock {
 		return enable;
 	}
 
-	private final @NotNull String name;
+	private final String name;
 	private final ConcurrentSkipListMap<String, LongAdder> counters = new ConcurrentSkipListMap<>();
 	private long period;
 	private @Nullable Future<?> future;
@@ -33,7 +32,7 @@ public class Counters extends ReentrantLock {
 		this("");
 	}
 
-	public Counters(@NotNull String name) {
+	public Counters(String name) {
 		this.name = name;
 	}
 
@@ -51,7 +50,7 @@ public class Counters extends ReentrantLock {
 		future = TaskSpec.ofAction(this::report).schedulePeriodNow(period, period);
 	}
 
-	public void increment(@NotNull String name) {
+	public void increment(String name) {
 		if (enable)
 			counters.computeIfAbsent(name, __ -> new LongAdder()).increment();
 	}

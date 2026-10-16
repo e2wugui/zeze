@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import org.jspecify.annotations.Nullable;
 import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Builtin.LoginQueue.BQueuePosition;
 import Zeze.Net.Service;
@@ -46,31 +47,31 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
         }
     }
 
-    private Action1<BQueuePosition.Data> queuePosition;
-    private Action1<BLoginToken.Data> loginToken;
-    private Action0 queueFull;
+    private @Nullable Action1<BQueuePosition.Data> queuePosition;
+    private @Nullable Action1<BLoginToken.Data> loginToken;
+    private @Nullable Action0 queueFull;
 
-    public Action0 getQueueFull() {
+    public @Nullable Action0 getQueueFull() {
         return queueFull;
     }
 
-    public void setQueueFull(Action0 queueFull) {
+    public void setQueueFull(@Nullable Action0 queueFull) {
         this.queueFull = queueFull;
     }
 
-    public Action1<BQueuePosition.Data> getQueuePosition() {
+    public @Nullable Action1<BQueuePosition.Data> getQueuePosition() {
         return queuePosition;
     }
 
-    public void setQueuePosition(Action1<BQueuePosition.Data> queuePosition) {
+    public void setQueuePosition(@Nullable Action1<BQueuePosition.Data> queuePosition) {
         this.queuePosition = queuePosition;
     }
 
-    public Action1<BLoginToken.Data> getLoginToken() {
+    public @Nullable Action1<BLoginToken.Data> getLoginToken() {
         return loginToken;
     }
 
-    public void setLoginToken(Action1<BLoginToken.Data> loginToken) {
+    public void setLoginToken(@Nullable Action1<BLoginToken.Data> loginToken) {
         this.loginToken = loginToken;
     }
 

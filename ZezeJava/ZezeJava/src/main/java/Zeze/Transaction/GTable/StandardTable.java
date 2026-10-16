@@ -16,7 +16,6 @@
 
 package Zeze.Transaction.GTable;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -27,7 +26,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.Supplier;
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * {@link Table} implementation backed by a map that associates row keys with column key / value
@@ -57,18 +56,21 @@ import javax.annotation.CheckForNull;
  * @author Jared Levy
  */
 class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
+  // 两个字段由 GTable1/GTable2 的所有构造器完成注入。
+  @SuppressWarnings("NotNullFieldNotInitialized")
   Map<R, Map<C, V>> backingMap;
+  @SuppressWarnings("NotNullFieldNotInitialized")
   Supplier<? extends Map<C, V>> factory;
 
   // Accessors
 
   @Override
-  public boolean contains(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+  public boolean contains(@Nullable Object rowKey, @Nullable Object columnKey) {
     return rowKey != null && columnKey != null && super.contains(rowKey, columnKey);
   }
 
   @Override
-  public boolean containsColumn(@CheckForNull Object columnKey) {
+  public boolean containsColumn(@Nullable Object columnKey) {
     if (columnKey == null) {
       return false;
     }
@@ -81,18 +83,18 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   }
 
   @Override
-  public boolean containsRow(@CheckForNull Object rowKey) {
+  public boolean containsRow(@Nullable Object rowKey) {
     return rowKey != null && Utils.safeContainsKey(backingMap, rowKey);
   }
 
   @Override
-  public boolean containsValue(@CheckForNull Object value) {
+  public boolean containsValue(@Nullable Object value) {
     return value != null && super.containsValue(value);
   }
 
   @Override
-  @CheckForNull
-  public V get(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+  @Nullable
+  public V get(@Nullable Object rowKey, @Nullable Object columnKey) {
     return (rowKey == null || columnKey == null) ? null : super.get(rowKey, columnKey);
   }
 
@@ -118,7 +120,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   }
 
   @Override
-  @CheckForNull
+  @Nullable
   public V put(R rowKey, C columnKey, V value) {
     Utils.checkNotNull(rowKey);
     Utils.checkNotNull(columnKey);
@@ -137,8 +139,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   }
 
   @Override
-  @CheckForNull
-  public V remove(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+  @Nullable
+  public V remove(@Nullable Object rowKey, @Nullable Object columnKey) {
     if ((rowKey == null) || (columnKey == null)) {
       return null;
     }
@@ -155,7 +157,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     return value;
   }
 
-  private Map<R, V> removeColumn(@CheckForNull Object column) {
+  private Map<R, V> removeColumn(@Nullable Object column) {
     Map<R, V> output = new LinkedHashMap<>();
     Iterator<Entry<R, Map<C, V>>> iterator = backingMap.entrySet().iterator();
     while (iterator.hasNext()) {
@@ -173,13 +175,13 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   }
 
   private boolean containsMapping(
-      @CheckForNull Object rowKey, @CheckForNull Object columnKey, @CheckForNull Object value) {
+      @Nullable Object rowKey, @Nullable Object columnKey, @Nullable Object value) {
     return value != null && value.equals(get(rowKey, columnKey));
   }
 
   /** Remove a row key / column key / value mapping, if present. */
   private boolean removeMapping(
-      @CheckForNull Object rowKey, @CheckForNull Object columnKey, @CheckForNull Object value) {
+      @Nullable Object rowKey, @Nullable Object columnKey, @Nullable Object value) {
     if (containsMapping(rowKey, columnKey, value)) {
       remove(rowKey, columnKey);
       return true;
@@ -226,7 +228,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
   private class CellIterator implements Iterator<Cell<R, C, V>> {
     final Iterator<Entry<R, Map<C, V>>> rowIterator = backingMap.entrySet().iterator();
-    @CheckForNull Entry<R, Map<C, V>> rowEntry;
+    @Nullable Entry<R, Map<C, V>> rowEntry;
     Iterator<Entry<C, V>> columnIterator = Utils.emptyModifiableIterator();
 
     @Override
@@ -303,14 +305,14 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       this.rowKey = Utils.checkNotNull(rowKey);
     }
 
-    @CheckForNull Map<C, V> backingRowMap;
+    @Nullable Map<C, V> backingRowMap;
 
     final void updateBackingRowMapField() {
       // The same row key can now refer to a different row after removal and reinsertion.
       backingRowMap = computeBackingRowMap();
     }
 
-    @CheckForNull
+    @Nullable
     Map<C, V> computeBackingRowMap() {
       return backingMap.get(rowKey);
     }
@@ -325,20 +327,20 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
 
     @Override
-    public boolean containsKey(@CheckForNull Object key) {
+    public boolean containsKey(@Nullable Object key) {
       updateBackingRowMapField();
       return (key != null && backingRowMap != null) && Utils.safeContainsKey(backingRowMap, key);
     }
 
     @Override
-    @CheckForNull
-    public V get(@CheckForNull Object key) {
+    @Nullable
+    public V get(@Nullable Object key) {
       updateBackingRowMapField();
       return (key != null && backingRowMap != null) ? Utils.safeGet(backingRowMap, key) : null;
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public V put(C key, V value) {
       Utils.checkNotNull(value);
       if (backingRowMap != null && !backingRowMap.isEmpty()) {
@@ -353,8 +355,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
 
     @Override
-    @CheckForNull
-    public V remove(@CheckForNull Object key) {
+    @Nullable
+    public V remove(@Nullable Object key) {
       updateBackingRowMapField();
       if (backingRowMap == null) {
         return null;
@@ -431,12 +433,12 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
         }
 
         @Override
-        public V setValue(V value) {
+        public V setValue(@Nullable V value) {
           // delegate entry是pcollections不可变（setValue抛UOE）：改走Row.put的事务化put语义，
           // 返回旧值。
           var old = Row.this.put(entry.getKey(), Utils.checkNotNull(value));
-          this.value = value;
-          return old;
+          this.value = Utils.checkNotNull(value);
+          return Utils.uncheckedCastNullableTToT(old);
         }
 
         @Override
@@ -446,7 +448,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
         @SuppressWarnings("EqualsDoesNotCheckParameterClass")
         @Override
-        public boolean equals(@CheckForNull Object object) {
+        public boolean equals(@Nullable Object object) {
           return standardEquals(object);
         }
       };
@@ -471,25 +473,25 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public V put(R key, V value) {
       return StandardTable.this.put(key, columnKey, value);
     }
 
     @Override
-    @CheckForNull
-    public V get(@CheckForNull Object key) {
+    @Nullable
+    public V get(@Nullable Object key) {
       return StandardTable.this.get(key, columnKey);
     }
 
     @Override
-    public boolean containsKey(@CheckForNull Object key) {
+    public boolean containsKey(@Nullable Object key) {
       return StandardTable.this.contains(key, columnKey);
     }
 
     @Override
-    @CheckForNull
-    public V remove(@CheckForNull Object key) {
+    @Nullable
+    public V remove(@Nullable Object key) {
       return StandardTable.this.remove(key, columnKey);
     }
 
@@ -519,7 +521,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
     private class EntrySet extends Utils.ImprovedAbstractSet<Entry<R, V>> {
       @Override
-      public @NotNull Iterator<Entry<R, V>> iterator() {
+      public Iterator<Entry<R, V>> iterator() {
         return new EntrySetIterator();
       }
 
@@ -545,7 +547,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean contains(@CheckForNull Object o) {
+      public boolean contains(@Nullable Object o) {
         if (o instanceof Entry<?, ?> entry) {
 			return containsMapping(entry.getKey(), columnKey, entry.getValue());
         }
@@ -553,7 +555,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean remove(@CheckForNull Object obj) {
+      public boolean remove(@Nullable Object obj) {
         if (obj instanceof Entry<?, ?> entry) {
 			return removeMapping(entry.getKey(), columnKey, entry.getValue());
         }
@@ -570,7 +572,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       final Iterator<Entry<R, Map<C, V>>> iterator = backingMap.entrySet().iterator();
 
       @Override
-      @CheckForNull
+      @Nullable
       protected Entry<R, V> computeNext() {
         while (iterator.hasNext()) {
           final Entry<R, Map<C, V>> entry = iterator.next();
@@ -587,7 +589,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
               }
 
               @Override
-              public V setValue(V value) {
+              public V setValue(@Nullable V value) {
                 /*
                  * The cast is safe because of the containsKey check above. (Well, it's possible for
                  * the map to change between that call and this one. But if that happens, the
@@ -602,7 +604,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
                  * present. (And if it's not present, behavior is undefined.) However, that's a
                  * behavior change relative to the old code, so it didn't seem worth risking.)
                  */
-                return entry.getValue().put(columnKey, Utils.checkNotNull(value));
+                return Utils.uncheckedCastNullableTToT(entry.getValue().put(columnKey, Utils.checkNotNull(value)));
               }
             }
             return new EntryImpl();
@@ -623,12 +625,12 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean contains(@CheckForNull Object obj) {
+      public boolean contains(@Nullable Object obj) {
         return StandardTable.this.contains(obj, columnKey);
       }
 
       @Override
-      public boolean remove(@CheckForNull Object obj) {
+      public boolean remove(@Nullable Object obj) {
         return StandardTable.this.remove(obj, columnKey) != null;
       }
 
@@ -649,7 +651,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean remove(@CheckForNull Object obj) {
+      public boolean remove(@Nullable Object obj) {
         return obj != null && removeFromColumnIf(Utils.valuePredicateOnEntries(Utils.equalTo(obj)));
       }
 
@@ -670,7 +672,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     return rowMap().keySet();
   }
 
-  @CheckForNull private transient Set<C> columnKeySet;
+  @Nullable private transient Set<C> columnKeySet;
 
   /**
    * {@inheritDoc}
@@ -688,7 +690,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
   private class ColumnKeySet extends TableSet<C> {
     @Override
-    public @NotNull Iterator<C> iterator() {
+    public Iterator<C> iterator() {
       return createColumnKeyIterator();
     }
 
@@ -698,7 +700,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
 
     @Override
-    public boolean remove(@CheckForNull Object obj) {
+    public boolean remove(@Nullable Object obj) {
       if (obj == null) {
         return false;
       }
@@ -753,7 +755,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
 
     @Override
-    public boolean contains(@CheckForNull Object obj) {
+    public boolean contains(@Nullable Object obj) {
       return containsColumn(obj);
     }
   }
@@ -773,7 +775,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     Iterator<Entry<C, V>> entryIterator = Utils.emptyIterator();
 
     @Override
-    @CheckForNull
+    @Nullable
     protected C computeNext() {
       while (true) {
         if (entryIterator.hasNext()) {
@@ -802,7 +804,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     return super.values();
   }
 
-  @CheckForNull private transient Map<R, Map<C, V>> rowMap;
+  @Nullable private transient Map<R, Map<C, V>> rowMap;
 
   @Override
   public Map<R, Map<C, V>> rowMap() {
@@ -816,22 +818,22 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
   class RowMap extends Utils.ViewCachingAbstractMap<R, Map<C, V>> {
     @Override
-    public boolean containsKey(@CheckForNull Object key) {
+    public boolean containsKey(@Nullable Object key) {
       return containsRow(key);
     }
 
     // performing cast only when key is in backing map and has the correct type
     @SuppressWarnings("unchecked")
     @Override
-    @CheckForNull
-    public Map<C, V> get(@CheckForNull Object key) {
+    @Nullable
+    public Map<C, V> get(@Nullable Object key) {
       // requireNonNull is safe because of the containsRow check.
       return containsRow(key) ? row((R) Utils.requireNonNull(key)) : null;
     }
 
     @Override
-    @CheckForNull
-    public Map<C, V> remove(@CheckForNull Object key) {
+    @Nullable
+    public Map<C, V> remove(@Nullable Object key) {
       return (key == null) ? null : backingMap.remove(key);
     }
 
@@ -842,7 +844,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
     private final class EntrySet extends TableSet<Entry<R, Map<C, V>>> {
       @Override
-      public @NotNull Iterator<Entry<R, Map<C, V>>> iterator() {
+      public Iterator<Entry<R, Map<C, V>>> iterator() {
         return Utils.asMapEntryIterator(backingMap.keySet(), StandardTable.this::row);
       }
 
@@ -852,7 +854,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean contains(@CheckForNull Object obj) {
+      public boolean contains(@Nullable Object obj) {
         if (obj instanceof Entry<?, ?> entry) {
 			return entry.getKey() != null
               && entry.getValue() instanceof Map
@@ -862,7 +864,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean remove(@CheckForNull Object obj) {
+      public boolean remove(@Nullable Object obj) {
         if (obj instanceof Entry<?, ?> entry) {
 			return entry.getKey() != null
               && entry.getValue() instanceof Map
@@ -873,7 +875,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
   }
 
-  @CheckForNull private transient ColumnMap columnMap;
+  @Nullable private transient ColumnMap columnMap;
 
   @Override
   public Map<C, Map<R, V>> columnMap() {
@@ -886,20 +888,20 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     // has the correct type.
     @SuppressWarnings("unchecked")
     @Override
-    @CheckForNull
-    public Map<R, V> get(@CheckForNull Object key) {
+    @Nullable
+    public Map<R, V> get(@Nullable Object key) {
       // requireNonNull is safe because of the containsColumn check.
       return containsColumn(key) ? column((C) Utils.requireNonNull(key)) : null;
     }
 
     @Override
-    public boolean containsKey(@CheckForNull Object key) {
+    public boolean containsKey(@Nullable Object key) {
       return containsColumn(key);
     }
 
     @Override
-    @CheckForNull
-    public Map<R, V> remove(@CheckForNull Object key) {
+    @Nullable
+    public Map<R, V> remove(@Nullable Object key) {
       return containsColumn(key) ? removeColumn(key) : null;
     }
 
@@ -909,7 +911,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
 
     @Override
-    public @NotNull Set<C> keySet() {
+    public Set<C> keySet() {
       return columnKeySet();
     }
 
@@ -920,7 +922,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
     private final class ColumnMapEntrySet extends TableSet<Entry<C, Map<R, V>>> {
       @Override
-      public @NotNull Iterator<Entry<C, Map<R, V>>> iterator() {
+      public Iterator<Entry<C, Map<R, V>>> iterator() {
         return Utils.asMapEntryIterator(columnKeySet(), StandardTable.this::column);
       }
 
@@ -930,7 +932,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean contains(@CheckForNull Object obj) {
+      public boolean contains(@Nullable Object obj) {
         if (obj instanceof Entry<?, ?> entry) {
 			if (containsColumn(entry.getKey())) {
             // requireNonNull is safe because of the containsColumn check.
@@ -941,7 +943,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean remove(@CheckForNull Object obj) {
+      public boolean remove(@Nullable Object obj) {
         /*
          * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
          * nullness checker.
@@ -985,7 +987,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean remove(@CheckForNull Object obj) {
+      public boolean remove(@Nullable Object obj) {
         for (Entry<C, Map<R, V>> entry : ColumnMap.this.entrySet()) {
           if (entry.getValue().equals(obj)) {
             removeColumn(entry.getKey());

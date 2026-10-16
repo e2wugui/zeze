@@ -4,21 +4,20 @@ import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
 
 /** UnSubscribe请求bean：待退订的服务名列表。 */
 public class BUnSubscribeArgument implements Serializable {
 	public final ArrayList<String> serviceNames = new ArrayList<>();
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(serviceNames.size());
 		for (var serviceName : serviceNames)
 			bb.WriteString(serviceName);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		for (var i = bb.ReadUInt(); i > 0; --i)
 			serviceNames.add(bb.ReadString());
 	}

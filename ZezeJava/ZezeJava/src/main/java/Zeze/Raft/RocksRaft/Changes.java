@@ -1,5 +1,8 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -12,18 +15,17 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 一个事务提交产生的变更集（Raft 日志载体）：按记录收集 put/remove/edit 日志树与原子计数，
  * 序列化后在 follower 侧重放应用。
  */
 public final class Changes extends Zeze.Raft.Log {
-	private final Rocks rocks;
+	private final @Nullable Rocks rocks;
 	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
 	private final IntHashMap<Long> atomicLongs = new IntHashMap<>();
-	private Transaction transaction;
+	private @Nullable Transaction transaction;
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(Changes.class.getName());
 
 	@Override
@@ -31,18 +33,18 @@ public final class Changes extends Zeze.Raft.Log {
 		return TypeId_;
 	}
 
-	public Changes(Rocks r) {
+	public Changes(@Nullable Rocks r) {
 		super(null);
 		rocks = r;
 	}
 
-	public Changes(Rocks r, Transaction t, IRaftRpc req) {
+	public Changes(@Nullable Rocks r, Transaction t, @Nullable IRaftRpc req) {
 		super(req);
 		rocks = r;
 		transaction = t;
 	}
 
-	public Rocks getRocks() {
+	public @Nullable Rocks getRocks() {
 		return rocks;
 	}
 
@@ -64,19 +66,19 @@ public final class Changes extends Zeze.Raft.Log {
 		public static final int Edit = 2;
 
 		private int tableTemplateId;
-		private String tableTemplateName;
+		private @Nullable String tableTemplateName;
 		private int state;
-		private Bean putValue;
+		private @Nullable Bean putValue;
 		private final Set<LogBean> logBean = new HashSet<>();
 		// 所有的日志修改树，key is Record.Value。不会被序列化。
 		private final IdentityHashMap<Bean, LogBean> logBeans = new IdentityHashMap<>();
-		public Table<?, ?> table;
+		public @Nullable Table<?, ?> table;
 
 		public void setTableTemplateId(int value) {
 			tableTemplateId = value;
 		}
 
-		public String getTableTemplateName() {
+		public @Nullable String getTableTemplateName() {
 			return tableTemplateName;
 		}
 
@@ -88,7 +90,7 @@ public final class Changes extends Zeze.Raft.Log {
 			return state;
 		}
 
-		public Bean getPutValue() {
+		public @Nullable Bean getPutValue() {
 			return putValue;
 		}
 
@@ -101,10 +103,10 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 
 		public void setTableByName(Changes changes, String templateName) {
-			var tableTpl = changes.rocks.getTableTemplate(templateName);
+			var tableTpl = Objects.requireNonNull(changes.rocks).getTableTemplate(templateName);
 			if (tableTpl == null) {
 				var names = new StringBuilder();
-				for (String name : changes.rocks.getTableTemplates().keySet())
+				for (String name : Objects.requireNonNull(changes.rocks).getTableTemplates().keySet())
 					names.append(' ').append(name);
 				throw new IllegalStateException("unknown table template: " + templateName + ", available:" + names);
 			}
@@ -130,7 +132,7 @@ public final class Changes extends Zeze.Raft.Log {
 			case Remove:
 				break;
 			case Put:
-				putValue.encode(bb);
+				Objects.requireNonNull(putValue).encode(bb);
 				break;
 			case Edit:
 				bb.encode(logBean);
@@ -144,7 +146,7 @@ public final class Changes extends Zeze.Raft.Log {
 			case Remove:
 				break;
 			case Put:
-				putValue = table.newValue();
+				putValue = Objects.requireNonNull(table).newValue();
 				putValue.decode(bb);
 				break;
 			case Edit:
@@ -172,10 +174,10 @@ public final class Changes extends Zeze.Raft.Log {
 			var r = records.get(recent.tableKey());
 			if (r == null) {
 				r = new Record();
-				var table = recent.rootInfo().getRecord().getTable();
+				var table = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(recent.rootInfo()).getRecord()).getTable());
 				r.setTableTemplateId(table.getTemplateId());
 				r.setTableTemplateName(table.getTemplateName());
-				records.put(recent.tableKey(), r);
+				records.put(Objects.requireNonNull(recent.tableKey()), r);
 			}
 			r.getLogBeans().put(recent, (LogBean)log);
 			return; // root
@@ -185,8 +187,8 @@ public final class Changes extends Zeze.Raft.Log {
 		if (logBean == null) {
 			if (belong instanceof Collection) {
 				// 容器使用共享的日志。需要先去查询，没有的话才创建。
-				logBean = (LogBean)Transaction.getCurrent().getLog(
-					belong.parent().objectId() + belong.variableId());
+				logBean = (LogBean)Objects.requireNonNull(Transaction.getCurrent()).getLog(
+					Objects.requireNonNull(belong.parent()).objectId() + belong.variableId());
 			}
 			if (logBean == null)
 				logBean = belong.createLogBean();
@@ -201,10 +203,10 @@ public final class Changes extends Zeze.Raft.Log {
 		if (r == null) {
 			// put record only
 			r = new Record();
-			var table = ar.getOrigin().getTable();
+			var table = Objects.requireNonNull(ar.getOrigin().getTable());
 			r.setTableTemplateId(table.getTemplateId());
 			r.setTableTemplateName(table.getTemplateName());
-			records.put(tkey, r);
+			records.put(Objects.requireNonNull(tkey), r);
 		}
 
 		r.collect(ar);
@@ -214,16 +216,16 @@ public final class Changes extends Zeze.Raft.Log {
 	public void apply(RaftLog holder, StateMachine stateMachine) {
 		if (holder.isLeaderRequest()) {
 			if (Rocks.isDebugEnabled)
-				Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
-			transaction.leaderApply(this, holder);
+				Rocks.logger.debug("{} LeaderApply", Objects.requireNonNull(Objects.requireNonNull(rocks).getRaft()).getName());
+			Objects.requireNonNull(transaction).leaderApply(this, holder);
 		} else {
-			rocks.followerApply(this, holder);
+			Objects.requireNonNull(rocks).followerApply(this, holder);
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		// Log基类字段（unique/createTime/rpcResult）必须随日志持久化（对齐HeartbeatLog等
 		// 全部子类）：否则解码侧恒为requestId==0，follower/重放侧不写unique应用存根——
 		// 唯一请求的"恰好一次"退化为按leader任期（换主+重发重新执行、结果重放丢失）。
@@ -232,12 +234,12 @@ public final class Changes extends Zeze.Raft.Log {
 		for (var r : records.entrySet()) {
 			// encode TableTemplate
 			bb.WriteUInt(r.getValue().tableTemplateId);
-			bb.WriteString(r.getValue().tableTemplateName);
+			bb.WriteString(r.getValue().getTableTemplateName());
 
 			// encode TableKey
-			r.getValue().setTableByName(this, r.getValue().tableTemplateName);
+			r.getValue().setTableByName(this, Objects.requireNonNull(r.getValue().getTableTemplateName()));
 			bb.WriteString(r.getKey().name);
-			((Table<Object, Bean>)r.getValue().table).encodeKey(bb, r.getKey().key);
+			((Table<Object, Bean>)Objects.requireNonNull(r.getValue().table)).encodeKey(bb, Objects.requireNonNull(r.getKey().key));
 
 			// encode record
 			r.getValue().encode(bb);
@@ -245,12 +247,12 @@ public final class Changes extends Zeze.Raft.Log {
 		bb.WriteUInt(atomicLongs.size());
 		for (var it = atomicLongs.iterator(); it.moveToNext(); ) {
 			bb.WriteUInt(it.key());
-			bb.WriteLong(it.value());
+			bb.WriteLong(Objects.requireNonNull(it.value()));
 		}
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var tkey = new TableKey();
@@ -261,11 +263,11 @@ public final class Changes extends Zeze.Raft.Log {
 
 			tkey.name = bb.ReadString();
 			r.setTableByName(this, r.getTableTemplateName());
-			tkey.key = r.table.decodeKey(bb);
+			tkey.key = Objects.requireNonNull(r.table).decodeKey(bb);
 
 			r.decode(bb);
 
-			records.put(tkey, r);
+			records.put(Objects.requireNonNull(tkey), r);
 		}
 
 		for (int i = bb.ReadUInt(); i > 0; i--) {

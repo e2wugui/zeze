@@ -1,14 +1,15 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 事务内对某记录的访问登记：包装原子快照，持有 dirty 标记与 PutLog（put/remove 语义）。 */
 public final class RecordAccessed extends Bean {
 	static final class PutLog extends LogSpecial<RecordAccessed, Bean> {
-		PutLog(@NotNull RecordAccessed bean, @Nullable Bean putValue) {
+		PutLog(RecordAccessed bean, @Nullable Bean putValue) {
 			super(bean, 0, putValue);
 		}
 
@@ -19,20 +20,20 @@ public final class RecordAccessed extends Bean {
 
 		@Override
 		public long getLogKey() {
-			return getBelong().objectId();
+			return Objects.requireNonNull(getBelong()).objectId();
 		}
 
 		@Override
 		public void commit() {
-			((RecordAccessed)getBelong()).committedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
+			((RecordAccessed)Objects.requireNonNull(getBelong())).committedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
 		}
 	}
 
-	final @NotNull AtomicTupleRecord<?, ?> atomicTupleRecord;
+	final AtomicTupleRecord<?, ?> atomicTupleRecord;
 	volatile boolean dirty;
-	PutLog committedPutLog; // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
+	@Nullable PutLog committedPutLog; // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
 
-	public RecordAccessed(@NotNull AtomicTupleRecord<?, ?> a) {
+	public RecordAccessed(AtomicTupleRecord<?, ?> a) {
 		atomicTupleRecord = a;
 	}
 
@@ -42,17 +43,17 @@ public final class RecordAccessed extends Bean {
 		return log instanceof PutLog ? ((PutLog)log).getValue() : atomicTupleRecord.strongRef();
 	}
 
-	public void put(@NotNull Transaction current, @Nullable Bean putValue) {
+	public void put(Transaction current, @Nullable Bean putValue) {
 		current.putLog(new PutLog(this, putValue));
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteByte(0);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		bb.SkipUnknownField(ByteBuffer.BEAN);
 	}
 }

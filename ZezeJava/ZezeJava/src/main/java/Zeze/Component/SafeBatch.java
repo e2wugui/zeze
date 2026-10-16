@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Objects;
+
 import Zeze.Application;
 import Zeze.Builtin.SafeBatch.BBatch;
 import Zeze.Builtin.SafeBatch.BBatchReadOnly;
@@ -15,8 +17,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.NavigableMap;
 import java.util.List;
@@ -29,7 +30,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class SafeBatch extends AbstractSafeBatch {
 	static final Logger logger = LogManager.getLogger(SafeBatch.class);
-	private final @NotNull Application zeze;
+	private final Application zeze;
 	private final ConcurrentHashMap<String, Future<?>> running = new ConcurrentHashMap<>();
 	private final HotHandle<WalkJobHandle> hotWalkJobHandles = new HotHandle<>();
 	private volatile boolean stopped = false;
@@ -56,11 +57,11 @@ public class SafeBatch extends AbstractSafeBatch {
 		// 返回的NavigableMap的值必须>mapKey。也就是使用tailMap(mapKey, false)得到它。
 		// 返回null表示记录不存在（或已被删除）：无工作可推进，批处理停止并清理——
 		// 批处理中途记录被并发删除是正常结束方式；需要等待记录重建的场景由应用重新start。
-		@Nullable NavigableMap<MK, MV> getSortedMapOutTransaction(@NotNull TableX<?, ?> table,
-																  @NotNull ByteBuffer tableKey) throws Exception;
+		@Nullable NavigableMap<MK, MV> getSortedMapOutTransaction(TableX<?, ?> table,
+																  ByteBuffer tableKey) throws Exception;
 
-		@Nullable ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull MK mapKey);
-		@NotNull MK decodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull ByteBuffer bb);
+		@Nullable ByteBuffer encodeMapKey(TableX<?, ?> table, ByteBuffer tableKey, MK mapKey);
+		MK decodeMapKey(TableX<?, ?> table, ByteBuffer tableKey, ByteBuffer bb);
 	}
 
 	// List遍历。框架按 index 推进进度，因此 key 类型固定为 int，只参数化元素类型 E。
@@ -72,12 +73,12 @@ public class SafeBatch extends AbstractSafeBatch {
 		// 注意：在批处理过程中如果List的内容发生变化，那么处理的item可能丢失或重复。
 		// 返回null表示记录不存在（或已被删除）：无工作可推进，批处理停止并清理——
 		// 批处理中途记录被并发删除是正常结束方式；需要等待记录重建的场景由应用重新start。
-		@Nullable List<E> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception;
+		@Nullable List<E> getListOutTransaction(TableX<?, ?> table, ByteBuffer tableKey) throws Exception;
 	}
 
 	// 查询批处理状态。
-	public BBatchReadOnly getBatch(@NotNull String jobId) {
-		return (BBatchReadOnly)zeze.getTimer().getTimerCustomBean(jobId);
+	public @Nullable BBatchReadOnly getBatch(String jobId) {
+		return (BBatchReadOnly)Objects.requireNonNull(zeze.getTimer()).getTimerCustomBean(jobId);
 	}
 	/**
 	 * 开始表格遍历批处理。
@@ -131,20 +132,20 @@ public class SafeBatch extends AbstractSafeBatch {
 
 	public static class BatchTimerHandle implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) throws Exception {
 			var custom = (BBatch)context.customData;
 			if (null != custom) {
 				var zeze = Application.getAppInstance(custom.getAppInstanceId());
 				if (null != zeze) {
-					zeze.getSafeBatch().checkBatch(context.timerId, custom);
+					Objects.requireNonNull(zeze.getSafeBatch()).checkBatch(context.timerId, custom);
 				}
 			}
 		}
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
-	private void _startWorker(@NotNull String timerId, @NotNull WalkJobHandle jobHandle,
-							  @NotNull BBatch batch) {
+	private void _startWorker(String timerId, WalkJobHandle jobHandle,
+							  BBatch batch) {
 		if (!stopped) {
 			running.computeIfAbsent(timerId, (key) -> {
 				Worker worker = switch (batch.getWorker()) {
@@ -164,7 +165,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 	}
 
-	void checkBatch(String timerId, BBatch batch) {
+	void checkBatch(String timerId, @Nullable BBatch batch) {
 		if (stopped)
 			return; // stopping skip.
 
@@ -197,7 +198,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	private long _stopBatch(String jobId) {
-		zeze.getTimer().cancel(jobId);
+		Objects.requireNonNull(zeze.getTimer()).cancel(jobId);
 		Transaction.whileCommit(() -> {
 			// 这里不用 CAS 删除：本 jobId 的 future 此时一定是当前提交 stop 时那个，
 			// 不会被其他路径覆盖；重启总是分配新的 timerId，不会复用本 jobId。
@@ -229,7 +230,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		protected final TableX<?, ?> table;
 		protected final int limit;
 
-		protected volatile Future<?> futureSelf;
+		protected volatile @Nullable Future<?> futureSelf;
 
 		public void setFuture(Future<?> future) {
 			this.futureSelf = future;
@@ -246,11 +247,11 @@ public class SafeBatch extends AbstractSafeBatch {
 		private final WalkTableJobHandle<TK, TV> jobHandle;
 		private final TableX<TK, TV> typedTable;
 		private final BBatch.Data batch;
-		private TK lastKey;
+		private @Nullable TK lastKey;
 
 		@SuppressWarnings("unchecked")
 		public TableBatchWorker(String timerId, WalkTableJobHandle<TK, TV> jobHandle, BBatch.Data batch) {
-			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId);
+			super((TableX<?, ?>)Objects.requireNonNull(zeze.getTable(batch.getTableName())), batch.getProposeLimit(), timerId);
 			this.typedTable = (TableX<TK, TV>)table;
 			this.batch = batch;
 			this.jobHandle = jobHandle;
@@ -259,14 +260,14 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 
 		@Override
-		public boolean handle(@NotNull TK key, @NotNull TV value) {
+		public boolean handle(TK key, TV value) {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
 			// 当前记录处理失败，中断批执行，下一次重启批处理，但跳过当前数据。
 			return 0 == zeze.newProcedure(() -> {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
-					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
+					var batch = (BBatch)Objects.requireNonNull(zeze.getTimer()).getTimerCustomBean(timerId);
 					if (null != batch) {
 						batch.setLastKey(new Binary(typedTable.encodeKey(key)));
 					}
@@ -282,7 +283,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				Thread.onSpinWait();
 			}
 			// isDone 不必要。
-			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
+			while (!Objects.requireNonNull(futureSelf).isCancelled() && !Objects.requireNonNull(futureSelf).isDone()) {
 				lastKey = typedTable.walkDatabase(lastKey, batch.getProposeLimit(), this);
 				if (null == lastKey) {
 					stopBatch(timerId);
@@ -300,8 +301,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param jobHandle jobHandle
 	 * @return jobId
 	 */
-	public <MK, MV> String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-	                                          @NotNull WalkSortedMapJobHandle<MK, MV> jobHandle) {
+	public <MK, MV> String startWalkSortedMap(TableX<?, ?> table, Comparable<?> key,
+	                                          WalkSortedMapJobHandle<MK, MV> jobHandle) {
 		return startWalkSortedMap(table, key, jobHandle, 60_000, 100);
 	}
 
@@ -316,8 +317,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param limit 每次创建的Job
 	 * @return jobId
 	 */
-	public <MK, MV> String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-	                                          @NotNull WalkSortedMapJobHandle<MK, MV> jobHandle,
+	public <MK, MV> String startWalkSortedMap(TableX<?, ?> table, Comparable<?> key,
+	                                          WalkSortedMapJobHandle<MK, MV> jobHandle,
 	                                          long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
@@ -334,8 +335,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param jobHandle jobHandle
 	 * @return jobId
 	 */
-	public <E> String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-	                                @NotNull WalkListJobHandle<E> jobHandle) {
+	public <E> String startWalkList(TableX<?, ?> table, Comparable<?> key,
+	                                WalkListJobHandle<E> jobHandle) {
 		return startWalkList(table, key, jobHandle, 60_000, 100);
 	}
 
@@ -350,8 +351,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param limit 每次创建的Job
 	 * @return jobId
 	 */
-	public <E> String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-	                                @NotNull WalkListJobHandle<E> jobHandle, long checkPeriod, int limit) {
+	public <E> String startWalkList(TableX<?, ?> table, Comparable<?> key,
+	                                WalkListJobHandle<E> jobHandle, long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
@@ -359,8 +360,8 @@ public class SafeBatch extends AbstractSafeBatch {
 		return _saveAndStart(table, key, jobHandle, checkPeriod, limit, eWorkerList);
 	}
 
-	private String _saveAndStart(@NotNull TableX<?, ?> table, @Nullable Comparable<?> key,
-								 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit,
+	private String _saveAndStart(TableX<?, ?> table, @Nullable Comparable<?> key,
+								 WalkJobHandle jobHandle, long checkPeriod, int limit,
 								 int workerType) {
 		if (Transaction.getCurrent() == null) {
 			var jobId = new OutObject<String>();
@@ -369,7 +370,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				return 0;
 			}, "SafeBatchStart").call())
 				throw new RuntimeException("SafeBatchStart _saveAndStart return non zero.");
-			return jobId.value;
+			return Objects.requireNonNull(jobId.value);
 		}
 
 		var batch = new BBatch();
@@ -381,7 +382,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		batch.setJobClass(jobHandle.getClass().getName());
 		batch.setWorker(workerType);
 
-		var timerId = zeze.getTimer().schedule(TimerSpec.ofDelay(checkPeriod).period(checkPeriod),
+		var timerId = Objects.requireNonNull(zeze.getTimer()).schedule(TimerSpec.ofDelay(checkPeriod).period(checkPeriod),
 				BatchTimerHandle.class, batch);
 		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, batch));
 		return timerId;
@@ -390,10 +391,10 @@ public class SafeBatch extends AbstractSafeBatch {
 	public class SortedMapWorker<MK, MV> extends Worker {
 		private final WalkSortedMapJobHandle<MK, MV> jobHandle;
 		private final BBatch.Data batch;
-		private MK lastKey;
+		private @Nullable MK lastKey;
 
 		public SortedMapWorker(String timerId, WalkSortedMapJobHandle<MK, MV> jobHandle, BBatch.Data batch) {
-			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId);
+			super((TableX<?, ?>)Objects.requireNonNull(zeze.getTable(batch.getTableName())), batch.getProposeLimit(), timerId);
 			this.jobHandle = jobHandle;
 			this.batch = batch;
 			var lastKeyBin = batch.getLastKey();
@@ -402,14 +403,14 @@ public class SafeBatch extends AbstractSafeBatch {
 				: null;
 		}
 
-		public boolean handle(@NotNull MK key, @NotNull MV value) throws Exception {
+		public boolean handle(MK key, MV value) throws Exception {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
 				// 当前记录处理失败，中断批执行，下一次重启批处理，但跳过当前数据。
 			return 0 == zeze.newProcedure(() -> {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
-					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
+					var batch = (BBatch)Objects.requireNonNull(zeze.getTimer()).getTimerCustomBean(timerId);
 					if (null != batch) {
 						var bb = jobHandle.encodeMapKey(table, ByteBuffer.Wrap(batch.getRecordKey()), key);
 						if (null != bb)
@@ -426,7 +427,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				// busy wait, see _startWorker...setFuture
 				Thread.onSpinWait();
 			}
-			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
+			while (!Objects.requireNonNull(futureSelf).isCancelled() && !Objects.requireNonNull(futureSelf).isDone()) {
 				var tail = jobHandle.getSortedMapOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()));
 				if (null == tail) {
 					// 记录不存在（或已被删除）：无工作可推进，停批并清理——
@@ -445,7 +446,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			}
 		}
 
-		private MK runJobs(@NotNull NavigableMap<MK, MV> tail) throws Exception {
+		private @Nullable MK runJobs(NavigableMap<MK, MV> tail) throws Exception {
 			var it = tail.entrySet().iterator();
 			var _limit = limit;
 			MK key = null;
@@ -465,7 +466,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		private int next;
 
 		public ListWorker(String timerId, WalkListJobHandle<E> jobHandle, BBatch.Data batch) {
-			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId);
+			super((TableX<?, ?>)Objects.requireNonNull(zeze.getTable(batch.getTableName())), batch.getProposeLimit(), timerId);
 			this.jobHandle = jobHandle;
 			var lastKeyBin = batch.getLastKey();
 			next = lastKeyBin.size() != 0 ? ByteBuffer.Wrap(lastKeyBin).ReadInt() : 0;
@@ -479,7 +480,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				var result = jobHandle.runJob(SafeBatch.this, index, value);
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
-					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
+					var batch = (BBatch)Objects.requireNonNull(zeze.getTimer()).getTimerCustomBean(timerId);
 					if (null != batch) {
 						var bb = ByteBuffer.Allocate();
 						bb.WriteInt(index);
@@ -496,7 +497,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				// busy wait, see _startWorker...setFuture
 				Thread.onSpinWait();
 			}
-			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
+			while (!Objects.requireNonNull(futureSelf).isCancelled() && !Objects.requireNonNull(futureSelf).isDone()) {
 				var list = jobHandle.getListOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()));
 				if (null == list) {
 					// 记录不存在（或已被删除）：无工作可推进，停批并清理——
@@ -512,7 +513,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			}
 		}
 
-		private int runJobs(@NotNull List<E> list) throws Exception {
+		private int runJobs(List<E> list) throws Exception {
 			var i = next;
 			for (var _limit = limit; i < list.size() && _limit > 0; --_limit) {
 				var e = list.get(i);
@@ -524,11 +525,11 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 	}
 
-	public @NotNull Application getZeze() {
+	public Application getZeze() {
 		return zeze;
 	}
 
-	public SafeBatch(@NotNull Application zeze) {
+	public SafeBatch(Application zeze) {
 		this.zeze = zeze;
 		RegisterZezeTables(zeze);
 	}

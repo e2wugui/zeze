@@ -15,28 +15,28 @@ import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 List（2系）：Bean 值受管，原位修改同样记账。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PList2<V extends Bean> extends PList<V> {
-	protected final @NotNull List2Meta<V> meta;
+	protected final List2Meta<V> meta;
 
-	public PList2(@NotNull Class<V> valueClass) {
+	public PList2(Class<V> valueClass) {
 		meta = List2Meta.get(valueClass);
 	}
 
-	public PList2(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
+	public PList2(ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) { // only for DynamicBean value
 		meta = List2Meta.createDynamic(get, create);
 	}
 
-	public PList2(@NotNull List2Meta<V> meta) {
+	public PList2(List2Meta<V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull V createValue() {
+	public V createValue() {
 		try {
 			return (V)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -45,7 +45,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public boolean add(@NotNull V item) {
+	public boolean add(V item) {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
@@ -64,7 +64,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public boolean remove(@NotNull Object item) {
+	public boolean remove(Object item) {
 		if (isManaged()) {
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -90,7 +90,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public @NotNull V set(int index, @NotNull V item) {
+	public V set(int index, V item) {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
@@ -114,7 +114,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public void add(int index, @NotNull V item) {
+	public void add(int index, V item) {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
@@ -134,7 +134,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public @NotNull V remove(int index) {
+	public V remove(int index) {
 		if (isManaged()) {
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -146,7 +146,8 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public boolean addAll(@NotNull Collection<? extends V> items) {
+	@SuppressWarnings("ConstantConditions")
+	public boolean addAll(Collection<? extends V> items) {
 		if (items.isEmpty())
 			return false;
 		if (items instanceof PList2)
@@ -176,7 +177,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public boolean removeAll(@NotNull Collection<?> c) {
+	public boolean removeAll(Collection<?> c) {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
@@ -199,7 +200,8 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public void replaceAll(@NotNull UnaryOperator<V> operator) {
+	@SuppressWarnings("ConstantConditions")
+	public void replaceAll(UnaryOperator<V> operator) {
 		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<V>(size());
@@ -254,12 +256,12 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogList2<>(parent(), variableId(), this, list, meta);
 	}
 
 	@Override
-	public void followerApply(@NotNull Log _log) {
+	public void followerApply(Log _log) {
 		var log = (LogList2<V>)_log;
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
@@ -292,19 +294,19 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		for (V v : list)
 			v.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
 		for (V v : list)
 			v.initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public @NotNull PList2<V> copy() {
+	public PList2<V> copy() {
 		// 深拷贝值Bean：浅拷贝共享原记录树内的受管活Bean，经ReadOnly.copy()交出的“副本”
 		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
 		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
@@ -317,7 +319,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
-	public void assign(@NotNull PList2<V> plist) {
+	public void assign(PList2<V> plist) {
 		if (this == plist)
 			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
 		var copy = plist.copy(); // 先备输入再发布：copy抛出时目标保持原值
@@ -326,7 +328,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
 		for (V v : tmp)
@@ -334,7 +336,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
@@ -354,15 +356,15 @@ public class PList2<V extends Bean> extends PList<V> {
 		addAll(items);
 	}
 
-	public <D extends Data> void addAllData(@NotNull Collection<D> dataList) {
+	public <D extends Data> void addAllData(Collection<D> dataList) {
 		Bean.toBeanList(dataList, this);
 	}
 
-	public <D extends Data> void toDataList(@NotNull Collection<D> dataList) {
+	public <D extends Data> void toDataList(Collection<D> dataList) {
 		Bean.toDataList(getList(), dataList);
 	}
 
-	public <D extends Data> @NotNull ArrayList<D> toDataList() {
+	public <D extends Data> ArrayList<D> toDataList() {
 		var beanList = getList();
 		var dataList = new ArrayList<D>(beanList.size());
 		Bean.toDataList(beanList, dataList);

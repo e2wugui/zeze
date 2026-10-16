@@ -6,29 +6,29 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 Map（1系）：不可变键值按值拷贝记账，不支持 Bean 值。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PMap1<K, V> extends PMap<K, V> {
-	protected final @NotNull Map1Meta<K, V> meta;
+	protected final Map1Meta<K, V> meta;
 
-	public PMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	public PMap1(Class<K> keyClass, Class<V> valueClass) {
 		meta = Map1Meta.get(keyClass, valueClass);
 	}
 
-	public PMap1(@NotNull Map1Meta<K, V> meta) {
+	public PMap1(Map1Meta<K, V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull Map1Meta<K, V> getMeta() {
+	public Map1Meta<K, V> getMeta() {
 		return meta;
 	}
 
 	@Override
-	public @Nullable V put(@NotNull K key, @NotNull V value) {
+	public @Nullable V put(K key, V value) {
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("null key");
@@ -47,7 +47,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
 		if (m instanceof PMap1)
@@ -68,7 +68,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public @Nullable V remove(@NotNull Object key) {
+	public @Nullable V remove(Object key) {
 		if (isManaged()) {
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -80,7 +80,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public boolean remove(@NotNull Entry<K, V> item) {
+	public boolean remove(Entry<K, V> item) {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
@@ -109,17 +109,17 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void followerApply(@NotNull Log _log) {
+	public void followerApply(Log _log) {
 		var log = (LogMap1<K, V>)_log;
 		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogMap1<>(parent(), variableId(), this, map, meta);
 	}
 
-	public void assign(@NotNull PMap1<K, V> pmap) {
+	public void assign(PMap1<K, V> pmap) {
 		var items = pmap.getMap();
 		if (isManaged()) {
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -131,14 +131,14 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public @NotNull PMap1<K, V> copy() {
+	public PMap1<K, V> copy() {
 		var copy = new PMap1<>(meta);
 		copy.map = getMap();
 		return copy;
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var keyEncoder = meta.keyEncoder;
@@ -150,7 +150,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;

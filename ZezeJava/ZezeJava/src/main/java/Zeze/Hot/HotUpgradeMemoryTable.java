@@ -1,5 +1,7 @@
 package Zeze.Hot;
 
+import java.util.Objects;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Transaction.Table;
@@ -22,7 +24,7 @@ public class HotUpgradeMemoryTable {
 		var incompatible = new OutObject<Exception>();
 		old.walkMemoryAny((k, v) -> {
 			// 检查新表能接受旧表的key类型。只检查一次。
-			if (first.value) {
+			if (Objects.requireNonNull(first.value)) {
 				first.value = false;
 				try {
 					cur.encodeKey(k);

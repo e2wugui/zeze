@@ -4,8 +4,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 承载 CommandConsole 的 TCP 服务：接收行协议输入并回显命令结果
 public class CommandConsoleService extends Service {
@@ -15,12 +14,12 @@ public class CommandConsoleService extends Service {
 		this.cc = cc;
 	}
 
-	public CommandConsoleService(@NotNull String name, @Nullable Config config) {
+	public CommandConsoleService(String name, @Nullable Config config) {
 		super(name, config);
 	}
 
 	@Override
-	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
 		var c = cc;
 		if (c != null)
 			so.setUserState(CommandConsole.dup(c));
@@ -28,7 +27,7 @@ public class CommandConsoleService extends Service {
 	}
 
 	@Override
-	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) {
+	public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
 		var cc = (CommandConsole)so.getUserState();
 		if (cc == null)
 			// 连接accept时setCommandConsole尚未调用（或被显式置null）——不能整块消费静默吞输入

@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -31,8 +33,8 @@ import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Raft Core：单节点 Raft 协议核心，维护 Follower/Candidate/Leader 状态机与选举、计时器。
@@ -40,7 +42,7 @@ import org.rocksdb.RocksDBException;
 public final class Raft {
 	private static final Logger logger = LogManager.getLogger(Raft.class);
 
-	private volatile String leaderId;
+	private volatile @Nullable String leaderId;
 	private final RaftConfig raftConfig;
 	private final LogSequence logSequence;
 	private final Server server;
@@ -54,7 +56,7 @@ public final class Raft {
 	// 锁序：raft→本表（收尾侧持raft锁调get/removeIdentity，与gc/snapshot既有方向一致）。
 	final ReceiveSnapshotting receiveSnapshotting = new ReceiveSnapshotting(this);
 	private volatile RaftState state = RaftState.Follower;
-	private Future<?> timerTask;
+	private @Nullable Future<?> timerTask;
 	private long lowPrecisionTimer;
 	private final Lock atFatalKillsLock = new ReentrantLock();
 	private final ArrayList<Action0> atFatalKills = new ArrayList<>();
@@ -74,26 +76,26 @@ public final class Raft {
 	private final Lock mutex = new ReentrantLock();
 	private final Condition condition = mutex.newCondition();
 
-	private Action0 onLeaderReady; // isLeader & isReady
-	Action0 onFollowerReceiveKeepAlive;
+	private @Nullable Action0 onLeaderReady; // isLeader & isReady
+	@Nullable Action0 onFollowerReceiveKeepAlive;
 
-	public void setOnLeaderReady(Action0 action) {
+	public void setOnLeaderReady(@Nullable Action0 action) {
 		onLeaderReady = action;
 	}
 
-	public void setOnFollowerReceiveKeepAlive(Action0 action) {
+	public void setOnFollowerReceiveKeepAlive(@Nullable Action0 action) {
 		onFollowerReceiveKeepAlive = action;
 	}
 
 	public String getName() {
-		return raftConfig.getName();
+		return Objects.requireNonNull(raftConfig.getName());
 	}
 
-	public String getLeaderId() {
+	public @Nullable String getLeaderId() {
 		return leaderId;
 	}
 
-	void setLeaderId(String value) {
+	void setLeaderId(@Nullable String value) {
 		leaderId = value;
 	}
 
@@ -156,11 +158,11 @@ public final class Raft {
 		return isLeader() && !isShutdown;
 	}
 
-	public static void executeImportantTask(@NotNull Runnable task) {
-		Task.getCriticalThreadPool().execute(task);
+	public static void executeImportantTask(Runnable task) {
+		Objects.requireNonNull(Task.getCriticalThreadPool()).execute(task);
 	}
 
-	public void executeUserTask(@NotNull Action0 task) {
+	public void executeUserTask(Action0 task) {
 		TaskSpec.ofAction(task).executeOneByOne(userTaskOneByOneKey, taskOneByOne);
 	}
 
@@ -179,9 +181,9 @@ public final class Raft {
 
 	// 测试钩子：注入后 fatalKill 只置 isShutdown 并调用该动作即返回，不执行真实的
 	// atFatalKills/logSequence.close/LogManager.shutdown/halt（会杀死或破坏测试 JVM）。
-	private volatile Runnable fatalKillHookForTest;
+	private volatile @Nullable Runnable fatalKillHookForTest;
 
-	void setFatalKillHookForTest(Runnable hook) {
+	void setFatalKillHookForTest(@Nullable Runnable hook) {
 		fatalKillHookForTest = hook;
 	}
 
@@ -217,7 +219,7 @@ public final class Raft {
 		appendLog(log, null, callback);
 	}
 
-	public void appendLog(Log log, Serializable result, Action2<RaftLog, Boolean> callback) {
+	public void appendLog(Log log, @Nullable Serializable result, Action2<RaftLog, Boolean> callback) {
 		if (result != null)
 			log.setRpcResult(new Binary(ByteBuffer.encode(result)));
 		try {
@@ -236,12 +238,12 @@ public final class Raft {
 		appendLog(log, (Serializable)null);
 	}
 
-	public void appendLog(Log log, Serializable result) {
+	public void appendLog(Log log, @Nullable Serializable result) {
 		appendLog(log, result, -1);
 	}
 
 	/** expectedTerm为负时不限定任期；非负时在实际追加日志的锁内校验。 */
-	public void appendLog(Log log, Serializable result, long expectedTerm) {
+	public void appendLog(Log log, @Nullable Serializable result, long expectedTerm) {
 		if (result != null)
 			log.setRpcResult(new Binary(ByteBuffer.encode(result)));
 		try {
@@ -302,30 +304,30 @@ public final class Raft {
 		this(sm, null, null, null, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName) throws Exception {
+	public Raft(StateMachine sm, @Nullable String RaftName) throws Exception {
 		this(sm, RaftName, null, null, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf) throws Exception {
+	public Raft(StateMachine sm, @Nullable String RaftName, @Nullable RaftConfig raftConf) throws Exception {
 		this(sm, RaftName, raftConf, null, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config) throws Exception {
+	public Raft(StateMachine sm, @Nullable String RaftName, @Nullable RaftConfig raftConf, @Nullable Config config) throws Exception {
 		this(sm, RaftName, raftConf, config, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config, String name)
+	public Raft(StateMachine sm, @Nullable String RaftName, @Nullable RaftConfig raftConf, @Nullable Config config, String name)
 			throws Exception {
 		this(sm, RaftName, raftConf, config, name, Server::new, new TaskOneByOneByKey());
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config, String name,
-	            Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
+	public Raft(StateMachine sm, @Nullable String RaftName, @Nullable RaftConfig raftConf, @Nullable Config config, String name,
+	            Func3<Raft, String, Config, Server> serverFactory, TaskOneByOneByKey taskOneByOne) throws Exception {
 		this(sm, RaftName, null, raftConf, config, name, serverFactory, taskOneByOne);
 	}
 
-	public Raft(StateMachine sm, String RaftName, RocksDatabase database, RaftConfig raftConf, Config config, String name,
-	            Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
+	public Raft(StateMachine sm, @Nullable String RaftName, @Nullable RocksDatabase database, @Nullable RaftConfig raftConf, @Nullable Config config, String name,
+	            Func3<Raft, String, Config, Server> serverFactory, TaskOneByOneByKey taskOneByOne) throws Exception {
 
 		if (raftConf == null)
 			raftConf = RaftConfig.load();
@@ -357,7 +359,7 @@ public final class Raft {
 		Server.createAcceptor(server, raftConf);
 		Server.createConnector(server, raftConf);
 
-		Files.createDirectories(Paths.get(raftConfig.getDbHome()));
+		Files.createDirectories(Paths.get(Objects.requireNonNull(raftConfig.getDbHome())));
 
 		logSequence = new LogSequence(this, database);
 
@@ -616,7 +618,7 @@ public final class Raft {
 				if (allSocket.isHandshakeDone()) {
 					var r = new LeaderIs();
 					r.Argument.setTerm(logSequence.getTerm());
-					r.Argument.setLeaderId(leaderId);
+					r.Argument.setLeaderId(Objects.requireNonNull(leaderId));
 					r.Argument.setLeader(isLeader());
 					r.Send(allSocket); // skip response.
 				}
@@ -677,7 +679,7 @@ public final class Raft {
 					logSequence.canVoteFor(r.Argument.getCandidateId()) && isLastLogUpToDate(r.Argument));
 
 			if (r.Result.getVoteGranted())
-				logSequence.setVoteFor(r.Argument.getCandidateId());
+				logSequence.setVoteFor(Objects.requireNonNull(r.Argument.getCandidateId()));
 			logger.info("{}: VoteFor={} Rpc={}", getName(), logSequence.getVoteFor(), r);
 			r.SendResultCode(0);
 
@@ -1021,7 +1023,7 @@ public final class Raft {
 
 		// redirect
 		r.Result.setTerm(getLogSequence().getTerm());
-		r.Result.setLeaderId(leaderId); // maybe empty
+		r.Result.setLeaderId(Objects.requireNonNull(leaderId)); // maybe empty
 		r.Result.setLeader(isLeader());
 		r.trySendResultCode(Procedure.Success);
 		return 0;

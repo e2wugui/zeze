@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -11,8 +13,7 @@ import java.util.concurrent.atomic.LongAdder;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Transaction.TableKey;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 性能计数器：按 protocol/procedure/table/runkey 维度聚合统计并周期输出日志（ZezeCounter 的主力实现）
 public final class PerfCounter extends FastLock implements ZezeCounter {
@@ -29,14 +30,14 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private static class RunInfo {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
 
-		final @NotNull String name;
+		final String name;
 		final LongAdder procCount = new LongAdder(); // 处理次数
 		final LongAdder procTime = new LongAdder(); // 处理时间(ns)
 		long lastProcCount;
 		long lastProcTime;
 		int idleCount; // 没收集到信息的轮数
 
-		RunInfo(@NotNull String name) {
+		RunInfo(String name) {
 			this.name = name;
 		}
 	}
@@ -44,7 +45,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private static final class RunInfoWithSerial extends RunInfo {
 		volatile int serial;
 
-		RunInfoWithSerial(@NotNull String name, int serial) {
+		RunInfoWithSerial(String name, int serial) {
 			super(name);
 			this.serial = serial;
 		}
@@ -71,27 +72,27 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public static final class ProcedureInfo {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
 
-		final @NotNull String name;
+		final String name;
 		// 热路径getOrAddResult无锁读写resultMap，getLogAndReset持锁换新——引用必须
 		// volatile发布，否则业务线程可无限期读旧引用，自增落在已消费的resultMapLast上丢统计。
-		volatile @NotNull LongConcurrentHashMap<LongAdder> resultMap = new LongConcurrentHashMap<>();
+		volatile LongConcurrentHashMap<LongAdder> resultMap = new LongConcurrentHashMap<>();
 		// 锁内写（getLogAndReset），getResultMapLast()被定时器线程
 		// （ProcedureStatistics.Watcher）与HTTP查询线程无锁读——同样需要volatile发布，否则读者
 		// 可长期读到旧快照，watch的(total-last)增量恒为0导致回调永不触发。
-		volatile @NotNull LongConcurrentHashMap<LongAdder> resultMapLast = new LongConcurrentHashMap<>();
+		volatile LongConcurrentHashMap<LongAdder> resultMapLast = new LongConcurrentHashMap<>();
 		long totalCount;
 		int succRatio; // 成功率百分比
 		int idleCount; // 没收集到信息的轮数
 
-		ProcedureInfo(@NotNull String name) {
+		ProcedureInfo(String name) {
 			this.name = name;
 		}
 
-		public @NotNull String getName() {
+		public String getName() {
 			return name;
 		}
 
-		public @NotNull LongConcurrentHashMap<LongAdder> getResultMapLast() {
+		public LongConcurrentHashMap<LongAdder> getResultMapLast() {
 			return resultMapLast;
 		}
 
@@ -100,32 +101,32 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 		private final ResultCodeCap codeCap = new ResultCodeCap();
 
-		public @NotNull LongAdder getOrAddResult(long resultCode) {
+		public LongAdder getOrAddResult(long resultCode) {
 			if (!codeCap.accept(resultCode))
 				return DISCARDED_RESULT;
-			return resultMap.computeIfAbsent(resultCode, __ -> new LongAdder());
+			return Objects.requireNonNull(resultMap.computeIfAbsent(resultCode, __ -> new LongAdder()));
 		}
 
-		public @NotNull String toString(boolean last) {
+		public String toString(boolean last) {
 			var sb = new StringBuilder();
 			sb.append(name).append(':').append(succRatio).append('%');
 			for (var it = (last ? resultMapLast : resultMap).entryIterator(); it.moveToNext(); )
-				sb.append(", ").append(it.key()).append(':').append(it.value().sum());
+				sb.append(", ").append(it.key()).append(':').append(Objects.requireNonNull(it.value()).sum());
 			return sb.toString();
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return toString(true);
 		}
 	}
 
 	public static final class TableInfo {
-		private final @NotNull String tableName;
+		private final String tableName;
 		private final LongAdderCounter[] counters; // 按TableMetric.ordinal索引
 		private final long[] lastCounts; // 按TableMetric.ordinal索引，checkpointAndReset时更新
 
-		TableInfo(@NotNull String tableName) {
+		TableInfo(String tableName) {
 			this.tableName = tableName;
 			var metrics = TableMetric.values();
 			counters = new LongAdderCounter[metrics.length];
@@ -134,7 +135,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			lastCounts = new long[metrics.length];
 		}
 
-		public @NotNull LongAdderCounter counter(@NotNull TableMetric metric) {
+		public LongAdderCounter counter(TableMetric metric) {
 			return counters[metric.ordinal()];
 		}
 
@@ -162,24 +163,24 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			}
 		}
 
-		@NotNull Map<String, Long> snapshotResult() {
+		Map<String, Long> snapshotResult() {
 			var m = new LinkedHashMap<String, Long>(lastCounts.length * 2);
 			for (var metric : TableMetric.values())
 				m.put(metric.key, lastCounts[metric.ordinal()]);
 			return m;
 		}
 
-		private long last(@NotNull TableMetric metric) {
+		private long last(TableMetric metric) {
 			return lastCounts[metric.ordinal()];
 		}
 
-		public static @NotNull String getLogTitle() {
+		public static String getLogTitle() {
 			return String.format("%-60s CacheHit AcqShrHit AcqModHit AcqShrCnt AcqModCnt AcqInvCnt ReduceCnt" +
 					" CacGetCnt StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock RedoCount", "TableName");
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			long readLockCount = last(TableMetric.READ_LOCK);
 			long writeLockCount = last(TableMetric.WRITE_LOCK);
 			long lockCount = readLockCount + writeLockCount;
@@ -197,11 +198,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	private static final class CountInfo extends LongAdder implements LongCounter {
-		final @NotNull String name;
+		final String name;
 		final boolean accumulate;
 		long lastCount;
 
-		CountInfo(@NotNull String name, boolean accumulate) {
+		CountInfo(String name, boolean accumulate) {
 			this.name = name;
 			this.accumulate = accumulate;
 		}
@@ -232,7 +233,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final Set<String> excludeRunKeys = ConcurrentHashMap.newKeySet(); // value: 统计名（归一化后）
 	private final LongConcurrentHashMap<Boolean> excludeProtocolTypeIds = new LongConcurrentHashMap<>(); // key: typeId
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
-	private volatile @NotNull Snapshot lastSnapshot = Snapshot.EMPTY;
+	private volatile Snapshot lastSnapshot = Snapshot.EMPTY;
 	private long lastLogTime = System.currentTimeMillis();
 	private long lastCpuTime = PlatformMetrics.osBean.getProcessCpuTime();
 	// 锁内唯一写（resetCounter的clearSerial++）、锁外多读（getRunInfoWithSerial、
@@ -246,23 +247,23 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final LongCounter transactionRedoAndReleaseLockCounter = allocCounter("Transaction.RedoAndReleaseLock");
 
 	@Override
-	public @NotNull LongCounter allocCounter(@NotNull String name) {
+	public LongCounter allocCounter(String name) {
 		return allocCounter(name, false);
 	}
 
 	@Override
-	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name,
-																	 @NotNull String... labelNames) {
+	public LabeledCounterCreator allocLabeledCounterCreator(String name,
+																	 String... labelNames) {
 		return labels -> allocCounter(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
 	@Override
-	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name,
-																	   @NotNull String... labelNames) {
+	public LabeledObserverCreator allocRunTimeObserverCreator(String name,
+																	   String... labelNames) {
 		return labels -> getRunTimeObserver(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
-	public @NotNull LongCounter allocCounter(@NotNull String name, boolean accumulate) {
+	public LongCounter allocCounter(String name, boolean accumulate) {
 		lock();
 		try {
 			int n = countInfos.length;
@@ -278,12 +279,12 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	/** 随时可调用。 */
-	public boolean addExcludeRunKey(@NotNull String key) {
+	public boolean addExcludeRunKey(String key) {
 		return excludeRunKeys.add(key);
 	}
 
 	/** 随时可调用。与同名String键排除同一条目（Class归一化为类名）。 */
-	public boolean addExcludeRunKey(@NotNull Class<?> cls) {
+	public boolean addExcludeRunKey(Class<?> cls) {
 		return excludeRunKeys.add(cls.getName());
 	}
 
@@ -294,7 +295,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	// key归一化：Class取类名、其余toString——统计条目与exclude统一按字符串名聚合，
 	// Class键与其类名字符串键落在同一条目。
-	private @Nullable RunInfoWithSerial getRunInfoWithSerial(@NotNull Object key) {
+	private @Nullable RunInfoWithSerial getRunInfoWithSerial(Object key) {
 		var name = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
 		if (excludeRunKeys.contains(name))
 			return null;
@@ -310,15 +311,15 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public void serviceStart(@NotNull Service service) {
+	public void serviceStart(Service service) {
 	}
 
 	@Override
-	public void serviceStop(@NotNull Service service) {
+	public void serviceStop(Service service) {
 	}
 
 	@Override
-	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
+	public LongObserver getRunTimeObserver(Object key) {
 		var ri = getRunInfoWithSerial(key);
 		if (ri == null)
 			return dummyLongObserver;
@@ -372,35 +373,35 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	public @NotNull ProcedureInfo getOrAddProcedureInfo(@NotNull String name) {
+	public ProcedureInfo getOrAddProcedureInfo(String name) {
 		return procedureInfoMap.computeIfAbsent(name, ProcedureInfo::new);
 	}
 
 	/** 按名称的单调累计执行数（resetCounter会清零）；名称不存在返回0。 */
-	public long getProcedureTotalCount(@NotNull String name) {
+	public long getProcedureTotalCount(String name) {
 		var total = procedureTotalMap.get(name);
 		return total != null ? total.sum() : 0;
 	}
 
 	@Override
-	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
+	public ProcedureCounter allocProcedureCounter(String name) {
 		return procedureCounterMap.computeIfAbsent(name, PerfProcedureCounter::new);
 	}
 
 	// handle绑定的ProcedureInfo随resetCounter清空失效：按代际serial重绑（同getRunTimeObserver闭包模式）。
 	// redo保持原procedureRedo的语义：聚合到全局counter，不按name区分。
 	private final class PerfProcedureCounter implements ProcedureCounter {
-		private final @NotNull String name;
+		private final String name;
 		private volatile @Nullable Bound bound;
 
-		private record Bound(@NotNull ProcedureInfo info, int serial) {
+		private record Bound(ProcedureInfo info, int serial) {
 		}
 
-		PerfProcedureCounter(@NotNull String name) {
+		PerfProcedureCounter(String name) {
 			this.name = name;
 		}
 
-		private @NotNull ProcedureInfo info() {
+		private ProcedureInfo info() {
 			var b = bound;
 			if (b == null || b.serial() != clearSerial) {
 				PerfCounter.this.lock();
@@ -440,29 +441,29 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	public @NotNull TableInfo getOrAddTableInfo(long tableId) {
-		return tableInfoMap.computeIfAbsent(tableId, k -> {
+	public TableInfo getOrAddTableInfo(long tableId) {
+		return Objects.requireNonNull(tableInfoMap.computeIfAbsent(tableId, k -> {
 			var tableName = TableKey.tables.get(k);
 			return new TableInfo(tableName != null ? tableName : String.valueOf(k));
-		});
+		}));
 	}
 
 	@Override
-	public @NotNull LongCounter tableCounter(long tableId, @NotNull TableMetric metric) {
+	public LongCounter tableCounter(long tableId, TableMetric metric) {
 		return getOrAddTableInfo(tableId).counter(metric);
 	}
 
-	public @NotNull String getLastLog() {
+	public String getLastLog() {
 		return lastSnapshot.formattedLog();
 	}
 
 	@Override
-	public @NotNull Snapshot collectAndReset() {
+	public Snapshot collectAndReset() {
 		return collectAndResetCore();
 	}
 
 	@Override
-	public @NotNull Snapshot getLast() {
+	public Snapshot getLast() {
 		return lastSnapshot;
 	}
 
@@ -471,7 +472,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		tryStartScheduledLog();
 	}
 
-	public @NotNull ScheduledFuture<?> tryStartScheduledLog() {
+	public ScheduledFuture<?> tryStartScheduledLog() {
 		lock();
 		try {
 			var f = scheduleFuture;
@@ -513,7 +514,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			// LongAdder并被调用方长期缓存（如Lockey的计数路径），清map后旧句柄增量
 			// 永久脱离收集，重新按ID取得的新句柄才被统计。
 			for (var it = tableInfoMap.entryIterator(); it.moveToNext(); )
-				it.value().reset();
+				Objects.requireNonNull(it.value()).reset();
 			// info() 的慢路径同样持有此锁，旧条目与新 clearSerial 不会被组装成同一个 Bound。
 			//noinspection NonAtomicOperationOnVolatileField
 			clearSerial++;
@@ -526,11 +527,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	public @NotNull String getLogAndReset() {
+	public String getLogAndReset() {
 		return collectAndResetCore().formattedLog();
 	}
 
-	private @NotNull Snapshot collectAndResetCore() {
+	private Snapshot collectAndResetCore() {
 		lock();
 		try {
 			var curTime = System.currentTimeMillis();
@@ -593,7 +594,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var sendSizeAll = 0L;
 			var pList = new ArrayList<ProtocolInfo>(protocolInfoMap.size());
 			for (var it = protocolInfoMap.entryIterator(); it.moveToNext(); ) {
-				var pi = it.value();
+				var pi = Objects.requireNonNull(it.value());
 				pi.lastProcCount = pi.procCount.sumThenReset();
 				pi.lastSendCount = pi.sendCount.sumThenReset();
 				if ((pi.lastProcCount | pi.lastSendCount) == 0) {
@@ -650,7 +651,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				var succCount = 0L;
 				var results = new LinkedHashMap<Long, Long>();
 				for (var it2 = pi.resultMapLast.entryIterator(); it2.moveToNext(); ) {
-					var v = it2.value().sum();
+					var v = Objects.requireNonNull(it2.value()).sum();
 					results.put(it2.key(), v);
 					totalCount += v;
 					if (it2.key() == 0)

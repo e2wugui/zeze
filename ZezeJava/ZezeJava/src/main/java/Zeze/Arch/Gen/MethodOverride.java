@@ -21,6 +21,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Reflect;
 import Zeze.Util.TransactionLevelAnnotation;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 一个待重定向方法的元数据：注解、事务级别、参数划分（hash/RedirectKey/输入）与结果类型校验。
@@ -31,13 +32,13 @@ final class MethodOverride {
 	final TransactionLevel transactionLevel;
 	final Parameter[] allParameters;
 	final Parameter hashOrServerIdParameter;
-	final Parameter redirectKeyParameter;
+	final @Nullable Parameter redirectKeyParameter;
 	final String keyHashCode;
 	final ArrayList<Parameter> inputParameters = new ArrayList<>();
-	final String resultTypeName;
+	final @Nullable String resultTypeName;
 	final ArrayList<Field> resultFields = new ArrayList<>();
-	final Type resultType;
-	final Class<?> resultClass;
+	final @Nullable Type resultType;
+	final @Nullable Class<?> resultClass;
 	final boolean oneByOne;
 
 	MethodOverride(Method method, Annotation annotation) {
@@ -243,6 +244,7 @@ final class MethodOverride {
 				: "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	String getConcurrentLevelSource() {
 		var source = ((RedirectHash)annotation).ConcurrentLevelSource();
 		return source != null && !source.isBlank() ? source : "0";

@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.Objects;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
@@ -20,9 +21,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
+import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 /**
@@ -30,7 +29,7 @@ import java.util.List;
  * 断线重连自动重放注册与订阅；附带Id128 UDP发号客户端。
  */
 public final class Agent extends AbstractAgent {
-	static final @NotNull Logger logger = LogManager.getLogger(Agent.class);
+	static final Logger logger = LogManager.getLogger(Agent.class);
 
 	/**
 	 * 使用Config配置连接信息，可以配置是否支持重连。
@@ -38,12 +37,12 @@ public final class Agent extends AbstractAgent {
 	 */
 	public static final String defaultServiceName = "Zeze.Services.ServiceManager.Agent";
 
-	private final @NotNull AgentClient client;
+	private final AgentClient client;
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
 
-	private Threading threading;
+	private @Nullable Threading threading;
 
-	public @NotNull AgentClient getClient() {
+	public AgentClient getClient() {
 		return client;
 	}
 
@@ -77,7 +76,7 @@ public final class Agent extends AbstractAgent {
 	private final Object editServiceLock = new Object();
 
 	@Override
-	public void editService(@NotNull BEditService arg) {
+	public void editService(BEditService arg) {
 		synchronized (editServiceLock) {
 			for (var info : arg.getAdd())
 				verify(info.getServiceIdentity());
@@ -96,7 +95,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument infos) {
+	public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(BSubscribeArgument infos) {
 		waitConnectorReady();
 		logger.debug("subscribeServicesAsync: {}", infos);
 		var cf = new CompletableFuture<List<SubscribeState>>();
@@ -132,13 +131,13 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
+	public SubscribeState subscribeService(BSubscribeInfo info) {
 		waitConnectorReady();
 		return super.subscribeService(info);
 	}
 
 	@Override
-	public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
+	public void unSubscribeService(BUnSubscribeArgument arg) {
 		waitConnectorReady();
 		new UnSubscribe(arg).SendAndWaitCheckResultCode(client.getSocket());
 		logger.debug("unSubscribeService: {}", arg);
@@ -147,13 +146,13 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public boolean setServerLoad(@NotNull BServerLoad load) {
+	public boolean setServerLoad(BServerLoad load) {
 		return new SetServerLoad(load).Send(client.getSocket());
 	}
 
 	@Override
-	protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-									@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+	protected boolean allocateAsync(String globalName, int allocCount,
+									ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 		if (allocCount < 1)
 			throw new IllegalArgumentException();
 		var r = new AllocateId();
@@ -163,7 +162,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	protected void allocate(@NotNull AutoKey autoKey, int pool) {
+	protected void allocate(AutoKey autoKey, int pool) {
 		if (pool < 1)
 			throw new IllegalArgumentException();
 		var r = new AllocateId();
@@ -178,7 +177,7 @@ public final class Agent extends AbstractAgent {
 		// 重连重发=恢复提示资格（与正确性无关，正确性由租约裁决）。
 		try {
 			var identify = new Identify();
-			identify.Argument.serverId = config.getServerId();
+			identify.Argument.serverId = Objects.requireNonNull(config).getServerId();
 			identify.Argument.version = config.getAppMainVersion();
 			identify.Send(client.getSocket());
 		} catch (Throwable ex) {
@@ -255,7 +254,7 @@ public final class Agent extends AbstractAgent {
 		}
 	}
 
-	private long processEditService(@NotNull EditService r) {
+	private long processEditService(EditService r) {
 		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); ) {
 			var unReg = it.next();
 			var state = subscribeStates.get(unReg.getServiceName());
@@ -285,17 +284,17 @@ public final class Agent extends AbstractAgent {
 		return 0;
 	}
 
-	private long processKeepAlive(@NotNull KeepAlive r) {
+	private long processKeepAlive(KeepAlive r) {
 		if (onKeepAlive != null)
-			Task.getCriticalThreadPool().execute(onKeepAlive);
+			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(onKeepAlive);
 		r.SendResultCode(KeepAlive.Success);
 		return Procedure.Success;
 	}
 
-	private long processSetServerLoad(@NotNull SetServerLoad setServerLoad) {
+	private long processSetServerLoad(SetServerLoad setServerLoad) {
 		loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
 		if (onSetServerLoad != null) {
-			Task.getCriticalThreadPool().execute(() -> {
+			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> {
 				try {
 					if (onSetServerLoad != null) {
 						onSetServerLoad.run(setServerLoad.Argument);
@@ -311,10 +310,10 @@ public final class Agent extends AbstractAgent {
 	// Suspect仅是提示：转化为onSuspect回调（应用接takeover.tryTransfer），
 	// 租约未过期时tryTransfer内部安排到过期时刻精确重试，不会误接管。
 	// version过滤（防御层，主过滤在SM梯队广播侧）：本进程版本低于死者=永不参与（数据降级防护）。
-	private long processSuspect(@NotNull Suspect r) {
+	private long processSuspect(Suspect r) {
 		var on = onSuspect;
 		if (on != null) {
-			if (config.getAppMainVersion() < r.Argument.version) {
+			if (Objects.requireNonNull(config).getAppMainVersion() < r.Argument.version) {
 				logger.debug("processSuspect ignored: myVersion={} < deadVersion={} serverId={}",
 						config.getAppMainVersion(), r.Argument.version, r.Argument.serverId);
 				return 0;
@@ -333,7 +332,7 @@ public final class Agent extends AbstractAgent {
 		try {
 			var done = new TakeoverDone();
 			done.Argument.deadServerId = deadServerId;
-			done.Argument.takerServerId = config.getServerId();
+			done.Argument.takerServerId = Objects.requireNonNull(config).getServerId();
 			done.Argument.takerVersion = config.getAppMainVersion();
 			done.Send(client.getSocket());
 		} catch (Throwable ex) {
@@ -341,11 +340,11 @@ public final class Agent extends AbstractAgent {
 		}
 	}
 
-	public Agent(@NotNull Config config) throws Exception {
+	public Agent(Config config) throws Exception {
 		this(config, null);
 	}
 
-	public Agent(@NotNull Config config, @Nullable String netServiceName) throws Exception {
+	public Agent(Config config, @Nullable String netServiceName) throws Exception {
 		super.config = config;
 
 		client = (null == netServiceName || netServiceName.isEmpty())
@@ -385,7 +384,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public @NotNull Threading getThreading() {
+	public @Nullable Threading getThreading() {
 		return threading;
 	}
 

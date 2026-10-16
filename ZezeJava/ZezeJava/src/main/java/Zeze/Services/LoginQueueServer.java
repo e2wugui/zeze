@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.util.Objects;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,8 +19,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Random;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 登录队列服务端：向provider/linkd分发secret并接收负载上报，按负载选择服务器，
@@ -51,7 +51,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
     /** 锁内判活（见editLock注释）。死会话的迟到上报静默丢弃（Report*非Rpc，
      * 死连接本就收不到应答）。 */
-    private boolean isSenderAlive(@NotNull AsyncSocket sender) {
+    private boolean isSenderAlive(AsyncSocket sender) {
         return service.GetSocket(sender.getSessionId()) == sender;
     }
 
@@ -74,14 +74,14 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         }
 
         @Override
-        public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+        public void OnSocketAccept(AsyncSocket so) throws Exception {
             super.OnSocketAccept(so);
             var p = new AnnounceSecret(secret);
             p.Send(so);
         }
 
         @Override
-        public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+        public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
             super.OnSocketClose(so, e);
             LoginQueueServer.this.onClose(so);
         }
@@ -138,8 +138,8 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     }
 
     /** 单格式解密+解码+语义校验，任一步失败返回null（供双试探判别）。 */
-    private static BToken.Data tryDecodeToken(BSecret.Data secret, byte[] bytes, int offset, int size,
-                                              boolean ivPrefixed) {
+    private static BToken.@Nullable Data tryDecodeToken(BSecret.Data secret, byte[] bytes, int offset, int size,
+                                                        boolean ivPrefixed) {
         try {
             byte[] plain;
             if (ivPrefixed) {
@@ -211,7 +211,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 	protected long ProcessReportProviderLoad(Zeze.Builtin.LoginQueueServer.ReportProviderLoad r) throws Exception {
 		editLock.lock();
 		try {
-			if (!isSenderAlive(r.getSender())) // 迟到上报，会话已清理——拒绝防死服务器复活
+			if (!isSenderAlive(Objects.requireNonNull(r.getSender()))) // 迟到上报，会话已清理——拒绝防死服务器复活
 				return 0;
 			r.getSender().setUserState(providers);
 			providers.put(r.getSender(), r.Argument);
@@ -227,7 +227,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 	protected long ProcessReportLinkLoad(Zeze.Builtin.LoginQueueServer.ReportLinkLoad r) throws Exception {
 		editLock.lock();
 		try {
-			if (!isSenderAlive(r.getSender())) // 同上
+			if (!isSenderAlive(Objects.requireNonNull(r.getSender()))) // 同上
 				return 0;
 			r.getSender().setUserState(links);
 			links.put(r.getSender(), r.Argument);
@@ -247,11 +247,11 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 	        return links.size();
 	    }
 
-    public BServerLoad.Data choiceLink() {
+    public BServerLoad.@Nullable Data choiceLink() {
         return choiceServer(links);
     }
 
-    public BServerLoad.Data choiceProvider() {
+    public BServerLoad.@Nullable Data choiceProvider() {
         return choiceServer(providers);
     }
 
@@ -261,7 +261,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
      * @param servers 服务器
      * @return 返回分配的服务，null表示选择失败。
      */
-    private static BServerLoad.Data choiceServer(ConcurrentHashMap<AsyncSocket, BServerLoad.Data> servers) {
+    private static BServerLoad.@Nullable Data choiceServer(ConcurrentHashMap<AsyncSocket, BServerLoad.Data> servers) {
         var totalWeight = 0L;
         var frees = new ArrayList<FreeServer>(servers.size());
         for (var e : servers.entrySet()) {

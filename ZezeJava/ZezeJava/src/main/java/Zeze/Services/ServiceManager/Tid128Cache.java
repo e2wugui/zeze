@@ -1,8 +1,9 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 客户端侧Id128号段缓存：持有[start,end)号段逐个发放，耗尽时经Agent申请新段。
@@ -11,15 +12,15 @@ public class Tid128Cache extends FastLock {
 	public static final int ALLOCATE_COUNT_MIN = 16;
 	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 
-	private final @NotNull String name;
-	private final @NotNull AbstractAgent agent;
-	private final @NotNull Id128 start;
-	private @NotNull Id128 current;
-	private final @NotNull Id128 end;
+	private final String name;
+	private final @Nullable AbstractAgent agent;
+	private final Id128 start;
+	private Id128 current;
+	private final Id128 end;
 	private final int count;
 	private volatile int allocated;
 
-	public Tid128Cache(@NotNull String name, @NotNull AbstractAgent agent, @NotNull Id128 start, int count) {
+	public Tid128Cache(String name, @Nullable AbstractAgent agent, Id128 start, int count) {
 		this.name = name;
 		this.agent = agent;
 		this.start = start;
@@ -28,19 +29,19 @@ public class Tid128Cache extends FastLock {
 		this.count = count;
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return name;
 	}
 
-	public @NotNull AbstractAgent getAgent() {
-		return agent;
+	public AbstractAgent getAgent() {
+		return Objects.requireNonNull(agent);
 	}
 
-	public @NotNull Id128 get() {
+	public Id128 get() {
 		return current;
 	}
 
-	public @NotNull Id128 getStart() {
+	public Id128 getStart() {
 		return start;
 	}
 
@@ -52,7 +53,7 @@ public class Tid128Cache extends FastLock {
 		return Math.min(ALLOCATE_COUNT_MAX, count * 2);
 	}
 
-	public @NotNull Id128 next() {
+	public Id128 next() {
 		lock();
 		try {
 			if (current.compareTo(end) < 0) {
@@ -69,6 +70,6 @@ public class Tid128Cache extends FastLock {
 		}
 		// 段耗尽，同步分配新段并立即取号。HistoryAllocCount=1（多app部署）时，段请求时刻=取号时刻
 		// （调用方在rrs锁内、依赖已建立），SM按请求到达序发号 ⇒ gid序=提交序（History回放/审计的顺序保证）。
-		return agent.allocateTid128CacheFuture(name, agent.config.getHistoryAllocCount()).get().next();
+		return getAgent().allocateTid128CacheFuture(name, Objects.requireNonNull(getAgent().config).getHistoryAllocCount()).get().next();
 	}
 }

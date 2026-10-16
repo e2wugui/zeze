@@ -1,6 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
 import java.util.ArrayList;
+import org.jspecify.annotations.Nullable;
 import Zeze.Util.Action0;
 import Zeze.Util.LongHashMap;
 
@@ -8,24 +11,24 @@ import Zeze.Util.LongHashMap;
  * 事务的 savepoint：本层修改日志集与提交/回滚动作，支持嵌套事务的合并提交/回滚。
  */
 public final class Savepoint {
-	private LongHashMap<Log> logs;
-	private ArrayList<Action0> commitActions;
-	private ArrayList<Action0> rollbackActions;
+	private @Nullable LongHashMap<Log> logs;
+	private @Nullable ArrayList<Action0> commitActions;
+	private @Nullable ArrayList<Action0> rollbackActions;
 
-	ArrayList<Action0> getCommitActions() {
+	@Nullable ArrayList<Action0> getCommitActions() {
 		return commitActions;
 	}
 
-	ArrayList<Action0> getRollbackActions() {
+	@Nullable ArrayList<Action0> getRollbackActions() {
 		return rollbackActions;
 	}
 
-	public LongHashMap<Log>.Iterator logIterator() {
+	public LongHashMap<Log>.@Nullable Iterator logIterator() {
 		var logs = this.logs;
 		return logs != null ? logs.iterator() : null;
 	}
 
-	public Log getLog(long logKey) {
+	public @Nullable Log getLog(long logKey) {
 		var logs = this.logs;
 		return logs != null ? logs.get(logKey) : null;
 	}
@@ -42,7 +45,7 @@ public final class Savepoint {
 		var logs = this.logs;
 		if (logs != null) {
 			var newLogs = new LongHashMap<>(logs);
-			newLogs.foreachUpdate((__, v) -> v.beginSavepoint());
+			newLogs.foreachUpdate((__, v) -> Objects.requireNonNull(v).beginSavepoint());
 			sp.logs = newLogs;
 		}
 		return sp;
@@ -73,7 +76,7 @@ public final class Savepoint {
 	public void mergeCommitFrom(Savepoint next) {
 		var nextLogs = next.logs;
 		if (nextLogs != null)
-			nextLogs.foreachValue(log -> log.endSavepoint(this));
+			nextLogs.foreachValue(log -> Objects.requireNonNull(log).endSavepoint(this));
 		var nextCommitActions = next.commitActions;
 		if (nextCommitActions != null)
 			getCommitActionsForAdd().addAll(nextCommitActions);
@@ -96,7 +99,7 @@ public final class Savepoint {
 	 * 缓存 Record 的 bean 的原位修改不会被还原——Log.Rollback 未实现。事务失败（rc!=0、乐观检查失败、RaftRetry 失去领导权等）后，这些
 	 * 修改残留在记录缓存中（污染 bean）：本节点后续访问该记录的读者可能读到未提交
 	 * 的修改，直到该记录被驱逐出缓存并从 storage 重载为止（驱逐路径见
-	 * {@link Table#tryRemoveRecord} 与 {@link Record#evictPolluted}；截断场景的
+	 * {@code Table.tryRemoveRecord} 与 {@link Record#evictPolluted}；截断场景的
 	 * 污染驱逐见 {@code Rocks.takePendingFlush} 的 term 不匹配分支）。
 	 * 依赖"回滚后读不到过程内修改"的代码在 RocksRaft 下不成立。
 	 */

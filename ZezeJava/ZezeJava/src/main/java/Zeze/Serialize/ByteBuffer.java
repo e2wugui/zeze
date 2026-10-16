@@ -1,5 +1,7 @@
 package Zeze.Serialize;
 
+import java.util.Objects;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,18 +21,17 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Zeze 堆内存字节缓冲：实现变长整数、向量、字符串等的读写协议，容量按2的幂扩容。 */
 public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
-	public static final @NotNull VarHandle intLeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
-	public static final @NotNull VarHandle intBeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
-	public static final @NotNull VarHandle longLeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
-	public static final @NotNull VarHandle longBeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
+	public static final VarHandle intLeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
+	public static final VarHandle intBeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+	public static final VarHandle longLeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
+	public static final VarHandle longBeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
 	public static final byte[] Empty = new byte[0];
 
-	public byte @NotNull [] Bytes;
+	public byte [] Bytes;
 	public int ReadIndex;
 	public int WriteIndex;
 
@@ -64,33 +65,33 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return ReadIndex >= WriteIndex;
 	}
 
-	public static @NotNull ByteBuffer Wrap(@NotNull ByteBuffer bb) {
+	public static ByteBuffer Wrap(ByteBuffer bb) {
 		return Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
-	public static @NotNull ByteBuffer Wrap(byte @NotNull [] bytes) {
+	public static ByteBuffer Wrap(byte [] bytes) {
 		return new ByteBuffer(bytes, 0, bytes.length);
 	}
 
-	public static @NotNull ByteBuffer Wrap(byte @NotNull [] bytes, int length) {
+	public static ByteBuffer Wrap(byte [] bytes, int length) {
 		VerifyArrayIndex(bytes, length);
 		return new ByteBuffer(bytes, 0, length);
 	}
 
-	public static @NotNull ByteBuffer Wrap(byte @NotNull [] bytes, int offset, int length) {
+	public static ByteBuffer Wrap(byte [] bytes, int offset, int length) {
 		VerifyArrayIndex(bytes, offset, length);
 		return new ByteBuffer(bytes, offset, offset + length);
 	}
 
-	public static @NotNull ByteBuffer Wrap(@NotNull Binary binary) {
+	public static ByteBuffer Wrap(Binary binary) {
 		return binary.Wrap();
 	}
 
-	public static @NotNull ByteBuffer Allocate() {
+	public static ByteBuffer Allocate() {
 		return Allocate(16);
 	}
 
-	public static @NotNull ByteBuffer Allocate(int capacity) {
+	public static ByteBuffer Allocate(int capacity) {
 		// 不做池化：Bytes是公开的，可能被其他地方引用，无法确定何时回收。
 		return new ByteBuffer(capacity);
 	}
@@ -99,7 +100,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		Bytes = capacity == 0 ? Empty : new byte[capacity];
 	}
 
-	protected ByteBuffer(byte @NotNull [] bytes, int readIndex, int writeIndex) {
+	protected ByteBuffer(byte [] bytes, int readIndex, int writeIndex) {
 		Bytes = bytes;
 		ReadIndex = readIndex;
 		WriteIndex = writeIndex;
@@ -111,41 +112,41 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		Reset();
 	}
 
-	public void wraps(byte @NotNull [] bytes) {
+	public void wraps(byte [] bytes) {
 		Bytes = bytes;
 		ReadIndex = 0;
 		WriteIndex = bytes.length;
 	}
 
-	public void wraps(byte @NotNull [] bytes, int length) {
+	public void wraps(byte [] bytes, int length) {
 		VerifyArrayIndex(bytes, length);
 		Bytes = bytes;
 		ReadIndex = 0;
 		WriteIndex = length;
 	}
 
-	public void wraps(byte @NotNull [] bytes, int offset, int length) {
+	public void wraps(byte [] bytes, int offset, int length) {
 		VerifyArrayIndex(bytes, offset, length);
 		Bytes = bytes;
 		ReadIndex = offset;
 		WriteIndex = offset + length;
 	}
 
-	public void Append(byte @NotNull [] bs) {
+	public void Append(byte [] bs) {
 		Append(bs, 0, bs.length);
 	}
 
-	public void Append(byte @NotNull [] bs, int offset, int len) {
+	public void Append(byte [] bs, int offset, int len) {
 		EnsureWrite(len);
 		System.arraycopy(bs, offset, Bytes, WriteIndex, len);
 		WriteIndex += len;
 	}
 
-	public void Replace(int writeIndex, byte @NotNull [] src) {
+	public void Replace(int writeIndex, byte [] src) {
 		Replace(writeIndex, src, 0, src.length);
 	}
 
-	public void Replace(int writeIndex, byte @NotNull [] src, int offset, int len) {
+	public void Replace(int writeIndex, byte [] src, int offset, int len) {
 		if (writeIndex < ReadIndex || writeIndex + len > WriteIndex) {
 			throw new IllegalStateException("Replace writeIndex=" + writeIndex + ", len=" + len
 					+ " at " + ReadIndex + '/' + WriteIndex);
@@ -169,24 +170,24 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		intLeHandler.set(Bytes, oldWriteIndex, WriteIndex - oldWriteIndex - 4);
 	}
 
-	public static int ToInt(byte @NotNull [] bytes, int offset) {
+	public static int ToInt(byte [] bytes, int offset) {
 		return (int)intLeHandler.get(bytes, offset);
 	}
 
-	public static int ToIntBE(byte @NotNull [] bytes, int offset) {
+	public static int ToIntBE(byte [] bytes, int offset) {
 		return (int)intBeHandler.get(bytes, offset);
 	}
 
-	public static long ToLong(byte @NotNull [] bytes, int offset) {
+	public static long ToLong(byte [] bytes, int offset) {
 		return (long)longLeHandler.get(bytes, offset);
 	}
 
-	public static long ToLongBE(byte @NotNull [] bytes, int offset) {
+	public static long ToLongBE(byte [] bytes, int offset) {
 		return (long)longBeHandler.get(bytes, offset);
 	}
 
 	@SuppressWarnings("fallthrough")
-	public static long ToLong(byte @NotNull [] bytes, int offset, int length) {
+	public static long ToLong(byte [] bytes, int offset, int length) {
 		long v = 0;
 		//@formatter:off
 		switch (length) {
@@ -206,7 +207,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@SuppressWarnings("fallthrough")
-	public static long ToLongBE(byte @NotNull [] bytes, int offset, int length) {
+	public static long ToLongBE(byte [] bytes, int offset, int length) {
 		long v = 0;
 		int s = 0;
 		//@formatter:off
@@ -226,19 +227,19 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return v;
 	}
 
-	public static float ToFloat(byte @NotNull [] bytes, int offset) {
+	public static float ToFloat(byte [] bytes, int offset) {
 		return Float.intBitsToFloat(ToInt(bytes, offset));
 	}
 
-	public static float ToFloatBE(byte @NotNull [] bytes, int offset) {
+	public static float ToFloatBE(byte [] bytes, int offset) {
 		return Float.intBitsToFloat(ToIntBE(bytes, offset));
 	}
 
-	public static double ToDouble(byte @NotNull [] bytes, int offset) {
+	public static double ToDouble(byte [] bytes, int offset) {
 		return Double.longBitsToDouble(ToLong(bytes, offset));
 	}
 
-	public static double ToDoubleBE(byte @NotNull [] bytes, int offset) {
+	public static double ToDoubleBE(byte [] bytes, int offset) {
 		return Double.longBitsToDouble(ToLongBE(bytes, offset));
 	}
 
@@ -261,7 +262,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public byte @NotNull [] Copy() {
+	public byte [] Copy() {
 		int size = size();
 		if (size == 0)
 			return Empty;
@@ -270,12 +271,12 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return copy;
 	}
 
-	public byte @NotNull [] CopyIf() {
+	public byte [] CopyIf() {
 		return WriteIndex == Bytes.length && ReadIndex == 0 ? Bytes : Copy();
 	}
 
 	@Override
-	public byte @NotNull [] getBytes(int offset, int length) {
+	public byte [] getBytes(int offset, int length) {
 		VerifyArrayIndex(Bytes, offset, length);
 		var bytes = new byte[length];
 		System.arraycopy(Bytes, offset, bytes, 0, length);
@@ -381,7 +382,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		WriteLong8(((long)v1 << 32) + (v0 & 0xffff_ffffL));
 	}
 
-	public void WriteInt4s(int @NotNull [] buf, int offset, int length) {
+	public void WriteInt4s(int [] buf, int offset, int length) {
 		int n = length * 4;
 		EnsureWrite(n);
 		int writeIndex = WriteIndex;
@@ -399,7 +400,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public void ReadInt4s(int @NotNull [] buf, int offset, int length) {
+	public void ReadInt4s(int [] buf, int offset, int length) {
 		int n = length * 4;
 		ensureRead(n);
 		int readIndex = ReadIndex;
@@ -430,7 +431,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		longLeHandler.set(Bytes, writeIndex + 8, v1);
 	}
 
-	public void WriteLong8s(long @NotNull [] buf, int offset, int length) {
+	public void WriteLong8s(long [] buf, int offset, int length) {
 		int n = length * 8;
 		EnsureWrite(n);
 		int writeIndex = WriteIndex;
@@ -448,7 +449,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public void ReadLong8s(long @NotNull [] buf, int offset, int length) {
+	public void ReadLong8s(long [] buf, int offset, int length) {
 		int n = length * 8;
 		ensureRead(n);
 		int readIndex = ReadIndex;
@@ -774,7 +775,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		longBeHandler.set(bytes, writeIndex + 1, v);
 	}
 
-	public void WriteVector2(@NotNull Vector2 v) {
+	public void WriteVector2(Vector2 v) {
 		EnsureWrite(8);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
@@ -783,7 +784,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		intLeHandler.set(bytes, i + 4, Float.floatToRawIntBits(v.y));
 	}
 
-	public void WriteVector3(@NotNull Vector3 v) {
+	public void WriteVector3(Vector3 v) {
 		EnsureWrite(12);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
@@ -793,7 +794,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		intLeHandler.set(bytes, i + 8, Float.floatToRawIntBits(v.z));
 	}
 
-	public void WriteVector4(@NotNull Vector4 v) {
+	public void WriteVector4(Vector4 v) {
 		EnsureWrite(16);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
@@ -804,16 +805,16 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		intLeHandler.set(bytes, i + 12, Float.floatToRawIntBits(v.w));
 	}
 
-	public void WriteQuaternion(@NotNull Quaternion v) {
+	public void WriteQuaternion(Quaternion v) {
 		WriteVector4(v);
 	}
 
-	public void WriteVector2Int(@NotNull Vector2Int v) {
+	public void WriteVector2Int(Vector2Int v) {
 		WriteInt(v.x);
 		WriteInt(v.y);
 	}
 
-	public void WriteVector3Int(@NotNull Vector3Int v) {
+	public void WriteVector3Int(Vector3Int v) {
 		WriteInt(v.x);
 		WriteInt(v.y);
 		WriteInt(v.z);
@@ -897,7 +898,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		WriteInt4(Float.floatToRawIntBits(v));
 	}
 
-	public void WriteFloats(float @NotNull [] buf, int offset, int length) {
+	public void WriteFloats(float [] buf, int offset, int length) {
 		int n = length * 4;
 		EnsureWrite(n);
 		int writeIndex = WriteIndex;
@@ -915,7 +916,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public void ReadFloats(float @NotNull [] buf, int offset, int length) {
+	public void ReadFloats(float [] buf, int offset, int length) {
 		int n = length * 4;
 		ensureRead(n);
 		int readIndex = ReadIndex;
@@ -928,7 +929,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		WriteLong8(Double.doubleToRawLongBits(v));
 	}
 
-	public void WriteDoubles(double @NotNull [] buf, int offset, int length) {
+	public void WriteDoubles(double [] buf, int offset, int length) {
 		int n = length * 8;
 		EnsureWrite(n);
 		int writeIndex = WriteIndex;
@@ -946,7 +947,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public void ReadDoubles(double @NotNull [] buf, int offset, int length) {
+	public void ReadDoubles(double [] buf, int offset, int length) {
 		int n = length * 8;
 		ensureRead(n);
 		int readIndex = ReadIndex;
@@ -1018,7 +1019,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public @NotNull String ReadString() {
+	public String ReadString() {
 		int n = ReadUInt();
 		if (n == 0)
 			return "";
@@ -1032,23 +1033,23 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return v;
 	}
 
-	public void WriteBytes(byte @NotNull [] v) {
+	public void WriteBytes(byte [] v) {
 		WriteBytes(v, 0, v.length);
 	}
 
-	public void WriteBytes(byte @NotNull [] v, int offset, int length) {
+	public void WriteBytes(byte [] v, int offset, int length) {
 		WriteUInt(length);
 		EnsureWrite(length);
 		System.arraycopy(v, offset, Bytes, WriteIndex, length);
 		WriteIndex += length;
 	}
 
-	public void WriteBinary(@NotNull Binary binary) {
+	public void WriteBinary(Binary binary) {
 		binary.encode(this);
 	}
 
 	@Override
-	public byte @NotNull [] ReadBytes() {
+	public byte [] ReadBytes() {
 		int n = ReadUInt();
 		if (n == 0)
 			return Empty;
@@ -1073,7 +1074,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	 * 会推进ReadIndex，但是返回的ByteBuffer和原来的共享内存。
 	 */
 	@Override
-	public @NotNull ByteBuffer ReadByteBuffer() {
+	public ByteBuffer ReadByteBuffer() {
 		int n = ReadUInt();
 		if (n < 0) {
 			throw new IllegalStateException("invalid length for ReadByteBuffer: " + n
@@ -1085,11 +1086,11 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return Wrap(Bytes, cur, n);
 	}
 
-	public void WriteByteBuffer(@NotNull ByteBuffer bb) {
+	public void WriteByteBuffer(ByteBuffer bb) {
 		WriteBytes(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
-	public void WriteJavaObject(@NotNull java.io.Serializable obj) {
+	public void WriteJavaObject(java.io.Serializable obj) {
 		try (var bs = new ByteArrayOutputStream();
 			 var os = new ObjectOutputStream(bs)) {
 			os.writeObject(obj);
@@ -1120,7 +1121,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
 	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
 	 * 会落错桶静默miss。 */
-	public boolean contentEquals(byte @NotNull [] other) {
+	public boolean contentEquals(byte [] other) {
 		return Arrays.equals(Bytes, ReadIndex, WriteIndex, other, 0, other.length);
 	}
 
@@ -1133,18 +1134,18 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return (int)((value * 0x9E3779B97F4A7C15L) >> 32);
 	}
 
-	public static int calc_hashnr(@NotNull String str) {
+	public static int calc_hashnr(String str) {
 		int hash = 0;
 		for (int i = 0, n = str.length(); i < n; i++)
 			hash = (hash * 16777619) ^ str.charAt(i);
 		return hash;
 	}
 
-	public static int calc_hashnr(byte @NotNull [] keys) {
+	public static int calc_hashnr(byte [] keys) {
 		return calc_hashnr(keys, 0, keys.length);
 	}
 
-	public static int calc_hashnr(byte @NotNull [] keys, int offset, int len) {
+	public static int calc_hashnr(byte [] keys, int offset, int len) {
 		int hash = 0;
 		for (int end = offset + len; offset < end; offset++)
 			hash = (hash * 16777619) ^ keys[offset];
@@ -1153,7 +1154,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	/** FNV：nio形态统一入口——heap走数组版本；direct无backing array，
 	 * duplicate遍历（不动position/limit）。算法仅此一份。 */
-	public static int calc_hashnr(@NotNull java.nio.ByteBuffer bb) {
+	public static int calc_hashnr(java.nio.ByteBuffer bb) {
 		if (bb.hasArray())
 			return calc_hashnr(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
 		var dup = bb.duplicate();
@@ -1168,19 +1169,19 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return calc_hashnr(Bytes, ReadIndex, size());
 	}
 
-	public static void VerifyArrayIndex(byte @NotNull [] bytes, int length) {
+	public static void VerifyArrayIndex(byte [] bytes, int length) {
 		int bytesLen = bytes.length;
 		if ((length | (bytesLen - length)) < 0)
 			throw new IllegalArgumentException(length + " > " + bytesLen);
 	}
 
-	public static void VerifyArrayIndex(byte @NotNull [] bytes, int offset, int length) {
+	public static void VerifyArrayIndex(byte [] bytes, int offset, int length) {
 		int bytesLen = bytes.length, end;
 		if ((offset | length | (end = offset + length) | (bytesLen - end)) < 0)
 			throw new IllegalArgumentException(offset + " + " + length + " > " + bytesLen);
 	}
 
-	public static @NotNull ByteBuffer encode(@NotNull Serializable sa) {
+	public static ByteBuffer encode(Serializable sa) {
 		int preAllocSize = sa.preAllocSize();
 		ByteBuffer bb = Allocate(Math.min(preAllocSize, 65536));
 		sa.encode(bb);
@@ -1189,7 +1190,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return bb;
 	}
 
-	public void encode(@NotNull Collection<? extends Serializable> c) {
+	public void encode(Collection<? extends Serializable> c) {
 		WriteUInt(c.size());
 		for (var s : c)
 			s.encode(this);
@@ -1223,7 +1224,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public @NotNull Vector2 ReadVector2() {
+	public Vector2 ReadVector2() {
 		ensureRead(8);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
@@ -1233,7 +1234,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public @NotNull Vector3 ReadVector3() {
+	public Vector3 ReadVector3() {
 		ensureRead(12);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
@@ -1244,7 +1245,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public @NotNull Vector4 ReadVector4() {
+	public Vector4 ReadVector4() {
 		ensureRead(16);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
@@ -1256,7 +1257,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public @NotNull Quaternion ReadQuaternion() {
+	public Quaternion ReadQuaternion() {
 		ensureRead(16);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
@@ -1284,7 +1285,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		throw new UnsupportedOperationException("readUnknownField: unsupported for derived bean");
 	}
 
-	public int writeUnknownField(int lastIdx, long idx, @NotNull ByteBuffer unknown) {
+	public int writeUnknownField(int lastIdx, long idx, ByteBuffer unknown) {
 		int i = (int)idx;
 		WriteTag(lastIdx, i, unknown.ReadByte());
 		int size = unknown.ReadUInt();
@@ -1294,14 +1295,15 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return i;
 	}
 
-	public void writeAllUnknownFields(int lastIdx, long idx, ByteBuffer unknown) {
+	public void writeAllUnknownFields(int lastIdx, long idx, @Nullable ByteBuffer unknown) {
 		while (idx != Long.MAX_VALUE) {
+			Objects.requireNonNull(unknown);
 			lastIdx = writeUnknownField(lastIdx, idx, unknown);
 			idx = unknown.readUnknownIndex();
 		}
 	}
 
-	public static <T> void BuildString(@NotNull StringBuilder sb, @Nullable Iterable<T> c) {
+	public static <T> void BuildString(StringBuilder sb, @Nullable Iterable<T> c) {
 		sb.append('[');
 		int i = sb.length();
 		if (c != null) {
@@ -1315,7 +1317,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			sb.setCharAt(j - 1, ']');
 	}
 
-	public static <TK, TV> void BuildString(@NotNull StringBuilder sb, @Nullable Map<TK, TV> map) {
+	public static <TK, TV> void BuildString(StringBuilder sb, @Nullable Map<TK, TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1326,7 +1328,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <TV> void BuildString(@NotNull StringBuilder sb, @Nullable IntHashMap<TV> map) {
+	public static <TV> void BuildString(StringBuilder sb, @Nullable IntHashMap<TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1337,7 +1339,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <TV> void BuildString(@NotNull StringBuilder sb, @Nullable LongHashMap<TV> map) {
+	public static <TV> void BuildString(StringBuilder sb, @Nullable LongHashMap<TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1348,7 +1350,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <TK> void BuildString(@NotNull StringBuilder sb, @Nullable IdentityHashSet<TK> set) {
+	public static <TK> void BuildString(StringBuilder sb, @Nullable IdentityHashSet<TK> set) {
 		sb.append('{');
 		if (set == null || set.isEmpty())
 			sb.append('}');
@@ -1359,7 +1361,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <T> void BuildSortedString(@NotNull StringBuilder sb, @Nullable Iterable<T> c) {
+	public static <T> void BuildSortedString(StringBuilder sb, @Nullable Iterable<T> c) {
 		var strs = new ArrayList<String>();
 		if (c != null) {
 			for (var e : c)
@@ -1378,7 +1380,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			sb.setCharAt(j - 1, ']');
 	}
 
-	public static <TK, TV> void BuildSortedString(@NotNull StringBuilder sb, @Nullable Map<TK, TV> map) {
+	public static <TK, TV> void BuildSortedString(StringBuilder sb, @Nullable Map<TK, TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1394,7 +1396,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <TV> void BuildSortedString(@NotNull StringBuilder sb, @Nullable IntHashMap<TV> map) {
+	public static <TV> void BuildSortedString(StringBuilder sb, @Nullable IntHashMap<TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1418,21 +1420,21 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return Arrays.compareUnsigned(left, right);
 	}
 
-	public static byte[] Copy(byte @NotNull [] src) {
+	public static byte[] Copy(byte [] src) {
 		return src.clone();
 	}
 
-	public static byte[] Copy(byte @NotNull [] src, int offset, int length) {
+	public static byte[] Copy(byte [] src, int offset, int length) {
 		return Arrays.copyOfRange(src, offset, offset + length);
 	}
 
 	@Override
-	public int compareTo(@NotNull ByteBuffer o) {
+	public int compareTo(ByteBuffer o) {
 		return Arrays.compareUnsigned(Bytes, ReadIndex, WriteIndex, o.Bytes, o.ReadIndex, o.WriteIndex);
 	}
 
 	/** 从输入流中读取未知长度的数据,一直取到无法获取为止 */
-	public @NotNull ByteBuffer readStream(@NotNull InputStream is) throws IOException {
+	public ByteBuffer readStream(InputStream is) throws IOException {
 		for (; ; ) {
 			EnsureWrite(8192);
 			byte[] buf = Bytes;

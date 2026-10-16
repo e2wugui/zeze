@@ -33,19 +33,19 @@ public abstract class AbstractTimer implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tAccountOfflineTimers.getName()).getDatabaseName(), _tAccountOfflineTimers);
-        zeze.addTable(zeze.getConfig().getTableConf(_tAccountTimers.getName()).getDatabaseName(), _tAccountTimers);
-        zeze.addTable(zeze.getConfig().getTableConf(_tIndexs.getName()).getDatabaseName(), _tIndexs);
-        zeze.addTable(zeze.getConfig().getTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
-        zeze.addTable(zeze.getConfig().getTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tAccountOfflineTimers.getName())).getDatabaseName(), _tAccountOfflineTimers);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tAccountTimers.getName())).getDatabaseName(), _tAccountTimers);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tIndexs.getName())).getDatabaseName(), _tIndexs);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tNodeRoot.getName())).getDatabaseName(), _tNodeRoot);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tNodes.getName())).getDatabaseName(), _tNodes);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tAccountOfflineTimers.getName()).getDatabaseName(), _tAccountOfflineTimers);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tAccountTimers.getName()).getDatabaseName(), _tAccountTimers);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tIndexs.getName()).getDatabaseName(), _tIndexs);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tAccountOfflineTimers.getName())).getDatabaseName(), _tAccountOfflineTimers);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tAccountTimers.getName())).getDatabaseName(), _tAccountTimers);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tIndexs.getName())).getDatabaseName(), _tIndexs);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tNodeRoot.getName())).getDatabaseName(), _tNodeRoot);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tNodes.getName())).getDatabaseName(), _tNodes);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

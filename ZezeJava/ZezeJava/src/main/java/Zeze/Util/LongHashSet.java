@@ -3,13 +3,12 @@ package Zeze.Util;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.LongConsumer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // long 基本类型开放寻址哈希 Set（0 键走特例槽），非线程安全
 public class LongHashSet implements Cloneable {
 	private int size;
-	private long @NotNull [] keyTable;
+	private long [] keyTable;
 	private final float loadFactor;
 	private int threshold;
 	private byte shift;
@@ -33,7 +32,7 @@ public class LongHashSet implements Cloneable {
 		keyTable = new long[tableSize];
 	}
 
-	public LongHashSet(@NotNull LongHashSet set) {
+	public LongHashSet(LongHashSet set) {
 		size = set.size;
 		keyTable = set.keyTable.clone();
 		loadFactor = set.loadFactor;
@@ -51,7 +50,7 @@ public class LongHashSet implements Cloneable {
 		return (int)(key * 0x9E3779B97F4A7C15L >>> shift);
 	}
 
-	public long @NotNull [] getKeyTable() {
+	public long [] getKeyTable() {
 		return keyTable;
 	}
 
@@ -109,7 +108,7 @@ public class LongHashSet implements Cloneable {
 		}
 	}
 
-	public void addAll(@NotNull LongHashSet set) {
+	public void addAll(LongHashSet set) {
 		if (set.hasZeroKey && !hasZeroKey) {
 			hasZeroKey = true;
 			size++;
@@ -119,12 +118,12 @@ public class LongHashSet implements Cloneable {
 				add(k);
 	}
 
-	public void addAll(@NotNull Collection<Long> set) {
+	public void addAll(Collection<Long> set) {
 		for (long v : set)
 			add(v);
 	}
 
-	public void addAllTo(@NotNull Collection<Long> set) {
+	public void addAllTo(Collection<Long> set) {
 		foreach(set::add);
 	}
 
@@ -207,7 +206,7 @@ public class LongHashSet implements Cloneable {
 		keyTable = kt;
 	}
 
-	public void foreach(@NotNull LongConsumer consumer) {
+	public void foreach(LongConsumer consumer) {
 		if (hasZeroKey)
 			consumer.accept(0);
 		for (long k : keyTable)
@@ -216,10 +215,10 @@ public class LongHashSet implements Cloneable {
 	}
 
 	public interface LongSetPredicate {
-		boolean test(@NotNull LongHashSet set, long key);
+		boolean test(LongHashSet set, long key);
 	}
 
-	public boolean foreachTest(@NotNull LongSetPredicate tester) {
+	public boolean foreachTest(LongSetPredicate tester) {
 		if (hasZeroKey && !tester.test(this, 0))
 			return false;
 		for (long k : keyTable)
@@ -249,12 +248,12 @@ public class LongHashSet implements Cloneable {
 		}
 	}
 
-	public @NotNull Iterator iterator() {
+	public Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public @NotNull LongHashSet clone() throws CloneNotSupportedException {
+	public LongHashSet clone() throws CloneNotSupportedException {
 		LongHashSet set = (LongHashSet)super.clone();
 		set.keyTable = keyTable.clone();
 		return set;
@@ -284,7 +283,7 @@ public class LongHashSet implements Cloneable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		if (size == 0)
 			return "{}";
 		final StringBuilder sb = new StringBuilder(32).append('{');

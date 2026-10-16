@@ -13,8 +13,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * HTTP handler 注册注解（@Path/@Get/@Post）与按注解扫描注册的工具。
@@ -51,7 +50,7 @@ public final class Http {
 		@Nullable DispatchMode dispatchMode() default DispatchMode.Normal;
 	}
 
-	public static int register(@NotNull HttpServer httpServer, @NotNull Class<?> handleClass) {
+	public static int register(HttpServer httpServer, Class<?> handleClass) {
 		int n = 0;
 		var pathAnno = handleClass.getDeclaredAnnotation(Path.class);
 		var parentPath = pathAnno != null ? pathAnno.path() : "";

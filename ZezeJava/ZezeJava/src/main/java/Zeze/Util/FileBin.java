@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -30,7 +34,7 @@ public class FileBin {
 	private final File canonicalFile;
 	private final RandomAccessFile randFile;
 	private OutputStream os;
-	private MessageDigest md5;
+	private @Nullable MessageDigest md5;
 
 	public FileBin(String relativeCanonicalFileName, File baseDir, String path) {
 		this.relativeCanonicalFileName = relativeCanonicalFileName;
@@ -87,7 +91,7 @@ public class FileBin {
 		try (var input = new BufferedInputStream(new FileInputStream(canonicalFile))) {
 			var len = 0;
 			while ((len = input.read(buffer)) >= 0) {
-				md5.update(buffer, 0, len);
+				Objects.requireNonNull(md5).update(buffer, 0, len);
 			}
 		}
 	}
@@ -110,7 +114,7 @@ public class FileBin {
 		if (newLength > length) {
 			var newDataLength = (int)(newLength - length);
 			// 只hash新增部分：是data的尾部newDataLength字节（data前面length-offset字节属于已存在的旧数据）。
-			md5.update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
+			Objects.requireNonNull(md5).update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
 		}
 		os.write(data.bytesUnsafe(), data.getOffset(), data.size());
 		// 写后也flush：append返回即数据在FD上，getLength()/md5()/后续append读到的长度恒一致
@@ -120,7 +124,7 @@ public class FileBin {
 
 	/** 惰性收口：digest() 终结化共享 digest，必须与 append 的 update 序化（在 close 之后调用也安全）。 */
 	public synchronized byte[] md5Digest() {
-		return md5.digest();
+		return Objects.requireNonNull(md5).digest();
 	}
 
 	public synchronized void close() throws IOException {

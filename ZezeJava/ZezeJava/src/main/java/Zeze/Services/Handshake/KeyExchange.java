@@ -1,5 +1,6 @@
 package Zeze.Services.Handshake;
 
+import java.util.Objects;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -28,8 +29,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.BitConverter;
 import Zeze.Util.Cert;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // TCP连接成功后,主动连接方(客户端)先发密钥交换请求(KeyExchange)给被动连接方(服务器). 收到回复后,后续通信用双方各自随机生成的key做双向对称加密(己方生成的key用于对方加密发送,己方接收解密)
 // 客户端 === KeyExchange(明文请求) ==> 服务器 (客户端用服务器公钥加密客户端生成的key给服务器,可选提供客户端公钥)
@@ -48,9 +48,9 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 	public static final class Arg implements Serializable {
 		public int version; // 版本. 目前只定义初始版本:0, 即固定使用RSA-2048(exponent固定为65537)作为非对称加密,AES-128(CFB模式)作为对称加密
-		public byte[] clientPubKey; // 本地客户端公钥. RSA公钥中的N(modulus)以大端序列化成byte数组(最高位的字节不能为0). 作为回程密钥(服务器key)的加密目标；仅当服务器经addHandler重载注册了可信公钥校验时才构成身份认证，否则服务器不校验它(任何自造公钥都能建立会话)。可以为空(不使用公钥模式,回程密钥与客户端key异或后返回)
-		public byte[] serverPubKeyMd5; // 对方服务器公钥的MD5. 如上方法序列化后再做MD5, 用于对方选取所用的私钥
-		public byte[] encIvKey; // 随机生成对称加密的iv和key各16字节拼接成32字节,以"RSA/ECB/PKCS1Padding"模式加密
+		public byte @Nullable [] clientPubKey; // 本地客户端公钥. RSA公钥中的N(modulus)以大端序列化成byte数组(最高位的字节不能为0). 作为回程密钥(服务器key)的加密目标；仅当服务器经addHandler重载注册了可信公钥校验时才构成身份认证，否则服务器不校验它(任何自造公钥都能建立会话)。可以为空(不使用公钥模式,回程密钥与客户端key异或后返回)
+		public byte @Nullable [] serverPubKeyMd5; // 对方服务器公钥的MD5. 如上方法序列化后再做MD5, 用于对方选取所用的私钥
+		public byte @Nullable [] encIvKey; // 随机生成对称加密的iv和key各16字节拼接成32字节,以"RSA/ECB/PKCS1Padding"模式加密
 
 		@Override
 		public int preAllocSize() {
@@ -58,7 +58,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(version);
 			bb.WriteBytes(clientPubKey != null ? clientPubKey : ByteBuffer.Empty);
 			bb.WriteBytes(serverPubKeyMd5 != null ? serverPubKeyMd5 : ByteBuffer.Empty);
@@ -66,7 +66,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			version = bb.ReadInt();
 			if (version != 0)
 				throw new UnsupportedOperationException("version = " + version);
@@ -83,7 +83,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		public static final int ErrorDecryptFailed = 3; // 解密encIvKey失败
 
 		public int version; // 版本. 同Arg的version
-		public byte[] encIvKey; // 如果clientPubKey为空,表示双方随机生成的对称加密的iv和key的异或结果; 否则类似Arg中的encIvKey,给客户端加密发送服务器随机生成的iv和key
+		public byte @Nullable [] encIvKey; // 如果clientPubKey为空,表示双方随机生成的对称加密的iv和key的异或结果; 否则类似Arg中的encIvKey,给客户端加密发送服务器随机生成的iv和key
 
 		@Override
 		public int preAllocSize() {
@@ -91,13 +91,13 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(version);
 			bb.WriteBytes(encIvKey != null ? encIvKey : ByteBuffer.Empty);
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			version = bb.ReadInt();
 			if (version != 0)
 				throw new UnsupportedOperationException("version = " + version);
@@ -105,30 +105,30 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		}
 	}
 
-	private byte[] clientIvKey; // 仅客户端用,在服务器处理时客户端暂存自己生成的iv和key
+	private byte @Nullable [] clientIvKey; // 仅客户端用,在服务器处理时客户端暂存自己生成的iv和key
 
 	public KeyExchange() {
 		Argument = new Arg();
 		Result = new Res();
 	}
 
-	public KeyExchange(byte @NotNull [] serverPubKey) {
+	public KeyExchange(byte [] serverPubKey) {
 		this(serverPubKey, null);
 	}
 
-	public KeyExchange(byte @NotNull [] serverPubKey, byte @Nullable [] clientPubKey) {
+	public KeyExchange(byte [] serverPubKey, byte @Nullable [] clientPubKey) {
 		this();
 		Argument.clientPubKey = clientPubKey;
 		Argument.serverPubKeyMd5 = getPubKeyMd5(serverPubKey);
 		Argument.encIvKey = encryptRsa(serverPubKey, clientIvKey = genIvKey());
 	}
 
-	public static byte @NotNull [] getPubKeyMd5(byte @NotNull [] pubKey) {
+	public static byte [] getPubKeyMd5(byte [] pubKey) {
 		return Digest.md5(stripLeadingZeros(pubKey));
 	}
 
 	// 跳过公钥前导字节0（BigInteger.toByteArray对正数可能带符号位前导0），同模数不同编码归一
-	private static byte @NotNull [] stripLeadingZeros(byte @NotNull [] pubKey) {
+	private static byte [] stripLeadingZeros(byte [] pubKey) {
 		int i = 0;
 		for (; i < pubKey.length; i++) {
 			if (pubKey[i] != 0)
@@ -137,7 +137,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		return i == 0 ? pubKey : Arrays.copyOfRange(pubKey, i, pubKey.length);
 	}
 
-	public static byte @NotNull [] encryptRsa(byte @NotNull [] pubKeyN, byte @NotNull [] data) {
+	public static byte [] encryptRsa(byte [] pubKeyN, byte [] data) {
 		try {
 			var rsaPubKey = Cert.loadRsaPublicKey(new BigInteger(1, pubKeyN), pubKeyE);
 			return Cert.encryptRsa(rsaPubKey, data);
@@ -147,19 +147,19 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	}
 
 	// SecureRandom线程安全，静态复用：每次new有种子初始化开销（部分实现还要读熵源）
-	private static final @NotNull SecureRandom ivKeyRandom = new SecureRandom();
+	private static final SecureRandom ivKeyRandom = new SecureRandom();
 
-	public static byte @NotNull [] genIvKey() {
+	public static byte [] genIvKey() {
 		byte[] ivKey = new byte[32];
 		ivKeyRandom.nextBytes(ivKey);
 		return ivKey;
 	}
 
-	public boolean send(@NotNull AsyncSocket so) {
+	public boolean send(AsyncSocket so) {
 		return send(so, null);
 	}
 
-	public boolean send(@NotNull AsyncSocket so, @Nullable PrivateKey clientPriKey) {
+	public boolean send(AsyncSocket so, @Nullable PrivateKey clientPriKey) {
 		if ((Argument.clientPubKey == null) != (clientPriKey == null)) // 客户端公私钥必须同时提供
 			throw new IllegalArgumentException();
 		return Send(so, r -> {
@@ -169,36 +169,36 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 				byte[] serverIvKey;
 				int serverIvKeyLen;
 				if (clientPriKey != null) {
-					serverIvKey = Cert.decryptRsa(clientPriKey, Result.encIvKey);
+					serverIvKey = Cert.decryptRsa(clientPriKey, Objects.requireNonNull(Result.encIvKey));
 					if (serverIvKey.length != 32)
 						throw new IllegalStateException("invalid serverIvKey length = " + serverIvKey.length);
 				} else {
 					serverIvKey = Result.encIvKey;
-					serverIvKeyLen = serverIvKey.length;
+					serverIvKeyLen = Objects.requireNonNull(serverIvKey).length;
 					if (serverIvKeyLen != 32)
 						throw new IllegalStateException("invalid serverIvKey length = " + serverIvKeyLen);
 					for (int i = 0; i < 32; i++)
-						serverIvKey[i] ^= clientIvKey[i];
+						serverIvKey[i] ^= Objects.requireNonNull(clientIvKey)[i];
 				}
 				byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
 				byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-				((TcpSocket)r.getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, serverKey, serverIv));
+				Objects.requireNonNull(((TcpSocket)r.getSender())).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, serverKey, serverIv));
 
-				byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
+				byte[] clientIv = Arrays.copyOfRange(Objects.requireNonNull(clientIvKey), 0, 16);
 				byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
 				((TcpSocket)r.getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, clientKey, clientIv));
 				return 0;
 			} catch (Throwable ex) {
 				// 与HandshakeBase对齐——密钥交换异常不能只回错误码留活连接
 				// （可能已切部分codec成半开状态），断连。
-				r.getSender().close(ex);
+				Objects.requireNonNull(r.getSender()).close(ex);
 				return Res.ErrorDecryptFailed;
 			}
 		});
 	}
 
-	public long processKeyExchangeRequest(@NotNull PrivateKey priKey, byte @Nullable [] pubKeyMd5,
-										  @Nullable Predicate<byte @NotNull []> clientPubKeyAcceptor) {
+	public long processKeyExchangeRequest(PrivateKey priKey, byte @Nullable [] pubKeyMd5,
+										  @Nullable Predicate<byte []> clientPubKeyAcceptor) {
 		// KeyExchange.TypeId不在handshakeProtocols中（走Service.dispatchProtocol普通路径，
 		// Direct派发的callFuncCore仅trySendResultCode回错误码、连接保持）——恶意/损坏encIvKey
 		// 抛GeneralSecurityException后可在单条连接上无限刷RSA私钥解密（CPU消耗）；伪造
@@ -210,10 +210,10 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			// clientPubKey为空（未提供身份）同样拒绝。此刻无任何codec已切换、无半开风险，
 			// 优雅关闭让错误码先冲刷到对端再断连（close(ex)非优雅会连错误响应一起丢掉）。
 			if (clientPubKeyAcceptor != null) {
-				var clientPubKey = stripLeadingZeros(Argument.clientPubKey); // 与getPubKeyMd5相同的前导零归一
+				var clientPubKey = stripLeadingZeros(Objects.requireNonNull(Argument.clientPubKey)); // 与getPubKeyMd5相同的前导零归一
 				if (clientPubKey.length == 0 || !clientPubKeyAcceptor.test(clientPubKey)) {
 					trySendResultCode(Res.ErrorUnknownClientPubKey);
-					getSender().closeGracefully();
+					Objects.requireNonNull(getSender()).closeGracefully();
 					return 0;
 				}
 			}
@@ -223,7 +223,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			}
 			byte[] clientIvKey;
 			try {
-				clientIvKey = Cert.decryptRsa(priKey, Argument.encIvKey);
+				clientIvKey = Cert.decryptRsa(priKey, Objects.requireNonNull(Argument.encIvKey));
 			} catch (GeneralSecurityException e) {
 				throw Task.forceThrow(e);
 			}
@@ -233,9 +233,9 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			byte[] serverIvKey = genIvKey();
 			byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
 			byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-			((TcpSocket)getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
+			Objects.requireNonNull(((TcpSocket)getSender())).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
 
-			if (Argument.clientPubKey.length > 0) {
+			if (Objects.requireNonNull(Argument.clientPubKey).length > 0) {
 				Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey); // 已过acceptor认证
 			} else {
 				for (int i = 0; i < 32; i++)
@@ -249,7 +249,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			((TcpSocket)getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
 			return 0;
 		} catch (Throwable ex) { // 这个握手错误不能忽略（对齐HandshakeBase）。
-			getSender().close(ex);
+			Objects.requireNonNull(getSender()).close(ex);
 			return 0;
 		}
 	}
@@ -263,7 +263,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	 * 握手完成前的明文注入窗口。本服务上的全部TcpSocket连接自此必须先完成KeyExchange。
 	 * 门禁经连接级解码准入生效（TcpSocket连接构造器装配），须在建立连接前调用本方法。
 	 */
-	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey) {
+	public static void addHandler(Service service, PrivateKey serverPriKey) {
 		addHandler(service, serverPriKey, null);
 	}
 
@@ -276,8 +276,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	 * clientIvKey、发不出合法加密流量，但能收到以其自生成密钥加密的服务器下推；
 	 * 服务器主动下推型业务需自行加密钥确认（如首个合法解密帧后才置已认证态）。
 	 */
-	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey,
-								  @Nullable Predicate<byte @NotNull []> clientPubKeyAcceptor) {
+	public static void addHandler(Service service, PrivateKey serverPriKey,
+								  @Nullable Predicate<byte []> clientPubKeyAcceptor) {
 		service.armDecodeAdmission(KeyExchange.TypeId);
 		byte[] pubKeyMd5 = getPubKeyMd5(((RSAKey)serverPriKey).getModulus().toByteArray());
 		if (!service.getFactorys().containsKey(KeyExchange.TypeId)) {

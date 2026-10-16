@@ -7,8 +7,7 @@ import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 跨进程文件互斥：对指定锁文件上 OS 排它锁（RandomAccessFile + tryLock），
@@ -24,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
  * 路径，不得因锁释放失败中断后续清理步骤。
  */
 public final class FileMutex implements AutoCloseable {
-	private static final @NotNull Logger logger = LogManager.getLogger(FileMutex.class);
+	private static final Logger logger = LogManager.getLogger(FileMutex.class);
 
 	private @Nullable RandomAccessFile lockFile;
 	private @Nullable FileLock fileLock;
@@ -35,7 +34,7 @@ public final class FileMutex implements AutoCloseable {
 	 *
 	 * @param ownerDesc 持有者描述，拼入失败消息供定位（如 "zeze_cache dir (serverId=N)"）
 	 */
-	public static @NotNull FileMutex acquire(@NotNull String lockFilePath, @NotNull String ownerDesc) {
+	public static FileMutex acquire(String lockFilePath, String ownerDesc) {
 		var lockPath = new File(lockFilePath);
 		var lock = new FileMutex();
 		try {

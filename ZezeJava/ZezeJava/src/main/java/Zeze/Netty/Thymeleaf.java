@@ -2,7 +2,6 @@ package Zeze.Netty;
 
 import Zeze.Util.ConcurrentHashSet;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
@@ -16,18 +15,18 @@ public class Thymeleaf {
 	private final FileTemplateResolver templateResolver = new FileTemplateResolver();
 	private final ConcurrentHashSet<String> withContentLength = new ConcurrentHashSet<>();
 
-	public Thymeleaf(@NotNull String templateDir) {
+	public Thymeleaf(String templateDir) {
 		templateResolver.setTemplateMode(TemplateMode.HTML);
 		templateResolver.setPrefix(templateDir);
 		templateResolver.setSuffix(".html");
 		templateEngine.setTemplateResolver(templateResolver);
 	}
 
-	public @NotNull TemplateEngine getTemplateEngine() {
+	public TemplateEngine getTemplateEngine() {
 		return templateEngine;
 	}
 
-	public @NotNull FileTemplateResolver getTemplateResolver() {
+	public FileTemplateResolver getTemplateResolver() {
 		return templateResolver;
 	}
 
@@ -36,11 +35,11 @@ public class Thymeleaf {
 	 * 可越出模板目录读任意.html。合法模板名为不含..、:、反斜杠的相对根路径，
 	 * 越根即FORBIDDEN（同HttpServer.addFileHandler的防护）。
 	 */
-	public static boolean isTraversalTemplateName(@NotNull String url) {
+	public static boolean isTraversalTemplateName(String url) {
 		return url.contains("..") || url.indexOf(':') >= 0 || url.indexOf('\\') >= 0;
 	}
 
-	public void sendResponse(@NotNull HttpExchange x, @NotNull Context context) throws Exception {
+	public void sendResponse(HttpExchange x, Context context) throws Exception {
 		var url = x.path();
 		if (isTraversalTemplateName(url)) {
 			x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, ""));

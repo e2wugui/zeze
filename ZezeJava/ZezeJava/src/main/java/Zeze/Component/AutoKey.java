@@ -18,8 +18,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TimeAdaptedFund;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 全局唯一ID发号器：serverId前缀+seed变长大端编码，按号段批量发号。
@@ -27,10 +26,10 @@ import org.jetbrains.annotations.Nullable;
 public class AutoKey extends ReentrantLock {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
-		public final @NotNull Application zeze;
+		public final Application zeze;
 
 		// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
-		public Module(@NotNull Application zeze) {
+		public Module(Application zeze) {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 		}
@@ -43,23 +42,23 @@ public class AutoKey extends ReentrantLock {
 		/**
 		 * 这个返回值，可以在自己模块内保存下来，效率高一些。
 		 */
-		public @NotNull AutoKey getOrAdd(@NotNull String name) {
+		public AutoKey getOrAdd(String name) {
 			return map.computeIfAbsent(name, name2 -> new AutoKey(this, name2));
 		}
 	}
 
-	private final @NotNull Module module;
-	private final @NotNull String name;
+	private final Module module;
+	private final String name;
 	private volatile @Nullable Range range;
 
 	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 
-	private AutoKey(@NotNull Module module, @NotNull String name) {
+	private AutoKey(Module module, String name) {
 		this.module = module;
 		this.name = name;
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return name;
 	}
 
@@ -76,22 +75,22 @@ public class AutoKey extends ReentrantLock {
 		return ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex); // 这里用BE(大端)是为了保证返回值一定为正,且保证ID值随seed的增长而增长
 	}
 
-	public byte @NotNull [] nextBytes() {
+	public byte [] nextBytes() {
 		return nextByteBuffer().Bytes; // nextByteBuffer的Bytes一定是正好大小的数组
 	}
 
-	public @NotNull Binary nextBinary() {
+	public Binary nextBinary() {
 		return new Binary(nextByteBuffer());
 	}
 
 	/**
 	 * @return base64编码的ID
 	 */
-	public @NotNull String nextString() {
+	public String nextString() {
 		return Base64.getEncoder().encodeToString(nextBytes());
 	}
 
-	public @NotNull ByteBuffer nextByteBuffer() {
+	public ByteBuffer nextByteBuffer() {
 		int serverId = module.zeze.getConfig().getServerId();
 		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
 			throw new IllegalStateException("AutoKey.nextByteBuffer: serverId(" + serverId + ") < 0");

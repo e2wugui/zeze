@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import java.util.concurrent.TimeUnit;
 import java.util.function.ToLongFunction;
 import Zeze.Builtin.Dbh2.BBatchTid;
@@ -28,7 +30,7 @@ import Zeze.Util.Func3;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Dbh2 客户端到单个桶 Raft 集群的代理连接，封装对桶的读写与事务 RPC。
@@ -69,7 +71,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		raftClient.send(r, handle);
 	}
 
-	public KV<Boolean, ByteBuffer> get(String databaseName, String tableName, Binary key) {
+	public KV<Boolean, @Nullable ByteBuffer> get(String databaseName, String tableName, Binary key) {
 		var r = new Get();
 		r.Argument.setDatabase(databaseName);
 		r.Argument.setTable(tableName);
@@ -135,15 +137,15 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		this(raftConfigString, (ProxyAgent)null);
 	}
 
-	public Dbh2Agent(String raftConfigString, ProxyAgent proxyAgent) throws Exception {
+	public Dbh2Agent(String raftConfigString, @Nullable ProxyAgent proxyAgent) throws Exception {
 		this.raftConfigString = raftConfigString;
 		var raftConf = RaftConfig.loadFromString(raftConfigString);
 		raftClient = new Agent("dbh2.raft", raftConf, null, proxyAgent);
-		raftClient.getClient().getConfig().getSocketOptions().setInputBufferMaxProtocolSize(100 * 1024 * 1024);
-		raftClient.getClient().getConfig().getSocketOptions().setOutputBufferMaxSize(100 * 1024 * 1024);
+		Objects.requireNonNull(raftClient.getClient()).getConfig().getSocketOptions().setInputBufferMaxProtocolSize(100 * 1024 * 1024);
+		Objects.requireNonNull(raftClient.getClient()).getConfig().getSocketOptions().setOutputBufferMaxSize(100 * 1024 * 1024);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
-		RegisterProtocols(raftClient.getClient());
-		raftClient.getClient().start();
+		RegisterProtocols(Objects.requireNonNull(raftClient.getClient()));
+		Objects.requireNonNull(raftClient.getClient()).start();
 	}
 
 	public Dbh2Agent(String raftConfigString, Func3<Agent, String, Config, Agent.NetClient> netClientFactory) throws Exception {
@@ -152,13 +154,13 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 
 	public Dbh2Agent(String raftConfigString,
 					 Func3<Agent, String, Config, Agent.NetClient> netClientFactory,
-					 ProxyAgent proxyAgent) throws Exception {
+					 @Nullable ProxyAgent proxyAgent) throws Exception {
 		this.raftConfigString = raftConfigString;
 		var raftConf = RaftConfig.loadFromString(raftConfigString);
 		raftClient = new Agent("dbh2.raft", raftConf, null, netClientFactory, proxyAgent);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
-		RegisterProtocols(raftClient.getClient());
-		raftClient.getClient().start();
+		RegisterProtocols(Objects.requireNonNull(raftClient.getClient()));
+		Objects.requireNonNull(raftClient.getClient()).start();
 	}
 
 	private void raftOnSetLeader(Agent agent) {

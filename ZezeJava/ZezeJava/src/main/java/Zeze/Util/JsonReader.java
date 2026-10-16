@@ -1,13 +1,14 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Json.*;
 
 /*
@@ -27,8 +28,8 @@ PART : Additional white space characters are allowed: \t,\n,\v(\x0b),\f(\x0c),\r
 */
 // 流式 JSON(JSON5) 读取解析器：直接操作 UTF-8 字节缓冲，供 Json 反射解析与手工调用
 public final class JsonReader {
-	private static final @NotNull Double NEGATIVE_INFINITY = Double.NEGATIVE_INFINITY;
-	private static final @NotNull Double POSITIVE_INFINITY = Double.POSITIVE_INFINITY;
+	private static final Double NEGATIVE_INFINITY = Double.NEGATIVE_INFINITY;
+	private static final Double POSITIVE_INFINITY = Double.POSITIVE_INFINITY;
 
 	// 写侧 JsonWriter 默认深度限制为 16，读取上限必须远大于它（应用可用 setMaxDepth 配合更大的写侧深度）；
 	// 同时每层容器递归约 2~3 个栈帧，1024 层距默认线程栈的 StackOverflowError 阈值有一个数量级以上的安全余量，
@@ -68,12 +69,12 @@ public final class JsonReader {
 			1e302, 1e303, 1e304, 1e305, 1e306, 1e307, 1e308
 	};
 
-	private static final @NotNull ThreadLocal<JsonReader> localReaders = ensureNotNull(
+	private static final ThreadLocal<JsonReader> localReaders = ensureNotNull(
 			ThreadLocal.withInitial(JsonReader::new));
-	private static String[] poolStrs;
+	private static @Nullable String @Nullable [] poolStrs;
 	private static int poolSize = 1024;
 
-	public static @NotNull JsonReader local() {
+	public static JsonReader local() {
 		return ensureNotNull(localReaders.get());
 	}
 
@@ -87,14 +88,14 @@ public final class JsonReader {
 	}
 
 	public static void clearStringPool() {
-		String[] ss = poolStrs;
+		@Nullable String[] ss = poolStrs;
 		if (ss != null)
 			Arrays.fill(ss, null);
 	}
 
-	static @NotNull String intern(byte[] buf, int pos, int end) {
+	static String intern(byte[] buf, int pos, int end) {
 		int len = end - pos;
-		String[] ss = poolStrs;
+		@Nullable String[] ss = poolStrs;
 		if (ss == null)
 			poolStrs = ss = new String[poolSize];
 		int idx = getKeyHash(buf, pos, end) & (ss.length - 1);
@@ -108,9 +109,9 @@ public final class JsonReader {
 		return s;
 	}
 
-	private byte[] buf; // only support utf-8 encoding
+	private byte @Nullable [] buf; // only support utf-8 encoding
 	private int pos;
-	private char[] tmp; // for parseString & parseStringNoQuot
+	private char @Nullable [] tmp; // for parseString & parseStringNoQuot
 	private int depth; // current container nesting depth
 	private int maxDepth = DEFAULT_MAX_DEPTH;
 
@@ -126,7 +127,7 @@ public final class JsonReader {
 		pos = p;
 	}
 
-	public @NotNull JsonReader reset() {
+	public JsonReader reset() {
 		buf = null;
 		pos = 0;
 		tmp = null;
@@ -134,25 +135,25 @@ public final class JsonReader {
 		return this;
 	}
 
-	public byte[] buf() {
+	public byte @Nullable [] buf() {
 		return buf;
 	}
 
-	public @NotNull JsonReader buf(@NotNull String s) {
+	public JsonReader buf(String s) {
 		buf = s.getBytes(StandardCharsets.UTF_8);
 		pos = 0;
 		depth = 0;
 		return this;
 	}
 
-	public @NotNull JsonReader buf(byte[] b) {
+	public JsonReader buf(byte[] b) {
 		buf = b;
 		pos = 0;
 		depth = 0;
 		return this;
 	}
 
-	public @NotNull JsonReader buf(byte[] b, int p) {
+	public JsonReader buf(byte[] b, int p) {
 		buf = b;
 		pos = p;
 		depth = 0;
@@ -163,12 +164,12 @@ public final class JsonReader {
 		return pos;
 	}
 
-	public @NotNull JsonReader pos(int p) {
+	public JsonReader pos(int p) {
 		pos = p;
 		return this;
 	}
 
-	public @NotNull JsonReader pos(@NotNull Pos p) {
+	public JsonReader pos(Pos p) {
 		pos = p.pos;
 		return this;
 	}
@@ -177,48 +178,48 @@ public final class JsonReader {
 		return maxDepth;
 	}
 
-	public @NotNull JsonReader setMaxDepth(int depth) {
+	public JsonReader setMaxDepth(int depth) {
 		this.maxDepth = depth;
 		return this;
 	}
 
-	public char[] tmp() {
+	public char @Nullable [] tmp() {
 		return tmp;
 	}
 
-	public @NotNull JsonReader tmp(char[] t) {
+	public JsonReader tmp(char[] t) {
 		tmp = t;
 		return this;
 	}
 
-	public @NotNull JsonReader tmp(int size) {
+	public JsonReader tmp(int size) {
 		if (tmp == null || tmp.length < size)
 			tmp = new char[size];
 		return this;
 	}
 
-	public @NotNull JsonReader skip(int n) {
+	public JsonReader skip(int n) {
 		pos += n;
 		return this;
 	}
 
-	public @NotNull JsonReader trySkipBom() {
+	public JsonReader trySkipBom() {
 		int p = pos;
-		if (p + 2 < buf.length && buf[p] == (byte)0xef && buf[p + 1] == (byte)0xbb && buf[p + 2] == (byte)0xbf)
+		if (p + 2 < Objects.requireNonNull(buf).length && Objects.requireNonNull(buf)[p] == (byte)0xef && Objects.requireNonNull(buf)[p + 1] == (byte)0xbb && Objects.requireNonNull(buf)[p + 2] == (byte)0xbf)
 			pos = p + 3;
 		return this;
 	}
 
 	public boolean end() {
-		return end(buf.length);
+		return end(Objects.requireNonNull(buf).length);
 	}
 
 	public boolean end(int len) {
 		for (int b; pos < len; pos++)
-			if ((b = buf[pos] & 0xff) > ' ') {
+			if ((b = Objects.requireNonNull(buf)[pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
 					return false;
-				if ((b = buf[++pos]) == '*') {
+				if ((b = Objects.requireNonNull(buf)[++pos]) == '*') {
 					for (pos++; pos < len; pos++)
 						if (buf[pos] == '*' && pos + 1 < len && buf[pos + 1] == '/') {
 							pos++; // 停在'/'上，外层pos++越过
@@ -237,13 +238,13 @@ public final class JsonReader {
 
 	public int next() {
 		for (int b; ; pos++) {
-			if (pos >= buf.length)
+			if (pos >= Objects.requireNonNull(buf).length)
 				return 0; // 输入耗尽（空/全空白/纯注释）：NUL哨兵——实字节0x00本被当空白跳过，
 			          // 永不为真实token，无碰撞。调用面全是"期待定界符否则宽容回退"形态
 			          //（parse0:next()!='{'返回默认对象、parseArray0/parseMap0同理），
 			          // 耗尽回0统一走回退；此前buf[pos]直接AIOOBE——空body请求打进
 			          // /api/search即500（应答器catch兜成system error，ERROR日志+栈）。
-			if ((b = buf[pos] & 0xff) > ' ') {
+			if ((b = Objects.requireNonNull(buf)[pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
 					return b;
 				skipComment();
@@ -253,7 +254,7 @@ public final class JsonReader {
 
 	public int skipNext() {
 		for (int b; ; ) {
-			if ((b = buf[++pos] & 0xff) > ' ') {
+			if ((b = Objects.requireNonNull(buf)[++pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
 					return b;
 				skipComment();
@@ -263,7 +264,7 @@ public final class JsonReader {
 
 	public int skipVar(int e) { // ']' or '}'
 		for (int b, c; ; ) {
-			if ((b = buf[pos]) == ',' || b == '\n')
+			if ((b = Objects.requireNonNull(buf)[pos]) == ',' || b == '\n')
 				for (; ; )
 					if (((((b = buf[++pos]) & 0xff) - ' ' - 1) ^ (',' - ' ' - 1)) > 0) { // (b & 0xff) > ' ' && b != ','
 						if (b != '/') // check comment
@@ -305,9 +306,9 @@ public final class JsonReader {
 
 	private void skipComment() {
 		int b;
-		if ((b = buf[++pos]) == '*') {
+		if ((b = Objects.requireNonNull(buf)[++pos]) == '*') {
 			for (pos++; ; ) {
-				if (pos >= buf.length)
+				if (pos >= Objects.requireNonNull(buf).length)
 					return; // 未终结的块注释到EOF：按耗尽处理，后续next()走NUL哨兵
 				if (buf[pos++] == '*' && pos < buf.length && buf[pos] == '/')
 					return; // pos停在关闭'/'上（调用方约定，见skipVar的'/'分支）
@@ -324,7 +325,7 @@ public final class JsonReader {
 
 	// U+2028/U+2029 的UTF-8编码（E2 80 A8/A9）
 	private boolean isUnicodeLineSeparator(int p) {
-		return p + 2 < buf.length && (buf[p] & 0xff) == 0xE2
+		return p + 2 < Objects.requireNonNull(buf).length && (Objects.requireNonNull(buf)[p] & 0xff) == 0xE2
 				&& (buf[p + 1] & 0xff) == 0x80
 				&& (((buf[p + 2] & 0xff) == 0xA8) || ((buf[p + 2] & 0xff) == 0xA9));
 	}
@@ -341,7 +342,7 @@ public final class JsonReader {
 	}
 
 	public void skipQuot(int e) {
-		for (int b; (b = buf[pos++]) != e; )
+		for (int b; (b = Objects.requireNonNull(buf)[pos++]) != e; )
 			if (b == '\\')
 				pos++;
 	}
@@ -354,8 +355,8 @@ public final class JsonReader {
 	@Nullable Object parse(@Nullable Object obj, int b) throws ReflectiveOperationException {
 		//noinspection EnhancedSwitchMigration
 		switch (b) { //@formatter:off
-		case '{': return parseMap0(obj instanceof Map ? (Map<String, Object>) obj : null);
-		case '[': return parseArray0(obj instanceof Collection ? (Collection<Object>) obj : null);
+		case '{': return parseMap0(obj instanceof Map ? (Map<String, @Nullable Object>) obj : null);
+		case '[': return parseArray0(obj instanceof Collection ? (Collection<@Nullable Object>) obj : null);
 		case '"': case '\'': return parseString(b, false);
 		case '0': case '1': case '2': case '3': case '4': case '5': case '6':
 		case '7': case '8': case '9': case '-': case '+': case '.':
@@ -370,11 +371,11 @@ public final class JsonReader {
 		return null;
 	}
 
-	public @Nullable Collection<Object> parseArray(@Nullable Collection<Object> c) throws ReflectiveOperationException {
+	public @Nullable Collection<@Nullable Object> parseArray(@Nullable Collection<@Nullable Object> c) throws ReflectiveOperationException {
 		return next() == '[' ? parseArray0(c) : c;
 	}
 
-	@NotNull Collection<Object> parseArray0(@Nullable Collection<Object> c) throws ReflectiveOperationException {
+	Collection<@Nullable Object> parseArray0(@Nullable Collection<@Nullable Object> c) throws ReflectiveOperationException {
 		if (++depth > maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		if (c == null)
@@ -391,7 +392,7 @@ public final class JsonReader {
 	 * 元素null按类型默认值收（原始类型不可存null）；非'['起始宽容返回null
 	 * （对齐parse(Object,int)未知token→null的契约）。
 	 */
-	private @Nullable Object parseArrayField(@NotNull Class<?> componentType, int b) throws ReflectiveOperationException {
+	private @Nullable Object parseArrayField(Class<?> componentType, int b) throws ReflectiveOperationException {
 		if (b != '[')
 			return null;
 		if (++depth > maxDepth)
@@ -407,7 +408,7 @@ public final class JsonReader {
 		return array;
 	}
 
-	private @Nullable Object parseArrayElement(@NotNull Class<?> ct, int b) throws ReflectiveOperationException {
+	private @Nullable Object parseArrayElement(Class<?> ct, int b) throws ReflectiveOperationException {
 		if (ct == boolean.class)
 			return b == 't';
 		if (ct == int.class)
@@ -449,13 +450,13 @@ public final class JsonReader {
 		return parse(null, b); // Object等：走通用值解析
 	}
 
-	public <T> @Nullable Collection<T> parseArray(@Nullable Collection<T> c, @NotNull Class<T> elemClass)
+	public <T> @Nullable Collection<@Nullable T> parseArray(@Nullable Collection<@Nullable T> c, Class<T> elemClass)
 			throws ReflectiveOperationException {
 		return parseArray(Json.instance, c, elemClass);
 	}
 
-	public <T> @Nullable Collection<T> parseArray(@NotNull Json json, @Nullable Collection<T> c,
-												  @NotNull Class<T> elemClass) throws ReflectiveOperationException {
+	public <T> @Nullable Collection<@Nullable T> parseArray(Json json, @Nullable Collection<@Nullable T> c,
+												  Class<T> elemClass) throws ReflectiveOperationException {
 		if (next() != '[')
 			return c;
 		if (++depth > maxDepth)
@@ -472,11 +473,11 @@ public final class JsonReader {
 		return c;
 	}
 
-	public @Nullable Map<String, Object> parseMap(@Nullable Map<String, Object> m) throws ReflectiveOperationException {
+	public @Nullable Map<String, @Nullable Object> parseMap(@Nullable Map<String, @Nullable Object> m) throws ReflectiveOperationException {
 		return next() == '{' ? parseMap0(m) : m;
 	}
 
-	@NotNull Map<String, Object> parseMap0(@Nullable Map<String, Object> m) throws ReflectiveOperationException {
+	Map<String, @Nullable Object> parseMap0(@Nullable Map<String, @Nullable Object> m) throws ReflectiveOperationException {
 		if (++depth > maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		if (m == null)
@@ -494,7 +495,7 @@ public final class JsonReader {
 		return klass != null ? parse((T)null, Json.instance.getClassMeta(klass)) : null;
 	}
 
-	public <T> @Nullable T parse(@NotNull Json json, @Nullable Class<T> klass) throws ReflectiveOperationException {
+	public <T> @Nullable T parse(Json json, @Nullable Class<T> klass) throws ReflectiveOperationException {
 		return klass != null ? parse(json, null, json.getClassMeta(klass)) : null;
 	}
 
@@ -524,7 +525,7 @@ public final class JsonReader {
 		return parse(obj, klass != null ? Json.instance.getClassMeta(klass) : null);
 	}
 
-	public <T> @Nullable T parse(@NotNull Json json, @Nullable T obj, @Nullable Class<? super T> klass)
+	public <T> @Nullable T parse(Json json, @Nullable T obj, @Nullable Class<? super T> klass)
 			throws ReflectiveOperationException {
 		return parse(json, obj, klass != null ? json.getClassMeta(klass) : null);
 	}
@@ -534,12 +535,12 @@ public final class JsonReader {
 		return parse(Json.instance, obj, classMeta);
 	}
 
-	public <T> @Nullable T parse(@NotNull Json json, @Nullable T obj) throws ReflectiveOperationException {
+	public <T> @Nullable T parse(Json json, @Nullable T obj) throws ReflectiveOperationException {
 		return parse(json, obj, (ClassMeta<T>)null);
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> @Nullable T parse(@NotNull Json json, @Nullable T obj, @Nullable ClassMeta<? super T> classMeta)
+	public <T> @Nullable T parse(Json json, @Nullable T obj, @Nullable ClassMeta<? super T> classMeta)
 			throws ReflectiveOperationException {
 		if (classMeta == null) {
 			if (obj == null)
@@ -575,7 +576,7 @@ public final class JsonReader {
 		return parse0((T)classMeta.ctor.create(), classMeta);
 	}
 
-	public <T> @NotNull T parse0(@NotNull T obj, @NotNull ClassMeta<?> classMeta) throws ReflectiveOperationException {
+	public <T> T parse0(T obj, ClassMeta<?> classMeta) throws ReflectiveOperationException {
 		if (next() != '{')
 			return obj;
 		if (++depth > maxDepth)
@@ -731,12 +732,12 @@ public final class JsonReader {
 						break;
 					}
 					@SuppressWarnings("unchecked")
-					Collection<Object> c = (Collection<Object>)unsafe.getObject(obj, offset);
+					Collection<@Nullable Object> c = (Collection<@Nullable Object>)unsafe.getObject(obj, offset);
 					if (c == null) {
 						Creator<?> ctor = fm.ctor;
 						if (ctor != null) {
 							@SuppressWarnings("unchecked")
-							Collection<Object> c2 = ensureNotNull((Collection<Object>)ctor.create());
+							Collection<@Nullable Object> c2 = ensureNotNull((Collection<@Nullable Object>)ctor.create());
 							unsafe.putObject(obj, offset, c = c2);
 						} else {
 							ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
@@ -763,12 +764,12 @@ public final class JsonReader {
 						break;
 					}
 					@SuppressWarnings("unchecked")
-					Map<Object, Object> m = (Map<Object, Object>)unsafe.getObject(obj, offset);
+					Map<Object, @Nullable Object> m = (Map<Object, @Nullable Object>)unsafe.getObject(obj, offset);
 					if (m == null) {
 						Creator<?> ctor = fm.ctor;
 						if (ctor != null) {
 							@SuppressWarnings("unchecked")
-							Map<Object, Object> m2 = ensureNotNull((Map<Object, Object>)ctor.create());
+							Map<Object, @Nullable Object> m2 = ensureNotNull((Map<Object, @Nullable Object>)ctor.create());
 							unsafe.putObject(obj, offset, m = m2);
 						} else {
 							ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
@@ -796,7 +797,7 @@ public final class JsonReader {
 		return obj;
 	}
 
-	public void parseList0(@NotNull Collection<Object> c, @NotNull ClassMeta<?> classMeta, @NotNull FieldMeta fm)
+	public void parseList0(Collection<@Nullable Object> c, ClassMeta<?> classMeta, FieldMeta fm)
 			throws ReflectiveOperationException {
 		if (++depth > maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
@@ -868,7 +869,7 @@ public final class JsonReader {
 		depth--;
 	}
 
-	public void parseMap0(@NotNull Map<Object, Object> m, @NotNull ClassMeta<?> classMeta, @NotNull FieldMeta fm)
+	public void parseMap0(Map<Object, @Nullable Object> m, ClassMeta<?> classMeta, FieldMeta fm)
 			throws ReflectiveOperationException {
 		if (++depth > maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
@@ -970,7 +971,7 @@ public final class JsonReader {
 	}
 
 	int parseKeyHash(int e) {
-		final byte[] buffer = buf;
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		pos++; // skip the first '"' or '\''
 		int b = buffer[pos++];
 		if (b == e)
@@ -1032,7 +1033,7 @@ public final class JsonReader {
 		int h = 0;
 		for (; ; ) {
 			if (b == '\\') {
-				int c = buf[++pos]; // c 为转义字符，pos 停在它上面
+				int c = Objects.requireNonNull(buf)[++pos]; // c 为转义字符，pos 停在它上面
 				if (c == 'u') {
 					c = parseHex4(buf, pos + 1); // 4 个 hex 从 'u' 之后开始（对齐 parseKeyHash 的 pos++ 语义）
 					pos += 5; // 'u' + 4 hex，pos 停在转义序列后的第一个字符
@@ -1077,7 +1078,7 @@ public final class JsonReader {
 				continue;
 			} else
 				h = h * m + b;
-			if (((((b = buf[++pos]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
+			if (((((b = Objects.requireNonNull(buf)[++pos]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
 				return h;
 			if (b == '/') // check comment
 				return h;
@@ -1087,8 +1088,8 @@ public final class JsonReader {
 	/** hash命中后的key内容校验：按与parseKeyHash/parseKeyHashNoQuot一致的
 	 * 解码语义——原始字节、简写转义与unicode转义按解码后codepoint的UTF-8字节——重走
 	 * [begin,end)与字段名UTF-8字节逐比对，防32位keyHash定向碰撞注入。无转义走快比对。 */
-	boolean keyEquals(int begin, int end, byte @NotNull [] name) {
-		final byte[] buffer = buf;
+	boolean keyEquals(int begin, int end, byte [] name) {
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p, b, c;
 		for (p = begin; p < end; p++)
 			if (buffer[p] == '\\')
@@ -1153,27 +1154,27 @@ public final class JsonReader {
 		return n == len;
 	}
 
-	public static @NotNull String parseStringKey(@NotNull JsonReader jr, int b) {
+	public static String parseStringKey(JsonReader jr, int b) {
 		return b == '"' || b == '\'' ? jr.parseString(b, true) : jr.parseStringNoQuot();
 	}
 
-	public static @NotNull Boolean parseBooleanKey(@NotNull JsonReader jr, int b) {
+	public static Boolean parseBooleanKey(JsonReader jr, int b) {
 		boolean v;
 		if (b == '"' || b == '\'') {
-			v = jr.buf[++jr.pos] == 't';
+			v = Objects.requireNonNull(jr.buf)[++jr.pos] == 't';
 			jr.skipQuot(b);
 		} else {
 			// 同时用于键与 typed 值：停在冒号、容器分隔符或注释开头，交给外层消费。
-			v = jr.buf[jr.pos] == 't';
+			v = Objects.requireNonNull(jr.buf)[jr.pos] == 't';
 			//noinspection StatementWithEmptyBody
-			for (int c; jr.pos < jr.buf.length && (c = jr.buf[jr.pos] & 0xff) > ' '
+			for (int c; jr.pos < jr.buf.length && (c = Objects.requireNonNull(jr.buf)[jr.pos] & 0xff) > ' '
 					&& c != ':' && c != ',' && c != ']' && c != '}' && c != '/'; jr.pos++) {
 			}
 		}
 		return v;
 	}
 
-	public static @NotNull Byte parseByteKey(@NotNull JsonReader jr, int b) {
+	public static Byte parseByteKey(JsonReader jr, int b) {
 		int v;
 		if (b == '"' || b == '\'') {
 			jr.pos++;
@@ -1184,7 +1185,7 @@ public final class JsonReader {
 		return (byte)v;
 	}
 
-	public static @NotNull Short parseShortKey(@NotNull JsonReader jr, int b) {
+	public static Short parseShortKey(JsonReader jr, int b) {
 		int v;
 		if (b == '"' || b == '\'') {
 			jr.pos++;
@@ -1195,7 +1196,7 @@ public final class JsonReader {
 		return (short)v;
 	}
 
-	public static @NotNull Character parseCharKey(@NotNull JsonReader jr, int b) {
+	public static Character parseCharKey(JsonReader jr, int b) {
 		int v;
 		if (b == '"' || b == '\'') {
 			jr.pos++;
@@ -1206,7 +1207,7 @@ public final class JsonReader {
 		return (char)v;
 	}
 
-	public static @NotNull Integer parseIntegerKey(@NotNull JsonReader jr, int b) {
+	public static Integer parseIntegerKey(JsonReader jr, int b) {
 		int v;
 		if (b == '"' || b == '\'') {
 			jr.pos++;
@@ -1217,7 +1218,7 @@ public final class JsonReader {
 		return v;
 	}
 
-	public static @NotNull Long parseLongKey(@NotNull JsonReader jr, int b) {
+	public static Long parseLongKey(JsonReader jr, int b) {
 		long v;
 		if (b == '"' || b == '\'') {
 			jr.pos++;
@@ -1228,7 +1229,7 @@ public final class JsonReader {
 		return v;
 	}
 
-	public static @NotNull Float parseFloatKey(@NotNull JsonReader jr, int b) {
+	public static Float parseFloatKey(JsonReader jr, int b) {
 		double v;
 		if (b == '"' || b == '\'') {
 			jr.pos++;
@@ -1239,7 +1240,7 @@ public final class JsonReader {
 		return (float)v;
 	}
 
-	public static @NotNull Double parseDoubleKey(@NotNull JsonReader jr, int b) {
+	public static Double parseDoubleKey(JsonReader jr, int b) {
 		double v;
 		if (b == '"' || b == '\'') {
 			jr.pos++;
@@ -1259,8 +1260,8 @@ public final class JsonReader {
 				+ (parseHex(buffer[p + 2]) << 4) + parseHex(buffer[p + 3]);
 	}
 
-	public byte[] parseByteString() {
-		final byte[] buffer = buf;
+	public byte @Nullable [] parseByteString() {
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p = pos, b, e = buffer[p];
 		if (e != '"' && e != '\'')
 			return null;
@@ -1326,12 +1327,12 @@ public final class JsonReader {
 		}
 	}
 
-	public @NotNull String parseString() {
+	public String parseString() {
 		return parseString(false);
 	}
 
-	public @NotNull String parseString(boolean intern) {
-		final byte[] buffer = buf;
+	public String parseString(boolean intern) {
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p = pos, b = buffer[p];
 		if (b != '"' && b != '\'') {
 			final int begin = p;
@@ -1351,8 +1352,8 @@ public final class JsonReader {
 
 	// 无引号值慢路径：无引号值无转义语义（反斜杠为字面量），整段纯UTF-8一次解码；
 	// 终止符与末尾\r剥离对齐快路径；intern与同族慢路径一致忽略。
-	private @NotNull String parseStringUnquotedSlow(int begin) {
-		final byte[] buffer = buf;
+	private String parseStringUnquotedSlow(int begin) {
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int b, p;
 		for (p = begin; ; p++) {
 			b = buffer[p];
@@ -1369,8 +1370,8 @@ public final class JsonReader {
 		return new String(t, 0, decodeUtf8(t, 0, begin, end));
 	}
 
-	public @NotNull String parseString(int e, boolean intern) {
-		final byte[] buffer = buf;
+	public String parseString(int e, boolean intern) {
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p = pos, b;
 		final int begin = ++p;
 		for (; ; p++) {
@@ -1398,8 +1399,8 @@ public final class JsonReader {
 		return decodeStringSlow(begin, end);
 	}
 
-	public @NotNull String parseStringNoQuot() {
-		final byte[] buffer = buf;
+	public String parseStringNoQuot() {
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p = pos, b;
 		final int begin = p;
 		for (; ; p++) {
@@ -1427,8 +1428,8 @@ public final class JsonReader {
 	// 含转义字符串的慢路径解码体：[begin,end)按纯UTF-8分段解码，'\'转义（unicode转义与简写）
 	// 单独处理，段间共享t。end之后紧跟终止符，段内不含终止符（调用方扫描已排除）。
 	// 转义序列由调用方扫描保证完整落在[begin,end)内。
-	private @NotNull String decodeStringSlow(int begin, int end) {
-		final byte[] buffer = buf;
+	private String decodeStringSlow(int begin, int end) {
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		char[] t = tmp;
 		if (t == null || t.length < end - begin)
 			tmp = t = new char[end - begin];
@@ -1467,7 +1468,7 @@ public final class JsonReader {
 	/** 解码[begin,end)的纯UTF-8段写入t（从下标n起），malformed按单字节LATIN1容忍。
 	 * 段内不含转义与终止符（均为ASCII）；续字节校验保证读取不越过end。返回写入后的下标。 */
 	private int decodeUtf8(char[] t, int n, int begin, int end) {
-		final byte[] buffer = buf;
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p = begin, b, c, d, f;
 		while (p < end) {
 			b = buffer[p++];
@@ -1508,7 +1509,7 @@ public final class JsonReader {
 	// 返回 null 表示无需回退或无法回退（词法不完整的垃圾容忍输入，如尾随 'e' 的 "1e"，
 	// parseDouble 不接受），调用方走原快速路径。[from,to) 覆盖整个词（含符号/小数点/指数），
 	// 故返回值已带符号。
-	private static @Nullable Double parseDoubleRounded(byte @NotNull [] buffer, int from, int to, int expTotal) {
+	private static @Nullable Double parseDoubleRounded(byte [] buffer, int from, int to, int expTotal) {
 		int digits = 0;
 		boolean mantissa = true; // 'e'/'E' 之后的指数数字不计有效数字
 		for (int i = from; i < to; i++) {
@@ -1528,7 +1529,7 @@ public final class JsonReader {
 	}
 
 	public int parseInt() {
-		final byte[] buffer = buf;
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		final int startPos = pos;
 		double d = 0;
 		int p = pos, i = 0, n = 0, expFrac = 0, exp = 0, useDouble = 0, b, c;
@@ -1676,7 +1677,7 @@ public final class JsonReader {
 	}
 
 	public long parseLong() {
-		final byte[] buffer = buf;
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		final int startPos = pos;
 		double d = 0;
 		long i = 0;
@@ -1824,7 +1825,7 @@ public final class JsonReader {
 	}
 
 	public double parseDouble() {
-		final byte[] buffer = buf;
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		final int startPos = pos;
 		double d = 0;
 		long i = 0;
@@ -1971,8 +1972,8 @@ public final class JsonReader {
 		return d;
 	}
 
-	public @NotNull Object parseNumber() {
-		final byte[] buffer = buf;
+	public Object parseNumber() {
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		final int startPos = pos;
 		double d = 0;
 		long i = 0;

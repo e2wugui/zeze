@@ -24,16 +24,15 @@ import Zeze.Serialize.Vector3Int;
 import Zeze.Serialize.Vector4;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // 反射工具集：调试模式探测、MethodHandle/StackWalker 便捷方法与类型名稳定化
 public class Reflect {
 	public static final boolean inDebugMode = !"true".equalsIgnoreCase(System.getProperty("noDebugMode")) &&
 			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
-	public static final @NotNull MethodHandles.Lookup lookup = MethodHandles.lookup();
-	public static final @NotNull StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
-	public static final @NotNull MethodHandle supplierMH;
+	public static final MethodHandles.Lookup lookup = MethodHandles.lookup();
+	public static final StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+	public static final MethodHandle supplierMH;
 	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
 	private static final HashMap<Class<?>, Class<?>> boxClassMap = new HashMap<>(16);
 
@@ -84,7 +83,7 @@ public class Reflect {
 
 	private final HashMap<String, Method> methods = new HashMap<>();
 
-	public Reflect(@NotNull Class<?> cls) {
+	public Reflect(Class<?> cls) {
 		for (var c = cls; c != null; c = c.getSuperclass()) {
 			for (var method : c.getDeclaredMethods()) {
 				// 只有协议处理函数能配置TransactionLevel
@@ -96,7 +95,7 @@ public class Reflect {
 		}
 	}
 
-	public static void checkDefaultConstructor(@NotNull Class<?> cls) {
+	public static void checkDefaultConstructor(Class<?> cls) {
 		try {
 			cls.getDeclaredConstructor((Class<?>[])null).setAccessible(true);
 		} catch (NoSuchMethodException e) {
@@ -104,7 +103,7 @@ public class Reflect {
 		}
 	}
 
-	public static @NotNull MethodHandle getDefaultConstructor(@NotNull Class<?> cls) {
+	public static MethodHandle getDefaultConstructor(Class<?> cls) {
 		try {
 			var ctorMethod = cls.getDeclaredConstructor((Class<?>[])null);
 			ctorMethod.setAccessible(true);
@@ -114,7 +113,7 @@ public class Reflect {
 		}
 	}
 
-	public TransactionLevel getTransactionLevel(@NotNull String methodName, TransactionLevel def) {
+	public TransactionLevel getTransactionLevel(String methodName, TransactionLevel def) {
 		var method = methods.get(methodName);
 		if (method == null)
 			return def;
@@ -123,7 +122,7 @@ public class Reflect {
 		return annotation != null ? annotation.Level() : def;
 	}
 
-	public DispatchMode getDispatchMode(@NotNull String methodName, DispatchMode def) {
+	public DispatchMode getDispatchMode(String methodName, DispatchMode def) {
 		var method = methods.get(methodName);
 		if (method == null)
 			return def;
@@ -132,7 +131,7 @@ public class Reflect {
 		return annotation != null ? annotation.mode() : def;
 	}
 
-	public static @NotNull String getStableName(@NotNull Class<?> cls) {
+	public static String getStableName(Class<?> cls) {
 		// 支持的 Zeze/Gen/Types/ 类型。
 		var name = stableNameMap.get(cls);
 		if (name != null)
@@ -142,12 +141,12 @@ public class Reflect {
 		throw new UnsupportedOperationException("Unsupported type: " + cls.getName());
 	}
 
-	public static @NotNull String getStableName(@NotNull Class<?> cls, @NotNull Class<?> tplCls) {
+	public static String getStableName(Class<?> cls, Class<?> tplCls) {
 		return cls.getName() + '<' + getStableName(tplCls) + '>';
 	}
 
-	public static @NotNull String getStableName(@NotNull Class<?> cls, @NotNull Class<?> tplCls1,
-												@NotNull Class<?> tplCls2) {
+	public static String getStableName(Class<?> cls, Class<?> tplCls1,
+												Class<?> tplCls2) {
 		return cls.getName() + '<' + getStableName(tplCls1) + ", " + getStableName(tplCls2) + '>';
 	}
 
@@ -156,8 +155,8 @@ public class Reflect {
 		return (T)obj;
 	}
 
-	private static void collectClassFromPath(@NotNull String parent, @NotNull File path,
-											 @NotNull ArrayList<String> classNames) {
+	private static void collectClassFromPath(String parent, File path,
+											 ArrayList<String> classNames) {
 		var files = path.listFiles();
 		if (files != null) {
 			for (var file : files) {
@@ -171,19 +170,19 @@ public class Reflect {
 		}
 	}
 
-	public static @NotNull ArrayList<String> collectClassNamesFromPath(@NotNull String path) {
+	public static ArrayList<String> collectClassNamesFromPath(String path) {
 		var classNames = new ArrayList<String>();
 		collectClassFromPath("", new File(path), classNames);
 		return classNames;
 	}
 
-	public static @NotNull ArrayList<String> collectClassNamesFromJar(@NotNull String jarFile) throws IOException {
+	public static ArrayList<String> collectClassNamesFromJar(String jarFile) throws IOException {
 		try (var jf = new JarFile(jarFile)) {
 			return collectClassNamesFromJar(jf);
 		}
 	}
 
-	public static @NotNull ArrayList<String> collectClassNamesFromJar(@NotNull JarFile jarFile) {
+	public static ArrayList<String> collectClassNamesFromJar(JarFile jarFile) {
 		var classNames = new ArrayList<String>();
 		for (var e = jarFile.entries(); e.hasMoreElements(); ) {
 			var fn = e.nextElement().getName();
@@ -193,7 +192,7 @@ public class Reflect {
 		return classNames;
 	}
 
-	public static @NotNull ArrayList<String> collectAllClassNames(@Nullable Predicate<String> cpFilter) {
+	public static ArrayList<String> collectAllClassNames(@Nullable Predicate<String> cpFilter) {
 		var isWin = System.getProperty("os.name").toLowerCase().startsWith("win");
 		var classNames = new ArrayList<String>();
 		for (var cp : System.getProperty("java.class.path").split(isWin ? ";" : ":")) {
@@ -216,12 +215,12 @@ public class Reflect {
 		return classNames;
 	}
 
-	public static @NotNull String @NotNull [] collectClassPaths(@NotNull ClassLoader classLoader) {
+	public static String [] collectClassPaths(ClassLoader classLoader) {
 		var isWin = System.getProperty("os.name").toLowerCase().startsWith("win");
 		return System.getProperty("java.class.path").split(isWin ? ";" : ":");
 	}
 
-	public static @Nullable Class<?> getBoxClass(@NotNull Class<?> primitiveClass) {
+	public static @Nullable Class<?> getBoxClass(Class<?> primitiveClass) {
 		return boxClassMap.get(primitiveClass);
 	}
 }

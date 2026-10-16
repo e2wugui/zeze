@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Objects;
+
 import java.util.List;
 import Zeze.Application;
 import Zeze.Arch.LocalRemoveEventArgument;
@@ -23,8 +25,7 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
@@ -35,15 +36,15 @@ import org.jetbrains.annotations.Nullable;
  * online定时器的调度、触发、取消、转发逻辑在 {@link TimerOnlineBase} 中实现。
  */
 public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
-	private static final @NotNull Logger logger = LogManager.getLogger(TimerAccount.class);
+	private static final Logger logger = LogManager.getLogger(TimerAccount.class);
 	public static final String eOnlineTimers = "Zeze.Component.TimerArchOnline";
 	public static final String eTransmitCronTimer = "Zeze.TimerAccount.TransmitCronTimer";
 	public static final String eTransmitSimpleTimer = "Zeze.TimerAccount.TransmitSimpleTimer";
 	public static final String eTransmitCancelAccountTimer = "Zeze.TimerAccount.TransmitCancelAccountTimer";
 
-	private final @NotNull Online online;
+	private final Online online;
 
-	TimerAccount(@NotNull Online online) {
+	TimerAccount(Online online) {
 		this.online = online;
 
 		online.getTransmitActions().put(eTransmitCronTimer, this::transmitOnlineCronTimer);
@@ -57,14 +58,14 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	// ///////////////////////////////////////////////////////////////
 	// TimerOnlineBase 钩子实现
 	private static final class ArchOnlineTimer extends OnlineTimer<BAccountClientId> {
-		private final @NotNull BArchOnlineTimer bTimer;
+		private final BArchOnlineTimer bTimer;
 
-		ArchOnlineTimer(@NotNull BArchOnlineTimer bTimer) {
+		ArchOnlineTimer(BArchOnlineTimer bTimer) {
 			this.bTimer = bTimer;
 		}
 
 		@Override
-		@NotNull Bean getTimerObj() {
+		Bean getTimerObj() {
 			return bTimer.getTimerObj().getBean();
 		}
 
@@ -79,89 +80,89 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		}
 
 		@Override
-		@NotNull BAccountClientId identity() {
+		BAccountClientId identity() {
 			return new BAccountClientId(bTimer.getAccount(), bTimer.getClientId());
 		}
 	}
 
 	@Override
-	@NotNull Timer timer() {
-		return online.providerApp.zeze.getTimer();
+	Timer timer() {
+		return Objects.requireNonNull(online.providerApp.zeze.getTimer());
 	}
 
 	@Override
-	@NotNull String name() {
+	String name() {
 		return "TimerAccount";
 	}
 
 	@Override
-	@Nullable Long getLocalLoginVersion(@NotNull BAccountClientId id) {
+	@Nullable Long getLocalLoginVersion(BAccountClientId id) {
 		return online.getLocalLoginVersion(id.getAccount(), id.getClientId());
 	}
 
 	@Override
-	@Nullable Long getSharedLoginVersion(@NotNull BAccountClientId id) {
+	@Nullable Long getSharedLoginVersion(BAccountClientId id) {
 		return online.getLoginVersion(id.getAccount(), id.getClientId());
 	}
 
 	@Override
-	@Nullable Long getLoginVersion(@NotNull BAccountClientId id) {
+	@Nullable Long getLoginVersion(BAccountClientId id) {
 		return online.getLoginVersion(id.getAccount(), id.getClientId());
 	}
 
 	@Override
-	@NotNull OnlineTimer<BAccountClientId> newOnlineTimer(@NotNull BAccountClientId id, long loginVersion,
-														  long serialId, @NotNull Bean timerObj) {
+	OnlineTimer<BAccountClientId> newOnlineTimer(BAccountClientId id, long loginVersion,
+														  long serialId, Bean timerObj) {
 		var onlineTimer = new BArchOnlineTimer(id.getAccount(), id.getClientId(), loginVersion, serialId);
 		onlineTimer.getTimerObj().setBean(timerObj);
 		return new ArchOnlineTimer(onlineTimer);
 	}
 
 	@Override
-	@Nullable OnlineTimer<BAccountClientId> getOnlineTimer(@NotNull String timerId) {
+	@Nullable OnlineTimer<BAccountClientId> getOnlineTimer(String timerId) {
 		var bTimer = timer().tAccountTimers().get(timerId);
 		return bTimer != null ? new ArchOnlineTimer(bTimer) : null;
 	}
 
 	@Override
-	void insertOnlineTimer(@NotNull String timerId, @NotNull OnlineTimer<BAccountClientId> onlineTimer) {
+	void insertOnlineTimer(String timerId, OnlineTimer<BAccountClientId> onlineTimer) {
 		timer().tAccountTimers().insert(timerId, ((ArchOnlineTimer)onlineTimer).bTimer);
 	}
 
 	@Override
-	void removeOnlineTimer(@NotNull String timerId) {
+	void removeOnlineTimer(String timerId) {
 		timer().tAccountTimers().remove(timerId);
 	}
 
 	@Override
-	@NotNull BOnlineTimers getOrAddLocalTimers(@NotNull BAccountClientId id) {
+	BOnlineTimers getOrAddLocalTimers(BAccountClientId id) {
 		return online.getOrAddLocalBean(id.getAccount(), id.getClientId(), eOnlineTimers, new BOnlineTimers());
 	}
 
 	@Override
-	@Nullable BOnlineTimers getLocalTimers(@NotNull BAccountClientId id) {
+	@Nullable BOnlineTimers getLocalTimers(BAccountClientId id) {
 		return online.getLocalBean(id.getAccount(), id.getClientId(), eOnlineTimers);
 	}
 
 	@Override
-	void removeLocalTimers(@NotNull BAccountClientId id) {
+	void removeLocalTimers(BAccountClientId id) {
 		online.removeLocalBean(id.getAccount(), id.getClientId(), eOnlineTimers);
 	}
 
 	@Override
-	void transmitSimple(@NotNull BAccountClientId target, @NotNull BTransmitSimpleTimer p) {
+	void transmitSimple(BAccountClientId target, BTransmitSimpleTimer p) {
 		online.transmit(target.getAccount(), target.getClientId(), eTransmitSimpleTimer,
 				List.of(new BLoginKey(target.getAccount(), target.getClientId())), p);
 	}
 
 	@Override
-	void transmitCron(@NotNull BAccountClientId target, @NotNull BTransmitCronTimer p) {
+	void transmitCron(BAccountClientId target, BTransmitCronTimer p) {
 		online.transmit(target.getAccount(), target.getClientId(), eTransmitCronTimer,
 				List.of(new BLoginKey(target.getAccount(), target.getClientId())), p);
 	}
 
 	@Override
-	void transmitCancel(@NotNull BAccountClientId target, @NotNull String timerId, long loginVersion) {
+	void transmitCancel(BAccountClientId target, String timerId, long loginVersion) {
 		var p = new BTransmitCancelAccountTimer();
 		p.setTimerId(timerId);
 		p.setAccount(target.getAccount());
@@ -172,12 +173,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	}
 
 	@Override
-	@NotNull String identityString(@NotNull BAccountClientId id) {
+	String identityString(BAccountClientId id) {
 		return "account=" + id.getAccount() + " clientId=" + id.getClientId();
 	}
 
 	@Override
-	void fillContext(@NotNull BAccountClientId id, @NotNull TimerContext context) {
+	void fillContext(BAccountClientId id, TimerContext context) {
 		context.account = id.getAccount();
 		context.clientId = id.getClientId();
 	}
@@ -190,9 +191,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+	public boolean scheduleOnlineNamed(String account, String clientId, String timerId,
 									   long delay, long period, long times, long endTime,
-									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
+									   Class<? extends TimerHandle> handle, @Nullable Bean customData) {
 		return scheduleOnlineNamed(account, clientId, timerId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handle, customData);
 	}
@@ -201,10 +202,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+	public boolean scheduleOnlineNamed(String account, String clientId, String timerId,
 									   long delay, long period, long times, long endTime,
-									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData,
-									   @NotNull String oneByOneKey) {
+									   Class<? extends TimerHandle> handle, @Nullable Bean customData,
+									   String oneByOneKey) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
 			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
@@ -217,9 +218,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+	public boolean scheduleOnlineNamedHot(String account, String clientId, String timerId,
 										  long delay, long period, long times, long endTime,
-										  @NotNull Class<? extends TimerHandle> handleClass,
+										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handleClass,
@@ -230,10 +231,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+	public boolean scheduleOnlineNamedHot(String account, String clientId, String timerId,
 										  long delay, long period, long times, long endTime,
-										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										  @NotNull String oneByOneKey) {
+										  Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										  String oneByOneKey) {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
@@ -243,9 +244,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-									   @NotNull String cron, long times, long endTime,
-									   @NotNull Class<? extends TimerHandle> handle,
+	public boolean scheduleOnlineNamed(String account, String clientId, String timerId,
+									   String cron, long times, long endTime,
+									   Class<? extends TimerHandle> handle,
 									   @Nullable Bean customData) {
 		return scheduleOnlineNamed(account, clientId, timerId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handle, customData);
@@ -255,10 +256,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-									   @NotNull String cron, long times, long endTime,
-									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData,
-									   @NotNull String oneByOneKey) {
+	public boolean scheduleOnlineNamed(String account, String clientId, String timerId,
+									   String cron, long times, long endTime,
+									   Class<? extends TimerHandle> handle, @Nullable Bean customData,
+									   String oneByOneKey) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
 			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
@@ -271,9 +272,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-										  @NotNull String cron, long times, long endTime,
-										  @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamedHot(String account, String clientId, String timerId,
+										  String cron, long times, long endTime,
+										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handleClass, customData);
@@ -283,10 +284,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-										  @NotNull String cron, long times, long endTime,
-										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										  @NotNull String oneByOneKey) {
+	public boolean scheduleOnlineNamedHot(String account, String clientId, String timerId,
+										  String cron, long times, long endTime,
+										  Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										  String oneByOneKey) {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handleClass,
 				customData);
@@ -299,8 +300,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, long delay, long period,
-										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
+	public String scheduleOnline(String account, String clientId, long delay, long period,
+										  long times, long endTime, Class<? extends TimerHandle> handle,
 										  @Nullable Bean customData) {
 		return scheduleOnline(account, clientId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handle, customData);
@@ -310,9 +311,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, long delay, long period,
-										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
-										  @Nullable Bean customData, @NotNull String oneByOneKey) {
+	public String scheduleOnline(String account, String clientId, long delay, long period,
+										  long times, long endTime, Class<? extends TimerHandle> handle,
+										  @Nullable Bean customData, String oneByOneKey) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
 			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
@@ -325,9 +326,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
+	public String scheduleOnlineHot(String account, String clientId,
 											 long delay, long period, long times, long endTime,
-											 @NotNull Class<? extends TimerHandle> handleClass,
+											 Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		return scheduleOnlineHot(account, clientId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handleClass,
@@ -338,10 +339,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
+	public String scheduleOnlineHot(String account, String clientId,
 											 long delay, long period, long times, long endTime,
-											 @NotNull Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData, @NotNull String oneByOneKey) {
+											 Class<? extends TimerHandle> handleClass,
+											 @Nullable Bean customData, String oneByOneKey) {
 		return scheduleOnlineHot(account, clientId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
@@ -351,8 +352,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
-										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
+	public String scheduleOnline(String account, String clientId, String cron,
+										  long times, long endTime, Class<? extends TimerHandle> handle,
 										  @Nullable Bean customData) {
 		return scheduleOnline(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handle, customData);
@@ -362,10 +363,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
-										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
+	public String scheduleOnline(String account, String clientId, String cron,
+										  long times, long endTime, Class<? extends TimerHandle> handle,
 										  @Nullable Bean customData,
-										  @NotNull String oneByOneKey) {
+										  String oneByOneKey) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
 			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
@@ -378,9 +379,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+	public String scheduleOnlineHot(String account, String clientId, String cron,
 											 long times, long endTime,
-											 @NotNull Class<? extends TimerHandle> handleClass,
+											 Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		return scheduleOnlineHot(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handleClass, customData);
@@ -390,11 +391,11 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+	public String scheduleOnlineHot(String account, String clientId, String cron,
 											 long times, long endTime,
-											 @NotNull Class<? extends TimerHandle> handleClass,
+											 Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData,
-											 @NotNull String oneByOneKey) {
+											 String oneByOneKey) {
 		return scheduleOnlineHot(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handleClass,
 				customData);
@@ -404,9 +405,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	// Spec 入口
 	// 推荐使用TimerSpec描述调度参数，避免超长的参数列表。
 
-	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId,
-										  @NotNull TimerSpec spec,
-										  @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnline(String account, String clientId,
+										  TimerSpec spec,
+										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
@@ -414,9 +415,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		return scheduleOnlineImpl(account, clientId, spec, handleClass, customData);
 	}
 
-	@NotNull String scheduleOnlineImpl(@NotNull String account, @NotNull String clientId,
-									   @NotNull TimerSpec spec,
-									   @NotNull Class<? extends TimerHandle> handleClass,
+	String scheduleOnlineImpl(String account, String clientId,
+									   TimerSpec spec,
+									   Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
 		var id = new BAccountClientId(account, clientId);
@@ -427,9 +428,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		return timerId;
 	}
 
-	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
-											 @NotNull TimerSpec spec,
-											 @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOnlineHot(String account, String clientId,
+											 TimerSpec spec,
+											 Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
 		var id = new BAccountClientId(account, clientId);
@@ -440,9 +441,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		return timerId;
 	}
 
-	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId,
-									   @NotNull String timerId, @NotNull TimerSpec spec,
-									   @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamed(String account, String clientId,
+									   String timerId, TimerSpec spec,
+									   Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
 		var zeze = online.providerApp.zeze;
 		if (zeze.isHotVerifyEnabled())
@@ -450,9 +451,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		return scheduleOnlineNamedImpl(account, clientId, timerId, spec, handleClass, customData);
 	}
 
-	boolean scheduleOnlineNamedImpl(@NotNull String account, @NotNull String clientId,
-									@NotNull String timerId, @NotNull TimerSpec spec,
-									@NotNull Class<? extends TimerHandle> handleClass,
+	boolean scheduleOnlineNamedImpl(String account, String clientId,
+									String timerId, TimerSpec spec,
+									Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) {
 		if (isNamedTimerIdOccupied(timerId))
 			return false;
@@ -464,9 +465,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		return true;
 	}
 
-	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId,
-										  @NotNull String timerId, @NotNull TimerSpec spec,
-										  @NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOnlineNamedHot(String account, String clientId,
+										  String timerId, TimerSpec spec,
+										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		if (isNamedTimerIdOccupied(timerId))
 			return false;
@@ -480,24 +481,24 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 
 	// ///////////////////////////////////////////////////////////////
 	// 取消
-	public boolean cancel(@Nullable String timerId, @NotNull String account, @NotNull String clientId) {
+	public boolean cancel(@Nullable String timerId, String account, String clientId) {
 		if (timerId == null)
 			return true;
 		return cancelOnline(timerId, account, clientId) || cancelOffline(timerId, account, clientId);
 	}
 
-	public boolean cancelOnline(@Nullable String timerId, @NotNull String account, @NotNull String clientId) {
+	public boolean cancelOnline(@Nullable String timerId, String account, String clientId) {
 		return cancelOnline(timerId, new BAccountClientId(account, clientId), false);
 	}
 
-	public boolean cancelOffline(@Nullable String timerId, @NotNull String account, @NotNull String clientId) {
+	public boolean cancelOffline(@Nullable String timerId, String account, String clientId) {
 		if (timerId == null)
 			return true;
 		var timer = online.providerApp.zeze.getTimer();
 		// 归属校验（对齐TimerRole.cancelOffline）：无校验直接timer.cancel时，
 		// 传入任意timerId（SafeBatch看门狗、他人offline timer、
 		// 全局命名timer）都会被越权取消，且恒返回true掩盖"是否真的取消"。
-		var index = timer.tIndexs().get(timerId);
+		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
 		if (index == null)
 			return false;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -529,9 +530,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+	public boolean scheduleOfflineNamed(String timerId, String account, String clientId,
 										long delay, long period, long times, long endTime, int missfirePolicy,
-										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+										Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		return scheduleOfflineNamed(timerId, account, clientId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.missfirePolicy(missfirePolicy), handleClass, customData);
@@ -541,18 +542,18 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+	public boolean scheduleOfflineNamed(String timerId, String account, String clientId,
 										long delay, long period, long times, long endTime, int missfirePolicy,
-										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										@NotNull String oneByOneKey) {
+										Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										String oneByOneKey) {
 		return scheduleOfflineNamed(timerId, account, clientId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
-	private void scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-								 @NotNull SimpleTimerSpec builder,
-								 @NotNull Class<? extends TimerHandle> handleClass,
+	private void scheduleOffline(String timerId, String account, String clientId,
+								 SimpleTimerSpec builder,
+								 Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) {
 		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(account, clientId);
@@ -566,10 +567,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			timer.tryRecordBeanHotModuleWhileCommit(customData);
+			Objects.requireNonNull(timer).tryRecordBeanHotModuleWhileCommit(customData);
 		}
-		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
-		var config = timer.zeze.getConfig();
+		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
+		var config = timer.getZeze().getConfig();
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. account=" + account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
@@ -587,9 +588,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOffline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
+	public String scheduleOffline(String account, String clientId,
 										   long delay, long period, long times, long endTime, int missfirePolicy,
-										   @NotNull Class<? extends TimerHandle> handleClass,
+										   Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		return scheduleOffline(account, clientId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
@@ -600,10 +601,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOffline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
+	public String scheduleOffline(String account, String clientId,
 										   long delay, long period, long times, long endTime, int missfirePolicy,
-										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										   @NotNull String oneByOneKey) {
+										   Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										   String oneByOneKey) {
 		return scheduleOffline(account, clientId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
@@ -613,9 +614,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-										@NotNull String cron, long times, long endTime, int missfirePolicy,
-										@NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOfflineNamed(String timerId, String account, String clientId,
+										String cron, long times, long endTime, int missfirePolicy,
+										Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 		return scheduleOfflineNamed(timerId, account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy),
@@ -626,18 +627,18 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-										@NotNull String cron, long times, long endTime, int missfirePolicy,
-										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										@NotNull String oneByOneKey) {
+	public boolean scheduleOfflineNamed(String timerId, String account, String clientId,
+										String cron, long times, long endTime, int missfirePolicy,
+										Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										String oneByOneKey) {
 		return scheduleOfflineNamed(timerId, account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
-	private void scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-								 @NotNull CronTimerSpec builder,
-								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+	private void scheduleOffline(String timerId, String account, String clientId,
+								 CronTimerSpec builder,
+								 Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 								 @Nullable BIndex index) {
 		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(account, clientId);
@@ -651,15 +652,15 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			timer.tryRecordBeanHotModuleWhileCommit(customData);
+			Objects.requireNonNull(timer).tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
-			if (timer.cronEquals(index, timerId, builder, OfflineHandle.class, custom))
+			if (Objects.requireNonNull(timer).cronEquals(index, timerId, builder, OfflineHandle.class, custom))
 				return;
 			cancel(timerId, account, clientId); // 先取消,下面再重建
 		}
-		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
-		var config = timer.zeze.getConfig();
+		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
+		var config = timer.getZeze().getConfig();
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. account=" + account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
@@ -677,9 +678,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOffline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+	public String scheduleOffline(String account, String clientId, String cron,
 										   long times, long endTime, int missfirePolicy,
-										   @NotNull Class<? extends TimerHandle> handleClass,
+										   Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		return scheduleOffline(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy),
@@ -690,10 +691,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	 * @deprecated 使用 {@link #scheduleOffline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
-	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+	public String scheduleOffline(String account, String clientId, String cron,
 										   long times, long endTime, int missfirePolicy,
-										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										   @NotNull String oneByOneKey) {
+										   Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										   String oneByOneKey) {
 		return scheduleOffline(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
@@ -702,9 +703,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	// ///////////////////////////////////////////////////////////////
 	// Offline Spec 入口
 
-	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
-										   @NotNull TimerSpec spec,
-										   @NotNull Class<? extends TimerHandle> handleClass,
+	public String scheduleOffline(String account, String clientId,
+										   TimerSpec spec,
+										   Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
 		switch (spec) {
@@ -716,8 +717,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 
 	// 查timerId当前登记的账号offline timer归属，查表路径仿cancelOffline：
 	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
-	private static @Nullable BOfflineAccountCustom getAccountOfflineCustom(@NotNull Timer timer, @NotNull String timerId) {
-		var index = timer.tIndexs().get(timerId);
+	private static @Nullable BOfflineAccountCustom getAccountOfflineCustom(Timer timer, String timerId) {
+		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
 		if (index == null)
 			return null;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -727,17 +728,17 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		return bTimer.getCustomData().getBean() instanceof BOfflineAccountCustom custom ? custom : null;
 	}
 
-	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-										@NotNull TimerSpec spec,
-										@NotNull Class<? extends TimerHandle> handleClass,
+	public boolean scheduleOfflineNamed(String timerId, String account, String clientId,
+										TimerSpec spec,
+										Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
-		if (timer.isOnlineTimerIdOccupied(timerId))
+		if (Objects.requireNonNull(timer).isOnlineTimerIdOccupied(timerId))
 			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
-		var index = timer.tIndexs().get(timerId);
+		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
 		// 族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
@@ -767,7 +768,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		// onTimerCancel钩子同步清簿记，与onLoginEvent一致，杜绝"index已删簿记残留"
 		// 使同名重调度putIfAbsent撞残留抛IllegalStateException。
 		@Override
-		public void onTimerCancel(@NotNull BTimer bTimer) {
+		public void onTimerCancel(BTimer bTimer) {
 			if (!(bTimer.getCustomData().getBean() instanceof BOfflineAccountCustom custom))
 				return;
 			try {
@@ -776,7 +777,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 					return;
 				var timer = zeze.getTimer();
 				var key = new BAccountClientId(custom.getAccount(), custom.getClientId());
-				var offlineTimers = timer.tAccountOfflineTimers().get(key);
+				var offlineTimers = Objects.requireNonNull(timer).tAccountOfflineTimers().get(key);
 				if (offlineTimers != null) {
 					offlineTimers.getOfflineTimers().remove(custom.getTimerName());
 					if (offlineTimers.getOfflineTimers().isEmpty())
@@ -791,7 +792,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		}
 
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineAccountCustom)context.customData;
 			//noinspection DataFlowIssue
 			var account = offlineCustom.getAccount();
@@ -820,11 +821,11 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		}
 	}
 
-	private long onLoginEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
+	private long onLoginEvent(Object sender, EventDispatcher.EventArgument arg) {
 		var loginArg = (LoginArgument)arg;
 		var loginKey = new BAccountClientId(loginArg.account, loginArg.clientId);
 		var timer = online.providerApp.zeze.getTimer();
-		var offlineTimers = timer.tAccountOfflineTimers().get(loginKey);
+		var offlineTimers = Objects.requireNonNull(timer).tAccountOfflineTimers().get(loginKey);
 		// X: fix offlineTimers is null
 		if (offlineTimers == null)
 			return 0;
@@ -839,27 +840,27 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	}
 
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
-	private long onLocalRemoveEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
+	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) {
 		var bAny = ((LocalRemoveEventArgument)arg).local.getDatas().get(eOnlineTimers);
 		if (bAny != null)
 			onLocalRemove((BOnlineTimers)bAny.getAny().getBean());
 		return 0;
 	}
 
-	private long transmitOnlineCronTimer(@NotNull String senderAccount, @NotNull String senderClientId,
-										 @NotNull String targetAccount, @NotNull String targetClientId,
+	private long transmitOnlineCronTimer(String senderAccount, String senderClientId,
+										 String targetAccount, String targetClientId,
 										 @Nullable Binary parameter) throws ReflectiveOperationException {
 		return onTransmitCronTimer(new BAccountClientId(targetAccount, targetClientId), parameter);
 	}
 
-	private long transmitOnlineSimpleTimer(@NotNull String senderAccount, @NotNull String senderClientId,
-										   @NotNull String targetAccount, @NotNull String targetClientId,
+	private long transmitOnlineSimpleTimer(String senderAccount, String senderClientId,
+										   String targetAccount, String targetClientId,
 										   @Nullable Binary parameter) throws ReflectiveOperationException {
 		return onTransmitSimpleTimer(new BAccountClientId(targetAccount, targetClientId), parameter);
 	}
 
-	private long transmitCancelAccountTimer(@NotNull String senderAccount, @NotNull String senderClientId,
-											@NotNull String targetAccount, @NotNull String targetClientId,
+	private long transmitCancelAccountTimer(String senderAccount, String senderClientId,
+											String targetAccount, String targetClientId,
 											@Nullable Binary parameter) {
 		if (parameter == null)
 			return 0;

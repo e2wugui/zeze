@@ -1,5 +1,7 @@
 package Zeze.Serialize;
 
+import org.jspecify.annotations.Nullable;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
@@ -14,7 +16,6 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 
 /** 标量类型的编解码工厂：按 Class 查表或反射创建 encoder/decoder/CodecFuncs。 */
 public final class SerializeHelper {
@@ -25,13 +26,13 @@ public final class SerializeHelper {
 	@SuppressWarnings("ClassCanBeRecord")
 	public static final class CodecFuncs<T> {
 		public final int encodeType;
-		public final @NotNull BiConsumer<ByteBuffer, T> encoder;
-		public final @NotNull Function<IByteBuffer, T> decoder;
-		public final @NotNull ObjectIntFunction<IByteBuffer, T> decoderWithType;
+		public final BiConsumer<ByteBuffer, T> encoder;
+		public final Function<IByteBuffer, T> decoder;
+		public final ObjectIntFunction<IByteBuffer, T> decoderWithType;
 
-		public CodecFuncs(int encodeType, @NotNull BiConsumer<ByteBuffer, T> encoder,
-						  @NotNull Function<IByteBuffer, T> decoder,
-						  @NotNull ObjectIntFunction<IByteBuffer, T> decoderWithType) {
+		public CodecFuncs(int encodeType, BiConsumer<ByteBuffer, T> encoder,
+						  Function<IByteBuffer, T> decoder,
+						  ObjectIntFunction<IByteBuffer, T> decoderWithType) {
 			this.encodeType = encodeType;
 			this.encoder = encoder;
 			this.decoder = decoder;
@@ -97,7 +98,7 @@ public final class SerializeHelper {
 				(bb, type) -> new BigDecimal(bb.ReadString(type))));
 	}
 
-	public static <T> @NotNull BiConsumer<ByteBuffer, T> createEncodeFunc(@NotNull Class<T> cls) {
+	public static <T> BiConsumer<ByteBuffer, T> createEncodeFunc(Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -107,7 +108,7 @@ public final class SerializeHelper {
 		return (bb, obj) -> ((Serializable)obj).encode(bb);
 	}
 
-	private static <T> @NotNull T newObject(@NotNull Constructor<T> ctor) {
+	private static <T> T newObject(Constructor<T> ctor) {
 		try {
 			return ctor.newInstance((Object[])null);
 		} catch (ReflectiveOperationException e) {
@@ -116,7 +117,7 @@ public final class SerializeHelper {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <T> @NotNull T newObject(@NotNull MethodHandle ctor) {
+	private static <T> T newObject(MethodHandle ctor) {
 		try {
 			return (T)ctor.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -124,7 +125,7 @@ public final class SerializeHelper {
 		}
 	}
 
-	public static <T> @NotNull Function<IByteBuffer, T> createDecodeFunc(@NotNull Class<T> cls) {
+	public static <T> Function<IByteBuffer, T> createDecodeFunc(Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -144,7 +145,7 @@ public final class SerializeHelper {
 		};
 	}
 
-	public static <T> @NotNull CodecFuncs<T> createCodec(@NotNull Class<T> cls) {
+	public static <T> CodecFuncs<T> createCodec(Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -168,7 +169,7 @@ public final class SerializeHelper {
 		});
 	}
 
-	public static <T> @NotNull CodecFuncs<T> createCodec(@NotNull Class<T> cls, @NotNull MethodHandle ctor) {
+	public static <T> CodecFuncs<T> createCodec(Class<T> cls, MethodHandle ctor) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -186,8 +187,8 @@ public final class SerializeHelper {
 		});
 	}
 
-	public static @NotNull MethodHandle createDynamicFactory(@NotNull ToLongFunction<Bean> get,
-															 @NotNull LongFunction<Bean> create) {
+	public static MethodHandle createDynamicFactory(ToLongFunction<@Nullable Bean> get,
+															 LongFunction<@Nullable Bean> create) {
 		return Reflect.supplierMH.bindTo((Supplier<?>)() -> new DynamicBean(0, get, create));
 	}
 

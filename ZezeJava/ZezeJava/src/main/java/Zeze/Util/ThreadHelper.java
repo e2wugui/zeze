@@ -6,28 +6,27 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 // 可停循环线程基类：isRunning/sleepIdle 控制生命周期，派生类实现 run 主体
 public class ThreadHelper extends Thread {
-	private static final @NotNull Logger logger = LogManager.getLogger(ThreadHelper.class);
+	private static final Logger logger = LogManager.getLogger(ThreadHelper.class);
 
 	private volatile boolean running = true;
 	private boolean idle = true;
 	private final ReentrantLock thisLock = new ReentrantLock();
 	private final Condition thisCond = thisLock.newCondition();
 
-	public ThreadHelper(@NotNull String name) {
+	public ThreadHelper(String name) {
 		super(name);
 		this.setDaemon(true);
 	}
 
-	public ThreadHelper(@NotNull String name, boolean daemon) {
+	public ThreadHelper(String name, boolean daemon) {
 		super(name);
 		this.setDaemon(daemon);
 	}
 
-	public ThreadHelper(@NotNull Runnable task, @NotNull String name, boolean daemon) {
+	public ThreadHelper(Runnable task, String name, boolean daemon) {
 		super(task, name);
 		this.setDaemon(daemon);
 	}
@@ -36,11 +35,11 @@ public class ThreadHelper extends Thread {
 		return running;
 	}
 
-	public @NotNull Lock getThisLock() {
+	public Lock getThisLock() {
 		return thisLock;
 	}
 
-	public @NotNull Condition getThisCond() {
+	public Condition getThisCond() {
 		return thisCond;
 	}
 
@@ -95,7 +94,7 @@ public class ThreadHelper extends Thread {
 		}
 	}
 
-	public @NotNull Runnable cock() {
+	public Runnable cock() {
 		return ThreadHelper.this::wakeup;
 	}
 }

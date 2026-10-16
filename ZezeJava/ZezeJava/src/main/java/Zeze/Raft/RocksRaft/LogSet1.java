@@ -1,11 +1,13 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import org.jetbrains.annotations.NotNull;
+
 import Zeze.Collections.Persistents;
 
 /**
@@ -38,7 +40,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final boolean add(V item) {
-		var newSet = getValue().plus(item);
+		var newSet = Objects.requireNonNull(getValue()).plus(item);
 		if (newSet != getValue()) {
 			added.add(item);
 			removed.remove(item);
@@ -49,7 +51,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final boolean remove(V item) {
-		var newSet = getValue().minus(item);
+		var newSet = Objects.requireNonNull(getValue()).minus(item);
 		if (newSet != getValue()) {
 			removed.add(item);
 			added.remove(item);
@@ -60,13 +62,13 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final void clear() {
-		for (var e : getValue())
+		for (var e : Objects.requireNonNull(getValue()))
 			remove(e);
 		setValue(Persistents.set());
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
 
 		bb.WriteUInt(added.size());
@@ -79,7 +81,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 
 		added.clear();

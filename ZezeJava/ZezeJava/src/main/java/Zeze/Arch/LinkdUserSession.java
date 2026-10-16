@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -11,6 +13,7 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Linkd 侧客户端会话：保存账号、认证状态与模块→Provider 的绑定表，处理 bind/unbind 与关闭清理。
@@ -20,7 +23,7 @@ public class LinkdUserSession {
 
 	// 写者应用Auth处理（如Zezex ModuleLinkd.ProcessAuthRequest，跑在LinkdService客户端
 	// 连接EL），读者ProcessBindRequest动态分支日志（Task线程）跨线程，无happens-before时显示null/陈旧账号。
-	protected volatile String account;
+	protected volatile @Nullable String account;
 	// 写者LinkdProvider.ProcessSetUserState跑在LinkdProviderService的IO线程，
 	// 读者LinkdService.createDispatch跑在LinkdService的IO线程（两套EventLoop），无volatile时
 	// 引用替换与读取之间无happens-before。对照ProviderSession.load等同场景字段均标volatile。
@@ -53,11 +56,11 @@ public class LinkdUserSession {
 		this.sessionId = sessionId;
 	}
 
-	public String getAccount() {
+	public @Nullable String getAccount() {
 		return account;
 	}
 
-	public void setAccount(String value) {
+	public void setAccount(@Nullable String value) {
 		account = value;
 	}
 
@@ -70,8 +73,9 @@ public class LinkdUserSession {
 	}
 
 	public boolean trySetAccount(String newAccount) {
+		var account = this.account;
 		if (account == null || account.isEmpty()) {
-			account = newAccount;
+			this.account = newAccount;
 			return true;
 		}
 
@@ -86,7 +90,7 @@ public class LinkdUserSession {
 		this.userState = state;
 	}
 
-	public Long getRoleId() {
+	public @Nullable Long getRoleId() {
 		var context = userState.getContext();
 		if (context.isEmpty())
 			return null;
@@ -109,7 +113,7 @@ public class LinkdUserSession {
 		authed = true;
 	}
 
-	public Long tryGetProvider(int moduleId) {
+	public @Nullable Long tryGetProvider(int moduleId) {
 		var readLock = bindsLock.readLock();
 		readLock.lock();
 		try {
@@ -119,7 +123,7 @@ public class LinkdUserSession {
 		}
 	}
 
-	public void bind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public void bind(@Nullable LinkdProviderService linkdProviderService, @Nullable AsyncSocket link,
 					 Iterable<Integer> moduleIds, AsyncSocket provider) {
 		var providerSessionId = Long.valueOf(provider.getSessionId());
 		var writeLock = bindsLock.writeLock();
@@ -134,13 +138,13 @@ public class LinkdUserSession {
 				var ps = (LinkdProviderSession)provider.getUserState();
 				// 先在provider索引锁下准入，再换正向归属。close先取快照则拒绝；登记先发生
 				// 则条目进入close快照，其锁外清理会等本bindsLock释放后核对当前归属。
-				if (ps != null && !ps.tryAddLinkSession(moduleId, link.getSessionId()))
+				if (ps != null && !ps.tryAddLinkSession(moduleId, Objects.requireNonNull(link).getSessionId()))
 					continue;
 				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
-					var s = linkdProviderService.GetSocket(exist);
+					var s = Objects.requireNonNull(linkdProviderService).GetSocket(exist);
 					if (s != null && s.getUserState() instanceof LinkdProviderSession oldSession)
-						oldSession.removeLinkSession(moduleId, link.getSessionId());
+						oldSession.removeLinkSession(moduleId, Objects.requireNonNull(link).getSessionId());
 					logger.warn("bind: replace provider moduleId={}, account={}, from={}, to={}",
 							moduleId, account, s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 				}
@@ -151,22 +155,22 @@ public class LinkdUserSession {
 		}
 	}
 
-	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public void unbind(@Nullable LinkdProviderService linkdProviderService, @Nullable AsyncSocket link,
 					   int moduleId, AsyncSocket provider) {
 		unbind(linkdProviderService, link, moduleId, provider, false);
 	}
 
-	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public void unbind(@Nullable LinkdProviderService linkdProviderService, @Nullable AsyncSocket link,
 					   int moduleId, AsyncSocket provider, boolean isOnProviderClose) {
 		unbind(linkdProviderService, link, List.of(moduleId), provider, isOnProviderClose);
 	}
 
-	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public void unbind(@Nullable LinkdProviderService linkdProviderService, @Nullable AsyncSocket link,
 					   Iterable<Integer> moduleIds, AsyncSocket provider) {
 		unbind(linkdProviderService, link, moduleIds, provider, false);
 	}
 
-	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public void unbind(@Nullable LinkdProviderService linkdProviderService, @Nullable AsyncSocket link,
 					   Iterable<Integer> moduleIds, AsyncSocket provider, boolean isOnProviderClose) {
 		int removeCount = 0;
 		int leftCount;
@@ -182,10 +186,10 @@ public class LinkdUserSession {
 						if (!isOnProviderClose) {
 							var ps = (LinkdProviderSession)provider.getUserState();
 							if (ps != null)
-								ps.removeLinkSession(moduleId, link.getSessionId());
+								ps.removeLinkSession(moduleId, Objects.requireNonNull(link).getSessionId());
 						}
 					} else {
-						var s = linkdProviderService.GetSocket(exist);
+						var s = Objects.requireNonNull(linkdProviderService).GetSocket(exist);
 						logger.warn("unbind not owner: moduleId={}, owner={}, sender={}", moduleId,
 								s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 					}
@@ -199,7 +203,7 @@ public class LinkdUserSession {
 				account, moduleIds, removeCount, leftCount);
 	}
 
-	public void onClose(LinkdProviderService linkdProviderService) {
+	public void onClose(@Nullable LinkdProviderService linkdProviderService) {
 		// 未验证通过的不通告（LinkBroken），但closed置位与换出清理对两种形态一致必要：
 		// 公开API异步两段式认证形态下（setAuthed前choiceProvider，见LinkdProvider.choiceProvider
 		// 的static bind路径），bind可先于auth登记、link在auth前关闭——只置closed拒迟到bind而
@@ -220,7 +224,7 @@ public class LinkdUserSession {
 		// 需要在锁外执行，因为如果 ProviderSocket 和 LinkdSocket 同时关闭。都需要去清理自己和对方，可能导致死锁。
 		var bindProviders = new HashSet<AsyncSocket>();
 		for (var it = bindsSwap.iterator(); it.moveToNext(); ) {
-			var provider = linkdProviderService.GetSocket(it.value());
+			var provider = Objects.requireNonNull(linkdProviderService).GetSocket(Objects.requireNonNull(it.value()));
 			if (provider == null) {
 				logger.warn("bind provider miss: account={}, moduleId={}, providerSessionId={}",
 						account, it.key(), it.value());

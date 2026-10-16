@@ -12,7 +12,8 @@ import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.BeanKey;
 import Zeze.Util.Reflect;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
+import Zeze.Serialize.SerializeHelper.ObjectIntFunction;
 
 // 家族封闭：sealed+包私有构造器，子类各自硬编码家族头串（线上typeId原料，逐字保留）；
 // 容器层（P*）构造器只收对应子类型，日志层（Log*）等家族无关消费方收本基类。
@@ -23,13 +24,13 @@ public sealed abstract class Meta1<V> permits BeanKeyMeta, List1Meta, List2Meta,
 
 	public final int logTypeId;
 	public final int valueEncodeType;
-	public final BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
-	public final Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
-	public final SerializeHelper.ObjectIntFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
-	public final MethodHandle valueFactory; // 只用于Bean类型
-	public final @NotNull String name; // 主要用于分析查错
+	public final @Nullable BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
+	public final @Nullable Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
+	public final @Nullable ObjectIntFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
+	public final @Nullable MethodHandle valueFactory; // 只用于Bean类型
+	public final String name; // 主要用于分析查错
 
-	Meta1(@NotNull String headStr, long headHash, @NotNull Class<V> valueClass) {
+	Meta1(String headStr, long headHash, Class<V> valueClass) {
 		logTypeId = Bean.hashLog(headHash, valueClass);
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		valueEncodeType = valueCodecFuncs.encodeType;
@@ -41,7 +42,7 @@ public sealed abstract class Meta1<V> permits BeanKeyMeta, List1Meta, List2Meta,
 		name = headStr + valueClass.getName();
 	}
 
-	Meta1(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
+	Meta1(ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) {
 		logTypeId = dynamicBeanTypeId;
 		valueEncodeType = IByteBuffer.DYNAMIC;
 		valueEncoder = null;
@@ -56,7 +57,7 @@ public sealed abstract class Meta1<V> permits BeanKeyMeta, List1Meta, List2Meta,
 	// 不覆写hashCode防哈希漂移），去重/remove/removeAll失真，且框架设计上无PSet2。
 	// check在computeIfAbsent内按miss执行：不变量是"被拒类型永不在缓存中"——任何新的
 	// 缓存插入路径必须经由本check，不允许绕过直插。
-	static void checkNonBeanValue(@NotNull String family, @NotNull String reason, @NotNull Class<?> valueClass) {
+	static void checkNonBeanValue(String family, String reason, Class<?> valueClass) {
 		if (Bean.class.isAssignableFrom(valueClass))
 			throw new IllegalArgumentException(
 					family + " does not support Bean value type " + reason + ": " + valueClass.getName());

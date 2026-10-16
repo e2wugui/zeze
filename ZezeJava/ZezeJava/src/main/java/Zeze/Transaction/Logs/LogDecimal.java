@@ -1,5 +1,7 @@
 package Zeze.Transaction.Logs;
 
+import java.util.Objects;
+
 import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
 import Zeze.Net.Binary;
@@ -7,16 +9,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /** decimal 字段原子修改日志：经 VarHandle 提交新值，序列化为全精度字符串。 */
 public class LogDecimal extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<decimal>");
 
-	private final VarHandle vh;
-	public BigDecimal value;
+	private final @Nullable VarHandle vh;
+	public @Nullable BigDecimal value;
 
-	public LogDecimal(Bean belong, int varId, VarHandle vh, BigDecimal value) {
+	public LogDecimal(@Nullable Bean belong, int varId, @Nullable VarHandle vh, BigDecimal value) {
 		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
@@ -28,7 +30,7 @@ public class LogDecimal extends Log {
 	}
 
 	@Override
-	public @NotNull Category category() {
+	public Category category() {
 		return Category.eHistory;
 	}
 
@@ -44,35 +46,35 @@ public class LogDecimal extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteString(value.toString());
+	public void encode(ByteBuffer bb) {
+		bb.WriteString(Objects.requireNonNull(value).toString());
 	}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
-			// 不限精度：encode 写全精度字符串（value.toString()），decode 必须原样还原，
+		public void decode(IByteBuffer bb) {
+			// 不限精度：encode 写全精度字符串（Objects.requireNonNull(value).toString()），decode 必须原样还原，
 			// 保持 encode/decode 双射。用 DECIMAL128 会把 >34 位有效数字静默截断，
 			// 与 leader 内存值分叉且无任何检测手段。
 			value = new BigDecimal(bb.ReadString());
 		}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.valueOf(value);
 	}
 
 	@Override
-	public @NotNull Binary binaryValue() {
-		return new Binary(value.toString());
+	public Binary binaryValue() {
+		return new Binary(Objects.requireNonNull(value).toString());
 	}
 
 	@Override
-	public @NotNull String stringValue() {
-		return value.toString();
+	public String stringValue() {
+		return Objects.requireNonNull(value).toString();
 	}
 
 	@Override
-	public @NotNull BigDecimal decimalValue() {
-		return value;
+	public BigDecimal decimalValue() {
+		return Objects.requireNonNull(value);
 	}
 }

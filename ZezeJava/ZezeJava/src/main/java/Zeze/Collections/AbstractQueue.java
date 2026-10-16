@@ -26,13 +26,13 @@ public abstract class AbstractQueue implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tQueueNodes.getName()).getDatabaseName(), _tQueueNodes);
-        zeze.addTable(zeze.getConfig().getTableConf(_tQueues.getName()).getDatabaseName(), _tQueues);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tQueueNodes.getName())).getDatabaseName(), _tQueueNodes);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tQueues.getName())).getDatabaseName(), _tQueues);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tQueueNodes.getName()).getDatabaseName(), _tQueueNodes);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tQueues.getName()).getDatabaseName(), _tQueues);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tQueueNodes.getName())).getDatabaseName(), _tQueueNodes);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tQueues.getName())).getDatabaseName(), _tQueues);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

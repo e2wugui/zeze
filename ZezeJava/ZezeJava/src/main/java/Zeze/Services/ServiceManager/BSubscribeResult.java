@@ -4,14 +4,13 @@ import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
 
 /** Subscribe应答bean：serviceName→订阅时刻的版本分桶地址快照。 */
 public class BSubscribeResult implements Serializable {
 	public final HashMap<String, BServiceInfosVersion> map = new HashMap<>(); // key:serviceName
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(map.size());
 		for (var e : map.entrySet()) {
 			bb.WriteString(e.getKey());
@@ -20,7 +19,7 @@ public class BSubscribeResult implements Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var serviceName = bb.ReadString();
 			map.put(serviceName, new BServiceInfosVersion(bb));

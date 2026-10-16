@@ -1,6 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
 import java.util.concurrent.atomic.AtomicLong;
+import org.jspecify.annotations.Nullable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -16,8 +17,8 @@ public abstract class Bean implements Serializable {
 	private static final AtomicLong objectIdGen = new AtomicLong();
 
 	private transient final long objectId = objectIdGen.addAndGet(OBJECT_ID_STEP);
-	private transient Record.RootInfo rootInfo;
-	private transient Bean parent;
+	private transient Record.@Nullable RootInfo rootInfo;
+	private transient @Nullable Bean parent;
 	private transient int variableId;
 
 	public Bean() {
@@ -31,7 +32,7 @@ public abstract class Bean implements Serializable {
 		return objectId;
 	}
 
-	public final Bean parent() {
+	public final @Nullable Bean parent() {
 		return parent;
 	}
 
@@ -43,7 +44,7 @@ public abstract class Bean implements Serializable {
 		variableId = value;
 	}
 
-	public final Record.RootInfo rootInfo() {
+	public final Record.@Nullable RootInfo rootInfo() {
 		return rootInfo;
 	}
 
@@ -51,11 +52,11 @@ public abstract class Bean implements Serializable {
 		return rootInfo != null;
 	}
 
-	public final TableKey tableKey() {
+	public final @Nullable TableKey tableKey() {
 		return rootInfo != null ? rootInfo.getTableKey() : null;
 	}
 
-	public Object mapKey() {
+	public @Nullable Object mapKey() {
 		throw new UnsupportedOperationException();
 	}
 
@@ -63,7 +64,7 @@ public abstract class Bean implements Serializable {
 		throw new UnsupportedOperationException();
 	}
 
-	public final void initRootInfo(Record.RootInfo rootInfo, Bean parent) {
+	public final void initRootInfo(Record.@Nullable RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
 			throw new HasManagedException();
 		this.rootInfo = rootInfo;
@@ -72,7 +73,7 @@ public abstract class Bean implements Serializable {
 	}
 
 	// 用在第一次加载Bean时，需要初始化它的root
-	protected abstract void initChildrenRootInfo(Record.RootInfo root);
+	protected abstract void initChildrenRootInfo(Record.@Nullable RootInfo root);
 
 	@Override
 	public abstract void encode(ByteBuffer bb);

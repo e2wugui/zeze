@@ -4,8 +4,7 @@ import Zeze.Application;
 import Zeze.Net.Service;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.FewModifyMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 按主版本区分的 Provider 分发集合：为每个出现过的主版本维护独立的 ProviderDistribute。
@@ -22,12 +21,12 @@ public class ProviderDistributeVersion {
 		this.providerService = providerService;
 	}
 
-	public void addServer(@NotNull BServiceInfo info) {
+	public void addServer(BServiceInfo info) {
 		providerDistributes.computeIfAbsent(info.getVersion(),
 				k -> new ProviderDistribute(zeze, loadConfig, providerService, k << 48)).addServer(info);
 	}
 
-	public void removeServer(@NotNull BServiceInfo info) {
+	public void removeServer(BServiceInfo info) {
 		var providerDistribute = providerDistributes.get(info.getVersion());
 		if (providerDistribute != null)
 			providerDistribute.removeServer(info);

@@ -5,14 +5,13 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 // char 键开放寻址哈希表（线性探测，0 键走特例槽），非线程安全
-public class CharHashMap<V> implements Cloneable {
+public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 	private int size;
-	private char @NotNull [] keyTable;
-	private @Nullable V @NotNull [] valueTable;
+	private char [] keyTable;
+	private @Nullable V [] valueTable;
 	private @Nullable V zeroValue;
 	private boolean hasZeroValue;
 	private final float loadFactor;
@@ -41,7 +40,7 @@ public class CharHashMap<V> implements Cloneable {
 		valueTable = (V[])new Object[tableSize];
 	}
 
-	public CharHashMap(@NotNull CharHashMap<? extends V> map) {
+	public CharHashMap(CharHashMap<? extends V> map) {
 		size = map.size;
 		keyTable = map.keyTable.clone();
 		valueTable = map.valueTable.clone();
@@ -62,11 +61,11 @@ public class CharHashMap<V> implements Cloneable {
 		return (int)((key * 0x9E3779B97F4A7C15L) >>> shift);
 	}
 
-	public char @NotNull [] getKeyTable() {
+	public char [] getKeyTable() {
 		return keyTable;
 	}
 
-	public @Nullable Object @NotNull [] getValueTable() {
+	public @Nullable Object [] getValueTable() {
 		return valueTable;
 	}
 
@@ -113,7 +112,7 @@ public class CharHashMap<V> implements Cloneable {
 			if (hasZeroValue && zeroValue == null)
 				return true;
 			final char[] kt = keyTable;
-			final V[] vt = valueTable;
+			final @Nullable V[] vt = valueTable;
 			for (int i = 0, n = kt.length; i < n; i++)
 				if (kt[i] != 0 && vt[i] == null)
 					return true;
@@ -121,7 +120,7 @@ public class CharHashMap<V> implements Cloneable {
 			if (hasZeroValue && value.equals(zeroValue))
 				return true;
 			final char[] kt = keyTable;
-			final V[] vt = valueTable;
+			final @Nullable V[] vt = valueTable;
 			for (int i = 0, n = kt.length; i < n; i++)
 				if (kt[i] != 0 && value.equals(vt[i]))
 					return true;
@@ -143,7 +142,7 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V getOrDefault(char key, @Nullable V defaultValue) {
+	public @Nullable V getOrDefault(char key, @Nullable V defaultValue) {
 		if (key == 0)
 			return hasZeroValue ? zeroValue : defaultValue;
 		final char[] kt = keyTable;
@@ -157,7 +156,7 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public @Nullable V put(char key, @Nullable V value) {
+	public @Nullable V put(char key, V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			zeroValue = value;
@@ -168,7 +167,7 @@ public class CharHashMap<V> implements Cloneable {
 			return oldV;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final char k = kt[i];
@@ -187,7 +186,7 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public void putAll(@NotNull CharHashMap<? extends V> map) {
+	public void putAll(CharHashMap<? extends V> map) {
 		if (map.hasZeroValue) {
 			if (!hasZeroValue) {
 				hasZeroValue = true;
@@ -196,7 +195,7 @@ public class CharHashMap<V> implements Cloneable {
 			zeroValue = map.zeroValue;
 		}
 		final char[] mapKt = map.keyTable;
-		final V[] mapVt = map.valueTable;
+		final @Nullable V[] mapVt = map.valueTable;
 		for (int i = 0, n = mapKt.length; i < n; i++) {
 			final char k = mapKt[i];
 			if (k != 0)
@@ -204,7 +203,7 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public @Nullable V putIfAbsent(char key, @Nullable V value) {
+	public @Nullable V putIfAbsent(char key, V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			// 值为null的既有条目按Map契约视为absent：写入新值
@@ -218,7 +217,7 @@ public class CharHashMap<V> implements Cloneable {
 			return oldV;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final char k = kt[i];
@@ -239,7 +238,7 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V computeIfAbsent(char key, @NotNull IntFunction<? extends V> mappingFunction) {
+	public @Nullable V computeIfAbsent(char key, IntFunction<? extends @Nullable V> mappingFunction) {
 		if (key == 0) {
 			V v = zeroValue;
 			// 值为null的既有条目按Map契约视为absent：需要重算；
@@ -257,7 +256,7 @@ public class CharHashMap<V> implements Cloneable {
 			return v;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final char k = kt[i];
@@ -285,7 +284,7 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public @Nullable V replace(char key, @Nullable V value) {
+	public @Nullable V replace(char key, V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			if (hasZeroValue)
@@ -293,7 +292,7 @@ public class CharHashMap<V> implements Cloneable {
 			return oldV;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final char k = kt[i];
@@ -307,7 +306,7 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public boolean replace(char key, @Nullable V oldValue, @Nullable V newValue) {
+	public boolean replace(char key, @Nullable V oldValue, V newValue) {
 		if (key == 0) {
 			if (!hasZeroValue || !Objects.equals(oldValue, zeroValue))
 				return false;
@@ -315,7 +314,7 @@ public class CharHashMap<V> implements Cloneable {
 			return true;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = hash(key), m = mask; ; i = (i + 1) & m) {
 			final char k = kt[i];
 			if (k == key) {
@@ -329,11 +328,11 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public interface CharObjectFunction<V> {
-		@Nullable V apply(char key, V value);
+	public interface CharObjectFunction<V extends @Nullable Object> {
+		@Nullable V apply(char key, @Nullable V value);
 	}
 
-	public V compute(char key, @NotNull CharObjectFunction<V> op) {
+	public @Nullable V compute(char key, CharObjectFunction<V> op) {
 		if (key == 0) {
 			final V oldV = hasZeroValue ? zeroValue : null;
 			final V v = op.apply(key, oldV);
@@ -355,7 +354,7 @@ public class CharHashMap<V> implements Cloneable {
 			return v;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = hash(key), m = mask; ; i = (i + 1) & m) {
 			final char k = kt[i];
 			if (k == key) {
@@ -401,7 +400,7 @@ public class CharHashMap<V> implements Cloneable {
 			return oldV;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		int i;
 		for (i = hash(key); ; i = (i + 1) & m) {
@@ -436,7 +435,7 @@ public class CharHashMap<V> implements Cloneable {
 			return true;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int m = mask;
 		int i;
 		for (i = hash(key); ; i = (i + 1) & m) {
@@ -505,10 +504,10 @@ public class CharHashMap<V> implements Cloneable {
 		mask = m;
 		shift = Long.numberOfLeadingZeros(m);
 		final char[] kt = new char[newSize];
-		@SuppressWarnings("unchecked") final V[] vt = (V[])new Object[newSize];
+		@SuppressWarnings("unchecked") final @Nullable V[] vt = (V[])new Object[newSize];
 		if (size != 0) {
 			final char[] oldKt = keyTable;
-			final V[] oldVt = valueTable;
+			final @Nullable V[] oldVt = valueTable;
 			for (int j = 0, n = oldKt.length; j < n; j++) {
 				final char k = oldKt[j];
 				if (k != 0) {
@@ -526,7 +525,7 @@ public class CharHashMap<V> implements Cloneable {
 		valueTable = vt;
 	}
 
-	public void foreachKey(@NotNull IntConsumer consumer) {
+	public void foreachKey(IntConsumer consumer) {
 		if (hasZeroValue)
 			consumer.accept(0);
 		for (final char k : keyTable)
@@ -534,41 +533,47 @@ public class CharHashMap<V> implements Cloneable {
 				consumer.accept(k);
 	}
 
-	public void foreachValue(@NotNull Consumer<V> consumer) {
+	public void foreachValue(Consumer<? super V> consumer) {
 		if (hasZeroValue)
 			consumer.accept(zeroValue);
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = 0, n = kt.length; i < n; i++)
 			if (kt[i] != 0)
 				consumer.accept(vt[i]);
 	}
 
-	public interface CharObjectConsumer<V> {
+	public interface CharObjectConsumer<V extends @Nullable Object> {
 		void accept(char key, V value);
 	}
 
-	public void foreach(@NotNull CharObjectConsumer<V> consumer) {
+	// Called only for present keys. Nullable slots represent both absent keys and nullable V values.
+	private V valueForPresentKey(@Nullable V value) {
+		return value;
+	}
+
+	// A present key guarantees a V value; the nullable array component also represents empty slots.
+	public void foreach(CharObjectConsumer<? super V> consumer) {
 		if (hasZeroValue)
-			consumer.accept((char)0, zeroValue);
+			consumer.accept((char)0, valueForPresentKey(zeroValue));
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = 0, n = kt.length; i < n; i++) {
 			final char k = kt[i];
 			if (k != 0)
-				consumer.accept(k, vt[i]);
+				consumer.accept(k, valueForPresentKey(vt[i]));
 		}
 	}
 
-	public interface CharObjectMapPredicate<V> {
-		boolean test(@NotNull CharHashMap<V> map, char key, V value);
+	public interface CharObjectMapPredicate<V extends @Nullable Object> {
+		boolean test(CharHashMap<V> map, char key, V value);
 	}
 
-	public boolean foreachTest(@NotNull CharObjectMapPredicate<V> tester) {
+	public boolean foreachTest(CharObjectMapPredicate<V> tester) {
 		if (hasZeroValue && !tester.test(this, (char)0, zeroValue))
 			return false;
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		for (int i = 0, n = kt.length; i < n; i++) {
 			final char k = kt[i];
 			if (k != 0 && !tester.test(this, k, vt[i]))
@@ -577,7 +582,7 @@ public class CharHashMap<V> implements Cloneable {
 		return true;
 	}
 
-	public void foreachUpdate(@NotNull CharObjectFunction<V> func) {
+	public void foreachUpdate(CharObjectFunction<V> func) {
 		if (hasZeroValue) {
 			final V oldV = zeroValue;
 			final V v = func.apply((char)0, oldV);
@@ -590,7 +595,7 @@ public class CharHashMap<V> implements Cloneable {
 				zeroValue = v;
 		}
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		// 两遍：第一遍只应用func（更新值、记录返回null的待删除key），第二遍用remove统一做结构删除。
 		// 原实现就地backward-shift删除会把同探测链的后续条目搬进已遍历区域，导致func跳过它们。
 		char[] removedKeys = null;
@@ -643,12 +648,12 @@ public class CharHashMap<V> implements Cloneable {
 		}
 	}
 
-	public @NotNull Iterator iterator() {
+	public Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public @NotNull CharHashMap<V> clone() throws CloneNotSupportedException {
+	public CharHashMap<V> clone() throws CloneNotSupportedException {
 		@SuppressWarnings("unchecked") final CharHashMap<V> map = (CharHashMap<V>)super.clone();
 		map.keyTable = keyTable.clone();
 		map.valueTable = valueTable.clone();
@@ -656,12 +661,12 @@ public class CharHashMap<V> implements Cloneable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		if (size == 0)
 			return "{}";
 		final StringBuilder sb = new StringBuilder(32).append('{');
 		final char[] kt = keyTable;
-		final V[] vt = valueTable;
+		final @Nullable V[] vt = valueTable;
 		final int n = Math.min(kt.length, 20);
 		int i = 0;
 		if (hasZeroValue)

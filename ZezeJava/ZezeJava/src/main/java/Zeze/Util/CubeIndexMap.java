@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 把三维空间划分成一个个相邻的Cube。
@@ -91,7 +90,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	// ConcurrentHashMap，调用方（onEnter/onMove 的 CubeIndex 重载是面向游戏代码的公开入口）
 	// 事后 setX/Y/Z 会使键与哈希桶失联，cube 永久失联且无法回收；键归 map 所有、
 	// 与调用方解耦。tryPerform 仅 get() 按值查找、不保留参数，无需拷贝。
-	private static @NotNull CubeIndex copyOf(@NotNull CubeIndex index) {
+	private static CubeIndex copyOf(CubeIndex index) {
 		var copy = new CubeIndex();
 		copy.setX(index.getX());
 		copy.setY(index.getY());

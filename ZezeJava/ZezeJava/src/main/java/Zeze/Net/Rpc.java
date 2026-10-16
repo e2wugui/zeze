@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
@@ -12,8 +14,7 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 请求-应答协议基类。发送侧实例为一次性：Send/SendForWait 只能进入一次，
@@ -21,9 +22,9 @@ import org.jetbrains.annotations.Nullable;
  * 需要「可靠投递/超时重试」语义时，新建实例重发，并配合协议层幂等或服务端按请求标识去重
  */
 public abstract class Rpc<TArgument extends Serializable, TResult extends Serializable> extends Protocol<TArgument> {
-	protected static final @NotNull Logger logger = LogManager.getLogger(Rpc.class);
+	protected static final Logger logger = LogManager.getLogger(Rpc.class);
 
-	private static final @NotNull VarHandle SEND_RESULT_DONE;
+	private static final VarHandle SEND_RESULT_DONE;
 	static {
 		try {
 			SEND_RESULT_DONE = MethodHandles.lookup().findVarHandle(Rpc.class, "sendResultDone", boolean.class);
@@ -32,6 +33,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		}
 	}
 
+	@SuppressWarnings("NotNullFieldNotInitialized") // Initialized by each concrete RPC constructor.
 	public TResult Result;
 	protected transient @Nullable Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
 	private long sessionId;
@@ -111,7 +113,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return Result;
 	}
 
-	public void schedule(@NotNull Service service, long sessionId, int millisecondsTimeout) {
+	public void schedule(Service service, long sessionId, int millisecondsTimeout) {
 		long timeout = Math.max(millisecondsTimeout, 0);
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
@@ -182,7 +184,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		Service service = so.getService();
 
 		this.responseHandle = responseHandle;
-		sessionId = service.addRpcContext(this);
+		sessionId = Objects.requireNonNull(service).addRpcContext(this);
 		timeout = millisecondsTimeout;
 		isTimeout = false;
 		isRequest = true;
@@ -225,7 +227,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return false;
 	}
 
-	public long sendCallbackBrokenTimeout(@NotNull Connector c,
+	public long sendCallbackBrokenTimeout(Connector c,
 										 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
 		if (responseHandle == null)
 			throw new IllegalStateException("responseHandle is null"); // 调用这个函数不允许没有回调。
@@ -313,8 +315,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public void dispatch(@NotNull Service service,
-	                     @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatch(Service service,
+	                     Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isRequest) {
 			super.dispatch(service, factoryHandle);
 			return;
@@ -344,7 +346,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	private static volatile long lastResponseMismatchLogMs; // 告警限频（60秒一条，防日志刷屏DoS）
 
 	public static <T extends Protocol<?>> @Nullable T removeRpcContextChecked(
-			@NotNull Service service, long sid, @NotNull Rpc<?, ?> response) {
+			Service service, long sid, Rpc<?, ?> response) {
 		var ctx = service.getRpcContext(sid);
 		if (ctx == null)
 			return null;
@@ -363,7 +365,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return service.removeRpcContext(sid);
 	}
 
-	public Rpc<TArgument, TResult> setupRpcResponseContext(@NotNull Protocol<?> ctx) {
+	public Rpc<TArgument, TResult> setupRpcResponseContext(Protocol<?> ctx) {
 		@SuppressWarnings("unchecked")
 		var context = (Rpc<TArgument, TResult>)ctx;
 		context.setSender(getSender());
@@ -388,8 +390,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public long handle(@NotNull Service service,
-	                   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public long handle(Service service,
+	                   Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isRequest)
 			return super.handle(service, factoryHandle);
 
@@ -419,7 +421,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var header = getFamilyClass();
 		if (resultCode == 0)
 			bb.WriteUInt(header);
@@ -437,7 +439,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		var header = bb.ReadUInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRpc(familyClass))
@@ -466,7 +468,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.format("%s IsRequest=%b SessionId=%d ResultCode=%d\nArgument=%s\nResult=%s",
 				getClass().getName(), isRequest, sessionId, getResultCode(), Argument, Result);
 	}

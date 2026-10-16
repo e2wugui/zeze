@@ -4,7 +4,6 @@ import java.text.ParseException;
 import java.util.Date;
 import Zeze.Builtin.Timer.BCronTimer;
 import org.apache.logging.log4j.core.util.CronExpression;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * BCronTimer 的调度参数描述，同时持有 BCronTimer 的运行时推进逻辑（cron 解析与下次触发时间计算）。
@@ -19,14 +18,14 @@ import org.jetbrains.annotations.NotNull;
  * </pre>
  */
 public final class CronTimerSpec implements TimerSpec {
-	private final @NotNull String cronExpression;
-	private final @NotNull CronExpression cron;
+	private final String cronExpression;
+	private final CronExpression cron;
 	private long times = -1;
 	private long endTime = -1;
 	private int missfirePolicy = Timer.eMissfirePolicyNothing;
-	private @NotNull String oneByOneKey = "";
+	private String oneByOneKey = "";
 
-	CronTimerSpec(@NotNull String cronExpression) {
+	CronTimerSpec(String cronExpression) {
 		if (cronExpression.isEmpty())
 			throw new IllegalArgumentException("cronExpression is empty");
 		try {
@@ -37,7 +36,7 @@ public final class CronTimerSpec implements TimerSpec {
 		this.cronExpression = cronExpression;
 	}
 
-	public @NotNull String getCronExpression() {
+	public String getCronExpression() {
 		return cronExpression;
 	}
 
@@ -53,14 +52,14 @@ public final class CronTimerSpec implements TimerSpec {
 		return missfirePolicy;
 	}
 
-	public @NotNull String getOneByOneKey() {
+	public String getOneByOneKey() {
 		return oneByOneKey;
 	}
 
 	/**
 	 * @param times 限制触发次数, -1表示不限次数, 不允许0
 	 */
-	public @NotNull CronTimerSpec times(long times) {
+	public CronTimerSpec times(long times) {
 		if (times == 0)
 			throw new IllegalArgumentException("times must not be 0");
 		this.times = times;
@@ -70,7 +69,7 @@ public final class CronTimerSpec implements TimerSpec {
 	/**
 	 * @param endTime 限制预定触发的最后时间(unix毫秒时间戳), 只有大于0会限制；迟到补触发沿用missfire策略
 	 */
-	public @NotNull CronTimerSpec endTime(long endTime) {
+	public CronTimerSpec endTime(long endTime) {
 		this.endTime = endTime;
 		return this;
 	}
@@ -78,12 +77,12 @@ public final class CronTimerSpec implements TimerSpec {
 	/**
 	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 */
-	public @NotNull CronTimerSpec missfirePolicy(int missfirePolicy) {
+	public CronTimerSpec missfirePolicy(int missfirePolicy) {
 		this.missfirePolicy = missfirePolicy;
 		return this;
 	}
 
-	public @NotNull CronTimerSpec oneByOneKey(@NotNull String oneByOneKey) {
+	public CronTimerSpec oneByOneKey(String oneByOneKey) {
 		this.oneByOneKey = oneByOneKey;
 		return this;
 	}
@@ -91,7 +90,7 @@ public final class CronTimerSpec implements TimerSpec {
 	/**
 	 * 生成可调度的bean。调用时捕获当前时间, 产物不要缓存复用。
 	 */
-	public @NotNull BCronTimer build() {
+	public BCronTimer build() {
 		var cronTimer = new BCronTimer();
 		cronTimer.setCronExpression(cronExpression);
 		var now = System.currentTimeMillis();
@@ -106,7 +105,7 @@ public final class CronTimerSpec implements TimerSpec {
 		return cronTimer;
 	}
 
-	public boolean matches(@NotNull BCronTimer cronTimer) {
+	public boolean matches(BCronTimer cronTimer) {
 		return cronTimer.getCronExpression().equals(cronExpression)
 				&& cronTimer.getRemainTimes() == times
 				&& cronTimer.getEndTime() == endTime
@@ -114,26 +113,26 @@ public final class CronTimerSpec implements TimerSpec {
 				&& cronTimer.getOneByOneKey().equals(oneByOneKey);
 	}
 
-	public static long cronNextTime(@NotNull String cron, long time) throws ParseException {
+	public static long cronNextTime(String cron, long time) throws ParseException {
 		var cronExpression = new CronExpression(cron);
 		return cronNextTimeAfter(cronExpression, time);
 	}
 
 	// getNextValidTimeAfter对无可行后续时间（如过期年份表达式"0 0 0 1 1 ? 2020"）返回null
 	// （Quartz系文档行为），直接.getTime()会在深处NPE——入口显式拒绝。
-	private static long cronNextTimeAfter(@NotNull CronExpression cronExpression, long time) {
+	private static long cronNextTimeAfter(CronExpression cronExpression, long time) {
 		var next = cronExpression.getNextValidTimeAfter(new Date(time));
 		if (next == null)
 			throw new IllegalArgumentException("cron expression has no next valid time: " + cronExpression.getCronExpression());
 		return next.getTime();
 	}
 
-	private static long nextCronTimeOrZero(@NotNull String expression, long time) throws ParseException {
+	private static long nextCronTimeOrZero(String expression, long time) throws ParseException {
 		var next = new CronExpression(expression).getNextValidTimeAfter(new Date(time));
 		return next != null ? next.getTime() : 0;
 	}
 
-	public static boolean nextCronTimer(@NotNull BCronTimer cronTimer, boolean missfire) throws ParseException {
+	public static boolean nextCronTimer(BCronTimer cronTimer, boolean missfire) throws ParseException {
 		// 当前回调（包括最后一次）都必须先记录本次触发的元数据。
 		var nextExpectedTime = cronTimer.getNextExpectedTime();
 		cronTimer.setExpectedTime(nextExpectedTime);

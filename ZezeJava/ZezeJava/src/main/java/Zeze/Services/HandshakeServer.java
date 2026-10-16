@@ -4,25 +4,24 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Services.Handshake.SHandshake0;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 服务端握手服务基类：重载OnSocketAccept推迟OnHandshakeDone，并向客户端发送SHandshake0。
  */
 public class HandshakeServer extends HandshakeBase {
-	public HandshakeServer(@NotNull String name, @Nullable Config config) {
+	public HandshakeServer(String name, @Nullable Config config) {
 		super(name, config);
 		addHandshakeServerFactoryHandle();
 	}
 
-	public HandshakeServer(@NotNull String name, @Nullable Application app) {
+	public HandshakeServer(String name, @Nullable Application app) {
 		super(name, app);
 		addHandshakeServerFactoryHandle();
 	}
 
 	@Override
-	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		checkMaxConnections(); // 覆写丢掉了 Service.OnSocketAccept 的连接数上限检查，这里补回
 		setupHaProxyHeader(so); // 覆写丢掉了 Service.OnSocketAccept 的HaProxy头安装，这里补回

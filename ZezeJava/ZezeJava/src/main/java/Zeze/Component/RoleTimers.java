@@ -2,8 +2,7 @@ package Zeze.Component;
 
 import Zeze.Application;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 角色定时器门面，把TimerRole的三类定时器组织成统一入口。
@@ -14,10 +13,10 @@ import org.jetbrains.annotations.Nullable;
  * }</pre>
  */
 public final class RoleTimers {
-	private final @NotNull TimerRole timerRole;
+	private final TimerRole timerRole;
 	private final long roleId;
 
-	RoleTimers(@NotNull TimerRole timerRole, long roleId) {
+	RoleTimers(TimerRole timerRole, long roleId) {
 		this.timerRole = timerRole;
 		this.roleId = roleId;
 	}
@@ -30,7 +29,7 @@ public final class RoleTimers {
 	 * 在线定时器(cold handle)：仅当角色登录在本服务器时触发，handle在调度时解析。
 	 * 不允许热更新模块调用。
 	 */
-	public @NotNull TimerScope online() {
+	public TimerScope online() {
 		return new OnlineScope();
 	}
 
@@ -38,14 +37,14 @@ public final class RoleTimers {
 	 * 在线定时器(hot handle)：仅当角色登录在本服务器时触发，handle在触发时按名字解析。
 	 * 支持热更新模块调用。
 	 */
-	public @NotNull TimerScope onlineHot() {
+	public TimerScope onlineHot() {
 		return new OnlineHotScope();
 	}
 
 	/**
 	 * 离线定时器：角色不在线时也能触发。
 	 */
-	public @NotNull TimerScope offline() {
+	public TimerScope offline() {
 		return new OfflineScope();
 	}
 
@@ -58,7 +57,7 @@ public final class RoleTimers {
 
 	private final class OnlineScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
+		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			var zeze = timerRole.zeze();
 			if (zeze.isHotVerifyEnabled())
@@ -67,8 +66,8 @@ public final class RoleTimers {
 		}
 
 		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
-									 @NotNull Class<? extends TimerHandle> handleClass,
+		public boolean scheduleNamed(String timerId, TimerSpec spec,
+									 Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
 			var zeze = timerRole.zeze();
 			if (zeze.isHotVerifyEnabled())
@@ -84,14 +83,14 @@ public final class RoleTimers {
 
 	private final class OnlineHotScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
+		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			return timerRole.scheduleOnlineHot(roleId, spec, handleClass, customData);
 		}
 
 		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
-									 @NotNull Class<? extends TimerHandle> handleClass,
+		public boolean scheduleNamed(String timerId, TimerSpec spec,
+									 Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
 			return timerRole.scheduleOnlineNamedHot(roleId, timerId, spec, handleClass, customData);
 		}
@@ -104,14 +103,14 @@ public final class RoleTimers {
 
 	private final class OfflineScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
+		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			return timerRole.scheduleOffline(roleId, spec, handleClass, customData);
 		}
 
 		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
-									 @NotNull Class<? extends TimerHandle> handleClass,
+		public boolean scheduleNamed(String timerId, TimerSpec spec,
+									 Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
 			return timerRole.scheduleOfflineNamed(timerId, roleId, spec, handleClass, customData);
 		}

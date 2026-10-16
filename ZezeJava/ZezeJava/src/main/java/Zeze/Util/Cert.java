@@ -25,6 +25,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.jspecify.annotations.Nullable;
 import sun.security.rsa.RSAPublicKeyImpl;
 import sun.security.rsa.RSAUtil;
 import sun.security.util.DerValue;
@@ -53,7 +54,7 @@ public final class Cert {
 	}
 
 	// 从输入流加载KeyStore(PKCS12格式的二进制密钥存储格式,有密码加密,包含私钥和公钥证书)
-	public static KeyStore loadKeyStore(InputStream inputStream, String passwd)
+	public static KeyStore loadKeyStore(InputStream inputStream, @Nullable String passwd)
 			throws GeneralSecurityException, IOException {
 		var keyStore = KeyStore.getInstance("pkcs12");
 		keyStore.load(inputStream, passwd != null ? passwd.toCharArray() : null);
@@ -71,7 +72,7 @@ public final class Cert {
 	}
 
 	// 从KeyStore里获取私钥
-	public static PrivateKey getPrivateKey(KeyStore keyStore, String passwd, String alias)
+	public static PrivateKey getPrivateKey(KeyStore keyStore, @Nullable String passwd, String alias)
 			throws GeneralSecurityException {
 		return (PrivateKey)keyStore.getKey(alias, passwd != null ? passwd.toCharArray() : null);
 	}

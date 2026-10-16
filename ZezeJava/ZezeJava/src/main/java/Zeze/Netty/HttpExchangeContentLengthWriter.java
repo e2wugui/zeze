@@ -6,18 +6,17 @@ import java.nio.CharBuffer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 缓冲整个响应体的模板输出 Writer：按 ContentLength 发送，fail 时改发 500。
  */
 public class HttpExchangeContentLengthWriter extends Writer {
-	private final @NotNull HttpExchange x;
-	private final @NotNull ByteBuf html = PooledByteBufAllocator.DEFAULT.buffer(64 * 1024);
+	private final HttpExchange x;
+	private final ByteBuf html = PooledByteBufAllocator.DEFAULT.buffer(64 * 1024);
 	private boolean closed; // send会转移html所有权(netty发送完释放),Closeable契约要求close幂等,二次close不得重复发送已释放的ByteBuf
 	private boolean failed; // 渲染中途异常由调用方置位：close不得把半截页面按200+完整ContentLength发出
 
-	public HttpExchangeContentLengthWriter(@NotNull HttpExchange x) {
+	public HttpExchangeContentLengthWriter(HttpExchange x) {
 		this.x = x;
 	}
 
@@ -31,7 +30,7 @@ public class HttpExchangeContentLengthWriter extends Writer {
 	}
 
 	@Override
-	public void write(char @NotNull [] cbuf, int off, int len) {
+	public void write(char [] cbuf, int off, int len) {
 		html.writeCharSequence(CharBuffer.wrap(cbuf, off, len), HttpServer.defaultCharset);
 	}
 

@@ -1,5 +1,7 @@
 package Zeze.Collections;
 
+import java.util.Objects;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.Queue.BQueue;
@@ -17,6 +19,7 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Action1;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 持久化 FIFO 队列：节点分片存储，支持分批读取与断链诊断。
@@ -152,11 +155,11 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		return name;
 	}
 
-	private BQueue compatible(BQueue root) {
+	private @Nullable BQueue compatible(@Nullable BQueue root) {
 		return compatible(root, name);
 	}
 
-	static BQueue compatible(BQueue root, String name) {
+	static @Nullable BQueue compatible(@Nullable BQueue root, String name) {
 		if (null == root)
 			return null;
 
@@ -174,7 +177,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		return root;
 	}
 
-	static BQueue compatibleDirty(BQueue root, String name) {
+	static @Nullable BQueue compatibleDirty(@Nullable BQueue root, String name) {
 		if (null == root)
 			return null;
 
@@ -186,7 +189,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		return root;
 	}
 
-	static BQueueNode compatible(BQueueNodeKey key, BQueueNode node) {
+	static @Nullable BQueueNode compatible(BQueueNodeKey key, @Nullable BQueueNode node) {
 		if (node == null)
 			return null;
 
@@ -196,7 +199,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		return node;
 	}
 
-	static BQueueNode compatibleDirty(BQueueNodeKey key, BQueueNode node) {
+	static @Nullable BQueueNode compatibleDirty(BQueueNodeKey key, @Nullable BQueueNode node) {
 		if (node == null)
 			return null;
 
@@ -207,15 +210,15 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		return node;
 	}
 
-	private BQueue getRoot() {
+	private @Nullable BQueue getRoot() {
 		return compatible(module._tQueues.get(name));
 	}
 
 	BQueue getOrAddRoot() {
-		return compatible(module._tQueues.getOrAdd(name));
+		return Objects.requireNonNull(compatible(module._tQueues.getOrAdd(name)));
 	}
 
-	private BQueueNode getNode(BQueueNodeKey key) {
+	private @Nullable BQueueNode getNode(BQueueNodeKey key) {
 		return compatible(key, module._tQueueNodes.get(key));
 	}
 
@@ -238,7 +241,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 *
 	 * @return 头节点，null if empty
 	 */
-	public BQueueNode pollNode() {
+	public @Nullable BQueueNode pollNode() {
 		var root = getRoot();
 		if (root == null)
 			return null;
@@ -299,7 +302,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	/**
 	 * @return 头节点，null if empty
 	 */
-	public BQueueNode peekNode() {
+	public @Nullable BQueueNode peekNode() {
 		var root = getRoot();
 		if (root == null)
 			return null;
@@ -320,7 +323,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 *
 	 * @return 头节点的首个值，null if empty
 	 */
-	public V poll() {
+	public @Nullable V poll() {
 		var root = getRoot();
 		if (root == null)
 			return null;
@@ -356,7 +359,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	/**
 	 * @return 头节点的首个值，null if empty
 	 */
-	public V peek() {
+	public @Nullable V peek() {
 		var root = getRoot();
 		if (root == null)
 			return null;
@@ -459,7 +462,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 *
 	 * @return 头节点的首个值，null if empty
 	 */
-	public V pop() {
+	public @Nullable V pop() {
 		return poll();
 	}
 

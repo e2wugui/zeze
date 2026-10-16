@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -26,8 +30,8 @@ public class CollSet1<V> extends CollSet<V> {
 	public boolean add(V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			return setLog.add(item);
 		}
 		var newSet = set.plus(item);
@@ -41,8 +45,8 @@ public class CollSet1<V> extends CollSet<V> {
 	public boolean remove(V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			return setLog.remove(item);
 		}
 		var newSet = set.minus(item);
@@ -56,8 +60,8 @@ public class CollSet1<V> extends CollSet<V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet1<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			setLog.clear();
 		} else
 			set = Zeze.Collections.Persistents.set();
@@ -83,11 +87,11 @@ public class CollSet1<V> extends CollSet<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void leaderApplyNoRecursive(Log _log) {
-		set = ((LogSet1<V>)_log).getValue();
+		set = Objects.requireNonNull(((LogSet1<V>)_log).getValue());
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.@Nullable RootInfo root) {
 	}
 
 	@Override

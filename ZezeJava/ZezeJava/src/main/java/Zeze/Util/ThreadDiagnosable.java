@@ -5,13 +5,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
 // 线程诊断：后台线程扫描超时任务（Timeout）与长驻临界区（Critical），超时打栈并中断
 public final class ThreadDiagnosable {
-	private static final @NotNull Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
+	private static final Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
 	private static final AtomicLong currentSerial = new AtomicLong();
 	private static final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();
 	public static volatile boolean disableInterrupt = Reflect.inDebugMode;
@@ -64,7 +63,7 @@ public final class ThreadDiagnosable {
 		thread.start();
 	}
 
-	public static void formatStackTrace(@NotNull StackTraceElement @NotNull [] stackTrace, @NotNull StringBuilder sb) {
+	public static void formatStackTrace(StackTraceElement [] stackTrace, StringBuilder sb) {
 		int i = 0;
 		for (; i < stackTrace.length && i < MAX_DEPTH; i++)
 			sb.append("\tat ").append(stackTrace[i]).append('\n');
@@ -116,7 +115,7 @@ public final class ThreadDiagnosable {
 	}
 
 	public static final class Critical implements AutoCloseable {
-		static final ThreadLocal<Boolean> tlCritical = new ThreadLocal<>();
+		static final ThreadLocal<@Nullable Boolean> tlCritical = new ThreadLocal<>();
 		private final @Nullable Boolean saved = tlCritical.get();
 
 		// 注意必须使用try包装,确保new和close配对

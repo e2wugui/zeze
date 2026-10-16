@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,7 +13,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 管理 Bean 的 Map 容器增量日志：结构操作记 putted/removed，值 bean 的字段修改记 changedWithKey，
@@ -53,11 +56,11 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		if (!decoded && getValue() != null) {
 			changedWithKey.clear(); // live日志重建最终视图；decode日志保留wire中的changed。
 			for (var c : changed) {
-				Object pkey = c.getThis().mapKey();
+				Object pkey = Objects.requireNonNull(c.getThis()).mapKey();
 				// 第三条过滤对齐Transaction.Collections.LogMap2.buildChangedWithKey：
 				// 编辑时bean已不在最终map（remove不detach，编辑已删bean的陈旧引用仍会被collect，
 				// 其key来自更早事务，putted/removed两条拦不住），不过滤则follower侧必取到null；
@@ -65,8 +68,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 				// 不得应用到覆盖后的新值上。
 				//noinspection SuspiciousMethodCalls
 				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey)
-						&& c.getThis() == getValue().get(pkey))
-					changedWithKey.put((K)pkey, c);
+						&& c.getThis() == Objects.requireNonNull(getValue()).get(pkey))
+					changedWithKey.put((K)Objects.requireNonNull(pkey), c);
 			}
 		}
 		bb.WriteUInt(changedWithKey.size());
@@ -89,7 +92,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		changed.clear();
 		changedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;

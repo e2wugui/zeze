@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -10,11 +14,11 @@ import Zeze.Transaction.Bean;
  */
 final class BInstallSnapshotArgument extends Bean {
 	private long term;
-	private String leaderId; // Ip:Port
+	private @Nullable String leaderId; // Ip:Port
 	private long lastIncludedIndex;
 	private long lastIncludedTerm;
 	private long offset;
-	private Binary data;
+	private @Nullable Binary data;
 	private boolean done;
 
 	// 当Done为true时，把LastIncludedLog放到这里，Follower需要至少一个日志。
@@ -28,7 +32,7 @@ final class BInstallSnapshotArgument extends Bean {
 		term = value;
 	}
 
-	public String getLeaderId() {
+	public @Nullable String getLeaderId() {
 		return leaderId;
 	}
 
@@ -60,7 +64,7 @@ final class BInstallSnapshotArgument extends Bean {
 		offset = value;
 	}
 
-	public Binary getData() {
+	public @Nullable Binary getData() {
 		return data;
 	}
 
@@ -92,7 +96,7 @@ final class BInstallSnapshotArgument extends Bean {
 		bb.WriteLong(lastIncludedTerm);
 
 		bb.WriteLong(offset);
-		bb.WriteBinary(data);
+		bb.WriteBinary(Objects.requireNonNull(data));
 		bb.WriteBool(done);
 
 		bb.WriteBinary(lastIncludedLog);

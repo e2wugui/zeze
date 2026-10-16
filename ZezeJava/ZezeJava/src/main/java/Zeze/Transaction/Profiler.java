@@ -6,8 +6,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Util.Str;
 import Zeze.Util.ZezeCounter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 对慢事务的性能统计和分析.
@@ -23,7 +22,7 @@ public class Profiler {
 	private static final ConcurrentHashMap<String, State> enableProcMap = new ConcurrentHashMap<>(); // <procName,State>
 
 	private static final class State {
-		private static final @NotNull VarHandle vhNextProfileTime;
+		private static final VarHandle vhNextProfileTime;
 
 		static {
 			try {
@@ -58,7 +57,7 @@ public class Profiler {
 		}
 	}
 
-	private final ArrayList<@NotNull Context> contexts = new ArrayList<>();
+	private final ArrayList<Context> contexts = new ArrayList<>();
 	private int count; // 当前contexts的有效数量
 	private long startTime; // 0表示没启动profile
 
@@ -74,7 +73,7 @@ public class Profiler {
 		startTime = 0;
 	}
 
-	public void onProcedureBegin(@NotNull String procName, long curTimeNs) {
+	public void onProcedureBegin(String procName, long curTimeNs) {
 		for (; ; ) {
 			var state = enableProcMap.get(procName);
 			if (state == null)
@@ -88,7 +87,7 @@ public class Profiler {
 		}
 	}
 
-	public void onProcedureEnd(@NotNull String procName, long curTimeNs, long runTimeNs) {
+	public void onProcedureEnd(String procName, long curTimeNs, long runTimeNs) {
 		if (runTimeNs < PROFILE_THRESHOLD)
 			return;
 		var state = enableProcMap.compute(procName, (k, v) -> {
@@ -159,11 +158,11 @@ public class Profiler {
 		return t.profiler.beginContext(name);
 	}
 
-	public static @Nullable Context begin(@NotNull Object... names) {
+	public static @Nullable Context begin(Object... names) {
 		return begin((Object)names);
 	}
 
-	private int genInfo(@NotNull StringBuilder sb, int indent, int idx, @NotNull Context c) {
+	private int genInfo(StringBuilder sb, int indent, int idx, Context c) {
 		var timeEnd = c.timeEnd;
 		if (timeEnd == 0)
 			timeEnd = c.timeBegin;
@@ -193,7 +192,7 @@ public class Profiler {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		if (count <= 0)
 			return "";
 		var sb = new StringBuilder();
@@ -204,7 +203,7 @@ public class Profiler {
 		return sb.toString();
 	}
 
-	public static void main(String @NotNull [] args) throws InterruptedException {
+	public static void main(String [] args) throws InterruptedException {
 		var p = new Profiler();
 		p.startTime = System.nanoTime();
 		try (var ignored = p.beginContext("aa")) {

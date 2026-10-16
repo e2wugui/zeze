@@ -9,8 +9,7 @@ import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Record;
 import Zeze.Util.Json;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Json.ensureNotNull;
 
 /** 事务二维表（行键×列键→不可变值）：外层 PMap2 装 BeanMap1 行 Bean。
@@ -25,12 +24,12 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	static final String OUTER_NAME_PREFIX = "GTable1:";
 
 	public static final class Factory<R, C, V> implements Supplier<Map<C, V>> {
-		private final @NotNull Map2Meta<R, BeanMap1<C, V>> pmapMeta;
-		private final @NotNull Map1Meta<C, V> bmapMeta;
-		private final @NotNull Json.FieldMeta fm1;
-		private final @NotNull Json.FieldMeta fm2;
+		private final Map2Meta<R, BeanMap1<C, V>> pmapMeta;
+		private final Map1Meta<C, V> bmapMeta;
+		private final Json.FieldMeta fm1;
+		private final Json.FieldMeta fm2;
 
-		Factory(@NotNull Map2Meta<R, BeanMap1<C, V>> pmapMeta, @NotNull Map1Meta<C, V> bmapMeta) {
+		Factory(Map2Meta<R, BeanMap1<C, V>> pmapMeta, Map1Meta<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
 			// fm1/fm2在构造期一次性构建：惰性初始化只校验fm1且两写分离，
@@ -58,16 +57,16 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 			}
 		}
 
-		public @NotNull Map2Meta<R, BeanMap1<C, V>> getPmapMeta() {
+		public Map2Meta<R, BeanMap1<C, V>> getPmapMeta() {
 			return pmapMeta;
 		}
 
-		public @NotNull Map1Meta<C, V> getBmapMeta() {
+		public Map1Meta<C, V> getBmapMeta() {
 			return bmapMeta;
 		}
 
 		@Override
-		public @NotNull Map<C, V> get() {
+		public Map<C, V> get() {
 			return new BeanMap1<>(bmapMeta);
 		}
 	}
@@ -100,18 +99,18 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Factory<?, ?, ?>>>>
 			factories = new ConcurrentHashMap<>();
 
-	private final @NotNull PMap2<R, BeanMap1<C, V>> pMap2;
+	private final PMap2<R, BeanMap1<C, V>> pMap2;
 
 	@SuppressWarnings("deprecation")
 	public void variableId(int id) {
 		pMap2.variableId(id);
 	}
 
-	public final void initRootInfoWithRedo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
+	public final void initRootInfoWithRedo(Record.RootInfo rootInfo, @Nullable Bean parent) {
 		pMap2.initRootInfoWithRedo(rootInfo, parent);
 	}
 
-	public final void initRootInfo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
+	public final void initRootInfo(Record.RootInfo rootInfo, @Nullable Bean parent) {
 		pMap2.initRootInfo(rootInfo, parent);
 	}
 
@@ -154,14 +153,14 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	// "LogMap2"，不点名GTable也不指明行/列维度。Bean是值语义equals配身份hashCode，行/列任一
 	// Bean维度的哈希put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/
 	// TypeGTable.cs要求IsKeyable，Types.Bean的IsKeyable=false）。前置报错点名维度。
-	private static void checkNonBeanDimension(@NotNull String dimension, @NotNull Class<?> keyClass) {
+	private static void checkNonBeanDimension(String dimension, Class<?> keyClass) {
 		if (Bean.class.isAssignableFrom(keyClass))
 			throw new IllegalArgumentException(
 					"GTable1 does not support Bean " + dimension + " key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
 							+ keyClass.getName());
 	}
 
-	public GTable1(@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
+	public GTable1(Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
 		checkNonBeanDimension("row", rowClass);
 		checkNonBeanDimension("column", colClass);
 		// Bean值不支持：GTable1为动态标量值
@@ -180,14 +179,14 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 
 	// Factory唯一来源是getFactory（meta经工厂层Bean拦截），不重复维度/值check。
 	// 供生成代码常量化（static final Factory + 本构造器），消除每实例化的三层缓存探测。
-	public GTable1(@NotNull Factory<R, C, V> factory) {
+	public GTable1(Factory<R, C, V> factory) {
 		this.pMap2 = new PMap2<>(factory.pmapMeta);
 		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
 		super.factory = factory;
 	}
 
-	public static <R, C, V> @NotNull Factory<R, C, V> getFactory(
-			@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
+	public static <R, C, V> Factory<R, C, V> getFactory(
+			Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
 		var map = factories.computeIfAbsent(rowClass, __ -> new ConcurrentHashMap<>())
 				.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());
 		var factory = map.get(valClass);
@@ -207,7 +206,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	 * 框架内部使用。外部代码勿直接 put——空行（行存在但内层为空）违反 GTable 不变量，
 	 * 会破坏遍历与容量驱逐；常规读写走 Table API。
 	 */
-	public @NotNull PMap2<R, BeanMap1<C, V>> getPMap2() {
+	public PMap2<R, BeanMap1<C, V>> getPMap2() {
 		return pMap2;
 	}
 }

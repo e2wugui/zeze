@@ -1,9 +1,10 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Raft 内部心跳日志：不携带用户数据；SetLeaderReadyEvent 用作 leader-ready 的提交见证。
@@ -36,19 +37,19 @@ final class HeartbeatLog extends Log {
 			// 由于这个log会被存储到日志队列中，所以在leader选出来，apply历史日志时，就会触发这个调用。
 			// 但是这个调用真正产生效果，需要是最后一个 HeartbeatLog。
 			// 这个条件在setLeaderReady内部检测 leaderWaitReadyTerm，leaderWaitReadyIndex。
-			stateMachine.getRaft().setLeaderReady(holder);
+			Objects.requireNonNull(stateMachine.getRaft()).setLeaderReady(holder);
 			break;
 		}
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		super.encode(bb);
 		bb.WriteUInt(operate);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		operate = bb.ReadUInt();
 	}

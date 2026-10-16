@@ -1,5 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Comparator;
 import java.util.Objects;
 
@@ -10,23 +12,23 @@ import java.util.Objects;
  * 这里也把泛型约束 K extends Comparable&lt;K&gt; 加上。
  */
 public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogBean {
-	private org.pcollections.PSortedMap<K, V> value;
-	private Comparator<? super K> comparator;
+	private org.pcollections.@Nullable PSortedMap<K, V> value;
+	private @Nullable Comparator<? super K> comparator;
 
 	public LogSortedMap(int typeId) {
 		this(typeId, null);
 	}
 
-	protected LogSortedMap(int typeId, Comparator<? super K> comparator) {
+	protected LogSortedMap(int typeId, @Nullable Comparator<? super K> comparator) {
 		super(typeId);
 		this.comparator = comparator;
 	}
 
-	public final org.pcollections.PSortedMap<K, V> getValue() {
+	public final org.pcollections.@Nullable PSortedMap<K, V> getValue() {
 		return value;
 	}
 
-	public final void setValue(org.pcollections.PSortedMap<K, V> value) {
+	public final void setValue(org.pcollections.@Nullable PSortedMap<K, V> value) {
 		var newComparator = value != null ? value.comparator() : null;
 		this.value = value;
 		if (!Objects.equals(comparator, newComparator)) {
@@ -36,7 +38,7 @@ public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogBean {
 	}
 
 	/** 增量的键等价关系须跟随源有序Map；未显式配置的decode日志使用自然顺序。 */
-	protected void onComparatorChanged(Comparator<? super K> comparator) {
+	protected void onComparatorChanged(@Nullable Comparator<? super K> comparator) {
 	}
 
 	@Override

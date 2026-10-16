@@ -1,7 +1,6 @@
 package Zeze.Serialize;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 四维单精度向量值类型（float x/y/z/w）：四分量参与模长/归一化与相等比较。 */
 public class Vector4 extends Vector3 {
@@ -14,27 +13,27 @@ public class Vector4 extends Vector3 {
 		this.w = w;
 	}
 
-	public Vector4(@NotNull Vector4 v4) {
+	public Vector4(Vector4 v4) {
 		super(v4);
 		w = v4.w;
 	}
 
-	public Vector4(@NotNull Vector3 v3) {
+	public Vector4(Vector3 v3) {
 		super(v3);
 		w = 0;
 	}
 
-	public Vector4(@NotNull Vector3Int v3) {
+	public Vector4(Vector3Int v3) {
 		super(v3);
 		w = 0;
 	}
 
-	public Vector4(@NotNull Vector2 v2) {
+	public Vector4(Vector2 v2) {
 		super(v2);
 		w = 0;
 	}
 
-	public Vector4(@NotNull Vector2Int v2) {
+	public Vector4(Vector2Int v2) {
 		super(v2);
 		w = 0;
 	}
@@ -45,7 +44,7 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2 v) {
+	public int compareTo(Vector2 v) {
 		int c = Float.compare(x, v.x);
 		if (c != 0)
 			return c;
@@ -77,7 +76,7 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public @NotNull Vector4 normalized() {
+	public Vector4 normalized() {
 		double magnitude = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
 		if (magnitude > 1e-6f) {
 			double f = 1 / magnitude;
@@ -87,7 +86,7 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public @NotNull Vector4 multiply(float m) {
+	public Vector4 multiply(float m) {
 		// 补上w：继承的三分量口径会静默丢w且结果降维（Quaternion继承本类自然正确）。
 		return new Vector4(x * m, y * m, z * m, w * m);
 	}
@@ -95,15 +94,15 @@ public class Vector4 extends Vector3 {
 	// 四维加减重载（不覆写三维签名）：继承的add/sub/subtract(Vector3)只运算x/y/z并
 	// 返回Vector3，丢w且降维。新增重载让静态类型为Vector4的实参绑定四维路径；
 	// Vector4实参经Vector3静态类型调用时保持旧三维语义（二进制兼容，见提交说明）。
-	public @NotNull Vector4 add(@NotNull Vector4 b) {
+	public Vector4 add(Vector4 b) {
 		return new Vector4(x + b.x, y + b.y, z + b.z, w + b.w);
 	}
 
-	public @NotNull Vector4 sub(@NotNull Vector4 b) {
+	public Vector4 sub(Vector4 b) {
 		return new Vector4(x - b.x, y - b.y, z - b.z, w - b.w);
 	}
 
-	public @NotNull Vector4 subtract(@NotNull Vector4 b) {
+	public Vector4 subtract(Vector4 b) {
 		return sub(b);
 	}
 
@@ -126,7 +125,7 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "Vector4(" + x + ',' + y + ',' + z + ',' + w + ')';
 	}
 }

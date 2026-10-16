@@ -6,14 +6,13 @@ import Zeze.Util.Action1;
 import Zeze.Util.Action2;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * redirect 单目标结果的 future：onSuccess/onFail 各可注册一次，支持 await 同步等待。
  */
-public class RedirectFuture<R> extends TaskCompletionSource<R> {
-	private static final @NotNull VarHandle ON_SUCCESS, ON_FAIL;
+public class RedirectFuture<R extends @Nullable Object> extends TaskCompletionSource<R> {
+	private static final VarHandle ON_SUCCESS, ON_FAIL;
 	private static final Action1<?> CALLED = __ -> {
 		throw new UnsupportedOperationException();
 	};
@@ -28,14 +27,14 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		}
 	}
 
-	public static <R> @NotNull RedirectFuture<R> finish(R r) {
+	public static <R extends @Nullable Object> RedirectFuture<R> finish(R r) {
 		var f = new RedirectFuture<R>();
 		f.setResult(r);
 		return f;
 	}
 
-	private volatile @SuppressWarnings("unused") Action1<R> onSuccess;
-	private volatile @SuppressWarnings("unused") Action1<RedirectException> onFail;
+	private volatile @SuppressWarnings("unused") @Nullable Action1<R> onSuccess;
+	private volatile @SuppressWarnings("unused") @Nullable Action1<RedirectException> onFail;
 
 	@Override
 	public boolean setResult(R r) {
@@ -69,7 +68,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		}
 	}
 
-	private void tryTriggerOnFail(@NotNull RedirectException e) {
+	private void tryTriggerOnFail(RedirectException e) {
 		if (onFail == null)
 			return;
 		@SuppressWarnings("unchecked")
@@ -83,7 +82,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		}
 	}
 
-	public @NotNull RedirectFuture<R> onSuccess(@NotNull Action1<R> onSuccess) {
+	public RedirectFuture<R> onSuccess(Action1<R> onSuccess) {
 		//noinspection ConstantValue
 		if (onSuccess == null)
 			throw new NullPointerException("null onSuccess");
@@ -104,7 +103,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		return this;
 	}
 
-	public @NotNull RedirectFuture<R> onFail(@NotNull Action1<RedirectException> onFail) {
+	public RedirectFuture<R> onFail(Action1<RedirectException> onFail) {
 		//noinspection ConstantValue
 		if (onFail == null)
 			throw new NullPointerException("null onFail");
@@ -119,11 +118,11 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		return this;
 	}
 
-	public @NotNull RedirectFuture<R> then(@NotNull Action1<@Nullable R> onResult) {
+	public RedirectFuture<R> then(Action1<@Nullable R> onResult) {
 		return onSuccess(onResult).onFail(__ -> onResult.run(null));
 	}
 
-	public @NotNull RedirectFuture<R> then(@NotNull Action2<@Nullable R, @Nullable RedirectException> onResult) {
+	public RedirectFuture<R> then(Action2<@Nullable R, @Nullable RedirectException> onResult) {
 		return onSuccess(r -> onResult.run(r, null)).onFail(r -> onResult.run(null, r));
 	}
 
@@ -133,7 +132,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	}
 
 	@Override
-	public @NotNull RedirectFuture<R> await() {
+	public RedirectFuture<R> await() {
 		super.await();
 		return this;
 	}

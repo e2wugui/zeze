@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.Closeable;
 import java.util.HashMap;
 import Zeze.Builtin.Dbh2.BBatch;
@@ -66,7 +68,7 @@ public class Dbh2Transaction implements Closeable {
 	}
 
 	/** key为墓碑marker（varint(tid)+0x01尾字节）时返回tid，blob（恰为varint(tid)）返回null。 */
-	static Long decodeTombstoneMarkerTid(byte[] key) {
+	static @Nullable Long decodeTombstoneMarkerTid(byte[] key) {
 		var bb = ByteBuffer.Wrap(key);
 		var tid = bb.ReadLong();
 		return bb.size() == 1 && key[key.length - 1] == TransTombstoneMarker ? tid : null;

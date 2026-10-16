@@ -17,15 +17,15 @@ import Zeze.Util.Task;
 import Zeze.Util.TimeAdaptedFund;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.RocksDBException;
+import Zeze.Util.RocksDatabase.Table;
 
 /**
  * AllocateId128 server
  */
 public class Id128UdpServer {
-	private static final @NotNull Logger logger = LogManager.getLogger(Id128UdpServer.class);
+	private static final Logger logger = LogManager.getLogger(Id128UdpServer.class);
 
 	/**
 	 * 唯一name数量上限。该UDP端口无认证，攻击者以
@@ -40,21 +40,21 @@ public class Id128UdpServer {
 		final Id128 max = new Id128();
 	}
 
-	private final @Nullable RocksDatabase.Table table;
+	private final @Nullable Table table;
 	private final ConcurrentHashMap<Binary, Id128Context> cache = new ConcurrentHashMap<>();
-	private final @NotNull TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
-	private final @NotNull DatagramChannel udpChannel;
-	private final @NotNull Thread worker; // 工作线程，根据性能测试情况，以后可能多个
+	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
+	private final DatagramChannel udpChannel;
+	private final Thread worker; // 工作线程，根据性能测试情况，以后可能多个
 
 	public Id128UdpServer() throws IOException {
 		this(null, null, 0); // any ip & auto port.
 	}
 
-	public Id128UdpServer(@Nullable RocksDatabase.Table table) throws IOException {
+	public Id128UdpServer(@Nullable Table table) throws IOException {
 		this(table, null, 0); // any ip & auto port.
 	}
 
-	public Id128UdpServer(@Nullable RocksDatabase.Table table, @Nullable String host, int port) throws IOException {
+	public Id128UdpServer(@Nullable Table table, @Nullable String host, int port) throws IOException {
 		this.table = table;
 		udpChannel = DatagramChannel.open();
 		udpChannel.configureBlocking(true);
@@ -72,7 +72,7 @@ public class Id128UdpServer {
 		return getLocalSocketAddress().getPort();
 	}
 
-	public @NotNull InetSocketAddress getLocalSocketAddress() throws IOException {
+	public InetSocketAddress getLocalSocketAddress() throws IOException {
 		return (InetSocketAddress)udpChannel.getLocalAddress();
 	}
 
@@ -152,7 +152,7 @@ public class Id128UdpServer {
 		logger.info("worker end");
 	}
 
-	private void sendReplies(@NotNull ByteBuffer replies, java.net.SocketAddress address) throws IOException {
+	private void sendReplies(ByteBuffer replies, java.net.SocketAddress address) throws IOException {
 		int size = replies.size();
 		if (size > 0) {
 			int sent = udpChannel.send(java.nio.ByteBuffer.wrap(replies.Bytes, replies.ReadIndex, size), address);
@@ -163,7 +163,7 @@ public class Id128UdpServer {
 
 	private volatile long lastRejectLogMs; // 拒绝告警限频（60秒一次）
 
-	private void warnRejected(@NotNull Throwable e) {
+	private void warnRejected(Throwable e) {
 		var now = System.currentTimeMillis();
 		var last = lastRejectLogMs;
 		if (now - last < 60_000)
@@ -194,7 +194,7 @@ public class Id128UdpServer {
 		return false;
 	}
 
-	private void process(@NotNull AllocateId128 rpc, @NotNull ByteBuffer bbTemp) throws RocksDBException {
+	private void process(AllocateId128 rpc, ByteBuffer bbTemp) throws RocksDBException {
 		var arg = rpc.Argument;
 		var res = rpc.Result;
 		var name = arg.getBinaryName();

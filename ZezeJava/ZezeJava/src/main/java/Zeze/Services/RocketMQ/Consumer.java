@@ -12,8 +12,7 @@ import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * RocketMQ 消费侧桥（薄包装+幂等指南，不建桥级存根表）。
@@ -67,14 +66,14 @@ public class Consumer {
 	// shutdown 内完成——典型停机顺序 stop()→app.close()，越过即对已关 Zeze 表的访问。
 	private static final long STOP_AWAIT_MILLIS = 10_000L;
 
-	public final @NotNull Application zeze;
-	private final @NotNull DefaultMQPushConsumer consumer;
+	public final Application zeze;
+	private final DefaultMQPushConsumer consumer;
 
 	/**
 	 * @param clientConfig 传入即生效：namesrvAddr/namespace/instanceName 等路由/身份字段透传给
 	 *                     内部 consumer（见 {@link ClientConfigs}），未列字段可经 {@link #getConsumer()} 设置。
 	 */
-	public Consumer(@NotNull Application zeze, @NotNull String consumerGroup, @NotNull ClientConfig clientConfig) {
+	public Consumer(Application zeze, String consumerGroup, ClientConfig clientConfig) {
 		this.zeze = zeze;
 		consumer = new DefaultMQPushConsumer(consumerGroup);
 		ClientConfigs.copyRoutingIdentity(clientConfig, consumer);
@@ -85,7 +84,7 @@ public class Consumer {
 	 * 透传注册原始 listener（可选性出口：纯通知类消费不需要事务边界；顺序消费自行处理）。
 	 * 需要在start之前注册监听器。
 	 */
-	public void setMessageListener(@NotNull MessageListener messageListener) {
+	public void setMessageListener(MessageListener messageListener) {
 		consumer.setMessageListener(messageListener);
 	}
 
@@ -96,7 +95,7 @@ public class Consumer {
 	 * 已成功条目会随重投再次到达——幂等责任见类注释。
 	 * 需要在start之前注册监听器。
 	 */
-	public void setMessageListener(@NotNull Func1<MessageExt, Long> handler) {
+	public void setMessageListener(Func1<MessageExt, Long> handler) {
 		consumer.setMessageListener(wrapTransactional(handler));
 	}
 
@@ -106,7 +105,7 @@ public class Consumer {
 	 * 成功（结果码0）映射 CONSUME_SUCCESS，过程失败（冲突重试耗尽等非0码）或
 	 * 异常映射 RECONSUME_LATER，异常不向 rocketmq-client 泄漏（否则线程池吞掉且无重投语义）。
 	 */
-	public @NotNull MessageListenerConcurrently wrapTransactional(@NotNull Func1<MessageExt, Long> handler) {
+	public MessageListenerConcurrently wrapTransactional(Func1<MessageExt, Long> handler) {
 		return (msgs, context) -> {
 			for (var msg : msgs) {
 				var rc = TaskSpec.ofProcedure(
@@ -124,7 +123,7 @@ public class Consumer {
 	 * 订阅消息。
 	 * 需要在start之前调用。
 	 */
-	public void subscribe(@NotNull String topic, @Nullable String subExpression) throws MQClientException {
+	public void subscribe(String topic, @Nullable String subExpression) throws MQClientException {
 		consumer.subscribe(topic, subExpression);
 	}
 
@@ -140,7 +139,7 @@ public class Consumer {
 		consumer.shutdown();
 	}
 
-	public @NotNull DefaultMQPushConsumer getConsumer() {
+	public DefaultMQPushConsumer getConsumer() {
 		return consumer;
 	}
 }

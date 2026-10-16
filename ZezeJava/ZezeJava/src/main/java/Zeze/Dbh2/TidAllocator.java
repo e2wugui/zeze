@@ -1,5 +1,9 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -7,7 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * 事务 Tid 分配器：在 Raft 日志分配的区间内本地发号。
  */
 public class TidAllocator extends ReentrantLock {
-	private volatile Range range; // 只有 raft 修改，单线程。
+	private volatile @Nullable Range range; // 只有 raft 修改，单线程。
 	private static final int ALLOCATE_COUNT_MIN = 64;
 	private static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 	private int allocateCount = ALLOCATE_COUNT_MIN;
@@ -43,7 +47,7 @@ public class TidAllocator extends ReentrantLock {
 
 				calcAllocateCount();
 				var log = new LogAllocateTid(allocateCount);
-				stateMachine.getRaft().appendLog(log);
+				Objects.requireNonNull(stateMachine.getRaft()).appendLog(log);
 				// log.apply 里面会生成新的Range。
 			} finally {
 				unlock();

@@ -1,12 +1,13 @@
 package Zeze.Dbh2;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 回滚事务批量的 Raft 日志。
@@ -24,7 +25,7 @@ public class LogUndoBatch extends Log {
 		this(0L);
 	}
 
-	public LogUndoBatch(UndoBatch req) {
+	public LogUndoBatch(@Nullable UndoBatch req) {
 		super(req);
 		if (null != req) {
 			this.tid = req.Argument.getTid();
@@ -54,14 +55,14 @@ public class LogUndoBatch extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		super.encode(bb);
 		bb.WriteLong(tid);
 		bb.WriteBool(fromCoordinator);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		tid = bb.ReadLong();
 		// 旧版本日志条目无来源位：剩余字节守卫（升级期 replay 的旧条目按自主 undo 处理；

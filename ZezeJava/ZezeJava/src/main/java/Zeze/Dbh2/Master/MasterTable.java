@@ -1,5 +1,7 @@
 package Zeze.Dbh2.Master;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Collection;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -46,7 +48,7 @@ public class MasterTable {
 		// 空表/小于首桶first的越界键返回null（FND28 F1）：调用方（Dbh2.ProcessPrepareBatchRequest
 		// 的拒绝路径、tailMap）以null判"无覆盖桶"——此前floorEntry==null时对lower.getValue()直接
 		// NPE，Dbh2侧的null检查是死代码，异常面目替代可判定错误码eBucketNotFound。
-		public BBucketMeta.Data locate(Binary key) {
+		public BBucketMeta.@Nullable Data locate(Binary key) {
 			lock();
 			try {
 				var lower = buckets.floorEntry(key);

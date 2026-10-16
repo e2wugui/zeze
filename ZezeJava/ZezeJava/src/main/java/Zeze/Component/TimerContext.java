@@ -3,16 +3,15 @@ package Zeze.Component;
 import Zeze.Builtin.Timer.BTimer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 定时器触发时传给用户回调的上下文。
  */
 public class TimerContext {
-	public final @NotNull Timer timer; // 所属的Timer模块
-	public final @NotNull String timerId; // 用户指定的timerId, 或"@"+Base64编码的自动分配ID
-	public final @NotNull String timerName; // 用户实现Zeze.Component.TimerHandle接口的完整类名
+	public final Timer timer; // 所属的Timer模块
+	public final String timerId; // 用户指定的timerId, 或"@"+Base64编码的自动分配ID
+	public final String timerName; // 用户实现Zeze.Component.TimerHandle接口的完整类名
 	public @Nullable Bean customData; // 创建timer时用户指定的上下文数据(持久化过的)
 	public final long happenTimes; // 已经触发过的次数, 触发前自增, 即首次触发时是1
 	public final long expectedTimeMills; // 本次应该触发的时间(unix毫秒时间戳)
@@ -21,11 +20,11 @@ public class TimerContext {
 
 	public long roleId; // 所属的角色ID. 只用于TimerRole
 
-	public String account; // 所属的账号名. 只用于TimerAccount
-	public String clientId; // 所属的客户端名. 只用于TimerAccount
+	public @Nullable String account; // 所属的账号名. 只用于TimerAccount
+	public @Nullable String clientId; // 所属的客户端名. 只用于TimerAccount
 
 	// 从数据库结构构建上下文
-	TimerContext(@NotNull Timer timer, @NotNull BTimer bTimer,
+	TimerContext(Timer timer, BTimer bTimer,
 				 long happenTimes, long expectedTimeMills, long nextExpectedTimeMills) {
 		this.timer = timer;
 		timerId = bTimer.getTimerName();
@@ -39,7 +38,7 @@ public class TimerContext {
 	}
 
 	// 完全自定义构造上下文
-	TimerContext(@NotNull Timer timer, @NotNull String timerId, @NotNull String timerName, @Nullable Bean customData,
+	TimerContext(Timer timer, String timerId, String timerName, @Nullable Bean customData,
 				 long happenTimes, long expectedTimeMills, long nextExpectedTimeMills) {
 		this.timer = timer;
 		this.timerId = timerId;

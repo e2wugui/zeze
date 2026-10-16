@@ -8,8 +8,8 @@ import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
+import Zeze.Util.ZezeCounter.ProcedureCounter;
 
 /** 存储过程：封装业务动作在事务中的嵌套执行（保存点、提交/回滚与结果码），是事务的业务入口。 */
 public class Procedure {
@@ -40,17 +40,17 @@ public class Procedure {
 
 	@FunctionalInterface
 	public interface ILogAction {
-		void run(@Nullable Throwable ex, long result, @NotNull Procedure p, @NotNull String message);
+		void run(@Nullable Throwable ex, long result, Procedure p, String message);
 	}
 
-	private static final @NotNull Logger logger = LogManager.getLogger(Procedure.class);
+	private static final Logger logger = LogManager.getLogger(Procedure.class);
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
 	public static final boolean ENABLE_TRACE_LOG = logger.isTraceEnabled();
 	@SuppressWarnings("CanBeFinal")
 	public static @Nullable ILogAction logAction = Procedure::defaultLogAction;
 
-	public static void defaultLogAction(@Nullable Throwable ex, long result, @NotNull Procedure p,
-										@NotNull String message) {
+	public static void defaultLogAction(@Nullable Throwable ex, long result, Procedure p,
+										String message) {
 		Level level;
 		if (ex != null)
 			level = Level.ERROR;
@@ -73,19 +73,19 @@ public class Procedure {
 			logger.log(level, "Procedure={} Return={}:{} {}", p, moduleId, errCode, message, ex);
 	}
 
-	private final @NotNull Application zeze;
-	private final @NotNull TransactionLevel level;
+	private final Application zeze;
+	private final TransactionLevel level;
 	private @Nullable FuncLong action;
-	private final @NotNull String actionName;
+	private final String actionName;
 
 	// 用于继承方式实现 Procedure。
-	public Procedure(@NotNull Application app) {
+	public Procedure(Application app) {
 		zeze = app;
 		level = TransactionLevel.Serializable;
 		actionName = getClass().getName();
 	}
 
-	public Procedure(@NotNull Application app, @Nullable FuncLong action, @Nullable String actionName,
+	public Procedure(Application app, @Nullable FuncLong action, @Nullable String actionName,
 					 @Nullable TransactionLevel level) {
 		zeze = app;
 		this.level = level != null ? level : TransactionLevel.Serializable; // null归一为enum默认级，参数保持@Nullable兼容既有调用点
@@ -95,11 +95,11 @@ public class Procedure {
 				: (action != null ? action : this).getClass().getName();
 	}
 
-	public final @NotNull Application getZeze() {
+	public final Application getZeze() {
 		return zeze;
 	}
 
-	public final @NotNull TransactionLevel getTransactionLevel() {
+	public final TransactionLevel getTransactionLevel() {
 		return level;
 	}
 
@@ -111,14 +111,14 @@ public class Procedure {
 		this.action = action;
 	}
 
-	public final @NotNull String getActionName() {
+	public final String getActionName() {
 		return actionName;
 	}
 
-	private @Nullable ZezeCounter.ProcedureCounter procedureCounter; // 名字自构造恒定，懒解析一次终身复用
+	private @Nullable ProcedureCounter procedureCounter; // 名字自构造恒定，懒解析一次终身复用
 
 	/** 事务度量handle：懒解析一次；Transaction/ProcedureLockWatcher等经此复用同一handle。 */
-	public final @NotNull ZezeCounter.ProcedureCounter procedureCounter() {
+	public final ZezeCounter.ProcedureCounter procedureCounter() {
 		var c = procedureCounter;
 		if (c == null)
 			procedureCounter = c = ZezeCounter.instance.allocProcedureCounter(actionName);
@@ -206,7 +206,7 @@ public class Procedure {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return actionName;
 	}
 }

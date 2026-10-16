@@ -1,5 +1,7 @@
 package Zeze.Hot;
 
+import java.util.Objects;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.TreeMap;
@@ -9,6 +11,7 @@ import Zeze.Net.Service;
 import Zeze.Transaction.Bean;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Reflect;
+import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
@@ -18,7 +21,7 @@ import static Zeze.Util.Args.requireValue;
 public class DistributeServer {
 	private static final TreeMap<String, Bean> beans = new TreeMap<>();
 	private static int count = 0;
-	private static String solution = null;
+	private static @Nullable String solution = null;
 
 	public static TreeMap<String, Bean> getBeans() {
 		return beans;
@@ -115,7 +118,7 @@ public class DistributeServer {
 
 	private static void loadBean(String className) throws Exception {
 		++count;
-		if (className.startsWith(solution)) {
+		if (className.startsWith(Objects.requireNonNull(solution))) {
 			var cls = Class.forName(className);
 			if (Bean.class.isAssignableFrom(cls)) // is bean
 				beans.put(cls.getName(), (Bean)cls.getConstructor((Class<?>[])null).newInstance((Object[])null));

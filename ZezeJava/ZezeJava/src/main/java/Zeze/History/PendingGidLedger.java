@@ -7,7 +7,6 @@ import Zeze.Util.DaemonTimer;
 import Zeze.Util.Id128;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 已发 gid 的落库对账账本，每个 Application 一个实例：不同 history 发号名的 gid 数值空间
@@ -22,17 +21,17 @@ import org.jetbrains.annotations.NotNull;
  * 跨进程差异不可达。
  */
 public final class PendingGidLedger {
-	private static final @NotNull Logger logger = LogManager.getLogger(PendingGidLedger.class);
+	private static final Logger logger = LogManager.getLogger(PendingGidLedger.class);
 
-	private final @NotNull String owner; // 诊断归属（Application 名）：告警与守护线程名
-	private final @NotNull ConcurrentHashMap<Id128, Long> pendingCommitGids = new ConcurrentHashMap<>();
-	private final @NotNull AtomicLong pendingAlertedCount = new AtomicLong();
+	private final String owner; // 诊断归属（Application 名）：告警与守护线程名
+	private final ConcurrentHashMap<Id128, Long> pendingCommitGids = new ConcurrentHashMap<>();
+	private final AtomicLong pendingAlertedCount = new AtomicLong();
 	// 超龄阈值须覆盖 Checkpoint 周期重试的常态抖动，量级对齐消费端 holeGraceMs。
 	static final long PENDING_ALERT_MILLIS = 10 * 60 * 1000;
-	private final @NotNull DaemonTimer sweepDaemon;
-	private final @NotNull AtomicBoolean sweepStarted = new AtomicBoolean();
+	private final DaemonTimer sweepDaemon;
+	private final AtomicBoolean sweepStarted = new AtomicBoolean();
 
-	public PendingGidLedger(@NotNull String owner) {
+	public PendingGidLedger(String owner) {
 		this.owner = owner;
 		sweepDaemon = new DaemonTimer("HistoryPendingGidSweep@" + owner, 60_000, this::sweepDaemonBody);
 	}
@@ -41,14 +40,14 @@ public final class PendingGidLedger {
 	 * 调用点：Transaction.finalCommit 的 beforeApply 取号成功即入账（先于数据应用，
 	 * 失败路径不产生无 gid 的登记）。atNanos 为单调钟读数（System.nanoTime），
 	 * 与 sweep 的判龄钟同基。 */
-	public void register(@NotNull Id128 gid, long atNanos) {
+	public void register(Id128 gid, long atNanos) {
 		pendingCommitGids.put(gid, atNanos);
 		if (sweepStarted.compareAndSet(false, true))
 			sweepDaemon.start();
 	}
 
 	/** tHistory 行提交成功（History.onPersisted）核销该 gid 的登记。 */
-	void retire(@NotNull Id128 gid) {
+	void retire(Id128 gid) {
 		pendingCommitGids.remove(gid);
 	}
 

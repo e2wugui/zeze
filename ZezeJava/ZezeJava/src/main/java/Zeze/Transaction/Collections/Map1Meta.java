@@ -2,7 +2,6 @@ package Zeze.Transaction.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Transaction.Bean;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * LogMap1 家族（PMap1/GTable1 内层）元数据：非 Bean 值，按值拷贝记账。
@@ -14,12 +13,12 @@ public final class Map1Meta<K, V> extends Meta2<K, V> {
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Map1Meta<?, ?>>> metas
 			= new ConcurrentHashMap<>();
 
-	Map1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	Map1Meta(Class<K> keyClass, Class<V> valueClass) {
 		super("LogMap1:", headHash, keyClass, valueClass);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <K, V> @NotNull Map1Meta<K, V> get(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	public static <K, V> Map1Meta<K, V> get(Class<K> keyClass, Class<V> valueClass) {
 		var map = metas.computeIfAbsent(keyClass, kc -> {
 			checkNonBeanKey("PMap1/GTable1 (LogMap1)", kc);
 			return new ConcurrentHashMap<>();

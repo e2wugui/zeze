@@ -1,5 +1,7 @@
 package Zeze.Dbh2;
 
+import java.util.Objects;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,7 +31,7 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 这个类管理到桶的raft-client-agent。
@@ -51,14 +53,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 	private final ConcurrentHashMap<String, Long> agentActiveTimes = new ConcurrentHashMap<>();
 	private static final long IdleAgentReclaimTimeoutMs = 10 * 60_000L; // >>rpcTimeout(默认60s)：正常在飞请求不可能跨越阈值窗口
 	private static final long IdleAgentReclaimPeriodMs = 60_000L;
-	private volatile Future<?> idleReclaimTask;
+	private volatile @Nullable Future<?> idleReclaimTask;
 
 	private final ProxyAgent proxyAgent;
 	private final Config config;
 	private final Dbh2Config dbh2Config = new Dbh2Config();
-	private Commit commit;
-	private CommitAgent commitAgent;
-	private volatile Future<?> refreshMasterTableTask; // 任务线程会置null（见startRefreshMasterTable），需要可见性
+	private @Nullable Commit commit;
+	private @Nullable CommitAgent commitAgent;
+	private volatile @Nullable Future<?> refreshMasterTableTask; // 任务线程会置null（见startRefreshMasterTable），需要可见性
 	// stop后置位且不可复位（本类无重启路径）。后台刷新任务体整体持本管理器锁与stop串行：
 	// stopped的检查-执行与stop的清理互斥，锁外检查会让stop在检查后清理前重建MasterAgent并回填buckets。
 	private volatile boolean stopped;
@@ -110,11 +112,11 @@ public class Dbh2AgentManager extends ReentrantLock {
 		return serviceManager;
 	}
 
-	public Dbh2AgentManager(AbstractAgent serviceManager, Config config) throws Exception {
+	public Dbh2AgentManager(AbstractAgent serviceManager, @Nullable Config config) throws Exception {
 		this(serviceManager, config, -1);
 	}
 
-	public Dbh2AgentManager(AbstractAgent serviceManager, Config config, int serverId) throws Exception {
+	public Dbh2AgentManager(AbstractAgent serviceManager, @Nullable Config config, int serverId) throws Exception {
 		if (null == config)
 			config = Config.load();
 		this.serviceManager = serviceManager;
@@ -148,7 +150,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		// KV.key构造后不变：累积首个acceptor后create，不再setKey。
 		var ip = new String[1];
 		var port = new int[1];
-		commit.getService().getConfig().forEachAcceptor2((a) -> {
+		Objects.requireNonNull(commit).getService().getConfig().forEachAcceptor2((a) -> {
 			ip[0] = a.getIp();
 			port[0] = a.getPort();
 			return false;
@@ -162,34 +164,34 @@ public class Dbh2AgentManager extends ReentrantLock {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
 			var state = CommitRocks.buildTransactionState(batches);
-			commit.getRocks().prepare(query.getKey(), query.getValue(), state, batches, null);
+			Objects.requireNonNull(Objects.requireNonNull(commit).getRocks()).prepare(query.getKey(), query.getValue(), state, batches, null);
 		}
 	}
 
 	private KV<String, Integer> choiceCommitServer() {
 		// 配置直连：Dbh2Config的CommitServerAddress，单实例；构造期已fail-fast校验过配置存在。
-		return KV.create(dbh2Config.getCommitServerHost(), dbh2Config.getCommitServerPort());
+		return KV.create(Objects.requireNonNull(dbh2Config.getCommitServerHost()), dbh2Config.getCommitServerPort());
 	}
 
 	public void commit(BPrepareBatches.Data batches) {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
-			commit.getRocks().commit(query.getKey(), query.getValue(), batches);
+			Objects.requireNonNull(Objects.requireNonNull(commit).getRocks()).commit(query.getKey(), query.getValue(), batches);
 			return;
 		}
 		var query = choiceCommitServer();
 		// 超时须覆盖服务端有界决策+应答（见Dbh2Config.getCommitRpcTimeout）：
 		// 裸rpcTimeout（<prepareMaxTime）会把服务端已提交的事务判成确定失败。
-		commitAgent.commit(query.getKey(), query.getValue(), batches, (int)dbh2Config.getCommitRpcTimeout());
+		Objects.requireNonNull(commitAgent).commit(query.getKey(), query.getValue(), batches, (int)dbh2Config.getCommitRpcTimeout());
 	}
 
 	// Dbh2Agent 嵌入服务器需要初始化；
 	// CommitServer 独立服务器需要初始化；
 	public void start() throws Exception {
 		if (config.isDbh2LocalCommit()) {
-			commit.start();
+			Objects.requireNonNull(commit).start();
 		} else {
-			commitAgent.startAndWaitConnectionReady();
+			Objects.requireNonNull(commitAgent).startAndWaitConnectionReady();
 		}
 		proxyAgent.start();
 		ShutdownHook.add(this, this::stop);
@@ -322,23 +324,23 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public boolean createTable(
-			MasterAgent masterAgent, String masterName,
+			@Nullable MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName) {
 		var out = new OutObject<MasterTable.Data>();
-		var isNew = masterAgent.createTable(databaseName, tableName, out);
-		putBuckets(out.value, masterName, databaseName, tableName);
+		var isNew = Objects.requireNonNull(masterAgent).createTable(databaseName, tableName, out);
+		putBuckets(Objects.requireNonNull(out.value), masterName, databaseName, tableName);
 		return isNew;
 	}
 
 	public void createTableAsync(
-			MasterAgent masterAgent, String masterName,
+			@Nullable MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName,
 			Action2<Integer, Boolean> callback) {
 		logger.info("createTableAsync: db={}, table={}", databaseName, tableName);
-		masterAgent.createTableAsync(databaseName, tableName, (rc, isNew, masterTable) -> {
+		Objects.requireNonNull(masterAgent).createTableAsync(databaseName, tableName, (rc, isNew, masterTable) -> {
 			if (rc == 0) {
-				putBuckets(masterTable, masterName, databaseName, tableName);
-				for (var bucket : masterTable.buckets())
+				putBuckets(Objects.requireNonNull(masterTable), masterName, databaseName, tableName);
+				for (var bucket : Objects.requireNonNull(masterTable).buckets())
 					openBucket(bucket.getRaftConfig());
 			}
 			callback.run(rc, isNew);
@@ -356,13 +358,13 @@ public class Dbh2AgentManager extends ReentrantLock {
 	// 先入映射、created=false、0桶）返回rc=0空表快照——空快照不缓存（落缓存则该表定位
 	// 持续以NPE面目失败，直到本实例建表流程putBuckets覆盖），每次重新拉取，建表完成即恢复。
 	private MasterTable.Data getBucketsCached(
-			MasterAgent masterAgent, ConcurrentHashMap<String, MasterTable.Data> database,
+			@Nullable MasterAgent masterAgent, ConcurrentHashMap<String, MasterTable.Data> database,
 			String databaseName, String tableName) {
 		var table = database.get(tableName);
 		if (null != table)
 			return table;
 		// getBuckets是阻塞RPC，不能放进computeIfAbsent的映射函数（持bin锁会阻塞同bin其他键的访问）；重复RPC幂等无害。
-		table = masterAgent.getBuckets(databaseName, tableName);
+		table = Objects.requireNonNull(masterAgent).getBuckets(databaseName, tableName);
 		if (!table.getBuckets().isEmpty()) {
 			var old = database.putIfAbsent(tableName, table);
 			if (null != old)
@@ -379,7 +381,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public String locateBucket(
-			MasterAgent masterAgent, String masterName,
+			@Nullable MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName,
 			Binary key) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
@@ -393,7 +395,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public Iterator<BBucketMeta.Data> locateBucketIterator(
-			MasterAgent masterAgent, String masterName,
+			@Nullable MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName,
 			Binary key, boolean desc) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
@@ -501,13 +503,13 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public void reload(
-			MasterAgent masterAgent, String masterName,
+			@Nullable MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName) {
 		lock();
 		try {
-			var masterTable = masterAgent.getBuckets(databaseName, tableName);
+			var masterTable = Objects.requireNonNull(masterAgent).getBuckets(databaseName, tableName);
 			logger.info("reload ... {}", masterTable, new RuntimeException());
-			putBuckets(masterTable, masterName, databaseName, tableName);
+			putBuckets(Objects.requireNonNull(masterTable), masterName, databaseName, tableName);
 		} finally {
 			unlock();
 		}
@@ -572,9 +574,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 		final boolean bucketEnd;
 		final boolean stopped;
 		final int count;
-		final Binary lastKey;
+		final @Nullable Binary lastKey;
 
-		FetchResult(boolean refused, boolean bucketEnd, boolean stopped, int count, Binary lastKey) {
+		FetchResult(boolean refused, boolean bucketEnd, boolean stopped, int count, @Nullable Binary lastKey) {
 			this.refused = refused;
 			this.bucketEnd = bucketEnd;
 			this.stopped = stopped;
@@ -628,9 +630,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 
 	// 抓取一页（可跨桶）：从exclusiveKey起按方向交付最多proposeLimit条（交付由fetcher执行），
 	// 返回下一页游标；null表示全表走完。
-	private ByteBuffer walkPage(MasterAgent masterAgent, String masterName, String databaseName, String tableName,
-								Binary exclusiveKey, int proposeLimit, boolean desc, byte @Nullable [] prefix,
-								PageFetcher fetch) throws Exception {
+	private @Nullable ByteBuffer walkPage(@Nullable MasterAgent masterAgent, String masterName, String databaseName, String tableName,
+										  Binary exclusiveKey, int proposeLimit, boolean desc, byte @Nullable [] prefix,
+										  PageFetcher fetch) throws Exception {
 		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey, desc);
 		if (!bucketIt.hasNext())
 			return null;
@@ -666,7 +668,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			}
 			refusedCount = 0;
 			if (result.stopped)
-				return ByteBuffer.Wrap(result.lastKey);
+				return ByteBuffer.Wrap(Objects.requireNonNull(result.lastKey));
 			if (result.lastKey != null) {
 				exclusiveKey = result.lastKey;
 				limit -= result.count;
@@ -684,7 +686,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		}
 	}
 
-	public long walk(MasterAgent masterAgent,
+	public long walk(@Nullable MasterAgent masterAgent,
 					 String masterName, String databaseName, String tableName,
 					 TableWalkHandleRaw callback,
 					 boolean desc,
@@ -709,9 +711,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 		}
 	}
 
-	public ByteBuffer walk(MasterAgent masterAgent,
+	public @Nullable ByteBuffer walk(@Nullable MasterAgent masterAgent,
 						   String masterName, String databaseName, String tableName,
-						   ByteBuffer exclusiveStartKey, int proposeLimit,
+						   @Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
 						   TableWalkHandleRaw callback,
 						   boolean desc,
 						   byte @Nullable [] prefix) throws Exception {
@@ -725,7 +727,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 				});
 	}
 
-	public long walkKey(MasterAgent masterAgent,
+	public long walkKey(@Nullable MasterAgent masterAgent,
 						String masterName, String databaseName, String tableName,
 						TableWalkKeyRaw callback,
 						boolean desc,
@@ -750,9 +752,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 		}
 	}
 
-	public ByteBuffer walkKey(MasterAgent masterAgent,
+	public @Nullable ByteBuffer walkKey(@Nullable MasterAgent masterAgent,
 							  String masterName, String databaseName, String tableName,
-							  ByteBuffer exclusiveStartKey, int proposeLimit,
+							  @Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
 							  TableWalkKeyRaw callback,
 							  boolean desc,
 							  byte @Nullable [] prefix) throws Exception {

@@ -6,25 +6,25 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
+
 import Zeze.Collections.Persistents;
 
 /** 事务 Set（1系）：不可变值按值拷贝记账；框架无 PSet2。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PSet1<V> extends PSet<V> {
-	protected final @NotNull Set1Meta<V> meta;
+	protected final Set1Meta<V> meta;
 
-	public PSet1(@NotNull Class<V> valueClass) {
+	public PSet1(Class<V> valueClass) {
 		meta = Set1Meta.get(valueClass);
 	}
 
 	// meta须来自Set1Meta工厂（公开唯一构建入口，已过Bean拦截），供生成代码常量化/调用点静态持有。
-	public PSet1(@NotNull Set1Meta<V> meta) {
+	public PSet1(Set1Meta<V> meta) {
 		this.meta = meta;
 	}
 
 	@Override
-	public boolean add(@NotNull V item) {
+	public boolean add(V item) {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
@@ -42,7 +42,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public boolean remove(@NotNull Object item) {
+	public boolean remove(Object item) {
 		if (isManaged()) {
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -56,7 +56,8 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public boolean addAll(@NotNull Collection<? extends V> c) {
+	@SuppressWarnings("ConstantConditions")
+	public boolean addAll(Collection<? extends V> c) {
 		if (c.isEmpty())
 			return false;
 		if (c instanceof PSet1)
@@ -83,7 +84,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public boolean removeAll(@NotNull Collection<?> c) {
+	public boolean removeAll(Collection<?> c) {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
@@ -114,17 +115,17 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogSet1<>(parent(), variableId(), this, set, meta);
 	}
 
 	@Override
-	public void followerApply(@NotNull Log _log) {
+	public void followerApply(Log _log) {
 		var log = (LogSet1<V>)_log;
 		set = set.minusAll(log.getRemoved()).plusAll(log.getAdded());
 	}
 
-	public void assign(@NotNull PSet1<V> pset) {
+	public void assign(PSet1<V> pset) {
 		var items = pset.getSet();
 		if (isManaged()) {
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -136,14 +137,14 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public @NotNull PSet1<V> copy() {
+	public PSet1<V> copy() {
 		var copy = new PSet1<>(meta);
 		copy.set = getSet();
 		return copy;
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getSet();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.valueEncoder;
@@ -152,7 +153,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		var decoder = meta.valueDecoder;
 		int n = bb.ReadUIntPositive();

@@ -1,7 +1,6 @@
 package Zeze.Component;
 
 import Zeze.Builtin.Timer.BSimpleTimer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * BSimpleTimer 的调度参数描述，同时持有 BSimpleTimer 的运行时推进逻辑（下次触发时间计算）。
@@ -20,7 +19,7 @@ public final class SimpleTimerSpec implements TimerSpec {
 	private long times = -1;
 	private long endTime = -1;
 	private int missfirePolicy = Timer.eMissfirePolicyNothing;
-	private @NotNull String oneByOneKey = "";
+	private String oneByOneKey = "";
 
 	SimpleTimerSpec(long delay) {
 		if (delay < 0)
@@ -48,14 +47,14 @@ public final class SimpleTimerSpec implements TimerSpec {
 		return missfirePolicy;
 	}
 
-	public @NotNull String getOneByOneKey() {
+	public String getOneByOneKey() {
 		return oneByOneKey;
 	}
 
 	/**
 	 * @param period 触发周期(毫秒), 只有大于0才会周期触发, 默认-1表示只触发一次
 	 */
-	public @NotNull SimpleTimerSpec period(long period) {
+	public SimpleTimerSpec period(long period) {
 		this.period = period;
 		return this;
 	}
@@ -63,7 +62,7 @@ public final class SimpleTimerSpec implements TimerSpec {
 	/**
 	 * @param times 限制触发次数, -1表示不限次数, 不允许0
 	 */
-	public @NotNull SimpleTimerSpec times(long times) {
+	public SimpleTimerSpec times(long times) {
 		if (times == 0)
 			throw new IllegalArgumentException("times must not be 0");
 		this.times = times;
@@ -73,7 +72,7 @@ public final class SimpleTimerSpec implements TimerSpec {
 	/**
 	 * @param endTime 限制预定触发的最后时间(unix毫秒时间戳), 只有大于0会限制；迟到补触发沿用missfire策略
 	 */
-	public @NotNull SimpleTimerSpec endTime(long endTime) {
+	public SimpleTimerSpec endTime(long endTime) {
 		this.endTime = endTime;
 		return this;
 	}
@@ -81,12 +80,12 @@ public final class SimpleTimerSpec implements TimerSpec {
 	/**
 	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 */
-	public @NotNull SimpleTimerSpec missfirePolicy(int missfirePolicy) {
+	public SimpleTimerSpec missfirePolicy(int missfirePolicy) {
 		this.missfirePolicy = missfirePolicy;
 		return this;
 	}
 
-	public @NotNull SimpleTimerSpec oneByOneKey(@NotNull String oneByOneKey) {
+	public SimpleTimerSpec oneByOneKey(String oneByOneKey) {
 		this.oneByOneKey = oneByOneKey;
 		return this;
 	}
@@ -94,7 +93,7 @@ public final class SimpleTimerSpec implements TimerSpec {
 	/**
 	 * 生成可调度的bean。调用时捕获当前时间, 产物不要缓存复用。
 	 */
-	public @NotNull BSimpleTimer build() {
+	public BSimpleTimer build() {
 		var now = System.currentTimeMillis();
 		if (delay > Long.MAX_VALUE - now)
 			throw new IllegalArgumentException("delay overflow.");
@@ -112,7 +111,7 @@ public final class SimpleTimerSpec implements TimerSpec {
 		return simpleTimer;
 	}
 
-	public static void beforeCallSimpleTimer(@NotNull BSimpleTimer simpleTimer, boolean missfire) {
+	public static void beforeCallSimpleTimer(BSimpleTimer simpleTimer, boolean missfire) {
 		var nextExpectedTime = simpleTimer.getNextExpectedTime();
 		simpleTimer.setExpectedTime(nextExpectedTime);
 		simpleTimer.setHappenTimes(simpleTimer.getHappenTimes() + 1);

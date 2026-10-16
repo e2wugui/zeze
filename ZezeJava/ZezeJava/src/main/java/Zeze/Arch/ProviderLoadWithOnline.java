@@ -1,5 +1,9 @@
 package Zeze.Arch;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 /**
  * 带在线表的 Provider 负载上报实现：在线数与登录次数取自 Online。
  */
@@ -23,11 +27,11 @@ public class ProviderLoadWithOnline extends LoadBase {
 
 	@Override
 	public LoadConfig getLoadConfig() {
-		return online.providerApp.distribute.loadConfig;
+		return Objects.requireNonNull(online.providerApp.distribute).loadConfig;
 	}
 
 	@Override
-	public String getServiceIp() {
+	public @Nullable String getServiceIp() {
 		return online.providerApp.directIp;
 	}
 

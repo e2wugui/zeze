@@ -1,7 +1,10 @@
 package Zeze.Game;
 
+import java.util.Objects;
+
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.LoadBase;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Game 版带在线表的 Provider 负载上报实现：在线数与登录次数取自 Game.Online。
@@ -27,11 +30,11 @@ public class ProviderLoadWithOnline extends LoadBase {
 
 	@Override
 	public LoadConfig getLoadConfig() {
-		return this.online.providerApp.distribute.loadConfig;
+		return Objects.requireNonNull(this.online.providerApp.distribute).loadConfig;
 	}
 
 	@Override
-	public String getServiceIp() {
+	public @Nullable String getServiceIp() {
 		return this.online.providerApp.directIp;
 	}
 

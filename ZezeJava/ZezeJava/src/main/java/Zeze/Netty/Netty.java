@@ -11,7 +11,6 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
@@ -19,9 +18,9 @@ import static Zeze.Util.Args.requireValue;
  * Netty EventLoopGroup 持有者（epoll 可用时优先，否则 nio）。
  */
 public class Netty implements Closeable {
-	static final @NotNull Logger logger = LogManager.getLogger(Netty.class);
+	static final Logger logger = LogManager.getLogger(Netty.class);
 
-	private final @NotNull EventLoopGroup eventLoopGroup;
+	private final EventLoopGroup eventLoopGroup;
 
 	public Netty() {
 		this(0); // Netty默认的线程数,可用"-Dio.netty.eventLoopThreads="指定,默认是2倍核心数
@@ -34,11 +33,11 @@ public class Netty implements Closeable {
 				: new NioEventLoopGroup(nThreads, threadFactory);
 	}
 
-	public @NotNull EventLoopGroup getEventLoopGroup() {
+	public EventLoopGroup getEventLoopGroup() {
 		return eventLoopGroup;
 	}
 
-	public @NotNull Future<?> closeAsync() {
+	public Future<?> closeAsync() {
 		return eventLoopGroup.shutdownGracefully();
 	}
 
@@ -52,7 +51,7 @@ public class Netty implements Closeable {
 	}
 
 	// 简单的文件下载服务
-	public static void main(String @NotNull [] args) throws Exception {
+	public static void main(String [] args) throws Exception {
 		String host = null;
 		int port = 0;
 		int threads = 1;

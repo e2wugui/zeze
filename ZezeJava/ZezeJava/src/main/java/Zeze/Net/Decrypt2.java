@@ -1,7 +1,8 @@
 package Zeze.Net;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 import static Zeze.Net.Encrypt2.BLOCK_SIZE;
 import static Zeze.Net.Encrypt2.mhCryptCtor;
 import static Zeze.Net.Encrypt2.mhCryptEncrypt;
@@ -11,10 +12,10 @@ import static Zeze.Net.Encrypt2.mhCryptInit;
  * AES(CFB) 解密 codec。
  */
 public final class Decrypt2 implements Codec {
-	private final @NotNull Object aesCrypt;
+	private final Object aesCrypt;
 	private final byte[] in = new byte[BLOCK_SIZE];
 	private final byte[] out = new byte[BLOCK_SIZE];
-	private Codec sink;
+	private @Nullable Codec sink;
 	private int sinkIndex;
 	private int writeIndex;
 
@@ -23,7 +24,7 @@ public final class Decrypt2 implements Codec {
 	 * @param key  长度只支持16,24,32字节. 不能为null
 	 * @param iv   长度必须至少Encrypt2.BLOCK_SIZE. 如果为null,则需要reset才能开始解密
 	 */
-	public Decrypt2(@Nullable Codec sink, byte @NotNull [] key, byte @Nullable [] iv) throws CodecException {
+	public Decrypt2(@Nullable Codec sink, byte [] key, byte @Nullable [] iv) throws CodecException {
 		this.sink = sink;
 		try {
 			aesCrypt = mhCryptCtor.invoke();
@@ -43,7 +44,7 @@ public final class Decrypt2 implements Codec {
 	 * @param sink 不能为null
 	 * @param iv   长度必须至少Encrypt2.BLOCK_SIZE. 不能为null
 	 */
-	public void reset(@NotNull Codec sink, byte @NotNull [] iv) {
+	public void reset(Codec sink, byte [] iv) {
 		System.arraycopy(iv, 0, out, 0, BLOCK_SIZE);
 		this.sink = sink;
 		sinkIndex = 0;
@@ -63,7 +64,7 @@ public final class Decrypt2 implements Codec {
 		out[writeIndex++] ^= c;
 		if (writeIndex == BLOCK_SIZE) {
 			writeIndex = 0;
-			sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
+			Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 			sinkIndex = 0;
 			try {
 				mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
@@ -76,7 +77,7 @@ public final class Decrypt2 implements Codec {
 	}
 
 	@Override
-	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
+	public void update(byte [] data, int off, int len) throws CodecException {
 		try {
 			int wi = writeIndex, end = off + len;
 			if (wi > 0) {
@@ -86,7 +87,7 @@ public final class Decrypt2 implements Codec {
 					out[wi++] ^= c;
 					if (wi == BLOCK_SIZE) {
 						wi = 0;
-						sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
+						Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 						sinkIndex = 0;
 						mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
 						break;
@@ -100,7 +101,7 @@ public final class Decrypt2 implements Codec {
 					out[wi + i] ^= c;
 				}
 				off += BLOCK_SIZE;
-				sink.update(out, 0, BLOCK_SIZE);
+				Objects.requireNonNull(sink, "codec is not reset").update(out, 0, BLOCK_SIZE);
 				mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
 			}
 			while (off < end) {
@@ -119,10 +120,10 @@ public final class Decrypt2 implements Codec {
 	@Override
 	public void flush() throws CodecException {
 		if (sinkIndex < writeIndex) {
-			sink.update(out, sinkIndex, writeIndex - sinkIndex);
+			Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, writeIndex - sinkIndex);
 			sinkIndex = writeIndex;
 		}
-		sink.flush();
+		Objects.requireNonNull(sink, "codec is not reset").flush();
 	}
 
 	@Override

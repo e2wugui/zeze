@@ -1,5 +1,7 @@
 package Zeze.Transaction.Logs;
 
+import java.util.Objects;
+
 import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -8,16 +10,16 @@ import Zeze.Serialize.Vector3Int;
 import Zeze.Serialize.Vector4;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /** vector4 字段原子修改日志：携带新值，commit 经 VarHandle 写回，序列化为四个 float。 */
 public class LogVector4 extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<vector4>");
 
-	private final VarHandle vh;
-	public Vector4 value;
+	private final @Nullable VarHandle vh;
+	public @Nullable Vector4 value;
 
-	public LogVector4(Bean belong, int varId, VarHandle vh, Vector4 value) {
+	public LogVector4(@Nullable Bean belong, int varId, @Nullable VarHandle vh, Vector4 value) {
 		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
@@ -29,7 +31,7 @@ public class LogVector4 extends Log {
 	}
 
 	@Override
-	public @NotNull Category category() {
+	public Category category() {
 		return Category.eHistory;
 	}
 
@@ -45,47 +47,47 @@ public class LogVector4 extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteVector4(value);
+	public void encode(ByteBuffer bb) {
+		bb.WriteVector4(Objects.requireNonNull(value));
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadVector4();
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return String.valueOf(value);
 	}
 
 	@Override
-	public @NotNull Vector4 vector2Value() {
-		return value;
+	public Vector4 vector2Value() {
+		return Objects.requireNonNull(value);
 	}
 
 	@Override
-	public @NotNull Vector3Int vector2IntValue() {
-		return new Vector3Int(value);
+	public Vector3Int vector2IntValue() {
+		return new Vector3Int(Objects.requireNonNull(value));
 	}
 
 	@Override
-	public @NotNull Vector4 vector3Value() {
-		return value;
+	public Vector4 vector3Value() {
+		return Objects.requireNonNull(value);
 	}
 
 	@Override
-	public @NotNull Vector3Int vector3IntValue() {
-		return new Vector3Int(value);
+	public Vector3Int vector3IntValue() {
+		return new Vector3Int(Objects.requireNonNull(value));
 	}
 
 	@Override
-	public @NotNull Vector4 vector4Value() {
-		return value;
+	public Vector4 vector4Value() {
+		return Objects.requireNonNull(value);
 	}
 
 	@Override
-	public @NotNull Quaternion quaternionValue() {
-		return new Quaternion(value);
+	public Quaternion quaternionValue() {
+		return new Quaternion(Objects.requireNonNull(value));
 	}
 }

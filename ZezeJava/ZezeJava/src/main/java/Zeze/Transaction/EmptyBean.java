@@ -2,8 +2,7 @@ package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 空 Bean：无字段占位实现，typeId 固定为 0，用作 DynamicBean 的空值语义。 */
 public class EmptyBean extends Bean {
@@ -23,22 +22,22 @@ public class EmptyBean extends Bean {
 	};
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		bb.SkipUnknownField(ByteBuffer.BEAN);
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteByte(0);
 	}
 
 	@Override
-	public void followerApply(@NotNull Log log) {
+	public void followerApply(Log log) {
 		// ignore all
 	}
 
 	@Override
-	public @NotNull EmptyBean copy() {
+	public EmptyBean copy() {
 		return new EmptyBean();
 	}
 
@@ -47,7 +46,7 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
-	public @NotNull Data toData() {
+	public Data toData() {
 		return Data.instance;
 	}
 
@@ -59,7 +58,7 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "()";
 	}
 
@@ -86,12 +85,12 @@ public class EmptyBean extends Bean {
 		}
 
 		@Override
-		public void decode(@NotNull IByteBuffer bb) {
+		public void decode(IByteBuffer bb) {
 			bb.SkipUnknownField(ByteBuffer.BEAN);
 		}
 
 		@Override
-		public void encode(@NotNull ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteByte(0);
 		}
 
@@ -100,7 +99,7 @@ public class EmptyBean extends Bean {
 		}
 
 		@Override
-		public @NotNull Data copy() {
+		public Data copy() {
 			return this; // EmptyBean.Data没有任何状态,返回相同实例是安全的
 		}
 
@@ -109,7 +108,7 @@ public class EmptyBean extends Bean {
 		}
 
 		@Override
-		public @NotNull EmptyBean toBean() {
+		public EmptyBean toBean() {
 			return new EmptyBean();
 		}
 
@@ -122,7 +121,7 @@ public class EmptyBean extends Bean {
 		}
 
 		@Override
-		public @NotNull String toString() {
+		public String toString() {
 			return "()";
 		}
 

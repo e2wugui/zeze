@@ -5,7 +5,6 @@ import java.util.Set;
 
 import Zeze.Builtin.ProviderDirect.BLoginKey;
 import Zeze.Net.Binary;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 在线发送目的地（包私有实现细节，OnlineSpec 的唯一变化点）。
@@ -14,10 +13,10 @@ import org.jetbrains.annotations.NotNull;
 sealed interface OnlineTarget {
 
 	/** 把编码好的协议投递到本目标，立即执行。返回发送数（OnlineSpec.sendNow 透传给调用方；空目标 0）。 */
-	int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent);
+	int send(Online online, long typeId, Binary data, boolean quietWhenAbsent);
 
 	/** 协议日志标识。Arch 无 OnlineSet 概念，不需要 online 参数。 */
-	@NotNull String describe();
+	String describe();
 
 	/** 空目标：OnlineSpec 在编码前短路（空集合直接返回、不编码）。 */
 	default boolean isEmpty() {
@@ -29,8 +28,8 @@ sealed interface OnlineTarget {
 	 * 前置条件：logins 是不可变快照（Logins 规范构造器 Set.copyOf 保证），
 	 * 因此 size==1 时必有元素，无需防御空迭代器。
 	 */
-	static int dispatchLogins(@NotNull Online online, @NotNull Set<BLoginKey> logins, long typeId,
-							  @NotNull Binary data, boolean quietWhenAbsent) {
+	static int dispatchLogins(Online online, Set<BLoginKey> logins, long typeId,
+							  Binary data, boolean quietWhenAbsent) {
 		var size = logins.size();
 		if (size == 0)
 			return 0;
@@ -45,8 +44,8 @@ sealed interface OnlineTarget {
 	 * 0/1/N 分派：账号维度，全包唯一一份。
 	 * 前置条件同 dispatchLogins（Accounts 规范构造器保证不可变快照）。
 	 */
-	static int dispatchAccounts(@NotNull Online online, @NotNull Collection<String> accounts, long typeId,
-								@NotNull Binary data, boolean quietWhenAbsent) {
+	static int dispatchAccounts(Online online, Collection<String> accounts, long typeId,
+								Binary data, boolean quietWhenAbsent) {
 		var size = accounts.size();
 		if (size == 0)
 			return 0;
@@ -56,31 +55,31 @@ sealed interface OnlineTarget {
 	}
 
 	/** 单个登录端点。 */
-	record Login(@NotNull String account, @NotNull String clientId) implements OnlineTarget {
+	record Login(String account, String clientId) implements OnlineTarget {
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+		public int send(Online online, long typeId, Binary data, boolean quietWhenAbsent) {
 			return online.sendDirect(account, clientId, typeId, data, quietWhenAbsent) ? 1 : 0;
 		}
 
 		@Override
-		public @NotNull String describe() {
+		public String describe() {
 			return account + ',' + clientId;
 		}
 	}
 
 	/** 多个登录端点。构造时快照（去重）。 */
-	record Logins(@NotNull Set<BLoginKey> logins) implements OnlineTarget {
+	record Logins(Set<BLoginKey> logins) implements OnlineTarget {
 		public Logins { // 接口内嵌套类型隐式 public，规范构造器必须显式 public
 			logins = Set.copyOf(logins); // 快照：发送（可能在 commit 时）不受调用方后续改集合影响
 		}
 
 		/** Collection 直传（工厂路径）。Set.copyOf 转换后规范构造器是零拷贝别名，全程只分配一次。 */
-		public Logins(@NotNull Collection<BLoginKey> logins) {
+		public Logins(Collection<BLoginKey> logins) {
 			this(Set.copyOf(logins));
 		}
 
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+		public int send(Online online, long typeId, Binary data, boolean quietWhenAbsent) {
 			return dispatchLogins(online, logins, typeId, data, quietWhenAbsent);
 		}
 
@@ -90,7 +89,7 @@ sealed interface OnlineTarget {
 		}
 
 		@Override
-		public @NotNull String describe() {
+		public String describe() {
 			var sb = new StringBuilder();
 			for (var login : logins)
 				sb.append(login.getAccount()).append(',').append(login.getClientId()).append(';');
@@ -101,26 +100,26 @@ sealed interface OnlineTarget {
 	}
 
 	/** 单个账号（所有登录终端）。 */
-	record Account(@NotNull String account) implements OnlineTarget {
+	record Account(String account) implements OnlineTarget {
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+		public int send(Online online, long typeId, Binary data, boolean quietWhenAbsent) {
 			return online.sendAccountDirect(account, typeId, data, quietWhenAbsent);
 		}
 
 		@Override
-		public @NotNull String describe() {
+		public String describe() {
 			return account;
 		}
 	}
 
 	/** 多个账号（所有登录终端）。构造时快照（去重）。 */
-	record Accounts(@NotNull Collection<String> accounts) implements OnlineTarget {
+	record Accounts(Collection<String> accounts) implements OnlineTarget {
 		public Accounts { // 接口内嵌套类型隐式 public，规范构造器必须显式 public
 			accounts = Set.copyOf(accounts);
 		}
 
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+		public int send(Online online, long typeId, Binary data, boolean quietWhenAbsent) {
 			return dispatchAccounts(online, accounts, typeId, data, quietWhenAbsent);
 		}
 
@@ -130,22 +129,22 @@ sealed interface OnlineTarget {
 		}
 
 		@Override
-		public @NotNull String describe() {
+		public String describe() {
 			return String.join(",", accounts);
 		}
 	}
 
 	/** 可靠通知（Arch 底层 sendReliableNotifyDirect 不支持该选项，quietWhenAbsent 参数被忽略）。 */
-	record Reliable(@NotNull String account, @NotNull String clientId,
-					@NotNull String listenerName) implements OnlineTarget {
+	record Reliable(String account, String clientId,
+					String listenerName) implements OnlineTarget {
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+		public int send(Online online, long typeId, Binary data, boolean quietWhenAbsent) {
 			online.sendReliableNotifyDirect(account, clientId, listenerName, typeId, data);
 			return 1;
 		}
 
 		@Override
-		public @NotNull String describe() {
+		public String describe() {
 			return account + ',' + clientId + ':' + listenerName;
 		}
 	}

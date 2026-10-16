@@ -1,5 +1,9 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.io.RandomAccessFile;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -11,10 +15,10 @@ import Zeze.Transaction.Procedure;
 class InstallSnapshotState {
 	// Rpc实例一次性（sessionId不可重用），跨块重用会在第二次Send时抛IllegalStateException，
 	// 之后所有块都发不出去：快照边界信息由state携带，每块new一个InstallSnapshot发送。
-	private RaftLog firstLog;
-	private RandomAccessFile file;
+	private @Nullable RaftLog firstLog;
+	private @Nullable RandomAccessFile file;
 	// 会话所属连接：SendSnapshotting.end收口的索引复位与续复制据此定位（入表前绑定）。
-	private Server.ConnectorEx connector;
+	private Server.@Nullable ConnectorEx connector;
 	private long offset;
 	private long term;
 	private String leaderId = "";
@@ -23,15 +27,15 @@ class InstallSnapshotState {
 	private boolean done;
 	private long resultCode = Procedure.ErrorSendFail;
 
-	public RaftLog getFirstLog() {
+	public @Nullable RaftLog getFirstLog() {
 		return firstLog;
 	}
 
-	public void setFirstLog(RaftLog value) {
+	public void setFirstLog(@Nullable RaftLog value) {
 		firstLog = value;
 	}
 
-	public RandomAccessFile getFile() {
+	public @Nullable RandomAccessFile getFile() {
 		return file;
 	}
 
@@ -39,7 +43,7 @@ class InstallSnapshotState {
 		file = value;
 	}
 
-	public Server.ConnectorEx getConnector() {
+	public Server.@Nullable ConnectorEx getConnector() {
 		return connector;
 	}
 
@@ -115,7 +119,7 @@ class InstallSnapshotState {
 			// 0字节块done=true。
 			int rc = 0;
 			while (rc < buffer.length) {
-				int n = file.read(buffer, rc, buffer.length - rc);
+				int n = Objects.requireNonNull(file).read(buffer, rc, buffer.length - rc);
 				if (n < 0)
 					break; // EOF：rc为0时发0字节收尾块，完成协议
 				rc += n;
@@ -130,7 +134,7 @@ class InstallSnapshotState {
 			pending.Argument.setDone(rc < buffer.length);
 			offset += rc;
 			if (pending.Argument.getDone())
-				pending.Argument.setLastIncludedLog(new Binary(firstLog.encode()));
+				pending.Argument.setLastIncludedLog(new Binary(Objects.requireNonNull(firstLog).encode()));
 
 			int timeout = ls.getRaft().getRaftConfig().getAppendEntriesTimeout();
 			resultCode = Procedure.ErrorSendFail;
@@ -173,7 +177,7 @@ class InstallSnapshotState {
 			resultCode = r.getResultCode();
 
 			if (!r.Argument.getDone() && r.Result.getOffset() >= 0) {
-				if (r.Result.getOffset() > file.length()) {
+				if (r.Result.getOffset() > Objects.requireNonNull(file).length()) {
 					LogSequence.logger.error("InstallSnapshot.Result.Offset Too Big. {}/{}",
 							r.Result.getOffset(), file.length());
 					ls.getSendSnapshotting().end(c);

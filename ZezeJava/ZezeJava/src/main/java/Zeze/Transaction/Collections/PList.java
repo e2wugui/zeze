@@ -8,46 +8,46 @@ import java.util.NoSuchElementException;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 import org.pcollections.PVector;
 
 /** 事务 List 基类：基于 pcollections 持久化向量的 List 视图，托管下的修改经 LogList 记账。 */
 public abstract class PList<V> extends Collection implements List<V> {
-	@NotNull PVector<V> list = Persistents.vector();
+	PVector<V> list = Persistents.vector();
 
 	@Override
-	public abstract boolean add(@NotNull V item);
+	public abstract boolean add(V item);
 
 	@Override
-	public abstract boolean remove(@NotNull Object item);
+	public abstract boolean remove(Object item);
 
 	@Override
 	public abstract void clear();
 
 	@Override
-	public abstract @NotNull V set(int index, @NotNull V item);
+	public abstract V set(int index, V item);
 
 	@Override
-	public abstract void add(int index, @NotNull V item);
+	public abstract void add(int index, V item);
 
 	@Override
-	public abstract @NotNull V remove(int index);
+	public abstract V remove(int index);
 
 	@Override
-	public abstract boolean addAll(@NotNull java.util.Collection<? extends V> items);
+	public abstract boolean addAll(java.util.Collection<? extends V> items);
 
 	@Override
-	public abstract boolean removeAll(@NotNull java.util.Collection<?> c);
+	public abstract boolean removeAll(java.util.Collection<?> c);
 
 	@Deprecated // unsupported
 	@Override
-	public boolean retainAll(@NotNull java.util.Collection<?> c) {
+	public boolean retainAll(java.util.Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
-	public final @NotNull PVector<V> getList() {
+	public final PVector<V> getList() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
@@ -63,18 +63,18 @@ public abstract class PList<V> extends Collection implements List<V> {
 		return list;
 	}
 
-	public final void copyTo(V @NotNull [] array, int arrayIndex) {
+	public final void copyTo(V [] array, int arrayIndex) {
 		for (V v : getList())
 			array[arrayIndex++] = v;
 	}
 
 	@Override
-	public Object @NotNull [] toArray() {
+	public Object [] toArray() {
 		return getList().toArray();
 	}
 
 	@Override
-	public <T> T @NotNull [] toArray(T @NotNull [] a) {
+	public <T> T [] toArray(T [] a) {
 		return getList().toArray(a);
 	}
 
@@ -89,17 +89,17 @@ public abstract class PList<V> extends Collection implements List<V> {
 	}
 
 	@Override
-	public final boolean contains(@NotNull Object v) {
+	public final boolean contains(Object v) {
 		return getList().contains(v);
 	}
 
 	@Override
-	public int indexOf(@NotNull Object o) {
+	public int indexOf(Object o) {
 		return getList().indexOf(o);
 	}
 
 	@Override
-	public int lastIndexOf(@NotNull Object o) {
+	public int lastIndexOf(Object o) {
 		return getList().lastIndexOf(o);
 	}
 
@@ -109,9 +109,9 @@ public abstract class PList<V> extends Collection implements List<V> {
 	}
 
 	@Override
-	public @NotNull Iterator<V> iterator() {
+	public Iterator<V> iterator() {
 		return new Iterator<>() {
-			private final @NotNull PVector<V> snapshot = getList(); // 创建时刻的快照，迭代安全
+			private final PVector<V> snapshot = getList(); // 创建时刻的快照，迭代安全
 			private final Iterator<V> it = snapshot.iterator();
 			private int index;
 			private @Nullable V lastReturned;
@@ -149,12 +149,12 @@ public abstract class PList<V> extends Collection implements List<V> {
 	}
 
 	@Override
-	public @NotNull ListIterator<V> listIterator() {
+	public ListIterator<V> listIterator() {
 		return listIterator(0);
 	}
 
 	@Override
-	public @NotNull ListIterator<V> listIterator(int index) {
+	public ListIterator<V> listIterator(int index) {
 		int size = size();
 		if (Integer.compareUnsigned(index, size) > 0)
 			throw new IndexOutOfBoundsException("invalid index = " + index + " (size = " + size + ')');
@@ -279,27 +279,27 @@ public abstract class PList<V> extends Collection implements List<V> {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, getList());
 		return sb.toString();
 	}
 
 	@Override
-	public boolean containsAll(@NotNull java.util.Collection<?> c) {
+	public boolean containsAll(java.util.Collection<?> c) {
 		//noinspection SlowListContainsAll
 		return getList().containsAll(c);
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public boolean addAll(int index, @NotNull java.util.Collection<? extends V> c) {
+	public boolean addAll(int index, java.util.Collection<? extends V> c) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public @NotNull List<V> subList(int fromIndex, int toIndex) {
+	public List<V> subList(int fromIndex, int toIndex) {
 		throw new UnsupportedOperationException();
 	}
 }

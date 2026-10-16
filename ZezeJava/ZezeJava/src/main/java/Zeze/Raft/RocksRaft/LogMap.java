@@ -1,20 +1,22 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Map 容器日志基类：在 LogBean 之上携带容器的当前值（PMap）。
  */
 public abstract class LogMap<K, V> extends LogBean {
-	private org.pcollections.PMap<K, V> value;
+	private org.pcollections.@Nullable PMap<K, V> value;
 
 	public LogMap(int typeId) {
 		super(typeId);
 	}
 
-	public final org.pcollections.PMap<K, V> getValue() {
+	public final org.pcollections.@Nullable PMap<K, V> getValue() {
 		return value;
 	}
 
-	public final void setValue(org.pcollections.PMap<K, V> value) {
+	public final void setValue(org.pcollections.@Nullable PMap<K, V> value) {
 		this.value = value;
 	}
 

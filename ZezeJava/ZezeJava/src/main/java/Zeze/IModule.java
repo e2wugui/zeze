@@ -2,15 +2,14 @@ package Zeze;
 
 import java.util.concurrent.locks.Lock;
 import Zeze.Net.Protocol;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 模块接口：名字/编号、生命周期（Initialize/Register/StartLast/StopBefore/UnRegister）与错误码编码。
  */
 public interface IModule {
-	@NotNull String getFullName();
+	String getFullName();
 
-	@NotNull String getName();
+	String getName();
 
 	int getId();
 
@@ -22,11 +21,11 @@ public interface IModule {
 		throw new UnsupportedOperationException();
 	}
 
-	default @NotNull Lock getLock() {
+	default Lock getLock() {
 		throw new UnsupportedOperationException();
 	}
 
-	default @NotNull String getWebPathBase() {
+	default String getWebPathBase() {
 		return "";
 	}
 
@@ -47,7 +46,7 @@ public interface IModule {
 	default void StopBefore() throws Exception {
 	}
 
-	default void Initialize(@NotNull AppBase app) throws Exception {
+	default void Initialize(AppBase app) throws Exception {
 	}
 
 	default void Register() {

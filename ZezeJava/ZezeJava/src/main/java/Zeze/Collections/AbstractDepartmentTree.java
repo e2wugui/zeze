@@ -36,13 +36,13 @@ public abstract class AbstractDepartmentTree implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tDepartment.getName()).getDatabaseName(), _tDepartment);
-        zeze.addTable(zeze.getConfig().getTableConf(_tDepartmentTree.getName()).getDatabaseName(), _tDepartmentTree);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tDepartment.getName())).getDatabaseName(), _tDepartment);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tDepartmentTree.getName())).getDatabaseName(), _tDepartmentTree);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tDepartment.getName()).getDatabaseName(), _tDepartment);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tDepartmentTree.getName()).getDatabaseName(), _tDepartmentTree);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tDepartment.getName())).getDatabaseName(), _tDepartment);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tDepartmentTree.getName())).getDatabaseName(), _tDepartmentTree);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

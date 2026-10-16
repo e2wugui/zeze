@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import java.lang.invoke.MethodHandle;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -11,7 +15,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 与 LogMap2 完全对应，只是继承自 LogSortedMap1，value 使用 PSortedMap。
@@ -29,7 +32,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	}
 
 	/** 自定义比较器须在复制双方的日志工厂一致配置；wire不携带比较器。 */
-	public LogSortedMap2(Class<K> keyClass, Class<V> valueClass, Comparator<? super K> comparator) {
+	public LogSortedMap2(Class<K> keyClass, Class<V> valueClass, @Nullable Comparator<? super K> comparator) {
 		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass, comparator);
 		changedWithKey = new TreeMap<>(comparator);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
@@ -49,7 +52,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	}
 
 	@Override
-	protected void onComparatorChanged(Comparator<? super K> comparator) {
+	protected void onComparatorChanged(@Nullable Comparator<? super K> comparator) {
 		super.onComparatorChanged(comparator);
 		var newChangedWithKey = new TreeMap<K, LogBean>(comparator);
 		newChangedWithKey.putAll(changedWithKey);
@@ -68,11 +71,11 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		if (!decoded && getValue() != null) {
 			changedWithKey.clear(); // 重建最终视图，重复编码不能保留已删除/覆盖的旧changed。
 			for (var c : changed) {
-				Object pkey = c.getThis().mapKey();
+				Object pkey = Objects.requireNonNull(c.getThis()).mapKey();
 				// 第三条过滤对齐Transaction.Collections.LogMap2.buildChangedWithKey：
 				// 编辑时bean已不在最终map（remove不detach，编辑已删bean的陈旧引用仍会被collect，
 				// 其key来自更早事务，putted/removed两条拦不住），不过滤则follower侧必取到null；
@@ -80,8 +83,8 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 				// 不得应用到覆盖后的新值上。
 				//noinspection SuspiciousMethodCalls
 				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey)
-						&& c.getThis() == getValue().get(pkey))
-					changedWithKey.put((K)pkey, c);
+						&& c.getThis() == Objects.requireNonNull(getValue()).get(pkey))
+					changedWithKey.put((K)Objects.requireNonNull(pkey), c);
 			}
 		}
 		bb.WriteUInt(changedWithKey.size());
@@ -104,7 +107,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		changed.clear();
 		changedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;

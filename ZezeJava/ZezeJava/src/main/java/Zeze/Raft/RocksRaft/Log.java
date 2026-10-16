@@ -1,11 +1,13 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * RocksRaft 修改日志基类：归属 Bean 与 variableId 定位修改点，按 typeId 注册工厂解码。
@@ -29,7 +31,7 @@ public abstract class Log implements Serializable {
 	// 事务运行时属性，不会被序列化。
 	// 当 decode，Bean为null。
 	// Apply通过参数得到日志应用需要的Bean。
-	private Bean belong;
+	private @Nullable Bean belong;
 	private final int typeId; // 会被序列化，实际上由LogBean管理。
 	private int variableId;
 
@@ -37,16 +39,16 @@ public abstract class Log implements Serializable {
 		this.typeId = typeId;
 	}
 
-	public final Bean getBelong() {
+	public final @Nullable Bean getBelong() {
 		return belong;
 	}
 
-	public final void setBelong(Bean value) {
+	public final void setBelong(@Nullable Bean value) {
 		belong = value;
 	}
 
 	public final long getLogKey() {
-		return belong.objectId() + variableId;
+		return Objects.requireNonNull(belong).objectId() + variableId;
 	}
 
 	public void collect(Changes changes, Bean recent, Log vlog) {
@@ -74,8 +76,8 @@ public abstract class Log implements Serializable {
 	}
 
 	@Override
-	public abstract void encode(@NotNull ByteBuffer bb);
+	public abstract void encode(ByteBuffer bb);
 
 	@Override
-	public abstract void decode(@NotNull IByteBuffer bb);
+	public abstract void decode(IByteBuffer bb);
 }

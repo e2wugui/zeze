@@ -1,45 +1,46 @@
 package Zeze.Transaction;
 
+import java.util.Objects;
+
 import java.util.ArrayDeque;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Services.AchillesHeelConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * GlobalCacheManager 代理基类：维护 activeTime 保活时间、AchillesHeel 配置，
  * 以及 Releaser 本地锁释放流程与其完成回调队列。
  */
 public abstract class GlobalAgentBase extends ReentrantLock {
-	private static final @NotNull Logger logger = LogManager.getLogger(GlobalAgentBase.class);
+	private static final Logger logger = LogManager.getLogger(GlobalAgentBase.class);
 
-	public final @NotNull Application zeze;
+	public final Application zeze;
 	// IO线程initialize()替换、daemon/业务线程读取，无共同锁——volatile保证可见性，
 	// 避免daemon持续读到默认serverReleaseTimeout(60s)破坏安全不等式
 	//（ServerDaemonTimeout+ServerReleaseTimeout<GlobalDaemonTimeout）。
-	private volatile @NotNull AchillesHeelConfig config = new AchillesHeelConfig(1500, 10000, 60 * 1000);
+	private volatile AchillesHeelConfig config = new AchillesHeelConfig(1500, 10000, 60 * 1000);
 	private volatile long activeTime = System.currentTimeMillis();
 	protected int globalCacheManagerHashIndex;
 	private volatile @Nullable Releaser releaser;
 
-	public GlobalAgentBase(@NotNull Application zeze) {
+	public GlobalAgentBase(Application zeze) {
 		this.zeze = zeze;
 	}
 
-	public final @NotNull AchillesHeelConfig getConfig() {
+	public final AchillesHeelConfig getConfig() {
 		return config;
 	}
 
 	// release完成回调队列（GlobalClient重连收尾等）。startRelease统一入队（含首个Releaser的发起者），
 	// Releaser完成后由checkReleaseTimeout取出在锁外执行。仅在本对象ReentrantLock内访问。
-	private final @NotNull ArrayDeque<Runnable> pendingEndActions = new ArrayDeque<>();
+	private final ArrayDeque<Runnable> pendingEndActions = new ArrayDeque<>();
 
 	// checkReleaseTimeout的drained哨兵初值：避免可空局部变量（@Nullable Runnable[]会让元素
 	// 被TYPE_USE语义推断为可空，action.run()报警告），空数组循环为no-op，无需null分支。
-	private static final @NotNull Runnable[] emptyEndActions = new Runnable[0];
+	private static final Runnable[] emptyEndActions = new Runnable[0];
 
 	public final long getActiveTime() {
 		return activeTime;
@@ -61,7 +62,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	public final void initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
-		zeze.getAchillesHeelDaemon().onInitialize(this);
+		Objects.requireNonNull(zeze.getAchillesHeelDaemon()).onInitialize(this);
 	}
 
 	public enum CheckReleaseResult {
@@ -70,7 +71,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		Timeout,
 	}
 
-	public @NotNull CheckReleaseResult checkReleaseTimeout(long now, int timeout) {
+	public CheckReleaseResult checkReleaseTimeout(long now, int timeout) {
 		var drained = emptyEndActions;
 		lock();
 		try {
@@ -107,12 +108,12 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 	}
 
 	public static class Releaser extends Thread {
-		public final @NotNull Application zeze;
+		public final Application zeze;
 		public final int globalIndex;
 		public final long startTime = System.currentTimeMillis();
 		private volatile boolean done;
 
-		public Releaser(@NotNull Application zeze, int index) {
+		public Releaser(Application zeze, int index) {
 			super("Global.Releaser");
 			setDaemon(true);
 			this.zeze = zeze;
@@ -145,7 +146,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 	// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
 	// 2. 超时没有释放完成，程序中止。see tryHalt。
 	// 3. 每个Global服务一个Releaser.
-	public void startRelease(@NotNull Application zeze, @Nullable Runnable endAction) {
+	public void startRelease(Application zeze, @Nullable Runnable endAction) {
 		lock();
 		try {
 			// 防重入：已有Releaser在运行（可能由守护线程的Release命令先启动）时不重复启动——

@@ -5,31 +5,30 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import org.jetbrains.annotations.NotNull;
 
 /** AllocateId128请求bean：全局名与申请数量。 */
 public final class BAllocateId128Argument implements Serializable {
-	private @NotNull Binary name;
+	private Binary name;
 	private int count;
 
 	public BAllocateId128Argument() {
 		name = Binary.Empty;
 	}
 
-	public BAllocateId128Argument(@NotNull String name, int count) {
+	public BAllocateId128Argument(String name, int count) {
 		this.name = new Binary(name);
 		this.count = count;
 	}
 
-	public @NotNull Binary getBinaryName() {
+	public Binary getBinaryName() {
 		return name;
 	}
 
-	public @NotNull String getName() {
+	public String getName() {
 		return new String(name.bytesUnsafe(), 0, name.size(), StandardCharsets.UTF_8);
 	}
 
-	public void setName(@NotNull String value) {
+	public void setName(String value) {
 		name = new Binary(value);
 	}
 
@@ -42,7 +41,7 @@ public final class BAllocateId128Argument implements Serializable {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer ibb) {
+	public void decode(IByteBuffer ibb) {
 		// 直接拷贝bytes构造Binary，不做intern：name是对端可控数据，intern会把每个唯一name
 		// 永久驻留静态无界BinaryPool（向Id128端口发包即可无界撑堆）；Binary为内容等值语义，
 		// 消费方（Id128UdpServer.cache的computeIfAbsent、getName）不依赖引用同一性。
@@ -51,7 +50,7 @@ public final class BAllocateId128Argument implements Serializable {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteBinary(name);
 		bb.WriteInt(count);
 	}
@@ -62,7 +61,7 @@ public final class BAllocateId128Argument implements Serializable {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return "BAllocateId128Argument{name='" + getName() + "',count=" + count + '}';
 	}
 }

@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import kotlinx.collections.immutable.ExtensionsKt;
 import kotlinx.collections.immutable.PersistentMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import org.jspecify.annotations.Nullable;
 import org.pcollections.PMap;
 
 /**
@@ -26,13 +26,13 @@ import org.pcollections.PMap;
  * </ul>
  */
 public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
-	private final @NotNull PersistentMap<K, V> kt;
+	private final PersistentMap<K, V> kt;
 
-	private KtMap(@NotNull PersistentMap<K, V> kt) {
+	private KtMap(PersistentMap<K, V> kt) {
 		this.kt = kt;
 	}
 
-	public static <K, V> @NotNull KtMap<K, V> empty() {
+	public static <K, V> KtMap<K, V> empty() {
 		return new KtMap<>(ExtensionsKt.<K, V>persistentHashMapOf());
 	}
 
@@ -49,29 +49,29 @@ public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
 	}
 
 	@Override
-	public @Nullable V get(@NotNull Object key) {
+	public @Nullable V get(Object key) {
 		return kt.get((K)key);
 	}
 
 	@Override
-	public boolean containsKey(@NotNull Object key) {
+	public boolean containsKey(Object key) {
 		return kt.containsKey((K)key);
 	}
 
 	@Override
-	public boolean containsValue(@NotNull Object value) {
+	public boolean containsValue(Object value) {
 		return kt.containsValue(value);
 	}
 
 	@Override
-	public @NotNull Set<Entry<K, V>> entrySet() {
+	public Set<Entry<K, V>> entrySet() {
 		return kt.getEntries();
 	}
 
 	// ===== 持久化写 =====
 
 	@Override
-	public @NotNull PMap<K, V> plus(@NotNull K key, @NotNull V value) {
+	public PMap<K, V> plus(K key, V value) {
 		// 同实例 put 跳过（纯优化，对 pcollections 基线不可观测）。守卫用身份不用 equals：
 		// PMap2/LogMap2 是可变 bean 值、按身份判等（LogMap2.isValueChanged 用 ==），
 		// 内容相等的不同 bean 实例必须真实入核（与 pcollections 逐位一致——其 plus 同值
@@ -82,13 +82,13 @@ public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
 	}
 
 	@Override
-	public @NotNull PMap<K, V> minus(@NotNull Object key) {
+	public PMap<K, V> minus(Object key) {
 		var n = kt.remove((K)key);
 		return n == kt ? this : new KtMap<>(n);
 	}
 
 	@Override
-	public @NotNull PMap<K, V> plusAll(@NotNull Map<? extends K, ? extends V> m) {
+	public PMap<K, V> plusAll(Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return this;
 		if (!Persistents.BULK) {
@@ -110,7 +110,7 @@ public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
 	}
 
 	@Override
-	public @NotNull PMap<K, V> minusAll(@NotNull Collection<?> c) {
+	public PMap<K, V> minusAll(Collection<?> c) {
 		if (c.isEmpty())
 			return this;
 		if (!Persistents.BULK) {
@@ -134,12 +134,12 @@ public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
 	}
 
 	@Override
-	public @Nullable V remove(@NotNull Object key) {
+	public @Nullable V remove(Object key) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(Map<? extends K, ? extends V> m) {
 		throw new UnsupportedOperationException();
 	}
 

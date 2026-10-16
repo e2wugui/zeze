@@ -1,5 +1,7 @@
 package Zeze.Raft;
 
+import java.util.Objects;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
@@ -13,6 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * follower侧InstallSnapshot接收登记表：条目即对.installing文件的所有权token。
@@ -82,7 +85,7 @@ final class ReceiveSnapshotting {
 		}
 	}
 
-	public Entry get(long lastIncludedIndex) {
+	public @Nullable Entry get(long lastIncludedIndex) {
 		lock.lock();
 		try {
 			return entries.get(lastIncludedIndex);
@@ -127,7 +130,7 @@ final class ReceiveSnapshotting {
 	 * 接收一个InstallSnapshot数据块（follower侧）。除done块（返回finalizing条目，
 	 * 由调用方收尾后应答）外，所有应答都在表锁内完成（Send为异步队列，不阻塞）。
 	 */
-	public Entry process(InstallSnapshot r) throws Exception {
+	public @Nullable Entry process(InstallSnapshot r) throws Exception {
 		lock.lock();
 		try {
 			var index = r.Argument.getLastIncludedIndex();
@@ -156,10 +159,10 @@ final class ReceiveSnapshotting {
 					return null;
 				}
 				// 唯一文件名：跨重启序号碰撞时文件已存在，由下方offset==0截断兜底，无害。
-				var path = Paths.get(raft.getRaftConfig().getDbHome(), LogSequence.snapshotFileName
+				var path = Paths.get(Objects.requireNonNull(raft.getRaftConfig().getDbHome()), LogSequence.snapshotFileName
 						+ ".installing." + index + "." + installFileSeq.incrementAndGet());
 				entry = new Entry(path, new RandomAccessFile(path.toFile(), "rw"),
-						r.Argument.getTerm(), r.Argument.getLeaderId(), System.currentTimeMillis());
+						r.Argument.getTerm(), Objects.requireNonNull(r.Argument.getLeaderId()), System.currentTimeMillis());
 				entries.put(index, entry);
 			}
 			entry.lastActiveTime = System.currentTimeMillis(); // 任何块活动都证明对端还活着
@@ -184,7 +187,7 @@ final class ReceiveSnapshotting {
 			if (r.Argument.getOffset() == fileLength) {
 				// 正常的Append流程，直接写入。
 				// 3. Write data into snapshot file at given offset
-				r.Argument.getData().writeToFile(outputFileStream);
+				Objects.requireNonNull(r.Argument.getData()).writeToFile(outputFileStream);
 			} else {
 				// 重叠块（leader重传已收到的前缀）：append-only不重写已落盘字节，
 				// 回报当前长度让leader从该处续传（与旧版"只写超出尾部"进度等价）。
@@ -192,7 +195,7 @@ final class ReceiveSnapshotting {
 				// 理论外路径：按冲突应答让leader重装全新截断——不得冻结半截文件提交
 				// （尺寸复核拦不住：expectedLength记录的正是done时的文件长度）。
 				if (r.Argument.getDone()
-						&& r.Argument.getOffset() + r.Argument.getData().size() != fileLength) {
+						&& r.Argument.getOffset() + Objects.requireNonNull(r.Argument.getData()).size() != fileLength) {
 					r.SendResultCode(InstallSnapshot.ResultCodeFinalizingConflict);
 					return null;
 				}
@@ -240,7 +243,7 @@ final class ReceiveSnapshotting {
 	// 周期清理残留接收条目（onLowPrecisionTimer约20s一次）。不变量：只为
 	// "当前term的当前leader"的安装保留条目，空闲超时兜底；清理后旧leader续传将收到
 	// OldInstall或按新文件重传，有界自愈。
-	public void gc(long now, long term, String leaderId, long idleTimeout) {
+	public void gc(long now, long term, @Nullable String leaderId, long idleTimeout) {
 		lock.lock();
 		try {
 			for (var it = entries.entrySet().iterator(); it.hasNext(); ) {

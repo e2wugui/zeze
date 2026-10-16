@@ -1,5 +1,7 @@
 package Zeze.Transaction.Logs;
 
+import java.util.Objects;
+
 import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -9,16 +11,16 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /** binary 字段原子修改日志：携带新 Binary 值，commit 经 VarHandle 写回，序列化为字节缓冲。 */
 public class LogBinary extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<binary>");
 
-	private final VarHandle vh;
-	public Binary value;
+	private final @Nullable VarHandle vh;
+	public @Nullable Binary value;
 
-	public LogBinary(Bean belong, int varId, VarHandle vh, Binary value) {
+	public LogBinary(@Nullable Bean belong, int varId, @Nullable VarHandle vh, Binary value) {
 		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
@@ -30,7 +32,7 @@ public class LogBinary extends Log {
 	}
 
 	@Override
-	public @NotNull Category category() {
+	public Category category() {
 		return Category.eHistory;
 	}
 
@@ -46,32 +48,32 @@ public class LogBinary extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteBinary(value);
+	public void encode(ByteBuffer bb) {
+		bb.WriteBinary(Objects.requireNonNull(value));
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadBinary();
 	}
 
 	@Override
-	public @NotNull String toString() {
-		return value.toString();
+	public String toString() {
+		return Objects.requireNonNull(value).toString();
 	}
 
 	@Override
-	public @NotNull Binary binaryValue() {
-		return value;
+	public Binary binaryValue() {
+		return Objects.requireNonNull(value);
 	}
 
 	@Override
-	public @NotNull String stringValue() {
-		return value.toString(StandardCharsets.UTF_8);
+	public String stringValue() {
+		return Objects.requireNonNull(value).toString(StandardCharsets.UTF_8);
 	}
 
 	@Override
-	public @NotNull BigDecimal decimalValue() {
+	public BigDecimal decimalValue() {
 		// 不用DECIMAL128：静默截断>34位有效数字（LogDecimal.decode同款已修），字符串构造本就精确
 		return new BigDecimal(stringValue());
 	}

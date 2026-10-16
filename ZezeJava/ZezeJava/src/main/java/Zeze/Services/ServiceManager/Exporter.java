@@ -10,8 +10,7 @@ import Zeze.Util.KV;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 【独立后台进程】
@@ -20,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  * 当前需求是：nginx-config-file, nginx-config-http
  */
 public class Exporter {
-	private static final @NotNull Logger logger = LogManager.getLogger(Exporter.class);
+	private static final Logger logger = LogManager.getLogger(Exporter.class);
 	private final AbstractAgent agent;
 	private final java.util.List<IExporter> exports = new ArrayList<>();
 	// 失败待补偿记账：按（导出器,服务名）二元组登记——若全体eAll导出器共享
@@ -34,9 +33,10 @@ public class Exporter {
 
 	public Exporter() throws Exception {
 		var conf = Config.load();
-		agent = Application.createServiceManager(conf, "ServiceManagerRaftExporter");
-		if (null == agent)
+		var createdAgent = Application.createServiceManager(conf, "ServiceManagerRaftExporter");
+		if (null == createdAgent)
 			throw new IllegalStateException("agent is null. check your config for ServiceManager.");
+		agent = createdAgent;
 	}
 
 	public void start() throws Exception {
@@ -125,7 +125,7 @@ public class Exporter {
 		}
 	}
 
-	public void addExporter(@NotNull String name, @NotNull Properties shared, @Nullable String param) {
+	public void addExporter(String name, Properties shared, @Nullable String param) {
 		switch (name) {
 		case "NginxConfig":
 			exports.add(new ExporterNginxConfig(new ExporterConfig(shared, param)));
@@ -153,9 +153,9 @@ public class Exporter {
 	// 命令行边界统一为既有错误形态（Usage+IllegalArgumentException）。三处边界：
 	// 1) -e为末尾token时args[++i]抛AIOOBE；2) -private为末尾token时peek通过但i+=2越界；
 	// 3) -private后紧跟顶层开关（如"-private -s Bar"）把开关吞为参数值。抽出为可测的静态方法。
-	static void parseArgs(@NotNull String @NotNull [] args, @NotNull Properties shared,
-						   @NotNull java.util.List<String> services,
-						   @NotNull java.util.List<KV<String, String>> exporters) {
+	static void parseArgs(String [] args, Properties shared,
+						   java.util.List<String> services,
+						   java.util.List<KV<String, @Nullable String>> exporters) {
 		for (var i = 0; i < args.length; ++i) {
 			if (args[i].equals("-e")) {
 				if (i + 1 >= args.length)
@@ -194,7 +194,7 @@ public class Exporter {
 		}
 	}
 
-	private static @NotNull IllegalArgumentException usageError(@NotNull String message) {
+	private static IllegalArgumentException usageError(String message) {
 		System.out.println("Usage: [shared_options] -e class [-private options]... -s service ... ");
 		System.out.println("    shared_options: -version ver -file file -url url -reload cmd");
 		System.out.println("    -private options: same as shared_options, and will overwrite shared_options.");
@@ -207,7 +207,7 @@ public class Exporter {
 		var exporter = new Exporter();
 		var shared = new Properties();
 		var services = new ArrayList<String>();
-		var exporters = new ArrayList<KV<String, String>>();
+		var exporters = new ArrayList<KV<String, @Nullable String>>();
 		parseArgs(args, shared, services, exporters);
 		for (var e : exporters)
 			exporter.addExporter(e.getKey(), shared, e.getValue());

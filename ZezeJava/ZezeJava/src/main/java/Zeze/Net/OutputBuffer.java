@@ -1,26 +1,27 @@
 package Zeze.Net;
 
+import java.util.Objects;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.GatheringByteChannel;
 import java.util.ArrayDeque;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 输出缓冲：暂存待发送数据并聚集写（gather write）到 channel。
  * 非线程安全，通常只能在 selector 线程调用。
  */
 public final class OutputBuffer implements Codec, Closeable {
-	private final @NotNull ByteBufferAllocator allocator;
+	private final ByteBufferAllocator allocator;
 	private final ArrayDeque<ByteBuffer> buffers = new ArrayDeque<>();
 	private final ByteBuffer[] outputs = new ByteBuffer[2];
 	private @Nullable ByteBuffer head, tail; // head <- buffers <- tail
 	private int tailPos;
 	private int size;
 
-	public OutputBuffer(@NotNull ByteBufferAllocator allocator) {
+	public OutputBuffer(ByteBufferAllocator allocator) {
 		this.allocator = allocator;
 	}
 
@@ -55,11 +56,11 @@ public final class OutputBuffer implements Codec, Closeable {
 		return size;
 	}
 
-	public void put(byte @NotNull [] src) {
+	public void put(byte [] src) {
 		put(src, 0, src.length);
 	}
 
-	public void put(byte @NotNull [] src, int offset, int length) {
+	public void put(byte [] src, int offset, int length) {
 		if (length > 0) {
 			var tail = this.tail;
 			if (tail == null)
@@ -88,7 +89,7 @@ public final class OutputBuffer implements Codec, Closeable {
 		tail.put(b);
 	}
 
-	private @NotNull ByteBuffer pushAndAllocTail() {
+	private ByteBuffer pushAndAllocTail() {
 		var tail = this.tail;
 		//noinspection DataFlowIssue
 		tail.limit(tail.position());
@@ -99,7 +100,7 @@ public final class OutputBuffer implements Codec, Closeable {
 		return tail;
 	}
 
-	public long writeTo(@NotNull GatheringByteChannel channel) throws IOException {
+	public long writeTo(GatheringByteChannel channel) throws IOException {
 		long r;
 		var head = this.head;
 		if (head == null && (head = buffers.pollFirst()) == null) { // head和队列都没有buffer了,只需要输出tail
@@ -124,7 +125,7 @@ public final class OutputBuffer implements Codec, Closeable {
 			this.head = head;
 			var next = buffers.peekFirst();
 			if (next == null) {
-				var tail = this.tail; // 队列不空时,tail肯定不为null
+				var tail = Objects.requireNonNull(this.tail); // 队列不空时,tail肯定不为null
 				outputs[0] = head;
 				outputs[1] = tail;
 				//noinspection DataFlowIssue
@@ -174,7 +175,7 @@ public final class OutputBuffer implements Codec, Closeable {
 	}
 
 	@Override
-	public void update(byte @NotNull [] data, int off, int len) {
+	public void update(byte [] data, int off, int len) {
 		put(data, off, len);
 	}
 }

@@ -21,8 +21,9 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.rocksdb.RocksDBException;
+import Zeze.Dbh2.Master.MasterTable.Data;
 
 /**
  * Master 侧单数据库的元数据存储：主表与 splitting 分桶表的内存映射及 RocksDB 持久化。
@@ -89,11 +90,11 @@ public class MasterDatabase {
 		return databaseName;
 	}
 
-	public MasterTable.Data getTable(String tableName) {
+	public @Nullable Data getTable(String tableName) {
 		return tables.get(tableName);
 	}
 
-	public BBucketMeta.Data locateBucket(String tableName, Binary key) {
+	public BBucketMeta.@Nullable Data locateBucket(String tableName, Binary key) {
 		var bTable = getTable(tableName);
 		if (null == bTable)
 			return null;
@@ -109,7 +110,7 @@ public class MasterDatabase {
 		return tables;
 	}
 
-	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
+	public @Nullable Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
 		while (true) {
 			var table = tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
@@ -317,7 +318,7 @@ public class MasterDatabase {
 	// 锁序固定主表→splitting（createSplitBucket碰撞判定按同序两阶段，无环）。
 	// 调用方须已持主表锁；新桶不在splitting或四元组不等值时不动任何状态，返回错误码。
 	private long settleSplitting(MasterTable.Data table, MasterTable.Data splitting, String tableName,
-								 BBucketMeta.Data to, BBucketMeta.Data from, Rpc<?, ?> r) throws Exception {
+								 BBucketMeta.Data to, BBucketMeta.@Nullable Data from, Rpc<?, ?> r) throws Exception {
 		splitting.lock();
 		try {
 			var bucket = splitting.buckets.get(to.getKeyFirst());
@@ -662,7 +663,7 @@ public class MasterDatabase {
 	}
 
 	/** 条目创建时间戳（年龄观测用）；无记录（存量条目未立基线）返回null。 */
-	public Long getSplittingAgeCreateTime(String tableName, Binary keyFirst) {
+	public @Nullable Long getSplittingAgeCreateTime(String tableName, Binary keyFirst) {
 		var rec = readSplittingAge(tableName, keyFirst);
 		return null != rec ? rec.createTimeMs() : null;
 	}

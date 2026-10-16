@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Objects;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -16,8 +18,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 接管租约组件：把“死者的数据搬给活人”的裁决权从SM内存降到与数据同库的租约表
@@ -44,17 +45,17 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  */
 public class Takeover extends AbstractTakeover {
-	private static final @NotNull Logger logger = LogManager.getLogger(Takeover.class);
+	private static final Logger logger = LogManager.getLogger(Takeover.class);
 
-	public static final @NotNull String ModeOff = "off";
-	public static final @NotNull String ModeDryrun = "dryrun";
-	public static final @NotNull String ModeOn = "on";
+	public static final String ModeOff = "off";
+	public static final String ModeDryrun = "dryrun";
+	public static final String ModeOn = "on";
 
 	/** tryTransfer串行队列key（public：测试用它投递哨兵任务观察队列排空）。 */
-	public static final @NotNull String TryTransferOneByOneKey = "Takeover.TryTransfer";
+	public static final String TryTransferOneByOneKey = "Takeover.TryTransfer";
 
-	public final @NotNull Application zeze;
-	private final @NotNull String mode;
+	public final Application zeze;
+	private final String mode;
 	private final long ttl;
 	private final long scanPeriod;
 
@@ -64,12 +65,12 @@ public class Takeover extends AbstractTakeover {
 	private volatile boolean fenceFatal; // 已被接管：release不得动租约（新owner的）
 	private volatile @Nullable Runnable fatalAction; // fence失败动作，默认致命退出；测试注入替换
 
-	private final @NotNull CopyOnWriteArrayList<TakeoverScope> scopes = new CopyOnWriteArrayList<>();
+	private final CopyOnWriteArrayList<TakeoverScope> scopes = new CopyOnWriteArrayList<>();
 	// 已成功stamp（事务提交后置位）的scope：未scoped的写路径checkFence抛NotStartException拒绝
 	// 而非致命退出——未登记≠被接管，stamp的瞬态失败不该被放大为进程死亡。
 	// TakeoverScope实现类不覆写equals（按实例标识），可直接做identity集合用。
-	private final @NotNull Set<TakeoverScope> scopedScopes = ConcurrentHashMap.newKeySet();
-	private final @NotNull LongHashMap<Future<?>> retryFutures = new LongHashMap<>(); // key:deadServerId 单发精确重试
+	private final Set<TakeoverScope> scopedScopes = ConcurrentHashMap.newKeySet();
+	private final LongHashMap<Future<?>> retryFutures = new LongHashMap<>(); // key:deadServerId 单发精确重试
 	// 周期守护：renew(租约续期事务)/scan(全表walk+tryTransfer派发)进worker池不占调度线程；
 	// release有界等待在飞一轮。构造时按ttl/3与scanPeriod定型，start→release→start重启复用同一实例。
 	private final DaemonTimer renewDaemon;
@@ -77,9 +78,9 @@ public class Takeover extends AbstractTakeover {
 	private long renewFailCount; // 仅renew周期调度线程串行访问
 	// veto（死者数据版本高于本进程）会令扫描对同一死者周期性无限重试，on模式此前零输出——
 	// 按(死者serverId,epoch)去重告警一次给运维留线索。条目量以死者数×其历次epoch为界，与租约行同量级。
-	private final @NotNull Set<String> vetoWarned = ConcurrentHashMap.newKeySet();
+	private final Set<String> vetoWarned = ConcurrentHashMap.newKeySet();
 
-	public Takeover(@NotNull Application zeze) {
+	public Takeover(Application zeze) {
 		this.zeze = zeze;
 		var conf = zeze.getConfig();
 		var m = conf.getTakeoverMode();
@@ -94,7 +95,7 @@ public class Takeover extends AbstractTakeover {
 		scanDaemon = new DaemonTimer("Takeover.scan", scanPeriod, this::scanOnce);
 	}
 
-	public @NotNull String getMode() {
+	public String getMode() {
 		return mode;
 	}
 
@@ -103,12 +104,12 @@ public class Takeover extends AbstractTakeover {
 	}
 
 	/** 测试/诊断用：直接访问租约表。 */
-	public @NotNull tTakeoverLease getTable() {
+	public tTakeoverLease getTable() {
 		return _tTakeoverLease;
 	}
 
 	/** 测试/诊断用：scope是否已完成本生命周期的stamp登记（release清零，重启后由start重建）。 */
-	public boolean isScoped(@NotNull TakeoverScope scope) {
+	public boolean isScoped(TakeoverScope scope) {
 		return scopedScopes.contains(scope);
 	}
 
@@ -143,7 +144,7 @@ public class Takeover extends AbstractTakeover {
 	 * （claim在start()内startState置eStarted之前、release在stop()内置回之后），
 	 * zeze.newProcedure的isStart()检查会拒绝，这里自己保证只在数据库打开后调用。
 	 */
-	private long callDirect(@NotNull FuncLong action, @NotNull String actionName) {
+	private long callDirect(FuncLong action, String actionName) {
 		return new Procedure(zeze, action, actionName, null).call();
 	}
 
@@ -172,7 +173,7 @@ public class Takeover extends AbstractTakeover {
 	 * 【断言租约epoch仍属于自己的 → scope.stamp(myEpoch)】。
 	 * 只写自己的root行，与并发接管者由zeze行冲突串行化。
 	 */
-	public void addScope(@NotNull TakeoverScope scope) {
+	public void addScope(TakeoverScope scope) {
 		scopes.addIfAbsent(scope);
 		if (started && ModeOn.equals(mode)) {
 			stampScope(scope);
@@ -180,7 +181,7 @@ public class Takeover extends AbstractTakeover {
 		}
 	}
 
-	private void stampScope(@NotNull TakeoverScope scope) {
+	private void stampScope(TakeoverScope scope) {
 		var lost = new boolean[1];
 		var healed = new boolean[1];
 		var action = (FuncLong)() -> {
@@ -235,7 +236,7 @@ public class Takeover extends AbstractTakeover {
 	 * （stamp=myEpoch后继续写），被接管者在空链上复活、写新数据并提供新数据的服务；其renew
 	 * 会把墓碑租约续上复活（epoch保留），下次真死租约可再次过期被接管，生命周期闭环。
 	 */
-	public void checkFence(@NotNull TakeoverScope scope, long rootEpoch) {
+	public void checkFence(TakeoverScope scope, long rootEpoch) {
 		if (!ModeOn.equals(mode) || !started)
 			return;
 		requireScoped(scope);
@@ -248,7 +249,7 @@ public class Takeover extends AbstractTakeover {
 	 * 未完成stamp登记的scope：写路径拒绝（抛{@link NotStartException}），不认领数据行、不致命。
 	 * mode!=on或未start恒通过（与checkFence同款前置）。调用方应在访问/认领root行之前调用。
 	 */
-	public void requireScoped(@NotNull TakeoverScope scope) {
+	public void requireScoped(TakeoverScope scope) {
 		if (!ModeOn.equals(mode) || !started)
 			return;
 		if (!scopedScopes.contains(scope))
@@ -258,12 +259,12 @@ public class Takeover extends AbstractTakeover {
 
 	/** scope尚未成功stamp（瞬态失败等待renew周期补做）：写路径拒绝继续，而非致命退出。 */
 	public static final class NotStartException extends IllegalStateException {
-		public NotStartException(@NotNull String message) {
+		public NotStartException(String message) {
 			super(message);
 		}
 	}
 
-	private void fenceFailed(@NotNull String reason) {
+	private void fenceFailed(String reason) {
 		fenceFatal = true; // release不得动租约：不能打掉新owner的（含其到期时刻）
 		// 带触发点栈：fence失败必须致命退出，现场只此一条日志，没有栈无法定位是哪条写路径触发。
 		logger.fatal("Takeover: {}", reason, new Exception("Takeover fence trigger stack"));
@@ -464,8 +465,8 @@ public class Takeover extends AbstractTakeover {
 	}
 
 	/** 单scope搬运事务：重验租约后transferAll；源root的事务内清空防止跨进程重复搬运。 */
-	private @NotNull ScopeTransfer transferScope(int deadServerId, @NotNull TakeoverScope scope,
-	                                             long @NotNull [] moved, @NotNull OutLong retryAt) {
+	private ScopeTransfer transferScope(int deadServerId, TakeoverScope scope,
+	                                             long [] moved, OutLong retryAt) {
 		var result = new ScopeTransfer[1];
 		var r = callDirect(() -> {
 			var lease = _tTakeoverLease.get(deadServerId);
@@ -505,7 +506,7 @@ public class Takeover extends AbstractTakeover {
 		}
 	}
 
-	private @NotNull String scopeNames() {
+	private String scopeNames() {
 		var sb = new StringBuilder("[");
 		for (var scope : scopes) {
 			if (sb.length() > 1)
@@ -527,7 +528,7 @@ public class Takeover extends AbstractTakeover {
 		renewDaemon.stop();
 		scanDaemon.stop();
 		synchronized (retryFutures) {
-			retryFutures.foreachValue(f -> f.cancel(false));
+			retryFutures.foreachValue(f -> Objects.requireNonNull(f).cancel(false));
 			retryFutures.clear();
 		}
 		if (!started)

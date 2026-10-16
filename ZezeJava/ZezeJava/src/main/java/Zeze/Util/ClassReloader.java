@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -21,8 +23,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import Zeze.Serialize.ByteBuffer;
 import com.sun.tools.attach.VirtualMachine;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /*
 MANIFEST.MF 需要定义以下2行("Premain-Class"可换成"Agent-Class"):
@@ -35,7 +36,7 @@ java ...... -javaagent:zeze.jar ......
 注意: javac和Eclipse编译器二者的编译结果可能不兼容
 */
 public final class ClassReloader {
-	private static Instrumentation inst;
+	private static @Nullable Instrumentation inst;
 
 	private ClassReloader() {
 	}
@@ -105,12 +106,12 @@ public final class ClassReloader {
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
 		}
-		return inst;
+		return Objects.requireNonNull(inst);
 	}
 
 	/** 从class数据里获取完整类名 */
 	@SuppressWarnings("ResultOfMethodCallIgnored")
-	public static String getClassPathFromData(byte @NotNull [] classData) throws IOException {
+	public static String getClassPathFromData(byte [] classData) throws IOException {
 		DataInputStream dis = new DataInputStream(new ByteArrayInputStream(classData));
 		dis.readLong(); // skip magic[4] and version[4]
 		int constCount = dis.readUnsignedShort() - 1;
@@ -152,7 +153,7 @@ public final class ClassReloader {
 	}
 
 	/** 热更一个class数据 */
-	public static void reloadClass(byte @NotNull [] classData, @Nullable ClassLoader classLoader) throws Exception {
+	public static void reloadClass(byte [] classData, @Nullable ClassLoader classLoader) throws Exception {
 		String fullClassName = getClassPathFromData(classData);
 		Class<?> cls = classLoader != null ?
 				Class.forName(fullClassName, true, classLoader) : Class.forName(fullClassName);
@@ -160,7 +161,7 @@ public final class ClassReloader {
 	}
 
 	/** 批量热更多个class数据 */
-	public static void reloadClasses(@NotNull Collection<byte[]> classDatas, @Nullable ClassLoader classLoader)
+	public static void reloadClasses(Collection<byte[]> classDatas, @Nullable ClassLoader classLoader)
 			throws Exception {
 		int i = 0, n = classDatas.size();
 		ClassDefinition[] clsDefs = new ClassDefinition[n];
@@ -177,7 +178,7 @@ public final class ClassReloader {
 	 * @param zipFile 指定zip/jar文件,热更里面所有的class文件
 	 * @return 批量热更的class数量
 	 */
-	public static int reloadClasses(@NotNull ZipFile zipFile) throws Exception {
+	public static int reloadClasses(ZipFile zipFile) throws Exception {
 		return reloadClasses(zipFile, null, null);
 	}
 
@@ -187,7 +188,7 @@ public final class ClassReloader {
 	 * @param log         如果不为null,则会追加热更的class文件名
 	 * @return 批量热更的class数量
 	 */
-	public static int reloadClasses(@NotNull ZipFile zipFile, @Nullable ClassLoader classLoader,
+	public static int reloadClasses(ZipFile zipFile, @Nullable ClassLoader classLoader,
 									@Nullable Appendable log) throws Exception {
 		ArrayList<byte[]> classDatas = new ArrayList<>();
 		ByteBuffer buf0 = ByteBuffer.Allocate(), buf1 = ByteBuffer.Allocate();

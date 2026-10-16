@@ -1,5 +1,7 @@
 package Zeze.Dbh2.Master;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.BRegisterResult;
 import Zeze.Builtin.Dbh2.Master.CheckFreeManager;
@@ -27,7 +29,6 @@ import Zeze.Util.OutObject;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Dbh2 客户端访问 Master 服务的代理，封装建库建表、迁移结算与负载上报 RPC。
@@ -36,8 +37,8 @@ public class MasterAgent extends AbstractMasterAgent {
 	private static final Logger logger = LogManager.getLogger(MasterAgent.class);
 	public static final String eServiceName = "Zeze.Dbh2.Master.Agent";
 	private final Service service;
-	private ProtocolHandle<CreateBucket> createBucketHandle;
-	private ProtocolHandle<DestroyBucket> destroyBucketHandle;
+	private @Nullable ProtocolHandle<CreateBucket> createBucketHandle;
+	private @Nullable ProtocolHandle<DestroyBucket> destroyBucketHandle;
 
 	public MasterAgent(Config config) {
 		service = new Service(config);
@@ -95,7 +96,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		return IModule.getErrorCode(rc) == eTableIsNew;
 	}
 
-	public void createTableAsync(String database, String table, Action3<Integer, Boolean, MasterTable.Data> callback) {
+	public void createTableAsync(String database, String table, Action3<Integer, Boolean, MasterTable.@Nullable Data> callback) {
 		var r = new CreateTable();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);
@@ -173,7 +174,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		}
 
 		@Override
-		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
 			// 只对连向Master的连接（connector方向）触发；此时socket已完成注册可安全发送协议。
 			if (null != so.getConnector())
@@ -185,7 +186,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		 * Master重启即丢失managers注册表（纯内存，databases/tables才落盘），子类需在此
 		 * 重发Register（Master端按socket与acceptor:port身份幂等去重，对齐MQ Master先例）。
 		 */
-		protected void OnMasterConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) throws Exception {
+		protected void OnMasterConnected(@SuppressWarnings("unused") AsyncSocket so) throws Exception {
 		}
 	}
 
@@ -227,7 +228,7 @@ public class MasterAgent extends AbstractMasterAgent {
 	 *                  pending-settle清除日志（LogClearPendingSettle），进程在终局前死亡则
 	 *                  标志留存，下轮leader-ready补发终局后同样清除。
 	 */
-	public void endMoveWithRetryAsync(BBucketMeta.Data to, Action0 onSettled) {
+	public void endMoveWithRetryAsync(BBucketMeta.Data to, @Nullable Action0 onSettled) {
 		var r = new EndMove();
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
@@ -255,7 +256,7 @@ public class MasterAgent extends AbstractMasterAgent {
 	}
 
 	/** 同{@link #endMoveWithRetryAsync(BBucketMeta.Data, Action0)}的onSettled形态。 */
-	public void endSplitWithRetryAsync(BBucketMeta.Data from, BBucketMeta.Data to, Action0 onSettled) {
+	public void endSplitWithRetryAsync(BBucketMeta.Data from, BBucketMeta.Data to, @Nullable Action0 onSettled) {
 		var r = new EndSplit();
 		r.Argument.setFrom(from);
 		r.Argument.setTo(to);
@@ -278,7 +279,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		}
 	}
 
-	private static void runSettled(Action0 onSettled) {
+	private static void runSettled(@Nullable Action0 onSettled) {
 		if (null == onSettled)
 			return;
 		try {

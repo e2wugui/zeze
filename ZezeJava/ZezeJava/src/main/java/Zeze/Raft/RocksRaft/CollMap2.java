@@ -1,5 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -43,8 +47,8 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 			value.initRootInfo(rootInfo(), this);
 			value.mapKey(key);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else {
 			value.mapKey(key);
@@ -56,8 +60,8 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	public void remove(K key) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
 		} else
 			map = map.minus(key);
@@ -67,8 +71,8 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
 			map = Zeze.Collections.Persistents.map();
@@ -102,7 +106,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void leaderApplyNoRecursive(Log _log) {
-		map = ((LogMap2<K, V>)_log).getValue();
+		map = Objects.requireNonNull(((LogMap2<K, V>)_log).getValue());
 	}
 
 	@Override
@@ -116,7 +120,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.@Nullable RootInfo root) {
 		for (var v : map.values())
 			v.initRootInfo(root, this);
 	}

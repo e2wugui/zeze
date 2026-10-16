@@ -23,7 +23,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.AsciiString;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * HttpExchange静态文件服务的实现体（sendFile/sendPath的委托目标，从HttpExchange拆出）：
@@ -33,13 +32,13 @@ final class HttpFileService {
 	private HttpFileService() {
 	}
 
-	private static final @NotNull Pattern rangePattern = Pattern.compile("[ =\\-/]");
+	private static final Pattern rangePattern = Pattern.compile("[ =\\-/]");
 	private static final OpenOption[] readOnlyOpenOptions = new OpenOption[]{StandardOpenOption.READ};
 	// h2分块发送的块大小：DATA帧逐块转发（ChunkedWriteHandler拉取），64KB平衡帧数与内存驻留
 	private static final int H2FileChunkSize = 64 * 1024;
 
 	// 文件名来自磁盘（Linux允许CR/LF/引号入名），且headersFactory关闭了Netty头校验：CRLF直拼构成响应头注入，引号破坏quoted-string边界。
-	private static String sanitizeFilenameForHeader(@NotNull String fn) {
+	private static String sanitizeFilenameForHeader(String fn) {
 		var sb = new StringBuilder(fn.length() + 16);
 		for (int i = 0, n = fn.length(); i < n; ++i) {
 			var c = fn.charAt(i);
@@ -53,7 +52,7 @@ final class HttpFileService {
 		return sb.toString();
 	}
 
-	static void sendFile(@NotNull HttpExchange x, @NotNull File file, int fileCacheSeconds) throws Exception {
+	static void sendFile(HttpExchange x, File file, int fileCacheSeconds) throws Exception {
 		HttpExchange.requireNonTransactionalStreaming();
 		if (!file.isFile()) { // 缺失/非普通文件回404而非让FileChannel.open抛异常走500（对齐sendPath）
 			x.close(x.send404());
@@ -180,7 +179,7 @@ final class HttpFileService {
 		}
 	}
 
-	static void sendPath(@NotNull HttpExchange x, @NotNull File file) {
+	static void sendPath(HttpExchange x, File file) {
 		HttpExchange.requireNonTransactionalStreaming();
 		if (!file.isDirectory() || file.isHidden()) {
 			x.close(x.send404());
@@ -231,7 +230,7 @@ final class HttpFileService {
 	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
 	// 参考: https://www.jianshu.com/p/acca9656e250
 	// 返回: [from, to, size]
-	static long @NotNull [] parseRange(@NotNull HttpRequest req, @NotNull AsciiString headerName) {
+	static long [] parseRange(HttpRequest req, AsciiString headerName) {
 		var r = new long[]{-1, -1, -1};
 		var headers = req.headers();
 		var range = headers.get(headerName);
@@ -263,7 +262,7 @@ final class HttpFileService {
 		return r;
 	}
 
-	static long parse(@NotNull String s) {
+	static long parse(String s) {
 		if (s.isEmpty())
 			return -1;
 		try {
@@ -275,7 +274,7 @@ final class HttpFileService {
 
 	// sendPath的目录列表把文件名/目录名直接拼进HTML的title/h1与<a href>属性：
 	// 含"、<、>、&等字符的文件名（目录内容或请求路径可被控制）可注入脚本。统一转义。
-	private static @NotNull String htmlEscape(@NotNull String s) {
+	private static String htmlEscape(String s) {
 		var sb = new StringBuilder(s.length());
 		for (int i = 0; i < s.length(); i++) {
 			switch (s.charAt(i)) {

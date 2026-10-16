@@ -1,5 +1,7 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Objects;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.LongFunction;
@@ -14,35 +16,34 @@ import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
 import org.pcollections.TreePMap;
 
 /** 事务 SortedMap（2系）：Comparable 键，Bean 值受管。 */
 @SuppressWarnings({"unchecked"})
 public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSortedMap<K, V> {
-	protected final @NotNull SortedMap2Meta<K, V> meta;
+	protected final SortedMap2Meta<K, V> meta;
 
-	public PSortedMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	public PSortedMap2(Class<K> keyClass, Class<V> valueClass) {
 		meta = SortedMap2Meta.get(keyClass, valueClass);
 	}
 
-	public PSortedMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
+	public PSortedMap2(Class<K> keyClass, Class<V> valueClass, Supplier<V> valueCtor) {
 		meta = SortedMap2Meta.create(keyClass, valueClass, valueCtor);
 	}
 
-	public PSortedMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
+	public PSortedMap2(Class<K> keyClass, ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) { // only for DynamicBean value
 		// 必须用 sortedMap2 家族头哈希：写端 typeId 与读端（Helper.registerLogSortedMap2Dynamic）
 			// 的注册键对称；用错 map2 家族会借道同 keyClass 的 map<K,dynamic> 注册解码成 LogMap2。
 		meta = SortedMap2Meta.createDynamic(keyClass, get, create);
 	}
 
-	public PSortedMap2(@NotNull SortedMap2Meta<K, V> meta) {
+	public PSortedMap2(SortedMap2Meta<K, V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull SortedMap2Meta<K, V> getMeta() {
+	public SortedMap2Meta<K, V> getMeta() {
 		return meta;
 	}
 
@@ -54,19 +55,19 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public K decodeKey(@NotNull ByteBuffer bb) {
+	public K decodeKey(ByteBuffer bb) {
 		return meta.keyDecoder.apply(bb);
 	}
 
-	public @NotNull V createValue() {
+	public V createValue() {
 		try {
-			return (V)meta.valueFactory.invoke();
+			return (V)Objects.requireNonNull(meta.valueFactory).invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
 	}
 
-	public @NotNull V getOrAdd(@NotNull K key) {
+	public V getOrAdd(K key) {
 		V exist = get(key);
 		if (exist == null) {
 			exist = createValue();
@@ -76,7 +77,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public @Nullable V put(@NotNull K key, @NotNull V value) {
+	public @Nullable V put(K key, V value) {
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("null key");
@@ -87,7 +88,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			value.initRootInfoWithRedo(rootInfo, this);
 			value.mapKey(key);
 			assert parent() != null;
@@ -100,7 +101,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
 		if (m instanceof PSortedMap2)
@@ -121,7 +122,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			}
 			assert parent() != null;
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				V v = e.getValue();
@@ -143,11 +144,11 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public @Nullable V remove(@NotNull Object key) {
+	public @Nullable V remove(Object key) {
 		if (isManaged()) {
 			assert parent() != null;
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			return mapLog.remove((K)key);
 		}
 		V exist = map.get((K)key);
@@ -156,14 +157,14 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public boolean remove(@NotNull Entry<K, V> item) {
+	public boolean remove(Entry<K, V> item) {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
 			assert parent() != null;
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			return mapLog.remove(k, v);
 		}
 		V exist = map.get(k);
@@ -181,7 +182,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (isManaged()) {
 			assert parent() != null;
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else {
 			var comparator = map.comparator();
@@ -190,7 +191,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public void followerApply(@NotNull Log _log) {
+	public void followerApply(Log _log) {
 		var log = (LogSortedMap2<K, V>)_log;
 		var tmp = map;
 		for (var e : log.getReplaced().entrySet()) {
@@ -213,24 +214,24 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public @NotNull LogBean createLogBean() {
+	public LogBean createLogBean() {
 		return new LogSortedMap2<>(parent(), variableId(), this, map, meta);
 	}
 
 	@Override
-	protected void initChildrenRootInfo(@NotNull Zeze.Transaction.Record.RootInfo root) {
+	protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
 		for (V v : map.values())
 			v.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
 		for (V v : map.values())
 			v.initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public @NotNull PSortedMap2<K, V> copy() {
+	public PSortedMap2<K, V> copy() {
 		// 深拷贝值Bean：浅拷贝共享原记录树内的受管活Bean，经ReadOnly.copy()交出的“副本”
 		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
 		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
@@ -249,7 +250,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
-	public void assign(@NotNull PSortedMap2<K, V> pmap) {
+	public void assign(PSortedMap2<K, V> pmap) {
 		if (this == pmap)
 			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
 		var copy = pmap.copy(); // 先备输入再发布：copy抛出时目标保持原值
@@ -258,7 +259,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.keyEncoder;
@@ -269,13 +270,13 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		clear();
 		var decoder = meta.keyDecoder;
 		try {
 			for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 				K k = decoder.apply(bb);
-				V v = (V)meta.valueFactory.invoke();
+				V v = (V)Objects.requireNonNull(meta.valueFactory).invoke();
 				v.decode(bb);
 				put(k, v);
 			}
@@ -284,15 +285,15 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		}
 	}
 
-	public <D extends Data> void putAllData(@NotNull Map<K, D> dataMap) {
+	public <D extends Data> void putAllData(Map<K, D> dataMap) {
 		Bean.toBeanMap(dataMap, this);
 	}
 
-	public <D extends Data> void toDataMap(@NotNull Map<K, D> dataMap) {
+	public <D extends Data> void toDataMap(Map<K, D> dataMap) {
 		Bean.toDataMap(getMap(), dataMap);
 	}
 
-	public <D extends Data> @NotNull HashMap<K, D> toDataMap() {
+	public <D extends Data> HashMap<K, D> toDataMap() {
 		var beanMap = getMap();
 		var dataMap = new HashMap<K, D>(((beanMap.size() + 2) / 3) * 4);
 		Bean.toDataMap(beanMap, dataMap);

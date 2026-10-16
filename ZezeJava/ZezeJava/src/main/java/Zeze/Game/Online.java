@@ -87,26 +87,25 @@ import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Game 版角色在线模块（Arch.Online 的孪生实现，差异在各锚点注释标注）：维护角色两级在线状态、
  * 本地登录数据、可靠通知、transmit 分发与多 OnlineSet，并按 link 分组向客户端发送协议。
  */
 public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory {
-	protected static final @NotNull Logger logger = LogManager.getLogger(Online.class);
+	protected static final Logger logger = LogManager.getLogger(Online.class);
 	protected static final BeanFactory beanFactory = new BeanFactory();
 
-	public final @NotNull ProviderApp providerApp;
+	public final ProviderApp providerApp;
 	private final AtomicLong loginTimes = new AtomicLong();
-	private final @NotNull TimerRole timerRole;
+	private final TimerRole timerRole;
 
-	private final @NotNull EventDispatcher loginEvents;
-	private final @NotNull EventDispatcher reloginEvents;
-	private final @NotNull EventDispatcher logoutEvents;
-	private final @NotNull EventDispatcher localRemoveEvents;
-	private final @NotNull EventDispatcher linkBrokenEvents;
+	private final EventDispatcher loginEvents;
+	private final EventDispatcher reloginEvents;
+	private final EventDispatcher logoutEvents;
+	private final EventDispatcher localRemoveEvents;
+	private final EventDispatcher linkBrokenEvents;
 
 	// 缓存拥有Local数据的HotModule，用来优化。
 	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
@@ -131,7 +130,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 
-	public @NotNull ProviderApp getProviderApp() {
+	public ProviderApp getProviderApp() {
 		return providerApp;
 	}
 
@@ -198,7 +197,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	@Override
-	public void processWithNewClasses(@NotNull List<Class<?>> newClasses) {
+	public void processWithNewClasses(List<Class<?>> newClasses) {
 		for (var cls : newClasses)
 			tryRecordHotModule(cls);
 	}
@@ -208,11 +207,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return beanFactory;
 	}
 
-	record Retreat(long roleId, @NotNull String key, @NotNull Bean bean) {
+	record Retreat(long roleId, String key, Bean bean) {
 	}
 
 	@Override
-	public void upgrade(@NotNull Function<Bean, Bean> retreatFunc) throws Exception {
+	public void upgrade(Function<Bean, @Nullable Bean> retreatFunc) throws Exception {
 		// 如果需要，重建_tlocal内存表的用户设置的bean。
 		var retreats = new ArrayList<Retreat>();
 		_tlocal.walk((roleId, locals) -> {
@@ -233,7 +232,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			saveRetreats(retreats);
 	}
 
-	private void saveRetreats(@NotNull ArrayList<Retreat> retreats) {
+	private void saveRetreats(ArrayList<Retreat> retreats) {
 		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用，避免去使用hotGuard。】
 		// 确认事务可以在更新流程中可以使用。
 		var rc = providerApp.zeze.newProcedure(() -> {
@@ -266,23 +265,23 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		long call(long sender, long target, @Nullable Binary parameter) throws Exception;
 	}
 
-	protected static @NotNull Online create(@NotNull AppBase app) {
+	protected static Online create(AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
 	}
 
-	public static void register(@NotNull Class<? extends Serializable> cls) {
+	public static void register(Class<? extends Serializable> cls) {
 		beanFactory.register(cls);
 	}
 
-	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
+	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return bean.typeId();
 	}
 
-	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	public @NotNull TimerRole getTimerRole() {
+	public TimerRole getTimerRole() {
 		return timerRole;
 	}
 
@@ -290,17 +289,17 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return multiInstanceName;
 	}
 
-	public @NotNull tRoleTimers _tRoleTimers() {
+	public tRoleTimers _tRoleTimers() {
 		return _tRoleTimers;
 	}
 
-	public @NotNull tRoleOfflineTimers _tRoleOfflineTimers() {
+	public tRoleOfflineTimers _tRoleOfflineTimers() {
 		return _tRoleOfflineTimers;
 	}
 
 	// load redirect 使用这个构造函数。
-	protected Online(@NotNull AppBase app) {
-		super("", app.getZeze().getConfig());
+	protected Online(AppBase app) {
+		super("", Objects.requireNonNull(app.getZeze()).getConfig());
 		var zeze = app.getZeze();
 		loginEvents = new EventDispatcher(zeze, "Online.Login");
 		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
@@ -308,15 +307,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
 		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
 
-		providerApp = zeze.redirect.providerApp;
+		providerApp = Objects.requireNonNull(zeze.redirect).providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		timerRole = new TimerRole(this);
 	}
 
 	// 创建新的OnlineSet使用这个构造函数。独立OnlineSet不装载redirect子类。
-	private Online(@NotNull AppBase app, @NotNull String name) {
-		super(name, app.getZeze().getConfig());
+	private Online(AppBase app, String name) {
+		super(name, Objects.requireNonNull(app.getZeze()).getConfig());
 		var zeze = app.getZeze();
 		loginEvents = new EventDispatcher(zeze, "Online.Login");
 		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
@@ -324,7 +323,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
 		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
 
-		providerApp = app.getZeze().redirect.providerApp;
+		providerApp = Objects.requireNonNull(app.getZeze().redirect).providerApp;
 		RegisterZezeTables(providerApp.zeze);
 		timerRole = new TimerRole(this);
 	}
@@ -336,7 +335,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * @param name 在线集合名字
 	 * @return 返回新建的在线集合实例。返回值可以保存下来。
 	 */
-	protected @NotNull Online createOnlineSet(@NotNull AppBase app, @NotNull String name) throws Exception {
+	protected Online createOnlineSet(AppBase app, String name) throws Exception {
 		if (name.isEmpty())
 			throw new IllegalArgumentException("empty name");
 		if (this != getProviderWithOnline().getOnline())
@@ -346,8 +345,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return online;
 	}
 
-	public @NotNull ProviderWithOnline getProviderWithOnline() {
-		return (ProviderWithOnline)providerApp.providerImplement;
+	public ProviderWithOnline getProviderWithOnline() {
+		return (ProviderWithOnline)Objects.requireNonNull(providerApp.providerImplement);
 	}
 
 	public @Nullable Online getOnline(@Nullable String name) {
@@ -355,7 +354,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	// 优先获取上下文中的Online
-	public @NotNull Online getOnlineByContext() {
+	public Online getOnlineByContext() {
 		var dispatch = ProviderImplement.localDispatch();
 		var online = dispatch != null ? getProviderWithOnline().getOnline(dispatch.Argument.getOnlineSetName()) : null;
 		return online != null ? online : this;
@@ -399,7 +398,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		beanFactory.unregisterWatch(tryRecordHotModuleRef);
 	}
 
-	private boolean processOffline(Long roleId, @NotNull BLocal local, boolean serverStart) {
+	private boolean processOffline(Long roleId, BLocal local, boolean serverStart) {
 		// 清理事务失败静默（startAfter重启清stale/stopBefore停机清理逐角色路径），
 		// rc记error含roleId——verifyLocal路径可下轮自愈，重启路径依赖下次重启；不引入重试。
 		var rc = providerApp.zeze.newProcedure(() -> procedureOffline(roleId, local, serverStart), "procedureOffline").call();
@@ -409,7 +408,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return true; // continue walk
 	}
 
-	private long procedureOffline(Long roleId, @NotNull BLocal local, boolean serverStart) throws Exception {
+	private long procedureOffline(Long roleId, BLocal local, boolean serverStart) throws Exception {
 		var onlineShared = getOrAddOnlineShared(roleId);
 		var account = onlineShared.getAccount();
 
@@ -515,15 +514,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		UnRegisterZezeTables(providerApp.zeze);
 	}
 
-	public @NotNull tlocal getTLocal() {
+	public tlocal getTLocal() {
 		return _tlocal;
 	}
 
-	public @NotNull tOnline getTOnline() {
+	public tOnline getTOnline() {
 		return _tOnline;
 	}
 
-	public @NotNull tOnlineShared getTOnlineShared() {
+	public tOnlineShared getTOnlineShared() {
 		return _tOnlineShared;
 	}
 
@@ -558,11 +557,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return _tOnlineShared.selectDirty(roleId);
 	}
 
-	public @NotNull BOnline getOrAddOnline(long roleId) {
+	public BOnline getOrAddOnline(long roleId) {
 		return _tOnline.getOrAdd(roleId);
 	}
 
-	public @NotNull BOnlineShared getOrAddOnlineShared(long roleId) {
+	public BOnlineShared getOrAddOnlineShared(long roleId) {
 		return _tOnlineShared.getOrAdd(roleId);
 	}
 
@@ -581,7 +580,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineShared != null ? onlineShared.getLink().getState() : eOffline;
 	}
 
-	public <T extends Bean> void setUserData(long roleId, @NotNull T data) {
+	public <T extends Bean> void setUserData(long roleId, T data) {
 		var cl = data.getClass().getClassLoader();
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
@@ -602,7 +601,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return (int)_tlocal.getDatabaseSizeApproximation();
 	}
 
-	public long walkLocal(@NotNull TableWalkHandle<Long, BLocal> walker) throws Exception {
+	public long walkLocal(TableWalkHandle<Long, BLocal> walker) throws Exception {
 		return _tlocal.walk(walker);
 	}
 
@@ -611,30 +610,30 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	// 登录事件
-	public @NotNull EventDispatcher getLoginEvents() {
+	public EventDispatcher getLoginEvents() {
 		return loginEvents;
 	}
 
-	public @NotNull EventDispatcher getLinkBrokenEvents() {
+	public EventDispatcher getLinkBrokenEvents() {
 		return linkBrokenEvents;
 	}
 
 	// 断线重连事件
-	public @NotNull EventDispatcher getReloginEvents() {
+	public EventDispatcher getReloginEvents() {
 		return reloginEvents;
 	}
 
 	// 登出事件
-	public @NotNull EventDispatcher getLogoutEvents() {
+	public EventDispatcher getLogoutEvents() {
 		return logoutEvents;
 	}
 
 	// 角色从本机删除事件
-	public @NotNull EventDispatcher getLocalRemoveEvents() {
+	public EventDispatcher getLocalRemoveEvents() {
 		return localRemoveEvents;
 	}
 
-	public @NotNull ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
+	public ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
 		return transmitActions;
 	}
 
@@ -669,11 +668,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		localActiveTimes.computeIfPresent(roleId, (k, v) -> System.currentTimeMillis());
 	}
 
-	public <T extends Bean> void setLocalBean(long roleId, @NotNull String key, @NotNull T bean) {
+	public <T extends Bean> void setLocalBean(long roleId, String key, T bean) {
 		setLocalBean(getLoginLocal(roleId), key, bean);
 	}
 
-	private <T extends Bean> void setLocalBean(@NotNull BLocal bLocal, @NotNull String key, @NotNull T bean) {
+	private <T extends Bean> void setLocalBean(BLocal bLocal, String key, T bean) {
 		beanFactory.register(bean);
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
@@ -684,14 +683,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 	}
 
-	public void removeLocalBean(long roleId, @NotNull String key) {
+	public void removeLocalBean(long roleId, String key) {
 		var bLocal = _tlocal.get(roleId);
 		if (bLocal != null)
 			bLocal.getDatas().remove(key);
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> @Nullable T getLocalBean(long roleId, @NotNull String key) {
+	public <T extends Bean> @Nullable T getLocalBean(long roleId, String key) {
 		var bLocal = _tlocal.get(roleId);
 		if (bLocal == null)
 			return null;
@@ -702,7 +701,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> @NotNull T getOrAddLocalBean(long roleId, @NotNull String key, @NotNull T defaultHint) {
+	public <T extends Bean> T getOrAddLocalBean(long roleId, String key, T defaultHint) {
 		var bLocal = getLoginLocal(roleId);
 		var data = bLocal.getDatas().getOrAdd(key);
 		if (data.getAny().getBean().typeId() == defaultHint.typeId())
@@ -777,14 +776,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return getLoginOnline(roleId) != null;
 	}
 
-	private static boolean assignLogoutVersion(@NotNull BOnlineShared online) {
+	private static boolean assignLogoutVersion(BOnlineShared online) {
 		if (online.getLoginVersion() == online.getLogoutVersion())
 			return false;
 		online.setLogoutVersion(online.getLoginVersion());
 		return true;
 	}
 
-	private long logoutTrigger(long roleId, @NotNull LogoutReason logoutReason) throws Exception {
+	private long logoutTrigger(long roleId, LogoutReason logoutReason) throws Exception {
 		var onlineShared = getOrAddOnlineShared(roleId);
 		var link = onlineShared.getLink();
 		onlineShared.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eOffline));
@@ -821,7 +820,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	private long linkBrokenTrigger(@SuppressWarnings("unused") @NotNull String account, long roleId) throws Exception {
+	private long linkBrokenTrigger(@SuppressWarnings("unused") String account, long roleId) throws Exception {
 		var arg = new LinkBrokenArgument(roleId);
 		// 由于account可能没有，这里就不传递这个参数了。
 		var ret = linkBrokenEvents.triggerEmbed(this, arg);
@@ -832,7 +831,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	private long loginTrigger(@NotNull String account, long roleId) throws Exception {
+	private long loginTrigger(String account, long roleId) throws Exception {
 		// 计数非幂等，裸递增在redo（锁冲突整体重跑）下一次登录多计一次，
 		// 虚增LoadBase的onlineNew负载上报。挂whileCommit仅最终提交执行一次
 		// （与Arch/Online同型）。
@@ -846,7 +845,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	private long reloginTrigger(@NotNull String account, long roleId) throws Exception {
+	private long reloginTrigger(String account, long roleId) throws Exception {
 		// 同loginTrigger，计数挂whileCommit防redo重复。
 		Transaction.whileCommit(loginTimes::incrementAndGet);
 		var arg = new LoginArgument(this, account, roleId);
@@ -858,7 +857,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	private long tryLogout(@NotNull BDelayLogoutCustom custom) throws Exception {
+	private long tryLogout(BDelayLogoutCustom custom) throws Exception {
 		var roleId = custom.getRoleId();
 		var currentLoginVersion = custom.getLoginVersion();
 		// local online 独立判断version分别尝试删除。
@@ -894,7 +893,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 用于 Timer 持久化数据（如 BDelayLogoutCustom）在进程重启后恢复 Online 上下文，
 	 * 替代 static Online defaultInstance 的方式。
 	 */
-	public static @Nullable Online findOnline(@NotNull String projectName) {
+	public static @Nullable Online findOnline(String projectName) {
 		var app = Application.getAppInstance(projectName);
 		if (app == null) {
 			logger.warn("findOnline: Application not found. projectName={}", projectName);
@@ -912,14 +911,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	public static class DelayLogout implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) throws Exception {
 			assert context.customData != null;
 			logout((BDelayLogoutCustom)context.customData);
 		}
 
 		// 仅timer上下文调用（onSendError是幂等标记器不登出；verifyLocal的eLinkBroken残留
 		// 收敛经tryLogout直调不经过这里），故整体采用timer语义。
-		public static void logout(@NotNull BDelayLogoutCustom custom) throws Exception {
+		public static void logout(BDelayLogoutCustom custom) throws Exception {
 			var defaultOnline = Online.findOnline(custom.getProjectName());
 			if (defaultOnline == null)
 				return; // 应用未启动或已停止：忽略
@@ -946,8 +945,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 	}
 
-	public long onSendError(@NotNull String account, long roleId,
-							@NotNull String linkName, long linkSid) throws Exception {
+	public long onSendError(String account, long roleId,
+							String linkName, long linkSid) throws Exception {
 		// 幂等标记器契约（极简）：onSendError只做"当前link的首个失败报告"标记eLinkBroken，
 		// 不触发登出/事件/清理/调度，全部由既有驱动收敛：
 		//  - 登出：linkBroken的DelayLogout宽限timer；timer失败残留→verifyLocal的eLinkBroken
@@ -979,8 +978,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	public long linkBroken(@NotNull String account, long roleId,
-						   @NotNull String linkName, long linkSid) throws Exception {
+	public long linkBroken(String account, long roleId,
+						   String linkName, long linkSid) throws Exception {
 		// 先查后建：善后路径不创建状态（对齐Arch版与onSendError判例）——
 		// getOrAddOnlineShared对迟到报告会创建空行并随事务提交残留。
 		var onlineShared = getOnlineShared(roleId);
@@ -1007,7 +1006,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				return 0; // 不在本机登录。
 			onlineShared.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 			var zezeGhost = providerApp.zeze;
-			zezeGhost.getTimer().schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
+			Objects.requireNonNull(zezeGhost.getTimer()).schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
 					DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 							multiInstanceName, zezeGhost.getProjectName()));
 			return 0;
@@ -1042,27 +1041,27 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
 		if (ret != 0) // 失败码外传整体回滚（对齐Arch版triggerLinkBroken判例），不再调度DelayLogout。
 			return ret;
-		zeze.getTimer().schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
+		Objects.requireNonNull(zeze.getTimer()).schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 				multiInstanceName, zeze.getProjectName()));
 		return 0;
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().send(p)} 替代。 */
 	@Deprecated
-	public void send(long roleId, @NotNull Protocol<?> p) {
+	public void send(long roleId, Protocol<?> p) {
 		OnlineSpec.ofRole(this, roleId).withContext().send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).send(p)} 替代。 */
 	@Deprecated
-	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
+	public void sendOnline(long roleId, Protocol<?> p) {
 		OnlineSpec.ofRole(this, roleId).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().sendRpc(rpc, responseHandle)} 替代。 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> void sendRpc(
-			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
+			long roleId, Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
 		OnlineSpec.ofRole(this, roleId).withContext().sendRpc(rpc, responseHandle);
 	}
 
@@ -1072,20 +1071,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> void sendRpc(
-			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
+			long roleId, Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
 		OnlineSpec.ofRole(this, roleId).withContext().timeout(timeoutMs).sendRpc(rpc, responseHandle);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).sendRpc(rpc, responseHandle)} 替代。 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> void sendOnlineRpc(
-			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
+			long roleId, Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
 		OnlineSpec.ofRole(this, roleId).sendRpc(rpc, responseHandle);
 	}
 
 	// 在指定Online上发送
 	public <A extends Serializable, R extends Serializable> boolean sendOnlineRpc(
-			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs, boolean quietWhenAbsent) {
+			long roleId, Rpc<A, R> rpc, @Nullable ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs, boolean quietWhenAbsent) {
 		var service = providerApp.providerService;
 		// try remove. 只维护一个上下文。多次发送相同rpc会移除旧上下文。see Rpc.Send
 		service.removeRpcContext(rpc.getSessionId(), rpc);
@@ -1105,110 +1104,110 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).sendRpcForWait(rpc)} 替代。 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
-			long roleId, @NotNull Rpc<A, R> rpc) {
+			long roleId, Rpc<A, R> rpc) {
 		return OnlineSpec.ofRole(this, roleId).sendRpcForWait(rpc);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).timeout(timeoutMs).sendRpcForWait(rpc)} 替代。 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
-			long roleId, @NotNull Rpc<A, R> rpc, int timeoutMs) {
+			long roleId, Rpc<A, R> rpc, int timeoutMs) {
 		return OnlineSpec.ofRole(this, roleId).timeout(timeoutMs).sendRpcForWait(rpc);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleId).send(p)} 替代。 */
 	@Deprecated
-	public void sendAllOnlines(long roleId, @NotNull Protocol<?> p) {
+	public void sendAllOnlines(long roleId, Protocol<?> p) {
 		OnlineSpec.ofAllOnline(this, roleId).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().send(p)} 替代。 */
 	@Deprecated
-	public void send(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void send(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofRoles(this, roleIds).withContext().send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).send(p)} 替代。 */
 	@Deprecated
-	public void sendOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void sendOnline(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofRoles(this, roleIds).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).send(p)} 替代。 */
 	@Deprecated
-	public void sendAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void sendAllOnlines(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofAllOnline(this, roleIds).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
-	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
+	public void sendWhileCommit(long roleId, Protocol<?> p) {
 		OnlineSpec.ofRole(this, roleId).withContext().send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
-	public void sendWhileCommitOnline(long roleId, @NotNull Protocol<?> p) {
+	public void sendWhileCommitOnline(long roleId, Protocol<?> p) {
 		OnlineSpec.ofRole(this, roleId).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleId).send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
-	public void sendWhileCommitAllOnlines(long roleId, @NotNull Protocol<?> p) {
+	public void sendWhileCommitAllOnlines(long roleId, Protocol<?> p) {
 		OnlineSpec.ofAllOnline(this, roleId).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
-	public void sendWhileCommit(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void sendWhileCommit(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofRoles(this, roleIds).withContext().send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
-	public void sendWhileCommitOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void sendWhileCommitOnline(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofRoles(this, roleIds).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
-	public void sendWhileCommitAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void sendWhileCommitAllOnlines(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofAllOnline(this, roleIds).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().sendWhileRollback(p)} 替代。 */
 	@Deprecated
-	public void sendWhileRollback(long roleId, @NotNull Protocol<?> p) {
+	public void sendWhileRollback(long roleId, Protocol<?> p) {
 		OnlineSpec.ofRole(this, roleId).withContext().sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).sendWhileRollback(p)} 替代。 */
 	@Deprecated
-	public void sendWhileRollbackOnline(long roleId, @NotNull Protocol<?> p) {
+	public void sendWhileRollbackOnline(long roleId, Protocol<?> p) {
 		OnlineSpec.ofRole(this, roleId).sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleId).sendWhileRollback(p)} 替代。 */
 	@Deprecated
-	public void sendWhileRollbackAllOnlines(long roleId, @NotNull Protocol<?> p) {
+	public void sendWhileRollbackAllOnlines(long roleId, Protocol<?> p) {
 		OnlineSpec.ofAllOnline(this, roleId).sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().sendWhileRollback(p)} 替代。 */
 	@Deprecated
-	public void sendWhileRollback(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void sendWhileRollback(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofRoles(this, roleIds).withContext().sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).sendWhileRollback(p)} 替代。 */
 	@Deprecated
-	public void sendWhileRollbackOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void sendWhileRollbackOnline(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofRoles(this, roleIds).sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).sendWhileRollback(p)} 替代。 */
 	@Deprecated
-	public void sendWhileRollbackAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
+	public void sendWhileRollbackAllOnlines(Collection<Long> roleIds, Protocol<?> p) {
 		OnlineSpec.ofAllOnline(this, roleIds).sendWhileRollback(p);
 	}
 
@@ -1217,7 +1216,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 		.sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。
 	 */
 	@Deprecated
-	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
+	public int send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol,
 					boolean quietWhenAbsent) {
 		return OnlineSpec.ofRoles(this, roleIds).withContext().quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol);
 	}
@@ -1227,31 +1226,31 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 		.sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。
 	 */
 	@Deprecated
-	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
+	public int sendOnline(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol,
 						  boolean quietWhenAbsent) {
 		return OnlineSpec.ofRoles(this, roleIds).quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
-	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public int send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		return OnlineSpec.ofRoles(this, roleIds).withContext().sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
-	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public int sendOnline(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		return OnlineSpec.ofRoles(this, roleIds).sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).send(typeId, fullEncodedProtocol)} 替代。 */
 	@Deprecated
-	public void sendAllOnlines(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public void sendAllOnlines(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		OnlineSpec.ofAllOnline(this, roleIds).send(typeId, fullEncodedProtocol);
 	}
 
-	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids,
-								   @NotNull Map<Long, Long> context) {
+	private long triggerLinkBroken(String linkName, LongList errorSids,
+								   Map<Long, Long> context) {
 		errorSids.foreach(linkSid -> {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
@@ -1270,7 +1269,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/**
 	 * 直接通过Link链接发送Send协议。
 	 */
-	public boolean send(@NotNull AsyncSocket link, @NotNull Map<Long, Long> contexts, @NotNull Send send) {
+	public boolean send(AsyncSocket link, Map<Long, Long> contexts, Send send) {
 		return 0 == send.sendCallbackBrokenTimeout(Objects.requireNonNull(link.getConnector()),
 			rpc -> triggerLinkBroken(
 				ProviderService.getLinkName(link),
@@ -1279,11 +1278,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	// 直接通过 linkName, linkSid 发送协议。
-	public boolean send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
+	public boolean send(String linkName, long linkSid, Protocol<?> p) {
 		return send(null, linkName, linkSid, p);
 	}
 
-	public boolean send(@Nullable Long roleId, @NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
+	public boolean send(@Nullable Long roleId, String linkName, long linkSid, Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
 			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var connector = providerApp.providerService.getLinks().get(linkName);
@@ -1306,13 +1305,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public static final class LinkRoles {
-		final @NotNull String linkName;
+		final String linkName;
 		final @Nullable AsyncSocket linkSocket;
-		final @NotNull Send send;
+		final Send send;
 		final LongList roleIds = new LongList();
 
-		public LinkRoles(@NotNull String linkName, @Nullable AsyncSocket linkSocket,
-						 long typeId, @NotNull Binary fullEncodedProtocol) {
+		public LinkRoles(String linkName, @Nullable AsyncSocket linkSocket,
+						 long typeId, Binary fullEncodedProtocol) {
 			this.linkName = linkName;
 			this.linkSocket = linkSocket;
 			send = new Send(new BSend(typeId, fullEncodedProtocol));
@@ -1346,14 +1345,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}, "Online.triggerLinkBroken2")).run());
 	}
 
-	private static long getTypeId(@NotNull Binary fullEncodedProtocol) {
+	private static long getTypeId(Binary fullEncodedProtocol) {
 		int moduleId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), 0);
 		int protocolId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), 4);
 		return Protocol.makeTypeId(moduleId, protocolId);
 	}
 
 	// 可在事务外执行
-	public int sendDirect(@NotNull Iterable<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
+	public int sendDirect(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol,
 						  boolean quietWhenAbsent) {
 		var roleIdSet = new LongHashSet();
 		for (var roleId : roleIds)
@@ -1414,7 +1413,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	// 可在事务外执行
-	public boolean sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol, boolean quietWhenAbsent) {
+	public boolean sendDirect(long roleId, long typeId, Binary fullEncodedProtocol, boolean quietWhenAbsent) {
 		var onlineShared = _tOnlineShared.selectDirty(roleId);
 		if (onlineShared == null) {
 			if (!quietWhenAbsent) {
@@ -1498,14 +1497,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		});
 	}
 
-	public void addReliableNotifyMark(long roleId, @NotNull String listenerName) {
+	public void addReliableNotifyMark(long roleId, String listenerName) {
 		var online = getLoginOnline(roleId);
 		if (online == null)
 			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
 		online.getReliableNotifyMark().add(listenerName);
 	}
 
-	public void removeReliableNotifyMark(long roleId, @NotNull String listenerName) {
+	public void removeReliableNotifyMark(long roleId, String listenerName) {
 		// 移除尽量通过，不做任何判断。
 		var online = getOnline(roleId);
 		if (online != null)
@@ -1520,15 +1519,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * @deprecated 使用 {@code OnlineSpec.ofReliableNotify(online, roleId, listenerName).send(p)} 替代。
 	 */
 	@Deprecated
-	public void sendReliableNotify(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
+	public void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
 		OnlineSpec.ofReliableNotify(this, roleId, listenerName).send(p);
 	}
 
-	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
-		return providerApp.zeze.getQueueModule().open(reliableNotifyQueueName(roleId), BNotify.class);
+	private Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
+		return Objects.requireNonNull(providerApp.zeze.getQueueModule()).open(reliableNotifyQueueName(roleId), BNotify.class);
 	}
 
-	private @NotNull String reliableNotifyQueueName(long roleId) {
+	private String reliableNotifyQueueName(long roleId) {
 		var prefix = "Zeze.Game.Online.ReliableNotifyQueue:";
 		if (multiInstanceName.isEmpty())
 			return prefix + roleId; // 默认集合保持旧键。
@@ -1547,7 +1546,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var shared = getOnlineShared(roleId);
 		if (shared != null && shared.getLink().getState() != eOffline)
 			throw new IllegalStateException("end the OnlineSet session before migration");
-		var oldQueue = providerApp.zeze.getQueueModule()
+		var oldQueue = Objects.requireNonNull(providerApp.zeze.getQueueModule())
 				.open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
 		if (!oldQueue.isEmpty() || !openQueue(roleId).isEmpty())
 			throw new IllegalStateException("drain reliable notifications before migration");
@@ -1567,13 +1566,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 */
 	@Deprecated
 	public void sendReliableNotify(long roleId,
-								   @NotNull String listenerName,
+								   String listenerName,
 								   long typeId,
-								   @NotNull Binary fullEncodedProtocol) {
+								   Binary fullEncodedProtocol) {
 		OnlineSpec.ofReliableNotify(this, roleId, listenerName).send(typeId, fullEncodedProtocol);
 	}
 
-	public void sendReliableNotifyDirect(long roleId, @NotNull String listenerName, long typeId, @NotNull Binary fullEncodedProtocol, boolean quietWhenAbsent) {
+	public void sendReliableNotifyDirect(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol, boolean quietWhenAbsent) {
 		providerApp.zeze.runTaskOneByOneByKey(
 				listenerName,
 				"Online.sendReliableNotify." + listenerName,
@@ -1615,17 +1614,17 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 		.parameter(parameter).transmit()} 替代。
 	 */
 	@Deprecated
-	public void transmit(long sender, @NotNull String actionName, long roleId, @Nullable Serializable parameter) {
+	public void transmit(long sender, String actionName, long roleId, @Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleId).parameter(parameter).transmit();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId).transmit()} 替代。 */
 	@Deprecated
-	public void transmit(long sender, @NotNull String actionName, long roleId) {
+	public void transmit(long sender, String actionName, long roleId) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleId).transmit();
 	}
 
-	public void processTransmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+	public void processTransmit(long sender, String actionName, Iterable<Long> roleIds,
 								@Nullable Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
@@ -1633,7 +1632,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				// rc记error（转发动作失败仅本角色受影响，不影响后续target）。
 				var rc = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
 						"Online.transmit: " + actionName)).call();
-				if (rc != 0)
+				if (Objects.requireNonNull(rc) != 0)
 					logger.error("transmit failed: actionName={}, sender={}, target={}, rc={}",
 							actionName, sender, target, rc);
 			}
@@ -1664,7 +1663,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 	}
 
-	public @NotNull IntHashMap<RoleOnServer> groupByServerId(@NotNull Iterable<Long> roleIds) {
+	public IntHashMap<RoleOnServer> groupByServerId(Iterable<Long> roleIds) {
 		var groups = new IntHashMap<RoleOnServer>();
 		var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
 		groups.put(-1, groupNotOnline);
@@ -1688,14 +1687,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return groups;
 	}
 
-	private static @NotNull RoleOnServer merge(@Nullable RoleOnServer current, @NotNull RoleOnServer m) {
+	private static RoleOnServer merge(@Nullable RoleOnServer current, RoleOnServer m) {
 		if (current == null)
 			return m;
 		current.roles.addAll(m.roles);
 		return current;
 	}
 
-	public void transmitEmbed(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+	public void transmitEmbed(long sender, String actionName, Iterable<Long> roleIds,
 							  @Nullable Binary parameter, boolean processNotOnline) {
 		if (!providerApp.zeze.getConfig().hasGlobal()) {
 			// 没有启用cache-sync，马上触发本地任务。
@@ -1707,7 +1706,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		RoleOnServer groupLocal = null;
 		for (var it = groups.iterator(); it.moveToNext(); ) {
 			var group = it.value();
-			if (group.serverId == -1) {
+			if (Objects.requireNonNull(group).serverId == -1) {
 				// not online
 				if (processNotOnline)
 					groupLocal = merge(groupLocal, group);
@@ -1727,7 +1726,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			transmit.Argument.setOnlineSetName(multiInstanceName);
 			if (parameter != null)
 				transmit.Argument.setParameter(parameter);
-			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
+			var ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(group.serverId);
 			if (ps == null) {
 				// direct路由缺失：降级为本机执行——transmit契约是"在目标服
 				// 上下文执行"，依赖目标服local数据的action行为可能错误。等待/重试/显式失败
@@ -1757,11 +1756,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds).transmit()} 替代。 */
 	@Deprecated
-	public void transmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
+	public void transmit(long sender, String actionName, Iterable<Long> roleIds) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).transmit();
 	}
 
-	public void transmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+	public void transmit(long sender, String actionName, Iterable<Long> roleIds,
 						 @Nullable Serializable parameter, boolean processNotOnline) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
@@ -1783,7 +1782,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId).transmit()} 替代，事务内自动在提交时执行。 */
 	@Deprecated
-	public void transmitWhileCommit(long sender, @NotNull String actionName, long roleId) {
+	public void transmitWhileCommit(long sender, String actionName, long roleId) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleId).transmit();
 	}
 
@@ -1792,14 +1791,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 		.parameter(parameter).transmit()} 替代，事务内自动在提交时执行。
 	 */
 	@Deprecated
-	public void transmitWhileCommit(long sender, @NotNull String actionName, long roleId,
+	public void transmitWhileCommit(long sender, String actionName, long roleId,
 									@Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleId).parameter(parameter).transmit();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds).transmit()} 替代，事务内自动在提交时执行。 */
 	@Deprecated
-	public void transmitWhileCommit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
+	public void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).transmit();
 	}
 
@@ -1808,14 +1807,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 		.parameter(parameter).transmit()} 替代，事务内自动在提交时执行。
 	 */
 	@Deprecated
-	public void transmitWhileCommit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+	public void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds,
 									@Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).parameter(parameter).transmit();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId).transmitWhileRollback()} 替代。 */
 	@Deprecated
-	public void transmitWhileRollback(long sender, @NotNull String actionName, long roleId) {
+	public void transmitWhileRollback(long sender, String actionName, long roleId) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleId).transmitWhileRollback();
 	}
 
@@ -1824,14 +1823,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 		.parameter(parameter).transmitWhileRollback()} 替代。
 	 */
 	@Deprecated
-	public void transmitWhileRollback(long sender, @NotNull String actionName, long roleId,
+	public void transmitWhileRollback(long sender, String actionName, long roleId,
 									  @Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleId).parameter(parameter).transmitWhileRollback();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds).transmitWhileRollback()} 替代。 */
 	@Deprecated
-	public void transmitWhileRollback(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
+	public void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).transmitWhileRollback();
 	}
 
@@ -1840,12 +1839,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 		.parameter(parameter).transmitWhileRollback()} 替代。
 	 */
 	@Deprecated
-	public void transmitWhileRollback(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+	public void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds,
 									  @Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).parameter(parameter).transmitWhileRollback();
 	}
 
-	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
+	private int broadcast(long typeId, Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
 		ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time, onlySameVersion));
 		var pdata = broadcast.encode();
@@ -1862,19 +1861,19 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return sendCount;
 	}
 
-	public int broadcast(@NotNull Protocol<?> p) {
+	public int broadcast(Protocol<?> p) {
 		return broadcast(p, 60 * 1000, false);
 	}
 
-	public int broadcast(@NotNull Protocol<?> p, boolean onlySameVersion) {
+	public int broadcast(Protocol<?> p, boolean onlySameVersion) {
 		return broadcast(p, 60 * 1000, onlySameVersion);
 	}
 
-	public int broadcast(@NotNull Protocol<?> p, int time) {
+	public int broadcast(Protocol<?> p, int time) {
 		return broadcast(p, time, false);
 	}
 
-	public int broadcast(@NotNull Protocol<?> p, int time, boolean onlySameVersion) {
+	public int broadcast(Protocol<?> p, int time, boolean onlySameVersion) {
 		if (p instanceof Rpc && p.isRequest())
 			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var typeId = p.getTypeId();
@@ -1988,7 +1987,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	private void tryRedirectRemoveLocal(String instanceName, int serverId, long roleId) {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
-				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId)) {
+				&& Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.containsKey(serverId)) {
 			var defaultOnline = getProviderWithOnline().getOnline();
 			if (defaultOnline != null)
 				defaultOnline.redirectRemoveLocal(serverId, roleId, instanceName);
@@ -2011,9 +2010,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessLoginRequest(@NotNull Login rpc) {
+	protected long ProcessLoginRequest(Login rpc) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("Login[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
+			logger.info("Login[{}]: {}", Objects.requireNonNull(rpc.getSender()).getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
 		if (onlineSet == null) {
 			var session = ProviderUserSession.get(rpc);
@@ -2024,12 +2023,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessLoginRequestOnlineSet(rpc);
 	}
 
-	private long ProcessLoginRequestOnlineSet(@NotNull Login rpc) {
+	private long ProcessLoginRequestOnlineSet(Login rpc) {
 		var done = new OutObject<>(false);
-		for (var i = 0; i < 3 && !done.value; ++i) {
+		for (var i = 0; i < 3 && !Objects.requireNonNull(done.value); ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done),
 					"ProcessLoginRequest")).call();
-			if (r != 0)
+			if (Objects.requireNonNull(r) != 0)
 				return r;
 		}
 		if (done.value)
@@ -2037,7 +2036,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return Procedure.LogicError;
 	}
 
-	private long ProcessLoginRequest(@NotNull Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
+	private long ProcessLoginRequest(Login rpc, OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -2049,7 +2048,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var isAdd = new OutObject<>(false);
 		var local = _tlocal.getOrAdd(roleId, isAdd);
 		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
-		if (isAdd.value)
+		if (Objects.requireNonNull(isAdd.value))
 			Transaction.whileCommit(verifyLocalCount::incrementAndGet);
 		var link = onlineShared.getLink();
 
@@ -2088,7 +2087,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
+			Objects.requireNonNull(rpc.getSender()).Send(setUserState); // 直接使用link连接。
 		});
 
 		var online = getOrAddOnline(roleId);
@@ -2106,9 +2105,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessReLoginRequest(@NotNull ReLogin rpc) {
+	protected long ProcessReLoginRequest(ReLogin rpc) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("ReLogin[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
+			logger.info("ReLogin[{}]: {}", Objects.requireNonNull(rpc.getSender()).getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
 		if (onlineSet == null) {
 			var session = ProviderUserSession.get(rpc);
@@ -2119,14 +2118,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessReLoginRequestOnlineSet(rpc);
 	}
 
-	protected long ProcessReLoginRequestOnlineSet(@NotNull ReLogin rpc) {
+	protected long ProcessReLoginRequestOnlineSet(ReLogin rpc) {
 		var done = new OutObject<>(false);
 		// 与Login相同的重做上限（for 3次）：无上限的while在多端互踢风暴/脚本客户端下，
 		// 每轮循环都成功执行完整登录+登出事务并再次进入顶号分支，线程在handler内无限自旋。
-		for (var i = 0; i < 3 && !done.value; ++i) {
+		for (var i = 0; i < 3 && !Objects.requireNonNull(done.value); ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done),
 					"ProcessReLoginRequest")).call();
-			if (r != 0)
+			if (Objects.requireNonNull(r) != 0)
 				return r;
 		}
 		if (done.value)
@@ -2134,7 +2133,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return Procedure.LogicError;
 	}
 
-	private long ProcessReLoginRequest(@NotNull ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
+	private long ProcessReLoginRequest(ReLogin rpc, OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -2146,7 +2145,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var isAdd = new OutObject<>(false);
 		var local = _tlocal.getOrAdd(roleId, isAdd);
 		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
-		if (isAdd.value)
+		if (Objects.requireNonNull(isAdd.value))
 			Transaction.whileCommit(verifyLocalCount::incrementAndGet);
 		var link = onlineShared.getLink();
 
@@ -2185,7 +2184,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
+			Objects.requireNonNull(rpc.getSender()).Send(setUserState); // 直接使用link连接。
 		});
 
 		getOrAddOnline(roleId).setServerId(providerApp.zeze.getConfig().getServerId());
@@ -2206,15 +2205,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	@Override
-	protected long ProcessLogoutRequest(@NotNull Logout rpc) throws Exception {
+	protected long ProcessLogoutRequest(Logout rpc) throws Exception {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("Logout[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
+			logger.info("Logout[{}]: {}", Objects.requireNonNull(rpc.getSender()).getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var session = ProviderUserSession.get(rpc);
 		var onlineSet = getOnline(session.getOnlineSetName());
 		return onlineSet != null ? onlineSet.ProcessLogoutRequestOnlineSet(rpc) : 0; // skip logout error
 	}
 
-	protected long ProcessLogoutRequestOnlineSet(@NotNull Logout rpc) throws Exception {
+	protected long ProcessLogoutRequestOnlineSet(Logout rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);
@@ -2240,7 +2239,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return localLogout(roleId, link.getSocket(), linkSid);
 	}
 
-	private long localLogout(long roleId, AsyncSocket link, long linkSid) throws Exception {
+	private long localLogout(long roleId, @Nullable AsyncSocket link, long linkSid) throws Exception {
 		if (null == link)
 			return Procedure.LogicError;
 		var onlineShared = getLoginOnlineShared(roleId);
@@ -2261,12 +2260,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session,
+	private int reliableNotifySync(long roleId, ProviderUserSession session,
 								   long reliableNotifyConfirmCount) throws Exception {
 		return reliableNotifySync(roleId, session, reliableNotifyConfirmCount, true);
 	}
 
-	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session,
+	private int reliableNotifySync(long roleId, ProviderUserSession session,
 								   long index, boolean sync) throws Exception {
 		var online = getOrAddOnline(roleId);
 		var queue = openQueue(roleId);
@@ -2292,7 +2291,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	@Override
-	protected long ProcessReliableNotifyConfirmRequest(@NotNull ReliableNotifyConfirm rpc) throws Exception {
+	protected long ProcessReliableNotifyConfirmRequest(ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		var onlineSet = getOnline(session.getOnlineSetName());
 		if (onlineSet == null) {
@@ -2302,7 +2301,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessReliableNotifyConfirmRequestOnlineSet(rpc);
 	}
 
-	protected long ProcessReliableNotifyConfirmRequestOnlineSet(@NotNull ReliableNotifyConfirm rpc) throws Exception {
+	protected long ProcessReliableNotifyConfirmRequestOnlineSet(ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		var roleId = session.getRoleId();
 		if (roleId == null)
@@ -2329,7 +2328,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 另：事务回滚时whileCommit不执行，Bind不会发出——true同样不覆盖该分支
 	 * （与link miss同属"登记成功但未送达"的情形）。
 	 */
-	public boolean bindDynamic(long roleId, int @NotNull ... moduleIds) {
+	public boolean bindDynamic(long roleId, int ... moduleIds) {
 		var bean = getLoginOnlineShared(roleId);
 		if (null == bean)
 			return false;

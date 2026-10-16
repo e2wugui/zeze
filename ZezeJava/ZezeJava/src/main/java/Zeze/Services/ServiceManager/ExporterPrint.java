@@ -1,6 +1,6 @@
 package Zeze.Services.ServiceManager;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** 调试用导出器：把每次SM增量变更直接打印到标准输出。 */
 public class ExporterPrint implements IExporter {

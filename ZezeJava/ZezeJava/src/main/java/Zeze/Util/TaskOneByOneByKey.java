@@ -3,8 +3,7 @@ package Zeze.Util;
 import java.util.concurrent.Executor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 对每个相同的key，最多只提交一个 Task.Run。
@@ -17,9 +16,9 @@ import org.jetbrains.annotations.Nullable;
  * 构造的时候，可以通过参数控制总的队列数量。
  */
 public final class TaskOneByOneByKey extends TaskOneByOneBase {
-	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneByKey.class);
+	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey.class);
 
-	private final @NotNull TaskOneByOneQueue @NotNull [] concurrency;
+	private final TaskOneByOneQueue [] concurrency;
 	private final int hashMask;
 	private final @Nullable Executor executor;
 
@@ -62,21 +61,21 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 	}
 
 	@Override
-	protected void execute(int key, @NotNull TaskOneByOneQueue.Task task) {
+	protected void execute(int key, TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueueWithHash(key), task);
 	}
 
 	@Override
-	protected void execute(long key, @NotNull TaskOneByOneQueue.Task task) {
+	protected void execute(long key, TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueueWithHash(Long.hashCode(key)), task);
 	}
 
 	@Override
-	protected @NotNull TaskOneByOneQueue getAndLockQueue(@NotNull Object key) {
+	protected TaskOneByOneQueue getAndLockQueue(Object key) {
 		return getAndLockQueueWithHash(key.hashCode());
 	}
 
-	private @NotNull TaskOneByOneQueue getAndLockQueueWithHash(int hash) {
+	private TaskOneByOneQueue getAndLockQueueWithHash(int hash) {
 		var queue = concurrency[hash(hash) & hashMask];
 		queue.lock();
 		return queue;
@@ -99,7 +98,7 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		for (int i = 0; i < concurrency.length; i++) {
 			var s = concurrency[i].toString();

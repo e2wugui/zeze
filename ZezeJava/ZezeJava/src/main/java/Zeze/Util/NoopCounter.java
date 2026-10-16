@@ -1,7 +1,8 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Net.Service;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 空实现：禁用统计（-DZezeCounter为空或"null"）时的instance。
@@ -39,46 +40,46 @@ public final class NoopCounter implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull LongCounter allocCounter(@NotNull String name) {
+	public LongCounter allocCounter(String name) {
 		return noopCounter;
 	}
 
 	@Override
-	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames) {
+	public LabeledCounterCreator allocLabeledCounterCreator(String name, String... labelNames) {
 		return labels -> noopCounter;
 	}
 
 	@Override
-	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name,
-																	   @NotNull String... labelNames) {
+	public LabeledObserverCreator allocRunTimeObserverCreator(String name,
+																	   String... labelNames) {
 		return labels -> noopObserver;
 	}
 
 	@Override
-	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
+	public LongObserver getRunTimeObserver(Object key) {
 		return noopObserver;
 	}
 
 	@Override
-	public void serviceStart(@NotNull Service service) {
+	public void serviceStart(Service service) {
 	}
 
 	@Override
-	public void serviceStop(@NotNull Service service) {
+	public void serviceStop(Service service) {
 	}
 
 	@Override
-	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
+	public ProcedureCounter allocProcedureCounter(String name) {
 		return noopProcedureCounter;
 	}
 
 	@Override
-	public @NotNull LongCounter tableCounter(long tableId, @NotNull TableMetric metric) {
+	public LongCounter tableCounter(long tableId, TableMetric metric) {
 		return noopCounter;
 	}
 
 	@Override
-	public void addRecvSizeTime(long typeId, Class<?> cls, int size, long timeNs) {
+	public void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
 	}
 
 	@Override

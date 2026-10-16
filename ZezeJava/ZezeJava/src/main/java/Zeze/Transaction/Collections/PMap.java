@@ -9,8 +9,9 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.util.Map.Entry;
+
+import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 Map 基类：基于 pcollections 持久化映射的 Map 视图，托管下的修改经 LogMap 记账。
@@ -18,33 +19,33 @@ import Zeze.Collections.Persistents;
  * 不抛 ConcurrentModificationException——与 JDK fail-fast 迭代器不同，从 JDK
  * 迁移的代码勿依赖 CME 探测并发修改；迭代器 remove 仅做身份 fail-fast。 */
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
-	@NotNull org.pcollections.PMap<K, V> map = Persistents.map();
+	org.pcollections.PMap<K, V> map = Persistents.map();
 
 	@Override
-	public final @Nullable V get(@NotNull Object key) {
+	public final @Nullable V get(Object key) {
 		return getMap().get(key);
 	}
 
 	@Override
-	public abstract @Nullable V put(@NotNull K key, @NotNull V value);
+	public abstract @Nullable V put(K key, V value);
 
 	@Override
-	public abstract void putAll(@NotNull Map<? extends K, ? extends V> m);
+	public abstract void putAll(Map<? extends K, ? extends V> m);
 
 	@Override
-	public abstract @Nullable V remove(@NotNull Object key);
+	public abstract @Nullable V remove(Object key);
 
-	public abstract boolean remove(@NotNull Map.Entry<K, V> item);
+	public abstract boolean remove(Map.Entry<K, V> item);
 
 	@Override
 	public abstract void clear();
 
-	public final void copyTo(Map.Entry<K, V> @NotNull [] array, int arrayIndex) {
+	public final void copyTo(Map.Entry<K, V> [] array, int arrayIndex) {
 		for (var e : getMap().entrySet())
 			array[arrayIndex++] = e;
 	}
 
-	public final @NotNull org.pcollections.PMap<K, V> getMap() {
+	public final org.pcollections.PMap<K, V> getMap() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
@@ -66,12 +67,12 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public final boolean containsValue(@NotNull Object v) {
+	public final boolean containsValue(Object v) {
 		return getMap().containsValue(v);
 	}
 
 	@Override
-	public final boolean containsKey(@NotNull Object key) {
+	public final boolean containsKey(Object key) {
 		return getMap().containsKey(key);
 	}
 
@@ -81,10 +82,10 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public @NotNull Set<K> keySet() {
+	public Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<K> iterator() {
+			public Iterator<K> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Entry<K, V>> it = entrySet().iterator();
 
@@ -113,10 +114,10 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public @NotNull java.util.Collection<V> values() {
+	public java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NotNull Iterator<V> iterator() {
+			public Iterator<V> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Entry<K, V>> it = entrySet().iterator();
 
@@ -145,13 +146,13 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public @NotNull Set<Map.Entry<K, V>> entrySet() {
+	public Set<Map.Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NotNull Iterator<Entry<K, V>> iterator() {
+			public Iterator<Entry<K, V>> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Map.Entry<K, V>> it = getMap().entrySet().iterator();
-					private Map.Entry<K, V> next;
+					private @Nullable Entry<K, V> next;
 
 					@Override
 					public boolean hasNext() {
@@ -187,7 +188,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public @NotNull Iterator<Map.Entry<K, V>> iterator() {
+	public Iterator<Map.Entry<K, V>> iterator() {
 		return entrySet().iterator();
 	}
 
@@ -203,7 +204,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, getMap());
 		return sb.toString();

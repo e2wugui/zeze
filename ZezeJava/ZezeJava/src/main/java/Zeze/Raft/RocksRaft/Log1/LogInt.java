@@ -1,10 +1,11 @@
 package Zeze.Raft.RocksRaft.Log1;
 
+import org.jspecify.annotations.Nullable;
+
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * int 落盘日志：序列化 int 字段的新值。
@@ -18,7 +19,7 @@ public class LogInt extends Log {
 		super(TYPE_ID);
 	}
 
-	public LogInt(Bean belong, int varId, int value) {
+	public LogInt(@Nullable Bean belong, int varId, int value) {
 		this();
 		setBelong(belong);
 		setVariableId(varId);
@@ -26,12 +27,12 @@ public class LogInt extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(value);
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		value = bb.ReadInt();
 	}
 

@@ -1,9 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashMap;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Bean 修改的聚合日志：按 variableId 汇集各字段的子日志，提交时逐级向上收集成日志树。
@@ -11,8 +13,8 @@ import org.jetbrains.annotations.NotNull;
 public class LogBean extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogBean");
 
-	private IntHashMap<Log> variables;
-	private Bean self;
+	private @Nullable IntHashMap<Log> variables;
+	private @Nullable Bean self;
 
 	public LogBean() {
 		super(TYPE_ID);
@@ -22,7 +24,7 @@ public class LogBean extends Log {
 		super(typeId);
 	}
 
-	public final IntHashMap<Log> getVariables() {
+	public final @Nullable IntHashMap<Log> getVariables() {
 		return variables;
 	}
 
@@ -33,11 +35,11 @@ public class LogBean extends Log {
 		return variables;
 	}
 
-	public final Bean getThis() {
+	public final @Nullable Bean getThis() {
 		return self;
 	}
 
-	public final void setThis(Bean value) {
+	public final void setThis(@Nullable Bean value) {
 		self = value;
 	}
 
@@ -53,12 +55,12 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public void encode(@NotNull ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var vars = variables;
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
-				var log = it.value();
+				var log = Objects.requireNonNull(it.value());
 				bb.WriteInt4(log.getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);
@@ -68,7 +70,7 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public void decode(@NotNull IByteBuffer bb) {
+	public void decode(IByteBuffer bb) {
 		int n = bb.ReadUInt();
 		if (n > 0) {
 			var variables = getVariablesOrNew();
