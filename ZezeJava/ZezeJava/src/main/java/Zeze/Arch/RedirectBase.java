@@ -196,7 +196,7 @@ public class RedirectBase {
 		// 转发给provider
 		for (var it = transmits.iterator(); it.moveToNext(); ) {
 			var sessionId = it.key();
-			var request = it.value();
+			var request = Objects.requireNonNull(it.value());
 			var socket = Objects.requireNonNull(providerApp.providerDirectService).GetSocket(sessionId);
 			if (socket == null || !request.Send(socket)) {
 				if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
