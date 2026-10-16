@@ -17,7 +17,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** 事务 List（2系）：Bean 值受管，原位修改同样记账。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
@@ -86,7 +86,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 		} else
-			list = Empty.vector();
+			list = Persistents.vector();
 	}
 
 	@Override
@@ -234,7 +234,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					throw new IllegalStateException("null item");
 				tmpList.add(v);
 			}
-			list = Empty.<V>vector().plusAll(tmpList);
+			list =Persistents.<V>vector().plusAll(tmpList);
 		}
 	}
 
@@ -250,7 +250,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			listLog.clear();
 			listLog.addAll(tmpList);
 		} else
-			list = Empty.<V>vector().plusAll(tmpList);
+			list =Persistents.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -273,7 +273,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					yield tmp.plus(opLog.index, opLog.value);
 				}
 				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);
-				case LogList1.OpLog.OP_CLEAR -> Empty.vector();
+				case LogList1.OpLog.OP_CLEAR -> Persistents.vector();
 				default -> tmp;
 			};
 		}
@@ -309,7 +309,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
 		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
 		var copy = new PList2<>(meta);
-		var newList = org.pcollections.Empty.<V>vector();
+		var newList = Persistents.<V>vector();
 		for (var v : getList())
 			newList = newList.plus((V)v.copy());
 		copy.list = newList;
@@ -336,15 +336,22 @@ public class PList2<V extends Bean> extends PList<V> {
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		clear();
+		int n = bb.ReadUIntPositive();
+		if (n == 0)
+			return;
+		// JDK暂存+单发批量（语义等价，见PList1.decode注）；try只包valueFactory的invoke。
+		var items = new ArrayList<V>(n);
 		try {
-			for (int i = bb.ReadUIntPositive(); i > 0; i--) {
+			for (int i = n; i > 0; i--) {
+				@SuppressWarnings("unchecked")
 				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
-				add(v);
+				items.add(v);
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
+		addAll(items);
 	}
 
 	public <D extends Data> void addAllData(@NotNull Collection<D> dataList) {

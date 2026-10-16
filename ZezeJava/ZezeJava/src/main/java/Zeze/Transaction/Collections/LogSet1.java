@@ -9,7 +9,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** PSet1 的变更日志：以 added/removed 两个增量集合记录事务内对持久化 Set 的修改。 */
 public class LogSet1<V> extends LogSet<V> {
@@ -107,7 +107,7 @@ public class LogSet1<V> extends LogSet<V> {
 		var exist = getValue();
 		added.removeAll(exist);
 		removed.addAll(exist);
-		setValue(Empty.set());
+		setValue(Persistents.set());
 	}
 
 	@Override

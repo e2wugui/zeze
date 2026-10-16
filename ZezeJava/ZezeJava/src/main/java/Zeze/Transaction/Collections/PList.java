@@ -10,12 +10,12 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 import org.pcollections.PVector;
 
 /** 事务 List 基类：基于 pcollections 持久化向量的 List 视图，托管下的修改经 LogList 记账。 */
 public abstract class PList<V> extends Collection implements List<V> {
-	@NotNull PVector<V> list = Empty.vector();
+	@NotNull PVector<V> list = Persistents.vector();
 
 	@Override
 	public abstract boolean add(@NotNull V item);

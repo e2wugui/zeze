@@ -67,7 +67,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	public final void clear() {
 		for (var key : getValue().keySet())
 			remove(key);
-		setValue(org.pcollections.Empty.map());
+		setValue(Zeze.Collections.Persistents.map());
 	}
 
 	@Override

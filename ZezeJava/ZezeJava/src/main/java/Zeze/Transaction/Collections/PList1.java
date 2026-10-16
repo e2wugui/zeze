@@ -10,7 +10,7 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** 事务 List（1系）：不可变值按值拷贝记账，不支持 Bean 值。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
@@ -64,7 +64,7 @@ public class PList1<V> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 		} else
-			list = Empty.vector();
+			list = Persistents.vector();
 	}
 
 	@Override
@@ -169,7 +169,7 @@ public class PList1<V> extends PList<V> {
 			listLog.clear();
 			listLog.addAll(tmpList);
 		} else
-			list = Empty.<V>vector().plusAll(tmpList);
+			list =Persistents.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -184,7 +184,7 @@ public class PList1<V> extends PList<V> {
 			listLog.clear();
 			listLog.addAll(tmpList);
 		} else
-			list = Empty.<V>vector().plusAll(tmpList);
+			list =Persistents.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -201,7 +201,7 @@ public class PList1<V> extends PList<V> {
 				case LogList1.OpLog.OP_MODIFY -> tmp.with(opLog.index, opLog.value);
 				case LogList1.OpLog.OP_ADD -> tmp.plus(opLog.index, opLog.value);
 				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);
-				case LogList1.OpLog.OP_CLEAR -> Empty.vector();
+				case LogList1.OpLog.OP_CLEAR -> Persistents.vector();
 				default -> tmp;
 			};
 		}
@@ -239,7 +239,13 @@ public class PList1<V> extends PList<V> {
 	public void decode(@NotNull IByteBuffer bb) {
 		clear();
 		var decoder = meta.valueDecoder;
-		for (int i = bb.ReadUIntPositive(); i > 0; i--)
-			add(decoder.apply(bb));
+		int n = bb.ReadUIntPositive();
+		if (n == 0)
+			return;
+		// JDK暂存+单发批量：clear后无中间可观测态，与逐条add等价；ktt后端plusAll走builder批量构建。
+		var items = new ArrayList<V>(n);
+		for (int i = n; i > 0; i--)
+			items.add(decoder.apply(bb));
+		addAll(items);
 	}
 }

@@ -8,7 +8,7 @@ import org.pcollections.PVector;
  * List 容器基类：持久化 PVector 存储，事务内经 getList 读取含未提交日志的最新值。
  */
 public abstract class CollList<V> extends Collection implements Iterable<V> {
-	public PVector<V> list = org.pcollections.Empty.vector();
+	public PVector<V> list = Zeze.Collections.Persistents.vector();
 
 	public abstract boolean add(V item);
 

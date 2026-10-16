@@ -1,11 +1,11 @@
 package Zeze.Util;
 
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 import org.pcollections.PSet;
 
 // 游戏格子：PSet 持有格子内的 GameObjectId（无锁最终一致快照）
 public class GameCube extends Cube<GameObjectId> {
-	private PSet<GameObjectId> objectIds = Empty.set();
+	private PSet<GameObjectId> objectIds = Persistents.set();
 
 	/**
 	 * 无锁最终一致快照：PSet本身不可变（读到的引用内容稳定），但字段读无锁且非volatile，

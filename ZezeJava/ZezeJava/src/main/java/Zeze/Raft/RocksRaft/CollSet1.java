@@ -60,7 +60,7 @@ public class CollSet1<V> extends CollSet<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			setLog.clear();
 		} else
-			set = org.pcollections.Empty.set();
+			set = Zeze.Collections.Persistents.set();
 	}
 
 	@Override

@@ -68,7 +68,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
-			map = org.pcollections.Empty.map();
+			map = Zeze.Collections.Persistents.map();
 	}
 
 	@Override

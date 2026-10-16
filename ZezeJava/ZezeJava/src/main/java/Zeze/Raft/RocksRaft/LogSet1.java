@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import org.jetbrains.annotations.NotNull;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /**
  * 基础类型 Set 容器的增量日志：记录 added/removed 两个差量集合。
@@ -62,7 +62,7 @@ public class LogSet1<V> extends LogSet<V> {
 	public final void clear() {
 		for (var e : getValue())
 			remove(e);
-		setValue(Empty.set());
+		setValue(Persistents.set());
 	}
 
 	@Override

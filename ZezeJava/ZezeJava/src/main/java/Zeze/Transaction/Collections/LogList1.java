@@ -8,7 +8,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 import org.pcollections.PVector;
 
 /** PList1 的变更日志：按序记录 OpLog 操作序列（增删改清），供编码及跟随者重放。 */
@@ -106,7 +106,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public void clear() {
-		setValue(Empty.vector());
+		setValue(Persistents.vector());
 		opLogs.clear();
 		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
 	}

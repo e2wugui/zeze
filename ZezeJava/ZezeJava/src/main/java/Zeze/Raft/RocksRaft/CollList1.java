@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /**
  * 基础类型 List 容器（值为可编码的普通类型）：结构修改记 LogList1 增量日志。
@@ -58,7 +58,7 @@ public class CollList1<V> extends CollList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 		} else
-			list = org.pcollections.Empty.vector();
+			list = Zeze.Collections.Persistents.vector();
 	}
 
 	@Override
@@ -124,7 +124,7 @@ public class CollList1<V> extends CollList<V> {
 				list = list.minus(opLog.index);
 				break;
 			case LogList1.OpLog.OP_CLEAR:
-				list = Empty.vector();
+				list = Persistents.vector();
 				break;
 			}
 		}

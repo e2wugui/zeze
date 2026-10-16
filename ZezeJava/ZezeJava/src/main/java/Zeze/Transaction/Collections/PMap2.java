@@ -16,7 +16,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** 事务 Map（2系）：Bean 值受管，原位修改同样记账。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
@@ -163,7 +163,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
-			map = Empty.map();
+			map = Persistents.map();
 	}
 
 	@Override
@@ -215,7 +215,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
 		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
 		var copy = new PMap2<>(meta);
-		var newMap = org.pcollections.Empty.<K, V>map();
+		var newMap = Persistents.<K, V>map();
 		for (var e : getMap().entrySet()) {
 			var value = (V)e.getValue().copy();
 			// mapKey是瞬态容器归属，不由Bean.copy/assign复制；后续原位changed仍需定位该键。
@@ -250,16 +250,23 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void decode(@NotNull IByteBuffer bb) {
 		clear();
 		var decoder = meta.keyDecoder;
+		int n = bb.ReadUIntPositive();
+		if (n == 0)
+			return;
+		// JDK暂存+单发批量（语义等价，见PMap1.decode注）；try只包valueFactory的invoke。
+		var m = new HashMap<K, V>(((n + 2) / 3) * 4);
 		try {
-			for (int i = bb.ReadUIntPositive(); i > 0; i--) {
+			for (int i = n; i > 0; i--) {
 				K k = decoder.apply(bb);
+				@SuppressWarnings("unchecked")
 				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
-				put(k, v);
+				m.put(k, v);
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
+		putAll(m);
 	}
 
 	public <D extends Data> void putAllData(@NotNull Map<K, D> dataMap) {

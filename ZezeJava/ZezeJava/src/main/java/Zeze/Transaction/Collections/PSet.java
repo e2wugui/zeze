@@ -8,11 +8,11 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** 事务 Set 基类：基于 pcollections 持久化集合的 Set 视图，托管下的修改经 LogSet 记账。 */
 public abstract class PSet<V> extends Collection implements Set<V> {
-	@NotNull org.pcollections.PSet<V> set = Empty.set();
+	@NotNull org.pcollections.PSet<V> set = Persistents.set();
 
 	@Override
 	public abstract boolean add(@NotNull V item);

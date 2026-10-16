@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import org.jetbrains.annotations.NotNull;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /**
  * 基础类型 List 容器的增量日志：按结构操作（add/set/remove/clear）记录 OpLog 序列。
@@ -84,7 +84,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public void clear() {
-		setValue(Empty.vector());
+		setValue(Persistents.vector());
 		opLogs.clear();
 		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
 	}

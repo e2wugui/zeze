@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.lang.management.ManagementFactory;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +46,9 @@ public class LMmoGameSim {
 					threads[i] = Thread.ofVirtual().name("gs-player-" + i).start(new PlayerSim(world, i));
 				for (int w = 0; w < cfg.warmups; w++)
 					runWindow(world, cfg, 0); // 预热：世界继续跑，统计静默
+				// 后端对照内存口径：预热后驻留（数据装载完成的稳态基线）与测量轮 GC 压力
+				long residentAfterWarmup = usedHeapAfterGc();
+				var gcBefore = gcStats();
 				var tps = new double[cfg.rounds];
 				var opCountPerRound = new long[cfg.rounds][];
 				// 每轮各 op 分位（轮中位数聚合进 JSON）
@@ -62,7 +66,12 @@ public class LMmoGameSim {
 					tps[w - 1] = count / ((tFlip - t0) / 1e9);
 					reportRound(w, count, tps[w - 1], statsPerRound[w - 1]);
 				}
-				writeJson(cfg, tps, opCountPerRound, statsPerRound);
+				var gcAfter = gcStats();
+				long residentSteady = usedHeapAfterGc();
+				// 冷装载回环（只读，不影响其后的守恒对账）：Memory 库无磁盘装载，回环即 PMap2 装载形态
+				double coldLoadLastMs = coldLoad(world, cfg);
+				writeJson(cfg, tps, opCountPerRound, statsPerRound,
+						residentAfterWarmup, residentSteady, gcAfter[0] - gcBefore[0], gcAfter[1] - gcBefore[1], coldLoadLastMs);
 				var errors = OpRecorder.errorTotals();
 				long errTotal = Arrays.stream(errors).sum();
 				Assertions.assertEquals(0, errTotal, "游戏事务非零返回/异常: " + Arrays.toString(errors));
@@ -95,6 +104,18 @@ public class LMmoGameSim {
 				}
 			});
 		}
+		// 系统批量补偿：邮件相位之后触发（7min 偏移，不交叠）；预热窗口同样触发保持容器形态一致。
+		// 旋钮 game.bulkRewardSlots（默认 0=关）：持久化容器后端对照的批量写负载
+		if (cfg.bulkRewardSlots > 0) {
+			Thread.ofVirtual().start(() -> {
+				try {
+					Thread.sleep(cfg.wall(GameConfig.BulkRewardAtMs));
+					if (!world.stopped)
+						world.systemBulkReward(world.windowId);
+				} catch (InterruptedException ignored) {
+				}
+			});
+		}
 		Thread.sleep(cfg.wall(cfg.windowMinutes * 60_000L));
 		world.windowId = windowId + 1; // 立即开下一窗口（连续世界）；宽限期在收割侧
 		if (TimelineLog.enabled)
@@ -108,6 +129,58 @@ public class LMmoGameSim {
 		return out;
 	}
 
+	// ===== 后端对照的内存/GC 采集与冷装载 =====
+
+	/** 双 gc 稳定后的堆驻留（相位间调用，暂停不影响测量窗） */
+	private static long usedHeapAfterGc() {
+		System.gc();
+		try {
+			Thread.sleep(200);
+		} catch (InterruptedException ignored) {
+		}
+		System.gc();
+		return ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();
+	}
+
+	/** 全体 GC bean 的 {次数, 累计毫秒} */
+	private static long[] gcStats() {
+		long count = 0, time = 0;
+		for (var gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+			count += Math.max(0, gc.getCollectionCount());
+			time += Math.max(0, gc.getCollectionTime());
+		}
+		return new long[]{count, time};
+	}
+
+	/** 冷装载回环：全量角色 bean encode→decode，每轮一只读事务。返回末轮耗时 ms（0=未启用） */
+	private static double coldLoad(GameWorld world, GameConfig cfg) throws Exception {
+		if (cfg.coldLoadRounds <= 0)
+			return 0;
+		long bytes = 0;
+		double lastMs = 0;
+		for (int r = 0; r < cfg.coldLoadRounds; r++) {
+			long t0 = System.nanoTime();
+			bytes = world.zeze.newProcedure(() -> {
+				long sum = 0;
+				for (long roleId = 0; roleId < cfg.players; roleId++) {
+					var role = world.tRole.get(roleId);
+					if (role == null)
+						continue;
+					var bb = Zeze.Serialize.ByteBuffer.Allocate();
+					role.encode(bb);
+					sum += bb.size();
+					var fresh = new demo.Game.BRole(); // 解码对象仅作汇聚，防死码消除
+					fresh.decode(bb);
+				}
+				return sum;
+			}, "GameSim.ColdLoad").call();
+			lastMs = (System.nanoTime() - t0) / 1e6;
+			System.out.printf("L_MmoGameSim coldLoad round=%d ms=%.0f bytes=%,d (%.0f B/role)%n",
+					r + 1, lastMs, bytes, (double)bytes / cfg.players);
+		}
+		return lastMs;
+	}
+
 	private static void reportRound(int w, long count, double tps, OpRecorder.OpStats[] stats) {
 		System.out.printf("L_MmoGameSim round=%d txns=%d txn/s=%.0f | loot p50/p95=%.0f/%.0fus hb p95=%.0fus fq p95=%.0fus%n",
 				w, count, tps, stats[OpRecorder.OpType.loot.ordinal()].p50,
@@ -119,14 +192,21 @@ public class LMmoGameSim {
 	// ===== JSON 留档（flat key：BenchCompare 按文件名配对、jsonDouble 直读）=====
 
 	private void writeJson(GameConfig cfg, double[] tps, long[][] opCountPerRound,
-						   OpRecorder.OpStats[][] statsPerRound) throws Exception {
+						   OpRecorder.OpStats[][] statsPerRound,
+						   long residentAfterWarmup, long residentSteady,
+						   long gcCount, long gcTimeMs, double coldLoadLastMs) throws Exception {
 		double median = MacroBench.median(tps);
 		double mean = Arrays.stream(tps).average().orElseThrow();
 		double variance = Arrays.stream(tps).map(v -> (v - mean) * (v - mean)).sum() / tps.length;
 		double stdev = Math.sqrt(variance);
+		// 后端入档名（bench 档案按文件名配对，防三后端互覆）；pcollections 档延续历史档名
+		// L_MmoGameSim（与 2026-10-16 前档案可直接配对），kt/ktt（含默认）带后缀
+		var backend = Zeze.Collections.Persistents.BACKEND;
+		var benchName = "L_MmoGameSim" + (backend.equals("pcollections") ? "" : "_" + backend);
 		var sb = new StringBuilder(4096);
 		sb.append("{\n");
-		sb.append("  \"name\": \"L_MmoGameSim\",\n");
+		sb.append("  \"name\": \"").append(benchName).append("\",\n");
+		sb.append("  \"backend\": \"").append(backend).append("\",\n");
 		sb.append("  \"git\": \"").append(MacroBench.git()).append("\",\n");
 		sb.append("  \"timestamp\": \"").append(Instant.now()).append("\",\n");
 		sb.append("  \"jdk\": \"").append(System.getProperty("java.version")).append("\",\n");
@@ -135,7 +215,15 @@ public class LMmoGameSim {
 				.append(", \"k\": ").append(cfg.timeScaleK)
 				.append(", \"windowMinutes\": ").append(cfg.windowMinutes)
 				.append(", \"warmups\": ").append(cfg.warmups)
-				.append(", \"rounds\": ").append(cfg.rounds).append("},\n");
+				.append(", \"rounds\": ").append(cfg.rounds)
+				.append(", \"bulkRewardSlots\": ").append(cfg.bulkRewardSlots)
+				.append(", \"bulkRewardPlayers\": ").append(cfg.bulkRewardPlayers)
+				.append(", \"coldLoadRounds\": ").append(cfg.coldLoadRounds).append("},\n");
+		sb.append(String.format("  \"residentAfterWarmupBytes\": %d,%n", residentAfterWarmup));
+		sb.append(String.format("  \"residentSteadyBytes\": %d,%n", residentSteady));
+		sb.append(String.format("  \"gcCountRounds\": %d,%n", gcCount));
+		sb.append(String.format("  \"gcTimeMsRounds\": %d,%n", gcTimeMs));
+		sb.append(String.format("  \"coldLoadLastMs\": %.1f,%n", coldLoadLastMs));
 		sb.append("  \"rounds\": [").append(Arrays.toString(tps)).append("],\n");
 		sb.append("  \"median\": ").append(median).append(",\n");
 		sb.append("  \"mean\": ").append(mean).append(",\n");
@@ -157,7 +245,7 @@ public class LMmoGameSim {
 		}
 		sb.setLength(sb.length() - 2); // 去尾逗号换行
 		sb.append("\n}\n");
-		MacroBench.writeRawJson("L_MmoGameSim", sb.toString());
+		MacroBench.writeRawJson(benchName, sb.toString());
 		System.out.printf("L_MmoGameSim txns/s median=%.0f mean=%.0f stdev=%.0f cv=%.4f%n",
 				median, mean, stdev, stdev / mean);
 	}

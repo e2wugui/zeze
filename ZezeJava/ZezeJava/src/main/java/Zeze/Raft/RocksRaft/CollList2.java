@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /**
  * 管理 Bean 的 List 容器（值类型可变 bean）：结构操作记 LogList2 增量日志，值 bean 的字段修改记 changed。
@@ -60,7 +60,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 		} else
-			list = org.pcollections.Empty.vector();
+			list = Zeze.Collections.Persistents.vector();
 	}
 
 	@Override
@@ -139,7 +139,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 					yield tmp.plus(opLog.index, opLog.value);
 				}
 				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);
-				case LogList1.OpLog.OP_CLEAR -> Empty.vector();
+				case LogList1.OpLog.OP_CLEAR -> Persistents.vector();
 				default -> tmp;
 			};
 		}

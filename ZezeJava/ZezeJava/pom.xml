@@ -191,6 +191,7 @@
 		<log4j.version>2.26.0</log4j.version>
 		<annotations.version>26.1.0</annotations.version>
 		<pcollectons.version>4.0.2</pcollectons.version>
+		<kotlinx-collections-immutable.version>0.3.7</kotlinx-collections-immutable.version>
 		<rocksdbjni.version>10.10.1.1</rocksdbjni.version>
 		<netty.version>4.1.137.Final</netty.version>
 		<slf4j.version>2.0.18</slf4j.version>
@@ -241,6 +242,13 @@
 			<groupId>org.pcollections</groupId>
 			<artifactId>pcollections</artifactId>
 			<version>${pcollectons.version}</version>
+		</dependency>
+
+		<!-- 持久化容器内核（Zeze.Collections.Persistents 后端缝，kt/ktt 档） -->
+		<dependency>
+			<groupId>org.jetbrains.kotlinx</groupId>
+			<artifactId>kotlinx-collections-immutable-jvm</artifactId>
+			<version>${kotlinx-collections-immutable.version}</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni -->

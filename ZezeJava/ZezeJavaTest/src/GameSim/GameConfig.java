@@ -30,6 +30,11 @@ public final class GameConfig {
 	public final boolean fanoutOff;      // game.fanoutOff：反事实 B（系统邮件 fan-out 静默）
 	public final int slowLogMs;          // game.slowLogMs：慢操作时间线阈值（0=关，见 TimelineLog）
 
+	// ===== 持久化容器后端对照专用旋钮（默认 0/关闭=基线行为，见 BENCHMARK.md 容器后端节）=====
+	public final int bulkRewardSlots;   // game.bulkRewardSlots：每窗口"批量补偿"物品种类数（0=关；槽位 WarehouseSlotBase+ 起逐窗口递增不覆盖）
+	public final int bulkRewardPlayers; // game.bulkRewardPlayers：每窗口领取批量补偿的玩家数（默认 1000，均匀散布）
+	public final int coldLoadRounds;    // game.coldLoadRounds：停机后全量角色 encode→decode 冷装载回环轮数（0=关）
+
 	// ===== 节奏（游戏时间）=====
 	public static final long HeartbeatPeriodMs = 15_000;   // 心跳周期
 	public static final long HeartbeatTimeoutMs = 45_000;  // 超时踢线阈值（超过即过载信号）
@@ -37,6 +42,9 @@ public final class GameConfig {
 	public static final long ThinkMinMs = 2_000, ThinkMaxMs = 6_000; // 大厅发呆间隔
 	public static final long LoginRampMs = 60_000;         // 开服登录潮摊开窗口
 	public static final long MailFanoutAtMs = 5 * 60_000;  // 每测量窗口内的系统邮件时刻（窗口起点偏移）
+	public static final long BulkRewardAtMs = 7 * 60_000;  // 每测量窗口内的系统批量补偿时刻（邮件之后，相位不交叠）
+	/** 批量补偿的仓库槽位基址：常规背包只占 0..BagSlots-1，仓库占此基址起（逐窗口递增） */
+	public static final int WarehouseSlotBase = 1000;
 
 	// ===== 背包 =====
 	public static final int BagSlots = 16;
@@ -82,6 +90,9 @@ public final class GameConfig {
 		checkpointPeriodMs = PropertiesHelper.getInt("game.checkpointPeriodMs", 30_000);
 		fanoutOff = PropertiesHelper.getBool("game.fanoutOff", false);
 		slowLogMs = PropertiesHelper.getInt("game.slowLogMs", 0);
+		bulkRewardSlots = PropertiesHelper.getInt("game.bulkRewardSlots", 0);
+		bulkRewardPlayers = PropertiesHelper.getInt("game.bulkRewardPlayers", 1000);
+		coldLoadRounds = PropertiesHelper.getInt("game.coldLoadRounds", 0);
 	}
 
 	/** 游戏毫秒 → 墙钟毫秒（休眠用） */

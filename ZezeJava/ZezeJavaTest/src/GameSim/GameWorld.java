@@ -253,6 +253,54 @@ public final class GameWorld {
 			sysRecorder.error(OpRecorder.OpType.mailFanout);
 	}
 
+	// ===== 系统批量补偿：每测量窗口一次，bulkRewardPlayers 名玩家各一笔单事务 putAll 批量入库 =====
+	// 持久化容器后端对照的批量写负载（LogMap1/2.putAll → 底层 plusAll 单发，kt 循环/ktt builder
+	// 的分岔点）；物品注入走影子账本（同 mailFanout 的 whileCommit 口径），槽位 WarehouseSlotBase+
+	// 逐窗口递增，背包随之增长形成大容器档（常规 op 只碰 0..BagSlots-1，互不干扰）。
+
+	public void systemBulkReward(int windowId) {
+		int win = windowId;
+		long t0 = System.nanoTime();
+		int slots = cfg.bulkRewardSlots;
+		int players = Math.min(cfg.bulkRewardPlayers, cfg.players);
+		int base = GameConfig.WarehouseSlotBase + win * slots;
+		long errors = 0;
+		for (int i = 0; i < players; i++) {
+			final long roleId = i * (long)cfg.players / players; // 均匀散布
+			// 定参事务外构建（重试不重耗；bean 未挂接前 putAll 进包合法）
+			final var items = new java.util.HashMap<Integer, demo.Game.BItem>(slots * 2);
+			final var inject = new java.util.HashMap<Integer, Long>();
+			for (int s = 0; s < slots; s++) {
+				int itemId = s % 3 + 1; // 药水/武器/护甲轮转
+				var item = new demo.Game.BItem();
+				item.setItemId(itemId);
+				item.setCount(1);
+				item.setPrice(5);
+				items.put(base + s, item);
+				inject.merge(itemId, 1L, Long::sum);
+			}
+			long txnT0 = System.nanoTime();
+			long rc = zeze.newProcedure(() -> {
+				var role = tRole.get(roleId);
+				if (role != null)
+					role.getBag().putAll(items);
+				Zeze.Transaction.Transaction.whileCommit(() -> {
+					for (var e : inject.entrySet())
+						ledger.item(e.getKey(), e.getValue());
+				});
+				return 0L;
+			}, "GameSim.BulkReward").call();
+			if (rc == 0)
+				sysRecorder.record(OpRecorder.OpType.bulkReward, win, txnT0);
+			else
+				++errors;
+		}
+		if (TimelineLog.enabled)
+			TimelineLog.event("bulkReward end win=" + win + " us=" + (System.nanoTime() - t0) / 1000 + " errors=" + errors);
+		if (errors != 0)
+			sysRecorder.error(OpRecorder.OpType.bulkReward);
+	}
+
 	/** P2P 发信方提交后调用；系统邮件同样走这里 */
 	public void onlineNotify(long roleId, long mailKey) {
 		var p = online.get(roleId);

@@ -263,7 +263,62 @@ flush 地图；豁免后读离场（排队人口 -40%）、编组停止经读边
   role 预热后解耦，hb 免疫、仅 loot（role+rank 分片）承担，只损延迟不损容量。
 - **结论：容量平台 12.2万 → ≥35万（≈2.9×），引擎退出可测瓶颈位。**
 
-## 判定协议
+## 持久化容器后端对照（2026-10-16）
+
+事务集合底层容器（PList/PMap/PSet 族；PSortedMap 裁定保留 pcollections TreePMap 不动）的内核选型：
+后端缝 `Zeze.Collections.Persistents`（`zeze.collections.backend` = `pcollections`|`kt`|`ktt`，
+启动定型、非法值快速失败），适配类 KtVector/KtMap/KtSet 实现 pcollections 接口、内核
+kotlinx.collections.immutable 0.3.7（CHAMP/trie）；`kt`=持久化单 op（批量=单 op 循环），
+`ktt`=批量路径走 builder（变更跟踪保 no-op 恒等）。decode 装载重构为"JDK 暂存+单发
+plusAll"（经典侧 5 文件，RR 侧 raft 路径不动），ktt 下批量构建走 builder。
+
+- **契约钉子**（TestPersistentsBackendsContract，8 用例三后端同绿）：kotlinx 与 pcollections
+  的 no-op 恒等行为逐位一致（map put 同值两者都恒新实例——`LogMap1.putAll` 的 `newMap != old`
+  判定在基线上恒真=死分支）；KtMap 以身份（==）守卫复活该判定（同实例 put 跳过，纯优化，
+  对 PMap2 可变 bean 值安全——equals 守卫会误伤 LogMap2 的身份语义）。
+- **负载增补**（L 场景）：`game.bulkRewardSlots/Players`（单事务 putAll 256 条×2000 人/窗，
+  仓库槽位 1000+ 形成大容器档）、`game.coldLoadRounds`（停机后全量角色 encode→decode 回环）；
+  JSON 落 `backend`/驻留堆/GC/冷装载字段，非默认后端档名加后缀（`L_MmoGameSim_kt(_ktt)`）。
+- 跑法：`gradlew :ZezeJavaTest:benchGame -PcollBackend=<be> -PgamePlayers=5000 -PgameK=10
+  -PgameBulkRewardSlots=256 -PgameBulkRewardPlayers=2000 -PgameColdLoadRounds=2
+  -PbenchTag=<tag> -PbenchHeap=4g`；交替 `p,kt,ktt,p,kt,ktt` 两 pass（collbackend1/2）。
+
+### 数据（5000 玩家 K=10，1+3 窗，两 pass 均值；档 bench-results/collbackend{1,2}/）
+
+| 指标 | pcollections | kt | ktt |
+|---|---|---|---|
+| 驻留堆·装载后 / 3 窗后 (MB) | 217 / 709 | 158 / 515 | 160 / 515 |
+| TPS 中位 | 25884 | 25934 | 25904 |
+| loot p50/p95 (µs) | 17/93 | 15/70 | 15/87 |
+| bulkReward(256条/txn) p50/p95 (µs) | 120/249 | 87/177 | **44/84** |
+| coldLoad 全量角色末轮 (ms) | 3910 | **2142** | 2344 |
+| GC 次数/时长 (3 窗) | 124/1415ms | 135/1225ms | 130/1242ms |
+
+### 结论
+
+- **内存主目标兑现**：kt/ktt 驻留 **-27%**（3 窗后 -194MB@709MB 档；容器结构省 4-8×/条目，
+  被 bean 本体等非容器堆稀释成整体 27%）。两后端内存无差。
+- **CPU 整体无回归**：TPS 中位 ±0.2%（噪声带内）；单点路径 p50 略优（loot 17→15µs），
+  hb p95 三者同（13µs）。
+- **批量写 ktt 大幅领先**：p50 120→44µs（-64%）、p95 249→84µs；kt 居中（-28%）——
+  builder 对循环的优势在单事务批量下兑现。
+- **冷装载 kt/ktt 均 -45%**（decode 重构+内核），ktt 未再优于 kt（256 条规模 builder≈循环，
+  且 encode 占比稀释）。
+- 线索（未达 3× 噪声带判定线）：ktt 的 loot p95 尾部 +17µs（70→87，两 pass 方向一致），
+  疑批量相位瞬时分配形态影响尾延迟，固化默认后若选 ktt 值得复测一轮。
+- **推荐 ktt**：内存同 kt、批量写/冷装载占优、单点无回归。
+- **裁定（2026-10-16）：默认后端改 ktt**。`zeze.collections.backend` 保留为回退杠杆
+  （pcollections=逃生门，kt=中间档）；benchGame 的 collBackend fallback 同步 ktt；
+  显式 pcollections 档继续写历史档名 L_MmoGameSim.json（可与旧档案直接配对）。
+- **kotlinx 升 0.5.2 评估：实测回退，钉 0.3.7**（2026-10-16，BenchTransientSnapshotCompare
+  两轮复现）：持久化单 op **addNew 257→590ns（+130%）**、beginCommit1 510→1021ns（+100%）、
+  overwrite/remove +21~35%、bulkAdd +9~65%；builder 快照路径（snapAdd/snapOverwrite）持平。
+  ktt 生产热路径（每笔事务 map 写=持久化单 op put）正中 addNew/overwrite 回退，GameSim 冒烟
+  bulkReward p50 47→100-133µs 同向佐证。0.5.x 的分词改名（add→adding）与 0.3.x 二进制兼容，
+  但内核插入路径变慢——升级须待其回退消除后复测（注意：基准头部的版本标签是硬编码字符串，
+  A/B 时以构建声明的版本为准）。
+
+
 
 - 显著性：宏观中位数变化 > 3× 合成噪声；JMH 置信区间不重叠。
 - **裁决必须同日 A/B**：跨日/长会话宏观数字只作线索（曾实证同代码冷机单测 -18% 假回归，
@@ -377,6 +432,10 @@ sizing）；E2 0.17× 为本机盘速放大的主库 sync 写代价，非回归�
 
 ## 修改记录
 
+- **持久化容器后端缝 + 三后端对照（2026-10-16）**：事务集合 PList/PMap/PSet 底层可切
+  （`zeze.collections.backend`=pcollections|kt|ktt），kotlinx 内核
+  驻留 **-27%**、CPU 无回归、批量写（ktt builder）p50 **-64%**、冷装载 -45%——详见
+  "持久化容器后端对照"节。**裁定：默认 ktt**（pcollections 保留为回退杠杆）。
 - **重试日志限频**：perform 每次重试的逐笔 INFO 改 trace+限频——B ×10 主因。
 - **Changes 容器惰性化**：无监听者事务免空容器分配，每事务 -33%（1.4KB→~1KB）。
 - **MemTrans 快照 CopyIf 收编**：驱逐冲刷路径双重拷贝消除（G +24%）。

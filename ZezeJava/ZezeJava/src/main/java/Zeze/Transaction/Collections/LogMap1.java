@@ -11,7 +11,7 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** PMap1 的变更日志：以 replaced/removed 两个增量集合记录事务内对持久化 Map 的修改。 */
 public class LogMap1<K, V> extends LogMap<K, V> {
@@ -107,7 +107,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 			replaced.remove(ks);
 			removed.add(ks);
 		}
-		setValue(Empty.map());
+		setValue(Persistents.map());
 	}
 
 	@Override

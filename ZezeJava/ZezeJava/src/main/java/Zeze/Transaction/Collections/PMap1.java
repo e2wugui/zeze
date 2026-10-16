@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.HashMap;
 import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -7,7 +8,7 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** 事务 Map（1系）：不可变键值按值拷贝记账，不支持 Bean 值。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
@@ -104,7 +105,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
-			map = Empty.map();
+			map = Persistents.map();
 	}
 
 	@Override
@@ -153,10 +154,14 @@ public class PMap1<K, V> extends PMap<K, V> {
 		clear();
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;
-		for (int i = bb.ReadUIntPositive(); i > 0; i--) {
-			K k = keyDecoder.apply(bb);
-			V v = valueDecoder.apply(bb);
-			put(k, v);
-		}
+		int n = bb.ReadUIntPositive();
+		if (n == 0)
+			return;
+		// JDK暂存+单发批量：clear后无中间可观测态，与逐条put等价（同键后写覆盖语义一致）；
+		// ktt后端plusAll走builder批量构建。
+		var m = new HashMap<K, V>(((n + 2) / 3) * 4);
+		for (int i = n; i > 0; i--)
+			m.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
+		putAll(m);
 	}
 }

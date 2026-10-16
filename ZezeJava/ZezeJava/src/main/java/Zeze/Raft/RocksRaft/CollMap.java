@@ -9,7 +9,7 @@ import Zeze.Serialize.ByteBuffer;
  * Map 容器基类：持久化 PMap 存储，事务内经 getMap 读取含未提交日志的最新值。
  */
 public abstract class CollMap<K, V> extends Collection implements Iterable<Map.Entry<K, V>> {
-	public org.pcollections.PMap<K, V> map = org.pcollections.Empty.map();
+	public org.pcollections.PMap<K, V> map = Zeze.Collections.Persistents.map();
 
 	public final V get(K key) {
 		return getMap().get(key);

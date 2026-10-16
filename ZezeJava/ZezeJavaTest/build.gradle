@@ -281,6 +281,14 @@ tasks.register('benchGame', Test) {
         systemProperty 'game.warmups', findProperty('gameWarmups')
     if (findProperty('gameCheckpointPeriodMs') != null) // 诊断旋钮：RRS 膨胀×checkpoint 周期实验（默认 30000=基线）
         systemProperty 'game.checkpointPeriodMs', findProperty('gameCheckpointPeriodMs')
+    // 持久化容器后端旋钮（L_MmoGameSim）：后端 pcollections|kt|ktt（默认 ktt=代码默认，pcollections 为回退杠杆）
+    systemProperty 'zeze.collections.backend', (findProperty('collBackend') ?: 'ktt')
+    if (findProperty('gameBulkRewardSlots') != null)
+        systemProperty 'game.bulkRewardSlots', findProperty('gameBulkRewardSlots')
+    if (findProperty('gameBulkRewardPlayers') != null)
+        systemProperty 'game.bulkRewardPlayers', findProperty('gameBulkRewardPlayers')
+    if (findProperty('gameColdLoadRounds') != null)
+        systemProperty 'game.coldLoadRounds', findProperty('gameColdLoadRounds')
     mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest'), tasks.named('bench'), tasks.named('benchCore')
 }
 

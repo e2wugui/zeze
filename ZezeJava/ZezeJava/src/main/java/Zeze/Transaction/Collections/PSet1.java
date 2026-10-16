@@ -1,12 +1,13 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** 事务 Set（1系）：不可变值按值拷贝记账；框架无 PSet2。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
@@ -109,7 +110,7 @@ public class PSet1<V> extends PSet<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			setLog.clear();
 		} else
-			set = Empty.set();
+			set = Persistents.set();
 	}
 
 	@Override
@@ -154,7 +155,13 @@ public class PSet1<V> extends PSet<V> {
 	public void decode(@NotNull IByteBuffer bb) {
 		clear();
 		var decoder = meta.valueDecoder;
-		for (int i = bb.ReadUIntPositive(); i > 0; i--)
-			add(decoder.apply(bb));
+		int n = bb.ReadUIntPositive();
+		if (n == 0)
+			return;
+		// JDK暂存+单发批量（语义等价，见PList1.decode注）。
+		var items = new ArrayList<V>(n);
+		for (int i = n; i > 0; i--)
+			items.add(decoder.apply(bb));
+		addAll(items);
 	}
 }

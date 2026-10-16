@@ -11,14 +11,14 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /** 事务 Map 基类：基于 pcollections 持久化映射的 Map 视图，托管下的修改经 LogMap 记账。
  * 迭代为快照语义（迭代器创建时捕获底层视图，容器后续修改不影响本轮迭代），
  * 不抛 ConcurrentModificationException——与 JDK fail-fast 迭代器不同，从 JDK
  * 迁移的代码勿依赖 CME 探测并发修改；迭代器 remove 仅做身份 fail-fast。 */
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
-	@NotNull org.pcollections.PMap<K, V> map = Empty.map();
+	@NotNull org.pcollections.PMap<K, V> map = Persistents.map();
 
 	@Override
 	public final @Nullable V get(@NotNull Object key) {

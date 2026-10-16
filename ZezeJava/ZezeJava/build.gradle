@@ -6,6 +6,8 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.26.0'
     implementation 'org.jetbrains:annotations:26.1.0'
     implementation 'org.pcollections:pcollections:4.0.2'
+    // 持久化容器内核（Zeze.Collections.Persistents 后端缝，kt/ktt 档；PSortedMap 仍 pcollections）
+    implementation 'org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.7'
     compileOnly 'org.rocksdb:rocksdbjni:10.10.1.1'
     runtimeOnly 'org.rocksdb:rocksdbjni:10.10.1.1:win64'
     runtimeOnly 'org.rocksdb:rocksdbjni:10.10.1.1:linux64'

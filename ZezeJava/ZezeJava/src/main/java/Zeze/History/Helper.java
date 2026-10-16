@@ -62,6 +62,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
+import Zeze.Collections.Persistents;
 
 /**
  * 回放端日志注册助手：扫描表（启动期全部表，或后启开的单表）的键值依赖，
@@ -559,29 +560,29 @@ public class Helper {
 
 	public static <T> void registerLogList1(@NotNull Class<T> valueClass) {
 		var meta = List1Meta.get(valueClass);
-		Log.register(varId -> new LogList1<>(null, varId, null, Empty.vector(), meta));
+		Log.register(varId -> new LogList1<>(null, varId, null, Persistents.vector(), meta));
 	}
 
 	public static <V extends Bean> void registerLogList2(@NotNull Class<V> valueClass) {
 		var meta = List2Meta.get(valueClass);
-		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), meta));
+		Log.register(varId -> new LogList2<>(null, varId, null, Persistents.vector(), meta));
 	}
 
 	public static void registerLogList2Dynamic(@NotNull ToLongFunction<Bean> get,
 											   @NotNull LongFunction<Bean> create,
 											   @NotNull String where) {
 		var meta = List2Meta.createDynamic(get, create);
-		registerDynamicWinner(varId -> new LogList2<>(null, varId, null, Empty.vector(), meta), where);
+		registerDynamicWinner(varId -> new LogList2<>(null, varId, null, Persistents.vector(), meta), where);
 	}
 
 	public static <K, V> void registerLogMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		var meta = Map1Meta.get(keyClass, valueClass);
-		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), meta));
+		Log.register(varId -> new LogMap1<>(null, varId, null, Persistents.map(), meta));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		var meta = Map2Meta.get(keyClass, valueClass);
-		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
+		Log.register(varId -> new LogMap2<>(null, varId, null, Persistents.map(), meta));
 	}
 
 	public static <K> void registerLogMap2Dynamic(@NotNull Class<K> keyClass,
@@ -589,26 +590,26 @@ public class Helper {
 												  @NotNull LongFunction<Bean> create,
 												  @NotNull String where) {
 		var meta = Map2Meta.createDynamic(keyClass, get, create);
-		registerDynamicWinner(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta), where);
+		registerDynamicWinner(varId -> new LogMap2<>(null, varId, null, Persistents.map(), meta), where);
 	}
 
 	public static <K, V> void registerLogMap1Meta(@NotNull Map1Meta<K, V> meta) {
-		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), meta));
+		Log.register(varId -> new LogMap1<>(null, varId, null, Persistents.map(), meta));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2Meta(@NotNull Map2Meta<K, V> meta) {
-		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
+		Log.register(varId -> new LogMap2<>(null, varId, null, Persistents.map(), meta));
 	}
 
 	/** dynamic GTable 外层 pmapMeta 注册：经进程级跨批次决胜，与普通 map2Metas 的先到先得分流。 */
 	public static <K, V extends Bean> void registerLogMap2MetaDynamic(@NotNull Map2Meta<K, V> meta,
 																	  @NotNull String where) {
-		registerDynamicWinner(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta), where);
+		registerDynamicWinner(varId -> new LogMap2<>(null, varId, null, Persistents.map(), meta), where);
 	}
 
 	public static <V> void registerLogSet1(@NotNull Class<V> valueClass) {
 		var meta = Set1Meta.get(valueClass);
-		Log.register(varId -> new LogSet1<>(null, varId, null, Empty.set(), meta));
+		Log.register(varId -> new LogSet1<>(null, varId, null, Persistents.set(), meta));
 	}
 
 	public static <V extends Bean> void registerLogOne(@NotNull Class<V> beanClass) {
