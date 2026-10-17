@@ -8,7 +8,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT/ZezeJava" || exit 1
 BATCH="$ROOT/soak-$(date +%Y%m%d-%H%M)"
 mkdir -p "$BATCH"
-XMLBASE="$ROOT/ZezeJavaTest/build/test-results"
+XMLBASE="$ROOT/ZezeJava/ZezeJavaTest/build/test-results"
 
 summarize() { # $1=task dir name -> "tests/failures"
   TASK_DIR="$1" XMLBASE="$XMLBASE" python - <<'EOF'
