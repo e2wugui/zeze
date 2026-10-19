@@ -28,6 +28,29 @@ EOF
 
 START=${1:-1}
 ROUNDS=${2:-10}
+
+# 预检：固定测试端口段 318xx 被占 = 上批孤儿测试 JVM（死批 daemon 挂死后 worker 无人收尸，
+# 抓着监听端口+.pal/.raft 句柄，导致全批确定性 bind/delete 红——soak-20261018-1737 批 20×12f 实锤）。
+# 只杀持有端口的 java 进程（taskkill /T 连同其子进程），清不干净则中止。
+zombie_ports=$(netstat -ano | grep -E 'TCP +127\.0\.0\.1:318[0-9][0-9] .*LISTENING' || true)
+if [ -n "$zombie_ports" ]; then
+  echo "WARN: 318xx 端口段被占用，疑似上批孤儿测试 JVM："
+  echo "$zombie_ports"
+  for pid in $(echo "$zombie_ports" | awk '{print $NF}' | sort -u); do
+    if tasklist //FI "PID eq $pid" 2>/dev/null | grep -qi 'java.exe'; then
+      echo "WARN: 杀孤儿 java PID $pid（注意：若其父构建仍挂死，会因 --continue 复活续跑，须连脚本/launcher/daemon 一并清理）"
+      taskkill //T //F //PID "$pid" 2>/dev/null || true
+    else
+      echo "ABORT: 端口被非 java 进程占用 PID $pid，不敢自动清理" >&2
+      exit 1
+    fi
+  done
+  sleep 2
+  if netstat -ano | grep -qE 'TCP +127\.0\.0\.1:318[0-9][0-9] .*LISTENING'; then
+    echo "ABORT: 清理后 318xx 仍被占用，退出" >&2
+    exit 1
+  fi
+fi
 for i in $(seq "$START" "$ROUNDS"); do
   echo "=== round $i start $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$BATCH/master.log"
   ./gradlew :ZezeJavaTest:test :ZezeJavaTest:integrationTest :ZezeJavaTest:extraTest :ZezeJavaTest:bench --continue --rerun-tasks --console=plain > "$BATCH/round$i.log" 2>&1
