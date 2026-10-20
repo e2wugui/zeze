@@ -618,14 +618,11 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public static void extractZipToDirectory(String zipFilePath, String targetDir) throws IOException {
+		// 根目录与条目路径必须使用相同的规范形式，否则合法的 "."/".." 目标会被误拒绝。
+		Path targetPath = Paths.get(targetDir).toAbsolutePath().normalize();
 		try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFilePath))) {
-			Path targetPath = Paths.get(targetDir).toAbsolutePath();
 			for (ZipEntry ze; (ze = zis.getNextEntry()) != null; ) {
-				Path resolvedPath = targetPath.resolve(ze.getName()).normalize();
-				if (!resolvedPath.startsWith(targetPath)) {
-					// see: https://snyk.io/research/zip-slip-vulnerability
-					throw new IllegalStateException("Entry with an illegal path: " + ze.getName());
-				}
+				Path resolvedPath = resolveSnapshotEntry(targetPath, ze.getName());
 				if (ze.isDirectory())
 					Files.createDirectories(resolvedPath);
 				else {
@@ -634,6 +631,13 @@ public final class Rocks extends StateMachine implements Closeable {
 				}
 			}
 		}
+	}
+
+	private static Path resolveSnapshotEntry(Path targetPath, String entryName) {
+		Path resolvedPath = targetPath.resolve(entryName).normalize();
+		if (!resolvedPath.startsWith(targetPath))
+			throw new IllegalStateException("Entry with an illegal path: " + entryName);
+		return resolvedPath;
 	}
 
 	// checkpoint临时目录是状态机RocksDB的完整物理拷贝，文件多且可能被占用
