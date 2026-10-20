@@ -807,15 +807,26 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			} catch (Exception e) {
 				logger.error("service.OnSocketDisposed exception:", e);
 			} finally {
+				// codec.close 各自独立防护：zstd native 释放失败是编码在案的抛出路径
+				// （ZstdFactory mhFreeCStream 非零→IllegalStateException），input 抛出不得
+				// 令 output 永不关闭（第二个 native 上下文泄漏）。
 				Codec codec = inputCodecChain;
 				if (codec != null) {
 					inputCodecChain = null;
-					codec.close();
+					try {
+						codec.close();
+					} catch (Throwable e) {
+						logger.error("inputCodec.close exception:", e);
+					}
 				}
 				codec = outputCodecChain;
 				if (codec != null) {
 					outputCodecChain = null;
-					codec.close();
+					try {
+						codec.close();
+					} catch (Throwable e) {
+						logger.error("outputCodec.close exception:", e);
+					}
 				}
 			}
 		});

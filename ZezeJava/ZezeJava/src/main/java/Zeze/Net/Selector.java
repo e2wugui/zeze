@@ -320,7 +320,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 					}
 				}, selectTimeout);
 				for (Runnable r; (r = taskQueue.poll()) != null; )
-					r.run();
+					runTask(r); // 逐任务防护（对齐drainClosedTasks路径）：单任务异常不得中断本轮排空——其余连接的dispose任务（在飞Rpc失败/native上下文释放/buffer归还）将滞留到该selector下次活动
 			} catch (Throwable e) { // 必须捕捉所有异常。
 				logger.error("Selector.run exception:", e);
 			}
