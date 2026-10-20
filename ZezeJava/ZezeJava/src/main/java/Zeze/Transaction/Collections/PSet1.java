@@ -160,7 +160,7 @@ public class PSet1<V> extends PSet<V> {
 		if (n == 0)
 			return;
 		// JDK暂存+单发批量（语义等价，见PList1.decode注）。
-		var items = new ArrayList<V>(n);
+		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		for (int i = n; i > 0; i--)
 			items.add(decoder.apply(bb));
 		addAll(items);

@@ -252,7 +252,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (n == 0)
 			return;
 		// JDK暂存+单发批量（语义等价，见PMap1.decode注）；try只包valueFactory的invoke。
-		var m = new HashMap<K, V>(((n + 2) / 3) * 4);
+		var m = new HashMap<K, V>(((initialDecodeCapacity(n) + 2) / 3) * 4);
 		try {
 			for (int i = n; i > 0; i--) {
 				K k = decoder.apply(bb);

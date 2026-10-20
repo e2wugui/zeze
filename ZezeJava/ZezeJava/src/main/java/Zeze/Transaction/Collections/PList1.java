@@ -245,7 +245,7 @@ public class PList1<V> extends PList<V> {
 		if (n == 0)
 			return;
 		// JDK暂存+单发批量：clear后无中间可观测态，与逐条add等价；ktt后端plusAll走builder批量构建。
-		var items = new ArrayList<V>(n);
+		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		for (int i = n; i > 0; i--)
 			items.add(decoder.apply(bb));
 		addAll(items);

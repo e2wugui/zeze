@@ -159,7 +159,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 			return;
 		// JDK暂存+单发批量：clear后无中间可观测态，与逐条put等价（同键后写覆盖语义一致）；
 		// ktt后端plusAll走builder批量构建。
-		var m = new HashMap<K, V>(((n + 2) / 3) * 4);
+		var m = new HashMap<K, V>(((initialDecodeCapacity(n) + 2) / 3) * 4);
 		for (int i = n; i > 0; i--)
 			m.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
 		putAll(m);

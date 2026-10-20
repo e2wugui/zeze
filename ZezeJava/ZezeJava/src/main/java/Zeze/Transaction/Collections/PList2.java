@@ -339,7 +339,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (n == 0)
 			return;
 		// JDK暂存+单发批量（语义等价，见PList1.decode注）；try只包valueFactory的invoke。
-		var items = new ArrayList<V>(n);
+		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		try {
 			for (int i = n; i > 0; i--) {
 				@SuppressWarnings("unchecked")
