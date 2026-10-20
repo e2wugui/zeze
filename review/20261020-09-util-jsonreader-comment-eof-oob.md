@@ -4,7 +4,7 @@
 - **类别**：Json 解析边界/异常路径
 - **子系统**：Util
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Util/JsonReader.java:309`（skipComment 首读）；波及 `:222`（end 的 `buf[++pos]`）、`:257`（skipNext 无界检查）、`:298-300`（skipVar 注释分支）
-- **状态**：⚔️ 对抗验证 **CONFIRMED 且缺陷面更宽**（2026-10-20 红队逐字节推演坐实 "[1 /"（更简触发：顶层 "/"）；6 个 parse 重载全只捕 ReflectiveOperationException（Json.java:588-652）AIOOBE 穿透；DbWeb:289-296 绕过既有 400 分类直达 500+栈，与在档 /api/search 空 body 事故同形。**红队反向发现**：skipVar:267 循环头 buf[pos] 与 skipNext:257 buf[++pos] 完全无 EOF 守卫——纯截断输入 "[1"/"{"/"[ " 同样 AIOOBE，缺陷面比本判更宽，修法须连带 :267。**勘误**：回归用例 "[1] /" 不触发（顶层 parse 在 ']' 后即返回不读尾随），该用例仅经手工 end() 炸）
+- **状态**：⚔️ 对抗验证 CONFIRMED → ✅ **已修复（2026-10-20）**：九个扫描点全补 EOF 守卫——skipComment 首读（尾部孤立'/'按耗尽）、end（同口径返回true）、skipNext（NUL哨兵对齐next()）、skipVar（循环头/','快跳/字符串扫描/嵌套扫描：耗尽按闭合定界符宽容收尾）、parseKeyHash（开引号后/转义/unicode转义/代理对/尾读：键到EOF按终结返回h）、parseKeyHashNoQuot（同款五点）、parseString（快慢路径：串到EOF按闭引号收尾）、parseStringNoQuot（同款）。回归测试 TestJsonTruncatedInputLenient：14 形态×2 入口（Bean/Object）全绿 + 既有 TestJson* 套件 139 用例跑 138 过（1 挂为反射 runner 跨测试写状态污染伪影，该用例新旧 JsonReader 单跑双过——差分定谳零回归）。**残余同类面**（语料外未展开）：parseHex4 等由调用方守卫覆盖；:1378 上方的无引号原始串扫描器未单测覆盖
 
 ## 缺陷
 

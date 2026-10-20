@@ -219,6 +219,8 @@ public final class JsonReader {
 			if ((b = Objects.requireNonNull(buf)[pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
 					return false;
+				if (pos + 1 >= len)
+					return true; // 尾部孤立'/'：未终结的行注释到EOF，按耗尽处理（对齐下方块注释EOF口径）
 				if ((b = Objects.requireNonNull(buf)[++pos]) == '*') {
 					for (pos++; pos < len; pos++)
 						if (buf[pos] == '*' && pos + 1 < len && buf[pos + 1] == '/') {
@@ -254,7 +256,9 @@ public final class JsonReader {
 
 	public int skipNext() {
 		for (int b; ; ) {
-			if ((b = Objects.requireNonNull(buf)[++pos] & 0xff) > ' ') {
+			if (++pos >= Objects.requireNonNull(buf).length)
+				return 0; // 输入耗尽：NUL哨兵（语义同next()，见其注释）；此前buf[++pos]直接AIOOBE
+			if ((b = buf[pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
 					return b;
 				skipComment();
@@ -264,28 +268,33 @@ public final class JsonReader {
 
 	public int skipVar(int e) { // ']' or '}'
 		for (int b, c; ; ) {
-			if ((b = Objects.requireNonNull(buf)[pos]) == ',' || b == '\n')
-				for (; ; )
-					if (((((b = buf[++pos]) & 0xff) - ' ' - 1) ^ (',' - ' ' - 1)) > 0) { // (b & 0xff) > ' ' && b != ','
+			if (pos >= Objects.requireNonNull(buf).length)
+				return e; // 输入耗尽：按遇到闭合定界符宽容收尾（对齐next()哨兵的耗尽回退哲学）
+			if ((b = buf[pos]) == ',' || b == '\n')
+				for (; ; ) {
+					if (++pos >= buf.length)
+						return e; // 截断于分隔符后：同上
+					if (((((b = buf[pos]) & 0xff) - ' ' - 1) ^ (',' - ' ' - 1)) > 0) { // (b & 0xff) > ' ' && b != ','
 						if (b != '/') // check comment
 							return b;
 						skipComment();
 					}
+				}
 			if (b == e)
 				return b;
 			pos++;
 			if (b < '"') // fast path
 				continue;
 			if (b == '"' || b == '\'') {
-				while ((c = buf[pos++]) != b)
+				while (pos < buf.length && (c = buf[pos++]) != b)
 					if (c == '\\')
-						pos++;
+						pos++; // 反斜杠在末字节：pos越len一位由循环条件拦截
 			} else if ((b | 0x20) == '{') { // [:0x5B | 0x20 = {:0x7B
 				// 引号按原始字节判定：0x02|0x20、0x07|0x20分别伪装成'"'、'\''；
 				// [/{、]/}的|0x20混计仅用于嵌套层级配对
-				for (int level = 0; (b = buf[pos++]) != '}' && b != ']' || --level >= 0; ) {
+				for (int level = 0; pos < buf.length && ((b = buf[pos++]) != '}' && b != ']' || --level >= 0); ) {
 					if (b == '"' || b == '\'') {
-						while ((c = buf[pos++]) != b)
+						while (pos < buf.length && (c = buf[pos++]) != b)
 							if (c == '\\')
 								pos++;
 					} else if (b == '{' || b == '[')
@@ -306,7 +315,9 @@ public final class JsonReader {
 
 	private void skipComment() {
 		int b;
-		if ((b = Objects.requireNonNull(buf)[++pos]) == '*') {
+		if (pos + 1 >= Objects.requireNonNull(buf).length)
+			return; // 尾部孤立'/'：注释到EOF按耗尽处理（对齐下方未终结块注释口径），此前首读越界
+		if ((b = buf[++pos]) == '*') {
 			for (pos++; ; ) {
 				if (pos >= Objects.requireNonNull(buf).length)
 					return; // 未终结的块注释到EOF：按耗尽处理，后续next()走NUL哨兵
@@ -973,6 +984,8 @@ public final class JsonReader {
 	int parseKeyHash(int e) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		pos++; // skip the first '"' or '\''
+		if (pos >= buffer.length)
+			return 0; // 截断于开引号后：空键，对齐b==e返回0
 		int b = buffer[pos++];
 		if (b == e)
 			return 0;
@@ -981,11 +994,15 @@ public final class JsonReader {
 		for (; ; ) {
 			if (b == '\\') { // decode escapes and hash the decoded utf-8 bytes, so that the hash matches
 				// getKeyHash() over the raw utf-8 bytes of the field name (same decoding as parseString)
+				if (pos >= buffer.length)
+					return h; // 截断于转义序列：键到EOF按终结处理（对齐noQuot版口径）
 				int c = buffer[pos++];
 				if (c == 'u') {
+					if (pos + 4 > buffer.length)
+						return h; // 截断于unicode转义中段：同上
 					c = parseHex4(buffer, pos);
 					pos += 4;
-					if (c >= 0xd800 && c < 0xdc00 && buffer[pos] == '\\' && buffer[pos + 1] == 'u') {
+					if (c >= 0xd800 && c < 0xdc00 && pos + 6 <= buffer.length && buffer[pos] == '\\' && buffer[pos + 1] == 'u') {
 						int c2 = parseHex4(buffer, pos + 2);
 						if ((c2 & 0xfc00) == 0xdc00) { // utf-16 surrogate pair -> 4-bytes utf-8
 							pos += 6;
@@ -1018,6 +1035,8 @@ public final class JsonReader {
 				}
 			} else
 				h = h * m + b;
+			if (pos >= buffer.length)
+				return h; // 截断：键到EOF按终结处理，此前buffer[pos++]直接AIOOBE
 			if ((b = buffer[pos++]) == e)
 				return h;
 		}
@@ -1033,11 +1052,15 @@ public final class JsonReader {
 		int h = 0;
 		for (; ; ) {
 			if (b == '\\') {
-				int c = Objects.requireNonNull(buf)[++pos]; // c 为转义字符，pos 停在它上面
+				if (pos + 1 >= Objects.requireNonNull(buf).length)
+					return h; // 截断于转义序列：键到EOF按终结处理（对齐':'/空白/注释终结口径）
+				int c = buf[++pos]; // c 为转义字符，pos 停在它上面
 				if (c == 'u') {
+					if (pos + 4 >= buf.length)
+						return h; // 截断于unicode转义中段：同上
 					c = parseHex4(buf, pos + 1); // 4 个 hex 从 'u' 之后开始（对齐 parseKeyHash 的 pos++ 语义）
 					pos += 5; // 'u' + 4 hex，pos 停在转义序列后的第一个字符
-					if (c >= 0xd800 && c < 0xdc00 && buf[pos] == '\\' && buf[pos + 1] == 'u') {
+					if (c >= 0xd800 && c < 0xdc00 && pos + 6 < buf.length && buf[pos] == '\\' && buf[pos + 1] == 'u') {
 						int c2 = parseHex4(buf, pos + 2);
 						if ((c2 & 0xfc00) == 0xdc00) { // utf-16 代理对 -> 4字节 utf-8
 							pos += 6;
@@ -1072,13 +1095,17 @@ public final class JsonReader {
 				}
 				// 转义解码后 pos 已停在"下一个未读字符"：读取它但不前进（下一轮哈希或
 				// 继续识别转义）；直接走循环尾部的 buf[++pos] 会跳过该字符漏哈希。
+				if (pos >= Objects.requireNonNull(buf).length)
+					return h; // 截断于转义后：键终结，同上
 				b = buf[pos];
 				if (((((b & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) || b == '/')
 					return h;
 				continue;
 			} else
 				h = h * m + b;
-			if (((((b = Objects.requireNonNull(buf)[++pos]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
+			if (pos + 1 >= Objects.requireNonNull(buf).length)
+				return h; // 截断：键到EOF按终结处理，此前buf[++pos]直接AIOOBE
+			if (((((b = buf[++pos]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
 				return h;
 			if (b == '/') // check comment
 				return h;
@@ -1375,6 +1402,10 @@ public final class JsonReader {
 		int p = pos, b;
 		final int begin = ++p;
 		for (; ; p++) {
+			if (p >= buffer.length) { // 截断：串到EOF按闭引号宽容收尾，此前buffer[p]直接AIOOBE
+				pos = p;
+				return intern ? intern(buffer, begin, p) : newByteString(buffer, begin, p);
+			}
 			if ((b = buffer[p]) == e) {
 				pos = p + 1; // lucky! finished the fast path
 				return intern ? intern(buffer, begin, p) : newByteString(buffer, begin, p);
@@ -1384,18 +1415,20 @@ public final class JsonReader {
 		}
 		// 慢路径：定位终止符——'\'转义取后续一字节（含\"，不误终止），unicode转义整体跨越。
 		int end;
-		for (end = p; (b = buffer[end]) != e; end++) {
+		for (end = p; end < buffer.length && (b = buffer[end]) != e; end++) {
 			if (b == '\\') {
+				if (end + 1 >= buffer.length)
+					break; // 截断于转义序列：'\'排除在串外，由下方按[begin,end)收尾
 				end++;
 				if (buffer[end] == 'u') {
 					// hex不足4位即遇终止符时不跨越：残缺转义按2字节收尾，闭引号不被当hex吞掉
 					// （吞掉会使串内容与后续结构错位）
-					for (int j = 0; j < 4 && buffer[end + 1] != e; j++)
+					for (int j = 0; j < 4 && end + 1 < buffer.length && buffer[end + 1] != e; j++)
 						end++;
 				}
 			}
 		}
-		pos = end + 1;
+		pos = end < buffer.length ? end + 1 : end; // EOF：pos钉在len，不越界+1
 		return decodeStringSlow(begin, end);
 	}
 
@@ -1404,24 +1437,27 @@ public final class JsonReader {
 		int p = pos, b;
 		final int begin = p;
 		for (; ; p++) {
-			if (((((b = buffer[p]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
-				return intern(buffer, begin, pos = p); // lucky! finished the fast path
+			if (p >= buffer.length || (((((b = buffer[p]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0)) // (b & 0xff) <= ' ' || b == ':' || EOF截断
+				return intern(buffer, begin, pos = p); // lucky! finished the fast path（EOF：键串按终结收尾）
 			if ((b ^ '\\') < 1) // '\\' or multibyte char
 				break; // jump to the slow path below
 		}
 		// 慢路径：定位终止符——转义跨越同parseString(e,intern)，谓词为键终止符。
 		int end;
-		for (end = p; ((((b = buffer[end]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0; end++) {
+		for (end = p; end < buffer.length && ((((b = buffer[end]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0; end++) {
 			if (b == '\\') {
+				if (end + 1 >= buffer.length)
+					break; // 截断于转义序列：'\'排除在串外，由下方按[begin,end)收尾
 				end++;
 				if (buffer[end] == 'u') {
 					// 同parseString：hex不足4位遇键终止符（≤' '或':'）不跨越，残缺转义按2字节收尾
-					for (int j = 0; j < 4 && ((((buffer[end + 1] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0); j++)
+					for (int j = 0; j < 4 && end + 1 < buffer.length
+							&& ((((buffer[end + 1] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0); j++)
 						end++;
 				}
 			}
 		}
-		pos = end + 1;
+		pos = end < buffer.length ? end + 1 : end; // EOF：pos钉在len，不越界+1
 		return decodeStringSlow(begin, end);
 	}
 
