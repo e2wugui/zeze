@@ -624,6 +624,10 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						case 2 -> KV.create(0L, false);
 						// 3=版本条件的UPDATE未命中行：并发写者已抢先，映射false走CAS重读重试
 						case 3 -> KV.create(0L, false);
+						// 4=首插路径INSERT IGNORE撞并发重复键（他进程在SELECT与INSERT间抢先认领，
+						// 见过程体SET ret_value=4）：败者须回读真正胜者走CAS重试（对齐Tikv/MongoDb
+						// 同场景契约），此前落入default抛ISE会中断OwnerCheck/publishSchemas启动
+						case 4 -> KV.create(0L, false);
 						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error");
 					};
 				}

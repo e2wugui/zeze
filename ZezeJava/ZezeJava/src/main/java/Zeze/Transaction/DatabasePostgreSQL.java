@@ -485,6 +485,9 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						case 2 -> KV.create(0L, false);
 						// 3=版本条件的UPDATE未命中行：并发写者已抢先，映射false走CAS重读重试
 						case 3 -> KV.create(0L, false);
+						// 4=首插路径撞并发重复键（ret_value := 4，他进程抢先认领）：败者回读胜者
+						// 走CAS重试（对齐Tikv/MongoDb契约），不得落default抛ISE中断启动
+						case 4 -> KV.create(0L, false);
 						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error");
 					};
 				}
