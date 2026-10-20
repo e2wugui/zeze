@@ -4,7 +4,7 @@
 - **类别**：解码递归深度无上限（与 SkipUnknownField 防护不对称）
 - **子系统**：Serialize
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Serialize/GenericBean.java:52-66`（decode）、`:102-103`（BEAN/DYNAMIC 递归）；对照 `IByteBuffer.java:704-721`（SkipUnknownField 的 MAX_SKIP_UNKNOWN_FIELD_DEPTH=100 先例）
-- **状态**：⚔️ 对抗验证 **DOWNGRADED → P3（public API 加固项）**（2026-10-20 红队：技术内核全部属实——无界递归、2字节/层、SOE 穿透、MAX=100 先例、hist-02 decode-SOE 毒记录事故类；但可达性比原判更窄：原判引的唯一消费方 Verify.toString:107 是**零调用者死代码**（主审抽查复核确认——Verify.run 走 ApplyTable.apply 的 schema 解码不经 GenericBean），全仓无网络可达路径，无 in-repo 活进程可崩。保留不撤：public API + 下游仓（zege/MetaGame）解网络字节即继承 + 库内先例确立的防护标准。修复优先级降为加固项）
+- **状态**：📋 **记账不修（2026-10-20 owner 裁定）**——ThreadLocal 深度计数方案（SkipUnknownField 同款）对 GenericBean 过于沉重，暂不加防护；本条留档为已知风险项。对抗验证结论保留：技术内核全部属实（无界递归、2字节/层、SOE 穿透 catch(Exception)、库内 MAX=100 先例、hist-02 decode-SOE 毒记录事故类），但可达性极窄——唯一消费方 Verify.toString:107 是零调用者死代码（Verify.run 走 ApplyTable.apply 的 schema 解码不经 GenericBean），全仓无网络可达路径、无 in-repo 活进程可崩。**风险敞口备忘**：GenericBean 是 public API，下游仓若拿它解不可信字节（每层 2 字节即可构造数万层递归→SOE）即继承此风险；届时再议防护（轻量替代可考虑：decode 入口的字节数/节点数总预算闸，一次性计数、无 ThreadLocal）
 
 ## 缺陷
 

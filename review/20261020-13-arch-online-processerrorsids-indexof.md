@@ -4,7 +4,7 @@
 - **类别**：网关断链在线清理归因错误
 - **子系统**：Arch / Game
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Arch/Online.java:939-948`；`Game/Online.java:1340-1346`（同型）
-- **状态**：⚔️ 对抗验证 **CONFIRMED**（2026-10-20 红队机制链全环实锤：linkSid 确 per-connection（ProviderUserSession:79-81←Dispatch.Argument.linkSid=连接 sessionId）但登录模型**不强制一连接一登录**——Game 换角（Online.java:2046-2075 只查同 roleId 重复）后 linkd 侧 userState 单值（LinkdUserSession:30）令 LinkBroken 主通告只能清最后一个 roleId（ProviderWithOnline:54-61），**旧 roleId 断链清理唯一入口恰是本缺陷的 processErrorSids**——缺陷从边角升格为该场景主路径失效。分组平行 add（Arch:998-999/Game:1390-1391）+linkd 逐条上报无去重（LinkdProvider:556-572）+LongList.indexOf 恒返首匹配（:370-382）全环在案。**两处表述修正**：Arch 触发面=同连接双登录的异常客户端行为（常态多端点=多连接=不同 linkSid=不触发）；"第一个登录被重复标记"实为幂等早退空转（onSendError 三态）。自愈通道 CheckLinkSession 探测本身也走 processErrorSids 缺陷路径，收敛需第一个登录先走完 eLinkBroken→DelayLogout 移出分组，比原判更长（仍 600s 级有界））
+- **状态**：📋 **owner 裁定关闭·不修（2026-10-20）**——**两 roleId 不可能共享 linkSid**：正常协议下换角=先 Logout 再 Login，一个连接任一时刻只有一个活跃 roleId，分组 LinkSids 不会含重复 sid；出现重复即客户端已违约出错，不在服务端正确性契约内。主审复核的机制事实保留备查：服务端确无同连接双登录的强制拦截（ProcessSetUserState:627-637 对旧 context 无清理覆盖、ProcessLoginRequest:2063-2075 只对同 roleId kick）——即触发该场景需客户端在同连接上 Login 新角色而不 Logout 旧角色的错误行为，此时 processErrorSids 的 indexOf 归因退化属错误场景下的尽力而为，不构成缺陷
 
 ## 缺陷
 

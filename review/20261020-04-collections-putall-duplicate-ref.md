@@ -4,7 +4,7 @@
 - **类别**：别名污染/批量原子性缺口
 - **子系统**：Transaction/Collections
 - **位置**：`Transaction/Collections/PMap2.java:97-113`；同型 `PList2.java:162-167`、`PList2.java:218-228`、`PSortedMap2.java:120-129`
-- **状态**：⚔️ 对抗验证 **CONFIRMED**（2026-10-20 红队：致命角度"同 root 幂等放行"被 Bean.java:87-89 否决——无条件抛不看 root；finalRollback 只清日志跑回调、resetRootInfo 仅 redo 路径（Transaction.java:261←:482/:546）回滚不救；catch 后复用 bean 是 TestRocksRaftCollPutPoisonGuard 认可用法；四处同型零身份去重。定性"幽灵挂接"：rootInfo/parent/mapKey 已写在 redoBeans 里但 map/mapLog 都没有）
+- **状态**：📋 **owner 裁定不修（2026-10-20）**——**HasManagedException 的语义就是 Abort**：设计之初就允许日志/挂接状态变脏，命中即放弃整个事务，不需要为保持日志干净继续加强检查（预检把 isManaged 检查提前、试图保持日志干净，是历史上的补丁而非设计意图——既然已这样修了就保留现状，但不追加批内去重等强化）。对抗验证的技术结论保留备查：红队证实"同 root 幂等放行"不存在（Bean.java:87-89 无条件抛，throw 方式已修订）、回滚不恢复 rootInfo/mapKey、四处同型零身份去重、批内重复引用可致 bean 永久脏归属（须放弃事务连同 bean 一起丢弃）
 
 ## 缺陷
 
@@ -37,5 +37,6 @@ for (var e : m.entrySet()) {              // 挂接：第一个键挂上后 bean
 
 ## 修法方向
 
-预检循环用 IdentityHashSet 对本批 bean 值去重（重复即抛），兑现注释承诺；四个同型点
-（PMap2/PList2×2/PSortedMap2）一并修。
+~~预检循环用 IdentityHashSet 对本批 bean 值去重（重复即抛），兑现注释承诺；四个同型点
+（PMap2/PList2×2/PSortedMap2）一并修。~~ **已被 owner 裁定否决（2026-10-20）**：加强检查
+保持日志干净不是设计意图，HasManagedException=Abort、放弃事务即可；见顶部状态。

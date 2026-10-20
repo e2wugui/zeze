@@ -109,6 +109,11 @@ public class RedirectBase {
 		if (ps != null && (socket = Objects.requireNonNull(service).GetSocket(ps.sessionId)) != null && !socket.isClosed())
 			return socket;
 
+		// conc<=1 的 @RedirectHash 语义即 orOtherServer（2026-10-20 owner 定谳）：按 hash 选中
+		// 归属服务器，不可达时尽力而为改投环上任意活 provider（551241edb 引入"尽可能返回一个
+		// 有效的socket"；RedirectToServer 的 orOtherServer 选项本就经 choiceHash(module, serverId, 1)
+		// 复用本块）。依赖服务器本地态（内存态/_tlocal）的方法应声明 conc>1——那条路径目标
+		// 不可达时显式抛 RedirectException，不做改投。
 		if (dataConcurrentLevel <= 1) {
 			servers.lock();
 			try {
