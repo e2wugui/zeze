@@ -75,12 +75,10 @@ public class TestGTableStaleRowAndPhantomRow {
 			}, "T27.PhantomRow").call();
 			Assertions.assertEquals(Procedure.AbortException, result, "throwAbort语义：返回AbortException(-8)");
 
+			// 验证事务本身不得创建记录（getOrAdd会建空记录落库，污染"无残留"判定）：
+			// 非创建get断言内存无记录，checkpointRun后断言数据库亦无——中止的事务不落库。
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				var g = requireNonNull(table).getOrAdd(1L).getGTable();
-				// 核心：异常行2不得作为空行残留并持久化
-				Assertions.assertFalse(g.containsRow(2), "内层失败的行不得以幻影空行残留");
-				// 整体Abort：同事务的行1一并回滚，不残留
-				Assertions.assertFalse(g.containsRow(1), "整体Abort下行1一并回滚");
+				Assertions.assertNull(requireNonNull(table).get(1L), "整体Abort后记录1不得存在于内存");
 				return Procedure.Success;
 			}, "GTable.VerifyAbort").call());
 			app.checkpointRun();
