@@ -1573,35 +1573,32 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public void sendReliableNotifyDirect(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol, boolean quietWhenAbsent) {
-		providerApp.zeze.runTaskOneByOneByKey(
-				listenerName,
-				"Online.sendReliableNotify." + listenerName,
-				() -> {
-					var online = getLoginOnline(roleId);
-					if (online == null)
-						return Procedure.Success;
-					if (!online.getReliableNotifyMark().contains(listenerName))
-						return Procedure.Success; // 相关数据装载的时候要同步设置这个。
+		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+			var online = getLoginOnline(roleId);
+			if (online == null)
+				return Procedure.Success;
+			if (!online.getReliableNotifyMark().contains(listenerName))
+				return Procedure.Success; // 相关数据装载的时候要同步设置这个。
 
-					// 先保存在再发送，然后客户端还会确认。
-					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-					var queue = openQueue(roleId);
-					var bNotify = new BNotify();
-					bNotify.setFullEncodedProtocol(fullEncodedProtocol);
-					queue.add(bNotify);
+			// 先保存在再发送，然后客户端还会确认。
+			// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
+			var queue = openQueue(roleId);
+			var bNotify = new BNotify();
+			bNotify.setFullEncodedProtocol(fullEncodedProtocol);
+			queue.add(bNotify);
 
-					// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-					var notify = new SReliableNotify(new BReliableNotify(online.getReliableNotifyIndex()));
-					online.setReliableNotifyIndex(online.getReliableNotifyIndex() + 1); // after set notify.Argument
-					notify.Argument.getNotifies().add(fullEncodedProtocol);
+			// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+			var notify = new SReliableNotify(new BReliableNotify(online.getReliableNotifyIndex()));
+			online.setReliableNotifyIndex(online.getReliableNotifyIndex() + 1); // after set notify.Argument
+			notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-					Transaction.whileCommit(() -> {
-						if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-							AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
-						sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), quietWhenAbsent);
-					});
-					return Procedure.Success;
-				});
+			Transaction.whileCommit(() -> {
+				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+					AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
+				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), quietWhenAbsent);
+			});
+			return Procedure.Success;
+		}, "Online.sendReliableNotify." + listenerName)).executeOneByOne(listenerName);
 	}
 
 	/**

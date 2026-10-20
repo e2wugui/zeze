@@ -107,11 +107,14 @@ public class EventDispatcher {
 				var classNameOrHandle = handle.classNameOrHandle;
 				if (classNameOrHandle instanceof EventHandle) {
 					var actionName = "EventDispatch." + name + ".runAsync." + classNameOrHandle.getClass().getName();
-					app.runTaskOneByOneByKey(oneByOneKey, actionName, () -> ((EventHandle)classNameOrHandle).invoke(sender, arg));
+					TaskSpec.ofProcedure(app.newProcedure(
+							() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName)).executeOneByOne(oneByOneKey);
 				} else {
 					var className = (String)classNameOrHandle;
 					var actionName = "EventDispatch." + name + ".runAsync." + className;
-					app.runTaskOneByOneByKey(oneByOneKey, actionName, () -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg));
+					TaskSpec.ofProcedure(app.newProcedure(
+							() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName))
+							.executeOneByOne(oneByOneKey);
 				}
 			}
 		}

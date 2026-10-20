@@ -162,6 +162,8 @@ public final class FastServerIds {
 	public static final int TEST_RENAME_TABLE_AFTER_COMPAT_CHECK = seg("TestRenameTableAfterCompatCheck", 12822, 1);
 	public static final int TEST_ADD_TABLE_ATOMICITY = seg("TestAddTableAtomicity", 12823, 1);
 	public static final int TEST_CLEAR_IN_USE_CLOSES_CREATED_DATABASES = seg("TestClearInUseClosesCreatedDatabases", 12824, 1);
+	public static final int TEST_LOCAL_CACHE_RESOURCES = seg("TestLocalCacheResources", 8000, 6);
+
 	public static final int TEST_CACHE_DIR_LOCK = seg("TestCacheDirLock", 12826, 1);
 	public static final int TEST_APPLY_CURSOR_PERSISTENCE = seg("TestApplyCursorPersistence", 12828, 1);
 	public static final int TEST_APPLY_CURSOR_PERSISTENCE_MEMORY = seg("TestApplyCursorPersistence#memory", 12829, 1);

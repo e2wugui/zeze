@@ -147,7 +147,10 @@ public class TestTableXMirrorMissFallback {
 		// 但所有事务入口直接抛出——不触任何native路径）。
 		var realMirror = requireNonNull(app).getLocalRocksCacheDb();
 		var brokenMirror = new BrokenMirrorDb(app, tempDir.resolve("brokenMirror"));
-		var field = Application.class.getDeclaredField("LocalRocksCacheDb");
+		var cacheField = Application.class.getDeclaredField("localCache");
+		cacheField.setAccessible(true);
+		var cache = cacheField.get(app);
+		var field = cache.getClass().getDeclaredField("database");
 		field.setAccessible(true);
 		try {
 			// 基线：镜像健康期插入（Immediately：提交返回即clean、storage与镜像均已写）。
@@ -158,7 +161,7 @@ public class TestTableXMirrorMissFallback {
 			Assertions.assertEquals(0, table.getCacheSize());
 
 			try {
-				field.set(app, brokenMirror);
+				field.set(cache, brokenMirror);
 				// 冷装载·存在记录：storage读成功 → rocksCachePut的beginTransaction失败 → 事务失败
 				// + 记录作废出缓存（作废即"不得以clean态失去镜像备份"的落地：记录进不了快路径）。
 				Assertions.assertEquals(Procedure.Exception, get(KEY_EXISTENT, new long[1]),
@@ -174,7 +177,7 @@ public class TestTableXMirrorMissFallback {
 				Assertions.assertThrows(RuntimeException.class, () -> requireNonNull(table).selectDirty(KEY_EXISTENT),
 						"selectDirty的rocksCachePut失败必须抛出（契约变化：不再吞）");
 			} finally {
-				field.set(app, realMirror); // 恢复真库，stopApp走正常关闭路径
+				field.set(cache, realMirror); // 恢复真库，stopApp走正常关闭路径
 			}
 
 			// 恢复访问（"下一次再进来"）：作废的记录由新Record1经慢路径重装载（storage读+镜像
@@ -195,7 +198,10 @@ public class TestTableXMirrorMissFallback {
 		startAppWithOldTable();
 		var realMirror = requireNonNull(app).getLocalRocksCacheDb();
 		var brokenMirror = new BrokenMirrorDb(app, tempDir.resolve("brokenMirrorOld"));
-		var field = Application.class.getDeclaredField("LocalRocksCacheDb");
+		var cacheField = Application.class.getDeclaredField("localCache");
+		cacheField.setAccessible(true);
+		var cache = cacheField.get(app);
+		var field = cache.getClass().getDeclaredField("database");
 		field.setAccessible(true);
 		try {
 			seedOldDatabase(KEY_OLD, 100);
@@ -212,7 +218,7 @@ public class TestTableXMirrorMissFallback {
 			Assertions.assertEquals(0, table.getCacheSize());
 
 			try {
-				field.set(app, brokenMirror);
+				field.set(cache, brokenMirror);
 				// 冷装载：新库miss→oldTable命中→Immediately分支镜像事务失败→抛出→事务失败+记录作废。
 				//（修复前此处catch吞掉后继续，记录以clean态仅存oldTable+内存——softValue GC后
 				// 镜像miss读成"不存在"，续写覆盖丢数据。）
@@ -220,7 +226,7 @@ public class TestTableXMirrorMissFallback {
 						"倒库分支镜像写失败必须使装载事务失败（不得吞）");
 				Assertions.assertEquals(0, table.getCacheSize(), "失败装载的记录必须被作废出缓存");
 			} finally {
-				field.set(app, realMirror);
+				field.set(cache, realMirror);
 			}
 
 			// 恢复访问（"下一次再进来"）：作废记录由新Record1经倒库分支（oldTable命中+真库

@@ -1,10 +1,17 @@
 package Benchmark;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import org.jspecify.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
-import Zeze.Application;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.BitConverter;
 import Zeze.Util.RocksDatabase;
@@ -15,10 +22,45 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.WriteBatch;
 
 public class BenchRocksDb {
+	// 仅供基准清理工作目录，不参与 Application 生命周期。
+	static void renameAndDeleteDirectory(File directory) throws IOException {
+		if (directory.isDirectory()) {
+			var path = directory.getAbsolutePath();
+			var renamed = new File(path + ".del");
+			for (int i = 0; !directory.renameTo(renamed); renamed = new File(path + ".del" + i)) {
+				if (++i >= 10000)
+					throw new IOException("rename failed: " + path);
+			}
+			directory = renamed;
+		}
+		Files.walkFileTree(directory.toPath(), new SimpleFileVisitor<>() {
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				Files.deleteIfExists(file);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult postVisitDirectory(Path dir, @Nullable IOException error) throws IOException {
+				if (error != null)
+					throw error;
+				Files.deleteIfExists(dir);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFileFailed(Path file, IOException error) throws IOException {
+				if (error instanceof NoSuchFileException)
+					return FileVisitResult.CONTINUE;
+				throw error;
+			}
+		});
+	}
+
 	public static void main1(String[] args) throws Exception {
 		System.out.println("begin");
 		var dbHome = "~$BenchRocksDb";
-		Application.renameAndDeleteDirectory(new File(dbHome));
+		renameAndDeleteDirectory(new File(dbHome));
 
 		long t = System.nanoTime();
 		try (var rocksDb = new RocksDatabase(dbHome)) {
@@ -39,7 +81,7 @@ public class BenchRocksDb {
 		System.out.println("begin");
 		RocksDB.loadLibrary();
 		var dbHome = "~$BenchRocksDb";
-		Application.renameAndDeleteDirectory(new File(dbHome));
+		renameAndDeleteDirectory(new File(dbHome));
 		var cache = new LRUCache(8 * 1024 * 1024);
 		var cfg = new BlockBasedTableConfig();
 		cfg.setBlockCache(cache);

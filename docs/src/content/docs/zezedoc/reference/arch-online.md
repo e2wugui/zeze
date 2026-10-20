@@ -88,7 +88,7 @@ online.getLoginEvents().run((sender, arg) -> {
 | `sendReliableNotifyWhileRollback(p)` | 事务回滚时发送 |
 | `removeReliableNotifyMark(account, clientId, listenerName)` | 关闭通道 |
 
-`Relogin` 时未确认消息同步；`runTaskOneByOneByKey` 串行化，保证按序。
+`Relogin` 时未确认消息同步；`TaskSpec.ofProcedure(...).executeOneByOne(listenerName)` 串行化，保证按序。
 
 ## SendToLogin（发送给登录端）
 

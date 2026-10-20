@@ -2,7 +2,6 @@ package Zeze;
 
 import java.util.Objects;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.charset.Charset;
@@ -54,7 +53,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.EventDispatcher;
-import Zeze.Util.FileMutex;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
@@ -121,18 +119,7 @@ public final class Application extends ReentrantLock {
 
 	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
 
-	/**
-	 * 本地Rocks缓存数据库虽然也用了Database接口，但它不给用户提供事务操作的表。
-	 * 1. 不需要加入到Databases里面。
-	 * 2. 不需要在里面注册表(Database.AddTable)。
-	 * 3. Flush的时候特殊处理。see Checkpoint。
-	 */
-	private @Nullable DatabaseRocksDb LocalRocksCacheDb;
-
-	// LocalRocksCacheDb目录（zeze_cache_<serverId>，目录名仅含serverId，同JVM
-	// 多App撞号或跨进程同CWD误配时互删活跃目录）的互斥锁，持有覆盖start与stop两个
-	// 删除入口的整个生命周期；失败语义见FileMutex。
-	private @Nullable FileMutex localRocksCacheMutex;
+	private final LocalCacheResources localCache = new LocalCacheResources();
 
 	private @Nullable Dbh2AgentManager dbh2AgentManager;
 	private @Nullable HotManager hotManager;
@@ -330,7 +317,7 @@ public final class Application extends ReentrantLock {
 	}
 
 	public @Nullable DatabaseRocksDb getLocalRocksCacheDb() {
-		return LocalRocksCacheDb;
+		return localCache.database();
 	}
 
 	public Database addTable(String dbName, Table table) {
@@ -525,39 +512,6 @@ public final class Application extends ReentrantLock {
 		return new ProtocolProcedure(this, action, actionName, level, protocolClassName, protocolRawArgument);
 	}
 
-	public static void deleteDirectory(File directoryToBeDeleted) throws IOException, InterruptedException {
-		var allContents = directoryToBeDeleted.listFiles();
-		if (allContents != null) {
-			for (File file : allContents)
-				deleteDirectory(file);
-		}
-		for (int i = 0; directoryToBeDeleted.exists(); ) {
-			//noinspection ResultOfMethodCallIgnored
-			directoryToBeDeleted.delete();
-			if (!directoryToBeDeleted.exists())
-				break;
-			if (++i >= 100)
-				throw new IOException("delete failed: " + directoryToBeDeleted.getAbsolutePath());
-			//noinspection BusyWait
-			Thread.sleep(100);
-		}
-	}
-
-	// 先把要删的目录改名再删除,会更安全一些,降低并发访问目录中文件的可能性
-	public static void renameAndDeleteDirectory(File directoryToBeDeleted)
-		throws IOException, InterruptedException {
-		if (directoryToBeDeleted.isDirectory()) {
-			var path = directoryToBeDeleted.getAbsolutePath();
-			var newFile = new File(path + ".del");
-			for (int i = 0; !directoryToBeDeleted.renameTo(newFile); newFile = new File(path + ".del" + i)) {
-				if (++i >= 10000)
-					throw new IOException("rename failed: " + path);
-			}
-			directoryToBeDeleted = newFile;
-		}
-		deleteDirectory(directoryToBeDeleted);
-	}
-
 	public void endStart() {
 		// noDatabase模式不创建delayRemove（构造期跳过）：生命周期钩子对两种模式都要有
 		// 定义良好的行为——no-op（与无数据库语义一致）。
@@ -741,102 +695,7 @@ public final class Application extends ReentrantLock {
 					+ " startState = " + startState);
 			startState = StartState.eStarting;
 
-			logSystemProperties();
-			logZezeVersion();
-			var serverId = conf.getServerId();
-			logger.info("Start ServerId={}", serverId);
-
-			var hasDatabase = !isNoDatabase();
-			if (hasDatabase) {
-				if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse))) {
-					conf.clearInUse(databases);
-				}
-
-				// Set Database InUse
-				for (var db : databases.values())
-					Objects.requireNonNull(db.getDirectOperates()).setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
-				addShutdownHook();
-
-				// Open RocksCache
-				var dbConf = new Config.DatabaseConf();
-				dbConf.setName("zeze_cache_" + serverId);
-				dbConf.setDatabaseUrl(dbConf.getName());
-				// 先锁后删——同JVM/跨进程撞serverId在删目录前即fail-fast。
-				localRocksCacheMutex = FileMutex.acquire(dbConf.getDatabaseUrl() + ".lock",
-					"zeze_cache dir (serverId=" + conf.getServerId() + ")");
-				deleteDirectory(new File(dbConf.getDatabaseUrl()));
-				dbConf.setDatabaseType(Config.DbType.RocksDb);
-				LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf, true);
-				LocalRocksCacheDb.open(this);
-			} else {
-				addShutdownHook();
-			}
-
-			var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
-			// raft版SM的地址来自raftXml而非ServiceConf节点，按Agent服务名查serviceConfMap必为null，
-			// 旧门槛会跳过serviceManager.start()，raft版SM永不启动，subscribeService挂死在waitLoginReady。
-			var isRaftServiceManager = "raft".equals(conf.getServiceManager());
-			if ((serviceManagerConf != null || isRaftServiceManager) && serviceManager != null) {
-				serviceManager.start();
-				try {
-					serviceManager.waitReady();
-				} catch (Exception ex) {
-					// raft 版第一次等待由于选择leader原因肯定会失败一次。
-					//noinspection ConstantValue
-					if (ex instanceof InterruptedException)
-						Thread.currentThread().interrupt(); // 恢复被底层清除的中断标志
-					serviceManager.waitReady();
-				}
-			}
-
-			if (hasDatabase) {
-				atomicOpenDatabase();
-
-				// Open Global
-				var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
-				if (hosts.length > 0) {
-					var isRaft = hosts[0].endsWith(".xml");
-					if (!isRaft) {
-						var impl = new GlobalAgent(this, hosts, conf.getGlobalCacheManagerPort());
-						globalAgent = impl;
-						achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
-						impl.start();
-					} else {
-						var impl = new GlobalCacheManagerWithRaftAgent(this, hosts);
-						globalAgent = impl;
-						achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
-						impl.start();
-					}
-				}
-
-				deadlockBreaker = new DeadlockBreaker(this);
-				// Checkpoint
-				checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
-				Objects.requireNonNull(checkpoint).start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
-
-				// start last
-				if (achillesHeelDaemon != null)
-					achillesHeelDaemon.start();
-
-				// 接管租约：Application.start()返回前claim完成（需Checkpoint已建立），
-				// 此后Timer.start/startLast、CsQueue构造全走addScope晚注册stamp。
-				if (takeover != null) {
-					Objects.requireNonNull(takeover).start();
-					// SM Suspect提示→tryTransfer（非raft与raft版SM都会在会话断开时广播Suspect）。
-					if (serviceManager != null)
-						serviceManager.setOnSuspect(deadServerId -> Objects.requireNonNull(takeover).tryTransfer(deadServerId));
-				}
-
-				Objects.requireNonNull(delayRemove).start();
-				if (timer != null)
-					timer.loadCustomClassAnd();
-				if (deadlockBreaker != null)
-					deadlockBreaker.start();
-				if (onz != null)
-					onz.start();
-				if (autoKey != null)
-					transactionIdAutoKey = autoKey.getOrAdd("TransactionIdAutoKey");
-			}
+			startUnderLock();
 
 			startState = StartState.eStarted;
 
@@ -856,170 +715,252 @@ public final class Application extends ReentrantLock {
 			// 拆解全程处于eStopping。
 			startState = StartState.eStopping;
 
-			// 同名实例时putIfAbsent只保留先注册者，无条件remove会错删他人的注册，
-			// 导致幸存实例的Online.findOnline失效（延迟登出静默丢失）。remove(key,value)
-			// 只删属于自己的注册（Application按引用判等）。
-			instances.remove(getProjectName(), this);
+			stopUnderLock();
 
-			if (null != checkpointFuture) {
-				// get()在检查点任务以异常完成时抛ExecutionException并从stop逃逸，
-				// startState滞留 eStopping、数据库未关，后续start()无法恢复。任务异常
-				// 已由Task框架记录，这里吞掉保证停机流程继续走完。
-				try {
-					checkpointFuture.get();
-				} catch (java.util.concurrent.ExecutionException e) {
-					logger.error("checkpoint task exception (ignored to complete stop)", e);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-				}
-				checkpointFuture = null;
-			}
-			if (onz != null) {
-				stopStep("onz.stop", onz::stop);
-				onz = null;
-			}
-
-			if (deadlockBreaker != null) {
-				stopStep("deadlockBreaker.shutdown", deadlockBreaker::shutdown);
-				deadlockBreaker = null;
-			}
-
-			ShutdownHook.remove(this);
-			logger.info("Stop ServerId={}", conf.getServerId());
-
-			if (takeover != null) // 早期释放：正常关闭刷新租约宽限期，一个TTL后可被接管（缩容；数据库尚未关闭）。
-				stopStep("takeover.release", Objects.requireNonNull(takeover)::release);
-
-			if (achillesHeelDaemon != null) {
-				stopStep("achillesHeelDaemon.stopAndJoin", achillesHeelDaemon::stopAndJoin);
-				achillesHeelDaemon = null;
-			}
-
-			// 先停事务生产组件（delayRemove/safeBatch/timer）并等待在途任务，再关闭提交
-			// 闸门并由checkpoint.stopAndJoin收尾终检点，最后才关globalAgent（组件事务在
-			// 闸门关闭前可能还需GCM申请锁）——保证"最后一个提交先于最后一次flush"且两者
-			// 都先于NormalClose撤权（见下方"关闸先于撤权"）。关闸后到达的提交由
-			// Transaction.perform/RelativeRecordSet.tryUpdateAndCheckpoint的停机拒绝转为
-			// Closed显式失败，不再静默丢弃（假成功）。
-			if (delayRemove != null) {
-				stopStep("delayRemove.stop", delayRemove::stop);
-				delayRemove = null;
-			}
-
-			if (safeBatch != null) {
-				stopStep("safeBatch.stop", safeBatch::stop);
-				safeBatch = null;
-			}
-			if (timer != null) {
-				stopStep("timer.stop", timer::stop);
-				timer = null;
-			}
-
-			// 关闸先于撤权（durability-before-downgrade，TableX.reduceInvalid同款不变式）：
-			// NormalClose会让GCM立即释放本server全部记录锁，他进程随后可Acquire并从后台库
-			// 读旧值改写提交。若提交闸门在撤权后才关闭，撤权后到关闸前的在途事务仍能取得
-			// 提交使用权并登记脏数据，其flush发生在权限释放之后——旧脏值覆盖他进程新值
-			// （跨进程丢更新）。现在组件全停后：先冲刷一轮已注册脏集，再关闸排空在途提交
-			// 并完成终检点flush（全程权限仍有效），最后才NormalClose撤权。
-			if (globalAgent != null && checkpoint != null)
-				stopStep("checkpointRun before close commit gate", this::checkpointRun);
-
-			if (checkpoint != null) {
-				// 先撤销入口；stopAndJoin关闭提交使用权并等待已取得使用权的提交完成登记/落库，
-				// 此后终检点才运行，不会漏掉仍持有旧checkpoint引用的迟到登记。
-				var cp = Objects.requireNonNull(checkpoint);
-				checkpoint = null;
-				stopStep("checkpoint.stopAndJoin", () -> {
-					try {
-						cp.stopAndJoin();
-					} catch (Throwable ex) {
-						// stopAndJoin的join被中断（forceThrow）时
-						// 检查点线程仍存活（可能正要进入final flush），吞掉异常直接继续会在它
-						// 还要落库时关库——与在飞数据通路并发close是native UAF类。
-						// 有界忽略中断重join，超时告警继续（终态必达不变）。
-						logger.error("checkpoint stopAndJoin interrupted/failed, bounded re-join before close", ex);
-						cp.joinIgnoreInterrupt(CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
-					}
-				});
-				// mid-flush halt窄窗——停机拒绝只拦新提交，不等待已过门的
-				// 在飞flush（Immediately模式业务线程的checkpoint.flush、Reduce降级flush、
-				// checkpointRun的runOnce）：它们已打开LocalRocksCacheDb事务，与随后的
-				// close+deleteDirectory并发同样是native UAF类。有界等待归零，
-				// 超时告警继续（30s上限，保证停机不因此永久挂起）。
-				if (!cp.waitNoActiveFlush(CHECKPOINT_DRAIN_TIMEOUT_MILLIS))
-					logger.error("checkpoint active flush not drained in {}ms, continue to close databases "
-						+ "(risk of close racing in-flight flush)", CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
-			}
-
-			if (flushWhenReduceTimerTask != null) {
-				var task = flushWhenReduceTimerTask;
-				stopStep("flushWhenReduceTimerTask.cancel", () -> task.cancel(false));
-				flushWhenReduceTimerTask = null;
-			}
-
-			if (globalAgent != null) {
-				var ga = globalAgent;
-				stopStep("globalAgent.stop", ga::stop);
-				// Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被stop
-				// 收编，其checkpointRun→flush与下方LocalRocksCacheDb.close+deleteDirectory并发
-				// 存在native UAF类窗口。关库前有界join，超时告警继续。
-				stopStep("globalAgent.awaitReleaser", () -> ga.awaitReleaser(CHECKPOINT_DRAIN_TIMEOUT_MILLIS));
-				globalAgent = null;
-			}
-
-			if (history != null) {
-				var plugin = history;
-				stopStep("history.close", plugin::close);
-				history = null;
-			}
-
-			if (LocalRocksCacheDb != null) {
-				var rocksCacheDb = LocalRocksCacheDb;
-				var dir = rocksCacheDb.getDatabaseUrl();
-				stopStep("LocalRocksCacheDb.close", () -> {
-					rocksCacheDb.close();
-					deleteDirectory(new File(dir));
-				});
-				LocalRocksCacheDb = null;
-			}
-			// start失败于锁后（LocalRocksCacheDb尚未赋值）也要释放，故在块外无条件调用。
-			if (localRocksCacheMutex != null) {
-				localRocksCacheMutex.close();
-				localRocksCacheMutex = null;
-			}
-
-			if (serviceManager != null)
-				stopStep("serviceManager.close", serviceManager::close);
-
-			if (queueModule != null) {
-				var qm = queueModule;
-				stopStep("queueModule.UnRegisterZezeTables", () -> qm.UnRegisterZezeTables(this));
-				queueModule = null;
-			}
-			if (autoKey != null) {
-				stopStep("autoKey.UnRegister", autoKey::UnRegister);
-				autoKey = null;
-				transactionIdAutoKey = null;
-			}
-			if (takeover != null) {
-				var tk = Objects.requireNonNull(takeover);
-				stopStep("takeover.UnRegisterZezeTables", () -> tk.UnRegisterZezeTables(this));
-				takeover = null;
-			}
-			if (!isNoDatabase())
-				// Redis 实现内部已有界（64次对齐setInUse，见DatabaseRedis注释）。
-				stopStep("clearInUse", () -> conf.clearInUse(databases));
-
-			for (var e : databases.entrySet())
-				stopStep("db.close '" + e.getKey() + '\'', e.getValue()::close);
-
-			if (dbh2AgentManager != null) {
-				stopStep("dbh2AgentManager.stop", dbh2AgentManager::stop);
-				dbh2AgentManager = null;
-			}
 			startState = StartState.eStopped;
 		} finally {
 			unlock();
+		}
+	}
+
+	// 由公开 start/stop 持有 Application 的原有锁后调用。
+	private void startUnderLock() throws Exception {
+		logSystemProperties();
+		logZezeVersion();
+		var serverId = conf.getServerId();
+		logger.info("Start ServerId={}", serverId);
+
+		var hasDatabase = !isNoDatabase();
+		if (hasDatabase) {
+			if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse))) {
+				conf.clearInUse(databases);
+			}
+
+			// Set Database InUse
+			for (var db : databases.values())
+				Objects.requireNonNull(db.getDirectOperates()).setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
+			addShutdownHook();
+
+			localCache.open(this, serverId);
+		} else {
+			addShutdownHook();
+		}
+
+		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
+		// raft版SM的地址来自raftXml而非ServiceConf节点，按Agent服务名查serviceConfMap必为null，
+		// 旧门槛会跳过serviceManager.start()，raft版SM永不启动，subscribeService挂死在waitLoginReady。
+		var isRaftServiceManager = "raft".equals(conf.getServiceManager());
+		if ((serviceManagerConf != null || isRaftServiceManager) && serviceManager != null) {
+			serviceManager.start();
+			try {
+				serviceManager.waitReady();
+			} catch (Exception ex) {
+				// raft 版第一次等待由于选择leader原因肯定会失败一次。
+				//noinspection ConstantValue
+				if (ex instanceof InterruptedException)
+					Thread.currentThread().interrupt(); // 恢复被底层清除的中断标志
+				serviceManager.waitReady();
+			}
+		}
+
+		if (hasDatabase) {
+			atomicOpenDatabase();
+
+			// Open Global
+			var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
+			if (hosts.length > 0) {
+				var isRaft = hosts[0].endsWith(".xml");
+				if (!isRaft) {
+					var impl = new GlobalAgent(this, hosts, conf.getGlobalCacheManagerPort());
+					globalAgent = impl;
+					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
+					impl.start();
+				} else {
+					var impl = new GlobalCacheManagerWithRaftAgent(this, hosts);
+					globalAgent = impl;
+					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.getAgents());
+					impl.start();
+				}
+			}
+
+			deadlockBreaker = new DeadlockBreaker(this);
+			// Checkpoint
+			checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
+			Objects.requireNonNull(checkpoint).start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+
+			// start last
+			if (achillesHeelDaemon != null)
+				achillesHeelDaemon.start();
+
+			// 接管租约：Application.start()返回前claim完成（需Checkpoint已建立），
+			// 此后Timer.start/startLast、CsQueue构造全走addScope晚注册stamp。
+			if (takeover != null) {
+				Objects.requireNonNull(takeover).start();
+				// SM Suspect提示→tryTransfer（非raft与raft版SM都会在会话断开时广播Suspect）。
+				if (serviceManager != null)
+					serviceManager.setOnSuspect(deadServerId -> Objects.requireNonNull(takeover).tryTransfer(deadServerId));
+			}
+
+			Objects.requireNonNull(delayRemove).start();
+			if (timer != null)
+				timer.loadCustomClassAnd();
+			if (deadlockBreaker != null)
+				deadlockBreaker.start();
+			if (onz != null)
+				onz.start();
+			if (autoKey != null)
+				transactionIdAutoKey = autoKey.getOrAdd("TransactionIdAutoKey");
+		}
+	}
+
+	private void stopUnderLock() throws Exception {
+		// 同名实例时putIfAbsent只保留先注册者，无条件remove会错删他人的注册，
+		// 导致幸存实例的Online.findOnline失效（延迟登出静默丢失）。remove(key,value)
+		// 只删属于自己的注册（Application按引用判等）。
+		instances.remove(getProjectName(), this);
+
+		if (null != checkpointFuture) {
+			// get()在检查点任务以异常完成时抛ExecutionException并从stop逃逸，
+			// startState滞留 eStopping、数据库未关，后续start()无法恢复。任务异常
+			// 已由Task框架记录，这里吞掉保证停机流程继续走完。
+			try {
+				checkpointFuture.get();
+			} catch (java.util.concurrent.ExecutionException e) {
+				logger.error("checkpoint task exception (ignored to complete stop)", e);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+			checkpointFuture = null;
+		}
+		if (onz != null) {
+			stopStep("onz.stop", onz::stop);
+			onz = null;
+		}
+
+		if (deadlockBreaker != null) {
+			stopStep("deadlockBreaker.shutdown", deadlockBreaker::shutdown);
+			deadlockBreaker = null;
+		}
+
+		ShutdownHook.remove(this);
+		logger.info("Stop ServerId={}", conf.getServerId());
+
+		if (takeover != null) // 早期释放：正常关闭刷新租约宽限期，一个TTL后可被接管（缩容；数据库尚未关闭）。
+			stopStep("takeover.release", Objects.requireNonNull(takeover)::release);
+
+		if (achillesHeelDaemon != null) {
+			stopStep("achillesHeelDaemon.stopAndJoin", achillesHeelDaemon::stopAndJoin);
+			achillesHeelDaemon = null;
+		}
+
+		// 先停事务生产组件（delayRemove/safeBatch/timer）并等待在途任务，再关闭提交
+		// 闸门并由checkpoint.stopAndJoin收尾终检点，最后才关globalAgent（组件事务在
+		// 闸门关闭前可能还需GCM申请锁）——保证"最后一个提交先于最后一次flush"且两者
+		// 都先于NormalClose撤权（见下方"关闸先于撤权"）。关闸后到达的提交由
+		// Transaction.perform/RelativeRecordSet.tryUpdateAndCheckpoint的停机拒绝转为
+		// Closed显式失败，不再静默丢弃（假成功）。
+		if (delayRemove != null) {
+			stopStep("delayRemove.stop", delayRemove::stop);
+			delayRemove = null;
+		}
+
+		if (safeBatch != null) {
+			stopStep("safeBatch.stop", safeBatch::stop);
+			safeBatch = null;
+		}
+		if (timer != null) {
+			stopStep("timer.stop", timer::stop);
+			timer = null;
+		}
+
+		// 关闸先于撤权（durability-before-downgrade，TableX.reduceInvalid同款不变式）：
+		// NormalClose会让GCM立即释放本server全部记录锁，他进程随后可Acquire并从后台库
+		// 读旧值改写提交。若提交闸门在撤权后才关闭，撤权后到关闸前的在途事务仍能取得
+		// 提交使用权并登记脏数据，其flush发生在权限释放之后——旧脏值覆盖他进程新值
+		// （跨进程丢更新）。现在组件全停后：先冲刷一轮已注册脏集，再关闸排空在途提交
+		// 并完成终检点flush（全程权限仍有效），最后才NormalClose撤权。
+		if (globalAgent != null && checkpoint != null)
+			stopStep("checkpointRun before close commit gate", this::checkpointRun);
+
+		if (checkpoint != null) {
+			// 先撤销入口；stopAndJoin关闭提交使用权并等待已取得使用权的提交完成登记/落库，
+			// 此后终检点才运行，不会漏掉仍持有旧checkpoint引用的迟到登记。
+			var cp = Objects.requireNonNull(checkpoint);
+			checkpoint = null;
+			stopStep("checkpoint.stopAndJoin", () -> {
+				try {
+					cp.stopAndJoin();
+				} catch (Throwable ex) {
+					// stopAndJoin的join被中断（forceThrow）时
+					// 检查点线程仍存活（可能正要进入final flush），吞掉异常直接继续会在它
+					// 还要落库时关库——与在飞数据通路并发close是native UAF类。
+					// 有界忽略中断重join，超时告警继续（终态必达不变）。
+					logger.error("checkpoint stopAndJoin interrupted/failed, bounded re-join before close", ex);
+					cp.joinIgnoreInterrupt(CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
+				}
+			});
+			// mid-flush halt窄窗——停机拒绝只拦新提交，不等待已过门的
+			// 在飞flush（Immediately模式业务线程的checkpoint.flush、Reduce降级flush、
+			// checkpointRun的runOnce）：它们已打开LocalRocksCacheDb事务，与随后的
+			// close+deleteDirectory并发同样是native UAF类。有界等待归零，
+			// 超时告警继续（30s上限，保证停机不因此永久挂起）。
+			if (!cp.waitNoActiveFlush(CHECKPOINT_DRAIN_TIMEOUT_MILLIS))
+				logger.error("checkpoint active flush not drained in {}ms, continue to close databases "
+					+ "(risk of close racing in-flight flush)", CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
+		}
+
+		if (flushWhenReduceTimerTask != null) {
+			var task = flushWhenReduceTimerTask;
+			stopStep("flushWhenReduceTimerTask.cancel", () -> task.cancel(false));
+			flushWhenReduceTimerTask = null;
+		}
+
+		if (globalAgent != null) {
+			var ga = globalAgent;
+			stopStep("globalAgent.stop", ga::stop);
+			// Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被stop
+			// 收编，其checkpointRun→flush与下方LocalRocksCacheDb.close+deleteDirectory并发
+			// 存在native UAF类窗口。关库前有界join，超时告警继续。
+			stopStep("globalAgent.awaitReleaser", () -> ga.awaitReleaser(CHECKPOINT_DRAIN_TIMEOUT_MILLIS));
+			globalAgent = null;
+		}
+
+		if (history != null) {
+			var plugin = history;
+			stopStep("history.close", plugin::close);
+			history = null;
+		}
+
+		localCache.closeForStop();
+
+		if (serviceManager != null)
+			stopStep("serviceManager.close", serviceManager::close);
+
+		if (queueModule != null) {
+			var qm = queueModule;
+			stopStep("queueModule.UnRegisterZezeTables", () -> qm.UnRegisterZezeTables(this));
+			queueModule = null;
+		}
+		if (autoKey != null) {
+			stopStep("autoKey.UnRegister", autoKey::UnRegister);
+			autoKey = null;
+			transactionIdAutoKey = null;
+		}
+		if (takeover != null) {
+			var tk = Objects.requireNonNull(takeover);
+			stopStep("takeover.UnRegisterZezeTables", () -> tk.UnRegisterZezeTables(this));
+			takeover = null;
+		}
+		if (!isNoDatabase())
+			// Redis 实现内部已有界（64次对齐setInUse，见DatabaseRedis注释）。
+			stopStep("clearInUse", () -> conf.clearInUse(databases));
+
+		for (var e : databases.entrySet())
+			stopStep("db.close '" + e.getKey() + '\'', e.getValue()::close);
+
+		if (dbh2AgentManager != null) {
+			stopStep("dbh2AgentManager.stop", dbh2AgentManager::stop);
+			dbh2AgentManager = null;
 		}
 	}
 
@@ -1027,7 +968,7 @@ public final class Application extends ReentrantLock {
 	// stopAndJoin的join中断forceThrow等）只记日志继续，不得跳过其后步骤
 	// （db.close/clearInUse/各UnRegister），保证终态必达eStopped
 	// （对齐GlobalAgent.stop的per-agent兜底）。
-	private static void stopStep(String name, Action0 action) {
+	static void stopStep(String name, Action0 action) {
 		try {
 			action.run();
 		} catch (InterruptedException e) {
@@ -1132,16 +1073,28 @@ public final class Application extends ReentrantLock {
 		return Task.getOneByOne();
 	}
 
+	/**
+	 * @deprecated 请使用 {@code TaskSpec.ofProcedure(newProcedure(func, actionName)).executeOneByOne(oneByOneKey)}。
+	 */
+	@Deprecated
 	public void runTaskOneByOneByKey(Object oneByOneKey, @Nullable String actionName, FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
 			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 
+	/**
+	 * @deprecated 请使用 {@code TaskSpec.ofProcedure(newProcedure(func, actionName)).executeOneByOne(oneByOneKey)}。
+	 */
+	@Deprecated
 	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
 			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 
+	/**
+	 * @deprecated 请使用 {@code TaskSpec.ofProcedure(newProcedure(func, actionName)).executeOneByOne(oneByOneKey)}。
+	 */
+	@Deprecated
 	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
 			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);

@@ -102,7 +102,7 @@ online.sendReliableNotifyWhileRollback(account, clientId, "mailNotify", p);
 online.removeReliableNotifyMark(account, clientId, "mailNotify");
 ```
 
-`sendReliableNotify` 的 `listenerName` 参数使用 `runTaskOneByOneByKey` 串行化，保证同一通道的消息按序发送。
+`sendReliableNotify` 使用 `TaskSpec.ofProcedure(...).executeOneByOne(listenerName)` 串行化，保证同一通道的消息按序发送。
 
 ## SendToLogin（给某个登录发送）
 

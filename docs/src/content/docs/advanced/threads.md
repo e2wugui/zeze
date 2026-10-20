@@ -84,9 +84,7 @@ TimerFuture<?> future = Task.scheduleUnsafe(1000, 5000, () -> periodicTask());
 
 ```java
 // 同一个 roleId 的任务串行执行
-Task.runTaskOneByOneByKey(roleId, "processLogin", () -> {
-    return loginProcedure.call();
-});
+TaskSpec.ofProcedure(loginProcedure).executeOneByOne(roleId);
 ```
 
 `TaskOneByOneByKey` 保证相同 key 的任务按提交顺序依次执行，不同 key 的任务并行执行。这是实现角色级操作串行化的核心机制。

@@ -774,33 +774,30 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	public void sendReliableNotifyDirect(String account, String clientId,
 	                                     String listenerName,
 	                                     long typeId, Binary fullEncodedProtocol) {
-		providerApp.zeze.runTaskOneByOneByKey(
-				listenerName,
-				"Online.sendReliableNotify." + listenerName,
-				() -> {
-					var login = getLogin(account, clientId);
-					if (login == null || !login.getReliableNotifyMark().contains(listenerName))
-						return Procedure.Success; // 相关数据装载的时候要同步设置这个。
+		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+			var login = getLogin(account, clientId);
+			if (login == null || !login.getReliableNotifyMark().contains(listenerName))
+				return Procedure.Success; // 相关数据装载的时候要同步设置这个。
 
-					// 先保存在再发送，然后客户端还会确认。
-					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-					var queue = openQueue(account, clientId);
-					var bNotify = new BNotify();
-					bNotify.setFullEncodedProtocol(fullEncodedProtocol);
-					queue.add(bNotify);
+			// 先保存在再发送，然后客户端还会确认。
+			// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
+			var queue = openQueue(account, clientId);
+			var bNotify = new BNotify();
+			bNotify.setFullEncodedProtocol(fullEncodedProtocol);
+			queue.add(bNotify);
 
-					var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-					notify.Argument.setReliableNotifyIndex(login.getReliableNotifyIndex());
-					login.setReliableNotifyIndex(login.getReliableNotifyIndex() + 1); // after set notify.Argument
-					notify.Argument.getNotifies().add(fullEncodedProtocol);
+			var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+			notify.Argument.setReliableNotifyIndex(login.getReliableNotifyIndex());
+			login.setReliableNotifyIndex(login.getReliableNotifyIndex() + 1); // after set notify.Argument
+			notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-					Transaction.whileCommit(() -> {
-						if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-							AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, notify);
-						sendDirect(account, clientId, notify.getTypeId(), new Binary(notify.encode()), false);
-					});
-					return Procedure.Success;
-				});
+			Transaction.whileCommit(() -> {
+				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+					AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, notify);
+				sendDirect(account, clientId, notify.getTypeId(), new Binary(notify.encode()), false);
+			});
+			return Procedure.Success;
+		}, "Online.sendReliableNotify." + listenerName)).executeOneByOne(listenerName);
 	}
 
 	public @Nullable Long getLogoutVersion(String account, String clientId) {
