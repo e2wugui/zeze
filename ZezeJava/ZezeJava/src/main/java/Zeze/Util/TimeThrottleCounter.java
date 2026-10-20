@@ -11,31 +11,16 @@ import java.util.concurrent.locks.ReentrantLock;
 public class TimeThrottleCounter implements TimeThrottle {
 	private final int limit;
 	private final int bandwidthLimit;
-	private int counter;
-	private int bandwidth;
+	private long counter;
+	private long bandwidth;
 	private final Future<?> timer;
 	private final ReentrantLock mutex = new ReentrantLock();
 
 	public TimeThrottleCounter(int seconds, int limit, int bandwidthLimit) {
-		checkThreshold(seconds, limit, bandwidthLimit);
+		TimeThrottle.checkThreshold(seconds, limit, bandwidthLimit);
 		this.limit = limit * seconds;
 		this.bandwidthLimit = bandwidthLimit * seconds;
 		timer = TaskSpec.ofAction(this::onTimer).schedulePeriodNow(seconds * 1000L, seconds * 1000L);
-	}
-
-	/**
-	 * 只负责校验并抛异常，乘法由构造器自己做。seconds*1000、limit*seconds、
-	 * bandwidthLimit*seconds 都必须保持在 int 正数范围内：溢出回绕成负值后阈值
-	 * 静默失真，checkNow 的 {@code counter < limit} 恒 false，退化为全拒绝。
-	 */
-	private static void checkThreshold(int seconds, int limit, int bandwidthLimit) {
-		if (seconds < 1 || limit < 0 || bandwidthLimit < 0)
-			throw new IllegalArgumentException();
-		if (seconds > Integer.MAX_VALUE / 1000
-				|| limit > Integer.MAX_VALUE / seconds
-				|| bandwidthLimit > Integer.MAX_VALUE / seconds)
-			throw new IllegalArgumentException("TimeThrottleCounter overflow: seconds=" + seconds
-					+ " limit=" + limit + " bandwidthLimit=" + bandwidthLimit);
 	}
 
 	private void onTimer() {
@@ -53,10 +38,10 @@ public class TimeThrottleCounter implements TimeThrottle {
 		mutex.lock();
 		try {
 			++counter;
-			bandwidth += size; // 变成负数以后一直失败。
+			bandwidth += size;
 			// 与Queue版对齐——第limit个包计入本窗口并放行、第limit+1个拒绝
 			// （不用counter<limit，同配置切换实现名断连临界点会差1）。
-			return counter <= limit && Integer.compareUnsigned(bandwidth, bandwidthLimit) < 0;
+			return counter <= limit && Long.compareUnsigned(bandwidth, bandwidthLimit) < 0;
 		} finally {
 			mutex.unlock();
 		}

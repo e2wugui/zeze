@@ -11,6 +11,17 @@ public interface TimeThrottle extends AutoCloseable {
 	default void close() {
 	}
 
+	/** 两种窗口共用配置边界；累计流量可超过阈值，必须另用 long 保存。 */
+	static void checkThreshold(int seconds, int limit, int bandwidthLimit) {
+		if (seconds < 1 || limit < 0 || bandwidthLimit < 0)
+			throw new IllegalArgumentException();
+		if (seconds > Integer.MAX_VALUE / 1000
+				|| limit > Integer.MAX_VALUE / seconds
+				|| bandwidthLimit > Integer.MAX_VALUE / seconds)
+			throw new IllegalArgumentException("TimeThrottle overflow: seconds=" + seconds
+					+ " limit=" + limit + " bandwidthLimit=" + bandwidthLimit);
+	}
+
 	static @Nullable TimeThrottle create(SocketOptions options) {
 		return create(options.getTimeThrottle(), options.getTimeThrottleSeconds(),
 				options.getTimeThrottleLimit(), options.getTimeThrottleBandwidth());

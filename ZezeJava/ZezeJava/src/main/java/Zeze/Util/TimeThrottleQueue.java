@@ -16,7 +16,7 @@ public class TimeThrottleQueue implements TimeThrottle {
 	private final int expire;
 	private final int limit;
 	private final int bandwidthLimit;
-	private int bandwidth;
+	private long bandwidth;
 	private final ReentrantLock mutex = new ReentrantLock();
 
 	public record Packet(long timestamp, int size) {
@@ -29,26 +29,10 @@ public class TimeThrottleQueue implements TimeThrottle {
 	 * @param limit   限制数量
 	 */
 	public TimeThrottleQueue(int seconds, int limit, int bandwidthLimit) {
-		checkThreshold(seconds, limit, bandwidthLimit);
+		TimeThrottle.checkThreshold(seconds, limit, bandwidthLimit);
 		this.expire = seconds * 1000;
 		this.limit = limit * seconds;
 		this.bandwidthLimit = bandwidthLimit * seconds;
-	}
-
-	/**
-	 * 只负责校验并抛异常，乘法由构造器自己做。seconds*1000、limit*seconds、
-	 * bandwidthLimit*seconds 都必须保持在 int 正数范围内：溢出回绕成负值后阈值
-	 * 静默失真，expire 为负会让 checkNow 的过期清理循环立即 break
-	 * （marks 永不淘汰），退化为恒 return false 的全拒绝。
-	 */
-	private static void checkThreshold(int seconds, int limit, int bandwidthLimit) {
-		if (seconds < 1 || limit < 0 || bandwidthLimit < 0)
-			throw new IllegalArgumentException();
-		if (seconds > Integer.MAX_VALUE / 1000
-				|| limit > Integer.MAX_VALUE / seconds
-				|| bandwidthLimit > Integer.MAX_VALUE / seconds)
-			throw new IllegalArgumentException("TimeThrottleQueue overflow: seconds=" + seconds
-					+ " limit=" + limit + " bandwidthLimit=" + bandwidthLimit);
 	}
 
 	/**
@@ -70,9 +54,9 @@ public class TimeThrottleQueue implements TimeThrottle {
 			}
 			if (marks.size() > eMaxMarksSize)
 				return false; // 防止客户端发送大量请求，造成marks过大，此时不加入mark。
-			bandwidth += size; // 变成负数以后一直失败。
+			bandwidth += size;
 			marks.offer(new Packet(now, size)); // 不重新读取now了。
-			return marks.size() <= limit && Integer.compareUnsigned(bandwidth, bandwidthLimit) < 0;
+			return marks.size() <= limit && Long.compareUnsigned(bandwidth, bandwidthLimit) < 0;
 		} finally {
 			mutex.unlock();
 		}
