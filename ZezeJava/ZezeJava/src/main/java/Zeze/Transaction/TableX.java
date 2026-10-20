@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.function.Supplier;
+
 import Zeze.Application;
 import Zeze.Component.AutoKey;
 import Zeze.Net.Binary;
@@ -21,10 +22,12 @@ import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
+
 import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
+
 import Zeze.Schemas.RelationalTable;
 
 /**
@@ -196,8 +199,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			int rs;
 			if (r != null && (rs = r.getState()) > checkState && rs != StateRemoved) {
 				logger.error("VerifyGlobalRecordState failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
-						getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
-						getName(), key, rs, isModify, new AssertionError());
+					getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
+					getName(), key, rs, isModify, new AssertionError());
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(-1);
 			}
@@ -216,7 +219,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
 
 				if (r.getState() == StateShare
-						|| r.getState() == StateModify) {
+					|| r.getState() == StateModify) {
 					var beforeTimestamp = r.getTimestamp(); // read timestamp before read value。see Record1.Commit
 					strongRef = (V)r.getSoftValue();
 					if (strongRef == null && !r.getDirty()) {
@@ -279,7 +282,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							// 【注意】这个变量不管 OldTable 中是否存在的情况。
 
 							// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-							// see Record1.Flush
+							// see Checkpoint.FlushBatch.writeTo
 							if (strongRef == null && oldTable != null) {
 								var old = oldTable.find(this, key);
 								if (old != null) {
@@ -295,7 +298,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 											// 按后端盲转（KV转ByteBuffer），传原始key(K)与Bean在RocksDb旧库下
 											// 每次装载必抛ClassCastException——被吞掉后oldTable与镜像从未写上，
 											// 记录以clean态仅存oldTable+内存（镜像缺失/陈旧）。
-											// 与Record1.flush/rocksCachePut同型。
+											// 与Checkpoint.FlushBatch.writeTo/rocksCachePut同型。
 											var bbKey = encodeKey(key);
 											var bbValue = ByteBuffer.encode(old);
 											oldTable.replace(t, bbKey, bbValue);
@@ -455,7 +458,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				// 重试），并保住本地脏记录状态：静默跳过flush会把降级当成功应答——GCM把
 				// 权限授予其他进程后，本进程未落库的脏值会跨进程丢失更新。
 				throw new IllegalStateException("flushWhenReduce: checkpoint stopped. table="
-						+ getName() + ", record=" + r);
+					+ getName() + ", record=" + r);
 			RelativeRecordSet.flushWhenReduce(r, checkpoint);
 			break;
 		}
@@ -476,7 +479,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var timeNs = System.nanoTime() - timeBegin;
 		if (timeNs >= 3_000_000_000L) {
 			logger.warn("reduceInvalid wait lockey write lock too long! table={}, key={}, time={}ms",
-					getName(), key, timeNs / 1_000_000);
+				getName(), key, timeNs / 1_000_000);
 		}
 		try {
 			var r = requireCache().get(key);
@@ -494,7 +497,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			timeNs = System.nanoTime() - timeBegin;
 			if (timeNs >= 3_000_000_000L) {
 				logger.warn("reduceInvalid wait record lock too long! table={}, key={}, time={}ms",
-						getName(), key, timeNs / 1_000_000);
+					getName(), key, timeNs / 1_000_000);
 			}
 			rpc.Result.state = GlobalCacheManagerConst.StateReduceException; // default error state
 			try {
@@ -651,8 +654,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var r = load(key);
 		var v = r.strongRef();
 		currentT.addRecordAccessed(r.record().createRootInfoIfNeed(tkey),
-				new RecordAccessed(r),
-				v == null && isMemory());
+			new RecordAccessed(r),
+			v == null && isMemory());
 		return v;
 	}
 
@@ -729,7 +732,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final void insert(K key, V value) {
 		if (!tryAdd(key, value)) {
 			throw new IllegalArgumentException(String.format("table:%s insert key:%s exists",
-					getClass().getName(), key));
+				getClass().getName(), key));
 		}
 	}
 
@@ -787,7 +790,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public final @Nullable Storage<?, ?> open(Application app, Database database,
-	                                          DatabaseRocksDb.@Nullable Table localTable) {
+											  DatabaseRocksDb.@Nullable Table localTable) {
 		if (cache != null)
 			throw new IllegalStateException("table has opened: " + getName());
 
@@ -802,7 +805,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		relationalTable = isRelationalMapping() ? Objects.requireNonNull(getZeze().getSchemas()).newRelationalTable(getZeze(), this) : null;
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
-				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName(), getId()) : null;
+			? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName(), getId()) : null;
 		localRocksCacheTable = localTable != null ? localTable : Objects.requireNonNull(app.getLocalRocksCacheDb()).openTable(getName(), getId());
 		return storage;
 	}
@@ -821,6 +824,27 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	/** SQL key 编码；格式选择和批次组合由 Checkpoint 负责。 */
+	final SQLStatement encodeSqlKey(Object key) {
+		var sqlKey = new SQLStatement();
+		encodeKeySQLStatement(sqlKey, key);
+		return sqlKey;
+	}
+
+	/** SQL value 的实际编码操作；不查询表配置，不经过通用 value 分发。 */
+	static @Nullable SQLStatement encodeSqlValue(@Nullable Bean value) {
+		if (value == null)
+			return null;
+		var sqlValue = new SQLStatement();
+		value.encodeSQLStatement(new ArrayList<>(), sqlValue);
+		return sqlValue;
+	}
+
+	/** 主库 KV 编码和本地镜像共用的二进制 value 编码；null 表示删除。 */
+	static @Nullable ByteBuffer encodeValue(@Nullable Bean value) {
+		return value != null ? ByteBuffer.encode(value) : null;
+	}
+
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
 	public abstract ByteBuffer encodeKey(K key);
 
@@ -830,7 +854,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return encodeKey((K)key);
 	}
 
-	public K decodeKey(byte [] bytes) {
+	public K decodeKey(byte[] bytes) {
 		int keyOffset = keyOffsetInRawKey();
 		return decodeKey(ByteBuffer.Wrap(bytes, keyOffset, bytes.length - keyOffset));
 	}
@@ -873,7 +897,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return value;
 	}
 
-	public final V decodeValue(byte [] bytes) {
+	public final V decodeValue(byte[] bytes) {
 		return decodeValue(ByteBuffer.Wrap(bytes));
 	}
 
@@ -892,7 +916,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walk(@Nullable K exclusiveStartKey, int proposeLimit,
-	                              TableWalkHandle<K, V> callback) throws Exception {
+								  TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -900,7 +924,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                  TableWalkHandle<K, V> callback) throws Exception {
+									  TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -908,7 +932,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkKey(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                 TableWalkKey<K> callback) throws Exception {
+									 TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -916,7 +940,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                     TableWalkKey<K> callback) throws Exception {
+										 TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1008,7 +1032,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRaw(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-	                                                  TableWalkHandleRaw callback) throws Exception {
+													  TableWalkHandleRaw callback) throws Exception {
 		if (exclusiveStartKey != null)
 			Database.checkKvKeyLengthForLegacyAccess(getName(), exclusiveStartKey);
 		var storage = this.storage;
@@ -1016,12 +1040,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			throw new IllegalStateException("storage is in-memory or closed");
 		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
 			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walk(
-					exclusiveStartKey, proposeLimit, callback);
+				exclusiveStartKey, proposeLimit, callback);
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-	                                                      TableWalkHandleRaw callback) throws Exception {
+														  TableWalkHandleRaw callback) throws Exception {
 		if (exclusiveStartKey != null)
 			Database.checkKvKeyLengthForLegacyAccess(getName(), exclusiveStartKey);
 		var storage = this.storage;
@@ -1029,12 +1053,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			throw new IllegalStateException("storage is in-memory or closed");
 		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
 			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkDesc(
-					exclusiveStartKey, proposeLimit, callback);
+				exclusiveStartKey, proposeLimit, callback);
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-	                                                     TableWalkKeyRaw callback) throws Exception {
+														 TableWalkKeyRaw callback) throws Exception {
 		if (exclusiveStartKey != null)
 			Database.checkKvKeyLengthForLegacyAccess(getName(), exclusiveStartKey);
 		var storage = this.storage;
@@ -1042,12 +1066,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			throw new IllegalStateException("storage is in-memory or closed");
 		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
 			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkKey(
-					exclusiveStartKey, proposeLimit, callback);
+				exclusiveStartKey, proposeLimit, callback);
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-	                                                         TableWalkKeyRaw callback) throws Exception {
+															 TableWalkKeyRaw callback) throws Exception {
 		if (exclusiveStartKey != null)
 			Database.checkKvKeyLengthForLegacyAccess(getName(), exclusiveStartKey);
 		var storage = this.storage;
@@ -1055,7 +1079,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			throw new IllegalStateException("storage is in-memory or closed");
 		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable)
 			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkKeyDesc(
-					exclusiveStartKey, proposeLimit, callback);
+				exclusiveStartKey, proposeLimit, callback);
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
@@ -1095,7 +1119,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabase(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                      TableWalkHandle<K, V> callback) throws Exception {
+										  TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1103,7 +1127,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                          TableWalkHandle<K, V> callback) throws Exception {
+											  TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1111,7 +1135,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseKey(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                         TableWalkKey<K> callback) throws Exception {
+											 TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1119,7 +1143,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-	                                             TableWalkKey<K> callback) throws Exception {
+												 TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1368,7 +1392,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final boolean isNew() {
 		var storage = this.storage;
 		return storage == null // memory table always return true
-				|| storage.getDatabaseTable().isNew();
+			|| storage.getDatabaseTable().isNew();
 	}
 
 	/**
@@ -1381,7 +1405,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return ByteBuffer Encoded Change Log
 	 */
 	public ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName, Object key,
-	                                                               Changes.Record r) {
+														  Changes.Record r) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(specialName != null ? specialName : getName());
 		bb.WriteByteBuffer(encodeKey(key));

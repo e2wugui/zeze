@@ -1,16 +1,21 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
+
 import Zeze.Application;
 import Zeze.Onz.OnzProcedure;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SQLStatement;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FastLock;
 import Zeze.Util.Task;
@@ -28,6 +33,122 @@ import Zeze.Transaction.IHistory.PendingHistory;
 public final class Checkpoint {
 	static final Logger logger = LogManager.getLogger(Checkpoint.class);
 
+	/** 独占记录列表及同下标编码列；列表和编码数组随批次一起复用。 */
+	private static final class FlushBatch {
+		private final ArrayList<Record> records;
+		private @Nullable ByteBuffer[] keys;
+		private @Nullable ByteBuffer[] values;
+		private @Nullable SQLStatement[] sqlKeys;
+		private @Nullable SQLStatement[] sqlValues;
+
+		FlushBatch(int capacity) {
+			records = new ArrayList<>(capacity);
+			keys = new ByteBuffer[capacity];
+			values = new ByteBuffer[capacity];
+			sqlKeys = new SQLStatement[capacity];
+			sqlValues = new SQLStatement[capacity];
+		}
+
+		// 仅在准备阶段收集记录；编码开始后不再添加。
+		void add(Record record) {
+			int size = records.size();
+			if (size == keys.length) {
+				int capacity = Math.max(size + 1, size + size / 2);
+				// 上批已清空，本批尚未编码；新编码列不需要复制。
+				var newKeys = new ByteBuffer[capacity];
+				var newValues = new ByteBuffer[capacity];
+				var newSqlKeys = new SQLStatement[capacity];
+				var newSqlValues = new SQLStatement[capacity];
+				// ArrayList 扩容时复制已有 Record 引用；全部成功后再发布编码列。
+				records.ensureCapacity(capacity);
+				keys = newKeys;
+				values = newValues;
+				sqlKeys = newSqlKeys;
+				sqlValues = newSqlValues;
+			}
+			records.add(record);
+		}
+
+		void encode() {
+			for (int index = 0, size = records.size(); index < size; index++) {
+				var record = records.get(index);
+				if (record.getDirty()) {
+					var table = (TableX<?, ?>)record.getTable();
+					var key = record.getObjectKey();
+					var value = record.getDirtyValue();
+					if (table.isRelationalMapping() && table.getDatabase() instanceof DatabaseRelationalMapping) {
+						sqlKeys[index] = table.encodeSqlKey(key);
+						sqlValues[index] = TableX.encodeSqlValue(value);
+					}
+					// KV 主库与本地镜像共用编码；SQL 主库另用关系编码。
+					keys[index] = table.encodeKey(key);
+					values[index] = TableX.encodeValue(value);
+				}
+			}
+		}
+
+		void writeTo(IdentityHashMap<Database, Database.Transaction> transactions, Database.Transaction local) {
+			for (int index = 0, size = records.size(); index < size; index++) {
+				var record = records.get(index);
+				// 编码回调可能重入并清脏，不能把旧快照覆盖到内层已提交的新值上。
+				if (!record.getDirty())
+					continue;
+				var table = record.getTable();
+				var key = Objects.requireNonNull(keys[index], "flush key not encoded");
+				var value = values[index];
+				var storage = table.getStorage();
+				Database.@Nullable Table oldTable = null;
+				if (storage != null) {
+					var databaseTable = storage.getDatabaseTable();
+					var transaction = Objects.requireNonNull(transactions.get(databaseTable.getDatabase()),
+						"unprepared snapshot transaction");
+					var sqlKey = sqlKeys[index];
+					if (sqlKey != null) {
+						var sqlValue = sqlValues[index];
+						if (sqlValue != null)
+							databaseTable.replace(transaction, sqlKey, sqlValue);
+						else {
+							databaseTable.remove(transaction, sqlKey);
+							oldTable = table.getOldTable();
+						}
+					} else if (value != null)
+						databaseTable.replace(transaction, key, value);
+					else {
+						databaseTable.remove(transaction, key);
+						oldTable = table.getOldTable();
+					}
+				}
+				// 镜像按自己的二进制 value 决定更新/删除；旧表也始终使用二进制 key。
+				if (value != null)
+					table.getLocalRocksCacheTable().replace(local, key, value);
+				else {
+					table.getLocalRocksCacheTable().remove(local, key);
+					if (oldTable != null) {
+						var transaction = Objects.requireNonNull(transactions.get(oldTable.getDatabase()),
+							"unprepared snapshot transaction");
+						oldTable.remove(transaction, key);
+					}
+				}
+			}
+		}
+
+		void markClean() {
+			// 按下标遍历，批次复用时不创建 Iterator。
+			//noinspection ForLoopReplaceableByForEach
+			for (int index = 0, size = records.size(); index < size; index++)
+				records.get(index).setDirty(false);
+		}
+
+		void clear() {
+			int size = records.size();
+			records.clear();
+			Arrays.fill(keys, 0, size, null);
+			Arrays.fill(values, 0, size, null);
+			Arrays.fill(sqlKeys, 0, size, null);
+			Arrays.fill(sqlValues, 0, size, null);
+		}
+	}
+
 	final Application zeze;
 	private final CheckpointMode mode;
 	private final Thread checkpointThread;
@@ -36,6 +157,31 @@ public final class Checkpoint {
 	private int period;
 	private volatile boolean isRunning;
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
+	// 仅缓存已清空的缓冲区；取出后归当前批次独占，并发/重入不会共享。
+	private static final int MAX_RETAINED_FLUSH_BATCHES = Math.max(1, Runtime.getRuntime().availableProcessors());
+	// 限制闲置数组容量，不限制单次 flush 条数；五个引用数组在压缩引用下每份约 320KiB。
+	// 超限批次归还时丢弃，避免偶发大批次长期占用缓存。
+	private static final int MAX_RETAINED_FLUSH_RECORDS = 16_384;
+	// 预分配到缓存上限，借还不分配节点；monitor 只保护 deque，不覆盖编码或 I/O。
+	private final ArrayDeque<FlushBatch> flushBatches = new ArrayDeque<>(MAX_RETAINED_FLUSH_BATCHES);
+
+	private FlushBatch acquireFlushBatch(Iterable<Record> rs) {
+		FlushBatch batch;
+		synchronized (flushBatches) {
+			batch = flushBatches.pollLast();
+		}
+		return batch != null ? batch : new FlushBatch(rs instanceof Collection<?> collection ? collection.size() : 10);
+	}
+
+	private void releaseFlushBatch(FlushBatch batch) {
+		batch.clear(); // 成功或失败都先清引用，再放回缓存。
+		if (batch.keys.length > MAX_RETAINED_FLUSH_RECORDS)
+			return;
+		synchronized (flushBatches) {
+			if (flushBatches.size() < MAX_RETAINED_FLUSH_BATCHES)
+				flushBatches.addLast(batch);
+		}
+	}
 
 	// 在飞flush计数（锁内inc/dec）——Application.stop在终检点后、LocalRocksCacheDb.close前
 	// 有界等待它归零。停机拒绝只拦"新提交"，不等待已过门的在飞flush（Immediately模式
@@ -87,7 +233,7 @@ public final class Checkpoint {
 
 	private void stopAcceptingCommitsAndWait() {
 		boolean interrupted = false;
-		for (;;) { // 关门：清符号位（幂等，并发stop安全）
+		for (; ; ) { // 关门：清符号位（幂等，并发stop安全）
 			int s = commitState.get();
 			if (s < 0) {
 				if (commitState.compareAndSet(s, s & Integer.MAX_VALUE))
@@ -245,7 +391,7 @@ public final class Checkpoint {
 	// 常量键的统计句柄一次解析终身复用（对齐 Task.runTimeObservers 惯例；
 	// 观察者内部自带代际重绑）
 	private static final ZezeCounter.LongObserver RunOnceObserver =
-			ZezeCounter.instance.getRunTimeObserver("Checkpoint.runOnce");
+		ZezeCounter.instance.getRunTimeObserver("Checkpoint.runOnce");
 
 	private void run() {
 		while (isRunning) {
@@ -294,7 +440,7 @@ public final class Checkpoint {
 			// 持续失败下无限等待只会把停机变成挂死。
 			if (!relativeRecordSetMap.isEmpty())
 				logger.fatal("final checkpoint end with {} dirty record set(s) unresolved: {}",
-						relativeRecordSetMap.size(), relativeRecordSetMap);
+					relativeRecordSetMap.size(), relativeRecordSetMap);
 			break;
 		}
 		logger.info("final checkpoint end.");
@@ -340,39 +486,39 @@ public final class Checkpoint {
 	private void flushInternal(Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
 							   @Nullable PendingHistory history) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
-			Database.Transaction localCacheTransaction = Objects.requireNonNull(zeze.getLocalRocksCacheDb()).beginTransaction();
+		Database.Transaction localCacheTransaction = Objects.requireNonNull(zeze.getLocalRocksCacheDb()).beginTransaction();
+		FlushBatch batch = null;
 
 		// history.logChanges原子的和数据一起flush。
 		try {
-			// prepare: 编码并且为每一个数据库创建一个数据库事务。
+			batch = acquireFlushBatch(rs);
+			// prepare: 每库一个事务，快照由本批次独占的连续缓冲区持有。
 			for (var r : rs) {
 				var storage = r.getTable().getStorage();
 				if (storage != null) {
 					var database = storage.getDatabaseTable().getDatabase();
-					r.setDatabaseTransactionTmp(dts.computeIfAbsent(database, Database::beginTransaction));
-					if (r.getTable().getOldTable() != null) {
-						database = r.getTable().getOldTable().getDatabase();
-						r.setDatabaseTransactionOldTmp(dts.computeIfAbsent(database, Database::beginTransaction));
-					}
+					//noinspection resource
+					dts.computeIfAbsent(database, Database::beginTransaction);
+					var oldTable = r.getTable().getOldTable();
+					if (oldTable != null)
+						//noinspection resource
+						dts.computeIfAbsent(oldTable.getDatabase(), Database::beginTransaction);
 				}
+				batch.add(r);
 			}
 			var historyTable = history != null ? history.getTable() : null;
 			var historyTransaction = history != null
-					? dts.computeIfAbsent(historyTable.getDatabase(), Database::beginTransaction)
-					: null;
+				? dts.computeIfAbsent(historyTable.getDatabase(), Database::beginTransaction)
+				: null;
 
 			// 编码
 			if (history != null)
 				history.encode0();
 
-			for (var r : rs)
-				r.encode0();
+			batch.encode();
 			OnzProcedure.sendFlushAndWait(onzProcedures);
 			// 保存到数据库中
-			for (var r : rs) {
-				var t = r.getDatabaseTransactionTmp();
-				r.flush(t, localCacheTransaction);
-			}
+			batch.writeTo(dts, localCacheTransaction);
 			if (history != null) {
 				var storage = historyTable.getStorage();
 				//noinspection DataFlowIssue
@@ -386,20 +532,10 @@ public final class Checkpoint {
 			localCacheTransaction.commit();
 			if (history != null)
 				history.onPersisted(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
-			try {
-				// 清除编码状态
-				for (var r : rs)
-					r.cleanup();
-			} catch (Throwable e) { // halt
-				logger.fatal("Flush Cleanup Exception", e);
-				LogManager.shutdown();
-				Runtime.getRuntime().halt(54321);
-			}
 			// 保存成功，清除脏标记。
 			// Immediately 模式的记录不进入 RelativeRecordSet，这里是它唯一的清除点。
 			// Table 模式现在也在这里清除。
-			for (var r : rs)
-				r.setDirty(false);
+			batch.markClean();
 		} catch (Throwable e) { // rethrow
 			for (var t : dts.values()) {
 				try {
@@ -436,6 +572,8 @@ public final class Checkpoint {
 			} catch (Throwable e) { // logger.error
 				logger.error("Flush close Exception transaction={}", localCacheTransaction, e);
 			}
+			if (batch != null)
+				releaseFlushBatch(batch);
 		}
 	}
 

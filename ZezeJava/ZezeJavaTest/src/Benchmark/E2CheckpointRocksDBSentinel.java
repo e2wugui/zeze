@@ -17,8 +17,8 @@ import demo.App;
 @Tag("core")
 public class E2CheckpointRocksDBSentinel {
 	public static final int Records = 10_000;
-	public static final int Warmups = 2;
-	public static final int Rounds = 3;
+	public static final int Warmups = Integer.getInteger("bench.checkpoint.warmups", 2);
+	public static final int Rounds = Integer.getInteger("bench.checkpoint.rounds", 3);
 
 	@Test
 	public void benchFlushMultiThreadMerge() throws Exception {
@@ -28,7 +28,7 @@ public class E2CheckpointRocksDBSentinel {
 		cfg.setCheckpointFlushMode(CheckpointFlushMode.MultiThreadMerge);
 		var rocks = new Config.DatabaseConf();
 		rocks.setDatabaseType(Config.DbType.RocksDb);
-		rocks.setDatabaseUrl("bench-results/rocksdb-e2");
+		rocks.setDatabaseUrl(System.getProperty("bench.rocksdb.path", "bench-results/rocksdb-e2"));
 		cfg.getDatabaseConfMap().put("", rocks);
 		// RocksDb 与 GlobalCacheManager 互斥（Config.createDatabase 校验 hasGlobal），哨兵单进程清掉
 		cfg.setGlobalCacheManagerHostNameOrAddress("");

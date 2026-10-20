@@ -1,14 +1,9 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
-import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Id128;
 import Zeze.Util.ZezeCounter;
@@ -16,11 +11,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 import Zeze.Transaction.IGlobalAgent.AcquireResult;
-import Zeze.Transaction.Database.Transaction;
 
 /**
- * 强类型表记录实现：绑定 TableX 与具体 key，管理软引用值、LRU 节点、
- * 编码快照（encode0）与落库 flush/cleanup 生命周期。
+ * 强类型表记录实现：绑定 TableX 与具体 key，管理软引用值和 LRU 节点。
+ * 单次刷盘的编码结果和事务由 Checkpoint 持有，编码与写入由 TableX 执行。
  */
 public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
@@ -37,10 +31,6 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 	private final TableX<K, V> table;
 	private final K key;
-	private @Nullable Object snapshotKey;
-	private @Nullable Object snapshotValue;
-	private @Nullable Object snapshotKeyLocal;
-	private @Nullable Object snapshotValueLocal;
 	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
 	private @Nullable Id128 tid;
 
@@ -182,84 +172,5 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		// Immediately: 提交流程 Checkpoint.flush(Iterable<Record>) 同步保存后清除。
 		// see Checkpoint.flush(Iterable<Record> rs, Set<OnzProcedure>, History)
 		setDirty(true);
-	}
-
-	@Override
-	public void encode0() {
-		if (!getDirty())
-			return;
-		// Under Lock：Table模式持有rrs锁（Checkpoint.flushInternal）；Immediately模式在事务持锁提交流程内。
-
-		// 可能编码多次（flush失败重试时重新编码）。
-		// 脏值经单次volatile快照获取；脏删除快照为null，编码为删除。
-		var v = getDirtyValue();
-		if (table.isRelationalMapping() && table.getDatabase() instanceof DatabaseRelationalMapping) {
-			var sqlKey = new SQLStatement();
-			table.encodeKeySQLStatement(sqlKey, key);
-			if (v == null)
-				snapshotValue = null;
-			else {
-				var sqlValue = new SQLStatement();
-				var parents = new ArrayList<String>();
-				v.encodeSQLStatement(parents, sqlValue);
-				snapshotValue = sqlValue;
-			}
-			snapshotKey = sqlKey;
-
-			// 编码用来存储到本地rocksdb的cache中。
-			snapshotKeyLocal = table.encodeKey(key);
-			snapshotValueLocal = v != null ? ByteBuffer.encode(v) : null;
-		} else {
-			// KV表，本地Cache和远程一样。
-			snapshotKeyLocal = snapshotKey = table.encodeKey(key);
-			snapshotValueLocal = snapshotValue = v != null ? ByteBuffer.encode(v) : null;
-		}
-	}
-
-	@Override
-	public void flush(@Nullable Transaction t, Database.Transaction lct) {
-		if (!getDirty())
-			return;
-
-		var snapshotKey = Objects.requireNonNull(this.snapshotKey);
-		var snapshotKeyLocal = Objects.requireNonNull(this.snapshotKeyLocal);
-		var storage = table.getStorage();
-		if (snapshotValue != null) {
-			// changed
-			if (storage != null && t != null)
-				storage.getDatabaseTable().replace(t, snapshotKey, snapshotValue);
-
-			table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal,
-					Objects.requireNonNull(snapshotValueLocal));
-		} else {
-			// removed
-			if (storage != null && t != null)
-				storage.getDatabaseTable().remove(t, snapshotKey);
-
-			table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
-
-			// 需要同步删除OldTable，否则下一次查找又会找到。
-			// 这个违背了OldTable不修改的原则，但没办法了。
-			var databaseTransactionOldTmp = getDatabaseTransactionOldTmp();
-			if (databaseTransactionOldTmp != null) {
-				// oldTable按KV语义使用（load迁移路径与下方localRocksCache同），必须传编码后的
-				// snapshotKeyLocal；关系映射表的snapshotKey是SQLStatement，传入必抛CCE。
-				var oldTable = table.getOldTable();
-				if (oldTable != null) {
-					oldTable.remove(databaseTransactionOldTmp, snapshotKeyLocal);
-				}
-			}
-		}
-	}
-
-	@Override
-	public void cleanup() {
-		setDatabaseTransactionTmp(null);
-		setDatabaseTransactionOldTmp(null);
-		// CheckpointMode.Table
-		snapshotKey = null;
-		snapshotValue = null;
-		snapshotKeyLocal = null;
-		snapshotValueLocal = null;
 	}
 }

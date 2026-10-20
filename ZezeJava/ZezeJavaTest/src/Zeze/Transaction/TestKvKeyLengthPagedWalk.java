@@ -86,7 +86,7 @@ public class TestKvKeyLengthPagedWalk {
 
 	@Test
 	public void testFindReplaceRemove() throws Exception {
-		// find/replace/remove 的执法点在各后端 raw 方法（写主路径 Record1.flush 直呼 raw，
+		// find/replace/remove 的执法点在各后端 raw 方法（写主路径 TableX.writeSnapshot 直呼 raw，
 		// 不经过 typed 门面）；写按900，读/删按存量预算2712。
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_KV_KEY_LENGTH_PAGED_WALK);

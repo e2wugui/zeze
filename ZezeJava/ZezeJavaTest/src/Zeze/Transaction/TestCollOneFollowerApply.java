@@ -37,19 +37,7 @@ public class TestCollOneFollowerApply {
 			}
 
 			@Override
-			public void encode0() {
-			}
-
-			@Override
-			public void flush(Database.@Nullable Transaction t, Database.Transaction lct) {
-			}
-
-			@Override
 			public void commit(RecordAccessed accessed) {
-			}
-
-			@Override
-			public void cleanup() {
 			}
 		};
 

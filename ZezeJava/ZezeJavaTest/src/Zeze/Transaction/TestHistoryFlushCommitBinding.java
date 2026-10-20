@@ -26,8 +26,8 @@ import Zeze.Util.Id128;
 /**
  * FND3-51：Checkpoint.flush 在数据库事务 commit 之前清空 History 容器
  * （encode0 清 logChanges、flush 清 encoded）。Table 模式下 flush 失败的单元
- * 保留在 relativeRecordSetMap 等下轮重试——数据记录的快照保留在 Record 里
- * （cleanup 在 commit 成功后才执行），幂等重写落库；但 History 的两个容器已空，
+ * 保留在 relativeRecordSetMap 等下轮重试——数据记录的脏值仍保留，下一轮
+ * 重新编码后幂等重写落库；但 History 的两个容器已空，
  * tHistory 行永久缺失，回放/对账与主库永久分歧。
  *
  * 失败注入：FlakyDatabase 承载测试表与 tHistory（TableConf 改挂），事务 commit

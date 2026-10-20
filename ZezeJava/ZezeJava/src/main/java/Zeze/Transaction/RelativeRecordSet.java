@@ -39,13 +39,13 @@ public final class RelativeRecordSet extends ReentrantLock {
 	// 供bench dump（collectAndReset().formattedLog()）与运行时巡检。句柄一次解析终身复用
 	// （对齐Checkpoint.RunOnceObserver惯例）。
 	private static final ZezeCounter.LongObserver CommitLockWaitObserver =
-			ZezeCounter.instance.getRunTimeObserver("RRS.commitLockWait");
+		ZezeCounter.instance.getRunTimeObserver("RRS.commitLockWait");
 	private static final ZezeCounter.LongObserver FlushLockWaitObserver =
-			ZezeCounter.instance.getRunTimeObserver("RRS.flushLockWait");
+		ZezeCounter.instance.getRunTimeObserver("RRS.flushLockWait");
 	// FlushSet整组取锁总等待告警阈值（系统属性，毫秒）：非公平锁下flusher等待是统计性
 	// 安全（无理论上界，见构造器注释），本告警是饿死风险的观测兜底——只告警不介入。
 	private static final long FlushLockWaitWarnNanos =
-			PropertiesHelper.getLong("zeze.rrsFlushLockWaitWarnMs", 1000) * 1_000_000L;
+		PropertiesHelper.getLong("zeze.rrsFlushLockWaitWarnMs", 1000) * 1_000_000L;
 
 	/** 纯读事务快路（P2）：默认开；zeze.rrs.readFastPath=false 恢复全量 rrs 路径（逃生门）。 */
 	private static final boolean ReadFastPath = PropertiesHelper.getBool("zeze.rrs.readFastPath", true);
@@ -178,14 +178,14 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	private static @Nullable PreparedCommit prepareHistory(Procedure procedure,
-			@Nullable Changes changes, @Nullable IHistory history) throws IHistory.CommitRejectedException {
+														   @Nullable Changes changes, @Nullable IHistory history) throws IHistory.CommitRejectedException {
 		if (history == null || changes == null)
 			return null;
 		return Objects.requireNonNull(history.prepareCommit(procedure), "History.prepareCommit returned null");
 	}
 
 	private static @Nullable PendingHistory collectAndCaptureHistory(Transaction trans,
-			@Nullable Changes changes, @Nullable PreparedCommit prepared) {
+																	 @Nullable Changes changes, @Nullable PreparedCommit prepared) {
 		try {
 			if (changes != null)
 				trans.collectChanges(changes);
@@ -414,7 +414,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	private static RelativeRecordSet _merge_(ArrayList<RelativeRecordSet> locked,
-													  Transaction trans, boolean allRead) {
+											 Transaction trans, boolean allRead) {
 		// find largest
 		var largest = locked.getFirst();
 		for (int index = 1; index < locked.size(); ++index) {
@@ -561,9 +561,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 				}
 				if (lockWaited > FlushLockWaitWarnNanos)
 					Checkpoint.logger.warn(
-							"FlushSet acquire {} rrs locks waited {}ms: flusher排队超阈值(zeze.rrsFlushLockWaitWarnMs)，"
-									+ "查RRS.flushLockWait聚合分布与RrsWaitLock慢事务时间线",
-							locks.size(), lockWaited / 1_000_000);
+						"FlushSet acquire {} rrs locks waited {}ms: flusher排队超阈值(zeze.rrsFlushLockWaitWarnMs)，"
+							+ "查RRS.flushLockWait聚合分布与RrsWaitLock慢事务时间线",
+						locks.size(), lockWaited / 1_000_000);
 				var rs = new ArrayList<Record>(nr);
 				var onzProcedures = new HashSet<OnzProcedure>();
 				IHistory.PendingHistory history = null;
@@ -618,7 +618,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void flush(Checkpoint checkpoint, RelativeRecordSet rrs) {
 
-		// 编码统一由 Checkpoint.flush 锁内 encode0 承担。不得锁外 encodeN 预编码：
+		// 编码统一在 Checkpoint.flush 锁内完成，不得在锁外预编码：
 		// 它与并发轮的 writeOnly/onPersisted、并发事务 merge 存在桶级交错：搬运者
 		// 拿锁后发现 rrs 已 deleted/merged 而跳过 flush，滞留条目永不落库。
 		lockFlush(rrs);
@@ -716,7 +716,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	private static FlushSet parallelFlushSet(Checkpoint checkpoint,
-													  ConcurrentHashMap<Thread, FlushSet> map) {
+											 ConcurrentHashMap<Thread, FlushSet> map) {
 		return map.computeIfAbsent(Thread.currentThread(), __ -> new FlushSet(checkpoint));
 	}
 

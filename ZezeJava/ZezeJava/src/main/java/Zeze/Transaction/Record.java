@@ -7,7 +7,6 @@ import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Random;
 import org.jspecify.annotations.Nullable;
 import Zeze.Transaction.IGlobalAgent.AcquireResult;
-import Zeze.Transaction.Database.Transaction;
 
 /**
  * 表格记录：缓存中一条记录的运行时载体，持有软引用值、脏事实、时间戳、
@@ -51,9 +50,6 @@ public abstract class Record extends ReentrantLock {
 	// too many try
 	private boolean fresh;
 	private long acquireTime; // 存放过期时间
-
-	private @Nullable Transaction databaseTransactionTmp;
-	private @Nullable Transaction databaseTransactionOldTmp;
 
 	public Record(@Nullable Bean value) {
 		super(true);
@@ -153,22 +149,6 @@ public abstract class Record extends ReentrantLock {
 		fresh = true;
 	}
 
-	final @Nullable Transaction getDatabaseTransactionTmp() {
-		return databaseTransactionTmp;
-	}
-
-	final @Nullable Transaction getDatabaseTransactionOldTmp() {
-		return databaseTransactionOldTmp;
-	}
-
-	final void setDatabaseTransactionTmp(@Nullable Transaction value) {
-		databaseTransactionTmp = value;
-	}
-
-	final void setDatabaseTransactionOldTmp(@Nullable Transaction value) {
-		databaseTransactionOldTmp = value;
-	}
-
 	public final RootInfo createRootInfoIfNeed(TableKey tkey) {
 		var strongRef = getSoftValue();
 		var cur = strongRef != null ? strongRef.rootInfo : null;
@@ -183,11 +163,5 @@ public abstract class Record extends ReentrantLock {
 
 	public abstract @Nullable AcquireResult acquire(int state, boolean fresh, boolean noWait);
 
-	public abstract void encode0();
-
-	public abstract void flush(@Nullable Transaction t, Database.Transaction lct);
-
 	public abstract void commit(RecordAccessed accessed);
-
-	public abstract void cleanup();
 }

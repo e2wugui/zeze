@@ -23,7 +23,7 @@ import Zeze.Util.FuncLong;
  * Application.start 每次都会整体删除本地 RocksCache（zeze_cache_*），
  * 因此重启后能读到的数据只能来自后台库——这正是原缺陷（encode0/flush 因 record.dirty
  * 恒 false 被短路，只写内存）的判定标准。
- * 覆盖 增加(insert)、修改(in-place)、删除(remove) 三种提交路径（Record1.flush 的 replace/remove 分支）。
+ * 覆盖 增加(insert)、修改(in-place)、删除(remove) 三种提交路径（TableX.writeSnapshot 的 replace/remove 分支）。
  */
 @Fast
 public class TestCheckpointImmediately {

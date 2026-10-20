@@ -15,14 +15,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * kimi-audit01 T-26/T-27回归（GTable）。
- * T-26：Row视图向已从表中摘除的行写数据——rowMap().remove(r)/clear()整体摘行后，Row缓存的
- * backingRowMap仍非空，Row.put直接写已脱离backingMap的旧行（托管路径还记挂在脱树bean上的
- * 幻影redo），写入静默丢失（Guava原版同构缺陷，Zeze下丢的是持久化数据）。
- * 修复：陈旧视图守卫（backingMap不含该行即抛IllegalStateException，响亮失败）。
- * T-27：put先建行后写值——getOrCreate先把空行put进外层容器（托管路径当场记LogMap2）后
- * 内层put抛HasManagedException（值bean已受管），catch后继续提交会残留并持久化幻影空行。
- * 修复：先写内层再挂外层（对齐PMap2.putAll先全量校验后入日志惯例）。
+ * GTable 的陈旧行视图与托管值复用约束。
+ * 陈旧 Row 写入必须失败；重复挂接已托管 Bean 必须中止整笔事务，不得留下持久化记录。
  */
 @Fast
 public class TestGTableStaleRowAndPhantomRow {
@@ -50,9 +44,9 @@ public class TestGTableStaleRowAndPhantomRow {
 		Assertions.assertThrows(IllegalStateException.class, () -> row2.put(2L, 22));
 	}
 
-	/** T-27：内层put抛异常（值bean已受管）时不得在外层残留幻影空行并持久化。 */
+	/** 重复挂接已托管值会 Abort，先前写入的行也必须一并回滚。 */
 	@Test
-	public void testInnerPutFailLeavesNoPhantomRow() throws Exception {
+	public void testManagedValueReuseAbortsWithoutPersistingRows() throws Exception {
 		var conf = new Config();
 		conf.setServiceManager("disable");
 		conf.setServerId(NextId.incrementAndGet());
@@ -70,23 +64,18 @@ public class TestGTableStaleRowAndPhantomRow {
 				var g = requireNonNull(table).getOrAdd(1L).getGTable();
 				var shared = new Bean1();
 				g.put(1, 1, shared); // shared进入行1（受管）
-				try {
-					g.put(2, 1, shared); // 同一bean再入新行2：内层put必须抛HasManagedException
-					Assertions.fail("已受管bean再入容器必须抛HasManagedException");
-				} catch (Zeze.Transaction.HasManagedException expected) {
-					// 业务catch后继续：外层不得残留行2的幻影空行
-				}
+				g.put(2, 1, shared); // 重复挂接由事务框架转换为 Abort，不能按成功提交。
+				Assertions.fail("复用已托管 Bean 必须中止事务");
 				return Procedure.Success;
 			}, "T27.PhantomRow").call();
-			Assertions.assertEquals(Procedure.Success, result);
+			Assertions.assertEquals(Procedure.AbortException, result);
 
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				var g = requireNonNull(table).getOrAdd(1L).getGTable();
-				// 核心（红）：异常行2不得作为空行残留并提交持久化
-				Assertions.assertFalse(g.containsRow(2), "内层失败的行不得以幻影空行残留");
-				Assertions.assertTrue(g.containsRow(1));
+				Assertions.assertNull(requireNonNull(table).get(1L), "新记录及两行都必须回滚");
 				return Procedure.Success;
-			}, "T27.Verify").call());
+			}, "GTable.VerifyAbort").call());
+			app.checkpointRun();
+			Assertions.assertNull(requireNonNull(table).selectFromDatabase(1L), "被中止的新记录不得落库");
 		} finally {
 			app.stop();
 		}

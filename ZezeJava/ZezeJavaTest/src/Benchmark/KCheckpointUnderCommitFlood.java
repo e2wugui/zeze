@@ -33,8 +33,8 @@ public class KCheckpointUnderCommitFlood {
 	public static final int Keys = 64;          // 热 key 子集：冲突集中到少量 RRS 编组
 	public static final int TxnCount = 500_000;
 	public static final int InFlight = 10_000;  // 在飞上限：约束无界 VT 形态下的 VT 驻留总量
-	public static final int Warmups = 1;
-	public static final int Rounds = 3;
+	public static final int Warmups = Integer.getInteger("bench.flood.warmups", 1);
+	public static final int Rounds = Integer.getInteger("bench.flood.rounds", 3);
 
 	@Test
 	public void benchFlood() throws Exception {

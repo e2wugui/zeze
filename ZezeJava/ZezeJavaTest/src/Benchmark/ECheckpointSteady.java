@@ -10,15 +10,15 @@ import Zeze.Transaction.CheckpointFlushMode;
 import demo.App;
 
 // checkpoint 稳态（收编原 CheckpointFlush.java，多轮+JSON）：每轮先把 Records 条记录弄脏
-// （计时段外），再计时 checkpointRun 的完整 flush（序列化+提交，Memory 库无磁盘 IO）。
+// （计时段外），再计时 checkpointRun 的完整 flush（序列化+提交，Memory 主库仍写本地 Rocks 缓存）。
 // 旧三场景测量窗口（4~7s）内 CheckpointPeriod(60s) 根本不触发，本场景补该路径覆盖。
 @SuppressWarnings("NewClassNamingConvention")
 @Bench
 @Tag("core")
 public class ECheckpointSteady {
 	public static final int Records = 10_000;
-	public static final int Warmups = 2;
-	public static final int Rounds = 5;
+	public static final int Warmups = Integer.getInteger("bench.checkpoint.warmups", 2);
+	public static final int Rounds = Integer.getInteger("bench.checkpoint.rounds", 5);
 
 	@Test
 	public void benchFlushMultiThreadMerge() throws Exception {
@@ -28,6 +28,16 @@ public class ECheckpointSteady {
 	@Test
 	public void benchFlushSingleThread() throws Exception {
 		bench("E_CheckpointFlush_SingleThread", CheckpointFlushMode.SingleThread);
+	}
+
+	@Test
+	public void benchFlushMultiThread() throws Exception {
+		bench("E_CheckpointFlush_MultiThread", CheckpointFlushMode.MultiThread);
+	}
+
+	@Test
+	public void benchFlushSingleThreadMerge() throws Exception {
+		bench("E_CheckpointFlush_SingleThreadMerge", CheckpointFlushMode.SingleThreadMerge);
 	}
 
 	private static void bench(String name, CheckpointFlushMode mode) throws Exception {

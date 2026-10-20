@@ -141,8 +141,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		public void close() {
 		}
 
-		// 快照buffer收编（CopyIf：恰满零拷贝）：唯一调用方 Record1.flush 传入的快照为
-		// 单周期单用途（每脏周期新编码、cleanup 置 null，从不原地修改），防御性整份拷贝
+		// 快照buffer收编（CopyIf：恰满零拷贝）：Checkpoint.FlushBatch.writeTo 传入的快照为
+		// 单周期单用途（每次刷盘独立编码，从不原地修改），防御性整份拷贝
 		// 是纯浪费；两个长期持有者（本 batch→TableMemory.map、rocks镜像 WriteBatch）共享
 		// 同一只读数组，后者在 put 时自行拷入 native。空值经 CopyIf 可能返回共享的
 		// ByteBuffer.Empty，与 removed 哨兵（独立实例）不会混淆，commit 引用相等判删安全。

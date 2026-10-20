@@ -72,19 +72,7 @@ public class TestLogOneDeclaredTypeMeta {
 			}
 
 			@Override
-			public void encode0() {
-			}
-
-			@Override
-			public void flush(Database.@Nullable Transaction t, Database.Transaction lct) {
-			}
-
-			@Override
 			public void commit(RecordAccessed accessed) {
-			}
-
-			@Override
-			public void cleanup() {
 			}
 		};
 		return new Record.RootInfo(record, new TableKey(1, "TestLogOneType"));

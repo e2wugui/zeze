@@ -45,22 +45,7 @@ public class TestRecordDirtyRef {
 		}
 
 		@Override
-		public void encode0() {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void flush(Database.@Nullable Transaction t, Database.Transaction lct) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
 		public void commit(RecordAccessed accessed) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void cleanup() {
 			throw new UnsupportedOperationException();
 		}
 	}
