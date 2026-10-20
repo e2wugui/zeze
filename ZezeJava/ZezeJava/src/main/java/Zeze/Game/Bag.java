@@ -149,13 +149,11 @@ public class Bag {
 			var bItemHint = bean.getItems().get(positionHint);
 			if (null != bItemHint) {
 				if (bItemHint.getId() == itemAdd.getId()) {
-					int numberNew = bItemHint.getNumber() + itemAdd.getNumber();
-					if (numberNew <= pileMax) {
-						bItemHint.setNumber(numberNew);
+					int remaining = stackInto(bItemHint, itemAdd.getNumber(), pileMax);
+					if (remaining == 0) {
 						return 0; // all pile done
 					}
-					bItemHint.setNumber(pileMax);
-					itemAdd.setNumber(numberNew - pileMax);
+					itemAdd.setNumber(remaining);
 					// continue to add
 				}
 				// continue to add
@@ -175,13 +173,11 @@ public class Bag {
 
 		for (var item : bean.getItems().values()) {
 			if (item.getId() == itemAdd.getId()) {
-				int numberNew = item.getNumber() + itemAdd.getNumber();
-				if (numberNew > pileMax) {
-					item.setNumber(pileMax);
-					itemAdd.setNumber(numberNew - pileMax);
+				int remaining = stackInto(item, itemAdd.getNumber(), pileMax);
+				if (remaining > 0) {
+					itemAdd.setNumber(remaining);
 					continue;
 				}
-				item.setNumber(numberNew);
 				return 0; // all pile done
 			}
 		}
@@ -204,6 +200,13 @@ public class Bag {
 			bean.getItems().put(pos, itemAdd);
 		}
 		return 0;
+	}
+
+	// 返回未能堆叠的数量；中间总量可以超过 int，但合法的单堆数量不会。
+	private static int stackInto(BItem target, int number, int pileMax) {
+		long total = (long)target.getNumber() + number;
+		target.setNumber((int)Math.min(total, pileMax));
+		return (int)Math.max(total - pileMax, 0);
 	}
 
 	private int getEmptyPosition() {
@@ -245,6 +248,8 @@ public class Bag {
 		}
 
 		int pileMax = module.getItemPileMax(itemFrom.getId());
+		if (from == to)
+			return 0;
 		var itemTo = bean.getItems().get(to);
 		if (null != itemTo) {
 			if (itemFrom.getId() != itemTo.getId()) {
@@ -258,18 +263,12 @@ public class Bag {
 				return 0;
 			}
 			// 叠加（或拆分）
-			int numberToWill = itemTo.getNumber() + number;
-			if (numberToWill > pileMax) {
-				itemTo.setNumber(pileMax);
-				itemFrom.setNumber(itemFrom.getNumber() - number + (numberToWill - pileMax));
-			} else {
-				itemTo.setNumber(numberToWill);
-				var remainNum = itemFrom.getNumber() - number;
-				if (remainNum > 0)
-					itemFrom.setNumber(remainNum);
-				else
-					bean.getItems().remove(from);
-			}
+			int remaining = stackInto(itemTo, number, pileMax);
+			int remainNum = itemFrom.getNumber() - number + remaining;
+			if (remainNum > 0)
+				itemFrom.setNumber(remainNum);
+			else
+				bean.getItems().remove(from);
 			return 0;
 		}
 		// 移动（或拆分）
