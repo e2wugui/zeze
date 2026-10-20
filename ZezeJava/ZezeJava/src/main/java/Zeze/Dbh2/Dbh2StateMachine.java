@@ -607,9 +607,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					enqueueSplitSync(pending.txn.getBatch());
 					pending.txn.commitBatch(requireBucket());
 				} else
-					logger.error("commitBatch but transaction not found. tid={}"
-							+ " (late commit after expiry finalize or unknown tid -- divergence-class"
-							+ " event, manual check recommended)", tid);
+					// 对齐Onz同构竞态的分级（Onz.java "duplicate after commit -- normal idempotent redo"）
+					// 与本状态机重复undoBatch的warn口径（见下方undoBatch null分支）：redo×redo/
+					// deliver×redo的重复投递是部分故障期间的常规副产物（rpcTimeout默认60s≥redo周期
+					// 60s，单桶满超时即确定性重叠，卡桶期间每轮对全部桶重发），数据幂等安全；
+					// true divergence子类已由上方undonePending复活分支单独error留痕，不因降级丢失。
+					logger.warn("commitBatch but transaction not found. tid={}"
+							+ " (duplicate delivery after commit -- normal idempotent redo, or late"
+							+ " commit after expiry finalize; unknown tid repeating warrants manual check)", tid);
 			}
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {

@@ -4,7 +4,7 @@
 - **类别**：Dbh2 复制协议/redo 兜底误报
 - **子系统**：Dbh2
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Dbh2/CommitRocks.java:91-92`（redo 无闸）、`:51`（60s 周期）；`Commit.java:59-63`（deliver 异步化）；`Dbh2StateMachine.java:609-612`（桶侧 error 分级）
-- **状态**：⚔️ 对抗验证 **CONFIRMED 且强化**（2026-10-20 红队五角度全败+两处加强：①默认 rpcTimeout=60s（Dbh2Config.java:16）非小值——单桶一次满 60s 停顿的 await 窗口**确定性**包含 60s redo tick，无需精巧竞态；②**更强触发**：redo×redo 自重复——卡桶期间每轮 redo 全桶重发，健康桶每 60s 轮次一条假 error，部分故障期间误报是常规副产物，原判低估频率；③对比双重坐实：Onz 同构分支 warn（Onz.java:394-396）且 Dbh2 自己的重复 undoBatch 就是 warn（Dbh2StateMachine.java:642）——同状态机 undo=warn/commit=error 不对称。**修法排序修正**：年龄闸压不住 redo×redo（记录年龄天然增长），桶侧对齐 Onz 判 warn 才是完备解。勘误：Commit.java 异步化块实际 :57-63）
+- **状态**：⚔️ 对抗验证 CONFIRMED → ✅ **已修复·未提交（2026-10-20，owner 指示暂缓提交）**：桶侧 commitBatch 的 not-found 分支由 error 降为 warn，文案对齐 Onz 的 "duplicate delivery after commit -- normal idempotent redo" 分类（重复投递列为第一成因）与本状态机重复 undoBatch 的 warn 口径；true divergence 子类由上方 undonePending 复活分支（:605）单独 error 留痕不丢失。修法排序采对抗验证结论：桶侧判 warn 为完备解（redoTimer 年龄闸压不住 redo×redo 形态）。javac 零告警。红队强化证据保留备查
 
 ## 缺陷
 
