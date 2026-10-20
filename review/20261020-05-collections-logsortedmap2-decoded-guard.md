@@ -4,7 +4,7 @@
 - **类别**：镜像保护缺失
 - **子系统**：Transaction/Collections
 - **位置**：`Transaction/Collections/LogSortedMap2.java:67-74`；对照 `LogMap2.java:63-67`（有守卫+TestLogMap2MergeDecodedRejects 钉住）
-- **状态**：已复核存活（集合族分片初审，主审读码定谳）
+- **状态**：⚔️ 对抗验证 CONFIRMED → ✅ **已修复（2026-10-20）**：LogSortedMap2.mergeChangedToReplaced 补 decoded 守卫（对齐 LogMap2 文案），镜像回归测试 TestLogSortedMap2MergeDecodedRejects（decoded 拒绝 + leader 幂等两用例）。验证：javac 零告警 + 直跑 4 用例全过（含 #06 的 2 个）。红队标注保留：当前触发不可构造（监听器只收 leader 态日志，生产调用全部强转 LogMap2），修复为契约对齐性质
 
 ## 缺陷
 

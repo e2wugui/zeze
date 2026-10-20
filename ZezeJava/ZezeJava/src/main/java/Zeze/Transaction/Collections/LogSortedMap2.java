@@ -65,6 +65,12 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 
 	@SuppressWarnings("unchecked")
 	public void mergeChangedToReplaced() {
+		// leader-only（对齐 LogMap2，契约由 3c96a10f8 确立+TestLogMap2MergeDecodedRejects 钉住，
+		// 排序镜像 20261020-05 补齐）：解码态的 changed 为空、changedWithKey 才是完整回放日志
+		// （LogBean 以 null self 构建），merge 会把解码重建的 bean 塞进 replaced——增量丢失/错挂
+		// 且无报错；changedWithKey 为空时则是静默 no-op，同为漏守卫形态，显式拒绝一并封死。
+		if (decoded)
+			throw new IllegalStateException("mergeChangedToReplaced on decoded log (leader-only)");
 		if (!merged) {
 			merged = true;
 			buildChangedWithKey(); // encode 先行时 changedWithKey 已构建（built==true），直接复用
