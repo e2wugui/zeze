@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.Serializable;
@@ -86,7 +87,7 @@ public abstract class Bean implements Serializable {
 	// （下方入口检查），请重建实例或copy()。
 	public final void initRootInfoWithRedo(@Nullable RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
-			throw new HasManagedException();
+			Objects.requireNonNull(Transaction.getCurrent()).throwAbort("hasManaged", new HasManagedException());
 		this.rootInfo = rootInfo;
 		this.parent = parent;
 		Transaction.whileRedo(this);
@@ -96,7 +97,7 @@ public abstract class Bean implements Serializable {
 
 	public final void initRootInfo(@Nullable RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
-			throw new HasManagedException();
+			Objects.requireNonNull(Transaction.getCurrent()).throwAbort("hasManaged", new HasManagedException());
 		this.rootInfo = rootInfo;
 		this.parent = parent;
 		if (rootInfo != null) // 同上
