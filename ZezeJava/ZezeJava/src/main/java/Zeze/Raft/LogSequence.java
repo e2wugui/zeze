@@ -1173,6 +1173,14 @@ public class LogSequence {
 						connector.setNextIndex(ni);
 						trySendAppendEntries(connector, null);
 					}
+					// 成功/失败路径统一补 apply（20261020-03）：applyFuture 池线程 finally 置空(:1005)与
+					// 持锁判空(:992)不成对——unlock→置空微秒窗内 tryCommit 推进的已提交条目会被
+					// tryStartApplyTask 跳过，此后空闲 leader 唯一周期触发是心跳（AE 应答路径的
+					// tryCommit 早退分支不再发生），静止集群的条目停在未应用直到下一条写入。
+					// 对齐 follower 侧 followerOnAppendEntries(:1859) 的 commitIndex>lastApplied
+					// 每次心跳重试，收敛窗口=一个心跳周期。
+					if (commitIndex > lastApplied)
+						tryStartApplyTask(readLogForApply(commitIndex, "sendHeartbeatTo"));
 				} finally {
 					raft.unlock();
 				}

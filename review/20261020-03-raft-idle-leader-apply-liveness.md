@@ -4,7 +4,7 @@
 - **类别**：apply 触发竞态/leader 活性
 - **子系统**：Raft
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Raft/LogSequence.java:1005`（置空不持锁）、`:992`（持锁判空）、`:1162`（心跳成功分支无动作）；对照 follower 侧 `:1859-1869`、AE 早退分支 `:957-963`
-- **状态**：⚔️ 对抗验证 **CONFIRMED**（2026-10-20 红队五角度全败：心跳应答走 :1145-1180 独立内联回调不触 tryCommit，与 processAppendEntriesResult 两条路；tryStartApplyTask/tryCommit 调用点穷举 leader 侧仅 AE 应答路径，onTimer 只心跳、低精度 timer 只清扫；池为 cached/无界真并发；立即 apply 分支在 :992 守卫内兜不住；lastApplied 全部写点穷举无兜底。多 follower 末批应答次序压低发生率，与 P2 自洽。修法(b)经红队验证有效）
+- **状态**：⚔️ 对抗验证 CONFIRMED → ✅ **已修复（2026-10-20，方案 b）**：sendHeartbeatTo 应答回调（持 raft 锁）在成功/失败路径统一补 `commitIndex > lastApplied` 的 tryStartApplyTask 重试——空闲 leader 的心跳成为兜底触发点，收敛窗口=一个心跳周期，对齐 follower 侧 :1859 口径。红队验证记录保留：五角度全败（心跳应答独立内联回调不触 tryCommit、调用点穷举无周期兜底、池真并发、:992 守卫内立即 apply 兜不住、lastApplied 写点穷举无兜底）；竞态窗口本身（applyFuture 置空不持锁）未改动——由心跳重试外部兜底覆盖，静止集群最迟一个心跳周期内追平
 
 ## 缺陷
 
