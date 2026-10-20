@@ -4,7 +4,7 @@
 - **类别**：Json 解析边界/异常路径
 - **子系统**：Util
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Util/JsonReader.java:309`（skipComment 首读）；波及 `:222`（end 的 `buf[++pos]`）、`:257`（skipNext 无界检查）、`:298-300`（skipVar 注释分支）
-- **状态**：已复核存活（Util 分片初审，主审读码定谳）
+- **状态**：⚔️ 对抗验证 **CONFIRMED 且缺陷面更宽**（2026-10-20 红队逐字节推演坐实 "[1 /"（更简触发：顶层 "/"）；6 个 parse 重载全只捕 ReflectiveOperationException（Json.java:588-652）AIOOBE 穿透；DbWeb:289-296 绕过既有 400 分类直达 500+栈，与在档 /api/search 空 body 事故同形。**红队反向发现**：skipVar:267 循环头 buf[pos] 与 skipNext:257 buf[++pos] 完全无 EOF 守卫——纯截断输入 "[1"/"{"/"[ " 同样 AIOOBE，缺陷面比本判更宽，修法须连带 :267。**勘误**：回归用例 "[1] /" 不触发（顶层 parse 在 ']' 后即返回不读尾随），该用例仅经手工 end() 炸）
 
 ## 缺陷
 

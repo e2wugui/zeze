@@ -4,7 +4,7 @@
 - **类别**：事件循环任务排空异常防护不对称
 - **子系统**：Net
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Net/Selector.java:322-323`；对照同文件 `runTask`（:78-84，逐任务捕获 Throwable）；关联 `TcpSocket.java:802-804`（outputBuffer.close() 在 try 外、OnSocketDisposed 覆写的 catch 仅捕获 Exception）
-- **状态**：已复核存活（Net 分片初审，主审读码定谳）
+- **状态**：⚔️ 对抗验证 **CONFIRMED 且强化**（2026-10-20 红队四角度全败且发现更强面：taskQueue 主树唯一生产者= TcpSocket.realClose（:802 全仓唯一 .addTask），其任务**不自防护**——:810-819 两个 codec.close() 在 finally 内裸奔，zstd native 释放失败是**Exception 级**在案抛出路径（ZstdFactory.java:358-364 mhFreeCStream 非零→ISE），无需 Error 即穿透。**相邻缺陷**：inputCodecChain.close() 抛出时 outputCodecChain 永不关闭（第二个 native 上下文泄漏）。默认 selectTimeout=0（Selectors.java:33）无限阻塞坐实滞留窗口=该 selector 下次活动前）
 
 ## 缺陷
 

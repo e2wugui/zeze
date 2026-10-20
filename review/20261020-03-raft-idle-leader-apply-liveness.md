@@ -4,7 +4,7 @@
 - **类别**：apply 触发竞态/leader 活性
 - **子系统**：Raft
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Raft/LogSequence.java:1005`（置空不持锁）、`:992`（持锁判空）、`:1162`（心跳成功分支无动作）；对照 follower 侧 `:1859-1869`、AE 早退分支 `:957-963`
-- **状态**：已复核存活（Raft 分片初审，主审读码定谳）
+- **状态**：⚔️ 对抗验证 **CONFIRMED**（2026-10-20 红队五角度全败：心跳应答走 :1145-1180 独立内联回调不触 tryCommit，与 processAppendEntriesResult 两条路；tryStartApplyTask/tryCommit 调用点穷举 leader 侧仅 AE 应答路径，onTimer 只心跳、低精度 timer 只清扫；池为 cached/无界真并发；立即 apply 分支在 :992 守卫内兜不住；lastApplied 全部写点穷举无兜底。多 follower 末批应答次序压低发生率，与 P2 自洽。修法(b)经红队验证有效）
 
 ## 缺陷
 

@@ -4,7 +4,7 @@
 - **类别**：Redirect 路由正确性/哈希亲和契约
 - **子系统**：Arch
 - **位置**：`ZezeJava/ZezeJava/src/main/java/Zeze/Arch/RedirectBase.java:112-126`；对照同文件 choiceServer 的 orOtherServer（注解显式 opt-in，默认抛 RedirectException）、conc>1 路径（ProviderDistribute.choiceDataIndex miss→ProviderNotExist）
-- **状态**：已复核存活（Arch 分片初审，主审读码定谳）
+- **状态**：⚔️ 对抗验证 **DOWNGRADED → 设计口径不一致/文档缺失（非缺陷）**（2026-10-20 红队+主审亲验提交考古：引入提交 `551241edb`（2023-08-18）message 即设计说明"RedirectHash在ConcurrentLevel<=1时**尽可能返回一个有效的socket**"——尽力而为是有意设计；11 天后 `ca7d43fda` 的 orOtherServer **正是调用 choiceHash(module,serverId,1) 复用该块为底座**，非孤儿代码；该块 13 次演进全部保留。威胁面：main 树 @RedirectHash 穷举仅 5 处——ZezexJava 测试方法（无状态纯计算）+ Rank（动态 conc 默认 128 下界 1，方法体走全局事务表非服务器本地态），**conc≤1 业务用法为零**，无现存受害者。三口径不一致客观存在（conc>1 抛 dccde6c25 有意收紧 / orOtherServer 注解 opt-in / conc≤1 无条件尽力而为）且代码内零注释——修法(b)注释钉死意图仍值得做，属设计债）
 
 ## 缺陷
 

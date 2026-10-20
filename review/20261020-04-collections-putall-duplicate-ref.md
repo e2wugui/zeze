@@ -4,7 +4,7 @@
 - **类别**：别名污染/批量原子性缺口
 - **子系统**：Transaction/Collections
 - **位置**：`Transaction/Collections/PMap2.java:97-113`；同型 `PList2.java:162-167`、`PList2.java:218-228`、`PSortedMap2.java:120-129`
-- **状态**：已复核存活（集合族分片初审，主审读码定谳）
+- **状态**：⚔️ 对抗验证 **CONFIRMED**（2026-10-20 红队：致命角度"同 root 幂等放行"被 Bean.java:87-89 否决——无条件抛不看 root；finalRollback 只清日志跑回调、resetRootInfo 仅 redo 路径（Transaction.java:261←:482/:546）回滚不救；catch 后复用 bean 是 TestRocksRaftCollPutPoisonGuard 认可用法；四处同型零身份去重。定性"幽灵挂接"：rootInfo/parent/mapKey 已写在 redoBeans 里但 map/mapLog 都没有）
 
 ## 缺陷
 
