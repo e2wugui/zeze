@@ -61,7 +61,7 @@ public class TestTid128CacheFuturePerName {
 		requireNonNull(server).stop();
 	}
 
-	// 不能把pending的future留给下一个测试：allocateTid128CacheFuture内部会get()等待上一次分配完成。
+	// 清理两个名字的 pending future，避免影响后续测试。
 	@AfterEach
 	public void completePendingFutures() {
 		for (var name : new String[]{NAME_A, NAME_B}) {
@@ -71,7 +71,6 @@ public class TestTid128CacheFuturePerName {
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	@Test
 	public void testPerNameIsolation() {
 		var fa = requireNonNull(agent).allocateTid128CacheFuture(NAME_A, 0); // pending
@@ -83,8 +82,6 @@ public class TestTid128CacheFuturePerName {
 		Assertions.assertSame(fb, agent.getUsableTid128CacheFuture(NAME_B));
 		Assertions.assertSame(fa, agent.getLastTid128CacheFuture(NAME_A));
 		Assertions.assertSame(fb, agent.getLastTid128CacheFuture(NAME_B));
-		// 无参兼容镜像：最近一次分配（NAME_B的fb）。
-		Assertions.assertSame(fb, agent.getLastTid128CacheFuture());
 
 		// A毒化只影响A：B的pending future原样返回（不触发多余分配、不被牵连）。
 		Assertions.assertTrue(fa.setException(new TimeoutException("simulate udp timeout")));
@@ -94,7 +91,7 @@ public class TestTid128CacheFuturePerName {
 		var fa2 = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).getUsableTid128CacheFuture(NAME_A));
 		Assertions.assertNotSame(fa, fa2);
 		Assertions.assertSame(fa2, agent.getLastTid128CacheFuture(NAME_A));
-		Assertions.assertSame(fa2, agent.getLastTid128CacheFuture());
+		Assertions.assertSame(fb, agent.getLastTid128CacheFuture(NAME_B));
 	}
 
 	/** 只实现被测路径需要的行为，其余入口不可用。 */

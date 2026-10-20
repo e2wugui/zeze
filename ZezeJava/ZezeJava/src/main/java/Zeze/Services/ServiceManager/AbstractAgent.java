@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Component.Threading;
 import Zeze.Config;
@@ -14,10 +15,12 @@ import Zeze.IModule;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Util.Action1;
+import Zeze.Util.Action0;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 import java.util.List;
@@ -105,6 +108,109 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public void setOnSuspect(@Nullable Action1<Integer> value) {
 		onSuspect = value;
+	}
+
+	/** 两种传输共用的版本防线；Suspect 只是提示，租约仍由 Takeover 裁决。 */
+	protected final void notifySuspect(int serverId, long version) {
+		var on = onSuspect;
+		if (on == null)
+			return;
+		if (Objects.requireNonNull(config).getAppMainVersion() < version) {
+			logger.debug("Suspect ignored: myVersion={} < deadVersion={} serverId={}",
+					config.getAppMainVersion(), version, serverId);
+			return;
+		}
+		try {
+			on.run(serverId);
+		} catch (Throwable e) {
+			logger.error("Suspect serverId={}", serverId, e);
+		}
+	}
+
+	/** 在传输应答及 onChanged 回调之前，按接收顺序应用增量并修正通知集合。 */
+	protected final void applyServiceEdit(BEditService edit) {
+		for (var it = edit.getRemove().iterator(); it.hasNext(); ) {
+			var info = it.next();
+			var state = subscribeStates.get(info.getServiceName());
+			if (state == null || !state.onUnRegister(info))
+				it.remove();
+		}
+		edit.getRemove().removeIf(edit.getAdd()::contains);
+		for (var info : edit.getAdd()) {
+			var state = subscribeStates.get(info.getServiceName());
+			if (state == null)
+				continue;
+			var old = state.onRegister(info);
+			if (old != null)
+				edit.getRemove().add(old);
+		}
+	}
+
+	/** 注册确认后才重放订阅；同步/异步失败共用一条重试链，停机后拒绝迟到回调登记。 */
+	protected final class ServiceReplay implements AutoCloseable {
+		private final Action0 registerAction;
+		private final String taskName;
+		private final Level failureLevel;
+		private @Nullable Future<?> retryTask; // guarded by this，绝不持此锁等待 RPC
+		private boolean closed; // guarded by this
+
+		public ServiceReplay(Action0 registerAction, String taskName) {
+			this(registerAction, taskName, Level.WARN);
+		}
+
+		public ServiceReplay(Action0 registerAction, String taskName, Level failureLevel) {
+			this.registerAction = registerAction;
+			this.taskName = taskName;
+			this.failureLevel = failureLevel;
+		}
+
+		public void run() {
+			try {
+				registerAction.run();
+			} catch (Throwable e) {
+				logger.log(failureLevel, "{}: replay registers failed, schedule retry", taskName, e);
+				scheduleRetry();
+				return;
+			}
+			var subscriptions = new BSubscribeArgument();
+			for (var state : subscribeStates.values())
+				subscriptions.subs.add(state.getSubscribeInfo());
+			if (subscriptions.subs.isEmpty())
+				return;
+			try {
+				subscribeServicesAsync(subscriptions).whenComplete((__, e) -> {
+					if (e != null)
+						subscribeFailed(e);
+				});
+			} catch (Throwable e) {
+				subscribeFailed(e);
+			}
+		}
+
+		private void subscribeFailed(Throwable e) {
+			logger.log(failureLevel, "{}: replay subscribes failed, schedule retry", taskName, e);
+			scheduleRetry();
+		}
+
+		private synchronized void scheduleRetry() {
+			if (closed || retryTask != null)
+				return;
+			retryTask = TaskSpec.ofAction(() -> {
+				synchronized (this) {
+					retryTask = null; // 重放再失败时可以立即登记下一次，不能在重放之后清除。
+				}
+				run();
+			}).name(taskName).scheduleNow(5_000);
+		}
+
+		@Override
+		public synchronized void close() {
+			closed = true;
+			if (retryTask != null) {
+				retryTask.cancel(false);
+				retryTask = null;
+			}
+		}
 	}
 
 	protected abstract void allocate(AutoKey autoKey, int pool);

@@ -3,7 +3,6 @@ package Zeze.Services.ServiceManager;
 import java.util.Objects;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.Future;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Component.Threading;
@@ -18,7 +17,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
-import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
@@ -184,96 +182,22 @@ public final class Agent extends AbstractAgent {
 			logger.debug("OnConnected.Identify", ex);
 		}
 
-		replayRegistersAndSubscribes();
+		replay.run();
 	}
 
-	// 重连重放的失败若skip-and-continue（editService异常仅debug、订阅future异常
-	// 无人管）——网络flap后注册/订阅重放丢失，直到下一次重连/leader变更才再试，服务长时间
-	// 不可发现。重放源本就是registers/subscribeStates全量（重复重放幂等：服务端允许重复注册、
-	// 订阅状态updateSubscribeInfo同步），失败安排退避重试整体重放，"重连后状态最终必达"由
-	// 机制保证。
-	private static final long ReplayRetryDelayMs = 5_000;
-	// 对齐raft版——onConnected同步失败与subscribeServicesAsync
-	// 的whenComplete异步回调并发失败时，"cancel旧→赋新"两步竞态会登记出多个重试任务
-	//（重放源幂等无状态破坏，但重试链膨胀、日志重复）。小锁原子化"检查-登记/清除"。
-	// stop后拒绝再登记并取消在途任务，否则close后周期重试error日志持续到进程退出。
-	private final Object replayRetryLock = new Object();
-	private @Nullable Future<?> replayRetryTask; // guarded-by replayRetryLock
-	private volatile boolean stopped;
+	private final ServiceReplay replay = new ServiceReplay(this::replayRegisters,
+			"SM.Agent.replayRetry");
 
-	private void replayRegistersAndSubscribes() {
-		try {
-			synchronized (editServiceLock) {
-				var edit = new BEditService();
-				edit.getAdd().addAll(registers.values());
-				editService(edit);
-			}
-		} catch (Throwable ex) {
-			logger.warn("replay registers failed, schedule retry.", ex);
-			scheduleReplayRetry();
-			return; // 注册未确认，订阅随重试一并重放
-		}
-
-		var subArg = new BSubscribeArgument();
-		for (var e : subscribeStates.values())
-			subArg.subs.add(e.getSubscribeInfo());
-		// （对齐raft版onLoginSuccess的双保险结构）：subscribeServicesAsync首行
-		// waitConnectorReady可同步抛出（连接恰在phase-1应答到达后到此处之间死亡，或在
-		// >5s重连退避中阻塞超时）——异常发生在future创建之前，whenComplete不可达，原样
-		// 穿透后被上层ofAction吞掉，scheduleReplayRetry不被调用，重试链断（"最终必达"不变量
-		// 破口）。同步路径补try/catch；空订阅守卫避免无订阅空发。
-		if (!subArg.subs.isEmpty()) {
-			try {
-				subscribeServicesAsync(subArg).whenComplete((__, ex) -> {
-					if (ex != null) { // 发送失败或错误码：异步失败路径，调用侧try/catch不可达
-						logger.warn("replay subscribes failed, schedule retry.", ex);
-						scheduleReplayRetry();
-					}
-				});
-			} catch (Throwable ex) { // 同步失败路径（waitConnectorReady等入口抛出）
-				logger.warn("replay subscribes failed, schedule retry.", ex);
-				scheduleReplayRetry();
-			}
-		}
-	}
-
-	private void scheduleReplayRetry() {
-		if (stopped)
-			return;
-		synchronized (replayRetryLock) {
-			if (stopped)
-				return;
-			if (replayRetryTask != null)
-				return; // 单flight：已安排的重试足够（全量重放幂等，raft版同款语义）
-			replayRetryTask = TaskSpec.ofAction(() -> {
-				synchronized (replayRetryLock) {
-					replayRetryTask = null; // 先清自身：重放若再失败可立即登记新任务，链不断
-				}
-				replayRegistersAndSubscribes();
-			}).name("SM.Agent.replayRetry").scheduleNow(ReplayRetryDelayMs);
+	private void replayRegisters() {
+		synchronized (editServiceLock) {
+			var edit = new BEditService();
+			edit.getAdd().addAll(registers.values());
+			editService(edit);
 		}
 	}
 
 	private long processEditService(EditService r) {
-		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); ) {
-			var unReg = it.next();
-			var state = subscribeStates.get(unReg.getServiceName());
-			if (null == state || !state.onUnRegister(unReg))
-				it.remove();
-		}
-
-		// 触发回调前修正集合之间的关系。
-		// 删除后来又加入的。
-		r.Argument.getRemove().removeIf(r.Argument.getAdd()::contains);
-
-		for (var reg : r.Argument.getAdd()) {
-			var state = subscribeStates.get(reg.getServiceName());
-			if (null == state)
-				continue; // 忽略本地没有订阅的。最好加个日志。
-			var oldNotSame = state.onRegister(reg);
-			if (null != oldNotSame)
-				r.Argument.getRemove().add(oldNotSame);
-		}
+		applyServiceEdit(r.Argument);
 
 		r.SendResult();
 		try {
@@ -307,23 +231,8 @@ public final class Agent extends AbstractAgent {
 		return Procedure.Success;
 	}
 
-	// Suspect仅是提示：转化为onSuspect回调（应用接takeover.tryTransfer），
-	// 租约未过期时tryTransfer内部安排到过期时刻精确重试，不会误接管。
-	// version过滤（防御层，主过滤在SM梯队广播侧）：本进程版本低于死者=永不参与（数据降级防护）。
 	private long processSuspect(Suspect r) {
-		var on = onSuspect;
-		if (on != null) {
-			if (Objects.requireNonNull(config).getAppMainVersion() < r.Argument.version) {
-				logger.debug("processSuspect ignored: myVersion={} < deadVersion={} serverId={}",
-						config.getAppMainVersion(), r.Argument.version, r.Argument.serverId);
-				return 0;
-			}
-			try {
-				on.run(r.Argument.serverId);
-			} catch (Throwable e) {
-				logger.error("processSuspect serverId={}", r.Argument.serverId, e);
-			}
-		}
+		notifySuspect(r.Argument.serverId, r.Argument.version);
 		return 0;
 	}
 
@@ -389,13 +298,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	public void stop() throws Exception {
-		stopped = true; // 先置停机标志，再取消在途重试（迟到失败回调不会再登记）
-		synchronized (replayRetryLock) {
-			if (replayRetryTask != null) {
-				replayRetryTask.cancel(false);
-				replayRetryTask = null;
-			}
-		}
+		replay.close();
 		lock();
 		try {
 			if (tid128UdpClient != null) {

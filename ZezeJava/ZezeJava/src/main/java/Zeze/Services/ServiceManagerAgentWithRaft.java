@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Builtin.ServiceManagerWithRaft.Identify;
@@ -37,6 +36,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
@@ -101,17 +101,17 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			} else {
 				future.setResult(true);
 				// 异步重放，不在rpc回调线程里阻塞等待重放的响应。
-				TaskSpec.ofAction(this::onLoginSuccess).name("ServiceManager.AgentWithRaft.OnLoginSuccess").run();
+				TaskSpec.ofAction(replay::run).name("ServiceManager.AgentWithRaft.OnLoginSuccess").run();
 			}
 			return 0;
 		});
 	}
 
 	/**
-	 * 每次Login成功后执行（含断线重连/换leader）：上报Identify、重放全部注册、订阅，
-	 * 恢复服务端状态。服务端幂等（AddOrUpdate、允许重复注册），重复重放无害。
+	 * 每次登录成功及重试时上报 Identify、重放全部注册；注册成功后由 ServiceReplay 恢复订阅。
+	 * 服务端幂等（AddOrUpdate、允许重复注册），重复重放无害。
 	 */
-	private void onLoginSuccess() {
+	private void replayRegisters() {
 		// 先上报Identify：SM据此把serverId记在会话上，断线时广播Suspect（对齐非raft版onConnected）。
 		// 重发=恢复提示资格（与正确性无关，正确性由Takeover租约裁决）。
 		try {
@@ -123,70 +123,16 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			logger.error("OnLoginSuccess.Identify", ex);
 		}
 
-		// 重放失败若skip-and-continue——raft应答超时/错误码下注册或订阅重放丢失，
-		// 直到下一次换leader才再试。重放源是registers/subscribeStates全量且幂等（见类注释），
-		// 失败安排退避重试整体重放，"重连后状态最终必达"由机制保证。
-		try {
-			synchronized (editServiceLock) {
-				var edit = new BEditService();
-				edit.getAdd().addAll(registers.values());
-				if (!edit.getAdd().isEmpty())
-					editService(edit);
-			}
-		} catch (Throwable ex) {
-				logger.error("OnLoginSuccess.Register, schedule replay retry.", ex);
-				scheduleLoginReplayRetry();
-				return; // 注册未确认，订阅随重试一并重放
-		}
-
-		var subArg = new BSubscribeArgument();
-		for (var e : subscribeStates.values())
-			subArg.subs.add(e.getSubscribeInfo());
-		if (!subArg.subs.isEmpty()) {
-			try {
-				subscribeServicesAsync(subArg).whenComplete((__, ex) -> {
-					if (ex != null) { // 异步失败路径（错误码/发送失败future），调用侧try/catch不可达
-						logger.error("OnLoginSuccess.Subscribe, schedule replay retry.", ex);
-						scheduleLoginReplayRetry();
-					}
-				});
-			} catch (Throwable ex) {
-				logger.error("OnLoginSuccess.Subscribe, schedule replay retry.", ex);
-				scheduleLoginReplayRetry();
-			}
+		synchronized (editServiceLock) {
+			var edit = new BEditService();
+			edit.getAdd().addAll(registers.values());
+			if (!edit.getAdd().isEmpty())
+				editService(edit);
 		}
 	}
 
-	private static final long LoginReplayRetryDelayMs = 5_000;
-	// 调用方跨线程（Task池上onLoginSuccess的同步失败路径与内部派发池上subscribe的
-	// whenComplete异步失败回调），volatile检查-再赋值有竞态窗口，并发失败会登记出
-	// 多个重试任务，单flight被破坏。专用锁原子化"检查-登记"与action首步的"清除"；
-	// 不复用__thisLock（startNewLogin/waitLoginReady使用），且onLoginSuccess在锁外
-	// 执行，锁永远不会挂在editService的rpc等待上。清除必须先于重放：重放若再失败，
-	// 此刻字段已为null，能立即登记新任务，重试链不断；若清除放在重放之后，重放失败
-	// 时字段仍指向自身任务，新登记被单flight跳过，链就此断裂。
-	private final Object loginReplayRetryLock = new Object();
-	private @Nullable Future<?> loginReplayRetryTask; // guarded-by loginReplayRetryLock
-	// close后拒绝再登记并取消在途重试——raftClient已停，重试里的waitLoginReady
-	// 必失败再登记，形成约17s周期的error循环直到进程退出。
-	private volatile boolean closed;
-
-	private void scheduleLoginReplayRetry() {
-		if (closed)
-			return;
-		synchronized (loginReplayRetryLock) {
-			if (closed)
-				return;
-			if (loginReplayRetryTask != null)
-				return; // 单flight：已安排的重试足够
-			loginReplayRetryTask = TaskSpec.ofAction(() -> {
-				synchronized (loginReplayRetryLock) {
-					loginReplayRetryTask = null;
-				}
-				onLoginSuccess();
-			}).name("SM.AgentWithRaft.loginReplayRetry").scheduleNow(LoginReplayRetryDelayMs);
-		}
-	}
+	private final ServiceReplay replay = new ServiceReplay(this::replayRegisters,
+			"SM.AgentWithRaft.loginReplayRetry", Level.ERROR);
 
 	/// /////////////////////////////////////////////////////////////////////
 	@Override
@@ -201,21 +147,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	// 租约未过期时tryTransfer内部安排到过期时刻精确重试，不会误接管。
 	@Override
 	protected long ProcessSuspectRequest(Suspect r) {
-		var on = onSuspect;
-		if (on != null) {
-			// version过滤（防御层，主过滤在SM梯队广播侧）：本进程版本低于死者=永不参与（数据降级防护）。
-			if (Objects.requireNonNull(config).getAppMainVersion() < r.Argument.version) {
-				logger.debug("ProcessSuspectRequest ignored: myVersion={} < deadVersion={} serverId={}",
-						config.getAppMainVersion(), r.Argument.version, r.Argument.serverId);
-				r.SendResult();
-				return Procedure.Success;
-			}
-			try {
-				on.run(r.Argument.serverId);
-			} catch (Throwable e) {
-				logger.error("ProcessSuspectRequest serverId={}", r.Argument.serverId, e);
-			}
-		}
+		notifySuspect(r.Argument.serverId, r.Argument.version);
 		r.SendResult();
 		return Procedure.Success;
 	}
@@ -240,25 +172,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	@DispatchModeAnnotation(mode = DispatchMode.Direct)
 	protected long ProcessEditRequest(Edit r) {
-		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); /**/) {
-			var unReg = it.next();
-			var state = subscribeStates.get(unReg.getServiceName());
-			if (null == state || !state.onUnRegister(unReg))
-				it.remove();
-		}
-
-		// 触发回调前修正集合之间的关系。
-		// 删除后来又加入的。
-		r.Argument.getRemove().removeIf(r.Argument.getAdd()::contains);
-
-		for (var reg : r.Argument.getAdd()) {
-			var state = subscribeStates.get(reg.getServiceName());
-			if (null == state)
-				continue; // 忽略本地没有订阅的。最好加个日志。
-			var oldNotSame = state.onRegister(reg);
-			if (null != oldNotSame)
-				r.Argument.getRemove().add(oldNotSame);
-		}
+		applyServiceEdit(r.Argument);
 
 		r.SendResult();
 		try {
@@ -366,7 +280,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	// editService专用串行锁（对齐非raft版ServiceManager.Agent.editServiceLock）：
-	// 把"变更本地registers-发送-等待应答-提交/回滚"全过程串行化，且onLoginSuccess的重放
+	// 把"变更本地registers-发送-等待应答-提交/回滚"全过程串行化，且replayRegisters的重放
 	// 快照在同一锁内取——快照因此只能看到已确认的完整状态，不会捕获"本地已变更、远端未
 	// 确认随后被回滚"的中间态（local-first窗口下重放投递成功+原edit失败回滚
 	// =僵尸注册复现）。串行化同时消除同key并发edit的交错残留（AbstractAgent类注释豁免项）。
@@ -380,7 +294,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			for (var info : arg.getAdd())
 				verify(info.getServiceIdentity());
 			// 先更新本地记录再发送远程请求（重连重放的数据来源）。失败时回滚本次真实变更
-			// ：重放只有add语义（onLoginSuccess全量addAll，无remove），remove失败的
+			// ：重放只有add语义（replayRegisters全量addAll，无remove），remove失败的
 			// 条目若不回滚——本地已删、服务端永续残留，连接存活期间无人再发注销，僵尸注册
 			// 持续分发流量。只记录本次真实变更（新增/覆盖旧值/真实删除）；重放路径的幂等put
 			// 键已存在（prev==reg），不属于变更，回滚不得清空重放源。
@@ -482,13 +396,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void close() {
-		closed = true; // 先置停机标志，再取消在途重试（迟到失败回调不会再登记）
-		synchronized (loginReplayRetryLock) {
-			if (loginReplayRetryTask != null) {
-				loginReplayRetryTask.cancel(false);
-				loginReplayRetryTask = null;
-			}
-		}
+		replay.close();
 		try {
 			loginFuture.cancel(true);
 			raftClient.stop();

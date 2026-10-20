@@ -44,7 +44,6 @@ import harness.Fast;
  * 但不启动Id128UdpClient工作线程（应答无人处理），future的完成状态完全由测试手动setResult/setException
  * 控制，毒化/正常完成皆可确定性构造。
  */
-@SuppressWarnings("deprecation")
 @Fast
 public class TestTid128CacheFutureSelfHeal {
 	private static final String globalName = "UnitTest.S2.Tid128CacheFutureSelfHeal";
@@ -66,10 +65,10 @@ public class TestTid128CacheFutureSelfHeal {
 		requireNonNull(server).stop();
 	}
 
-	// 不能把pending的future留给下一个测试：allocateTid128CacheFuture内部会get()等待上一次分配完成。
+	// 每个测试结束时完成本名字的 pending future，避免影响下一个测试的分配档位。
 	@AfterEach
 	public void completeLastFutureIfPending() {
-		var last = requireNonNull(agent).getLastTid128CacheFuture();
+		var last = requireNonNull(agent).getLastTid128CacheFuture(globalName);
 		if (last != null && !last.isDone())
 			Assertions.assertTrue(last.setException(new TimeoutException("test cleanup")));
 	}
@@ -83,7 +82,7 @@ public class TestTid128CacheFutureSelfHeal {
 		// 修复前：这里抛CompletionException，且lastTid128CacheFuture永不被替换（毒化永久保留）。
 		var f2 = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).allocateTid128CacheFuture(globalName, 0));
 		Assertions.assertNotSame(f1, f2);
-		Assertions.assertSame(f2, agent.getLastTid128CacheFuture());
+		Assertions.assertSame(f2, agent.getLastTid128CacheFuture(globalName));
 
 		// 自愈后的新分配可用（模拟SM恢复后正常应答）。next()先返后增（对齐TidCache）：段首号(0,0)也发放。
 		Assertions.assertTrue(f2.setResult(new Tid128Cache(globalName, agent, new Id128(0, 0), 16)));
@@ -97,7 +96,7 @@ public class TestTid128CacheFutureSelfHeal {
 			Assertions.assertTrue(poisoned.setException(new TimeoutException("simulate udp timeout " + i)));
 			var next = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).allocateTid128CacheFuture(globalName, 0));
 			Assertions.assertNotSame(poisoned, next);
-			Assertions.assertSame(next, agent.getLastTid128CacheFuture());
+			Assertions.assertSame(next, agent.getLastTid128CacheFuture(globalName));
 			Assertions.assertTrue(next.setException(new TimeoutException("loop " + i))); // 保持last完成，避免下一轮get()阻塞。
 		}
 	}
@@ -110,7 +109,7 @@ public class TestTid128CacheFutureSelfHeal {
 		// 正常完成的last future走原自适应档位路径，不受毒化检测影响。
 		var f2 = Assertions.assertDoesNotThrow(() -> requireNonNull(agent).allocateTid128CacheFuture(globalName, 0));
 		Assertions.assertNotSame(f1, f2);
-		Assertions.assertSame(f2, agent.getLastTid128CacheFuture());
+		Assertions.assertSame(f2, agent.getLastTid128CacheFuture(globalName));
 	}
 
 	@Test
@@ -121,7 +120,7 @@ public class TestTid128CacheFutureSelfHeal {
 		var usable = agent.getUsableTid128CacheFuture(globalName);
 		Assertions.assertNotSame(f1, usable);
 		Assertions.assertFalse(usable.isCompletedExceptionally());
-		Assertions.assertSame(usable, agent.getLastTid128CacheFuture());
+		Assertions.assertSame(usable, agent.getLastTid128CacheFuture(globalName));
 
 		// 未毒化（pending或正常完成）时原样返回，不产生多余分配。
 		Assertions.assertSame(usable, agent.getUsableTid128CacheFuture(globalName));
