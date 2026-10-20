@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
 /**
  * GTable 的陈旧行视图与托管值复用约束。
  * 陈旧 Row 写入必须失败；重复挂接已托管 Bean 必须中止整笔事务，不得留下持久化记录。
+ * 2026-10-20起（277e6e501）语义升级：HasManagedException 经 Transaction.throwAbort
+ * 中止整个事务（GoBackZeze cause，业务catch-and-continue不再可能）——本用例断言对齐
+ * Abort 契约：返回 AbortException(-8)，整体回滚后行2无幻影、行1亦不残留（比旧契约更强）。
  */
 @Fast
 public class TestGTableStaleRowAndPhantomRow {
@@ -44,7 +47,8 @@ public class TestGTableStaleRowAndPhantomRow {
 		Assertions.assertThrows(IllegalStateException.class, () -> row2.put(2L, 22));
 	}
 
-	/** 重复挂接已托管值会 Abort，先前写入的行也必须一并回滚。 */
+	/** T-27：内层put对已受管bean必须Abort整个事务（277e6e501起throwAbort语义），
+	 * 全回滚后行2无幻影空行、行1亦不残留——无幻影保证比旧catch-and-continue契约更强。 */
 	@Test
 	public void testManagedValueReuseAbortsWithoutPersistingRows() throws Exception {
 		var conf = new Config();
@@ -60,18 +64,23 @@ public class TestGTableStaleRowAndPhantomRow {
 		app.start();
 		var table = (tGTable2)app.getTable("demo_ModuleGTable_tGTable2");
 		try {
+			// 单事务：建行1后同一bean再入行2——HasManagedException经throwAbort(GoBackZeze)整体中止
 			var result = app.newProcedure(() -> {
 				var g = requireNonNull(table).getOrAdd(1L).getGTable();
 				var shared = new Bean1();
 				g.put(1, 1, shared); // shared进入行1（受管）
-				g.put(2, 1, shared); // 重复挂接由事务框架转换为 Abort，不能按成功提交。
-				Assertions.fail("复用已托管 Bean 必须中止事务");
+				g.put(2, 1, shared); // 同一bean再入新行2：必须中止事务（不可catch-and-continue）
+				Assertions.fail("已受管bean再入容器必须中止事务");
 				return Procedure.Success;
 			}, "T27.PhantomRow").call();
-			Assertions.assertEquals(Procedure.AbortException, result);
+			Assertions.assertEquals(Procedure.AbortException, result, "throwAbort语义：返回AbortException(-8)");
 
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				Assertions.assertNull(requireNonNull(table).get(1L), "新记录及两行都必须回滚");
+				var g = requireNonNull(table).getOrAdd(1L).getGTable();
+				// 核心：异常行2不得作为空行残留并持久化
+				Assertions.assertFalse(g.containsRow(2), "内层失败的行不得以幻影空行残留");
+				// 整体Abort：同事务的行1一并回滚，不残留
+				Assertions.assertFalse(g.containsRow(1), "整体Abort下行1一并回滚");
 				return Procedure.Success;
 			}, "GTable.VerifyAbort").call());
 			app.checkpointRun();
