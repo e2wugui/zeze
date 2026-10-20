@@ -62,27 +62,27 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 
 	@Override
 	public PVector<E> plus(E e) {
-		return new KtVector<>(kt.add(e));
+		return new KtVector<>(kt.adding(e));
 	}
 
 	@Override
 	public PVector<E> plus(int index, E e) {
-		return new KtVector<>(kt.add(index, e));
+		return new KtVector<>(kt.addingAt(index, e));
 	}
 
 	@Override
 	public PVector<E> with(int index, E e) {
-		return new KtVector<>(kt.set(index, e));
+		return new KtVector<>(kt.replacingAt(index, e));
 	}
 
 	@Override
 	public PVector<E> minus(int index) {
-		return new KtVector<>(kt.removeAt(index));
+		return new KtVector<>(kt.removingAt(index));
 	}
 
 	@Override
 	public PVector<E> minus(Object e) {
-		var n = kt.remove((E)e);
+		var n = kt.removing((E)e);
 		return n == kt ? this : new KtVector<>(n);
 	}
 
@@ -93,7 +93,7 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 		if (!Persistents.BULK) {
 			var n = kt;
 			for (var e : c)
-				n = n.add(e);
+				n = n.adding(e);
 			return n == kt ? this : new KtVector<>(n);
 		}
 		var b = kt.builder();
@@ -108,7 +108,7 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 		if (!Persistents.BULK) {
 			var n = kt;
 			for (var e : c)
-				n = n.add(index++, e);
+				n = n.addingAt(index++, e);
 			return n == kt ? this : new KtVector<>(n);
 		}
 		var b = kt.builder();
@@ -123,7 +123,7 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 		if (!Persistents.BULK) {
 			var n = kt;
 			for (var e : c)
-				n = n.remove((E)e);
+				n = n.removing((E)e);
 			return n == kt ? this : new KtVector<>(n);
 		}
 		var b = kt.builder();

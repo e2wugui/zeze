@@ -329,7 +329,10 @@ plusAll"（经典侧 5 文件，RR 侧 raft 路径不动），ktt 下批量构�
   **无 `-ea`（生产形态，用户确认生产不开 -ea）0.5.2 ≈ 0.3.7 甚至略优**（jshell 四组+同会话
   四路交替 R3[52-da] vs R4[37-da] addNew +9% 在噪声带内）；0.5.x 另有真改进（collision
   同实例短路、putAll 空集短路、MAX_SHIFT collision 修正）。旧名假设排除：新名 `putting`
-  委托旧名 `put`（主实现即旧名），分词改名与 0.3.x 二进制兼容，适配器保持旧名即可跨两版。
+  委托旧名 `put`（主实现即旧名），分词改名与 0.3.x 二进制兼容，适配器保持旧名即可跨两版
+  （**2026-10-20 已放弃这层兼容**：适配器 KtMap/KtSet/KtVector 与容器篇基准统一切新名
+  putting/puttingAll/removing/adding/addingAt/replacingAt/removingAt/addingAll/cleared——
+  新名逐位同语义（委托旧名），0.3.7 不再可回插编译）。
   **裁定：升 0.5.2**（kotlin-stdlib 传递依赖 1.9→2.3）。注意：`-ea` 车道（test/IT/bench）
   容器热路径 ~2× 为永久口径，容器篇微观基准跨版本对比须同 `-ea` 状态；三基准头部版本标签
   已改运行时动态读取（曾硬编码 0.3.7 在升级 A/B 时误导归档）。

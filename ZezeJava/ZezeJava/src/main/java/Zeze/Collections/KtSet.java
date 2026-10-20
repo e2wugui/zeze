@@ -61,13 +61,13 @@ public final class KtSet<E> extends AbstractSet<E> implements PSet<E> {
 
 	@Override
 	public PSet<E> plus(E e) {
-		var n = kt.add(e);
+		var n = kt.adding(e);
 		return n == kt ? this : new KtSet<>(n);
 	}
 
 	@Override
 	public PSet<E> minus(Object e) {
-		var n = kt.remove((E)e);
+		var n = kt.removing((E)e);
 		return n == kt ? this : new KtSet<>(n);
 	}
 
@@ -78,7 +78,7 @@ public final class KtSet<E> extends AbstractSet<E> implements PSet<E> {
 		if (!Persistents.BULK) {
 			var n = kt;
 			for (var e : c)
-				n = n.add(e);
+				n = n.adding(e);
 			return n == kt ? this : new KtSet<>(n);
 		}
 		var b = kt.builder();
@@ -93,7 +93,7 @@ public final class KtSet<E> extends AbstractSet<E> implements PSet<E> {
 		if (!Persistents.BULK) {
 			var n = kt;
 			for (var e : c)
-				n = n.remove((E)e);
+				n = n.removing((E)e);
 			return n == kt ? this : new KtSet<>(n);
 		}
 		var b = kt.builder();

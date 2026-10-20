@@ -157,12 +157,12 @@ public class BenchPersistentCollectionsCompare {
 
 		@Override
 		public Object put(Object map, int key, int value) {
-			return kx(map).put(key, value);
+			return kx(map).putting(key, value);
 		}
 
 		@Override
 		public Object remove(Object map, int key) {
-			return kx(map).remove(key);
+			return kx(map).removing(key);
 		}
 
 		@Override

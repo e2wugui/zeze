@@ -233,18 +233,18 @@ public class BenchTransientSetCompare {
 		public Object buildBase(int count) {
 			PersistentSet<Integer> s = ExtensionsKt.persistentHashSetOf();
 			for (int i = 0; i < count; i++)
-				s = s.add(i);
+				s = s.adding(i);
 			return s;
 		}
 
 		@Override
 		public Object add(Object set, int value) {
-			return kxs(set).add(value);
+			return kxs(set).adding(value);
 		}
 
 		@Override
 		public Object remove(Object set, int value) {
-			return kxs(set).remove(value);
+			return kxs(set).removing(value);
 		}
 
 		@Override
@@ -264,7 +264,7 @@ public class BenchTransientSetCompare {
 
 		@Override
 		public Object plusAll(Object set, ArrayList<Integer> values) {
-			return kxs(set).addAll(values);
+			return kxs(set).addingAll(values);
 		}
 
 		@Override

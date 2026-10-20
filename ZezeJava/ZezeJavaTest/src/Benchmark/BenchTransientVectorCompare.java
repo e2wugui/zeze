@@ -289,33 +289,33 @@ public class BenchTransientVectorCompare {
 		public Object buildBase(int count) {
 			PersistentList<Integer> l = ExtensionsKt.persistentListOf();
 			for (int i = 0; i < count; i++)
-				l = l.add(i);
+				l = l.adding(i);
 			return l;
 		}
 
 		@Override
 		public Object append(Object vec, int value) {
-			return kxl(vec).add(value);
+			return kxl(vec).adding(value);
 		}
 
 		@Override
 		public Object set(Object vec, int index, int value) {
-			return kxl(vec).set(index, value);
+			return kxl(vec).replacingAt(index, value);
 		}
 
 		@Override
 		public Object popTail(Object vec) {
-			return kxl(vec).removeAt(kxl(vec).size() - 1);
+			return kxl(vec).removingAt(kxl(vec).size() - 1);
 		}
 
 		@Override
 		public Object insert(Object vec, int index, int value) {
-			return kxl(vec).add(index, value);
+			return kxl(vec).addingAt(index, value);
 		}
 
 		@Override
 		public Object removeAt(Object vec, int index) {
-			return kxl(vec).removeAt(index);
+			return kxl(vec).removingAt(index);
 		}
 
 		@Override
@@ -337,7 +337,7 @@ public class BenchTransientVectorCompare {
 
 		@Override
 		public Object plusAll(Object vec, ArrayList<Integer> values) {
-			return kxl(vec).addAll(values);
+			return kxl(vec).addingAll(values);
 		}
 
 		@Override

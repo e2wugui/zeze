@@ -237,23 +237,23 @@ public class BenchTransientSnapshotCompare {
 		public Object buildBase(int count) {
 			PersistentMap<Integer, Integer> map = ExtensionsKt.persistentHashMapOf();
 			for (int i = 0; i < count; i++)
-				map = map.put(i, i);
+				map = map.putting(i, i);
 			return map;
 		}
 
 		@Override
 		public Object put(Object map, int key, int value) {
-			return kx(map).put(key, value);
+			return kx(map).putting(key, value);
 		}
 
 		@Override
 		public Object remove(Object map, int key) {
-			return kx(map).remove(key);
+			return kx(map).removing(key);
 		}
 
 		@Override
 		public Object plusAll(Object map, HashMap<Integer, Integer> entries) {
-			return kx(map).putAll(entries);
+			return kx(map).puttingAll(entries);
 		}
 
 		@Override

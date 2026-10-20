@@ -78,12 +78,12 @@ public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
 		// 亦恒新实例，LogMap1.putAll 的 newMap != old 判定在基线上恒真）。
 		if (kt.get(key) == value)
 			return this;
-		return new KtMap<>(kt.put(key, value));
+		return new KtMap<>(kt.putting(key, value));
 	}
 
 	@Override
 	public PMap<K, V> minus(Object key) {
-		var n = kt.remove((K)key);
+		var n = kt.removing((K)key);
 		return n == kt ? this : new KtMap<>(n);
 	}
 
@@ -96,7 +96,7 @@ public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
 			for (var e : m.entrySet()) {
 				// 同实例守卫（语义见 plus）：全同实例批量返回同一实例。
 				if (n.get(e.getKey()) != e.getValue())
-					n = n.put(e.getKey(), e.getValue());
+					n = n.putting(e.getKey(), e.getValue());
 			}
 			return n == kt ? this : new KtMap<>(n);
 		}
@@ -116,7 +116,7 @@ public final class KtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
 		if (!Persistents.BULK) {
 			var n = kt;
 			for (var k : c)
-				n = n.remove((K)k);
+				n = n.removing((K)k);
 			return n == kt ? this : new KtMap<>(n);
 		}
 		var b = kt.builder();

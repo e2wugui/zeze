@@ -199,22 +199,22 @@ public class BenchPersistentListCompare {
 
 		@Override
 		public Object append(Object list, int value) {
-			return kl(list).add(value);
+			return kl(list).adding(value);
 		}
 
 		@Override
 		public Object insert(Object list, int index, int value) {
-			return kl(list).add(index, value);
+			return kl(list).addingAt(index, value);
 		}
 
 		@Override
 		public Object set(Object list, int index, int value) {
-			return kl(list).set(index, value);
+			return kl(list).replacingAt(index, value);
 		}
 
 		@Override
 		public Object removeAt(Object list, int index) {
-			return kl(list).removeAt(index);
+			return kl(list).removingAt(index);
 		}
 
 		@Override
@@ -234,7 +234,7 @@ public class BenchPersistentListCompare {
 
 		@Override
 		public Object addAllEmpty(Object list) {
-			return kl(list).addAll(List.of());
+			return kl(list).addingAll(List.of());
 		}
 	};
 
