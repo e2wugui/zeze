@@ -1,7 +1,9 @@
 package Zeze.Netty;
 
 import java.io.File;
+import java.net.URLEncoder;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
@@ -201,7 +203,8 @@ final class HttpFileService {
 					}
 					fn = htmlEscape(f.getName());
 					sb.append(String.format("%s %18s <a href=\"%s/\">%s/</a>\n",
-						listTime(f.lastModified()), "", fn, fn));
+						listTime(f.lastModified()), "",
+						fileLink(f.getName()), fn));
 				}
 			}
 			for (var f : fs) {
@@ -212,11 +215,17 @@ final class HttpFileService {
 					}
 					fn = htmlEscape(f.getName());
 					sb.append(String.format("%s %,18d <a href=\"%s\">%s</a>\n",
-						listTime(f.lastModified()), f.length(), fn, fn));
+						listTime(f.lastModified()), f.length(),
+						fileLink(f.getName()), fn));
 				}
 			}
 		}
 		x.close(x.sendHtml(HttpResponseStatus.OK, sb.append("</pre><hr></body></html>").toString()));
+	}
+
+	private static String fileLink(String name) {
+		// href 是单个 URL 路径段；显示文本仍单独做 HTML 转义。
+		return URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
 	}
 
 	private static final DateTimeFormatter listTimeFormat =
