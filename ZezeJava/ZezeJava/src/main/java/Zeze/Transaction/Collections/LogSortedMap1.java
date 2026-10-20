@@ -97,7 +97,8 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 
 	public final boolean remove(K key, V value) {
 		V old = getValue().get(key);
-		if (value.equals(old)) {
+		// 空值防御对齐非托管分支（同 LogMap1.remove(K,V)，20261020-06）。
+		if (old != null && old.equals(value)) {
 			setValue(getValue().minus(key));
 			replaced.remove(key);
 			removed.add(key);

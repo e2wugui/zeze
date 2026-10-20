@@ -93,7 +93,10 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	public final boolean remove(K key, V value) {
 		V old = getValue().get(key);
-		if (value.equals(old)) {
+		// 空值防御对齐非托管分支（PMap1/PMap2/PSortedMap1/2 的 exist!=null && exist.equals(v)）：
+		// value==null 时旧形态 NPE 炸事务、非托管分支同输入安静返回 false——同输入两分支
+		// 行为必须一致（20261020-06，对抗验证定谳为理论缺陷，防御对齐修法）。
+		if (old != null && old.equals(value)) {
 			setValue(getValue().minus(key));
 			replaced.remove(key);
 			removed.add(key);

@@ -4,7 +4,7 @@
 - **类别**：托管/非托管分支契约分叉
 - **子系统**：Transaction/Collections
 - **位置**：`Transaction/Collections/LogMap1.java:94-103`（镜像 `LogSortedMap1.java:100`）；入口 `PMap1.java:89` / `PMap2.java:141-153` / PSortedMap1/2 的 remove(Entry)
-- **状态**：已复核存活（集合族分片初审，主审读码定谳）
+- **状态**：⚔️ 对抗验证 DOWNGRADED 理论备忘 → ✅ **已按防御对齐修复（2026-10-20）**：LogMap1/LogSortedMap1 的 remove(K,V) 改 `old != null && old.equals(value)`（以容器值为 receiver，逐位对齐非托管分支形态），回归测试 TestLogMapRemoveEntryNullValue（null 值 false / 不存在 key false / 正常删除不受影响 × Map1+SortedMap1）。验证：javac 零告警 + 直跑全过。红队三重隔离结论保留备查：remove(Entry) 主树零调用、null 值实际不可达、无契约基准
 
 ## 缺陷
 
