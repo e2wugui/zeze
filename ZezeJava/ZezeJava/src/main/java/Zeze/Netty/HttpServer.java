@@ -50,6 +50,10 @@ import io.netty.channel.epoll.Epoll;
 import io.netty.channel.IoEventLoopGroup;
 import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.channel.epoll.EpollIoHandler;
+import io.netty.channel.uring.IoUring;
+import io.netty.channel.uring.IoUringChannelOption;
+import io.netty.channel.uring.IoUringIoHandler;
+import io.netty.channel.uring.IoUringServerSocketChannel;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
@@ -277,16 +281,22 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			shutdown = false; // close→start重启配套:清除停机拒绝标志,重新接受新请求
 			var eventLoopGroup = netty.getEventLoopGroup();
 			var b = new ServerBootstrap();
-			// 4.2：组实现类换MultiThreadIoEventLoopGroup后instanceof旧类恒false，改用isIoType判定epoll传输层
-			if (eventLoopGroup instanceof IoEventLoopGroup ioGroup && ioGroup.isIoType(EpollIoHandler.class))
-				b = b.option(EpollChannelOption.SO_REUSEPORT, true);
+			// 4.2：组实现类换MultiThreadIoEventLoopGroup后instanceof旧类恒false，改用isIoType判定传输层；
+			// io_uring/epoll分支的SO_REUSEPORT同继承自UnixChannelOption（同一静态实例）
+			if (eventLoopGroup instanceof IoEventLoopGroup ioGroup) {
+				if (ioGroup.isIoType(EpollIoHandler.class))
+					b = b.option(EpollChannelOption.SO_REUSEPORT, true);
+				else if (ioGroup.isIoType(IoUringIoHandler.class))
+					b = b.option(IoUringChannelOption.SO_REUSEPORT, true);
+			}
 			b = b.group(eventLoopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.SO_KEEPALIVE, true)
 				.childOption(ChannelOption.ALLOW_HALF_CLOSURE, true)
-				.channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+				.channel(IoUring.isAvailable() ? IoUringServerSocketChannel.class
+						: Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
 				.childHandler(new ChannelInitializer<SocketChannel>() {
 					@Override
 					public void initChannel(SocketChannel ch) throws Exception {

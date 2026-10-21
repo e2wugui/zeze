@@ -8,6 +8,8 @@ import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.nio.NioIoHandler;
+import io.netty.channel.uring.IoUring;
+import io.netty.channel.uring.IoUringIoHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
@@ -29,9 +31,12 @@ public class Netty implements Closeable {
 
 	public Netty(int nThreads) {
 		var threadFactory = new DefaultThreadFactory("ZezeNetty");
-		// 4.2：EventLoopGroup实现类已弃用，改用MultiThreadIoEventLoopGroup+IoHandler工厂显式选传输层（无自动探测）
+		// 4.2：EventLoopGroup实现类已弃用，改用MultiThreadIoEventLoopGroup+IoHandler工厂显式选传输层（无自动探测）。
+		// io_uring优先（独立制品io_uring，内核5.1+/容器策略不支持时isAvailable()安全回落epoll/nio）。
 		eventLoopGroup = new MultiThreadIoEventLoopGroup(nThreads, threadFactory,
-				Epoll.isAvailable() ? EpollIoHandler.newFactory() : NioIoHandler.newFactory());
+				IoUring.isAvailable() ? IoUringIoHandler.newFactory()
+						: Epoll.isAvailable() ? EpollIoHandler.newFactory()
+						: NioIoHandler.newFactory());
 	}
 
 	public EventLoopGroup getEventLoopGroup() {
