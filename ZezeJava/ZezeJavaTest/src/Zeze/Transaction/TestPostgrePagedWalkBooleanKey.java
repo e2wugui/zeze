@@ -1,49 +1,71 @@
-package Zeze.Trans;
+package Zeze.Transaction;
 
 import org.jspecify.annotations.NullMarked;
 
-import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 
-import Zeze.Transaction.DatabasePostgreSQL;
+import Zeze.Serialize.SQLStatement;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import static Zeze.Transaction.DatabasePostgreSQL.pagedKeyWhere;
 
 /**
- * PG 后端分页 walk 的排他起始键谓词用行值比较 (col1,col2)&gt;(v1,v2)：bool 列在
- * PG 没有 &gt;/&lt; 运算符，bool 作复合 key 首列时拼出的谓词直接报
- * "operator does not exist"，报错远离根因。MySQL（bool=tinyint，TRUE=1）不受影响，
- * 仅 PG 路径显式拒绝。
- *
- * "=true"/"=false" 字面量只能来自 SQLStatement.appendBoolean（数值内联数字、
- * 字符串/二进制用 ? 参数），按内容检测可靠。
+ * PostgreSQL 支持 boolean 标量和复合行值的大小比较。分页从首批返回的 boolean
+ * 起始键继续时应构造排他谓词，不能仅因 SQLStatement.appendBoolean 产生 true/false 就拒绝。
+ * 本类测试真实 SQL 装配函数；服务器能力由独立 PostgreSQL 17.6 实例执行相同谓词验证，
+ * 此 Fast 测试自身不连接数据库。
  */
 @Fast
 @NullMarked
 public class TestPostgrePagedWalkBooleanKey {
 
-	private static String pagedKeyWhere(String table, String sql, boolean asc) throws Exception {
-		var m = DatabasePostgreSQL.class.getDeclaredMethod("pagedKeyWhere", String.class, String.class, boolean.class);
-		m.setAccessible(true);
-		return (String)m.invoke(null, table, sql, asc);
+	@Test
+	public void testBooleanSingleColumnForwardAndBackward() {
+		var st = new SQLStatement();
+		st.appendBoolean("flag", false);
+		Assertions.assertEquals(" WHERE flag>false", pagedKeyWhere("t_bool", st.getSql().toString(), true));
+		st.clear();
+		st.appendBoolean("flag", true);
+		Assertions.assertEquals(" WHERE flag<true", pagedKeyWhere("t_bool", st.getSql().toString(), false));
 	}
 
 	@Test
-	public void testBooleanKeyRejectedWithTableName() throws Exception {
-		var ex = Assertions.assertThrows(InvocationTargetException.class,
-				() -> pagedKeyWhere("t_bool", "flag=true, seq=1", true));
-		var cause = ex.getCause();
-		Assertions.assertInstanceOf(IllegalStateException.class, cause);
-		Assertions.assertTrue(cause.getMessage().contains("boolean"), cause.getMessage());
-		Assertions.assertTrue(cause.getMessage().contains("t_bool"), "拒绝消息应带表名");
-		// bool在非首列同样拒绝（行值比较整组无'>'运算符即报错）
-		var ex2 = Assertions.assertThrows(InvocationTargetException.class,
-				() -> pagedKeyWhere("t_bool2", "seq=1, flag=false", false));
-		Assertions.assertInstanceOf(IllegalStateException.class, ex2.getCause());
+	public void testBooleanFirstInCompositeKey() {
+		var st = new SQLStatement();
+		st.appendBoolean("flag", false);
+		st.appendInt("seq", 2);
+		Assertions.assertEquals(" WHERE (flag, seq) > (false, 2)",
+				pagedKeyWhere("t_bool_first", st.getSql().toString(), true));
+		Assertions.assertEquals(" WHERE (flag, seq) < (false, 2)",
+				pagedKeyWhere("t_bool_first", st.getSql().toString(), false));
 	}
 
 	@Test
-	public void testNonBooleanPredicatesUnchanged() throws Exception {
+	public void testBooleanLastInCompositeKey() {
+		var st = new SQLStatement();
+		st.appendInt("seq", 1);
+		st.appendBoolean("flag", true);
+		Assertions.assertEquals(" WHERE (seq, flag) > (1, true)",
+				pagedKeyWhere("t_bool_last", st.getSql().toString(), true));
+		Assertions.assertEquals(" WHERE (seq, flag) < (1, true)",
+				pagedKeyWhere("t_bool_last", st.getSql().toString(), false));
+	}
+
+	@Test
+	public void testBooleanAlongsideBoundString() {
+		var st = new SQLStatement();
+		st.appendString("tenant", "tenant_1");
+		st.appendBoolean("flag", false);
+		Assertions.assertEquals(" WHERE (tenant, flag) > (?, false)",
+				pagedKeyWhere("t_bool_parameter", st.getSql().toString(), true));
+		Assertions.assertEquals(" WHERE (tenant, flag) < (?, false)",
+				pagedKeyWhere("t_bool_parameter", st.getSql().toString(), false));
+		Assertions.assertEquals(List.of("tenant_1"), st.getParams());
+	}
+
+	@Test
+	public void testNonBooleanPredicatesUnchanged() {
 		// 单列：保持col>literal形态
 		Assertions.assertEquals(" WHERE id>1", pagedKeyWhere("t", "id=1", true));
 		Assertions.assertEquals(" WHERE id<1", pagedKeyWhere("t", "id=1", false));
