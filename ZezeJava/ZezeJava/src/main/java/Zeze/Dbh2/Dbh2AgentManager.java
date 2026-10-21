@@ -474,7 +474,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 	// 本地表陈旧时重定向目标（仍是活桶）可能暂不在主表缓存：闲置10min后被回收属正确弱生命周期
 	// （下次使用重建，仅多一次建连）；链式迁移的已死中间桶则被永久回收，不再泄漏。
 	private void reclaimIdleAgents() {
-		lock();
+		// stop 持本锁 cancel 并 join 回收 timer，任务体不得反向等待本锁。
+		// 此私有入口仅由周期任务调用；锁忙保留全部 agent，下一轮继续回收。
+		if (!tryLock())
+			return;
 		try {
 			if (stopped)
 				return;
