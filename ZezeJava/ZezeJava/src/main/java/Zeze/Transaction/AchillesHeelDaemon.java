@@ -182,6 +182,7 @@ public class AchillesHeelDaemon {
 		private final MappedByteBuffer mmap;
 		private final long[] lastReportTime = new long[agents.length];
 		private volatile boolean running = true;
+		private boolean shutdownUnregistered; // channelLock保护；注销后任何旧心跳都不得恢复监控槽。
 
 		public ProcessDaemon(int peer) throws Exception {
 			daemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
@@ -198,21 +199,20 @@ public class AchillesHeelDaemon {
 		}
 
 		public void setActiveTime(GlobalAgentBase agent, long value) {
-			// 优化！活动时间设置很频繁，降低报告频率。
-			var reportDiff = agent.getActiveTime() - lastReportTime[agent.globalCacheManagerHashIndex];
-			if (reportDiff < 1000)
-				return;
-			lastReportTime[agent.globalCacheManagerHashIndex] = agent.getActiveTime();
-
-			var bb = ByteBuffer.Allocate(8);
-			bb.WriteLong8(value);
-
-			// 不同的GlobalAgent能并发起来，channelLock串行化对mmap的写。
+			// 注销判断、节流记录与实际发布同锁，迟到的旧时间戳不能倒退槽或恢复已注销槽。
 			channelLock.lock();
 			try {
+				if (shutdownUnregistered)
+					return;
+				var index = agent.globalCacheManagerHashIndex;
+				if (value - lastReportTime[index] < 1000)
+					return;
+				var bb = ByteBuffer.Allocate(8);
+				bb.WriteLong8(value);
 				try (var ignored = channel.lock()) {
-					mmap.position(agent.globalCacheManagerHashIndex * 8);
+					mmap.position(index * 8);
 					mmap.put(bb.Bytes, 0, 8);
+					lastReportTime[index] = value;
 				} catch (Throwable ex) { // logger.error
 					logger.error("setActiveTime", ex);
 				}
@@ -231,6 +231,7 @@ public class AchillesHeelDaemon {
 			bb.WriteLong8(-1);
 			channelLock.lock();
 			try {
+				shutdownUnregistered = true;
 				try (var ignored = channel.lock()) {
 					for (int i = 0; i < agents.length; i++) {
 						mmap.position(i * 8);
