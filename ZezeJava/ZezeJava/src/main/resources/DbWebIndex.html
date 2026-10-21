@@ -173,9 +173,10 @@
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
-            const value = await response.json();
+            const value = await response.text();
+            JSON.parse(value); // 仅验证格式；Java long/decimal 不得经 Number 再序列化而丢精度。
             if (!ownsSelection(binding)) return;
-            document.getElementById('jsonEditor').value = JSON.stringify(value, null, 2);
+            document.getElementById('jsonEditor').value = value;
             document.getElementById('jsonEditor').disabled = false;
             editorBinding = binding;
         } catch (error) {

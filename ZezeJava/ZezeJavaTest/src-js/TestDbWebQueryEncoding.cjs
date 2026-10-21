@@ -45,9 +45,10 @@ async function page() {
         alert: message => alerts.push(message), confirm: () => true, prompt: () => null,
         fetch: async (url, options) => {
             requests.push({url: new URL(url, 'http://localhost'), options});
-            return {ok: true, status: 200, json: async () => url.includes('/WalkTable')
-                ? {keys: [], hasMore: false}
-                : url.includes('/ListTable') ? [] : {number: 42}};
+            const data = url.includes('/WalkTable') ? {keys: [], hasMore: false}
+                : url.includes('/ListTable') ? [] : {number: 42};
+            return {ok: true, status: 200,
+                json: async () => data, text: async () => JSON.stringify(data)};
         }
     });
     vm.runInContext(script, context, {filename: htmlPath});

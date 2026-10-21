@@ -49,7 +49,8 @@ async function page(tables = []) {
         alert: message => alerts.push(message), confirm: () => true, prompt: () => null,
         fetch: (url, options) => new Promise(resolve => {
             requests.push({url: new URL(url, 'http://localhost'), options, used: false,
-                reply: (data, status = 200) => resolve({ok: status < 400, status, json: async () => data})});
+                reply: (data, status = 200) => resolve({ok: status < 400, status,
+                    json: async () => data, text: async () => JSON.stringify(data)})});
         })
     });
     const call = expression => vm.runInContext(expression, context);
