@@ -3,7 +3,10 @@ package Zeze.Util;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.jspecify.annotations.Nullable;
 
 // 异步锁. 不支持重入.
@@ -14,6 +17,43 @@ import org.jspecify.annotations.Nullable;
 public final class AsyncLock {
 	private static final VarHandle stateHandle;
 	private static final VarHandle inlineDriverThreadHandle;
+	// 按原始执行器登记，兼容 execute 包装 Runnable 的线程池；shutdownNow 的返回值
+	// 无法可靠识别交接。只有未开始的驱动可由停机线程认领，已运行回调仍自行 leave。
+	private static final ConcurrentHashMap<PendingDispatch, Executor> pendingDispatches = new ConcurrentHashMap<>();
+
+	private final class PendingDispatch extends AtomicBoolean implements Runnable {
+		private final Action0 onReady;
+
+		private PendingDispatch(Action0 onReady) {
+			this.onReady = onReady;
+		}
+
+		@Override
+		public void run() {
+			if (claim())
+				runWithLeave(onReady);
+		}
+
+		private void fallback() {
+			if (claim())
+				driveRejectedInline(onReady);
+		}
+
+		private boolean claim() {
+			if (!compareAndSet(false, true))
+				return false;
+			pendingDispatches.remove(this);
+			return true;
+		}
+	}
+
+	// Task 已关闭旧池后在 taskLock 外调用；回调与拒绝投递时一样内联续走。
+	static void cancelPendingDispatches(Executor executor) {
+		for (var entry : pendingDispatches.entrySet()) {
+			if (entry.getValue() == executor)
+				entry.getKey().fallback();
+		}
+	}
 
 	static {
 		try {
@@ -113,10 +153,13 @@ public final class AsyncLock {
 		for (; ; ) {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
+				var dispatch = new PendingDispatch(onReady);
 				try {
 					// poolOrThrow：池未初始化/已停机（shutdownPools先置null）时
 					// getThreadPool()返回null，裸execute直接NPE且无回滚。
-					Task.poolOrThrow(false).execute(() -> runWithLeave(onReady));
+					var executor = Task.poolOrThrow(false);
+					pendingDispatches.put(dispatch, executor);
+					executor.execute(dispatch);
 				} catch (RuntimeException e) {
 					// 派发被拒：不回滚不复位——复位后不复查队列，与并发enter的
 					// offer后重试CAS竞态会把回调滞留成无派发者真空（直到下一个enter才自愈）。
@@ -126,7 +169,7 @@ public final class AsyncLock {
 					// 常态时，本兜底转为热路径，需重估。
 					Task.logger.warn("AsyncLock: dispatch rejected, fallback inline run, {} pending callback(s)",
 							readyQueue.size() + 1, e);
-					driveRejectedInline(onReady);
+					dispatch.fallback();
 				}
 				return;
 			}

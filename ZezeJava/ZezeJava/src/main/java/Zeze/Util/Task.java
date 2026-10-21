@@ -256,14 +256,17 @@ public final class Task {
 			if (scheduledTmp != null) {
 				TaskOneByOneQueue.cancelPendingDispatches(scheduledTmp);
 				TaskOneByOneByKey2.cancelPendingDispatches(scheduledTmp);
+				AsyncLock.cancelPendingDispatches(scheduledTmp);
 			}
 			if (defaultTmp != null) {
 				TaskOneByOneQueue.cancelPendingDispatches(defaultTmp);
 				TaskOneByOneByKey2.cancelPendingDispatches(defaultTmp);
+				AsyncLock.cancelPendingDispatches(defaultTmp);
 			}
 			if (criticalTmp != null) {
 				TaskOneByOneQueue.cancelPendingDispatches(criticalTmp);
 				TaskOneByOneByKey2.cancelPendingDispatches(criticalTmp);
+				AsyncLock.cancelPendingDispatches(criticalTmp);
 			}
 		}
 
