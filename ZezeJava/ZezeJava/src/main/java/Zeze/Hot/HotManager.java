@@ -691,16 +691,17 @@ public class HotManager extends ClassLoader {
 
 		BeanFactory.setApplication(app.getZeze());
 
-		var distributePath = Path.of(distributeDir);
-		var interfacesPath = Path.of(workingDir, "interfaces");
+		var distributePath = Path.of(distributeDir).toAbsolutePath().normalize();
+		var workingPath = Path.of(workingDir).toAbsolutePath().normalize();
+		var interfacesPath = workingPath.resolve("interfaces");
 		if (distributePath.startsWith(interfacesPath))
 			throw new RuntimeException("distributeDir is sub-dir of workingDir/interfaces/");
 
-		var modulePath = Path.of(workingDir, "modules");
+		var modulePath = workingPath.resolve("modules");
 		if (distributePath.startsWith(modulePath))
 			throw new RuntimeException("distributeDir is sub-dir of workingDir/modules/");
 
-		if (Path.of(workingDir).startsWith(distributePath))
+		if (workingPath.startsWith(distributePath))
 			throw new RuntimeException("workingDir is sub-dir of distributeDir");
 
 		if (!Files.isDirectory(distributePath)) {
