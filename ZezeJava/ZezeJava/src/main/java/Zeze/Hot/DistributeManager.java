@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -82,7 +81,7 @@ public class DistributeManager {
 				failedCloses.put(relativeCanonicalFileName, Boolean.TRUE);
 				throw e;
 			}
-			if (Arrays.compare(fileBin.md5Digest(), md5.bytesUnsafe()) != 0) {
+			if (!md5.contentEquals(fileBin.md5Digest())) {
 				failedCloses.put(relativeCanonicalFileName, Boolean.TRUE);
 				return false;
 			}
