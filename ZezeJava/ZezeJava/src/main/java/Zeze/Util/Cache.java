@@ -39,14 +39,14 @@ public class Cache {
 	private @Nullable RocksDB db;
 	private @Nullable ConcurrentLruLike<String, CacheObject> lru;
 	private final ScheduledFuture<?> cleanTimer;
-	// 保护当天清单状态（todayDays/todayFile）：开新流、写清单、关旧流、close关流都必须同处其临界区，
-	// 否则无锁的写者可能拿到刚被关闭的旧流而抛"Stream Closed"，该key当天的清单条目丢失。
-	private final ReentrantLock todayLock = new ReentrantLock();
+	// 保护原生句柄使用与关闭，以及当天清单状态；先在锁外调用用户loader/encoder，
+	// 再在锁内检查并使用DB，不能把字段快照当作句柄租约。close先在锁外排空清理timer。
+	private final ReentrantLock resourceLock = new ReentrantLock();
 	// tryRemove 的清理筛选在锁外读（见那里的说明），保持 volatile。
 	private volatile long todayDays;
-	// 只在持有 todayLock 时访问。
+	// 只在持有 resourceLock 时访问。
 	private @Nullable FileOutputStream todayFile;
-	// 终态标志：在 close() 的 todayLock 临界区内置位，appendToday 在同一锁下检查，
+	// 终态标志：在 close() 的 resourceLock 临界区内置位，appendToday 在同一锁下检查，
 	// 密闭地拦住"close后写当日清单"——null流NPE与关后重开新流泄漏两种形态一并消灭。
 	private volatile boolean closed;
 
@@ -75,7 +75,7 @@ public class Cache {
 
 	public void close() throws IOException {
 		cleanTimer.cancel(false); // 幂等：已取消时为no-op
-		todayLock.lock();
+		resourceLock.lock();
 		try {
 			closed = true; // 先立终态再关流：appendToday在同一临界区检查，此后不可能再触碰流
 			if (todayFile != null) {
@@ -87,15 +87,15 @@ public class Cache {
 				}
 				todayFile = null; // 置null后重入不再触碰已关流
 			}
+			var db = this.db;
+			if (db == null)
+				return;
+			this.db = null;
+			db.close();
 		} finally {
-			todayLock.unlock();
+			resourceLock.unlock();
 		}
 
-		var db = this.db;
-		if (db == null)
-			return; // 已close（幂等重入；并发下后到者退出）
-		this.db = null;
-		db.close(); // RocksDB.close 自身幂等，并发重复close无害
 		// 级联取消LRU构造器内建的两个周期任务：只置null不清任务的话，
 		// 任务仍每200ms/2s永续执行并强引用整个缓存对象图，"关闭"语义不成立。
 		var lru = this.lru;
@@ -108,9 +108,8 @@ public class Cache {
 		if (id.isEmpty())
 			throw new IllegalArgumentException();
 
-		var db = this.db;
 		var lru = this.lru;
-		if (db == null || lru == null)
+		if (closed || lru == null)
 			throw new IllegalStateException("cache is closed: " + name); // 对齐 tryRemove 的快照防御；close 后继续 get 是使用错误
 
 		var value = lru.get(id);
@@ -131,7 +130,13 @@ public class Cache {
 
 		var key = ByteBuffer.Allocate(128);
 		key.WriteString(id);
-		var bytes = db.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
+		byte[] bytes;
+		resourceLock.lock();
+		try {
+			bytes = getOpenDatabase().get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
+		} finally {
+			resourceLock.unlock();
+		}
 		if (bytes != null) {
 			// decoder
 			var bb = ByteBuffer.Wrap(bytes);
@@ -165,26 +170,35 @@ public class Cache {
 		if (id.isEmpty())
 			throw new IllegalArgumentException();
 
-		var db = this.db;
-		if (db == null)
-			throw new IllegalStateException("cache is closed: " + name); // 入口检查后loader执行期间close可完成，写路径二次确认
-
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(value.cacheId());
 		value.encode(bb);
 
 		var key = ByteBuffer.Allocate(128);
 		key.WriteString(id);
-		db.put(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex, bb.Bytes, 0, bb.WriteIndex);
+		resourceLock.lock();
+		try {
+			getOpenDatabase().put(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex,
+					bb.Bytes, 0, bb.WriteIndex);
+			appendToday(id);
+		} finally {
+			resourceLock.unlock();
+		}
+	}
 
-		appendToday(id);
+	private RocksDB getOpenDatabase() {
+		assert resourceLock.isHeldByCurrentThread();
+		var db = this.db;
+		if (db == null)
+			throw new IllegalStateException("cache is closed: " + name);
+		return db;
 	}
 
 	// 当天清单的唯一写入口：取流（含跨天滚动开新流、关旧流）与写流同处一个临界区。
 	// 该key当天的清单条目一旦丢失，它的db记录从此再没有退役记录。
 	private void appendToday(String id) throws IOException {
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
-		todayLock.lock();
+		resourceLock.lock();
 		try {
 			if (closed)
 				throw new IllegalStateException("cache is closed: " + name); // close的置位同在此临界区：检查密闭，关后不再写流/重开流
@@ -202,7 +216,7 @@ public class Cache {
 			String encoded = Base64.getEncoder().encodeToString(id.getBytes(StandardCharsets.UTF_8));
 			Objects.requireNonNull(todayFile).write((encoded + "\n").getBytes(StandardCharsets.US_ASCII));
 		} finally {
-			todayLock.unlock();
+			resourceLock.unlock();
 		}
 	}
 
