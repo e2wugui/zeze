@@ -1351,8 +1351,10 @@ public class LogSequence {
 		return snapshotting;
 	}
 
-	void setSnapshotting(boolean value) { // package-private：测试直接合成"本地快照进行中"
+	void setSnapshotting(boolean value) { // 调用方持 Raft 锁；测试可合成"本地快照进行中"
 		snapshotting = value;
+		if (!value)
+			raft.signalAll(); // 状态复位与唤醒集中，成功/失败收尾都释放停机等待者。
 	}
 
 	public SendSnapshotting getSendSnapshotting() {
@@ -1558,7 +1560,7 @@ public class LogSequence {
 			// 正在接收InstallSnapshot时不启动本地snapshot：
 			// 接收完成会重置状态机并推进firstIndex，进行中的本地snapshot将作废
 			// （其commit由_commitSnapshot的过期检查兜底丢弃）。
-			if (getSnapshotting() || !sendSnapshotting.isEmpty() || raft.isReceivingSnapshot())
+			if (raft.isShutdown || getSnapshotting() || !sendSnapshotting.isEmpty() || raft.isReceivingSnapshot())
 				return;
 
 			setSnapshotting(true);

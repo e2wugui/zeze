@@ -99,16 +99,26 @@ public class TestEndReceiveInstallSnapshotSnapshottingConflict {
 				raft.unlock();
 			}
 
-			var resultCode = logSequence.endReceiveInstallSnapshot(entry, r);
+			try {
+				var resultCode = logSequence.endReceiveInstallSnapshot(entry, r);
 
-			assertEquals(InstallSnapshot.ResultCodeSnapshottingConflict, resultCode,
-					"must reply SnapshottingConflict so the leader breaks install and retries later");
-			assertEquals(0L, logSequence.getLastIndex(), "logs must NOT be dropped/rebuilt at LastIncludedIndex");
-			assertEquals(0L, logSequence.getCommitIndex());
-			assertTrue(logSequence.logsAvailable, "logsAvailable must be restored in finally");
-			assertFalse(Files.exists(installingPath), "orphan .installing file must be cleaned best-effort");
-			assertTrue(raft.receiveSnapshotting.isEmpty(),
-					"finalizing entry must be removed by endReceive's finally even on abort path");
+				assertEquals(InstallSnapshot.ResultCodeSnapshottingConflict, resultCode,
+						"must reply SnapshottingConflict so the leader breaks install and retries later");
+				assertEquals(0L, logSequence.getLastIndex(), "logs must NOT be dropped/rebuilt at LastIncludedIndex");
+				assertEquals(0L, logSequence.getCommitIndex());
+				assertTrue(logSequence.logsAvailable, "logsAvailable must be restored in finally");
+				assertFalse(Files.exists(installingPath), "orphan .installing file must be cleaned best-effort");
+				assertTrue(raft.receiveSnapshotting.isEmpty(),
+						"finalizing entry must be removed by endReceive's finally even on abort path");
+			} finally {
+				// 手工设置的在途标记必须模拟 snapshot 的 finally 收尾，否则停机应等待它。
+				raft.lock();
+				try {
+					logSequence.setSnapshotting(false);
+				} finally {
+					raft.unlock();
+				}
+			}
 		}
 	}
 }

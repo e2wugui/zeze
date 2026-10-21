@@ -276,6 +276,17 @@ public final class Raft {
 		ShutdownHook.remove(this);
 		server.stop();
 
+		// 本地快照在 apply 之外执行，仍持有状态机/备份目录，且收尾可提交并启动日志裁剪。
+		// 先在同一锁域关准入并排空快照，再读取裁剪 future；条件等待释放锁供快照完成。
+		// 不可因中断提前关库（Dbh2.close 随后必关状态机），保留中断标志到排空完成。
+		lock();
+		try {
+			while (logSequence.getSnapshotting())
+				condition.awaitUninterruptibly();
+		} finally {
+			unlock();
+		}
+
 		var removeLogBeforeFuture = logSequence.removeLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
 			removeLogBeforeFuture.await();
