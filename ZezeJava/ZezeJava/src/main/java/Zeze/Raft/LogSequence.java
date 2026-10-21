@@ -1594,22 +1594,27 @@ public class LogSequence {
 		var r = (AppendEntries)p;
 		raft.lock();
 		try {
-			if (r.isTimeout() && raft.isLeader()) {
-				trySendAppendEntries(connector, r); // timeout and resend
-				return Procedure.Success;
-			}
-
-			if (raft.getLogSequence().trySetTerm(r.Result.getTerm()) == SetTermResult.Newer) {
+			// 即使请求已经过期，真实应答携带的更高任期仍必须使本节点退位。
+			if (!r.isTimeout() && trySetTerm(r.Result.getTerm()) == SetTermResult.Newer) {
 				// new term found.
 				raft.convertStateTo(Raft.RaftState.Follower);
 				// 发现新的 Term，已经不是Leader，不能继续处理了。
 				// 直接返回。
-				connector.setPending(null);
+				if (connector.getPending() == r)
+					connector.setPending(null);
 				return Procedure.Success;
 			}
 
-			if (!raft.isLeader()) {
+			// 只有当前任期、当前发送槽的应答能更新复制进度；旧 ACK 的同索引
+			// 日志可能已被覆盖，计入多数派会提交从未被该 peer 复制过的新日志。
+			if (connector.getPending() != r)
+				return Procedure.Success;
+			if (!raft.isLeader() || r.Argument.getTerm() != term) {
 				connector.setPending(null);
+				return Procedure.Success;
+			}
+			if (r.isTimeout()) {
+				trySendAppendEntries(connector, r); // timeout and resend
 				return Procedure.Success;
 			}
 
