@@ -78,6 +78,8 @@ for (const suffix of cases) {
             const key = 'key_' + suffix;
             p.elements.tableList.value = table;
             p.elements.keyList.value = key;
+            // The UI only permits mutations after the selected record has loaded.
+            if (endpoint === 'PutRecord' || endpoint === 'DeleteRecord') await p.call('loadValue()');
             const body = '{"number":42}';
             p.elements.jsonEditor.value = body;
             const action = {

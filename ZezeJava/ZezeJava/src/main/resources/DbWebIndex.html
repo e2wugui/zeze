@@ -23,7 +23,7 @@
             <button onclick="location.reload()">reload</button>
         </div>
     </div>
-    <textarea id="jsonEditor"></textarea>
+    <textarea id="jsonEditor" oninput="editorRevision++" disabled></textarea>
     <div class="button-group">
         <button onclick="saveValue()">Save</button>
         <button onclick="deleteKey()">Delete</button>
@@ -43,8 +43,39 @@
         currentTable: null,
         startKey: '',
         pageSize: 20,
-        hasMore: false
+        hasMore: false,
+        loading: false
     };
+
+    // 请求代次同时区分 A→B→A；相同表名/键不能证明旧响应仍属于当前选择。
+    let keysRequestId = 0;
+    let valueRequestId = 0;
+    let editorRevision = 0;
+    let editorBinding = null;
+
+    function resetEditor() {
+        ++valueRequestId;
+        editorBinding = null;
+        const editor = document.getElementById('jsonEditor');
+        editor.value = '';
+        editor.disabled = true;
+        return valueRequestId;
+    }
+
+    function ownsKeys(table, requestId) {
+        return requestId === keysRequestId && table === document.getElementById('tableList').value;
+    }
+
+    function ownsSelection(binding) {
+        return binding && binding.requestId === valueRequestId
+            && binding.table === document.getElementById('tableList').value
+            && binding.key === document.getElementById('keyList').value;
+    }
+
+    function ownsEditor(binding) {
+        // 写入前除检查选择外，还要证明编辑内容来自该次成功加载。
+        return binding === editorBinding && ownsSelection(binding);
+    }
 
     // token：优先URL参数（?token=xxx 进入时缓存），之后取localStorage；无token不带参数（服务端403时提示输入）
     function apiUrl(path, parameters = {}) {
@@ -75,24 +106,29 @@
     init();
 
     async function loadKeys(reset = true) {
+        const table = document.getElementById('tableList').value;
+        const requestId = ++keysRequestId;
+        if (reset) {
+            resetEditor();
+            document.getElementById('keyList').innerHTML = '';
+            pagination.startKey = '';
+            pagination.hasMore = false;
+        }
+        pagination.currentTable = table;
+        pagination.loading = false;
+        document.getElementById('nextPage').disabled = true;
+        if (!table) return;
+        pagination.loading = true;
         try {
-            const table = document.getElementById('tableList').value;
-            if (!table) return;
-            
-            if (reset) pagination.startKey = '';    
-            pagination.currentTable = table;
-
             const url = apiUrl(API.keys, {t: table, k: pagination.startKey, n: pagination.pageSize});
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const { keys, hasMore } = await response.json();
+            if (!ownsKeys(table, requestId)) return;
             pagination.hasMore = hasMore;
-            document.getElementById('nextPage').disabled = !hasMore;
-            document.getElementById('jsonEditor').value = '';
 
             const select = document.getElementById('keyList');
-            if (reset) select.innerHTML = '';
             keys.forEach(key => select.add(new Option(key, key)));
             
             if (reset && keys.length > 0) {
@@ -100,12 +136,19 @@
                 loadValue();
             }
         } catch (error) {
-            alert(`加载键失败: ${error.message}`);
+            if (ownsKeys(table, requestId))
+                alert(`加载键失败: ${error.message}`);
+        } finally {
+            if (requestId === keysRequestId) {
+                pagination.loading = false;
+                document.getElementById('nextPage').disabled = !pagination.hasMore;
+            }
         }
     }
 
     async function nextPage() {
         try {
+            if (pagination.loading || !pagination.hasMore) return;
             const select = document.getElementById('keyList');
             if (select.options.length > 0) {
                 pagination.startKey = select.options[select.options.length - 1].value;
@@ -117,26 +160,39 @@
     }
 
     async function loadValue() {
+        const table = document.getElementById('tableList').value;
+        const select = document.getElementById('keyList');
+        const key = select.value;
+        const binding = {table, key, requestId: resetEditor()};
+        if (!table || select.selectedIndex < 0) return;
         try {
-            const table = document.getElementById('tableList').value;
-            const key = document.getElementById('keyList').value;
             const url = apiUrl(API.value, {t: table, k: key});
             
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const value = await response.json();
+            if (!ownsSelection(binding)) return;
             document.getElementById('jsonEditor').value = JSON.stringify(value, null, 2);
+            document.getElementById('jsonEditor').disabled = false;
+            editorBinding = binding;
         } catch (error) {
-            alert(`加载值失败: ${error.message}`);
+            if (ownsSelection(binding))
+                alert(`加载值失败: ${error.message}`);
         }
     }
 
     async function saveValue() {
+        const binding = editorBinding;
+        const revision = editorRevision;
         try {
             const table = document.getElementById('tableList').value;
             const key = document.getElementById('keyList').value;
             const value = document.getElementById('jsonEditor').value;
+            if (!ownsEditor(binding)) {
+                alert('请先等待当前记录加载完成');
+                return;
+            }
             
             try {
                 JSON.parse(value);
@@ -152,17 +208,25 @@
             });
             
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            alert('保存成功');
+            if (ownsEditor(binding) && revision === editorRevision)
+                alert('保存成功');
         } catch (error) {
-            alert(`保存失败: ${error.message}`);
+            if (ownsEditor(binding) && revision === editorRevision)
+                alert(`保存失败: ${error.message}`);
         }
     }
 
     
     async function deleteKey() {
+        const binding = editorBinding;
+        const revision = editorRevision;
         try {
             const table = document.getElementById('tableList').value;
             const key = document.getElementById('keyList').value;
+            if (!ownsEditor(binding)) {
+                alert('请先等待当前记录加载完成');
+                return;
+            }
             if (!table || !key) {
                 alert('Please select a table and a key.');
                 return;
@@ -174,12 +238,14 @@
             const url = apiUrl(API.delete, {t: table, k: key});
             const response = await fetch(url, { method: 'Delete' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            // 服务器已删除捕获的记录；迟到结果不能清掉新选择或请求期间的新编辑。
+            if (!ownsEditor(binding) || revision !== editorRevision) return;
 
             alert('Key deleted successfully.');
             loadKeys(true); // 重新加载键列表
-            document.getElementById('jsonEditor').value = ''; // 清空当前值
         } catch (error) {
-            alert(`Failed to delete key: ${error.message}`);
+            if (ownsEditor(binding) && revision === editorRevision)
+                alert(`Failed to delete key: ${error.message}`);
         }
     }
 </script>
