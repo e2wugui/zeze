@@ -480,6 +480,18 @@ public final class Agent {
 	}
 
 	private long processLeaderIs(LeaderIs r) throws Exception {
+		mutex.lock();
+		try {
+			if (stopped)
+				return Procedure.Success;
+			return processLeaderIsLocked(r);
+		} finally {
+			mutex.unlock();
+		}
+	}
+
+	// 调用者持 mutex，与 stop 串行：连接启动及 Leader 发布不能越过停止边界。
+	private long processLeaderIsLocked(LeaderIs r) throws Exception {
 		ConnectorProxy leader = this.leader;
 		logger.info("=============== LEADERS Old={} New={} From={}",
 				leader != null ? leader.getName() : null, r.Argument.getLeaderId(), r.getSender());
@@ -576,6 +588,18 @@ public final class Agent {
 	}
 
 	private void resend(boolean immediately) {
+		mutex.lock();
+		try {
+			if (stopped)
+				return;
+			resendLocked(immediately);
+		} finally {
+			mutex.unlock();
+		}
+	}
+
+	// 调用者持 mutex，与 stop 串行：连接启动及 Leader 发布不能越过停止边界。
+	private void resendLocked(boolean immediately) {
 		ConnectorProxy leader = this.leader;
 		if (leader != null)
 			leader.getConnector().start();
@@ -653,6 +677,8 @@ public final class Agent {
 	public boolean setLeader(LeaderIs r, ConnectorProxy newLeader) throws Exception {
 		mutex.lock();
 		try {
+			if (stopped)
+				return false;
 			if (r.Argument.getTerm() < term) {
 				logger.warn("Skip LeaderIs {} {}", newLeader.getName(), r);
 				return false;
