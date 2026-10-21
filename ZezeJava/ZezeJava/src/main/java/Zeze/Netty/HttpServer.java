@@ -48,10 +48,9 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.IoEventLoopGroup;
-import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.channel.epoll.EpollIoHandler;
+import io.netty.channel.unix.UnixChannelOption;
 import io.netty.channel.uring.IoUring;
-import io.netty.channel.uring.IoUringChannelOption;
 import io.netty.channel.uring.IoUringIoHandler;
 import io.netty.channel.uring.IoUringServerSocketChannel;
 import io.netty.channel.epoll.EpollServerSocketChannel;
@@ -281,14 +280,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			shutdown = false; // close→start重启配套:清除停机拒绝标志,重新接受新请求
 			var eventLoopGroup = netty.getEventLoopGroup();
 			var b = new ServerBootstrap();
-			// 4.2：组实现类换MultiThreadIoEventLoopGroup后instanceof旧类恒false，改用isIoType判定传输层；
-			// io_uring/epoll分支的SO_REUSEPORT同继承自UnixChannelOption（同一静态实例）
-			if (eventLoopGroup instanceof IoEventLoopGroup ioGroup) {
-				if (ioGroup.isIoType(EpollIoHandler.class))
-					b = b.option(EpollChannelOption.SO_REUSEPORT, true);
-				else if (ioGroup.isIoType(IoUringIoHandler.class))
-					b = b.option(IoUringChannelOption.SO_REUSEPORT, true);
-			}
+			// 4.2：组实现类换MultiThreadIoEventLoopGroup后instanceof旧类恒false，改用isIoType判定传输层。
+			// epoll/io_uring分支的SO_REUSEPORT同继承自UnixChannelOption（同一静态实例）；NIO不识别
+			// 该option（AbstractBootstrap.setChannelOption对未知option=warn+忽略），故仍按传输层门控。
+			if (eventLoopGroup instanceof IoEventLoopGroup ioGroup
+					&& (ioGroup.isIoType(EpollIoHandler.class) || ioGroup.isIoType(IoUringIoHandler.class)))
+				b = b.option(UnixChannelOption.SO_REUSEPORT, true);
 			b = b.group(eventLoopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)
