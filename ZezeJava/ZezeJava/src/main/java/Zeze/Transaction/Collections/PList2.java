@@ -11,7 +11,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
@@ -159,8 +158,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			for (V v : items) {
 				if (v == null) // 对齐非托管分支与add/PList1：null在initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null item");
-				if (v.isManaged()) // 批量原子性：后段项的HasManagedException不得留下已挂接的前段项
-					throw new HasManagedException();
+				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -215,8 +213,7 @@ public class PList2<V extends Bean> extends PList<V> {
 				V newV = operator.apply(v);
 				if (newV == null) // 对齐非托管分支：null在initRootInfoWithRedo或日志路径解引用NPE，先验拒绝
 					throw new IllegalStateException("null item");
-				if (newV != v && newV.isManaged()) // 批量原子性：预检归属
-					throw new HasManagedException();
+				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 				tmpList.add(newV);
 			}
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(

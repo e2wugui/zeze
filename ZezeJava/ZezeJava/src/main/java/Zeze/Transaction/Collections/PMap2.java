@@ -10,7 +10,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
@@ -100,8 +99,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 					throw new IllegalArgumentException("null key");
 				if (e.getValue() == null) // 对齐put与PMap1.putAll：null在托管分支的initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null value");
-				if (e.getValue().isManaged()) // 批量原子性：后段项的HasManagedException不得留下已挂接的前段项
-					throw new HasManagedException();
+				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
