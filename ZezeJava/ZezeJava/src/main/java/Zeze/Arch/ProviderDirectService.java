@@ -109,7 +109,9 @@ public class ProviderDirectService extends HandshakeBoth {
 			var out = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 				// 新建的Connector。开始连接。
-				Objects.requireNonNull(out.value).userState = newSession(serverId);
+				var template = newSession(serverId);
+				template.timeCounter.close(); // Connector只保存稳定身份模板，不持有活跃连接的周期计数。
+				Objects.requireNonNull(out.value).userState = template;
 				out.value.start();
 			}
 		} finally {
@@ -132,6 +134,23 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
+	public void OnSocketConnected(AsyncSocket so) {
+		if (so.getConnector() != null) {
+			// 每连接调用虚拟工厂，保留扩展初始化；Connector模板不再充当可变会话。
+			var template = (ProviderSession)so.getUserState();
+			var session = newSession(Objects.requireNonNull(template).getServerId());
+			session.sessionId = so.getSessionId();
+			so.setUserState(session);
+			// close可能先于以上替换读到模板；此时新会话不会再有关闭回调，须在发布后收敛。
+			if (so.isClosed()) {
+				session.timeCounter.close();
+				return;
+			}
+		}
+		super.OnSocketConnected(so);
+	}
+
+	@Override
 	public void OnSocketAccept(AsyncSocket so) {
 		if (so.getConnector() == null) {
 			// 被动连接等待对方报告信息时再处理。
@@ -150,8 +169,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (c != null) {
 			// 主动连接。
 			var ps = (ProviderSession)so.getUserState();
-			Objects.requireNonNull(ps).sessionId = so.getSessionId();
-			setRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
+			setRelativeServiceReady(Objects.requireNonNull(ps), c.getHostNameOrAddress(), c.getPort());
 
 			var r = new AnnounceProviderInfo();
 			r.Argument.setIp(Objects.requireNonNull(requireProviderApp().directIp));
