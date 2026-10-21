@@ -44,21 +44,21 @@ public class App extends Zeze.AppBase {
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public Zege.ClientService ClientService;
+    public Zege.@org.jspecify.annotations.Nullable ClientService ClientService;
 
-    public Zeze.Builtin.Online.ModuleOnline Zeze_Builtin_Online;
-    public Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase;
-    public Zege.Linkd.ModuleLinkd Zege_Linkd;
-    public Zege.Friend.ModuleFriend Zege_Friend;
-    public Zege.Message.ModuleMessage Zege_Message;
-    public Zege.User.ModuleUser Zege_User;
-    public Zege.Notify.ModuleNotify Zege_Notify;
+    public Zeze.Builtin.Online.@org.jspecify.annotations.Nullable ModuleOnline Zeze_Builtin_Online;
+    public Zeze.Builtin.LinkdBase.@org.jspecify.annotations.Nullable ModuleLinkdBase Zeze_Builtin_LinkdBase;
+    public Zege.Linkd.@org.jspecify.annotations.Nullable ModuleLinkd Zege_Linkd;
+    public Zege.Friend.@org.jspecify.annotations.Nullable ModuleFriend Zege_Friend;
+    public Zege.Message.@org.jspecify.annotations.Nullable ModuleMessage Zege_Message;
+    public Zege.User.@org.jspecify.annotations.Nullable ModuleUser Zege_User;
+    public Zege.Notify.@org.jspecify.annotations.Nullable ModuleNotify Zege_Notify;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -66,7 +66,7 @@ public class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -82,28 +82,30 @@ public class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            ClientService = new Zege.ClientService(Zeze);
+            ClientService = new Zege.ClientService(getZeze());
         } finally {
             unlock();
         }
+    }
+
+    public static Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            Zeze.Builtin.Online.ModuleOnline.class,
+            Zeze.Builtin.LinkdBase.ModuleLinkdBase.class,
+            Zege.Linkd.ModuleLinkd.class,
+            Zege.Friend.ModuleFriend.class,
+            Zege.Message.ModuleMessage.class,
+            Zege.User.ModuleUser.class,
+            Zege.Notify.ModuleNotify.class,
+        };
     }
 
     @Override
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.initialize(this);
-            var _modules_ = createRedirectModules(new Class[] {
-                Zeze.Builtin.Online.ModuleOnline.class,
-                Zeze.Builtin.LinkdBase.ModuleLinkdBase.class,
-                Zege.Linkd.ModuleLinkd.class,
-                Zege.Friend.ModuleFriend.class,
-                Zege.Message.ModuleMessage.class,
-                Zege.User.ModuleUser.class,
-                Zege.Notify.ModuleNotify.class,
-            });
-            if (_modules_ == null)
-                return;
+            getZeze().initialize(this);
+            var _modules_ = createRedirectModules(redirectModuleClasses());
 
             Zeze_Builtin_Online = (Zeze.Builtin.Online.ModuleOnline)_modules_[0];
             Zeze_Builtin_Online.Initialize(this);
@@ -140,7 +142,7 @@ public class App extends Zeze.AppBase {
             if (modules.put(Zege_Notify.getFullName(), Zege_Notify) != null)
                 throw new IllegalStateException("duplicate module name: Zege_Notify");
 
-            Zeze.setSchemas(new Zege.Schemas());
+            getZeze().setSchemas(new Zege.Schemas());
         } finally {
             unlock();
         }
@@ -183,13 +185,13 @@ public class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            Zeze_Builtin_Online.Start(this);
-            Zeze_Builtin_LinkdBase.Start(this);
-            Zege_Linkd.Start(this);
-            Zege_Friend.Start(this);
-            Zege_Message.Start(this);
-            Zege_User.Start(this);
-            Zege_Notify.Start(this);
+            java.util.Objects.requireNonNull(Zeze_Builtin_Online).Start(this);
+            java.util.Objects.requireNonNull(Zeze_Builtin_LinkdBase).Start(this);
+            java.util.Objects.requireNonNull(Zege_Linkd).Start(this);
+            java.util.Objects.requireNonNull(Zege_Friend).Start(this);
+            java.util.Objects.requireNonNull(Zege_Message).Start(this);
+            java.util.Objects.requireNonNull(Zege_User).Start(this);
+            java.util.Objects.requireNonNull(Zege_Notify).Start(this);
         } finally {
             unlock();
         }
@@ -199,13 +201,13 @@ public class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            Zeze_Builtin_Online.StartLast();
-            Zeze_Builtin_LinkdBase.StartLast();
-            Zege_Linkd.StartLast();
-            Zege_Friend.StartLast();
-            Zege_Message.StartLast();
-            Zege_User.StartLast();
-            Zege_Notify.StartLast();
+            java.util.Objects.requireNonNull(Zeze_Builtin_Online).StartLast();
+            java.util.Objects.requireNonNull(Zeze_Builtin_LinkdBase).StartLast();
+            java.util.Objects.requireNonNull(Zege_Linkd).StartLast();
+            java.util.Objects.requireNonNull(Zege_Friend).StartLast();
+            java.util.Objects.requireNonNull(Zege_Message).StartLast();
+            java.util.Objects.requireNonNull(Zege_User).StartLast();
+            java.util.Objects.requireNonNull(Zege_Notify).StartLast();
         } finally {
             unlock();
         }
@@ -262,7 +264,7 @@ public class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            ClientService.start();
+            java.util.Objects.requireNonNull(ClientService).start();
         } finally {
             unlock();
         }

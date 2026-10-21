@@ -95,19 +95,19 @@ public class App extends Zeze.AppBase {
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public Zege.LinkdService LinkdService;
-    public Zege.ProviderService ProviderService;
+    public Zege.@org.jspecify.annotations.Nullable LinkdService LinkdService;
+    public Zege.@org.jspecify.annotations.Nullable ProviderService ProviderService;
 
-    public Zege.Friend.ModuleFriend Zege_Friend;
-    public Zege.Message.ModuleMessage Zege_Message;
-    public Zege.Linkd.ModuleLinkd Zege_Linkd;
-    public Zege.User.ModuleUser Zege_User;
+    public Zege.Friend.@org.jspecify.annotations.Nullable ModuleFriend Zege_Friend;
+    public Zege.Message.@org.jspecify.annotations.Nullable ModuleMessage Zege_Message;
+    public Zege.Linkd.@org.jspecify.annotations.Nullable ModuleLinkd Zege_Linkd;
+    public Zege.User.@org.jspecify.annotations.Nullable ModuleUser Zege_User;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -115,7 +115,7 @@ public class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -131,26 +131,28 @@ public class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            LinkdService = new Zege.LinkdService(Zeze);
-            ProviderService = new Zege.ProviderService(Zeze);
+            LinkdService = new Zege.LinkdService(getZeze());
+            ProviderService = new Zege.ProviderService(getZeze());
         } finally {
             unlock();
         }
+    }
+
+    public static Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            Zege.Friend.ModuleFriend.class,
+            Zege.Message.ModuleMessage.class,
+            Zege.Linkd.ModuleLinkd.class,
+            Zege.User.ModuleUser.class,
+        };
     }
 
     @Override
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.initialize(this);
-            var _modules_ = createRedirectModules(new Class[] {
-                Zege.Friend.ModuleFriend.class,
-                Zege.Message.ModuleMessage.class,
-                Zege.Linkd.ModuleLinkd.class,
-                Zege.User.ModuleUser.class,
-            });
-            if (_modules_ == null)
-                return;
+            getZeze().initialize(this);
+            var _modules_ = createRedirectModules(redirectModuleClasses());
 
             Zege_Friend = (Zege.Friend.ModuleFriend)_modules_[0];
             Zege_Friend.Initialize(this);
@@ -172,7 +174,7 @@ public class App extends Zeze.AppBase {
             if (modules.put(Zege_User.getFullName(), Zege_User) != null)
                 throw new IllegalStateException("duplicate module name: Zege_User");
 
-            Zeze.setSchemas(new Zege.Schemas());
+            getZeze().setSchemas(new Zege.Schemas());
         } finally {
             unlock();
         }
@@ -213,10 +215,10 @@ public class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            Zege_Friend.Start(this);
-            Zege_Message.Start(this);
-            Zege_Linkd.Start(this);
-            Zege_User.Start(this);
+            java.util.Objects.requireNonNull(Zege_Friend).Start(this);
+            java.util.Objects.requireNonNull(Zege_Message).Start(this);
+            java.util.Objects.requireNonNull(Zege_Linkd).Start(this);
+            java.util.Objects.requireNonNull(Zege_User).Start(this);
         } finally {
             unlock();
         }
@@ -226,10 +228,10 @@ public class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            Zege_Friend.StartLast();
-            Zege_Message.StartLast();
-            Zege_Linkd.StartLast();
-            Zege_User.StartLast();
+            java.util.Objects.requireNonNull(Zege_Friend).StartLast();
+            java.util.Objects.requireNonNull(Zege_Message).StartLast();
+            java.util.Objects.requireNonNull(Zege_Linkd).StartLast();
+            java.util.Objects.requireNonNull(Zege_User).StartLast();
         } finally {
             unlock();
         }
@@ -274,8 +276,8 @@ public class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            LinkdService.start();
-            ProviderService.start();
+            java.util.Objects.requireNonNull(LinkdService).start();
+            java.util.Objects.requireNonNull(ProviderService).start();
         } finally {
             unlock();
         }
