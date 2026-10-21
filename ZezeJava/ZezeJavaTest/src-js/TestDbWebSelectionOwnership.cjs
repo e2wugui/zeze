@@ -34,10 +34,11 @@ class Select {
     }
 }
 
-async function page() {
+async function page(tables = []) {
     const elements = {
         tableList: new Select(), keyList: new Select(),
-        jsonEditor: {value: '', disabled: false}, nextPage: {disabled: false}
+        jsonEditor: {value: '', disabled: /<textarea\b[^>]*\bdisabled\b/.test(html)},
+        nextPage: {disabled: /<button\b[^>]*id="nextPage"[^>]*\bdisabled\b/.test(html)}
     };
     const requests = [], alerts = [];
     const context = vm.createContext({
@@ -59,7 +60,7 @@ async function page() {
         return request;
     };
     vm.runInContext(script, context, {filename: htmlPath});
-    take('ListTable').reply([]);
+    take('ListTable').reply(tables);
     await settle();
     return {elements, requests, alerts, call, take,
         select: (table, key) => { elements.tableList.value = table; elements.keyList.value = key; },
@@ -231,4 +232,38 @@ test('normal save and delete still act on the loaded tuple and refresh it', asyn
     request.reply({}); await deletion;
     p.take('WalkTable').reply({keys: [], hasMore: false}); await settle();
     assert.equal(p.elements.jsonEditor.value, '');
+});
+
+test('initial single table loads its keys and binds the editor without a change event', async () => {
+    const p = await page(['only_table']);
+    assert.equal(p.elements.tableList.value, 'only_table', 'a real select auto-selects the first Option');
+    const keys = p.take('WalkTable');
+    assert.equal(keys.url.searchParams.get('t'), 'only_table');
+    keys.reply({keys: ['only_key'], hasMore: false}); await settle();
+    const value = p.take('GetValue');
+    assert.equal(value.url.searchParams.get('k'), 'only_key');
+    value.reply({owner: 'only_key'}); await settle();
+    assert.equal(p.elements.jsonEditor.disabled, false);
+    const save = p.call('saveValue()'), put = p.take('PutRecord');
+    assert.equal(put.url.searchParams.get('t'), 'only_table');
+    assert.equal(put.url.searchParams.get('k'), 'only_key');
+    assert.equal(JSON.parse(put.options.body).owner, 'only_key');
+    put.reply({}); await save;
+});
+
+test('initial multiple tables load only the automatically selected first table', async () => {
+    const p = await page(['first', 'second']);
+    const keys = p.take('WalkTable');
+    assert.equal(keys.url.searchParams.get('t'), 'first');
+    assert.equal(p.requests.filter(r => r.url.pathname.endsWith('/WalkTable')).length, 1);
+    keys.reply({keys: [], hasMore: false}); await settle();
+    assert.equal(p.elements.jsonEditor.disabled, true);
+});
+
+test('initial empty table list leaves controls disabled and sends no data requests', async () => {
+    const p = await page([]);
+    assert.equal(p.elements.jsonEditor.disabled, true);
+    assert.equal(p.elements.nextPage.disabled, true);
+    await p.call('saveValue()'); await p.call('deleteKey()'); await p.call('nextPage()');
+    assert.equal(p.requests.length, 1, 'only ListTable may be sent');
 });

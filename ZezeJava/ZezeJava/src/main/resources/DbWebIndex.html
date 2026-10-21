@@ -19,7 +19,7 @@
         <select id="tableList" style="width: 300px;" onchange="loadKeys()"></select>
         <select id="keyList" style="width: 200px;" onchange="loadValue()"></select>
         <div class="flex">
-            <button id="nextPage" onclick="nextPage()" title="Next page">next</button>
+            <button id="nextPage" onclick="nextPage()" title="Next page" disabled>next</button>
             <button onclick="location.reload()">reload</button>
         </div>
     </div>
@@ -99,6 +99,8 @@
             const tables = await response.json();
             const select = document.getElementById('tableList');
             tables.forEach(table => select.add(new Option(table, table)));
+            // 插入首项会自动选中，但不会触发 change；首次键和值加载须由初始化驱动。
+            if (tables.length > 0) await loadKeys();
         } catch (error) {
             alert(`加载表失败: ${error.message}`);
         }
