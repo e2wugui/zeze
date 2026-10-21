@@ -401,6 +401,7 @@ public final class Raft {
 	}
 
 	long processInstallSnapshot(InstallSnapshot r) throws Exception { // package-private：测试直调合成rpc
+		ReceiveSnapshotting.@Nullable Entry doneEntry;
 		lock();
 		try {
 			r.Result.setTerm(logSequence.getTerm());
@@ -451,13 +452,14 @@ public final class Raft {
 				r.SendResultCode(InstallSnapshot.ResultCodeSnapshottingConflict);
 				return 0;
 			}
+			// 准入与写块/丢弃旧条目必须同持Raft锁：放锁后排队的旧请求可能在
+			// 新term的收尾通过所有权复核后删掉其源文件，留下已drop日志的半安装。
+			doneEntry = receiveSnapshotting.process(r);
 		} finally {
 			unlock();
 		}
 
-		// 2. 接收数据块（表锁内完成所有非done应答）；done块返回finalizing条目，
-		// 剩下的处理流程在endReceiveInstallSnapshot里面。
-		var doneEntry = receiveSnapshotting.process(r);
+		// 收尾可能等待后台裁剪，必须在外层Raft锁释放后执行；收尾内部重新复核归属。
 		if (doneEntry != null)
 			r.SendResultCode(logSequence.endReceiveInstallSnapshot(doneEntry, r));
 		return Procedure.Success;
@@ -466,16 +468,13 @@ public final class Raft {
 	// 清理残留的接收条目（follower 侧）：周期驱动，具体不变式见
 	// ReceiveSnapshotting.gc。
 	void gcReceiveSnapshotting(long now) {
-		long term;
-		String leaderId;
 		lock(); // term/leaderId 的写点都在 raft 锁内；锁顺序 raft→receiveSnapshotting，
 		try {   // 与 processInstallSnapshot 一致（无反向嵌套路径）。
-			term = logSequence.getTerm();
-			leaderId = getLeaderId();
+			// term/leader读取与实际删除同锁域，旧一轮GC不得删新term的收尾源文件。
+			receiveSnapshotting.gc(now, logSequence.getTerm(), getLeaderId(), receiveSnapshottingTimeout());
 		} finally {
 			unlock();
 		}
-		receiveSnapshotting.gc(now, term, leaderId, receiveSnapshottingTimeout());
 	}
 
 	long receiveSnapshottingTimeout() { // package-private：测试按公式合成超时，不硬编码

@@ -129,6 +129,7 @@ final class ReceiveSnapshotting {
 	/**
 	 * 接收一个InstallSnapshot数据块（follower侧）。除done块（返回finalizing条目，
 	 * 由调用方收尾后应答）外，所有应答都在表锁内完成（Send为异步队列，不阻塞）。
+	 * 生产调用方须持Raft锁贯穿归属准入与本次写块，不能只携带锁外的旧term/leader。
 	 */
 	public @Nullable Entry process(InstallSnapshot r) throws Exception {
 		lock.lock();
@@ -243,7 +244,7 @@ final class ReceiveSnapshotting {
 
 	// 周期清理残留接收条目（onLowPrecisionTimer约20s一次）。不变量：只为
 	// "当前term的当前leader"的安装保留条目，空闲超时兜底；清理后旧leader续传将收到
-	// OldInstall或按新文件重传，有界自愈。
+	// OldInstall或按新文件重传，有界自愈。调用方持Raft锁到本次清理结束，归属不可过期。
 	public void gc(long now, long term, @Nullable String leaderId, long idleTimeout) {
 		lock.lock();
 		try {
