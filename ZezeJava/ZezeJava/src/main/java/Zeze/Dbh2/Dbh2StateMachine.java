@@ -639,12 +639,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					undonePending.put(tid, new UndonePending(txn)); // 自主undo：锁随try块释放，blob待终局
 				}
 			} else {
-				var pending = undonePending.remove(tid);
-				if (null != pending)
+				// 自主撤销可以在 append 超时未决后重复落日志；重复不代表终局确认。
+				// 保留原墓碑及其年龄，只有协调者确认或超窗清扫才允许物理删除。
+				var pending = fromCoordinator ? undonePending.remove(tid) : undonePending.get(tid);
+				if (pending == null)
+					logger.warn("undoBatch but transaction not found. tid={}", tid);
+				else if (fromCoordinator)
 					// 协调者 UndoBatch 追认自主 undo：undo 终局确认，物理删除。
 					pending.txn.undoBatch(requireBucket());
-				else
-					logger.warn("undoBatch but transaction not found. tid={}", tid);
 			}
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {

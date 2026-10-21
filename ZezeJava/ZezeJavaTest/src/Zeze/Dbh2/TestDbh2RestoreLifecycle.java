@@ -86,6 +86,38 @@ public class TestDbh2RestoreLifecycle {
 	}
 
 	@Test
+	public void repeatedAutonomousUndoStillAllowsLateCommit(@TempDir Path home) throws Exception {
+		Task.tryInitThreadPool();
+		var key = new Binary(new byte[]{1});
+		try (var dbh2 = start(home)) {
+			apply(dbh2, 1, prepare(batch(101, key)));
+			apply(dbh2, 2, new LogUndoBatch(101, false));
+			apply(dbh2, 3, new LogUndoBatch(101, false));
+			apply(dbh2, 4, commit(101));
+			assertEquals(new Binary(new byte[]{42}), requireNonNull(dbh2.getStateMachine().getBucket()).get(key),
+					"重复自主撤销不代表协调者确认，迟到提交仍须复活墓碑");
+		}
+	}
+
+	@Test
+	public void repeatedAutonomousUndoRemainsRecoverableAfterRestart(@TempDir Path home) throws Exception {
+		Task.tryInitThreadPool();
+		var key = new Binary(new byte[]{1});
+		try (var dbh2 = start(home)) {
+			apply(dbh2, 1, prepare(batch(101, key)));
+			apply(dbh2, 2, new LogUndoBatch(101, false));
+			apply(dbh2, 3, new LogUndoBatch(101, false));
+		}
+		try (var dbh2 = start(home)) {
+			var sm = dbh2.getStateMachine();
+			assertTrue(sm.isTombstonedPending(101), "重复自主撤销不能物理删除尚未确认的持久墓碑");
+			assertFalse(sm.getTransactions().containsKey(101L), "墓碑恢复不重新获取已释放的事务锁");
+			apply(dbh2, 4, commit(101));
+			assertEquals(new Binary(new byte[]{42}), requireNonNull(sm.getBucket()).get(key));
+		}
+	}
+
+	@Test
 	public void watermarkRestartReacquiresLiveKeyLocks(@TempDir Path home) throws Exception {
 		Task.tryInitThreadPool();
 		var key = new Binary(new byte[]{1});
