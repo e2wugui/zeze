@@ -72,6 +72,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import org.jspecify.annotations.Nullable;
@@ -633,6 +634,9 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			}
 		});
 		p.addLast(new HttpRequestDecoder(decCfg));
+		// TLS文件输入先按可写性展开HttpContent，再经HTTP编码器交给SslHandler。
+		if (sslCtx != null)
+			p.addLast(new ChunkedWriteHandler());
 		p.addLast(this);
 		ch.config().setWriteBufferHighWaterMark(writePendingLimit);
 		channels.add(ch);

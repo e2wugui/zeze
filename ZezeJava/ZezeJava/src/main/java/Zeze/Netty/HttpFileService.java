@@ -19,12 +19,16 @@ import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpChunkedInput;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.stream.ChunkedNioFile;
 import io.netty.util.AsciiString;
+import org.jspecify.annotations.Nullable;
 
 /**
  * HttpExchange静态文件服务的实现体（sendFile/sendPath的委托目标，从HttpExchange拆出）：
@@ -36,8 +40,8 @@ final class HttpFileService {
 
 	private static final Pattern rangePattern = Pattern.compile("[ =\\-/]");
 	private static final OpenOption[] readOnlyOpenOptions = new OpenOption[]{StandardOpenOption.READ};
-	// h2分块发送的块大小：DATA帧逐块转发（ChunkedWriteHandler拉取），64KB平衡帧数与内存驻留
-	private static final int H2FileChunkSize = 64 * 1024;
+	// h2复制与TLS分块共用块大小；TLS由ChunkedWriteHandler按可写性拉取，避免整文件入队。
+	private static final int FileChunkSize = 64 * 1024;
 
 	// 文件名来自磁盘（Linux允许CR/LF/引号入名），且headersFactory关闭了Netty头校验：CRLF直拼构成响应头注入，引号破坏quoted-string边界。
 	private static String sanitizeFilenameForHeader(String fn) {
@@ -147,7 +151,7 @@ final class HttpFileService {
 					// socket。慢消费者的内存界后续按可写性分块收紧（对齐ChunkedWriteHandler语义）——
 					// ChunkedWriteHandler+HttpChunkedInput组合在h2子channel上排水不触发（写future永驻），
 					// 弃用。零拷贝损失为h2帧化的固有代价。LastHttpContent收尾=endStream。
-					var nioBuf = java.nio.ByteBuffer.allocate(H2FileChunkSize);
+					var nioBuf = java.nio.ByteBuffer.allocate(FileChunkSize);
 					long pos = from;
 					long remain = contentLen;
 					while (remain > 0) {
@@ -166,6 +170,10 @@ final class HttpFileService {
 						}
 					}
 					lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
+				} else if (x.context.pipeline().<@Nullable SslHandler>get(SslHandler.class) != null) {
+					// SSL只接收ByteBuf；HttpChunkedInput包含最后的HttpContent，不能另加终结符。
+					lastFuture = x.writeResponse(new HttpChunkedInput(new ChunkedNioFile(fc, from, contentLen,
+							FileChunkSize)), true, null);
 				} else {
 					// 发文件任务全部交给Netty（零拷贝），并且发送完毕时关闭。
 					x.writeResponse(new DefaultFileRegion(fc, from, contentLen), false, x.context.voidPromise());
