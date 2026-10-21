@@ -90,7 +90,8 @@ public class ProviderService extends HandshakeClient {
 			var outC = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 				try {
-					Objects.requireNonNull(outC.value).start();
+					//noinspection DataFlowIssue
+					outC.value.start();
 					isNew.value = true;
 				} catch (Exception e) {
 					throw Task.forceThrow(e);
@@ -200,7 +201,8 @@ public class ProviderService extends HandshakeClient {
 
 		var announce = new AnnounceProviderInfo();
 		announce.Argument.setServiceNamePrefix(Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix));
-		announce.Argument.setServiceIdentity(String.valueOf(Objects.requireNonNull(getZeze()).getConfig().getServerId()));
+		//noinspection DataFlowIssue
+		announce.Argument.setServiceIdentity(String.valueOf(getZeze().getConfig().getServerId()));
 		announce.Argument.setProviderDirectIp(Objects.requireNonNull(requireProviderApp().directIp));
 		announce.Argument.setProviderDirectPort(requireProviderApp().directPort);
 		announce.Argument.setAppVersion(requireProviderApp().zeze.getConfig().getAppVersion());

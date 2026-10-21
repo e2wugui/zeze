@@ -49,8 +49,9 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 			value.initRootInfo(rootInfo(), this);
 			value.mapKey(key);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else {
 			value.mapKey(key);
@@ -62,8 +63,9 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	public void remove(K key) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
 		} else
 			map = map.minus(key);
@@ -73,8 +75,9 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
 			map = map.minusAll(map.keySet()); // 清空仍保留原比较器。

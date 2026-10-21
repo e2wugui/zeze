@@ -141,11 +141,14 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		this.raftConfigString = raftConfigString;
 		var raftConf = RaftConfig.loadFromString(raftConfigString);
 		raftClient = new Agent("dbh2.raft", raftConf, null, proxyAgent);
-		Objects.requireNonNull(raftClient.getClient()).getConfig().getSocketOptions().setInputBufferMaxProtocolSize(100 * 1024 * 1024);
-		Objects.requireNonNull(raftClient.getClient()).getConfig().getSocketOptions().setOutputBufferMaxSize(100 * 1024 * 1024);
+		//noinspection DataFlowIssue
+		raftClient.getClient().getConfig().getSocketOptions().setInputBufferMaxProtocolSize(100 * 1024 * 1024);
+		//noinspection DataFlowIssue
+		raftClient.getClient().getConfig().getSocketOptions().setOutputBufferMaxSize(100 * 1024 * 1024);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		RegisterProtocols(Objects.requireNonNull(raftClient.getClient()));
-		Objects.requireNonNull(raftClient.getClient()).start();
+		//noinspection DataFlowIssue
+		raftClient.getClient().start();
 	}
 
 	public Dbh2Agent(String raftConfigString, Func3<Agent, String, Config, Agent.NetClient> netClientFactory) throws Exception {
@@ -160,7 +163,8 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		raftClient = new Agent("dbh2.raft", raftConf, null, netClientFactory, proxyAgent);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		RegisterProtocols(Objects.requireNonNull(raftClient.getClient()));
-		Objects.requireNonNull(raftClient.getClient()).start();
+		//noinspection DataFlowIssue
+		raftClient.getClient().start();
 	}
 
 	private void raftOnSetLeader(Agent agent) {

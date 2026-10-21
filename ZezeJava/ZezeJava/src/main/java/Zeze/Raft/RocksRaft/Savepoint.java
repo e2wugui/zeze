@@ -45,7 +45,8 @@ public final class Savepoint {
 		var logs = this.logs;
 		if (logs != null) {
 			var newLogs = new LongHashMap<>(logs);
-			newLogs.foreachUpdate((__, v) -> Objects.requireNonNull(v).beginSavepoint());
+			//noinspection DataFlowIssue
+			newLogs.foreachUpdate((__, v) -> v.beginSavepoint());
 			sp.logs = newLogs;
 		}
 		return sp;

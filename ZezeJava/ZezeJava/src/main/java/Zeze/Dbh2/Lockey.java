@@ -1,7 +1,5 @@
 package Zeze.Dbh2;
 
-import java.util.Objects;
-
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import Zeze.Net.Binary;
@@ -33,7 +31,8 @@ public class Lockey implements Zeze.Util.Lockey<Lockey>{
 
 	public void lock(Dbh2 dbh2) throws InterruptedException {
 		if (dbh2.getDbh2Config().isSerialize()) {
-			if (!Objects.requireNonNull(semaphore).tryAcquire(0, TimeUnit.NANOSECONDS))
+			//noinspection DataFlowIssue
+			if (!semaphore.tryAcquire(0, TimeUnit.NANOSECONDS))
 				throw new RuntimeException("lock timeout");
 			locked = true; // 只会有一个成功。
 		}
@@ -45,7 +44,8 @@ public class Lockey implements Zeze.Util.Lockey<Lockey>{
 			// 其重置的true不会被本次写覆盖（release在前会与下一获取方交错丢true致泄漏）。
 			// 复位后locked准确表达"当前持有"，误触的unlock不再凭空增发permit。
 			locked = false;
-			Objects.requireNonNull(semaphore).release();
+			//noinspection DataFlowIssue
+			semaphore.release();
 		}
 	}
 

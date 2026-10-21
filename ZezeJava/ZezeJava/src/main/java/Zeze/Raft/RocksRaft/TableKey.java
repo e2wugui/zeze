@@ -23,8 +23,10 @@ public final class TableKey implements Comparable<TableKey> {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + Objects.requireNonNull(name).hashCode();
-		result = prime * result + Objects.requireNonNull(key).hashCode();
+		//noinspection DataFlowIssue
+		result = prime * result + name.hashCode();
+		//noinspection DataFlowIssue
+		result = prime * result + key.hashCode();
 		return result;
 	}
 

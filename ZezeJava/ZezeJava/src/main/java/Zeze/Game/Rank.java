@@ -140,7 +140,8 @@ public class Rank extends AbstractRank {
 
 	public void Start(String serviceNamePrefix, String providerDirectIp, int providerDirectPort) {
 		var name = ProviderDistribute.makeServiceName(serviceNamePrefix, getId());
-		var identity = String.valueOf(Objects.requireNonNull(app.getZeze()).getConfig().getServerId());
+		//noinspection DataFlowIssue
+		var identity = String.valueOf(app.getZeze().getConfig().getServerId());
 		//noinspection DataFlowIssue
 		app.getZeze().getServiceManager().registerService(new BServiceInfo(
 				name, identity, app.getZeze().getConfig().getAppMainVersion(), providerDirectIp, providerDirectPort));
@@ -504,7 +505,8 @@ public class Rank extends AbstractRank {
 
 		// 判断是否在版内，并且得到排名位置。
 		var position = 0;
-		for (var r : Objects.requireNonNull(total.getTableValue()).getRankListReadOnly()) {
+		//noinspection DataFlowIssue
+		for (var r : total.getTableValue().getRankListReadOnly()) {
 			position++;
 			if (r.getRoleId() == roleId) {
 				return position;
@@ -520,7 +522,8 @@ public class Rank extends AbstractRank {
 		if (pos > 0)
 			return pos;
 
-		var list = Objects.requireNonNull(Objects.requireNonNull(total.value).getTableValue()).getRankListReadOnly();
+		//noinspection DataFlowIssue
+		var list = total.value.getTableValue().getRankListReadOnly();
 		if (list.isEmpty())
 			return totalUser; // 空榜无法估计，按排在所有人之后处理（取list.get(-1)会越界）。
 		var bean = list.get(list.size() - 1).getDynamicReadOnly().getBean();

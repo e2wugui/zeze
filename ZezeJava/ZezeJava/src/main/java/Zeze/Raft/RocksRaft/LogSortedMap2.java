@@ -75,7 +75,8 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 		if (!decoded && getValue() != null) {
 			changedWithKey.clear(); // 重建最终视图，重复编码不能保留已删除/覆盖的旧changed。
 			for (var c : changed) {
-				Object pkey = Objects.requireNonNull(c.getThis()).mapKey();
+				//noinspection DataFlowIssue
+				Object pkey = c.getThis().mapKey();
 				// 第三条过滤对齐Transaction.Collections.LogMap2.buildChangedWithKey：
 				// 编辑时bean已不在最终map（remove不detach，编辑已删bean的陈旧引用仍会被collect，
 				// 其key来自更早事务，putted/removed两条拦不住），不过滤则follower侧必取到null；
@@ -83,7 +84,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 				// 不得应用到覆盖后的新值上。
 				//noinspection SuspiciousMethodCalls
 				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey)
-						&& c.getThis() == Objects.requireNonNull(getValue()).get(pkey))
+						&& c.getThis() == getValue().get(pkey))
 					changedWithKey.put((K)Objects.requireNonNull(pkey), c);
 			}
 		}

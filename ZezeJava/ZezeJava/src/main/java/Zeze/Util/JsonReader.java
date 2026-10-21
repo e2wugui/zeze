@@ -8,7 +8,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.jspecify.annotations.Nullable;
+
 import static Zeze.Util.Json.*;
 
 /*
@@ -47,30 +49,30 @@ public final class JsonReader {
 	}; //@formatter:on
 
 	private static final double[] EXP = { // 1e0...1e308: 309 * 8 bytes = 2472 bytes
-			1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18,
-			1e19, 1e20, 1e21, 1e22, 1e23, 1e24, 1e25, 1e26, 1e27, 1e28, 1e29, 1e30, 1e31, 1e32, 1e33, 1e34, 1e35, 1e36,
-			1e37, 1e38, 1e39, 1e40, 1e41, 1e42, 1e43, 1e44, 1e45, 1e46, 1e47, 1e48, 1e49, 1e50, 1e51, 1e52, 1e53, 1e54,
-			1e55, 1e56, 1e57, 1e58, 1e59, 1e60, 1e61, 1e62, 1e63, 1e64, 1e65, 1e66, 1e67, 1e68, 1e69, 1e70, 1e71, 1e72,
-			1e73, 1e74, 1e75, 1e76, 1e77, 1e78, 1e79, 1e80, 1e81, 1e82, 1e83, 1e84, 1e85, 1e86, 1e87, 1e88, 1e89, 1e90,
-			1e91, 1e92, 1e93, 1e94, 1e95, 1e96, 1e97, 1e98, 1e99, 1e100, 1e101, 1e102, 1e103, 1e104, 1e105, 1e106,
-			1e107, 1e108, 1e109, 1e110, 1e111, 1e112, 1e113, 1e114, 1e115, 1e116, 1e117, 1e118, 1e119, 1e120, 1e121,
-			1e122, 1e123, 1e124, 1e125, 1e126, 1e127, 1e128, 1e129, 1e130, 1e131, 1e132, 1e133, 1e134, 1e135, 1e136,
-			1e137, 1e138, 1e139, 1e140, 1e141, 1e142, 1e143, 1e144, 1e145, 1e146, 1e147, 1e148, 1e149, 1e150, 1e151,
-			1e152, 1e153, 1e154, 1e155, 1e156, 1e157, 1e158, 1e159, 1e160, 1e161, 1e162, 1e163, 1e164, 1e165, 1e166,
-			1e167, 1e168, 1e169, 1e170, 1e171, 1e172, 1e173, 1e174, 1e175, 1e176, 1e177, 1e178, 1e179, 1e180, 1e181,
-			1e182, 1e183, 1e184, 1e185, 1e186, 1e187, 1e188, 1e189, 1e190, 1e191, 1e192, 1e193, 1e194, 1e195, 1e196,
-			1e197, 1e198, 1e199, 1e200, 1e201, 1e202, 1e203, 1e204, 1e205, 1e206, 1e207, 1e208, 1e209, 1e210, 1e211,
-			1e212, 1e213, 1e214, 1e215, 1e216, 1e217, 1e218, 1e219, 1e220, 1e221, 1e222, 1e223, 1e224, 1e225, 1e226,
-			1e227, 1e228, 1e229, 1e230, 1e231, 1e232, 1e233, 1e234, 1e235, 1e236, 1e237, 1e238, 1e239, 1e240, 1e241,
-			1e242, 1e243, 1e244, 1e245, 1e246, 1e247, 1e248, 1e249, 1e250, 1e251, 1e252, 1e253, 1e254, 1e255, 1e256,
-			1e257, 1e258, 1e259, 1e260, 1e261, 1e262, 1e263, 1e264, 1e265, 1e266, 1e267, 1e268, 1e269, 1e270, 1e271,
-			1e272, 1e273, 1e274, 1e275, 1e276, 1e277, 1e278, 1e279, 1e280, 1e281, 1e282, 1e283, 1e284, 1e285, 1e286,
-			1e287, 1e288, 1e289, 1e290, 1e291, 1e292, 1e293, 1e294, 1e295, 1e296, 1e297, 1e298, 1e299, 1e300, 1e301,
-			1e302, 1e303, 1e304, 1e305, 1e306, 1e307, 1e308
+		1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18,
+		1e19, 1e20, 1e21, 1e22, 1e23, 1e24, 1e25, 1e26, 1e27, 1e28, 1e29, 1e30, 1e31, 1e32, 1e33, 1e34, 1e35, 1e36,
+		1e37, 1e38, 1e39, 1e40, 1e41, 1e42, 1e43, 1e44, 1e45, 1e46, 1e47, 1e48, 1e49, 1e50, 1e51, 1e52, 1e53, 1e54,
+		1e55, 1e56, 1e57, 1e58, 1e59, 1e60, 1e61, 1e62, 1e63, 1e64, 1e65, 1e66, 1e67, 1e68, 1e69, 1e70, 1e71, 1e72,
+		1e73, 1e74, 1e75, 1e76, 1e77, 1e78, 1e79, 1e80, 1e81, 1e82, 1e83, 1e84, 1e85, 1e86, 1e87, 1e88, 1e89, 1e90,
+		1e91, 1e92, 1e93, 1e94, 1e95, 1e96, 1e97, 1e98, 1e99, 1e100, 1e101, 1e102, 1e103, 1e104, 1e105, 1e106,
+		1e107, 1e108, 1e109, 1e110, 1e111, 1e112, 1e113, 1e114, 1e115, 1e116, 1e117, 1e118, 1e119, 1e120, 1e121,
+		1e122, 1e123, 1e124, 1e125, 1e126, 1e127, 1e128, 1e129, 1e130, 1e131, 1e132, 1e133, 1e134, 1e135, 1e136,
+		1e137, 1e138, 1e139, 1e140, 1e141, 1e142, 1e143, 1e144, 1e145, 1e146, 1e147, 1e148, 1e149, 1e150, 1e151,
+		1e152, 1e153, 1e154, 1e155, 1e156, 1e157, 1e158, 1e159, 1e160, 1e161, 1e162, 1e163, 1e164, 1e165, 1e166,
+		1e167, 1e168, 1e169, 1e170, 1e171, 1e172, 1e173, 1e174, 1e175, 1e176, 1e177, 1e178, 1e179, 1e180, 1e181,
+		1e182, 1e183, 1e184, 1e185, 1e186, 1e187, 1e188, 1e189, 1e190, 1e191, 1e192, 1e193, 1e194, 1e195, 1e196,
+		1e197, 1e198, 1e199, 1e200, 1e201, 1e202, 1e203, 1e204, 1e205, 1e206, 1e207, 1e208, 1e209, 1e210, 1e211,
+		1e212, 1e213, 1e214, 1e215, 1e216, 1e217, 1e218, 1e219, 1e220, 1e221, 1e222, 1e223, 1e224, 1e225, 1e226,
+		1e227, 1e228, 1e229, 1e230, 1e231, 1e232, 1e233, 1e234, 1e235, 1e236, 1e237, 1e238, 1e239, 1e240, 1e241,
+		1e242, 1e243, 1e244, 1e245, 1e246, 1e247, 1e248, 1e249, 1e250, 1e251, 1e252, 1e253, 1e254, 1e255, 1e256,
+		1e257, 1e258, 1e259, 1e260, 1e261, 1e262, 1e263, 1e264, 1e265, 1e266, 1e267, 1e268, 1e269, 1e270, 1e271,
+		1e272, 1e273, 1e274, 1e275, 1e276, 1e277, 1e278, 1e279, 1e280, 1e281, 1e282, 1e283, 1e284, 1e285, 1e286,
+		1e287, 1e288, 1e289, 1e290, 1e291, 1e292, 1e293, 1e294, 1e295, 1e296, 1e297, 1e298, 1e299, 1e300, 1e301,
+		1e302, 1e303, 1e304, 1e305, 1e306, 1e307, 1e308
 	};
 
 	private static final ThreadLocal<JsonReader> localReaders = ensureNotNull(
-			ThreadLocal.withInitial(JsonReader::new));
+		ThreadLocal.withInitial(JsonReader::new));
 	private static @Nullable String @Nullable [] poolStrs;
 	private static int poolSize = 1024;
 
@@ -205,23 +207,26 @@ public final class JsonReader {
 
 	public JsonReader trySkipBom() {
 		int p = pos;
-		if (p + 2 < Objects.requireNonNull(buf).length && Objects.requireNonNull(buf)[p] == (byte)0xef && Objects.requireNonNull(buf)[p + 1] == (byte)0xbb && Objects.requireNonNull(buf)[p + 2] == (byte)0xbf)
+		//noinspection DataFlowIssue
+		if (p + 2 < buf.length && buf[p] == (byte)0xef && buf[p + 1] == (byte)0xbb && buf[p + 2] == (byte)0xbf)
 			pos = p + 3;
 		return this;
 	}
 
 	public boolean end() {
-		return end(Objects.requireNonNull(buf).length);
+		//noinspection DataFlowIssue
+		return end(buf.length);
 	}
 
 	public boolean end(int len) {
 		for (int b; pos < len; pos++)
-			if ((b = Objects.requireNonNull(buf)[pos] & 0xff) > ' ') {
+			//noinspection DataFlowIssue
+			if ((b = buf[pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
 					return false;
 				if (pos + 1 >= len)
 					return true; // 尾部孤立'/'：未终结的行注释到EOF，按耗尽处理（对齐下方块注释EOF口径）
-				if ((b = Objects.requireNonNull(buf)[++pos]) == '*') {
+				if (buf[++pos] == '*') {
 					for (pos++; pos < len; pos++)
 						if (buf[pos] == '*' && pos + 1 < len && buf[pos + 1] == '/') {
 							pos++; // 停在'/'上，外层pos++越过
@@ -240,13 +245,14 @@ public final class JsonReader {
 
 	public int next() {
 		for (int b; ; pos++) {
-			if (pos >= Objects.requireNonNull(buf).length)
+			//noinspection DataFlowIssue
+			if (pos >= buf.length)
 				return 0; // 输入耗尽（空/全空白/纯注释）：NUL哨兵——实字节0x00本被当空白跳过，
-			          // 永不为真实token，无碰撞。调用面全是"期待定界符否则宽容回退"形态
-			          //（parse0:next()!='{'返回默认对象、parseArray0/parseMap0同理），
-			          // 耗尽回0统一走回退；此前buf[pos]直接AIOOBE——空body请求打进
-			          // /api/search即500（应答器catch兜成system error，ERROR日志+栈）。
-			if ((b = Objects.requireNonNull(buf)[pos] & 0xff) > ' ') {
+			// 永不为真实token，无碰撞。调用面全是"期待定界符否则宽容回退"形态
+			//（parse0:next()!='{'返回默认对象、parseArray0/parseMap0同理），
+			// 耗尽回0统一走回退；此前buf[pos]直接AIOOBE——空body请求打进
+			// /api/search即500（应答器catch兜成system error，ERROR日志+栈）。
+			if ((b = buf[pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
 					return b;
 				skipComment();
@@ -256,7 +262,8 @@ public final class JsonReader {
 
 	public int skipNext() {
 		for (int b; ; ) {
-			if (++pos >= Objects.requireNonNull(buf).length)
+			//noinspection DataFlowIssue
+			if (++pos >= buf.length)
 				return 0; // 输入耗尽：NUL哨兵（语义同next()，见其注释）；此前buf[++pos]直接AIOOBE
 			if ((b = buf[pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
@@ -268,7 +275,8 @@ public final class JsonReader {
 
 	public int skipVar(int e) { // ']' or '}'
 		for (int b, c; ; ) {
-			if (pos >= Objects.requireNonNull(buf).length)
+			//noinspection DataFlowIssue
+			if (pos >= buf.length)
 				return e; // 输入耗尽：按遇到闭合定界符宽容收尾（对齐next()哨兵的耗尽回退哲学）
 			if ((b = buf[pos]) == ',' || b == '\n')
 				for (; ; ) {
@@ -314,12 +322,12 @@ public final class JsonReader {
 	}
 
 	private void skipComment() {
-		int b;
-		if (pos + 1 >= Objects.requireNonNull(buf).length)
+		//noinspection DataFlowIssue
+		if (pos + 1 >= buf.length)
 			return; // 尾部孤立'/'：注释到EOF按耗尽处理（对齐下方未终结块注释口径），此前首读越界
-		if ((b = buf[++pos]) == '*') {
+		if (buf[++pos] == '*') {
 			for (pos++; ; ) {
-				if (pos >= Objects.requireNonNull(buf).length)
+				if (pos >= buf.length)
 					return; // 未终结的块注释到EOF：按耗尽处理，后续next()走NUL哨兵
 				if (buf[pos++] == '*' && pos < buf.length && buf[pos] == '/')
 					return; // pos停在关闭'/'上（调用方约定，见skipVar的'/'分支）
@@ -328,7 +336,7 @@ public final class JsonReader {
 		// 行注释：LF/CR/CRLF/Unicode行终止符（U+2028/U+2029）或EOF都结束，
 		// 结束时pos停在线终止符上（与原LF语义一致，调用方按空白越过）；EOF按耗尽。
 		for (; pos < buf.length; pos++) {
-			b = buf[pos] & 0xff;
+			int b = buf[pos] & 0xff;
 			if (b == '\n' || b == '\r' || isUnicodeLineSeparator(pos))
 				return;
 		}
@@ -336,9 +344,10 @@ public final class JsonReader {
 
 	// U+2028/U+2029 的UTF-8编码（E2 80 A8/A9）
 	private boolean isUnicodeLineSeparator(int p) {
-		return p + 2 < Objects.requireNonNull(buf).length && (Objects.requireNonNull(buf)[p] & 0xff) == 0xE2
-				&& (buf[p + 1] & 0xff) == 0x80
-				&& (((buf[p + 2] & 0xff) == 0xA8) || ((buf[p + 2] & 0xff) == 0xA9));
+		//noinspection DataFlowIssue
+		return p + 2 < buf.length && (buf[p] & 0xff) == 0xE2
+			&& (buf[p + 1] & 0xff) == 0x80
+			&& (((buf[p + 2] & 0xff) == 0xA8) || ((buf[p + 2] & 0xff) == 0xA9));
 	}
 
 	// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：四个数值解析
@@ -353,7 +362,8 @@ public final class JsonReader {
 	}
 
 	public void skipQuot(int e) {
-		for (int b; (b = Objects.requireNonNull(buf)[pos++]) != e; )
+		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
+		for (int b; (b = buffer[pos++]) != e; )
 			if (b == '\\')
 				pos++;
 	}
@@ -462,12 +472,12 @@ public final class JsonReader {
 	}
 
 	public <T> @Nullable Collection<@Nullable T> parseArray(@Nullable Collection<@Nullable T> c, Class<T> elemClass)
-			throws ReflectiveOperationException {
+		throws ReflectiveOperationException {
 		return parseArray(Json.instance, c, elemClass);
 	}
 
 	public <T> @Nullable Collection<@Nullable T> parseArray(Json json, @Nullable Collection<@Nullable T> c,
-												  Class<T> elemClass) throws ReflectiveOperationException {
+															Class<T> elemClass) throws ReflectiveOperationException {
 		if (next() != '[')
 			return c;
 		if (++depth > maxDepth)
@@ -478,7 +488,7 @@ public final class JsonReader {
 		Parser<T> parser = classMeta.parser;
 		for (int b = skipNext(); b != ']'; b = skipVar(']'))
 			c.add(b == 'n' ? null : parser != null
-					? parser.parse(this, classMeta, null, null, null) : parse(json, null, classMeta));
+				? parser.parse(this, classMeta, null, null, null) : parse(json, null, classMeta));
 		pos++;
 		depth--;
 		return c;
@@ -532,17 +542,17 @@ public final class JsonReader {
 	}
 
 	public <T> @Nullable T parse(@Nullable T obj, @Nullable Class<? super T> klass)
-			throws ReflectiveOperationException {
+		throws ReflectiveOperationException {
 		return parse(obj, klass != null ? Json.instance.getClassMeta(klass) : null);
 	}
 
 	public <T> @Nullable T parse(Json json, @Nullable T obj, @Nullable Class<? super T> klass)
-			throws ReflectiveOperationException {
+		throws ReflectiveOperationException {
 		return parse(json, obj, klass != null ? json.getClassMeta(klass) : null);
 	}
 
 	public <T> @Nullable T parse(@Nullable T obj, @Nullable ClassMeta<? super T> classMeta)
-			throws ReflectiveOperationException {
+		throws ReflectiveOperationException {
 		return parse(Json.instance, obj, classMeta);
 	}
 
@@ -552,7 +562,7 @@ public final class JsonReader {
 
 	@SuppressWarnings("unchecked")
 	public <T> @Nullable T parse(Json json, @Nullable T obj, @Nullable ClassMeta<? super T> classMeta)
-			throws ReflectiveOperationException {
+		throws ReflectiveOperationException {
 		if (classMeta == null) {
 			if (obj == null)
 				return null;
@@ -688,7 +698,7 @@ public final class JsonReader {
 						if (newSubObj != subObj) {
 							if (newSubObj != null && !fm.klass.isAssignableFrom(newSubObj.getClass())) {
 								throw new InstantiationException("incompatible type(" + newSubObj.getClass()
-										+ ") for field: " + fm.getName() + " in " + classMeta.klass.getName());
+									+ ") for field: " + fm.getName() + " in " + classMeta.klass.getName());
 							}
 							unsafe.putObject(obj, offset, newSubObj);
 						}
@@ -704,7 +714,7 @@ public final class JsonReader {
 					else {
 						if (ClassMeta.isAbstract(subClassMeta.klass)) {
 							throw new InstantiationException(
-									"abstract field: " + fm.getName() + " in " + classMeta.klass.getName());
+								"abstract field: " + fm.getName() + " in " + classMeta.klass.getName());
 						}
 						subObj = parse0(subClassMeta.ctor.create(), subClassMeta);
 					}
@@ -755,13 +765,13 @@ public final class JsonReader {
 							Parser<?> parser = cm.parser;
 							if (parser == null) {
 								throw new InstantiationException("abstract Collection field: " + fm.getName() + " in "
-										+ classMeta.klass.getName());
+									+ classMeta.klass.getName());
 							}
 							Object c2 = parser.parse0(this, cm, fm, null, obj);
 							if (c2 != null && !fm.klass.isAssignableFrom(c2.getClass())) {
 								throw new InstantiationException(
-										"incompatible type(" + c2.getClass() + ") for Collection field: " + fm.getName()
-												+ " in " + classMeta.klass.getName());
+									"incompatible type(" + c2.getClass() + ") for Collection field: " + fm.getName()
+										+ " in " + classMeta.klass.getName());
 							}
 							unsafe.putObject(obj, offset, c2);
 							break;
@@ -787,12 +797,12 @@ public final class JsonReader {
 							Parser<?> parser = cm.parser;
 							if (parser == null) {
 								throw new InstantiationException(
-										"abstract Map field: " + fm.getName() + " in " + classMeta.klass.getName());
+									"abstract Map field: " + fm.getName() + " in " + classMeta.klass.getName());
 							}
 							Object m2 = parser.parse0(this, cm, fm, null, obj);
 							if (m2 != null && !fm.klass.isAssignableFrom(m2.getClass())) {
 								throw new InstantiationException("incompatible type(" + m2.getClass()
-										+ ") for Map field: " + fm.getName() + " in " + classMeta.klass.getName());
+									+ ") for Map field: " + fm.getName() + " in " + classMeta.klass.getName());
 							}
 							unsafe.putObject(obj, offset, m2);
 							break;
@@ -809,7 +819,7 @@ public final class JsonReader {
 	}
 
 	public void parseList0(Collection<@Nullable Object> c, ClassMeta<?> classMeta, FieldMeta fm)
-			throws ReflectiveOperationException {
+		throws ReflectiveOperationException {
 		if (++depth > maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		int b = skipNext();
@@ -865,14 +875,14 @@ public final class JsonReader {
 			Parser<?> parser = subClassMeta.parser;
 			if (parser != null) {
 				for (; b != ']'; b = skipVar(']'))
-						c.add(b == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, c));
+					c.add(b == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, c));
 			} else {
 				if (ClassMeta.isAbstract(subClassMeta.klass)) {
 					throw new InstantiationException(
-							"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
+						"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
 				}
 				for (; b != ']'; b = skipVar(']'))
-						c.add(b == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
+					c.add(b == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
 			}
 			break;
 		}
@@ -881,7 +891,7 @@ public final class JsonReader {
 	}
 
 	public void parseMap0(Map<Object, @Nullable Object> m, ClassMeta<?> classMeta, FieldMeta fm)
-			throws ReflectiveOperationException {
+		throws ReflectiveOperationException {
 		if (++depth > maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		int b = skipNext();
@@ -963,16 +973,16 @@ public final class JsonReader {
 			if (parser != null) {
 				for (; b != '}'; b = skipVar('}')) {
 					Object k = keyParser.parse(this, b);
-						m.put(k, skipColon() == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, m));
+					m.put(k, skipColon() == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, m));
 				}
 			} else {
 				if (ClassMeta.isAbstract(subClassMeta.klass)) {
 					throw new InstantiationException(
-							"abstract value class: " + fm.getName() + " in " + classMeta.klass.getName());
+						"abstract value class: " + fm.getName() + " in " + classMeta.klass.getName());
 				}
 				for (; b != '}'; b = skipVar('}')) {
 					Object k = keyParser.parse(this, b);
-						m.put(k, skipColon() == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
+					m.put(k, skipColon() == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
 				}
 			}
 			break;
@@ -1052,7 +1062,8 @@ public final class JsonReader {
 		int h = 0;
 		for (; ; ) {
 			if (b == '\\') {
-				if (pos + 1 >= Objects.requireNonNull(buf).length)
+				//noinspection DataFlowIssue
+				if (pos + 1 >= buf.length)
 					return h; // 截断于转义序列：键到EOF按终结处理（对齐':'/空白/注释终结口径）
 				int c = buf[++pos]; // c 为转义字符，pos 停在它上面
 				if (c == 'u') {
@@ -1095,7 +1106,7 @@ public final class JsonReader {
 				}
 				// 转义解码后 pos 已停在"下一个未读字符"：读取它但不前进（下一轮哈希或
 				// 继续识别转义）；直接走循环尾部的 buf[++pos] 会跳过该字符漏哈希。
-				if (pos >= Objects.requireNonNull(buf).length)
+				if (pos >= buf.length)
 					return h; // 截断于转义后：键终结，同上
 				b = buf[pos];
 				if (((((b & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) || b == '/')
@@ -1103,7 +1114,8 @@ public final class JsonReader {
 				continue;
 			} else
 				h = h * m + b;
-			if (pos + 1 >= Objects.requireNonNull(buf).length)
+			//noinspection DataFlowIssue
+			if (pos + 1 >= buf.length)
 				return h; // 截断：键到EOF按终结处理，此前buf[++pos]直接AIOOBE
 			if (((((b = buf[++pos]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
 				return h;
@@ -1115,7 +1127,7 @@ public final class JsonReader {
 	/** hash命中后的key内容校验：按与parseKeyHash/parseKeyHashNoQuot一致的
 	 * 解码语义——原始字节、简写转义与unicode转义按解码后codepoint的UTF-8字节——重走
 	 * [begin,end)与字段名UTF-8字节逐比对，防32位keyHash定向碰撞注入。无转义走快比对。 */
-	boolean keyEquals(int begin, int end, byte [] name) {
+	boolean keyEquals(int begin, int end, byte[] name) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p, b, c;
 		for (p = begin; p < end; p++)
@@ -1142,10 +1154,10 @@ public final class JsonReader {
 						p += 6;
 						c = (c << 10) + c2 + (0x10000 - (0xd800 << 10) - 0xdc00);
 						if (n + 4 > len
-								|| name[n] != (byte)(0xf0 + (c >> 18))
-								|| name[n + 1] != (byte)(0x80 + ((c >> 12) & 0x3f))
-								|| name[n + 2] != (byte)(0x80 + ((c >> 6) & 0x3f))
-								|| name[n + 3] != (byte)(0x80 + (c & 0x3f)))
+							|| name[n] != (byte)(0xf0 + (c >> 18))
+							|| name[n + 1] != (byte)(0x80 + ((c >> 12) & 0x3f))
+							|| name[n + 2] != (byte)(0x80 + ((c >> 6) & 0x3f))
+							|| name[n + 3] != (byte)(0x80 + (c & 0x3f)))
 							return false;
 						n += 4;
 						continue;
@@ -1153,15 +1165,15 @@ public final class JsonReader {
 				}
 				if (c >= 0x800) { // 3-bytes utf-8（含孤立代理）
 					if (n + 3 > len
-							|| name[n] != (byte)(0xe0 + (c >> 12))
-							|| name[n + 1] != (byte)(0x80 + ((c >> 6) & 0x3f))
-							|| name[n + 2] != (byte)(0x80 + (c & 0x3f)))
+						|| name[n] != (byte)(0xe0 + (c >> 12))
+						|| name[n + 1] != (byte)(0x80 + ((c >> 6) & 0x3f))
+						|| name[n + 2] != (byte)(0x80 + (c & 0x3f)))
 						return false;
 					n += 3;
 				} else if (c >= 0x80) { // 2-bytes utf-8
 					if (n + 2 > len
-							|| name[n] != (byte)(0xc0 + (c >> 6))
-							|| name[n + 1] != (byte)(0x80 + (c & 0x3f)))
+						|| name[n] != (byte)(0xc0 + (c >> 6))
+						|| name[n + 1] != (byte)(0x80 + (c & 0x3f)))
 						return false;
 					n += 2;
 				} else if (n >= len || name[n++] != (byte)c) // 1-byte
@@ -1170,8 +1182,8 @@ public final class JsonReader {
 				c = c >= 0x20 ? ESCAPE[c - 0x20] : (c & 0xff);
 				if (c >= 0x80) { // U+0080..U+00FF -> 2-bytes utf-8
 					if (n + 2 > len
-							|| name[n] != (byte)(0xc0 + (c >> 6))
-							|| name[n + 1] != (byte)(0x80 + (c & 0x3f)))
+						|| name[n] != (byte)(0xc0 + (c >> 6))
+						|| name[n + 1] != (byte)(0x80 + (c & 0x3f)))
 						return false;
 					n += 2;
 				} else if (n >= len || name[n++] != (byte)c)
@@ -1186,16 +1198,17 @@ public final class JsonReader {
 	}
 
 	public static Boolean parseBooleanKey(JsonReader jr, int b) {
+		final byte[] buffer = Objects.requireNonNull(jr.buf, "JSON input is not set");
 		boolean v;
 		if (b == '"' || b == '\'') {
-			v = Objects.requireNonNull(jr.buf)[++jr.pos] == 't';
+			v = buffer[++jr.pos] == 't';
 			jr.skipQuot(b);
 		} else {
 			// 同时用于键与 typed 值：停在冒号、容器分隔符或注释开头，交给外层消费。
-			v = Objects.requireNonNull(jr.buf)[jr.pos] == 't';
-			//noinspection StatementWithEmptyBody
-			for (int c; jr.pos < jr.buf.length && (c = Objects.requireNonNull(jr.buf)[jr.pos] & 0xff) > ' '
-					&& c != ':' && c != ',' && c != ']' && c != '}' && c != '/'; jr.pos++) {
+			v = buffer[jr.pos] == 't';
+			// noinspection StatementWithEmptyBody
+			for (int c; jr.pos < buffer.length && (c = buffer[jr.pos] & 0xff) > ' '
+				&& c != ':' && c != ',' && c != ']' && c != '}' && c != '/'; jr.pos++) {
 			}
 		}
 		return v;
@@ -1284,7 +1297,7 @@ public final class JsonReader {
 
 	private static int parseHex4(byte[] buffer, int p) {
 		return (parseHex(buffer[p]) << 12) + (parseHex(buffer[p + 1]) << 8)
-				+ (parseHex(buffer[p + 2]) << 4) + parseHex(buffer[p + 3]);
+			+ (parseHex(buffer[p + 2]) << 4) + parseHex(buffer[p + 3]);
 	}
 
 	public byte @Nullable [] parseByteString() {
@@ -1308,7 +1321,7 @@ public final class JsonReader {
 				p += 4;
 				if (b >= 0x800) {
 					if ((b & 0xfc00) == 0xd800 && buffer[p] == '\\' && buffer[p + 1] == 'u'
-							&& (parseHex4(buffer, p + 2) & 0xfc00) == 0xdc00) {
+						&& (parseHex4(buffer, p + 2) & 0xfc00) == 0xdc00) {
 						p += 6;
 						len += 4;
 					} else
@@ -1333,7 +1346,7 @@ public final class JsonReader {
 					p += 4;
 					if (b >= 0x800) {
 						if ((b & 0xfc00) == 0xd800 && buffer[p] == '\\' && buffer[p + 1] == 'u'
-								&& ((len = parseHex4(buffer, p + 2)) & 0xfc00) == 0xdc00) {
+							&& ((len = parseHex4(buffer, p + 2)) & 0xfc00) == 0xdc00) {
 							p += 6;
 							b = (b << 10) + len + (0x10000 - (0xd800 << 10) - 0xdc00);
 							t[n++] = (byte)(0xf0 + (b >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
@@ -1452,7 +1465,7 @@ public final class JsonReader {
 				if (buffer[end] == 'u') {
 					// 同parseString：hex不足4位遇键终止符（≤' '或':'）不跨越，残缺转义按2字节收尾
 					for (int j = 0; j < 4 && end + 1 < buffer.length
-							&& ((((buffer[end + 1] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0); j++)
+						&& ((((buffer[end + 1] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0); j++)
 						end++;
 				}
 			}
@@ -1489,7 +1502,7 @@ public final class JsonReader {
 						if (b == '\r' && p < end && buffer[p] == '\n')
 							p++; // CRLF按一个换行消费
 					} else if ((b & 0xff) == 0xE2 && p + 1 < end && (buffer[p] & 0xff) == 0x80
-							&& (((buffer[p + 1] & 0xff) == 0xA8) || ((buffer[p + 1] & 0xff) == 0xA9))) {
+						&& (((buffer[p + 1] & 0xff) == 0xA8) || ((buffer[p + 1] & 0xff) == 0xA9))) {
 						p += 2; // U+2028/U+2029按一个换行消费
 					} else {
 						// b为未掩码byte，转义字符≥0x80时符号扩展成U+FFxx，补掩码与parseKeyHashNoQuot对齐
@@ -1545,7 +1558,7 @@ public final class JsonReader {
 	// 返回 null 表示无需回退或无法回退（词法不完整的垃圾容忍输入，如尾随 'e' 的 "1e"，
 	// parseDouble 不接受），调用方走原快速路径。[from,to) 覆盖整个词（含符号/小数点/指数），
 	// 故返回值已带符号。
-	private static @Nullable Double parseDoubleRounded(byte [] buffer, int from, int to, int expTotal) {
+	private static @Nullable Double parseDoubleRounded(byte[] buffer, int from, int to, int expTotal) {
 		int digits = 0;
 		boolean mantissa = true; // 'e'/'E' 之后的指数数字不计有效数字
 		for (int i = from; i < to; i++) {
@@ -1886,8 +1899,8 @@ public final class JsonReader {
 			if (b == '0') {
 				b = buffer[++p];
 				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5；与 parseInt/parseLong/parseNumber 对齐）。
-				// hex是整数词法（无frac/exp），消费完词尾即返回（pos不变式：指向词后首字符）。
-				// 超long也按double累计（不环绕）
+					// hex是整数词法（无frac/exp），消费完词尾即返回（pos不变式：指向词后首字符）。
+					// 超long也按double累计（不环绕）
 					boolean useD = false;
 					for (; ; ) {
 						b = buffer[++p];

@@ -115,7 +115,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		var on = onSuspect;
 		if (on == null)
 			return;
-		if (Objects.requireNonNull(config).getAppMainVersion() < version) {
+		//noinspection DataFlowIssue
+		if (config.getAppMainVersion() < version) {
 			logger.debug("Suspect ignored: myVersion={} < deadVersion={} serverId={}",
 					config.getAppMainVersion(), version, serverId);
 			return;
@@ -328,7 +329,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public Id128UdpClient.FutureNode getUsableTid128CacheFuture(String globalName) {
 		var future = getLastTid128CacheFuture(globalName);
 		if (future == null || future.isCompletedExceptionally())
-			return allocateTid128CacheFuture(globalName, Objects.requireNonNull(config).getHistoryAllocCount());
+			//noinspection DataFlowIssue
+			return allocateTid128CacheFuture(globalName, config.getHistoryAllocCount());
 		return future;
 	}
 
@@ -530,13 +532,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			try {
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
 					var current = infos.getInfos(it.key());
-					for (var old : Objects.requireNonNull(it.value()).getSortedIdentities()) {
+					//noinspection DataFlowIssue
+					for (var old : it.value().getSortedIdentities()) {
 						if (current == null || current.findServiceInfo(old) == null)
 							edits.getRemove().add(old);
 					}
 				}
 				for (var it = infos.getInfosIterator(); it.moveToNext(); )
-					edits.getAdd().addAll(Objects.requireNonNull(it.value()).getSortedIdentities());
+					//noinspection DataFlowIssue
+					edits.getAdd().addAll(it.value().getSortedIdentities());
 				serviceInfos = infos;
 			} finally {
 				unlock();

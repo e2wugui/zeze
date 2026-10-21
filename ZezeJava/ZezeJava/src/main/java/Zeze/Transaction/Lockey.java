@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Util.Task;
@@ -55,8 +53,10 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void enterReadLock() {
-		Objects.requireNonNull(readLockCounter).increment();
-		var readLock = Objects.requireNonNull(rwLock).readLock();
+		//noinspection DataFlowIssue
+		readLockCounter.increment();
+		//noinspection DataFlowIssue
+		var readLock = rwLock.readLock();
 		if (readLock.tryLock())
 			return;
 		try (var ignored = Profiler.begin("LockeyWaitReadLock", tableKey)) {
@@ -65,13 +65,17 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void exitReadLock() {
-		Objects.requireNonNull(rwLock).readLock().unlock();
+		//noinspection DataFlowIssue
+		rwLock.readLock().unlock();
 	}
 
 	public void enterWriteLock() {
-		if (!Objects.requireNonNull(rwLock).isWriteLockedByCurrentThread()) // 第一次才计数
-			Objects.requireNonNull(writeLockCounter).increment();
-		var writeLock = Objects.requireNonNull(rwLock).writeLock();
+		//noinspection DataFlowIssue
+		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
+			//noinspection DataFlowIssue
+			writeLockCounter.increment();
+		//noinspection DataFlowIssue
+		var writeLock = rwLock.writeLock();
 		if (writeLock.tryLock())
 			return;
 		try (var ignored = Profiler.begin("LockeyWaitWriteLock", tableKey)) {
@@ -80,13 +84,16 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void exitWriteLock() {
-		Objects.requireNonNull(rwLock).writeLock().unlock();
+		//noinspection DataFlowIssue
+		rwLock.writeLock().unlock();
 	}
 
 	public boolean tryEnterReadLock(int millisecondsTimeout) {
-		Objects.requireNonNull(tryReadLockCounter).increment();
+		//noinspection DataFlowIssue
+		tryReadLockCounter.increment();
 		try {
-			var readLock = Objects.requireNonNull(rwLock).readLock();
+			//noinspection DataFlowIssue
+			var readLock = rwLock.readLock();
 			if (millisecondsTimeout > 0)
 				return readLock.tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 			return readLock.tryLock();
@@ -96,10 +103,12 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public boolean tryEnterWriteLock(int millisecondsTimeout) {
-		if (!Objects.requireNonNull(rwLock).isWriteLockedByCurrentThread()) // 第一次才计数，失败了也计数。
-			Objects.requireNonNull(tryWriteLockCounter).increment();
+		//noinspection DataFlowIssue
+		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，失败了也计数。
+			//noinspection DataFlowIssue
+			tryWriteLockCounter.increment();
 		try {
-			var writeLock = Objects.requireNonNull(rwLock).writeLock();
+			var writeLock = rwLock.writeLock();
 			if (millisecondsTimeout > 0)
 				return writeLock.tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 			return writeLock.tryLock();
@@ -109,7 +118,8 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public boolean isWriteLockHeld() {
-		return Objects.requireNonNull(rwLock).isWriteLockedByCurrentThread();
+		//noinspection DataFlowIssue
+		return rwLock.isWriteLockedByCurrentThread();
 	}
 
 	/**
@@ -135,10 +145,11 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	 * exitReadLock配对释放，不得依赖本方法收尾。
 	 */
 	public void exitLock() {
-		if (Objects.requireNonNull(rwLock).isWriteLockedByCurrentThread()) {
-			Objects.requireNonNull(rwLock).writeLock().unlock();
+		//noinspection DataFlowIssue
+		if (rwLock.isWriteLockedByCurrentThread()) {
+			rwLock.writeLock().unlock();
 		} else {
-			Objects.requireNonNull(rwLock).readLock().unlock();
+			rwLock.readLock().unlock();
 		}
 		// java 没有提供判断是否拥有读锁的手段，此处不严格检查状态。
 	}

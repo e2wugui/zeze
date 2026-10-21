@@ -191,7 +191,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	// 升级开库及快照restore都会走这里：把任意旧节点前缀的终态存根迁到公共命名空间。
 	// 业务表有#templateId后缀，不会匹配严格日期；非法日期和其他内部表保持原样。
 	private void migrateUniqueAppliedTables() throws RocksDBException {
-		for (var tableName : new ArrayList<>(Objects.requireNonNull(storage).getTableMap().keySet())) {
+		//noinspection DataFlowIssue
+		for (var tableName : new ArrayList<>(storage.getTableMap().keySet())) {
 			if (tableName.startsWith(uniqueAppliedTablePrefix + ".unique."))
 				continue;
 			var dateIndex = tableName.lastIndexOf(".unique.");
@@ -200,9 +201,9 @@ public final class Rocks extends StateMachine implements Closeable {
 			var date = LogSequence.parseUniqueRequestDate(tableName.substring(0, dateIndex), tableName);
 			if (date == null)
 				continue;
-			var source = Objects.requireNonNull(storage).getTableMap().get(tableName);
+			var source = storage.getTableMap().get(tableName);
 			var target = Objects.requireNonNull(storage).getOrAddTable(uniqueAppliedTableName(date.getTime()));
-			try (var it = source.iterator(); var batch = Objects.requireNonNull(storage).borrowBatch()) {
+			try (var it = source.iterator(); var batch = storage.borrowBatch()) {
 				batch.clear();
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					var key = it.key();
@@ -225,7 +226,8 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	private void putUniqueAppliedStub(RocksDatabase.Batch batch, RaftLog raftLog) throws RocksDBException {
 		var key = ByteBuffer.Allocate(32);
-		Objects.requireNonNull(raftLog.getLog()).getUnique().encode(key);
+		//noinspection DataFlowIssue
+		raftLog.getLog().getUnique().encode(key);
 		var value = ByteBuffer.Allocate(32);
 		new UniqueRequestState(raftLog, true).encode(value);
 		Objects.requireNonNull(storage).getOrAddTable(uniqueAppliedTableName(raftLog.getLog().getCreateTime()))
@@ -235,7 +237,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	/** 终态存根查询（LogSequence.tryGetRequestState双读的状态机侧）。表不存在返回null。 */
 	@Override
 	public @Nullable UniqueRequestState getUniqueAppliedStub(IRaftRpc raftRpc) throws RocksDBException {
-		var table = Objects.requireNonNull(storage).getTableMap().get(uniqueAppliedTableName(raftRpc.getCreateTime())); // 只读查询不建CF
+		//noinspection DataFlowIssue
+		var table = storage.getTableMap().get(uniqueAppliedTableName(raftRpc.getCreateTime())); // 只读查询不建CF
 		if (table == null)
 			return null;
 		var key = ByteBuffer.Allocate(32);
@@ -252,11 +255,12 @@ public final class Rocks extends StateMachine implements Closeable {
 	// 日期分桶TTL）：表名同规则解析，过期即drop整表。
 	@Override
 	public void removeExpiredUniqueStubTables(long expired) throws Exception {
-		for (var tableName : Objects.requireNonNull(storage).getTableMap().keySet()) {
+		//noinspection DataFlowIssue
+		for (var tableName : storage.getTableMap().keySet()) {
 			var date = LogSequence.parseUniqueRequestDate(uniqueAppliedTablePrefix, tableName);
 			if (date == null || date.getTime() >= expired)
 				continue;
-			var table = Objects.requireNonNull(storage).getTableMap().get(tableName);
+			var table = storage.getTableMap().get(tableName);
 			if (table != null)
 				table.drop();
 		}
@@ -333,9 +337,9 @@ public final class Rocks extends StateMachine implements Closeable {
 		setRaft(new Raft(this, raftName, raftConfig, config, "Zeze.Raft.Server", serverFactory, taskOneByOne));
 		Objects.requireNonNull(getRaft()).addAtFatalKill(() -> {
 			if (storage != null)
-				Objects.requireNonNull(storage).close();
+				storage.close();
 		});
-		Objects.requireNonNull(getRaft()).getLogSequence().setWriteOptions(writeOptions);
+		getRaft().getLogSequence().setWriteOptions(writeOptions);
 
 		// Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
 		// 如果Storage没有创建，需要主动打开。
@@ -384,11 +388,13 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public @Nullable String getDbHome() {
-		return Objects.requireNonNull(getRaft()).getRaftConfig().getDbHome();
+		//noinspection DataFlowIssue
+		return getRaft().getRaftConfig().getDbHome();
 	}
 
 	public boolean isLeader() {
-		return Objects.requireNonNull(getRaft()).isLeader();
+		//noinspection DataFlowIssue
+		return getRaft().isLeader();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -413,7 +419,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public void updateAtomicLongs(IntHashMap<Long> to) {
-		Objects.requireNonNull(getRaft()).lock();
+		//noinspection DataFlowIssue
+		getRaft().lock();
 		try {
 			for (var it = atomicLongs.entryIterator(); it.moveToNext(); ) {
 				int index = (int)it.key();
@@ -421,14 +428,15 @@ public final class Rocks extends StateMachine implements Closeable {
 				if (last == null)
 					last = 0L;
 
-				long newest = Objects.requireNonNull(it.value()).get();
+				//noinspection DataFlowIssue
+				long newest = it.value().get();
 				if (newest > last) {
 					lastUpdated.put(index, newest);
 					to.put(index, newest);
 				}
 			}
 		} finally {
-			Objects.requireNonNull(getRaft()).unlock();
+			getRaft().unlock();
 		}
 	}
 
@@ -485,9 +493,10 @@ public final class Rocks extends StateMachine implements Closeable {
 			// 编码侧已保证合法日志不会missing/out-of-bounds（LogList2.encode重算index、
 			// LogMap2.buildChangedWithKey过滤），follower侧NPE/IOOBE即分歧，统一在此fatalKill，
 			// 各层不再内联防御。不catch则apply重试在同一条目反复抛出，lastApplied楔死死循环。
+			//noinspection DataFlowIssue
 			Rocks.logger.fatal("{} followerApply divergence, fatalKill. logIndex={} term={}",
-					Objects.requireNonNull(getRaft()).getName(), holder.getIndex(), holder.getTerm(), e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+					getRaft().getName(), holder.getIndex(), holder.getTerm(), e);
+			getRaft().fatalKill();
 		}
 	}
 
@@ -497,7 +506,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	// 完成状态。FlushException补偿重试路径同样传raftLog——重试批次幂等重建全套内容。
 	public void flush(Iterable<Record<?>> rs, Changes changes, boolean followerApply, @Nullable RaftLog raftLog) {
 		try {
-			try (var batch = Objects.requireNonNull(storage).borrowBatch()) {
+			//noinspection DataFlowIssue
+			try (var batch = storage.borrowBatch()) {
 				batch.clear();
 				for (var r : rs)
 					r.flush(batch);
@@ -513,7 +523,8 @@ public final class Rocks extends StateMachine implements Closeable {
 						atomicLongSet(it.key(), it.value());
 				}
 				if (raftLog != null) {
-					if (Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId() > 0)
+					//noinspection DataFlowIssue
+					if (raftLog.getLog().getUnique().getRequestId() > 0)
 						putUniqueAppliedStub(batch, raftLog);
 					putAppliedWatermark(batch, raftLog);
 				}
@@ -557,7 +568,8 @@ public final class Rocks extends StateMachine implements Closeable {
 				result.lastIncludedTerm = lastAppliedLog.getTerm();
 			}
 
-			try (var cp = Objects.requireNonNull(storage).newCheckpoint()) {
+			//noinspection DataFlowIssue
+			try (var cp = storage.newCheckpoint()) {
 				cp.createCheckpoint(checkpointDir);
 			} catch (Throwable e) {
 				// createCheckpoint中途失败也可能已创建部分目录，删除后再抛。
@@ -572,11 +584,12 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public void restore(String backupDir) throws RocksDBException {
-		Objects.requireNonNull(getRaft()).lock();
+		//noinspection DataFlowIssue
+		getRaft().lock();
 		try {
 			resetTransientState();
 			if (storage != null) {
-				Objects.requireNonNull(storage).close(); // close current
+				storage.close(); // close current
 				storage = null;
 			}
 
@@ -589,7 +602,7 @@ public final class Rocks extends StateMachine implements Closeable {
 
 			openDb(); // reopen
 		} finally {
-			Objects.requireNonNull(getRaft()).unlock();
+			getRaft().unlock();
 		}
 	}
 
@@ -699,7 +712,8 @@ public final class Rocks extends StateMachine implements Closeable {
 		createZipFromDirectory(backupDir, path);
 
 		long t3 = System.nanoTime();
-		Objects.requireNonNull(getRaft()).getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
+		//noinspection DataFlowIssue
+		getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
 
 		result.success = true;
 		result.checkPointNanoTime = t1 - t0;
@@ -734,12 +748,14 @@ public final class Rocks extends StateMachine implements Closeable {
 		try {
 			if (storage == null)
 				openDb();
-			if (Objects.requireNonNull(getRaft()).getLogSequence().tryRecoverFromWatermark())
+			//noinspection DataFlowIssue
+			if (getRaft().getLogSequence().tryRecoverFromWatermark())
 				return;
 		} catch (RocksDBException | IllegalStateException e) {
 			// 损坏的本地库或水位不能阻止从已提交快照重建状态机。
+			//noinspection DataFlowIssue
 			logger.warn("{} incremental recover failed, restore committed snapshot: {}",
-					Objects.requireNonNull(getRaft()).getName(), snapshotFile, e);
+					getRaft().getName(), snapshotFile, e);
 		}
 		super.recover(snapshotFile);
 	}
@@ -753,11 +769,12 @@ public final class Rocks extends StateMachine implements Closeable {
 	 */
 	@Override
 	public void reset() {
-		Objects.requireNonNull(getRaft()).lock();
+		//noinspection DataFlowIssue
+		getRaft().lock();
 		try {
 			resetTransientState();
 			if (storage != null) {
-				Objects.requireNonNull(storage).close(); // close current
+				storage.close(); // close current
 				storage = null;
 			}
 			LogSequence.deletedDirectoryAndCheck(
@@ -766,7 +783,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
 		} finally {
-			Objects.requireNonNull(getRaft()).unlock();
+			getRaft().unlock();
 		}
 	}
 
@@ -804,7 +821,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				for (var table : tables.values())
 					table.close();
 				if (storage != null) {
-					Objects.requireNonNull(storage).close();
+					storage.close();
 					storage = null;
 				}
 			}

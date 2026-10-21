@@ -172,7 +172,7 @@ public final class Transaction {
 
 	public void addRecordAccessed(Record.RootInfo root, RecordAccessed r) {
 		r.initRootInfo(root, null);
-		accessedRecords.put(root.getTableKey(), r);
+		accessedRecords.put(root.tableKey(), r);
 	}
 
 	public @Nullable RecordAccessed getRecordAccessed(TableKey key) {
@@ -266,9 +266,10 @@ public final class Transaction {
 			// 无fatalKill，leader持续复制提交并对外提供停在楔死点的过期读（静默落后），
 			// 换主后需要InstallSnapshot追赶。与follower路径对称：fatalKill把静默分歧
 			// 变成显性crash。FlushException的pendingFlush重试语义不变。
+			//noinspection DataFlowIssue
 			logger.fatal("{} leaderApply divergence, fatalKill. logIndex={} term={}",
-					Objects.requireNonNull(rocks.getRaft()).getName(), holder.getIndex(), holder.getTerm(), e);
-			Objects.requireNonNull(rocks.getRaft()).fatalKill();
+					rocks.getRaft().getName(), holder.getIndex(), holder.getTerm(), e);
+			rocks.getRaft().fatalKill();
 		}
 	}
 
@@ -339,7 +340,7 @@ public final class Transaction {
 					if (log.getBelong() == null)
 						continue;
 
-					TableKey tkey = Objects.requireNonNull(log.getBelong()).tableKey();
+					TableKey tkey = log.getBelong().tableKey();
 					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.setDirty(true);
@@ -377,7 +378,7 @@ public final class Transaction {
 		if (!changes.getRecords().isEmpty()) { // has changes
 			Objects.requireNonNull(procedure.getRocks()).updateAtomicLongs(changes.getAtomicLongs());
 			var resultBean = null != procedure.uniqueRequest ? procedure.uniqueRequest.getResultBean() : null;
-			Objects.requireNonNull(Objects.requireNonNull(procedure.getRocks()).getRaft()).appendLog(changes, resultBean, procedure.getExpectedTerm());
+			Objects.requireNonNull(procedure.getRocks().getRaft()).appendLog(changes, resultBean, procedure.getExpectedTerm());
 		}
 
 		_trigger_commit_actions_(procedure, sp);

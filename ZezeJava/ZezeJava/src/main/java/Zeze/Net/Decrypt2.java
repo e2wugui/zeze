@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 import static Zeze.Net.Encrypt2.BLOCK_SIZE;
 import static Zeze.Net.Encrypt2.mhCryptCtor;
@@ -64,7 +62,8 @@ public final class Decrypt2 implements Codec {
 		out[writeIndex++] ^= c;
 		if (writeIndex == BLOCK_SIZE) {
 			writeIndex = 0;
-			Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
+			//noinspection DataFlowIssue
+			sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 			sinkIndex = 0;
 			try {
 				mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
@@ -87,7 +86,8 @@ public final class Decrypt2 implements Codec {
 					out[wi++] ^= c;
 					if (wi == BLOCK_SIZE) {
 						wi = 0;
-						Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
+						//noinspection DataFlowIssue
+						sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 						sinkIndex = 0;
 						mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
 						break;
@@ -101,7 +101,8 @@ public final class Decrypt2 implements Codec {
 					out[wi + i] ^= c;
 				}
 				off += BLOCK_SIZE;
-				Objects.requireNonNull(sink, "codec is not reset").update(out, 0, BLOCK_SIZE);
+				//noinspection DataFlowIssue
+				sink.update(out, 0, BLOCK_SIZE);
 				mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
 			}
 			while (off < end) {
@@ -120,10 +121,12 @@ public final class Decrypt2 implements Codec {
 	@Override
 	public void flush() throws CodecException {
 		if (sinkIndex < writeIndex) {
-			Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, writeIndex - sinkIndex);
+			//noinspection DataFlowIssue
+			sink.update(out, sinkIndex, writeIndex - sinkIndex);
 			sinkIndex = writeIndex;
 		}
-		Objects.requireNonNull(sink, "codec is not reset").flush();
+		//noinspection DataFlowIssue
+		sink.flush();
 	}
 
 	@Override

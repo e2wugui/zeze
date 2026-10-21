@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.io.IOException;
 import java.net.SocketAddress;
 import Zeze.Netty.HttpExchange;
@@ -20,7 +18,9 @@ public class Websocket extends AsyncSocket {
 	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
 	@Override
 	public Service getService() {
-		return Objects.requireNonNull(super.getService());
+		var service = super.getService();
+		assert service != null;
+		return service;
 	}
 
 	private static final Logger logger = LogManager.getLogger(Websocket.class);
@@ -75,7 +75,7 @@ public class Websocket extends AsyncSocket {
 		fireOnSocketDisposed();
 	}
 
-	void processInput(ByteBuf buf) throws Exception {
+	void processInput(ByteBuf buf) {
 		setActiveRecvTime(); // 维护活跃时间，checkKeepAlive才能回收静默死链
 		int n = buf.readableBytes();
 		super.recvCount++;

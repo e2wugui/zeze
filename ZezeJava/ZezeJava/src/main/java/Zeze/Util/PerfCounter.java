@@ -111,7 +111,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var sb = new StringBuilder();
 			sb.append(name).append(':').append(succRatio).append('%');
 			for (var it = (last ? resultMapLast : resultMap).entryIterator(); it.moveToNext(); )
-				sb.append(", ").append(it.key()).append(':').append(Objects.requireNonNull(it.value()).sum());
+				//noinspection DataFlowIssue
+				sb.append(", ").append(it.key()).append(':').append(it.value().sum());
 			return sb.toString();
 		}
 
@@ -514,7 +515,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			// LongAdder并被调用方长期缓存（如Lockey的计数路径），清map后旧句柄增量
 			// 永久脱离收集，重新按ID取得的新句柄才被统计。
 			for (var it = tableInfoMap.entryIterator(); it.moveToNext(); )
-				Objects.requireNonNull(it.value()).reset();
+				//noinspection DataFlowIssue
+				it.value().reset();
 			// info() 的慢路径同样持有此锁，旧条目与新 clearSerial 不会被组装成同一个 Bound。
 			//noinspection NonAtomicOperationOnVolatileField
 			clearSerial++;
@@ -651,7 +653,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				var succCount = 0L;
 				var results = new LinkedHashMap<Long, Long>();
 				for (var it2 = pi.resultMapLast.entryIterator(); it2.moveToNext(); ) {
-					var v = Objects.requireNonNull(it2.value()).sum();
+					//noinspection DataFlowIssue
+					var v = it2.value().sum();
 					results.put(it2.key(), v);
 					totalCount += v;
 					if (it2.key() == 0)

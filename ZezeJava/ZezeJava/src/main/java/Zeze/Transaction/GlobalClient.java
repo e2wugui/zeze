@@ -30,16 +30,18 @@ public final class GlobalClient extends Service {
 		// HandshakeDone 在 login|reLogin 完成以后才设置。
 
 		var agent = (GlobalAgent.Agent)so.getUserState();
-		if (Objects.requireNonNull(agent).getLoginTimes().get() > 0) {
+		//noinspection DataFlowIssue
+		if (agent.getLoginTimes().get() > 0) {
 			var reLogin = new ReLogin();
-			reLogin.Argument.serverId = Objects.requireNonNull(getZeze()).getConfig().getServerId();
+			//noinspection DataFlowIssue
+			reLogin.Argument.serverId = getZeze().getConfig().getServerId();
 			reLogin.Argument.globalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			// 必须携带debugMode：GCM端processReLogin会以本字段覆盖会话的调试豁免，
 			// 漏传即静默清除——断点调试期间闪断重连后daemon超时kick会话回收锁，调试现场被破坏。
 			reLogin.Argument.debugMode = Reflect.inDebugMode;
 			// GCM端processLogin/ReLogin应答前逐key release无界，实例多时应答可能超过RPC默认5s
 			// ——超时触发重连风暴而服务端还在处理；超时可配（默认维持5s）。
-			reLogin.setTimeout(Objects.requireNonNull(getZeze()).getConfig().getGlobalCacheManagerLoginTimeout());
+			reLogin.setTimeout(getZeze().getConfig().getGlobalCacheManagerLoginTimeout());
 			logger.debug("GlobalClient Send ReLogin: {}", reLogin.Argument);
 			reLogin.Send(so, (ThisRpc) -> {
 				if (reLogin.isTimeout()) {
@@ -53,13 +55,16 @@ public final class GlobalClient extends Service {
 					// 2. 开始清理，由守护线程保护，必须成功。
 					agent.startRelease(getZeze(), () -> {
 						// 3. 重置登录次数，下一次连接成功，会发送Login。
-						Objects.requireNonNull(agent).getLoginTimes().getAndSet(0);
+						//noinspection DataFlowIssue
+						agent.getLoginTimes().getAndSet(0);
 						// 4. 开始网络连接。
-						Objects.requireNonNull(so.getConnector()).start();
+						//noinspection DataFlowIssue
+						so.getConnector().start();
 					});
 				} else {
 					logger.debug("GlobalClient Recv Login 1");
-					Objects.requireNonNull(agent).getLoginTimes().getAndIncrement();
+					//noinspection DataFlowIssue
+					agent.getLoginTimes().getAndIncrement();
 					agent.setActiveTime(System.currentTimeMillis());
 					super.OnHandshakeDone(so);
 				}
@@ -67,10 +72,11 @@ public final class GlobalClient extends Service {
 			});
 		} else {
 			var login = new Login();
-			login.Argument.serverId = Objects.requireNonNull(getZeze()).getConfig().getServerId();
+			//noinspection DataFlowIssue
+			login.Argument.serverId = getZeze().getConfig().getServerId();
 			login.Argument.globalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			login.Argument.debugMode = Reflect.inDebugMode;
-			login.setTimeout(Objects.requireNonNull(getZeze()).getConfig().getGlobalCacheManagerLoginTimeout()); // 同ReLogin
+			login.setTimeout(getZeze().getConfig().getGlobalCacheManagerLoginTimeout()); // 同ReLogin
 			logger.debug("GlobalClient Send Login: {}", login.Argument);
 			login.Send(so, (ThisRpc) -> {
 				if (login.isTimeout() || login.getResultCode() != 0) {
@@ -80,7 +86,7 @@ public final class GlobalClient extends Service {
 				} else {
 					logger.debug("GlobalClient Recv Login 2");
 					agent.setActiveTime(System.currentTimeMillis());
-					Objects.requireNonNull(agent).getLoginTimes().getAndIncrement();
+					agent.getLoginTimes().getAndIncrement();
 					agent.initialize(login.Result.maxNetPing,
 							login.Result.serverProcessTime, login.Result.serverReleaseTimeout);
 					super.OnHandshakeDone(so);

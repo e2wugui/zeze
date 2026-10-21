@@ -1,7 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import Zeze.Transaction.Bean;
@@ -36,6 +34,7 @@ public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		((PSortedMap<K, V>)Objects.requireNonNull(getThis())).map = value;
+		//noinspection DataFlowIssue
+		((PSortedMap<K, V>)getThis()).map = value;
 	}
 }

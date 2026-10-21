@@ -246,7 +246,8 @@ public class HttpSession extends AbstractHttpSession {
 		public void onTimer(TimerContext context) throws Exception {
 			// 模块表登记键是短名（AppBase.addModule按getName()=ModuleName登记），
 			// 按全名ModuleFullName查恒null——过期会话清理永不执行。
-			var httpSession = (HttpSession)Objects.requireNonNull(Objects.requireNonNull(context.timer.zeze).getAppBase()).getModules().get(HttpSession.ModuleName);
+			//noinspection DataFlowIssue
+			var httpSession = (HttpSession)context.timer.zeze.getAppBase().getModules().get(HttpSession.ModuleName);
 			if (null != httpSession) {
 				// 扫描语义使用单一cutoff（同一批内一致）；
 				// 删除事务内按cutoff重验（见RemoveBatch）。

@@ -1,7 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import java.util.Objects;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.LongFunction;
@@ -60,7 +58,8 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 	public V createValue() {
 		try {
-			return (V)Objects.requireNonNull(meta.valueFactory).invoke();
+			//noinspection DataFlowIssue
+			return (V)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
@@ -86,8 +85,9 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
+			//noinspection DataFlowIssue
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			value.initRootInfoWithRedo(rootInfo, this);
 			value.mapKey(key);
 			assert parent() != null;
@@ -120,7 +120,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			}
 			assert parent() != null;
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				V v = e.getValue();
@@ -146,7 +146,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (isManaged()) {
 			assert parent() != null;
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove((K)key);
 		}
 		V exist = map.get((K)key);
@@ -160,9 +160,9 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		V v = item.getValue();
 		if (isManaged()) {
 			assert parent() != null;
-			@SuppressWarnings("unchecked")
+			//noinspection unchecked
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove(k, v);
 		}
 		V exist = map.get(k);
@@ -180,7 +180,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (isManaged()) {
 			assert parent() != null;
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else {
 			var comparator = map.comparator();
@@ -274,7 +274,8 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		try {
 			for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 				K k = decoder.apply(bb);
-				V v = (V)Objects.requireNonNull(meta.valueFactory).invoke();
+				//noinspection DataFlowIssue
+				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
 				put(k, v);
 			}

@@ -166,7 +166,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	// （启动deleteDirectory/热更clear），进程内逐条"自愈"无法证明全镜像健康。仿__direct_put_cache__
 	// 包RuntimeException携带表/key上下文；异常由perform错误日志记录，抛出点不重复log。
 	final void rocksCachePut(K key, V value) {
-		try (var t = Objects.requireNonNull(getZeze().getLocalRocksCacheDb()).beginTransaction()) {
+		//noinspection DataFlowIssue
+		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
 			getLocalRocksCacheTable().replace(t, encodeKey(key), ByteBuffer.encode(value));
 			t.commit();
 		} catch (Exception e) {
@@ -175,7 +176,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	final void rocksCacheRemove(K key) {
-		try (var t = Objects.requireNonNull(getZeze().getLocalRocksCacheDb()).beginTransaction()) {
+		//noinspection DataFlowIssue
+		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
 			getLocalRocksCacheTable().remove(t, encodeKey(key));
 			t.commit();
 		} catch (Exception e) {
@@ -291,7 +293,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 									if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
 										// Immediately 模式这里直接保存到 RocksCache 与 OldTable，
 										// 不设置脏标记（脏记录流程不会处理它，会永久滞留强引用）。
-										var lct = Objects.requireNonNull(getZeze().getLocalRocksCacheDb()).beginTransaction();
+										//noinspection DataFlowIssue
+										var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
 										var t = oldTable.getDatabase().beginTransaction();
 										try {
 											// 两侧都必须传编码后的key/value：replace(Transaction,Object,Object)
@@ -1176,7 +1179,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		// 脏记录必须进入rrs才能被checkpoint flush，这里的记录不在任何rrs中，置脏后
 		// checkpoint永远flush不到它（数据永不落localRocks），受限容量时cleanNow也永远清不掉（死循环）。
 		// 写失败直接抛出中止热更，静默吞掉会丢失内存表的唯一持久副本。
-		try (var t = Objects.requireNonNull(getZeze().getLocalRocksCacheDb()).beginTransaction()) {
+		//noinspection DataFlowIssue
+		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
 			getLocalRocksCacheTable().replace(t, encodeKey(kk), ByteBuffer.encode(value));
 			t.commit();
 		} catch (Exception e) {

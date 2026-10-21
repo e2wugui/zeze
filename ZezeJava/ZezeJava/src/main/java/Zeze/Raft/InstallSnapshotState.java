@@ -134,7 +134,8 @@ class InstallSnapshotState {
 			pending.Argument.setDone(rc < buffer.length);
 			offset += rc;
 			if (pending.Argument.getDone())
-				pending.Argument.setLastIncludedLog(new Binary(Objects.requireNonNull(firstLog).encode()));
+				//noinspection DataFlowIssue
+				pending.Argument.setLastIncludedLog(new Binary(firstLog.encode()));
 
 			int timeout = ls.getRaft().getRaftConfig().getAppendEntriesTimeout();
 			resultCode = Procedure.ErrorSendFail;
@@ -178,7 +179,8 @@ class InstallSnapshotState {
 			resultCode = r.getResultCode();
 
 			if (!r.Argument.getDone() && r.Result.getOffset() >= 0) {
-				if (r.Result.getOffset() > Objects.requireNonNull(file).length()) {
+				//noinspection DataFlowIssue
+				if (r.Result.getOffset() > file.length()) {
 					LogSequence.logger.error("InstallSnapshot.Result.Offset Too Big. {}/{}",
 							r.Result.getOffset(), file.length());
 					ls.getSendSnapshotting().end(c, this);

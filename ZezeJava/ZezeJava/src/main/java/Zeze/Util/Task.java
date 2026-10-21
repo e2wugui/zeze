@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.util.Objects;
-
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
@@ -440,7 +438,7 @@ public final class Task {
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func).name(name).call()}。 */
 	@Deprecated
 	public static long call(FuncLong func, @Nullable String name) {
-		return Objects.requireNonNull(TaskSpec.ofFunc(func).name(name).call());
+		return TaskSpec.ofFunc(func).name(name).call();
 	}
 
 	/**
@@ -801,14 +799,14 @@ public final class Task {
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).call()}。 */
 	@Deprecated
 	public static long call(FuncLong func, @Nullable Protocol<?> p) {
-		return Objects.requireNonNull(TaskSpec.ofFunc(func, p).call());
+		return TaskSpec.ofFunc(func, p).call();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).call()}。 */
 	@Deprecated
 	public static long call(FuncLong func, @Nullable Protocol<?> p,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return Objects.requireNonNull(TaskSpec.ofFunc(func, p, actionWhenError).call());
+		return TaskSpec.ofFunc(func, p, actionWhenError).call();
 	}
 
 	public static Throwable getRootCause(Throwable e) {
@@ -826,7 +824,7 @@ public final class Task {
 	@Deprecated
 	public static long call(FuncLong func, @Nullable Protocol<?> p,
 							@Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
-		return Objects.requireNonNull(TaskSpec.ofFunc(func, p, actionWhenError).name(aName).call());
+		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).call();
 	}
 
 	/** 协议版 Func 载荷的叶子核心（TaskBody.OfProtocolFunc 调用）：异常翻错误码、错误回发、协议日志与统计。 */
@@ -992,20 +990,20 @@ public final class Task {
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).call()}。 */
 	@Deprecated
 	public static long call(Procedure procedure) {
-		return Objects.requireNonNull(TaskSpec.ofProcedure(procedure).call());
+		return TaskSpec.ofProcedure(procedure).call();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).call()}。 */
 	@Deprecated
 	public static long call(Procedure procedure, @Nullable Protocol<?> from) {
-		return Objects.requireNonNull(TaskSpec.ofProcedure(procedure, from).call());
+		return TaskSpec.ofProcedure(procedure, from).call();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).call()}。 */
 	@Deprecated
 	public static long call(Procedure procedure, @Nullable Protocol<?> from,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return Objects.requireNonNull(TaskSpec.ofProcedure(procedure, from, actionWhenError).call());
+		return TaskSpec.ofProcedure(procedure, from, actionWhenError).call();
 	}
 
 	/** 协议版 Procedure 载荷的叶子核心（TaskBody.OfProtocolProcedure 调用）。 */
@@ -1038,7 +1036,7 @@ public final class Task {
 	@Deprecated
 	public static long call(Procedure procedure, OutObject<Protocol<?>> outProtocol,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return Objects.requireNonNull(TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).call());
+		return TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).call();
 	}
 
 	/** 过程内解码协议载荷的叶子核心（TaskBody.OfProcedureOut 调用）。 */

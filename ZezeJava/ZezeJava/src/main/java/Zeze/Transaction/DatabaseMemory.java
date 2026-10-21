@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,7 +72,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			if (exist == null)
 				return null;
 			var copy = new DataWithVersion();
-			copy.data = ByteBuffer.Wrap(Objects.requireNonNull(exist.data).Copy());
+			//noinspection DataFlowIssue
+			copy.data = ByteBuffer.Wrap(exist.data.Copy());
 			copy.version = exist.version;
 			return copy;
 		} finally {

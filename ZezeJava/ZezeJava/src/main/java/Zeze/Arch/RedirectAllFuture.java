@@ -61,16 +61,8 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 }
 
 /** 已完成的 RedirectAllFuture：仅包装既有结果，供 RedirectAllFuture.result 静态工厂返回。 */
-final class RedirectAllFutureFinished<R extends RedirectResult> implements RedirectAllFuture<R> {
-	private final R result;
+record RedirectAllFutureFinished<R extends RedirectResult>(R result) implements RedirectAllFuture<R> {
 
-	RedirectAllFutureFinished(R result) {
-		this.result = result;
-	}
-
-	R getResult() {
-		return result;
-	}
 }
 
 /** async() 的单结果实现：结果与回调经 VarHandle 原子交换，先到的一方暂存，后到的一方立即执行。 */
@@ -169,7 +161,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	}
 
 	private static @Nullable Application getTransactionalApp(RedirectAllContext<?> ctx) {
-		var zeze = Objects.requireNonNull(ctx.getService()).getZeze();
+		//noinspection DataFlowIssue
+		var zeze = ctx.getService().getZeze();
 		return zeze != null && !zeze.isNoDatabase() ? zeze : null;
 	}
 
@@ -241,7 +234,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		var onA = (Action1<RedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
 		try {
 			if (onA != null) {
-				var zeze = Objects.requireNonNull(ctx.getService()).getZeze();
+				//noinspection DataFlowIssue
+				var zeze = ctx.getService().getZeze();
 				if (zeze != null && !zeze.isNoDatabase()) {
 					zeze.newProcedure(() -> {
 						onA.run(ctx);
@@ -282,7 +276,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		// onRemoved→allDone锁内跑回调先例对齐；ctx锁可重入，锁序保持既有ctx→future。
 		c.lock();
 		try {
-			var zeze = Objects.requireNonNull(c.getService()).getZeze();
+			//noinspection DataFlowIssue
+			var zeze = c.getService().getZeze();
 			if (zeze != null && !zeze.isNoDatabase()) {
 				var c1 = c;
 				zeze.newProcedure(() -> {

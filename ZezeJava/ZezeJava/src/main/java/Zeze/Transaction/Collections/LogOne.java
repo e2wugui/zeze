@@ -69,7 +69,8 @@ public class LogOne<V extends Bean> extends LogBean {
 	@Override
 	public void commit() {
 		if (value != null)
-			((CollOne<V>)Objects.requireNonNull(getThis())).value = value;
+			//noinspection DataFlowIssue
+			((CollOne<V>)getThis()).value = value;
 	}
 
 	@Override
@@ -96,7 +97,8 @@ public class LogOne<V extends Bean> extends LogBean {
 		var hasValue = bb.ReadBool();
 		if (hasValue) {
 			try {
-				value = (V)Objects.requireNonNull(meta.valueFactory).invoke();
+				//noinspection DataFlowIssue
+				value = (V)meta.valueFactory.invoke();
 			} catch (Throwable e) { // MethodHandle.invoke
 				throw Task.forceThrow(e);
 			}

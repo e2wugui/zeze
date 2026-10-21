@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -16,6 +14,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,7 +36,9 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
 	@Override
 	public Service getService() {
-		return Objects.requireNonNull(super.getService());
+		var service = super.getService();
+		assert service != null;
+		return service;
 	}
 
 	private static final Logger logger = LogManager.getLogger(TcpSocket.class);
@@ -142,7 +143,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	}
 
 	public int getOperateSize() {
-		return Objects.requireNonNull(operates).size();
+		//noinspection DataFlowIssue
+		return operates.size();
 	}
 
 	public long getOutputBufferSize() {
@@ -540,7 +542,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				logger.error("submitAction to closed socket: {}", this);
 			return false;
 		}
-		Objects.requireNonNull(operates).offer(callback);
+		//noinspection DataFlowIssue
+		operates.offer(callback);
 		if (addInterestOps(SelectionKey.OP_WRITE))
 			selector.wakeup();
 		return true;
@@ -584,13 +587,15 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				if (codec != null) {
 					sendRawSize += length;
 					// 压缩加密等 codec 链操作。
-					int oldSize = Objects.requireNonNull(outputBuffer).size();
+					//noinspection DataFlowIssue
+					int oldSize = outputBuffer.size();
 					codec.update(bytes, offset, length);
-					int deltaLen = Objects.requireNonNull(outputBuffer).size() - oldSize - length;
+					int deltaLen = outputBuffer.size() - oldSize - length;
 					if (deltaLen != 0)
 						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
 				} else
-					Objects.requireNonNull(outputBuffer).put(bytes, offset, length);
+					//noinspection DataFlowIssue
+					outputBuffer.put(bytes, offset, length);
 			})) {
 				setActiveSendTime();
 				return true;
@@ -606,7 +611,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private void processReceive(SocketChannel sc) throws Exception { // 只在selector线程调用
 		recvCount++;
 		java.nio.ByteBuffer buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
-		boolean readAgain = false;
+		boolean readAgain;
 		do {
 			buffer.clear();
 			int bytesTransferred = sc.read(buffer); // 对方正常关闭或shutdownOutput会返回-1; 而连接被对方RESET会抛异常
@@ -614,7 +619,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				setActiveRecvTime();
 				recvSize += bytesTransferred;
 				readAgain = bytesTransferred == buffer.limit();
-				ByteBuffer codecBuf = Objects.requireNonNull(inputBuffer).getBuffer(); // codec对buffer的引用一定是不可变的
+				//noinspection DataFlowIssue
+				ByteBuffer codecBuf = inputBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
 				Codec codec = inputCodecChain;
 				if (codec != null) {
 					// 解密解压处理，处理结果直接加入 inputCodecBuffer。
@@ -730,15 +736,17 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		sendCount++;
 		int blockSize = selector.getSelectors().getBbPoolBlockSize();
 		long byteBudget = (long)blockSize * 2;
-		int bufSize = Objects.requireNonNull(outputBuffer).size();
+		//noinspection DataFlowIssue
+		int bufSize = outputBuffer.size();
 		int operateCount = 0;
 		long written = 0;
 		while (operateCount < MAX_OPERATES_PER_WRITE && written < byteBudget) {
+			//noinspection DataFlowIssue
 			for (Action0 op; operateCount < MAX_OPERATES_PER_WRITE && bufSize < byteBudget
-					&& (op = Objects.requireNonNull(operates).poll()) != null; ) {
+					&& (op = operates.poll()) != null; ) {
 				operateCount++;
 				op.run();
-				bufSize = Objects.requireNonNull(outputBuffer).size();
+				bufSize = outputBuffer.size();
 			}
 			var flushed = true;
 			var codec = outputCodecChain;
@@ -748,7 +756,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				// 这使得某些Chain算法比如Zstd能大块的工作，具有更高的效率。
 				if (bufSize < blockSize) {
 					codec.flush();
-					int newBufSize = Objects.requireNonNull(outputBuffer).size();
+					int newBufSize = outputBuffer.size();
 					int deltaLen = newBufSize - bufSize;
 					if (deltaLen != 0) {
 						bufSize = newBufSize;
@@ -767,7 +775,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				sendSize += rc;
 				written += rc;
 				outputBufferSizeHandle.getAndAdd(this, -rc);
-				bufSize = Objects.requireNonNull(outputBuffer).size();
+				bufSize = outputBuffer.size();
 				if (bufSize > 0) {
 					// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。
 					// add write event，里面判断了事件没有变化时不做操作，严格来说，再次注册事件是不需要的。
@@ -777,10 +785,11 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			}
 			// 时间窗口
 			// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
-			if (Objects.requireNonNull(operates).isEmpty() && flushed) { // 此时bufSize=0,下次循环会触发flush
+			//noinspection DataFlowIssue
+			if (operates.isEmpty() && flushed) { // 此时bufSize=0,下次循环会触发flush
 				// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
 				removeInterestOps(SelectionKey.OP_WRITE);
-				if (Objects.requireNonNull(operates).isEmpty()) { // 再判断一次,避免跟submitAction的并发竞争问题
+				if (operates.isEmpty()) { // 再判断一次,避免跟submitAction的并发竞争问题
 					if (closePending)
 						realClose();
 					return;

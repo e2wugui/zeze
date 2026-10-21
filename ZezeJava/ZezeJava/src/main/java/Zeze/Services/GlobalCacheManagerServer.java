@@ -231,7 +231,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		var now = System.currentTimeMillis();
 
 		getSessions().forEach(session -> {
-			Objects.requireNonNull(session).lock();
+			//noinspection DataFlowIssue
+			session.lock();
 			try {
 				// 超时检查必须在锁内复查：检查在锁外时，同serverId新incarnation恰在"检查→加锁"
 				// 窗口内Login（tryBindSocket持锁绑定并刷新activeTime），daemon会kick新连接并回收
@@ -316,7 +317,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		var session = getSessions().computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
 		ArrayList<Binary> releaseKeys;
 		long fireGeneration;
-		Objects.requireNonNull(session).lock();
+		//noinspection DataFlowIssue
+		session.lock();
 		try {
 		if (session.globalCacheManagerHashIndex != rpc.Argument.globalCacheManagerHashIndex) {
 			// 多点验证
@@ -362,7 +364,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		var session = getSessions().computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
 		ArrayList<Binary> releaseKeys;
 		long fireGeneration;
-		Objects.requireNonNull(session).lock();
+		//noinspection DataFlowIssue
+		session.lock();
 		try {
 			if (!session.tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.globalCacheManagerHashIndex, true)) {
 				rpc.SendResultCode(LoginBindSocketFail);
@@ -404,7 +407,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 
 	private long processNormalClose(NormalClose rpc) throws Exception {
 		logger.info("ProcessNormalClose: {} RequestId={}", rpc.getSender(), rpc.getSessionId());
-		var session = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var session = (CacheHolder)rpc.getSender().getUserState();
 		if (session == null) {
 			logger.warn("ProcessNormalClose: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), AcquireNotLogin);
 			rpc.SendResultCode(AcquireNotLogin);
@@ -447,7 +451,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	private static long processKeepAliveRequest(KeepAlive rpc) {
-		var userState = Objects.requireNonNull(rpc.getSender()).getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
+		//noinspection DataFlowIssue
+		var userState = rpc.getSender().getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
 		if (userState == null) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;
@@ -465,7 +470,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		rpc.Result.globalKey = rpc.Argument.globalKey;
 		rpc.Result.state = acquireState; // default success
 
-		var userState = Objects.requireNonNull(rpc.getSender()).getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
+		//noinspection DataFlowIssue
+		var userState = rpc.getSender().getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
 		if (userState == null) {
 			rpc.Result.state = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
@@ -574,7 +580,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	private void acquireShare(Acquire rpc) throws InterruptedException {
-		CacheHolder sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
 			// 申请位占住后异常逃逸（await上的中断等，由processAcquireRequest的catch接走）不复位的话，
@@ -739,7 +746,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	private void acquireModify(Acquire rpc) throws InterruptedException {
-		CacheHolder sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
 			// 申请位占住后异常逃逸不复位会冻结key（理由同acquireShare）；finally兜底复位。

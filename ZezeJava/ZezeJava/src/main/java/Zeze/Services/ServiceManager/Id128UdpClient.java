@@ -136,7 +136,8 @@ public class Id128UdpClient {
 			completeIfPending(futureNode, stopped);
 		tailFuture.clear();
 		for (var eIt = pendingRpc.entryIterator(); eIt.moveToNext(); )
-			completeIfPending(Objects.requireNonNull(Objects.requireNonNull(eIt.value()).getFutureNode()), stopped);
+			//noinspection DataFlowIssue
+			completeIfPending(Objects.requireNonNull(eIt.value().getFutureNode()), stopped);
 		pendingRpc.clear();
 	}
 
@@ -257,7 +258,8 @@ public class Id128UdpClient {
 			lastRpcTimeoutCheckTime = now;
 			for (var eIt = pendingRpc.entryIterator(); eIt.moveToNext(); ) {
 				var r = eIt.value();
-				var remain = Objects.requireNonNull(r).getTimeout() - period;
+				//noinspection DataFlowIssue
+				var remain = r.getTimeout() - period;
 				if (remain > 0) {
 					r.setTimeout(remain);
 					continue;

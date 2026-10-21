@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.pcollections.TreePVector;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Util.OutInt;
 
 /**
@@ -65,6 +66,32 @@ public class TestLogList2EncodeChangedIndex {
 		log.encode(ByteBuffer.Allocate());
 
 		Assertions.assertEquals(0, log.getChanged().size(), "身份不在最终列表的changed条目必须剔除");
+	}
+
+	@Test
+	public void testNullAndDifferentBeanTypeAreRemoved() {
+		var log = newLog(List.of(new BValue()));
+		log.getChanged().put(new LogBean(null, 0, null), new OutInt(99));
+		log.getChanged().put(new LogBean(null, 0, new EmptyBean()), new OutInt(99));
+
+		log.encode(ByteBuffer.Allocate());
+
+		Assertions.assertTrue(log.getChanged().isEmpty());
+	}
+
+	@Test
+	public void testAddedBeanChangeIsCarriedByStructuralOperation() {
+		var log = newLog(List.of());
+		var added = new BValue();
+		log.add(added);
+		log.getChanged().put(new LogBean(null, 0, added), new OutInt(99));
+
+		var bb = ByteBuffer.Allocate();
+		log.encode(bb);
+
+		Assertions.assertTrue(log.getChanged().isEmpty());
+		Assertions.assertEquals(0, bb.ReadUInt());
+		Assertions.assertEquals(1, bb.ReadUInt());
 	}
 
 	@Test

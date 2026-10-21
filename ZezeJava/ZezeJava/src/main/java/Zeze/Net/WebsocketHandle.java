@@ -33,7 +33,8 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 
 	public void start() {
 		if (null == httpServer)
-			httpServer = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(getService()).getZeze()).getAppBase()).getHttpServer();
+			//noinspection DataFlowIssue
+			httpServer = getService().getZeze().getAppBase().getHttpServer();
 		if (null == httpServer)
 			throw new IllegalStateException("httpServer not found.");
 		httpServer.addHandler(path, TransactionLevel.None, DispatchMode.Direct,this);
@@ -69,7 +70,7 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 	}
 
 	@Override
-	public void onContent(HttpExchange x, ByteBuf content, boolean isText, boolean isFinal) throws Exception {
+	public void onContent(HttpExchange x, ByteBuf content, boolean isText, boolean isFinal) {
 		var websocket = websockets.get(x);
 		if (null != websocket)
 			websocket.processInput(content);

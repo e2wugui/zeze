@@ -1,7 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import Zeze.Transaction.Bean;
@@ -36,6 +34,7 @@ public abstract class LogSet<V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		((PSet<V>)Objects.requireNonNull(getThis())).set = value;
+		//noinspection DataFlowIssue
+		((PSet<V>)getThis()).set = value;
 	}
 }

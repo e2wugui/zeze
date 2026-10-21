@@ -47,7 +47,8 @@ public class LogDecimal extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(Objects.requireNonNull(value).toString());
+		//noinspection DataFlowIssue
+		bb.WriteString(value.toString());
 	}
 
 		@Override
@@ -65,12 +66,14 @@ public class LogDecimal extends Log {
 
 	@Override
 	public Binary binaryValue() {
-		return new Binary(Objects.requireNonNull(value).toString());
+		//noinspection DataFlowIssue
+		return new Binary(value.toString());
 	}
 
 	@Override
 	public String stringValue() {
-		return Objects.requireNonNull(value).toString();
+		//noinspection DataFlowIssue
+		return value.toString();
 	}
 
 	@Override

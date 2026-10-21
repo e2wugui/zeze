@@ -38,7 +38,6 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Raft版服务管理器客户端Agent：经raft连接ServiceManagerWithRaft，注册/订阅断线重连后
@@ -90,7 +89,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		// 经zeze round-trip取配置会在null检查处直接return，Login永远不发送。
 		var future = startNewLogin();
 		var login = new Login();
-		login.Argument.setSessionName(Objects.requireNonNull(Objects.requireNonNull(config).getServiceManagerConf()).getSessionName());
+		//noinspection DataFlowIssue
+		login.Argument.setSessionName(config.getServiceManagerConf().getSessionName());
 
 		agent.send(login, p -> {
 			var rpc = (Login)p;
@@ -116,7 +116,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		// 重发=恢复提示资格（与正确性无关，正确性由Takeover租约裁决）。
 		try {
 			var identify = new Identify();
-			identify.Argument.serverId = Objects.requireNonNull(config).getServerId();
+			//noinspection DataFlowIssue
+			identify.Argument.serverId = config.getServerId();
 			identify.Argument.version = config.getAppMainVersion();
 			raftClient.send(identify, __ -> 0L);
 		} catch (Throwable ex) {
@@ -157,7 +158,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		try {
 			var done = new Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone();
 			done.Argument.deadServerId = deadServerId;
-			done.Argument.takerServerId = Objects.requireNonNull(config).getServerId();
+			//noinspection DataFlowIssue
+			done.Argument.takerServerId = config.getServerId();
 			done.Argument.takerVersion = config.getAppMainVersion();
 			raftClient.send(done, __ -> 0L);
 		} catch (Throwable ex) {
@@ -250,14 +252,15 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	private void waitLoginReady() {
-		var deadline = System.currentTimeMillis() + Objects.requireNonNull(Objects.requireNonNull(super.config).getServiceManagerConf()).getLoginTimeout();
+		//noinspection DataFlowIssue
+		var deadline = System.currentTimeMillis() + super.config.getServiceManagerConf().getLoginTimeout();
 		for (; ; ) {
 			var volatileTmp = loginFuture;
 			// await超时或被取消都返回false，此时不能再调get()：未完成的future上get()会无限期park，
 			// 下面的deadline检查将不可达；被取消则重读最新loginFuture继续等。
 			if (volatileTmp.isDone() || volatileTmp.await(Math.max(1, deadline - System.currentTimeMillis()))) {
 				try {
-					if (volatileTmp.get()) // 到这里future已完成，get()不会park。
+					if (Boolean.TRUE.equals(volatileTmp.get())) // 到这里future已完成，get()不会park。
 						return;
 				} catch (Throwable ignored) {
 					// 等待期间raftOnSetLeader执行startNewLogin，cancel旧future并替换；
@@ -407,7 +410,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void start() throws Exception {
-		Objects.requireNonNull(raftClient.getClient()).start();
+		//noinspection DataFlowIssue
+		raftClient.getClient().start();
 	}
 
 	@Override

@@ -94,9 +94,11 @@ public class DatabaseTikv extends Database {
 	public void close() {
 		try {
 			if (distTxn)
-				Objects.requireNonNull(txnClient).close();
+				//noinspection DataFlowIssue
+				txnClient.close();
 			else
-				Objects.requireNonNull(client).close();
+				//noinspection DataFlowIssue
+				client.close();
 		} catch (Exception e) {
 			logger.error("", e);
 		}

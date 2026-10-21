@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import java.util.Objects;
-
 import Zeze.Application;
 import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BOnlineTimers;
@@ -99,7 +97,8 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	final String newAutoTimerId() {
-		return '@' + Objects.requireNonNull(timer().timerIdAutoKey).nextString();
+		//noinspection DataFlowIssue
+		return '@' + timer().timerIdAutoKey.nextString();
 	}
 
 	// ///////////////////////////////////////////////////////////////
@@ -137,7 +136,8 @@ abstract class TimerOnlineBase<I> {
 			throw new IllegalStateException("not online " + identityString(id) + ", " + timerId);
 		}
 
-		insertOnlineTimer(timerId, newOnlineTimer(id, localVersion, Objects.requireNonNull(timer().timerSerialId).nextId(), simpleTimer));
+		//noinspection DataFlowIssue
+		insertOnlineTimer(timerId, newOnlineTimer(id, localVersion, timer().timerSerialId.nextId(), simpleTimer));
 		logger.debug("add online {}simple timer: timerId={}, {} handle={}",
 				hot ? "hot " : "", timerId, identityString(id), handleClass.getName());
 
@@ -188,7 +188,8 @@ abstract class TimerOnlineBase<I> {
 			throw new IllegalStateException("not online " + identityString(id) + ", " + timerId);
 		}
 
-		insertOnlineTimer(timerId, newOnlineTimer(id, localVersion, Objects.requireNonNull(timer().timerSerialId).nextId(), cronTimer));
+		//noinspection DataFlowIssue
+		insertOnlineTimer(timerId, newOnlineTimer(id, localVersion, timer().timerSerialId.nextId(), cronTimer));
 		logger.debug("add online {}cron timer: timerId={}, {} handle={}",
 				hot ? "hot " : "", timerId, identityString(id), handleClass.getName());
 
@@ -346,7 +347,8 @@ abstract class TimerOnlineBase<I> {
 	// scheduleSimple/scheduleCronNext），共用key的online定时器回调按key串行。
 	private void scheduleOnlineSimple(String timerId, long delay, @Nullable TimerHandle handle,
 									  @Nullable String oneByOneKey) {
-		var timerSerialId = Objects.requireNonNull(getOnlineTimer(timerId)).getSerialId();
+		//noinspection DataFlowIssue
+		var timerSerialId = getOnlineTimer(timerId).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
@@ -375,7 +377,8 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineSimpleHot(String timerId, long delay,
 										 Class<? extends TimerHandle> handleClass,
 										 @Nullable String oneByOneKey) {
-		var timerSerialId = Objects.requireNonNull(getOnlineTimer(timerId)).getSerialId();
+		//noinspection DataFlowIssue
+		var timerSerialId = getOnlineTimer(timerId).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
@@ -413,7 +416,8 @@ abstract class TimerOnlineBase<I> {
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
 	private void scheduleOnlineCronNext(String timerId, long delay, @Nullable TimerHandle handle,
 										@Nullable String oneByOneKey) {
-		var timerSerialId = Objects.requireNonNull(getOnlineTimer(timerId)).getSerialId();
+		//noinspection DataFlowIssue
+		var timerSerialId = getOnlineTimer(timerId).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
@@ -428,7 +432,8 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineCronNextHot(String timerId, long delay,
 										   Class<? extends TimerHandle> handleClass,
 										   @Nullable String oneByOneKey) {
-		var timerSerialId = Objects.requireNonNull(getOnlineTimer(timerId)).getSerialId();
+		//noinspection DataFlowIssue
+		var timerSerialId = getOnlineTimer(timerId).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达

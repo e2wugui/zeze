@@ -106,7 +106,8 @@ public final class Changes extends Zeze.Raft.Log {
 			var tableTpl = Objects.requireNonNull(changes.rocks).getTableTemplate(templateName);
 			if (tableTpl == null) {
 				var names = new StringBuilder();
-				for (String name : Objects.requireNonNull(changes.rocks).getTableTemplates().keySet())
+				//noinspection DataFlowIssue
+				for (String name : changes.rocks.getTableTemplates().keySet())
 					names.append(' ').append(name);
 				throw new IllegalStateException("unknown table template: " + templateName + ", available:" + names);
 			}
@@ -146,7 +147,8 @@ public final class Changes extends Zeze.Raft.Log {
 			case Remove:
 				break;
 			case Put:
-				putValue = Objects.requireNonNull(table).newValue();
+				//noinspection DataFlowIssue
+				putValue = table.newValue();
 				putValue.decode(bb);
 				break;
 			case Edit:
@@ -174,7 +176,8 @@ public final class Changes extends Zeze.Raft.Log {
 			var r = records.get(recent.tableKey());
 			if (r == null) {
 				r = new Record();
-				var table = Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(recent.rootInfo()).getRecord()).getTable());
+				//noinspection DataFlowIssue
+				var table = Objects.requireNonNull(recent.rootInfo().record().getTable());
 				r.setTableTemplateId(table.getTemplateId());
 				r.setTableTemplateName(table.getTemplateName());
 				records.put(Objects.requireNonNull(recent.tableKey()), r);
@@ -187,8 +190,9 @@ public final class Changes extends Zeze.Raft.Log {
 		if (logBean == null) {
 			if (belong instanceof Collection) {
 				// 容器使用共享的日志。需要先去查询，没有的话才创建。
+				//noinspection DataFlowIssue
 				logBean = (LogBean)Objects.requireNonNull(Transaction.getCurrent()).getLog(
-					Objects.requireNonNull(belong.parent()).objectId() + belong.variableId());
+					belong.parent().objectId() + belong.variableId());
 			}
 			if (logBean == null)
 				logBean = belong.createLogBean();
@@ -216,7 +220,8 @@ public final class Changes extends Zeze.Raft.Log {
 	public void apply(RaftLog holder, StateMachine stateMachine) {
 		if (holder.isLeaderRequest()) {
 			if (Rocks.isDebugEnabled)
-				Rocks.logger.debug("{} LeaderApply", Objects.requireNonNull(Objects.requireNonNull(rocks).getRaft()).getName());
+				//noinspection DataFlowIssue
+				Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
 			Objects.requireNonNull(transaction).leaderApply(this, holder);
 		} else {
 			Objects.requireNonNull(rocks).followerApply(this, holder);

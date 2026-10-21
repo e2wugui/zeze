@@ -16,13 +16,6 @@ import Zeze.Net.Protocol;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.OutObject;
-import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
-import Zeze.Util.TaskOneByOneByKey;
-import Zeze.Util.TaskOneByOneByKey2;
-import Zeze.Util.TaskOneByOneByKeyLru;
-import Zeze.Util.TaskSpec;
 import demo.App;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -257,6 +250,25 @@ public class TestTaskSpec {
 		} catch (ExecutionException e) {
 			Assertions.assertInstanceOf(IllegalStateException.class, e.getCause());
 		}
+	}
+
+	@Test
+	@SuppressWarnings("DataFlowIssue") // 故意违反非空契约，验证错误在工厂入口报告。
+	public void testFactoriesRejectNullPayloads() throws Exception {
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofAction(null));
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofFunc(null));
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofFunc(null, null));
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofFunc(null, null, null));
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofFunc0(null));
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofProcedure(null));
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofProcedure(null, null));
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofProcedure(null, null, null));
+		Assertions.assertThrows(NullPointerException.class,
+				() -> TaskSpec.ofProcedureOut(null, new OutObject<>(), null));
+
+		App.Instance.Start();
+		var procedure = requireNonNull(App.Instance.Zeze).newProcedure(() -> 0L, "TestTaskSpec.nullOutProtocol");
+		Assertions.assertThrows(NullPointerException.class, () -> TaskSpec.ofProcedureOut(procedure, null, null));
 	}
 
 	@Test

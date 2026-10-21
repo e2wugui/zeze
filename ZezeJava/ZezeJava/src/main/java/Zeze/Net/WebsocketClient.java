@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -13,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
+
 import Zeze.Util.TimeThrottle;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,7 +24,9 @@ public class WebsocketClient extends AsyncSocket {
 	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
 	@Override
 	public Service getService() {
-		return Objects.requireNonNull(super.getService());
+		var service = super.getService();
+		assert service != null;
+		return service;
 	}
 
 	private static final Logger logger = LogManager.getLogger(WebsocketClient.class);
@@ -184,11 +185,11 @@ public class WebsocketClient extends AsyncSocket {
 	}
 
 	@Override
-	public boolean Send(byte [] bytes, int offset, int length) {
+	public boolean Send(byte[] bytes, int offset, int length) {
 		var ws = webSocket;
 		if (ws == null) // 握手未完成或已关闭
 			return false;
-			setActiveSendTime(); // 维护活跃时间（发送已被接受，直接发或按序入队）
+		setActiveSendTime(); // 维护活跃时间（发送已被接受，直接发或按序入队）
 		var bb = ByteBuffer.wrap(bytes, offset, length);
 		synchronized (sendLock) {
 			// 流量统计（sendLock内自增，对齐Websocket.Send用锁口径）。
@@ -229,16 +230,16 @@ public class WebsocketClient extends AsyncSocket {
 			// 按序入队（保持协议顺序）；失败经链上handle close，之后Send见webSocket==null返回false，
 			// 调用方经连接关闭路径感知（不再静默丢帧）。
 			sendChain = sendChain
-					.thenCompose(ignored -> {
-						var w = webSocket;
-						return w != null ? w.sendBinary(bb, true) : CompletableFuture.completedFuture(null);
-					})
-					.handle((__, ex) -> {
-						sendPendingBytes.addAndGet(-length); // 本节点完成（含ws已关的空转发）释放在途配额
-						if (ex != null)
-							close(unwrap(ex));
-						return null;
-					});
+				.thenCompose(ignored -> {
+					var w = webSocket;
+					return w != null ? w.sendBinary(bb, true) : CompletableFuture.completedFuture(null);
+				})
+				.handle((__, ex) -> {
+					sendPendingBytes.addAndGet(-length); // 本节点完成（含ws已关的空转发）释放在途配额
+					if (ex != null)
+						close(unwrap(ex));
+					return null;
+				});
 			return true;
 		}
 	}

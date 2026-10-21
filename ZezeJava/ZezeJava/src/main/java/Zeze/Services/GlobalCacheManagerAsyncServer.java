@@ -106,23 +106,33 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private @Nullable GlobalCacheManagerPerf perf;
 
 	private ServerService getServer() {
-		return Objects.requireNonNull(server);
+		var s = server;
+		assert s != null : "server has not been initialized";
+		return s;
 	}
 
 	private ConcurrentHashMap<Binary, CacheState> getGlobal() {
-		return Objects.requireNonNull(global);
+		var g = global;
+		assert g != null : "global has not been initialized";
+		return g;
 	}
 
 	private LongConcurrentHashMap<CacheHolder> getSessions() {
-		return Objects.requireNonNull(sessions);
+		var s = sessions;
+		assert s != null : "sessions have not been initialized";
+		return s;
 	}
 
 	private AchillesHeelConfig getAchillesHeelConfig() {
-		return Objects.requireNonNull(achillesHeelConfig);
+		var config = achillesHeelConfig;
+		assert config != null : "achillesHeelConfig has not been initialized";
+		return config;
 	}
 
 	private GlobalCacheManagerPerf getPerf() {
-		return Objects.requireNonNull(perf);
+		var p = perf;
+		assert p != null : "perf has not been initialized";
+		return p;
 	}
 
 
@@ -212,7 +222,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		var now = System.currentTimeMillis();
 
 		getSessions().forEach(session -> {
-			Objects.requireNonNull(session).lock();
+			session.lock();
 			try {
 				// 超时检查必须在锁内复查（理由同同步版）：检查在锁外时，同serverId新
 				// incarnation恰在"检查→加锁"窗口内Login（bind持锁刷新activeTime），daemon会
@@ -284,7 +294,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		}
 
 		// 安全性以后加强。
-		if (!Objects.requireNonNull(rpc.Argument.secureKey).equals("Ok! verify secure.")) {
+		//noinspection DataFlowIssue
+		if (!rpc.Argument.secureKey.equals("Ok! verify secure.")) {
 			logger.warn("ProcessCleanup: {} RequestId={} result={}",
 					rpc.getSender(), rpc.getSessionId(), CleanupErrorSecureKey);
 			rpc.SendResultCode(CleanupErrorSecureKey);
@@ -294,7 +305,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		var session = getSessions().computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder(this));
 		ArrayList<Binary> releaseKeys;
 		long fireGeneration;
-		Objects.requireNonNull(session).lock();
+		//noinspection DataFlowIssue
+		session.lock();
 		try {
 		if (session.globalCacheManagerHashIndex != rpc.Argument.globalCacheManagerHashIndex) {
 			// 多点验证
@@ -337,9 +349,11 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		var session = getSessions().computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder(this));
 		ArrayList<Binary> releaseKeys;
 		long fireGeneration;
-		Objects.requireNonNull(session).lock();
+		//noinspection DataFlowIssue
+		session.lock();
 		try {
-			if (!session.tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.globalCacheManagerHashIndex, true)) {
+			//noinspection DataFlowIssue
+			if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
 				rpc.SendResultCode(LoginBindSocketFail);
 				return 0;
 			}
@@ -368,7 +382,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private long processReLogin(ReLogin rpc) {
 		logger.info("ProcessReLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = getSessions().computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder(this));
-		if (!Objects.requireNonNull(session).tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.globalCacheManagerHashIndex, false)) {
+		//noinspection DataFlowIssue
+		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, false)) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
@@ -380,7 +395,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 	private long processNormalClose(NormalClose rpc) {
 		logger.info("ProcessNormalClose: {} RequestId={}", rpc.getSender(), rpc.getSessionId());
-		var session = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var session = (CacheHolder)rpc.getSender().getUserState();
 		if (session == null) {
 			logger.warn("ProcessNormalClose: {} RequestId={} result={}",
 					rpc.getSender(), rpc.getSessionId(), AcquireNotLogin);
@@ -421,7 +437,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private static long processKeepAliveRequest(KeepAlive rpc) {
-		var userState = Objects.requireNonNull(rpc.getSender()).getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
+		//noinspection DataFlowIssue
+		var userState = rpc.getSender().getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
 		if (userState == null) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;
@@ -439,7 +456,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		rpc.Result.globalKey = rpc.Argument.globalKey;
 		rpc.Result.state = acquireState; // default success
 
-		var userState = Objects.requireNonNull(rpc.getSender()).getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
+		//noinspection DataFlowIssue
+		var userState = rpc.getSender().getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
 		if (userState == null) {
 			rpc.Result.state = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
@@ -587,7 +605,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private void releaseAsync(Acquire rpc) {
 		// sender入口一次捕获（理由同acquireShareAsync）：kick后延续阶段重读getUserState()为null，
 		// 异常发生在StateRemoving置位之后会把该状态留在cs上，等待者永不唤醒（key冻结）。
-		var sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var sender = (CacheHolder)rpc.getSender().getUserState();
 		if (sender == null) { // 与processAcquireRequest的检查之间有kick竞争窗口
 			rpc.Result.state = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
@@ -614,7 +633,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private void releaseAsync(Acquire rpc, CacheHolder sender, long fireGeneration) {
-		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), this::newCacheState);
+		//noinspection DataFlowIssue
+		var cs = getGlobal().computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
 		var state = new Object() {
 			int stage;
 		};
@@ -706,7 +726,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		// sender入口一次捕获（对齐同步版acquireShare/acquireModify）：回调每次重入都重读
 		// getUserState()，会话被daemon kick（置null）后延续阶段得到null，NPE发生在申请位置位之后
 		// 且无复位——pending永久泄漏，该key上所有后续acquire/release进入永不唤醒的等待（key冻结）。
-		var sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var sender = (CacheHolder)rpc.getSender().getUserState();
 		if (sender == null) { // 与processAcquireRequest的检查之间有kick竞争窗口
 			rpc.Result.state = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
@@ -714,7 +735,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				getPerf().onAcquireEnd(rpc, StateShare);
 			return;
 		}
-		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), this::newCacheState);
+		//noinspection DataFlowIssue
+		var cs = getGlobal().computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
@@ -909,7 +931,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private void acquireModifyAsync(Acquire rpc) {
 		// sender入口一次捕获（理由同acquireShareAsync）：kick后延续阶段重读getUserState()为null，
 		// NPE发生在申请位置位之后且无复位——pending永久泄漏，key冻结。
-		var sender = (CacheHolder)Objects.requireNonNull(rpc.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var sender = (CacheHolder)rpc.getSender().getUserState();
 		if (sender == null) { // 与processAcquireRequest的检查之间有kick竞争窗口
 			rpc.Result.state = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
@@ -917,7 +940,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				getPerf().onAcquireEnd(rpc, StateModify);
 			return;
 		}
-		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), this::newCacheState);
+		//noinspection DataFlowIssue
+		var cs = getGlobal().computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
@@ -1140,7 +1164,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 						if (ENABLE_PERF)
 							getPerf().onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
 						rpc.Result.state = StateInvalid;
-						if (Objects.requireNonNull(errorFreshAcquire.value))
+						//noinspection DataFlowIssue
+						if (errorFreshAcquire.value)
 							rpc.SendResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
 						else
 							rpc.SendResultCode(AcquireModifyFailed);
@@ -1208,8 +1233,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private CacheState newCacheState(Binary gKey) {
+		//noinspection DataFlowIssue
 		return new CacheState(gKey, useSyncLock ? new InlineAsyncLock()
-				: new AsyncLock(Objects.requireNonNull(lockExecutor)));
+				: new AsyncLock(lockExecutor));
 	}
 
 	private static final class CacheState {

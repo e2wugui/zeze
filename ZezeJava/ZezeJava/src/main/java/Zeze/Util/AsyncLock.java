@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import org.jspecify.annotations.Nullable;
@@ -30,12 +29,11 @@ public final class AsyncLock extends AbstractAsyncLock {
 	private volatile @Nullable Thread inlineDriverThread;
 
 	public AsyncLock(Executor executor) {
-		this.executor = Objects.requireNonNull(executor);
+		this.executor = executor;
 	}
 
 	@Override
 	public void enter(Action0 onEnter) {
-		Objects.requireNonNull(onEnter);
 		if (tryLock())
 			runWithLeave(onEnter);
 		else {

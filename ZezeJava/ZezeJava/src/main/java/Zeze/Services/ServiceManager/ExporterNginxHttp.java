@@ -1,6 +1,5 @@
 package Zeze.Services.ServiceManager;
 
-import java.util.Objects;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -61,7 +60,8 @@ public class ExporterNginxHttp implements IExporter {
 			if (!versionBucketEmptyWarned) {
 				var buckets = new StringBuilder();
 				for (var it = all.getInfosIterator(); it.moveToNext(); ) {
-					if (!Objects.requireNonNull(it.value()).getSortedIdentities().isEmpty()) {
+					//noinspection DataFlowIssue
+					if (!it.value().getSortedIdentities().isEmpty()) {
 						if (!buckets.isEmpty())
 							buckets.append(',');
 						buckets.append(it.key());

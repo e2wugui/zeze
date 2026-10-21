@@ -2,8 +2,6 @@ package Zeze.Raft;
 
 import org.jspecify.annotations.Nullable;
 
-import java.util.Objects;
-
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,7 +42,7 @@ public final class SendSnapshotting {
 		return sessions.get(c.getName()) == state;
 	}
 
-	public void put(String connectorName, InstallSnapshotState state) { // 测试直接合成会话
+	void put(String connectorName, InstallSnapshotState state) { // 测试直接合成会话
 		sessions.put(connectorName, state);
 	}
 
@@ -72,8 +70,9 @@ public final class SendSnapshotting {
 		if (state == null)
 			return;
 		var c = state.getConnector();
+		//noinspection DataFlowIssue
 		logger.info("{} InstallSnapshot LastIncludedIndex={} Done={} c={}", logSequence.getRaft().getName(),
-				state.getLastIncludedIndex(), state.getDone(), Objects.requireNonNull(c).getName());
+				state.getLastIncludedIndex(), state.getDone(), c.getName());
 		// 防御：start打开文件失败留下的会话file==null，原样NPE会沿shutdown路径的
 		// cancelAll打断后续logSequence.close。
 		if (state.getFile() != null)

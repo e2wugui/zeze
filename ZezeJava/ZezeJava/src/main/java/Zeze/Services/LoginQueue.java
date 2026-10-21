@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -223,7 +222,8 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	boolean tryOnAccept(AsyncSocket so) throws Exception {
-		if (queue.size() >= Objects.requireNonNull(so.getService()).getConfig().getMaxConnections()) {
+		//noinspection DataFlowIssue
+		if (queue.size() >= so.getService().getConfig().getMaxConnections()) {
 			new PutQueueFull().Send(so);
 			so.closeGracefully();
 			return false;

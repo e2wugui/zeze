@@ -26,7 +26,8 @@ public class UniqueRequestState implements Serializable {
 	public UniqueRequestState(RaftLog raftLog, boolean isApplied) {
 		logIndex = raftLog.getIndex();
 		this.isApplied = isApplied;
-		rpcResult = Objects.requireNonNull(raftLog.getLog()).getRpcResult();
+		//noinspection DataFlowIssue
+		rpcResult = raftLog.getLog().getRpcResult();
 	}
 
 	public boolean isApplied() {

@@ -628,7 +628,8 @@ public class Service extends ReentrantLock {
 	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb,
 											   ProtocolFactoryHandle<?> factoryHandle,
 											   @Nullable AsyncSocket so, boolean needLog) {
-		var p = Objects.requireNonNull(factoryHandle.Factory).create();
+		//noinspection DataFlowIssue
+		var p = factoryHandle.Factory.create();
 		p.decode(bb);
 		// 不强制协议完整解码（不检查bb是否读完），方便应用设计兼容协议。
 		p.setSender(so);
@@ -687,12 +688,13 @@ public class Service extends ReentrantLock {
 				outProtocol.value = p;
 				return p.handle(this, factoryHandle);
 			};
+			var app = Objects.requireNonNull(zeze, "service has no application");
 			Procedure proc;
-			if (Objects.requireNonNull(zeze, "service has no application").getConfig().isHistory()) {
-				proc = Objects.requireNonNull(zeze, "service has no application").newProcedure(action, protocolClassName, factoryHandle.Level,
+			if (app.getConfig().isHistory()) {
+				proc = app.newProcedure(action, protocolClassName, factoryHandle.Level,
 						protocolClassName, new Binary(bytesCopy));
 			} else
-				proc = Objects.requireNonNull(zeze, "service has no application").newProcedure(action, protocolClassName, factoryHandle.Level);
+				proc = app.newProcedure(action, protocolClassName, factoryHandle.Level);
 			// p==null当且仅当action内decodeProtocol抛出（outProtocol.value未赋值），
 			// 方法引用(protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)不容忍null会NPE吞掉错误处置。此时对齐非事务
 			// 分支（decode异常上抛即断连）的语义close连接——Rpc.Send经连接关闭路径感知
@@ -1107,6 +1109,7 @@ public class Service extends ReentrantLock {
 	public void connect(String hostNameOrAddress, int port, boolean autoReconnect) {
 		var out = new OutObject<Connector>();
 		config.tryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out);
-		Objects.requireNonNull(out.value).start();
+		//noinspection DataFlowIssue
+		out.value.start();
 	}
 }

@@ -98,7 +98,8 @@ public final class Agent {
 	}
 
 	public String getName() {
-		return Objects.requireNonNull(client).getName();
+		//noinspection DataFlowIssue
+		return client.getName();
 	}
 
 	public @Nullable ConnectorProxy getLeader() {
@@ -454,8 +455,9 @@ public final class Agent {
 			if (leader == null)
 				throw new IllegalStateException("proxy leader not found, node not configured with proxy: "
 						+ raftConfig.getNodes().values().iterator().next().getName());
+			//noinspection DataFlowIssue
 			logger.info("proxy first leader {} {}_{}",
-					Objects.requireNonNull(leader).getName(), Objects.requireNonNull(leader).getConnector().getHostNameOrAddress(), Objects.requireNonNull(leader).getConnector().getPort());
+					leader.getName(), leader.getConnector().getHostNameOrAddress(), leader.getConnector().getPort());
 		}
 
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
@@ -471,7 +473,8 @@ public final class Agent {
 	}
 
 	private @Nullable Connector getRandomConnector(@Nullable Connector except) {
-		var notMe = new ArrayList<Connector>(Objects.requireNonNull(client).getConfig().connectorCount());
+		//noinspection DataFlowIssue
+		var notMe = new ArrayList<Connector>(client.getConfig().connectorCount());
 		client.getConfig().forEachConnector(c -> {
 			if (c != except)
 				notMe.add(c);
@@ -513,7 +516,8 @@ public final class Agent {
 		}
 		// else continue old process
 
-		var node = Objects.requireNonNull(client).getConfig().findConnector(Objects.requireNonNull(r.Argument.getLeaderId()));
+		//noinspection DataFlowIssue
+		var node = client.getConfig().findConnector(Objects.requireNonNull(r.Argument.getLeaderId()));
 		if (node == null) {
 			// 当前 Agent 没有 Leader 的配置，创建一个。
 			// 由于 Agent 在新增 node 时也会得到新配置广播，
@@ -524,11 +528,13 @@ public final class Agent {
 
 			OutObject<Connector> outNode = new OutObject<>();
 			if (client.getConfig().tryGetOrAddConnector(address[0], Integer.parseInt(address[1]), true, outNode))
-				Objects.requireNonNull(outNode.value).start();
+				//noinspection DataFlowIssue
+				outNode.value.start();
 			node = outNode.value;
 		} else {
 			// 代理隧道解码的rpc无sender（ProxyAgent.send静态decode不关联socket）：判空后跳过自指检查，仍走直连回落。
-			if (r.getSender() != null && !r.Argument.isLeader() && r.Argument.getLeaderId().equals(Objects.requireNonNull(r.getSender().getConnector()).getName())) {
+			//noinspection DataFlowIssue
+			if (r.getSender() != null && !r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
 				logger.warn("New Leader Is Not A Leader.");
 				// 发送者不是Leader，但它发送的LeaderId又是自己，尝试选择另外一个Node。
 				node = getRandomConnector(node);
@@ -684,10 +690,11 @@ public final class Agent {
 				return false;
 			}
 
+			//noinspection DataFlowIssue
 			logger.info("proxy set leader {} {}_{}->{} {}_{}",
-					null != leader ? Objects.requireNonNull(leader).getName() : "",
-					null != leader ? Objects.requireNonNull(leader).getConnector().getHostNameOrAddress() : "",
-					null != leader ? Objects.requireNonNull(leader).getConnector().getPort() : "",
+					null != leader ? leader.getName() : "",
+					null != leader ? leader.getConnector().getHostNameOrAddress() : "",
+					null != leader ? leader.getConnector().getPort() : "",
 					newLeader.getName(),
 					newLeader.getConnector().getHostNameOrAddress(),
 					newLeader.getConnector().getPort());
@@ -793,9 +800,12 @@ public final class Agent {
 				out.value = agent;
 			try {
 				var future = new TaskCompletionSource<@Nullable Connector>();
-				agent.setOnSetLeader((_agent) -> future.setResult(Objects.requireNonNull(_agent.getLeader()).getConnector()));
-				Objects.requireNonNull(agent.getClient()).start();
-				var netConfig = Objects.requireNonNull(agent.getClient()).getConfig();
+				//noinspection DataFlowIssue
+				agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader().getConnector()));
+				//noinspection DataFlowIssue
+				agent.getClient().start();
+				//noinspection DataFlowIssue
+				var netConfig = agent.getClient().getConfig();
 				// 如果相信onSetLeader是即时的，不会丢失，本来不需要主动GetLeader。
 				// 为了确保让流程运转起来，定义一个用户空间的请求GetLeader，主动发送。
 				// 这个请求在没有leader的时候也可以发送，它会resend，最终等到leader选举出来，当然也有超时。
@@ -828,8 +838,10 @@ public final class Agent {
 
 	public static @Nullable Connector waitForLeader(Agent agent, RaftConfig raftConfig, long timeoutMs) {
 		var future = new TaskCompletionSource<@Nullable Connector>();
-		agent.setOnSetLeader((_agent) -> future.setResult(Objects.requireNonNull(_agent.getLeader()).getConnector()));
-		var netConfig = Objects.requireNonNull(agent.getClient()).getConfig();
+		//noinspection DataFlowIssue
+		agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader().getConnector()));
+		//noinspection DataFlowIssue
+		var netConfig = agent.getClient().getConfig();
 		agent.getLeaderAsync((get) -> {
 			if (get.getResultCode() == 0)
 				future.setResult(netConfig.findConnector(Objects.requireNonNull(get.Result.getLeaderId())));
@@ -852,7 +864,8 @@ public final class Agent {
 		for (var node : raftConfig.getNodes().values()) {
 			if (!node.isSuggestMajority())
 				continue;
-			var connector = Objects.requireNonNull(client).getConfig().findConnector(node.getName());
+			//noinspection DataFlowIssue
+			var connector = client.getConfig().findConnector(node.getName());
 			if (null != connector && connector.TryGetReadySocket() != null)
 				result.add(new ConnectorProxy(connector));
 		}
@@ -877,7 +890,8 @@ public final class Agent {
 				return null;
 
 			// 检测活跃的建议的节点数量足够，达到多数派；
-			if (Objects.requireNonNull(agentOut.value).getActiveSuggestMajorityConnectors().size() < raftConfig.getMajorityCount())
+			//noinspection DataFlowIssue
+			if (agentOut.value.getActiveSuggestMajorityConnectors().size() < raftConfig.getMajorityCount())
 				return "active suggest majority count not enough.";
 			// 停止非建议的节点的Leader；
 			// 不能一下子停止所有的非建议节点；

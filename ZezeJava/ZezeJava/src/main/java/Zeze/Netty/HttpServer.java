@@ -189,7 +189,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			return;
 		httpSession = new HttpSession(zeze);
 		// 注册会话表：不注册的话 _tSession 不属于任何Database，表访问必失败。
-		var dbName = Objects.requireNonNull(zeze.getConfig().getTableConf(httpSession.tSession().getName())).getDatabaseName();
+		//noinspection DataFlowIssue
+		var dbName = zeze.getConfig().getTableConf(httpSession.tSession().getName()).getDatabaseName();
 		if (zeze.isStart())
 			zeze.openDynamicTable(dbName, httpSession.tSession());
 		else

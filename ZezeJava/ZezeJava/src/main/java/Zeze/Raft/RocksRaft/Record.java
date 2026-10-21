@@ -20,22 +20,9 @@ import org.rocksdb.RocksDBException;
  */
 public final class Record<K> {
 	private static final Logger logger = LogManager.getLogger(Record.class);
-	public static final class RootInfo {
-		private final @Nullable Record<?> record;
-		private final TableKey tableKey;
 
-		public RootInfo(@Nullable Record<?> record, TableKey tableKey) {
-			this.record = record;
-			this.tableKey = tableKey;
-		}
+	public record RootInfo(@Nullable Record<?> record, TableKey tableKey) {
 
-		public @Nullable Record<?> getRecord() {
-			return record;
-		}
-
-		public TableKey getTableKey() {
-			return tableKey;
-		}
 	}
 
 	public static final int StateNew = 0;
@@ -202,8 +189,10 @@ public final class Record<K> {
 			int size = valueBB.WriteIndex;
 			if (size > preAllocSize)
 				value.preAllocSize(size);
-			Objects.requireNonNull(getTable()).getRocksTable().put(batch, keyBB.Bytes, keyBB.WriteIndex, valueBB.Bytes, size);
+			//noinspection DataFlowIssue
+			getTable().getRocksTable().put(batch, keyBB.Bytes, keyBB.WriteIndex, valueBB.Bytes, size);
 		} else
-			Objects.requireNonNull(getTable()).getRocksTable().delete(batch, keyBB.Bytes, keyBB.WriteIndex);
+			//noinspection DataFlowIssue
+			getTable().getRocksTable().delete(batch, keyBB.Bytes, keyBB.WriteIndex);
 	}
 }

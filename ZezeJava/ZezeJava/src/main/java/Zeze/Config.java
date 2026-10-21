@@ -583,14 +583,16 @@ public final class Config {
 	}
 
 	public void clearOpenDatabaseFlag() {
-		var databaseName = Objects.requireNonNull(getDefaultTableConf()).getDatabaseName();
+		//noinspection DataFlowIssue
+		var databaseName = getDefaultTableConf().getDatabaseName();
 		var defDbConf = getDatabaseConfMap().get(databaseName);
 		if (defDbConf == null) // 对齐Application.getDatabase判例：失配带名报错而非裸NPE
 			throw new IllegalStateException("database not exist name=" + databaseName);
 		if (defDbConf.databaseType == DbType.MySql) {
 			var db = new DatabaseMySql(null, defDbConf);
 			try {
-				Objects.requireNonNull(db.getDirectOperates()).unlock();
+				//noinspection DataFlowIssue
+				db.getDirectOperates().unlock();
 			} finally {
 				db.close();
 			}

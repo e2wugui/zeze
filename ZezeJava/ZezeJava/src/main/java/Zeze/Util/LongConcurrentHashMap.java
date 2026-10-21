@@ -696,7 +696,8 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 			probe ^= probe << 13; // xorshift
 			probe ^= probe >>> 17;
 			probe ^= probe << 5;
-			Objects.requireNonNull(tlProb.get()).probe = probe;
+			//noinspection DataFlowIssue
+			tlProb.get().probe = probe;
 			return probe;
 		}
 	}
@@ -1166,12 +1167,14 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 
 		@Override
 		public long key() {
-			return Objects.requireNonNull(node).key;
+			//noinspection DataFlowIssue
+			return node.key;
 		}
 
 		@Override
 		public @Nullable V value() {
-			return Objects.requireNonNull(node).val;
+			//noinspection DataFlowIssue
+			return node.val;
 		}
 	}
 

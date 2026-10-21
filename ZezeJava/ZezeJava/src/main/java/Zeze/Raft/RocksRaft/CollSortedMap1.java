@@ -36,8 +36,9 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	public void add(K key, V value) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.add(key, value);
 		} else
 			map = map.plus(key, value);
@@ -47,8 +48,9 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	public void put(K key, V value) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else
 			map = map.plus(key, value);
@@ -58,8 +60,9 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	public void remove(K key) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
 		} else
 			map = map.minus(key);
@@ -69,8 +72,9 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
 			map = map.minusAll(map.keySet()); // 清空仍保留原比较器。

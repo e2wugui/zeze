@@ -148,7 +148,8 @@ public class HandshakeBase extends Service {
 
 	private long processCHandshakeDone(CHandshakeDone p) {
 		try {
-			Objects.requireNonNull(((TcpSocket)p.getSender())).verifySecurity();
+			//noinspection DataFlowIssue
+			(((TcpSocket)p.getSender())).verifySecurity();
 			OnHandshakeDone(p.getSender());
 			return 0L;
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
@@ -201,7 +202,8 @@ public class HandshakeBase extends Service {
 				BigInteger data = new BigInteger(p.Argument.encryptParam);
 				BigInteger rand = Helper.makeDHRandom();
 				byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
-				var localInet = Objects.requireNonNull(((TcpSocket)p.getSender())).getLocalInet();
+				//noinspection DataFlowIssue
+				var localInet = (((TcpSocket)p.getSender())).getLocalInet();
 				byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
 						? getConfig().getHandshakeOptions().getSecureIp()
 						: (localInet != null ? localInet.getAddress().getAddress() : ByteBuffer.Empty);
@@ -296,7 +298,8 @@ public class HandshakeBase extends Service {
 	private long processSHandshake(SHandshake p) {
 		Context ctx = null;
 		try {
-			ctx = dhContext.remove(Objects.requireNonNull(p.getSender()).getSessionId());
+			//noinspection DataFlowIssue
+			ctx = dhContext.remove(p.getSender().getSessionId());
 			if (ctx != null) {
 				// 协商一致性检查：SHandshake回显的加密类型必须与CHandshake请求的一致，否则握手可能已被篡改，拒绝。
 				if (p.Argument.encryptType != ctx.encryptType)

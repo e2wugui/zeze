@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import Zeze.Util.Json;
@@ -90,7 +88,8 @@ public final class Encrypt2 implements Codec {
 		out[writeIndex++] ^= c;
 		if (writeIndex == BLOCK_SIZE) {
 			writeIndex = 0;
-			Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
+			//noinspection DataFlowIssue
+			sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 			sinkIndex = 0;
 			try {
 				mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
@@ -111,7 +110,8 @@ public final class Encrypt2 implements Codec {
 					out[wi++] ^= data[off++];
 					if (wi == BLOCK_SIZE) {
 						wi = 0;
-						Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
+						//noinspection DataFlowIssue
+						sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 						sinkIndex = 0;
 						mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
 						break;
@@ -122,7 +122,8 @@ public final class Encrypt2 implements Codec {
 				for (int i = 0; i < BLOCK_SIZE; i++)
 					out[wi + i] ^= data[off + i];
 				off += BLOCK_SIZE;
-				Objects.requireNonNull(sink, "codec is not reset").update(out, 0, BLOCK_SIZE);
+				//noinspection DataFlowIssue
+				sink.update(out, 0, BLOCK_SIZE);
 				mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
 			}
 			while (off < end)
@@ -138,10 +139,12 @@ public final class Encrypt2 implements Codec {
 	@Override
 	public void flush() throws CodecException {
 		if (sinkIndex < writeIndex) {
-			Objects.requireNonNull(sink, "codec is not reset").update(out, sinkIndex, writeIndex - sinkIndex);
+			//noinspection DataFlowIssue
+			sink.update(out, sinkIndex, writeIndex - sinkIndex);
 			sinkIndex = writeIndex;
 		}
-		Objects.requireNonNull(sink, "codec is not reset").flush();
+		//noinspection DataFlowIssue
+		sink.flush();
 	}
 
 	@Override

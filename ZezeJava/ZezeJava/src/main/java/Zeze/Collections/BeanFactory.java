@@ -1,7 +1,5 @@
 package Zeze.Collections;
 
-import java.util.Objects;
-
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.util.List;
@@ -109,7 +107,8 @@ public final class BeanFactory {
 			try {
 				bf.writingBeanFactory.foreachUpdate((typeId, oldCtor) -> {
 					try {
-						var oldCls = Objects.requireNonNull(oldCtor).type().returnType();
+						//noinspection DataFlowIssue
+						var oldCls = oldCtor.type().returnType();
 						var newCls = hotRedirect.loadClass(oldCls.getName());
 						classes.add(newCls);
 						var ctor = Reflect.getDefaultConstructor(newCls);
@@ -130,7 +129,8 @@ public final class BeanFactory {
 			try {
 				bf.writingDataFactory.foreachUpdate((typeId, oldCtor) -> {
 					try {
-						var oldCls = Objects.requireNonNull(oldCtor).type().returnType();
+						//noinspection DataFlowIssue
+						var oldCls = oldCtor.type().returnType();
 						var newCls = hotRedirect.loadClass(oldCls.getName());
 						classes.add(newCls);
 						var ctor = Reflect.getDefaultConstructor(newCls);
@@ -418,9 +418,11 @@ public final class BeanFactory {
 			try {
 				var oldCtor = writingBeanFactory.put(s.typeId(), ctor);
 				if (oldCtor != ctor) {
-					if (oldCtor != null && Objects.requireNonNull(oldCtor).type().returnType() != cls) {
+					//noinspection DataFlowIssue
+					if (oldCtor != null && oldCtor.type().returnType() != cls) {
+						//noinspection DataFlowIssue
 						logger.warn("overwrite bean factory for typeId={},class={}=>{}",
-								s.typeId(), Objects.requireNonNull(oldCtor).type().returnType().getName(), cls.getName());
+								s.typeId(), oldCtor.type().returnType().getName(), cls.getName());
 					}
 					readingBeanFactory = null;
 					registeredClasses.put(cls, ctor);
@@ -433,9 +435,11 @@ public final class BeanFactory {
 			try {
 				var oldCtor = writingDataFactory.put(s.typeId(), ctor);
 				if (oldCtor != ctor) {
-					if (oldCtor != null && Objects.requireNonNull(oldCtor).type().returnType() != cls) {
+					//noinspection DataFlowIssue
+					if (oldCtor != null && oldCtor.type().returnType() != cls) {
+						//noinspection DataFlowIssue
 						logger.warn("overwrite data factory for typeId={},class={}=>{}",
-								s.typeId(), Objects.requireNonNull(oldCtor).type().returnType().getName(), cls.getName());
+								s.typeId(), oldCtor.type().returnType().getName(), cls.getName());
 					}
 					readingDataFactory = null;
 					registeredClasses.put(cls, ctor);
@@ -453,9 +457,11 @@ public final class BeanFactory {
 		try {
 			var oldCtor = writingBeanFactory.put(typeId, ctor);
 			if (oldCtor != ctor) {
-				if (oldCtor != null && Objects.requireNonNull(oldCtor).type().returnType() != cls) {
+				//noinspection DataFlowIssue
+				if (oldCtor != null && oldCtor.type().returnType() != cls) {
+					//noinspection DataFlowIssue
 					logger.warn("overwrite bean factory for typeId={}, class={}=>{}",
-							typeId, Objects.requireNonNull(oldCtor).type().returnType().getName(), cls.getName());
+							typeId, oldCtor.type().returnType().getName(), cls.getName());
 				}
 				readingBeanFactory = null;
 				registeredClasses.put(cls, ctor);
@@ -470,9 +476,11 @@ public final class BeanFactory {
 		try {
 			var oldCtor = writingDataFactory.put(typeId, ctor);
 			if (oldCtor != ctor) {
-				if (oldCtor != null && Objects.requireNonNull(oldCtor).type().returnType() != cls) {
+				//noinspection DataFlowIssue
+				if (oldCtor != null && oldCtor.type().returnType() != cls) {
+					//noinspection DataFlowIssue
 					logger.warn("overwrite data factory for typeId={}, class={}=>{}",
-							typeId, Objects.requireNonNull(oldCtor).type().returnType().getName(), cls.getName());
+							typeId, oldCtor.type().returnType().getName(), cls.getName());
 				}
 				readingDataFactory = null;
 				registeredClasses.put(cls, ctor);

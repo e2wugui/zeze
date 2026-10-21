@@ -33,8 +33,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		if (isManaged()) {
 			item.initRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList2<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			listLog.add(item);
 		} else
 			list = list.plus(item);
@@ -45,8 +46,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	public boolean remove(V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList2<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.remove(item);
 		}
 		var newList = list.minus(item);
@@ -60,8 +62,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList2<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 		} else
 			list = Zeze.Collections.Persistents.vector();
@@ -78,8 +81,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList2<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.set(index, item);
 		}
 		var old = list.get(index);
@@ -97,8 +101,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList2<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			listLog.add(index, item);
 		} else
 			list = list.plus(index, item);
@@ -108,8 +113,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	public V remove(int index) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList2<V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.remove(index);
 		}
 		var old = list.get(index);

@@ -45,8 +45,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		if (!built) {
 			built = true;
 			for (var c : changed) {
-				@SuppressWarnings("unchecked")
-				K k = (K)Objects.requireNonNull(c.getThis()).mapKey();
+				//noinspection unchecked,DataFlowIssue
+				K k = (K)c.getThis().mapKey();
 				if (!getReplaced().containsKey(k) // 新增的值是最新的，它的changed忽略。
 						&& !getRemoved().contains(k) // 删除的值不用管了，它的changed忽略。
 						&& c.getThis() == getValue().get(k) // 必须是key当前值本身：put覆盖后旧bean不
@@ -123,8 +123,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		try {
 			for (int i = bb.ReadUInt(); i > 0; i--) {
 				K k = keyDecoder.apply(bb);
-				@SuppressWarnings("unchecked")
-				V v = (V)Objects.requireNonNull(meta.valueFactory).invoke();
+				//noinspection unchecked,DataFlowIssue
+				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
 				getReplaced().put(k, v);
 			}

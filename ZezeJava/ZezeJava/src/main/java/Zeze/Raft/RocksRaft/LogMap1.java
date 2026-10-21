@@ -48,7 +48,8 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final V get(K key) {
-		return Objects.requireNonNull(getValue()).get(key);
+		//noinspection DataFlowIssue
+		return getValue().get(key);
 	}
 
 	public final void add(K key, V value) {
@@ -56,19 +57,22 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final void put(K key, V value) {
-		setValue(Objects.requireNonNull(getValue()).plus(key, value));
+		//noinspection DataFlowIssue
+		setValue(getValue().plus(key, value));
 		putted.put(key, value);
 		removed.remove(key);
 	}
 
 	public final void remove(K key) {
-		setValue(Objects.requireNonNull(getValue()).minus(key));
+		//noinspection DataFlowIssue
+		setValue(getValue().minus(key));
 		putted.remove(key);
 		removed.add(key);
 	}
 
 	public final void clear() {
-		for (var key : Objects.requireNonNull(getValue()).keySet())
+		//noinspection DataFlowIssue
+		for (var key : getValue().keySet())
 			remove(key);
 		setValue(Zeze.Collections.Persistents.map());
 	}

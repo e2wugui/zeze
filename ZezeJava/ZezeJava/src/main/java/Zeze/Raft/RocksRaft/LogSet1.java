@@ -40,7 +40,8 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final boolean add(V item) {
-		var newSet = Objects.requireNonNull(getValue()).plus(item);
+		//noinspection DataFlowIssue
+		var newSet = getValue().plus(item);
 		if (newSet != getValue()) {
 			added.add(item);
 			removed.remove(item);
@@ -51,7 +52,8 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final boolean remove(V item) {
-		var newSet = Objects.requireNonNull(getValue()).minus(item);
+		//noinspection DataFlowIssue
+		var newSet = getValue().minus(item);
 		if (newSet != getValue()) {
 			removed.add(item);
 			added.remove(item);

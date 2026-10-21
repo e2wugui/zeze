@@ -469,7 +469,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 			return true; // 取消不存在的timer，认为成功。
 
 		var timer = online.providerApp.zeze.getTimer();
-		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
+		//noinspection DataFlowIssue
+		var index = timer.tIndexs().get(timerId);
 		if (index == null)
 			return false;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -492,7 +493,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		// 归属校验（对齐TimerAccount.cancelOffline）：无校验直接timer.cancel时，
 		// 传入任意timerId（他人offline timer、全局命名timer）都会被越权取消，
 		// 且按调用者传入的roleId清理_tRoleOfflineTimers（typo时误删他行/真实归属行残留脏条目）。
-		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
+		//noinspection DataFlowIssue
+		var index = timer.tIndexs().get(timerId);
 		if (index == null)
 			return false;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -719,7 +721,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	// 查timerId当前登记的角色offline timer归属，查表路径仿cancelOffline：
 	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
 	private static @Nullable BOfflineRoleCustom getRoleOfflineCustom(Timer timer, String timerId) {
-		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
+		var index = timer.tIndexs().get(timerId);
 		if (index == null)
 			return null;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -738,7 +740,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		var timer = zeze.getTimer();
 		if (Objects.requireNonNull(timer).isOnlineTimerIdOccupied(timerId))
 			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
-		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
+		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
 		// 族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
@@ -780,7 +782,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 				var providerApp = zeze.getProviderApp();
 				var providerImpl = providerApp != null ? providerApp.providerImplement : null;
 				var online = providerImpl instanceof ProviderWithOnline p
-						? p.getOnline(custom.getOnlineSetName()) : Objects.requireNonNull(zeze.getTimer()).getDefaultOnline();
+					? p.getOnline(custom.getOnlineSetName()) : zeze.getTimer().getDefaultOnline();
 				if (online == null)
 					return;
 				var roleId = custom.getRoleId();

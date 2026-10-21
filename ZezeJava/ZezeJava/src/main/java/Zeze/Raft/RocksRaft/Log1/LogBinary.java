@@ -1,7 +1,5 @@
 package Zeze.Raft.RocksRaft.Log1;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import Zeze.Net.Binary;
@@ -31,7 +29,8 @@ public class LogBinary extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBinary(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		bb.WriteBinary(value);
 	}
 
 	@Override

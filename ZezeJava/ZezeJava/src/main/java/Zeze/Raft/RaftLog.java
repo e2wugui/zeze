@@ -70,7 +70,8 @@ public final class RaftLog implements Serializable {
 	public void encode(ByteBuffer bb) {
 		bb.WriteLong(term);
 		bb.WriteLong(index);
-		bb.WriteInt4((int)Objects.requireNonNull(log).typeId());
+		//noinspection DataFlowIssue
+		bb.WriteInt4((int)log.typeId());
 		Objects.requireNonNull(log).encode(bb);
 	}
 

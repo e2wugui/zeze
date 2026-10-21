@@ -203,7 +203,8 @@ public final class Application extends ReentrantLock {
 															   String raftSessionNamePrefix) throws Exception {
 		return switch (conf.getServiceManager()) {
 			case "raft" -> {
-				if (Objects.requireNonNull(conf.getServiceManagerConf()).getSessionName().isEmpty())
+				//noinspection DataFlowIssue
+				if (conf.getServiceManagerConf().getSessionName().isEmpty())
 					Objects.requireNonNull(conf.getServiceManagerConf()).setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
 				yield new ServiceManagerAgentWithRaft(conf);
 			}
@@ -522,7 +523,8 @@ public final class Application extends ReentrantLock {
 	// 数据库Meta兼容检查，初始化。
 	// 包内可见：同包回归测试直接驱动检查/发布分界（元数据不得先于物理DDL发布）。
 	void schemasCompatible() throws Exception {
-		var defaultDb = getDatabase(Objects.requireNonNull(conf.getDefaultTableConf()).getDatabaseName());
+		//noinspection DataFlowIssue
+		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		if (schemas != null) {
 			schemas.compile();
 			schemas.setAppVersion(conf.getAppVersion());
@@ -564,7 +566,8 @@ public final class Application extends ReentrantLock {
 			return;
 		if (schemasPrevious != null && schemas.getAppVersion() < schemasPrevious.getAppVersion())
 			return; // OldAppVersion Skip：不发布（与schemasCompatible判定一致）。
-		var defaultDb = getDatabase(Objects.requireNonNull(conf.getDefaultTableConf()).getDatabaseName());
+		//noinspection DataFlowIssue
+		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		var keyOfSchemas = ByteBuffer.Allocate(32);
 		var serverId = conf.getServerId();
 		keyOfSchemas.WriteString("zeze.Schemas.V4." + serverId);
@@ -597,9 +600,11 @@ public final class Application extends ReentrantLock {
 	}
 
 	private void atomicOpenDatabase() throws Exception {
-		var defaultDb = getDatabase(Objects.requireNonNull(conf.getDefaultTableConf()).getDatabaseName());
+		//noinspection DataFlowIssue
+		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		while (true) {
-			if (!Objects.requireNonNull(defaultDb.getDirectOperates()).tryLock()) {
+			//noinspection DataFlowIssue
+			if (!defaultDb.getDirectOperates().tryLock()) {
 				logger.info("lock default database fail. sleep and try again...");
 				// alter 可能很慢，这里多睡一下也行，但是为了兼容不是关系表，选一个合适的值吧。
 				//noinspection BusyWait
@@ -641,7 +646,8 @@ public final class Application extends ReentrantLock {
 				// 升级被静默跳过；发布前的崩溃重启由tryAlter的物理列幂等过滤重放兜底。
 				publishSchemas();
 			} finally {
-				Objects.requireNonNull(defaultDb.getDirectOperates()).unlock();
+				//noinspection DataFlowIssue
+				defaultDb.getDirectOperates().unlock();
 			}
 			break; // done
 		}
@@ -795,13 +801,15 @@ public final class Application extends ReentrantLock {
 			// 接管租约：Application.start()返回前claim完成（需Checkpoint已建立），
 			// 此后Timer.start/startLast、CsQueue构造全走addScope晚注册stamp。
 			if (takeover != null) {
-				Objects.requireNonNull(takeover).start();
+				//noinspection DataFlowIssue
+				takeover.start();
 				// SM Suspect提示→tryTransfer（非raft与raft版SM都会在会话断开时广播Suspect）。
 				if (serviceManager != null)
 					serviceManager.setOnSuspect(deadServerId -> Objects.requireNonNull(takeover).tryTransfer(deadServerId));
 			}
 
-			Objects.requireNonNull(delayRemove).start();
+			//noinspection DataFlowIssue
+			delayRemove.start();
 			if (timer != null)
 				timer.loadCustomClassAnd();
 			if (deadlockBreaker != null)

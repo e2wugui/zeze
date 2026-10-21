@@ -124,7 +124,8 @@ public class FileBin {
 
 	/** 惰性收口：digest() 终结化共享 digest，必须与 append 的 update 序化（在 close 之后调用也安全）。 */
 	public synchronized byte[] md5Digest() {
-		return Objects.requireNonNull(md5).digest();
+		//noinspection DataFlowIssue
+		return md5.digest();
 	}
 
 	public synchronized void close() throws IOException {

@@ -39,13 +39,16 @@ public class ProviderWithOnline extends ProviderImplement {
 		online = Online.create(app);
 		online.Initialize(app);
 		load = new ProviderLoadWithOnline(online);
-		var config = Objects.requireNonNull(app.getZeze()).getConfig();
+		//noinspection DataFlowIssue
+		var config = app.getZeze().getConfig();
 		load.getOverload().register(Objects.requireNonNull(Task.getThreadPool()), config);
 	}
 
 	public void start() {
-		Objects.requireNonNull(load).start();
-		Objects.requireNonNull(online).start();
+		//noinspection DataFlowIssue
+		load.start();
+		//noinspection DataFlowIssue
+		online.start();
 	}
 
 	@Override

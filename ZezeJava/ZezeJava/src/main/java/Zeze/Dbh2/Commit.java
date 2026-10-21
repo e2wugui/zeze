@@ -23,7 +23,8 @@ public class Commit extends AbstractCommit {
 	}
 
 	public void start() throws Exception {
-		Objects.requireNonNull(rocks).start();
+		//noinspection DataFlowIssue
+		rocks.start();
 		service.start(); // 网络后启动。
 	}
 
@@ -50,7 +51,8 @@ public class Commit extends AbstractCommit {
 
 	@Override
 	protected long ProcessCommitRequest(Zeze.Builtin.Dbh2.Commit.Commit r) throws Exception {
-		var query = Objects.requireNonNull(rocks).getManager().commitServiceAcceptor();
+		//noinspection DataFlowIssue
+		var query = rocks.getManager().commitServiceAcceptor();
 		// 应答与投递解绑：decide（prepare+saveCommitPoint(eCommitting)）同步完成后立即应答，
 		// 应答0 ⇔ eCommitting已持久化、事务终局为提交；commitBatch投递异步执行，
 		// 失败/超时由redoTimer兜底重发。

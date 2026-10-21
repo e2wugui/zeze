@@ -193,7 +193,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			localDispatch.set(p);
 			int psize = arg.getProtocolData().size();
 			var session = newSession(p);
-			var zeze = Objects.requireNonNull(Objects.requireNonNull(sender).getService()).getZeze();
+			//noinspection DataFlowIssue
+			var zeze = sender.getService().getZeze();
 			var txn = Transaction.getCurrent();
 			if (txn == null && zeze != null && factoryHandle.Level != TransactionLevel.None) {
 				var outProtocol = new OutObject<Protocol<?>>();
@@ -203,7 +204,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var procName = factoryHandle.Class.getName()
 						+ ((header & FamilyClass.FamilyClassMask) == FamilyClass.Response ? ":Response" : "");
 				var r = TaskSpec.ofProcedureOut(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
-						var p3 = Objects.requireNonNull(factoryHandle.Factory).create();
+						//noinspection DataFlowIssue
+						var p3 = factoryHandle.Factory.create();
 						p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 						p3.setSender(sender);
 						p3.setUserState(session);
@@ -238,7 +240,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				return r;
 			}
 
-			p2 = Objects.requireNonNull(factoryHandle.Factory).create();
+			//noinspection DataFlowIssue
+			p2 = factoryHandle.Factory.create();
 			p2.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 			p2.setSender(sender);
 			p2.setUserState(session);
@@ -297,8 +300,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	@Override
 	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
+			//noinspection DataFlowIssue
 			logger.info("AnnounceLinkInfo[{}]: {}",
-				Objects.requireNonNull(protocol.getSender()).getSessionId(), AsyncSocket.toStr(protocol.Argument));
+				protocol.getSender().getSessionId(), AsyncSocket.toStr(protocol.Argument));
 		}
 		return Procedure.Success;
 	}

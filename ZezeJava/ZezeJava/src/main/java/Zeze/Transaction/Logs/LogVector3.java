@@ -69,7 +69,8 @@ public class LogVector3 extends Log {
 
 	@Override
 	public Vector3Int vector2IntValue() {
-		return new Vector3Int(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Vector3Int(value);
 	}
 
 	@Override
@@ -79,16 +80,19 @@ public class LogVector3 extends Log {
 
 	@Override
 	public Vector3Int vector3IntValue() {
-		return new Vector3Int(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Vector3Int(value);
 	}
 
 	@Override
 	public Vector4 vector4Value() {
-		return new Vector4(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Vector4(value);
 	}
 
 	@Override
 	public Quaternion quaternionValue() {
-		return new Quaternion(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Quaternion(value);
 	}
 }

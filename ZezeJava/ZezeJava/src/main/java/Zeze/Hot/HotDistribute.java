@@ -66,7 +66,8 @@ public class HotDistribute extends AbstractHotDistribute {
             }
 
             // 新发布会话开始：上一会话崩溃/断链遗留的未CloseFile的FileBin在此回收。
-            Objects.requireNonNull(distributeManager).closeAll();
+            //noinspection DataFlowIssue
+            distributeManager.closeAll();
             state = ePrepare;
             this.distributeId = distributeId;
             prepareActiveTime = System.currentTimeMillis();
@@ -120,7 +121,8 @@ public class HotDistribute extends AbstractHotDistribute {
             lock.unlock();
         }
         try {
-            Objects.requireNonNull(distributeManager).commitDistribute(); // Files.createFile(ready)：ready已存在/IO错误时抛
+            //noinspection DataFlowIssue
+            distributeManager.commitDistribute(); // Files.createFile(ready)：ready已存在/IO错误时抛
         } catch (Exception ex) {
             // 此时state已置eTryDistribute且rpc r已存入this.tryDistribute，异常逃出handler会
             // 同时卡死状态机（tryDistribute安装流程未进入，setIdle永不执行，死到重启）与
@@ -236,7 +238,8 @@ public class HotDistribute extends AbstractHotDistribute {
                 return;
             }
             // 会话结束：本会话中未走到CloseFile的残留FileBin（上传中断、md5失败）在此回收。
-            Objects.requireNonNull(distributeManager).closeAll();
+            //noinspection DataFlowIssue
+            distributeManager.closeAll();
             state = eIdle;
             distributeId = 0;
 

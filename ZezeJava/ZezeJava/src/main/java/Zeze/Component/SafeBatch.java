@@ -61,6 +61,7 @@ public class SafeBatch extends AbstractSafeBatch {
 																  ByteBuffer tableKey) throws Exception;
 
 		@Nullable ByteBuffer encodeMapKey(TableX<?, ?> table, ByteBuffer tableKey, MK mapKey);
+
 		MK decodeMapKey(TableX<?, ?> table, ByteBuffer tableKey, ByteBuffer bb);
 	}
 
@@ -80,6 +81,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	public @Nullable BBatchReadOnly getBatch(String jobId) {
 		return (BBatchReadOnly)Objects.requireNonNull(zeze.getTimer()).getTimerCustomBean(jobId);
 	}
+
 	/**
 	 * 开始表格遍历批处理。
 	 *
@@ -100,7 +102,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @return jobId
 	 */
 	public <TK extends Comparable<TK>, TV extends Bean> String startWalkTable(TableX<TK, TV> table, WalkTableJobHandle<TK, TV> jobHandle,
-	                                      long checkPeriod, int limit) {
+																			  long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
@@ -151,11 +153,11 @@ public class SafeBatch extends AbstractSafeBatch {
 				Worker worker = switch (batch.getWorker()) {
 					// HotHandle 反射加载路径：泛型已被擦除，只能用 raw type 构造。
 					case eWorkerTable -> new TableBatchWorker(timerId,
-							(WalkTableJobHandle)jobHandle, batch.toData());
+						(WalkTableJobHandle)jobHandle, batch.toData());
 					case eWorkerSortedMap -> new SortedMapWorker(timerId,
-							(WalkSortedMapJobHandle)jobHandle, batch.toData());
+						(WalkSortedMapJobHandle)jobHandle, batch.toData());
 					case eWorkerList -> new ListWorker(timerId,
-							(WalkListJobHandle)jobHandle, batch.toData());
+						(WalkListJobHandle)jobHandle, batch.toData());
 					default -> throw new IllegalStateException("invalid worker type.");
 				};
 				var future = TaskSpec.ofAction(worker).name("BatchWorker_" + timerId).submitNow();
@@ -180,7 +182,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		// 表不存在时批处理永远无法推进，与batch==null同款处理：停止并清理记录。
 		if (null == zeze.getTable(batch.getTableName())) {
 			logger.error("SafeBatch.checkBatch: table not found, stop batch. timerId={}, tableName={}",
-					timerId, batch.getTableName());
+				timerId, batch.getTableName());
 			_stopBatch(timerId);
 			return;
 		}
@@ -207,11 +209,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				job.cancel(false);
 				// 为了不阻塞事务，这里不等待完成。有点风险：会丢失执行结果。
 				// 因为worker.run 可能自己stop自己，等待有死锁风险。
-//				try {
-//					job.get();
-//				} catch (Exception e) {
-//					throw new RuntimeException(e);
-//				}
+				// try {job.get();} catch (Exception e) {throw new RuntimeException(e);}
 			}
 		});
 		return 0;
@@ -283,7 +281,8 @@ public class SafeBatch extends AbstractSafeBatch {
 				Thread.onSpinWait();
 			}
 			// isDone 不必要。
-			while (!Objects.requireNonNull(futureSelf).isCancelled() && !Objects.requireNonNull(futureSelf).isDone()) {
+			//noinspection DataFlowIssue
+			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
 				lastKey = typedTable.walkDatabase(lastKey, batch.getProposeLimit(), this);
 				if (null == lastKey) {
 					stopBatch(timerId);
@@ -302,7 +301,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @return jobId
 	 */
 	public <MK, MV> String startWalkSortedMap(TableX<?, ?> table, Comparable<?> key,
-	                                          WalkSortedMapJobHandle<MK, MV> jobHandle) {
+											  WalkSortedMapJobHandle<MK, MV> jobHandle) {
 		return startWalkSortedMap(table, key, jobHandle, 60_000, 100);
 	}
 
@@ -318,8 +317,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @return jobId
 	 */
 	public <MK, MV> String startWalkSortedMap(TableX<?, ?> table, Comparable<?> key,
-	                                          WalkSortedMapJobHandle<MK, MV> jobHandle,
-	                                          long checkPeriod, int limit) {
+											  WalkSortedMapJobHandle<MK, MV> jobHandle,
+											  long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
@@ -336,7 +335,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @return jobId
 	 */
 	public <E> String startWalkList(TableX<?, ?> table, Comparable<?> key,
-	                                WalkListJobHandle<E> jobHandle) {
+									WalkListJobHandle<E> jobHandle) {
 		return startWalkList(table, key, jobHandle, 60_000, 100);
 	}
 
@@ -352,7 +351,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @return jobId
 	 */
 	public <E> String startWalkList(TableX<?, ?> table, Comparable<?> key,
-	                                WalkListJobHandle<E> jobHandle, long checkPeriod, int limit) {
+									WalkListJobHandle<E> jobHandle, long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
@@ -383,7 +382,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		batch.setWorker(workerType);
 
 		var timerId = Objects.requireNonNull(zeze.getTimer()).schedule(TimerSpec.ofDelay(checkPeriod).period(checkPeriod),
-				BatchTimerHandle.class, batch);
+			BatchTimerHandle.class, batch);
 		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, batch));
 		return timerId;
 	}
@@ -405,7 +404,7 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		public boolean handle(MK key, MV value) throws Exception {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
-				// 当前记录处理失败，中断批执行，下一次重启批处理，但跳过当前数据。
+			// 当前记录处理失败，中断批执行，下一次重启批处理，但跳过当前数据。
 			return 0 == zeze.newProcedure(() -> {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
 				if (0 == result && !timerId.isEmpty()) {
@@ -427,7 +426,8 @@ public class SafeBatch extends AbstractSafeBatch {
 				// busy wait, see _startWorker...setFuture
 				Thread.onSpinWait();
 			}
-			while (!Objects.requireNonNull(futureSelf).isCancelled() && !Objects.requireNonNull(futureSelf).isDone()) {
+			//noinspection DataFlowIssue
+			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
 				var tail = jobHandle.getSortedMapOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()));
 				if (null == tail) {
 					// 记录不存在（或已被删除）：无工作可推进，停批并清理——
@@ -497,7 +497,8 @@ public class SafeBatch extends AbstractSafeBatch {
 				// busy wait, see _startWorker...setFuture
 				Thread.onSpinWait();
 			}
-			while (!Objects.requireNonNull(futureSelf).isCancelled() && !Objects.requireNonNull(futureSelf).isDone()) {
+			//noinspection DataFlowIssue
+			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
 				var list = jobHandle.getListOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()));
 				if (null == list) {
 					// 记录不存在（或已被删除）：无工作可推进，停批并清理——

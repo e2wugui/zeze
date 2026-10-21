@@ -66,7 +66,8 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	@Override
 	public void decode(IByteBuffer bb) {
 		try {
-			value = (T)Objects.requireNonNull(meta.valueFactory).invoke();
+			//noinspection DataFlowIssue
+			value = (T)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
@@ -75,6 +76,6 @@ public class LogBeanKey<T extends Serializable> extends Log {
 
 	@Override
 	public String toString() {
-		return Objects.requireNonNull(value).toString();
+		return value != null ? value.toString() : "null";
 	}
 }

@@ -299,7 +299,8 @@ public final class Table<K, V extends Bean> {
 		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);
 		var cr = currentT.getRecordAccessed(tkey);
-		value.initRootInfo(Objects.requireNonNull(cr).getOrigin().createRootInfoIfNeed(tkey), null);
+		//noinspection DataFlowIssue
+		value.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, value);
 		return true;
 	}
@@ -319,7 +320,7 @@ public final class Table<K, V extends Bean> {
 			cr = new Transaction.RecordAccessed(currentT, r);
 			currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 		}
-		value.initRootInfo(Objects.requireNonNull(cr).getOrigin().createRootInfoIfNeed(tkey), null);
+		value.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, value);
 	}
 

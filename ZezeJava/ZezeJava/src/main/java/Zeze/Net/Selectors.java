@@ -124,7 +124,8 @@ public class Selectors extends ReentrantLock {
 	public long getSelectCount() {
 		long count = 0;
 		for (var selector : Objects.requireNonNull(selectorList, "selectors are closed"))
-			count += Objects.requireNonNull(selector).getSelectCount();
+			//noinspection DataFlowIssue
+			count += selector.getSelectCount();
 		return count;
 	}
 
@@ -154,7 +155,8 @@ public class Selectors extends ReentrantLock {
 			try {
 				for (; i < n; i++) {
 					tmp[i] = new Selector(this, name + '-' + i);
-					Objects.requireNonNull(tmp[i]).start();
+					//noinspection DataFlowIssue
+					tmp[i].start();
 				}
 			} catch (IOException e) {
 				// 本批已创建/已启动的Selector不在selectorList（数组赋值在循环成功之后），
@@ -163,7 +165,7 @@ public class Selectors extends ReentrantLock {
 				for (int k = batchStart; k < n; k++) {
 					var s = tmp[k];
 					if (s != null)
-						Objects.requireNonNull(s).close();
+						s.close();
 				}
 				throw Task.forceThrow(e);
 			}
@@ -205,11 +207,13 @@ public class Selectors extends ReentrantLock {
 		// dispose回调可能访问Selectors，等待线程终止时不能持有管理器锁。
 		if (tmp != null) {
 			for (Selector s : tmp)
-				Objects.requireNonNull(s).close();
+				//noinspection DataFlowIssue
+				s.close();
 			lock();
 			try {
 				for (Selector s : tmp) {
-					if (Objects.requireNonNull(s).isAlive())
+					//noinspection DataFlowIssue
+					if (s.isAlive())
 						return;
 				}
 				if (closingSelectors == tmp)

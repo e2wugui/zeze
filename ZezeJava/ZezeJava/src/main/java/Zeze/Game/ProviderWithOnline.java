@@ -45,7 +45,8 @@ public class ProviderWithOnline extends ProviderImplement {
 	@Override
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("LinkBroken[{}]: {}", Objects.requireNonNull(p.getSender()).getSessionId(), AsyncSocket.toStr(p.Argument));
+			//noinspection DataFlowIssue
+			logger.info("LinkBroken[{}]: {}", p.getSender().getSessionId(), AsyncSocket.toStr(p.Argument));
 		// 目前仅需设置online状态。
 		var online = this.online;
 		// context是登录身份槽：Game角色模式为roleId数字串；
@@ -95,7 +96,8 @@ public class ProviderWithOnline extends ProviderImplement {
 			// 【以后考虑改造定义方式】
 			// 即，OnlineSet的Load不独立报告，会单独定义但被综合以后，由默认Load统一报告。
 			load = new ProviderLoadWithOnline(online);
-			var config = Objects.requireNonNull(app.getZeze()).getConfig();
+			//noinspection DataFlowIssue
+			var config = app.getZeze().getConfig();
 			load.getOverload().register(Objects.requireNonNull(Task.getThreadPool()), config);
 		} finally {
 			unlock();
@@ -105,8 +107,10 @@ public class ProviderWithOnline extends ProviderImplement {
 	public void start() {
 		lock();
 		try {
-			Objects.requireNonNull(load).start();
-			Objects.requireNonNull(online).start();
+			//noinspection DataFlowIssue
+			load.start();
+			//noinspection DataFlowIssue
+			online.start();
 		} finally {
 			unlock();
 		}

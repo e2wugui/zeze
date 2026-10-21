@@ -35,7 +35,8 @@ public class CommitAgent extends AbstractCommitAgent {
 			var out = new OutObject<Connector>();
 			if (service.getConfig().tryGetOrAddConnector(host, port, true, out)) {
 				try {
-					Objects.requireNonNull(out.value).start();
+					//noinspection DataFlowIssue
+					out.value.start();
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

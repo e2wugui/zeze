@@ -22,7 +22,8 @@ public abstract class CollSet<V> extends Collection implements Iterable<V> {
 			var t = Transaction.getCurrent();
 			if (t == null)
 				return set;
-			Log log = t.getLog(Objects.requireNonNull(parent()).objectId() + variableId());
+			//noinspection DataFlowIssue
+			Log log = t.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return set;
 			@SuppressWarnings("unchecked")

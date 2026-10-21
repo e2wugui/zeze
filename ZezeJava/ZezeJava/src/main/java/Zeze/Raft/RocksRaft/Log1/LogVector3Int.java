@@ -1,7 +1,5 @@
 package Zeze.Raft.RocksRaft.Log1;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import Zeze.Raft.RocksRaft.Bean;
@@ -31,7 +29,8 @@ public class LogVector3Int extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteVector3Int(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		bb.WriteVector3Int(value);
 	}
 
 	@Override

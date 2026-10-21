@@ -36,7 +36,8 @@ public abstract class CollMap<K, V> extends Collection implements Iterable<Map.E
 			var t = Transaction.getCurrent();
 			if (t == null)
 				return map;
-			var log = t.getLog(Objects.requireNonNull(parent()).objectId() + variableId());
+			//noinspection DataFlowIssue
+			var log = t.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return map;
 			@SuppressWarnings("unchecked")

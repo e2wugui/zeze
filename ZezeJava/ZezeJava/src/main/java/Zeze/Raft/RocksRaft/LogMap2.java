@@ -59,15 +59,16 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		if (!decoded && getValue() != null) {
 			changedWithKey.clear(); // live日志重建最终视图；decode日志保留wire中的changed。
 			for (var c : changed) {
-				Object pkey = Objects.requireNonNull(c.getThis()).mapKey();
+				//noinspection DataFlowIssue
+				Object pkey = c.getThis().mapKey();
 				// 第三条过滤对齐Transaction.Collections.LogMap2.buildChangedWithKey：
 				// 编辑时bean已不在最终map（remove不detach，编辑已删bean的陈旧引用仍会被collect，
 				// 其key来自更早事务，putted/removed两条拦不住），不过滤则follower侧必取到null；
 				// 且必须是key当前值本身——put覆盖后旧bean同样不detach，陈旧引用的字段日志
 				// 不得应用到覆盖后的新值上。
-				//noinspection SuspiciousMethodCalls
+				// noinspection SuspiciousMethodCalls
 				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey)
-						&& c.getThis() == Objects.requireNonNull(getValue()).get(pkey))
+						&& c.getThis() == getValue().get(pkey))
 					changedWithKey.put((K)Objects.requireNonNull(pkey), c);
 			}
 		}

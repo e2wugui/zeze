@@ -264,7 +264,8 @@ public class HttpExchange {
 		try {
 			synchronized (this) { // detach后并发首调：双检保证会话只建一次、Set-Cookie只发一条
 				// 事务redo会丢弃首轮插入，普通Java缓存不会回滚；每轮从当前事务视图核对行。
-				if (cookieSession == null || t != null && t.isRunning() && !Objects.requireNonNull(cookieSession).existsInCurrentTransaction()) {
+				//noinspection DataFlowIssue
+				if (cookieSession == null || t != null && t.isRunning() && !cookieSession.existsInCurrentTransaction()) {
 					cookieSession = httpSession.getCookieSession(this);
 					if (t != null && t.isRunning()) {
 						var initialized = cookieSession;
@@ -309,12 +310,12 @@ public class HttpExchange {
 		ArrayList<Object> headers;
 		if (t != null && t.isRunning()) {
 			var log = headersLog(t);
-			if (log.sessionCookie != expected)
+			if (!Objects.equals(log.sessionCookie, expected))
 				return;
 			headers = log.headers;
 			log.sessionCookie = null;
 		} else {
-			if (sessionCookieHeader != expected)
+			if (!Objects.equals(sessionCookieHeader, expected))
 				return;
 			headers = resHeaders;
 			sessionCookieHeader = null;
@@ -1303,7 +1304,7 @@ public class HttpExchange {
 	private record FrameIdentity(WebSocketFrame frame) {
 		@Override
 		public boolean equals(Object other) {
-			return other instanceof FrameIdentity identity && frame == identity.frame;
+			return other instanceof FrameIdentity(WebSocketFrame frame1) && frame == frame1;
 		}
 
 		@Override
@@ -1404,6 +1405,7 @@ public class HttpExchange {
 	// 复用后破坏他人请求）。EL已停机拒绝任务时，closeInEventLoop不再可能被调度
 	// （它只经cf listener与EL.execute触发），本线程是剩余唯一释放者，可内联执行。
 	private void releaseTerminalFromAnyThread() {
+		//noinspection resource
 		var eventLoop = context.channel().eventLoop();
 		if (eventLoop.inEventLoop()) {
 			releaseTerminal();

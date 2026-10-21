@@ -80,7 +80,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		try {
 			return beanFactory.createBeanFromSpecialTypeId(typeId);
 		} catch (Exception e) {
-			if (Objects.requireNonNull(exceptCounter.computeIfAbsent(typeId, __ -> new AtomicLong())).getAndIncrement() < 10)
+			//noinspection DataFlowIssue
+			if (exceptCounter.computeIfAbsent(typeId, __ -> new AtomicLong()).getAndIncrement() < 10)
 				logger.error("createBeanFromSpecialTypeId({}) exception:", typeId, e);
 			return new RawBean(typeId);
 		}
@@ -94,7 +95,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		try {
 			return beanFactory.createBeanFromSpecialTypeId(typeId);
 		} catch (Exception e) {
-			if (Objects.requireNonNull(exceptCounter.computeIfAbsent(typeId, __ -> new AtomicLong())).getAndIncrement() < 10)
+			//noinspection DataFlowIssue
+			if (exceptCounter.computeIfAbsent(typeId, __ -> new AtomicLong()).getAndIncrement() < 10)
 				logger.error("createOnlineBeanFromSpecialTypeId({}) exception:", typeId, e);
 			return new RawBean(typeId);
 		}
@@ -404,7 +406,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	// 直接传递BSimpleTimer（由SimpleTimerSpec.build()生成）。暂时不开放了。
 	private String schedule(BSimpleTimer simpleTimer,
 	                                 Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		var timeId = '@' + Objects.requireNonNull(timerIdAutoKey).nextString();
+		//noinspection DataFlowIssue
+		var timeId = '@' + timerIdAutoKey.nextString();
 		schedule(timeId, simpleTimer, handleClass, customData);
 		return timeId;
 	}
@@ -420,8 +423,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			root.setVersion(appVer);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) // 如果整个双链表是空的
-			nodeId = Objects.requireNonNull(nodeIdAutoKey).nextId();
-		for (; ; nodeId = Objects.requireNonNull(nodeIdAutoKey).nextId()) {
+			//noinspection DataFlowIssue
+			nodeId = nodeIdAutoKey.nextId();
+		for (; ; //noinspection DataFlowIssue
+			 nodeId = nodeIdAutoKey.nextId()) {
 			var node = _tNodes.getOrAdd(nodeId);
 			if (node.getNextNodeId() == 0 || node.getPrevNodeId() == 0) { // 如果节点是新创建的
 				var headNodeId = root.getHeadNodeId();
@@ -446,7 +451,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			}
 
 			if (node.getTimers().size() < CountPerNode) {
-				var serialId = Objects.requireNonNull(timerSerialId).nextId();
+				//noinspection DataFlowIssue
+				var serialId = timerSerialId.nextId();
 				_tIndexs.insert(timerId, new BIndex(serverId, nodeId, serialId, appVer));
 
 				var timer = new BTimer(timerId, handleClass.getName(), 0);
@@ -604,7 +610,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	// 直接传递BCronTimer（由CronTimerSpec.build()生成）。暂时不开放了。
 	private String schedule(BCronTimer cronTimer,
 	                                 Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		var timerId = '@' + Objects.requireNonNull(timerIdAutoKey).nextString();
+		//noinspection DataFlowIssue
+		var timerId = '@' + timerIdAutoKey.nextString();
 		schedule(timerId, cronTimer, handleClass, customData);
 		return timerId;
 	}
@@ -620,8 +627,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			root.setVersion(appVer);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) // 如果整个双链表是空的
-			nodeId = Objects.requireNonNull(nodeIdAutoKey).nextId();
-		for (; ; nodeId = Objects.requireNonNull(nodeIdAutoKey).nextId()) {
+			//noinspection DataFlowIssue
+			nodeId = nodeIdAutoKey.nextId();
+		for (; ; //noinspection DataFlowIssue
+			 nodeId = nodeIdAutoKey.nextId()) {
 			var node = _tNodes.getOrAdd(nodeId);
 			if (node.getNextNodeId() == 0 || node.getPrevNodeId() == 0) { // 如果节点是新创建的
 				var headNodeId = root.getHeadNodeId();
@@ -646,7 +655,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			}
 
 			if (node.getTimers().size() < CountPerNode) {
-				var serialId = Objects.requireNonNull(timerSerialId).nextId();
+				//noinspection DataFlowIssue
+				var serialId = timerSerialId.nextId();
 				_tIndexs.insert(timerId, new BIndex(serverId, nodeId, serialId, appVer));
 
 				var timer = new BTimer(timerId, handleClass.getName(), 0);

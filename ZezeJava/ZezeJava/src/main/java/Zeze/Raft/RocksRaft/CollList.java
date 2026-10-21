@@ -31,7 +31,8 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 			var t = Transaction.getCurrent();
 			if (t == null)
 				return list;
-			Log log = t.getLog(Objects.requireNonNull(parent()).objectId() + variableId());
+			//noinspection DataFlowIssue
+			Log log = t.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return list;
 			@SuppressWarnings("unchecked")

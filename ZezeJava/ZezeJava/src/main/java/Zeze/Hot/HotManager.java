@@ -277,7 +277,8 @@ public class HotManager extends ClassLoader {
 			if (null == exist)
 				continue;
 			try {
-				Objects.requireNonNull((IModule)exist.getService()).Register(); // 已经注销过，重启需要再次注册。
+				//noinspection DataFlowIssue
+				((IModule)exist.getService()).Register(); // 已经注销过，重启需要再次注册。
 				exist.start();
 				modules.put(exist.getName(), exist);
 			} catch (Throwable ex) {
@@ -292,12 +293,14 @@ public class HotManager extends ClassLoader {
 				continue;
 			modules.put(exist.getName(), exist);
 		}
-		if (!Objects.requireNonNull(getReadyLines()).isEmpty() && getReadyLines().getFirst().startsWith("stop")) {
+		//noinspection DataFlowIssue
+		if (!getReadyLines().isEmpty() && getReadyLines().getFirst().startsWith("stop")) {
 			// 停止服务时，即使当前停止错误的模块也恢复。【调试代码】
 			if (reverseErrorIndex >= 0) {
 				var exist = exists.get(reverseErrorIndex);
 				try {
-					Objects.requireNonNull((IModule)Objects.requireNonNull(exist).getService()).Register(); // 已经注销过，重启需要再次注册。
+					//noinspection DataFlowIssue
+					((IModule)exist.getService()).Register(); // 已经注销过，重启需要再次注册。
 					exist.start();
 					modules.put(exist.getName(), exist);
 				} catch (Throwable ex) {
@@ -307,7 +310,8 @@ public class HotManager extends ClassLoader {
 			}
 		} else if (reverseErrorIndex >= 0) {
 			// 发生错误的禁止暴露服务。
-			Objects.requireNonNull(exists.get(reverseErrorIndex)).disable();
+			//noinspection DataFlowIssue
+			exists.get(reverseErrorIndex).disable();
 		}
 	}
 
@@ -362,7 +366,8 @@ public class HotManager extends ClassLoader {
 			try (var ignored = enterWriteLock()) {
 				var app = zeze.getAppBase();
 				// 先保存现有的数据
-				Objects.requireNonNull(Objects.requireNonNull(app).getZeze()).checkpointRun();
+				//noinspection DataFlowIssue
+				app.getZeze().checkpointRun();
 				// remove
 				for (var namespace : namespaces) {
 					modules.remove(namespace);
@@ -687,7 +692,8 @@ public class HotManager extends ClassLoader {
 	}
 
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
-		hotManagerService = new HotManagerService(Objects.requireNonNull(app.getZeze()).getConfig());
+		//noinspection DataFlowIssue
+		hotManagerService = new HotManagerService(app.getZeze().getConfig());
 
 		BeanFactory.setApplication(app.getZeze());
 

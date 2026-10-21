@@ -57,7 +57,8 @@ final class BLeaderIsArgument extends Bean {
 	@Override
 	public int hashCode() {
 		final int _prime_ = 31;
-		return Long.hashCode(term) * _prime_ + Objects.requireNonNull(leaderId).hashCode();
+		//noinspection DataFlowIssue
+		return Long.hashCode(term) * _prime_ + leaderId.hashCode();
 	}
 
 	@Override

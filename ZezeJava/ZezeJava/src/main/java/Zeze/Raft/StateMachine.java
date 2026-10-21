@@ -42,7 +42,8 @@ public abstract class StateMachine extends ReentrantLock {
 		if (factory != null)
 			return factory.get();
 		logger.fatal("Unknown Log: {}", logTypeId, new Exception());
-		Objects.requireNonNull(raft).fatalKill();
+		//noinspection DataFlowIssue
+		raft.fatalKill();
 		return null;
 	}
 

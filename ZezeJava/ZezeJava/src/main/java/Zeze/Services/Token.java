@@ -196,11 +196,13 @@ public final class Token extends AbstractToken {
 		}
 
 		public void waitReady() {
-			Objects.requireNonNull(connector).WaitReady();
+			//noinspection DataFlowIssue
+			connector.WaitReady();
 		}
 
 		public @Nullable AsyncSocket getSocket() {
-			return Objects.requireNonNull(connector).getSocket();
+			//noinspection DataFlowIssue
+			return connector.getSocket();
 		}
 
 		// 不覆写OnSocketConnected保留"全Disable连上即完成握手"的快速路径：
@@ -214,57 +216,68 @@ public final class Token extends AbstractToken {
 		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
 			for (var topic : subTopics)
-				new SubTopic(new BTopic.Data(topic)).Send(Objects.requireNonNull(connector).getSocket());
+				//noinspection DataFlowIssue
+				new SubTopic(new BTopic.Data(topic)).Send(connector.getSocket());
 		}
 
 		public TaskCompletionSource<BNewTokenRes.Data> newToken(@Nullable Binary context, long ttl) {
-			return new NewToken(new BNewTokenArg.Data(context, ttl)).SendForWait(Objects.requireNonNull(connector).getSocket());
+			//noinspection DataFlowIssue
+			return new NewToken(new BNewTokenArg.Data(context, ttl)).SendForWait(connector.getSocket());
 		}
 
 		public boolean newToken(@Nullable Binary context, long ttl,
 								ProtocolHandle<Rpc<BNewTokenArg.Data, BNewTokenRes.Data>> handler) {
-			return new NewToken(new BNewTokenArg.Data(context, ttl)).Send(Objects.requireNonNull(connector).getSocket(), handler);
+			//noinspection DataFlowIssue
+			return new NewToken(new BNewTokenArg.Data(context, ttl)).Send(connector.getSocket(), handler);
 		}
 
 		public TaskCompletionSource<BGetTokenRes.Data> getToken(String token, long maxCount) {
-			return new GetToken(new BGetTokenArg.Data(token, maxCount)).SendForWait(Objects.requireNonNull(connector).getSocket());
+			//noinspection DataFlowIssue
+			return new GetToken(new BGetTokenArg.Data(token, maxCount)).SendForWait(connector.getSocket());
 		}
 
 		public boolean getToken(String token, long maxCount,
 								ProtocolHandle<Rpc<BGetTokenArg.Data, BGetTokenRes.Data>> handler) {
-			return new GetToken(new BGetTokenArg.Data(token, maxCount)).Send(Objects.requireNonNull(connector).getSocket(), handler);
+			//noinspection DataFlowIssue
+			return new GetToken(new BGetTokenArg.Data(token, maxCount)).Send(connector.getSocket(), handler);
 		}
 
 		public TaskCompletionSource<EmptyBean.Data> subTopic(String topic) {
 			subTopics.add(topic);
-			return new SubTopic(new BTopic.Data(topic)).SendForWait(Objects.requireNonNull(connector).getSocket());
+			//noinspection DataFlowIssue
+			return new SubTopic(new BTopic.Data(topic)).SendForWait(connector.getSocket());
 		}
 
 		public boolean subTopic(String topic,
 								ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
 			subTopics.add(topic);
-			return new SubTopic(new BTopic.Data(topic)).Send(Objects.requireNonNull(connector).getSocket(), handler);
+			//noinspection DataFlowIssue
+			return new SubTopic(new BTopic.Data(topic)).Send(connector.getSocket(), handler);
 		}
 
 		public TaskCompletionSource<EmptyBean.Data> unsubTopic(String topic) {
 			subTopics.remove(topic);
-			return new UnsubTopic(new BTopic.Data(topic)).SendForWait(Objects.requireNonNull(connector).getSocket());
+			//noinspection DataFlowIssue
+			return new UnsubTopic(new BTopic.Data(topic)).SendForWait(connector.getSocket());
 		}
 
 		public boolean unsubTopic(String topic,
 								  ProtocolHandle<Rpc<BTopic.Data, EmptyBean.Data>> handler) {
 			subTopics.remove(topic);
-			return new UnsubTopic(new BTopic.Data(topic)).Send(Objects.requireNonNull(connector).getSocket(), handler);
+			//noinspection DataFlowIssue
+			return new UnsubTopic(new BTopic.Data(topic)).Send(connector.getSocket(), handler);
 		}
 
 		public TaskCompletionSource<EmptyBean.Data> pubTopic(String topic, @Nullable Binary content,
 																	  boolean broadcast) {
-			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).SendForWait(Objects.requireNonNull(connector).getSocket());
+			//noinspection DataFlowIssue
+			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).SendForWait(connector.getSocket());
 		}
 
 		public boolean pubTopic(String topic, @Nullable Binary content, boolean broadcast,
 								ProtocolHandle<Rpc<BPubTopic.Data, EmptyBean.Data>> handler) {
-			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).Send(Objects.requireNonNull(connector).getSocket(), handler);
+			//noinspection DataFlowIssue
+			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).Send(connector.getSocket(), handler);
 		}
 
 		protected long ProcessNotifyTopic(NotifyTopic p) {
@@ -659,7 +672,8 @@ public final class Token extends AbstractToken {
 		tokenStoreLock.lock();
 		try {
 			if (rocksdb != null) {
-				Objects.requireNonNull(rocksdb).close();
+				//noinspection DataFlowIssue
+				rocksdb.close();
 				rocksdb = null;
 			}
 			tokenMapTable = null;
@@ -703,8 +717,10 @@ public final class Token extends AbstractToken {
 		long n = 0, d = 0;
 		// newBatch用try-with-resources包住（对齐saveDB）——WriteBatch持有native内存，
 		// 不close的话周期任务逐次泄漏累积。
-		try (var batch = Objects.requireNonNull(rocksdb).newBatch()) {
-			try (var it = Objects.requireNonNull(tokenMapTable).iterator()) {
+		//noinspection DataFlowIssue
+		try (var batch = rocksdb.newBatch()) {
+			//noinspection DataFlowIssue
+			try (var it = tokenMapTable.iterator()) {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					try {
 						bb.wraps(it.value());
@@ -744,7 +760,8 @@ public final class Token extends AbstractToken {
 			long n = 0;
 			var saved = new java.util.ArrayList<TokenState>();
 			var bb = ByteBuffer.Allocate(32);
-			try (var batch = Objects.requireNonNull(rocksdb).newBatch()) {
+			//noinspection DataFlowIssue
+			try (var batch = rocksdb.newBatch()) {
 				var now = System.currentTimeMillis();
 				for (var state : tokenMap.values()) {
 					var k = state.key.getBytes(StandardCharsets.UTF_8);
@@ -804,7 +821,8 @@ public final class Token extends AbstractToken {
 			r.SendResultCode(-1);
 			return Procedure.Success;
 		}
-		var remoteAddr = Objects.requireNonNull(r.getSender()).getRemoteAddress();
+		//noinspection DataFlowIssue
+		var remoteAddr = r.getSender().getRemoteAddress();
 		String token;
 		var created = new OutObject<>(false);
 		do {
@@ -920,7 +938,8 @@ public final class Token extends AbstractToken {
 
 	@Override
 	protected long ProcessSubTopicRequest(SubTopic r) {
-		var session = ((TokenServer.Session)Objects.requireNonNull(r.getSender()).getUserState());
+		//noinspection DataFlowIssue
+		var session = ((TokenServer.Session)r.getSender().getUserState());
 		if (session == null) {
 			r.SendResultCode(-1);
 			return Procedure.Success;
@@ -936,7 +955,8 @@ public final class Token extends AbstractToken {
 
 	@Override
 	protected long ProcessUnsubTopicRequest(UnsubTopic r) {
-		var session = ((TokenServer.Session)Objects.requireNonNull(r.getSender()).getUserState());
+		//noinspection DataFlowIssue
+		var session = ((TokenServer.Session)r.getSender().getUserState());
 		if (session == null) {
 			r.SendResultCode(-1);
 			return Procedure.Success;

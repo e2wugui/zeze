@@ -200,7 +200,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 			else if (future.getClass() == RedirectAllFutureFinished.class) {
 				var re = handle.resultEncoder;
 				if (re != null)
-					hashResult.setParams(re.apply(((RedirectAllFutureFinished<?>)future).getResult()));
+					hashResult.setParams(re.apply(((RedirectAllFutureFinished<?>)future).result()));
 				resArg.getHashes().put(hash, hashResult);
 				sendResultIfSizeExceed(p.getSender(), res);
 			} else
@@ -234,7 +234,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 
 	@Override
 	protected long ProcessAnnounceProviderInfoRequest(AnnounceProviderInfo r) {
-		var ps = (ProviderSession)Objects.requireNonNull(r.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var ps = (ProviderSession)r.getSender().getUserState();
 		Objects.requireNonNull(ps).serverId = r.Argument.getServerId();
 		Objects.requireNonNull(requireProviderApp().providerDirectService).setRelativeServiceReady(ps, r.Argument.getIp(), r.Argument.getPort());
 		return 0;

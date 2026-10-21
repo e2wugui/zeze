@@ -67,7 +67,8 @@ public class LogQuaternion extends Log {
 
 	@Override
 	public Vector3Int vector2IntValue() {
-		return new Vector3Int(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Vector3Int(value);
 	}
 
 	@Override
@@ -77,7 +78,8 @@ public class LogQuaternion extends Log {
 
 	@Override
 	public Vector3Int vector3IntValue() {
-		return new Vector3Int(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Vector3Int(value);
 	}
 
 	@Override

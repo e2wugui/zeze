@@ -1,7 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import java.util.Objects;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -129,14 +127,17 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			// 下标按身份预建一遍（O(changed+size)）：逐changed线性扫在
 			// 大列表+多处原位修改时encode期CPU放大（O(changed×size)）。
 			// 重复元素取首个出现位置（对齐原线性扫的break语义）。
-			var indexByIdentity = new IdentityHashMap<V, Integer>(curList.size());
+			// getThis() 返回 Bean，索引也按 Bean 身份查询，不要求查询者的静态类型为 V。
+			var indexByIdentity = new IdentityHashMap<Bean, Integer>(curList.size());
 			for (var i = 0; i < curList.size(); i++)
 				indexByIdentity.putIfAbsent(curList.get(i), i);
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
 				var bean = e.getKey().getThis();
 				var idxExist = indexByIdentity.get(bean);
-				if (idxExist == null || addSet != null && addSet.contains(Objects.requireNonNull(bean)))
+				// 命中索引时 bean 必是 curList 中的非空元素。
+				//noinspection DataFlowIssue
+				if (idxExist == null || addSet != null && addSet.contains(bean))
 					it.remove();
 				else
 					e.getValue().value = idxExist;
@@ -154,7 +155,8 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
 				if (opLog.op < OpLog.OP_REMOVE)
-					Objects.requireNonNull(opLog.value).encode(bb);
+					//noinspection DataFlowIssue
+					opLog.value.encode(bb);
 			}
 		}
 	}
@@ -177,7 +179,8 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
 				V v = null;
 				if (op < OpLog.OP_REMOVE) {
-					v = (V)Objects.requireNonNull(meta.valueFactory).invoke();
+					//noinspection DataFlowIssue
+					v = (V)meta.valueFactory.invoke();
 					v.decode(bb);
 				}
 				opLogs.add(new OpLog<>(op, index, v));

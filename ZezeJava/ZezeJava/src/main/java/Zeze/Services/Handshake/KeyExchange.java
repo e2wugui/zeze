@@ -213,7 +213,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 				var clientPubKey = stripLeadingZeros(Objects.requireNonNull(Argument.clientPubKey)); // 与getPubKeyMd5相同的前导零归一
 				if (clientPubKey.length == 0 || !clientPubKeyAcceptor.test(clientPubKey)) {
 					trySendResultCode(Res.ErrorUnknownClientPubKey);
-					Objects.requireNonNull(getSender()).closeGracefully();
+					//noinspection DataFlowIssue
+					getSender().closeGracefully();
 					return 0;
 				}
 			}

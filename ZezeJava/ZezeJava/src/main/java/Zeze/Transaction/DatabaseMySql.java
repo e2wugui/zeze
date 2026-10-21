@@ -860,7 +860,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			var table = getDatabase().getTable(name);
 			if (table == null)
 				throw new IllegalStateException("not found table: " + name);
-			var sql = Objects.requireNonNull(table.getRelationalTable()).createTableSql();
+			//noinspection DataFlowIssue
+			var sql = table.getRelationalTable().createTableSql();
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var ps = conn.prepareStatement(sql)) {

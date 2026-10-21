@@ -48,7 +48,8 @@ public class LogBinary extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBinary(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		bb.WriteBinary(value);
 	}
 
 	@Override
@@ -58,7 +59,8 @@ public class LogBinary extends Log {
 
 	@Override
 	public String toString() {
-		return Objects.requireNonNull(value).toString();
+		//noinspection DataFlowIssue
+		return value.toString();
 	}
 
 	@Override

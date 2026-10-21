@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import org.jspecify.annotations.Nullable;
@@ -20,12 +18,14 @@ public final class RecordAccessed extends Bean {
 
 		@Override
 		public long getLogKey() {
-			return Objects.requireNonNull(getBelong()).objectId();
+			//noinspection DataFlowIssue
+			return getBelong().objectId();
 		}
 
 		@Override
 		public void commit() {
-			((RecordAccessed)Objects.requireNonNull(getBelong())).committedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
+			//noinspection DataFlowIssue
+			((RecordAccessed)getBelong()).committedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
 		}
 	}
 

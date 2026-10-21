@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -35,7 +34,8 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 	}
 
 	public boolean tryLock() {
-		return Objects.requireNonNull(lock).tryLock();
+		//noinspection DataFlowIssue
+		return lock.tryLock();
 	}
 
 	@Override
@@ -44,23 +44,28 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 	}
 
 	public void enter() {
-		Objects.requireNonNull(lock).lock();
+		//noinspection DataFlowIssue
+		lock.lock();
 	}
 
 	public void await() throws InterruptedException {
-		Objects.requireNonNull(cond).await();
+		//noinspection DataFlowIssue
+		cond.await();
 	}
 
 	public void pulse() {
-		Objects.requireNonNull(cond).signal();
+		//noinspection DataFlowIssue
+		cond.signal();
 	}
 
 	public void pulseAll() {
-		Objects.requireNonNull(cond).signalAll();
+		//noinspection DataFlowIssue
+		cond.signalAll();
 	}
 
 	public void exit() {
-		Objects.requireNonNull(lock).unlock();
+		//noinspection DataFlowIssue
+		lock.unlock();
 	}
 
 	GlobalLockey alloc() {

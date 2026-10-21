@@ -194,8 +194,9 @@ final class ReceiveSnapshotting {
 				// 协议内本分支只剩重复投递（newEnd==fileLength）；done块结尾不齐属
 				// 理论外路径：按冲突应答让leader重装全新截断——不得冻结半截文件提交
 				// （尺寸复核拦不住：expectedLength记录的正是done时的文件长度）。
+				//noinspection DataFlowIssue
 				if (r.Argument.getDone()
-						&& r.Argument.getOffset() + Objects.requireNonNull(r.Argument.getData()).size() != fileLength) {
+						&& r.Argument.getOffset() + r.Argument.getData().size() != fileLength) {
 					r.SendResultCode(InstallSnapshot.ResultCodeFinalizingConflict);
 					return null;
 				}

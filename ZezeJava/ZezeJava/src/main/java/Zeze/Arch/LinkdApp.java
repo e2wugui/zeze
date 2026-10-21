@@ -130,7 +130,8 @@ public class LinkdApp {
 		// 启动load服务和LoginQueueAgent网络服务。
 		// LinkdApp没有stop，不停止这两个服务。
 		if (null != linkdLoad) {
-			Objects.requireNonNull(linkdLoad.getLoginQueueAgent()).start();
+			//noinspection DataFlowIssue
+			linkdLoad.getLoginQueueAgent().start();
 			linkdLoad.start();
 		}
 	}

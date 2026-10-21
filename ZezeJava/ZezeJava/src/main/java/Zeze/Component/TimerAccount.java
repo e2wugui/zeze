@@ -498,7 +498,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		// 归属校验（对齐TimerRole.cancelOffline）：无校验直接timer.cancel时，
 		// 传入任意timerId（SafeBatch看门狗、他人offline timer、
 		// 全局命名timer）都会被越权取消，且恒返回true掩盖"是否真的取消"。
-		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
+		//noinspection DataFlowIssue
+		var index = timer.tIndexs().get(timerId);
 		if (index == null)
 			return false;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -718,7 +719,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	// 查timerId当前登记的账号offline timer归属，查表路径仿cancelOffline：
 	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
 	private static @Nullable BOfflineAccountCustom getAccountOfflineCustom(Timer timer, String timerId) {
-		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
+		var index = timer.tIndexs().get(timerId);
 		if (index == null)
 			return null;
 		var node = timer.tNodes().get(index.getNodeId());
@@ -738,7 +739,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		var timer = zeze.getTimer();
 		if (Objects.requireNonNull(timer).isOnlineTimerIdOccupied(timerId))
 			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
-		var index = Objects.requireNonNull(timer).tIndexs().get(timerId);
+		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
 		// 族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
@@ -777,7 +778,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 					return;
 				var timer = zeze.getTimer();
 				var key = new BAccountClientId(custom.getAccount(), custom.getClientId());
-				var offlineTimers = Objects.requireNonNull(timer).tAccountOfflineTimers().get(key);
+				//noinspection DataFlowIssue
+				var offlineTimers = timer.tAccountOfflineTimers().get(key);
 				if (offlineTimers != null) {
 					offlineTimers.getOfflineTimers().remove(custom.getTimerName());
 					if (offlineTimers.getOfflineTimers().isEmpty())
@@ -825,7 +827,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		var loginArg = (LoginArgument)arg;
 		var loginKey = new BAccountClientId(loginArg.account, loginArg.clientId);
 		var timer = online.providerApp.zeze.getTimer();
-		var offlineTimers = Objects.requireNonNull(timer).tAccountOfflineTimers().get(loginKey);
+		//noinspection DataFlowIssue
+		var offlineTimers = timer.tAccountOfflineTimers().get(loginKey);
 		// X: fix offlineTimers is null
 		if (offlineTimers == null)
 			return 0;

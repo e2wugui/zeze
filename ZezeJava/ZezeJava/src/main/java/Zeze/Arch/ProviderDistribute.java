@@ -78,7 +78,7 @@ public class ProviderDistribute extends ReentrantLock {
 		var serviceInfo = consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 		if (serviceInfo != null) {
 			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
-					Objects.requireNonNull(serviceInfo).getServiceIdentity());
+					serviceInfo.getServiceIdentity());
 			if (providerModuleState == null)
 				return null;
 			if (providerModuleState.sessionId == 0)
@@ -120,7 +120,7 @@ public class ProviderDistribute extends ReentrantLock {
 		if (serviceInfo == null)
 			return false;
 
-		var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(Objects.requireNonNull(serviceInfo).getServiceIdentity());
+		var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(serviceInfo.getServiceIdentity());
 		if (providerModuleState == null)
 			return false;
 
@@ -148,8 +148,9 @@ public class ProviderDistribute extends ReentrantLock {
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
+			//noinspection DataFlowIssue
 			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
-					Objects.requireNonNull(serviceInfo).getServiceIdentity());
+					serviceInfo.getServiceIdentity());
 			if (providerModuleState == null) {
 				continue;
 			}
@@ -213,8 +214,9 @@ public class ProviderDistribute extends ReentrantLock {
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
+			//noinspection DataFlowIssue
 			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
-					Objects.requireNonNull(serviceInfo).getServiceIdentity());
+					serviceInfo.getServiceIdentity());
 			if (providerModuleState == null) {
 				continue;
 			}
@@ -275,8 +277,9 @@ public class ProviderDistribute extends ReentrantLock {
 			for (int i = 0; i < list.size(); ++i, feedFullOneByOneIndex.incrementAndGet()) {
 				var index = Integer.remainderUnsigned(feedFullOneByOneIndex.get(), list.size()); // current
 				var serviceInfo = list.get(index);
+				//noinspection DataFlowIssue
 				var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
-						Objects.requireNonNull(serviceInfo).getServiceIdentity());
+						serviceInfo.getServiceIdentity());
 				if (providerModuleState == null)
 					continue;
 				var providerSocket = providerService.GetSocket(providerModuleState.sessionId);

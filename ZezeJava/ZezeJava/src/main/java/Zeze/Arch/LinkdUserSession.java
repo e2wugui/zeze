@@ -138,13 +138,15 @@ public class LinkdUserSession {
 				var ps = (LinkdProviderSession)provider.getUserState();
 				// 先在provider索引锁下准入，再换正向归属。close先取快照则拒绝；登记先发生
 				// 则条目进入close快照，其锁外清理会等本bindsLock释放后核对当前归属。
-				if (ps != null && !ps.tryAddLinkSession(moduleId, Objects.requireNonNull(link).getSessionId()))
+				//noinspection DataFlowIssue
+				if (ps != null && !ps.tryAddLinkSession(moduleId, link.getSessionId()))
 					continue;
 				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
 					var s = Objects.requireNonNull(linkdProviderService).GetSocket(exist);
 					if (s != null && s.getUserState() instanceof LinkdProviderSession oldSession)
-						oldSession.removeLinkSession(moduleId, Objects.requireNonNull(link).getSessionId());
+						//noinspection DataFlowIssue
+						oldSession.removeLinkSession(moduleId, link.getSessionId());
 					logger.warn("bind: replace provider moduleId={}, account={}, from={}, to={}",
 							moduleId, account, s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 				}
@@ -186,7 +188,8 @@ public class LinkdUserSession {
 						if (!isOnProviderClose) {
 							var ps = (LinkdProviderSession)provider.getUserState();
 							if (ps != null)
-								ps.removeLinkSession(moduleId, Objects.requireNonNull(link).getSessionId());
+								//noinspection DataFlowIssue
+								ps.removeLinkSession(moduleId, link.getSessionId());
 						}
 					} else {
 						var s = Objects.requireNonNull(linkdProviderService).GetSocket(exist);

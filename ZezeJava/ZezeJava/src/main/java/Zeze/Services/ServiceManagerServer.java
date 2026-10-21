@@ -228,7 +228,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		private void collectNotify(BServiceInfo info, boolean isAdd,
 								   HashMap<AsyncSocket, EditService> result) {
 			for (var it = simple.iterator(); it.moveToNext(); ) {
-				var itVersion = Objects.requireNonNull(it.value()).getVersion();
+				//noinspection DataFlowIssue
+				var itVersion = it.value().getVersion();
 				if (itVersion == 0 || itVersion == info.getVersion()) {
 					var peer = Objects.requireNonNull(serviceManager.server).GetSocket(it.key());
 					if (peer != null) {
@@ -528,7 +529,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		for (var info : r.Argument.getRemove())
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Procedure.ErrorRequestId;
-		var session = (Session)Objects.requireNonNull(r.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var session = (Session)r.getSender().getUserState();
 		var notifies = new HashMap<AsyncSocket, EditService>();
 		// 原子的完成所有编辑的修改和通知。
 		editLock.lock();
@@ -540,7 +542,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var finalRegisters = new HashSet<BServiceInfo>();
 			for (var info : Objects.requireNonNull(session).registers)
 				finalRegisters.add(info);
-			finalRegisters.removeAll(remove);
+			remove.forEach(finalRegisters::remove);
 			finalRegisters.addAll(add);
 			var requestedNames = new HashSet<String>();
 			for (var info : add)
@@ -605,7 +607,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private long processSubscribe(Subscribe r) {
 		logger.info("{}: Subscribe {}", r.getSender(), r.Argument);
-		var session = (Session)Objects.requireNonNull(r.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var session = (Session)r.getSender().getUserState();
 
 		if (r.Argument.subs.size() > SVC_EDIT_BATCH_MAX) {
 			warnSvcRejected("subscribe batch exceeded " + SVC_EDIT_BATCH_MAX + ": " + r.Argument.subs.size());
@@ -656,7 +659,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private long processUnSubscribe(UnSubscribe r) {
 		logger.info("{}: UnSubscribe {}", r.getSender(), r.Argument);
-		var session = (Session)Objects.requireNonNull(r.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var session = (Session)r.getSender().getUserState();
 
 		editLock.lock();
 		try {
@@ -701,7 +705,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// 只写session上一个int（Direct派发内完成、无锁、无取消语义）。
 	@SuppressWarnings("MethodMayBeStatic")
 	private long processIdentify(Identify r) {
-		var session = (Session)Objects.requireNonNull(r.getSender()).getUserState();
+		//noinspection DataFlowIssue
+		var session = (Session)r.getSender().getUserState();
 		if (session != null) {
 			session.identifyServerId = r.Argument.serverId;
 			session.identifyVersion = r.Argument.version;

@@ -299,7 +299,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	// load redirect 使用这个构造函数。
 	protected Online(AppBase app) {
-		super("", Objects.requireNonNull(app.getZeze()).getConfig());
+		//noinspection DataFlowIssue
+		super("", app.getZeze().getConfig());
 		var zeze = app.getZeze();
 		loginEvents = new EventDispatcher(zeze, "Online.Login");
 		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
@@ -315,7 +316,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	// 创建新的OnlineSet使用这个构造函数。独立OnlineSet不装载redirect子类。
 	private Online(AppBase app, String name) {
-		super(name, Objects.requireNonNull(app.getZeze()).getConfig());
+		//noinspection DataFlowIssue
+		super(name, app.getZeze().getConfig());
 		var zeze = app.getZeze();
 		loginEvents = new EventDispatcher(zeze, "Online.Login");
 		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
@@ -2009,7 +2011,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Override
 	protected long ProcessLoginRequest(Login rpc) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("Login[{}]: {}", Objects.requireNonNull(rpc.getSender()).getSessionId(), AsyncSocket.toStr(rpc.Argument));
+			//noinspection DataFlowIssue
+			logger.info("Login[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
 		if (onlineSet == null) {
 			var session = ProviderUserSession.get(rpc);
@@ -2104,7 +2107,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Override
 	protected long ProcessReLoginRequest(ReLogin rpc) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("ReLogin[{}]: {}", Objects.requireNonNull(rpc.getSender()).getSessionId(), AsyncSocket.toStr(rpc.Argument));
+			//noinspection DataFlowIssue
+			logger.info("ReLogin[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
 		if (onlineSet == null) {
 			var session = ProviderUserSession.get(rpc);
@@ -2204,7 +2208,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Override
 	protected long ProcessLogoutRequest(Logout rpc) throws Exception {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
-			logger.info("Logout[{}]: {}", Objects.requireNonNull(rpc.getSender()).getSessionId(), AsyncSocket.toStr(rpc.Argument));
+			//noinspection DataFlowIssue
+			logger.info("Logout[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var session = ProviderUserSession.get(rpc);
 		var onlineSet = getOnline(session.getOnlineSetName());
 		return onlineSet != null ? onlineSet.ProcessLogoutRequestOnlineSet(rpc) : 0; // skip logout error

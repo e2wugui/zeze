@@ -436,7 +436,7 @@ public final class TaskSpec<R extends @Nullable Object> {
 	 */
 	public void executeOneByOne(Object key, TaskOneByOneBase queue) {
 		consumeBase();
-		queue.execute(Objects.requireNonNull(key), newQueueTask());
+		queue.execute(key, newQueueTask());
 	}
 
 	/**
@@ -461,7 +461,7 @@ public final class TaskSpec<R extends @Nullable Object> {
 	 */
 	public void executeOneByOne(Object key, TaskOneByOneByKey2 queue) {
 		consumeKey2();
-		executeKey2(Objects.requireNonNull(key).hashCode(), queue);
+		executeKey2(key.hashCode(), queue);
 	}
 
 	/**

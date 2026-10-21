@@ -123,7 +123,8 @@ public class Server extends HandshakeBoth {
 
 		@Override
 		public void OnSocketClose(AsyncSocket closed, @Nullable Throwable e) throws Exception {
-			Raft raft = Objects.requireNonNull(((Server)closed.getService())).getRaft();
+			//noinspection DataFlowIssue
+			Raft raft = (((Server)closed.getService())).getRaft();
 			Raft.executeImportantTask(() -> {
 				// avoid deadlock: lock(socket), lock (Raft).
 				raft.lock();
@@ -142,7 +143,8 @@ public class Server extends HandshakeBoth {
 		@Override
 		public void OnSocketHandshakeDone(AsyncSocket so) {
 			super.OnSocketHandshakeDone(so);
-			Raft raft = Objects.requireNonNull(((Server)getService())).getRaft();
+			//noinspection DataFlowIssue
+			Raft raft = (((Server)getService())).getRaft();
 			Raft.executeImportantTask(() -> TaskSpec.ofAction(() -> {
 				raft.lock();
 				try {
@@ -219,8 +221,9 @@ public class Server extends HandshakeBoth {
 				if (state != null) {
 					if (state != UniqueRequestState.NOT_FOUND) {
 						if (state.isApplied()) {
+							//noinspection DataFlowIssue
 							p.SendResultCode(Procedure.RaftApplied,
-									Objects.requireNonNull(state.getRpcResult()).size() > 0 ? state.getRpcResult() : null);
+									state.getRpcResult().size() > 0 ? state.getRpcResult() : null);
 							return 0L;
 						}
 						p.SendResultCode(Procedure.DuplicateRequest);

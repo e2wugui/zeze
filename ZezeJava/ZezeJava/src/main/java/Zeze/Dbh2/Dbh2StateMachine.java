@@ -113,7 +113,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	 * 超窗迟到 commit 经同一 raft 日志序全网一致删除；协调者冻结后解冻补 decide 的数据
 	 * 仍灭失——2PC 超时终局的固有取舍（error 可见 + 窗口可配，见 expireDueTombstones）。 */
 	long undoResurrectGraceMillis() {
-		var conf = Objects.requireNonNull(dbh2).getDbh2Config();
+		//noinspection DataFlowIssue
+		var conf = dbh2.getDbh2Config();
 		return conf.getRpcTimeout() + conf.getPrepareMaxTime() + 30_000L;
 	}
 
@@ -304,7 +305,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		} finally {
 			noTransactionLock.unlock();
 		}
-		Objects.requireNonNull(Objects.requireNonNull(dbh2).getRaft()).executeUserTask(() -> setupOneShotIfNoTransaction(handle));
+		//noinspection DataFlowIssue
+		Objects.requireNonNull(dbh2.getRaft()).executeUserTask(() -> setupOneShotIfNoTransaction(handle));
 	}
 
 	private Bucket requireBucket() {
@@ -326,7 +328,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void openBucket() {
 		if (bucket != null)
 			return;
-		bucket = new Bucket(Objects.requireNonNull(getRaft()).getRaftConfig());
+		//noinspection DataFlowIssue
+		bucket = new Bucket(getRaft().getRaftConfig());
 		requireBucket().setWriteOptions(writeOptions);
 		tidAllocator = new TidAllocator();
 		// 同步队列依附bucket的meta列族打开，并从落盘状态恢复序号/水位（restore路径同样经此重开）。
@@ -340,7 +343,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		splitSyncWatermark = readSplitSyncCounter(SplitSyncWatermarkKey);
 
 		if (null == timer) {
-			var period = Objects.requireNonNull(getRaft()).getRaftConfig().getAppendEntriesTimeout() + 200;
+			//noinspection DataFlowIssue
+			var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
 			var delay = Random.getInstance().nextLong(period);
 			timer = TaskSpec.ofAction(this::onTimer).schedulePeriodNow(delay, period);
 		}
@@ -362,7 +366,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	@Override
 	public @Nullable AppliedWatermark readAppliedWatermark() throws RocksDBException {
-		return Objects.requireNonNull(appliedState).readWatermark();
+		//noinspection DataFlowIssue
+		return appliedState.readWatermark();
 	}
 
 	@Override
@@ -396,7 +401,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			} catch (Throwable e) {
 				// 内存已改变而批次未完成时不能继续服务或原地重试，沿用dbh2的致命apply语义。
 				logger.fatal("dbh2 apply failed at index={}", holder.getIndex(), e);
-				Objects.requireNonNull(getRaft()).fatalKill();
+				//noinspection DataFlowIssue
+				getRaft().fatalKill();
 				throw Task.forceThrow(e);
 			} finally {
 				requireBucket().endApply();
@@ -409,7 +415,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		if (triggerNoTransactionAfterApply)
 			triggerNoTransactionIf();
 		if (driveSplitSyncAfterApply)
-			Objects.requireNonNull(dbh2).driveSplitSync();
+			//noinspection DataFlowIssue
+			dbh2.driveSplitSync();
 	}
 
 	private long readSplitSyncCounter(byte[] key) {
@@ -422,7 +429,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	private void onTimer() {
-		if (!Objects.requireNonNull(getRaft()).isLeader())
+		//noinspection DataFlowIssue
+		if (!getRaft().isLeader())
 			return;
 
 		// 年龄判据用单调钟（FND29 dbh2-03 断根）：墙钟步进（NTP步进/VM恢复）可把仍在协调者
@@ -434,15 +442,18 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			// 中止本轮剩余悬挂事务的超时检查（不可达查询卡住遍历首位，同轮后续undo判定逐轮推迟）。
 			try {
 				var t = e.getValue();
-				if (t.elapsedMillis() < Objects.requireNonNull(dbh2).getDbh2Config().getBucketMaxTime())
+				//noinspection DataFlowIssue
+				if (t.elapsedMillis() < dbh2.getDbh2Config().getBucketMaxTime())
 					continue;
-				var state = Objects.requireNonNull(commitAgent).query(t.getQueryIp(), t.getQueryPort(), tid, Objects.requireNonNull(dbh2).getDbh2Config().getRpcTimeout());
+				//noinspection DataFlowIssue
+				var state = Objects.requireNonNull(commitAgent).query(t.getQueryIp(), t.getQueryPort(), tid, dbh2.getDbh2Config().getRpcTimeout());
 				if (Commit.eCommitNotExist == state.getState()
 						|| Commit.ePreparing == state.getState()) {
 					logger.warn("timeout undo tid={} state={}", tid, state);
 					Objects.requireNonNull(getRaft()).appendLog(new LogUndoBatch(tid));
+				//noinspection DataFlowIssue
 				} else if (Commit.eCommitting == state.getState()
-						&& t.elapsedMillis() >= Objects.requireNonNull(dbh2).getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
+						&& t.elapsedMillis() >= dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
 						&& committingHangWarnedTids.add(tid)) {
 					// 2PC语义：协调者已保存commitPoint(eCommitting)，桶侧无信息安全终局（误undo=跨桶
 					// 部分提交），只告警不自动终局；恢复依赖协调者CommitRocks存活，灾难场景重建协调者
@@ -463,7 +474,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			requireBucket().setBucketMeta(argument);
 		} catch (RocksDBException e) {
 			logger.error("", e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -475,7 +487,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			clearSplitSyncQueue();
 		} catch (RocksDBException e) {
 			logger.error("", e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -485,7 +498,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			requireBucket().clearPendingSettle(to);
 		} catch (RocksDBException e) {
 			logger.error("", e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -494,7 +508,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			// 写序不变量："meta不再声明的键域才允许物理删除"——meta先置死、deleteToEnd
 			// 后行，消除"数据已删、meta未切"窗口内并发Get把仍存在的键假报"不存在"（反转
 			// 后窗口内Get以死桶meta被拒，客户端重路由）。apply内同一日志原子重放。
-			var emptyMeta = Objects.requireNonNull(requireBucket().getBucketMeta()).copy();
+			//noinspection DataFlowIssue
+			var emptyMeta = requireBucket().getBucketMeta().copy();
 			emptyMeta.setKeyFirst(Bucket.DeadBucketMetaBound);
 			emptyMeta.setKeyLast(Bucket.DeadBucketMetaBound);
 			// 被移走的桶Meta置空（使用相同的非空key），拒绝所有对这个桶的访问。
@@ -510,7 +525,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			requireBucket().deleteToEnd(it);
 		} catch (RocksDBException e) {
 			logger.error("", e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -529,7 +545,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			requireBucket().deleteToEnd(it);
 		} catch (RocksDBException e) {
 			logger.error("", e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -549,7 +566,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				Objects.requireNonNull(getTidAllocator()).setRange(start, end);
 		} catch (RocksDBException ex) {
 			logger.error("", ex);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -582,7 +600,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			txn.prepareBatch(requireBucket());
 		} catch (RocksDBException e) {
 			logger.error("", e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -619,7 +638,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
 			logger.error("", e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -651,7 +671,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
 			logger.error("", e);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 
@@ -688,7 +709,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		if (requireBucket().isApplying())
 			driveSplitSyncAfterApply = true;
 		else
-			Objects.requireNonNull(dbh2).driveSplitSync();
+			//noinspection DataFlowIssue
+			dbh2.driveSplitSync();
 	}
 
 	public static final class SplitSyncBatch {
@@ -717,7 +739,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				return null;
 			var puts = new HashMap<Binary, Binary>();
 			long lastSeq = watermark;
-			try (var it = Objects.requireNonNull(splitSyncTable).iterator()) {
+			//noinspection DataFlowIssue
+			try (var it = splitSyncTable.iterator()) {
 				it.seek(splitSyncRecordKey(watermark + 1));
 				for (var count = 0; it.isValid() && count < maxCount; it.next()) {
 					var key = it.key();
@@ -779,7 +802,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try {
 			if (splitSyncSeq == 0 && splitSyncWatermark == 0)
 				return;
-			try (var it = Objects.requireNonNull(splitSyncTable).iterator()) {
+			//noinspection DataFlowIssue
+			try (var it = splitSyncTable.iterator()) {
 				it.seek(splitSyncRecordKey(1));
 				for (; it.isValid(); it.next()) { // 迭代器为快照视图，遍历中delete不影响遍历
 					var key = it.key();
@@ -801,7 +825,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	/// /////////////////////////////////////////////////////////
 	// raft implement
 	public @Nullable String getDbHome() {
-		return Objects.requireNonNull(getRaft()).getRaftConfig().getDbHome();
+		//noinspection DataFlowIssue
+		return getRaft().getRaftConfig().getDbHome();
 	}
 
 	@Override
@@ -825,7 +850,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			Zeze.Raft.RocksRaft.Rocks.createZipFromDirectory(backupDir, path);
 
 			long t3 = System.nanoTime();
-			Objects.requireNonNull(getRaft()).getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
+			//noinspection DataFlowIssue
+			getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
 
 			result.success = true;
 			result.checkPointNanoTime = t1 - t0;
@@ -898,7 +924,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	@Override
 	public void reset() {
-		Objects.requireNonNull(getRaft()).lock();
+		//noinspection DataFlowIssue
+		getRaft().lock();
 		try {
 			close();
 			var path = Path.of(Objects.requireNonNull(getDbHome()), "statemachine").toAbsolutePath().toFile();
@@ -907,7 +934,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
 		} finally {
-			Objects.requireNonNull(getRaft()).unlock();
+			//noinspection DataFlowIssue
+			getRaft().unlock();
 		}
 	}
 
@@ -916,10 +944,12 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try {
 			openBucket();
 			loadTransactions(); // 水位定位前装载，装载失败不能留下超前的lastApplied
-			if (Objects.requireNonNull(getRaft()).getLogSequence().tryRecoverFromWatermark())
+			//noinspection DataFlowIssue
+			if (getRaft().getLogSequence().tryRecoverFromWatermark())
 				return;
 		} catch (RocksDBException | IllegalStateException e) {
-			logger.warn("{} local state invalid, recover from snapshot or reset", Objects.requireNonNull(getRaft()).getName(), e);
+			//noinspection DataFlowIssue
+			logger.warn("{} local state invalid, recover from snapshot or reset", getRaft().getName(), e);
 		}
 		super.recover(snapshotFile);
 	}
@@ -1004,14 +1034,16 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void restore(String backupDir) throws Exception {
-		Objects.requireNonNull(getRaft()).lock();
+		//noinspection DataFlowIssue
+		getRaft().lock();
 		try {
 			close();
 			var dbName = Paths.get(Objects.requireNonNull(getDbHome()), "statemachine").toString();
 			RocksDatabase.restore(backupDir, dbName);
 			openBucket(); // reopen
 		} finally {
-			Objects.requireNonNull(getRaft()).unlock();
+			//noinspection DataFlowIssue
+			getRaft().unlock();
 		}
 	}
 
@@ -1050,7 +1082,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			}
 		} catch (RocksDBException ex) {
 			logger.error("", ex);
-			Objects.requireNonNull(getRaft()).fatalKill();
+			//noinspection DataFlowIssue
+			getRaft().fatalKill();
 		}
 	}
 }

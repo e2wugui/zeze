@@ -74,6 +74,13 @@ serverId 号段与固定内存库 url 统一登记在 `harness/FastServerIds`，
 - 保留实际空值语义：合法返回 null 的 getter 直接返回 `@Nullable` 原值，
   不为消除告警改成抛异常。只在解引用、拆箱等需要非空值的使用点检查，
   向接受 null 的方法透传时不提前检查。
+- 不为消除 `DataFlowIssue` 机械添加 `Objects.requireNonNull`。紧接着解引用、
+  拆箱的冗余检查可用语句级 `//noinspection DataFlowIssue` 替代；内部 getter
+  的初始化不变量用局部变量加 `assert` 表达。保留真实边界检查及失败前防止状态
+  修改的检查；循环内不变的检查尽量移到入口一次完成，保留空循环允许 null 的语义。
+- `@NullMarked` 不替代运行时边界校验：保留异步任务载荷工厂、交给外部回调或
+  保存后延迟使用的引用所需的一次入口检查。删除检查前核对参数求值顺序，避免
+  `pos++`、容器写入等副作用提前发生，也不要让原本会拒绝的 null 穿过调用边界。
 - 书写优先 import 类型后用简单名，如 `private @Nullable Table logs;`。
   限定名的注解贴最后一段，如 `RocksDatabase.@Nullable Table`；
   数组引用可空写作 `ByteBuffer @Nullable [] buf`，前缀注解作用于元素。

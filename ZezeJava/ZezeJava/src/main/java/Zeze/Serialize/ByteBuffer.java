@@ -1296,11 +1296,13 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public void writeAllUnknownFields(int lastIdx, long idx, @Nullable ByteBuffer unknown) {
-		while (idx != Long.MAX_VALUE) {
-			Objects.requireNonNull(unknown);
+		if (idx == Long.MAX_VALUE)
+			return;
+		Objects.requireNonNull(unknown);
+		do {
 			lastIdx = writeUnknownField(lastIdx, idx, unknown);
 			idx = unknown.readUnknownIndex();
-		}
+		} while (idx != Long.MAX_VALUE);
 	}
 
 	public static <T> void BuildString(StringBuilder sb, @Nullable Iterable<T> c) {

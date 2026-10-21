@@ -131,7 +131,6 @@ public class ProviderApp extends ReentrantLock {
 	/**
 	 * 这是为了发布打包的时候，用来构建模块配置，所有的变量都不需要使用。
 	 */
-	@SuppressWarnings("DataFlowIssue")
 	public ProviderApp(Application zeze) {
 		this.zeze = zeze;
 		this.zeze.setProviderApp(this);
@@ -185,14 +184,19 @@ public class ProviderApp extends ReentrantLock {
 			if (startLast)
 				throw new IllegalStateException("ProviderApp.startLast() already called.");
 			buildProviderModuleBinds(binds, modules);
-			Objects.requireNonNull(providerImplement).registerModulesAndSubscribeLinkd();
+			//noinspection DataFlowIssue
+			providerImplement.registerModulesAndSubscribeLinkd();
 			startLast = true;
-			Objects.requireNonNull(zeze.getTimer()).start();
-			Objects.requireNonNull(zeze.getSafeBatch()).start();
-			Objects.requireNonNull(zeze.getAppBase()).startLastModules();
+			//noinspection DataFlowIssue
+			zeze.getTimer().start();
+			//noinspection DataFlowIssue
+			zeze.getSafeBatch().start();
+			//noinspection DataFlowIssue
+			zeze.getAppBase().startLastModules();
 
 			if (providerImplement instanceof ProviderWithOnline)
-				Objects.requireNonNull(((ProviderWithOnline)providerImplement).getOnline()).startAfter();
+				//noinspection DataFlowIssue
+				(((ProviderWithOnline)providerImplement).getOnline()).startAfter();
 			// 这个应该在Online.Start里面设置更合理。
 			// 但是Online有多个版本，而且跨包设置需要方法，就这里直接设置了。
 			// 是启动流程的一部分。
@@ -211,7 +215,8 @@ public class ProviderApp extends ReentrantLock {
 	// LoginQueueAgent启动：创建收口在LoadBase.ensureLoginQueueAgent——
 	// load没有且配置启用才建，预置/已建复用；不覆盖（覆盖即泄漏+同身份重复注册）。
 	private void startLoginQueueAgent() throws Exception {
-		var load = Objects.requireNonNull(providerImplement).getLoad();
+		//noinspection DataFlowIssue
+		var load = providerImplement.getLoad();
 		if (load == null)
 			return;
 		var agent = load.ensureLoginQueueAgent();

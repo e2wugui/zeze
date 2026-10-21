@@ -39,7 +39,8 @@ public abstract class CollSortedMap<K extends Comparable<K>, V> extends Collecti
 			var t = Transaction.getCurrent();
 			if (t == null)
 				return map;
-			var log = t.getLog(Objects.requireNonNull(parent()).objectId() + variableId());
+			//noinspection DataFlowIssue
+			var log = t.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return map;
 			@SuppressWarnings("unchecked")

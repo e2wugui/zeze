@@ -83,7 +83,8 @@ public class BServiceInfosVersion implements Serializable {
 		var maxVersion = Long.MIN_VALUE;
 		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
 			// onUnRegister移空最后一个条目后空桶仍残留在map里，跳过，避免"最新版本"指向空列表。
-			if (!Objects.requireNonNull(it.value()).getSortedIdentities().isEmpty() && maxVersion <= it.key()) {
+			//noinspection DataFlowIssue
+			if (!it.value().getSortedIdentities().isEmpty() && maxVersion <= it.key()) {
 				maxVersion = it.key();
 				resultInfos = it.value();
 			}
@@ -106,7 +107,8 @@ public class BServiceInfosVersion implements Serializable {
 	void pruneEmptyVersions() {
 		var empty = new ArrayList<Long>();
 		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
-			if (Objects.requireNonNull(it.value()).getSortedIdentities().isEmpty())
+			//noinspection DataFlowIssue
+			if (it.value().getSortedIdentities().isEmpty())
 				empty.add(it.key());
 		}
 		for (var version : empty)

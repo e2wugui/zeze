@@ -150,7 +150,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 		// KV.key构造后不变：累积首个acceptor后create，不再setKey。
 		var ip = new String[1];
 		var port = new int[1];
-		Objects.requireNonNull(commit).getService().getConfig().forEachAcceptor2((a) -> {
+		//noinspection DataFlowIssue
+		commit.getService().getConfig().forEachAcceptor2((a) -> {
 			ip[0] = a.getIp();
 			port[0] = a.getPort();
 			return false;
@@ -164,7 +165,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
 			var state = CommitRocks.buildTransactionState(batches);
-			Objects.requireNonNull(Objects.requireNonNull(commit).getRocks()).prepare(query.getKey(), query.getValue(), state, batches, null);
+			//noinspection DataFlowIssue
+			Objects.requireNonNull(commit.getRocks()).prepare(query.getKey(), query.getValue(), state, batches, null);
 		}
 	}
 
@@ -176,7 +178,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 	public void commit(BPrepareBatches.Data batches) {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
-			Objects.requireNonNull(Objects.requireNonNull(commit).getRocks()).commit(query.getKey(), query.getValue(), batches);
+			//noinspection DataFlowIssue
+			Objects.requireNonNull(commit.getRocks()).commit(query.getKey(), query.getValue(), batches);
 			return;
 		}
 		var query = choiceCommitServer();
@@ -189,9 +192,11 @@ public class Dbh2AgentManager extends ReentrantLock {
 	// CommitServer 独立服务器需要初始化；
 	public void start() throws Exception {
 		if (config.isDbh2LocalCommit()) {
-			Objects.requireNonNull(commit).start();
+			//noinspection DataFlowIssue
+			commit.start();
 		} else {
-			Objects.requireNonNull(commitAgent).startAndWaitConnectionReady();
+			//noinspection DataFlowIssue
+			commitAgent.startAndWaitConnectionReady();
 		}
 		proxyAgent.start();
 		ShutdownHook.add(this, this::stop);
@@ -340,7 +345,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 		Objects.requireNonNull(masterAgent).createTableAsync(databaseName, tableName, (rc, isNew, masterTable) -> {
 			if (rc == 0) {
 				putBuckets(Objects.requireNonNull(masterTable), masterName, databaseName, tableName);
-				for (var bucket : Objects.requireNonNull(masterTable).buckets())
+				//noinspection DataFlowIssue
+				for (var bucket : masterTable.buckets())
 					openBucket(bucket.getRaftConfig());
 			}
 			callback.run(rc, isNew);

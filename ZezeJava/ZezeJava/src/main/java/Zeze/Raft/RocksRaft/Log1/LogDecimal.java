@@ -1,7 +1,5 @@
 package Zeze.Raft.RocksRaft.Log1;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
@@ -31,7 +29,8 @@ public class LogDecimal extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(Objects.requireNonNull(value).toString());
+		//noinspection DataFlowIssue
+		bb.WriteString(value.toString());
 	}
 
 	@Override

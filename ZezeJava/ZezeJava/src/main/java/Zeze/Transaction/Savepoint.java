@@ -33,7 +33,8 @@ public final class Savepoint {
 		var logs = this.logs;
 		if (logs != null) {
 			var newLogs = new LongHashMap<>(logs);
-			newLogs.foreachUpdate((__, v) -> Objects.requireNonNull(v).beginSavepoint());
+			//noinspection DataFlowIssue
+			newLogs.foreachUpdate((__, v) -> v.beginSavepoint());
 			sp.logs = newLogs;
 		}
 		return sp;
@@ -115,6 +116,6 @@ public final class Savepoint {
 	void commit() {
 		var logs = this.logs;
 		if (logs != null)
-			logs.foreachValue(log -> Objects.requireNonNull(log).commit());
+			logs.foreachValue(Log::commit);
 	}
 }

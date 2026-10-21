@@ -1,7 +1,5 @@
 package Zeze.Transaction.Logs;
 
-import java.util.Objects;
-
 import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
 import Zeze.Net.Binary;
@@ -42,12 +40,13 @@ public class LogString extends Log {
 	@Override
 	public void commit() {
 		//noinspection DataFlowIssue
-		vh.set(getBelong(), Objects.requireNonNull(value).toString());
+		vh.set(getBelong(), value.toString());
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(Objects.requireNonNull(value).toString());
+		//noinspection DataFlowIssue
+		bb.WriteString(value.toString());
 	}
 
 	@Override
@@ -62,12 +61,14 @@ public class LogString extends Log {
 
 	@Override
 	public Binary binaryValue() {
-		return new Binary(Objects.requireNonNull(value).toString());
+		//noinspection DataFlowIssue
+		return new Binary(value.toString());
 	}
 
 	@Override
 	public String stringValue() {
-		return Objects.requireNonNull(value).toString();
+		//noinspection DataFlowIssue
+		return value.toString();
 	}
 
 	public @Nullable Object getValue() {
@@ -77,6 +78,7 @@ public class LogString extends Log {
 	@Override
 	public BigDecimal decimalValue() {
 		// 不用DECIMAL128：静默截断>34位有效数字（LogDecimal.decode同款已修），字符串构造本就精确
-		return new BigDecimal(Objects.requireNonNull(value).toString());
+		//noinspection DataFlowIssue
+		return new BigDecimal(value.toString());
 	}
 }

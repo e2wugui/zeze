@@ -101,7 +101,8 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 	public void start() throws Exception {
 		if (null == this.jar)
 			this.jar = new JarFile(jarFile);
-		Objects.requireNonNull(service).start();
+		//noinspection DataFlowIssue
+		service.start();
 		// 安装过程中可能需要重启，因为停止时清除了引用，这里需要重新设置。
 		for (var context : contexts.values()) {
 			context.setModule(this);
@@ -109,7 +110,8 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 	}
 
 	public void startLast() throws Exception {
-		Objects.requireNonNull(service).startLast();
+		//noinspection DataFlowIssue
+		service.startLast();
 	}
 
 	void disable() {
@@ -137,14 +139,17 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 	public void stop() throws Exception {
 		// app Unregister
 		var iModule = (IModule)service;
-		Objects.requireNonNull(iModule).UnRegister();
+		//noinspection DataFlowIssue
+		iModule.UnRegister();
 		// app stop
-		Objects.requireNonNull(service).stop();
+		//noinspection DataFlowIssue
+		service.stop();
 		close();
 	}
 
 	public void stopBefore() throws Exception {
-		Objects.requireNonNull(service).stopBefore();
+		//noinspection DataFlowIssue
+		service.stopBefore();
 	}
 
 	// 先用这个类管理所有热更需求。

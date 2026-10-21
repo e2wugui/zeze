@@ -47,8 +47,9 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 			value.initRootInfo(rootInfo(), this);
 			value.mapKey(key);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else {
 			value.mapKey(key);
@@ -60,8 +61,9 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	public void remove(K key) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
 		} else
 			map = map.minus(key);
@@ -71,8 +73,9 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
 			map = Zeze.Collections.Persistents.map();

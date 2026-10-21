@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -175,16 +173,19 @@ public final class Changes {
 	public void collect(Bean recent, Log log) {
 		var rootInfo = recent.rootInfo;
 		// is table has listener
-		if (!collectAll && (listeners == null || listeners.get(Objects.requireNonNull(Objects.requireNonNull(rootInfo).record()).getTable()) == null))
+		//noinspection DataFlowIssue
+		if (!collectAll && (listeners == null || listeners.get(rootInfo.record().getTable()) == null))
 			return;
 
 		var belong = log.getBelong();
 		if (belong == null) {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-			var tableKey = Objects.requireNonNull(rootInfo).tableKey();
+			//noinspection DataFlowIssue
+			var tableKey = rootInfo.tableKey();
 			var r = records.get(tableKey);
 			if (r == null) {
-				r = new Record(Objects.requireNonNull(rootInfo.record()).getTable());
+				//noinspection DataFlowIssue
+				r = new Record(rootInfo.record().getTable());
 				records.put(tableKey, r);
 			}
 			r.logBeans.put(recent, (LogBean)log);

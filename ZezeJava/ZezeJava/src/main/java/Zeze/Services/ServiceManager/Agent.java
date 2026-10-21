@@ -175,7 +175,8 @@ public final class Agent extends AbstractAgent {
 		// 重连重发=恢复提示资格（与正确性无关，正确性由租约裁决）。
 		try {
 			var identify = new Identify();
-			identify.Argument.serverId = Objects.requireNonNull(config).getServerId();
+			//noinspection DataFlowIssue
+			identify.Argument.serverId = config.getServerId();
 			identify.Argument.version = config.getAppMainVersion();
 			identify.Send(client.getSocket());
 		} catch (Throwable ex) {
@@ -241,7 +242,8 @@ public final class Agent extends AbstractAgent {
 		try {
 			var done = new TakeoverDone();
 			done.Argument.deadServerId = deadServerId;
-			done.Argument.takerServerId = Objects.requireNonNull(config).getServerId();
+			//noinspection DataFlowIssue
+			done.Argument.takerServerId = config.getServerId();
 			done.Argument.takerVersion = config.getAppMainVersion();
 			done.Send(client.getSocket());
 		} catch (Throwable ex) {

@@ -170,7 +170,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	// 路径可辨识、可重试。SetBucketMeta/SplitPut不拦——前者即初始化入口，后者是目标桶
 	// 在meta就位前的数据灌入通道。
 	private boolean isBucketNotReady() {
-		return Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta() == null;
+		//noinspection DataFlowIssue
+		return stateMachine.getBucket().getBucketMeta() == null;
 	}
 
 	public Raft getRaft() {
@@ -352,14 +353,16 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				return errorCode(eBucketMismatch);
 
 			var refused = r.Result;
-			var splitHistory = Objects.requireNonNull(stateMachine.getBucket()).getSplitMetaHistory();
+			//noinspection DataFlowIssue
+			var splitHistory = stateMachine.getBucket().getSplitMetaHistory();
 			for (var e : r.Argument.getBatch().getPuts().entrySet()) {
 				var key = e.getKey();
 				var value = e.getValue();
 				if (!Objects.requireNonNull(stateMachine.getBucket()).inBucket(key)) {
 					var locate = splitHistory.locate(key);
 
-					if (null == locate || isLocateSelf(Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()), locate))
+					//noinspection DataFlowIssue
+					if (null == locate || isLocateSelf(Objects.requireNonNull(stateMachine.getBucket().getBucketMeta()), locate))
 						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
 
 					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
@@ -370,7 +373,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				if (!Objects.requireNonNull(stateMachine.getBucket()).inBucket(del)) {
 					var locate = splitHistory.locate(del);
 
-					if (null == locate || isLocateSelf(Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()), locate))
+					//noinspection DataFlowIssue
+					if (null == locate || isLocateSelf(Objects.requireNonNull(stateMachine.getBucket().getBucketMeta()), locate))
 						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
 
 					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
@@ -419,7 +423,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	private boolean walkDesc(Binary exclusiveStartKey, int proposeLimit, Binary prefix,
 							 Action2<Binary, RocksIterator> fill) throws Exception {
-		try (var it = Objects.requireNonNull(stateMachine.getBucket()).getData().iterator()) {
+		//noinspection DataFlowIssue
+		try (var it = stateMachine.getBucket().getData().iterator()) {
 			if (exclusiveStartKey.size() > 0) {
 				// 越上界游标归一：游标高于前缀上界时seekForPrev(游标)落在非前缀键上会被
 				// 判桶尾，整段前缀键静默跳过——统一seekForPrev(prefixUpper)定位（等上界
@@ -434,7 +439,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				}
 			} else {
 				// 分桶过程中，可能存在Last之后的数据，必须根据Last的情况定位，不能直接使用seekToLast。
-				var lastKey = Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()).getKeyLast();
+				//noinspection DataFlowIssue
+				var lastKey = stateMachine.getBucket().getBucketMeta().getKeyLast();
 				// 定位与过滤一致：prefix时定位到目标前缀的结尾（与keyLast取更小者），否则桶内混存的
 				// 更大前缀key会让首个循环立即判定桶尾，本桶目标前缀的记录被静默跳过。
 				var prefixUpper = prefix.size() > 0 ? prefixUpperBound(prefix) : null;
@@ -490,7 +496,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return walkDesc(exclusiveStartKey, proposeLimit, prefix, fill);
 		}
 
-		try (var it = Objects.requireNonNull(stateMachine.getBucket()).getData().iterator()) {
+		//noinspection DataFlowIssue
+		try (var it = stateMachine.getBucket().getData().iterator()) {
 			if (exclusiveStartKey.size() > 0)
 				it.seek(exclusiveStartKey.copyIf());
 			else if (prefix.size() > 0)
@@ -503,7 +510,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 			var count = proposeLimit;
 			var bucketEnd = false;
-			var keyLast = Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()).getKeyLast();
+			//noinspection DataFlowIssue
+			var keyLast = stateMachine.getBucket().getBucketMeta().getKeyLast();
 			for (; it.isValid() && count > 0; it.next()) {
 				var key = new Binary(it.key());
 				if (keyLast.size() > 0 && key.compareTo(keyLast) >= 0) {
@@ -730,10 +738,12 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					null == pending.getFrom(), formatMeta(pending.getFrom()), formatMeta(pending.getTo()));
 			var from = pending.getFrom();
 			if (from != null)
-				Objects.requireNonNull(manager).getMasterAgent().endSplitWithRetryAsync(from, pending.getTo(),
+				//noinspection DataFlowIssue
+				manager.getMasterAgent().endSplitWithRetryAsync(from, pending.getTo(),
 						() -> appendClearPendingSettle(pending.getTo()));
 			else
-				Objects.requireNonNull(manager).getMasterAgent().endMoveWithRetryAsync(pending.getTo(),
+				//noinspection DataFlowIssue
+				manager.getMasterAgent().endMoveWithRetryAsync(pending.getTo(),
 						() -> appendClearPendingSettle(pending.getTo()));
 		}
 	}
@@ -797,14 +807,16 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			it.close();
 			throw new RocksDBException("middle key not found.");
 		}
+		//noinspection DataFlowIssue
 		logger.info("splitting start locateMiddle keyNumbers={} middle={} {}",
 				keyNumbers, new Binary(it.key()),
-				formatMeta(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()));
+				formatMeta(stateMachine.getBucket().getBucketMeta()));
 		return it;
 	}
 
 	private @Nullable RocksIterator locateMiddle(Binary middleKey) {
-		var it = Objects.requireNonNull(stateMachine.getBucket()).getData().iterator();
+		//noinspection DataFlowIssue
+		var it = stateMachine.getBucket().getData().iterator();
 		it.seek(Database.copyIf(middleKey.bytesUnsafe(), middleKey.getOffset(), middleKey.size()));
 		if (!it.isValid()) {
 			it.close();
@@ -861,7 +873,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				// 第一次开始分桶，准备阶段。
 				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
 				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
-				if (Objects.requireNonNull(manager).getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
+				//noinspection DataFlowIssue
+				if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
 					logger.warn("splitting not enough free manager. isMove={}", isMove);
 					return;
 				}
@@ -876,13 +889,15 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					logger.info("splitting break start: it is null. isMove={}", isMove);
 					return; // empty？不需要执行后续操作。break progress.
 				}
-				var newMeta = Objects.requireNonNull(Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta()).copy();
+				//noinspection DataFlowIssue
+				var newMeta = stateMachine.getBucket().getBucketMeta().copy();
 				newMeta.setRaftConfig("");
 				if (!isMove)
 					newMeta.setKeyFirst(new Binary(locateIt.key()));
 				locateIt.close(); // 不跨rpc持有钉定视图
 
-				splitting = Objects.requireNonNull(manager).getMasterAgent().createSplitBucket(newMeta);
+				//noinspection DataFlowIssue
+				splitting = manager.getMasterAgent().createSplitBucket(newMeta);
 
 				// 自指守卫：resume撞上指向自身的陈旧splitting条目——自搬运
 				// 形态：move1(A→B)完成而endMove未达master，B的loadMonitor再决策move，同四元组
@@ -907,7 +922,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 			if (null == dbh2Splitting) {
 				dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
-				Objects.requireNonNull(Objects.requireNonNull(dbh2Splitting).getRaftAgent()).setPendingLimit(Integer.MAX_VALUE);
+				//noinspection DataFlowIssue
+				Objects.requireNonNull(dbh2Splitting.getRaftAgent()).setPendingLimit(Integer.MAX_VALUE);
 			}
 
 			var server = (Dbh2RaftServer)getRaft().getServer();
@@ -942,7 +958,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				// 且one-shot被消耗后prepare队列永久积压）。等待期间仅阻塞其它startSplit重入
 				// （Dbh2.lock不被raft apply路径持有），不影响正常读写。
 				var waitCount = 0;
-				while (null == Objects.requireNonNull(stateMachine.getBucket()).getSplittingMeta()) {
+				//noinspection DataFlowIssue
+				while (null == stateMachine.getBucket().getSplittingMeta()) {
 					if (++waitCount > 1500) { // 30s：apply需多数派往返，正常毫秒级；超时属raft异常
 						logger.warn("splitting wait splittingMeta apply timeout. isMove={}", isMove);
 						return; // 放弃本轮，桶保持可写；换主后recoverSplitting自愈
@@ -961,7 +978,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
 			var puts = buildSplitPut(it);
 			var fit = it;
-			Objects.requireNonNull(Objects.requireNonNull(dbh2Splitting).getRaftAgent()).send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
+			//noinspection DataFlowIssue
+			Objects.requireNonNull(dbh2Splitting.getRaftAgent()).send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
 			it = null;
 			} finally {
 				if (null != it)
@@ -1018,7 +1036,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				return 0; // split done.
 			}
 
-			Objects.requireNonNull(Objects.requireNonNull(dbh2Splitting).getRaftAgent()).send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, it, serialNo));
+			//noinspection DataFlowIssue
+			Objects.requireNonNull(dbh2Splitting.getRaftAgent()).send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, it, serialNo));
 		} catch (Exception ex) {
 			it.close(); // 异常路径统一释放迭代器；close幂等，前面分支已关闭过时安全
 			logger.error("isMove={}", isMove, ex);
@@ -1039,8 +1058,10 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	}
 
 	private void blockPrepareUntilNoTransaction(boolean isMove) {
-		var meta = Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta();
-		var splittingMeta = Objects.requireNonNull(stateMachine.getBucket()).getSplittingMeta();
+		//noinspection DataFlowIssue
+		var meta = stateMachine.getBucket().getBucketMeta();
+		//noinspection DataFlowIssue
+		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 		logger.info("splitting end ... isMove={} {}->{}",
 				isMove, formatMeta(meta), formatMeta(splittingMeta));
 
@@ -1070,7 +1091,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private void endSplit0(boolean isMove) {
 		if (!raft.isLeader())
 			return; // 掉主：重试链就此终止，新leader经recoverSplitting→startSplit续走全流程
-		var splittingMeta = Objects.requireNonNull(stateMachine.getBucket()).getSplittingMeta();
+		//noinspection DataFlowIssue
+		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 		if (null == splittingMeta) {
 			// 安全网：任何路径在LogSetSplittingMeta apply前触达这里都不能带null继续——
 			// setBucketMetaAsync(null)必NPE，且one-shot已被消耗、prepare队列永久积压。
@@ -1112,7 +1134,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					(raftLog, result) -> endSplit2(raftLog, result, true));
 		} else {
 			// 原子化设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
-			var from = Objects.requireNonNull(bucket.getBucketMeta()).copy();
+			//noinspection DataFlowIssue
+			var from = bucket.getBucketMeta().copy();
 			var to = Objects.requireNonNull(bucket.getSplittingMeta());
 			from.setKeyLast(to.getKeyFirst());
 			getRaft().appendLog(new LogEndSplit(from, to),
@@ -1139,25 +1162,29 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 		// 关闭到新桶连接。
 		try {
-			Objects.requireNonNull(dbh2Splitting).close();
+			//noinspection DataFlowIssue
+			dbh2Splitting.close();
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
 		dbh2Splitting = null;
 
-		var meta = Objects.requireNonNull(stateMachine.getBucket()).getBucketMeta();
+		//noinspection DataFlowIssue
+		var meta = stateMachine.getBucket().getBucketMeta();
 		if (isMove) {
 			var endMove = (LogEndMove)raftLog.getLog();
 			// onSettled终局回调：settle成功（rc==0）或eSplittingBucketNotFound
 			// （已结算证据）时追加标志清除日志——apply侧随LogEndMove落下的pending-settle
 			// 标志由此收回；进程在终局前死亡则标志留存，下轮leader-ready补发终局后同样清除。
-			Objects.requireNonNull(manager).getMasterAgent().endMoveWithRetryAsync(Objects.requireNonNull(Objects.requireNonNull(endMove).getTo()),
-					() -> appendClearPendingSettle(Objects.requireNonNull(Objects.requireNonNull(endMove).getTo())));
+			//noinspection DataFlowIssue
+			manager.getMasterAgent().endMoveWithRetryAsync(Objects.requireNonNull(endMove.getTo()),
+					() -> appendClearPendingSettle(Objects.requireNonNull(endMove.getTo())));
 		} else {
 			// 可以安全的发布新旧桶的信息到Master了。
 			var endSplit = (LogEndSplit)raftLog.getLog();
-			Objects.requireNonNull(manager).getMasterAgent().endSplitWithRetryAsync(Objects.requireNonNull(Objects.requireNonNull(endSplit).getFrom()), Objects.requireNonNull(Objects.requireNonNull(endSplit).getTo()),
-					() -> appendClearPendingSettle(Objects.requireNonNull(Objects.requireNonNull(endSplit).getTo())));
+			//noinspection DataFlowIssue
+			manager.getMasterAgent().endSplitWithRetryAsync(Objects.requireNonNull(endSplit.getFrom()), Objects.requireNonNull(endSplit.getTo()),
+					() -> appendClearPendingSettle(Objects.requireNonNull(endSplit.getTo())));
 		}
 		logger.info("splitting end done. isMove={} {}", isMove, formatMeta(meta));
 	}

@@ -482,7 +482,8 @@ public class Schemas implements Serializable {
 			for (var vOldDeleted : beanOther.deletedVars.values()) {
 				var vThis = variables.get(vOldDeleted.id);
 				if (vThis != null) {
-					if (Objects.requireNonNull(context.getConfig()).getAllowSchemasReuseVariableIdWithSameType()
+					//noinspection DataFlowIssue
+					if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType()
 							&& vThis.isCompatible(getName(), vOldDeleted, context)) {
 						// 反悔
 						logger.info("Regret Success. Variable={}.{}", getName(), vThis.name);
@@ -774,7 +775,8 @@ public class Schemas implements Serializable {
 			throw new IllegalStateException("Found Incompatible Table or Bean! Fix them or Clear DB");
 
 		for (var rename : renames) {
-			var db = app.getDatabase(Objects.requireNonNull(app.getConfig().getTableConf(Objects.requireNonNull(rename.getKey().name))).getDatabaseName());
+			//noinspection DataFlowIssue
+			var db = app.getDatabase(app.getConfig().getTableConf(Objects.requireNonNull(rename.getKey().name)).getDatabaseName());
 			db.renameTable(rename.getKey().name, "zeze_backup_" + rename.getKey().name + "_" + rename.getValue().version);
 		}
 

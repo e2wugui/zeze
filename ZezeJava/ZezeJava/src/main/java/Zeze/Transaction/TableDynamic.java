@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.function.Function;
@@ -57,7 +55,8 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 
 		if (tplTableName == null)
 			tplTableName = tableName;
-		zeze.openDynamicTable(Objects.requireNonNull(zeze.getConfig().getTableConf(tplTableName)).getDatabaseName(), this);
+		//noinspection DataFlowIssue
+		zeze.openDynamicTable(zeze.getConfig().getTableConf(tplTableName).getDatabaseName(), this);
 	}
 
 	@Override

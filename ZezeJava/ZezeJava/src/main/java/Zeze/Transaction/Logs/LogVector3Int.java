@@ -49,7 +49,8 @@ public class LogVector3Int extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteVector3Int(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		bb.WriteVector3Int(value);
 	}
 
 	@Override
@@ -64,7 +65,8 @@ public class LogVector3Int extends Log {
 
 	@Override
 	public Vector3 vector2Value() {
-		return new Vector3(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Vector3(value);
 	}
 
 	@Override
@@ -74,7 +76,8 @@ public class LogVector3Int extends Log {
 
 	@Override
 	public Vector3 vector3Value() {
-		return new Vector3(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Vector3(value);
 	}
 
 	@Override
@@ -84,11 +87,13 @@ public class LogVector3Int extends Log {
 
 	@Override
 	public Vector4 vector4Value() {
-		return new Vector4(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Vector4(value);
 	}
 
 	@Override
 	public Quaternion quaternionValue() {
-		return new Quaternion(Objects.requireNonNull(value));
+		//noinspection DataFlowIssue
+		return new Quaternion(value);
 	}
 }

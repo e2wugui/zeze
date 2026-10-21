@@ -67,7 +67,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		lock();
 		try {
 			for (var agent : agents)
-				Objects.requireNonNull(agent.getRaftClient().getClient()).start();
+				//noinspection DataFlowIssue
+				agent.getRaftClient().getClient().start();
 
 			for (var agent : agents) {
 				try {

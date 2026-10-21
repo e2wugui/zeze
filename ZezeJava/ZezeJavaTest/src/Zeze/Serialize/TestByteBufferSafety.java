@@ -7,13 +7,19 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.IByteBuffer;
-import Zeze.Serialize.NioByteBuffer;
 import Zeze.Transaction.EmptyBean;
 
 @Fast
 public class TestByteBufferSafety {
+	@Test
+	public void testUnknownFieldCopyNullBoundary() {
+		var bb = ByteBuffer.Allocate();
+		bb.writeAllUnknownFields(0, Long.MAX_VALUE, null);
+		assertEquals(0, bb.WriteIndex);
+		assertThrows(NullPointerException.class, () -> bb.writeAllUnknownFields(0, 1, null));
+		assertEquals(0, bb.WriteIndex);
+	}
+
 	// 恶意/损坏流防御：ensureRead溢出绕过(Z1-1)、负Skip回退(Z1-3)、
 	// decode(Collection)负size(Z1-2)、SkipUnknownField无界递归(Z1-4)。
 

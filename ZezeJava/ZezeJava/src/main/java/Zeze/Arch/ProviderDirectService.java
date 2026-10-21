@@ -49,7 +49,8 @@ public class ProviderDirectService extends HandshakeBoth {
 	public void removeServer(BServiceInfo pm) {
 		lock();
 		try {
-			var ss = Objects.requireNonNull(requireProviderApp().zeze.getServiceManager()).getSubscribeStates().get(pm.getServiceName());
+			//noinspection DataFlowIssue
+			var ss = requireProviderApp().zeze.getServiceManager().getSubscribeStates().get(pm.getServiceName());
 			if (null != ss) {
 				var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
 				var conn = getConfig().findConnector(connName);
@@ -98,9 +99,10 @@ public class ProviderDirectService extends HandshakeBoth {
 			if (pm.getServiceIdentity().startsWith("@")) // from linkd
 				return;
 			var serverId = Integer.parseInt(pm.getServiceIdentity());
-			if (serverId < Objects.requireNonNull(getZeze()).getConfig().getServerId())
+			//noinspection DataFlowIssue
+			if (serverId < getZeze().getConfig().getServerId())
 				return;
-			if (serverId == Objects.requireNonNull(getZeze()).getConfig().getServerId()) {
+			if (serverId == getZeze().getConfig().getServerId()) {
 				setRelativeServiceReady(newSession(serverId), requireProviderApp().directIp, requireProviderApp().directPort);
 				return;
 			}
@@ -179,8 +181,9 @@ public class ProviderDirectService extends HandshakeBoth {
 		try {
 			var ps = providerByServerId.get(serverId);
 			var socket = ps != null ? GetSocket(ps.getSessionId()) : null;
+			//noinspection DataFlowIssue
 			boolean local = ps != null && ps.getSessionId() == 0
-					&& serverId == Objects.requireNonNull(getZeze()).getConfig().getServerId();
+				&& serverId == getZeze().getConfig().getServerId();
 			if (!local && (socket == null || socket.isClosed())) {
 				Objects.requireNonNull(serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>())).add(callback);
 				return;
@@ -226,7 +229,8 @@ public class ProviderDirectService extends HandshakeBoth {
 				// （新会话从未注册），且存活的新连接不再重连/announce——注册永久丢失无法自愈。
 				// 先put再踢，读侧无空窗；被踢会话的OnSocketClose条件删除因所有权已换而空转，
 				// 不会误删现任注册。
-				if (ps.getServerId() != Objects.requireNonNull(getZeze()).getConfig().getServerId())
+				//noinspection DataFlowIssue
+				if (ps.getServerId() != getZeze().getConfig().getServerId())
 					logger.warn("setRelativeServiceReady: supersede old session {} with new {} for {}",
 							old, ps, ps.getServerLoadName());
 				providerByLoadName.put(ps.getServerLoadName(), ps);
@@ -244,11 +248,12 @@ public class ProviderDirectService extends HandshakeBoth {
 			providerByServerId.put(ps.getServerId(), ps);
 
 			// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
-			for (var ss : Objects.requireNonNull(Objects.requireNonNull(getZeze()).getServiceManager()).getSubscribeStates().values()) {
+			//noinspection DataFlowIssue
+			for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
 				if (ss.getServiceName().startsWith(Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix))) {
 					// ps.appVersion 属于linkd侧会话（announce时设置），direct会话永远为0，
 					// 配置AppVersion后用0查版本桶会得到null导致setReady全部跳过，改用本机配置版本。
-					var infos = ss.getServiceInfos(Objects.requireNonNull(getZeze()).getConfig().getAppMainVersion());
+					var infos = ss.getServiceInfos(getZeze().getConfig().getAppMainVersion());
 					if (infos == null)
 						continue;
 					var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
@@ -281,7 +286,8 @@ public class ProviderDirectService extends HandshakeBoth {
 
 	private void setReady(String serviceName, BServiceInfo server, ProviderSession ps,
 						  int mid, BModule.Data m) {
-		var ss = Objects.requireNonNull(requireProviderApp().zeze.getServiceManager()).getSubscribeStates().get(serviceName);
+		//noinspection DataFlowIssue
+		var ss = requireProviderApp().zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		if (null != ss) {
 			var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.isDynamic());
 			ps.getOrAddServiceReadyState(serviceName).put(server.getServiceIdentity(), pms);
@@ -294,7 +300,8 @@ public class ProviderDirectService extends HandshakeBoth {
 		var ps = (ProviderSession)socket.getUserState();
 		if (ps != null) {
 			for (var service : ps.ServiceReadyStates.entrySet()) {
-				var subs = Objects.requireNonNull(Objects.requireNonNull(getZeze()).getServiceManager()).getSubscribeStates().get(service.getKey());
+				//noinspection DataFlowIssue
+				var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
 				if (subs == null)
 					continue; // 服务已取消订阅（subscribeStates条目已移除）。不判空会在下面NPE，跳过后面的清理。
 				for (var stateEntry : service.getValue().entrySet()) {

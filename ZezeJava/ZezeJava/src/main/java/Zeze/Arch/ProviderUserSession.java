@@ -37,7 +37,8 @@ public class ProviderUserSession {
 	}
 
 	public @Nullable ProviderService getService() {
-		return (ProviderService)Objects.requireNonNull(dispatch.getSender()).getService();
+		//noinspection DataFlowIssue
+		return (ProviderService)dispatch.getSender().getService();
 	}
 
 	public String getAccount() {
@@ -132,7 +133,8 @@ public class ProviderUserSession {
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠。
-		var connector = Objects.requireNonNull(getService()).getLinks().get(getLinkName());
+		//noinspection DataFlowIssue
+		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
 			send.Send(link);
@@ -160,7 +162,8 @@ public class ProviderUserSession {
 	}
 
 	protected boolean sendOnline(@Nullable AsyncSocket link, Send send) {
-		var providerImpl = Objects.requireNonNull(getService()).requireProviderApp().providerImplement;
+		//noinspection DataFlowIssue
+		var providerImpl = getService().requireProviderApp().providerImplement;
 		if (providerImpl instanceof Zeze.Game.ProviderWithOnline gameProvider) {
 			var roleId = getRoleId();
 			if (roleId != null) {
@@ -196,7 +199,8 @@ public class ProviderUserSession {
 		if (link != null && !link.isClosed())
 			return sendOnline(link, send);
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠。
-		var connector = Objects.requireNonNull(getService()).getLinks().get(getLinkName());
+		//noinspection DataFlowIssue
+		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
 			return sendOnline(link, send);

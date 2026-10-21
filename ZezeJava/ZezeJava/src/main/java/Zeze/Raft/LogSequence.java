@@ -317,7 +317,8 @@ public class LogSequence {
 	private RocksIterator newLogsIterator() {
 		raft.lock();
 		try {
-			return Objects.requireNonNull(logs).iterator();
+			//noinspection DataFlowIssue
+			return logs.iterator();
 		} finally {
 			raft.unlock();
 		}
@@ -406,7 +407,8 @@ public class LogSequence {
 		// 查重读（默认ReadOptions）仍在组装期执行，与单写形态语义一致。
 		private void put(RaftLog log, boolean isApply, RocksDatabase.@Nullable Batch batch) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
-			Objects.requireNonNull(log.getLog()).getUnique().encode(key);
+			//noinspection DataFlowIssue
+			log.getLog().getUnique().encode(key);
 
 			// 先读取并检查状态，减少写操作。
 			var existBytes = table.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
@@ -442,7 +444,8 @@ public class LogSequence {
 
 		public void remove(RaftLog log) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
-			Objects.requireNonNull(log.getLog()).getUnique().encode(key);
+			//noinspection DataFlowIssue
+			log.getLog().getUnique().encode(key);
 			table.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
 		}
 
@@ -494,7 +497,8 @@ public class LogSequence {
 		// unique表名实际是 <raftName>.unique.<yyyy>.<M>.<d>（see makeUniqueRequestTableName），
 		// 必须按本raft的名字过滤；多raft共享同一database时，database里还有其他raft的表，
 		// 只能清理本raft的（其他raft由自己的清理任务负责）。
-		for (var tableName : Objects.requireNonNull(database).getTableMap().keySet()) {
+		//noinspection DataFlowIssue
+		for (var tableName : database.getTableMap().keySet()) {
 			var date = parseUniqueRequestDate(raft.getName(), tableName);
 			if (date == null || date.getTime() >= expired)
 				continue;
@@ -678,7 +682,8 @@ public class LogSequence {
 								+ " endReceiveInstallSnapshot crashed after boundary saveLog?",
 						raft.getName(), firstIndex, lastIndex);
 				try {
-					Objects.requireNonNull(logs).drop(); // 声明throws Exception（实际只抛RocksDBException），收窄到构造器的异常签名
+					//noinspection DataFlowIssue
+					logs.drop(); // 声明throws Exception（实际只抛RocksDBException），收窄到构造器的异常签名
 				} catch (RocksDBException e) {
 					throw e;
 				} catch (Exception e) {
@@ -831,8 +836,9 @@ public class LogSequence {
 			Objects.requireNonNull(logs).put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 
 		if (isDebugEnabled)
+			//noinspection DataFlowIssue
 			logger.debug("{}-{} RequestId={} Index={} Count={}", raft.getName(), raft.isLeader(),
-					Objects.requireNonNull(log.getLog()).getUnique().getRequestId(), log.getIndex(), getTestStateMachineCount());
+					log.getLog().getUnique().getRequestId(), log.getIndex(), getTestStateMachineCount());
 	}
 
 	private void saveLogRaw(long index, Binary rawValue) throws RocksDBException {
@@ -917,7 +923,8 @@ public class LogSequence {
 			var voteForValue = ByteBuffer.Allocate(1);
 			voteForValue.WriteString("");
 			// 任期推进与清空投票必须同生共死，且持久化成功后才能改变内存状态。
-			try (var batch = Objects.requireNonNull(database).borrowBatch()) {
+			//noinspection DataFlowIssue
+			try (var batch = database.borrowBatch()) {
 				Objects.requireNonNull(rafts).put(batch, raftsTermKey, 0, raftsTermKey.length, termValue.Bytes, 0, termValue.WriteIndex);
 				rafts.put(batch, raftsVoteForKey, 0, raftsVoteForKey.length,
 						voteForValue.Bytes, 0, voteForValue.WriteIndex);
@@ -1060,7 +1067,8 @@ public class LogSequence {
 				throw e;
 			}
 			// 支持原子应用的状态机已同批提交存根；其他状态机沿用日志库路径。
-			if (!raft.getStateMachine().hasAtomicAppliedState() && Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId() > 0) {
+			//noinspection DataFlowIssue
+			if (!raft.getStateMachine().hasAtomicAppliedState() && raftLog.getLog().getUnique().getRequestId() > 0) {
 				try {
 					openUniqueRequests(raftLog.getLog().getCreateTime()).apply(raftLog);
 				} catch (RocksDBException e) {
@@ -1074,9 +1082,10 @@ public class LogSequence {
 			}
 			lastApplied = raftLog.getIndex(); // 循环可能退出，在这里修改。
 			if (isDebugEnabled && lastIndex - lastApplied < 10) {
+				//noinspection DataFlowIssue
 				logger.debug("{}-{} {} RequestId={} LastIndex={} LastApplied={} Count={}",
 						raft.getName(), raft.isLeader(), raft.getRaftConfig().getDbHome(),
-						Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId(), lastIndex, lastApplied,
+						raftLog.getLog().getUnique().getRequestId(), lastIndex, lastApplied,
 						getTestStateMachineCount());
 			}
 			raftLog.invokeCallback();
@@ -1311,8 +1320,10 @@ public class LogSequence {
 			// 存根先：反序在存根写失败时lastIndex未推进，重发以同一(term,index)复用index重写日志——
 			// 破坏日志匹配不变式（见下方lastIndex注释），双重执行+状态机分叉双害。合批后两行同生
 			// 共死，兼省一次fsync。
-			try (var batch = Objects.requireNonNull(database).borrowBatch()) {
-				if (Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId() > 0)
+			//noinspection DataFlowIssue
+			try (var batch = database.borrowBatch()) {
+				//noinspection DataFlowIssue
+				if (raftLog.getLog().getUnique().getRequestId() > 0)
 					openUniqueRequests(raftLog.getLog().getCreateTime()).save(raftLog, batch);
 				if (testHookBetweenStubAndLog != null) {
 					var hook = testHookBetweenStubAndLog;
@@ -1510,7 +1521,8 @@ public class LogSequence {
 				// 所以最后一个trunk带上LastIncludedLog，接收者清除log后插入这条边界日志。
 				logger.info("endReceiveInstallSnapshot: close logs: {}", raft.getRaftConfig().getDbHome());
 				cancelPendingAppendLogFutures();
-				Objects.requireNonNull(logs).drop();
+				//noinspection DataFlowIssue
+				logs.drop();
 				logs = Objects.requireNonNull(database).getOrAddTable(raft.getName() + ".logs");
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
@@ -1736,7 +1748,8 @@ public class LogSequence {
 			var key = ByteBuffer.Allocate(9);
 			key.WriteLong(index);
 			Objects.requireNonNull(logs).delete(writeOptions, key.Bytes, 0, key.WriteIndex);
-			if (Objects.requireNonNull(raftLog.getLog()).getUnique().getRequestId() > 0)
+			//noinspection DataFlowIssue
+			if (raftLog.getLog().getUnique().getRequestId() > 0)
 				openUniqueRequests(raftLog.getLog().getCreateTime()).remove(raftLog);
 		}
 	}

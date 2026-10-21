@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.math.BigDecimal;
 import java.util.function.IntFunction;
 import Zeze.Net.Binary;
@@ -101,7 +99,8 @@ public abstract class Log implements Serializable {
 	}
 
 	public long getLogKey() {
-		return Objects.requireNonNull(belong).objectId() + getVariableId();
+		//noinspection DataFlowIssue
+		return belong.objectId() + getVariableId();
 	}
 
 	public void collect(Changes changes, Bean recent, Log vlog) {

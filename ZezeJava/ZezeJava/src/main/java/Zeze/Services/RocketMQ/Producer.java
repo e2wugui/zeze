@@ -1,6 +1,5 @@
 package Zeze.Services.RocketMQ;
 
-import java.util.Objects;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -154,8 +153,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		// Config判库（与RegisterZezeTables的表→库解析同源），不依赖表是否已打开（app.start
 		// 与producer.start次序皆可）；库名失配（null）不在此拦——Application打开表时自会
 		// 响亮失败。测试普遍以内存库构造但不调start()；联调/demo经豁免属性放行。
+		//noinspection DataFlowIssue
 		var dbConf = zeze.getConfig().getDatabaseConfMap()
-				.get(Objects.requireNonNull(zeze.getConfig().getTableConf(_tSent.getName())).getDatabaseName());
+			.get(zeze.getConfig().getTableConf(_tSent.getName()).getDatabaseName());
 		if (dbConf != null && dbConf.getDatabaseType() == Config.DbType.Memory
 				&& !Boolean.getBoolean(TSENT_ALLOW_MEMORY_PROPERTY))
 			throw new IllegalStateException("RocketMQ.Producer tSent must reside in a persistent database,"
@@ -206,8 +206,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		try {
 			UnRegisterZezeTables(zeze);
 		} catch (Throwable t) {
-			logger.error("RocketMQ.Producer stop UnRegisterZezeTables fail. producerGroup="
-					+ producer.getProducerGroup(), t);
+			logger.error("RocketMQ.Producer stop UnRegisterZezeTables fail. producerGroup={}", producer.getProducerGroup(), t);
 		}
 		// 完全停止后递减活实例计数：告警面与生命周期配对。递减与全部停机动作同处
 		// stopped CAS 抢占之内，重复 stop 计数只递减一次。
@@ -282,14 +281,14 @@ public class Producer extends AbstractProducer implements TransactionListener {
 
 	@Override
 	public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
-		if (!(arg instanceof TxnAction action)) {
+		if (!(arg instanceof TxnAction(String txnId, FuncLong action1))) {
 			logger.error("executeLocalTransaction: arg is not TxnAction: {}", arg);
 			return LocalTransactionState.UNKNOW;
 		}
 		// UNIQ_KEY是broker回查唯一带回的事务标识（ClientRemotingProcessor把回查消息的transactionId
 		// 也覆写成UNIQ_KEY），回查索引行必须以它为键，在此（半消息已发出、属性已生成）补建。
 		var uniqKey = msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
-		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
+		long r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			if (uniqKey != null) {
 				var exist = _tSent.get(uniqKey);
 				if (exist != null)
@@ -298,7 +297,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 					// "仅当事务成功才发送"。
 					return exist.isResult() ? 0 : 1;
 			}
-			var sent = _tSent.get(action.txnId());
+			var sent = _tSent.get(txnId);
 			if (sent == null)
 				return 1;
 			if (sent.isResult())
@@ -307,7 +306,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			if (check != null)
 				_tSent.insert(uniqKey, check);
 			sent.setResult(true);
-			var rc = action.action().call();
+			var rc = action1.call();
 			if (rc == 0 && check != null)
 				check.setResult(true);
 			return rc;
@@ -317,7 +316,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			return LocalTransactionState.COMMIT_MESSAGE;
 		if (r != 1) {
 			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-				_tSent.remove(action.txnId());
+				_tSent.remove(txnId);
 				if (uniqKey != null)
 					_tSent.remove(uniqKey);
 				return 0;

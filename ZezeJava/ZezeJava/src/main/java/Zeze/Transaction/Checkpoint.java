@@ -486,7 +486,8 @@ public final class Checkpoint {
 	private void flushInternal(Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
 							   @Nullable PendingHistory history) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
-		Database.Transaction localCacheTransaction = Objects.requireNonNull(zeze.getLocalRocksCacheDb()).beginTransaction();
+		//noinspection DataFlowIssue
+		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
 		FlushBatch batch = null;
 
 		// history.logChanges原子的和数据一起flush。

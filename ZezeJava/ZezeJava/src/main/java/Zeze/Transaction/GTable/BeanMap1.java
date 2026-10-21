@@ -273,7 +273,8 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 			return;
 		for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
 			var _v_ = _i_.value();
-			switch (Objects.requireNonNull(_v_).getVariableId()) {
+			//noinspection DataFlowIssue
+			switch (_v_.getVariableId()) {
 			case 1:
 				pMap1.followerApply(_v_);
 				break;

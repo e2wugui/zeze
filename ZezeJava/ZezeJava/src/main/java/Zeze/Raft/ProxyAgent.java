@@ -91,7 +91,8 @@ public class ProxyAgent extends Service {
 			if (getConfig().tryGetOrAddConnector(
 					node.getProxyHost(), node.getProxyPort(),
 					true, outConnector, ConnectorEx::new)) {
-				Objects.requireNonNull(outConnector.value).start();
+				//noinspection DataFlowIssue
+				outConnector.value.start();
 			}
 			return Objects.requireNonNull(((ConnectorEx)outConnector.value)).getConnectorProxy(node.getName());
 		}

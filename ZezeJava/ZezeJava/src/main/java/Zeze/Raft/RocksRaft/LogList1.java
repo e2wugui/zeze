@@ -69,8 +69,9 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public boolean addAll(Collection<? extends V> items) {
-		int addIndex = Objects.requireNonNull(getValue()).size();
-		var list = Objects.requireNonNull(getValue()).plusAll(items);
+		//noinspection DataFlowIssue
+		int addIndex = getValue().size();
+		var list = getValue().plusAll(items);
 		if (list == getValue())
 			return false;
 		setValue(list);
@@ -81,7 +82,8 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final boolean remove(V item) {
-		var index = Objects.requireNonNull(getValue()).indexOf(item);
+		//noinspection DataFlowIssue
+		var index = getValue().indexOf(item);
 		if (index < 0)
 			return false;
 		remove(index);
@@ -95,7 +97,8 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public void add(int index, V item) {
-		setValue(Objects.requireNonNull(getValue()).plus(index, item));
+		//noinspection DataFlowIssue
+		setValue(getValue().plus(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 	}
 

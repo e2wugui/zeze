@@ -1,7 +1,5 @@
 package Zeze.Raft.RocksRaft;
 
-import java.util.Objects;
-
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 import Zeze.Serialize.ByteBuffer;
@@ -48,7 +46,8 @@ public abstract class Log implements Serializable {
 	}
 
 	public final long getLogKey() {
-		return Objects.requireNonNull(belong).objectId() + variableId;
+		//noinspection DataFlowIssue
+		return belong.objectId() + variableId;
 	}
 
 	public void collect(Changes changes, Bean recent, Log vlog) {

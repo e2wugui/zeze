@@ -53,7 +53,7 @@ public abstract class Bean implements Serializable {
 	}
 
 	public final @Nullable TableKey tableKey() {
-		return rootInfo != null ? rootInfo.getTableKey() : null;
+		return rootInfo != null ? rootInfo.tableKey() : null;
 	}
 
 	public @Nullable Object mapKey() {

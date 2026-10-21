@@ -113,7 +113,8 @@ public final class Transaction {
 				return current;
 			var topProcedure = getTopProcedure();
 			if (topProcedure != null) {
-				current = Objects.requireNonNull(topProcedure.getZeze().getTransactionIdAutoKey()).nextId();
+				//noinspection DataFlowIssue
+				current = topProcedure.getZeze().getTransactionIdAutoKey().nextId();
 				tid = current;
 				return current;
 			}
@@ -769,7 +770,7 @@ public final class Transaction {
 	public void verifyRecordForWrite(Bean bean) {
 		var ri = bean.rootInfo;
 		//noinspection DataFlowIssue
-		if (Objects.requireNonNull(ri.record()).getState() == GlobalCacheManagerConst.StateRemoved)
+		if (ri.record().getState() == GlobalCacheManagerConst.StateRemoved)
 			throwRedo(ri.tableKey().getId(), "Redo: StateRemoved: " + bean.tableKey()); // 这个错误需要redo。不是逻辑错误。
 		//noinspection DataFlowIssue
 		var ra = getRecordAccessed(bean.tableKey());
@@ -874,7 +875,8 @@ public final class Transaction {
 				while (it.moveToNext()) {
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
-					var belong = Objects.requireNonNull(it.value()).getBelong();
+					//noinspection DataFlowIssue
+					var belong = it.value().getBelong();
 					if (belong == null)
 						continue;
 

@@ -35,8 +35,9 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void add(K key, V value) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.add(key, value);
 		} else
 			map = map.plus(key, value);
@@ -46,8 +47,9 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void put(K key, V value) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else
 			map = map.plus(key, value);
@@ -57,8 +59,9 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void remove(K key) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
 		} else
 			map = map.minus(key);
@@ -68,8 +71,9 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
-					Objects.requireNonNull(parent()).objectId() + variableId(), this::createLogBean);
+			//noinspection DataFlowIssue
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
 			map = Zeze.Collections.Persistents.map();
