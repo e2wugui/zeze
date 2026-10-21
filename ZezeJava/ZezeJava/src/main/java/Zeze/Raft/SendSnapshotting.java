@@ -40,26 +40,35 @@ public final class SendSnapshotting {
 		return sessions.containsKey(connectorName);
 	}
 
+	boolean isCurrent(Server.ConnectorEx c, InstallSnapshotState state) {
+		return sessions.get(c.getName()) == state;
+	}
+
 	public void put(String connectorName, InstallSnapshotState state) { // 测试直接合成会话
 		sessions.put(connectorName, state);
 	}
 
 	public void cancelAll() throws Exception {
 		// 关句柄同时删条目：换主后残留条目永久拦截该connector的心跳/复制并禁用本地snapshot。
-		for (var it = sessions.entrySet().iterator(); it.hasNext(); ) {
-			var e = it.next();
-			it.remove();
-			end(e.getValue());
+		for (var e : sessions.entrySet()) {
+			if (sessions.remove(e.getKey(), e.getValue()))
+				closeSession(e.getValue());
 		}
 	}
 
 	// 按connector收口（心跳/复制/断线路径持有connector）：移除会话并收口。
 	public void end(Server.ConnectorEx c) throws Exception {
-		end(sessions.remove(c.getName()));
+		closeSession(sessions.remove(c.getName()));
+	}
+
+	// 异步会话只能摘除自己；连接重试可能已登记同名的新会话。调用者持 Raft 锁。
+	void end(Server.ConnectorEx c, InstallSnapshotState state) throws Exception {
+		if (sessions.remove(c.getName(), state))
+			closeSession(state);
 	}
 
 	// 会话收口：关文件；done且成功则复位索引并续复制。map移除由调用方完成。
-	private void end(@Nullable InstallSnapshotState state) throws Exception {
+	private void closeSession(@Nullable InstallSnapshotState state) throws Exception {
 		if (state == null)
 			return;
 		var c = state.getConnector();
