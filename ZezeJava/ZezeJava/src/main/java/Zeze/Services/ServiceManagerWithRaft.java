@@ -385,6 +385,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessLoginRequest(Login r) {
+		// 已解码排队的 Login 可能晚于断连清理和同名新连接的 Login，不能重新接管新行。
+		if (!isSenderAlive(r.getSender()))
+			return ErrorNotLogin;
 		// sessionName是tSession主键兼会话归属凭证，空白名（<ServiceManagerConf>
 		// 漏配sessionName属性时Config解析为空串）会使多个server共享同一会话行互相接管——
 		// 推送错乱、断连连带注销对方注册订阅，表现为服务闪断。非空为部署硬约束（唯一性
@@ -770,16 +773,21 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	public static final long ErrorSessionName = -21;
 
 	/**
-	 * 会话前置条件单点强制：未Login的连接（userState非Session，或Login事务刚被
-	 * 回滚/清理的窗口——见closeSession与reconcileSessions）发Edit/Subscribe/UnSubscribe
-	 * 时tableSession.get(name)为null，直接解引用NPE（错误码不明确、日志噪声、
-	 * 恶意可稳定触发服务端NPE路径）。统一应答ErrorNotLogin并返回null，调用方立即返回。
+	 * 会话名前置条件还必须验证连接归属：同名新连接 Login 后旧连接仍有 Session，
+	 * 但它不能再修改新连接的注册/订阅。与 cleanupSessionRow 使用同一持久 sessionId 契约。
 	 */
 	private @Nullable Session requireSession(Zeze.Net.Rpc<?, ?> r) {
-		//noinspection DataFlowIssue
-		if (!(r.getSender().getUserState() instanceof Session netSession))
+		var sender = r.getSender();
+		if (sender == null || !isSenderAlive(sender) || !(sender.getUserState() instanceof Session netSession))
 			return notLogin(r);
-		return tableSession.get(netSession.name) != null ? netSession : notLogin(r);
+		var row = tableSession.get(netSession.name);
+		return row != null && row.getSessionId() == sender.getSessionId() ? netSession : notLogin(r);
+	}
+
+	private boolean isSenderAlive(@Nullable AsyncSocket sender) {
+		// 调用者持 SM 锁且已经通过 closed 门禁；close 的锁屏障之前 Raft 仍然有效。
+		//noinspection DataFlowIssue
+		return sender != null && rocks.getRaft().getServer().GetSocket(sender.getSessionId()) == sender;
 	}
 
 	private @Nullable Session notLogin(Zeze.Net.Rpc<?, ?> r) {
