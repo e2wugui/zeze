@@ -31,12 +31,19 @@ import Zeze.Raft.RocksRaft.Log1.LogBinary;
 import Zeze.Raft.RocksRaft.Log1.LogBool;
 import Zeze.Raft.RocksRaft.Log1.LogByte;
 import Zeze.Raft.RocksRaft.Log1.LogDouble;
+import Zeze.Raft.RocksRaft.Log1.LogDecimal;
 import Zeze.Raft.RocksRaft.Log1.LogFloat;
 import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Raft.RocksRaft.Log1.LogLong;
 import Zeze.Util.AtomicFileWriter;
 import Zeze.Raft.RocksRaft.Log1.LogShort;
 import Zeze.Raft.RocksRaft.Log1.LogString;
+import Zeze.Raft.RocksRaft.Log1.LogQuaternion;
+import Zeze.Raft.RocksRaft.Log1.LogVector2;
+import Zeze.Raft.RocksRaft.Log1.LogVector2Int;
+import Zeze.Raft.RocksRaft.Log1.LogVector3;
+import Zeze.Raft.RocksRaft.Log1.LogVector3Int;
+import Zeze.Raft.RocksRaft.Log1.LogVector4;
 import Zeze.Raft.Server;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
@@ -271,6 +278,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	static {
+		// 生成器仅补集合与BeanKey的具体类型；内建字段日志在这里统一注册。
 		Log.register(LogBool::new);
 		Log.register(LogByte::new);
 		Log.register(LogShort::new);
@@ -280,6 +288,13 @@ public final class Rocks extends StateMachine implements Closeable {
 		Log.register(LogDouble::new);
 		Log.register(LogString::new);
 		Log.register(LogBinary::new);
+		Log.register(LogDecimal::new);
+		Log.register(LogVector2::new);
+		Log.register(LogVector2Int::new);
+		Log.register(LogVector3::new);
+		Log.register(LogVector3Int::new);
+		Log.register(LogVector4::new);
+		Log.register(LogQuaternion::new);
 		Log.register(LogBean::new);
 		// Log1.LogBeanKey 在生成代码里面注册。
 		// LogSet1<V> LogMap1<K,V> LogMap2<K,V> 在生成代码里面注册。
