@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.CharBuffer;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.AdaptiveByteBufAllocator;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
@@ -12,7 +12,8 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  */
 public class HttpExchangeContentLengthWriter extends Writer {
 	private final HttpExchange x;
-	private final ByteBuf html = PooledByteBufAllocator.DEFAULT.buffer(64 * 1024);
+	// 4.2默认分配器对齐：AdaptiveByteBufAllocator（生命周期/释放语义与Pooled一致，常驻64KB无碍）
+	private final ByteBuf html = AdaptiveByteBufAllocator.DEFAULT.buffer(64 * 1024);
 	private boolean closed; // send会转移html所有权(netty发送完释放),Closeable契约要求close幂等,二次close不得重复发送已释放的ByteBuf
 	private boolean failed; // 渲染中途异常由调用方置位：close不得把半截页面按200+完整ContentLength发出
 

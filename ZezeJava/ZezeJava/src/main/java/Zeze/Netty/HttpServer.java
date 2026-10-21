@@ -47,8 +47,9 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.epoll.Epoll;
+import io.netty.channel.IoEventLoopGroup;
 import io.netty.channel.epoll.EpollChannelOption;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
@@ -276,7 +277,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			shutdown = false; // close→start重启配套:清除停机拒绝标志,重新接受新请求
 			var eventLoopGroup = netty.getEventLoopGroup();
 			var b = new ServerBootstrap();
-			if (eventLoopGroup instanceof EpollEventLoopGroup)
+			// 4.2：组实现类换MultiThreadIoEventLoopGroup后instanceof旧类恒false，改用isIoType判定epoll传输层
+			if (eventLoopGroup instanceof IoEventLoopGroup ioGroup && ioGroup.isIoType(EpollIoHandler.class))
 				b = b.option(EpollChannelOption.SO_REUSEPORT, true);
 			b = b.group(eventLoopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)

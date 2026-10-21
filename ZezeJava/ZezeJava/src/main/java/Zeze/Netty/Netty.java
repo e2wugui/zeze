@@ -4,9 +4,10 @@ import java.io.Closeable;
 import java.net.InetSocketAddress;
 import Zeze.Util.Task;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.epoll.EpollIoHandler;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
@@ -28,9 +29,9 @@ public class Netty implements Closeable {
 
 	public Netty(int nThreads) {
 		var threadFactory = new DefaultThreadFactory("ZezeNetty");
-		eventLoopGroup = Epoll.isAvailable()
-				? new EpollEventLoopGroup(nThreads, threadFactory)
-				: new NioEventLoopGroup(nThreads, threadFactory);
+		// 4.2：EventLoopGroup实现类已弃用，改用MultiThreadIoEventLoopGroup+IoHandler工厂显式选传输层（无自动探测）
+		eventLoopGroup = new MultiThreadIoEventLoopGroup(nThreads, threadFactory,
+				Epoll.isAvailable() ? EpollIoHandler.newFactory() : NioIoHandler.newFactory());
 	}
 
 	public EventLoopGroup getEventLoopGroup() {
