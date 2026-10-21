@@ -527,7 +527,13 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 	private void releaseAsync(CacheHolder sender, Binary _gKey,
 			CountDownFuture future, long fireGeneration) {
-		var cs = getGlobal().computeIfAbsent(_gKey, this::newCacheState);
+		releaseAsync(sender, _gKey, future, fireGeneration, getGlobal());
+	}
+
+	// 固定操作所属map，含StateRemoved重试；stop/start后旧回调只收尾旧运行域。
+	private void releaseAsync(CacheHolder sender, Binary _gKey, CountDownFuture future,
+			long fireGeneration, ConcurrentHashMap<Binary, CacheState> operationGlobal) {
+		var cs = operationGlobal.computeIfAbsent(_gKey, this::newCacheState);
 		var state = new Object() {
 			int stage;
 		};
@@ -542,7 +548,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				} else if (cs.acquireStatePending == StateRemoved && state.stage == 0) {
 					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 					cs.lock.leave();
-					releaseAsync(sender, gKey, future, fireGeneration); // retry保持发射代次
+					releaseAsync(sender, gKey, future, fireGeneration, operationGlobal);
 					return;
 				}
 
@@ -563,7 +569,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				}
 					if (cs.acquireStatePending == StateRemoved) {
 						cs.lock.leave();
-						releaseAsync(sender, gKey, future, fireGeneration); // retry保持发射代次
+						releaseAsync(sender, gKey, future, fireGeneration, operationGlobal);
 						return;
 					}
 					if (sender.generation != fireGeneration) {
@@ -583,7 +589,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (cs.modify == null && cs.share.isEmpty()) {
 					// 安全的从global中删除，没有并发问题。
 					cs.acquireStatePending = StateRemoved;
-					getGlobal().remove(gKey);
+					operationGlobal.remove(gKey, cs);
 				} else
 					cs.acquireStatePending = StateInvalid;
 				cs.lock.notifyAllWait();
@@ -633,8 +639,13 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private void releaseAsync(Acquire rpc, CacheHolder sender, long fireGeneration) {
+		releaseAsync(rpc, sender, fireGeneration, getGlobal());
+	}
+
+	private void releaseAsync(Acquire rpc, CacheHolder sender, long fireGeneration,
+			ConcurrentHashMap<Binary, CacheState> operationGlobal) {
 		//noinspection DataFlowIssue
-		var cs = getGlobal().computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
+		var cs = operationGlobal.computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
 		var state = new Object() {
 			int stage;
 		};
@@ -648,7 +659,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				} else if (cs.acquireStatePending == StateRemoved && state.stage == 0) {
 					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 					cs.lock.leave();
-					releaseAsync(rpc, sender, fireGeneration); // retry keeps the original owner generation
+					releaseAsync(rpc, sender, fireGeneration, operationGlobal);
 					return;
 				}
 
@@ -674,7 +685,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				}
 				if (cs.acquireStatePending == StateRemoved) {
 					cs.lock.leave();
-					releaseAsync(rpc, sender, fireGeneration); // retry keeps the original owner generation
+					releaseAsync(rpc, sender, fireGeneration, operationGlobal);
 					return;
 				}
 				if (sender.generation != fireGeneration) {
@@ -698,7 +709,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (cs.modify == null && cs.share.isEmpty()) {
 					// 安全的从global中删除，没有并发问题。
 					cs.acquireStatePending = StateRemoved;
-					getGlobal().remove(gKey);
+					operationGlobal.remove(gKey, cs);
 				} else
 					cs.acquireStatePending = StateInvalid;
 				cs.lock.notifyAllWait();
@@ -723,6 +734,10 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private void acquireShareAsync(Acquire rpc) {
+		acquireShareAsync(rpc, getGlobal());
+	}
+
+	private void acquireShareAsync(Acquire rpc, ConcurrentHashMap<Binary, CacheState> operationGlobal) {
 		// sender入口一次捕获（对齐同步版acquireShare/acquireModify）：回调每次重入都重读
 		// getUserState()，会话被daemon kick（置null）后延续阶段得到null，NPE发生在申请位置位之后
 		// 且无复位——pending永久泄漏，该key上所有后续acquire/release进入永不唤醒的等待（key冻结）。
@@ -736,7 +751,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			return;
 		}
 		//noinspection DataFlowIssue
-		var cs = getGlobal().computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
+		var cs = operationGlobal.computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
@@ -749,7 +764,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (state.stage == 0) {
 					if (cs.acquireStatePending == StateRemoved) {
 						cs.lock.leave();
-						acquireShareAsync(rpc); // retry
+						acquireShareAsync(rpc, operationGlobal);
 						return;
 					}
 				}
@@ -794,7 +809,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					}
 					if (cs.acquireStatePending == StateRemoved) {
 						cs.lock.leave();
-						acquireShareAsync(rpc); // retry
+						acquireShareAsync(rpc, operationGlobal);
 						return; // concurrent release
 					}
 
@@ -929,6 +944,10 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private void acquireModifyAsync(Acquire rpc) {
+		acquireModifyAsync(rpc, getGlobal());
+	}
+
+	private void acquireModifyAsync(Acquire rpc, ConcurrentHashMap<Binary, CacheState> operationGlobal) {
 		// sender入口一次捕获（理由同acquireShareAsync）：kick后延续阶段重读getUserState()为null，
 		// NPE发生在申请位置位之后且无复位——pending永久泄漏，key冻结。
 		//noinspection DataFlowIssue
@@ -941,7 +960,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			return;
 		}
 		//noinspection DataFlowIssue
-		var cs = getGlobal().computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
+		var cs = operationGlobal.computeIfAbsent(rpc.Argument.globalKey, this::newCacheState);
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
@@ -954,7 +973,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (state.stage == 0) {
 					if (cs.acquireStatePending == StateRemoved) {
 						cs.lock.leave();
-						acquireModifyAsync(rpc); // retry
+						acquireModifyAsync(rpc, operationGlobal);
 						return;
 					}
 				}
@@ -1002,7 +1021,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					}
 					if (cs.acquireStatePending == StateRemoved) {
 						cs.lock.leave();
-						acquireModifyAsync(rpc); // retry
+						acquireModifyAsync(rpc, operationGlobal);
 						return; // concurrent release
 					}
 

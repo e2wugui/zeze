@@ -525,8 +525,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	private int release(CacheHolder sender, Binary _gKey, boolean noWait, long fireGeneration) throws InterruptedException {
+		// 一次操作固定所属运行域；stop/start会替换实例global，旧等待者不能重试到新map。
+		var operationGlobal = getGlobal();
 		while (true) {
-			CacheState cs = getGlobal().computeIfAbsent(_gKey, CacheState::new);
+			CacheState cs = operationGlobal.computeIfAbsent(_gKey, CacheState::new);
 			cs.lock();
 			try { //await 等锁
 				if (cs.acquireStatePending == StateRemoved) {
@@ -568,7 +570,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				if (cs.modify == null && cs.share.isEmpty()) {
 					// 安全的从global中删除，没有并发问题。
 					cs.acquireStatePending = StateRemoved;
-					getGlobal().remove(gKey);
+					operationGlobal.remove(gKey, cs);
 				} else
 					cs.acquireStatePending = StateInvalid;
 				cs.signalAll(); //notify
@@ -582,8 +584,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	private void acquireShare(Acquire rpc) throws InterruptedException {
 		//noinspection DataFlowIssue
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+		var operationGlobal = getGlobal();
 		while (true) {
-			CacheState cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
+			CacheState cs = operationGlobal.computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
 			// 申请位占住后异常逃逸（await上的中断等，由processAcquireRequest的catch接走）不复位的话，
 			// 该key上所有后续acquire/release永久等待（key冻结）；finally兜底复位。
 			var ownsPending = false;
@@ -748,8 +751,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	private void acquireModify(Acquire rpc) throws InterruptedException {
 		//noinspection DataFlowIssue
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+		var operationGlobal = getGlobal();
 		while (true) {
-			CacheState cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
+			CacheState cs = operationGlobal.computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
 			// 申请位占住后异常逃逸不复位会冻结key（理由同acquireShare）；finally兜底复位。
 			var ownsPending = false;
 			cs.lock();
