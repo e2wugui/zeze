@@ -6,6 +6,7 @@ import java.lang.invoke.VarHandle;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
@@ -32,12 +33,14 @@ import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.AbstractAsyncLock;
 import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.AsyncLock;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.Id128;
 import Zeze.Util.IdentityHashSet;
+import Zeze.Util.InlineAsyncLock;
 import Zeze.Util.KVNotNull;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
@@ -66,8 +69,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private static final boolean ENABLE_PERF = true;
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerAsyncServer.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
-	// -tryNextSync 启动参数置位，main里start前设置、之后只读；CacheState构造锁时读取。
-	// 不用系统属性：其生效依赖AsyncLock类惰性加载时机，设置晚了静默失效。
+	// -tryNextSync 启动参数置位，main里start前设置、之后只读；创建CacheState时选择锁实现。
 	private static volatile boolean useSyncLock;
 
 	// 墓碑化：start赋值后永不置null，stop只停止对象不杀引用——在飞协议/晚到守护读到的
@@ -75,6 +77,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private volatile @Nullable ServerService server;
 	private @Nullable AsyncSocket serverSocket;
 	private @Nullable ConcurrentHashMap<Binary, CacheState> global;
+	// 每次 start 捕获共享池；启动方负责在 GCM 在途业务结束后关闭池，不能丢弃锁的派发任务。
+	// 重建池时应重启 GCM（同时重建 CacheState），旧锁不会自动切换执行器。
+	private @Nullable Executor lockExecutor;
 	private final AtomicLong serialIdGenerator = new AtomicLong();
 	/*
 	 * 会话。
@@ -145,6 +150,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			if (config == null)
 				config = Config.load();
 			config.parseCustomize(gcmConfig);
+			lockExecutor = useSyncLock ? null : Objects.requireNonNull(Task.getThreadPool(),
+					"Task thread pool must be initialized before starting GCM");
 
 			sessions = new LongConcurrentHashMap<>(4096);
 			global = new ConcurrentHashMap<>(gcmConfig.initialCapacity);
@@ -502,7 +509,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 	private void releaseAsync(CacheHolder sender, Binary _gKey,
 			CountDownFuture future, long fireGeneration) {
-		var cs = getGlobal().computeIfAbsent(_gKey, CacheState::new);
+		var cs = getGlobal().computeIfAbsent(_gKey, this::newCacheState);
 		var state = new Object() {
 			int stage;
 		};
@@ -607,7 +614,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private void releaseAsync(Acquire rpc, CacheHolder sender, long fireGeneration) {
-		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
+		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), this::newCacheState);
 		var state = new Object() {
 			int stage;
 		};
@@ -707,7 +714,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				getPerf().onAcquireEnd(rpc, StateShare);
 			return;
 		}
-		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
+		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), this::newCacheState);
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
@@ -910,7 +917,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				getPerf().onAcquireEnd(rpc, StateModify);
 			return;
 		}
-		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
+		var cs = getGlobal().computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), this::newCacheState);
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
@@ -1200,15 +1207,21 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		});
 	}
 
+	private CacheState newCacheState(Binary gKey) {
+		return new CacheState(gKey, useSyncLock ? new InlineAsyncLock()
+				: new AsyncLock(Objects.requireNonNull(lockExecutor)));
+	}
+
 	private static final class CacheState {
 		final Binary globalKey; // 这里的引用同global map的key,用于给CacheHolder里的map相同的key引用
 		final IdentityHashSet<CacheHolder> share = new IdentityHashSet<>();
-		final AsyncLock lock = new AsyncLock(useSyncLock);
+		final AbstractAsyncLock lock;
 		@Nullable CacheHolder modify;
 		int acquireStatePending = StateInvalid;
 
-		public CacheState(Binary gKey) {
+		public CacheState(Binary gKey, AbstractAsyncLock lock) {
 			globalKey = gKey;
+			this.lock = lock;
 		}
 
 		int getSenderCacheState(CacheHolder sender) {

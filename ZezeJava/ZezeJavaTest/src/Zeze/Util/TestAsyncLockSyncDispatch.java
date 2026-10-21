@@ -2,20 +2,17 @@ package Zeze.Util;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import Zeze.Util.AsyncLock;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * 同步派发模式（构造参数 new AsyncLock(true)，取代原系统属性全局开关）：
- * 拿到派发权的线程在 dispatchLoop 内同线程顺序内联执行整个队列，循环独占释放；
+ * InlineAsyncLock 同步派发：
+ * 拿到派发权的线程在 drainInline 内同线程顺序内联执行整个队列，循环独占释放；
  * 回调内部的 leave() 只清 ownerThread/current、不派发。
  * （旧递归版经 回调finally→leave()→tryNextSync 逐个嵌套递归执行等待队列，
  * 每个排队回调净增约3个栈帧，深队列 StackOverflowError，且 SOE 从 leave() 的
- * finally 抛出会吞掉原回调异常、state 滞留1导致锁永久卡死——FND2-U0-4。）
- * <p>
- * 模式为实例级不可变配置：同一实例运行中不存在模式切换，比旧全局 volatile 开关语义更强。
+ * finally 抛出会吞掉原回调异常、state 滞留1导致锁永久卡死。）
  */
 @Fast
 public class TestAsyncLockSyncDispatch {
@@ -23,7 +20,7 @@ public class TestAsyncLockSyncDispatch {
 	/** 深等待队列在受限栈线程上派发：递归版每回调嵌套3帧必然 SOE，循环版只需常数帧。 */
 	@Test
 	public void testDeepQueueNoStackOverflow() throws Exception {
-		var lock = new AsyncLock(true);
+		var lock = new InlineAsyncLock();
 		int n = 20_000;
 		var executed = new AtomicInteger();
 		var seq = new int[n];
@@ -62,7 +59,7 @@ public class TestAsyncLockSyncDispatch {
 	/** 回调内部显式 leave()：不派发不双跑，外层循环继续处理后续回调，最终正确释放。 */
 	@Test
 	public void testReentrantLeaveInsideCallback() throws Exception {
-		var lock = new AsyncLock(true);
+		var lock = new InlineAsyncLock();
 		var count = new AtomicInteger();
 		var started = new CountDownLatch(1);
 		var release = new CountDownLatch(1);
