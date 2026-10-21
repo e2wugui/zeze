@@ -5,8 +5,6 @@ import org.jspecify.annotations.Nullable;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -25,7 +23,6 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Table;
-import Zeze.Transaction.TableDynamic;
 import Zeze.Transaction.TableWalkKey;
 import Zeze.Transaction.TableX;
 import Zeze.Util.Json;
@@ -162,11 +159,7 @@ public class DbWeb extends AbstractDbWeb {
 
 	private static Object parseKey(TableX<?, ?> table, String key) {
 		Object k;
-		Type keyType;
-		if (table instanceof TableDynamic)
-			keyType = table.getKeyClass();
-		else
-			keyType = ((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+		var keyType = table.getKeyClass();
 		if (keyType == Long.class)
 			k = Long.parseLong(key);
 		else if (keyType == Integer.class)
@@ -175,8 +168,8 @@ public class DbWeb extends AbstractDbWeb {
 			k = key;
 		else if (keyType == Binary.class)
 			k = new Binary(key);
-		else if (keyType instanceof Class && Serializable.class.isAssignableFrom((Class<?>)keyType)) // BeanKey
-			k = Json.parse(key, (Class<?>)keyType);
+		else if (Serializable.class.isAssignableFrom(keyType)) // BeanKey
+			k = Json.parse(key, keyType);
 		else
 			throw new IllegalStateException("ERROR: unsupported key of " + keyType + " for table " + table.getName());
 		return Objects.requireNonNull(k);
@@ -284,8 +277,7 @@ public class DbWeb extends AbstractDbWeb {
 				return;
 			}
 			var k = parseKey(table, key);
-			var valueClass = (Class<?>)
-					((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
+			var valueClass = table.getValueClass();
 			var v = Json.parse(value, valueClass);
 			if (v == null) {
 				x.sendPlainText(HttpResponseStatus.BAD_REQUEST, "parse value failed!");
