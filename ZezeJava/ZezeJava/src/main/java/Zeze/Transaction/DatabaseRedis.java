@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
@@ -383,13 +384,15 @@ public class DatabaseRedis extends Database {
 			}
 		}
 
-		// 全家族唯独Redis的读-判-写非服务端原子（其余走存储过程/事务）：热更
-		// （__upgrade_schemas__）不进启动锁，并发save会双双通过版本校验互相覆盖。
-		// Lua单RT原子化：版本是DataWithVersion编码的末8字节，按字节串比较，
-		// 避开Redis Lua 5.1的64位数字精度问题。
+		// DataWithVersion的版本为变长WriteLong，不能按固定尾部长度提取。
+		// 客户端核对版本后，Lua按完整旧值原子比较，保持既有编码且避免Lua数字精度损失。
 		private static final String SAVE_CAS_LUA = """
 				local cur = redis.call('HGET', KEYS[1], ARGV[1])
-				if cur and string.sub(cur, -8) ~= ARGV[3] then
+				if ARGV[4] == '1' then
+					if cur ~= ARGV[3] then
+						return 0
+					end
+				elseif cur then
 					return 0
 				end
 				redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
@@ -400,19 +403,22 @@ public class DatabaseRedis extends Database {
 		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
 																  long version) {
 			try (var jedis = pool.getResource()) {
+				var field = key.CopyIf();
+				var oldValue = jedis.hget(keyDataVersion, field);
+				if (oldValue != null && DataWithVersion.decode(oldValue).version != version)
+					return KV.create(version, false);
 				var dv = new DataWithVersion();
 				dv.data = data;
-				// 版本必须递增（对齐 RocksDb/Mongo/Dynamo 实现）：schemasCompatible 的重读重试环
+				// 版本必须递增（对齐 RocksDb/Mongo/Dynamo 实现）：publishSchemas 的重读重试环
 				// 依赖“读到陈旧数据时 exist.version != version 返回 false”这一防线；
 				// 原样写回会让存储的 version 永远停在首次值，版本冲突检测名存实亡。
 				dv.version = version + 1;
 				var dvBb = ByteBuffer.Allocate();
 				dv.encode(dvBb);
-				var expectedVersion = ByteBuffer.Allocate(Long.BYTES);
-				expectedVersion.WriteLong(version);
 				var written = (Long)jedis.eval(SAVE_CAS_LUA.getBytes(StandardCharsets.UTF_8),
-						java.util.List.of(keyDataVersion),
-						java.util.List.of(key.CopyIf(), dvBb.CopyIf(), expectedVersion.CopyIf()));
+						List.of(keyDataVersion),
+						List.of(field, dvBb.CopyIf(), oldValue != null ? oldValue : ByteBuffer.Empty,
+								new byte[]{(byte)(oldValue != null ? '1' : '0')}));
 				return written == 1 ? KV.create(dv.version, true) : KV.create(version, false);
 			}
 		}

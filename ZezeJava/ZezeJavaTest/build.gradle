@@ -53,6 +53,9 @@ dependencies {
     // DynamoDB 客户端边界契约测试；与主工程的可选 SDK 版本一致。
     testImplementation 'com.amazonaws:aws-java-sdk-dynamodb:1.12.797'
 
+    // Redis schema CAS 的显式外部集成回归；版本与主工程可选客户端一致。
+    testImplementation 'redis.clients:jedis:5.2.0'
+
     // for GTable
     //implementation 'com.google.guava:guava:33.4.0-jre'
 
