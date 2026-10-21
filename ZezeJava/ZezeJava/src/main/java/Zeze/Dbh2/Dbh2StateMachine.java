@@ -16,6 +16,7 @@ import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BSplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
+import Zeze.Raft.Log;
 import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftLog;
@@ -122,6 +123,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	 * （全副本一致）并响亮告警。条目保留至日志apply（apply路径摘墓碑+物理删blob与marker）；
 	 * 单条隔离：掉主等异常只推迟本条到下轮重试。 */
 	void expireDueTombstones(long graceMillis) {
+		expireDueTombstones(graceMillis, Objects.requireNonNull(getRaft()).getLogSequence().getTerm());
+	}
+
+	private void expireDueTombstones(long graceMillis, long expectedTerm) {
 		var graceNanos = graceMillis * 1_000_000L;
 		for (var e : undonePending.entrySet()) {
 			if (System.nanoTime() - e.getValue().tombstoneNanos < graceNanos)
@@ -130,7 +135,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				// 墓碑终局删除必须经raft日志：本地直删会与迟到LogCommitBatch跨副本apply
 				// 分歧（follower复活落盘、leader快照安装可抹掉）。复用终局undo日志的apply
 				// 路径（undonePending.remove命中→物理删blob+marker），全副本同一日志序收敛。
-				Objects.requireNonNull(getRaft()).appendLog(new LogUndoBatch(e.getKey(), true));
+				if (!tryAppendTimerLog(new LogUndoBatch(e.getKey(), true), expectedTerm))
+					continue;
 				logger.error("undo tombstone expired without coordinator resolution: tid={} (expiry undo"
 						+ " appended to raft log; coordinator neither confirmed undo nor delivered commit"
 						+ " within {}ms -- divergence possible, manual check)", e.getKey(), graceMillis);
@@ -429,8 +435,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	private void onTimer() {
-		//noinspection DataFlowIssue
-		if (!getRaft().isLeader())
+		var raft = Objects.requireNonNull(getRaft());
+		var expectedTerm = raft.getLogSequence().getTerm();
+		if (!raft.isLeader())
 			return;
 
 		// 年龄判据用单调钟（FND29 dbh2-03 断根）：墙钟步进（NTP步进/VM恢复）可把仍在协调者
@@ -450,7 +457,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				if (Commit.eCommitNotExist == state.getState()
 						|| Commit.ePreparing == state.getState()) {
 					logger.warn("timeout undo tid={} state={}", tid, state);
-					Objects.requireNonNull(getRaft()).appendLog(new LogUndoBatch(tid));
+					tryAppendTimerLog(new LogUndoBatch(tid), expectedTerm);
 				//noinspection DataFlowIssue
 				} else if (Commit.eCommitting == state.getState()
 						&& t.elapsedMillis() >= dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
@@ -466,7 +473,24 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				logger.warn("onTimer check hanging transaction fail. tid={}", tid, ex);
 			}
 		}
-		expireDueTombstones(undoResurrectGraceMillis());
+		expireDueTombstones(undoResurrectGraceMillis(), expectedTerm);
+	}
+
+	// restore/reset 持 Raft 锁取消并 join 本 timer：任务体不得反向阻塞该锁。
+	// 锁忙保留事务/墓碑，下一轮重试；冻结任期防止旧协调查询越过换主任期。
+	// 锁内只异步追加，不等待多数派/apply（等待者同样需要 Raft 锁）。
+	private boolean tryAppendTimerLog(Log log, long expectedTerm) throws Exception {
+		var raft = Objects.requireNonNull(getRaft());
+		if (!raft.tryLock())
+			return false;
+		try {
+			if (!raft.isLeader() || raft.getLogSequence().getTerm() != expectedTerm)
+				return false;
+			raft.getLogSequence().appendLog(log, null, expectedTerm);
+			return true;
+		} finally {
+			raft.unlock();
+		}
 	}
 
 	public void setBucketMeta(BBucketMeta.Data argument) {
