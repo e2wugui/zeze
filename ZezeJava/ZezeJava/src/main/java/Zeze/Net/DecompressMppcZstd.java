@@ -83,19 +83,14 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 			}
 		} else if (blockState == -2) {
 			srcBuf[srcBufLen++] = c;
-			if (srcBufLen == srcBuf.length) {
-				ds.decompress(srcBuf, 0, srcBufLen, sink);
-				srcBufLen = 0;
-			}
+			if (srcBufLen == srcBuf.length)
+				flushBufferedBlockData();
 			if (--blockSize == 0) {
 				blockState = 0;
 				// 块数据结束时srcBuf可能仍有未喂给zstd的残留（数组版路径块数据直达ds，无此问题）：
 				// 不在这里排空，后续回到常规MPPC段的输出会越过zstd流顺序，且流结束时（blockState==-1
 				// 走super.flush）残留彻底丢失。zstd流式解压接受任意部分输入，此处排空安全。
-				if (srcBufLen > 0) {
-					ds.decompress(srcBuf, 0, srcBufLen, sink);
-					srcBufLen = 0;
-				}
+				flushBufferedBlockData();
 			}
 		} else {
 			if (c < 0) {
@@ -126,12 +121,11 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 					blockState = 0;
 					for (p &= ~7; (p -= 8) >= 0; )
 						update((byte)(r >> p));
-					if (srcBufLen > 0) {
-						ds.decompress(srcBuf, 0, srcBufLen, sink);
-						srcBufLen = 0;
-					}
+					flushBufferedBlockData();
 				}
 			} else if (blockState == -2) {
+				// 单字节入口留下的前缀必须先送入解压器，数组后缀不能越过它。
+				flushBufferedBlockData();
 				len = Math.min(blockSize, end - pos);
 				if ((blockSize -= len) == 0)
 					blockState = 0;
@@ -154,6 +148,13 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 		}
 	}
 
+	private void flushBufferedBlockData() throws CodecException {
+		if (srcBufLen > 0) {
+			ds.decompress(srcBuf, 0, srcBufLen, sink);
+			srcBufLen = 0;
+		}
+	}
+
 	@Override
 	public void flush() throws CodecException {
 		if (blockState == -1) {
@@ -171,10 +172,7 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 			} else
 				super.flush();
 		} else {
-			if (srcBufLen > 0) {
-				ds.decompress(srcBuf, 0, srcBufLen, sink);
-				srcBufLen = 0;
-			}
+			flushBufferedBlockData();
 			sink.flush();
 		}
 	}
