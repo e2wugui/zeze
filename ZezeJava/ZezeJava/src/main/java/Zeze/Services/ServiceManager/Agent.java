@@ -10,6 +10,7 @@ import Zeze.Config;
 import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
+import Zeze.Net.RpcTimeoutException;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -17,6 +18,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
@@ -137,10 +139,26 @@ public final class Agent extends AbstractAgent {
 	@Override
 	public void unSubscribeService(BUnSubscribeArgument arg) {
 		waitConnectorReady();
-		new UnSubscribe(arg).SendAndWaitCheckResultCode(client.getSocket());
+		var done = new TaskCompletionSource<Boolean>();
+		var request = new UnSubscribe(arg);
+		if (!request.Send(client.getSocket(), r -> {
+			try {
+				if (r.isTimeout())
+					throw RpcTimeoutException.getInstance();
+				// 与 Subscribe 应答同在 IO 线程按接收顺序发布；唤醒调用者后再删会误删新订阅。
+				if (r.getResultCode() == 0)
+					applyUnsubscribe(arg);
+				done.setResult(true);
+			} catch (Throwable e) {
+				done.setException(e);
+			}
+			return 0;
+		}))
+			done.setException(new IllegalStateException("Send Fail."));
+		done.await();
+		if (request.getResultCode() != 0)
+			throw new IllegalStateException("Rpc Invalid ResultCode=" + request.getResultCode() + " " + request);
 		logger.debug("unSubscribeService: {}", arg);
-		for (var serviceName : arg.serviceNames)
-			subscribeStates.remove(serviceName);
 	}
 
 	@Override

@@ -147,6 +147,12 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
+	/** 成功退订的本地提交点：在接收应答的串行回调内调用，先于完成调用者的等待。 */
+	protected final void applyUnsubscribe(BUnSubscribeArgument arg) {
+		for (var serviceName : arg.serviceNames)
+			subscribeStates.remove(serviceName);
+	}
+
 	/** 注册确认后才重放订阅；同步/异步失败共用一条重试链，停机后拒绝迟到回调登记。 */
 	protected final class ServiceReplay implements AutoCloseable {
 		private final Action0 registerAction;

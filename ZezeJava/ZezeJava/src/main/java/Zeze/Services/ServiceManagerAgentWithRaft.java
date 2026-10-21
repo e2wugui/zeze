@@ -18,6 +18,7 @@ import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
+import Zeze.Net.RpcTimeoutException;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
@@ -385,10 +386,22 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		waitLoginReady();
 		logger.debug("UnSubscribeService {}", arg);
 		var r = new UnSubscribe(arg);
-		raftClient.sendForWait(r).await();
-		checkResultCode(r); // 服务端退订失败时不得移除本地subscribeStates，否则两侧状态分叉。
-		for (var serviceName : arg.serviceNames)
-			subscribeStates.remove(serviceName);
+		var done = new TaskCompletionSource<Boolean>();
+		raftClient.send(r, __ -> {
+			try {
+				if (r.isTimeout())
+					throw RpcTimeoutException.getInstance();
+				// 应答在 IO 线程串行处理，先应用退订再完成等待，不能让旧调用者删除新订阅。
+				if (r.getResultCode() == 0 || r.getResultCode() == Procedure.RaftApplied)
+					applyUnsubscribe(arg);
+				done.setResult(true);
+			} catch (Throwable e) {
+				done.setException(e);
+			}
+			return 0;
+		});
+		done.await();
+		checkResultCode(r); // 维持调用者直接收到 IllegalStateException 的原有错误码契约。
 	}
 
 	@Override
