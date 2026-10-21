@@ -756,7 +756,8 @@ public class MasterDatabase {
 	// manager侧未建/已销毁都成功，并删除桶目录——目录残留会被Dbh2Manager.start()目录扫描复活；
 	// master的Register应答只含主表桶，孤儿splitting raft不会被registerToMaster对账重建）。
 	// 任一manager未注册/未确认返回false：条目保留（未tombstone），下一轮扫描重试——回收幂等。
-	// 必须在主表/splitting锁外调用（内含30s阻塞rpc）。
+	// 回收调用方持主表→splitting锁，防止校验后目标被结算发布或同区间重建。
+	// 内含30s阻塞rpc；回收期间该表元数据操作等待，不能靠锁外二次检查撤销已发出的销毁。
 	private boolean destroyOrphanRafts(String tableName, BBucketMeta.Data dead) {
 		var allAcked = true;
 		for (var e : dead.getHost2Raft().entrySet()) {
@@ -797,38 +798,30 @@ public class MasterDatabase {
 	private record MissingBaseline(String tableName, BBucketMeta.Data entry) {
 	}
 
-	// 超龄孤儿的回收（FND29 dbh2-04，年龄扫描从只观测升格）：快照判死（主表锁内）→ 锁外
-	// destroyOrphanRafts回收managers侧raft（幂等，任一manager未确认即保留条目下轮重试）→
-	// 两阶段（主表→splitting，对齐consumeDeadSplittingOnCollision锁序）锁内复核判死后
-	// tombstone条目。判死不成立/false路径不动作，由调用方按只观测告警。
+	// aged仅是扫描快照，不能直接授予销毁权限。锁内确认同一目标世代仍在splitting，
+	// 再判死、销毁和摘除；整个过程与settle/create互斥，年龄副表清理也在同一锁区间。
 	private boolean recycleDeadSplitting(String tableName, AgedEntry a) {
 		var mainTable = tables.get(tableName);
 		if (null == mainTable)
 			return false;
-		mainTable.lock();
-		try {
-			if (!isDeadSplittingEntry(mainTable, a.entry(), a.sourceRaft()))
-				return false;
-		} finally {
-			mainTable.unlock();
-		}
-		logger.error("splitting entry aged ({}ms >= {}ms) and structurally dead, recycle. database={} table={} entry={}",
-				a.ageMs(), master.getDbh2Config().getSplittingAgeWarnMs(), databaseName, tableName, a.entry());
-		// 先回收raft再tombstone：manager未确认时条目必须保留，作为下一轮扫描重试的驱动。
-		if (!destroyOrphanRafts(tableName, a.entry()))
-			return false;
 		var splittingTable = splitting.get(tableName);
-		if (null == splittingTable)
-			return true; // 表条目已被并发清空：目标态已达成（幂等）
+		if (splittingTable == null)
+			return true;
 		mainTable.lock();
 		try {
 			splittingTable.lock();
 			try {
 				var exist = splittingTable.buckets.get(a.entry().getKeyFirst());
-				if (null == exist || !sameBucketMeta(exist, a.entry()))
-					return true; // 已被并发settle/消费/重建：幂等达成
+				if (null == exist || !sameBucketMeta(exist, a.entry())
+						|| !exist.getRaftConfig().equals(a.entry().getRaftConfig()))
+					return true; // 已settle/消费/重建，旧快照无权触碰目标或新条目。
 				if (!isDeadSplittingEntry(mainTable, exist, a.sourceRaft()))
-					return false; // 复核不通过：保守放弃本轮，条目保留
+					return false;
+				logger.error("splitting entry aged ({}ms >= {}ms) and structurally dead, recycle. database={} table={} entry={}",
+						a.ageMs(), master.getDbh2Config().getSplittingAgeWarnMs(), databaseName, tableName, exist);
+				// manager未确认时保留条目，下轮重试。使用锁内现行meta，避免扫描后host映射变化。
+				if (!destroyOrphanRafts(tableName, exist))
+					return false;
 				try {
 					splittingTable.buckets.remove(a.entry().getKeyFirst());
 					saveRocks(rocksSplitting, tableName, splittingTable);
@@ -839,14 +832,14 @@ public class MasterDatabase {
 							+ " database={} table={}", databaseName, tableName, ex);
 					return false;
 				}
+				splittingAgeRemoveQuietly(tableName, exist.getKeyFirst());
+				return true;
 			} finally {
 				splittingTable.unlock();
 			}
 		} finally {
 			mainTable.unlock();
 		}
-		splittingAgeRemoveQuietly(tableName, a.entry().getKeyFirst());
-		return true;
 	}
 
 	/**
@@ -858,7 +851,7 @@ public class MasterDatabase {
 	 *    驱动，年龄仅是回收门槛（阈值不变：SplittingAgeWarnMs，默认10min量级）。
 	 *  - 无时间戳的存量条目按首次扫描起点立基线（首扫只立基线不告警），基线同轮补登记世代身份。
 	 * 返回超龄条数（告警+回收）。
-	 * 锁序：splitting锁内取条目快照；主表锁、世代登记与回收动作（含rpc）均在splitting锁外。
+		 * 锁序：splitting锁内取扫描快照，放锁后登记世代或按主表→splitting锁序回收。
 	 */
 	public int scanSplittingAge() {
 		var now = System.currentTimeMillis();
