@@ -2,8 +2,7 @@ package Zeze.Raft.RocksRaft;
 
 import java.util.Objects;
 
-import org.jspecify.annotations.Nullable;
-
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import Zeze.Serialize.ByteBuffer;
 import org.pcollections.PVector;
@@ -69,8 +68,10 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 	@Override
 	public Iterator<V> iterator() {
 		return new Iterator<>() {
-			private final Iterator<V> it = getList().iterator();
-			private @Nullable V next;
+			private PVector<V> expected = getList();
+			private final Iterator<V> it = expected.iterator();
+			private int cursor;
+			private int lastReturnedIndex = -1;
 
 			@Override
 			public boolean hasNext() {
@@ -79,12 +80,22 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 
 			@Override
 			public V next() {
-				return next = it.next();
+				var value = it.next();
+				lastReturnedIndex = cursor++;
+				return value;
 			}
 
 			@Override
 			public void remove() {
-				CollList.this.remove(Objects.requireNonNull(next));
+				if (lastReturnedIndex < 0)
+					throw new IllegalStateException();
+				if (getList() != expected)
+					throw new ConcurrentModificationException("structural modification during iteration");
+				// 删除当前坐标中的返回位置；自身删除后下一次next的坐标同步左移。
+				CollList.this.remove(lastReturnedIndex);
+				cursor = lastReturnedIndex;
+				expected = getList();
+				lastReturnedIndex = -1;
 			}
 		};
 	}
