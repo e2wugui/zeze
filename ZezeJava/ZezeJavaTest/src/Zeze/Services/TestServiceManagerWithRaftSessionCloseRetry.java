@@ -222,9 +222,10 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 	/** login前置（原单发断言在30轮压测轮9假红）：RaftRetry(-15)与"无应答"都是瞬态——
 	 * 多数派健全时亦可能撞上选主动摇/心跳抖动窗口：-15经处理器透传；无应答是leaderPort()
 	 * 取样与connect/send间领导权漂移、请求落在follower被静默丢（只推LeaderIs，60轮结案配方
-	 * "无应答⇒重连当前leader"），形态有await-false与RpcTimeoutException异常完成两种
-	 * （soak两批2/80实锤）。换当前leader重连重试（60s上限，耗尽仍红不掩盖真缺陷）；
-	 * 其他结果码非瞬态，立即失败。同名session重复login幂等upsert。 */
+	 * "无应答⇒重连当前leader"），形态有await-false与异常完成两种：rpc定时器先到时
+	 * toResult统一包装为CompletionException(RpcTimeoutException)（soak-20261022-0813
+	 * round1实锤，此前只接了裸RpcTimeoutException形态）。换当前leader重连重试（60s上限，
+	 * 耗尽仍红不掩盖真缺陷）；其他结果码非瞬态，立即失败。同名session重复login幂等upsert。 */
 	private static AsyncSocket loginWithRetry(String sessionName) throws Exception {
 		long deadline = System.currentTimeMillis() + 60_000;
 		while (true) {
@@ -237,8 +238,10 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 			boolean responded;
 			try {
 				responded = login.SendForWait(sock, 30_000).await(30_000) && !login.isTimeout();
-			} catch (Zeze.Net.RpcTimeoutException e) {
-				responded = false; // await对TCS异常完成直接抛——同无应答处理
+			} catch (java.util.concurrent.CompletionException e) {
+				if (!(e.getCause() instanceof Zeze.Net.RpcTimeoutException))
+					throw e;
+				responded = false; // await对TCS异常完成抛包装形态——同无应答处理
 			}
 			if (responded) {
 				if (login.getResultCode() == 0)

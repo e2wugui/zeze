@@ -98,7 +98,9 @@ public class TestAsyncLockContract {
 				});
 			}
 			start.countDown();
-			assertTrue(finished.await(10, TimeUnit.SECONDS));
+			// 断言的是"全部恰好执行一次"的活性而非时延：白天满负载下8000回调10s预算3/6轮 bust
+			// （soak-20261022-0813 round1/3/4，均为本行超预算、互斥/恰好一次从未触发），按负载裕度放宽。
+			assertTrue(finished.await(60, TimeUnit.SECONDS));
 			awaitUnlocked(lock);
 			assertFalse(overlap.get());
 			for (int i = 0; i < seen.length(); i++)
