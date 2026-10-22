@@ -179,8 +179,7 @@ public class TestUndoCommitFenceResurrect {
 			var leader = leaderStateMachine(nodes);
 			waitTransactionApplied(leader, 300L);
 			leader.undoBatch(300L, false);
-			leader.expireDueTombstones(0); // 确定性超窗清扫（生产为 onTimer 周期+配置窗）
-			waitExpiryApplied(leader, 300L); // 等终局日志apply（摘墓碑+物理删除）
+			retryExpireUntilApplied(leader, 300L); // 尽力而为清扫重试驱动到终局apply（见helper注释）
 			leader.commitBatch(300L);
 
 			Assertions.assertNull(requireNonNull(leader.getBucket()).get(key), "超窗墓碑物理删除后迟到 commit 不得复活");
@@ -212,11 +211,15 @@ public class TestUndoCommitFenceResurrect {
 		throw new AssertionError("tombstone not applied: tid=" + tid);
 	}
 
-	/** 超窗清扫的终局日志已apply：墓碑出表（apply路径摘墓碑+物理删blob与marker）。 */
-	private static void waitExpiryApplied(Dbh2StateMachine sm, long tid) throws InterruptedException {
+	/** 超窗清扫尽力而为：tryAppendTimerLog锁忙/换任静默跳过留待下轮（生产onTimer周期重试），
+	 * 单次驱动的确定性测试会误把跳过当终局（soak-20261022-1139 round4实锤：跳过⇒迟到commit
+	 * 合法复活⇒误报跨副本分歧）——以onTimer形态重试驱动，直到终局日志apply（墓碑出表，
+	 * apply路径摘墓碑+物理删blob与marker）。 */
+	private static void retryExpireUntilApplied(Dbh2StateMachine sm, long tid) throws InterruptedException {
 		for (var i = 0; i < 300; ++i) {
 			if (!sm.isTombstonedPending(tid))
 				return;
+			sm.expireDueTombstones(0); // 生产为 onTimer 周期+配置窗
 			Thread.sleep(50);
 		}
 		throw new AssertionError("expiry undo not applied: tid=" + tid);
@@ -509,7 +512,7 @@ public class TestUndoCommitFenceResurrect {
 			for (var n : nodes)
 				waitTombstoned(n.getStateMachine(), 600L);
 
-			leader.expireDueTombstones(0); // 确定性超窗清扫（生产为 onTimer 周期+配置窗）
+			retryExpireUntilApplied(leader, 600L); // 尽力而为清扫重试驱动到终局apply（见helper注释）
 
 			// 迟到CommitBatch经日志序落在expiry之后（生产形态：协调者解冻后deliver）
 			agent.commitBatch(600L).await();
