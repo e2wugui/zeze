@@ -24,10 +24,10 @@ public class TestPostgrePagedWalkBooleanKey {
 	public void testBooleanSingleColumnForwardAndBackward() {
 		var st = new SQLStatement();
 		st.appendBoolean("flag", false);
-		Assertions.assertEquals(" WHERE flag>false", pagedKeyWhere("t_bool", st.getSql().toString(), true));
+		Assertions.assertEquals(" WHERE flag>false", pagedKeyWhere(st.getSql().toString(), true));
 		st.clear();
 		st.appendBoolean("flag", true);
-		Assertions.assertEquals(" WHERE flag<true", pagedKeyWhere("t_bool", st.getSql().toString(), false));
+		Assertions.assertEquals(" WHERE flag<true", pagedKeyWhere(st.getSql().toString(), false));
 	}
 
 	@Test
@@ -36,9 +36,9 @@ public class TestPostgrePagedWalkBooleanKey {
 		st.appendBoolean("flag", false);
 		st.appendInt("seq", 2);
 		Assertions.assertEquals(" WHERE (flag, seq) > (false, 2)",
-				pagedKeyWhere("t_bool_first", st.getSql().toString(), true));
+				pagedKeyWhere(st.getSql().toString(), true));
 		Assertions.assertEquals(" WHERE (flag, seq) < (false, 2)",
-				pagedKeyWhere("t_bool_first", st.getSql().toString(), false));
+				pagedKeyWhere(st.getSql().toString(), false));
 	}
 
 	@Test
@@ -47,9 +47,9 @@ public class TestPostgrePagedWalkBooleanKey {
 		st.appendInt("seq", 1);
 		st.appendBoolean("flag", true);
 		Assertions.assertEquals(" WHERE (seq, flag) > (1, true)",
-				pagedKeyWhere("t_bool_last", st.getSql().toString(), true));
+				pagedKeyWhere(st.getSql().toString(), true));
 		Assertions.assertEquals(" WHERE (seq, flag) < (1, true)",
-				pagedKeyWhere("t_bool_last", st.getSql().toString(), false));
+				pagedKeyWhere(st.getSql().toString(), false));
 	}
 
 	@Test
@@ -58,20 +58,20 @@ public class TestPostgrePagedWalkBooleanKey {
 		st.appendString("tenant", "tenant_1");
 		st.appendBoolean("flag", false);
 		Assertions.assertEquals(" WHERE (tenant, flag) > (?, false)",
-				pagedKeyWhere("t_bool_parameter", st.getSql().toString(), true));
+				pagedKeyWhere(st.getSql().toString(), true));
 		Assertions.assertEquals(" WHERE (tenant, flag) < (?, false)",
-				pagedKeyWhere("t_bool_parameter", st.getSql().toString(), false));
+				pagedKeyWhere(st.getSql().toString(), false));
 		Assertions.assertEquals(List.of("tenant_1"), st.getParams());
 	}
 
 	@Test
 	public void testNonBooleanPredicatesUnchanged() {
 		// 单列：保持col>literal形态
-		Assertions.assertEquals(" WHERE id>1", pagedKeyWhere("t", "id=1", true));
-		Assertions.assertEquals(" WHERE id<1", pagedKeyWhere("t", "id=1", false));
+		Assertions.assertEquals(" WHERE id>1", pagedKeyWhere("id=1", true));
+		Assertions.assertEquals(" WHERE id<1", pagedKeyWhere("id=1", false));
 		// 复合列：元组行值比较（游标语义），参数占位符相对顺序不变
-		Assertions.assertEquals(" WHERE (id, seq) > (1, 5)", pagedKeyWhere("t", "id=1, seq=5", true));
-		Assertions.assertEquals(" WHERE (id, seq) < (1, 5)", pagedKeyWhere("t", "id=1, seq=5", false));
-		Assertions.assertEquals(" WHERE (name, seq) > (?, 5)", pagedKeyWhere("t", "name=?, seq=5", true));
+		Assertions.assertEquals(" WHERE (id, seq) > (1, 5)", pagedKeyWhere("id=1, seq=5", true));
+		Assertions.assertEquals(" WHERE (id, seq) < (1, 5)", pagedKeyWhere("id=1, seq=5", false));
+		Assertions.assertEquals(" WHERE (name, seq) > (?, 5)", pagedKeyWhere("name=?, seq=5", true));
 	}
 }

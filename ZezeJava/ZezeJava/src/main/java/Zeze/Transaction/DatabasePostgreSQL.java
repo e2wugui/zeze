@@ -638,14 +638,14 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			return "";
 
 		table.encodeKeySQLStatement(st, exclusiveStartKey);
-		return pagedKeyWhere(table.getName(), st.getSql().toString(), asc);
+		return pagedKeyWhere(st.getSql().toString(), asc);
 	}
 
 	/**
 	 * 分页walk的排他起始键谓词（PG版）：boolean与其他可排序键类型共用单列/行值比较，
 	 * 与ORDER BY的列序和方向一致。字符串/二进制仍使用SQLStatement收集的参数。
 	 */
-	static String pagedKeyWhere(@SuppressWarnings("unused") String tableName, String sql, boolean asc) {
+	static String pagedKeyWhere(String sql, boolean asc) {
 		// 复合key必须按元组字典序比较：游标(1,"zzz")之后是(2,"aaa")而非两者都大于。
 		// AND形式(col1>? AND col2>?)整块漏掉跨段数据；行值比较(col1,col2)>(v1,v2)与ORDER BY语义一致。
 		// 列值对为 col=?（参数）或 col=字面量（数值内联），按首个'='拆分，params占位符相对顺序不变。
