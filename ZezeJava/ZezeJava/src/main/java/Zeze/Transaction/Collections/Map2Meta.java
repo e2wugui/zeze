@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+
 import Zeze.Transaction.Bean;
 
 /**
@@ -16,7 +17,7 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	static final String HEAD = "Zeze.Transaction.Collections.LogMap2<";
 	private static final long headHash = Bean.hash64(HEAD);
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Map2Meta<?, ?>>> metas
-			= new ConcurrentHashMap<>();
+		= new ConcurrentHashMap<>();
 
 	Map2Meta(Class<K> keyClass, Class<V> valueClass) {
 		super("LogMap2:", headHash, keyClass, valueClass);
@@ -47,7 +48,7 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <K, V extends Bean> Map2Meta<K, V> get(Class<K> keyClass,
-	                                                              Class<V> valueClass) {
+														 Class<V> valueClass) {
 		var map = metas.computeIfAbsent(keyClass, kc -> {
 			checkNonBeanKey("PMap2/GTable2 (LogMap2)", kc);
 			return new ConcurrentHashMap<>();
@@ -56,7 +57,7 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 		if (r != null)
 			return (Map2Meta<K, V>)r;
 		return (Map2Meta<K, V>)map.computeIfAbsent(valueClass,
-				vc -> new Map2Meta<>(keyClass, (Class<V>)vc));
+			vc -> new Map2Meta<>(keyClass, (Class<V>)vc));
 	}
 
 	/**
@@ -67,15 +68,15 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	 * 反序列化拿到错误构造的实例（如 History 增量回放数据损坏）。
 	 */
 	public static <K, V extends Bean> Map2Meta<K, V> create(Class<K> keyClass,
-	                                                                  Class<V> valueClass,
-	                                                                  Supplier<V> valueCtor) {
+															Class<V> valueClass,
+															Supplier<V> valueCtor) {
 		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
 		return new Map2Meta<>(keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> Map2Meta<K, V> createDynamic(Class<K> keyClass,
-	                                                                         ToLongFunction<@Nullable Bean> get,
-	                                                                         LongFunction<@Nullable Bean> create) {
+																   ToLongFunction<@Nullable Bean> get,
+																   LongFunction<@Nullable Bean> create) {
 		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
 		return new Map2Meta<>(keyClass, get, create);
 	}
@@ -88,9 +89,9 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	 * 启用时可直接切换）。
 	 */
 	public static <K, V extends Bean> Map2Meta<K, V> createWithFamily(
-			String familyHead, String namePrefix,
-			Class<K> keyClass, Class<V> valueClass,
-			String valueIdentity, Supplier<V> valueCtor) {
+		String familyHead, String namePrefix,
+		Class<K> keyClass, Class<V> valueClass,
+		String valueIdentity, Supplier<V> valueCtor) {
 		checkNonBeanKey("GTable outer (" + namePrefix + ")", keyClass);
 		return new Map2Meta<>(familyHead, Bean.hash64(familyHead), namePrefix, keyClass, valueClass, valueIdentity, valueCtor);
 	}

@@ -1,6 +1,7 @@
 package Zeze.History;
 
 import java.util.concurrent.ConcurrentHashMap;
+
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
@@ -20,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * 提交成功后由 Checkpoint.flush 调用，失败回滚后容器保留，重试按系列号幂等重写。
  * mergeFrom 用于事务路径的合并，只改接收者；snapshot 为 FlushSet 创建独立容器，
  * 后续成员合并到该快照。快照的写入/核销集合恒等于本轮成员集合，失败轮不污染成员。
- *
+ * <p>
  * 表和 {@link PendingGidLedger} 在创建时绑定，快照保留绑定；合并必须属于同一实例和表，
  * 防止跨 Application 写库或核销数值重叠的 gid。
  */
@@ -107,9 +108,9 @@ public class History implements IHistory.PendingHistory {
 	 * 都留下账本痕迹），tHistory 行随数据库事务提交成功由 onPersisted 核销。 */
 	@SuppressWarnings("ConstantConditions")
 	public static BLogChanges.Data buildLogChanges(Id128 globalSerialId,
-															Changes changes,
-															@Nullable String protocolClassName,
-															@Nullable Binary protocolArgument) {
+												   Changes changes,
+												   @Nullable String protocolClassName,
+												   @Nullable Binary protocolArgument) {
 		var logChanges = new BLogChanges.Data();
 		if (protocolClassName != null)
 			logChanges.setProtocolClassName(protocolClassName);

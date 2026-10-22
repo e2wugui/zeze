@@ -70,7 +70,6 @@ public class LogBean extends Log {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				Log log = it.value();
-				//noinspection DataFlowIssue
 				bb.WriteInt4(log.getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);

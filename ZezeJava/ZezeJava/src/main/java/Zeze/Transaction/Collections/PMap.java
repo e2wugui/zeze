@@ -53,7 +53,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 			Log log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return map;
-			@SuppressWarnings("unchecked")
+			//noinspection unchecked
 			var mapLog = (LogMap1<K, V>)log;
 			return mapLog.getValue();
 		}

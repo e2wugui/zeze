@@ -2,7 +2,6 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -178,20 +177,21 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	private static @Nullable PreparedCommit prepareHistory(Procedure procedure,
-														   @Nullable Changes changes, @Nullable IHistory history) throws IHistory.CommitRejectedException {
+														   @Nullable Changes changes,
+														   @Nullable IHistory history) throws IHistory.CommitRejectedException {
 		if (history == null || changes == null)
 			return null;
-		return Objects.requireNonNull(history.prepareCommit(procedure), "History.prepareCommit returned null");
+		return history.prepareCommit(procedure);
 	}
 
 	private static @Nullable PendingHistory collectAndCaptureHistory(Transaction trans,
-																	 @Nullable Changes changes, @Nullable PreparedCommit prepared) {
+																	 @Nullable Changes changes,
+																	 @Nullable PreparedCommit prepared) {
+		if (changes == null)
+			return null;
 		try {
-			if (changes != null)
-				trans.collectChanges(changes);
-			if (prepared == null)
-				return null;
-			return Objects.requireNonNull(prepared.capture(Objects.requireNonNull(changes)), "History.capture returned null");
+			trans.collectChanges(changes);
+			return prepared != null ? prepared.capture(changes) : null;
 		} catch (Throwable ex) {
 			// 数据已应用。包成普通异常，不能落入只服务于终局回调断言的 AssertionError 旁路。
 			if (prepared != null)

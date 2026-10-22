@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
+
 import Zeze.Application;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
@@ -382,7 +381,7 @@ public final class Transaction {
 						case Running:
 							var saveSize = savepoints.size();
 							if ((result == Procedure.Success && saveSize != 1)
-									|| (result != Procedure.Success && saveSize > 0)) {
+								|| (result != Procedure.Success && saveSize > 0)) {
 								// 这个错误不应该重做
 								logger.error("perform({}): savepoints.size != 1", procedure);
 								finalRollback(procedure);
@@ -425,9 +424,9 @@ public final class Transaction {
 										// 必须记error；回填哨兵让迟到的redo Commit取到时二次确认。
 										if (onzProcedure != null) {
 											logger.error("onz participant({}) tid={}: coordinator commit decision"
-															+ " delivered and persisted, but local transaction rolled back"
-															+ " while stopping -- cross-cluster divergence, manual check required",
-													procedure.getActionName(), onzProcedure.getOnzTid(), e);
+													+ " delivered and persisted, but local transaction rolled back"
+													+ " while stopping -- cross-cluster divergence, manual check required",
+												procedure.getActionName(), onzProcedure.getOnzTid(), e);
 											onzProcedure.markRolledBackAfterReady();
 										}
 										finalRollback(procedure);
@@ -478,7 +477,7 @@ public final class Transaction {
 						if (redoNowMs - lastRedoInfoTime >= 1000) {
 							lastRedoInfoTime = redoNowMs;
 							logger.info("perform({}): {}, count={} (rate-limited 1/s)",
-									procedure, checkResult, redoInfoCount.sumThenReset());
+								procedure, checkResult, redoInfoCount.sumThenReset());
 						}
 						triggerRedoActions();
 					} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
@@ -505,7 +504,7 @@ public final class Transaction {
 								checkResult = lockAndCheck(procedure);
 							} catch (Throwable lcEx) {
 								logger.error("perform({}) lockAndCheck exception (in exception path). run count:{}",
-										procedure, tryCount, lcEx);
+									procedure, tryCount, lcEx);
 								finalRollback(procedure);
 								return Procedure.Exception;
 							}
@@ -524,7 +523,7 @@ public final class Transaction {
 							if (nowMs - lastAbortWarnTime >= 1000) {
 								lastAbortWarnTime = nowMs;
 								logger.warn("perform({}): Abort, count={} (rate-limited 1/s)",
-										procedure, abortWarnCount.sumThenReset(), e);
+									procedure, abortWarnCount.sumThenReset(), e);
 							}
 							finalRollback(procedure);
 							return Procedure.AbortException;
@@ -616,16 +615,13 @@ public final class Transaction {
 			} catch (AssertionError e) {
 				throw e;
 			} catch (Throwable e) { // logger.error
-				String typeStr;
-				if (action.actionType == Savepoint.ActionType.COMMIT) {
-					typeStr = "commit";
-				} else if (action.actionType == Savepoint.ActionType.NESTED_ROLLBACK) {
-					typeStr = "nestedRollback";
-				} else {
-					typeStr = "rollback";
-				}
+				String typeStr = switch (action.actionType) {
+					case COMMIT -> "commit";
+					case NESTED_ROLLBACK -> "nestedRollback";
+					default -> "rollback";
+				};
 				logger.error("{} Procedure={} Action={} exception:",
-						typeStr, procedure.getActionName(), action.action.getClass().getName(), e);
+					typeStr, procedure.getActionName(), action.action.getClass().getName(), e);
 				// action是Savepoint$Action包装，目标Runnable在action.action字段，直接getClass()只会得到包装类名。
 			}
 		}
@@ -649,7 +645,7 @@ public final class Transaction {
 		var it = lastSp.logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
-				var log = Objects.requireNonNull(it.value());
+				var log = it.value();
 				if (log.category() != Log.Category.eHistory)
 					continue;
 				var logBelong = log.getBelong();
@@ -784,8 +780,8 @@ public final class Transaction {
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
 		var t = r.getTable();
 		if (t.getZeze().getConfig().getFastRedoWhenConflict()
-				&& state != TransactionState.Completed
-				&& r.getTimestamp() != atr.timestamp())
+			&& state != TransactionState.Completed
+			&& r.getTimestamp() != atr.timestamp())
 			throwRedo(ri.tableKey().getId(), "Redo: FastRedoWhenConflict(" + t.getName() + ')');
 	}
 
@@ -796,7 +792,7 @@ public final class Transaction {
 	}
 
 	private static CheckResult _check_(boolean writeLock,
-												RecordAccessed e) {
+									   RecordAccessed e) {
 		e.atomicTupleRecord.record().enterFairLock();
 		try {
 			if (writeLock) {
@@ -810,38 +806,37 @@ public final class Transaction {
 
 				case GlobalCacheManagerConst.StateModify:
 					return e.atomicTupleRecord.timestamp() != e.atomicTupleRecord.record().getTimestamp()
-							? CheckResult.Redo : CheckResult.Success;
+						? CheckResult.Redo : CheckResult.Success;
 
 				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 					var acquire = e.atomicTupleRecord.record().acquire(GlobalCacheManagerConst.StateModify,
-							e.atomicTupleRecord.record().isFresh(), false);
+						e.atomicTupleRecord.record().isFresh(), false);
 					//noinspection DataFlowIssue
 					if (acquire.resultState() != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record().setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}, resultCode={}",
-								e.atomicTupleRecord.record(), e.atomicTupleRecord.timestamp(), acquire.resultCode());
+							e.atomicTupleRecord.record(), e.atomicTupleRecord.timestamp(), acquire.resultCode());
 						e.atomicTupleRecord.record().setState(GlobalCacheManagerConst.StateInvalid);
 						return CheckResult.RedoAndReleaseLock;
 					}
 					e.atomicTupleRecord.record().setState(GlobalCacheManagerConst.StateModify);
 					return e.atomicTupleRecord.timestamp() != e.atomicTupleRecord.record().getTimestamp()
-							? CheckResult.Redo : CheckResult.Success;
+						? CheckResult.Redo : CheckResult.Success;
 				}
 				return e.atomicTupleRecord.timestamp() != e.atomicTupleRecord.record().getTimestamp()
-						? CheckResult.Redo : CheckResult.Success; // impossible
+					? CheckResult.Redo : CheckResult.Success; // impossible
 			}
 
 			// read lock
 			return switch (e.atomicTupleRecord.record().getState()) {
 				case GlobalCacheManagerConst.StateRemoved ->
 					// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
-						CheckResult.Redo;
-				case GlobalCacheManagerConst.StateInvalid ->
-						CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
+					CheckResult.Redo;
+				case GlobalCacheManagerConst.StateInvalid -> CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
 				default -> e.atomicTupleRecord.timestamp() != e.atomicTupleRecord.record().getTimestamp()
-						? CheckResult.Redo : CheckResult.Success;
+					? CheckResult.Redo : CheckResult.Success;
 			};
 		} finally {
 			e.atomicTupleRecord.record().exitFairLock();
@@ -875,7 +870,6 @@ public final class Transaction {
 				while (it.moveToNext()) {
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
-					//noinspection DataFlowIssue
 					var belong = it.value().getBelong();
 					if (belong == null)
 						continue;
