@@ -82,10 +82,24 @@ final class SmRaftTestCluster implements AutoCloseable {
 	Peer login(String sessionName) throws Exception {
 		var peer = new Peer("SM.Session.Peer." + peers.size());
 		peers.add(peer);
-		var connector = new Connector("127.0.0.1", leaderPort(), false);
-		peer.getConfig().addConnector(connector);
-		peer.start();
-		peer.socket = connector.WaitReady();
+		// WaitReady()固定5s超时：满负载下连接建立可能超时（soak-20261022两批3中），
+		// 有界重试：失败连接remove+stop后按当前leader重建（CommitThenResponse.Peer.connect同款）。
+		for (int attempt = 1; ; ++attempt) {
+			var connector = new Connector("127.0.0.1", leaderPort(), false);
+			peer.getConfig().addConnector(connector);
+			peer.start();
+			try {
+				peer.socket = connector.WaitReady();
+				break;
+			} catch (Exception e) { // 超时经Task.forceThrow sneaky-throw受检TimeoutException，编译期不可见
+				if (!(e instanceof java.util.concurrent.TimeoutException) || attempt >= 6)
+					throw e;
+				peer.getConfig().removeConnector(connector);
+				connector.stop();
+				//noinspection BusyWait
+				Thread.sleep(200);
+			}
+		}
 		var login = new Login();
 		login.Argument.setSessionName(sessionName);
 		Assertions.assertEquals(0, peer.call(login));

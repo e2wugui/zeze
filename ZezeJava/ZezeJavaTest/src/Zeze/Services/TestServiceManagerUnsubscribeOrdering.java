@@ -45,7 +45,7 @@ public class TestServiceManagerUnsubscribeOrdering {
 			 var agent = new Agent(new Config())) {
 			agent.getClient().getConfig().addConnector(new Connector("127.0.0.1", 28611, false));
 			agent.start();
-			agent.waitReady();
+			waitReadyWithRetry(agent);
 			var state = agent.subscribeService(new BSubscribeInfo("SM.Unsubscribe.Rejected", 0));
 			var field = ServiceManagerServer.class.getDeclaredField("server");
 			field.setAccessible(true);
@@ -75,11 +75,27 @@ public class TestServiceManagerUnsubscribeOrdering {
 			sm.setSessionName("SM.Unsubscribe.RejectedAgent");
 			try (var agent = new ServiceManagerAgentWithRaft(config)) {
 				agent.start();
-				agent.waitReady();
+				waitReadyWithRetry(agent);
 				var state = agent.subscribeService(new BSubscribeInfo("SM.Unsubscribe.Rejected", 0));
 				// 真实同名新连接接管会话，旧连接退订由服务端正常拒绝。
 				cluster.login(sm.getSessionName());
 				assertRejectedSubscriptionSurvives(agent, state, ServiceManagerWithRaft.ErrorNotLogin);
+			}
+		}
+	}
+
+	/** WaitReady()固定5s超时：满负载下连接建立可能超时（soak-20261022-1139 round9实锤），
+	 * connector内部持续重连——有界重开等待窗口即可恢复（CommitThenResponse.Peer.connect同族加固）。 */
+	private static void waitReadyWithRetry(AbstractAgent agent) throws InterruptedException {
+		for (int attempt = 1; ; ++attempt) {
+			try {
+				agent.waitReady();
+				return;
+			} catch (Exception e) { // 超时经Task.forceThrow sneaky-throw受检TimeoutException，编译期不可见
+				if (!(e instanceof java.util.concurrent.TimeoutException) || attempt >= 6)
+					throw e;
+				//noinspection BusyWait
+				Thread.sleep(500);
 			}
 		}
 	}
@@ -105,7 +121,7 @@ public class TestServiceManagerUnsubscribeOrdering {
 				directory.resolve("autokeys").toString()); var agent = new Agent(new Config())) {
 			agent.getClient().getConfig().addConnector(new Connector("127.0.0.1", 28611, false));
 			agent.start();
-			agent.waitReady();
+			waitReadyWithRetry(agent);
 			assertResubscribeSurvives(agent);
 		} finally {
 			LogSequence.deleteDirectory(directory.toFile());
@@ -122,7 +138,7 @@ public class TestServiceManagerUnsubscribeOrdering {
 			sm.setSessionName("SM.Unsubscribe.Ordering");
 			try (var agent = new ServiceManagerAgentWithRaft(config)) {
 				agent.start();
-				agent.waitReady();
+				waitReadyWithRetry(agent);
 				assertResubscribeSurvives(agent);
 			}
 		}
