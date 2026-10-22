@@ -1,6 +1,5 @@
 package Zeze.Services.ServiceManager;
 
-import java.util.Objects;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
@@ -72,7 +71,7 @@ public final class AgentClient extends HandshakeClient {
 	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 不支持事务
-		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code))
 				.dispatchMode(factoryHandle.Mode).runNow();
 	}
 

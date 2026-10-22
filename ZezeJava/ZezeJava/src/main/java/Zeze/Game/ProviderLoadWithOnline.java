@@ -1,7 +1,5 @@
 package Zeze.Game;
 
-import java.util.Objects;
-
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.LoadBase;
 import org.jspecify.annotations.Nullable;
@@ -30,7 +28,8 @@ public class ProviderLoadWithOnline extends LoadBase {
 
 	@Override
 	public LoadConfig getLoadConfig() {
-		return Objects.requireNonNull(this.online.providerApp.distribute).loadConfig;
+		//noinspection DataFlowIssue
+		return this.online.providerApp.distribute.loadConfig;
 	}
 
 	@Override

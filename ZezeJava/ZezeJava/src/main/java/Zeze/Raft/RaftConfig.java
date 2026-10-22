@@ -264,7 +264,8 @@ public final class RaftConfig {
 		if (raftName != null && !raftName.isEmpty()) {
 			// 如果 DbHome 和 Name 相关，一般表示没有特别配置。
 			// 此处特别设置 Raft.Name 时，需要一起更新。
-			if (Objects.requireNonNull(copy.dbHome).equals(Objects.requireNonNull(copy.name).replace(':', '_')))
+			//noinspection DataFlowIssue
+			if (Objects.requireNonNull(copy.dbHome).equals(copy.name.replace(':', '_')))
 				copy.dbHome = raftName.replace(':', '_');
 			copy.setName(raftName);
 		}
@@ -289,7 +290,8 @@ public final class RaftConfig {
 		xmlDocument = xml;
 		xmlFileName = filename;
 		this.self = self;
-		name = Objects.requireNonNull(self).getAttribute("Name");
+		//noinspection DataFlowIssue
+		name = self.getAttribute("Name");
 		if (name.indexOf('_') < 0) {
 			int p = name.lastIndexOf(':');
 			if (p >= 0)
@@ -504,7 +506,8 @@ public final class RaftConfig {
 				self = doc.createElement("node");
 				parent.appendChild(self);
 			}
-			Objects.requireNonNull(self).setAttribute("Host", host);
+			//noinspection DataFlowIssue
+			self.setAttribute("Host", host);
 			self.setAttribute("Port", String.valueOf(port));
 			self.setAttribute("ProxyHost", proxyHost);
 			self.setAttribute("ProxyPort", String.valueOf(proxyPort));

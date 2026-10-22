@@ -323,7 +323,7 @@ public class Onz extends AbstractOnz {
 		}
 		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
 		var procedure = stub.newProcedure(r, r.Argument, buffer);
-		return Objects.requireNonNull(TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call());
+		return TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
 	}
 
 	@Override
@@ -347,7 +347,7 @@ public class Onz extends AbstractOnz {
 		try {
 			if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
 				return errorCode(eSagaTidExist);
-			rc = Objects.requireNonNull(TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call());
+			rc = TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
 		} finally {
 			// 失败条目必须在解锁前移除，避免等待中的cancel补偿已回滚业务。
 			if (rc != 0)
@@ -389,12 +389,13 @@ public class Onz extends AbstractOnz {
 			if (r.Argument.isCancel()) {
 				// 补偿期间保持条目在场并持锁，失败留待redo，成功后才移除。
 				final var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
-				final var cancelArgument = Objects.requireNonNull(stub).decodeCancelArgument(r.Argument.getFuncArgument());
+				//noinspection DataFlowIssue
+				final var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
 				// 等锁期间业务可能已失败并移除条目，此时不能再补偿。
 				if (sagas.get(tid) != context)
 					return errorCode(eSagaNotFound);
 				var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
-				if (Objects.requireNonNull(rc) != 0) {
+				if (rc != 0) {
 					// 补偿失败刷新活动时间，保留上下文等待redo。
 					context.refreshLastActive();
 					// 统一协议错误码，避免业务rc被误解为eSagaNotFound而停止重试。

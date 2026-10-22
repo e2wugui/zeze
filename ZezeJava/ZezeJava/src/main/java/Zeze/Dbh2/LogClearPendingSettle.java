@@ -46,7 +46,8 @@ public class LogClearPendingSettle extends Log {
 	@Override
 	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		Objects.requireNonNull(to).encode(bb);
+		//noinspection DataFlowIssue
+		to.encode(bb);
 	}
 
 	@Override

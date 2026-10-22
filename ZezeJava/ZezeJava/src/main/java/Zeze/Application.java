@@ -205,7 +205,7 @@ public final class Application extends ReentrantLock {
 			case "raft" -> {
 				//noinspection DataFlowIssue
 				if (conf.getServiceManagerConf().getSessionName().isEmpty())
-					Objects.requireNonNull(conf.getServiceManagerConf()).setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
+					conf.getServiceManagerConf().setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
 				yield new ServiceManagerAgentWithRaft(conf);
 			}
 			case "disable" -> null;
@@ -458,7 +458,8 @@ public final class Application extends ReentrantLock {
 	}
 
 	public AutoKey getAutoKey(String name) {
-		return Objects.requireNonNull(autoKey).getOrAdd(name);
+		//noinspection DataFlowIssue
+		return autoKey.getOrAdd(name);
 	}
 
 	public @Nullable AutoKey getTransactionIdAutoKey() {
@@ -531,7 +532,8 @@ public final class Application extends ReentrantLock {
 			var keyOfSchemas = ByteBuffer.Allocate(32);
 			var serverId = conf.getServerId();
 			keyOfSchemas.WriteString("zeze.Schemas.V4." + serverId);
-			var dataVersion = Objects.requireNonNull(defaultDb.getDirectOperates()).getDataWithVersion(keyOfSchemas);
+			//noinspection DataFlowIssue
+			var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 			if (dataVersion != null && dataVersion.data != null) {
 				schemasPrevious = new Schemas();
 				try {
@@ -572,7 +574,8 @@ public final class Application extends ReentrantLock {
 		var serverId = conf.getServerId();
 		keyOfSchemas.WriteString("zeze.Schemas.V4." + serverId);
 		while (true) {
-			var dataVersion = Objects.requireNonNull(defaultDb.getDirectOperates()).getDataWithVersion(keyOfSchemas);
+			//noinspection DataFlowIssue
+			var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 			long version = 0;
 			if (dataVersion != null && dataVersion.data != null) {
 				schemasPrevious = new Schemas();
@@ -593,7 +596,7 @@ public final class Application extends ReentrantLock {
 			}
 			var newData = ByteBuffer.Allocate(1024);
 			schemas.encode(newData);
-			var versionRc = Objects.requireNonNull(defaultDb.getDirectOperates()).saveDataWithSameVersion(keyOfSchemas, newData, version);
+			var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
 			if (versionRc == null || Boolean.TRUE.equals(versionRc.getValue()))
 				break;
 		}
@@ -646,7 +649,6 @@ public final class Application extends ReentrantLock {
 				// 升级被静默跳过；发布前的崩溃重启由tryAlter的物理列幂等过滤重放兜底。
 				publishSchemas();
 			} finally {
-				//noinspection DataFlowIssue
 				defaultDb.getDirectOperates().unlock();
 			}
 			break; // done
@@ -744,7 +746,8 @@ public final class Application extends ReentrantLock {
 
 			// Set Database InUse
 			for (var db : databases.values())
-				Objects.requireNonNull(db.getDirectOperates()).setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
+				//noinspection DataFlowIssue
+				db.getDirectOperates().setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
 			addShutdownHook();
 
 			localCache.open(this, serverId);
@@ -792,7 +795,8 @@ public final class Application extends ReentrantLock {
 			deadlockBreaker = new DeadlockBreaker(this);
 			// Checkpoint
 			checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
-			Objects.requireNonNull(checkpoint).start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+			//noinspection DataFlowIssue
+			checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
 			// start last
 			if (achillesHeelDaemon != null)
@@ -805,7 +809,8 @@ public final class Application extends ReentrantLock {
 				takeover.start();
 				// SM Suspect提示→tryTransfer（非raft与raft版SM都会在会话断开时广播Suspect）。
 				if (serviceManager != null)
-					serviceManager.setOnSuspect(deadServerId -> Objects.requireNonNull(takeover).tryTransfer(deadServerId));
+					//noinspection DataFlowIssue
+					serviceManager.setOnSuspect(deadServerId -> takeover.tryTransfer(deadServerId));
 			}
 
 			//noinspection DataFlowIssue
@@ -854,7 +859,8 @@ public final class Application extends ReentrantLock {
 		logger.info("Stop ServerId={}", conf.getServerId());
 
 		if (takeover != null) // 早期释放：正常关闭刷新租约宽限期，一个TTL后可被接管（缩容；数据库尚未关闭）。
-			stopStep("takeover.release", Objects.requireNonNull(takeover)::release);
+			//noinspection DataFlowIssue
+			stopStep("takeover.release", takeover::release);
 
 		if (achillesHeelDaemon != null) {
 			stopStep("achillesHeelDaemon.stopAndJoin", achillesHeelDaemon::stopAndJoin);
@@ -1067,7 +1073,8 @@ public final class Application extends ReentrantLock {
 			// 迟到赋值会留下已完成的哨兵future，后续调用被永久阻断。
 			// 字段只由持锁者（本方法/stop）读写，任务不触碰。
 			if (startState == StartState.eStarted && (f == null || f.isDone()))
-				checkpointFuture = TaskSpec.ofAction(Objects.requireNonNull(checkpoint)::runOnce)
+				//noinspection DataFlowIssue
+				checkpointFuture = TaskSpec.ofAction(checkpoint::runOnce)
 					.name("CheckpointRunThread").submitNow();
 		} finally {
 			unlock();

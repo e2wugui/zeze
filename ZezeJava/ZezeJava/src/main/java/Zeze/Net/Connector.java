@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -300,9 +298,10 @@ public class Connector extends ReentrantLock {
 			return;
 		try {
 			// 构造非阻塞：锁内同步发布所有权（不变量前提，见字段区注释）
+			//noinspection DataFlowIssue
 			socket = null == url || url.isBlank()
-					? Objects.requireNonNull(getService()).newClientSocket(hostNameOrAddress, port, userState, this)
-					: Objects.requireNonNull(getService()).newWebsocketClient(url, userState, this);
+					? getService().newClientSocket(hostNameOrAddress, port, userState, this)
+					: getService().newWebsocketClient(url, userState, this);
 		} catch (Exception e) {
 			tryReconnect(); // 同步构造失败（配置/编程错误）仍续排重试，保持原契约
 			throw e;
@@ -336,6 +335,7 @@ public class Connector extends ReentrantLock {
 			unlock();
 		}
 		// 在途连接（含DNS/建连未完成）直接close，resolver侧isClosed检查点放弃
-		Objects.requireNonNull(as).close(e);
+		//noinspection DataFlowIssue
+		as.close(e);
 	}
 }

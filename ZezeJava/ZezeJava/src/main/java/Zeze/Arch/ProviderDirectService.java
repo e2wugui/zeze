@@ -111,7 +111,8 @@ public class ProviderDirectService extends HandshakeBoth {
 				// 新建的Connector。开始连接。
 				var template = newSession(serverId);
 				template.timeCounter.close(); // Connector只保存稳定身份模板，不持有活跃连接的周期计数。
-				Objects.requireNonNull(out.value).userState = template;
+				//noinspection DataFlowIssue
+				out.value.userState = template;
 				out.value.start();
 			}
 		} finally {
@@ -138,7 +139,8 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (so.getConnector() != null) {
 			// 每连接调用虚拟工厂，保留扩展初始化；Connector模板不再充当可变会话。
 			var template = (ProviderSession)so.getUserState();
-			var session = newSession(Objects.requireNonNull(template).getServerId());
+			//noinspection DataFlowIssue
+			var session = newSession(template.getServerId());
 			session.sessionId = so.getSessionId();
 			so.setUserState(session);
 			// close可能先于以上替换读到模板；此时新会话不会再有关闭回调，须在发布后收敛。
@@ -190,7 +192,8 @@ public class ProviderDirectService extends HandshakeBoth {
 			waitDirectServerReady(serverId, callback);
 			future.await(timeout);
 		} finally {
-			Objects.requireNonNull(serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>())).remove(callback);
+			//noinspection DataFlowIssue
+			serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).remove(callback);
 		}
 	}
 
@@ -203,7 +206,8 @@ public class ProviderDirectService extends HandshakeBoth {
 			boolean local = ps != null && ps.getSessionId() == 0
 				&& serverId == getZeze().getConfig().getServerId();
 			if (!local && (socket == null || socket.isClosed())) {
-				Objects.requireNonNull(serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>())).add(callback);
+				//noinspection DataFlowIssue
+				serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
 				return;
 			}
 		} finally {
@@ -221,7 +225,8 @@ public class ProviderDirectService extends HandshakeBoth {
 
 	// under lock
 	private void notifyServerReady(int serverId) {
-		var watchers = Objects.requireNonNull(serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()));
+		var watchers = serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>());
+		//noinspection DataFlowIssue
 		for (var w : watchers) {
 			try {
 				w.run();
@@ -352,10 +357,10 @@ public class ProviderDirectService extends HandshakeBoth {
 			var r = (ModuleRedirect)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 			if (r.Argument.isNoOneByOne()) {
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code))
 						.name(r.Argument.getMethodFullName()).dispatchMode(factoryHandle.Mode).runNow();
 			} else {
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code))
 						.name(r.Argument.getMethodFullName())
 						.dispatchMode(factoryHandle.Mode)
 						.executeOneByOne(r.Argument.getKey());
@@ -365,12 +370,12 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
 			var r = (ModuleRedirectAllResult)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code))
 					.name(r.Argument.getMethodFullName()).dispatchMode(factoryHandle.Mode).runNow();
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code))
 				.dispatchMode(factoryHandle.Mode).runNow();
 	}
 

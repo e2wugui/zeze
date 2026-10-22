@@ -1102,8 +1102,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	// 内部实现
 	protected void tryRedirectCancel(int serverId, String timerId) {
 		// redirect 现在仅取消future，总是尝试，不检查其他参数。
+		//noinspection DataFlowIssue
 		if (getZeze().getConfig().getServerId() != serverId
-				&& Objects.requireNonNull(Objects.requireNonNull(getZeze().getProviderApp()).providerDirectService)
+				&& getZeze().getProviderApp().providerDirectService
 						.providerByServerId.containsKey(serverId)) {
 			redirectCancel(serverId, timerId);
 		}

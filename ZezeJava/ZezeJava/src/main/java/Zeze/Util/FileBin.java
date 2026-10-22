@@ -91,7 +91,8 @@ public class FileBin {
 		try (var input = new BufferedInputStream(new FileInputStream(canonicalFile))) {
 			var len = 0;
 			while ((len = input.read(buffer)) >= 0) {
-				Objects.requireNonNull(md5).update(buffer, 0, len);
+				//noinspection DataFlowIssue
+				md5.update(buffer, 0, len);
 			}
 		}
 	}
@@ -107,9 +108,9 @@ public class FileBin {
 			truncate(offset);
 			length = randFile.getChannel().size(); // truncate will change length
 			md5CurrentData();
-		} else if (offset == length)
-			// os挂在共享FD的当前指针上写入：新建FileBin指针停留在0，等值续传（断点续传的常态）不seek会从文件头覆写
+		} else {
 			randFile.seek(offset);
+		}
 		var newLength = offset + data.size();
 		if (newLength > length) {
 			var newDataLength = (int)(newLength - length);

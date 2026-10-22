@@ -1,7 +1,5 @@
 package Zeze.Raft;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import Zeze.Serialize.ByteBuffer;
@@ -67,7 +65,8 @@ final class BLeaderIsArgument extends Bean {
 			return true;
 		if (!(obj instanceof BLeaderIsArgument other))
 			return false;
-		return term == other.term && Objects.requireNonNull(leaderId).equals(other.leaderId);
+		//noinspection DataFlowIssue
+		return term == other.term && leaderId.equals(other.leaderId);
 	}
 
 	@Override

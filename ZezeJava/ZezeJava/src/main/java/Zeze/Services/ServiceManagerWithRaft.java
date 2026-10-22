@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.util.Objects;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,10 +78,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		RegisterProtocols(rocks.getRaft().getServer());
 		rocks.getRaft().getServer().start();
 
-		tableAutoKey = Objects.requireNonNull(rocks.<String, BAutoKey>getTableTemplate("tAutoKey")).openTable();
-		tableSession = Objects.requireNonNull(rocks.<String, BSession>getTableTemplate("tSession")).openTable();
-		tableLoadObservers = Objects.requireNonNull(rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers")).openTable();
-		tableServerState = Objects.requireNonNull(rocks.<String, BServerState>getTableTemplate("tServerState")).openTable();
+		//noinspection DataFlowIssue
+		tableAutoKey = rocks.<String, BAutoKey>getTableTemplate("tAutoKey").openTable();
+		//noinspection DataFlowIssue
+		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
+		//noinspection DataFlowIssue
+		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
+		//noinspection DataFlowIssue
+		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
 
 		// 会话清理对账：60s粒度足够，快速路径由closeSession的退避重试承担。
 		reconcileDaemon.start();
@@ -93,7 +96,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 关停清理：取消全部Takeover梯队升档定时器（900s级长定时器挂着会拖死JVM收尾）。
 		for (var tier : suspectTiers.values())
 			if (tier.timer != null)
-				Objects.requireNonNull(tier.timer).cancel(false);
+				//noinspection DataFlowIssue
+				tier.timer.cancel(false);
 		suspectTiers.clear();
 		reconcileDaemon.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s）；超预算逃逸轮由closed+锁屏障挡
 		closed = true;
@@ -250,7 +254,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 						}
 						var procedure = new Procedure(rocks, func);
 						return TaskSpec.ofFunc(procedure::call, p,
-								(protocol, code) -> Objects.requireNonNull(protocol).SendResultCode(code)).call();
+								(__, code) -> p.SendResultCode(code)).call();
 					} finally {
 						unlock();
 					}
@@ -398,7 +402,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 重复Login（raftOnSetLeader超时递归重发等）在同一socket上覆盖userState前，先取消旧Session
 		// 的keepAliveTimerTask：OnSocketClose只回调最后userState的onClose，被覆盖的
 		// Session定时器永不取消——socket关闭后GetSocket(sessionId)恒null，周期性error日志，永不停止。
-		//noinspection DataFlowIssue
 		var oldSession = r.getSender().getUserState();
 		if (oldSession instanceof Session old)
 			old.cancelKeepAlive();
@@ -428,8 +431,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 入口校验（同非raft版ServiceManagerServer与UDP面Id128UdpServer口径）：
 		// 该端口无认证（raft对等端口同时服务应用协议，四种EncryptType均密钥协商），name/count
 		// 均对端可控，无界唯一name直接成为tAutoKey持久键并经共识复制放大到全节点。
+		//noinspection DataFlowIssue
 		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX
-			|| Objects.requireNonNull(name).getBytes(StandardCharsets.UTF_8).length > 128) {
+			|| name.getBytes(StandardCharsets.UTF_8).length > 128) {
 			//noinspection DataFlowIssue
 			warnAllocateIdRejected("invalid count=" + count + " name.chars=" + name.length());
 			return Zeze.Transaction.Procedure.ErrorRequestId;
@@ -623,7 +627,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var tier = new SuspectTier(deadVersion, deadVersion);
 		var old = suspectTiers.put(deadServerId, tier);
 		if (old != null && old.timer != null)
-			Objects.requireNonNull(old.timer).cancel(false); // 死者反复闪断：新周期覆盖旧升档链
+			//noinspection DataFlowIssue
+			old.timer.cancel(false); // 死者反复闪断：新周期覆盖旧升档链
 		broadcastSuspectTier(deadServerId, deadSessionId, deadVersion, deadVersion);
 		scheduleNextTier(deadServerId, deadSessionId, tier);
 	}
@@ -666,7 +671,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	protected long ProcessTakeoverDoneRequest(TakeoverDone r) {
 		var tier = suspectTiers.remove(r.Argument.deadServerId);
 		if (tier != null && tier.timer != null)
-			Objects.requireNonNull(tier.timer).cancel(false);
+			//noinspection DataFlowIssue
+			tier.timer.cancel(false);
 		logger.info("TakeoverDone serverId={} taker={} version={} tier={}",
 				r.Argument.deadServerId, r.Argument.takerServerId, r.Argument.takerVersion,
 				tier == null ? -1 : tier.tierVersion);
@@ -1076,6 +1082,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var netSession = (Session)r.getSender().getUserState();
 		for (var versions : state.getServiceInfosVersion().values())
 			for (var info : versions.getServiceInfos().values())
-				addLoadObserver(info.getPassiveIp(), info.getPassivePort(), Objects.requireNonNull(netSession).name);
+				//noinspection DataFlowIssue
+				addLoadObserver(info.getPassiveIp(), info.getPassivePort(), netSession.name);
 	}
 }

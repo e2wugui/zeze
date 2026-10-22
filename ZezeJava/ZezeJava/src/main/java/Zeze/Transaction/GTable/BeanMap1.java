@@ -1,7 +1,5 @@
 package Zeze.Transaction.GTable;
 
-import java.util.Objects;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -144,7 +142,8 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 				_o_.WriteMapType(_n_, meta.keyEncodeType, meta.valueEncodeType);
 				for (var _e_ : _x_.entrySet()) {
 					meta.keyEncoder.accept(_o_, _e_.getKey());
-					Objects.requireNonNull(meta.valueEncoder).accept(_o_, _e_.getValue());
+					//noinspection DataFlowIssue
+					meta.valueEncoder.accept(_o_, _e_.getValue());
 					_n_--;
 				}
 				if (_n_ != 0)
@@ -168,7 +167,8 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 				int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
 				for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
 					var _k_ = meta.keyDecoderWithType.apply(_o_, _s_);
-					var _v_ = Objects.requireNonNull(meta.valueDecoderWithType).apply(_o_, _t_);
+					//noinspection DataFlowIssue
+					var _v_ = meta.valueDecoderWithType.apply(_o_, _t_);
 					_x_.put(_k_, _v_);
 				}
 			} else

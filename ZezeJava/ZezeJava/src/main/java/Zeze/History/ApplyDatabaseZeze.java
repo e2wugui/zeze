@@ -203,7 +203,8 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 
 		public ApplyTableZeze(String tableName) {
 			this.tableName = tableName;
-			var table = Objects.requireNonNull(dbForApply.getZeze()).getTable(tableName);
+			//noinspection DataFlowIssue
+			var table = dbForApply.getZeze().getTable(tableName);
 			if (null == table)
 				throw new RuntimeException("table not exist in zeze. name=" + tableName);
 			// 兜底判据（同构造器，hist-02）：本表在apply库中打开，业务表却登记在apply库上

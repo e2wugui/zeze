@@ -461,7 +461,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			lock();
 			try {
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
-					var info = Objects.requireNonNull(it.value()).findServiceInfoByIdentity(identity);
+					var info = it.value().findServiceInfoByIdentity(identity);
 					if (info != null)
 						return info;
 				}
@@ -501,7 +501,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
 					if (it.key() == info.getVersion())
 						continue;
-					var old = Objects.requireNonNull(it.value()).remove(info);
+					var old = it.value().remove(info);
 					if (old != null && !old.fullEquals(info) && oldNotSame == null)
 						oldNotSame = old;
 				}
@@ -523,7 +523,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				// 一致），移除同identity的全部残留，避免死地址留存在任何版本桶里。
 				var removed = false;
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
-					if (Objects.requireNonNull(it.value()).remove(info) != null)
+					if (it.value().remove(info) != null)
 						removed = true;
 				}
 				serviceInfos.pruneEmptyVersions();
@@ -538,14 +538,12 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			try {
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
 					var current = infos.getInfos(it.key());
-					//noinspection DataFlowIssue
 					for (var old : it.value().getSortedIdentities()) {
 						if (current == null || current.findServiceInfo(old) == null)
 							edits.getRemove().add(old);
 					}
 				}
 				for (var it = infos.getInfosIterator(); it.moveToNext(); )
-					//noinspection DataFlowIssue
 					edits.getAdd().addAll(it.value().getSortedIdentities());
 				serviceInfos = infos;
 			} finally {

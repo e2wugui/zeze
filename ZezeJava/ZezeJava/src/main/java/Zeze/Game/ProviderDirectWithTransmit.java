@@ -17,7 +17,8 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 	@Override
 	protected long ProcessTransmit(Transmit p) {
 		var name = p.Argument.getOnlineSetName();
-		var online = Objects.requireNonNull(((ProviderWithOnline)Objects.requireNonNull(Objects.requireNonNull(providerApp).providerImplement))).getOnline(name);
+		//noinspection DataFlowIssue
+		var online = ((ProviderWithOnline)Objects.requireNonNull(providerApp.providerImplement)).getOnline(name);
 		if (online != null)
 			online.processTransmit(p.Argument.getSender(), p.Argument.getActionName(), p.Argument.getRoles(), p.Argument.getParameter());
 		else

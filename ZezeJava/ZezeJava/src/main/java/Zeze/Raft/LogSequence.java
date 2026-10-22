@@ -155,7 +155,8 @@ public class LogSequence {
 	private void saveFirstIndex(long newFirstIndex) throws RocksDBException {
 		var firstIndexValue = ByteBuffer.Allocate(9);
 		firstIndexValue.WriteLong(newFirstIndex);
-		Objects.requireNonNull(rafts).put(writeOptions, raftsFirstIndexKey, 0, raftsFirstIndexKey.length,
+		//noinspection DataFlowIssue
+		rafts.put(writeOptions, raftsFirstIndexKey, 0, raftsFirstIndexKey.length,
 				firstIndexValue.Bytes, 0, firstIndexValue.WriteIndex);
 		firstIndex = newFirstIndex;
 	}
@@ -348,7 +349,8 @@ public class LogSequence {
 						}
 
 						var key = it.key();
-						Objects.requireNonNull(logs).delete(writeOptions, key);
+						//noinspection DataFlowIssue
+						logs.delete(writeOptions, key);
 
 						// 删除快照前的日志时不删唯一请求存根（快照建立时刻稍前的请求仍需唯一保证），存根自行过期清理。
 						// 注意：完全崩溃换新机后仍有小概率无法判断唯一，较好的做法是从工作节点复制unique/作为初始数据。
@@ -393,7 +395,8 @@ public class LogSequence {
 
 		public UniqueRequestSet(String tableName) {
 			try {
-				table = Objects.requireNonNull(database).getOrAddTable(tableName);
+				//noinspection DataFlowIssue
+				table = database.getOrAddTable(tableName);
 			} catch (RocksDBException e) {
 				throw Task.forceThrow(e);
 			}
@@ -644,7 +647,7 @@ public class LogSequence {
 							lastSnapshotIndex = manifestIndex;
 							var lsiValue = ByteBuffer.Allocate(9);
 							lsiValue.WriteLong(lastSnapshotIndex);
-							Objects.requireNonNull(rafts).put(writeOptions, lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
+							rafts.put(writeOptions, lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
 									lsiValue.Bytes, 0, lsiValue.WriteIndex);
 						} else if (manifestIndex != null && manifestIndex < firstIndex) {
 							logger.warn("{} legacy migrate: snapshot manifest index({}) < firstIndex({}),"
@@ -682,7 +685,6 @@ public class LogSequence {
 								+ " endReceiveInstallSnapshot crashed after boundary saveLog?",
 						raft.getName(), firstIndex, lastIndex);
 				try {
-					//noinspection DataFlowIssue
 					logs.drop(); // 声明throws Exception（实际只抛RocksDBException），收窄到构造器的异常签名
 				} catch (RocksDBException e) {
 					throw e;
@@ -737,7 +739,8 @@ public class LogSequence {
 
 		var value = ByteBuffer.Allocate(1);
 		value.WriteBool(true);
-		Objects.requireNonNull(rafts).put(writeOptions, raftsNodeReadyKey, 0, raftsNodeReadyKey.length, value.Bytes, 0, value.WriteIndex);
+		//noinspection DataFlowIssue
+		rafts.put(writeOptions, raftsNodeReadyKey, 0, raftsNodeReadyKey.length, value.Bytes, 0, value.WriteIndex);
 	}
 
 	/**
@@ -780,8 +783,9 @@ public class LogSequence {
 	}
 
 	private UniqueRequestSet openUniqueRequests(long time) {
-		return Objects.requireNonNull(uniqueRequestSets.computeIfAbsent(toUniqueRequestKey(new Date(time)),
-				k -> new UniqueRequestSet(makeUniqueRequestTableName(raft.getName(), k))));
+		//noinspection DataFlowIssue
+		return uniqueRequestSets.computeIfAbsent(toUniqueRequestKey(new Date(time)),
+				k -> new UniqueRequestSet(makeUniqueRequestTableName(raft.getName(), k)));
 	}
 
 	// 唯一请求存根按天建表，表名：<raftName>.unique.<yyyy>.<M>.<d>，key由toUniqueRequestKey生成。
@@ -831,9 +835,11 @@ public class LogSequence {
 		key.WriteLong(log.getIndex());
 		var value = log.encode();
 		if (batch != null)
-			Objects.requireNonNull(logs).put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			//noinspection DataFlowIssue
+			logs.put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 		else
-			Objects.requireNonNull(logs).put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			//noinspection DataFlowIssue
+			logs.put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 
 		if (isDebugEnabled)
 			//noinspection DataFlowIssue
@@ -925,7 +931,8 @@ public class LogSequence {
 			// 任期推进与清空投票必须同生共死，且持久化成功后才能改变内存状态。
 			//noinspection DataFlowIssue
 			try (var batch = database.borrowBatch()) {
-				Objects.requireNonNull(rafts).put(batch, raftsTermKey, 0, raftsTermKey.length, termValue.Bytes, 0, termValue.WriteIndex);
+				//noinspection DataFlowIssue
+				rafts.put(batch, raftsTermKey, 0, raftsTermKey.length, termValue.Bytes, 0, termValue.WriteIndex);
 				rafts.put(batch, raftsVoteForKey, 0, raftsVoteForKey.length,
 						voteForValue.Bytes, 0, voteForValue.WriteIndex);
 				batch.commit(writeOptions);
@@ -950,7 +957,8 @@ public class LogSequence {
 		if (!this.voteFor.equals(voteFor)) {
 			var voteForValue = ByteBuffer.Allocate(5 + voteFor.length());
 			voteForValue.WriteString(voteFor);
-			Objects.requireNonNull(rafts).put(writeOptions, raftsVoteForKey, 0, raftsVoteForKey.length,
+			//noinspection DataFlowIssue
+			rafts.put(writeOptions, raftsVoteForKey, 0, raftsVoteForKey.length,
 					voteForValue.Bytes, 0, voteForValue.WriteIndex);
 			this.voteFor = voteFor;
 		}
@@ -1523,7 +1531,8 @@ public class LogSequence {
 				cancelPendingAppendLogFutures();
 				//noinspection DataFlowIssue
 				logs.drop();
-				logs = Objects.requireNonNull(database).getOrAddTable(raft.getName() + ".logs");
+				//noinspection DataFlowIssue
+				logs = database.getOrAddTable(raft.getName() + ".logs");
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
 				saveLog(lastIncludedLog);
@@ -1699,7 +1708,8 @@ public class LogSequence {
 			return;
 
 		connector.setPending(new AppendEntries());
-		Objects.requireNonNull(connector.getPending()).Argument.setTerm(term);
+		//noinspection DataFlowIssue
+		connector.getPending().Argument.setTerm(term);
 		connector.getPending().Argument.setLeaderId(raft.getName());
 		connector.getPending().Argument.setLeaderCommit(commitIndex);
 
@@ -1716,7 +1726,8 @@ public class LogSequence {
 			connector.getPending().Argument.getEntries().add(new Binary(copyLog.encode()));
 		}
 		connector.getPending().Argument.setLastEntryIndex(lastCopyLog.getIndex());
-		if (!Objects.requireNonNull(connector.getPending()).Send(socket, (p) ->
+		//noinspection DataFlowIssue
+		if (!connector.getPending().Send(socket, (p) ->
 				processAppendEntriesResult(connector, p), raft.getRaftConfig().getAppendEntriesTimeout())) {
 			connector.setPending(null);
 			// Heartbeat Will Retry
@@ -1747,7 +1758,8 @@ public class LogSequence {
 		if (raftLog != null) {
 			var key = ByteBuffer.Allocate(9);
 			key.WriteLong(index);
-			Objects.requireNonNull(logs).delete(writeOptions, key.Bytes, 0, key.WriteIndex);
+			//noinspection DataFlowIssue
+			logs.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
 			//noinspection DataFlowIssue
 			if (raftLog.getLog().getUnique().getRequestId() > 0)
 				openUniqueRequests(raftLog.getLog().getCreateTime()).remove(raftLog);

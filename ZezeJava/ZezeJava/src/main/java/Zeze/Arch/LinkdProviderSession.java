@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.locks.ReentrantLock;
@@ -70,7 +68,8 @@ public class LinkdProviderSession extends ProviderSession {
 		try {
 			if (linkSessionsClosed)
 				return false;
-			Objects.requireNonNull(linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet())).add(linkSessionId);
+			//noinspection DataFlowIssue
+			linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet()).add(linkSessionId);
 			return true;
 		} finally {
 			linkSessionIdsLock.unlock();

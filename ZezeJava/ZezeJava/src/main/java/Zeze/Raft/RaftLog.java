@@ -72,7 +72,7 @@ public final class RaftLog implements Serializable {
 		bb.WriteLong(index);
 		//noinspection DataFlowIssue
 		bb.WriteInt4((int)log.typeId());
-		Objects.requireNonNull(log).encode(bb);
+		log.encode(bb);
 	}
 
 	@Override
@@ -80,7 +80,8 @@ public final class RaftLog implements Serializable {
 		term = bb.ReadLong();
 		index = bb.ReadLong();
 		log = Objects.requireNonNull(logFactory).apply(bb.ReadInt4());
-		Objects.requireNonNull(log).decode(bb);
+		//noinspection DataFlowIssue
+		log.decode(bb);
 	}
 
 	public ByteBuffer encode() {

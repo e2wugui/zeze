@@ -1,7 +1,5 @@
 package Zeze.Dbh2;
 
-import java.util.Objects;
-
 import Zeze.Builtin.Dbh2.Commit.DummyImportBean;
 import Zeze.Config;
 import Zeze.Transaction.DispatchMode;
@@ -60,21 +58,23 @@ public class Commit extends AbstractCommit {
 		r.SendResult();
 		var pool = Zeze.Util.Task.getThreadPool();
 		if (null != pool)
-			pool.execute(() -> Objects.requireNonNull(rocks).commitDeliver(decision));
+			//noinspection DataFlowIssue
+			pool.execute(() -> rocks.commitDeliver(decision));
 		else
-			Objects.requireNonNull(rocks).commitDeliver(decision); // 池不可用时同步兜底，投递必达
+			rocks.commitDeliver(decision); // 池不可用时同步兜底，投递必达
 		return 0;
 	}
 
 	@Override
-	protected long ProcessDummyImportBean(DummyImportBean p) throws Exception {
+	protected long ProcessDummyImportBean(DummyImportBean p) {
 		return 0;
 	}
 
 	@DispatchModeAnnotation(mode = DispatchMode.Critical)
 	@Override
 	protected long ProcessQueryRequest(Zeze.Builtin.Dbh2.Commit.Query r) throws Exception {
-		var state = Objects.requireNonNull(rocks).query(r.Argument.getTid());
+		//noinspection DataFlowIssue
+		var state = rocks.query(r.Argument.getTid());
 		if (null == state)
 			r.Result.setState(Commit.eCommitNotExist);
 		else

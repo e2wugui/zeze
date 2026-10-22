@@ -560,7 +560,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			Objects.requireNonNull(timer).tryRecordBeanHotModuleWhileCommit(customData);
+			//noinspection DataFlowIssue
+			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
 		var config = timer.getZeze().getConfig();
@@ -649,10 +650,12 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			Objects.requireNonNull(timer).tryRecordBeanHotModuleWhileCommit(customData);
+			//noinspection DataFlowIssue
+			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
-			if (Objects.requireNonNull(timer).cronEquals(index, timerId, builder, OfflineHandle.class, custom))
+			//noinspection DataFlowIssue
+			if (timer.cronEquals(index, timerId, builder, OfflineHandle.class, custom))
 				return;
 			cancel(timerId, roleId); // 先取消,下面再重建
 		}
@@ -738,7 +741,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
-		if (Objects.requireNonNull(timer).isOnlineTimerIdOccupied(timerId))
+		//noinspection DataFlowIssue
+		if (timer.isOnlineTimerIdOccupied(timerId))
 			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
 		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
@@ -781,6 +785,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 				// 归属反查镜像onTimer过期分支：Game.ProviderWithOnline按onlineSetName定位，否则兜底defaultOnline。
 				var providerApp = zeze.getProviderApp();
 				var providerImpl = providerApp != null ? providerApp.providerImplement : null;
+				//noinspection DataFlowIssue
 				var online = providerImpl instanceof ProviderWithOnline p
 					? p.getOnline(custom.getOnlineSetName()) : zeze.getTimer().getDefaultOnline();
 				if (online == null)
@@ -816,8 +821,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 				timer.findTimerHandle(offlineCustom.getHandleName()).onTimer(context);
 			} else {
 				var timerId = offlineCustom.getTimerName();
-				Objects.requireNonNull(timer).cancel(timerId);
-				var providerImpl = Objects.requireNonNull(timer.getZeze().getProviderApp()).providerImplement;
+				timer.cancel(timerId);
+				//noinspection DataFlowIssue
+				var providerImpl = timer.getZeze().getProviderApp().providerImplement;
 				var online = providerImpl instanceof ProviderWithOnline
 						? ((ProviderWithOnline)providerImpl).getOnline(onlineSetName)
 						: timer.getDefaultOnline();
@@ -841,7 +847,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (offlineTimers != null) {
 			var timer = online.providerApp.zeze.getTimer();
 			for (var timerId : offlineTimers.getOfflineTimers().keySet())
-				Objects.requireNonNull(timer).cancel(timerId);
+				//noinspection DataFlowIssue
+				timer.cancel(timerId);
 			// 嵌入本地服务器事件事务中，
 			// 删除之后，如果上面的redirectCancel失败，
 			// 那么该timer触发的时候会检测到版本号不一致，

@@ -1,7 +1,5 @@
 package Zeze.Raft.RocksRaft;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -60,7 +58,7 @@ public class LogBean extends Log {
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
-				var log = Objects.requireNonNull(it.value());
+				var log = it.value();
 				bb.WriteInt4(log.getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);

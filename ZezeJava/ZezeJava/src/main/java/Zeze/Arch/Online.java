@@ -208,7 +208,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		logoutEvents = new EventDispatcher(zeze, "Online.Logout");
 		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
 
-		providerApp = Objects.requireNonNull(zeze.redirect).providerApp;
+		//noinspection DataFlowIssue
+		providerApp = zeze.redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 	}
@@ -1458,7 +1459,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var groups = groupByServer(accounts);
 		RoleOnServer groupLocal = null;
 		for (var it = groups.iterator(); it.moveToNext(); ) {
-			var group = Objects.requireNonNull(it.value());
+			var group = it.value();
 			if (group.serverId == -1 || group.serverId == providerApp.zeze.getConfig().getServerId()) {
 				// loopback 就是当前gs.
 				// 对于不在线的角色，直接在本机运行。
@@ -1474,14 +1475,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (parameter != null)
 				transmit.Argument.setParameter(parameter);
 
-			var ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(group.serverId);
+			//noinspection DataFlowIssue
+			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
 			if (ps == null) {
 				if (groupLocal == null)
 					groupLocal = new RoleOnServer();
 				groupLocal.addAll(group.accounts);
 				continue;
 			}
-			var socket = Objects.requireNonNull(providerApp.providerDirectService).GetSocket(ps.sessionId);
+			var socket = providerApp.providerDirectService.GetSocket(ps.sessionId);
 			if (socket == null) {
 				if (groupLocal == null)
 					groupLocal = new RoleOnServer();
@@ -1679,8 +1681,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void tryRedirectRemoveLocal(int serverId, String account) {
+		//noinspection DataFlowIssue
 		if (providerApp.zeze.getConfig().getServerId() != serverId
-				&& Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.containsKey(serverId))
+				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
 			redirectRemoveLocal(serverId, account);
 	}
 
@@ -1690,7 +1693,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (rpc.Argument.getClientId().isEmpty())
 			return Procedure.LogicError;
 		var done = new OutObject<>(false);
-		for (var i = 0; i < 3 && !Objects.requireNonNull(done.value); ++i) {
+		//noinspection DataFlowIssue
+		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest")).call();
 			if (r != 0)
 				return r;
@@ -1747,7 +1751,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
-			Objects.requireNonNull(rpc.getSender()).Send(setUserState); // 直接使用link连接。
+			//noinspection DataFlowIssue
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
 		loginOnline.setReliableNotifyConfirmIndex(0);
@@ -1767,7 +1772,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (rpc.Argument.getClientId().isEmpty())
 			return Procedure.LogicError;
 		var done = new OutObject<>(false);
-		for (var i = 0; i < 3 && !Objects.requireNonNull(done.value); ++i) {
+		//noinspection DataFlowIssue
+		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest")).call();
 			if (r != 0)
 				return r;
@@ -1823,7 +1829,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
-			Objects.requireNonNull(rpc.getSender()).Send(setUserState); // 直接使用link连接。
+			//noinspection DataFlowIssue
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
 		loginOnline.setServerId(providerApp.zeze.getConfig().getServerId());
@@ -1866,7 +1873,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
-			Objects.requireNonNull(rpc.getSender()).Send(setUserState); // 直接使用link连接。
+			//noinspection DataFlowIssue
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 		session.respond(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。

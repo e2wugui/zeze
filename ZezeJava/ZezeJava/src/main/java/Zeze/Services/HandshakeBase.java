@@ -153,7 +153,8 @@ public class HandshakeBase extends Service {
 			OnHandshakeDone(p.getSender());
 			return 0L;
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
-			Objects.requireNonNull(p.getSender()).close(ex);
+			//noinspection DataFlowIssue
+			p.getSender().close(ex);
 			return 0L;
 		}
 	}
@@ -240,7 +241,7 @@ public class HandshakeBase extends Service {
 			}
 			var s2c = serverCompressS2c(p.Argument.compressS2c);
 			var c2s = serverCompressC2s(p.Argument.compressC2s);
-			Objects.requireNonNull(((TcpSocket)p.getSender())).setInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
+			((TcpSocket)p.getSender()).setInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
 
 			var sHandshake = new SHandshake();
 			sHandshake.Argument.encryptParam = response;
@@ -257,7 +258,8 @@ public class HandshakeBase extends Service {
 
 			return 0L;
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
-			Objects.requireNonNull(p.getSender()).close(ex);
+			//noinspection DataFlowIssue
+			p.getSender().close(ex);
 			return 0L;
 		}
 	}
@@ -290,7 +292,8 @@ public class HandshakeBase extends Service {
 				OnHandshakeDone(Objects.requireNonNull(p.getSender()));
 			}
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
-			Objects.requireNonNull(p.getSender()).close(ex);
+			//noinspection DataFlowIssue
+			p.getSender().close(ex);
 		}
 		return 0L;
 	}
@@ -343,7 +346,8 @@ public class HandshakeBase extends Service {
 			}
 			p.getSender().close(new IllegalStateException("handshake lost context."));
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
-			Objects.requireNonNull(p.getSender()).close(ex);
+			//noinspection DataFlowIssue
+			p.getSender().close(ex);
 		} finally {
 			if (null != ctx && null != ctx.timeoutTask)
 				ctx.timeoutTask.cancel(false);

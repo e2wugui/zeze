@@ -110,7 +110,8 @@ public final class Table<K, V extends Bean> {
 			if (r.isAccessed()) // 复查：beginAccess在r.mutex内，与此处互斥
 				return false;
 			r.setRemoved(true);
-			return Objects.requireNonNull(lruCache).remove(key, r); // pair-remove：仅当映射仍是本记录时删除
+			//noinspection DataFlowIssue
+			return lruCache.remove(key, r); // pair-remove：仅当映射仍是本记录时删除
 		} finally {
 			r.mutex.unlock();
 		}
@@ -383,7 +384,8 @@ public final class Table<K, V extends Bean> {
 			// record不存在即先行分歧：直接getValue().followerApply抛NPE，由Rocks.followerApply
 			// 统一catch并fatalKill（宁死不糊），不再内联防御。
 			for (var log : rLog.getLogBean())
-				Objects.requireNonNull(r.getValue()).followerApply(log); // 最多一个。
+				//noinspection DataFlowIssue
+				r.getValue().followerApply(log); // 最多一个。
 			break;
 
 		default:

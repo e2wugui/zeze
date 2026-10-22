@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.io.IOException;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
@@ -55,7 +53,6 @@ public final class GlobalClient extends Service {
 					// 2. 开始清理，由守护线程保护，必须成功。
 					agent.startRelease(getZeze(), () -> {
 						// 3. 重置登录次数，下一次连接成功，会发送Login。
-						//noinspection DataFlowIssue
 						agent.getLoginTimes().getAndSet(0);
 						// 4. 开始网络连接。
 						//noinspection DataFlowIssue
@@ -63,7 +60,6 @@ public final class GlobalClient extends Service {
 					});
 				} else {
 					logger.debug("GlobalClient Recv Login 1");
-					//noinspection DataFlowIssue
 					agent.getLoginTimes().getAndIncrement();
 					agent.setActiveTime(System.currentTimeMillis());
 					super.OnHandshakeDone(so);
@@ -108,7 +104,8 @@ public final class GlobalClient extends Service {
 	public void dispatchProtocol(Protocol<?> p,
 								 ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-		Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p).call());
+		//noinspection DataFlowIssue
+		Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p).call());
 	}
 
 	@Override

@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import java.util.Objects;
-
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -528,7 +526,7 @@ public class Takeover extends AbstractTakeover {
 		renewDaemon.stop();
 		scanDaemon.stop();
 		synchronized (retryFutures) {
-			retryFutures.foreachValue(f -> Objects.requireNonNull(f).cancel(false));
+			retryFutures.foreachValue(f -> f.cancel(false));
 			retryFutures.clear();
 		}
 		if (!started)

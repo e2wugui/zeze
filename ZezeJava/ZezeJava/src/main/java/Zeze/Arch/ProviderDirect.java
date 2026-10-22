@@ -39,7 +39,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 		var rpcArg = rpc.Argument;
 		rpc.Result.setModuleId(rpcArg.getModuleId());
 		rpc.Result.setServerId(zeze.getConfig().getServerId());
-		var handle = Objects.requireNonNull(zeze.redirect).handles.get(rpcArg.getMethodFullName());
+		//noinspection DataFlowIssue
+		var handle = zeze.redirect.handles.get(rpcArg.getMethodFullName());
 		if (handle == null) {
 			rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 			return Procedure.LogicError;
@@ -105,7 +106,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 	private void sendResult(@Nullable AsyncSocket sender, Protocol<?> p) throws Exception {
 		if (sender == null) {
 			var service = requireProviderApp().providerDirectService;
-			Objects.requireNonNull(service).dispatchProtocol(p);
+			//noinspection DataFlowIssue
+			service.dispatchProtocol(p);
 			return;
 		}
 		p.Send(sender);
@@ -153,7 +155,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 		resArg.setSessionId(pa.getSessionId());
 		resArg.setMethodFullName(pa.getMethodFullName());
 
-		var handle = Objects.requireNonNull(requireProviderApp().zeze.redirect).handles.get(pa.getMethodFullName());
+		//noinspection DataFlowIssue
+		var handle = requireProviderApp().zeze.redirect.handles.get(pa.getMethodFullName());
 		int rc = handle == null ? ModuleRedirect.ResultCodeMethodFullNameNotFound
 				: handle.version != pa.getVersion() ? ModuleRedirect.ResultCodeHandleVersion
 				: ModuleRedirect.ResultCodeSuccess;
@@ -237,7 +240,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 		//noinspection DataFlowIssue
 		var ps = (ProviderSession)r.getSender().getUserState();
 		Objects.requireNonNull(ps).serverId = r.Argument.getServerId();
-		Objects.requireNonNull(requireProviderApp().providerDirectService).setRelativeServiceReady(ps, r.Argument.getIp(), r.Argument.getPort());
+		//noinspection DataFlowIssue
+		requireProviderApp().providerDirectService.setRelativeServiceReady(ps, r.Argument.getIp(), r.Argument.getPort());
 		return 0;
 	}
 }

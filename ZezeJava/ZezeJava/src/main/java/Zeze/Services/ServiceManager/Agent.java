@@ -1,6 +1,5 @@
 package Zeze.Services.ServiceManager;
 
-import java.util.Objects;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
@@ -229,7 +228,8 @@ public final class Agent extends AbstractAgent {
 
 	private long processKeepAlive(KeepAlive r) {
 		if (onKeepAlive != null)
-			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(onKeepAlive);
+			//noinspection DataFlowIssue
+			Task.getCriticalThreadPool().execute(onKeepAlive);
 		r.SendResultCode(KeepAlive.Success);
 		return Procedure.Success;
 	}
@@ -237,7 +237,8 @@ public final class Agent extends AbstractAgent {
 	private long processSetServerLoad(SetServerLoad setServerLoad) {
 		loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
 		if (onSetServerLoad != null) {
-			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> {
+			//noinspection DataFlowIssue
+			Task.getCriticalThreadPool().execute(() -> {
 				try {
 					if (onSetServerLoad != null) {
 						onSetServerLoad.run(setServerLoad.Argument);

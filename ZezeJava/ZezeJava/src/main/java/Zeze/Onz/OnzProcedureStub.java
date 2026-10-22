@@ -1,7 +1,5 @@
 package Zeze.Onz;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import Zeze.Builtin.Onz.BFuncProcedure;
@@ -51,6 +49,7 @@ public class OnzProcedureStub<A extends Bean, R extends Bean> {
 	// 类型具体化辅助函数
 	@SuppressWarnings("unchecked")
 	public long call(OnzProcedure onzProcedure, Bean argument, Bean result) throws Exception {
-		return Objects.requireNonNull(func).call(onzProcedure, (A)argument, (R)result);
+		//noinspection DataFlowIssue
+		return func.call(onzProcedure, (A)argument, (R)result);
 	}
 }

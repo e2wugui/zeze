@@ -297,9 +297,9 @@ public final class Transaction {
 		var it = lastSavepoint("leaderApply").logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
-				var log = Objects.requireNonNull(it.value());
+				var log = it.value();
 				if (log.getBelong() != null)
-					Objects.requireNonNull(log.getBelong()).leaderApplyNoRecursive(log);
+					log.getBelong().leaderApplyNoRecursive(log);
 			}
 		}
 		var rs = new ArrayList<Record<?>>();
@@ -334,7 +334,7 @@ public final class Transaction {
 			var it = savepoints.get(saveSize - 1).logIterator();
 			if (it != null) {
 				while (it.moveToNext()) {
-					var log = Objects.requireNonNull(it.value());
+					var log = it.value();
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
 					if (log.getBelong() == null)
@@ -359,7 +359,7 @@ public final class Transaction {
 		var it = sp.logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
-				var log = Objects.requireNonNull(it.value());
+				var log = it.value();
 				// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
 				if (log.getBelong() == null)
 					continue;
@@ -376,9 +376,11 @@ public final class Transaction {
 		}
 
 		if (!changes.getRecords().isEmpty()) { // has changes
-			Objects.requireNonNull(procedure.getRocks()).updateAtomicLongs(changes.getAtomicLongs());
+			//noinspection DataFlowIssue
+			procedure.getRocks().updateAtomicLongs(changes.getAtomicLongs());
 			var resultBean = null != procedure.uniqueRequest ? procedure.uniqueRequest.getResultBean() : null;
-			Objects.requireNonNull(procedure.getRocks().getRaft()).appendLog(changes, resultBean, procedure.getExpectedTerm());
+			//noinspection DataFlowIssue
+			procedure.getRocks().getRaft().appendLog(changes, resultBean, procedure.getExpectedTerm());
 		}
 
 		_trigger_commit_actions_(procedure, sp);

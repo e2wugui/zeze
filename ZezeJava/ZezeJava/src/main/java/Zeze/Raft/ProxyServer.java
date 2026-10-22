@@ -75,11 +75,12 @@ public class ProxyServer extends Service {
 				return 0;
 			}
 
+			//noinspection DataFlowIssue
 			server.dispatchRaftRequest(p,
 					() -> server.processRequest(p, Objects.requireNonNull(outFactoryHandle.value)),
 					p.getClass().getName(),
 					() -> p.SendResultCode(Procedure.RaftRetry),
-					Objects.requireNonNull(outFactoryHandle.value).Mode);
+					outFactoryHandle.value.Mode);
 			return 0;
 		}
 

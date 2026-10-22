@@ -169,7 +169,8 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
 				if (opLog.op < OpLog.OP_REMOVE)
-					Objects.requireNonNull(opLog.value).encode(bb);
+					//noinspection DataFlowIssue
+					opLog.value.encode(bb);
 			}
 		}
 	}

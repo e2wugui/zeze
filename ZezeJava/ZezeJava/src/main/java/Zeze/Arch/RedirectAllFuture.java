@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.Objects;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
@@ -204,7 +202,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 				lock(); // synchronized (hashes)
 				try {
 					if (hashes.add(it.key())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
-						readyResults.add(Objects.requireNonNull(it.value()));
+						readyResults.add(it.value());
 				} finally {
 					unlock();
 				}

@@ -70,7 +70,8 @@ public class LogBinary extends Log {
 
 	@Override
 	public String stringValue() {
-		return Objects.requireNonNull(value).toString(StandardCharsets.UTF_8);
+		//noinspection DataFlowIssue
+		return value.toString(StandardCharsets.UTF_8);
 	}
 
 	@Override

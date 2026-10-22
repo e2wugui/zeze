@@ -167,7 +167,8 @@ public class Test {
 		}
 
 		for (var raft : rafts.values())
-			Objects.requireNonNull(raft.raft).getServer().start();
+			//noinspection DataFlowIssue
+			raft.raft.getServer().start();
 
 		agent = new Agent("Zeze.Raft.Agent.Test", raftConfigStart);
 		Agent.NetClient client = agent.getClient();
@@ -216,7 +217,8 @@ public class Test {
 		while (true) {
 			try {
 				var r = new GetCount();
-				Objects.requireNonNull(agent).sendForWait(r).await();
+				//noinspection DataFlowIssue
+				agent.sendForWait(r).await();
 				if (!r.isTimeout() && r.getResultCode() == 0)
 					return r.Result.count;
 			} catch (Exception ignored) {
@@ -281,7 +283,8 @@ public class Test {
 			try {
 				var req = new AddCount();
 				req.setTimeout(3600_000);
-				tasks.add(Objects.requireNonNull(agent).sendForWait(req));
+				//noinspection DataFlowIssue
+				tasks.add(agent.sendForWait(req));
 				requests.add(req);
 			} catch (Exception e) {
 				//发送错误不统计。
@@ -358,7 +361,8 @@ public class Test {
 		logger.debug("Leader节点重启网络，【选举】");
 		{
 			var leader = getLeader();
-			Objects.requireNonNull(leader.raft).getServer().stop();
+			//noinspection DataFlowIssue
+			leader.raft.getServer().stop();
 			TaskSpec.ofAction(leader.raft.getServer()::start)
 					.schedule(leader.raft.getRaftConfig().getElectionTimeoutMax());
 		}
@@ -387,7 +391,8 @@ public class Test {
 		logger.debug("Leader节点重启");
 		{
 			var leader = getLeader();
-			var StartDelay = Objects.requireNonNull(leader.raft).getRaftConfig().getElectionTimeoutMax();
+			//noinspection DataFlowIssue
+			var StartDelay = leader.raft.getRaftConfig().getElectionTimeoutMax();
 			leader.stopRaft();
 			TaskSpec.ofAction(leader::startRaft).schedule(StartDelay);
 		}
@@ -396,7 +401,8 @@ public class Test {
 		// Snapshot & Load
 		{
 			var leader = getLeader();
-			Objects.requireNonNull(leader.raft).getLogSequence().snapshot();
+			//noinspection DataFlowIssue
+			leader.raft.getLogSequence().snapshot();
 			leader.stopRaft();
 			leader.startRaft();
 		}
@@ -432,7 +438,8 @@ public class Test {
 		failActions.add(new FailAction("RestartLeaderNetForVote", () ->
 		{
 			var leader = getLeader();
-			Objects.requireNonNull(leader.raft).getServer().stop();
+			//noinspection DataFlowIssue
+			leader.raft.getServer().stop();
 			// delay for vote
 			Thread.sleep(leader.raft.getRaftConfig().getElectionTimeoutMax());
 			leader.raft.getServer().start();
@@ -464,7 +471,8 @@ public class Test {
 		failActions.add(new FailAction("RestartLeaderRaftForVote", () ->
 		{
 			var leader = getLeader();
-			var startVoteDelay = Objects.requireNonNull(leader.raft).getRaftConfig().getElectionTimeoutMax();
+			//noinspection DataFlowIssue
+			var startVoteDelay = leader.raft.getRaftConfig().getElectionTimeoutMax();
 			leader.stopRaft();
 			// delay for vote
 			Thread.sleep(startVoteDelay);
@@ -592,7 +600,8 @@ public class Test {
 	private ArrayList<TestRaft> getNodeNotLeaders() {
 		var NotLeader = new ArrayList<TestRaft>();
 		for (var raft : rafts.values()) {
-			if (!Objects.requireNonNull(raft.raft).isLeader())
+			//noinspection DataFlowIssue
+			if (!raft.raft.isLeader())
 				NotLeader.add(raft);
 		}
 		return NotLeader;
@@ -743,7 +752,8 @@ public class Test {
 		@Override
 		public void loadSnapshot(String path) throws IOException {
 			_loadSnapshot(path);
-			logger.info("{} LoadSnapshot Count={}", Objects.requireNonNull(getRaft()).getName(), count);
+			//noinspection DataFlowIssue
+			logger.info("{} LoadSnapshot Count={}", getRaft().getName(), count);
 		}
 
 		// 这里没有处理重入，调用者需要保证。
@@ -751,7 +761,7 @@ public class Test {
 		@SuppressWarnings("ConstantConditions") // Preserve defensive snapshot checks in the fault-injection harness.
 		public SnapshotResult snapshot(String path) throws IOException, RocksDBException {
 			SnapshotResult result = new SnapshotResult();
-			Objects.requireNonNull(getRaft()).lock();
+			getRaft().lock();
 			try {
 				if (getRaft().getLogSequence() != null) {
 					var lastAppliedLog = getRaft().getLogSequence().lastAppliedLogTermIndex();
@@ -913,7 +923,8 @@ public class Test {
 		}
 
 		private long processAddCount(AddCount r) {
-			if (!Objects.requireNonNull(raft).isLeader())
+			//noinspection DataFlowIssue
+			if (!raft.isLeader())
 				return Procedure.RaftRetry; // fast fail
 
 			TestStateMachine sm = Objects.requireNonNull(stateMachine);
@@ -929,7 +940,8 @@ public class Test {
 
 		@SuppressWarnings("SameReturnValue")
 		private long processGetCount(GetCount r) {
-			Objects.requireNonNull(stateMachine).lock();
+			//noinspection DataFlowIssue
+			stateMachine.lock();
 			try {
 				r.Result.count = stateMachine.count;
 				r.SendResult();

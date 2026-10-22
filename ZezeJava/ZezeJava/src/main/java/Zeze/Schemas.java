@@ -59,7 +59,8 @@ public class Schemas implements Serializable {
 
 		@Override
 		public int hashCode() {
-			return Objects.requireNonNull(previous).name.hashCode() * 31 + Objects.requireNonNull(current).name.hashCode();
+			//noinspection DataFlowIssue
+			return previous.name.hashCode() * 31 + current.name.hashCode();
 		}
 
 		@Override
@@ -399,13 +400,15 @@ public class Schemas implements Serializable {
 				typeName = bean.name;
 				type = bean;
 			}, bean -> {
-				keyName = Objects.requireNonNull(type).keyName;
+				//noinspection DataFlowIssue
+				keyName = type.keyName;
 				valueName = type.valueName;
 			}) && res;
 		}
 
 		public final void update() {
-			keyName = Objects.requireNonNull(type).keyName;
+			//noinspection DataFlowIssue
+			keyName = type.keyName;
 			valueName = type.valueName;
 		}
 	}
@@ -586,7 +589,8 @@ public class Schemas implements Serializable {
 				var value = e.getValue();
 				varNames.add(value.name);
 				varIds.add(value.id);
-				Objects.requireNonNull(value.type).buildRelationalColumns(isKey, value, varNames, varIds, columns, mapping);
+				//noinspection DataFlowIssue
+				value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns, mapping);
 				varIds.removeLast();
 				varNames.removeLast();
 			}
@@ -634,7 +638,8 @@ public class Schemas implements Serializable {
 		}
 
 		public boolean isCompatible(Table other, Context context) {
-			if (!Objects.requireNonNull(name).equals(other.name)) {
+			//noinspection DataFlowIssue
+			if (!name.equals(other.name)) {
 				logger.error("table name is not matched: {} -> {}", other.name, name);
 				return false;
 			}
@@ -664,7 +669,8 @@ public class Schemas implements Serializable {
 			var varKey = new Variable();
 			varKey.name = "__key";
 			varKey.id = 1; // 这里用"1"，因为关系表Table(Key,Value)，需要加一级虚拟Bean，只要保证这一级varId不重复即可，见后面的"2"。
-			varKey.typeName = Objects.requireNonNull(keyType).name;
+			//noinspection DataFlowIssue
+			varKey.typeName = keyType.name;
 			varKey.type = keyType;
 			if (keyType instanceof Bean) {
 				// 肯定是BeanKey。
@@ -690,7 +696,8 @@ public class Schemas implements Serializable {
 			var varIds = new ArrayList<Integer>();
 			varIds.add(2); // 这里用"2"，因为关系表Table(Key,Value)，需要加一级虚拟Bean，只要保证这一级varId不重复即可，见上面的"1"。
 			// 【注意】valueType 肯定是Bean，下面调用的参数”Variable varKey“并不会被用到，这里用它是为了避免@NotNull警告。
-			Objects.requireNonNull(valueType).buildRelationalColumns(false, varKey, varNames, varIds, columns, mapping);
+			//noinspection DataFlowIssue
+			valueType.buildRelationalColumns(false, varKey, varNames, varIds, columns, mapping);
 
 			// 构建好就排序，不能再diff的时候排序，有可能diff不会被调用。
 			var comparator = new ColumnComparator();
@@ -752,7 +759,8 @@ public class Schemas implements Serializable {
 					throw new IllegalStateException("table version less than current version");
 				// 版本发生了变更：一般意味着不兼容修改，此时renameTable。延迟到检查全部通过后执行。
 				if (table.version > otherTable.version) {
-					if (!Objects.requireNonNull(table.name).equals(otherTable.name))
+					//noinspection DataFlowIssue
+					if (!table.name.equals(otherTable.name))
 						throw new IllegalStateException(Str.format("table name is not matched {} -> {}", table.name, otherTable.name));
 					renames.add(KVNotNull.create(table, otherTable));
 				}
@@ -878,7 +886,8 @@ public class Schemas implements Serializable {
 			this.name = name;
 			this.varIds = varIds;
 			this.variableId = variable.id;
-			this.variableTypeName = Objects.requireNonNull(variable.type).name;
+			//noinspection DataFlowIssue
+			this.variableTypeName = variable.type.name;
 			this.sqlType = sqlType;
 		}
 	}

@@ -1,7 +1,5 @@
 package Zeze.Raft;
 
-import java.util.Objects;
-
 import java.util.concurrent.RejectedExecutionException;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
@@ -158,7 +156,8 @@ public class Server extends HandshakeBoth {
 
 	public static void createConnector(Service service, RaftConfig raftConf) {
 		for (var node : raftConf.getNodes().values()) {
-			if (Objects.requireNonNull(raftConf.getName()).equals(node.getName()))
+			//noinspection DataFlowIssue
+			if (raftConf.getName().equals(node.getName()))
 				continue; // skip self.
 			service.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
 		}
@@ -236,7 +235,7 @@ public class Server extends HandshakeBoth {
 			}
 			trySendLeaderIs(p.getSender());
 			return 0L;
-		}, p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)).call();
+		}, p, (__, code) -> p.trySendResultCode(code)).call();
 	}
 
 	/**
@@ -271,7 +270,7 @@ public class Server extends HandshakeBoth {
 			// processStopServer在唯一发送路径上不可达；保留dispatchRaftRequest包装、错误码回发
 			// 与RaftRetry错误路径（与processRequest内的包装同构，仅去掉门槛与去重校验）。
 			dispatchRaftRequest(p, () -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle),
-							p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)).call(),
+							p, (__, code) -> p.trySendResultCode(code)).call(),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}

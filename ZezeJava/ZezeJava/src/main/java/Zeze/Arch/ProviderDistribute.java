@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.Objects;
-
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -87,7 +85,8 @@ public class ProviderDistribute extends ReentrantLock {
 			if (providerSocket == null)
 				return null;
 			var ps = (ProviderSession)providerSocket.getUserState();
-			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload)
+			//noinspection DataFlowIssue
+			if (ps.load.getOverload() == BLoad.eOverload)
 				return null;
 		}
 		return serviceInfo;
@@ -161,7 +160,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (ps == null)
 				continue; // 这里发现关闭的服务，仅仅忽略.
 
-			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload)
+			if (ps.load.getOverload() == BLoad.eOverload)
 				continue; // 忽略过载的服务器
 
 			if (!checkAppVersion(ps.appVersion, appVersion))
@@ -169,10 +168,10 @@ public class ProviderDistribute extends ReentrantLock {
 
 			all.add(ps);
 
-			if (Objects.requireNonNull(ps).load.getOnlineNew() > Objects.requireNonNull(ps).load.getMaxOnlineNew())
+			if (ps.load.getOnlineNew() > ps.load.getMaxOnlineNew())
 				continue;
 
-			int weight = Objects.requireNonNull(ps).load.getProposeMaxOnline() - Objects.requireNonNull(ps).load.getOnline();
+			int weight = ps.load.getProposeMaxOnline() - ps.load.getOnline();
 			if (weight <= 0)
 				continue;
 
@@ -227,7 +226,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (ps == null)
 				continue; // 这里发现关闭的服务，仅仅忽略.
 
-			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload)
+			if (ps.load.getOverload() == BLoad.eOverload)
 				continue; // 忽略过载的服务器
 
 			if (!checkAppVersion(ps.appVersion, appVersion))
@@ -291,18 +290,18 @@ public class ProviderDistribute extends ReentrantLock {
 				if (ps == null)
 					continue;
 
-				if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload)
+				if (ps.load.getOverload() == BLoad.eOverload)
 					continue; // 忽略过载服务器。
 
 				// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-				if (Objects.requireNonNull(ps).load.getOnlineNew() > Objects.requireNonNull(ps).load.getMaxOnlineNew())
+				if (ps.load.getOnlineNew() > ps.load.getMaxOnlineNew())
 					continue;
 
 				if (!checkAppVersion(ps.appVersion, appVersion))
 					continue;
 
 				provider.value = ps.getSessionId();
-				if (Objects.requireNonNull(ps).load.getOnline() >= Objects.requireNonNull(ps).load.getProposeMaxOnline())
+				if (ps.load.getOnline() >= ps.load.getProposeMaxOnline())
 					feedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
 				return true;
 			}

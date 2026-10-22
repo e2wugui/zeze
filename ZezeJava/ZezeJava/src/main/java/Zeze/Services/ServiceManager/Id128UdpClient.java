@@ -136,7 +136,6 @@ public class Id128UdpClient {
 			completeIfPending(futureNode, stopped);
 		tailFuture.clear();
 		for (var eIt = pendingRpc.entryIterator(); eIt.moveToNext(); )
-			//noinspection DataFlowIssue
 			completeIfPending(Objects.requireNonNull(eIt.value().getFutureNode()), stopped);
 		pendingRpc.clear();
 	}
@@ -177,7 +176,8 @@ public class Id128UdpClient {
 		if (context != null) {
 			var futureNode = context.getFutureNode();
 			// 判断是否已经设置过结果.迟到或乱序的rpc.
-			if (Objects.requireNonNull(futureNode).pending.get() > 0) {
+			//noinspection DataFlowIssue
+			if (futureNode.pending.get() > 0) {
 				var futureContext = futureNode;
 				// 响应rpc只解码Result,Argument保持默认空值,所以这里只能用请求对象的name.
 				var globalName = context.Argument.getName();
@@ -258,7 +258,6 @@ public class Id128UdpClient {
 			lastRpcTimeoutCheckTime = now;
 			for (var eIt = pendingRpc.entryIterator(); eIt.moveToNext(); ) {
 				var r = eIt.value();
-				//noinspection DataFlowIssue
 				var remain = r.getTimeout() - period;
 				if (remain > 0) {
 					r.setTimeout(remain);
@@ -268,7 +267,8 @@ public class Id128UdpClient {
 				// 1. 仅给当前的future报告错误,链表保持不变(残留),以后的设置结果和报错由future保证不会重复.
 				// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面代码刚好可以工作.
 				var futureNode = r.getFutureNode();
-				if (Objects.requireNonNull(futureNode).pending.get() > 0) {
+				//noinspection DataFlowIssue
+				if (futureNode.pending.get() > 0) {
 					futureNode.setException(new TimeoutException());
 					futureNode.pending.set(0); // 用来标记futureNode已经设置过结果.
 				}

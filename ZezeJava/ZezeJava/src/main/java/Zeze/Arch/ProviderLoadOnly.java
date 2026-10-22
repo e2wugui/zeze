@@ -2,7 +2,6 @@ package Zeze.Arch;
 
 import org.jspecify.annotations.Nullable;
 
-import java.util.Objects;
 
 import Zeze.Application;
 
@@ -27,16 +26,19 @@ public class ProviderLoadOnly extends LoadBase {
 
 	@Override
 	public LoadConfig getLoadConfig() {
-		return Objects.requireNonNull(Objects.requireNonNull(getZeze().getProviderApp()).distribute).loadConfig;
+		//noinspection DataFlowIssue
+		return getZeze().getProviderApp().distribute.loadConfig;
 	}
 
 	@Override
 	public @Nullable String getServiceIp() {
-		return Objects.requireNonNull(getZeze().getProviderApp()).directIp;
+		//noinspection DataFlowIssue
+		return getZeze().getProviderApp().directIp;
 	}
 
 	@Override
 	public int getServicePort() {
-		return Objects.requireNonNull(getZeze().getProviderApp()).directPort;
+		//noinspection DataFlowIssue
+		return getZeze().getProviderApp().directPort;
 	}
 }

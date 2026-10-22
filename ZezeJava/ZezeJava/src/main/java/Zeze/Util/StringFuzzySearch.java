@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.util.Objects;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import org.jspecify.annotations.Nullable;
@@ -35,17 +33,21 @@ public final class StringFuzzySearch {
 		strSet.put(s, sid);
 		final var v = ((long)(0xfff / n) << 48) + sid;
 		for (int i = 0; i < n; i++)
-			Objects.requireNonNull(index1.computeIfAbsent(s.charAt(i), __ -> new LongList())).add(v);
+			//noinspection DataFlowIssue
+			index1.computeIfAbsent(s.charAt(i), __ -> new LongList()).add(v);
 		for (int i = 1, j = s.charAt(0); i < n; i++)
-			Objects.requireNonNull(index2.computeIfAbsent(j = (j << 16) + s.charAt(i), __ -> new LongList())).add(v);
+			//noinspection DataFlowIssue
+			index2.computeIfAbsent(j = (j << 16) + s.charAt(i), __ -> new LongList()).add(v);
 		if (n >= 3) {
 			var k = ((long)s.charAt(0) << 16) + s.charAt(1);
 			for (int i = 2; i < n; i++)
-				Objects.requireNonNull(index3.computeIfAbsent(k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL, __ -> new LongList())).add(v);
+				//noinspection DataFlowIssue
+				index3.computeIfAbsent(k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL, __ -> new LongList()).add(v);
 			if (n >= 4) {
 				k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + s.charAt(2);
 				for (int i = 3; i < n; i++)
-					Objects.requireNonNull(index4.computeIfAbsent(k = (k << 16) + s.charAt(i), __ -> new LongList())).add(v);
+					//noinspection DataFlowIssue
+					index4.computeIfAbsent(k = (k << 16) + s.charAt(i), __ -> new LongList()).add(v);
 			}
 		}
 		return true;
@@ -147,7 +149,8 @@ public final class StringFuzzySearch {
 		if (list != null) {
 			for (int i = 0, n = list.size(); i < n; i++) {
 				final var k = list.get(i);
-				Objects.requireNonNull(m.computeIfAbsent(k, __ -> new OutLong())).value += (long)(int)(k >>> 48) * f;
+				//noinspection DataFlowIssue
+				m.computeIfAbsent(k, __ -> new OutLong()).value += (long)(int)(k >>> 48) * f;
 			}
 		}
 	}

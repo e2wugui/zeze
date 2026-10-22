@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -125,7 +123,8 @@ public final class OutputBuffer implements Codec, Closeable {
 			this.head = head;
 			var next = buffers.peekFirst();
 			if (next == null) {
-				var tail = Objects.requireNonNull(this.tail); // 队列不空时,tail肯定不为null
+				var tail = this.tail;
+				assert tail != null; // 队列不空时,tail肯定不为null
 				outputs[0] = head;
 				outputs[1] = tail;
 				int writePos = tail.position();

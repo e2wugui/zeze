@@ -123,7 +123,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	 * （全副本一致）并响亮告警。条目保留至日志apply（apply路径摘墓碑+物理删blob与marker）；
 	 * 单条隔离：掉主等异常只推迟本条到下轮重试。 */
 	void expireDueTombstones(long graceMillis) {
-		expireDueTombstones(graceMillis, Objects.requireNonNull(getRaft()).getLogSequence().getTerm());
+		//noinspection DataFlowIssue
+		expireDueTombstones(graceMillis, getRaft().getLogSequence().getTerm());
 	}
 
 	private void expireDueTombstones(long graceMillis, long expectedTerm) {
@@ -349,7 +350,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		splitSyncWatermark = readSplitSyncCounter(SplitSyncWatermarkKey);
 
 		if (null == timer) {
-			//noinspection DataFlowIssue
 			var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
 			var delay = Random.getInstance().nextLong(period);
 			timer = TaskSpec.ofAction(this::onTimer).schedulePeriodNow(delay, period);
@@ -378,12 +378,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	@Override
 	public @Nullable UniqueRequestState getUniqueAppliedStub(IRaftRpc rpc) throws RocksDBException {
-		return Objects.requireNonNull(appliedState).getUniqueAppliedStub(rpc);
+		//noinspection DataFlowIssue
+		return appliedState.getUniqueAppliedStub(rpc);
 	}
 
 	@Override
 	public void removeExpiredUniqueStubTables(long expired) throws Exception {
-		Objects.requireNonNull(appliedState).removeExpiredUniqueStubTables(expired);
+		//noinspection DataFlowIssue
+		appliedState.removeExpiredUniqueStubTables(expired);
 	}
 
 	@Override
@@ -400,10 +402,12 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				if (!heartbeat)
 					super.apply(holder);
 				var batch = requireBucket().getBatch();
-				Objects.requireNonNull(appliedState).addToBatch(holder, batch);
+				//noinspection DataFlowIssue
+				appliedState.addToBatch(holder, batch);
 				batch.commit(requireBucket().getWriteOptions());
 				if (publishTidRangeAfterApply)
-					Objects.requireNonNull(getTidAllocator()).setRange(tidRangeStart, tidRangeEnd);
+					//noinspection DataFlowIssue
+					getTidAllocator().setRange(tidRangeStart, tidRangeEnd);
 			} catch (Throwable e) {
 				// 内存已改变而批次未完成时不能继续服务或原地重试，沿用dbh2的致命apply语义。
 				logger.fatal("dbh2 apply failed at index={}", holder.getIndex(), e);
@@ -427,7 +431,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	private long readSplitSyncCounter(byte[] key) {
 		try {
-			var value = Objects.requireNonNull(splitSyncTable).get(key);
+			//noinspection DataFlowIssue
+			var value = splitSyncTable.get(key);
 			return null == value ? 0 : ByteBuffer.Wrap(value).ReadLong8BE();
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
@@ -453,12 +458,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				if (t.elapsedMillis() < dbh2.getDbh2Config().getBucketMaxTime())
 					continue;
 				//noinspection DataFlowIssue
-				var state = Objects.requireNonNull(commitAgent).query(t.getQueryIp(), t.getQueryPort(), tid, dbh2.getDbh2Config().getRpcTimeout());
+				var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid, dbh2.getDbh2Config().getRpcTimeout());
 				if (Commit.eCommitNotExist == state.getState()
 						|| Commit.ePreparing == state.getState()) {
 					logger.warn("timeout undo tid={} state={}", tid, state);
 					tryAppendTimerLog(new LogUndoBatch(tid), expectedTerm);
-				//noinspection DataFlowIssue
 				} else if (Commit.eCommitting == state.getState()
 						&& t.elapsedMillis() >= dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
 						&& committingHangWarnedTids.add(tid)) {
@@ -587,7 +591,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				tidRangeStart = start;
 				tidRangeEnd = end;
 			} else
-				Objects.requireNonNull(getTidAllocator()).setRange(start, end);
+				//noinspection DataFlowIssue
+				getTidAllocator().setRange(start, end);
 		} catch (RocksDBException ex) {
 			logger.error("", ex);
 			//noinspection DataFlowIssue
@@ -602,6 +607,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 						// dbh2 可空是设计内（快照/墓碑生命周期测试脱离真实 Dbh2 直驱状态机）：
 						// 空 batch 的 puts/deletes 遍历为空、不触键锁，null 被天然容忍；
 						// 真正的解引用点在 Dbh2Transaction.acquire（非空 batch 才到达）。
+						//noinspection DataFlowIssue
 						return new Dbh2Transaction(dbh2, batch);
 					} catch (Exception e) {
 						throw new RuntimeException(e);
@@ -958,7 +964,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
 		} finally {
-			//noinspection DataFlowIssue
 			getRaft().unlock();
 		}
 	}
@@ -1066,7 +1071,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			RocksDatabase.restore(backupDir, dbName);
 			openBucket(); // reopen
 		} finally {
-			//noinspection DataFlowIssue
 			getRaft().unlock();
 		}
 	}

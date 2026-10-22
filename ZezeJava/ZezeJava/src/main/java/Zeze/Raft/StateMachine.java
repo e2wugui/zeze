@@ -1,7 +1,5 @@
 package Zeze.Raft;
 
-import java.util.Objects;
-
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import Zeze.Util.LongConcurrentHashMap;
@@ -49,7 +47,8 @@ public abstract class StateMachine extends ReentrantLock {
 
 	/** 一条日志的应用入口；持久化状态机可将业务修改与应用完成事实同批提交。调用方持有Raft锁。 */
 	public void apply(RaftLog log) throws Exception {
-		Objects.requireNonNull(log.getLog()).apply(log, this);
+		//noinspection DataFlowIssue
+		log.getLog().apply(log, this);
 	}
 
 	/** 内部心跳可能触发leader-ready回调，原子状态机须先提交水位再触发它。 */

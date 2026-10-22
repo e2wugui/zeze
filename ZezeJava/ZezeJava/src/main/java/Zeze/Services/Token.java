@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.util.Objects;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.net.InetAddress;
@@ -488,7 +487,8 @@ public final class Token extends AbstractToken {
 				if (System.currentTimeMillis() <= state.endTime) {
 					bb.Reset();
 					var v = state.encode(bb);
-					Objects.requireNonNull(state.token.tokenMapTable).put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+					//noinspection DataFlowIssue
+					state.token.tokenMapTable.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
 				}
 				state.count = -1;
 				state.token.tokenMap.remove(state.key, state);
@@ -577,7 +577,8 @@ public final class Token extends AbstractToken {
 			ZezeCounter.tryInit();
 
 			try {
-				tokenMapTable = Objects.requireNonNull(rocksdb).getOrAddTable("tokenMap");
+				//noinspection DataFlowIssue
+				tokenMapTable = rocksdb.getOrAddTable("tokenMap");
 				service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
 				RegisterProtocols(service);
 				var sc = service.getConfig();
@@ -725,7 +726,8 @@ public final class Token extends AbstractToken {
 					try {
 						bb.wraps(it.value());
 						if (TokenState.decodeEndTime(bb) < now) {
-							Objects.requireNonNull(tokenMapTable).delete(batch, it.key());
+							//noinspection DataFlowIssue
+							tokenMapTable.delete(batch, it.key());
 							d++;
 						}
 						n++;
@@ -771,7 +773,8 @@ public final class Token extends AbstractToken {
 							if (now <= state.endTime) {
 								bb.Reset();
 								var v = state.encode(bb);
-								Objects.requireNonNull(tokenMapTable).put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+								//noinspection DataFlowIssue
+								tokenMapTable.put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
 							}
 							saved.add(state);
 							n++;
@@ -825,6 +828,7 @@ public final class Token extends AbstractToken {
 		var remoteAddr = r.getSender().getRemoteAddress();
 		String token;
 		var created = new OutObject<>(false);
+		//noinspection DataFlowIssue
 		do {
 			token = genToken();
 			// 这里严格来说应该再检查一下数据库里有没有这个token,但考虑到token含有秒时间戳,在tokenMap的软引用存活期不应该小于1秒
@@ -832,7 +836,7 @@ public final class Token extends AbstractToken {
 				created.value = true;
 				return new TokenState(this, t, remoteAddr, arg.getContext(), ttl);
 			});
-		} while (!Objects.requireNonNull(created.value));
+		} while (!created.value);
 		newCounter.increment();
 		r.Result.setToken(token);
 		r.SendResultCode(0);

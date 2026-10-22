@@ -108,7 +108,8 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			_tLinkedMapNodes.getChangeListenerMap().addListener(this::OnLinkedMapNodeChange);
 			_tLinkedMaps.getChangeListenerMap().addListener(this::OnLinkedMapRootChange);
 
-			Objects.requireNonNull(this.zeze.getDelayRemove()).register(eClearJobHandleName, this::delayClearJob);
+			//noinspection DataFlowIssue
+			this.zeze.getDelayRemove().register(eClearJobHandleName, this::delayClearJob);
 		}
 
 		public ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName,

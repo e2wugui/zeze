@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.Objects;
-
 import java.net.ServerSocket;
 import Zeze.Application;
 import Zeze.Builtin.LinksInfo.BLinkInfo;
@@ -70,9 +68,10 @@ public class LinkdApp {
 		this.linkdProvider.distributes = new ProviderDistributeVersion(zeze, loadConfig, linkdProviderService);
 		this.linkdProvider.RegisterProtocols(this.linkdProviderService);
 
-		Objects.requireNonNull(this.zeze.getServiceManager()).setOnChanged(this::applyOnChanged);
+		//noinspection DataFlowIssue
+		this.zeze.getServiceManager().setOnChanged(this::applyOnChanged);
 
-		Objects.requireNonNull(this.zeze.getServiceManager()).setOnSetServerLoad(serverLoad -> {
+		this.zeze.getServiceManager().setOnSetServerLoad(serverLoad -> {
 			var ps = this.linkdProviderService.providerSessions.get(serverLoad.getName());
 			if (ps != null) {
 				var bb = ByteBuffer.Wrap(serverLoad.param);
@@ -96,10 +95,12 @@ public class LinkdApp {
 
 	void applyOnChanged(BEditService edit) {
 		for (var r : edit.getRemove()) {
-			Objects.requireNonNull(linkdProvider.distributes).removeServer(r);
+			//noinspection DataFlowIssue
+			linkdProvider.distributes.removeServer(r);
 		}
 		for (var p : edit.getAdd()) {
-			Objects.requireNonNull(linkdProvider.distributes).addServer(p);
+			//noinspection DataFlowIssue
+			linkdProvider.distributes.addServer(p);
 		}
 	}
 
@@ -125,7 +126,8 @@ public class LinkdApp {
 		var edit = new BEditService();
 		// linkService 总是使用版本0，不开启AppVersion.
 		edit.getAdd().add(new BServiceInfo(linkdServiceName, identity, 0, providerIp, providerPort, new Binary(bb)));
-		Objects.requireNonNull(zeze.getServiceManager()).editService(edit);
+		//noinspection DataFlowIssue
+		zeze.getServiceManager().editService(edit);
 
 		// 启动load服务和LoginQueueAgent网络服务。
 		// LinkdApp没有stop，不停止这两个服务。

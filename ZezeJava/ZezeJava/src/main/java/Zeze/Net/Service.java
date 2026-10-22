@@ -655,10 +655,10 @@ public class Service extends ReentrantLock {
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
 			var protocolClassName = p.getClass().getName();
 			var proc = Objects.requireNonNull(zeze, "service has no application").newProcedure(() -> p.handle(this, factoryHandle), protocolClassName, factoryHandle.Level);
-			TaskSpec.ofProcedure(proc, p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+			TaskSpec.ofProcedure(proc, p, (__, code) -> p.trySendResultCode(code))
 					.dispatchMode(factoryHandle.Mode).runNow();
 		} else {
-			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code))
 					.dispatchMode(factoryHandle.Mode).runNow();
 		}
 	}
@@ -833,8 +833,8 @@ public class Service extends ReentrantLock {
 	public final LongHashMap<Protocol<?>> getRpcContexts(Predicate<Protocol<?>> filter) {
 		var result = new LongHashMap<Protocol<?>>(Math.max(rpcContexts.size(), 1024)); // 初始容量先别定太大,可能只过滤出一小部分
 		for (var it = rpcContexts.entryIterator(); it.moveToNext(); ) {
-			if (filter.test(Objects.requireNonNull(it.value())))
-				result.put(it.key(), Objects.requireNonNull(it.value()));
+			if (filter.test(it.value()))
+				result.put(it.key(), it.value());
 		}
 		return result;
 	}

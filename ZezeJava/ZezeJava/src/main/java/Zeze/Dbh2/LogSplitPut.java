@@ -44,7 +44,8 @@ public class LogSplitPut extends Log {
 	@Override
 	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		Objects.requireNonNull(puts).encode(bb);
+		//noinspection DataFlowIssue
+		puts.encode(bb);
 	}
 
 	@Override

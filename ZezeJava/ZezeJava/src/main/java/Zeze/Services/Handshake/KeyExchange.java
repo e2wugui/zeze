@@ -174,11 +174,13 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 						throw new IllegalStateException("invalid serverIvKey length = " + serverIvKey.length);
 				} else {
 					serverIvKey = Result.encIvKey;
-					serverIvKeyLen = Objects.requireNonNull(serverIvKey).length;
+					//noinspection DataFlowIssue
+					serverIvKeyLen = serverIvKey.length;
 					if (serverIvKeyLen != 32)
 						throw new IllegalStateException("invalid serverIvKey length = " + serverIvKeyLen);
 					for (int i = 0; i < 32; i++)
-						serverIvKey[i] ^= Objects.requireNonNull(clientIvKey)[i];
+						//noinspection DataFlowIssue
+						serverIvKey[i] ^= clientIvKey[i];
 				}
 				byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
 				byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
@@ -191,7 +193,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			} catch (Throwable ex) {
 				// 与HandshakeBase对齐——密钥交换异常不能只回错误码留活连接
 				// （可能已切部分codec成半开状态），断连。
-				Objects.requireNonNull(r.getSender()).close(ex);
+				//noinspection DataFlowIssue
+				r.getSender().close(ex);
 				return Res.ErrorDecryptFailed;
 			}
 		});
@@ -236,7 +239,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
 			Objects.requireNonNull(((TcpSocket)getSender())).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
 
-			if (Objects.requireNonNull(Argument.clientPubKey).length > 0) {
+			//noinspection DataFlowIssue
+			if (Argument.clientPubKey.length > 0) {
 				Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey); // 已过acceptor认证
 			} else {
 				for (int i = 0; i < 32; i++)
@@ -250,7 +254,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			((TcpSocket)getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
 			return 0;
 		} catch (Throwable ex) { // 这个握手错误不能忽略（对齐HandshakeBase）。
-			Objects.requireNonNull(getSender()).close(ex);
+			//noinspection DataFlowIssue
+			getSender().close(ex);
 			return 0;
 		}
 	}

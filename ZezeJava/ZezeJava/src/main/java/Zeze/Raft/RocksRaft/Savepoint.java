@@ -1,7 +1,5 @@
 package Zeze.Raft.RocksRaft;
 
-import java.util.Objects;
-
 import java.util.ArrayList;
 import org.jspecify.annotations.Nullable;
 import Zeze.Util.Action0;
@@ -77,7 +75,7 @@ public final class Savepoint {
 	public void mergeCommitFrom(Savepoint next) {
 		var nextLogs = next.logs;
 		if (nextLogs != null)
-			nextLogs.foreachValue(log -> Objects.requireNonNull(log).endSavepoint(this));
+			nextLogs.foreachValue(log -> log.endSavepoint(this));
 		var nextCommitActions = next.commitActions;
 		if (nextCommitActions != null)
 			getCommitActionsForAdd().addAll(nextCommitActions);

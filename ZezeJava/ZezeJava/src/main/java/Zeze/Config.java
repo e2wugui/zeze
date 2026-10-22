@@ -1,7 +1,5 @@
 package Zeze;
 
-import java.util.Objects;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -528,7 +526,8 @@ public final class Config {
 	public void clearInUse(HashMap<String, Database> databases) {
 		// 不close：实例所有权在调用方（Application.stop的db.close步骤自会关）。
 		for (var db : databases.values())
-			Objects.requireNonNull(db.getDirectOperates()).clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+			//noinspection DataFlowIssue
+			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 	}
 
 	public void clearInUseAndIAmSureAppStopped(Application zeze) throws Exception {
@@ -539,7 +538,8 @@ public final class Config {
 			createDatabase(zeze, created);
 			for (var db : created.values()) {
 				try {
-					Objects.requireNonNull(db.getDirectOperates()).clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+					//noinspection DataFlowIssue
+					db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 				} catch (Throwable e) { // logger.error
 					logger.error("clearInUse '{}' exception, continue", db.getDatabaseUrl(), e);
 				}

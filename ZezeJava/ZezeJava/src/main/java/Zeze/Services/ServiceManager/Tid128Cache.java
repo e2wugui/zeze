@@ -1,6 +1,5 @@
 package Zeze.Services.ServiceManager;
 
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
@@ -33,8 +32,8 @@ public class Tid128Cache extends FastLock {
 		return name;
 	}
 
-	public AbstractAgent getAgent() {
-		return Objects.requireNonNull(agent);
+	public @Nullable AbstractAgent getAgent() {
+		return agent;
 	}
 
 	public Id128 get() {

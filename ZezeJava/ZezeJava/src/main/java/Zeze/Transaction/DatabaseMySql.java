@@ -138,7 +138,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		if (ds != null)
 			return ds;
 		synchronized (this) {
-			if (killControlDataSource == null) {
+			ds = killControlDataSource;
+			if (ds == null) {
 				var dc = Objects.requireNonNull(getConf().getDruidConf());
 				var control = new DruidDataSource();
 				control.setUrl(getConf().getDatabaseUrl());
@@ -149,9 +150,9 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				control.setMinIdle(0);
 				control.setMaxActive(KILL_CONTROL_MAX_ACTIVE);
 				control.setMaxWait(KILL_CONTROL_MAX_WAIT_MILLIS);
-				killControlDataSource = control;
+				killControlDataSource = ds = control;
 			}
-			return Objects.requireNonNull(killControlDataSource);
+			return ds;
 		}
 	}
 
@@ -777,12 +778,14 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	private static <K extends Comparable<K>, V extends Bean>
 	String buildOrder(TableX<K, V> table) {
 		// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
-		return " ORDER BY " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns;
+		//noinspection DataFlowIssue
+		return " ORDER BY " + table.getRelationalTable().currentKeyColumns;
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
 	String buildOrderByDesc(TableX<K, V> table) {
-		return " ORDER BY " + Objects.requireNonNull(Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns).replace(",", " DESC,") + " DESC";
+		//noinspection DataFlowIssue
+		return " ORDER BY " + table.getRelationalTable().currentKeyColumns.replace(",", " DESC,") + " DESC";
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
@@ -961,7 +964,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				var physical = getPhysicalColumns();
 				r.add.removeIf(c -> physical.contains(c.name));
 				r.remove.removeIf(c -> !physical.contains(c.name));
-				r.change.removeIf(c -> !physical.contains(Objects.requireNonNull(c.change).name));
+				//noinspection DataFlowIssue
+				r.change.removeIf(c -> !physical.contains(c.change.name));
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
@@ -992,12 +996,14 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					first = false;
 				else
 					sb.append(", ");
-				sb.append(" CHANGE COLUMN ").append(Objects.requireNonNull(c.change).name).append(' ')
+				//noinspection DataFlowIssue
+				sb.append(" CHANGE COLUMN ").append(c.change.name).append(' ')
 						.append(c.name).append(' ').append(c.sqlType);
 			}
 			// key列序未变不重建主键：DROP+ADD PRIMARY KEY在InnoDB下是整表拷贝，
 			// 纯value列变更不应付出该代价。key变化必然表现为列diff（varIds排序决定列序）。
-			if (!Objects.requireNonNull(r.currentKeyColumns).equals(r.previousKeyColumns))
+			//noinspection DataFlowIssue
+			if (!r.currentKeyColumns.equals(r.previousKeyColumns))
 				sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
 			var sql = sb.toString();
 			logger.info("tryAlter {} {}", table.getName(), sql);
@@ -1131,7 +1137,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			if (dropped)
 				return callback.endWalk(0);
 
-			var s = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + name + orderBy;
+			//noinspection DataFlowIssue
+			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
 			var count = walkStreamed(s, rs -> invokeKeyCallback(table, rs, callback, null));
 			return callback.endWalk(count);
 		}
@@ -1199,7 +1206,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-			var sql = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName()
+			//noinspection DataFlowIssue
+			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
 					+ keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
@@ -1277,7 +1285,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			if (dropped)
 				return callback.endWalk(0);
 
-			var s = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName() + orderBy;
+			//noinspection DataFlowIssue
+			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + orderBy;
 			var count = 0L;
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
 				while (rs.next()) {
@@ -1361,7 +1370,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-			var sql = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName()
+			//noinspection DataFlowIssue
+			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
 					+ keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {

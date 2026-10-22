@@ -44,7 +44,8 @@ public class LogPrepareBatch extends Log {
 	@Override
 	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		Objects.requireNonNull(argument).encode(bb);
+		//noinspection DataFlowIssue
+		argument.encode(bb);
 	}
 
 	@Override

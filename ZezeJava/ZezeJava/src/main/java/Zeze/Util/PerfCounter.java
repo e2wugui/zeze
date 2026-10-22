@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.util.Objects;
-
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -104,14 +102,14 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		public LongAdder getOrAddResult(long resultCode) {
 			if (!codeCap.accept(resultCode))
 				return DISCARDED_RESULT;
-			return Objects.requireNonNull(resultMap.computeIfAbsent(resultCode, __ -> new LongAdder()));
+			//noinspection DataFlowIssue
+			return resultMap.computeIfAbsent(resultCode, __ -> new LongAdder());
 		}
 
 		public String toString(boolean last) {
 			var sb = new StringBuilder();
 			sb.append(name).append(':').append(succRatio).append('%');
 			for (var it = (last ? resultMapLast : resultMap).entryIterator(); it.moveToNext(); )
-				//noinspection DataFlowIssue
 				sb.append(", ").append(it.key()).append(':').append(it.value().sum());
 			return sb.toString();
 		}
@@ -443,10 +441,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	public TableInfo getOrAddTableInfo(long tableId) {
-		return Objects.requireNonNull(tableInfoMap.computeIfAbsent(tableId, k -> {
+		//noinspection DataFlowIssue
+		return tableInfoMap.computeIfAbsent(tableId, k -> {
 			var tableName = TableKey.tables.get(k);
 			return new TableInfo(tableName != null ? tableName : String.valueOf(k));
-		}));
+		});
 	}
 
 	@Override
@@ -515,7 +514,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			// LongAdder并被调用方长期缓存（如Lockey的计数路径），清map后旧句柄增量
 			// 永久脱离收集，重新按ID取得的新句柄才被统计。
 			for (var it = tableInfoMap.entryIterator(); it.moveToNext(); )
-				//noinspection DataFlowIssue
 				it.value().reset();
 			// info() 的慢路径同样持有此锁，旧条目与新 clearSerial 不会被组装成同一个 Bound。
 			//noinspection NonAtomicOperationOnVolatileField
@@ -596,7 +594,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var sendSizeAll = 0L;
 			var pList = new ArrayList<ProtocolInfo>(protocolInfoMap.size());
 			for (var it = protocolInfoMap.entryIterator(); it.moveToNext(); ) {
-				var pi = Objects.requireNonNull(it.value());
+				var pi = it.value();
 				pi.lastProcCount = pi.procCount.sumThenReset();
 				pi.lastSendCount = pi.sendCount.sumThenReset();
 				if ((pi.lastProcCount | pi.lastSendCount) == 0) {
@@ -653,7 +651,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				var succCount = 0L;
 				var results = new LinkedHashMap<Long, Long>();
 				for (var it2 = pi.resultMapLast.entryIterator(); it2.moveToNext(); ) {
-					//noinspection DataFlowIssue
 					var v = it2.value().sum();
 					results.put(it2.key(), v);
 					totalCount += v;

@@ -91,7 +91,8 @@ public class ProviderApp extends ReentrantLock {
 
 		this.providerImplement.RegisterProtocols(providerService);
 
-		Objects.requireNonNull(this.zeze.getServiceManager()).setOnSetServerLoad((serverLoad) -> {
+		//noinspection DataFlowIssue
+		this.zeze.getServiceManager().setOnSetServerLoad((serverLoad) -> {
 			var ps = providerDirectService.providerByLoadName.get(serverLoad.getName());
 			if (ps != null) {
 				var load = new BLoad();
@@ -102,7 +103,8 @@ public class ProviderApp extends ReentrantLock {
 
 		this.distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService,
 				zeze.getConfig().getAppVersion());
-		Objects.requireNonNull(this.zeze.getServiceManager()).setOnChanged(this::applyOnChanged);
+		//noinspection DataFlowIssue
+		this.zeze.getServiceManager().setOnChanged(this::applyOnChanged);
 		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
 
@@ -112,16 +114,20 @@ public class ProviderApp extends ReentrantLock {
 			if (r.getServiceName().equals(linkdServiceName))
 				refresh |= providerService.applyRemove(r);
 			else if (r.getServiceName().startsWith(Objects.requireNonNull(serverServiceNamePrefix))) {
-				Objects.requireNonNull(providerDirectService).removeServer(r);
-				Objects.requireNonNull(distribute).removeServer(r);
+				//noinspection DataFlowIssue
+				providerDirectService.removeServer(r);
+				//noinspection DataFlowIssue
+				distribute.removeServer(r);
 			}
 		}
 		for (var p : edit.getAdd()) {
 			if (p.getServiceName().equals(linkdServiceName))
 				refresh |= providerService.applyPut(p);
 			else if (p.getServiceName().startsWith(Objects.requireNonNull(serverServiceNamePrefix))) {
-				Objects.requireNonNull(providerDirectService).addServer(p);
-				Objects.requireNonNull(distribute).addServer(p);
+				//noinspection DataFlowIssue
+				providerDirectService.addServer(p);
+				//noinspection DataFlowIssue
+				distribute.addServer(p);
 			}
 		}
 		if (refresh)

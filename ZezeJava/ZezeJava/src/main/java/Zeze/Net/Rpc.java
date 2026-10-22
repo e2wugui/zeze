@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
@@ -184,7 +182,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		Service service = so.getService();
 
 		this.responseHandle = responseHandle;
-		sessionId = Objects.requireNonNull(service).addRpcContext(this);
+		//noinspection DataFlowIssue
+		sessionId = service.addRpcContext(this);
 		timeout = millisecondsTimeout;
 		isTimeout = false;
 		isRequest = true;

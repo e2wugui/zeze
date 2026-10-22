@@ -122,7 +122,8 @@ public class RedoQueue extends HandshakeClient {
 			task.encode(value);
 
 			// 保存完整的rpc请求，重新发送的时候不用再次打包。
-			Objects.requireNonNull(tableTaskQueue).put(key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			//noinspection DataFlowIssue
+			tableTaskQueue.put(key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 			lastTaskId = newTaskId;
 			tryStartSendNextTask(task, null);
 		} catch (RocksDBException e) {
@@ -159,7 +160,8 @@ public class RedoQueue extends HandshakeClient {
 				// 最近加入的不是要发送的，从Db中读取。
 				var key = ByteBuffer.Allocate(9);
 				key.WriteLong(taskId);
-				var value = Objects.requireNonNull(tableTaskQueue).get(key.Bytes, 0, key.WriteIndex);
+				//noinspection DataFlowIssue
+				var value = tableTaskQueue.get(key.Bytes, 0, key.WriteIndex);
 				if (value == null) {
 					// 水位下一跳任务在DB中不存在（历史put失败留下的空洞，或外部
 					// 删数据）。洞不会自愈：重启后lastTaskId从DB最大键恢复，水位之下的洞
@@ -211,7 +213,8 @@ public class RedoQueue extends HandshakeClient {
 				}
 				var value = ByteBuffer.Allocate(9);
 				value.WriteLong(lastDoneTaskId);
-				Objects.requireNonNull(tableLastDoneTaskId).put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
+				//noinspection DataFlowIssue
+				tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
 				deleteDoneTasks();
 				tryStartSendNextTask(null, rpc.getSender());
 				return 0L;

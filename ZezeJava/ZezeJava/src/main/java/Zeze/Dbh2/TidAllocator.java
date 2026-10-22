@@ -1,7 +1,5 @@
 package Zeze.Dbh2;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,7 +45,8 @@ public class TidAllocator extends ReentrantLock {
 
 				calcAllocateCount();
 				var log = new LogAllocateTid(allocateCount);
-				Objects.requireNonNull(stateMachine.getRaft()).appendLog(log);
+				//noinspection DataFlowIssue
+				stateMachine.getRaft().appendLog(log);
 				// log.apply 里面会生成新的Range。
 			} finally {
 				unlock();

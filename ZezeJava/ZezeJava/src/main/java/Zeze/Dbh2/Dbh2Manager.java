@@ -81,7 +81,8 @@ public class Dbh2Manager {
 		logger.info("CreateBucket: db={}, table={}, config={}",
 				databaseName, tableName, raftConfigStr);
 		var raftConfig = RaftConfig.loadFromString(raftConfigStr);
-		var portId = Integer.parseInt(Objects.requireNonNull(raftConfig.getName()).split("_")[1]);
+		//noinspection DataFlowIssue
+		var portId = Integer.parseInt(raftConfig.getName().split("_")[1]);
 		var bucketDir = Path.of(
 				home,
 				databaseName,
@@ -118,7 +119,8 @@ public class Dbh2Manager {
 	// 复活。幂等：raft不存在（从未建或已销毁）也删目录并成功返回。包内可见供同包测试直驱。
 	void destroyBucket(String databaseName, String tableName, String raftConfigStr) throws IOException {
 		var raftConfig = RaftConfig.loadFromString(raftConfigStr);
-		var portId = Integer.parseInt(Objects.requireNonNull(raftConfig.getName()).split("_")[1]);
+		//noinspection DataFlowIssue
+		var portId = Integer.parseInt(raftConfig.getName().split("_")[1]);
 		var bucketDir = Path.of(home, databaseName, tableName, String.valueOf(portId));
 		logger.info("DestroyBucket: db={}, table={}, raftName='{}'", databaseName, tableName, raftConfig.getName());
 		var dbh2 = dbh2s.remove(raftConfig.getSortedNames());

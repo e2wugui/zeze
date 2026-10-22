@@ -1,7 +1,5 @@
 package Zeze.Game;
 
-import java.util.Objects;
-
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -322,7 +320,7 @@ public class Bag {
 			zeze = providerApp.zeze;
 			RegisterProtocols(providerApp.providerService);
 			RegisterZezeTables(zeze);
-			Objects.requireNonNull(providerApp).builtinModules.put(this.getFullName(), this);
+			providerApp.builtinModules.put(this.getFullName(), this);
 			this.funcItemPileMax = funcItemPileMax;
 		}
 
@@ -378,7 +376,8 @@ public class Bag {
 		}
 
 		public void start(Application zeze) {
-			Objects.requireNonNull(providerApp).builtinModules.put(this.getFullName(), this);
+			//noinspection DataFlowIssue
+			providerApp.builtinModules.put(this.getFullName(), this);
 		}
 
 		public void stop() {

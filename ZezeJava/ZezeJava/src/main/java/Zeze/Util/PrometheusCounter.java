@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.util.Objects;
-
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
@@ -431,7 +429,8 @@ public class PrometheusCounter implements ZezeCounter {
 				return c;
 			// result_code基数封顶：超出上限归入other，防业务错误码撑爆series
 			if (codeCap.accept(resultCode))
-				return Objects.requireNonNull(completedByCode.computeIfAbsent(resultCode, code -> newCompleted(String.valueOf(code))));
+				//noinspection DataFlowIssue
+				return completedByCode.computeIfAbsent(resultCode, code -> newCompleted(String.valueOf(code)));
 			var o = otherCompleted;
 			if (o == null)
 				otherCompleted = o = newCompleted(ResultCodeCap.OTHER);

@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.util.Objects;
-
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -1145,8 +1143,9 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 			if ((p = next) == null)
 				throw new NoSuchElementException();
 			V v = p.val;
+			assert v != null; // Traverser 不返回 val 为 null 的 ForwardingNode。
 			advance();
-			return Objects.requireNonNull(v);
+			return v;
 		}
 	}
 
@@ -1172,9 +1171,12 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		}
 
 		@Override
-		public @Nullable V value() {
-			//noinspection DataFlowIssue
-			return node.val;
+		public V value() {
+			var node = this.node;
+			assert node != null;
+			var value = node.val;
+			assert value != null; // 当前条目已经过 Traverser 筛选。
+			return value;
 		}
 	}
 

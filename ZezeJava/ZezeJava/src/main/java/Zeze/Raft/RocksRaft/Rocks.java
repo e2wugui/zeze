@@ -161,7 +161,8 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	@Override
 	public @Nullable AppliedWatermark readAppliedWatermark() throws RocksDBException {
-		var bytes = Objects.requireNonNull(appliedWatermarkTable).get(RocksDatabase.getDefaultReadOptions(),
+		//noinspection DataFlowIssue
+		var bytes = appliedWatermarkTable.get(RocksDatabase.getDefaultReadOptions(),
 				appliedWatermarkKey, 0, appliedWatermarkKey.length);
 		if (bytes == null)
 			return null;
@@ -178,7 +179,8 @@ public final class Rocks extends StateMachine implements Closeable {
 		var value = ByteBuffer.Allocate(16);
 		value.WriteLong(raftLog.getIndex());
 		value.WriteLong(raftLog.getTerm());
-		Objects.requireNonNull(appliedWatermarkTable).put(batch, appliedWatermarkKey, 0, appliedWatermarkKey.length,
+		//noinspection DataFlowIssue
+		appliedWatermarkTable.put(batch, appliedWatermarkKey, 0, appliedWatermarkKey.length,
 				value.Bytes, 0, value.WriteIndex);
 	}
 
@@ -227,7 +229,7 @@ public final class Rocks extends StateMachine implements Closeable {
 					batch.commit(RocksDatabase.getSyncWriteOptions());
 			}
 			// 复制批次同步落盘且迭代器关闭后才删旧CF，崩溃前后至少保留一份完整结果。
-			Objects.requireNonNull(storage).dropTable(tableName);
+			storage.dropTable(tableName);
 		}
 	}
 
@@ -350,7 +352,8 @@ public final class Rocks extends StateMachine implements Closeable {
 				: RocksDatabase.getDefaultWriteOptions();
 		// 这个赋值是不必要的，new Raft(...)内部会赋值。
 		setRaft(new Raft(this, raftName, raftConfig, config, "Zeze.Raft.Server", serverFactory, taskOneByOne));
-		Objects.requireNonNull(getRaft()).addAtFatalKill(() -> {
+		//noinspection DataFlowIssue
+		getRaft().addAtFatalKill(() -> {
 			if (storage != null)
 				storage.close();
 		});
@@ -383,7 +386,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public RocksDatabase.Table openTable(String name) throws RocksDBException {
-		return Objects.requireNonNull(storage).getOrAddTable(name);
+		//noinspection DataFlowIssue
+		return storage.getOrAddTable(name);
 	}
 
 	public ConcurrentHashMap<String, TableTemplate<?, ? extends Bean>> getTableTemplates() {
@@ -430,7 +434,8 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	// 应用只能递增，这个方法仅 Follower 用来更新计数器。
 	private void atomicLongSet(int index, long value) {
-		Objects.requireNonNull(atomicLongs.computeIfAbsent(index, __ -> new AtomicLong())).set(value);
+		//noinspection DataFlowIssue
+		atomicLongs.computeIfAbsent(index, __ -> new AtomicLong()).set(value);
 	}
 
 	public void updateAtomicLongs(IntHashMap<Long> to) {
@@ -443,7 +448,6 @@ public final class Rocks extends StateMachine implements Closeable {
 				if (last == null)
 					last = 0L;
 
-				//noinspection DataFlowIssue
 				long newest = it.value().get();
 				if (newest > last) {
 					lastUpdated.put(index, newest);
@@ -532,7 +536,7 @@ public final class Rocks extends StateMachine implements Closeable {
 					key.WriteIndex = 0;
 					key.WriteUInt(it.key());
 					value.WriteIndex = 0;
-					value.WriteLong(Objects.requireNonNull(it.value()));
+					value.WriteLong(it.value());
 					Objects.requireNonNull(atomicLongsTable).put(batch, key.CopyIf(), value.CopyIf());
 					if (followerApply)
 						atomicLongSet(it.key(), it.value());

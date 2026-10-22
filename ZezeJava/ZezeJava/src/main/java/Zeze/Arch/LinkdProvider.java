@@ -83,7 +83,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	public int choiceProvider(@Nullable AsyncSocket link, int moduleId, Predicate<AsyncSocket> onSend) {
 		//noinspection DataFlowIssue
 		var userSession = (LinkdUserSession)link.getUserState();
-		var providerSessionId = Objects.requireNonNull(userSession).tryGetProvider(moduleId);
+		//noinspection DataFlowIssue
+		var providerSessionId = userSession.tryGetProvider(moduleId);
 		if (providerSessionId != null) {
 			var socket = requireLinkdApp().linkdProviderService.GetSocket(providerSessionId);
 			if (socket != null && onSend.test(socket))
@@ -158,7 +159,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	public boolean choiceHashWithoutBind(int moduleId, long clientVersion, int hash, OutLong provider) {
 		provider.value = 0L;
-		var distribute = Objects.requireNonNull(distributes).selectDistribute(clientVersion >>> 48);
+		//noinspection DataFlowIssue
+		var distribute = distributes.selectDistribute(clientVersion >>> 48);
 		if (distribute == null)
 			return false;
 		var serviceName = ProviderDistribute.makeServiceName(serverServiceNamePrefix, moduleId);
@@ -173,7 +175,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	public @Nullable ProviderModuleState getProviderModuleState(int moduleId) {
 		//noinspection DataFlowIssue
-		var providers = Objects.requireNonNull(distributes).zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
+		var providers = distributes.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
 		return providers != null ? (ProviderModuleState)providers.getSubscribeInfo().getLocalState() : null;
 	}
 
@@ -183,14 +185,14 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	public int choiceProviderAndBind(int moduleId, long clientVersion, AsyncSocket link,
 									 OutLong provider) {
 		provider.value = 0L;
-		var distribute = Objects.requireNonNull(distributes).selectDistribute(clientVersion >>> 48);
+		//noinspection DataFlowIssue
+		var distribute = distributes.selectDistribute(clientVersion >>> 48);
 		if (distribute == null)
 			return 1;
 		//noinspection DataFlowIssue
 		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
 		if (providers == null)
 			return 2;
-		//noinspection DataFlowIssue
 		var linkSession = (LinkdUserSession)link.getUserState();
 
 		// 这里保存的 ProviderModuleState 是该moduleId的第一个bind请求去订阅时记录下来的，
@@ -310,9 +312,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		// 保证"bind写入"与"close清理"全序：要么bind先完成（这里能清到），
 		// 要么close先完成（bind在锁内发现isClosed跳过写入）。
 		synchronized (providerSession.moduleBindsMonitor) {
-			//noinspection DataFlowIssue
 			unBindModules(provider, providerSession.getStaticBinds().keySet(), true);
-			//noinspection DataFlowIssue
 			providerSession.getStaticBinds().clear();
 			// 动态模块（Subscribe注册的）同样清理：unBindModules内按sessionId条件移除，
 			// 重连的新会话已重新Subscribe覆盖时不会误删。
@@ -329,7 +329,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var p = moduleId == Online.ModuleId || moduleId == Zeze.Game.Online.ModuleId
 					? new ReportError(new BReportError.Data(BReportError.FromLink, BReportError.CodeProviderBroken,
 					null)) : null;
-			for (//noinspection DataFlowIssue
+			for (
 				var it2 = it.value().iterator(); it2.moveToNext(); ) {
 				var link = requireLinkdApp().linkdService.GetSocket(it2.value());
 				if (link != null)
@@ -374,7 +374,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				//noinspection DataFlowIssue
 				var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
 				//noinspection DataFlowIssue
-				var subState = Objects.requireNonNull(distributes).zeze.getServiceManager().subscribeService(
+				var subState = distributes.zeze.getServiceManager().subscribeService(
 						new BSubscribeInfo(serviceName, 0, providerModuleState));
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 				// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
@@ -383,11 +383,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				// close未发生则本次写入必被随后的onProviderClose清理（staticBinds已登记）。
 				// subscribeService的阻塞等待必须留在锁外。
 				synchronized (providerSession.moduleBindsMonitor) {
-					//noinspection DataFlowIssue
 					if (rpc.getSender().isClosed())
 						break;
 					subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);
-					//noinspection DataFlowIssue
 					providerSession.getStaticBinds().add(moduleId);
 				}
 			}
@@ -396,12 +394,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			for (var linkSid : bind.getLinkSids()) {
 				var link = requireLinkdApp().linkdService.GetSocket(linkSid);
 				if (link != null) {
-					//noinspection DataFlowIssue
 					var linkSession = (LinkdUserSession)link.getUserState();
 					if (linkSession == null)
 						continue;
 					Objects.requireNonNull(linkSession).bind(requireLinkdApp().linkdProviderService, link, bind.getModules().keySet(), Objects.requireNonNull(rpc.getSender()));
-					//noinspection DataFlowIssue
 					logger.info("dynamic bind: account={}, moduleIds={}, provider={}", linkSession.account,
 							bind.getModules().keySet(), rpc.getSender().getRemoteAddress());
 				}
@@ -425,13 +421,12 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			//noinspection DataFlowIssue
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
 			//noinspection DataFlowIssue
-			var subState = Objects.requireNonNull(distributes).zeze.getServiceManager().subscribeService(
+			var subState = distributes.zeze.getServiceManager().subscribeService(
 					new BSubscribeInfo(serviceName, 0, providerModuleState));
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 			// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
 			// 与ProcessBindRequest同理：防止subscribeService等待期间连接关闭后写入死sessionId状态。
 			synchronized (providerSession.moduleBindsMonitor) {
-				//noinspection DataFlowIssue
 				if (rpc.getSender().isClosed())
 					break;
 				subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);
@@ -454,12 +449,11 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var providerInfo = providerSession.getInfo();
 		for (var moduleId : modules) {
 			if (!isOnProviderClose)
-				//noinspection DataFlowIssue
 				providerSession.getStaticBinds().remove(moduleId);
 			//noinspection DataFlowIssue
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
 			//noinspection DataFlowIssue
-			var volatileProviders = Objects.requireNonNull(distributes).zeze.getServiceManager().getSubscribeStates().get(serviceName);
+			var volatileProviders = distributes.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 			if (volatileProviders != null) {
 				// UnBind 不删除provider-list，这个总是通过ServiceManager通告更新。
 				// 这里仅仅设置该moduleId对应的服务的状态不可用。
@@ -480,7 +474,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			for (var linkSid : rpc.Argument.getLinkSids()) {
 				var link = requireLinkdApp().linkdService.GetSocket(linkSid);
 				if (link != null) {
-					//noinspection DataFlowIssue
 					var linkSession = (LinkdUserSession)link.getUserState();
 					if (linkSession == null)
 						continue;
@@ -613,7 +606,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		}
 		//noinspection DataFlowIssue
 		var providerVersion = protocol.Argument.isOnlySameVersion()
-			? Objects.requireNonNull((ProviderSession)protocol.getSender().getUserState()).appVersion
+			? ((ProviderSession)protocol.getSender().getUserState()).appVersion
 				: 0L;
 		requireLinkdApp().linkdService.foreach(socket -> {
 			// auth 通过就允许发送广播。
@@ -703,7 +696,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	protected long ProcessSetDisableChoiceRequest(Zeze.Builtin.Provider.SetDisableChoice r) throws Exception {
 		//noinspection DataFlowIssue
 		var session = (LinkdProviderSession)r.getSender().getUserState();
-		Objects.requireNonNull(session).setDisableChoice(r.Argument.isDisableChoice());
+		//noinspection DataFlowIssue
+		session.setDisableChoice(r.Argument.isDisableChoice());
 		r.SendResultCode(0);
 		return 0;
 	}

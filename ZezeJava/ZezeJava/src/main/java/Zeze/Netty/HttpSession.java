@@ -51,7 +51,7 @@ public class HttpSession extends AbstractHttpSession {
 		// 的处理：有运行事务时直接同事务访问表，否则包短 Procedure。
 		// 无事务路径下 action 异常经 actionError 穿出 Procedure.call 作 IllegalStateException
 		// 的 cause（真实原因不被错误码吞掉）。
-		private <R extends @Nullable Object> @Nullable R accessTable(String opName, Function<BSessionValue, R> action) {
+		private <R extends @Nullable Object> R accessTable(String opName, Function<BSessionValue, R> action) {
 			return accessTable(opName, action, null);
 		}
 
@@ -60,7 +60,7 @@ public class HttpSession extends AbstractHttpSession {
 		 *                   （读取走事务一致视图），如 getProperties 拷贝快照；null 表示不转换。
 		 *                   有事务路径不经过此转换，直接返回活引用（随事务语义）。
 		 */
-		private <R extends @Nullable Object> @Nullable R accessTable(String opName, Function<BSessionValue, R> action,
+		private <R extends @Nullable Object> R accessTable(String opName, Function<BSessionValue, R> action,
 								  @Nullable UnaryOperator<R> noTxResult) {
 			var t = Transaction.getCurrent();
 			if (t != null && t.isRunning()) {
@@ -95,8 +95,10 @@ public class HttpSession extends AbstractHttpSession {
 			if (rc != 0L)
 				throw new IllegalStateException("CookieSession access error="
 						+ IModule.getErrorCode(rc) + " " + cookieSessionId, actionError.value);
-			if (!Objects.requireNonNull(exists.value))
+			//noinspection DataFlowIssue
+			if (!exists.value)
 				throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+			// 成功且会话存在时，结果由 action（或 noTxResult）赋值，可空性由 R 保留。
 			return result.value;
 		}
 
@@ -118,19 +120,19 @@ public class HttpSession extends AbstractHttpSession {
 	 * 不指向真因，故拷贝快照；对快照的修改不会持久化，写属性请走 setProperty。
 		 */
 		public Map<String, String> getProperties() {
-			return Objects.requireNonNull(accessTable("getProperties", BSessionValue::getProperties, props -> {
+			return accessTable("getProperties", BSessionValue::getProperties, props -> {
 				var snapshot = new PMap1<>(String.class, String.class);
 				snapshot.putAll(props);
 				return snapshot;
-			}));
+			});
 		}
 
 		public long getCreateTime() {
-			return Objects.requireNonNull(accessTable("getCreateTime", BSessionValue::getCreateTime));
+			return accessTable("getCreateTime", BSessionValue::getCreateTime);
 		}
 
 		public long getExpireTime() {
-			return Objects.requireNonNull(accessTable("getExpireTime", BSessionValue::getExpireTime));
+			return accessTable("getExpireTime", BSessionValue::getExpireTime);
 		}
 
 		public void setExpireTime(long expireTime) {
@@ -176,7 +178,8 @@ public class HttpSession extends AbstractHttpSession {
 			var value = _tSession.getOrAdd(sessionId.value, isAdd);
 			var now = System.currentTimeMillis();
 			var expire = httpSessionExpire;
-			if (Objects.requireNonNull(isAdd.value) || value.getExpireTime() <= now) {
+			//noinspection DataFlowIssue
+			if (isAdd.value || value.getExpireTime() <= now) {
 				// 初始化 HttpSession
 				value.setCreateTime(now);
 				value.setExpireTime(now + expire);
@@ -198,7 +201,8 @@ public class HttpSession extends AbstractHttpSession {
 			rc = zeze.newProcedure(initAction, "initCookieSession").call();
 		if (rc != 0L)
 			throw new RuntimeException("initCookieSession error=" + IModule.getErrorCode(rc));
-		if (Objects.requireNonNull(needSetCookie.value)) {
+		//noinspection DataFlowIssue
+		if (needSetCookie.value) {
 			// 配套硬化：会话cookie补HttpOnly/SameSite=Lax——注入cookie难以驻留/上送
 			// （XSS不可窃取、跨站不随行），消除id再生后受害者会话无法跨请求保持的残余降级。
 			// netty 4.1的Cookie接口无SameSite属性，编码后拼接属性段。
@@ -212,14 +216,16 @@ public class HttpSession extends AbstractHttpSession {
 
 	public HttpSession(Application zeze) {
 		this.zeze = zeze;
-		Objects.requireNonNull(zeze.getAppBase()).addModule(this);
+		//noinspection DataFlowIssue
+		zeze.getAppBase().addModule(this);
 	}
 
 	public void start() throws ParseException {
 		// 幂等登记（AppBase.addModule为put，重复调用安全）——stop()的"停止即注销"
 		// 语义保留，但close→start同实例重启后模块须回到注册表，否则ExpiredTimer查不到模块、
 		// 过期会话清理失效。
-		Objects.requireNonNull(zeze.getAppBase()).addModule(this);
+		//noinspection DataFlowIssue
+		zeze.getAppBase().addModule(this);
 		// 全局一个timer实例，会忽略重复注册调用。
 		// 不取消。
 		// scheduleNamed 是表操作，需要在事务内执行；HttpServer.start 调用时没有事务，这里包一个短Procedure。
@@ -234,7 +240,8 @@ public class HttpSession extends AbstractHttpSession {
 	}
 
 	public void stop() {
-		Objects.requireNonNull(zeze.getAppBase()).removeModule(this);
+		//noinspection DataFlowIssue
+		zeze.getAppBase().removeModule(this);
 	}
 
 	Zeze.Builtin.HttpSession.tSession tSession() {

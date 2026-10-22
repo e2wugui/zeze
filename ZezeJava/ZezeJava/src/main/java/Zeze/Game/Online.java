@@ -308,7 +308,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
 		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
 
-		providerApp = Objects.requireNonNull(zeze.redirect).providerApp;
+		//noinspection DataFlowIssue
+		providerApp = zeze.redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		timerRole = new TimerRole(this);
@@ -325,7 +326,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
 		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
 
-		providerApp = Objects.requireNonNull(app.getZeze().redirect).providerApp;
+		//noinspection DataFlowIssue
+		providerApp = app.getZeze().redirect.providerApp;
 		RegisterZezeTables(providerApp.zeze);
 		timerRole = new TimerRole(this);
 	}
@@ -1548,7 +1550,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var shared = getOnlineShared(roleId);
 		if (shared != null && shared.getLink().getState() != eOffline)
 			throw new IllegalStateException("end the OnlineSet session before migration");
-		var oldQueue = Objects.requireNonNull(providerApp.zeze.getQueueModule())
+		//noinspection DataFlowIssue
+		var oldQueue = providerApp.zeze.getQueueModule()
 				.open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
 		if (!oldQueue.isEmpty() || !openQueue(roleId).isEmpty())
 			throw new IllegalStateException("drain reliable notifications before migration");
@@ -1631,7 +1634,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				// rc记error（转发动作失败仅本角色受影响，不影响后续target）。
 				var rc = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
 						"Online.transmit: " + actionName)).call();
-				if (Objects.requireNonNull(rc) != 0)
+				if (rc != 0)
 					logger.error("transmit failed: actionName={}, sender={}, target={}, rc={}",
 							actionName, sender, target, rc);
 			}
@@ -1705,7 +1708,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		RoleOnServer groupLocal = null;
 		for (var it = groups.iterator(); it.moveToNext(); ) {
 			var group = it.value();
-			if (Objects.requireNonNull(group).serverId == -1) {
+			if (group.serverId == -1) {
 				// not online
 				if (processNotOnline)
 					groupLocal = merge(groupLocal, group);
@@ -1725,7 +1728,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			transmit.Argument.setOnlineSetName(multiInstanceName);
 			if (parameter != null)
 				transmit.Argument.setParameter(parameter);
-			var ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(group.serverId);
+			//noinspection DataFlowIssue
+			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
 			if (ps == null) {
 				// direct路由缺失：降级为本机执行——transmit契约是"在目标服
 				// 上下文执行"，依赖目标服local数据的action行为可能错误。等待/重试/显式失败
@@ -1985,8 +1989,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private void tryRedirectRemoveLocal(String instanceName, int serverId, long roleId) {
+		//noinspection DataFlowIssue
 		if (providerApp.zeze.getConfig().getServerId() != serverId
-				&& Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.containsKey(serverId)) {
+				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId)) {
 			var defaultOnline = getProviderWithOnline().getOnline();
 			if (defaultOnline != null)
 				defaultOnline.redirectRemoveLocal(serverId, roleId, instanceName);
@@ -2025,10 +2030,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	private long ProcessLoginRequestOnlineSet(Login rpc) {
 		var done = new OutObject<>(false);
-		for (var i = 0; i < 3 && !Objects.requireNonNull(done.value); ++i) {
+		//noinspection DataFlowIssue
+		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done),
 					"ProcessLoginRequest")).call();
-			if (Objects.requireNonNull(r) != 0)
+			if (r != 0)
 				return r;
 		}
 		if (done.value)
@@ -2048,7 +2054,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var isAdd = new OutObject<>(false);
 		var local = _tlocal.getOrAdd(roleId, isAdd);
 		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
-		if (Objects.requireNonNull(isAdd.value))
+		//noinspection DataFlowIssue
+		if (isAdd.value)
 			Transaction.whileCommit(verifyLocalCount::incrementAndGet);
 		var link = onlineShared.getLink();
 
@@ -2087,7 +2094,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
-			Objects.requireNonNull(rpc.getSender()).Send(setUserState); // 直接使用link连接。
+			//noinspection DataFlowIssue
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
 		var online = getOrAddOnline(roleId);
@@ -2123,10 +2131,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var done = new OutObject<>(false);
 		// 与Login相同的重做上限（for 3次）：无上限的while在多端互踢风暴/脚本客户端下，
 		// 每轮循环都成功执行完整登录+登出事务并再次进入顶号分支，线程在handler内无限自旋。
-		for (var i = 0; i < 3 && !Objects.requireNonNull(done.value); ++i) {
+		//noinspection DataFlowIssue
+		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done),
 					"ProcessReLoginRequest")).call();
-			if (Objects.requireNonNull(r) != 0)
+			if (r != 0)
 				return r;
 		}
 		if (done.value)
@@ -2146,7 +2155,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var isAdd = new OutObject<>(false);
 		var local = _tlocal.getOrAdd(roleId, isAdd);
 		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
-		if (Objects.requireNonNull(isAdd.value))
+		//noinspection DataFlowIssue
+		if (isAdd.value)
 			Transaction.whileCommit(verifyLocalCount::incrementAndGet);
 		var link = onlineShared.getLink();
 
@@ -2185,7 +2195,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
-			Objects.requireNonNull(rpc.getSender()).Send(setUserState); // 直接使用link连接。
+			//noinspection DataFlowIssue
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
 		getOrAddOnline(roleId).setServerId(providerApp.zeze.getConfig().getServerId());

@@ -1,7 +1,5 @@
 package Zeze.History;
 
-import java.util.Objects;
-
 import java.util.Map;
 import java.util.Set;
 import Zeze.Application;
@@ -57,9 +55,10 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 		lock();
 		try {
 			ensureOpen();
-			if (pendingGidLedger == null)
-				pendingGidLedger = new PendingGidLedger(zeze.getProjectName());
-			return Objects.requireNonNull(pendingGidLedger);
+			ledger = pendingGidLedger;
+			if (ledger == null)
+				pendingGidLedger = ledger = new PendingGidLedger(zeze.getProjectName());
+			return ledger;
 		} finally {
 			unlock();
 		}

@@ -89,7 +89,8 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		@Override
 		public void run() {
 			for (processedCount = 0; processedCount < count; ) {
-				var task = Objects.requireNonNull(Objects.requireNonNull(tasks)[processedCount]);
+				//noinspection DataFlowIssue
+				var task = Objects.requireNonNull(tasks[processedCount]);
 				tasks[processedCount++] = null; // gc, 下标索引转换成count。
 				if (!task.process(this))
 					return; // 任务调度终端，当前任务以后完成的时候会触发runNext;

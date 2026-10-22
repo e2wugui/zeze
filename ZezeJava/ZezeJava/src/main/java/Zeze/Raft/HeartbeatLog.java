@@ -1,7 +1,5 @@
 package Zeze.Raft;
 
-import java.util.Objects;
-
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -37,7 +35,8 @@ final class HeartbeatLog extends Log {
 			// 由于这个log会被存储到日志队列中，所以在leader选出来，apply历史日志时，就会触发这个调用。
 			// 但是这个调用真正产生效果，需要是最后一个 HeartbeatLog。
 			// 这个条件在setLeaderReady内部检测 leaderWaitReadyTerm，leaderWaitReadyIndex。
-			Objects.requireNonNull(stateMachine.getRaft()).setLeaderReady(holder);
+			//noinspection DataFlowIssue
+			stateMachine.getRaft().setLeaderReady(holder);
 			break;
 		}
 	}

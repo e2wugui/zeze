@@ -97,23 +97,33 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	private @Nullable GlobalCacheManagerPerf perf;
 
 	private ServerService getServer() {
-		return Objects.requireNonNull(server);
+		var server = this.server;
+		assert server != null;
+		return server;
 	}
 
 	private ConcurrentHashMap<Binary, CacheState> getGlobal() {
-		return Objects.requireNonNull(global);
+		var global = this.global;
+		assert global != null;
+		return global;
 	}
 
 	private LongConcurrentHashMap<CacheHolder> getSessions() {
-		return Objects.requireNonNull(sessions);
+		var sessions = this.sessions;
+		assert sessions != null;
+		return sessions;
 	}
 
 	private AchillesHeelConfig getAchillesHeelConfig() {
-		return Objects.requireNonNull(achillesHeelConfig);
+		var config = achillesHeelConfig;
+		assert config != null;
+		return config;
 	}
 
 	private GlobalCacheManagerPerf getPerf() {
-		return Objects.requireNonNull(perf);
+		var perf = this.perf;
+		assert perf != null;
+		return perf;
 	}
 
 
@@ -231,7 +241,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		var now = System.currentTimeMillis();
 
 		getSessions().forEach(session -> {
-			//noinspection DataFlowIssue
 			session.lock();
 			try {
 				// 超时检查必须在锁内复查：检查在锁外时，同serverId新incarnation恰在"检查→加锁"
@@ -308,7 +317,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 
 		// 安全性以后加强。
-		if (!Objects.requireNonNull(rpc.Argument.secureKey).equals("Ok! verify secure.")) {
+		//noinspection DataFlowIssue
+		if (!rpc.Argument.secureKey.equals("Ok! verify secure.")) {
 			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorSecureKey);
 			rpc.SendResultCode(CleanupErrorSecureKey);
 			return 0;
@@ -395,7 +405,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	private long processReLogin(ReLogin rpc) {
 		logger.info("ProcessReLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = getSessions().computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
-		if (!Objects.requireNonNull(session).tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.globalCacheManagerHashIndex, false)) {
+		//noinspection DataFlowIssue
+		if (!session.tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.globalCacheManagerHashIndex, false)) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
@@ -642,7 +653,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					if (cs.modify == sender) {
 						// 已经是Modify又申请，可能是sender异常关闭，
 						// 又重启连上。更新一下。应该是不需要的。
-						Objects.requireNonNull(sender).acquired.put(gKey, StateModify);
+						sender.acquired.put(gKey, StateModify);
 						cs.acquireStatePending = StateInvalid;
 						cs.signalAll(); // 归还申请位必须唤醒等待者
 						if (isDebugEnabled)
@@ -716,7 +727,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						return;
 					}
 
-					Objects.requireNonNull(sender).acquired.put(gKey, StateShare);
+					//noinspection DataFlowIssue
+					sender.acquired.put(gKey, StateShare);
 					cs.modify = null;
 					cs.share.add(sender);
 					cs.acquireStatePending = StateInvalid;
@@ -728,7 +740,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					return;
 				}
 
-				Objects.requireNonNull(sender).acquired.put(gKey, StateShare);
+				//noinspection DataFlowIssue
+				sender.acquired.put(gKey, StateShare);
 				cs.share.add(sender);
 				cs.acquireStatePending = StateInvalid;
 				cs.signalAll(); //notify
@@ -811,7 +824,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							logger.debug("4 {} {} {}", sender, StateModify, cs);
 						// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
 						// 更新一下。应该是不需要的。
-						Objects.requireNonNull(sender).acquired.put(gKey, StateModify);
+						sender.acquired.put(gKey, StateModify);
 						cs.acquireStatePending = StateInvalid;
 						cs.signalAll(); //notify
 						rpc.SendResultCode(AcquireModifyAlreadyIsModify);
@@ -875,7 +888,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						return;
 					}
 
-					Objects.requireNonNull(sender).acquired.put(gKey, StateModify);
+					//noinspection DataFlowIssue
+					sender.acquired.put(gKey, StateModify);
 					cs.modify = sender;
 					cs.share.remove(sender);
 					cs.acquireStatePending = StateInvalid;
@@ -980,7 +994,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				}
 				// 如果前面降级发生中断(break)，这里就不会为0。
 				if (cs.share.isEmpty()) {
-					Objects.requireNonNull(sender).acquired.put(gKey, StateModify);
+					//noinspection DataFlowIssue
+					sender.acquired.put(gKey, StateModify);
 					cs.modify = sender;
 					cs.acquireStatePending = StateInvalid;
 					cs.signalAll(); //notify
@@ -998,7 +1013,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					if (ENABLE_PERF)
 						getPerf().onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
 					rpc.Result.state = StateInvalid;
-					if (Objects.requireNonNull(errorFreshAcquire.value))
+					//noinspection DataFlowIssue
+					if (errorFreshAcquire.value)
 						rpc.SendResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
 					else
 						rpc.SendResultCode(AcquireModifyFailed);

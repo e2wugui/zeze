@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.util.ArrayList;
 import Zeze.Util.LongHashMap;
 import org.jspecify.annotations.Nullable;
@@ -74,7 +72,7 @@ public final class Savepoint {
 	void mergeCommitFrom(Savepoint next) {
 		var nextLogs = next.logs;
 		if (nextLogs != null)
-			nextLogs.foreachValue(log -> Objects.requireNonNull(log).endSavepoint(this));
+			nextLogs.foreachValue(log -> log.endSavepoint(this));
 		var nextActions = next.actions;
 		if (nextActions != null)
 			getActionsForAdd().addAll(nextActions);

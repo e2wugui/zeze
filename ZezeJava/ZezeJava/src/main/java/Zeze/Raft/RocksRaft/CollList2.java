@@ -32,8 +32,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	public boolean add(V item) {
 		if (isManaged()) {
 			item.initRootInfo(rootInfo(), this);
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.add(item);
@@ -45,8 +44,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public boolean remove(V item) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.remove(item);
@@ -61,8 +59,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public void clear() {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
@@ -80,8 +77,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			if (index < 0 || index >= cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfo(rootInfo(), this);
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.set(index, item);
@@ -100,8 +96,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			if (index < 0 || index > cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfo(rootInfo(), this);
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.add(index, item);
@@ -112,8 +107,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public V remove(int index) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.remove(index);
@@ -141,11 +135,13 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		for (var opLog : log.getOpLogs()) {
 			tmp = switch (opLog.op) {
 				case LogList1.OpLog.OP_MODIFY -> {
-					Objects.requireNonNull(opLog.value).initRootInfo(rootInfo(), this);
+					//noinspection DataFlowIssue
+					opLog.value.initRootInfo(rootInfo(), this);
 					yield tmp.with(opLog.index, Objects.requireNonNull(opLog.value));
 				}
 				case LogList1.OpLog.OP_ADD -> {
-					Objects.requireNonNull(opLog.value).initRootInfo(rootInfo(), this);
+					//noinspection DataFlowIssue
+					opLog.value.initRootInfo(rootInfo(), this);
 					yield tmp.plus(opLog.index, Objects.requireNonNull(opLog.value));
 				}
 				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);

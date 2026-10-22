@@ -1,7 +1,5 @@
 package Zeze.Transaction.Logs;
 
-import java.util.Objects;
-
 import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -57,7 +55,8 @@ public class LogBeanKey<T extends Serializable> extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		Objects.requireNonNull(value).encode(bb);
+		//noinspection DataFlowIssue
+		value.encode(bb);
 	}
 
 	// (T)强转在JDK21的-Xlint:unchecked下不报（签名多态invoke返回值的强转，JDK26起会报），
@@ -71,7 +70,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
-		Objects.requireNonNull(value).decode(bb);
+		value.decode(bb);
 	}
 
 	@Override

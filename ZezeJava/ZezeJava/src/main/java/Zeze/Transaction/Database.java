@@ -156,7 +156,8 @@ public abstract class Database extends ReentrantLock {
 			names[i] = table.getName();
 			ids[i] = table.getId();
 		}
-		var localTables = Objects.requireNonNull(app.getLocalRocksCacheDb()).openTables(names, ids);
+		//noinspection DataFlowIssue
+		var localTables = app.getLocalRocksCacheDb().openTables(names, ids);
 		for (var i = 0; i < ts.length; ++i) {
 			var table = ts[i];
 			var storage = table.open(app, this, localTables[i]);

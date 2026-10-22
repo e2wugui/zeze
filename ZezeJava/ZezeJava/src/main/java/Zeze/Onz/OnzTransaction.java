@@ -1,7 +1,5 @@
 package Zeze.Onz;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -86,7 +84,9 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	protected abstract long perform() throws Exception;
 
 	private OnzServer getOnzServer() {
-		return Objects.requireNonNull(onzServer);
+		var value = onzServer;
+		assert value != null;
+		return value;
 	}
 
 	public void setOnzServer(OnzServer onzServer) {

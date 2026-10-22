@@ -623,12 +623,14 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	private static <K extends Comparable<K>, V extends Bean>
 	String buildOrder(TableX<K, V> table) {
 		// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
-		return " ORDER BY " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns;
+		//noinspection DataFlowIssue
+		return " ORDER BY " + table.getRelationalTable().currentKeyColumns;
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
 	String buildOrderByDesc(TableX<K, V> table) {
-		return " ORDER BY " + Objects.requireNonNull(Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns).replace(",", " DESC,") + " DESC";
+		//noinspection DataFlowIssue
+		return " ORDER BY " + table.getRelationalTable().currentKeyColumns.replace(",", " DESC,") + " DESC";
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
@@ -846,7 +848,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				var physical = getPhysicalColumns();
 				r.add.removeIf(c -> physical.contains(c.name.toLowerCase(java.util.Locale.ROOT)));
 				r.remove.removeIf(c -> !physical.contains(c.name.toLowerCase(java.util.Locale.ROOT)));
-				r.change.removeIf(c -> !physical.contains(Objects.requireNonNull(c.change).name.toLowerCase(java.util.Locale.ROOT)));
+				//noinspection DataFlowIssue
+				r.change.removeIf(c -> !physical.contains(c.change.name.toLowerCase(java.util.Locale.ROOT)));
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
@@ -880,13 +883,14 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				else
 					sb.append(", ");
 				// 先改类型
-				sb.append(" ALTER COLUMN ").append(Objects.requireNonNull(c.change).name).append(" TYPE ").append(c.sqlType);
+				//noinspection DataFlowIssue
+				sb.append(" ALTER COLUMN ").append(c.change.name).append(" TYPE ").append(c.sqlType);
 				// 再rename（mysql可以一起修改）
-				if (!Objects.requireNonNull(c.change).name.equals(c.name)) {
+				if (!c.change.name.equals(c.name)) {
 					var rename = new StringBuilder();
 					renames.add(rename);
 					rename.append("ALTER TABLE ").append(name)
-							.append(" RENAME COLUMN ").append(Objects.requireNonNull(c.change).name).append(" TO ").append(c.name);
+							.append(" RENAME COLUMN ").append(c.change.name).append(" TO ").append(c.name);
 				}
 			}
 			// 需要独立语句。
@@ -917,7 +921,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 				// key列序未变且已有主键时不重建（整表重写代价）；key变化必然表现为列diff。
 				// 旧表无主键则必须补建：无PK的表后续ON CONFLICT upsert报错且远离根因。
-				if (pkName == null || !Objects.requireNonNull(r.currentKeyColumns).equals(r.previousKeyColumns)) {
+				//noinspection DataFlowIssue
+				if (pkName == null || !r.currentKeyColumns.equals(r.previousKeyColumns)) {
 					if (pkName != null) {
 						try (var stDropPk = conn.prepareStatement("ALTER TABLE " + name + " DROP CONSTRAINT " + pkName)) {
 							stDropPk.executeUpdate();
@@ -1077,7 +1082,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			if (dropped)
 				return callback.endWalk(0);
 
-			var s = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + name + orderBy;
+			//noinspection DataFlowIssue
+			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
 			var count = walkCursor(s, rs -> invokeKeyCallback(table, rs, callback, null));
 			return callback.endWalk(count);
 		}
@@ -1145,7 +1151,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-			var sql = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName()
+			//noinspection DataFlowIssue
+			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
 					+ keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
@@ -1223,7 +1230,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			if (dropped)
 				return callback.endWalk(0);
 
-			var s = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName() + orderBy;
+			//noinspection DataFlowIssue
+			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + orderBy;
 			var count = 0L;
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
 				while (rs.next()) {
@@ -1307,7 +1315,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-			var sql = "SELECT " + Objects.requireNonNull(table.getRelationalTable()).currentKeyColumns + " FROM " + getName()
+			//noinspection DataFlowIssue
+			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
 					+ keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {

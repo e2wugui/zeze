@@ -188,7 +188,8 @@ public class Selectors extends ReentrantLock {
 
 	public void close() {
 		if (Thread.currentThread() instanceof Selector current && current.getSelectors() == this) {
-			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(this::close);
+			//noinspection DataFlowIssue
+			Task.getCriticalThreadPool().execute(this::close);
 			return;
 		}
 		@Nullable Selector[] tmp;

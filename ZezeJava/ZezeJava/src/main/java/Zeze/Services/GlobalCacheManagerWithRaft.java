@@ -130,7 +130,8 @@ public class GlobalCacheManagerWithRaft
 		RegisterProtocols(rocks.getRaft().getServer());
 
 		var globalTemplate = rocks.<Binary, BCacheState>getTableTemplate("Global");
-		Objects.requireNonNull(globalTemplate).setLruTryRemoveCallback(this::globalLruTryRemove);
+		//noinspection DataFlowIssue
+		globalTemplate.setLruTryRemoveCallback(this::globalLruTryRemove);
 		globalStates = globalTemplate.openTable(0);
 		serverAcquiredTemplate = Objects.requireNonNull(rocks.getTableTemplate("Session"));
 
@@ -139,7 +140,7 @@ public class GlobalCacheManagerWithRaft
 		// tableMap的内存键集并putIfAbsent（幂等），异常兜底记日志。GCM独占自己的Raft实例
 		// （本rocks私有，Dbh2等注册的是各自实例），单槽回调无占用冲突。须在server.start()
 		// 之前注册，保证不漏首次就任。
-		Objects.requireNonNull(rocks.getRaft()).setOnLeaderReady(() -> {
+		rocks.getRaft().setOnLeaderReady(() -> {
 			try {
 				rebuildSessionsFromStorage();
 			} catch (Throwable e) {
@@ -149,7 +150,6 @@ public class GlobalCacheManagerWithRaft
 
 		ZezeCounter.tryInit();
 
-		//noinspection DataFlowIssue
 		rocks.getRaft().getServer().start();
 
 		// perf 须在 server.start() 成功之后创建：构造中途失败时实例不可达、close() 永不可达，
@@ -194,7 +194,6 @@ public class GlobalCacheManagerWithRaft
 				logger.error("RebuildSessionsFromStorage exception", e);
 			}
 			sessions.forEach(session -> {
-				//noinspection DataFlowIssue
 				session.lock();
 				try {
 					// 超时检查必须在锁内复查（理由同同步版）：检查在锁外时，同serverId新
@@ -362,7 +361,8 @@ public class GlobalCacheManagerWithRaft
 			// 记录从Cache中清除后，可以再次从RocksDb中装载。
 			var cs = (BCacheState)r.getValue(); // null when record removed
 			if (cs == null || cs.getAcquireStatePending() == StateInvalid) {
-				Objects.requireNonNull(globalStates.getLruCache()).remove(key);
+				//noinspection DataFlowIssue
+				globalStates.getLruCache().remove(key);
 				return true;
 			}
 			return false;
@@ -394,7 +394,8 @@ public class GlobalCacheManagerWithRaft
 					if (cs.getModify() == -1)
 						throw new IllegalStateException("CacheState state error");
 
-					if (cs.getModify() == Objects.requireNonNull(sender).serverId) {
+					//noinspection DataFlowIssue
+					if (cs.getModify() == sender.serverId) {
 						if (isDebugEnabled)
 							logger.debug("1 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
@@ -402,7 +403,8 @@ public class GlobalCacheManagerWithRaft
 					}
 					break;
 				case StateModify:
-					if (cs.getModify() == Objects.requireNonNull(sender).serverId || cs.getShare().Contains(sender.serverId)) {
+					//noinspection DataFlowIssue
+					if (cs.getModify() == sender.serverId || cs.getShare().Contains(sender.serverId)) {
 						if (isDebugEnabled)
 							logger.debug("2 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
@@ -435,7 +437,8 @@ public class GlobalCacheManagerWithRaft
 				}
 			});
 			serialId.getAndIncrement();
-			var SenderAcquired = serverAcquiredTemplate.openTable(Objects.requireNonNull(sender).serverId);
+			//noinspection DataFlowIssue
+			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
 			var reduceTid = new OutObject<>(Id128.Zero);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.serverId) {
@@ -561,7 +564,8 @@ public class GlobalCacheManagerWithRaft
 						logger.error("cs state must be modify");
 						throw new IllegalStateException("CacheState state error");
 					}
-					if (cs.getModify() == Objects.requireNonNull(sender).serverId) {
+					//noinspection DataFlowIssue
+					if (cs.getModify() == sender.serverId) {
 						if (isDebugEnabled)
 							logger.debug("1 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
@@ -569,7 +573,8 @@ public class GlobalCacheManagerWithRaft
 					}
 					break;
 				case StateModify:
-					if (cs.getModify() == Objects.requireNonNull(sender).serverId || cs.getShare().Contains(sender.serverId)) {
+					//noinspection DataFlowIssue
+					if (cs.getModify() == sender.serverId || cs.getShare().Contains(sender.serverId)) {
 						if (isDebugEnabled)
 							logger.debug("2 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
@@ -598,7 +603,8 @@ public class GlobalCacheManagerWithRaft
 				}
 			});
 			serialId.getAndIncrement();
-			var SenderAcquired = serverAcquiredTemplate.openTable(Objects.requireNonNull(sender).serverId);
+			//noinspection DataFlowIssue
+			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
 			var reduceTid = new OutObject<>(Id128.Zero);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.serverId) {
@@ -953,7 +959,6 @@ public class GlobalCacheManagerWithRaft
 		rpc.Result.setServerReleaseTimeout(gcmConfig.serverReleaseTimeout);
 
 		rpc.SendResultCode(0);
-		//noinspection DataFlowIssue
 		logger.info("Login {} {}.", rocks.getRaft().getName(), rpc.getSender());
 		return 0;
 	}
@@ -961,7 +966,8 @@ public class GlobalCacheManagerWithRaft
 	@Override
 	protected long ProcessReLoginRequest(ReLogin rpc) {
 		var session = sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder(this, (int)serverId));
-		if (!Objects.requireNonNull(session).tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.getGlobalCacheManagerHashIndex())) {
+		//noinspection DataFlowIssue
+		if (!session.tryBindSocket(Objects.requireNonNull(rpc.getSender()), rpc.Argument.getGlobalCacheManagerHashIndex())) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
@@ -1014,7 +1020,6 @@ public class GlobalCacheManagerWithRaft
 		for (var key : releaseKeys)
 			release(session, key, generation, term);
 		rpc.SendResultCode(0);
-		//noinspection DataFlowIssue
 		logger.info("NormalClose {} {}", rocks.getRaft().getName(), rpc.getSender());
 		return 0;
 	}
@@ -1045,14 +1050,12 @@ public class GlobalCacheManagerWithRaft
 			return 0;
 		}
 
-		//noinspection DataFlowIssue
 		if (rocks.getRaft().getServer().GetSocket(session.sessionId) != null) {
 			// 连接存在，禁止cleanup。
 			rpc.SendResultCode(CleanupErrorHasConnection);
 			return 0;
 		}
 			generation = session.generation;
-			//noinspection DataFlowIssue
 			term = rocks.getRaft().getLogSequence().getTerm();
 			serverAcquiredTemplate.openTable(session.serverId).walkKey(key -> {
 				releaseKeys.add(key);

@@ -1,7 +1,5 @@
 package Zeze.Hot;
 
-import java.util.Objects;
-
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
@@ -296,7 +294,8 @@ public class HotDistribute extends AbstractHotDistribute {
     @Override
     protected long ProcessOpenFileRequest(OpenFile r) throws Exception {
         touchPrepareActive();
-        var fileBin = Objects.requireNonNull(distributeManager).open(r.Argument.getFileName());
+        //noinspection DataFlowIssue
+        var fileBin = distributeManager.open(r.Argument.getFileName());
         r.Result.setOffset(fileBin.getLength());
         r.SendResult();
         return 0;
@@ -305,7 +304,8 @@ public class HotDistribute extends AbstractHotDistribute {
     @Override
     protected long ProcessAppendFileRequest(AppendFile r) throws Exception {
         touchPrepareActive();
-        Objects.requireNonNull(distributeManager).append(
+        //noinspection DataFlowIssue
+        distributeManager.append(
                 r.Argument.getFileName(),
                 r.Argument.getOffset(),
                 r.Argument.getChunk());
@@ -316,7 +316,8 @@ public class HotDistribute extends AbstractHotDistribute {
     @Override
     protected long ProcessCloseFileRequest(CloseFile r) throws Exception {
         touchPrepareActive();
-        if (!Objects.requireNonNull(distributeManager).closeAndVerify(r.Argument.getFileName(), r.Argument.getMd5()))
+        //noinspection DataFlowIssue
+        if (!distributeManager.closeAndVerify(r.Argument.getFileName(), r.Argument.getMd5()))
             return errorCode(eMd5Mismatch);
         r.SendResult();
         return 0;

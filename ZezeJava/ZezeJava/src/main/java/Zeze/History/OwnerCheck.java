@@ -1,7 +1,5 @@
 package Zeze.History;
 
-import java.util.Objects;
-
 import Zeze.Application;
 import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
@@ -47,7 +45,7 @@ public final class OwnerCheck {
 		var key = ByteBuffer.Allocate(64);
 		key.WriteString(OWNER_KEY);
 		var ops = db.getDirectOperates();
-		var exist = Objects.requireNonNull(ops).getDataWithVersion(key);
+		var exist = ops.getDataWithVersion(key);
 		if (exist == null || exist.data == null) {
 			// 首见：认领（version=0 插入）。此版本仍能被旧空读覆盖，尚不能返回成功。
 			ops.saveDataWithSameVersion(key, encodeName(name), 0);

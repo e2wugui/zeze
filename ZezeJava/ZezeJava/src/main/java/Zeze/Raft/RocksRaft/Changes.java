@@ -103,10 +103,10 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 
 		public void setTableByName(Changes changes, String templateName) {
-			var tableTpl = Objects.requireNonNull(changes.rocks).getTableTemplate(templateName);
+			//noinspection DataFlowIssue
+			var tableTpl = changes.rocks.getTableTemplate(templateName);
 			if (tableTpl == null) {
 				var names = new StringBuilder();
-				//noinspection DataFlowIssue
 				for (String name : changes.rocks.getTableTemplates().keySet())
 					names.append(' ').append(name);
 				throw new IllegalStateException("unknown table template: " + templateName + ", available:" + names);
@@ -133,7 +133,8 @@ public final class Changes extends Zeze.Raft.Log {
 			case Remove:
 				break;
 			case Put:
-				Objects.requireNonNull(putValue).encode(bb);
+				//noinspection DataFlowIssue
+				putValue.encode(bb);
 				break;
 			case Edit:
 				bb.encode(logBean);
@@ -222,9 +223,11 @@ public final class Changes extends Zeze.Raft.Log {
 			if (Rocks.isDebugEnabled)
 				//noinspection DataFlowIssue
 				Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
-			Objects.requireNonNull(transaction).leaderApply(this, holder);
+			//noinspection DataFlowIssue
+			transaction.leaderApply(this, holder);
 		} else {
-			Objects.requireNonNull(rocks).followerApply(this, holder);
+			//noinspection DataFlowIssue
+			rocks.followerApply(this, holder);
 		}
 	}
 
@@ -252,7 +255,7 @@ public final class Changes extends Zeze.Raft.Log {
 		bb.WriteUInt(atomicLongs.size());
 		for (var it = atomicLongs.iterator(); it.moveToNext(); ) {
 			bb.WriteUInt(it.key());
-			bb.WriteLong(Objects.requireNonNull(it.value()));
+			bb.WriteLong(it.value());
 		}
 	}
 
@@ -268,7 +271,8 @@ public final class Changes extends Zeze.Raft.Log {
 
 			tkey.name = bb.ReadString();
 			r.setTableByName(this, r.getTableTemplateName());
-			tkey.key = Objects.requireNonNull(r.table).decodeKey(bb);
+			//noinspection DataFlowIssue
+			tkey.key = r.table.decodeKey(bb);
 
 			r.decode(bb);
 

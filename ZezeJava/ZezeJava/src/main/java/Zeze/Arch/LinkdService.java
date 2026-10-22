@@ -203,7 +203,8 @@ public class LinkdService extends HandshakeServer {
 				return tryReportError(linkSession, moduleId, dispatch);
 
 			var ps = (LinkdProviderSession)socket.getUserState();
-			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload) {
+			//noinspection DataFlowIssue
+			if (ps.load.getOverload() == BLoad.eOverload) {
 				// 过载时会直接拒绝请求以及报告错误。
 				reportError(dispatch);
 				// 但是不能继续派发了。所以这里返回true，表示处理完成。
@@ -246,7 +247,8 @@ public class LinkdService extends HandshakeServer {
 				return 101;
 
 			var ps = (LinkdProviderSession)providerSocket.getUserState();
-			if (Objects.requireNonNull(ps).load.getOverload() == BLoad.eOverload) {
+			//noinspection DataFlowIssue
+			if (ps.load.getOverload() == BLoad.eOverload) {
 				// 过载时会直接拒绝请求以及报告错误。
 				reportError(dispatch);
 				// 但是不能继续派发了。所以这里返回true，表示处理完成。
@@ -300,7 +302,8 @@ public class LinkdService extends HandshakeServer {
 		} catch (Exception ex) {
 			p.trySendResultCode(Procedure.Exception);
 			logger.error("{} exception:", p.getClass().getName(), ex);
-			Objects.requireNonNull(p.getSender()).close(ex, true); // link 在异常时关闭连接。
+			//noinspection DataFlowIssue
+			p.getSender().close(ex, true); // link 在异常时关闭连接。
 		}
 	}
 

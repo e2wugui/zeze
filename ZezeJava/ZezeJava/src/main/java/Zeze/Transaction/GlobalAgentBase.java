@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.util.ArrayDeque;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
@@ -62,7 +60,8 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	public final void initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
-		Objects.requireNonNull(zeze.getAchillesHeelDaemon()).onInitialize(this);
+		//noinspection DataFlowIssue
+		zeze.getAchillesHeelDaemon().onInitialize(this);
 	}
 
 	public enum CheckReleaseResult {

@@ -135,7 +135,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				for (var it = observers.iterator(); it.moveToNext(); ) {
 					long observer = it.value();
 					try {
-						if (set.Send(Objects.requireNonNull(serviceManager.server).GetSocket(observer)))
+						//noinspection DataFlowIssue
+						if (set.Send(serviceManager.server.GetSocket(observer)))
 							continue;
 					} catch (Throwable ignored) {
 					}
@@ -228,10 +229,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		private void collectNotify(BServiceInfo info, boolean isAdd,
 								   HashMap<AsyncSocket, EditService> result) {
 			for (var it = simple.iterator(); it.moveToNext(); ) {
-				//noinspection DataFlowIssue
 				var itVersion = it.value().getVersion();
 				if (itVersion == 0 || itVersion == info.getVersion()) {
-					var peer = Objects.requireNonNull(serviceManager.server).GetSocket(it.key());
+					//noinspection DataFlowIssue
+					var peer = serviceManager.server.GetSocket(it.key());
 					if (peer != null) {
 						var notify = result.computeIfAbsent(peer, __ -> new EditService());
 						if (isAdd)
@@ -309,7 +310,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				keepAliveTimerTask = TaskSpec.ofAction(() -> {
 					AsyncSocket s = null;
 					try {
-						s = Objects.requireNonNull(serviceManager.server).GetSocket(sessionId);
+						//noinspection DataFlowIssue
+						s = serviceManager.server.GetSocket(sessionId);
 						if (s == null)
 							return; // 会话已关闭/已被清理，KeepAlive 无事可做
 						var r = new KeepAlive();
@@ -401,7 +403,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// 本次处理的写入会被随后的清理收走；GetSocket!=sender⟹会话已死，拒绝即不产生死会话残留。
 	// sessionId由全局AtomicLong发号不复用，不存在同号新连接误判。
 	private boolean isSenderAlive(AsyncSocket sender) {
-		return Objects.requireNonNull(server).GetSocket(sender.getSessionId()) == sender;
+		//noinspection DataFlowIssue
+		return server.GetSocket(sender.getSessionId()) == sender;
 	}
 
 	private static void sendNotifies(HashMap<AsyncSocket, EditService> notifies) {
@@ -540,7 +543,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				return Procedure.Success;
 			}
 			var finalRegisters = new HashSet<BServiceInfo>();
-			for (var info : Objects.requireNonNull(session).registers)
+			//noinspection DataFlowIssue
+			for (var info : session.registers)
 				finalRegisters.add(info);
 			remove.forEach(finalRegisters::remove);
 			finalRegisters.addAll(add);
@@ -625,7 +629,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
 			}
-			var finalSubscriptions = new HashSet<>(Objects.requireNonNull(session).subscribes.keySet());
+			//noinspection DataFlowIssue
+			var finalSubscriptions = new HashSet<>(session.subscribes.keySet());
 			var requestedNames = new HashSet<String>();
 			for (var sub : r.Argument.subs) {
 				finalSubscriptions.add(sub.getServiceName());
@@ -669,7 +674,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				return Procedure.Success;
 			}
 			for (var serviceName : r.Argument.serviceNames) {
-				Objects.requireNonNull(session).subscribes.remove(serviceName); // continue if not exist
+				//noinspection DataFlowIssue
+				session.subscribes.remove(serviceName); // continue if not exist
 				unSubscribeNow(session.sessionId, serviceName);
 			}
 			r.SendResult();
@@ -739,7 +745,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		suspect.Argument.serverId = deadServerId;
 		suspect.Argument.version = deadVersion;
 		try {
-			Objects.requireNonNull(server).foreach(so -> {
+			//noinspection DataFlowIssue
+			server.foreach(so -> {
 				if (so.getSessionId() == deadSessionId)
 					return; // 刚断线的会话本身不报信
 				var netSession = (Session)so.getUserState();
@@ -759,7 +766,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		var tier = new SuspectTier(deadVersion, deadVersion);
 		var old = suspectTiers.put(deadServerId, tier);
 		if (old != null && old.timer != null)
-			Objects.requireNonNull(old.timer).cancel(false); // 死者反复闪断：新周期覆盖旧升档链
+			//noinspection DataFlowIssue
+			old.timer.cancel(false); // 死者反复闪断：新周期覆盖旧升档链
 		broadcastSuspectTier(deadServerId, deadSessionId, deadVersion, deadVersion);
 		scheduleNextTier(deadServerId, deadSessionId, tier);
 	}
@@ -773,7 +781,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var next = new long[]{Long.MAX_VALUE};
 			final var deadSessionIdRef = deadSessionId;
 			try {
-				Objects.requireNonNull(server).foreach(so -> {
+				//noinspection DataFlowIssue
+				server.foreach(so -> {
 					if (so.getSessionId() == deadSessionIdRef)
 						return;
 					var netSession = (Session)so.getUserState();
@@ -802,7 +811,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private long processTakeoverDone(TakeoverDone r) {
 		var tier = suspectTiers.remove(r.Argument.deadServerId);
 		if (tier != null && tier.timer != null)
-			Objects.requireNonNull(tier.timer).cancel(false);
+			//noinspection DataFlowIssue
+			tier.timer.cancel(false);
 		logger.info("TakeoverDone serverId={} taker={} version={} tier={}",
 				r.Argument.deadServerId, r.Argument.takerServerId, r.Argument.takerVersion,
 				tier == null ? -1 : tier.tierVersion);
@@ -814,7 +824,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// 关停清理：取消全部Takeover梯队升档定时器（900s级长定时器挂着会拖死JVM收尾）。
 		for (var tier : suspectTiers.values())
 			if (tier.timer != null)
-				Objects.requireNonNull(tier.timer).cancel(false);
+				//noinspection DataFlowIssue
+				tier.timer.cancel(false);
 		suspectTiers.clear();
 		try {
 			stop();
@@ -982,7 +993,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			r.SendResultCode(Procedure.ErrorRequestId);
 			return Procedure.Success;
 		}
-		if (Objects.requireNonNull(name).getBytes(StandardCharsets.UTF_8).length > 128) {
+		//noinspection DataFlowIssue
+		if (name.getBytes(StandardCharsets.UTF_8).length > 128) {
 			warnAllocateIdRejected("name too long: chars=" + name.length());
 			r.SendResultCode(Procedure.ErrorRequestId);
 			return Procedure.Success;
@@ -1097,9 +1109,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			if (factoryHandle.Mode == DispatchMode.Direct) {
 				// 有几个direct方式的协议,为了性能就不考虑和其它非direct协议的处理顺序了,但因为在IO线程串行处理,这些协议本身的处理还是有顺序的
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)).call();
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code)).call();
 			} else {
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code))
 					.dispatchMode(factoryHandle.Mode)
 					.executeOneByOne(Objects.requireNonNull(p.getSender()), oneByOneByKey);
 			}

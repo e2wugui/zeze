@@ -68,7 +68,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (oldCache != null)
 				oldCache.close();
 		}
-		relationalTable = isRelationalMapping() ? Objects.requireNonNull(getZeze().getSchemas()).newRelationalTable(getZeze(), this) : null;
+		//noinspection DataFlowIssue
+		relationalTable = isRelationalMapping() ? getZeze().getSchemas().newRelationalTable(getZeze(), this) : null;
 		storage = isMemory() ? null : new Storage<>(this, database, getName()); // New
 		database.replaceStorage(exist.getStorage(), storage);
 
@@ -805,11 +806,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
-		relationalTable = isRelationalMapping() ? Objects.requireNonNull(getZeze().getSchemas()).newRelationalTable(getZeze(), this) : null;
+		//noinspection DataFlowIssue
+		relationalTable = isRelationalMapping() ? getZeze().getSchemas().newRelationalTable(getZeze(), this) : null;
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
 			? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName(), getId()) : null;
-		localRocksCacheTable = localTable != null ? localTable : Objects.requireNonNull(app.getLocalRocksCacheDb()).openTable(getName(), getId());
+		//noinspection DataFlowIssue
+		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName(), getId());
 		return storage;
 	}
 
@@ -882,7 +885,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final void delayRemove(K key) {
-		Objects.requireNonNull(getZeze().getDelayRemove()).remove(this, key);
+		//noinspection DataFlowIssue
+		getZeze().getDelayRemove().remove(this, key);
 	}
 
 	@Override

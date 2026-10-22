@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.Objects;
-
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
@@ -87,10 +85,12 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 						future.result(this, result);
 					}
 				} else
+					//noinspection DataFlowIssue
 					hashResults.put(hash, null);
 			}
 			if (hashResults.size() >= concurrentLevel)
-				Objects.requireNonNull(getService()).tryRemoveManualContext(getSessionId());
+				//noinspection DataFlowIssue
+				getService().tryRemoveManualContext(getSessionId());
 		} finally {
 			unlock();
 		}

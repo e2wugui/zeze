@@ -51,7 +51,8 @@ public class ProxyAgent extends Service {
 			return Procedure.ProviderNotExist;
 		var client = agent.getClient();
 		var outFactoryHandle = new OutObject<Service.ProtocolFactoryHandle<?>>();
-		var p = Protocol.decode(Objects.requireNonNull(client)::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
+		//noinspection DataFlowIssue
+		var p = Protocol.decode(client::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
 		if (null == p)
 			return Procedure.NotImplement;
 
@@ -94,7 +95,8 @@ public class ProxyAgent extends Service {
 				//noinspection DataFlowIssue
 				outConnector.value.start();
 			}
-			return Objects.requireNonNull(((ConnectorEx)outConnector.value)).getConnectorProxy(node.getName());
+			//noinspection DataFlowIssue
+			return ((ConnectorEx)outConnector.value).getConnectorProxy(node.getName());
 		}
 		return null;
 	}
@@ -145,8 +147,9 @@ public class ProxyAgent extends Service {
 				return proxyRpc.Send(leaderSocket, (proxyRpcThis) -> {
 					if (proxyRpc.getResultCode() == 0) {
 						var outFh = new OutObject<Service.ProtocolFactoryHandle<?>>();
+						//noinspection DataFlowIssue
 						var resultRpc = (Rpc<?, ?>)Protocol.decode(
-								Objects.requireNonNull(localService)::findProtocolFactoryHandle,
+								localService::findProtocolFactoryHandle,
 								ByteBuffer.Wrap(proxyRpc.Result.getData()),
 								outFh);
 						if (null != resultRpc) {

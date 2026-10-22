@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.Objects;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -143,7 +141,8 @@ public class LinkdUserSession {
 					continue;
 				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
-					var s = Objects.requireNonNull(linkdProviderService).GetSocket(exist);
+					//noinspection DataFlowIssue
+					var s = linkdProviderService.GetSocket(exist);
 					if (s != null && s.getUserState() instanceof LinkdProviderSession oldSession)
 						//noinspection DataFlowIssue
 						oldSession.removeLinkSession(moduleId, link.getSessionId());
@@ -192,7 +191,8 @@ public class LinkdUserSession {
 								ps.removeLinkSession(moduleId, link.getSessionId());
 						}
 					} else {
-						var s = Objects.requireNonNull(linkdProviderService).GetSocket(exist);
+						//noinspection DataFlowIssue
+						var s = linkdProviderService.GetSocket(exist);
 						logger.warn("unbind not owner: moduleId={}, owner={}, sender={}", moduleId,
 								s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 					}
@@ -227,7 +227,8 @@ public class LinkdUserSession {
 		// 需要在锁外执行，因为如果 ProviderSocket 和 LinkdSocket 同时关闭。都需要去清理自己和对方，可能导致死锁。
 		var bindProviders = new HashSet<AsyncSocket>();
 		for (var it = bindsSwap.iterator(); it.moveToNext(); ) {
-			var provider = Objects.requireNonNull(linkdProviderService).GetSocket(Objects.requireNonNull(it.value()));
+			//noinspection DataFlowIssue
+			var provider = linkdProviderService.GetSocket(it.value());
 			if (provider == null) {
 				logger.warn("bind provider miss: account={}, moduleId={}, providerSessionId={}",
 						account, it.key(), it.value());

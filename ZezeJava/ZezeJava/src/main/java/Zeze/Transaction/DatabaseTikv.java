@@ -138,7 +138,7 @@ public class DatabaseTikv extends Database {
 				ByteBuffer key, ByteBuffer data, long version) {
 			var keyBs = table.prefixedKey(key);
 			@SuppressWarnings("DataFlowIssue")
-			var oldValue = Objects.requireNonNull(client).get(keyBs);
+			var oldValue = client.get(keyBs);
 			var oldRaw = oldValue.isEmpty() || oldValue.get().isEmpty() ? null : oldValue.get();
 			if (oldRaw != null) {
 				var oldDv = new DataWithVersion();
@@ -170,7 +170,7 @@ public class DatabaseTikv extends Database {
 			var keyBs = table.prefixedKey(key);
 			var startTs = session.getTimestamp().getVersion();
 			@SuppressWarnings("DataFlowIssue")
-			var oldRead = Objects.requireNonNull(txnClient).get(keyBs, startTs);
+			var oldRead = txnClient.get(keyBs, startTs);
 			var oldRaw = oldRead == null || oldRead.isEmpty() ? null : oldRead;
 			if (oldRaw != null) {
 				var oldDv = new DataWithVersion();
@@ -194,7 +194,7 @@ public class DatabaseTikv extends Database {
 				// 诊断重读自身失败（TiKV持续不可达）不得替换原始提交异常——排障时
 				// 看到的必须是真正的提交错误；suppress后照常抛原始异常。
 				try {
-					var current = Objects.requireNonNull(txnClient).get(keyBs, session.getTimestamp().getVersion());
+					var current = txnClient.get(keyBs, session.getTimestamp().getVersion());
 					var curDv = new DataWithVersion();
 					if (current != null && !current.isEmpty()) {
 						curDv.decode(ByteBuffer.Wrap(current.toByteArray()));
@@ -312,7 +312,8 @@ public class DatabaseTikv extends Database {
 				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey,
 						session.getTimestamp().getVersion());
 			else
-				it = Objects.requireNonNull(client).scan0(startKey, endKey);
+				//noinspection DataFlowIssue
+				it = client.scan0(startKey, endKey);
 			while (it.hasNext()) {
 				var kv = it.next();
 				var value = kv.getValue();
@@ -336,7 +337,8 @@ public class DatabaseTikv extends Database {
 				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey,
 						session.getTimestamp().getVersion());
 			else
-				it = Objects.requireNonNull(client).scan0(startKey, endKey);
+				//noinspection DataFlowIssue
+				it = client.scan0(startKey, endKey);
 			while (it.hasNext()) {
 				var kv = it.next();
 				if (distTxn && kv.getValue().isEmpty()) // distTxn空值=删除标记；raw的0字节值是合法数据
@@ -439,7 +441,7 @@ public class DatabaseTikv extends Database {
 		public void commit() {
 			if (datas != null && !datas.isEmpty()) {
 				//noinspection ConstantConditions
-				Objects.requireNonNull(client).batchPut(datas);
+				client.batchPut(datas);
 				datas.clear();
 			}
 			if (deleteKeys != null && !deleteKeys.isEmpty()) {
@@ -448,7 +450,7 @@ public class DatabaseTikv extends Database {
 				// 重启后已删记录复活；异常路径安全（保脏重试幂等）。
 				// 需要原子性的部署应使用distTxn模式。
 				//noinspection ConstantConditions
-				Objects.requireNonNull(client).batchDelete(deleteKeys);
+				client.batchDelete(deleteKeys);
 				deleteKeys.clear();
 			}
 		}

@@ -271,7 +271,8 @@ public class ProviderService extends HandshakeClient {
 			// 全局数据更新（providerApp锁内写三map，读写统一锁契约见OnHandshakeDone处注释）
 			requireProviderApp().lock();
 			try {
-				Objects.requireNonNull(requireProviderApp().zeze.getAppBase()).addModule(module);
+				//noinspection DataFlowIssue
+				requireProviderApp().zeze.getAppBase().addModule(module);
 				requireProviderApp().modules.put(module.getId(), config);
 			} finally {
 				requireProviderApp().unlock();
@@ -327,7 +328,7 @@ public class ProviderService extends HandshakeClient {
 		if (p instanceof Dispatch d) {
 			//noinspection DataFlowIssue
 			TaskSpec.ofFunc(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p), p,
-							(protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+							(__, code) -> p.trySendResultCode(code))
 					.dispatchMode(factoryHandle.Mode)
 					.executeOneByOne(d.Argument.getAccount());
 		} else

@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import java.util.Objects;
-
 import java.util.Calendar;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -44,7 +42,8 @@ public class DelayRemove extends AbstractDelayRemove {
 		this.zeze = zz;
 
 		var serverId = zz.getConfig().getServerId();
-		queue = Objects.requireNonNull(zz.getQueueModule()).open("__GCTableQueue#" + serverId, BTableKey.class);
+		//noinspection DataFlowIssue
+		queue = zz.getQueueModule().open("__GCTableQueue#" + serverId, BTableKey.class);
 		RegisterZezeTables(zeze);
 	}
 

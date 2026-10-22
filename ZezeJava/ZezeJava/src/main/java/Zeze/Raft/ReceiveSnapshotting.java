@@ -188,7 +188,8 @@ final class ReceiveSnapshotting {
 			if (r.Argument.getOffset() == fileLength) {
 				// 正常的Append流程，直接写入。
 				// 3. Write data into snapshot file at given offset
-				Objects.requireNonNull(r.Argument.getData()).writeToFile(outputFileStream);
+				//noinspection DataFlowIssue
+				r.Argument.getData().writeToFile(outputFileStream);
 			} else {
 				// 重叠块（leader重传已收到的前缀）：append-only不重写已落盘字节，
 				// 回报当前长度让leader从该处续传（与旧版"只写超出尾部"进度等价）。

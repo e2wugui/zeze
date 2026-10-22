@@ -52,8 +52,10 @@ public class LogEndSplit extends Log {
 	@Override
 	public void encode(ByteBuffer bb) {
 		super.encode(bb);
-		Objects.requireNonNull(from).encode(bb);
-		Objects.requireNonNull(to).encode(bb);
+		//noinspection DataFlowIssue
+		from.encode(bb);
+		//noinspection DataFlowIssue
+		to.encode(bb);
 	}
 
 	@Override

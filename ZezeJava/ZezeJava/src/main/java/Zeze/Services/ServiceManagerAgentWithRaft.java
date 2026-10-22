@@ -140,7 +140,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	protected long ProcessKeepAliveRequest(KeepAlive r) {
 		if (onKeepAlive != null)
-			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(onKeepAlive);
+			//noinspection DataFlowIssue
+			Task.getCriticalThreadPool().execute(onKeepAlive);
 		r.SendResult();
 		return Procedure.Success;
 	}
@@ -190,7 +191,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	protected long ProcessSetServerLoadRequest(SetServerLoad r) {
 		loads.put(r.Argument.getName(), r.Argument);
 		if (onSetServerLoad != null) {
-			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> {
+			//noinspection DataFlowIssue
+			Task.getCriticalThreadPool().execute(() -> {
 				try {
 					var onSetLoad = onSetServerLoad;
 					if (onSetLoad != null) {

@@ -43,7 +43,9 @@ public class OnzProcedure implements FuncLong {
 	}
 
 	private Data getFuncArgument() {
-		return Objects.requireNonNull(funcArgument);
+		var value = funcArgument;
+		assert value != null;
+		return value;
 	}
 
 	public int getFlushMode() {
@@ -86,7 +88,8 @@ public class OnzProcedure implements FuncLong {
 	}
 
 	void commit() {
-		Objects.requireNonNull(commitFuture).setResult(true);
+		//noinspection DataFlowIssue
+		commitFuture.setResult(true);
 	}
 
 	void rollback() {
@@ -100,7 +103,8 @@ public class OnzProcedure implements FuncLong {
 
 		var req = (FuncProcedure)Objects.requireNonNull(rpc);
 		var bbResult = ByteBuffer.Allocate();
-		Objects.requireNonNull(getResult()).encode(bbResult);
+		//noinspection DataFlowIssue
+		getResult().encode(bbResult);
 		req.Result.setFuncResult(new Binary(bbResult));
 		req.SendResult();
 
@@ -117,7 +121,8 @@ public class OnzProcedure implements FuncLong {
 			if (getStub().getOnz().markTimeoutRolledBack(this)) {
 				var cause = new RuntimeException(
 						"onz wait commit/rollback interrupted. tid=" + getOnzTid() + " name=" + getName(), e);
-				Objects.requireNonNull(commitFuture).setException(cause);
+				//noinspection DataFlowIssue
+				commitFuture.setException(cause);
 				Thread.currentThread().interrupt();
 				throw cause;
 			}
@@ -147,7 +152,8 @@ public class OnzProcedure implements FuncLong {
 
 	/** 同无参重载；取消或超时返回false。 */
 	private boolean awaitDecision(long timeoutMs) throws InterruptedException {
-		return Objects.requireNonNull(commitFuture).await(timeoutMs);
+		//noinspection DataFlowIssue
+		return commitFuture.await(timeoutMs);
 	}
 
 	@SuppressWarnings("PointlessNullCheck") // 保留发送前显式检查解析到的目标连接。

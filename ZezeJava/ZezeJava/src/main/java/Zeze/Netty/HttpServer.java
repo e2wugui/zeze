@@ -126,9 +126,10 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	// 竞争窗口每秒一次、临界区为一次缓存比较，synchronized开销可忽略。
 	public static synchronized String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
-		if (second == lastSecond)
-			return Objects.requireNonNull(lastDateStr);
-		var dateStr = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
+		var dateStr = lastDateStr;
+		if (second == lastSecond && dateStr != null)
+			return dateStr;
+		dateStr = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
 			LocalDateTime.ofEpochSecond(second, 0, ZoneOffset.UTC), zoneId));
 		lastDateStr = dateStr;
 		lastSecond = second;

@@ -1303,7 +1303,8 @@ public class OnzServer extends AbstractOnz {
 			return rc;
 
 		var bbResult = ByteBuffer.Allocate();
-		Objects.requireNonNull(txn.getResult()).encode(bbResult);
+		//noinspection DataFlowIssue
+		txn.getResult().encode(bbResult);
 		r.Result.setFuncResult(new Binary(bbResult));
 		r.SendResult();
 		return 0;

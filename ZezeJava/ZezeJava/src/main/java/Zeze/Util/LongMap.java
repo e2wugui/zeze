@@ -4,7 +4,7 @@ import java.util.function.LongFunction;
 import org.jspecify.annotations.Nullable;
 
 /** Same as 'java.util.Map' but uses primitive 'long' keys to minimise boxing (and GC) overhead. */
-public interface LongMap<V> extends Iterable<V> {
+public interface LongMap<V extends @Nullable Object> extends Iterable<V> {
 	/** Returns the number of elements in this map. */
 	int size();
 
@@ -73,17 +73,18 @@ public interface LongMap<V> extends Iterable<V> {
 		void remove();
 	}
 
-	interface MapIterator<V> {
+	interface MapIterator<V extends @Nullable Object> {
 		boolean moveToNext();
 
 		long key();
 
-		@Nullable V value();
+		/** Returns the current entry's value after a successful {@link #moveToNext()}. */
+		V value();
 
 		void remove();
 	}
 
-	static <V> boolean equals(@Nullable LongMap<V> a, @Nullable LongMap<V> b) {
+	static <V extends @Nullable Object> boolean equals(@Nullable LongMap<V> a, @Nullable LongMap<V> b) {
 		if (a == b)
 			return true;
 		if (a == null || b == null || a.size() != b.size())

@@ -48,14 +48,15 @@ public class RedirectBase {
 			}
 			return null; // is Local
 		}
-		var ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(serverId);
+		//noinspection DataFlowIssue
+		var ps = providerApp.providerDirectService.providerByServerId.get(serverId);
 		if (ps == null) {
 			if (!providerApp.isStartLast()) {
 				throw new IllegalStateException("choiceServer: not after startLast for module="
 						+ module.getFullName() + ", serverId=" + serverId);
 			}
-			Objects.requireNonNull(providerApp.providerDirectService).waitDirectServerReady(serverId, 120_000);
-			ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(serverId);
+			providerApp.providerDirectService.waitDirectServerReady(serverId, 120_000);
+			ps = providerApp.providerDirectService.providerByServerId.get(serverId);
 			if (ps == null) {
 				if (orOtherServer)
 					return choiceHash(module, serverId, 1);
@@ -63,15 +64,15 @@ public class RedirectBase {
 						"choiceServer: not found session for serverId=" + serverId);
 			}
 		}
-		var socket = Objects.requireNonNull(providerApp.providerDirectService).GetSocket(ps.getSessionId());
+		var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 		if (socket == null || socket.isClosed()) {
 			if (!providerApp.isStartLast()) {
 				throw new IllegalStateException("choiceServer: not after startLast for module="
 						+ module.getFullName() + ", serverId=" + serverId);
 			}
-			Objects.requireNonNull(providerApp.providerDirectService).waitDirectServerReady(serverId, 120_000);
-			ps = Objects.requireNonNull(providerApp.providerDirectService).providerByServerId.get(serverId);
-			socket = ps != null ? Objects.requireNonNull(providerApp.providerDirectService).GetSocket(ps.getSessionId()) : null;
+			providerApp.providerDirectService.waitDirectServerReady(serverId, 120_000);
+			ps = providerApp.providerDirectService.providerByServerId.get(serverId);
+			socket = ps != null ? providerApp.providerDirectService.GetSocket(ps.getSessionId()) : null;
 			if (socket == null || socket.isClosed()) {
 				if (orOtherServer)
 					return choiceHash(module, serverId, 1);
@@ -93,7 +94,8 @@ public class RedirectBase {
 					"choiceHash: not found service for serviceName=" + serviceName);
 		}
 
-		var serviceInfo = Objects.requireNonNull(providerApp.distribute).choiceHash(servers, hash, dataConcurrentLevel);
+		//noinspection DataFlowIssue
+		var serviceInfo = providerApp.distribute.choiceHash(servers, hash, dataConcurrentLevel);
 		if (serviceInfo == null) {
 			throw new RedirectException(RedirectException.SERVER_NOT_FOUND,
 					"choiceHash: not found server for serviceName=" + serviceName + ", hash=" + hash
@@ -106,7 +108,8 @@ public class RedirectBase {
 		AsyncSocket socket;
 		var service = providerApp.providerDirectService;
 		var ps = (ProviderModuleState)servers.getLocalStates().get(serviceInfo.getServiceIdentity());
-		if (ps != null && (socket = Objects.requireNonNull(service).GetSocket(ps.sessionId)) != null && !socket.isClosed())
+		//noinspection DataFlowIssue
+		if (ps != null && (socket = service.GetSocket(ps.sessionId)) != null && !socket.isClosed())
 			return socket;
 
 		// conc<=1 的 @RedirectHash 语义即 orOtherServer（2026-10-20 owner 定谳）：按 hash 选中
@@ -121,7 +124,8 @@ public class RedirectBase {
 					var e = servers.getNextStateEntry();
 					if (e == null)
 						break;
-					socket = Objects.requireNonNull(service).GetSocket(((ProviderModuleState)e.getValue()).sessionId);
+					//noinspection DataFlowIssue
+					socket = service.GetSocket(((ProviderModuleState)e.getValue()).sessionId);
 					if (socket != null && !socket.isClosed())
 						return socket;
 				}
@@ -164,14 +168,16 @@ public class RedirectBase {
 		var future = ctx.getFuture();
 		var arg = req.Argument;
 		if (arg.getHashCodeConcurrentLevel() <= 0) {
-			Objects.requireNonNull(providerApp.providerDirectService).tryRemoveManualContext(arg.getSessionId());
+			//noinspection DataFlowIssue
+			providerApp.providerDirectService.tryRemoveManualContext(arg.getSessionId());
 			return future;
 		}
 
 		var transmits = new LongHashMap<ModuleRedirectAllRequest>(); // <sessionId, request>
 		var miss = new ModuleRedirectAllResult();
 		var serviceName = ProviderDistribute.makeServiceName(arg.getServiceNamePrefix(), arg.getModuleId());
-		var consistent = Objects.requireNonNull(providerApp.distribute).getConsistentHash(serviceName);
+		//noinspection DataFlowIssue
+		var consistent = providerApp.distribute.getConsistentHash(serviceName);
 		//noinspection DataFlowIssue
 		var providers = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		var localServiceIdentity = String.valueOf(providerApp.zeze.getConfig().getServerId());
@@ -180,7 +186,7 @@ public class RedirectBase {
 				addMiss(miss, i, Procedure.ProviderNotExist);
 				continue;
 			}
-			var target = Objects.requireNonNull(providerApp.distribute).choiceDataIndex(providers, consistent, i,
+			var target = providerApp.distribute.choiceDataIndex(providers, consistent, i,
 					arg.getHashCodeConcurrentLevel());
 			if (target == null) {
 				addMiss(miss, i, Procedure.ProviderNotExist);
@@ -201,8 +207,9 @@ public class RedirectBase {
 		// 转发给provider
 		for (var it = transmits.iterator(); it.moveToNext(); ) {
 			var sessionId = it.key();
-			var request = Objects.requireNonNull(it.value());
-			var socket = Objects.requireNonNull(providerApp.providerDirectService).GetSocket(sessionId);
+			var request = it.value();
+			//noinspection DataFlowIssue
+			var socket = providerApp.providerDirectService.GetSocket(sessionId);
 			if (socket == null || !request.Send(socket)) {
 				if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
 					try {

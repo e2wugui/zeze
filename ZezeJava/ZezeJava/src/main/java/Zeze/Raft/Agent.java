@@ -184,7 +184,8 @@ public final class Agent {
 				logger.debug("sendHandle Rpc={} RequestId={} ResultCode={} Sender={}",
 						rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
 			}
-			return Objects.requireNonNull(rpc.handle).applyAsLong(rpc);
+			//noinspection DataFlowIssue
+			return rpc.handle.applyAsLong(rpc);
 		}
 		return Procedure.Success;
 	}
@@ -215,7 +216,8 @@ public final class Agent {
 				logger.debug("sendForWaitHandle Rpc={} RequestId={} ResultCode={} Sender={}",
 						rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
 			}
-			Objects.requireNonNull(rpc.future).setResult(rpc);
+			//noinspection DataFlowIssue
+			rpc.future.setResult(rpc);
 		}
 		return Procedure.Success;
 	}
@@ -590,7 +592,8 @@ public final class Agent {
 		}
 		if (isDebugEnabled)
 			logger.debug("Found {} RaftRpc cancel", removed.size());
-		Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> trigger(removed, "Cancel"));
+		//noinspection DataFlowIssue
+		Task.getCriticalThreadPool().execute(() -> trigger(removed, "Cancel"));
 	}
 
 	private void resend(boolean immediately) {
@@ -649,7 +652,8 @@ public final class Agent {
 			if (isDebugEnabled)
 				logger.debug("Found {} RaftRpc timeout", removed.size());
 			var removed0 = removed;
-			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> trigger(removed0));
+			//noinspection DataFlowIssue
+			Task.getCriticalThreadPool().execute(() -> trigger(removed0));
 		}
 	}
 
@@ -672,7 +676,8 @@ public final class Agent {
 				r.future.setException(new RpcTimeoutException(reason));
 			} else {
 				try {
-					Objects.requireNonNull(r.handle).applyAsLong(r);
+					//noinspection DataFlowIssue
+					r.handle.applyAsLong(r);
 				} catch (Throwable e) { // run handle. 必须捕捉所有异常。logger.error
 					logger.error("", e);
 				}
@@ -753,9 +758,10 @@ public final class Agent {
 			// 序应用，入池会乱序增量致订阅状态与注册表永久分叉），flag只作用于默认Normal的协议。
 			if (factoryHandle.Mode != DispatchMode.Direct
 					&& (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool)) {
-				Objects.requireNonNull(Task.getCriticalThreadPool()).execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
+				//noinspection DataFlowIssue
+				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code))
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, (__, code) -> p.trySendResultCode(code))
 						.dispatchMode(factoryHandle.Mode).runNow();
 		}
 	}
@@ -804,7 +810,6 @@ public final class Agent {
 				agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader().getConnector()));
 				//noinspection DataFlowIssue
 				agent.getClient().start();
-				//noinspection DataFlowIssue
 				var netConfig = agent.getClient().getConfig();
 				// 如果相信onSetLeader是即时的，不会丢失，本来不需要主动GetLeader。
 				// 为了确保让流程运转起来，定义一个用户空间的请求GetLeader，主动发送。

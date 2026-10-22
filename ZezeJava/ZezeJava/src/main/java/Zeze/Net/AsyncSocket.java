@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -119,7 +117,8 @@ public abstract class AsyncSocket {
 	// DatagramSession/Websocket/WebsocketClient共用。
 	protected final void fireOnSocketDisposed() {
 		try {
-			Objects.requireNonNull(getService()).OnSocketDisposed(this);
+			//noinspection DataFlowIssue
+			getService().OnSocketDisposed(this);
 		} catch (Exception e) {
 			logger.error("Service.OnSocketDisposed exception:", e);
 		}

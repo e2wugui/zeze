@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.util.Objects;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -214,7 +212,8 @@ public class Cache {
 			}
 			// 新文件显式标记编码版本；旧 days_N 清单继续按原格式读取。
 			String encoded = Base64.getEncoder().encodeToString(id.getBytes(StandardCharsets.UTF_8));
-			Objects.requireNonNull(todayFile).write((encoded + "\n").getBytes(StandardCharsets.US_ASCII));
+			//noinspection DataFlowIssue
+			todayFile.write((encoded + "\n").getBytes(StandardCharsets.US_ASCII));
 		} finally {
 			resourceLock.unlock();
 		}

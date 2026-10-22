@@ -117,7 +117,8 @@ public class Rank extends AbstractRank {
 		if (app != this.app)
 			throw new IllegalArgumentException();
 		RegisterZezeTables(Objects.requireNonNull(app.getZeze()));
-		RegisterProtocols(Objects.requireNonNull(app.getZeze().redirect).providerApp.providerService);
+		//noinspection DataFlowIssue
+		RegisterProtocols(app.getZeze().redirect.providerApp.providerService);
 	}
 
 	public static void register(Class<? extends Serializable> cls) {
@@ -134,7 +135,8 @@ public class Rank extends AbstractRank {
 
 	@Override
 	public void UnRegister() {
-		UnRegisterProtocols(Objects.requireNonNull(Objects.requireNonNull(app.getZeze()).redirect).providerApp.providerService);
+		//noinspection DataFlowIssue
+		UnRegisterProtocols(app.getZeze().redirect.providerApp.providerService);
 		UnRegisterZezeTables(Objects.requireNonNull(app.getZeze()));
 	}
 

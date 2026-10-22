@@ -159,7 +159,8 @@ public final class Raft {
 	}
 
 	public static void executeImportantTask(Runnable task) {
-		Objects.requireNonNull(Task.getCriticalThreadPool()).execute(task);
+		//noinspection DataFlowIssue
+		Task.getCriticalThreadPool().execute(task);
 	}
 
 	public void executeUserTask(Action0 task) {

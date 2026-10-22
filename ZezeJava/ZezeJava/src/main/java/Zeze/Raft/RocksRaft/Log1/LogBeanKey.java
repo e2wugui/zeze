@@ -1,7 +1,5 @@
 package Zeze.Raft.RocksRaft.Log1;
 
-import java.util.Objects;
-
 import java.lang.invoke.MethodHandle;
 import org.jspecify.annotations.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,7 +47,8 @@ public class LogBeanKey<T extends Serializable> extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		Objects.requireNonNull(value).encode(bb);
+		//noinspection DataFlowIssue
+		value.encode(bb);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -60,7 +59,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
-		Objects.requireNonNull(value).decode(bb);
+		value.decode(bb);
 	}
 
 	@Override

@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Builtin.Dbh2.Walk;
@@ -43,7 +44,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	private final ConcurrentHashMap<String, MasterAgent> masterAgent = new ConcurrentHashMap<>();
 	// master->database->tableBuckets
 	private final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTable.Data>>>
-			buckets = new ConcurrentHashMap<>();
+		buckets = new ConcurrentHashMap<>();
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 	// 死桶重定向agent的闲置回收（dbh2-06）：putBuckets只回收"离开主表"的raft，经splitHistory链式
@@ -76,29 +77,29 @@ public class Dbh2AgentManager extends ReentrantLock {
 				return;
 
 			refreshMasterTableTask = TaskSpec.ofAction(() -> {
-						// 整体持锁与stop串行：stopped检查到openMasterAgent/reload之间不允许插入stop。
-						lock();
-						try {
-							if (stopped)
-								return;
-							try {
-								reload(openMasterAgent(masterName), masterName, databaseName, tableName);
-							} catch (Exception e) {
-								// 刷新失败可容忍：下次PrepareBatch拒绝会重新触发本刷新，自愈。
-								logger.warn("refresh master table fail. master={} database={} table={}",
-										masterName, databaseName, tableName, e);
-							}
-						} finally {
-							// 失败也必须复位：置null不能只在reload成功路径执行：reload抛异常
-							//（getBuckets对master短暂不可达即抛）时任务体异常完结，下面的复位若被跳过，
-							// startRefreshMasterTable的门槛if(null!=refreshMasterTableTask)对一个早已
-							// 完结的Future永久成立，之后所有拒绝触发的刷新成为no-op直到进程重启——
-							// 路由缓存陈旧（每笔多付一轮refused→redirect）且死桶agent不再回收。
-							// 置null与startRefreshMasterTable的检查-调度同锁原子，避免与重新调度交错。
-							refreshMasterTableTask = null;
-							unlock();
-						}
-					}).scheduleNow(200);
+				// 整体持锁与stop串行：stopped检查到openMasterAgent/reload之间不允许插入stop。
+				lock();
+				try {
+					if (stopped)
+						return;
+					try {
+						reload(openMasterAgent(masterName), masterName, databaseName, tableName);
+					} catch (Exception e) {
+						// 刷新失败可容忍：下次PrepareBatch拒绝会重新触发本刷新，自愈。
+						logger.warn("refresh master table fail. master={} database={} table={}",
+							masterName, databaseName, tableName, e);
+					}
+				} finally {
+					// 失败也必须复位：置null不能只在reload成功路径执行：reload抛异常
+					//（getBuckets对master短暂不可达即抛）时任务体异常完结，下面的复位若被跳过，
+					// startRefreshMasterTable的门槛if(null!=refreshMasterTableTask)对一个早已
+					// 完结的Future永久成立，之后所有拒绝触发的刷新成为no-op直到进程重启——
+					// 路由缓存陈旧（每笔多付一轮refused→redirect）且死桶agent不再回收。
+					// 置null与startRefreshMasterTable的检查-调度同锁原子，避免与重新调度交错。
+					refreshMasterTableTask = null;
+					unlock();
+				}
+			}).scheduleNow(200);
 		} finally {
 			unlock();
 		}
@@ -166,7 +167,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			var query = commitServiceAcceptor();
 			var state = CommitRocks.buildTransactionState(batches);
 			//noinspection DataFlowIssue
-			Objects.requireNonNull(commit.getRocks()).prepare(query.getKey(), query.getValue(), state, batches, null);
+			commit.getRocks().prepare(query.getKey(), query.getValue(), state, batches, null);
 		}
 	}
 
@@ -179,13 +180,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
 			//noinspection DataFlowIssue
-			Objects.requireNonNull(commit.getRocks()).commit(query.getKey(), query.getValue(), batches);
+			commit.getRocks().commit(query.getKey(), query.getValue(), batches);
 			return;
 		}
 		var query = choiceCommitServer();
 		// 超时须覆盖服务端有界决策+应答（见Dbh2Config.getCommitRpcTimeout）：
 		// 裸rpcTimeout（<prepareMaxTime）会把服务端已提交的事务判成确定失败。
-		Objects.requireNonNull(commitAgent).commit(query.getKey(), query.getValue(), batches, (int)dbh2Config.getCommitRpcTimeout());
+		//noinspection DataFlowIssue
+		commitAgent.commit(query.getKey(), query.getValue(), batches, (int)dbh2Config.getCommitRpcTimeout());
 	}
 
 	// Dbh2Agent 嵌入服务器需要初始化；
@@ -321,31 +323,31 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public MasterAgent openDatabase(
-			String masterName,
-			String databaseName) {
+		String masterName,
+		String databaseName) {
 		var master = openMasterAgent(masterName);
 		master.createDatabase(databaseName);
 		return master;
 	}
 
 	public boolean createTable(
-			@Nullable MasterAgent masterAgent, String masterName,
-			String databaseName, String tableName) {
+		@Nullable MasterAgent masterAgent, String masterName,
+		String databaseName, String tableName) {
 		var out = new OutObject<MasterTable.Data>();
-		var isNew = Objects.requireNonNull(masterAgent).createTable(databaseName, tableName, out);
+		//noinspection DataFlowIssue
+		var isNew = masterAgent.createTable(databaseName, tableName, out);
 		putBuckets(Objects.requireNonNull(out.value), masterName, databaseName, tableName);
 		return isNew;
 	}
 
 	public void createTableAsync(
-			@Nullable MasterAgent masterAgent, String masterName,
-			String databaseName, String tableName,
-			Action2<Integer, Boolean> callback) {
+		@Nullable MasterAgent masterAgent, String masterName,
+		String databaseName, String tableName,
+		Action2<Integer, Boolean> callback) {
 		logger.info("createTableAsync: db={}, table={}", databaseName, tableName);
 		Objects.requireNonNull(masterAgent).createTableAsync(databaseName, tableName, (rc, isNew, masterTable) -> {
 			if (rc == 0) {
 				putBuckets(Objects.requireNonNull(masterTable), masterName, databaseName, tableName);
-				//noinspection DataFlowIssue
 				for (var bucket : masterTable.buckets())
 					openBucket(bucket.getRaftConfig());
 			}
@@ -364,13 +366,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 	// 先入映射、created=false、0桶）返回rc=0空表快照——空快照不缓存（落缓存则该表定位
 	// 持续以NPE面目失败，直到本实例建表流程putBuckets覆盖），每次重新拉取，建表完成即恢复。
 	private MasterTable.Data getBucketsCached(
-			@Nullable MasterAgent masterAgent, ConcurrentHashMap<String, MasterTable.Data> database,
-			String databaseName, String tableName) {
+		@Nullable MasterAgent masterAgent, ConcurrentHashMap<String, MasterTable.Data> database,
+		String databaseName, String tableName) {
 		var table = database.get(tableName);
 		if (null != table)
 			return table;
 		// getBuckets是阻塞RPC，不能放进computeIfAbsent的映射函数（持bin锁会阻塞同bin其他键的访问）；重复RPC幂等无害。
-		table = Objects.requireNonNull(masterAgent).getBuckets(databaseName, tableName);
+		//noinspection DataFlowIssue
+		table = masterAgent.getBuckets(databaseName, tableName);
 		if (!table.getBuckets().isEmpty()) {
 			var old = database.putIfAbsent(tableName, table);
 			if (null != old)
@@ -383,13 +386,13 @@ public class Dbh2AgentManager extends ReentrantLock {
 	// NPE无错误语义，静默空迭代（walk零行）是错果。
 	private static RuntimeException tableNotReady(String databaseName, String tableName) {
 		return new RuntimeException("locateBucket: table not ready (empty buckets snapshot): "
-				+ databaseName + '.' + tableName);
+			+ databaseName + '.' + tableName);
 	}
 
 	public String locateBucket(
-			@Nullable MasterAgent masterAgent, String masterName,
-			String databaseName, String tableName,
-			Binary key) {
+		@Nullable MasterAgent masterAgent, String masterName,
+		String databaseName, String tableName,
+		Binary key) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 		var table = getBucketsCached(masterAgent, database, databaseName, tableName);
@@ -401,9 +404,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public Iterator<BBucketMeta.Data> locateBucketIterator(
-			@Nullable MasterAgent masterAgent, String masterName,
-			String databaseName, String tableName,
-			Binary key, boolean desc) {
+		@Nullable MasterAgent masterAgent, String masterName,
+		String databaseName, String tableName,
+		Binary key, boolean desc) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 		var table = getBucketsCached(masterAgent, database, databaseName, tableName);
@@ -413,8 +416,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 		// desc且key为空表示从表尾开始：直接全表降序。
 		if (desc)
 			return key.size() == 0
-					? table.getBuckets().descendingMap().values().iterator()
-					: table.getBuckets().headMap(key, true).descendingMap().values().iterator();
+				? table.getBuckets().descendingMap().values().iterator()
+				: table.getBuckets().headMap(key, true).descendingMap().values().iterator();
 		return table.tailMap(key).values().iterator();
 	}
 
@@ -457,7 +460,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		try {
 			if (null == idleReclaimTask && !stopped)
 				idleReclaimTask = TaskSpec.ofAction(this::reclaimIdleAgents)
-						.schedulePeriodNow(IdleAgentReclaimPeriodMs, IdleAgentReclaimPeriodMs);
+					.schedulePeriodNow(IdleAgentReclaimPeriodMs, IdleAgentReclaimPeriodMs);
 		} finally {
 			unlock();
 		}
@@ -502,7 +505,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 					try {
 						agent.close(); // Agent.stop取消resendTask、触发pending终局、回收连接器（只读核对过）
 					} catch (Exception ex) {
-						logger.error("reclaim idle agent close fail: " + raft, ex);
+						logger.error("reclaim idle agent close fail: {}", raft, ex);
 					}
 				}
 			}
@@ -512,11 +515,12 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public void reload(
-			@Nullable MasterAgent masterAgent, String masterName,
-			String databaseName, String tableName) {
+		@Nullable MasterAgent masterAgent, String masterName,
+		String databaseName, String tableName) {
 		lock();
 		try {
-			var masterTable = Objects.requireNonNull(masterAgent).getBuckets(databaseName, tableName);
+			//noinspection DataFlowIssue
+			var masterTable = masterAgent.getBuckets(databaseName, tableName);
 			logger.info("reload ... {}", masterTable, new RuntimeException());
 			putBuckets(Objects.requireNonNull(masterTable), masterName, databaseName, tableName);
 		} finally {
@@ -525,10 +529,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public void putBuckets(
-			MasterTable.Data buckets,
-			String masterName,
-			String databaseName,
-			String tableName) {
+		MasterTable.Data buckets,
+		String masterName,
+		String databaseName,
+		String tableName) {
 		lock();
 		try {
 			var master = this.buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
@@ -578,26 +582,17 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	// 一页抓取结果：refused表示分桶拒绝需重定位；count为本页交付条数；lastKey为最后交付key（count>0时有效）。
-	private static final class FetchResult {
-		final boolean refused;
-		final boolean bucketEnd;
-		final boolean stopped;
-		final int count;
-		final @Nullable Binary lastKey;
-
-		FetchResult(boolean refused, boolean bucketEnd, boolean stopped, int count, @Nullable Binary lastKey) {
-			this.refused = refused;
-			this.bucketEnd = bucketEnd;
-			this.stopped = stopped;
-			this.count = count;
-			this.lastKey = lastKey;
-		}
+	private record FetchResult(boolean refused,
+							   boolean bucketEnd,
+							   boolean stopped,
+							   int count,
+							   @Nullable Binary lastKey) {
 	}
 
 	private static final FetchResult REFUSED = new FetchResult(true, false, false, 0, null);
 
 	private static FetchResult deliverWalkPage(Walk r, TableWalkHandleRaw callback,
-			Function<Binary, byte[]> callbackBytes) throws Exception {
+											   Function<Binary, byte[]> callbackBytes) throws Exception {
 		if (r.Result.isBucketRefuse())
 			return REFUSED;
 		Binary lastKey = null;
@@ -615,7 +610,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	private static FetchResult deliverWalkPage(WalkKey r, TableWalkKeyRaw callback,
-			Function<Binary, byte[]> callbackBytes) throws Exception {
+											   Function<Binary, byte[]> callbackBytes) throws Exception {
 		if (r.Result.isBucketRefuse())
 			return REFUSED;
 		Binary lastKey = null;
@@ -664,8 +659,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 			if (result.refused) {
 				if (++refusedCount > 255)
 					throw new RuntimeException("walkPage bucket refused too many redirect: master="
-							+ masterName + " database=" + databaseName + " table=" + tableName
-							+ " refusedCount=" + refusedCount);
+						+ masterName + " database=" + databaseName + " table=" + tableName
+						+ " refusedCount=" + refusedCount);
 				// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
 				reload(masterAgent, masterName, databaseName, tableName);
 				bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey, desc);
@@ -705,15 +700,15 @@ public class Dbh2AgentManager extends ReentrantLock {
 		var exclusiveKey = Binary.Empty;
 		while (true) {
 			var cursor = walkPage(masterAgent, masterName, databaseName, tableName, exclusiveKey, 5000, desc, prefix,
-					(agent, bucket, exclusive, limit) -> {
-						var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
-						if (r.getResultCode() != 0)
-							throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
-						var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
-						total[0] += result.count;
-						stopped[0] = result.stopped;
-						return result;
-					});
+				(agent, bucket, exclusive, limit) -> {
+					var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
+					if (r.getResultCode() != 0)
+						throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
+					var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
+					total[0] += result.count;
+					stopped[0] = result.stopped;
+					return result;
+				});
 			if (stopped[0] || cursor == null)
 				return total[0];
 			exclusiveKey = new Binary(cursor);
@@ -721,19 +716,19 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public @Nullable ByteBuffer walk(@Nullable MasterAgent masterAgent,
-						   String masterName, String databaseName, String tableName,
-						   @Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-						   TableWalkHandleRaw callback,
-						   boolean desc,
-						   byte @Nullable [] prefix) throws Exception {
+									 String masterName, String databaseName, String tableName,
+									 @Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+									 TableWalkHandleRaw callback,
+									 boolean desc,
+									 byte @Nullable [] prefix) throws Exception {
 		return walkPage(masterAgent, masterName, databaseName, tableName,
-				exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
-				(agent, bucket, exclusive, limit) -> {
-					var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
-					if (r.getResultCode() != 0)
-						throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
-					return deliverWalkPage(r, callback, Binary::copyIf);
-				});
+			exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
+			(agent, bucket, exclusive, limit) -> {
+				var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
+				if (r.getResultCode() != 0)
+					throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
+				return deliverWalkPage(r, callback, Binary::copyIf);
+			});
 	}
 
 	public long walkKey(@Nullable MasterAgent masterAgent,
@@ -746,15 +741,15 @@ public class Dbh2AgentManager extends ReentrantLock {
 		var exclusiveKey = Binary.Empty;
 		while (true) {
 			var cursor = walkPage(masterAgent, masterName, databaseName, tableName, exclusiveKey, 5000, desc, prefix,
-					(agent, bucket, exclusive, limit) -> {
-						var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
-						if (r.getResultCode() != 0)
-							throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
-						var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
-						total[0] += result.count;
-						stopped[0] = result.stopped;
-						return result;
-					});
+				(agent, bucket, exclusive, limit) -> {
+					var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
+					if (r.getResultCode() != 0)
+						throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
+					var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
+					total[0] += result.count;
+					stopped[0] = result.stopped;
+					return result;
+				});
 			if (stopped[0] || cursor == null)
 				return total[0];
 			exclusiveKey = new Binary(cursor);
@@ -762,18 +757,18 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public @Nullable ByteBuffer walkKey(@Nullable MasterAgent masterAgent,
-							  String masterName, String databaseName, String tableName,
-							  @Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-							  TableWalkKeyRaw callback,
-							  boolean desc,
-							  byte @Nullable [] prefix) throws Exception {
+										String masterName, String databaseName, String tableName,
+										@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+										TableWalkKeyRaw callback,
+										boolean desc,
+										byte @Nullable [] prefix) throws Exception {
 		return walkPage(masterAgent, masterName, databaseName, tableName,
-				exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
-				(agent, bucket, exclusive, limit) -> {
-					var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
-					if (r.getResultCode() != 0)
-						throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
-					return deliverWalkPage(r, callback, Binary::copyIf);
-				});
+			exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
+			(agent, bucket, exclusive, limit) -> {
+				var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
+				if (r.getResultCode() != 0)
+					throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
+				return deliverWalkPage(r, callback, Binary::copyIf);
+			});
 	}
 }

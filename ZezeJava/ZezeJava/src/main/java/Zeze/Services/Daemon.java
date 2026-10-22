@@ -367,7 +367,7 @@ public class Daemon {
 							var now = System.currentTimeMillis();
 							for (var it = pendings.entryIterator(); it.moveToNext(); ) {
 								var pending = it.value();
-								if (now - Objects.requireNonNull(pending).sendTime > 1000) {
+								if (now - pending.sendTime > 1000) {
 									pending.sendTime = now;
 									try {
 										pending.socket.send(pending.packet);

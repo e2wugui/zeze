@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -27,7 +25,8 @@ public class ProviderLoadWithOnline extends LoadBase {
 
 	@Override
 	public LoadConfig getLoadConfig() {
-		return Objects.requireNonNull(online.providerApp.distribute).loadConfig;
+		//noinspection DataFlowIssue
+		return online.providerApp.distribute.loadConfig;
 	}
 
 	@Override

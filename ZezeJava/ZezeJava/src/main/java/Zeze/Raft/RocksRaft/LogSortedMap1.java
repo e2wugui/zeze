@@ -1,7 +1,5 @@
 package Zeze.Raft.RocksRaft;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
@@ -105,7 +103,8 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(putted.size());
 		var keyEncoder = keyCodecFuncs.encoder;
-		var valueEncoder = Objects.requireNonNull(valueCodecFuncs).encoder;
+		//noinspection DataFlowIssue
+		var valueEncoder = valueCodecFuncs.encoder;
 		for (var p : putted.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
 			valueEncoder.accept(bb, p.getValue());
@@ -120,7 +119,8 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	public void decode(IByteBuffer bb) {
 		putted.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
-		var valueDecoder = Objects.requireNonNull(valueCodecFuncs).decoder;
+		//noinspection DataFlowIssue
+		var valueDecoder = valueCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			var key = keyDecoder.apply(bb);
 			var value = valueDecoder.apply(bb);

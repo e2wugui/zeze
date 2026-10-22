@@ -1,7 +1,5 @@
 package Zeze.Raft;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
 import java.io.RandomAccessFile;
@@ -119,7 +117,8 @@ class InstallSnapshotState {
 			// 0字节块done=true。
 			int rc = 0;
 			while (rc < buffer.length) {
-				int n = Objects.requireNonNull(file).read(buffer, rc, buffer.length - rc);
+				//noinspection DataFlowIssue
+				int n = file.read(buffer, rc, buffer.length - rc);
 				if (n < 0)
 					break; // EOF：rc为0时发0字节收尾块，完成协议
 				rc += n;

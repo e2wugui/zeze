@@ -568,7 +568,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			Objects.requireNonNull(timer).tryRecordBeanHotModuleWhileCommit(customData);
+			//noinspection DataFlowIssue
+			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
 		var config = timer.getZeze().getConfig();
@@ -653,10 +654,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			Objects.requireNonNull(timer).tryRecordBeanHotModuleWhileCommit(customData);
+			//noinspection DataFlowIssue
+			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
-			if (Objects.requireNonNull(timer).cronEquals(index, timerId, builder, OfflineHandle.class, custom))
+			//noinspection DataFlowIssue
+			if (timer.cronEquals(index, timerId, builder, OfflineHandle.class, custom))
 				return;
 			cancel(timerId, account, clientId); // 先取消,下面再重建
 		}
@@ -737,7 +740,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
-		if (Objects.requireNonNull(timer).isOnlineTimerIdOccupied(timerId))
+		//noinspection DataFlowIssue
+		if (timer.isOnlineTimerIdOccupied(timerId))
 			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
 		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())

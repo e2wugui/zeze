@@ -1,7 +1,5 @@
 package Zeze.Net;
 
-import java.util.Objects;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
@@ -199,7 +197,8 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 	public void close() {
 		if (Thread.currentThread() == this) {
-			Objects.requireNonNull(Task.getCriticalThreadPool()).execute(this::close);
+			//noinspection DataFlowIssue
+			Task.getCriticalThreadPool().execute(this::close);
 			return;
 		}
 

@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.Objects;
-
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Services.LoginQueueAgent;
 
@@ -44,7 +42,8 @@ public class LinkdLoad extends LoadBase {
 
 	@Override
 	public LoadConfig getLoadConfig() {
-		return Objects.requireNonNull(linkdApp.linkdProvider.distributes).loadConfig;
+		//noinspection DataFlowIssue
+		return linkdApp.linkdProvider.distributes.loadConfig;
 	}
 
 	@Override

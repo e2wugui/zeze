@@ -36,7 +36,8 @@ public final class TableKey implements Comparable<TableKey> {
 			return true;
 
 		if (obj instanceof TableKey another) {
-			return Objects.requireNonNull(name).equals(another.name) && Objects.requireNonNull(key).equals(another.key);
+			//noinspection DataFlowIssue
+			return name.equals(another.name) && key.equals(another.key);
 		}
 		return false;
 	}

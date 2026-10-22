@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -44,11 +42,12 @@ public class ProcedureLockWatcher {
 		// 统计表的锁数量。
 		var tableIdCount = new IntHashMap<OutInt>();
 		for (var tableKey : recordAccessed.keySet())
-			Objects.requireNonNull(tableIdCount.computeIfAbsent(tableKey.getId(), __ -> new OutInt())).value++;
+			//noinspection DataFlowIssue
+			tableIdCount.computeIfAbsent(tableKey.getId(), __ -> new OutInt()).value++;
 		// 格式化log
 		var sb = new StringBuilder(64).append(p.getActionName()).append(": ");
 		for (var it = tableIdCount.iterator(); it.moveToNext(); )
-			sb.append(TableKey.tables.get(it.key())).append('=').append(Objects.requireNonNull(it.value()).value).append(',');
+			sb.append(TableKey.tables.get(it.key())).append('=').append(it.value().value).append(',');
 		logger.warn("{}", sb.toString());
 	}
 }
