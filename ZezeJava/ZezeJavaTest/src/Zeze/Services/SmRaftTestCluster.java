@@ -28,8 +28,11 @@ import org.jspecify.annotations.Nullable;
 /** 真实三节点 SM 协议夹具。使用本夹具的类共享 ResourceLock("sm-session-cluster")。 */
 final class SmRaftTestCluster implements AutoCloseable {
 
-	// 专用端口段；ResourceLock 保护两个使用者的生命周期，无 Application/serverId 缓存目录。
-	private static final int[] PORTS = {32010, 32011, 32012};
+	// 动态采样端口段：固定段(32010-12)满负载下与上例cluster的异步关闭迟滞竞速——reuse=true
+	// 已设仍bind失败=活跃listener占用（soak-20261022-1956批6中，round3成波三连红）；
+	// 每实例采样互异空闲端口，彻底退出固定段竞争（GCM Release/Acquire孪生harness取端口先例）。
+	// ResourceLock 保护两个使用者的生命周期，无 Application/serverId 缓存目录。
+	private final int[] ports = freePorts(3);
 	private static final AtomicLong REQUEST_IDS = new AtomicLong();
 	private final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private final ArrayList<Rocks> rocks = new ArrayList<>();
@@ -43,14 +46,14 @@ final class SmRaftTestCluster implements AutoCloseable {
 		directory = Files.createTempDirectory("sm-session-cluster-");
 		configFile = directory.resolve("raft.xml");
 		var xml = new StringBuilder("<raft Name=\"sm_session_cluster\">");
-		for (int port : PORTS)
+		for (int port : ports)
 			xml.append("<node Host=\"127.0.0.1\" Port=\"").append(port).append("\"/>");
 		xml.append("</raft>");
 		Files.writeString(configFile, xml);
 		try {
 			var field = ServiceManagerWithRaft.class.getDeclaredField("rocks");
 			field.setAccessible(true);
-			for (int port : PORTS) {
+			for (int port : ports) {
 				var conf = RaftConfig.loadFromString(xml.toString());
 				conf.setDbHome(directory.resolve("node-" + port).toString());
 				var server = fatalGuard.install(new ServiceManagerWithRaft(
@@ -75,8 +78,32 @@ final class SmRaftTestCluster implements AutoCloseable {
 	int leaderPort() {
 		for (int i = 0; i < rocks.size(); ++i)
 			if (requireNonNull(rocks.get(i).getRaft()).isReadyLeader())
-				return PORTS[i];
+				return ports[i];
 		throw new IllegalStateException("no ready leader");
+	}
+
+	/** 同时持有全部采样socket保证互异，finally统一释放后由raft立即重绑（TOCTOU窗口极小）。 */
+	private static int[] freePorts(int count) {
+		var sampled = new ArrayList<java.net.ServerSocket>();
+		try {
+			var result = new int[count];
+			for (int i = 0; i < count; i++) {
+				var socket = new java.net.ServerSocket();
+				sampled.add(socket);
+				socket.setReuseAddress(true);
+				socket.bind(new java.net.InetSocketAddress("127.0.0.1", 0));
+				result[i] = socket.getLocalPort();
+			}
+			return result;
+		} catch (java.io.IOException e) {
+			throw new IllegalStateException("sample free ports fail", e);
+		} finally {
+			for (var socket : sampled)
+				try {
+					socket.close();
+				} catch (java.io.IOException ignore) {
+				}
+		}
 	}
 
 	Peer login(String sessionName) throws Exception {
