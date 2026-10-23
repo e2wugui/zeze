@@ -122,6 +122,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		sqlTypeTable.put("array", "text");
 		sqlTypeTable.put("set", "text");
 		sqlTypeTable.put("map", "text");
+		sqlTypeTable.put("sortedmap", "text");
 		sqlTypeTable.put("gtable", "text");
 		// 下面的类型会被展开，这里的类型展开后的实际类型。
 		sqlTypeTable.put("vector2", "real");

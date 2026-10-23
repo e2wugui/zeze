@@ -403,6 +403,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		sqlTypeTable.put("array", "TEXT");
 		sqlTypeTable.put("set", "TEXT");
 		sqlTypeTable.put("map", "TEXT");
+		sqlTypeTable.put("sortedmap", "TEXT");
 		sqlTypeTable.put("gtable", "TEXT");
 		// 下面的类型会被展开，这里的类型展开后的实际类型。
 		sqlTypeTable.put("vector2", "FLOAT");

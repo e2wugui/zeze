@@ -946,7 +946,7 @@ public class Schemas implements Serializable {
 
 			case "vector2","vector3","vector4","quaternion"->KVNotNull.create(3, 1); // 允许自由互转，返回同一个值即可。
 
-			case "dynamic","list","array","set","map"->KVNotNull.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
+			case "dynamic","list","array","set","map","sortedmap"->KVNotNull.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
 			case "gtable"->KVNotNull.create(5, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
 			//@formatter:on
 				default -> throw new UnsupportedOperationException("unknown type=" + type);

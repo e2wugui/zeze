@@ -53,7 +53,8 @@ if [ -n "$zombie_ports" ]; then
 fi
 for i in $(seq "$START" "$ROUNDS"); do
   echo "=== round $i start $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$BATCH/master.log"
-  ./gradlew :ZezeJavaTest:test :ZezeJavaTest:integrationTest :ZezeJavaTest:extraTest :ZezeJavaTest:bench --continue --rerun-tasks --console=plain > "$BATCH/round$i.log" 2>&1
+  # SOAK_EXTRA_ARGS：附加gradle参数透传（如MySQL重定向 -PzezeTestDatabase=MySql -PzezeTestDatabaseUrl=...）
+  ./gradlew :ZezeJavaTest:test :ZezeJavaTest:integrationTest :ZezeJavaTest:extraTest :ZezeJavaTest:bench --continue --rerun-tasks --console=plain ${SOAK_EXTRA_ARGS:-} > "$BATCH/round$i.log" 2>&1
   rc=$?
   line="round$i: test=$(summarize test) integrationTest=$(summarize integrationTest) extraTest=$(summarize extraTest) bench=$(summarize bench) rc=$rc"
   echo "$line" >> "$BATCH/master.log"
