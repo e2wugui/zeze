@@ -220,9 +220,8 @@ public class Cache {
 	}
 
 	private void tryRemove() throws IOException, RocksDBException {
-		var db = this.db;
 		var lru = this.lru;
-		if (db == null || lru == null)
+		if (this.db == null || lru == null)
 			return; // 已close（cancel与正在执行的任务之间的窗口），不再访问。
 		var prefix = "days_";
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
@@ -247,7 +246,7 @@ public class Cache {
 					// a month ago && not today。todayDays在锁外volatile读：陈旧无害，
 					// nowDays-days>30已排除近期文件，days!=todayDays只是对当天清单的额外保险。
 					if (nowDays - days > 30 && days != todayDays) {
-						var skipped = tryRemove(db, lru, file);
+						var skipped = tryRemove(lru, file);
 						// 整个文件逐行处理成功后才删除清单文件，闭合其生命周期，免得已退役的清单
 						// 每天被重复读取、重复删除同一批key；若半途抛异常，异常直接冒泡到这里之上，
 						// 不会执行下面的删除，这批key的清理不会永久丢失。
@@ -265,7 +264,7 @@ public class Cache {
 		}
 	}
 
-	private static ArrayList<String> tryRemove(RocksDB db, ConcurrentLruLike<String, CacheObject> lru,
+	private ArrayList<String> tryRemove(ConcurrentLruLike<String, CacheObject> lru,
 														File file) throws IOException, RocksDBException {
 		var skipped = new ArrayList<String>();
 		boolean encoded = file.getName().endsWith(".b64");
@@ -284,9 +283,27 @@ public class Cache {
 				}
 				var key = ByteBuffer.Allocate(9);
 				key.WriteString(id);
-				db.delete(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex);
+				if (!deleteUnderLock(key))
+					// close与本轮清理交叠：中止本清单（清单文件不删，见调用方注释），次日重试。
+					// native delete必须在锁内重取句柄：close只cancel(false)不排空在飞清理，
+					// 锁外快照会把已释放句柄送进JNI（633e21af4修掉的同一形态，本入口当时漏改）。
+					throw new IllegalStateException("Cache closed during clean: " + name);
 			}
 		}
 		return skipped;
+	}
+
+	/** 原生delete在resourceLock内重取句柄使用；返回false=已close，调用方中止本轮清理。 */
+	private boolean deleteUnderLock(ByteBuffer key) throws RocksDBException {
+		resourceLock.lock();
+		try {
+			var db = this.db;
+			if (db == null)
+				return false;
+			db.delete(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex);
+			return true;
+		} finally {
+			resourceLock.unlock();
+		}
 	}
 }

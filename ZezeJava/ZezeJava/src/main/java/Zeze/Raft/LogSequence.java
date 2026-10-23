@@ -1174,6 +1174,12 @@ public class LogSequence {
 					if (!raft.isLeader())
 						return 0;
 
+					// 心跳应答跨选举迟到（本节点退位后重当选）时isLeader()为真，但应答是旧任期
+					// 现场，按旧现场回退nextIndex会对已同步follower触发多余的InstallSnapshot——
+					// 以请求任期过滤旧应答（对齐processAppendEntriesResult，02eefbf5d）。
+					if (heartbeat.Argument.getTerm() != term)
+						return 0;
+
 					// pending != null 说明复制正在进行，心跳的失败信息是发送时的旧现场，
 					// 此时不动 nextIndex，避免干扰进行中的复制。
 					if (!heartbeat.Result.getSuccess() && connector.getPending() == null) {
