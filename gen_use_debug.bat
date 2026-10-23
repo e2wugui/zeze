@@ -4,10 +4,9 @@ pushd %~dp0
 
 set PATH=%~dp0\Gen\bin\Debug\net10.0;%PATH%
 
+cd confcs
 echo -------- Gen component.confcs.client.xml ...
 Gen.exe component.confcs.client.xml
-
-cd confcs
 echo -------- Gen confcs\solution.xml ...
 Gen.exe solution.xml
 rem echo -------- ExportConf ...
@@ -36,11 +35,6 @@ cd python
 echo -------- Gen python\solution.xml ...
 Gen.exe solution.xml
 cd ..
-
-cd projects\ZokerManager
-echo -------- Gen projects\ZokerManager\solution.zoker.xml ...
-Gen.exe solution.zoker.xml
-cd ..\..
 
 echo -------- Gen done!
 pause

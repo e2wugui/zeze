@@ -28,7 +28,7 @@ PublishGen.bat
 Gen.exe <solution.xml> [<solution2.xml> ...] [开关]
 ```
 
-- 仓库根 `gen_use_debug.bat`：用 Debug 版，依次对 `component.confcs.client.xml`、`confcs\solution.xml`、`ZezeJava\ZezeJava\solution.zeze.xml`、`ZezeJava\ZezeJavaTest\solution.xml`、`ZezeJava\ZezexJava\{solution.client.xml,solution.xml,solution.linkd.xml}`、`python\solution.xml` 跑一遍。
+- 仓库根 `gen_use_debug.bat`：用 Debug 版，依次对 `confcs\{component.confcs.client.xml,solution.xml}`、`ZezeJava\ZezeJava\solution.zeze.xml`、`ZezeJava\ZezeJavaTest\solution.xml`、`ZezeJava\ZezexJava\{solution.client.xml,solution.xml,solution.linkd.xml}`、`python\solution.xml` 跑一遍（`projects\ZokerManager` 有独立 `gen.bat`）。
 - 仓库根 `gen_use_publish.bat`：同上，改用 `publish\Gen.exe`。
 
 ## 命令行参数

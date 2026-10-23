@@ -2,7 +2,9 @@
 setlocal
 pushd %~dp0
 
-..\publish\Gen.exe
+..\publish\Gen.exe solution.xml
+..\publish\Gen.exe component.confcs.client.xml
+
 rem ..\publish\Gen.exe -c ExportConf -ZezeSrcDir ..
 
 pause
