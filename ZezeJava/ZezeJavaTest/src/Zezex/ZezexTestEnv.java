@@ -89,6 +89,12 @@ public final class ZezexTestEnv {
 			for (var link : links)
 				harness.TestEnv.waitServerRegisteredRange(link.getZeze(), serverIdBase, serverCount); // 等所有provider注册可见（替代盲等1秒）
 
+			// 跨环境残留三全局键的存储无关清理：DatabaseMemory.clear（上方）在MySQL重定向下
+			// 够不着真实存储（只清了不再使用的静态桶）。servers启动后、首个用例前执行；
+			// Takeover租约表不在清单——启动期claim行须保留（renew对缺行自愈重写）。
+			if (serverCount > 0)
+				clearGlobalResidueTables(servers.get(0).getZeze());
+
 			startClients(clientCount, ClientStartMode.TCP);
 		} catch (Exception e) {
 			// 失败路径自清理：links 先于 servers Start，server.Start 中途失败时 links 已绑定 12000+/15000+ 端口，
@@ -102,6 +108,21 @@ public final class ZezexTestEnv {
 	public void rebuildClients(int clientCount, ClientStartMode mode) throws Exception {
 		stopClients();
 		startClients(clientCount, mode);
+	}
+
+	/** 存储无关的全局残留键清理（角色名唯一索引/命名timerId/Online.Shared登录态，见
+	 * prepareNewEnvironment内注释）；表未注册（模块未装载）时跳过。 */
+	private static void clearGlobalResidueTables(Zeze.Application zeze) throws Exception {
+		for (var name : new String[]{
+				"Game_Login_trolename",            // 角色名全局唯一索引（ZezexJava server）
+				"Zeze_Builtin_Timer_tNodeRoot",    // 命名timerId（Simulate同款清理对）
+				"Zeze_Builtin_Timer_tNodes",
+				"Zeze_Builtin_Game_Online_tOnlineShared" // Online.Shared 登录态
+		}) {
+			var table = zeze.getTable(name);
+			if (table != null)
+				Infinite.App.clearDbTable((Zeze.Transaction.TableX<?, ?>)table);
+		}
 	}
 
 	// 代码构造 LoginQueue 配置，不依赖 loginQueue.xml；5020 需与 ClientGame.App 硬编码的

@@ -383,6 +383,14 @@ def cleanTestResidue = tasks.register('cleanTestResidue') {
 }
 tasks.withType(Test).configureEach {
     finalizedBy cleanTestResidue
+    // 测试后端重定向透传（Config.createDatabase守卫）：-PzezeTestDatabase=MySql
+    // -PzezeTestDatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=...&password=..."。
+    // 缺席=默认Memory，产品行为零变化；命中范围见redirectTestDatabase注释。
+    if (findProperty('zezeTestDatabase') != null) {
+        systemProperty 'zeze.test.database', findProperty('zezeTestDatabase')
+        if (findProperty('zezeTestDatabaseUrl') != null)
+            systemProperty 'zeze.test.database.url', findProperty('zezeTestDatabaseUrl')
+    }
     // BenchSocket 等测试分配大 ByteBuffer，默认 512m 堆会 OOM；对齐 IDEA 运行时的大堆。
     // benchCore/benchCorePlatform/benchGame 豁免本兜底：它们的堆由 -PbenchHeap 在注册处控制（默认 2g），
     // 此处统一覆盖曾使该参数失效（实证 -PbenchHeap=4g 时测试 JVM 仍为 -Xmx2g）。

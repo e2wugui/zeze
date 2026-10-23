@@ -486,6 +486,7 @@ public final class Config {
 	}
 
 	public static Database createDatabase(Application zeze, DatabaseConf conf) throws Exception {
+		conf = redirectTestDatabase(conf);
 		return switch (conf.databaseType) {
 			case Memory -> new DatabaseMemory(zeze, conf);
 			case MySql -> new DatabaseMySql(zeze, conf);
@@ -501,6 +502,31 @@ public final class Config {
 			case PostgreSQL -> new DatabasePostgreSQL(zeze, conf);
 			case MongoDb -> new DatabaseMongoDb(zeze, conf);
 		};
+	}
+
+	/** 测试后端重定向开关（-Dzeze.test.database=MySql + -Dzeze.test.database.url=jdbc:...，
+	 * 由build.gradle经-PzezeTestDatabase[Url]透传）：仅命中"未显式指定类型(explicitType)
+	 * 且未以url声明独立存储身份的默认Memory"——xml的Memory配置与new Config()的默认库
+	 * 随之切换；setDatabaseType显式钉死（隔离模型/Memory语义测试）、非空url的Memory分桶
+	 * （如takeover_test_N隔离桶）、其他后端不受影响。属性缺席=产品行为零变化；
+	 * 选型在而url缺失=fail-fast。 */
+	private static DatabaseConf redirectTestDatabase(DatabaseConf conf) {
+		var redirect = System.getProperty("zeze.test.database");
+		if (redirect == null || conf.databaseType != DbType.Memory || conf.explicitType || !conf.databaseUrl.isEmpty())
+			return conf;
+		if (DbType.MySql.name().equals(redirect)) {
+			var url = System.getProperty("zeze.test.database.url");
+			if (url == null || url.isBlank())
+				throw new IllegalStateException("zeze.test.database=MySql requires zeze.test.database.url");
+			var mysql = new DatabaseConf();
+			mysql.setDatabaseType(DbType.MySql);
+			mysql.setDatabaseUrl(url);
+			var druid = new DruidConf();
+			druid.driverClassName = "com.mysql.cj.jdbc.Driver"; // 对齐xml解析路径的默认驱动
+			mysql.setDruidConf(druid);
+			return mysql;
+		}
+		throw new IllegalStateException("zeze.test.database unsupported type: " + redirect);
 	}
 
 	public void createDatabase(Application zeze, HashMap<String, Database> map) throws Exception {
@@ -1012,6 +1038,10 @@ public final class Config {
 		private String name = "";
 		private String databaseName = "zeze_mongodb";
 		private DbType databaseType = DbType.Memory;
+		// setDatabaseType显式置位：测试后端重定向（redirectTestDatabase）只命中未显式指定
+		// 类型的默认Memory；xml解析直接赋值字段不置位（xml是可被测试开关覆盖的配置内容，
+		// 代码setter才是"语义钉死"声明）。
+		private boolean explicitType;
 		private String databaseUrl = "";
 		private @Nullable DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
 		private @Nullable DynamoConf dynamoConf; // only valid when dynamodb
@@ -1041,6 +1071,7 @@ public final class Config {
 		public void setDatabaseType(DbType databaseType) {
 			//noinspection ConstantValue
 			this.databaseType = databaseType != null ? databaseType : DbType.Memory;
+			explicitType = true; // 语义钉死声明：不受测试后端重定向影响（见redirectTestDatabase）
 		}
 
 		public String getDatabaseUrl() {
