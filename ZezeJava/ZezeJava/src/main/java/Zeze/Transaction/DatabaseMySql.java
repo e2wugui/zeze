@@ -94,6 +94,14 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						if (!abandoned)
 							//noinspection ThrowFromFinallyBlock
 							throw e; // abandoned时KILL会让close收到1317中断包，异常不掩盖主流程
+						// kill成功但close仍抛=驱动可能未清除流式状态（MySQL探针批soak-20261023-1712
+						// 实锤：中断排空的close不保证置关闭标志，带毒连接归池后永久
+						// "streaming still active"风暴）——升级废弃物理连接，绝不归池。
+						try {
+							conn.abort(Runnable::run);
+						} catch (Throwable e2) {
+							logger.warn("walkStreamed abort after close fail {} exception:", connectionId, e2);
+						}
 					}
 				}
 				return count;
