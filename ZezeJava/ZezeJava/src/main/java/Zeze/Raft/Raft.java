@@ -265,17 +265,20 @@ public final class Raft {
 	}
 
 	public void shutdown() throws Exception {
+		boolean firstCaller;
 		lock();
 		try {
-			// shutdown 只做一次。
-			if (isShutdown)
-				return;
+			// 拆库段只做一次（首调用者独占），但并发后续调用者不得早退越过排空——
+			// "shutdown返回⟹本地快照已结束"（50cd6df9b）须对每个调用者成立。
+			firstCaller = !isShutdown;
 			isShutdown = true;
 		} finally {
 			unlock();
 		}
-		ShutdownHook.remove(this);
-		server.stop();
+		if (firstCaller) {
+			ShutdownHook.remove(this);
+			server.stop();
+		}
 
 		// 本地快照在 apply 之外执行，仍持有状态机/备份目录，且收尾可提交并启动日志裁剪。
 		// 先在同一锁域关准入并排空快照，再读取裁剪 future；条件等待释放锁供快照完成。
@@ -294,6 +297,9 @@ public final class Raft {
 		var applyFuture = logSequence.applyFuture;
 		if (applyFuture != null)
 			applyFuture.await();
+
+		if (!firstCaller)
+			return; // 排空与future等待已过；拆库段（timer/cancelAll/close）由首调用者独占
 
 		if (timerTask != null) {
 			timerTask.cancel(false);

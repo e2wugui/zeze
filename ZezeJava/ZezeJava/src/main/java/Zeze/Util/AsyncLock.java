@@ -78,9 +78,10 @@ public final class AsyncLock extends AbstractAsyncLock {
 		var dispatch = new Dispatch(onReady);
 		try {
 			executor.execute(dispatch);
-		} catch (RejectedExecutionException e) {
-			// 保持派发权，不回滚入队；整条队列循环推进，只记录一次拒绝。
-			logger.warn("AsyncLock: dispatch rejected, fallback inline run", e);
+		} catch (RuntimeException e) {
+			// 拒绝按契约抛REE；其他未检异常=执行器自身缺陷（旧代码的广谱防御，2026-10-23审计恢复）：
+			// 保持派发权，不回滚入队；整条队列循环内联推进，锁不毒化。
+			logger.warn("AsyncLock: dispatch exception, fallback inline run", e);
 			driveInline(onReady);
 		} finally {
 			dispatch.submitting = false;
