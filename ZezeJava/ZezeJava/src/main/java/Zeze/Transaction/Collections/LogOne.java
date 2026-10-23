@@ -7,19 +7,33 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.TransactionLog;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 
 /** CollOne 的修改日志：整体换值或收集子 Bean 的修改。 */
 @SuppressWarnings("unchecked")
-public class LogOne<V extends Bean> extends LogBean {
+public class LogOne<V extends Bean> extends LogBean implements TransactionLog {
+	private final @Nullable Bean belong;
+
+	@Override
+	public final @Nullable Bean getBelong() {
+		return belong;
+	}
+
+	@Override
+	public final Category category() {
+		return Category.eHistory;
+	}
+
 	private final LogOneMeta<V> meta;
 	@Nullable V value;
 	@Nullable LogBean logBean;
 
 	public LogOne(@Nullable Bean belong, int varId, @Nullable Bean self, V value) {
-		super(belong, varId, self);
+		super(varId, self);
+		this.belong = belong;
 		// 声明类优先：装子类实例须按声明类建typeId，与读端注册对称
 		// （Helper.dependsBean→registerLogOne）；宿主meta未提供时退回运行时类。
 		var hostMeta = self instanceof CollOne<?> collOne ? collOne.meta : null;
@@ -28,7 +42,8 @@ public class LogOne<V extends Bean> extends LogBean {
 	}
 
 	public LogOne(int varId, LogOneMeta<V> meta) {
-		super(null, varId, null);
+		super(varId, null);
+		belong = null;
 		this.meta = meta; // for decode
 	}
 
@@ -47,7 +62,7 @@ public class LogOne<V extends Bean> extends LogBean {
 	}
 
 	@Override
-	public Log beginSavepoint() {
+	public TransactionLog beginSavepoint() {
 		return new LogOne<>(getBelong(), getVariableId(), getThis(), Objects.requireNonNull(value));
 	}
 
@@ -59,11 +74,12 @@ public class LogOne<V extends Bean> extends LogBean {
 	// 收集内部的Bean发生了改变。
 
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public boolean addChild(Bean recent, Log vlog) {
 		if (logBean == null) {
 			logBean = (LogBean)vlog;
-			changes.collect(recent, this);
+			return true;
 		}
+		return false;
 	}
 
 	@Override
@@ -92,8 +108,7 @@ public class LogOne<V extends Bean> extends LogBean {
 		}
 	}
 
-	@Override
-	public void decode(IByteBuffer bb) {
+	private void read(IByteBuffer bb) {
 		var hasValue = bb.ReadBool();
 		if (hasValue) {
 			try {
@@ -113,5 +128,18 @@ public class LogOne<V extends Bean> extends LogBean {
 		// decode可构造出value==null的LogOne（hasValue=false&&hasLogBean=true，见decode），
 		// encode/commit都处理了null，这里不处理的话日志打印级联调用会抛NPE掩盖原始异常。
 		return value != null ? value.toString() : "LogOne(logBean=" + logBean + ")";
+	}
+
+	public static <V extends Bean> LogOne<V> decode(int varId, LogOneMeta<V> meta, IByteBuffer bb) {
+		var log = new LogOne<>(varId, meta);
+		log.read(bb);
+		return log;
+	}
+
+	@Override
+	public void collectChanges(Changes changes) {
+		var owner = getBelong();
+		if (owner != null && owner.isManaged())
+			changes.collect(owner, this);
 	}
 }

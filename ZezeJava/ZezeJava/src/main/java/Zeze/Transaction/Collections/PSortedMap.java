@@ -12,16 +12,16 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedMap;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Log;
+import Zeze.Transaction.TransactionLog;
 import Zeze.Transaction.Transaction;
 import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
 
 /** 事务 SortedMap 基类：基于 pcollections 持久化有序映射的 NavigableMap 视图，托管下的修改经 LogSortedMap 记账。 */
-public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
-		implements NavigableMap<K, V>, Iterable<Map.Entry<K, V>> {
+public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection implements NavigableMap<K, V>, Iterable<Map.Entry<K, V>> {
 	org.pcollections.PSortedMap<K, V> map = Empty.sortedMap();
 
 	public final org.pcollections.PSortedMap<K, V> getMap() {
@@ -30,11 +30,11 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 			if (txn == null)
 				return map;
 			//noinspection DataFlowIssue
-			Log log = txn.getLog(parent().objectId() + variableId());
+			TransactionLog log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return map;
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogSortedMap1<K, V>)log;
+			var mapLog = (LogSortedMap<K, V>)log;
 			return mapLog.getValue();
 		}
 		return map;
@@ -367,6 +367,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 			public boolean contains(Object item) {
 				if (!(item instanceof Map.Entry<?, ?> entry))
 					return false;
+				//noinspection SuspiciousMethodCalls
 				V value = getMap().get(entry.getKey());
 				return value != null && value.equals(entry.getValue());
 			}
@@ -397,8 +398,8 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 					boolean retained = false;
 					for (Object candidate : entries) {
 						if (candidate instanceof Map.Entry<?, ?> other
-								&& equivalentKey(comparator, entry.getKey(), other.getKey())
-								&& entry.getValue().equals(other.getValue())) {
+							&& equivalentKey(comparator, entry.getKey(), other.getKey())
+							&& entry.getValue().equals(other.getValue())) {
 							retained = true;
 							break;
 						}
@@ -415,7 +416,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 
 	@SuppressWarnings("unchecked")
 	private static <K extends Comparable<K>> boolean equivalentKey(@Nullable Comparator<? super K> comparator,
-			K key, @Nullable Object candidate) {
+																   K key, @Nullable Object candidate) {
 		if (candidate == null)
 			return false;
 		try {

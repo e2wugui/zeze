@@ -377,7 +377,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
                 case 1: _Account = _v_.stringValue(); break;
-                case 2: _Link = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink>)_v_).value; break;
+                case 2: _Link = ((Zeze.Transaction.Logs.LogBeanKeyValue<Zeze.Builtin.Game.Online.BLink>)_v_).value; break;
                 case 3: _LoginVersion = _v_.longValue(); break;
                 case 4: _LogoutVersion = _v_.longValue(); break;
                 case 5: _UserData.followerApply(_v_); break;

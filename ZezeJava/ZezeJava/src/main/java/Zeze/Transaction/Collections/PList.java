@@ -5,8 +5,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Log;
+import Zeze.Transaction.TransactionLog;
 import Zeze.Transaction.Transaction;
 
 import org.jspecify.annotations.Nullable;
@@ -53,7 +54,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 			if (txn == null)
 				return list;
 			//noinspection DataFlowIssue
-			Log log = txn.getLog(parent().objectId() + variableId());
+			TransactionLog log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return list;
 			@SuppressWarnings("unchecked")
@@ -63,18 +64,18 @@ public abstract class PList<V> extends Collection implements List<V> {
 		return list;
 	}
 
-	public final void copyTo(V [] array, int arrayIndex) {
+	public final void copyTo(V[] array, int arrayIndex) {
 		for (V v : getList())
 			array[arrayIndex++] = v;
 	}
 
 	@Override
-	public Object [] toArray() {
+	public Object[] toArray() {
 		return getList().toArray();
 	}
 
 	@Override
-	public <T> T [] toArray(T [] a) {
+	public <T> T[] toArray(T[] a) {
 		return getList().toArray(a);
 	}
 

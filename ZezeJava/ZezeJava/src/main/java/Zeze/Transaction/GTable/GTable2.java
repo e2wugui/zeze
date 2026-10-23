@@ -205,7 +205,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 
 	// dynamic值的工厂路径（对齐PMap2的dynamic构造器）：工厂按变量
 	// 成对（不同变量不同工厂），不进按类缓存。bmapMeta与Helper.registerLogMap2Dynamic
-	// 注册的meta同函数同typeId（Log.register先到先得的等价契约）；pmapMeta值身份固定
+	// 注册的meta同函数同typeId（LogRegistry.register先到先得的等价契约）；pmapMeta值身份固定
 	// DynamicBean——同(row,col)的dynamic变量共享外层typeId是接受的风险现状而非安全
 	// 契约：回放解码经Helper侧决胜选出的家族create闭包（非自描述，hist-01外层收口后
 	// 胜者按来源名字典序跨JVM恒定），损坏形态与外层typeId共享风险同构。

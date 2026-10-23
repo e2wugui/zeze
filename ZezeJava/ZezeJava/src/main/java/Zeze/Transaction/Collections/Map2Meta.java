@@ -43,8 +43,8 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	 * 获取（或首次创建并缓存）共享的 Map2 元数据。
 	 * 契约：{@link #create} 的自定义 valueCtor 与本方法的默认构造对同一
 	 * (keyClass, valueClass) 生成相同 logTypeId（typeId 由 head+两类名散列，与ctor无关），
-	 * Log.register 按 typeId 先到先得——ctor 产物若与默认构造产物不等价，后注册方的差异
-	 * 在日志反序列化（Log.create 按 typeId 查表）中永远不生效。
+	 * LogRegistry.register 按 typeId 先到先得——ctor 产物若与默认构造产物不等价，后注册方的差异
+	 * 在日志反序列化（LogRegistry.decode 按 typeId 查表）中永远不生效。
 	 */
 	@SuppressWarnings("unchecked")
 	public static <K, V extends Bean> Map2Meta<K, V> get(Class<K> keyClass,
@@ -84,7 +84,7 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	/**
 	 * GTable外层meta构造：valueClass是擦除的共享类（BeanMap1/BeanMap2.class），
 	 * 真实列/值类型活在闭包——logTypeId/name由valueIdentity完整身份参与，同keyClass不同
-	 * 列/值类型的GTable不共享typeId（Log.register先到先得+解码端按typeId全局查表）。
+	 * 列/值类型的GTable不共享typeId（LogRegistry.register先到先得+解码端按typeId全局查表）。
 	 * 不进共享缓存，调用方按(row,col,val)自行缓存。wire兼容由调用方裁定（History无生产
 	 * 启用时可直接切换）。
 	 */

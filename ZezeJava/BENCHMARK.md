@@ -35,7 +35,9 @@ $env:JAVA_HOME = 'C:\Program Files\Java\jdk-21'
 .\ZezeJavaTest\scripts\run_map_phase_acceptance.ps1 -Root $PWD -Tag map-phase-g-matrix-1 -Stage Matrix
 ```
 
-阶段为 Functional、Matrix（40 行筛查）、Multi（64 项修改的 8 行）、Macro（D 与 L）。
+阶段为 Functional、Matrix（Map/GTable 的 40 行筛查）、Multi（64 项修改的 8 行）、
+Collections（List1/List2/Set1 的替换、清空重填，共 48 行）、ListEdit（List2 原位字段修改的 8 行）、
+Macro（D 与 L）。Matrix 使用明确的基准类过滤，不随新加入的 CommitBench 意外扩展范围。
 每次使用新 Tag，串行运行两个版本；可用 GradleExecutable 指定本机缓存的 Gradle。
 脚本只确认命令与最终 XML 已保存，不自动判性能通过；Matrix 的单 fork 不能替代独立 JVM 复测。
 
@@ -54,6 +56,56 @@ $env:JAVA_HOME = 'C:\Program Files\Java\jdk-21'
 | J | JSocketRpcLoopback | 网络 RPC 回环 |
 | K | KCheckpointUnderCommitFlood | 提交洪水下的刷盘竞争 |
 | L | GameSim.LMmoGameSim | 游戏模拟与容量 |
+
+## 2026-10-23 · 事务日志职责拆分与可选增量（未提交）
+
+改动：Transaction/Savepoint 保存 TransactionLog；Log 表达消费载荷和编码，LogRegistry
+通过工厂返回完整解码值。Map1/2、SortedMap1/2、List1/2、Set1 将本地事务状态与消费载荷分开；
+无 History、无监听时选择 NoDelta，仅维护最终持久容器。GTable 复用 Map 收集路径。
+载荷从明确的最终 Savepoint 创建；消费者中途出现时，在不可逆提交及 Onz Ready 前重做并补齐增量。
+Dynamic/One 适配新接口，本轮未完整拆分其事务对象与载荷。
+
+标量使用 LogInt extends LogIntValue implements TransactionLog 的结构，17 种字段日志统一调整；
+值父类不持有提交目标或 VarHandle，保留原 typeId、协议名称和可变值访问方式。
+生成 setter 构造方式保持；BeanKey 回放改读 LogBeanKeyValue，已运行 PublishGen.bat 和
+gen_use_publish.bat。Gen.exe 为发布产物，不纳入提交。Transaction.getLog/putLog 的字节码
+描述符发生变化，冷、热模块须一起重新编译；测试构建已增加热模块重新打包依赖。
+
+功能：完整 Fast 1931 项/跳过 2，集成 219 项/跳过 16，History 扩展 44 项，失败和错误均为 0。
+最后删除标量构造器重复非空检查后，补跑相关 13 项定向测试及 JMH 编译，均通过；未再次全量运行。
+当前 Corretto21.0.5 下 Instrumentation.getObjectSize 实测：17 种本地字段日志均保持 32 字节，
+独立解码值均为 24 字节，原解码日志为 32 字节。此结果只说明浅对象大小，不能代替吞吐验收。
+
+**性能验收仍未通过，未证明 GameSim 提速。** 本轮开始状态为 556f93406 加原有未提交清理，
+以独立工作树和相同 workload/harness 对比；以下 GameSim 样本均早于最后的标量值父类调整。
+配置为 Corretto21.0.5、2g、ktt、虚拟线程、-ea、5000 玩家、K=10，每窗口 10 游戏分钟，
+2 预热窗口、3 测量窗口、checkpoint 30000ms；配套最终 XML 断言通过。
+
+| 配对 | 改前 TPS 中位数 | 改后 TPS 中位数 | 变化 | mailSend p99（微秒） |
+|---|---:|---:|---:|---:|
+| B1 → C1 | 26583.65 | 26546.42 | -0.14%，3σ 波动内 | 661 → 1455 |
+| B2 → C2 | 26629.76 | 26641.73 | +0.04%，3σ 波动内 | 711 → 1146 |
+
+TPS 未显示稳定改善；两次 mailSend 尾延迟均出现不利结果，尚未归因，也未对最后代码完成重测。
+早期 List/Set 单 fork 筛查中，NONE 的分配下降；LIST1/BOTH、SET1/BOTH 出现分配增长，
+之后已调整操作列表容量及 Set 记账集合的延迟分配和容量。最新代码的 3 fork、wi10/i10、
+每迭代 1 秒复测已完成（entries=16、REPLACE、BOTH，-da、2g、ktt）：
+
+| 容器 | 分配改前 → 改后（B/事务） | 变化 | 吞吐均值变化 |
+|---|---:|---:|---:|
+| LIST1 | 2624.16 → 2696.06 | +71.90，+2.74%，CI 不重叠 | +4.86% |
+| SET1 | 3069.47 → 3005.44 | -64.03，-2.09%，CI 不重叠 | -3.58% |
+
+吞吐均值变化需结合各 fork 与 CI，不能单独判定稳定提速或回退；LIST1 分配增长尚未解决，
+不能用吞吐均值增长或 SET1 的收益抵消。原始文件为
+`jmh-log-redesign-b-list-long-final.json`、`jmh-log-redesign-c-list-long-values.json`。
+当前尚无完整最终矩阵结论。
+Map/SortedMap/GTable、List/Set 各消费模式、较大增量及最终 GameSim 性能验收均未完成。
+不能把某行分配下降或标量对象变小写成整体无性能回退。
+
+原始日志、JSON、验证 XML 及对象大小诊断保存在 gitignored 的
+`ZezeJavaTest/bench-results/transaction-log-redesign/` 和 `log-redesign-*` 结果目录；
+以下上一轮 Map 阶段的历史结论仍独立保留，不由本轮局部结果覆盖。
 
 ## 2026-10-22～23 · Map2 变更阶段拆分
 

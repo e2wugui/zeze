@@ -6,10 +6,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
@@ -21,15 +21,10 @@ public class LogMap2<K, V extends Bean> extends LogBean {
 	private @Nullable Set<K> removed;
 	private @Nullable HashMap<K, LogBean> changedWithKey;
 
-	/** 保留原解码构造入口；消费日志不再持有事务 Map 值。 */
-	public LogMap2(@Nullable Bean belong, int varId, @Nullable Bean self,
-			org.pcollections.PMap<K, V> value, Meta2<K, V> meta) {
-		this(belong, varId, self, meta, null, null);
-	}
-
-	LogMap2(@Nullable Bean belong, int varId, @Nullable Bean self, Meta2<K, V> meta,
-			@Nullable HashMap<K, V> replaced, @Nullable Set<K> removed) {
-		super(belong, varId, self);
+	/** Borrow final notes without retaining the transaction state. decode always creates a fresh payload. */
+	public LogMap2(int varId, @Nullable Bean self, Meta2<K, V> meta,
+				   @Nullable HashMap<K, V> replaced, @Nullable Set<K> removed) {
+		super(varId, self);
 		this.meta = meta;
 		// 源端只借用最终事务增量；解码整体换成自己的容器，不清理借用数据。
 		this.replaced = replaced;
@@ -95,10 +90,7 @@ public class LogMap2<K, V extends Bean> extends LogBean {
 			keyEncoder.accept(bb, key);
 	}
 
-	@Override
-	public void decode(IByteBuffer bb) {
-		if (getThis() != null)
-			throw new IllegalStateException("cannot decode into a source Map2 log");
+	private void read(IByteBuffer bb) {
 		var keyDecoder = meta.keyDecoder;
 		int count = bb.ReadUInt();
 		HashMap<K, LogBean> edits = null;
@@ -140,19 +132,18 @@ public class LogMap2<K, V extends Bean> extends LogBean {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public boolean addChild(Bean recent, Log vlog) {
 		var child = (LogBean)vlog;
-		var item = Objects.requireNonNull(child.getThis(), "source Bean log has no value");
+		var item = child.getThis();
+		//noinspection DataFlowIssue
 		K key = (K)item.mapKey();
-		var source = (PMap2<K, V>)Objects.requireNonNull(getThis(), "decoded log cannot collect");
+		var source = (PMap2<K, V>)recent;
 		if (replaced != null && replaced.containsKey(key) || removed != null && removed.contains(key)
-				|| source.map.get(key) != item) {
+			|| source.map.get(key) != item) {
 			// 即便只剩陈旧引用编辑，也保留原来的空 Map 节点和源 Record 回调形态。
-			changes.collect(recent, this);
-			return;
+			return true;
 		}
-		if (getChangedWithKey().putIfAbsent(Objects.requireNonNull(key), child) == null)
-			changes.collect(recent, this);
+		return getChangedWithKey().putIfAbsent(Objects.requireNonNull(key), child) == null;
 	}
 
 	@Override
@@ -165,5 +156,11 @@ public class LogMap2<K, V extends Bean> extends LogBean {
 		sb.append(" changed:");
 		ByteBuffer.BuildSortedString(sb, changedForRead());
 		return sb.toString();
+	}
+
+	public static <K, V extends Bean> LogMap2<K, V> decode(int varId, Meta2<K, V> meta, IByteBuffer bb) {
+		var log = new LogMap2<>(varId, null, meta, null, null);
+		log.read(bb);
+		return log;
 	}
 }

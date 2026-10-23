@@ -486,7 +486,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
-                case 1: _Link = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Online.BLink>)_v_).value; break;
+                case 1: _Link = ((Zeze.Transaction.Logs.LogBeanKeyValue<Zeze.Builtin.Online.BLink>)_v_).value; break;
                 case 2: _LoginVersion = _v_.longValue(); break;
                 case 3: _ReliableNotifyMark.followerApply(_v_); break;
                 case 4: _ReliableNotifyIndex = _v_.longValue(); break;

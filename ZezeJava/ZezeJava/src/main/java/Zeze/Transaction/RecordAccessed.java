@@ -12,19 +12,12 @@ public final class RecordAccessed extends Bean {
 		}
 
 		@Override
-		public int getTypeId() {
-			return 0; // 现在Log1仅用于特殊目的，不支持相关日志系列化。
-		}
-
-		@Override
 		public long getLogKey() {
-			//noinspection DataFlowIssue
 			return getBelong().objectId();
 		}
 
 		@Override
 		public void commit() {
-			//noinspection DataFlowIssue
 			((RecordAccessed)getBelong()).committedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
 		}
 	}

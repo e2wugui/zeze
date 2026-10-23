@@ -483,8 +483,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
                 case 3: _Count = _v_.longValue(); break;
                 case 4: _LastNodeId = _v_.longValue(); break;
                 case 5: _LoadSerialNo = _v_.longValue(); break;
-                case 6: _HeadNodeKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_v_).value; break;
-                case 7: _TailNodeKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_v_).value; break;
+                case 6: _HeadNodeKey = ((Zeze.Transaction.Logs.LogBeanKeyValue<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_v_).value; break;
+                case 7: _TailNodeKey = ((Zeze.Transaction.Logs.LogBeanKeyValue<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_v_).value; break;
             }
         }
     }

@@ -1,4 +1,5 @@
 package Zeze.Transaction;
+
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 
@@ -28,17 +29,17 @@ public class TestPList2FollowerApplyOutOfBounds {
 		// IndexOutOfBoundsException，由驱动方裁决（raft路径Rocks.followerApply统一catch
 		// +fatalKill；History回放路径批中断）。抛出时list未提交，容器保持原状。
 		@SuppressWarnings("unchecked")
-		var oobLog = (LogList2<BLoad>)plist.createLogBean();
-		oobLog.getChanged().put(new LogBean(null, 0, null), new OutInt(plist.size())); // ==size，越上界
+		var oobLog = (LogList2<BLoad>)plist.createLogBean(null);
+		oobLog.getChanged().put(new LogBean(0, null), new OutInt(plist.size())); // ==size，越上界
 		assertThrows(IndexOutOfBoundsException.class, () -> plist.followerApply(oobLog));
 		assertEquals(2, plist.size());
 
 		// 同一条日志内opLogs先于changed应用，changed抛出时整个应用中止：tmp不提交回list
 		//（列表不变），不存在"越界changed只跳过自己、opLogs仍生效"的部分应用。
 		@SuppressWarnings("unchecked")
-		var mixedLog = (LogList2<BLoad>)plist.createLogBean();
-		mixedLog.clear();
-		mixedLog.getChanged().put(new LogBean(null, 0, null), new OutInt(99));
+		var mixedLog = (LogList2<BLoad>)plist.createLogBean(null);
+		mixedLog.getOpLogs().addAll(Zeze.Transaction.Collections.List2TestSupport.clearOperation());
+		mixedLog.getChanged().put(new LogBean(0, null), new OutInt(99));
 		assertThrows(IndexOutOfBoundsException.class, () -> plist.followerApply(mixedLog));
 		assertEquals(2, plist.size());
 	}
@@ -52,7 +53,7 @@ public class TestPList2FollowerApplyOutOfBounds {
 		// （replaced正常安装路径需要map-capable bean，由TestMap2FollowerApplyMapKey等覆盖。）
 		@SuppressWarnings("unchecked")
 		var missLog = Map2TestSupport.wireLog(pmap);
-		missLog.getChangedWithKey().put(12345L, new LogBean(null, 0, null));
+		missLog.getChangedWithKey().put(12345L, new LogBean(0, null));
 		assertThrows(NullPointerException.class, () -> pmap.followerApply(missLog));
 		assertEquals(0, pmap.size());
 	}

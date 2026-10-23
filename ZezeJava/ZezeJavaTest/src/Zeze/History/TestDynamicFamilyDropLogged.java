@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * FND8-30回归（折中方案b）：dynamic集合的logTypeId不含值工厂身份——
  * 同(keyClass,DynamicBean)的第二个家族与首个同typeId，Helper注册端的
  * map2Dynamic/sortedMap2Dynamic原computeIfAbsent静默丢弃后续家族，回放端
- * Log.register先到先得，后家族日志用别人的create工厂解码（显式Bean:id编号
+ * LogRegistry.register先到先得，后家族日志用别人的create工厂解码（显式Bean:id编号
  * 重叠时静默解出错误bean）。修复：静默丢弃改为warn留痕（含两个宿主bean类名
  * 与变量名），同工厂重复注册不误报。
  * （方案a——比对每变量specialTypeId→beanClass映射表做启动error——需生成器
@@ -111,7 +111,7 @@ public class TestDynamicFamilyDropLogged {
 	}
 
 	// 同(keyClass,DynamicBean)的第二个家族被丢弃时必须warn留痕（原实现静默），
-	// 且保留先注册家族（Log.register先到先得的注册语义不变）。
+	// 且保留先注册家族（LogRegistry.register先到先得的注册语义不变）。
 	@Test
 	public void testMapSecondFamilyDropLogged() throws Exception {
 		var result = new Helper.DependsResult();

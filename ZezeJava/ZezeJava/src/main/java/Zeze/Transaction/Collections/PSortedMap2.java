@@ -5,14 +5,16 @@ import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLog;
+import Zeze.Transaction.ChangeCaptureMode;
 import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
@@ -33,7 +35,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 	public PSortedMap2(Class<K> keyClass, ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) { // only for DynamicBean value
 		// 必须用 sortedMap2 家族头哈希：写端 typeId 与读端（Helper.registerLogSortedMap2Dynamic）
-			// 的注册键对称；用错 map2 家族会借道同 keyClass 的 map<K,dynamic> 注册解码成 LogMap2。
+		// 的注册键对称；用错 map2 家族会借道同 keyClass 的 map<K,dynamic> 注册解码成 LogMap2。
 		meta = SortedMap2Meta.createDynamic(keyClass, get, create);
 	}
 
@@ -86,9 +88,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
-			//noinspection DataFlowIssue
-			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createMapLog);
+			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			value.initRootInfoWithRedo(rootInfo, this);
 			value.mapKey(key);
 			assert parent() != null;
@@ -120,8 +120,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
 			assert parent() != null;
-			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createMapLog);
+			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				V v = e.getValue();
@@ -146,8 +145,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	public @Nullable V remove(Object key) {
 		if (isManaged()) {
 			assert parent() != null;
-			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createMapLog);
+			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.remove((K)key);
 		}
 		V exist = map.get((K)key);
@@ -162,8 +160,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (isManaged()) {
 			assert parent() != null;
 			//noinspection unchecked
-			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createMapLog);
+			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.remove(k, v);
 		}
 		V exist = map.get(k);
@@ -180,8 +177,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			return;
 		if (isManaged()) {
 			assert parent() != null;
-			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createMapLog);
+			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.clear();
 		} else {
 			var comparator = map.comparator();
@@ -213,31 +209,6 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	@Override
-	public LogBean createLogBean() {
-		return createMapChangeLog();
-	}
-
-	private LogBean createMapChangeLog() {
-		var txn = Transaction.getCurrent();
-		var owner = parent();
-		var log = txn != null && owner != null ? txn.getLog(owner.objectId() + variableId()) : null;
-		if (log instanceof LogSortedMap2Delta<?, ?> delta)
-			return delta.createChangeLog();
-		return new LogSortedMap2<>(owner, variableId(), this, map.comparator(), meta,
-				null, null);
-	}
-
-	private LogSortedMap2Delta<K, V> createMapLog() {
-		return new LogSortedMap2Delta<>(parent(), variableId(), this, map, meta);
-	}
-
-	@Override
-	public final LogBean createChangeLog(Changes changes) {
-		// 框架消费节点不经过可覆写的旧工厂，避免字段先到与结构先到选择不同载荷。
-		return createMapChangeLog();
-	}
-
-	@Override
 	protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
 		for (V v : map.values())
 			v.initRootInfo(root, this);
@@ -258,7 +229,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		var source = getMap();
 		var comparator = source.comparator();
 		org.pcollections.PSortedMap<K, V> newMap = comparator != null
-				? TreePMap.empty(comparator) : Empty.sortedMap();
+			? TreePMap.empty(comparator) : Empty.sortedMap();
 		for (var e : source.entrySet()) {
 			V value = (V)e.getValue().copy();
 			value.mapKey(e.getKey());
@@ -318,5 +289,22 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		var dataMap = new HashMap<K, D>(((beanMap.size() + 2) / 3) * 4);
 		Bean.toDataMap(beanMap, dataMap);
 		return dataMap;
+	}
+
+	@Override
+	public TransactionLog createLog(ChangeCaptureMode mode) {
+		return mode == ChangeCaptureMode.NONE ? new LogSortedMapNoDelta<>(this, map)
+			: new LogSortedMap2Delta<>(this, map);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		if (finalLog == null)
+			return new LogSortedMap2<>(variableId(), this, map.comparator(), meta, null, null);
+		if (!(finalLog instanceof LogSortedMap2Delta<?, ?>))
+			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		var delta = (LogSortedMap2Delta<K, V>)finalLog;
+		return new LogSortedMap2<>(variableId(), this, map.comparator(), meta, delta.getReplaced(), delta.getRemoved());
 	}
 }

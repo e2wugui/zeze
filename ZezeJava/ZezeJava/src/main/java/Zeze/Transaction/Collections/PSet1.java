@@ -2,10 +2,14 @@ package Zeze.Transaction.Collections;
 
 import java.util.ArrayList;
 import java.util.Collection;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLog;
+import Zeze.Transaction.ChangeCaptureMode;
+import org.jspecify.annotations.Nullable;
 
 import Zeze.Collections.Persistents;
 
@@ -30,8 +34,7 @@ public class PSet1<V> extends PSet<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return setLog.add(item);
 		}
 		var newSet = set.plus(item);
@@ -44,8 +47,7 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return setLog.remove((V)item);
 		}
 		var newSet = set.minus(item);
@@ -68,8 +70,7 @@ public class PSet1<V> extends PSet<V> {
 		}
 
 		if (isManaged()) {
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return setLog.addAll(c);
 		}
 		// MapPSet.plusAll恒新建包装（same-instance前提不成立），逐项plus判定真实变化：
@@ -88,8 +89,7 @@ public class PSet1<V> extends PSet<V> {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return setLog.removeAll((Collection<? extends V>)c);
 		}
 		// 同addAll：MapPSet.minusAll恒新建包装，逐项minus判定真实变化。
@@ -107,16 +107,10 @@ public class PSet1<V> extends PSet<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			setLog.clear();
 		} else
 			set = Persistents.set();
-	}
-
-	@Override
-	public LogBean createLogBean() {
-		return new LogSet1<>(parent(), variableId(), this, set, meta);
 	}
 
 	@Override
@@ -128,8 +122,7 @@ public class PSet1<V> extends PSet<V> {
 	public void assign(PSet1<V> pset) {
 		var items = pset.getSet();
 		if (isManaged()) {
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			setLog.clear();
 			setLog.addAll(items);
 		} else
@@ -164,5 +157,22 @@ public class PSet1<V> extends PSet<V> {
 		for (int i = n; i > 0; i--)
 			items.add(decoder.apply(bb));
 		addAll(items);
+	}
+
+	@Override
+	public TransactionLog createLog(ChangeCaptureMode mode) {
+		return mode == ChangeCaptureMode.NONE ? new LogSetNoDelta<>(this, set)
+			: new LogSet1Delta<>(this, set);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		if (finalLog == null)
+			return new LogSet1<>(variableId(), this, meta, null, null);
+		if (!(finalLog instanceof LogSet1Delta<?>))
+			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		var delta = (LogSet1Delta<V>)finalLog;
+		return new LogSet1<>(variableId(), this, meta, delta.getAdded(), delta.getRemoved());
 	}
 }

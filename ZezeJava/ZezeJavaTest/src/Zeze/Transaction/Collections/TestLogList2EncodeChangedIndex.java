@@ -6,10 +6,8 @@ import demo.Module1.BValue;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.pcollections.TreePVector;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
-import Zeze.Util.OutInt;
 
 /**
  * LogList2.encode 的 changed 过滤：对每个 changed bean 按身份在最终列表中定位
@@ -23,7 +21,9 @@ public class TestLogList2EncodeChangedIndex {
 	@SuppressWarnings("DataFlowIssue") // 此encode夹具只使用value/changed，不访问meta。
 	private static LogList2<BValue> newLog(List<BValue> finalList) {
 		// belong/self/meta仅为encode之外的场景服务，encode只读ctor传入的最终列表
-		return new LogList2<>(null, 0, null, TreePVector.from(finalList), null);
+		var list = new PList2<BValue>(BValue.class);
+		list.addAll(finalList);
+		return (LogList2<BValue>)list.createLogBean(null);
 	}
 
 	@Test
@@ -32,8 +32,8 @@ public class TestLogList2EncodeChangedIndex {
 		var b = new BValue();
 		var c = new BValue();
 		var log = newLog(List.of(a, b, c));
-		var vlogB = new LogBean(null, 0, b);
-		log.getChanged().put(vlogB, new OutInt(99));
+		var vlogB = new LogBean(0, b);
+		log.addChild(log.getThis(), vlogB);
 
 		log.encode(ByteBuffer.Allocate());
 
@@ -46,13 +46,13 @@ public class TestLogList2EncodeChangedIndex {
 		var a = new BValue();
 		var other = new BValue();
 		var log = newLog(List.of(a, other, a)); // 同一引用出现两次
-		var vlogA = new LogBean(null, 0, a);
-		log.getChanged().put(vlogA, new OutInt(99));
+		var vlogA = new LogBean(0, a);
+		log.addChild(log.getThis(), vlogA);
 
 		log.encode(ByteBuffer.Allocate());
 
 		Assertions.assertEquals(0, log.getChanged().get(vlogA).value,
-				"重复元素取首个出现位置（对齐原线性扫break语义）");
+			"重复元素取首个出现位置（对齐原线性扫break语义）");
 	}
 
 	@Test
@@ -60,8 +60,8 @@ public class TestLogList2EncodeChangedIndex {
 		var a = new BValue();
 		var dead = new BValue(); // 不在最终列表
 		var log = newLog(List.of(a));
-		var vlogDead = new LogBean(null, 0, dead);
-		log.getChanged().put(vlogDead, new OutInt(99));
+		var vlogDead = new LogBean(0, dead);
+		log.addChild(log.getThis(), vlogDead);
 
 		log.encode(ByteBuffer.Allocate());
 
@@ -71,8 +71,8 @@ public class TestLogList2EncodeChangedIndex {
 	@Test
 	public void testNullAndDifferentBeanTypeAreRemoved() {
 		var log = newLog(List.of(new BValue()));
-		log.getChanged().put(new LogBean(null, 0, null), new OutInt(99));
-		log.getChanged().put(new LogBean(null, 0, new EmptyBean()), new OutInt(99));
+		log.addChild(log.getThis(), new LogBean(0, null));
+		log.addChild(log.getThis(), new LogBean(0, new EmptyBean()));
 
 		log.encode(ByteBuffer.Allocate());
 
@@ -81,10 +81,13 @@ public class TestLogList2EncodeChangedIndex {
 
 	@Test
 	public void testAddedBeanChangeIsCarriedByStructuralOperation() {
-		var log = newLog(List.of());
+		var list = new PList2<BValue>(BValue.class);
 		var added = new BValue();
-		log.add(added);
-		log.getChanged().put(new LogBean(null, 0, added), new OutInt(99));
+		var delta = new LogList2Delta<BValue>(list, list.getList());
+		delta.add(added);
+		delta.commit();
+		var log = (LogList2<BValue>)list.createLogBean(delta);
+		log.addChild(log.getThis(), new LogBean(0, added));
 
 		var bb = ByteBuffer.Allocate();
 		log.encode(bb);

@@ -1,28 +1,25 @@
 package Zeze.Transaction.Logs;
 
 import java.lang.invoke.VarHandle;
-import Zeze.Serialize.IByteBuffer;
+
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Log;
-import Zeze.Serialize.ByteBuffer;
-import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.Changes;
+import Zeze.Transaction.TransactionLog;
 
-/** int 字段原子修改日志：携带新值，commit 经 VarHandle 写回，序列化为 4 字节整数。 */
-public class LogInt extends Log {
-	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<int>");
+/** Local field write; the inherited value is also its complete change payload. */
+public class LogInt extends LogIntValue implements TransactionLog {
+	private final Bean belong;
+	private final VarHandle vh;
 
-	private final @Nullable VarHandle vh;
-	public int value;
-
-	public LogInt(@Nullable Bean belong, int varId, @Nullable VarHandle vh, int value) {
-		super(belong, varId);
+	public LogInt(Bean belong, int varId, VarHandle vh, int value) {
+		super(varId, value);
+		this.belong = belong;
 		this.vh = vh;
-		this.value = value;
 	}
 
-	public LogInt(int varId) {
-		super(null, varId);
-		vh = null;
+	@Override
+	public final Bean getBelong() {
+		return belong;
 	}
 
 	@Override
@@ -31,43 +28,13 @@ public class LogInt extends Log {
 	}
 
 	@Override
-	public int getTypeId() {
-		return TYPE_ID;
-	}
-
-	@Override
 	public void commit() {
-		//noinspection DataFlowIssue
-		vh.set(getBelong(), value);
+		vh.set(belong, value);
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
-		bb.WriteInt(value);
-	}
-
-	@Override
-	public void decode(IByteBuffer bb) {
-		value = bb.ReadInt();
-	}
-
-	@Override
-	public String toString() {
-		return String.valueOf(value);
-	}
-
-	@Override
-	public int intValue() {
-		return value;
-	}
-
-	@Override
-	public long longValue() {
-		return value;
-	}
-
-	@Override
-	public double doubleValue() {
-		return value;
+	public void collectChanges(Changes changes) {
+		if (belong.isManaged())
+			changes.collect(belong, this);
 	}
 }

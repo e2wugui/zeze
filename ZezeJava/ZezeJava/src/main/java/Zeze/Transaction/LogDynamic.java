@@ -14,15 +14,28 @@ import org.jspecify.annotations.Nullable;
  * DynamicBean 的修改日志：记录 setBean 整体替换（specialTypeId+新bean），
  * 或未替换时内部bean的修改日志（logBean）；序列化用于历史（History）回放。
  */
-public class LogDynamic extends LogBean {
-	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.LogDynamic");
+public class LogDynamic extends LogBean implements TransactionLog {
+	private final @Nullable Bean belong;
+
+	@Override
+	public final @Nullable Bean getBelong() {
+		return belong;
+	}
+
+	@Override
+	public final Category category() {
+		return Category.eHistory;
+	}
+
+	public static final int TYPE_ID = Bean.hash32("Zeze.Transaction.LogDynamic");
 
 	long specialTypeId;
 	@Nullable Bean value;
 	@Nullable LogBean logBean;
 
 	public LogDynamic(@Nullable Bean belong, int varId, @Nullable Bean self) {
-		super(belong, varId, self);
+		super(varId, self);
+		this.belong = belong;
 	}
 
 	/**
@@ -36,7 +49,7 @@ public class LogDynamic extends LogBean {
 		var self = getThis();
 		if (self instanceof DynamicBean dynamic)
 			return dynamic.dynamicLogKey();
-		return super.getLogKey();
+		return TransactionLog.super.getLogKey();
 	}
 
 	@Override
@@ -45,7 +58,7 @@ public class LogDynamic extends LogBean {
 	}
 
 	@Override
-	public Log beginSavepoint() {
+	public TransactionLog beginSavepoint() {
 		var dup = new LogDynamic(getBelong(), getVariableId(), getThis());
 		dup.specialTypeId = specialTypeId;
 		dup.value = value;
@@ -60,11 +73,12 @@ public class LogDynamic extends LogBean {
 
 	// 收集内部的Bean发生了改变。
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public boolean addChild(Bean recent, Log vlog) {
 		if (logBean == null) {
 			logBean = (LogBean)vlog;
-			changes.collect(recent, this);
+			return true;
 		}
+		return false;
 	}
 
 	@Override
@@ -111,8 +125,7 @@ public class LogDynamic extends LogBean {
 		}
 	}
 
-	@Override
-	public void decode(IByteBuffer bb) {
+	private void read(IByteBuffer bb) {
 		var parentTypeName = bb.ReadString();
 		var varId = bb.ReadUInt();
 		if (bb.ReadBool()) { // hasValue
@@ -135,10 +148,21 @@ public class LogDynamic extends LogBean {
 				throw Task.forceThrow(e);
 			}
 		} else if (bb.ReadBool()) { // hasLogBean
-			// 解码侧LogBean仅作容器：belong/self为null，内部具体日志由Log.create按typeId构建，
+			// 解码侧LogBean仅作容器：belong/self为null，内部具体日志由LogRegistry.decode按typeId构建，
 			// 与LogBean.decodeLogBean的用法同型。
-			logBean = new LogBean(null, 0, null);
-			logBean.decode(bb);
+			logBean = LogBean.decode(0, bb);
 		}
+	}
+
+	public static LogDynamic decode(int varId, IByteBuffer bb) {
+		var log = new LogDynamic(null, varId, null);
+		log.read(bb);
+		return log;
+	}
+
+	@Override
+	public void collectChanges(Changes changes) {
+		var owner = getBelong();
+		if (owner != null && owner.isManaged()) changes.collect(owner, this);
 	}
 }

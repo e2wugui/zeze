@@ -17,7 +17,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
-import Zeze.Transaction.Log;
+import Zeze.Transaction.TransactionLog;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -124,7 +124,23 @@ public class HttpExchange {
 	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
 	private @Nullable EmptyBean responseHeadersBean; // 仅事务内修改header时分配独立objectId，this守护
 
-	private final class HeadersLog extends Log {
+	private final class HeadersLog implements TransactionLog {
+		private final EmptyBean owner;
+
+		@Override
+		public void collectChanges(Zeze.Transaction.Changes changes) {
+		}
+
+		@Override
+		public EmptyBean getBelong() {
+			return owner;
+		}
+
+		@Override
+		public int getVariableId() {
+			return 0;
+		}
+
 		final ArrayList<Object> headers;
 		@Nullable String sessionCookie;
 		@Nullable DeferredResponse response;
@@ -132,7 +148,7 @@ public class HttpExchange {
 		@Nullable ChannelFuture closeFuture;
 
 		HeadersLog(ArrayList<Object> headers, @Nullable String sessionCookie) {
-			super(responseHeadersBean, 0);
+			owner = Objects.requireNonNull(responseHeadersBean);
 			this.headers = headers;
 			this.sessionCookie = sessionCookie;
 		}
@@ -143,12 +159,7 @@ public class HttpExchange {
 		}
 
 		@Override
-		public int getTypeId() {
-			return 0; // eUser只用于本地提交，不进入wire/history
-		}
-
-		@Override
-		public Log beginSavepoint() {
+		public TransactionLog beginSavepoint() {
 			var copy = new HeadersLog(new ArrayList<>(headers), sessionCookie);
 			copy.response = response;
 			copy.closeMethod = closeMethod;

@@ -55,3 +55,30 @@ sourceSets {
         compileClasspath += sourceSets.main.compileClasspath
     }
 }
+
+// Hot jars contain generated Bean bytecode too. Rebuild them against the same transaction API
+// as the cold classes; an old getLog/putLog method descriptor otherwise fails only after RPC dispatch.
+def hotStageDir = layout.buildDirectory.dir('classes/java/hotstage')
+def stageHotClasses = tasks.register('stageHotClasses', Sync) {
+    dependsOn tasks.named('classes'), tasks.named('hotClasses')
+    from sourceSets.main.output.classesDirs
+    from sourceSets.hot.output.classesDirs
+    into hotStageDir
+}
+
+tasks.register('assembleHot', JavaExec) {
+    group = 'build'
+    description = 'Package the eight hot modules for local tests with the current transaction API.'
+    dependsOn stageHotClasses
+    mainClass = 'Zeze.Hot.Distribute'
+    classpath = files(hotStageDir) + sourceSets.main.runtimeClasspath
+    workingDir = projectDir
+    // Tests load provider bindings from the checked-in config. The optional live App reinitialization
+    // of Distribute would shadow hot classes with this packer's combined inspection classpath.
+    args '-privateBean', '-app', 'Game.App', '-workingDir', 'hot',
+            '-classes', hotStageDir.get().asFile.absolutePath
+    outputs.dir 'hot/modules'
+    outputs.dir 'hot/interfaces'
+    outputs.file 'hot/server.jar'
+    outputs.file 'hot/__hot_schemas__Game.jar'
+}

@@ -78,7 +78,7 @@ public sealed abstract class Meta2<K, V> permits Map1Meta, Map2Meta, SortedMap1M
 
 	// 身份构造：valueClass是擦除的共享类（GTable外层的BeanMap1/2.class）时，
 	// 真实列/值类型活在闭包——logTypeId/name改由valueIdentity完整身份串参与，否则
-	// 同keyClass的多个实例共享typeId，Log.register先到先得，解码端全局查表拿到别人的工厂。
+	// 同keyClass的多个实例共享typeId，LogRegistry.register先到先得，解码端全局查表拿到别人的工厂。
 	// identity用getStableName原料（内置类型短名"int"/"string"，bean全名），与hashLog语义一致。
 	Meta2(String headStr, long headHash, Class<K> keyClass, Class<V> valueClass,
 		  String valueIdentity, Supplier<V> ctor) {

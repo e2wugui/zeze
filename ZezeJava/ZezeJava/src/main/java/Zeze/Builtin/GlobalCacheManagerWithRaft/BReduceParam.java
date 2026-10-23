@@ -281,7 +281,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
             switch (_v_.getVariableId()) {
                 case 1: _GlobalKey = _v_.binaryValue(); break;
                 case 2: _State = _v_.intValue(); break;
-                case 3: _ReduceTid = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Util.Id128>)_v_).value; break;
+                case 3: _ReduceTid = ((Zeze.Transaction.Logs.LogBeanKeyValue<Zeze.Util.Id128>)_v_).value; break;
             }
         }
     }

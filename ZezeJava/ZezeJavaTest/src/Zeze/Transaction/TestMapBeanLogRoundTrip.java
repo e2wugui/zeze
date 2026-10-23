@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogList2;
@@ -14,7 +15,7 @@ import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Collections.PList2;
 import Zeze.Transaction.Collections.PSortedMap2;
 import Zeze.Transaction.Logs.LogLong;
-import Zeze.Util.OutInt;
+import Zeze.Transaction.Logs.LogLongValue;
 import demo.Module1.BValue;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
@@ -27,10 +28,35 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestMapBeanLogRoundTrip {
 	static {
-		Log.register(LogLong::new);
+		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogLong.TYPE_ID, "LogLong", LogLong::decode));
 	}
 
-	private record Fixture(Map<String, BValue> map, LogBean log, Consumer<Log> apply) {
+	private static final class Fixture {
+		private final Map<String, BValue> map;
+		private LogBean log;
+		private final Consumer<Log> apply;
+
+		Fixture(Map<String, BValue> map, LogBean log, Consumer<Log> apply) {
+			this.map = map;
+			this.log = log;
+			this.apply = apply;
+		}
+
+		Map<String, BValue> map() {
+			return map;
+		}
+
+		LogBean log() {
+			return log;
+		}
+
+		Consumer<Log> apply() {
+			return apply;
+		}
+
+		void decode(ByteBuffer input) {
+			log = Map2TestSupport.decode(log, input);
+		}
 	}
 
 	private static Fixture fixture(boolean sorted, String key) {
@@ -47,7 +73,7 @@ public class TestMapBeanLogRoundTrip {
 	@SuppressWarnings("unchecked")
 	private static Map<String, LogBean> index(LogBean log) {
 		return log instanceof LogMap2<?, ?> ? ((LogMap2<String, BValue>)log).getChangedWithKey()
-				: ((LogSortedMap2<String, BValue>)log).getChangedWithKey();
+			: ((LogSortedMap2<String, BValue>)log).getChangedWithKey();
 	}
 
 	private static void change(Fixture fixture, String key, long value) {
@@ -59,9 +85,8 @@ public class TestMapBeanLogRoundTrip {
 	}
 
 	private static LogBean beanLog(BValue bean, long value) {
-		var beanLog = new LogBean(null, 0, bean);
-		var fieldLog = new LogLong(2);
-		fieldLog.value = value;
+		var beanLog = new LogBean(0, bean);
+		var fieldLog = Map2TestSupport.longLog(2, value);
 		beanLog.getVariablesOrNew().put(2, fieldLog);
 		return beanLog;
 	}
@@ -74,24 +99,24 @@ public class TestMapBeanLogRoundTrip {
 
 	@Test
 	public void decodedChangesSurviveReencodingAndRemainEditable() {
-		for (boolean sorted : new boolean[] {false, true}) {
+		for (boolean sorted : new boolean[]{false, true}) {
 			var source = fixture(sorted, "k");
 			change(source, "k", 7);
 			var decoded = fixture(sorted, "k").log();
-			decoded.decode(encode(source.log()));
+			decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, encode(source.log()));
 			var follower = fixture(sorted, "k");
 			var oldBean = follower.map().get("k");
-			follower.log().decode(encode(decoded));
+			follower.decode(encode(decoded));
 			follower.apply().accept(follower.log());
 			assertSame(oldBean, follower.map().get("k"));
 			assertEquals(7, oldBean.getLong2());
 
-			requireNonNull(((LogLong)requireNonNull(index(decoded).get("k").getVariables()).get(2))).value = 11;
-			follower.log().decode(encode(decoded));
+			requireNonNull(((LogLongValue)requireNonNull(index(decoded).get("k").getVariables()).get(2))).value = 11;
+			follower.decode(encode(decoded));
 			follower.apply().accept(follower.log());
 			assertEquals(11, oldBean.getLong2());
 			index(decoded).clear();
-			follower.log().decode(encode(decoded));
+			follower.decode(encode(decoded));
 			assertTrue(index(follower.log()).isEmpty());
 			follower.apply().accept(follower.log());
 			assertEquals(11, oldBean.getLong2());
@@ -100,18 +125,18 @@ public class TestMapBeanLogRoundTrip {
 
 	@Test
 	public void reuseDecodeReplacesThePreviousIndexAndSourceChanges() {
-		for (boolean sorted : new boolean[] {false, true}) {
+		for (boolean sorted : new boolean[]{false, true}) {
 			var first = fixture(sorted, "first");
 			change(first, "first", 3);
 			var second = fixture(sorted, "second");
 			change(second, "second", 9);
 			var reused = fixture(sorted, "stale");
 			change(reused, "stale", 99);
-			reused.log().decode(encode(first.log()));
-			reused.log().decode(encode(second.log()));
+			reused.decode(encode(first.log()));
+			reused.decode(encode(second.log()));
 			assertEquals(Set.of("second"), index(reused.log()).keySet());
 			var follower = fixture(sorted, "second");
-			follower.log().decode(encode(reused.log()));
+			follower.decode(encode(reused.log()));
 			follower.apply().accept(follower.log());
 			assertEquals(9, follower.map().get("second").getLong2());
 		}
@@ -120,7 +145,7 @@ public class TestMapBeanLogRoundTrip {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void canonicalEncodingDoesNotReconsultTheSourceMap() {
-		for (boolean sorted : new boolean[] {false, true}) {
+		for (boolean sorted : new boolean[]{false, true}) {
 			var source = fixture(sorted, "k");
 			change(source, "k", 7);
 			var before = encode(source.log()).Copy();
@@ -129,9 +154,9 @@ public class TestMapBeanLogRoundTrip {
 			replacement.setLong2(13);
 			source.map().put("k", replacement);
 			assertArrayEquals(before, encode(source.log()).Copy(),
-					"encoding a canonical payload must not rebuild its keyed changes from a later source value");
+				"encoding a canonical payload must not rebuild its keyed changes from a later source value");
 			var follower = fixture(sorted, "k");
-			follower.log().decode(encode(source.log()));
+			follower.decode(encode(source.log()));
 			assertEquals(Set.of("k"), index(follower.log()).keySet());
 			follower.apply().accept(follower.log());
 			assertEquals(7, follower.map().get("k").getLong2());
@@ -147,32 +172,33 @@ public class TestMapBeanLogRoundTrip {
 
 	@SuppressWarnings("unchecked")
 	private static LogList2<BValue> listLog(PList2<BValue> list) {
-		return (LogList2<BValue>)list.createLogBean();
+		Zeze.History.Helper.registerLogList2(BValue.class);
+		return (LogList2<BValue>)list.createLogBean(null);
 	}
 
 	@Test
 	public void decodedListChangesSurviveReencodingAndRemainEditable() {
 		var source = list();
 		var sourceLog = listLog(source);
-		sourceLog.getChanged().put(beanLog(source.get(0), 7), new OutInt());
+		sourceLog.addChild(source, beanLog(source.get(0), 7));
 		var decoded = listLog(list());
-		decoded.decode(encode(sourceLog));
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, encode(sourceLog));
 		var follower = list();
 		var oldBean = follower.get(0);
 		var replay = listLog(follower);
-		replay.decode(encode(decoded));
+		replay = Zeze.Transaction.Map2TestSupport.decode(replay, encode(decoded));
 		follower.followerApply(replay);
 		assertSame(oldBean, follower.get(0));
 		assertEquals(7, oldBean.getLong2());
 		var entry = decoded.getChanged().entrySet().iterator().next();
-		requireNonNull(((LogLong)requireNonNull(entry.getKey().getVariables()).get(2))).value = 11;
+		requireNonNull(((LogLongValue)requireNonNull(entry.getKey().getVariables()).get(2))).value = 11;
 		entry.getValue().value = 1;
-		replay.decode(encode(decoded));
+		replay = Zeze.Transaction.Map2TestSupport.decode(replay, encode(decoded));
 		follower.followerApply(replay);
 		assertEquals(7, follower.get(0).getLong2());
 		assertEquals(11, follower.get(1).getLong2());
 		decoded.getChanged().clear();
-		replay.decode(encode(decoded));
+		replay = Zeze.Transaction.Map2TestSupport.decode(replay, encode(decoded));
 		assertTrue(replay.getChanged().isEmpty());
 	}
 
@@ -180,19 +206,19 @@ public class TestMapBeanLogRoundTrip {
 	public void reuseListDecodeReplacesChangesAndOperations() {
 		var first = list();
 		var firstLog = listLog(first);
-		firstLog.getChanged().put(beanLog(first.get(0), 3), new OutInt());
+		firstLog.addChild(first, beanLog(first.get(0), 3));
 		var second = list();
 		var secondLog = listLog(second);
-		secondLog.getChanged().put(beanLog(second.get(1), 9), new OutInt());
+		secondLog.addChild(second, beanLog(second.get(1), 9));
 		var reused = listLog(list());
-		reused.add(new BValue());
-		reused.decode(encode(firstLog));
-		reused.decode(encode(secondLog));
+		reused.getOpLogs().addAll(Zeze.Transaction.Collections.List2TestSupport.addOperation(2, new BValue()));
+		reused = Zeze.Transaction.Map2TestSupport.decode(reused, encode(firstLog));
+		reused = Zeze.Transaction.Map2TestSupport.decode(reused, encode(secondLog));
 		assertTrue(reused.getOpLogs().isEmpty());
 		assertEquals(1, reused.getChanged().size());
 		var follower = list();
 		var replay = listLog(follower);
-		replay.decode(encode(reused));
+		replay = Zeze.Transaction.Map2TestSupport.decode(replay, encode(reused));
 		follower.followerApply(replay);
 		assertEquals(0, follower.get(0).getLong2());
 		assertEquals(9, follower.get(1).getLong2());
@@ -200,20 +226,20 @@ public class TestMapBeanLogRoundTrip {
 	}
 
 	@Test
-	public void liveListReencodingStillFiltersReplacedBeans() {
+	public void canonicalListEncodingDoesNotReconsultTheSourceList() {
 		var source = list();
 		var sourceLog = listLog(source);
-		sourceLog.getChanged().put(beanLog(source.get(0), 7), new OutInt());
+		sourceLog.addChild(source, beanLog(source.get(0), 7));
 		encode(sourceLog);
 		assertEquals(1, sourceLog.getChanged().size());
 		var replacement = new BValue();
 		replacement.setLong2(13);
-		sourceLog.set(0, replacement);
+		source.set(0, replacement);
 		var follower = list();
 		var replay = listLog(follower);
-		replay.decode(encode(sourceLog));
-		assertTrue(replay.getChanged().isEmpty());
+		replay = Zeze.Transaction.Map2TestSupport.decode(replay, encode(sourceLog));
+		assertEquals(1, replay.getChanged().size());
 		follower.followerApply(replay);
-		assertEquals(13, follower.get(0).getLong2());
+		assertEquals(7, follower.get(0).getLong2());
 	}
 }

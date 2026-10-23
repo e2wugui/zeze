@@ -3,8 +3,9 @@ package Zeze.Transaction.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Set;
+
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Log;
+import Zeze.Transaction.TransactionLog;
 import Zeze.Transaction.Transaction;
 
 import org.jspecify.annotations.Nullable;
@@ -29,11 +30,11 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 			if (txn == null)
 				return set;
 			//noinspection DataFlowIssue
-			Log log = txn.getLog(parent().objectId() + variableId());
+			TransactionLog log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return set;
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)log;
+			var setLog = (LogSet<V>)log;
 			return setLog.getValue();
 		}
 		return set;
@@ -65,18 +66,18 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 		throw new UnsupportedOperationException();
 	}
 
-	public final void copyTo(V [] array, int arrayIndex) {
+	public final void copyTo(V[] array, int arrayIndex) {
 		for (V v : getSet())
 			array[arrayIndex++] = v;
 	}
 
 	@Override
-	public Object [] toArray() {
+	public Object[] toArray() {
 		return getSet().toArray();
 	}
 
 	@Override
-	public <T> T [] toArray(T [] a) {
+	public <T> T[] toArray(T[] a) {
 		return getSet().toArray(a);
 	}
 

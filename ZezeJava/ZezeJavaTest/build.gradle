@@ -149,6 +149,7 @@ tasks.register('integrationTest', Test) {
     description = '全量功能测试（不含 @Bench 吞吐基准），需要（或自动创建）SM(5001)/Global(5002) 环境。'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
+    dependsOn ':ZezexJava:server:assembleHot'
     useJUnitPlatform {
         excludeTags 'bench','fast','extra'
     }
@@ -167,6 +168,7 @@ tasks.register('extraTest', Test) {
     description = '不常用功能族附加测试（@Extra：history/dbh2/mq/rocketmq）。'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
+    dependsOn ':ZezexJava:server:assembleHot'
     useJUnitPlatform {
         includeTags 'extra'
     }
@@ -189,6 +191,7 @@ tasks.register('bench', Test) {
     systemProperty 'junit.jupiter.execution.timeout.default', '3600 s'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
+    dependsOn ':ZezexJava:server:assembleHot'
     useJUnitPlatform {
         includeTags 'bench'
     }

@@ -73,4 +73,13 @@ final class LogBeanCache {
 		}
 		return current;
 	}
+
+	void finishCollect() {
+		var current = map;
+		if (current != null) current.foreachValue(LogBean::finishCollect);
+		else {
+			if (firstLog != null) firstLog.finishCollect();
+			if (secondLog != null) secondLog.finishCollect();
+		}
+	}
 }

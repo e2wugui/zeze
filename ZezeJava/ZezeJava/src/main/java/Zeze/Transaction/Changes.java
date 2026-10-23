@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogMap2;
@@ -28,11 +29,13 @@ public final class Changes {
 	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
 	private final @Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners;
 	private final boolean collectAll;
+	private final Savepoint finalSavepoint;
 
 	Changes(boolean collectAll,
-			@Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners) {
+			@Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners, Savepoint finalSavepoint) {
 		this.collectAll = collectAll;
 		this.listeners = listeners;
+		this.finalSavepoint = finalSavepoint;
 	}
 
 	/** 先确认脏写，再决定是否全量采集。纯读、无监听器的普通提交不分配 Changes。 */
@@ -51,7 +54,7 @@ public final class Changes {
 				snapshot.putIfAbsent(table, listeners);
 			}
 		}
-		return (collectAll && hasDirty) || snapshot != null ? new Changes(collectAll, snapshot) : null;
+		return (collectAll && hasDirty) || snapshot != null ? new Changes(collectAll, snapshot, t.lastSavepoint()) : null;
 	}
 
 	public LongHashMap<LogBean> getBeans() {
@@ -68,20 +71,15 @@ public final class Changes {
 	}
 
 	/** 只创建并缓存节点，向上挂接由 collect 完成；与保存点日志迭代次序无关。 */
-	public LogBean getOrCreateLogBean(Bean bean) {
-		return getOrCreateLogBean(bean, null);
-	}
 
-	private LogBean getOrCreateLogBean(Bean bean, @Nullable ChangeLogSource source) {
-		// 先发布唯一缓存，再调用可重入工厂；工厂可能物化/修改公开 Map 或先发布同一节点。
+	public LogBean getOrCreateLogBean(Bean source) {
 		var nodes = getBeanCache();
-		long id = bean.objectId();
-		var log = nodes.get(id);
-		if (log == null) {
-			log = source != null ? source.createChangeLog() : bean.createChangeLog(this);
-			return nodes.putIfAbsent(id, log);
-		}
-		return log;
+		long id = source.objectId();
+		var existing = nodes.get(id);
+		if (existing != null) return existing;
+		long key = source.changeLogKey();
+		var finalLog = key != 0 ? finalSavepoint.getLog(key) : null;
+		return nodes.putIfAbsent(id, source.createLogBean(finalLog));
 	}
 
 	public static final class Record {
@@ -143,7 +141,7 @@ public final class Changes {
 
 		@SuppressWarnings("unchecked")
 		public <K extends Comparable<K>, V extends Bean> void forEachSortedMap2Upsert(
-				int variableId, BiConsumer<K, V> action) {
+			int variableId, BiConsumer<K, V> action) {
 			Map2ListenerView.forEachUpsert((LogSortedMap2<K, V>)sourceVariableLog(variableId), action);
 		}
 
@@ -194,7 +192,9 @@ public final class Changes {
 				value.encode(bb);
 				break;
 			case Edit:
-				bb.encode(logBean);
+				bb.WriteUInt(logBean.size());
+				for (var log : logBean)
+					log.encode(bb);
 				break;
 			}
 		}
@@ -209,7 +209,9 @@ public final class Changes {
 				value.decode(bb);
 				break;
 			case Edit:
-				bb.decode(logBean, () -> new LogBean(null, 0, null));
+				logBean.clear();
+				for (int count = bb.ReadUInt(); count > 0; --count)
+					logBean.add(LogBean.decode(0, bb));
 				break;
 			}
 		}
@@ -226,34 +228,43 @@ public final class Changes {
 		}
 	}
 
-	public void collect(Bean recent, Log log) {
-		var rootInfo = recent.rootInfo;
-		// is table has listener
-		//noinspection DataFlowIssue
-		if (!collectAll && (listeners == null || listeners.get(rootInfo.record().getTable()) == null))
+	public boolean isInterested(Bean source) {
+		if (collectAll)
+			return true;
+		var root = source.rootInfo;
+		if (root == null || listeners == null)
+			return false;
+		var record = root.record();
+		assert record != null;
+		return listeners.containsKey(record.getTable());
+	}
+
+	public void collect(Bean source, Log child) {
+		if (!isInterested(source)) return;
+		var node = getOrCreateLogBean(source);
+		if (node.addChild(source, child)) attach(source, node);
+	}
+
+	public void collectContainer(Bean source) {
+		if (isInterested(source)) attach(source, getOrCreateLogBean(source));
+	}
+
+	private void attach(Bean source, LogBean node) {
+		var parent = source.parent();
+		if (parent != null) {
+			collect(parent, node);
 			return;
-
-		// 先过滤表兴趣，再转换；不能给同一事务中的其他无消费者表创建载荷。
-		if (log instanceof ChangeLogSource source)
-			log = getOrCreateLogBean(source.getSourceBean(), source);
-
-		var belong = log.getBelong();
-		if (belong == null) {
-			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-			//noinspection DataFlowIssue
-			var tableKey = rootInfo.tableKey();
-			var r = records.get(tableKey);
-			if (r == null) {
-				//noinspection DataFlowIssue
-				r = new Record(rootInfo.record().getTable());
-				records.put(tableKey, r);
-			}
-			r.logBeans.put(recent, (LogBean)log);
-			return; // root
 		}
-
-		var logBean = getOrCreateLogBean(belong);
-		logBean.collect(this, belong, log);
+		var root = source.rootInfo;
+		assert root != null;
+		var key = root.tableKey();
+		var record = records.get(key);
+		if (record == null) {
+			var sourceRecord = root.record();
+			assert sourceRecord != null;
+			records.put(key, record = new Record(sourceRecord.getTable()));
+		}
+		record.logBeans.put(source, node);
 	}
 
 	public void collectRecord(RecordAccessed ar) {
@@ -304,5 +315,9 @@ public final class Changes {
 			// help gc
 			v.logBeans.clear();
 		}
+	}
+
+	void finishCollect() {
+		if (beans != null) beans.finishCollect();
 	}
 }

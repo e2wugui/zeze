@@ -3362,7 +3362,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
                 case 25: _map25.followerApply(_v_); break;
                 case 26: _map26.followerApply(_v_); break;
                 case 27: _dynamic27.followerApply(_v_); break;
-                case 28: _key28 = ((Zeze.Transaction.Logs.LogBeanKey<demo.Module1.Key>)_v_).value; break;
+                case 28: _key28 = ((Zeze.Transaction.Logs.LogBeanKeyValue<demo.Module1.Key>)_v_).value; break;
                 case 29: _array29.followerApply(_v_); break;
                 case 30: _list30.followerApply(_v_); break;
                 case 31: _list31.followerApply(_v_); break;

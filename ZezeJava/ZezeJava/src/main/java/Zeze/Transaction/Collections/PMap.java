@@ -6,8 +6,9 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Log;
+import Zeze.Transaction.TransactionLog;
 import Zeze.Transaction.Transaction;
 
 import org.jspecify.annotations.Nullable;
@@ -39,7 +40,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	@Override
 	public abstract void clear();
 
-	public final void copyTo(Map.Entry<K, V> [] array, int arrayIndex) {
+	public final void copyTo(Map.Entry<K, V>[] array, int arrayIndex) {
 		for (var e : getMap().entrySet())
 			array[arrayIndex++] = e;
 	}
@@ -50,11 +51,11 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 			if (txn == null)
 				return map;
 			//noinspection DataFlowIssue
-			Log log = txn.getLog(parent().objectId() + variableId());
+			TransactionLog log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return map;
 			//noinspection unchecked
-			var mapLog = (LogMap1<K, V>)log;
+			var mapLog = (LogMap<K, V>)log;
 			return mapLog.getValue();
 		}
 		return map;

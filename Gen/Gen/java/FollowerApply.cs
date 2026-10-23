@@ -116,7 +116,7 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})_v_).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Transaction.Logs.LogBeanKeyValue<{TypeName.GetName(type)}>)_v_).value; break;");
         }
 
         public void Visit(TypeDynamic type)

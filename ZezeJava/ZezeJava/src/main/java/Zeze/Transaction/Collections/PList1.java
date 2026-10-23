@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.function.UnaryOperator;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLog;
+import Zeze.Transaction.ChangeCaptureMode;
 
 import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
@@ -33,8 +36,7 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.add(item);
 		}
 		list = list.plus(item);
@@ -44,8 +46,7 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.remove((V)item);
 		}
 		var newList = list.minus(item);
@@ -60,8 +61,7 @@ public class PList1<V> extends PList<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 		} else
 			list = Persistents.vector();
@@ -74,8 +74,7 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.set(index, item);
 		}
 		var old = list.get(index);
@@ -90,8 +89,7 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.add(index, item);
 		} else
 			list = list.plus(index, item);
@@ -100,8 +98,7 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public V remove(int index) {
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.remove(index);
 		}
 		V old = list.get(index);
@@ -122,8 +119,7 @@ public class PList1<V> extends PList<V> {
 		}
 
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.addAll(items);
 		}
 		list = list.plusAll(items);
@@ -135,8 +131,7 @@ public class PList1<V> extends PList<V> {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.removeAll((Collection<V>)c);
 		}
 		// minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
@@ -166,12 +161,11 @@ public class PList1<V> extends PList<V> {
 			tmpList.add(v);
 		}
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 			listLog.addAll(tmpList);
 		} else
-			list =Persistents.<V>vector().plusAll(tmpList);
+			list = Persistents.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -181,17 +175,11 @@ public class PList1<V> extends PList<V> {
 		var tmpList = new ArrayList<>(this);
 		tmpList.sort(c);
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 			listLog.addAll(tmpList);
 		} else
-			list =Persistents.<V>vector().plusAll(tmpList);
-	}
-
-	@Override
-	public LogBean createLogBean() {
-		return new LogList1<>(parent(), variableId(), this, list, meta);
+			list = Persistents.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -213,8 +201,7 @@ public class PList1<V> extends PList<V> {
 	public void assign(PList1<V> plist) {
 		var items = plist.getList();
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 			listLog.addAll(items);
 		} else
@@ -249,5 +236,22 @@ public class PList1<V> extends PList<V> {
 		for (int i = n; i > 0; i--)
 			items.add(decoder.apply(bb));
 		addAll(items);
+	}
+
+	@Override
+	public TransactionLog createLog(ChangeCaptureMode mode) {
+		return mode == ChangeCaptureMode.NONE ? new LogListNoDelta<>(this, list)
+			: new LogList1Delta<>(this, list);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		if (finalLog == null)
+			return new LogList1<>(variableId(), this, meta, null);
+		if (!(finalLog instanceof LogList1Delta<?>))
+			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		var delta = (LogList1Delta<V>)finalLog;
+		return new LogList1<>(variableId(), this, meta, delta.getOpLogs());
 	}
 }

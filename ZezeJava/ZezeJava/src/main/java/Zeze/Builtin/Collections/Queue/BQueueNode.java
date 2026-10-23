@@ -317,7 +317,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             switch (_v_.getVariableId()) {
                 case 1: _NextNodeId = _v_.longValue(); break;
                 case 2: _Values.followerApply(_v_); break;
-                case 3: _NextNodeKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_v_).value; break;
+                case 3: _NextNodeKey = ((Zeze.Transaction.Logs.LogBeanKeyValue<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_v_).value; break;
             }
         }
     }

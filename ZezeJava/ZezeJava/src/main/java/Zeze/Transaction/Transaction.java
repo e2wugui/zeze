@@ -14,6 +14,8 @@ import Zeze.Application;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Transaction.Collections.Collection;
+import Zeze.Transaction.Collections.LogCollection;
 import Zeze.Util.Random;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -90,6 +92,9 @@ public final class Transaction {
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
 	private @Nullable HashMap<ResolveKey, Object> onceResolved; // resolveOnce 缓存，延迟初始化
 	private @Nullable OnzProcedure onzProcedure;
+	private boolean forceDelta;
+	// Computed while marking dirty records; avoids a second log scan on fully tracked commits.
+	private boolean hasUntrackedCollections;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
 	private volatile @Nullable Long tid;
@@ -178,6 +183,7 @@ public final class Transaction {
 		if (null != onceResolved)
 			onceResolved.clear();
 		onzProcedure = null;
+		forceDelta = false;
 		profiler.reset();
 	}
 
@@ -237,21 +243,21 @@ public final class Transaction {
 			last.mergeRollbackActions(actions);
 	}
 
-	public Log logGetOrAdd(long logKey, Supplier<Log> logFactory) {
+	public TransactionLog logGetOrAdd(long logKey, Supplier<? extends TransactionLog> logFactory) {
 		var log = getLog(logKey);
 		if (log == null)
 			putLog(log = logFactory.get());
 		return log;
 	}
 
-	public @Nullable Log getLog(long key) {
+	public @Nullable TransactionLog getLog(long key) {
 		verifyRunningOrCompleted();
 		// 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
 		var saveSize = savepoints.size();
 		return saveSize > 0 ? savepoints.get(saveSize - 1).getLog(key) : null;
 	}
 
-	public void putLog(Log log) {
+	public void putLog(TransactionLog log) {
 		verifyRunning();
 		savepoints.getLast().putLog(log);
 	}
@@ -354,6 +360,7 @@ public final class Transaction {
 	 * @param procedure first procedure
 	 */
 	public long perform(Procedure procedure) {
+		forceDelta = false;
 		if (null != onceResolved)
 			onceResolved.clear(); // 一次性解析缓存的生命周期 = 一次 perform（含redo重试），不跨事务
 		if (redoRollbackActions != null)
@@ -405,12 +412,16 @@ public final class Transaction {
 									// onz事务执行阶段的2段式同步等待。
 									OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 									if (onzProcedure != null) {
+										verifyChangeCapture(null, true);
 										onzProcedure.sendReadyAndWait();
 										if (onzProcedure.getFlushMode() != Onz.eFlushAsync)
 											flushMode = onzProcedure;
 									}
+									var history = procedure.getZeze().getHistory();
+									var changes = Changes.createIfNeeded(this, history != null);
+									verifyChangeCapture(changes, false);
 									try {
-										finalCommit(procedure, flushMode);
+										finalCommit(procedure, flushMode, changes, history);
 									} catch (RejectWhileStopping | IHistory.CommitRejectedException e) {
 										if (e instanceof IHistory.CommitRejectedException)
 											logger.error("history prepare rejected: {}", procedure.getActionName(), e);
@@ -646,26 +657,22 @@ public final class Transaction {
 		if (it != null) {
 			while (it.moveToNext()) {
 				var log = it.value();
-				if (log.category() != Log.Category.eHistory)
-					continue;
-				var logBelong = log.getBelong();
-				// 没有 Owner 的日志是特殊测试目的加入的，简单忽略。
-				if (logBelong != null && logBelong.isManaged())
-					changes.collect(logBelong, log);
+				if (log.category() == TransactionLog.Category.eHistory)
+					log.collectChanges(changes);
 			}
 		}
 		for (var ar : accessedRecords.values()) {
 			if (ar.dirty)
 				changes.collectRecord(ar);
 		}
+		changes.finishCollect();
 	}
 
-	private void finalCommit(Procedure proc, @Nullable OnzProcedure flushMode) throws Exception {
+	private void finalCommit(Procedure proc, @Nullable OnzProcedure flushMode,
+							 @Nullable Changes changes, @Nullable IHistory history) throws Exception {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		proc.getZeze().getProcedureLockWatcher().doWatch(proc, accessedRecords);
 		var lastSp = savepoints.getLast();
-		var history = proc.getZeze().getHistory();
-		var changes = Changes.createIfNeeded(this, history != null);
 		RelativeRecordSet.tryUpdateAndCheckpoint(this, proc, () -> {
 			try {
 				lastSp.mergeCommitActions(actions);
@@ -859,6 +866,7 @@ public final class Transaction {
 	}
 
 	private CheckResult lockAndCheck(Procedure procedure) {
+		hasUntrackedCollections = false;
 		var level = procedure.getTransactionLevel();
 		boolean allRead = true;
 		var saveSize = savepoints.size();
@@ -868,9 +876,13 @@ public final class Transaction {
 			var it = savepoints.get(saveSize - 1).logIterator();
 			if (it != null) {
 				while (it.moveToNext()) {
+					var log = it.value();
+					if (!hasUntrackedCollections && log instanceof LogCollection collection
+						&& !collection.hasDelta())
+						hasUntrackedCollections = true;
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
-					var belong = it.value().getBelong();
+					var belong = log.getBelong();
 					if (belong == null)
 						continue;
 
@@ -1047,4 +1059,42 @@ public final class Transaction {
 		}
 	}
 
+	Savepoint lastSavepoint() {
+		return savepoints.getLast();
+	}
+
+	/** Only a cache miss evaluates consumer policy; existing logs keep their mode in savepoints. */
+	public TransactionLog logGetOrAdd(Collection source) {
+		long key = source.changeLogKey();
+		var existing = getLog(key);
+		if (existing != null) return existing;
+		var root = source.rootInfo;
+		assert root != null;
+		var sourceRecord = root.record();
+		assert sourceRecord != null;
+		var table = sourceRecord.getTable();
+		boolean capture = forceDelta || onzProcedure != null || table.getZeze().getHistory() != null
+			|| table.getChangeListenerMap().hasListener();
+		var created = source.createLog(capture ? ChangeCaptureMode.DELTA : ChangeCaptureMode.NONE);
+		putLog(created);
+		return created;
+	}
+
+	/** Must run before an irreversible commit, and before Onz Ready when full capture is required. */
+	private void verifyChangeCapture(@Nullable Changes changes, boolean requireAll) {
+		if (!hasUntrackedCollections)
+			return;
+		if (!requireAll && changes == null) return;
+		var it = lastSavepoint().logIterator();
+		if (it == null) return;
+		while (it.moveToNext()) {
+			if (it.value() instanceof LogCollection collection
+				&& !collection.hasDelta() && (requireAll || changes.isInterested(collection.getSourceBean()))) {
+				forceDelta = true; // Remains set across redo; a new perform resets it.
+				var tableKey = collection.getSourceBean().tableKey();
+				assert tableKey != null;
+				throwRedo(tableKey.getId(), "change consumers require complete delta");
+			}
+		}
+	}
 }

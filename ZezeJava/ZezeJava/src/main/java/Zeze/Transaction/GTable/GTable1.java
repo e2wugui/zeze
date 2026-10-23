@@ -18,7 +18,7 @@ import static Zeze.Util.Json.ensureNotNull;
 @SuppressWarnings("unchecked")
 public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	// 外层logTypeId/name由(row,col,val)完整身份参与（GTable1专用家族头，与PMap2的
-	// LogMap2命名空间分流）——同row不同列/值类型的表不共享typeId，History回放端Log.create
+	// LogMap2命名空间分流）——同row不同列/值类型的表不共享typeId，History回放端LogRegistry.decode
 	// 按typeId查表各得其所。身份原料用getStableName（内置类型短名"int"/"string"，bean全名）。
 	static final String OUTER_HEAD = "Zeze.Transaction.GTable.GTable1<";
 	static final String OUTER_NAME_PREFIX = "GTable1:";

@@ -15,14 +15,13 @@ import harness.Fast;
 import harness.FastServerIds;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.pcollections.Empty;
 
 /**
  * 后启动态开表的回放日志注册回归：registerAllTableLogs 只在启动期
  * atomicOpenDatabase 执行一次，此后经 Application.openDynamicTable 打开的表
  * （enableHttpSession 后启分支、运行期 TableDynamic）其值 bean 的集合日志
  * typeId 永不注册——写侧 History.buildLogChanges 正常编码含该 typeId 的
- * LogBean 树落库，回放端 Log.create 抛 unknown log typeId 成毒记录卡死游标。
+ * LogBean 树落库，回放端 LogRegistry.decode 抛 unknown log typeId 成毒记录卡死游标。
  * 修复：openDynamicTable 路径同样执行依赖扫描注册（表登记与日志工厂注册同构）。
  */
 @Fast
@@ -57,26 +56,24 @@ public class TestDynamicTableLogRegistry {
 		try {
 			app.start(); // 启动闭包注册完毕；不含 BValue（demo 模块未挂载）
 
-			var mapTypeId = new LogMap1<Long, Long>(null, 0, null, Empty.map(),
-					Map1Meta.get(Long.class, Long.class)).getTypeId();
-			var sortedMapTypeId = new LogSortedMap1<Integer, Integer>(null, 0, null, Empty.sortedMap(),
-					SortedMap1Meta.get(Integer.class, Integer.class)).getTypeId();
+			var mapTypeId = new LogMap1<Long, Long>(0, null, Map1Meta.get(Long.class, Long.class), null, null).getTypeId();
+			var sortedMapTypeId = new LogSortedMap1<Integer, Integer>(0, null, null, SortedMap1Meta.get(Integer.class, Integer.class), null, null).getTypeId();
 
 			// 运行期动态开表（TableDynamic 构造器内即 openDynamicTable）。
 			new TableDynamic<Long, BValue>(app, "TestDynamicTableLogRegistry_t1",
-					key -> {
-						var bb = ByteBuffer.Allocate();
-						bb.WriteLong(key);
-						return bb;
-					},
-					bb -> bb.ReadLong(),
-					BValue::new, false, null, Long.class, BValue.class);
+				key -> {
+					var bb = ByteBuffer.Allocate();
+					bb.WriteLong(key);
+					return bb;
+				},
+				bb -> bb.ReadLong(),
+				BValue::new, false, null, Long.class, BValue.class);
 
-			Assertions.assertDoesNotThrow(() -> Log.create(mapTypeId, 0),
-					"动态开表后其值bean的map<long,long>日志typeId必须已注册"
-							+ "（缺失则回放端unknown log typeId毒记录卡死游标）");
-			Assertions.assertDoesNotThrow(() -> Log.create(sortedMapTypeId, 0),
-					"动态开表后其值bean的sortedmap<int,int>日志typeId必须已注册");
+			Assertions.assertDoesNotThrow(() -> java.util.Objects.requireNonNull(Zeze.Transaction.LogRegistry.getRegistered(mapTypeId)),
+				"动态开表后其值bean的map<long,long>日志typeId必须已注册"
+					+ "（缺失则回放端unknown log typeId毒记录卡死游标）");
+			Assertions.assertDoesNotThrow(() -> java.util.Objects.requireNonNull(Zeze.Transaction.LogRegistry.getRegistered(sortedMapTypeId)),
+				"动态开表后其值bean的sortedmap<int,int>日志typeId必须已注册");
 		} finally {
 			app.stop();
 		}

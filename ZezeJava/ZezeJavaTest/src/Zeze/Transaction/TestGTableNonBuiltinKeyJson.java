@@ -199,6 +199,7 @@ public class TestGTableNonBuiltinKeyJson {
 	@Test
 	public void testDecodeJsonTypedMapBeanKey() {
 		var meta = Map1Meta.get(BDeptKey.class, Integer.class);
+		Zeze.History.Helper.registerLogMap1Meta(meta);
 		var src = new BeanMap1<>(meta);
 		src.put(new BDeptKey("alice", 5), 42);
 		var json = Zeze.Serialize.Helper.encodeJson(src);

@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
 import Zeze.Config;
-import Zeze.Transaction.Collections.LogMap1;
-import Zeze.Transaction.Collections.LogSortedMap1;
+import Zeze.Transaction.Collections.LogMap2;
+import Zeze.Transaction.Collections.LogSortedMap2;
 import demo.Module1.BSimple;
 import demo.Module1.tflush;
 import harness.Fast;
@@ -61,6 +61,7 @@ public class TestPMap2PutAllAfterInPlaceModify {
 				table.getOrAdd(1L).getSortedmap2().put(1, bean(5));
 				return Procedure.Success;
 			}, "seed").call());
+			table.getChangeListenerMap().addListener((key, record) -> { });
 
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
 				// PMap2路径
@@ -71,7 +72,7 @@ public class TestPMap2PutAllAfterInPlaceModify {
 				var fresh = bean(42);      // 与修改后内容equals相等的新实例
 				map.putAll(Map.of(1L, fresh));
 
-				var log = (LogMap1<Long, BSimple>)Transaction.getCurrent().getLog(logKey);
+				var log = (LogMap2<Long, BSimple>)map.createLogBean(Transaction.getCurrent().getLog(logKey));
 				Assertions.assertTrue(requireNonNull(log).getReplaced().containsKey(1L),
 						"PMap2：原位修改后putAll等值新实例，该键必须记入replaced"
 								+ "（值等过滤与changed身份过滤叠加会整体丢增量）");
@@ -86,7 +87,7 @@ public class TestPMap2PutAllAfterInPlaceModify {
 				var sFresh = bean(42);
 				smap.putAll(Map.of(1, sFresh));
 
-				var sLog = (LogSortedMap1<Integer, BSimple>)Transaction.getCurrent().getLog(sLogKey);
+				var sLog = (LogSortedMap2<Integer, BSimple>)smap.createLogBean(Transaction.getCurrent().getLog(sLogKey));
 				Assertions.assertTrue(requireNonNull(sLog).getReplaced().containsKey(1),
 						"PSortedMap2：原位修改后putAll等值新实例，该键必须记入replaced");
 				Assertions.assertSame(sFresh, sLog.getReplaced().get(1));

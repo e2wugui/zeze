@@ -1,35 +1,28 @@
 package Zeze.Transaction.Logs;
 
 import java.lang.invoke.VarHandle;
-import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.IByteBuffer;
+
 import Zeze.Serialize.Serializable;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.BeanKeyMeta;
-import Zeze.Transaction.Log;
-import Zeze.Util.Task;
-import org.jspecify.annotations.Nullable;
 
-/** BeanKey（值语义）字段的修改日志：整体替换，typeId 按值类型派生。 */
-public class LogBeanKey<T extends Serializable> extends Log {
-	private final BeanKeyMeta<T> meta;
-	private final @Nullable VarHandle vh;
-	public @Nullable T value;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.Changes;
+import Zeze.Transaction.TransactionLog;
 
-	// meta 由两端各自按声明类预建（写端：生成器meta_静态字段；
-	// 读端：History/Helper.registerLogBeanKey 注册工厂），天然对称，勿改用
-	// 子类实例构造本Log（生成器保证BeanKey无子类）。
-	public LogBeanKey(@Nullable Bean belong, int varId, @Nullable VarHandle vh, BeanKeyMeta<T> meta, T value) {
-		super(belong, varId);
-		this.meta = meta;
+/** Local field write; the inherited value is also its complete change payload. */
+public class LogBeanKey<T extends Serializable> extends LogBeanKeyValue<T> implements TransactionLog {
+	private final Bean belong;
+	private final VarHandle vh;
+
+	public LogBeanKey(Bean belong, int varId, VarHandle vh, BeanKeyMeta<T> meta, T value) {
+		super(varId, meta, value);
+		this.belong = belong;
 		this.vh = vh;
-		this.value = value;
 	}
 
-	public LogBeanKey(int varId, BeanKeyMeta<T> meta) { // for decode
-		super(null, varId);
-		this.meta = meta;
-		vh = null;
+	@Override
+	public final Bean getBelong() {
+		return belong;
 	}
 
 	@Override
@@ -38,43 +31,13 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
-	public int getTypeId() {
-		return meta.logTypeId;
-	}
-
-	@Override
-	public String getTypeName() {
-		return meta.name;
-	}
-
-	@Override
 	public void commit() {
-		//noinspection DataFlowIssue
-		vh.set(getBelong(), value);
+		vh.set(belong, value);
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
-		//noinspection DataFlowIssue
-		value.encode(bb);
-	}
-
-	// (T)强转在JDK21的-Xlint:unchecked下不报（签名多态invoke返回值的强转，JDK26起会报），
-	// 注解而非noinspection：对齐Raft孪生Log1.LogBeanKey.decode，IDE与javac任一语义都压制。
-	@SuppressWarnings("unchecked")
-	@Override
-	public void decode(IByteBuffer bb) {
-		try {
-			//noinspection DataFlowIssue
-			value = (T)meta.valueFactory.invoke();
-		} catch (Throwable e) { // MethodHandle.invoke
-			throw Task.forceThrow(e);
-		}
-		value.decode(bb);
-	}
-
-	@Override
-	public String toString() {
-		return value != null ? value.toString() : "null";
+	public void collectChanges(Changes changes) {
+		if (belong.isManaged())
+			changes.collect(belong, this);
 	}
 }

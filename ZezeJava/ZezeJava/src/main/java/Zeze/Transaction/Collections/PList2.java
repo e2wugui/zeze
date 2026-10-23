@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -13,6 +14,8 @@ import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLog;
+import Zeze.Transaction.ChangeCaptureMode;
 import Zeze.Util.Task;
 
 import org.jspecify.annotations.Nullable;
@@ -53,8 +56,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			// 先取写权限后挂接：无当前事务/记录不可写时getCurrentVerifyWrite抛出，
 			// 若先挂接（initRootInfoWithRedo改写bean归属，普通字段写不受回滚保护），
 			// 输入bean永久污染（isManaged=true，复用抛HasManagedException）。
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			item.initRootInfoWithRedo(rootInfo, this);
 			return listLog.add(item);
 		}
@@ -65,8 +67,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.remove((V)item);
 		}
 		var newList = list.minus(item);
@@ -81,8 +82,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 		} else
 			list = Persistents.vector();
@@ -102,8 +102,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			var cur = getList();
 			if (index < 0 || index >= cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			item.initRootInfoWithRedo(rootInfo, this);
 			return listLog.set(index, item);
 		}
@@ -124,8 +123,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			var cur = getList();
 			if (index < 0 || index > cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			item.initRootInfoWithRedo(rootInfo, this);
 			listLog.add(index, item);
 		} else
@@ -135,8 +133,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	@Override
 	public V remove(int index) {
 		if (isManaged()) {
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.remove(index);
 		}
 		V old = list.get(index);
@@ -160,8 +157,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					throw new IllegalArgumentException("null item");
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			for (V v : items)
 				v.initRootInfoWithRedo(rootInfo, this);
 			return listLog.addAll(items);
@@ -179,8 +175,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.removeAll((Collection<? extends V>)c);
 		}
 		// minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
@@ -216,8 +211,7 @@ public class PList2<V extends Bean> extends PList<V> {
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 				tmpList.add(newV);
 			}
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			int i = 0;
 			for (V v : origin) {
 				V newV = tmpList.get(i++);
@@ -233,7 +227,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					throw new IllegalStateException("null item");
 				tmpList.add(v);
 			}
-			list =Persistents.<V>vector().plusAll(tmpList);
+			list = Persistents.<V>vector().plusAll(tmpList);
 		}
 	}
 
@@ -244,24 +238,18 @@ public class PList2<V extends Bean> extends PList<V> {
 		var tmpList = new ArrayList<>(this);
 		tmpList.sort(c);
 		if (isManaged()) {
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 			listLog.addAll(tmpList);
 		} else
-			list =Persistents.<V>vector().plusAll(tmpList);
-	}
-
-	@Override
-	public LogBean createLogBean() {
-		return new LogList2<>(parent(), variableId(), this, list, meta);
+			list = Persistents.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
 	public void followerApply(Log _log) {
 		var log = (LogList2<V>)_log;
 		var tmp = list;
-		for (var opLog : log.getOpLogs()) {
+		for (var opLog : log.operationsForRead()) {
 			tmp = switch (opLog.op) {
 				case LogList1.OpLog.OP_MODIFY -> {
 					opLog.value.initRootInfo(rootInfo, this);
@@ -278,11 +266,11 @@ public class PList2<V extends Bean> extends PList<V> {
 		}
 
 		// apply changed
-		for (var e : log.getChanged().entrySet()) {
+		for (var e : log.changesForRead().entrySet()) {
 			// 正常重放下index必在界内（LogList2.encode只保留最终列表中存在的bean并按最终列表计算index），
 			// 越界只能是先行分歧（日志丢失/重复/交错应用）：直接get抛IndexOutOfBoundsException，
 			// 由驱动方裁决——raft路径Rocks.followerApply统一catch+fatalKill（镜像实现CollList2同款）；
-				// History回放路径批中断而非warn+skip尽力而为。抛出只证明应用路径无硬分歧，
+			// History回放路径批中断而非warn+skip尽力而为。抛出只证明应用路径无硬分歧，
 			// 不证明最终数值一致：错位应用（stale index落在界内指向错误元素）不抛异常、
 			// 历史缺失不抛异常，仍由Verify.verifyAndClear全量对账兜底。抛出时list未提交，容器保持原状。
 			tmp.get(e.getValue().value).followerApply(e.getKey());
@@ -366,5 +354,22 @@ public class PList2<V extends Bean> extends PList<V> {
 		var dataList = new ArrayList<D>(beanList.size());
 		Bean.toDataList(beanList, dataList);
 		return dataList;
+	}
+
+	@Override
+	public TransactionLog createLog(ChangeCaptureMode mode) {
+		return mode == ChangeCaptureMode.NONE ? new LogListNoDelta<>(this, list)
+			: new LogList2Delta<>(this, list);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		if (finalLog == null)
+			return new LogList2<>(variableId(), this, meta, null, null);
+		if (!(finalLog instanceof LogList2Delta<?>))
+			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		var delta = (LogList2Delta<V>)finalLog;
+		return new LogList2<>(variableId(), this, meta, delta.getOpLogs(), delta.addedIdentities());
 	}
 }

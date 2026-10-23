@@ -1,28 +1,25 @@
 package Zeze.Transaction.Logs;
 
 import java.lang.invoke.VarHandle;
-import Zeze.Serialize.IByteBuffer;
+
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Log;
-import Zeze.Serialize.ByteBuffer;
-import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.Changes;
+import Zeze.Transaction.TransactionLog;
 
-/** float 字段原子修改日志：携带新值，commit 经 VarHandle 写回，序列化为 4 字节浮点。 */
-public class LogFloat extends Log {
-	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<float>");
+/** Local field write; the inherited value is also its complete change payload. */
+public class LogFloat extends LogFloatValue implements TransactionLog {
+	private final Bean belong;
+	private final VarHandle vh;
 
-	private final @Nullable VarHandle vh;
-	public float value;
-
-	public LogFloat(@Nullable Bean belong, int varId, @Nullable VarHandle vh, float value) {
-		super(belong, varId);
+	public LogFloat(Bean belong, int varId, VarHandle vh, float value) {
+		super(varId, value);
+		this.belong = belong;
 		this.vh = vh;
-		this.value = value;
 	}
 
-	public LogFloat(int varId) {
-		super(null, varId);
-		vh = null;
+	@Override
+	public final Bean getBelong() {
+		return belong;
 	}
 
 	@Override
@@ -31,43 +28,13 @@ public class LogFloat extends Log {
 	}
 
 	@Override
-	public int getTypeId() {
-		return TYPE_ID;
-	}
-
-	@Override
 	public void commit() {
-		//noinspection DataFlowIssue
-		vh.set(getBelong(), value);
+		vh.set(belong, value);
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
-		bb.WriteFloat(value);
-	}
-
-	@Override
-	public void decode(IByteBuffer bb) {
-		value = bb.ReadFloat();
-	}
-
-	@Override
-	public String toString() {
-		return String.valueOf(value);
-	}
-
-	@Override
-	public long longValue() {
-		return (long)value;
-	}
-
-	@Override
-	public float floatValue() {
-		return value;
-	}
-
-	@Override
-	public double doubleValue() {
-		return value;
+	public void collectChanges(Changes changes) {
+		if (belong.isManaged())
+			changes.collect(belong, this);
 	}
 }

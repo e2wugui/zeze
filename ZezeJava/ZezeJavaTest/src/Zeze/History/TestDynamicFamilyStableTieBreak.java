@@ -112,7 +112,7 @@ public class TestDynamicFamilyStableTieBreak {
 
 	// gtable 外层 pmapMeta（FND26 H/M-1 + FND27 H1，外层收口）：同 (rowClass,colClass) 的
 	// dynamic gtable 变量外层 typeId 相同而 valueCtor 各异——修复前走 map2Metas 的 HashSet
-	// 身份序+Log.register 先到先得，胜者跨 JVM/重启翻转（回放解码工厂非确定）。修复后按
+	// 身份序+LogRegistry.register 先到先得，胜者跨 JVM/重启翻转（回放解码工厂非确定）。修复后按
 	// 来源名字典序决胜，后到更小者必须替换占位者。
 	@Test
 	public void testOuterGTableMetaStableTieBreak() throws Exception {

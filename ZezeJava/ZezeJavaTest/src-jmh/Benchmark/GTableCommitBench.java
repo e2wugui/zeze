@@ -1,7 +1,7 @@
 package Benchmark;
 
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.History.History;
@@ -159,7 +159,8 @@ public class GTableCommitBench {
 			if (scalarFamily)
 				scalarTable.getOrAdd(1L).getGTable().put(0, 0, expectedValue);
 			else
-				Objects.requireNonNull(beanTable.getOrAdd(1L).getGTable().get(0, 0)).setIntVar(expectedValue);
+				//noinspection DataFlowIssue
+				beanTable.getOrAdd(1L).getGTable().get(0, 0).setIntVar(expectedValue);
 			return 0L;
 		}, "GTableCommitBench.commit").call());
 		++measuredCommits;
@@ -171,12 +172,13 @@ public class GTableCommitBench {
 	private void consumeListener(Object key, Changes.Record record) {
 		try {
 			if (!Long.valueOf(1).equals(key) || record.getState() != Changes.Record.Edit
-					|| !(record.getVariableLog(1) instanceof LogMap2<?, ?>))
+				|| !(record.getVariableLog(1) instanceof LogMap2<?, ?>))
 				throw new IllegalStateException("expected one edited GTable root");
-			var source = Objects.requireNonNull(record.getValue());
+			var source = record.getValue();
+			//noinspection DataFlowIssue
 			int value = scalarFamily
-					? Objects.requireNonNull(((demo.ModuleGTable.BValue)source).getGTable().get(0, 0))
-					: Objects.requireNonNull(((demo.ModuleGTable.BValue2)source).getGTable().get(0, 0)).getIntVar();
+				? ((demo.ModuleGTable.BValue)source).getGTable().get(0, 0)
+				: ((demo.ModuleGTable.BValue2)source).getGTable().get(0, 0).getIntVar();
 			if (value != expectedValue)
 				throw new IllegalStateException("listener source value=" + value);
 			var encoded = ByteBuffer.Allocate();
@@ -194,7 +196,7 @@ public class GTableCommitBench {
 		long expected = withConsumers ? measuredCommits : 0;
 		if (prepares != expected || captures != expected || notifications != expected)
 			throw new IllegalStateException("consumer count: commits=" + measuredCommits + ", prepares=" + prepares
-					+ ", captures=" + captures + ", notifications=" + notifications);
+				+ ", captures=" + captures + ", notifications=" + notifications);
 	}
 
 	@TearDown(Level.Trial)
@@ -210,7 +212,8 @@ public class GTableCommitBench {
 						if (values.row(row).size() != entries)
 							throw new IllegalStateException("final column count=" + values.row(row).size());
 						for (int column = 0; column < entries; ++column)
-							verifyValue(Objects.requireNonNull(values.get(row, column)), row, column);
+							//noinspection DataFlowIssue
+							verifyValue(values.get(row, column), row, column);
 					}
 				} else {
 					var values = beanTable.getOrAdd(1L).getGTable();
@@ -220,7 +223,8 @@ public class GTableCommitBench {
 						if (values.row(row).size() != entries)
 							throw new IllegalStateException("final column count=" + values.row(row).size());
 						for (int column = 0; column < entries; ++column)
-							verifyValue(Objects.requireNonNull(values.get(row, column)).getIntVar(), row, column);
+							//noinspection DataFlowIssue
+							verifyValue(values.get(row, column).getIntVar(), row, column);
 					}
 				}
 				return 0L;
@@ -240,24 +244,50 @@ public class GTableCommitBench {
 	private final class CaptureHistory implements IHistory {
 		private final Table table;
 		private final PendingHistory completed = new PendingHistory() {
-			@Override public Table getTable() { return table; }
-			@Override public void mergeFrom(PendingHistory from) {
+			@Override
+			public Table getTable() {
+				return table;
+			}
+
+			@Override
+			public void mergeFrom(PendingHistory from) {
 				if (from != this)
 					throw new IllegalArgumentException("foreign capture-only token");
 			}
-			@Override public PendingHistory snapshot() { return this; }
-			@Override public void encode0() { }
-			@Override public void writeOnly(Database.Table target, Database.Transaction transaction) { }
-			@Override public void onPersisted() { }
+
+			@Override
+			public PendingHistory snapshot() {
+				return this;
+			}
+
+			@Override
+			public void encode0() {
+			}
+
+			@Override
+			public void writeOnly(Database.Table target, Database.Transaction transaction) {
+			}
+
+			@Override
+			public void onPersisted() {
+			}
 		};
 
 		private CaptureHistory(Table table) {
 			this.table = table;
 		}
 
-		@Override public void registerLogs(Iterable<Table> tables) { }
-		@Override public void afterOpen() { }
-		@Override public void close() { }
+		@Override
+		public void registerLogs(Iterable<Table> tables) {
+		}
+
+		@Override
+		public void afterOpen() {
+		}
+
+		@Override
+		public void close() {
+		}
 
 		@Override
 		public PreparedCommit prepareCommit(Procedure procedure) {

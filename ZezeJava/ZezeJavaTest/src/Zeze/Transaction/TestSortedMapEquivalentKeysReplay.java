@@ -1,9 +1,12 @@
 package Zeze.Transaction;
 
+import Zeze.Transaction.Collections.LogSortedMap1Delta;
+
 import static java.util.Objects.requireNonNull;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogSortedMap1;
@@ -14,10 +17,12 @@ import Zeze.Transaction.Collections.PSortedMap2;
 import Zeze.Transaction.Collections.SortedMap1Meta;
 import Zeze.Transaction.Collections.SortedMap2Meta;
 import Zeze.Transaction.Logs.LogLong;
+import Zeze.Transaction.Logs.LogLongValue;
 import demo.Module1.BValue;
 import demo.ModuleGTable.Bean1;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -26,22 +31,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestSortedMapEquivalentKeysReplay {
 	static {
-		Log.register(LogLong::new);
+		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogLong.TYPE_ID, "LogLong", LogLong::decode));
 	}
 
 	private static PSortedMap2<String, BValue> newCaseInsensitiveBeanMap() {
 		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		// Seed the comparator through the write-log base; no wire payload is used as a write intent.
-		var initial = new LogSortedMap1<String, BValue>(null, 1, map,
-				org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER), map.getMeta());
+		var initial = new LogSortedMap1Delta<String, BValue>(map, org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER));
 		initial.commit();
 		return map;
 	}
 
 	private static PSortedMap1<String, Integer> newCaseInsensitiveValueMap() {
 		var map = new PSortedMap1<String, Integer>(String.class, Integer.class);
-		var initial = new LogSortedMap1<String, Integer>(null, 1, map,
-				org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER), map.getMeta());
+		var initial = new LogSortedMap1Delta<String, Integer>(map, org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER));
 		initial.commit();
 		return map;
 	}
@@ -50,14 +53,15 @@ public class TestSortedMapEquivalentKeysReplay {
 	public void removalWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		var meta = SortedMap1Meta.get(BigDecimal.class, Integer.class);
-		var log = new LogSortedMap1<BigDecimal, Integer>(null, 1, leader, leader.getMap(), meta);
+		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
+		var log = new LogSortedMap1Delta<BigDecimal, Integer>(leader, leader.getMap());
 		log.put(new BigDecimal("1.0"), 10);
 		assertEquals(10, log.remove(new BigDecimal("1.00")));
 		log.commit();
 
 		var input = encode(log);
-		var decoded = new LogSortedMap1<BigDecimal, Integer>(null, 1, null, leader.getMap(), meta);
-		decoded.decode(input);
+		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null, null);
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		var follower = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		follower.followerApply(decoded);
 		assertTrue(input.isEmpty());
@@ -69,14 +73,15 @@ public class TestSortedMapEquivalentKeysReplay {
 	public void latestReplacementWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		var meta = SortedMap1Meta.get(BigDecimal.class, Integer.class);
-		var log = new LogSortedMap1<BigDecimal, Integer>(null, 1, leader, leader.getMap(), meta);
+		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
+		var log = new LogSortedMap1Delta<BigDecimal, Integer>(leader, leader.getMap());
 		log.put(new BigDecimal("1.00"), 10);
 		assertEquals(10, log.put(new BigDecimal("1.0"), 20));
 		log.commit();
 
 		var input = encode(log);
-		var decoded = new LogSortedMap1<BigDecimal, Integer>(null, 1, null, leader.getMap(), meta);
-		decoded.decode(input);
+		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null, null);
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		var follower = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		follower.followerApply(decoded);
 		assertTrue(input.isEmpty());
@@ -91,14 +96,15 @@ public class TestSortedMapEquivalentKeysReplay {
 		leader.put(new BigDecimal("1.0"), 10);
 		var follower = leader.copy();
 		var meta = SortedMap1Meta.get(BigDecimal.class, Integer.class);
-		var log = new LogSortedMap1<BigDecimal, Integer>(null, 1, leader, leader.getMap(), meta);
+		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
+		var log = new LogSortedMap1Delta<BigDecimal, Integer>(leader, leader.getMap());
 		assertEquals(10, log.remove(new BigDecimal("1.00")));
 		log.put(new BigDecimal("1.000"), 20);
 		log.commit();
 
 		var input = encode(log);
-		var decoded = new LogSortedMap1<BigDecimal, Integer>(null, 1, null, leader.getMap(), meta);
-		decoded.decode(input);
+		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null, null);
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		follower.followerApply(decoded);
 		assertTrue(input.isEmpty());
 		assertEquals(1, follower.size());
@@ -109,19 +115,21 @@ public class TestSortedMapEquivalentKeysReplay {
 	public void nestedRemovalWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		var meta = SortedMap1Meta.get(BigDecimal.class, Integer.class);
-		var log = new LogSortedMap1<BigDecimal, Integer>(new EmptyBean(), 1, leader, leader.getMap(), meta);
+		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
+		var log = new LogSortedMap1Delta<BigDecimal, Integer>(leader, leader.getMap());
 		log.put(new BigDecimal("1.0"), 10);
+		Map2TestSupport.attach(leader);
 		var savepoint = new Savepoint();
 		savepoint.putLog(log);
 		@SuppressWarnings("unchecked")
-		var nested = (LogSortedMap1<BigDecimal, Integer>)log.beginSavepoint();
+		var nested = (LogSortedMap1Delta<BigDecimal, Integer>)log.beginSavepoint();
 		assertEquals(10, nested.remove(new BigDecimal("1.00")));
 		nested.endSavepoint(savepoint);
 		log.commit();
 
 		var input = encode(log);
-		var decoded = new LogSortedMap1<BigDecimal, Integer>(null, 1, null, leader.getMap(), meta);
-		decoded.decode(input);
+		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null, null);
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		var follower = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		follower.followerApply(decoded);
 		assertTrue(input.isEmpty());
@@ -133,16 +141,17 @@ public class TestSortedMapEquivalentKeysReplay {
 	public void beanRemovalWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap2<BigDecimal, Bean1>(BigDecimal.class, Bean1.class);
 		var meta = SortedMap2Meta.get(BigDecimal.class, Bean1.class);
+		Zeze.History.Helper.registerLogSortedMap2Meta(meta);
 		var bean = new Bean1();
 		bean.setIntVar(10);
 		leader.put(new BigDecimal("1.0"), bean);
 		var log = Map2DeltaTestSupport.sorted(leader,
-				delta -> assertEquals(bean, delta.remove(new BigDecimal("1.00"))));
+			delta -> assertEquals(bean, delta.remove(new BigDecimal("1.00"))));
 		assertTrue(log.getRemoved().contains(new BigDecimal("1.000")));
 
 		var input = encode(log);
-		var decoded = new LogSortedMap2<BigDecimal, Bean1>(null, 1, null, leader.getMap(), meta);
-		decoded.decode(input);
+		var decoded = new LogSortedMap2<BigDecimal, Bean1>(1, null, leader.getMap().comparator(), meta, null, null);
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		var follower = new PSortedMap2<BigDecimal, Bean1>(BigDecimal.class, Bean1.class);
 		follower.put(new BigDecimal("1.0"), new Bean1());
 		follower.followerApply(decoded);
@@ -171,27 +180,26 @@ public class TestSortedMapEquivalentKeysReplay {
 	}
 
 	private static <K extends Comparable<K>> void assertBeanChangeReplay(
-			PSortedMap2<K, BValue> leader, PSortedMap2<K, BValue> follower, K equivalentKey) {
+		PSortedMap2<K, BValue> leader, PSortedMap2<K, BValue> follower, K equivalentKey) {
 		var value = leader.get(equivalentKey);
 		requireNonNull(value).setLong2(7);
-		var change = new LogBean(null, 0, value);
-		var field = new LogLong(2); // BValue.long2
-		field.value = 7;
+		var change = new LogBean(0, value);
+		var field = Map2TestSupport.longLog(2, 7);
 		change.getVariablesOrNew().put(2, field);
 		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<K, BValue>)Map2TestSupport.collect(leader, change);
 		assertEquals(1, log.getChangedWithKey().size());
 		assertSame(change, log.getChangedWithKey().get(equivalentKey),
-				"原位修改索引须使用底层映射的键等价关系");
+			"原位修改索引须使用底层映射的键等价关系");
 
 		var input = encode(log);
 		@SuppressWarnings("unchecked")
 		var decoded = Map2TestSupport.wireLog(follower);
-		decoded.decode(input);
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		assertTrue(input.isEmpty());
 		assertEquals(1, decoded.getChangedWithKey().size());
 		var changed = requireNonNull(decoded.getChangedWithKey().get(equivalentKey));
-		var valueLog = (LogLong)requireNonNull(requireNonNull(changed.getVariables()).get(2));
+		var valueLog = (LogLongValue)requireNonNull(requireNonNull(changed.getVariables()).get(2));
 		assertEquals(7, valueLog.value);
 		var followerValue = follower.get(equivalentKey);
 		follower.followerApply(decoded);
@@ -204,12 +212,12 @@ public class TestSortedMapEquivalentKeysReplay {
 
 	@Test
 	public void putAllEquivalentKeysRecordsTheFinalValue() {
-		for (boolean priorReplacement : new boolean[] {false, true}) {
+		for (boolean priorReplacement : new boolean[]{false, true}) {
 			var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 			leader.put(new BigDecimal("1"), 10);
 			var follower = leader.copy();
 			@SuppressWarnings("unchecked")
-			var log = (LogSortedMap1<BigDecimal, Integer>)leader.createLogBean();
+			var log = (LogSortedMap1Delta<BigDecimal, Integer>)leader.createLog(ChangeCaptureMode.DELTA);
 			if (priorReplacement)
 				log.put(new BigDecimal("1.000"), 20);
 			var input = new LinkedHashMap<BigDecimal, Integer>();
@@ -223,8 +231,8 @@ public class TestSortedMapEquivalentKeysReplay {
 				assertTrue(log.getReplaced().isEmpty(), "恢复旧值不得留下中间输入的替换日志");
 			log.commit();
 			@SuppressWarnings("unchecked")
-			var decoded = (LogSortedMap1<BigDecimal, Integer>)follower.createLogBean();
-			decoded.decode(encode(log));
+			var decoded = (LogSortedMap1<BigDecimal, Integer>)follower.createLogBean(null);
+			decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, encode(log));
 			follower.followerApply(decoded);
 			assertEquals(leader.get(new BigDecimal("1")), follower.get(new BigDecimal("1")));
 		}
@@ -238,7 +246,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertSame(String.CASE_INSENSITIVE_ORDER, valueCopy.comparator());
 		assertEquals(1, valueCopy.get("ALPHA"));
 		@SuppressWarnings("unchecked")
-		var log = (LogSortedMap1<String, Integer>)values.createLogBean();
+		var log = (LogSortedMap1Delta<String, Integer>)values.createLog(ChangeCaptureMode.DELTA);
 		log.clear();
 		assertSame(String.CASE_INSENSITIVE_ORDER, log.getValue().comparator());
 		log.put("Beta", 2);
@@ -246,8 +254,8 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertEquals(1, log.getValue().size());
 		log.commit();
 		@SuppressWarnings("unchecked")
-		var decoded = (LogSortedMap1<String, Integer>)valueCopy.createLogBean();
-		decoded.decode(encode(log));
+		var decoded = (LogSortedMap1<String, Integer>)valueCopy.createLogBean(null);
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, encode(log));
 		valueCopy.followerApply(decoded);
 		assertEquals(values.get("beta"), valueCopy.get("beta"));
 		values.clear();
@@ -273,6 +281,10 @@ public class TestSortedMapEquivalentKeysReplay {
 		beans.put("Beta", new BValue());
 		beans.put("BETA", new BValue());
 		assertEquals(1, beans.size());
+	}
+
+	private static ByteBuffer encode(Zeze.Transaction.Collections.LogCollection state) {
+		return encode(state.getSourceBean().createLogBean(state));
 	}
 
 	private static ByteBuffer encode(Log log) {

@@ -1,156 +1,78 @@
 package Zeze.Transaction.Collections;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import Zeze.Transaction.Collections.LogList1.OpLog;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.Savepoint;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
-import org.pcollections.PVector;
 
 /** PList2 的变更日志：在 LogList1 的 OpLog 序列之外，另记 changed（元素 Bean 的原位修改日志及最终下标）。 */
-public class LogList2<V extends Bean> extends LogList1<V> {
-	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
-	private @Nullable IdentityHashSet<V> addSet;
-	private boolean decoded; // 解码日志的下标已在 wire 中，元素日志不再持有原始 Bean。
+public class LogList2<V extends Bean> extends LogBean {
+	protected final Meta1<V> meta;
+	private @Nullable ArrayList<OpLog<V>> opLogs;
 
-	public LogList2(@Nullable Bean belong, int varId, @Nullable Bean self, PVector<V> value, Meta1<V> meta) {
-		super(belong, varId, self, value, meta);
+	public final ArrayList<OpLog<V>> getOpLogs() {
+		var operations = opLogs;
+		return operations != null ? operations : (opLogs = new ArrayList<>());
+	}
+
+	final List<OpLog<V>> operationsForRead() {
+		return opLogs != null ? opLogs : Collections.emptyList();
+	}
+
+	final Map<LogBean, OutInt> changesForRead() {
+		return changed != null ? changed : Collections.emptyMap();
+	}
+
+	@Override
+	public int getTypeId() {
+		return meta.logTypeId;
+	}
+
+	@Override
+	public String getTypeName() {
+		return meta.name;
+	}
+
+	private @Nullable HashMap<LogBean, OutInt> changed;
+	private @Nullable IdentityHashSet<V> addSet;
+	private @Nullable IdentityHashMap<Bean, Integer> indices;
+
+	public LogList2(int varId, @Nullable Bean source, Meta1<V> meta, @Nullable ArrayList<OpLog<V>> operations, @Nullable IdentityHashSet<V> added) {
+		super(varId, source);
+		this.meta = meta;
+		opLogs = operations;
+		addSet = added;
 	}
 
 	public final HashMap<LogBean, OutInt> getChanged() {
-		return changed;
-	}
-
-	@Override
-	public boolean add(V item) {
-		if (!super.add(item))
-			return false;
-		if (addSet == null)
-			addSet = new IdentityHashSet<>();
-		addSet.add(item);
-		return true;
-	}
-
-	@Override
-	public boolean addAll(Collection<? extends V> items) {
-		int addIndex = getValue().size();
-		var list = getValue().plusAll(items);
-		if (list == getValue())
-			return false;
-		setValue(list);
-		if (addSet == null)
-			addSet = new IdentityHashSet<>();
-		for (V item : items) {
-			opLogs.add(new OpLog<>(OpLog.OP_ADD, addIndex++, item));
-			addSet.add(item);
-		}
-		return true;
-	}
-
-	@Override
-	public void clear() {
-		super.clear();
-		if (addSet != null)
-			addSet.clear();
-	}
-
-	@Override
-	public void add(int index, V item) {
-		super.add(index, item);
-		if (addSet == null)
-			addSet = new IdentityHashSet<>();
-		addSet.add(item);
-	}
-
-	@Override
-	public V set(int index, V item) {
-		V old = super.set(index, item);
-		if (addSet == null)
-			addSet = new IdentityHashSet<>();
-		addSet.remove(old);
-		addSet.add(item);
-		return old;
-	}
-
-	@Override
-	public V remove(int index) {
-		V old = super.remove(index);
-		if (addSet == null)
-			addSet = new IdentityHashSet<>();
-		addSet.remove(old);
-		return old;
-	}
-
-	@Override
-	public void endSavepoint(Savepoint currentSp) {
-		Log log = currentSp.getLog(getLogKey());
-		if (log != null) {
-			@SuppressWarnings("unchecked")
-			var currentLog = (LogList2<V>)log;
-			currentLog.setValue(getValue());
-			currentLog.merge(this);
-		} else
-			currentSp.putLog(this);
-	}
-
-	private void merge(LogList2<V> from) {
-		if (!from.opLogs.isEmpty()) {
-			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
-				opLogs.clear();
-			opLogs.addAll(from.opLogs);
-			if (from.addSet != null) {
-				if (addSet == null)
-					addSet = from.addSet;
-				else
-					addSet.addAll(from.addSet);
-			}
-		}
-	}
-
-	@Override
-	public Log beginSavepoint() {
-		return new LogList2<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
+		var edits = changed;
+		return edits != null ? edits : (changed = new HashMap<>());
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		if (!decoded && !changed.isEmpty()) {
-			var curList = getValue();
-			// 下标按身份预建一遍（O(changed+size)）：逐changed线性扫在
-			// 大列表+多处原位修改时encode期CPU放大（O(changed×size)）。
-			// 重复元素取首个出现位置（对齐原线性扫的break语义）。
-			// getThis() 返回 Bean，索引也按 Bean 身份查询，不要求查询者的静态类型为 V。
-			var indexByIdentity = new IdentityHashMap<Bean, Integer>(curList.size());
-			for (var i = 0; i < curList.size(); i++)
-				indexByIdentity.putIfAbsent(curList.get(i), i);
-			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
-				var e = it.next();
-				var bean = e.getKey().getThis();
-				var idxExist = indexByIdentity.get(bean);
-				// 命中索引时 bean 必是 curList 中的非空元素。
-				//noinspection DataFlowIssue
-				if (idxExist == null || addSet != null && addSet.contains(bean))
-					it.remove();
-				else
-					e.getValue().value = idxExist;
-			}
-		}
-		bb.WriteUInt(changed.size());
-		for (var e : changed.entrySet()) {
+		var edits = changesForRead();
+		bb.WriteUInt(edits.size());
+		for (var e : edits.entrySet()) {
 			LogMap2.encodeLogBean(bb, e.getKey());
 			bb.WriteUInt(e.getValue().value);
 		}
 
-		bb.WriteUInt(opLogs.size());
-		for (var opLog : opLogs) {
+		var operations = operationsForRead();
+		bb.WriteUInt(operations.size());
+		for (var opLog : operations) {
 			bb.WriteUInt(opLog.op);
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
@@ -162,17 +84,13 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
-	public void decode(IByteBuffer bb) {
-		addSet = null;
-		changed.clear();
+	private void read(IByteBuffer bb) {
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var logBean = LogMap2.decodeLogBean(bb);
 			int index = bb.ReadUInt();
-			changed.put(logBean, new OutInt(index));
+			getChanged().put(logBean, new OutInt(index));
 		}
 
-		opLogs.clear();
 		try {
 			for (int logSize = bb.ReadUInt(); --logSize >= 0; ) {
 				int op = bb.ReadUInt();
@@ -183,27 +101,47 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 					v = (V)meta.valueFactory.invoke();
 					v.decode(bb);
 				}
-				opLogs.add(new OpLog<>(op, index, v));
+				getOpLogs().add(new OpLog<>(op, index, v));
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
-		decoded = true;
 	}
 
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
-		if (changed.putIfAbsent((LogBean)vlog, new OutInt()) == null)
-			changes.collect(recent, this);
+	public boolean addChild(Bean source, Log vlog) {
+		var child = (LogBean)vlog;
+		var item = child.getThis();
+		if (item == null) return true;
+		if (indices == null) {
+			var list = ((PList2<?>)source).list;
+			indices = new IdentityHashMap<>(list.size());
+			for (int i = 0; i < list.size(); i++) indices.putIfAbsent(list.get(i), i);
+		}
+		var index = indices.get(item);
+		if (index == null || addSet != null && addSet.contains(item)) return true;
+		return getChanged().putIfAbsent(child, new OutInt(index)) == null;
 	}
 
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(" opLogs:");
-		ByteBuffer.BuildSortedString(sb, getOpLogs());
+		ByteBuffer.BuildSortedString(sb, operationsForRead());
 		sb.append(" changed:");
-		ByteBuffer.BuildSortedString(sb, changed);
+		ByteBuffer.BuildSortedString(sb, changesForRead());
 		return sb.toString();
+	}
+
+	public static <V extends Bean> LogList2<V> decode(int varId, Meta1<V> meta, IByteBuffer bb) {
+		var log = new LogList2<>(varId, null, meta, null, null);
+		log.read(bb);
+		return log;
+	}
+
+	@Override
+	public void finishCollect() {
+		indices = null;
+		addSet = null;
 	}
 }

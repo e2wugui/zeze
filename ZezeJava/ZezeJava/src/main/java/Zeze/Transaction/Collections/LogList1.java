@@ -1,19 +1,14 @@
 package Zeze.Transaction.Collections;
 
 import java.util.ArrayList;
-import java.util.Collection;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Log;
-import Zeze.Transaction.Savepoint;
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Collections.Persistents;
-import org.pcollections.PVector;
-
-/** PList1 的变更日志：按序记录 OpLog 操作序列（增删改清），供编码及跟随者重放。 */
-public class LogList1<V> extends LogList<V> {
+/** List1 payload: borrows the final ordered operations for synchronous encoding and replay. */
+public class LogList1<V> extends LogBean {
 	public static final class OpLog<V> {
 		public static final int OP_MODIFY = 0; // op+index+value
 		public static final int OP_ADD = 1;    // op+index+value
@@ -37,11 +32,12 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	protected final Meta1<V> meta;
-	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
+	protected final ArrayList<OpLog<V>> opLogs;
 
-	public LogList1(@Nullable Bean belong, int varId, @Nullable Bean self, PVector<V> value, Meta1<V> meta) {
-		super(belong, varId, self, value);
+	public LogList1(int varId, @Nullable Bean source, Meta1<V> meta, @Nullable ArrayList<OpLog<V>> operations) {
+		super(varId, source);
 		this.meta = meta;
+		opLogs = operations != null ? operations : new ArrayList<>();
 	}
 
 	@Override
@@ -56,81 +52,6 @@ public class LogList1<V> extends LogList<V> {
 
 	public final ArrayList<OpLog<V>> getOpLogs() {
 		return opLogs;
-	}
-
-	public boolean add(V item) {
-		//noinspection ConstantValue
-		if (item == null)
-			throw new IllegalArgumentException("null item");
-		var list = getValue();
-		int index = list.size();
-		setValue(list.plus(item));
-		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
-		return true;
-	}
-
-	public boolean addAll(Collection<? extends V> items) {
-		int addIndex = getValue().size();
-		var list = getValue().plusAll(items);
-		if (list == getValue())
-			return false;
-		setValue(list);
-		for (V item : items)
-			opLogs.add(new OpLog<>(OpLog.OP_ADD, addIndex++, item));
-		return true;
-	}
-
-	public final boolean removeAll(Collection<? extends V> c) {
-		// JDK契约：删除c中每个元素在列表里的全部出现（逐元素remove(v)只删首个出现，
-		// [x,x].removeAll(Set.of(x))会留下[x]，违反契约）。从高索引往低删：
-		// 生成的OP_REMOVE序列在顺序重放时低位索引不受高位删除影响，opLog词表不变。
-		// 命中检测走线性equals：生成bean覆写equals但不覆写hashCode（值等哈希不等），
-		// HashSet对bean元素静默漏命中。
-		var hit = new ArrayList<>(c);
-		var list = getValue();
-		var result = false;
-		for (var i = list.size() - 1; i >= 0; i--) {
-			if (hit.contains(list.get(i))) {
-				remove(i);
-				result = true; // 只要有一个删除成功，就认为成功：removeAll的定义是发生了改变就返回true。
-			}
-		}
-		return result;
-	}
-
-	public final boolean remove(V item) {
-		int index = getValue().indexOf(item);
-		if (index < 0)
-			return false;
-		remove(index);
-		return true;
-	}
-
-	public void clear() {
-		setValue(Persistents.vector());
-		opLogs.clear();
-		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
-	}
-
-	public void add(int index, V item) {
-		setValue(getValue().plus(index, item));
-		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
-	}
-
-	public V set(int index, V item) {
-		var list = getValue();
-		V old = list.get(index);
-		setValue(list.with(index, item));
-		opLogs.add(new OpLog<>(OpLog.OP_MODIFY, index, item));
-		return old;
-	}
-
-	public V remove(int index) {
-		var list = getValue();
-		V old = list.get(index);
-		setValue(list.minus(index));
-		opLogs.add(new OpLog<>(OpLog.OP_REMOVE, index, null));
-		return old;
 	}
 
 	@Override
@@ -149,41 +70,16 @@ public class LogList1<V> extends LogList<V> {
 		}
 	}
 
-	@Override
-	public void decode(IByteBuffer bb) {
+	private void read(IByteBuffer bb) {
 		var decoder = meta.valueDecoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
 			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
-			//noinspection DataFlowIssue
+			// Keep V explicit: an absent operation value does not make the list element type nullable.
+			//noinspection DataFlowIssue,Convert2Diamond
 			opLogs.add(new OpLog<V>(op, index, op < OpLog.OP_REMOVE ? decoder.apply(bb) : null));
 		}
-	}
-
-	@Override
-	public void endSavepoint(Savepoint currentSp) {
-		Log log = currentSp.getLog(getLogKey());
-		if (log != null) {
-			@SuppressWarnings("unchecked")
-			var currentLog = (LogList1<V>)log;
-			currentLog.setValue(getValue());
-			currentLog.merge(this);
-		} else
-			currentSp.putLog(this);
-	}
-
-	private void merge(LogList1<V> from) {
-		if (!from.opLogs.isEmpty()) {
-			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
-				opLogs.clear();
-			opLogs.addAll(from.opLogs);
-		}
-	}
-
-	@Override
-	public Log beginSavepoint() {
-		return new LogList1<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
 	@Override
@@ -192,5 +88,11 @@ public class LogList1<V> extends LogList<V> {
 		sb.append(" opLogs:");
 		ByteBuffer.BuildSortedString(sb, opLogs);
 		return sb.toString();
+	}
+
+	public static <V> LogList1<V> decode(int varId, Meta1<V> meta, IByteBuffer bb) {
+		var log = new LogList1<>(varId, null, meta, null);
+		log.read(bb);
+		return log;
 	}
 }

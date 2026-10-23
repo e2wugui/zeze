@@ -1,5 +1,7 @@
 package Zeze.Trans;
 
+import Zeze.Transaction.Map2TestSupport;
+
 import static java.util.Objects.requireNonNull;
 
 import org.jspecify.annotations.Nullable;
@@ -7,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NullMarked;
 
 import harness.FastServerIds;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -143,7 +146,7 @@ public class TestDynamicBeanCollect {
 			Assertions.assertNotNull(collector.dynamicLog);
 			collector.dynamicLog.encode(bb);
 			var dLog = new LogDynamic(null, 0, null);
-			dLog.decode(ByteBuffer.Wrap(bb.getBytes(0, bb.size())));
+			dLog = Map2TestSupport.decode(dLog, ByteBuffer.Wrap(bb.getBytes(0, bb.size())));
 			var follower = BValue.newDynamicBean_Dynamic14();
 			follower.setBean(new demo.Bean1());
 			follower.followerApply(dLog);
@@ -188,13 +191,13 @@ public class TestDynamicBeanCollect {
 		var bb = ByteBuffer.Allocate();
 		dynamicLog.encode(bb);
 		var dLog = new LogDynamic(null, 0, null);
-		dLog.decode(ByteBuffer.Wrap(bb.getBytes(0, bb.size())));
+		dLog = Map2TestSupport.decode(dLog, ByteBuffer.Wrap(bb.getBytes(0, bb.size())));
 		// follower端当前是旧状态（Bean1），应用日志后必须得到setBean的新状态
 		var follower = BValue.newDynamicBean_Dynamic14();
 		follower.setBean(new demo.Bean1());
 		follower.followerApply(dLog);
 		Assertions.assertEquals(BValue.DynamicTypeId_Dynamic14_demo_Module1_BSimple, follower.getTypeId(),
-				"必须携带setBean的typeId变更（value分支），不能只编码内部bean字段日志");
+			"必须携带setBean的typeId变更（value分支），不能只编码内部bean字段日志");
 		var bs = Assertions.assertInstanceOf(BSimple.class, follower.getBean());
 		Assertions.assertEquals(999, bs.getInt_1());
 	}

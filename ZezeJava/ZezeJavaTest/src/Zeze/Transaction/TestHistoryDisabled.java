@@ -6,12 +6,14 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.History.HistoryModule;
 import harness.Fast;
 import harness.FastServerIds;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @Fast
@@ -35,12 +37,22 @@ public class TestHistoryDisabled {
 	}
 
 	/** 真实提交路径上的探针：日志仍须 commit，但无消费者时不应再遍历 category 收集变更。 */
-	private static final class ProbeLog extends Log {
+	private static final class ProbeLog implements TransactionLog {
+		@Override
+		public void collectChanges(Changes changes) {
+			category();
+		}
+
+		@Override
+		public @Nullable Bean getBelong() {
+			return null;
+		}
+
 		int categoryReads;
 		int commits;
 
 		ProbeLog() {
-			super(null, 0);
+
 		}
 
 		@Override
@@ -55,7 +67,7 @@ public class TestHistoryDisabled {
 		}
 
 		@Override
-		public int getTypeId() {
+		public int getVariableId() {
 			return 0;
 		}
 
@@ -163,7 +175,7 @@ public class TestHistoryDisabled {
 			assertNull(lazyResource(app, "pendingGidLedger"));
 			assertNull(lazyResource(app, "applyHelper"));
 			assertSame(HistoryModule.get(app).getHistoryTable(),
-					app.getTable("Zeze_Builtin_HistoryModule_tHistory"));
+				app.getTable("Zeze_Builtin_HistoryModule_tHistory"));
 		} finally {
 			requireNonNull(app.getHistory()).close();
 			app.stop();

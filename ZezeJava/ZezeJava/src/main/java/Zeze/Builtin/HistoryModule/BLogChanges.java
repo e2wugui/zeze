@@ -424,7 +424,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
-                case 1: _GlobalSerialId = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Util.Id128>)_v_).value; break;
+                case 1: _GlobalSerialId = ((Zeze.Transaction.Logs.LogBeanKeyValue<Zeze.Util.Id128>)_v_).value; break;
                 case 2: _ProtocolClassName = _v_.stringValue(); break;
                 case 3: _ProtocolArgument = _v_.binaryValue(); break;
                 case 4: _Changes.followerApply(_v_); break;

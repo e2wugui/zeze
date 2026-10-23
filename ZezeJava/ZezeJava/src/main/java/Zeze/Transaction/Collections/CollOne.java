@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SQLStatement;
@@ -10,6 +11,8 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLog;
+import Zeze.Transaction.ChangeCaptureMode;
 import org.jspecify.annotations.Nullable;
 
 /** 单值 Bean 容器：普通 bean 字段的宿主，受管后修改经 LogOne 记账。 */
@@ -49,7 +52,7 @@ public final class CollOne<V extends Bean> extends Collection {
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
 			var log = (LogOne<V>)Transaction.getCurrentVerifyWrite(this)
-					.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
+				.logGetOrAdd(parent().objectId() + variableId(), () -> createLog(ChangeCaptureMode.DELTA));
 			value.initRootInfoWithRedo(rootInfo, this);
 			log.setValue(value);
 		} else
@@ -75,8 +78,8 @@ public final class CollOne<V extends Bean> extends Collection {
 	}
 
 	@Override
-	public LogBean createLogBean() {
-		return new LogOne<>(parent(), variableId(), this, getValue());
+	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		return finalLog != null ? (LogOne<?>)finalLog : new LogOne<>(parent(), variableId(), this, value);
 	}
 
 	@Override
@@ -127,5 +130,10 @@ public final class CollOne<V extends Bean> extends Collection {
 	@Override
 	public void decodeResultSet(ArrayList<String> parents, ResultSet rs) throws SQLException {
 		value.decodeResultSet(parents, rs);
+	}
+
+	@Override
+	public TransactionLog createLog(ChangeCaptureMode mode) {
+		return new LogOne<>(parent(), variableId(), this, value);
 	}
 }

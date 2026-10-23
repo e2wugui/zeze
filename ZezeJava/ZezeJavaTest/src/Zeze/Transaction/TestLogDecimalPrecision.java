@@ -1,10 +1,9 @@
 package Zeze.Transaction;
 
-import static java.util.Objects.requireNonNull;
-
 import java.math.BigDecimal;
+
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Logs.LogDecimal;
+import Zeze.Transaction.Logs.LogDecimalValue;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -19,13 +18,12 @@ import org.junit.jupiter.api.Test;
 public class TestLogDecimalPrecision {
 
 	private static BigDecimal roundTrip(BigDecimal origin) {
-		var log = new LogDecimal(0);
-		log.value = origin;
-		var bb = ByteBuffer.Allocate();
-		log.encode(bb);
-		var decoded = new LogDecimal(0);
-		decoded.decode(bb);
-		return requireNonNull(decoded.value);
+		var input = ByteBuffer.Allocate();
+		input.WriteString(origin.toString());
+		var log = LogDecimalValue.decode(0, input);
+		var encoded = ByteBuffer.Allocate();
+		log.encode(encoded);
+		return LogDecimalValue.decode(0, encoded).value;
 	}
 
 	@Test

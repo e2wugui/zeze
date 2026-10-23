@@ -6,6 +6,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.function.BiConsumer;
+
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.History.History;
@@ -93,7 +94,7 @@ public class MapBeanCommitBench {
 	private final BiConsumer<Integer, Bean> consumeUpsert = (key, item) -> {
 		++listenerDeltaCount;
 		listenerDeltaSum += mapFamily ? ((demo.Game.BItem)item).getCount()
-				: ((demo.Module1.BSimple)item).getInt_1();
+			: ((demo.Module1.BSimple)item).getInt_1();
 	};
 
 	@Setup(Level.Trial)
@@ -200,7 +201,8 @@ public class MapBeanCommitBench {
 					if (replace)
 						bag.put(1001 + i, newItem(expectedValue));
 					else
-						Objects.requireNonNull(bag.get(1001 + i)).setCount(expectedValue);
+						//noinspection DataFlowIssue
+						bag.get(1001 + i).setCount(expectedValue);
 				}
 			} else {
 				var bag = sorted.getOrAdd(1L).getSortedmap2();
@@ -208,7 +210,8 @@ public class MapBeanCommitBench {
 					if (replace)
 						bag.put(1001 + i, newSimple(expectedValue));
 					else
-						Objects.requireNonNull(bag.get(1001 + i)).setInt_1(expectedValue);
+						//noinspection DataFlowIssue
+						bag.get(1001 + i).setInt_1(expectedValue);
 				}
 			}
 			return 0L; // nonzero would trigger per-operation error logging
@@ -226,7 +229,7 @@ public class MapBeanCommitBench {
 			listenerUpserts.invokeExact(record, listenerVariableId, consumeUpsert);
 			if (listenerDeltaCount != changeCount || listenerDeltaSum != (long)changeCount * expectedValue)
 				throw new IllegalStateException("listener delta: count=" + listenerDeltaCount
-						+ ", sum=" + listenerDeltaSum);
+					+ ", sum=" + listenerDeltaSum);
 			listenerSink = listenerDeltaSum + (Long)key;
 			++notifications;
 		} catch (Throwable ex) {
@@ -239,21 +242,21 @@ public class MapBeanCommitBench {
 		var lookup = MethodHandles.lookup();
 		try {
 			return lookup.findVirtual(Changes.Record.class,
-					mapFamily ? "forEachMap2Upsert" : "forEachSortedMap2Upsert",
-					MethodType.methodType(void.class, int.class, BiConsumer.class));
+				mapFamily ? "forEachMap2Upsert" : "forEachSortedMap2Upsert",
+				MethodType.methodType(void.class, int.class, BiConsumer.class));
 		} catch (NoSuchMethodException beforePhaseSplit) {
 			var merge = lookup.findVirtual(mapFamily ? LogMap2.class : LogSortedMap2.class,
-					"mergeChangedToReplaced", MethodType.methodType(void.class));
+				"mergeChangedToReplaced", MethodType.methodType(void.class));
 			return lookup.findStatic(MapBeanCommitBench.class,
-					mapFamily ? "oldMapUpserts" : "oldSortedMapUpserts",
-					MethodType.methodType(void.class, MethodHandle.class, Changes.Record.class,
-							int.class, BiConsumer.class)).bindTo(merge);
+				mapFamily ? "oldMapUpserts" : "oldSortedMapUpserts",
+				MethodType.methodType(void.class, MethodHandle.class, Changes.Record.class,
+					int.class, BiConsumer.class)).bindTo(merge);
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	private static void oldMapUpserts(MethodHandle merge, Changes.Record record, int variableId,
-			BiConsumer<Integer, Bean> consumer) throws Throwable {
+									  BiConsumer<Integer, Bean> consumer) throws Throwable {
 		var log = (LogMap2<Integer, Bean>)Objects.requireNonNull(record.getVariableLog(variableId));
 		merge.invokeExact(log);
 		log.getReplaced().forEach(consumer);
@@ -261,7 +264,7 @@ public class MapBeanCommitBench {
 
 	@SuppressWarnings("unchecked")
 	private static void oldSortedMapUpserts(MethodHandle merge, Changes.Record record, int variableId,
-			BiConsumer<Integer, Bean> consumer) throws Throwable {
+											BiConsumer<Integer, Bean> consumer) throws Throwable {
 		var log = (LogSortedMap2<Integer, Bean>)Objects.requireNonNull(record.getVariableLog(variableId));
 		merge.invokeExact(log);
 		log.getReplaced().forEach(consumer);
@@ -269,9 +272,9 @@ public class MapBeanCommitBench {
 
 	private void verifyConsumers() {
 		if (captures != (withHistory ? measuredCommits : 0)
-				|| notifications != (withListener ? measuredCommits : 0))
+			|| notifications != (withListener ? measuredCommits : 0))
 			throw new IllegalStateException("consumer count: commits=" + measuredCommits
-					+ ", captures=" + captures + ", notifications=" + notifications);
+				+ ", captures=" + captures + ", notifications=" + notifications);
 	}
 
 	@TearDown(Level.Trial)
@@ -280,9 +283,10 @@ public class MapBeanCommitBench {
 			verifyConsumers();
 			checkResult(app.newProcedure(() -> {
 				for (int i = 0; i < changeCount; ++i) {
+					//noinspection DataFlowIssue
 					int value = mapFamily
-							? Objects.requireNonNull(roles.getOrAdd(1L).getBag().get(1001 + i)).getCount()
-							: Objects.requireNonNull(sorted.getOrAdd(1L).getSortedmap2().get(1001 + i)).getInt_1();
+						? roles.getOrAdd(1L).getBag().get(1001 + i).getCount()
+						: sorted.getOrAdd(1L).getSortedmap2().get(1001 + i).getInt_1();
 					if (value != expectedValue)
 						throw new IllegalStateException("final value=" + value);
 				}

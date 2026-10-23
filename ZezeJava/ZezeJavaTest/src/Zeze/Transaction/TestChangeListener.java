@@ -418,7 +418,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getDynamic14();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getDynamic14();
 		}
 
 		@Override
@@ -449,7 +449,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getByte13();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getByte13();
 		}
 
 		@Override
@@ -484,7 +484,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getBean12().copy();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getBean12().copy();
 		}
 
 		@Override
@@ -643,7 +643,7 @@ public class TestChangeListener {
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = new ArrayList<>();
-			for (var e : requireNonNull(((demo.Module1.BValue)note.getBelong())).getList9()) {
+			for (var e : requireNonNull(((demo.Module1.BValue)record.getValue())).getList9()) {
 				newValue.add(e.copy());
 			}
 		}
@@ -676,7 +676,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getBytes8();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getBytes8();
 		}
 
 		@Override
@@ -707,7 +707,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getDouble7();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getDouble7();
 		}
 
 		@Override
@@ -738,7 +738,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getFloat6();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getFloat6();
 		}
 
 		@Override
@@ -769,7 +769,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getShort5();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getShort5();
 		}
 
 		@Override
@@ -800,7 +800,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).isBool4();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).isBool4();
 		}
 
 		@Override
@@ -832,7 +832,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getString3();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getString3();
 		}
 
 		@Override
@@ -863,7 +863,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getLong2();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getLong2();
 		}
 
 		@Override
@@ -894,7 +894,7 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
-			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getInt_1();
+			newValue = requireNonNull(((demo.Module1.BValue)record.getValue())).getInt_1();
 		}
 
 		@Override

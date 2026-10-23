@@ -5,10 +5,11 @@ import static java.util.Objects.requireNonNull;
 import org.jspecify.annotations.NullMarked;
 
 import org.junit.jupiter.api.Test;
+
 import java.util.Objects;
 import java.util.concurrent.Future;
+
 import Zeze.Config;
-import Zeze.Services.ServiceManager.EditService;
 import Zeze.Transaction.Transaction;
 import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
@@ -18,7 +19,6 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.LogSpecial;
 import Zeze.Transaction.Procedure;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 
 @SuppressWarnings("CallToPrintStackTrace")
 @NullMarked
@@ -37,11 +37,6 @@ public class TestGlobal {
 			oldInt = getValue().getInt_1();
 			eq = lastInt == oldInt;
 			this.appId = appId;
-		}
-
-		@Override
-		public int getTypeId() {
-			return 0; // 现在Log1仅用于特殊目的，不支持相关日志系列化。
 		}
 
 		@Override
@@ -159,14 +154,14 @@ public class TestGlobal {
 			for (Future<Long> task : tasks) {
 				try {
 					var r = task.get(Math.max(1, batchDeadline - System.currentTimeMillis()),
-							java.util.concurrent.TimeUnit.MILLISECONDS);
+						java.util.concurrent.TimeUnit.MILLISECONDS);
 					if (r == Procedure.Success)
 						success++;
 					else
 						Assertions.assertEquals(Procedure.AbortException, r.longValue());
 				} catch (java.util.concurrent.TimeoutException e) {
 					Assertions.fail("ConcurrentAdd 批次停滞（60s）：剩余任务无法完成——"
-							+ "疑似默认池worker被公平锁/acquire占满且GCM延续排队饥饿（池自死锁），需产品侧取证");
+						+ "疑似默认池worker被公平锁/acquire占满且GCM延续排队饥饿（池自死锁），需产品侧取证");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

@@ -1,25 +1,26 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+
 import Zeze.Util.LongHashMap;
 import org.jspecify.annotations.Nullable;
 
 /** 保存点：嵌套事务的一层日志与回滚/提交动作容器，commit/rollback 时向上合并。 */
 public final class Savepoint {
-	private @Nullable LongHashMap<Log> logs; // key:objectId+varId
+	private @Nullable LongHashMap<TransactionLog> logs; // key:objectId+varId
 	private @Nullable ArrayList<Action> actions;
 
-	LongHashMap<Log>.@Nullable Iterator logIterator() {
+	LongHashMap<TransactionLog>.@Nullable Iterator logIterator() {
 		var logs = this.logs;
 		return logs != null ? logs.iterator() : null;
 	}
 
-	public @Nullable Log getLog(long logKey) {
+	public @Nullable TransactionLog getLog(long logKey) {
 		var logs = this.logs;
 		return logs != null ? logs.get(logKey) : null;
 	}
 
-	public void putLog(Log log) {
+	public void putLog(TransactionLog log) {
 		var logs = this.logs;
 		if (logs == null)
 			this.logs = logs = new LongHashMap<>();
@@ -114,6 +115,6 @@ public final class Savepoint {
 	void commit() {
 		var logs = this.logs;
 		if (logs != null)
-			logs.foreachValue(Log::commit);
+			logs.foreachValue(TransactionLog::commit);
 	}
 }

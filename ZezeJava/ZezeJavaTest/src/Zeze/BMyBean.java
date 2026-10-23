@@ -1,11 +1,14 @@
 package Zeze;
 
-import static java.util.Objects.requireNonNull;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.Logs.LogInt;
+import Zeze.Util.Task;
 import org.junit.jupiter.api.Assertions;
 
 public class BMyBean extends Bean {
@@ -28,14 +31,13 @@ public class BMyBean extends Bean {
 
 	public int _i;
 
-	private static class MyLog extends Zeze.Transaction.Logs.LogInt {
-		public MyLog(BMyBean bean, int value) {
-			super(bean, 0, null, value);
-		}
+	private static final VarHandle VH_I;
 
-		@Override
-		public void commit() {
-			requireNonNull(((BMyBean)getBelong()))._i = value;
+	static {
+		try {
+			VH_I = MethodHandles.lookup().findVarHandle(BMyBean.class, "_i", int.class);
+		} catch (ReflectiveOperationException e) {
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -43,13 +45,13 @@ public class BMyBean extends Bean {
 		var txn = Transaction.getCurrent();
 		if (null == txn)
 			return _i;
-		MyLog log = (MyLog)txn.getLog(this.objectId());
+		LogInt log = (LogInt)txn.getLog(this.objectId());
 		return (null != log) ? log.value : _i;
 	}
 
 	public final void setI(int value) {
 		var txn = Transaction.getCurrent();
 		Assertions.assertNotNull(txn);
-		txn.putLog(new MyLog(this, value));
+		txn.putLog(new LogInt(this, 0, VH_I, value));
 	}
 }

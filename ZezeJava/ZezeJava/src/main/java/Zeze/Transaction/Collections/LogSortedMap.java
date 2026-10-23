@@ -1,22 +1,17 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Map;
+
 import org.jspecify.annotations.Nullable;
 
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
-import Zeze.Transaction.Log;
-
-/** 事务 SortedMap 日志基类：持有持久化有序映射的当前值，提交时整体写回。 */
-public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogBean {
+/** Persistent SortedMap state used by both tracked and untracked transactions. */
+public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogCollection {
 	private org.pcollections.PSortedMap<K, V> value;
 
-	protected LogSortedMap(@Nullable Bean belong, int varId, @Nullable Bean self, org.pcollections.PSortedMap<K, V> value) {
-		super(belong, varId, self);
+	protected LogSortedMap(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
+		super(source);
 		this.value = value;
 	}
-
-	@Override
-	public abstract int getTypeId();
 
 	public final org.pcollections.PSortedMap<K, V> getValue() {
 		return value;
@@ -26,15 +21,51 @@ public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogBean {
 		this.value = value;
 	}
 
-	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
-		throw new UnsupportedOperationException("Collect Not Implement.");
+	public @Nullable V get(K key) {
+		return value.get(key);
+	}
+
+	public void add(K key, V item) {
+		put(key, item);
+	}
+
+	public @Nullable V put(K key, V item) {
+		V old = value.get(key);
+		value = value.plus(key, item);
+		return old;
+	}
+
+	public void putAll(Map<? extends K, ? extends V> items) {
+		value = value.plusAll(items);
+	}
+
+	public @Nullable V remove(K key) {
+		V old = value.get(key);
+		if (old != null) value = value.minus(key);
+		return old;
+	}
+
+	public boolean remove(K key, V expected) {
+		V old = value.get(key);
+		if (old == null || !old.equals(expected)) return false;
+		remove(key);
+		return true;
+	}
+
+	public void clear() {
+		var comparator = value.comparator();
+		value = comparator != null ? org.pcollections.TreePMap.empty(comparator) : org.pcollections.Empty.sortedMap();
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void commit() {
-		//noinspection DataFlowIssue
-		((PSortedMap<K, V>)getThis()).map = value;
+	protected void mergeFrom(LogCollection child) {
+		value = ((LogSortedMap<K, V>)child).value;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public final void commit() {
+		((PSortedMap<K, V>)source).map = value;
 	}
 }

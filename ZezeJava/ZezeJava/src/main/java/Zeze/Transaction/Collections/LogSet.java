@@ -1,40 +1,76 @@
 package Zeze.Transaction.Collections;
 
-import org.jspecify.annotations.Nullable;
+import java.util.Collection;
 
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
-import Zeze.Transaction.Log;
+import Zeze.Collections.Persistents;
 
-/** 事务 Set 日志基类：持有持久化集合的当前值，提交时整体写回。 */
-public abstract class LogSet<V> extends LogBean {
+/** Persistent set transaction state, without wire responsibilities. */
+public abstract class LogSet<V> extends LogCollection {
 	private org.pcollections.PSet<V> value;
 
-	protected LogSet(@Nullable Bean belong, int varId, @Nullable Bean self, org.pcollections.PSet<V> value) {
-		super(belong, varId, self);
+	protected LogSet(PSet<V> source, org.pcollections.PSet<V> value) {
+		super(source);
 		this.value = value;
 	}
-
-	@Override
-	public abstract int getTypeId();
 
 	public final org.pcollections.PSet<V> getValue() {
 		return value;
 	}
 
-	public final void setValue(org.pcollections.PSet<V> value) {
+	final void setValue(org.pcollections.PSet<V> value) {
 		this.value = value;
-	}
-
-	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
-		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void commit() {
-		//noinspection DataFlowIssue
-		((PSet<V>)getThis()).set = value;
+	protected void mergeFrom(LogCollection child) {
+		value = ((LogSet<V>)child).value;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public final void commit() {
+		((PSet<V>)source).set = value;
+	}
+
+	public boolean add(V item) {
+		var next = value.plus(item);
+		if (next == value)
+			return false;
+		value = next;
+		return true;
+	}
+
+	public boolean addAll(Collection<? extends V> items) {
+		// MapPSet.plusAll always wraps: single-item plus preserves the no-change identity check.
+		var next = value;
+		for (V item : items)
+			next = next.plus(item);
+		if (next == value)
+			return false;
+		value = next;
+		return true;
+	}
+
+	public boolean remove(V item) {
+		var next = value.minus(item);
+		if (next == value)
+			return false;
+		value = next;
+		return true;
+	}
+
+	public boolean removeAll(Collection<? extends V> items) {
+		var next = value;
+		for (V item : items)
+			next = next.minus(item);
+		if (next == value)
+			return false;
+		value = next;
+		return true;
+	}
+
+	public void clear() {
+		value = Persistents.set();
 	}
 }

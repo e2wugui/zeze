@@ -10,6 +10,7 @@ import Zeze.Transaction.Logs.LogLong;
 import demo.Module1.BValue;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -18,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestPMap2CopyMapKeyReplay {
 	static {
-		Log.register(LogLong::new);
+		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogLong.TYPE_ID, "LogLong", LogLong::decode));
 	}
 
 	@Test
@@ -34,9 +35,8 @@ public class TestPMap2CopyMapKeyReplay {
 		value.setLong2(7);
 		assertEquals(3, original.getLong2(), "复制值的原位修改不得改变源记录");
 
-		var change = new LogBean(null, 0, value);
-		var field = new LogLong(2); // BValue.long2
-		field.value = 7;
+		var change = new LogBean(0, value);
+		var field = Map2TestSupport.longLog(2, 7);
 		change.getVariablesOrNew().put(2, field);
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<String, BValue>)Map2TestSupport.collect(copy, change);
@@ -50,7 +50,7 @@ public class TestPMap2CopyMapKeyReplay {
 		@SuppressWarnings("unchecked")
 		var decoded = Map2TestSupport.wireLog(follower);
 		var input = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
-		decoded.decode(input);
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		assertTrue(input.isEmpty());
 		follower.followerApply(decoded);
 		assertSame(followerValue, follower.get("original-key"), "回放须修改原有值Bean而非换记录");

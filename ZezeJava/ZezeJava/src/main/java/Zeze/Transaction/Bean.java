@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+
 import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Collections.LogBean;
@@ -250,15 +251,14 @@ public abstract class Bean implements Serializable {
 		throw new UnsupportedOperationException(getClass().getName());
 	}
 
-	public LogBean createLogBean() {
-		return new LogBean(parent, variableId, this);
+	/**
+	 * Create one synchronous consumer node from the explicitly supplied final savepoint state.
+	 * Null means no structural log; a non-null untracked collection log must be rejected.
+	 * Borrowed Beans and note collections are valid while the committing record locks are held.
+	 */
+	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		return new LogBean(variableId, this);
 	}
-
-	/** 为本次提交创建消费节点。容器可从最终事务增量导出，生成 Bean 无须覆写。 */
-	public LogBean createChangeLog(Changes changes) {
-		return createLogBean();
-	}
-
 	// 当Bean放到Table中时，用来支持数据版本号。
 	public long version() {
 		return 0;
@@ -289,5 +289,10 @@ public abstract class Bean implements Serializable {
 
 	public ArrayList<BVariable.Data> variables() {
 		return new ArrayList<>();
+	}
+
+	/** Zero means this source has no independent collection transaction log. */
+	public long changeLogKey() {
+		return 0;
 	}
 }

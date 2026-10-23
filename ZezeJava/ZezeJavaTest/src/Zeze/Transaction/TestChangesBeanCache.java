@@ -7,7 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.Supplier;
+
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.LongHashMap;
 import harness.Fast;
@@ -18,18 +19,18 @@ import org.junit.jupiter.api.Test;
 public class TestChangesBeanCache {
 	private static final class CacheBean extends EmptyBean {
 		private int creations;
-		private Function<Changes, LogBean> factory = changes -> new LogBean(null, 0, this);
+		private Supplier<LogBean> factory = () -> new LogBean(0, this);
 
 		@Override
-		public LogBean createChangeLog(Changes changes) {
+		public LogBean createLogBean(@org.jspecify.annotations.Nullable TransactionLog finalLog) {
 			++creations;
-			return factory.apply(changes);
+			return factory.get();
 		}
 	}
 
 	@Test
 	public void everyRequestedNodeRemainsCanonicalBeforeAndAfterPublicMapExposure() {
-		for (int count : new int[] {0, 1, 2, 3, 8}) {
+		for (int count : new int[]{0, 1, 2, 3, 8}) {
 			var changes = Map2TestSupport.changes();
 			var beans = new CacheBean[count];
 			var nodes = new LogBean[count];
@@ -77,7 +78,7 @@ public class TestChangesBeanCache {
 		changes.getOrCreateLogBean(first);
 		var oldSecond = changes.getOrCreateLogBean(second);
 		var exposed = changes.getBeans();
-		var replacement = new LogBean(null, 0, first);
+		var replacement = new LogBean(0, first);
 		exposed.put(first.objectId(), replacement);
 		assertSame(replacement, changes.getOrCreateLogBean(first));
 		assertEquals(1, first.creations);
@@ -87,7 +88,7 @@ public class TestChangesBeanCache {
 		assertEquals(2, second.creations);
 		assertSame(newSecond, exposed.get(second.objectId()));
 		var injectedBean = new CacheBean();
-		var injectedNode = new LogBean(null, 0, injectedBean);
+		var injectedNode = new LogBean(0, injectedBean);
 		exposed.put(injectedBean.objectId(), injectedNode);
 		assertSame(injectedNode, changes.getOrCreateLogBean(injectedBean));
 		assertEquals(0, injectedBean.creations);
@@ -104,8 +105,8 @@ public class TestChangesBeanCache {
 
 	@Test
 	public void aFactoryCanCreateOtherNodesAndExposeTheMapWithoutLosingEntries() {
-		for (int childCount : new int[] {2, 3}) {
-			for (boolean exposeFirst : new boolean[] {false, true}) {
+		for (int childCount : new int[]{2, 3}) {
+			for (boolean exposeFirst : new boolean[]{false, true}) {
 				var changes = Map2TestSupport.changes();
 				var parent = new CacheBean();
 				var children = new CacheBean[childCount];
@@ -113,14 +114,15 @@ public class TestChangesBeanCache {
 				for (int i = 0; i < childCount; ++i)
 					children[i] = new CacheBean();
 				var exposed = new AtomicReference<LongHashMap<LogBean>>();
-				parent.factory = duringCreation -> {
+				parent.factory = () -> {
+					var duringCreation = changes;
 					if (exposeFirst)
 						exposed.set(duringCreation.getBeans());
 					for (int i = 0; i < children.length; ++i)
 						childNodes[i] = duringCreation.getOrCreateLogBean(children[i]);
 					if (!exposeFirst)
 						exposed.set(duringCreation.getBeans());
-					return new LogBean(null, 0, parent);
+					return new LogBean(0, parent);
 				};
 				var parentNode = changes.getOrCreateLogBean(parent);
 				assertSame(parentNode, changes.getOrCreateLogBean(parent));
@@ -141,9 +143,10 @@ public class TestChangesBeanCache {
 	public void aCanonicalNodePublishedDuringFactoryExecutionWinsOverItsReturnedCandidate() {
 		var changes = Map2TestSupport.changes();
 		var bean = new CacheBean();
-		var published = new LogBean(null, 0, bean);
-		var returned = new LogBean(null, 0, bean);
-		bean.factory = duringCreation -> {
+		var published = new LogBean(0, bean);
+		var returned = new LogBean(0, bean);
+		bean.factory = () -> {
+			var duringCreation = changes;
 			duringCreation.getOrCreateLogBean(new CacheBean());
 			duringCreation.getOrCreateLogBean(new CacheBean());
 			duringCreation.getOrCreateLogBean(new CacheBean());
@@ -164,12 +167,13 @@ public class TestChangesBeanCache {
 		var firstChild = new CacheBean();
 		var secondChild = new CacheBean();
 		var failure = new IllegalStateException("factory failed after creating children");
-		bean.factory = duringCreation -> {
+		bean.factory = () -> {
+			var duringCreation = changes;
 			duringCreation.getOrCreateLogBean(firstChild);
 			duringCreation.getOrCreateLogBean(secondChild);
 			if (bean.creations == 1)
 				throw failure;
-			return new LogBean(null, 0, bean);
+			return new LogBean(0, bean);
 		};
 		assertSame(failure, assertThrows(IllegalStateException.class, () -> changes.getOrCreateLogBean(bean)));
 		var exposed = changes.getBeans();

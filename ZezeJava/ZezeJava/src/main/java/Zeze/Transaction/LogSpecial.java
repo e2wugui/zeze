@@ -2,12 +2,25 @@ package Zeze.Transaction;
 
 import org.jspecify.annotations.Nullable;
 
-/** 特殊日志基类：不属于 bean 字段修改的值型日志（如 BeanKey/操作日志），携带单一值参与提交与序列化。 */
-public abstract class LogSpecial<TBean extends Bean, TValue> extends Log {
+/** Local-only value used by commit actions, such as RecordAccessed.PutLog. */
+public abstract class LogSpecial<TBean extends Bean, TValue> implements TransactionLog {
 	private final @Nullable TValue value;
+	private final Bean belong;
+	private final int variableId;
+
+	@Override
+	public final Bean getBelong() {
+		return belong;
+	}
+
+	@Override
+	public final int getVariableId() {
+		return variableId;
+	}
 
 	protected LogSpecial(Bean bean, int varId, @Nullable TValue value) {
-		super(bean, varId);
+		belong = bean;
+		variableId = varId;
 		this.value = value;
 	}
 
@@ -21,12 +34,16 @@ public abstract class LogSpecial<TBean extends Bean, TValue> extends Log {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final @Nullable TBean getBeanTyped() {
+	public final TBean getBeanTyped() {
 		return (TBean)getBelong();
 	}
 
 	@Override
 	public String toString() {
 		return String.valueOf(value);
+	}
+
+	@Override
+	public final void collectChanges(Changes changes) {
 	}
 }

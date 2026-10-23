@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import org.jspecify.annotations.Nullable;
-
 import Zeze.History.Helper;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -15,7 +13,7 @@ import org.junit.jupiter.api.Test;
 /**
  * FND7-80：LogOne写端用value.getClass()（运行时类）建meta计算typeId，而读端工厂按
  * 声明类注册（History.Helper.dependsBean→registerLogOne遍历表值bean的声明依赖集）。
- * CollOne装入声明类型的子类实例时typeId=hash(LogOne<子类>)，follower Log.create抛
+ * CollOne装入声明类型的子类实例时typeId=hash(LogOne<子类>)，follower LogRegistry.decode抛
  * UnsupportedOperationException，复制/回放中断（fail-fast非静默）。修复：CollOne保存
  * 原被忽略的valueClass参数，LogOne建meta优先用宿主CollOne携带的声明类；精确类型
  * typeId不变。
@@ -88,13 +86,13 @@ public class TestLogOneDeclaredTypeMeta {
 		Assertions.assertTrue(collOne.isManaged());
 
 		@SuppressWarnings("unchecked")
-		var log = (LogOne<BeanBase>)collOne.createLogBean();
+		var log = (LogOne<BeanBase>)collOne.createLogBean(null);
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, log.getTypeId(),
-				"子类实例必须按声明类计算typeId（读端工厂按声明类注册）");
+			"子类实例必须按声明类计算typeId（读端工厂按声明类注册）");
 
 		// 机制锁定：保存点副本不得回退到运行时类。
-		Assertions.assertEquals(log.getTypeId(), log.beginSavepoint().getTypeId(),
-				"beginSavepoint副本必须保持同一typeId");
+		Assertions.assertEquals(log.getTypeId(), ((Log)log.beginSavepoint()).getTypeId(),
+			"beginSavepoint副本必须保持同一typeId");
 	}
 
 	@Test
@@ -108,39 +106,38 @@ public class TestLogOneDeclaredTypeMeta {
 		var collOne = new CollOne<>((BeanBase)sub, BeanBase.class);
 		collOne.initRootInfo(newRootInfo(), parent);
 
-		// 写端编码，模拟复制通道：follower按typeId经Log.create重建再decode。
+		// 写端编码，模拟复制通道：follower按typeId经LogRegistry.decode重建再decode。
 		@SuppressWarnings("unchecked")
-		var log = (LogOne<BeanBase>)collOne.createLogBean();
+		var log = (LogOne<BeanBase>)collOne.createLogBean(null);
 		var bb = ByteBuffer.Allocate();
 		log.encode(bb);
 		@SuppressWarnings("unchecked")
-		var decoded = (LogOne<BeanBase>)Log.create(log.getTypeId(), 0);
-		decoded.decode(bb);
+		var decoded = (LogOne<BeanBase>)Zeze.Transaction.LogRegistry.decode(log.getTypeId(), 0, bb);
 		collOne.followerApply(decoded);
 
 		Assertions.assertEquals(42, collOne.getValue().x, "声明类重建的值必须完成数据往返");
 		Assertions.assertSame(BeanBase.class, collOne.getValue().getClass(),
-				"decode按声明类工厂重建值实例");
+			"decode按声明类工厂重建值实例");
 	}
 
 	@Test
 	public void testExactTypeUnchanged() {
 		// 兼容红线：精确类型（运行时类==声明类）行为不变。
 		Assertions.assertNotEquals(LogOneMeta.get(BeanBase.class).logTypeId,
-				LogOneMeta.get(BeanSub.class).logTypeId, "测试自检：两类typeId必须可区分");
+			LogOneMeta.get(BeanSub.class).logTypeId, "测试自检：两类typeId必须可区分");
 
 		var parent = new BeanBase();
 		var collOne = new CollOne<>(new BeanBase(), BeanBase.class);
 		collOne.initRootInfo(newRootInfo(), parent);
 		@SuppressWarnings("unchecked")
-		var log = (LogOne<BeanBase>)collOne.createLogBean();
+		var log = (LogOne<BeanBase>)collOne.createLogBean(null);
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, log.getTypeId(),
-				"精确类型typeId与修复前一致");
+			"精确类型typeId与修复前一致");
 
 		// 未提供声明类（copy路径）：退回运行时类，与修复前行为一致。
 		var copied = collOne.copy();
 		@SuppressWarnings("unchecked")
-		var copiedLog = (LogOne<BeanBase>)copied.createLogBean();
+		var copiedLog = (LogOne<BeanBase>)copied.createLogBean(null);
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, copiedLog.getTypeId());
 	}
 }

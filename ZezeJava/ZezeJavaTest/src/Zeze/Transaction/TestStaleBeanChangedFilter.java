@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import org.jspecify.annotations.Nullable;
-
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogMap2;
@@ -35,15 +33,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestStaleBeanChangedFilter {
 	static {
-		// decodeLogBean -> Log.create(typeId) 需要 log 工厂（生产路径由模块装载注册）。
-		Log.register(LogLong::new);
+		// decodeLogBean -> LogRegistry.decode(typeId) 需要 log 工厂（生产路径由模块装载注册）。
+		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogLong.TYPE_ID, "LogLong", LogLong::decode));
 	}
 
 	// varId=2 是 BValue.long2；伪造"更早事务装入的bean的字段日志"。
 	private static LogBean newBeanLog(BValue bean, long long2) {
-		var logBean = new LogBean(null, 0, bean);
-		var varLog = new LogLong(2);
-		varLog.value = long2;
+		var logBean = new LogBean(0, bean);
+		var varLog = Map2TestSupport.longLog(2, long2);
 		logBean.getVariablesOrNew().put(2, varLog);
 		return logBean;
 	}
@@ -70,7 +67,7 @@ public class TestStaleBeanChangedFilter {
 		follower.put("k", followerValue);
 		@SuppressWarnings("unchecked")
 		var decoded = Map2TestSupport.wireLog(follower);
-		decoded.decode(encodeThenWrap(log));
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, encodeThenWrap(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "陈旧引用的changed必须被身份校验过滤");
 		follower.followerApply(decoded);
 		assertEquals(0, followerValue.getLong2(), "follower当前值不得被陈旧字段日志污染");
@@ -80,7 +77,7 @@ public class TestStaleBeanChangedFilter {
 		var live = (LogMap2<String, BValue>)Map2TestSupport.collect(map, newBeanLog(current, 7));
 		@SuppressWarnings("unchecked")
 		var decodedLive = Map2TestSupport.wireLog(follower);
-		decodedLive.decode(encodeThenWrap(live));
+		decodedLive = Zeze.Transaction.Map2TestSupport.decode(decodedLive, encodeThenWrap(live));
 		assertTrue(decodedLive.getChangedWithKey().containsKey("k"), "当前值的changed不得误杀");
 		follower.followerApply(decodedLive);
 		assertEquals(7, followerValue.getLong2());
@@ -101,7 +98,7 @@ public class TestStaleBeanChangedFilter {
 		follower.put("k", followerValue);
 		@SuppressWarnings("unchecked")
 		var decoded = Map2TestSupport.wireLog(follower);
-		decoded.decode(encodeThenWrap(log));
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, encodeThenWrap(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "陈旧引用的changed必须被身份校验过滤");
 		follower.followerApply(decoded);
 		assertEquals(0, followerValue.getLong2(), "follower当前值不得被陈旧字段日志污染");
@@ -110,7 +107,7 @@ public class TestStaleBeanChangedFilter {
 		var live = (LogSortedMap2<String, BValue>)Map2TestSupport.collect(map, newBeanLog(current, 7));
 		@SuppressWarnings("unchecked")
 		var decodedLive = Map2TestSupport.wireLog(follower);
-		decodedLive.decode(encodeThenWrap(live));
+		decodedLive = Zeze.Transaction.Map2TestSupport.decode(decodedLive, encodeThenWrap(live));
 		assertTrue(decodedLive.getChangedWithKey().containsKey("k"), "当前值的changed不得误杀");
 		follower.followerApply(decodedLive);
 		assertEquals(7, followerValue.getLong2());
@@ -130,7 +127,7 @@ public class TestStaleBeanChangedFilter {
 		log.logBean = newBeanLog(staleInner, 9); // txn3：陈旧引用的修改被collect
 
 		var decoded = new LogDynamic(null, 0, null);
-		decoded.decode(encodeThenWrap(log));
+		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, encodeThenWrap(log));
 		assertNull(decoded.logBean, "陈旧内部bean的字段日志必须被身份校验过滤");
 
 		var followerInner = new BValue();
@@ -143,7 +140,7 @@ public class TestStaleBeanChangedFilter {
 		var live = new LogDynamic(dyn, 14, dyn);
 		live.logBean = newBeanLog(currentInner, 7);
 		var decodedLive = new LogDynamic(null, 0, null);
-		decodedLive.decode(encodeThenWrap(live));
+		decodedLive = Zeze.Transaction.Map2TestSupport.decode(decodedLive, encodeThenWrap(live));
 		assertNotNull(decodedLive.logBean, "当前内部bean的logBean不得误杀");
 		followerDyn.followerApply(decodedLive);
 		assertEquals(7, followerInner.getLong2());

@@ -22,7 +22,7 @@ param(
     [string] $Tag,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Functional', 'Matrix', 'Multi', 'Macro')]
+    [ValidateSet('Functional', 'Matrix', 'Multi', 'Collections', 'ListEdit', 'Macro')]
     [string] $Stage,
 
     [string] $GradleExecutable
@@ -72,6 +72,39 @@ New-Item -ItemType Directory -Path $resultsDirectory -Force | Out-Null
     'Profile: performance heap=2g, backend=ktt; JMH=-da; Macro=-ea.'
     'Exit status is not a performance verdict. Raw JSON remains in bench-results.'
 ) | Set-Content -LiteralPath $logPath -Encoding utf8
+
+function Get-SourceState {
+    $repositoryRoot = (& git -C $resolvedRoot rev-parse --show-toplevel).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the source repository.' }
+    $head = (& git -C $repositoryRoot rev-parse HEAD).Trim()
+    $sourcePatterns = @('*.java', '*.cs', '*.gradle', '*.ps1', '*.bat', 'gradle.properties')
+    $diffLines = @(& git -C $repositoryRoot diff --no-ext-diff --binary HEAD -- @sourcePatterns)
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot capture the source diff.' }
+    $diffText = $diffLines -join "`n"
+    $untracked = [ordered]@{}
+    $paths = @(& git -C $repositoryRoot ls-files --others --exclude-standard -- @sourcePatterns)
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot capture untracked source files.' }
+    foreach ($relativePath in ($paths | Sort-Object)) {
+        $untracked[$relativePath] = (Get-FileHash -LiteralPath (Join-Path $repositoryRoot $relativePath) -Algorithm SHA256).Hash
+    }
+    $runnerHash = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash
+    $signature = $head + "`n" + $diffText + "`n" + ($untracked | ConvertTo-Json -Compress) + "`n" + $runnerHash
+    $fingerprint = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($signature)))
+    [pscustomobject]@{
+        capturedAt = [DateTimeOffset]::Now.ToString('o')
+        repositoryRoot = $repositoryRoot
+        head = $head
+        fingerprint = $fingerprint
+        runnerSha256 = $runnerHash
+        untrackedSourceHashes = $untracked
+        sourceDiff = $diffText
+    }
+}
+
+$sourceBefore = Get-SourceState
+$provenanceDirectory = Join-Path $resultsDirectory "$Tag/_provenance"
+New-Item -ItemType Directory -Path $provenanceDirectory -Force | Out-Null
+$sourceBefore | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $provenanceDirectory 'source-before.json') -Encoding utf8
 
 function Show-LogTail {
     Get-Content -LiteralPath $logPath -Tail 50 | ForEach-Object { Write-Host $_ }
@@ -144,7 +177,7 @@ try {
         'Matrix' {
             # Current default parameters: 32 MapBean rows + 8 GTable rows. This is screening, not a fork repeat.
             Invoke-LoggedGradle -TaskArguments ($jmhProfile + @(
-                '-PjmhFilter=CommitBench'
+                '-PjmhFilter=MapBeanCommitBench|GTableCommitBench'
                 '-PjmhFork=1'
                 '-PjmhExtraArgs=-prof gc'
             ))
@@ -154,6 +187,21 @@ try {
                 '-PjmhFilter=MapBeanCommitBench'
                 '-PjmhFork=2'
                 '-PjmhExtraArgs=-prof gc -p changeCount=64 -p entries=1024 -p consumers=HISTORY_CAPTURE,BOTH'
+            ))
+        }
+        'Collections' {
+            # List1/List2/Set1 replacement and clear/refill, two sizes and all four consumer modes.
+            Invoke-LoggedGradle -TaskArguments ($jmhProfile + @(
+                '-PjmhFilter=CollectionCommitBench'
+                '-PjmhFork=1'
+                '-PjmhExtraArgs=-prof gc'
+            ))
+        }
+        'ListEdit' {
+            Invoke-LoggedGradle -TaskArguments ($jmhProfile + @(
+                '-PjmhFilter=CollectionCommitBench'
+                '-PjmhFork=1'
+                '-PjmhExtraArgs=-prof gc -p family=LIST2 -p operation=EDIT'
             ))
         }
         'Macro' {
@@ -190,4 +238,9 @@ try {
 }
 
 "Finished: $([DateTimeOffset]::Now.ToString('o'))" | Add-Content -LiteralPath $logPath
+$sourceAfter = Get-SourceState
+$sourceAfter | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $provenanceDirectory 'source-after.json') -Encoding utf8
+if ($sourceBefore.fingerprint -ne $sourceAfter.fingerprint) {
+    throw "Source changed during $Stage. Preserve the raw results, but rerun against one fixed source version: $logPath"
+}
 Write-Host "Completed $Tag; log: $logPath"

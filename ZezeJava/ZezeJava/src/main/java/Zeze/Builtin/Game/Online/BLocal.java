@@ -318,7 +318,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
             switch (_v_.getVariableId()) {
                 case 1: _LoginVersion = _v_.longValue(); break;
                 case 2: _Datas.followerApply(_v_); break;
-                case 3: _Link = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink>)_v_).value; break;
+                case 3: _Link = ((Zeze.Transaction.Logs.LogBeanKeyValue<Zeze.Builtin.Game.Online.BLink>)_v_).value; break;
             }
         }
     }

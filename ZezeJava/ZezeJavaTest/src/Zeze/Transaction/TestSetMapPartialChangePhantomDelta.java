@@ -55,6 +55,7 @@ public class TestSetMapPartialChangePhantomDelta {
 				set.addAll(List.of(1));
 				return Procedure.Success;
 			}, "T25.Prepare").call());
+			table.getChangeListenerMap().addListener((key, record) -> { });
 
 			var result = app.newProcedure(() -> {
 				var set = table.getOrAdd(7082L).getSet10();
@@ -63,11 +64,12 @@ public class TestSetMapPartialChangePhantomDelta {
 
 				// set={1}：addAll([1,2])中1已存在——真实新增只有2
 				Assertions.assertTrue(set.addAll(List.of(1, 2)));
-				var log = (LogSet1<Integer>)Transaction.getCurrent().getLog(logKey);
+				var log = (LogSet1<Integer>)set.createLogBean(Transaction.getCurrent().getLog(logKey));
 				Assertions.assertEquals(Set.of(2), requireNonNull(log).getAdded(), "部分命中addAll的added不得含已存在元素（幻影add）");
 
 				// set={1,2}：removeAll([1,9])中9不存在——真实移除只有1
 				Assertions.assertTrue(set.removeAll(List.of(1, 9)));
+				log = (LogSet1<Integer>)set.createLogBean(Transaction.getCurrent().getLog(logKey));
 				Assertions.assertEquals(Set.of(1), log.getRemoved(), "部分命中removeAll的removed不得含不存在元素（幻影remove）");
 				return Procedure.Success;
 			}, "T25.SetDelta").call();
@@ -103,6 +105,7 @@ public class TestSetMapPartialChangePhantomDelta {
 				v.getSortedmap1().put(1, 100);
 				return Procedure.Success;
 			}, "T25.PrepareMap").call());
+			table.getChangeListenerMap().addListener((key, record) -> { });
 
 			var result = app.newProcedure(() -> {
 				var map = table.getOrAdd(7083L).getMap40();
@@ -111,14 +114,14 @@ public class TestSetMapPartialChangePhantomDelta {
 
 				// {1:100}上putAll({1:100, 2:200})：键1值未变——真实变化只有键2
 				map.putAll(Map.of(1, 100, 2, 200));
-				var log = (LogMap1<Integer, Integer>)Transaction.getCurrent().getLog(mapLogKey);
+				var log = (LogMap1<Integer, Integer>)map.createLogBean(Transaction.getCurrent().getLog(mapLogKey));
 				Assertions.assertEquals(Map.of(2, 200), requireNonNull(log).getReplaced(),
 						"部分变化putAll的replaced不得含值未变的键（幻影replaced）");
 
 				var smap = table.getOrAdd(7083L).getSortedmap1();
 				var smapLogKey = requireNonNull(smap.parent()).objectId() + smap.variableId();
 				smap.putAll(Map.of(1, 100, 3, 300));
-				var slog = (LogSortedMap1<Integer, Integer>)Transaction.getCurrent().getLog(smapLogKey);
+				var slog = (LogSortedMap1<Integer, Integer>)smap.createLogBean(Transaction.getCurrent().getLog(smapLogKey));
 				Assertions.assertEquals(Map.of(3, 300), requireNonNull(slog).getReplaced(),
 						"LogSortedMap1.putAll同构：replaced不得含值未变的键");
 				return Procedure.Success;

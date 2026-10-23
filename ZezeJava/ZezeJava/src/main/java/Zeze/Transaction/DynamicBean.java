@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Collections.CollOne;
@@ -61,7 +62,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		var txn = Transaction.getCurrentVerifyWrite(this);
 		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
-		var log = (LogDynamic)txn.logGetOrAdd(dynamicLogKey(), this::createLogBean);
+		var log = (LogDynamic)txn.logGetOrAdd(dynamicLogKey(), () -> new LogDynamic(parent(), variableId(), this));
 		log.setValue(specialTypeId, bean);
 	}
 
@@ -221,16 +222,8 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public LogBean createLogBean() {
-		return new LogDynamic(parent(), variableId(), this);
-	}
-
-	@Override
-	public LogBean createChangeLog(Changes changes) {
-		// setBean/typeId 与内部字段编辑必须来自同一份最终事务日志。
-		var transaction = Transaction.getCurrent();
-		var log = transaction != null ? transaction.getLog(dynamicLogKey()) : null;
-		return log != null ? (LogBean)log : createLogBean();
+	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		return finalLog != null ? (LogDynamic)finalLog : new LogDynamic(parent(), variableId(), this);
 	}
 
 	@Override
@@ -246,5 +239,10 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			return false;
 		var that = (DynamicBean)o;
 		return getTypeId() == that.getTypeId() && getBean().equals(that.getBean());
+	}
+
+	@Override
+	public long changeLogKey() {
+		return dynamicLogKey();
 	}
 }

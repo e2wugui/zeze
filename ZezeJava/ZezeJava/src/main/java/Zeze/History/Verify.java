@@ -2,6 +2,7 @@ package Zeze.History;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
 import Zeze.Application;
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Serialize.ByteBuffer;
@@ -69,7 +70,7 @@ public class Verify {
 					applyTable.apply(r.getKey(), r.getValue());
 				} catch (Exception e) {
 					throw new RuntimeException(String.format("apply(%d-%d:%s) exception", key.getHigh(), key.getLow(),
-							applyTable.getOriginTable().decodeKey(ByteBuffer.Wrap(r.getKey().getKeyEncoded()))), e);
+						applyTable.getOriginTable().decodeKey(ByteBuffer.Wrap(r.getKey().getKeyEncoded()))), e);
 				}
 			}
 			var process = counter.incrementAndGet();
@@ -96,7 +97,7 @@ public class Verify {
 		sb.append("  Changes: {\n");
 		for (var e : b.getChanges().entrySet()) {
 			sb.append("    {").append(e.getKey().getTableId()).append(',').append(e.getKey().getKeyEncoded())
-					.append("}: ");
+				.append("}: ");
 			var bb = ByteBuffer.Wrap(e.getValue());
 			switch (bb.ReadUInt()) {
 			case Changes.Record.Remove:
@@ -110,8 +111,7 @@ public class Verify {
 			case Changes.Record.Edit:
 				sb.append("edit: [\n");
 				for (int i = 0, n = bb.ReadUInt(); i < n; i++) {
-					var lb = new LogBean(null, 0, null);
-					lb.decode(bb);
+					var lb = LogBean.decode(0, bb);
 					sb.append(lb);
 				}
 				sb.append("      ]\n");

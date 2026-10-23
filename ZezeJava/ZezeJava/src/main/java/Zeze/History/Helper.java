@@ -7,9 +7,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.IntFunction;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
+
 import Zeze.Application;
 import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.Serializable;
@@ -36,33 +36,31 @@ import Zeze.Transaction.Collections.SortedMap2Meta;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
-import Zeze.Transaction.Log;
+import Zeze.Transaction.LogRegistry;
 import Zeze.Transaction.LogDynamic;
-import Zeze.Transaction.Logs.LogBeanKey;
-import Zeze.Transaction.Logs.LogBinary;
-import Zeze.Transaction.Logs.LogBool;
-import Zeze.Transaction.Logs.LogByte;
-import Zeze.Transaction.Logs.LogDecimal;
-import Zeze.Transaction.Logs.LogDouble;
-import Zeze.Transaction.Logs.LogFloat;
-import Zeze.Transaction.Logs.LogInt;
-import Zeze.Transaction.Logs.LogLong;
-import Zeze.Transaction.Logs.LogQuaternion;
-import Zeze.Transaction.Logs.LogShort;
-import Zeze.Transaction.Logs.LogString;
-import Zeze.Transaction.Logs.LogVector2;
-import Zeze.Transaction.Logs.LogVector2Int;
-import Zeze.Transaction.Logs.LogVector3;
-import Zeze.Transaction.Logs.LogVector3Int;
-import Zeze.Transaction.Logs.LogVector4;
+import Zeze.Transaction.Logs.LogBeanKeyValue;
+import Zeze.Transaction.Logs.LogBinaryValue;
+import Zeze.Transaction.Logs.LogBoolValue;
+import Zeze.Transaction.Logs.LogByteValue;
+import Zeze.Transaction.Logs.LogDecimalValue;
+import Zeze.Transaction.Logs.LogDoubleValue;
+import Zeze.Transaction.Logs.LogFloatValue;
+import Zeze.Transaction.Logs.LogIntValue;
+import Zeze.Transaction.Logs.LogLongValue;
+import Zeze.Transaction.Logs.LogQuaternionValue;
+import Zeze.Transaction.Logs.LogShortValue;
+import Zeze.Transaction.Logs.LogStringValue;
+import Zeze.Transaction.Logs.LogVector2Value;
+import Zeze.Transaction.Logs.LogVector2IntValue;
+import Zeze.Transaction.Logs.LogVector3Value;
+import Zeze.Transaction.Logs.LogVector3IntValue;
+import Zeze.Transaction.Logs.LogVector4Value;
 import Zeze.Transaction.Table;
 import Zeze.Util.KV;
 import Zeze.Util.KVNotNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
-import org.pcollections.Empty;
-import Zeze.Collections.Persistents;
 
 /**
  * 回放端日志注册助手：扫描表（启动期全部表，或后启开的单表）的键值依赖，
@@ -111,7 +109,7 @@ public class Helper {
 		// dynamic GTable 外层 pmapMeta 按决胜键登记（hist-01 外层收口，FND26/FND27 两波独立发现）：
 		// 外层 typeId 的值身份固定 DynamicBean（GTable2 动态工厂路径），同 (rowClass,colClass) 的
 		// 多个 dynamic gtable 变量产生 typeId 相同、valueCtor（各自家族 create 闭包）不同的
-		// pmapMeta——若走 map2Metas 的 HashSet 身份序注册，Log.register 的 putIfAbsent 先到先得
+		// pmapMeta——若走 map2Metas 的 HashSet 身份序注册，LogRegistry.register 的 putIfAbsent 先到先得
 		// 使胜者随 JVM 运行变化（identityHashCode 桶序），回放解码工厂跨重启翻转。同型于
 		// map2Dynamic 的 (keyClass,DynamicBean) 决胜，键补齐外层维度 (rowClass,colClass)。
 		public final HashMap<KV<Class<?>, Class<?>>, DynamicMetaFamily> map2MetasDynamic = new HashMap<>();
@@ -119,7 +117,7 @@ public class Helper {
 		public final HashSet<KVNotNull<Class<? extends Comparable<?>>, Class<?>>> sortedMap1 = new HashSet<>();
 		public final HashSet<KVNotNull<Class<? extends Comparable<?>>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
 		public final HashMap<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>, DynamicFamily>
-				sortedMap2Dynamic = new HashMap<>();
+			sortedMap2Dynamic = new HashMap<>();
 		public final HashSet<SortedMap1Meta<? extends Comparable<?>, ?>> sortedMap1Metas = new HashSet<>();
 		public final HashSet<SortedMap2Meta<? extends Comparable<?>, ? extends Bean>> sortedMap2Metas = new HashSet<>();
 	}
@@ -140,7 +138,7 @@ public class Helper {
 	 * 与启动期全表扫描（registerAllTableLogs）同构——开表不注册则该表的日志 typeId
 	 * 永不注册，回放端解码失败。幂等：dependsBean 按 Class 去重，dynamic 家族经
 	 * 进程级累积状态跨批次按 where 字典序决胜（同家族重复登记无操作），普通注册
-	 * Log.register 先到先得且同名重复注册无害；只读表/无集合字段表为空操作。
+	 * LogRegistry.register 先到先得且同名重复注册无害；只读表/无集合字段表为空操作。
 	 */
 	public static void registerTableLogs(Table table) throws Exception {
 		var result = new DependsResult();
@@ -171,14 +169,14 @@ public class Helper {
 			registerLogList2(list2Class);
 		for (var e : sortedDynamic(result.list2Dynamic, f -> f.where))
 			registerLogList2Dynamic(e.getValue().factories.getKey(), e.getValue().factories.getValue(),
-					e.getValue().where);
+				e.getValue().where);
 		for (var map1KV : result.map1)
 			registerLogMap1(map1KV.getKey(), map1KV.getValue());
 		for (var map2KV : result.map2)
 			registerLogMap2(map2KV.getKey(), map2KV.getValue());
 		for (var e : sortedDynamic(result.map2Dynamic, f -> f.where))
 			registerLogMap2Dynamic(e.getKey().getKey(), e.getValue().factories.getKey(),
-					e.getValue().factories.getValue(), e.getValue().where);
+				e.getValue().factories.getValue(), e.getValue().where);
 		for (var meta : result.map1Metas)
 			registerLogMap1Meta(meta);
 		for (var meta : result.map2Metas)
@@ -196,7 +194,7 @@ public class Helper {
 			registerLogSortedMap2((Class<? extends Comparable>)kv.getKey(), kv.getValue());
 		for (var e : sortedDynamic(result.sortedMap2Dynamic, f -> f.where)) {
 			registerLogSortedMap2Dynamic((Class<? extends Comparable>)e.getKey().getKey(),
-					e.getValue().factories.getKey(), e.getValue().factories.getValue(), e.getValue().where);
+				e.getValue().factories.getKey(), e.getValue().factories.getValue(), e.getValue().where);
 		}
 		for (var meta : result.sortedMap1Metas)
 			registerLogSortedMap1Meta((SortedMap1Meta<? extends Comparable, ?>)meta);
@@ -242,7 +240,7 @@ public class Helper {
 						// dynamic 变量的 value 由生成器携带允许 bean 集全名（逗号分隔，见
 						// Gen BeanFormatter）——仅经 dynamic 可达的 bean 的集合/BeanKey 日志
 						// 工厂依赖它注册（isBuiltinType("dynamic") 为真，default 分支直接跳过
-						// 且无其他数据源），缺失时该类日志 typeId 永不注册，回放端 Log.create
+						// 且无其他数据源），缺失时该类日志 typeId 永不注册，回放端 LogRegistry.decode
 						// 抛 unknown log typeId 毒记录卡死游标。空集=无可达 bean，无注册义务。
 						if (!v.getValue().isEmpty())
 							for (var beanName : v.getValue().split(","))
@@ -291,17 +289,17 @@ public class Helper {
 	private static DynamicFamily newDynamicFamily(Class<?> beanClass, BVariable.Data v) {
 		try {
 			var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-					+ Character.toUpperCase(v.getName().charAt(0))
-					+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
+				+ Character.toUpperCase(v.getName().charAt(0))
+				+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
 			return new DynamicFamily(KVNotNull.create(db.getGetBean(), db.getCreateBean()),
-					beanClass.getName() + '#' + v.getName());
+				beanClass.getName() + '#' + v.getName());
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	// dynamic集合的logTypeId不含值工厂身份：同(keyClass,DynamicBean)的第二个
-	// 家族与首个同typeId，Log.register按注册表先到先得保留先注册者，后注册家族的日志在
+	// 家族与首个同typeId，LogRegistry.register按注册表先到先得保留先注册者，后注册家族的日志在
 	// 回放端用别人的create工厂解码（显式Bean:id编号重叠时静默解出错误bean，默认编号抛
 	// incompatible中断回放）。
 	// 决胜（hist-01）：同typeId冲突按家族来源名（宿主bean全名#变量名）字典序稳定决胜，小者胜
@@ -318,7 +316,7 @@ public class Helper {
 		var family = newDynamicFamily(beanClass, v);
 		var exist = (DynamicFamily)families.putIfAbsent(key, family);
 		if (exist == null || (exist.factories.getKey() == family.factories.getKey()
-				&& exist.factories.getValue() == family.factories.getValue()))
+			&& exist.factories.getValue() == family.factories.getValue()))
 			return; // 首个家族，或同工厂重复登记：无冲突
 		var keep = exist.where.compareTo(family.where) <= 0 ? exist : family;
 		var drop = keep == exist ? family : exist;
@@ -328,7 +326,7 @@ public class Helper {
 				+ " keep={} drop={} key=({},{})。胜者按家族来源名字典序稳定决胜（跨进程恒定，"
 				+ "不由注册顺序决定）；回放端按胜者家族的工厂解码，显式Bean:id编号重叠时"
 				+ "将静默解出错误类型的bean（FND8-30）",
-				keep.where, drop.where, ((KV)key).getKey(), ((KV)key).getValue());
+			keep.where, drop.where, ((KV)key).getKey(), ((KV)key).getValue());
 	}
 
 	// 遍历侧确定序（hist-01）：动态家族的注册遍历按决胜键（家族来源名where）排序后进行，
@@ -340,7 +338,7 @@ public class Helper {
 	// (rowClass,colClass)分桶、值身份固定DynamicBean，同桶多家族由where决胜，与内层三容器
 	// 共享本遍历的确定序保证。
 	private static <K, F> ArrayList<Map.Entry<K, F>> sortedDynamic(
-			HashMap<K, F> families, java.util.function.Function<F, String> where) {
+		HashMap<K, F> families, java.util.function.Function<F, String> where) {
 		var list = new ArrayList<>(families.entrySet());
 		list.sort(Comparator.comparing(e -> where.apply(e.getValue())));
 		return list;
@@ -348,7 +346,7 @@ public class Helper {
 
 	// dynamic外层pmapMeta决胜（hist-01外层收口，FND26 H/M-1 + FND27 H1）：与putDynamicFamily
 	// 同型——同(rowClass,colClass)键的外层pmapMeta按家族来源名字典序稳定决胜，小者胜，败者warn
-	// 留痕。此前外层走map2Metas的HashSet身份序+Log.register先到先得：胜者随JVM运行翻转，
+	// 留痕。此前外层走map2Metas的HashSet身份序+LogRegistry.register先到先得：胜者随JVM运行翻转，
 	// 回放端解码外层LogMap2的行物化工厂跨重启非确定（Bean:id重叠静默解错bean、不重叠毒卡
 	// 游标），且两meta同名连warn都没有。ROOT方案（外层typeId含家族身份，需Gen+全量重生成，
 	// 会改logTypeId使存量tHistory不可解码）另立专项；本收口先消灭"胜者挑选的非确定性"与
@@ -368,34 +366,34 @@ public class Helper {
 				+ " keep={} drop={} key=({},{})。胜者按家族来源名字典序稳定决胜（跨进程恒定，"
 				+ "不由注册顺序决定）；回放端按胜者家族的工厂物化外层行，显式Bean:id编号重叠时"
 				+ "将静默解出错误类型的bean",
-				keep.where, drop.where, ((KV)key).getKey(), ((KV)key).getValue());
+			keep.where, drop.where, ((KV)key).getKey(), ((KV)key).getValue());
 	}
 
 	/** 跨批次dynamic家族决胜的进程级登记项：胜者工厂按对象身份跟踪（工厂闭包无equals语义）。 */
-		private record DynamicWinner(IntFunction<Log> factory, String where) {
+	private record DynamicWinner(LogRegistry.Factory factory, String where) {
 	}
 
 	// dynamic家族跨批次决胜的进程级累积状态：typeId→当前胜者，与启动期applyRegistrations
 	// 批内决胜同构——按家族来源名字典序取argmin，注册终态=schema的纯函数，跨批次/JVM/重启
-	// 恒定（不走Log.register的putIfAbsent先到先得，否则增量开表的新家族工厂被静默丢弃、
+	// 恒定（不走LogRegistry.register的putIfAbsent先到先得，否则增量开表的新家族工厂被静默丢弃、
 	// 终态由注册时机决定）。登记点（Application启动与openDynamicTable）各自持Application
 	// 锁，多Application实例并发时"查胜者+条件替换"仍须原子，静态锁串行化（频度启动/开表级）。
 	private static final Object dynamicRegisterLock = new Object();
 	private static final ConcurrentHashMap<Integer, DynamicWinner> dynamicWinners = new ConcurrentHashMap<>();
 
-	private static void registerDynamicWinner(IntFunction<Log> factory, String where) {
-		var typeId = factory.apply(0).getTypeId();
+	private static void registerDynamicWinner(LogRegistry.Factory factory, String where) {
+		var typeId = factory.typeId();
 		synchronized (dynamicRegisterLock) {
 			var cur = dynamicWinners.get(typeId);
 			if (cur == null) {
 				// 进程首见该typeId：正常注册。槽位已被非dynamic注册占用（跨家族typeId
 				// 哈希碰撞，如普通List2Meta/Map2Meta先到）时不接管——维持先到先得，warn留痕。
-				if (Log.getRegistered(typeId) != null) {
+				if (LogRegistry.getRegistered(typeId) != null) {
 					logger.warn("dynamic collection family skipped: log typeId({}) already occupied by"
-							+ " non-dynamic registration, first registered wins. where={}", typeId, where);
+						+ " non-dynamic registration, first registered wins. where={}", typeId, where);
 					return;
 				}
-				Log.register(factory);
+				LogRegistry.register(factory);
 				dynamicWinners.put(typeId, new DynamicWinner(factory, where));
 				return;
 			}
@@ -404,18 +402,18 @@ public class Helper {
 			if (cur.where.compareTo(where) < 0) {
 				// 存量胜者字典序更小：新到家族落败，不进注册表，warn留痕。
 				logger.warn("dynamic collection family dropped (cross-batch): same log typeId({}) with"
-						+ " different factories. keep={} drop={}", typeId, cur.where, where);
+					+ " different factories. keep={} drop={}", typeId, cur.where, where);
 				return;
 			}
 			// 新到家族字典序更小：跨批翻转接管——仅当槽位仍是本表先前登记的工厂（按对象
 			// 身份条件替换）时生效；被外来注册占用则不接管（防御分支，理论上不可达）。
-			if (Log.replaceRegistered(typeId, cur.factory, factory)) {
+			if (LogRegistry.replaceRegistered(typeId, cur.factory, factory)) {
 				dynamicWinners.put(typeId, new DynamicWinner(factory, where));
 				logger.warn("dynamic collection family replaced (cross-batch): same log typeId({}) with"
-						+ " different factories. keep={} drop={}", typeId, where, cur.where);
+					+ " different factories. keep={} drop={}", typeId, where, cur.where);
 			} else {
 				logger.warn("dynamic collection family replace failed (cross-batch): log typeId({}) slot"
-						+ " not held by previous winner, keep={} drop={}", typeId, cur.where, where);
+					+ " not held by previous winner, keep={} drop={}", typeId, cur.where, where);
 			}
 		}
 	}
@@ -506,7 +504,7 @@ public class Helper {
 			// 外层pmapMeta走决胜登记（hist-01外层收口）：不进map2Metas——其HashSet身份序使
 			// 同(row,col)多dynamic变量的胜者跨JVM翻转（见DependsResult.map2MetasDynamic注释）。
 			putDynamicOuterMeta(result.map2MetasDynamic, KV.create(key1Class, key2Class),
-					factory.getPmapMeta(), family.where);
+				factory.getPmapMeta(), family.where);
 			putDynamicFamily(result.map2Dynamic, KV.create(key2Class, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
 			var factory = GTable1.getFactory(key1Class, key2Class, valueClass);
@@ -555,34 +553,34 @@ public class Helper {
 	// 工厂闭包直接捕获meta：解码是热路径（follower复制/history回放），勿在lambda内重查XxxMeta.get。
 	public static <T extends Serializable> void registerLogBeanKey(Class<T> beanClass) {
 		var meta = BeanKeyMeta.get(beanClass);
-		Log.register(varId -> new LogBeanKey<>(varId, meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogBeanKeyValue.decode(varId, meta, bb)));
 	}
 
 	public static <T> void registerLogList1(Class<T> valueClass) {
 		var meta = List1Meta.get(valueClass);
-		Log.register(varId -> new LogList1<>(null, varId, null, Persistents.vector(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogList1.decode(varId, meta, bb)));
 	}
 
 	public static <V extends Bean> void registerLogList2(Class<V> valueClass) {
 		var meta = List2Meta.get(valueClass);
-		Log.register(varId -> new LogList2<>(null, varId, null, Persistents.vector(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogList2.decode(varId, meta, bb)));
 	}
 
 	public static void registerLogList2Dynamic(ToLongFunction<@Nullable Bean> get,
 											   LongFunction<@Nullable Bean> create,
 											   String where) {
 		var meta = List2Meta.createDynamic(get, create);
-		registerDynamicWinner(varId -> new LogList2<>(null, varId, null, Persistents.vector(), meta), where);
+		registerDynamicWinner(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogList2.decode(varId, meta, bb)), where);
 	}
 
 	public static <K, V> void registerLogMap1(Class<K> keyClass, Class<V> valueClass) {
 		var meta = Map1Meta.get(keyClass, valueClass);
-		Log.register(varId -> new LogMap1<>(null, varId, null, Persistents.map(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap1.decode(varId, meta, bb)));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2(Class<K> keyClass, Class<V> valueClass) {
 		var meta = Map2Meta.get(keyClass, valueClass);
-		Log.register(varId -> new LogMap2<>(null, varId, null, Persistents.map(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb)));
 	}
 
 	public static <K> void registerLogMap2Dynamic(Class<K> keyClass,
@@ -590,43 +588,43 @@ public class Helper {
 												  LongFunction<@Nullable Bean> create,
 												  String where) {
 		var meta = Map2Meta.createDynamic(keyClass, get, create);
-		registerDynamicWinner(varId -> new LogMap2<>(null, varId, null, Persistents.map(), meta), where);
+		registerDynamicWinner(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb)), where);
 	}
 
 	public static <K, V> void registerLogMap1Meta(Map1Meta<K, V> meta) {
-		Log.register(varId -> new LogMap1<>(null, varId, null, Persistents.map(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap1.decode(varId, meta, bb)));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2Meta(Map2Meta<K, V> meta) {
-		Log.register(varId -> new LogMap2<>(null, varId, null, Persistents.map(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb)));
 	}
 
 	/** dynamic GTable 外层 pmapMeta 注册：经进程级跨批次决胜，与普通 map2Metas 的先到先得分流。 */
 	public static <K, V extends Bean> void registerLogMap2MetaDynamic(Map2Meta<K, V> meta,
 																	  String where) {
-		registerDynamicWinner(varId -> new LogMap2<>(null, varId, null, Persistents.map(), meta), where);
+		registerDynamicWinner(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb)), where);
 	}
 
 	public static <V> void registerLogSet1(Class<V> valueClass) {
 		var meta = Set1Meta.get(valueClass);
-		Log.register(varId -> new LogSet1<>(null, varId, null, Persistents.set(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSet1.decode(varId, meta, bb)));
 	}
 
 	public static <V extends Bean> void registerLogOne(Class<V> beanClass) {
 		var meta = LogOneMeta.get(beanClass);
-		Log.register(varId -> new LogOne<>(varId, meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogOne.decode(varId, meta, bb)));
 	}
 
 	public static <K extends Comparable<K>, V> void registerLogSortedMap1(Class<K> keyClass,
 																		  Class<V> valueClass) {
 		var meta = SortedMap1Meta.get(keyClass, valueClass);
-		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap1.decode(varId, meta, bb)));
 	}
 
 	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2(Class<K> keyClass,
 																					   Class<V> valueClass) {
 		var meta = SortedMap2Meta.get(keyClass, valueClass);
-		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb)));
 	}
 
 	public static <K extends Comparable<K>> void registerLogSortedMap2Dynamic(Class<K> keyClass,
@@ -634,35 +632,35 @@ public class Helper {
 																			  LongFunction<@Nullable Bean> create,
 																			  String where) {
 		var meta = SortedMap2Meta.createDynamic(keyClass, get, create);
-		registerDynamicWinner(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta), where);
+		registerDynamicWinner(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb)), where);
 	}
 
 	public static <K extends Comparable<K>, V> void registerLogSortedMap1Meta(SortedMap1Meta<K, V> meta) {
-		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap1.decode(varId, meta, bb)));
 	}
 
 	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2Meta(SortedMap2Meta<K, V> meta) {
-		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb)));
 	}
 
 	public static void registerLogs() {
-		Log.register(LogBool::new);
-		Log.register(LogByte::new);
-		Log.register(LogShort::new);
-		Log.register(LogInt::new);
-		Log.register(LogLong::new);
-		Log.register(LogFloat::new);
-		Log.register(LogDouble::new);
-		Log.register(LogBinary::new);
-		Log.register(LogString::new);
-		Log.register(LogDecimal::new);
-		Log.register(LogVector2::new);
-		Log.register(LogVector2Int::new);
-		Log.register(LogVector3::new);
-		Log.register(LogVector3Int::new);
-		Log.register(LogVector4::new);
-		Log.register(LogQuaternion::new);
-		Log.register(varId -> new LogBean(null, varId, null));
-		Log.register(varId -> new LogDynamic(null, varId, null));
+		LogRegistry.register(new LogRegistry.Factory(LogBoolValue.TYPE_ID, "LogBool", LogBoolValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogByteValue.TYPE_ID, "LogByte", LogByteValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogShortValue.TYPE_ID, "LogShort", LogShortValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogIntValue.TYPE_ID, "LogInt", LogIntValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogLongValue.TYPE_ID, "LogLong", LogLongValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogFloatValue.TYPE_ID, "LogFloat", LogFloatValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogDoubleValue.TYPE_ID, "LogDouble", LogDoubleValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogBinaryValue.TYPE_ID, "LogBinary", LogBinaryValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogStringValue.TYPE_ID, "LogString", LogStringValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogDecimalValue.TYPE_ID, "LogDecimal", LogDecimalValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogVector2Value.TYPE_ID, "LogVector2", LogVector2Value::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogVector2IntValue.TYPE_ID, "LogVector2Int", LogVector2IntValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogVector3Value.TYPE_ID, "LogVector3", LogVector3Value::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogVector3IntValue.TYPE_ID, "LogVector3Int", LogVector3IntValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogVector4Value.TYPE_ID, "LogVector4", LogVector4Value::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogQuaternionValue.TYPE_ID, "LogQuaternion", LogQuaternionValue::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogBean.TYPE_ID, "LogBean", LogBean::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogDynamic.TYPE_ID, "LogDynamic", LogDynamic::decode));
 	}
 }

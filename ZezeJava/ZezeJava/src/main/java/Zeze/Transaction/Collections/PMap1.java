@@ -2,10 +2,13 @@ package Zeze.Transaction.Collections;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLog;
+import Zeze.Transaction.ChangeCaptureMode;
 
 import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
@@ -37,8 +40,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 			throw new IllegalArgumentException("null value");
 
 		if (isManaged()) {
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.put(key, value);
 		}
 		var exist = map.get(key);
@@ -60,8 +62,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		}
 
 		if (isManaged()) {
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.putAll(m);
 		} else
 			map = map.plusAll(m);
@@ -70,8 +71,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	@Override
 	public @Nullable V remove(Object key) {
 		if (isManaged()) {
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.remove((K)key);
 		}
 		V exist = map.get((K)key);
@@ -84,8 +84,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.remove(k, v);
 		}
 		V exist = map.get(k);
@@ -101,8 +100,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.clear();
 		} else
 			map = Persistents.map();
@@ -114,16 +112,10 @@ public class PMap1<K, V> extends PMap<K, V> {
 		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 	}
 
-	@Override
-	public LogBean createLogBean() {
-		return new LogMap1<>(parent(), variableId(), this, map, meta);
-	}
-
 	public void assign(PMap1<K, V> pmap) {
 		var items = pmap.getMap();
 		if (isManaged()) {
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.clear();
 			mapLog.putAll(items);
 		} else
@@ -163,5 +155,22 @@ public class PMap1<K, V> extends PMap<K, V> {
 		for (int i = n; i > 0; i--)
 			m.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
 		putAll(m);
+	}
+
+	@Override
+	public TransactionLog createLog(ChangeCaptureMode mode) {
+		return mode == ChangeCaptureMode.NONE ? new LogMapNoDelta<>(this, map)
+			: new LogMap1Delta<>(this, map);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		if (finalLog == null)
+			return new LogMap1<>(variableId(), this, meta, null, null);
+		if (!(finalLog instanceof LogMap1Delta<?, ?>))
+			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		var delta = (LogMap1Delta<K, V>)finalLog;
+		return new LogMap1<>(variableId(), this, meta, delta.getReplaced(), delta.getRemoved());
 	}
 }

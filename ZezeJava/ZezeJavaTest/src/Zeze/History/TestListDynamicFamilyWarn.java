@@ -37,13 +37,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （KV 值 equals 但工厂 lambda/method-ref 按对象身份比较，去重不生效）且零告警；
  * （2）typeId 层——List2Meta 的 dynamic 构造器 logTypeId 是全局固定单值
  * （Meta1.dynamicBeanTypeId，连 keyClass 分桶都没有），任意两个 dynamic list 变量
- * 必然同 typeId；（3）Log.register 层——meta.name 固定 "LogList2:DynamicBean"，
+ * 必然同 typeId；（3）LogRegistry.register 层——meta.name 固定 "LogList2:DynamicBean"，
  * 同名分支只 debug。后注册家族被静默丢弃，回放端按先注册家族的工厂解码（显式
  * Bean:id 编号重叠时静默解出错误 bean）——比 GC-D02(FND19) 裁决保留的 map 家族
  * warn 底线更退一步（连 warn 都没有）。
  * 修复（域内最小对齐，复用 FND8-30 形态）：dependsList 的 dynamic 分支改走
  * putDynamicFamily——list 无 key 维度，键用固定哨兵（全部家族同键＝任意两个都
- * 冲突的语义）；先到家族保留、后到不同工厂 warn 留痕后丢弃（Log.register 同
+ * 冲突的语义）；先到家族保留、后到不同工厂 warn 留痕后丢弃（LogRegistry.register 同
  * typeId 先到先得，丢弃不改注册终态，只补检测面）。
  * typeId 固定单值/meta.name 固定串的彻底闭合（warn→error）依赖 Gen 侧
  * specialTypeId 映射暴露（与 GC-D02(FND19) 既定跟进同轨）及 List2Meta（八单元
