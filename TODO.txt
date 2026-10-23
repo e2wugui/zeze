@@ -1,3 +1,6 @@
+kotlinx-collections-immutable-jvm transient/builder 结合进事务 zeze-2.0.0 有项目正式采用后才修改。
+ScopedValue jdk25 zeze-3.0.0 之后启用。
+
 History tid 分配方案，目前是锁内一次一个的分配，性能不行。
 
 DatabaseTikv.OperatesTikv
