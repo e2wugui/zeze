@@ -21,15 +21,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * FND8-29回归：map2/dynamic 值日志缺身份校验。
  * put覆盖（或setBean换bean）不解除旧bean归属：旧bean仍managed、mapKey不清，
- * 用户持有陈旧引用继续修改是合法调用序列，其字段日志会被collect并经
- * buildChangedWithKey/encode 的 key 级过滤（replaced/removed/存在性）放行，
+ * 用户持有陈旧引用继续修改是合法调用序列；旧实现只有 key 级过滤
+ * （replaced/removed/存在性），仍可能放行错误的值身份，
  * follower 侧被应用到覆盖后的新值上，主从静默分歧。
- * 修复：第三条过滤强化为 c.getThis()==getValue().get(k)（LogMap2/LogSortedMap2），
+ * 修复：收集阶段要求 child.getThis()==source.map.get(k)（LogMap2/LogSortedMap2），
  * LogDynamic.encode 的 logBean 分支补 logBean.getThis()==当前内部bean。
  * 对照组：LogList2 历来就有身份过滤（v==bean 逐位搜索），本修复对齐家族语义。
  * <p>
- * 纯单元：不起应用/网络，直接构造 LogMap2/LogSortedMap2/LogDynamic，
- * 手工注入"陈旧bean的字段日志"到 changed/logBean，走 encode→decode→followerApply
+ * 纯单元：不起应用/网络，为 Map2 构造合法源关系并真实 collect 陈旧字段日志，
+ * Dynamic 仍直接注入其 logBean，走 encode→decode→followerApply
  * 全路径断言。修复前 changedWithKey 携带陈旧日志、follower 的当前值被污染。
  */
 @Fast
@@ -63,14 +63,13 @@ public class TestStaleBeanChangedFilter {
 		var map = new PMap2<String, BValue>(String.class, BValue.class);
 		map.put("k", current);
 		@SuppressWarnings("unchecked")
-		var log = (LogMap2<String, BValue>)map.createLogBean();
-		log.getChanged().add(newBeanLog(stale, 9)); // txn3：陈旧引用的修改被collect
+		var log = (LogMap2<String, BValue>)Map2TestSupport.collect(map, newBeanLog(stale, 9));
 
 		var followerValue = new BValue();
 		var follower = new PMap2<String, BValue>(String.class, BValue.class);
 		follower.put("k", followerValue);
 		@SuppressWarnings("unchecked")
-		var decoded = (LogMap2<String, BValue>)follower.createLogBean();
+		var decoded = Map2TestSupport.wireLog(follower);
 		decoded.decode(encodeThenWrap(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "陈旧引用的changed必须被身份校验过滤");
 		follower.followerApply(decoded);
@@ -78,10 +77,9 @@ public class TestStaleBeanChangedFilter {
 
 		// 正控：当前值自身的changed保留并正常应用。
 		@SuppressWarnings("unchecked")
-		var live = (LogMap2<String, BValue>)map.createLogBean();
-		live.getChanged().add(newBeanLog(current, 7));
+		var live = (LogMap2<String, BValue>)Map2TestSupport.collect(map, newBeanLog(current, 7));
 		@SuppressWarnings("unchecked")
-		var decodedLive = (LogMap2<String, BValue>)follower.createLogBean();
+		var decodedLive = Map2TestSupport.wireLog(follower);
 		decodedLive.decode(encodeThenWrap(live));
 		assertTrue(decodedLive.getChangedWithKey().containsKey("k"), "当前值的changed不得误杀");
 		follower.followerApply(decodedLive);
@@ -96,24 +94,22 @@ public class TestStaleBeanChangedFilter {
 		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		map.put("k", current);
 		@SuppressWarnings("unchecked")
-		var log = (LogSortedMap2<String, BValue>)map.createLogBean();
-		log.getChanged().add(newBeanLog(stale, 9));
+		var log = (LogSortedMap2<String, BValue>)Map2TestSupport.collect(map, newBeanLog(stale, 9));
 
 		var followerValue = new BValue();
 		var follower = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		follower.put("k", followerValue);
 		@SuppressWarnings("unchecked")
-		var decoded = (LogSortedMap2<String, BValue>)follower.createLogBean();
+		var decoded = Map2TestSupport.wireLog(follower);
 		decoded.decode(encodeThenWrap(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "陈旧引用的changed必须被身份校验过滤");
 		follower.followerApply(decoded);
 		assertEquals(0, followerValue.getLong2(), "follower当前值不得被陈旧字段日志污染");
 
 		@SuppressWarnings("unchecked")
-		var live = (LogSortedMap2<String, BValue>)map.createLogBean();
-		live.getChanged().add(newBeanLog(current, 7));
+		var live = (LogSortedMap2<String, BValue>)Map2TestSupport.collect(map, newBeanLog(current, 7));
 		@SuppressWarnings("unchecked")
-		var decodedLive = (LogSortedMap2<String, BValue>)follower.createLogBean();
+		var decodedLive = Map2TestSupport.wireLog(follower);
 		decodedLive.decode(encodeThenWrap(live));
 		assertTrue(decodedLive.getChangedWithKey().containsKey("k"), "当前值的changed不得误杀");
 		follower.followerApply(decodedLive);

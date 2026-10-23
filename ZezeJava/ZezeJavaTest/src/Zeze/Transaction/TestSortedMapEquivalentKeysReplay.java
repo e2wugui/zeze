@@ -8,6 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogSortedMap1;
 import Zeze.Transaction.Collections.LogSortedMap2;
+import Zeze.Transaction.Collections.Map2DeltaTestSupport;
 import Zeze.Transaction.Collections.PSortedMap1;
 import Zeze.Transaction.Collections.PSortedMap2;
 import Zeze.Transaction.Collections.SortedMap1Meta;
@@ -30,7 +31,8 @@ public class TestSortedMapEquivalentKeysReplay {
 
 	private static PSortedMap2<String, BValue> newCaseInsensitiveBeanMap() {
 		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
-		var initial = new LogSortedMap2<String, BValue>(null, 1, map,
+		// Seed the comparator through the write-log base; no wire payload is used as a write intent.
+		var initial = new LogSortedMap1<String, BValue>(null, 1, map,
 				org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER), map.getMeta());
 		initial.commit();
 		return map;
@@ -131,17 +133,18 @@ public class TestSortedMapEquivalentKeysReplay {
 	public void beanRemovalWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap2<BigDecimal, Bean1>(BigDecimal.class, Bean1.class);
 		var meta = SortedMap2Meta.get(BigDecimal.class, Bean1.class);
-		var log = new LogSortedMap2<BigDecimal, Bean1>(null, 1, leader, leader.getMap(), meta);
 		var bean = new Bean1();
 		bean.setIntVar(10);
-		log.put(new BigDecimal("1.0"), bean);
-		assertEquals(bean, log.remove(new BigDecimal("1.00")));
-		log.commit();
+		leader.put(new BigDecimal("1.0"), bean);
+		var log = Map2DeltaTestSupport.sorted(leader,
+				delta -> assertEquals(bean, delta.remove(new BigDecimal("1.00"))));
+		assertTrue(log.getRemoved().contains(new BigDecimal("1.000")));
 
 		var input = encode(log);
 		var decoded = new LogSortedMap2<BigDecimal, Bean1>(null, 1, null, leader.getMap(), meta);
 		decoded.decode(input);
 		var follower = new PSortedMap2<BigDecimal, Bean1>(BigDecimal.class, Bean1.class);
+		follower.put(new BigDecimal("1.0"), new Bean1());
 		follower.followerApply(decoded);
 		assertTrue(input.isEmpty());
 		assertTrue(leader.isEmpty());
@@ -176,16 +179,14 @@ public class TestSortedMapEquivalentKeysReplay {
 		field.value = 7;
 		change.getVariablesOrNew().put(2, field);
 		@SuppressWarnings("unchecked")
-		var log = (LogSortedMap2<K, BValue>)leader.createLogBean();
-		log.getChanged().add(change);
-		assertTrue(log.buildChangedWithKey());
+		var log = (LogSortedMap2<K, BValue>)Map2TestSupport.collect(leader, change);
 		assertEquals(1, log.getChangedWithKey().size());
 		assertSame(change, log.getChangedWithKey().get(equivalentKey),
 				"原位修改索引须使用底层映射的键等价关系");
 
 		var input = encode(log);
 		@SuppressWarnings("unchecked")
-		var decoded = (LogSortedMap2<K, BValue>)follower.createLogBean();
+		var decoded = Map2TestSupport.wireLog(follower);
 		decoded.decode(input);
 		assertTrue(input.isEmpty());
 		assertEquals(1, decoded.getChangedWithKey().size());
@@ -198,8 +199,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertEquals(value.getLong2(), requireNonNull(followerValue).getLong2());
 		assertEquals(1, follower.size());
 
-		log.mergeChangedToReplaced();
-		assertSame(value, log.getReplaced().get(equivalentKey));
+		assertTrue(log.getReplaced().isEmpty(), "原位编辑的编码不得改变为完整替换");
 	}
 
 	@Test

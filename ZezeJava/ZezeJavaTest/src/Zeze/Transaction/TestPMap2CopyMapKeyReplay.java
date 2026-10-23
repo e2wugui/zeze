@@ -39,8 +39,7 @@ public class TestPMap2CopyMapKeyReplay {
 		field.value = 7;
 		change.getVariablesOrNew().put(2, field);
 		@SuppressWarnings("unchecked")
-		var log = (LogMap2<String, BValue>)copy.createLogBean();
-		log.getChanged().add(change);
+		var log = (LogMap2<String, BValue>)Map2TestSupport.collect(copy, change);
 		var encoded = ByteBuffer.Allocate();
 		log.encode(encoded);
 		assertEquals(1, log.getChangedWithKey().size(), "copy后changed不可因缺失mapKey而被过滤");
@@ -49,7 +48,7 @@ public class TestPMap2CopyMapKeyReplay {
 		var follower = source.copy();
 		var followerValue = follower.get("original-key");
 		@SuppressWarnings("unchecked")
-		var decoded = (LogMap2<String, BValue>)follower.createLogBean();
+		var decoded = Map2TestSupport.wireLog(follower);
 		var input = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
 		decoded.decode(input);
 		assertTrue(input.isEmpty());

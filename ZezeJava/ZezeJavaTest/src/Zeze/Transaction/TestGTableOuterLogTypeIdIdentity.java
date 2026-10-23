@@ -98,7 +98,8 @@ public class TestGTableOuterLogTypeIdIdentity {
 	private static <R, C, V> ByteBuffer encodeReplacedRow(GTable1.Factory<R, C, V> f, R rowKey, C col, V val) {
 		var row = new BeanMap1<>(f.getBmapMeta());
 		row.put(col, val);
-		var log = new LogMap2<R, BeanMap1<C, V>>(null, 1, null, org.pcollections.Empty.map(), f.getPmapMeta());
+		var log = Map2TestSupport.emptyWirePayload(
+				new LogMap2<R, BeanMap1<C, V>>(null, 1, null, org.pcollections.Empty.map(), f.getPmapMeta()));
 		log.getReplaced().put(rowKey, row);
 		var bb = ByteBuffer.Allocate();
 		log.encode(bb);

@@ -346,10 +346,9 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				@SuppressWarnings("unchecked")
 				var notemap2 = (LogMap2<Integer, BItem>)c.getVariableLog(tequip.VAR_Items);
 				if (null != notemap2) {
-					notemap2.mergeChangedToReplaced();
 					SEquipement changed2 = new SEquipement();
 					changed2.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
-					changed2.Argument.getItemsReplace().putAll(notemap2.getReplaced());
+					c.<Integer, BItem>forEachMap2Upsert(tequip.VAR_Items, changed2.Argument.getItemsReplace()::put);
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getItemsRemove().add(p);
 					}

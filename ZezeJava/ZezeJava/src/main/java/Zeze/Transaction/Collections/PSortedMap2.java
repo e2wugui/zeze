@@ -8,6 +8,7 @@ import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Changes;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
@@ -86,8 +87,8 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
 			//noinspection DataFlowIssue
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			value.initRootInfoWithRedo(rootInfo, this);
 			value.mapKey(key);
 			assert parent() != null;
@@ -119,8 +120,8 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
 			assert parent() != null;
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				V v = e.getValue();
@@ -145,8 +146,8 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	public @Nullable V remove(Object key) {
 		if (isManaged()) {
 			assert parent() != null;
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			return mapLog.remove((K)key);
 		}
 		V exist = map.get((K)key);
@@ -161,8 +162,8 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (isManaged()) {
 			assert parent() != null;
 			//noinspection unchecked
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			return mapLog.remove(k, v);
 		}
 		V exist = map.get(k);
@@ -179,8 +180,8 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			return;
 		if (isManaged()) {
 			assert parent() != null;
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogSortedMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			mapLog.clear();
 		} else {
 			var comparator = map.comparator();
@@ -192,16 +193,16 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	public void followerApply(Log _log) {
 		var log = (LogSortedMap2<K, V>)_log;
 		var tmp = map;
-		for (var e : log.getReplaced().entrySet()) {
+		for (var e : log.replacedForRead().entrySet()) {
 			// 对齐put/decode/putAllData全部写路径：进map的bean必须带mapKey（同PMap2.followerApply）。
 			e.getValue().initRootInfo(rootInfo, this);
 			e.getValue().mapKey(e.getKey());
 		}
-		tmp = tmp.minusAll(log.getRemoved()).plusAll(log.getReplaced());
+		tmp = tmp.minusAll(log.removedForRead()).plusAll(log.replacedForRead());
 
 		// apply changed
-		for (var e : log.getChangedWithKey().entrySet()) {
-			// 正常重放下changed只含最终map存在的key（编码时已过滤），follower侧null即先行分歧
+		for (var e : log.changedForRead().entrySet()) {
+			// 正常重放下changed只含最终map存在的key（收集时已过滤），follower侧null即先行分歧
 			// （可能是编辑了又被删等任何来源）：直接递归抛NPE，由驱动方裁决——raft路径
 			// Rocks.followerApply统一catch+fatalKill；History回放路径批中断。抛出只证明应用
 			// 路径无硬分歧，不证明最终数值一致（错位应用/历史缺失不抛异常），仍由
@@ -213,7 +214,27 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 	@Override
 	public LogBean createLogBean() {
-		return new LogSortedMap2<>(parent(), variableId(), this, map, meta);
+		return createMapChangeLog();
+	}
+
+	private LogBean createMapChangeLog() {
+		var txn = Transaction.getCurrent();
+		var owner = parent();
+		var log = txn != null && owner != null ? txn.getLog(owner.objectId() + variableId()) : null;
+		if (log instanceof LogSortedMap2Delta<?, ?> delta)
+			return delta.createChangeLog();
+		return new LogSortedMap2<>(owner, variableId(), this, map.comparator(), meta,
+				null, null);
+	}
+
+	private LogSortedMap2Delta<K, V> createMapLog() {
+		return new LogSortedMap2Delta<>(parent(), variableId(), this, map, meta);
+	}
+
+	@Override
+	public final LogBean createChangeLog(Changes changes) {
+		// 框架消费节点不经过可覆写的旧工厂，避免字段先到与结构先到选择不同载荷。
+		return createMapChangeLog();
 	}
 
 	@Override

@@ -4,9 +4,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
+import Zeze.Transaction.Collections.LogMap2;
+import Zeze.Transaction.Collections.LogSortedMap2;
+import Zeze.Transaction.Collections.Map2ListenerView;
 import Zeze.Util.LongHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,12 +24,12 @@ public final class Changes {
 
 	// 无 History、无监听者的提交不创建 Changes；有消费者但无字段日志（如整条 Put）
 	// 时仍无须分配 beans。getBeans 保持返回非空容器的契约。
-	private @Nullable LongHashMap<LogBean> beans; // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
+	private @Nullable LogBeanCache beans; // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
 	private final @Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners;
 	private final boolean collectAll;
 
-	private Changes(boolean collectAll,
+	Changes(boolean collectAll,
 			@Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners) {
 		this.collectAll = collectAll;
 		this.listeners = listeners;
@@ -52,12 +55,33 @@ public final class Changes {
 	}
 
 	public LongHashMap<LogBean> getBeans() {
+		return getBeanCache().asMap();
+	}
+
+	private LogBeanCache getBeanCache() {
 		var b = beans;
-		return b != null ? b : (beans = new LongHashMap<>());
+		return b != null ? b : (beans = new LogBeanCache());
 	}
 
 	public HashMap<TableKey, Record> getRecords() {
 		return records;
+	}
+
+	/** 只创建并缓存节点，向上挂接由 collect 完成；与保存点日志迭代次序无关。 */
+	public LogBean getOrCreateLogBean(Bean bean) {
+		return getOrCreateLogBean(bean, null);
+	}
+
+	private LogBean getOrCreateLogBean(Bean bean, @Nullable ChangeLogSource source) {
+		// 先发布唯一缓存，再调用可重入工厂；工厂可能物化/修改公开 Map 或先发布同一节点。
+		var nodes = getBeanCache();
+		long id = bean.objectId();
+		var log = nodes.get(id);
+		if (log == null) {
+			log = source != null ? source.createChangeLog() : bean.createChangeLog(this);
+			return nodes.putIfAbsent(id, log);
+		}
+		return log;
 	}
 
 	public static final class Record {
@@ -89,6 +113,38 @@ public final class Changes {
 					return variables.get(variableId);
 			}
 			return null;
+		}
+
+		private Log sourceVariableLog(int variableId) {
+			var root = getLogBean();
+			if (root == null || root.getThis() == null)
+				throw new IllegalStateException("listener projection requires a collected source record");
+			var variables = root.getVariables();
+			var log = variables != null ? variables.get(variableId) : null;
+			if (log == null)
+				throw new IllegalArgumentException("no change for variable " + variableId);
+			return log;
+		}
+
+		@SuppressWarnings("unchecked")
+		public <K, V extends Bean> Map2ListenerView<K, V> map2ListenerView(int variableId) {
+			return Map2ListenerView.of((LogMap2<K, V>)sourceVariableLog(variableId));
+		}
+
+		@SuppressWarnings("unchecked")
+		public <K extends Comparable<K>, V extends Bean> Map2ListenerView<K, V> sortedMap2ListenerView(int variableId) {
+			return Map2ListenerView.of((LogSortedMap2<K, V>)sourceVariableLog(variableId));
+		}
+
+		@SuppressWarnings("unchecked")
+		public <K, V extends Bean> void forEachMap2Upsert(int variableId, BiConsumer<K, V> action) {
+			Map2ListenerView.forEachUpsert((LogMap2<K, V>)sourceVariableLog(variableId), action);
+		}
+
+		@SuppressWarnings("unchecked")
+		public <K extends Comparable<K>, V extends Bean> void forEachSortedMap2Upsert(
+				int variableId, BiConsumer<K, V> action) {
+			Map2ListenerView.forEachUpsert((LogSortedMap2<K, V>)sourceVariableLog(variableId), action);
 		}
 
 		public IdentityHashMap<Bean, LogBean> getLogBeans() {
@@ -177,6 +233,10 @@ public final class Changes {
 		if (!collectAll && (listeners == null || listeners.get(rootInfo.record().getTable()) == null))
 			return;
 
+		// 先过滤表兴趣，再转换；不能给同一事务中的其他无消费者表创建载荷。
+		if (log instanceof ChangeLogSource source)
+			log = getOrCreateLogBean(source.getSourceBean(), source);
+
 		var belong = log.getBelong();
 		if (belong == null) {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
@@ -192,22 +252,7 @@ public final class Changes {
 			return; // root
 		}
 
-		var logBean = getBeans().get(belong.objectId());
-		if (logBean == null) {
-			if (belong instanceof Collection || belong instanceof DynamicBean) {
-				// 容器和DynamicBean使用共享的日志。需要先去查询，没有的话才创建。
-				// DynamicBean的setBean把新bean保存在事务日志的value中，必须复用；新建的日志
-				// value为null，编码时只剩内部bean的字段日志，会丢失setBean（含typeId变更）的修改。
-				// DynamicBean用dynamicLogKey：集合元素形态下parent()+variableId()跨元素碰撞。
-				//noinspection ConstantConditions
-				logBean = (LogBean)Transaction.getCurrent().getLog(
-						belong instanceof DynamicBean dynamic ? dynamic.dynamicLogKey()
-								: belong.parent().objectId() + belong.variableId());
-			}
-			if (logBean == null)
-				logBean = belong.createLogBean();
-			getBeans().put(belong.objectId(), logBean);
-		}
+		var logBean = getOrCreateLogBean(belong);
 		logBean.collect(this, belong, log);
 	}
 

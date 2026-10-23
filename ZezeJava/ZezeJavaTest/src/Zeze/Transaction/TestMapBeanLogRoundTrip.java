@@ -20,6 +20,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,17 +37,11 @@ public class TestMapBeanLogRoundTrip {
 		if (sorted) {
 			var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
 			map.put(key, new BValue());
-			return new Fixture(map, map.createLogBean(), map::followerApply);
+			return new Fixture(map, Map2TestSupport.wireLog(map), map::followerApply);
 		}
 		var map = new PMap2<String, BValue>(String.class, BValue.class);
 		map.put(key, new BValue());
-		return new Fixture(map, map.createLogBean(), map::followerApply);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Set<LogBean> changed(LogBean log) {
-		return log instanceof LogMap2<?, ?> ? ((LogMap2<String, BValue>)log).getChanged()
-				: ((LogSortedMap2<String, BValue>)log).getChanged();
+		return new Fixture(map, Map2TestSupport.wireLog(map), map::followerApply);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -58,7 +53,9 @@ public class TestMapBeanLogRoundTrip {
 	private static void change(Fixture fixture, String key, long value) {
 		var bean = fixture.map().get(key);
 		bean.setLong2(value);
-		changed(fixture.log()).add(beanLog(bean, value));
+		// This fixture already describes a canonical wire payload. Source identity filtering
+		// is exercised through collect in TestStaleBeanChangedFilter.
+		index(fixture.log()).put(key, beanLog(bean, value));
 	}
 
 	private static LogBean beanLog(BValue bean, long value) {
@@ -82,7 +79,6 @@ public class TestMapBeanLogRoundTrip {
 			change(source, "k", 7);
 			var decoded = fixture(sorted, "k").log();
 			decoded.decode(encode(source.log()));
-			assertTrue(changed(decoded).isEmpty());
 			var follower = fixture(sorted, "k");
 			var oldBean = follower.map().get("k");
 			follower.log().decode(encode(decoded));
@@ -113,7 +109,6 @@ public class TestMapBeanLogRoundTrip {
 			change(reused, "stale", 99);
 			reused.log().decode(encode(first.log()));
 			reused.log().decode(encode(second.log()));
-			assertTrue(changed(reused.log()).isEmpty());
 			assertEquals(Set.of("second"), index(reused.log()).keySet());
 			var follower = fixture(sorted, "second");
 			follower.log().decode(encode(reused.log()));
@@ -124,23 +119,22 @@ public class TestMapBeanLogRoundTrip {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	public void liveSourceReencodingStillFiltersReplacedBeans() {
+	public void canonicalEncodingDoesNotReconsultTheSourceMap() {
 		for (boolean sorted : new boolean[] {false, true}) {
 			var source = fixture(sorted, "k");
 			change(source, "k", 7);
-			encode(source.log());
+			var before = encode(source.log()).Copy();
 			assertEquals(1, index(source.log()).size());
 			var replacement = new BValue();
 			replacement.setLong2(13);
-			if (sorted)
-				((LogSortedMap2<String, BValue>)source.log()).put("k", replacement);
-			else
-				((LogMap2<String, BValue>)source.log()).put("k", replacement);
+			source.map().put("k", replacement);
+			assertArrayEquals(before, encode(source.log()).Copy(),
+					"encoding a canonical payload must not rebuild its keyed changes from a later source value");
 			var follower = fixture(sorted, "k");
 			follower.log().decode(encode(source.log()));
-			assertTrue(index(follower.log()).isEmpty());
+			assertEquals(Set.of("k"), index(follower.log()).keySet());
 			follower.apply().accept(follower.log());
-			assertEquals(13, follower.map().get("k").getLong2());
+			assertEquals(7, follower.map().get("k").getLong2());
 		}
 	}
 

@@ -1,10 +1,15 @@
 package harness;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
@@ -13,10 +18,11 @@ import java.util.stream.Stream;
  * <p>宏观（MacroBench JSON）：按文件名配对，median 对比；|Δ| &gt; 3×√(stdevA²+stdevB²) 判显著
  * （IMPROVED/REGRESSED），否则 NOISE。约定 dirA=before、dirB=after。
  *
- * <p>游戏模拟（L_MmoGameSim.json，flat key "op.&lt;name&gt;.p50_us" 等）：每 op 的延迟分位
- * 做无门槛百分比对照（信息性输出，不进回归判定——吞吐 median 仍是唯一门）。
+ * <p>游戏模拟（L_MmoGameSim*.json，flat key "op.&lt;name&gt;.p50_us" 等）：按完整文件名配对，
+ * 输出全部活跃操作的计数、速率及延迟。尾延迟仅作信息输出，必须独立复测，不据此宣称等价。
  *
  * <p>微基准（jmh-*.json，JMH 自身格式）：score±scoreError 置信区间不重叠判显著。
+ * 带 params 的 JMH 矩阵应使用 ZezeJavaTest/scripts/compare_jmh.py，避免旧名称配对混淆参数行。
  */
 public final class BenchCompare {
 	private BenchCompare() {
@@ -29,7 +35,7 @@ public final class BenchCompare {
 		}
 		int regressions = 0;
 		regressions += compareMacro(Path.of(args[0]), Path.of(args[1]));
-		regressions += compareOps(Path.of(args[0]), Path.of(args[1]));
+		regressions += compareOps(Path.of(args[0]), Path.of(args[1]), System.out);
 		regressions += compareJmh(Path.of(args[0]), Path.of(args[1]));
 		System.exit(regressions > 0 ? 1 : 0);
 	}
@@ -68,30 +74,95 @@ public final class BenchCompare {
 		return regressions;
 	}
 
-	private static int compareOps(Path dirA, Path dirB) throws IOException {
-		var fa = dirA.resolve("L_MmoGameSim.json");
-		var fb = dirB.resolve("L_MmoGameSim.json");
-		if (!Files.exists(fa) || !Files.exists(fb))
+	private static final List<String> OP_FIELDS = List.of("count", "tps", "mean_us", "p50_us", "p95_us", "p99_us", "max_us");
+	private static final Pattern OP_KEY = Pattern.compile(
+			"\"op\\.([^\".]+)\\.(?:count|tps|mean_us|p50_us|p95_us|p99_us|max_us)\"\\s*:");
+
+	// Local output stream keeps fixture tests independent of the process-wide stdout.
+	static int compareOps(Path dirA, Path dirB, PrintStream out) throws IOException {
+		var names = new TreeSet<>(gameOpFiles(dirA));
+		names.addAll(gameOpFiles(dirB));
+		if (names.isEmpty())
 			return 0;
-		String ta = Files.readString(fa), tb = Files.readString(fb);
-		var fields = List.of("op.loot.tps", "op.loot.p50_us", "op.loot.p95_us", "op.heartbeat.p95_us",
-				"op.friendQuery.p50_us", "op.friendQuery.p95_us", "op.mailClaim.p95_us", "op.trade.p95_us",
-				"op.mailFanout.p95_us");
-		System.out.println("=== Game ops (informational, no gate) ===");
-		for (var k : fields) {
-			if (!ta.contains("\"" + k + "\"") || !tb.contains("\"" + k + "\""))
-				continue;
-			double va, vb;
-			try {
-				va = textDouble(ta, k, 0, Integer.MAX_VALUE);
-				vb = textDouble(tb, k, 0, Integer.MAX_VALUE);
-			} catch (IllegalStateException missing) {
+		out.println("=== Game ops (informational only, no gate; independent repeat required, no equivalence claim) ===");
+		for (var name : names) {
+			var fa = dirA.resolve(name);
+			var fb = dirB.resolve(name);
+			if (!Files.isRegularFile(fa) || !Files.isRegularFile(fb)) {
+				out.printf("%s MISSING %s file; pairing requires the complete filename%n", name,
+						!Files.isRegularFile(fa) ? "before" : "after");
 				continue;
 			}
-			double pct = 100 * (vb - va) / va;
-			System.out.printf("%-42s %14.1f -> %14.1f  %+7.2f%%%n", k, va, vb, pct);
+			String ta = Files.readString(fa), tb = Files.readString(fb);
+			var operations = new TreeSet<>(gameOperations(ta));
+			operations.addAll(gameOperations(tb));
+			out.printf("--- %s ---%n", name);
+			if (operations.isEmpty()) {
+				out.println("WARNING no operation metrics in either file; active operations cannot be assessed");
+				continue;
+			}
+			for (var operation : operations) {
+				String prefix = "op." + operation + '.';
+				Double countA = opValue(ta, prefix + "count");
+				Double countB = opValue(tb, prefix + "count");
+				if (countA == null || countB == null)
+					missingOpValue(out, prefix + "count", countA == null, countB == null);
+				if (!(countA != null && countA > 0 || countB != null && countB > 0))
+					continue;
+				for (var field : OP_FIELDS) {
+					String key = prefix + field;
+					Double va = field.equals("count") ? countA : opValue(ta, key);
+					Double vb = field.equals("count") ? countB : opValue(tb, key);
+					boolean noEventsA = field.endsWith("_us") && countA != null && countA == 0;
+					boolean noEventsB = field.endsWith("_us") && countB != null && countB == 0;
+					if (!field.equals("count") && (va == null && !noEventsA || vb == null && !noEventsB))
+						missingOpValue(out, key, va == null && !noEventsA, vb == null && !noEventsB);
+					if (va == null && vb == null)
+						continue;
+					String percent = !noEventsA && !noEventsB && va != null && vb != null && va > 0
+							? String.format(Locale.ROOT, "%+.2f%%", 100 * (vb - va) / va) : "N/A";
+					out.printf(Locale.ROOT, "%-42s %16s -> %16s  %s%n", key,
+							formatOpValue(va, noEventsA), formatOpValue(vb, noEventsB), percent);
+				}
+			}
 		}
-		return 0;
+		return 0; // Tail information never changes the throughput regression verdict.
+	}
+
+	private static Set<String> gameOpFiles(Path dir) throws IOException {
+		if (!Files.isDirectory(dir))
+			return Set.of();
+		try (Stream<Path> files = Files.list(dir)) {
+			var names = new TreeSet<String>();
+			files.filter(Files::isRegularFile).map(p -> p.getFileName().toString())
+					.filter(n -> n.startsWith("L_MmoGameSim") && n.endsWith(".json")).forEach(names::add);
+			return names;
+		}
+	}
+
+	private static Set<String> gameOperations(String text) {
+		var operations = new TreeSet<String>();
+		var keys = OP_KEY.matcher(text);
+		while (keys.find())
+			operations.add(keys.group(1));
+		return operations;
+	}
+
+	private static Double opValue(String text, String key) {
+		try {
+			double value = textDouble(text, key, 0, Integer.MAX_VALUE);
+			return Double.isFinite(value) && value >= 0 ? value : null;
+		} catch (IllegalStateException | NumberFormatException missingOrInvalid) {
+			return null;
+		}
+	}
+
+	private static void missingOpValue(PrintStream out, String key, boolean before, boolean after) {
+		out.printf("WARNING %s MISSING/INVALID in %s%n", key, before && after ? "before and after" : before ? "before" : "after");
+	}
+
+	private static String formatOpValue(Double value, boolean noEvents) {
+		return noEvents ? "N/A(no events)" : value == null ? "MISSING" : String.format(Locale.ROOT, "%.1f", value);
 	}
 
 	private static int compareJmh(Path dirA, Path dirB) throws IOException {

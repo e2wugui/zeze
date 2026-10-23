@@ -254,6 +254,11 @@ public abstract class Bean implements Serializable {
 		return new LogBean(parent, variableId, this);
 	}
 
+	/** 为本次提交创建消费节点。容器可从最终事务增量导出，生成 Bean 无须覆写。 */
+	public LogBean createChangeLog(Changes changes) {
+		return createLogBean();
+	}
+
 	// 当Bean放到Table中时，用来支持数据版本号。
 	public long version() {
 		return 0;

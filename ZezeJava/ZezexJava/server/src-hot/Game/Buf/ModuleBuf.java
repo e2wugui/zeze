@@ -145,10 +145,9 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 				@SuppressWarnings("unchecked")
 				var notemap2 = (LogMap2<Integer, BBuf>)c.getVariableLog(tbufs.VAR_Bufs);
 				if (null != notemap2) {
-					notemap2.mergeChangedToReplaced();
 					SChanged changed2 = new SChanged();
 					changed2.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
-					changed2.Argument.getReplace().putAll(notemap2.getReplaced());
+					c.<Integer, BBuf>forEachMap2Upsert(tbufs.VAR_Bufs, changed2.Argument.getReplace()::put);
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getRemove().add(p);
 					}

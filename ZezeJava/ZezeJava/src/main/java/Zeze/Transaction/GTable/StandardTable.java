@@ -95,7 +95,12 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   @Override
   @Nullable
   public V get(@Nullable Object rowKey, @Nullable Object columnKey) {
-    return (rowKey == null || columnKey == null) ? null : super.get(rowKey, columnKey);
+    if (rowKey == null || columnKey == null) {
+      return null;
+    }
+    // 单格读取直接查两层 Map，避免临时 Row 视图与外层重复查询。
+    Map<C, V> row = Utils.safeGet(backingMap, rowKey);
+    return row == null ? null : Utils.safeGet(row, columnKey);
   }
 
   @Override

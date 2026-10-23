@@ -226,6 +226,14 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
+	public LogBean createChangeLog(Changes changes) {
+		// setBean/typeId 与内部字段编辑必须来自同一份最终事务日志。
+		var transaction = Transaction.getCurrent();
+		var log = transaction != null ? transaction.getLog(dynamicLogKey()) : null;
+		return log != null ? (LogBean)log : createLogBean();
+	}
+
+	@Override
 	public int hashCode() {
 		return Long.hashCode(getTypeId()) ^ getBean().hashCode();
 	}

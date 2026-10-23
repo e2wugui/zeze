@@ -18,6 +18,27 @@ gradlew.bat :ZezeJavaTest:test :ZezeJavaTest:integrationTest
 宏观变化需超过 3×合成标准差，JMH 结合置信区间与独立复测判断；噪声内不宣称加速，
 也不把“未检出回退”解释为严格等价。对比工具为 `harness.BenchCompare`。
 
+带参数的 JMH 使用 `ZezeJavaTest/scripts/compare_jmh.py before.json after.json --output report.json`，
+按 benchmark 和完整 params 配对，并检查 JVM/JMH 配置与 GC 分配指标；Map 提交的默认 32 行矩阵另加
+`--expect-map-grid`。不要用旧 BenchCompare 的仅名称 JMH 配对比较参数矩阵。
+工具退出成功不代表等价：同方向的独立负向复测、逐 fork 档位和尾延迟仍须人工审核，不能跨行抵消。
+
+游戏报告按完整 `L_MmoGameSim*.json` 文件名配对，输出所有活跃操作的 count、tps、mean、p50、p95、
+p99、max；缺失会提示，尾指标仅作信息输出。还须核对实际运行配置与 XML 最终断言，单有 JSON 文件
+不足以证明守恒检查通过。正式结论记录最终代码版本，诊断时加 JFR 等 profiler 的结果不得混入验收。
+每轮保留原始 JSON、运行日志与最终 XML；有疑点先独立重复，再对改动后的最终版本重新验证。
+
+Windows 可用 `ZezeJavaTest/scripts/run_map_phase_acceptance.ps1` 固定单轮配置：
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Java\jdk-21'
+.\ZezeJavaTest\scripts\run_map_phase_acceptance.ps1 -Root $PWD -Tag map-phase-g-matrix-1 -Stage Matrix
+```
+
+阶段为 Functional、Matrix（40 行筛查）、Multi（64 项修改的 8 行）、Macro（D 与 L）。
+每次使用新 Tag，串行运行两个版本；可用 GradleExecutable 指定本机缓存的 Gradle。
+脚本只确认命令与最终 XML 已保存，不自动判性能通过；Matrix 的单 fork 不能替代独立 JVM 复测。
+
 | 场景 | 基准类 | 内容 |
 |---|---|---|
 | A | ABasicSimpleAddOneThread | 单线程简单事务 |
@@ -33,6 +54,30 @@ gradlew.bat :ZezeJavaTest:test :ZezeJavaTest:integrationTest
 | J | JSocketRpcLoopback | 网络 RPC 回环 |
 | K | KCheckpointUnderCommitFlood | 提交洪水下的刷盘竞争 |
 | L | GameSim.LMmoGameSim | 游戏模拟与容量 |
+
+## 2026-10-22～23 · Map2 变更阶段拆分
+
+改动：普通 Transaction 的 Map2/SortedMap2 将保存点、结构写和 commit 留在内部 Delta，
+原名 LogMap2/LogSortedMap2 保存最终消费载荷，监听通过独立投影取完整 Bean。
+GTable1/2 复用同一收集路径；随后单独将单格 get 缩短为两层安全 Map 查询，避免临时 Row 视图。
+生成器、生成 Bean、日志 typeId 和 wire 格式保持。Map 阶段完成后仅单独整理 GTable 查询；
+Map 分组与最终 GTable/宏观对照的原始证据分别保留。
+
+功能：最终 Fast 1920 项/跳过 2，标准集成 219 项/跳过 16，失败和错误均为 0；
+JMH 编译通过。实际 History capture/编码、生成 follower 回放、保存点、陈旧引用与有序键均有覆盖。
+
+性能：Corretto21.0.5、2g、ktt、同机相邻串行；最终 GTABLE2/NONE 两规模 f5/wi15/i10 对照，
+1024 项分配约少 39.61 B/事务（-4.67%）、吞吐 +5.65%；16 项分配少 58.38 B（-6.74%）、
+吞吐 +1.95%。分配均有利区间分离，改后各 fork 均低于基线，吞吐仍存在漂移，不能扩大成普遍提速。
+
+**性能整体验收未通过。** GTABLE1/NONE/1024 的单 fork 矩阵分配 +39.99 B，独立长 f3 后仍有
+均值 +12.40 B（+0.76%，CI 重叠）的档位残余；未完成版本归因，未证明每事务固定额外对象，仍按事前门槛保留。
+最终基线→改后宏观 D/L 中位吞吐为 -0.32%/+0.33%，按 3σ 均在波动内；mailSend p99 +11.00%，
+loot/trade/equip p99 也有不利样本，steady 驻留堆 +2.99%。不能用总 TPS、其他行收益或剖析运行抵消。
+
+验收使用独立基线与共同 harness；正式/失败样本和诊断原始文件保留于 gitignored 的
+`ZezeJavaTest/bench-results/`；基线证据已复制至其中的 `map-phases-baseline-archive/`，
+83 个原始文件共 145668748 字节，逐文件 SHA256 核验一致，清单为该目录的 `_evidence-manifest.json`。
 
 ## 2026-10-20 · Checkpoint 批次重构
 

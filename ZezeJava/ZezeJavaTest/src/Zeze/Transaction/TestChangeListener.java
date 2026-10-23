@@ -119,6 +119,14 @@ public class TestChangeListener {
 
 		init();
 		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
+			var value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
+			requireNonNull(value.getMap11().get(1L)).setS(987);
+			return Procedure.Success;
+		}, "TestChangeListener.EditExistingMapValue").call());
+		verify();
+
+		init();
+		Assertions.assertEquals(Procedure.Success, requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			demo.Module1.BValue value = requireNonNull(demo.App.getInstance().demo_Module1).getTable1().getOrAdd(1L);
 			value.getSet10().add(127);
 			value.getSet10().remove(124);
@@ -305,7 +313,7 @@ public class TestChangeListener {
 					//noinspection DataFlowIssue
 					var vlog = logbean.getVariables().get(e.getKey());
 					if (vlog != null)
-						e.getValue().OnChanged(key, vlog);
+						e.getValue().OnChanged(key, vlog, r);
 				}
 				break;
 			}
@@ -315,7 +323,7 @@ public class TestChangeListener {
 	interface VarListener {
 		void OnChanged(Object key, Bean value);
 
-		void OnChanged(Object key, Log log);
+		void OnChanged(Object key, Log log, Changes.Record record);
 
 		void OnRemoved(Object key);
 	}
@@ -362,7 +370,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			@SuppressWarnings("unchecked")
 			var noteMap1 = (LogMap1<Long, Long>)note;
 
@@ -409,7 +417,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getDynamic14();
 		}
 
@@ -440,7 +448,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getByte13();
 		}
 
@@ -475,7 +483,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getBean12().copy();
 		}
 
@@ -526,15 +534,13 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			@SuppressWarnings("unchecked")
 			var noteMap2 = (LogMap2<Long, BValue>)note;
-			noteMap2.mergeChangedToReplaced();
+			var view = record.<Long, BValue>map2ListenerView(noteMap2.getVariableId());
 
-			for (var a : noteMap2.getReplaced().entrySet()) {
-				requireNonNull(newValue).put(a.getKey(), a.getValue());
-			}
-			for (var r : noteMap2.getRemoved()) {
+			view.forEachUpsert((changedKey, changedValue) -> requireNonNull(newValue).put(changedKey, changedValue));
+			for (var r : view.getRemoved()) {
 				requireNonNull(newValue).remove(r);
 			}
 		}
@@ -584,7 +590,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			@SuppressWarnings("unchecked")
 			var noteSet = (LogSet1<Integer>)note;
 			for (var a : noteSet.getAdded()) {
@@ -635,7 +641,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = new ArrayList<>();
 			for (var e : requireNonNull(((demo.Module1.BValue)note.getBelong())).getList9()) {
 				newValue.add(e.copy());
@@ -669,7 +675,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getBytes8();
 		}
 
@@ -700,7 +706,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getDouble7();
 		}
 
@@ -731,7 +737,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getFloat6();
 		}
 
@@ -762,7 +768,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getShort5();
 		}
 
@@ -793,7 +799,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).isBool4();
 		}
 
@@ -825,7 +831,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getString3();
 		}
 
@@ -856,7 +862,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getLong2();
 		}
 
@@ -887,7 +893,7 @@ public class TestChangeListener {
 		}
 
 		@Override
-		public final void OnChanged(Object key, Log note) {
+		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			newValue = requireNonNull(((demo.Module1.BValue)note.getBelong())).getInt_1();
 		}
 

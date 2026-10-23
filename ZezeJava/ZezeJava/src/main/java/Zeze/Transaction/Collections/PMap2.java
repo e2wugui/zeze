@@ -8,6 +8,7 @@ import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Changes;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
@@ -70,8 +71,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			value.initRootInfoWithRedo(rootInfo, this);
 			value.mapKey(key);
 			return mapLog.put(key, value);
@@ -101,8 +102,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 					throw new IllegalArgumentException("null value");
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				V v = e.getValue();
@@ -126,8 +127,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	@Override
 	public @Nullable V remove(Object key) {
 		if (isManaged()) {
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			return mapLog.remove((K)key);
 		}
 		V exist = map.get((K)key);
@@ -140,8 +141,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			return mapLog.remove(k, v);
 		}
 		V exist = map.get(k);
@@ -157,8 +158,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
+			var mapLog = (LogMap2Delta<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createMapLog);
 			mapLog.clear();
 		} else
 			map = Persistents.map();
@@ -168,18 +169,19 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void followerApply(Log _log) {
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
-		for (var e : log.getReplaced().entrySet()) {
+		var replaced = log.replacedForRead();
+		for (var e : replaced.entrySet()) {
 			// 对齐put/decode/putAllData全部写路径：进map的bean必须带mapKey。
 			// followerApply加入的replaced bean若不带，后续本地事务修改collect时
-			// buildChangedWithKey会拿到null key，containsKey(null)/编码行为未定义。
+			// 后续提交收集仍需要由 mapKey 定位该值。
 			e.getValue().initRootInfo(rootInfo, this);
 			e.getValue().mapKey(e.getKey());
 		}
-		tmp = tmp.minusAll(log.getRemoved()).plusAll(log.getReplaced());
+		tmp = tmp.minusAll(log.removedForRead()).plusAll(replaced);
 
 		// apply changed
-		for (var e : log.getChangedWithKey().entrySet()) {
-			// 正常重放下changed只含最终map存在的key（LogMap2.buildChangedWithKey编码时已过滤
+		for (var e : log.changedForRead().entrySet()) {
+			// 正常重放下changed只含最终map存在的key（提交收集时已过滤
 			// removed/replaced），follower侧null即先行分歧（日志丢失/重复/交错应用）：直接递归
 			// 抛NPE，由驱动方裁决——raft路径Rocks.followerApply统一catch+fatalKill（镜像实现
 				// CollMap2同款）；History回放路径批中断而非warn+skip尽力而为。抛出只证明应用
@@ -190,9 +192,29 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		map = tmp;
 	}
 
+	private Log createMapLog() {
+		return new LogMap2Delta<>(parent(), variableId(), this, map, meta);
+	}
+
 	@Override
 	public LogBean createLogBean() {
-		return new LogMap2<>(parent(), variableId(), this, map, meta);
+		return createMapChangeLog();
+	}
+
+	private LogBean createMapChangeLog() {
+		var transaction = Transaction.getCurrent();
+		var parent = parent();
+		var log = transaction != null && parent != null
+				? transaction.getLog(parent.objectId() + variableId()) : null;
+		if (log instanceof LogMap2Delta<?, ?> delta)
+			return delta.createChangeLog();
+		return new LogMap2<>(parent, variableId(), this, meta, null, null);
+	}
+
+	@Override
+	public final LogBean createChangeLog(Changes changes) {
+		// 框架消费节点不经过可覆写的旧工厂，避免字段先到与结构先到选择不同载荷。
+		return createMapChangeLog();
 	}
 
 	@Override

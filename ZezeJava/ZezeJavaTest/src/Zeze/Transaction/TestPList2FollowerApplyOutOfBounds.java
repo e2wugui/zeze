@@ -47,11 +47,11 @@ public class TestPList2FollowerApplyOutOfBounds {
 	public void testMapChangedKeyMissingThrows() {
 		var pmap = new PMap2<>(Long.class, BLoad.class);
 
-		// 正常encode侧LogMap2.buildChangedWithKey只保留最终map存在的key，
+		// 正常收集侧 LogMap2 只保留最终 map 中仍为同一 Bean 的 key，
 		// follower侧取不到key只可能来自先行分歧：直接递归抛NPE。
 		// （replaced正常安装路径需要map-capable bean，由TestMap2FollowerApplyMapKey等覆盖。）
 		@SuppressWarnings("unchecked")
-		var missLog = (LogMap2<Long, BLoad>)pmap.createLogBean();
+		var missLog = Map2TestSupport.wireLog(pmap);
 		missLog.getChangedWithKey().put(12345L, new LogBean(null, 0, null));
 		assertThrows(NullPointerException.class, () -> pmap.followerApply(missLog));
 		assertEquals(0, pmap.size());
