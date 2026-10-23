@@ -85,7 +85,7 @@ serverId 号段与固定内存库 url 统一登记在 `harness/FastServerIds`，
   限定名的注解贴最后一段，如 `RocksDatabase.@Nullable Table`；
   数组引用可空写作 `ByteBuffer @Nullable [] buf`，前缀注解作用于元素。
 - 生成代码遵循相同规则；工厂兜底及嵌套 Data 撞名时保留限定名最后段写法。
-  修改 Gen 后运行根目录 `PublishGen.bat`、`gen_use_publish.bat`，不要手改生成文件。
+  修改 Gen 后运行 `Gen/PublishGen.bat`、`gen_use_publish.bat`，不要手改生成文件。
 - 验收：手写与生成代码自身 nullity 警告清零，容忍未标注第三方库产生的 unknown 警告。
   生成文件头不压制 `NullableProblems`，保留 `ConstantConditions`/`ConstantValue` 压制。
 

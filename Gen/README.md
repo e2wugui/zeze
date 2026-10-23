@@ -16,7 +16,7 @@ dotnet build
 
 ```bat
 :: 仓库根目录
-PublishGen.bat
+Gen\PublishGen.bat
 :: 等价于： dotnet publish Gen -c Release -r win-x64 -o publish
 ```
 
