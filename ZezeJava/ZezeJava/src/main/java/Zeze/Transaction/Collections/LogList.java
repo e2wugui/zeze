@@ -6,7 +6,7 @@ import java.util.Collection;
 import Zeze.Collections.Persistents;
 
 /** Persistent list transaction state, without wire responsibilities. */
-public abstract class LogList<V> extends LogCollection {
+public abstract class LogList<V> extends LogCollection<PList<V>> {
 	private org.pcollections.PVector<V> value;
 
 	protected LogList(PList<V> source, org.pcollections.PVector<V> value) {
@@ -24,14 +24,13 @@ public abstract class LogList<V> extends LogCollection {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void mergeFrom(LogCollection child) {
+	protected void mergeFrom(LogCollection<?> child) {
 		value = ((LogList<V>)child).value;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public final void commit() {
-		((PList<V>)source).list = value;
+		source.list = value;
 	}
 
 	public boolean add(V item) {

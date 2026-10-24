@@ -12,9 +12,8 @@ final class LogListNoDelta<V> extends LogList<V> {
 		return false;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogListNoDelta<V> beginSavepoint() {
-		return new LogListNoDelta<>((PList<V>)source, getValue());
+		return new LogListNoDelta<>(source, getValue());
 	}
 }

@@ -13,9 +13,8 @@ public final class LogMap1Delta<K, V> extends LogMapDelta<K, V> {
 		return !java.util.Objects.equals(oldValue, newValue);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogMap1Delta<K, V> beginSavepoint() {
-		return new LogMap1Delta<>((PMap<K, V>)source, getValue());
+		return new LogMap1Delta<>(source, getValue());
 	}
 }

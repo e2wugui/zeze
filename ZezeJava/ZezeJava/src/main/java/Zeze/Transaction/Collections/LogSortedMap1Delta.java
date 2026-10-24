@@ -13,9 +13,8 @@ public final class LogSortedMap1Delta<K extends Comparable<K>, V> extends LogSor
 		return !java.util.Objects.equals(oldValue, newValue);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogSortedMap1Delta<K, V> beginSavepoint() {
-		return new LogSortedMap1Delta<>((PSortedMap<K, V>)source, getValue());
+		return new LogSortedMap1Delta<>(source, getValue());
 	}
 }

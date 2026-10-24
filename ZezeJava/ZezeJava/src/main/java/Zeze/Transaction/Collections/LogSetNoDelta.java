@@ -11,9 +11,8 @@ final class LogSetNoDelta<V> extends LogSet<V> {
         return false;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public LogSetNoDelta<V> beginSavepoint() {
-        return new LogSetNoDelta<>((PSet<V>)source, getValue());
+        return new LogSetNoDelta<>(source, getValue());
     }
 }

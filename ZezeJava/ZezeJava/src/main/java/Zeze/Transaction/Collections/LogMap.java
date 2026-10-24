@@ -5,7 +5,7 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /** Persistent Map state used by both tracked and untracked transactions. */
-public abstract class LogMap<K, V> extends LogCollection {
+public abstract class LogMap<K, V> extends LogCollection<PMap<K, V>> {
 	private org.pcollections.PMap<K, V> value;
 
 	protected LogMap(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
@@ -58,13 +58,12 @@ public abstract class LogMap<K, V> extends LogCollection {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void mergeFrom(LogCollection child) {
+	protected void mergeFrom(LogCollection<?> child) {
 		value = ((LogMap<K, V>)child).value;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public final void commit() {
-		((PMap<K, V>)source).map = value;
+		source.map = value;
 	}
 }

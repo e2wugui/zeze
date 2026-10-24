@@ -14,9 +14,8 @@ final class LogSortedMap2Delta<K extends Comparable<K>, V extends Bean> extends 
 		return oldValue != newValue;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogSortedMap2Delta<K, V> beginSavepoint() {
-		return new LogSortedMap2Delta<>((PSortedMap<K, V>)source, getValue());
+		return new LogSortedMap2Delta<>(source, getValue());
 	}
 }

@@ -5,7 +5,7 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /** Persistent SortedMap state used by both tracked and untracked transactions. */
-public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogCollection {
+public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogCollection<PSortedMap<K, V>> {
 	private org.pcollections.PSortedMap<K, V> value;
 
 	protected LogSortedMap(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
@@ -59,13 +59,12 @@ public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogCollec
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void mergeFrom(LogCollection child) {
+	protected void mergeFrom(LogCollection<?> child) {
 		value = ((LogSortedMap<K, V>)child).value;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public final void commit() {
-		((PSortedMap<K, V>)source).map = value;
+		source.map = value;
 	}
 }

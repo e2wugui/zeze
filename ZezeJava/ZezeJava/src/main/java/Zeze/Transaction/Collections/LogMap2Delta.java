@@ -14,9 +14,8 @@ final class LogMap2Delta<K, V extends Bean> extends LogMapDelta<K, V> {
 		return oldValue != newValue;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogMap2Delta<K, V> beginSavepoint() {
-		return new LogMap2Delta<>((PMap<K, V>)source, getValue());
+		return new LogMap2Delta<>(source, getValue());
 	}
 }

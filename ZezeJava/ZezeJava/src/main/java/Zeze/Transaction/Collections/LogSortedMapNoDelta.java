@@ -11,9 +11,8 @@ final class LogSortedMapNoDelta<K extends Comparable<K>, V> extends LogSortedMap
 		return false;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogSortedMapNoDelta<K, V> beginSavepoint() {
-		return new LogSortedMapNoDelta<>((PSortedMap<K, V>)source, getValue());
+		return new LogSortedMapNoDelta<>(source, getValue());
 	}
 }

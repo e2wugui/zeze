@@ -9,14 +9,14 @@ import Zeze.Transaction.TransactionLog;
 import org.jspecify.annotations.Nullable;
 
 /** Transaction-only persistent collection state; change notes are optional. */
-public abstract class LogCollection implements TransactionLog {
-	protected final Collection source;
+public abstract class LogCollection<S extends Collection> implements TransactionLog {
+	protected final S source;
 
-	protected LogCollection(Collection source) {
+	protected LogCollection(S source) {
 		this.source = Objects.requireNonNull(source);
 	}
 
-	public final Collection getSourceBean() {
+	public final S getSourceBean() {
 		return source;
 	}
 
@@ -38,9 +38,9 @@ public abstract class LogCollection implements TransactionLog {
 	public abstract boolean hasDelta();
 
 	@Override
-	public abstract LogCollection beginSavepoint();
+	public abstract LogCollection<S> beginSavepoint();
 
-	protected abstract void mergeFrom(LogCollection child);
+	protected abstract void mergeFrom(LogCollection<?> child);
 
 	@Override
 	public final void endSavepoint(Savepoint parent) {
@@ -50,7 +50,7 @@ public abstract class LogCollection implements TransactionLog {
 		else {
 			if (existing.getClass() != getClass())
 				throw new IllegalStateException("collection capture mode changed inside savepoint");
-			((LogCollection)existing).mergeFrom(this);
+			((LogCollection<?>)existing).mergeFrom(this);
 		}
 	}
 

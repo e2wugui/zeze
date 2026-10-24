@@ -5,7 +5,7 @@ import java.util.Collection;
 import Zeze.Collections.Persistents;
 
 /** Persistent set transaction state, without wire responsibilities. */
-public abstract class LogSet<V> extends LogCollection {
+public abstract class LogSet<V> extends LogCollection<PSet<V>> {
 	private org.pcollections.PSet<V> value;
 
 	protected LogSet(PSet<V> source, org.pcollections.PSet<V> value) {
@@ -23,14 +23,13 @@ public abstract class LogSet<V> extends LogCollection {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void mergeFrom(LogCollection child) {
+	protected void mergeFrom(LogCollection<?> child) {
 		value = ((LogSet<V>)child).value;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public final void commit() {
-		((PSet<V>)source).set = value;
+		source.set = value;
 	}
 
 	public boolean add(V item) {

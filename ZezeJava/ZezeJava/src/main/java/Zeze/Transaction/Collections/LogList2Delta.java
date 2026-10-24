@@ -96,7 +96,7 @@ final class LogList2Delta<V extends Bean> extends LogListDelta<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void mergeFrom(LogCollection child) {
+	protected void mergeFrom(LogCollection<?> child) {
 		setValue(((LogList2Delta<V>)child).getValue());
 		merge((LogList2Delta<V>)child);
 	}
@@ -105,9 +105,8 @@ final class LogList2Delta<V extends Bean> extends LogListDelta<V> {
 		return addSet;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogList2Delta<V> beginSavepoint() {
-		return new LogList2Delta<>((PList<V>)source, getValue());
+		return new LogList2Delta<>(source, getValue());
 	}
 }

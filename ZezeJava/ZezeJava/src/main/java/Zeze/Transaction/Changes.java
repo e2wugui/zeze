@@ -241,13 +241,16 @@ public final class Changes {
 	}
 
 	public void collect(Bean source, Log child) {
-		if (!isInterested(source)) return;
+		if (!isInterested(source))
+			return;
 		var node = getOrCreateLogBean(source);
-		if (node.addChild(source, child)) attach(source, node);
+		if (node.addChild(source, child))
+			attach(source, node);
 	}
 
 	public void collectContainer(Bean source) {
-		if (isInterested(source)) attach(source, getOrCreateLogBean(source));
+		if (isInterested(source))
+			attach(source, getOrCreateLogBean(source));
 	}
 
 	public void collectNoDelta(Bean source) {

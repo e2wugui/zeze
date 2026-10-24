@@ -104,7 +104,7 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void mergeFrom(LogCollection child) {
+	protected void mergeFrom(LogCollection<?> child) {
 		super.mergeFrom(child);
 		var another = (LogSortedMapDelta<K, V>)child;
 		mergeChangeNote(another);

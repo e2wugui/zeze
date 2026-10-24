@@ -283,7 +283,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertEquals(1, beans.size());
 	}
 
-	private static ByteBuffer encode(Zeze.Transaction.Collections.LogCollection state) {
+	private static ByteBuffer encode(Zeze.Transaction.Collections.LogCollection<?> state) {
 		return encode(state.getSourceBean().createLogBean(state));
 	}
 

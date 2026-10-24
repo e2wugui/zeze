@@ -104,7 +104,7 @@ final class LogSet1Delta<V> extends LogSet<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void mergeFrom(LogCollection child) {
+	protected void mergeFrom(LogCollection<?> child) {
 		super.mergeFrom(child);
 		merge((LogSet1Delta<V>)child);
 	}
@@ -114,9 +114,8 @@ final class LogSet1Delta<V> extends LogSet<V> {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogSet1Delta<V> beginSavepoint() {
-		return new LogSet1Delta<>((PSet<V>)source, getValue());
+		return new LogSet1Delta<>(source, getValue());
 	}
 }

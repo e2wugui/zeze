@@ -70,7 +70,7 @@ public class TestCollectionChangeCapture {
 	private static void verifyCapture(BValue root, boolean capture) {
 		var txn = transaction();
 		for (var source : collections(root)) {
-			var log = (LogCollection)txn.getLog(source.changeLogKey());
+			var log = (LogCollection<?>)txn.getLog(source.changeLogKey());
 			assertNotNull(log);
 			assertEquals(capture, log.hasDelta(), source.getClass().getSimpleName());
 			if (!capture)

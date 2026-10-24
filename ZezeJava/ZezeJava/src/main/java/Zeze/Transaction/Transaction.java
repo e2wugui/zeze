@@ -663,7 +663,7 @@ public final class Transaction {
 			var it = savepoints.getLast().logIterator();
 			if (it != null) {
 				while (it.moveToNext()) {
-					if (it.value() instanceof LogCollection collection && !collection.hasDelta())
+					if (it.value() instanceof LogCollection<?> collection && !collection.hasDelta())
 						throw new IllegalStateException("Onz must be bound before collection writes");
 				}
 			}
