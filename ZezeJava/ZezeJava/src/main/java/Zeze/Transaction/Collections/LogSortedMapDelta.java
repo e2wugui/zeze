@@ -43,10 +43,10 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	}
 
 	public @Nullable V put(K key, V value) {
-		V exist = getValue().get(key);
-		setValue(getValue().plus(key, value));
-		removed.remove(key);
-		replaced.put(key, value);
+		var old = getValue();
+		V exist = old.get(key);
+		setValue(old.plus(key, value));
+		noteReplacement(key, value, exist);
 		return exist;
 	}
 
@@ -59,11 +59,15 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogSortedMap2）。
 			for (K k : m.keySet()) {
 				V v = newMap.get(k);
-				if (isValueChanged(old.get(k), v)) {
-					removed.remove(k);
-					replaced.put(k, v);
-				}
+				noteReplacement(k, v, old.get(k));
 			}
+		}
+	}
+
+	private void noteReplacement(K key, V value, @Nullable V oldValue) {
+		if (isValueChanged(oldValue, value)) {
+			removed.remove(key);
+			replaced.put(key, value);
 		}
 	}
 

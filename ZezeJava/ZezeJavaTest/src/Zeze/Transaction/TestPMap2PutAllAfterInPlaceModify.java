@@ -17,12 +17,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * 2系Map（值为可变Bean）的putAll按身份记账：同一事务先原位修改值bean
+ * 2系Map（值为可变Bean）的put/putAll按身份记账：同一事务先原位修改值bean
  * （changed按身份关联当前值），再putAll一个与修改后内容equals相等的
  * 新实例——继承自1系的值等过滤会跳过replaced记账，changed又因旧bean
  * 已非当前值被身份过滤丢弃，该键增量整体丢失，follower/History回放停在
- * 旧值（leader内存值正确，分歧只在复制侧）。1系（不可变值）equals过滤
- * 语义不变，由TestSetMapPartialChangePhantomDelta覆盖。
+ * 旧值（leader内存值正确，分歧只在复制侧）。单项put的等值新实例也必须保留。
+ * 1系（不可变值）equals过滤语义不变，由TestSetMapPartialChangePhantomDelta覆盖。
  */
 @Fast
 public class TestPMap2PutAllAfterInPlaceModify {
@@ -52,7 +52,7 @@ public class TestPMap2PutAllAfterInPlaceModify {
 	}
 
 	@Test
-	public void inPlaceModifyThenPutAllEqualInstanceKeepsDelta() throws Exception {
+	public void inPlaceModifyThenEqualInstanceWritesKeepDelta() throws Exception {
 		var app = newApp(FastServerIds.takeoverPoolNext());
 		var table = (tflush)app.getTable("demo_Module1_tflush");
 		try {
@@ -78,6 +78,10 @@ public class TestPMap2PutAllAfterInPlaceModify {
 								+ "（值等过滤与changed身份过滤叠加会整体丢增量）");
 				Assertions.assertSame(fresh, log.getReplaced().get(1L), "记账携带新实例完整值");
 				Assertions.assertFalse(log.getRemoved().contains(1L));
+				var putFresh = bean(42);
+				map.put(1L, putFresh);
+				Assertions.assertSame(putFresh, log.getReplaced().get(1L),
+						"PMap2.put等值新实例仍须按身份记录");
 
 				// PSortedMap2同构路径
 				var smap = table.getOrAdd(1L).getSortedmap2();
@@ -91,6 +95,10 @@ public class TestPMap2PutAllAfterInPlaceModify {
 				Assertions.assertTrue(requireNonNull(sLog).getReplaced().containsKey(1),
 						"PSortedMap2：原位修改后putAll等值新实例，该键必须记入replaced");
 				Assertions.assertSame(sFresh, sLog.getReplaced().get(1));
+				var sortedPutFresh = bean(42);
+				smap.put(1, sortedPutFresh);
+				Assertions.assertSame(sortedPutFresh, sLog.getReplaced().get(1),
+						"PSortedMap2.put等值新实例仍须按身份记录");
 				return Procedure.Success;
 			}, "delta").call());
 

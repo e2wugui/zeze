@@ -39,10 +39,10 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 	}
 
 	public @Nullable V put(K key, V value) {
-		V exist = getValue().get(key);
-		setValue(getValue().plus(key, value));
-		removed.remove(key);
-		replaced.put(key, value);
+		var old = getValue();
+		V exist = old.get(key);
+		setValue(old.plus(key, value));
+		noteReplacement(key, value, exist);
 		return exist;
 	}
 
@@ -55,11 +55,15 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogMap2）。
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
-				if (isValueChanged(old.get(k), e.getValue())) {
-					removed.remove(k);
-					replaced.put(k, e.getValue());
-				}
+				noteReplacement(k, e.getValue(), old.get(k));
 			}
+		}
+	}
+
+	private void noteReplacement(K key, V value, @Nullable V oldValue) {
+		if (isValueChanged(oldValue, value)) {
+			removed.remove(key);
+			replaced.put(key, value);
 		}
 	}
 
