@@ -92,9 +92,6 @@ public final class Transaction {
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
 	private @Nullable HashMap<ResolveKey, Object> onceResolved; // resolveOnce 缓存，延迟初始化
 	private @Nullable OnzProcedure onzProcedure;
-	private boolean forceDelta;
-	// Computed while marking dirty records; avoids a second log scan on fully tracked commits.
-	private boolean hasUntrackedCollections;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
 	private volatile @Nullable Long tid;
@@ -183,7 +180,6 @@ public final class Transaction {
 		if (null != onceResolved)
 			onceResolved.clear();
 		onzProcedure = null;
-		forceDelta = false;
 		profiler.reset();
 	}
 
@@ -248,6 +244,24 @@ public final class Transaction {
 		if (log == null)
 			putLog(log = logFactory.get());
 		return log;
+	}
+
+	/** Only a cache miss evaluates consumer policy; existing logs keep their mode in savepoints. */
+	public TransactionLog logGetOrAdd(Collection source) {
+		long key = source.changeLogKey();
+		var existing = getLog(key);
+		if (existing != null)
+			return existing;
+		var root = source.rootInfo;
+		assert root != null;
+		var sourceRecord = root.record();
+		assert sourceRecord != null;
+		var table = sourceRecord.getTable();
+		boolean capture = onzProcedure != null || table.getZeze().getHistory() != null
+			|| table.getChangeListenerMap().hasListener();
+		var created = source.createLog(capture ? ChangeCaptureMode.DELTA : ChangeCaptureMode.NONE);
+		putLog(created);
+		return created;
 	}
 
 	public @Nullable TransactionLog getLog(long key) {
@@ -360,7 +374,6 @@ public final class Transaction {
 	 * @param procedure first procedure
 	 */
 	public long perform(Procedure procedure) {
-		forceDelta = false;
 		if (null != onceResolved)
 			onceResolved.clear(); // 一次性解析缓存的生命周期 = 一次 perform（含redo重试），不跨事务
 		if (redoRollbackActions != null)
@@ -412,14 +425,12 @@ public final class Transaction {
 									// onz事务执行阶段的2段式同步等待。
 									OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 									if (onzProcedure != null) {
-										verifyChangeCapture(null, true);
 										onzProcedure.sendReadyAndWait();
 										if (onzProcedure.getFlushMode() != Onz.eFlushAsync)
 											flushMode = onzProcedure;
 									}
 									var history = procedure.getZeze().getHistory();
 									var changes = Changes.createIfNeeded(this, history != null);
-									verifyChangeCapture(changes, false);
 									try {
 										finalCommit(procedure, flushMode, changes, history);
 									} catch (RejectWhileStopping | IHistory.CommitRejectedException e) {
@@ -646,7 +657,17 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
+	/** Bind before collection writes; earlier NoDelta state cannot be upgraded for Onz replay. */
 	public void setOnzProcedure(@Nullable OnzProcedure onzProcedure) {
+		if (onzProcedure != null && this.onzProcedure == null && !savepoints.isEmpty()) {
+			var it = savepoints.getLast().logIterator();
+			if (it != null) {
+				while (it.moveToNext()) {
+					if (it.value() instanceof LogCollection collection && !collection.hasDelta())
+						throw new IllegalStateException("Onz must be bound before collection writes");
+				}
+			}
+		}
 		this.onzProcedure = onzProcedure;
 	}
 
@@ -866,7 +887,6 @@ public final class Transaction {
 	}
 
 	private CheckResult lockAndCheck(Procedure procedure) {
-		hasUntrackedCollections = false;
 		var level = procedure.getTransactionLevel();
 		boolean allRead = true;
 		var saveSize = savepoints.size();
@@ -877,9 +897,6 @@ public final class Transaction {
 			if (it != null) {
 				while (it.moveToNext()) {
 					var log = it.value();
-					if (!hasUntrackedCollections && log instanceof LogCollection collection
-						&& !collection.hasDelta())
-						hasUntrackedCollections = true;
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
 					var belong = log.getBelong();
@@ -1063,38 +1080,4 @@ public final class Transaction {
 		return savepoints.getLast();
 	}
 
-	/** Only a cache miss evaluates consumer policy; existing logs keep their mode in savepoints. */
-	public TransactionLog logGetOrAdd(Collection source) {
-		long key = source.changeLogKey();
-		var existing = getLog(key);
-		if (existing != null) return existing;
-		var root = source.rootInfo;
-		assert root != null;
-		var sourceRecord = root.record();
-		assert sourceRecord != null;
-		var table = sourceRecord.getTable();
-		boolean capture = forceDelta || onzProcedure != null || table.getZeze().getHistory() != null
-			|| table.getChangeListenerMap().hasListener();
-		var created = source.createLog(capture ? ChangeCaptureMode.DELTA : ChangeCaptureMode.NONE);
-		putLog(created);
-		return created;
-	}
-
-	/** Must run before an irreversible commit, and before Onz Ready when full capture is required. */
-	private void verifyChangeCapture(@Nullable Changes changes, boolean requireAll) {
-		if (!hasUntrackedCollections)
-			return;
-		if (!requireAll && changes == null) return;
-		var it = lastSavepoint().logIterator();
-		if (it == null) return;
-		while (it.moveToNext()) {
-			if (it.value() instanceof LogCollection collection
-				&& !collection.hasDelta() && (requireAll || changes.isInterested(collection.getSourceBean()))) {
-				forceDelta = true; // Remains set across redo; a new perform resets it.
-				var tableKey = collection.getSourceBean().tableKey();
-				assert tableKey != null;
-				throwRedo(tableKey.getId(), "change consumers require complete delta");
-			}
-		}
-	}
 }
