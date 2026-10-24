@@ -20,6 +20,9 @@ public class App extends Zeze.AppBase {
 
     public void Start(String ip, int port) throws Exception {
         var config = Config.load("client.xml");
+        // 客户端纯RPC零表：不建库。client.xml的默认Memory空桶无谓；MySQL重定向下250客户端
+        // 各起一物理池瞬时需求>151连接上限（BenchRoleTimer风暴根源，2026-10-24终案）。
+        config.setNoDatabase(true);
         createZeze(config);
         createService();
         createModules();
@@ -41,6 +44,7 @@ public class App extends Zeze.AppBase {
 
     public void Start2(String wsUrl) throws Exception {
         var config = Config.load("client.xml");
+        config.setNoDatabase(true); // 同Start：客户端纯RPC零表不建库（见Start处注释）
         createZeze(config);
         createService();
         createModules();
