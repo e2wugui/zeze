@@ -523,13 +523,14 @@ public final class Config {
 			mysql.setDatabaseUrl(url);
 			var druid = new DruidConf();
 			druid.driverClassName = "com.mysql.cj.jdbc.Driver"; // 对齐xml解析路径的默认驱动
-			// 测试池压小：zeze兜底initialSize/minIdle=4会让每个Application的池常驻4条物理连接，
-			// 单JVM多App并存（bench场景/类并行）即击穿服务端默认max_connections=151
-			//（探针soak-20261023-1748 bench 1f Too many connections实锤）。惰性建立+闲置零常驻，
-			// 总连接随真实并发走；maxActive=2对单App测试并发足够（串行事务+walk独占连接）。
+			// 测试池压小：151溢出的真凶是zeze兜底minIdle=4的闲置钉扎（每池常驻4条物理连接，
+			// 多App并存即击穿服务端max_connections=151）——minIdle=0已根治（惰性建立+闲置零常驻，
+			// 总连接随真实并发走）。maxActive须给足并发余量：bench的250客户端负载挤2条连接
+			// 会串行化百倍（MySQL批BenchRoleTimer 30分钟实锤）；bench车道串行且活跃池仅2-3个，
+			// 8条/池峰值连接~24，安全。
 			druid.initialSize = 0;
 			druid.minIdle = 0;
-			druid.maxActive = 2;
+			druid.maxActive = 8;
 			mysql.setDruidConf(druid);
 			return mysql;
 		}
