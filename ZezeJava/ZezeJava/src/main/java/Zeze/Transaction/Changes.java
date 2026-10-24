@@ -93,6 +93,7 @@ public final class Changes {
 		private final IdentityHashMap<Bean, LogBean> logBeans = new IdentityHashMap<>();
 		private @Nullable Bean value;
 		private int state;
+		private boolean incomplete;
 
 		public Record(Table table) {
 			this.table = table;
@@ -249,39 +250,50 @@ public final class Changes {
 		if (isInterested(source)) attach(source, getOrCreateLogBean(source));
 	}
 
+	public void collectNoDelta(Bean source) {
+		if (collectAll) {
+			collectContainer(source);
+			return;
+		}
+		if (isInterested(source))
+			getOrCreateRecord(source).incomplete = true;
+	}
+
 	private void attach(Bean source, LogBean node) {
 		var parent = source.parent();
 		if (parent != null) {
 			collect(parent, node);
 			return;
 		}
-		var root = source.rootInfo;
-		assert root != null;
-		var key = root.tableKey();
-		var record = records.get(key);
-		if (record == null) {
-			var sourceRecord = root.record();
-			assert sourceRecord != null;
-			records.put(key, record = new Record(sourceRecord.getTable()));
-		}
-		record.logBeans.put(source, node);
+		getOrCreateRecord(source).logBeans.put(source, node);
 	}
 
-	public void collectRecord(RecordAccessed ar) {
+	private Record getOrCreateRecord(Bean source) {
+		var root = source.rootInfo;
+		assert root != null;
+		var sourceRecord = root.record();
+		assert sourceRecord != null;
+		return getOrCreateRecord(root.tableKey(), sourceRecord.getTable());
+	}
+
+	private Record getOrCreateRecord(TableKey key, Table table) {
+		var record = records.get(key);
+		if (record == null)
+			records.put(key, record = new Record(table));
+		return record;
+	}
+
+	void collectRecord(RecordAccessed ar) {
 		// is table has listener
-		if (!collectAll && (listeners == null || listeners.get(ar.atomicTupleRecord.record().getTable()) == null))
+		var table = ar.atomicTupleRecord.record().getTable();
+		if (!collectAll && (listeners == null || listeners.get(table) == null))
 			return;
 
-		var tkey = ar.tableKey();
-		var r = records.get(tkey);
-		if (r == null) {
-			// put record only
-			r = new Record(ar.atomicTupleRecord.record().getTable());
-			//noinspection DataFlowIssue
-			records.put(tkey, r);
-		}
-
+		var tKey = ar.tableKey();
+		var r = getOrCreateRecord(tKey, table);
 		r.collect(ar);
+		if (r.state == Record.Edit && r.incomplete)
+			records.remove(tKey);
 	}
 
 	@Override

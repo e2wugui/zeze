@@ -13,6 +13,9 @@ public final class ChangeListenerMap extends ReentrantLock {
 	private volatile @Nullable Set<ChangeListener> setCopy; // unmodifiable copy
 
 	public void addListener(ChangeListener listener) {
+		var current = Transaction.getCurrent();
+		if (current != null && current.isRunning())
+			throw new IllegalStateException("change listeners must be registered outside a running transaction");
 		lock();
 		try {
 			if (set.add(listener))

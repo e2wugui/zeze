@@ -3,6 +3,10 @@ package Zeze.Transaction;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.History.Helper;
@@ -338,6 +342,110 @@ public class TestCollectionChangeCapture {
 			}, "rolledBack").call());
 			assertEquals(1, rounds.get());
 			assertEquals(0, callbacks.get());
+		} finally {
+			app.stop();
+		}
+	}
+
+	@Test
+	public void listenerRegistrationInsideRunningTransactionIsRejected() throws Exception {
+		var app = Map2TestSupport.newApp("collectionRunningListenerRegistration");
+		try {
+			var table = table(app);
+			assertEquals(Procedure.Success, app.newProcedure(() -> {
+				write(table.getOrAdd(1L), 7);
+				assertThrows(IllegalStateException.class, () -> table.getChangeListenerMap()
+					.addListener((key, record) -> { }));
+				return Procedure.Success;
+			}, "runningListenerRegistration").call());
+			assertFalse(table.getChangeListenerMap().hasListener());
+		} finally {
+			app.stop();
+		}
+	}
+
+	@Test
+	public void concurrentLateListenerSkipsOnlyIncompleteRecordEdits() throws Exception {
+		var app = Map2TestSupport.newApp("collectionConcurrentLateListener");
+		try {
+			var table = table(app);
+			assertEquals(Procedure.Success, app.newProcedure(() -> {
+				table.getOrAdd(1L);
+				table.getOrAdd(2L);
+				return Procedure.Success;
+			}, "seed").call());
+			var firstWriteCompleted = new CountDownLatch(1);
+			var callbackKeys = new CopyOnWriteArrayList<Long>();
+			var registration = new FutureTask<Void>(() -> {
+				assertTrue(firstWriteCompleted.await(30, TimeUnit.SECONDS));
+				table.getChangeListenerMap().addListener((key, record) -> callbackKeys.add((Long)key));
+				return null;
+			});
+			var registrationThread = Thread.ofPlatform().daemon().start(registration);
+			try {
+				assertEquals(Procedure.Success, app.newProcedure(() -> {
+					var first = existing(table);
+					write(first, 7);
+					verifyCapture(first, false);
+					firstWriteCompleted.countDown();
+					registration.get(30, TimeUnit.SECONDS);
+					var second = table.getOrAdd(2L);
+					write(second, 9);
+					verifyCapture(second, true);
+					return Procedure.Success;
+				}, "concurrentLateListener").call());
+				assertEquals(List.of(2L), callbackKeys);
+				assertEquals(Procedure.Success, app.newProcedure(() -> {
+					write(existing(table), 11);
+					return Procedure.Success;
+				}, "afterConcurrentRegistration").call());
+				assertEquals(List.of(2L, 1L), callbackKeys);
+			} finally {
+				firstWriteCompleted.countDown();
+				registrationThread.join(TimeUnit.SECONDS.toMillis(30));
+			}
+		} finally {
+			app.stop();
+		}
+	}
+
+	@Test
+	public void concurrentLateListenerStillReceivesWholeRecordPut() throws Exception {
+		var app = Map2TestSupport.newApp("collectionLateListenerPut");
+		try {
+			var table = table(app);
+			assertEquals(Procedure.Success, app.newProcedure(() -> {
+				table.getOrAdd(1L);
+				return Procedure.Success;
+			}, "seed").call());
+			var firstWriteCompleted = new CountDownLatch(1);
+			var notifications = new CopyOnWriteArrayList<Changes.Record>();
+			var registration = new FutureTask<Void>(() -> {
+				assertTrue(firstWriteCompleted.await(30, TimeUnit.SECONDS));
+				table.getChangeListenerMap().addListener((key, record) -> notifications.add(record));
+				return null;
+			});
+			var registrationThread = Thread.ofPlatform().daemon().start(registration);
+			try {
+				assertEquals(Procedure.Success, app.newProcedure(() -> {
+					var root = existing(table);
+					write(root, 7);
+					verifyCapture(root, false);
+					firstWriteCompleted.countDown();
+					registration.get(30, TimeUnit.SECONDS);
+					var replacement = new BValue();
+					write(replacement, 9);
+					table.put(1L, replacement);
+					return Procedure.Success;
+				}, "lateListenerPut").call());
+				assertEquals(1, notifications.size());
+				var notification = notifications.getFirst();
+				assertEquals(Changes.Record.Put, notification.getState());
+				verify((BValue)java.util.Objects.requireNonNull(notification.getValue()), 9);
+			} finally {
+				firstWriteCompleted.countDown();
+				registrationThread.join(TimeUnit.SECONDS.toMillis(30));
+			}
 		} finally {
 			app.stop();
 		}

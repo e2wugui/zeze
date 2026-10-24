@@ -56,6 +56,9 @@ public abstract class LogCollection implements TransactionLog {
 
 	@Override
 	public final void collectChanges(Changes changes) {
-		changes.collectContainer(source);
+		if (hasDelta())
+			changes.collectContainer(source);
+		else
+			changes.collectNoDelta(source);
 	}
 }
