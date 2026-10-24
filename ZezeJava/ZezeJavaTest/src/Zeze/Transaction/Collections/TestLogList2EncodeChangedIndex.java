@@ -8,9 +8,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
+import Zeze.Transaction.Map2TestSupport;
+import Zeze.Transaction.Savepoint;
 
 /**
- * LogList2.encode 的 changed 过滤：对每个 changed bean 按身份在最终列表中定位
+ * LogList2.addChild 的 changed 过滤：对每个 changed bean 按身份在最终列表中定位
  * 下标，不在列表（或本轮add）的剔除。定位语义回归钉：身份定位、重复元素取
  * 首个出现位置（对齐原线性扫的break语义）、死bean剔除——下标预建优化
  * （IdentityHashMap一遍）不得改变这些语义。
@@ -104,5 +106,50 @@ public class TestLogList2EncodeChangedIndex {
 		log.encode(bb);
 		Assertions.assertEquals(0, bb.ReadUInt(), "空changed编码为计数0");
 		Assertions.assertEquals(0, bb.ReadUInt(), "空opLogs编码为计数0");
+	}
+
+	@Test
+	public void testNestedClearDropsParentAddedIdentities() {
+		var list = new PList2<BValue>(BValue.class);
+		Map2TestSupport.attach(list);
+		var delta = new LogList2Delta<BValue>(list, list.getList());
+		delta.add(new BValue());
+		var savepoint = new Savepoint();
+		savepoint.putLog(delta);
+		var nested = delta.beginSavepoint();
+		nested.clear();
+		nested.endSavepoint(savepoint);
+
+		var added = delta.addedIdentities();
+		Assertions.assertTrue(added == null || added.isEmpty(),
+			"子保存点CLEAR后不得保留父保存点的新增身份");
+		Assertions.assertEquals(1, delta.getOpLogs().size());
+		Assertions.assertEquals(LogList1.OpLog.OP_CLEAR, delta.getOpLogs().getFirst().op);
+	}
+
+	@Test
+	public void testNestedClearKeepsOnlySubsequentAddedIdentities() {
+		var list = new PList2<BValue>(BValue.class);
+		Map2TestSupport.attach(list);
+		var delta = new LogList2Delta<BValue>(list, list.getList());
+		var stale = new BValue();
+		delta.add(stale);
+		var savepoint = new Savepoint();
+		savepoint.putLog(delta);
+		var nested = delta.beginSavepoint();
+		nested.clear();
+		var surviving = new BValue();
+		nested.add(surviving);
+		nested.endSavepoint(savepoint);
+
+		var added = delta.addedIdentities();
+		Assertions.assertNotNull(added);
+		Assertions.assertFalse(added.contains(stale), "CLEAR前新增身份不得残留");
+		Assertions.assertTrue(added.contains(surviving), "CLEAR后新增身份必须保留");
+		Assertions.assertEquals(1, added.size());
+		Assertions.assertEquals(2, delta.getOpLogs().size());
+		Assertions.assertEquals(LogList1.OpLog.OP_CLEAR, delta.getOpLogs().get(0).op);
+		Assertions.assertEquals(LogList1.OpLog.OP_ADD, delta.getOpLogs().get(1).op);
+		Assertions.assertSame(surviving, delta.getOpLogs().get(1).value);
 	}
 }

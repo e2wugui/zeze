@@ -80,8 +80,10 @@ final class LogList2Delta<V extends Bean> extends LogListDelta<V> {
 
 	private void merge(LogList2Delta<V> from) {
 		if (!from.opLogs.isEmpty()) {
-			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
+			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR) {
 				opLogs.clear();
+				addSet = null;
+			}
 			opLogs.addAll(from.opLogs);
 			if (from.addSet != null) {
 				if (addSet == null)
