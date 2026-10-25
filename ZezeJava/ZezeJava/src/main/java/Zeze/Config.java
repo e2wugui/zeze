@@ -514,33 +514,36 @@ public final class Config {
 		var redirect = System.getProperty("zeze.test.database");
 		if (redirect == null || conf.databaseType != DbType.Memory || conf.explicitType || !conf.databaseUrl.isEmpty())
 			return conf;
-		if (DbType.MySql.name().equals(redirect)) {
-			var url = System.getProperty("zeze.test.database.url");
-			if (url == null || url.isBlank())
-				throw new IllegalStateException("zeze.test.database=MySql requires zeze.test.database.url");
-			var mysql = new DatabaseConf();
-			mysql.setDatabaseType(DbType.MySql);
-			mysql.setDatabaseUrl(url);
-			var druid = new DruidConf();
-			druid.driverClassName = "com.mysql.cj.jdbc.Driver"; // 对齐xml解析路径的默认驱动
-			// 测试池压小：151溢出的真凶是zeze兜底minIdle=4的闲置钉扎（每池常驻4条物理连接，
-			// 多App并存即击穿服务端max_connections=151）——minIdle=0已根治（惰性建立+闲置零常驻，
-			// 总连接随真实并发走）。maxActive须给足并发余量：bench的250客户端负载挤2条连接
-			// 会串行化百倍（MySQL批BenchRoleTimer 30分钟实锤）；bench车道串行且活跃池仅2-3个，
-			// 8条/池峰值连接~24，安全。
-			druid.initialSize = 0;
-			druid.minIdle = 0;
-			druid.maxActive = 8;
-			// Druid默认闲置连接挂满30分钟才回收+maxWait无限等：车道JVM内存活App的池"借过即攥"
-			// 到JVM退出，多池并存耗尽服务端151连接（MySQL批全天186万次1040风暴，
-			// prepareNewEnvironment恒定30:07=等闲置老化的实证）。15s快速归还（回收精度受
-			// Druid清理周期60s粒度约束，≤~1分钟），借阅10s快速失败重试不无限排队。
-			druid.minEvictableIdleTimeMillis = 15_000L;
-			druid.maxWait = 10_000L;
-			mysql.setDruidConf(druid);
-			return mysql;
-		}
-		throw new IllegalStateException("zeze.test.database unsupported type: " + redirect);
+		var dbType = switch (redirect) {
+			case "MySql" -> DbType.MySql;
+			case "PostgreSQL" -> DbType.PostgreSQL;
+			default -> throw new IllegalStateException("zeze.test.database unsupported type: " + redirect);
+		};
+		var url = System.getProperty("zeze.test.database.url");
+		if (url == null || url.isBlank())
+			throw new IllegalStateException("zeze.test.database=" + redirect + " requires zeze.test.database.url");
+		var redirected = new DatabaseConf();
+		redirected.setDatabaseType(dbType);
+		redirected.setDatabaseUrl(url);
+		var druid = new DruidConf();
+		// 对齐xml解析路径的默认驱动
+		druid.driverClassName = dbType == DbType.MySql ? "com.mysql.cj.jdbc.Driver" : "org.postgresql.Driver";
+		// 测试池压小：151溢出的真凶是zeze兜底minIdle=4的闲置钉扎（每池常驻4条物理连接，
+		// 多App并存即击穿服务端max_connections）——minIdle=0已根治（惰性建立+闲置零常驻，
+		// 总连接随真实并发走）。maxActive须给足并发余量：bench的250客户端负载挤2条连接
+		// 会串行化百倍（MySQL批BenchRoleTimer 30分钟实锤）；bench车道串行且活跃池仅2-3个，
+		// 8条/池峰值连接~24，安全。
+		druid.initialSize = 0;
+		druid.minIdle = 0;
+		druid.maxActive = 8;
+		// Druid默认闲置连接挂满30分钟才回收+maxWait无限等：车道JVM内存活App的池"借过即攥"
+		// 到JVM退出，多池并存会耗尽服务端连接上限（MySQL批全天186万次1040风暴，
+		// prepareNewEnvironment恒定30:07=等闲置老化的实证）。15s快速归还（回收精度受
+		// Druid清理周期60s粒度约束，≤~1分钟），借阅10s快速失败重试不无限排队。
+		druid.minEvictableIdleTimeMillis = 15_000L;
+		druid.maxWait = 10_000L;
+		redirected.setDruidConf(druid);
+		return redirected;
 	}
 
 	public void createDatabase(Application zeze, HashMap<String, Database> map) throws Exception {
