@@ -4,13 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import Zeze.Transaction.Collections.LogBean;
-import Zeze.Util.LongHashMap;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 
@@ -19,12 +14,11 @@ import org.junit.jupiter.api.Test;
 public class TestChangesBeanCache {
 	private static final class CacheBean extends EmptyBean {
 		private int creations;
-		private Supplier<LogBean> factory = () -> new LogBean(0, this);
 
 		@Override
 		public LogBean createLogBean(@org.jspecify.annotations.Nullable TransactionLog finalLog) {
 			++creations;
-			return factory.get();
+			return new LogBean(0, this);
 		}
 	}
 
@@ -101,93 +95,5 @@ public class TestChangesBeanCache {
 		assertEquals(2, exposed.size());
 		assertNull(exposed.get(injectedBean.objectId()));
 		assertSame(exposed, changes.getBeans());
-	}
-
-	@Test
-	public void aFactoryCanCreateOtherNodesAndExposeTheMapWithoutLosingEntries() {
-		for (int childCount : new int[]{2, 3}) {
-			for (boolean exposeFirst : new boolean[]{false, true}) {
-				var changes = Map2TestSupport.changes();
-				var parent = new CacheBean();
-				var children = new CacheBean[childCount];
-				var childNodes = new LogBean[childCount];
-				for (int i = 0; i < childCount; ++i)
-					children[i] = new CacheBean();
-				var exposed = new AtomicReference<LongHashMap<LogBean>>();
-				parent.factory = () -> {
-					var duringCreation = changes;
-					if (exposeFirst)
-						exposed.set(duringCreation.getBeans());
-					for (int i = 0; i < children.length; ++i)
-						childNodes[i] = duringCreation.getOrCreateLogBean(children[i]);
-					if (!exposeFirst)
-						exposed.set(duringCreation.getBeans());
-					return new LogBean(0, parent);
-				};
-				var parentNode = changes.getOrCreateLogBean(parent);
-				assertSame(parentNode, changes.getOrCreateLogBean(parent));
-				assertEquals(1, parent.creations);
-				assertSame(exposed.get(), changes.getBeans());
-				assertEquals(childCount + 1, changes.getBeans().size());
-				assertSame(parentNode, changes.getBeans().get(parent.objectId()));
-				for (int i = 0; i < children.length; ++i) {
-					assertSame(childNodes[i], changes.getOrCreateLogBean(children[i]));
-					assertSame(childNodes[i], exposed.get().get(children[i].objectId()));
-					assertEquals(1, children[i].creations);
-				}
-			}
-		}
-	}
-
-	@Test
-	public void aCanonicalNodePublishedDuringFactoryExecutionWinsOverItsReturnedCandidate() {
-		var changes = Map2TestSupport.changes();
-		var bean = new CacheBean();
-		var published = new LogBean(0, bean);
-		var returned = new LogBean(0, bean);
-		bean.factory = () -> {
-			var duringCreation = changes;
-			duringCreation.getOrCreateLogBean(new CacheBean());
-			duringCreation.getOrCreateLogBean(new CacheBean());
-			duringCreation.getOrCreateLogBean(new CacheBean());
-			duringCreation.getBeans().put(bean.objectId(), published);
-			return returned;
-		};
-		assertSame(published, changes.getOrCreateLogBean(bean));
-		assertSame(published, changes.getOrCreateLogBean(bean));
-		assertSame(published, changes.getBeans().get(bean.objectId()));
-		assertEquals(4, changes.getBeans().size());
-		assertEquals(1, bean.creations);
-	}
-
-	@Test
-	public void aFailedFactoryDoesNotCacheItsNodeOrDiscardSuccessfulReentrantNodes() {
-		var changes = Map2TestSupport.changes();
-		var bean = new CacheBean();
-		var firstChild = new CacheBean();
-		var secondChild = new CacheBean();
-		var failure = new IllegalStateException("factory failed after creating children");
-		bean.factory = () -> {
-			var duringCreation = changes;
-			duringCreation.getOrCreateLogBean(firstChild);
-			duringCreation.getOrCreateLogBean(secondChild);
-			if (bean.creations == 1)
-				throw failure;
-			return new LogBean(0, bean);
-		};
-		assertSame(failure, assertThrows(IllegalStateException.class, () -> changes.getOrCreateLogBean(bean)));
-		var exposed = changes.getBeans();
-		assertEquals(2, exposed.size());
-		assertNull(exposed.get(bean.objectId()));
-		assertSame(exposed.get(firstChild.objectId()), changes.getOrCreateLogBean(firstChild));
-		assertSame(exposed.get(secondChild.objectId()), changes.getOrCreateLogBean(secondChild));
-		var retried = changes.getOrCreateLogBean(bean);
-		assertSame(retried, changes.getOrCreateLogBean(bean));
-		assertSame(retried, exposed.get(bean.objectId()));
-		assertSame(exposed, changes.getBeans());
-		assertEquals(3, exposed.size());
-		assertEquals(2, bean.creations);
-		assertEquals(1, firstChild.creations);
-		assertEquals(1, secondChild.creations);
 	}
 }

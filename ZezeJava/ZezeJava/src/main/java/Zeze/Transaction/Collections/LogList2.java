@@ -112,14 +112,14 @@ public class LogList2<V extends Bean> extends LogBean {
 	public boolean addChild(Bean source, Log vlog) {
 		var child = (LogBean)vlog;
 		var item = child.getThis();
-		if (item == null) return true;
+		if (item == null || addSet != null && addSet.contains(item)) return true;
 		if (indices == null) {
 			var list = ((PList2<?>)source).list;
 			indices = new IdentityHashMap<>(list.size());
 			for (int i = 0; i < list.size(); i++) indices.putIfAbsent(list.get(i), i);
 		}
 		var index = indices.get(item);
-		if (index == null || addSet != null && addSet.contains(item)) return true;
+		if (index == null) return true;
 		return getChanged().putIfAbsent(child, new OutInt(index)) == null;
 	}
 

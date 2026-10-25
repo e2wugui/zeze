@@ -6,12 +6,22 @@ import java.util.Collection;
 import Zeze.Collections.Persistents;
 
 /** Persistent list transaction state, without wire responsibilities. */
-public abstract class LogList<V> extends LogCollection<PList<V>> {
+public class LogList<V> extends LogCollection<PList<V>> {
 	private org.pcollections.PVector<V> value;
 
 	protected LogList(PList<V> source, org.pcollections.PVector<V> value) {
 		super(source);
 		this.value = value;
+	}
+
+	@Override
+	public boolean hasDelta() {
+		return false;
+	}
+
+	@Override
+	public LogList<V> beginSavepoint() {
+		return new LogList<>(source, getValue());
 	}
 
 	public final org.pcollections.PVector<V> getValue() {

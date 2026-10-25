@@ -5,12 +5,22 @@ import java.util.Collection;
 import Zeze.Collections.Persistents;
 
 /** Persistent set transaction state, without wire responsibilities. */
-public abstract class LogSet<V> extends LogCollection<PSet<V>> {
+public class LogSet<V> extends LogCollection<PSet<V>> {
 	private org.pcollections.PSet<V> value;
 
 	protected LogSet(PSet<V> source, org.pcollections.PSet<V> value) {
 		super(source);
 		this.value = value;
+	}
+
+	@Override
+	public boolean hasDelta() {
+		return false;
+	}
+
+	@Override
+	public LogSet<V> beginSavepoint() {
+		return new LogSet<>(source, getValue());
 	}
 
 	public final org.pcollections.PSet<V> getValue() {

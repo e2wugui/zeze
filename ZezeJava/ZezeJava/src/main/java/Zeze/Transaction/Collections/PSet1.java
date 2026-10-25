@@ -161,7 +161,7 @@ public class PSet1<V> extends PSet<V> {
 
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
-		return mode == ChangeCaptureMode.NONE ? new LogSetNoDelta<>(this, set)
+		return mode == ChangeCaptureMode.NONE ? new LogSet<>(this, set)
 			: new LogSet1Delta<>(this, set);
 	}
 

@@ -1,8 +1,6 @@
 package Zeze.Transaction.Collections;
 
 import org.jspecify.annotations.Nullable;
-import org.pcollections.Empty;
-import org.pcollections.TreePMap;
 
 import java.util.Map;
 import java.util.Set;
@@ -34,27 +32,17 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 		return removed;
 	}
 
-	public @Nullable V get(K key) {
-		return getValue().get(key);
-	}
-
-	public void add(K key, V value) {
-		put(key, value);
-	}
-
 	public @Nullable V put(K key, V value) {
-		var old = getValue();
-		V exist = old.get(key);
-		setValue(old.plus(key, value));
+		V exist = super.put(key, value);
 		noteReplacement(key, value, exist);
 		return exist;
 	}
 
 	public void putAll(Map<? extends K, ? extends V> m) {
 		var old = getValue();
-		var newMap = old.plusAll(m);
+		super.putAll(m);
+		var newMap = getValue();
 		if (newMap != old) {
-			setValue(newMap);
 			// 输入可能包含多个比较器等价的键，必须记最终值而非中间输入值。
 			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogSortedMap2）。
 			for (K k : m.keySet()) {
@@ -72,9 +60,8 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	}
 
 	public @Nullable V remove(K key) {
-		V old = getValue().get(key);
+		V old = super.remove(key);
 		if (old != null) {
-			setValue(getValue().minus(key));
 			replaced.remove(key);
 			removed.add(key);
 		}
@@ -82,10 +69,8 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	}
 
 	public boolean remove(K key, V value) {
-		V old = getValue().get(key);
 		// 空值防御对齐非托管分支（同 LogMap1.remove(K,V)，20261020-06）。
-		if (old != null && old.equals(value)) {
-			setValue(getValue().minus(key));
+		if (super.remove(key, value)) {
 			replaced.remove(key);
 			removed.add(key);
 			return true;
@@ -98,8 +83,7 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 			replaced.remove(ks);
 			removed.add(ks);
 		}
-		var comparator = getValue().comparator();
-		setValue(comparator != null ? TreePMap.empty(comparator) : Empty.sortedMap());
+		super.clear();
 	}
 
 	@SuppressWarnings("unchecked")

@@ -358,7 +358,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
-		return mode == ChangeCaptureMode.NONE ? new LogListNoDelta<>(this, list)
+		return mode == ChangeCaptureMode.NONE ? new LogList<>(this, list)
 			: new LogList2Delta<>(this, list);
 	}
 

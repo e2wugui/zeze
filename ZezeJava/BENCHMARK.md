@@ -57,90 +57,6 @@ Macro（D 与 L）。Matrix 使用明确的基准类过滤，不随新加入的 
 | K | KCheckpointUnderCommitFlood | 提交洪水下的刷盘竞争 |
 | L | GameSim.LMmoGameSim | 游戏模拟与容量 |
 
-## 2026-10-23 · 事务日志职责拆分与可选增量（未提交）
-
-改动：Transaction/Savepoint 保存 TransactionLog；Log 表达消费载荷和编码，LogRegistry
-通过工厂返回完整解码值。Map1/2、SortedMap1/2、List1/2、Set1 将本地事务状态与消费载荷分开；
-无 History、无监听时选择 NoDelta，仅维护最终持久容器。GTable 复用 Map 收集路径。
-载荷从明确的最终 Savepoint 创建；消费者中途出现时，在不可逆提交及 Onz Ready 前重做并补齐增量。
-Dynamic/One 适配新接口，本轮未完整拆分其事务对象与载荷。
-
-标量使用 LogInt extends LogIntValue implements TransactionLog 的结构，17 种字段日志统一调整；
-值父类不持有提交目标或 VarHandle，保留原 typeId、协议名称和可变值访问方式。
-生成 setter 构造方式保持；BeanKey 回放改读 LogBeanKeyValue，已运行 PublishGen.bat 和
-gen_use_publish.bat。Gen.exe 为发布产物，不纳入提交。Transaction.getLog/putLog 的字节码
-描述符发生变化，冷、热模块须一起重新编译；测试构建已增加热模块重新打包依赖。
-
-功能：完整 Fast 1931 项/跳过 2，集成 219 项/跳过 16，History 扩展 44 项，失败和错误均为 0。
-最后删除标量构造器重复非空检查后，补跑相关 13 项定向测试及 JMH 编译，均通过；未再次全量运行。
-当前 Corretto21.0.5 下 Instrumentation.getObjectSize 实测：17 种本地字段日志均保持 32 字节，
-独立解码值均为 24 字节，原解码日志为 32 字节。此结果只说明浅对象大小，不能代替吞吐验收。
-
-**性能验收仍未通过，未证明 GameSim 提速。** 本轮开始状态为 556f93406 加原有未提交清理，
-以独立工作树和相同 workload/harness 对比；以下 GameSim 样本均早于最后的标量值父类调整。
-配置为 Corretto21.0.5、2g、ktt、虚拟线程、-ea、5000 玩家、K=10，每窗口 10 游戏分钟，
-2 预热窗口、3 测量窗口、checkpoint 30000ms；配套最终 XML 断言通过。
-
-| 配对 | 改前 TPS 中位数 | 改后 TPS 中位数 | 变化 | mailSend p99（微秒） |
-|---|---:|---:|---:|---:|
-| B1 → C1 | 26583.65 | 26546.42 | -0.14%，3σ 波动内 | 661 → 1455 |
-| B2 → C2 | 26629.76 | 26641.73 | +0.04%，3σ 波动内 | 711 → 1146 |
-
-TPS 未显示稳定改善；两次 mailSend 尾延迟均出现不利结果，尚未归因，也未对最后代码完成重测。
-早期 List/Set 单 fork 筛查中，NONE 的分配下降；LIST1/BOTH、SET1/BOTH 出现分配增长，
-之后已调整操作列表容量及 Set 记账集合的延迟分配和容量。最新代码的 3 fork、wi10/i10、
-每迭代 1 秒复测已完成（entries=16、REPLACE、BOTH，-da、2g、ktt）：
-
-| 容器 | 分配改前 → 改后（B/事务） | 变化 | 吞吐均值变化 |
-|---|---:|---:|---:|
-| LIST1 | 2624.16 → 2696.06 | +71.90，+2.74%，CI 不重叠 | +4.86% |
-| SET1 | 3069.47 → 3005.44 | -64.03，-2.09%，CI 不重叠 | -3.58% |
-
-吞吐均值变化需结合各 fork 与 CI，不能单独判定稳定提速或回退；LIST1 分配增长尚未解决，
-不能用吞吐均值增长或 SET1 的收益抵消。原始文件为
-`jmh-log-redesign-b-list-long-final.json`、`jmh-log-redesign-c-list-long-values.json`。
-当前尚无完整最终矩阵结论。
-Map/SortedMap/GTable、List/Set 各消费模式、较大增量及最终 GameSim 性能验收均未完成。
-不能把某行分配下降或标量对象变小写成整体无性能回退。
-
-原始日志、JSON、验证 XML 及对象大小诊断保存在 gitignored 的
-`ZezeJavaTest/bench-results/transaction-log-redesign/` 和 `log-redesign-*` 结果目录；
-以下上一轮 Map 阶段的历史结论仍独立保留，不由本轮局部结果覆盖。
-
-## 2026-10-22～23 · Map2 变更阶段拆分
-
-改动：普通 Transaction 的 Map2/SortedMap2 将保存点、结构写和 commit 留在内部 Delta，
-原名 LogMap2/LogSortedMap2 保存最终消费载荷，监听通过独立投影取完整 Bean。
-GTable1/2 复用同一收集路径；随后单独将单格 get 缩短为两层安全 Map 查询，避免临时 Row 视图。
-生成器、生成 Bean、日志 typeId 和 wire 格式保持。Map 阶段完成后仅单独整理 GTable 查询；
-Map 分组与最终 GTable/宏观对照的原始证据分别保留。
-
-功能：最终 Fast 1920 项/跳过 2，标准集成 219 项/跳过 16，失败和错误均为 0；
-JMH 编译通过。实际 History capture/编码、生成 follower 回放、保存点、陈旧引用与有序键均有覆盖。
-
-性能：Corretto21.0.5、2g、ktt、同机相邻串行；最终 GTABLE2/NONE 两规模 f5/wi15/i10 对照，
-1024 项分配约少 39.61 B/事务（-4.67%）、吞吐 +5.65%；16 项分配少 58.38 B（-6.74%）、
-吞吐 +1.95%。分配均有利区间分离，改后各 fork 均低于基线，吞吐仍存在漂移，不能扩大成普遍提速。
-
-**性能整体验收未通过。** GTABLE1/NONE/1024 的单 fork 矩阵分配 +39.99 B，独立长 f3 后仍有
-均值 +12.40 B（+0.76%，CI 重叠）的档位残余；未完成版本归因，未证明每事务固定额外对象，仍按事前门槛保留。
-最终基线→改后宏观 D/L 中位吞吐为 -0.32%/+0.33%，按 3σ 均在波动内；mailSend p99 +11.00%，
-loot/trade/equip p99 也有不利样本，steady 驻留堆 +2.99%。不能用总 TPS、其他行收益或剖析运行抵消。
-
-验收使用独立基线与共同 harness；正式/失败样本和诊断原始文件保留于 gitignored 的
-`ZezeJavaTest/bench-results/`；基线证据已复制至其中的 `map-phases-baseline-archive/`，
-83 个原始文件共 145668748 字节，逐文件 SHA256 核验一致，清单为该目录的 `_evidence-manifest.json`。
-
-## 2026-10-20 · Checkpoint 批次重构
-
-改动：FlushBatch 组合复用记录列表和四个类型编码数组，集中编码、主库／镜像／旧表写入及清脏。
-有界 ArrayDeque 负责批次借还，并发和重入各自独占，归还前清引用；删除一次性 A/C 脚本。
-
-性能：JDK 21 压缩引用下，容量足够时容器复用为 0 B/轮；组合较继承每个新建批次多 16B。
-前序五槽／多列及写入收敛的 Memory 主库＋Rocks 镜像对照未检出稳定的整体回退，
-最终组合改动只复测容器分配，不据此认定吞吐提升、尾延迟等价或 SQL 性能。
-归档：`flush-batch-refactor/`、`flush-snapshot-invariants/`、`flush-batch-ownership/`、`flush-batch-composition/`。
-
 ## 2026-10-19～20 · 刷盘接口收敛
 
 改动：Record 保留缓存状态，Table 移除刷盘接口，TableX 提供具体编码能力，Checkpoint 持有批次和事务。
@@ -148,7 +64,7 @@ loot/trade/equip p99 也有不利样本，steady 驻留堆 +2.99%。不能用总
 
 性能：1／1024 条、64／4096B 四档完整 flush 的稳态 Java 分配不增。
 独立 JVM 曾出现偏慢结果，共享线程和 JNI 后反转版本位置未复现稳定回退；宏观波动较大，
-结论限于覆盖场景未检出可复现退步。归档：`record-flush-ac/`。
+结论限于覆盖场景未检出可复现退步。
 
 ## 2026-10-19 · 刷盘状态批次化
 
@@ -157,7 +73,7 @@ loot/trade/equip p99 也有不利样本，steady 驻留堆 +2.99%。不能用总
 
 性能：相对最初记录持有快照的基线，Record1 浅大小由 96B 降至 72B，单条完整 flush 分配约少 64B。
 逐条对象方案在 1024 条／64B 场景约多 44B/条（总分配 +7.98%）的回退已消除；
-最终覆盖的耗时与吞吐对照未检出稳定回退。归档：`record-flush-ac/`。
+最终覆盖的耗时与吞吐对照未检出稳定回退。
 
 ## 2026-10-16 · 0b8b64f70 · 持久化容器默认使用 ktt
 

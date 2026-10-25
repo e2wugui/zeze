@@ -5,7 +5,7 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /** Persistent Map state used by both tracked and untracked transactions. */
-public abstract class LogMap<K, V> extends LogCollection<PMap<K, V>> {
+public class LogMap<K, V> extends LogCollection<PMap<K, V>> {
 	private org.pcollections.PMap<K, V> value;
 
 	protected LogMap(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
@@ -13,12 +13,18 @@ public abstract class LogMap<K, V> extends LogCollection<PMap<K, V>> {
 		this.value = value;
 	}
 
-	public final org.pcollections.PMap<K, V> getValue() {
-		return value;
+	@Override
+	public boolean hasDelta() {
+		return false;
 	}
 
-	final void setValue(org.pcollections.PMap<K, V> value) {
-		this.value = value;
+	@Override
+	public LogMap<K, V> beginSavepoint() {
+		return new LogMap<>(source, getValue());
+	}
+
+	public final org.pcollections.PMap<K, V> getValue() {
+		return value;
 	}
 
 	public @Nullable V get(K key) {
@@ -48,7 +54,7 @@ public abstract class LogMap<K, V> extends LogCollection<PMap<K, V>> {
 	public boolean remove(K key, V expected) {
 		V old = value.get(key);
 		if (old == null || !old.equals(expected)) return false;
-		remove(key);
+		value = value.minus(key);
 		return true;
 	}
 

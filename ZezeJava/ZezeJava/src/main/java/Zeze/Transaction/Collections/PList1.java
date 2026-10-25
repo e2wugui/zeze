@@ -240,7 +240,7 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
-		return mode == ChangeCaptureMode.NONE ? new LogListNoDelta<>(this, list)
+		return mode == ChangeCaptureMode.NONE ? new LogList<>(this, list)
 			: new LogList1Delta<>(this, list);
 	}
 

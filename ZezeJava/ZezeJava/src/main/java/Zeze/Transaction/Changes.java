@@ -25,7 +25,7 @@ public final class Changes {
 
 	// 无 History、无监听者的提交不创建 Changes；有消费者但无字段日志（如整条 Put）
 	// 时仍无须分配 beans。getBeans 保持返回非空容器的契约。
-	private @Nullable LogBeanCache beans; // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
+	private @Nullable LongHashMap<LogBean> beans; // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
 	private final @Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners;
 	private final boolean collectAll;
@@ -58,12 +58,8 @@ public final class Changes {
 	}
 
 	public LongHashMap<LogBean> getBeans() {
-		return getBeanCache().asMap();
-	}
-
-	private LogBeanCache getBeanCache() {
 		var b = beans;
-		return b != null ? b : (beans = new LogBeanCache());
+		return b != null ? b : (beans = new LongHashMap<>());
 	}
 
 	public HashMap<TableKey, Record> getRecords() {
@@ -71,15 +67,16 @@ public final class Changes {
 	}
 
 	/** 只创建并缓存节点，向上挂接由 collect 完成；与保存点日志迭代次序无关。 */
-
-	public LogBean getOrCreateLogBean(Bean source) {
-		var nodes = getBeanCache();
+	LogBean getOrCreateLogBean(Bean source) {
+		var nodes = getBeans();
 		long id = source.objectId();
 		var existing = nodes.get(id);
 		if (existing != null) return existing;
 		long key = source.changeLogKey();
 		var finalLog = key != 0 ? finalSavepoint.getLog(key) : null;
-		return nodes.putIfAbsent(id, source.createLogBean(finalLog));
+		var created = source.createLogBean(finalLog);
+		nodes.put(id, created);
+		return created;
 	}
 
 	public static final class Record {
@@ -333,6 +330,6 @@ public final class Changes {
 	}
 
 	void finishCollect() {
-		if (beans != null) beans.finishCollect();
+		if (beans != null) beans.foreachValue(LogBean::finishCollect);
 	}
 }

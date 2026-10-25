@@ -278,7 +278,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
-		return mode == ChangeCaptureMode.NONE ? new LogMapNoDelta<>(this, map)
+		return mode == ChangeCaptureMode.NONE ? new LogMap<>(this, map)
 			: new LogMap2Delta<>(this, map);
 	}
 

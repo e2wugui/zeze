@@ -56,6 +56,8 @@ public final class GameWorld {
 	private final long startNanos = System.nanoTime();
 	private final DaemonTimer hbScanner;
 	private final OpRecorder sysRecorder;
+	private final LongAdder listenerNotifications = new LongAdder();
+	private final Zeze.Transaction.ChangeListener changeListener = (key, record) -> listenerNotifications.increment();
 	private int roomSeq;
 
 	/** 玩家循环异常首例打印门闩 */
@@ -114,8 +116,16 @@ public final class GameWorld {
 			TimelineLog.event("world start epochMs=" + System.currentTimeMillis()
 					+ " players=" + cfg.players + " k=" + cfg.timeScaleK
 					+ " cpPeriodMs=" + cfg.checkpointPeriodMs + " fanoutOff=" + cfg.fanoutOff);
+		if (cfg.listener) {
+			for (var table : zeze.getTables().values())
+				table.getChangeListenerMap().addListener(changeListener);
+		}
 		zeze.start();
 		hbScanner.start();
+	}
+
+	public long listenerNotifications() {
+		return listenerNotifications.sum();
 	}
 
 	/** 停世界（玩家线程退出、定时器停），数据库保持可用——对账事务在其后、stop() 之前跑 */

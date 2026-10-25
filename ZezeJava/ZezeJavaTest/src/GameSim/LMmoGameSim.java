@@ -72,8 +72,12 @@ public class LMmoGameSim {
 				long residentSteady = usedHeapAfterGc();
 				// 冷装载回环（只读，不影响其后的守恒对账）：Memory 库无磁盘装载，回环即 PMap2 装载形态
 				double coldLoadLastMs = coldLoad(world, cfg);
+				long listenerNotifications = world.listenerNotifications();
+				if (cfg.listener)
+					Assertions.assertTrue(listenerNotifications > 0, "game.listener=true but no change notification received");
 				writeJson(cfg, tps, opCountPerRound, statsPerRound,
-						residentAfterWarmup, residentSteady, gcAfter[0] - gcBefore[0], gcAfter[1] - gcBefore[1], coldLoadLastMs);
+						residentAfterWarmup, residentSteady, gcAfter[0] - gcBefore[0], gcAfter[1] - gcBefore[1],
+						coldLoadLastMs, listenerNotifications);
 				var errors = OpRecorder.errorTotals();
 				long errTotal = Arrays.stream(errors).sum();
 				Assertions.assertEquals(0, errTotal, "游戏事务非零返回/异常: " + Arrays.toString(errors));
@@ -196,7 +200,7 @@ public class LMmoGameSim {
 	private void writeJson(GameConfig cfg, double[] tps, long[][] opCountPerRound,
 						   OpRecorder.OpStats[][] statsPerRound,
 						   long residentAfterWarmup, long residentSteady,
-						   long gcCount, long gcTimeMs, double coldLoadLastMs) throws Exception {
+						   long gcCount, long gcTimeMs, double coldLoadLastMs, long listenerNotifications) throws Exception {
 		double median = MacroBench.median(tps);
 		double mean = Arrays.stream(tps).average().orElseThrow();
 		double variance = Arrays.stream(tps).map(v -> (v - mean) * (v - mean)).sum() / tps.length;
@@ -204,7 +208,8 @@ public class LMmoGameSim {
 		// 后端入档名（bench 档案按文件名配对，防三后端互覆）；pcollections 档延续历史档名
 		// L_MmoGameSim（与 2026-10-16 前档案可直接配对），kt/ktt（含默认）带后缀
 		var backend = Zeze.Collections.Persistents.BACKEND;
-		var benchName = "L_MmoGameSim" + (backend.equals("pcollections") ? "" : "_" + backend);
+		var benchName = "L_MmoGameSim" + (backend.equals("pcollections") ? "" : "_" + backend)
+				+ (cfg.listener ? "_listener" : "");
 		var sb = new StringBuilder(4096);
 		sb.append("{\n");
 		sb.append("  \"name\": \"").append(benchName).append("\",\n");
@@ -220,11 +225,13 @@ public class LMmoGameSim {
 				.append(", \"rounds\": ").append(cfg.rounds)
 				.append(", \"bulkRewardSlots\": ").append(cfg.bulkRewardSlots)
 				.append(", \"bulkRewardPlayers\": ").append(cfg.bulkRewardPlayers)
-				.append(", \"coldLoadRounds\": ").append(cfg.coldLoadRounds).append("},\n");
+				.append(", \"coldLoadRounds\": ").append(cfg.coldLoadRounds)
+				.append(", \"listener\": ").append(cfg.listener).append("},\n");
 		sb.append(String.format("  \"residentAfterWarmupBytes\": %d,%n", residentAfterWarmup));
 		sb.append(String.format("  \"residentSteadyBytes\": %d,%n", residentSteady));
 		sb.append(String.format("  \"gcCountRounds\": %d,%n", gcCount));
 		sb.append(String.format("  \"gcTimeMsRounds\": %d,%n", gcTimeMs));
+		sb.append(String.format("  \"listenerNotifications\": %d,%n", listenerNotifications));
 		sb.append(String.format("  \"coldLoadLastMs\": %.1f,%n", coldLoadLastMs));
 		sb.append("  \"rounds\": [").append(Arrays.toString(tps)).append("],\n");
 		sb.append("  \"median\": ").append(median).append(",\n");

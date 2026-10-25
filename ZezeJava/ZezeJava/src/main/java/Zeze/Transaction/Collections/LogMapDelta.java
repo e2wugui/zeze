@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
-import Zeze.Collections.Persistents;
 
 /** Map 事务结构增量：共享增删、保存点与合并规则，值变化语义由具体家族提供。 */
 public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
@@ -30,27 +29,17 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		return removed;
 	}
 
-	public @Nullable V get(K key) {
-		return getValue().get(key);
-	}
-
-	public void add(K key, V value) {
-		put(key, value);
-	}
-
 	public @Nullable V put(K key, V value) {
-		var old = getValue();
-		V exist = old.get(key);
-		setValue(old.plus(key, value));
+		V exist = super.put(key, value);
 		noteReplacement(key, value, exist);
 		return exist;
 	}
 
 	public void putAll(Map<? extends K, ? extends V> m) {
 		var old = getValue();
-		var newMap = old.plusAll(m);
+		super.putAll(m);
+		var newMap = getValue();
 		if (newMap != old) {
-			setValue(newMap);
 			// 只记值真实变化的键：值未变的键混入replaced是幻影增量，误导增量驱动的监听器。
 			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogMap2）。
 			for (var e : m.entrySet()) {
@@ -68,9 +57,8 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 	}
 
 	public @Nullable V remove(K key) {
-		V old = getValue().get(key);
+		V old = super.remove(key);
 		if (old != null) {
-			setValue(getValue().minus(key));
 			replaced.remove(key);
 			removed.add(key);
 		}
@@ -78,12 +66,10 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 	}
 
 	public boolean remove(K key, V value) {
-		V old = getValue().get(key);
 		// 空值防御对齐非托管分支（PMap1/PMap2/PSortedMap1/2 的 exist!=null && exist.equals(v)）：
 		// value==null 时旧形态 NPE 炸事务、非托管分支同输入安静返回 false——同输入两分支
 		// 行为必须一致（20261020-06，对抗验证定谳为理论缺陷，防御对齐修法）。
-		if (old != null && old.equals(value)) {
-			setValue(getValue().minus(key));
+		if (super.remove(key, value)) {
 			replaced.remove(key);
 			removed.add(key);
 			return true;
@@ -96,7 +82,7 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 			replaced.remove(ks);
 			removed.add(ks);
 		}
-		setValue(Persistents.map());
+		super.clear();
 	}
 
 	@SuppressWarnings("unchecked")

@@ -169,7 +169,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
-		return mode == ChangeCaptureMode.NONE ? new LogSortedMapNoDelta<>(this, map)
+		return mode == ChangeCaptureMode.NONE ? new LogSortedMap<>(this, map)
 			: new LogSortedMap1Delta<>(this, map);
 	}
 

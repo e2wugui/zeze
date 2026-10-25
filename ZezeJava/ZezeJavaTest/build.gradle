@@ -280,6 +280,8 @@ tasks.register('benchGame', Test) {
         systemProperty 'game.players', findProperty('gamePlayers')
     if (findProperty('gameK') != null)
         systemProperty 'game.k', findProperty('gameK')
+    if (findProperty('gameListener') != null)
+        systemProperty 'game.listener', findProperty('gameListener')
     if (findProperty('gameMinutes') != null)
         systemProperty 'game.minutes', findProperty('gameMinutes')
     if (findProperty('gameRounds') != null)

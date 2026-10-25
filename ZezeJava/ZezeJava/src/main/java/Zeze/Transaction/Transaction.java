@@ -657,7 +657,7 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
-	/** Bind before collection writes; earlier NoDelta state cannot be upgraded for Onz replay. */
+	/** Late binding is allowed only when every existing collection log already captures deltas. */
 	public void setOnzProcedure(@Nullable OnzProcedure onzProcedure) {
 		if (onzProcedure != null && this.onzProcedure == null && !savepoints.isEmpty()) {
 			var it = savepoints.getLast().logIterator();

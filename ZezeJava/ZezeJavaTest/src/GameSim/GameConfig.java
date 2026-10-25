@@ -29,6 +29,7 @@ public final class GameConfig {
 	public final int checkpointPeriodMs; // game.checkpointPeriodMs：反事实 A（拉长周期看 p99 尖峰是否消失）
 	public final boolean fanoutOff;      // game.fanoutOff：反事实 B（系统邮件 fan-out 静默）
 	public final int slowLogMs;          // game.slowLogMs：慢操作时间线阈值（0=关，见 TimelineLog）
+	public final boolean listener;       // game.listener：全表轻量计数监听器（默认 false=NONE）
 
 	// ===== 持久化容器后端对照专用旋钮（默认 0/关闭=基线行为，见 BENCHMARK.md 容器后端节）=====
 	public final int bulkRewardSlots;   // game.bulkRewardSlots：每窗口"批量补偿"物品种类数（0=关；槽位 WarehouseSlotBase+ 起逐窗口递增不覆盖）
@@ -93,6 +94,7 @@ public final class GameConfig {
 		checkpointPeriodMs = PropertiesHelper.getInt("game.checkpointPeriodMs", 30_000);
 		fanoutOff = PropertiesHelper.getBool("game.fanoutOff", false);
 		slowLogMs = PropertiesHelper.getInt("game.slowLogMs", 0);
+		listener = PropertiesHelper.getBool("game.listener", false);
 		bulkRewardSlots = PropertiesHelper.getInt("game.bulkRewardSlots", 0);
 		bulkRewardPlayers = PropertiesHelper.getInt("game.bulkRewardPlayers", 1000);
 		coldLoadRounds = PropertiesHelper.getInt("game.coldLoadRounds", 0);

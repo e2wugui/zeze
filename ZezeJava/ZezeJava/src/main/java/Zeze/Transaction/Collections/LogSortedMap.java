@@ -5,7 +5,7 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /** Persistent SortedMap state used by both tracked and untracked transactions. */
-public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogCollection<PSortedMap<K, V>> {
+public class LogSortedMap<K extends Comparable<K>, V> extends LogCollection<PSortedMap<K, V>> {
 	private org.pcollections.PSortedMap<K, V> value;
 
 	protected LogSortedMap(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
@@ -13,12 +13,18 @@ public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogCollec
 		this.value = value;
 	}
 
-	public final org.pcollections.PSortedMap<K, V> getValue() {
-		return value;
+	@Override
+	public boolean hasDelta() {
+		return false;
 	}
 
-	final void setValue(org.pcollections.PSortedMap<K, V> value) {
-		this.value = value;
+	@Override
+	public LogSortedMap<K, V> beginSavepoint() {
+		return new LogSortedMap<>(source, getValue());
+	}
+
+	public final org.pcollections.PSortedMap<K, V> getValue() {
+		return value;
 	}
 
 	public @Nullable V get(K key) {
@@ -48,7 +54,7 @@ public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogCollec
 	public boolean remove(K key, V expected) {
 		V old = value.get(key);
 		if (old == null || !old.equals(expected)) return false;
-		remove(key);
+		value = value.minus(key);
 		return true;
 	}
 
