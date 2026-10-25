@@ -538,9 +538,10 @@ public final class Config {
 		druid.maxActive = 8;
 		// Druid默认闲置连接挂满30分钟才回收+maxWait无限等：车道JVM内存活App的池"借过即攥"
 		// 到JVM退出，多池并存会耗尽服务端连接上限（MySQL批全天186万次1040风暴，
-		// prepareNewEnvironment恒定30:07=等闲置老化的实证）。15s快速归还（回收精度受
-		// Druid清理周期60s粒度约束，≤~1分钟），借阅10s快速失败重试不无限排队。
-		druid.minEvictableIdleTimeMillis = 15_000L;
+		// prepareNewEnvironment恒定30:07=等闲置老化的实证）。闲置61s快回收——必须大于Druid
+		// 清理周期60s（15s会触发"should be greater than"告警被自调，PG批实锤1059次），回收
+		// 精度本就受清理周期60s粒度约束；借阅10s快速失败重试不无限排队。
+		druid.minEvictableIdleTimeMillis = 61_000L;
 		druid.maxWait = 10_000L;
 		redirected.setDruidConf(druid);
 		return redirected;

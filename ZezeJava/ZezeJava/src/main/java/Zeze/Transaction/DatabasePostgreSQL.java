@@ -838,8 +838,22 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				throw new IllegalStateException("not found table: " + name);
 			var r = Objects.requireNonNull(table.getRelationalTable());
 			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty()) {
-				logger.info("tryAlter no change {}", name);
-				return; // do nothing
+				// 元数据差分为空≠物理已迁移：meta可能领先物理（历史发布窗口失败/跨库拷贝等
+				// desync——PG devtest残库实锤：全库零sortedmap列但meta已含，盲return后SQL按
+				// 新列读写持续失败百万级）。以物理为ground-truth对账：current列物理缺失即自愈补列。
+				try {
+					var physical = getPhysicalColumns();
+					for (var c : r.current)
+						if (!physical.contains(c.name.toLowerCase(java.util.Locale.ROOT)))
+							r.add.add(c);
+				} catch (SQLException e) {
+					throw Task.forceThrow(e);
+				}
+				if (r.add.isEmpty()) {
+					logger.info("tryAlter no change {}", name);
+					return; // do nothing
+				}
+				logger.info("tryAlter heal {} : {} column(s) missing physically", name, r.add.size());
 			}
 			// 幂等重放：元数据发布延迟到DDL成功之后（Application.publishSchemas），
 			// DDL成功、发布前崩溃的重启会重算出同一差分——必须按物理列过滤已应用的部分，

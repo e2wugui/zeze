@@ -962,8 +962,21 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				throw new IllegalStateException("not found table: " + name);
 			var r = Objects.requireNonNull(table.getRelationalTable());
 			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty()) {
-				logger.info("tryAlter no change {}", name);
-				return; // do nothing
+				// 同PG（DatabasePostgreSQL.tryAlter）：元数据差分为空≠物理已迁移，
+				// meta领先物理的desync以物理对账自愈——current列物理缺失即补列。
+				try {
+					var physical = getPhysicalColumns();
+					for (var c : r.current)
+						if (!physical.contains(c.name))
+							r.add.add(c);
+				} catch (SQLException e) {
+					throw Task.forceThrow(e);
+				}
+				if (r.add.isEmpty()) {
+					logger.info("tryAlter no change {}", name);
+					return; // do nothing
+				}
+				logger.info("tryAlter heal {} : {} column(s) missing physically", name, r.add.size());
 			}
 			// 幂等重放：元数据发布延迟到DDL成功之后（Application.publishSchemas），
 			// DDL成功、发布前崩溃的重启会重算出同一差分——必须按物理列过滤已应用的部分，
