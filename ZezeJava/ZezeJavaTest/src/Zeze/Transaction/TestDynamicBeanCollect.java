@@ -1,7 +1,5 @@
 package Zeze.Trans;
 
-import Zeze.Transaction.Map2TestSupport;
-
 import static java.util.Objects.requireNonNull;
 
 import org.jspecify.annotations.Nullable;
@@ -20,6 +18,7 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.LogDynamic;
+import Zeze.Transaction.LogDynamicValue;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongHashMap;
 import demo.Module1.BSimple;
@@ -145,8 +144,7 @@ public class TestDynamicBeanCollect {
 			var bb = ByteBuffer.Allocate();
 			Assertions.assertNotNull(collector.dynamicLog);
 			collector.dynamicLog.encode(bb);
-			var dLog = new LogDynamic(null, 0, null);
-			dLog = Map2TestSupport.decode(dLog, ByteBuffer.Wrap(bb.getBytes(0, bb.size())));
+			var dLog = LogDynamicValue.decode(0, ByteBuffer.Wrap(bb.getBytes(0, bb.size())));
 			var follower = BValue.newDynamicBean_Dynamic14();
 			follower.setBean(new demo.Bean1());
 			follower.followerApply(dLog);
@@ -190,8 +188,7 @@ public class TestDynamicBeanCollect {
 		Assertions.assertInstanceOf(LogDynamic.class, dynamicLog);
 		var bb = ByteBuffer.Allocate();
 		dynamicLog.encode(bb);
-		var dLog = new LogDynamic(null, 0, null);
-		dLog = Map2TestSupport.decode(dLog, ByteBuffer.Wrap(bb.getBytes(0, bb.size())));
+		var dLog = LogDynamicValue.decode(0, ByteBuffer.Wrap(bb.getBytes(0, bb.size())));
 		// follower端当前是旧状态（Bean1），应用日志后必须得到setBean的新状态
 		var follower = BValue.newDynamicBean_Dynamic14();
 		follower.setBean(new demo.Bean1());

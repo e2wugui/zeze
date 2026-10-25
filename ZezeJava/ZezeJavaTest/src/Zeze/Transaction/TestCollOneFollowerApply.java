@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.LogOne;
+import Zeze.Transaction.Collections.LogOneMeta;
 
 @Fast
 public class TestCollOneFollowerApply {
@@ -42,7 +43,7 @@ public class TestCollOneFollowerApply {
 		};
 
 		var parent = new BLoad();
-		var collOne = new CollOne<>(new BLoad(), BLoad.class);
+		var collOne = new CollOne<>(new BLoad(), LogOneMeta.get(BLoad.class));
 		var rootInfo = new Record.RootInfo(record, new TableKey(1, "TestCollOneFollowerApply"));
 		collOne.initRootInfo(rootInfo, parent);
 		assertTrue(collOne.isManaged());

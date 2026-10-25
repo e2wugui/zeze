@@ -5,7 +5,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.LogRegistry;
-import Zeze.Transaction.LogDynamic;
+import Zeze.Transaction.LogDynamicValue;
 import Zeze.Util.IntHashMap;
 import org.jspecify.annotations.Nullable;
 
@@ -84,7 +84,7 @@ public class LogBean extends Log {
 
 	public static void encodeLogBean(ByteBuffer bb, LogBean logBean) {
 		// 使用byte，未来可能扩展其他LogBean子类。
-		if (logBean instanceof LogDynamic)
+		if (logBean instanceof LogDynamicValue)
 			bb.WriteByte(1);
 		else // 全部都是LogBean子类，只能else。
 			bb.WriteByte(0);
@@ -94,7 +94,7 @@ public class LogBean extends Log {
 	public static LogBean decodeLogBean(IByteBuffer bb) {
 		return switch (bb.ReadByte()) {
 			case 0 -> decode(0, bb);
-			case 1 -> LogDynamic.decode(0, bb);
+			case 1 -> LogDynamicValue.decode(0, bb);
 			default -> throw new IllegalArgumentException("unknown logBean subclass type");
 		};
 	}

@@ -65,9 +65,11 @@ public class TestAtomicWriteSourceGuard {
 	public void noRawWriteOutsideAllowlist() throws IOException {
 		// fnd7_*redo等测试临时目录可能在遍历中被同JVM其他测试并发清理（30轮压测1/30撞上）：
 		// Files.walk懒迭代抛UncheckedIOException(NoSuchFileException)是扫描竞争非违例，重扫即可。
+		// bench-results内是历史基准源码快照，不属于当前源码守门范围。
 		var roots = walkExisting(Path.of(".."),
 						p -> p.endsWith("src/main/java") && Files.isDirectory(p)
-								&& !p.toString().contains("build"))
+								&& !p.toString().contains("build")
+								&& !p.toString().contains("bench-results"))
 				.stream().limit(64).toList();
 		assertTrue(!roots.isEmpty(), "必须找到至少一个src/main/java（ZezeJava/ZezeJavaTest同仓布局）");
 

@@ -23,7 +23,7 @@ import Zeze.Transaction.Collections.LogList2;
 import Zeze.Transaction.Collections.LogMap1;
 import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Transaction.Collections.LogSet1;
-import Zeze.Transaction.Collections.LogOne;
+import Zeze.Transaction.Collections.LogOneValue;
 import Zeze.Transaction.Collections.LogOneMeta;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogSortedMap1;
@@ -37,7 +37,7 @@ import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Transaction.LogRegistry;
-import Zeze.Transaction.LogDynamic;
+import Zeze.Transaction.LogDynamicValue;
 import Zeze.Transaction.Logs.LogBeanKeyValue;
 import Zeze.Transaction.Logs.LogBinaryValue;
 import Zeze.Transaction.Logs.LogBoolValue;
@@ -612,7 +612,7 @@ public class Helper {
 
 	public static <V extends Bean> void registerLogOne(Class<V> beanClass) {
 		var meta = LogOneMeta.get(beanClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogOne.decode(varId, meta, bb)));
+		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogOneValue.decode(varId, meta, bb)));
 	}
 
 	public static <K extends Comparable<K>, V> void registerLogSortedMap1(Class<K> keyClass,
@@ -661,6 +661,6 @@ public class Helper {
 		LogRegistry.register(new LogRegistry.Factory(LogVector4Value.TYPE_ID, "LogVector4", LogVector4Value::decode));
 		LogRegistry.register(new LogRegistry.Factory(LogQuaternionValue.TYPE_ID, "LogQuaternion", LogQuaternionValue::decode));
 		LogRegistry.register(new LogRegistry.Factory(LogBean.TYPE_ID, "LogBean", LogBean::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogDynamic.TYPE_ID, "LogDynamic", LogDynamic::decode));
+		LogRegistry.register(new LogRegistry.Factory(LogDynamicValue.TYPE_ID, "LogDynamic", LogDynamicValue::decode));
 	}
 }

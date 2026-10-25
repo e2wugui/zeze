@@ -23,11 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （replaced/removed/存在性），仍可能放行错误的值身份，
  * follower 侧被应用到覆盖后的新值上，主从静默分歧。
  * 修复：收集阶段要求 child.getThis()==source.map.get(k)（LogMap2/LogSortedMap2），
- * LogDynamic.encode 的 logBean 分支补 logBean.getThis()==当前内部bean。
+ * LogDynamic.addChild 要求 logBean.getThis()==当前内部bean。
  * 对照组：LogList2 历来就有身份过滤（v==bean 逐位搜索），本修复对齐家族语义。
  * <p>
  * 纯单元：不起应用/网络，为 Map2 构造合法源关系并真实 collect 陈旧字段日志，
- * Dynamic 仍直接注入其 logBean，走 encode→decode→followerApply
+ * Dynamic 同样经 addChild 收集，再走 encode→decode→followerApply
  * 全路径断言。修复前 changedWithKey 携带陈旧日志、follower 的当前值被污染。
  */
 @Fast
@@ -124,10 +124,10 @@ public class TestStaleBeanChangedFilter {
 		var currentInner = new BValue(); // 本事务前 setBean 替换上的新内部bean
 		dyn.bean = currentInner;
 		var log = new LogDynamic(dyn, 14, dyn); // 本事务未 setBean：value==null，logBean 分支
-		log.logBean = newBeanLog(staleInner, 9); // txn3：陈旧引用的修改被collect
+		log.addChild(dyn, newBeanLog(staleInner, 9)); // txn3：陈旧引用的修改被collect
+		assertNull(log.logBean, "陈旧内部bean的字段日志必须在收集阶段过滤");
 
-		var decoded = new LogDynamic(null, 0, null);
-		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, encodeThenWrap(log));
+		var decoded = LogDynamicValue.decode(0, encodeThenWrap(log));
 		assertNull(decoded.logBean, "陈旧内部bean的字段日志必须被身份校验过滤");
 
 		var followerInner = new BValue();
@@ -138,9 +138,8 @@ public class TestStaleBeanChangedFilter {
 
 		// 正控：当前内部bean自身的logBean保留并正常应用。
 		var live = new LogDynamic(dyn, 14, dyn);
-		live.logBean = newBeanLog(currentInner, 7);
-		var decodedLive = new LogDynamic(null, 0, null);
-		decodedLive = Zeze.Transaction.Map2TestSupport.decode(decodedLive, encodeThenWrap(live));
+		live.addChild(dyn, newBeanLog(currentInner, 7));
+		var decodedLive = LogDynamicValue.decode(0, encodeThenWrap(live));
 		assertNotNull(decodedLive.logBean, "当前内部bean的logBean不得误杀");
 		followerDyn.followerApply(decodedLive);
 		assertEquals(7, followerInner.getLong2());

@@ -19,15 +19,10 @@ import org.jspecify.annotations.Nullable;
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public final class CollOne<V extends Bean> extends Collection {
 	V value;
-	// 按声明类预建的meta（生成端meta1_静态字段，手写Class构造器现建）；
-	// null时LogOne退回运行时类。读端工厂按声明类注册（Helper.dependsBean→registerLogOne）。
-	final @Nullable LogOneMeta<V> meta;
+	// 按声明类预建的meta，与读端日志工厂注册对称。
+	final LogOneMeta<V> meta;
 
-	public CollOne(V value, @Nullable Class<V> valueClass) {
-		this(value, valueClass != null ? LogOneMeta.get(valueClass) : null);
-	}
-
-	public CollOne(V value, @Nullable LogOneMeta<V> meta) {
+	public CollOne(V value, LogOneMeta<V> meta) {
 		this.value = value;
 		this.meta = meta;
 	}
@@ -104,7 +99,7 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public void followerApply(Log _log) {
-		var log = (LogOne<V>)_log;
+		var log = (LogOneValue<V>)_log;
 		if (log.value != null) {
 			log.value.initRootInfo(rootInfo, this); // 与PList2/PMap2等全部同类实现保持一致
 			value = log.value;

@@ -208,7 +208,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	@SuppressWarnings("deprecation")
 	@Override
 	public void followerApply(Log log) {
-		var dLog = (LogDynamic)log;
+		var dLog = (LogDynamicValue)log;
 		if (dLog.value != null) {
 			typeId = dLog.specialTypeId;
 			// dLog.value是decode反射新建的非受管bean，必须对齐写路径setBeanWithSpecialTypeId的

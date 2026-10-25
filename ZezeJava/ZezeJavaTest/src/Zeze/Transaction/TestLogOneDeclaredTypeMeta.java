@@ -4,6 +4,7 @@ import Zeze.History.Helper;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Collections.CollOne;
+import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogOne;
 import Zeze.Transaction.Collections.LogOneMeta;
 import harness.Fast;
@@ -81,7 +82,7 @@ public class TestLogOneDeclaredTypeMeta {
 		var parent = new BeanBase();
 		var sub = new BeanSub();
 		sub.x = 42;
-		var collOne = new CollOne<>((BeanBase)sub, BeanBase.class);
+		var collOne = new CollOne<>((BeanBase)sub, LogOneMeta.get(BeanBase.class));
 		collOne.initRootInfo(newRootInfo(), parent);
 		Assertions.assertTrue(collOne.isManaged());
 
@@ -103,7 +104,7 @@ public class TestLogOneDeclaredTypeMeta {
 		var parent = new BeanBase();
 		var sub = new BeanSub();
 		sub.x = 42;
-		var collOne = new CollOne<>((BeanBase)sub, BeanBase.class);
+		var collOne = new CollOne<>((BeanBase)sub, LogOneMeta.get(BeanBase.class));
 		collOne.initRootInfo(newRootInfo(), parent);
 
 		// 写端编码，模拟复制通道：follower按typeId经LogRegistry.decode重建再decode。
@@ -111,13 +112,45 @@ public class TestLogOneDeclaredTypeMeta {
 		var log = (LogOne<BeanBase>)collOne.createLogBean(null);
 		var bb = ByteBuffer.Allocate();
 		log.encode(bb);
-		@SuppressWarnings("unchecked")
-		var decoded = (LogOne<BeanBase>)Zeze.Transaction.LogRegistry.decode(log.getTypeId(), 0, bb);
+		var expected = bb.getBytes(0, bb.size());
+		var decoded = Zeze.Transaction.LogRegistry.decode(log.getTypeId(), 0, bb);
+		var reencoded = ByteBuffer.Allocate();
+		decoded.encode(reencoded);
+		Assertions.assertArrayEquals(expected, reencoded.getBytes(0, reencoded.size()));
+		Assertions.assertFalse(decoded instanceof TransactionLog);
 		collOne.followerApply(decoded);
 
 		Assertions.assertEquals(42, collOne.getValue().x, "声明类重建的值必须完成数据往返");
 		Assertions.assertSame(BeanBase.class, collOne.getValue().getClass(),
 			"decode按声明类工厂重建值实例");
+	}
+
+	@Test
+	public void testLogBeanRoundTripUsesPayloadOnly() {
+		Helper.registerLogs();
+		Helper.registerLogOne(BeanBase.class);
+		var innerLog = new LogBean(0, null);
+		innerLog.getVariablesOrNew().put(1, Map2TestSupport.intLog(1, 42));
+		var bb = ByteBuffer.Allocate();
+		bb.WriteBool(false);
+		bb.WriteBool(true);
+		LogBean.encodeLogBean(bb, innerLog);
+		var expected = bb.getBytes(0, bb.size());
+		var decoded = LogRegistry.decode(LogOneMeta.get(BeanBase.class).logTypeId, 0, bb);
+		var reencoded = ByteBuffer.Allocate();
+		decoded.encode(reencoded);
+
+		Assertions.assertArrayEquals(expected, reencoded.getBytes(0, reencoded.size()));
+		Assertions.assertFalse(decoded instanceof TransactionLog);
+	}
+
+	@Test
+	public void testWriterRequiresTransactionTarget() {
+		var parent = new BeanBase();
+		var collOne = new CollOne<>(new BeanBase(), LogOneMeta.get(BeanBase.class));
+
+		Assertions.assertThrows(NullPointerException.class, () -> new LogOne<>(null, 0, collOne, new BeanBase()));
+		Assertions.assertThrows(NullPointerException.class, () -> new LogOne<>(parent, 0, null, new BeanBase()));
 	}
 
 	@Test
@@ -127,15 +160,16 @@ public class TestLogOneDeclaredTypeMeta {
 			LogOneMeta.get(BeanSub.class).logTypeId, "测试自检：两类typeId必须可区分");
 
 		var parent = new BeanBase();
-		var collOne = new CollOne<>(new BeanBase(), BeanBase.class);
+		var collOne = new CollOne<>(new BeanBase(), LogOneMeta.get(BeanBase.class));
 		collOne.initRootInfo(newRootInfo(), parent);
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<BeanBase>)collOne.createLogBean(null);
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, log.getTypeId(),
 			"精确类型typeId与修复前一致");
 
-		// 未提供声明类（copy路径）：退回运行时类，与修复前行为一致。
+		// copy路径保留声明类型meta。
 		var copied = collOne.copy();
+		copied.initRootInfo(newRootInfo(), parent);
 		@SuppressWarnings("unchecked")
 		var copiedLog = (LogOne<BeanBase>)copied.createLogBean(null);
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, copiedLog.getTypeId());
