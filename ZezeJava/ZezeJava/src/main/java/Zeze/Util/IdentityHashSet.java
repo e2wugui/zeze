@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
@@ -22,7 +23,6 @@ public class IdentityHashSet<T> implements Cloneable {
 		this(cap, 0.8f);
 	}
 
-	@SuppressWarnings("unchecked")
 	public IdentityHashSet(int cap, float loadFactor) {
 		if (loadFactor <= 0 || loadFactor >= 1)
 			throw new IllegalArgumentException("invalid loadFactor: " + loadFactor);
@@ -30,6 +30,7 @@ public class IdentityHashSet<T> implements Cloneable {
 		int tableSize = tableSize(Math.max(cap, 0));
 		threshold = (int)((float)tableSize * loadFactor);
 		shift = Long.numberOfLeadingZeros(tableSize - 1);
+		//noinspection unchecked
 		keyTable = (T[])new Object[tableSize];
 	}
 
@@ -75,7 +76,9 @@ public class IdentityHashSet<T> implements Cloneable {
 		return size == 0;
 	}
 
-	public boolean contains(Object key) {
+	public boolean contains(@Nullable Object key) {
+		if (key == null)
+			return false;
 		@Nullable T[] kt = keyTable;
 		int m = kt.length - 1;
 		int i = hash(key);
@@ -101,6 +104,7 @@ public class IdentityHashSet<T> implements Cloneable {
 	}
 
 	public boolean add(T key) {
+		Objects.requireNonNull(key);
 		@Nullable T[] kt = keyTable;
 		for (int i = hash(key), m = kt.length - 1; ; i = (i + 1) & m) {
 			T k = kt[i];
@@ -128,7 +132,9 @@ public class IdentityHashSet<T> implements Cloneable {
 				add(k);
 	}
 
-	public boolean remove(Object key) {
+	public boolean remove(@Nullable Object key) {
+		if (key == null)
+			return false;
 		@Nullable T[] kt = keyTable;
 		int m = kt.length - 1;
 		int i = hash(key);
