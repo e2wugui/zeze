@@ -2,6 +2,7 @@ package Zeze.Transaction.Collections;
 
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
@@ -157,34 +158,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 	}
 
 	public Set<K> keySet() {
-		return new AbstractSet<>() {
-			@Override
-			public Iterator<K> iterator() {
-				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
-
-					@Override
-					public boolean hasNext() {
-						return it.hasNext();
-					}
-
-					@Override
-					public K next() {
-						return it.next().getKey();
-					}
-
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-
-			@Override
-			public int size() {
-				return map.size();
-			}
-		};
+		return Collections.unmodifiableSet(map.keySet());
 	}
 
 	public java.util.Collection<VReadOnly> values() {
@@ -220,6 +194,11 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 
 	public Set<Map.Entry<K, VReadOnly>> entrySet() {
 		return new AbstractSet<>() {
+			@Override
+			public boolean contains(Object item) {
+				return map.entrySet().contains(item);
+			}
+
 			@Override
 			public Iterator<Map.Entry<K, VReadOnly>> iterator() {
 				return new Iterator<>() {

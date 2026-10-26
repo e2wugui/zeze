@@ -1,7 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import java.util.AbstractCollection;
-import java.util.AbstractSet;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
@@ -142,34 +142,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 	}
 
 	public Set<K> keySet() {
-		return new AbstractSet<>() {
-			@Override
-			public Iterator<K> iterator() {
-				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
-
-					@Override
-					public boolean hasNext() {
-						return it.hasNext();
-					}
-
-					@Override
-					public K next() {
-						return it.next().getKey();
-					}
-
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-
-			@Override
-			public int size() {
-				return map.size();
-			}
-		};
+		return Collections.unmodifiableSet(map.keySet());
 	}
 
 	public java.util.Collection<V> values() {
@@ -204,36 +177,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 	}
 
 	public Set<Map.Entry<K, V>> entrySet() {
-		return new AbstractSet<>() {
-			@Override
-			public Iterator<Map.Entry<K, V>> iterator() {
-				return new Iterator<>() {
-					// PSortedMap.entrySet() 返回的迭代器 remove() 是可变的，这里包一层禁掉。
-					// next() 返回的 Entry 来自 pcollections，本身就是 immutable 的。
-					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
-
-					@Override
-					public boolean hasNext() {
-						return it.hasNext();
-					}
-
-					@Override
-					public Map.Entry<K, V> next() {
-						return it.next();
-					}
-
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException();
-					}
-				};
-			}
-
-			@Override
-			public int size() {
-				return map.size();
-			}
-		};
+		return Collections.unmodifiableSet(map.entrySet());
 	}
 
 	@Override
