@@ -732,13 +732,16 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 			int n, sc;
 			while (s >= (sc = sizeCtl) && (tab = table) != null && (n = tab.length) < MAXIMUM_CAPACITY) {
 				int rs = resizeStamp(n);
+				int resizeBase = rs << RESIZE_STAMP_SHIFT;
 				if (sc < 0) {
 					//noinspection ConstantConditions
-					if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || (nt = nextTable) == null || transferIndex <= 0)
+					// sizeCtl 高位为代际、低位为参与者：边界必须比较完整编码。
+					if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == resizeBase + 1
+							|| sc == resizeBase + MAX_RESIZERS || (nt = nextTable) == null || transferIndex <= 0)
 						break;
 					if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1))
 						transfer(tab, nt);
-				} else if (U.compareAndSwapInt(this, SIZECTL, sc, (rs << RESIZE_STAMP_SHIFT) + 2))
+				} else if (U.compareAndSwapInt(this, SIZECTL, sc, resizeBase + 2))
 					transfer(tab, null);
 				s = sumCount();
 			}
@@ -752,9 +755,11 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		int sc;
 		if (tab != null && f.val == null && (nextTab = ((ForwardingNode<V>)f).nextTable) != null) { // MOVED
 			int rs = resizeStamp(tab.length);
+			int resizeBase = rs << RESIZE_STAMP_SHIFT;
 			while (nextTab == nextTable && table == tab && (sc = sizeCtl) < 0) {
 				//noinspection ConstantConditions
-				if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || transferIndex <= 0)
+				if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == resizeBase + 1
+						|| sc == resizeBase + MAX_RESIZERS || transferIndex <= 0)
 					break;
 				if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1)) {
 					transfer(tab, nextTab);
