@@ -47,7 +47,17 @@ public class DatabaseDynamoDb extends Database {
 	DatabaseDynamoDb(@Nullable Application zeze, Config.DatabaseConf conf, AmazonDynamoDB client) {
 		super(zeze, conf);
 		dynamoDbClient = client;
-		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesDynamoDb());
+		try {
+			setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesDynamoDb());
+		} catch (Throwable failure) {
+			try {
+				client.shutdown();
+			} catch (Throwable shutdownFailure) {
+				if (failure != shutdownFailure)
+					failure.addSuppressed(shutdownFailure);
+			}
+			throw failure;
+		}
 	}
 
 	private static AmazonDynamoDB createClient(Config.DatabaseConf conf) {
