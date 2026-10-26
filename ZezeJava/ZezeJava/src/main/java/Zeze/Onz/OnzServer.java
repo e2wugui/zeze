@@ -1296,7 +1296,7 @@ public class OnzServer extends AbstractOnz {
 		if (stub == null)
 			return errorCode(eProcedureNotFound);
 
-		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
+		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument());
 		var txn = stub.createTransaction(r.Argument.getFuncName(), buffer);
 		var rc = perform(txn);
 		if (0 != rc)

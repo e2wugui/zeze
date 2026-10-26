@@ -321,7 +321,7 @@ public class Onz extends AbstractOnz {
 				r.Argument.getFuncName(), r.Argument.getOnzTid());
 			return errorCode(eProcedureNotFound);
 		}
-		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
+		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument());
 		var procedure = stub.newProcedure(r, r.Argument, buffer);
 		return TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
 	}
@@ -337,7 +337,7 @@ public class Onz extends AbstractOnz {
 			return errorCode(eProcedureNotFound);
 		}
 
-		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
+		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument());
 		var procedure = stub.newProcedure(r, r.Argument, buffer);
 
 		// 先锁定再注册，防止FuncSagaEnd抢先补偿尚未执行的业务。
