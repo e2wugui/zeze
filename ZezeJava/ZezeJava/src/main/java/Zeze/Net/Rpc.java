@@ -22,10 +22,11 @@ import org.jspecify.annotations.Nullable;
 public abstract class Rpc<TArgument extends Serializable, TResult extends Serializable> extends Protocol<TArgument> {
 	protected static final Logger logger = LogManager.getLogger(Rpc.class);
 
-	private static final VarHandle SEND_RESULT_DONE;
+	private static final VarHandle SEND_RESULT_DONE, REQUEST_SENT;
 	static {
 		try {
 			SEND_RESULT_DONE = MethodHandles.lookup().findVarHandle(Rpc.class, "sendResultDone", boolean.class);
+			REQUEST_SENT = MethodHandles.lookup().findVarHandle(Rpc.class, "requestSent", boolean.class);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -42,6 +43,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	private boolean isTimeout;
 	private boolean isRequest = true;
 	protected volatile transient boolean sendResultDone;
+	private volatile transient boolean requestSent;
 
 	@Override
 	public int getFamilyClass() {
@@ -174,14 +176,23 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	public final boolean Send(@Nullable AsyncSocket so,
 	                          @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
 	                          int millisecondsTimeout) {
+		return sendRequest(so, responseHandle, millisecondsTimeout, null);
+	}
+
+	private boolean sendRequest(@Nullable AsyncSocket so,
+			@Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle, int millisecondsTimeout,
+			@Nullable TaskCompletionSource<TResult> waitFuture) {
 		if (so == null)
 			return false;
-		if (sessionId != 0)
+		// 发送权先于任何请求状态写入；sessionId 尚在分配时也必须拒绝并发/重入发送。
+		if (sessionId != 0 || !(boolean)REQUEST_SENT.compareAndSet(this, false, true))
 			throw new IllegalStateException("Rpc already sent (sessionId=" + sessionId
 					+ "); create a new instance to retry: " + this);
 		Service service = so.getService();
 
 		this.responseHandle = responseHandle;
+		if (waitFuture != null)
+			future = waitFuture;
 		//noinspection DataFlowIssue
 		sessionId = service.addRpcContext(this);
 		timeout = millisecondsTimeout;
@@ -250,13 +261,11 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return SendForWait(so, timeout);
 	}
 
-	// 注意这个同步发送方法会覆盖future,而且之后不会自动清除,除非再次调用同步发送
-	// 如果接着调用异步发送,可能因为旧的future导致无法响应responseHandle
 	public final TaskCompletionSource<TResult> SendForWait(@Nullable AsyncSocket so, int millisecondsTimeout) {
-		future = new TaskCompletionSource<>();
-		if (!Send(so, null, millisecondsTimeout))
-			future.setException(new IllegalStateException("Send Fail."));
-		return future;
+		var waitFuture = new TaskCompletionSource<TResult>();
+		if (!sendRequest(so, null, millisecondsTimeout, waitFuture))
+			waitFuture.setException(new IllegalStateException("Send Fail."));
+		return waitFuture;
 	}
 
 	// 使用异步方式实现的同步等待版本
