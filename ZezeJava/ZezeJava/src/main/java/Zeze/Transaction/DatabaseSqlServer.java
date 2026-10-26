@@ -811,7 +811,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public long getSize() {
-			return dropped ? -1 : queryLong1(dataSource, "SELECT count(*) FROM " + name);
+			return dropped ? -1 : queryLong1(dataSource, "SELECT count_big(*) FROM " + name);
 		}
 
 		@Override
