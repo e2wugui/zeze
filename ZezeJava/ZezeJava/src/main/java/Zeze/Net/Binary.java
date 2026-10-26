@@ -5,6 +5,7 @@ import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Objects;
 import Zeze.Dbh2.Database;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.NioByteBuffer;
@@ -97,6 +98,7 @@ public final class Binary implements Comparable<Binary> {
 	}
 
 	public byte get(int index) {
+		Objects.checkIndex(index, count);
 		return bytes[offset + index];
 	}
 
