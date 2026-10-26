@@ -1518,30 +1518,41 @@ public final class JsonReader {
 	 * 段内不含转义与终止符（均为ASCII）；续字节校验保证读取不越过end。返回写入后的下标。 */
 	private int decodeUtf8(char[] t, int n, int begin, int end) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
-		int p = begin, b, c, d, f;
+		int p = begin;
 		while (p < end) {
-			b = buffer[p++];
-			if (b >= 0)
-				t[n++] = (char)b; // 0xxx xxxx
-			else if (b >= -0x20) {
-				if (b >= -0x10) {
-					if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40 && (f = buffer[p + 2]) < -0x40) {
-						b = (b << 18) + (c << 12) + (d << 6) + f + ((0x10 << 18) + (0x80 << 12) + (0x80 << 6) + 0x80 - 0x10000);
-						t[n++] = (char)(0xd800 + ((b >> 10) & 0x3ff)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
-						t[n++] = (char)(0xdc00 + (b & 0x3ff));
-						p += 3;
-					} else
-						t[n++] = (char)(b & 0xff); // ignore malformed utf-8
-				} else if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40) {
-					t[n++] = (char)((b << 12) + (c << 6) + d + ((0x20 << 12) + (0x80 << 6) + 0x80)); // 1110 xxxx  10xx xxxx  10xx xxxx
-					p += 2;
-				} else
-					t[n++] = (char)(b & 0xff); // ignore malformed utf-8
-			} else if ((c = buffer[p]) < -0x40) {
+			int b = buffer[p] & 0xff;
+			if (b < 0x80) {
+				t[n++] = (char)b;
 				p++;
-				t[n++] = (char)((b << 6) + c + ((0x40 << 6) + 0x80)); // 110x xxxx  10xx xxxx
-			} else
-				t[n++] = (char)(b & 0xff); // ignore malformed utf-8
+				continue;
+			}
+			int continuations = b >= 0xc2 && b <= 0xdf ? 1
+					: b >= 0xe0 && b <= 0xef ? 2 : b >= 0xf0 && b <= 0xf4 ? 3 : 0;
+			if (continuations != 0 && end - p > continuations) {
+				int codePoint = b & (continuations == 1 ? 0x1f : continuations == 2 ? 0xf : 7);
+				for (int j = 1; j <= continuations; j++) {
+					int c = buffer[p + j] & 0xff;
+					if ((c & 0xc0) != 0x80) {
+						codePoint = -1;
+						break;
+					}
+					codePoint = (codePoint << 6) | (c & 0x3f);
+				}
+				int minimum = continuations == 1 ? 0x80 : continuations == 2 ? 0x800 : 0x10000;
+				if (codePoint >= minimum && codePoint <= 0x10ffff && (codePoint < 0xd800 || codePoint > 0xdfff)) {
+					if (codePoint < 0x10000)
+						t[n++] = (char)codePoint;
+					else {
+						t[n++] = Character.highSurrogate(codePoint);
+						t[n++] = Character.lowSurrogate(codePoint);
+					}
+					p += continuations + 1;
+					continue;
+				}
+			}
+			// 失败仅消费当前字节，不读取或吞掉片段外的引号、转义及后续有效序列。
+			t[n++] = (char)b;
+			p++;
 		}
 		return n;
 	}
