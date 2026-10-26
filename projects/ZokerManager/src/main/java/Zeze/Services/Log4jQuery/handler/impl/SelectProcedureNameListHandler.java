@@ -12,6 +12,6 @@ import Zeze.Util.ZezeCounter;
 public class SelectProcedureNameListHandler implements QueryHandler<Object, List<String>> {
 	@Override
 	public List<String> invoke(Object param) {
-		return List.copyOf(ZezeCounter.instance.getLast().procedureResults().keySet());
+		return List.copyOf(ZezeCounter.instance.getLastSnapshot().procedureResults().keySet());
 	}
 }

@@ -45,7 +45,7 @@ public class CBasicSimpleAddConcurrent {
 				for (var task : tasks)
 					task.get();
 			});
-			System.out.println(Zeze.Util.ZezeCounter.instance.collectAndReset().formattedLog());
+			System.out.println(Zeze.Util.ZezeCounter.instance.snapshotAndReset().formattedLog());
 			App.Instance.getZeze().newProcedure(CBasicSimpleAddConcurrent::Check, "check").call();
 			for (long k = 0; k < ConcurrentLevel; ++k) {
 				final long rk = k;

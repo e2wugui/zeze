@@ -16,25 +16,25 @@ public class CheckpointFlush {
 	@Test
 	public void benchFlushSingleThread() throws Exception {
 		bench(CheckpointFlushMode.SingleThread);
-		System.out.println(ZezeCounter.instance.collectAndReset().formattedLog());
+		System.out.println(ZezeCounter.instance.snapshotAndReset().formattedLog());
 	}
 
 	@Test
 	public void benchFlushMultiThread() throws Exception {
 		bench(CheckpointFlushMode.MultiThread);
-		System.out.println(ZezeCounter.instance.collectAndReset().formattedLog());
+		System.out.println(ZezeCounter.instance.snapshotAndReset().formattedLog());
 	}
 
 	@Test
 	public void benchFlushSingleMerge() throws Exception {
 		bench(CheckpointFlushMode.SingleThreadMerge);
-		System.out.println(ZezeCounter.instance.collectAndReset().formattedLog());
+		System.out.println(ZezeCounter.instance.snapshotAndReset().formattedLog());
 	}
 
 	@Test
 	public void benchFlushMultiMerge() throws Exception {
 		bench(CheckpointFlushMode.MultiThreadMerge);
-		System.out.println(ZezeCounter.instance.collectAndReset().formattedLog());
+		System.out.println(ZezeCounter.instance.snapshotAndReset().formattedLog());
 	}
 
 	private static void bench(CheckpointFlushMode mode) throws Exception {

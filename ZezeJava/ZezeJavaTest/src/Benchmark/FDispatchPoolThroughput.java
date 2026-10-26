@@ -49,7 +49,7 @@ public class FDispatchPoolThroughput {
 				for (var task : tasks)
 					task.get();
 			});
-			System.out.println(Zeze.Util.ZezeCounter.instance.collectAndReset().formattedLog());
+			System.out.println(Zeze.Util.ZezeCounter.instance.snapshotAndReset().formattedLog());
 			App.Instance.getZeze().newProcedure(FDispatchPoolThroughput::Check, "check").call();
 			removeAll();
 		} finally {

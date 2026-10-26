@@ -24,6 +24,7 @@ import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
 import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import io.prometheus.metrics.model.snapshots.Unit;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
@@ -35,16 +36,18 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.jspecify.annotations.Nullable;
 
 // ZezeCounter 的 Prometheus 实现：指标注册到 prometheus-client 并经 /metrics HTTP 暴露
 public class PrometheusCounter implements ZezeCounter {
 	private static final Logger logger = LogManager.getLogger(PrometheusCounter.class);
-
 
 	/**
 	 * service outputBuffSize的一个分布收集间隔。
@@ -53,11 +56,11 @@ public class PrometheusCounter implements ZezeCounter {
 
 	public static void addHttpHandler(HttpServer httpServer) {
 		httpServer.addHandler("/metrics", 0,
-				TransactionLevel.None, DispatchMode.Normal,
-				new MetricHandler());
+			TransactionLevel.None, DispatchMode.Normal,
+			new MetricHandler());
 		httpServer.addHandler("/healthy", 0,
-				TransactionLevel.None, DispatchMode.Direct,
-				new HealthyHandler());
+			TransactionLevel.None, DispatchMode.Direct,
+			new HealthyHandler());
 	}
 
 	static class HealthyHandler implements HttpEndStreamHandle {
@@ -124,9 +127,9 @@ public class PrometheusCounter implements ZezeCounter {
 			@Override
 			public OutputStream sendHeadersAndGetBody(int statusCode, int contentLength) {
 				return HttpResponseWithBodyStream.sendHeadersAndGetBody(httpExchange,
-						HttpResponseStatus.valueOf(statusCode),
-						headers,
-						contentLength);
+					HttpResponseStatus.valueOf(statusCode),
+					headers,
+					contentLength);
 			}
 		}
 
@@ -159,36 +162,17 @@ public class PrometheusCounter implements ZezeCounter {
 		}
 	}
 
-	private static class ProtocolRecvMetric {
-		public final CounterDataPoint bytes;
-		public final DistributionDataPoint processDuration;
-
-		public ProtocolRecvMetric(CounterDataPoint bytes, DistributionDataPoint processDuration) {
-			this.bytes = bytes;
-			this.processDuration = processDuration;
-		}
+	private record ProtocolRecvMetric(CounterDataPoint bytes,
+									  DistributionDataPoint processDuration) {
 	}
 
-	private static class ProtocolSendMetric {
-		public final CounterDataPoint total;
-		public final CounterDataPoint bytes;
-
-		public ProtocolSendMetric(CounterDataPoint total, CounterDataPoint bytes) {
-			this.total = total;
-			this.bytes = bytes;
-		}
+	private record ProtocolSendMetric(CounterDataPoint total,
+									  CounterDataPoint bytes) {
 	}
 
-	private static class ServiceMetric {
-		public final Service service;
-		public final DistributionDataPoint outputObserve;
-		public final ScheduledFuture<?> scheduler;
-
-		private ServiceMetric(Service service, DistributionDataPoint outputObserve, ScheduledFuture<?> scheduler) {
-			this.service = service;
-			this.scheduler = scheduler;
-			this.outputObserve = outputObserve;
-		}
+	private record ServiceMetric(Service service,
+								 DistributionDataPoint outputObserve,
+								 ScheduledFuture<?> scheduler) {
 	}
 
 	private final ConcurrentHashMap<Long, LongCounter[]> tableCounterMap = new ConcurrentHashMap<>();
@@ -204,75 +188,75 @@ public class PrometheusCounter implements ZezeCounter {
 	private final ReentrantLock serviceMapMutex = new ReentrantLock();
 
 	private final Histogram task_duration_seconds = Histogram.builder().name("task_duration_seconds")
-			.labelNames("task").register();
+		.labelNames("task").register();
 
 	private final Counter procedure_started = Counter.builder().name("procedure_started")
-			.labelNames("procedure").register();
+		.labelNames("procedure").register();
 	private final Counter procedure_completed = Counter.builder().name("procedure_completed")
-			.labelNames("procedure", "result_code").register();
+		.labelNames("procedure", "result_code").register();
 	private final Histogram procedure_duration_seconds = Histogram.builder().name("procedure_duration_seconds")
-			.labelNames("procedure", "result_code").register();
+		.labelNames("procedure", "result_code").register();
 	private final Counter procedure_redo = Counter.builder().name("procedure_redo")
-			.labelNames("procedure").register();
+		.labelNames("procedure").register();
 	private final Counter procedure_redo_and_release_lock = Counter.builder().name("procedure_redo_and_release_lock")
-			.labelNames("procedure").register();
+		.labelNames("procedure").register();
 	private final Histogram procedure_many_locks = Histogram.builder().name("procedure_many_locks")
-			.labelNames("procedure").register();
+		.labelNames("procedure").register();
 
 	private final Counter database_table_operation = Counter.builder().name("database_table_operation")
-			.labelNames("table", "operation").register();
+		.labelNames("table", "operation").register();
 
 	private final Counter protocol_recv_bytes = Counter.builder().name("protocol_recv_bytes")
-			.labelNames("protocol").register();
+		.labelNames("protocol").register();
 	private final Histogram protocol_duration_seconds = Histogram.builder().name("protocol_duration_seconds")
-			.labelNames("protocol").register();
+		.labelNames("protocol").register();
 	private final Counter protocol_send = Counter.builder().name("protocol_send")
-			.labelNames("protocol").register();
+		.labelNames("protocol").register();
 	private final Histogram protocol_dispatch_seconds = Histogram.builder().name("protocol_dispatch_seconds")
-			.labelNames("protocol").unit(Unit.SECONDS).register();
+		.labelNames("protocol").unit(Unit.SECONDS).register();
 	private final Counter protocol_send_bytes = Counter.builder().name("protocol_send_bytes")
-			.labelNames("protocol").register();
+		.labelNames("protocol").register();
 
 	private final Histogram service_output_buffer_bytes = Histogram.builder().name("service_output_buffer_bytes")
-			.labelNames("service").register();
+		.labelNames("service").register();
 	private final CounterWithCallback service_recv = CounterWithCallback.builder().name("service_recv")
-			.labelNames("service").callback(callback -> {
-				List<Service> serviceSnapshot = getServiceSnapshot();
-				for (Service service : serviceSnapshot) {
-					callback.call(service.getRecvCount(), service.getName());
-				}
-			}).register();
+		.labelNames("service").callback(callback -> {
+			List<Service> serviceSnapshot = getServiceSnapshot();
+			for (Service service : serviceSnapshot) {
+				callback.call(service.getRecvCount(), service.getName());
+			}
+		}).register();
 
 	private final CounterWithCallback service_recv_bytes = CounterWithCallback.builder().name("service_recv_bytes")
-			.labelNames("service").callback(callback -> {
-				List<Service> serviceSnapshot = getServiceSnapshot();
-				for (Service service : serviceSnapshot) {
-					callback.call(service.getRecvSize(), service.getName());
-				}
-			}).register();
+		.labelNames("service").callback(callback -> {
+			List<Service> serviceSnapshot = getServiceSnapshot();
+			for (Service service : serviceSnapshot) {
+				callback.call(service.getRecvSize(), service.getName());
+			}
+		}).register();
 
 	private final CounterWithCallback service_send = CounterWithCallback.builder().name("service_send")
-			.labelNames("service").callback(callback -> {
-				List<Service> serviceSnapshot = getServiceSnapshot();
-				for (Service service : serviceSnapshot) {
-					callback.call(service.getSendCount(), service.getName());
-				}
-			}).register();
+		.labelNames("service").callback(callback -> {
+			List<Service> serviceSnapshot = getServiceSnapshot();
+			for (Service service : serviceSnapshot) {
+				callback.call(service.getSendCount(), service.getName());
+			}
+		}).register();
 
 	private final CounterWithCallback service_send_bytes = CounterWithCallback.builder().name("service_send_bytes")
-			.labelNames("service").callback(callback -> {
-				List<Service> serviceSnapshot = getServiceSnapshot();
-				for (Service service : serviceSnapshot) {
-					callback.call(service.getSendSize(), service.getName());
-				}
-			}).register();
+		.labelNames("service").callback(callback -> {
+			List<Service> serviceSnapshot = getServiceSnapshot();
+			for (Service service : serviceSnapshot) {
+				callback.call(service.getSendSize(), service.getName());
+			}
+		}).register();
 	private final CounterWithCallback service_send_raw_bytes = CounterWithCallback.builder().name("service_send_raw_bytes")
-			.labelNames("service").callback(callback -> {
-				List<Service> serviceSnapshot = getServiceSnapshot();
-				for (Service service : serviceSnapshot) {
-					callback.call(service.getSendRawSize(), service.getName());
-				}
-			}).register();
+		.labelNames("service").callback(callback -> {
+			List<Service> serviceSnapshot = getServiceSnapshot();
+			for (Service service : serviceSnapshot) {
+				callback.call(service.getSendRawSize(), service.getName());
+			}
+		}).register();
 
 	@Override
 	public LongCounter allocCounter(String name) {
@@ -313,21 +297,21 @@ public class PrometheusCounter implements ZezeCounter {
 		// label 值无名字合法性约束，原 sanitize/prometheusName 规范化与指标名碰撞去重
 		// （U4-F3：register() 抛异常打穿静态初始化路径）随之整体消失。
 		var task = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
-		return fastGetOrAdd(runTimeMap, task, k -> (LongObserver)amount
-				-> task_duration_seconds.labelValues(k).observe(Unit.nanosToSeconds(amount)));
+		return fastGetOrAdd(runTimeMap, task, k -> amount
+			-> task_duration_seconds.labelValues(k).observe(Unit.nanosToSeconds(amount)));
 	}
 
 	private record ServiceOutputObserve(Service service, DistributionDataPoint outputObserve) implements Action0 {
 
 		@Override
-			public void run() throws Exception {
-				service.updateRecvSendSize(); // 为 service counter with callback的相关metric服务
-				service.foreach(socket -> {
-					if (socket instanceof TcpSocket)
-						outputObserve.observe(((TcpSocket)socket).getOutputBufferSize());
-				});
-			}
+		public void run() throws Exception {
+			service.updateRecvSendSize(); // 为 service counter with callback的相关metric服务
+			service.foreach(socket -> {
+				if (socket instanceof TcpSocket)
+					outputObserve.observe(((TcpSocket)socket).getOutputBufferSize());
+			});
 		}
+	}
 
 	@Override
 	public void init() {
@@ -351,7 +335,7 @@ public class PrometheusCounter implements ZezeCounter {
 			DistributionDataPoint outputObserve = service_output_buffer_bytes.labelValues(name);
 			long milliSec = ServiceOutputObserveInterval * 1000L;
 			ScheduledFuture<?> scheduler = TaskSpec.ofAction(new ServiceOutputObserve(service, outputObserve))
-					.schedulePeriodNow(Random.getInstance().nextLong(milliSec), milliSec);
+				.schedulePeriodNow(Random.getInstance().nextLong(milliSec), milliSec);
 
 			serviceMap.put(name, new ServiceMetric(service, outputObserve, scheduler));
 		} finally {
@@ -420,7 +404,7 @@ public class PrometheusCounter implements ZezeCounter {
 
 		private Completed newCompleted(String codeLabel) {
 			return new Completed(procedure_completed.labelValues(name, codeLabel),
-					procedure_duration_seconds.labelValues(name, codeLabel));
+				procedure_duration_seconds.labelValues(name, codeLabel));
 		}
 
 		private Completed completed(long resultCode) {
@@ -480,12 +464,22 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
+	public Snapshot snapshotAndReset() {
+		return Snapshot.EMPTY;
+	}
+
+	@Override
+	public Snapshot getLastSnapshot() {
+		return Snapshot.EMPTY;
+	}
+
+	@Override
 	public void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
 		ProtocolRecvMetric metric = fastGetOrAdd(protocolRecvMap, typeId, (k) -> {
 			Class<?> kls = (cls != null) ? cls : Protocol.getClassByTypeId(typeId);
 			String name = kls != null ? kls.getName() : String.valueOf(typeId);
 			return new ProtocolRecvMetric(
-					protocol_recv_bytes.labelValues(name), protocol_duration_seconds.labelValues(name));
+				protocol_recv_bytes.labelValues(name), protocol_duration_seconds.labelValues(name));
 		});
 
 		metric.bytes.inc(size);
@@ -507,7 +501,7 @@ public class PrometheusCounter implements ZezeCounter {
 			Class<?> kls = Protocol.getClassByTypeId(typeId);
 			String name = kls != null ? kls.getName() : String.valueOf(typeId);
 			return new ProtocolSendMetric(
-					protocol_send.labelValues(name), protocol_send_bytes.labelValues(name));
+				protocol_send.labelValues(name), protocol_send_bytes.labelValues(name));
 		});
 
 		metric.total.inc();

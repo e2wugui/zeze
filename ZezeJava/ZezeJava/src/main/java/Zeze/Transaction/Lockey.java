@@ -74,7 +74,6 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
 			//noinspection DataFlowIssue
 			writeLockCounter.increment();
-		//noinspection DataFlowIssue
 		var writeLock = rwLock.writeLock();
 		if (writeLock.tryLock())
 			return;

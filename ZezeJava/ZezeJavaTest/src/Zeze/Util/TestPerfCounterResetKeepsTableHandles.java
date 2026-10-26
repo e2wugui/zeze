@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 import harness.Fast;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,15 +17,14 @@ public class TestPerfCounterResetKeepsTableHandles {
 
 	@Test
 	public void resetKeepsTableCounterHandleIdentity() {
-		Assertions.assertTrue(ZezeCounter.instance instanceof PerfCounter, "需要默认PerfCounter实现");
-		var perf = (PerfCounter)ZezeCounter.instance;
+		var perf = new PerfCounter();
 		long tableId = 0x7e5e7e5eL; // 无实际表映射，名称退化为id字符串
 		var metric = ZezeCounter.TableMetric.CACHE_GET;
 		String tableName = String.valueOf(tableId);
 
 		var handle = perf.tableCounter(tableId, metric);
 		handle.inc(1);
-		assertEquals(1L, perf.collectAndReset().tableResults()
+		assertEquals(1L, perf.snapshotAndReset().tableResults()
 				.getOrDefault(tableName, java.util.Map.of()).getOrDefault(metric.key, 0L),
 				"reset前句柄样本正常收集");
 
@@ -36,7 +34,7 @@ public class TestPerfCounterResetKeepsTableHandles {
 		handle.inc(2);
 		var handleAgain = perf.tableCounter(tableId, metric);
 		handleAgain.inc(3);
-		assertEquals(5L, perf.collectAndReset().tableResults()
+		assertEquals(5L, perf.snapshotAndReset().tableResults()
 						.getOrDefault(tableName, java.util.Map.of()).getOrDefault(metric.key, 0L),
 				"reset不得使旧句柄脱离收集（清map后旧句柄加的2丢失、只剩新句柄的3）");
 	}

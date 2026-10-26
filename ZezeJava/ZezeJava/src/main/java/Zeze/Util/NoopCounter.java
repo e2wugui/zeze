@@ -5,12 +5,10 @@ import org.jspecify.annotations.Nullable;
 import Zeze.Net.Service;
 
 /**
- * 空实现：禁用统计（-DZezeCounter为空或"null"）时的instance。
+ * 空实现：禁用统计（-DZezeCounter为空或"null"）时由ZezeCounter创建。
  * 所有方法无操作，alloc*返回共享空仪表，调用方无需判空。
  */
 public final class NoopCounter implements ZezeCounter {
-	public static final NoopCounter instance = new NoopCounter();
-
 	private static final LongCounter noopCounter = v -> {
 	};
 	private static final LongObserver noopObserver = v -> {
@@ -36,7 +34,12 @@ public final class NoopCounter implements ZezeCounter {
 		public void manyLocks(int count) {
 		}
 	};
-	private NoopCounter() {
+
+	NoopCounter() {
+	}
+
+	@Override
+	public void init() {
 	}
 
 	@Override
@@ -51,7 +54,7 @@ public final class NoopCounter implements ZezeCounter {
 
 	@Override
 	public LabeledObserverCreator allocRunTimeObserverCreator(String name,
-																	   String... labelNames) {
+															  String... labelNames) {
 		return labels -> noopObserver;
 	}
 
@@ -79,7 +82,21 @@ public final class NoopCounter implements ZezeCounter {
 	}
 
 	@Override
+	public Snapshot snapshotAndReset() {
+		return Snapshot.EMPTY;
+	}
+
+	@Override
+	public Snapshot getLastSnapshot() {
+		return Snapshot.EMPTY;
+	}
+
+	@Override
 	public void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
+	}
+
+	@Override
+	public void addRecvDispatchTime(long typeId, long timeNs) {
 	}
 
 	@Override

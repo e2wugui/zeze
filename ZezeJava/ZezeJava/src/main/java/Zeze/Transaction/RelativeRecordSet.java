@@ -35,7 +35,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	// RRS锁等待观测（提交/落库双通道）：Profiler通道在生产慢事务(≥3s)时间线内按过程名
 	// 归因（对齐Record.enterFairLock的RecordWaitFairLock惯例）；ZezeCounter通道聚合分布，
-	// 供bench dump（collectAndReset().formattedLog()）与运行时巡检。句柄一次解析终身复用
+	// 供bench dump（snapshotAndReset().formattedLog()）与运行时巡检。句柄一次解析终身复用
 	// （对齐Checkpoint.RunOnceObserver惯例）。
 	private static final ZezeCounter.LongObserver CommitLockWaitObserver =
 		ZezeCounter.instance.getRunTimeObserver("RRS.commitLockWait");

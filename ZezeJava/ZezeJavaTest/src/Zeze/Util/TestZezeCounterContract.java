@@ -76,17 +76,17 @@ public class TestZezeCounterContract {
 		Assertions.assertTrue(log.contains(counterName + ": 42"), "count value 1+41");
 
 		// Snapshot：收集即发布，结构化数据与formattedLog一致
-		var snap = c.getLast();
+		var snap = c.getLastSnapshot();
 		Assertions.assertEquals(Map.of(0L, 1L, 1L, 1L), snap.procedureResults().get("ContractProc"));
 		Assertions.assertEquals(1L, snap.tableResults().get("4660").get("cacheGet"), "0x1234=4660");
 		Assertions.assertFalse(snap.formattedLog().isEmpty());
 
 		// result_code基数封顶：30个码只保留前20个
-		var capped = c.getLast().procedureResults().get("ContractCapProc");
+		var capped = c.getLastSnapshot().procedureResults().get("ContractCapProc");
 		Assertions.assertEquals(20, capped.size(), "result code capped");
 
 		// 空窗口：条目保留（供名称列表），计数清零
-		var empty = c.collectAndReset();
+		var empty = c.snapshotAndReset();
 		Assertions.assertTrue(empty.procedureResults().get("ContractProc").isEmpty());
 		Assertions.assertNotNull(empty.tableResults().get("4660"));
 	}
@@ -94,6 +94,8 @@ public class TestZezeCounterContract {
 	@Test
 	public void testPrometheusCounterContract() {
 		var counterName = runContract(prometheus);
+		Assertions.assertSame(ZezeCounter.Snapshot.EMPTY, prometheus.snapshotAndReset());
+		Assertions.assertSame(ZezeCounter.Snapshot.EMPTY, prometheus.getLastSnapshot());
 		var names = new StringBuilder();
 		for (var snapshot : PrometheusRegistry.defaultRegistry.scrape())
 			names.append(snapshot.getMetadata().getName()).append('\n');
@@ -120,9 +122,10 @@ public class TestZezeCounterContract {
 
 	@Test
 	public void testNoopCounterContract() {
-		runContract(NoopCounter.instance); // 全部无操作、不抛异常即通过
-		Assertions.assertSame(ZezeCounter.Snapshot.EMPTY, NoopCounter.instance.collectAndReset());
-		Assertions.assertSame(ZezeCounter.Snapshot.EMPTY, NoopCounter.instance.getLast());
+		var counter = new NoopCounter();
+		runContract(counter); // 全部无操作、不抛异常即通过
+		Assertions.assertSame(ZezeCounter.Snapshot.EMPTY, counter.snapshotAndReset());
+		Assertions.assertSame(ZezeCounter.Snapshot.EMPTY, counter.getLastSnapshot());
 	}
 
 	/**

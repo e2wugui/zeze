@@ -935,7 +935,7 @@ public final class Token extends AbstractToken {
 		res.setCurCount(tokenMap.size());
 		var s = service;
 		res.setConnectCount(s != null ? s.getSocketCount() : -1);
-		res.setPerfLog(ZezeCounter.instance.getLast().formattedLog());
+		res.setPerfLog(ZezeCounter.instance.getLastSnapshot().formattedLog());
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}

@@ -12,7 +12,7 @@ public class Statistics extends AbstractStatistics {
 	@Override
 	protected void OnServletQuery(HttpExchange x) throws Exception {
 		var sb = new StringBuilder();
-		var snap = ZezeCounter.instance.getLast();
+		var snap = ZezeCounter.instance.getLastSnapshot();
 
 		sb.append("Procedures:\n");
 		snap.procedureResults().forEach((name, results) -> {

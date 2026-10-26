@@ -42,7 +42,7 @@ public class SelectProcedureResultsHandler implements QueryHandler<String, List<
 
 	@Override
 	public List<ResultLog> invoke(String param) {
-		var results = ZezeCounter.instance.getLast().procedureResults().get(param);
+		var results = ZezeCounter.instance.getLastSnapshot().procedureResults().get(param);
 		if (results == null)
 			return List.of();
 		var resultLogs = new ArrayList<ResultLog>(results.size());

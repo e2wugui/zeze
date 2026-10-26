@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 过程速率watch的差分必须用单调累计源：周期快照（getLast().procedureResults()）
+ * 过程速率watch的差分必须用单调累计源：周期快照（getLastSnapshot().procedureResults()）
  * 每轮换新且只含上一周期计数，(total-last)在稳态恒0——动态降级回调永不触发；
  * 收集边界恰好落入检查间隔时又把整周期计数当30s速率（约3.3倍高估）。
  * 修复后按名称的单调累计计数做差分，35次/30s（≈1.17/s）对阈值1必须触发，

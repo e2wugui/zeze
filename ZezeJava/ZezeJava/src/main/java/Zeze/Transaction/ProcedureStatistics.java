@@ -38,7 +38,7 @@ public final class ProcedureStatistics {
 		}
 
 		static long getTotalCount(String procedureName) {
-			// 不能用周期快照（getLast().procedureResults()）做差分：快照每轮换新且
+			// 不能用周期快照（getLastSnapshot().procedureResults()）做差分：快照每轮换新且
 			// 只含上一周期计数，(total-last)在稳态恒0永不触发，收集边界恰好落入
 			// 检查间隔时又把整周期计数当30s速率（约3.3倍高估）。
 			if (ZezeCounter.instance instanceof PerfCounter perfCounter)

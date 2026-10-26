@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.LongAdder;
+
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Transaction.TableKey;
@@ -109,8 +110,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		public String toString(boolean last) {
 			var sb = new StringBuilder();
 			sb.append(name).append(':').append(succRatio).append('%');
-			for (var it = (last ? resultMapLast : resultMap).entryIterator(); it.moveToNext(); )
+			for (var it = (last ? resultMapLast : resultMap).entryIterator(); it.moveToNext(); ) {
+				//noinspection DataFlowIssue
 				sb.append(", ").append(it.key()).append(':').append(it.value().sum());
+			}
 			return sb.toString();
 		}
 
@@ -175,7 +178,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 		public static String getLogTitle() {
 			return String.format("%-60s CacheHit AcqShrHit AcqModHit AcqShrCnt AcqModCnt AcqInvCnt ReduceCnt" +
-					" CacGetCnt StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock RedoCount", "TableName");
+				" CacGetCnt StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock RedoCount", "TableName");
 		}
 
 		@Override
@@ -188,11 +191,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			float acquireShareHit = lockCount != 0 ? (lockCount - last(TableMetric.ACQUIRE_SHARE)) * 100.0f / lockCount : 0;
 			float acquireModifyHit = lockCount != 0 ? (lockCount - last(TableMetric.ACQUIRE_MODIFY)) * 100.0f / lockCount : 0;
 			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
-					cacheHit, acquireShareHit, acquireModifyHit,
-					last(TableMetric.ACQUIRE_SHARE), last(TableMetric.ACQUIRE_MODIFY), last(TableMetric.ACQUIRE_INVALID),
-					last(TableMetric.REDUCE_INVALID), last(TableMetric.CACHE_GET), last(TableMetric.STORAGE_GET),
-					lockCount, readLockCount, writeLockCount, last(TableMetric.TRY_READ_LOCK),
-					last(TableMetric.TRY_WRITE_LOCK), last(TableMetric.REDO));
+				cacheHit, acquireShareHit, acquireModifyHit,
+				last(TableMetric.ACQUIRE_SHARE), last(TableMetric.ACQUIRE_MODIFY), last(TableMetric.ACQUIRE_INVALID),
+				last(TableMetric.REDUCE_INVALID), last(TableMetric.CACHE_GET), last(TableMetric.STORAGE_GET),
+				lockCount, readLockCount, writeLockCount, last(TableMetric.TRY_READ_LOCK),
+				last(TableMetric.TRY_WRITE_LOCK), last(TableMetric.REDO));
 		}
 	}
 
@@ -223,7 +226,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final ConcurrentHashMap<String, ProcedureCounter> procedureCounterMap = new ConcurrentHashMap<>();
 	// 按名称的单调累计执行数（跨收集周期不轮换、不空闲回收）：速率差分
 	// （ProcedureStatistics.Watcher的(total-last)）必须用单调源——周期快照
-	// （getLast().procedureResults()）每轮换新且只含上一周期计数，差分无意义
+	// （getLastSnapshot().procedureResults()）每轮换新且只含上一周期计数，差分无意义
 	// （稳态恒0永不触发，收集边界恰好落入检查间隔时又把整周期计数当30s速率高估）。
 	private final ConcurrentHashMap<String, LongAdder> procedureTotalMap = new ConcurrentHashMap<>(); // key: procedureName
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
@@ -252,13 +255,13 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public LabeledCounterCreator allocLabeledCounterCreator(String name,
-																	 String... labelNames) {
+															String... labelNames) {
 		return labels -> allocCounter(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
 	@Override
 	public LabeledObserverCreator allocRunTimeObserverCreator(String name,
-																	   String... labelNames) {
+															  String... labelNames) {
 		return labels -> getRunTimeObserver(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
@@ -356,6 +359,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
+	public void addRecvDispatchTime(long typeId, long timeNs) {
+	}
+
+	@Override
 	public void addSendSize(long typeId, int size) {
 		if (!excludeProtocolTypeIds.containsKey(typeId)) {
 			for (; ; ) {
@@ -367,7 +374,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				}
 				var cls = Protocol.getClassByTypeId(typeId);
 				protocolInfoMap.putIfAbsent(typeId,
-						new ProtocolInfo(cls != null ? cls.getName() : String.valueOf(typeId)));
+					new ProtocolInfo(cls != null ? cls.getName() : String.valueOf(typeId)));
 			}
 		}
 	}
@@ -458,12 +465,12 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public Snapshot collectAndReset() {
-		return collectAndResetCore();
+	public Snapshot snapshotAndReset() {
+		return snapshotAndResetCore();
 	}
 
 	@Override
-	public Snapshot getLast() {
+	public Snapshot getLastSnapshot() {
 		return lastSnapshot;
 	}
 
@@ -513,8 +520,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			// tableInfoMap不清而就地清零：tableCounter交出的句柄直接指向TableInfo内的
 			// LongAdder并被调用方长期缓存（如Lockey的计数路径），清map后旧句柄增量
 			// 永久脱离收集，重新按ID取得的新句柄才被统计。
-			for (var it = tableInfoMap.entryIterator(); it.moveToNext(); )
+			for (var it = tableInfoMap.entryIterator(); it.moveToNext(); ) {
+				//noinspection DataFlowIssue
 				it.value().reset();
+			}
 			// info() 的慢路径同样持有此锁，旧条目与新 clearSerial 不会被组装成同一个 Bound。
 			//noinspection NonAtomicOperationOnVolatileField
 			clearSerial++;
@@ -528,10 +537,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	public String getLogAndReset() {
-		return collectAndResetCore().formattedLog();
+		return snapshotAndResetCore().formattedLog();
 	}
 
-	private Snapshot collectAndResetCore() {
+	private Snapshot snapshotAndResetCore() {
 		lock();
 		try {
 			var curTime = System.currentTimeMillis();
@@ -564,27 +573,27 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var runtime = Runtime.getRuntime();
 			@SuppressWarnings("deprecation")
 			var sb = new StringBuilder(100 + 50 * 3 * PERF_COUNT).append("count last ").append(time).append("ms:\n")
-					.append(" [load: ").append(cpuTime / 1_000_000).append("ms ")
-					.append(String.format("%.2f%%", PlatformMetrics.osBean.getProcessCpuLoad() * 100))
-					.append(" free/total/max:").append(runtime.freeMemory() >> 20)
-					.append('/').append(runtime.totalMemory() >> 20).append('/').append(runtime.maxMemory() >> 20)
-					.append("M direct:").append(PlatformMetrics.getReservedDirectMemory() >> 20).append('/')
-					.append(PlatformMetrics.getMaxDirectMemory() >> 20).append("M,")
-					.append(PlatformMetrics.getTotalDirectCapacity() >> 20).append("M/").append(PlatformMetrics.getDirectCount())
-					.append(" commit/free/all:").append(PlatformMetrics.osBean.getCommittedVirtualMemorySize() >> 20).append('/')
-					.append(PlatformMetrics.osBean.getFreePhysicalMemorySize() >> 20).append('+')
-					.append(PlatformMetrics.osBean.getFreeSwapSpaceSize() >> 20).append('/')
-					.append(PlatformMetrics.osBean.getTotalPhysicalMemorySize() >> 20).append('+')
-					.append(PlatformMetrics.osBean.getTotalSwapSpaceSize() >> 20)
-					.append("M]\n [run: ").append(procCountAll).append(", ")
-					.append(procTimeAll / 1_000_000).append("ms]\n");
+				.append(" [load: ").append(cpuTime / 1_000_000).append("ms ")
+				.append(String.format("%.2f%%", PlatformMetrics.osBean.getProcessCpuLoad() * 100))
+				.append(" free/total/max:").append(runtime.freeMemory() >> 20)
+				.append('/').append(runtime.totalMemory() >> 20).append('/').append(runtime.maxMemory() >> 20)
+				.append("M direct:").append(PlatformMetrics.getReservedDirectMemory() >> 20).append('/')
+				.append(PlatformMetrics.getMaxDirectMemory() >> 20).append("M,")
+				.append(PlatformMetrics.getTotalDirectCapacity() >> 20).append("M/").append(PlatformMetrics.getDirectCount())
+				.append(" commit/free/all:").append(PlatformMetrics.osBean.getCommittedVirtualMemorySize() >> 20).append('/')
+				.append(PlatformMetrics.osBean.getFreePhysicalMemorySize() >> 20).append('+')
+				.append(PlatformMetrics.osBean.getFreeSwapSpaceSize() >> 20).append('/')
+				.append(PlatformMetrics.osBean.getTotalPhysicalMemorySize() >> 20).append('+')
+				.append(PlatformMetrics.osBean.getTotalSwapSpaceSize() >> 20)
+				.append("M]\n [run: ").append(procCountAll).append(", ")
+				.append(procTimeAll / 1_000_000).append("ms]\n");
 			rList.sort((ri0, ri1) -> Long.signum(ri1.lastProcTime - ri0.lastProcTime));
 			for (int i = 0, n = Math.min(rList.size(), PERF_COUNT); i < n; i++) {
 				var ri = rList.get(i);
 				var perTime = ri.lastProcTime / ri.lastProcCount;
 				sb.append("  ").append(ri.name).append(": ").append(ri.lastProcTime / 1_000_000)
-						.append("ms = ").append(ri.lastProcCount).append(" * ")
-						.append(numFormatter.format(perTime)).append("ns\n");
+					.append("ms = ").append(ri.lastProcCount).append(" * ")
+					.append(numFormatter.format(perTime)).append("ns\n");
 			}
 
 			procCountAll = 0;
@@ -595,6 +604,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var pList = new ArrayList<ProtocolInfo>(protocolInfoMap.size());
 			for (var it = protocolInfoMap.entryIterator(); it.moveToNext(); ) {
 				var pi = it.value();
+				//noinspection DataFlowIssue
 				pi.lastProcCount = pi.procCount.sumThenReset();
 				pi.lastSendCount = pi.sendCount.sumThenReset();
 				if ((pi.lastProcCount | pi.lastSendCount) == 0) {
@@ -614,7 +624,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				pList.add(pi);
 			}
 			sb.append(" [recv: ").append(procCountAll).append(", ").append(recvSizeAll / 1000).append("K, ")
-					.append(procTimeAll / 1_000_000).append("ms]\n");
+				.append(procTimeAll / 1_000_000).append("ms]\n");
 			pList.sort((pi0, pi1) -> Long.signum(pi1.lastProcTime - pi0.lastProcTime));
 			for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
 				var pi = pList.get(i);
@@ -623,9 +633,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				var perTime = pi.lastProcTime / pi.lastProcCount;
 				var perSize = pi.lastRecvSize / pi.lastProcCount;
 				sb.append("  ").append(pi.name).append(": ").append(pi.lastProcTime / 1_000_000)
-						.append("ms = ").append(pi.lastProcCount).append(" * ")
-						.append(numFormatter.format(perTime)).append("ns,")
-						.append(numFormatter.format(perSize)).append("B\n");
+					.append("ms = ").append(pi.lastProcCount).append(" * ")
+					.append(numFormatter.format(perTime)).append("ns,")
+					.append(numFormatter.format(perSize)).append("B\n");
 			}
 			sb.append(" [send: ").append(sendCountAll).append(", ").append(sendSizeAll / 1000).append("K]\n");
 			pList.sort((pi0, pi1) -> Long.signum(pi1.lastSendSize - pi0.lastSendSize));
@@ -635,8 +645,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 					break;
 				var perSize = pi.lastSendSize / pi.lastSendCount;
 				sb.append("  ").append(pi.name).append(": ").append(pi.lastSendSize / 1_000)
-						.append("K = ").append(pi.lastSendCount).append(" * ")
-						.append(numFormatter.format(perSize)).append("B\n");
+					.append("K = ").append(pi.lastSendCount).append(" * ")
+					.append(numFormatter.format(perSize)).append("B\n");
 			}
 
 			var procedureTotal = 0L;
@@ -651,6 +661,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				var succCount = 0L;
 				var results = new LinkedHashMap<Long, Long>();
 				for (var it2 = pi.resultMapLast.entryIterator(); it2.moveToNext(); ) {
+					//noinspection DataFlowIssue
 					var v = it2.value().sum();
 					results.put(it2.key(), v);
 					totalCount += v;
@@ -679,7 +690,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				clearSerial++;
 			}
 			sb.append(" [procedure: ").append(procedureSucc).append('/').append(procedureTotal).append('=')
-					.append(procedureTotal != 0 ? procedureSucc * 100 / procedureTotal : 0).append("%]\n");
+				.append(procedureTotal != 0 ? procedureSucc * 100 / procedureTotal : 0).append("%]\n");
 			prList.sort((pi0, pi1) -> {
 				var c = pi0.succRatio - pi1.succRatio;
 				return c != 0 ? Long.signum(c) : Long.signum(pi1.totalCount - pi0.totalCount);
@@ -721,7 +732,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 					sb.append("  ").append(ci.name).append(": ").append(ci.lastCount).append('\n');
 			}
 
-			return lastSnapshot = new Snapshot(Map.copyOf(procedureResults), Map.copyOf(tableResults), sb.toString());
+			// 结果Map均为本轮新建，发布后不再修改，由Snapshot按只读约定共享。
+			return lastSnapshot = new Snapshot(procedureResults, tableResults, sb.toString());
 		} finally {
 			unlock();
 		}

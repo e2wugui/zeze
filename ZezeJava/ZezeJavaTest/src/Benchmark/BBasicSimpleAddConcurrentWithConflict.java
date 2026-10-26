@@ -36,7 +36,7 @@ public class BBasicSimpleAddConcurrentWithConflict {
 				for (var task : tasks)
 					task.get();
 			});
-			System.out.println(Zeze.Util.ZezeCounter.instance.collectAndReset().formattedLog());
+			System.out.println(Zeze.Util.ZezeCounter.instance.snapshotAndReset().formattedLog());
 			App.Instance.getZeze().newProcedure(BBasicSimpleAddConcurrentWithConflict::Check, "check").call();
 			App.Instance.getZeze().newProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").call();
 		} finally {

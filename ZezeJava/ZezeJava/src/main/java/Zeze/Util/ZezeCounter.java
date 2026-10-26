@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 // 统计接口：protocol/procedure/table/task 等维度的计数与耗时观察者，instance 按系统属性选择实现
+// 本接口不声明default方法，避免实现类初始化时反向触发全局实例创建。
 public interface ZezeCounter {
 	Logger logger = LogManager.getLogger("StatLog");
 
@@ -20,7 +21,7 @@ public interface ZezeCounter {
 	private static ZezeCounter createInstance() {
 		var className = System.getProperty("ZezeCounter", "Zeze.Util.PerfCounter");
 		if (className.isBlank() || className.equalsIgnoreCase("null"))
-			return NoopCounter.instance;
+			return new NoopCounter();
 		try {
 			return (ZezeCounter)Class.forName(className).getConstructor((Class<?>[])null).newInstance((Object[])null);
 		} catch (ReflectiveOperationException e) {
@@ -75,11 +76,8 @@ public interface ZezeCounter {
 		}
 	}
 
-	/**
-	 * 初始化. 调用下面方法必须先调用过这个方法一次
-	 */
-	default void init() {
-	}
+	/** 初始化；调用统计功能前执行一次。 */
+	void init();
 
 	/**
 	 * 通过name分配一个累加器
@@ -145,10 +143,10 @@ public interface ZezeCounter {
 	LongCounter tableCounter(long tableId, TableMetric metric);
 
 	/**
-	 * 统计快照（不可变值对象）。不支持周期快照的实现返回空快照。
-	 * 深不可变：两层Map都逐层冻结——只冻结外层时，持有快照者仍可改内层计数
-	 * 污染后续getLast读取；构造输入的别名同样被切断（修改内层抛
-	 * UnsupportedOperationException，属值对象契约的显式行为变化）。
+	 * 一个统计周期的结果；不支持周期快照的实现返回空快照。
+	 * 直接持有传入的Map，不复制或包装。按调用约定只读：生产方在构造后不得再修改
+	 * 传入的外层和内层Map，读取方也不得修改返回的任何一层Map。
+	 * 后续采集应新建结果Map，避免影响已经发布的快照。
 	 *
 	 * @param procedureResults procedureName -&gt; resultCode -&gt; 最近周期计数（含零计数条目）
 	 * @param tableResults     tableName -&gt; 度量名 -&gt; 最近周期计数
@@ -157,44 +155,30 @@ public interface ZezeCounter {
 	record Snapshot(Map<String, Map<Long, Long>> procedureResults,
 					Map<String, Map<String, Long>> tableResults,
 					String formattedLog) {
-		// 接口内record的规范构造器隐式public，紧凑形态访问级冲突，显式声明
-		public Snapshot(Map<String, Map<Long, Long>> procedureResults,
-						Map<String, Map<String, Long>> tableResults,
-						String formattedLog) {
-			this.procedureResults = procedureResults.entrySet().stream().collect(
-					java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> Map.copyOf(e.getValue())));
-			this.tableResults = tableResults.entrySet().stream().collect(
-					java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> Map.copyOf(e.getValue())));
-			this.formattedLog = formattedLog;
-		}
-
 		public static final Snapshot EMPTY = new Snapshot(Map.of(), Map.of(), "");
 	}
 
 	/**
-	 * 收集并重置统计，返回快照。仅PerfCounter等日志型实现支持；拉模型实现（Prometheus）返回空快照。
+	 * 收集当前周期的统计，重置周期计数，保存并返回生成的快照。
+	 * 不支持周期快照的实现返回空快照。
+	 * 返回的Map遵循{@link Snapshot}的只读约定。
 	 */
-	default Snapshot collectAndReset() {
-		return Snapshot.EMPTY;
-	}
+	Snapshot snapshotAndReset();
 
 	/**
-	 * 最近一次发布的快照（不收集不重置）；从未收集过返回空快照。
+	 * 返回最近一次收集生成的快照，不进行收集或重置。
+	 * 尚未收集过或不支持快照时返回空快照。
+	 * 返回的Map遵循{@link Snapshot}的只读约定。
 	 */
-	default Snapshot getLast() {
-		return Snapshot.EMPTY;
-	}
+	Snapshot getLastSnapshot();
 
 	/**
 	 * 根据协议类(可选)及其类型ID,增加其绑定的大小(字节)累加器和处理时间(纳秒)累加器
 	 */
 	void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs);
 
-	/**
-	 * 协议从接收解析到开始处理的等待(纳秒)。queue派发度量排队延迟，direct派发为微小常量。
-	 */
-	default void addRecvDispatchTime(long typeId, long timeNs) {
-	}
+	/** 协议从接收解析到开始处理的等待时间，单位为纳秒。 */
+	void addRecvDispatchTime(long typeId, long timeNs);
 
 	/**
 	 * 根据协议类型ID统计其协议大小

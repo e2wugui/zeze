@@ -91,7 +91,7 @@ public class KCheckpointUnderCommitFlood {
 			});
 			System.out.printf("K flusher: iterations=%d maxFlushMs=%.3f%n",
 					flushIterations.get(), flushMaxNanos.get() / 1e6);
-			System.out.println(ZezeCounter.instance.collectAndReset().formattedLog());
+			System.out.println(ZezeCounter.instance.snapshotAndReset().formattedLog());
 			// 活性断言：任何一轮里 flusher 都必须持续推进（迭代数随轮次单调增长是软信号；
 			// 硬故障形态是饥饿导致的停顿，由上面的 maxFlushMs 与 flushLockWait 分布呈报）。
 			Assertions.assertTrue(flushIterations.get() >= Rounds, "flusher 整轮未推进，疑似饿死");
