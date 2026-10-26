@@ -98,11 +98,8 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public byte [] getBytes(int offset, int length) {
-		int pos = bb.position();
-		bb.position(offset);
 		var copy = new byte[length];
-		bb.get(copy);
-		bb.position(pos);
+		bb.get(offset, copy);
 		return copy;
 	}
 
