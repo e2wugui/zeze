@@ -658,11 +658,9 @@ public interface IByteBuffer {
 			return dynBean;
 		}
 		if (type == BEAN) {
-			var bean = dynBean.toData(0);
-			if (bean != null) {
-				bean.decode(this);
-				return dynBean;
-			}
+			// newData 同时安装载荷、确认实际 typeId 并处理空类型兜底；toData 仅创建临时值。
+			dynBean.newData(0).decode(this);
+			return dynBean;
 		}
 		if (IGNORE_INCOMPATIBLE_FIELD) {
 			SkipUnknownField(tag);
