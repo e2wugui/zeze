@@ -27,9 +27,8 @@ public class IntHashMap<V extends @Nullable Object> implements Cloneable {
 		this(cap, 0.8f);
 	}
 
-	@SuppressWarnings("unchecked")
 	public IntHashMap(int cap, float loadFactor) {
-		if (loadFactor <= 0 || loadFactor >= 1)
+		if (!(loadFactor > 0 && loadFactor < 1))
 			throw new IllegalArgumentException("invalid loadFactor: " + loadFactor);
 		this.loadFactor = loadFactor;
 		final int tableSize = tableSize(Math.max(cap, 0));
@@ -37,6 +36,7 @@ public class IntHashMap<V extends @Nullable Object> implements Cloneable {
 		mask = tableSize - 1;
 		shift = Long.numberOfLeadingZeros(mask);
 		keyTable = new int[tableSize];
+		//noinspection unchecked
 		valueTable = (V[])new Object[tableSize];
 	}
 

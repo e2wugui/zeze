@@ -24,7 +24,7 @@ public class IdentityHashSet<T> implements Cloneable {
 	}
 
 	public IdentityHashSet(int cap, float loadFactor) {
-		if (loadFactor <= 0 || loadFactor >= 1)
+		if (!(loadFactor > 0 && loadFactor < 1))
 			throw new IllegalArgumentException("invalid loadFactor: " + loadFactor);
 		this.loadFactor = loadFactor;
 		int tableSize = tableSize(Math.max(cap, 0));
