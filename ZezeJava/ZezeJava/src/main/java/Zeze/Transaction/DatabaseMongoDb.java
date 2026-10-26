@@ -40,13 +40,17 @@ public class DatabaseMongoDb extends Database {
 			mongoDatabase = client.getDatabase(conf.getDatabaseName());
 			setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMongoDb());
 		} catch (Throwable failure) {
-			try {
-				client.close();
-			} catch (Throwable closeFailure) {
-				if (failure != closeFailure)
-					failure.addSuppressed(closeFailure);
-			}
+			closeAfterFailure(client, failure);
 			throw failure;
+		}
+	}
+
+	private static void closeAfterFailure(AutoCloseable resource, Throwable failure) {
+		try {
+			resource.close();
+		} catch (Throwable closeFailure) {
+			if (failure != closeFailure)
+				failure.addSuppressed(closeFailure);
 		}
 	}
 
@@ -75,7 +79,13 @@ public class DatabaseMongoDb extends Database {
 
 	@Override
 	public Transaction beginTransaction() {
-		return new MongoTrans(mongoClient.startSession());
+		var session = mongoClient.startSession();
+		try {
+			return new MongoTrans(session);
+		} catch (Throwable failure) {
+			closeAfterFailure(session, failure);
+			throw failure;
+		}
 	}
 
 	@Override
