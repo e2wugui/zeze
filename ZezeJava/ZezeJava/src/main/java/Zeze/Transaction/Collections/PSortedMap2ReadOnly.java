@@ -65,7 +65,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return wrap(map.lowerEntry(key));
 	}
 
-	public K lowerKey(K key) {
+	public @Nullable K lowerKey(K key) {
 		return map.lowerKey(key);
 	}
 
@@ -73,7 +73,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return wrap(map.floorEntry(key));
 	}
 
-	public K floorKey(K key) {
+	public @Nullable K floorKey(K key) {
 		return map.floorKey(key);
 	}
 
@@ -81,7 +81,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return wrap(map.ceilingEntry(key));
 	}
 
-	public K ceilingKey(K key) {
+	public @Nullable K ceilingKey(K key) {
 		return map.ceilingKey(key);
 	}
 
@@ -89,7 +89,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return wrap(map.higherEntry(key));
 	}
 
-	public K higherKey(K key) {
+	public @Nullable K higherKey(K key) {
 		return map.higherKey(key);
 	}
 

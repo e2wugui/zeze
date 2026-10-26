@@ -61,7 +61,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection 
 	}
 
 	@Override
-	public K lowerKey(K key) {
+	public @Nullable K lowerKey(K key) {
 		return getMap().lowerKey(key);
 	}
 
@@ -71,7 +71,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection 
 	}
 
 	@Override
-	public K floorKey(K key) {
+	public @Nullable K floorKey(K key) {
 		return getMap().floorKey(key);
 	}
 
@@ -81,7 +81,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection 
 	}
 
 	@Override
-	public K ceilingKey(K key) {
+	public @Nullable K ceilingKey(K key) {
 		return getMap().ceilingKey(key);
 	}
 
@@ -91,7 +91,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection 
 	}
 
 	@Override
-	public K higherKey(K key) {
+	public @Nullable K higherKey(K key) {
 		return getMap().higherKey(key);
 	}
 
