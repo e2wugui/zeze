@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import java.io.Closeable;
 import java.io.InputStream;
+import java.util.Objects;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.ZstdFactory;
 import Zeze.Util.ZstdFactory.ZstdDecompressStream;
@@ -25,6 +26,9 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 
 		@Override
 		public int read(byte [] b, int off, int len) {
+			Objects.checkFromIndexSize(off, len, b.length);
+			if (len == 0)
+				return 0;
 			int size = buffer.size();
 			if (size <= 0)
 				return -1;
