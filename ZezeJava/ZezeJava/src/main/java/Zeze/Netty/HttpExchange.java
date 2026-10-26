@@ -465,7 +465,7 @@ public class HttpExchange {
 			return ByteBuffer.Empty;
 		// 快路径仅在底层数组与内容严格重合时直接返回数组:池化/预分配缓冲capacity常大于writerIndex,
 		// 直接返回c.array()会把尾随的陈旧字节(可能是上一请求残留)带给调用方,造成解析错乱/信息泄露。
-		if (c.readerIndex() == 0 && c.hasArray() && c.arrayOffset() == 0 && c.writerIndex() == c.capacity())
+		if (c.readerIndex() == 0 && c.hasArray() && c.arrayOffset() == 0 && size == c.array().length)
 			return c.array();
 		var buf = new byte[size];
 		c.getBytes(c.readerIndex(), buf);

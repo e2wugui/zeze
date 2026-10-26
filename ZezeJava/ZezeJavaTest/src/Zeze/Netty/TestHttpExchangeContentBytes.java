@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * FND2-N2-5回归:contentBytes()快路径(readerIndex==0且hasArray时直接返回c.array())返回的
  * 是整个底层数组,长度=capacity;解码经addContent首块成为content的堆缓冲capacity常大于实际写入量,
  * 调用方拿到带尾随脏数据的超长数组(JSON/定长解析错乱,尾随字节可能是上一请求残留)。
- * 修复后快路径仅在数组与内容严格重合(readerIndex==0且arrayOffset==0且writerIndex==capacity)时
+ * 修复后快路径仅在数组与内容严格重合(readerIndex==0且arrayOffset==0且readableBytes==array.length)时
  * 生效,否则拷贝readableBytes字节。
  */
 @Fast
@@ -40,12 +40,22 @@ public class TestHttpExchangeContentBytes {
 		Assertions.assertArrayEquals(new byte[]{1, 2, 3, 4, 5}, x.contentBytes());
 	}
 
-	// 数组与内容严格重合(writerIndex==capacity):仍走快路径,返回内容正确的数组
+	// 数组与内容严格重合:仍走快路径,返回内容正确的数组
 	@Test
 	public void testExactFitFastPath() {
 		Assertions.assertEquals(0, x.contentBytes().length); // 空content
 		var buf = Unpooled.wrappedBuffer(new byte[]{6, 7, 8});
 		Assertions.assertSame(buf, x.addContent(buf));
+		Assertions.assertArrayEquals(new byte[]{6, 7, 8}, x.contentBytes());
+	}
+
+	@Test
+	public void testZeroOffsetSliceCopiesOnlyVisibleBytes() {
+		var backing = new byte[]{6, 7, 8, 91, 92};
+		var buf = Unpooled.wrappedBuffer(backing).slice(0, 3);
+		Assertions.assertEquals(buf.capacity(), buf.writerIndex());
+		Assertions.assertEquals(0, buf.arrayOffset());
+		x.addContent(buf);
 		Assertions.assertArrayEquals(new byte[]{6, 7, 8}, x.contentBytes());
 	}
 
