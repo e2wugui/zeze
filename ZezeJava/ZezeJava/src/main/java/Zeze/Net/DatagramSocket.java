@@ -132,11 +132,11 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 	}
 
 	public void removeSession(DatagramSession session) {
-		tokens.remove(session.getTokenId());
+		tokens.remove(session.getTokenId(), session);
 	}
 
 	public boolean containsSession(DatagramSession session) {
-		return tokens.containsKey(session.getTokenId());
+		return tokens.get(session.getTokenId()) == session;
 	}
 
 	@Override
