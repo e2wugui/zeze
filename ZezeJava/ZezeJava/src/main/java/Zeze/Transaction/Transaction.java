@@ -287,7 +287,8 @@ public final class Transaction {
 	 * 在整个事务生命周期内（含 perform 的全部 redo 重试），同一个 (owner, key) 只向 resolver 求解一次。
 	 * 供 handler 内消费"一次性"的外部资源（如 Rpc 会合：removeRpcContext 只能发生一次）：
 	 * 首轮求解结果（包括 null，表示已输给并发消费者）缓存在事务上，重试直接复用，不再触碰外部资源。
-	 * owner 是资源的属主（Rpc.handle 传 Service）：不同属主即使 key 相同也是不同资源，不会串；
+	 * owner 按对象身份区分资源属主（Rpc.handle 传 Service），不依赖 equals/hashCode：
+	 * 不同实例即使值相等、key 相同也是不同资源；重试必须传入同一属主实例。
 	 * 同一属主内要求 key 唯一标识资源（默认 sessionId 生成器进程内唯一，满足此约束）。
 	 */
 	@SuppressWarnings("unchecked")
@@ -315,6 +316,15 @@ public final class Transaction {
 	}
 
 	private record ResolveKey(Object owner, long key) {
+		@Override
+		public boolean equals(@Nullable Object other) {
+			return other instanceof ResolveKey that && owner == that.owner && key == that.key;
+		}
+
+		@Override
+		public int hashCode() {
+			return 31 * System.identityHashCode(owner) + Long.hashCode(key);
+		}
 	}
 
 	static void whileRedo(Bean b) {

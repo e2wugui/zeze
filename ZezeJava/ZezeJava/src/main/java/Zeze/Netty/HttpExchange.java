@@ -1299,20 +1299,8 @@ public class HttpExchange {
 	protected boolean checkWebSocketContentSize(WebSocketFrame frame) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			return Objects.requireNonNull(t.resolveOnce(new FrameIdentity(frame), 0, __ -> checkWebSocketContentSizeOnce(frame)));
+			return Objects.requireNonNull(t.resolveOnce(frame, 0, __ -> checkWebSocketContentSizeOnce(frame)));
 		return checkWebSocketContentSizeOnce(frame);
-	}
-
-	private record FrameIdentity(WebSocketFrame frame) {
-		@Override
-		public boolean equals(Object other) {
-			return other instanceof FrameIdentity(WebSocketFrame frame1) && frame == frame1;
-		}
-
-		@Override
-		public int hashCode() {
-			return System.identityHashCode(frame);
-		}
 	}
 
 	private boolean checkWebSocketContentSizeOnce(WebSocketFrame frame) {
