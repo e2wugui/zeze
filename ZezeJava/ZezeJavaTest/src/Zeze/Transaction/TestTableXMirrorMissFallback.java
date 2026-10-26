@@ -84,7 +84,7 @@ public class TestTableXMirrorMissFallback {
 	}
 
 	// 倒库场景（DatabaseOldMode=1 + Immediately）：新库miss时从旧库装载，
-	// Immediately分支写oldTable+镜像、不设脏、不写新库——镜像写失败必须抛出。
+	// Immediately分支写新主库+镜像、不设脏——镜像写失败必须抛出。
 	private void startAppWithOldTable() throws Exception {
 		var config = new Config();
 		config.setServiceManager("disable");
@@ -197,7 +197,8 @@ public class TestTableXMirrorMissFallback {
 	public void testOldTableMirrorWriteFailureFailsLoad() throws Exception {
 		startAppWithOldTable();
 		var realMirror = requireNonNull(app).getLocalRocksCacheDb();
-		var brokenMirror = new BrokenMirrorDb(app, tempDir.resolve("brokenMirrorOld"));
+		// 先放行storage miss的镜像删除，再使迁移分支的镜像事务创建失败。
+		var brokenMirror = new BrokenMirrorDb(app, tempDir.resolve("brokenMirrorOld"), realMirror);
 		var cacheField = Application.class.getDeclaredField("localCache");
 		cacheField.setAccessible(true);
 		var cache = cacheField.get(app);
@@ -205,15 +206,17 @@ public class TestTableXMirrorMissFallback {
 		field.setAccessible(true);
 		try {
 			seedOldDatabase(KEY_OLD, 100);
-			// 基线：镜像健康期首读——新库miss→oldTable命中→Immediately分支写oldTable+镜像
-			//（不设脏、不写新库），读事务的提交flush走真库。
+			// 基线：镜像健康期首读——新库miss→oldTable命中→立即写新主库与镜像。
 			var out = new long[1];
 			Assertions.assertEquals(Procedure.Success, get(KEY_OLD, out));
 			Assertions.assertEquals(100, out[0], "倒库装载基线");
 			Assertions.assertTrue(requireNonNull(table).getLocalRocksCacheTable().containsKey(table, KEY_OLD), "镜像应已写入");
-			Assertions.assertNull(table.selectFromDatabase(KEY_OLD), "前置：倒库记录仅存旧库+镜像，新库无值");
+			Assertions.assertNotNull(table.selectFromDatabase(KEY_OLD), "健康首读已迁移到新主库");
+			long pendingKey = KEY_OLD + 10;
+			seedOldDatabase(pendingKey, 110);
+			Assertions.assertNull(table.selectFromDatabase(pendingKey), "故障记录尚只存在旧库");
 
-			// 冷装载条件：清缓存（记录clean，值安全在oldTable）。
+			// 冷装载条件：清缓存，另一个尚未迁移的key必须进入倒库分支。
 			requireNonNull(table).__ClearTableCacheUnsafe__();
 			Assertions.assertEquals(0, table.getCacheSize());
 
@@ -222,17 +225,19 @@ public class TestTableXMirrorMissFallback {
 				// 冷装载：新库miss→oldTable命中→Immediately分支镜像事务失败→抛出→事务失败+记录作废。
 				//（修复前此处catch吞掉后继续，记录以clean态仅存oldTable+内存——softValue GC后
 				// 镜像miss读成"不存在"，续写覆盖丢数据。）
-				Assertions.assertEquals(Procedure.Exception, get(KEY_OLD, new long[1]),
+				Assertions.assertEquals(Procedure.Exception, get(pendingKey, new long[1]),
 						"倒库分支镜像写失败必须使装载事务失败（不得吞）");
 				Assertions.assertEquals(0, table.getCacheSize(), "失败装载的记录必须被作废出缓存");
+				Assertions.assertNull(table.selectFromDatabase(pendingKey), "第二个事务创建失败时主库不得提前写入");
 			} finally {
 				field.set(cache, realMirror);
 			}
 
 			// 恢复访问（"下一次再进来"）：作废记录由新Record1经倒库分支（oldTable命中+真库
 			// 镜像回写）正常重装载；作废由上面getCacheSize==0证明（Share存活则size为1走快路径）。
-			Assertions.assertEquals(Procedure.Success, get(KEY_OLD, out), "镜像恢复后倒库装载必须正常");
-			Assertions.assertEquals(100, out[0]);
+			Assertions.assertEquals(Procedure.Success, get(pendingKey, out), "镜像恢复后倒库装载必须正常");
+			Assertions.assertEquals(110, out[0]);
+			Assertions.assertNotNull(table.selectFromDatabase(pendingKey), "恢复后必须实际迁入新主库");
 			Assertions.assertEquals(1, table.getCacheSize(), "恢复装载的记录应驻留缓存");
 		} finally {
 			brokenMirror.close();
@@ -242,8 +247,15 @@ public class TestTableXMirrorMissFallback {
 
 	/** 镜像故障注入：所有事务入口直接抛出（等价磁盘满的"写全失败"形态，纯Java异常零native风险）。 */
 	public static final class BrokenMirrorDb extends DatabaseRocksDb {
+		private @Nullable DatabaseRocksDb firstTransaction;
+
 		public BrokenMirrorDb(Application app, Path dir) {
+			this(app, dir, null);
+		}
+
+		public BrokenMirrorDb(Application app, Path dir, @Nullable DatabaseRocksDb firstTransaction) {
 			super(app, brokenConf(dir), true);
+			this.firstTransaction = firstTransaction;
 		}
 
 		private static Config.DatabaseConf brokenConf(Path dir) {
@@ -255,6 +267,11 @@ public class TestTableXMirrorMissFallback {
 
 		@Override
 		public Transaction beginTransaction() {
+			var first = firstTransaction;
+			if (first != null) {
+				firstTransaction = null;
+				return first.beginTransaction();
+			}
 			throw new RuntimeException("mirror broken (test injection)");
 		}
 	}

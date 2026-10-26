@@ -186,6 +186,40 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	private void migrateOldRecord(Storage<K, V> destination, K key, V value) {
+		var target = destination.getDatabaseTable();
+		// The old database is only a source. Publish the primary copy before its disposable mirror.
+		//noinspection DataFlowIssue
+		try (var transaction = target.getDatabase().beginTransaction();
+			 var local = getZeze().getLocalRocksCacheDb().beginTransaction()) {
+			try {
+				var binaryKey = encodeKey(key);
+				var binaryValue = ByteBuffer.encode(value);
+				if (isRelationalMapping() && target.getDatabase() instanceof DatabaseRelationalMapping) {
+					var sqlValue = encodeSqlValue(value);
+					assert sqlValue != null;
+					target.replace(transaction, encodeSqlKey(key), sqlValue);
+				} else
+					target.replace(transaction, binaryKey, binaryValue);
+				getLocalRocksCacheTable().replace(local, binaryKey, binaryValue);
+				transaction.commit();
+				local.commit();
+			} catch (Throwable failure) {
+				for (var pending : new Database.Transaction[]{transaction, local}) {
+					try {
+						pending.rollback();
+					} catch (Throwable rollbackFailure) {
+						if (failure != rollbackFailure)
+							failure.addSuppressed(rollbackFailure);
+					}
+				}
+				throw failure;
+			}
+		} catch (Exception e) {
+			throw new RuntimeException("migrate old record failed: " + this + " " + key, e);
+		}
+	}
+
 	public @Nullable Supplier<ArrayList<TableX<K, V>>> getSimulateTables; // only for temp debug
 
 	private void verifyGlobalRecordState(K key, boolean isModify) { // only for temp debug
@@ -292,44 +326,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 									strongRef = old;
 									r.setSoftValue(strongRef);
 									if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
-										// Immediately 模式这里直接保存到 RocksCache 与 OldTable，
+										// Immediately 模式直接保存到当前主库与 RocksCache，
 										// 不设置脏标记（脏记录流程不会处理它，会永久滞留强引用）。
-										//noinspection DataFlowIssue
-										var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
-										var t = oldTable.getDatabase().beginTransaction();
-										try {
-											// 两侧都必须传编码后的key/value：replace(Transaction,Object,Object)
-											// 按后端盲转（KV转ByteBuffer），传原始key(K)与Bean在RocksDb旧库下
-											// 每次装载必抛ClassCastException——被吞掉后oldTable与镜像从未写上，
-											// 记录以clean态仅存oldTable+内存（镜像缺失/陈旧）。
-											// 与Checkpoint.FlushBatch.writeTo/rocksCachePut同型。
-											var bbKey = encodeKey(key);
-											var bbValue = ByteBuffer.encode(old);
-											oldTable.replace(t, bbKey, bbValue);
-											getLocalRocksCacheTable().replace(lct, bbKey, bbValue);
-											lct.commit();
-											t.commit();
-										} catch (Throwable ex) {
-											// rollback.
-											lct.rollback();
-											t.rollback();
-											// 此分支不设脏标记，任何写失败被继续都会让记录以clean
-											// 状态仅存oldTable+内存（镜像缺失/陈旧）——softValue GC后镜像hit返回
-											// 旧值或miss读成不存在。抛出由load异常出口作废记录重试，值仍安全在
-											// oldTable。old侧失败连带抛出（过严格但无害：仅多一次重做）。
-											throw new RuntimeException("load oldTable write mirror failed: " + this + " " + key, ex);
-										} finally {
-											try {
-												t.close();
-											} catch (Throwable e) { // logger.error
-												logger.error("", e);
-											}
-											try {
-												lct.close();
-											} catch (Throwable e) { // logger.error
-												logger.error("", e);
-											}
-										}
+										migrateOldRecord(storage, key, old);
 									} else {
 										// 从旧表装载时，马上设为脏，使得可以写入新表。
 										// 否则直到被修改前，都不会被保存到当前数据库中。
