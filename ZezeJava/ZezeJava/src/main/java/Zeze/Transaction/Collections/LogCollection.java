@@ -1,7 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import java.util.Objects;
-
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.TransactionLog;
@@ -12,7 +10,7 @@ public abstract class LogCollection<S extends Collection> implements Transaction
 	protected final S source;
 
 	protected LogCollection(S source) {
-		this.source = Objects.requireNonNull(source);
+		this.source = source;
 	}
 
 	public final S getSourceBean() {
@@ -41,10 +39,9 @@ public abstract class LogCollection<S extends Collection> implements Transaction
 		var existing = parent.getLog(getLogKey());
 		if (existing == null)
 			parent.putLog(this);
-		else {
-			if (existing.getClass() != getClass())
-				throw new IllegalStateException("collection capture mode changed inside savepoint");
-			((LogCollection<?>)existing).mergeFrom(this);
-		}
+		else if (existing instanceof LogCollection<?> collection)
+			collection.mergeFrom(this);
+		else
+			throw new IllegalStateException("collection capture mode changed inside savepoint");
 	}
 }

@@ -46,7 +46,6 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	 * LogRegistry.register 按 typeId 先到先得——ctor 产物若与默认构造产物不等价，后注册方的差异
 	 * 在日志反序列化（LogRegistry.decode 按 typeId 查表）中永远不生效。
 	 */
-	@SuppressWarnings("unchecked")
 	public static <K, V extends Bean> Map2Meta<K, V> get(Class<K> keyClass,
 														 Class<V> valueClass) {
 		var map = metas.computeIfAbsent(keyClass, kc -> {
@@ -54,8 +53,11 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 			return new ConcurrentHashMap<>();
 		});
 		var r = map.get(valueClass);
-		if (r != null)
+		if (r != null) {
+			//noinspection unchecked
 			return (Map2Meta<K, V>)r;
+		}
+		//noinspection unchecked
 		return (Map2Meta<K, V>)map.computeIfAbsent(valueClass,
 			vc -> new Map2Meta<>(keyClass, (Class<V>)vc));
 	}

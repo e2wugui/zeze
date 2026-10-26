@@ -9,8 +9,10 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedMap;
+
 import Zeze.Serialize.ByteBuffer;
 import org.jspecify.annotations.Nullable;
+
 import java.util.Map.Entry;
 
 /** PSortedMap1 的只读视图：仅暴露查询与遍历，修改入口抛 UnsupportedOperationException。 */
@@ -41,7 +43,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 		return map.containsKey(key);
 	}
 
-	public void copyTo(Map.Entry<K, V> [] array, int arrayIndex) {
+	public void copyTo(Map.Entry<K, V>[] array, int arrayIndex) {
 		for (var e : entrySet())
 			array[arrayIndex++] = e;
 	}
@@ -254,7 +256,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 
 	@Override
 	public boolean equals(@Nullable Object obj) {
-		return obj instanceof PSortedMap1ReadOnly && map.equals(((PSortedMap1ReadOnly<?, ?>)obj).map);
+		return obj instanceof PSortedMap1ReadOnly<?, ?> o && map.equals(o.map);
 	}
 
 	@Override

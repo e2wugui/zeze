@@ -62,9 +62,9 @@ public class LogMap<K, V> extends LogCollection<PMap<K, V>> {
 		value = Zeze.Collections.Persistents.map();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void mergeFrom(LogCollection<?> child) {
+		//noinspection unchecked
 		value = ((LogMap<K, V>)child).value;
 	}
 

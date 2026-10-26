@@ -13,7 +13,6 @@ import org.pcollections.Empty;
 import org.pcollections.TreePMap;
 
 /** 事务 SortedMap（1系）：Comparable 键，不可变值按值拷贝记账。 */
-@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	protected final SortedMap1Meta<K, V> meta;
 
@@ -51,6 +50,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 			throw new IllegalArgumentException("null value");
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.put(key, value);
 		}
@@ -74,6 +74,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		}
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.putAll(m);
 		} else
@@ -83,9 +84,12 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	@Override
 	public @Nullable V remove(Object key) {
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return mapLog.remove((K)key);
 		}
+		// noinspection unchecked
 		V exist = map.get((K)key);
 		map = map.minus(key);
 		return exist;
@@ -96,6 +100,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.remove(k, v);
 		}
@@ -112,6 +117,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.clear();
 		} else {
@@ -122,6 +128,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 
 	@Override
 	public void followerApply(Log _log) {
+		//noinspection unchecked
 		var log = (LogSortedMap1<K, V>)_log;
 		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 	}
@@ -129,6 +136,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	public void assign(PSortedMap1<K, V> pmap) {
 		var items = pmap.getMap();
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.clear();
 			mapLog.putAll(items);
@@ -151,6 +159,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		var valueEncoder = meta.valueEncoder;
 		for (var e : tmp.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
+			//noinspection DataFlowIssue
 			valueEncoder.accept(bb, e.getValue());
 		}
 	}
@@ -162,6 +171,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		var valueDecoder = meta.valueDecoder;
 		for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 			K k = keyDecoder.apply(bb);
+			//noinspection DataFlowIssue
 			V v = valueDecoder.apply(bb);
 			put(k, v);
 		}
@@ -173,13 +183,11 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 			: new LogSortedMapDelta.Map1<>(this, map);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogSortedMap1<>(variableId(), this, map.comparator(), meta, null, null);
-		if (!(finalLog instanceof LogSortedMapDelta.Map1<?, ?>))
-			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		//noinspection unchecked
 		var delta = (LogSortedMapDelta.Map1<K, V>)finalLog;
 		return new LogSortedMap1<>(variableId(), this, map.comparator(), meta, delta.getReplaced(), delta.getRemoved());
 	}

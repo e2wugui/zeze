@@ -16,8 +16,8 @@ public final class LogOneMeta<V> extends Meta1<V> {
 		super("LogOne:", headHash, valueClass);
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <V extends Bean> LogOneMeta<V> get(Class<V> beanClass) {
+		//noinspection unchecked
 		return (LogOneMeta<V>)metas.computeIfAbsent(beanClass, vc -> new LogOneMeta<>((Class<V>)vc));
 	}
 }

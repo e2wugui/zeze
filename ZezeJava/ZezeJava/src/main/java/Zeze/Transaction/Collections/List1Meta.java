@@ -16,11 +16,12 @@ public final class List1Meta<V> extends Meta1<V> {
 		super("LogList1:", headHash, valueClass);
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <V> List1Meta<V> get(Class<V> valueClass) {
+		//noinspection unchecked
 		return (List1Meta<V>)metas.computeIfAbsent(valueClass, vc -> {
 			checkNonBeanValue("PList1 (LogList1)",
 					"(in-place modifications never managed, silently lost), use PList2", vc);
+			//noinspection unchecked
 			return new List1Meta<>((Class<V>)vc);
 		});
 	}

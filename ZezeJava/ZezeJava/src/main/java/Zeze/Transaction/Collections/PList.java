@@ -57,7 +57,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 			TransactionLog log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return list;
-			@SuppressWarnings("unchecked")
+			//noinspection unchecked
 			var listLog = (LogList<V>)log;
 			return listLog.getValue();
 		}

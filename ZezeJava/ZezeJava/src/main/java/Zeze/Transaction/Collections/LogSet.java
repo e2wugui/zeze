@@ -31,9 +31,9 @@ public class LogSet<V> extends LogCollection<PSet<V>> {
 		this.value = value;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void mergeFrom(LogCollection<?> child) {
+		//noinspection unchecked
 		value = ((LogSet<V>)child).value;
 	}
 

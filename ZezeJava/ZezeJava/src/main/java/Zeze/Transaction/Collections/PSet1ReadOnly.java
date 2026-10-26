@@ -77,7 +77,7 @@ public class PSet1ReadOnly<V> implements Iterable<V> {
 
 	@Override
 	public boolean equals(@Nullable Object obj) {
-		return obj instanceof PSet1ReadOnly && set.equals(((PSet1ReadOnly<?>)obj).set);
+		return obj instanceof PSet1ReadOnly<?> o && set.equals(o.set);
 	}
 
 	@Override

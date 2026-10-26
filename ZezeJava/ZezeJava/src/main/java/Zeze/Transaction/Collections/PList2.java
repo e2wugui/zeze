@@ -22,7 +22,6 @@ import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 List（2系）：Bean 值受管，原位修改同样记账。 */
-@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PList2<V extends Bean> extends PList<V> {
 	protected final List2Meta<V> meta;
 
@@ -40,6 +39,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	public V createValue() {
 		try {
+			//noinspection DataFlowIssue,unchecked
 			return (V)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
@@ -56,6 +56,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			// 先取写权限后挂接：无当前事务/记录不可写时getCurrentVerifyWrite抛出，
 			// 若先挂接（initRootInfoWithRedo改写bean归属，普通字段写不受回滚保护），
 			// 输入bean永久污染（isManaged=true，复用抛HasManagedException）。
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			item.initRootInfoWithRedo(rootInfo, this);
 			return listLog.add(item);
@@ -67,7 +68,9 @@ public class PList2<V extends Bean> extends PList<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return listLog.remove((V)item);
 		}
 		var newList = list.minus(item);
@@ -82,6 +85,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 		} else
@@ -102,6 +106,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			var cur = getList();
 			if (index < 0 || index >= cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			item.initRootInfoWithRedo(rootInfo, this);
 			return listLog.set(index, item);
@@ -123,6 +128,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			var cur = getList();
 			if (index < 0 || index > cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			item.initRootInfoWithRedo(rootInfo, this);
 			listLog.add(index, item);
@@ -133,6 +139,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	@Override
 	public V remove(int index) {
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.remove(index);
 		}
@@ -142,7 +149,6 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	@SuppressWarnings("ConstantConditions")
 	public boolean addAll(Collection<? extends V> items) {
 		if (items.isEmpty())
 			return false;
@@ -153,16 +159,19 @@ public class PList2<V extends Bean> extends PList<V> {
 			// 抛出前靠前item的initRootInfoWithRedo已改写——普通字段写不受事务回滚保护，
 			// 调用方catch后复用bean即携带脏归属。
 			for (V v : items) {
+				//noinspection ConstantValue
 				if (v == null) // 对齐非托管分支与add/PList1：null在initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null item");
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			for (V v : items)
 				v.initRootInfoWithRedo(rootInfo, this);
 			return listLog.addAll(items);
 		}
 		for (V v : items) {
+			//noinspection ConstantValue
 			if (v == null)
 				throw new IllegalArgumentException("null item");
 		}
@@ -175,7 +184,9 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return listLog.removeAll((Collection<? extends V>)c);
 		}
 		// minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
@@ -193,7 +204,6 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	@SuppressWarnings("ConstantConditions")
 	public void replaceAll(UnaryOperator<V> operator) {
 		if (isEmpty())
 			return;
@@ -206,11 +216,13 @@ public class PList2<V extends Bean> extends PList<V> {
 			var origin = getList();
 			for (V v : origin) {
 				V newV = operator.apply(v);
+				//noinspection ConstantValue
 				if (newV == null) // 对齐非托管分支：null在initRootInfoWithRedo或日志路径解引用NPE，先验拒绝
 					throw new IllegalStateException("null item");
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 				tmpList.add(newV);
 			}
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			int i = 0;
 			for (V v : origin) {
@@ -223,6 +235,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		} else {
 			for (V v : this) {
 				v = operator.apply(v);
+				//noinspection ConstantValue
 				if (v == null)
 					throw new IllegalStateException("null item");
 				tmpList.add(v);
@@ -238,6 +251,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		var tmpList = new ArrayList<>(this);
 		tmpList.sort(c);
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 			listLog.addAll(tmpList);
@@ -247,15 +261,18 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public void followerApply(Log _log) {
+		//noinspection unchecked
 		var log = (LogList2<V>)_log;
 		var tmp = list;
 		for (var opLog : log.operationsForRead()) {
 			tmp = switch (opLog.op) {
 				case LogList1.OpLog.OP_MODIFY -> {
+					//noinspection DataFlowIssue
 					opLog.value.initRootInfo(rootInfo, this);
 					yield tmp.with(opLog.index, opLog.value);
 				}
 				case LogList1.OpLog.OP_ADD -> {
+					//noinspection DataFlowIssue
 					opLog.value.initRootInfo(rootInfo, this);
 					yield tmp.plus(opLog.index, opLog.value);
 				}
@@ -298,6 +315,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		var copy = new PList2<>(meta);
 		var newList = Persistents.<V>vector();
 		for (var v : getList())
+			//noinspection unchecked
 			newList = newList.plus((V)v.copy());
 		copy.list = newList;
 		return copy;
@@ -330,7 +348,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		try {
 			for (int i = n; i > 0; i--) {
-				@SuppressWarnings("unchecked")
+				//noinspection unchecked,DataFlowIssue
 				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
 				items.add(v);
@@ -362,13 +380,11 @@ public class PList2<V extends Bean> extends PList<V> {
 			: new LogList2Delta<>(this, list);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogList2<>(variableId(), this, meta, null, null);
-		if (!(finalLog instanceof LogList2Delta<?>))
-			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		//noinspection unchecked
 		var delta = (LogList2Delta<V>)finalLog;
 		return new LogList2<>(variableId(), this, meta, delta.getOpLogs(), delta.addedIdentities());
 	}

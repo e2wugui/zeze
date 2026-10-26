@@ -1,7 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import java.util.Objects;
-
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -9,14 +7,13 @@ import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 
 /** CollOne change payload, independent of any local transaction target. */
-@SuppressWarnings("unchecked")
 public class LogOneValue<V extends Bean> extends LogBean {
 	private final LogOneMeta<V> meta;
 	@Nullable V value;
 	@Nullable LogBean logBean;
 
 	protected LogOneValue(int varId, LogOneMeta<V> meta, Bean self) {
-		super(varId, Objects.requireNonNull(self));
+		super(varId, self);
 		this.meta = meta;
 	}
 
@@ -53,7 +50,7 @@ public class LogOneValue<V extends Bean> extends LogBean {
 	private void read(IByteBuffer bb) {
 		if (bb.ReadBool()) { // hasValue
 			try {
-				//noinspection DataFlowIssue
+				//noinspection DataFlowIssue,unchecked
 				value = (V)meta.valueFactory.invoke();
 			} catch (Throwable e) { // MethodHandle.invoke
 				throw Task.forceThrow(e);

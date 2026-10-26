@@ -32,8 +32,8 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return map.size();
 	}
 
-	@SuppressWarnings("unchecked")
 	public @Nullable VReadOnly get(K key) {
+		//noinspection unchecked
 		return (VReadOnly)map.get(key);
 	}
 
@@ -101,8 +101,8 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return wrap(map.lastEntry());
 	}
 
-	@SuppressWarnings("unchecked")
 	public NavigableMap<K, VReadOnly> descendingMap() {
+		//noinspection unchecked
 		return (NavigableMap<K, VReadOnly>)map.descendingMap();
 	}
 
@@ -114,18 +114,18 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return map.descendingKeySet();
 	}
 
-	@SuppressWarnings("unchecked")
 	public NavigableMap<K, VReadOnly> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
+		//noinspection unchecked
 		return (NavigableMap<K, VReadOnly>)map.subMap(fromKey, fromInclusive, toKey, toInclusive);
 	}
 
-	@SuppressWarnings("unchecked")
 	public NavigableMap<K, VReadOnly> headMap(K toKey, boolean inclusive) {
+		//noinspection unchecked
 		return (NavigableMap<K, VReadOnly>)map.headMap(toKey, inclusive);
 	}
 
-	@SuppressWarnings("unchecked")
 	public NavigableMap<K, VReadOnly> tailMap(K fromKey, boolean inclusive) {
+		//noinspection unchecked
 		return (NavigableMap<K, VReadOnly>)map.tailMap(fromKey, inclusive);
 	}
 
@@ -133,18 +133,18 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 		return map.comparator();
 	}
 
-	@SuppressWarnings("unchecked")
 	public SortedMap<K, VReadOnly> subMap(K fromKey, K toKey) {
+		//noinspection unchecked
 		return (SortedMap<K, VReadOnly>)map.subMap(fromKey, toKey);
 	}
 
-	@SuppressWarnings("unchecked")
 	public SortedMap<K, VReadOnly> headMap(K toKey) {
+		//noinspection unchecked
 		return (SortedMap<K, VReadOnly>)map.headMap(toKey);
 	}
 
-	@SuppressWarnings("unchecked")
 	public SortedMap<K, VReadOnly> tailMap(K fromKey) {
+		//noinspection unchecked
 		return (SortedMap<K, VReadOnly>)map.tailMap(fromKey);
 	}
 
@@ -297,9 +297,9 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 			return e.getKey();
 		}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public VReadOnly getValue() {
+			//noinspection unchecked
 			return (VReadOnly)e.getValue();
 		}
 

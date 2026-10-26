@@ -32,9 +32,9 @@ public class LogList<V> extends LogCollection<PList<V>> {
 		this.value = value;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void mergeFrom(LogCollection<?> child) {
+		//noinspection unchecked
 		value = ((LogList<V>)child).value;
 	}
 

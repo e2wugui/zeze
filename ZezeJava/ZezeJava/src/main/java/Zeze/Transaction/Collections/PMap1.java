@@ -14,7 +14,6 @@ import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 Map（1系）：不可变键值按值拷贝记账，不支持 Bean 值。 */
-@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PMap1<K, V> extends PMap<K, V> {
 	protected final Map1Meta<K, V> meta;
 
@@ -40,6 +39,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 			throw new IllegalArgumentException("null value");
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.put(key, value);
 		}
@@ -62,6 +62,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		}
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.putAll(m);
 		} else
@@ -71,9 +72,12 @@ public class PMap1<K, V> extends PMap<K, V> {
 	@Override
 	public @Nullable V remove(Object key) {
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return mapLog.remove((K)key);
 		}
+		// noinspection unchecked
 		V exist = map.get((K)key);
 		map = map.minus(key);
 		return exist;
@@ -84,6 +88,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.remove(k, v);
 		}
@@ -100,6 +105,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.clear();
 		} else
@@ -108,6 +114,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@Override
 	public void followerApply(Log _log) {
+		//noinspection unchecked
 		var log = (LogMap1<K, V>)_log;
 		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 	}
@@ -115,6 +122,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	public void assign(PMap1<K, V> pmap) {
 		var items = pmap.getMap();
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.clear();
 			mapLog.putAll(items);
@@ -137,6 +145,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		var valueEncoder = meta.valueEncoder;
 		for (var e : tmp.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
+			//noinspection DataFlowIssue
 			valueEncoder.accept(bb, e.getValue());
 		}
 	}
@@ -152,8 +161,10 @@ public class PMap1<K, V> extends PMap<K, V> {
 		// JDK暂存+单发批量：clear后无中间可观测态，与逐条put等价（同键后写覆盖语义一致）；
 		// ktt后端plusAll走builder批量构建。
 		var m = new HashMap<K, V>(((initialDecodeCapacity(n) + 2) / 3) * 4);
-		for (int i = n; i > 0; i--)
+		for (int i = n; i > 0; i--) {
+			//noinspection DataFlowIssue
 			m.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
+		}
 		putAll(m);
 	}
 
@@ -163,13 +174,11 @@ public class PMap1<K, V> extends PMap<K, V> {
 			: new LogMapDelta.Map1<>(this, map);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogMap1<>(variableId(), this, meta, null, null);
-		if (!(finalLog instanceof LogMapDelta.Map1<?, ?>))
-			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		//noinspection unchecked
 		var delta = (LogMapDelta.Map1<K, V>)finalLog;
 		return new LogMap1<>(variableId(), this, meta, delta.getReplaced(), delta.getRemoved());
 	}

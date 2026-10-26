@@ -8,7 +8,6 @@ import org.jspecify.annotations.Nullable;
 
 /** PSet1 的变更日志：以 added/removed 两个增量集合记录事务内对持久化 Set 的修改。 */
 final class LogSet1Delta<V> extends LogSet<V> {
-
 	private @Nullable Set<V> added;
 	private @Nullable Set<V> removed;
 
@@ -102,10 +101,10 @@ final class LogSet1Delta<V> extends LogSet<V> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void mergeFrom(LogCollection<?> child) {
 		super.mergeFrom(child);
+		//noinspection unchecked
 		merge((LogSet1Delta<V>)child);
 	}
 

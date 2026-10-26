@@ -16,7 +16,6 @@ import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 List（1系）：不可变值按值拷贝记账，不支持 Bean 值。 */
-@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PList1<V> extends PList<V> {
 	protected final List1Meta<V> meta;
 
@@ -36,6 +35,7 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.add(item);
 		}
@@ -46,7 +46,9 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return listLog.remove((V)item);
 		}
 		var newList = list.minus(item);
@@ -61,6 +63,7 @@ public class PList1<V> extends PList<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 		} else
@@ -74,6 +77,7 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.set(index, item);
 		}
@@ -89,6 +93,7 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.add(index, item);
 		} else
@@ -98,6 +103,7 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public V remove(int index) {
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.remove(index);
 		}
@@ -107,18 +113,19 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	@SuppressWarnings("ConstantConditions")
 	public boolean addAll(Collection<? extends V> items) {
 		if (items.isEmpty())
 			return false;
 		if (items instanceof PList1)
 			items = ((PList1<? extends V>)items).getList(); // more stable
 		for (V v : items) {
+			//noinspection ConstantValue
 			if (v == null)
 				throw new IllegalArgumentException("null item");
 		}
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return listLog.addAll(items);
 		}
@@ -131,7 +138,9 @@ public class PList1<V> extends PList<V> {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return listLog.removeAll((Collection<V>)c);
 		}
 		// minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
@@ -149,18 +158,19 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	@SuppressWarnings("ConstantConditions")
 	public void replaceAll(UnaryOperator<V> operator) {
 		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<V>(size());
 		for (V v : this) {
 			v = operator.apply(v);
+			//noinspection ConstantValue
 			if (v == null)
 				throw new IllegalStateException("null item");
 			tmpList.add(v);
 		}
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 			listLog.addAll(tmpList);
@@ -175,6 +185,7 @@ public class PList1<V> extends PList<V> {
 		var tmpList = new ArrayList<>(this);
 		tmpList.sort(c);
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 			listLog.addAll(tmpList);
@@ -184,12 +195,15 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public void followerApply(Log _log) {
+		//noinspection unchecked
 		var log = (LogList1<V>)_log;
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
 			tmp = switch (opLog.op) {
-				case LogList1.OpLog.OP_MODIFY -> tmp.with(opLog.index, opLog.value);
-				case LogList1.OpLog.OP_ADD -> tmp.plus(opLog.index, opLog.value);
+				case LogList1.OpLog.OP_MODIFY -> //noinspection DataFlowIssue
+					tmp.with(opLog.index, opLog.value);
+				case LogList1.OpLog.OP_ADD -> //noinspection DataFlowIssue
+					tmp.plus(opLog.index, opLog.value);
 				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);
 				case LogList1.OpLog.OP_CLEAR -> Persistents.vector();
 				default -> tmp;
@@ -201,6 +215,7 @@ public class PList1<V> extends PList<V> {
 	public void assign(PList1<V> plist) {
 		var items = plist.getList();
 		if (isManaged()) {
+			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			listLog.clear();
 			listLog.addAll(items);
@@ -220,8 +235,10 @@ public class PList1<V> extends PList<V> {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.valueEncoder;
-		for (var e : tmp)
+		for (var e : tmp) {
+			//noinspection DataFlowIssue
 			encoder.accept(bb, e);
+		}
 	}
 
 	@Override
@@ -233,8 +250,10 @@ public class PList1<V> extends PList<V> {
 			return;
 		// JDK暂存+单发批量：clear后无中间可观测态，与逐条add等价；ktt后端plusAll走builder批量构建。
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
-		for (int i = n; i > 0; i--)
+		for (int i = n; i > 0; i--) {
+			//noinspection DataFlowIssue
 			items.add(decoder.apply(bb));
+		}
 		addAll(items);
 	}
 
@@ -244,13 +263,11 @@ public class PList1<V> extends PList<V> {
 			: new LogListDelta.List1<>(this, list);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogList1<>(variableId(), this, meta, null);
-		if (!(finalLog instanceof LogListDelta.List1<?>))
-			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		//noinspection unchecked
 		var delta = (LogListDelta.List1<V>)finalLog;
 		return new LogList1<>(variableId(), this, meta, delta.getOpLogs());
 	}

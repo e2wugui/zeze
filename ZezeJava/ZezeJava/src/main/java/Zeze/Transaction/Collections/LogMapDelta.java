@@ -128,10 +128,10 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		super.clear();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void mergeFrom(LogCollection<?> child) {
 		super.mergeFrom(child);
+		//noinspection unchecked
 		var another = (LogMapDelta<K, V>)child;
 		mergeChangeNote(another);
 	}

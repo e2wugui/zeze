@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
 public class LogMap2<K, V extends Bean> extends LogMap2Base<K, V> {
 	/** Borrow final notes without retaining the transaction state. decode always creates a fresh payload. */
 	public LogMap2(int varId, @Nullable Bean self, Meta2<K, V> meta,
-			@Nullable HashMap<K, V> replaced, @Nullable Set<K> removed) {
+				   @Nullable HashMap<K, V> replaced, @Nullable Set<K> removed) {
 		super(varId, self, meta, replaced, removed);
 	}
 

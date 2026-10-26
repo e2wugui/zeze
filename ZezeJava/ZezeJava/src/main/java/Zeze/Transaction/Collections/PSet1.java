@@ -14,7 +14,6 @@ import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 Set（1系）：不可变值按值拷贝记账；框架无 PSet2。 */
-@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PSet1<V> extends PSet<V> {
 	protected final Set1Meta<V> meta;
 
@@ -34,6 +33,7 @@ public class PSet1<V> extends PSet<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return setLog.add(item);
 		}
@@ -47,7 +47,9 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
+			//noinspection unchecked
 			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return setLog.remove((V)item);
 		}
 		var newSet = set.minus(item);
@@ -70,6 +72,7 @@ public class PSet1<V> extends PSet<V> {
 		}
 
 		if (isManaged()) {
+			//noinspection unchecked
 			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return setLog.addAll(c);
 		}
@@ -89,7 +92,9 @@ public class PSet1<V> extends PSet<V> {
 		if (c.isEmpty() || isEmpty())
 			return false;
 		if (isManaged()) {
+			//noinspection unchecked
 			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return setLog.removeAll((Collection<? extends V>)c);
 		}
 		// 同addAll：MapPSet.minusAll恒新建包装，逐项minus判定真实变化。
@@ -107,6 +112,7 @@ public class PSet1<V> extends PSet<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
+			//noinspection unchecked
 			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			setLog.clear();
 		} else
@@ -115,6 +121,7 @@ public class PSet1<V> extends PSet<V> {
 
 	@Override
 	public void followerApply(Log _log) {
+		//noinspection unchecked
 		var log = (LogSet1<V>)_log;
 		set = set.minusAll(log.getRemoved()).plusAll(log.getAdded());
 	}
@@ -122,6 +129,7 @@ public class PSet1<V> extends PSet<V> {
 	public void assign(PSet1<V> pset) {
 		var items = pset.getSet();
 		if (isManaged()) {
+			//noinspection unchecked
 			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			setLog.clear();
 			setLog.addAll(items);
@@ -141,8 +149,10 @@ public class PSet1<V> extends PSet<V> {
 		var tmp = getSet();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.valueEncoder;
-		for (V e : tmp)
+		for (V e : tmp) {
+			//noinspection DataFlowIssue
 			encoder.accept(bb, e);
+		}
 	}
 
 	@Override
@@ -154,8 +164,10 @@ public class PSet1<V> extends PSet<V> {
 			return;
 		// JDK暂存+单发批量（语义等价，见PList1.decode注）。
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
-		for (int i = n; i > 0; i--)
+		for (int i = n; i > 0; i--) {
+			//noinspection DataFlowIssue
 			items.add(decoder.apply(bb));
+		}
 		addAll(items);
 	}
 
@@ -165,13 +177,11 @@ public class PSet1<V> extends PSet<V> {
 			: new LogSet1Delta<>(this, set);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogSet1<>(variableId(), this, meta, null, null);
-		if (!(finalLog instanceof LogSet1Delta<?>))
-			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		//noinspection unchecked
 		var delta = (LogSet1Delta<V>)finalLog;
 		return new LogSet1<>(variableId(), this, meta, delta.getAdded(), delta.getRemoved());
 	}

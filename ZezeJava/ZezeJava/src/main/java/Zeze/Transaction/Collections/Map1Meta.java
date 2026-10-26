@@ -1,6 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
+
 import Zeze.Transaction.Bean;
 
 /**
@@ -11,23 +12,26 @@ public final class Map1Meta<K, V> extends Meta2<K, V> {
 	static final String HEAD = "Zeze.Transaction.Collections.LogMap1<";
 	private static final long headHash = Bean.hash64(HEAD);
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Map1Meta<?, ?>>> metas
-			= new ConcurrentHashMap<>();
+		= new ConcurrentHashMap<>();
 
 	Map1Meta(Class<K> keyClass, Class<V> valueClass) {
 		super("LogMap1:", headHash, keyClass, valueClass);
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <K, V> Map1Meta<K, V> get(Class<K> keyClass, Class<V> valueClass) {
 		var map = metas.computeIfAbsent(keyClass, kc -> {
 			checkNonBeanKey("PMap1/GTable1 (LogMap1)", kc);
 			return new ConcurrentHashMap<>();
 		});
 		var r = map.get(valueClass);
-		if (r != null)
+		if (r != null) {
+			//noinspection unchecked
 			return (Map1Meta<K, V>)r;
+		}
+		//noinspection unchecked
 		return (Map1Meta<K, V>)map.computeIfAbsent(valueClass, vc -> {
 			checkNonBeanValue1("PMap1/GTable1 (LogMap1)", "use PMap2/GTable2", vc);
+			//noinspection unchecked
 			return new Map1Meta<>(keyClass, (Class<V>)vc);
 		});
 	}

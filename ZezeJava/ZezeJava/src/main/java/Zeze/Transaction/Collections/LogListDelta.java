@@ -90,10 +90,10 @@ abstract class LogListDelta<V> extends LogList<V> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void mergeFrom(LogCollection<?> child) {
 		super.mergeFrom(child);
+		//noinspection unchecked
 		merge((LogListDelta<V>)child);
 	}
 

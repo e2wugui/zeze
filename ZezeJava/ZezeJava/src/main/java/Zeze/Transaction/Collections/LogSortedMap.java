@@ -63,9 +63,9 @@ public class LogSortedMap<K extends Comparable<K>, V> extends LogCollection<PSor
 		value = comparator != null ? org.pcollections.TreePMap.empty(comparator) : org.pcollections.Empty.sortedMap();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void mergeFrom(LogCollection<?> child) {
+		//noinspection unchecked
 		value = ((LogSortedMap<K, V>)child).value;
 	}
 

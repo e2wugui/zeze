@@ -1,6 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
+
 import Zeze.Transaction.Bean;
 
 /**
@@ -16,11 +17,12 @@ public final class Set1Meta<V> extends Meta1<V> {
 		super("LogSet1:", headHash, valueClass);
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <V> Set1Meta<V> get(Class<V> valueClass) {
+		//noinspection unchecked
 		return (Set1Meta<V>)metas.computeIfAbsent(valueClass, vc -> {
 			checkNonBeanValue("PSet1 (LogSet1)",
-					"(equals-without-hashCode misbehaves in hash set; Bean set unsupported by design)", vc);
+				"(equals-without-hashCode misbehaves in hash set; Bean set unsupported by design)", vc);
+			//noinspection unchecked
 			return new Set1Meta<>((Class<V>)vc);
 		});
 	}

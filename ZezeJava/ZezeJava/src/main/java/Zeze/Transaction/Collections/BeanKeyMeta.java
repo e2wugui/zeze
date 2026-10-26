@@ -18,8 +18,8 @@ public final class BeanKeyMeta<V> extends Meta1<V> {
 		super("LogBeanKey:", headHash, valueClass);
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <V extends Serializable> BeanKeyMeta<V> get(Class<V> beanClass) {
+		//noinspection unchecked
 		return (BeanKeyMeta<V>)metas.computeIfAbsent(beanClass, vc -> new BeanKeyMeta<>((Class<V>)vc));
 	}
 }

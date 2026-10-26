@@ -24,8 +24,8 @@ public final class List2Meta<V> extends Meta1<V> {
 		super(get, create);
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <V extends Bean> List2Meta<V> get(Class<V> valueClass) {
+		//noinspection unchecked
 		return (List2Meta<V>)metas.computeIfAbsent(valueClass, vc -> new List2Meta<>((Class<V>)vc));
 	}
 

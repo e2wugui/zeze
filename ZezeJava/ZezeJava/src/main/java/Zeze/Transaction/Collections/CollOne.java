@@ -16,7 +16,6 @@ import Zeze.Transaction.ChangeCaptureMode;
 import org.jspecify.annotations.Nullable;
 
 /** 单值 Bean 容器：普通 bean 字段的宿主，受管后修改经 LogOne 记账。 */
-@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public final class CollOne<V extends Bean> extends Collection {
 	V value;
 	// 按声明类预建的meta，与读端日志工厂注册对称。
@@ -35,7 +34,9 @@ public final class CollOne<V extends Bean> extends Collection {
 		if (txn == null)
 			return value;
 
+		//noinspection unchecked,DataFlowIssue
 		var log = (LogOne<V>)txn.getLog(parent().objectId() + variableId());
+		//noinspection DataFlowIssue
 		return log != null ? log.value : value;
 	}
 
@@ -46,6 +47,7 @@ public final class CollOne<V extends Bean> extends Collection {
 
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
+			//noinspection unchecked,DataFlowIssue
 			var log = (LogOne<V>)Transaction.getCurrentVerifyWrite(this)
 				.logGetOrAdd(parent().objectId() + variableId(), () -> createLog(ChangeCaptureMode.DELTA));
 			value.initRootInfoWithRedo(rootInfo, this);
@@ -55,6 +57,7 @@ public final class CollOne<V extends Bean> extends Collection {
 	}
 
 	public void assign(CollOne<V> other) {
+		//noinspection unchecked
 		setValue((V)other.getValue().copy());
 	}
 
@@ -62,8 +65,9 @@ public final class CollOne<V extends Bean> extends Collection {
 	public boolean equals(@Nullable Object obj) {
 		if (obj == this)
 			return true;
-		if (obj instanceof CollOne)
-			return getValue().equals(((CollOne<V>)obj).getValue());
+		if (obj instanceof CollOne<?> o) {
+			return getValue().equals(o.getValue());
+		}
 		return false;
 	}
 
@@ -74,6 +78,7 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
+		//noinspection DataFlowIssue
 		return finalLog != null ? (LogOne<?>)finalLog : new LogOne<>(parent(), variableId(), this, value);
 	}
 
@@ -99,6 +104,7 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public void followerApply(Log _log) {
+		//noinspection unchecked
 		var log = (LogOneValue<V>)_log;
 		if (log.value != null) {
 			log.value.initRootInfo(rootInfo, this); // 与PList2/PMap2等全部同类实现保持一致
@@ -109,6 +115,7 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public CollOne<V> copy() {
+		//noinspection unchecked
 		return new CollOne<>((V)getValue().copy(), meta); // 声明类型meta随副本传递
 	}
 
@@ -129,6 +136,7 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
+		//noinspection DataFlowIssue
 		return new LogOne<>(parent(), variableId(), this, value);
 	}
 }

@@ -21,7 +21,6 @@ import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
 /** 事务 Map（2系）：Bean 值受管，原位修改同样记账。 */
-@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	protected final Map2Meta<K, V> meta;
 
@@ -47,6 +46,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	public V createValue() {
 		try {
+			//noinspection DataFlowIssue,unchecked
 			return (V)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
@@ -73,6 +73,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			value.initRootInfoWithRedo(rootInfo, this);
 			value.mapKey(key);
@@ -103,6 +104,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 					throw new IllegalArgumentException("null value");
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
@@ -127,9 +129,12 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	@Override
 	public @Nullable V remove(Object key) {
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
+			//noinspection unchecked
 			return mapLog.remove((K)key);
 		}
+		// noinspection unchecked
 		V exist = map.get((K)key);
 		map = map.minus(key);
 		return exist;
@@ -140,6 +145,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return mapLog.remove(k, v);
 		}
@@ -156,6 +162,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
+			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			mapLog.clear();
 		} else
@@ -164,6 +171,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public void followerApply(Log _log) {
+		//noinspection unchecked
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
 		var replaced = log.replacedForRead();
@@ -209,6 +217,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		var copy = new PMap2<>(meta);
 		var newMap = Persistents.<K, V>map();
 		for (var e : getMap().entrySet()) {
+			//noinspection unchecked
 			var value = (V)e.getValue().copy();
 			// mapKey是瞬态容器归属，不由Bean.copy/assign复制；后续原位changed仍需定位该键。
 			value.mapKey(e.getKey());
@@ -250,7 +259,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		try {
 			for (int i = n; i > 0; i--) {
 				K k = decoder.apply(bb);
-				@SuppressWarnings("unchecked")
+				//noinspection DataFlowIssue,unchecked
 				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
 				m.put(k, v);
@@ -282,13 +291,11 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			: new LogMapDelta.Map2<>(this, map);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogMap2<>(variableId(), this, meta, null, null);
-		if (!(finalLog instanceof LogMapDelta.Map2<?, ?>))
-			throw new IllegalStateException("incomplete or incompatible collection transaction state");
+		//noinspection unchecked
 		var delta = (LogMapDelta.Map2<K, V>)finalLog;
 		return new LogMap2<>(variableId(), this, meta, delta.getReplaced(), delta.getRemoved());
 	}
