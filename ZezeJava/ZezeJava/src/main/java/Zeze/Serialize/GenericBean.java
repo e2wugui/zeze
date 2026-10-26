@@ -149,7 +149,7 @@ public class GenericBean {
 					if (d < 0x90 || d >= 0xc0)
 						return false;
 				} else if (c == 0xf4) {
-					if (d < 0x80 || d >= 0xa0)
+					if (d < 0x80 || d >= 0x90) // Unicode 最大 U+10FFFF：F4 的第二字节仅允许 80..8F。
 						return false;
 				} else if (d < 0x80 || d >= 0xc0)
 					return false;
