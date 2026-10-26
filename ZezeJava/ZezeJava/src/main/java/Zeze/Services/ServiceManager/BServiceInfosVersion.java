@@ -128,6 +128,7 @@ public class BServiceInfosVersion implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer bb) {
+		infosVersion.clear();
 		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var version = bb.ReadLong();
 			var infos = new BServiceInfos();

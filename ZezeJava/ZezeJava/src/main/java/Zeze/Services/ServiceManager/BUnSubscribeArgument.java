@@ -18,6 +18,7 @@ public class BUnSubscribeArgument implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer bb) {
+		serviceNames.clear();
 		for (var i = bb.ReadUInt(); i > 0; --i)
 			serviceNames.add(bb.ReadString());
 	}

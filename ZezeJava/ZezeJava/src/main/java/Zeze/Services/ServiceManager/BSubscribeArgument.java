@@ -18,6 +18,7 @@ public class BSubscribeArgument implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer bb) {
+		subs.clear();
 		for (var i = bb.ReadUInt(); i > 0; --i)
 			subs.add(new BSubscribeInfo(bb));
 	}

@@ -39,6 +39,10 @@ public class BEditService implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer bb) {
+		if (remove != empty)
+			remove.clear();
+		if (add != empty)
+			add.clear();
 		var i = bb.ReadUInt();
 		if (i > 0) {
 			var r = getRemove();

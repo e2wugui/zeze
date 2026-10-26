@@ -20,6 +20,7 @@ public class BSubscribeResult implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer bb) {
+		map.clear();
 		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var serviceName = bb.ReadString();
 			map.put(serviceName, new BServiceInfosVersion(bb));
