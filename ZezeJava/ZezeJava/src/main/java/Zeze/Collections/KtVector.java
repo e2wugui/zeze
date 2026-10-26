@@ -103,6 +103,8 @@ public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 
 	@Override
 	public PVector<E> plusAll(int index, Collection<? extends E> c) {
+		if (index < 0 || index > size())
+			throw new IndexOutOfBoundsException("index=" + index + ", size=" + size());
 		if (c.isEmpty())
 			return this;
 		if (!Persistents.BULK) {
