@@ -37,6 +37,13 @@ import org.jspecify.annotations.Nullable;
 public class Schemas implements Serializable {
 	private static final Logger logger = LogManager.getLogger(Schemas.class);
 
+	private static int readCount(IByteBuffer bb) {
+		int count = bb.ReadInt(); // Schema 既有格式使用有符号整数，不能改成 ReadUInt。
+		if (count < 0)
+			throw new IllegalArgumentException("negative schema collection count: " + count);
+		return count;
+	}
+
 	public static final class Checked {
 		private @Nullable Bean previous;
 		private @Nullable Bean current;
@@ -347,7 +354,7 @@ public class Schemas implements Serializable {
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
 
-			for (var count = bb.ReadInt(); count > 0; --count) {
+			for (var count = readCount(bb); count > 0; --count) {
 				var typeId = bb.ReadLong();
 				var className = bb.ReadString();
 				dynamicBeans.put(typeId, className);
@@ -542,12 +549,12 @@ public class Schemas implements Serializable {
 		public void decode(IByteBuffer bb) {
 			name = bb.ReadString();
 			isBeanKey = bb.ReadBool();
-			for (int count = bb.ReadInt(); count > 0; --count) {
+			for (int count = readCount(bb); count > 0; --count) {
 				var v = new Variable();
 				v.decode(bb);
 				getVariables().put(v.id, v);
 			}
-			for (int count = bb.ReadInt(); count > 0; --count) {
+			for (int count = readCount(bb); count > 0; --count) {
 				var v = new Variable();
 				v.decode(bb);
 				deletedVars.put(v.id, v);
@@ -793,13 +800,13 @@ public class Schemas implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		for (int count = bb.ReadInt(); count > 0; --count) {
+		for (int count = readCount(bb); count > 0; --count) {
 			var table = new Table();
 			table.decode(bb);
 			if (tables.put(Objects.requireNonNull(table.name), table) != null)
 				throw new IllegalStateException("duplicate table=" + table.name);
 		}
-		for (int count = bb.ReadInt(); count > 0; --count) {
+		for (int count = readCount(bb); count > 0; --count) {
 			var bean = new Bean();
 			bean.decode(bb);
 			if (beans.put(bean.name, bean) != null)
