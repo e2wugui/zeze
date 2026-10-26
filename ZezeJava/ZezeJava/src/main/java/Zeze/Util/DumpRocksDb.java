@@ -406,11 +406,17 @@ public final class DumpRocksDb {
 				// 连续字节数由引导字节决定（0xC2-0xDF跟1个、0xE0-0xEF跟2个、0xF0-0xF4
 				// 跟3个，含emoji等4字节字符——游戏聊天数据常见）；续字节掩码为0x80（10xx xxxx）。
 				int continuations = b < 0xe0 ? 1 : b < 0xf0 ? 2 : 3;
+					int codePoint = b & (continuations == 1 ? 0x1f : continuations == 2 ? 0xf : 7);
 				for (var j = 0; j < continuations; ++j) {
 					++i;
 					if (i >= n || (bytes[i] & 0xc0) != 0x80) // 10xx xxxx
 						return false;
+						codePoint = (codePoint << 6) | (bytes[i] & 0x3f);
 				}
+					int minimum = continuations == 1 ? 0x80 : continuations == 2 ? 0x800 : 0x10000;
+					// UTF-8 只允许最短编码的 Unicode 标量，排除代理区及超出 Unicode 上限的值。
+					if (codePoint < minimum || codePoint > 0x10ffff || (codePoint >= 0xd800 && codePoint <= 0xdfff))
+						return false;
 			}
 		}
 		return true;
