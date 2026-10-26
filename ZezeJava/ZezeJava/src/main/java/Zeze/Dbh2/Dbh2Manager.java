@@ -20,7 +20,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.LogSequence;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.KVNotNull;
 import Zeze.Util.RocksDatabase;
@@ -96,7 +96,7 @@ public class Dbh2Manager {
 		raftConfig.setDbHome(dbHome.toString());
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
 		// 原子落盘：Files.writeString默认截断，崩溃留半截xml。
-		AtomicFileWriter.writeAtomically(file.toPath(), raftConfigStr.getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(file.toPath(), raftConfigStr.getBytes(StandardCharsets.UTF_8));
 		dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 			var dbh2 = new Dbh2(this, Objects.requireNonNull(raftConfig.getName()),
 					database, raftConfig,

@@ -6,7 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -35,7 +35,8 @@ public class ExporterNginxConfig implements IExporter {
 		var lines = new ArrayList<String>();
 		var hasChanged = false;
 		var found = false;
-		var source = Files.readString(Path.of(file), StandardCharsets.UTF_8);
+		Path path = Path.of(file);
+		var source = Files.readString(path, StandardCharsets.UTF_8);
 		if (source.startsWith("\uFEFF"))
 			source = source.substring(1);
 		var rewritten = new StringBuilder();
@@ -71,7 +72,7 @@ public class ExporterNginxConfig implements IExporter {
 			rewritten.append(String.join("\n", replacement));
 			copied = close.end;
 			token = close;
-			found = hasChanged = true;
+			found = true;
 		}
 		rewritten.append(source, copied, source.length());
 		if (found)
@@ -85,18 +86,15 @@ public class ExporterNginxConfig implements IExporter {
 		// hasAnyExportableServer守卫跳过，不再产出）。
 		if (!found) {
 			exportToLines("", lines, serviceName, all);
-			hasChanged = true;
 			logger.info("ExporterNginxConfig: upstream block for '{}' not found, append to end of {}",
 					serviceName, file);
 		}
-		if (hasChanged) {
-			var sb = new StringBuilder();
-			for (var line : lines)
-				sb.append(line).append("\n");
-			// 原子换版；move失败由failedServices补偿重试。
-			AtomicFileWriter.writeAtomically(Path.of(file), sb.toString().getBytes(StandardCharsets.UTF_8));
-			reload();
-		}
+		var sb = new StringBuilder();
+		for (var line : lines)
+			sb.append(line).append("\n");
+		// 原子换版；move失败由failedServices补偿重试。
+		AtomicOutputFile.writeAtomically(path, sb.toString().getBytes(StandardCharsets.UTF_8));
+		reload();
 	}
 
 	private record Token(int start, int end, String text, boolean quoted) {

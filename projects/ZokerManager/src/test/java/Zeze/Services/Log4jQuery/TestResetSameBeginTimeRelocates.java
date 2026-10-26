@@ -23,7 +23,7 @@ import Zeze.Services.Log4jQuery.Log4jFileManager;
 import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
 import Zeze.Services.Log4jQuery.LogServiceConf;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Task;
 
 import harness.Fast;
@@ -53,7 +53,7 @@ public class TestResetSameBeginTimeRelocates {
 	@Test
 	public void testResetRefreshKeepsBeginTimeWindow() throws Exception {
 		var logDir = Files.createTempDirectory("reset-relocate");
-		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(Base, "L", 5).getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(logDir.resolve(Active), buildLines(Base, "L", 5).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			var t3 = millis(Base.plusSeconds(60)); // L2的时间（30s递增）：其后L2..L4共3条
@@ -86,7 +86,7 @@ public class TestResetSameBeginTimeRelocates {
 	@Test
 	public void testBeginTimeMinusOneAndPaginationUnchanged() throws Exception {
 		var logDir = Files.createTempDirectory("reset-compat");
-		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(Base, "L", 5).getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(logDir.resolve(Active), buildLines(Base, "L", 5).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			var session = new Log4jSession(manager);

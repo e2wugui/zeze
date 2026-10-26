@@ -4,12 +4,14 @@ import java.util.Objects;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -24,7 +26,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Action2;
-import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -230,10 +231,12 @@ public class LogSequence {
 		startRemoveLogOnlyBefore(newFirstIndex);
 	}
 
-	// 候选发布：fsync补齐（zip与接收侧分块写均无fsync）→ 原子改名为不可变gen文件。
+	// 候选发布：先补齐fsync（接收侧分块写不保证落盘），再原子改名为不可变gen文件。
 	// 发布≠提交；REPLACE回退覆盖同index旧候选。调用方持raft锁。
 	private void publishGenCandidate(Path path, long newFirstIndex) throws IOException {
-		AtomicFileWriter.fsync(path);
+		try (var channel = FileChannel.open(path, StandardOpenOption.WRITE)) {
+			channel.force(true); // 必须先于rename，确保候选内容已落盘。
+		}
 		var gen = genSnapshotPath(newFirstIndex);
 		try {
 			Files.move(path, gen, StandardCopyOption.ATOMIC_MOVE);

@@ -24,7 +24,7 @@ import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
 import Zeze.IModule;
 import Zeze.Services.Zoker;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -51,7 +51,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p><b>盘上进程身份与跨 Zoker 重启的记账连续</b>：内存记账随 Zoker 进程消失，
  * 唯一跨生命周期可信的载体是盘上文件。服务启动成功时把进程身份原子写入容器根
- * {@code services/<svc>/run.pid}（与 current 指针同层、同 AtomicFileWriter 原语；容器根
+ * {@code services/<svc>/run.pid}（与 current 指针同层、同 AtomicOutputFile 原语；容器根
  * 不随版本切换/清理消失——pruneVersions 只纳入目录，文件天然不在清理面）。内容=pid+
  * startInstant 指纹（辅 command 行）。三条路径共用同一身份解析 {@link #resolveRunPid}：</p>
  * <ul>
@@ -578,7 +578,7 @@ public class ProcessManager {
 	}
 
 	/**
-	 * 盘是真相源：启动交付前把进程身份原子落盘（与 current 指针同原语 AtomicFileWriter——
+	 * 盘是真相源：启动交付前把进程身份原子落盘（与 current 指针同原语 AtomicOutputFile——
 	 * 任何崩溃点留下的都是完整的旧身份或新身份，无截断中间态）。
 	 * 供直构测试按记录形态摆盘（同一落盘路径，格式契约单点）。
 	 */
@@ -587,7 +587,7 @@ public class ProcessManager {
 				+ KEY_START + "=" + record.start + "\n"
 				+ KEY_COMMAND + "=" + record.command + "\n"
 				+ KEY_VERSION + "=" + record.version + "\n";
-		AtomicFileWriter.writeAtomically(new File(container, RUN_PID_NAME).toPath(), text.getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(new File(container, RUN_PID_NAME).toPath(), text.getBytes(StandardCharsets.UTF_8));
 	}
 
 	/** 从活句柄取现值写盘（startService 拉起路径）：version=launch 时的工作目录名。 */

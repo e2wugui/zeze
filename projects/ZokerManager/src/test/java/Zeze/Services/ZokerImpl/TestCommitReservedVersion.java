@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * FND20 GE-C02：commit 的 versionNo 保留字排除。
  * services/&lt;svc&gt;/current 同时是现役指针文件的固有位置：versionNo="current" 且指针尚不存在
  * （首次部署常态）时，版本目录 rename 会占据该位置，此后该服务的一切 commit 恒失败
- * （AtomicFileWriter 无法原子 rename 到目录上）、currentVersionDir 恒 null、prune 永远
+ * （AtomicOutputFile 无法原子 rename 到目录上）、currentVersionDir 恒 null、prune 永远
  * 执行不到——需人工删目录。修复后在参数校验处直接拒绝；修复前（红）第一次 commit 即把
  * services/svc/current 变成目录，后续正常 commit（testRecoveryAfterRejected）永久卡死。
  * 直构 DistributeManager（包内构造器），纯文件逻辑。

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <b>内容</b>已被静默换新（回执失败而部署实际生效），旧内容仅存暂存名待下轮 prune
  * 入口清扫灭失。修复后换装路径补回滚：新内容退回 distributes（重试重走完整换装，
  * 不产生跳装假成功）、旧内容复位版本名（指针文本未变，复位即现役内容恢复）。
- * 失败注入：current 固有位置放目录占位——AtomicFileWriter 的原子 rename 对目录
+ * 失败注入：current 固有位置放目录占位——AtomicOutputFile 的原子 rename 对目录
  * 目标必失败（两主流平台同语义），等价真实失败面（ENOSPC/AV 钉住）的可控形态。
  * 纯新增安装路径（无腾位）固化既有语义：current 未动不回滚，重试跳装再切收敛。
  */

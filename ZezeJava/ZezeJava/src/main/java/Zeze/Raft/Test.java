@@ -25,7 +25,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
@@ -82,7 +82,7 @@ public class Test {
 			var snapshot = findDumpSnapshot(db);
 			if (snapshot != null)
 				StateMachine._loadSnapshot(snapshot.toString());
-			AtomicFileWriter.writeAtomically(Paths.get(db + ".txt"), dumpFile -> {
+			AtomicOutputFile.writeAtomically(Paths.get(db + ".txt"), dumpFile -> {
 				dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
 				try (var it1 = r1.newIterator(logs, RocksDatabase.getDefaultReadOptions())) {
 					for (it1.seekToFirst(); it1.isValid(); it1.next()) {
@@ -771,7 +771,7 @@ public class Test {
 						var bb = ByteBuffer.Allocate();
 						logger.info("{} Snapshot Count={}", getRaft().getName(), count);
 						bb.WriteLong(count);
-					AtomicFileWriter.writeAtomically(Paths.get(path),
+					AtomicOutputFile.writeAtomically(Paths.get(path),
 							file -> file.write(bb.Bytes, bb.ReadIndex, bb.size()));
 						getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
 						result.success = true;

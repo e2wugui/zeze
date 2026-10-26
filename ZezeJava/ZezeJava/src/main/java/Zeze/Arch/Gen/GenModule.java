@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+
 import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
@@ -32,7 +33,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
 import Zeze.Util.Task;
@@ -71,7 +72,7 @@ public final class GenModule extends ReentrantLock {
 		var ctors = (Constructor<T>[])cls.getDeclaredConstructors();
 		for (var ctor : ctors) {
 			if ((ctor.getModifiers() & (Modifier.PUBLIC | Modifier.PROTECTED)) != 0 &&
-					ctor.getParameterCount() == 1 && ctor.getParameters()[0].getType().isAssignableFrom(appClass))
+				ctor.getParameterCount() == 1 && ctor.getParameters()[0].getType().isAssignableFrom(appClass))
 				return ctor;
 		}
 		for (var ctor : ctors) {
@@ -124,7 +125,7 @@ public final class GenModule extends ReentrantLock {
 					genClass = sink.findRedirectClass(getRedirectClassName(moduleClass));
 				} catch (ClassNotFoundException e) {
 					throw new IllegalStateException("hot module redirect class not packaged in module jar: "
-							+ moduleClass.getName(), e);
+						+ moduleClass.getName(), e);
 				}
 			} else
 				genClass = Class.forName(getRedirectClassName(moduleClass));
@@ -173,7 +174,7 @@ public final class GenModule extends ReentrantLock {
 	 * @param tryCompile 写盘前逐模块内存javac试编译，不可编译产物不落盘（默认false）
 	 */
 	public void generateRedirectSources(String srcRoot, AppBase userApp,
-										Class<?> [] moduleClasses, boolean tryCompile) {
+										Class<?>[] moduleClasses, boolean tryCompile) {
 		lock();
 		try {
 			for (Class<?> moduleClass : moduleClasses) {
@@ -203,7 +204,7 @@ public final class GenModule extends ReentrantLock {
 					} else
 						System.out.println("      New File: " + file.getAbsolutePath());
 					if (oldBytes == null)
-						AtomicFileWriter.writeAtomically(file.toPath(), newBytes);
+						AtomicOutputFile.writeAtomically(file.toPath(), newBytes);
 
 				} catch (Exception e) {
 					throw new IllegalStateException("module class: " + moduleClass.getName(), e);
@@ -228,8 +229,8 @@ public final class GenModule extends ReentrantLock {
 	 * classpath装载已存在的子类；③装载不命中的生成源码，批量编译后按归属define（热模块
 	 * 进其HotModule，冷模块进编译器装载器）。无redirect方法的模块直接用原始模块类实例化。
 	 */
-	public IModule [] createRedirectModules(AppBase userApp,
-															  Class<?> [] moduleClasses) {
+	public IModule[] createRedirectModules(AppBase userApp,
+										   Class<?>[] moduleClasses) {
 		lock();
 		try {
 			int n = moduleClasses.length;
@@ -328,8 +329,8 @@ public final class GenModule extends ReentrantLock {
 												String source) {
 		if (genClass.getSuperclass() != moduleClass)
 			throw new IllegalStateException("redirect class mismatch (" + source + "): " + genClass.getName()
-					+ ", superclass=" + genClass.getSuperclass().getName()
-					+ ", expect=" + moduleClass.getName());
+				+ ", superclass=" + genClass.getSuperclass().getName()
+				+ ", expect=" + moduleClass.getName());
 	}
 
 	// 方法去重键——同签名（名字+参数类型）视为同一个覆盖点，类层级收集中
@@ -343,7 +344,7 @@ public final class GenModule extends ReentrantLock {
 		sb.appendLine();
 		sb.appendLine("import org.jspecify.annotations.NullMarked;");
 		if (overrides.stream().anyMatch(m -> m.getDefineString().contains("@Nullable")
-				|| Gen.instance.getTypeName(m.method.getAnnotatedReturnType()).contains("@Nullable")))
+			|| Gen.instance.getTypeName(m.method.getAnnotatedReturnType()).contains("@Nullable")))
 			sb.appendLine("import org.jspecify.annotations.Nullable;");
 		sb.appendLine();
 		sb.appendLine("@NullMarked");
@@ -369,16 +370,16 @@ public final class GenModule extends ReentrantLock {
 					// 理应非null；仍判空防止未来改动漏网时拼出非法源码RedirectFuture<null>（晦涩编译失败）。
 					if (m.resultTypeName == null)
 						throw new IllegalStateException("RedirectFuture<> missing result type: "
-								+ moduleClass.getName() + '.' + m.method.getName());
+							+ moduleClass.getName() + '.' + m.method.getName());
 					returnName = Gen.instance.getTypeName(m.method.getAnnotatedReturnType());
 				} else if (type == RedirectAllFuture.class) {
 					if (m.resultTypeName == null)
 						throw new IllegalStateException("RedirectAllFuture<> missing result type: "
-								+ moduleClass.getName() + '.' + m.method.getName());
+							+ moduleClass.getName() + '.' + m.method.getName());
 					returnName = Gen.instance.getTypeName(m.method.getAnnotatedReturnType());
 				} else {
 					throw new UnsupportedOperationException("Redirect return type Must Be void or RedirectFuture or RedirectAllFuture: "
-							+ moduleClass.getName() + '.' + m.method.getName());
+						+ moduleClass.getName() + '.' + m.method.getName());
 				}
 				String modifier;
 				int flags = m.method.getModifiers();
@@ -388,7 +389,7 @@ public final class GenModule extends ReentrantLock {
 					modifier = "protected ";
 				else {
 					throw new UnsupportedOperationException("Redirect method Must Be public or protected: "
-							+ moduleClass.getName() + '.' + m.method.getName());
+						+ moduleClass.getName() + '.' + m.method.getName());
 				}
 
 				var redirectFullName = moduleFullName + ':' + m.method.getName();
@@ -423,8 +424,8 @@ public final class GenModule extends ReentrantLock {
 				sb.appendLine("{}_a_.setMethodFullName(\"{}:{}\");", prefix, moduleFullName, m.method.getName());
 				sb.appendLine("{}_a_.setServiceNamePrefix(java.util.Objects.requireNonNull(_redirect_.providerApp.serverServiceNamePrefix));", prefix);
 				int version = m.annotation instanceof RedirectHash
-						? ((RedirectHash)m.annotation).version()
-						: ((RedirectToServer)m.annotation).version();
+					? ((RedirectHash)m.annotation).version()
+					: ((RedirectToServer)m.annotation).version();
 				if (version != 0)
 					sb.appendLine("{}_a_.setVersion({});", prefix, version);
 				if (!m.inputParameters.isEmpty()) {
@@ -588,32 +589,34 @@ public final class GenModule extends ReentrantLock {
 					continue;
 				if (!BeanFactory.class.isAssignableFrom(field.getType()))
 					throw new UnsupportedOperationException("redirect Bean/Data param unsupported: beanFactory "
-							+ "field type must be Zeze.Collections.BeanFactory, but is " + field.getType().getName()
-							+ " (module " + moduleClass.getName() + ", methods " + methodsNeedingFactory + ")");
+						+ "field type must be Zeze.Collections.BeanFactory, but is " + field.getType().getName()
+						+ " (module " + moduleClass.getName() + ", methods " + methodsNeedingFactory + ")");
 				if ((field.getModifiers() & (Modifier.PUBLIC | Modifier.PROTECTED)) == 0)
 					throw new UnsupportedOperationException("redirect Bean/Data param unsupported: beanFactory field "
-							+ "must be public or protected (the generated subclass lives in the default package and "
-							+ "inherits across packages), module " + cls.getName() + ", methods " + methodsNeedingFactory);
+						+ "must be public or protected (the generated subclass lives in the default package and "
+						+ "inherits across packages), module " + cls.getName() + ", methods " + methodsNeedingFactory);
 				return; // 父类链上找到可访问的静态beanFactory
 			}
 		}
 		throw new UnsupportedOperationException("redirect Bean/Data param unsupported: module "
-				+ moduleClass.getName() + " (methods " + methodsNeedingFactory + ") has no accessible static "
-				+ "beanFactory in its superclass chain; declare: protected static final "
-				+ "Zeze.Collections.BeanFactory beanFactory = new Zeze.Collections.BeanFactory();");
+			+ moduleClass.getName() + " (methods " + methodsNeedingFactory + ") has no accessible static "
+			+ "beanFactory in its superclass chain; declare: protected static final "
+			+ "Zeze.Collections.BeanFactory beanFactory = new Zeze.Collections.BeanFactory();");
 	}
 
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
-	private static void choiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName, String
-			prefix) {
-		if (m.annotation instanceof RedirectHash) {
-			sb.appendLine("{}var _t_ = _redirect_.choiceHash(this, {}, {});",
-					prefix, m.hashOrServerIdParameter.getName(), m.getConcurrentLevelSource());
-		} else if (m.annotation instanceof RedirectToServer) {
-			sb.appendLine("{}var _t_ = _redirect_.choiceServer(this, {}, {});",
-					prefix, m.hashOrServerIdParameter.getName(), ((RedirectToServer)m.annotation).orOtherServer());
-		} else if (m.annotation instanceof RedirectAll)
+	private static void choiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName, String prefix) {
+		switch (m.annotation) {
+		case RedirectHash redirectHash -> sb.appendLine("{}var _t_ = _redirect_.choiceHash(this, {}, {});",
+			prefix, m.hashOrServerIdParameter.getName(), m.getConcurrentLevelSource());
+		case RedirectToServer redirectToServer -> sb.appendLine("{}var _t_ = _redirect_.choiceServer(this, {}, {});",
+			prefix, m.hashOrServerIdParameter.getName(), redirectToServer.orOtherServer());
+		case RedirectAll redirectAll -> {
 			return; // RedirectAll 不在这里选择目标服务器。后面发送的时候直接查找所有可用服务器并进行广播。
+		}
+		default -> {
+		}
+		}
 
 		sb.appendLine("{}if (_t_ == null) { // local: loop-back", prefix);
 		if (returnName.equals("void")) {

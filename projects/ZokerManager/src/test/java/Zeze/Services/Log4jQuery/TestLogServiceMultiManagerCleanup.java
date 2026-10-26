@@ -22,7 +22,7 @@ import org.xml.sax.InputSource;
 import Zeze.Services.Log4jQuery.Log4jFileManager;
 import Zeze.Services.Log4jQuery.LogServiceConf;
 import Zeze.Services.LogService;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Task;
 
 import harness.Fast;
@@ -72,7 +72,7 @@ public class TestLogServiceMultiManagerCleanup {
 
 		// detector已死的观察：在valid目录创建active文件，泄漏的watch线程会处理CREATE并创建索引。
 		var fmt = DateTimeFormatter.ofPattern("yy-MM-dd HH:mm:ss.SSS");
-		AtomicFileWriter.writeAtomically(dirValid.resolve(validConf.logActive),
+		AtomicOutputFile.writeAtomically(dirValid.resolve(validConf.logActive),
 				(fmt.format(LocalDateTime.now()) + " hello\n").getBytes());
 		var activeIndex = dirValid.resolve(validConf.logActive + ".index");
 		var deadline = System.currentTimeMillis() + 1_000;

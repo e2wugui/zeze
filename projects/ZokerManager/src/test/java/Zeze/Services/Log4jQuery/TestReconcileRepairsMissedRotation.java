@@ -25,7 +25,7 @@ import Zeze.Services.Log4jQuery.Log4jFileManager;
 import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
 import Zeze.Services.Log4jQuery.LogServiceConf;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Task;
 
 import harness.Fast;
@@ -55,7 +55,7 @@ public class TestReconcileRepairsMissedRotation {
 	public void testReconcileRepointsMissedRotation() throws Exception {
 		var logDir = Files.createTempDirectory("rotation-repoint");
 		var c1 = buildLines(C1Base, "c1-", 40);
-		AtomicFileWriter.writeAtomically(logDir.resolve(Active), c1.getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(logDir.resolve(Active), c1.getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -63,7 +63,7 @@ public class TestReconcileRepairsMissedRotation {
 
 			// log4j轮转的磁盘形态：旧内容改名进rotate名，active名重建承载新内容（时间窗更晚）。
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotated));
-			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
+			AtomicOutputFile.writeAtomically(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 
 			invokeReconcile(manager);
@@ -119,13 +119,13 @@ public class TestReconcileRepairsMissedRotation {
 	@Test
 	public void testFreshIndexNotRepointed() throws Exception {
 		var logDir = Files.createTempDirectory("rotation-noop");
-		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "a-", 3).getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "a-", 3).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
 			manager.stop();
 			// 磁盘出现更晚的漏登rotate（watch事件丢失），但active索引与其文件自洽（末offset<文件长度）。
-			AtomicFileWriter.writeAtomically(logDir.resolve(Rotated),
+			AtomicOutputFile.writeAtomically(logDir.resolve(Rotated),
 					buildLines(C2Base, "r-", 2).getBytes(StandardCharsets.UTF_8));
 
 			invokeReconcile(manager);

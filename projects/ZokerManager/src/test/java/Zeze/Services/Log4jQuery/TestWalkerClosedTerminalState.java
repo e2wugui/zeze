@@ -25,7 +25,7 @@ import Zeze.Services.Log4jQuery.Log4jFileWalker;
 import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
 import Zeze.Services.Log4jQuery.LogServiceConf;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Task;
 
 import harness.Fast;
@@ -115,6 +115,6 @@ public class TestWalkerClosedTerminalState {
 		var sb = new StringBuilder();
 		for (var i = 0; i < messages.length; ++i)
 			sb.append(base.plusSeconds(30L * i).format(fmt)).append(' ').append(messages[i]).append('\n');
-		AtomicFileWriter.writeAtomically(file, sb.toString().getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(file, sb.toString().getBytes(StandardCharsets.UTF_8));
 	}
 }

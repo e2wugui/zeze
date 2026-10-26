@@ -1,11 +1,6 @@
 package Zeze.Util;
 
-import static java.util.Objects.requireNonNull;
-
-import org.jspecify.annotations.Nullable;
-
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.channels.ClosedChannelException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,14 +17,11 @@ import org.junit.jupiter.api.Test;
 /**
  * 原子写失败后不得发布：两道防线各自的裁决范围。
  * <p>
- * close-as-commit原语义下，写入前缀后失败（或调用方主体异常）再走try-with-resources
- * 的close，会把残缺内容原子rename成新版——调用方收到失败异常、旧目标却被换掉，
- * old-or-new契约破坏。两道防线：
- * ①流自身防线：write曾抛IOException即记writeFailed，close遇此标记走失败清理
- *   （删temp、抛出）不再发布——覆盖"流写失败"；
+ * ①流自身防线：write/flush曾抛出即记writeFailed，commit遇此标记走失败清理
+ *   （删temp、抛出）不再发布——覆盖"流写失败但调用方吞掉异常"；
  * ②作用域防线：writeAtomically以writer正常返回为发布条件，任何Throwable丢弃temp
  *   ——覆盖"主体异常但流写入全部成功"（如zip条目复制抛出、底层流无失败记录）。
- * 修复前红：①close照样发布前缀；②writer抛出后TWR的close发布残缺内容。
+ * 包装流close只有刷新权限；句柄close默认放弃，发布必须显式commit。
  */
 @Fast
 public class TestAtomicScopedWrite {
@@ -47,30 +39,30 @@ public class TestAtomicScopedWrite {
 
 	/**
 	 * 防线①：写入前缀成功后底层channel被关闭（模拟真实写失败），后续大块write越过
-	 * 缓冲触达channel抛出；try-with-resources的close不得发布残缺前缀——旧目标保持、
-	 * temp清理、close显式抛出writeFailed错误。
+	 * 缓冲触达channel抛出；调用方吞掉写失败后仍不得commit——旧目标保持、
+	 * temp清理、commit显式抛出writeFailed错误。
 	 */
 	@Test
-	public void testWriteFailureBlocksClosePublish() throws Exception {
+	public void testWriteFailureBlocksCommit() throws Exception {
 		var target = dir.resolve("defense.bin");
 		Files.writeString(target, "GOOD-OLD");
 
 		var channelField = AtomicOutputFile.class.getDeclaredField("channel");
 		channelField.setAccessible(true);
-		var closeFailure = new java.util.concurrent.atomic.AtomicReference<@Nullable IOException>();
-		try (var out = AtomicFileWriter.openOutput(target)) {
-			out.write("NE".getBytes(java.nio.charset.StandardCharsets.UTF_8)); // 前缀成功（进缓冲）
+		try (var out = new AtomicOutputFile(target)) {
+			var stream = out.outputStream();
+			stream.write("NE".getBytes(java.nio.charset.StandardCharsets.UTF_8)); // 前缀成功（进缓冲）
 			// 真实注入：关掉底层channel，大块write越过缓冲区必然IOException。
 			((java.nio.channels.FileChannel)channelField.get(out)).close();
 			Assertions.assertThrows(ClosedChannelException.class,
-					() -> out.write(new byte[64 * 1024]), "底层channel已关，write必须失败");
-		} catch (IOException e) {
-			closeFailure.set(e); // TWR退出时的close触发writeFailed防线，必须显式抛出
+					() -> stream.write(new byte[64 * 1024]), "底层channel已关，write必须失败");
+			var commitFailure = Assertions.assertThrows(IOException.class, out::commit);
+			Assertions.assertTrue(commitFailure.getMessage().contains("write failed"),
+					"commit必须因先前写失败而拒绝发布");
+			Assertions.assertThrows(IOException.class, out::commit, "失败提交后不得再次提交");
+			assertNoTmpResidue();
 		}
-		Assertions.assertNotNull(closeFailure.get(), "写失败后的close必须显式抛出（不得静默装作成功后发布）");
-		Assertions.assertTrue(requireNonNull(closeFailure.get()).getMessage().contains("write failed"),
-				"close失败必须是writeFailed防线（实际: " + requireNonNull(closeFailure.get()).getMessage() + "）");
-		Assertions.assertEquals("GOOD-OLD", Files.readString(target), "写失败后close不得发布残缺前缀，旧目标保持");
+		Assertions.assertEquals("GOOD-OLD", Files.readString(target), "写失败后commit不得发布残缺前缀");
 		assertNoTmpResidue();
 	}
 
@@ -79,7 +71,7 @@ public class TestAtomicScopedWrite {
 	public void testScopedWriteSuccessReplaces() throws Exception {
 		var target = dir.resolve("scoped.bin");
 		Files.writeString(target, "OLD");
-		AtomicFileWriter.writeAtomically(target, out -> out.write("NEW".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+		AtomicOutputFile.writeAtomically(target, out -> out.write("NEW".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
 		Assertions.assertEquals("NEW", Files.readString(target));
 		assertNoTmpResidue();
 	}
@@ -90,7 +82,7 @@ public class TestAtomicScopedWrite {
 		var target = dir.resolve("scoped_throw.bin");
 		Files.writeString(target, "GOOD-OLD");
 		Assertions.assertThrows(IllegalStateException.class, () ->
-				AtomicFileWriter.writeAtomically(target, out -> {
+				AtomicOutputFile.writeAtomically(target, out -> {
 					out.write("INCOMPLETE".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 					throw new IllegalStateException("writer body failed mid-way");
 				}));
@@ -104,7 +96,7 @@ public class TestAtomicScopedWrite {
 		var target = dir.resolve("scoped_io_throw.bin");
 		Files.writeString(target, "GOOD-OLD");
 		Assertions.assertThrows(IOException.class, () ->
-				AtomicFileWriter.writeAtomically(target, out -> {
+				AtomicOutputFile.writeAtomically(target, out -> {
 					out.write("PREFIX".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 					throw new IOException("simulated read-source failure");
 				}));
@@ -114,6 +106,77 @@ public class TestAtomicScopedWrite {
 
 	private void assertNoTmpResidue() throws IOException {
 		Assertions.assertTrue(listTmpFiles().isEmpty(), "不得残留tmp: " + listTmpFiles());
+	}
+
+	@Test
+	public void testClosedWrapperCannotPublishFailedCallback() throws Exception {
+		var target = dir.resolve("scoped_wrapper.bin");
+		Files.writeString(target, "GOOD-OLD");
+		var failure = new IOException("source failed inside zip");
+		var thrown = Assertions.assertThrows(IOException.class, () ->
+				AtomicOutputFile.writeAtomically(target, out -> {
+					try (var zip = new java.util.zip.ZipOutputStream(out)) {
+						zip.putNextEntry(new java.util.zip.ZipEntry("entry"));
+						zip.write(new byte[]{1, 2, 3});
+						throw failure;
+					}
+				}));
+		Assertions.assertSame(failure, thrown);
+		Assertions.assertArrayEquals("GOOD-OLD".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+				Files.readAllBytes(target));
+		assertNoTmpResidue();
+	}
+
+	@Test
+	public void testCallbackCloseDoesNotPublishBeforeReturn() throws Exception {
+		var target = dir.resolve("scoped_close.bin");
+		Files.writeString(target, "OLD");
+		AtomicOutputFile.writeAtomically(target, out -> {
+			try (var writer = new java.io.OutputStreamWriter(out, java.nio.charset.StandardCharsets.UTF_8)) {
+				writer.write("NEW");
+			}
+			Assertions.assertEquals("OLD", Files.readString(target), "回调正常结束前不得发布");
+		});
+		Assertions.assertEquals("NEW", Files.readString(target));
+		assertNoTmpResidue();
+	}
+
+	@Test
+	public void testWrapperCloseFailureKeepsOld() throws Exception {
+		var target = dir.resolve("scoped_close_failure.bin");
+		Files.writeString(target, "OLD");
+		var failure = new IOException("zip close failed");
+		var thrown = Assertions.assertThrows(IOException.class, () ->
+				AtomicOutputFile.writeAtomically(target, out -> {
+					try (var zip = new java.util.zip.ZipOutputStream(out) {
+						@Override
+						public void close() throws IOException {
+							super.close();
+							throw failure;
+						}
+					}) {
+						zip.putNextEntry(new java.util.zip.ZipEntry("entry"));
+						zip.write(new byte[]{1, 2, 3});
+					}
+				}));
+		Assertions.assertSame(failure, thrown);
+		Assertions.assertEquals("OLD", Files.readString(target));
+		assertNoTmpResidue();
+	}
+
+	@Test
+	public void testScopedWriterErrorKeepsOld() throws Exception {
+		var target = dir.resolve("scoped_error.bin");
+		Files.writeString(target, "OLD");
+		var failure = new AssertionError("writer failed");
+		var thrown = Assertions.assertThrows(AssertionError.class, () ->
+				AtomicOutputFile.writeAtomically(target, out -> {
+					out.write(new byte[]{1, 2, 3});
+					throw failure;
+				}));
+		Assertions.assertSame(failure, thrown);
+		Assertions.assertEquals("OLD", Files.readString(target));
+		assertNoTmpResidue();
 	}
 
 	private List<Path> listTmpFiles() throws IOException {

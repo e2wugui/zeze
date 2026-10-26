@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import Zeze.Services.Log4jQuery.Log4jFileManager;
 import Zeze.Services.Log4jQuery.Log4jSession;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -159,7 +159,7 @@ public class TestSeekPickSurvivesConcurrentRemovalShift {
 
 	private static void writeRotate(Path logDir, String name, LocalDateTime base,
 								   String prefix, long... offsetsSeconds) throws Exception {
-		AtomicFileWriter.writeAtomically(logDir.resolve(name),
+		AtomicOutputFile.writeAtomically(logDir.resolve(name),
 				buildLines(base, prefix, offsetsSeconds).getBytes(StandardCharsets.UTF_8));
 	}
 

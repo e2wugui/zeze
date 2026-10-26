@@ -23,7 +23,7 @@ import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Services.Zoker;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.FileBin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -462,7 +462,7 @@ public class DistributeManager {
 	 * 成功；尾部点形态同链路（落盘名脱点后占位）。Linux（大小写敏感 FS）上 "Current"
 	 * 本是合法版本名，一并排除零成本且跨平台同一 versionNo 得到同一裁决——两端都闭合。
 	 * run.pid 同族扩入——它是容器根的进程身份文件（与 current 同层同碰撞面），
-	 * 版本目录 rename 占据该位置后 startService 的身份落盘（AtomicFileWriter 对目录目标
+	 * 版本目录 rename 占据该位置后 startService 的身份落盘（AtomicOutputFile 对目录目标
 	 * rename）恒失败 → 按"写盘失败=不交付"一切 start 恒 eStartFail（服务永不可启动，无自愈）。
 	 * 仅用于 versionNo：serviceName 与保留字无碰撞面（services/Current、services/run.pid
 	 * 都是合法服务容器名——保留字在容器<b>之内</b>，容器名本身单段即安全），不得套用。
@@ -748,11 +748,11 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 原子切换现役指针：内容=版本号，经 AtomicFileWriter（fsync+原子 rename 换版）
+	 * 原子切换现役指针：内容=版本号，经 AtomicOutputFile（fsync+原子 rename 换版）
 	 * 写 current——任何时刻读到的都是完整的旧版本号或新版本号，无截断/半内容中间态。
 	 */
 	private static void switchCurrent(File svcDir, String versionNo) throws IOException {
-		AtomicFileWriter.writeAtomically(new File(svcDir, CURRENT_NAME).toPath(), versionNo.getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(new File(svcDir, CURRENT_NAME).toPath(), versionNo.getBytes(StandardCharsets.UTF_8));
 	}
 
 	/**

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import Zeze.Services.Log4jQuery.Log4jFileManager;
 import Zeze.Services.Log4jQuery.LogIndex;
 import Zeze.Services.Log4jQuery.LogServiceConf;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import harness.Fast;
@@ -145,7 +145,7 @@ public class TestLog4jFileManagerRenameRetry {
 
 	/** 预置与内容配对的active日志索引（两records：time=首条/offset=0，time=次条/offset=首行长度）。 */
 	private static Log4jFileManager newManager(Path logDir) throws Exception {
-		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines().getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(logDir.resolve(Active), buildLines().getBytes(StandardCharsets.UTF_8));
 		var line0Len = buildLines().indexOf('\n') + 1;
 		try (var ch = FileChannel.open(logDir.resolve(Active + ".index"),
 				StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {

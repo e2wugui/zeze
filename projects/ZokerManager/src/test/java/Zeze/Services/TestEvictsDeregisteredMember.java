@@ -23,7 +23,7 @@ import Zeze.Net.ServiceConf;
 import Zeze.Services.Log4jQuery.SessionAll;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BServiceInfo;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Task;
 
 import harness.Fast;
@@ -169,7 +169,7 @@ public class TestEvictsDeregisteredMember {
 		for (var i = 0; i < count; ++i)
 			sb.append(Base.plusSeconds(10L * i).format(fmt)).append(' ')
 					.append("marker ").append(tag).append(i).append('\n');
-		AtomicFileWriter.writeAtomically(dir.resolve(LogName), sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(dir.resolve(LogName), sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
 
 	private static void push(LogAgent logAgent, String identity, int port) {

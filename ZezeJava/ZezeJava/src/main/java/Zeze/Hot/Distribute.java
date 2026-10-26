@@ -24,7 +24,6 @@ import Zeze.Builtin.Provider.BModule;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
@@ -50,29 +49,31 @@ public class Distribute {
 	private final IdentityHashMap<JarOutputStream, AtomicOutputFile> pendingJars = new IdentityHashMap<>();
 
 	private JarOutputStream openJar(Path path, Manifest manifest) throws IOException {
-		var output = AtomicFileWriter.openOutput(path);
+		var output = new AtomicOutputFile(path);
 		try {
-			var jar = new JarOutputStream(output, manifest);
+			var jar = new JarOutputStream(output.outputStream(), manifest);
 			pendingJars.put(jar, output);
 			return jar;
 		} catch (Throwable e) {
-			try { output.abort(); } catch (Throwable abortError) { e.addSuppressed(abortError); }
+			try { output.close(); } catch (Throwable closeError) { e.addSuppressed(closeError); }
 			throw e;
 		}
 	}
 
 	private void abortJar(JarOutputStream jar, Throwable cause) {
 		var output = pendingJars.remove(jar);
-		if (output != null) {
-			try { output.abort(); } catch (Throwable e) { cause.addSuppressed(e); }
-		}
 		try { jar.close(); } catch (Throwable e) { cause.addSuppressed(e); }
+		if (output != null) {
+			try { output.close(); } catch (Throwable e) { cause.addSuppressed(e); }
+		}
 	}
 
 	private void closeJar(JarOutputStream jar) throws IOException {
+		var output = pendingJars.get(jar);
+		assert output != null;
 		try {
-			jar.finish(); // finish失败时先abort，不能由close发布缺少中央目录的临时jar。
-			jar.close();
+			jar.close(); // JAR收尾成功后才提交；关闭包装流没有发布权限。
+			output.commit();
 			pendingJars.remove(jar);
 		} catch (Throwable e) {
 			abortJar(jar, e);
@@ -86,7 +87,7 @@ public class Distribute {
 			writer.run(jar);
 			closeJar(jar);
 		} catch (Throwable e) {
-			abortJar(jar, e); // 必须先abort后close；try-with-resources的close会提交输出。
+			abortJar(jar, e);
 			throw e;
 		}
 	}

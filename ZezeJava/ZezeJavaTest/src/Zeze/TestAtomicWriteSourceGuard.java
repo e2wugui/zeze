@@ -43,11 +43,11 @@ public class TestAtomicWriteSourceGuard {
 					stmt -> stmt.contains("WRITE")));
 
 	// 白名单（相对各 src/main/java 根；理由随条目维护，调整须在提交信息说明）：
-	// 原语自身及伴生；锁；.installing分块接收；zeze_cache锁文件（I4互斥，内容无关）；
+	// 原子写及快照候选fsync；锁；.installing分块接收；zeze_cache锁文件（I4互斥，内容无关）；
 	// 流式存储与可再生产物（dump/构建产物/索引重建——候选迁移点，迁移后收缩）。
 	private static final Set<String> ALLOWLIST = Set.of(
-			"Zeze/Util/AtomicFileWriter.java", // 原语自身（fsync助手）
-			"Zeze/Util/AtomicOutputFile.java", // 原语伴生（temp句柄，rename前唯一合法截断点）
+			"Zeze/Util/AtomicOutputFile.java", // 原子替换原语（temp句柄，rename前唯一合法截断点）
+			"Zeze/Raft/LogSequence.java", // 快照候选rename前force；仅打开既有文件补齐fsync，不截断
 			"Zeze/Raft/ReceiveSnapshotting.java", // .installing 分块接收（RandomAccessFile rw；随R4登记表抽取自Raft.java迁移）
 			"Zeze/Util/FileMutex.java", // 跨进程互斥锁文件（RandomAccessFile rw，互斥用，内容无关；ex-Zeze/Application.java随FND8-26抽取迁移）
 			"Zeze/MQ/MQFileWithIndex.java", // MQ流式存储（追加+索引，既有自愈）
@@ -91,7 +91,7 @@ public class TestAtomicWriteSourceGuard {
 				}
 			}
 		}
-		assertTrue(violations.isEmpty(), () -> "I1违例（白名单外截断式写，须经Zeze.Util.AtomicFileWriter）：\n"
+		assertTrue(violations.isEmpty(), () -> "I1违例（白名单外截断式写，须经Zeze.Util.AtomicOutputFile）：\n"
 				+ String.join("\n", violations));
 	}
 

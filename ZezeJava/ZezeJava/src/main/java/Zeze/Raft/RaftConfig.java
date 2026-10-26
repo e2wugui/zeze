@@ -18,7 +18,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import Zeze.Net.Binary;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.w3c.dom.Document;
@@ -395,7 +395,7 @@ public final class RaftConfig {
 			var output = new ByteArrayOutputStream();
 			transformer.transform(new DOMSource(xmlDocument), new StreamResult(output));
 			try {
-				AtomicFileWriter.writeAtomically(new File(xmlFileName).toPath(), output.toByteArray());
+				AtomicOutputFile.writeAtomically(new File(xmlFileName).toPath(), output.toByteArray());
 			} catch (IOException e) {
 				throw new TransformerException(e);
 			}

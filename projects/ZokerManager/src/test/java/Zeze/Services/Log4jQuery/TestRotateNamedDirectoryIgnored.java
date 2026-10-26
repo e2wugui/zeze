@@ -19,7 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import Zeze.Builtin.LogService.BCondition;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.Task;
 
 import harness.Fast;
@@ -52,7 +52,7 @@ public class TestRotateNamedDirectoryIgnored {
 	@Test
 	public void testRotateNamedDirectoryDoesNotHijackActive() throws Exception {
 		var logDir = Files.createTempDirectory("log4j-rotate-named-directory");
-		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(Base, "a-", 0, 10, 20)
+		AtomicOutputFile.writeAtomically(logDir.resolve(Active), buildLines(Base, "a-", 0, 10, 20)
 				.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {

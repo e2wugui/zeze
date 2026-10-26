@@ -30,7 +30,7 @@ import Zeze.Services.Log4jQuery.Log4jFileManager;
 import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
 import Zeze.Services.Log4jQuery.LogServiceConf;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 
@@ -78,7 +78,7 @@ public class TestReconcileOutOfLockIndexBuild {
 		try {
 			assertEquals(1, manager.size());
 			manager.stop(); // 模拟watch事件丢失：补登只由直调对账发生
-			AtomicFileWriter.writeAtomically(logDir.resolve("zeze.2026-01-01.log"),
+			AtomicOutputFile.writeAtomically(logDir.resolve("zeze.2026-01-01.log"),
 					buildLines(base, BigLines).getBytes(StandardCharsets.UTF_8));
 
 			// 锁持有解耦断言（log4jquery-01起reconcile=锁内采样登记+锁外即时续建，总墙钟随文件
@@ -155,9 +155,9 @@ public class TestReconcileOutOfLockIndexBuild {
 		try {
 			assertEquals(1, manager.size());
 			manager.stop();
-			AtomicFileWriter.writeAtomically(logDir.resolve("zeze.2026-01-01.log"),
+			AtomicOutputFile.writeAtomically(logDir.resolve("zeze.2026-01-01.log"),
 					buildLines(base1, lines).getBytes(StandardCharsets.UTF_8));
-			AtomicFileWriter.writeAtomically(logDir.resolve("zeze.2026-02-01.log"),
+			AtomicOutputFile.writeAtomically(logDir.resolve("zeze.2026-02-01.log"),
 					buildLines(base2, lines).getBytes(StandardCharsets.UTF_8));
 
 			invokeReconcile(manager);
@@ -209,7 +209,7 @@ public class TestReconcileOutOfLockIndexBuild {
 		try {
 			assertEquals(0, manager.size());
 			manager.stop();
-			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
+			AtomicOutputFile.writeAtomically(logDir.resolve(Active),
 					buildLines(base, 5).getBytes(StandardCharsets.UTF_8));
 
 			invokeReconcile(manager);
@@ -267,7 +267,7 @@ public class TestReconcileOutOfLockIndexBuild {
 		for (var i = 0; i < count; ++i)
 			sb.append(base.plusSeconds(30L * i).format(fmt)).append(' ')
 					.append(prefix).append(i).append('\n');
-		AtomicFileWriter.writeAtomically(file, sb.toString().getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(file, sb.toString().getBytes(StandardCharsets.UTF_8));
 	}
 
 	private static long millis(LocalDateTime time) {

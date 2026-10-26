@@ -2,7 +2,7 @@ package Zeze.Raft;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -17,7 +17,7 @@ public class TestRaftConfigSaveDefaults {
 	@Test
 	public void testResetDefaultsSurvivesSaveAndReload() throws Exception {
 		var path = directory.resolve("raft.xml");
-		AtomicFileWriter.writeAtomically(path, """
+		AtomicOutputFile.writeAtomically(path, """
 				<raft Name="127.0.0.1:17650" AppendEntriesTimeout="3000"
 				 LeaderHeartbeatTimer="3200" ElectionRandomMax="1200"
 				 MaxAppendEntriesCount="600" SnapshotLogCount="2000000"

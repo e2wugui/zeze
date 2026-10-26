@@ -35,7 +35,7 @@ import Zeze.Raft.RocksRaft.Log1.LogDecimal;
 import Zeze.Raft.RocksRaft.Log1.LogFloat;
 import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Raft.RocksRaft.Log1.LogLong;
-import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
 import Zeze.Raft.RocksRaft.Log1.LogShort;
 import Zeze.Raft.RocksRaft.Log1.LogString;
 import Zeze.Raft.RocksRaft.Log1.LogQuaternion;
@@ -626,14 +626,10 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public static void createZipFromDirectory(String sourceDir, String zipFilePath) throws IOException {
-		// 作用域式原子写（writeAtomically）：zip条目复制中途抛出时底层流写入可能全部
-		// 成功（流自身无失败记录），close-as-commit防线识别不了"zip未完成"——裸
-		// openOutput+try-with-resources会把残缺zip替换旧目标。zos不进TWR：zos.close
-		// 级联关闭底层out即提交，失败路径的丢弃必须由writeAtomically的abort统一裁决。
-		AtomicFileWriter.writeAtomically(Paths.get(zipFilePath), out -> {
-			var zos = new ZipOutputStream(out);
+		// ZIP内容及中央目录全部写完后才提交；复制或包装流关闭失败时由作用域丢弃temp。
+		AtomicOutputFile.writeAtomically(Paths.get(zipFilePath), out -> {
 			Path sourcePath = Paths.get(sourceDir);
-			try (var stream = Files.walk(sourcePath)) {
+			try (var zos = new ZipOutputStream(out); var stream = Files.walk(sourcePath)) {
 				stream.filter(path -> !Files.isDirectory(path)).forEach(path -> {
 					ZipEntry ze = new ZipEntry(sourcePath.relativize(path).toString().replace(File.separatorChar, '/'));
 					try {
@@ -645,7 +641,6 @@ public final class Rocks extends StateMachine implements Closeable {
 					}
 				});
 			}
-			zos.close(); // 写中央目录；随后writeAtomically的out.close提交（幂等安全）
 		});
 	}
 
