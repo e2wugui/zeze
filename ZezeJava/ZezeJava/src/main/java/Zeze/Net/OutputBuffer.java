@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.GatheringByteChannel;
 import java.util.ArrayDeque;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -59,7 +60,8 @@ public final class OutputBuffer implements Codec, Closeable {
 	}
 
 	public void put(byte [] src, int offset, int length) {
-		if (length > 0) {
+		if (length != 0) {
+			Objects.checkFromIndexSize(offset, length, src.length);
 			var tail = this.tail;
 			if (tail == null)
 				this.tail = tail = allocator.alloc();
