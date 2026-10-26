@@ -22,8 +22,8 @@ public class Tid128Cache extends FastLock {
 	public Tid128Cache(String name, @Nullable AbstractAgent agent, Id128 start, int count) {
 		this.name = name;
 		this.agent = agent;
-		this.start = start;
-		this.current = start;
+		this.start = start.clone();
+		this.current = start.clone();
 		this.end = start.add(count);
 		this.count = count;
 	}
@@ -37,11 +37,16 @@ public class Tid128Cache extends FastLock {
 	}
 
 	public Id128 get() {
-		return current;
+		lock();
+		try {
+			return current.clone();
+		} finally {
+			unlock();
+		}
 	}
 
 	public Id128 getStart() {
-		return start;
+		return start.clone();
 	}
 
 	public int allocateCount() {
