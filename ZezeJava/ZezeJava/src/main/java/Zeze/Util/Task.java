@@ -833,37 +833,47 @@ public final class Task {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		boolean isRequestSaved = p == null || p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
-			var result = func.call();
-			if (result != 0 && isRequestSaved && actionWhenError != null)
-				actionWhenError.handle(p, result);
+			long result;
+			try {
+				result = func.call();
+			} catch (Exception ex) {
+				long errorCode;
+				var rootEx = getRootCause(ex);
+				if (rootEx instanceof TaskCanceledException)
+					errorCode = Procedure.CancelException;
+				else if (rootEx instanceof RaftRetryException)
+					errorCode = Procedure.RaftRetry;
+				else
+					errorCode = Procedure.Exception;
+
+				logAndStatistics(ex, errorCode, p, isRequestSaved, aName);
+				if (isRequestSaved)
+					handleProtocolError(actionWhenError, p, errorCode, aName);
+				return errorCode;
+			}
+			// 回发属于业务完成后的独立阶段，失败不能被重新解释为业务异常并再次回发。
+			if (result != 0 && isRequestSaved)
+				handleProtocolError(actionWhenError, p, result, aName);
 			logAndStatistics(null, result, p, isRequestSaved, aName);
 			return result;
-		} catch (Exception ex) {
-			long errorCode;
-			var rootEx = getRootCause(ex);
-			if (rootEx instanceof TaskCanceledException)
-				errorCode = Procedure.CancelException;
-			else if (rootEx instanceof RaftRetryException)
-				errorCode = Procedure.RaftRetry;
-			else
-				errorCode = Procedure.Exception;
-
-			logAndStatistics(ex, errorCode, p, isRequestSaved, aName);
-			if (isRequestSaved && actionWhenError != null) {
-				try {
-					actionWhenError.handle(p, errorCode);
-				} catch (Exception e) {
-					logger.error("{} exception:", aName != null ? aName
-						: (p != null ? p.getClass().getName() : actionWhenError.getClass().getName()), e);
-				}
-			}
-			return errorCode;
 		} finally {
 			//noinspection ConstantValue
 			if (func != null && timeBegin != 0) { // 统计禁用时零开销
 				runTimeObservers.computeIfAbsent(aName != null ? aName : (p != null ? p : func).getClass(),
 						ZezeCounter.instance::getRunTimeObserver).observe(System.nanoTime() - timeBegin);
 			}
+		}
+	}
+
+	private static void handleProtocolError(@Nullable ProtocolErrorHandle handle, @Nullable Protocol<?> protocol,
+			long result, @Nullable String actionName) {
+		if (handle == null)
+			return;
+		try {
+			handle.handle(protocol, result);
+		} catch (Exception e) {
+			logger.error("{} error callback exception:", actionName != null ? actionName
+					: (protocol != null ? protocol : handle).getClass().getName(), e);
 		}
 	}
 
@@ -1010,26 +1020,22 @@ public final class Task {
 	static long callProcCore(Procedure procedure, @Nullable Protocol<?> from,
 							 @Nullable ProtocolErrorHandle actionWhenError) {
 		boolean isRequestSaved = from == null || from.isRequest();
+		long result;
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
 			// 统计在call里面实现。
-			long result = procedure.call();
-			if (result != 0 && isRequestSaved && actionWhenError != null)
-				actionWhenError.handle(from, result);
-			logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
-			return result;
+			result = procedure.call();
 		} catch (Exception ex) {
 			// Procedure.call处理了所有错误。应该不会到这里。除非内部错误。
-			if (isRequestSaved && actionWhenError != null) {
-				try {
-					actionWhenError.handle(from, Procedure.Exception);
-				} catch (Exception e) {
-					logger.error("actionWhenError exception:", e);
-				}
-			}
+			if (isRequestSaved)
+				handleProtocolError(actionWhenError, from, Procedure.Exception, procedure.getActionName());
 			logger.error("{} exception:", procedure, ex);
 			return Procedure.Exception;
 		}
+		if (result != 0 && isRequestSaved)
+			handleProtocolError(actionWhenError, from, result, procedure.getActionName());
+		logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
+		return result;
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).call()}。 */
@@ -1043,27 +1049,24 @@ public final class Task {
 	static long callProcOutCore(Procedure procedure, OutObject<Protocol<?>> outProtocol,
 								@Nullable ProtocolErrorHandle actionWhenError) {
 		Protocol<?> from = null;
+		long result;
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
 			// 统计在call里面实现。
-			long result = procedure.call();
+			result = procedure.call();
 			from = outProtocol.value;
-			if (result != 0 && (from == null || from.isRequest()) && actionWhenError != null)
-				actionWhenError.handle(from, result);
-			logAndStatistics(null, result, from, from == null || from.isRequest(), procedure.getActionName());
-			return result;
 		} catch (Exception ex) {
 			// Procedure.call处理了所有错误。应该不会到这里。除非内部错误。
-			if ((from == null || from.isRequest()) && actionWhenError != null) {
-				try {
-					actionWhenError.handle(from, Procedure.Exception);
-				} catch (Exception e) {
-					logger.error("actionWhenError exception:", e);
-				}
-			}
+			if (from == null || from.isRequest())
+				handleProtocolError(actionWhenError, from, Procedure.Exception, procedure.getActionName());
 			logger.error("{} exception:", procedure, ex);
 			return Procedure.Exception;
 		}
+		boolean isRequestSaved = from == null || from.isRequest();
+		if (result != 0 && isRequestSaved)
+			handleProtocolError(actionWhenError, from, result, procedure.getActionName());
+		logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
+		return result;
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).run()}。 */
