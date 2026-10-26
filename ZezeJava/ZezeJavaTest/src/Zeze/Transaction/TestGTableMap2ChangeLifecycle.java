@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestGTableMap2ChangeLifecycle {
 	static {
-		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogInt.TYPE_ID, "LogInt", LogInt::decode));
+		Zeze.Transaction.LogRegistry.register(LogInt.TYPE_ID, "LogInt", LogInt::decode);
 	}
 
 	private static byte[] encode(Log log) {
@@ -86,7 +86,7 @@ public class TestGTableMap2ChangeLifecycle {
 		Map2TestSupport.attach(outer);
 		var row = requireNonNull(outer.get(1L));
 		var inner = row.getPMap1();
-		var innerLog = new LogMap1Delta<String, Integer>(inner, inner.getMap());
+		var innerLog = (LogMap1Delta<String, Integer>)inner.createLog(ChangeCaptureMode.DELTA);
 		innerLog.put("column", 42);
 		innerLog.commit();
 		var finalSavepoint = new Savepoint();

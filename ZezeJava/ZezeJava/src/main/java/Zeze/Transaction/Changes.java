@@ -1,7 +1,6 @@
 package Zeze.Transaction;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -85,9 +84,10 @@ public final class Changes {
 		public static final int Edit = 2;
 
 		private final Table table;
-		private final HashSet<LogBean> logBean = new HashSet<>();
+		// 最终 Edit 只对应当前记录值的一棵根日志；空编辑保留 null。
+		private @Nullable LogBean logBean;
 		// 所有的日志修改树，key is Record.Value。不会被序列化。
-		private final IdentityHashMap<Bean, LogBean> logBeans = new IdentityHashMap<>();
+		private @Nullable IdentityHashMap<Bean, LogBean> logBeans;
 		private @Nullable Bean value;
 		private int state;
 		private boolean incomplete;
@@ -97,8 +97,7 @@ public final class Changes {
 		}
 
 		public @Nullable LogBean getLogBean() {
-			var it = logBean.iterator();
-			return it.hasNext() ? it.next() : null;
+			return logBean;
 		}
 
 		public @Nullable Log getVariableLog(int variableId) {
@@ -144,7 +143,9 @@ public final class Changes {
 		}
 
 		public IdentityHashMap<Bean, LogBean> getLogBeans() {
-			return logBeans;
+			var roots = logBeans;
+			// 仍按身份保留所有旧根，最终收集时筛选当前值。
+			return roots != null ? roots : (logBeans = new IdentityHashMap<>());
 		}
 
 		public @Nullable Bean getValue() {
@@ -160,6 +161,8 @@ public final class Changes {
 		}
 
 		public void collect(RecordAccessed ar) {
+			logBean = null;
+			value = null;
 			if (ar.committedPutLog != null) { // put or remove
 				var put = ar.committedPutLog.getValue();
 				if (put != null) {
@@ -173,10 +176,11 @@ public final class Changes {
 			}
 
 			state = Edit;
-			var logBean = logBeans.get(ar.atomicTupleRecord.strongRef());
-			if (logBean != null) {
+			var roots = logBeans;
+			var root = roots != null ? roots.get(ar.atomicTupleRecord.strongRef()) : null;
+			if (root != null) {
 				value = ar.atomicTupleRecord.strongRef(); // old
-				this.logBean.add(logBean); // edit
+				logBean = root; // edit
 			}
 		}
 
@@ -190,15 +194,20 @@ public final class Changes {
 				value.encode(bb);
 				break;
 			case Edit:
-				bb.WriteUInt(logBean.size());
-				for (var log : logBean)
-					log.encode(bb);
+				var root = logBean;
+				bb.WriteUInt(root != null ? 1 : 0);
+				if (root != null)
+					root.encode(bb);
 				break;
 			}
 		}
 
 		public void decode(ByteBuffer bb) {
 			state = bb.ReadUInt();
+			value = null;
+			logBean = null;
+			if (logBeans != null)
+				logBeans.clear();
 			switch (state) {
 			case Remove:
 				break;
@@ -207,9 +216,11 @@ public final class Changes {
 				value.decode(bb);
 				break;
 			case Edit:
-				logBean.clear();
-				for (int count = bb.ReadUInt(); count > 0; --count)
-					logBean.add(LogBean.decode(0, bb));
+				int count = bb.ReadUInt();
+				if (count == 1)
+					logBean = LogBean.decode(0, bb);
+				else if (count != 0)
+					throw new IllegalArgumentException("record edit requires zero or one root log: " + count);
 				break;
 			}
 		}
@@ -218,10 +229,10 @@ public final class Changes {
 		public String toString() {
 			var sb = new StringBuilder();
 			sb.append("State=").append(state).append(" PutValue=").append(value);
-			sb.append("\nLog=");
-			ByteBuffer.BuildSortedString(sb, logBean);
+			sb.append("\nLog=").append(logBean);
 			sb.append("\nAllLog=");
-			ByteBuffer.BuildSortedString(sb, logBeans.values());
+			if (logBeans != null)
+				ByteBuffer.BuildSortedString(sb, logBeans.values());
 			return sb.toString();
 		}
 	}
@@ -265,7 +276,7 @@ public final class Changes {
 			collect(parent, node);
 			return;
 		}
-		getOrCreateRecord(source).logBeans.put(source, node);
+		getOrCreateRecord(source).getLogBeans().put(source, node);
 	}
 
 	private Record getOrCreateRecord(Bean source) {
@@ -277,10 +288,7 @@ public final class Changes {
 	}
 
 	private Record getOrCreateRecord(TableKey key, Table table) {
-		var record = records.get(key);
-		if (record == null)
-			records.put(key, record = new Record(table));
-		return record;
+		return records.computeIfAbsent(key, k -> new Record(table));
 	}
 
 	void collectRecord(RecordAccessed ar) {
@@ -325,7 +333,8 @@ public final class Changes {
 			// 通知完以后不再需要。
 			// 【注意】history引用了其他部分，不能清除。
 			// help gc
-			v.logBeans.clear();
+			if (v.logBeans != null)
+				v.logBeans.clear();
 		}
 	}
 

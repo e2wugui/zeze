@@ -75,16 +75,15 @@ public final class Map2ListenerView<K, V extends Bean> {
 
 	private static void validateEdits(Map<?, LogBean> changed) {
 		// 在任何业务 action 前拒绝缺少源 Bean 的增量，避免半次投影产生副作用。
-		for (var edit : changed.values()) {
+		changed.forEach((key, edit) -> {
 			if (edit.getThis() == null)
 				throw new IllegalStateException("listener projection requires source Beans");
-		}
+		});
 	}
 
 	@SuppressWarnings("unchecked")
 	private static <K, V extends Bean> void forEachUpsert(Map<K, V> replaced, Map<K, LogBean> changed,
 			BiConsumer<? super K, ? super V> action) {
-		Objects.requireNonNull(action);
 		if (changed.isEmpty()) {
 			// HashMap/TreeMap 的 forEach 可直接遍历节点，不为纯结构变更建立条目迭代器。
 			replaced.forEach(action);

@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestStaleBeanChangedFilter {
 	static {
 		// decodeLogBean -> LogRegistry.decode(typeId) 需要 log 工厂（生产路径由模块装载注册）。
-		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogLong.TYPE_ID, "LogLong", LogLong::decode));
+		Zeze.Transaction.LogRegistry.register(LogLong.TYPE_ID, "LogLong", LogLong::decode);
 	}
 
 	// varId=2 是 BValue.long2；伪造"更早事务装入的bean的字段日志"。

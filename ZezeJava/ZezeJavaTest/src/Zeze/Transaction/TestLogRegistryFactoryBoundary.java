@@ -45,9 +45,8 @@ public class TestLogRegistryFactoryBoundary {
 	@Test
 	public void replacementRequiresExactFactoryOwnership() {
 		LogRegistry.LogDecoder decoder = (id, input) -> new Value(id, input.ReadInt());
-		var owner = new LogRegistry.Factory(TYPE_ID, "Value", decoder);
-		LogRegistry.register(owner);
-		var lookalike = new LogRegistry.Factory(TYPE_ID, "Value", decoder);
+		var owner = LogRegistry.register(TYPE_ID, "Value", decoder);
+		var lookalike = LogRegistry.register(TYPE_ID, "Value", decoder);
 		var replacement = new LogRegistry.Factory(TYPE_ID, "Value", decoder);
 		assertEquals(owner, lookalike);
 		assertFalse(LogRegistry.replaceRegistered(TYPE_ID, lookalike, replacement));

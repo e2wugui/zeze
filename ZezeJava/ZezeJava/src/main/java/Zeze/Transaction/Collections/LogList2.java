@@ -113,6 +113,7 @@ public class LogList2<V extends Bean> extends LogBean {
 		var child = (LogBean)vlog;
 		var item = child.getThis();
 		if (item == null || addSet != null && addSet.contains(item)) return true;
+		if (changed != null && changed.containsKey(child)) return false;
 		if (indices == null) {
 			var list = ((PList2<?>)source).list;
 			indices = new IdentityHashMap<>(list.size());
@@ -120,7 +121,8 @@ public class LogList2<V extends Bean> extends LogBean {
 		}
 		var index = indices.get(item);
 		if (index == null) return true;
-		return getChanged().putIfAbsent(child, new OutInt(index)) == null;
+		getChanged().put(child, new OutInt(index));
+		return true;
 	}
 
 	@Override

@@ -1,7 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.Objects;
-
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.LongConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
@@ -10,6 +8,9 @@ import org.jspecify.annotations.Nullable;
 
 /** Protocol registration and construction of complete decoded change values. */
 public final class LogRegistry {
+	private LogRegistry() {
+	}
+
 	private static final Logger logger = LogManager.getLogger(LogRegistry.class);
 	private static final LongConcurrentHashMap<Factory> factories = new LongConcurrentHashMap<>();
 
@@ -21,20 +22,11 @@ public final class LogRegistry {
 	}
 
 	public record Factory(int typeId, String typeName, LogDecoder decoder) {
-		public Factory {
-			Objects.requireNonNull(typeName);
-			Objects.requireNonNull(decoder);
-		}
-
-		private Log decode(int variableId, IByteBuffer input) {
-			return decoder.decode(variableId, input);
-		}
 	}
 
-	private LogRegistry() {
-	}
-
-	public static void register(Factory factory) {
+	/** 返回本次注册的候选工厂；重复注册仍保留首个工厂，替换时须按对象身份验证所有权。 */
+	public static Factory register(int typeId, String typeName, LogDecoder decoder) {
+		var factory = new Factory(typeId, typeName, decoder);
 		Factory existing;
 		synchronized (factories) {
 			existing = factories.putIfAbsent(factory.typeId(), factory);
@@ -47,13 +39,14 @@ public final class LogRegistry {
 		else
 			logger.debug("register duplicated log typeId({}) with same name: {}, first registered wins",
 				factory.typeId(), factory.typeName());
+		return factory;
 	}
 
 	public static Log decode(int typeId, int variableId, IByteBuffer input) {
 		var factory = factories.get(typeId);
 		if (factory == null)
 			throw new UnsupportedOperationException("unknown log typeId=" + typeId);
-		return factory.decode(variableId, input);
+		return factory.decoder().decode(variableId, input);
 	}
 
 	public static @Nullable Factory getRegistered(int typeId) {

@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestMap2ListenerViewBoundary {
 	static {
-		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogLong.TYPE_ID, "LogLong", LogLong::decode));
+		Zeze.Transaction.LogRegistry.register(LogLong.TYPE_ID, "LogLong", LogLong::decode);
 	}
 
 	private static BValue bean(long value) {
@@ -61,6 +61,44 @@ public class TestMap2ListenerViewBoundary {
 		assertArrayEquals(before, encode(payload));
 		assertEquals(1, payload.getReplaced().size());
 		assertEquals(1, payload.getChangedWithKey().size());
+	}
+
+	@Test
+	public void mutableSourceMapRejectsInvalidEditsBeforeAnyAction() {
+		var source = new PMap2<Integer, BValue>(Integer.class, BValue.class);
+		var changedValue = bean(7);
+		source.put(2, changedValue);
+		var payload = Map2DeltaTestSupport.map(source, delta -> delta.put(1, bean(10)));
+		payload.addChild(source, fieldChange(changedValue));
+		var view = Map2ListenerView.of(payload);
+		var actions = new AtomicInteger();
+		view.forEachUpsert((key, value) -> actions.incrementAndGet());
+		assertEquals(2, actions.get());
+		payload.getChangedWithKey().put(3, new LogBean(0, null));
+		actions.set(0);
+		assertThrows(IllegalStateException.class, () -> view.forEachUpsert((key, value) -> actions.incrementAndGet()));
+		assertThrows(IllegalStateException.class,
+			() -> Map2ListenerView.forEachUpsert(payload, (key, value) -> actions.incrementAndGet()));
+		assertEquals(0, actions.get());
+	}
+
+	@Test
+	public void mutableSourceSortedMapRejectsInvalidEditsBeforeAnyAction() {
+		var source = new PSortedMap2<Integer, BValue>(Integer.class, BValue.class);
+		var changedValue = bean(7);
+		source.put(2, changedValue);
+		var payload = Map2DeltaTestSupport.sorted(source, delta -> delta.put(1, bean(10)));
+		payload.addChild(source, fieldChange(changedValue));
+		var view = Map2ListenerView.of(payload);
+		var actions = new AtomicInteger();
+		view.forEachUpsert((key, value) -> actions.incrementAndGet());
+		assertEquals(2, actions.get());
+		payload.getChangedWithKey().put(3, new LogBean(0, null));
+		actions.set(0);
+		assertThrows(IllegalStateException.class, () -> view.forEachUpsert((key, value) -> actions.incrementAndGet()));
+		assertThrows(IllegalStateException.class,
+			() -> Map2ListenerView.forEachUpsert(payload, (key, value) -> actions.incrementAndGet()));
+		assertEquals(0, actions.get());
 	}
 
 	@Test

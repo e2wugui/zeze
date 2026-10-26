@@ -44,6 +44,30 @@ public class TestLogList2EncodeChangedIndex {
 	}
 
 	@Test
+	public void testRepeatedChildRetainsAllFieldChanges() {
+		Zeze.History.Helper.registerLogs();
+		var value = new BValue();
+		var log = newLog(List.of(value));
+		var source = log.getThis();
+		Assertions.assertNotNull(source);
+		var child = new LogBean(0, value);
+		child.getVariablesOrNew().put(1, Map2TestSupport.intLog(1, 7));
+		Assertions.assertTrue(log.addChild(source, child));
+		child.getVariablesOrNew().put(2, Map2TestSupport.longLog(2, 11));
+		Assertions.assertFalse(log.addChild(source, child));
+		var encoded = ByteBuffer.Allocate();
+		log.encode(encoded);
+		var decoded = LogList2.decode(log.getVariableId(), log.meta, encoded);
+		var follower = new PList2<BValue>(BValue.class);
+		follower.add(new BValue());
+		follower.followerApply(decoded);
+		Assertions.assertTrue(encoded.isEmpty());
+		Assertions.assertEquals(1, decoded.getChanged().size());
+		Assertions.assertEquals(7, follower.get(0).getInt_1());
+		Assertions.assertEquals(11, follower.get(0).getLong2());
+	}
+
+	@Test
 	public void testDuplicateElementKeepsFirstIndex() {
 		var a = new BValue();
 		var other = new BValue();

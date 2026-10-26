@@ -381,8 +381,7 @@ public class Helper {
 	private static final Object dynamicRegisterLock = new Object();
 	private static final ConcurrentHashMap<Integer, DynamicWinner> dynamicWinners = new ConcurrentHashMap<>();
 
-	private static void registerDynamicWinner(LogRegistry.Factory factory, String where) {
-		var typeId = factory.typeId();
+	private static void registerDynamicWinner(int typeId, String typeName, LogRegistry.LogDecoder decoder, String where) {
 		synchronized (dynamicRegisterLock) {
 			var cur = dynamicWinners.get(typeId);
 			if (cur == null) {
@@ -393,7 +392,7 @@ public class Helper {
 						+ " non-dynamic registration, first registered wins. where={}", typeId, where);
 					return;
 				}
-				LogRegistry.register(factory);
+				var factory = LogRegistry.register(typeId, typeName, decoder);
 				dynamicWinners.put(typeId, new DynamicWinner(factory, where));
 				return;
 			}
@@ -407,6 +406,7 @@ public class Helper {
 			}
 			// 新到家族字典序更小：跨批翻转接管——仅当槽位仍是本表先前登记的工厂（按对象
 			// 身份条件替换）时生效；被外来注册占用则不接管（防御分支，理论上不可达）。
+			var factory = new LogRegistry.Factory(typeId, typeName, decoder);
 			if (LogRegistry.replaceRegistered(typeId, cur.factory, factory)) {
 				dynamicWinners.put(typeId, new DynamicWinner(factory, where));
 				logger.warn("dynamic collection family replaced (cross-batch): same log typeId({}) with"
@@ -553,34 +553,34 @@ public class Helper {
 	// 工厂闭包直接捕获meta：解码是热路径（follower复制/history回放），勿在lambda内重查XxxMeta.get。
 	public static <T extends Serializable> void registerLogBeanKey(Class<T> beanClass) {
 		var meta = BeanKeyMeta.get(beanClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogBeanKeyValue.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogBeanKeyValue.decode(varId, meta, bb));
 	}
 
 	public static <T> void registerLogList1(Class<T> valueClass) {
 		var meta = List1Meta.get(valueClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogList1.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogList1.decode(varId, meta, bb));
 	}
 
 	public static <V extends Bean> void registerLogList2(Class<V> valueClass) {
 		var meta = List2Meta.get(valueClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogList2.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogList2.decode(varId, meta, bb));
 	}
 
 	public static void registerLogList2Dynamic(ToLongFunction<@Nullable Bean> get,
 											   LongFunction<@Nullable Bean> create,
 											   String where) {
 		var meta = List2Meta.createDynamic(get, create);
-		registerDynamicWinner(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogList2.decode(varId, meta, bb)), where);
+		registerDynamicWinner(meta.logTypeId, meta.name, (varId, bb) -> LogList2.decode(varId, meta, bb), where);
 	}
 
 	public static <K, V> void registerLogMap1(Class<K> keyClass, Class<V> valueClass) {
 		var meta = Map1Meta.get(keyClass, valueClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap1.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogMap1.decode(varId, meta, bb));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2(Class<K> keyClass, Class<V> valueClass) {
 		var meta = Map2Meta.get(keyClass, valueClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb));
 	}
 
 	public static <K> void registerLogMap2Dynamic(Class<K> keyClass,
@@ -588,43 +588,43 @@ public class Helper {
 												  LongFunction<@Nullable Bean> create,
 												  String where) {
 		var meta = Map2Meta.createDynamic(keyClass, get, create);
-		registerDynamicWinner(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb)), where);
+		registerDynamicWinner(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb), where);
 	}
 
 	public static <K, V> void registerLogMap1Meta(Map1Meta<K, V> meta) {
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap1.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogMap1.decode(varId, meta, bb));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2Meta(Map2Meta<K, V> meta) {
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb));
 	}
 
 	/** dynamic GTable 外层 pmapMeta 注册：经进程级跨批次决胜，与普通 map2Metas 的先到先得分流。 */
 	public static <K, V extends Bean> void registerLogMap2MetaDynamic(Map2Meta<K, V> meta,
 																	  String where) {
-		registerDynamicWinner(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb)), where);
+		registerDynamicWinner(meta.logTypeId, meta.name, (varId, bb) -> LogMap2.decode(varId, meta, bb), where);
 	}
 
 	public static <V> void registerLogSet1(Class<V> valueClass) {
 		var meta = Set1Meta.get(valueClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSet1.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogSet1.decode(varId, meta, bb));
 	}
 
 	public static <V extends Bean> void registerLogOne(Class<V> beanClass) {
 		var meta = LogOneMeta.get(beanClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogOneValue.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogOneValue.decode(varId, meta, bb));
 	}
 
 	public static <K extends Comparable<K>, V> void registerLogSortedMap1(Class<K> keyClass,
 																		  Class<V> valueClass) {
 		var meta = SortedMap1Meta.get(keyClass, valueClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap1.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap1.decode(varId, meta, bb));
 	}
 
 	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2(Class<K> keyClass,
 																					   Class<V> valueClass) {
 		var meta = SortedMap2Meta.get(keyClass, valueClass);
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb));
 	}
 
 	public static <K extends Comparable<K>> void registerLogSortedMap2Dynamic(Class<K> keyClass,
@@ -632,35 +632,35 @@ public class Helper {
 																			  LongFunction<@Nullable Bean> create,
 																			  String where) {
 		var meta = SortedMap2Meta.createDynamic(keyClass, get, create);
-		registerDynamicWinner(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb)), where);
+		registerDynamicWinner(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb), where);
 	}
 
 	public static <K extends Comparable<K>, V> void registerLogSortedMap1Meta(SortedMap1Meta<K, V> meta) {
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap1.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap1.decode(varId, meta, bb));
 	}
 
 	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2Meta(SortedMap2Meta<K, V> meta) {
-		LogRegistry.register(new LogRegistry.Factory(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb)));
+		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogSortedMap2.decode(varId, meta, bb));
 	}
 
 	public static void registerLogs() {
-		LogRegistry.register(new LogRegistry.Factory(LogBoolValue.TYPE_ID, "LogBool", LogBoolValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogByteValue.TYPE_ID, "LogByte", LogByteValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogShortValue.TYPE_ID, "LogShort", LogShortValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogIntValue.TYPE_ID, "LogInt", LogIntValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogLongValue.TYPE_ID, "LogLong", LogLongValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogFloatValue.TYPE_ID, "LogFloat", LogFloatValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogDoubleValue.TYPE_ID, "LogDouble", LogDoubleValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogBinaryValue.TYPE_ID, "LogBinary", LogBinaryValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogStringValue.TYPE_ID, "LogString", LogStringValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogDecimalValue.TYPE_ID, "LogDecimal", LogDecimalValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogVector2Value.TYPE_ID, "LogVector2", LogVector2Value::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogVector2IntValue.TYPE_ID, "LogVector2Int", LogVector2IntValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogVector3Value.TYPE_ID, "LogVector3", LogVector3Value::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogVector3IntValue.TYPE_ID, "LogVector3Int", LogVector3IntValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogVector4Value.TYPE_ID, "LogVector4", LogVector4Value::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogQuaternionValue.TYPE_ID, "LogQuaternion", LogQuaternionValue::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogBean.TYPE_ID, "LogBean", LogBean::decode));
-		LogRegistry.register(new LogRegistry.Factory(LogDynamicValue.TYPE_ID, "LogDynamic", LogDynamicValue::decode));
+		LogRegistry.register(LogBoolValue.TYPE_ID, "LogBool", LogBoolValue::decode);
+		LogRegistry.register(LogByteValue.TYPE_ID, "LogByte", LogByteValue::decode);
+		LogRegistry.register(LogShortValue.TYPE_ID, "LogShort", LogShortValue::decode);
+		LogRegistry.register(LogIntValue.TYPE_ID, "LogInt", LogIntValue::decode);
+		LogRegistry.register(LogLongValue.TYPE_ID, "LogLong", LogLongValue::decode);
+		LogRegistry.register(LogFloatValue.TYPE_ID, "LogFloat", LogFloatValue::decode);
+		LogRegistry.register(LogDoubleValue.TYPE_ID, "LogDouble", LogDoubleValue::decode);
+		LogRegistry.register(LogBinaryValue.TYPE_ID, "LogBinary", LogBinaryValue::decode);
+		LogRegistry.register(LogStringValue.TYPE_ID, "LogString", LogStringValue::decode);
+		LogRegistry.register(LogDecimalValue.TYPE_ID, "LogDecimal", LogDecimalValue::decode);
+		LogRegistry.register(LogVector2Value.TYPE_ID, "LogVector2", LogVector2Value::decode);
+		LogRegistry.register(LogVector2IntValue.TYPE_ID, "LogVector2Int", LogVector2IntValue::decode);
+		LogRegistry.register(LogVector3Value.TYPE_ID, "LogVector3", LogVector3Value::decode);
+		LogRegistry.register(LogVector3IntValue.TYPE_ID, "LogVector3Int", LogVector3IntValue::decode);
+		LogRegistry.register(LogVector4Value.TYPE_ID, "LogVector4", LogVector4Value::decode);
+		LogRegistry.register(LogQuaternionValue.TYPE_ID, "LogQuaternion", LogQuaternionValue::decode);
+		LogRegistry.register(LogBean.TYPE_ID, "LogBean", LogBean::decode);
+		LogRegistry.register(LogDynamicValue.TYPE_ID, "LogDynamic", LogDynamicValue::decode);
 	}
 }

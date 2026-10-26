@@ -13,7 +13,6 @@ import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("NewClassNamingConvention")
@@ -49,11 +48,6 @@ public final class Simulate {
 
 	public App randApp(int max) {
 		return Apps.get(Random.getInstance().nextInt(Math.min(max, Apps.size())));
-	}
-
-	@BeforeEach
-	public void Before(org.junit.jupiter.api.TestInfo info) throws Exception {
-		before(!info.getTestMethod().orElseThrow().getName().equals("testNoHistory"));
 	}
 
 	public void Before() throws Exception {
@@ -103,6 +97,7 @@ public final class Simulate {
 
 	@Test
 	public void testNoHistory() throws Exception {
+		before(false);
 		try {
 			testMain();
 		} finally {
@@ -112,6 +107,7 @@ public final class Simulate {
 
 	@Test
 	public void testWithHistory() throws Exception {
+		before(true);
 		try {
 			testMain();
 		} finally {
@@ -130,7 +126,7 @@ public final class Simulate {
 			++BatchNumber;
 			logger.fatal("Run {}", BatchNumber);
 			if (Objects.requireNonNull(Apps.getFirst().app.Zeze).getConfig().isHistory()) {
-				// 先把pending的History记录落盘：BeforeEach的App.Start（Takeover.claim/Timer等）写的
+				// 先把pending的History记录落盘：before中的App.Start（Takeover.claim/Timer等）写的
 				// 记录还暂存在各app的rrs里，若不先checkpointRun就清History存储=空清，之后Verify前的
 				// checkpointRun会把它们（对残留行的Edit，无前置Put）flush进来，Verify回放NPE。
 				for (var a : Apps)

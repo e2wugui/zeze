@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestMapBeanLogRoundTrip {
 	static {
-		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogLong.TYPE_ID, "LogLong", LogLong::decode));
+		Zeze.Transaction.LogRegistry.register(LogLong.TYPE_ID, "LogLong", LogLong::decode);
 	}
 
 	private static final class Fixture {

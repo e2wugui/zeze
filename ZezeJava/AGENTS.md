@@ -1,5 +1,7 @@
 # ZezeJava 开发指南
 
+不要自动更新BENCHMARK.md，除非明确要求
+
 ## 运行 ZezeJavaTest
 
 测试已在 `ZezeJavaTest` 的 **test 源集**（JUnit 6 / Jupiter，`src` 与 `Gen` 一起挂在 test 源集，二者互相引用不能拆分）。

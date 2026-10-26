@@ -4,7 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 /** Map1 transaction notes; no codec metadata is retained. */
 public final class LogMap1Delta<K, V> extends LogMapDelta<K, V> {
-	public LogMap1Delta(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
+	LogMap1Delta(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
 		super(source, value);
 	}
 

@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestMap2DecodeOwnership {
 	static {
-		Zeze.Transaction.LogRegistry.register(new Zeze.Transaction.LogRegistry.Factory(LogLong.TYPE_ID, "LogLong", LogLong::decode));
+		Zeze.Transaction.LogRegistry.register(LogLong.TYPE_ID, "LogLong", LogLong::decode);
 	}
 
 	private static byte[] encode(Log log) {
