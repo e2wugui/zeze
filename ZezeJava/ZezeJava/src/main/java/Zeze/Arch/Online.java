@@ -1863,6 +1863,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var clientId = session.getContext();
 		var login = getLogin(account, clientId);
 		if (login != null) {
+			if (!isCurrentLink(login, session))
+				return errorCode(ResultCodeNotLogin);
 			login.setLogoutVersion(login.getLoginVersion());
 			var ret = logoutTrigger(account, clientId, true);
 			if (0 != ret)
@@ -1879,6 +1881,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		session.respond(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
 		return Procedure.Success;
+	}
+
+	private static boolean isCurrentLink(BOnline login, ProviderUserSession session) {
+		var link = login.getLink();
+		return link.getState() == eLogined && link.getLinkSid() == session.getLinkSid()
+				&& link.getLinkName().equals(session.getLinkName());
 	}
 
 	private int reliableNotifySync(String account, String clientId,
@@ -1922,6 +1930,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var online = getOnline(session.getAccount());
 		if (online == null)
 			return errorCode(ResultCodeOnlineDataNotFound);
+		var login = online.getLogins().get(clientId);
+		if (login == null || !isCurrentLink(login, session))
+			return errorCode(ResultCodeNotLogin);
 
 		session.respond(rpc); // 同步前提交。
 		var syncResultCode = reliableNotifySync(session.getAccount(), clientId,
