@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
@@ -73,20 +74,11 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	static abstract class Barrier {
-		private static final VarHandle vhCount;
+		private enum State { Waiting, Running, Finished, Canceled }
 
-		static {
-			try {
-				vhCount = MethodHandles.lookup().findVarHandle(Barrier.class, "count", int.class);
-			} catch (ReflectiveOperationException e) {
-				throw new ExceptionInInitializerError(e);
-			}
-		}
-
-		private final ConcurrentHashSet<TaskOneByOne> reached = new ConcurrentHashSet<>();
-		@SuppressWarnings("FieldMayBeFinal")
-		private volatile int count;
-		private boolean canceled; // guarded by synchronized(this)
+		private final HashSet<TaskOneByOne> reached = new HashSet<>();
+		private int count;
+		private State state = State.Waiting; // count/reached/state 均由 synchronized(this) 守护。
 
 		Barrier(int count) {
 			this.count = count;
@@ -104,7 +96,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			synchronized (this) {
 				if (reached.isEmpty())
 					return;
-				batches = reached.keySet().toArray(new TaskOneByOne[0]);
+				batches = reached.toArray(new TaskOneByOne[0]);
 				reached.clear();
 			}
 			RuntimeException failure = null;
@@ -128,18 +120,23 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		 */
 		boolean reach(TaskOneByOne taskOneByOne, int sum) {
 			synchronized (this) {
-				if (canceled)
+				if (state != State.Waiting)
 					return true;
 				reached.add(taskOneByOne);
+				count -= sum;
+				if (count > 0)
+					return false;
+				state = State.Running; // 最后到达与取消在同一临界区选择唯一推进方。
 			}
-			if ((int)vhCount.getAndAdd(this, -sum) > sum)
-				return false; // 未集齐。
 
 			try {
 				run(); // 锁外执行：body回调本实例提交新任务（外层lock）不构成barrier→outer逆序
 			} catch (Throwable ex) { // logger.error
 				logger.error("{} run exception:", getName(), ex);
 			} finally {
+				synchronized (this) {
+					state = State.Finished;
+				}
 				// 成功执行
 				// 1. 触发所有桶的runNext，
 				// 2. 自己也返回false，不再继续runNext。
@@ -153,9 +150,9 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		// 推进异常单独吞并记录：cancel自身运行在失败路径上，重抛会掩盖根因异常。
 		void cancel() {
 			synchronized (this) {
-				if (canceled)
+				if (state != State.Waiting)
 					return;
-				canceled = true;
+				state = State.Canceled;
 			}
 			try {
 				reachedRunNext();

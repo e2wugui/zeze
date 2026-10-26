@@ -426,10 +426,12 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	public static abstract class Barrier extends ReentrantLock {
+		private enum State { Waiting, Running, Finished, Canceling, Canceled }
+
 		private final HashSet<BatchTask> reached = new HashSet<>();
 		private final @Nullable Action0 cancelAction;
 		private int count;
-		private boolean canceled;
+		private State state = State.Waiting;
 
 		public Barrier(int count, @Nullable Action0 cancelAction) {
 			this.cancelAction = cancelAction;
@@ -474,49 +476,60 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		public boolean reach(BatchTask batch, int sum) {
 			lock();
 			try {
-				if (canceled)
+				if (state != State.Waiting && state != State.Canceling)
 					return true;
 
 				reached.add(batch);
+				if (state == State.Canceling)
+					return false; // 补偿仍在执行，迟到桶也由取消方在补偿结束后推进。
 
 				count -= sum;
 				if (count > 0)
 					return false;
-
-				try {
-					run();
-				} catch (Throwable ex) { // logger.error
-					logger.error("{} run exception", getName(), ex);
-				}
+				state = State.Running; // 与 cancel 在同一临界区决定归属，只有执行方负责推进。
 			} finally {
 				unlock();
 			}
-			// 成功执行：触发所有桶的runNext（锁外，见reachedRunNext）；自己也返回false，
-			// 不再继续runNext。
-			reachedRunNext();
+			try {
+				run(); // 外部回调不持有屏障锁，允许提交新任务。
+			} catch (Throwable ex) { // logger.error
+				logger.error("{} run exception", getName(), ex);
+			} finally {
+				lock();
+				try {
+					state = State.Finished;
+				} finally {
+					unlock();
+				}
+				reachedRunNext();
+			}
 			return false;
 		}
 
 		public void cancel() {
 			lock();
 			try {
-				if (canceled)
+				if (state != State.Waiting)
 					return;
-
-				canceled = true;
-				try {
-					if (cancelAction != null)
-						cancelAction.run();
-				} catch (Throwable ex) { // logger.error
-					logger.error("{} cancel exception", getName(), ex);
-				}
+				state = State.Canceling;
 			} finally {
 				unlock();
 			}
-			// 取消的时候（锁外推进，见reachedRunNext），
-			// 1. 如果相关桶的任务已经执行，需要runNext。
-			// 2. 如果相关桶的任务没有执行，不需要处理。相应的任务以后会发现已经取消，自动忽略执行。
-			reachedRunNext();
+			try {
+				if (cancelAction != null)
+					cancelAction.run();
+			} catch (Throwable ex) { // logger.error
+				logger.error("{} cancel exception", getName(), ex);
+			} finally {
+				lock();
+				try {
+					state = State.Canceled;
+				} finally {
+					unlock();
+				}
+				// 未到达的桶以后直接消费已取消的屏障；已到达的桶在补偿结束后推进。
+				reachedRunNext();
+			}
 		}
 	}
 
