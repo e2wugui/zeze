@@ -133,7 +133,7 @@ public class PersistentAtomicLong {
 						if (allocatedEnd - currentId.get() >= count)
 							return; // has allocated. concurrent. 其他线程分配的预算已足够覆盖本次count。
 						var last = readWatermark(fs);
-						var allocateSize = fund.next();
+							long allocateSize = fund.next();
 						if (allocateSize < count)
 							allocateSize += count;
 						var newLast = last + allocateSize;
