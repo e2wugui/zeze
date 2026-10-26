@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.locks.Condition;
 import Zeze.Application;
 import Zeze.Transaction.Procedure;
@@ -63,9 +64,13 @@ record RedirectAllFutureFinished<R extends RedirectResult>(R result) implements 
 
 }
 
-/** async() 的单结果实现：结果与回调经 VarHandle 原子交换，先到的一方暂存，后到的一方立即执行。 */
+/** async() 的单结果实现：CAS暂存先到的结果或回调，匹配后进入终态，再执行回调。 */
 final class RedirectAllFutureAsync<R extends RedirectResult> implements RedirectAllFuture<R> {
 	private static final VarHandle RESULT;
+	private static final Object COMPLETED = new Object();
+
+	private record Value<R>(R result) {
+	}
 
 	static {
 		try {
@@ -78,13 +83,21 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 	@SuppressWarnings("unused")
 	private volatile @Nullable Object result;
 
+	private @Nullable Object publish(Object value, boolean completing) {
+		for (;;) {
+			var current = result;
+			if (current == COMPLETED || current != null && (current instanceof Value<?>) == completing)
+				throw new IllegalStateException();
+			if (RESULT.compareAndSet(this, current, current == null ? value : COMPLETED))
+				return current;
+		}
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public void asyncResult(R r) {
-		Object a = RESULT.getAndSet(this, r);
+		Object a = publish(new Value<>(Objects.requireNonNull(r)), true);
 		if (a != null) {
-			if (a instanceof RedirectResult)
-				throw new IllegalStateException();
 			try {
 				((Action1<R>)a).run(r);
 			} catch (Exception e) {
@@ -96,13 +109,9 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 	@SuppressWarnings("unchecked")
 	@Override
 	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
-		Object r = RESULT.getAndSet(this, onResult);
-		if (r != null) {
-			if (r instanceof RedirectResult)
-				onResult.run((R)r);
-			else
-				throw new IllegalStateException();
-		}
+		Object r = publish(Objects.requireNonNull(onResult), false);
+		if (r != null)
+			onResult.run(((Value<R>)r).result());
 		return this;
 	}
 }
