@@ -150,7 +150,8 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 
 					@Override
 					public List<InterfaceHttpData> getBodyHttpDatas(String name) {
-						return List.of();
+						var data = getBodyHttpData(name);
+						return data != null ? List.of(data) : List.of();
 					}
 
 					@Override
