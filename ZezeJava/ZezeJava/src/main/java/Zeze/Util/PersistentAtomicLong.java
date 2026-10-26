@@ -14,8 +14,27 @@ public class PersistentAtomicLong {
 	// i-size不参与落盘，数据与元数据没有先后顺序窗口。
 	private static final int VALUE_WIDTH = 20;
 
-	private final AtomicLong currentId = new AtomicLong();
-	private volatile long allocatedEnd;
+	private volatile Range range;
+
+	private static final class Range extends AtomicLong {
+		private final long end;
+
+		private Range(long start, long end) {
+			super(start);
+			this.end = end;
+		}
+
+		private long tryNext(int count) {
+			for (; ; ) {
+				var current = get();
+				if (end - current < count)
+					return 0;
+				var next = current + count;
+				if (compareAndSet(current, next))
+					return next;
+			}
+		}
+	}
 
 	private final String name;
 	private final String fileName;
@@ -48,8 +67,7 @@ public class PersistentAtomicLong {
 				var lock = fs.getChannel().lock();
 				try {
 					var last = readWatermark(fs);
-					allocatedEnd = last;
-					currentId.set(last);
+						range = new Range(last, last);
 					// 初始化的时候不allocate，如果程序启动，没有分配就退出，保持原来的值。
 				} finally {
 					lock.release();
@@ -75,17 +93,10 @@ public class PersistentAtomicLong {
 			throw new IllegalArgumentException("count < 1");
 
 		for (; ; ) {
-			var current = currentId.get();
-			// 减法形式：current 逼近 Long.MAX 时 current+count 溢出为负会跳过
-			// allocate 分支，CAS 落地发放负数id。allocatedEnd-current（两者同号非负差不溢出）
-			// 不足预算时先分配。回绕竞态窗口内该差为负同样触发分配，由 allocate 的 reset 换纪元。
-			if (allocatedEnd - current < count) {
-				allocate(count);
-				continue;
-			}
-			var next = current + count;
-			if (currentId.compareAndSet(current, next))
+			var next = range.tryNext(count);
+			if (next != 0)
 				return next;
+			allocate(count);
 		}
 	}
 
@@ -129,8 +140,8 @@ public class PersistentAtomicLong {
 						continue;
 					}
 					try (var ignored = channel.lock()) {
-						// 减法形式：加法形式在current近MAX时溢出为负而误判预算充足
-						if (allocatedEnd - currentId.get() >= count)
+							var oldRange = range;
+							if (oldRange.end - oldRange.get() >= count)
 							return; // has allocated. concurrent. 其他线程分配的预算已足够覆盖本次count。
 						var last = readWatermark(fs);
 							long allocateSize = fund.next();
@@ -154,9 +165,11 @@ public class PersistentAtomicLong {
 						fs.seek(0);
 						fs.write(toFixedWidthBytes(newLast)); // 定宽覆盖写不改变文件长度，崩溃点只可能是完整旧值或完整新值
 						channel.force(false);
-						allocatedEnd = newLast; // first
-						if (reset)
-							currentId.set(0); // second
+							// 冻结旧号段后再发布新边界：旧快路径的在途CAS只能失败或已被计入current。
+							// 同进程连续扩容可接上未消耗尾部；其他进程已分配的区间必须跳过。
+							var current = oldRange.getAndSet(oldRange.end);
+							var start = reset ? 0 : last == oldRange.end ? current : last;
+							range = new Range(start, newLast);
 					}
 				} finally {
 					fs.unlock();
