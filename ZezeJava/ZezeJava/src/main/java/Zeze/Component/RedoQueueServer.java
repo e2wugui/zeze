@@ -47,7 +47,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	protected long ProcessRunTaskRequest(Zeze.Builtin.RedoQueue.RunTask r) {
 		var last = _tQueueLastTaskId.getOrAdd(r.Argument.getQueueName());
 		r.Result.setTaskId(last.getTaskId());
-		if (r.Argument.getPrevTaskId() != last.getTaskId())
+		if (r.Argument.getPrevTaskId() != last.getTaskId() || r.Argument.getTaskId() <= last.getTaskId())
 			return Procedure.ErrorRequestId;
 		var queue = handles.get(r.Argument.getQueueName());
 		if (queue == null)
