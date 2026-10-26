@@ -155,11 +155,7 @@ public class LinkdService extends HandshakeServer {
 			// 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
 			// 虽然使用了写完关闭(CloseGracefully)方法，但是等待一下，尽量让客户端主动关闭，有利于减少 TCP_TIME_WAIT?
 			if (closeLink) {
-				TaskSpec.ofAction(() -> {
-					var so = GetSocket(linkSid);
-					if (so != null)
-						so.closeGracefully();
-				}).schedule(2000);
+				TaskSpec.ofAction(link::closeGracefully).schedule(2000);
 			}
 		}
 	}
