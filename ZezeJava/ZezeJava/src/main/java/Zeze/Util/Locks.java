@@ -88,8 +88,7 @@ public class Locks<T extends Lockey<T>> {
 				var exist = locks.get(key);
 				if (exist != null)
 					return exist;
-				locks.add(key);
-				return key.alloc();
+				return locks.add(key.alloc());
 			} finally {
 				unlock();
 			}
