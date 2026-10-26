@@ -1,6 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import java.util.ArrayList;
+import java.util.function.Function;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -23,6 +24,16 @@ public class LogList1<V> extends LogBean {
 			this.op = op;
 			this.index = index;
 			this.value = value;
+		}
+
+		static <V> OpLog<V> decode(IByteBuffer bb, @Nullable Function<IByteBuffer, V> valueDecoder) {
+			int op = bb.ReadUInt();
+			if (op < OP_MODIFY || op > OP_CLEAR)
+				throw new IllegalStateException("invalid list operation: " + Integer.toUnsignedString(op));
+			int index = op < OP_CLEAR ? bb.ReadUIntPositive() : 0;
+			// A missing operation value does not make the list element type nullable.
+			//noinspection DataFlowIssue,Convert2Diamond
+			return new OpLog<V>(op, index, op < OP_REMOVE ? valueDecoder.apply(bb) : null);
 		}
 
 		@Override
@@ -73,13 +84,8 @@ public class LogList1<V> extends LogBean {
 	private void read(IByteBuffer bb) {
 		var decoder = meta.valueDecoder;
 		opLogs.clear();
-		for (var logSize = bb.ReadUIntPositive(); --logSize >= 0; ) {
-			int op = bb.ReadUInt();
-			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
-			// Keep V explicit: an absent operation value does not make the list element type nullable.
-			//noinspection DataFlowIssue,Convert2Diamond
-			opLogs.add(new OpLog<V>(op, index, op < OpLog.OP_REMOVE ? decoder.apply(bb) : null));
-		}
+		for (var logSize = bb.ReadUIntPositive(); --logSize >= 0; )
+			opLogs.add(OpLog.decode(bb, decoder));
 	}
 
 	@Override

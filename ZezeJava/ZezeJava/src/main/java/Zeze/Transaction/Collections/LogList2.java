@@ -6,6 +6,7 @@ import java.util.IdentityHashMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import Zeze.Transaction.Collections.LogList1.OpLog;
 import Zeze.Serialize.ByteBuffer;
@@ -83,26 +84,28 @@ public class LogList2<V extends Bean> extends LogBean {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private void read(IByteBuffer bb) {
 		for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 			var logBean = LogMap2.decodeLogBean(bb);
-			int index = bb.ReadUInt();
+			int index = bb.ReadUIntPositive();
 			getChanged().put(logBean, new OutInt(index));
 		}
 
+		int logSize = bb.ReadUIntPositive();
+		if (logSize > 0) {
+			Function<IByteBuffer, V> decoder = this::readValue;
+			for (; logSize > 0; logSize--)
+				getOpLogs().add(OpLog.decode(bb, decoder));
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private V readValue(IByteBuffer bb) {
 		try {
-			for (int logSize = bb.ReadUIntPositive(); --logSize >= 0; ) {
-				int op = bb.ReadUInt();
-				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
-				V v = null;
-				if (op < OpLog.OP_REMOVE) {
-					//noinspection DataFlowIssue
-					v = (V)meta.valueFactory.invoke();
-					v.decode(bb);
-				}
-				getOpLogs().add(new OpLog<>(op, index, v));
-			}
+			//noinspection DataFlowIssue
+			var value = (V)meta.valueFactory.invoke();
+			value.decode(bb);
+			return value;
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
