@@ -98,8 +98,15 @@ public class TestRcPassthrough {
 	// 最小哑socket：仅为handler日志与协议发送提供载体（Send恒false）。
 	// getLinkName(sender)=sender.getConnector().getName()，覆写提供稳定link名。
 	private static final class StubSocket extends AsyncSocket {
+		private final String linkName;
+
 		StubSocket() {
+			this("link1");
+		}
+
+		StubSocket(String linkName) {
 			super(null);
+			this.linkName = linkName;
 		}
 
 		@Override
@@ -107,7 +114,7 @@ public class TestRcPassthrough {
 			return new Connector("127.0.0.1", 1) {
 				@Override
 				public String getName() {
-					return "link1";
+					return linkName;
 				}
 			};
 		}
@@ -259,6 +266,85 @@ public class TestRcPassthrough {
 			} catch (Exception ignored) {
 			}
 		}
+	}
+
+	@Test
+	public void testLogoutFromAnOldLinkCannotLogOutTheCurrentSession() throws Exception {
+		var zeze = newApp("LogoutLinkIdentity");
+		var online = newOnline(zeze);
+		zeze.start();
+		try {
+			long roleId = 161_903L;
+			forgeGameLogin(online, roleId);
+			for (boolean wrongName : new boolean[]{false, true}) {
+				var rpc = new Logout();
+				attachSession(rpc, roleId, wrongName ? "other-link" : "link1", wrongName ? 42 : 41);
+				Assertions.assertNotEquals(0, zeze.newProcedure(() -> online.ProcessLogoutRequestOnlineSet(rpc),
+						"logoutLinkIdentity.reject").call());
+				Assertions.assertEquals(AbstractOnline.eLogined, readState(online, roleId));
+			}
+		} finally {
+			zeze.stop();
+		}
+	}
+
+	@Test
+	public void testConfirmFromAnOldLinkCannotConsumeTheCurrentNotificationQueue() throws Exception {
+		var zeze = newApp("ConfirmLinkIdentity");
+		var online = newOnline(zeze);
+		zeze.start();
+		try {
+			long roleId = 161_904L;
+			forgeGameLogin(online, roleId);
+			var queue = java.util.Objects.requireNonNull(zeze.getQueueModule()).open(
+					"Zeze.Game.Online.ReliableNotifyQueue:" + roleId, Zeze.Builtin.Game.Online.BNotify.class);
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				queue.add(new Zeze.Builtin.Game.Online.BNotify());
+				online.getOrAddOnline(roleId).setReliableNotifyIndex(1);
+				return 0;
+			}, "confirmLinkIdentity.setup").call());
+			for (boolean wrongName : new boolean[]{false, true}) {
+				var rpc = new Zeze.Builtin.Game.Online.ReliableNotifyConfirm();
+				rpc.Argument.setReliableNotifyConfirmIndex(1);
+				rpc.Argument.setSync(false);
+				attachSession(rpc, roleId, wrongName ? "other-link" : "link1", wrongName ? 42 : 41);
+				Assertions.assertNotEquals(0, zeze.newProcedure(() -> online.ProcessReliableNotifyConfirmRequestOnlineSet(rpc),
+						"confirmLinkIdentity.reject").call());
+			}
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				Assertions.assertEquals(1, queue.size());
+				Assertions.assertEquals(0, online.getOrAddOnline(roleId).getReliableNotifyConfirmIndex());
+				return 0;
+			}, "confirmLinkIdentity.verify").call());
+			var current = new Zeze.Builtin.Game.Online.ReliableNotifyConfirm();
+			current.Argument.setReliableNotifyConfirmIndex(1);
+			current.Argument.setSync(false);
+			attachSession(current, roleId, "link1", 42);
+			Assertions.assertEquals(0, zeze.newProcedure(() -> online.ProcessReliableNotifyConfirmRequestOnlineSet(current),
+					"confirmLinkIdentity.current").call());
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				Assertions.assertEquals(0, queue.size());
+				Assertions.assertEquals(1, online.getOrAddOnline(roleId).getReliableNotifyConfirmIndex());
+				return 0;
+			}, "confirmLinkIdentity.verifyCurrent").call());
+		} finally {
+			zeze.stop();
+		}
+	}
+
+	private static void attachSession(Protocol<?> rpc, long roleId, String linkName, long linkSid) {
+		var dispatch = new Zeze.Builtin.Provider.Dispatch();
+		dispatch.Argument.setContext(Long.toString(roleId));
+		dispatch.Argument.setLinkSid(linkSid);
+		var sender = new StubSocket(linkName);
+		dispatch.setSender(sender);
+		rpc.setSender(sender);
+		rpc.setUserState(new ProviderUserSession(dispatch) {
+			@Override
+			public void respond(Protocol<?> response) {
+				// These tests inspect transaction state; transport delivery is outside their scope.
+			}
+		});
 	}
 
 	/** Arch版：stale-local分支removeLocalAndTrigger失败码经ProcessLinkBroken外传。 */

@@ -2257,6 +2257,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return Procedure.LogicError;
 		var onlineShared = getLoginOnlineShared(roleId);
 		if (onlineShared != null) {
+			if (!isCurrentLink(onlineShared, link, linkSid))
+				return errorCode(ResultCodeNotLogin);
 			if (assignLogoutVersion(onlineShared)) {
 				var ret = logoutTrigger(roleId, LogoutReason.LOGOUT);
 				if (ret != 0)
@@ -2271,6 +2273,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			link.Send(setUserState); // 直接使用link连接。
 		});
 		return 0;
+	}
+
+	private static boolean isCurrentLink(BOnlineShared onlineShared, AsyncSocket link, long linkSid) {
+		var current = onlineShared.getLink();
+		return current.getLinkSid() == linkSid && current.getLinkName().equals(ProviderService.getLinkName(link));
 	}
 
 	private int reliableNotifySync(long roleId, ProviderUserSession session,
@@ -2318,6 +2325,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var session = ProviderUserSession.get(rpc);
 		var roleId = session.getRoleId();
 		if (roleId == null)
+			return errorCode(ResultCodeNotLogin);
+		var shared = getLoginOnlineShared(roleId);
+		var link = rpc.getSender();
+		if (shared == null || link == null || !isCurrentLink(shared, link, session.getLinkSid()))
 			return errorCode(ResultCodeNotLogin);
 		var online = getLoginOnline(roleId);
 		if (online == null)
