@@ -121,6 +121,8 @@ public class ConcurrentLruLike<K, V> {
 
 	public ConcurrentLruLike(String name, int capacity, @Nullable BiPredicate<K, V> tryRemove,
 							 int newLruHotPeriod, int cleanPeriod, int initialCapacity) {
+		if (newLruHotPeriod <= 0 || cleanPeriod <= 0)
+			throw new IllegalArgumentException("LRU periods must be > 0");
 		this.name = name;
 		dataMap = new ConcurrentHashMap<>(initialCapacity);
 		this.capacity = capacity;
@@ -137,7 +139,12 @@ public class ConcurrentLruLike<K, V> {
 		}).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
 		// 下面这个清理任务的执行时间可能很长；schedule(delay, period) 是固定延迟调度(scheduleWithFixedDelay)，
 		// 本次执行完才开始计时下一次，执行时间长只会推迟后续执行，不会并发重入或堆积。
-		cleanTimer = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(this.cleanPeriod, this.cleanPeriod);
+		try {
+			cleanTimer = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(this.cleanPeriod, this.cleanPeriod);
+		} catch (Throwable failure) {
+			newLruHotTimer.cancel(false);
+			throw failure;
+		}
 	}
 
 	/**
