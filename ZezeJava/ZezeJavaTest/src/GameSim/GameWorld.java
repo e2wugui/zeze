@@ -72,7 +72,16 @@ public final class GameWorld {
 		// 裸 Config 程序化构造（不 Config.load：xml 补默认值会点亮 Onz 服务，disable SM 下启动 NPE；
 		// 先例 TestCacheDirLock.newConf）。单进程模式：无 GCM/无服务发现，本地锁。
 		var config = new Config();
-		config.setServiceManager("disable");
+		// SM开关：History 的 gid 发号硬依赖 ServiceManager（HistoryModule.allocateAndRegisterGid
+		// 对 sm==null fail-fast）。game.sm=true 启用进程内 SM 客户端（5001，TestEnvLauncherListener
+		// 提供）；game.history 隐含启用。A/B方法学：对照组同开SM（-PgameSm=true）抵消SM自身开销。
+		if (cfg.sm || cfg.history) {
+			config.setServiceManager("");
+			var smConf = new Zeze.Net.ServiceConf();
+			smConf.addConnector(new Zeze.Net.Connector("127.0.0.1", 5001, false));
+			config.getServiceConfMap().put("Zeze.Services.ServiceManager.Agent", smConf);
+		} else
+			config.setServiceManager("disable");
 		// 独占 serverId（FastServerIds 单点登记）：bench 车道是串行共享 JVM，车道内 harness 环境
 		// 与他类 Application 已持默认 serverId=0 的 zeze_cache_0.lock——裸 Config 默认 0 会撞
 		// FileMutex 同 JVM 双取秒拒（2026-10-13b bench 5/5 确定性红首暴露）。
@@ -84,6 +93,10 @@ public final class GameWorld {
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
 		dbConf.setDatabaseUrl("");
+		// History开关：开启后isHistory()→HistoryModule，Delta全量序列化进tHistory记录
+		//（LogList1:67每ADD/MODIFY附完整value字节）+自有rocks存储落盘。
+		if (cfg.history)
+			config.setHistory("game_sim_history");
 		config.getDatabaseConfMap().put("", dbConf);
 		// 检查点真实周期：核心基准配置 6000000=事实关闭；L 按 30 秒墙钟周期冲刷（checkpoint 交叠进画像）。
 		// 休眠旋钮 game.checkpointPeriodMs（默认 30s=基线）：裁决反事实 A 拉长周期专用

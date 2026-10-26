@@ -282,6 +282,12 @@ tasks.register('benchGame', Test) {
         systemProperty 'game.k', findProperty('gameK')
     if (findProperty('gameListener') != null)
         systemProperty 'game.listener', findProperty('gameListener')
+    // History重管线A/B：-PgameHistory=true（Delta全量序列化+tHistory落盘）
+    if (findProperty('gameHistory') != null)
+        systemProperty 'game.history', findProperty('gameHistory')
+    // SM客户端开关：History的Id128发号依赖；A/B对照组同开以抵消SM开销
+    if (findProperty('gameSm') != null)
+        systemProperty 'game.sm', findProperty('gameSm')
     if (findProperty('gameMinutes') != null)
         systemProperty 'game.minutes', findProperty('gameMinutes')
     if (findProperty('gameRounds') != null)
