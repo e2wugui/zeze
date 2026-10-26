@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
@@ -110,7 +111,7 @@ public final class Str {
 			return defSize;
 		if ((s = s.trim()).equalsIgnoreCase("max"))
 			return Long.MAX_VALUE;
-		byte[] buf = new byte[s.length() + 1];
+		char[] buf = new char[s.length()];
 		int pos = 0;
 		long scale = 1;
 		loop:
@@ -120,7 +121,7 @@ public final class Str {
 			//@formatter:off
 			case '0': case '1': case '2': case '3': case '4':
 			case '5': case '6': case '7': case '8': case '9': case '.':
-				buf[pos++] = (byte)c;
+					buf[pos++] = c;
 				break;
 			//@formatter:on
 			case 'K':
@@ -163,30 +164,17 @@ public final class Str {
 				throw new NumberFormatException("invalid char '" + c + "' in '" + s + "'");
 			}
 		}
-		buf[pos] = ' ';
-		Number num;
-		var jr = JsonReader.local();
-		if (jr.buf() != null) // 重入保护：外层解析进行中时改用独立实例，避免内层 buf()/reset() 破坏外层状态（同 Json 静态入口）
-			jr = new JsonReader();
+		BigDecimal value;
 		try {
-			num = (Number)jr.buf(buf).parseNumber();
-			if (num instanceof Long || num instanceof Integer)
-				return Math.multiplyExact(num.longValue(), scale);
+			// 配置的整个数字部分都必须有效；精确缩放后再截断，避免 double 舍入
+			// 丢失字节或把 Long.MAX_VALUE 以上的数饱和成一个合法容量。
+			value = new BigDecimal(buf, 0, pos).multiply(BigDecimal.valueOf(scale));
 		} catch (NumberFormatException e) {
-			// 空数字串（空值/纯单位配置）按数字格式错误直通，与本方法非法字符路径
-			// 的异常类型一致；不伪装成溢出。
 			throw new NumberFormatException("invalid number '" + s + "'");
-		} catch (Exception e) {
-			throw new IllegalStateException("long overflow for '" + s + "'", e);
-		} finally {
-			jr.reset();
 		}
-		double v = num.doubleValue() * scale;
-		if (!Double.isFinite(v))
-			throw new IllegalStateException("double overflow for '" + s + "'");
-		if (v < 0 || v > Long.MAX_VALUE)
+		if (value.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0)
 			throw new IllegalStateException("long overflow for '" + s + "'");
-		return (long)v;
+		return value.longValue();
 	}
 
 	// 单位字符之后仅允许间隔符到串尾，否则"1e3"按1E、"10Mx"按10M被静默接受
