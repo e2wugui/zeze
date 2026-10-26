@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * An implementation of a min-Priority Queue using a heap.  Has O(1) .Contains()!
@@ -319,6 +320,8 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 
 			@Override
 			public T next() {
+				if (!hasNext())
+					throw new NoSuchElementException();
 				return Objects.requireNonNull(nodes[i++]);
 			}
 		};
