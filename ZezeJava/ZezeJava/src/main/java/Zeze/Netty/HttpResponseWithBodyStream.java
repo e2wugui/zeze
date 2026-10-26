@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -78,6 +79,7 @@ public final class HttpResponseWithBodyStream {
 		@Override
 		public void write(byte [] b, int off, int len) {
 			checkOpen();
+			Objects.checkFromIndexSize(off, len, b.length);
 			ensureCapacity(len);
 			buffer.writeBytes(b, off, len);
 		}
@@ -146,6 +148,9 @@ public final class HttpResponseWithBodyStream {
 		@Override
 		public void write(byte [] b, int off, int len) throws IOException {
 			checkOpen();
+			Objects.checkFromIndexSize(off, len, b.length);
+			if (len == 0)
+				return;
 			awaitWritable();
 			// OutputStream契约：write返回后调用方即可复用缓冲（GZIPOutputStream的deflate循环
 			// 就复用内部buf逐块写出），sendStream是零拷贝包装——这里必须拷贝。
