@@ -204,6 +204,20 @@ public class TestHotRedirectLoadFirst {
 		Assertions.assertNull(requireNonNull(v1).getField("marker").get(null), "旧版本实现不得再被执行");
 	}
 
+	/** 模块名是完整包前缀，不能认领仅字符串前缀相同的相邻包。 */
+	@Test
+	public void testNamespaceMatchRequiresAPackageBoundary() throws Exception {
+		var moduleBytes = compileModule("v1", tempDir.resolve("boundary-cp"));
+		var workingDir = tempDir.resolve("boundary-work");
+		writeModuleJar(workingDir, Map.of("a1hot/Ahot1/ModuleAhot1.class", moduleBytes));
+		var manager = newHotManager(workingDir);
+		var module = requireNonNull(manager.findHotModule(NS));
+		Assertions.assertSame(module, manager.findHotModule(MODULE_CLASS));
+		Assertions.assertSame(module, manager.findHotModule(NS + ".Sub.Helper"));
+		Assertions.assertNull(manager.findHotModule(NS + "Extra.Helper"));
+		Assertions.assertNull(manager.findHotModule(NS + "2"));
+	}
+
 	/** 冷classpath上存在模块类时（双亲委派可抢先）：HotModule构造必须fail-fast。 */
 	@Test
 	public void testColdShadowGuard() throws Exception {

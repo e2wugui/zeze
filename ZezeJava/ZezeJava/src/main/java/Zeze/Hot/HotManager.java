@@ -154,7 +154,8 @@ public class HotManager extends ClassLoader {
 		// 因为存在子模块：
 		// 优先匹配长的名字。
 		for (var e : modules.descendingMap().entrySet()) {
-			if (className.startsWith(e.getKey()))
+			var namespace = e.getKey();
+			if (className.equals(namespace) || className.startsWith(namespace + '.'))
 				return e.getValue();
 		}
 		return null;
