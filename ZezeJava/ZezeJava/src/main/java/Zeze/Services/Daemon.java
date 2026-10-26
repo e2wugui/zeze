@@ -1,7 +1,6 @@
 package Zeze.Services;
 
 import java.util.Objects;
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -14,7 +13,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.Future;
@@ -289,19 +287,7 @@ public class Daemon {
 		try {
 			var pid = String.valueOf(p.pid());
 			var cmd = new String[]{"jstack", "-e", "-l", pid};
-			// 合并stderr避免缓冲区填满阻塞子进程；显式关闭输入流；限时等待退出，超时强杀。
-			var process = new ProcessBuilder(cmd).redirectErrorStream(true).start();
-			try (var input = new BufferedInputStream(process.getInputStream())) {
-				// Daemon常驻重启后子进程pid复用时目标文件可能已存在：无REPLACE_EXISTING的
-				// copy抛FileAlreadyExistsException直接跳到外层catch——waitFor/destroyForcibly不执行
-				// （jstack孤儿），本次死锁现场丢失。覆盖旧文件保留最新现场。
-				Files.copy(input, Path.of("jstack." + pid), StandardCopyOption.REPLACE_EXISTING);
-			} finally {
-				// 收尾必须在finally——copy抛其他IOException（磁盘满/权限/目标是目录）
-				// 时同样跳到外层catch，waitFor/destroyForcibly不执行（jstack孤儿）；管道
-				// 缓冲填满后jstack阻塞在写上成为长存孤儿进程。
-				reapDiagnosticProcess(process);
-			}
+			captureDiagnostic(cmd, Path.of("jstack." + pid), 30_000);
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
@@ -327,10 +313,22 @@ public class Daemon {
 
 	private static boolean destroyingSubprocess; // Daemon.class守护
 
+	static void captureDiagnostic(String[] command, Path output, long timeoutMillis) throws IOException {
+		// 输出直接由子进程写文件；不能先等待管道EOF，否则挂起的诊断进程会挡住超时收尾。
+		// redirectOutput默认覆盖旧文件，保留pid复用时记录最新现场的行为。
+		var process = new ProcessBuilder(command).redirectErrorStream(true)
+				.redirectOutput(output.toFile()).start();
+		reapDiagnosticProcess(process, timeoutMillis);
+	}
+
 	/** 限时等待诊断子进程退出，超时或中断强杀收尸（防jstack孤儿；中断不吞根因异常）。 */
 	private static void reapDiagnosticProcess(Process process) {
+		reapDiagnosticProcess(process, 30_000);
+	}
+
+	private static void reapDiagnosticProcess(Process process, long timeoutMillis) {
 		try {
-			if (!process.waitFor(30, TimeUnit.SECONDS))
+			if (!process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS))
 				process.destroyForcibly();
 		} catch (InterruptedException e) {
 			process.destroyForcibly();
