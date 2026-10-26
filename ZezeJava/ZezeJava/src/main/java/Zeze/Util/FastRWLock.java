@@ -7,15 +7,18 @@ import java.util.concurrent.atomic.AtomicLong;
  * 只支持无写等待时的读锁嵌套(读计数叠加);一旦出现写等待,重入读锁(readLock看到写等待标记会
  * 无界等待持有者退出)将与等待的写者互相等待永久死锁——需要嵌套读的调用方应使用tryReadLock()
  * 失败自处理,或重构避免嵌套。锁不记录持有者线程,无重入计数。
+ * 等待不可中断，但返回时保留等待期间收到的中断标志。
  */
 public class FastRWLock extends AtomicLong {
 	private static final long WRITE_WAIT_FLAG = 0x8000_0000_0000_0000L;
 	private static final long WRITE_LOCK_FLAG = 0xc000_0000_0000_0000L;
 
-	private static void wait1() {
+	private static boolean wait1() {
 		try {
 			Thread.sleep(1); // 忙等,主要用于竞争不多也不着急的情况
+			return false;
 		} catch (InterruptedException ignored) {
+			return true;
 		}
 	}
 
@@ -31,14 +34,20 @@ public class FastRWLock extends AtomicLong {
 	}
 
 	public void readLock() {
-		for (; ; ) {
-			final long c = get();
-			if (c < 0)
-				wait1();
-			else if (compareAndSet(c, c + 1))
-				return;
-			else
-				Thread.onSpinWait();
+		boolean interrupted = false;
+		try {
+			for (; ; ) {
+				final long c = get();
+				if (c < 0)
+					interrupted |= wait1();
+				else if (compareAndSet(c, c + 1))
+					return;
+				else
+					Thread.onSpinWait();
+			}
+		} finally {
+			if (interrupted)
+				Thread.currentThread().interrupt();
 		}
 	}
 
@@ -50,33 +59,45 @@ public class FastRWLock extends AtomicLong {
 	 * 等到没有读写锁的时刻返回
 	 */
 	public void waitLock() {
-		for (; ; ) {
-			final long s = get();
-			if (s == 0)
-				return;
-			if (s == WRITE_WAIT_FLAG) {
-				if (compareAndSet(s, 0))
+		boolean interrupted = false;
+		try {
+			for (; ; ) {
+				final long s = get();
+				if (s == 0)
 					return;
-			} else if (s < 0 || compareAndSet(s, s | WRITE_WAIT_FLAG)) { // 如果只有读标记,那么加写等待标记,阻止读锁
-				wait1();
-				continue;
+				if (s == WRITE_WAIT_FLAG) {
+					if (compareAndSet(s, 0))
+						return;
+				} else if (s < 0 || compareAndSet(s, s | WRITE_WAIT_FLAG)) { // 如果只有读标记,那么加写等待标记,阻止读锁
+					interrupted |= wait1();
+					continue;
+				}
+				Thread.onSpinWait();
 			}
-			Thread.onSpinWait();
+		} finally {
+			if (interrupted)
+				Thread.currentThread().interrupt();
 		}
 	}
 
 	public void writeLock() {
-		for (; ; ) {
-			final long s = get();
-			if (s == 0 || s == WRITE_WAIT_FLAG) { // 完全空闲，或读者已退出只剩写等待标记：可升级为写独占。
-				// 不能用 (s & LOCK_MASK) == 0 判断：它把写独占标志也掩掉，写锁持有时 CAS(s, WRITE_LOCK_FLAG) 平凡成功，写-写不互斥。
-				if (compareAndSet(s, WRITE_LOCK_FLAG))
-					return; // 加写独占标记,阻止其它读写操作
-			} else if (s < 0 || compareAndSet(s, s | WRITE_WAIT_FLAG)) { // 如果只有读标记,那么加写等待标记,阻止读锁
-				wait1();
-				continue;
+		boolean interrupted = false;
+		try {
+			for (; ; ) {
+				final long s = get();
+				if (s == 0 || s == WRITE_WAIT_FLAG) { // 完全空闲，或读者已退出只剩写等待标记：可升级为写独占。
+					// 不能用 (s & LOCK_MASK) == 0 判断：它把写独占标志也掩掉，写锁持有时 CAS(s, WRITE_LOCK_FLAG) 平凡成功，写-写不互斥。
+					if (compareAndSet(s, WRITE_LOCK_FLAG))
+						return; // 加写独占标记,阻止其它读写操作
+				} else if (s < 0 || compareAndSet(s, s | WRITE_WAIT_FLAG)) { // 如果只有读标记,那么加写等待标记,阻止读锁
+					interrupted |= wait1();
+					continue;
+				}
+				Thread.onSpinWait();
 			}
-			Thread.onSpinWait();
+		} finally {
+			if (interrupted)
+				Thread.currentThread().interrupt();
 		}
 	}
 
