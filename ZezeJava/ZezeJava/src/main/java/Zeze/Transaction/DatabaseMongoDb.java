@@ -30,10 +30,24 @@ public class DatabaseMongoDb extends Database {
 	final MongoDatabase mongoDatabase;
 
 	public DatabaseMongoDb(@Nullable Application zeze, Config.DatabaseConf conf) {
+		this(zeze, conf, MongoClients.create(conf.getDatabaseUrl()));
+	}
+
+	DatabaseMongoDb(@Nullable Application zeze, Config.DatabaseConf conf, MongoClient client) {
 		super(zeze, conf);
-		mongoClient = MongoClients.create(conf.getDatabaseUrl());
-		mongoDatabase = mongoClient.getDatabase(conf.getDatabaseName());
-		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMongoDb());
+		mongoClient = client;
+		try {
+			mongoDatabase = client.getDatabase(conf.getDatabaseName());
+			setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMongoDb());
+		} catch (Throwable failure) {
+			try {
+				client.close();
+			} catch (Throwable closeFailure) {
+				if (failure != closeFailure)
+					failure.addSuppressed(closeFailure);
+			}
+			throw failure;
+		}
 	}
 
 	@Override
