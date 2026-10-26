@@ -37,6 +37,16 @@ public class LogDoubleValue extends Log {
 	}
 
 	@Override
+	public boolean booleanValue() {
+		return value != 0;
+	}
+
+	@Override
+	public int intValue() {
+		return (int)value;
+	}
+
+	@Override
 	public long longValue() {
 		return (long)value;
 	}

@@ -36,11 +36,11 @@ public abstract class Log {
 	}
 
 	public byte byteValue() {
-		return (byte)longValue();
+		return (byte)intValue();
 	}
 
 	public short shortValue() {
-		return (short)longValue();
+		return (short)intValue();
 	}
 
 	public int intValue() {
