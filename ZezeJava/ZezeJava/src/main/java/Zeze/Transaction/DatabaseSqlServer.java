@@ -30,7 +30,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 	public DatabaseSqlServer(@Nullable Application zeze, DatabaseConf conf) {
 		super(zeze, conf);
-		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesSqlServer());
+		initializeDirectOperates(() -> conf.isDisableOperates() ? new NullOperates() : new OperatesSqlServer());
 	}
 
 	@Override

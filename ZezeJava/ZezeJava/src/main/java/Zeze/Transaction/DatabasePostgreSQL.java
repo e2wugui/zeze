@@ -101,7 +101,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 	public DatabasePostgreSQL(@Nullable Application zeze, DatabaseConf conf) {
 		super(zeze, conf);
-		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesPostgreSQL());
+		initializeDirectOperates(() -> conf.isDisableOperates() ? new NullOperates() : new OperatesPostgreSQL());
 	}
 
 	private static final Map<String, String> sqlTypeTable = new HashMap<>();

@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Objects;
+import java.util.function.Supplier;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Util.Task;
@@ -70,6 +71,20 @@ public abstract class DatabaseJdbc extends Database {
 
 		// 通常无需配置, 默认:-1
 		ds.setPhyTimeoutMillis(Objects.requireNonNullElse(dc.phyTimeoutMillis, -1L));
+	}
+
+	/** 构造期元数据初始化成功后才交付连接池，失败则释放尚无外部属主的池。 */
+	protected final void initializeDirectOperates(Supplier<Operates> factory) {
+		try {
+			setDirectOperates(factory.get());
+		} catch (Throwable failure) {
+			try {
+				dataSource.close();
+			} catch (Throwable closeFailure) {
+				failure.addSuppressed(closeFailure);
+			}
+			throw Task.forceThrow(failure);
+		}
 	}
 
 	@Override

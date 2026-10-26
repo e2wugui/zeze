@@ -390,7 +390,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 	public DatabaseMySql(@Nullable Application zeze, DatabaseConf conf) {
 		super(zeze, conf);
-		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMySql());
+		initializeDirectOperates(() -> conf.isDisableOperates() ? new NullOperates() : new OperatesMySql());
 	}
 
 	private static final Map<String, String> sqlTypeTable = new HashMap<>();
