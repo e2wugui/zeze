@@ -85,14 +85,14 @@ public class LogList2<V extends Bean> extends LogBean {
 
 	@SuppressWarnings("unchecked")
 	private void read(IByteBuffer bb) {
-		for (int i = bb.ReadUInt(); i > 0; i--) {
+		for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 			var logBean = LogMap2.decodeLogBean(bb);
 			int index = bb.ReadUInt();
 			getChanged().put(logBean, new OutInt(index));
 		}
 
 		try {
-			for (int logSize = bb.ReadUInt(); --logSize >= 0; ) {
+			for (int logSize = bb.ReadUIntPositive(); --logSize >= 0; ) {
 				int op = bb.ReadUInt();
 				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
 				V v = null;

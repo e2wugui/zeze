@@ -63,12 +63,12 @@ public class LogSet1<V> extends LogBean {
 	private void read(IByteBuffer bb) {
 		var decoder = meta.valueDecoder;
 
-		for (int i = bb.ReadUInt(); i > 0; i--) {
+		for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 			//noinspection DataFlowIssue
 			getAdded().add(decoder.apply(bb));
 		}
 
-		for (int i = bb.ReadUInt(); i > 0; i--) {
+		for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 			//noinspection DataFlowIssue
 			getRemoved().add(decoder.apply(bb));
 		}

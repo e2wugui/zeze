@@ -73,7 +73,7 @@ public class LogList1<V> extends LogBean {
 	private void read(IByteBuffer bb) {
 		var decoder = meta.valueDecoder;
 		opLogs.clear();
-		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
+		for (var logSize = bb.ReadUIntPositive(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
 			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
 			// Keep V explicit: an absent operation value does not make the list element type nullable.

@@ -59,7 +59,7 @@ public class LogBean extends Log {
 	}
 
 	private void read(IByteBuffer bb) {
-		int n = bb.ReadUInt();
+		int n = bb.ReadUIntPositive();
 		if (n > 0) {
 			var variables = getVariablesOrNew();
 			variables.clear();

@@ -62,14 +62,14 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogBean {
 	private void read(IByteBuffer bb) {
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;
-		for (int i = bb.ReadUInt(); i > 0; --i) {
+		for (int i = bb.ReadUIntPositive(); i > 0; --i) {
 			K k = keyDecoder.apply(bb);
 			//noinspection DataFlowIssue
 			V v = valueDecoder.apply(bb);
 			getReplaced().put(k, v);
 		}
 
-		for (int i = bb.ReadUInt(); i > 0; --i)
+		for (int i = bb.ReadUIntPositive(); i > 0; --i)
 			getRemoved().add(keyDecoder.apply(bb));
 	}
 

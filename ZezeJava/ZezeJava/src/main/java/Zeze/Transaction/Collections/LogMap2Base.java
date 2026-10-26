@@ -117,7 +117,7 @@ abstract class LogMap2Base<K, V extends Bean> extends LogBean {
 
 	final void read(IByteBuffer bb) {
 		var keyDecoder = meta.keyDecoder;
-		int count = bb.ReadUInt();
+		int count = bb.ReadUIntPositive();
 		Map<K, LogBean> edits = null;
 		if (count > 0) {
 			edits = newMap();
@@ -125,7 +125,7 @@ abstract class LogMap2Base<K, V extends Bean> extends LogBean {
 				edits.put(keyDecoder.apply(bb), decodeLogBean(bb));
 			} while (--count > 0);
 		}
-		count = bb.ReadUInt();
+		count = bb.ReadUIntPositive();
 		Map<K, V> replacements = null;
 		if (count > 0) {
 			replacements = newMap();
@@ -141,7 +141,7 @@ abstract class LogMap2Base<K, V extends Bean> extends LogBean {
 				throw Task.forceThrow(e);
 			}
 		}
-		count = bb.ReadUInt();
+		count = bb.ReadUIntPositive();
 		Set<K> removals = null;
 		if (count > 0) {
 			removals = newKeySet();
