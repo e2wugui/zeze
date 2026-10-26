@@ -193,14 +193,14 @@ public abstract class Database extends ReentrantLock {
 		return tables;
 	}
 
-	/** 复制nio缓冲的remaining区间[position,limit)（映射到array的[arrayOffset+position, arrayOffset+limit)）。 */
+	/** 返回nio缓冲的remaining区间；仅窗口覆盖完整可访问数组时共享，否则复制且不改游标。 */
 	public static byte [] copyIf(java.nio.ByteBuffer bb) {
-		// 快路径仅在"零偏移、未消费、满缓冲"时可安全共享底层数组：position>0时返回array()
-		// 会带上已消费前缀；慢路径end必须补上arrayOffset（slice的limit是子缓冲视角，
-		// 直接当数组下标会截短复制区间）。
-		if (bb.position() == 0 && bb.limit() == bb.capacity() && bb.arrayOffset() == 0)
+		// slice可以从数组开头开始却只有较小capacity，必须与实际数组长度比较。
+		if (bb.hasArray() && bb.position() == 0 && bb.arrayOffset() == 0 && bb.remaining() == bb.array().length)
 			return bb.array();
-		return Arrays.copyOfRange(bb.array(), bb.arrayOffset() + bb.position(), bb.arrayOffset() + bb.limit());
+		var bytes = new byte[bb.remaining()];
+		bb.get(bb.position(), bytes);
+		return bytes;
 	}
 
 	public static byte [] copyIf(byte [] bytes, int offset, int len) {

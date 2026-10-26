@@ -275,7 +275,7 @@ public class DatabaseDynamoDb extends Database {
 				return null;
 
 			var value = item.get("value").getB();
-			return ByteBuffer.Wrap(value.array(), value.arrayOffset(), value.limit());
+			return ByteBuffer.Wrap(copyIf(value));
 		}
 
 		@Override
