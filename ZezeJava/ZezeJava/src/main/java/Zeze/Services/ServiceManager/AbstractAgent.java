@@ -539,7 +539,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
 					var current = infos.getInfos(it.key());
 					for (var old : it.value().getSortedIdentities()) {
-						if (current == null || current.findServiceInfo(old) == null)
+						var replacement = current != null ? current.findServiceInfo(old) : null;
+						if (replacement == null || !old.fullEquals(replacement))
 							edits.getRemove().add(old);
 					}
 				}
