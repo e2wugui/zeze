@@ -656,11 +656,6 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
-      public boolean remove(@Nullable Object obj) {
-        return obj != null && removeFromColumnIf(Utils.valuePredicateOnEntries(Utils.equalTo(obj)));
-      }
-
-      @Override
       public boolean removeAll(final Collection<?> c) {
         return removeFromColumnIf(Utils.valuePredicateOnEntries(Utils.in(c)));
       }
