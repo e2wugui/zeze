@@ -125,7 +125,8 @@ public class TimerFuture<V extends @Nullable Object> extends ReentrantLock imple
 
 	@Override
 	public boolean isCancelled() {
-		return canceled; // 不用 future.isCancelled()：调用时 future 字段可能还没赋值
+		var current = future;
+		return canceled || current != null && current.isCancelled();
 	}
 
 	@Override
