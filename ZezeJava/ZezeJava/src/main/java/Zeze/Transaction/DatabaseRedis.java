@@ -248,7 +248,7 @@ public class DatabaseRedis extends Database {
 
 		@Override
 		public void decode(IByteBuffer bb) {
-			for (var count = bb.ReadUInt(); count > 0; count--)
+			for (var count = bb.ReadUIntPositive(); count > 0; count--)
 				instances.add(bb.ReadInt());
 			global = bb.ReadString();
 		}
