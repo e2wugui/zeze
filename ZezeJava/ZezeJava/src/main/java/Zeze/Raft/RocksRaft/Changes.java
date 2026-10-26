@@ -143,6 +143,9 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 
 		public void decode(IByteBuffer bb) {
+			putValue = null;
+			logBean.clear();
+			logBeans.clear();
 			state = bb.ReadUInt();
 			switch (state) {
 			case Remove:
@@ -262,6 +265,11 @@ public final class Changes extends Zeze.Raft.Log {
 	@Override
 	public void decode(IByteBuffer bb) {
 		super.decode(bb);
+		// 解码完整的下一条事务日志，不能合并上一条或保留本地收集上下文。
+		beans.clear();
+		records.clear();
+		atomicLongs.clear();
+		transaction = null;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var tkey = new TableKey();
 			var r = new Record();

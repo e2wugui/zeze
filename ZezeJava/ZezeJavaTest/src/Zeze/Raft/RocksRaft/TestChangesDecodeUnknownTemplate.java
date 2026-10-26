@@ -17,6 +17,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Task;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -117,6 +119,60 @@ public class TestChangesDecodeUnknownTemplate {
 			assertEquals(1, changes.getRecords().size());
 			var record = changes.getRecords().values().iterator().next();
 			assertEquals(Changes.Record.Remove, record.getState());
+		}
+	}
+
+	@Test
+	public void decodeReplacesPreviousRecordsAndCounters() throws Exception {
+		try (var rocks = newRocks()) {
+			var changes = new Changes(rocks);
+			for (int key : new int[]{7, 8}) {
+				var bb = ByteBuffer.Allocate();
+				writeLogBaseFields(bb);
+				bb.WriteUInt(1);
+				bb.WriteUInt(0);
+				bb.WriteString(knownTemplate);
+				bb.WriteString(knownTemplate + "#0");
+				bb.WriteInt(key);
+				bb.WriteUInt(Changes.Record.Remove);
+				bb.WriteUInt(1);
+				bb.WriteUInt(key);
+				bb.WriteLong(key * 10L);
+				changes.decode(ByteBuffer.Wrap(bb.Copy()));
+				assertEquals(1, changes.getRecords().size(), "decode must replace the previous transaction");
+				assertTrue(changes.getRecords().containsKey(new TableKey(knownTemplate + "#0", key)));
+				assertEquals(1, changes.getAtomicLongs().size());
+				assertEquals(key * 10L, changes.getAtomicLongs().get(key));
+			}
+			var empty = ByteBuffer.Allocate();
+			new Changes(rocks).encode(empty);
+			changes.decode(ByteBuffer.Wrap(empty.Copy()));
+			assertTrue(changes.getRecords().isEmpty());
+			assertTrue(changes.getAtomicLongs().isEmpty());
+		}
+	}
+
+	@Test
+	public void recordDecodeReplacesPreviousPutAndEdit() throws Exception {
+		try (var rocks = newRocks()) {
+			var record = new Changes.Record();
+			record.setTableByName(new Changes(rocks), knownTemplate);
+			var put = ByteBuffer.Allocate();
+			put.WriteUInt(Changes.Record.Put);
+			new Zeze.Builtin.TestRocks.BValue().encode(put);
+			record.decode(ByteBuffer.Wrap(put.Copy()));
+			assertNotNull(record.getPutValue());
+			var edit = ByteBuffer.Allocate();
+			edit.WriteUInt(Changes.Record.Edit);
+			edit.WriteUInt(1);
+			new LogBean().encode(edit);
+			record.decode(ByteBuffer.Wrap(edit.Copy()));
+			assertNull(record.getPutValue());
+			assertEquals(1, record.getLogBean().size());
+			var remove = ByteBuffer.Allocate();
+			remove.WriteUInt(Changes.Record.Remove);
+			record.decode(ByteBuffer.Wrap(remove.Copy()));
+			assertTrue(record.getLogBean().isEmpty());
 		}
 	}
 }
