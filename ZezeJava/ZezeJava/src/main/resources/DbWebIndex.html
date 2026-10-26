@@ -77,13 +77,14 @@
         return binding === editorBinding && ownsSelection(binding);
     }
 
-    // token：优先URL参数（?token=xxx 进入时缓存），之后取localStorage；无token不带参数（服务端403时提示输入）
+    // URL只提供初始凭据；403后输入的新凭据须替换本页面的当前凭据。
+    let accessToken = new URLSearchParams(location.search).get('token')
+        || localStorage.getItem('dbweb_token') || '';
+    if (accessToken) localStorage.setItem('dbweb_token', accessToken);
+
     function apiUrl(path, parameters = {}) {
         const query = new URLSearchParams(parameters);
-        const fromUrl = new URLSearchParams(location.search).get('token');
-        if (fromUrl) localStorage.setItem('dbweb_token', fromUrl);
-        const t = fromUrl || localStorage.getItem('dbweb_token') || '';
-        if (t) query.set('token', t);
+        if (accessToken) query.set('token', accessToken);
         const encoded = query.toString();
         return encoded ? `${path}?${encoded}` : path;
     }
@@ -93,7 +94,11 @@
             const response = await fetch(apiUrl(API.tables));
             if (response.status === 403) {
                 const t = prompt('DbWeb 需要访问 token（服务启动日志中查看）');
-                if (t) { localStorage.setItem('dbweb_token', t); return init(); }
+                if (t) {
+                    accessToken = t;
+                    localStorage.setItem('dbweb_token', t);
+                    return init();
+                }
             }
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const tables = await response.json();
