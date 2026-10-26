@@ -9,6 +9,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.StandardOpenOption;
+import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jspecify.annotations.Nullable;
 
@@ -78,26 +79,17 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 	 * @throws IOException exception
 	 */
 	public int read(byte [] buf, int off, int len) throws IOException {
+		Objects.checkFromIndexSize(off, len, buf.length);
 		lock();
 		try {
 			var n = 0;
-			while (len > n) {
-				var remaining = buffer.remaining();
-				var copy = Math.min(remaining, len - n);
-				System.arraycopy(buffer.array(), buffer.position(), buf, off, copy);
-				buffer.position(buffer.position() + copy);
+			while (n < len && fillBuffer()) {
+				var copy = Math.min(buffer.remaining(), len - n);
+				buffer.get(buf, off + n, copy);
 				n += copy;
-				off += copy;
-				if (!fillBuffer()) {
-					if (n > 0) {
-						pos += n;
-						return n;
-					}
-					return -1; // eof
-				}
+				pos += copy;
 			}
-			pos += n;
-			return n;
+			return n == 0 && len > 0 ? -1 : n;
 		} finally {
 			unlock();
 		}
