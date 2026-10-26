@@ -1344,16 +1344,29 @@ public final class JsonWriter {
 					}
 				}
 			} else {
+				if ((c & 0xf800) == 0xd800) {
+					if ((c & 0xfc00) == 0xd800 && i + 1 < n && ((d = str.charAt(i + 1)) & 0xfc00) == 0xdc00) {
+						c = (c << 10) + d + (0x10000 - (0xd800 << 10) - 0xdc00);
+						i++;
+						buf[pos++] = (byte)(0xf0 + (c >> 18));
+						buf[pos++] = (byte)(0x80 + ((c >> 12) & 0x3f));
+						buf[pos++] = (byte)(0x80 + ((c >> 6) & 0x3f));
+						buf[pos++] = (byte)(0x80 + (c & 0x3f));
+					} else {
+						// 未配对的 UTF-16 代码单元不能编码为 UTF-8 标量，JSON 转义保留原值。
+						buf[pos++] = '\\';
+						buf[pos++] = 'u';
+						buf[pos++] = (byte)num2Hex(c >> 12);
+						buf[pos++] = (byte)num2Hex((c >> 8) & 0xf);
+						buf[pos++] = (byte)num2Hex((c >> 4) & 0xf);
+						buf[pos++] = (byte)num2Hex(c & 0xf);
+					}
+					continue;
+				}
 				if (c < 0x800)
 					buf[pos++] = (byte)(0xc0 + (c >> 6)); // 110x xxxx  10xx xxxx
 				else {
-					if ((c & 0xfc00) == 0xd800 && i + 1 < n && ((d = str.charAt(i + 1)) & 0xfc00) == 0xdc00) { // UTF-16 surrogate
-						c = (c << 10) + d + (0x10000 - (0xd800 << 10) - 0xdc00);
-						i++;
-						buf[pos++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
-						buf[pos++] = (byte)(0x80 + ((c >> 12) & 0x3f));
-					} else
-						buf[pos++] = (byte)(0xe0 + (c >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
+					buf[pos++] = (byte)(0xe0 + (c >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
 					buf[pos++] = (byte)(0x80 + ((c >> 6) & 0x3f));
 				}
 				buf[pos++] = (byte)(0x80 + (c & 0x3f));
