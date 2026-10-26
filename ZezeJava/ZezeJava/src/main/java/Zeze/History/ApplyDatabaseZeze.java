@@ -110,8 +110,9 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	public void saveCursor(Id128 key, IApplyRecordTxn txn) {
 		// 必须走当前记录级事务的底层dbTxn：游标与记录数据同事务提交，杜绝
 		// "数据持久而进度丢失"的错配（重启后游标归零整段重放，Edit非幂等即污染）。
-		if (!(txn instanceof RecordTxn recordTxn))
-			throw new IllegalStateException("saveCursor requires the RecordTxn of this database.");
+		if (!(txn instanceof RecordTxn recordTxn) || txn != activeRecordTxn)
+			throw new IllegalStateException("saveCursor requires the active RecordTxn of this database.");
+		checkRecordTxnOwner();
 		var value = ByteBuffer.Allocate();
 		key.encode(value);
 		cursorStorage.replace(recordTxn.dbTxn, cursorKey(), value);
