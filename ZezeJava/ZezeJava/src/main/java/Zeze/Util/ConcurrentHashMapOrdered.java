@@ -14,6 +14,7 @@ import org.jspecify.annotations.Nullable;
  * 使用ConcurrentHashMap和ConcurrentLinkedQueue包装实现的简单Map实现，
  * 【它会记住映射项第一次加入的顺序，并一直保持不变。】
  * 【需要定时遍历，以从Queue中回收被删除的项。】
+ * 与 ConcurrentHashMap 一样拒绝 null key/value；null 用于表示查找未命中及迭代器尚未就绪。
  *
  * @param <K> key
  * @param <V> value
@@ -151,6 +152,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public @Nullable V put(K key, V value) {
+		Objects.requireNonNull(value);
 		var s = state.get();
 		var oldValue = new OutObject<V>();
 		s.map.compute(key, (k, existing) -> {
@@ -168,6 +170,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public @Nullable V putIfAbsent(K key, V value) {
+		Objects.requireNonNull(value);
 		var s = state.get();
 		var oldValue = new OutObject<V>();
 		s.map.compute(key, (k, existing) -> {
@@ -224,6 +227,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public @Nullable V replace(K key, V value) {
+		Objects.requireNonNull(value);
 		var s = state.get();
 		var oldValue = new OutObject<V>();
 		s.map.computeIfPresent(key, (k, entry) -> {
@@ -237,6 +241,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public boolean replace(K key, V oldValue, V newValue) {
+		Objects.requireNonNull(newValue);
 		var s = state.get();
 		var replaced = new boolean[1];
 		s.map.computeIfPresent(key, (k, entry) -> {
