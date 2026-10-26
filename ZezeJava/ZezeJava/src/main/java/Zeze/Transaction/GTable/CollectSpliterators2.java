@@ -146,11 +146,11 @@ public class CollectSpliterators2 {
 			Spliterator<InElementT> fromSplit = from.trySplit();
 			if (fromSplit != null) {
 				int splitCharacteristics = characteristics & ~Spliterator.SIZED;
+					this.characteristics = splitCharacteristics;
 				long estSplitSize = estimateSize();
 				if (estSplitSize < Long.MAX_VALUE) {
 					estSplitSize /= 2;
 					this.estimatedSize -= estSplitSize;
-					this.characteristics = splitCharacteristics;
 				}
 				OutSpliteratorT result =
 						factory.newFlatMapSpliterator(
@@ -159,6 +159,8 @@ public class CollectSpliterators2 {
 				return result;
 			}
 			if (prefix != null) {
+					// 转交前缀后剩余大小只是估计，不能让 Stream 按旧的精确大小计数/分配。
+					characteristics &= ~Spliterator.SIZED;
 				OutSpliteratorT result = prefix;
 				this.prefix = null;
 				return result;
