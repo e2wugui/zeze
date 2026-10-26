@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.IModule;
@@ -163,9 +162,13 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 
 	@Override
 	public Class<?> loadClass(String className, boolean resolve) throws ClassNotFoundException {
-		return isLoadSchemas && className.equals(schemasClassName)
-				? loadModuleClass(className)
-				: super.loadClass(className, resolve);
+		if (isLoadSchemas && className.equals(schemasClassName)) {
+			var cls = loadModuleClass(className);
+			if (resolve)
+				resolveClass(cls);
+			return cls;
+		}
+		return super.loadClass(className, resolve);
 	}
 
 	@Override
@@ -184,35 +187,30 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 	// 安装失败回滚时随本实例一起废弃，不在共享装载器留残留。
 	@Override
 	public Class<?> defineRedirectClass(String className, byte[] byteCode) {
-		var loaded = findLoadedClass(className);
-		if (loaded != null)
-			return loaded;
-		return defineClass(className, byteCode, 0, byteCode.length);
+		synchronized (getClassLoadingLock(className)) {
+			var loaded = findLoadedClass(className);
+			return loaded != null ? loaded : defineClass(className, byteCode, 0, byteCode.length);
+		}
 	}
 
 	private Class<?> loadModuleClass(String className) throws ClassNotFoundException {
-		String classFileName = className.replace('.', '/') + ".class";
-		ZipEntry entry;
-		try {
-			// 构造器会调loadClass，此时jar可能尚未打开（延迟打开），必须走lazy的getJarFile
-			entry = getJarFile().getEntry(classFileName);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		if (entry == null)
-			// 必须按loadClass契约抛ClassNotFoundException而不是继续走下去：
-			// getInputStream(null)只会得到NullPointerException，调用方按 CNFE 写的
-			// 回退逻辑（拼错类名、反射探测、编译器探测）全部失效。
-			throw new ClassNotFoundException(className);
-		return loadModuleClass(className, entry);
-	}
-
-	private Class<?> loadModuleClass(String className, ZipEntry entry) {
-		try (var inputStream = getJarFile().getInputStream(entry)) {
-			var bytes = inputStream.readAllBytes();
-			return defineClass(className, bytes, 0, bytes.length);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		synchronized (getClassLoadingLock(className)) {
+			var loaded = findLoadedClass(className);
+			if (loaded != null)
+				return loaded;
+			try {
+				// 构造器也会装载模块类，jar此时可能尚未打开。
+				var moduleJar = getJarFile();
+				var entry = moduleJar.getEntry(className.replace('.', '/') + ".class");
+				if (entry == null)
+					throw new ClassNotFoundException(className);
+				try (var inputStream = moduleJar.getInputStream(entry)) {
+					var bytes = inputStream.readAllBytes();
+					return defineClass(className, bytes, 0, bytes.length);
+				}
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
