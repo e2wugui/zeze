@@ -36,12 +36,16 @@ public final class PropertiesHelper {
 	 * 1. -key不能重名，重复时，保留第一个，其他丢弃。
 	 * 2. value 不存在时，设为""写入Properties。
 	 * 3. 只支持按空白简单分割，不支持双引号括起来的值。
+	 * 4. 空串或纯空白表示没有选项。
 	 */
 	public static Properties parse(String props) {
-		// trim+\\s+：容忍连续/首尾空白。split(" ") 会把连续空格产生的空 token 当作“无 -key 的 value”误报。
-		var args = PATTERN_SPACES.split(props.trim());
-
 		var result = new Properties();
+		props = props.trim();
+		if (props.isEmpty())
+			return result;
+		// trim+\\s+：容忍连续/首尾空白。split(" ") 会把连续空格产生的空 token 当作“无 -key 的 value”误报。
+		var args = PATTERN_SPACES.split(props);
+
 		for (var i = 0; i < args.length; ++i) {
 			if (args[i].startsWith("-")) {
 				var key = args[i]; // eat key
