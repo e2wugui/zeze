@@ -57,6 +57,38 @@ Macro（D 与 L）。Matrix 使用明确的基准类过滤，不随新加入的 
 | K | KCheckpointUnderCommitFlood | 提交洪水下的刷盘竞争 |
 | L | GameSim.LMmoGameSim | 游戏模拟与容量 |
 
+## 2026-10-26 · 集合增量按需分配与 Onz 捕获解耦
+
+改动：监听器约定为所有业务开始前完成注册；仅 History 或表监听器要求集合 DELTA，
+Onz 只参与事务协调与整记录刷盘。Map/SortedMap 的替换、删除 notes 分别按需创建，
+Map1/SortedMap1 消费载荷也保留空侧，避免收集时重新分配空容器。
+
+验证：Fast 1943 项，0 失败、0 错误、跳过 2 项；两条 Onz 集成测试通过且均未跳过。
+覆盖 NONE/监听消费、Onz 写前/写后绑定和嵌套保存点；真实双集群 RPC 验证 Map1/Map2
+使用 NONE 后的 Ready/Commit/FlushReady，以及参与方独立键的后端数据库最终值。
+
+性能：相对 `34a108b33`，同机 Corretto 21.0.5、2g 堆、关闭断言，
+MapBeanCommitBench 的 16 条规模、每事务替换 1 项，NONE 与真实监听投影消费。
+先做 2 fork 短测，再以 3 fork、5 次预热和 5 次测量（每次 1s）独立复测。
+复测基线从 HEAD 独立编译五个改动的生产类，前置于相同运行类路径；当前源码保持不变。
+
+| 场景 | 基线分配 B/事务 | 当前分配 B/事务 | 差值 | 分配置信区间 |
+|---|---:|---:|---:|---|
+| Map2 / NONE | 1125.53 | 1125.57 | +0.04 | 重叠 |
+| SortedMap2 / NONE | 1128.37 | 1141.53 | +13.16 | 重叠 |
+| Map2 / LISTENER | 2701.56 | 2637.73 | -63.83 | 分离，有利 |
+| SortedMap2 / LISTENER | 2672.30 | 2627.03 | -45.27 | 分离，有利 |
+
+SortedMap2/LISTENER 再按当前→基线反向顺序独立复测，分配 2664.34→2600.30 B/事务
+（-64.04 B，区间分离有利）。其吞吐在前一轮为 -5.10%，反向轮为 +0.46%，
+两轮吞吐区间均重叠；不宣称吞吐改善，也不把区间重叠解释成严格等价或无退化。
+结论限于上述分配场景，未覆盖大容器、多项增量、宏观负载及合并 Delta/LogBean 的设计。
+
+归档：`bench-results/jmh-map-notes-{before,after}-20261026.json`、
+`jmh-map-notes-{before,after}-repeat-20261026.json`、
+`jmh-map-notes-{before,after}-reverse-20261026.json`；比较结果保存在对应 compare JSON，
+复测及反向复测另存完整运行日志。`map-notes-manifest-20261026.json` 保存参数、源码摘要与验证结果。
+
 ## 2026-10-19～20 · 刷盘接口收敛
 
 改动：Record 保留缓存状态，Table 移除刷盘接口，TableX 提供具体编码能力，Checkpoint 持有批次和事务。

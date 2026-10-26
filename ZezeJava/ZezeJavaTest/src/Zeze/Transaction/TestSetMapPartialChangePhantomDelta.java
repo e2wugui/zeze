@@ -123,6 +123,8 @@ public class TestSetMapPartialChangePhantomDelta {
 
 				// {1:100}上putAll({1:100, 2:200})：键1值未变——真实变化只有键2
 				map.putAll(Map.of(1, 100, 2, 200));
+				// 每个消费载荷只借用创建时的最终增量，不要求之前的空投影追踪后续写入。
+				log = (LogMap1<Integer, Integer>)map.createLogBean(Transaction.getCurrent().getLog(mapLogKey));
 				Assertions.assertEquals(Map.of(2, 200), log.getReplaced(),
 						"部分变化putAll的replaced不得含值未变的键（幻影replaced）");
 
@@ -135,6 +137,7 @@ public class TestSetMapPartialChangePhantomDelta {
 				Assertions.assertFalse(requireNonNull(slog).getReplaced().containsKey(10),
 						"LogSortedMap1.put同构：等值新实例不得留下幻影replaced");
 				smap.putAll(Map.of(1, 100, 3, 300));
+				slog = (LogSortedMap1<Integer, Integer>)smap.createLogBean(Transaction.getCurrent().getLog(smapLogKey));
 				Assertions.assertEquals(Map.of(3, 300), slog.getReplaced(),
 						"LogSortedMap1.putAll同构：replaced不得含值未变的键");
 				return Procedure.Success;

@@ -14,22 +14,27 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 		return true;
 	}
 
-	private final Map<K, V> replaced;
-	private final Set<K> removed;
+	private @Nullable Map<K, V> replaced;
+	private @Nullable Set<K> removed;
 
 	protected LogSortedMapDelta(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
 		super(source, value);
-
-		replaced = new TreeMap<>(value.comparator());
-		removed = new TreeSet<>(value.comparator());
 	}
 
-	public Map<K, V> getReplaced() {
+	public @Nullable Map<K, V> getReplaced() {
 		return replaced;
 	}
 
-	public Set<K> getRemoved() {
+	public @Nullable Set<K> getRemoved() {
 		return removed;
+	}
+
+	private Map<K, V> replacedForWrite() {
+		return replaced != null ? replaced : (replaced = new TreeMap<>(getValue().comparator()));
+	}
+
+	private Set<K> removedForWrite() {
+		return removed != null ? removed : (removed = new TreeSet<>(getValue().comparator()));
 	}
 
 	public @Nullable V put(K key, V value) {
@@ -54,16 +59,16 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 
 	private void noteReplacement(K key, V value, @Nullable V oldValue) {
 		if (isValueChanged(oldValue, value)) {
-			removed.remove(key);
-			replaced.put(key, value);
+			if (removed != null) removed.remove(key);
+			replacedForWrite().put(key, value);
 		}
 	}
 
 	public @Nullable V remove(K key) {
 		V old = super.remove(key);
 		if (old != null) {
-			replaced.remove(key);
-			removed.add(key);
+			if (replaced != null) replaced.remove(key);
+			removedForWrite().add(key);
 		}
 		return old;
 	}
@@ -71,8 +76,8 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	public boolean remove(K key, V value) {
 		// 空值防御对齐非托管分支（同 LogMap1.remove(K,V)，20261020-06）。
 		if (super.remove(key, value)) {
-			replaced.remove(key);
-			removed.add(key);
+			if (replaced != null) replaced.remove(key);
+			removedForWrite().add(key);
 			return true;
 		}
 		return false;
@@ -80,8 +85,8 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 
 	public void clear() {
 		for (var ks : getValue().keySet()) {
-			replaced.remove(ks);
-			removed.add(ks);
+			if (replaced != null) replaced.remove(ks);
+			removedForWrite().add(ks);
 		}
 		super.clear();
 	}
@@ -95,14 +100,18 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	}
 
 	private void mergeChangeNote(LogSortedMapDelta<K, V> another) {
-		for (var e : another.replaced.entrySet()) {
-			K k = e.getKey();
-			removed.remove(k);
-			replaced.put(k, e.getValue());
+		if (another.replaced != null) {
+			for (var e : another.replaced.entrySet()) {
+				K k = e.getKey();
+				if (removed != null) removed.remove(k);
+				replacedForWrite().put(k, e.getValue());
+			}
 		}
-		for (K k : another.removed) {
-			replaced.remove(k);
-			removed.add(k);
+		if (another.removed != null) {
+			for (K k : another.removed) {
+				if (replaced != null) replaced.remove(k);
+				removedForWrite().add(k);
+			}
 		}
 	}
 

@@ -15,7 +15,6 @@ import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Transaction.Collections.Collection;
-import Zeze.Transaction.Collections.LogCollection;
 import Zeze.Util.Random;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -257,7 +256,8 @@ public final class Transaction {
 		var sourceRecord = root.record();
 		assert sourceRecord != null;
 		var table = sourceRecord.getTable();
-		boolean capture = onzProcedure != null || table.getZeze().getHistory() != null
+		// Onz coordinates commit/flush of whole records; it does not consume collection deltas.
+		boolean capture = table.getZeze().getHistory() != null
 			|| table.getChangeListenerMap().hasListener();
 		var created = source.createLog(capture ? ChangeCaptureMode.DELTA : ChangeCaptureMode.NONE);
 		putLog(created);
@@ -657,17 +657,8 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
-	/** Late binding is allowed only when every existing collection log already captures deltas. */
+	/** Onz binding is independent of History/listener delta capture. */
 	public void setOnzProcedure(@Nullable OnzProcedure onzProcedure) {
-		if (onzProcedure != null && this.onzProcedure == null && !savepoints.isEmpty()) {
-			var it = savepoints.getLast().logIterator();
-			if (it != null) {
-				while (it.moveToNext()) {
-					if (it.value() instanceof LogCollection<?> collection && !collection.hasDelta())
-						throw new IllegalStateException("Onz must be bound before collection writes");
-				}
-			}
-		}
 		this.onzProcedure = onzProcedure;
 	}
 

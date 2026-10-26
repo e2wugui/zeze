@@ -9,7 +9,6 @@ import Zeze.Util.Task;
 
 /** Complete field change value, independent of any local transaction target. */
 public class LogBeanKeyValue<T extends Serializable> extends Log {
-
 	private final BeanKeyMeta<T> meta;
 	public T value;
 

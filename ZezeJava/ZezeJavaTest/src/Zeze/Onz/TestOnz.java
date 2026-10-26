@@ -7,9 +7,13 @@ import static java.util.Objects.requireNonNull;
 import Zeze.Config;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Onz.OnzServer;
+import Zeze.Transaction.Collections.LogCollection;
+import Zeze.Transaction.Transaction;
 import demo.App;
 import demo.Module1.BKuafu;
 import demo.Module1.BKuafuResult;
+import demo.Module1.BSimple;
+import demo.Module1.tflush;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterEach;
@@ -66,9 +70,22 @@ public class TestOnz {
 	}
 
 	private static long kuaFu(OnzProcedure onzProcedure, BKuafu argument, BKuafuResult result) {
-		var app = (App)requireNonNull(onzProcedure.getStub()).getOnz().getZeze().getAppBase();
-		var account = requireNonNull(requireNonNull(app).demo_Module1).getKuafu().getOrAdd(argument.getAccount());
+		var app = requireNonNull((App)requireNonNull(onzProcedure.getStub()).getOnz().getZeze().getAppBase());
+		var account = requireNonNull(app.demo_Module1).getKuafu().getOrAdd(argument.getAccount());
 		account.setMoney(account.getMoney() + argument.getMoney());
+		var application = requireNonNull(app.Zeze);
+		var table = (tflush)application.getTable("demo_Module1_tflush");
+		// 两个集群在测试重定向下可能共享 Memory 后端；用参与方独立键验证本地 flush。
+		var root = requireNonNull(table).getOrAdd((long)application.getConfig().getServerId());
+		root.getMap15().put(1L, argument.getMoney());
+		var item = new BSimple();
+		item.setInt_1((int)argument.getMoney());
+		root.getMap41().put(1L, item);
+		var transaction = requireNonNull(Transaction.getCurrent());
+		for (var map : java.util.List.of(root.getMap15(), root.getMap41())) {
+			var log = (LogCollection<?>)requireNonNull(transaction.getLog(map.changeLogKey()));
+			Assertions.assertFalse(log.hasDelta(), "Onz alone must not collect collection deltas");
+		}
 		result.setMoney(account.getMoney());
 		return 0;
 	}
@@ -105,5 +122,16 @@ public class TestOnz {
 		Assertions.assertEquals(0, requireNonNull(onzServer).perform(txn)); // 这里出现过断言失败，是rollback了，有异常日志，但很奇怪，不知道哪里调了rollback。
 		logger.info("after perform m1={} m2={}", txn.m1, txn.m2);
 		Assertions.assertEquals(0, txn.m1 + txn.m2);
+		GcOnzE2eTestSupport.awaitOnzFlushSettled(requireNonNull(onzServer));
+		assertPersistedCollections(App.Instance, 1);
+		assertPersistedCollections(zeze2, -1);
+	}
+
+	private static void assertPersistedCollections(App app, int value) {
+		var application = requireNonNull(app.Zeze);
+		var table = (tflush)application.getTable("demo_Module1_tflush");
+		var persisted = requireNonNull(requireNonNull(table).selectFromDatabase((long)application.getConfig().getServerId()));
+		Assertions.assertEquals((long)value, persisted.getMap15().get(1L));
+		Assertions.assertEquals(value, requireNonNull(persisted.getMap41().get(1L)).getInt_1());
 	}
 }

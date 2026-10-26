@@ -14,19 +14,27 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		return true;
 	}
 
-	private final HashMap<K, V> replaced = new HashMap<>();
-	private final Set<K> removed = new HashSet<>();
+	private @Nullable HashMap<K, V> replaced;
+	private @Nullable Set<K> removed;
 
 	protected LogMapDelta(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
 		super(source, value);
 	}
 
-	public HashMap<K, V> getReplaced() {
+	public @Nullable HashMap<K, V> getReplaced() {
 		return replaced;
 	}
 
-	public Set<K> getRemoved() {
+	public @Nullable Set<K> getRemoved() {
 		return removed;
+	}
+
+	private HashMap<K, V> replacedForWrite() {
+		return replaced != null ? replaced : (replaced = new HashMap<>());
+	}
+
+	private Set<K> removedForWrite() {
+		return removed != null ? removed : (removed = new HashSet<>());
 	}
 
 	public @Nullable V put(K key, V value) {
@@ -51,16 +59,16 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 
 	private void noteReplacement(K key, V value, @Nullable V oldValue) {
 		if (isValueChanged(oldValue, value)) {
-			removed.remove(key);
-			replaced.put(key, value);
+			if (removed != null) removed.remove(key);
+			replacedForWrite().put(key, value);
 		}
 	}
 
 	public @Nullable V remove(K key) {
 		V old = super.remove(key);
 		if (old != null) {
-			replaced.remove(key);
-			removed.add(key);
+			if (replaced != null) replaced.remove(key);
+			removedForWrite().add(key);
 		}
 		return old;
 	}
@@ -70,8 +78,8 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		// value==null 时旧形态 NPE 炸事务、非托管分支同输入安静返回 false——同输入两分支
 		// 行为必须一致（20261020-06，对抗验证定谳为理论缺陷，防御对齐修法）。
 		if (super.remove(key, value)) {
-			replaced.remove(key);
-			removed.add(key);
+			if (replaced != null) replaced.remove(key);
+			removedForWrite().add(key);
 			return true;
 		}
 		return false;
@@ -79,8 +87,8 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 
 	public void clear() {
 		for (var ks : getValue().keySet()) {
-			replaced.remove(ks);
-			removed.add(ks);
+			if (replaced != null) replaced.remove(ks);
+			removedForWrite().add(ks);
 		}
 		super.clear();
 	}
@@ -94,14 +102,18 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 	}
 
 	private void mergeChangeNote(LogMapDelta<K, V> another) {
-		for (var e : another.replaced.entrySet()) {
-			K k = e.getKey();
-			removed.remove(k);
-			replaced.put(k, e.getValue());
+		if (another.replaced != null) {
+			for (var e : another.replaced.entrySet()) {
+				K k = e.getKey();
+				if (removed != null) removed.remove(k);
+				replacedForWrite().put(k, e.getValue());
+			}
 		}
-		for (K k : another.removed) {
-			replaced.remove(k);
-			removed.add(k);
+		if (another.removed != null) {
+			for (K k : another.removed) {
+				if (replaced != null) replaced.remove(k);
+				removedForWrite().add(k);
+			}
 		}
 	}
 

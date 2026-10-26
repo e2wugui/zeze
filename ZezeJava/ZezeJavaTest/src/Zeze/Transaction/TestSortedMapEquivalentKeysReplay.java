@@ -225,10 +225,11 @@ public class TestSortedMapEquivalentKeysReplay {
 			input.put(new BigDecimal("1.00"), 10);
 			log.putAll(input);
 			assertEquals(10, log.get(new BigDecimal("1")));
+			var replacements = log.getReplaced();
 			if (priorReplacement)
-				assertEquals(10, log.getReplaced().get(new BigDecimal("1")));
+				assertEquals(10, requireNonNull(replacements).get(new BigDecimal("1")));
 			else
-				assertTrue(log.getReplaced().isEmpty(), "恢复旧值不得留下中间输入的替换日志");
+				assertTrue(replacements == null || replacements.isEmpty(), "恢复旧值不得留下中间输入的替换日志");
 			log.commit();
 			@SuppressWarnings("unchecked")
 			var decoded = (LogSortedMap1<BigDecimal, Integer>)follower.createLogBean(null);

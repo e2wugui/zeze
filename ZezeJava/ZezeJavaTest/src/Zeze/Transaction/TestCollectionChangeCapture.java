@@ -474,66 +474,75 @@ public class TestCollectionChangeCapture {
 	}
 
 	@Test
-	public void earlyOnzBindingSelectsDeltaWithoutRetry() throws Exception {
-		var app = Map2TestSupport.newApp("collectionEarlyOnzCapture");
-		try {
-			var table = table(app);
-			var rounds = new AtomicInteger();
-			var ready = new AtomicInteger();
-			var onz = new Zeze.Onz.OnzProcedure(null, null, null, null, null) {
-				@Override
-				public void sendReadyAndWait() {
-					ready.incrementAndGet();
-				}
+	public void onzBindingPreservesConsumerSelectionAndNestedSavepoints() throws Exception {
+		registerReplay();
+		for (boolean capture : new boolean[]{false, true}) {
+			for (boolean earlyBinding : new boolean[]{false, true}) {
+				var app = Map2TestSupport.newApp("collectionOnzCapture" + capture + earlyBinding);
+				try {
+					var table = table(app);
+					assertEquals(Procedure.Success, app.newProcedure(() -> {
+						table.getOrAdd(1L);
+						return Procedure.Success;
+					}, "seed").call());
+					var rounds = new AtomicInteger();
+					var ready = new AtomicInteger();
+					var callbacks = new AtomicInteger();
+					if (capture) table.getChangeListenerMap().addListener((key, record) -> {
+						var bb = ByteBuffer.Allocate();
+						var log = record.getLogBean();
+						assertNotNull(log);
+						log.encode(bb);
+						var follower = new BValue();
+						follower.followerApply(LogBean.decode(0, bb));
+						verify(follower, 11);
+						assertTrue(bb.isEmpty());
+						callbacks.incrementAndGet();
+					});
+					var onz = new Zeze.Onz.OnzProcedure(null, null, null, null, null) {
+						@Override
+						public void sendReadyAndWait() {
+							ready.incrementAndGet();
+						}
 
-				@Override
-				public int getFlushMode() {
-					return Zeze.Onz.Onz.eFlushAsync;
+						@Override
+						public int getFlushMode() {
+							return Zeze.Onz.Onz.eFlushAsync;
+						}
+					};
+					assertEquals(Procedure.Success, app.newProcedure(() -> {
+						rounds.incrementAndGet();
+						if (earlyBinding) transaction().setOnzProcedure(onz);
+						var root = existing(table);
+						write(root, 7);
+						verifyCapture(root, capture);
+						if (!earlyBinding) transaction().setOnzProcedure(onz);
+						assertEquals(1L, app.newProcedure(() -> {
+							write(root, 9);
+							verifyCapture(root, capture);
+							return 1L;
+						}, "rollback").call());
+						verify(root, 7);
+						assertEquals(Procedure.Success, app.newProcedure(() -> {
+							write(root, 11);
+							verifyCapture(root, capture);
+							return Procedure.Success;
+						}, "nestedCommit").call());
+						verifyCapture(root, capture);
+						assertEquals(0, ready.get());
+						return Procedure.Success;
+					}, "onzCapture").call());
+					assertEquals(1, rounds.get());
+					assertEquals(1, ready.get());
+					assertEquals(capture ? 1 : 0, callbacks.get());
+					assertEquals(Procedure.Success, app.newProcedure(() -> {
+						verify(existing(table), 11);
+						return Procedure.Success;
+					}, "read").call());
+				} finally {
+					app.stop();
 				}
-			};
-			assertEquals(Procedure.Success, app.newProcedure(() -> {
-				rounds.incrementAndGet();
-				transaction().setOnzProcedure(onz);
-				var root = table.getOrAdd(1L);
-				write(root, 7);
-				verifyCapture(root, true);
-				assertEquals(0, ready.get());
-				return Procedure.Success;
-			}, "earlyOnzCapture").call());
-			assertEquals(1, rounds.get());
-			assertEquals(1, ready.get());
-		} finally {
-			app.stop();
-		}
-	}
-
-	@Test
-	public void lateOnzBindingIsRejectedAfterUntrackedWrites() throws Exception {
-		var app = Map2TestSupport.newApp("collectionLateOnzCapture");
-		try {
-			var table = table(app);
-			var ready = new AtomicInteger();
-			var onz = new Zeze.Onz.OnzProcedure(null, null, null, null, null) {
-				@Override
-				public void sendReadyAndWait() {
-					ready.incrementAndGet();
-				}
-
-				@Override
-				public int getFlushMode() {
-					return Zeze.Onz.Onz.eFlushAsync;
-				}
-			};
-			assertEquals(Procedure.Success, app.newProcedure(() -> {
-				var root = table.getOrAdd(1L);
-				write(root, 7);
-				verifyCapture(root, false);
-				assertThrows(IllegalStateException.class, () -> transaction().setOnzProcedure(onz));
-				return Procedure.Success;
-			}, "lateOnzCapture").call());
-			assertEquals(0, ready.get());
-		} finally {
-			app.stop();
+			}
 		}
 	}
 }

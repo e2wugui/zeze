@@ -47,6 +47,13 @@ serverId 号段与固定内存库 url 统一登记在 `harness/FastServerIds`，
 - `setNoDatabase(true)`（含负 serverId）及无 Application 的组件不建缓存目录，
   serverId 免登记；固定端口、静态状态用 `@ResourceLock`/`@Isolated` 隔离。
 
+## 变更监听器注册
+
+所有表的 ChangeListener 必须在任何业务事务开始前完成注册。
+业务运行期间不支持新增监听器；应用启动流程负责隔离注册阶段与业务阶段。
+集合事务日志在首次写入时按 History 和监听器选择是否采集增量，
+Onz 的事务协调与刷盘不构成变更增量消费者。
+
 ## 测试类命名
 
 类名用描述性行为名（常见词），不带 bug/审计/轮次编号（FndNNN、A2F1、Z1F2 之类）——
