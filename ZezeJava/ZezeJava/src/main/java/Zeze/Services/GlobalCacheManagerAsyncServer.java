@@ -844,8 +844,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 								logger.warn("acquireShare: reduce timeout. so={}, time={}, arg={}",
 										r.getSender(), r.getTimeout(), r.Argument);
 								state.reduceResultState = StateReduceRpcTimeout;
-							} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
-								// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+							} else if (!GlobalCacheManagerConst.isReduceResultCodeSuccess(r.getResultCode())) {
+								// 错误应答的默认StateInvalid不能证明降级；明确的幂等确认码仍允许使用结果。
 								state.reduceResultState = StateReduceNetError;
 							} else {
 								state.reduceResultState = r.Result.state;
@@ -1055,8 +1055,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 								logger.warn("acquireModify: reduce timeout. so={}, time={}, arg={}",
 										r.getSender(), r.getTimeout(), r.Argument);
 								state.reduceResultState = StateReduceRpcTimeout;
-							} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
-								// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+							} else if (!GlobalCacheManagerConst.isReduceResultCodeSuccess(r.getResultCode())) {
+								// 错误应答的默认StateInvalid不能证明降级；明确的幂等确认码仍允许使用结果。
 								state.reduceResultState = StateReduceNetError;
 							} else {
 								state.reduceResultState = r.Result.state;
@@ -1211,8 +1211,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 								cacheHolder.setError();
 								logger.warn("reduce timeout {} AcquireState={} CacheState={} arg={}",
 										rpc.getSender(), StateModify, cs, reduce.Argument);
-							} else if (reduce.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
-								// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级成功。
+							} else if (!GlobalCacheManagerConst.isReduceResultCodeSuccess(reduce.getResultCode())) {
+								// 错误应答不能证明降级成功，保留该持有者。
 								cacheHolder.setError();
 							} else {
 								switch (reduce.Result.state) {

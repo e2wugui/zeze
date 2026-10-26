@@ -461,8 +461,8 @@ public class GlobalCacheManagerWithRaft
 						perf.onReduceEnd(r);
 					if (r.isTimeout()) {
 						reduceResultState.value = StateReduceRpcTimeout;
-					} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
-						// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+					} else if (!GlobalCacheManagerConst.isReduceResultCodeSuccess(r.getResultCode())) {
+						// 错误应答的默认StateInvalid不能证明降级；明确的幂等确认码仍允许使用结果。
 						reduceResultState.value = StateReduceNetError;
 					} else {
 						reduceResultState.value = r.Result.getState();
@@ -626,8 +626,8 @@ public class GlobalCacheManagerWithRaft
 						perf.onReduceEnd(r);
 					if (r.isTimeout()) {
 						reduceResultState.value = StateReduceRpcTimeout;
-					} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
-						// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+					} else if (!GlobalCacheManagerConst.isReduceResultCodeSuccess(r.getResultCode())) {
+						// 错误应答的默认StateInvalid不能证明降级；明确的幂等确认码仍允许使用结果。
 						reduceResultState.value = StateReduceNetError;
 					} else {
 						reduceResultState.value = r.Result.getState();
@@ -721,6 +721,13 @@ public class GlobalCacheManagerWithRaft
 						try {
 							//noinspection DataFlowIssue
 							reduce.getFuture().await();
+								if (reduce.isTimeout()
+										|| !GlobalCacheManagerConst.isReduceResultCodeSuccess(reduce.getResultCode())) {
+									session.setError();
+									if (ENABLE_PERF)
+										perf.onReduceEnd(reduce);
+									continue;
+								}
 							switch (reduce.Result.getState()) {
 							case StateInvalid:
 								reduceSucceed.add(session);

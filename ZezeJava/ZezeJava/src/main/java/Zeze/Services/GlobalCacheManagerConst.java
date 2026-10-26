@@ -38,6 +38,12 @@ public interface GlobalCacheManagerConst {
 	int ReduceShareAlreadyIsShare = 43;
 	int ReduceInvalidAlreadyIsInvalid = 44;
 
+	/** 只有成功及明确的幂等确认码允许使用Reduce的结果状态；错误应答可能只有默认结果。 */
+	static boolean isReduceResultCodeSuccess(long resultCode) {
+		return resultCode == 0 || resultCode == ReduceShareAlreadyIsInvalid
+				|| resultCode == ReduceShareAlreadyIsShare || resultCode == ReduceInvalidAlreadyIsInvalid;
+	}
+
 	int CleanupErrorSecureKey = 60;
 	int CleanupErrorGlobalCacheManagerHashIndex = 61;
 	int CleanupErrorHasConnection = 62;

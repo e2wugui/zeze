@@ -670,8 +670,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							getPerf().onReduceEnd(r);
 						if (r.isTimeout()) {
 							reduceResultState.value = StateReduceRpcTimeout;
-						} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
-							// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+						} else if (!GlobalCacheManagerConst.isReduceResultCodeSuccess(r.getResultCode())) {
+							// 错误应答的默认StateInvalid不能证明降级；明确的幂等确认码仍允许使用结果。
 							reduceResultState.value = StateReduceNetError;
 						} else {
 							reduceResultState.value = r.Result.state;
@@ -838,8 +838,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							getPerf().onReduceEnd(r);
 						if (r.isTimeout()) {
 							reduceResultState.value = StateReduceRpcTimeout;
-						} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
-							// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+						} else if (!GlobalCacheManagerConst.isReduceResultCodeSuccess(r.getResultCode())) {
+							// 错误应答的默认StateInvalid不能证明降级；明确的幂等确认码仍允许使用结果。
 							reduceResultState.value = StateReduceNetError;
 						} else {
 							reduceResultState.value = r.Result.state;
@@ -936,6 +936,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							try {
 								//noinspection DataFlowIssue
 								reduce.getValue().getFuture().await(); //await 等RPC回复
+									if (reduce.getValue().isTimeout()
+											|| !GlobalCacheManagerConst.isReduceResultCodeSuccess(reduce.getValue().getResultCode())) {
+										reduce.getKey().setError();
+										continue;
+									}
 								switch (reduce.getValue().Result.state) {
 								case StateInvalid:
 									reduceSucceed.add(reduce.getKey());

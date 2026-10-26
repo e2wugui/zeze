@@ -15,6 +15,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -290,11 +291,15 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 	 * Acquire协商幂等安全。每次重试用新Acquire（requestId唯一）。
 	 */
 	private static Acquire sendAcquireModify(AsyncSocket socket) throws Exception {
+		return sendAcquire(socket, KEY, GlobalCacheManagerConst.StateModify);
+	}
+
+	private static Acquire sendAcquire(AsyncSocket socket, Binary key, int state) throws Exception {
 		long lastCode = Long.MIN_VALUE;
 		for (int attempt = 1; attempt <= 12; ++attempt) {
 			var rpc = new Acquire();
-			rpc.Argument.setGlobalKey(KEY);
-			rpc.Argument.setState(GlobalCacheManagerConst.StateModify);
+			rpc.Argument.setGlobalKey(key);
+			rpc.Argument.setState(state);
 			rpc.getUnique().setRequestId(requestIds.incrementAndGet());
 			rpc.setCreateTime(System.currentTimeMillis());
 			rpc.setTimeout(15_000);
@@ -376,6 +381,70 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 				GlobalCacheManagerWithRaft.class, int.class);
 		ctor.setAccessible(true);
 		return ctor.newInstance(target, serverId);
+	}
+
+	private static void checkErrorReply(Peer owner, AsyncSocket ownerSocket, AsyncSocket requester,
+			int ownerState, int requestedState) throws Exception {
+		var key = new Binary("ReduceReply." + ownerState + '.' + requestedState);
+		Assertions.assertEquals(0, sendAcquire(ownerSocket, key, ownerState).getResultCode());
+		var request = new Acquire();
+		request.Argument.setGlobalKey(key);
+		request.Argument.setState(requestedState);
+		request.setSender(requester);
+		var method = GlobalCacheManagerWithRaft.class.getDeclaredMethod(
+				requestedState == GlobalCacheManagerConst.StateShare ? "acquireShare" : "acquireModify", Acquire.class);
+		method.setAccessible(true);
+		var result = new FutureTask<Long>(() -> requireNonNull(gcm).getRocks().newProcedure(
+				() -> (long)method.invoke(gcm, request)).call());
+		var worker = new Thread(result, "test-raft-reduce-response");
+		worker.setDaemon(true);
+		worker.start();
+		try {
+			var reply = owner.reduces.poll(10, TimeUnit.SECONDS);
+			Assertions.assertNotNull(reply);
+			reply.Result.setGlobalKey(reply.Argument.getGlobalKey());
+			reply.Result.setState(GlobalCacheManagerConst.StateInvalid);
+			reply.SendResultCode(Zeze.Transaction.Procedure.Exception);
+			long rc = result.get(10, TimeUnit.SECONDS);
+			Assertions.assertEquals(requestedState == GlobalCacheManagerConst.StateShare
+					? GlobalCacheManagerConst.AcquireShareFailed : GlobalCacheManagerConst.AcquireModifyFailed,
+					request.getResultCode() != 0 ? request.getResultCode() : rc);
+			Assertions.assertEquals(0, gcm.getRocks().newProcedure(() -> {
+				var state = requireNonNull(globalStates).get(key);
+				Assertions.assertNotNull(state);
+				if (ownerState == GlobalCacheManagerConst.StateModify)
+					Assertions.assertEquals(9203, state.getModify());
+				else
+					Assertions.assertTrue(state.getShare().Contains(9203));
+				return 0;
+			}).call());
+		} finally {
+			if (worker.isAlive())
+				worker.interrupt();
+			worker.join(5_000);
+			Assertions.assertFalse(worker.isAlive());
+		}
+	}
+
+	@Test
+	@Timeout(90)
+	public void testErrorReplyCannotTransferOwnership() throws Exception {
+		var owner = new Peer("ReduceReply.Owner");
+		var requester = new Peer("ReduceReply.Requester");
+		try {
+			var ownerSocket = owner.connect(leaderPort);
+			var requesterSocket = requester.connect(leaderPort);
+			sendLogin(ownerSocket, 9203);
+			sendLogin(requesterSocket, 9204);
+			var onServer = serverSocketOf(9204);
+			Assertions.assertAll("raft Reduce reply admission",
+					() -> checkErrorReply(owner, ownerSocket, onServer, 2, 1),
+					() -> checkErrorReply(owner, ownerSocket, onServer, 2, 2),
+					() -> checkErrorReply(owner, ownerSocket, onServer, 1, 2));
+		} finally {
+			owner.stop();
+			requester.stop();
+		}
 	}
 
 	@Test
