@@ -131,6 +131,55 @@ public class TestExistLogRecovery {
 	// 空洞。修复后启动检测边界日志缺失，丢弃半安装残留，重置回无快照状态；
 	// 修复前 firstIndex=3、lastApplied=3 而 readLog(4)==null，apply 永久楔死。
 	@Test
+	public void testMatchingSnapshotRetainsReplicatedSuffix() throws Exception {
+		var raft = new Raft(new RecordingStateMachine(), raftName, newRaftConfig());
+		try {
+			var logs = raft.getLogSequence();
+			var replication = new AppendEntries();
+			replication.Argument.setLeaderId("127.0.0.1:17671");
+			for (int index = 1; index <= 3; ++index)
+				replication.Argument.getEntries().add(new Binary(new RaftLog(0, index, new HeartbeatLog()).encode()));
+			raft.lock();
+			try {
+				logs.followerOnAppendEntries(replication);
+			} finally {
+				raft.unlock();
+			}
+			assertEquals(3, logs.getLastIndex());
+
+			var snapshot = new InstallSnapshot();
+			snapshot.Argument.setLeaderId("127.0.0.1:17671");
+			snapshot.Argument.setLastIncludedIndex(1);
+			snapshot.Argument.setDone(true);
+			var path = Paths.get(dbHome, "matching.installing");
+			Files.write(path, new byte[]{1, 2, 3});
+			var entry = new ReceiveSnapshotting.Entry(path, new RandomAccessFile(path.toFile(), "rw"),
+					0, snapshot.Argument.getLeaderId(), System.currentTimeMillis());
+			entry.markFinalizing();
+			raft.receiveSnapshotting.put(1L, entry);
+			assertEquals(0, logs.endReceiveInstallSnapshot(entry, snapshot));
+			assertEquals(1, logs.getLastApplied());
+			assertEquals(3, logs.getLastIndex(), "matching snapshot keeps entries after its boundary");
+			assertEquals(3, logs.lastRaftLogTermIndex().getIndex());
+
+			var heartbeat = new AppendEntries();
+			heartbeat.Argument.setLeaderId("127.0.0.1:17671");
+			heartbeat.Argument.setPrevLogIndex(3);
+			heartbeat.Argument.setLeaderCommit(3);
+			raft.lock();
+			try {
+				logs.followerOnAppendEntries(heartbeat);
+				assertTrue(heartbeat.Result.getSuccess());
+				assertEquals(3, logs.getLastApplied(), "retained suffix can commit without retransmission");
+			} finally {
+				raft.unlock();
+			}
+		} finally {
+			raft.shutdown();
+		}
+	}
+
+	@Test
 	public void testStartupHoleResetsToNoSnapshotState() throws Exception {
 		{
 			// 第一个实例制造半安装残留的持久化现场：

@@ -1511,7 +1511,8 @@ public class LogSequence {
 					// commitSnapshotNow处崩溃后，logs只含边界日志X而内存索引与状态机停在旧边界。
 					// 只执行commitSnapshotNow会留下firstIndex=X但lastApplied=旧值的空洞，apply永久
 					// 楔死、集群级死锁。对齐完整路径：复位内存索引并装载快照（重装即恢复）。
-					lastIndex = r.Argument.getLastIncludedIndex();
+						// 匹配边界后的日志仍在本地，保留其尾索引；半安装恢复至少推进到边界。
+						lastIndex = Math.max(lastIndex, r.Argument.getLastIncludedIndex());
 					commitIndex = firstIndex; // commitSnapshotNow已把firstIndex推进为X
 					lastApplied = firstIndex;
 					setVoteFor(Objects.requireNonNull(raft.getLeaderId())); // 放弃当前Term的投票（对齐完整路径）
