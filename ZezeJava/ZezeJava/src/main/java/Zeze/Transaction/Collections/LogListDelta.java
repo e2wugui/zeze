@@ -8,6 +8,18 @@ import java.util.Collection;
 
 /** Transaction state with ordered structural notes, shared by List1 and List2. */
 abstract class LogListDelta<V> extends LogList<V> {
+	/** List1 的有序结构增量。 */
+	static final class List1<V> extends LogListDelta<V> {
+		List1(PList<V> source, org.pcollections.PVector<V> value) {
+			super(source, value);
+		}
+
+		@Override
+		public List1<V> beginSavepoint() {
+			return new List1<>(source, getValue());
+		}
+	}
+
 	@Override
 	public final boolean hasDelta() {
 		return true;

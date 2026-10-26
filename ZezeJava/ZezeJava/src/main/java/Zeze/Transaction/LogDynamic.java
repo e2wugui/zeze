@@ -18,11 +18,6 @@ public class LogDynamic extends LogDynamicValue implements TransactionLog {
 		return belong;
 	}
 
-	@Override
-	public final Category category() {
-		return Category.eHistory;
-	}
-
 	/**
 	 * Savepoint存储键，必须与DynamicBean.getBean/getTypeId/setBean的查找键一致：
 	 * 集合元素形态（self.parent为Collection）下belong(集合)+varId在同组元素间碰撞，
@@ -76,11 +71,5 @@ public class LogDynamic extends LogDynamicValue implements TransactionLog {
 	void setValue(long typeId, Bean bean) {
 		specialTypeId = typeId;
 		value = bean;
-	}
-
-	@Override
-	public void collectChanges(Changes changes) {
-		if (belong.isManaged())
-			changes.collect(belong, this);
 	}
 }

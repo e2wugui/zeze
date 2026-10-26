@@ -5,10 +5,45 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import Zeze.Transaction.Bean;
 import org.jspecify.annotations.Nullable;
 
 /** Map 事务结构增量：共享增删、保存点与合并规则，值变化语义由具体家族提供。 */
 public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
+	/** Map1 的值按 equals 判断变化；不持有编解码元数据。 */
+	static final class Map1<K, V> extends LogMapDelta<K, V> {
+		Map1(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
+			super(source, value);
+		}
+
+		@Override
+		protected boolean isValueChanged(@Nullable V oldValue, V newValue) {
+			return !java.util.Objects.equals(oldValue, newValue);
+		}
+
+		@Override
+		public Map1<K, V> beginSavepoint() {
+			return new Map1<>(source, getValue());
+		}
+	}
+
+	/** Map2 的 Bean 值按对象身份判断变化；不持有编解码元数据。 */
+	static final class Map2<K, V extends Bean> extends LogMapDelta<K, V> {
+		Map2(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
+			super(source, value);
+		}
+
+		@Override
+		protected boolean isValueChanged(@Nullable V oldValue, V newValue) {
+			return oldValue != newValue;
+		}
+
+		@Override
+		public Map2<K, V> beginSavepoint() {
+			return new Map2<>(source, getValue());
+		}
+	}
+
 	@Override
 	public final boolean hasDelta() {
 		return true;

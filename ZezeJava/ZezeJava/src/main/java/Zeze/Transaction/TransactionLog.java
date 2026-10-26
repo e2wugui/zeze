@@ -5,10 +5,9 @@ import org.jspecify.annotations.Nullable;
 /**
  * Local state owned by a savepoint. Collection implementations never enter the wire tree.
  * Atomic field logs may also be Log values, because their new value is already the complete payload.
+ * Changes collects Log payloads and collection state; other implementations remain local to the transaction.
  */
 public interface TransactionLog {
-	enum Category {eHistory, eUser, eSpecial}
-
 	@Nullable Bean getBelong();
 
 	int getVariableId();
@@ -20,8 +19,6 @@ public interface TransactionLog {
 		return owner.objectId() + getVariableId();
 	}
 
-	Category category();
-
 	default TransactionLog beginSavepoint() {
 		return this;
 	}
@@ -31,6 +28,4 @@ public interface TransactionLog {
 	}
 
 	void commit();
-
-	void collectChanges(Changes changes);
 }

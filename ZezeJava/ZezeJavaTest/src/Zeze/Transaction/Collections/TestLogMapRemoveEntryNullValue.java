@@ -18,7 +18,7 @@ public class TestLogMapRemoveEntryNullValue {
 	public void testLogMap1RemoveNullValue() {
 		var meta = Map1Meta.get(Long.class, Long.class);
 		Zeze.History.Helper.registerLogMap1Meta(meta);
-		var log = new LogMap1Delta<Long, Long>(new PMap1<>(meta), Empty.map());
+		var log = new LogMapDelta.Map1<Long, Long>(new PMap1<>(meta), Empty.map());
 		log.put(1L, 1L);
 		Assertions.assertFalse(log.remove(1L, null), "null值删除须安静返回false（旧：NPE）");
 		Assertions.assertFalse(log.remove(999L, null), "不存在key+null同样false");
@@ -30,7 +30,7 @@ public class TestLogMapRemoveEntryNullValue {
 	public void testLogSortedMap1RemoveNullValue() {
 		var meta = SortedMap1Meta.get(Long.class, Long.class);
 		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
-		var log = new LogSortedMap1Delta<Long, Long>(new PSortedMap1<>(meta), TreePMap.empty());
+		var log = new LogSortedMapDelta.Map1<Long, Long>(new PSortedMap1<>(meta), TreePMap.empty());
 		log.put(1L, 1L);
 		Assertions.assertFalse(log.remove(1L, null), "null值删除须安静返回false（旧：NPE）");
 		Assertions.assertFalse(log.remove(999L, null), "不存在key+null同样false");

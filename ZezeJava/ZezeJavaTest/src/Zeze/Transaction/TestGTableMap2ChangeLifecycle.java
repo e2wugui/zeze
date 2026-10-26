@@ -1,6 +1,6 @@
 package Zeze.Transaction;
 
-import Zeze.Transaction.Collections.LogMap1Delta;
+import Zeze.Transaction.Collections.LogMapDelta;
 
 import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -86,13 +86,13 @@ public class TestGTableMap2ChangeLifecycle {
 		Map2TestSupport.attach(outer);
 		var row = requireNonNull(outer.get(1L));
 		var inner = row.getPMap1();
-		var innerLog = (LogMap1Delta<String, Integer>)inner.createLog(ChangeCaptureMode.DELTA);
+		var innerLog = (LogMapDelta<String, Integer>)inner.createLog(ChangeCaptureMode.DELTA);
 		innerLog.put("column", 42);
 		innerLog.commit();
 		var finalSavepoint = new Savepoint();
 		finalSavepoint.putLog(innerLog);
 		var changes = new Changes(true, null, finalSavepoint);
-		changes.collectContainer(inner);
+		changes.collect(innerLog);
 		var outerLog = (LogMap2<Long, BeanMap1<String, Integer>>)changes.getOrCreateLogBean(outer);
 		assertEquals(1, outerLog.getChangedWithKey().size());
 		assertTrue(outerLog.getReplaced().isEmpty());

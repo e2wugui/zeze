@@ -79,12 +79,10 @@ public class TestMap2HistoryReplay {
                 assertEquals(Set.of(3), sorted.getReplaced().keySet());
                 assertEquals(Set.of(2), sorted.getRemoved());
                 var upserts = new HashMap<Long, Integer>();
-                record.<Long, BSimple>map2ListenerView(tflush.VAR_map41)
-                        .forEachUpsert((k, v) -> upserts.put(k, v.getInt_1()));
+                map.forEachUpsert((k, v) -> upserts.put(k, v.getInt_1()));
                 assertEquals(Map.of(1L, 7, 3L, 31), upserts);
                 var sortedUpserts = new HashMap<Integer, Integer>();
-                record.<Integer, BSimple>sortedMap2ListenerView(tflush.VAR_sortedmap2)
-                        .forEachUpsert((k, v) -> sortedUpserts.put(k, v.getInt_1()));
+                sorted.forEachUpsert((k, v) -> sortedUpserts.put(k, v.getInt_1()));
                 assertEquals(Map.of(1, 7, 3, 31), sortedUpserts);
 
                 // The unconverted List2 family is nested beneath a converted Map2 consumption node.

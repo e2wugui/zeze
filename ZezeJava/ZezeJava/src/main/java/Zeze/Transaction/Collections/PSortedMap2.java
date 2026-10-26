@@ -294,7 +294,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
 		return mode == ChangeCaptureMode.NONE ? new LogSortedMap<>(this, map)
-			: new LogSortedMap2Delta<>(this, map);
+			: new LogSortedMapDelta.Map2<>(this, map);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -302,9 +302,9 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogSortedMap2<>(variableId(), this, map.comparator(), meta, null, null);
-		if (!(finalLog instanceof LogSortedMap2Delta<?, ?>))
+		if (!(finalLog instanceof LogSortedMapDelta.Map2<?, ?>))
 			throw new IllegalStateException("incomplete or incompatible collection transaction state");
-		var delta = (LogSortedMap2Delta<K, V>)finalLog;
+		var delta = (LogSortedMapDelta.Map2<K, V>)finalLog;
 		return new LogSortedMap2<>(variableId(), this, map.comparator(), meta, delta.getReplaced(), delta.getRemoved());
 	}
 }

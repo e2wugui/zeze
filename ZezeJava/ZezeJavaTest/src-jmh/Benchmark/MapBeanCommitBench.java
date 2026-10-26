@@ -44,8 +44,8 @@ import org.openjdk.jmh.annotations.Threads;
  * ServiceManager allocation; the bounded sink does not persist history or measure replay/ledger/database IO.
  * Its PendingHistory is only an empty completion token, so a long iteration cannot accumulate history bytes.
  * NONE leaves Application.history null. LISTENER consumes upserts through the version's production path.
- * Setup resolves a MethodHandle once: newer revisions use Changes.Record.forEach[Sorted]Map2Upsert;
- * older revisions use their mergeChangedToReplaced plus getReplaced. Both callback adapters have the same
+ * Setup resolves a MethodHandle once: current revisions use LogMap2/LogSortedMap2.forEachUpsert;
+ * frozen baselines use Record helpers or mergeChangedToReplaced plus getReplaced. All adapters have the same
  * Record/int/BiConsumer invocation shape, and neither performs per-element reflection.
  * No production phase implementation is copied into the benchmark.
  */
@@ -240,6 +240,17 @@ public class MapBeanCommitBench {
 
 	private static MethodHandle resolveListenerUpserts(boolean mapFamily) throws ReflectiveOperationException {
 		var lookup = MethodHandles.lookup();
+		var logClass = mapFamily ? LogMap2.class : LogSortedMap2.class;
+		try {
+			var upserts = lookup.findVirtual(logClass, "forEachUpsert",
+					MethodType.methodType(void.class, BiConsumer.class));
+			var getLog = lookup.findVirtual(Changes.Record.class, "getVariableLog",
+					MethodType.methodType(Zeze.Transaction.Log.class, int.class));
+			return MethodHandles.collectArguments(upserts, 0,
+					getLog.asType(MethodType.methodType(logClass, Changes.Record.class, int.class)));
+		} catch (NoSuchMethodException beforeLogProjection) {
+			// Retain the production entry points of frozen baseline runtimes for A/B comparisons.
+		}
 		try {
 			return lookup.findVirtual(Changes.Record.class,
 				mapFamily ? "forEachMap2Upsert" : "forEachSortedMap2Upsert",

@@ -21,13 +21,19 @@ public final class Map2DeltaTestSupport {
 	private Map2DeltaTestSupport() {
 	}
 
+	/** 为比较器测试初始化底层状态，无须公开具体的事务日志子类。 */
+	public static <K extends Comparable<K>, V> void initSortedMap(
+			PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
+		new LogSortedMap<>(source, value).commit();
+	}
+
 	public static <K, V extends Bean> LogMap2<K, V> map(
 		PMap2<K, V> map, Consumer<LogMap<K, V>> edit) {
 		Map2TestSupport.attach(map);
 		var transaction = Transaction.create(new Locks());
 		transaction.begin();
 		try {
-			var delta = new LogMap2Delta<K, V>(map, map.getMap());
+			var delta = new LogMapDelta.Map2<K, V>(map, map.getMap());
 			transaction.putLog(delta);
 			edit.accept(delta);
 			delta.commit();
@@ -43,7 +49,7 @@ public final class Map2DeltaTestSupport {
 		var transaction = Transaction.create(new Locks());
 		transaction.begin();
 		try {
-			var delta = new LogSortedMap2Delta<K, V>(map, map.getMap());
+			var delta = new LogSortedMapDelta.Map2<K, V>(map, map.getMap());
 			transaction.putLog(delta);
 			edit.accept(delta);
 			delta.commit();

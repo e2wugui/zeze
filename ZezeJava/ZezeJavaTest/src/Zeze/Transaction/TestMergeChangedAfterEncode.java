@@ -61,23 +61,21 @@ public class TestMergeChangedAfterEncode {
 				var sortedLog = (LogSortedMap2<Integer, BSimple>)requireNonNull(record.getVariableLog(tflush.VAR_sortedmap2));
 				var mapValues = new HashMap<Long, BSimple>();
 				var sortedValues = new HashMap<Integer, BSimple>();
-				var mapView = record.<Long, BSimple>map2ListenerView(tflush.VAR_map41);
-				var sortedView = record.<Integer, BSimple>sortedMap2ListenerView(tflush.VAR_sortedmap2);
 				byte[] initialMap;
 				byte[] initialSorted;
 				if (viewFirst) {
-					mapView.forEachUpsert(mapValues::put);
-					sortedView.forEachUpsert(sortedValues::put);
+					mapLog.forEachUpsert(mapValues::put);
+					sortedLog.forEachUpsert(sortedValues::put);
 					initialMap = encode(mapLog).Copy();
 					initialSorted = encode(sortedLog).Copy();
 				} else {
 					initialMap = encode(mapLog).Copy();
 					initialSorted = encode(sortedLog).Copy();
-					mapView.forEachUpsert(mapValues::put);
-					sortedView.forEachUpsert(sortedValues::put);
+					mapLog.forEachUpsert(mapValues::put);
+					sortedLog.forEachUpsert(sortedValues::put);
 				}
-				mapView.forEachUpsert(mapValues::put);
-				sortedView.forEachUpsert(sortedValues::put);
+				mapLog.forEachUpsert(mapValues::put);
+				sortedLog.forEachUpsert(sortedValues::put);
 				assertEquals(42, requireNonNull(mapValues.get(1L)).getInt_1());
 				assertEquals(42, requireNonNull(sortedValues.get(1)).getInt_1());
 				assertTrue(mapLog.getReplaced().isEmpty(), "view must not materialize edits into the wire replacement set");

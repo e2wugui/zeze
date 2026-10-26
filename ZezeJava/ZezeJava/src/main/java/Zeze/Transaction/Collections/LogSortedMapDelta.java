@@ -7,8 +7,44 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import Zeze.Transaction.Bean;
+
 /** 有序 Map 事务结构增量：记账使用源 Map 的比较器，值变化语义由具体家族提供。 */
 public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogSortedMap<K, V> {
+	/** SortedMap1 的值按 equals 判断变化；不持有编解码元数据。 */
+	static final class Map1<K extends Comparable<K>, V> extends LogSortedMapDelta<K, V> {
+		Map1(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
+			super(source, value);
+		}
+
+		@Override
+		protected boolean isValueChanged(@Nullable V oldValue, V newValue) {
+			return !java.util.Objects.equals(oldValue, newValue);
+		}
+
+		@Override
+		public Map1<K, V> beginSavepoint() {
+			return new Map1<>(source, getValue());
+		}
+	}
+
+	/** SortedMap2 的 Bean 值按对象身份判断变化；不持有编解码元数据。 */
+	static final class Map2<K extends Comparable<K>, V extends Bean> extends LogSortedMapDelta<K, V> {
+		Map2(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
+			super(source, value);
+		}
+
+		@Override
+		protected boolean isValueChanged(@Nullable V oldValue, V newValue) {
+			return oldValue != newValue;
+		}
+
+		@Override
+		public Map2<K, V> beginSavepoint() {
+			return new Map2<>(source, getValue());
+		}
+	}
+
 	@Override
 	public final boolean hasDelta() {
 		return true;

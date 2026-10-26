@@ -3,7 +3,6 @@ package Zeze.Transaction.Collections;
 import java.util.Objects;
 
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.TransactionLog;
 import org.jspecify.annotations.Nullable;
@@ -30,11 +29,6 @@ public abstract class LogCollection<S extends Collection> implements Transaction
 		return source.variableId();
 	}
 
-	@Override
-	public final Category category() {
-		return Category.eHistory;
-	}
-
 	public abstract boolean hasDelta();
 
 	@Override
@@ -52,13 +46,5 @@ public abstract class LogCollection<S extends Collection> implements Transaction
 				throw new IllegalStateException("collection capture mode changed inside savepoint");
 			((LogCollection<?>)existing).mergeFrom(this);
 		}
-	}
-
-	@Override
-	public final void collectChanges(Changes changes) {
-		if (hasDelta())
-			changes.collectContainer(source);
-		else
-			changes.collectNoDelta(source);
 	}
 }

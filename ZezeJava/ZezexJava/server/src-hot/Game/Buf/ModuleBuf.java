@@ -147,7 +147,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 				if (null != notemap2) {
 					SChanged changed2 = new SChanged();
 					changed2.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
-					c.<Integer, BBuf>forEachMap2Upsert(tbufs.VAR_Bufs, changed2.Argument.getReplace()::put);
+					notemap2.forEachUpsert(changed2.Argument.getReplace()::put);
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getRemove().add(p);
 					}

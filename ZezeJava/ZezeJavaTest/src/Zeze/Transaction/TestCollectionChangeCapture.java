@@ -220,18 +220,8 @@ public class TestCollectionChangeCapture {
 					}
 
 					@Override
-					public Category category() {
-						return Category.eUser;
-					}
-
-					@Override
 					public void commit() {
 						commits.incrementAndGet();
-					}
-
-					@Override
-					public void collectChanges(Changes changes) {
-						fail("user log entered change collection");
 					}
 				});
 				return Procedure.Success;

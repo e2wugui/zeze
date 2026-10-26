@@ -128,10 +128,6 @@ public class HttpExchange {
 		private final EmptyBean owner;
 
 		@Override
-		public void collectChanges(Zeze.Transaction.Changes changes) {
-		}
-
-		@Override
 		public EmptyBean getBelong() {
 			return owner;
 		}
@@ -151,11 +147,6 @@ public class HttpExchange {
 			owner = Objects.requireNonNull(responseHeadersBean);
 			this.headers = headers;
 			this.sessionCookie = sessionCookie;
-		}
-
-		@Override
-		public Category category() {
-			return Category.eUser;
 		}
 
 		@Override

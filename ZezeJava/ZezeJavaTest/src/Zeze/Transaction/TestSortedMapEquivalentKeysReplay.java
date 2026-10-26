@@ -1,6 +1,6 @@
 package Zeze.Transaction;
 
-import Zeze.Transaction.Collections.LogSortedMap1Delta;
+import Zeze.Transaction.Collections.LogSortedMapDelta;
 
 import static java.util.Objects.requireNonNull;
 
@@ -37,24 +37,23 @@ public class TestSortedMapEquivalentKeysReplay {
 	private static PSortedMap2<String, BValue> newCaseInsensitiveBeanMap() {
 		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		// Seed the comparator through the write-log base; no wire payload is used as a write intent.
-		var initial = new LogSortedMap1Delta<String, BValue>(map, org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER));
-		initial.commit();
+		Map2DeltaTestSupport.initSortedMap(map, org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER));
 		return map;
 	}
 
 	private static PSortedMap1<String, Integer> newCaseInsensitiveValueMap() {
 		var map = new PSortedMap1<String, Integer>(String.class, Integer.class);
-		var initial = new LogSortedMap1Delta<String, Integer>(map, org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER));
-		initial.commit();
+		Map2DeltaTestSupport.initSortedMap(map, org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER));
 		return map;
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	public void removalWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		var meta = SortedMap1Meta.get(BigDecimal.class, Integer.class);
 		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
-		var log = new LogSortedMap1Delta<BigDecimal, Integer>(leader, leader.getMap());
+		var log = (LogSortedMapDelta<BigDecimal, Integer>)leader.createLog(ChangeCaptureMode.DELTA);
 		log.put(new BigDecimal("1.0"), 10);
 		assertEquals(10, log.remove(new BigDecimal("1.00")));
 		log.commit();
@@ -70,11 +69,12 @@ public class TestSortedMapEquivalentKeysReplay {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	public void latestReplacementWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		var meta = SortedMap1Meta.get(BigDecimal.class, Integer.class);
 		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
-		var log = new LogSortedMap1Delta<BigDecimal, Integer>(leader, leader.getMap());
+		var log = (LogSortedMapDelta<BigDecimal, Integer>)leader.createLog(ChangeCaptureMode.DELTA);
 		log.put(new BigDecimal("1.00"), 10);
 		assertEquals(10, log.put(new BigDecimal("1.0"), 20));
 		log.commit();
@@ -91,13 +91,14 @@ public class TestSortedMapEquivalentKeysReplay {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	public void reinsertionWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		leader.put(new BigDecimal("1.0"), 10);
 		var follower = leader.copy();
 		var meta = SortedMap1Meta.get(BigDecimal.class, Integer.class);
 		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
-		var log = new LogSortedMap1Delta<BigDecimal, Integer>(leader, leader.getMap());
+		var log = (LogSortedMapDelta<BigDecimal, Integer>)leader.createLog(ChangeCaptureMode.DELTA);
 		assertEquals(10, log.remove(new BigDecimal("1.00")));
 		log.put(new BigDecimal("1.000"), 20);
 		log.commit();
@@ -112,17 +113,17 @@ public class TestSortedMapEquivalentKeysReplay {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	public void nestedRemovalWithEquivalentDecimalKeySurvivesReplay() {
 		var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		var meta = SortedMap1Meta.get(BigDecimal.class, Integer.class);
 		Zeze.History.Helper.registerLogSortedMap1Meta(meta);
-		var log = new LogSortedMap1Delta<BigDecimal, Integer>(leader, leader.getMap());
+		var log = (LogSortedMapDelta<BigDecimal, Integer>)leader.createLog(ChangeCaptureMode.DELTA);
 		log.put(new BigDecimal("1.0"), 10);
 		Map2TestSupport.attach(leader);
 		var savepoint = new Savepoint();
 		savepoint.putLog(log);
-		@SuppressWarnings("unchecked")
-		var nested = (LogSortedMap1Delta<BigDecimal, Integer>)log.beginSavepoint();
+		var nested = (LogSortedMapDelta<BigDecimal, Integer>)log.beginSavepoint();
 		assertEquals(10, nested.remove(new BigDecimal("1.00")));
 		nested.endSavepoint(savepoint);
 		log.commit();
@@ -217,7 +218,7 @@ public class TestSortedMapEquivalentKeysReplay {
 			leader.put(new BigDecimal("1"), 10);
 			var follower = leader.copy();
 			@SuppressWarnings("unchecked")
-			var log = (LogSortedMap1Delta<BigDecimal, Integer>)leader.createLog(ChangeCaptureMode.DELTA);
+			var log = (LogSortedMapDelta<BigDecimal, Integer>)leader.createLog(ChangeCaptureMode.DELTA);
 			if (priorReplacement)
 				log.put(new BigDecimal("1.000"), 20);
 			var input = new LinkedHashMap<BigDecimal, Integer>();
@@ -247,7 +248,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertSame(String.CASE_INSENSITIVE_ORDER, valueCopy.comparator());
 		assertEquals(1, valueCopy.get("ALPHA"));
 		@SuppressWarnings("unchecked")
-		var log = (LogSortedMap1Delta<String, Integer>)values.createLog(ChangeCaptureMode.DELTA);
+		var log = (LogSortedMapDelta<String, Integer>)values.createLog(ChangeCaptureMode.DELTA);
 		log.clear();
 		assertSame(String.CASE_INSENSITIVE_ORDER, log.getValue().comparator());
 		log.put("Beta", 2);

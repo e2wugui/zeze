@@ -345,7 +345,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				if (null != notemap2) {
 					SEquipement changed2 = new SEquipement();
 					changed2.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
-					c.<Integer, BItem>forEachMap2Upsert(tequip.VAR_Items, changed2.Argument.getItemsReplace()::put);
+					notemap2.forEachUpsert(changed2.Argument.getItemsReplace()::put);
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getItemsRemove().add(p);
 					}

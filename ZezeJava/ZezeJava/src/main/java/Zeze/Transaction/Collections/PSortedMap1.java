@@ -170,7 +170,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
 		return mode == ChangeCaptureMode.NONE ? new LogSortedMap<>(this, map)
-			: new LogSortedMap1Delta<>(this, map);
+			: new LogSortedMapDelta.Map1<>(this, map);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -178,9 +178,9 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogSortedMap1<>(variableId(), this, map.comparator(), meta, null, null);
-		if (!(finalLog instanceof LogSortedMap1Delta<?, ?>))
+		if (!(finalLog instanceof LogSortedMapDelta.Map1<?, ?>))
 			throw new IllegalStateException("incomplete or incompatible collection transaction state");
-		var delta = (LogSortedMap1Delta<K, V>)finalLog;
+		var delta = (LogSortedMapDelta.Map1<K, V>)finalLog;
 		return new LogSortedMap1<>(variableId(), this, map.comparator(), meta, delta.getReplaced(), delta.getRemoved());
 	}
 }

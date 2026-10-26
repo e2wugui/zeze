@@ -36,19 +36,13 @@ public class TestHistoryDisabled {
 		return field.get(HistoryModule.get(app));
 	}
 
-	/** 真实提交路径上的探针：日志仍须 commit，但无消费者时不应再遍历 category 收集变更。 */
+	/** 真实提交路径上的本地日志探针：未启用 History 时仍须正常提交。 */
 	private static final class ProbeLog implements TransactionLog {
-		@Override
-		public void collectChanges(Changes changes) {
-			category();
-		}
-
 		@Override
 		public @Nullable Bean getBelong() {
 			return null;
 		}
 
-		int categoryReads;
 		int commits;
 
 		ProbeLog() {
@@ -58,12 +52,6 @@ public class TestHistoryDisabled {
 		@Override
 		public long getLogKey() {
 			return Long.MIN_VALUE;
-		}
-
-		@Override
-		public Category category() {
-			categoryReads++;
-			return Category.eUser;
 		}
 
 		@Override
@@ -108,7 +96,6 @@ public class TestHistoryDisabled {
 				return 0;
 			}, "writeWithoutHistory").call());
 			assertEquals(1, probe.commits);
-			assertEquals(0, probe.categoryReads, "无 History、无监听器时不遍历日志收集变更");
 			assertEquals(1, callbacks.get(), "提交回调仍执行");
 			requireNonNull(app.getCheckpoint()).runOnce();
 			assertEquals(10, requireNonNull(table.selectFromDatabase(1L)).getLong2(), "无历史模块时仍正常刷盘");

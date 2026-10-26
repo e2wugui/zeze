@@ -537,10 +537,8 @@ public class TestChangeListener {
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			@SuppressWarnings("unchecked")
 			var noteMap2 = (LogMap2<Long, BValue>)note;
-			var view = record.<Long, BValue>map2ListenerView(noteMap2.getVariableId());
-
-			view.forEachUpsert((changedKey, changedValue) -> requireNonNull(newValue).put(changedKey, changedValue));
-			for (var r : view.getRemoved()) {
+			noteMap2.forEachUpsert((changedKey, changedValue) -> requireNonNull(newValue).put(changedKey, changedValue));
+			for (var r : noteMap2.getRemoved()) {
 				requireNonNull(newValue).remove(r);
 			}
 		}

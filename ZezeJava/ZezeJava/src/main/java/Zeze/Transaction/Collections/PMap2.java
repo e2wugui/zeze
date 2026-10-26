@@ -279,7 +279,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
 		return mode == ChangeCaptureMode.NONE ? new LogMap<>(this, map)
-			: new LogMap2Delta<>(this, map);
+			: new LogMapDelta.Map2<>(this, map);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -287,9 +287,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogMap2<>(variableId(), this, meta, null, null);
-		if (!(finalLog instanceof LogMap2Delta<?, ?>))
+		if (!(finalLog instanceof LogMapDelta.Map2<?, ?>))
 			throw new IllegalStateException("incomplete or incompatible collection transaction state");
-		var delta = (LogMap2Delta<K, V>)finalLog;
+		var delta = (LogMapDelta.Map2<K, V>)finalLog;
 		return new LogMap2<>(variableId(), this, meta, delta.getReplaced(), delta.getRemoved());
 	}
 }

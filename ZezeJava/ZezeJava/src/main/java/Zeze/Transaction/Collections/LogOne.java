@@ -3,7 +3,6 @@ package Zeze.Transaction.Collections;
 import java.util.Objects;
 
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.TransactionLog;
@@ -29,11 +28,6 @@ public class LogOne<V extends Bean> extends LogOneValue<V> implements Transactio
 	@Override
 	public final Bean getBelong() {
 		return belong;
-	}
-
-	@Override
-	public final Category category() {
-		return Category.eHistory;
 	}
 
 	public void setValue(V value) {
@@ -67,11 +61,5 @@ public class LogOne<V extends Bean> extends LogOneValue<V> implements Transactio
 		if (value != null)
 			//noinspection DataFlowIssue
 			((CollOne<V>)getThis()).value = value;
-	}
-
-	@Override
-	public void collectChanges(Changes changes) {
-		if (belong.isManaged())
-			changes.collect(belong, this);
 	}
 }

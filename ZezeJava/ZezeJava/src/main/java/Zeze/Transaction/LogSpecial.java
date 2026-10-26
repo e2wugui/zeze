@@ -24,11 +24,6 @@ public abstract class LogSpecial<TBean extends Bean, TValue> implements Transact
 		this.value = value;
 	}
 
-	@Override
-	public Category category() {
-		return Category.eSpecial;
-	}
-
 	public final @Nullable TValue getValue() {
 		return value;
 	}
@@ -41,9 +36,5 @@ public abstract class LogSpecial<TBean extends Bean, TValue> implements Transact
 	@Override
 	public String toString() {
 		return String.valueOf(value);
-	}
-
-	@Override
-	public final void collectChanges(Changes changes) {
 	}
 }

@@ -3,13 +3,10 @@ package Zeze.Transaction;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
-import Zeze.Transaction.Collections.LogMap2;
-import Zeze.Transaction.Collections.LogSortedMap2;
-import Zeze.Transaction.Collections.Map2ListenerView;
+import Zeze.Transaction.Collections.LogCollection;
 import Zeze.Util.LongHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -70,7 +67,8 @@ public final class Changes {
 		var nodes = getBeans();
 		long id = source.objectId();
 		var existing = nodes.get(id);
-		if (existing != null) return existing;
+		if (existing != null)
+			return existing;
 		long key = source.changeLogKey();
 		var finalLog = key != 0 ? finalSavepoint.getLog(key) : null;
 		var created = source.createLogBean(finalLog);
@@ -108,38 +106,6 @@ public final class Changes {
 					return variables.get(variableId);
 			}
 			return null;
-		}
-
-		private Log sourceVariableLog(int variableId) {
-			var root = getLogBean();
-			if (root == null || root.getThis() == null)
-				throw new IllegalStateException("listener projection requires a collected source record");
-			var variables = root.getVariables();
-			var log = variables != null ? variables.get(variableId) : null;
-			if (log == null)
-				throw new IllegalArgumentException("no change for variable " + variableId);
-			return log;
-		}
-
-		@SuppressWarnings("unchecked")
-		public <K, V extends Bean> Map2ListenerView<K, V> map2ListenerView(int variableId) {
-			return Map2ListenerView.of((LogMap2<K, V>)sourceVariableLog(variableId));
-		}
-
-		@SuppressWarnings("unchecked")
-		public <K extends Comparable<K>, V extends Bean> Map2ListenerView<K, V> sortedMap2ListenerView(int variableId) {
-			return Map2ListenerView.of((LogSortedMap2<K, V>)sourceVariableLog(variableId));
-		}
-
-		@SuppressWarnings("unchecked")
-		public <K, V extends Bean> void forEachMap2Upsert(int variableId, BiConsumer<K, V> action) {
-			Map2ListenerView.forEachUpsert((LogMap2<K, V>)sourceVariableLog(variableId), action);
-		}
-
-		@SuppressWarnings("unchecked")
-		public <K extends Comparable<K>, V extends Bean> void forEachSortedMap2Upsert(
-			int variableId, BiConsumer<K, V> action) {
-			Map2ListenerView.forEachUpsert((LogSortedMap2<K, V>)sourceVariableLog(variableId), action);
 		}
 
 		public IdentityHashMap<Bean, LogBean> getLogBeans() {
@@ -237,7 +203,7 @@ public final class Changes {
 		}
 	}
 
-	public boolean isInterested(Bean source) {
+	private boolean isInterested(Bean source) {
 		if (collectAll)
 			return true;
 		var root = source.rootInfo;
@@ -248,26 +214,29 @@ public final class Changes {
 		return listeners.containsKey(record.getTable());
 	}
 
-	public void collect(Bean source, Log child) {
+	/** 事务日志只保存提交状态；消费筛选和日志树构建统一在这里完成。 */
+	void collect(TransactionLog log) {
+		if (log instanceof LogCollection<?> collection) {
+			var source = collection.getSourceBean();
+			if (isInterested(source)) {
+				if (collection.hasDelta() || collectAll)
+					attach(source, getOrCreateLogBean(source));
+				else
+					getOrCreateRecord(source).incomplete = true;
+			}
+		} else if (log instanceof Log payload) {
+			var source = log.getBelong();
+			if (source != null && source.isManaged())
+				collect(source, payload);
+		}
+	}
+
+	void collect(Bean source, Log child) {
 		if (!isInterested(source))
 			return;
 		var node = getOrCreateLogBean(source);
 		if (node.addChild(source, child))
 			attach(source, node);
-	}
-
-	public void collectContainer(Bean source) {
-		if (isInterested(source))
-			attach(source, getOrCreateLogBean(source));
-	}
-
-	public void collectNoDelta(Bean source) {
-		if (collectAll) {
-			collectContainer(source);
-			return;
-		}
-		if (isInterested(source))
-			getOrCreateRecord(source).incomplete = true;
 	}
 
 	private void attach(Bean source, LogBean node) {

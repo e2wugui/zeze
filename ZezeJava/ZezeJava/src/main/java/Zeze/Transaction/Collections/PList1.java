@@ -241,7 +241,7 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public TransactionLog createLog(ChangeCaptureMode mode) {
 		return mode == ChangeCaptureMode.NONE ? new LogList<>(this, list)
-			: new LogList1Delta<>(this, list);
+			: new LogListDelta.List1<>(this, list);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -249,9 +249,9 @@ public class PList1<V> extends PList<V> {
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
 			return new LogList1<>(variableId(), this, meta, null);
-		if (!(finalLog instanceof LogList1Delta<?>))
+		if (!(finalLog instanceof LogListDelta.List1<?>))
 			throw new IllegalStateException("incomplete or incompatible collection transaction state");
-		var delta = (LogList1Delta<V>)finalLog;
+		var delta = (LogListDelta.List1<V>)finalLog;
 		return new LogList1<>(variableId(), this, meta, delta.getOpLogs());
 	}
 }

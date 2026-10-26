@@ -5,7 +5,6 @@ import java.lang.invoke.VarHandle;
 import Zeze.Serialize.Quaternion;
 
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.TransactionLog;
 
 /** Local field write; the inherited value is also its complete change payload. */
@@ -25,18 +24,7 @@ public class LogQuaternion extends LogQuaternionValue implements TransactionLog 
 	}
 
 	@Override
-	public Category category() {
-		return Category.eHistory;
-	}
-
-	@Override
 	public void commit() {
 		vh.set(belong, value);
-	}
-
-	@Override
-	public void collectChanges(Changes changes) {
-		if (belong.isManaged())
-			changes.collect(belong, this);
 	}
 }

@@ -245,7 +245,6 @@ public final class Transaction {
 		return log;
 	}
 
-	/** Only a cache miss evaluates consumer policy; existing logs keep their mode in savepoints. */
 	public TransactionLog logGetOrAdd(Collection source) {
 		long key = source.changeLogKey();
 		var existing = getLog(key);
@@ -667,11 +666,9 @@ public final class Transaction {
 		var lastSp = savepoints.getLast();
 		var it = lastSp.logIterator();
 		if (it != null) {
-			while (it.moveToNext()) {
-				var log = it.value();
-				if (log.category() == TransactionLog.Category.eHistory)
-					log.collectChanges(changes);
-			}
+			while (it.moveToNext())
+				//noinspection DataFlowIssue
+				changes.collect(it.value());
 		}
 		for (var ar : accessedRecords.values()) {
 			if (ar.dirty)
@@ -890,6 +887,7 @@ public final class Transaction {
 					var log = it.value();
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
+					//noinspection DataFlowIssue
 					var belong = log.getBelong();
 					if (belong == null)
 						continue;

@@ -94,11 +94,12 @@ final class LogList2Delta<V extends Bean> extends LogListDelta<V> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void mergeFrom(LogCollection<?> child) {
-		setValue(((LogList2Delta<V>)child).getValue());
-		merge((LogList2Delta<V>)child);
+		//noinspection unchecked
+		var c = (LogList2Delta<V>)child;
+		setValue(c.getValue());
+		merge(c);
 	}
 
 	@Nullable IdentityHashSet<V> addedIdentities() {

@@ -205,10 +205,10 @@ public class TestMap2ChangeLifecycle {
 		for (boolean structureFirst : new boolean[]{false, true}) {
 			var changes = Map2TestSupport.changes();
 			if (structureFirst)
-				delta.collectChanges(changes);
-			field.collectChanges(changes);
+				changes.collect(delta);
+			changes.collect(field);
 			var canonical = changes.getOrCreateLogBean(map);
-			delta.collectChanges(changes);
+			changes.collect(delta);
 			assertSame(canonical, changes.getOrCreateLogBean(map));
 			var rootLog = changes.getOrCreateLogBean(root);
 			assertSame(canonical, requireNonNull(rootLog.getVariables()).get(variableId));
@@ -256,8 +256,8 @@ public class TestMap2ChangeLifecycle {
 				assertEquals(9, requireNonNull(root.getMap41().get(1L)).getInt_1());
 				assertEquals(9, requireNonNull(root.getSortedmap2().get(1)).getInt_1());
 				var projected = new AtomicInteger();
-				record.<Long, BSimple>map2ListenerView(tflush.VAR_map41).forEachUpsert((k, v) -> projected.incrementAndGet());
-				record.<Integer, BSimple>sortedMap2ListenerView(tflush.VAR_sortedmap2).forEachUpsert((k, v) -> projected.incrementAndGet());
+				map.forEachUpsert((k, v) -> projected.incrementAndGet());
+				sorted.forEachUpsert((k, v) -> projected.incrementAndGet());
 				assertEquals(0, projected.get());
 				var follower = new PMap2<Long, BSimple>(Long.class, BSimple.class);
 				var sortedFollower = new PSortedMap2<Integer, BSimple>(Integer.class, BSimple.class);
