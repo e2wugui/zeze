@@ -64,11 +64,28 @@ public class Cache {
 
 		//noinspection ResultOfMethodCallIgnored
 		new File(name).mkdirs();
-		db = RocksDB.open(name);
-		lru = new ConcurrentLruLike<>(name, lruCapacity);
-		// 每天6:30尝试删除旧的项。period>0才是周期调度（scheduleAt(hour,minute)默认只触发一次）；
-		// 用scheduleAtNow拿到句柄，close时取消。
-		cleanTimer = TaskSpec.ofAction(this::tryRemove).scheduleAtPeriodNow(6, 30, 24 * 60 * 60 * 1000);
+		var openedDb = RocksDB.open(name);
+		db = openedDb;
+		try {
+			lru = new ConcurrentLruLike<>(name, lruCapacity);
+			// 每天6:30尝试删除旧的项，保存周期句柄供close取消。
+			cleanTimer = TaskSpec.ofAction(this::tryRemove).scheduleAtPeriodNow(6, 30, 24 * 60 * 60 * 1000);
+		} catch (Throwable failure) {
+			var lru = this.lru;
+			if (lru != null) {
+				try {
+					lru.close();
+				} catch (Throwable cleanupFailure) {
+					failure.addSuppressed(cleanupFailure);
+				}
+			}
+			try {
+				openedDb.close();
+			} catch (Throwable cleanupFailure) {
+				failure.addSuppressed(cleanupFailure);
+			}
+			throw failure;
+		}
 	}
 
 	public void close() throws IOException {
