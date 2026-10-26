@@ -567,7 +567,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			else {
 				var file = new File(rootPath, subPath);
 				if (file.isFile() && !file.isHidden())
-					x.sendFile(file);
+					x.sendFile(file, fileCacheSeconds);
 				else if (canListPath && file.isDirectory() && !file.isHidden())
 					x.sendPath(file);
 				else
