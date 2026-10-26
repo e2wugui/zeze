@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 // 承载 CommandConsole 的 TCP 服务：接收行协议输入并回显命令结果
 public class CommandConsoleService extends Service {
-	private @Nullable CommandConsole cc;
+	private volatile @Nullable CommandConsole cc;
 
 	public void setCommandConsole(@Nullable CommandConsole cc) {
 		this.cc = cc;
