@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * FND8-13回归：FewModify*家族直接implements Map/List/NavigableMap未覆写
  * equals/hashCode，落回Object身份相等——违反集合契约（Map.equals规定按内容比较
  * 且跨实现对称）：内容相同的FewModifyMap与HashMap单向不相等（hashMap.equals(fm)
- * 为true、fm.equals(hashMap)为false），clone()与自身内容恒等却判不等，
+ * 为true、fm.equals(hashMap)为false），容器与同内容快照却判不等，
  * 入HashSet后按内容定位失败。修复：基于prepareRead()快照的内容比较（接受任意
  * Map/List，跨实现对称），hashCode同源；相等性为调用时刻快照。
  */
@@ -89,7 +89,7 @@ public class TestFewModifyEqualsHashCode {
 		Assertions.assertEquals(tm, fs);
 		Assertions.assertEquals(fs, tm);
 		Assertions.assertEquals(tm.hashCode(), fs.hashCode());
-		Assertions.assertEquals(fs, Assertions.assertDoesNotThrow(fs::clone));
+		Assertions.assertEquals(fs, fs.snapshot());
 
 		fs.put("k3", 3);
 		Assertions.assertNotEquals(tm, fs);

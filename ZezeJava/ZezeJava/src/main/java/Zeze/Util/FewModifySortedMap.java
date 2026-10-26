@@ -17,9 +17,9 @@ import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
 // K必须可比较：内部TreeMap默认按自然排序（Comparator构造器只覆盖排序方式，不豁免可比性）。
-// null契约与TreeMap一致：key不允许null、须可比较；允许null value（家族差异：
-// FewModifyMap/FewModifyList 为 HashMap/ArrayList 契约，允许 null key/元素）。
-public class FewModifySortedMap<K extends Comparable<? super K>, V> implements NavigableMap<K, V>, Cloneable {
+// key和value按非空约束使用；查询及计算方法的可空返回值由@Nullable单独声明。
+// FewModifyMap/FewModifyList 为 HashMap/ArrayList 契约，允许 null key/value/元素。
+public class FewModifySortedMap<K extends Comparable<? super K>, V> implements NavigableMap<K, V> {
 	private transient volatile @Nullable NavigableMap<K, V> read;
 	private final TreeMap<K, V> write;
 	private transient final ReentrantLock writeLock = new ReentrantLock();
@@ -60,7 +60,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return r;
 	}
 
-	// 只读快照：prepareRead已unmodifiable包装，误写直接抛UnsupportedOperationException。
+	// 只读快照：不受本Map后续写入影响，误写抛UnsupportedOperationException；key/value对象仍共享。
 	public NavigableMap<K, V> snapshot() {
 		return prepareRead();
 	}
@@ -81,7 +81,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public boolean containsValue(Object value) {
+	public boolean containsValue(@Nullable Object value) {
 		return prepareRead().containsValue(value);
 	}
 
@@ -152,7 +152,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public boolean remove(Object key, Object value) {
+	public boolean remove(Object key, @Nullable Object value) {
 		writeLock.lock();
 		try {
 			if (!write.remove(key, value))
@@ -261,7 +261,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public K lowerKey(K key) {
+	public @Nullable K lowerKey(K key) {
 		return prepareRead().lowerKey(key);
 	}
 
@@ -271,7 +271,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public K floorKey(K key) {
+	public @Nullable K floorKey(K key) {
 		return prepareRead().floorKey(key);
 	}
 
@@ -281,7 +281,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public K ceilingKey(K key) {
+	public @Nullable K ceilingKey(K key) {
 		return prepareRead().ceilingKey(key);
 	}
 
@@ -291,17 +291,17 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public K higherKey(K key) {
+	public @Nullable K higherKey(K key) {
 		return prepareRead().higherKey(key);
 	}
 
 	@Override
-	public Entry<K, V> firstEntry() {
+	public @Nullable Entry<K, V> firstEntry() {
 		return prepareRead().firstEntry();
 	}
 
 	@Override
-	public Entry<K, V> lastEntry() {
+	public @Nullable Entry<K, V> lastEntry() {
 		return prepareRead().lastEntry();
 	}
 
@@ -309,7 +309,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	// 原实现直接 poll 共享只读快照 prepareRead()：真实数据不变（poll 语义未实现），
 	// 且所有后续读都看到被挖掉条目的损坏快照。
 	@Override
-	public Entry<K, V> pollFirstEntry() {
+	public @Nullable Entry<K, V> pollFirstEntry() {
 		writeLock.lock();
 		try {
 			var e = write.pollFirstEntry();
@@ -321,7 +321,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public Entry<K, V> pollLastEntry() {
+	public @Nullable Entry<K, V> pollLastEntry() {
 		writeLock.lock();
 		try {
 			var e = write.pollLastEntry();
@@ -416,20 +416,6 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		}
 	}
 
-	@SuppressWarnings("MethodDoesntCallSuperMethod")
-	@Override
-	public FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
-		if (getClass() == FewModifySortedMap.class) {
-			// clone同源继承比较器：Map构造器的TreeMap(Map)按自然序建，
-			// 会重演prepareRead丢失比较器的问题。
-			var snapshot = prepareRead();
-			var copy = new FewModifySortedMap<K, V>(snapshot.comparator());
-			copy.putAll(snapshot);
-			return copy;
-		}
-		throw new CloneNotSupportedException();
-	}
-
 	@Override
 	public String toString() {
 		return prepareRead().toString();
@@ -437,7 +423,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 
 	/** 相等性基于调用时刻快照做内容比较（与同内容任意Map相等，跨实现对称，
 	 * Map契约——NavigableMap未在Map之上追加equals条款）；hashCode随内容变化，
-	 * 严禁作HashMap/HashSet键；需要稳定键请用clone()返回的不可变快照。 */
+	 * 本对象不应作HashMap/HashSet键；snapshot()固定容器结构，作为键时还须保证其中key/value的哈希值稳定。 */
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		return this == obj || obj instanceof Map && prepareRead().equals(obj);
