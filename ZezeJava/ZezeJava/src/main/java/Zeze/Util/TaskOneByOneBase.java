@@ -27,14 +27,10 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 				throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
 			keys.sort(Comparable::compareTo);
-			var group = new HashMap<TaskOneByOneQueue, OutInt>();
-			int count = 0;
-			for (var key : keys) {
-				group.computeIfAbsent(getAndLockQueue(key), __ -> new OutInt()).value++;
-				count++;
+			try (var queues = new LockedQueues(keys)) {
+				var barrier = new TaskOneByOneQueue.BarrierProcedure(procedure, queues.count, cancel);
+				submitBarrierAndUnlock(queues, barrier, (sum) -> new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode));
 			}
-			var barrier = new TaskOneByOneQueue.BarrierProcedure(procedure, count, cancel);
-			submitBarrierAndUnlock(group, barrier, (sum) -> new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode));
 		} finally {
 			unlock();
 		}
@@ -50,40 +46,99 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 				throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
 			keys.sort(Comparable::compareTo);
-			var group = new HashMap<TaskOneByOneQueue, OutInt>();
-			int count = 0;
-			for (var key : keys) {
-				group.computeIfAbsent(getAndLockQueue(key), __ -> new OutInt()).value++;
-				count++;
+			try (var queues = new LockedQueues(keys)) {
+				var barrier = new TaskOneByOneQueue.BarrierAction(actionName, action, queues.count, cancel);
+				submitBarrierAndUnlock(queues, barrier, (sum) -> new TaskOneByOneQueue.TaskBarrierAction(barrier, sum, mode));
 			}
-			var barrier = new TaskOneByOneQueue.BarrierAction(actionName, action, count, cancel);
-			submitBarrierAndUnlock(group, barrier, (sum) -> new TaskOneByOneQueue.TaskBarrierAction(barrier, sum, mode));
 		} finally {
 			unlock();
 		}
 	}
 
-	/** 逐桶提交并解锁。submit/派发抛出（池未初始化ISE、自定义executor拒绝REE）时，
-	 * 当前桶的锁已由 executeAndUnlock 的 finally 解开，但剩余桶的队列锁不能跟着异常
-	 * 一起泄漏——补解锁后取消屏障（幂等；已提交桶的 barrier 任务 count 永不归零，
-	 * 队列非空且再无派发点，必须由 cancel 的 runNext 收尾），最后重抛首个异常。 */
-	private static void submitBarrierAndUnlock(HashMap<TaskOneByOneQueue, OutInt> group,
+	/** 从取得锁到提交移交均由同一个作用域持有；准备失败也释放此前取得的全部重入次数。 */
+	private final class LockedQueues implements AutoCloseable {
+		final HashMap<TaskOneByOneQueue, OutInt> groups = new HashMap<>();
+		int count;
+
+		LockedQueues(List<?> keys) {
+			try {
+				for (var key : keys) {
+					var queue = getAndLockQueue(key);
+					var registered = false;
+					try {
+						groups.computeIfAbsent(queue, __ -> new OutInt()).value++;
+						registered = true;
+						count++;
+					} finally {
+						if (!registered)
+							queue.unlock();
+					}
+				}
+			} catch (Throwable e) {
+				close();
+				throw e;
+			}
+		}
+
+		@Override
+		public void close() {
+			for (var entry : groups.entrySet())
+				for (var i = 0; i < entry.getValue().value; i++)
+					entry.getKey().unlock();
+			groups.clear();
+		}
+	}
+
+	/** 先入队并释放全部桶锁，再派发；派发失败的同步回滚也可能执行取消回调。 */
+	private static void submitBarrierAndUnlock(LockedQueues queues,
 											   TaskOneByOneQueue.Barrier barrier,
 											   IntFunction<TaskOneByOneQueue.Task> newTask) {
-		var buckets = new ArrayList<>(group.entrySet());
-		for (var i = 0; i < buckets.size(); ++i) {
-			var sum = buckets.get(i).getValue().value;
-			try {
-				executeAndUnlock(buckets.get(i).getKey(), newTask.apply(sum), sum);
-			} catch (RuntimeException ex) {
-				for (var j = i + 1; j < buckets.size(); ++j) {
-					var rest = buckets.get(j);
-					for (var k = 0; k < rest.getValue().value; ++k)
-						rest.getKey().unlock();
+		// 入队前预留全部空间，避免取得派发认领后因列表扩容失败而丢失驱动。
+		var dispatches = new ArrayList<Runnable>(queues.groups.size());
+		Throwable failure = null;
+		try (queues) {
+			for (var it = queues.groups.entrySet().iterator(); it.hasNext(); ) {
+				var entry = it.next();
+				var sum = entry.getValue().value;
+				var task = newTask.apply(sum);
+				var queue = entry.getKey();
+				it.remove(); // 此后由本次入队的 finally 释放本桶的全部锁。
+				try {
+					var dispatch = queue.submit(task);
+					if (dispatch != null)
+						dispatches.add(dispatch);
+				} finally {
+					for (var i = 0; i < sum; ++i)
+						queue.unlock();
 				}
-				barrier.cancel();
-				throw ex;
 			}
+		} catch (Throwable ex) {
+			failure = ex;
+		}
+		if (failure != null)
+			cancelBarrierAfterFailure(barrier, failure);
+		// 入队中途失败也必须驱动此前认领的桶，让它们消费已经取消的屏障。
+		for (var dispatch : dispatches) {
+			try {
+				dispatch.run();
+			} catch (Throwable ex) {
+				if (failure == null)
+					failure = ex;
+				else if (failure != ex)
+					failure.addSuppressed(ex);
+				cancelBarrierAfterFailure(barrier, failure);
+			}
+		}
+		if (failure != null)
+			throw Task.forceThrow(failure);
+	}
+
+	private static void cancelBarrierAfterFailure(TaskOneByOneQueue.Barrier barrier, Throwable failure) {
+		try {
+			barrier.cancel();
+		} catch (Throwable cleanup) {
+			if (cleanup != failure)
+				failure.addSuppressed(cleanup);
 		}
 	}
 

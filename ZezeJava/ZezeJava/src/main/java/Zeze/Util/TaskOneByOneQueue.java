@@ -149,15 +149,18 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			dispatch = new Dispatch();
 			pendingDispatches.put(dispatch, target);
 			target.execute(dispatch);
-		} catch (RuntimeException e) {
-			// 除RejectedExecutionException外，停机序（Task.shutdownPools先置null
-			// 再等待）与在飞派发并发时getExecutor的poolOrThrow抛IllegalStateException——
-			// ISE逃出原REE catch即无人回滚，队列非空且再无派发点，桶永久卡死、
-			// waitComplete永等。派发失败形态统一回滚善后，按原类型重抛。
-			if (dispatch == null)
-				rollbackRejectedDispatch(e);
-			else
-				dispatch.cancelBeforeRun(e);
+		} catch (Throwable e) {
+			// 池不可用、拒绝以及执行器 Error 均须回滚未启动的认领；内联执行已经
+			// 启动的派发由 CAS 排除，不能回滚其业务或后续批次。清理失败不覆盖原异常。
+			try {
+				if (dispatch == null)
+					rollbackRejectedDispatch(e);
+				else
+					dispatch.cancelBeforeRun(e);
+			} catch (Throwable cleanup) {
+				if (cleanup != e)
+					e.addSuppressed(cleanup);
+			}
 			throw e;
 		}
 	}
@@ -172,7 +175,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			batch.run();
 		}
 
-		void cancelBeforeRun(RuntimeException cause) {
+		void cancelBeforeRun(Throwable cause) {
 			if (!compareAndSet(0, 2))
 				return;
 			pendingDispatches.remove(this);
@@ -188,9 +191,9 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
-	/** 回滚认领：批量从未开跑（execute抛出即未执行），整队回收补偿并唤醒等待者。
+	/** 回滚未启动的认领，整队回收补偿并唤醒等待者。
 	 * 提交方与runNext派发共用（runNext尾部的锁外execute同型，姊妹点一并收口）。 */
-	private void rollbackRejectedDispatch(RuntimeException cause) {
+	private void rollbackRejectedDispatch(Throwable cause) {
 		ArrayDeque<Task> cancels;
 		int cancelCount;
 		lock();
@@ -452,12 +455,12 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			} finally {
 				unlock();
 			}
-			RuntimeException failure = null;
+			Throwable failure = null;
 			for (var batch : batches) {
 				try {
 					batch.runNext();
-				} catch (RuntimeException e) {
-					// reached已清空：即使首桶派发被拒，也必须推进其余桶的收尾。
+				} catch (Throwable e) {
+					// reached已清空：派发拒绝或 Error 均不能跳过其余桶的收尾。
 					if (failure == null)
 						failure = e;
 					else if (failure != e)
@@ -465,7 +468,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				}
 			}
 			if (failure != null)
-				throw failure;
+				throw Zeze.Util.Task.forceThrow(failure);
 		}
 
 		public boolean reach(BatchTask batch, int sum) {
