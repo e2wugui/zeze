@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 import Zeze.Net.AsyncSocket;
@@ -58,7 +59,7 @@ import harness.Fast;
 @Fast
 // 同步版是进程内单例（CacheHolder硬编码引用static instance）；与其他使用该单例的@Fast测试
 // 经ResourceLock串行（对齐TestFnd717/718判例）。
-@ResourceLock("GlobalCacheManagerServer.instance")
+@ResourceLock(value = "GlobalCacheManagerServer.instance", mode = ResourceAccessMode.READ_WRITE)
 public class TestGcmSyncReleaseGeneration {
 	private static final int PORT = 19713; // @Fast固定端口独占
 	private static final Binary KEY1 = new Binary("UnitTest.GcmSync.K1".getBytes(StandardCharsets.UTF_8));

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 import Zeze.Net.AsyncSocket;
@@ -39,7 +40,7 @@ import harness.Fast;
  * 即NoSuchFieldException红）。</li>
  * </ol>
  */
-@ResourceLock("GlobalCacheManagerServer.instance")
+@ResourceLock(value = "GlobalCacheManagerServer.instance", mode = ResourceAccessMode.READ_WRITE)
 @Fast
 public class TestGcmDaemonOffScheduler {
 	private static final int PORT = 19717; // @Fast固定端口独占（与TestFnd718经ResourceLock串行）
@@ -73,8 +74,9 @@ public class TestGcmDaemonOffScheduler {
 	@BeforeAll
 	public static void setUp() throws Exception {
 		Task.tryInitThreadPool();
-		// 同步版是进程内单例；fast套件无其他使用者（TestEnvLauncherListener在test任务被关闭，
-		// 且只启动异步版），自起自停保持端口独占。
+		// 同步版是进程内单例；与TestGcmStopWaitsDaemon/TestReduceReplyAdmission/
+		// TestGcmSyncReleaseGeneration经@ResourceLock(READ_WRITE)串行使用（默认READ不互斥），
+		// 自起自停保持端口独占。
 		gcm = GlobalCacheManagerServer.getInstance();
 		gcm.start(null, PORT, null);
 	}

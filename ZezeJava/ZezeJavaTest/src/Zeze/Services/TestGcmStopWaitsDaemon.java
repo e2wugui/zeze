@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 import Zeze.Net.AsyncSocket;
@@ -44,7 +45,7 @@ import harness.Fast;
  * 3. 后台stop()：缺等待的形态毫秒级完成（cancel只挡住了派发）——断言1红；
  * 4. 放行会话锁：修复后扫描在拆依赖前完整跑完（A、B的sessionId都被kick清零）。
  */
-@ResourceLock("GlobalCacheManagerServer.instance")
+@ResourceLock(value = "GlobalCacheManagerServer.instance", mode = ResourceAccessMode.READ_WRITE)
 @Fast
 public class TestGcmStopWaitsDaemon {
 	private static final int PORT = 19718; // @Fast固定端口独占（与TestFnd717经ResourceLock串行）
@@ -79,8 +80,9 @@ public class TestGcmStopWaitsDaemon {
 	@BeforeAll
 	public static void setUp() throws Exception {
 		Task.tryInitThreadPool();
-		// 同步版是进程内单例；与TestGcmDaemonOffScheduler经@ResourceLock串行使用，
-		// fast套件无其他使用者（TestEnvLauncherListener在test任务被关闭且只启动异步版）。
+		// 同步版是进程内单例；与TestGcmDaemonOffScheduler/TestReduceReplyAdmission/
+		// TestGcmSyncReleaseGeneration经@ResourceLock(READ_WRITE)串行使用（默认READ不互斥），
+		// TestEnvLauncherListener在test任务被关闭且只启动异步版。
 		gcm = GlobalCacheManagerServer.getInstance();
 		gcm.start(null, PORT, null);
 		stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.GcmStopWait.stop"));

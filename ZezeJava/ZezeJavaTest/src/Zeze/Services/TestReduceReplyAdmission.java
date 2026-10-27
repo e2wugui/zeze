@@ -21,12 +21,16 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Fast
-@ResourceLock("GlobalCacheManagerServer.instance")
+// READ必须升READ_WRITE：同步版是进程内单例，与TestGcmSyncReleaseGeneration/TestGcmStopWaitsDaemon/
+// TestGcmDaemonOffScheduler各自start/stop同一实例，默认READ不互斥——姊妹类stop可拆掉在途交换的
+// 服务端（soak批4/20红，await超时形态）。TestGcmRestartKeepsCurrentOwnership是@Isolated无需锁。
+@ResourceLock(value = "GlobalCacheManagerServer.instance", mode = ResourceAccessMode.READ_WRITE)
 public class TestReduceReplyAdmission {
 	private static final class Peer extends Service {
 		final BlockingQueue<Reduce> reduces = new LinkedBlockingQueue<>();
