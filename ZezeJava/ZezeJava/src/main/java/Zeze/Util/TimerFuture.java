@@ -16,8 +16,10 @@ import org.jspecify.annotations.Nullable;
  * 周期任务句柄（{@link Task#schedulePeriodCore} 创建，TaskSpec.schedulePeriodNow 返回）。
  * 目的：补 JDK ScheduledFuture.cancel 的缺口——它只阻断后续触发，对已开始的当前轮既不阻止
  * 也不可等待，调用方"cancel 后即拆资源"会与在飞一轮竞态。
- * 机制：先发布取消标志并向底层 Future 发送取消/中断，再取任务体所持锁等待当前轮结束。
- * 任务体在锁内复查取消标志；cancel 返回后不会再启动新的一轮，并已 join 在飞的一轮。
+ * 机制：先发布取消标志并向底层 Future 发送取消/中断，再取周期门锁等待已准入轮退出。
+ * 周期轮先获取 hot guard，再取本锁并复查取消；业务体、timeout 和已准入 guard.close 均在本锁内。
+ * 其他线程 cancel 返回后已准入轮已排空，迟到轮不再调用业务体；尚在获取 hot guard 的 factory
+ * 在排空边界之外。同线程自 cancel 利用重入返回，当前调用栈自行收尾。
  * 代价：cancel 成为阻塞原语，受 {@link #cancel} 的 ABBA 调用约束；等锁超过任务自身的看门狗
  * 预算+{@link #CANCEL_HANG_MARGIN_MS} 时发出双栈告警（无声挂死→有声，契约不变）。
  */
@@ -50,9 +52,11 @@ public class TimerFuture<V extends @Nullable Object> extends ReentrantLock imple
 	}
 
 	/**
-	 * 取消并 join：取本对象锁，阻塞至在飞一轮任务体结束；返回后不再启动新的一轮
-	 * （future.cancel(mayInterruptIfRunning)：传true时会中断在飞任务体的执行线程，任务体
-	 * 需自行响应中断；false 时仅阻止后续轮次，不碰在飞体）。
+	 * 取消并 join：先发布取消并通知底层 Future，再取本对象锁等待已通过周期门的轮退出。
+	 * 排空范围包括业务体、timeout 关闭和已准入 hot guard 关闭；不包括尚在获取 hot guard 的
+	 * factory，它可在 cancel 返回后才完成取得/关闭，锁内复查保证其不再调用业务体。
+	 * 同线程从业务体或已准入 guard.close 自 cancel 以重入返回，不等待自己的当前调用栈。
+	 * future.cancel(mayInterruptIfRunning) 传 true 时先中断在飞线程；false 不请求中断，仍等待排空。
 	 * 【调用约束】不得持有任务体执行期间可能获取的任何锁，否则与在飞任务体互等（ABBA）永久挂起；
 	 * 需与停机门禁互斥时，锁内只置关门标志并捕获句柄，释放锁后再 cancel。周期守护的停机
 	 * 请优先用 DaemonTimer——它把"关门→cancel→限时等待在飞"内聚为组件，cancel对象为

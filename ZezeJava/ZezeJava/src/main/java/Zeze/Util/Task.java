@@ -632,23 +632,29 @@ public final class Task {
 	}
 
 	// 周期调度：周期任务无法携带返回值，结果丢弃，异常只记日志（不 rethrow，否则 ScheduledExecutor 会停掉后续周期）。
-	// 【锁契约】任务体在 future.lock 内执行（与 TimerFuture.cancel 互斥）：cancel 天然 join 在飞的一轮
-	// 任务体；因此任务体内可以获取自己的业务锁，但 cancel 的调用方不得持有任务体可能获取的锁（ABBA，见
-	// TimerFuture.cancel 的 javadoc）。
+	// 【锁契约】先取得 hot guard，再取得 future，与 HotManager 安装时 hot 写锁 -> future 的顺序一致。
+	// hotGuard.create（含自定义 factory）在 cancel 的排空边界之外；轮进入 future 后复查取消标志，
+	// 业务体、timeout 和已准入 guard.close 均在 future 内，迟到轮不得执行 body。统计仍在解锁后。
+	// cancel 调用方仍不得持有已运行任务体可能获取的业务锁（ABBA，见 TimerFuture.cancel 的 javadoc）。
 	static <R extends @Nullable Object> TimerFuture<R> schedulePeriodCore(long initialDelay, long period, TaskBody<R> body,
 														  @Nullable String name, long timeout) {
 		var future = new TimerFuture<R>(body.logName(name), timeout); // name+timeout供cancel挂死告警定位与阈值
 		future.setFuture(scheduledPoolOrThrow().scheduleWithFixedDelay(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			future.lock();
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				if (future.isCancelled())
-					return;
-				body.call(name);
+			boolean locked = false;
+			try (var ignoredHot = hotGuard.create()) {
+				future.lock();
+				locked = true;
+				try (var ignored = createTimeout(timeout)) {
+					if (future.isCancelled())
+						return;
+					body.call(name);
+				}
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
 			} finally {
-				future.unlock();
+				if (locked)
+					future.unlock();
 				addTaskRunTime(body.statsKey(name), timeBegin);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS));

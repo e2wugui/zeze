@@ -214,6 +214,8 @@ public final class FastServerIds {
 	public static final int TEST_RAFT_SNAPSHOT_REQUEST_DEDUP = seg("TestRaftSnapshotRequestDedup", 7780, 2);
 	public static final int TEST_RECOVERED_APPLIED_PREFIX_PROTECTION = seg("TestRecoveredAppliedPrefixProtection", 7790, 1);
 	public static final int TEST_RRS_READ_FAST_PATH_OLD_TABLE = seg("TestRrsReadFastPathOldTableMigration", 7800, 1);
+	// 仅 manager-cycle child 构造一个未启动的 NoDatabase Application。
+	public static final int TEST_PERIODIC_TASK_HOT_GUARD_CANCELLATION = seg("TestPeriodicTaskHotGuardCancellation", 7850, 1);
 
 	private FastServerIds() {
 	}
