@@ -9,6 +9,7 @@ import Zeze.Game.ProviderWithOnline;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.LoadConfig;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Service;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 
@@ -44,9 +45,6 @@ public class App extends Zeze.AppBase {
             switch (args[i]) {
                 case "-ServerId":
                     serverId = Integer.parseInt(args[++i]);
-                    break;
-                case "-GenFileSrcRoot":
-                    GenModule.instance.genFileSrcRoot = args[++i];
                     break;
                 case "-ProviderDirectPort":
                     providerDirectPort = Integer.parseInt(args[++i]);
@@ -85,13 +83,8 @@ public class App extends Zeze.AppBase {
 
 		createModules();
 
-        if (GenModule.instance.genFileSrcRoot != null) {
-            System.out.println("---------------");
-            System.out.println("New Source File Has Generate. Re-Compile Need.");
-            System.exit(0);
-        }
-
-        Zeze.getTimer().initializeOnlineTimer(ProviderApp);
+		assert Zeze.getTimer() != null;
+	    Zeze.getTimer().initializeOnlineTimer(ProviderApp);
 
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
@@ -99,7 +92,7 @@ public class App extends Zeze.AppBase {
         Provider.start();
 
         PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
-        AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
+        Service.setDefaultSessionIdGenFunc(socketSessionIdGen::next);
 		startService(); // 启动网络
 
         // 服务准备好以后才注册和订阅。

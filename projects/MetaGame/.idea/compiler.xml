@@ -3,4 +3,12 @@
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel target="21" />
   </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="metagame.Test.main" options="-parameters -Xlint:deprecation -parameters -Xlint:deprecation" />
+      <module name="metagame.linkd.main" options="-parameters -Xlint:deprecation -parameters -Xlint:deprecation" />
+      <module name="metagame.main" options="-parameters -Xlint:deprecation" />
+      <module name="metagame.server.main" options="-parameters -Xlint:deprecation -parameters -Xlint:deprecation" />
+    </option>
+  </component>
 </project>
