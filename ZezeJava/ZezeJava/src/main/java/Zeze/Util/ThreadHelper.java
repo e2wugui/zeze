@@ -45,8 +45,11 @@ public class ThreadHelper extends Thread {
 
 	/**
 	 * 忽略中断异常，必须等待线程结束。
+	 * @throws IllegalStateException 当前线程不能等待自身结束。
 	 */
 	public final void joinAssuring() {
+		if (Thread.currentThread() == this)
+			throw new IllegalStateException("A thread cannot await its own termination");
 		while (true) {
 			try {
 				join();
@@ -57,10 +60,17 @@ public class ThreadHelper extends Thread {
 		}
 	}
 
-	public void shutdown() {
+	/** 请求停止并唤醒线程；可在线程自身或其他线程调用，不等待退出。 */
+	public final void requestShutdown() {
 		running = false;
 		wakeup();
-		joinAssuring();
+	}
+
+	/** 请求停止；外部调用等待退出，线程自身调用在发布停止请求后返回。 */
+	public void shutdown() {
+		requestShutdown();
+		if (Thread.currentThread() != this)
+			joinAssuring();
 	}
 
 	public void wakeup() {
