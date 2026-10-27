@@ -244,7 +244,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private AtomicTupleRecord<K, V> load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
@@ -258,6 +257,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (r.getState() == StateShare
 					|| r.getState() == StateModify) {
 					var beforeTimestamp = r.getTimestamp(); // read timestamp before read value。see Record1.Commit
+					//noinspection unchecked
 					strongRef = (V)r.getSoftValue();
 					if (strongRef == null && !r.getDirty()) {
 						var find = getLocalRocksCacheTable().find(this, key);
@@ -304,7 +304,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						// GCM reduce的flush失败或Releaser降级窗口会留下Invalid+dirty的记录，
 						// 后台库中还是旧值（脏数据尚未checkpoint），装载会覆盖丢失内存中已提交的修改。
 						// see Record1.loadValue 的dirty检查。
-						@SuppressWarnings("unchecked")
+						//noinspection unchecked
 						var dirtyValue = (V)r.getDirtyValue();
 						if (dirtyValue != null) {
 							strongRef = dirtyValue;

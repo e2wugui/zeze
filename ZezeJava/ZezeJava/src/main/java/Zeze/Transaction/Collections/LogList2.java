@@ -99,10 +99,9 @@ public class LogList2<V extends Bean> extends LogBean {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private V readValue(IByteBuffer bb) {
 		try {
-			//noinspection DataFlowIssue
+			//noinspection DataFlowIssue,unchecked
 			var value = (V)meta.valueFactory.invoke();
 			value.decode(bb);
 			return value;

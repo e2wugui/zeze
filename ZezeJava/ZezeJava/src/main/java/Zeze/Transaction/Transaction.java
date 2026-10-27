@@ -291,15 +291,16 @@ public final class Transaction {
 	 * 不同实例即使值相等、key 相同也是不同资源；重试必须传入同一属主实例。
 	 * 同一属主内要求 key 唯一标识资源（默认 sessionId 生成器进程内唯一，满足此约束）。
 	 */
-	@SuppressWarnings("unchecked")
 	public <T> @Nullable T resolveOnce(Object owner, long key, LongFunction<@Nullable T> resolver) {
 		var cache = onceResolved;
 		if (cache == null)
 			onceResolved = cache = new HashMap<>();
 		var cacheKey = new ResolveKey(owner, key);
 		var cached = cache.get(cacheKey);
-		if (cached != null)
+		if (cached != null) {
+			//noinspection unchecked
 			return cached != NULL_VALUE ? (T)cached : null;
+		}
 		var value = resolver.apply(key);
 		cache.put(cacheKey, value != null ? value : NULL_VALUE);
 		return value;
@@ -318,7 +319,7 @@ public final class Transaction {
 	private record ResolveKey(Object owner, long key) {
 		@Override
 		public boolean equals(@Nullable Object other) {
-			return other instanceof ResolveKey that && owner == that.owner && key == that.key;
+			return other instanceof ResolveKey(Object owner1, long key1) && owner == owner1 && key == key1;
 		}
 
 		@Override
@@ -677,7 +678,6 @@ public final class Transaction {
 		var it = lastSp.logIterator();
 		if (it != null) {
 			while (it.moveToNext())
-				//noinspection DataFlowIssue
 				changes.collect(it.value());
 		}
 		for (var ar : accessedRecords.values()) {
@@ -897,7 +897,6 @@ public final class Transaction {
 					var log = it.value();
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
-					//noinspection DataFlowIssue
 					var belong = log.getBelong();
 					if (belong == null)
 						continue;

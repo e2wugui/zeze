@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
+
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
@@ -20,6 +21,7 @@ import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
+
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
@@ -52,14 +54,14 @@ public abstract class Database extends ReentrantLock {
 	protected static void checkKvKeyLength(String tableName, ByteBuffer key) {
 		if (key.size() > eMaxKeyLength)
 			throw new IllegalArgumentException(
-					"key too large for kv table '" + tableName + "': " + key.size() + " > " + eMaxKeyLength);
+				"key too large for kv table '" + tableName + "': " + key.size() + " > " + eMaxKeyLength);
 	}
 
 	// 读/删路径的预算：放行旧预算内的存量key（新写仍按checkKvKeyLength的900执法）。
 	protected static void checkKvKeyLengthForLegacyAccess(String tableName, ByteBuffer key) {
 		if (key.size() > eMaxLegacyKeyLength)
 			throw new IllegalArgumentException("key too large for kv table legacy access '" + tableName
-					+ "': " + key.size() + " > " + eMaxLegacyKeyLength);
+				+ "': " + key.size() + " > " + eMaxLegacyKeyLength);
 	}
 
 	static {
@@ -184,7 +186,7 @@ public abstract class Database extends ReentrantLock {
 
 	public abstract Table openTable(String name, int id);
 
-	public Table [] openTables(String [] names, int [] ids) {
+	public Table[] openTables(String[] names, int[] ids) {
 		if (names.length != ids.length)
 			throw new RuntimeException("tables name & id count mismatch.");
 		var tables = new Table[names.length];
@@ -194,7 +196,7 @@ public abstract class Database extends ReentrantLock {
 	}
 
 	/** 返回nio缓冲的remaining区间；仅窗口覆盖完整可访问数组时共享，否则复制且不改游标。 */
-	public static byte [] copyIf(java.nio.ByteBuffer bb) {
+	public static byte[] copyIf(java.nio.ByteBuffer bb) {
 		// slice可以从数组开头开始却只有较小capacity，必须与实际数组长度比较。
 		if (bb.hasArray() && bb.position() == 0 && bb.arrayOffset() == 0 && bb.remaining() == bb.array().length)
 			return bb.array();
@@ -203,7 +205,7 @@ public abstract class Database extends ReentrantLock {
 		return bytes;
 	}
 
-	public static byte [] copyIf(byte [] bytes, int offset, int len) {
+	public static byte[] copyIf(byte[] bytes, int offset, int len) {
 		if (offset == 0 && bytes.length == len)
 			return bytes;
 		return Arrays.copyOfRange(bytes, offset, offset + len);
@@ -213,7 +215,7 @@ public abstract class Database extends ReentrantLock {
 		throw new UnsupportedOperationException();
 	}
 
-	public void renameTable(String tableOldName, String tableNewName) throws Exception{
+	public void renameTable(String tableOldName, String tableNewName) throws Exception {
 		throw new UnsupportedOperationException();
 	}
 
@@ -389,7 +391,7 @@ public abstract class Database extends ReentrantLock {
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
-		boolean invokeCallback(TableX<K, V> table, byte [] key, byte [] value,
+		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value,
 							   TableWalkHandle<K, V> callback) throws Exception {
 			K k = table.decodeKey(key);
 			V v = null;
@@ -414,7 +416,7 @@ public abstract class Database extends ReentrantLock {
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
-		boolean invokeCallback(TableX<K, V> table, byte [] key,
+		boolean invokeCallback(TableX<K, V> table, byte[] key,
 							   TableWalkKey<K> callback) throws Exception {
 			K k = table.decodeKey(key);
 			var r = table.requireCache().get(k);
@@ -439,7 +441,7 @@ public abstract class Database extends ReentrantLock {
 		// 带游标遍历统一在此编码并检查 key 长度预算（不得依赖后端手工复制执法：
 		// walkKey/walkDesc 家族曾在 MySql/SqlServer 整批遗漏、DatabaseMemory 一处都没有）。
 		private static <K extends Comparable<K>, V extends Bean> @Nullable ByteBuffer encodeStartKeyChecked(
-				TableX<K, V> table, @Nullable K exclusiveStartKey) {
+			TableX<K, V> table, @Nullable K exclusiveStartKey) {
 			if (exclusiveStartKey == null)
 				return null;
 			var encoded = table.encodeKey(exclusiveStartKey);
@@ -496,7 +498,7 @@ public abstract class Database extends ReentrantLock {
 
 			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walk(encodedExclusiveStartKey, proposeLimit,
-					(key, value) -> invokeCallback(table, key, value, callback));
+				(key, value) -> invokeCallback(table, key, value, callback));
 			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
@@ -510,7 +512,7 @@ public abstract class Database extends ReentrantLock {
 
 			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit,
-					(key, value) -> invokeCallback(table, key, value, callback));
+				(key, value) -> invokeCallback(table, key, value, callback));
 			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
@@ -524,7 +526,7 @@ public abstract class Database extends ReentrantLock {
 
 			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
-					key -> invokeCallback(table, key, callback));
+				key -> invokeCallback(table, key, callback));
 			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
@@ -538,7 +540,7 @@ public abstract class Database extends ReentrantLock {
 
 			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
-					key -> invokeCallback(table, key, callback));
+				key -> invokeCallback(table, key, callback));
 			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
@@ -613,7 +615,7 @@ public abstract class Database extends ReentrantLock {
 									TableWalkKey<K> callback) throws Exception {
 			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
-					key -> callback.handle(table.decodeKey(key)));
+				key -> callback.handle(table.decodeKey(key)));
 			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
@@ -624,7 +626,7 @@ public abstract class Database extends ReentrantLock {
 										TableWalkKey<K> callback) throws Exception {
 			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
-					key -> callback.handle(table.decodeKey(key)));
+				key -> callback.handle(table.decodeKey(key)));
 			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
@@ -705,16 +707,17 @@ public abstract class Database extends ReentrantLock {
 		  InsertData(data);
 		  return (CurrentVersion = version, true);
 		*/
-	/**
-	 * 保存数据（按版本条件更新），返回&lt;新版本, 是否新建插入&gt;。
-	 *
-	 * <p>版本读回契约（已知漂移，同库混用/迁移后端时注意）：插入路径的返回版本依后端而异——
-	 * JDBC系（MySql/PostgreSQL/SqlServer，存储过程实现）返回入参version原值；
-	 * RocksDb/Mongo/Redis/Tikv/Dynamo返回入参+1（CAS重试依赖递增语义）。
-	 * 统一属迁移级改动（需动JDBC存储过程），当前以本声明承载契约。
-	 */
-	@Nullable KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
-														long version);
+
+		/**
+		 * 保存数据（按版本条件更新），返回&lt;新版本, 是否新建插入&gt;。
+		 *
+		 * <p>版本读回契约（已知漂移，同库混用/迁移后端时注意）：插入路径的返回版本依后端而异——
+		 * JDBC系（MySql/PostgreSQL/SqlServer，存储过程实现）返回入参version原值；
+		 * RocksDb/Mongo/Redis/Tikv/Dynamo返回入参+1（CAS重试依赖递增语义）。
+		 * 统一属迁移级改动（需动JDBC存储过程），当前以本声明承载契约。
+		 */
+		@Nullable KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
+															long version);
 
 		@Nullable DataWithVersion getDataWithVersion(ByteBuffer key);
 
