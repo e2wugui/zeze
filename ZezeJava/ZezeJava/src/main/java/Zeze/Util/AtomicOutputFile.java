@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -145,6 +144,7 @@ public final class AtomicOutputFile implements AutoCloseable {
 	/**
 	 * 显式提交。成功后重复提交为no-op；放弃或提交失败后不得再提交。
 	 * force必须先于move：新内容未落盘前名字不允许翻过去。失败时先关channel再清理temp。
+	 * 文件系统不支持原子移动时提交失败，不以普通替换降低原子性保证。
 	 */
 	public void commit() throws IOException {
 		if (committed)
@@ -157,11 +157,7 @@ public final class AtomicOutputFile implements AutoCloseable {
 			buffered.flush();
 			channel.force(true);
 			inheritPosixAttributesBestEffort(target, temp);
-			try {
-				Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE);
-			} catch (AtomicMoveNotSupportedException e) {
-				Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
-			}
+			Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE);
 		} catch (Throwable failure) {
 			deleteTempBestEffort();
 			throw failure;
