@@ -2,7 +2,8 @@ package Zeze.Collections;
 
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.pcollections.Empty;
 import org.pcollections.PMap;
 import org.pcollections.PSet;
@@ -15,9 +16,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
- * 持久化容器三后端契约对齐测试：Kt 适配类（kt 循环 / ktt builder 双路径）vs pcollections 参照。
+ * 持久化容器适配族契约对齐测试：Kt 族（外部 kotlinx 内核，kt 循环 / ktt builder 双路径）
+ * 与 MyKt 族（自移植内核 myktt）经同一套断言参数化跑两遍 vs pcollections 参照——
+ * 两族契约必须逐位一致，换内核不得漂移。
  *
  * <p>钉住的是 Zeze 事务集合写路径依赖的隐式契约（换内核不得漂移）：
  * <ul>
@@ -28,16 +32,28 @@ import java.util.Set;
  *   <li><b>内容与 JDK 契约</b>：equals/hashCode/迭代与 ArrayList/HashMap/HashSet 模型逐 op 对账。</li>
  * </ul>
  *
- * <p>ktt 的 builder 批量路径经 {@link Persistents#BULK} 翻档覆盖（try/finally 复原）。
+ * <p>builder 批量路径经 {@link Persistents#BULK} 翻档覆盖（try/finally 复原）。
  */
 @Fast
 public class TestPersistentsBackendsContract {
+	/** 被测适配族：三类空容器工厂（vector/map/set）。 */
+	private record Families(String name, Supplier<PVector<Integer>> vector,
+							Supplier<PMap<Integer, String>> map, Supplier<PSet<Integer>> set) {
+	}
+
+	private static List<Families> families() {
+		return List.of(
+				new Families("kt", KtVector::empty, KtMap::empty, KtSet::empty),
+				new Families("myktt", MyKtVector::empty, MyKtMap::empty, MyKtSet::empty));
+	}
+
 	// ===== Vector =====
 
-	@Test
-	public void testVectorContentAndJdkContract() {
+	@ParameterizedTest
+	@MethodSource("families")
+	public void testVectorContentAndJdkContract(Families f) {
 		var model = new ArrayList<>(List.of(0, 1, 2, 3, 4));
-		PVector<Integer> v = KtVector.empty();
+		PVector<Integer> v = f.vector().get();
 		for (var e : List.of(0, 1, 2, 3, 4))
 			v = v.plus(e);
 		assertVectorEquals(model, v);
@@ -75,9 +91,10 @@ public class TestPersistentsBackendsContract {
 		assertVectorEquals(model, v);
 	}
 
-	@Test
-	public void testVectorNoOpIdentity() {
-		PVector<Integer> v = KtVector.empty();
+	@ParameterizedTest
+	@MethodSource("families")
+	public void testVectorNoOpIdentity(Families f) {
+		PVector<Integer> v = f.vector().get();
 		for (int i = 0; i < 100; i++)
 			v = v.plus(i);
 
@@ -104,9 +121,10 @@ public class TestPersistentsBackendsContract {
 		Assertions.assertSame(ref, ref.minusAll(List.of(-1, -2, -3)));
 	}
 
-	@Test
-	public void testVectorIndexBounds() {
-		PVector<Integer> v = KtVector.empty();
+	@ParameterizedTest
+	@MethodSource("families")
+	public void testVectorIndexBounds(Families f) {
+		PVector<Integer> v = f.vector().get();
 		for (int i = 0; i < 10; i++)
 			v = v.plus(i);
 		var fv = v;
@@ -123,15 +141,16 @@ public class TestPersistentsBackendsContract {
 		// ==size 插入=尾追加（List 契约合法），与 pcollections 参照一致
 		Assertions.assertEquals(11, fv.plus(10, 99).size());
 		Assertions.assertEquals(2, Empty.vector().plusAll(List.of(0)).plusAll(1, List.of(1)).size());
-		Assertions.assertThrows(UnsupportedOperationException.class, () -> fv.subList(0, 1), "KtVector subList 不支持（Zeze 层同禁）");
+		Assertions.assertThrows(UnsupportedOperationException.class, () -> fv.subList(0, 1), "subList 不支持（Zeze 层同禁）");
 	}
 
 	// ===== Map =====
 
-	@Test
-	public void testMapContentAndJdkContract() {
+	@ParameterizedTest
+	@MethodSource("families")
+	public void testMapContentAndJdkContract(Families f) {
 		var model = new HashMap<Integer, String>();
-		PMap<Integer, String> m = KtMap.empty();
+		PMap<Integer, String> m = f.map().get();
 		for (int i = 0; i < 100; i++) {
 			m = m.plus(i, "v" + i);
 			model.put(i, "v" + i);
@@ -159,9 +178,10 @@ public class TestPersistentsBackendsContract {
 		assertMapEquals(model, m);
 	}
 
-	@Test
-	public void testMapNoOpIdentity() {
-		PMap<Integer, String> m = KtMap.empty();
+	@ParameterizedTest
+	@MethodSource("families")
+	public void testMapNoOpIdentity(Families f) {
+		PMap<Integer, String> m = f.map().get();
 		var values = new HashMap<Integer, String>(); // 持有与 m 内部一致的实例引用（不驻留构造）
 		for (int i = 0; i < 100; i++) {
 			var v = new String("v" + i);
@@ -216,9 +236,10 @@ public class TestPersistentsBackendsContract {
 		Assertions.assertNotSame(ref, ref.plusAll(Map.of(5, "v5")), "基线存档：pcollections plusAll 同值恒新实例");
 	}
 
-	@Test
-	public void testMapMutatorsReject() {
-		PMap<Integer, String> m = KtMap.<Integer, String>empty().plus(1, "a");
+	@ParameterizedTest
+	@MethodSource("families")
+	public void testMapMutatorsReject(Families f) {
+		PMap<Integer, String> m = f.map().get().plus(1, "a");
 		Assertions.assertThrows(UnsupportedOperationException.class, () -> m.put(2, "b"));
 		Assertions.assertThrows(UnsupportedOperationException.class, () -> m.remove(1));
 		Assertions.assertThrows(UnsupportedOperationException.class, () -> m.putAll(Map.of(2, "b")));
@@ -227,10 +248,11 @@ public class TestPersistentsBackendsContract {
 
 	// ===== Set =====
 
-	@Test
-	public void testSetContentAndJdkContract() {
+	@ParameterizedTest
+	@MethodSource("families")
+	public void testSetContentAndJdkContract(Families f) {
 		var model = new HashSet<Integer>();
-		PSet<Integer> s = KtSet.empty();
+		PSet<Integer> s = f.set().get();
 		for (int i = 0; i < 100; i++) {
 			s = s.plus(i);
 			model.add(i);
@@ -250,9 +272,10 @@ public class TestPersistentsBackendsContract {
 		assertSetEquals(model, s);
 	}
 
-	@Test
-	public void testSetNoOpIdentity() {
-		PSet<Integer> s = KtSet.empty();
+	@ParameterizedTest
+	@MethodSource("families")
+	public void testSetNoOpIdentity(Families f) {
+		PSet<Integer> s = f.set().get();
 		for (int i = 0; i < 100; i++)
 			s = s.plus(i);
 

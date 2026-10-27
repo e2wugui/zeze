@@ -24,8 +24,9 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:2.0.18'
     implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.26.0'
 
-    // for test (JUnit 6 / Jupiter)
+    // for test (JUnit 6 / Jupiter；params 为 TestPersistentsBackendsContract 的 @ParameterizedTest)
     testImplementation 'org.junit.jupiter:junit-jupiter-api:6.1.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:6.1.3'
 
     // ZokerManager 已迁至 projects/ZokerManager（独立构建，composite 消费本工程源码）；
     // 其 27 个测试类随迁至该工程 src/test，本工程不再依赖 :ZokerManager。
@@ -296,8 +297,8 @@ tasks.register('benchGame', Test) {
         systemProperty 'game.warmups', findProperty('gameWarmups')
     if (findProperty('gameCheckpointPeriodMs') != null) // 诊断旋钮：RRS 膨胀×checkpoint 周期实验（默认 30000=基线）
         systemProperty 'game.checkpointPeriodMs', findProperty('gameCheckpointPeriodMs')
-    // 持久化容器后端旋钮（L_MmoGameSim）：后端 pcollections|kt|ktt（默认 ktt=代码默认，pcollections 为回退杠杆）
-    systemProperty 'zeze.collections.backend', (findProperty('collBackend') ?: 'ktt')
+    // 持久化容器后端旋钮（L_MmoGameSim）：后端 pcollections|kt|ktt|myktt（默认 myktt=代码默认，pcollections 为回退杠杆）
+    systemProperty 'zeze.collections.backend', (findProperty('collBackend') ?: 'myktt')
     if (findProperty('gameBulkRewardSlots') != null)
         systemProperty 'game.bulkRewardSlots', findProperty('gameBulkRewardSlots')
     if (findProperty('gameBulkRewardPlayers') != null)
