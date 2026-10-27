@@ -3,21 +3,23 @@ package Zeze.Transaction.GTable;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
 import org.jspecify.annotations.Nullable;
+
 import static java.lang.Math.max;
 
 public class CollectSpliterators2 {
 	static <InElementT, OutElementT>
 	Spliterator<OutElementT> map(
-			Spliterator<InElementT> fromSpliterator,
-			Function<? super InElementT, ? extends OutElementT> function) {
+		Spliterator<InElementT> fromSpliterator,
+		Function<? super InElementT, ? extends OutElementT> function) {
 		Utils.checkNotNull(fromSpliterator);
 		Utils.checkNotNull(function);
 		return new Spliterator<>() {
 			@Override
 			public boolean tryAdvance(Consumer<? super OutElementT> action) {
 				return fromSpliterator.tryAdvance(
-						fromElement -> action.accept(function.apply(fromElement)));
+					fromElement -> action.accept(function.apply(fromElement)));
 			}
 
 			@Override
@@ -40,43 +42,43 @@ public class CollectSpliterators2 {
 			@Override
 			public int characteristics() {
 				return fromSpliterator.characteristics()
-						& ~(Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.SORTED);
+					& ~(Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.SORTED);
 			}
 		};
 	}
 
 	static <InElementT, OutElementT>
 	Spliterator<OutElementT> flatMap(
-			Spliterator<InElementT> fromSpliterator,
-			Function<? super InElementT, Spliterator<OutElementT>> function,
-			int topCharacteristics,
-			long topSize) {
+		Spliterator<InElementT> fromSpliterator,
+		Function<? super InElementT, Spliterator<OutElementT>> function,
+		int topCharacteristics,
+		long topSize) {
 		Utils.checkArgument(
-				(topCharacteristics & Spliterator.SUBSIZED) == 0,
-				"flatMap does not support SUBSIZED characteristic");
+			(topCharacteristics & Spliterator.SUBSIZED) == 0,
+			"flatMap does not support SUBSIZED characteristic");
 		Utils.checkArgument(
-				(topCharacteristics & Spliterator.SORTED) == 0,
-				"flatMap does not support SORTED characteristic");
+			(topCharacteristics & Spliterator.SORTED) == 0,
+			"flatMap does not support SORTED characteristic");
 		Utils.checkNotNull(fromSpliterator);
 		Utils.checkNotNull(function);
 		return new FlatMapSpliteratorOfObject<>(
-				null, fromSpliterator, function, topCharacteristics, topSize);
+			null, fromSpliterator, function, topCharacteristics, topSize);
 	}
 
 	abstract static class FlatMapSpliterator<
-			InElementT,
-			OutElementT,
-			OutSpliteratorT extends Spliterator<OutElementT>>
-			implements Spliterator<OutElementT> {
+		InElementT,
+		OutElementT,
+		OutSpliteratorT extends Spliterator<OutElementT>>
+		implements Spliterator<OutElementT> {
 		/** Factory for constructing {@link FlatMapSpliterator} instances. */
 		@FunctionalInterface
 		interface Factory<InElementT, OutSpliteratorT extends Spliterator<?>> {
 			OutSpliteratorT newFlatMapSpliterator(
-					@Nullable OutSpliteratorT prefix,
-					Spliterator<InElementT> fromSplit,
-					Function<? super InElementT, @Nullable OutSpliteratorT> function,
-					int splitCharacteristics,
-					long estSplitSize);
+				@Nullable OutSpliteratorT prefix,
+				Spliterator<InElementT> fromSplit,
+				Function<? super InElementT, @Nullable OutSpliteratorT> function,
+				int splitCharacteristics,
+				long estSplitSize);
 		}
 
 		@Nullable OutSpliteratorT prefix;
@@ -87,12 +89,12 @@ public class CollectSpliterators2 {
 		long estimatedSize;
 
 		FlatMapSpliterator(
-				@Nullable OutSpliteratorT prefix,
-				Spliterator<InElementT> from,
-				Function<? super InElementT, @Nullable OutSpliteratorT> function,
-				Factory<InElementT, OutSpliteratorT> factory,
-				int characteristics,
-				long estimatedSize) {
+			@Nullable OutSpliteratorT prefix,
+			Spliterator<InElementT> from,
+			Function<? super InElementT, @Nullable OutSpliteratorT> function,
+			Factory<InElementT, OutSpliteratorT> factory,
+			int characteristics,
+			long estimatedSize) {
 			this.prefix = prefix;
 			this.from = from;
 			this.function = function;
@@ -131,12 +133,12 @@ public class CollectSpliterators2 {
 				prefix = null;
 			}
 			from.forEachRemaining(
-					fromElement -> {
-						Spliterator<OutElementT> elements = function.apply(fromElement);
-						if (elements != null) {
-							elements.forEachRemaining(action);
-						}
-					});
+				fromElement -> {
+					Spliterator<OutElementT> elements = function.apply(fromElement);
+					if (elements != null) {
+						elements.forEachRemaining(action);
+					}
+				});
 			estimatedSize = 0;
 		}
 
@@ -146,21 +148,20 @@ public class CollectSpliterators2 {
 			Spliterator<InElementT> fromSplit = from.trySplit();
 			if (fromSplit != null) {
 				int splitCharacteristics = characteristics & ~Spliterator.SIZED;
-					this.characteristics = splitCharacteristics;
+				this.characteristics = splitCharacteristics;
 				long estSplitSize = estimateSize();
 				if (estSplitSize < Long.MAX_VALUE) {
 					estSplitSize /= 2;
 					this.estimatedSize -= estSplitSize;
 				}
-				OutSpliteratorT result =
-						factory.newFlatMapSpliterator(
-								this.prefix, fromSplit, function, splitCharacteristics, estSplitSize);
+				OutSpliteratorT result = factory.newFlatMapSpliterator(
+					this.prefix, fromSplit, function, splitCharacteristics, estSplitSize);
 				this.prefix = null;
 				return result;
 			}
 			if (prefix != null) {
-					// 转交前缀后剩余大小只是估计，不能让 Stream 按旧的精确大小计数/分配。
-					characteristics &= ~Spliterator.SIZED;
+				// 转交前缀后剩余大小只是估计，不能让 Stream 按旧的精确大小计数/分配。
+				characteristics &= ~Spliterator.SIZED;
 				OutSpliteratorT result = prefix;
 				this.prefix = null;
 				return result;
@@ -184,15 +185,15 @@ public class CollectSpliterators2 {
 	}
 
 	static final class FlatMapSpliteratorOfObject<InElementT, OutElementT>
-			extends FlatMapSpliterator<InElementT, OutElementT, Spliterator<OutElementT>> {
+		extends FlatMapSpliterator<InElementT, OutElementT, Spliterator<OutElementT>> {
 		FlatMapSpliteratorOfObject(
-				@Nullable Spliterator<OutElementT> prefix,
-				Spliterator<InElementT> from,
-				Function<? super InElementT, Spliterator<OutElementT>> function,
-				int characteristics,
-				long estimatedSize) {
+			@Nullable Spliterator<OutElementT> prefix,
+			Spliterator<InElementT> from,
+			Function<? super InElementT, Spliterator<OutElementT>> function,
+			int characteristics,
+			long estimatedSize) {
 			super(
-					prefix, from, function, FlatMapSpliteratorOfObject::new, characteristics, estimatedSize);
+				prefix, from, function, FlatMapSpliteratorOfObject::new, characteristics, estimatedSize);
 		}
 	}
 }

@@ -353,8 +353,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	// 可达），仅限频告警。
 	private static volatile long lastResponseMismatchLogMs; // 告警限频（60秒一条，防日志刷屏DoS）
 
-	@SuppressWarnings("unchecked")
-	public static <T extends Protocol<?>> @Nullable T removeRpcContextChecked(
+	public static @Nullable Rpc<?, ?> removeRpcContextChecked(
 			Service service, long sid, Rpc<?, ?> response) {
 		var ctx = service.getRpcContext(sid);
 		if (ctx == null)
@@ -371,11 +370,11 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			}
 			return null;
 		}
-		return service.removeRpcContext(sid, ctx) ? (T)ctx : null;
+		return service.removeRpcContext(sid, ctx) ? ctx : null;
 	}
 
-	public Rpc<TArgument, TResult> setupRpcResponseContext(Protocol<?> ctx) {
-		@SuppressWarnings("unchecked")
+	public Rpc<TArgument, TResult> setupRpcResponseContext(Rpc<?, ?> ctx) {
+		//noinspection unchecked
 		var context = (Rpc<TArgument, TResult>)ctx;
 		context.setSender(getSender());
 		context.resultCode = resultCode;
@@ -407,19 +406,15 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
 		// 首轮解析并缓存到当前事务，重试直接复用。
-		Rpc<TArgument, TResult> context = Transaction.resolveOnceOrApply(service, sessionId,
+		var ctx = Transaction.resolveOnceOrApply(service, sessionId,
 				sid -> removeRpcContextChecked(service, sid, this));
-		if (context == null) {
+		if (ctx == null) {
 			service.onRpcLostContext(this);
 			// 上下文丢失（一般已被超时消费）：立即失败终止，不空转剩余重试、不以Success提交空事务。
 			return Procedure.Unknown;
 		}
 
-		context.setSender(getSender());
-		context.resultCode = resultCode;
-		context.Result = Result;
-		context.isTimeout = false; // not need
-		context.isRequest = false;
+		var context = setupRpcResponseContext(ctx);
 
 		if (context.future != null)
 			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。

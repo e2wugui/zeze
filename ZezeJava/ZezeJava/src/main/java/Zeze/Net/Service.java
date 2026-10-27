@@ -82,14 +82,11 @@ public class Service extends ReentrantLock {
 	private LongSupplier sessionIdGenerator = staticSessionIdAtomicLong::getAndIncrement;
 	protected final LongConcurrentHashMap<AsyncSocket> socketMap = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> factorys = new LongConcurrentHashMap<>();
-	private final LongConcurrentHashMap<Protocol<?>> rpcContexts = new LongConcurrentHashMap<>();
+	private final LongConcurrentHashMap<Rpc<?, ?>> rpcContexts = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ManualContext> manualContexts = new LongConcurrentHashMap<>();
-	@SuppressWarnings("unused")
 	private volatile long closedRecvCount, closedRecvSize, closedSendCount, closedSendSize, closedSendRawSize; // 已关闭连接的从socket接收/已发送数据/准备发送数据的次数和总字节数
 	private volatile long recvCount, recvSize, sendCount, sendSize, sendRawSize; // 当前已统计的从socket接收/已发送数据/准备发送数据的次数和总字节数
-	@SuppressWarnings("unused")
 	protected volatile long overflowSize;
-	@SuppressWarnings("unused")
 	protected volatile int overflowCount;
 
 	private @Nullable Selectors selectors;
@@ -439,11 +436,9 @@ public class Service extends ReentrantLock {
 		for (var it = ctxSends.iterator(); it.moveToNext(); ) {
 			try {
 				var sid = it.key();
-				var ctx = removeRpcContext(sid);
-				if (ctx == null)
+				var rpc = removeRpcContext(sid);
+				if (rpc == null)
 					continue; // 已被应答/超时消费
-				if (!(ctx instanceof Rpc<?, ?> rpc))
-					continue; // 当前addRpcContext只有Rpc，防御未来扩展
 				rpc.setResultCode(Procedure.ErrorSendFail);
 				var future = rpc.getFuture();
 				if (future != null)
@@ -452,7 +447,7 @@ public class Service extends ReentrantLock {
 					@SuppressWarnings("unchecked") // responseHandle的参数化类型不可具体化，实际类型由注册侧保证
 					var handle = (ProtocolHandle<Rpc<?, ?>>)(ProtocolHandle<?>)rpc.getResponseHandle();
 					if (handle != null) {
-						var factoryHandle = findProtocolFactoryHandle(ctx.getTypeId());
+						var factoryHandle = findProtocolFactoryHandle(rpc.getTypeId());
 						if (factoryHandle != null)
 							dispatchRpcResponse(rpc, handle, factoryHandle);
 						else // 协议工厂缺失时静默丢弃responseHandle无线索，warn对齐onRpcLostContext
@@ -465,8 +460,8 @@ public class Service extends ReentrantLock {
 		}
 	}
 
-	public final Collection<Protocol<?>> removeRpcContexts(Collection<Long> sids) {
-		var result = new ArrayList<Protocol<?>>(sids.size());
+	public final Collection<Rpc<?, ?>> removeRpcContexts(Collection<Long> sids) {
+		var result = new ArrayList<Rpc<?, ?>>(sids.size());
 		for (var sid : sids) {
 			var ctx = removeRpcContext(sid);
 			if (ctx != null)
@@ -801,39 +796,40 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * Rpc Context. 模板不好放进去，使用基类 Protocol
+	 * Rpc Context. 使用通配符容纳不同参数和结果类型的 Rpc。
 	 */
-	public final long addRpcContext(Protocol<?> p) {
+	public final long addRpcContext(Rpc<?, ?> rpc) {
 		while (true) {
 			long sessionId = nextSessionId();
-			if (rpcContexts.putIfAbsent(sessionId, p) == null)
+			if (rpcContexts.putIfAbsent(sessionId, rpc) == null)
 				return sessionId;
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public final <T extends Protocol<?>> @Nullable T removeRpcContext(long sid) {
-		return (T)rpcContexts.remove(sid);
+	public final @Nullable Rpc<?, ?> removeRpcContext(long sid) {
+		return rpcContexts.remove(sid);
 	}
 
 	// 应答会合校验用的非消费读（先校验后消费，伪造帧不触碰map，
 	// 真实应答或超时仍可达）。
-	public final @Nullable Protocol<?> getRpcContext(long sid) {
+	public final @Nullable Rpc<?, ?> getRpcContext(long sid) {
 		return rpcContexts.get(sid);
 	}
 
-	public final boolean removeRpcContext(long sid, Protocol<?> ctx) {
+	public final boolean removeRpcContext(long sid, Rpc<?, ?> ctx) {
 		return rpcContexts.remove(sid, ctx);
 	}
 
-	public final LongHashMap<Protocol<?>> getRpcContextsToSender(AsyncSocket sender) {
+	public final LongHashMap<Rpc<?, ?>> getRpcContextsToSender(AsyncSocket sender) {
 		return getRpcContexts(p -> p.getSender() == sender);
 	}
 
-	public final LongHashMap<Protocol<?>> getRpcContexts(Predicate<Protocol<?>> filter) {
-		var result = new LongHashMap<Protocol<?>>(Math.max(rpcContexts.size(), 1024)); // 初始容量先别定太大,可能只过滤出一小部分
+	public final LongHashMap<Rpc<?, ?>> getRpcContexts(Predicate<Rpc<?, ?>> filter) {
+		var result = new LongHashMap<Rpc<?, ?>>(Math.max(rpcContexts.size(), 1024)); // 初始容量先别定太大,可能只过滤出一小部分
 		for (var it = rpcContexts.entryIterator(); it.moveToNext(); ) {
+			//noinspection DataFlowIssue
 			if (filter.test(it.value()))
+				//noinspection DataFlowIssue
 				result.put(it.key(), it.value());
 		}
 		return result;
