@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.Arrays;
+import java.util.ConcurrentModificationException;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -8,8 +9,14 @@ import java.util.function.IntFunction;
 import org.jspecify.annotations.Nullable;
 
 // char 键开放寻址哈希表（线性探测，0 键走特例槽），非线程安全
+/**
+ * compute、computeIfAbsent 和 foreachUpdate 的回调不得增删本表键或调整容量。
+ * 检测到结构重入时保留回调已完成的修改并抛出 ConcurrentModificationException，
+ * 不应用该回调的返回值；查询及替换既有键的值不改变结构。
+ */
 public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 	private int size;
+	private int modCount;
 	private char [] keyTable;
 	private @Nullable V [] valueTable;
 	private @Nullable V zeroValue;
@@ -42,6 +49,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 
 	public CharHashMap(CharHashMap<? extends V> map) {
 		size = map.size;
+		modCount = map.modCount;
 		keyTable = map.keyTable.clone();
 		valueTable = map.valueTable.clone();
 		zeroValue = map.zeroValue;
@@ -61,10 +69,12 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		return (int)((key * 0x9E3779B97F4A7C15L) >>> shift);
 	}
 
+	/** 借用当前后备数组供只读访问；调用方不得修改数组，结构变更后需重新取得。 */
 	public char [] getKeyTable() {
 		return keyTable;
 	}
 
+	/** 借用当前后备数组供只读访问；调用方不得修改数组，结构变更后需重新取得。 */
 	public @Nullable Object [] getValueTable() {
 		return valueTable;
 	}
@@ -162,6 +172,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 			zeroValue = value;
 			if (!hasZeroValue) {
 				hasZeroValue = true;
+				modCount++;
 				size++;
 			}
 			return oldV;
@@ -174,6 +185,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 			if (k == 0) {
 				kt[i] = key;
 				vt[i] = value;
+				modCount++;
 				if (++size >= threshold)
 					resize(kt.length << 1);
 				return null;
@@ -190,6 +202,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		if (map.hasZeroValue) {
 			if (!hasZeroValue) {
 				hasZeroValue = true;
+				modCount++;
 				size++;
 			}
 			zeroValue = map.zeroValue;
@@ -211,6 +224,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 				zeroValue = value;
 				if (!hasZeroValue) {
 					hasZeroValue = true;
+					modCount++;
 					size++;
 				}
 			}
@@ -224,6 +238,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 			if (k == 0) {
 				kt[i] = key;
 				vt[i] = value;
+				modCount++;
 				if (++size >= threshold)
 					resize(kt.length << 1);
 				return null;
@@ -238,17 +253,37 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		}
 	}
 
+	private @Nullable V mapAbsent(char key, IntFunction<? extends @Nullable V> mappingFunction) {
+		final int version = modCount;
+		final V value = mappingFunction.apply(key);
+		checkModCount(version);
+		return value;
+	}
+
+	private @Nullable V remap(char key, @Nullable V oldValue, CharObjectFunction<V> op) {
+		final int version = modCount;
+		final V value = op.apply(key, oldValue);
+		checkModCount(version);
+		return value;
+	}
+
+	private void checkModCount(int version) {
+		if (version != modCount)
+			throw new ConcurrentModificationException("Callback modified this map structure");
+	}
+
 	public @Nullable V computeIfAbsent(char key, IntFunction<? extends @Nullable V> mappingFunction) {
 		if (key == 0) {
 			V v = zeroValue;
 			// 值为null的既有条目按Map契约视为absent：需要重算；
 			// 函数返回null则不写入，保留原条目
 			if (v == null) {
-				V newV = mappingFunction.apply(0);
+				V newV = mapAbsent((char)0, mappingFunction);
 				if (newV != null) {
 					zeroValue = v = newV;
 					if (!hasZeroValue) {
 						hasZeroValue = true;
+						modCount++;
 						size++;
 					}
 				}
@@ -261,11 +296,12 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		for (int i = hash(key); ; i = (i + 1) & m) {
 			final char k = kt[i];
 			if (k == 0) {
-				V v = mappingFunction.apply(key);
+				V v = mapAbsent(key, mappingFunction);
 				if (v == null)
 					return null;
 				kt[i] = key;
 				vt[i] = v;
+				modCount++;
 				if (++size >= threshold)
 					resize(kt.length << 1);
 				return v;
@@ -275,7 +311,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 				// 函数返回null则不写入，保留原null条目
 				V v = vt[i];
 				if (v == null) {
-					v = mappingFunction.apply(key);
+					v = mapAbsent(key, mappingFunction);
 					if (v != null)
 						vt[i] = v;
 				}
@@ -335,19 +371,21 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 	public @Nullable V compute(char key, CharObjectFunction<V> op) {
 		if (key == 0) {
 			final V oldV = hasZeroValue ? zeroValue : null;
-			final V v = op.apply(key, oldV);
+			final V v = remap(key, oldV, op);
 			// 用“是否存在”而不是引用相等判定变更：既有条目的值为 null 时，remapping 返回 null
 			// 应删除条目（Map.compute 契约），引用相等 v==oldV==null 会误判为“无变化”而永久保留条目。
 			if (v == null) {
 				if (hasZeroValue) {
 					hasZeroValue = false;
 					zeroValue = null;
+					modCount++;
 					size--;
 				}
 			} else {
 				zeroValue = v;
 				if (!hasZeroValue) {
 					hasZeroValue = true;
+					modCount++;
 					size++;
 				}
 			}
@@ -359,7 +397,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 			final char k = kt[i];
 			if (k == key) {
 				final V oldV = vt[i];
-				final V v = op.apply(key, oldV);
+				final V v = remap(key, oldV, op);
 				if (v == null) { // 条目存在即删除，同 Map.compute 契约
 					for (int j = (i + 1) & m; (key = kt[j]) != 0; j = (j + 1) & m) {
 						final int h = hash(key);
@@ -371,16 +409,18 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 					}
 					kt[i] = 0;
 					vt[i] = null;
+					modCount++;
 					size--;
 				} else
 					vt[i] = v;
 				return v;
 			}
 			if (k == 0) {
-				final V v = op.apply(key, null);
+				final V v = remap(key, null, op);
 				if (v != null) {
 					kt[i] = key;
 					vt[i] = v;
+					modCount++;
 					if (++size >= threshold)
 						resize(kt.length << 1);
 				}
@@ -396,6 +436,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 			hasZeroValue = false;
 			final V oldV = zeroValue;
 			zeroValue = null;
+			modCount++;
 			size--;
 			return oldV;
 		}
@@ -421,6 +462,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		}
 		kt[i] = 0;
 		vt[i] = null;
+		modCount++;
 		size--;
 		return oldV;
 	}
@@ -431,6 +473,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 				return false;
 			hasZeroValue = false;
 			zeroValue = null;
+			modCount++;
 			size--;
 			return true;
 		}
@@ -458,6 +501,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		}
 		kt[i] = 0;
 		vt[i] = null;
+		modCount++;
 		size--;
 		return true;
 	}
@@ -465,6 +509,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 	public void clear() {
 		if (size == 0)
 			return;
+		modCount++;
 		size = 0;
 		hasZeroValue = false;
 		zeroValue = null;
@@ -499,6 +544,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 	private void resize(int newSize) { // [1,2,4,8,...,0x4000_0000]
 		if (newSize < 0) // 1<<30再左移溢出为负：显式契约而非NegativeArraySizeException
 			throw new IllegalStateException("CharHashMap capacity limit reached: " + (1 << 30));
+		modCount++;
 		threshold = (int)(newSize * loadFactor);
 		final int m = newSize - 1;
 		mask = m;
@@ -585,11 +631,12 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 	public void foreachUpdate(CharObjectFunction<V> func) {
 		if (hasZeroValue) {
 			final V oldV = zeroValue;
-			final V v = func.apply((char)0, oldV);
+			final V v = remap((char)0, oldV, func);
 			// 与 compute 一致：用存在性判删除。null 值既有条目经 func->null 必须删除（原引用相等判定会保留）。
 			if (v == null) {
 				hasZeroValue = false;
 				zeroValue = null;
+				modCount++;
 				size--;
 			} else
 				zeroValue = v;
@@ -604,7 +651,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 			final char k = kt[i];
 			if (k != 0) {
 				final V oldV = vt[i];
-				final V v = func.apply(k, oldV);
+				final V v = remap(k, oldV, func);
 				if (v == null) {
 					// 小容量起步+倍增：内存正比于删除条目数而不是map大小。
 					if (removedKeys == null)
