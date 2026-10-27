@@ -48,7 +48,12 @@ public class TestCacheCloseDuringEncoding {
                 TestCacheCloseDuringEncoding.class.getName(), dir.toString(), scenario)
                 .redirectErrorStream(true).redirectOutput(output.toFile()).start();
         try {
-            assertTrue(process.waitFor(20, TimeUnit.SECONDS), "cache close/encoder must finish");
+            // 满载soak实证（soak-20261027-0829 r2/r20）：子进程JVM启动+RocksDB.loadLibrary（DLL解压+
+            // Defender扫描）在8路并行下可超20s，全是超时形态零断言错配——外层预算放宽并带走child.log取证。
+            assertTrue(process.waitFor(60, TimeUnit.SECONDS), () -> {
+                try { return "cache close/encoder must finish\n" + Files.readString(output); }
+                catch (Exception e) { return "cache close/encoder must finish, child.log unreadable: " + e; }
+            });
             assertEquals(0, process.exitValue(), () -> {
                 try { return Files.readString(output); }
                 catch (Exception e) { return e.toString(); }
@@ -79,7 +84,7 @@ public class TestCacheCloseDuringEncoding {
                         var current = cacheRef.get();
                         assert current != null; // Published before the getter starts.
                         current.close();
-                    } else if (!release.await(10, TimeUnit.SECONDS))
+                    } else if (!release.await(30, TimeUnit.SECONDS))
                         throw new AssertionError("encoder release timed out");
                 } catch (Exception e) { throw Task.forceThrow(e); }
                 bb.WriteString("value");
@@ -94,13 +99,14 @@ public class TestCacheCloseDuringEncoding {
         getter.setDaemon(true);
         getter.start();
         try {
-            if (!entered.await(10, TimeUnit.SECONDS))
+            // 预算对齐满载soak（r11形态：getter线程被并行车道饿死10s未进encode，负载余量问题非产品缺陷）。
+            if (!entered.await(30, TimeUnit.SECONDS))
                 throw new AssertionError("encoder never entered");
             if (!reentrant)
                 cache.close();
         } finally {
             release.countDown();
-            getter.join(10_000);
+            getter.join(30_000);
             cache.close();
         }
         if (getter.isAlive())

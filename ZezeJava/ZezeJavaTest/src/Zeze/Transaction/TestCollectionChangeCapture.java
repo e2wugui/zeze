@@ -74,7 +74,8 @@ public class TestCollectionChangeCapture {
 			assertNotNull(log);
 			assertEquals(capture, log.hasDelta(), source.getClass().getSimpleName());
 			if (!capture)
-				assertThrows(IllegalStateException.class, () -> source.createLogBean(log));
+				// 正常路径传入的必是增量日志，转型失败即使用错误，以CCE为错误信号（0a2fe27af裁定）。
+				assertThrows(ClassCastException.class, () -> source.createLogBean(log));
 		}
 	}
 

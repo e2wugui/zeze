@@ -149,8 +149,12 @@ public class TestLogOneDeclaredTypeMeta {
 		var parent = new BeanBase();
 		var collOne = new CollOne<>(new BeanBase(), LogOneMeta.get(BeanBase.class));
 
-		Assertions.assertThrows(NullPointerException.class, () -> new LogOne<>(null, 0, collOne, new BeanBase()));
-		Assertions.assertThrows(NullPointerException.class, () -> new LogOne<>(parent, 0, null, new BeanBase()));
+		// 1177183e7 裁定：构造器不再requireNonNull（正常路径必传非空）。belong=null由
+		// 消费方显式跳过（Transaction日志收集对null belong continue，合法"特殊日志"形态）；
+		// self=null的绑定要求后移到commit()给宿主赋值处NPE。
+		Assertions.assertDoesNotThrow(() -> new LogOne<>(null, 0, collOne, new BeanBase()));
+		var unbound = new LogOne<>(parent, 0, null, new BeanBase());
+		Assertions.assertThrows(NullPointerException.class, unbound::commit);
 	}
 
 	@Test
