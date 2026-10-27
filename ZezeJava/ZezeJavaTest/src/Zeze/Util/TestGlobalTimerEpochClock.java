@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.util.concurrent.TimeUnit;
 import Zeze.Util.GlobalTimer;
-import Zeze.Util.Task;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -17,10 +16,8 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestGlobalTimerEpochClock {
-
 	@BeforeAll
 	public static void initPool() {
-		// GlobalTimer类初始化注册周期任务，需调度池先就绪
 		Task.tryInitThreadPool();
 	}
 

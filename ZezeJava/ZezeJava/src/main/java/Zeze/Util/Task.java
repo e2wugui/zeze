@@ -1048,20 +1048,21 @@ public final class Task {
 	/** 过程内解码协议载荷的叶子核心（TaskBody.OfProcedureOut 调用）。 */
 	static long callProcOutCore(Procedure procedure, OutObject<Protocol<?>> outProtocol,
 								@Nullable ProtocolErrorHandle actionWhenError) {
-		Protocol<?> from = null;
 		long result;
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
 			// 统计在call里面实现。
 			result = procedure.call();
-			from = outProtocol.value;
 		} catch (Exception ex) {
+			Protocol<?> from = outProtocol.value;
 			// Procedure.call处理了所有错误。应该不会到这里。除非内部错误。
 			if (from == null || from.isRequest())
 				handleProtocolError(actionWhenError, from, Procedure.Exception, procedure.getActionName());
 			logger.error("{} exception:", procedure, ex);
 			return Procedure.Exception;
 		}
+
+		Protocol<?> from = outProtocol.value;
 		boolean isRequestSaved = from == null || from.isRequest();
 		if (result != 0 && isRequestSaved)
 			handleProtocolError(actionWhenError, from, result, procedure.getActionName());

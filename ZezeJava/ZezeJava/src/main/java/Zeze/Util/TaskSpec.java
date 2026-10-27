@@ -35,8 +35,8 @@ import org.jspecify.annotations.Nullable;
  * </ul>
  * <p>
  * 动词约定：无标记动词 = 事务感知（在运行中的事务内延迟到提交后执行/注册，rollback 不执行）；
- * Now 后缀 = 不等事务提交，立即入池/注册（scheduleNow 的 "now" 指注册不等提交，delay 后触发照旧）；
- * Period 后缀 = 固定延迟周期调度（上次执行结束到下次开始），period 必须 &gt; 0，否则抛 IllegalArgumentException。
+ * Now 后缀 = 不等事务提交，立即入池/注册（scheduleNow 的 "now" 指注册不等提交，delayMs 后触发照旧）；
+ * Period 后缀 = 固定延迟周期调度（上次执行结束到下次开始），periodMs 必须 &gt; 0，否则抛 IllegalArgumentException。
  * OneByOne 天然立即语义，故 executeOneByOne 无事务感知变体。
  *
  * <p>spec 实例是一次性的、非线程安全：任何终结方法执行后实例失效，再调 setter/终结方法抛
@@ -49,7 +49,7 @@ import org.jspecify.annotations.Nullable;
  *     （Direct 延迟时在 commit 回调中同步执行，无法再开事务）；</li>
  * <li>run 族（{@link #run}/{@link #runNow}/{@link #submitNow}）显式设置过 onCancel → IllegalArgumentException；</li>
  * <li>schedule 族显式设置过 dispatchMode/onCancel → IllegalArgumentException；
- *     Period 后缀方法 period &lt;= 0 → IllegalArgumentException；</li>
+ *     Period 后缀方法 periodMs &lt;= 0 → IllegalArgumentException；</li>
  * <li>executeOneByOne 显式设置过 timeout → IllegalArgumentException；
  *     onCancel 仅 base 家族（含全局队列）支持，Key2 + onCancel → IllegalArgumentException。</li>
  * </ul>
@@ -60,7 +60,7 @@ public final class TaskSpec<R extends @Nullable Object> {
 	private boolean consumed;
 	private @Nullable String name;
 	private @Nullable DispatchMode dispatchMode; // null 等同 Normal
-	private long timeout = -1; // 哨兵值：<0 表示未设置，终结方法内取 Task.defaultTimeout
+	private long timeoutMs = -1; // 哨兵值：<0 表示未设置，终结方法内取 Task.defaultTimeout
 	private @Nullable Action0 onCancel; // 队列 shutdown(true) 丢弃本任务时的补偿回调；TaskOneByOneByKey2 不支持
 	private boolean dispatchModeSet;
 	private boolean timeoutSet;
@@ -187,12 +187,12 @@ public final class TaskSpec<R extends @Nullable Object> {
 	}
 
 	/**
-	 * @param timeout 任务超时(毫秒)，不设置或小于0时，终结方法执行时取 Task.defaultTimeout；
+	 * @param timeoutMs 任务超时(毫秒)，不设置或小于0时，终结方法执行时取 Task.defaultTimeout；
 	 *                call() 与 executeOneByOne 族不消费它（显式设置会抛 IllegalArgumentException）
 	 */
-	public TaskSpec<R> timeout(long timeout) {
+	public TaskSpec<R> timeout(long timeoutMs) {
 		checkNotConsumed();
-		this.timeout = timeout;
+		this.timeoutMs = timeoutMs;
 		this.timeoutSet = true;
 		return this;
 	}
@@ -218,8 +218,8 @@ public final class TaskSpec<R extends @Nullable Object> {
 		consumed = true;
 	}
 
-	private long timeoutOrDefault() {
-		return timeout < 0 ? Task.defaultTimeout : timeout;
+	private long timeoutMsOrDefault() {
+		return timeoutMs < 0 ? Task.defaultTimeout : timeoutMs;
 	}
 
 	private DispatchMode dispatchModeOrDefault() {
@@ -269,7 +269,7 @@ public final class TaskSpec<R extends @Nullable Object> {
 	}
 
 	private void runNowInternal() {
-		Task.executeCore(body, name, dispatchMode, timeoutOrDefault());
+		Task.executeCore(body, name, dispatchMode, timeoutMsOrDefault());
 	}
 
 	/**
@@ -280,7 +280,7 @@ public final class TaskSpec<R extends @Nullable Object> {
 	public Future<R> submitNow() {
 		checkRunOptions();
 		consume();
-		return Task.submitCore(body, name, dispatchMode, timeoutOrDefault());
+		return Task.submitCore(body, name, dispatchMode, timeoutMsOrDefault());
 	}
 
 	private void checkRunOptions() {
@@ -293,14 +293,14 @@ public final class TaskSpec<R extends @Nullable Object> {
 	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消
 	 * （需要取消请用 {@link #scheduleNow}）。
 	 */
-	public void schedule(long delay) {
+	public void schedule(long delayMs) {
 		consumeSchedule();
-		var timeout = timeoutOrDefault();
-		Task.runTxnAware(() -> Task.scheduleCore(delay, body, name, timeout));
+		var timeoutMs = timeoutMsOrDefault();
+		Task.runTxnAware(() -> Task.scheduleCore(delayMs, body, name, timeoutMs));
 	}
 
 	/**
-	 * 事务感知注册固定延迟周期调度(毫秒)。period &lt;= 0 时抛 IllegalArgumentException。
+	 * 事务感知注册固定延迟周期调度(毫秒)。periodMs &lt;= 0 时抛 IllegalArgumentException。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
 	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消——常驻周期
@@ -317,29 +317,29 @@ public final class TaskSpec<R extends @Nullable Object> {
 	 * （返回句柄并支持 close 生命周期管理），仓内 schedulePeriod 唯一调用方为 demo
 	 * （Zezex App.start，刻意进程期常驻）。
 	 */
-	public void schedulePeriod(long delay, long period) {
-		consumeSchedulePeriod(period);
-		var timeout = timeoutOrDefault();
-		Task.runTxnAware(() -> Task.schedulePeriodCore(delay, period, body, name, timeout));
+	public void schedulePeriod(long delayMs, long periodMs) {
+		consumeSchedulePeriod(periodMs);
+		var timeoutMs = timeoutMsOrDefault();
+		Task.runTxnAware(() -> Task.schedulePeriodCore(delayMs, periodMs, body, name, timeoutMs));
 	}
 
 	/**
-	 * 立即注册延迟调度(毫秒)，不等事务提交（"now" 指注册不等提交，delay 后触发照旧），返回句柄。
+	 * 立即注册延迟调度(毫秒)，不等事务提交（"now" 指注册不等提交，delayMs 后触发照旧），返回句柄。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）；ofFunc/ofProcedure 的结果码经 Future 传播。
 	 */
-	public ScheduledFuture<R> scheduleNow(long delay) {
+	public ScheduledFuture<R> scheduleNow(long delayMs) {
 		consumeSchedule();
-		return Task.scheduleCore(delay, body, name, timeoutOrDefault());
+		return Task.scheduleCore(delayMs, body, name, timeoutMsOrDefault());
 	}
 
 	/**
-	 * 立即注册固定延迟周期调度(毫秒)，不等事务提交，返回句柄。period &lt;= 0 时抛 IllegalArgumentException。
+	 * 立即注册固定延迟周期调度(毫秒)，不等事务提交，返回句柄。periodMs &lt;= 0 时抛 IllegalArgumentException。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
 	 */
-	public TimerFuture<R> schedulePeriodNow(long delay, long period) {
-		consumeSchedulePeriod(period);
-		return Task.schedulePeriodCore(delay, period, body, name, timeoutOrDefault());
+	public TimerFuture<R> schedulePeriodNow(long delayMs, long periodMs) {
+		consumeSchedulePeriod(periodMs);
+		return Task.schedulePeriodCore(delayMs, periodMs, body, name, timeoutMsOrDefault());
 	}
 
 	/**
@@ -350,21 +350,21 @@ public final class TaskSpec<R extends @Nullable Object> {
 	 */
 	public void scheduleAt(int hour, int minute) {
 		consumeSchedule();
-		var timeout = timeoutOrDefault();
-		Task.runTxnAware(() -> Task.scheduleCore(Task.delayUntilNextDaily(hour, minute), body, name, timeout));
+		var timeoutMs = timeoutMsOrDefault();
+		Task.runTxnAware(() -> Task.scheduleCore(Task.delayUntilNextDaily(hour, minute), body, name, timeoutMs));
 	}
 
 	/**
-	 * 事务感知注册每天 hour:minute 首发后按 period(毫秒)固定延迟周期重复触发（结果丢弃，见
-	 * {@link #schedulePeriod}）。period &lt;= 0 时抛 IllegalArgumentException。
+	 * 事务感知注册每天 hour:minute 首发后按 periodMs 固定延迟周期重复触发（结果丢弃，见
+	 * {@link #schedulePeriod}）。periodMs &lt;= 0 时抛 IllegalArgumentException。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消——常驻周期
 	 * 任务会随注册者存活整个进程期（需要取消请用 {@link #scheduleAtPeriodNow}）。
 	 */
-	public void scheduleAtPeriod(int hour, int minute, long period) {
-		consumeSchedulePeriod(period);
-		var timeout = timeoutOrDefault();
-		Task.runTxnAware(() -> Task.schedulePeriodCore(Task.delayUntilNextDaily(hour, minute), period, body, name, timeout));
+	public void scheduleAtPeriod(int hour, int minute, long periodMs) {
+		consumeSchedulePeriod(periodMs);
+		var timeoutMs = timeoutMsOrDefault();
+		Task.runTxnAware(() -> Task.schedulePeriodCore(Task.delayUntilNextDaily(hour, minute), periodMs, body, name, timeoutMs));
 	}
 
 	/**
@@ -373,17 +373,17 @@ public final class TaskSpec<R extends @Nullable Object> {
 	 */
 	public ScheduledFuture<R> scheduleAtNow(int hour, int minute) {
 		consumeSchedule();
-		return Task.scheduleCore(Task.delayUntilNextDaily(hour, minute),body, name, timeoutOrDefault());
+		return Task.scheduleCore(Task.delayUntilNextDaily(hour, minute),body, name, timeoutMsOrDefault());
 	}
 
 	/**
-	 * 立即注册每天 hour:minute 首发后按 period(毫秒)固定延迟周期重复触发（结果丢弃，见
+	 * 立即注册每天 hour:minute 首发后按 periodMs 固定延迟周期重复触发（结果丢弃，见
 	 * {@link #schedulePeriodNow}），不等事务提交，返回句柄。
-	 * period &lt;= 0 时抛 IllegalArgumentException。忽略 dispatchMode/onCancel（显式设置抛错）。
+	 * periodMs &lt;= 0 时抛 IllegalArgumentException。忽略 dispatchMode/onCancel（显式设置抛错）。
 	 */
-	public TimerFuture<R> scheduleAtPeriodNow(int hour, int minute, long period) {
-		consumeSchedulePeriod(period);
-		return Task.schedulePeriodCore(Task.delayUntilNextDaily(hour, minute), period, body, name, timeoutOrDefault());
+	public TimerFuture<R> scheduleAtPeriodNow(int hour, int minute, long periodMs) {
+		consumeSchedulePeriod(periodMs);
+		return Task.schedulePeriodCore(Task.delayUntilNextDaily(hour, minute), periodMs, body, name, timeoutMsOrDefault());
 	}
 
 	private void consumeSchedule() {
@@ -392,8 +392,8 @@ public final class TaskSpec<R extends @Nullable Object> {
 		consume();
 	}
 
-	private void consumeSchedulePeriod(long period) {
-		if (period <= 0)
+	private void consumeSchedulePeriod(long periodMs) {
+		if (periodMs <= 0)
 			throw new IllegalArgumentException("period must be > 0");
 		consumeSchedule();
 	}
