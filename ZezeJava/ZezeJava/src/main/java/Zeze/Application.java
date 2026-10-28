@@ -80,6 +80,7 @@ public final class Application extends ReentrantLock {
 	private final String projectName;
 	private final Config conf;
 	private final HashMap<String, Database> databases = new LinkedHashMap<>();
+	private final ArrayList<Database> databasesInUse = new ArrayList<>(); // 仅记录本实例成功取得的启动登记。
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
 	private final Locks locks = new Locks();
@@ -783,9 +784,11 @@ public final class Application extends ReentrantLock {
 			}
 
 			// Set Database InUse
-			for (var db : databases.values())
+			for (var db : databases.values()) {
 				//noinspection DataFlowIssue
 				db.getDirectOperates().setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
+				databasesInUse.add(db);
+			}
 			addShutdownHook();
 
 			localCache.open(this, serverId);
@@ -1000,9 +1003,7 @@ public final class Application extends ReentrantLock {
 			stopStep("takeover.UnRegisterZezeTables", () -> tk.UnRegisterZezeTables(this));
 			takeover = null;
 		}
-		if (!isNoDatabase())
-			// Redis 实现内部已有界（64次对齐setInUse，见DatabaseRedis注释）。
-			stopStep("clearInUse", () -> conf.clearInUse(databases));
+		clearOwnedDatabaseRegistrations();
 
 		for (var e : databases.entrySet())
 			stopStep("db.close '" + e.getKey() + '\'', e.getValue()::close);
@@ -1011,6 +1012,18 @@ public final class Application extends ReentrantLock {
 			stopStep("dbh2AgentManager.stop", dbh2AgentManager::stop);
 			dbh2AgentManager = null;
 		}
+	}
+
+	private void clearOwnedDatabaseRegistrations() {
+		for (int i = databasesInUse.size() - 1; i >= 0; --i) {
+			var database = databasesInUse.get(i);
+			stopStep("clearInUse '" + database.getConf().getName() + '\'', () -> {
+				//noinspection DataFlowIssue
+				database.getDirectOperates().clearInUse(
+						conf.getServerId(), conf.getGlobalCacheManagerHostNameOrAddress());
+			});
+		}
+		databasesInUse.clear();
 	}
 
 	// 停机步骤异常隔离——任一拆卸步骤抛出（Service.stop关连接的IO异常、
