@@ -1569,6 +1569,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					// 须提前到schedule之前，后面的schedule会判断这个值。
 					if (index.getServerId() != serverId)
 						index.setServerId(serverId);
+					// 异步补触发只携带本轮身份；worker不能再读取可能已被同名替换的受管bean。
+					var serialId = index.getSerialId();
+					var timerName = timer.getTimerName();
+					var concurrentSerialNo = timer.getConcurrentFireSerialNo();
 					if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
 						var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
 						if (simpleTimer.getNextExpectedTime() < now) { // missfire found
@@ -1584,8 +1588,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 								// newProcedure新建事务，正确。
 								TaskSpec.ofAction(() ->
 										dispatchFire(oneByOneKey, () ->
-												fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
-														timer.getConcurrentFireSerialNo(), true))).run();
+												fireSimple(serialId, serverId, timerName, concurrentSerialNo, true))).run();
 								continue; // loop done, continue
 							}
 
@@ -1619,8 +1622,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 								// 同simple侧：事务感知run()提交后入池，不在commit回调内同步执行。
 								TaskSpec.ofAction(() ->
 										dispatchFire(oneByOneKey, () ->
-												fireCron(index.getSerialId(), serverId, timer.getTimerName(),
-														timer.getConcurrentFireSerialNo(), true))).run();
+												fireCron(serialId, serverId, timerName, concurrentSerialNo, true))).run();
 								continue; // loop done, continue
 							}
 
