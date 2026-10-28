@@ -284,7 +284,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 		@Zeze.Util.DispatchModeAnnotation(mode = Zeze.Transaction.DispatchMode.Direct)
 		protected long ProcessKeepAlive(KeepAlive p) {
 		var threads = simulateThreadsByServerId.computeIfAbsent(p.Argument.getServerId(), SimulateThreads::new);
-		threads.activeTime = System.currentTimeMillis();
 		// 串行化serial的check-then-act：多selector线程部署下不同连接的KeepAlive在各自IO线程
 		// 并发到达，"读lastAppSerial→比较→release→写回"非原子——同serverId双实例交错时双双通过
 		// 单调判据、双release（合法新owner的锁被误释放），且低serial后写覆盖高serial触发下轮再释放。
@@ -293,6 +292,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 		try {
 			if (null == threads.lastAppSerial) {
 				threads.lastAppSerial = p.Argument;
+				threads.activeTime = System.currentTimeMillis();
 				return 0; // first keepAlive。record only。
 			}
 			//noinspection DataFlowIssue
@@ -305,10 +305,12 @@ public class ThreadingServer extends AbstractThreadingServer {
 				if (p.Argument.getAppSerialId() > threads.lastAppSerial.getAppSerialId()) {
 					threads.release();
 					threads.lastAppSerial = p.Argument;
+					threads.activeTime = System.currentTimeMillis();
 				}
 				return 0;
 			}
 			// same app serialId. done.
+			threads.activeTime = System.currentTimeMillis();
 			return 0;
 		} finally {
 			unlock();

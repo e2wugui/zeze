@@ -39,6 +39,23 @@ public class TestThreadingSerialMonotonic {
 	}
 
 	@Test
+	public void testOnlyAcceptedSerialRefreshesActivity() throws Exception {
+		keepAlive(5);
+		var threads = serverThreads();
+		var activeTime = threads.getClass().getDeclaredField("activeTime");
+		activeTime.setAccessible(true);
+		activeTime.setLong(threads, 1L);
+		keepAlive(3);
+		Assertions.assertEquals(1L, activeTime.getLong(threads), "迟到的旧实例不得续活当前拥有者");
+		keepAlive(5);
+		Assertions.assertTrue(activeTime.getLong(threads) > 1L, "当前实例必须续活");
+		activeTime.setLong(threads, 1L);
+		keepAlive(7);
+		Assertions.assertTrue(activeTime.getLong(threads) > 1L, "接管的新实例必须续活");
+		Assertions.assertEquals(7L, lastAppSerialId());
+	}
+
+	@Test
 	public void testOldSerialIgnoredNewTakesOver() throws Exception {
 		keepAlive(5); // first：登记
 		keepAlive(3); // 旧实例迟到（更低的serial）
@@ -58,15 +75,21 @@ public class TestThreadingSerialMonotonic {
 
 	@SuppressWarnings("unchecked")
 	private long lastAppSerialId() throws Exception {
-		Field mapField = ThreadingServer.class.getDeclaredField("simulateThreadsByServerId");
-		mapField.setAccessible(true);
-		var map = (java.util.concurrent.ConcurrentHashMap<Integer, ?>)mapField.get(server);
-		var threads = map.get(SERVER_ID);
-		Assertions.assertNotNull(threads);
+		var threads = serverThreads();
 		Field serialField = threads.getClass().getDeclaredField("lastAppSerial");
 		serialField.setAccessible(true);
 		var serial = serialField.get(threads);
 		Assertions.assertNotNull(serial);
 		return ((Zeze.Builtin.Threading.BKeepAlive.Data)serial).getAppSerialId();
+	}
+
+	@SuppressWarnings("unchecked")
+	private Object serverThreads() throws Exception {
+		Field mapField = ThreadingServer.class.getDeclaredField("simulateThreadsByServerId");
+		mapField.setAccessible(true);
+		var map = (java.util.concurrent.ConcurrentHashMap<Integer, ?>)mapField.get(server);
+		var threads = map.get(SERVER_ID);
+		Assertions.assertNotNull(threads);
+		return threads;
 	}
 }
