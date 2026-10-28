@@ -723,15 +723,14 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 	}
 
-	// 迁移幂等判定的两条物理元数据查询：都以table_schema限定作用域——只按table_name会命中
-	// 当前库内所有可见schema的同名表（多schema部署），混入他表的元数据让tryAlter误判"已迁移"。
-	// current_schema与建表DDL（非限定名）及tableExists的to_regclass解析作用域一致。
+	// 与DDL及tableExists共用PostgreSQL的relation解析，保留search_path、限定名和引号语义。
+	// current_schema只是search_path中首个现存schema，实际表可能位于后面的schema。
 	static final String SQL_PHYSICAL_COLUMNS =
-			"SELECT column_name FROM information_schema.columns"
-					+ " WHERE table_schema = current_schema AND table_name = ?";
+			"SELECT attname FROM pg_catalog.pg_attribute"
+					+ " WHERE attrelid = pg_catalog.to_regclass(?) AND attnum > 0 AND NOT attisdropped ORDER BY attnum";
 	static final String SQL_PK_CONSTRAINT =
-			"SELECT constraint_name FROM information_schema.table_constraints"
-					+ " WHERE table_schema = current_schema AND table_name = ? AND constraint_type = 'PRIMARY KEY'";
+			"SELECT conname FROM pg_catalog.pg_constraint"
+					+ " WHERE conrelid = pg_catalog.to_regclass(?) AND contype = 'p'";
 
 	public final class TablePostgreSQLRelational implements Table {
 		private final String name;
@@ -811,13 +810,12 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			}
 		}
 
-		// 实际存在的物理列（幂等重放的判定目录）。PG把标识符折叠为小写，
-		// 与建表DDL及information_schema查询一致，统一小写比较。schema限定见SQL_PHYSICAL_COLUMNS。
+		// 实际存在的物理列（幂等重放的判定目录）。表名由PG按DDL的同一规则解析。
 		private java.util.HashSet<String> getPhysicalColumns() throws SQLException {
 			var columns = new java.util.HashSet<String>();
 			try (var conn = dataSource.getConnection()) {
 				try (var ps = conn.prepareStatement(SQL_PHYSICAL_COLUMNS)) {
-					ps.setString(1, name.toLowerCase(java.util.Locale.ROOT));
+					ps.setString(1, name);
 					try (var rs = ps.executeQuery()) {
 						while (rs.next())
 							columns.add(rs.getString(1).toLowerCase(java.util.Locale.ROOT));
@@ -925,10 +923,10 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 				// primary key TODO 优化：确实发生了变化才重建。
-				// 查询主键约束的名字，用来删除。table_schema限定同SQL_PHYSICAL_COLUMNS（同名表跨schema混判）。
+				// 查询同一实际relation的主键约束名。
 				String pkName = null;
 				try (var stPkName = conn.prepareStatement(SQL_PK_CONSTRAINT)) {
-					stPkName.setString(1, name.toLowerCase(java.util.Locale.ROOT));
+					stPkName.setString(1, name);
 					try (var rs = stPkName.executeQuery()) {
 						if (rs.next())
 							pkName = rs.getString(1);
