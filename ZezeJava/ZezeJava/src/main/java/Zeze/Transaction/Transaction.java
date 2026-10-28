@@ -432,7 +432,7 @@ public final class Transaction {
 										// 严格先行已持久化）而本地因停机回滚——跨集群分歧（协调者按提交推进、
 										// 本地写入未发生）。回滚时刻进程存活、信息完备，是唯一确定性的暴露点，
 										// 必须记error；回填哨兵让迟到的redo Commit取到时二次确认。
-										if (onzProcedure != null) {
+										if (onzProcedure != null && !(onzProcedure instanceof Zeze.Onz.OnzSaga)) {
 											logger.error("onz participant({}) tid={}: coordinator commit decision"
 													+ " delivered and persisted, but local transaction rolled back"
 													+ " while stopping -- cross-cluster divergence, manual check required",

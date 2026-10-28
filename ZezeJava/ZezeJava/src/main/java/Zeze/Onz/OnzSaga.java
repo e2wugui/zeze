@@ -7,8 +7,9 @@ import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Transaction;
 
-/** saga参与方执行上下文：业务与FuncSagaEnd补偿/结束经businessLock互斥，发送结果即本地提交。 */
+/** saga参与方执行上下文：业务与FuncSagaEnd补偿/结束经businessLock互斥，本地提交后发送结果。 */
 public class OnzSaga extends OnzProcedure {
 	private volatile boolean end = false; // setEnd在协议线程，isEnd在Checkpoint flush线程
 	// TTL计时基准=最后活动时间：构造时刻初始化，FuncSagaEnd补偿失败放回
@@ -70,7 +71,7 @@ public class OnzSaga extends OnzProcedure {
 		getResult().encode(bbResult);
 		//noinspection DataFlowIssue
 		req.Result.setFuncResult(new Binary(bbResult));
-		req.SendResult();
+		Transaction.whileCommit(req::SendResult);
 
 		// saga模式，执行阶段不需要任何等待。
 	}

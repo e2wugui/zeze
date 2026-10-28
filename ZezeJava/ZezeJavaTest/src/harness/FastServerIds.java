@@ -220,6 +220,7 @@ public final class FastServerIds {
 	public static final int TEST_GAME_ONLINE_LOGIN_HANDOFF = seg("TestGameOnlineLoginHandoff", 7890, 20);
 	public static final int TEST_APPLICATION_CONSTRUCTION_CLEANUP = seg("TestApplicationConstructionCleanup", 7910, 1);
 	public static final int TEST_APPLICATION_IN_USE_OWNERSHIP = seg("TestApplicationInUseOwnership", 7911, 1);
+	public static final int TEST_SAGA_REPLY_AFTER_COMMIT = seg("TestSagaReplyAfterCommit", 7912, 1);
 
 	private FastServerIds() {
 	}
