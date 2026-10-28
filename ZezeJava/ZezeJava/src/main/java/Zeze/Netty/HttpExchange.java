@@ -73,6 +73,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketDecoderConfig;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolConfig;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.stream.ChunkedInput;
 import io.netty.util.AttributeKey;
 import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCountUtil;
@@ -225,6 +226,8 @@ public class HttpExchange {
 	// 任务finally经EventLoop投递兜底（唯一执行者见releaseTerminal；close被并发抢先CAS到2时，
 	// 任务的close(null)成no-op，只有finally能释放）。
 	protected volatile boolean endStreamTaskPending;
+	// Begin/content workers may still read request/content after the EventLoop stops.
+	private int streamTasks;
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected boolean isWebSocketTextContent;
@@ -760,15 +763,29 @@ public class HttpExchange {
 			}, "fireBeginStream");
 			if (handler.Mode == DispatchMode.Direct)
 				TaskSpec.ofProcedure(p).call();
-			else
-				TaskSpec.ofProcedure(p)
+			else {
+				retainStreamTask();
+				TaskSpec.ofFunc(() -> {
+					try {
+						return p.call();
+					} finally {
+						releaseStreamTask();
+					}
+				}).name(p.getActionName()).onCancel(this::releaseStreamTask)
 						.dispatchMode(handler.Mode).executeOneByOne(context.channel().id(), server.task11Executor);
+			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
 					.name("fireBeginStream").call();
 		} else {
-			TaskSpec.ofAction(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
-					.name("fireBeginStream").dispatchMode(handler.Mode)
+			retainStreamTask();
+			TaskSpec.ofAction(() -> {
+				try {
+					handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
+				} finally {
+					releaseStreamTask();
+				}
+			}).name("fireBeginStream").dispatchMode(handler.Mode).onCancel(this::releaseStreamTask)
 					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
@@ -789,28 +806,51 @@ public class HttpExchange {
 				// onCancel:HttpServer.close()的shutdown(true)清扫丢弃未运行任务(或提交命中已shutdown队列)时
 				// 补偿release,否则retain的池化content在关停窗口静默泄漏;cancel与执行路径互斥,不会双释放。
 				c.retain();
+				retainStreamTask();
 				TaskSpec.ofFunc(() -> {
 					try {
 						return p.call();
 					} finally {
 						c.release();
+						releaseStreamTask();
 					}
-				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(c::release)
+				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(() -> {
+					c.release();
+					releaseStreamTask();
+				})
 						.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> handle.onStreamContent(this, c)).name("fireStreamContentHandle").call();
 		} else {
 			c.retain();
+			retainStreamTask();
 			TaskSpec.ofAction(() -> {
 				try {
 					handle.onStreamContent(this, c);
 				} finally {
 					c.release();
+					releaseStreamTask();
 				}
-			}).name("fireStreamContentHandle").dispatchMode(handler.Mode).onCancel(c::release)
+			}).name("fireStreamContentHandle").dispatchMode(handler.Mode).onCancel(() -> {
+				c.release();
+				releaseStreamTask();
+			})
 					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
+	}
+
+	private synchronized void retainStreamTask() {
+		streamTasks++;
+	}
+
+	private void releaseStreamTask() {
+		synchronized (this) {
+			if (--streamTasks != 0)
+				return;
+		}
+		if (detached == 2)
+			releaseTerminalFromAnyThread();
 	}
 
 	/**
@@ -948,7 +988,7 @@ public class HttpExchange {
 		try {
 			loop.execute(() -> closeInFlightExchanges0(seq, method));
 		} catch (RejectedExecutionException ignored) {
-			// EventLoop已关停（Netty整体关闭中）：channel必已关闭，无需清理
+			loop.terminationFuture().addListener(__ -> cleanupTerminatedSequencer(seq));
 		}
 		return false;
 	}
@@ -973,7 +1013,7 @@ public class HttpExchange {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning()) {
 			if (!(msg instanceof FullHttpResponse response)) {
-				ReferenceCountUtil.release(msg);
+				releaseResponseMessage(msg);
 				throw new IllegalStateException("HTTP streaming/file responses require TransactionLevel.None");
 			}
 			return deferFullResponse(t, response, flush, promise);
@@ -988,7 +1028,7 @@ public class HttpExchange {
 				loop.execute(() -> writeResponse0(msg, flush, finalPromise));
 			} catch (RejectedExecutionException e) { // EventLoop已关停：连接必已失效
 				finalPromise.tryFailure(e);
-				ReferenceCountUtil.release(msg);
+				releaseResponseMessage(msg);
 			}
 		}
 		return finalPromise;
@@ -1040,7 +1080,7 @@ public class HttpExchange {
 			// 后继响应的帧中间；合法调用不会到达（close/endStream的CAS都先于各自最后的写）
 				Netty.logger.warn("late response write after exchange finished: {}", context.channel().remoteAddress());
 			promise.tryFailure(new ClosedChannelException());
-			ReferenceCountUtil.release(msg);
+			releaseResponseMessage(msg);
 			return;
 			}
 		if (responseOrderId > seq.writingOrderId) { // 未轮到：挂起，轮到时冲刷
@@ -1049,7 +1089,7 @@ public class HttpExchange {
 				// 污染下一响应的帧。合法调用不会到达（终结写与finished置位按EL任务序先后，close后无合法写）
 				Netty.logger.warn("late response write after exchange finished: {}", context.channel().remoteAddress());
 				promise.tryFailure(new ClosedChannelException());
-				ReferenceCountUtil.release(msg);
+				releaseResponseMessage(msg);
 				return;
 			}
 			var pending = e.pending != null ? e.pending : (e.pending = new ArrayDeque<>());
@@ -1071,7 +1111,7 @@ public class HttpExchange {
 			return flush ? context.writeAndFlush(msg, promise) : context.write(msg, promise);
 		} catch (Throwable e) {
 			promise.tryFailure(e);
-			ReferenceCountUtil.release(msg);
+			releaseResponseMessage(msg);
 			return promise;
 		}
 	}
@@ -1083,14 +1123,69 @@ public class HttpExchange {
 		var loop = context.channel().eventLoop();
 		if (loop.inEventLoop()) {
 			releaseResponseOrder0(dropPending);
-				return;
-				}
+			return;
+		}
 		try {
 			loop.execute(() -> releaseResponseOrder0(dropPending));
 		} catch (RejectedExecutionException ignored) {
-			// EventLoop已关停：连接必已关闭，挂起写随channel终结
+			cleanupAfterEventLoopTermination();
+		}
+	}
+
+	// Rejected submission does not release objects held by our sequencer. Wait until
+	// the EventLoop has actually terminated before touching its single-writer state.
+	private void cleanupAfterEventLoopTermination() {
+		context.channel().eventLoop().terminationFuture().addListener(__ -> {
+			cleanupTerminatedExchange();
+			var seq = responseSequencer;
+			if (seq != null)
+				cleanupTerminatedSequencer(seq);
+		});
+	}
+
+	private static void cleanupTerminatedSequencer(ResponseSequencer seq) {
+		var entries = seq.entries.values().toArray(new OrderEntry[0]);
+		seq.entries.clear();
+		for (var entry : entries) {
+			entry.x.responseEntry = null;
+			entry.x.cleanupTerminatedExchange();
+		}
+		for (var entry : entries)
+			dropPending(entry);
+	}
+
+	private void cleanupTerminatedExchange() {
+		detachedHandle.setVolatile(this, 2);
+		server.exchanges.remove(context.channel().id(), this);
+		abandonDeferredResponses();
+		// No user onClose/onEndStream callback may run on this fallback thread.
+		inStreamMode = false;
+		if (!endStreamTaskPending)
+			releaseTerminal();
+	}
+
+	private static void dropPending(OrderEntry entry) {
+		var pending = entry.pending;
+		entry.pending = null;
+		if (pending == null)
+			return;
+		while (!pending.isEmpty()) {
+			var write = pending.removeFirst();
+			releaseResponseMessage(write.msg());
+			write.promise().tryFailure(new ClosedChannelException());
+		}
+	}
+
+	private static void releaseResponseMessage(Object message) {
+		if (message instanceof ChunkedInput<?> input) {
+			try {
+				input.close();
+			} catch (Exception e) {
+				Netty.logger.warn("close pending HTTP input failed", e);
 			}
-			}
+		} else
+			ReferenceCountUtil.release(message);
+	}
 
 	// 仅EventLoop线程调用
 	private void releaseResponseOrder0(boolean dropPending) {
@@ -1098,21 +1193,12 @@ public class HttpExchange {
 		var e = responseEntry;
 		if (seq == null || e == null)
 			return;
-		if (dropPending) {
-			var pending = e.pending;
-			if (pending != null) {
-				e.pending = null;
-					while (!pending.isEmpty()) {
-						var w = pending.pollFirst();
-					w.promise().tryFailure(new ClosedChannelException());
-					ReferenceCountUtil.release(w.msg());
-					}
-				}
-			}
+		if (dropPending)
+			dropPending(e);
 		e.finished = true;
 		if (responseOrderId == seq.writingOrderId) // 持笔让位：冲刷挂起并链式推进
 			advance(seq); // 非持笔者无需推进，由持笔方的release按序推进到它
-			}
+	}
 
 	// 仅EventLoop线程、持笔者让位时调用：冲刷头部挂起写（末尾单次flush合并），已完成的entry出队
 	// 并链式推进，遇存活entry停（其后续写直写）。
@@ -1377,23 +1463,23 @@ public class HttpExchange {
 			context.close();
 	}
 
-	// 终态释放request与content：唯一执行者是EventLoop——closeInEventLoop（恒在EL）与
-	// end-stream任务finally/cancel清扫（worker线程，经releaseTerminalFromAnyThread投递）。
-	// EL单线程串行化使"判空→置空→release"天然原子，不存在第二个释放者；
-	// content另有公开的提前释放入口，releaseContent内部自行原子摘取。
+	// 正常释放在EventLoop执行；停机后的收尾与worker finally可能同时到达，
+	// request和content均先原子摘取，资源释放不在锁内执行。
 	private void releaseTerminal() {
-		releaseContent();
-		var req = request;
-		if (req != null) {
+		HttpRequest req;
+		synchronized (this) {
+			if (streamTasks != 0 || endStreamTaskPending)
+				return;
+			req = request;
 			request = null;
+		}
+		releaseContent();
+		if (req != null) {
 			ReferenceCountUtil.release(req);
 		}
 	}
 
-	// worker线程的终态释放入口：只投递通知，不直接释放——终态释放若可从两个线程
-	// 各自"判空→release→置空"，交错时双双读到非空而双重release（refCnt异常/池化缓冲
-	// 复用后破坏他人请求）。EL已停机拒绝任务时，closeInEventLoop不再可能被调度
-	// （它只经cf listener与EL.execute触发），本线程是剩余唯一释放者，可内联执行。
+	// worker线程的终态释放入口：正常投递EL；拒绝时等EL完全退出后清理框架资源。
 	private void releaseTerminalFromAnyThread() {
 		//noinspection resource
 		var eventLoop = context.channel().eventLoop();
@@ -1404,7 +1490,7 @@ public class HttpExchange {
 		try {
 			eventLoop.execute(this::releaseTerminal);
 		} catch (RejectedExecutionException e) {
-			releaseTerminal();
+			cleanupAfterEventLoopTermination();
 		}
 	}
 
@@ -1418,13 +1504,7 @@ public class HttpExchange {
 			}
 			return;
 		}
-		ArrayList<ChannelPromise> abandoned;
-		synchronized (this) {
-			abandoned = new ArrayList<>(deferredResponsePromises);
-			deferredResponsePromises.clear();
-		}
-		for (var promise : abandoned)
-			promise.tryFailure(new IllegalStateException("HTTP transaction completed without committing response"));
+		abandonDeferredResponses();
 		if ((int)detachedHandle.getAndSet(this, 2) == 2)
 			return;
 		var ch = context.channel();
@@ -1445,15 +1525,29 @@ public class HttpExchange {
 				context.flush();
 				closeInEventLoop();
 			} else {
-				eventLoop.execute(() -> {
-					context.flush();
-					closeInEventLoop();
-				});
+				try {
+					eventLoop.execute(() -> {
+						context.flush();
+						closeInEventLoop();
+					});
+				} catch (RejectedExecutionException ignored) {
+					cleanupAfterEventLoopTermination();
+				}
 			}
 		}
 		// 释放响应序化占位：在cf写出提交之后——挂起写（含endStream终结符）先于后续
 		// exchange的响应冲刷。FORCE族丢弃挂起写，FINISH族保留按序送出。
 		releaseResponseOrder(method >= CLOSE_FORCE);
+	}
+
+	private void abandonDeferredResponses() {
+		ArrayList<ChannelPromise> abandoned;
+		synchronized (this) {
+			abandoned = new ArrayList<>(deferredResponsePromises);
+			deferredResponsePromises.clear();
+		}
+		for (var promise : abandoned)
+			promise.tryFailure(new IllegalStateException("HTTP transaction completed without committing response"));
 	}
 
 	/**
