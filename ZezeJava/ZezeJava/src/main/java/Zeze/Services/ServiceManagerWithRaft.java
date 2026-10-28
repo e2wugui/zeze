@@ -73,22 +73,32 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync,
 			SMServer::new, new TaskOneByOneByKey());
 
-		RegisterRocksTables(rocks);
-		//noinspection DataFlowIssue
-		RegisterProtocols(rocks.getRaft().getServer());
-		rocks.getRaft().getServer().start();
+		try {
+			RegisterRocksTables(rocks);
+			//noinspection DataFlowIssue
+			RegisterProtocols(rocks.getRaft().getServer());
 
-		//noinspection DataFlowIssue
-		tableAutoKey = rocks.<String, BAutoKey>getTableTemplate("tAutoKey").openTable();
-		//noinspection DataFlowIssue
-		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
-		//noinspection DataFlowIssue
-		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
-		//noinspection DataFlowIssue
-		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
+			//noinspection DataFlowIssue
+			tableAutoKey = rocks.<String, BAutoKey>getTableTemplate("tAutoKey").openTable();
+			//noinspection DataFlowIssue
+			tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
+			//noinspection DataFlowIssue
+			tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
+			//noinspection DataFlowIssue
+			tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
+			// 处理器可能在start返回前运行，依赖表必须先全部就绪。
+			rocks.getRaft().getServer().start();
 
-		// 会话清理对账：60s粒度足够，快速路径由closeSession的退避重试承担。
-		reconcileDaemon.start();
+			// 会话清理对账：60s粒度足够，快速路径由closeSession的退避重试承担。
+			reconcileDaemon.start();
+		} catch (Exception e) {
+			try {
+				rocks.close();
+			} catch (Exception closeError) {
+				e.addSuppressed(closeError);
+			}
+			throw e;
+		}
 	}
 
 	@Override
