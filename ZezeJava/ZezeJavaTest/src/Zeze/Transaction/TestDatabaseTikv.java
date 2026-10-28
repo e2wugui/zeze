@@ -1,4 +1,4 @@
-package Zeze.Trans;
+package Zeze.Transaction;
 
 import org.jspecify.annotations.NullMarked;
 import static org.junit.jupiter.api.Assertions.*;

@@ -1,4 +1,4 @@
-package Zeze.Trans;
+package Zeze.Transaction;
 
 import static java.util.Objects.requireNonNull;
 

@@ -1,4 +1,4 @@
-package Zeze.Trans;
+package Zeze.Transaction;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
