@@ -35,18 +35,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/**
- * prepare超时分支的undo失败防护回归（对齐catch分支形态）：CommitRocks.prepare全部prepare
- * 成功但超过prepareMaxTime时走超时分支，undo失败（目标桶不可达）不得跳过removeTransactionRecord
- * ——bug时tid永久滞留inFlightTids（唯一移除点在removeTransactionRecord），redoTimer对该
- * ePreparing记录终身免疫（inFlightTids命中即跳过），死记录滞留rocks直至进程重启。
- * 钉住：超时为主异常+undo失败挂suppressed；调用返回后inFlightTids为空且commitIndex/commitPoint
- * 无残留（undo失败留给redoTimer与桶侧onTimer收敛）。
- * 注：本地提交模式（CommitRocks落临时目录，System属性窗口只在构造期，跟随Dbh2TestEnv惯例，
- * 不入@Fast并行车道）。
- */
+/** prepare失败后的undo必须经全部桶确认才删重放记录；在途登记始终释放，供既有redo接管。 */
 @Extra
-public class TestPrepareTimeoutUndoFailRemovesRecord {
+public class TestPrepareRollbackRetainsReplay {
 	private static final String COMMIT_ROCKS_HOME_PROPERTY = "Dbh2CommitRocksHome";
 
 	/** 发号可用的最小AbstractAgent（allocate本地递增，形态对齐TestAllocateTid128NoLockHold桩）。 */
@@ -134,7 +125,7 @@ public class TestPrepareTimeoutUndoFailRemovesRecord {
 	 * 假agent：prepareBatch立即成功（结果码0、无拒绝）；undoBatch成功或以RpcTimeoutException
 	 * 完结（对齐真实rpc超时的完结形态，Rpc超时任务即setException(RpcTimeoutException)）。
 	 */
-	private static Dbh2Agent fakeAgent(String raftXml, boolean undoFails) throws Exception {
+	private static Dbh2Agent fakeAgent(String raftXml, java.util.concurrent.atomic.AtomicInteger undoFailure) throws Exception {
 		return new Dbh2Agent(raftXml) {
 			@Override
 			public TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>> prepareBatch(
@@ -147,10 +138,16 @@ public class TestPrepareTimeoutUndoFailRemovesRecord {
 			@Override
 			public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(long tid) {
 				var tcs = new TaskCompletionSourceX<RaftRpc<BBatchTid.Data, EmptyBean.Data>>();
-				if (undoFails)
+				if (undoFailure.get() == 1)
 					tcs.setException(RpcTimeoutException.getInstance());
-				else
-					tcs.setResult(new UndoBatch());
+				else {
+					var result = new UndoBatch();
+					if (undoFailure.get() == 2)
+						result.setResultCode(Zeze.Transaction.Procedure.RaftRetry);
+					if (undoFailure.get() == 3)
+						throw new IllegalStateException("undo send failed");
+					tcs.setResult(result);
+				}
 				return tcs;
 			}
 		};
@@ -188,8 +185,9 @@ public class TestPrepareTimeoutUndoFailRemovesRecord {
 		}
 	}
 
-	@Test
-	public void testPrepareTimeoutUndoFailStillRemovesRecord(@TempDir Path tempDir) throws Exception {
+	@org.junit.jupiter.params.ParameterizedTest
+	@org.junit.jupiter.params.provider.ValueSource(ints = {1, 2, 3})
+	public void testPrepareTimeoutUndoFailureRetainsReplay(int failure, @TempDir Path tempDir) throws Exception {
 		Zeze.Util.Task.tryInitThreadPool();
 		// CommitRocks的home只在本构造窗口读取（Dbh2CommitRocksHome+serverId），构造完成即还原。
 		var priorHome = System.getProperty(COMMIT_ROCKS_HOME_PROPERTY);
@@ -211,8 +209,9 @@ public class TestPrepareTimeoutUndoFailRemovesRecord {
 			maxTimeField.setLong(manager.getDbh2Config(), -1);
 
 			// RAFT_REACHABLE：prepare/undo均成功；RAFT_UNREACHABLE：仅state中存在，undo撞上失败。
-			registerAgent(manager, RAFT_REACHABLE, fakeAgent(RAFT_REACHABLE, false));
-			registerAgent(manager, RAFT_UNREACHABLE, fakeAgent(RAFT_UNREACHABLE, true));
+			var undoFailure = new java.util.concurrent.atomic.AtomicInteger(failure);
+			registerAgent(manager, RAFT_REACHABLE, fakeAgent(RAFT_REACHABLE, new java.util.concurrent.atomic.AtomicInteger()));
+			registerAgent(manager, RAFT_UNREACHABLE, fakeAgent(RAFT_UNREACHABLE, undoFailure));
 
 			var rocks = getCommitRocks(manager);
 
@@ -229,13 +228,17 @@ public class TestPrepareTimeoutUndoFailRemovesRecord {
 					"超时异常必须是主异常（undo失败挂suppressed），实际: " + ex);
 			Assertions.assertTrue(ex.getSuppressed().length > 0, "undo失败必须挂到超时异常的suppressed");
 
-			// 核心断言：removeTransactionRecord必须执行（bug时undo异常先上抛，跳过它）。
+			// 失败请求结束后移除在途登记，持久记录交给redo。
 			Assertions.assertEquals(0, inflightCount(rocks),
 					"超时分支必须移除在途登记（bug时tid永久滞留inFlightTids，redoTimer终身免疫）");
-			Assertions.assertEquals(0, countEntries(rocks, "commitIndex"),
-					"commitIndex残留记录必须删除（留给redoTimer接管的路径）");
-			Assertions.assertEquals(0, countEntries(rocks, "commitPoint"),
-					"commitPoint残留记录必须删除");
+			Assertions.assertEquals(1, countEntries(rocks, "commitIndex"), "undo未确认时必须保留重放索引");
+			Assertions.assertEquals(1, countEntries(rocks, "commitPoint"), "undo未确认时必须保留参与方记录");
+			undoFailure.set(0);
+			var redo = CommitRocks.class.getDeclaredMethod("redoTimer");
+			redo.setAccessible(true);
+			redo.invoke(rocks);
+			Assertions.assertEquals(0, countEntries(rocks, "commitIndex"), "恢复后redo应完成undo并删除索引");
+			Assertions.assertEquals(0, countEntries(rocks, "commitPoint"), "全部确认后才删除记录");
 		} finally {
 			manager.stop();
 		}

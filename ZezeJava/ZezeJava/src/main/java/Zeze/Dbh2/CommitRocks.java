@@ -48,9 +48,8 @@ public class CommitRocks {
 	// 周期守护：redoTimer(RocksDB迭代+逐桶RPC get阻塞等待)进worker池不占调度线程；
 	// close有界等待在飞一轮
 	private final DaemonTimer redoDaemon = new DaemonTimer("CommitRocks.redoTimer", 60_000, this::redoTimer);
-	// 本进程在途事务tid：登记必须先于ePreparing落盘，移除只能随removeTransactionRecord
-	//（记录删除之后）。redoTimer对ePreparing先查此集：命中=在途，同进程慢prepare不得
-	// 误判为崩溃残留undo；未命中=本进程重启后的真残留（集合随进程消失），照常清理。
+	// 登记先于ePreparing落盘；准备结束且undo失败时也要释放登记，交现有redo重试。
+	// 命中=prepare仍在途，redo不能抢先undo；未命中=可由redo接手的残留。
 	private final Set<Long> inFlightTids = ConcurrentHashMap.newKeySet();
 
 	public CommitRocks(Dbh2AgentManager manager, int serverId) throws RocksDBException {
@@ -165,12 +164,27 @@ public class CommitRocks {
 	}
 
 	private void undo(long tid, BTransactionState.Data state) {
-		var futures = new ArrayList<TaskCompletionSource<?>>();
+		var futures = new ArrayList<TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>>();
 		for (var e : state.getBuckets()) {
 			futures.add(manager.openBucket(e).undoBatch(tid));
 		}
-		for (var e : futures)
-			e.await(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
+		for (var e : futures) {
+			var response = e.getNonNull(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
+			if (response.getResultCode() != 0 && response.getResultCode() != Procedure.RaftApplied)
+				throw new RuntimeException("undo error=" + IModule.getErrorCode(response.getResultCode()));
+		}
+	}
+
+	private void rollbackPrepare(long tid, byte[] tidBytes, BTransactionState.Data state, Throwable failure) {
+		try {
+			undo(tid, state);
+			removeTransactionRecord(tidBytes); // 仅在全部参与方确认undo后删除重放记录。
+		} catch (Throwable undoError) {
+			failure.addSuppressed(undoError);
+		} finally {
+			// 无论undo结果如何，本次调用已结束；保留的ePreparing由周期redo接管。
+			inFlightTids.remove(tid);
+		}
 	}
 
 	private ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> processPrepareFutures(
@@ -241,27 +255,14 @@ public class CommitRocks {
 			}
 
 		} catch (Throwable ex) {
-			try {
-				undo(tid, state);
-			} catch (Throwable undoEx) {
-				ex.addSuppressed(undoEx); // undo失败不能掩盖原始异常
-			}
-			removeTransactionRecord(tidBytes);
+			rollbackPrepare(tid, tidBytes, state, ex);
 			throw new RuntimeException(ex);
 		}
 
 		if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
-			// 对齐上方catch分支的防护：undo失败不能掩盖超时异常，更不能跳过removeTransactionRecord
-			// ——inFlightTids的唯一移除点在其中，跳过则tid永久滞留，redoTimer对该记录终身免疫。
-			// undo失败留给redoTimer（记录已删、登记已清，可接管重发）与桶侧onTimer收敛。
 			var ex = new RuntimeException(Str.format("max prepare time exceed. time={}",
 					manager.getDbh2Config().getPrepareMaxTime()));
-			try {
-				undo(tid, state);
-			} catch (Throwable undoEx) {
-				ex.addSuppressed(undoEx); // undo失败不能掩盖原始异常
-			}
-			removeTransactionRecord(tidBytes);
+			rollbackPrepare(tid, tidBytes, state, ex);
 			throw ex;
 		}
 		return tid;
@@ -291,12 +292,7 @@ public class CommitRocks {
 			// 保存 commit-point，如果失败，则 undo。
 			saveCommitPoint(tidBytes, state, Commit.eCommitting);
 		} catch (Throwable ex) {
-			try {
-				undo(tid, state);
-			} catch (Throwable undoEx) {
-				ex.addSuppressed(undoEx); // undo失败不能掩盖原始异常
-			}
-			removeTransactionRecord(tidBytes);
+			rollbackPrepare(tid, tidBytes, state, ex);
 			throw new RuntimeException(ex);
 		}
 		return new CommitDecision(tid, tidBytes, state);
