@@ -3,6 +3,8 @@ package Zeze.Hot;
 import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import Zeze.Arch.Gen.GenModule;
@@ -153,11 +155,33 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 
 	// 先用这个类管理所有热更需求。
 	public void upgrade(HotModule old) throws Exception {
+		upgrade(old, null);
+	}
+
+	void upgrade(HotModule old, @Nullable HotTransaction transaction) throws Exception {
+		var previousContexts = new HashMap<>(contexts);
 		contexts.putAll(old.contexts);
-		for (var context : contexts.values()) {
-			context.setModule(this);
+		var previousBindings = new IdentityHashMap<HotModuleContext<?>, @Nullable HotModule>();
+		for (var context : contexts.values())
+			previousBindings.put(context, context.getModule());
+		Runnable restore = () -> restoreContexts(previousContexts, previousBindings);
+		if (transaction != null)
+			transaction.whileRollback(restore::run);
+		try {
+			for (var context : contexts.values())
+				context.setModule(this);
+			Objects.requireNonNull(service).upgrade(Objects.requireNonNull(old.service));
+		} catch (Exception | Error e) {
+			restore.run();
+			throw e;
 		}
-		Objects.requireNonNull(service).upgrade(Objects.requireNonNull(old.service));
+	}
+
+	private void restoreContexts(HashMap<Class<?>, HotModuleContext<?>> previousContexts,
+			IdentityHashMap<HotModuleContext<?>, @Nullable HotModule> previousBindings) {
+		previousBindings.forEach(HotModuleContext::setModule);
+		contexts.clear();
+		contexts.putAll(previousContexts);
 	}
 
 	@Override

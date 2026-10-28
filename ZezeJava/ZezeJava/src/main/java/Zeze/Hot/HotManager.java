@@ -427,7 +427,7 @@ public class HotManager extends ClassLoader {
 						hotJarFiles.add(module.getJarFile());
 						module.setService(iModules[ii]);
 						if (null != exist) {
-							module.upgrade(exist); // 事务外运行，对于继承升级应该都是事务外的。
+							module.upgrade(exist, txn); // 事务外运行；外部context随本次安装回滚。
 						} else {
 							newModules.add(module);
 						}

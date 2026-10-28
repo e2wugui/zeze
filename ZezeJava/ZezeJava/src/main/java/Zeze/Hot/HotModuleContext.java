@@ -20,6 +20,10 @@ public class HotModuleContext<T extends HotService> {
 		this.module = module;
 	}
 
+	@Nullable HotModule getModule() {
+		return module;
+	}
+
 	@SuppressWarnings("unchecked")
 	public @Nullable T getService() {
 		var m = module;
