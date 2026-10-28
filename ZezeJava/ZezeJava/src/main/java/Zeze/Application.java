@@ -248,20 +248,20 @@ public final class Application extends ReentrantLock {
 
 	private void closeConstructionResources(Throwable failure, boolean databasesCreated) {
 		if (history != null)
-			closeOnConstructionFailure(failure, history::close);
+			cleanupAfterFailure(failure, history::close);
 		if (databasesCreated) {
 			// 保留取得顺序，先拆卸后取得的库，再关闭它们依赖的Dbh2管理器和SM。
 			var acquired = new ArrayList<>(databases.values());
 			for (int i = acquired.size() - 1; i >= 0; --i)
-				closeOnConstructionFailure(failure, acquired.get(i)::close);
+				cleanupAfterFailure(failure, acquired.get(i)::close);
 		}
 		if (dbh2AgentManager != null)
-			closeOnConstructionFailure(failure, dbh2AgentManager::stop);
+			cleanupAfterFailure(failure, dbh2AgentManager::stop);
 		if (serviceManager != null)
-			closeOnConstructionFailure(failure, serviceManager::close);
+			cleanupAfterFailure(failure, serviceManager::close);
 	}
 
-	private static void closeOnConstructionFailure(Throwable failure, Action0 close) {
+	private static void cleanupAfterFailure(Throwable failure, Action0 close) {
 		try {
 			close.run();
 		} catch (Throwable cleanupFailure) {
@@ -458,7 +458,20 @@ public final class Application extends ReentrantLock {
 					throw new RuntimeException(e);
 				}
 			}
-			addTable(dbName, table).openDynamicTable(this, table);
+			var previousName = TableKey.tables.get(table.getId());
+			var database = addTable(dbName, table);
+			try {
+				database.openDynamicTable(this, table);
+			} catch (Throwable failure) {
+				tables.remove(table.getId(), table);
+				tableNameMap.remove(table.getName(), table);
+				if (previousName != null)
+					TableKey.tables.replace(table.getId(), table.getName(), previousName);
+				else
+					TableKey.tables.remove(table.getId(), table.getName());
+				cleanupAfterFailure(failure, () -> database.removeTable(table));
+				throw failure;
+			}
 		} finally {
 			unlock();
 		}

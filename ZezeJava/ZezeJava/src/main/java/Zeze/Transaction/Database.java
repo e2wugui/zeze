@@ -129,8 +129,11 @@ public abstract class Database extends ReentrantLock {
 	}
 
 	public final void removeTable(Zeze.Transaction.Table table) {
-		table.close();
-		tables.remove(table.getName());
+		try {
+			table.close();
+		} finally {
+			tables.remove(table.getName(), table);
+		}
 	}
 
 	public final DatabaseConf getConf() {
