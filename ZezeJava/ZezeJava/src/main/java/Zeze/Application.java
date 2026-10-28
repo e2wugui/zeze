@@ -8,6 +8,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -78,7 +79,7 @@ public final class Application extends ReentrantLock {
 
 	private final String projectName;
 	private final Config conf;
-	private final HashMap<String, Database> databases = new HashMap<>();
+	private final HashMap<String, Database> databases = new LinkedHashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
 	private final Locks locks = new Locks();
@@ -222,18 +223,49 @@ public final class Application extends ReentrantLock {
 		Task.tryInitThreadPool(this); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
 
 		serviceManager = createServiceManager(conf, projectName); // 必须在createDatabase之前初始化。里面的Dbh2需要用到serviceManager
-		conf.createDatabase(this, databases);
-		ZezeCounter.tryInit();
+		boolean databasesCreated = false;
+		try {
+			conf.createDatabase(this, databases);
+			databasesCreated = true; // createDatabase失败时由其自身回收已创建的库。
+			ZezeCounter.tryInit();
 
-		if (!isNoDatabase()) {
-			// 自动初始化的组件。
-			autoKey = new AutoKey.Module(this);
-			queueModule = new Zeze.Collections.Queue.Module(this);
-			if (conf.isHistory())
-				history = new Zeze.History.HistoryModule(this);
-			delayRemove = new DelayRemove(this);
-			takeover = new Takeover(this);
-			onz = new Onz(this);
+			if (!isNoDatabase()) {
+				// 自动初始化的组件。
+				autoKey = new AutoKey.Module(this);
+				queueModule = new Zeze.Collections.Queue.Module(this);
+				if (conf.isHistory())
+					history = new Zeze.History.HistoryModule(this);
+				delayRemove = new DelayRemove(this);
+				takeover = new Takeover(this);
+				onz = new Onz(this);
+			}
+		} catch (Throwable failure) {
+			closeConstructionResources(failure, databasesCreated);
+			throw failure;
+		}
+	}
+
+	private void closeConstructionResources(Throwable failure, boolean databasesCreated) {
+		if (history != null)
+			closeOnConstructionFailure(failure, history::close);
+		if (databasesCreated) {
+			// 保留取得顺序，先拆卸后取得的库，再关闭它们依赖的Dbh2管理器和SM。
+			var acquired = new ArrayList<>(databases.values());
+			for (int i = acquired.size() - 1; i >= 0; --i)
+				closeOnConstructionFailure(failure, acquired.get(i)::close);
+		}
+		if (dbh2AgentManager != null)
+			closeOnConstructionFailure(failure, dbh2AgentManager::stop);
+		if (serviceManager != null)
+			closeOnConstructionFailure(failure, serviceManager::close);
+	}
+
+	private static void closeOnConstructionFailure(Throwable failure, Action0 close) {
+		try {
+			close.run();
+		} catch (Throwable cleanupFailure) {
+			if (failure != cleanupFailure)
+				failure.addSuppressed(cleanupFailure);
 		}
 	}
 
