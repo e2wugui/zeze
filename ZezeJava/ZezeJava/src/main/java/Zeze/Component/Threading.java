@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -30,10 +32,26 @@ public class Threading extends AbstractThreading {
 	private final int serverId;
 	private final long appSerialId;
 	private final Future<?> keepAliveTask;
+	private final ServiceDomain serviceDomain;
+
+	private record ServiceDomain(String name, List<String> targets) {
+		static ServiceDomain of(Service service) {
+			// 使用配置目标而非当前socket：同配置的本地包装共享，重连不改变域。
+			// 调用者应在构造Threading前配置服务；手动连接服务沿用服务名作为命名空间。
+			var targets = new ArrayList<String>();
+			service.getConfig().forEachConnector(connector -> targets.add(connector.getName()));
+			targets.sort(String::compareTo);
+			return new ServiceDomain(service.getName(), List.copyOf(targets));
+		}
+	}
+
+	private record SemaphoreHoldKey(ServiceDomain domain, int serverId, long threadId, String name) {
+	}
 
 	public Threading(Service service, int serverId) {
 		this.service = service;
 		this.serverId = serverId;
+		serviceDomain = ServiceDomain.of(service);
 		// 这里使用Agent.ServiceName联合serverId当作进程名字，目前足够区分不同的进程。
 		this.appSerialId = PersistentAtomicLong.getOrAdd(service.getName() + "." + serverId).next();
 
@@ -60,16 +78,16 @@ public class Threading extends AbstractThreading {
 	// 信号量补偿的本地持有计数门控。补偿必须可归因，但协议无逐次获取标识，
 	// 无法区分服务端semaphoreRefs条目来自"本次未知获取"还是"先前持有的获取"——信号量
 	// 持有者无获取优先权，持有中再获取会真实失败，此时无条件补偿必然误释放先前许可、
-	// 虚增容量（容量1即双持有）。以静态表按(serverId,threadId,name)集中计数（同进程多
+	// 虚增容量（容量1即双持有）。以静态表按(配置服务域,serverId,threadId,name)集中计数（同进程多
 	// Threading实例/多Semaphore对象共享名字时联动）：成功应答加、显式release成功减，
 	// 补偿仅在计数==0（服务端条目至多来自本次未知获取）时发送；计数>0时放弃补偿并告警，
 	// 把"误释放（无界、静默破坏容量）"换成"许可悬挂（有界：进程死亡后由timeoutRelease清算）"。
 	// 漂移安全侧：release未决时本地不减（多计→少补→漏）；进程重启map清零与服务端
 	// appSerialId接管全量释放天然对齐。
-	private static final ConcurrentHashMap<String, AtomicInteger> semaphoreLocalHolds = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<SemaphoreHoldKey, AtomicInteger> semaphoreLocalHolds = new ConcurrentHashMap<>();
 
-	private static String semaphoreHoldKey(int serverId, long threadId, String name) {
-		return serverId + ":" + threadId + ":" + name;
+	private SemaphoreHoldKey semaphoreHoldKey(String name) {
+		return new SemaphoreHoldKey(serviceDomain, serverId, curThreadId(), name);
 	}
 
 	/** 客户端rpc超时=max(timeoutMs+1000, 5000)：long运算防timeoutMs+1000
@@ -180,7 +198,7 @@ public class Threading extends AbstractThreading {
 					// 可能来自先前持有的获取（信号量持有者无获取优先权，持有中再获取会真实
 					// 失败）——此时补发必然误释放先前许可，虚增真实余量。仅计数==0（条目至多
 					// 来自本次未知获取）才补发；否则放弃并告警，悬挂许可交给timeoutRelease清算。
-					var holds = semaphoreLocalHolds.get(semaphoreHoldKey(serverId, curThreadId(), name));
+					var holds = semaphoreLocalHolds.get(semaphoreHoldKey(name));
 					if (holds == null || holds.get() == 0) {
 						var un = new SemaphoreRelease();
 						un.Argument.setLockName(lockName);
@@ -196,7 +214,7 @@ public class Threading extends AbstractThreading {
 			}
 			var acquired = r.getResultCode() == 0;
 			if (acquired && permits > 0)
-				semaphoreLocalHolds.computeIfAbsent(semaphoreHoldKey(serverId, curThreadId(), name),
+				semaphoreLocalHolds.computeIfAbsent(semaphoreHoldKey(name),
 						__ -> new AtomicInteger()).addAndGet(permits);
 			return acquired;
 		}
@@ -220,7 +238,7 @@ public class Threading extends AbstractThreading {
 				logger.error("release error={}", IModule.getErrorCode(rc));
 			else {
 				// 服务端确认释放才减本地持有计数（未决/失败不减，漂移向"多计→少补"安全侧）。
-				var key = semaphoreHoldKey(serverId, curThreadId(), name);
+				var key = semaphoreHoldKey(name);
 				var holds = semaphoreLocalHolds.get(key);
 				// 归零即删（两参条件删防误删并发重建的计数）：静态map只增不减会令
 				// 动态/虚拟线程场景按(serverId,threadId,name)无界滞留。key含threadId，同key的

@@ -61,10 +61,10 @@ public class TestThreadingSemaphoreHoldCleanup {
 	private static int holdEntryCount() throws Exception {
 		Field field = Threading.class.getDeclaredField("semaphoreLocalHolds");
 		field.setAccessible(true);
-		var map = (ConcurrentHashMap<String, AtomicInteger>)field.get(null);
+		var map = (ConcurrentHashMap<?, AtomicInteger>)field.get(null);
 		int nonzero = 0;
-		for (Map.Entry<String, AtomicInteger> e : map.entrySet())
-			if (e.getKey().contains("cp1f6.hold.semaphore"))
+		for (Map.Entry<?, AtomicInteger> e : map.entrySet())
+			if (e.getKey().toString().contains("cp1f6.hold.semaphore"))
 				nonzero++;
 		return nonzero;
 	}
@@ -73,9 +73,9 @@ public class TestThreadingSemaphoreHoldCleanup {
 		Field field = Threading.class.getDeclaredField("semaphoreLocalHolds");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked")
-		var map = (ConcurrentHashMap<String, AtomicInteger>)field.get(null);
-		for (Map.Entry<String, AtomicInteger> e : map.entrySet())
-			if (e.getKey().contains(namePart))
+		var map = (ConcurrentHashMap<?, AtomicInteger>)field.get(null);
+		for (Map.Entry<?, AtomicInteger> e : map.entrySet())
+			if (e.getKey().toString().contains(namePart))
 				return e.getValue().get();
 		return -1;
 	}
