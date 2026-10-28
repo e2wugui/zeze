@@ -1,8 +1,7 @@
 package Zeze.Dbh2;
 
-import java.util.Objects;
-
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -175,9 +174,9 @@ public class CommitRocks {
 	}
 
 	private ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> processPrepareFutures(
-			long tid, String queryHost, int queryPort,
-			ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures) {
-		var futuresRedirect = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
+			long tid, byte[] tidBytes, BTransactionState.Data state, String queryHost, int queryPort,
+			ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures) throws RocksDBException {
+		var redirects = new ArrayList<Map.Entry<String, BPrepareBatch.Data>>();
 		for (var e : futures) {
 			var r = e.getNonNull(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
 			if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
@@ -197,9 +196,18 @@ public class CommitRocks {
 					batch.getBatch().setTid(tid);
 					batch.getBatch().setPuts(eRefuse.getValue().getPuts());
 					batch.getBatch().setDeletes(eRefuse.getValue().getDeletes());
-					futuresRedirect.add(manager.openBucket(eRefuse.getKey()).prepareBatch(batch).setContext(eRefuse.getKey()));
+					redirects.add(Map.entry(eRefuse.getKey(), batch));
+					if (!state.getBuckets().contains(eRefuse.getKey()))
+						state.getBuckets().add(eRefuse.getKey());
 				}
 			}
+		}
+		var futuresRedirect = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
+		if (!redirects.isEmpty()) {
+			// 先收集整轮目标并保存，再投递；任意投递失败时持久记录都能覆盖已发目标。
+			saveCommitPoint(tidBytes, state, Commit.ePreparing);
+			for (var redirect : redirects)
+				futuresRedirect.add(manager.openBucket(redirect.getKey()).prepareBatch(redirect.getValue()));
 		}
 		return futuresRedirect;
 	}
@@ -227,22 +235,9 @@ public class CommitRocks {
 				// 循环顶熔断：重定向轮数无上限，须在每轮顶检查elapsed，超prepareMaxTime即break，
 				// 交由循环后的既有超时分支统一undo+removeRecord——服务端决策时长由此有界，
 				// 客户端超时按prepareMaxTime+rpcTimeout派生覆盖（见Dbh2Config.getCommitRpcTimeout）。
-				if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
-					// 在途重定向桶纳入undo范围：未处理轮的context尚未入state（首轮初始futures无context，null过滤）。
-					for (var future : futures) {
-						var ctx = future.getContext();
-						if (null != ctx && !state.getBuckets().contains(ctx))
-							state.getBuckets().add((String)ctx);
-					}
+				if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime())
 					break;
-				}
-				futures = processPrepareFutures(tid, queryHost, queryPort, futures);
-				if (!futures.isEmpty()) {
-					for (var future : futures) {
-						state.getBuckets().add((String)Objects.requireNonNull(future.getContext()));
-					}
-					saveCommitPoint(tidBytes, state, Commit.ePreparing);
-				}
+				futures = processPrepareFutures(tid, tidBytes, state, queryHost, queryPort, futures);
 			}
 
 		} catch (Throwable ex) {

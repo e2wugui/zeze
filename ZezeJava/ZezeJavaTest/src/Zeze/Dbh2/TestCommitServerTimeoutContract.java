@@ -285,6 +285,72 @@ public class TestCommitServerTimeoutContract {
 
 	/** ②应答解绑：eCommitting落盘即应答，投递不阻塞处理器；投递由异步路径完成并清理记录。 */
 	@Test
+	public void testRedirectTargetPersistedBeforePrepare(@TempDir Path tempDir) throws Exception {
+		Zeze.Util.Task.tryInitThreadPool();
+		var target = RAFT_STUB.replace("19395", "19495").replace("19396", "19496").replace("19397", "19497");
+		for (var failSave : new boolean[]{false, true}) {
+			var manager = newLocalManager(tempDir.resolve("redirect" + failSave), 845);
+			try (var failingOptions = new org.rocksdb.WriteOptions().setSync(true).setDisableWAL(true)) {
+				var rocks = getRocks(manager);
+				var sends = new AtomicInteger();
+				registerAgent(manager, RAFT_STUB, new Dbh2Agent(RAFT_STUB) {
+					@Override
+					public TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>> prepareBatch(BPrepareBatch.Data batch) {
+						var response = new PrepareBatch(batch);
+						response.Result.getRefused().put(target, new BBatch.Data());
+						if (failSave)
+							rocks.setWriteOptions(failingOptions);
+						var future = new TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>();
+						future.setResult(response);
+						return future;
+					}
+					@Override
+					public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(long tid) {
+						var future = new TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>();
+						future.setResult(new UndoBatch());
+						return future;
+					}
+				});
+				registerAgent(manager, target, new Dbh2Agent(target) {
+					@Override
+					public TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>> prepareBatch(BPrepareBatch.Data batch) {
+						sends.incrementAndGet();
+						try {
+							Assertions.assertTrue(requireNonNull(rocks.query(batch.getBatch().getTid())).getBuckets().contains(target),
+									"发送前持久记录必须已包含重定向目标");
+						} catch (org.rocksdb.RocksDBException e) {
+							throw new RuntimeException(e);
+						}
+						var future = new TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>();
+						future.setResult(new PrepareBatch(batch));
+						return future;
+					}
+					@Override
+					public TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>> undoBatch(long tid) {
+						var future = new TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>();
+						future.setResult(new UndoBatch());
+						return future;
+					}
+				});
+				try {
+					var batches = singleBucketBatches();
+					if (failSave)
+						Assertions.assertThrows(RuntimeException.class, () -> rocks.prepare("127.0.0.1", 1,
+								CommitRocks.buildTransactionState(batches), batches, null));
+					else
+						rocks.prepare("127.0.0.1", 1, CommitRocks.buildTransactionState(batches), batches, null);
+					Assertions.assertEquals(failSave ? 0 : 1, sends.get(), "保存失败不得发送prepare");
+				} finally {
+					rocks.setWriteOptions(Zeze.Util.RocksDatabase.getDefaultWriteOptions());
+				}
+			} finally {
+				manager.stop();
+			}
+		}
+	}
+
+	/** ②应答解绑：eCommitting落盘即应答，投递不阻塞处理器；投递由异步路径完成并清理记录。 */
+	@Test
 	public void testReplySentOnceCommitPointPersisted(@TempDir Path tempDir) throws Exception {
 		Zeze.Util.Task.tryInitThreadPool();
 		var manager = newLocalManager(tempDir.resolve("rocksReply"), 844);
