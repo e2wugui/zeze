@@ -377,9 +377,10 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 		release.setAccessible(true);
 		var firstDone = new CountDownLatch(1);
 		final AtomicBoolean firstReturned = new AtomicBoolean(false);
+		var releaseResult = new java.util.concurrent.atomic.AtomicReference<Object>();
 		var releaser1 = new Thread(() -> {
 			try {
-				release.invoke(gcm, holderA, KEY);
+				releaseResult.set(release.invoke(gcm, holderA, KEY));
 				firstReturned.set(true);
 			} catch (Throwable ex) {
 				// 回滚路径返回RaftRetry结果码不抛异常；其他异常由后续断言暴露
@@ -393,6 +394,8 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 		Assertions.assertTrue(firstDone.await(30, TimeUnit.SECONDS), "第一次release必须返回（含appendLog超时等待）");
 		releaser1.join(5_000);
 		Assertions.assertTrue(firstReturned.get(), "release不能以异常结束");
+		Assertions.assertEquals(Zeze.Transaction.Procedure.RaftRetry, releaseResult.get(),
+				"释放提交失败必须向调用方返回RaftRetry");
 
 		// 4. 核心断言①：transient占位必须复位（修复前：永久停留StateRemoved——毒化bean）
 		Assertions.assertEquals(GlobalCacheManagerConst.StateInvalid, pendingOf(KEY),

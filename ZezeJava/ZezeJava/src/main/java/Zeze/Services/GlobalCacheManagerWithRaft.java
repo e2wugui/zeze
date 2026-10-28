@@ -208,7 +208,11 @@ public class GlobalCacheManagerWithRaft
 							Acquired.walkKey(key -> {
 								// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
 								if (raft.isLeader() && raft.getLogSequence().getTerm() == fireTerm) {
-									release(session, key, fireGeneration, fireTerm);
+									var rc = release(session, key, fireGeneration, fireTerm);
+									if (rc != 0) {
+										logger.error("AchillesHeelDaemon.Release session={} rc={}", session, rc);
+										return false;
+									}
 									++releaseCount.value;
 									return true;
 								}
@@ -826,19 +830,28 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	private void release(CacheHolder sender, Binary gkey) throws Exception {
+	private long release(CacheHolder sender, Binary gkey) throws Exception {
 		var raft = rocks.getRaft();
-		release(sender, gkey, sender.generation, raft != null ? raft.getLogSequence().getTerm() : -1);
+		return release(sender, gkey, sender.generation, raft != null ? raft.getLogSequence().getTerm() : -1);
 	}
 
-	private void release(CacheHolder sender, Binary gkey, long generation, long term) throws Exception {
+	private long release(CacheHolder sender, Binary gkey, long generation, long term) throws Exception {
 		var procedure = rocks.newProcedure(() -> {
 			release(sender, gkey, false, generation, term);
 			return 0L;
 		});
 		// 任期约束在实际append的raft锁内检查，不让旧释放跨任期提交。
 		procedure.setExpectedTerm(term);
-		procedure.call();
+		return procedure.call();
+	}
+
+	private long releaseKeys(CacheHolder sender, Iterable<Binary> keys, long generation, long term) throws Exception {
+		for (var key : keys) {
+			var rc = release(sender, key, generation, term);
+			if (rc != 0)
+				return rc;
+		}
+		return 0;
 	}
 
 	private int release(CacheHolder sender, Binary gkey, boolean noWait) throws InterruptedException {
@@ -958,8 +971,11 @@ public class GlobalCacheManagerWithRaft
 		// 释放期间，同会话乐观预发的Acquire经raft提交apply写入同一表，会被迭代器看到并
 		// 错误回收——第三方再获Modify形成双写。快照使窗口由结构关闭，不依赖
 		// "raft提交慢于本地迭代"的时序巧合。
-		for (var key : releaseKeys)
-			release(session, key, generation, term);
+		var releaseResult = releaseKeys(session, releaseKeys, generation, term);
+		if (releaseResult != 0) {
+			rpc.SendResultCode(releaseResult);
+			return 0;
+		}
 
 		rpc.Result.setMaxNetPing(gcmConfig.maxNetPing);
 		rpc.Result.setServerProcessTime(gcmConfig.serverProcessTime);
@@ -1024,9 +1040,7 @@ public class GlobalCacheManagerWithRaft
 		} finally {
 			session.unlock();
 		}
-		for (var key : releaseKeys)
-			release(session, key, generation, term);
-		rpc.SendResultCode(0);
+		rpc.SendResultCode(releaseKeys(session, releaseKeys, generation, term));
 		logger.info("NormalClose {} {}", rocks.getRaft().getName(), rpc.getSender());
 		return 0;
 	}
@@ -1076,9 +1090,7 @@ public class GlobalCacheManagerWithRaft
 
 		// XXX verify danger
 		TaskSpec.ofAction(() -> { // delay 5 mins
-			for (var key : releaseKeys)
-				release(session, key, generation, term);
-			rpc.SendResultCode(0);
+			rpc.SendResultCode(releaseKeys(session, releaseKeys, generation, term));
 		}).schedule(5 * 60 * 1000);
 
 		return 0;
