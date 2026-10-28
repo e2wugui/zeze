@@ -45,16 +45,16 @@ public class App extends Zeze.AppBase {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public zezeboot.LinkService LinkService;
-    public zezeboot.ProviderService ProviderService;
+    public zezeboot.@org.jspecify.annotations.Nullable LinkService LinkService;
+    public zezeboot.@org.jspecify.annotations.Nullable ProviderService ProviderService;
 
-    public zezeboot.link.ModuleLink zezeboot_link;
+    public zezeboot.link.@org.jspecify.annotations.Nullable ModuleLink zezeboot_link;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -62,7 +62,7 @@ public class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -78,30 +78,32 @@ public class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            LinkService = new zezeboot.LinkService(Zeze);
-            ProviderService = new zezeboot.ProviderService(Zeze);
+            LinkService = new zezeboot.LinkService(getZeze());
+            ProviderService = new zezeboot.ProviderService(getZeze());
         } finally {
             unlock();
         }
+    }
+
+    public static Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            zezeboot.link.ModuleLink.class,
+        };
     }
 
     @Override
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.initialize(this);
-            var _modules_ = createRedirectModules(new Class[] {
-                zezeboot.link.ModuleLink.class,
-            });
-            if (_modules_ == null)
-                return;
+            getZeze().initialize(this);
+            var _modules_ = createRedirectModules(redirectModuleClasses());
 
             zezeboot_link = (zezeboot.link.ModuleLink)_modules_[0];
             zezeboot_link.Initialize(this);
             if (modules.put(zezeboot_link.getFullName(), zezeboot_link) != null)
                 throw new IllegalStateException("duplicate module name: zezeboot_link");
 
-            Zeze.setSchemas(new zezeboot.Schemas());
+            getZeze().setSchemas(new zezeboot.Schemas());
         } finally {
             unlock();
         }
@@ -139,7 +141,7 @@ public class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            zezeboot_link.Start(this);
+            java.util.Objects.requireNonNull(zezeboot_link).Start(this);
         } finally {
             unlock();
         }
@@ -149,7 +151,7 @@ public class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            zezeboot_link.StartLast();
+            java.util.Objects.requireNonNull(zezeboot_link).StartLast();
         } finally {
             unlock();
         }
@@ -182,8 +184,8 @@ public class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            LinkService.start();
-            ProviderService.start();
+            java.util.Objects.requireNonNull(LinkService).start();
+            java.util.Objects.requireNonNull(ProviderService).start();
         } finally {
             unlock();
         }
