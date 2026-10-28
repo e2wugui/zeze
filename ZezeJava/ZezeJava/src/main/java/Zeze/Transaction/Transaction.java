@@ -93,33 +93,12 @@ public final class Transaction {
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
-	private volatile @Nullable Long tid;
 
 	private Transaction() {
 	}
 
 	public ArrayList<Procedure> getProcedureStack() {
 		return procedureStack;
-	}
-
-	public long getTransactionId() {
-		// tid 是 volatile：判空后须走局部变量返回，避免检查与使用之间被并发重置读到 null。
-		var current = tid;
-		if (current != null)
-			return current;
-		synchronized (this) {
-			current = tid;
-			if (current != null)
-				return current;
-			var topProcedure = getTopProcedure();
-			if (topProcedure != null) {
-				//noinspection DataFlowIssue
-				current = topProcedure.getZeze().getTransactionIdAutoKey().nextId();
-				tid = current;
-				return current;
-			}
-		}
-		return 0;
 	}
 
 	public void addLogAction(Runnable action) {
@@ -162,7 +141,6 @@ public final class Transaction {
 			holdLocks.forEach(Lockey::exitLock);
 			holdLocks.clear();
 		}
-		tid = null;
 		procedureStack.clear();
 		if (null != logActions)
 			logActions.clear();
@@ -872,7 +850,7 @@ public final class Transaction {
 	Lockey getLockey(TableKey key) {
 		var l = locks;
 		if (l == null)
-			throw new IllegalStateException("transaction has no locks (not in perform): " + tid);
+			throw new IllegalStateException("transaction has no locks (not in perform)");
 		return l.get(key);
 	}
 

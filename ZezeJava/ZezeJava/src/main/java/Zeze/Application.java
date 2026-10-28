@@ -84,7 +84,6 @@ public final class Application extends ReentrantLock {
 	private final Locks locks = new Locks();
 	private final @Nullable AbstractAgent serviceManager;
 	private AutoKey.@Nullable Module autoKey;
-	private @Nullable AutoKey transactionIdAutoKey;
 	private @Nullable Timer timer;
 	private @Nullable SafeBatch safeBatch;
 	private Zeze.Collections.Queue.@Nullable Module queueModule;
@@ -462,10 +461,6 @@ public final class Application extends ReentrantLock {
 		return autoKey.getOrAdd(name);
 	}
 
-	public @Nullable AutoKey getTransactionIdAutoKey() {
-		return transactionIdAutoKey;
-	}
-
 	public @Nullable Timer getTimer() {
 		return timer;
 	}
@@ -821,8 +816,6 @@ public final class Application extends ReentrantLock {
 				deadlockBreaker.start();
 			if (onz != null)
 				onz.start();
-			if (autoKey != null)
-				transactionIdAutoKey = autoKey.getOrAdd("TransactionIdAutoKey");
 		}
 	}
 
@@ -958,7 +951,6 @@ public final class Application extends ReentrantLock {
 		if (autoKey != null) {
 			stopStep("autoKey.UnRegister", autoKey::UnRegister);
 			autoKey = null;
-			transactionIdAutoKey = null;
 		}
 		if (takeover != null) {
 			var tk = Objects.requireNonNull(takeover);

@@ -70,7 +70,6 @@ Zeze.Trans.TestTable
 Zeze.Trans.TestTableKey
 Zeze.Trans.TestTableNest
 Zeze.Trans.TestTableNestAction
-Zeze.Trans.TestTid
 Zeze.Trans.TestTransactionLevelSerializable
 Zeze.Trans.TestWalkPage
 Zeze.Util.TestBloomFilter
