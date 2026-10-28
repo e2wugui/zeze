@@ -399,6 +399,46 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 	// ------------------------- 用例1：正常路径全链路回归 -------------------------
 
 	@Test
+	@Timeout(90)
+	public void testLoginRollbackKeepsTransportSession() throws Exception {
+		var peer = new Peer("LoginRollbackPeer");
+		try {
+			var client = sendLogin(peer, peer.connect(leaderPort()), "UnitTest.CTR.Rollback", 30_000);
+			var manager = servers.get(leaderIndex());
+			var rocks = rocksList.get(leaderIndex());
+			var row = requireNonNull(readSession("UnitTest.CTR.Rollback"));
+			var socket = requireNonNull(requireNonNull(rocks.getRaft()).getServer().GetSocket(row.getSessionId()));
+			var oldSession = socket.getUserState();
+			var timer = ServiceManagerWithRaft.Session.class.getDeclaredField("keepAliveTimerTask");
+			timer.setAccessible(true);
+			var oldTimer = (java.util.concurrent.Future<?>)timer.get(oldSession);
+			manager.lock();
+			try {
+				var login = new Login();
+				login.Argument.setSessionName("UnitTest.CTR.Rollback");
+				login.setSender(socket);
+				Assertions.assertEquals(123, rocks.newProcedure(() -> {
+					Assertions.assertEquals(0, manager.ProcessLoginRequest(login));
+					Assertions.assertSame(oldSession, socket.getUserState(), "commit前不得交接传输会话");
+					return 123;
+				}).call());
+				Assertions.assertSame(oldSession, socket.getUserState(), "回滚必须保留旧会话");
+				if (oldTimer != null)
+					Assertions.assertFalse(oldTimer.isCancelled(), "回滚不能取消旧会话心跳");
+			} finally {
+				manager.unlock();
+			}
+			// 正常网络Login仍应成功，且只在提交后交接。
+			sendLogin(peer, client, "UnitTest.CTR.Rollback", 30_000);
+			Assertions.assertNotSame(oldSession, socket.getUserState());
+			if (oldTimer != null)
+				Assertions.assertTrue(oldTimer.isCancelled());
+		} finally {
+			peer.stop();
+		}
+	}
+
+	@Test
 	@Timeout(150)
 	public void testCommitThenResponseFullChain() throws Exception {
 		var reg = new Peer("UnitTest.CTR.Reg");

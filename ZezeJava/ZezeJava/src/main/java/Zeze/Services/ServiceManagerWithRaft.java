@@ -409,26 +409,32 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		if (r.Argument.getSessionName().isBlank())
 			return ErrorSessionName;
 		var session = tableSession.getOrAdd(r.Argument.getSessionName());
-		// 重复Login（raftOnSetLeader超时递归重发等）在同一socket上覆盖userState前，先取消旧Session
-		// 的keepAliveTimerTask：OnSocketClose只回调最后userState的onClose，被覆盖的
-		// Session定时器永不取消——socket关闭后GetSocket(sessionId)恒null，周期性error日志，永不停止。
-		var oldSession = r.getSender().getUserState();
-		if (oldSession instanceof Session old)
-			old.cancelKeepAlive();
-		r.getSender().setUserState(new Session(r.Argument.getSessionName(), r.getSender().getSessionId()));
 		session.setSessionId(r.getSender().getSessionId());
-		// 应答必须raft提交成功后发出：tSession的getOrAdd/setSessionId依赖raft提交，
-		// 提交前应答在复制失败回滚后客户端已拿到成功码（假成功），其后续Edit/Subscribe读到
-		// 回滚的会话状态（tableSession无行NPE转错误码）。非事务上下文（不应发生）保持立即应答。
-		// RocksRaft版事务：本派发链（dispatchRaftRequest→Procedure.call）只创建
-		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
-		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		// 传输会话及其心跳没有事务日志，和成功应答一起在提交后交接。
+		var sender = r.getSender();
+		var name = r.Argument.getSessionName();
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
-			t.runWhileCommit(r::SendResult);
+			t.runWhileCommit(() -> completeLogin(r, sender, name));
 		else
-			r.SendResult();
+			completeLogin(r, sender, name);
 		return 0;
+	}
+
+	private void completeLogin(Login request, AsyncSocket sender, String name) {
+		if (!isSenderAlive(sender))
+			return;
+		var oldSession = sender.getUserState();
+		var session = new Session(name, sender.getSessionId());
+		sender.setUserState(session);
+		if (oldSession instanceof Session old)
+			old.cancelKeepAlive();
+		// OnSocketClose可能在换userState之前读到旧会话，交接后复查以免遗漏新定时器。
+		if (!isSenderAlive(sender)) {
+			((SMServer)sender.getService()).closeSession(session, 0);
+			return;
+		}
+		request.SendResult();
 	}
 
 	// ProcessAllocateId128Request有意不实现：id128正规路径是UDP（Id128UdpServer），
