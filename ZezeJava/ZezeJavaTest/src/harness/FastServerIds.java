@@ -172,7 +172,7 @@ public final class FastServerIds {
 	public static final int TEST_ONZ_READY_WAIT_INTERRUPTED = seg("TestOnzReadyWaitInterrupted", 12880, 1);
 	public static final int TEST_ONZ_COMMIT_DIVERGENCE_SIGNAL = seg("TestOnzCommitDivergenceSignal", 12881, 1);
 
-	public static final int TEST_OFFLINE_TIMER_BOOKKEEPING = seg("TestOfflineTimerBookkeeping", 16181, 5);
+	public static final int TEST_OFFLINE_TIMER_BOOKKEEPING = seg("TestOfflineTimerBookkeeping", 16181, 6);
 	public static final int TEST_RC_PASSTHROUGH = seg("TestRcPassthrough", 16191, 6);
 	public static final int TEST_TRANSMIT_UNKNOWN_ACTION = seg("TestTransmitUnknownAction", 16201, 3);
 	public static final int TEST_LOAD_BASE_CHAIN_RESILIENCE = seg("TestLoadBaseChainResilience", 16211, 10);

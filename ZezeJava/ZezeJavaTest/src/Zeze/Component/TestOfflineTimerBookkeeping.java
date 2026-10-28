@@ -80,6 +80,7 @@ public class TestOfflineTimerBookkeeping {
 		final TimerAccount accountTimer;
 		final TimerRole roleTimer;
 		final TestGameOnline gameOnline;
+		final Zeze.Game.Online otherOnline;
 
 		Env(String name) throws Exception {
 			Task.tryInitThreadPool();
@@ -108,6 +109,9 @@ public class TestOfflineTimerBookkeeping {
 			accountTimer = ctor.newInstance(archOnline);
 			gameOnline = new TestGameOnline(appBase);
 			roleTimer = gameOnline.getTimerRole();
+			var otherCtor = Zeze.Game.Online.class.getDeclaredConstructor(AppBase.class, String.class);
+			otherCtor.setAccessible(true);
+			otherOnline = otherCtor.newInstance(appBase, "other");
 			// OfflineHandle.onTimerCancel的归属反查：providerImplement按onlineSetName定位Online
 			// （生产由initializeOnlineTimer经完整ProviderApp建立），fake下反射布线。
 			var pwo = new Zeze.Game.ProviderWithOnline() {
@@ -115,6 +119,12 @@ public class TestOfflineTimerBookkeeping {
 			var onlineField = Zeze.Game.ProviderWithOnline.class.getDeclaredField("online");
 			onlineField.setAccessible(true);
 			onlineField.set(pwo, gameOnline);
+			var setsField = Zeze.Game.ProviderWithOnline.class.getDeclaredField("onlineSetMap");
+			setsField.setAccessible(true);
+			@SuppressWarnings("unchecked")
+			var sets = (java.util.Map<String, Zeze.Game.Online>)setsField.get(pwo);
+			sets.put("", gameOnline);
+			sets.put("other", otherOnline);
 			var implField = Zeze.Arch.ProviderApp.class.getDeclaredField("providerImplement");
 			implField.setAccessible(true);
 			implField.set(providerApp, pwo);
@@ -267,6 +277,27 @@ public class TestOfflineTimerBookkeeping {
 	}
 
 	/** 护栏：显式cancelOffline在钩子清理簿记后仍须返回true（TimerScope.cancel契约，判定已前移）。 */
+	@Test
+	public void testRoleCancelRespectsOnlineSetAndSystemRoutes() throws Exception {
+		try (var env = new Env("OfflineTimerSetOwnership")) {
+			Assertions.assertEquals(0, env.zeze.newProcedure(() -> {
+				var owner = env.otherOnline.getTimerRole();
+				Assertions.assertTrue(owner.scheduleOfflineNamed("offlineTimer.otherSet", 16113L,
+						TimerSpec.ofDelay(60_000), NormalHandle.class, null));
+				Assertions.assertFalse(env.roleTimer.cancelOffline("offlineTimer.otherSet", 16113L),
+						"相同角色的另一onlineSet会话不能取消本集合任务");
+				Assertions.assertNotNull(env.timer.getTimerIndex("offlineTimer.otherSet"));
+				Assertions.assertTrue(owner.cancelOffline("offlineTimer.otherSet", 16113L), "匹配集合正常取消");
+				Assertions.assertTrue(owner.scheduleOfflineNamed("offlineTimer.systemRoute", 16113L,
+						TimerSpec.ofDelay(60_000), NormalHandle.class, null));
+				Assertions.assertTrue(env.roleTimer.cancelOffline("offlineTimer.systemRoute"),
+						"系统入口必须按已存归属路由到真实集合");
+				Assertions.assertNull(env.timer.getTimerIndex("offlineTimer.systemRoute"));
+				return 0;
+			}, "offlineTimer.setOwnership").call());
+		}
+	}
+
 	@Test
 	public void testRoleExplicitCancelKeepsContract() throws Exception {
 		var timerId = "offlineTimer.roleCancel";

@@ -466,43 +466,35 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (timerId == null)
 			return true; // 取消不存在的timer，认为成功。
 
+		var custom = findOfflineCustom(timerId);
+		if (custom == null)
+			return false;
+		var owner = online.getOnline(custom.getOnlineSetName());
+		return owner != null && owner.getTimerRole().cancelOffline(timerId, custom.getRoleId());
+	}
+
+	private @Nullable BOfflineRoleCustom findOfflineCustom(String timerId) {
 		var timer = online.providerApp.zeze.getTimer();
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
-			return false;
+			return null;
 		var node = timer.tNodes().get(index.getNodeId());
 		if (node == null)
-			return false;
+			return null;
 		var bTimer = node.getTimers().get(timerId);
 		if (bTimer == null)
-			return false;
+			return null;
 		var customData = bTimer.getCustomData().getBean();
-		if (!(customData instanceof BOfflineRoleCustom))
-			return false;
-		return cancelOffline(timerId, ((BOfflineRoleCustom)customData).getRoleId());
+		return customData instanceof BOfflineRoleCustom custom ? custom : null;
 	}
 
 	public boolean cancelOffline(@Nullable String timerId, long roleId) {
 		if (timerId == null)
 			return true; // 取消不存在的timer，认为成功。
 
-		var timer = online.providerApp.zeze.getTimer();
-		// 归属校验（对齐TimerAccount.cancelOffline）：无校验直接timer.cancel时，
-		// 传入任意timerId（他人offline timer、全局命名timer）都会被越权取消，
-		// 且按调用者传入的roleId清理_tRoleOfflineTimers（typo时误删他行/真实归属行残留脏条目）。
-		var index = timer.tIndexs().get(timerId);
-		if (index == null)
-			return false;
-		var node = timer.tNodes().get(index.getNodeId());
-		if (node == null)
-			return false;
-		var bTimer = node.getTimers().get(timerId);
-		if (bTimer == null)
-			return false;
-		var customData = bTimer.getCustomData().getBean();
-		if (!(customData instanceof BOfflineRoleCustom custom))
-			return false; // 不是角色offline timer，归属不符拒绝
-		if (custom.getRoleId() != roleId)
+		var custom = findOfflineCustom(timerId);
+		if (custom == null || custom.getRoleId() != roleId
+				|| !custom.getOnlineSetName().equals(online.getOnlineSetName()))
 			return false;
 		// 簿记先于timer.cancel清理：cancel的onTimerCancel钩子也会清簿记，
 		// 若r的判定放在钩子之后，remove将恒为null，对真实成功的取消误报false。
@@ -510,7 +502,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		var r = bTimers != null && bTimers.getOfflineTimers().remove(timerId) != null;
 		if (bTimers != null && bTimers.getOfflineTimers().isEmpty())
 			online._tRoleOfflineTimers().remove(roleId);
-		timer.cancel(timerId);
+		online.providerApp.zeze.getTimer().cancel(timerId);
 		if (r)
 			logger.debug("cancel offline timer: timerId={}, roleId={}", timerId, roleId);
 		return r;
