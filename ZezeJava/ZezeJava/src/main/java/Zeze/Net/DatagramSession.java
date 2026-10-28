@@ -199,6 +199,7 @@ public class DatagramSession extends AsyncSocket {
 		} else if (endPos < 16) // minimal packet size([8]tokenId + [8]serialId)
 			return;
 		bb.ReadIndex = 16; // 跳过头部的tokenId和serialId
+		validateDatagram(bb);
 		var serialId = ByteBuffer.ToLong(bb.Bytes, 8);
 		replayAttack.lock();
 		try {
@@ -209,6 +210,21 @@ public class DatagramSession extends AsyncSocket {
 		}
 		this.remote = remote;
 		socket.getService().OnSocketProcessInputBuffer(this, bb);
+	}
+
+	// UDP cannot retain a partial frame for a later read. Validate every frame and known
+	// protocol body before publishing receive state or dispatching any earlier frame.
+	// Decode into fresh, unmanaged protocol objects only; dispatch still uses the existing
+	// Service path so transaction retries, throttle and handler modes keep their semantics.
+	private void validateDatagram(ByteBuffer input) {
+		var data = ByteBuffer.Wrap(input.Bytes, input.ReadIndex, input.size());
+		while (!data.isEmpty()) {
+			if (data.size() < Protocol.HEADER_SIZE)
+				throw new IllegalStateException("incomplete datagram protocol header");
+			// The common complete-frame decoder checks the declared body size and
+			// restricts each protocol decoder to that frame's actual byte range.
+			Protocol.decode(getService(), data);
+		}
 	}
 
 	@Override
