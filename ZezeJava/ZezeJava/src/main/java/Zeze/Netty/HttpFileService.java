@@ -15,7 +15,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -40,7 +39,7 @@ final class HttpFileService {
 
 	private static final Pattern rangePattern = Pattern.compile("[ =\\-/]");
 	private static final OpenOption[] readOnlyOpenOptions = new OpenOption[]{StandardOpenOption.READ};
-	// h2复制与TLS分块共用块大小；TLS由ChunkedWriteHandler按可写性拉取，避免整文件入队。
+	// h2逐块完成写与TLS分块共用块大小，两条路径均按通道可写性推进。
 	private static final int FileChunkSize = 64 * 1024;
 
 	// 文件名来自磁盘（Linux允许CR/LF/引号入名），且headersFactory关闭了Netty头校验：CRLF直拼构成响应头注入，引号破坏quoted-string边界。
@@ -146,30 +145,7 @@ final class HttpFileService {
 			ChannelFuture lastFuture;
 			if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) {
 				if (x.isH2()) {
-					// h2无FileRegion零拷贝：分块读文件为DefaultHttpContent逐块经writeResponse（帧翻译codec转
-					// DATA帧）。同步读循环跑在dispatch任务线程：本地文件读毫秒级，出站仅入netty发送队列不阻塞
-					// socket。慢消费者的内存界后续按可写性分块收紧（对齐ChunkedWriteHandler语义）——
-					// ChunkedWriteHandler+HttpChunkedInput组合在h2子channel上排水不触发（写future永驻），
-					// 弃用。零拷贝损失为h2帧化的固有代价。LastHttpContent收尾=endStream。
-					var nioBuf = java.nio.ByteBuffer.allocate(FileChunkSize);
-					long pos = from;
-					long remain = contentLen;
-					while (remain > 0) {
-						nioBuf.clear();
-						nioBuf.limit((int)Math.min(nioBuf.capacity(), remain));
-						int n = fc.read(nioBuf, pos);
-						if (n < 0)
-							break; // 文件被截断：头部CL失配，客户端按帧序可诊断
-						if (n > 0) {
-							// copiedBuffer必须复制：wrappedBuffer引用的array会被下一轮read覆盖。
-							// 每块即flush：跨块汇流依赖flush边界（迟滞冲刷在高水位下可能卡住出站）。
-							x.writeResponse(new DefaultHttpContent(io.netty.buffer.Unpooled.copiedBuffer(
-									nioBuf.array(), 0, n)), true, x.context.voidPromise());
-							pos += n;
-							remain -= n;
-						}
-					}
-					lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
+					lastFuture = H2FileSender.send(x, fc, from, contentLen, FileChunkSize);
 				} else if (x.context.pipeline().<@Nullable SslHandler>get(SslHandler.class) != null) {
 					// SSL只接收ByteBuf；HttpChunkedInput包含最后的HttpContent，不能另加终结符。
 					lastFuture = x.writeResponse(new HttpChunkedInput(new ChunkedNioFile(fc, from, contentLen,
