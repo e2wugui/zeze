@@ -615,6 +615,7 @@
 				<enum value="5" name="ResultCodeOnlineDataNotFound"/>
 				<enum value="6" name="ResultCodeReliableNotifyConfirmIndexOutOfRange"/>
 				<enum value="7" name="ResultCodeNotLogin"/>
+				<enum value="8" name="ResultCodeLoginSuperseded"/> 登录过程中已被其他成功登录取代
 
 				<enum value="0" name="eOffline"/> 离线状态
 				<enum value="1" name="eLinkBroken"/> 刚刚断开连接
@@ -827,6 +828,7 @@
 			<enum value="5" name="ResultCodeOnlineDataNotFound"/>
 			<enum value="6" name="ResultCodeReliableNotifyConfirmIndexOutOfRange"/>
 			<enum value="7" name="ResultCodeNotLogin"/>
+			<enum value="8" name="ResultCodeLoginSuperseded"/> 登录过程中已被其他成功登录取代
 
 			<enum value="0" name="eOffline"/>
 			<enum value="1" name="eLinkBroken"/>

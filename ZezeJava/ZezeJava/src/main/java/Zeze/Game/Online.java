@@ -2011,9 +2011,32 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			providerApp.providerService.kick(online.getLink().getLinkName(), online.getLink().getLinkSid(), code, desc);
 	}
 
+	private boolean isPreparedLogin(long roleId, String account, long version) {
+		var online = getOnlineShared(roleId);
+		return online != null && online.getAccount().equals(account)
+				&& online.getLoginVersion() == version && online.getLogoutVersion() == version
+				&& online.getLink().getState() == eOffline;
+	}
+
+	// 首次观察的会话代数跨事务重试保持不变；续办版本只在补登出提交后发布。
+	private static final class LoginAttempt {
+		private @Nullable Long observedVersion;
+		private @Nullable Long committedLogoutVersion;
+
+		private boolean observe(long version) {
+			var observed = observedVersion;
+			if (observed != null)
+				return observed == version;
+			observedVersion = version;
+			return true;
+		}
+	}
+
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(Login rpc) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("Login/ReLogin must run outside a transaction");
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			//noinspection DataFlowIssue
 			logger.info("Login[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
@@ -2028,27 +2051,33 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long ProcessLoginRequestOnlineSet(Login rpc) {
-		var done = new OutObject<>(false);
-		//noinspection DataFlowIssue
-		for (var i = 0; i < 3 && !done.value; ++i) {
-			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done),
-					"ProcessLoginRequest")).call();
-			if (r != 0)
-				return r;
-		}
-		if (done.value)
-			return 0; // 正常完成。
-		return Procedure.LogicError;
+		return processLogin(rpc, rpc.Argument.getRoleId(), false, 0);
 	}
 
-	private long ProcessLoginRequest(Login rpc, OutObject<Boolean> done) throws Exception {
-		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
+	private long processLogin(Protocol<?> rpc, long roleId, boolean relogin, long confirmIndex) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("Login/ReLogin must run outside a transaction");
+		var attempt = new LoginAttempt();
+		var actionName = relogin ? "ProcessReLoginRequest" : "ProcessLoginRequest";
+		long result = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(
+				() -> processLoginInTransaction(rpc, roleId, relogin, confirmIndex, attempt, null), actionName)).call();
+		var logoutVersion = attempt.committedLogoutVersion;
+		if (result != 0 || logoutVersion == null)
+			return result;
+		return TaskSpec.ofProcedure(providerApp.zeze.newProcedure(
+				() -> processLoginInTransaction(rpc, roleId, relogin, confirmIndex, attempt, logoutVersion),
+				actionName + "AfterLogout")).call();
+	}
 
+	private long processLoginInTransaction(Protocol<?> rpc, long roleId, boolean relogin, long confirmIndex,
+			LoginAttempt attempt, @Nullable Long expectedLogoutVersion) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		var dispatch = ProviderImplement.localDispatch();
 		if (dispatch != null)
 			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
-		var roleId = rpc.Argument.getRoleId();
+		if (expectedLogoutVersion != null
+				&& !isPreparedLogin(roleId, session.getAccount(), expectedLogoutVersion))
+			return errorCode(ResultCodeLoginSuperseded);
 		var onlineShared = getOrAddOnlineShared(roleId);
 		var isAdd = new OutObject<>(false);
 		var local = _tlocal.getOrAdd(roleId, isAdd);
@@ -2061,23 +2090,29 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var onlineAccount = onlineShared.getAccount();
 		var isBound = !onlineAccount.isEmpty();
 		if (!isBound)
-			onlineShared.setAccount(session.getAccount()); // 这里依赖loginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
+			onlineShared.setAccount(session.getAccount()); // 这里依赖登录事件做进一步的角色是否属于账号的验证,验证失败会回滚
 		else if (!onlineAccount.equals(session.getAccount()))
 			return Procedure.LogicError;
 
-		// login exist
-		if (isBound && assignLogoutVersion(onlineShared)) {
+		if (!attempt.observe(onlineShared.getLoginVersion()))
+			return errorCode(ResultCodeLoginSuperseded);
+
+		if (expectedLogoutVersion == null && isBound && assignLogoutVersion(onlineShared)) {
+			var logoutVersion = onlineShared.getLoginVersion();
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
-				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-						BKick.ErrorDuplicateLogin, "duplicate role login: account=" + onlineAccount
-								+ ", roleId=" + roleId + ", onlineSet=" + multiInstanceName);
+				var oldLinkName = link.getLinkName();
+				var oldLinkSid = link.getLinkSid();
+				var description = "duplicate role login: account=" + onlineAccount
+						+ ", roleId=" + roleId + ", onlineSet=" + multiInstanceName;
+				Transaction.whileCommit(() -> providerApp.providerService.kick(
+						oldLinkName, oldLinkSid, BKick.ErrorDuplicateLogin, description));
 			}
-			var ret = logoutTrigger(roleId, LogoutReason.LOGIN);
+			var ret = logoutTrigger(roleId, relogin ? LogoutReason.RE_LOGIN : LogoutReason.LOGIN);
 			if (ret != 0)
 				return ret;
-			// 发生了补Logout事件，重做Login。
-			done.value = false;
-			return 0; // Logout事件补了以后这个局部事务是成功完成的。
+			// 重试或回滚不能留下待续办标记。
+			Transaction.whileCommit(() -> attempt.committedLogoutVersion = logoutVersion);
+			return Procedure.Success;
 		}
 
 		// 开始登录流程，先准备 link-state。
@@ -2098,21 +2133,35 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		});
 
 		var online = getOrAddOnline(roleId);
-		online.getReliableNotifyMark().clear();
-		openQueue(roleId).clear();
-		online.setReliableNotifyConfirmIndex(0);
-		online.setReliableNotifyIndex(0);
+		if (!relogin) {
+			online.getReliableNotifyMark().clear();
+			openQueue(roleId).clear();
+			online.setReliableNotifyConfirmIndex(0);
+			online.setReliableNotifyIndex(0);
+		}
 
 		online.setServerId(providerApp.zeze.getConfig().getServerId());
 
-		// Login的结果先提交进事务，然后再触发loginTrigger，这样loginTrigger中发送的协议排在后面。
+		// 先登记应答，再触发登录事件及可靠通知同步，保持提交时的发送顺序。
 		session.respond(rpc);
-		return loginTrigger(session.getAccount(), roleId);
+		if (!relogin)
+			return loginTrigger(session.getAccount(), roleId);
+		var ret = reloginTrigger(session.getAccount(), roleId);
+		if (ret != 0)
+			return ret;
+
+		var syncResultCode = reliableNotifySync(roleId, session, confirmIndex);
+		if (syncResultCode != ResultCodeSuccess)
+			return errorCode(syncResultCode);
+
+		return Procedure.Success;
 	}
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessReLoginRequest(ReLogin rpc) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("Login/ReLogin must run outside a transaction");
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			//noinspection DataFlowIssue
 			logger.info("ReLogin[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
@@ -2127,92 +2176,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	protected long ProcessReLoginRequestOnlineSet(ReLogin rpc) {
-		var done = new OutObject<>(false);
-		// 与Login相同的重做上限（for 3次）：无上限的while在多端互踢风暴/脚本客户端下，
-		// 每轮循环都成功执行完整登录+登出事务并再次进入顶号分支，线程在handler内无限自旋。
-		//noinspection DataFlowIssue
-		for (var i = 0; i < 3 && !done.value; ++i) {
-			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done),
-					"ProcessReLoginRequest")).call();
-			if (r != 0)
-				return r;
-		}
-		if (done.value)
-			return 0; // 正常完成。
-		return Procedure.LogicError;
-	}
-
-	private long ProcessReLoginRequest(ReLogin rpc, OutObject<Boolean> done) throws Exception {
-		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
-
-		var session = ProviderUserSession.get(rpc);
-		var dispatch = ProviderImplement.localDispatch();
-		if (dispatch != null)
-			dispatch.Argument.setOnlineSetName(multiInstanceName); // 这里需要设置OnlineSetName,因为link此时还无法设置
-		var roleId = rpc.Argument.getRoleId();
-		var onlineShared = getOrAddOnlineShared(roleId);
-		var isAdd = new OutObject<>(false);
-		var local = _tlocal.getOrAdd(roleId, isAdd);
-		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
-		//noinspection DataFlowIssue
-		if (isAdd.value)
-			Transaction.whileCommit(verifyLocalCount::incrementAndGet);
-		var link = onlineShared.getLink();
-
-		var onlineAccount = onlineShared.getAccount();
-		var isBound = !onlineAccount.isEmpty();
-		if (!isBound)
-			onlineShared.setAccount(session.getAccount()); // 这里依赖reloginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
-		else if (!onlineAccount.equals(session.getAccount()))
-			return Procedure.LogicError;
-
-		// login exist
-		if (isBound && assignLogoutVersion(onlineShared)) {
-			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
-				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-						BKick.ErrorDuplicateLogin, "duplicate role login: account=" + onlineAccount
-								+ ", roleId=" + roleId + ", onlineSet=" + multiInstanceName);
-			}
-			var ret = logoutTrigger(roleId, LogoutReason.RE_LOGIN);
-			if (ret != 0)
-				return ret;
-			// 发生了补Logout事件，重做ReLogin。
-			done.value = false;
-			return 0; // Logout事件补了以后这个局部事务是成功完成的。
-		}
-
-		// 开始登录流程，先准备 link-state。
-		var loginVersion = onlineShared.getLoginVersion() + 1;
-		local.setLoginVersion(loginVersion);
-		onlineShared.setLoginVersion(loginVersion);
-		var bLink = new BLink(session.getLinkName(), session.getLinkSid(), eLogined);
-		onlineShared.setLink(bLink);
-		local.setLink(bLink);
-
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
-			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
-			//noinspection DataFlowIssue
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
-
-		getOrAddOnline(roleId).setServerId(providerApp.zeze.getConfig().getServerId());
-
-		// 先发结果，再发送同步数据（ReliableNotifySync）。
-		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
-		session.respond(rpc);
-
-		var ret = reloginTrigger(session.getAccount(), roleId);
-		if (ret != 0)
-			return ret;
-
-		var syncResultCode = reliableNotifySync(roleId, session, rpc.Argument.getReliableNotifyConfirmIndex());
-		if (syncResultCode != ResultCodeSuccess)
-			return errorCode(syncResultCode);
-
-		return Procedure.Success;
+		return processLogin(rpc, rpc.Argument.getRoleId(), true, rpc.Argument.getReliableNotifyConfirmIndex());
 	}
 
 	@Override

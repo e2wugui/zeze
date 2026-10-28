@@ -152,7 +152,6 @@ public final class FastServerIds {
 	public static final int TEST_REDIRECT_FUTURE_COMMITTED_RESULT = seg("TestRedirectFutureCommittedResult", 7720, 2);
 	public static final int TEST_LINKED_MAP_BROKEN_CHAIN_LOGGED = seg("TestLinkedMapBrokenChainLogged", 8790, 4);
 	public static final int TEST_ONLINE_RELIABLE_LOGOUT = seg("TestOnlineReliableLogout", 8810, 5);
-	public static final int TEST_ONLINE_LOGIN_RETRY_LIMIT = seg("TestOnlineLoginRetryLimit", 8820, 2);
 	public static final int TEST_ONLINE_LOGIN_VALIDATION = seg("TestOnlineLoginValidation", 8830, 2);
 
 	public static final int TEST_HOT_INSTALL_START_LAST_FILTER = seg("TestInstallStartLastFilter", 12810, 1);
@@ -217,6 +216,8 @@ public final class FastServerIds {
 	// 仅 manager-cycle child 构造一个未启动的 NoDatabase Application。
 	public static final int TEST_PERIODIC_TASK_HOT_GUARD_CANCELLATION = seg("TestPeriodicTaskHotGuardCancellation", 7850, 1);
 	public static final int TEST_APPLICATION_COMPONENT_ACCESS = seg("TestApplicationComponentAccess", 7860, 1);
+	public static final int TEST_ONLINE_LOGIN_HANDOFF = seg("TestOnlineLoginHandoff", 7870, 20);
+	public static final int TEST_GAME_ONLINE_LOGIN_HANDOFF = seg("TestGameOnlineLoginHandoff", 7890, 20);
 
 	private FastServerIds() {
 	}

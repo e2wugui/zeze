@@ -71,7 +71,11 @@ online.getLoginEvents().run((sender, arg) -> {
 
 ### 登出事件丢失与补发
 
-服务器异常关闭时无法正常触发 Logout 事件。Online 的处理策略是：**下一次 Login 发生时，若发现上一个 Login 没有 Logout，先补发一个 Logout 事件，再执行 Login 流程**。Login 处理内部使用 `done` 标志循环重试来实现这一点。
+服务器异常关闭时无法正常触发 Logout 事件。Online 的处理策略是：**下一次 Login/ReLogin 发生时，若发现上一个 Login 没有 Logout，先提交补发的 Logout，再在新的事务中建立会话**。没有旧会话时，一次事务即可完成登录。
+
+每个请求固定首次观察到的会话 `LoginVersion`，事务冲突重试也不能转而接管新的代数。补登出成功后，第二阶段只在该代会话仍处于 Offline 且 `LoginVersion == LogoutVersion` 时继续；若其他请求已经成功登录，当前请求返回模块错误码 `ResultCodeLoginSuperseded`（8），保留竞争者会话，不再补登出或循环争抢。Arch 校验 `(account, clientId)` 的会话版本，Game 校验对应角色的共享会话版本，同账号其他端或其他 OnlineSet 不参与该判定。
+
+补登出独立提交后，新登录的业务校验失败不会恢复旧会话。提交边界保证同步提交动作先于当前请求的后续阶段，不等待异步 Logout 事件执行完毕。登录协议保持 `TransactionLevel.None`；直接调用处理入口也必须位于事务外（包括提交回调外），否则会抛出 `IllegalStateException`，避免两个阶段退化成同一事务的嵌套保存点。
 
 这意味着 Logout 事件可能与对应的 Login 在时间上相隔很远。如果业务需要精确的时间统计（如在线时长），不应完全依赖 Login/Logout 事件对，需自行处理。
 

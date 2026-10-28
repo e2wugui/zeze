@@ -74,7 +74,11 @@ online.getLoginEvents().run((sender, arg) -> {
 
 ## 登出事件丢失与补发
 
-服务器异常关闭时无法触发 `Logout`。下一次 `Login` 发现上一个没 `Logout`，会先补发 `Logout` 再 `Login`（用 `done` 标志循环重试）。`Logout` 可能与 `Login` 时间相隔很远，精确时间统计不应完全依赖该机制。
+服务器异常关闭时无法触发 `Logout`。下一次 `Login/ReLogin` 发现上一个没 `Logout`，会先独立提交补登出，再在第二个事务中建立新会话；没有旧会话时只执行一个事务。`Logout` 可能与 `Login` 时间相隔很远，精确时间统计不应完全依赖该机制。
+
+请求固定首次观察到的会话版本（Arch 为 `(account, clientId)` 的 `LoginVersion`，Game 为角色共享会话版本），事务重试不能改成登出后来出现的新一代。第二阶段要求原版本仍处于 Offline 且登录、登出版本相等；被其他成功登录取代时返回模块错误码 `ResultCodeLoginSuperseded`（8），不会继续踢出竞争者。新登录失败仍保留已经提交的旧会话登出。同步提交动作先于后续阶段，异步事件不保证已执行完毕。
+
+登录处理入口要求事务外调用，包括不能从提交回调直接调用；已有事务上下文会被 `IllegalStateException` 拒绝。协议派发使用 `TransactionLevel.None`。
 
 ## ReliableNotify（可靠消息）
 

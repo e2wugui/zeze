@@ -24,6 +24,7 @@ public abstract class AbstractModule implements Zeze.IModule {
     public static final int ResultCodeOnlineDataNotFound = 5;
     public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
+    public static final int ResultCodeLoginSuperseded = 8; // 登录过程中已被其他成功登录取代
     public static final int eOffline = 0; // 离线状态
     public static final int eLinkBroken = 1; // 刚刚断开连接
     public static final int eLogined = 2; // 在线状态

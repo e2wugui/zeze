@@ -63,7 +63,6 @@ import Zeze.Util.Action1;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
-import Zeze.Util.OutObject;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -600,7 +599,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public long onSendError(String account, String clientId,
-	                        String linkName, long linkSid) throws Exception {
+	                        String linkName, long linkSid) {
 		// 幂等标记器契约（对齐Game.Online极简形态）：只做"当前link的首个失败报告"标记
 		// eLinkBroken，不触发登出/事件/清理/调度。登出=linkBroken的DelayLogout宽限timer，
 		// timer失败残留→verifyLocal的eLinkBroken分支重走tryLogout（见tryRemoveLocal）；
@@ -1687,56 +1686,95 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			redirectRemoveLocal(serverId, account);
 	}
 
+	private boolean isPreparedLogin(String account, String clientId, long version) {
+		var online = getOnline(account);
+		if (online == null || !online.getAccount().equals(account))
+			return false;
+		var login = online.getLogins().get(clientId);
+		return login != null && login.getLoginVersion() == version && login.getLogoutVersion() == version
+				&& login.getLink().getState() == eOffline;
+	}
+
+	// 首次观察的会话代数跨事务重试保持不变；续办版本只在补登出提交后发布。
+	private static final class LoginAttempt {
+		private @Nullable Long observedVersion;
+		private @Nullable Long committedLogoutVersion;
+
+		private boolean observe(long version) {
+			var observed = observedVersion;
+			if (observed != null)
+				return observed == version;
+			observedVersion = version;
+			return true;
+		}
+	}
+
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(Login rpc) {
-		if (rpc.Argument.getClientId().isEmpty())
-			return Procedure.LogicError;
-		var done = new OutObject<>(false);
-		//noinspection DataFlowIssue
-		for (var i = 0; i < 3 && !done.value; ++i) {
-			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest")).call();
-			if (r != 0)
-				return r;
-		}
-		return done.value ? Procedure.Success : Procedure.LogicError;
+		return processLogin(rpc, rpc.Argument.getClientId(), false, 0);
 	}
 
-	private long ProcessLoginRequest(Login rpc, OutObject<Boolean> done) throws Exception {
-		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
+	private long processLogin(Protocol<?> rpc, String clientId, boolean relogin, long confirmIndex) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("Login/ReLogin must run outside a transaction");
+		if (clientId.isEmpty())
+			return Procedure.LogicError;
+		var attempt = new LoginAttempt();
+		var actionName = relogin ? "ProcessReLoginRequest" : "ProcessLoginRequest";
+		long result = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(
+				() -> processLoginInTransaction(rpc, clientId, relogin, confirmIndex, attempt, null), actionName)).call();
+		var logoutVersion = attempt.committedLogoutVersion;
+		if (result != 0 || logoutVersion == null)
+			return result;
+		return TaskSpec.ofProcedure(providerApp.zeze.newProcedure(
+				() -> processLoginInTransaction(rpc, clientId, relogin, confirmIndex, attempt, logoutVersion),
+				actionName + "AfterLogout")).call();
+	}
 
+	private long processLoginInTransaction(Protocol<?> rpc, String clientId, boolean relogin, long confirmIndex,
+			LoginAttempt attempt, @Nullable Long expectedLogoutVersion) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		var account = session.getAccount();
+		if (expectedLogoutVersion != null
+				&& !isPreparedLogin(account, clientId, expectedLogoutVersion))
+			return errorCode(ResultCodeLoginSuperseded);
 
 		var online = getOrAddOnline(account);
 		var local = _tlocal.getOrAdd(account);
-		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
+		var loginLocal = local.getLogins().getOrAdd(clientId);
 		Transaction.whileCommit(() -> putLocalActiveTime(account));
-		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
+		var loginOnline = online.getLogins().getOrAdd(clientId);
 
 		var onlineAccount = online.getAccount();
 		var isBound = !onlineAccount.isEmpty();
 		if (!isBound)
-			online.setAccount(account); // 这里依赖loginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
+			online.setAccount(account); // 这里依赖登录事件做进一步的角色是否属于账号的验证,验证失败会回滚
 		else if (!onlineAccount.equals(account))
 			return Procedure.LogicError;
 
-		if (isBound && loginOnline.getLoginVersion() != loginOnline.getLogoutVersion()) {
-			// login exist
+		if (!attempt.observe(loginOnline.getLoginVersion()))
+			return errorCode(ResultCodeLoginSuperseded);
+
+		if (expectedLogoutVersion == null && isBound
+				&& loginOnline.getLoginVersion() != loginOnline.getLogoutVersion()) {
+			var logoutVersion = loginOnline.getLoginVersion();
 			loginOnline.setLogoutVersion(loginOnline.getLoginVersion());
 
 			var link = loginOnline.getLink();
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
-				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-						BKick.ErrorDuplicateLogin,
-						"duplicate login " + account + ":" + rpc.Argument.getClientId());
+				var oldLinkName = link.getLinkName();
+				var oldLinkSid = link.getLinkSid();
+				var description = "duplicate login " + account + ":" + clientId;
+				Transaction.whileCommit(() -> providerApp.providerService.kick(
+						oldLinkName, oldLinkSid, BKick.ErrorDuplicateLogin, description));
 			}
-			var ret = logoutTrigger(account, rpc.Argument.getClientId(), false);
+			var ret = logoutTrigger(account, clientId, false);
 			if (0 != ret)
 				return ret;
-			// 发生了补Logout事件，重做Login。
-			done.value = false;
-			return 0; // Logout事件补了以后这个局部事务是成功完成的。
+			// 重试或回滚不能留下待续办标记。
+			Transaction.whileCommit(() -> attempt.committedLogoutVersion = logoutVersion);
+			return Procedure.Success;
 		}
 
 		// 开始登录流程，先准备 link-state。
@@ -1750,106 +1788,40 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
+			setUserState.Argument.getUserState().setContext(clientId);
 			//noinspection DataFlowIssue
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
-		loginOnline.setReliableNotifyConfirmIndex(0);
-		loginOnline.setReliableNotifyIndex(0);
-		loginOnline.getReliableNotifyMark().clear();
-		openQueue(account, rpc.Argument.getClientId()).clear();
+		if (!relogin) {
+			loginOnline.setReliableNotifyConfirmIndex(0);
+			loginOnline.setReliableNotifyIndex(0);
+			loginOnline.getReliableNotifyMark().clear();
+			openQueue(account, clientId).clear();
+		}
 
 		loginOnline.setServerId(providerApp.zeze.getConfig().getServerId());
 
 		session.respond(rpc);
-		return loginTrigger(account, rpc.Argument.getClientId());
-	}
-
-	@TransactionLevelAnnotation(Level = TransactionLevel.None)
-	@Override
-	protected long ProcessReLoginRequest(ReLogin rpc) {
-		if (rpc.Argument.getClientId().isEmpty())
-			return Procedure.LogicError;
-		var done = new OutObject<>(false);
-		//noinspection DataFlowIssue
-		for (var i = 0; i < 3 && !done.value; ++i) {
-			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest")).call();
-			if (r != 0)
-				return r;
-		}
-		return done.value ? Procedure.Success : Procedure.LogicError;
-	}
-
-	private long ProcessReLoginRequest(ReLogin rpc, OutObject<Boolean> done) throws Exception {
-		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
-
-		var session = ProviderUserSession.get(rpc);
-		var account = session.getAccount();
-
-		var online = getOrAddOnline(account);
-		var local = _tlocal.getOrAdd(account);
-		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
-		Transaction.whileCommit(() -> putLocalActiveTime(account));
-		var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
-
-		var onlineAccount = online.getAccount();
-		var isBound = !onlineAccount.isEmpty();
-		if (!isBound)
-			online.setAccount(account); // 这里依赖reloginTrigger做进一步的角色是否属于账号的验证,验证失败会回滚
-		else if (!onlineAccount.equals(account))
-			return Procedure.LogicError;
-
-		if (isBound && loginOnline.getLoginVersion() != loginOnline.getLogoutVersion()) {
-			// login exist
-			loginOnline.setLogoutVersion(loginOnline.getLoginVersion());
-			var link = loginOnline.getLink();
-			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
-				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-						BKick.ErrorDuplicateLogin,
-						"duplicate login " + account + ":" + rpc.Argument.getClientId());
-			}
-			var ret = logoutTrigger(account, rpc.Argument.getClientId(), false);
-			if (0 != ret)
-				return ret;
-			// 发生了补Logout事件，重做ReLogin。
-			done.value = false;
-			return 0; // Logout事件补了以后这个局部事务是成功完成的。
-		}
-
-		// 开始登录流程，先准备 link-state。
-		var loginVersionSerialId = online.getLastLoginVersion() + 1;
-		online.setLastLoginVersion(loginVersionSerialId);
-		loginOnline.setLoginVersion(loginVersionSerialId);
-		loginLocal.setLoginVersion(loginVersionSerialId);
-
-		loginOnline.setLink(new BLink(session.getLinkName(), session.getLinkSid(), eLogined));
-
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.getUserState().setContext(rpc.Argument.getClientId());
-			//noinspection DataFlowIssue
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
-
-		loginOnline.setServerId(providerApp.zeze.getConfig().getServerId());
-
-		/////////////////////////////////////////////////////////////
-		// 先发结果，再发送同步数据（ReliableNotifySync）。
-		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
-		session.respond(rpc);
-		var ret = reloginTrigger(account, rpc.Argument.getClientId());
+		if (!relogin)
+			return loginTrigger(account, clientId);
+		var ret = reloginTrigger(account, clientId);
 		if (0 != ret)
 			return ret;
 
-		var syncResultCode = reliableNotifySync(account, rpc.Argument.getClientId(),
-				session, rpc.Argument.getReliableNotifyConfirmIndex(), true);
+		var syncResultCode = reliableNotifySync(account, clientId,
+				session, confirmIndex, true);
 
 		if (syncResultCode != ResultCodeSuccess)
 			return errorCode((short)syncResultCode);
 
 		return Procedure.Success;
+	}
+
+	@TransactionLevelAnnotation(Level = TransactionLevel.None)
+	@Override
+	protected long ProcessReLoginRequest(ReLogin rpc) {
+		return processLogin(rpc, rpc.Argument.getClientId(), true, rpc.Argument.getReliableNotifyConfirmIndex());
 	}
 
 	@Override
