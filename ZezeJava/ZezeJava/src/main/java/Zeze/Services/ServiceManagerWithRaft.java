@@ -213,7 +213,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					tableLoadObservers.remove(key);
 			}
 		} catch (Exception e) {
-			logger.error("cleanup loadObservers for session {} failed", name, e);
+			// 回滚本轮清理，保留会话行供closeSession重试及周期对账再次定位。
+			throw Zeze.Util.Task.forceThrow(e);
 		}
 		tableSession.remove(name);
 	}

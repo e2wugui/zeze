@@ -400,6 +400,49 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 
 	@Test
 	@Timeout(90)
+	public void testObserverCleanupFailureRetainsSessionForRetry() throws Exception {
+		var peer = new Peer("ObserverCleanupPeer");
+		try {
+			sendLogin(peer, peer.connect(leaderPort()), "UnitTest.CTR.Cleanup", 30_000);
+			var manager = servers.get(leaderIndex());
+			var rocks = rocksList.get(leaderIndex());
+			var row = requireNonNull(readSession("UnitTest.CTR.Cleanup"));
+			var observers = field("tableLoadObservers").get(manager);
+			var rawField = Table.class.getDeclaredField("rocksTable");
+			rawField.setAccessible(true);
+			var raw = (Zeze.Util.RocksDatabase.Table)rawField.get(observers);
+			var key = Zeze.Serialize.ByteBuffer.Allocate();
+			key.WriteString("UnitTest.CTR.MalformedObserver");
+			var cleanup = ServiceManagerWithRaft.class.getDeclaredMethod("cleanupSessionRow", String.class, long.class);
+			cleanup.setAccessible(true);
+			manager.lock();
+			try {
+				raw.put(key.CopyIf(), new byte[]{(byte)0xff}); // 正常walk会抛出解码异常。
+				try {
+					var result = rocks.newProcedure(() -> {
+						cleanup.invoke(manager, "UnitTest.CTR.Cleanup", row.getSessionId());
+						return 0;
+					}).call();
+					Assertions.assertNotEquals(0, result, "观察者清理失败必须使清理事务失败");
+					Assertions.assertNotNull(readSession("UnitTest.CTR.Cleanup"), "失败后保留周期对账入口");
+				} finally {
+					raw.delete(key.CopyIf());
+				}
+				Assertions.assertEquals(0, rocks.newProcedure(() -> {
+					cleanup.invoke(manager, "UnitTest.CTR.Cleanup", row.getSessionId());
+					return 0;
+				}).call());
+				Assertions.assertNull(readSession("UnitTest.CTR.Cleanup"), "重试成功后删除会话行");
+			} finally {
+				manager.unlock();
+			}
+		} finally {
+			peer.stop();
+		}
+	}
+
+	@Test
+	@Timeout(90)
 	public void testLoginRollbackKeepsTransportSession() throws Exception {
 		var peer = new Peer("LoginRollbackPeer");
 		try {
