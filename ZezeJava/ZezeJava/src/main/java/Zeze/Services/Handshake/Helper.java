@@ -52,6 +52,14 @@ public final class Helper {
 	}
 
 	public static BigInteger computeDHKey(int group, BigInteger response, BigInteger rand) {
-		return response.modPow(rand, dh_group[group]);
+		if (!isDHGroupSupported(group))
+			throw new IllegalArgumentException("unsupported DH group: " + group);
+		var p = dh_group[group];
+		// RFC 2409 (1,2) / RFC 3526 (5,14..18): p=2q+1, g=2.
+		// Exclude the only small-order elements (1 and p-1) and non-canonical residues.
+		// This also rejects negative values from the existing signed big-endian wire encoding.
+		if (response.compareTo(BigInteger.ONE) <= 0 || response.compareTo(p.subtract(BigInteger.ONE)) >= 0)
+			throw new IllegalArgumentException("invalid DH public value for group " + group);
+		return response.modPow(rand, p);
 	}
 }
