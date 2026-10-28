@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import Zeze.Transaction.EmptyBean;
 
@@ -110,8 +112,7 @@ public class TestByteBufferSafety {
 		assertThrows(IllegalStateException.class,
 				() -> ByteBuffer.Wrap(tooDeep.clone()).SkipUnknownField(tag));
 
-		// 异常路径不泄漏深度计数：同线程继续skip深层（合法）成功——
-		// 若finally复位缺失，残留depth会让本线程任何skip都误抛
+		// 超限失败后，同线程继续跳过合法的深层字段成功。
 		var bb2 = ByteBuffer.Wrap(tooDeep.clone());
 		assertThrows(IllegalStateException.class, () -> bb2.SkipUnknownField(tag));
 		var bb3 = ByteBuffer.Wrap(deepest.clone());
@@ -124,6 +125,104 @@ public class TestByteBufferSafety {
 		var nbb = NioByteBuffer.Wrap(deepest.clone(), deepest.length);
 		nbb.SkipUnknownField(tag);
 		assertTrue(nbb.isEmpty());
+	}
+
+	private static byte[] mixedNestedFieldBytes(int depth, boolean mapKeys) {
+		int[] types = {IByteBuffer.BEAN, IByteBuffer.LIST, IByteBuffer.MAP, IByteBuffer.DYNAMIC};
+		var bb = ByteBuffer.Allocate();
+		for (int i = 0; i < depth; i++) {
+			int childType = types[(i + 1) % types.length];
+			boolean hasChild = i + 1 < depth;
+			switch (types[i % types.length]) {
+			case IByteBuffer.DYNAMIC:
+				bb.WriteLong(0); // typeId
+				//noinspection fallthrough
+			case IByteBuffer.BEAN:
+				if (hasChild)
+					bb.WriteByte(0x10 | childType);
+				break;
+			case IByteBuffer.LIST:
+				bb.WriteByte(hasChild ? 0x10 | childType : IByteBuffer.INTEGER);
+				break;
+			case IByteBuffer.MAP:
+				bb.WriteByte(hasChild ? (mapKeys ? childType << IByteBuffer.TAG_SHIFT : childType) : 0);
+				bb.WriteUInt(hasChild ? 1 : 0);
+				if (hasChild && !mapKeys)
+					bb.WriteLong(0); // key，value为下一层
+				break;
+			default:
+				throw new AssertionError();
+			}
+		}
+		for (int i = depth - 1; i >= 0; i--) {
+			int type = types[i % types.length];
+			if (type == IByteBuffer.BEAN || type == IByteBuffer.DYNAMIC)
+				bb.WriteByte(0);
+			else if (type == IByteBuffer.MAP && mapKeys && i + 1 < depth)
+				bb.WriteLong(0); // key为下一层，随后才是value
+		}
+		return bb.Copy();
+	}
+
+	@Test
+	public void testSkipUnknownFieldMixedDepthLimit() {
+		int tag = 0x10 | IByteBuffer.BEAN;
+		for (boolean mapKeys : new boolean[]{false, true}) {
+			for (int depth = IByteBuffer.MAX_SKIP_UNKNOWN_FIELD_DEPTH - 3;
+					depth <= IByteBuffer.MAX_SKIP_UNKNOWN_FIELD_DEPTH + 1; depth++) {
+				var bytes = mixedNestedFieldBytes(depth, mapKeys);
+				for (IByteBuffer bb : new IByteBuffer[]{ByteBuffer.Wrap(bytes), NioByteBuffer.Wrap(bytes, bytes.length)}) {
+					if (depth <= IByteBuffer.MAX_SKIP_UNKNOWN_FIELD_DEPTH) {
+						bb.SkipUnknownField(tag);
+						assertTrue(bb.isEmpty());
+					} else {
+						var ex = assertThrows(IllegalStateException.class, () -> bb.SkipUnknownField(tag));
+						assertTrue(ex.getMessage().contains("depth > " + IByteBuffer.MAX_SKIP_UNKNOWN_FIELD_DEPTH));
+					}
+				}
+			}
+		}
+	}
+
+	@Test
+	public void testSkipUnknownFieldCollectionSiblings() {
+		int count = IByteBuffer.MAX_SKIP_UNKNOWN_FIELD_DEPTH * 2;
+		var encoded = ByteBuffer.Allocate();
+		encoded.WriteByte((IByteBuffer.FLOAT << IByteBuffer.TAG_SHIFT) | IByteBuffer.FLOAT);
+		encoded.WriteUInt(count);
+		for (int i = 0; i < count * 2; i++)
+			encoded.WriteFloat(i);
+		var bytes = encoded.Copy();
+		for (IByteBuffer bb : new IByteBuffer[]{ByteBuffer.Wrap(bytes), NioByteBuffer.Wrap(bytes, bytes.length)}) {
+			bb.SkipUnknownField(0x10 | IByteBuffer.MAP);
+			assertTrue(bb.isEmpty()); // 兄弟元素不累积深度，map的float key/value均消费4字节。
+		}
+
+		var list = ByteBuffer.Allocate();
+		list.WriteListType(count, IByteBuffer.BEAN);
+		for (int i = 0; i < count; i++)
+			list.WriteByte(0);
+		bytes = list.Copy();
+		for (IByteBuffer bb : new IByteBuffer[]{ByteBuffer.Wrap(bytes), NioByteBuffer.Wrap(bytes, bytes.length)}) {
+			bb.SkipUnknownField(0x10 | IByteBuffer.LIST);
+			assertTrue(bb.isEmpty());
+		}
+	}
+
+	@Test
+	public void testSkipUnknownFieldDepthLimitOnVirtualThreads() throws Exception {
+		try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+			var futures = new ArrayList<Future<?>>();
+			for (int i = 0; i < 16; i++) {
+				futures.add(executor.submit(() -> {
+					assertTrue(Thread.currentThread().isVirtual());
+					testSkipUnknownFieldMixedDepthLimit();
+					testSkipUnknownFieldDepthLimit(); // 超限后同一虚拟线程仍可正常跳过。
+				}));
+			}
+			for (var future : futures)
+				future.get();
+		}
 	}
 
 	@Test

@@ -701,24 +701,16 @@ public interface IByteBuffer {
 	// 恶意深嵌套流(每层最少2-3字节)可让无界递归触发StackOverflowError穿透catch(Exception)
 	int MAX_SKIP_UNKNOWN_FIELD_DEPTH = 100;
 
-	// 递归族嵌套深度计数(线程封闭，解码本身单线程)；接口字段只能公开，仅框架内部使用，外部不要读写
-	ThreadLocal<Integer> SKIP_UNKNOWN_FIELD_DEPTH = ThreadLocal.withInitial(() -> 0);
-
 	default void SkipUnknownField(int tag) {
-		int depth = SKIP_UNKNOWN_FIELD_DEPTH.get() + 1;
+		skipUnknownField(tag, 1);
+	}
+
+	// 深度只属于本次跳过调用链，显式传递以免为每个(虚拟)线程建立ThreadLocal状态。
+	private void skipUnknownField(int tag, int depth) {
 		if (depth > MAX_SKIP_UNKNOWN_FIELD_DEPTH) {
 			throw new IllegalStateException("SkipUnknownField: depth > " + MAX_SKIP_UNKNOWN_FIELD_DEPTH
 					+ " at " + getReadIndex() + '/' + getWriteIndex());
 		}
-		SKIP_UNKNOWN_FIELD_DEPTH.set(depth);
-		try {
-			skipUnknownFieldBody(tag);
-		} finally {
-			SKIP_UNKNOWN_FIELD_DEPTH.set(depth - 1); // 异常路径也复位：计数泄漏会让本线程后续skip全部误抛
-		}
-	}
-
-	private void skipUnknownFieldBody(int tag) {
 		int type = tag & TAG_MASK;
 		switch (type) {
 		case INTEGER:
@@ -754,12 +746,18 @@ public interface IByteBuffer {
 		case LIST:
 			//noinspection LocalVariableUsedAndDeclaredInDifferentSwitchBranches
 			int t = ReadByte();
-			SkipUnknownField(t, ReadTagSize(t));
+			for (int n = ReadTagSize(t); n > 0; n--)
+				skipUnknownField(t, depth + 1);
 			return;
 		case MAP:
 			t = ReadByte();
 			// ReadUInt无符号语义可为负：负count让跳过循环零迭代，map体滞留导致读指针错位。
-			SkipUnknownField(t >> TAG_SHIFT, t, ReadUIntPositive());
+			int keyTag = (t >> TAG_SHIFT) | 0x10; // ensure high bits not zero
+			t |= 0x10;
+			for (int n = ReadUIntPositive(); n > 0; n--) {
+				skipUnknownField(keyTag, depth + 1);
+				skipUnknownField(t, depth + 1);
+			}
 			return;
 		case DYNAMIC:
 			SkipLong();
@@ -768,7 +766,7 @@ public interface IByteBuffer {
 			while ((t = ReadByte()) != 0) {
 				if ((t & ID_MASK) == 0xf0)
 					SkipUInt();
-				SkipUnknownField(t);
+				skipUnknownField(t, depth + 1);
 			}
 			return;
 		default:

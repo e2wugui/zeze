@@ -234,7 +234,6 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void encode(ByteBuffer bb) {
 		// Log基类字段（unique/createTime/rpcResult）必须随日志持久化（对齐HeartbeatLog等
@@ -250,7 +249,8 @@ public final class Changes extends Zeze.Raft.Log {
 			// encode TableKey
 			r.getValue().setTableByName(this, Objects.requireNonNull(r.getValue().getTableTemplateName()));
 			bb.WriteString(r.getKey().name);
-			((Table<Object, Bean>)Objects.requireNonNull(r.getValue().table)).encodeKey(bb, Objects.requireNonNull(r.getKey().key));
+			//noinspection unchecked,DataFlowIssue
+			((Table<Object, Bean>)r.getValue().table).encodeKey(bb, Objects.requireNonNull(r.getKey().key));
 
 			// encode record
 			r.getValue().encode(bb);
