@@ -139,10 +139,14 @@ public class RedoQueue extends HandshakeClient {
 	// 重启时start()再补一次（清崩溃残留）。边界必须按WriteIndex截断后传入：deleteRange
 	// 按字节序整比较，未截断的enc(N+1)填充数组会把真前缀key(N+1)（下一跳待发任务）也括进区间。
 	private void deleteDoneTasks() throws RocksDBException {
+		deleteDoneTasks(lastDoneTaskId);
+	}
+
+	private void deleteDoneTasks(long doneTaskId) throws RocksDBException {
 		var first = ByteBuffer.Allocate(9);
 		first.WriteLong(0);
 		var end = ByteBuffer.Allocate(9);
-		end.WriteLong(lastDoneTaskId + 1);
+		end.WriteLong(doneTaskId + 1);
 		Objects.requireNonNull(tableTaskQueue).deleteRange(Arrays.copyOf(first.Bytes, first.WriteIndex),
 				Arrays.copyOf(end.Bytes, end.WriteIndex));
 	}
@@ -192,6 +196,16 @@ public class RedoQueue extends HandshakeClient {
 		}
 	}
 
+	private void persistCompletion(long taskId) throws RocksDBException {
+		var value = ByteBuffer.Allocate(9);
+		value.WriteLong(taskId);
+		// 完成水位先落盘，删除失败可重放本次应答；内存仅在两步均完成后发布。
+		//noinspection DataFlowIssue
+		tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
+		deleteDoneTasks(taskId);
+		lastDoneTaskId = taskId;
+	}
+
 	private long processRunTaskResult(Rpc<BQueueTask, BTaskId> rpc) throws Exception {
 		lock();
 		try {
@@ -202,20 +216,15 @@ public class RedoQueue extends HandshakeClient {
 			if (null == tableTaskQueue)
 				return Procedure.LogicError; // stop与响应回调竞态：stop持锁清理时未清pending，表已置null（同scheduleRetry内的守卫）
 			if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
+				var doneTaskId = Math.max(lastDoneTaskId, rpc.Result.getTaskId());
 				// 服务端水位只能单向推进：ErrorRequestId回包携带的服务端进度在服务端状态回退
 				//（换库/清数据/同名队列接新实例）时会小于本地水位，反向写小并持久化会让
 				// deleteDoneTasks删错区间、泵读已删区间命中hole停摆。钳制+告警。
 				if (rpc.Result.getTaskId() < lastDoneTaskId) {
 					logger.warn("server watermark regressed, keep local. queue={}, local={}, server={}",
 							getName(), lastDoneTaskId, rpc.Result.getTaskId());
-				} else {
-					lastDoneTaskId = rpc.Result.getTaskId();
 				}
-				var value = ByteBuffer.Allocate(9);
-				value.WriteLong(lastDoneTaskId);
-				//noinspection DataFlowIssue
-				tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
-				deleteDoneTasks();
+				persistCompletion(doneTaskId);
 				tryStartSendNextTask(null, rpc.getSender());
 				return 0L;
 			}
@@ -227,6 +236,9 @@ public class RedoQueue extends HandshakeClient {
 					getName(), rpc.Argument.getTaskId(), rpc.getResultCode());
 			scheduleRetry();
 			return rpc.getResultCode();
+		} catch (RocksDBException e) {
+			scheduleRetry();
+			throw e;
 		} finally {
 			unlock();
 		}
@@ -244,6 +256,7 @@ public class RedoQueue extends HandshakeClient {
 					return; // stop与已触发的重试竞态：stop持锁先完成（cancel拦不住已启动的任务），db已关闭
 				tryStartSendNextTask(null, null);
 			} catch (RocksDBException e) {
+				scheduleRetry();
 				throw Task.forceThrow(e);
 			} finally {
 				unlock();
