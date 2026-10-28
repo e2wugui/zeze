@@ -178,7 +178,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			try {
 				loadTimer();
 			} catch (Exception e) {
-				started = false;
+				try {
+					stop(); // 复用正常停止路径撤销此前节点已安装的future和热更观察者。
+				} catch (Exception cleanup) {
+					e.addSuppressed(cleanup);
+				}
 				throw e;
 			}
 		} finally {
@@ -1525,21 +1529,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			var nodeId = node.value;
 			if (!idSet.add(nodeId)) // 检测并避免死循环
 				break;
-			// skip error. 使用node返回的值决定是否继续循环。
 			var r = TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
 				loadTimer(node, last);
 				return 0;
 			}, "Timer.loadTimer")).call();
-			if (r != Procedure.Success) {
-				logger.error("loadTimer failed: r={}, nodeId={}", r, nodeId);
-				try {
-					//noinspection BusyWait
-					Thread.sleep(1000); // 避免因FastErrorPeriod导致过于频繁的事务失败
-				} catch (InterruptedException ignored) {
-					Thread.currentThread().interrupt();
-					return; // 中断意味着停止，退出重试循环（否则恢复的标记使后续sleep立即再抛，形成忙等）
-				}
-			}
+			if (r != Procedure.Success)
+				throw new IllegalStateException("Timer.loadTimer failed: r=" + r + ", nodeId=" + nodeId);
 		} while (node.value != last);
 	}
 
@@ -1551,9 +1546,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			return; // when root is empty。no node。skip error.
 		}
 		// nodeId是in&out的：直接设置nodeId.value会在redo时跳过当前node，
-		// 须在commit/rollback回调中设置下一个node。
-		Transaction.whileCommit(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
-		Transaction.whileRollback(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
+		// 仅提交成功才推进游标；回滚/重试必须保留本次节点。
+		var nextNodeId = node.getNextNodeId();
+		Transaction.whileCommit(() -> nodeId.value = nextNodeId);
 
 			var now = System.currentTimeMillis();
 			var appVer = getZeze().getConfig().getAppVersion();
