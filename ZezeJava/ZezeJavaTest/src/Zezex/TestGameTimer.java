@@ -81,7 +81,7 @@ public class TestGameTimer {
 			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role0");
 			ZezexTestEnv.login(client0, roleId);
 
-			var timerRole0 = Objects.requireNonNull(timer0).getRoleTimer();
+			var timerRole0 = timer0.getRoleTimer();
 			TestBean bean = new TestBean();
 			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				//timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, bean);
@@ -173,7 +173,7 @@ public class TestGameTimer {
 			var server0 = env.servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
 
-			var timerRole0 = Objects.requireNonNull(timer0).getRoleTimer();
+			var timerRole0 = timer0.getRoleTimer();
 
 			// 注册登录客户端0
 			log("注册登录客户端0");

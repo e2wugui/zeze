@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import static java.util.Objects.requireNonNull;
-
 import Zeze.BMyBean;
 import Zeze.Application;
 import Zeze.Builtin.Collections.Queue.BQueue;
@@ -75,7 +73,7 @@ public class TestTakeoverTransfer {
 	 */
 	private static void forgeDeadQueue(Application app, String queueName, int deadServerId, long deadEpoch, int... values) {
 		var deadName = queueName + "@" + deadServerId;
-		var deadCsq = new CsQueue<>(requireNonNull(app.getQueueModule()), queueName, deadServerId, BMyBean.class, 10);
+		var deadCsq = new CsQueue<>(app.getQueueModule(), queueName, deadServerId, BMyBean.class, 10);
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
 			for (var i : values) {
 				var v = new BMyBean();
@@ -109,14 +107,14 @@ public class TestTakeoverTransfer {
 			app.start();
 			var myId = conf.getServerId();
 			var module = app.getQueueModule();
-			var csq = new CsQueue<>(requireNonNull(module), "TestTakeoverTransferQ", myId, BMyBean.class, 10);
+			var csq = new CsQueue<>(module, "TestTakeoverTransferQ", myId, BMyBean.class, 10);
 			var csq2 = new CsQueue<>(module, "TestTakeoverTransferQ2", myId, BMyBean.class, 10);
 			var csq3 = new CsQueue<>(module, "TestTakeoverTransferQ3", myId, BMyBean.class, 10);
 
 			// 死者777：过期租约(epoch=5, root stamp=5) + 队列数据[1,2]。
 			forgeDeadQueue(app, "TestTakeoverTransferQ", 777, 5, 1, 2);
 			TakeoverTestEnv.forgeLease(app, 777, 5, System.currentTimeMillis() - 1_000);
-			requireNonNull(app.getTakeover()).tryTransfer(777);
+			app.getTakeover().tryTransfer(777);
 			TakeoverTestEnv.waitTryTransferQueue();
 
 			// 搬运到我的队列：接管数据拼到开头，poll按原顺序取回。
@@ -137,14 +135,14 @@ public class TestTakeoverTransfer {
 			Assertions.assertEquals(0L, lease[1], "接管成功后租约应立墓碑");
 
 			// 幂等：重复tryTransfer看到墓碑直接退出，不再动数据。
-			requireNonNull(app.getTakeover()).tryTransfer(777);
+			app.getTakeover().tryTransfer(777);
 			TakeoverTestEnv.waitTryTransferQueue();
 			Assertions.assertArrayEquals(new int[] {-1, -1}, pollTwo(app, csq), "重复接管不得产生重复数据");
 
 			// 双命名队列：另一个名字的队列各自独立接管（notifyId错位回归的替身）。
 			forgeDeadQueue(app, "TestTakeoverTransferQ2", 778, 6, 42);
 			TakeoverTestEnv.forgeLease(app, 778, 6, System.currentTimeMillis() - 1_000);
-			requireNonNull(app.getTakeover()).tryTransfer(778);
+			app.getTakeover().tryTransfer(778);
 			TakeoverTestEnv.waitTryTransferQueue();
 			Assertions.assertArrayEquals(new int[] {42, -1}, pollTwo(app, csq2));
 			Assertions.assertArrayEquals(new int[] {-1, -1}, pollTwo(app, csq), "别的队列的接管数据不得串到本队列");
@@ -154,7 +152,7 @@ public class TestTakeoverTransfer {
 			// 旧守卫在此return 0且照常立租约墓碑，积压被scanOnce永久跳过而搁浅。
 			forgeDeadQueue(app, "TestTakeoverTransferQ3", 779, 5, 99);
 			TakeoverTestEnv.forgeLease(app, 779, 9, System.currentTimeMillis() - 1_000);
-			requireNonNull(app.getTakeover()).tryTransfer(779);
+			app.getTakeover().tryTransfer(779);
 			TakeoverTestEnv.waitTryTransferQueue();
 			Assertions.assertArrayEquals(new int[] {99, -1}, pollTwo(app, csq3), "epoch不匹配的死者积压也必须搬运（claim-stamp崩溃窗口）");
 			Assertions.assertEquals(0L, TakeoverTestEnv.readLease(app, 779)[1], "搬运完成后租约应立墓碑");
@@ -200,7 +198,7 @@ public class TestTakeoverTransfer {
 			Assertions.assertEquals(0L, rc);
 			TakeoverTestEnv.forgeLease(app, 777, 5, System.currentTimeMillis() - 1_000);
 
-			requireNonNull(app.getTakeover()).tryTransfer(777);
+			app.getTakeover().tryTransfer(777);
 			TakeoverTestEnv.waitTryTransferQueue();
 
 			var assertRc = TaskSpec.ofProcedure(app.newProcedure(() -> {
@@ -227,7 +225,7 @@ public class TestTakeoverTransfer {
 			}, "TestTakeoverTransfer.forgeHighVersion")).call();
 			Assertions.assertEquals(0L, rcVeto);
 			TakeoverTestEnv.forgeLease(app, 888, 5, System.currentTimeMillis() - 1_000);
-			requireNonNull(app.getTakeover()).tryTransfer(888);
+			app.getTakeover().tryTransfer(888);
 			TakeoverTestEnv.waitTryTransferQueue();
 
 			var lease888 = TakeoverTestEnv.readLease(app, 888);
@@ -263,7 +261,7 @@ public class TestTakeoverTransfer {
 			}, "TestTakeoverTransfer.forgeStaleStampTimer")).call();
 			Assertions.assertEquals(0L, rc887);
 			TakeoverTestEnv.forgeLease(app, 887, 5, System.currentTimeMillis() - 1_000);
-			requireNonNull(app.getTakeover()).tryTransfer(887);
+			app.getTakeover().tryTransfer(887);
 			TakeoverTestEnv.waitTryTransferQueue();
 
 			var assert887 = TaskSpec.ofProcedure(app.newProcedure(() -> {
@@ -306,13 +304,13 @@ public class TestTakeoverTransfer {
 		var app = new Application("TestTakeoverTransferRetry", conf);
 		try {
 			app.start();
-			var csq = new CsQueue<>(requireNonNull(app.getQueueModule()), "TestTakeoverTransferQ4", conf.getServerId(), BMyBean.class, 10);
+			var csq = new CsQueue<>(app.getQueueModule(), "TestTakeoverTransferQ4", conf.getServerId(), BMyBean.class, 10);
 
 			// 889还活着（400ms后过期）：tryTransfer立即放弃（flap场景），不搬不立碑。
 			forgeDeadQueue(app, "TestTakeoverTransferQ4", 889, 8, 7);
 			var expireAt = System.currentTimeMillis() + 400;
 			TakeoverTestEnv.forgeLease(app, 889, 8, expireAt);
-			requireNonNull(app.getTakeover()).tryTransfer(889);
+			app.getTakeover().tryTransfer(889);
 			TakeoverTestEnv.waitTryTransferQueue();
 
 			var notYet = TakeoverTestEnv.readLease(app, 889);
@@ -348,7 +346,7 @@ public class TestTakeoverTransfer {
 			var myId = conf.getServerId();
 			timer.loadCustomClassAnd();
 			timer.start();
-			var csq = new CsQueue<>(requireNonNull(app.getQueueModule()), "TestTakeoverScaleDownQ", myId, BMyBean.class, 10);
+			var csq = new CsQueue<>(app.getQueueModule(), "TestTakeoverScaleDownQ", myId, BMyBean.class, 10);
 
 			// 死者777：队列[1,2]（stamp=epoch=5）+ 单节点timer链（1小时后才触发）。
 			forgeDeadQueue(app, "TestTakeoverScaleDownQ", 777, 5, 1, 2);
@@ -377,7 +375,7 @@ public class TestTakeoverTransfer {
 			TakeoverTestEnv.forgeLease(app, 777, 5, graceExpireAt);
 
 			// 宽限期内：tryTransfer让位于精确重试，不搬不立碑。
-			requireNonNull(app.getTakeover()).tryTransfer(777);
+			app.getTakeover().tryTransfer(777);
 			TakeoverTestEnv.waitTryTransferQueue();
 			Assertions.assertEquals(graceExpireAt, TakeoverTestEnv.readLease(app, 777)[1], "宽限期内不得动租约");
 			Assertions.assertArrayEquals(new int[] {-1, -1}, pollTwo(app, csq), "宽限期内不得搬运");

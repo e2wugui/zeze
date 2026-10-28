@@ -216,6 +216,7 @@ public final class FastServerIds {
 	public static final int TEST_RRS_READ_FAST_PATH_OLD_TABLE = seg("TestRrsReadFastPathOldTableMigration", 7800, 1);
 	// 仅 manager-cycle child 构造一个未启动的 NoDatabase Application。
 	public static final int TEST_PERIODIC_TASK_HOT_GUARD_CANCELLATION = seg("TestPeriodicTaskHotGuardCancellation", 7850, 1);
+	public static final int TEST_APPLICATION_COMPONENT_ACCESS = seg("TestApplicationComponentAccess", 7860, 1);
 
 	private FastServerIds() {
 	}

@@ -21,7 +21,7 @@ public class TestTakeoverLateQueue {
 		var app = new Application("TakeoverLateQueue", TakeoverTestEnv.newConf("on", 600_000, 600_000));
 		try {
 			app.start();
-			requireNonNull(app.getQueueModule()).open("register-value", BMyBean.class);
+			app.getQueueModule().open("register-value", BMyBean.class);
 			var roots = (TableX<String, BQueue>)app.getTable("Zeze_Builtin_Collections_Queue_tQueues");
 			var nodes = (TableX<BQueueNodeKey, BQueueNode>)app.getTable("Zeze_Builtin_Collections_Queue_tQueueNodes");
 			var deadId = app.getConfig().getServerId() + 20_000;
@@ -43,7 +43,7 @@ public class TestTakeoverLateQueue {
 			TakeoverTestEnv.forgeLease(app, deadId, 3, 0); // 旧进程完成其他scope后留下的持久墓碑。
 			var live = app.getQueueModule().openCsQueue("late", BMyBean.class);
 			TakeoverTestEnv.waitTryTransferQueue();
-			requireNonNull(app.getTakeover()).tryTransfer(deadId);
+			app.getTakeover().tryTransfer(deadId);
 			TakeoverTestEnv.waitTryTransferQueue();
 			assertEquals(0, app.newProcedure(() -> {
 				assertEquals(1, live.size());

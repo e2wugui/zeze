@@ -47,7 +47,7 @@ public class TestSafeBatch {
 		App.getInstance().getZeze().checkpointRun(); // walk 需要保存数据。
 
 		App.getInstance().getZeze().newProcedure(() -> {
-			requireNonNull(App.getInstance().getZeze().getSafeBatch()).startWalkTable(
+			App.getInstance().getZeze().getSafeBatch().startWalkTable(
 				requireNonNull(App.getInstance().demo_Module1).getTable5(),
 				(safeBatch, key, value) -> {
 					walkedTableKeys.add(key);
@@ -58,14 +58,14 @@ public class TestSafeBatch {
 		}, "startWalkTable").call();
 
 		App.getInstance().getZeze().newProcedure(() -> {
-			requireNonNull(App.getInstance().getZeze().getSafeBatch()).startWalkList(
+			App.getInstance().getZeze().getSafeBatch().startWalkList(
 				requireNonNull(App.getInstance().demo_Module1).getTable5(), 1L, new WalkList(), 1000, 1);
 			return 0;
 		}, "startWalkList").call();
 
 
 		App.getInstance().getZeze().newProcedure(() -> {
-			requireNonNull(App.getInstance().getZeze().getSafeBatch()).startWalkSortedMap(
+			App.getInstance().getZeze().getSafeBatch().startWalkSortedMap(
 				requireNonNull(App.getInstance().demo_Module1).getTable5(), 1L, new WalkSortedMap(), 1000, 1);
 			return 0;
 		}, "startWalkSortedMap").call();
@@ -114,7 +114,7 @@ public class TestSafeBatch {
 		var jobIdMap = new String[1];
 		App.getInstance().getZeze().newProcedure(() -> {
 			// 记录 99 不存在：WalkList/WalkSortedMap 的 get*OutTransaction 均返回 null
-			jobIdList[0] = requireNonNull(safeBatch).startWalkList(table, 99L, new WalkList(), 200, 1);
+			jobIdList[0] = safeBatch.startWalkList(table, 99L, new WalkList(), 200, 1);
 			jobIdMap[0] = safeBatch.startWalkSortedMap(table, 99L, new WalkSortedMap(), 200, 1);
 			return 0;
 		}, "startMissingRecordBatches").call();
@@ -133,7 +133,7 @@ public class TestSafeBatch {
 	private @Nullable Object queryBatch(String jobId) {
 		var out = new Object[1];
 		App.getInstance().getZeze().newProcedure(() -> {
-			out[0] = requireNonNull(App.getInstance().getZeze().getSafeBatch()).getBatch(jobId);
+			out[0] = App.getInstance().getZeze().getSafeBatch().getBatch(jobId);
 			return 0;
 		}, "queryBatch_" + jobId).call();
 		return out[0];

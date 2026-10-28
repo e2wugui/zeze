@@ -193,9 +193,7 @@ public class ProviderApp extends ReentrantLock {
 			//noinspection DataFlowIssue
 			providerImplement.registerModulesAndSubscribeLinkd();
 			startLast = true;
-			//noinspection DataFlowIssue
 			zeze.getTimer().start();
-			//noinspection DataFlowIssue
 			zeze.getSafeBatch().start();
 			//noinspection DataFlowIssue
 			zeze.getAppBase().startLastModules();

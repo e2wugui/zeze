@@ -653,7 +653,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				return 0; // 不在本机登录。
 			loginOnline.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 			var zezeGhost = providerApp.zeze;
-			Objects.requireNonNull(zezeGhost.getTimer()).schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
+			zezeGhost.getTimer().schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
 					DelayLogout.class, new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion(),
 							zezeGhost.getProjectName()));
 			return 0;
@@ -670,7 +670,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// shorter use
 		var zeze = providerApp.zeze;
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
-		Objects.requireNonNull(zeze.getTimer()).schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class,
+		zeze.getTimer().schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class,
 				new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion(), zeze.getProjectName()));
 		return 0;
 	}
@@ -704,11 +704,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private Zeze.Collections.Queue<BNotify> openQueue(String account, String clientId) {
 		if (usesEncodedReliableQueue(account, clientId) && account.indexOf('@') < 0 && clientId.indexOf('@') < 0) {
 			// 旧colon身份可能与其他身份共享队列，消息没有身份标记，不能自动归属/搬运。
-			var legacy = Objects.requireNonNull(providerApp.zeze.getQueueModule()).open(legacyReliableQueueName(account, clientId), BNotify.class);
+			var legacy = providerApp.zeze.getQueueModule().open(legacyReliableQueueName(account, clientId), BNotify.class);
 			if (!legacy.isEmpty())
 				throw new IllegalStateException("drain the legacy reliable queue before migrating account/clientId");
 		}
-		return Objects.requireNonNull(providerApp.zeze.getQueueModule()).open(
+		return providerApp.zeze.getQueueModule().open(
 				reliableNotifyQueueName(account, clientId), BNotify.class);
 	}
 

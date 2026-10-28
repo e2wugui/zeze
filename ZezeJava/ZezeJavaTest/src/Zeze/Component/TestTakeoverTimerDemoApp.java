@@ -101,7 +101,7 @@ public class TestTakeoverTimerDemoApp {
 	public void testTimerTakeoverFires() throws Exception {
 		var app = App.Instance.Zeze;
 		Assertions.assertNotNull(requireNonNull(app).getTimer(), "demo.App的Timer必须已由ProviderApp.startLast启动");
-		Assertions.assertNotEquals("off", requireNonNull(app.getTakeover()).getMode(), "demo.App的Takeover必须启用（默认on）");
+		Assertions.assertNotEquals("off", app.getTakeover().getMode(), "demo.App的Takeover必须启用（默认on）");
 
 		// 伪造死者777的单节点循环链：1个simple timer，1.5秒后触发（接管后应在本进程fire）。
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
@@ -125,7 +125,7 @@ public class TestTakeoverTimerDemoApp {
 
 		// 过期租约（epoch=5与root stamp对齐）→ 直接tryTransfer，等OneByOne队列排空。
 		TakeoverTestEnv.forgeLease(app, deadServerId, 5, System.currentTimeMillis() - 1_000);
-		requireNonNull(app.getTakeover()).tryTransfer(deadServerId);
+		app.getTakeover().tryTransfer(deadServerId);
 		TakeoverTestEnv.waitTryTransferQueue();
 
 		// 1) 接管裁决成功：租约立墓碑。

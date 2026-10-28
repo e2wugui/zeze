@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import java.util.Objects;
-
 import java.util.List;
 import Zeze.Application;
 import Zeze.Builtin.Timer.BGameOnlineTimer;
@@ -87,7 +85,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 
 	@Override
 	Timer timer() {
-		return Objects.requireNonNull(online.providerApp.zeze.getTimer());
+		return online.providerApp.zeze.getTimer();
 	}
 
 	@Override
@@ -469,7 +467,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 			return true; // 取消不存在的timer，认为成功。
 
 		var timer = online.providerApp.zeze.getTimer();
-		//noinspection DataFlowIssue
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
 			return false;
@@ -493,7 +490,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		// 归属校验（对齐TimerAccount.cancelOffline）：无校验直接timer.cancel时，
 		// 传入任意timerId（他人offline timer、全局命名timer）都会被越权取消，
 		// 且按调用者传入的roleId清理_tRoleOfflineTimers（typo时误删他行/真实归属行残留脏条目）。
-		//noinspection DataFlowIssue
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
 			return false;
@@ -560,10 +556,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			//noinspection DataFlowIssue
 			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
-		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
+		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
 		var config = timer.getZeze().getConfig();
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
@@ -650,16 +645,14 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			//noinspection DataFlowIssue
 			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
-			//noinspection DataFlowIssue
 			if (timer.cronEquals(index, timerId, builder, OfflineHandle.class, custom))
 				return;
 			cancel(timerId, roleId); // 先取消,下面再重建
 		}
-		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
+		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
 		var config = timer.getZeze().getConfig();
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
@@ -741,7 +734,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
-		//noinspection DataFlowIssue
 		if (timer.isOnlineTimerIdOccupied(timerId))
 			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
 		var index = timer.tIndexs().get(timerId);
@@ -785,7 +777,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 				// 归属反查镜像onTimer过期分支：Game.ProviderWithOnline按onlineSetName定位，否则兜底defaultOnline。
 				var providerApp = zeze.getProviderApp();
 				var providerImpl = providerApp != null ? providerApp.providerImplement : null;
-				//noinspection DataFlowIssue
 				var online = providerImpl instanceof ProviderWithOnline p
 					? p.getOnline(custom.getOnlineSetName()) : zeze.getTimer().getDefaultOnline();
 				if (online == null)
@@ -847,7 +838,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (offlineTimers != null) {
 			var timer = online.providerApp.zeze.getTimer();
 			for (var timerId : offlineTimers.getOfflineTimers().keySet())
-				//noinspection DataFlowIssue
 				timer.cancel(timerId);
 			// 嵌入本地服务器事件事务中，
 			// 删除之后，如果上面的redirectCancel失败，

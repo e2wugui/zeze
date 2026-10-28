@@ -230,7 +230,7 @@ public class HttpSession extends AbstractHttpSession {
 		// 不取消。
 		// scheduleNamed 是表操作，需要在事务内执行；HttpServer.start 调用时没有事务，这里包一个短Procedure。
 		var rc = zeze.newProcedure(() -> {
-			Objects.requireNonNull(zeze.getTimer()).scheduleNamed(GlobalHttpSessionExpiredTimer,
+			zeze.getTimer().scheduleNamed(GlobalHttpSessionExpiredTimer,
 					TimerSpec.ofCron("0 0 5 * * ?"),
 					ExpiredTimer.class);
 			return Procedure.Success;

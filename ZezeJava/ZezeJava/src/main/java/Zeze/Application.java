@@ -461,15 +461,22 @@ public final class Application extends ReentrantLock {
 		return autoKey.getOrAdd(name);
 	}
 
-	public @Nullable Timer getTimer() {
+	// 组件 getter 按正常已装配路径声明为非空；未装配或已拆除时仍可返回 null，供特殊路径探测。
+	@SuppressWarnings("NullableProblems")
+	public Timer getTimer() {
+		//noinspection DataFlowIssue
 		return timer;
 	}
 
-	public @Nullable SafeBatch getSafeBatch() {
+	@SuppressWarnings("NullableProblems")
+	public SafeBatch getSafeBatch() {
+		//noinspection DataFlowIssue
 		return safeBatch;
 	}
 
-	public Zeze.Collections.Queue.@Nullable Module getQueueModule() {
+	@SuppressWarnings("NullableProblems")
+	public Zeze.Collections.Queue.Module getQueueModule() {
+		//noinspection DataFlowIssue
 		return queueModule;
 	}
 
@@ -478,11 +485,15 @@ public final class Application extends ReentrantLock {
 		return history;
 	}
 
-	public @Nullable DelayRemove getDelayRemove() {
+	@SuppressWarnings("NullableProblems")
+	public DelayRemove getDelayRemove() {
+		//noinspection DataFlowIssue
 		return delayRemove;
 	}
 
-	public @Nullable Takeover getTakeover() {
+	@SuppressWarnings("NullableProblems")
+	public Takeover getTakeover() {
+		//noinspection DataFlowIssue
 		return takeover;
 	}
 

@@ -884,7 +884,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final void delayRemove(K key) {
-		//noinspection DataFlowIssue
 		getZeze().getDelayRemove().remove(this, key);
 	}
 

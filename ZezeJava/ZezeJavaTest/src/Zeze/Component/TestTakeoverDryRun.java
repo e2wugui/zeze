@@ -2,8 +2,6 @@ package Zeze.Component;
 
 import org.jspecify.annotations.Nullable;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
@@ -34,7 +32,7 @@ public class TestTakeoverDryRun {
 
 	private static void forgeLease(Application app, int serverId, long epoch, long expireAt) {
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
-			var lease = requireNonNull(app.getTakeover()).getTable().getOrAdd(serverId);
+			var lease = app.getTakeover().getTable().getOrAdd(serverId);
 			lease.setEpoch(epoch);
 			lease.setExpireAt(expireAt);
 			return 0L;
@@ -45,7 +43,7 @@ public class TestTakeoverDryRun {
 	private static long[] readLease(Application app, int serverId) {
 		var out = new long[2];
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
-			var lease = requireNonNull(app.getTakeover()).getTable().get(serverId);
+			var lease = app.getTakeover().getTable().get(serverId);
 			if (lease != null) {
 				out[0] = lease.getEpoch();
 				out[1] = lease.getExpireAt();
@@ -68,7 +66,7 @@ public class TestTakeoverDryRun {
 
 			var transferCalls = new AtomicInteger();
 			var stamps = new AtomicInteger();
-			requireNonNull(takeover).addScope(new TakeoverScope() {
+			takeover.addScope(new TakeoverScope() {
 				@Override
 				public String name() {
 					return "FakeScope";

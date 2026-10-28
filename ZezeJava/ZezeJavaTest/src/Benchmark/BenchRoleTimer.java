@@ -133,7 +133,7 @@ public class BenchRoleTimer {
 				log("batch login " + loginRoleIds.size() + " complete.");
 
 				var server0 = env.servers.getFirst();
-				var timerRole0 = Objects.requireNonNull(server0.getZeze().getTimer()).getRoleTimer();
+				var timerRole0 = server0.getZeze().getTimer().getRoleTimer();
 
 				for (var roleId : loginRoleIds) {
 					var idSet = batchContext.computeIfAbsent(roleId, (k) -> new ConcurrentHashSet<>());

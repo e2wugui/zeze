@@ -29,7 +29,7 @@ public class TestOpenCsQueueNoRecursiveUpdate {
 		var qm = requireNonNull(App.getInstance().Zeze).getQueueModule();
 		for (int i = 0; i < 8000; i++) {
 			var name = "OpenCsQueue#" + i;
-			var csq = requireNonNull(qm).openCsQueue(name, Bean1.class);
+			var csq = qm.openCsQueue(name, Bean1.class);
 			Assertions.assertEquals(name, csq.getName());
 		}
 	}

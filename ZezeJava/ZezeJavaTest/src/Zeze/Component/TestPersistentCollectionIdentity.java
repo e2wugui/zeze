@@ -31,7 +31,7 @@ public class TestPersistentCollectionIdentity {
 			app.start();
 			for (var wholeNode : List.of(false, true)) {
 				var name = "full-key-" + wholeNode;
-				var live = new CsQueue<>(requireNonNull(app.getQueueModule()), name, app.getConfig().getServerId(), BMyBean.class, 1);
+				var live = new CsQueue<>(app.getQueueModule(), name, app.getConfig().getServerId(), BMyBean.class, 1);
 				var deadId = app.getConfig().getServerId() + 20_000;
 				var dead = new CsQueue<>(app.getQueueModule(), name, deadId, BMyBean.class, 1);
 				assertEquals(0, app.newProcedure(() -> {

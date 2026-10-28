@@ -94,7 +94,7 @@ public class TestRoleTimer {
 			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role0");
 			ZezexTestEnv.login(client0, roleId);
 
-			var timerRole0 = Objects.requireNonNull(timer0).getRoleTimer();
+			var timerRole0 = timer0.getRoleTimer();
 			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
 				//timerRole0.scheduleOnline(roleId, 1, -1, -1, -1, NullCustomDataHandle.class, null);
 				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1), NullCustomDataHandle.class, null);
@@ -177,7 +177,7 @@ public class TestRoleTimer {
 			var roleId = role != null ? role.getId() : ZezexTestEnv.createRole(client0, "new_role0");
 			ZezexTestEnv.login(client0, roleId);
 
-			var timerRole0 = Objects.requireNonNull(timer0).getRoleTimer();
+			var timerRole0 = timer0.getRoleTimer();
 
 			TestBean bean = new TestBean();
 			bean.resetFuture(2);
@@ -272,7 +272,7 @@ public class TestRoleTimer {
 			var server0 = env.servers.get(0);
 			var timer0 = server0.getZeze().getTimer();
 
-			var timerRole0 = Objects.requireNonNull(timer0).getRoleTimer();
+			var timerRole0 = timer0.getRoleTimer();
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
@@ -321,7 +321,7 @@ public class TestRoleTimer {
 			var server0 = env.servers.get(0);
 			var timer0 = server0.getZeze().getTimer();
 
-			var timerRole0 = Objects.requireNonNull(timer0).getRoleTimer();
+			var timerRole0 = timer0.getRoleTimer();
 
 			// 注册登录客户端0
 			log("注册登录客户端0");

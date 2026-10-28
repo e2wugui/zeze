@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import static java.util.Objects.requireNonNull;
-
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
@@ -53,7 +51,7 @@ public class TestDelayRemoveOnTimer {
 
 	/** 与DelayRemove构造器打开的是同一个Queue实例（Module.queues按名字缓存）。 */
 	private static Zeze.Collections.Queue<BTableKey> gcQueue(Application app) {
-		return requireNonNull(app.getQueueModule()).open("__GCTableQueue#" + app.getConfig().getServerId(), BTableKey.class);
+		return app.getQueueModule().open("__GCTableQueue#" + app.getConfig().getServerId(), BTableKey.class);
 	}
 
 	private static void run(Application app, String name, FuncLong action) {
@@ -80,7 +78,7 @@ public class TestDelayRemoveOnTimer {
 			});
 
 			// 守护线程驱动：修复前这里是无限忙循环，用join超时判定而不是挂死测试进程。
-			var worker = new Thread(() -> requireNonNull(app.getDelayRemove()).onTimer(), "TestDelayRemoveOnTimer.corrupted");
+			var worker = new Thread(() -> app.getDelayRemove().onTimer(), "TestDelayRemoveOnTimer.corrupted");
 			worker.setDaemon(true);
 			worker.start();
 			worker.join(30_000);
@@ -114,7 +112,7 @@ public class TestDelayRemoveOnTimer {
 				return 0L;
 			});
 
-			requireNonNull(app.getDelayRemove()).onTimer();
+			app.getDelayRemove().onTimer();
 
 			run(app, "assertUnexpiredKept", () -> {
 				var head = gcQueue.peek();
@@ -152,7 +150,7 @@ public class TestDelayRemoveOnTimer {
 				return 0L;
 			});
 
-			requireNonNull(app.getDelayRemove()).onTimer();
+			app.getDelayRemove().onTimer();
 
 			run(app, "assertVictimRemoved", () -> {
 				Assertions.assertNull(victimTable.get("TestDelayRemoveOnTimer.victim"),

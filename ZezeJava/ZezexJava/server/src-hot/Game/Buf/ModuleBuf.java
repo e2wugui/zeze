@@ -61,7 +61,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 				rand.nextLong(3000) + 1000);
 
 		TaskSpec.ofProcedure(App.getZeze().newProcedure(() -> {
-			hotTimerId = Objects.requireNonNull(App.getZeze().getTimer()).schedule(
+			hotTimerId = App.getZeze().getTimer().schedule(
 					TimerSpec.ofDelay(rand.nextLong(3000) + 1000).period(rand.nextLong(3000) + 1000),
 					HotTimer.class, new BBuf());
 			return 0;
@@ -88,7 +88,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 			timerIdHot = null;
 		}
 		TaskSpec.ofProcedure(App.getZeze().newProcedure(() -> {
-			Objects.requireNonNull(App.getZeze().getTimer()).cancel(hotTimerId);
+			App.getZeze().getTimer().cancel(hotTimerId);
 			return 0;
 		}, "hotTimer")).call();
 	}

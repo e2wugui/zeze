@@ -44,7 +44,7 @@ public class TestDelayRemoveZombieJobOnContinue {
 			app.start();
 			var dr = app.getDelayRemove();
 			var serverId = app.getConfig().getServerId();
-			var tJobs = getJobsTable(requireNonNull(dr));
+			var tJobs = getJobsTable(dr);
 			dr.register("UnitTest.DelayRemoveZombie.legit", (delayRemove, jobId, jobState) -> {
 			});
 

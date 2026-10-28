@@ -122,7 +122,7 @@ public final class App extends Zeze.AppBase {
 		LinkedMapModule = new LinkedMap.Module(getZeze());
 		DepartmentTreeModule = new DepartmentTree.Module(getZeze(), LinkedMapModule);
 
-		Objects.requireNonNull(getZeze().getTimer()).initializeOnlineTimer(ProviderApp);
+		getZeze().getTimer().initializeOnlineTimer(ProviderApp);
 
 		// start
 		getZeze().start(); // 启动数据库
@@ -139,7 +139,7 @@ public final class App extends Zeze.AppBase {
 
 		counterColdTimer = 0;
 		TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
-			coldTimerId = Objects.requireNonNull(getZeze().getTimer()).schedule(TimerSpec.ofDelay(2000).period(2000), ColdTimer.class, new BKick());
+			coldTimerId = getZeze().getTimer().schedule(TimerSpec.ofDelay(2000).period(2000), ColdTimer.class, new BKick());
 			//logger.info("XYZ Schedule={}", coldTimerId);
 			return 0;
 		}, "coldTimer")).call();
@@ -172,7 +172,7 @@ public final class App extends Zeze.AppBase {
 
 		TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
 			//logger.info("XYZ Stop cancel={}", coldTimerId);
-			Objects.requireNonNull(getZeze().getTimer()).cancel(coldTimerId);
+			getZeze().getTimer().cancel(coldTimerId);
 			return 0;
 		}, "cancelColdTimer")).call();
 

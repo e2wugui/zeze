@@ -28,7 +28,7 @@ public class TestQueue {
 	public final void test1_QueueAdd() {
 		var ret = requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			var queueModule = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
-			var queue = requireNonNull(queueModule).open("test1", BMyBean.class);
+			var queue = queueModule.open("test1", BMyBean.class);
 			var queueSize = queue.size();
 			for (int i = 0; i < 10; i++) {
 				var bean = new BMyBean();
@@ -46,7 +46,7 @@ public class TestQueue {
 	@Test
 	public final void test2_QueueWalk() throws Exception {
 		var queueModule = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
-		var queue = requireNonNull(queueModule).open("test1", BMyBean.class);
+		var queue = queueModule.open("test1", BMyBean.class);
 		var i = new AtomicInteger(0);
 		int[] arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 		queue.walk(((key, value) -> {
@@ -61,7 +61,7 @@ public class TestQueue {
 	public final void test3_QueuePop() {
 		var ret = requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			var queueModule = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
-			var queue = requireNonNull(queueModule).open("test1", BMyBean.class);
+			var queue = queueModule.open("test1", BMyBean.class);
 			var queueSize =  queue.size();
 			for (int i = 0; i < 10; i++) {
 				var bean = queue.pop();
@@ -78,7 +78,7 @@ public class TestQueue {
 	public final void test4_QueuePush() {
 		var ret = requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			var queueModule = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
-			var queue = requireNonNull(queueModule).open("test1", BMyBean.class);
+			var queue = queueModule.open("test1", BMyBean.class);
 			var queueSize =  queue.size();
 			for (int i = 0; i < 10; i++) {
 				var bean = new BMyBean();
@@ -96,7 +96,7 @@ public class TestQueue {
 	@Test
 	public final void test5_QueueWalk() throws Exception {
 		var queueModule = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
-		var queue = requireNonNull(queueModule).open("test1", BMyBean.class);
+		var queue = queueModule.open("test1", BMyBean.class);
 		var i = new AtomicInteger(0);
 		int[] arr = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
 		queue.walk(((key, value) -> {
@@ -111,7 +111,7 @@ public class TestQueue {
 	public final void test6_QueuePop() {
 		var ret = requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
 			var queueModule = requireNonNull(demo.App.getInstance().Zeze).getQueueModule();
-			var queue = requireNonNull(queueModule).open("test1", BMyBean.class);
+			var queue = queueModule.open("test1", BMyBean.class);
 			var queueSize =  queue.size();
 			for (int i = 9; i >= 0; i--) {
 				var bean = queue.pop();
@@ -130,7 +130,7 @@ public class TestQueue {
 		// 从head不可达（数据丢失）且count虚高。修复后poll排空同步清尾键，衔接后数据全可达。
 		// 先完全排空再做绝对断言，对历史残留数据免疫。
 		var ret = requireNonNull(demo.App.getInstance().Zeze).newProcedure(() -> {
-			var queue = requireNonNull(requireNonNull(demo.App.getInstance().Zeze).getQueueModule()).open("test7", BMyBean.class);
+			var queue = requireNonNull(demo.App.getInstance().Zeze).getQueueModule().open("test7", BMyBean.class);
 			for (int round = 0; round < 3; round++) { // 多轮覆盖"再排空再灌"的循环路径
 				while (queue.poll() != null) {
 					// 完全排空

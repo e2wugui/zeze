@@ -83,7 +83,7 @@ public class TestTimerTakeoverVersion {
 				return 0L;
 			});
 			TakeoverTestEnv.forgeLease(first.app, DeadServerId, 1, System.currentTimeMillis() - 1_000);
-			requireNonNull(first.app.getTakeover()).tryTransfer(DeadServerId);
+			first.app.getTakeover().tryTransfer(DeadServerId);
 			TakeoverTestEnv.waitTryTransferQueue();
 			first.transaction(() -> {
 				var index = first.timer.getTimerIndex(TimerId);
@@ -101,7 +101,7 @@ public class TestTimerTakeoverVersion {
 		secondConf.getDatabaseConfMap().get("").setDatabaseUrl(databaseUrl);
 		try (var second = new Env(secondConf)) {
 			TakeoverTestEnv.forgeLease(second.app, firstServerId, firstEpoch, System.currentTimeMillis() - 1_000);
-			requireNonNull(second.app.getTakeover()).tryTransfer(firstServerId);
+			second.app.getTakeover().tryTransfer(firstServerId);
 			TakeoverTestEnv.waitTryTransferQueue();
 
 			Assertions.assertNotEquals(0L, TakeoverTestEnv.readLease(second.app, firstServerId)[1],

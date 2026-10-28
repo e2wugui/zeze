@@ -79,7 +79,6 @@ public class SafeBatch extends AbstractSafeBatch {
 
 	// 查询批处理状态。
 	public @Nullable BBatchReadOnly getBatch(String jobId) {
-		//noinspection DataFlowIssue
 		return (BBatchReadOnly)zeze.getTimer().getTimerCustomBean(jobId);
 	}
 
@@ -140,7 +139,6 @@ public class SafeBatch extends AbstractSafeBatch {
 			if (null != custom) {
 				var zeze = Application.getAppInstance(custom.getAppInstanceId());
 				if (null != zeze) {
-					//noinspection DataFlowIssue
 					zeze.getSafeBatch().checkBatch(context.timerId, custom);
 				}
 			}
@@ -202,7 +200,6 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	private long _stopBatch(String jobId) {
-		//noinspection DataFlowIssue
 		zeze.getTimer().cancel(jobId);
 		Transaction.whileCommit(() -> {
 			// 这里不用 CAS 删除：本 jobId 的 future 此时一定是当前提交 stop 时那个，
@@ -268,7 +265,6 @@ public class SafeBatch extends AbstractSafeBatch {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
-					//noinspection DataFlowIssue
 					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
 					if (null != batch) {
 						batch.setLastKey(new Binary(typedTable.encodeKey(key)));
@@ -385,7 +381,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		batch.setJobClass(jobHandle.getClass().getName());
 		batch.setWorker(workerType);
 
-		var timerId = Objects.requireNonNull(zeze.getTimer()).schedule(TimerSpec.ofDelay(checkPeriod).period(checkPeriod),
+		var timerId = zeze.getTimer().schedule(TimerSpec.ofDelay(checkPeriod).period(checkPeriod),
 			BatchTimerHandle.class, batch);
 		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, batch));
 		return timerId;
@@ -413,7 +409,6 @@ public class SafeBatch extends AbstractSafeBatch {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
-					//noinspection DataFlowIssue
 					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
 					if (null != batch) {
 						var bb = jobHandle.encodeMapKey(table, ByteBuffer.Wrap(batch.getRecordKey()), key);
@@ -485,7 +480,6 @@ public class SafeBatch extends AbstractSafeBatch {
 				var result = jobHandle.runJob(SafeBatch.this, index, value);
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
-					//noinspection DataFlowIssue
 					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
 					if (null != batch) {
 						var bb = ByteBuffer.Allocate();

@@ -79,7 +79,7 @@ public class TestQueueBrokenChainDiagnosis {
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = requireNonNull(module).open("queue.brokenChain.q1", EmptyBean.class, 30);
+			var queue = module.open("queue.brokenChain.q1", EmptyBean.class, 30);
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean());
 				queue.add(new EmptyBean());
@@ -126,7 +126,7 @@ public class TestQueueBrokenChainDiagnosis {
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = requireNonNull(module).open("queue.brokenChain.q2", EmptyBean.class, 1); // nodeSize=1：每个值一个节点
+			var queue = module.open("queue.brokenChain.q2", EmptyBean.class, 1); // nodeSize=1：每个值一个节点
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean()); // node1 = head = tail
 				queue.add(new EmptyBean()); // node2 = tail（node1.next=node2）
@@ -162,7 +162,7 @@ public class TestQueueBrokenChainDiagnosis {
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = requireNonNull(module).open("queue.brokenChain.q3", EmptyBean.class, 1);
+			var queue = module.open("queue.brokenChain.q3", EmptyBean.class, 1);
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean());
 				Assertions.assertNotNull(queue.poll(), "排空前必须能取出"); // head与tail同步清0（FND10 coll-01）

@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import static java.util.Objects.requireNonNull;
-
 import Zeze.AppBase;
 import Zeze.Arch.ProviderApp;
 import Zeze.Application;
@@ -81,8 +79,8 @@ public class TestTimerOfflineNamedCollision {
 			roleTimer = new TestGameOnline(appBase).getTimerRole();
 
 			zeze.start();
-			timer = java.util.Objects.requireNonNull(zeze.getTimer());
-			requireNonNull(timer).start();
+			timer = zeze.getTimer();
+			timer.start();
 		}
 
 		@Override

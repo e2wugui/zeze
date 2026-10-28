@@ -1,7 +1,5 @@
 package Zeze.Collections;
 
-import java.util.Objects;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.LinkedMap.BClearJobState;
@@ -108,7 +106,6 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			_tLinkedMapNodes.getChangeListenerMap().addListener(this::OnLinkedMapNodeChange);
 			_tLinkedMaps.getChangeListenerMap().addListener(this::OnLinkedMapRootChange);
 
-			//noinspection DataFlowIssue
 			this.zeze.getDelayRemove().register(eClearJobHandleName, this::delayClearJob);
 		}
 
@@ -584,7 +581,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			root.setHeadNodeId(0);
 			root.setTailNodeId(0);
 			root.setCount(0);
-			Objects.requireNonNull(module.zeze.getDelayRemove()).addJob(Module.eClearJobHandleName, new BClearJobState(headerNodeId, name));
+			module.zeze.getDelayRemove().addJob(Module.eClearJobHandleName, new BClearJobState(headerNodeId, name));
 		}
 	}
 

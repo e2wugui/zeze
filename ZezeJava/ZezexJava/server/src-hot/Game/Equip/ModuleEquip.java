@@ -80,7 +80,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			var timer = App.getZeze().getTimer();
 			if (!isHotUpgrade()) {
 				var rand = Zeze.Util.Random.getInstance();
-				Objects.requireNonNull(timer).scheduleNamed(timerNamed,
+				timer.scheduleNamed(timerNamed,
 						TimerSpec.ofDelay(rand.nextLong(3000) + 1000).period(rand.nextLong(3000) + 1000),
 						HotTimer.class, new BEquipExtra(0, 2, 0));
 
@@ -100,10 +100,10 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		App.getZeze().newProcedure(() -> {
 			var timer = App.getZeze().getTimer();
 			if (!isHotUpgrade()) {
-				Objects.requireNonNull(timer).cancel(timerNamed);
+				timer.cancel(timerNamed);
 				timer.cancel(timerHot);
 			}
-			Objects.requireNonNull(timer).getRoleTimer().cancel(timerOnline, roleId);
+			timer.getRoleTimer().cancel(timerOnline, roleId);
 			return 0;
 		}, "cancel timers").call();
 	}
@@ -165,7 +165,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	private void resetCollections() {
 		var linkedMap = Objects.requireNonNull(App.LinkedMapModule).open(getLinkedMapName(), BEquipExtra.class);
 		linkedMap.remove(String.valueOf(0));
-		var queue = Objects.requireNonNull(App.getZeze().getQueueModule()).open(getQueueName(), BEquipExtra.class);
+		var queue = App.getZeze().getQueueModule().open(getQueueName(), BEquipExtra.class);
 		queue.clear();
 		var departmentTree = Objects.requireNonNull(App.DepartmentTreeModule).open(getDtName(),
 				BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class, BEquipExtra.class);
@@ -194,7 +194,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			version0.setAttack(oldAccess + 1);
 		}
 		{
-			var queue = Objects.requireNonNull(App.getZeze().getQueueModule()).open(getQueueName(), BEquipExtra.class);
+			var queue = App.getZeze().getQueueModule().open(getQueueName(), BEquipExtra.class);
 			var old = queue.poll();
 			if (old != null && oldAccess != old.getAttack())
 				throw new RuntimeException(getQueueName() + " error oldAccess=" + old.getAttack() + ":" + oldAccess);
@@ -496,7 +496,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	private void startOnlineTimer(long roleId) {
 		this.roleId = roleId;
-		timerOnline = Objects.requireNonNull(App.getZeze().getTimer()).getRoleTimer().scheduleOnlineHot(
+		timerOnline = App.getZeze().getTimer().getRoleTimer().scheduleOnlineHot(
 				this.roleId, TimerSpec.ofDelay(2000).period(2000).times(-1).endTime(-1),
 				HotTimer.class, new BEquipExtra(0, 3, 0));
 		logger.info("timerOnline=" + timerOnline);

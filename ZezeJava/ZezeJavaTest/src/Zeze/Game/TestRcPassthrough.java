@@ -296,7 +296,7 @@ public class TestRcPassthrough {
 		try {
 			long roleId = 161_904L;
 			forgeGameLogin(online, roleId);
-			var queue = java.util.Objects.requireNonNull(zeze.getQueueModule()).open(
+			var queue = zeze.getQueueModule().open(
 					"Zeze.Game.Online.ReliableNotifyQueue:" + roleId, Zeze.Builtin.Game.Online.BNotify.class);
 			Assertions.assertEquals(0, zeze.newProcedure(() -> {
 				queue.add(new Zeze.Builtin.Game.Online.BNotify());

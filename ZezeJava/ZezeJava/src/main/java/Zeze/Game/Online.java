@@ -1010,7 +1010,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				return 0; // 不在本机登录。
 			onlineShared.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 			var zezeGhost = providerApp.zeze;
-			Objects.requireNonNull(zezeGhost.getTimer()).schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
+			zezeGhost.getTimer().schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
 					DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 							multiInstanceName, zezeGhost.getProjectName()));
 			return 0;
@@ -1045,7 +1045,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
 		if (ret != 0) // 失败码外传整体回滚（对齐Arch版triggerLinkBroken判例），不再调度DelayLogout。
 			return ret;
-		Objects.requireNonNull(zeze.getTimer()).schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
+		zeze.getTimer().schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 				multiInstanceName, zeze.getProjectName()));
 		return 0;
 	}
@@ -1528,7 +1528,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
-		return Objects.requireNonNull(providerApp.zeze.getQueueModule()).open(reliableNotifyQueueName(roleId), BNotify.class);
+		return providerApp.zeze.getQueueModule().open(reliableNotifyQueueName(roleId), BNotify.class);
 	}
 
 	private String reliableNotifyQueueName(long roleId) {
@@ -1550,7 +1550,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var shared = getOnlineShared(roleId);
 		if (shared != null && shared.getLink().getState() != eOffline)
 			throw new IllegalStateException("end the OnlineSet session before migration");
-		//noinspection DataFlowIssue
 		var oldQueue = providerApp.zeze.getQueueModule()
 				.open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
 		if (!oldQueue.isEmpty() || !openQueue(roleId).isEmpty())

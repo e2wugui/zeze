@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import java.util.Objects;
-
 import java.util.List;
 import Zeze.Application;
 import Zeze.Arch.LocalRemoveEventArgument;
@@ -87,7 +85,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 
 	@Override
 	Timer timer() {
-		return Objects.requireNonNull(online.providerApp.zeze.getTimer());
+		return online.providerApp.zeze.getTimer();
 	}
 
 	@Override
@@ -498,7 +496,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		// 归属校验（对齐TimerRole.cancelOffline）：无校验直接timer.cancel时，
 		// 传入任意timerId（SafeBatch看门狗、他人offline timer、
 		// 全局命名timer）都会被越权取消，且恒返回true掩盖"是否真的取消"。
-		//noinspection DataFlowIssue
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
 			return false;
@@ -568,10 +565,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			//noinspection DataFlowIssue
 			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
-		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
+		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
 		var config = timer.getZeze().getConfig();
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
@@ -654,16 +650,14 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			//noinspection DataFlowIssue
 			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
-			//noinspection DataFlowIssue
 			if (timer.cronEquals(index, timerId, builder, OfflineHandle.class, custom))
 				return;
 			cancel(timerId, account, clientId); // 先取消,下面再重建
 		}
-		Objects.requireNonNull(timer).schedule(timerId, builder.build(), OfflineHandle.class, custom);
+		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
 		var config = timer.getZeze().getConfig();
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
@@ -740,7 +734,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
-		//noinspection DataFlowIssue
 		if (timer.isOnlineTimerIdOccupied(timerId))
 			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
 		var index = timer.tIndexs().get(timerId);
@@ -782,7 +775,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 					return;
 				var timer = zeze.getTimer();
 				var key = new BAccountClientId(custom.getAccount(), custom.getClientId());
-				//noinspection DataFlowIssue
 				var offlineTimers = timer.tAccountOfflineTimers().get(key);
 				if (offlineTimers != null) {
 					offlineTimers.getOfflineTimers().remove(custom.getTimerName());
@@ -831,7 +823,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		var loginArg = (LoginArgument)arg;
 		var loginKey = new BAccountClientId(loginArg.account, loginArg.clientId);
 		var timer = online.providerApp.zeze.getTimer();
-		//noinspection DataFlowIssue
 		var offlineTimers = timer.tAccountOfflineTimers().get(loginKey);
 		// X: fix offlineTimers is null
 		if (offlineTimers == null)

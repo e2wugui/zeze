@@ -21,7 +21,7 @@ public class TestTimer {
 	public final void testInit() throws Exception {
 		System.out.println("Timer Test Init");
 		demo.App.getInstance().Start();
-		requireNonNull(requireNonNull(App.Instance.Zeze).getTimer()).start();
+		requireNonNull(App.Instance.Zeze).getTimer().start();
 	}
 
 	@AfterEach
@@ -87,7 +87,7 @@ public class TestTimer {
 		// Test schedule timer
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle1.class, null);
-			requireNonNull(timer).schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle1.class);
+			timer.schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle1.class);
 			return Procedure.Success;
 		}, "test_CommonSchedule").call());
 
@@ -105,7 +105,7 @@ public class TestTimer {
 
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle2.class, testBean1);
-			requireNonNull(timer).schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle2.class, testBean1);
+			timer.schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle2.class, testBean1);
 			return Procedure.Success;
 		}, "test_ScheduleWithCustomBean").call());
 
@@ -121,7 +121,7 @@ public class TestTimer {
 		TestBean testBean2 = new TestBean();
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle3.class, testBean2);
-			requireNonNull(timer).schedule(TimerSpec.ofDelay(1).period(periodMs), TestTimerHandle3.class, testBean2);
+			timer.schedule(TimerSpec.ofDelay(1).period(periodMs), TestTimerHandle3.class, testBean2);
 			return Procedure.Success;
 		}, "test_CancelSchedule").call());
 

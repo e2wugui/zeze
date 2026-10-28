@@ -2,8 +2,6 @@ package Zeze.Collections;
 
 import org.jspecify.annotations.Nullable;
 
-import static java.util.Objects.requireNonNull;
-
 import harness.FastServerIds;
 import java.util.ArrayList;
 import java.util.List;
@@ -135,7 +133,7 @@ public class TestQueueCompatible {
 		try {
 			app.start();
 			var module = app.getQueueModule();
-			var queue = requireNonNull(module).open("TestQueueCompatibleDrain", BMyBean.class);
+			var queue = module.open("TestQueueCompatibleDrain", BMyBean.class);
 			forgeLegacyQueue(app, "TestQueueCompatibleDrain", 11, 0);
 
 			run(app, "drain.poll", () -> {
@@ -188,7 +186,7 @@ public class TestQueueCompatible {
 			var module = app.getQueueModule();
 			var name = "TestQueueCompatibleSplice";
 			var myId = app.getConfig().getServerId();
-			var live = new CsQueue<>(requireNonNull(module), name, myId, BMyBean.class, 10);
+			var live = new CsQueue<>(module, name, myId, BMyBean.class, 10);
 			final int deadId = 750;
 			forgeLegacyQueue(app, name + "@" + deadId, 33, 0);
 
@@ -236,19 +234,19 @@ public class TestQueueCompatible {
 			app.start();
 			var module = app.getQueueModule();
 			var name = "TestQueueCompatibleTransfer";
-			var live = new CsQueue<>(requireNonNull(module), name, conf.getServerId(), BMyBean.class, 10);
+			var live = new CsQueue<>(module, name, conf.getServerId(), BMyBean.class, 10);
 
 			final int deadId = 751;
 			final long deadEpoch = 5;
 			forgeLegacyQueue(app, name + "@" + deadId, 55, deadEpoch); // 死者root stamp=deadEpoch
 			run(app, "transfer.forgeLease", () -> {
-				var lease = requireNonNull(app.getTakeover()).getTable().getOrAdd(deadId);
+				var lease = app.getTakeover().getTable().getOrAdd(deadId);
 				lease.setEpoch(deadEpoch);
 				lease.setExpireAt(System.currentTimeMillis() - 1_000); // 已过期
 				return 0L;
 			});
 
-			requireNonNull(app.getTakeover()).tryTransfer(deadId);
+			app.getTakeover().tryTransfer(deadId);
 			waitTryTransferQueue();
 
 			Assertions.assertEquals(List.of(55), walk(live), "接管数据应归活者");

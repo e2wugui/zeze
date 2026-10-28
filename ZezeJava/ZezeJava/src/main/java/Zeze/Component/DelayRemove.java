@@ -42,7 +42,6 @@ public class DelayRemove extends AbstractDelayRemove {
 		this.zeze = zz;
 
 		var serverId = zz.getConfig().getServerId();
-		//noinspection DataFlowIssue
 		queue = zz.getQueueModule().open("__GCTableQueue#" + serverId, BTableKey.class);
 		RegisterZezeTables(zeze);
 	}

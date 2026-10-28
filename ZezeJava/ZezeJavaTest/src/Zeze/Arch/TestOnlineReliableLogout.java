@@ -29,7 +29,7 @@ public class TestOnlineReliableLogout {
 	public void finalLogoutAllowsReloginWithResetNotificationIndex() throws Exception {
 		try (var env = new ArchOnlineTestEnv(NEXT_SERVER_ID.getAndIncrement())) {
 			env.seedLogin(1L, 2L, 3L);
-			var queue = requireNonNull(env.zeze.getQueueModule()).open(
+			var queue = env.zeze.getQueueModule().open(
 					"Zeze.Arch.Online.ReliableNotifyQueue:" + ArchOnlineTestEnv.ACCOUNT
 							+ ":" + ArchOnlineTestEnv.CLIENT_ID, BNotify.class);
 			env.run("seedUnconfirmedNotify", () -> {
@@ -66,7 +66,7 @@ public class TestOnlineReliableLogout {
 	public void duplicateReloginPreservesUnconfirmedNotifications() throws Exception {
 		try (var env = new ArchOnlineTestEnv(NEXT_SERVER_ID.getAndIncrement())) {
 			env.seedLogin(1L, 2L, 3L);
-			var queue = requireNonNull(env.zeze.getQueueModule()).open(
+			var queue = env.zeze.getQueueModule().open(
 					"Zeze.Arch.Online.ReliableNotifyQueue:" + ArchOnlineTestEnv.ACCOUNT
 							+ ":" + ArchOnlineTestEnv.CLIENT_ID, BNotify.class);
 			var encoded = new Binary(new byte[]{7});
@@ -124,7 +124,7 @@ public class TestOnlineReliableLogout {
 	public void oldLinkConfirmationCannotDeleteNewSessionNotifications() throws Exception {
 		try (var env = new ArchOnlineTestEnv(NEXT_SERVER_ID.getAndIncrement())) {
 			env.seedLogin(1, 0, 1);
-			var queue = requireNonNull(env.zeze.getQueueModule()).open(
+			var queue = env.zeze.getQueueModule().open(
 					"Zeze.Arch.Online.ReliableNotifyQueue:" + ArchOnlineTestEnv.ACCOUNT + ':' + ArchOnlineTestEnv.CLIENT_ID,
 					BNotify.class);
 			env.run("seedOneNotification", () -> { queue.add(new BNotify()); return 0; });

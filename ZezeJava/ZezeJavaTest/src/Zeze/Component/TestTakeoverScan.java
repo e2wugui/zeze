@@ -1,7 +1,5 @@
 package Zeze.Component;
 
-import static java.util.Objects.requireNonNull;
-
 import Zeze.BMyBean;
 import Zeze.Application;
 import Zeze.Builtin.Collections.Queue.BQueue;
@@ -32,7 +30,7 @@ public class TestTakeoverScan {
 		var app = new Application("TestTakeoverScan", conf);
 		try {
 			app.start();
-			var csq = new CsQueue<>(requireNonNull(app.getQueueModule()), "TestTakeoverScanQ", conf.getServerId(), BMyBean.class, 10);
+			var csq = new CsQueue<>(app.getQueueModule(), "TestTakeoverScanQ", conf.getServerId(), BMyBean.class, 10);
 
 			// 死者777：队列数据+root stamp=5。不手动tryTransfer，等扫描发现。
 			// 死者serverId直接构造CsQueue（ctor走_open，无'@'限制；module.open公开接口拒绝'@'名字）；

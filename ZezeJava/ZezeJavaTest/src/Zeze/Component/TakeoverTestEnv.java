@@ -2,8 +2,6 @@ package Zeze.Component;
 
 import org.jspecify.annotations.Nullable;
 
-import static java.util.Objects.requireNonNull;
-
 import harness.FastServerIds;
 import java.util.concurrent.TimeUnit;
 import Zeze.AppBase;
@@ -79,7 +77,7 @@ final class TakeoverTestEnv {
 
 	static void forgeLease(Application app, int serverId, long epoch, long expireAt) {
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
-			var lease = requireNonNull(app.getTakeover()).getTable().getOrAdd(serverId);
+			var lease = app.getTakeover().getTable().getOrAdd(serverId);
 			lease.setEpoch(epoch);
 			lease.setExpireAt(expireAt);
 			return 0L;
@@ -92,7 +90,7 @@ final class TakeoverTestEnv {
 		var out = new long[2];
 		var exists = new boolean[1];
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
-			var lease = requireNonNull(app.getTakeover()).getTable().get(serverId);
+			var lease = app.getTakeover().getTable().get(serverId);
 			if (lease != null) {
 				exists[0] = true;
 				out[0] = lease.getEpoch();
