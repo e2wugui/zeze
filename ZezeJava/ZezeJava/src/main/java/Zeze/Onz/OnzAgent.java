@@ -146,13 +146,20 @@ public class OnzAgent extends AbstractOnzAgent {
 				  String onzProcedureName, A argument, R result, int flushMode) {
 
 		var future  = new TaskCompletionSource<R>();
+		sendSaga(pending, zezeOnzInstance, onzProcedureName, argument, result, flushMode, future);
+		return future;
+	}
+
+	static <A extends Data, R extends Data> void sendSaga(OnzTransaction<?, ?> pending,
+			AsyncSocket zezeOnzInstance, String onzProcedureName, A argument, R result, int flushMode,
+			TaskCompletionSource<R> future) {
 		var r = new FuncSaga();
 		r.Argument.setOnzTid(pending.getOnzTid());
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
 		r.Argument.setFlushTimeout(pending.getFlushTimeout());
 		// rpc超时不使用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
-		// saga参与方"发结果即本地提交"（OnzSaga.sendReadyAndWait），固定5s超时把实际会提交
+		// saga参与方在本地提交后发送结果，固定5s超时把实际会提交
 		// 的步骤判为失败，若该步骤未被cancel补偿则写入永久残留（部分提交
 		// 的静默分歧）。
 		r.setTimeout(pending.getFlushTimeout());
@@ -193,6 +200,5 @@ public class OnzAgent extends AbstractOnzAgent {
 			future.setException(new RuntimeException(
 					"call error: " + onzProcedureName + " code=" + Procedure.ErrorSendFail));
 		}
-		return future;
 	}
 }

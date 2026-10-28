@@ -680,49 +680,28 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
-	/**
-	 * saga步骤注册后的崩溃窗口先落（onz-01，调用方OnzTransaction.callSagaAsync）：saga参与方
-	 * "发结果即本地提交"（OnzSaga.sendReadyAndWait），而perform的首条决策记录严格后置于
-	 * txn.perform()返回——业务窗口（时长无上界）内进程硬崩溃时commitIndex无该tid记录，redo
-	 * 迭代不到，已提交步骤的补偿永久丢失且协调者侧零痕迹（参与方仅TTL清理warn）。每个saga步骤
-	 * 注册后即落/更新一次ePreparing快照（含当时全部已注册参与方），崩溃后redo按本记录对已见
-	 * 步骤补发FuncSagaEnd(cancel)（参与方上下文在TTL预算内仍在，见Onz.sagaContextTimeoutMs
-	 * 契约）；成功/失败路径的既有saveCommitPoint(ePreparing)以完整快照覆写，正常收尾行为不变。
-	 * 时戳随每次先落刷新：在途事务由登记skip保护（与年龄无关），年龄闸只对崩溃后残留自最后一步
-	 * 起算，语义不变。
-	 * <p>
-	 * 不覆盖既有eCommitting（dbLock内读判）：续作越过pendingAsync契约迟到注册（嵌入方提前清旗
-	 * 的误用形态）不得把已持久化的commit决策翻转为rollback——那会让redo对调用方已按成功收场的
-	 * 事务补发cancel，制造真分歧；正常路径不可达该分支（waitPendingAsync先于commit清空续作）。
-	 * 毒值（解码失败）按可覆写处理，覆写即修复。
-	 * <p>
-	 * best-effort：落库失败（stopped拒绝/RocksDB错误）只记error不外抛——外抛会中断业务的步骤
-	 * 发送链，改变perform既有语义；此刻崩溃窗口的补偿不可得，活进程仍靠主路径落库与rollback
-	 * 投递兜底（对齐exception路径saveCommitPoint失败的既定口径）。
-	 */
+	/** 步骤投递前持久保存完整参与方意图，失败必须阻止该步骤发送；不覆盖已存在的提交决定。 */
 	void saveSagaPreparingForCrashWindow(OnzTransaction<?, ?> txn) {
 		var tidBytes = new byte[8];
 		ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
 		dbLock.lock();
 		try {
 			if (stopped)
-				return; // 停机窗口的先落不可得：主路径saveCommitPoint同样被拒，catch→rollback链兜底，不记日志防停机噪声
+				throw new IllegalStateException("OnzServer stopped: saga step rejected. tid=" + txn.getOnzTid());
 			var current = commitIndex.get(tidBytes);
+			boolean committing = false;
 			if (current != null) {
 				try {
-					if (ByteBuffer.Wrap(current).ReadUInt() == eCommitting) {
-						logger.warn("onz saga step: 迟到注册的步骤命中已持久化的eCommitting，跳过先落"
-										+ "（续作越过pendingAsync契约，该步骤的写入无补偿通道）. tid={}", txn.getOnzTid());
-						return;
-					}
+					committing = ByteBuffer.Wrap(current).ReadUInt() == eCommitting;
 				} catch (Throwable ignored) {
 					// 毒值按可覆写处理：不因毒值放弃先落
 				}
 			}
+			if (committing)
+				throw new IllegalStateException("Onz saga step after commit decision. tid=" + txn.getOnzTid());
 			saveCommitPoint(tidBytes, txn.buildSavedCommits(), ePreparing); // dbLock可重入
-		} catch (Throwable ex) {
-			logger.error("onz saga step: saveCommitPoint(ePreparing) 先落失败，perform业务窗口的崩溃补偿不可用. tid={}",
-					txn.getOnzTid(), ex);
+		} catch (RocksDBException ex) {
+			throw Zeze.Util.Task.forceThrow(ex);
 		} finally {
 			dbLock.unlock();
 		}
@@ -1155,7 +1134,7 @@ public class OnzServer extends AbstractOnz {
 	 * <p>
 	 * 清旗依赖推演（不等死决策的依据）：续作等待的future（callSagaAsync/callProcedureAsync
 	 * 返回值）由参与方应答/rpc超时/发送失败三者之一终结（OnzAgent回调三分类+Send false即完成，
-	 * 无永pending形态），且参与方先发业务结果后等决策（procedure）或发结果即提交（saga）
+	 * 无永pending形态），且参与方先发业务结果后等决策（procedure）或本地提交后应答（saga）
 	 * ——future的完成不依赖协调者的Commit/Rollback/FuncSagaEnd，排空在rollback之前不会与
 	 * 续作互等死锁。永不清旗的可能只来自嵌入方（忘清旗/续作阻塞在业务资源/超长链），
 	 * 故有界（上限=flushTimeout，单步在途预算，见waitPendingAsync(long)）：超时/中断warn
@@ -1204,7 +1183,7 @@ public class OnzServer extends AbstractOnz {
 			// 而这上面的perform是边执行边产生服务器地址，无法一开始保存事务状态。
 			// 最严格的做法是每产生一个服务器地址，就写一次ePreparing（包含所有的服务器地址）——
 			// saga参与方已按此实现（callSagaAsync注册后即先落，见saveSagaPreparingForCrashWindow，
-			// onz-01：saga发结果即本地提交，perform业务窗口崩溃时该记录是已提交步骤唯一的补偿通道）；
+			// saga本地提交后应答，perform业务窗口崩溃时该记录是已提交步骤的补偿通道）；
 			// procedure参与方无需先落（ready超时自愈回滚，结局一致），此处仍等待perform完成后统一落。
 			if (0 == rc) {
 				txn.waitPendingAsync();
@@ -1219,12 +1198,8 @@ public class OnzServer extends AbstractOnz {
 				txn.waitFlushDone();
 				return 0;
 			}
-			// 失败路径对称排空（onz-02）：成功路径在commit前waitPendingAsync等齐异步续作，
-			// 失败路径原先不排空直接rollback——续作在cancelSaga两轮弱一致遍历之后/rollback
-			// 之后注册的步骤：FuncSaga照常发出、参与方发结果即本地提交（OnzSaga.
-			// sendReadyAndWait），cancelSaga已跑完不再补偿、上面的ePreparing快照早于该注册
-			// redo补发也不含——已提交步骤永久失补偿（静默部分提交）。排空后cancelSaga的
-			// 活表遍历尽收迟到注册（有界等待，见drainPendingAsyncBeforeRollback）。
+			// 失败路径对称排空：步骤投递前已有持久意图，排空仍确保活进程的cancelSaga
+			// 遍历观察到已接纳的异步续作（有界等待，见drainPendingAsyncBeforeRollback）。
 			drainPendingAsyncBeforeRollback(txn, "perform rc=" + rc);
 			// 快照重建+重存（对齐上面成功路径waitPendingAsync后重建快照的语义）：排空窗口内
 			// 注册的迟到参与方更新进ePreparing记录——cancelSaga投递失败（发送失败/超时，此时

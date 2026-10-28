@@ -163,31 +163,37 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		if (!zezeProcedures.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
 		var zezeInstance = getOnzServer().getZezeInstance(zezeName);
-		// 限制每个zeze集群最多一个调用：键为集群名。
-		var newCall = new OutObject<TaskCompletionSource<R2>>();
-		// 注册与崩溃窗口先落在本事务锁内成对串行（onz-01）：并发续作同时注册多个saga步骤时，
-		// 各自的"读快照→落库"若交错，后落者的快照可能不含先注册者（其快照读早于对方注册完成），
-		// 崩溃后redo漏补被覆写丢失的参与方；锁内成对执行保证"最后一次落库⊇此前全部已注册"，
-		// 残留窗口只剩单次落库自身的毫秒级。发送是队列写不阻塞，与既有computeIfAbsent原子段同级；
-		// getZezeInstance（可能秒级建连等待）刻意留在锁外，不与setPendingAsync/waitPendingAsync
-		// 的短暂临界区互相拖延。
+		// 登记、持久化完整参与方快照、投递在同一事务锁内顺序完成。
+		// 建连仍在锁外；同一集群的并发步骤不能越过唯一性检查或覆盖先前意图。
 		lock();
 		try {
 			// procedure登记也持本锁，检查与登记原子互斥；锁外检查仅供快速拒绝。
 			if (!zezeProcedures.isEmpty())
 				throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
-			zezeSagas.computeIfAbsent(zezeName, __ -> newCall.value
-					= OnzAgent.callSagaAsync(
-					this, zezeInstance, onzProcedureName, argument, result, flushMode));
-			if (newCall.value == null)
-				throw new RuntimeException("too many funcSaga on same zezeInstance.");
-			// onz-01：saga参与方"发结果即本地提交"，先落的ePreparing快照是perform业务窗口
-			// （时长无上界）内进程崩溃时已提交步骤唯一的补偿通道（redo分诊见OnzServer.
-			// collectRedoCandidates：在途登记skip+年龄闸），best-effort不外抛。
-			getOnzServer().saveSagaPreparingForCrashWindow(this);
-			return newCall.value;
+			var future = new TaskCompletionSource<R2>();
+			registerSagaIntent(zezeName, future);
+			try {
+				OnzAgent.sendSaga(this, zezeInstance, onzProcedureName, argument, result, flushMode, future);
+			} catch (Throwable failure) {
+				// 意图已持久化，发送结果不确定时保留参与方并结束future，交既有补偿/redo处理。
+				future.setException(failure);
+				throw failure;
+			}
+			return future;
 		} finally {
 			unlock();
+		}
+	}
+
+	// 调用方持本事务锁，保存失败时只撤销尚未投递的本次登记。
+	private void registerSagaIntent(String zezeName, TaskCompletionSource<?> future) {
+		if (zezeSagas.putIfAbsent(zezeName, future) != null)
+			throw new RuntimeException("too many funcSaga on same zezeInstance.");
+		try {
+			getOnzServer().saveSagaPreparingForCrashWindow(this);
+		} catch (Throwable failure) {
+			zezeSagas.remove(zezeName, future);
+			throw failure;
 		}
 	}
 
@@ -200,10 +206,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	 * onz-05语义论证：endSaga只在全部步骤成功应答后发送（commit()在perform rc==0路径），
 	 * 成功步骤的上下文在end送达前不应消失——end本身是上下文的唯一正常清理者；业务失败
 	 * 自清理不可能（失败步骤不进入本路径）；TTL清理需上下文空闲超sagaContextTimeoutMs
-	 *（默认1h），与end的正常送达时延（秒级）矛盾。故NotFound指向异常消失：最恶性的形态
-	 * 是参与方在"发结果（sendReadyAndWait发即返回）→本地finalCommit落库"间隙宕机（写丢失，
-	 * 协调者却已把该步骤计入成功链路不再补偿=假成功丢写），也可能是end已应用的重复
-	 * （窄窗口）/参与方在落库后宕机（写安全）——参与方侧不可区分，交redo按记录年龄统一分诊。 */
+	 *（默认1h），与end的正常送达时延（秒级）矛盾。NotFound可能是成功应答后参与方重启
+	 * 丢失内存上下文，也可能是end已应用的重复请求；参与方侧不可区分，保持既有redo年龄分诊。 */
 	private boolean endSaga() {
 		// 执行过程中发生异常或者错误不能到达这里，而是rollback里面的cancelSaga。
 		var futures = new ArrayList<TaskCompletionSource<?>>();
@@ -243,8 +247,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			if (IModule.getErrorCode(rpcs.get(i).getResultCode()) == AbstractOnz.eSagaNotFound) {
 				allEnded = false;
 				logger.error("end saga eSagaNotFound: 成功步骤的上下文在end送达前消失"
-						+ " (possible lost write if participant crashed between result-send and local commit,"
-						+ " ONZ-F25-05; keep eCommitting record for redo aged triage). tid={}, zeze={}",
+						+ " (keep eCommitting record for redo aged triage). tid={}, zeze={}",
 						onzTid, stepZeze.get(i));
 			}
 		}
@@ -302,7 +305,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		for (var e : zezeSagas.entrySet()) {
 			try {
 				// 失败/超时的步骤同样发送cancel——不只补偿成功的步骤。
-				// saga参与方sendReadyAndWait覆写为"发结果即本地提交"，协调者rpc超时不代表
+				// saga参与方在本地提交后发送结果，协调者rpc超时不代表
 				// 参与方未提交：跳过补偿的话，超时步骤的写已持久化而协调者按失败补偿其余
 				// 步骤并报告整体失败——部分提交的静默分歧。超时步骤的上下文在参与方1h超时
 				// 清理（Onz.cleanupTimeoutSagas）前仍在，cancel能真正补偿；上下文不存在
@@ -385,7 +388,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	 * <p>
 	 * give-up语义：重试仍eSagaNotFound不视为了结——"仍NotFound=请求确实未到达或业务
 	 * 已自清理"不可证：停滞无上界，滞留未处理的FuncSaga使原发+重试两次都命中NotFound，
-	 * give-up了结+删决策记录后队列才恢复、FuncSaga执行并"发结果即本地提交"，补偿永久
+	 * give-up了结+删决策记录后队列才恢复、FuncSaga完成本地提交，补偿永久
 	 * 失去。返回false把删除推迟到redo轮的重发确认（RedoPreparingMinAgeMs年龄闸+60s
 	 * 周期）：上下文在窗口内注册则redo补发的cancel命中并补偿收敛即删；仍NotFound则
 	 * redo按年轻良性移除；停滞超预算的残余由超龄NotFound分诊兜底（SagaNotFoundAgedBudgetMs）。
