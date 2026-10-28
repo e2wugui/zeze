@@ -72,6 +72,7 @@ public class DatabaseRocksDb extends Database {
 						n = 0;
 					}
 				}
+				it.status(); // invalid也可能是扫描失败；确认正常EOF后才允许删除源表。
 			}
 			if (n > 0)
 				batch.commit();
