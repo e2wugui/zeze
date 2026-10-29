@@ -311,6 +311,8 @@ public class Utils {
 		if (args == null) {
 			args = new Object[] {"(Object[])null"};
 		} else {
+			// Own the scratch array: callers may retain it or pass a covariant array such as Integer[].
+			args = Arrays.copyOf(args, args.length, Object[].class);
 			for (int i = 0; i < args.length; i++) {
 				args[i] = lenientToString(args[i]);
 			}
