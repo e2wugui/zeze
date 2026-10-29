@@ -22,7 +22,7 @@ public class TestDatabaseHalt {
 			logger.error("uncaught exception in {}:", t, e);
 		});
 
-		var config = Config.load();
+		var config = harness.TestDatabaseConfig.apply(Config.load());
 		var zeze = new Application("TestDatabaseHalt", config);
 		Objects.requireNonNull(zeze.getServiceManager()).start();
 		zeze.getServiceManager().waitReady();

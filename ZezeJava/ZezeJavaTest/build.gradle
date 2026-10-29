@@ -395,9 +395,9 @@ def cleanTestResidue = tasks.register('cleanTestResidue') {
 }
 tasks.withType(Test).configureEach {
     finalizedBy cleanTestResidue
-    // 测试后端重定向透传（Config.createDatabase守卫）：-PzezeTestDatabase=MySql
+    // 测试后端选择（harness.TestDatabaseConfig，创建 Application 前应用）：-PzezeTestDatabase=MySql
     // -PzezeTestDatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=...&password=..."。
-    // 缺席=默认Memory，产品行为零变化；命中范围见redirectTestDatabase注释。
+    // 缺席=默认Memory；独立Memory桶与其他后端不切换，Memory语义测试不调用该助手。
     if (findProperty('zezeTestDatabase') != null) {
         systemProperty 'zeze.test.database', findProperty('zezeTestDatabase')
         if (findProperty('zezeTestDatabaseUrl') != null)

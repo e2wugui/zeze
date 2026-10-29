@@ -486,7 +486,6 @@ public final class Config {
 	}
 
 	public static Database createDatabase(Application zeze, DatabaseConf conf) throws Exception {
-		conf = redirectTestDatabase(conf);
 		return switch (conf.databaseType) {
 			case Memory -> new DatabaseMemory(zeze, conf);
 			case MySql -> new DatabaseMySql(zeze, conf);
@@ -502,49 +501,6 @@ public final class Config {
 			case PostgreSQL -> new DatabasePostgreSQL(zeze, conf);
 			case MongoDb -> new DatabaseMongoDb(zeze, conf);
 		};
-	}
-
-	/** 测试后端重定向开关（-Dzeze.test.database=MySql + -Dzeze.test.database.url=jdbc:...，
-	 * 由build.gradle经-PzezeTestDatabase[Url]透传）：仅命中"未显式指定类型(explicitType)
-	 * 且未以url声明独立存储身份的默认Memory"——xml的Memory配置与new Config()的默认库
-	 * 随之切换；setDatabaseType显式钉死（隔离模型/Memory语义测试）、非空url的Memory分桶
-	 * （如takeover_test_N隔离桶）、其他后端不受影响。属性缺席=产品行为零变化；
-	 * 选型在而url缺失=fail-fast。 */
-	private static DatabaseConf redirectTestDatabase(DatabaseConf conf) {
-		var redirect = System.getProperty("zeze.test.database");
-		if (redirect == null || conf.databaseType != DbType.Memory || conf.explicitType || !conf.databaseUrl.isEmpty())
-			return conf;
-		var dbType = switch (redirect) {
-			case "MySql" -> DbType.MySql;
-			case "PostgreSQL" -> DbType.PostgreSQL;
-			default -> throw new IllegalStateException("zeze.test.database unsupported type: " + redirect);
-		};
-		var url = System.getProperty("zeze.test.database.url");
-		if (url == null || url.isBlank())
-			throw new IllegalStateException("zeze.test.database=" + redirect + " requires zeze.test.database.url");
-		var redirected = new DatabaseConf();
-		redirected.setDatabaseType(dbType);
-		redirected.setDatabaseUrl(url);
-		var druid = new DruidConf();
-		// 对齐xml解析路径的默认驱动
-		druid.driverClassName = dbType == DbType.MySql ? "com.mysql.cj.jdbc.Driver" : "org.postgresql.Driver";
-		// 测试池压小：151溢出的真凶是zeze兜底minIdle=4的闲置钉扎（每池常驻4条物理连接，
-		// 多App并存即击穿服务端max_connections）——minIdle=0已根治（惰性建立+闲置零常驻，
-		// 总连接随真实并发走）。maxActive须给足并发余量：bench的250客户端负载挤2条连接
-		// 会串行化百倍（MySQL批BenchRoleTimer 30分钟实锤）；bench车道串行且活跃池仅2-3个，
-		// 8条/池峰值连接~24，安全。
-		druid.initialSize = 0;
-		druid.minIdle = 0;
-		druid.maxActive = 8;
-		// Druid默认闲置连接挂满30分钟才回收+maxWait无限等：车道JVM内存活App的池"借过即攥"
-		// 到JVM退出，多池并存会耗尽服务端连接上限（MySQL批全天186万次1040风暴，
-		// prepareNewEnvironment恒定30:07=等闲置老化的实证）。闲置61s快回收——必须大于Druid
-		// 清理周期60s（15s会触发"should be greater than"告警被自调，PG批实锤1059次），回收
-		// 精度本就受清理周期60s粒度约束；借阅10s快速失败重试不无限排队。
-		druid.minEvictableIdleTimeMillis = 61_000L;
-		druid.maxWait = 10_000L;
-		redirected.setDruidConf(druid);
-		return redirected;
 	}
 
 	public void createDatabase(Application zeze, HashMap<String, Database> map) throws Exception {
@@ -1058,10 +1014,6 @@ public final class Config {
 		private String name = "";
 		private String databaseName = "zeze_mongodb";
 		private DbType databaseType = DbType.Memory;
-		// setDatabaseType显式置位：测试后端重定向（redirectTestDatabase）只命中未显式指定
-		// 类型的默认Memory；xml解析直接赋值字段不置位（xml是可被测试开关覆盖的配置内容，
-		// 代码setter才是"语义钉死"声明）。
-		private boolean explicitType;
 		private String databaseUrl = "";
 		private @Nullable DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
 		private @Nullable DynamoConf dynamoConf; // only valid when dynamodb
@@ -1091,7 +1043,6 @@ public final class Config {
 		public void setDatabaseType(DbType databaseType) {
 			//noinspection ConstantValue
 			this.databaseType = databaseType != null ? databaseType : DbType.Memory;
-			explicitType = true; // 语义钉死声明：不受测试后端重定向影响（见redirectTestDatabase）
 		}
 
 		public String getDatabaseUrl() {

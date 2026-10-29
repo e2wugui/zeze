@@ -62,8 +62,12 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Start(int serverId, int linkPort, int providerPort) throws Exception {
+		Start(Config.load("linkd.xml"), serverId, linkPort, providerPort);
+	}
+
+	/** 使用调用方提供的配置启动，serverId 与监听端口仍可由参数覆盖。 */
+	public void Start(Config config, int serverId, int linkPort, int providerPort) throws Exception {
 		// Create
-		var config = Config.load("linkd.xml");
 		if (serverId != -1)
 			config.setServerId(serverId);
 		if (linkPort != -1) {

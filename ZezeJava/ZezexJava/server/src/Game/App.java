@@ -84,17 +84,25 @@ public final class App extends Zeze.AppBase {
 	public void Start(int serverId, int providerDirectPort, @Nullable String genFileSrcRoot) throws Exception {
 		if (started)
 			return;
-		started = true;
 
 		// 生成模式：模块类清单是静态的，不构造Application（不建库、不开服务、不碰server.xml），
 		// 只生成Redirect源码后返回——main据Start返回值不进入wait，进程自然退出。
 		if (genFileSrcRoot != null) {
+			started = true;
 			GenModule.instance.generateRedirectSources(genFileSrcRoot, this, redirectModuleClasses(),
 					Boolean.getBoolean("GenFileTryCompile"));
 			return; // 不得带空Zeze继续启动
 		}
 
-		var config = Config.load("server.xml");
+		Start(Config.load("server.xml"), serverId, providerDirectPort);
+	}
+
+	/** 使用调用方提供的配置启动，serverId 与监听端口仍可由参数覆盖。 */
+	public void Start(Config config, int serverId, int providerDirectPort) throws Exception {
+		if (started)
+			return;
+		started = true;
+
 		if (serverId != -1) {
 			config.setServerId(serverId); // replace from args
 		}

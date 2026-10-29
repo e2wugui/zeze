@@ -115,7 +115,7 @@ public class App extends Zeze.AppBase {
 		adjustTableConf(config.getDefaultTableConf());
 		adjustTableConf(config.getTableConfMap().get("demo_Module1_Table1"));
 
-		createZeze(config);
+		createZeze(harness.TestDatabaseConfig.apply(config));
 		createService();
 		var provider = new ProviderWithOnline();
 		providerApp = new ProviderApp(getZeze(), provider,

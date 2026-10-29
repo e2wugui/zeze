@@ -58,8 +58,7 @@ public abstract class DatabaseJdbc extends Database {
 		// 等待可用连接的超时时间, <=0表示没有超时, 默认:-1
 		ds.setMaxWait(Objects.requireNonNullElse(dc.maxWait, -1L));
 
-		// 闲置连接最小存活时间, null用Druid默认(30分钟)。测试重定向下设短值：存活App的池
-		// 借过即攥闲置连接到JVM退出，多池并存会耗尽服务端max_connections（见redirectTestDatabase）。
+		// 闲置连接最小存活时间, null用Druid默认(30分钟)。
 		if (dc.minEvictableIdleTimeMillis != null)
 			ds.setMinEvictableIdleTimeMillis(dc.minEvictableIdleTimeMillis);
 

@@ -83,9 +83,11 @@ public final class ZezexTestEnv {
 
 		try {
 			for (int i = 0; i < linkCount; ++i)
-				links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
+				links.get(i).Start(harness.TestDatabaseConfig.apply(Config.load("linkd.xml")),
+						-(i + 1), 12000 + i, 15000 + i);
 			for (int i = 0; i < serverCount; ++i)
-				servers.get(i).Start(serverIdBase + i, 20000 + i);
+				servers.get(i).Start(harness.TestDatabaseConfig.apply(Config.load("server.xml")),
+						serverIdBase + i, 20000 + i);
 			for (var link : links)
 				harness.TestEnv.waitServerRegisteredRange(link.getZeze(), serverIdBase, serverCount); // 等所有provider注册可见（替代盲等1秒）
 
