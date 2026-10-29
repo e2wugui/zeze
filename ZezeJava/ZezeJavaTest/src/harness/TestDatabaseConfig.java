@@ -38,7 +38,7 @@ public final class TestDatabaseConfig {
 			// 多应用测试不常驻闲置连接，保留并发余量；回收时间须大于 Druid 默认清理周期 60s。
 			druid.initialSize = 0;
 			druid.minIdle = 0;
-			druid.maxActive = 8;
+			druid.maxActive = 4;
 			druid.minEvictableIdleTimeMillis = 61_000L;
 			druid.maxWait = 10_000L;
 			db.setDatabaseType(dbType);
