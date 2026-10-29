@@ -643,7 +643,8 @@ public final class Application extends ReentrantLock {
 					return;
 				}
 				// CAS冲突重读到的版本可能与检查时不同（启动锁之外的并发改动）：重检再发布。
-				schemas.checkCompatible(schemasPrevious, this);
+				// 仅重新验证：版本备份已在开表前执行，不能再次rename刚打开的新表。
+				schemas.checkCompatibleForPublish(schemasPrevious, this);
 				version = dataVersion.version;
 			}
 			var newData = ByteBuffer.Allocate(1024);
