@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Assertions;
 // （全量提交无批次屏障，对齐 B 形态）持续冲刷 Keys 个热 key 制造 RRS 合并竞争，同时
 // flusher 线程连续 checkpointRun 抢同一批锁。观测口：RRS.flushLockWait 聚合分布、
 // FlushSet 取锁告警（zeze.rrsFlushLockWaitWarnMs）、flush 迭代计数与单轮最大耗时——
-// RRS 非公平锁取舍下 flusher 饿死（=持久化停摆）风险的实证探针。JUnit 默认固定 VT 池；
-// 加 -DuseUnlimitedVirtualThread=true 对齐生产无界 VT 形态。
+// RRS 非公平锁取舍下 flusher 饿死（=持久化停摆）风险的实证探针。默认使用生产无界 VT 形态；
+// 需要受限并发对照时显式设置 -DuseUnlimitedVirtualThread=false。
 @SuppressWarnings("NewClassNamingConvention")
 @Bench
 @Tag("core")
