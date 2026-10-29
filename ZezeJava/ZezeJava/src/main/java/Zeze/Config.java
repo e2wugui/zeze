@@ -967,6 +967,7 @@ public final class Config {
 	public static final class DruidConf {
 		public @Nullable String driverClassName;
 		public @Nullable String userName;
+		/** Nonempty XML passwords retain all decoded characters; a missing or empty attribute uses the URL fallback. */
 		public @Nullable String password;
 		public @Nullable Integer initialSize;
 		public @Nullable Integer minIdle;
@@ -998,7 +999,8 @@ public final class Config {
 		public DruidConf(Element self) {
 			driverClassName = EmptyToNullString(self.getAttribute("DriverClassName"));
 			userName = EmptyToNullString(self.getAttribute("UserName"));
-			password = EmptyToNullString(self.getAttribute("Password"));
+			var configuredPassword = self.getAttribute("Password");
+			password = configuredPassword.isEmpty() ? null : configuredPassword;
 			initialSize = EmptyToNullInteger(self.getAttribute("InitialSize"));
 			minIdle = EmptyToNullInteger(self.getAttribute("MinIdle"));
 			maxActive = EmptyToNullInteger(self.getAttribute("MaxActive"));
