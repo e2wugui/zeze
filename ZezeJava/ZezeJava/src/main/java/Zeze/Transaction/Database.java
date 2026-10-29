@@ -712,7 +712,9 @@ public abstract class Database extends ReentrantLock {
 		*/
 
 		/**
-		 * 保存数据（按版本条件更新），返回&lt;新版本, 是否新建插入&gt;。
+		 * 保存数据（按版本条件更新），返回&lt;版本, 是否成功保存&gt;。
+		 * true 包含成功插入和成功更新；false 表示版本条件或并发竞争未满足。
+		 * 仅成功时使用返回版本，失败时应重新读取，不能依赖各后端返回的版本占位值。
 		 *
 		 * <p>版本读回契约（已知漂移，同库混用/迁移后端时注意）：插入路径的返回版本依后端而异——
 		 * JDBC系（MySql/PostgreSQL/SqlServer，存储过程实现）返回入参version原值；
