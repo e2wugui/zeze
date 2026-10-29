@@ -16,3 +16,15 @@
 Memory 语义测试直接创建 `Config`，不调用该助手；使用共享测试应用但需要独立 Memory 存储时，应在启动前设置独立的 Memory URL。同一部署的多个应用须使用一致的后端和 URL。
 
 生产 `Config.createDatabase` 始终按传入配置创建数据库，不读取测试系统属性。`setDatabaseType` 仅设置类型，不记录调用历史。
+
+## RocketMQ 联调
+
+`Zeze.Misc.TestRocketMQ` 默认 `@Disabled`，需要 RocketMQ broker 和持久数据库。手动启用该类后，可通过上面的数据库参数准备共享 demo 应用，再运行：
+
+```powershell
+.\gradlew.bat :ZezeJavaTest:integrationTest --tests "*TestRocketMQ" -PzezeTestDatabase=PostgreSQL '-PzezeTestDatabaseUrl=jdbc:postgresql://localhost:5432/devtest?user=dev&password=...'
+```
+
+也可在测试 XML 中直接配置持久后端。生产 `Producer.start()` 始终拒绝把事务回查表 `tSent` 放在 Memory 库；真实启动的测试须遵守同一约束。
+
+不连接 broker 的 RocketMQ 回归通过 `extraTest --tests "*.RocketMQ.*"` 执行：仅构造包装器的测试继续使用隔离 Memory 桶；启动校验的正向用例由测试工程提供临时 RocksDB，并用 SDK 客户端替身验证校验通过后到达客户端启动边界。

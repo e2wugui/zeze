@@ -8,8 +8,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import Zeze.Config;
 import Zeze.Services.RocketMQ.Consumer;
 import demo.App;
+import harness.TestDatabaseConfig;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -30,14 +32,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled
+@Disabled("Requires a RocketMQ broker and a persistent test database; see TESTING.md")
 public class TestRocketMQ {
 	@BeforeEach
 	public void before() throws Exception {
-		// demo拓扑的默认库是内存库（zeze.xml）：tSent落内存库被Producer.start()按部署契约拒绝
-		//（重启灭失回查证据），联调形态显式豁免（Producer.TSENT_ALLOW_MEMORY_PROPERTY）。
-		System.setProperty("RocketMQ.Producer.tSentAllowMemory", "true");
-		App.Instance.Start();
+		// 启用联调时用 zezeTestDatabase/zezeTestDatabaseUrl 配置持久库，再创建 Application。
+		// 默认 Memory 配置不满足 Producer.start() 的 tSent 持久化要求。
+		var config = TestDatabaseConfig.apply(Config.load());
+		App.Instance.Start(config);
 	}
 
 	@AfterEach
