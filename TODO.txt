@@ -1,5 +1,5 @@
 kotlinx-collections-immutable-jvm transient/builder 结合进事务 zeze-2.0.0 有项目正式采用后才修改。
-ScopedValue jdk25 zeze-3.0.0 之后启用。
+ScopedValue jdk25 zeze-3.0.0 之后启用。ArrayList + SpinLock 实现的Transaction对象池。对象池是否用需要先bench。
 
 History tid 分配方案，目前是锁内一次一个的分配，性能不行。
 

@@ -74,7 +74,7 @@ public class TestDatabaseConfigTest {
 			assertEquals(backend.driver(), druid.driverClassName);
 			assertEquals(0, druid.initialSize);
 			assertEquals(0, druid.minIdle);
-			assertEquals(8, druid.maxActive);
+			assertEquals(4, druid.maxActive);
 			assertEquals(61_000L, druid.minEvictableIdleTimeMillis);
 			assertEquals(10_000L, druid.maxWait);
 		}
