@@ -27,7 +27,7 @@ import Zeze.Util.Task;
  * 同号重发命中 DuplicateRequest 不可服务直到按天过期（默认7天）。
  * <p>
  * 用例1（正常路径回归）：appendLog 成功后存根（!isApplied）与日志同在。
- * 用例2（原子性·红绿双向的核心断言）：经 testHookBetweenStubAndLog 在存根写之后、
+ * 用例2（原子性·红绿双向的核心断言）：测试日志在encode时抛异常，在存根写之后、
  * 日志写/提交之前注入失败——修复前=存根已独立落盘留孤儿（红）；合批后=组装失败
  * try-with-resources 丢弃未提交 batch，两笔同弃，重发路径 getRequestState 为 null（绿）。
  * <p>
@@ -131,7 +131,7 @@ public class TestAppendLogAtomicBatch {
 			logSequence.setWriteOptions(Zeze.Util.RocksDatabase.getDefaultWriteOptions());
 
 			// 先收集（not leader），后置Leader——becomeLeader后的newProcedure会真实走
-			// appendLog（广播失败但日志已留，见LogSequence lastIndex注释），抢先消费一次性hook。
+			// appendLog（广播失败但日志已留，见LogSequence lastIndex注释），占用首个index。
 			var changes = newUniqueChanges(rocks, table);
 			var changes2 = newUniqueChanges(rocks, table);
 			changes2.getUnique().setRequestId(42);
@@ -139,12 +139,31 @@ public class TestAppendLogAtomicBatch {
 			changes2.setCreateTime(changes.getCreateTime());
 			changes2.encode(ByteBuffer.Allocate());
 			becomeLeader(raft);
-			// 一次性注入：存根写之后、日志写/提交之前失败。
-			logSequence.testHookBetweenStubAndLog = () -> {
-				throw new RuntimeException("test inject: fail between stub and log");
+			// saveLog编码发生在存根加入batch后；只在测试日志中注入失败。
+			var injected = new IllegalStateException("test inject: log encoding failed");
+			var failingLog = new Log(null) {
+				@Override
+				public long typeId() {
+					return changes.typeId();
+				}
+
+				@Override
+				public void encode(ByteBuffer bb) {
+					throw injected;
+				}
+
+				@Override
+				public void apply(RaftLog holder, StateMachine stateMachine) {
+					throw new AssertionError("failed log must never be applied");
+				}
 			};
-			Assertions.assertThrows(Exception.class, () -> logSequence.appendLog(changes, null),
-					"注入失败必须传播出appendLog");
+			failingLog.getUnique().setRequestId(changes.getUnique().getRequestId());
+			failingLog.getUnique().setClientId(changes.getUnique().getClientId());
+			failingLog.setCreateTime(changes.getCreateTime());
+			Assertions.assertSame(injected, Assertions.assertThrows(IllegalStateException.class,
+						() -> logSequence.appendLog(failingLog, null)), "必须传播指定编码异常");
+			Assertions.assertNull(logSequence.readLog(1L), "失败日志不得落盘");
+			Assertions.assertEquals(0L, logSequence.getLastIndex(), "组装失败不得推进index");
 
 			// 原子性断言：孤儿存根不得存在（修复前=存根已独立落盘）。
 			// 行为级证明：同unique重发必须不被Duplicate拦截（NOT_FOUND→可正常执行）。

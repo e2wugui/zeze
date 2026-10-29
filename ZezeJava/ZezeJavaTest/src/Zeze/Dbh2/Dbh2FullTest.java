@@ -2,7 +2,7 @@ package Zeze.Dbh2;
 
 import static java.util.Objects.requireNonNull;
 
-import Zeze.Dbh2.Database;
+import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Serialize.ByteBuffer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -10,6 +10,20 @@ import org.junit.jupiter.api.Test;
 // 测试整体结构(Dbh2Manager,Master,Agent)。只保留功能路径：环境拓扑(raft/bucket多manager)+数据正确性断言。
 // 吞吐负载部分见 Benchmark.BenchDbh2FullTransaction（@Bench，进 bench 车道）。环境拓扑由 Dbh2TestEnv 脚手架提供。
 public class Dbh2FullTest {
+	// 只prepare的故障场景属于测试；经反射取得现有协调者和事务批次，不暴露生产调试入口。
+	private static void prepareWithoutCommit(Dbh2AgentManager manager, Database.Dbh2Transaction transaction)
+			throws ReflectiveOperationException {
+		var batchesField = Database.Dbh2Transaction.class.getDeclaredField("batches");
+		batchesField.setAccessible(true);
+		var batches = (BPrepareBatches.Data)batchesField.get(transaction);
+		var commitField = Dbh2AgentManager.class.getDeclaredField("commit");
+		commitField.setAccessible(true);
+		var commit = (Commit)requireNonNull(commitField.get(manager), "requires local commit mode");
+		var query = manager.commitServiceAcceptor();
+		commit.getRocks().prepare(query.getKey(), query.getValue(), CommitRocks.buildTransactionState(batches),
+				batches, null);
+	}
+
 	@Test
 	public void testFull() throws Exception {
 		var env = new Dbh2TestEnv();
@@ -53,7 +67,7 @@ public class Dbh2FullTest {
 				var trans = (Database.Dbh2Transaction)_trans;
 				table1.replace(trans, key, env.value);
 				table1.replace(trans, key1, env.value);
-				trans.commitBreakAfterPrepareForDebugOnly();
+				prepareWithoutCommit(requireNonNull(env.dbh2AgentManager), trans);
 			}
 			// <CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="2000" BucketMaxTime="62000"/>
 			// （BucketMaxTime 必须 >= PrepareMaxTime + 60000：低余量会被配置解析fail-fast拒绝）
