@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
@@ -123,7 +122,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			if (queue.size() != 1)
 				return null; // 有任务正在执行,不需要进一步调度.
 			batch.prepare();
-			return () -> executeOrRollback(task.mode);
+			return () -> executeOrRollback(task.mode, false);
 		}
 		if (task.cancel != null) {
 			return () -> {
@@ -142,31 +141,49 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	 * poolOrThrow抛IllegalStateException——任务已入队且已认领（size==1分支），直接抛回
 	 * 会让队列非空且再无派发点（后续submit全走size!=1分支），该桶永久卡死、
 	 * waitComplete永等。回滚认领后重抛：队列回到未派发状态。 */
-	private void executeOrRollback(@Nullable DispatchMode mode) {
+	private void executeOrRollback(@Nullable DispatchMode mode, boolean continuation) {
 		Dispatch dispatch = null;
 		try {
 			var target = getExecutor(mode);
-			dispatch = new Dispatch();
+			dispatch = new Dispatch(target);
 			pendingDispatches.put(dispatch, target);
-			target.execute(dispatch);
+			dispatch.submit(continuation);
 		} catch (Throwable e) {
 			// 池不可用、拒绝以及执行器 Error 均须回滚未启动的认领；内联执行已经
 			// 启动的派发由 CAS 排除，不能回滚其业务或后续批次。清理失败不覆盖原异常。
-			try {
-				if (dispatch == null)
-					rollbackRejectedDispatch(e);
-				else
-					dispatch.cancelBeforeRun(e);
-			} catch (Throwable cleanup) {
-				if (cleanup != e)
-					e.addSuppressed(cleanup);
-			}
+			rollbackFailedDispatch(dispatch, e);
 			throw e;
 		}
 	}
 
+	private void rollbackFailedDispatch(@Nullable Dispatch dispatch, Throwable failure) {
+		try {
+			if (dispatch == null)
+				rollbackRejectedDispatch(failure);
+			else
+				dispatch.cancelBeforeRun(failure);
+		} catch (Throwable cleanup) {
+			if (cleanup != failure)
+				failure.addSuppressed(cleanup);
+		}
+	}
+
 	// 每次派发独立认领，不能在复用 BatchTask 上放状态：旧驱动可能迟到，而桶已派发新一批。
-	private final class Dispatch extends AtomicInteger implements Runnable {
+	private final class Dispatch extends TaskOneByOneDispatch {
+		Dispatch(Executor target) {
+			super(TaskOneByOneQueue.this, target);
+		}
+
+		@Override
+		void execute() {
+			try {
+				target.execute(this);
+			} catch (Throwable e) {
+				rollbackFailedDispatch(this, e);
+				throw e;
+			}
+		}
+
 		@Override
 		public void run() {
 			if (!compareAndSet(0, 1))
@@ -254,7 +271,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			runCancelAndSignal(cancels);
 			return;
 		}
-		executeOrRollback(batch.mode);
+		executeOrRollback(batch.mode, true);
 	}
 
 	private static void runCancel(ArrayDeque<Task> tasks) {

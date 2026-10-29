@@ -705,7 +705,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 			queue.offer(task);
 			if ((boolean)vhSubmitted.compareAndSet(this, false, true))
-				runNext();
+				runNext(false);
 		}
 
 		private @Nullable Task pollTask() {
@@ -735,9 +735,13 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 
 		void runNext() {
+			runNext(true);
+		}
+
+		private void runNext(boolean continuation) {
 			var task = peekTask();
 			if (task != null)
-				executeOrRollback(task);
+				executeOrRollback(task, continuation);
 		}
 
 		/** 派发并处理失败：execute 抛 RuntimeException（自定义 executor 拒绝 REE、
@@ -748,29 +752,50 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		 * submit 路径同步反馈调用方；run/barrier 路径异常会被 executor 吞掉，回滚内 warn 保证可诊断。
 		 * 队列保留不清：Key2 无 onCancel 补偿钩子，清队列会静默丢任务；积压任务由后续
 		 * submit 重新认领派发（executor 恢复后照常执行）。 */
-		private void executeOrRollback(Task task) {
+		private void executeOrRollback(Task task, boolean continuation) {
 			Dispatch dispatch = null;
 			try {
 				var target = getExecutor(task.mode);
-				dispatch = new Dispatch();
+				dispatch = new Dispatch(target, task.name);
 				pendingDispatches.put(dispatch, target);
-				target.execute(dispatch);
+				dispatch.submit(continuation);
 			} catch (RuntimeException e) {
-				boolean rolledBack;
-				if (dispatch == null) {
-					submitted = false;
-					rolledBack = true;
-				} else
-					rolledBack = dispatch.cancelBeforeRun();
-				if (rolledBack)
-					logger.warn("TaskOneByOneByKey2: dispatch rejected, rollback claim, {} pending task(s), head: [{}]",
-							queue.size(), task.name, e);
+				rollbackFailedDispatch(dispatch, task.name, e);
 				throw e;
 			}
 		}
 
+		private void rollbackFailedDispatch(@Nullable Dispatch dispatch, String name, RuntimeException failure) {
+			boolean rolledBack;
+			if (dispatch == null) {
+				submitted = false;
+				rolledBack = true;
+			} else
+				rolledBack = dispatch.cancelBeforeRun();
+			if (rolledBack)
+				logger.warn("TaskOneByOneByKey2: dispatch rejected, rollback claim, {} pending task(s), head: [{}]",
+						queue.size(), name, failure);
+		}
+
 		// 每次派发独立票据；shutdownNow丢弃未运行驱动时只归还认领，保留noCancel任务。
-		private final class Dispatch extends AtomicInteger implements Runnable {
+		private final class Dispatch extends TaskOneByOneDispatch {
+			private final String name;
+
+			Dispatch(Executor target, String name) {
+				super(TaskOneByOne.this, target);
+				this.name = name;
+			}
+
+			@Override
+			void execute() {
+				try {
+					target.execute(this);
+				} catch (RuntimeException e) {
+					rollbackFailedDispatch(this, name, e);
+					throw e;
+				}
+			}
+
 			@Override
 			public void run() {
 				if (!compareAndSet(0, 1))
@@ -800,7 +825,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				if (task == null)
 					return;
 				if (task.mode != mode) {
-					executeOrRollback(task);
+					executeOrRollback(task, true);
 					return;
 				}
 			}
