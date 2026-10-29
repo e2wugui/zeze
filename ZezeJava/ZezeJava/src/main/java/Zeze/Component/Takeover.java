@@ -16,7 +16,6 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.Nullable;
 
 /**
  * 接管租约组件：把“死者的数据搬给活人”的裁决权从SM内存降到与数据同库的租约表
@@ -55,13 +54,11 @@ public class Takeover extends AbstractTakeover {
 	public final Application zeze;
 	private final String mode;
 	private final long ttl;
-	private final long scanPeriod;
 
 	private volatile long myEpoch; // 0=未claim
 	private volatile boolean started;
 	private volatile long suppressScanUntil; // 风暴防护v1：renew恢复成功后冻结扫描一个TTL
 	private volatile boolean fenceFatal; // 已被接管：release不得动租约（新owner的）
-	private volatile @Nullable Runnable fatalAction; // fence失败动作，默认致命退出；测试注入替换
 
 	private final CopyOnWriteArrayList<TakeoverScope> scopes = new CopyOnWriteArrayList<>();
 	// 已成功stamp（事务提交后置位）的scope：未scoped的写路径checkFence抛NotStartException拒绝
@@ -86,8 +83,7 @@ public class Takeover extends AbstractTakeover {
 			throw new IllegalStateException("unknown TakeoverMode: " + m);
 		mode = m;
 		ttl = conf.getTakeoverTtl();
-		scanPeriod = conf.getTakeoverScanPeriod();
-		fatalAction = () -> System.exit(-1);
+		long scanPeriod = conf.getTakeoverScanPeriod();
 		RegisterZezeTables(zeze);
 		renewDaemon = new DaemonTimer("Takeover.renew", Math.max(ttl / 3, 1), this::renewOnce);
 		scanDaemon = new DaemonTimer("Takeover.scan", scanPeriod, this::scanOnce);
@@ -109,11 +105,6 @@ public class Takeover extends AbstractTakeover {
 	/** 测试/诊断用：scope是否已完成本生命周期的stamp登记（release清零，重启后由start重建）。 */
 	public boolean isScoped(TakeoverScope scope) {
 		return scopedScopes.contains(scope);
-	}
-
-	/** 测试注入fence失败动作（如计数器）；finally里复原。null恢复默认致命退出。 */
-	public void setFatalAction(@Nullable Runnable action) {
-		fatalAction = action != null ? action : () -> System.exit(-1);
 	}
 
 	/**
@@ -266,9 +257,7 @@ public class Takeover extends AbstractTakeover {
 		fenceFatal = true; // release不得动租约：不能打掉新owner的（含其到期时刻）
 		// 带触发点栈：fence失败必须致命退出，现场只此一条日志，没有栈无法定位是哪条写路径触发。
 		logger.fatal("Takeover: {}", reason, new Exception("Takeover fence trigger stack"));
-		var action = fatalAction;
-		if (action != null)
-			action.run();
+		System.exit(-1);
 	}
 
 	private void renewOnce() {

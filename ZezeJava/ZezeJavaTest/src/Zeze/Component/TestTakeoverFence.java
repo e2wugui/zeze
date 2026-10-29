@@ -1,28 +1,27 @@
 package Zeze.Component;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.nio.file.Path;
 import Zeze.BMyBean;
 import Zeze.Application;
 import Zeze.Builtin.Collections.Queue.BQueue;
 import Zeze.Collections.CsQueue;
-import Zeze.Component.TimerContext;
-import Zeze.Component.TimerHandle;
-import Zeze.Component.TimerSpec;
 import Zeze.Transaction.TableX;
+import Zeze.Util.ShutdownHook;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.CleanupMode;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
- * 步骤②写路径fence回归：自己的root.epoch被【别人的epoch】覆盖（同serverId双进程：后启动者
- * claim epoch+1并stampScope覆盖前者的root；或外部篡改）时，CsQueue/Timer的写路径必须fence
- * 拒绝（致命动作被注入的计数器替代，finally复原）；fenceFatal后release不得动租约（否则会打掉
- * 新owner的，含其到期时刻）。
- * 注意：被接管后醒来【不是】fence场景——transferAll留下的墓碑stamp=0会被写路径认领，
- * 被接管者在空链上复活继续新写（见testTombstoneRevivalNotFenced）。
+ * 真实子JVM验证fencing固定致命退出，以及shutdown时release不动租约。
+ * Queue、Timer、scope登记和续租各自退出，不能在第一次致命退出后继续同进程测试。
+ * 墓碑复活场景应正常完成，也隔离到子JVM，防止误判fence时杀掉JUnit worker。
  */
 @Fast
+@Timeout(45)
 public class TestTakeoverFence {
 
 	public static final class NoopHandle implements TimerHandle {
@@ -49,68 +48,117 @@ public class TestTakeoverFence {
 	}
 
 	@Test
-	public void testFenceFatalAndReleaseNoTombstone() throws Exception {
+	public void testQueueFenceExitsAndPreservesLease(@TempDir(cleanup = CleanupMode.ON_SUCCESS) Path dir) throws Exception {
+		TakeoverTestProcess.run(dir, TestTakeoverFence.class, "queue-fence", "checkFence: fenced!");
+	}
+
+	@Test
+	public void testTimerFenceExitsAndPreservesLease(@TempDir(cleanup = CleanupMode.ON_SUCCESS) Path dir) throws Exception {
+		TakeoverTestProcess.run(dir, TestTakeoverFence.class, "timer-fence", "checkFence: fenced!");
+	}
+
+	@Test
+	public void testStampLeaseLossExitsAndPreservesLease(@TempDir(cleanup = CleanupMode.ON_SUCCESS) Path dir) throws Exception {
+		TakeoverTestProcess.run(dir, TestTakeoverFence.class, "stamp-lease-loss", "stampScope: lease lost");
+	}
+
+	@Test
+	public void testRenewLeaseLossExitsAndPreservesLease(@TempDir(cleanup = CleanupMode.ON_SUCCESS) Path dir) throws Exception {
+		TakeoverTestProcess.run(dir, TestTakeoverFence.class, "renew-lease-loss", "renew: lease lost");
+	}
+
+	@Test
+	public void testTombstoneRevivalNotFenced(@TempDir(cleanup = CleanupMode.ON_SUCCESS) Path dir) throws Exception {
+		TakeoverTestProcess.run(dir, TestTakeoverFence.class, "tombstone-revival", null);
+	}
+
+	public static void main(String[] args) {
+		var scenario = args[0];
+		try {
+			if (scenario.equals("tombstone-revival")) {
+				tombstoneRevival();
+				TakeoverTestProcess.marker("PASS", scenario);
+				System.exit(0);
+			} else
+				fenceAndExit(scenario);
+		} catch (Throwable e) {
+			e.printStackTrace();
+			System.exit(2); // 与生产fence的-1区分，断言失败或启动失败不能算通过。
+		}
+	}
+
+	private static void fenceAndExit(String scenario) throws Exception {
 		var conf = TakeoverTestEnv.newConf("on", 600_000, 600_000);
 		var app = new Application("TestTakeoverFence", conf);
-		// Timer必须先于app.start()构造（表注册要在数据库打开前完成），start后再手动启动
-		// （生产由ProviderApp.startLast负责，这里没有ProviderApp）。
+		// Timer必须在app.start()前构造以注册表，由测试手动启动与停止。
 		var timer = new TakeoverTestEnv.AccessibleTimer(new TakeoverTestEnv.TestAppBase(app));
 		var takeover = app.getTakeover();
-		var fatalCount = new AtomicInteger();
-		takeover.setFatalAction(fatalCount::incrementAndGet); // 替代System.exit
 		try {
 			app.start();
 			var myId = conf.getServerId();
 			var csq = new CsQueue<>(app.getQueueModule(), "TestTakeoverFenceQ", myId, BMyBean.class, 10);
 			timer.loadCustomClassAnd();
-			timer.start(); // 加载本地(空)链（接管作用域已在ctor注册、stamp由Takeover.start完成）
+			timer.start();
 
-			// 正常写（root.epoch==myEpoch）：不触发。
 			var rc0 = TaskSpec.ofProcedure(app.newProcedure(() -> {
 				csq.add(new BMyBean());
 				return 0L;
 			}, "TestTakeoverFence.normalAdd")).call();
 			Assertions.assertEquals(0L, rc0);
-			Assertions.assertEquals(0, fatalCount.get(), "正常写不得触发fence");
 
-			// 模拟被接管：新owner的stamp覆盖了我的root.epoch。
 			var foreignEpoch = takeover.getMyEpoch() + 7;
-			var rcStamp = TaskSpec.ofProcedure(app.newProcedure(() -> {
-				tQueues(app).getOrAdd("TestTakeoverFenceQ@" + myId).setLoadSerialNo(foreignEpoch);
-				return 0L;
-			}, "TestTakeoverFence.forgeForeignStamp")).call();
-			Assertions.assertEquals(0L, rcStamp);
+			boolean leaseLost = scenario.equals("stamp-lease-loss") || scenario.equals("renew-lease-loss");
+			// 写路径场景保留自己的租约epoch，只有root被改成foreign；这样删除fenceFatal保护
+			// 会错误刷新到期时间，不能仅靠release的epoch不符检查掩盖回归。
+			TakeoverTestEnv.forgeLease(app, myId, leaseLost ? foreignEpoch : takeover.getMyEpoch(),
+					System.currentTimeMillis() + 1_234_567);
+			if (!leaseLost) {
+				Assertions.assertEquals(0L, TaskSpec.ofProcedure(app.newProcedure(() -> {
+					if (scenario.equals("queue-fence"))
+						tQueues(app).getOrAdd("TestTakeoverFenceQ@" + myId).setLoadSerialNo(foreignEpoch);
+					else if (scenario.equals("timer-fence"))
+						tNodeRoot(app).getOrAdd(myId).setLoadSerialNo(foreignEpoch);
+					else
+						throw new IllegalArgumentException(scenario);
+					return 0L;
+				}, "TestTakeoverFence.forgeForeignStamp")).call());
+			}
 
-			// CsQueue写路径fence：醒来首写被拒绝。
-			var rcAdd = TaskSpec.ofProcedure(app.newProcedure(() -> {
-				csq.add(new BMyBean());
-				return 0L;
-			}, "TestTakeoverFence.fencedAdd")).call();
-			Assertions.assertEquals(0L, rcAdd); // 致命动作被注入替代，事务本身继续
-			Assertions.assertEquals(1, fatalCount.get(), "被接管后的CsQueue写必须fence");
-
-			// Timer写路径fence：schedule插链前检查root.epoch。
-			var rcTimerStamp = TaskSpec.ofProcedure(app.newProcedure(() -> {
-				tNodeRoot(app).getOrAdd(myId).setLoadSerialNo(foreignEpoch);
-				return 0L;
-			}, "TestTakeoverFence.forgeTimerForeignStamp")).call();
-			Assertions.assertEquals(0L, rcTimerStamp);
-			var rcSchedule = TaskSpec.ofProcedure(app.newProcedure(() -> {
-				timer.schedule(TimerSpec.ofDelay(60_000), NoopHandle.class, null);
-				return 0L;
-			}, "TestTakeoverFence.fencedSchedule")).call();
-			Assertions.assertEquals(0L, rcSchedule);
-			Assertions.assertEquals(2, fatalCount.get(), "被接管后的Timer插链必须fence");
-
-			// fenceFatal置位后：release不得动租约（不立碑、不刷新宽限期；新owner不受影响）。
 			var before = TakeoverTestEnv.readLease(app, myId);
-			Assertions.assertTrue(before[1] > 0, "本进程租约应在续约中");
-			takeover.release();
-			var after = TakeoverTestEnv.readLease(app, myId);
-			Assertions.assertEquals(before[0], after[0], "fence后release不得动epoch");
-			Assertions.assertEquals(before[1], after[1], "fence后release不得动expireAt（不立碑、不刷新宽限期）");
+			// ShutdownHook为LIFO，此测试观察器在Application自己的停机动作之前运行。
+			// 不拦截System.exit：真实退出时检查真实release，再完成应用停机。
+			ShutdownHook.add(() -> {
+				takeover.release();
+				Assertions.assertArrayEquals(before, TakeoverTestEnv.readLease(app, myId),
+						"fence后release不得改epoch或expireAt");
+				TakeoverTestProcess.marker("LEASE_PRESERVED", scenario);
+				timer.stop();
+				app.stop();
+				TakeoverTestProcess.marker("STOPPED", scenario);
+			});
+			TakeoverTestProcess.marker("READY", scenario);
+			switch (scenario) {
+			case "queue-fence", "timer-fence" -> TaskSpec.ofProcedure(app.newProcedure(() -> {
+				if (scenario.equals("queue-fence"))
+					csq.add(new BMyBean());
+				else
+					timer.schedule(TimerSpec.ofDelay(60_000), NoopHandle.class, null);
+				TakeoverTestProcess.marker("UNEXPECTED_RETURN", scenario);
+				return 0L;
+			}, "TestTakeoverFence.fencedWrite")).call();
+			case "stamp-lease-loss" -> new CsQueue<>(app.getQueueModule(), "TestTakeoverFenceNewQ",
+					myId, BMyBean.class, 10);
+			case "renew-lease-loss" -> {
+				// 只在测试工程直接触发生产续租轮次，不等周期到点，也不替换其实现。
+				var renew = Takeover.class.getDeclaredMethod("renewOnce");
+				renew.setAccessible(true);
+				renew.invoke(takeover);
+			}
+			default -> throw new IllegalArgumentException(scenario);
+			}
+			TakeoverTestProcess.marker("UNEXPECTED_RETURN", scenario);
+			throw new AssertionError("fence必须终止子JVM");
 		} finally {
-			takeover.setFatalAction(null); // 复原默认致命退出
 			timer.stop();
 			app.stop();
 		}
@@ -120,23 +168,21 @@ public class TestTakeoverFence {
 	 * 需求语义回归：被接管后醒来必须在空链上复活继续工作，不得fence。
 	 * 伪造"被接管完成"后的本地状态：自己的root是墓碑（stamp=0，transferAll留下）、
 	 * 租约是墓碑（expireAt=0、epoch保留）——随后CsQueue.add与timer.schedule都必须成功
-	 * 且零致命动作，root被认领（stamp=myEpoch），新数据可写可取。
+	 * 并正常退出，root被认领（stamp=myEpoch），新数据可写可取。
 	 */
-	@Test
-	public void testTombstoneRevivalNotFenced() throws Exception {
+	private static void tombstoneRevival() throws Exception {
 		var conf = TakeoverTestEnv.newConf("on", 600_000, 600_000);
 		var app = new Application("TestTakeoverFenceRevival", conf);
 		// Timer必须先于app.start()构造（表注册要在数据库打开前完成），start后再手动启动。
 		var timer = new TakeoverTestEnv.AccessibleTimer(new TakeoverTestEnv.TestAppBase(app));
 		var takeover = app.getTakeover();
-		var fatalCount = new AtomicInteger();
-		takeover.setFatalAction(fatalCount::incrementAndGet);
 		try {
 			app.start();
 			var myId = conf.getServerId();
 			var csq = new CsQueue<>(app.getQueueModule(), "TestTakeoverFenceRevivalQ", myId, BMyBean.class, 10);
 			timer.loadCustomClassAnd();
 			timer.start();
+			TakeoverTestProcess.marker("READY", "tombstone-revival");
 
 			// 伪造"被接管完成"后的墓碑状态：root stamp=0（ctor的stamp被覆盖）+ 租约墓碑（epoch保留）。
 			var rcForge = TaskSpec.ofProcedure(app.newProcedure(() -> {
@@ -151,14 +197,13 @@ public class TestTakeoverFence {
 			Assertions.assertEquals(0L, rcForge);
 			TakeoverTestEnv.forgeLease(app, myId, takeover.getMyEpoch(), 0);
 
-			// 复活写：CsQueue.add + timer.schedule 都必须成功、零致命。
+			// 复活写：CsQueue.add + timer.schedule 都必须成功。
 			var rcWrite = TaskSpec.ofProcedure(app.newProcedure(() -> {
 				csq.add(new BMyBean());
 				timer.schedule(TimerSpec.ofDelay(60_000), NoopHandle.class, null);
 				return 0L;
 			}, "TestTakeoverFence.revivalWrite")).call();
 			Assertions.assertEquals(0L, rcWrite, "墓碑后复活写必须成功");
-			Assertions.assertEquals(0, fatalCount.get(), "复活不得触发fence");
 
 			// root被认领（stamp=myEpoch），新数据可取。
 			var rcAssert = TaskSpec.ofProcedure(app.newProcedure(() -> {
@@ -179,7 +224,6 @@ public class TestTakeoverFence {
 			Assertions.assertEquals(0L, rcPoll);
 			Assertions.assertNotEquals(-1, got[0], "复活写的新数据必须可取");
 		} finally {
-			takeover.setFatalAction(null); // 复原默认致命退出
 			timer.stop();
 			app.stop();
 		}
