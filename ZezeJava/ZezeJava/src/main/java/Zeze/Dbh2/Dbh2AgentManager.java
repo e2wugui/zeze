@@ -162,15 +162,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 		return KVNotNull.create(ip[0], port[0]);
 	}
 
-	public void commitBreakAfterPrepareForDebugOnly(BPrepareBatches.Data batches) {
-		if (config.isDbh2LocalCommit()) {
-			var query = commitServiceAcceptor();
-			var state = CommitRocks.buildTransactionState(batches);
-			//noinspection DataFlowIssue
-			commit.getRocks().prepare(query.getKey(), query.getValue(), state, batches, null);
-		}
-	}
-
 	private KVNotNull<String, Integer> choiceCommitServer() {
 		// 配置直连：Dbh2Config的CommitServerAddress，单实例；构造期已fail-fast校验过配置存在。
 		return KVNotNull.create(Objects.requireNonNull(dbh2Config.getCommitServerHost()), dbh2Config.getCommitServerPort());

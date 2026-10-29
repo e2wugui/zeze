@@ -3,7 +3,6 @@ package Zeze.Dbh2;
 import java.util.Objects;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.Consumer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -56,13 +55,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private Dbh2StateMachine stateMachine;
 	private final @Nullable Dbh2Manager manager;
 	private final Locks locks = new Locks();
-
-	// 正向交错的确定性测试钩子（生产恒null，热路径仅一次null检查；先例：
-	// Dbh2AgentManager.commitBreakAfterPrepareForDebugOnly）：在Get/Walk/WalkKey的
-	// "meta入口校验通过"之后、"读数据"之前回调，测试线程在此暂停，令收尾apply在查询
-	// 两读之间完整执行。消费方须自行过滤请求（@Fast类级并行）并在finally中置回null。
-	static volatile @Nullable Consumer<Get> interposeGetAfterMetaCheckForTest;
-	static volatile @Nullable Consumer<BWalk.Data> interposeWalkAfterMetaCheckForTest;
 
 	public Locks getLocks() {
 		return locks;
@@ -317,9 +309,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		var metaOnCheck = Objects.requireNonNull(bucket.getBucketMeta());
 		if (!bucket.inBucket(metaOnCheck, r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
 			return errorCode(eBucketMismatch);
-		var interpose = interposeGetAfterMetaCheckForTest;
-		if (null != interpose)
-			interpose.accept(r);
 		var value = bucket.get(r.Argument.getKey());
 		if (null == value || value.size() == 0) { // 空值是分桶墓碑标记，逻辑上不存在（存储不变量：空value==墓碑）
 			var metaOnMiss = bucket.getBucketMeta();
@@ -562,9 +551,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			r.SendResult();
 			return 0;
 		}
-		var interpose = interposeWalkAfterMetaCheckForTest;
-		if (null != interpose)
-			interpose.accept(r.Argument);
 		var bucketEnd = walk(
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
@@ -597,9 +583,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			r.SendResult();
 			return 0;
 		}
-		var interpose = interposeWalkAfterMetaCheckForTest;
-		if (null != interpose)
-			interpose.accept(r.Argument);
 		var bucketEnd = walk(
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),

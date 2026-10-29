@@ -1,6 +1,10 @@
 package Zeze.Dbh2;
 
 import static java.util.Objects.requireNonNull;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 
 import org.jspecify.annotations.Nullable;
 
@@ -11,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,6 +34,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * 收尾apply与锁外并发查询的"正向交错"确定性回归：查询线程已按旧meta通过入口校验、
@@ -37,8 +44,8 @@ import org.junit.jupiter.api.io.TempDir;
  * 已删状态。此时Get不得以rc=0+Null应答权威"不存在"（客户端KV(true,null)不重试，
  * 读改写模式放大为默认值覆写），Walk/WalkKey不得按正常bucketEnd应答（客户端陈旧
  * 视图按桶尾推进，迁出键域整段静默丢失）；必须分别以eBucketMismatch/bucketRefuse
- * 应答，客户端走既有重路由/reload自愈。交错经Dbh2的测试注入钩子在"meta校验后、
- * 读数据前"暂停查询线程确定性构造（查询线程的两读之间无法从外部暂停，只能注入）。
+ * 应答，客户端走既有重路由/reload自愈。测试侧代理Bucket，在get或getData读取前暂停，
+ * 其余操作委托给原桶，生产查询无需测试钩子。
  * 拓扑：单桶[Empty,Empty)端口19380-19382。
  */
 @Fast
@@ -88,13 +95,41 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 		agent.commitBatch(batch.getBatch().getTid()).await();
 	}
 
-	// 确定性正向交错：查询线程在钩子点暂停→收尾apply完整执行→放行查询读数据。
+	// 确定性正向交错：读取前暂停→收尾apply完整执行→放行查询读数据。
 	private static final class Interleave {
 		final CountDownLatch queryAtPausePoint = new CountDownLatch(1);
 		final CountDownLatch finalizeDone = new CountDownLatch(1);
+		final Bucket bucket;
+		final Bucket delegate;
+		final AtomicBoolean armed = new AtomicBoolean(true);
 
-		// 钩子体：仅对目标请求生效（@Fast类级并行下同JVM其他桶的查询必须直通），阻塞至收尾完成。
+		Interleave(Dbh2StateMachine stateMachine) throws ReflectiveOperationException {
+			delegate = requireNonNull(stateMachine.getBucket());
+			// 委托原实例而非spy复制字段：收尾替换的volatile meta必须与查询读取同源。
+			// Bucket非final，使用子类mock无需inline agent，也不修改其他桶。
+			bucket = mock(Bucket.class, withSettings().defaultAnswer(delegatesTo(delegate)));
+			var field = Dbh2StateMachine.class.getDeclaredField("bucket");
+			field.setAccessible(true);
+			field.set(stateMachine, bucket);
+		}
+
+		void pauseGet(Binary key) throws Exception {
+			doAnswer(invocation -> {
+				pauseUntilFinalized();
+				return delegate.get(key);
+			}).when(bucket).get(key);
+		}
+
+		void pauseWalk() {
+			doAnswer(invocation -> {
+				pauseUntilFinalized();
+				return delegate.getData();
+			}).when(bucket).getData();
+		}
+
 		void pauseUntilFinalized() {
+			if (!armed.compareAndSet(true, false))
+				return; // 收尾线程/后续读取直通
 			queryAtPausePoint.countDown();
 			try {
 				Assertions.assertTrue(finalizeDone.await(30, TimeUnit.SECONDS), "finalize within budget");
@@ -109,8 +144,11 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
-			finalizeApply.run(); // 收尾apply效果（meta替换+deleteToEnd）完整落在查询两读之间
-			finalizeDone.countDown();
+			try {
+				finalizeApply.run(); // 收尾apply效果完整落在查询两读之间
+			} finally {
+				finalizeDone.countDown();
+			}
 		}
 	}
 
@@ -150,13 +188,9 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			put(agent, db, table, key);
 			Assertions.assertNotNull(agent.get(db, table, key).getValue(), "迁出键收尾前可读");
 
-			var interleave = new Interleave();
-			// Get直驱handler（同包protected可达；查询协议锁外派发，任何线程执行等价），
-			// 钩子按目标键过滤后阻塞——暂停点恰在"meta校验通过"与"读数据"之间。
-			Dbh2.interposeGetAfterMetaCheckForTest = r -> {
-				if (r.Argument.getKey().equals(key))
-					interleave.pauseUntilFinalized();
-			};
+			var interleave = new Interleave(leader);
+			// 直驱生产handler，代理在meta检查通过后的实际读取前暂停。
+			interleave.pauseGet(key);
 			var get = new Get();
 			get.Argument.setDatabase(db);
 			get.Argument.setTable(table);
@@ -178,6 +212,7 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			to.setRaftConfig(RAFT);
 			interleave.runFinalizeAndRelease(() -> leader.endSplit(from, to));
 			getThread.join(30_000);
+			Assertions.assertFalse(getThread.isAlive(), "get handler must finish");
 
 			Assertions.assertNull(getError.get(), "handler不得抛异常");
 			Assertions.assertNull(leader.getBucket().getData().get(key.bytesUnsafe(), key.getOffset(), key.size()),
@@ -187,7 +222,6 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 					"正向交错下Get不得权威null（键已迁新桶仍存在）");
 			Assertions.assertEquals(MISMATCH, rc.get(), "正向交错下Get必须eBucketMismatch重路由");
 		} finally {
-			Dbh2.interposeGetAfterMetaCheckForTest = null;
 			agent.close();
 			closeNodes(nodes, rocks);
 		}
@@ -211,11 +245,8 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			put(agent, db, table, key);
 			Assertions.assertNotNull(agent.get(db, table, key).getValue(), "迁出键收尾前可读");
 
-			var interleave = new Interleave();
-			Dbh2.interposeGetAfterMetaCheckForTest = r -> {
-				if (r.Argument.getKey().equals(key))
-					interleave.pauseUntilFinalized();
-			};
+			var interleave = new Interleave(leader);
+			interleave.pauseGet(key);
 			var get = new Get();
 			get.Argument.setDatabase(db);
 			get.Argument.setTable(table);
@@ -234,21 +265,23 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			to.setRaftConfig(RAFT);
 			interleave.runFinalizeAndRelease(() -> leader.endMove(to));
 			getThread.join(30_000);
+			Assertions.assertFalse(getThread.isAlive(), "get handler must finish");
 
 			Assertions.assertNull(getError.get(), "handler不得抛异常");
 			Assertions.assertFalse(rc.get() == 0 && get.Result.isNull(),
 					"正向交错下Get不得权威null（键已迁新桶仍存在）");
 			Assertions.assertEquals(MISMATCH, rc.get(), "正向交错下Get必须eBucketMismatch重路由");
 		} finally {
-			Dbh2.interposeGetAfterMetaCheckForTest = null;
 			agent.close();
 			closeNodes(nodes, rocks);
 		}
 	}
 
 	@Timeout(120)
-	@Test
-	public void testWalkPausedAfterRefuseCheckAcrossEndSplitAnswersRefuse(@TempDir Path tempDir) throws Exception {
+	@ParameterizedTest
+	@CsvSource({"false,false", "false,true", "true,false", "true,true"})
+	public void testWalkPausedAfterRefuseCheckAcrossEndSplitAnswersRefuse(boolean keyOnly, boolean desc,
+			@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
 		var db = "database";
 		var table = "table1";
@@ -264,18 +297,24 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			for (var i = 1; i <= 9; ++i)
 				put(agent, db, table, new Binary(new byte[]{(byte)i}));
 
-			var interleave = new Interleave();
+			var interleave = new Interleave(leader);
 			var cursorKey = new Binary(new byte[]{6}); // 排他游标6：剩余7,8,9全在迁出键域
-			Dbh2.interposeWalkAfterMetaCheckForTest = arg -> {
-				if (arg.getExclusiveStartKey().equals(cursorKey))
-					interleave.pauseUntilFinalized();
-			};
-			var walkResult = new AtomicReference<Zeze.Builtin.Dbh2.@Nullable Walk>();
+			interleave.pauseWalk();
+			var refused = new AtomicBoolean();
+			var rows = new AtomicInteger(-1);
 			var walkError = new AtomicReference<@Nullable Throwable>();
 			var walkThread = new Thread(() -> {
 				try {
-					// 真实rpc路径：服务端oneByOne工作线程在钩子点暂停。
-					walkResult.set(agent.walk(cursorKey, 3, false, null, Binary.Empty, Binary.Empty));
+					// 真实rpc路径：服务端工作线程在桶数据读取前暂停。
+					if (keyOnly) {
+						var result = agent.walkKey(cursorKey, 3, desc, null, Binary.Empty, Binary.Empty).Result;
+						refused.set(result.isBucketRefuse());
+						rows.set(result.getKeys().size());
+					} else {
+						var result = agent.walk(cursorKey, 3, desc, null, Binary.Empty, Binary.Empty).Result;
+						refused.set(result.isBucketRefuse());
+						rows.set(result.getKeyValues().size());
+					}
 				} catch (Throwable e) {
 					walkError.set(e);
 				}
@@ -288,16 +327,15 @@ public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 			to.setRaftConfig(RAFT);
 			interleave.runFinalizeAndRelease(() -> leader.endSplit(from, to));
 			walkThread.join(30_000);
+			Assertions.assertFalse(walkThread.isAlive(), "walk rpc must finish");
 
 			Assertions.assertNull(walkError.get(), "walk rpc不得失败");
-			var r = walkResult.get();
 			// 缺陷形态：迭代器创建晚于deleteRange，7..9已删→0行+bucketEnd=true正常应答，
 			// 客户端陈旧视图按桶尾推进（本桶即视图尾桶时遍历静默终止），7..9整段丢失。
-			Assertions.assertTrue(requireNonNull(r).Result.isBucketRefuse(),
+			Assertions.assertTrue(refused.get(),
 					"正向交错下Walk必须bucketRefuse（reload重定位），不得按正常桶尾应答");
-			Assertions.assertEquals(0, r.Result.getKeyValues().size(), "refuse应答不得携带行");
+			Assertions.assertEquals(0, rows.get(), "refuse应答不得携带行");
 		} finally {
-			Dbh2.interposeWalkAfterMetaCheckForTest = null;
 			agent.close();
 			closeNodes(nodes, rocks);
 		}

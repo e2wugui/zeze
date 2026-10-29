@@ -24,7 +24,6 @@ import Zeze.Net.Protocol;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Action0;
 import Zeze.Util.Action2;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.RocksDatabase;
@@ -1043,11 +1042,6 @@ public class LogSequence {
 		return Procedure.CancelException;
 	}
 
-	// 测试钩子（一次性）：非null时在appendLog内存根写之后、日志写/提交之前抛出——
-	// 合批前=两笔独立写，此位置失败留孤儿存根；合批后=组装失败两笔同弃（try-with-resources
-	// 丢弃未提交batch）。
-	@Nullable Action0 testHookBetweenStubAndLog;
-
 	// package-private：headless单测直接驱动应用循环，理由同saveLog。
 	void tryApply(@Nullable RaftLog lastApplicableLog, long count) throws Exception {
 		if (lastApplicableLog == null) {
@@ -1342,11 +1336,6 @@ public class LogSequence {
 				//noinspection DataFlowIssue
 				if (raftLog.getLog().getUnique().getRequestId() > 0)
 					openUniqueRequests(raftLog.getLog().getCreateTime()).save(raftLog, batch);
-				if (testHookBetweenStubAndLog != null) {
-					var hook = testHookBetweenStubAndLog;
-					testHookBetweenStubAndLog = null; // 一次性
-					hook.run(); // 测试注入：存根写之后、日志写/提交之前失败
-				}
 				saveLog(raftLog, batch);
 				batch.commit(writeOptions);
 			}

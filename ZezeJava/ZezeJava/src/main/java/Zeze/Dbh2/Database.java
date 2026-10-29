@@ -300,10 +300,6 @@ public class Database extends Zeze.Transaction.Database {
 	public class Dbh2Transaction implements Zeze.Transaction.Database.Transaction {
 		private final BPrepareBatches.Data batches = new BPrepareBatches.Data();
 
-		public void commitBreakAfterPrepareForDebugOnly() {
-			dbh2AgentManager.commitBreakAfterPrepareForDebugOnly(batches);
-		}
-
 		@Override
 		public void commit() {
 			dbh2AgentManager.commit(batches);
