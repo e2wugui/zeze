@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -38,6 +39,7 @@ import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
+import Zeze.Util.Factory;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
@@ -78,6 +80,12 @@ public class HotManager extends ClassLoader {
 	// 在此串行，distributeLock 仍是正确性兜底。
 	private final ExecutorService installExecutor = Executors.newSingleThreadExecutor(
 			new ThreadFactoryWithName("ZezeHotInstall"));
+	// start() 登记进 Task.hotGuard 的钩实例，stop 恢复时身份比对用：
+	// 绑定 this 的方法引用每次求值都产生新对象，不能在 stop 里临时再写 this::enterReadLock 比较。
+	private final Factory<HotGuard> taskHotGuard = this::enterReadLock;
+	private static final Factory<HotGuard> noopHotGuard = () -> HotGuard.None;
+	private @Nullable ScheduledFuture<?> installTimer;
+	private volatile boolean stopped = false;
 	private final Application zeze;
 	private final HotRedirect hotRedirect;
 
@@ -817,10 +825,30 @@ public class HotManager extends ClassLoader {
 
 		// 定时器只投递不执行：install 的长阻塞（checkpointRun+模块停启）不得占用
 		// 共享 scheduledPool；与远程发布安装共用单线程执行器，天然串行。
-		Objects.requireNonNull(Task.getScheduledThreadPool()).scheduleAtFixedRate(
+		installTimer = Objects.requireNonNull(Task.getScheduledThreadPool()).scheduleAtFixedRate(
 				() -> installExecutor.execute(() -> tryDistribute(false, true)), 10000, 10000, TimeUnit.MILLISECONDS);
-		Task.hotGuard = this::enterReadLock;
+		Task.hotGuard = taskHotGuard;
 		hotManagerService.start();
+	}
+
+	/**
+	 * 停机：撤销 start() 的全部 JVM 级登记——周期安装定时器、远程发布服务、安装执行器、
+	 * Task.hotGuard 全局钩。幂等；stop 后不支持再 start。
+	 * <p>
+	 * Task.hotGuard 是 JVM 单槽静态：多 HotManager 同 JVM 先后 start 时后来者覆盖前者
+	 * 的钩，恢复必须身份比对——仅当钩仍指向本实例才复原为无操作哨兵，不得拆掉后来者
+	 * 的钩（否则活管理器停机后，任务派发将绕过其安装互斥）。
+	 */
+	public void stop() throws Exception {
+		if (stopped)
+			return;
+		stopped = true;
+		if (null != installTimer)
+			installTimer.cancel(false); // 掐断周期安装源
+		hotManagerService.stop(); // 断远程发布入口（submitInstall 的 rpc 来路）
+		installExecutor.shutdown(); // 有序排空在途/排队安装；不可 shutdownNow：安装含 checkpointRun 与回滚机制，不可安全中断
+		if (Task.hotGuard == taskHotGuard)
+			Task.hotGuard = noopHotGuard;
 	}
 
 	private volatile @Nullable List<String> readyLines;
