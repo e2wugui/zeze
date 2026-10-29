@@ -46,6 +46,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 
 /**
  * FND-S1-3：raft GCM acquire把 transient 的 acquireStatePending 置位后，异常路径
@@ -62,10 +63,9 @@ import harness.Fast;
  * 而不是永久park（修复前daemon路径即在此冻结、守护停摆）。
  */
 @Fast
+@ForkedJvm
 public class TestGlobalCacheManagerRaftAcquirePendingReset {
 
-	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
-	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final Binary KEY = new Binary("UnitTest.FND_S1_3.Key".getBytes(StandardCharsets.UTF_8));
 	private static final Binary WARMUP_KEY = new Binary("UnitTest.FND_S1_3.WarmUp".getBytes(StandardCharsets.UTF_8));
 	private static final int SERVER_ID_A = 9201;
@@ -164,7 +164,7 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			nodes.add(fatalGuard.install(new GlobalCacheManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false)));
+			nodes.add(new GlobalCacheManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。

@@ -5,8 +5,11 @@ import static java.util.Objects.requireNonNull;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
+import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
 import Zeze.Builtin.ServiceManagerWithRaft.Login;
 import Zeze.Builtin.ServiceManagerWithRaft.Subscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
@@ -37,7 +40,6 @@ final class SmRaftTestCluster implements AutoCloseable {
 	private final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private final ArrayList<Rocks> rocks = new ArrayList<>();
 	private final ArrayList<Peer> peers = new ArrayList<>();
-	private final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	final Path directory;
 	final Path configFile;
 
@@ -56,8 +58,8 @@ final class SmRaftTestCluster implements AutoCloseable {
 			for (int port : ports) {
 				var conf = RaftConfig.loadFromString(xml.toString());
 				conf.setDbHome(directory.resolve("node-" + port).toString());
-				var server = fatalGuard.install(new ServiceManagerWithRaft(
-						"127.0.0.1:" + port, conf, new Config(), false));
+				var server = new ServiceManagerWithRaft(
+						"127.0.0.1:" + port, conf, new Config(), false);
 				servers.add(server);
 				rocks.add((Rocks)field.get(server));
 			}
@@ -80,6 +82,18 @@ final class SmRaftTestCluster implements AutoCloseable {
 			if (requireNonNull(rocks.get(i).getRaft()).isReadyLeader())
 				return ports[i];
 		throw new IllegalStateException("no ready leader");
+	}
+
+	ServiceManagerWithRaft leaderServer() {
+		var port = leaderPort();
+		for (int i = 0; i < ports.length; ++i)
+			if (ports[i] == port)
+				return servers.get(i);
+		throw new IllegalStateException("no ready leader");
+	}
+
+	List<Rocks> nodes() {
+		return List.copyOf(rocks);
 	}
 
 	/** 同时持有全部采样socket保证互异，finally统一释放后由raft立即重绑（TOCTOU窗口极小）。 */
@@ -146,11 +160,13 @@ final class SmRaftTestCluster implements AutoCloseable {
 		} finally {
 			LogSequence.deleteDirectory(directory.toFile());
 		}
-		Assertions.assertEquals(0, fatalGuard.fatalKills.get(), "no Raft fatalKill");
 	}
 
 	static final class Peer extends HandshakeClient {
 		@Nullable AsyncSocket socket;
+		volatile boolean answerKeepAlive = true;
+		volatile long keepAliveResultCode;
+		final AtomicInteger keepAliveRequests = new AtomicInteger();
 
 		Peer(String name) {
 			super(name, new Config());
@@ -158,6 +174,15 @@ final class SmRaftTestCluster implements AutoCloseable {
 					LeaderIs::new, p -> 0, TransactionLevel.None, DispatchMode.Direct));
 			AddFactoryHandle(Login.TypeId_, new ProtocolFactoryHandle<>(
 					Login::new, null, TransactionLevel.None, DispatchMode.Direct));
+			AddFactoryHandle(KeepAlive.TypeId_, new ProtocolFactoryHandle<>(
+					KeepAlive::new, p -> {
+						var answer = answerKeepAlive;
+						var code = keepAliveResultCode;
+						keepAliveRequests.incrementAndGet();
+						if (answer)
+							p.SendResultCode(code);
+						return 0;
+					}, TransactionLevel.None, DispatchMode.Direct));
 			AddFactoryHandle(Edit.TypeId_, new ProtocolFactoryHandle<>(
 					Edit::new, p -> { p.SendResult(); return 0; }, TransactionLevel.None, DispatchMode.Direct));
 			AddFactoryHandle(Subscribe.TypeId_, new ProtocolFactoryHandle<>(

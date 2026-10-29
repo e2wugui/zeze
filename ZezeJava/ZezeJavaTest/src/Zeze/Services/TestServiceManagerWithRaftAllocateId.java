@@ -31,6 +31,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 
 /**
  * FND-S1-5 基本功能回归：SM-raft ProcessAllocateIdRequest 的号段应答从"事务内立即SendResult"
@@ -46,10 +47,9 @@ import harness.Fast;
  * 3节点raft（Raft构造强制>=3），随机端口避免并行测试冲突。
  */
 @Fast
+@ForkedJvm
 public class TestServiceManagerWithRaftAllocateId {
 
-	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
-	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "s15_sm_test";
 
 	// SM raft 族固定段 31970-31999（迁出 freePort 动态口：2026-10-15 负载批实锤 TOCTOU
@@ -128,7 +128,7 @@ public class TestServiceManagerWithRaftAllocateId {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false)));
+			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。

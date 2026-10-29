@@ -20,6 +20,7 @@ import Zeze.Services.ServiceManagerAgentWithRaft;
 import Zeze.Services.ServiceManagerWithRaft;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,10 +35,9 @@ import org.junit.jupiter.api.Timeout;
  * 基建对齐 TestServiceManagerWithRaftSessionCloseRetry（3节点进程内raft）。
  */
 @Fast
+@ForkedJvm
 public class TestServiceManagerWithRaftEditRollback {
 
-	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
-	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "edit_rollback_sm_test";
 
 	// SM raft 族固定段 31970-31999（迁出 freePort 动态口：2026-10-15 负载批实锤 TOCTOU
@@ -72,7 +72,7 @@ public class TestServiceManagerWithRaftEditRollback {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Config(), false)));
+			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Config(), false));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。
@@ -137,12 +137,29 @@ public class TestServiceManagerWithRaftEditRollback {
 						"失去多数派下注销必须失败");
 				Assertions.assertTrue(registersOf(agent).containsKey(serviceA),
 						"注销失败必须回滚本地registers（FND5-31）");
+				var raft = requireNonNull(rocksList.get(leaderIdx).getRaft());
+				final long pendingIndex;
+				raft.lock();
+				try {
+					pendingIndex = raft.getLogSequence().getLastIndex();
+					Assertions.assertTrue(raft.getLogSequence().getLastApplied() < pendingIndex,
+							"多数派中断后存在尚未应用的日志");
+				} finally {
+					raft.unlock();
+				}
 
 				// 失败注册：抛错且本地不落——修复前本地残留，重放会向服务端永远重放该僵尸注册。
 				Assertions.assertThrows(Exception.class, () -> agent.registerService(serviceB),
 						"失去多数派下注册必须失败");
 				Assertions.assertFalse(registersOf(agent).containsKey(serviceB),
 						"注册失败不得残留本地registers（FND5-31）");
+				raft.lock();
+				try {
+					Assertions.assertEquals(pendingIndex, raft.getLogSequence().getLastIndex(),
+							"前序日志未应用时，不得继续按旧状态追加业务增量");
+				} finally {
+					raft.unlock();
+				}
 			} finally {
 				// 恢复多数派：closeSession清理与后续重试才能收敛。
 				for (var i : stopped)
@@ -157,29 +174,56 @@ public class TestServiceManagerWithRaftEditRollback {
 		}
 	}
 
-	/** 定界等待（≤60s）三个节点的tSession均无本测试会话行；超时仅记录，teardown由@Timeout兜底。 */
+	/** 恢复后所有节点均追平日志，持久会话和注册均清理；超时或读失败必须使回归失败。 */
 	private static void waitSessionCleaned() throws Exception {
 		var sessionName = "UnitTest.EditRollback.Agent";
 		long deadline = System.currentTimeMillis() + 60_000;
 		while (System.currentTimeMillis() < deadline) {
 			var found = new boolean[]{false};
-			for (var server : servers) {
+			boolean caughtUp = true;
+			long expectedIndex = -1;
+			for (int i = 0; i < servers.size(); ++i) {
+				var raft = requireNonNull(rocksList.get(i).getRaft());
+				raft.lock();
 				try {
-					sessionTableOf(server).walk((name, v) -> {
-						if (sessionName.equals(name))
-							found[0] = true;
-						return true;
-					});
-				} catch (Throwable ignored) {
-					// 节点重启窗口/无leader时walk失败：继续轮询
+					Assertions.assertFalse(raft.isShutdown, "恢复后节点必须保持运行");
+					var sequence = raft.getLogSequence();
+					var lastIndex = sequence.getLastIndex();
+					caughtUp &= sequence.getLastApplied() == lastIndex;
+					if (expectedIndex < 0)
+						expectedIndex = lastIndex;
+					else
+						caughtUp &= expectedIndex == lastIndex;
+				} finally {
+					raft.unlock();
 				}
+				sessionTableOf(servers.get(i)).walk((name, v) -> {
+					if (sessionName.equals(name))
+						found[0] = true;
+					return true;
+				});
+				serverStateTableOf(servers.get(i)).walk((name, state) -> {
+					for (var version : state.getServiceInfosVersion().values())
+						for (var info : version.getServiceInfos().values())
+							if (sessionName.equals(info.getSessionName()))
+								found[0] = true;
+					return true;
+				});
 			}
-			if (!found[0])
+			if (caughtUp && !found[0])
 				return;
 			//noinspection BusyWait
 			Thread.sleep(500);
 		}
-		System.err.println("FND5-31 test: session row not cleaned in 60s, teardown proceeds with @Timeout guard.");
+		Assertions.fail("恢复多数派后，三个节点应追平日志并清理本测试会话及其注册");
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Zeze.Raft.RocksRaft.Table<String, Zeze.Builtin.ServiceManagerWithRaft.BServerState> serverStateTableOf(
+			ServiceManagerWithRaft server) throws Exception {
+		Field field = ServiceManagerWithRaft.class.getDeclaredField("tableServerState");
+		field.setAccessible(true);
+		return (Zeze.Raft.RocksRaft.Table<String, Zeze.Builtin.ServiceManagerWithRaft.BServerState>)field.get(server);
 	}
 
 	@SuppressWarnings("unchecked")

@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
@@ -20,6 +19,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -32,6 +32,7 @@ import static java.util.Objects.requireNonNull;
  * 不启动 server，不绑定端口，不创建 Application；每个测试使用独立临时目录。
  */
 @Fast
+@ForkedJvm(timeoutSeconds = 45)
 @NullMarked
 public class TestInstallSnapshotDelayedOwner {
 	private static final long SNAPSHOT_INDEX = 5;
@@ -139,12 +140,11 @@ public class TestInstallSnapshotDelayedOwner {
 	}
 
 	private record Observed(@Nullable Throwable installFailure, long first, long last, long committed,
-			long applied, int value, boolean prefixPresent, int fatalCalls, boolean replicationAccepted) {
+			long applied, int value, boolean prefixPresent, boolean replicationAccepted) {
 	}
 
 	private static final class Fixture implements AutoCloseable {
 		final CounterStateMachine sm = new CounterStateMachine();
-		final AtomicInteger fatalCalls = new AtomicInteger();
 		final Service replies = new Service("snapshot-delayed-owner");
 		final Raft raft;
 		final LogSequence seq;
@@ -160,7 +160,6 @@ public class TestInstallSnapshotDelayedOwner {
 					""".formatted(home));
 			raft = new Raft(sm, "127.0.0.1:19690", conf);
 			seq = raft.getLogSequence();
-			raft.setFatalKillHookForTest(fatalCalls::incrementAndGet);
 			// 不持任何锁地排空真实 timer，然后等待构造时启动的前缀清理。
 			var timer = (Future<?>)field(Raft.class, raft, "timerTask");
 			if (timer != null)
@@ -257,7 +256,7 @@ public class TestInstallSnapshotDelayedOwner {
 
 		Observed observe(@Nullable Throwable failure, boolean accepted) throws Exception {
 			return new Observed(failure, seq.getFirstIndex(), seq.getLastIndex(), seq.getCommitIndex(),
-					seq.getLastApplied(), sm.value, seq.readLog(1) != null, fatalCalls.get(), accepted);
+					seq.getLastApplied(), sm.value, seq.readLog(1) != null, accepted);
 		}
 
 		boolean replicate(boolean newEntry) throws Exception {
@@ -289,9 +288,7 @@ public class TestInstallSnapshotDelayedOwner {
 
 		@Override
 		public void close() throws Exception {
-			// 测试fatal钩子不会退出JVM；仍走真实shutdown，排空任务并关闭真实日志库。
-			raft.isShutdown = false;
-			raft.setFatalKillHookForTest(null);
+			// 正常场景须走真实shutdown；任何fatal都会终止本测试的子JVM并令父测试失败。
 			try {
 				raft.shutdown();
 			} finally {
@@ -316,8 +313,7 @@ public class TestInstallSnapshotDelayedOwner {
 					() -> assertEquals(42, observed.value()),
 					() -> assertEquals(SNAPSHOT_INDEX, observed.first()),
 					() -> assertEquals(SNAPSHOT_INDEX, observed.applied()),
-					() -> assertEquals(SNAPSHOT_INDEX, observed.committed()),
-					() -> assertEquals(0, observed.fatalCalls()));
+					() -> assertEquals(SNAPSHOT_INDEX, observed.committed()));
 		}
 	}
 
@@ -341,8 +337,7 @@ public class TestInstallSnapshotDelayedOwner {
 					() -> assertTrue(observed.replicationAccepted(), "合法后续复制与心跳应应答成功"),
 					() -> assertEquals(49, observed.value(), "成功复制后业务状态必须含快照和后续增量"),
 					() -> assertEquals(SNAPSHOT_INDEX + 1, observed.applied()),
-					() -> assertEquals(SNAPSHOT_INDEX + 1, observed.committed()),
-					() -> assertEquals(0, observed.fatalCalls()));
+					() -> assertEquals(SNAPSHOT_INDEX + 1, observed.committed()));
 		}
 	}
 
@@ -359,8 +354,7 @@ public class TestInstallSnapshotDelayedOwner {
 					() -> assertNull(install.installFailure(), "GC不可使用过期term删除新收尾源文件"),
 					() -> assertTrue(observed.replicationAccepted()),
 					() -> assertEquals(49, observed.value()),
-					() -> assertEquals(SNAPSHOT_INDEX + 1, observed.applied()),
-					() -> assertEquals(0, observed.fatalCalls()));
+					() -> assertEquals(SNAPSHOT_INDEX + 1, observed.applied()));
 		}
 	}
 

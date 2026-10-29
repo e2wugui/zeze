@@ -39,6 +39,7 @@ import Zeze.Services.HandshakeClient;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 
 /**
  * FND3-35：raft GCM release把最后一个持有者清掉后置 transient 的 acquireStatePending
@@ -64,10 +65,9 @@ import harness.Fast;
  * 5. 再次release必须能完成而不是忙自旋（修复前第二个调用即在此冻结）。
  */
 @Fast
+@ForkedJvm
 public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 
-	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
-	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final Binary KEY = new Binary("UnitTest.GcmRaftReset.Key".getBytes(StandardCharsets.UTF_8));
 	private static final Binary WARMUP_KEY = new Binary("UnitTest.GcmRaftReset.WarmUp".getBytes(StandardCharsets.UTF_8));
 	private static final int SERVER_ID_A = 9301;
@@ -160,7 +160,7 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			nodes.add(fatalGuard.install(new GlobalCacheManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false)));
+			nodes.add(new GlobalCacheManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。

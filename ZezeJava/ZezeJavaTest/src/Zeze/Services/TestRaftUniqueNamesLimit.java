@@ -32,6 +32,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 
 /**
  * FND15 svc-01 红绿钉板（raft版）：tAutoKey 持久键的唯一名上限——raft 表逐出不可移植
@@ -47,10 +48,9 @@ import harness.Fast;
  * ServiceManagerAgentWithRaft——登录重试风暴与SMServer单线程化dispatch锁叠加会活锁）。
  */
 @Fast
+@ForkedJvm
 public class TestRaftUniqueNamesLimit {
 
-	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
-	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "raft_unique_names_test";
 	private static final String SESSION_NAME = "UnitTest.RaftUniqueNames.Agent";
 
@@ -121,7 +121,7 @@ public class TestRaftUniqueNamesLimit {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false)));
+			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
 			dbHomes.add(nodeNames.get(i).replace(':', '_'));
 		}
 		waitStableLeader(); // 本机默认定时器下选举初期会抖动十余秒再收敛

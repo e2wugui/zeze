@@ -25,6 +25,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 @Fast
+@ForkedJvm
 @ResourceLock("sm-session-cluster")
 public class TestServiceManagerUnsubscribeOrdering {
 

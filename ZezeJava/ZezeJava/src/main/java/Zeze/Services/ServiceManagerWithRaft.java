@@ -11,6 +11,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Raft.GetLeader;
 import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
@@ -19,6 +20,8 @@ import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
 import Zeze.Raft.Server;
+import Zeze.Raft.StartServerConnector;
+import Zeze.Raft.StopServerConnector;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfosVersion;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -122,6 +125,31 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		rocks.close();
 	}
 
+	/** 调用方全程持SM锁；只有已应用完整日志前缀，才能基于当前状态生成下一条增量。 */
+	private Procedure newProcedure(FuncLong action) {
+		var procedure = rocks.newProcedure(action);
+		procedure.setFunc(() -> {
+			// appendLog超时返回RaftRetry不代表日志已被丢弃。若继续按旧缓存生成增量，
+			// 迟到提交的前一条日志可能已删除增量依赖的Bean，follower顺序重放即分歧。
+			// SM锁串行化业务事务，但不阻塞Raft复制/apply；未追平时快速重试，待已有日志
+			// 应用或被新leader截断后恢复。复制、选举等内部协议仍由Raft专用路径处理。
+			var raft = rocks.getRaft();
+			//noinspection DataFlowIssue
+			raft.lock();
+			try {
+				var sequence = raft.getLogSequence();
+				if (raft.isLeader() && sequence.getLastApplied() != sequence.getLastIndex())
+					return Zeze.Transaction.Procedure.RaftRetry;
+				// 准入后若换主，即使本节点随后重新当选，也不能提交按旧任期状态计算的增量。
+				procedure.setExpectedTerm(sequence.getTerm());
+			} finally {
+				raft.unlock();
+			}
+			return action.call();
+		});
+		return procedure;
+	}
+
 	// leader周期对账：清理"连接已死但清理事务未落地"的残留会话行。
 	// closeSession的退避重试只覆盖"断连节点恢复多数派/重新当选"的场景；leader切换后，
 	// 断连风暴的清理在旧leader上永远RaftRetry，进程崩溃则内存待办全丢——对账在现任
@@ -151,7 +179,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			});
 			if (dead.isEmpty())
 				return;
-			var rc = rocks.newProcedure(() -> {
+			var rc = newProcedure(() -> {
 				for (var d : dead)
 					cleanupSessionRow(d.name(), d.sessionId());
 				return 0L;
@@ -237,8 +265,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					return; // 服务已关闭：响应不再落地（连接随raft停机关闭）
 				if (logger.isDebugEnabled())
 					logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
-				var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
-				TaskSpec.ofFunc(procedure::call, rpc).call();
+				// 应答上下文已被Rpc消费，不能因业务日志未追平而跳过完成回调（例如
+				// KeepAlive超时关闭死连接）。回调处理本地完成事件，不隐式开启写表事务；
+				// 复制状态的修改仍须经受newProcedure门禁保护的业务入口提交。
+				TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).call();
 			} finally {
 				unlock();
 			}
@@ -263,7 +293,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 							var ssName = null != netSession ? netSession.name : "";
 							logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
 						}
-						var procedure = new Procedure(rocks, func);
+						// Server已将这三条管理协议与业务请求分流；它们不生成Bean增量，
+						// 查询和恢复复制连接不应依赖业务日志追平，也不需要RocksRaft事务。
+						if (p instanceof GetLeader || p instanceof StartServerConnector || p instanceof StopServerConnector)
+							return TaskSpec.ofFunc(func, p, (__, code) -> p.SendResultCode(code)).call();
+						var procedure = newProcedure(func);
 						return TaskSpec.ofFunc(procedure::call, p,
 								(__, code) -> p.SendResultCode(code)).call();
 					} finally {
@@ -301,7 +335,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				try {
 					if (closed)
 						return; // 服务已关闭：清理不再落地（重启后由对账收敛），也不再重试
-					var rc = rocks.newProcedure(() -> {
+					var rc = newProcedure(() -> {
 						netSession.onClose();
 						return 0L;
 					}).call();

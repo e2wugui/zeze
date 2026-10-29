@@ -180,21 +180,8 @@ public final class Raft {
 		}
 	}
 
-	// 测试钩子：注入后 fatalKill 只置 isShutdown 并调用该动作即返回，不执行真实的
-	// atFatalKills/logSequence.close/LogManager.shutdown/halt（会杀死或破坏测试 JVM）。
-	private volatile @Nullable Runnable fatalKillHookForTest;
-
-	void setFatalKillHookForTest(@Nullable Runnable hook) {
-		fatalKillHookForTest = hook;
-	}
-
 	public void fatalKill() {
 		isShutdown = true;
-		var hook = fatalKillHookForTest;
-		if (hook != null) {
-			hook.run();
-			return;
-		}
 		atFatalKillsLock.lock();
 		try {
 			for (Action0 action : atFatalKills) {
@@ -576,7 +563,7 @@ public final class Raft {
 			var volatileTmp = leaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
 			while (isLeader()) {
 				if (volatileTmp.isDone())
-					return Boolean.TRUE.equals(volatileTmp.get());
+					return volatileTmp.get();
 				// 多数派失联的分区场景下，SetLeaderReadyEvent永远无法提交，
 				// 且没有更高term的消息到达（不会有signalAll唤醒），无期限的await()会让
 				// 派发进来的请求任务无限堆积（每请求占一个unique串行桶+一个线程）。
@@ -597,7 +584,7 @@ public final class Raft {
 		lock();
 		try {
 			var volatileTmp = leaderReadyFuture;
-			return isLeader() && volatileTmp.isDone() && Boolean.TRUE.equals(volatileTmp.get());
+			return isLeader() && volatileTmp.isDone() && volatileTmp.get();
 		} finally {
 			unlock();
 		}
