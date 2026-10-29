@@ -73,6 +73,7 @@ dependencies {
     implementation 'com.alibaba:druid:1.2.28'
     runtimeOnly 'com.mysql:mysql-connector-j:8.4.0'
     runtimeOnly 'org.postgresql:postgresql:42.7.11'
+    testRuntimeOnly 'com.microsoft.sqlserver:mssql-jdbc:13.6.0.jre11'
 
     // for mongodb
     implementation 'org.mongodb:mongodb-driver-sync:5.8.0'
@@ -152,11 +153,27 @@ tasks.register('integrationTest', Test) {
     classpath = sourceSets.test.runtimeClasspath
     dependsOn ':ZezexJava:server:assembleHot'
     useJUnitPlatform {
-        excludeTags 'bench','fast','extra'
+        excludeTags 'bench','fast','extra','jdbc'
     }
     workingDir = projectDir
     jvmArgs '-ea'
     mustRunAfter tasks.named('test')
+}
+
+// 显式运行真实 JDBC 适配器契约；不启动 SM/GCM，不进入默认集成测试链。
+tasks.register('jdbcTest', Test) {
+    group = 'verification'
+    description = '真实 MySQL/PostgreSQL/SQL Server 契约测试，使用 zezeTestDatabase 和 zezeTestDatabaseUrl。'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'jdbc'
+    }
+    workingDir = projectDir
+    jvmArgs '-ea'
+    systemProperty 'zeze.test.env', 'off'
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest')
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
 }
 
 // gradle extraTest：不常用功能族（@Extra：history/dbh2/mq/rocketmq，
