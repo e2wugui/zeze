@@ -226,6 +226,17 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 		this.count = count;
 	}
 
+	private void copyPairs(@Nullable Object[] keys, @Nullable Object[] values, int fromIdx, int toIdx, int count) {
+		int valuesFromIdx = fromIdx;
+		if (values == this.keys) {
+			// Writing keys must not destroy values still needed from a cross-aliased source.
+			values = Arrays.copyOfRange(values, fromIdx, fromIdx + count);
+			valuesFromIdx = 0;
+		}
+		System.arraycopy(keys, fromIdx, this.keys, toIdx, count);
+		System.arraycopy(values, valuesFromIdx, this.values, toIdx, count);
+	}
+
 	public void replace(@Nullable K [] keys, @Nullable V [] values, int fromIdx, int count) {
 		if (count <= 0) {
 			this.count = 0;
@@ -241,8 +252,7 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 		if (count > (len -= fromIdx))
 			count = len;
 		reserveSpace(count);
-		System.arraycopy(keys, fromIdx, this.keys, 0, count);
-		System.arraycopy(values, fromIdx, this.values, 0, count);
+		copyPairs(keys, values, fromIdx, 0, count);
 		this.count = count;
 	}
 
@@ -278,6 +288,10 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 	}
 
 	public KVList<K, V> addAll(@Nullable K [] keys, @Nullable V [] values, int fromIdx, int count) {
+		return appendPairs(keys, values, fromIdx, count);
+	}
+
+	private KVList<K, V> appendPairs(@Nullable Object[] keys, @Nullable Object[] values, int fromIdx, int count) {
 		if (count <= 0)
 			return this;
 		int len = Math.min(keys.length, values.length);
@@ -289,8 +303,7 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 			count = len;
 		int n = this.count;
 		reserve(n + count);
-		System.arraycopy(keys, fromIdx, this.keys, n, count);
-		System.arraycopy(values, fromIdx, this.values, n, count);
+		copyPairs(keys, values, fromIdx, n, count);
 		this.count = n + count;
 		return this;
 	}
@@ -305,25 +318,19 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 	}
 
 	public KVList<K, V> addAll(Collection<K> keys, Collection<V> values) {
-		int n = count;
-		int s = Math.min(keys.size(), values.size());
-		reserve(n + s);
-		int end = n + s; // 与数组版addAll的min截断语义对齐，集合大小不一致时按s截断，避免越界或错位
-		@Nullable Object[] buf = this.keys;
-		for (K k : keys) {
-			if (n >= end)
-				break;
-			buf[n++] = k;
+		// Collection views can share either backing column too; capture both before writing.
+		int size = Math.min(keys.size(), values.size());
+		var keyCopy = new @Nullable Object[size];
+		var valueCopy = new @Nullable Object[size];
+		var keyIt = keys.iterator();
+		var valueIt = values.iterator();
+		int n = 0;
+		while (n < size && keyIt.hasNext() && valueIt.hasNext()) {
+			keyCopy[n] = keyIt.next();
+			valueCopy[n] = valueIt.next();
+			n++;
 		}
-		buf = this.values;
-		n = count;
-		for (V v : values) {
-			if (n >= end)
-				break;
-			buf[n++] = v;
-		}
-		count = end;
-		return this;
+		return appendPairs(keyCopy, valueCopy, 0, n);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -376,10 +383,9 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 		reserve(n + count);
 		@Nullable Object[] buf = this.keys;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + count, n - fromIdx);
-		System.arraycopy(keys, idx, buf, fromIdx, count);
 		buf = this.values;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + count, n - fromIdx);
-		System.arraycopy(values, idx, buf, fromIdx, count);
+		copyPairs(keys, values, idx, fromIdx, count);
 		this.count = n + count;
 		return this;
 	}
