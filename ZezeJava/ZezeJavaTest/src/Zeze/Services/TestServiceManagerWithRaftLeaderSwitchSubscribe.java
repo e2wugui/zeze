@@ -26,6 +26,7 @@ import Zeze.Services.ServiceManagerWithRaft;
 import Zeze.Config;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,10 +45,9 @@ import org.junit.jupiter.api.Timeout;
  * 基建对齐 TestServiceManagerWithRaftEditRollback（3节点进程内raft）。
  */
 @Fast
+@ForkedJvm
 public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 
-	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
-	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "leader_switch_sm_test";
 	private static final String SERVICE_NAME = "LeaderSwitch";
 
@@ -84,7 +84,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Config(), false)));
+			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Config(), false));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。

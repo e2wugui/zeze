@@ -33,6 +33,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 
 /**
  * FND4-57 红绿回归：断连清理事务的 RaftRetry 返回码必须闭环（重试+对账）。
@@ -45,10 +46,9 @@ import harness.Fast;
  * 基建对齐 TestServiceManagerWithRaftAllocateId（3节点进程内raft+裸协议Peer）。
  */
 @Fast
+@ForkedJvm
 public class TestServiceManagerWithRaftSessionCloseRetry {
 
-	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
-	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "session_close_retry_sm_test";
 	private static final String SESSION_NAME = "UnitTest.SessionCloseRetry.Agent";
 
@@ -127,7 +127,7 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false)));
+			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。

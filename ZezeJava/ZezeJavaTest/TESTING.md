@@ -41,3 +41,17 @@ Memory 语义测试直接创建 `Config`，不调用该助手；使用共享测�
 每个子进程独占临时工作目录、本地缓存和 Memory 桶，不需要外部数据库。测试专用的停机回调在应用关库前调用真实 `Takeover.release()` 并核对租约 epoch 和到期时间均未改变；Queue、Timer 场景还保留同 epoch 的租约，确保确实验证 `fenceFatal` 保护。此回调只观察停机，不替换退出动作。
 
 正常 release/start 的重新登记和宽限期刷新由 `TestTakeoverLifecycle` 单独验证。墓碑复活和零 epoch 自愈也在子 JVM 中验证正常完成，以免回归导致整个 JUnit worker 退出。生产代码没有测试退出开关。
+
+## Raft 致命退出与 SM/GCM 测试
+
+```powershell
+.\gradlew.bat :ZezeJavaTest:test --tests "*TestEndReceiveInstallSnapshot*" --tests "*TestLeaderApplyFatalKill" --tests "*TestInstallSnapshotDelayedOwner"
+.\gradlew.bat :ZezeJavaTest:test --tests "*TestServiceManagerWithRaft*" --tests "*TestGlobalCacheManagerRaft*" --tests "*TestRaftUniqueNamesLimit" --tests "*TestSmRaftCleanupNotifyAfterCommit" --tests "*TestServiceManagerRaftSessionOwnership" --tests "*TestServiceManagerUnsubscribeOrdering"
+.\gradlew.bat :ZezeJavaTest:extraTest --tests "*TestRecoveredAppliedPrefixProtection"
+```
+
+原先替换 Raft 致命动作的测试现使用测试工程的 `@ForkedJvm`。父 JUnit 只负责启动、检查结果和回收子进程；每个测试方法及其原有 `BeforeAll/BeforeEach/AfterEach/AfterAll` 在独立子 JVM 中运行。工作目录、测试 XML 副本、数据库和临时文件位于 `build/forked-tests/` 下，成功后清理，失败时保留日志和数据。正常场景要求目标方法和完整生命周期通过且退出码为 0，任何意外 halt 都会使父测试失败。
+
+`@ForkedJvm.ExpectHalt` 用于快照装载失败、leader apply 分歧和已提交日志冲突三个场景。测试在真实 `addAtFatalKill()` 回调中检查关键状态，父测试要求目标致命日志、回调断言完成标记和 `halt(-1)` 对应的退出码，同时检查致命调用没有继续返回、JVM shutdown hook 没有执行。已提交前缀冲突场景在 halt 后再启动验证子 JVM，重开同一临时持久库，核对业务数据、应用水位与日志前缀仍然完整。
+
+SM/GCM 用例直接构造真实服务，不再通过反射替换退出动作。生产 `Raft.fatalKill()` 始终执行原有 fatal 回调、日志库关闭、日志系统关闭及 `Runtime.halt(-1)`；`addAtFatalKill()` 保留正常生产用途。子进程身份只由测试启动器内部状态识别，生产代码没有测试开关。

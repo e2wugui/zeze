@@ -1527,7 +1527,7 @@ public class LogSequence {
 						logger.fatal("{} EndReceiveInstallSnapshot(ExistLog) loadSnapshot failed, fatalKill. Path={}",
 								raft.getName(), entry.path, e);
 						raft.fatalKill();
-						throw Task.forceThrow(e); // fatalKill不会返回（halt）；测试注入钩子时到达这里
+						throw Task.forceThrow(e); // fatalKill正常不返回，保留异常传播的防御路径。
 					}
 					logger.info("{} EndReceiveInstallSnapshot(ExistLog) Path={} time={}ms",
 							raft.getName(), entry.path, (System.nanoTime() - t) / 1_000_000);
@@ -1567,7 +1567,7 @@ public class LogSequence {
 					logger.fatal("{} EndReceiveInstallSnapshot loadSnapshot failed, fatalKill. Path={}",
 							raft.getName(), entry.path, e);
 					raft.fatalKill();
-					throw Task.forceThrow(e); // fatalKill 不会返回（halt）；测试注入钩子时到达这里
+					throw Task.forceThrow(e); // fatalKill正常不返回，保留异常传播的防御路径。
 				}
 				logger.info("{} EndReceiveInstallSnapshot Path={} time={}ms",
 						raft.getName(), entry.path, (System.nanoTime() - t) / 1_000_000);

@@ -18,6 +18,8 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import harness.Extra;
 import harness.Fast;
+import harness.ForkedJvm;
+import harness.ForkedJvmExtension;
 import harness.FastServerIds;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 @Extra
+@ForkedJvm(timeoutSeconds = 45)
 public class TestRecoveredAppliedPrefixProtection {
 	private static final int SERVER_ID = FastServerIds.TEST_RECOVERED_APPLIED_PREFIX_PROTECTION;
 	private static final String RAFT_NAME = RaftHeadlessSupport.raftName(SERVER_ID);
@@ -169,23 +171,14 @@ public class TestRecoveredAppliedPrefixProtection {
 			var table = openTable(rocks);
 			var raft = rocks.getRaft();
 			assertRecoveredPrefix(rocks, table);
-			requireNonNull(raft).setFatalKillHookForTest(() -> {
-				throw new AssertionError("已应用前缀内的旧快照应成功忽略，不能杀进程");
-			});
-			try {
-				var request = oldSnapshot(raft, oldSnapshot);
-				assertDoesNotThrow(() -> raft.processInstallSnapshot(request));
-				assertEquals(0, request.getResultCode(), "忽略旧快照应成功应答，leader 可继续复制");
-				assertEquals(APPLIED_DATA, RaftHeadlessSupport.readStorage(table, 1),
-						"边界 2 的延迟快照不得抹掉已落盘的索引 3 数据");
-				assertEquals(3, raft.getLogSequence().getLastApplied());
-				assertNotNull(raft.getLogSequence().readLog(3), "已应用日志前缀应保留");
-				assertEquals(3, requireNonNull(rocks.readAppliedWatermark()).index());
-			} finally {
-				// fatalKill 的测试钩子不退出 JVM，恢复开关让真实 shutdown 清理定时器和日志库。
-				raft.isShutdown = false;
-				raft.setFatalKillHookForTest(null);
-			}
+			var request = oldSnapshot(raft, oldSnapshot);
+			assertDoesNotThrow(() -> raft.processInstallSnapshot(request));
+			assertEquals(0, request.getResultCode(), "忽略旧快照应成功应答，leader 可继续复制");
+			assertEquals(APPLIED_DATA, RaftHeadlessSupport.readStorage(table, 1),
+					"边界 2 的延迟快照不得抹掉已落盘的索引 3 数据");
+			assertEquals(3, raft.getLogSequence().getLastApplied());
+			assertNotNull(raft.getLogSequence().readLog(3), "已应用日志前缀应保留");
+			assertEquals(3, requireNonNull(rocks.readAppliedWatermark()).index());
 		}
 	}
 
@@ -209,32 +202,24 @@ public class TestRecoveredAppliedPrefixProtection {
 			assertNotNull(receiving, "首块登记接收条目");
 			assertTrue(Files.exists(receiving.path));
 			assertEquals(split, Files.size(receiving.path), "首块已实际落盘");
-			requireNonNull(raft).setFatalKillHookForTest(() -> {
-				throw new AssertionError("收尾前应用已超越边界，应丢弃旧快照并保留已应用状态");
-			});
-			try {
-				RaftHeadlessSupport.applyEntry(rocks, table, 3, 50);
-				assertEquals(3, seq.getLastApplied());
-				var last = oldSnapshot(raft, Arrays.copyOfRange(snapshot, split, snapshot.length));
-				last.Argument.setTerm(first.Argument.getTerm());
-				last.Argument.setOffset(split);
-				// 模拟末块已通过初段检查后，apply 抢先推进到 3；直接驱动其锁外接收和收尾，
-				// 确保验证的是 finalize 的二次检查，而不是初段的旧快照快速忽略。
-				var done = raft.receiveSnapshotting.process(last);
-				assertSame(receiving, done, "末块完成同一接收条目");
-				assertTrue(requireNonNull(done).finalizing);
-				assertEquals(0, seq.endReceiveInstallSnapshot(done, last), "过期收尾成功忽略");
-				assertEquals(APPLIED_DATA, RaftHeadlessSupport.readStorage(table, 1));
-				assertEquals(3, seq.getLastApplied());
-				assertEquals(3, requireNonNull(rocks.readAppliedWatermark()).index());
-				assertEquals(1, seq.getFirstIndex(), "不提交边界 2 的旧快照");
-				assertNotNull(seq.readLog(3), "已应用日志 3 保留");
-				assertNull(raft.receiveSnapshotting.get(2), "收尾清除接收登记");
-				assertFalse(Files.exists(receiving.path), "收尾删除已关闭的接收文件");
-			} finally {
-				raft.isShutdown = false;
-				raft.setFatalKillHookForTest(null);
-			}
+			RaftHeadlessSupport.applyEntry(rocks, table, 3, 50);
+			assertEquals(3, seq.getLastApplied());
+			var last = oldSnapshot(raft, Arrays.copyOfRange(snapshot, split, snapshot.length));
+			last.Argument.setTerm(first.Argument.getTerm());
+			last.Argument.setOffset(split);
+			// 模拟末块已通过初段检查后，apply 抢先推进到 3；直接驱动其锁外接收和收尾，
+			// 确保验证的是 finalize 的二次检查，而不是初段的旧快照快速忽略。
+			var done = raft.receiveSnapshotting.process(last);
+			assertSame(receiving, done, "末块完成同一接收条目");
+			assertTrue(requireNonNull(done).finalizing);
+			assertEquals(0, seq.endReceiveInstallSnapshot(done, last), "过期收尾成功忽略");
+			assertEquals(APPLIED_DATA, RaftHeadlessSupport.readStorage(table, 1));
+			assertEquals(3, seq.getLastApplied());
+			assertEquals(3, requireNonNull(rocks.readAppliedWatermark()).index());
+			assertEquals(1, seq.getFirstIndex(), "不提交边界 2 的旧快照");
+			assertNotNull(seq.readLog(3), "已应用日志 3 保留");
+			assertNull(raft.receiveSnapshotting.get(2), "收尾清除接收登记");
+			assertFalse(Files.exists(receiving.path), "收尾删除已关闭的接收文件");
 		}
 	}
 
@@ -254,29 +239,21 @@ public class TestRecoveredAppliedPrefixProtection {
 			var receiving = raft.receiveSnapshotting.get(2);
 			assertNotNull(receiving, "首块在应用边界 2 登记并开始接收");
 			assertEquals(split, Files.size(receiving.path));
-			requireNonNull(raft).setFatalKillHookForTest(() -> {
-				throw new AssertionError("旧末块应成功忽略并清理接收状态，不能杀进程");
-			});
-			try {
-				RaftHeadlessSupport.applyEntry(rocks, table, 3, 50);
-				var last = oldSnapshot(raft, Arrays.copyOfRange(snapshot, split, snapshot.length));
-				last.Argument.setTerm(first.Argument.getTerm());
-				last.Argument.setOffset(split);
-				// 与 finalize 交错测试不同，本例末块完整走 RPC 入口：快速忽略也必须收口
-				// 首块留下的句柄/文件/登记，否则 isReceivingSnapshot 会阻止本地快照。
-				assertDoesNotThrow(() -> raft.processInstallSnapshot(last));
-				assertEquals(0, last.getResultCode(), "旧末块成功应答");
-				assertEquals(APPLIED_DATA, RaftHeadlessSupport.readStorage(table, 1));
-				assertEquals(3, seq.getLastApplied());
-				assertEquals(3, requireNonNull(rocks.readAppliedWatermark()).index());
-				assertEquals(1, seq.getFirstIndex());
-				assertNotNull(seq.readLog(3));
-				assertNull(raft.receiveSnapshotting.get(2), "旧末块必须清理首块留下的接收登记");
-				assertFalse(Files.exists(receiving.path), "旧末块必须关闭并删除首块留下的接收文件");
-			} finally {
-				raft.isShutdown = false;
-				raft.setFatalKillHookForTest(null);
-			}
+			RaftHeadlessSupport.applyEntry(rocks, table, 3, 50);
+			var last = oldSnapshot(raft, Arrays.copyOfRange(snapshot, split, snapshot.length));
+			last.Argument.setTerm(first.Argument.getTerm());
+			last.Argument.setOffset(split);
+			// 与 finalize 交错测试不同，本例末块完整走 RPC 入口：快速忽略也必须收口
+			// 首块留下的句柄/文件/登记，否则 isReceivingSnapshot 会阻止本地快照。
+			assertDoesNotThrow(() -> raft.processInstallSnapshot(last));
+			assertEquals(0, last.getResultCode(), "旧末块成功应答");
+			assertEquals(APPLIED_DATA, RaftHeadlessSupport.readStorage(table, 1));
+			assertEquals(3, seq.getLastApplied());
+			assertEquals(3, requireNonNull(rocks.readAppliedWatermark()).index());
+			assertEquals(1, seq.getFirstIndex());
+			assertNotNull(seq.readLog(3));
+			assertNull(raft.receiveSnapshotting.get(2), "旧末块必须清理首块留下的接收登记");
+			assertFalse(Files.exists(receiving.path), "旧末块必须关闭并删除首块留下的接收文件");
 		}
 	}
 
@@ -288,9 +265,6 @@ public class TestRecoveredAppliedPrefixProtection {
 			var raft = rocks.getRaft();
 			var request = oldSnapshot(requireNonNull(raft), snapshot);
 			var third = new RaftLog(1, 3, RaftHeadlessSupport.captureChanges(rocks, table, 50));
-			requireNonNull(raft).setFatalKillHookForTest(() -> {
-				throw new AssertionError("提交位置已超越旧快照边界，apply 落后也不能触发 fatal");
-			});
 			raft.lock();
 			try {
 				commitThirdEntryWithoutApplying(raft, third, request.Argument.getTerm());
@@ -299,8 +273,6 @@ public class TestRecoveredAppliedPrefixProtection {
 				assertNull(raft.receiveSnapshotting.get(2), "入口忽略不得登记旧快照");
 				assertCommittedTailSurvivesAndApplies(rocks, table);
 			} finally {
-				raft.isShutdown = false;
-				raft.setFatalKillHookForTest(null);
 				raft.unlock();
 			}
 		}
@@ -325,9 +297,6 @@ public class TestRecoveredAppliedPrefixProtection {
 			last.Argument.setTerm(first.Argument.getTerm());
 			last.Argument.setOffset(split);
 			var third = new RaftLog(1, 3, RaftHeadlessSupport.captureChanges(rocks, table, 50));
-			requireNonNull(raft).setFatalKillHookForTest(() -> {
-				throw new AssertionError("收尾时提交位置已超越边界，不能因 apply 落后而 fatal");
-			});
 			raft.lock();
 			try {
 				commitThirdEntryWithoutApplying(raft, third, first.Argument.getTerm());
@@ -341,19 +310,16 @@ public class TestRecoveredAppliedPrefixProtection {
 				assertFalse(Files.exists(receiving.path), "过期收尾清理接收文件");
 				assertCommittedTailSurvivesAndApplies(rocks, table);
 			} finally {
-				raft.isShutdown = false;
-				raft.setFatalKillHookForTest(null);
 				raft.unlock();
 			}
 		}
 	}
 
-	private static final class CommittedPrefixConflict extends RuntimeException {
-		private static final long serialVersionUID = 1L;
-	}
-
 	@Test
+	@ForkedJvm.ExpectHalt(value = "truncate committed entries", verifyAfterHalt = "verifyConflictingAppend")
 	public void conflictingAppendAfterWatermarkRecoveryKeepsAppliedLogs() throws Exception {
+		// halt后由另一子JVM重开这个固定于本次临时工作目录下的真实持久库。
+		dbHome = Path.of("applied-prefix").toAbsolutePath();
 		prepareAppliedPrefix();
 		try (var rocks = openRocks()) {
 			var table = openTable(rocks);
@@ -368,22 +334,34 @@ public class TestRecoveredAppliedPrefixProtection {
 			r.Argument.setLeaderCommit(1);
 			r.Argument.getEntries().add(new Binary(new RaftLog(r.Argument.getTerm(), 2, new HeartbeatLog()).encode()));
 			r.Argument.setLastEntryIndex(2);
-			requireNonNull(raft).setFatalKillHookForTest(() -> {
-				throw new CommittedPrefixConflict();
+			requireNonNull(raft).addAtFatalKill(() -> {
+				assertTrue(raft.isShutdown);
+				assertEquals(1, requireNonNull(seq.readLog(2)).getTerm(), "已应用日志不得被新term覆盖");
+				assertNotNull(seq.readLog(3), "已应用的后续日志不得被截断");
+				assertEquals(3, seq.getLastApplied());
+				ForkedJvmExtension.fatalCallbackPassed();
 			});
 			raft.lock();
 			try {
-				assertThrows(CommittedPrefixConflict.class, () -> seq.followerOnAppendEntries(r),
-						"覆盖已应用前缀是协议不变量破坏，必须触发现有 committed-log 防护");
-				assertEquals(1, requireNonNull(seq.readLog(2)).getTerm(), "已应用日志不得被新 term 覆盖");
-				assertNotNull(seq.readLog(3), "已应用的后续日志不得被截断");
-				assertEquals(APPLIED_DATA, RaftHeadlessSupport.readStorage(table, 1));
-				assertEquals(3, seq.getLastApplied());
+				seq.followerOnAppendEntries(r);
+				ForkedJvmExtension.unexpectedReturn();
 			} finally {
-				raft.isShutdown = false;
-				raft.setFatalKillHookForTest(null);
 				raft.unlock();
 			}
+		}
+	}
+
+	public static void verifyConflictingAppend(Path workingDirectory) throws Exception {
+		var probe = new TestRecoveredAppliedPrefixProtection();
+		probe.dbHome = workingDirectory.resolve("applied-prefix");
+		probe.setUp();
+		try (var rocks = probe.openRocks()) {
+			var table = openTable(rocks);
+			assertRecoveredPrefix(rocks, table);
+			var seq = requireNonNull(rocks.getRaft()).getLogSequence();
+			assertEquals(1, requireNonNull(seq.readLog(2)).getTerm(), "halt后已应用日志仍是原term");
+			assertNotNull(seq.readLog(3), "halt后后续日志仍存在");
+			assertEquals(3, requireNonNull(rocks.readAppliedWatermark()).index());
 		}
 	}
 }

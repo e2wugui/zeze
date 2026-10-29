@@ -7,9 +7,10 @@ import Zeze.Raft.RocksRaft.Record.RootInfo;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import harness.Fast;
+import harness.ForkedJvm;
+import harness.ForkedJvmExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,9 +44,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 重试语义不变。
  * 直接构造Rocks（不start server），用leaderApplyNoRecursive抛IllegalStateException的
  * bean注入确定性失败：旧代码下异常从leaderApply穿出（测试以未捕获异常失败），
- * 修复后fatalKill（注入测试钩子）且不再抛出，有区分度。
+ * 修复后执行完整fatalKill并halt子JVM，由父测试核对回调和退出状态。
  */
 @Fast
+@ForkedJvm(timeoutSeconds = 45)
 public class TestLeaderApplyFatalKill {
 	private static final String raftName = "127.0.0.1:17690";
 	private static final String dbHome = "TestLeaderApplyFatalKill.raft";
@@ -132,6 +134,7 @@ public class TestLeaderApplyFatalKill {
 	}
 
 	@Test
+	@ForkedJvm.ExpectHalt("leaderApply divergence, fatalKill")
 	public void testLeaderApplyThrowableFatalKills() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
 			rocks.registerTableTemplate(templateName, Integer.class, BThrowBean.class);
@@ -161,15 +164,15 @@ public class TestLeaderApplyFatalKill {
 			assertNotNull(changes);
 			changes.encode(ByteBuffer.Allocate()); // 对齐真实路径：解析出Record.table
 
-			var fatalled = new AtomicBoolean(false);
-			requireNonNull(raft).setFatalKillHookForTest(() -> fatalled.set(true));
+			requireNonNull(raft).addAtFatalKill(() -> {
+				assertTrue(raft.isShutdown, "fatalKill marks isShutdown");
+				ForkedJvmExtension.fatalCallbackPassed();
+			});
 
 			// 修复前：IllegalStateException从leaderApply穿出（真实路径上穿到后台apply
-			// 线程仅记日志，lastApplied永久楔死）；修复后：fatalKill（测试钩子）且不再抛出。
+			// 线程仅记日志，lastApplied永久楔死）；修复后：fatalKill并halt，不再继续返回。
 			ts[0].leaderApply(changes, new RaftLog(1, 2, changes));
-
-			assertTrue(fatalled.get(), "non-Flush Throwable in leaderApply must fatalKill (align with followerApply)");
-			assertTrue(raft.isShutdown, "fatalKill marks isShutdown");
+			ForkedJvmExtension.unexpectedReturn();
 		}
 	}
 }

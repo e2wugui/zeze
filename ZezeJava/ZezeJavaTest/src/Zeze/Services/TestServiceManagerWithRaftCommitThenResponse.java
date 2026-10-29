@@ -46,28 +46,26 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 
 /**
  * CARRY-SMRAFT-CommitBeforeResponse：SM-raft Login/Subscribe/AllocateId/UnSubscribe/
  * SetServerLoad 的 SendResult 同为提交前应答（与已修的 ProcessAllocateIdRequest 2eee0da1d、
  * ProcessEditRequest 47ec96e18 同族）：raft appendLog 之前应答，复制失败回滚后客户端已拿到成功码。
  * <p>
- * 用例1（正常路径回归）：Login→Subscribe→Edit→SetServerLoad→AllocateId→UnSubscribe 全链路，
+ * 正常路径回归：Login→Subscribe→Edit→SetServerLoad→AllocateId→UnSubscribe 全链路，
  * 修复（SendResult 移入 runWhileCommit）不得破坏正常路径；号段连续推进（提交后应答）。
  * （AllocateId128 原为契约载体，FND15 svc-01 死代码端点注销后迁移到活的 AllocateId。）
- * 用例2（红绿）：关闭两个 follower 令 quorum 不可达，此时 Login 不可能完成 raft 提交——
- * 客户端拿到的 resultCode 必须非 0。修复前 SendResult 在 handler 内（appendLog 之前）发出，
- * 客户端拿到 rc=0 假成功（红）；修复后应答由 runWhileCommit 在 appendLog 成功后发出，
- * appendLog 超时抛 RaftRetry 由派发层 onError 回错误码（绿）。
+ * quorum不可达时Login不得提前返回成功，由
+ * {@link TestServiceManagerWithRaftResponseAfterCommit#testResponseAfterCommit()} 持两个follower的Raft锁验证。
  * <p>
  * 3节点raft + 裸协议客户端（对齐 TestServiceManagerWithRaftCrossVersionRegister 基建，理由同：
  * ServiceManagerAgentWithRaft 登录重试风暴与 SMServer 单线程化 dispatch 锁叠加会活锁）。
  */
 @Fast
+@ForkedJvm
 public class TestServiceManagerWithRaftCommitThenResponse {
 
-	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
-	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "ctr_sm_test";
 	private static final String SERVICE_NAME = "UnitTest.CTR.Service";
 	private static final String ALLOC_NAME = "UnitTest.CTR.AllocId";
@@ -155,7 +153,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false)));
+			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。
@@ -302,18 +300,6 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		return null; // unreachable
 	}
 
-	/** 单发Login不重试（@Disabled的quorum用例需要确定性的单次语义），应答到达返回Login。 */
-	private static Login sendLoginOnce(AsyncSocket sock, String sessionName, int timeoutMs) throws Exception {
-		var login = new Login();
-		login.Argument.setSessionName(sessionName);
-		login.getUnique().setRequestId(requestIds.incrementAndGet());
-		login.setCreateTime(System.currentTimeMillis());
-		login.setTimeout(timeoutMs);
-		Assertions.assertTrue(login.SendForWait(sock, timeoutMs).await(timeoutMs), "login await");
-		Assertions.assertFalse(login.isTimeout(), "login timeout");
-		return login;
-	}
-
 	/**
 	 * AllocateId 发送并断言成功（对齐 TestServiceManagerWithRaftAllocateId.allocate 的有界重试：
 	 * 本机静默集群的follower周期性漂移回pre-vote，单次appendLog可能RaftRetry(-15)（60轮压测
@@ -396,7 +382,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		return out[0];
 	}
 
-	// ------------------------- 用例1：正常路径全链路回归 -------------------------
+	// ------------------------- 正常路径与回滚回归 -------------------------
 
 	@Test
 	@Timeout(90)
@@ -593,42 +579,6 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		} finally {
 			reg.stop();
 			sub.stop();
-		}
-	}
-
-	// ------------------------- 用例2：quorum不可达时不得假成功（harness 局限，暂禁用） -------------------------
-
-	@Test
-	@Timeout(120)
-	@org.junit.jupiter.api.Disabled("harness局限：进程内关闭两个follower后Login仍完成raft提交（close()的shutdown与"
-			+ "复制应答时序无法确定性隔离，实测提交真实发生、rc=0为修复后的合法提交应答）。修复机制与已红绿验证的"
-			+ "47ec96e18(Edit)/2eee0da1d(AllocateId)同款（runWhileCommit+派发层onError回码）；全链路回归见"
-			+ "testCommitThenResponseFullChain。")
-	public void testLoginResponseNotBeforeCommit() throws Exception {
-		var reg = new Peer("UnitTest.CTR.Q.Reg");
-		try {
-			// warmup：正常路径先验证集群健康
-			var sock = reg.connect(leaderPort());
-			Assertions.assertEquals(0, sendLoginOnce(sock, "UnitTest.CTR.Q.Reg", 30_000).getResultCode(),
-					"warmup login resultCode");
-
-			// 关闭两个follower：quorum(2/3)不可达，raft提交不可能成功。
-			var leaderIdx = leaderIndex();
-			for (int i = 0; i < servers.size(); i++) {
-				if (i != leaderIdx)
-					servers.get(i).close();
-			}
-			Thread.sleep(3000); // 等关闭传导（>appendEntriesTimeout）
-
-			// 新会话Login：无论leader此时是否已感知失主，该事务都不可能完成raft提交。
-			// 修复前：SendResult在handler内（appendLog之前）发出→客户端拿到rc=0假成功（红）。
-			// 修复后：应答由runWhileCommit在appendLog成功后发出；appendLog超时（默认
-			// appendEntriesTimeout=2000→等待2*2000+1000ms）抛RaftRetry，派发层onError回错误码。
-			var login = sendLoginOnce(sock, "UnitTest.CTR.Q.Victim", 30_000);
-			Assertions.assertNotEquals(0, login.getResultCode(),
-					"quorum不可达时Login不可能完成raft提交，客户端不能拿到成功码（提交前应答=假成功）");
-		} finally {
-			reg.stop();
 		}
 	}
 }

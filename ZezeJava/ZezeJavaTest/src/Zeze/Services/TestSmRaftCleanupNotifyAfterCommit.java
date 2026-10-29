@@ -23,6 +23,7 @@ import Zeze.Services.ServiceManagerAgentWithRaft;
 import Zeze.Services.ServiceManagerWithRaft;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.Timeout;
  * （修复前在事务体内即时发出）；解锁恢复后提交成功，B恰好收到一次remove。
  */
 @Fast
+@ForkedJvm
 public class TestSmRaftCleanupNotifyAfterCommit {
 	private static final String RAFT_NAME = "cleanup_notify_sm";
 	private static final String SERVICE = "CleanupNotify.Svc";
@@ -85,22 +87,11 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 		}
 		var rocksField = ServiceManagerWithRaft.class.getDeclaredField("rocks");
 		rocksField.setAccessible(true);
-		// 测试钩子接管fatalKill（否则halt会杀死测试JVM）：记录触发点，由断言暴露
-		var hookMethod = Zeze.Raft.Raft.class.getDeclaredMethod("setFatalKillHookForTest", Runnable.class);
-		hookMethod.setAccessible(true);
 		for (var server : servers) {
-			var raft = ((Rocks)rocksField.get(server)).getRaft();
-			hookMethod.invoke(raft, (Runnable)() -> {
-				//noinspection CallToPrintStackTrace
-				new Throwable("fatalKill captured on " + requireNonNull(raft).getName()).printStackTrace();
-				fatalKills.incrementAndGet();
-			});
 			rocksList.add((Rocks)rocksField.get(server));
 		}
 		waitStableLeader();
 	}
-
-	private static final java.util.concurrent.atomic.AtomicInteger fatalKills = new java.util.concurrent.atomic.AtomicInteger();
 
 	@AfterAll
 	@Timeout(90) // 生命周期方法默认不受类/方法级超时保护，显式兜底防拆集群挂起拖死suite
@@ -222,7 +213,6 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 			// 硬断言：清理事务最终真实提交（会话行被清）——通知至多迟到（假失败窗口），
 			// 但服务端状态必须收敛。
 			Assertions.assertTrue(waitSessionRowCleaned(90_000), "清理事务必须最终提交（A的会话行被清）");
-			Assertions.assertEquals(0, fatalKills.get(), "测试期间集群不得触发fatalKill");
 		} finally {
 			try {
 				agentB.close();

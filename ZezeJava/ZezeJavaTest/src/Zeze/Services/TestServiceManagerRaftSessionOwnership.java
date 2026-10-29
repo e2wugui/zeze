@@ -7,12 +7,14 @@ import Zeze.Builtin.ServiceManagerWithRaft.Login;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 @Fast
+@ForkedJvm
 @ResourceLock("sm-session-cluster")
 public class TestServiceManagerRaftSessionOwnership {
 

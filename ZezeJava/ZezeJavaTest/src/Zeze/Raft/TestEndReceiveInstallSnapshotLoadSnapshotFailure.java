@@ -5,18 +5,18 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import Zeze.Net.Binary;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.ForkedJvm;
+import harness.ForkedJvmExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -28,11 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 修复：catch 后 fatalKill，把静默分歧变成显性 crash，重启即从 snapshot.zip（已被
  * commitSnapshotNow 替换为新边界内容）恢复自愈。
  * 本测试用最小 StateMachine 假实现（loadSnapshot 确定性抛异常）直接构造 Raft，
- * 并注入 fatalKill 钩子（真实路径会 LogManager.shutdown + Runtime.halt，杀死测试
- * JVM）：断言进入 fatal 且异常继续向上抛；firstIndex 已推进的断言同时证明
- * "为什么必须 fatal 而不能继续运行"。
+ * 在子JVM中执行真实fatalKill：通过addAtFatalKill观察isShutdown与已推进的边界，
+ * 再由父测试校验目标日志、回调和halt，不能在致命退出后继续断言异常返回。
  */
 @Fast
+@ForkedJvm(timeoutSeconds = 45)
 public class TestEndReceiveInstallSnapshotLoadSnapshotFailure {
 	private static final String raftName = "127.0.0.1:17660";
 	private static final String dbHome = "TestEndReceiveInstallSnapshotLoadSnapshotFailure.raft";
@@ -73,13 +73,18 @@ public class TestEndReceiveInstallSnapshotLoadSnapshotFailure {
 	}
 
 	@Test
+	@ForkedJvm.ExpectHalt("EndReceiveInstallSnapshot loadSnapshot failed, fatalKill")
 	public void testLoadSnapshotFailureFatalKills() throws Exception {
-		var fatalled = new AtomicBoolean(false);
 		var raft = new Raft(new FailLoadSnapshotStateMachine(), raftName, newRaftConfig());
 		try {
 			var logSequence = raft.getLogSequence();
 			logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
-			raft.setFatalKillHookForTest(() -> fatalled.set(true));
+			raft.addAtFatalKill(() -> {
+				assertTrue(raft.isShutdown, "fatalKill marks isShutdown");
+				assertEquals(5L, logSequence.getFirstIndex(),
+						"boundary already persisted before loadSnapshot: continuing would diverge silently");
+				ForkedJvmExtension.fatalCallbackPassed();
+			});
 
 			var r = new InstallSnapshot();
 			r.Argument.setTerm(logSequence.getTerm()); // 初始 0
@@ -102,19 +107,10 @@ public class TestEndReceiveInstallSnapshotLoadSnapshotFailure {
 			entry.markFinalizing(); // 等价生产done分支：记应收总长、冻结条目、关句柄
 			raft.receiveSnapshotting.put(5L, entry);
 
-			var ex = assertThrows(IOException.class,
-					() -> logSequence.endReceiveInstallSnapshot(entry, r),
-					"exception must propagate after fatalKill for the procedure to fail visibly");
-			assertEquals("injected loadSnapshot failure", ex.getMessage());
-			assertTrue(fatalled.get(), "loadSnapshot failure must reach fatalKill");
-			assertTrue(raft.isShutdown, "fatalKill marks isShutdown");
-			assertEquals(5L, logSequence.getFirstIndex(),
-					"boundary already persisted before loadSnapshot: continuing would diverge silently");
-			assertTrue(logSequence.logsAvailable, "logsAvailable must be restored in finally");
+			logSequence.endReceiveInstallSnapshot(entry, r);
+			ForkedJvmExtension.unexpectedReturn();
 		} finally {
-			// fatalKill 已置 isShutdown，Raft.shutdown 会早退而跳过 logSequence.close；
-			// 测试 JVM 内手动补关，避免 RocksDB 句柄残留导致目录删不掉。
-			raft.getLogSequence().close();
+			// 仅启动失败等非fatal路径会执行到这里，真实fatal由Raft关闭日志库后halt。
 			raft.shutdown();
 		}
 	}
