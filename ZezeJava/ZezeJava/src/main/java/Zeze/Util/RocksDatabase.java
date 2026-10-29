@@ -129,6 +129,21 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		return syncWriteOptions;
 	}
 
+	/**
+	 * Accepts an invalid iterator as EOF only when its status is successful.
+	 * Status failures propagate through Task.forceThrow, including from count/walk APIs without checked exceptions.
+	 */
+	public static boolean isValidOrThrow(RocksIteratorInterface iterator) {
+		if (iterator.isValid())
+			return true;
+		try {
+			iterator.status();
+			return false;
+		} catch (RocksDBException e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
 	public enum DbType {
 		eRocksDb,
 		eOptimisticTransactionDb,
@@ -1068,10 +1083,10 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		public void deleteToEnd(RocksIterator it) throws RocksDBException {
-			if (it.isValid()) {
+			if (RocksDatabase.isValidOrThrow(it)) {
 				var first = it.key();
 				it.seekToLast();
-				if (it.isValid()) {
+				if (RocksDatabase.isValidOrThrow(it)) {
 					var last = it.key();
 					// deleteRange 不包含last，需要制造一个比当前last后面的key。
 					last = Arrays.copyOf(last, last.length + 1);

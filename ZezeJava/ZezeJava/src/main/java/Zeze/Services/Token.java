@@ -722,7 +722,7 @@ public final class Token extends AbstractToken {
 		try (var batch = rocksdb.newBatch()) {
 			//noinspection DataFlowIssue
 			try (var it = tokenMapTable.iterator()) {
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					try {
 						bb.wraps(it.value());
 						if (TokenState.decodeEndTime(bb) < now) {

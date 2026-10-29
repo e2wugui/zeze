@@ -145,10 +145,12 @@ public class Bucket {
 	}
 
 	void deleteToEnd(RocksIterator it) throws RocksDBException {
-		if (!it.isValid())
+		if (!RocksDatabase.isValidOrThrow(it))
 			return;
 		var first = it.key();
 		it.seekToLast();
+		if (!RocksDatabase.isValidOrThrow(it))
+			return;
 		var last = it.key();
 		last = Arrays.copyOf(last, last.length + 1); // 与Table.deleteToEnd相同的独占上界
 		if (isApplying())

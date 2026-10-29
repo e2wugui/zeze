@@ -343,7 +343,7 @@ public class LogSequence {
 			try {
 				try (var it = newLogsIterator()) {
 					it.seekToFirst();
-					while (logsAvailable && !raft.isShutdown && it.isValid()) {
+					while (logsAvailable && !raft.isShutdown && RocksDatabase.isValidOrThrow(it)) {
 						// 这里只需要log的Index，直接从key里面获取了。
 						if (ByteBuffer.Wrap(it.key()).ReadLong() >= index) {
 							future.setResult(true);
@@ -602,7 +602,7 @@ public class LogSequence {
 			// Read Last Log Index
 			try (var itLast = logs.iterator()) {
 				itLast.seekToLast();
-				if (itLast.isValid())
+				if (RocksDatabase.isValidOrThrow(itLast))
 					lastIndex = RaftLog.decodeTermIndex(itLast.value()).getIndex();
 				else {
 					// empty. add one for prev.
@@ -627,7 +627,7 @@ public class LogSequence {
 				if (firstIndex == -1) { // no committed snapshot
 					try (var itFirst = logs.iterator()) {
 						itFirst.seekToFirst();
-						if (itFirst.isValid()) {
+						if (RocksDatabase.isValidOrThrow(itFirst)) {
 							firstIndex = RaftLog.decodeTermIndex(itFirst.value()).getIndex();
 						}
 					}

@@ -59,7 +59,7 @@ public class RedoQueue extends HandshakeClient {
 			tableTaskQueue = db.getOrAddTable("FamilyTaskQueue");
 			try (var qit = tableTaskQueue.iterator()) {
 				qit.seekToLast();
-				if (qit.isValid()) {
+				if (RocksDatabase.isValidOrThrow(qit)) {
 					var last = ByteBuffer.Wrap(qit.key());
 					lastTaskId = last.ReadLong();
 				}

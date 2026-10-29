@@ -320,7 +320,7 @@ public class OnzServer extends AbstractOnz {
 			if (stopped)
 				return records; // 锁内stopped双检（对齐settleStuckRecord形态）
 			try (var it = commitIndex.iterator()) {
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					var key = it.key();
 					var value = it.value();
 					// 索引侧毒条目单条隔离：索引自身的值空/截断（ReadUInt抛）或key短于

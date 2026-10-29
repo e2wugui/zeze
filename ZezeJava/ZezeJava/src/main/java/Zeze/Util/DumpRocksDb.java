@@ -241,7 +241,7 @@ public final class DumpRocksDb {
 				long n = 0;
 				var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 				var value = ByteBuffer.Wrap(ByteBuffer.Empty);
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					key.wraps(it.key());
 					value.wraps(it.value());
 					keyDumper.run(os, key);

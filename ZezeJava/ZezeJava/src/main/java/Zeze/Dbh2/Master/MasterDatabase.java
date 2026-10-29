@@ -58,7 +58,7 @@ public class MasterDatabase {
 
 			try (var it = rocksTables.iterator()) {
 				it.seekToFirst();
-				while (it.isValid()) {
+				while (RocksDatabase.isValidOrThrow(it)) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
 					var bTable = new MasterTable.Data();
 					var bb = ByteBuffer.Wrap(it.value());
@@ -71,7 +71,7 @@ public class MasterDatabase {
 
 			try (var it = rocksSplitting.iterator()) {
 				it.seekToFirst();
-				while (it.isValid()) {
+				while (RocksDatabase.isValidOrThrow(it)) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
 					var bTable = new MasterTable.Data();
 					var bb = ByteBuffer.Wrap(it.value());

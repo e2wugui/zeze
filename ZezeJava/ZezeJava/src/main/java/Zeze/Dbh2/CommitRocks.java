@@ -82,7 +82,7 @@ public class CommitRocks {
 
 	private void redoTimer() throws RocksDBException {
 		try (var it = commitIndex.iterator()) {
-			for (it.seekToFirst(); it.isValid(); it.next()) {
+			for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 				var value = it.value();
 				var state = ByteBuffer.Wrap(value).ReadUInt();
 				switch (state) {

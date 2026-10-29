@@ -419,7 +419,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				var prefixUpper = prefix.size() > 0 ? prefixUpperBound(prefix) : null;
 				if (prefixUpper != null && exclusiveStartKey.compareTo(prefixUpper) > 0) {
 					it.seekForPrev(prefixUpper.copyIf());
-					if (it.isValid() && prefixUpper.contentEquals(it.key()))
+					if (RocksDatabase.isValidOrThrow(it) && prefixUpper.contentEquals(it.key()))
 						it.prev();
 				} else {
 					it.seekForPrev(exclusiveStartKey.copyIf());
@@ -440,15 +440,15 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				// seekForPrev是闭语义（<=target）：桶内恰存在等于上界的key时迭代器落在其上（含
 				// prefixUpper==keyLast的分支），先跳过，否则首循环前缀过滤失败即误判桶尾，
 				// 本桶目标前缀的记录被静默跳过（与下方exclusiveStartKey同款跳过）。
-				if (it.isValid() && prefixUpper != null && prefixUpper.contentEquals(it.key()))
+				if (RocksDatabase.isValidOrThrow(it) && prefixUpper != null && prefixUpper.contentEquals(it.key()))
 					it.prev();
 			}
-			if (it.isValid() && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
+			if (RocksDatabase.isValidOrThrow(it) && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
 				it.prev(); // skip exclusive key if need.
 
 			var count = proposeLimit;
 			var bucketEnd = false;
-			for (; it.isValid() && count > 0; it.prev()) {
+			for (; RocksDatabase.isValidOrThrow(it) && count > 0; it.prev()) {
 				var key = new Binary(it.key());
 				if (prefix.size() > 0 && !key.startsWith(prefix)) {
 					bucketEnd = true;
@@ -460,7 +460,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				count--;
 			}
 
-			return bucketEnd || !it.isValid();
+			return bucketEnd || !RocksDatabase.isValidOrThrow(it);
 		}
 	}
 
@@ -492,14 +492,14 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			else
 				it.seekToFirst();
 
-			if (it.isValid() && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
+			if (RocksDatabase.isValidOrThrow(it) && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
 				it.next(); // skip exclusive key if need.
 
 			var count = proposeLimit;
 			var bucketEnd = false;
 			//noinspection DataFlowIssue
 			var keyLast = stateMachine.getBucket().getBucketMeta().getKeyLast();
-			for (; it.isValid() && count > 0; it.next()) {
+			for (; RocksDatabase.isValidOrThrow(it) && count > 0; it.next()) {
 				var key = new Binary(it.key());
 				if (keyLast.size() > 0 && key.compareTo(keyLast) >= 0) {
 					// 分桶中刚完成时，数据可能超过Last，此时应该检查出来并结束walk。
@@ -517,7 +517,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				count--;
 			}
 
-			return bucketEnd || !it.isValid();
+			return bucketEnd || !RocksDatabase.isValidOrThrow(it);
 		}
 	}
 
@@ -753,9 +753,14 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private @Nullable RocksIterator locateFirst() {
 		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		var it = bucket.getData().iterator();
-		it.seekToFirst();
-		if (it.isValid())
-			return it;
+		try {
+			it.seekToFirst();
+			if (RocksDatabase.isValidOrThrow(it))
+				return it;
+		} catch (Throwable e) {
+			it.close();
+			throw e;
+		}
 		it.close();
 		return null;
 	}
@@ -777,34 +782,44 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private @Nullable RocksIterator locateMiddle() throws RocksDBException {
 		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		var it = bucket.getData().iterator();
-		var keyNumbers = bucket.getData().getKeyNumbers();
-		var count = keyNumbers / 2;
-		if (count <= 0) {
+		try {
+			var keyNumbers = bucket.getData().getKeyNumbers();
+			var count = keyNumbers / 2;
+			if (count <= 0) {
+				it.close();
+				return null;
+			}
+			//noinspection StatementWithEmptyBody
+			for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it) && count > 0; it.next(), --count) {
+			}
+			if (!RocksDatabase.isValidOrThrow(it)) {
+				it.close();
+				throw new RocksDBException("middle key not found.");
+			}
+			logger.info("splitting start locateMiddle keyNumbers={} middle={} {}",
+					keyNumbers, new Binary(it.key()),
+					formatMeta(stateMachine.getBucket().getBucketMeta()));
+			return it;
+		} catch (Throwable e) {
 			it.close();
-			return null;
+			throw e;
 		}
-		//noinspection StatementWithEmptyBody
-		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
-		}
-		if (!it.isValid()) {
-			it.close();
-			throw new RocksDBException("middle key not found.");
-		}
-		logger.info("splitting start locateMiddle keyNumbers={} middle={} {}",
-				keyNumbers, new Binary(it.key()),
-				formatMeta(stateMachine.getBucket().getBucketMeta()));
-		return it;
 	}
 
 	private @Nullable RocksIterator locateMiddle(Binary middleKey) {
 		//noinspection DataFlowIssue
 		var it = stateMachine.getBucket().getData().iterator();
-		it.seek(Database.copyIf(middleKey.bytesUnsafe(), middleKey.getOffset(), middleKey.size()));
-		if (!it.isValid()) {
+		try {
+			it.seek(Database.copyIf(middleKey.bytesUnsafe(), middleKey.getOffset(), middleKey.size()));
+			if (!RocksDatabase.isValidOrThrow(it)) {
+				it.close();
+				return null;
+			}
+			return it;
+		} catch (Throwable e) {
 			it.close();
-			return null;
+			throw e;
 		}
-		return it;
 	}
 
 	private static void performPrepareQueue(@Nullable ConcurrentLinkedQueue<Action0> tmpQueue) {
@@ -974,7 +989,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		var r = new SplitPut();
 		r.Argument.setFromTransaction(false);
 		var count = dbh2Config.getSplitPutCount();
-		for (; it.isValid() && count > 0; it.next(), --count) {
+		for (; RocksDatabase.isValidOrThrow(it) && count > 0; it.next(), --count) {
 			r.Argument.getPuts().put(new Binary(it.key()), new Binary(it.value()));
 		}
 		return r;

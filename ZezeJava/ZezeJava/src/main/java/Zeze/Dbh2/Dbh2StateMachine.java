@@ -772,7 +772,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			//noinspection DataFlowIssue
 			try (var it = splitSyncTable.iterator()) {
 				it.seek(splitSyncRecordKey(watermark + 1));
-				for (var count = 0; it.isValid() && count < maxCount; it.next()) {
+				for (var count = 0; RocksDatabase.isValidOrThrow(it) && count < maxCount; it.next()) {
 					var key = it.key();
 					if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
 						break;
@@ -835,7 +835,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			//noinspection DataFlowIssue
 			try (var it = splitSyncTable.iterator()) {
 				it.seek(splitSyncRecordKey(1));
-				for (; it.isValid(); it.next()) { // 迭代器为快照视图，遍历中delete不影响遍历
+				for (; RocksDatabase.isValidOrThrow(it); it.next()) { // 迭代器为快照视图，遍历中delete不影响遍历
 					var key = it.key();
 					if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
 						break;
@@ -1003,7 +1003,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		// 重启保留），未命中走既有持锁重建。
 		var tombstoned = new HashSet<Long>();
 		try (var it = requireBucket().getTrans().iterator()) {
-			for (it.seekToFirst(); it.isValid(); it.next()) {
+			for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 				var tid = Dbh2Transaction.decodeTombstoneMarkerTid(it.key());
 				if (null != tid)
 					tombstoned.add(tid);
@@ -1011,7 +1011,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			it.status();
 		}
 		try (var it = requireBucket().getTrans().iterator()) {
-			for (it.seekToFirst(); it.isValid(); it.next()) {
+			for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 				if (null != Dbh2Transaction.decodeTombstoneMarkerTid(it.key()))
 					continue; // marker已在第一遍消费
 				var batch = new BBatch.Data();

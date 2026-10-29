@@ -465,7 +465,7 @@ public class Master extends AbstractMaster {
 
 			// check instance count
 			try (var it = zezeInstanceTable.iterator()) {
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					var exist = it.key();
 					if (0 == Arrays.compare(bbKey.Bytes, bbKey.ReadIndex, bbKey.WriteIndex, exist, 0, exist.length))
 						continue;
@@ -505,7 +505,7 @@ public class Master extends AbstractMaster {
 
 			// check instance count
 			try (var it = zezeInstanceTable.iterator()) {
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					var exist = it.key();
 					if (0 == Arrays.compare(bbKey.Bytes, bbKey.ReadIndex, bbKey.WriteIndex, exist, 0, exist.length))
 						continue;

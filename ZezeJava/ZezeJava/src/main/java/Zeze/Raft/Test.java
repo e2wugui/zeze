@@ -85,7 +85,7 @@ public class Test {
 			AtomicOutputFile.writeAtomically(Paths.get(db + ".txt"), dumpFile -> {
 				dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
 				try (var it1 = r1.newIterator(logs, RocksDatabase.getDefaultReadOptions())) {
-					for (it1.seekToFirst(); it1.isValid(); it1.next()) {
+					for (it1.seekToFirst(); RocksDatabase.isValidOrThrow(it1); it1.next()) {
 						var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::logFactory);
 						dumpFile.write(l1.toString().getBytes(StandardCharsets.UTF_8));
 						dumpFile.write('\n');

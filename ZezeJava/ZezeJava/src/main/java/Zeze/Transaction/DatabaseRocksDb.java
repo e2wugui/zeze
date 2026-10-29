@@ -64,7 +64,7 @@ public class DatabaseRocksDb extends Database {
 		try (var batch = rocksDb.borrowBatch()) {
 			int n = 0;
 			try (var it = oldTable.iterator()) {
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					newTable.put(batch, it.key(), it.value());
 					if (++n >= 10000) { // 分批提交，避免大表时单个 WriteBatch 无界增长
 						batch.commit();
@@ -277,7 +277,7 @@ public class DatabaseRocksDb extends Database {
 		public long getSize() {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
-				for (it.seekToFirst(); it.isValid(); it.next())
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next())
 					countWalked++;
 				return countWalked;
 			}
@@ -296,7 +296,7 @@ public class DatabaseRocksDb extends Database {
 		public long walk(TableWalkHandleRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					countWalked++;
 					if (!callback.handle(it.key(), it.value()))
 						break;
@@ -309,7 +309,7 @@ public class DatabaseRocksDb extends Database {
 		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					countWalked++;
 					if (!callback.handle(it.key()))
 						break;
@@ -322,7 +322,7 @@ public class DatabaseRocksDb extends Database {
 		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
-				for (it.seekToLast(); it.isValid(); it.prev()) {
+				for (it.seekToLast(); RocksDatabase.isValidOrThrow(it); it.prev()) {
 					countWalked++;
 					if (!callback.handle(it.key(), it.value()))
 						break;
@@ -335,7 +335,7 @@ public class DatabaseRocksDb extends Database {
 		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
-				for (it.seekToLast(); it.isValid(); it.prev()) {
+				for (it.seekToLast(); RocksDatabase.isValidOrThrow(it); it.prev()) {
 					countWalked++;
 					if (!callback.handle(it.key()))
 						break;
@@ -354,18 +354,18 @@ public class DatabaseRocksDb extends Database {
 					it.seekToFirst();
 				else
 					it.seek(exclusiveStartKey.CopyIf());
-				if (!it.isValid())
+				if (!RocksDatabase.isValidOrThrow(it))
 					return null;
 
 				var lastKey = it.key();
 				if (exclusiveStartKey != null && exclusiveStartKey.contentEquals(lastKey)) // 第一个item可能为exclusiveStartKey时需要忽略。
 					it.next();
-				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
+				for (; proposeLimit-- > 0 && RocksDatabase.isValidOrThrow(it); it.next()) {
 					lastKey = it.key();
 					if (!callback.handle(lastKey, it.value()))
 						break;
 				}
-				return it.isValid() ? ByteBuffer.Wrap(lastKey) : null;
+				return RocksDatabase.isValidOrThrow(it) ? ByteBuffer.Wrap(lastKey) : null;
 			}
 		}
 
@@ -379,18 +379,18 @@ public class DatabaseRocksDb extends Database {
 					it.seekToFirst();
 				else
 					it.seek(exclusiveStartKey.CopyIf());
-				if (!it.isValid())
+				if (!RocksDatabase.isValidOrThrow(it))
 					return null;
 
 				var lastKey = it.key();
 				if (exclusiveStartKey != null && exclusiveStartKey.contentEquals(lastKey)) // 第一个item可能为exclusiveStartKey时需要忽略。
 					it.next();
-				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
+				for (; proposeLimit-- > 0 && RocksDatabase.isValidOrThrow(it); it.next()) {
 					lastKey = it.key();
 					if (!callback.handle(lastKey))
 						break;
 				}
-				return it.isValid() ? ByteBuffer.Wrap(lastKey) : null;
+				return RocksDatabase.isValidOrThrow(it) ? ByteBuffer.Wrap(lastKey) : null;
 			}
 		}
 
@@ -404,18 +404,18 @@ public class DatabaseRocksDb extends Database {
 					it.seekToLast();
 				else
 					it.seekForPrev(exclusiveStartKey.CopyIf());
-				if (!it.isValid())
+				if (!RocksDatabase.isValidOrThrow(it))
 					return null;
 
 				var lastKey = it.key();
 				if (exclusiveStartKey != null && exclusiveStartKey.contentEquals(lastKey)) // 第一个item可能为exclusiveStartKey时需要忽略。
 					it.prev();
-				for (; proposeLimit-- > 0 && it.isValid(); it.prev()) {
+				for (; proposeLimit-- > 0 && RocksDatabase.isValidOrThrow(it); it.prev()) {
 					lastKey = it.key();
 					if (!callback.handle(lastKey, it.value()))
 						break;
 				}
-				return it.isValid() ? ByteBuffer.Wrap(lastKey) : null;
+				return RocksDatabase.isValidOrThrow(it) ? ByteBuffer.Wrap(lastKey) : null;
 			}
 		}
 
@@ -429,18 +429,18 @@ public class DatabaseRocksDb extends Database {
 					it.seekToLast();
 				else
 					it.seekForPrev(exclusiveStartKey.CopyIf());
-				if (!it.isValid())
+				if (!RocksDatabase.isValidOrThrow(it))
 					return null;
 
 				var lastKey = it.key();
 				if (exclusiveStartKey != null && exclusiveStartKey.contentEquals(lastKey)) // 第一个item可能为exclusiveStartKey时需要忽略。
 					it.prev();
-				for (; proposeLimit-- > 0 && it.isValid(); it.prev()) {
+				for (; proposeLimit-- > 0 && RocksDatabase.isValidOrThrow(it); it.prev()) {
 					lastKey = it.key();
 					if (!callback.handle(lastKey))
 						break;
 				}
-				return it.isValid() ? ByteBuffer.Wrap(lastKey) : null;
+				return RocksDatabase.isValidOrThrow(it) ? ByteBuffer.Wrap(lastKey) : null;
 			}
 		}
 	}

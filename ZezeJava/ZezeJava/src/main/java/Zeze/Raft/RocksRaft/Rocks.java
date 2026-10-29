@@ -214,7 +214,7 @@ public final class Rocks extends StateMachine implements Closeable {
 			var target = Objects.requireNonNull(storage).getOrAddTable(uniqueAppliedTableName(date.getTime()));
 			try (var it = source.iterator(); var batch = storage.borrowBatch()) {
 				batch.clear();
-				for (it.seekToFirst(); it.isValid(); it.next()) {
+				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					var key = it.key();
 					// 中断后的迁移可重入；已有公共存根可能更新，不能被旧表覆盖。
 					if (target.get(key) == null)
