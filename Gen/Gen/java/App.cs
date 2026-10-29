@@ -213,7 +213,9 @@ namespace Zeze.Gen.java
             if (project.Hot)
             {
                 sw.WriteLine("            if (null != getZeze().getHotManager()) {");
-                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).destroyModules();");
+                sw.WriteLine("                var manager = java.util.Objects.requireNonNull(getZeze().getHotManager());");
+                sw.WriteLine("                manager.stop();");
+                sw.WriteLine("                manager.destroyModules();");
                 sw.WriteLine("                getZeze().setHotManager(null);");
                 sw.WriteLine("            }");
             }

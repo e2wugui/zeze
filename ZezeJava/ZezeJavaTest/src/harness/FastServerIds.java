@@ -61,6 +61,7 @@ public final class FastServerIds {
 	public static final String URL_TEST_ADD_TABLE = memUrl("add_table_memory");
 	public static final String URL_TEST_HISTORY_FLUSH_COMMIT_BINDING = memUrl("history_commit_binding_unit");
 	public static final String URL_TEST_HOT_TRY_DISTRIBUTE_GUARD = memUrl("hot_trydistribute_test");
+	public static final String URL_TEST_HOT_MANAGER_STOP_RESTORE = memUrl("hot_manager_stop_restore");
 	public static final String URL_TEST_KV_KEY_LENGTH_PAGED_WALK = memUrl("kv_keylen_pagedwalk");
 	public static final String URL_TEST_DYNAMIC_BEAN_ELEMENT_LOG_KEY = memUrl("test_dynamic_elk_memory");
 

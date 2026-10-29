@@ -284,7 +284,9 @@ public final class App extends Zeze.AppBase {
             Game_Rank = null;
             Game_Map = null;
             if (null != getZeze().getHotManager()) {
-                java.util.Objects.requireNonNull(getZeze().getHotManager()).destroyModules();
+                var manager = java.util.Objects.requireNonNull(getZeze().getHotManager());
+                manager.stop();
+                manager.destroyModules();
                 getZeze().setHotManager(null);
             }
             modules.clear();
