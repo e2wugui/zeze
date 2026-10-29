@@ -17,6 +17,29 @@ Memory 语义测试直接创建 `Config`，不调用该助手；使用共享测�
 
 生产 `Config.createDatabase` 始终按传入配置创建数据库，不读取测试系统属性。`setDatabaseType` 仅设置类型，不记录调用历史。
 
+## JDBC 适配器集成测试
+
+`TestDatabaseMySql`、`TestDatabasePostgreSQL`、`TestDatabaseSqlServer` 使用同一组真实数据库契约，
+在独立的 `jdbcTest` 任务中显式运行，不进入默认 `integrationTest`，也不启动 SM/GCM：
+
+```powershell
+.\gradlew.bat :ZezeJavaTest:jdbcTest -PzezeTestDatabase=MySql '-PzezeTestDatabaseUrl=jdbc:mysql://localhost:3306/devtest?user=...&password=...&connectTimeout=5000&socketTimeout=10000'
+.\gradlew.bat :ZezeJavaTest:jdbcTest -PzezeTestDatabase=PostgreSQL '-PzezeTestDatabaseUrl=jdbc:postgresql://localhost:5432/devtest?user=...&password=...&connectTimeout=5&socketTimeout=10'
+.\gradlew.bat :ZezeJavaTest:jdbcTest -PzezeTestDatabase=SqlServer '-PzezeTestDatabaseUrl=jdbc:sqlserver://localhost:1433;databaseName=devtest;user=...;password=...;encrypt=true;loginTimeout=5;socketTimeout=10000'
+```
+
+共享测试应用的数据库选择也支持 `SqlServer`。三个驱动由测试运行时依赖提供；SQL Server 本地自签名证书
+环境可在测试连接串中显式设置 `trustServerCertificate=true`。连接串通过命令行或 IDE 的同名系统属性传入，
+不再根据开发者主机名选择地址，也没有内置账号密码。
+
+未配置后端或未选中该后端时，用例显示为跳过；选择了后端但缺少 URL、URL 类型不匹配、驱动缺失、
+连接失败时均报失败，不能通过静默 return 假装通过。只提供 URL 而不指定后端同样报配置错误。
+
+每个用例创建独立的 `zeze_jdbc_<随机值>` 表，验证提交后查询及遍历内容、覆盖已有值、回滚新增/更新/删除、
+提交删除和超长键拒绝。结束时删除本用例的表并关闭连接池；运行账号需要测试库中的建表、读写及删表权限。
+测试不创建 Application，禁用共享的 `_Zeze*` 元数据初始化，只验证 KV 适配器契约。
+SQL Server 的存储过程调用占位符检查保留为 `@Fast` 测试，由默认 `test` 任务执行。
+
 ## RocketMQ 联调
 
 `Zeze.Misc.TestRocketMQ` 默认 `@Disabled`，需要 RocketMQ broker 和持久数据库。手动启用该类后，可通过上面的数据库参数准备共享 demo 应用，再运行：

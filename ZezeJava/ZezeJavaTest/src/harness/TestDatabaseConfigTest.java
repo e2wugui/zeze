@@ -1,15 +1,38 @@
 package harness;
 
+import java.util.List;
+import java.util.stream.Stream;
 import Zeze.Config;
+import Zeze.Transaction.DatabaseJdbc;
+import Zeze.Transaction.DatabaseMySql;
+import Zeze.Transaction.DatabasePostgreSQL;
+import Zeze.Transaction.DatabaseSqlServer;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @Fast
 public class TestDatabaseConfigTest {
+	private record Backend(Config.DbType type, String url, String driver, Class<? extends DatabaseJdbc> adapter) {
+		String name() {
+			return type.name();
+		}
+	}
+
+	// 预期值独立于JdbcTestBackend，防止配置与断言共同依赖一个错误映射。
+	private static final List<Backend> BACKENDS = List.of(
+			new Backend(Config.DbType.MySql, "jdbc:mysql://localhost/test", "com.mysql.cj.jdbc.Driver", DatabaseMySql.class),
+			new Backend(Config.DbType.PostgreSQL, "jdbc:postgresql://localhost/test", "org.postgresql.Driver", DatabasePostgreSQL.class),
+			new Backend(Config.DbType.SqlServer, "jdbc:sqlserver://localhost;databaseName=test",
+					"com.microsoft.sqlserver.jdbc.SQLServerDriver", DatabaseSqlServer.class));
+
+	private static Stream<Backend> backends() {
+		return BACKENDS.stream();
+	}
 
 	private static Config config() {
 		var config = new Config();
@@ -34,23 +57,21 @@ public class TestDatabaseConfigTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"MySql", "PostgreSQL"})
-	public void selectsJdbcBackendBeforeApplicationConstruction(String backend) {
+	@MethodSource("backends")
+	void selectsJdbcBackendBeforeApplicationConstruction(Backend backend) {
 		var config = config();
 		var database = config.getDatabaseConfMap().get("shared");
 		var other = new Config.DatabaseConf();
 		other.setName("other");
 		other.setDatabaseType(Config.DbType.Memory); // 显式参与选择，不再按 setter 调用历史区别对待。
 		config.getDatabaseConfMap().put("other", other);
-		var mysql = backend.equals("MySql");
-		var url = mysql ? "jdbc:mysql://localhost/test" : "jdbc:postgresql://localhost/test";
-		assertSame(config, TestDatabaseConfig.apply(config, backend, url));
+		assertSame(config, TestDatabaseConfig.apply(config, backend.name(), backend.url()));
 		for (var db : config.getDatabaseConfMap().values()) {
-			assertEquals(Config.DbType.valueOf(backend), db.getDatabaseType());
-			assertEquals(url, db.getDatabaseUrl());
+			assertEquals(backend.type(), db.getDatabaseType());
+			assertEquals(backend.url(), db.getDatabaseUrl());
 			var druid = db.getDruidConf();
 			assertNotNull(druid);
-			assertEquals(mysql ? "com.mysql.cj.jdbc.Driver" : "org.postgresql.Driver", druid.driverClassName);
+			assertEquals(backend.driver(), druid.driverClassName);
 			assertEquals(0, druid.initialSize);
 			assertEquals(0, druid.minIdle);
 			assertEquals(8, druid.maxActive);
@@ -89,12 +110,66 @@ public class TestDatabaseConfigTest {
 		assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
 	}
 
-	@Test
-	public void rejectsMissingUrlWithoutChangingConfiguration() {
+	@ParameterizedTest
+	@MethodSource("backends")
+	void rejectsMissingUrlWithoutChangingConfiguration(Backend backend) {
 		for (var url : new @Nullable String[]{null, "", " "}) {
 			var config = config();
-			assertThrows(IllegalStateException.class, () -> TestDatabaseConfig.apply(config, "MySql", url));
+			assertThrows(IllegalStateException.class, () -> TestDatabaseConfig.apply(config, backend.name(), url));
 			assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
+		}
+	}
+
+	@Test
+	void unselectedJdbcTestsHaveNoConfiguration() {
+		for (var backend : BACKENDS)
+			assertNull(TestDatabaseConfig.jdbcTestConf(backend.type(), null, null));
+	}
+
+	@ParameterizedTest
+	@MethodSource("backends")
+	void jdbcTestsSelectExactlyOneBackend(Backend backend) {
+		for (var expected : BACKENDS) {
+			var conf = TestDatabaseConfig.jdbcTestConf(expected.type(), backend.name(), backend.url());
+			if (expected.type() == backend.type()) {
+				assertNotNull(conf);
+				assertEquals(expected.type(), conf.getDatabaseType());
+				assertEquals(backend.url(), conf.getDatabaseUrl());
+			} else
+				assertNull(conf);
+		}
+	}
+
+	@Test
+	void explicitInvalidJdbcSelectionFailsEvenForAnotherBackend() {
+		assertThrows(IllegalStateException.class,
+				() -> TestDatabaseConfig.jdbcTestConf(Config.DbType.MySql, "SqlServer", null));
+		assertThrows(IllegalStateException.class,
+				() -> TestDatabaseConfig.jdbcTestConf(Config.DbType.MySql, "unknown", "jdbc:unknown:test"));
+		assertThrows(IllegalStateException.class,
+				() -> TestDatabaseConfig.jdbcTestConf(Config.DbType.MySql, null, "jdbc:mysql://localhost/test"));
+	}
+
+	@ParameterizedTest
+	@CsvSource({"MySql,jdbc:postgresql://localhost/test", "PostgreSQL,jdbc:sqlserver://localhost",
+			"SqlServer,jdbc:mysql://localhost/test"})
+	void mismatchedUrlFailsWithoutChangingConfiguration(String backend, String url) {
+		var config = config();
+		assertThrows(IllegalStateException.class, () -> TestDatabaseConfig.apply(config, backend, url));
+		assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
+	}
+
+	@ParameterizedTest
+	@MethodSource("backends")
+	void selectedDriverAndAdapterAreAvailable(Backend backend) throws Exception {
+		assertNotNull(Class.forName(backend.driver()));
+		var conf = TestDatabaseConfig.jdbcConf(backend.name(), backend.url());
+		conf.setDisableOperates(true);
+		var database = JdbcTestBackend.of(backend.type()).create(conf);
+		try {
+			assertInstanceOf(backend.adapter(), database);
+		} finally {
+			database.close();
 		}
 	}
 }

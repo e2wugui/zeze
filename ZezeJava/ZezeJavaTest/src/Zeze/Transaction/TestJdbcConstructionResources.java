@@ -18,6 +18,7 @@ import Zeze.Config;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.stat.DruidDataSourceStatManager;
 import harness.Fast;
+import harness.JdbcTestBackend;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -86,12 +87,7 @@ public class TestJdbcConstructionResources {
 	}
 
 	private static DatabaseJdbc construct(String backend, Config.DatabaseConf conf) {
-		return switch (backend) {
-		case "MySql" -> new DatabaseMySql(null, conf);
-		case "PostgreSQL" -> new DatabasePostgreSQL(null, conf);
-		case "SqlServer" -> new DatabaseSqlServer(null, conf);
-		default -> throw new AssertionError(backend);
-		};
+		return JdbcTestBackend.parse(backend).create(conf);
 	}
 
 	private static Config.DatabaseConf conf(String url, boolean disabled) {
