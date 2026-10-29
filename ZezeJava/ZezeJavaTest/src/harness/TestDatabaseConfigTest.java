@@ -53,7 +53,7 @@ public class TestDatabaseConfigTest {
 			assertEquals(mysql ? "com.mysql.cj.jdbc.Driver" : "org.postgresql.Driver", druid.driverClassName);
 			assertEquals(0, druid.initialSize);
 			assertEquals(0, druid.minIdle);
-			assertEquals(8, druid.maxActive);
+			assertEquals(4, druid.maxActive);
 			assertEquals(61_000L, druid.minEvictableIdleTimeMillis);
 			assertEquals(10_000L, druid.maxWait);
 		}

@@ -60,7 +60,7 @@ public class App {
 
 		for (var dbCfg : config.getDatabaseConfMap().values()) {
 			var dc = dbCfg.getDruidConf();
-			if (dc != null && (dc.maxActive == null || dc.maxActive > 8))
+			if (dc != null && (dc.maxActive == null || dc.maxActive > 4))
 				dc.maxActive = 4;
 		}
 	}
