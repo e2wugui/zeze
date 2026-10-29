@@ -56,6 +56,7 @@ public class FewModifyMap<K extends @Nullable Object, V extends @Nullable Object
 		return r;
 	}
 
+	/** 只读快照：不受本Map后续写入影响；key/value对象仍共享。 */
 	public Map<K, V> snapshot() {
 		return prepareRead();
 	}
@@ -278,7 +279,7 @@ public class FewModifyMap<K extends @Nullable Object, V extends @Nullable Object
 
 	/** 相等性基于调用时刻快照做内容比较（与同内容任意Map相等，跨实现对称，
 	 * Map契约）；hashCode随内容变化，严禁作HashMap/HashSet键；需要稳定键
-	 * 请用clone()返回的不可变快照。 */
+	 * 请用snapshot()固定容器结构，并保证其中key/value的哈希值稳定；clone()返回的是可写浅拷贝。 */
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		return this == obj || obj instanceof Map && prepareRead().equals(obj);

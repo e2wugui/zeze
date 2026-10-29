@@ -209,19 +209,19 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return prepareRead().comparator();
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return prepareRead().subMap(fromKey, toKey);
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public SortedMap<K, V> headMap(K toKey) {
 		return prepareRead().headMap(toKey);
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public SortedMap<K, V> tailMap(K fromKey) {
 		return prepareRead().tailMap(fromKey);
@@ -237,19 +237,19 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return prepareRead().lastKey();
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public Set<K> keySet() {
 		return prepareRead().keySet();
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public Collection<V> values() {
 		return prepareRead().values();
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public Set<Entry<K, V>> entrySet() {
 		return prepareRead().entrySet();
@@ -332,37 +332,37 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		}
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableMap<K, V> descendingMap() {
 		return prepareRead().descendingMap();
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableSet<K> navigableKeySet() {
 		return prepareRead().navigableKeySet();
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableSet<K> descendingKeySet() {
 		return prepareRead().descendingKeySet();
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
 		return prepareRead().subMap(fromKey, fromInclusive, toKey, toInclusive);
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
 		return prepareRead().headMap(toKey, inclusive);
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
 		return prepareRead().tailMap(fromKey, inclusive);
