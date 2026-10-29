@@ -152,11 +152,16 @@ public final class ClassReloader {
 		return strings[classes[dis.readUnsignedShort() - 1] - 1].replace('/', '.');
 	}
 
+	private static Class<?> findClassToReload(String name, @Nullable ClassLoader classLoader)
+			throws ClassNotFoundException {
+		// 查找重定义目标不应触发旧版静态初始化；未初始化的类首次使用时应执行新版初始化器。
+		return Class.forName(name, false, classLoader != null ? classLoader : ClassReloader.class.getClassLoader());
+	}
+
 	/** 热更一个class数据 */
 	public static void reloadClass(byte [] classData, @Nullable ClassLoader classLoader) throws Exception {
 		String fullClassName = getClassPathFromData(classData);
-		Class<?> cls = classLoader != null ?
-				Class.forName(fullClassName, true, classLoader) : Class.forName(fullClassName);
+		Class<?> cls = findClassToReload(fullClassName, classLoader);
 		getInst().redefineClasses(new ClassDefinition(cls, classData));
 	}
 
@@ -167,8 +172,7 @@ public final class ClassReloader {
 		ClassDefinition[] clsDefs = new ClassDefinition[n];
 		for (byte[] classData : classDatas) {
 			String fullClassName = getClassPathFromData(classData);
-			Class<?> cls = classLoader != null ?
-					Class.forName(fullClassName, true, classLoader) : Class.forName(fullClassName);
+			Class<?> cls = findClassToReload(fullClassName, classLoader);
 			clsDefs[i++] = new ClassDefinition(cls, classData);
 		}
 		getInst().redefineClasses(clsDefs);
