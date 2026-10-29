@@ -142,7 +142,7 @@ public class ProviderDistribute extends ReentrantLock {
 		var list = serviceInfos.getSortedIdentities();
 		var frees = new ArrayList<KVNotNull<ProviderSession, Integer>>(list.size());
 		var all = new ArrayList<ProviderSession>(list.size());
-		int TotalWeight = 0;
+		long TotalWeight = 0;
 
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
 		for (int i = list.size() - 1; i >= 0; --i) {
@@ -179,7 +179,7 @@ public class ProviderDistribute extends ReentrantLock {
 			TotalWeight += weight;
 		}
 		if (TotalWeight > 0) {
-			int randWeight = Random.getInstance().nextInt(TotalWeight);
+			long randWeight = Random.getInstance().nextLong(TotalWeight);
 			for (var ps : frees) {
 				int weight = ps.getValue();
 				if (randWeight < weight) {
