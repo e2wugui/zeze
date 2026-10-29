@@ -28,3 +28,16 @@ Memory 语义测试直接创建 `Config`，不调用该助手；使用共享测�
 也可在测试 XML 中直接配置持久后端。生产 `Producer.start()` 始终拒绝把事务回查表 `tSent` 放在 Memory 库；真实启动的测试须遵守同一约束。
 
 不连接 broker 的 RocketMQ 回归通过 `extraTest --tests "*.RocketMQ.*"` 执行：仅构造包装器的测试继续使用隔离 Memory 桶；启动校验的正向用例由测试工程提供临时 RocksDB，并用 SDK 客户端替身验证校验通过后到达客户端启动边界。
+
+## Takeover 致命退出
+
+```powershell
+.\gradlew.bat :ZezeJavaTest:test --tests "*TestTakeover*" --tests "*TestTimerTakeoverVersion"
+.\gradlew.bat :ZezeJavaTest:integrationTest --tests "*TestTakeoverTimerDemoApp"
+```
+
+`TestTakeoverFence` 将 Queue、Timer 写路径 fencing、注册 scope 丢失租约和续租丢失租约分别放到独立子 JVM，调用生产代码固定的 `System.exit(-1)`。父测试同时校验准备完成标记、目标分支的致命日志、退出码和停机完成标记，子进程超时会被终止并回收，启动失败不能算作致命退出通过。
+
+每个子进程独占临时工作目录、本地缓存和 Memory 桶，不需要外部数据库。测试专用的停机回调在应用关库前调用真实 `Takeover.release()` 并核对租约 epoch 和到期时间均未改变；Queue、Timer 场景还保留同 epoch 的租约，确保确实验证 `fenceFatal` 保护。此回调只观察停机，不替换退出动作。
+
+正常 release/start 的重新登记和宽限期刷新由 `TestTakeoverLifecycle` 单独验证。墓碑复活和零 epoch 自愈也在子 JVM 中验证正常完成，以免回归导致整个 JUnit worker 退出。生产代码没有测试退出开关。
