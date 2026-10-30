@@ -160,6 +160,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 
 	@Override
 	public void doException(SelectionKey key, Throwable e) {
+		close();
 		logger.error("", e);
 	}
 

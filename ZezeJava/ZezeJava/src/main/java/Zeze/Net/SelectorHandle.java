@@ -13,7 +13,8 @@ public interface SelectorHandle {
 	/**
 	 * 在调用 doHandle 时，如果捕捉到异常，就调用这个方法处理错误。
 	 * <p>
-	 * <b>注意，在调用之前，网路 channel 已经被关闭。</b>
+	 * <b>注意，channel 可能已关闭；框架在本回调结束后仍会尝试关闭 channel。
+	 * 实现者必须自行终结逻辑会话、在飞请求和其他资源，不能只依赖 channel 关闭。</b>
 	 * 在 doHandle 或者应用主动关闭连接时，需要自己明确的关闭channel。
 	 * 也就是说，doException 和 doHandle 对于 channel 的释放规则不大一致。
 	 * <p>
