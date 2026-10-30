@@ -551,8 +551,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public void addFileHandler(String pathPrefix, String fileRootPath, boolean canListPath,
 							   int fileCacheSeconds) {
 		var pathPrefixLen = pathPrefix.length();
-		//noinspection DynamicRegexReplaceableByCompiledPattern
-		var rootPath = fileRootPath.replaceFirst("[/\\\\]+$", "");
+		var rootPath = new File(fileRootPath);
 		addPrefixHandler(pathPrefix, new HttpHandler(0, TransactionLevel.None, DispatchMode.Direct, x -> {
 			var subPath = x.path();
 			int i = pathPrefixLen;
