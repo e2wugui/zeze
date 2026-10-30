@@ -8,6 +8,8 @@ Zeze 使用精心设计的多线程模型来保证高性能和正确性。框架
 
 ## 线程池分类
 
+`Task.getThreadPool()`、`getCriticalThreadPool()`、`getScheduledThreadPool()` 和 `getDbIoPool()` 都保证返回非空，调用前须完成 `Task.tryInitThreadPool()` 或 `initThreadPool()`。线程池未初始化或已被 `shutdown`/`shutdownNow` 关闭时，这些 getter 会抛出 `NullPointerException`。诊断或停机兜底需要探测默认线程池是否存在时，使用 `Task.getThreadPoolOrNull()`；取得非空引用后，仍需遵守线程池的关闭与任务拒绝语义。
+
 ### threadPoolDefault -- 普通线程池
 
 用于处理绝大多数事务和任务。线程名命名规则为 `ZezeTaskPool-X`（序号从 1 开始），所有者类路径为 `Zeze.Util.Task.threadPoolDefault`，任务队列为 `LinkedBlockingQueue`。线程数量计算公式：

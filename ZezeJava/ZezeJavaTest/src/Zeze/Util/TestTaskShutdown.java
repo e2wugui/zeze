@@ -40,13 +40,21 @@ public class TestTaskShutdown {
 
 	@Test
 	public void testShutdownIdempotentWhenPoolsNull() throws Exception {
+		assertPoolsAvailable();
 		// 第一次：正常停机，三池关闭并置 null。全套件环境下其他测试遗留的周期/长任务可能令
 		// 终止等待超时——shutdownPools 先置 null 再等待，超时不妨碍本用例验证的幂等语义。
 		shutdownIgnoringTerminationTimeout(false);
+		Assertions.assertNull(Task.getThreadPoolOrNull());
+		Assertions.assertThrows(NullPointerException.class, Task::getThreadPool);
+		Assertions.assertThrows(NullPointerException.class, Task::getScheduledThreadPool);
+		Assertions.assertThrows(NullPointerException.class, Task::getCriticalThreadPool);
+		Assertions.assertThrows(NullPointerException.class, Task::getDbIoPool);
 		// 此后三池为 null（等价于"从未初始化"和"已停机"两种状态），重复停机必须幂等（原来此处 NPE）
 		shutdownIgnoringTerminationTimeout(false);
 		shutdownIgnoringTerminationTimeout(true);
 		shutdownIgnoringTerminationTimeout(true);
+		Task.tryInitThreadPool();
+		assertPoolsAvailable();
 	}
 
 	@Test
@@ -108,13 +116,21 @@ public class TestTaskShutdown {
 			Assertions.assertEquals(1, retainedRuns.get(), "Key2保留的旧任务必须在新提交时恢复运行");
 		} finally {
 			release.countDown();
-			if (Task.getThreadPool() == pool)
+			if (Task.getThreadPoolOrNull() == pool)
 				shutdownIgnoringTerminationTimeout(true);
 			pool.shutdownNow();
 			scheduler.shutdownNow();
 			Assertions.assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
 			Assertions.assertTrue(scheduler.awaitTermination(5, TimeUnit.SECONDS));
 		}
+	}
+
+	private static void assertPoolsAvailable() {
+		Assertions.assertNotNull(Task.getThreadPool());
+		Assertions.assertSame(Task.getThreadPool(), Task.getThreadPoolOrNull());
+		Assertions.assertNotNull(Task.getScheduledThreadPool());
+		Assertions.assertNotNull(Task.getCriticalThreadPool());
+		Assertions.assertNotNull(Task.getDbIoPool());
 	}
 
 	// 停机并忽略终止等待超时：静态池字段在等待前已置 null（shutdownPools 先置 null 再关池），

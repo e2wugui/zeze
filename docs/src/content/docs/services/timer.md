@@ -10,6 +10,8 @@ Zeze 的 **Timer** 组件提供持久化的定时调度能力。Timer 的定义�
 
 Timer 的核心接口是 `Zeze.Component.Timer`，通过 `Application.getTimer()` 获取实例。所有调度操作必须在事务内执行。
 
+Timer 在带数据库、已装配 ProviderApp（设置 `redirect`）的应用执行 `Application.initialize()` 后创建。`getTimer()` 保证返回非空；未装配或停机拆除后调用会抛出 `NullPointerException`。需要探测组件是否存在时使用 `getTimerOrNull()`，它返回当前引用或 `null`，不保证组件在后续调用期间持续可用。
+
 ### schedule -- 延时/周期定时器
 
 ```java

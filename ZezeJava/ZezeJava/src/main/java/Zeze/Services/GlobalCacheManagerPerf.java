@@ -168,7 +168,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			for (var e : others.entrySet())
 				sb.append(e.getKey()).append(" = ").append(e.getValue().sum()).append('\n');
 			others.clear();
-			var es = Task.getThreadPool();
+			var es = Task.getThreadPoolOrNull();
 			if (es instanceof ThreadPoolExecutor) {
 				var queueSize = ((ThreadPoolExecutor)es).getQueue().size();
 				if (queueSize != 0)

@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * FND7-76回归：无ProviderApp的带库应用enableHttpSession后start必失败（Application只在
  * redirect!=null即ProviderApp形态下创建Timer；HttpSession.start的scheduleNamed在null
  * timer上NPE，被Procedure转成"enableHttpSessionExpiredTimer error=..."错误码，无指向）。
- * 修复后：enableHttpSession护栏检查zeze.getTimer()==null，抛带ProviderApp指引的
+ * 修复后：enableHttpSession护栏检查zeze.getTimerOrNull()==null，抛带ProviderApp指引的
  * IllegalStateException；ProviderApp形态不受影响。
  */
 @Fast
@@ -26,7 +26,7 @@ public class TestHttpSessionRequiresTimer {
 		var zeze = new Application("HttpSessionTimerNoProvider", conf);
 		try {
 			zeze.initialize(new TakeoverTestEnv.TestAppBase(zeze)); // redirect==null：不创建timer
-			Assertions.assertNull(zeze.getTimer(), "前提：无ProviderApp的带库应用timer为null");
+			Assertions.assertNull(zeze.getTimerOrNull(), "前提：无ProviderApp的带库应用timer为null");
 
 			var httpServer = new HttpServer(zeze);
 			var ex = Assertions.assertThrows(IllegalStateException.class, httpServer::enableHttpSession,

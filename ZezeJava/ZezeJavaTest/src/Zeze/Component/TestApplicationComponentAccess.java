@@ -2,6 +2,7 @@ package Zeze.Component;
 
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
+import Zeze.Builtin.SafeBatch.BBatch;
 import Zeze.Config;
 import harness.Fast;
 import harness.FastServerIds;
@@ -25,12 +26,19 @@ public class TestApplicationComponentAccess {
 	}
 
 	private static void assertAllUnavailable(Application app) {
-		Assertions.assertNull(app.getTimer());
-		Assertions.assertNull(app.getSafeBatch());
-		Assertions.assertNull(app.getQueueModule());
-		Assertions.assertNull(app.getDelayRemove());
-		Assertions.assertNull(app.getTakeover());
+		assertTimerComponentsUnavailable(app);
+		Assertions.assertThrows(NullPointerException.class, app::getQueueModule);
+		Assertions.assertThrows(NullPointerException.class, app::getDelayRemove);
+		Assertions.assertThrows(NullPointerException.class, app::getTakeover);
+		Assertions.assertNull(app.getTakeoverOrNull());
 		Assertions.assertThrows(NullPointerException.class, () -> app.getAutoKey("ids"));
+	}
+
+	private static void assertTimerComponentsUnavailable(Application app) {
+		Assertions.assertThrows(NullPointerException.class, app::getTimer);
+		Assertions.assertThrows(NullPointerException.class, app::getSafeBatch);
+		Assertions.assertNull(app.getTimerOrNull());
+		Assertions.assertNull(app.getSafeBatchOrNull());
 	}
 
 	@Test
@@ -41,6 +49,7 @@ public class TestApplicationComponentAccess {
 			Assertions.assertNotNull(app.getQueueModule());
 			Assertions.assertNotNull(app.getDelayRemove());
 			Assertions.assertNotNull(app.getTakeover());
+			Assertions.assertSame(app.getTakeover(), app.getTakeoverOrNull());
 			Assertions.assertEquals("off", app.getTakeover().getMode());
 			Assertions.assertSame(app.getAutoKey("ids"), app.getAutoKey("ids"));
 			app.start();
@@ -55,18 +64,18 @@ public class TestApplicationComponentAccess {
 	public void testTimerAndSafeBatchRequireInitializationWithRedirect() throws Exception {
 		var app = new Application("ComponentAccessTimer", newConf("timer"));
 		try {
-			Assertions.assertNull(app.getTimer());
-			Assertions.assertNull(app.getSafeBatch());
+			assertTimerComponentsUnavailable(app);
 
 			var appBase = new TakeoverTestEnv.TestAppBase(app);
 			app.initialize(appBase);
-			Assertions.assertNull(app.getTimer());
-			Assertions.assertNull(app.getSafeBatch());
+			assertTimerComponentsUnavailable(app);
 
 			new ProviderApp(app);
 			app.initialize(appBase);
 			var timer = app.getTimer();
 			var safeBatch = app.getSafeBatch();
+			Assertions.assertSame(timer, app.getTimerOrNull());
+			Assertions.assertSame(safeBatch, app.getSafeBatchOrNull());
 			app.start();
 			Assertions.assertSame(timer, app.getTimer());
 			Assertions.assertSame(safeBatch, app.getSafeBatch());
@@ -74,6 +83,22 @@ public class TestApplicationComponentAccess {
 			app.stop();
 		}
 		assertAllUnavailable(app);
+	}
+
+	@Test
+	public void testBatchTimerSkipsApplicationWithoutSafeBatch() throws Exception {
+		var app = new Application("ComponentAccessBatchTimer", newConf("batchTimer"));
+		var timer = new Timer(new TakeoverTestEnv.TestAppBase(app));
+		try {
+			app.start();
+			Assertions.assertNull(app.getSafeBatchOrNull());
+			var batch = new BBatch();
+			batch.setAppInstanceId(app.getProjectName());
+			var context = new TimerContext(timer, "missingSafeBatch", "", batch, 1, 0, 0);
+			new SafeBatch.BatchTimerHandle().onTimer(context);
+		} finally {
+			app.stop();
+		}
 	}
 
 	@Test

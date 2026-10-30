@@ -142,9 +142,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			// 若推迟到Timer.start()/loadTimer()（ProviderApp.startLast），startModules阶段
 			// （如hot模块ModuleEquip.Start里scheduleNamed）就会在未stamp的root上被checkFence
 			// 误判为已接管而致命退出（root.serial=0 != myEpoch）。
-			var takeover = getZeze().getTakeover();
-			if (takeover != null)
-				takeover.addScope(timerTakeoverScope);
+			getZeze().getTakeover().addScope(timerTakeoverScope);
 		}
 	}
 
@@ -1132,7 +1130,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	// 未完成stamp登记（stamp瞬态失败等）→NotStartException拒绝：不认领数据行、
 	// 不致命，renew周期补stamp后恢复。
 	private void checkTimerFence(int serverId, BNodeRoot root) {
-		var takeover = getZeze().getTakeover();
+		var takeover = getZeze().getTakeoverOrNull();
 		if (takeover != null && serverId == getZeze().getConfig().getServerId()) {
 			takeover.requireScoped(timerTakeoverScope); // 未登记：拒绝写，且不认领数据行
 			// stamp==0（无主新行/外部清表重建/被接管后的墓碑）一律认领（stamp=myEpoch）而非致命：

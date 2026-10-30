@@ -56,7 +56,7 @@ public class Commit extends AbstractCommit {
 		// 失败/超时由redoTimer兜底重发。
 		var decision = rocks.commitDecide(query.getKey(), query.getValue(), r.Argument);
 		r.SendResult();
-		var pool = Zeze.Util.Task.getThreadPool();
+		var pool = Zeze.Util.Task.getThreadPoolOrNull();
 		if (null != pool)
 			//noinspection DataFlowIssue
 			pool.execute(() -> rocks.commitDeliver(decision));

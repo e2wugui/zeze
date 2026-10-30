@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -131,22 +132,25 @@ public final class Task {
 		TaskSpec.ofProcedure(proc).executeSystemOneByOne();
 	}
 
-	public static @Nullable ExecutorService getThreadPool() {
+
+	public static ExecutorService getThreadPool() {
+		return Objects.requireNonNull(threadPoolDefault, "Task default thread pool is not initialized or has been shut down");
+	}
+
+	public static @Nullable ExecutorService getThreadPoolOrNull() {
 		return threadPoolDefault;
 	}
 
-	public static @Nullable ScheduledExecutorService getScheduledThreadPool() {
-		return threadPoolScheduled;
+	public static ScheduledExecutorService getScheduledThreadPool() {
+		return Objects.requireNonNull(threadPoolScheduled, "Task scheduled thread pool is not initialized or has been shut down");
 	}
 
-	// 注意：shutdown 后返回 null（与 getThreadPool/getScheduledThreadPool 一致），调用方需判空
-	public static @Nullable ExecutorService getCriticalThreadPool() {
-		return threadPoolCritical;
+	public static ExecutorService getCriticalThreadPool() {
+		return Objects.requireNonNull(threadPoolCritical, "Task critical thread pool is not initialized or has been shut down");
 	}
 
-	// 注意：shutdown 后返回 null（同上），调用方需判空
-	public static @Nullable ForkJoinPool getDbIoPool() {
-		return threadPoolDbIo;
+	public static ForkJoinPool getDbIoPool() {
+		return Objects.requireNonNull(threadPoolDbIo, "Task dbIo thread pool is not initialized or has been shut down");
 	}
 
 	// 在数据库IO并行池中执行阻塞型并行流的终端操作：提交线程阻塞等待，

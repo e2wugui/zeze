@@ -22,7 +22,7 @@ public class CsQueue<V extends Bean> {
 	private final Queue<V> queue;
 	private final String name;
 	private final Queue.Module module;
-	private final @Nullable CsQueueTakeoverScope takeoverScope;
+	private final CsQueueTakeoverScope takeoverScope;
 
 	/**
 	 * 为了测试公开这个方法，应用应该去使用Queue.Module.open.
@@ -36,11 +36,8 @@ public class CsQueue<V extends Bean> {
 		// 死者数据由takeover.tryTransfer在同一事务内裁决+搬运（附带修复：SM=disable时原ctor NPE）。
 		// scope存为成员：写路径checkFence需要它向Takeover对账scoped登记状态。
 		var takeover = module.zeze.getTakeover();
-		if (takeover != null) {
-			takeoverScope = new CsQueueTakeoverScope();
-			takeover.addScope(takeoverScope);
-		} else
-			takeoverScope = null;
+		takeoverScope = new CsQueueTakeoverScope();
+		takeover.addScope(takeoverScope);
 	}
 
 	/**
@@ -172,8 +169,8 @@ public class CsQueue<V extends Bean> {
 	// 认领（stamp=myEpoch）而非致命：被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀
 	// 同serverId双进程/外部篡改（stamp为别人的epoch）。
 	private void checkFence() {
-		var takeover = module.zeze.getTakeover();
-		if (takeover == null || takeoverScope == null)
+		var takeover = module.zeze.getTakeoverOrNull();
+		if (takeover == null)
 			return;
 		takeover.requireScoped(takeoverScope); // 未登记：拒绝写，且不认领数据行
 		var root = queue.getOrAddRoot();

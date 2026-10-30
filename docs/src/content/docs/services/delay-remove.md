@@ -12,6 +12,8 @@ DelayRemove 是 Zeze 框架提供的**延迟清理**组件。它用于在数据�
 
 ## 基本用法
 
+`Application.getDelayRemove()` 在带数据库的应用构造完成后即可取得非空组件，可在 `start()` 前注册处理器；执行清理任务还需完成启动。`noDatabase` 模式（包括负数 `serverId`）不装配该组件，停机时会将它拆除，这两种情况下调用 getter 会抛出 `NullPointerException`。
+
 ### remove -- 延迟删除表记录
 
 ```java

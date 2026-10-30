@@ -507,40 +507,41 @@ public final class Application extends ReentrantLock {
 		return autoKey.getOrAdd(name);
 	}
 
-	// 组件 getter 按正常已装配路径声明为非空；未装配或已拆除时仍可返回 null，供特殊路径探测。
-	@SuppressWarnings("NullableProblems")
 	public Timer getTimer() {
-		//noinspection DataFlowIssue
+		return Objects.requireNonNull(timer, "Application Timer is not initialized or has been removed");
+	}
+
+	public @Nullable Timer getTimerOrNull() {
 		return timer;
 	}
 
-	@SuppressWarnings("NullableProblems")
 	public SafeBatch getSafeBatch() {
-		//noinspection DataFlowIssue
+		return Objects.requireNonNull(safeBatch, "Application SafeBatch is not initialized or has been removed");
+	}
+
+	public @Nullable SafeBatch getSafeBatchOrNull() {
 		return safeBatch;
 	}
 
-	@SuppressWarnings("NullableProblems")
 	public Zeze.Collections.Queue.Module getQueueModule() {
-		//noinspection DataFlowIssue
-		return queueModule;
+		return Objects.requireNonNull(queueModule, "Application QueueModule is not initialized or has been removed");
 	}
 
-	/** 构造期按配置装配，未启用或已停止时返回 null。 */
+
+	public DelayRemove getDelayRemove() {
+		return Objects.requireNonNull(delayRemove, "Application DelayRemove is not initialized or has been removed");
+	}
+
+	public Takeover getTakeover() {
+		return Objects.requireNonNull(takeover, "Application Takeover is not initialized or has been removed");
+	}
+
+	public @Nullable Takeover getTakeoverOrNull() {
+		return takeover;
+	}
+
 	public @Nullable IHistory getHistory() {
 		return history;
-	}
-
-	@SuppressWarnings("NullableProblems")
-	public DelayRemove getDelayRemove() {
-		//noinspection DataFlowIssue
-		return delayRemove;
-	}
-
-	@SuppressWarnings("NullableProblems")
-	public Takeover getTakeover() {
-		//noinspection DataFlowIssue
-		return takeover;
 	}
 
 	public Procedure newProcedure(FuncLong action, @Nullable String actionName) {
@@ -548,7 +549,7 @@ public final class Application extends ReentrantLock {
 	}
 
 	public Procedure newProcedure(FuncLong action, @Nullable String actionName,
-										   @Nullable TransactionLevel level) {
+								  @Nullable TransactionLevel level) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
 				+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
@@ -557,8 +558,8 @@ public final class Application extends ReentrantLock {
 	}
 
 	public ProtocolProcedure newProcedure(FuncLong action, @Nullable String actionName,
-												   @Nullable TransactionLevel level, String protocolClassName,
-												   Binary protocolRawArgument) {
+										  @Nullable TransactionLevel level, String protocolClassName,
+										  Binary protocolRawArgument) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
 				+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
@@ -1034,7 +1035,7 @@ public final class Application extends ReentrantLock {
 			stopStep("clearInUse '" + database.getConf().getName() + '\'', () -> {
 				//noinspection DataFlowIssue
 				database.getDirectOperates().clearInUse(
-						conf.getServerId(), conf.getGlobalCacheManagerHostNameOrAddress());
+					conf.getServerId(), conf.getGlobalCacheManagerHostNameOrAddress());
 			});
 		}
 		databasesInUse.clear();

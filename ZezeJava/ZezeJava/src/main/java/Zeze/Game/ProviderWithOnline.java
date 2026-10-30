@@ -98,7 +98,7 @@ public class ProviderWithOnline extends ProviderImplement {
 			load = new ProviderLoadWithOnline(online);
 			//noinspection DataFlowIssue
 			var config = app.getZeze().getConfig();
-			load.getOverload().register(Objects.requireNonNull(Task.getThreadPool()), config);
+			load.getOverload().register(Task.getThreadPool(), config);
 		} finally {
 			unlock();
 		}

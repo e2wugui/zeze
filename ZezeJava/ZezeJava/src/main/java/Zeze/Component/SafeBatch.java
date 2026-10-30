@@ -139,7 +139,10 @@ public class SafeBatch extends AbstractSafeBatch {
 			if (null != custom) {
 				var zeze = Application.getAppInstance(custom.getAppInstanceId());
 				if (null != zeze) {
-					zeze.getSafeBatch().checkBatch(context.timerId, custom);
+					// 已取得的 Application 引用可能与 stop 拆除组件并发。
+					var safeBatch = zeze.getSafeBatchOrNull();
+					if (safeBatch != null)
+						safeBatch.checkBatch(context.timerId, custom);
 				}
 			}
 		}

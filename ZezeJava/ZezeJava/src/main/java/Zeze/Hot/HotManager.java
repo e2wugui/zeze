@@ -825,7 +825,7 @@ public class HotManager extends ClassLoader {
 
 		// 定时器只投递不执行：install 的长阻塞（checkpointRun+模块停启）不得占用
 		// 共享 scheduledPool；与远程发布安装共用单线程执行器，天然串行。
-		installTimer = Objects.requireNonNull(Task.getScheduledThreadPool()).scheduleAtFixedRate(
+		installTimer = Task.getScheduledThreadPool().scheduleAtFixedRate(
 				() -> installExecutor.execute(() -> tryDistribute(false, true)), 10000, 10000, TimeUnit.MILLISECONDS);
 		Task.hotGuard = taskHotGuard;
 		hotManagerService.start();

@@ -26,7 +26,7 @@ public class ProviderOnly extends ProviderImplement {
 	public void create(AppBase app) {
 		load = new ProviderLoadOnly(Objects.requireNonNull(app.getZeze()));
 		var config = app.getZeze().getConfig();
-		load.getOverload().register(Objects.requireNonNull(Task.getThreadPool()), config);
+		load.getOverload().register(Task.getThreadPool(), config);
 	}
 
 	public void start() {

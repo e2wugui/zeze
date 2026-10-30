@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.util.Objects;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.net.InetAddress;
@@ -160,8 +159,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			if (config == null)
 				config = Config.load();
 			config.parseCustomize(gcmConfig);
-			lockExecutor = useSyncLock ? null : Objects.requireNonNull(Task.getThreadPool(),
-					"Task thread pool must be initialized before starting GCM");
+			lockExecutor = useSyncLock ? null : Task.getThreadPool();
 
 			sessions = new LongConcurrentHashMap<>(4096);
 			global = new ConcurrentHashMap<>(gcmConfig.initialCapacity);
