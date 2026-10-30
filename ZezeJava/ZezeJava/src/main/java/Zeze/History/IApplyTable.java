@@ -12,11 +12,11 @@ public interface IApplyTable {
 
 	@Nullable Binary get(byte [] key, int offset, int length);
 
-	/** 写入后调用方可复用输入数组；记录级事务的暂存也必须保留独立的键和值。 */
+	/** 实现可以保留输入数组；调用方此后不得修改键和值的数组内容。 */
 	void put(byte [] key, int keyOffset, int keyLength,
 			 byte [] value, int valueOffset, int valueLength) throws Exception;
 
-	/** 返回后调用方可复用输入数组，即使删除仍在记录级事务中暂存。 */
+	/** 实现可以暂存输入数组；记录级事务结束前调用方不得修改键的数组内容。 */
 	void remove(byte [] key, int offset, int length) throws Exception;
 
 	/**
@@ -24,6 +24,6 @@ public interface IApplyTable {
 	 */
 	boolean isEmpty() throws Exception;
 
-	/** 回调中的数组可由调用方持有或修改，不得暴露存储内部的键和值。 */
+	/** 回调中的数组只供读取；需要在回调后使用时须复制。 */
 	void walk(TableWalkHandleRaw walker) throws Exception;
 }

@@ -1,12 +1,10 @@
 package Zeze.History;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableWalkHandleRaw;
 import org.jspecify.annotations.Nullable;
 
@@ -22,11 +20,6 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 	// begin时记录驱动线程，路由处核对当前线程——fail-fast暴露并发误用。非同步字段：
 	// 断言式防御不引入锁，最坏漏检（可见性），不误报。
 	private @Nullable Thread recordTxnOwner;
-
-	private static Binary copySlice(byte[] bytes, int offset, int length) {
-		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
-		return new Binary(Arrays.copyOfRange(bytes, offset, offset + length));
-	}
 
 	@Override
 	public IApplyTable open(String tableName) {
@@ -143,11 +136,11 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 				// 单线程契约守卫：事务内写入只应来自驱动线程，其他线程的写入立即暴露而非静默错挂
 				checkRecordTxnOwner();
 				// 记录级事务内：写入暂存，等记录内全部entry成功后由commit一次性合并
-				recordTxn.put(tableName, copySlice(key, keyOffset, keyLength),
-						copySlice(value, valueOffset, valueLength));
+				recordTxn.put(tableName, new Binary(key, keyOffset, keyLength),
+						new Binary(value, valueOffset, valueLength));
 				return;
 			}
-			dataMap.put(copySlice(key, keyOffset, keyLength), copySlice(value, valueOffset, valueLength));
+			dataMap.put(new Binary(key, keyOffset, keyLength), new Binary(value, valueOffset, valueLength));
 		}
 
 		@Override
@@ -156,7 +149,7 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 			if (recordTxn != null) {
 				checkRecordTxnOwner();
 				// 记录级事务内：暂存remove标记，commit时才真正移除
-				recordTxn.remove(tableName, copySlice(key, offset, length));
+				recordTxn.remove(tableName, new Binary(key, offset, length));
 				return;
 			}
 			dataMap.remove(new Binary(key, offset, length));
@@ -170,7 +163,7 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 		@Override
 		public void walk(TableWalkHandleRaw walker) throws Exception {
 			for (var e : dataMap.entrySet()) {
-				if (!walker.handle(e.getKey().toBytes(), e.getValue().toBytes()))
+				if (!walker.handle(e.getKey().copyIf(), e.getValue().copyIf()))
 					break;
 			}
 		}
