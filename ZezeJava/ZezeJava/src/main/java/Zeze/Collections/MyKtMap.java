@@ -27,14 +27,14 @@ import Zeze.Transaction.Collections.PersistentHashMap;
  *   <li>迭代顺序与 pcollections 同为无序（编码排序由 ByteBuffer.BuildSortedString 兜底）。</li>
  * </ul>
  */
-public final class MyKtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V> {
+public final class MyKtMap<K, V extends @Nullable Object> extends AbstractMap<K, V> implements PMap<K, V> {
 	private final PersistentHashMap<K, V> kt;
 
 	private MyKtMap(PersistentHashMap<K, V> kt) {
 		this.kt = kt;
 	}
 
-	public static <K, V> MyKtMap<K, V> empty() {
+	public static <K, V extends @Nullable Object> MyKtMap<K, V> empty() {
 		return new MyKtMap<>(PersistentHashMap.empty());
 	}
 
@@ -77,7 +77,7 @@ public final class MyKtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V>
 		// 同实例 put 跳过（纯优化，内核 Node.put 亦有身份跳过）。守卫用身份不用 equals
 		// （语义详见 KtMap.plus）：PMap2/LogMap2 是可变 bean 值、按身份判等，内容相等的
 		// 不同 bean 实例必须真实入核。
-		if (kt.get(key) == value)
+		if (kt.get(key) == value && (value != null || kt.containsKey(key)))
 			return this;
 		return new MyKtMap<>(kt.putting(key, value));
 	}
@@ -96,7 +96,7 @@ public final class MyKtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V>
 			var n = kt;
 			for (var e : m.entrySet()) {
 				// 同实例守卫（语义见 plus）：全同实例批量返回同一实例。
-				if (n.get(e.getKey()) != e.getValue())
+				if (n.get(e.getKey()) != e.getValue() || e.getValue() == null && !n.containsKey(e.getKey()))
 					n = n.putting(e.getKey(), e.getValue());
 			}
 			return n == kt ? this : new MyKtMap<>(n);
@@ -104,8 +104,9 @@ public final class MyKtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V>
 		var b = kt.builder();
 		boolean changed = false;
 		for (var e : m.entrySet()) {
+			int oldSize = b.size();
 			var old = b.put(e.getKey(), e.getValue());
-			changed |= old != e.getValue(); // 身份判定（语义见 plus）
+			changed |= old != e.getValue() || b.size() != oldSize; // 身份或映射存在性发生变化
 		}
 		return changed ? new MyKtMap<>(b.build()) : this;
 	}
@@ -122,8 +123,11 @@ public final class MyKtMap<K, V> extends AbstractMap<K, V> implements PMap<K, V>
 		}
 		var b = kt.builder();
 		boolean changed = false;
-		for (var k : c)
-			changed |= b.remove(k) != null;
+		for (var k : c) {
+			int oldSize = b.size();
+			b.remove(k);
+			changed |= b.size() != oldSize;
+		}
 		return changed ? new MyKtMap<>(b.build()) : this;
 	}
 
