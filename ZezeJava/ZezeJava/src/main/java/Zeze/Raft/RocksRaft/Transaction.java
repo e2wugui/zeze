@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.TreeMap;
+import java.util.HashMap;
 import java.util.function.Supplier;
 import Zeze.Net.Protocol;
 import Zeze.Raft.RaftLog;
@@ -124,7 +124,8 @@ public final class Transaction {
 		}
 	}
 
-	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
+	// 与缓存及Changes使用相同的键身份；compareTo等价不代表物理键相同。
+	private final HashMap<TableKey, RecordAccessed> accessedRecords = new HashMap<>();
 	private final ArrayList<Savepoint> savepoints = new ArrayList<>();
 	private final HashSet<PessimismLock> pessimismLocks = new HashSet<>();
 	private @Nullable Changes changes;
