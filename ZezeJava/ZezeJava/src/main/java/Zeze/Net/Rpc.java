@@ -193,6 +193,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		this.responseHandle = responseHandle;
 		if (waitFuture != null)
 			future = waitFuture;
+		// 上下文入表前绑定连接，应答与断连处理不得看到尚未绑定的发送请求。
+		setSender(so);
 		//noinspection DataFlowIssue
 		sessionId = service.addRpcContext(this);
 		timeout = millisecondsTimeout;

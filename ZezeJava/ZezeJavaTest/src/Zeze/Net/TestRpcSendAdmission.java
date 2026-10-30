@@ -110,4 +110,52 @@ public class TestRpcSendAdmission {
 		assertNull(failure.get());
 		assertEquals(1, allocations.get());
 	}
+
+	@Test
+	void publishedRequestRejectsAnotherConnectionBeforeTransportSendStarts() throws Exception {
+		var service = new Service("TestRpcSendAdmission.connectionBinding");
+		var target = new Socket(service);
+		var other = new Socket(service);
+		var entered = new CountDownLatch(1);
+		var release = new CountDownLatch(1);
+		var rpc = new TestRpcNoReuse.TestRpc() {
+			@Override
+			public void schedule(Service service, long sessionId, int timeout) {
+				entered.countDown();
+				try {
+					assertTrue(release.await(5, TimeUnit.SECONDS));
+				} catch (InterruptedException e) {
+					throw new AssertionError(e);
+				}
+			}
+		};
+		var failure = new AtomicReference<@Nullable Throwable>();
+		var sender = new Thread(() -> {
+			try {
+				rpc.SendForWait(target, 60_000);
+			} catch (Throwable e) {
+				failure.set(e);
+			}
+		});
+		sender.start();
+		try {
+			assertTrue(entered.await(5, TimeUnit.SECONDS));
+			assertSame(rpc, service.getRpcContext(rpc.getSessionId()));
+			respond(service, other, rpc);
+			assertSame(rpc, service.getRpcContext(rpc.getSessionId()), "其他连接不得消费刚登记的上下文");
+			assertFalse(java.util.Objects.requireNonNull(rpc.getFuture()).isDone());
+			release.countDown();
+			sender.join(5000);
+			assertFalse(sender.isAlive());
+			assertNull(failure.get());
+			respond(service, target, rpc);
+			assertTrue(rpc.getFuture().isDone(), "原连接的应答仍可完成第一次等待");
+		} finally {
+			release.countDown();
+			sender.join(5000);
+			service.OnSocketDisposed(target);
+			service.OnSocketDisposed(other);
+			service.stop();
+		}
+	}
 }
