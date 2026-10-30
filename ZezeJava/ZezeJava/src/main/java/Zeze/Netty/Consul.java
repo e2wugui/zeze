@@ -47,7 +47,7 @@ public class Consul {
 		// IPv6字面量地址在URL里必须加方括号。
 		var host = ip.contains(":") ? "[" + ip + "]" : ip;
 		var checker = new NewService.Check();
-		checker.setHttp("http://" + host + ":" + port + PassiveKeepAlivePath);
+		checker.setHttp((httpServer.sslCtx != null ? "https://" : "http://") + host + ":" + port + PassiveKeepAlivePath);
 		// 进程消亡后探活持续失败，critical服务自动注销——兜底stop失败/超时反转产生的孤儿注册。
 		checker.setInterval("10s");
 		checker.setDeregisterCriticalServiceAfter("5m");

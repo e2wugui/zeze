@@ -4,8 +4,16 @@ import static java.util.Objects.requireNonNull;
 
 import harness.Fast;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.security.KeyStore;
+import java.time.Duration;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.Response;
 import com.ecwid.consul.v1.agent.model.NewService;
@@ -13,6 +21,8 @@ import Zeze.Netty.Consul;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Util.Task;
+import Zeze.Util.Cert;
+import Zeze.Util.TestCert;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -118,6 +128,39 @@ public class TestNettyConsulRegister {
 		// 注册的保活handler确实可路由(返回200)
 		var handler = server.getHandler(KeepAlivePath);
 		Assertions.assertNotNull(handler, "keepalive handler must be registered");
+	}
+
+	@Test
+	void tlsHealthCheckAddressMatchesTheListener() throws Exception {
+		var keys = Cert.generateRsaKeyPair();
+		var certificate = TestCert.generateRsaCert("localhost", keys.getPublic(), "localhost", keys.getPrivate(), 1);
+		try (var tlsServer = new HttpServer() {
+			@Override public String getExportIp() { return "localhost"; }
+		}) {
+			tlsServer.setSsl(keys.getPrivate(), null, certificate);
+			tlsServer.start(requireNonNull(netty), "127.0.0.1", 0).sync();
+			var capturing = new CapturingClient();
+			var consul = new Consul(capturing);
+			try {
+				consul.register("tlsService", tlsServer);
+				var uri = URI.create(requireNonNull(requireNonNull(capturing.captured).getCheck()).getHttp());
+				Assertions.assertEquals("https", uri.getScheme(), "探活协议必须匹配实际TLS监听");
+				var trusted = KeyStore.getInstance(KeyStore.getDefaultType());
+				trusted.load(null, null);
+				trusted.setCertificateEntry("local-test-server", certificate);
+				var trustManager = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+				trustManager.init(trusted);
+				var sslContext = SSLContext.getInstance("TLS");
+				sslContext.init(null, trustManager.getTrustManagers(), null);
+				try (var client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
+						.sslContext(sslContext).connectTimeout(Duration.ofSeconds(5)).build()) {
+					var request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5)).GET().build();
+					Assertions.assertEquals(200, client.send(request, HttpResponse.BodyHandlers.discarding()).statusCode());
+				}
+			} finally {
+				consul.stop();
+			}
+		}
 	}
 
 	// FND6-17:注册时consul瞬断(agentServiceRegister抛RuntimeException)必须回滚本地登记
