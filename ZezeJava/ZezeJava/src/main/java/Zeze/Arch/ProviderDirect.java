@@ -103,29 +103,24 @@ public class ProviderDirect extends AbstractProviderDirect {
 		return Procedure.Success;
 	}
 
+	// 本地派发可能异步执行，调用方发送后不得再修改协议及其内容。
 	private void sendResult(@Nullable AsyncSocket sender, Protocol<?> p) throws Exception {
 		if (sender == null) {
-			var service = requireProviderApp().providerDirectService;
-			//noinspection DataFlowIssue
+			var service = Objects.requireNonNull(requireProviderApp().providerDirectService);
 			service.dispatchProtocol(p);
 			return;
 		}
 		p.Send(sender);
 	}
 
-	private void sendResultIfSizeExceed(@Nullable AsyncSocket sender, ModuleRedirectAllResult result)
-			throws Exception {
+	private boolean isResultSizeExceed(ModuleRedirectAllResult result) {
 		int size = 0;
 		for (var hashResult : result.Argument.getHashes().values())
 			size += hashResult.getParams().size();
-		if (size > 0x10_0000) { // 1MB
-			sendResult(sender, result);
-			result.Argument.getHashes().clear();
-		}
+		return size > 0x10_0000; // 1MB
 	}
 
-	private void sendResultForAsync(ModuleRedirectAllRequest p, int hash, RedirectResult result,
-	                                RedirectHandle handle) throws Exception {
+	private ModuleRedirectAllResult newResult(ModuleRedirectAllRequest p) {
 		var pa = p.Argument;
 		var res = new ModuleRedirectAllResult();
 		var resArg = res.Argument;
@@ -134,6 +129,13 @@ public class ProviderDirect extends AbstractProviderDirect {
 		resArg.setSourceProvider(pa.getSourceProvider());
 		resArg.setSessionId(pa.getSessionId());
 		resArg.setMethodFullName(pa.getMethodFullName());
+		return res;
+	}
+
+	private void sendResultForAsync(ModuleRedirectAllRequest p, int hash, RedirectResult result,
+	                                RedirectHandle handle) throws Exception {
+		var res = newResult(p);
+		var resArg = res.Argument;
 
 		var hashResult = new BModuleRedirectAllHash.Data(Procedure.Success, null);
 		var re = handle.resultEncoder;
@@ -147,13 +149,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 	@Override
 	protected long ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest p) throws Exception {
 		var pa = p.Argument;
-		var res = new ModuleRedirectAllResult();
+		var res = newResult(p);
 		var resArg = res.Argument;
-		resArg.setModuleId(pa.getModuleId());
-		resArg.setServerId(requireProviderApp().zeze.getConfig().getServerId());
-		resArg.setSourceProvider(pa.getSourceProvider());
-		resArg.setSessionId(pa.getSessionId());
-		resArg.setMethodFullName(pa.getMethodFullName());
 
 		//noinspection DataFlowIssue
 		var handle = requireProviderApp().zeze.redirect.handles.get(pa.getMethodFullName());
@@ -205,7 +202,12 @@ public class ProviderDirect extends AbstractProviderDirect {
 				if (re != null)
 					hashResult.setParams(re.apply(((RedirectAllFutureFinished<?>)future).result()));
 				resArg.getHashes().put(hash, hashResult);
-				sendResultIfSizeExceed(p.getSender(), res);
+				if (isResultSizeExceed(res)) {
+					sendResult(p.getSender(), res);
+					res = newResult(p);
+					res.setResultCode(rc);
+					resArg = res.Argument;
+				}
 			} else
 				((RedirectAllFutureAsync<?>)future).onResult(r -> sendResultForAsync(p, hash, r, handle));
 		}
