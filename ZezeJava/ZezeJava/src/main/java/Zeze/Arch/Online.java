@@ -945,8 +945,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private static long getTypeId(Binary fullEncodedProtocol) {
-		int moduleId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), 0);
-		int protocolId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), 4);
+		int moduleId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), fullEncodedProtocol.getOffset());
+		int protocolId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), fullEncodedProtocol.getOffset() + 4);
 		return Protocol.makeTypeId(moduleId, protocolId);
 	}
 
