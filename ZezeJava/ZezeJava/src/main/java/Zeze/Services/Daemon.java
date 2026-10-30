@@ -416,8 +416,12 @@ public class Daemon {
 		default:
 			throw new UnsupportedOperationException("Unknown Command =" + c);
 		}
-		if (cmd.reliableSerialNo != 0)
-			pendings.remove(cmd.reliableSerialNo);
+		if (cmd instanceof CommonResult && cmd.reliableSerialNo != 0) {
+			var pending = pendings.get(cmd.reliableSerialNo);
+			if (pending != null && pending.socket == socket
+					&& pending.packet.getSocketAddress().equals(cmd.peer))
+				pendings.remove(cmd.reliableSerialNo, pending);
+		}
 		return cmd;
 	}
 
