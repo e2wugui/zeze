@@ -1,6 +1,8 @@
 package Zeze.Services;
 
 import java.net.InetAddress;
+import java.util.Map;
+import java.util.concurrent.Future;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -82,6 +84,8 @@ public class TestReduceReplyAdmission {
 				asynchronous.start(InetAddress.getLoopbackAddress(), 0, new Config());
 			else
 				sync.start(InetAddress.getLoopbackAddress(), 0, new Config());
+			var perf = field(gcm, "perf");
+			((Future<?>)field(perf, "reportTimer")).cancel(false);
 			var listener = (TcpSocket)field(gcm, "serverSocket");
 			var local = listener.getLocalInet();
 			assertNotNull(local);
@@ -106,6 +110,8 @@ public class TestReduceReplyAdmission {
 			reply.SendResultCode(replyCode);
 			assertTrue(result.await(10_000));
 			assertFalse(requested.isTimeout());
+			assertNotNull(((Map<?, ?>)field(perf, "totalReduceResults")).get(replyCode),
+					"Reduce统计必须记录实际应答的结果码");
 			if (replyCode == Procedure.Exception) {
 				assertEquals(requestedState == GlobalCacheManagerConst.StateShare
 						? GlobalCacheManagerConst.AcquireShareFailed : GlobalCacheManagerConst.AcquireModifyFailed,

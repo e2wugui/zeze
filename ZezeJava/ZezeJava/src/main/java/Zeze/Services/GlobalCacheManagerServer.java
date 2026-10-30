@@ -964,6 +964,15 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 									logger.error("Reduce {} AcquireState={} CacheState={} arg={}",
 											sender, StateModify, cs, reduce.getValue().Argument, ex);
 								}
+							} finally {
+								if (ENABLE_PERF) {
+									var r = reduce.getValue();
+									var future = r.getFuture();
+									if (r.isTimeout() || future != null && future.isDone() && !future.isCompletedExceptionally())
+										getPerf().onReduceEnd(r);
+									else
+										getPerf().onReduceCancel(r);
+								}
 							}
 						}
 						errorFreshAcquire.value = freshAcquire;
@@ -1220,27 +1229,23 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
 		@Nullable Reduce reduceWaitLater(Binary gkey, long fresh) {
+			Reduce reduce = null;
 			try {
 				if (System.currentTimeMillis() - lastErrorTime < instance.getAchillesHeelConfig().globalForbidPeriod)
 					return null;
 				AsyncSocket peer = instance.getServer().GetSocket(sessionId);
 				if (peer != null) {
-					var reduce = new Reduce(gkey, StateInvalid);
+					reduce = new Reduce(gkey, StateInvalid);
 					reduce.setResultCode(fresh);
 					if (ENABLE_PERF)
 						instance.getPerf().onReduceBegin(reduce);
 					reduce.SendForWait(peer, instance.getAchillesHeelConfig().reduceTimeout);
-					if (ENABLE_PERF) {
-						//noinspection DataFlowIssue
-						if (reduce.getFuture().isCompletedExceptionally() && !reduce.isTimeout())
-							instance.getPerf().onReduceCancel(reduce);
-						else
-							instance.getPerf().onReduceEnd(reduce);
-					}
 					return reduce;
 				}
 				logger.warn("Send Reduce failed. SessionId={}, gkey={}", sessionId, gkey);
 			} catch (Throwable ex) { // 这里的异常只应该是网络发送异常。
+				if (ENABLE_PERF && reduce != null)
+					instance.getPerf().onReduceCancel(reduce);
 				logger.error("ReduceWaitLater Exception {}", gkey, ex);
 			}
 			setError();
