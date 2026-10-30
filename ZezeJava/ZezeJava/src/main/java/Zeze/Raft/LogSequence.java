@@ -779,7 +779,7 @@ public class LogSequence {
 	 * 未来表随时间自然过期。拒绝发生在handle之前，不产生携带未来createTime的日志。
 	 */
 	static boolean isUniqueRequestCreateTimeValid(long create, long now, int expiredDays) {
-		if ((now - create) / 86400_000 >= expiredDays)
+		if (create <= now - expiredDays * 86400_000L)
 			return false;
 		return create <= now + 86400_000L;
 	}

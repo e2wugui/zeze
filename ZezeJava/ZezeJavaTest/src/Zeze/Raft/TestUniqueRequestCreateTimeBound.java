@@ -51,4 +51,12 @@ public class TestUniqueRequestCreateTimeBound {
 		assertFalse(LogSequence.isUniqueRequestCreateTimeValid(now + 30 * day, now, expiredDays));
 		assertFalse(LogSequence.isUniqueRequestCreateTimeValid(now + 3650 * day, now, expiredDays));
 	}
+
+	@Test
+	public void testRejectsOverflowingPast() {
+		assertFalse(LogSequence.isUniqueRequestCreateTimeValid(Long.MIN_VALUE, now, expiredDays));
+		assertFalse(LogSequence.isUniqueRequestCreateTimeValid(Long.MIN_VALUE + now, now, expiredDays));
+		assertFalse(LogSequence.isUniqueRequestCreateTimeValid(Long.MAX_VALUE, now, expiredDays));
+		assertTrue(LogSequence.isUniqueRequestCreateTimeValid(now - expiredDays * day + 1, now, expiredDays));
+	}
 }
