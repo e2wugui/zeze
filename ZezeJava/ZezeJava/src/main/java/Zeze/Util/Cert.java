@@ -17,6 +17,7 @@ import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -163,7 +164,7 @@ public final class Cert {
 	}
 
 	public static byte[] exportRsaPublicKeyToPkcs1(PublicKey publicKey) {
-		var rpk = (RSAPublicKeyImpl)publicKey;
+		var rpk = (RSAPublicKey)publicKey;
 		var mod = rpk.getModulus().toByteArray();
 		var exp = rpk.getPublicExponent().toByteArray();
 		var modExpDerSize = getDerValueSize(mod.length) + getDerValueSize(exp.length);
