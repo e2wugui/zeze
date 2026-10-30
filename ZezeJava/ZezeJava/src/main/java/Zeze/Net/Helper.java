@@ -43,8 +43,8 @@ public final class Helper {
 		}
 
 		if (buffer.remaining() < increment) {
-			buffer.flip(); // prepare to read
-			return ByteBuffer.allocate(roundup(buffer.limit() + increment)).put(buffer);
+			// 分配成功后才切换旧buffer的读写状态，避免扩容失败破坏原状态。
+			return ByteBuffer.allocate(roundup(buffer.position() + increment)).put(buffer.flip());
 		}
 
 		return buffer;
