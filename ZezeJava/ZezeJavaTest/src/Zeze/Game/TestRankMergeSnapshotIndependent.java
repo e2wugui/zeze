@@ -125,4 +125,22 @@ public class TestRankMergeSnapshotIndependent {
 				"旧快照内容不得随表更新变化");
 		Assertions.assertEquals(88L, oldEntry.getRoleId());
 	}
+
+	@Test
+	public void cachedResultDoesNotExposeSharedSnapshot() {
+		var key = Rank.newRankKey(1, 9973L);
+		Assertions.assertEquals(0, zeze.newProcedure(() -> {
+			rank.updateRank(0, key, 99, new BValueLong(300));
+			rank.getRankTotal(key);
+			return 0;
+		}, "publish-rank-snapshot").call());
+		var hit = rank.getRankTotal(key);
+		var entry = requireNonNull(hit.getTableValue()).getRankListReadOnly().get(0);
+		((BValueLong)entry.getDynamicReadOnly().getBean()).setValue(999);
+		var next = rank.getRankTotal(key);
+		var nextEntry = requireNonNull(next.getTableValue()).getRankListReadOnly().get(0);
+		Assertions.assertEquals(300, ((BValueLong)nextEntry.getDynamicReadOnly().getBean()).getValue());
+		hit.setTableValue(new Zeze.Builtin.Game.Rank.BRankList());
+		Assertions.assertEquals(1, requireNonNull(rank.getRankTotal(key).getTableValue()).getRankListReadOnly().size());
+	}
 }
