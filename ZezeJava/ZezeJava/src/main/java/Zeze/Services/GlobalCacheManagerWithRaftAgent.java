@@ -18,6 +18,7 @@ import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Id128;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -138,7 +139,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			// 补转发被降级方tid——TableX在bridge（sync族Result）上设置reducedTid，
 			// 桥接原本只转state与resultCode，该字段在Raft链路恒为默认值（同步/异步版服务器
 			// 均中继真实值），协议契约静默断裂。
-			real.Result.setReduceTid(Objects.requireNonNull(Result.reducedTid));
+			var reducedTid = Result.reducedTid;
+			real.Result.setReduceTid(reducedTid != null ? reducedTid : Id128.Zero);
 			// real也先CAS再设置code；代理路径继续由ProxyableRpc的hook路由。
 			real.SendResultCode(getResultCode(), result);
 		}
