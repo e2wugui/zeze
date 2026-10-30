@@ -14,6 +14,8 @@ import Zeze.Util.Task;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -110,5 +112,46 @@ public class TestTransactionKeepsLastKeyOperation {
 	@Test
 	void repeatedReplacementWritesLastValue(@TempDir Path tempDir) throws Exception {
 		checkOperations(tempDir, 3);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"replace-key", "replace-value", "remove-key"})
+	void bufferReuseDoesNotChangeQueuedOperations(String operation, @TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		var raftConfig = RaftConfig.loadFromString("<raft Name=\"\"><node Host=\"127.0.0.1\" Port=\"1\"/></raft>");
+		raftConfig.setDbHome(tempDir.resolve("bucket").toString());
+		var bucket = new Bucket(raftConfig);
+		var manager = new LocalApplyManager(tempDir, bucket);
+		try {
+			var conf = new Config.DatabaseConf();
+			conf.setDatabaseUrl("dbh2://127.0.0.1:1/database");
+			var database = new Database(null, manager, conf);
+			var key = ByteBuffer.Wrap(new byte[]{9, 1, 9}, 1, 1);
+			var value = ByteBuffer.Wrap(new byte[]{9, 2, 9}, 1, 1);
+			var originalKey = key.Copy();
+			var originalValue = value.Copy();
+			bucket.getData().put(originalKey, new byte[]{3});
+			boolean remove = operation.equals("remove-key");
+			try (var transaction = (Database.Dbh2Transaction)database.beginTransaction()) {
+				if (remove)
+					transaction.remove("table", key);
+				else
+					transaction.replace("table", key, value);
+				if (operation.equals("replace-value"))
+					value.Bytes[value.ReadIndex] = 8;
+				else
+					key.Bytes[key.ReadIndex] = 8;
+				transaction.commit();
+			}
+			var actual = bucket.getData().get(originalKey);
+			if (remove)
+				assertNull(actual);
+			else
+				assertArrayEquals(originalValue, actual);
+			assertNull(bucket.getData().get(new byte[]{8}), "复用缓冲不能写入另一个键");
+		} finally {
+			manager.stop();
+			bucket.close();
+		}
 	}
 }

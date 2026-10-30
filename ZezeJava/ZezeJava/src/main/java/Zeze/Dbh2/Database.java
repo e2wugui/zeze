@@ -308,8 +308,8 @@ public class Database extends Zeze.Transaction.Database {
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
 			if (value.size() <= 0)
 				throw new RuntimeException("value.size <= 0.");
-			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
-			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
+			var bKey = new Binary(key.Copy());
+			var bValue = new Binary(value.Copy());
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent,
 					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName, null));
@@ -318,7 +318,7 @@ public class Database extends Zeze.Transaction.Database {
 		}
 
 		public void remove(String tableName, ByteBuffer key) {
-			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
+			var bKey = new Binary(key.Copy());
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent,
 					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName, null));
