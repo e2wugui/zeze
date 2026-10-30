@@ -202,7 +202,8 @@ public class Onz extends AbstractOnz {
 					continue;
 				try {
 					// 加锁后复查，避免清理刚完成的上下文。
-					if (!saga.isEnd() && sagas.remove(saga.getOnzTid(), saga))
+					if (!saga.isEnd() && now - saga.getLastActiveTime() >= sagaContextTimeoutMs
+							&& sagas.remove(saga.getOnzTid(), saga))
 						logger.warn("cleanup timeout saga context. tid={}, name={}", saga.getOnzTid(), saga.getName());
 				} finally {
 					saga.unlockBusiness();
