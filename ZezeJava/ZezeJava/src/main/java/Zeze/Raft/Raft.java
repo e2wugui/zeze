@@ -708,17 +708,17 @@ public final class Raft {
 
 		lock();
 		try {
+			// 旧选举的真实应答仍能报告更高任期，须先退位再过滤投票归属。
+			if (logSequence.trySetTerm(rpc.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
+				convertStateTo(RaftState.Follower);
+				return Procedure.Success;
+			}
+
 			if (logSequence.getTerm() != rpc.Argument.getTerm() || getState() != RaftState.Candidate) {
 				// 结果回来时，上下文已经发生变化，忽略这个结果。
 				logger.info("{} NotOwner={} NotCandidate={}", getName(),
 						logSequence.getTerm() != rpc.Argument.getTerm(), getState() != RaftState.Candidate);
 				return 0;
-			}
-
-			if (logSequence.trySetTerm(rpc.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
-				// new term found
-				convertStateTo(RaftState.Follower);
-				return Procedure.Success;
 			}
 
 			if (requestVotes.contains(rpc) && rpc.Result.getVoteGranted()) {
@@ -777,19 +777,15 @@ public final class Raft {
 
 		lock();
 		try {
-			if (!preVoting || getState() != RaftState.Candidate) {
-				// 结果回来时，上下文已经发生变化，忽略这个结果。
-				return 0;
-			}
-
-			// 与 processRequestVoteResult 对齐（raft §5.1 Rules for Servers）：应答里带回
-			// 更高 term 时更新term并立即退回Follower。PreVote候选者没有自增term，
-			// 多数派其他节点可能已推进到更高term并选出了新leader：不消费Result.term
-			// 会多走一轮携带过期term的无效prevote循环（仍被拒，直到新leader的
-			// AppendEntries/RequestVote直达本节点）。
+			// 旧选举的真实应答仍能报告更高任期，须先退位再过滤投票归属。
 			if (logSequence.trySetTerm(rpc.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
 				convertStateTo(RaftState.Follower);
 				return Procedure.Success;
+			}
+
+			if (!preVoting || getState() != RaftState.Candidate) {
+				// 结果回来时，上下文已经发生变化，忽略这个结果。
+				return 0;
 			}
 
 			if (preVotes.contains(rpc) && rpc.Result.getVoteGranted()) {
