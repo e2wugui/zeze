@@ -285,13 +285,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		}
 	}
 
-	// editService专用串行锁（对齐非raft版ServiceManager.Agent.editServiceLock）：
-	// 把"变更本地registers-发送-等待应答-提交/回滚"全过程串行化，且replayRegisters的重放
-	// 快照在同一锁内取——快照因此只能看到已确认的完整状态，不会捕获"本地已变更、远端未
-	// 确认随后被回滚"的中间态（local-first窗口下重放投递成功+原edit失败回滚
-	// =僵尸注册复现）。串行化同时消除同key并发edit的交错残留（AbstractAgent类注释豁免项）。
-	// 不复用__thisLock：后者被startNewLogin使用，复用会把换leader登录与edit互相阻塞；
-	// 本锁内等待loginFuture/RPC应答但不获取__thisLock，全局无反序路径。
+	// 注册确认和重连重放共用串行边界；本地仅发布已确认状态，失败无需逐项回滚。
 	private final Object editServiceLock = new Object();
 
 	@Override
@@ -299,47 +293,16 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		synchronized (editServiceLock) {
 			for (var info : arg.getAdd())
 				verify(info.getServiceIdentity());
-			// 先更新本地记录再发送远程请求（重连重放的数据来源）。失败时回滚本次真实变更
-			// ：重放只有add语义（replayRegisters全量addAll，无remove），remove失败的
-			// 条目若不回滚——本地已删、服务端永续残留，连接存活期间无人再发注销，僵尸注册
-			// 持续分发流量。只记录本次真实变更（新增/覆盖旧值/真实删除）；重放路径的幂等put
-			// 键已存在（prev==reg），不属于变更，回滚不得清空重放源。
-			var added = new ArrayList<BServiceInfo>();
-			var replaced = new java.util.ArrayList<Zeze.Util.KVNotNull<BServiceInfo, BServiceInfo>>();
-			var removed = new java.util.ArrayList<Zeze.Util.KVNotNull<BServiceInfo, BServiceInfo>>();
-			for (var unReg : arg.getRemove()) {
-				var old = registers.remove(unReg);
-				if (old != null)
-					removed.add(Zeze.Util.KVNotNull.create(unReg, old));
-			}
-			for (var reg : arg.getAdd()) {
-				var prev = registers.put(reg, reg);
-				if (prev == null)
-					added.add(reg);
-				else if (prev != reg)
-					replaced.add(Zeze.Util.KVNotNull.create(reg, prev)); // 同key新版本对象，回滚需还原旧值
-			}
-			try {
-				waitLoginReady();
+			waitLoginReady();
 
-				var edit = new Edit(arg);
-				raftClient.sendForWait(edit).await();
-				checkResultCode(edit); // 失败即抛错并回滚本地：调用方知情后重试整个edit，
-				// 与非raft版"成功后才更新本地"语义对齐（Agent.java）。
-				logger.debug("EditService {}", arg);
-			} catch (Throwable ex) {
-				// 引用判等恢复：BServiceInfo.equals按name+identity，值判等无法区分并发写入的
-				// 新版本对象；仅当映射仍是本次写入的实例才回滚，绝不吞并发edit的变更。
-				// 回滚用compute原子完成"判等+修改"：get判等+remove/put两步的话，
-				// 窗口内并发写入的equals相等新版本对象会被误删/误覆盖（remove按equals匹配键）。
-				for (var reg : added)
-					registers.compute(reg, (k, v) -> v == reg ? null : v);
-				for (var e : replaced)
-					registers.compute(e.getKey(), (k, v) -> v == e.getKey() ? e.getValue() : v);
-				for (var e : removed)
-					registers.putIfAbsent(e.getValue(), e.getValue()); // key==value同实例，维持registers不变式
-				throw ex;
-			}
+			var edit = new Edit(arg);
+			raftClient.sendForWait(edit).await();
+			checkResultCode(edit);
+			for (var unReg : arg.getRemove())
+				registers.remove(unReg);
+			for (var reg : arg.getAdd())
+				registers.put(reg, reg);
+			logger.debug("EditService {}", arg);
 		}
 	}
 
