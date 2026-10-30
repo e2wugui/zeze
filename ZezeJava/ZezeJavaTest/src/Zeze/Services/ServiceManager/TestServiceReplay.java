@@ -160,7 +160,7 @@ public class TestServiceReplay {
 			edit.getRemove().add(new BServiceInfo("unsubscribed", "2"));
 			edit.getAdd().add(replacement);
 			agent.applyServiceEdit(edit);
-			assertTrue(edit.getRemove().isEmpty());
+			assertEquals(List.of(original), edit.getRemove());
 			assertSame(replacement, agent.subscribeStates.get("service").findServiceInfoByIdentity("1"));
 			var next = new BServiceInfo("service", "1", 0, "127.0.0.1", 3);
 			var changed = new BEditService();
@@ -187,6 +187,37 @@ public class TestServiceReplay {
 			assertEquals(List.of(8), dead);
 			agent.setOnSuspect(__ -> { throw new IllegalStateException("callback"); });
 			assertDoesNotThrow(() -> agent.notifySuspect(9, version));
+		}
+	}
+
+	@Test
+	void versionReplacementWithdrawsOldVersionFromCallbacks() {
+		try (var agent = new TestAgent()) {
+			var state = agent.subscribeStates.get("service");
+			var original = new BServiceInfo("service", "1", 1, "127.0.0.1", 1);
+			state.onRegister(original);
+			var replacement = new BServiceInfo("service", "1", 2, "127.0.0.1", 2);
+			var edit = new BEditService();
+			edit.getRemove().add(original);
+			edit.getAdd().add(replacement);
+			agent.applyServiceEdit(edit);
+			assertEquals(List.of(original), edit.getRemove(), "按版本维护的路由必须收到旧版本注销");
+			assertEquals(List.of(replacement), edit.getAdd());
+			assertNull(state.getServiceInfos(1));
+			assertSame(replacement, state.findServiceInfoByIdentity("1"));
+		}
+	}
+
+	@Test
+	void unchangedRegistrationDoesNotWithdrawLiveEndpoint() {
+		try (var agent = new TestAgent()) {
+			var original = new BServiceInfo("service", "1", 0, "127.0.0.1", 1);
+			agent.subscribeStates.get("service").onRegister(original);
+			var edit = new BEditService();
+			edit.getRemove().add(original);
+			edit.getAdd().add(new BServiceInfo("service", "1", 0, "127.0.0.1", 1));
+			agent.applyServiceEdit(edit);
+			assertTrue(edit.getRemove().isEmpty());
 		}
 	}
 }

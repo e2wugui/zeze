@@ -136,7 +136,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			if (state == null || !state.onUnRegister(info))
 				it.remove();
 		}
-		edit.getRemove().removeIf(edit.getAdd()::contains);
+		edit.getRemove().removeIf(removed -> edit.getAdd().stream().anyMatch(removed::fullEquals));
 		for (var info : edit.getAdd()) {
 			var state = subscribeStates.get(info.getServiceName());
 			if (state == null)
