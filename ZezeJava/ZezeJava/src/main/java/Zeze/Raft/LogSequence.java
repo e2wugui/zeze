@@ -8,10 +8,12 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -468,11 +470,18 @@ public class LogSequence {
 	}
 
 	public static void deleteDirectory(File path) {
-		File[] contents = path.listFiles();
-		if (contents != null)
-			for (File f : contents)
-				if (!Files.isSymbolicLink(f.toPath()))
-					deleteDirectory(f);
+		try {
+			// 根链接和子链接都只删入口；Windows junction 的 NOFOLLOW 属性为 directory+other。
+			var attrs = Files.readAttributes(path.toPath(), BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+			if (attrs.isDirectory() && !attrs.isOther()) {
+				File[] contents = path.listFiles();
+				if (contents != null)
+					for (File f : contents)
+						deleteDirectory(f);
+			}
+		} catch (IOException ignored) {
+			return; // 尽力删除；需要确认的调用方由 deletedDirectoryAndCheck 报告失败。
+		}
 		//noinspection ResultOfMethodCallIgnored
 		path.delete();
 	}
@@ -480,7 +489,7 @@ public class LogSequence {
 	public static void deletedDirectoryAndCheck(File path, int checkCount) {
 		while (--checkCount >= 0) {
 			deleteDirectory(path);
-			if (!path.exists())
+			if (!Files.exists(path.toPath(), LinkOption.NOFOLLOW_LINKS))
 				return;
 			try {
 				Thread.sleep(300);
