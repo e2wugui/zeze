@@ -1,18 +1,20 @@
 package Zeze;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.FileSystemException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import com.sun.nio.file.ExtendedOpenOption;
 import harness.Fast;
 import org.jspecify.annotations.Nullable;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -45,15 +47,66 @@ public class TestLocalCacheDirectoryDeletion {
 		var cache = Files.createDirectory(temp.resolve("cache"));
 		var outside = Files.createDirectory(temp.resolve("outside"));
 		var marker = Files.writeString(outside.resolve("keep"), "keep");
-		try {
-			Files.createSymbolicLink(cache.resolve("link"), outside);
-			Files.createSymbolicLink(cache.resolve("broken"), temp.resolve("missing"));
-		} catch (IOException | UnsupportedOperationException e) {
-			Assumptions.abort("symbolic links unavailable: " + e);
-		}
+		var missing = Files.createDirectory(temp.resolve("missing"));
+		createDirectoryLink(cache.resolve("link"), outside);
+		createDirectoryLink(cache.resolve("broken"), missing);
+		Files.delete(missing);
 		LocalCacheResources.deleteDirectory(cache.toFile());
-		assertFalse(Files.exists(cache));
+		assertFalse(Files.exists(cache, LinkOption.NOFOLLOW_LINKS));
 		assertEquals("keep", Files.readString(marker));
+	}
+
+	@Test
+	void deletesARootLinkWithoutDeletingItsTarget() throws Exception {
+		var outside = Files.createDirectory(temp.resolve("outside"));
+		var marker = Files.writeString(outside.resolve("keep"), "keep");
+		var link = temp.resolve("cache");
+		createDirectoryLink(link, outside);
+		LocalCacheResources.deleteDirectory(link.toFile());
+		assertFalse(Files.exists(link, LinkOption.NOFOLLOW_LINKS));
+		assertEquals("keep", Files.readString(marker));
+	}
+
+	@Test
+	void deletesABrokenRootLink() throws Exception {
+		var missing = Files.createDirectory(temp.resolve("missing"));
+		var link = temp.resolve("cache");
+		createDirectoryLink(link, missing);
+		Files.delete(missing);
+		assertTrue(Files.exists(link, LinkOption.NOFOLLOW_LINKS));
+		LocalCacheResources.deleteDirectory(link.toFile());
+		assertFalse(Files.exists(link, LinkOption.NOFOLLOW_LINKS));
+	}
+
+	private void createDirectoryLink(Path link, Path target) throws Exception {
+		assertTrue(link.toAbsolutePath().normalize().startsWith(temp.toAbsolutePath().normalize()));
+		assertTrue(target.toAbsolutePath().normalize().startsWith(temp.toAbsolutePath().normalize()));
+		if (File.separatorChar != '\\') {
+			Files.createSymbolicLink(link, target);
+			return;
+		}
+		// NTFS junctions exercise real directory redirection without the symlink privilege.
+		var builder = new ProcessBuilder("powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-Command",
+				"$ErrorActionPreference='Stop'; New-Item -ItemType Junction -Path $env:ZEZE_TEST_LINK "
+						+ "-Target $env:ZEZE_TEST_TARGET | Out-Null").redirectErrorStream(true);
+		builder.environment().put("ZEZE_TEST_LINK", link.toAbsolutePath().toString());
+		builder.environment().put("ZEZE_TEST_TARGET", target.toAbsolutePath().toString());
+		var child = builder.start();
+		try {
+			assertTrue(child.waitFor(10, TimeUnit.SECONDS), "directory link creation did not finish");
+			assertEquals(0, child.exitValue(), () -> {
+				try {
+					return new String(child.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+				} catch (IOException e) {
+					return e.toString();
+				}
+			});
+		} finally {
+			if (child.isAlive()) {
+				child.destroyForcibly();
+				assertTrue(child.waitFor(5, TimeUnit.SECONDS));
+			}
+		}
 	}
 
 	@Test

@@ -85,11 +85,20 @@ final class LocalCacheResources {
 		}
 	}
 
-	/** 不跟随符号链接；不存在视为已删除，遍历失败保留原始文件系统异常。 */
+	/** 不跟随符号链接或Windows目录联接；不存在视为已删除，遍历失败保留原始文件系统异常。 */
 	static void deleteDirectory(File directory) throws IOException, InterruptedException {
 		long deadline = System.nanoTime() + DELETE_RETRY_NANOS;
 		try {
 			Files.walkFileTree(directory.toPath(), new SimpleFileVisitor<>() {
+				@Override
+				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+					if (isDirectoryLink(attrs)) {
+						deletePath(dir, deadline);
+						return FileVisitResult.SKIP_SUBTREE;
+					}
+					return FileVisitResult.CONTINUE;
+				}
+
 				@Override
 				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 					deletePath(file, deadline);
@@ -106,6 +115,20 @@ final class LocalCacheResources {
 
 				@Override
 				public FileVisitResult visitFileFailed(Path file, IOException error) throws IOException {
+					// A broken/inaccessible junction fails when the walker opens its target directory.
+					// Read the entry itself before treating NoSuchFileException as an absent path.
+					if (WINDOWS) {
+						BasicFileAttributes attrs = null;
+						try {
+							attrs = Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+						} catch (IOException ignored) {
+							// Keep the walker's original failure if the entry cannot be inspected.
+						}
+						if (attrs != null && isDirectoryLink(attrs)) {
+							deletePath(file, deadline);
+							return FileVisitResult.CONTINUE;
+						}
+					}
 					if (error instanceof NoSuchFileException)
 						return FileVisitResult.CONTINUE;
 					throw error;
@@ -114,6 +137,11 @@ final class LocalCacheResources {
 		} catch (DeleteInterruptedException e) {
 			throw e.interrupted;
 		}
+	}
+
+	private static boolean isDirectoryLink(BasicFileAttributes attrs) {
+		// The Windows provider marks junctions as both directory and other, not symbolic link.
+		return WINDOWS && attrs.isDirectory() && attrs.isOther();
 	}
 
 	// Windows 的共享句柄或 delete-pending 文件会暂时拒绝删除。只在删除失败后退避，
