@@ -529,4 +529,15 @@ public class TestGameOnlineLoginHandoff {
 			assertCurrent(env, 1L, 1L);
 		}
 	}
+
+	@Test
+	public void finalizedLogoutIgnoresLateLinkBroken() throws Exception {
+		try (var env = new Env()) {
+			env.seed(env.online, 1L);
+			assertEquals(Procedure.Success, env.logout(1L));
+			assertOffline(env, 1L);
+			env.run("lateLinkBrokenAfterLogout", () -> env.online.linkBroken(ACCOUNT, ROLE_ID, LINK, 1L));
+			assertOffline(env, 1L);
+		}
+	}
 }

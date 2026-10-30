@@ -40,6 +40,14 @@ public class TestOnlineReliableLogout {
 			});
 			var logout = env.attach(new Logout(), env.session(1L, ArchOnlineTestEnv.CLIENT_ID));
 			env.run("finalLogout", () -> env.online.ProcessLogoutRequest(logout));
+			env.run("lateLinkBrokenAfterLogout", () -> env.online.linkBroken(ArchOnlineTestEnv.ACCOUNT,
+					ArchOnlineTestEnv.CLIENT_ID, ArchOnlineTestEnv.LINK_NAME, 1L));
+			env.run("verifyFinalizedLogout", () -> {
+				assertEquals(AbstractOnline.eOffline,
+						env.online.getState(ArchOnlineTestEnv.ACCOUNT, ArchOnlineTestEnv.CLIENT_ID));
+				assertEquals(1L, env.online.getLogoutVersion(ArchOnlineTestEnv.ACCOUNT, ArchOnlineTestEnv.CLIENT_ID));
+				return Procedure.Success;
+			});
 
 			var session = env.session(2L, "");
 			var relogin = env.attach(new ReLogin(), session);

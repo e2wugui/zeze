@@ -633,7 +633,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (online == null)
 			return 0;
 		var loginOnline = online.getLogins().get(clientId);
-		if (loginOnline == null)
+		if (loginOnline == null || loginOnline.getLink().getState() == eOffline)
 			return 0;
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = loginOnline.getLink();

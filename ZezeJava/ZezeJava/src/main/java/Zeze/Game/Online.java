@@ -987,7 +987,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 先查后建：善后路径不创建状态（对齐Arch版与onSendError判例）——
 		// getOrAddOnlineShared对迟到报告会创建空行并随事务提交残留。
 		var onlineShared = getOnlineShared(roleId);
-		if (onlineShared == null)
+		if (onlineShared == null || onlineShared.getLink().getState() == eOffline)
 			return 0;
 
 		var local = _tlocal.get(roleId);
