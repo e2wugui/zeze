@@ -619,7 +619,6 @@ public class Service extends ReentrantLock {
 		return decodeProtocol(typeId, bb, factoryHandle, so, true);
 	}
 
-	@SuppressWarnings("MethodMayBeStatic")
 	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb,
 											   ProtocolFactoryHandle<?> factoryHandle,
 											   @Nullable AsyncSocket so, boolean needLog) {

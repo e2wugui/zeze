@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import java.io.IOException;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -131,7 +132,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		var header = bb.ReadUInt();
 		if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol) {
 			throw new IllegalStateException("invalid header(" + header + ") for decoding protocol: "
-					+ getClass().getName());
+				+ getClass().getName());
 		}
 		resultCode = (header & FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
 		Argument.decode(bb);
@@ -207,16 +208,17 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public void dispatch(Service service,
-	                     Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+						 Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		service.dispatchProtocol(this, factoryHandle);
 	}
 
-	@SuppressWarnings("unchecked")
 	public long handle(Service service,
-	                   Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+					   Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
-		if (handle != null)
+		if (handle != null) {
+			//noinspection unchecked
 			return ((ProtocolHandle<Protocol<?>>)handle).handle(this);
+		}
 
 		logger.warn("handle({}): Protocol Handle Not Found: {}", service.getName(), this);
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {
@@ -235,8 +237,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 * @return decoded protocol instance. if decode fail return null.
 	 */
 	public static @Nullable Protocol<?> decode(ProtocolFactoryFinder service,
-	                                           ByteBuffer singleEncodedProtocol,
-	                                           @Nullable OutObject<Service.ProtocolFactoryHandle<?>> outFactoryHandle) {
+											   ByteBuffer singleEncodedProtocol,
+											   @Nullable OutObject<Service.ProtocolFactoryHandle<?>> outFactoryHandle) {
 		int moduleId = singleEncodedProtocol.ReadInt4();
 		int protocolId = singleEncodedProtocol.ReadInt4();
 		int size = singleEncodedProtocol.ReadInt4();
@@ -247,8 +249,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		// 这里提前给出干净的解码错误，调用方按异常处理（应答错误码）。
 		if (size < 0 || size > singleEncodedProtocol.WriteIndex - beginReadIndex)
 			throw new IllegalStateException("protocol decode: invalid size " + size + ", buffer "
-					+ (singleEncodedProtocol.WriteIndex - beginReadIndex)
-					+ ", moduleId=" + moduleId + " protocolId=" + protocolId);
+				+ (singleEncodedProtocol.WriteIndex - beginReadIndex)
+				+ ", moduleId=" + moduleId + " protocolId=" + protocolId);
 		int savedWriteIndex = singleEncodedProtocol.WriteIndex;
 		singleEncodedProtocol.WriteIndex = endReadIndex;
 
@@ -266,7 +268,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public static @Nullable Protocol<?> decode(Service service,
-	                                           ByteBuffer singleEncodedProtocol) {
+											   ByteBuffer singleEncodedProtocol) {
 		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol, null);
 	}
 
@@ -274,7 +276,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 * moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
 	 */
 	public static void decode(Service service, AsyncSocket so, ByteBuffer bb)
-			throws Exception {
+		throws Exception {
 		// 每缓冲区读一次=快照：按接收时刻的准入状态逐帧判决，中途撤销不影响本缓冲区。null不设防。
 		var admission = so.getDecodeAdmission();
 		while (bb.size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
@@ -287,7 +289,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			var typeId = makeTypeId(moduleId, protocolId);
 			if (admission != null && !admission.test(typeId)) // 准入在完整性检查之前：帧头可见即判决
 				throw new IllegalStateException(service.getName() + " reject protocol before admission passed: moduleId="
-						+ moduleId + " protocolId=" + protocolId + " so=" + so);
+					+ moduleId + " protocolId=" + protocolId + " so=" + so);
 
 			// 不按type检查size是否太大；协议最大大小由总参数 SocketOptions.InputBufferMaxProtocolSize
 			// 统一限制。参考 AsyncSocket
@@ -298,10 +300,10 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 				if (longSize > maxSize) {
 					var factoryHandle = service.findProtocolFactoryHandle(typeId);
 					var pName = factoryHandle != null && factoryHandle.Factory != null ?
-							factoryHandle.Factory.create().getClass().getName() : "?";
+						factoryHandle.Factory.create().getClass().getName() : "?";
 					throw new IllegalStateException(
-							String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d>%d too large!",
-									pName, service.getName(), moduleId, protocolId, longSize, maxSize));
+						String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d>%d too large!",
+							pName, service.getName(), moduleId, protocolId, longSize, maxSize));
 				}
 				// not enough data. try next time.
 				return;
@@ -312,7 +314,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			bb.WriteIndex = endReadIndex;
 
 			if (service.checkThrottle(so, moduleId, protocolId, size)
-					&& !service.discard(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求
+				&& !service.discard(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求
 				var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 				var factoryHandle = service.findProtocolFactoryHandle(typeId);
 				if (factoryHandle != null && factoryHandle.Factory != null)
@@ -324,7 +326,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 				}
 				if (timeBegin != 0) // 统计禁用时零开销
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle != null ? factoryHandle.Class : null,
-							HEADER_SIZE + size, System.nanoTime() - timeBegin);
+						HEADER_SIZE + size, System.nanoTime() - timeBegin);
 			}
 			bb.ReadIndex = endReadIndex;
 			bb.WriteIndex = savedWriteIndex;
