@@ -1032,7 +1032,7 @@ public class Service extends ReentrantLock {
 			return;
 		}
 		try {
-			if (keepCheckTimer == null) {
+			if (keepCheckTimer == null && !keepAliveCheckStopped) {
 				var period = getConfig().getHandshakeOptions().getKeepCheckPeriod() * 1000L;
 				if (period > 0) {
 					keepCheckTimer = TaskSpec.ofAction(this::checkKeepAlive).schedulePeriodNow(
