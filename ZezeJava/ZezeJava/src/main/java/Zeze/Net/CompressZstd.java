@@ -17,14 +17,14 @@ public final class CompressZstd implements Codec, Closeable {
 
 	public CompressZstd(Codec sink) {
 		this.sink = sink;
-		cs = ZstdFactory.newCompressStream();
 		srcBuf = new byte[DEFAULT_SRC_BUF_SIZE];
+		cs = ZstdFactory.newCompressStream();
 	}
 
 	public CompressZstd(Codec sink, int srcBufSize, int dstBufSize, int compressLevel, int windowLog) {
 		this.sink = sink;
-		cs = ZstdFactory.newCompressStream(dstBufSize, compressLevel, windowLog);
 		srcBuf = new byte[Math.max(srcBufSize, 1)];
+		cs = ZstdFactory.newCompressStream(dstBufSize, compressLevel, windowLog);
 	}
 
 	@Override

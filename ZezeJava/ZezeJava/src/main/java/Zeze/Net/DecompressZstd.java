@@ -15,14 +15,14 @@ public final class DecompressZstd implements Codec {
 
 	public DecompressZstd(Codec sink) {
 		this.sink = sink;
-		ds = ZstdFactory.newDecompressStream();
 		srcBuf = new byte[DEFAULT_SRC_BUF_SIZE];
+		ds = ZstdFactory.newDecompressStream();
 	}
 
 	public DecompressZstd(Codec sink, int srcBufSize, int dstBufSize) {
 		this.sink = sink;
-		ds = ZstdFactory.newDecompressStream(dstBufSize);
 		srcBuf = new byte[Math.max(srcBufSize, 1)];
+		ds = ZstdFactory.newDecompressStream(dstBufSize);
 	}
 
 	@Override

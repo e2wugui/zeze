@@ -67,8 +67,8 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 
 	public DecompressMppcZstd(Codec sink, int srcBufSize, int dstBufSize) {
 		super(sink);
-		ds = ZstdFactory.newDecompressStream(dstBufSize);
 		srcBuf = new byte[srcBufSize];
+		ds = ZstdFactory.newDecompressStream(dstBufSize);
 	}
 
 	@Override
