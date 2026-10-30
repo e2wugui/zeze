@@ -2028,7 +2028,8 @@ public final class JsonReader {
 			if (minus)
 				d = -d;
 		} else
-			d = minus ? -i : i;
+			// 整数词也可表示浮点负零；先转为double再取负，避免long的-0丢失符号。
+			d = minus ? -(double)i : (double)i;
 		return d;
 	}
 
