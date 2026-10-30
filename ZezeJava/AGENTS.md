@@ -12,4 +12,5 @@
 - 同一部署的所有 Application 与 GCM 必须共用同一后端数据库；多 app/GCM/持久化测试也须显式同库。
 - 空安全统一使用 JSpecify：包级 `@NullMarked`，可空项用 `org.jspecify.annotations.Nullable`；不得为消除告警改变空值语义或机械添加 `Objects.requireNonNull`。
 - 修改 Gen 后运行 `Gen/PublishGen.bat` 和根目录 `gen_use_publish.bat`，不要手改生成文件。
+- 提交标题使用“小写模块标志: 中文标题”，例如 `hot: 修复热替换初始化时机`、`net: 修复连接关闭竞态`；标题说明和正文使用中文，代码标识符、命令及专有名词可保留原文。
 - 一个 bug 一个提交；提交信息简述问题证据、关键修复和实际验证，未执行的不写。
