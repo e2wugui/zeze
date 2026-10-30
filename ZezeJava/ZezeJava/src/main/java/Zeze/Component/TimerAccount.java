@@ -192,6 +192,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public boolean scheduleOnlineNamed(String account, String clientId, String timerId,
 									   long delay, long period, long times, long endTime,
 									   Class<? extends TimerHandle> handle, @Nullable Bean customData) {
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(account, clientId, timerId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handle, customData);
 	}
@@ -246,6 +249,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 									   String cron, long times, long endTime,
 									   Class<? extends TimerHandle> handle,
 									   @Nullable Bean customData) {
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(account, clientId, timerId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handle, customData);
 	}
@@ -301,6 +307,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public String scheduleOnline(String account, String clientId, long delay, long period,
 										  long times, long endTime, Class<? extends TimerHandle> handle,
 										  @Nullable Bean customData) {
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(account, clientId,
 				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handle, customData);
 	}
@@ -353,6 +362,9 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public String scheduleOnline(String account, String clientId, String cron,
 										  long times, long endTime, Class<? extends TimerHandle> handle,
 										  @Nullable Bean customData) {
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handle, customData);
 	}

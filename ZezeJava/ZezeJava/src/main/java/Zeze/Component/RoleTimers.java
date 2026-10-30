@@ -57,6 +57,22 @@ public final class RoleTimers {
 
 	private final class OnlineScope implements TimerScope {
 		@Override
+		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass) {
+			var zeze = timerRole.zeze();
+			if (zeze.isHotVerifyEnabled())
+				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
+			return timerRole.scheduleOnlineImpl(roleId, spec, handleClass, null);
+		}
+
+		@Override
+		public boolean scheduleNamed(String timerId, TimerSpec spec, Class<? extends TimerHandle> handleClass) {
+			var zeze = timerRole.zeze();
+			if (zeze.isHotVerifyEnabled())
+				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
+			return timerRole.scheduleOnlineNamedImpl(roleId, timerId, spec, handleClass, null);
+		}
+
+		@Override
 		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			var zeze = timerRole.zeze();

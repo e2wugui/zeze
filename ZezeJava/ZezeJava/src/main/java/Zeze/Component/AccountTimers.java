@@ -63,6 +63,22 @@ public final class AccountTimers {
 
 	private final class OnlineScope implements TimerScope {
 		@Override
+		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass) {
+			var zeze = timerAccount.zeze();
+			if (zeze.isHotVerifyEnabled())
+				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
+			return timerAccount.scheduleOnlineImpl(account, clientId, spec, handleClass, null);
+		}
+
+		@Override
+		public boolean scheduleNamed(String timerId, TimerSpec spec, Class<? extends TimerHandle> handleClass) {
+			var zeze = timerAccount.zeze();
+			if (zeze.isHotVerifyEnabled())
+				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
+			return timerAccount.scheduleOnlineNamedImpl(account, clientId, timerId, spec, handleClass, null);
+		}
+
+		@Override
 		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			var zeze = timerAccount.zeze();

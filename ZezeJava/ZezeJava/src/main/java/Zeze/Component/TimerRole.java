@@ -191,6 +191,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, String timerId, long delay, long period, long times,
 									   long endTime, Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
 	}
@@ -238,6 +241,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, String timerId, String cron, long times,
 									   long endTime, Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
@@ -289,6 +295,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
 										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
 	}
@@ -336,6 +345,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public String scheduleOnline(long roleId, String cron, long times, long endTime,
 										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}

@@ -29,9 +29,10 @@ import org.junit.jupiter.params.provider.ValueSource;
  * fake ProviderApp（public单参构造）建立zeze.redirect后，initialize创建App自有Timer，
  * Arch/Game两套Online经protected构造（load redirect入口）以命名子类构造（其表在start前
  * 手动RegisterZezeTables补注册），Game侧构造内自带真实TimerRole；getLogoutVersion对
- * 无在线记录返回0L，offline调度无需登录栈。唯一反射点：TimerAccount无公开构造入口
+ * 无在线记录返回0L，offline调度无需登录栈。TimerAccount无公开构造入口
  * （生产仅Timer.initializeOnlineTimer经完整ProviderApp创建，测试无网络栈），以反射调用
  * 其包私有构造创建真实对象（对齐TestTimerNamedIdUnique对受保护成员的既有手法）。
+ * 另以Online创建命名集合时使用的私有构造装配第二个真实onlineSet，在start前注册并打开其表。
  */
 @Fast
 public class TestTimerOfflineNamedCollision {
