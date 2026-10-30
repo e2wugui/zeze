@@ -418,10 +418,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		/**
-		 * @return 只读快照（FND-S2-5）：持锁浅拷贝。此前返回活对象，无锁读者（如Exporter.onEdit
-		 * 在回调线程）与onRegister/onUnRegister持锁写并发访问同一LongHashMap，结构性修改/扩容
-		 * 期间get可错桶漏桶。桶内BServiceInfos引用共享，其读API（getSortedIdentities）为
-		 * copy-on-read快照，仍然安全。
+		 * @return 锁内复制版本桶和地址列表的只读快照；BServiceInfo 按只读对象共享。
 		 */
 		public BServiceInfosVersion getServiceInfosVersion() {
 			lock();
