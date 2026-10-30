@@ -54,7 +54,6 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		return value;
 	}
 
-	@SuppressWarnings("unchecked")
 	public K apply(BTableKey tableKey, Binary changes) throws Exception {
 		var logRecord = new Changes.Record(originTable);
 		logRecord.decode(ByteBuffer.Wrap(changes));
@@ -66,7 +65,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 			break;
 
 		case Changes.Record.Put:
-			//noinspection DataFlowIssue
+			//noinspection DataFlowIssue,unchecked
 			put(key, (V)logRecord.getValue());
 			break;
 

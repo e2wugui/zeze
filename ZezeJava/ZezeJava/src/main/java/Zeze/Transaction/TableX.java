@@ -854,8 +854,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public abstract ByteBuffer encodeKey(K key);
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public ByteBuffer encodeKey(Object key) {
+		//noinspection unchecked
 		return encodeKey((K)key);
 	}
 
@@ -878,8 +878,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return relationalTable;
 	}
 
-	@SuppressWarnings("unchecked")
 	public void encodeKeySQLStatement(SQLStatement st, Object _v_) {
+		//noinspection unchecked
 		encodeKeySQLStatement(st, (K)_v_);
 	}
 
