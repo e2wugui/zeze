@@ -14,6 +14,7 @@ import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.Action0;
 import Zeze.Util.Task;
@@ -249,7 +250,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			var sent = allocateAsync(globalName, allocateCount, rpc -> {
 				lock();
 				try {
-					if (rpc.getResultCode() == 0) {
+					if (rpc.getResultCode() == 0 || rpc.getResultCode() == Procedure.RaftApplied) {
 						var newest = new TidCache(globalName, this, rpc.Result.getStartId(), rpc.Result.getCount());
 						future.setResult(newest);
 					} else {

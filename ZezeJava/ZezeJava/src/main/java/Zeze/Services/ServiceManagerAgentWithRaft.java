@@ -97,7 +97,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			var rpc = (Login)p;
 			if (rpc.isTimeout())
 				raftOnSetLeader(agent);
-			else if (rpc.getResultCode() != 0) {
+			else if (rpc.getResultCode() != 0 && rpc.getResultCode() != Procedure.RaftApplied) {
 				logger.error("Login Timeout Or ResultCode != 0. Code={}", rpc.getResultCode());
 			} else {
 				future.setResult(true);
@@ -320,7 +320,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		var r = new Subscribe(arg);
 		raftClient.send(r, __ -> {
 			var rc = r.getResultCode();
-			if (rc == 0) {
+			if (rc == 0 || rc == Procedure.RaftApplied) {
 				var edits = new BEditService();
 				var states = new ArrayList<SubscribeState>(r.Argument.subs.size());
 				for (var info : r.Argument.subs) {
