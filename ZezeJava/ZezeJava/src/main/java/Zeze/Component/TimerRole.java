@@ -738,7 +738,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		// 对齐签名契约直接返回false；仅本族同主放行，走下面cancel+重建。
 		if (index != null) {
 			var custom = getRoleOfflineCustom(timer, timerId);
-			if (custom == null || custom.getRoleId() != roleId)
+			if (custom == null || custom.getRoleId() != roleId
+					|| !custom.getOnlineSetName().equals(online.getOnlineSetName()))
 				return false;
 		}
 		switch (spec) {

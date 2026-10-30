@@ -14,6 +14,8 @@ import Zeze.Util.TaskSpec;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * 命名timerId碰撞矩阵（offline/global/online三族同名互斥）global→offline方向的闭环回归：
@@ -61,6 +63,7 @@ public class TestTimerOfflineNamedCollision {
 		final Zeze.Component.Timer timer;
 		final TimerAccount accountTimer;
 		final TimerRole roleTimer;
+		final TimerRole otherRoleTimer;
 
 		Env(String name) throws Exception {
 			var conf = TakeoverTestEnv.newConf("dryrun", 600_000, 600_000);
@@ -77,6 +80,9 @@ public class TestTimerOfflineNamedCollision {
 			ctor.setAccessible(true);
 			accountTimer = ctor.newInstance(archOnline);
 			roleTimer = new TestGameOnline(appBase).getTimerRole();
+			var onlineSetCtor = Zeze.Game.Online.class.getDeclaredConstructor(AppBase.class, String.class);
+			onlineSetCtor.setAccessible(true);
+			otherRoleTimer = onlineSetCtor.newInstance(appBase, "other").getTimerRole();
 
 			zeze.start();
 			timer = zeze.getTimer();
@@ -208,6 +214,36 @@ public class TestTimerOfflineNamedCollision {
 			}, "collision.offlineAliveRole")).call());
 			Assertions.assertTrue(alive[0], "被全局撞名后的simple offline timer必须仍属原主（存活）");
 			Assertions.assertTrue(alive[1], "被全局撞名后的cron offline timer必须仍属原主（存活）");
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	void anotherOnlineSetCannotReplaceTheSameRoleOfflineTimer(boolean cron) throws Exception {
+		Task.tryInitThreadPool();
+		try (var env = new Env("TestOfflineTimerOnlineSetOwner")) {
+			var timerId = "offline-online-set-owner";
+			Assertions.assertEquals(Procedure.Success, env.zeze.newProcedure(() -> {
+				Assertions.assertTrue(env.roleTimer.scheduleOfflineNamed(timerId, 1001,
+						TimerSpec.ofDelay(60_000), TestHandle.class, null));
+				return Procedure.Success;
+			}, "create original offline timer").call());
+			var originalFuture = env.timer.timerFutures.get(timerId);
+			Assertions.assertNotNull(originalFuture);
+			TimerSpec requested = cron ? TimerSpec.ofCron("0 0 0 1 1 ? 2099") : TimerSpec.ofDelay(90_000);
+			Assertions.assertEquals(Procedure.Success, env.zeze.newProcedure(() -> {
+				Assertions.assertFalse(env.otherRoleTimer.scheduleOfflineNamed(timerId, 1001,
+						requested, TestHandle.class, null), "onlineSet也是角色定时器归属的一部分");
+				return Procedure.Success;
+			}, "reject another online set").call());
+			Assertions.assertSame(originalFuture, env.timer.timerFutures.get(timerId));
+			Assertions.assertFalse(originalFuture.isCancelled());
+			Assertions.assertEquals(Procedure.Success, env.zeze.newProcedure(() -> {
+				Assertions.assertTrue(env.roleTimer.scheduleOfflineNamed(timerId, 1001,
+						requested, TestHandle.class, null), "同onlineSet同角色仍可替换");
+				return Procedure.Success;
+			}, "replace by original owner").call());
+			Assertions.assertTrue(originalFuture.isCancelled());
 		}
 	}
 
