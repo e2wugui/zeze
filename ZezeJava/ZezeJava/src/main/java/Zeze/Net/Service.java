@@ -806,7 +806,10 @@ public class Service extends ReentrantLock {
 	}
 
 	public final @Nullable Rpc<?, ?> removeRpcContext(long sid) {
-		return rpcContexts.remove(sid);
+		var rpc = rpcContexts.remove(sid);
+		if (rpc != null)
+			rpc.cancelTimeout(); // 上下文已消费（socket销毁等）：兜底定时器随之取消，防滞留
+		return rpc;
 	}
 
 	// 应答会合校验用的非消费读（先校验后消费，伪造帧不触碰map，
@@ -816,7 +819,12 @@ public class Service extends ReentrantLock {
 	}
 
 	public final boolean removeRpcContext(long sid, Rpc<?, ?> ctx) {
-		return rpcContexts.remove(sid, ctx);
+		if (!rpcContexts.remove(sid, ctx))
+			return false;
+		ctx.cancelTimeout(); // 上下文已消费（应答到达/发送失败/超时自身）：取消兜底定时器；
+		// 不取消则定时器λ捕获的rpc滞留到超时窗口耗尽（2026-11-01 soak bench OOM 根因）。
+		// 超时路径自身赢移除时，cancel 对运行中的任务是 no-op。
+		return true;
 	}
 
 	public final LongHashMap<Rpc<?, ?>> getRpcContextsToSender(AsyncSocket sender) {

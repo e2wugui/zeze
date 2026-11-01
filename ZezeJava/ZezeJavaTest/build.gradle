@@ -219,6 +219,9 @@ tasks.register('bench', Test) {
     }
     workingDir = projectDir
     jvmArgs '-ea'
+    // 诊断透传：-PbenchJvmExtra="-DuseUnlimitedVirtualThread=false ..."（对齐 benchCore 同名接线）
+    if (findProperty('benchJvmExtra') != null)
+        jvmArgs findProperty('benchJvmExtra').toString().split(' ')
     mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest')
 }
 

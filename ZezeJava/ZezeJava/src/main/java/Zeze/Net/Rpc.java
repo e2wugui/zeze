@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.concurrent.ScheduledFuture;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -38,6 +39,10 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	private long sessionId;
 	private transient @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle;
 	private transient @Nullable TaskCompletionSource<TResult> future;
+	// 超时兜底定时器句柄：schedule 注册、上下文被消费时（应答到达/发送失败/socket销毁）经
+	// cancelTimeout 取消。不取消的话，定时器λ捕获this，成功应答的rpc全家桶会被钉在调度队列里
+	// 直到超时窗口耗尽——高吞吐下滞留量=速率×超时（soak 2026-10-31 bench OOM 实锤，1:1配对）。
+	private volatile transient @Nullable ScheduledFuture<?> timeoutTask;
 	private int timeout = 5000;
 	private int timeoutBroken = 30_000;
 	private boolean isTimeout;
@@ -118,7 +123,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
 
-		TaskSpec.ofAction(() -> {
+		timeoutTask = TaskSpec.ofAction(() -> {
 			// 实例一次性（禁止同实例重发）后，本定时器唯一对应自己的那次发送：
 			// 双参移除失败即条目已被应答消费，直接跳过。
 			if (!service.removeRpcContext(sessionId, this))
@@ -142,6 +147,20 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		// 即使所在事务随后回滚，应答仍会到来或永不到来，上下文必须有超时兜底；
 		// 事务感知的 schedule 会随回滚丢弃注册，导致 rpcContexts 条目永驻、SendForWait 永久挂起。
 		}).scheduleNow(timeout);
+	}
+
+	/**
+	 * 取消超时兜底定时器。仅在上下文已被消费（应答到达/发送失败/socket销毁）时由
+	 * {@link Service#removeRpcContext} 收口调用——此时兜底已无意义。实例一次性
+	 * （每次发送唯一对应一个定时器），幂等；定时器已触发/已取消时 no-op，
+	 * 不打断可能正在执行的超时路径（cancel(false)）。
+	 */
+	public void cancelTimeout() {
+		var task = timeoutTask;
+		if (task != null) {
+			timeoutTask = null;
+			task.cancel(false);
+		}
 	}
 
 	/**

@@ -376,10 +376,19 @@ public final class Task {
 					workerThreads = config.getScheduledThreads();
 				else
 					workerThreads = Runtime.getRuntime().availableProcessors();
-				threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
+				var scheduledPool = Executors.newScheduledThreadPool(workerThreads,
 					new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
-			} else
+				// cancel 默认不把节点摘出队列（removeOnCancel=false）：已取消任务连同其捕获的引用
+				// 会滞留到到期被清理。Rpc 超时兜底定时器在应答消费时取消（Rpc.cancelTimeout），
+				// 必须 eager 移除才真正释放（2026-11-01 soak bench OOM：滞留=速率×超时窗口）。
+				((java.util.concurrent.ScheduledThreadPoolExecutor)scheduledPool).setRemoveOnCancelPolicy(true);
+				threadPoolScheduled = scheduledPool;
+			} else {
 				threadPoolScheduled = scheduled;
+				// 外部注入的调度池同样需要取消即移除（仅 ScheduledThreadPoolExecutor 可配）
+				if (scheduled instanceof java.util.concurrent.ScheduledThreadPoolExecutor externalPool)
+					externalPool.setRemoveOnCancelPolicy(true);
+			}
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
 			threadPoolDbIo = newDbIoPool();
 			ThreadDiagnosable.startDiagnose(30_000);
