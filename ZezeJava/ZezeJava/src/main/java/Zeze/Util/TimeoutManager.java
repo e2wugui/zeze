@@ -12,7 +12,7 @@ public class TimeoutManager extends ReentrantLock {
 	private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
 	private @Nullable Worker worker;
 
-	static class TimeoutSet {
+	static class TimeoutSet implements Comparable<TimeoutSet> {
 		private final long id;
 		private final HashSet<Timeout> set = new HashSet<>();
 
@@ -32,6 +32,11 @@ public class TimeoutManager extends ReentrantLock {
 			for (var timeout : set) {
 				timeout.run();
 			}
+		}
+
+		@Override
+		public int compareTo(TimeoutSet o) {
+			return Long.compare(id, o.id);
 		}
 	}
 
