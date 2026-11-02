@@ -1067,7 +1067,7 @@ public final class Token extends AbstractToken {
 		if (workerThreadCount < 1)
 			workerThreadCount = Runtime.getRuntime().availableProcessors() * 2;
 		Task.initThreadPool(Task.newFixedThreadPool(workerThreadCount, "ZezeTaskPool"),
-				Executors.newSingleThreadScheduledExecutor(
+				Executors.newScheduledThreadPool(1,
 						new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY + 2)));
 		if (Selectors.getInstance().getCount() < netThreadCount)
 			Selectors.getInstance().add(netThreadCount - Selectors.getInstance().getCount());

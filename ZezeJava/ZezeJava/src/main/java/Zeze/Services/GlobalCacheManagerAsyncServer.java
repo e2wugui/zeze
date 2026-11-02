@@ -1524,7 +1524,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		if (threadCount < 1)
 			threadCount = cpuCount;
 		Task.initThreadPool(Task.newFixedThreadPool(threadCount, "ZezeTaskPool"),
-				Executors.newSingleThreadScheduledExecutor(
+				Executors.newScheduledThreadPool(1,
 						new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY + 2)));
 		if (Selectors.getInstance().getCount() < cpuCount)
 			Selectors.getInstance().add(cpuCount - Selectors.getInstance().getCount());

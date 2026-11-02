@@ -147,6 +147,9 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		// 即使所在事务随后回滚，应答仍会到来或永不到来，上下文必须有超时兜底；
 		// 事务感知的 schedule 会随回滚丢弃注册，导致 rpcContexts 条目永驻、SendForWait 永久挂起。
 		}).scheduleNow(timeout);
+		// 断连可能在 scheduleNow 返回句柄前消费上下文，发布后复查以补偿错过的取消。
+		if (service.getRpcContext(sessionId) != this)
+			cancelTimeout();
 	}
 
 	/**
