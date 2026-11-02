@@ -122,8 +122,9 @@ public class TimeoutManager {
 		}
 	}
 	public Timeout schedule(long timeoutMs, Action0 action0) {
+		Worker w;
 		synchronized (this) {
-			var w = worker;
+			w = worker;
 			if (null == w)
 				throw new IllegalArgumentException("worker has not been set");
 		}
@@ -136,6 +137,7 @@ public class TimeoutManager {
 			return;
 		}
 		worker = new Worker();
+		worker.start();
 	}
 
 	public synchronized void stop() {
