@@ -14,7 +14,7 @@ public class Timeout {
 	}
 
 	public void cancel() {
-		timeoutSet.remove(this); // empty timeoutSet 不用删除。
+		timeoutSet.remove(this); // empty timeoutSet 不用删除，很可能马上得到利用，或者被tick消灭。
 	}
 
 	void run() {
