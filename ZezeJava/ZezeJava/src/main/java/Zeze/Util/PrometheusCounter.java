@@ -291,13 +291,12 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public LongObserver getRunTimeObserver(Object key) {
+	public LongObserver getRunTimeObserver(String name) {
 		// 标签形态：task_duration_seconds{task="<键>"}——指标名承载语义、label承载维度，
 		// 跨任务聚合（histogram_quantile by task）与注册表规模（单一指标族）都优于逐键指标名。
 		// label 值无名字合法性约束，原 sanitize/prometheusName 规范化与指标名碰撞去重
 		// （U4-F3：register() 抛异常打穿静态初始化路径）随之整体消失。
-		var task = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
-		return fastGetOrAdd(runTimeMap, task, k -> amount
+		return fastGetOrAdd(runTimeMap, name, k -> amount
 			-> task_duration_seconds.labelValues(k).observe(Unit.nanosToSeconds(amount)));
 	}
 

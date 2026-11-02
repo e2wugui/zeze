@@ -59,7 +59,7 @@ public final class NoopCounter implements ZezeCounter {
 	}
 
 	@Override
-	public LongObserver getRunTimeObserver(Object key) {
+	public LongObserver getRunTimeObserver(String name) {
 		return noopObserver;
 	}
 

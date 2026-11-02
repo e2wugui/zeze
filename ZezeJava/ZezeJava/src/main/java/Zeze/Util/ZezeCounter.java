@@ -97,9 +97,9 @@ public interface ZezeCounter {
 	LabeledObserverCreator allocRunTimeObserverCreator(String name, String... labelNames);
 
 	/**
-	 * 通过指定的key获取其绑定的累加器. 通过equals方法判断绑定的key
+	 * 按名称获取耗时观察者，同名任务聚合统计。
 	 */
-	LongObserver getRunTimeObserver(Object key);
+	LongObserver getRunTimeObserver(String name);
 
 	/**
 	 * 服务开启

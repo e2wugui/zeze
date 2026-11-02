@@ -414,27 +414,20 @@ public final class Task {
 		TaskSpec.ofAction(action).name(name).call();
 	}
 
-	// ZezeCounter 计数辅助：key 为 null 表示统计已在 body.call 内部完成（OfFunc/OfProcedure），外层不再计数。
-	// statsKey → 观察者句柄缓存：statsKey 通常是调用点恒定的字面量 name 或 Class，
-	// 逐笔 addTaskRunTime（String.valueOf+excludeRunKeys.contains+runInfoMap.get+代际分支）
-	// 是派发热路径的共享结构跨核访问；句柄内部自带代际重绑（对齐 PerfProcedureCounter 惯例）。
-	private static final ConcurrentHashMap<Object, ZezeCounter.LongObserver> runTimeObservers = new ConcurrentHashMap<>();
-	// Class 键与观察者均可能持有热更新类：由 Class 自身持有缓存，避免全局 Map 阻止类加载器卸载。
-	private static final ClassValue<ZezeCounter.LongObserver> classRunTimeObservers = new ClassValue<>() {
-		@Override
-		protected ZezeCounter.LongObserver computeValue(Class<?> type) {
-			return ZezeCounter.instance.getRunTimeObserver(type);
-		}
-	};
+	// 按名称缓存观察者，避免逐笔查询后端；句柄内部自带代际重绑。
+	// shortcut: 名称和句柄长期保留，持续产生不同动态名称时需增加缓存淘汰。
+	private static final ConcurrentHashMap<String, ZezeCounter.LongObserver> runTimeObservers = new ConcurrentHashMap<>();
 
-	private static ZezeCounter.LongObserver getTaskRunTimeObserver(Object key) {
-		return key instanceof Class<?> type ? classRunTimeObservers.get(type)
-				: runTimeObservers.computeIfAbsent(key, ZezeCounter.instance::getRunTimeObserver);
+	private static ZezeCounter.LongObserver getTaskRunTimeObserver(String name) {
+		return runTimeObservers.computeIfAbsent(name, ZezeCounter.instance::getRunTimeObserver);
 	}
 
-	private static void addTaskRunTime(@Nullable Object key, long timeBegin) {
-		if (key != null && timeBegin != 0) // 统计禁用时零开销
-			getTaskRunTimeObserver(key).observe(System.nanoTime() - timeBegin);
+	private static void addTaskRunTime(TaskBody<?> body, @Nullable String name, long timeBegin) {
+		if (timeBegin != 0) { // 统计禁用时不解析名称
+			var statsName = body.statsName(name);
+			if (statsName != null) // Func/Procedure 已在内部统计
+				getTaskRunTimeObserver(statsName).observe(System.nanoTime() - timeBegin);
+		}
 	}
 
 	// TaskBody 统一核心：载荷间差异（异常/结果策略、日志名、统计位置）由 TaskBody 实现封装，
@@ -444,7 +437,7 @@ public final class Task {
 		try {
 			return body.call(name);
 		} finally {
-			addTaskRunTime(body.statsKey(name), timeBegin);
+			addTaskRunTime(body, name, timeBegin);
 		}
 	}
 
@@ -528,7 +521,7 @@ public final class Task {
 				logger.error("{} exception:", body.logName(name), e);
 				future.setException(e);
 			} finally {
-				addTaskRunTime(body.statsKey(name), timeBegin);
+				addTaskRunTime(body, name, timeBegin);
 			}
 			return future;
 		}
@@ -541,7 +534,7 @@ public final class Task {
 				logger.error("{} exception:", body.logName(name), e);
 				throw forceThrow(e);
 			} finally {
-				addTaskRunTime(body.statsKey(name), timeBegin);
+				addTaskRunTime(body, name, timeBegin);
 			}
 		});
 	}
@@ -576,7 +569,7 @@ public final class Task {
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
 			} finally {
-				addTaskRunTime(body.statsKey(name), timeBegin);
+				addTaskRunTime(body, name, timeBegin);
 			}
 			return;
 		}
@@ -588,7 +581,7 @@ public final class Task {
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
 			} finally {
-				addTaskRunTime(body.statsKey(name), timeBegin);
+				addTaskRunTime(body, name, timeBegin);
 			}
 		});
 	}
@@ -627,7 +620,7 @@ public final class Task {
 				logger.error("{} exception:", body.logName(name), e);
 				throw forceThrow(e);
 			} finally {
-				addTaskRunTime(body.statsKey(name), timeBegin);
+				addTaskRunTime(body, name, timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
@@ -668,7 +661,7 @@ public final class Task {
 			} finally {
 				if (locked)
 					future.unlock();
-				addTaskRunTime(body.statsKey(name), timeBegin);
+				addTaskRunTime(body, name, timeBegin);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS));
 		return future;
@@ -878,7 +871,7 @@ public final class Task {
 		} finally {
 			//noinspection ConstantValue
 			if (func != null && timeBegin != 0) { // 统计禁用时零开销
-				getTaskRunTimeObserver(aName != null ? aName : (p != null ? p : func).getClass())
+				getTaskRunTimeObserver(aName != null ? aName : (p != null ? p : func).getClass().getName())
 						.observe(System.nanoTime() - timeBegin);
 			}
 		}

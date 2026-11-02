@@ -12,8 +12,8 @@ import org.jspecify.annotations.Nullable;
  * <li>异常/结果策略：见 {@link #call(String)}；</li>
  * <li>日志名解析：Procedure 系固定 getActionName()，OfProtocolFunc 为 name/协议类名优先，
  *     其余 name 优先、空则载荷类名，见 {@link #logName(String)}；</li>
- * <li>ZezeCounter 统计位置：Func/Procedure 系在 call 内部完成（statsKey 返回 null，外层不再计数），
- *     OfAction/OfFunc0 由外层 core 按 {@link #statsKey(String)} 计数。</li>
+ * <li>ZezeCounter 统计位置：Func/Procedure 系在 call 内部完成（statsName 返回 null，外层不再计数），
+ *     OfAction/OfFunc0 由外层 core 按 {@link #statsName(String)} 计数。</li>
  * </ul>
  * Task 的各执行家族（call/submit/execute/schedule/scheduleAt）与 OneByOne 队列因此用一份代码处理所有载荷。
  *
@@ -47,10 +47,10 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 	String logName(@Nullable String name);
 
 	/**
-	 * ZezeCounter 计数 key（name 优先，空则载荷 Class）；
+	 * ZezeCounter 统计名称（name 优先，空则载荷类名）；
 	 * null 表示统计已在 call 内部完成（OfFunc/OfProcedure），外层 core 不再计数。
 	 */
-	@Nullable Object statsKey(@Nullable String name);
+	@Nullable String statsName(@Nullable String name);
 
 	/**
 	 * 载荷是否为存储过程（OfProcedure/OfProtocolProcedure/OfProcedureOut）。
@@ -87,8 +87,8 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		}
 
 		@Override
-		public Object statsKey(@Nullable String name) {
-			return name != null ? name : action.getClass();
+		public String statsName(@Nullable String name) {
+			return logName(name);
 		}
 	}
 
@@ -122,7 +122,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		}
 
 		@Override
-		public @Nullable Object statsKey(@Nullable String name) {
+		public @Nullable String statsName(@Nullable String name) {
 			return null; // 统计在 callFuncCore 内完成，外层不再计数
 		}
 	}
@@ -140,7 +140,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		}
 
 		@Override
-		public Long callRaw() throws Exception {
+		public Long callRaw() {
 			return Task.callFuncCore(func, p, onError, null);
 		}
 
@@ -155,7 +155,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		}
 
 		@Override
-		public @Nullable Object statsKey(@Nullable String name) {
+		public @Nullable String statsName(@Nullable String name) {
 			return null; // 统计在 callFuncCore 内完成，外层不再计数
 		}
 	}
@@ -190,7 +190,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		}
 
 		@Override
-		public @Nullable Object statsKey(@Nullable String name) {
+		public @Nullable String statsName(@Nullable String name) {
 			return null; // 统计在 procedure.call 内完成，外层不再计数
 		}
 
@@ -227,7 +227,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		}
 
 		@Override
-		public @Nullable Object statsKey(@Nullable String name) {
+		public @Nullable String statsName(@Nullable String name) {
 			return null; // 统计在 procedure.call 内完成，外层不再计数
 		}
 
@@ -264,7 +264,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		}
 
 		@Override
-		public @Nullable Object statsKey(@Nullable String name) {
+		public @Nullable String statsName(@Nullable String name) {
 			return null; // 统计在 procedure.call 内完成，外层不再计数
 		}
 
@@ -298,8 +298,8 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		}
 
 		@Override
-		public Object statsKey(@Nullable String name) {
-			return name != null ? name : func.getClass();
+		public String statsName(@Nullable String name) {
+			return logName(name);
 		}
 	}
 }

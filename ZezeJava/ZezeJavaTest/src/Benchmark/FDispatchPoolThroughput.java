@@ -57,7 +57,7 @@ public class FDispatchPoolThroughput {
 		}
 	}
 
-	// ofAction 派发（生产协议处理器的真实路径；ofProcedure 的 statsKey 为 null 不走
+	// ofAction 派发（生产协议处理器的真实路径；ofProcedure 的 statsName 为 null 不走
 	// addTaskRunTime 统计路径，本变体补该覆盖）。任务体不含事务，纯派发+统计开销。
 	@Test
 	public void testActionDispatch() throws Exception {

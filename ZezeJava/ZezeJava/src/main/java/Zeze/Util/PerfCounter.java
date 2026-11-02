@@ -295,10 +295,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		return excludeProtocolTypeIds.putIfAbsent(typeId, Boolean.TRUE) == null;
 	}
 
-	// key归一化：Class取类名、其余toString——统计条目与exclude统一按字符串名聚合，
-	// Class键与其类名字符串键落在同一条目。
-	private @Nullable RunInfoWithSerial getRunInfoWithSerial(Object key) {
-		var name = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
+	private @Nullable RunInfoWithSerial getRunInfoWithSerial(String name) {
 		if (excludeRunKeys.contains(name))
 			return null;
 		for (; ; ) {
@@ -321,8 +318,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public LongObserver getRunTimeObserver(Object key) {
-		var ri = getRunInfoWithSerial(key);
+	public LongObserver getRunTimeObserver(String name) {
+		var ri = getRunInfoWithSerial(name);
 		if (ri == null)
 			return dummyLongObserver;
 		var counterWrapper = new OutObject<>(ri);
@@ -330,7 +327,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var ri2 = counterWrapper.value;
 			if (ri2 != null) {
 				if (ri2.serial != clearSerial) {
-					counterWrapper.value = ri2 = getRunInfoWithSerial(key);
+					counterWrapper.value = ri2 = getRunInfoWithSerial(name);
 					if (ri2 == null)
 						return;
 				}

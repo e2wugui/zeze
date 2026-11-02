@@ -42,7 +42,7 @@ public class TestZezeCounterContract {
 
 		c.getRunTimeObserver("ContractRunKey").observe(2_000_000);
 		c.getRunTimeObserver("ContractTask").observe(3_000_000);
-		c.getRunTimeObserver(TestZezeCounterContract.class).observe(4_000_000); // Class键归一化为类名，与字符串键同条目
+		c.getRunTimeObserver(TestZezeCounterContract.class.getName()).observe(4_000_000); // 类名由调用方解析
 
 		var proc = c.allocProcedureCounter("ContractProc");
 		proc.start();
@@ -70,7 +70,7 @@ public class TestZezeCounterContract {
 		var log = c.getLogAndReset();
 		Assertions.assertTrue(log.contains("ContractProc"), "procedure section");
 		Assertions.assertTrue(log.contains("ContractTask"), "run section");
-		Assertions.assertTrue(log.contains("Zeze.Util.TestZezeCounterContract"), "class key normalized");
+		Assertions.assertTrue(log.contains("Zeze.Util.TestZezeCounterContract"), "class name recorded");
 		Assertions.assertTrue(log.contains("ContractRunKey"), "run observer");
 		Assertions.assertTrue(log.contains("[table: 1]"), "table section");
 		Assertions.assertTrue(log.contains(counterName + ": 42"), "count value 1+41");
@@ -138,7 +138,7 @@ public class TestZezeCounterContract {
 	public void testGetRunTimeObserverLabeledForm() {
 		var o1 = prometheus.getRunTimeObserver("Contract.Sanitize.Key");
 		var o2 = prometheus.getRunTimeObserver("Contract-Sanitize-Key"); // 历史碰撞对
-		var o3 = prometheus.getRunTimeObserver(TestZezeCounterContract.class); // Class键归一化为类名
+		var o3 = prometheus.getRunTimeObserver(TestZezeCounterContract.class.getName()); // 类名由调用方解析
 		Assertions.assertSame(o1, prometheus.getRunTimeObserver("Contract.Sanitize.Key"), "同 key 幂等");
 		Assertions.assertNotSame(o1, o2, "不同 key 各自独立 label 值");
 		o1.observe(1_000_000);

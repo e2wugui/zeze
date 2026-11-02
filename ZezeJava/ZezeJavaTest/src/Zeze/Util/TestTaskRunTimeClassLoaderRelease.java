@@ -38,7 +38,9 @@ public class TestTaskRunTimeClassLoaderRelease {
 				"action class", recordRunTime(Action0.class, false),
 				"function class", recordRunTime(FuncLong.class, false),
 				"value function class", recordRunTime(Func0.class, false),
-				"named action", recordRunTime(Action0.class, true));
+				"named action", recordRunTime(Action0.class, true),
+				"named function", recordRunTime(FuncLong.class, true),
+				"named value function", recordRunTime(Func0.class, true));
 		for (int attempt = 0; attempt < 80 && hasLiveLoader(loaders); attempt++) {
 			System.gc();
 			Thread.sleep(25);
