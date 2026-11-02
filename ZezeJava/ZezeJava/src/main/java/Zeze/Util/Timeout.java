@@ -14,7 +14,7 @@ public class Timeout {
 	}
 
 	public void cancel() {
-		timeoutSet.remove(this);
+		timeoutSet.remove(this); // empty timeoutSet 不用删除。
 	}
 
 	void run() {
