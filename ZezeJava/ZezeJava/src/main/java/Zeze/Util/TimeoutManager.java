@@ -15,22 +15,43 @@ public class TimeoutManager extends ReentrantLock {
 	static class TimeoutSet implements Comparable<TimeoutSet> {
 		private final long id;
 		private final HashSet<Timeout> set = new HashSet<>();
+		private final ReentrantLock lock = new ReentrantLock();
+		private boolean triggered = false;
 
 		TimeoutSet(long id) {
 			this.id = id;
 		}
 
 		void add(Timeout t) {
-			set.add(t);
+			lock.lock();
+			try {
+				if (!triggered)
+					set.add(t);
+			} finally {
+				lock.unlock();
+			}
 		}
 
 		void remove(Timeout t) {
-			set.remove(t);
+			lock.lock();
+			try {
+				if (!triggered)
+					set.remove(t);
+			} finally {
+				lock.unlock();
+			}
 		}
 
 		void run() {
+			lock.lock();
+			try {
+				triggered = true;
+			} finally {
+				lock.unlock();
+			}
+			// 本集合已经摘除，不需要加锁。
 			for (var timeout : set) {
-				timeout.run();
+				TaskSpec.ofAction(timeout.action0).runNow();
 			}
 		}
 
@@ -47,15 +68,13 @@ public class TimeoutManager extends ReentrantLock {
 		try {
 			if (worker == null)
 				throw new IllegalStateException("Worker has not been set");
-			var indexId = Math.ceilDiv(timeoutMs, 1000);
+			var indexId = Math.ceilDiv(System.currentTimeMillis() + timeoutMs, 1000) * 1000;
 			var bucketSet = indexedMap.computeIfAbsent(indexId, (key) -> {
 				var set = new TimeoutSet(indexId);
 				bucketQueue.offer(set);
-				if (null != worker) // why?
-					worker.wakeup();
+				worker.wakeup();
 				return set;
 			});
-			Objects.requireNonNull(bucketSet); // bucketSet 可能null？ @路
 			var timeout = new Timeout(bucketSet, action);
 			bucketSet.add(timeout);
 			return timeout;
@@ -95,7 +114,7 @@ public class TimeoutManager extends ReentrantLock {
 		while (true) {
 			lock();
 			TimeoutSet head = null;
-			var nowMs = System.currentTimeMillis(); // 循环外？
+			var nowMs = System.currentTimeMillis();
 			try {
 				head = bucketQueue.peek();
 				if (null == head)
@@ -103,6 +122,7 @@ public class TimeoutManager extends ReentrantLock {
 				if (head.id > nowMs)
 					return head.id - nowMs;
 				bucketQueue.poll();
+				indexedMap.remove(head.id);
 			} finally {
 				unlock();
 			}
