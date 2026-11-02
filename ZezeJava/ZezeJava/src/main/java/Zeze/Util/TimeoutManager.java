@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class TimeoutManager {
 	private final Concurrent[] concurrents = new Concurrent[16];
 	private final AtomicInteger concurrentIdx = new AtomicInteger();
-	private @Nullable volatile Worker worker;
+	private @Nullable Worker worker;
 
 	static class Concurrent extends ReentrantLock {
 		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>();
@@ -122,9 +122,11 @@ public class TimeoutManager {
 		}
 	}
 	public Timeout schedule(long timeoutMs, Action0 action0) {
-		var w = worker;
-		if (null == w)
-			throw new IllegalArgumentException("worker has not been set");
+		synchronized (this) {
+			var w = worker;
+			if (null == w)
+				throw new IllegalArgumentException("worker has not been set");
+		}
 		// unsigned mod % 16
 		return concurrents[concurrentIdx.getAndIncrement() & 15].schedule(w, timeoutMs, action0);
 	}
