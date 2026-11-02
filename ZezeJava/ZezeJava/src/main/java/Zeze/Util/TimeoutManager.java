@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class TimeoutManager {
 	private final Concurrent[] concurrents = new Concurrent[16];
 	private final AtomicInteger concurrentIdx = new AtomicInteger();
-	private @Nullable Worker worker;
+	private @Nullable volatile Worker worker;
 
 	static class Concurrent extends ReentrantLock {
 		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>();
@@ -122,12 +122,9 @@ public class TimeoutManager {
 		}
 	}
 	public Timeout schedule(long timeoutMs, Action0 action0) {
-		Worker w;
-		synchronized (this) {
-			w = worker;
-			if (null == w)
-				throw new IllegalArgumentException("worker has not been set");
-		}
+		Worker w = worker;
+		if (null == w)
+			throw new IllegalArgumentException("worker has not been set");
 		// unsigned mod % 16
 		return concurrents[concurrentIdx.getAndIncrement() & 15].schedule(w, timeoutMs, action0);
 	}
@@ -136,15 +133,17 @@ public class TimeoutManager {
 		if (worker != null) {
 			return;
 		}
-		worker = new Worker();
-		worker.start();
+		var w = new Worker();
+		w.start();
+		worker = w;
 	}
 
 	public synchronized void stop() {
 		var w = worker;
+		worker = null;
 		if (w != null) {
-			w.shutdown();
-			worker = null;
+			w.shutdown(); // shutdown 失败，但上面worker已置空，忽略这个问题。关机过程中的错误不严格处理。
+			// 下面不clear，下一次start，timeout还能继续工作，但这个有点奇怪，还是clear吧。
 			for (var c : concurrents) {
 				c.clear();
 			}
