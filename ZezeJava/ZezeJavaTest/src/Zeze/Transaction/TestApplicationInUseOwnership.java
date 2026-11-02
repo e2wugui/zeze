@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.nio.file.Path;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.Services.Daemon;
 import harness.Fast;
 import harness.FastServerIds;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,10 @@ public class TestApplicationInUseOwnership {
 	}
 
 	private Application application() throws Exception {
+		// 免疫混跑属性污染：demo.App.Start 设置的 ClearInUse 在单 JVM 混跑中跨类泄漏且不清理，
+		// 命中后 start() 会先 clearInUse 把 stub 的 held 重置为 false，破坏本测试的拒绝前置
+		// （形态：assertThrows(ISE) 实得 NPE at Application.java:661）。需要该属性的测试每次 Start 自会重设。
+		System.clearProperty(Daemon.propertyNameClearInUse);
 		var conf = new Config();
 		conf.setNoDatabase(true);
 		conf.setServiceManager("disable");
