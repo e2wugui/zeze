@@ -78,8 +78,20 @@ public class TestConstructorResourceRollback {
 		Collections.addAll(command, arguments);
 		var child = new ProcessBuilder(command)
 				.redirectErrorStream(true).redirectOutput(output.toFile()).start();
+		// 预算分层（白天负载校准，TestCacheCloseDuringEncoding 判例：外层≥内层之和+启动开销）：
+		// database-lock 是叶子场景（JVM 启动+锁探针），20s 足够；其余场景的子进程含
+		// RocksDB.loadLibrary 的 DLL 解压/Defender 扫描，还会再派孙进程（lock-control 两个、
+		// cache-* 一个，各持 20s 预算），满载下慢速成功链路可超单层 20s——父层给 60s。
+		// 等待式预算只在失败时付全价，绿灯提前返回；失败消息带走子进程输出取证。
+		var budgetSeconds = scenario.equals("database-lock") ? 20 : 60;
 		try {
-			assertTrue(child.waitFor(20, TimeUnit.SECONDS), "构造失败的回收验证应及时结束");
+			assertTrue(child.waitFor(budgetSeconds, TimeUnit.SECONDS), () -> {
+				try {
+					return "构造失败的回收验证应及时结束\n" + Files.readString(output);
+				} catch (java.io.IOException e) {
+					return "构造失败的回收验证应及时结束, 子进程输出不可读: " + e + " (" + output + ")";
+				}
+			});
 			assertEquals(0, child.exitValue(), () -> {
 				try {
 					return Files.readString(output);
