@@ -472,15 +472,12 @@ public class Rank extends AbstractRank {
 		rank.lock();
 		try {
 			// 锁的职责：freshness双检查 + 重建single-flight（并发miss不重复执行getRankDirect的跨段查询归并）。
-			var buildTime = rank.getBuildTime();
 			var cached = rank.getTableValue();
-			if (cached != null && now - buildTime < getRankCacheTimeout(keyHint.getRankType())) {
-				// 命中也返回独立快照，调用方的公开setter和动态Bean不能改写共享缓存。
-				var local = new RankTotal(keyHint);
-				local.setTableValue(cached.copy());
-				local.setBuildTime(buildTime);
-				return local;
-			}
+			// 命中直接返回共享缓存快照。约定：getRankTotal 返回值视为只读——公开 setter 与
+			// DynamicReadOnly Bean 均不得修改，修改即污染共享缓存。未命中路径因"读己之写"
+			//（快照含本事务未提交数据）本就只能返回局部对象，语义不受影响。
+			if (cached != null && now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType()))
+				return rank;
 			var tableValue = getRankDirect(keyHint, countNeed);
 			// 本轮结果只经局部快照返回给调用者（保留同事务读己之写）；缓存的value+time成对
 			// 延迟到提交后发布：回滚条目永不入缓存，另一事务回滚的value也不会被本事务的

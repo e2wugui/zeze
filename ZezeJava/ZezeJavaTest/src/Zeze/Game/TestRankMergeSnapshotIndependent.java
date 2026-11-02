@@ -127,7 +127,9 @@ public class TestRankMergeSnapshotIndependent {
 	}
 
 	@Test
-	public void cachedResultDoesNotExposeSharedSnapshot() {
+	public void cachedResultIsSharedSnapshotByContract() {
+		// 约定（见 getRankTotal 命中路径注释）：返回值视为只读，调用方不得修改。
+		// 本测试钉共享语义：命中返回共享缓存快照，修改会直接反映到后续查询。
 		var key = Rank.newRankKey(1, 9973L);
 		Assertions.assertEquals(0, zeze.newProcedure(() -> {
 			rank.updateRank(0, key, 99, new BValueLong(300));
@@ -139,8 +141,8 @@ public class TestRankMergeSnapshotIndependent {
 		((BValueLong)entry.getDynamicReadOnly().getBean()).setValue(999);
 		var next = rank.getRankTotal(key);
 		var nextEntry = requireNonNull(next.getTableValue()).getRankListReadOnly().get(0);
-		Assertions.assertEquals(300, ((BValueLong)nextEntry.getDynamicReadOnly().getBean()).getValue());
+		Assertions.assertEquals(999, ((BValueLong)nextEntry.getDynamicReadOnly().getBean()).getValue());
 		hit.setTableValue(new Zeze.Builtin.Game.Rank.BRankList());
-		Assertions.assertEquals(1, requireNonNull(rank.getRankTotal(key).getTableValue()).getRankListReadOnly().size());
+		Assertions.assertEquals(0, requireNonNull(rank.getRankTotal(key).getTableValue()).getRankListReadOnly().size());
 	}
 }
