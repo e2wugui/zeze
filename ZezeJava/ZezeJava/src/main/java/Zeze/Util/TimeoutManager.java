@@ -41,11 +41,13 @@ public class TimeoutManager extends ReentrantLock {
 	}
 
 	public Timeout schedule(long timeoutMs, Action0 action) {
+		if (timeoutMs < 0)
+			throw new IllegalArgumentException("timeoutMs < 0");
 		lock();
 		try {
 			if (worker == null)
 				throw new IllegalStateException("Worker has not been set");
-			var indexId = timeoutMs / 1000;
+			var indexId = Math.ceilDiv(timeoutMs, 1000);
 			var bucketSet = indexedMap.computeIfAbsent(indexId, (key) -> {
 				var set = new TimeoutSet(indexId);
 				bucketQueue.offer(set);
