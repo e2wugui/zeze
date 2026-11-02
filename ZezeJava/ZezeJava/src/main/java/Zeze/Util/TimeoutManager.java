@@ -3,14 +3,69 @@ package Zeze.Util;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.PriorityQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class TimeoutManager extends ReentrantLock {
-	private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>();
-	private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
-	private @Nullable Worker worker;
+public class TimeoutManager {
+	private final Concurrent[] concurrents = new Concurrent[16];
+	private final AtomicInteger concurrentIdx = new AtomicInteger();
+	private @Nullable volatile Worker worker;
+
+	static class Concurrent extends ReentrantLock {
+		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>();
+		private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
+
+		public Timeout schedule(Worker worker, long timeoutMs, Action0 action) {
+			if (timeoutMs < 0)
+				throw new IllegalArgumentException("timeoutMs < 0");
+			lock();
+			try {
+				var indexId = Math.ceilDiv(System.currentTimeMillis() + timeoutMs, 1000) * 1000;
+				var bucketSet = indexedMap.computeIfAbsent(indexId, (key) -> {
+					var set = new TimeoutSet(indexId);
+					bucketQueue.offer(set);
+					worker.wakeup();
+					return set;
+				});
+				var timeout = new Timeout(bucketSet, action);
+				bucketSet.add(timeout);
+				return timeout;
+			} finally {
+				unlock();
+			}
+		}
+
+		long tick() {
+			while (true) {
+				lock();
+				TimeoutSet head = null;
+				var nowMs = System.currentTimeMillis();
+				try {
+					head = bucketQueue.peek();
+					if (null == head)
+						return Long.MAX_VALUE;
+					if (head.id > nowMs)
+						return head.id - nowMs;
+					bucketQueue.poll();
+					indexedMap.remove(head.id);
+				} finally {
+					unlock();
+				}
+				head.run();
+			}
+		}
+
+		void clear() {
+			lock();
+			try {
+				indexedMap.clear();
+				bucketQueue.clear();
+			} finally {
+				unlock();
+			}
+		}
+	}
 
 	static class TimeoutSet implements Comparable<TimeoutSet> {
 		private final long id;
@@ -51,7 +106,7 @@ public class TimeoutManager extends ReentrantLock {
 			}
 			// 本集合已经摘除，不需要加锁。
 			for (var timeout : set) {
-				TaskSpec.ofAction(timeout.action0).runNow();
+				TaskSpec.ofAction(timeout.action0).executeSystemOneByOne();
 			}
 		}
 
@@ -61,72 +116,34 @@ public class TimeoutManager extends ReentrantLock {
 		}
 	}
 
-	public Timeout schedule(long timeoutMs, Action0 action) {
-		if (timeoutMs < 0)
-			throw new IllegalArgumentException("timeoutMs < 0");
-		lock();
-		try {
-			if (worker == null)
-				throw new IllegalStateException("Worker has not been set");
-			var indexId = Math.ceilDiv(System.currentTimeMillis() + timeoutMs, 1000) * 1000;
-			var bucketSet = indexedMap.computeIfAbsent(indexId, (key) -> {
-				var set = new TimeoutSet(indexId);
-				bucketQueue.offer(set);
-				worker.wakeup();
-				return set;
-			});
-			var timeout = new Timeout(bucketSet, action);
-			bucketSet.add(timeout);
-			return timeout;
-		} finally {
-			unlock();
-		}
-
-	}
-
-	public void start() {
-		lock();
-		try {
-			if (worker != null) {
-				return;
-			}
-			worker = new Worker();
-		} finally {
-			unlock();
+	public TimeoutManager() {
+		for (int i = 0; i < 16; i++) {
+			concurrents[i] = new Concurrent();
 		}
 	}
-
-	public void stop() {
-		lock();
-		try {
-			if (worker != null) {
-				worker.shutdown();
-				worker = null;
-				indexedMap.clear();
-				bucketQueue.clear();
-			}
-		} finally {
-			unlock();
-		}
+	public Timeout schedule(long timeoutMs, Action0 action0) {
+		var w = worker;
+		if (null == w)
+			throw new IllegalArgumentException("worker has not been set");
+		// unsigned mod % 16
+		return concurrents[concurrentIdx.getAndIncrement() & 15].schedule(w, timeoutMs, action0);
 	}
 
-	long tick() {
-		while (true) {
-			lock();
-			TimeoutSet head = null;
-			var nowMs = System.currentTimeMillis();
-			try {
-				head = bucketQueue.peek();
-				if (null == head)
-					return Long.MAX_VALUE;
-				if (head.id > nowMs)
-					return head.id - nowMs;
-				bucketQueue.poll();
-				indexedMap.remove(head.id);
-			} finally {
-				unlock();
+	public synchronized void start() {
+		if (worker != null) {
+			return;
+		}
+		worker = new Worker();
+	}
+
+	public synchronized void stop() {
+		var w = worker;
+		if (w != null) {
+			w.shutdown();
+			worker = null;
+			for (var c : concurrents) {
+				c.clear();
 			}
-			head.run();
 		}
 	}
 
@@ -138,7 +155,13 @@ public class TimeoutManager extends ReentrantLock {
 
 		public void run() {
 			while (isRunning()) {
-				var idleMs = TimeoutManager.this.tick();
+				var idleMs = Long.MAX_VALUE;
+				for (var c : TimeoutManager.this.concurrents) {
+					var delay = c.tick();
+					if (delay < idleMs) {
+						idleMs = delay;
+					}
+				}
 				sleepIdle(idleMs);
 			}
 		}
