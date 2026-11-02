@@ -742,39 +742,37 @@ public class Schemas implements Serializable {
 		appVersion = version;
 	}
 
-	private record CompatibilityPlan(Context context, ArrayList<KVNotNull<Table, Table>> renames) {
-	}
-
 	/** Checks compatibility and backs up versioned tables, before replacement tables are opened. */
 	public void checkCompatible(@Nullable Schemas other, Application app) throws Exception {
-		var plan = prepareCompatibility(other, app);
-		for (var rename : plan.renames()) {
+		var renames = new ArrayList<KVNotNull<Table, Table>>();
+		var context = prepareCompatibility(other, app, renames);
+		// 备份必须等全部兼容检查通过后执行，成功后才能更新模式上下文。
+		// 中断后重启的重跑由各后端 renameTable 的幂等性兜底。
+		for (var rename : renames) {
 			//noinspection DataFlowIssue
 			var db = app.getDatabase(app.getConfig().getTableConf(Objects.requireNonNull(rename.getKey().name)).getDatabaseName());
 			db.renameTable(rename.getKey().name, "zeze_backup_" + rename.getKey().name + "_" + rename.getValue().version);
 		}
-		plan.context().update();
+		context.update();
 	}
 
 	// Publication may validate repeatedly after a CAS conflict, but the replacement tables are already open.
-	void checkCompatibleForPublish(@Nullable Schemas other, Application app) throws Exception {
-		prepareCompatibility(other, app).context().update();
+	void checkCompatibleForPublish(@Nullable Schemas other,
+								   Application app) {
+		prepareCompatibility(other, app, null).update();
 	}
 
-	private CompatibilityPlan prepareCompatibility(@Nullable Schemas other, Application app) throws Exception {
+	private Context prepareCompatibility(@Nullable Schemas other, Application app,
+										 @Nullable ArrayList<KVNotNull<Table, Table>> renames) {
 		var context = new Context();
-		var renames = new ArrayList<KVNotNull<Table, Table>>();
 		if (other == null)
-			return new CompatibilityPlan(context, renames);
+			return context;
 		{
 			context.setCurrent(this);
 			context.setPrevious(other);
 			context.setConfig(app.getConfig());
 		}
 
-		// 版本升级的renameTable必须等全部兼容检查通过后再统一执行：
-		// 否则rename副作用先于失败的兼容检查提交。序列本身仍非原子，中断后重启的重跑由各后端
-		// renameTable的幂等性兜底（源不存在而目标存在视为已完成，跳过）。
 		boolean res = true;
 		for (var table : tables.values()) {
 			var otherTable = other.tables.get(table.name);
@@ -787,7 +785,8 @@ public class Schemas implements Serializable {
 					//noinspection DataFlowIssue
 					if (!table.name.equals(otherTable.name))
 						throw new IllegalStateException(Str.format("table name is not matched {} -> {}", table.name, otherTable.name));
-					renames.add(KVNotNull.create(table, otherTable));
+					if (renames != null)
+						renames.add(KVNotNull.create(table, otherTable));
 				}
 				// 继续Table的类型的兼容检查。
 				if (!table.isCompatible(otherTable, context)) {
@@ -807,7 +806,7 @@ public class Schemas implements Serializable {
 		if (!res)
 			throw new IllegalStateException("Found Incompatible Table or Bean! Fix them or Clear DB");
 
-		return new CompatibilityPlan(context, renames);
+		return context;
 	}
 
 	@Override
