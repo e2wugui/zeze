@@ -305,11 +305,14 @@ public class Database extends Zeze.Transaction.Database {
 			dbh2AgentManager.commit(batches);
 		}
 
+		// 约定（对齐 IApplyTable，2a99442ab）：传入的 key/value 放弃所有权——replace/remove 暂存
+		// Binary 直接引用缓冲内容；暂存要活到 raft apply，且键内容参与批次集合查找，
+		// 调用返回后不得再修改数组内容。
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
 			if (value.size() <= 0)
 				throw new RuntimeException("value.size <= 0.");
-			var bKey = new Binary(key.Copy());
-			var bValue = new Binary(value.Copy());
+			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
+			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent,
 					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName, null));
@@ -318,7 +321,7 @@ public class Database extends Zeze.Transaction.Database {
 		}
 
 		public void remove(String tableName, ByteBuffer key) {
-			var bKey = new Binary(key.Copy());
+			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent,
 					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName, null));

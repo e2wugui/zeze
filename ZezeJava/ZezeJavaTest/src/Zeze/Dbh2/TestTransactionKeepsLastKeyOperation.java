@@ -116,7 +116,9 @@ public class TestTransactionKeepsLastKeyOperation {
 
 	@ParameterizedTest
 	@ValueSource(strings = {"replace-key", "replace-value", "remove-key"})
-	void bufferReuseDoesNotChangeQueuedOperations(String operation, @TempDir Path tempDir) throws Exception {
+	void stagingAliasesPassedBuffers(String operation, @TempDir Path tempDir) throws Exception {
+		// 约定（对齐 IApplyTable，见 Database.Dbh2Transaction.replace 注释）：key/value 传入即放弃所有权，
+		// 暂存与缓冲区别名。本测试钉别名语义：暂存后修改缓冲，提交内容随之变化。
 		Task.tryInitThreadPool();
 		var raftConfig = RaftConfig.loadFromString("<raft Name=\"\"><node Host=\"127.0.0.1\" Port=\"1\"/></raft>");
 		raftConfig.setDbHome(tempDir.resolve("bucket").toString());
@@ -143,12 +145,17 @@ public class TestTransactionKeepsLastKeyOperation {
 					key.Bytes[key.ReadIndex] = 8;
 				transaction.commit();
 			}
-			var actual = bucket.getData().get(originalKey);
-			if (remove)
-				assertNull(actual);
-			else
-				assertArrayEquals(originalValue, actual);
-			assertNull(bucket.getData().get(new byte[]{8}), "复用缓冲不能写入另一个键");
+			if (operation.equals("replace-key")) {
+				// 键别名：replace 落到修改后的键上，原键保留桶里的旧值。
+				assertArrayEquals(new byte[]{3}, bucket.getData().get(originalKey));
+				assertArrayEquals(originalValue, bucket.getData().get(new byte[]{8}));
+			} else if (operation.equals("replace-value")) {
+				// 值别名：提交的是修改后的值。
+				assertArrayEquals(new byte[]{8}, bucket.getData().get(originalKey));
+			} else {
+				// 删除键别名：删除落到修改后的键上，原键幸存。
+				assertArrayEquals(new byte[]{3}, bucket.getData().get(originalKey));
+			}
 		} finally {
 			manager.stop();
 			bucket.close();
