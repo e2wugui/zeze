@@ -33,7 +33,7 @@ public sealed interface TimerSpec permits SimpleTimerSpec, CronTimerSpec {
 	 * 每周第weekDay天的hour:minute:second触发。
 	 */
 	static CronTimerSpec ofWeek(int weekDay, int hour, int minute, int second) {
-		return new CronTimerSpec(second + " " + minute + " " + hour + " * * " + weekDay);
+		return new CronTimerSpec(second + " " + minute + " " + hour + " ? * " + weekDay);
 	}
 
 	/**
