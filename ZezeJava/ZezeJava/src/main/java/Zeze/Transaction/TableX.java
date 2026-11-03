@@ -1157,7 +1157,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public long walkMemoryAny(TableWalkHandle<Object, Bean> handle) throws Exception {
-		return walkMemory(handle::handle);
+		return walkMemory(new TableWalkHandle<>() {
+			@Override
+			public boolean handle(K key, V value) throws Exception {
+				return handle.handle(key, value);
+			}
+
+			@Override
+			public long endWalk(long count) throws Exception {
+				return handle.endWalk(count);
+			}
+		});
 	}
 
 	@Override
