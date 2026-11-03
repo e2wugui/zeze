@@ -665,9 +665,6 @@ public final class Raft {
 	private long processRequestVote(RequestVote r) throws Exception {
 		lock();
 		try {
-			// 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
-			nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
-
 			if (logSequence.trySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer)
 				convertStateTo(RaftState.Follower); // new term found.
 			// else continue process
@@ -682,8 +679,13 @@ public final class Raft {
 			r.Result.setVoteGranted(r.Argument.getTerm() == logSequence.getTerm() &&
 					logSequence.canVoteFor(r.Argument.getCandidateId()) && isLastLogUpToDate(r.Argument));
 
-			if (r.Result.getVoteGranted())
+			if (r.Result.getVoteGranted()) {
 				logSequence.setVoteFor(Objects.requireNonNull(r.Argument.getCandidateId()));
+				// 授票后给候选者完整的选举窗口；拒绝的请求不能压制本地选举。
+				long now = System.currentTimeMillis();
+				logSequence.setLeaderActiveTime(now);
+				nextVoteTime = now + logSequence.getElectionTimeout();
+			}
 			logger.info("{}: VoteFor={} Rpc={}", getName(), logSequence.getVoteFor(), r);
 			r.SendResultCode(0);
 
