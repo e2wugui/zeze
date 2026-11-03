@@ -322,7 +322,8 @@ public class MasterDatabase {
 		splitting.lock();
 		try {
 			var bucket = splitting.buckets.get(to.getKeyFirst());
-			if (bucket == null || !sameBucketMeta(bucket, to))
+			// 结算携带完整目标身份；同区间重建后的新目标不能被旧目标的迟到结算消费。
+			if (bucket == null || !sameBucketMeta(bucket, to) || !bucket.getRaftConfig().equals(to.getRaftConfig()))
 				return master.errorCode(Master.eSplittingBucketNotFound);
 
 			var exist = table.buckets.get(to.getKeyFirst());
