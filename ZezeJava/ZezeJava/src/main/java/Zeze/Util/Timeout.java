@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import Zeze.Transaction.DispatchMode;
+
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Timeout implements AutoCloseable, Action0 {
@@ -27,5 +29,9 @@ public class Timeout implements AutoCloseable, Action0 {
 	@Override
 	public void close() {
 		cancel();
+	}
+
+	public DispatchMode getDispatchMode() {
+		return DispatchMode.Normal;
 	}
 }

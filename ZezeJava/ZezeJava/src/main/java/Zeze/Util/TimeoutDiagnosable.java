@@ -1,6 +1,8 @@
 package Zeze.Util;
 
 import java.util.concurrent.locks.ReentrantLock;
+
+import Zeze.Transaction.DispatchMode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
@@ -44,14 +46,19 @@ public class TimeoutDiagnosable extends Timeout {
 	}
 
 	@Override
-	public void close() {
+	public DispatchMode getDispatchMode() {
+		return DispatchMode.Critical;
+	}
+
+	@Override
+	public void cancel() {
 		handshake.lock();
 		try {
 			thread = null;
 		} finally {
 			handshake.unlock();
 		}
-		super.close();
+		super.cancel();
 		// 清除本线程残留的中断标志（锁外：若 run 正在锁内打断，这里等它完成后必清），
 		// 防止毒化池线程上的下一个任务。
 		//noinspection ResultOfMethodCallIgnored

@@ -1,5 +1,8 @@
 package Zeze.Util;
 
+import Zeze.Transaction.DispatchMode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
@@ -8,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class TimeoutManager {
+	private static final Logger logger = LogManager.getLogger(TimeoutManager.class);
 	private final Concurrent[] concurrents = new Concurrent[16];
 	private final AtomicInteger concurrentIdx = new AtomicInteger();
 	private @Nullable volatile Worker worker;
@@ -109,8 +113,9 @@ public class TimeoutManager {
 			}
 			// 本集合已经摘除，而且是在Concurrent锁内摘除的，不会和add并发。remove并发是可能的。
 			for (var timeout : timeouts) {
-				TaskSpec.ofAction(timeout).executeSystemOneByOne();
+				TaskSpec.ofAction(timeout).dispatchMode(timeout.getDispatchMode()).executeSystemOneByOne();
 			}
+			timeouts.clear();
 		}
 
 		@Override
@@ -166,14 +171,20 @@ public class TimeoutManager {
 
 		public void run() {
 			while (isRunning()) {
-				var idleMs = Long.MAX_VALUE;
-				for (var c : TimeoutManager.this.concurrents) {
-					var delay = c.tick();
-					if (delay < idleMs) {
-						idleMs = delay;
+				try {
+					var idleMs = Long.MAX_VALUE;
+					for (var c : TimeoutManager.this.concurrents) {
+						var delay = c.tick();
+						if (delay < idleMs) {
+							idleMs = delay;
+						}
 					}
+					sleepIdle(idleMs);
+					continue;
+				} catch (Throwable e) {
+					logger.error("", e);
 				}
-				sleepIdle(idleMs);
+				sleepIdle(60_000); // 异常时，固定休眠1分钟。
 			}
 		}
 	}
