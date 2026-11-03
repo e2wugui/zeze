@@ -355,11 +355,12 @@ public final class Json implements Cloneable {
 							keyReader = JsonReader::parseStringKey;
 						}
 					} else if (fieldClass.isArray() && fieldClass != byte[].class
-							&& (v = typeMap.get(fieldClass = fieldClass.getComponentType())) != null) {
+							&& (v = typeMap.get(fieldClass.getComponentType())) != null) {
 						// 普通数组（原始类型/String/Object元素）：写侧输出数组格式，读侧建立
 						// 对称适配（此前TYPE_CUSTOM只收'{'，数组字段静默不读入，null字段还
 						// 报abstract field）。byte[]有专门的字符串codec（getClassMeta(byte[].class)
 						// 注册的parser/writer），保持既有路径；自定义元素数组维持TYPE_CUSTOM。
+						fieldClass = fieldClass.getComponentType();
 						type = TYPE_ARRAY_FLAG + (v & 0xf);
 					} else
 						type = TYPE_CUSTOM;
