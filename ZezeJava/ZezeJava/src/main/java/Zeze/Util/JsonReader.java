@@ -1617,7 +1617,7 @@ public final class JsonReader {
 					// 累计、(int)强转饱和，对齐十进制/Infinity策略
 					boolean useD = false;
 					for (; ; ) {
-						b = buffer[++p];
+						b = ++p < buffer.length ? buffer[p] : 0;
 						if ((c = (b - '0') & 0xff) < 10) {
 							if (useD)
 								d = d * 16 + c;
@@ -1765,7 +1765,7 @@ public final class JsonReader {
 					// 溢出double累计+(long)强转饱和
 					boolean useD = false;
 					for (; ; ) {
-						b = buffer[++p];
+						b = ++p < buffer.length ? buffer[p] : 0;
 						if ((c = (b - '0') & 0xff) < 10) {
 							if (useD)
 								d = d * 16 + c;
@@ -1914,7 +1914,7 @@ public final class JsonReader {
 					// 超long也按double累计（不环绕）
 					boolean useD = false;
 					for (; ; ) {
-						b = buffer[++p];
+						b = ++p < buffer.length ? buffer[p] : 0;
 						if ((c = (b - '0') & 0xff) < 10) {
 							if (useD)
 								d = d * 16 + c;
@@ -2064,7 +2064,7 @@ public final class JsonReader {
 					// 溢出double累计；返回类型沿尾部约定（int装得下给Integer，否则Long/Double）
 					boolean useD = false;
 					for (; ; ) {
-						b = buffer[++p];
+						b = ++p < buffer.length ? buffer[p] : 0;
 						if ((c = (b - '0') & 0xff) < 10) {
 							if (useD)
 								d = d * 16 + c;
