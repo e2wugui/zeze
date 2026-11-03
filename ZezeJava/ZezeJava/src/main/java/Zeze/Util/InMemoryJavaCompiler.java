@@ -144,6 +144,9 @@ public class InMemoryJavaCompiler {
 			checkNotDefined(e.getKey());
 			addSource(e.getKey(), e.getValue());
 		}
+		// 本轮未产出的请求类必须报缺失，不能命中上轮残留的字节码。
+		for (String className : classNameAndCodes.keySet())
+			classLoader.customCompiledCode.remove(className);
 		String exMsg = compileAll();
 		if (exMsg != null)
 			throw new IllegalStateException(exMsg);
