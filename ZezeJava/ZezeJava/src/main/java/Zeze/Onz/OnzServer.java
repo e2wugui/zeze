@@ -1157,6 +1157,16 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
+	private void savePreparing(OnzTransaction<?, ?> txn, byte[] tidBytes) throws RocksDBException {
+		// 与 callSagaAsync 的登记→保存同锁，旧快照不得覆盖已落盘的新参与方意图。
+		txn.lock();
+		try {
+			saveCommitPoint(tidBytes, txn.buildSavedCommits(), ePreparing);
+		} finally {
+			txn.unlock();
+		}
+	}
+
 	/**
 	 * 执行onz分布式事务。
 	 * <p>
@@ -1178,10 +1188,9 @@ public class OnzServer extends AbstractOnz {
 		onzAgent.addTransaction(txn);
 		try {
 			var rc = txn.perform();
-			var state = txn.buildSavedCommits();
 			var tidBytes = new byte[8];
 			ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
-			saveCommitPoint(tidBytes, state, ePreparing);
+			savePreparing(txn, tidBytes);
 			// 这里和下面的txn.commit分成两步saveCommitPoint，
 			// 中间没有做太多额外的事情，但为了明确两个事务状态，仍然分开。原因如下：
 			// 参考Dbh2的两步：由于Dbh2一开始就知道所有的服务器，所以可以一开始就保存一次ePreparing，
@@ -1198,7 +1207,7 @@ public class OnzServer extends AbstractOnz {
 				// Commit会ready超时自愈回滚，与已报成功的协调者分歧）。上面的ePreparing快照
 				// 保持不动：窗口内落盘可观察是redo年龄闸与在途登记skip的依赖，
 				// 其内容不全无害（崩溃走redo(rollback)整体回滚一致）。
-				state = txn.buildSavedCommits();
+				var state = txn.buildSavedCommits();
 				txn.commit(tidBytes, state);
 				txn.waitFlushDone();
 				return 0;
@@ -1211,8 +1220,7 @@ public class OnzServer extends AbstractOnz {
 			// rollback()返回false，见下）或rollback进行中进程崩溃时，redo是唯一补发通道，记录
 			// 必须覆盖完整参与方列表。状态仍为ePreparing（决策不变）；时戳刷新至多把该记录的
 			// redo年龄闸推迟一个排空窗口，无害。
-			state = txn.buildSavedCommits();
-			saveCommitPoint(tidBytes, state, ePreparing);
+			savePreparing(txn, tidBytes);
 			// 全量投递了结即删记录（F3，对齐commit()失败分支if(rollback())removeCommitRecord
 			// 的先例与redo的removeOk收敛语义）：补偿已确认送达，保留只会让redo先等
 			// RedoPreparingMinAgeMs年龄闸、再对全部参与方幂等空转重发一轮（参与方收重复决策）；
@@ -1239,7 +1247,7 @@ public class OnzServer extends AbstractOnz {
 			var tidBytes = new byte[8];
 			ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
 			try {
-				saveCommitPoint(tidBytes, txn.buildSavedCommits(), ePreparing);
+				savePreparing(txn, tidBytes);
 			} catch (Throwable saveEx) {
 				logger.error("onz perform: exception path saveCommitPoint(ePreparing) fail, "
 						+ "redo兜底不可用，补偿仅剩本次rollback投递. tid={}", txn.getOnzTid(), saveEx);
