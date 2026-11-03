@@ -16,7 +16,7 @@ public class TimeoutManager {
 		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>();
 		private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
 
-		public Timeout schedule(Worker worker, long timeoutMs, Action0 action) {
+		Timeout schedule(Worker worker, long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
 			if (timeoutMs < 0)
 				throw new IllegalArgumentException("timeoutMs < 0");
 			lock();
@@ -28,9 +28,11 @@ public class TimeoutManager {
 					worker.wakeup();
 					return set;
 				});
-				var timeout = new Timeout(bucketSet, action);
+				var timeout = timeoutFactory.call(bucketSet, action0);
 				bucketSet.add(timeout);
 				return timeout;
+			} catch (Exception e) {
+				throw new RuntimeException(e);
 			} finally {
 				unlock();
 			}
@@ -69,29 +71,30 @@ public class TimeoutManager {
 
 	static class TimeoutSet implements Comparable<TimeoutSet> {
 		private final long id;
-		private final HashSet<Timeout> set = new HashSet<>();
+		private final HashSet<Timeout> timeouts = new HashSet<>();
 		private final ReentrantLock lock = new ReentrantLock();
-		private boolean triggered = false;
+		private boolean polled = false;
 
 		TimeoutSet(long id) {
 			this.id = id;
 		}
 
 		void add(Timeout t) {
+			// add和本类被poll互斥，这里不需要保护。
 			lock.lock();
 			try {
-				if (!triggered)
-					set.add(t);
+				timeouts.add(t);
 			} finally {
 				lock.unlock();
 			}
 		}
 
 		void remove(Timeout t) {
+			// remove和本类poll不互斥，需要加个状态保护。
 			lock.lock();
 			try {
-				if (!triggered)
-					set.remove(t);
+				if (!polled)
+					timeouts.remove(t);
 			} finally {
 				lock.unlock();
 			}
@@ -100,13 +103,13 @@ public class TimeoutManager {
 		void run() {
 			lock.lock();
 			try {
-				triggered = true;
+				polled = true;
 			} finally {
 				lock.unlock();
 			}
-			// 本集合已经摘除，不需要加锁。
-			for (var timeout : set) {
-				TaskSpec.ofAction(timeout.action0).executeSystemOneByOne();
+			// 本集合已经摘除，而且是在Concurrent锁内摘除的，不会和add并发。remove并发是可能的。
+			for (var timeout : timeouts) {
+				TaskSpec.ofAction(timeout).executeSystemOneByOne();
 			}
 		}
 
@@ -121,12 +124,17 @@ public class TimeoutManager {
 			concurrents[i] = new Concurrent();
 		}
 	}
+
 	public Timeout schedule(long timeoutMs, Action0 action0) {
+		return schedule(timeoutMs, action0, Timeout::new);
+	}
+
+	public Timeout schedule(long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
 		Worker w = worker;
 		if (null == w)
-			throw new IllegalArgumentException("worker has not been set");
+			throw new IllegalStateException("worker has not been set");
 		// unsigned mod % 16
-		return concurrents[concurrentIdx.getAndIncrement() & 15].schedule(w, timeoutMs, action0);
+		return concurrents[concurrentIdx.getAndIncrement() & 15].schedule(w, timeoutMs, action0, timeoutFactory);
 	}
 
 	public synchronized void start() {

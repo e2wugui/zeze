@@ -67,6 +67,7 @@ public final class Task {
 	private static volatile @Nullable ExecutorService threadPoolDefault;
 	private static volatile @Nullable ScheduledExecutorService threadPoolScheduled;
 	private static volatile @Nullable ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
+	private static volatile @Nullable TimeoutManager timeoutManager;
 	// 数据库IO并行池：flush/reduce等阻塞DB操作退出ForkJoinPool.commonPool——commonPool面向CPU任务，
 	// 阻塞任务互抢可整体停摆并拖垮进程内其他parallelStream使用者。与三个默认池同生命周期。
 	private static volatile @Nullable ForkJoinPool threadPoolDbIo;
@@ -203,12 +204,20 @@ public final class Task {
 		ScheduledExecutorService scheduledTmp;
 		ExecutorService defaultTmp;
 		ExecutorService criticalTmp;
+		TimeoutManager timeoutManagerTmp;
 		java.util.concurrent.ForkJoinPool dbIoTmp;
 		taskLock.lock();
 		try {
 			scheduledTmp = threadPoolScheduled;
 			defaultTmp = threadPoolDefault;
 			criticalTmp = threadPoolCritical;
+			timeoutManagerTmp = timeoutManager;
+
+			if (timeoutManagerTmp != null) {
+				timeoutManager = null;
+				timeoutManagerTmp.stop();
+			}
+
 			if (scheduledTmp != null) {
 				threadPoolScheduled = null;
 				if (now)
@@ -336,6 +345,12 @@ public final class Task {
 		}
 	}
 
+	public static TimeoutManager getTimeoutManager() {
+		var t = timeoutManager;
+		Objects.requireNonNull(t);
+		return t;
+	}
+
 	public static boolean tryInitThreadPool() {
 		return tryInitThreadPool((Config)null, null, null);
 	}
@@ -360,7 +375,7 @@ public final class Task {
 											@Nullable ScheduledExecutorService scheduled) {
 		taskLock.lock();
 		try {
-			if (threadPoolDefault != null || threadPoolScheduled != null)
+			if (threadPoolDefault != null || threadPoolScheduled != null || timeoutManager != null)
 				return false;
 
 			if (pool == null) {
@@ -387,7 +402,10 @@ public final class Task {
 				scheduledPool.setRemoveOnCancelPolicy(true);
 			threadPoolScheduled = scheduled;
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
+			var tm = new TimeoutManager();
 			threadPoolDbIo = newDbIoPool();
+			tm.start();
+			timeoutManager = tm;
 			ThreadDiagnosable.startDiagnose(30_000);
 			return true;
 		} finally {
