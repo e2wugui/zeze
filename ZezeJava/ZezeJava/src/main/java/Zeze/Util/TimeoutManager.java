@@ -25,7 +25,10 @@ public class TimeoutManager {
 				throw new IllegalArgumentException("timeoutMs < 0");
 			lock();
 			try {
-				var indexId = Math.ceilDiv(System.currentTimeMillis() + timeoutMs, 1000) * 1000;
+				var now = System.currentTimeMillis();
+				var maxBucket = Long.MAX_VALUE / 1000 * 1000;
+				var indexId = timeoutMs > maxBucket - now ? maxBucket
+						: Math.ceilDiv(now + timeoutMs, 1000) * 1000;
 				var bucketSet = indexedMap.computeIfAbsent(indexId, (key) -> {
 					var set = new TimeoutSet(indexId);
 					bucketQueue.offer(set);
