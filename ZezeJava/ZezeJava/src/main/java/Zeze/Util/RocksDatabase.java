@@ -1224,6 +1224,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		public byte[] copy() {
+			ByteBuffer.intLeHandler.set(bb.Bytes, 8, count);
 			return Arrays.copyOf(bb.Bytes, bb.WriteIndex);
 		}
 
