@@ -221,14 +221,21 @@ public class StableRandom2 {
 	 * @return [0, max]
 	 */
 	public float nextFloat(float max) {
-		return nextInt() * max * (1f / Integer.MAX_VALUE);
+		int random = nextInt();
+		float product = random * max;
+		// 仅中间乘法溢出时重排，保留正常路径的历史舍入和随机状态消耗。
+		return Float.isInfinite(product) && Float.isFinite(max)
+				? random * (1f / Integer.MAX_VALUE) * max : product * (1f / Integer.MAX_VALUE);
 	}
 
 	/**
 	 * @return [0, max]
 	 */
 	public double nextDouble(double max) {
-		return nextLong() * max * (1.0 / Long.MAX_VALUE);
+		long random = nextLong();
+		double product = random * max;
+		return Double.isInfinite(product) && Double.isFinite(max)
+				? random * (1.0 / Long.MAX_VALUE) * max : product * (1.0 / Long.MAX_VALUE);
 	}
 
 	public boolean nextBoolean() {
