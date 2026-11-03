@@ -539,8 +539,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			int moduleId = ByteBuffer.ToInt(bytes, offset);
 			int protocolId = ByteBuffer.ToInt(bytes, offset + 4);
 			int size = ByteBuffer.ToInt(bytes, offset + 8);
-			if (size < 0) {
-				logger.warn("countSendStream: moduleId={}, protocolId={}, size={} < 0", moduleId, protocolId, size);
+			if (size < 0 || size > length - Protocol.HEADER_SIZE) {
+				logger.warn("countSendStream: moduleId={}, protocolId={}, invalid size={}, remaining={}",
+						moduleId, protocolId, size, length);
 				break;
 			}
 			size += Protocol.HEADER_SIZE;
