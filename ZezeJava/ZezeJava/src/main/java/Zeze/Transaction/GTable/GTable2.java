@@ -90,7 +90,8 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 				//noinspection rawtypes
 				var map = (BeanMap2)ensureNotNull(fm1.ctor).create();
 				reader.parseMap0(map, classMeta, fm2);
-				obj.pMap2.put(k, map);
+				if (!map.isEmpty())
+					obj.pMap2.put(k, map);
 			}
 			reader.pos(reader.pos() + 1);
 			return obj;

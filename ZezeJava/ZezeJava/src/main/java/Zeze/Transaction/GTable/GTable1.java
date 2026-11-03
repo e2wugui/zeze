@@ -87,7 +87,8 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 				reader.skipColon();
 				var map = (BeanMap1<Object, Object>)ensureNotNull(fm1.ctor).create();
 				reader.parseMap0(map, classMeta, fm2);
-				obj.pMap2.put(k, map);
+				if (!map.isEmpty())
+					obj.pMap2.put(k, map);
 			}
 			reader.pos(reader.pos() + 1);
 			return obj;
