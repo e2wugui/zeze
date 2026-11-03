@@ -189,10 +189,9 @@ public class BenchClient {
 			var key = Zeze.Util.Random.getInstance().nextLong(100_0000_0000L);
 			var table = tables.get(Zeze.Util.Random.getInstance().nextInt(tables.size()));
 			var tkey = new TableKey(table, key);
-			if (rrs.containsKey(tkey))
+			if (rrs.putIfAbsent(tkey, tkey) != null)
 				continue;
 			tableAccess--;
-			rrs.put(tkey, tkey);
 			result.add(tkey);
 		}
 		return result;
@@ -213,13 +212,16 @@ public class BenchClient {
 					// 遮蔽时rrs.remove(r)作用于正被增强for迭代的局部HashSet（tableAccess>1时CME），
 					// 且字段只增不删无界增长。
 					var batchKeys = rrs(tables, tableAccess);
-					for (var r : batchKeys) {
-						var keyBb = ByteBuffer.Allocate(9);
-						keyBb.WriteLong(r.key);
-						r.table.replace(trans, keyBb, value);
+					try {
+						for (var r : batchKeys) {
+							var keyBb = ByteBuffer.Allocate(9);
+							keyBb.WriteLong(r.key);
+							r.table.replace(trans, keyBb, value);
+						}
+						trans.commit();
+					} finally {
+						rrs.keySet().removeAll(batchKeys);
 					}
-					trans.commit();
-					rrs.keySet().removeAll(batchKeys);
 					transCounter.incrementAndGet();
 				} catch (Throwable ex) {
 					logger.error("", ex);
