@@ -8,11 +8,12 @@ import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
 public class TimeoutDiagnosable extends Timeout {
 	private static final Logger logger = LogManager.getLogger(TimeoutDiagnosable.class);
-	private final Thread thread = Thread.currentThread();
 	// 任务存活握手：close 先于派发执行时，中断动作不得落在池线程正在跑的下一个任务上
 	// （桶 poll 到派发执行之间任务可能已结束；派发车道积压时该窗口会被拉宽）。
+	// thread 置 null 即已 close（单一事实来源）：读写都必须在 handshake 锁内，
+	// 且打断必须锁内执行——锁外打断与 close 的清标志存在先置位后清除的窗口。
 	private final ReentrantLock handshake = new ReentrantLock();
-	private boolean active = true;
+	private @Nullable Thread thread = Thread.currentThread();
 
 	public static @Nullable Timeout create(long timeoutMs) {
 		return create(timeoutMs, false);
@@ -33,11 +34,10 @@ public class TimeoutDiagnosable extends Timeout {
 
 	@Override
 	public void run() {
-		// 最多只会触发一次。
+		// 最多只会触发一次。thread 为 null = 已 close，不再打断（interruptThread 内部已判 null）。
 		handshake.lock();
 		try {
-			if (active) // close 已发生则不再打断
-				interruptThread(thread);
+			interruptThread(thread);
 		} finally {
 			handshake.unlock();
 		}
@@ -47,7 +47,7 @@ public class TimeoutDiagnosable extends Timeout {
 	public void close() {
 		handshake.lock();
 		try {
-			active = false;
+			thread = null;
 		} finally {
 			handshake.unlock();
 		}

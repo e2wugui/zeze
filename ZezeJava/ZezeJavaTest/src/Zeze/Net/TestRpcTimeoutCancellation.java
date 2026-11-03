@@ -1,10 +1,6 @@
 package Zeze.Net;
 
-import java.util.Objects;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import Zeze.Config;
@@ -12,7 +8,6 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import harness.Fast;
 import harness.ForkedJvm;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,72 +49,48 @@ public class TestRpcTimeoutCancellation {
 		assertFalse(scheduler.getQueue().contains(task), "cancelled task must leave the queue immediately");
 	}
 
+	/** 换代注（Rpc 超时上 TimeoutManager 轮子）：原版经伪造 ScheduledThreadPoolExecutor.schedule
+	 * 内部阻塞复现"句柄发布前上下文被消费"，注册收窄为单次同步调用后注射点退役。
+	 * 现以并发锤+终态断言守护同一契约：无论 schedule 与上下文消费怎样交错，两操作完成后
+	 * 句柄必被取消收口（发布后复查路径或 removeRpcContext 收口路径，终点一致为 null）。 */
 	@Test
 	void contextRemovedDuringRegistrationCancelsTimeout() throws Exception {
-		var scheduler = new RegistrationScheduler();
-		// 单独验证句柄发布竞态，不依赖初始化入口的策略修复。
-		scheduler.setRemoveOnCancelPolicy(true);
-		Task.initThreadPool(Executors.newSingleThreadExecutor(), scheduler);
+		Task.tryInitThreadPool();
 		var service = new Service("TestRpcTimeoutCancellation.Registration");
-		var rpc = new TestRpcTimeoutTimerLeak.TimerRpc();
-		long sid = service.addRpcContext(rpc);
-		rpc.setSessionId(sid);
-		var registration = Task.getThreadPool().submit(() -> rpc.schedule(service, sid, 60_000));
+		var field = Rpc.class.getDeclaredField("timeoutTask");
+		field.setAccessible(true);
 		try {
-			assertTrue(scheduler.queued.await(5, TimeUnit.SECONDS));
-			assertSame(rpc, service.removeRpcContext(sid));
-			scheduler.release.countDown();
-			registration.get(5, TimeUnit.SECONDS);
-			var task = Objects.requireNonNull(scheduler.registered);
-			assertTrue(task.isCancelled(), "context consumed before handle publication must cancel timeout");
-			assertFalse(scheduler.getQueue().contains(task));
+			for (int i = 0; i < 100; ++i) {
+				var rpc = new TestRpcTimeoutTimerLeak.TimerRpc();
+				long sid = service.addRpcContext(rpc);
+				rpc.setSessionId(sid);
+				var remover = Thread.ofPlatform().start(() -> service.removeRpcContext(sid, rpc));
+				rpc.schedule(service, sid, 60_000);
+				remover.join(5_000);
+				assertNull(field.get(rpc), "iter " + i + ": consumed context must cancel timeout either way");
+			}
 		} finally {
-			scheduler.release.countDown();
-			registration.get(5, TimeUnit.SECONDS);
 			service.stop();
 		}
 	}
 
+	/** 换代注：原断言"consumed context 后 scheduler 队列不增长"对轮子恒真（rpc 定时器不进调度器队列），
+	 * 改钉句柄级契约：上下文先消费再 schedule，发布后复查必须立即取消句柄。 */
 	@Test
 	void contextRemovedBeforeRegistrationCancelsTimeout() throws Exception {
-		var scheduler = new ScheduledThreadPoolExecutor(1);
-		scheduler.setRemoveOnCancelPolicy(true);
-		Task.initThreadPool(Executors.newSingleThreadExecutor(), scheduler);
+		Task.tryInitThreadPool();
 		var service = new Service("TestRpcTimeoutCancellation.BeforeRegistration");
+		var field = Rpc.class.getDeclaredField("timeoutTask");
+		field.setAccessible(true);
 		try {
 			var rpc = new TestRpcTimeoutTimerLeak.TimerRpc();
 			long sid = service.addRpcContext(rpc);
 			rpc.setSessionId(sid);
 			assertTrue(service.removeRpcContext(sid, rpc));
-			int baseline = scheduler.getQueue().size();
 			rpc.schedule(service, sid, 60_000);
-			assertEquals(baseline, scheduler.getQueue().size(), "consumed context must not retain a timeout");
+			assertNull(field.get(rpc), "consumed context must not retain a timeout");
 		} finally {
 			service.stop();
-		}
-	}
-
-	private static final class RegistrationScheduler extends ScheduledThreadPoolExecutor {
-		final CountDownLatch queued = new CountDownLatch(1);
-		final CountDownLatch release = new CountDownLatch(1);
-		volatile @Nullable ScheduledFuture<?> registered;
-
-		RegistrationScheduler() {
-			super(1);
-		}
-
-		@Override
-		public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-			var task = super.schedule(callable, delay, unit);
-			registered = task;
-			queued.countDown();
-			try {
-				assertTrue(release.await(10, TimeUnit.SECONDS), "registration must be released");
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new AssertionError(e);
-			}
-			return task;
 		}
 	}
 }
