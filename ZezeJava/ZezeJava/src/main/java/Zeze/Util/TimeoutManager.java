@@ -1,13 +1,11 @@
 package Zeze.Util;
 
-import Zeze.Transaction.DispatchMode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.PriorityQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class TimeoutManager {
@@ -17,7 +15,6 @@ public class TimeoutManager {
 	private static final long BUCKET_NS = 1_000_000_000L;
 
 	private final Concurrent[] concurrents = new Concurrent[16];
-	private final AtomicInteger concurrentIdx = new AtomicInteger();
 	private @Nullable volatile Worker worker;
 
 	static class Concurrent extends ReentrantLock {
@@ -25,6 +22,8 @@ public class TimeoutManager {
 		private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
 
 		Timeout schedule(Worker worker, long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
+			// 公开入口的上界校验即溢出防线：365天×1e6 与 Long.MAX 有 292× 余量，
+			// 合法输入的乘法→加法→ceil 全链路不可能溢出。
 			// ceil 保证实际延迟 ≥ 请求值（只晚不早）；id 是纳秒秒界，回绕安全见 tick。
 			var indexId = Math.ceilDiv(System.nanoTime() + timeoutMs * 1_000_000L, BUCKET_NS) * BUCKET_NS;
 
@@ -149,7 +148,7 @@ public class TimeoutManager {
 		if (null == w)
 			throw new IllegalStateException("worker has not been set");
 		// unsigned mod % 16
-		return concurrents[concurrentIdx.getAndIncrement() & 15].schedule(w, timeoutMs, action0, timeoutFactory);
+		return concurrents[(int)(Thread.currentThread().threadId() & 15)].schedule(w, timeoutMs, action0, timeoutFactory);
 	}
 
 	public synchronized void start() {
