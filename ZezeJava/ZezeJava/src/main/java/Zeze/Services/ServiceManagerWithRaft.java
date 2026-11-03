@@ -752,8 +752,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		if (netSession == null)
 			return 0; // 未Login已应答ErrorNotLogin
 		var loadObservers = tableLoadObservers.get(r.Argument.ip + "_" + r.Argument.port);
-		if (loadObservers == null)
+		if (loadObservers == null) {
+			r.SendResult(); // 无状态修改也须确认 RPC，避免客户端超时重发。
 			return 0; // 无观察者：忽略上报，不建行
+		}
 		var observers = loadObservers.getObservers();
 
 		var set = new SetServerLoad();
