@@ -251,8 +251,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			while (count-- > 0)
 				queue.pollFirst();
 			if (queue.isEmpty()) {
-				if (isShutdown)
-					cond.signalAll();
+				cond.signalAll();
 				return;
 			}
 			if (isShutdown && shutdownCancel) {
