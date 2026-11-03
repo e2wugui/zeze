@@ -733,6 +733,9 @@ public class HttpExchange {
 				addContent(b.retain());
 			}
 		}
+		// 空终结帧仍携带流结束语义（multipart decoder据此允许读取完整字段列表）。
+		if (n == 0 && c instanceof LastHttpContent && handler.isStreamMode())
+			fireStreamContentHandle(c);
 		if (c instanceof LastHttpContent) {
 			inStreamMode = false;
 			fireEndStreamHandle(); // 流模式和非流模式通用

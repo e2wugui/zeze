@@ -8,6 +8,7 @@ import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
 import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.HttpDataFactory;
 import io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder;
+import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder.EndOfDataDecoderException;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import io.netty.util.AttributeKey;
@@ -102,7 +103,15 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 			throw new IllegalStateException("no decoder");
 		try {
 			decoder.offer(content);
-			for (InterfaceHttpData data; (data = decoder.next()) != null; ) {
+			for (;;) {
+				InterfaceHttpData data;
+				try {
+					data = decoder.next();
+				} catch (EndOfDataDecoderException ignored) {
+					break; // 最后字段之后的正常终态，不能当成畸形上传回400。
+				}
+				if (data == null)
+					break;
 				switch (data.getHttpDataType()) {
 				case Attribute:
 					onAttribute(x, (Attribute)data);
