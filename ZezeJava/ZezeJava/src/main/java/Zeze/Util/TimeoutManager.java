@@ -126,7 +126,9 @@ public class TimeoutManager {
 
 		@Override
 		public int compareTo(TimeoutSet o) {
-			return Long.compare(id, o.id);
+			// 回绕减法取符号（非 Long.compare 的线性序）：对真实差 < ±146 年的值给出正确循环序，
+			// 与 tick 的减法判定一致贯彻"只做减法"铁律；活桶跨度 ≤ 最大超时一年，远在有效窗内。
+			return Long.signum(id - o.id);
 		}
 	}
 
