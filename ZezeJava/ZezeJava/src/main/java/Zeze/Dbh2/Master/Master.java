@@ -143,7 +143,8 @@ public class Master extends AbstractMaster {
 			seed++;
 			var bb = ByteBuffer.Allocate(5);
 			bb.WriteInt(seed);
-			seedTable.put(RocksDatabase.getDefaultWriteOptions(), seedKey,
+			// 端口一经用于建桶即成为持久身份，断电后不得回退并复用已有桶目录。
+			seedTable.put(RocksDatabase.getSyncWriteOptions(), seedKey,
 					0, seedKey.length, bb.Bytes, 0, bb.WriteIndex);
 			return seed;
 		} finally {

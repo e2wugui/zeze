@@ -918,6 +918,7 @@ public class MasterDatabase {
 		// master数据马上存数据库。
 		var bbValue = table.encode();
 		var key = tableName.getBytes(StandardCharsets.UTF_8);
-		rocksTable.put(key, 0, key.length, bbValue.Bytes, 0, bbValue.WriteIndex);
+		// 建表/分裂目标在应答后即被外部使用，必须与结算批次一样同步 WAL。
+		rocksTable.put(RocksDatabase.getSyncWriteOptions(), key, 0, key.length, bbValue.Bytes, 0, bbValue.WriteIndex);
 	}
 }
