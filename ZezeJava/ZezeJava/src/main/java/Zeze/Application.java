@@ -221,7 +221,7 @@ public final class Application extends ReentrantLock {
 			throw new IllegalStateException("serverId too big. > 16383.");
 		procedureLockWatcher = new ProcedureLockWatcher(this);
 
-		Task.tryInitThreadPool(this); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
+		Task.tryInitThreadPool(this.getConfig(), null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
 
 		serviceManager = createServiceManager(conf, projectName); // 必须在createDatabase之前初始化。里面的Dbh2需要用到serviceManager
 		boolean databasesCreated = false;

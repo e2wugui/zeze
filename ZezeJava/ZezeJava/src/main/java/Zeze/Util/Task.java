@@ -353,28 +353,12 @@ public final class Task {
 		return t;
 	}
 
-	/** shutdown 窗口（管理器先置空、池后关）下在飞任务的 createTimeout 用它降级为无看门狗。 */
 	static @Nullable TimeoutManager getTimeoutManagerOrNull() {
 		return timeoutManager;
 	}
 
 	public static boolean tryInitThreadPool() {
-		return tryInitThreadPool((Config)null, null, null);
-	}
-
-	public static boolean tryInitThreadPool(@Nullable Application app) {
-		return tryInitThreadPool(app != null ? app.getConfig() : null, null, null);
-	}
-
-	// 不叫 tryInitThreadPool(Config)：避免与 Application 单参重载对裸 null 调用产生歧义
-	// （tryInitThreadPool(null) 在两个引用类型重载间无法确定绑定，编译报错）。
-	public static boolean tryInitThreadPoolWithConfig(@Nullable Config config) {
-		return tryInitThreadPool(config, null, null);
-	}
-
-	public static boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
-											@Nullable ScheduledExecutorService scheduled) {
-		return tryInitThreadPool(app != null ? app.getConfig() : null, pool, scheduled);
+		return tryInitThreadPool(null, null, null);
 	}
 
 	// 注意：第一个参数传字面量 null 时需强转 (Config)null，以区别于 Application 三参重载。
@@ -418,12 +402,6 @@ public final class Task {
 			taskLock.unlock();
 		}
 	}
-
-	// 注意必须使用try包装,确保create和close配对
-	public static @Nullable Timeout createTimeout(long timeout) {
-		return TimeoutDiagnosable.create(timeout);
-	}
-
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).call()}。 */
 	@Deprecated
@@ -545,7 +523,7 @@ public final class Task {
 
 		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = TimeoutDiagnosable.create(timeout)) {
 				return body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
@@ -593,7 +571,7 @@ public final class Task {
 
 		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = TimeoutDiagnosable.create(timeout)) {
 				body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
@@ -631,7 +609,7 @@ public final class Task {
 														@Nullable String name, long timeout) {
 		return scheduledPoolOrThrow().schedule(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+			try (var ignoredHot = hotGuard.create(); var ignored = TimeoutDiagnosable.create(timeout)) {
 				return body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
@@ -668,7 +646,7 @@ public final class Task {
 			try (var ignoredHot = hotGuard.create()) {
 				future.lock();
 				locked = true;
-				try (var ignored = createTimeout(timeout)) {
+				try (var ignored = TimeoutDiagnosable.create(timeout)) {
 					if (future.isCancelled())
 						return;
 					body.call(name);

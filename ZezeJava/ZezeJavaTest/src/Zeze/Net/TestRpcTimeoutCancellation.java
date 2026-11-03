@@ -37,7 +37,7 @@ public class TestRpcTimeoutCancellation {
 	@Test
 	void tryInitThreadPoolRemovesCancelledTasks() {
 		var scheduler = new ScheduledThreadPoolExecutor(1);
-		assertTrue(Task.tryInitThreadPool((Config)null, Executors.newSingleThreadExecutor(), scheduler));
+		assertTrue(Task.tryInitThreadPool(null, Executors.newSingleThreadExecutor(), scheduler));
 		assertCancellationRemovesTask(scheduler);
 	}
 
