@@ -1450,14 +1450,14 @@ public final class JsonReader {
 		int p = pos, b;
 		final int begin = p;
 		for (; ; p++) {
-			if (p >= buffer.length || (((((b = buffer[p]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0)) // (b & 0xff) <= ' ' || b == ':' || EOF截断
+			if (p >= buffer.length || (((((b = buffer[p]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) || b == '/') // 空白、冒号、注释或EOF结束裸键
 				return intern(buffer, begin, pos = p); // lucky! finished the fast path（EOF：键串按终结收尾）
 			if ((b ^ '\\') < 1) // '\\' or multibyte char
 				break; // jump to the slow path below
 		}
 		// 慢路径：定位终止符——转义跨越同parseString(e,intern)，谓词为键终止符。
 		int end;
-		for (end = p; end < buffer.length && ((((b = buffer[end]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0; end++) {
+		for (end = p; end < buffer.length && ((((b = buffer[end]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0 && b != '/'; end++) {
 			if (b == '\\') {
 				if (end + 1 >= buffer.length)
 					break; // 截断于转义序列：'\'排除在串外，由下方按[begin,end)收尾
@@ -1470,7 +1470,7 @@ public final class JsonReader {
 				}
 			}
 		}
-		pos = end < buffer.length ? end + 1 : end; // EOF：pos钉在len，不越界+1
+		pos = end; // 定界符留给skipColon/next消费，注释的开头'/'也必须保留。
 		return decodeStringSlow(begin, end);
 	}
 
