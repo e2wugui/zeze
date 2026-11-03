@@ -12,6 +12,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class TimeoutManager {
 	private static final Logger logger = LogManager.getLogger(TimeoutManager.class);
+	// 时基：System.nanoTime() 单调钟，免疫 NTP 步进校正与手动改钟（墙钟会带着在途桶集体漂移）。
+	// 桶粒度参数化：亚秒桶只改这一个常量并重跑验证（当前秒桶，量化语义 (timeout, timeout+1s]）。
+	private static final long BUCKET_NS = 1_000_000_000L;
+
 	private final Concurrent[] concurrents = new Concurrent[16];
 	private final AtomicInteger concurrentIdx = new AtomicInteger();
 	private @Nullable volatile Worker worker;
@@ -21,14 +25,11 @@ public class TimeoutManager {
 		private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
 
 		Timeout schedule(Worker worker, long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
-			if (timeoutMs < 0)
-				throw new IllegalArgumentException("timeoutMs < 0");
+			// ceil 保证实际延迟 ≥ 请求值（只晚不早）；id 是纳秒秒界，回绕安全见 tick。
+			var indexId = Math.ceilDiv(System.nanoTime() + timeoutMs * 1_000_000L, BUCKET_NS) * BUCKET_NS;
+
 			lock();
 			try {
-				var now = System.currentTimeMillis();
-				var maxBucket = Long.MAX_VALUE / 1000 * 1000;
-				var indexId = timeoutMs > maxBucket - now ? maxBucket
-						: Math.ceilDiv(now + timeoutMs, 1000) * 1000;
 				var bucketSet = indexedMap.computeIfAbsent(indexId, (key) -> {
 					var set = new TimeoutSet(indexId);
 					bucketQueue.offer(set);
@@ -49,13 +50,15 @@ public class TimeoutManager {
 			while (true) {
 				lock();
 				TimeoutSet head = null;
-				var nowMs = System.currentTimeMillis();
+				var nowNs = System.nanoTime();
 				try {
 					head = bucketQueue.peek();
 					if (null == head)
 						return Long.MAX_VALUE;
-					if (head.id > nowMs)
-						return head.id - nowMs;
+					// 只做减法不做裸比较：long 模运算下天然回绕安全（nanoTime 原点任意且 ~292 年回绕）。
+					var remainingNs = head.id - nowNs;
+					if (remainingNs > 0)
+						return Math.ceilDiv(remainingNs, 1_000_000L); // 余量转 ms 向上取整：宁可晚醒不早醒
 					bucketQueue.poll();
 					indexedMap.remove(head.id);
 				} finally {
@@ -138,6 +141,8 @@ public class TimeoutManager {
 	}
 
 	public Timeout schedule(long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
+		if (timeoutMs < 0 || timeoutMs > 365L * 24 * 3600 * 1000) // 最大超时允许一年。
+			throw new IllegalArgumentException("timeoutMs < 0 || timeoutMs > 365days");
 		Worker w = worker;
 		if (null == w)
 			throw new IllegalStateException("worker has not been set");
