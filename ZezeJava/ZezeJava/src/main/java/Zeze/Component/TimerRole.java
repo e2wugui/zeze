@@ -463,7 +463,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		// offline也走带归属校验的入口：单参cancelOffline(timerId)自推导
 		// 真实归属后即取消，无调用者身份校验，timer.roles(A).cancel(B的offline timerId)可越权
 		// 取消B的定时器（对齐TimerAccount复合入口）。
-		return cancelOnline(timerId, roleId) || cancelOffline(timerId, roleId);
+		// 在线取消可能仅完成跨服转发；仍须尝试本地持久化的离线记录。
+		return cancelOnline(timerId, roleId) | cancelOffline(timerId, roleId);
 	}
 
 	public boolean cancelOnline(@Nullable String timerId, long roleId) {

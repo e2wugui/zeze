@@ -494,7 +494,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public boolean cancel(@Nullable String timerId, String account, String clientId) {
 		if (timerId == null)
 			return true;
-		return cancelOnline(timerId, account, clientId) || cancelOffline(timerId, account, clientId);
+		// 在线取消可能仅完成跨服转发；仍须尝试本地持久化的离线记录。
+		return cancelOnline(timerId, account, clientId) | cancelOffline(timerId, account, clientId);
 	}
 
 	public boolean cancelOnline(@Nullable String timerId, String account, String clientId) {
