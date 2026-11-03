@@ -45,13 +45,23 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 		// App.ModuleClassName：MySolution.MyName.ModuleMyName，namespace=MySolution.MyName
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
-		this.moduleClass = loadClass(moduleClassName);
-		// 双亲委派下，冷classpath上的同名类会抢先命中；冷类不受热更控制——之后换jar
-		// 也不会换掉这个身份，安装对该模块静默失效。fail-fast发生在_install可回滚区，
-		// 走既有recoverModules恢复。
-		if (moduleClass.getClassLoader() != this)
-			throw new IllegalStateException("hot module shadowed by cold classpath: "
-					+ moduleClassName + " loaded by " + moduleClass.getClassLoader());
+		try {
+			this.moduleClass = loadClass(moduleClassName);
+			// 双亲委派下，冷classpath上的同名类会抢先命中；冷类不受热更控制——之后换jar
+			// 也不会换掉这个身份，安装对该模块静默失效。fail-fast发生在_install可回滚区，
+			// 走既有recoverModules恢复。
+			if (moduleClass.getClassLoader() != this)
+				throw new IllegalStateException("hot module shadowed by cold classpath: "
+						+ moduleClassName + " loaded by " + moduleClass.getClassLoader());
+		} catch (Exception | Error failure) {
+			// 构造失败时安装事务尚未取得本实例，必须在此释放已打开的 jar。
+			try {
+				close();
+			} catch (IOException closeFailure) {
+				failure.addSuppressed(closeFailure);
+			}
+			throw failure;
+		}
 		this.isLoadSchemas = false;
 		this.schemasClassName = null;
 	}
