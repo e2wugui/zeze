@@ -60,8 +60,10 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	public final void initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
-		//noinspection DataFlowIssue
-		zeze.getAchillesHeelDaemon().onInitialize(this);
+		// Login responses can arrive after stop has detached the daemon.
+		var daemon = zeze.getAchillesHeelDaemon();
+		if (daemon != null)
+			daemon.onInitialize(this);
 	}
 
 	public enum CheckReleaseResult {
