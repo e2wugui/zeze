@@ -59,7 +59,8 @@ public class OnzServer extends AbstractOnz {
 	private final RocksDatabase database;
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
-	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
+	// 决策与 saga 投递意图必须先于远端效果 fsync，否则断电后丢失唯一重做/补偿记录。
+	private WriteOptions writeOptions = RocksDatabase.getSyncWriteOptions();
 	// 周期守护：redoTimer(迭代+RPC等待)进worker池不占调度线程；stop有界等待在飞一轮
 	private final DaemonTimer redoDaemon = new DaemonTimer("OnzServer.redoTimer", 60_000, this::redoTimer);
 	private final AbstractAgent myServiceManager;
@@ -103,6 +104,10 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
+	/**
+	 * 供调用方明确选择持久化与性能取舍；关闭 sync 或 WAL 会绕过断电恢复保证。
+	 * 选项生命周期由调用方管理，使用期间不得关闭；本服务不会关闭传入选项。
+	 */
 	public void setWriteOptions(WriteOptions writeOptions) {
 		this.writeOptions = writeOptions;
 	}
