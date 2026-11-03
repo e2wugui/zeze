@@ -99,11 +99,11 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				batches = reached.toArray(new TaskOneByOne[0]);
 				reached.clear();
 			}
-			RuntimeException failure = null;
+			Throwable failure = null;
 			for (var taskOneByOne : batches) {
 				try {
 					taskOneByOne.runNext();
-				} catch (RuntimeException e) {
+				} catch (Throwable e) {
 					if (failure == null)
 						failure = e;
 					else if (failure != e)
@@ -111,7 +111,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				}
 			}
 			if (failure != null)
-				throw failure;
+				throw Zeze.Util.Task.forceThrow(failure);
 		}
 
 		/**
@@ -221,7 +221,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 					var sum = e.getValue().value;
 					e.getKey().executeBarrier(barrier, sum, mode);
 				}
-			} catch (RuntimeException ex) {
+			} catch (Throwable ex) {
 				// 桶派发失败（池未初始化ISE/自定义executor拒绝REE，任务确认未入队）：
 				// 取消屏障解冻已reach的桶（对齐base家族submitBarrierAndUnlock），重抛首个异常。
 				barrier.cancel();
@@ -251,7 +251,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 					var sum = e.getValue().value;
 					e.getKey().executeBarrier(barrier, sum, mode);
 				}
-			} catch (RuntimeException ex) {
+			} catch (Throwable ex) {
 				// 同Procedure版：桶派发失败时取消屏障解冻已reach的桶，重抛首个异常。
 				barrier.cancel();
 				throw ex;
@@ -328,7 +328,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				// 入队前校验失败（任务未入队）经notEnqueued核销；派发失败任务保留队列、
 				// 运行时经run的finally核销——同一key恰好一次。
 				executeCore(key.hashCode(), new TaskBody.OfAction(() -> batch.run(key, settle)), null, mode, settle);
-			} catch (RuntimeException ex) {
+			} catch (Throwable ex) {
 				// 提交失败：失败key若已入队（派发被拒、任务保留待重派发）由运行核销，
 				// 未尝试的key一次性核销——batchEnd不再永久悬挂。
 				batch.abandon(remaining);
@@ -350,7 +350,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			var settle = batch.newSettle();
 			try {
 				executeCore(Long.hashCode(key), new TaskBody.OfAction(() -> batch.run(key, settle)), null, mode, settle);
-			} catch (RuntimeException ex) {
+			} catch (Throwable ex) {
 				batch.abandon(remaining[0]);
 				throw ex;
 			}
@@ -692,7 +692,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			//（派发失败虽已有回滚认领兜底，见 executeOrRollback，但早失败更干净）。
 			try {
 				getExecutor(task.mode);
-			} catch (RuntimeException e) {
+			} catch (Throwable e) {
 				if (notEnqueued != null) {
 					try {
 						notEnqueued.run();
@@ -744,8 +744,8 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				executeOrRollback(task, continuation);
 		}
 
-		/** 派发并处理失败：execute 抛 RuntimeException（自定义 executor 拒绝 REE、
-		 * 全局池停机时 poolOrThrow 的 ISE）时认领（submitted==true）已置位而 run() 没进过池——
+		/** 派发并处理失败：execute 抛异常或 Error（拒绝、全局池停机、线程创建失败等）时，
+		 * 认领（submitted==true）可能已置位而 run() 没进过池——
 		 * submitted 的唯一自愈复位在 pollTask/peekTask 的消费路径里，无人消费即永不复位：
 		 * 后续 submit 的 CAS 恒失败也不再派发，该桶（及其映射的所有 key）永久卡死。
 		 * 对齐 TaskOneByOneQueue.executeOrRollback 回滚认领后按原类型重抛：
@@ -759,13 +759,13 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				dispatch = new Dispatch(target, task.name);
 				pendingDispatches.put(dispatch, target);
 				dispatch.submit(continuation);
-			} catch (RuntimeException e) {
+			} catch (Throwable e) {
 				rollbackFailedDispatch(dispatch, task.name, e);
 				throw e;
 			}
 		}
 
-		private void rollbackFailedDispatch(@Nullable Dispatch dispatch, String name, RuntimeException failure) {
+		private void rollbackFailedDispatch(@Nullable Dispatch dispatch, String name, Throwable failure) {
 			boolean rolledBack;
 			if (dispatch == null) {
 				submitted = false;
@@ -790,7 +790,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			void execute() {
 				try {
 					target.execute(this);
-				} catch (RuntimeException e) {
+				} catch (Throwable e) {
 					rollbackFailedDispatch(this, name, e);
 					throw e;
 				}
