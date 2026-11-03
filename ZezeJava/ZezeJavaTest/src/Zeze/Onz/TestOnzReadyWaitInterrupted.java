@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
  * 本地已回滚、协调者报成功=静默部分提交；分歧 error 仅在取到哨兵时触发，该路径零标记）。
  * <p>
  * 不搭网络（Onz 无服务配置纯内存，见 TestOnzRollbackAfterReady 先例）；以线程 interrupt
- * 复现看门狗的全部效果（ThreadDiagnosable 对 Normal 优先级线程的动作就是一次 interrupt）。
+ * 复现看门狗的全部效果（TimeoutDiagnosable 对 Normal 优先级线程的动作就是一次 interrupt）。
  */
 @Fast
 public class TestOnzReadyWaitInterrupted {

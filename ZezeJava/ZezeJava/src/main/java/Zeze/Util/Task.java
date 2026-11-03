@@ -339,7 +339,9 @@ public final class Task {
 			threadPoolScheduled = scheduled;
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
 			threadPoolDbIo = newDbIoPool();
-			ThreadDiagnosable.startDiagnose(30_000);
+			var tm = new TimeoutManager();
+			timeoutManager = tm;
+			tm.start();
 		} finally {
 			taskLock.unlock();
 		}
@@ -349,6 +351,11 @@ public final class Task {
 		var t = timeoutManager;
 		Objects.requireNonNull(t);
 		return t;
+	}
+
+	/** shutdown 窗口（管理器先置空、池后关）下在飞任务的 createTimeout 用它降级为无看门狗。 */
+	static @Nullable TimeoutManager getTimeoutManagerOrNull() {
+		return timeoutManager;
 	}
 
 	public static boolean tryInitThreadPool() {
@@ -402,11 +409,10 @@ public final class Task {
 				scheduledPool.setRemoveOnCancelPolicy(true);
 			threadPoolScheduled = scheduled;
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
-			var tm = new TimeoutManager();
 			threadPoolDbIo = newDbIoPool();
-			tm.start();
+			var tm = new TimeoutManager();
 			timeoutManager = tm;
-			ThreadDiagnosable.startDiagnose(30_000);
+			tm.start();
 			return true;
 		} finally {
 			taskLock.unlock();
@@ -414,14 +420,10 @@ public final class Task {
 	}
 
 	// 注意必须使用try包装,确保create和close配对
-	public static ThreadDiagnosable.Timeout createTimeout(long timeout) {
-		return new ThreadDiagnosable.Timeout(timeout);
+	public static @Nullable Timeout createTimeout(long timeout) {
+		return TimeoutDiagnosable.create(timeout);
 	}
 
-	// 注意必须使用try包装,确保create和close配对
-	public static ThreadDiagnosable.Critical enterCritical(boolean critical) {
-		return new ThreadDiagnosable.Critical(critical);
-	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).name(name).call()}。 */
 	@Deprecated

@@ -69,7 +69,7 @@ public class TimeoutManager {
 		}
 	}
 
-	static class TimeoutSet implements Comparable<TimeoutSet> {
+	public static class TimeoutSet implements Comparable<TimeoutSet> {
 		private final long id;
 		private final HashSet<Timeout> timeouts = new HashSet<>();
 		private final ReentrantLock lock = new ReentrantLock();

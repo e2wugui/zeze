@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
  * 预算+{@link #CANCEL_HANG_MARGIN_MS} 时发出双栈告警（无声挂死→有声，契约不变）。
  */
 public class TimerFuture<V extends @Nullable Object> extends ReentrantLock implements ScheduledFuture<V> {
-	// 告警阈值的余量：诊断线程按30s周期扫描超时（ThreadDiagnosable.startDiagnose(30_000)），
+	// 告警阈值的余量：任务看门狗按超时+秒桶量化（最多+1s，见 TimeoutDiagnosable）打断超时体，
 	// 到达阈值即"合法长体应已被看门狗打断仍未结束"——告警近乎确诊而非噪音。volatile：测试可调短。
 	public static volatile long CANCEL_HANG_MARGIN_MS = 35_000;
 
@@ -103,11 +103,11 @@ public class TimerFuture<V extends @Nullable Object> extends ReentrantLock imple
 			var sb = new StringBuilder();
 			if (owner != null) {
 				sb.append("owner thread '").append(owner.getName()).append("' stack:\n");
-				ThreadDiagnosable.formatStackTrace(owner.getStackTrace(), sb);
+				TimeoutDiagnosable.formatStackTrace(owner.getStackTrace(), sb);
 			} else
 				sb.append("owner already released\n");
 			sb.append("cancel thread '").append(Thread.currentThread().getName()).append("' stack:\n");
-			ThreadDiagnosable.formatStackTrace(Thread.currentThread().getStackTrace(), sb);
+			TimeoutDiagnosable.formatStackTrace(Thread.currentThread().getStackTrace(), sb);
 			logger.warn("TimerFuture({}) cancel blocked > {}ms acquiring lock, possible ABBA "
 					+ "(caller holds a lock the body needs) or uninterruptible body;\n{}", name,
 					timeoutMs + CANCEL_HANG_MARGIN_MS, sb);

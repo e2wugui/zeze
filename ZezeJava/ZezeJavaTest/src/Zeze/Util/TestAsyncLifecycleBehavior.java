@@ -87,17 +87,8 @@ public class TestAsyncLifecycleBehavior {
 		assertEquals(299, TaskCompletionSource.remainingNanos(Long.MAX_VALUE - 100, 500, Long.MIN_VALUE + 100));
 		assertEquals(Long.MAX_VALUE - 50,
 				TaskCompletionSource.remainingNanos(-100, Long.MAX_VALUE, -50));
-		try (var critical = new ThreadDiagnosable.Critical(true);
-			 var timeout = new ThreadDiagnosable.Timeout(Long.MAX_VALUE)) {
-			var started = ThreadDiagnosable.Timeout.class.getDeclaredField("started");
-			var duration = ThreadDiagnosable.Timeout.class.getDeclaredField("duration");
-			started.setAccessible(true);
-			duration.setAccessible(true);
-			started.setLong(timeout, -10_000_000_000L);
-			duration.setLong(timeout, 1_000_000_000L);
-			assertFalse(timeout.isExpired(-9_800_000_000L));
-			assertTrue(timeout.isExpired(-9_000_000_000L));
-		}
+		// 旧 ThreadDiagnosable.Timeout.isExpired 的时钟回绕边界随机制退役删除
+		// （看门狗现由 TimeoutDiagnosable+秒桶轮子承担，无 elapsed-nano 计算）。
 	}
 
 	@Test

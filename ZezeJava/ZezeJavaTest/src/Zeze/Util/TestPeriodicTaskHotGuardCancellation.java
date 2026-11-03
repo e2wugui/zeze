@@ -536,7 +536,6 @@ public class TestPeriodicTaskHotGuardCancellation {
 			} finally {
 				worker.shutdownNow();
 				scheduler.shutdownNow();
-				ThreadDiagnosable.stopDiagnose();
 			}
 		}
 		if (failure != null)

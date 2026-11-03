@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 import Zeze.Config;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
-import Zeze.Util.ThreadDiagnosable;
 import harness.Fast;
 import harness.ForkedJvm;
 import org.jspecify.annotations.Nullable;
@@ -25,11 +24,7 @@ public class TestRpcTimeoutCancellation {
 
 	@AfterEach
 	void cleanup() throws Exception {
-		try {
-			Task.shutdownNow(5_000);
-		} finally {
-			ThreadDiagnosable.stopDiagnose();
-		}
+		Task.shutdownNow(5_000);
 	}
 
 	@Test
