@@ -711,21 +711,32 @@ public class MasterDatabase {
 	// 且现行区间完整包含条目区间（创建时刻恒成立；不成立=条目已死或登记过晚，保守不登记——无身份
 	// 条目判死退回INV1）。取主表锁，必须在splitting锁外调用（锁序主表→splitting不可反取）。
 	private void registerSplittingGeneration(String tableName, BBucketMeta.Data entry) {
-		String source = null;
 		var mainTable = tables.get(tableName);
-		if (null != mainTable) {
-			mainTable.lock();
+		var splittingTable = splitting.get(tableName);
+		if (mainTable == null || splittingTable == null)
+			return;
+		mainTable.lock();
+		try {
+			splittingTable.lock();
 			try {
+				// 登记可晚于应答/扫描；旧目标的登记不得覆写同区间新目标的世代。
+				var current = splittingTable.buckets.get(entry.getKeyFirst());
+				if (current == null || !sameBucketMeta(current, entry)
+						|| !current.getRaftConfig().equals(entry.getRaftConfig()))
+					return;
 				var floor = mainTable.buckets.floorEntry(entry.getKeyFirst());
 				if (null != floor && rangeContains(floor.getValue().getKeyFirst(), floor.getValue().getKeyLast(),
-						entry.getKeyFirst(), entry.getKeyLast()))
-					source = raftIdentityOf(floor.getValue());
+						entry.getKeyFirst(), entry.getKeyLast())) {
+					var source = raftIdentityOf(floor.getValue());
+					if (source != null)
+						splittingAgeWriteQuietly(tableName, entry.getKeyFirst(), source);
+				}
 			} finally {
-				mainTable.unlock();
+				splittingTable.unlock();
 			}
+		} finally {
+			mainTable.unlock();
 		}
-		if (null != source)
-			splittingAgeWriteQuietly(tableName, entry.getKeyFirst(), source);
 	}
 
 	// 结构判死（FND29 dbh2-04）。判死证据永远结构驱动，年龄只是回收门槛（双保险防误杀在途split）：
