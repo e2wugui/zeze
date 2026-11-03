@@ -203,15 +203,16 @@ public class AutoKey extends ReentrantLock {
 	// 抬表水位（setSeed/increaseSeed）必须持AutoKey实例锁穿越提交点，且失效发布先于事务提交：
 	// 若提交后再失效，存在“提交与失效之间”的窗口——快路径在缝里消耗旧段号并通过复核返回，
 	// 合服时与存量id重号。失效先于提交后：发布到提交期间慢路径等锁进不来，不会用
-	// 旧水位重装段；快路径复核必失败（消耗作废成空洞，转慢路径）。失败/异常恢复现役段：水位
-	// 未动，恢复即原状（窗口内被并发消耗过的号已成空洞，无重号）。
+	// 旧水位重装段；快路径复核必失败（消耗作废成空洞，转慢路径）。仅确定事务失败时恢复现役段；
+	// 等待中断须等任务结束再释放锁，异常结果不确定时丢弃余段（允许空洞，不允许重号）。
 	private boolean raiseWatermark(String action, LongUnaryOperator raiser) {
+		boolean interrupted = false;
 		lock();
 		try {
 			var oldRange = range;
 			range = null; // 失效发布先于提交
 			try {
-				var success = Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
+				var future = TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 					var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 					var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 					var newSeed = raiser.applyAsLong(bAutoKey.getNextId()); // 负数=不抬（失败）
@@ -219,16 +220,28 @@ public class AutoKey extends ReentrantLock {
 						return Procedure.LogicError;
 					bAutoKey.setNextId(newSeed);
 					return 0;
-				}, action)).dispatchMode(DispatchMode.Critical).submitNow().get();
+				}, action)).dispatchMode(DispatchMode.Critical).submitNow();
+				long result;
+				while (true) {
+					try {
+						result = future.get();
+						break;
+					} catch (InterruptedException e) {
+						// 等待中断不会取消写库任务；须持锁等其结束，才能恢复旧段或允许重新批段。
+						interrupted = true;
+					}
+				}
+				var success = result == Procedure.Success;
 				if (!success)
 					range = oldRange;
 				return success;
-			} catch (InterruptedException | ExecutionException e) {
-				range = oldRange;
+			} catch (ExecutionException e) {
 				throw Task.forceThrow(e);
 			}
 		} finally {
 			unlock();
+			if (interrupted)
+				Thread.currentThread().interrupt();
 		}
 	}
 
