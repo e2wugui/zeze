@@ -18,8 +18,9 @@ public class TimeoutManager {
 	private @Nullable volatile Worker worker;
 
 	static class Concurrent extends ReentrantLock {
-		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>();
+		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>(1024);
 		private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
+		private int timeoutSetInitialCapacity = 1024;
 
 		Timeout schedule(Worker worker, long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
 			// 公开入口的上界校验即溢出防线：365天×1e6 与 Long.MAX 有 292× 余量，
@@ -30,7 +31,7 @@ public class TimeoutManager {
 			lock();
 			try {
 				var bucketSet = indexedMap.computeIfAbsent(indexId, (key) -> {
-					var set = new TimeoutSet(indexId);
+					var set = new TimeoutSet(indexId, timeoutSetInitialCapacity);
 					bucketQueue.offer(set);
 					worker.wakeup();
 					return set;
@@ -47,9 +48,9 @@ public class TimeoutManager {
 
 		long tick() {
 			while (true) {
-				lock();
-				TimeoutSet head = null;
+				TimeoutSet head;
 				var nowNs = System.nanoTime();
+				lock();
 				try {
 					head = bucketQueue.peek();
 					if (null == head)
@@ -63,7 +64,21 @@ public class TimeoutManager {
 				} finally {
 					unlock();
 				}
+				var size = head.size(); // run里面会clear，需要先读取。
 				head.run();
+
+				// 增长或缩减
+				// todo 计算时要不要考虑HashSet的因子
+				if (size > timeoutSetInitialCapacity)
+					timeoutSetInitialCapacity <<= 1;
+				else if (size < (timeoutSetInitialCapacity >> 1))
+					timeoutSetInitialCapacity >>= 1;
+
+				// 修订
+				if (timeoutSetInitialCapacity < 1024)
+					timeoutSetInitialCapacity = 1024;
+				else if (timeoutSetInitialCapacity > 1024 * 1024)
+					timeoutSetInitialCapacity = 1024 * 1024;
 			}
 		}
 
@@ -80,12 +95,17 @@ public class TimeoutManager {
 
 	public static class TimeoutSet implements Comparable<TimeoutSet> {
 		private final long id;
-		private final HashSet<Timeout> timeouts = new HashSet<>();
+		private final HashSet<Timeout> timeouts;
 		private final ReentrantLock lock = new ReentrantLock();
 		private boolean polled = false;
 
-		TimeoutSet(long id) {
+		TimeoutSet(long id, int timeoutSetInitialCapacity) {
 			this.id = id;
+			this.timeouts = new HashSet<>(timeoutSetInitialCapacity);
+		}
+
+		int size() {
+			return timeouts.size();
 		}
 
 		void add(Timeout t) {
