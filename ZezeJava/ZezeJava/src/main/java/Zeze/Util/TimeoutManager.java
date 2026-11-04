@@ -20,7 +20,8 @@ public class TimeoutManager {
 	static class Concurrent extends ReentrantLock {
 		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>(1024);
 		private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
-		private int timeoutSetInitialCapacity = 1024;
+		// 单写者(Worker)每排水一桶后直设；写在锁外，锁的HB边盖不住，须volatile让schedule读者立刻可见。
+		private volatile int timeoutSetInitialCapacity = 1024;
 
 		Timeout schedule(Worker worker, long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
 			// 公开入口的上界校验即溢出防线：365天×1e6 与 Long.MAX 有 292× 余量，
@@ -64,21 +65,13 @@ public class TimeoutManager {
 				} finally {
 					unlock();
 				}
-				var size = head.size(); // run里面会clear，需要先读取。
-				head.run();
+				var peak = head.run(); // 返回高水位：表容量由在场峰值决定（cancel缩不掉的历史峰）。
 
-				// 增长或缩减
-				// todo 计算时要不要考虑HashSet的因子
-				if (size > timeoutSetInitialCapacity)
-					timeoutSetInitialCapacity <<= 1;
-				else if (size < (timeoutSetInitialCapacity >> 1))
-					timeoutSetInitialCapacity >>= 1;
-
-				// 修订
-				if (timeoutSetInitialCapacity < 1024)
-					timeoutSetInitialCapacity = 1024;
-				else if (timeoutSetInitialCapacity > 1024 * 1024)
-					timeoutSetInitialCapacity = 1024 * 1024;
+				// 负载因子0.75折算零rehash容量，按峰值一步到位（比例控制）：
+				// 桶粒度1s、负载自相关，上桶峰值即下桶估计；阶梯翻倍在突发桶上要log2秒爬坡，
+				// 期间每秒新桶都在add锁内反复rehash。long中转防溢出，clamp [1024,1M]。
+				timeoutSetInitialCapacity = (int)Math.max(1024L,
+						Math.min(peak * 4L / 3 + 1, 1024L * 1024L));
 			}
 		}
 
@@ -104,15 +97,15 @@ public class TimeoutManager {
 			this.timeouts = new HashSet<>(timeoutSetInitialCapacity);
 		}
 
-		int size() {
-			return timeouts.size();
-		}
+		private int highWaterMark; // 锁内顺手维护在场峰值：容量需求的真实测量。
 
 		void add(Timeout t) {
 			// add和本类被poll互斥，这里不需要保护。
 			lock.lock();
 			try {
 				timeouts.add(t);
+				if (timeouts.size() > highWaterMark)
+					highWaterMark = timeouts.size();
 			} finally {
 				lock.unlock();
 			}
@@ -129,10 +122,12 @@ public class TimeoutManager {
 			}
 		}
 
-		void run() {
+		int run() {
+			int peak;
 			lock.lock();
 			try {
 				polled = true;
+				peak = highWaterMark; // 锁内取：与add/remove互斥，无脏读。
 			} finally {
 				lock.unlock();
 			}
@@ -141,6 +136,7 @@ public class TimeoutManager {
 				TaskSpec.ofAction(timeout).dispatchMode(timeout.getDispatchMode()).executeSystemOneByOne();
 			}
 			timeouts.clear();
+			return peak;
 		}
 
 		@Override
