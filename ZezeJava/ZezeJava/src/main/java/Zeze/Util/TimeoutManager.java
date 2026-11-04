@@ -70,8 +70,7 @@ public class TimeoutManager {
 				// 负载因子0.75折算零rehash容量，按峰值一步到位（比例控制）：
 				// 桶粒度1s、负载自相关，上桶峰值即下桶估计；阶梯翻倍在突发桶上要log2秒爬坡，
 				// 期间每秒新桶都在add锁内反复rehash。long中转防溢出，clamp [1024,1M]。
-				timeoutSetInitialCapacity = (int)Math.max(1024L,
-						Math.min(peak * 4L / 3 + 1, 1024L * 1024L));
+				timeoutSetInitialCapacity = (int)Math.clamp(peak * 4L / 3 + 1, 1024L, 1024L * 1024L);
 			}
 		}
 
