@@ -1,20 +1,21 @@
 package Zeze.Net;
 
 import harness.Fast;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
+import Zeze.Util.TimeoutManager;
 import demo.Module1.BValue;
 
 /**
- * Rpc 超时兜底定时器的生命周期契约：
- * 1. 应答成功消费上下文时定时器必须被取消且从调度队列移除（removeOnCancel）——
- *    不取消则定时器λ捕获的 rpc 全家桶滞留=速率×超时窗口（2026-11-01 soak bench OOM 根因，
- *    退化态实测 BenchRpc↔ScheduledFutureTask 1:1 配对，同 JVM 第二跑残留+新分配叠爆）。
- * 2. 无应答时超时兜底路径不受取消逻辑影响：定时器照常触发，future 异常完成。
+ * Rpc 超时兜底定时器的生命周期契约（轮子换代版，断言对象=TimeoutManager 秒桶条目数）：
+ * 1. 应答成功消费上下文时定时器必须被取消且条目移出秒桶（cancelTimeout→Timeout.cancel→
+ *    TimeoutSet.remove）——不取消则定时器λ捕获的 rpc 全家桶滞留=速率×超时窗口（2026-11-01
+ *    soak bench OOM 根因）。旧版断言 ScheduledThreadPoolExecutor 队列快照，Rpc 上轮子后对
+ *    Rpc 恒真，且共享池残留制造降级窗假红（2026-11-05 台账），改钉轮子真身。
+ * 2. 无应答时超时兜底路径不受取消逻辑影响：定时器照常触发，future 异常完成，桶排水后条目归零。
  */
 @Fast
 public class TestRpcTimeoutTimerLeak {
@@ -41,22 +42,19 @@ public class TestRpcTimeoutTimerLeak {
 			AsyncSocket socket = client.newClientSocket("127.0.0.1", port, null, null);
 			Assertions.assertNotNull(connected.get(10, TimeUnit.SECONDS), "10s内连接必须建立");
 
-			var scheduled = (ScheduledThreadPoolExecutor)Task.getScheduledThreadPool();
-			Assertions.assertNotNull(scheduled, "scheduled pool must be initialized");
-			int baseline = scheduled.getQueue().size();
+			var manager = Task.getTimeoutManager();
+			int baseline = manager.size();
 			final int count = 500;
 			for (int i = 0; i < count; ++i) {
 				var rpc = new TimerRpc();
 				rpc.Argument.setInt_1(i);
 				rpc.SendForWait(socket, 60_000).await();
 				// await 返回即应答已消费：removeRpcContext 已收口 cancelTimeout，
-				// 且 removeOnCancel 保证节点同步移除——队列此刻不应有任何本批定时器残留
+				// cancel 链必须把条目真正移出秒桶——轮上条目数应回落基线
 				Assertions.assertEquals(i, rpc.Result.getInt_1(), "echo integrity");
 			}
-			int after = scheduled.getQueue().size();
-			Assertions.assertTrue(after <= baseline + 2,
-					"timeout timers not cancelled after response: queue " + baseline + " -> " + after
-							+ " (" + count + " rpcs sent)");
+			awaitWheelDrained(manager, baseline,
+					"timeout timers not cancelled after response (" + count + " rpcs sent)");
 		} finally {
 			if (client != null)
 				client.stop();
@@ -81,8 +79,8 @@ public class TestRpcTimeoutTimerLeak {
 			AsyncSocket socket = client.newClientSocket("127.0.0.1", port, null, null);
 			Assertions.assertNotNull(connected.get(10, TimeUnit.SECONDS), "10s内连接必须建立");
 
-			var scheduled = (ScheduledThreadPoolExecutor)Task.getScheduledThreadPool();
-			int baseline = scheduled.getQueue().size();
+			var manager = Task.getTimeoutManager();
+			int baseline = manager.size();
 
 			var rpc = new TimerRpc();
 			rpc.Argument.setInt_1(NO_ANSWER_MARKER); // 服务端不回包
@@ -95,13 +93,29 @@ public class TestRpcTimeoutTimerLeak {
 					"cause must be RpcTimeoutException but was " + ex.getCause());
 			Assertions.assertTrue(rpc.isTimeout(), "isTimeout flag");
 
-			// 超时任务已触发并出队：队列回到基线
-			Assertions.assertTrue(scheduled.getQueue().size() <= baseline + 2,
-					"fired timeout task must leave the queue");
+			// 超时任务已触发并排水：桶内条目数回到基线
+			awaitWheelDrained(manager, baseline, "fired timeout task must leave the wheel buckets");
 		} finally {
 			if (client != null)
 				client.stop();
 			server.stop();
+		}
+	}
+
+	/** 等待式断言（轮子换代版，取代旧 STPE 队列快照——快照在共享池残留下降级窗假红，见
+	 * 假红台账 2026-11-05）：轮上条目回到基线+松弛（+2 给并行类在飞条目），有界 10s，
+	 * 超时带计数红。size() 与并发 cancel 竞态只偏大，轮询必然收敛。 */
+	private static void awaitWheelDrained(TimeoutManager manager, int baseline, String msg) {
+		var deadline = System.nanoTime() + 10_000_000_000L;
+		while (manager.size() > baseline + 2) {
+			if (System.nanoTime() - deadline > 0)
+				Assertions.fail(msg + ": wheel size " + manager.size() + " > baseline " + baseline + " + 2 after 10s");
+			try {
+				Thread.sleep(50);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				Assertions.fail(msg + ": interrupted while waiting for wheel to drain");
+			}
 		}
 	}
 

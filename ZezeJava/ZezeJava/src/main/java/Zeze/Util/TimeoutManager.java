@@ -83,6 +83,18 @@ public class TimeoutManager {
 				unlock();
 			}
 		}
+
+		int pendingSize() {
+			lock();
+			try {
+				int total = 0;
+				for (var set : bucketQueue) // 迭代器全量访问活桶（无序）；LongHashMap 无 values() 故走堆
+					total += set.size();
+				return total;
+			} finally {
+				unlock();
+			}
+		}
 	}
 
 	public static class TimeoutSet implements Comparable<TimeoutSet> {
@@ -116,6 +128,15 @@ public class TimeoutManager {
 			try {
 				if (!polled)
 					timeouts.remove(t);
+			} finally {
+				lock.unlock();
+			}
+		}
+
+		int size() {
+			lock.lock(); // 桶锁内精确读：与add/remove互斥；调用方pendingSize先持分片锁，锁序stripe→set与schedule一致
+			try {
+				return timeouts.size();
 			} finally {
 				lock.unlock();
 			}
@@ -164,6 +185,15 @@ public class TimeoutManager {
 			throw new IllegalStateException("worker has not been set");
 		// unsigned mod % 16
 		return concurrents[(int)(Thread.currentThread().threadId() & 15)].schedule(w, timeoutMs, action0, timeoutFactory);
+	}
+
+	/** 当前在桶内的超时条目总数。诊断/测试观测点：逐桶桶锁内精确读、逐分片分片锁内求和；
+	 * 跨桶/跨分片是不同时刻的读，非一致快照——总量对"等待回落"类断言必然可收敛。 */
+	public int size() {
+		int total = 0;
+		for (var c : concurrents)
+			total += c.pendingSize();
+		return total;
 	}
 
 	public synchronized void start() {
