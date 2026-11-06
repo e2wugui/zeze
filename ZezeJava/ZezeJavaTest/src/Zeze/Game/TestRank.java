@@ -34,6 +34,13 @@ public class TestRank {
 			disableTest = true;
 			return;
 		}
+		// 多App（APP_COUNT个SimpleApp集群）按裁定保持Memory：任何测试后端重定向（RocksDb等）下
+		// 自禁（对齐上方GlobalRaft自禁先例；config在SimpleApp内构建，无法逐config登记keepOriginal）。
+		if (System.getProperty("zeze.test.database") != null) {
+			System.out.println("Test Rank Disable On Backend Redirect.");
+			disableTest = true;
+			return;
+		}
 
 		System.out.println("------ setUp begin");
 		try {

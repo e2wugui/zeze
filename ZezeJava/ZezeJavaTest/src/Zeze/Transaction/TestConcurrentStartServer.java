@@ -31,6 +31,8 @@ public class TestConcurrentStartServer {
 				config1.setServerId(20);
 				config1.getServiceConfMap().remove("TestServer");
 				config1.getServiceConfMap().remove("Zeze.Onz.Server");
+				// 三App并发同进程保持原Memory后端：RocksDb等重定向目标不支持多App（目录锁），豁免选择。
+				harness.TestDatabaseConfig.keepOriginal(config1);
 				app1.Start(config1);
 				start1.value = 1;
 			} catch (Throwable e) {
@@ -44,6 +46,7 @@ public class TestConcurrentStartServer {
 				config2.setServerId(21);
 				config2.getServiceConfMap().remove("TestServer");
 				config2.getServiceConfMap().remove("Zeze.Onz.Server");
+				harness.TestDatabaseConfig.keepOriginal(config2);
 				app2.Start(config2);
 				start2.value = 1;
 			} catch (Throwable e) {
@@ -57,6 +60,7 @@ public class TestConcurrentStartServer {
 				config3.setServerId(22);
 				config3.getServiceConfMap().remove("TestServer");
 				config3.getServiceConfMap().remove("Zeze.Onz.Server");
+				harness.TestDatabaseConfig.keepOriginal(config3);
 				app3.Start(config3);
 				start3.value = 1;
 			} catch (Throwable e) {

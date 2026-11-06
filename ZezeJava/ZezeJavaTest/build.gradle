@@ -420,7 +420,9 @@ def cleanTestResidue = tasks.register('cleanTestResidue') {
 tasks.withType(Test).configureEach {
     finalizedBy cleanTestResidue
     // 测试后端选择（harness.TestDatabaseConfig，创建 Application 前应用）：-PzezeTestDatabase=MySql
-    // -PzezeTestDatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=...&password=..."。
+    // -PzezeTestDatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=...&password=..."；
+    // -PzezeTestDatabase=RocksDb（每库自动独立目录，不接受url）。多App测试经
+    // TestDatabaseConfig.keepOriginal 豁免（RocksDb目录锁不支持同进程多App，保持原后端）。
     // 缺席=默认Memory；独立Memory桶与其他后端不切换，Memory语义测试不调用该助手。
     if (findProperty('zezeTestDatabase') != null) {
         systemProperty 'zeze.test.database', findProperty('zezeTestDatabase')

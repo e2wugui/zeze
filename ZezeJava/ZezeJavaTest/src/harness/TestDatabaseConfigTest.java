@@ -110,6 +110,46 @@ public class TestDatabaseConfigTest {
 		assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
 	}
 
+	@Test
+	public void rocksDbSelectionCreatesIndependentDirectoriesPerDatabase() {
+		var config = config();
+		config.setGlobalCacheManagerHostNameOrAddress("127.0.0.1");
+		var other = new Config.DatabaseConf();
+		other.setName("other");
+		config.getDatabaseConfMap().put("other", other);
+		assertSame(config, TestDatabaseConfig.apply(config, "RocksDb", null));
+		var urls = new java.util.HashSet<String>();
+		for (var db : config.getDatabaseConfMap().values()) {
+			assertEquals(Config.DbType.RocksDb, db.getDatabaseType());
+			assertTrue(db.getDatabaseUrl().contains("test-rocksdb"), "目录集中在build/test-rocksdb下");
+			assertTrue(urls.add(db.getDatabaseUrl()), "每个数据库必须独立目录（目录锁不互斥、状态不共享）");
+		}
+		assertNull(config.getDatabaseConfMap().get("shared").getDruidConf(), "RocksDb不动连接池配置");
+		assertEquals("", config.getGlobalCacheManagerHostNameOrAddress(), "RocksDb连Global配置一起摘（createDatabase硬闸）");
+		assertFalse(config.hasGlobal());
+		// 已选后端不重复切换（对齐JDBC路径的空集早退语义）。
+		assertSame(config, TestDatabaseConfig.apply(config, "unsupported", null));
+	}
+
+	@Test
+	public void rocksDbSelectionRejectsUrl() {
+		var config = config();
+		assertThrows(IllegalStateException.class,
+				() -> TestDatabaseConfig.apply(config, "RocksDb", "jdbc:mysql://localhost/test"));
+		assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
+		assertEquals("", config.getDatabaseConfMap().get("shared").getDatabaseUrl());
+	}
+
+	@Test
+	public void keepOriginalExemptsRedirect() {
+		var config = config();
+		assertSame(config, TestDatabaseConfig.keepOriginal(config));
+		assertSame(config, TestDatabaseConfig.apply(config, "MySql", "jdbc:mysql://localhost/test"));
+		assertSame(config, TestDatabaseConfig.apply(config, "RocksDb", null));
+		assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
+		assertEquals("", config.getDatabaseConfMap().get("shared").getDatabaseUrl());
+	}
+
 	@ParameterizedTest
 	@MethodSource("backends")
 	void rejectsMissingUrlWithoutChangingConfiguration(Backend backend) {

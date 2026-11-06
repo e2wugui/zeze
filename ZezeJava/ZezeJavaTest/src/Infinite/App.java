@@ -24,6 +24,9 @@ public class App {
 
 	public App(int serverId, boolean history) {
 		config = Config.load("zeze.xml");
+		// Simulate起AppCount个App同进程双活：豁免后端重定向保持原Memory（RocksDb等目标
+		// 不支持同进程多App目录锁）；下方独占桶是数据隔离需要，不承担豁免职责。
+		harness.TestDatabaseConfig.keepOriginal(config);
 		config.setServerId(serverId);
 		config.setFastRedoWhenConflict(false);
 		config.setCheckpointPeriod(1000);

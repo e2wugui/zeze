@@ -73,6 +73,9 @@ public class TestGlobal {
 		config2.getServiceConfMap().remove("TestServer");
 		config1.getServiceConfMap().remove("Zeze.Onz.Server");
 		config2.getServiceConfMap().remove("Zeze.Onz.Server");
+		// 双App保持原Memory后端：RocksDb等重定向目标不支持同进程多App（目录锁），豁免选择。
+		harness.TestDatabaseConfig.keepOriginal(config1);
+		harness.TestDatabaseConfig.keepOriginal(config2);
 
 		app1.Start(config1);
 		app2.Start(config2);

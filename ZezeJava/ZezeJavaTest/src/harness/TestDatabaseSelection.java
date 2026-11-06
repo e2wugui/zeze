@@ -5,6 +5,7 @@ import Zeze.Config;
 import Zeze.Transaction.DatabaseMemory;
 import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabasePostgreSQL;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DatabaseSqlServer;
 import org.junit.jupiter.api.Test;
 
@@ -39,6 +40,7 @@ public class TestDatabaseSelection {
 				case "MySql" -> DatabaseMySql.class;
 				case "PostgreSQL" -> DatabasePostgreSQL.class;
 				case "SqlServer" -> DatabaseSqlServer.class;
+				case "RocksDb" -> DatabaseRocksDb.class;
 				default -> DatabaseMemory.class;
 			};
 			assertInstanceOf(expectedClass, app.getDatabase(""));
