@@ -1,5 +1,5 @@
-local old_version = "2.0.6-SNAPSHOT"
-local new_version = "2.0.6"
+local old_version = "2.0.6"
+local new_version = "2.0.7-SNAPSHOT"
 
 local files = {
 	{ 1, "build.gradle" },
