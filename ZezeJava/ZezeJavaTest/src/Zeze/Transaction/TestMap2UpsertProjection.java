@@ -75,7 +75,7 @@ public class TestMap2UpsertProjection {
 		assertEquals(Set.of(1, 2), values.keySet());
 		assertSame(changed, values.get(1));
 		assertSame(replacement, values.get(2));
-		assertEquals(Set.of(3), payload.getRemoved());
+		assertNull(payload.getModified().get(3), "removed 键以 null tombstone 表示");
 		assertArrayEquals(before, encode(payload));
 	}
 
@@ -94,7 +94,7 @@ public class TestMap2UpsertProjection {
 		assertSame(changedValue, values.get(1));
 		assertSame(replacement, values.get(10));
 		assertArrayEquals(before, encode(payload));
-		assertEquals(1, payload.getReplaced().size());
+		assertEquals(1, payload.getModified().size());
 		assertEquals(1, payload.getChangedWithKey().size());
 	}
 
@@ -122,10 +122,10 @@ public class TestMap2UpsertProjection {
 			assertNull(values.put(key, value.getLong2()), "each key must be delivered once");
 		});
 		assertEquals(Map.of(1, 1L, 2, 2L, 3, 3L, 4, 4L, 5, 5L), values);
-		// 投影不保证联合顺序；各底层容器仍保留源比较器。
-		assertEquals(List.of(5, 3, 1), new ArrayList<>(payload.getReplaced().keySet()));
+		// 投影不保证联合顺序；各底层容器仍保留源比较器（modified 为 TreeMap：整体键序即比较器序）。
+		assertEquals(List.of(6, 5, 3, 1), new ArrayList<>(payload.getModified().keySet()));
 		assertEquals(List.of(4, 2), new ArrayList<>(payload.getChangedWithKey().keySet()));
-		assertEquals(Set.of(6), payload.getRemoved());
+		assertNull(payload.getModified().get(6));
 		assertArrayEquals(before, encode(payload));
 	}
 
@@ -155,7 +155,7 @@ public class TestMap2UpsertProjection {
 		assertEquals(2, values.size());
 		assertSame(replacement, values.get("ALPHA"));
 		assertSame(changed, values.get("BRAVO"));
-		assertTrue(payload.getRemoved().contains("CHARLIE"));
+		assertTrue(payload.getModified().containsKey("CHARLIE"), "tombstone 键等价（比较器折叠）必须命中");
 		assertEquals(1, payload.getChangedWithKey().size());
 		assertArrayEquals(before, encode(payload));
 	}
@@ -196,7 +196,7 @@ public class TestMap2UpsertProjection {
 	@SuppressWarnings("unchecked")
 	public void decodedMixedMapPayloadRejectsProjectionBeforeAnyAction() {
 		var source = Map2TestSupport.wireLog(new PMap2<Integer, BValue>(Integer.class, BValue.class));
-		source.getReplaced().put(1, bean(10));
+		source.getModified().put(1, bean(10));
 		source.getChangedWithKey().put(2, fieldChange(bean(7)));
 		var decoded = Zeze.Transaction.Map2TestSupport.decode(Map2TestSupport.wireLog(new PMap2<Integer, BValue>(Integer.class, BValue.class)), ByteBuffer.Wrap(encode(source)));
 		var actions = new AtomicInteger();
@@ -208,7 +208,7 @@ public class TestMap2UpsertProjection {
 	@SuppressWarnings("unchecked")
 	public void decodedMixedSortedPayloadRejectsProjectionBeforeAnyAction() {
 		var source = Map2TestSupport.wireLog(new PSortedMap2<Integer, BValue>(Integer.class, BValue.class));
-		source.getReplaced().put(1, bean(10));
+		source.getModified().put(1, bean(10));
 		source.getChangedWithKey().put(2, fieldChange(bean(7)));
 		var decoded = Zeze.Transaction.Map2TestSupport.decode(Map2TestSupport.wireLog(new PSortedMap2<Integer, BValue>(Integer.class, BValue.class)), ByteBuffer.Wrap(encode(source)));
 		var actions = new AtomicInteger();

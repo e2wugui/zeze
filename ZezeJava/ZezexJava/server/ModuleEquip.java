@@ -349,9 +349,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 					SEquipement changed2 = new SEquipement();
 					changed2.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
 					notemap2.forEachUpsert(changed2.Argument.getItemsReplace()::put);
-					for (var p : notemap2.getRemoved()) {
-						changed2.Argument.getItemsRemove().add(p);
-					}
+					notemap2.forEachRemoved(changed2.Argument.getItemsRemove()::add);
 					OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed2);
 				}
 				break;

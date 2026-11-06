@@ -2,9 +2,7 @@ package Zeze.Transaction.Collections;
 
 import java.util.Comparator;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -15,9 +13,8 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogM
 	private final @Nullable Comparator<? super K> comparator;
 
 	public LogSortedMap2(int varId, @Nullable Bean self,
-			@Nullable Comparator<? super K> comparator, Meta2<K, V> meta,
-			@Nullable Map<K, V> replaced, @Nullable Set<K> removed) {
-		super(varId, self, meta, replaced, removed);
+			@Nullable Comparator<? super K> comparator, Meta2<K, V> meta, @Nullable Map<K, V> modified) {
+		super(varId, self, meta, modified);
 		this.comparator = comparator;
 	}
 
@@ -28,11 +25,6 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogM
 	@Override
 	<T> Map<K, T> newMap() {
 		return new TreeMap<>(comparator);
-	}
-
-	@Override
-	Set<K> newKeySet() {
-		return new TreeSet<>(comparator);
 	}
 
 	@Override
@@ -48,7 +40,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogM
 
 	public static <K extends Comparable<K>, V extends Bean> LogSortedMap2<K, V> decode(
 			int varId, Meta2<K, V> meta, @Nullable Comparator<? super K> comparator, IByteBuffer bb) {
-		var log = new LogSortedMap2<>(varId, null, comparator, meta, null, null);
+		var log = new LogSortedMap2<>(varId, null, comparator, meta, null);
 		log.read(bb);
 		return log;
 	}

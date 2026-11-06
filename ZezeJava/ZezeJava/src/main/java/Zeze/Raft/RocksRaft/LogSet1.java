@@ -1,9 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.HashMap;
 import java.util.Objects;
-
-import java.util.HashSet;
-import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -11,15 +9,18 @@ import Zeze.Serialize.SerializeHelper;
 import Zeze.Collections.Persistents;
 
 /**
- * 基础类型 Set 容器的增量日志：记录 added/removed 两个差量集合。
+ * 基础类型 Set 容器的增量日志：单容器 modified 记差量，
+ * value 为 PRESENT 表示加入、null 表示删除（同 HashSet 底层 HashMap 惯例）。
  */
 public class LogSet1<V> extends LogSet<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogSet1<");
 
+	/** 加入项的哑值（同 HashSet 底层 HashMap 的 PRESENT 惯例）：set 无值语义，value 槽只作判别位。 */
+	public static final Object PRESENT = new Object();
+
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
-	private final Set<V> added = new HashSet<>();
-	private final Set<V> removed = new HashSet<>();
+	private final HashMap<V, Object> modified = new HashMap<>();
 
 	public LogSet1(Class<V> valueClass) {
 		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
@@ -31,20 +32,15 @@ public class LogSet1<V> extends LogSet<V> {
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
 
-	public final Set<V> getAdded() {
-		return added;
-	}
-
-	public final Set<V> getRemoved() {
-		return removed;
+	public final HashMap<V, Object> getModified() {
+		return modified;
 	}
 
 	public final boolean add(V item) {
 		//noinspection DataFlowIssue
 		var newSet = getValue().plus(item);
 		if (newSet != getValue()) {
-			added.add(item);
-			removed.remove(item);
+			modified.put(item, PRESENT);
 			setValue(newSet);
 			return true;
 		}
@@ -55,8 +51,7 @@ public class LogSet1<V> extends LogSet<V> {
 		//noinspection DataFlowIssue
 		var newSet = getValue().minus(item);
 		if (newSet != getValue()) {
-			removed.add(item);
-			added.remove(item);
+			modified.put(item, null);
 			setValue(newSet);
 			return true;
 		}
@@ -72,27 +67,32 @@ public class LogSet1<V> extends LogSet<V> {
 	@Override
 	public void encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
+		// 两遍split编码：线格式与added/removed双容器时代逐字节一致。
+		int addedCount = 0;
+		for (var e : modified.entrySet())
+			if (e.getValue() != null)
+				addedCount++;
+		bb.WriteUInt(addedCount);
+		for (var e : modified.entrySet())
+			if (e.getValue() != null)
+				encoder.accept(bb, e.getKey());
 
-		bb.WriteUInt(added.size());
-		for (var e : added)
-			encoder.accept(bb, e);
-
-		bb.WriteUInt(removed.size());
-		for (var e : removed)
-			encoder.accept(bb, e);
+		bb.WriteUInt(modified.size() - addedCount);
+		for (var e : modified.entrySet())
+			if (e.getValue() == null)
+				encoder.accept(bb, e.getKey());
 	}
 
 	@Override
 	public void decode(IByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 
-		added.clear();
+		modified.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
-			added.add(decoder.apply(bb));
+			modified.put(decoder.apply(bb), PRESENT);
 
-		removed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
-			removed.add(decoder.apply(bb));
+			modified.put(decoder.apply(bb), null);
 	}
 
 	@Override
@@ -108,16 +108,9 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	private void merge(LogSet1<V> from) {
-		// 嵌套的增量覆盖同 key 的外层增量（add覆盖remove、remove覆盖add）：
-		// 例：this: add 1,3 remove 2,4; nest: add 2 remove 1 → 合并后 added=2,3 removed=1,4。
-		for (var e : from.added) {
-			removed.remove(e); // replace 1,2,3 remove 4
-			added.add(e);
-		}
-		for (var e : from.removed) {
-			added.remove(e); // replace 2,3 remove 1,4
-			removed.add(e);
-		}
+		// 单容器putAll即last-writer-wins（add覆盖remove、remove覆盖add）：
+		// 例：this: add 1,3 remove 2,4; nest: add 2 remove 1 → 合并后 2,3=PRESENT、1,4=null。
+		modified.putAll(from.modified);
 	}
 
 	@Override
@@ -133,10 +126,8 @@ public class LogSet1<V> extends LogSet<V> {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append(" Added:");
-		ByteBuffer.BuildSortedString(sb, added);
-		sb.append(" Removed:");
-		ByteBuffer.BuildSortedString(sb, removed);
+		sb.append(" Modified:");
+		ByteBuffer.BuildSortedString(sb, modified);
 		return sb.toString();
 	}
 }

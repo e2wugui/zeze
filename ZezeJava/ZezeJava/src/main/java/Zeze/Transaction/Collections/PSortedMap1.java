@@ -1,5 +1,7 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import Zeze.Serialize.ByteBuffer;
@@ -130,7 +132,27 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	public void followerApply(Log _log) {
 		//noinspection unchecked
 		var log = (LogSortedMap1<K, V>)_log;
-		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
+		var modified = log.getModified();
+		if (modified.isEmpty())
+			return;
+		// 单遍分区批量应用（同PMap1.followerApply）：等价旧 minusAll(removed).plusAll(replaced)。
+		HashMap<K, V> puts = null;
+		ArrayList<K> removes = null;
+		for (var e : modified.entrySet()) {
+			if (e.getValue() != null) {
+				if (puts == null)
+					puts = new HashMap<>(modified.size() * 2);
+				puts.put(e.getKey(), e.getValue());
+			} else {
+				if (removes == null)
+					removes = new ArrayList<>(modified.size());
+				removes.add(e.getKey());
+			}
+		}
+		if (removes != null)
+			map = map.minusAll(removes);
+		if (puts != null)
+			map = map.plusAll(puts);
 	}
 
 	public void assign(PSortedMap1<K, V> pmap) {
@@ -186,9 +208,9 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
-			return new LogSortedMap1<>(variableId(), this, map.comparator(), meta, null, null);
+			return new LogSortedMap1<>(variableId(), this, map.comparator(), meta, null);
 		//noinspection unchecked
 		var delta = (LogSortedMapDelta.Map1<K, V>)finalLog;
-		return new LogSortedMap1<>(variableId(), this, map.comparator(), meta, delta.getReplaced(), delta.getRemoved());
+		return new LogSortedMap1<>(variableId(), this, map.comparator(), meta, delta.getModified());
 	}
 }

@@ -82,9 +82,9 @@ public class ItemsChangeListener implements ChangeListener {
             // 增量变化，仅发送修改的部分
             var noteMap = (LogMap2<Integer, BItem>) r.getVariableLog(BRole.VAR_Items);
             if (noteMap != null) {
-                // 将 Changed 合并到 Replaced，简化客户端处理
-                noteMap.MergeChangedToReplaced();
-                sendDeltaToClient(roleId, noteMap.getReplaced(), noteMap.getRemoved());
+                // upsert=新增/替换/原位修改的完整值；removed=本次删除的键
+                noteMap.forEachUpsert((k, v) -> sendItemToClient(roleId, k, v));
+                noteMap.forEachRemoved(k -> sendItemRemoveToClient(roleId, k));
             }
             break;
         case Changes.Record.Remove:

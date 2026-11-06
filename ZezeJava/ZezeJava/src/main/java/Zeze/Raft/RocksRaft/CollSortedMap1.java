@@ -2,6 +2,8 @@ package Zeze.Raft.RocksRaft;
 
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Objects;
 
 import Zeze.Serialize.ByteBuffer;
@@ -84,7 +86,27 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap1<K, V>)_log;
-		map = map.plusAll(log.getPutted()).minusAll(log.getRemoved());
+		var modified = log.getModified();
+		if (modified.isEmpty())
+			return;
+		// 单遍分区批量应用：等价旧 plusAll(putted).minusAll(removed)。
+		HashMap<K, V> puts = null;
+		ArrayList<K> removes = null;
+		for (var e : modified.entrySet()) {
+			if (e.getValue() != null) {
+				if (puts == null)
+					puts = new HashMap<>(modified.size() * 2);
+				puts.put(e.getKey(), e.getValue());
+			} else {
+				if (removes == null)
+					removes = new ArrayList<>(modified.size());
+				removes.add(e.getKey());
+			}
+		}
+		if (puts != null)
+			map = map.plusAll(puts);
+		if (removes != null)
+			map = map.minusAll(removes);
 	}
 
 	@SuppressWarnings("unchecked")

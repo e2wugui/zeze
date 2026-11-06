@@ -56,8 +56,8 @@ public class TestDynamicTableLogRegistry {
 		try {
 			app.start(); // 启动闭包注册完毕；不含 BValue（demo 模块未挂载）
 
-			var mapTypeId = new LogMap1<Long, Long>(0, null, Map1Meta.get(Long.class, Long.class), null, null).getTypeId();
-			var sortedMapTypeId = new LogSortedMap1<Integer, Integer>(0, null, null, SortedMap1Meta.get(Integer.class, Integer.class), null, null).getTypeId();
+			var mapTypeId = new LogMap1<Long, Long>(0, null, Map1Meta.get(Long.class, Long.class), null).getTypeId();
+			var sortedMapTypeId = new LogSortedMap1<Integer, Integer>(0, null, null, SortedMap1Meta.get(Integer.class, Integer.class), null).getTypeId();
 
 			// 运行期动态开表（TableDynamic 构造器内即 openDynamicTable）。
 			new TableDynamic<Long, BValue>(app, "TestDynamicTableLogRegistry_t1",

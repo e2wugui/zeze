@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.pcollections.TreePMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -84,8 +85,8 @@ public class TestSortedMapEquivalentKeysReplay {
 		log.setValue(leader.map);
 		log.remove(decimal("1.00"));
 		log.put(decimal("1.000"), 20);
-		assertTrue(log.getRemoved().isEmpty(), "put必须撤销等价键的remove");
-		assertEquals(1, log.getPutted().size());
+		assertEquals(1, log.getModified().size(), "put必须覆盖等价键的remove tombstone（单槽位）");
+		assertNotNull(log.getModified().get(decimal("1.000")));
 		leader.leaderApplyNoRecursive(log);
 		var decoded = new LogSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		var input = encode(log);
@@ -110,10 +111,12 @@ public class TestSortedMapEquivalentKeysReplay {
 		nested.remove(decimal("1.00"));
 		nested.put(decimal("1.000"), 20);
 		nested.endSavepoint(savepoint);
-		assertEquals(1, log.getPutted().size(), "合并不能留下两个等价替换键");
-		assertTrue(log.getRemoved().isEmpty());
+		assertEquals(1, log.getModified().size(), "合并不能留下两个等价替换键");
+		assertNotNull(log.getModified().get(decimal("1.000")));
 		log.clear();
-		assertTrue(log.getPutted().isEmpty(), "clear须撤销所有等价键的替换");
+		assertTrue(log.getModified().isEmpty() || log.getModified().containsValue(null),
+				"clear须将所有等价键槽位置为tombstone");
+		log.put(decimal("1.0000"), 30);
 		log.put(decimal("1.0000"), 30);
 		var decoded = new LogSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		decoded.decode(encode(log));
@@ -178,7 +181,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		var decoded = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
 		decoded.decode(encode(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "再次编码须剔除被替换bean的旧changed");
-		assertTrue(decoded.getRemoved().isEmpty());
+		assertNotNull(decoded.getModified().get(decimal("1.000")), "put须覆盖等价键的remove tombstone");
 		follower.followerApply(decoded);
 		assertEquals(1, follower.size());
 		assertEquals(20, requireNonNull(follower.get(decimal("1"))).value);

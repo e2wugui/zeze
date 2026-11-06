@@ -3,14 +3,13 @@ package Zeze.Raft.RocksRaft;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 
 /**
- * 基础类型 Map 容器的增量日志：记录 putted/removed 两个键集差量。
+ * 基础类型 Map 容器的增量日志：单容器 modified 记键差量，value 非 null 为 put、null 为 remove。
  */
 public class LogMap1<K, V> extends LogMap<K, V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap1<");
@@ -18,8 +17,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs;
 
-	private final HashMap<K, V> putted = new HashMap<>();
-	private final Set<K> removed = new HashSet<>();
+	private final HashMap<K, V> modified = new HashMap<>();
 
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
 		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
@@ -37,12 +35,8 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
 
-	public final HashMap<K, V> getPutted() {
-		return putted;
-	}
-
-	public final Set<K> getRemoved() {
-		return removed;
+	public final HashMap<K, V> getModified() {
+		return modified;
 	}
 
 	public final V get(K key) {
@@ -57,15 +51,13 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	public final void put(K key, V value) {
 		//noinspection DataFlowIssue
 		setValue(getValue().plus(key, value));
-		putted.put(key, value);
-		removed.remove(key);
+		modified.put(key, value);
 	}
 
 	public final void remove(K key) {
 		//noinspection DataFlowIssue
 		setValue(getValue().minus(key));
-		putted.remove(key);
-		removed.add(key);
+		modified.put(key, null);
 	}
 
 	public final void clear() {
@@ -77,35 +69,40 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteUInt(putted.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		//noinspection DataFlowIssue
 		var valueEncoder = valueCodecFuncs.encoder;
-		for (var p : putted.entrySet()) {
-			keyEncoder.accept(bb, p.getKey());
-			valueEncoder.accept(bb, p.getValue());
+		// 两遍split编码：线格式与putted/removed双容器时代逐字节一致（两个size前缀段）。
+		int puttedCount = 0;
+		for (var e : modified.entrySet())
+			if (e.getValue() != null)
+				puttedCount++;
+		bb.WriteUInt(puttedCount);
+		for (var e : modified.entrySet()) {
+			V v = e.getValue();
+			if (v != null) {
+				keyEncoder.accept(bb, e.getKey());
+				valueEncoder.accept(bb, v);
+			}
 		}
 
-		bb.WriteUInt(removed.size());
-		for (var r : removed)
-			keyEncoder.accept(bb, r);
+		bb.WriteUInt(modified.size() - puttedCount);
+		for (var e : modified.entrySet())
+			if (e.getValue() == null)
+				keyEncoder.accept(bb, e.getKey());
 	}
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		putted.clear();
+		modified.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		//noinspection DataFlowIssue
 		var valueDecoder = valueCodecFuncs.decoder;
-		for (int i = bb.ReadUInt(); i > 0; --i) {
-			var key = keyDecoder.apply(bb);
-			var value = valueDecoder.apply(bb);
-			putted.put(key, value);
-		}
-
-		removed.clear();
 		for (int i = bb.ReadUInt(); i > 0; --i)
-			removed.add(keyDecoder.apply(bb));
+			modified.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
+
+		for (int i = bb.ReadUInt(); i > 0; --i)
+			modified.put(keyDecoder.apply(bb), null);
 	}
 
 	@Override
@@ -121,18 +118,8 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	private void mergeChangeNote(LogMap1<K, V> another) {
-		// Put,Remove 需要确认有没有顺序问题
-		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
-		for (var e : another.putted.entrySet()) {
-			// replace 1,2,3 remove 4
-			putted.put(e.getKey(), e.getValue());
-			removed.remove(e.getKey());
-		}
-		for (var e : another.removed) {
-			// replace 2,3 remove 1,4
-			putted.remove(e);
-			removed.add(e);
-		}
+		// 单容器putAll即last-writer-wins，双容器时代的Put/Remove顺序问题由单槽互斥消除。
+		modified.putAll(another.modified);
 	}
 
 	@Override
@@ -148,10 +135,8 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append(" Putted:");
-		ByteBuffer.BuildSortedString(sb, putted);
-		sb.append(" Removed:");
-		ByteBuffer.BuildSortedString(sb, removed);
+		sb.append(" Modified:");
+		ByteBuffer.BuildSortedString(sb, modified);
 		return sb.toString();
 	}
 }

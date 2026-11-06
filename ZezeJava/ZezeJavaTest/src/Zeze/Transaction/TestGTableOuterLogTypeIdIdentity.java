@@ -94,13 +94,13 @@ public class TestGTableOuterLogTypeIdIdentity {
 			Zeze.Transaction.LogRegistry.getRegistered(fLongCol.getPmapMeta().logTypeId).typeId());
 	}
 
-	/** 构造整行replaced日志（GTable外层PMap2的行写入形态）并编码。 */
+	/** 构造整行替换日志（GTable外层PMap2的行写入形态）并编码。 */
 	private static <R, C, V> ByteBuffer encodeReplacedRow(GTable1.Factory<R, C, V> f, R rowKey, C col, V val) {
 		var row = new BeanMap1<>(f.getBmapMeta());
 		row.put(col, val);
 		var log = Map2TestSupport.emptyWirePayload(
-			new LogMap2<R, BeanMap1<C, V>>(1, null, f.getPmapMeta(), null, null));
-		log.getReplaced().put(rowKey, row);
+			new LogMap2<R, BeanMap1<C, V>>(1, null, f.getPmapMeta(), null));
+		log.getModified().put(rowKey, row);
 		var bb = ByteBuffer.Allocate();
 		log.encode(bb);
 		return bb;
@@ -120,7 +120,7 @@ public class TestGTableOuterLogTypeIdIdentity {
 		var decoded = Assertions.assertDoesNotThrow(() -> Zeze.Transaction.LogRegistry.decode(fLong.getPmapMeta().logTypeId, 1, bb),
 			"跨wire家族：long列的字节不得再被string行工厂解码（修复前抛IllegalStateException）");
 		@SuppressWarnings("unchecked")
-		var decodedRow = ((LogMap2<Long, BeanMap1<Long, Integer>>)decoded).getReplaced().get(1L);
+		var decodedRow = ((LogMap2<Long, BeanMap1<Long, Integer>>)decoded).getModified().get(1L);
 		Assertions.assertNotNull(decodedRow, "整行必须恢复");
 		Assertions.assertEquals(42, decodedRow.get(7L), "行数据必须无损");
 	}
@@ -137,7 +137,7 @@ public class TestGTableOuterLogTypeIdIdentity {
 		var bb = encodeReplacedRow(fLongVal, 1L, 7L, 4_294_967_296L);
 		var decoded = Assertions.assertDoesNotThrow(() -> Zeze.Transaction.LogRegistry.decode(fLongVal.getPmapMeta().logTypeId, 1, bb));
 		@SuppressWarnings("unchecked")
-		var decodedRow = ((LogMap2<Long, BeanMap1<Long, Long>>)decoded).getReplaced().get(1L);
+		var decodedRow = ((LogMap2<Long, BeanMap1<Long, Long>>)decoded).getModified().get(1L);
 		Assertions.assertNotNull(decodedRow, "整行必须恢复");
 		Assertions.assertEquals(4_294_967_296L, decodedRow.get(7L),
 			"超int域的long值必须无损（修复前int行工厂静默截断为0）");

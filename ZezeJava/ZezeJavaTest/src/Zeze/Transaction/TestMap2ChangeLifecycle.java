@@ -60,21 +60,21 @@ public class TestMap2ChangeLifecycle {
 				var map = (LogMap2<Long, BSimple>)requireNonNull(record.getVariableLog(tflush.VAR_map41));
 				var sorted = (LogSortedMap2<Integer, BSimple>)requireNonNull(record.getVariableLog(tflush.VAR_sortedmap2));
 				if (phase.get() == 1) {
-					assertEquals(Set.of(2L, 3L), map.getReplaced().keySet());
-					assertEquals(Set.of(2, 3), sorted.getReplaced().keySet());
+					assertEquals(Set.of(2L, 3L), map.getModified().keySet());
+					assertEquals(Set.of(2, 3), sorted.getModified().keySet());
 					assertTrue(map.getChangedWithKey().isEmpty());
 					assertTrue(sorted.getChangedWithKey().isEmpty());
 				} else if (phase.get() == 2) {
-					assertTrue(map.getReplaced().isEmpty());
-					assertTrue(sorted.getReplaced().isEmpty());
+					assertTrue(map.getModified().isEmpty());
+					assertTrue(sorted.getModified().isEmpty());
 					assertEquals(Set.of(1L), map.getChangedWithKey().keySet());
 					assertEquals(Set.of(1), sorted.getChangedWithKey().keySet());
 				} else {
-					assertEquals(Set.of(1L, 5L), map.getReplaced().keySet());
-					assertEquals(Set.of(1, 5), sorted.getReplaced().keySet());
-					assertEquals(Set.of(2L), map.getRemoved());
-					assertEquals(Set.of(2), sorted.getRemoved());
-					assertTrue(map.getChangedWithKey().isEmpty(), "replaced/removed and stale values must not also emit field deltas");
+					assertEquals(Set.of(1L, 5L, 2L), map.getModified().keySet());
+					assertEquals(Set.of(1, 5, 2), sorted.getModified().keySet());
+					assertNull(map.getModified().get(2L), "removed 键以 null tombstone 表示");
+					assertNull(sorted.getModified().get(2));
+					assertTrue(map.getChangedWithKey().isEmpty(), "modified覆盖的键和陈旧值不得再产生字段增量");
 					assertTrue(sorted.getChangedWithKey().isEmpty());
 				}
 				var mapReplay = Map2TestSupport.wireLog(mapFollower);
@@ -247,11 +247,9 @@ public class TestMap2ChangeLifecycle {
 				var root = (BValue)requireNonNull(record.getValue(), "even filtered stale edits must retain the source record");
 				var map = (LogMap2<Long, BSimple>)requireNonNull(record.getVariableLog(tflush.VAR_map41));
 				var sorted = (LogSortedMap2<Integer, BSimple>)requireNonNull(record.getVariableLog(tflush.VAR_sortedmap2));
-				assertTrue(map.getReplaced().isEmpty());
-				assertTrue(map.getRemoved().isEmpty());
+				assertTrue(map.getModified().isEmpty());
 				assertTrue(map.getChangedWithKey().isEmpty());
-				assertTrue(sorted.getReplaced().isEmpty());
-				assertTrue(sorted.getRemoved().isEmpty());
+				assertTrue(sorted.getModified().isEmpty());
 				assertTrue(sorted.getChangedWithKey().isEmpty());
 				assertEquals(9, requireNonNull(root.getMap41().get(1L)).getInt_1());
 				assertEquals(9, requireNonNull(root.getSortedmap2().get(1)).getInt_1());

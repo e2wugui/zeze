@@ -1,6 +1,8 @@
 package Zeze.Transaction.Collections;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -10,15 +12,13 @@ import org.jspecify.annotations.Nullable;
 /** Encodable Map1 change payload, independent from transaction state. */
 public class LogMap1<K, V> extends LogBean {
 	protected final Meta2<K, V> meta;
-	private @Nullable HashMap<K, V> replaced;
-	private @Nullable Set<K> removed;
+	/** 结构增量单容器：value 非 null 为替换项，null 为删除标记（1系值域非null，tombstone无歧义）。 */
+	private @Nullable HashMap<K, V> modified;
 
-	public LogMap1(int varId, @Nullable Bean source, Meta2<K, V> meta,
-				   @Nullable HashMap<K, V> replaced, @Nullable Set<K> removed) {
+	public LogMap1(int varId, @Nullable Bean source, Meta2<K, V> meta, @Nullable HashMap<K, V> modified) {
 		super(varId, source);
 		this.meta = meta;
-		this.replaced = replaced;
-		this.removed = removed;
+		this.modified = modified;
 	}
 
 	@Override
@@ -31,48 +31,49 @@ public class LogMap1<K, V> extends LogBean {
 		return meta.name;
 	}
 
-	public final HashMap<K, V> getReplaced() {
-		return replaced != null ? replaced : (replaced = new HashMap<>());
-	}
-
-	public final Set<K> getRemoved() {
-		return removed != null ? removed : (removed = new HashSet<>());
+	public final HashMap<K, V> getModified() {
+		return modified != null ? modified : (modified = new HashMap<>());
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		Map<K, V> replacements = replaced != null ? replaced : Collections.emptyMap();
-		Set<K> removals = removed != null ? removed : Collections.emptySet();
+		Map<K, V> m = modified != null ? modified : Collections.emptyMap();
 		var keyEncoder = meta.keyEncoder;
 		var valueEncoder = meta.valueEncoder;
-		bb.WriteUInt(replacements.size());
-		for (var e : replacements.entrySet()) {
-			keyEncoder.accept(bb, e.getKey());
-			//noinspection DataFlowIssue
-			valueEncoder.accept(bb, e.getValue());
+		// 两遍split编码：线格式与replaced/removed双容器时代逐字节一致（两个size前缀段），
+		// 旧journal回放与混版本集群无感；非null=替换段(键+值)，null=删除段(仅键)。
+		int replacedCount = 0;
+		for (var e : m.entrySet())
+			if (e.getValue() != null)
+				replacedCount++;
+		bb.WriteUInt(replacedCount);
+		for (var e : m.entrySet()) {
+			V v = e.getValue();
+			if (v != null) {
+				keyEncoder.accept(bb, e.getKey());
+				valueEncoder.accept(bb, v);
+			}
 		}
 
-		bb.WriteUInt(removals.size());
-		for (K k : removals)
-			keyEncoder.accept(bb, k);
+		bb.WriteUInt(m.size() - replacedCount);
+		for (var e : m.entrySet())
+			if (e.getValue() == null)
+				keyEncoder.accept(bb, e.getKey());
 	}
 
 	private void read(IByteBuffer bb) {
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;
-		for (int i = bb.ReadUIntPositive(); i > 0; --i) {
-			K k = keyDecoder.apply(bb);
-			//noinspection DataFlowIssue
-			V v = valueDecoder.apply(bb);
-			getReplaced().put(k, v);
-		}
+		var m = getModified();
+		for (int i = bb.ReadUIntPositive(); i > 0; --i)
+			m.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
 
 		for (int i = bb.ReadUIntPositive(); i > 0; --i)
-			getRemoved().add(keyDecoder.apply(bb));
+			m.put(keyDecoder.apply(bb), null);
 	}
 
 	public static <K, V> LogMap1<K, V> decode(int varId, Meta2<K, V> meta, IByteBuffer bb) {
-		var log = new LogMap1<>(varId, null, meta, null, null);
+		var log = new LogMap1<>(varId, null, meta, null);
 		log.read(bb);
 		return log;
 	}

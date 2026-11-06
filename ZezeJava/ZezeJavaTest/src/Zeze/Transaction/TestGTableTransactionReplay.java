@@ -84,13 +84,13 @@ public class TestGTableTransactionReplay {
 
             scalarTable.getChangeListenerMap().addListener((key, record) -> {
                 var outer = (LogMap2<Integer, BeanMap1<Integer, Integer>>)requireNonNull(record.getVariableLog(tGTable.VAR_gTable));
-                assertEquals(Set.of(3), outer.getReplaced().keySet());
-                assertEquals(Set.of(2), outer.getRemoved());
+                assertEquals(Set.of(3, 2), outer.getModified().keySet());
+                assertNull(outer.getModified().get(2), "removed 行以 null tombstone 表示");
                 assertEquals(Set.of(1), outer.getChangedWithKey().keySet());
                 var rowChange = requireNonNull(outer.getChangedWithKey().get(1));
                 var inner = (LogMap1<Integer, Integer>)requireNonNull(requireNonNull(rowChange.getVariables()).get(1));
-                assertEquals(Set.of(11, 13), inner.getReplaced().keySet());
-                assertEquals(Set.of(12), inner.getRemoved());
+                assertEquals(Set.of(11, 13, 12), inner.getModified().keySet());
+                assertNull(inner.getModified().get(12));
                 var target = requireNonNull(scalarFollower.get());
                 var oldRow = target.getGTable().getPMap2().get(1);
                 target.followerApply(requireNonNull(decode(scalarTable, record).getLogBean()));
@@ -104,13 +104,13 @@ public class TestGTableTransactionReplay {
             });
             beanTable.getChangeListenerMap().addListener((key, record) -> {
                 var outer = (LogMap2<Integer, BeanMap2<Integer, Bean1, Bean1ReadOnly>>)requireNonNull(record.getVariableLog(tGTable2.VAR_gTable));
-                assertEquals(Set.of(3), outer.getReplaced().keySet());
-                assertEquals(Set.of(2), outer.getRemoved());
+                assertEquals(Set.of(3, 2), outer.getModified().keySet());
+                assertNull(outer.getModified().get(2), "removed 行以 null tombstone 表示");
                 assertEquals(Set.of(1), outer.getChangedWithKey().keySet());
                 var rowChange = requireNonNull(outer.getChangedWithKey().get(1));
                 var inner = (LogMap2<Integer, Bean1>)requireNonNull(requireNonNull(rowChange.getVariables()).get(1));
-                assertEquals(Set.of(13), inner.getReplaced().keySet());
-                assertEquals(Set.of(12), inner.getRemoved());
+                assertEquals(Set.of(13, 12), inner.getModified().keySet());
+                assertNull(inner.getModified().get(12));
                 assertEquals(Set.of(11), inner.getChangedWithKey().keySet());
                 var target = requireNonNull(beanFollower.get());
                 var oldRow = target.getGTable().getPMap2().get(1);

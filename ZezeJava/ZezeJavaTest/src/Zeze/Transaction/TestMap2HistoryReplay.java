@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -73,11 +74,11 @@ public class TestMap2HistoryReplay {
                 var map = (LogMap2<Long, BSimple>)requireNonNull(record.getVariableLog(tflush.VAR_map41));
                 var sorted = (LogSortedMap2<Integer, BSimple>)requireNonNull(record.getVariableLog(tflush.VAR_sortedmap2));
                 assertEquals(Set.of(1L), map.getChangedWithKey().keySet());
-                assertEquals(Set.of(3L), map.getReplaced().keySet());
-                assertEquals(Set.of(2L), map.getRemoved());
+                assertEquals(Set.of(3L, 2L), map.getModified().keySet());
+                assertNull(map.getModified().get(2L), "removed 键以 null tombstone 表示");
                 assertEquals(Set.of(1), sorted.getChangedWithKey().keySet());
-                assertEquals(Set.of(3), sorted.getReplaced().keySet());
-                assertEquals(Set.of(2), sorted.getRemoved());
+                assertEquals(Set.of(3, 2), sorted.getModified().keySet());
+                assertNull(sorted.getModified().get(2));
                 var upserts = new HashMap<Long, Integer>();
                 map.forEachUpsert((k, v) -> upserts.put(k, v.getInt_1()));
                 assertEquals(Map.of(1L, 7, 3L, 31), upserts);
@@ -87,7 +88,7 @@ public class TestMap2HistoryReplay {
 
                 // The unconverted List2 family is nested beneath a converted Map2 consumption node.
                 var recursive = (LogMap2<Long, BValue>)requireNonNull(record.getVariableLog(tflush.VAR_map42Recursive));
-                assertTrue(recursive.getReplaced().isEmpty());
+                assertTrue(recursive.getModified().isEmpty());
                 LogBean nestedLog = requireNonNull(recursive.getChangedWithKey().get(42L));
                 assertTrue(requireNonNull(requireNonNull(nestedLog.getVariables()).get(9)) instanceof LogList2<?>);
                 var reencodedRecord = ByteBuffer.Allocate();

@@ -59,7 +59,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		log.commit();
 
 		var input = encode(log);
-		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null, null);
+		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null);
 		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		var follower = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		follower.followerApply(decoded);
@@ -80,7 +80,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		log.commit();
 
 		var input = encode(log);
-		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null, null);
+		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null);
 		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		var follower = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		follower.followerApply(decoded);
@@ -104,7 +104,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		log.commit();
 
 		var input = encode(log);
-		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null, null);
+		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null);
 		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		follower.followerApply(decoded);
 		assertTrue(input.isEmpty());
@@ -129,7 +129,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		log.commit();
 
 		var input = encode(log);
-		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null, null);
+		var decoded = new LogSortedMap1<BigDecimal, Integer>(1, null, leader.getMap().comparator(), meta, null);
 		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		var follower = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
 		follower.followerApply(decoded);
@@ -148,10 +148,10 @@ public class TestSortedMapEquivalentKeysReplay {
 		leader.put(new BigDecimal("1.0"), bean);
 		var log = Map2DeltaTestSupport.sorted(leader,
 			delta -> assertEquals(bean, delta.remove(new BigDecimal("1.00"))));
-		assertTrue(log.getRemoved().contains(new BigDecimal("1.000")));
+		assertTrue(log.getModified().containsKey(new BigDecimal("1.000")), "tombstone 键等价（比较器折叠）必须命中");
 
 		var input = encode(log);
-		var decoded = new LogSortedMap2<BigDecimal, Bean1>(1, null, leader.getMap().comparator(), meta, null, null);
+		var decoded = new LogSortedMap2<BigDecimal, Bean1>(1, null, leader.getMap().comparator(), meta, null);
 		decoded = Zeze.Transaction.Map2TestSupport.decode(decoded, input);
 		var follower = new PSortedMap2<BigDecimal, Bean1>(BigDecimal.class, Bean1.class);
 		follower.put(new BigDecimal("1.0"), new Bean1());
@@ -208,7 +208,7 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertEquals(value.getLong2(), requireNonNull(followerValue).getLong2());
 		assertEquals(1, follower.size());
 
-		assertTrue(log.getReplaced().isEmpty(), "原位编辑的编码不得改变为完整替换");
+		assertTrue(log.getModified().isEmpty(), "原位编辑的编码不得改变为完整替换");
 	}
 
 	@Test
@@ -226,11 +226,11 @@ public class TestSortedMapEquivalentKeysReplay {
 			input.put(new BigDecimal("1.00"), 10);
 			log.putAll(input);
 			assertEquals(10, log.get(new BigDecimal("1")));
-			var replacements = log.getReplaced();
+			var modified = log.getModified();
 			if (priorReplacement)
-				assertEquals(10, requireNonNull(replacements).get(new BigDecimal("1")));
+				assertEquals(10, requireNonNull(modified).get(new BigDecimal("1")));
 			else
-				assertTrue(replacements == null || replacements.isEmpty(), "恢复旧值不得留下中间输入的替换日志");
+				assertTrue(modified == null || modified.isEmpty(), "恢复旧值不得留下中间输入的替换日志");
 			log.commit();
 			@SuppressWarnings("unchecked")
 			var decoded = (LogSortedMap1<BigDecimal, Integer>)follower.createLogBean(null);

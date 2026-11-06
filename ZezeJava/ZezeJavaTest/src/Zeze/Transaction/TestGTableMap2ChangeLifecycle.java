@@ -54,8 +54,8 @@ public class TestGTableMap2ChangeLifecycle {
 		assertSame(outerLog, changes.getOrCreateLogBean(outer));
 		assertSame(innerLog, changes.getOrCreateLogBean(requireNonNull(outer.get(1L)).getPMap2()));
 		assertEquals(1, innerLog.getChangedWithKey().size());
-		assertTrue(outerLog.getReplaced().isEmpty());
-		assertTrue(innerLog.getReplaced().isEmpty());
+		assertTrue(outerLog.getModified().isEmpty());
+		assertTrue(innerLog.getModified().isEmpty());
 		var encoded = encode(outerLog);
 		assertArrayEquals(encoded, encode(outerLog));
 
@@ -95,7 +95,7 @@ public class TestGTableMap2ChangeLifecycle {
 		changes.collect(innerLog);
 		var outerLog = (LogMap2<Long, BeanMap1<String, Integer>>)changes.getOrCreateLogBean(outer);
 		assertEquals(1, outerLog.getChangedWithKey().size());
-		assertTrue(outerLog.getReplaced().isEmpty());
+		assertTrue(outerLog.getModified().isEmpty());
 		var decoded = (LogMap2<Long, BeanMap1<String, Integer>>)Zeze.Transaction.LogRegistry.decode(factory.getPmapMeta().logTypeId, 1, ByteBuffer.Wrap(encode(outerLog)));
 		var follower = new GTable1<Long, String, Integer>(factory);
 		follower.put(1L, "column", 5);

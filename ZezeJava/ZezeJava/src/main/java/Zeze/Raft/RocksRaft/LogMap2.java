@@ -6,7 +6,6 @@ import java.util.Objects;
 import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -14,13 +13,13 @@ import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 
 /**
- * 管理 Bean 的 Map 容器增量日志：结构操作记 putted/removed，值 bean 的字段修改记 changedWithKey，
+ * 管理 Bean 的 Map 容器增量日志：结构操作记 modified（非null=put、null=remove），值 bean 的字段修改记 changedWithKey，
  * encode 侧按最终 map 现值过滤陈旧条目。
  */
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap2<");
 
-	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
+	private final HashSet<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
 	private boolean decoded; // 解码后的索引是完整日志，不从旧的源Map重新构建。
@@ -35,7 +34,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		this.valueFactory = valueFactory;
 	}
 
-	public final Set<LogBean> getChanged() {
+	public final HashSet<LogBean> getChanged() {
 		return changed;
 	}
 
@@ -61,14 +60,13 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			for (var c : changed) {
 				//noinspection DataFlowIssue
 				Object pkey = c.getThis().mapKey();
-				// 第三条过滤对齐Transaction.Collections.LogMap2.buildChangedWithKey：
+				// 第三条过滤对齐Transaction.Collections.LogMap2Base.addChild：
 				// 编辑时bean已不在最终map（remove不detach，编辑已删bean的陈旧引用仍会被collect，
-				// 其key来自更早事务，putted/removed两条拦不住），不过滤则follower侧必取到null；
+				// 其key来自更早事务，modified单查找已拦住put/remove覆盖），不过滤则follower侧必取到null；
 				// 且必须是key当前值本身——put覆盖后旧bean同样不detach，陈旧引用的字段日志
 				// 不得应用到覆盖后的新值上。
 				// noinspection SuspiciousMethodCalls
-				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey)
-						&& c.getThis() == getValue().get(pkey))
+				if (!getModified().containsKey(pkey) && c.getThis() == getValue().get(pkey))
 					changedWithKey.put((K)Objects.requireNonNull(pkey), c);
 			}
 		}
@@ -79,15 +77,25 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			e.getValue().encode(bb);
 		}
 
-		// putted/removed 手工编码（不走 super.encode）：putted 的 value 是 Bean，用 bean.encode 而非 codec。
-		bb.WriteUInt(getPutted().size());
-		for (var p : getPutted().entrySet()) {
-			keyEncoder.accept(bb, p.getKey());
-			p.getValue().encode(bb);
+		// modified 手工编码（不走 super.encode）：put 项的 value 是 Bean，用 bean.encode 而非 codec。
+		// 两遍split：线格式与putted/removed双容器时代逐字节一致。
+		var modified = getModified();
+		int puttedCount = 0;
+		for (var e : modified.entrySet())
+			if (e.getValue() != null)
+				puttedCount++;
+		bb.WriteUInt(puttedCount);
+		for (var e : modified.entrySet()) {
+			var v = e.getValue();
+			if (v != null) {
+				keyEncoder.accept(bb, e.getKey());
+				v.encode(bb);
+			}
 		}
-		bb.WriteUInt(getRemoved().size());
-		for (var r : getRemoved())
-			keyEncoder.accept(bb, r);
+		bb.WriteUInt(modified.size() - puttedCount);
+		for (var e : modified.entrySet())
+			if (e.getValue() == null)
+				keyEncoder.accept(bb, e.getKey());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -103,8 +111,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			changedWithKey.put(key, value);
 		}
 
-		// putted/removed 手工解码（不走 super.decode）：putted 的 value 是 Bean，经 valueFactory 构造后 decode。
-		getPutted().clear();
+		// modified 手工解码（不走 super.decode）：put 项的 value 是 Bean，经 valueFactory 构造后 decode。
+		var modified = getModified();
+		modified.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
 			V value;
@@ -114,11 +123,10 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 				throw Task.forceThrow(e);
 			}
 			value.decode(bb);
-			getPutted().put(key, value);
+			modified.put(key, value);
 		}
-		getRemoved().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
-			getRemoved().add(keyDecoder.apply(bb));
+			modified.put(keyDecoder.apply(bb), null);
 		decoded = true;
 	}
 
@@ -131,10 +139,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append(" Putted:");
-		ByteBuffer.BuildSortedString(sb, getPutted());
-		sb.append(" Removed:");
-		ByteBuffer.BuildSortedString(sb, getRemoved());
+		sb.append(" Modified:");
+		ByteBuffer.BuildSortedString(sb, getModified());
 		sb.append(" Changed:");
 		ByteBuffer.BuildSortedString(sb, changed);
 		return sb.toString();

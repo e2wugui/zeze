@@ -270,7 +270,10 @@ public class MapBeanCommitBench {
 									  BiConsumer<Integer, Bean> consumer) throws Throwable {
 		var log = (LogMap2<Integer, Bean>)Objects.requireNonNull(record.getVariableLog(variableId));
 		merge.invokeExact(log);
-		log.getReplaced().forEach(consumer);
+		log.getModified().forEach((k, v) -> {
+			if (v != null)
+				consumer.accept(k, v);
+		});
 	}
 
 	@SuppressWarnings("unchecked")
@@ -278,7 +281,10 @@ public class MapBeanCommitBench {
 											BiConsumer<Integer, Bean> consumer) throws Throwable {
 		var log = (LogSortedMap2<Integer, Bean>)Objects.requireNonNull(record.getVariableLog(variableId));
 		merge.invokeExact(log);
-		log.getReplaced().forEach(consumer);
+		log.getModified().forEach((k, v) -> {
+			if (v != null)
+				consumer.accept(k, v);
+		});
 	}
 
 	private void verifyConsumers() {

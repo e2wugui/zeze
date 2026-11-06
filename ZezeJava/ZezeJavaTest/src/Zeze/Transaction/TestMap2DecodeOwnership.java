@@ -47,18 +47,16 @@ public class TestMap2DecodeOwnership {
 			delta.remove("deleted");
 			delta.put("replacement", replacement);
 		});
-		var borrowedReplaced = payload.getReplaced();
-		var borrowedRemoved = payload.getRemoved();
+		var borrowedModified = payload.getModified();
 		var nextMap = Map2TestSupport.wireLog(map);
-		nextMap.getReplaced().put("decoded", bean(11));
+		nextMap.getModified().put("decoded", bean(11));
 		var originalBytes = encode(payload);
 		assertSeparateDecodePreservesSource(payload, encode(nextMap), originalBytes);
 		assertSame(map, payload.getThis());
-		assertSame(borrowedReplaced, payload.getReplaced());
-		assertSame(borrowedRemoved, payload.getRemoved());
-		assertEquals(Set.of("replacement"), borrowedReplaced.keySet());
-		assertSame(replacement, borrowedReplaced.get("replacement"));
-		assertEquals(Set.of("deleted"), borrowedRemoved);
+		assertSame(borrowedModified, payload.getModified());
+		assertEquals(Set.of("replacement", "deleted"), borrowedModified.keySet());
+		assertSame(replacement, borrowedModified.get("replacement"));
+		assertNull(borrowedModified.get("deleted"), "removed 键以 null tombstone 表示");
 		assertSame(replacement, map.get("replacement"));
 	}
 
@@ -71,18 +69,16 @@ public class TestMap2DecodeOwnership {
 			delta.remove("deleted");
 			delta.put("replacement", replacement);
 		});
-		var borrowedReplaced = payload.getReplaced();
-		var borrowedRemoved = payload.getRemoved();
+		var borrowedModified = payload.getModified();
 		var next = Map2TestSupport.wireLog(map);
-		next.getReplaced().put("decoded", bean(11));
+		next.getModified().put("decoded", bean(11));
 		var originalBytes = encode(payload);
 		assertSeparateDecodePreservesSource(payload, encode(next), originalBytes);
 		assertSame(map, payload.getThis());
-		assertSame(borrowedReplaced, payload.getReplaced());
-		assertSame(borrowedRemoved, payload.getRemoved());
-		assertEquals(Set.of("replacement"), borrowedReplaced.keySet());
-		assertSame(replacement, borrowedReplaced.get("replacement"));
-		assertEquals(Set.of("deleted"), borrowedRemoved);
+		assertSame(borrowedModified, payload.getModified());
+		assertEquals(Set.of("replacement", "deleted"), borrowedModified.keySet());
+		assertSame(replacement, borrowedModified.get("replacement"));
+		assertNull(borrowedModified.get("deleted"), "removed 键以 null tombstone 表示");
 		assertSame(replacement, map.get("replacement"));
 	}
 
@@ -109,20 +105,19 @@ public class TestMap2DecodeOwnership {
 		var map = new PMap2<String, BValue>(String.class, BValue.class);
 		var first = Map2TestSupport.wireLog(map);
 		first.getChangedWithKey().put("edit-first", fieldChange(7));
-		first.getReplaced().put("first", bean(11));
-		first.getRemoved().add("removed-first");
+		first.getModified().put("first", bean(11));
+		first.getModified().put("removed-first", null);
 		var next = Map2TestSupport.wireLog(map);
 		next.getChangedWithKey().put("edit-next", fieldChange(9));
-		next.getReplaced().put("next", bean(13));
-		next.getRemoved().add("removed-next");
+		next.getModified().put("next", bean(13));
+		next.getModified().put("removed-next", null);
 		var target = Map2TestSupport.wireLog(map);
 		target = Zeze.Transaction.Map2TestSupport.decode(target, ByteBuffer.Wrap(encode(first)));
-		var previousReplaced = target.getReplaced();
-		var previousRemoved = target.getRemoved();
+		var previousModified = target.getModified();
 		var previousChanged = target.getChangedWithKey();
 		assertOwnedDecode(target, first, next);
-		assertEquals(Set.of("first"), previousReplaced.keySet(), "repeated decode must rebind, not clear prior owned containers");
-		assertEquals(Set.of("removed-first"), previousRemoved);
+		assertEquals(Set.of("first", "removed-first"), previousModified.keySet(), "repeated decode must rebind, not clear prior owned containers");
+		assertNull(previousModified.get("removed-first"));
 		assertEquals(Set.of("edit-first"), previousChanged.keySet());
 	}
 
@@ -131,20 +126,19 @@ public class TestMap2DecodeOwnership {
 		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		var first = Map2TestSupport.wireLog(map);
 		first.getChangedWithKey().put("edit-first", fieldChange(7));
-		first.getReplaced().put("first", bean(11));
-		first.getRemoved().add("removed-first");
+		first.getModified().put("first", bean(11));
+		first.getModified().put("removed-first", null);
 		var next = Map2TestSupport.wireLog(map);
 		next.getChangedWithKey().put("edit-next", fieldChange(9));
-		next.getReplaced().put("next", bean(13));
-		next.getRemoved().add("removed-next");
+		next.getModified().put("next", bean(13));
+		next.getModified().put("removed-next", null);
 		var target = Map2TestSupport.wireLog(map);
 		target = Zeze.Transaction.Map2TestSupport.decode(target, ByteBuffer.Wrap(encode(first)));
-		var previousReplaced = target.getReplaced();
-		var previousRemoved = target.getRemoved();
+		var previousModified = target.getModified();
 		var previousChanged = target.getChangedWithKey();
 		assertOwnedDecode(target, first, next);
-		assertEquals(Set.of("first"), previousReplaced.keySet());
-		assertEquals(Set.of("removed-first"), previousRemoved);
+		assertEquals(Set.of("first", "removed-first"), previousModified.keySet());
+		assertNull(previousModified.get("removed-first"));
 		assertEquals(Set.of("edit-first"), previousChanged.keySet());
 	}
 

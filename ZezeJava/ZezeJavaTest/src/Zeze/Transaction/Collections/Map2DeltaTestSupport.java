@@ -14,7 +14,7 @@ public final class Map2DeltaTestSupport {
 		if (template instanceof LogSortedMap2 map)
 			return LogSortedMap2.decode(map.getVariableId(), map.meta, map.comparator(), input);
 		var map = (LogSortedMap1)template;
-		var comparator = ((java.util.SortedMap)map.getReplaced()).comparator();
+		var comparator = ((java.util.SortedMap)map.getModified()).comparator();
 		return LogSortedMap1.decode(map.getVariableId(), map.meta, comparator, input);
 	}
 

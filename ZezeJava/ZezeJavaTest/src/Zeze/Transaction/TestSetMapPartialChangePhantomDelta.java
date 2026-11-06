@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Files;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,12 +66,19 @@ public class TestSetMapPartialChangePhantomDelta {
 				// set={1}：addAll([1,2])中1已存在——真实新增只有2
 				Assertions.assertTrue(set.addAll(List.of(1, 2)));
 				var log = (LogSet1<Integer>)set.createLogBean(Transaction.getCurrent().getLog(logKey));
-				Assertions.assertEquals(Set.of(2), requireNonNull(log).getAdded(), "部分命中addAll的added不得含已存在元素（幻影add）");
+				Assertions.assertEquals(Set.of(2), requireNonNull(log).getModified().keySet(), "部分命中addAll的added不得含已存在元素（幻影add）");
+				Assertions.assertSame(LogSet1.PRESENT, log.getModified().get(2), "新增项以 PRESENT 哑值表示");
 
 				// set={1,2}：removeAll([1,9])中9不存在——真实移除只有1
 				Assertions.assertTrue(set.removeAll(List.of(1, 9)));
 				log = (LogSet1<Integer>)set.createLogBean(Transaction.getCurrent().getLog(logKey));
-				Assertions.assertEquals(Set.of(1), log.getRemoved(), "部分命中removeAll的removed不得含不存在元素（幻影remove）");
+				var removedKeys = new HashSet<Integer>();
+				log.getModified().forEach((k, v) -> {
+					if (v == null)
+						removedKeys.add(k);
+				});
+				Assertions.assertEquals(Set.of(1), removedKeys, "部分命中removeAll的removed不得含不存在元素（幻影remove）");
+				Assertions.assertNull(log.getModified().get(1), "移除项以 null tombstone 表示");
 				return Procedure.Success;
 			}, "T25.SetDelta").call();
 			Assertions.assertEquals(Procedure.Success, result, "事务必须成功");
@@ -118,15 +126,15 @@ public class TestSetMapPartialChangePhantomDelta {
 				Assertions.assertNotSame(map.get(10), equal);
 				map.put(10, equal);
 				var log = (LogMap1<Integer, Integer>)map.createLogBean(Transaction.getCurrent().getLog(mapLogKey));
-				Assertions.assertFalse(requireNonNull(log).getReplaced().containsKey(10),
-						"put等值新实例不得留下幻影replaced");
+				Assertions.assertFalse(requireNonNull(log).getModified().containsKey(10),
+						"put等值新实例不得留下幻影增量");
 
 				// {1:100}上putAll({1:100, 2:200})：键1值未变——真实变化只有键2
 				map.putAll(Map.of(1, 100, 2, 200));
 				// 每个消费载荷只借用创建时的最终增量，不要求之前的空投影追踪后续写入。
 				log = (LogMap1<Integer, Integer>)map.createLogBean(Transaction.getCurrent().getLog(mapLogKey));
-				Assertions.assertEquals(Map.of(2, 200), log.getReplaced(),
-						"部分变化putAll的replaced不得含值未变的键（幻影replaced）");
+				Assertions.assertEquals(Map.of(2, 200), log.getModified(),
+						"部分变化putAll的modified不得含值未变的键（幻影增量）");
 
 				var smap = table.getOrAdd(7083L).getSortedmap1();
 				var smapLogKey = requireNonNull(smap.parent()).objectId() + smap.variableId();
@@ -134,12 +142,12 @@ public class TestSetMapPartialChangePhantomDelta {
 				Assertions.assertNotSame(smap.get(10), sortedEqual);
 				smap.put(10, sortedEqual);
 				var slog = (LogSortedMap1<Integer, Integer>)smap.createLogBean(Transaction.getCurrent().getLog(smapLogKey));
-				Assertions.assertFalse(requireNonNull(slog).getReplaced().containsKey(10),
-						"LogSortedMap1.put同构：等值新实例不得留下幻影replaced");
+				Assertions.assertFalse(requireNonNull(slog).getModified().containsKey(10),
+						"LogSortedMap1.put同构：等值新实例不得留下幻影增量");
 				smap.putAll(Map.of(1, 100, 3, 300));
 				slog = (LogSortedMap1<Integer, Integer>)smap.createLogBean(Transaction.getCurrent().getLog(smapLogKey));
-				Assertions.assertEquals(Map.of(3, 300), slog.getReplaced(),
-						"LogSortedMap1.putAll同构：replaced不得含值未变的键");
+				Assertions.assertEquals(Map.of(3, 300), slog.getModified(),
+						"LogSortedMap1.putAll同构：modified不得含值未变的键");
 				return Procedure.Success;
 			}, "T25.MapDelta").call();
 			Assertions.assertEquals(Procedure.Success, result, "事务必须成功");

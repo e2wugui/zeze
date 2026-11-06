@@ -374,11 +374,11 @@ public class TestChangeListener {
 			@SuppressWarnings("unchecked")
 			var noteMap1 = (LogMap1<Long, Long>)note;
 
-			for (var a : noteMap1.getReplaced().entrySet()) {
-				requireNonNull(newValue).put(a.getKey(), a.getValue());
-			}
-			for (var r : noteMap1.getRemoved()) {
-				requireNonNull(newValue).remove(r);
+			for (var a : noteMap1.getModified().entrySet()) {
+				if (a.getValue() != null)
+					requireNonNull(newValue).put(a.getKey(), a.getValue());
+				else
+					requireNonNull(newValue).remove(a.getKey());
 			}
 		}
 
@@ -538,9 +538,7 @@ public class TestChangeListener {
 			@SuppressWarnings("unchecked")
 			var noteMap2 = (LogMap2<Long, BValue>)note;
 			noteMap2.forEachUpsert((changedKey, changedValue) -> requireNonNull(newValue).put(changedKey, changedValue));
-			for (var r : noteMap2.getRemoved()) {
-				requireNonNull(newValue).remove(r);
-			}
+			noteMap2.forEachRemoved(r -> requireNonNull(newValue).remove(r));
 		}
 
 		@Override
@@ -591,11 +589,11 @@ public class TestChangeListener {
 		public final void OnChanged(Object key, Log note, Changes.Record record) {
 			@SuppressWarnings("unchecked")
 			var noteSet = (LogSet1<Integer>)note;
-			for (var a : noteSet.getAdded()) {
-				requireNonNull(newValue).add(a);
-			}
-			for (var r : noteSet.getRemoved()) {
-				requireNonNull(newValue).remove(r);
+			for (var a : noteSet.getModified().entrySet()) {
+				if (a.getValue() != null)
+					requireNonNull(newValue).add(a.getKey());
+				else
+					requireNonNull(newValue).remove(a.getKey());
 			}
 		}
 

@@ -3,9 +3,7 @@ package Zeze.Transaction.Collections;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import Zeze.Transaction.Bean;
 
@@ -50,27 +48,22 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 		return true;
 	}
 
-	private @Nullable Map<K, V> replaced;
-	private @Nullable Set<K> removed;
+	/**
+	 * 结构增量单容器记账（同 LogMapDelta）：value 非 null 为替换项，null 为删除标记。
+	 * 使用源 Map 比较器维持键等价折叠语义。
+	 */
+	private @Nullable Map<K, V> modified;
 
 	protected LogSortedMapDelta(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
 		super(source, value);
 	}
 
-	public @Nullable Map<K, V> getReplaced() {
-		return replaced;
+	public @Nullable Map<K, V> getModified() {
+		return modified;
 	}
 
-	public @Nullable Set<K> getRemoved() {
-		return removed;
-	}
-
-	private Map<K, V> replacedForWrite() {
-		return replaced != null ? replaced : (replaced = new TreeMap<>(getValue().comparator()));
-	}
-
-	private Set<K> removedForWrite() {
-		return removed != null ? removed : (removed = new TreeSet<>(getValue().comparator()));
+	private Map<K, V> modifiedForWrite() {
+		return modified != null ? modified : (modified = new TreeMap<>(getValue().comparator()));
 	}
 
 	public @Nullable V put(K key, V value) {
@@ -94,36 +87,29 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	}
 
 	private void noteReplacement(K key, V value, @Nullable V oldValue) {
-		if (isValueChanged(oldValue, value)) {
-			if (removed != null) removed.remove(key);
-			replacedForWrite().put(key, value);
-		}
+		if (isValueChanged(oldValue, value))
+			modifiedForWrite().put(key, value);
 	}
 
 	public @Nullable V remove(K key) {
 		V old = super.remove(key);
-		if (old != null) {
-			if (replaced != null) replaced.remove(key);
-			removedForWrite().add(key);
-		}
+		if (old != null)
+			modifiedForWrite().put(key, null);
 		return old;
 	}
 
 	public boolean remove(K key, V value) {
 		// 空值防御对齐非托管分支（同 LogMap1.remove(K,V)，20261020-06）。
 		if (super.remove(key, value)) {
-			if (replaced != null) replaced.remove(key);
-			removedForWrite().add(key);
+			modifiedForWrite().put(key, null);
 			return true;
 		}
 		return false;
 	}
 
 	public void clear() {
-		for (var ks : getValue().keySet()) {
-			if (replaced != null) replaced.remove(ks);
-			removedForWrite().add(ks);
-		}
+		for (var ks : getValue().keySet())
+			modifiedForWrite().put(ks, null);
 		super.clear();
 	}
 
@@ -136,19 +122,8 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	}
 
 	private void mergeChangeNote(LogSortedMapDelta<K, V> another) {
-		if (another.replaced != null) {
-			for (var e : another.replaced.entrySet()) {
-				K k = e.getKey();
-				if (removed != null) removed.remove(k);
-				replacedForWrite().put(k, e.getValue());
-			}
-		}
-		if (another.removed != null) {
-			for (K k : another.removed) {
-				if (replaced != null) replaced.remove(k);
-				removedForWrite().add(k);
-			}
-		}
+		if (another.modified != null)
+			modifiedForWrite().putAll(another.modified);
 	}
 
 	protected abstract boolean isValueChanged(@Nullable V oldValue, V newValue);

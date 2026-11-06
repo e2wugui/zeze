@@ -148,9 +148,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 					SChanged changed2 = new SChanged();
 					changed2.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
 					notemap2.forEachUpsert(changed2.Argument.getReplace()::put);
-					for (var p : notemap2.getRemoved()) {
-						changed2.Argument.getRemove().add(p);
-					}
+					notemap2.forEachRemoved(changed2.Argument.getRemove()::add);
 					OnlineSpec.ofReliableNotify(Objects.requireNonNull(Game.App.getInstance().getProvider().getOnline()), (Long)key, getName()).send(changed2);
 				}
 				break;

@@ -78,8 +78,8 @@ public class TestMergeChangedAfterEncode {
 				sortedLog.forEachUpsert(sortedValues::put);
 				assertEquals(42, requireNonNull(mapValues.get(1L)).getInt_1());
 				assertEquals(42, requireNonNull(sortedValues.get(1)).getInt_1());
-				assertTrue(mapLog.getReplaced().isEmpty(), "view must not materialize edits into the wire replacement set");
-				assertTrue(sortedLog.getReplaced().isEmpty());
+				assertTrue(mapLog.getModified().isEmpty(), "view must not materialize edits into the wire modification set");
+				assertTrue(sortedLog.getModified().isEmpty());
 				assertEquals(1, mapLog.getChangedWithKey().size());
 				assertEquals(1, sortedLog.getChangedWithKey().size());
 				assertArrayEquals(initialMap, encode(mapLog).Copy());

@@ -44,13 +44,13 @@ public final class Map2TestSupport {
 	/** Unbound wire node with the exact metadata used by this map, including GTable factories. */
 	public static <K, V extends Bean> LogMap2<K, V> wireLog(PMap2<K, V> map) {
 		Zeze.History.Helper.registerLogMap2Meta(map.getMeta());
-		return new LogMap2<>(map.variableId(), null, map.getMeta(), null, null);
+		return new LogMap2<>(map.variableId(), null, map.getMeta(), null);
 	}
 
 	/** Keep the configured comparator; the wire format does not carry it. */
 	public static <K extends Comparable<K>, V extends Bean> LogSortedMap2<K, V> wireLog(PSortedMap2<K, V> map) {
 		Zeze.History.Helper.registerLogSortedMap2Meta(map.getMeta());
-		return new LogSortedMap2<>(map.variableId(), null, map.comparator(), map.getMeta(), null, null);
+		return new LogSortedMap2<>(map.variableId(), null, map.comparator(), map.getMeta(), null);
 	}
 
 	/** Exercise an empty decode on an already unbound wire fixture. */

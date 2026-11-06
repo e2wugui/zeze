@@ -2,6 +2,8 @@ package Zeze.Raft.RocksRaft;
 
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Objects;
 
 import java.lang.invoke.MethodHandle;
@@ -88,19 +90,36 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<K, V>)_log;
 		var tmp = map;
-		// putted 安装前补 mapKey（对齐 put/decode 路径）：本节点
+		var modified = log.getModified();
+		// put 项安装前补 mapKey（对齐 put/decode 路径）：本节点
 		// failover 当选新 leader 后编辑该条目时，LogSortedMap2.encode 用 mapKey()
 		// 作为 changed 条目的 key，null 会让 Long key 拆箱 NPE（事务永久失败）或
 		// String key 编码成 ""（follower 静默丢编辑，状态机分歧）。
-		for (var e : log.getPutted().entrySet()) {
-			e.getValue().mapKey(e.getKey());
-			e.getValue().initRootInfo(rootInfo(), this);
+		HashMap<K, V> puts = null;
+		ArrayList<K> removes = null;
+		for (var e : modified.entrySet()) {
+			var v = e.getValue();
+			if (v != null) {
+				v.mapKey(e.getKey());
+				v.initRootInfo(rootInfo(), this);
+				if (puts == null)
+					puts = new HashMap<>(modified.size() * 2);
+				puts.put(e.getKey(), v);
+			} else {
+				if (removes == null)
+					removes = new ArrayList<>(modified.size());
+				removes.add(e.getKey());
+			}
 		}
-		tmp = tmp.plusAll(log.getPutted()).minusAll(log.getRemoved());
+		// 单遍分区批量应用：等价旧 plusAll(putted).minusAll(removed)。
+		if (puts != null)
+			tmp = tmp.plusAll(puts);
+		if (removes != null)
+			tmp = tmp.minusAll(removes);
 
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
-			// 正常重放下changed只含最终map存在的key（encode已过滤putted/removed/不存在key），
+			// 正常重放下changed只含最终map存在的key（encode已过滤modified覆盖/不存在key），
 			// follower侧null即先行分歧（任何来源）：直接递归抛NPE，由Rocks.followerApply统一
 			// catch并fatalKill（宁死不糊），容器层不再内联防御。
 			tmp.get(e.getKey()).followerApply(e.getValue());

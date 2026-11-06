@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -116,7 +117,28 @@ public class PMap1<K, V> extends PMap<K, V> {
 	public void followerApply(Log _log) {
 		//noinspection unchecked
 		var log = (LogMap1<K, V>)_log;
-		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
+		var modified = log.getModified();
+		if (modified.isEmpty())
+			return;
+		// 单遍分区批量应用，等价旧 minusAll(removed).plusAll(replaced)：
+		// modified 单槽互斥，null 槽位归 minus 批、非 null 归 plus 批，无交叉键。
+		HashMap<K, V> puts = null;
+		ArrayList<K> removes = null;
+		for (var e : modified.entrySet()) {
+			if (e.getValue() != null) {
+				if (puts == null)
+					puts = new HashMap<>(modified.size() * 2);
+				puts.put(e.getKey(), e.getValue());
+			} else {
+				if (removes == null)
+					removes = new ArrayList<>(modified.size());
+				removes.add(e.getKey());
+			}
+		}
+		if (removes != null)
+			map = map.minusAll(removes);
+		if (puts != null)
+			map = map.plusAll(puts);
 	}
 
 	public void assign(PMap1<K, V> pmap) {
@@ -177,9 +199,9 @@ public class PMap1<K, V> extends PMap<K, V> {
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
-			return new LogMap1<>(variableId(), this, meta, null, null);
+			return new LogMap1<>(variableId(), this, meta, null);
 		//noinspection unchecked
 		var delta = (LogMapDelta.Map1<K, V>)finalLog;
-		return new LogMap1<>(variableId(), this, meta, delta.getReplaced(), delta.getRemoved());
+		return new LogMap1<>(variableId(), this, meta, delta.getModified());
 	}
 }

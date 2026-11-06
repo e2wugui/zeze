@@ -1,6 +1,9 @@
 package Zeze.Transaction.Collections;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -11,16 +14,19 @@ import org.jspecify.annotations.Nullable;
 public class LogSortedMap1<K extends Comparable<K>, V> extends LogBean {
 	protected final Meta2<K, V> meta;
 	private final @Nullable Comparator<? super K> comparator;
-	private @Nullable Map<K, V> replaced;
-	private @Nullable Set<K> removed;
+	/**
+	 * 结构增量单容器：value 非 null 为替换项，null 为删除标记。
+	 * 使用源容器比较器：比较器等价键（equals不同但compare==0）折叠进同一槽位，
+	 * 键等价语义与双容器时代的TreeMap+TreeSet一致。
+	 */
+	private @Nullable Map<K, V> modified;
 
-	public LogSortedMap1(int varId, @Nullable Bean source, @Nullable Comparator<? super K> comparator, Meta2<K, V> meta,
-						 @Nullable Map<K, V> replaced, @Nullable Set<K> removed) {
+	public LogSortedMap1(int varId, @Nullable Bean source, @Nullable Comparator<? super K> comparator,
+						 Meta2<K, V> meta, @Nullable Map<K, V> modified) {
 		super(varId, source);
 		this.meta = meta;
 		this.comparator = comparator;
-		this.replaced = replaced;
-		this.removed = removed;
+		this.modified = modified;
 	}
 
 	@Override
@@ -33,44 +39,44 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogBean {
 		return meta.name;
 	}
 
-	public final Map<K, V> getReplaced() {
-		return replaced != null ? replaced : (replaced = new TreeMap<>(comparator));
-	}
-
-	public final Set<K> getRemoved() {
-		return removed != null ? removed : (removed = new TreeSet<>(comparator));
+	public final Map<K, V> getModified() {
+		return modified != null ? modified : (modified = new TreeMap<>(comparator));
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		Map<K, V> replacements = replaced != null ? replaced : Collections.emptyMap();
-		Set<K> removals = removed != null ? removed : Collections.emptySet();
+		Map<K, V> m = modified != null ? modified : Collections.emptyMap();
 		var keyEncoder = meta.keyEncoder;
 		var valueEncoder = meta.valueEncoder;
-		bb.WriteUInt(replacements.size());
-		for (var e : replacements.entrySet()) {
-			keyEncoder.accept(bb, e.getKey());
-			//noinspection DataFlowIssue
-			valueEncoder.accept(bb, e.getValue());
+		// 两遍split编码（同LogMap1）：线格式与双容器时代逐字节一致。
+		int replacedCount = 0;
+		for (var e : m.entrySet())
+			if (e.getValue() != null)
+				replacedCount++;
+		bb.WriteUInt(replacedCount);
+		for (var e : m.entrySet()) {
+			V v = e.getValue();
+			if (v != null) {
+				keyEncoder.accept(bb, e.getKey());
+				valueEncoder.accept(bb, v);
+			}
 		}
 
-		bb.WriteUInt(removals.size());
-		for (K k : removals)
-			keyEncoder.accept(bb, k);
+		bb.WriteUInt(m.size() - replacedCount);
+		for (var e : m.entrySet())
+			if (e.getValue() == null)
+				keyEncoder.accept(bb, e.getKey());
 	}
 
 	private void read(IByteBuffer bb) {
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;
-		for (int i = bb.ReadUIntPositive(); i > 0; --i) {
-			K k = keyDecoder.apply(bb);
-			//noinspection DataFlowIssue
-			V v = valueDecoder.apply(bb);
-			getReplaced().put(k, v);
-		}
+		var m = getModified();
+		for (int i = bb.ReadUIntPositive(); i > 0; --i)
+			m.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
 
 		for (int i = bb.ReadUIntPositive(); i > 0; --i)
-			getRemoved().add(keyDecoder.apply(bb));
+			m.put(keyDecoder.apply(bb), null);
 	}
 
 	public static <K extends Comparable<K>, V> LogSortedMap1<K, V> decode(int varId, Meta2<K, V> meta, IByteBuffer bb) {
@@ -78,8 +84,8 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogBean {
 	}
 
 	public static <K extends Comparable<K>, V> LogSortedMap1<K, V> decode(
-		int varId, Meta2<K, V> meta, @Nullable Comparator<? super K> comparator, IByteBuffer bb) {
-		var log = new LogSortedMap1<>(varId, null, comparator, meta, null, null);
+			int varId, Meta2<K, V> meta, @Nullable Comparator<? super K> comparator, IByteBuffer bb) {
+		var log = new LogSortedMap1<>(varId, null, comparator, meta, null);
 		log.read(bb);
 		return log;
 	}

@@ -73,14 +73,13 @@ public class TestPMap2PutAllAfterInPlaceModify {
 				map.putAll(Map.of(1L, fresh));
 
 				var log = (LogMap2<Long, BSimple>)map.createLogBean(Transaction.getCurrent().getLog(logKey));
-				Assertions.assertTrue(requireNonNull(log).getReplaced().containsKey(1L),
-						"PMap2：原位修改后putAll等值新实例，该键必须记入replaced"
+				Assertions.assertTrue(requireNonNull(log).getModified().containsKey(1L),
+						"PMap2：原位修改后putAll等值新实例，该键必须记入modified"
 								+ "（值等过滤与changed身份过滤叠加会整体丢增量）");
-				Assertions.assertSame(fresh, log.getReplaced().get(1L), "记账携带新实例完整值");
-				Assertions.assertFalse(log.getRemoved().contains(1L));
+				Assertions.assertSame(fresh, log.getModified().get(1L), "记账携带新实例完整值");
 				var putFresh = bean(42);
 				map.put(1L, putFresh);
-				Assertions.assertSame(putFresh, log.getReplaced().get(1L),
+				Assertions.assertSame(putFresh, log.getModified().get(1L),
 						"PMap2.put等值新实例仍须按身份记录");
 
 				// PSortedMap2同构路径
@@ -92,12 +91,12 @@ public class TestPMap2PutAllAfterInPlaceModify {
 				smap.putAll(Map.of(1, sFresh));
 
 				var sLog = (LogSortedMap2<Integer, BSimple>)smap.createLogBean(Transaction.getCurrent().getLog(sLogKey));
-				Assertions.assertTrue(requireNonNull(sLog).getReplaced().containsKey(1),
-						"PSortedMap2：原位修改后putAll等值新实例，该键必须记入replaced");
-				Assertions.assertSame(sFresh, sLog.getReplaced().get(1));
+				Assertions.assertTrue(requireNonNull(sLog).getModified().containsKey(1),
+						"PSortedMap2：原位修改后putAll等值新实例，该键必须记入modified");
+				Assertions.assertSame(sFresh, sLog.getModified().get(1));
 				var sortedPutFresh = bean(42);
 				smap.put(1, sortedPutFresh);
-				Assertions.assertSame(sortedPutFresh, sLog.getReplaced().get(1),
+				Assertions.assertSame(sortedPutFresh, sLog.getModified().get(1),
 						"PSortedMap2.put等值新实例仍须按身份记录");
 				return Procedure.Success;
 			}, "delta").call());

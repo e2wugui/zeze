@@ -2,6 +2,7 @@ package Zeze.Raft.RocksRaft;
 
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 import Zeze.Serialize.ByteBuffer;
@@ -84,7 +85,27 @@ public class CollSet1<V> extends CollSet<V> {
 	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
-		set = set.plusAll(log.getAdded()).minusAll(log.getRemoved());
+		var modified = log.getModified();
+		if (modified.isEmpty())
+			return;
+		// 单遍分区批量应用：等价旧 plusAll(added).minusAll(removed)。
+		ArrayList<V> adds = null;
+		ArrayList<V> removes = null;
+		for (var e : modified.entrySet()) {
+			if (e.getValue() != null) {
+				if (adds == null)
+					adds = new ArrayList<>(modified.size());
+				adds.add(e.getKey());
+			} else {
+				if (removes == null)
+					removes = new ArrayList<>(modified.size());
+				removes.add(e.getKey());
+			}
+		}
+		if (adds != null)
+			set = set.plusAll(adds);
+		if (removes != null)
+			set = set.minusAll(removes);
 	}
 
 	@SuppressWarnings("unchecked")

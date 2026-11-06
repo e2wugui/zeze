@@ -4,9 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -20,8 +18,8 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs;
 
-	private Map<K, V> putted;
-	private Set<K> removed;
+	/** 单容器记账（同LogMap1），TreeMap保持源容器比较器的键等价折叠。 */
+	private Map<K, V> modified;
 
 	public LogSortedMap1(Class<K> keyClass, Class<V> valueClass) {
 		this(keyClass, valueClass, null);
@@ -38,36 +36,27 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 
 	LogSortedMap1(int typeId, Class<K> keyClass, Class<V> valueClass, @Nullable Comparator<? super K> comparator) {
 		super(typeId, comparator);
-		putted = new TreeMap<>(comparator);
-		removed = new TreeSet<>(comparator);
+		modified = new TreeMap<>(comparator);
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
 	LogSortedMap1(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs) {
 		super(typeId);
-		putted = new TreeMap<>();
-		removed = new TreeSet<>();
+		modified = new TreeMap<>();
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
 
-	public final Map<K, V> getPutted() {
-		return putted;
-	}
-
-	public final Set<K> getRemoved() {
-		return removed;
+	public final Map<K, V> getModified() {
+		return modified;
 	}
 
 	@Override
 	protected void onComparatorChanged(@Nullable Comparator<? super K> comparator) {
-		var newPutted = new TreeMap<K, V>(comparator);
-		newPutted.putAll(putted);
-		putted = newPutted;
-		var newRemoved = new TreeSet<K>(comparator);
-		newRemoved.addAll(removed);
-		removed = newRemoved;
+		var newModified = new TreeMap<K, V>(comparator);
+		newModified.putAll(modified);
+		modified = newModified;
 	}
 
 	public final V get(K key) {
@@ -82,15 +71,13 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	public final void put(K key, V value) {
 		//noinspection DataFlowIssue
 		setValue(getValue().plus(key, value));
-		putted.put(key, value);
-		removed.remove(key);
+		modified.put(key, value);
 	}
 
 	public final void remove(K key) {
 		//noinspection DataFlowIssue
 		setValue(getValue().minus(key));
-		putted.remove(key);
-		removed.add(key);
+		modified.put(key, null);
 	}
 
 	public final void clear() {
@@ -101,35 +88,40 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteUInt(putted.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		//noinspection DataFlowIssue
 		var valueEncoder = valueCodecFuncs.encoder;
-		for (var p : putted.entrySet()) {
-			keyEncoder.accept(bb, p.getKey());
-			valueEncoder.accept(bb, p.getValue());
+		// 两遍split编码：线格式与putted/removed双容器时代逐字节一致。
+		int puttedCount = 0;
+		for (var e : modified.entrySet())
+			if (e.getValue() != null)
+				puttedCount++;
+		bb.WriteUInt(puttedCount);
+		for (var e : modified.entrySet()) {
+			V v = e.getValue();
+			if (v != null) {
+				keyEncoder.accept(bb, e.getKey());
+				valueEncoder.accept(bb, v);
+			}
 		}
 
-		bb.WriteUInt(removed.size());
-		for (var r : removed)
-			keyEncoder.accept(bb, r);
+		bb.WriteUInt(modified.size() - puttedCount);
+		for (var e : modified.entrySet())
+			if (e.getValue() == null)
+				keyEncoder.accept(bb, e.getKey());
 	}
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		putted.clear();
+		modified.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		//noinspection DataFlowIssue
 		var valueDecoder = valueCodecFuncs.decoder;
-		for (int i = bb.ReadUInt(); i > 0; --i) {
-			var key = keyDecoder.apply(bb);
-			var value = valueDecoder.apply(bb);
-			putted.put(key, value);
-		}
-
-		removed.clear();
 		for (int i = bb.ReadUInt(); i > 0; --i)
-			removed.add(keyDecoder.apply(bb));
+			modified.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
+
+		for (int i = bb.ReadUInt(); i > 0; --i)
+			modified.put(keyDecoder.apply(bb), null);
 	}
 
 	@Override
@@ -145,18 +137,8 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	private void mergeChangeNote(LogSortedMap1<K, V> another) {
-		// Put,Remove 需要确认有没有顺序问题
-		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
-		for (var e : another.putted.entrySet()) {
-			// replace 1,2,3 remove 4
-			putted.put(e.getKey(), e.getValue());
-			removed.remove(e.getKey());
-		}
-		for (var e : another.removed) {
-			// replace 2,3 remove 1,4
-			putted.remove(e);
-			removed.add(e);
-		}
+		// 单容器putAll即last-writer-wins，双容器时代的Put/Remove顺序问题由单槽互斥消除。
+		modified.putAll(another.modified);
 	}
 
 	@Override
@@ -172,10 +154,8 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append(" Putted:");
-		ByteBuffer.BuildSortedString(sb, putted);
-		sb.append(" Removed:");
-		ByteBuffer.BuildSortedString(sb, removed);
+		sb.append(" Modified:");
+		ByteBuffer.BuildSortedString(sb, modified);
 		return sb.toString();
 	}
 }

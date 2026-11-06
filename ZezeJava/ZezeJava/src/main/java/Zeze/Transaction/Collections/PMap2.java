@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.LongFunction;
@@ -174,15 +175,31 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		//noinspection unchecked
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
-		var replaced = log.replacedForRead();
-		for (var e : replaced.entrySet()) {
-			// 对齐put/decode/putAllData全部写路径：进map的bean必须带mapKey。
-			// followerApply加入的replaced bean若不带，后续本地事务修改collect时
-			// 后续提交收集仍需要由 mapKey 定位该值。
-			e.getValue().initRootInfo(rootInfo, this);
-			e.getValue().mapKey(e.getKey());
+		var modified = log.modifiedForRead();
+		HashMap<K, V> puts = null;
+		ArrayList<K> removes = null;
+		for (var e : modified.entrySet()) {
+			var v = e.getValue();
+			if (v != null) {
+				// 对齐put/decode/putAllData全部写路径：进map的bean必须带mapKey。
+				// followerApply加入的replaced bean若不带，后续本地事务修改collect时
+				// 后续提交收集仍需要由 mapKey 定位该值。
+				v.initRootInfo(rootInfo, this);
+				v.mapKey(e.getKey());
+				if (puts == null)
+					puts = new HashMap<>(modified.size() * 2);
+				puts.put(e.getKey(), v);
+			} else {
+				if (removes == null)
+					removes = new ArrayList<>(modified.size());
+				removes.add(e.getKey());
+			}
 		}
-		tmp = tmp.minusAll(log.removedForRead()).plusAll(replaced);
+		// 单遍分区批量应用（同PMap1.followerApply）：等价旧 minusAll(removed).plusAll(replaced)。
+		if (removes != null)
+			tmp = tmp.minusAll(removes);
+		if (puts != null)
+			tmp = tmp.plusAll(puts);
 
 		// apply changed
 		for (var e : log.changedForRead().entrySet()) {
@@ -294,9 +311,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
-			return new LogMap2<>(variableId(), this, meta, null, null);
+			return new LogMap2<>(variableId(), this, meta, null);
 		//noinspection unchecked
 		var delta = (LogMapDelta.Map2<K, V>)finalLog;
-		return new LogMap2<>(variableId(), this, meta, delta.getReplaced(), delta.getRemoved());
+		return new LogMap2<>(variableId(), this, meta, delta.getModified());
 	}
 }

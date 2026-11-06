@@ -1,9 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import Zeze.Transaction.Bean;
 import org.jspecify.annotations.Nullable;
@@ -49,27 +47,22 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		return true;
 	}
 
-	private @Nullable HashMap<K, V> replaced;
-	private @Nullable Set<K> removed;
+	/**
+	 * 结构增量单容器记账：value 非 null 为替换项，null 为删除标记。
+	 * 单槽位天然维持替换/删除互斥，取代双容器的交叉清理纪律。
+	 */
+	private @Nullable HashMap<K, V> modified;
 
 	protected LogMapDelta(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
 		super(source, value);
 	}
 
-	public @Nullable HashMap<K, V> getReplaced() {
-		return replaced;
+	public @Nullable HashMap<K, V> getModified() {
+		return modified;
 	}
 
-	public @Nullable Set<K> getRemoved() {
-		return removed;
-	}
-
-	private HashMap<K, V> replacedForWrite() {
-		return replaced != null ? replaced : (replaced = new HashMap<>());
-	}
-
-	private Set<K> removedForWrite() {
-		return removed != null ? removed : (removed = new HashSet<>());
+	private HashMap<K, V> modifiedForWrite() {
+		return modified != null ? modified : (modified = new HashMap<>());
 	}
 
 	public @Nullable V put(K key, V value) {
@@ -83,7 +76,7 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		super.putAll(m);
 		var newMap = getValue();
 		if (newMap != old) {
-			// 只记值真实变化的键：值未变的键混入replaced是幻影增量，误导增量驱动的监听器。
+			// 只记值真实变化的键：值未变的键混入modified是幻影增量，误导增量驱动的监听器。
 			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogMap2）。
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
@@ -93,18 +86,14 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 	}
 
 	private void noteReplacement(K key, V value, @Nullable V oldValue) {
-		if (isValueChanged(oldValue, value)) {
-			if (removed != null) removed.remove(key);
-			replacedForWrite().put(key, value);
-		}
+		if (isValueChanged(oldValue, value))
+			modifiedForWrite().put(key, value);
 	}
 
 	public @Nullable V remove(K key) {
 		V old = super.remove(key);
-		if (old != null) {
-			if (replaced != null) replaced.remove(key);
-			removedForWrite().add(key);
-		}
+		if (old != null)
+			modifiedForWrite().put(key, null);
 		return old;
 	}
 
@@ -113,18 +102,15 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		// value==null 时旧形态 NPE 炸事务、非托管分支同输入安静返回 false——同输入两分支
 		// 行为必须一致（20261020-06，对抗验证定谳为理论缺陷，防御对齐修法）。
 		if (super.remove(key, value)) {
-			if (replaced != null) replaced.remove(key);
-			removedForWrite().add(key);
+			modifiedForWrite().put(key, null);
 			return true;
 		}
 		return false;
 	}
 
 	public void clear() {
-		for (var ks : getValue().keySet()) {
-			if (replaced != null) replaced.remove(ks);
-			removedForWrite().add(ks);
-		}
+		for (var ks : getValue().keySet())
+			modifiedForWrite().put(ks, null);
 		super.clear();
 	}
 
@@ -137,19 +123,8 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 	}
 
 	private void mergeChangeNote(LogMapDelta<K, V> another) {
-		if (another.replaced != null) {
-			for (var e : another.replaced.entrySet()) {
-				K k = e.getKey();
-				if (removed != null) removed.remove(k);
-				replacedForWrite().put(k, e.getValue());
-			}
-		}
-		if (another.removed != null) {
-			for (K k : another.removed) {
-				if (replaced != null) replaced.remove(k);
-				removedForWrite().add(k);
-			}
-		}
+		if (another.modified != null)
+			modifiedForWrite().putAll(another.modified);
 	}
 
 	protected abstract boolean isValueChanged(@Nullable V oldValue, V newValue);

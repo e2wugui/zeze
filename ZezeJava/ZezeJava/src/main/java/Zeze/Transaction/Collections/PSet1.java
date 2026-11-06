@@ -123,7 +123,27 @@ public class PSet1<V> extends PSet<V> {
 	public void followerApply(Log _log) {
 		//noinspection unchecked
 		var log = (LogSet1<V>)_log;
-		set = set.minusAll(log.getRemoved()).plusAll(log.getAdded());
+		var modified = log.getModified();
+		if (modified.isEmpty())
+			return;
+		// 单遍分区批量应用（同PMap1.followerApply）：PRESENT槽位归plus批，null槽位归minus批。
+		ArrayList<V> adds = null;
+		ArrayList<V> removes = null;
+		for (var e : modified.entrySet()) {
+			if (e.getValue() != null) {
+				if (adds == null)
+					adds = new ArrayList<>(modified.size());
+				adds.add(e.getKey());
+			} else {
+				if (removes == null)
+					removes = new ArrayList<>(modified.size());
+				removes.add(e.getKey());
+			}
+		}
+		if (removes != null)
+			set = set.minusAll(removes);
+		if (adds != null)
+			set = set.plusAll(adds);
 	}
 
 	public void assign(PSet1<V> pset) {
@@ -180,9 +200,9 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		if (finalLog == null)
-			return new LogSet1<>(variableId(), this, meta, null, null);
+			return new LogSet1<>(variableId(), this, meta, null);
 		//noinspection unchecked
 		var delta = (LogSet1Delta<V>)finalLog;
-		return new LogSet1<>(variableId(), this, meta, delta.getAdded(), delta.getRemoved());
+		return new LogSet1<>(variableId(), this, meta, delta.getModified());
 	}
 }
