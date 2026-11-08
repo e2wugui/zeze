@@ -25,7 +25,9 @@
 	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"/>
 	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
 	-->
-	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+	<!-- 非空url=Memory独立分桶（DatabaseMemory按url静态分桶）：①双集群存储隔离（对齐Infinite.App
+	     独占桶先例）；②后端重定向只切Memory+空url——集群2天然保持Memory，不被切进共享库。 -->
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl="onz_cluster2"/>
 
 	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>
