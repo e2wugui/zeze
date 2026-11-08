@@ -637,6 +637,15 @@ public abstract class Database extends ReentrantLock {
 
 	public abstract Transaction beginTransaction();
 
+	/**
+	 * 本库是否把该写失败判定为暂时性写冲突（如Mongo WriteConflict）。
+	 * checkpoint落库段据此决定是否以全新事务重放整批（回滚干净前提）；
+	 * 默认false——非暂时性失败照旧上抛走halt路径。
+	 */
+	public boolean isTransientWriteConflict(Throwable e) {
+		return false;
+	}
+
 	public interface Transaction extends AutoCloseable {
 		void commit();
 

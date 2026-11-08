@@ -141,6 +141,39 @@ public class TestDatabaseConfigTest {
 	}
 
 	@Test
+	public void mongoDbSelectionAppliesUrlToEverySwitchableDatabase() {
+		var config = config();
+		config.setGlobalCacheManagerHostNameOrAddress("127.0.0.1");
+		var other = new Config.DatabaseConf();
+		other.setName("other");
+		config.getDatabaseConfMap().put("other", other);
+		var url = "mongodb://127.0.0.1:27017/?replicaSet=rs0";
+		assertSame(config, TestDatabaseConfig.apply(config, "MongoDb", url));
+		for (var db : config.getDatabaseConfMap().values()) {
+			assertEquals(Config.DbType.MongoDb, db.getDatabaseType());
+			assertEquals(url, db.getDatabaseUrl());
+			assertNull(db.getDruidConf(), "MongoDb不动连接池配置");
+		}
+		// databaseName不被重定向触碰：fixture预置的保持预置值，未预置的保持DatabaseConf默认。
+		assertEquals("test_database", config.getDatabaseConfMap().get("shared").getDatabaseName());
+		assertEquals("zeze_mongodb", config.getDatabaseConfMap().get("other").getDatabaseName());
+		assertEquals("127.0.0.1", config.getGlobalCacheManagerHostNameOrAddress(),
+				"MongoDb与GCM无互斥硬闸，Global保持（区别于RocksDb分支）");
+		// 已选后端不重复切换（对齐JDBC路径的空集早退语义）。
+		assertSame(config, TestDatabaseConfig.apply(config, "unsupported", null));
+	}
+
+	@Test
+	public void mongoDbSelectionRequiresUrlPrefix() {
+		for (var badUrl : new String[]{null, "", "jdbc:mysql://localhost/test"}) {
+			var config = config();
+			assertThrows(IllegalStateException.class, () -> TestDatabaseConfig.apply(config, "MongoDb", badUrl));
+			assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
+			assertEquals("", config.getDatabaseConfMap().get("shared").getDatabaseUrl());
+		}
+	}
+
+	@Test
 	public void keepOriginalExemptsRedirect() {
 		var config = config();
 		assertSame(config, TestDatabaseConfig.keepOriginal(config));

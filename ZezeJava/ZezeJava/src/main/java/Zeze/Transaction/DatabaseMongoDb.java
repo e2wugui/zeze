@@ -6,6 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
 import com.mongodb.ErrorCategory;
+import com.mongodb.MongoException;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoNamespace;
 import com.mongodb.MongoWriteException;
@@ -75,6 +76,17 @@ public class DatabaseMongoDb extends Database {
 		var collection = mongoDatabase.getCollection(tableOldName);
 		collection.renameCollection(new MongoNamespace(mongoDatabase.getName(), tableNewName),
 				new RenameCollectionOptions().dropTarget(false));
+	}
+
+	@Override
+	public boolean isTransientWriteConflict(Throwable e) {
+		// WT乐观并发冲突即abort整事务并标记TransientTransactionError（官方契约=客户端重放）；
+		// 112=WriteConflict。沿cause链找：写路径异常会被包装（如flush失败诊断RuntimeException）。
+		for (Throwable t = e; t != null; t = t.getCause()) {
+			if (t instanceof MongoException me)
+				return me.hasErrorLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL) || me.getCode() == 112;
+		}
+		return false;
 	}
 
 	@Override

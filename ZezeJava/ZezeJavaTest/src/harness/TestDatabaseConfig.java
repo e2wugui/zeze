@@ -60,6 +60,19 @@ public final class TestDatabaseConfig {
 			config.setGlobalCacheManagerHostNameOrAddress(null);
 			return config;
 		}
+		if (Config.DbType.MongoDb.name().equals(backend)) {
+			// MongoDb非JDBC：连接串必填（库默认zeze_mongodb，共享库持久语义对齐JDBC批次）；
+			// 不动druidConf；不摘Global（createDatabase的MongoDb分支无硬闸，可与GCM共存）。
+			if (url == null || url.isBlank())
+				throw new IllegalStateException("zeze.test.database=MongoDb requires zeze.test.database.url");
+			if (!url.startsWith("mongodb://") && !url.startsWith("mongodb+srv://"))
+				throw new IllegalStateException("zeze.test.database=MongoDb requires mongodb:// URL prefix, got: " + url);
+			for (var db : databases) {
+				db.setDatabaseType(Config.DbType.MongoDb);
+				db.setDatabaseUrl(url);
+			}
+			return config;
+		}
 		for (var db : databases) {
 			var jdbc = jdbcConf(backend, url);
 			db.setDatabaseType(jdbc.getDatabaseType());

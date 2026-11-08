@@ -3,6 +3,7 @@ package harness;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Transaction.DatabaseMemory;
+import Zeze.Transaction.DatabaseMongoDb;
 import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabasePostgreSQL;
 import Zeze.Transaction.DatabaseRocksDb;
@@ -41,6 +42,7 @@ public class TestDatabaseSelection {
 				case "PostgreSQL" -> DatabasePostgreSQL.class;
 				case "SqlServer" -> DatabaseSqlServer.class;
 				case "RocksDb" -> DatabaseRocksDb.class;
+				case "MongoDb" -> DatabaseMongoDb.class;
 				default -> DatabaseMemory.class;
 			};
 			assertInstanceOf(expectedClass, app.getDatabase(""));

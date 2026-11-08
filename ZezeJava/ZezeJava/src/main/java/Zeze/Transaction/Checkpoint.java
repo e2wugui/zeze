@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -484,33 +485,27 @@ public final class Checkpoint {
 	}
 
 	private void flushInternal(Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
-							   @Nullable PendingHistory history) {
-		var dts = new IdentityHashMap<Database, Database.Transaction>();
-		//noinspection DataFlowIssue
-		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
+							   IHistory.@Nullable PendingHistory history) {
 		FlushBatch batch = null;
-
 		// history.logChanges原子的和数据一起flush。
 		try {
+			// prepare段（一次性，重试不重复执行）：收集库集合、快照编码、Onz远端通知。
+			// 事务延迟到落库段按次新开——重试时以全新事务重放整批。
+			var databases = new LinkedHashSet<Database>();
 			batch = acquireFlushBatch(rs);
-			// prepare: 每库一个事务，快照由本批次独占的连续缓冲区持有。
 			for (var r : rs) {
 				var storage = r.getTable().getStorage();
 				if (storage != null) {
-					var database = storage.getDatabaseTable().getDatabase();
-					//noinspection resource
-					dts.computeIfAbsent(database, Database::beginTransaction);
+					databases.add(storage.getDatabaseTable().getDatabase());
 					var oldTable = r.getTable().getOldTable();
 					if (oldTable != null)
-						//noinspection resource
-						dts.computeIfAbsent(oldTable.getDatabase(), Database::beginTransaction);
+						databases.add(oldTable.getDatabase());
 				}
 				batch.add(r);
 			}
 			var historyTable = history != null ? history.getTable() : null;
-			var historyTransaction = history != null
-				? dts.computeIfAbsent(historyTable.getDatabase(), Database::beginTransaction)
-				: null;
+			if (historyTable != null)
+				databases.add(historyTable.getDatabase());
 
 			// 编码
 			if (history != null)
@@ -518,38 +513,63 @@ public final class Checkpoint {
 
 			batch.encode();
 			OnzProcedure.sendFlushAndWait(onzProcedures);
-			// 保存到数据库中
-			batch.writeTo(dts, localCacheTransaction);
-			if (history != null) {
-				var storage = historyTable.getStorage();
+
+			// 落库段（可重试）：writeTo按键replace/remove幂等，全新事务重放安全；
+			// 重试双门=全部事务回滚干净（无半提交）+ 库判定为暂时性写冲突
+			// （如Mongo WriteConflict：WT乐观并发abort整事务，官方契约即客户端重放）。
+			// 回滚不干净（状态未知）或非暂时性失败仍原样上抛走halt路径（宁死不糊不变）。
+			for (int attempt = 1; ; attempt++) {
+				var dts = new IdentityHashMap<Database, Database.Transaction>();
 				//noinspection DataFlowIssue
-				history.writeOnly(storage.getDatabaseTable(), historyTransaction);
-			}
-			// 提交。多库为逐库commit、本地不保证跨库原子：第二库失败时先提交的库已生效，
-			// 崩溃窗口由重启后的checkpoint重放收敛（脏标记未清除的记录重新flush）；
-			// 需要严格跨库原子应单库部署或引入外部协调者，框架不引入XA。
-			for (var t : dts.values())
-				t.commit();
-			localCacheTransaction.commit();
-			if (history != null)
-				history.onPersisted(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
-			// 保存成功，清除脏标记。
-			// Immediately 模式的记录不进入 RelativeRecordSet，这里是它唯一的清除点。
-			// Table 模式现在也在这里清除。
-			batch.markClean();
-		} catch (Throwable e) { // rethrow
-			for (var t : dts.values()) {
+				var localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
 				try {
-					t.rollback();
-				} catch (Throwable ex) { // logger.error
-					logger.error("Flush Rollback Exception", ex);
+					for (var database : databases)
+						dts.put(database, database.beginTransaction());
+					// 保存到数据库中
+					batch.writeTo(dts, localCacheTransaction);
+					if (history != null) {
+						var storage = historyTable.getStorage();
+						//noinspection DataFlowIssue
+						history.writeOnly(storage.getDatabaseTable(), dts.get(historyTable.getDatabase()));
+					}
+					// 提交。多库为逐库commit、本地不保证跨库原子：第二库失败时先提交的库已生效，
+					// 崩溃窗口由重启后的checkpoint重放收敛（脏标记未清除的记录重新flush）；
+					// 需要严格跨库原子应单库部署或引入外部协调者，框架不引入XA。
+					for (var t : dts.values())
+						t.commit();
+					localCacheTransaction.commit();
+					if (history != null)
+						history.onPersisted(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
+					// 保存成功，清除脏标记。
+					// Immediately 模式的记录不进入 RelativeRecordSet，这里是它唯一的清除点。
+					// Table 模式现在也在这里清除。
+					batch.markClean();
+					return;
+				} catch (Throwable e) { // rethrow or retry
+					if (rollbackAllQuietly(dts, localCacheTransaction)
+							&& attempt < MAX_TRANSIENT_FLUSH_ATTEMPTS
+							&& isTransientWriteConflict(databases, e)) {
+						logger.warn("checkpoint flush attempt {} transient write conflict, retrying", attempt, e);
+						sleepBeforeRetry(attempt);
+						continue; // finally关闭本轮事务后以全新事务重放
+					}
+					throw e;
+				} finally {
+					for (var t : dts.values()) {
+						try {
+							t.close();
+						} catch (Throwable e) { // logger.error
+							logger.error("Flush close Exception transaction={}", t, e);
+						}
+					}
+					try {
+						localCacheTransaction.close();
+					} catch (Throwable e) { // logger.error
+						logger.error("Flush close Exception transaction={}", localCacheTransaction, e);
+					}
 				}
 			}
-			try {
-				localCacheTransaction.rollback();
-			} catch (Throwable ex) { // logger.error
-				logger.error("Flush Rollback Exception", ex);
-			}
+		} catch (Throwable e) { // rethrow
 			// 诊断信息（表名清单）组装失败不得顶掉真正的flush失败原因（记录结构异常时
 			// extractTableNames可能再抛），退化为占位、原始异常保持为cause。
 			String tableNames;
@@ -561,20 +581,47 @@ public final class Checkpoint {
 			}
 			throw new RuntimeException(tableNames, e);
 		} finally {
-			for (var t : dts.values()) {
-				try {
-					t.close();
-				} catch (Throwable e) { // logger.error
-					logger.error("Flush close Exception transaction={}", t, e);
-				}
-			}
-			try {
-				localCacheTransaction.close();
-			} catch (Throwable e) { // logger.error
-				logger.error("Flush close Exception transaction={}", localCacheTransaction, e);
-			}
 			if (batch != null)
 				releaseFlushBatch(batch);
+		}
+	}
+
+	/** 暂时性写冲突重试的总尝试次数上限（1次首发+重试）。 */
+	private static final int MAX_TRANSIENT_FLUSH_ATTEMPTS = 4;
+
+	/** 回滚全部事务；任一回滚失败返回false（存在半提交窗口，状态未知，不可重放）。 */
+	private static boolean rollbackAllQuietly(IdentityHashMap<Database, Database.Transaction> dts,
+											   Database.Transaction localCacheTransaction) {
+		boolean clean = true;
+		for (var t : dts.values()) {
+			try {
+				t.rollback();
+			} catch (Throwable ex) { // logger.error
+				clean = false;
+				logger.error("Flush Rollback Exception", ex);
+			}
+		}
+		try {
+			localCacheTransaction.rollback();
+		} catch (Throwable ex) { // logger.error
+			clean = false;
+			logger.error("Flush Rollback Exception", ex);
+		}
+		return clean;
+	}
+
+	private static boolean isTransientWriteConflict(Collection<Database> databases, Throwable e) {
+		for (var database : databases)
+			if (database.isTransientWriteConflict(e))
+				return true;
+		return false;
+	}
+
+	private static void sleepBeforeRetry(int attempt) {
+		try {
+			TimeUnit.MILLISECONDS.sleep(1L << attempt);
+		} catch (InterruptedException ie) {
+			Thread.currentThread().interrupt(); // 重放照常进行，中断状态交由外层处置
 		}
 	}
 
