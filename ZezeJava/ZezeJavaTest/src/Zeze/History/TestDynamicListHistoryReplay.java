@@ -14,6 +14,9 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
+import Zeze.Arch.Online;
+import Zeze.Builtin.HistoryModule.BLogChanges;
+import Zeze.Builtin.Online.BAny;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.CheckpointMode;
@@ -44,15 +47,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class TestDynamicListHistoryReplay {
 	@Test
 	public void restoresQuantityUsingItsFieldFactory(@TempDir Path dir) throws Exception {
-		runProbe(dir, false);
+		runProbe(dir, Probe.class);
 	}
 
 	@Test
 	public void restoresNestedAndGTableChanges(@TempDir Path dir) throws Exception {
-		runProbe(dir, true);
+		runProbe(dir, Probe.class, "extended");
 	}
 
-	private void runProbe(Path dir, boolean extended) throws Exception {
+	@Test
+	public void restoresRuntimeTypeInSeparateProcess(@TempDir Path dir) throws Exception {
+		runProbe(dir, RuntimeTypeProbe.class, "write");
+		runProbe(dir, RuntimeTypeProbe.class, "replay");
+	}
+
+	private void runProbe(Path dir, Class<?> probe, String... probeArgs) throws Exception {
 		// LogRegistry is process-global. Isolate both the fixture registration and the replay.
 		var classpath = new LinkedHashSet<String>();
 		for (var loader = getClass().getClassLoader(); loader != null; loader = loader.getParent()) {
@@ -66,14 +75,13 @@ public class TestDynamicListHistoryReplay {
 		for (var entry : System.getProperty("java.class.path").split(File.pathSeparator))
 			classpath.add(Path.of(entry).toAbsolutePath().toString());
 
-		var args = new ArrayList<>(List.of("-ea", "-cp", String.join(File.pathSeparator, classpath), Probe.class.getName(),
+		var args = new ArrayList<>(List.of("-ea", "-cp", String.join(File.pathSeparator, classpath), probe.getName(),
 				Integer.toString(FastServerIds.takeoverPoolNext())));
-		if (extended)
-			args.add("extended");
+		args.addAll(List.of(probeArgs));
 		var argsFile = dir.resolve("java.args");
 		Files.write(argsFile, args.stream().map(arg -> '"' + arg.replace("\\", "\\\\").replace("\"", "\\\"") + '"').toList(),
 				Charset.forName(System.getProperty("native.encoding", "UTF-8")));
-		var output = dir.resolve("replay.log");
+		var output = dir.resolve(probeArgs.length == 0 ? "probe.log" : probeArgs[0] + ".log");
 		var child = new ProcessBuilder(Procs.JAVAW, "@" + argsFile)
 				.directory(dir.toFile()).redirectErrorStream(true).redirectOutput(output.toFile()).start();
 		try {
@@ -82,6 +90,135 @@ public class TestDynamicListHistoryReplay {
 		} finally {
 			if (child.isAlive())
 				child.destroyForcibly().waitFor();
+		}
+	}
+
+	private static Application newApp(String serverId) throws Exception {
+		var conf = new Config();
+		conf.setServerId(Integer.parseInt(serverId));
+		conf.setServiceManager("disable");
+		conf.setTakeoverMode("off");
+		conf.setCheckpointMode(CheckpointMode.Immediately);
+		conf.setDefaultTableConf(new Config.TableConf());
+		conf.setHistory("DynamicListHistoryReplay");
+		var db = new Config.DatabaseConf();
+		db.setDatabaseUrl("dynamic_list_history_replay_" + conf.getServerId());
+		conf.getDatabaseConfMap().put("", db);
+		return new Application("DynamicListHistoryReplay", conf);
+	}
+
+	private static void installLocalHistoryIds(Application app, HistoryModule history) throws Exception {
+		// Substitute only the external ID allocation. Keep capture and flush on the real path.
+		var ids = new AtomicLong();
+		var slot = Application.class.getDeclaredField("history");
+		slot.setAccessible(true);
+		slot.set(app, new IHistory() {
+			@Override
+			public void registerLogs(Iterable<Table> tables) throws Exception {
+				history.registerLogs(tables);
+			}
+
+			@Override
+			public void afterOpen() {
+				history.afterOpen();
+			}
+
+			@Override
+			public void close() {
+				history.close();
+			}
+
+			@Override
+			public PreparedCommit prepareCommit(Procedure procedure) {
+				var gid = new Id128(0, ids.incrementAndGet());
+				var ledger = history.getPendingGidLedger();
+				ledger.register(gid, System.nanoTime());
+				return changes -> new History(history.getHistoryTable(), ledger,
+						History.buildLogChanges(gid, changes, null, null));
+			}
+		});
+	}
+
+	public static final class RuntimeTypeProbe {
+		private static final Path historyFile = Path.of("history.bin");
+
+		public static void main(String[] args) throws Exception {
+			var writing = args[1].equals("write");
+			var app = newApp(args[0]);
+			var history = HistoryModule.get(app);
+			try {
+				if (writing) {
+					installLocalHistoryIds(app, history);
+					Online.register(Order.class);
+				}
+				app.start();
+				var table = new TableDynamic<Long, BAny>(app, "runtime_dynamic_history", key -> {
+					var bb = ByteBuffer.Allocate();
+					bb.WriteLong(key);
+					return bb;
+				}, ByteBuffer::ReadLong, BAny::new, false, null, Long.class, BAny.class);
+				if (!writing)
+					Online.register(Order.class);
+				if (writing)
+					writeHistory(app, history, table);
+				else
+					replayHistory(app, history, table);
+			} finally {
+				app.stop();
+			}
+		}
+
+		private static void writeHistory(Application app, HistoryModule history, TableDynamic<Long, BAny> table)
+				throws Exception {
+			assertEquals(Procedure.Success, app.newProcedure(() -> {
+				var row = new BAny();
+				row.getAny().setBean(new Order());
+				table.put(1L, row);
+				return Procedure.Success;
+			}, "InsertOrder").call());
+			assertEquals(Procedure.Success, app.newProcedure(() -> {
+				var row = Objects.requireNonNull(table.get(1L));
+				var order = assertInstanceOf(Order.class, row.getAny().getBean());
+				order.getDirectQuantity().setBean(new Quantity(52));
+				return Procedure.Success;
+			}, "ReplaceDirectQuantity").call());
+
+			var records = ByteBuffer.Allocate();
+			var historyTable = history.getHistoryTable();
+			assertEquals(2, historyTable.walkDatabaseRaw((key, row) -> {
+				if (historyTable.decodeKey(ByteBuffer.Wrap(key)).equals(new Id128(0, 2))) {
+					// History 的日志查看入口也须能解码，且此前没有应用过任何记录。
+					var edit = new BLogChanges.Data();
+					edit.decode(ByteBuffer.Wrap(row));
+					Verify.toString(edit);
+				}
+				records.WriteBytes(key);
+				records.WriteBytes(row);
+				return true;
+			}));
+			Files.write(historyFile, records.Copy());
+		}
+
+		private static void replayHistory(Application app, HistoryModule history, TableDynamic<Long, BAny> table)
+				throws Exception {
+			var records = ByteBuffer.Wrap(Files.readAllBytes(historyFile));
+			var historyTable = history.getHistoryTable();
+			var db = app.getDatabase("");
+			var storage = db.openTable(historyTable.getName(), historyTable.getId());
+			try (var txn = db.beginTransaction()) {
+				while (records.size() > 0)
+					storage.replace(txn, records.ReadByteBuffer(), records.ReadByteBuffer());
+				txn.commit();
+			}
+			var replay = new ApplyHelper(app, historyTable, new ApplyDatabaseMemory(), 0, 0);
+			var applied = replay.apply(10);
+			assertEquals(new Id128(0, 2), replay.getExclusiveStartKey());
+			assertEquals(1, applied.size());
+			@SuppressWarnings("unchecked")
+			var target = (ApplyTable<Long, BAny>)applied.keySet().iterator().next();
+			assertEquals(table, target.getOriginTable());
+			var order = assertInstanceOf(Order.class, Objects.requireNonNull(target.get(1L)).getAny().getBean());
+			assertEquals(52, assertInstanceOf(Quantity.class, order.getDirectQuantity().getBean()).getQuantity());
 		}
 	}
 
@@ -159,50 +296,10 @@ public class TestDynamicListHistoryReplay {
 		}
 
 		public static void main(String[] args) throws Exception {
-			var conf = new Config();
-			conf.setServerId(Integer.parseInt(args[0]));
-			conf.setServiceManager("disable");
-			conf.setTakeoverMode("off");
-			conf.setCheckpointMode(CheckpointMode.Immediately);
-			conf.setDefaultTableConf(new Config.TableConf());
-			conf.setHistory("DynamicListHistoryReplay");
-			var db = new Config.DatabaseConf();
-			db.setDatabaseUrl("dynamic_list_history_replay_" + conf.getServerId());
-			conf.getDatabaseConfMap().put("", db);
-
-			var app = new Application("DynamicListHistoryReplay", conf);
+			var app = newApp(args[0]);
 			var history = HistoryModule.get(app);
-			// Substitute only the external ID allocation. Keep capture, flush and replay on the real path.
-			var ids = new AtomicLong();
-			var slot = Application.class.getDeclaredField("history");
-			slot.setAccessible(true);
-			slot.set(app, new IHistory() {
-				@Override
-				public void registerLogs(Iterable<Table> tables) throws Exception {
-					history.registerLogs(tables);
-				}
-
-				@Override
-				public void afterOpen() {
-					history.afterOpen();
-				}
-
-				@Override
-				public void close() {
-					history.close();
-				}
-
-				@Override
-				public PreparedCommit prepareCommit(Procedure procedure) {
-					var gid = new Id128(0, ids.incrementAndGet());
-					var ledger = history.getPendingGidLedger();
-					ledger.register(gid, System.nanoTime());
-					return changes -> new History(history.getHistoryTable(), ledger,
-							History.buildLogChanges(gid, changes, null, null));
-				}
-			});
-
 			try {
+				installLocalHistoryIds(app, history);
 				app.start();
 				var orders = new TableDynamic<Long, Order>(app, "dynamic_list_history_orders", key -> {
 					var bb = ByteBuffer.Allocate();

@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Util.Reflect;
 
 /** BeanKey 字段的日志元数据。 */
 public final class BeanKeyMeta<V> extends Meta1<V> {
@@ -16,7 +17,7 @@ public final class BeanKeyMeta<V> extends Meta1<V> {
 
 	private BeanKeyMeta(Class<V> valueClass) {
 		super(Bean.hashLog(headHash, valueClass), "LogBeanKey:" + valueClass.getName());
-		valueFactory = publicValueFactory(valueClass);
+		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
 	public static <V extends Serializable> BeanKeyMeta<V> get(Class<V> beanClass) {

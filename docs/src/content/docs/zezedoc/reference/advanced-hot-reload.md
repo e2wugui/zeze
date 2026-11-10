@@ -233,6 +233,8 @@ Task.hotGuard = this::enterReadLock;   // 热更期间保护运行中的操作
 
 模块识别规则：`loadExistDistributes` 扫描 `distributeDir` 下的 `.jar`，要求成对出现 `{namespace}.jar` 与 `{namespace}.interface.jar` 才视为 ready；可选的 `start.order.txt` 指定加载顺序。
 
+History 与进程内热安装在同一个 JVM 里互斥。启用 History 的进程通过重启部署新版本，热安装请求会在调用旧模块的 `stopBefore()` 之前被拒绝。
+
 ---
 
 ## 配置

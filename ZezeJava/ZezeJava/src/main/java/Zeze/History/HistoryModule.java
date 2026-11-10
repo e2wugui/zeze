@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Application;
 import Zeze.Builtin.HistoryModule.tHistory;
+import Zeze.Hot.HotInstallGate;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Transaction.Changes;
@@ -28,6 +29,7 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	private volatile @Nullable PendingGidLedger pendingGidLedger;
 	private volatile boolean closed;
 	private boolean tablesRegistered;
+	private @Nullable HistoryRuntimeBeans runtimeBeanLogs;
 
 	/** 工具入口只取已有模块，关闭配置时不隐式创建。 */
 	public static HistoryModule get(Application zeze) {
@@ -72,6 +74,14 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	@Override
 	public void afterOpen() {
 		OwnerCheck.verify(this);
+		lock();
+		try {
+			ensureOpen();
+			if (runtimeBeanLogs == null)
+				runtimeBeanLogs = HistoryRuntimeBeans.subscribe();
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override
@@ -185,6 +195,7 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	}
 
 	public HistoryModule(Application zeze) {
+		HotInstallGate.blockForProcess("History");
 		this.zeze = zeze;
 		historyName = zeze.getConfig().getHistory();
 		RegisterZezeTables(zeze);
@@ -197,6 +208,10 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 		lock();
 		try {
 			closed = true;
+			if (runtimeBeanLogs != null) {
+				runtimeBeanLogs.unsubscribe();
+				runtimeBeanLogs = null;
+			}
 			ledger = pendingGidLedger;
 			applyHelper = null;
 		} finally {

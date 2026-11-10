@@ -994,6 +994,11 @@ public class HotManager extends ClassLoader {
 	}
 
 	public @Nullable ArrayList<HotModule> installReadies(boolean atomicAll) throws Exception {
+		var blocker = HotInstallGate.tryAdmit();
+		if (blocker != null) {
+			logger.warn("Hot install blocked by {} in this JVM; restart the JVM to deploy modules", blocker);
+			return null;
+		}
 		var foundJars = new HashSet<String>();
 		var readies = new HashSet<String>();
 		loadExistDistributes(foundJars, readies);

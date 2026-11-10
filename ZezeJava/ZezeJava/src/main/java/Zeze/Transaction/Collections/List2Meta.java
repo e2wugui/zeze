@@ -22,7 +22,7 @@ public final class List2Meta<V> extends Meta1<V> {
 
 	private List2Meta(Class<V> valueClass) {
 		super(Bean.hashLog(headHash, valueClass), "LogList2:" + valueClass.getName());
-		valueFactory = publicValueFactory(valueClass);
+		valueFactory = Reflect.getDefaultConstructor(valueClass);
 		dynamicField = null;
 	}
 

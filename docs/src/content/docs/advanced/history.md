@@ -116,6 +116,10 @@ Map<ApplyTable<?, ?>, Set<Object>> affected = applyHelper.apply(1);
 
 动态字段和动态集合的 `specialId` 由声明该字段的 Bean 和字段号确定作用域。保留 History 期间，升级时应保持已有 `specialId` 对应的 Bean 类型。动态增量采用字段描述符及新的日志标记，升级到此格式时应从新基线开始回放。
 
+History 与进程内热安装在同一个 JVM 里互斥。启用 History 后，热安装会在停止旧模块前被拒绝，升级通过重启 JVM 完成。反过来，JVM 一旦接受热安装请求，本次进程生命周期内就不能再启用 History。
+
+通过 `BeanFactory.register` 注册运行时动态类型时，History 会收到 Bean 类型通知。History 启动时为已登记的类型准备解码器，启动后的类型登记会在发布值构造器前准备解码器。回放进程须在消费日志前执行同样的业务类型登记，例如在使用 `BAny` 时调用 `Online.register(Order.class)`。使用自定义动态工厂的模块可调用 `BeanFactory.registerRuntimeBeanType` 登记回调可能返回的 Bean 类。
+
 声明了动态字段的集合在执行 `add`、`put` 等直接写入时，要求包装器由目标字段的 `newDynamicBean_*` 工厂创建。手写动态集合时，向 `List2Meta.createDynamic(field)`、`Map2Meta.createDynamic(keyClass, field)` 或 `SortedMap2Meta.createDynamic(keyClass, field)` 传入目标字段描述符，再用返回的 Meta 构造集合。手写动态 GTable 用 `GTable2.getFactory(rowClass, colClass, field)`。
 
 同字段 `assign` 保留原 `specialId`。跨字段 `assign` 深拷贝值，并用目标字段的映射确定新的 `specialId`。目标字段不接受该 Bean 类型时，赋值会在替换目标内容前失败。GTable 的底层行 Map 在直接写入时要求行由目标工厂创建，跨字段复制用 `GTable2.assign`。

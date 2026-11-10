@@ -57,6 +57,7 @@ public final class FastServerIds {
 	public static final String URL_TEST_MEMORY_EMPTY_VALUE_REPLACE = memUrl("empty_value_replace");
 	public static final String URL_TEST_WALK_INTERRUPT_COUNT = memUrl("walk_interrupt_count");
 	public static final String URL_TEST_HOT_INSTALL_RESIDUE = memUrl("hot_install_residue_memory");
+	public static final String URL_TEST_HISTORY_HOT_INSTALL_EXCLUSION = memUrl("history_hot_install_exclusion");
 	public static final String URL_TEST_HOT_TRY_DISTRIBUTE = memUrl("hot_try_distribute_memory");
 	public static final String URL_TEST_ADD_TABLE = memUrl("add_table_memory");
 	public static final String URL_TEST_HISTORY_FLUSH_COMMIT_BINDING = memUrl("history_commit_binding_unit");
@@ -162,6 +163,7 @@ public final class FastServerIds {
 
 	public static final int TEST_HOT_INSTALL_START_LAST_FILTER = seg("TestInstallStartLastFilter", 12810, 1);
 	public static final int TEST_HOT_TRY_DISTRIBUTE_SUCCESS_DELETE_FAIL = seg("TestTryDistributeSuccessDeleteFail", 12811, 1);
+	public static final int TEST_HISTORY_HOT_INSTALL_EXCLUSION = seg("TestHistoryHotInstallExclusion", 12812, 2);
 	public static final int TEST_COMMIT_PATH_SALVAGE = seg("TestCommitPathSalvage", 12818, 1);
 	public static final int TEST_CHECKPOINT_RUN_RACE = seg("TestCheckpointRunRace", 12821, 1);
 	public static final int TEST_RENAME_TABLE_AFTER_COMPAT_CHECK = seg("TestRenameTableAfterCompatCheck", 12822, 1);

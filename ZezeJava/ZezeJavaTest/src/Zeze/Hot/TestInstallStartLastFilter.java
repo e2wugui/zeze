@@ -16,13 +16,14 @@ import java.util.zip.ZipEntry;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.History.HistoryModule;
 import Zeze.Util.InMemoryJavaCompiler;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 /**
  * FND18 hot-01 红绿钉板：install 对 start() 失败的模块不得再执行 startLast()。
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.io.TempDir;
  * （证明过滤不过度）。红侧（stash 主码）：F1 旗标=true；绿侧：F1=false 且 F2=true。
  */
 @Fast
+@ForkedJvm
 public class TestInstallStartLastFilter {
 	private static final String NS1 = "hotstartlast.F1";
 	private static final String CLASS1 = "hotstartlast.F1.ModuleF1";
@@ -81,8 +83,7 @@ public class TestInstallStartLastFilter {
 			}
 			""";
 
-	@TempDir
-	Path tempDir;
+	private final Path tempDir = Path.of(".");
 
 	private static @Nullable AppBase dummyApp;
 	private static @Nullable Application app;
@@ -161,6 +162,9 @@ public class TestInstallStartLastFilter {
 			Assertions.assertTrue(flag2, "正常模块的startLast必须执行（过滤不得过度）");
 			Assertions.assertFalse(modules.containsKey(NS1), "失败模块必须已移出modules表");
 			Assertions.assertTrue(modules.containsKey(NS2), "正常模块应留在modules表");
+			var error = Assertions.assertThrows(IllegalStateException.class,
+					() -> new HistoryModule(requireNonNull(app)));
+			Assertions.assertTrue(error.getMessage().contains("after a hot install"), error::getMessage);
 		} finally {
 			// 防御收尾：释放一切 jar 句柄（Windows 下 @TempDir 清理）。
 			// 接口 jar 常开在 HotManager.jars（生产语义=进程生命周期），测试须显式释放。

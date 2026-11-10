@@ -13,10 +13,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Config;
@@ -43,13 +43,13 @@ import Zeze.Util.Reflect;
  * 4. testTimerSkipsActiveSessionReady（FND11 hot-03 回归）：远程发布会话活跃
  *    （state!=eIdle）期间，10 秒定时器路径不得消费会话的 ready（atomicAll 两阶段
  *    语义被 !atomicAll 抢吃即集群版本撕裂）；会话自身的安装路径无此门禁。
- * 自包含：NoDatabase 轻量 Application（Memory 库独立 url 分桶）+ @TempDir，
+ * 自包含：NoDatabase 轻量 Application（Memory 库独立 url 分桶）+ 子 JVM 工作目录，
  * 不依赖外部 ServiceManager/数据库进程。
  */
 @Fast
+@ForkedJvm
 public class TestHotTryDistributeGuard {
-	@TempDir
-	static Path tempDir;
+	private static final Path tempDir = Path.of(".");
 
 	private static @Nullable Application app;
 	private static @Nullable AppBase appBase;

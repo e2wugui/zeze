@@ -56,6 +56,18 @@ import org.jspecify.annotations.Nullable;
  * 注册各集合/变量类型 Log 的解码工厂。
  */
 public class Helper {
+	static void registerRuntimeBeanLogs(Iterable<Class<? extends Bean>> batch) {
+		var result = new DependsResult();
+		for (var beanClass : batch) {
+			try {
+				dependsBean(beanClass, result);
+			} catch (Exception e) {
+				throw new IllegalStateException("cannot register runtime bean logs: " + beanClass.getName(), e);
+			}
+		}
+		applyRegistrations(result);
+	}
+
 	static final class DependsResult {
 		final HashSet<Class<?>> allBeans = new HashSet<>();
 		final HashSet<Class<? extends Bean>> beans = new HashSet<>();
@@ -135,13 +147,16 @@ public class Helper {
 	@SuppressWarnings("unchecked")
 	static void dependsBean(Class<?> beanClass, DependsResult result) throws Exception {
 		if (result.allBeans.add(beanClass)) {
-			var obj = beanClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
+			var ctor = beanClass.getDeclaredConstructor();
+			ctor.setAccessible(true);
+			var obj = ctor.newInstance();
+			var loader = beanClass.getClassLoader();
 			if (obj instanceof BeanKey beanKey) {
 				result.beanKeys.add((Class<? extends Serializable>)beanClass);
 				for (var v : beanKey.variables()) {
 					var type = v.getType();
 					if (!isBuiltinType(type))
-						dependsBean(Class.forName(type), result);
+						dependsBean(Class.forName(type, true, loader), result);
 				}
 			} else if (obj instanceof Bean bean) {
 				var declaredDynamic = new HashSet<Integer>();
@@ -156,7 +171,7 @@ public class Helper {
 						// 动态集合的键类型仍须注册。
 						for (var key : v.getKey().split(",")) {
 							if (!key.isBlank() && getBuiltinBoxingClass(key.trim()) == null)
-								dependsBean(Class.forName(key.trim()), result);
+								dependsBean(Class.forName(key.trim(), true, loader), result);
 						}
 						continue;
 					}
@@ -168,24 +183,24 @@ public class Helper {
 					switch (type) {
 					case "list":
 					case "array":
-						dependsList(v.getValue(), result);
+						dependsList(v.getValue(), loader, result);
 						break;
 					case "map":
-						dependsMap(v.getKey(), v.getValue(), result);
+						dependsMap(v.getKey(), v.getValue(), loader, result);
 						break;
 					case "sortedmap":
-						dependsSortedMap(v.getKey(), v.getValue(), result);
+						dependsSortedMap(v.getKey(), v.getValue(), loader, result);
 						break;
 					case "set":
-						dependsSet(v.getValue(), result);
+						dependsSet(v.getValue(), loader, result);
 						break;
 					case "gtable":
 						var keys = v.getKey().split(",");
-						dependsGTable(keys[0].trim(), keys[1].trim(), v.getValue(), result);
+						dependsGTable(keys[0].trim(), keys[1].trim(), v.getValue(), loader, result);
 						break;
 					default:
 						if (!isBuiltinType(type))
-							dependsBean(Class.forName(type), result);
+							dependsBean(Class.forName(type, true, loader), result);
 						break;
 					}
 				}
@@ -194,13 +209,13 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	static void dependsList(String valueType, DependsResult result) throws Exception {
+	static void dependsList(String valueType, @Nullable ClassLoader loader, DependsResult result) throws Exception {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass != null) {
 			result.list1.add(valueClass);
 			return;
 		}
-		valueClass = Class.forName(valueType);
+		valueClass = Class.forName(valueType, true, loader);
 		dependsBean(valueClass, result);
 		// 选族须与生成器一致（Gen/Gen/java/TypeName.cs：IsNormalBean ? '2' : '1'）：beankey
 		// 不是 normal bean，值集合生成"1"族（PList1/LogList1）；按"2"族注册的 typeId 线上
@@ -212,15 +227,16 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	static void dependsSortedMap(String keyType, String valueType, DependsResult result) throws Exception {
+	static void dependsSortedMap(String keyType, String valueType, @Nullable ClassLoader loader, DependsResult result)
+		throws Exception {
 		var keyClass = (Class<? extends Comparable<?>>)getBuiltinBoxingClass(keyType);
 		if (keyClass == null) {
-			keyClass = (Class<? extends Comparable<?>>)Class.forName(keyType); // must be BeanKey.
+			keyClass = (Class<? extends Comparable<?>>)Class.forName(keyType, true, loader); // must be BeanKey.
 			dependsBean(keyClass, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass == null) {
-			valueClass = Class.forName(valueType); // bean or beanKey
+			valueClass = Class.forName(valueType, true, loader); // bean or beanKey
 			dependsBean(valueClass, result);
 			// 选族须与生成器一致（IsNormalBean ? '2' : '1'）：beankey 值生成"1"族（PSortedMap1/LogSortedMap1）。
 			if (BeanKey.class.isAssignableFrom(valueClass))
@@ -233,15 +249,16 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	static void dependsMap(String keyType, String valueType, DependsResult result) throws Exception {
+	static void dependsMap(String keyType, String valueType, @Nullable ClassLoader loader, DependsResult result)
+		throws Exception {
 		var keyClass = getBuiltinBoxingClass(keyType);
 		if (keyClass == null) {
-			keyClass = Class.forName(keyType); // must be BeanKey.
+			keyClass = Class.forName(keyType, true, loader); // must be BeanKey.
 			dependsBean(keyClass, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass == null) {
-			valueClass = Class.forName(valueType); // bean or beankey
+			valueClass = Class.forName(valueType, true, loader); // bean or beankey
 			dependsBean(valueClass, result);
 			// 选族须与生成器一致（IsNormalBean ? '2' : '1'）：beankey 值生成"1"族（PMap1/LogMap1）。
 			if (BeanKey.class.isAssignableFrom(valueClass))
@@ -254,20 +271,21 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	static void dependsGTable(String key1Type, String key2Type, String valueType, DependsResult result) throws Exception {
+	static void dependsGTable(String key1Type, String key2Type, String valueType, @Nullable ClassLoader loader,
+							  DependsResult result) throws Exception {
 		var key1Class = getBuiltinBoxingClass(key1Type);
 		if (key1Class == null) {
-			key1Class = Class.forName(key1Type); // must be BeanKey.
+			key1Class = Class.forName(key1Type, true, loader); // must be BeanKey.
 			dependsBean(key1Class, result);
 		}
 		var key2Class = getBuiltinBoxingClass(key2Type);
 		if (key2Class == null) {
-			key2Class = Class.forName(key2Type); // must be BeanKey.
+			key2Class = Class.forName(key2Type, true, loader); // must be BeanKey.
 			dependsBean(key2Class, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass == null) {
-			valueClass = Class.forName(valueType); // bean or beanKey
+			valueClass = Class.forName(valueType, true, loader); // bean or beanKey
 			dependsBean(valueClass, result);
 			// 选族须与生成器一致（IsNormalBean ? '2' : '1'）：beankey 值生成 GTable1（内层 BeanMap1）。
 			if (BeanKey.class.isAssignableFrom(valueClass)) {
@@ -286,10 +304,10 @@ public class Helper {
 		}
 	}
 
-	private static void dependsSet(String valueType, DependsResult result) throws Exception {
+	private static void dependsSet(String valueType, @Nullable ClassLoader loader, DependsResult result) throws Exception {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass == null) {
-			valueClass = Class.forName(valueType); // must be beanKey
+			valueClass = Class.forName(valueType, true, loader); // must be beanKey
 			dependsBean(valueClass, result);
 		}
 		result.set1.add(valueClass);

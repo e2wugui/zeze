@@ -2,8 +2,11 @@ package Zeze.Collections;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
@@ -38,6 +41,9 @@ public final class BeanFactory {
 	private static final ReentrantReadWriteLock.ReadLock allMapReadLock;
 	private static final ReentrantReadWriteLock.WriteLock allMapWriteLock;
 	private static @Nullable Application zeze;
+	private static final Set<Class<? extends Bean>> runtimeBeanTypes =
+			Collections.newSetFromMap(new WeakHashMap<>());
+	private static @Nullable Consumer<Class<? extends Bean>> runtimeBeanTypeWatcher;
 
 	static {
 		var rwLock = new ReentrantReadWriteLock();
@@ -53,6 +59,42 @@ public final class BeanFactory {
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
 	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
 	private final ConcurrentHashMap<Class<?>, MethodHandle> registeredClasses = new ConcurrentHashMap<>();
+
+	/** 安装进程级观察者并返回已有类型快照。后续通知在值构造器发布前同步执行。 */
+	public static List<Class<? extends Bean>> watchRuntimeBeanTypes(Consumer<Class<? extends Bean>> watcher) {
+		synchronized (runtimeBeanTypes) {
+			if (runtimeBeanTypeWatcher != null && runtimeBeanTypeWatcher != watcher)
+				throw new IllegalStateException("another runtime bean type watcher is already active");
+			var snapshot = List.copyOf(runtimeBeanTypes);
+			runtimeBeanTypeWatcher = watcher;
+			return snapshot;
+		}
+	}
+
+	public static void unwatchRuntimeBeanTypes(Consumer<Class<? extends Bean>> watcher) {
+		synchronized (runtimeBeanTypes) {
+			if (runtimeBeanTypeWatcher == watcher)
+				runtimeBeanTypeWatcher = null;
+		}
+	}
+
+	/** 登记运行时 Bean 类型，自定义工厂也可在发布类型前调用。 */
+	public static void registerRuntimeBeanType(Class<? extends Bean> beanClass) {
+		Consumer<Class<? extends Bean>> notified = null;
+		for (;;) {
+			Consumer<Class<? extends Bean>> watcher;
+			synchronized (runtimeBeanTypes) {
+				watcher = runtimeBeanTypeWatcher;
+				if (watcher == null || watcher == notified) {
+					runtimeBeanTypes.add(beanClass);
+					return;
+				}
+			}
+			// 回调在锁外执行。若此时更换观察者，新观察者也要在类型发布前收到通知。
+			watcher.accept(beanClass);
+			notified = watcher;
+		}
+	}
 
 	public void registerWatch(Consumer<Class<?>> consumer) {
 		globalToLocalWatchers.add(consumer);
@@ -99,7 +141,7 @@ public final class BeanFactory {
 		// hotRedirect 由调用方HotManager传入：静态zeze.getHotManager()在多Application并存的
 		// 进程（测试类级并行）里可指向别的实例（hotManager为null）——NPE落进install的不可回滚
 		// 区即halt(111222)杀死整个进程；生产单App下两者恒同一对象，行为等价。
-		
+
 		for (var e : beanFactories.entrySet()) {
 			var bf = e.getKey();
 			var classes = e.getValue();
@@ -413,31 +455,14 @@ public final class BeanFactory {
 
 	private MethodHandle register(Class<? extends Serializable> cls, Serializable s,
 										   MethodHandle ctor) {
-		if (s instanceof Bean) {
-			writingBeanFactoryLock.lock();
-			try {
-				var oldCtor = writingBeanFactory.put(s.typeId(), ctor);
-				if (oldCtor != ctor) {
-					//noinspection DataFlowIssue
-					if (oldCtor != null && oldCtor.type().returnType() != cls) {
-						//noinspection DataFlowIssue
-						logger.warn("overwrite bean factory for typeId={},class={}=>{}",
-								s.typeId(), oldCtor.type().returnType().getName(), cls.getName());
-					}
-					readingBeanFactory = null;
-					registeredClasses.put(cls, ctor);
-				}
-			} finally {
-				writingBeanFactoryLock.unlock();
-			}
+		if (s instanceof Bean bean) {
+			registerBean(bean.getClass(), bean.typeId(), ctor);
 		} else if (s instanceof Data) {
 			writingDataFactoryLock.lock();
 			try {
 				var oldCtor = writingDataFactory.put(s.typeId(), ctor);
 				if (oldCtor != ctor) {
-					//noinspection DataFlowIssue
 					if (oldCtor != null && oldCtor.type().returnType() != cls) {
-						//noinspection DataFlowIssue
 						logger.warn("overwrite data factory for typeId={},class={}=>{}",
 								s.typeId(), oldCtor.type().returnType().getName(), cls.getName());
 					}
@@ -453,13 +478,12 @@ public final class BeanFactory {
 	}
 
 	private void registerBean(Class<? extends Bean> cls, long typeId, MethodHandle ctor) {
+		registerRuntimeBeanType(cls);
 		writingBeanFactoryLock.lock();
 		try {
 			var oldCtor = writingBeanFactory.put(typeId, ctor);
 			if (oldCtor != ctor) {
-				//noinspection DataFlowIssue
 				if (oldCtor != null && oldCtor.type().returnType() != cls) {
-					//noinspection DataFlowIssue
 					logger.warn("overwrite bean factory for typeId={}, class={}=>{}",
 							typeId, oldCtor.type().returnType().getName(), cls.getName());
 				}
@@ -476,9 +500,7 @@ public final class BeanFactory {
 		try {
 			var oldCtor = writingDataFactory.put(typeId, ctor);
 			if (oldCtor != ctor) {
-				//noinspection DataFlowIssue
 				if (oldCtor != null && oldCtor.type().returnType() != cls) {
-					//noinspection DataFlowIssue
 					logger.warn("overwrite data factory for typeId={}, class={}=>{}",
 							typeId, oldCtor.type().returnType().getName(), cls.getName());
 				}

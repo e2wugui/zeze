@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Transaction.Bean;
+import Zeze.Util.Reflect;
 
 /** CollOne 的单 Bean 日志元数据。 */
 public final class LogOneMeta<V> extends Meta1<V> {
@@ -14,7 +15,7 @@ public final class LogOneMeta<V> extends Meta1<V> {
 
 	private LogOneMeta(Class<V> valueClass) {
 		super(Bean.hashLog(headHash, valueClass), "LogOne:" + valueClass.getName());
-		valueFactory = publicValueFactory(valueClass);
+		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
 	public static <V extends Bean> LogOneMeta<V> get(Class<V> beanClass) {

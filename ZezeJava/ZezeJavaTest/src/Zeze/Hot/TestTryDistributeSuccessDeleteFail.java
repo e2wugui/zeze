@@ -17,11 +17,11 @@ import Zeze.Config;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.InMemoryJavaCompiler;
 import harness.Fast;
+import harness.ForkedJvm;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 /**
  * FND18 hot-03 红绿钉板：安装成功后删 ready 失败不得反转为失败码。
@@ -38,6 +38,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 且模块真实安装成功（modules 在册 + startLast 旗标经 jar 类装载器反射置位）。
  */
 @Fast
+@ForkedJvm
 public class TestTryDistributeSuccessDeleteFail {
 	private static final String NS = "hottrydist.G1";
 	private static final String CLASS = "hottrydist.G1.ModuleG1";
@@ -65,8 +66,7 @@ public class TestTryDistributeSuccessDeleteFail {
 			}
 			""";
 
-	@TempDir
-	Path tempDir;
+	private final Path tempDir = Path.of(".");
 
 	private static @Nullable AppBase dummyApp;
 	private static @Nullable Application app;

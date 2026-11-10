@@ -18,11 +18,12 @@ import org.junit.jupiter.api.Test;
 public class TestBeanKeyCollectionFamily {
 
 	private static final String BEAN_KEY = BSeedKey.class.getName();
+	private static final ClassLoader BEAN_KEY_LOADER = BSeedKey.class.getClassLoader();
 
 	@Test
 	public void testListValueBeanKeyRegistersFamily1() throws Exception {
 		var result = new Helper.DependsResult();
-		Helper.dependsList(BEAN_KEY, result);
+		Helper.dependsList(BEAN_KEY, BEAN_KEY_LOADER, result);
 		Assertions.assertTrue(result.list1.contains(BSeedKey.class), "beankey值list须落1族（PList1/LogList1）");
 		Assertions.assertTrue(result.list2.isEmpty(), "误入2族时beankey不是Bean，回放解码必炸");
 	}
@@ -30,7 +31,7 @@ public class TestBeanKeyCollectionFamily {
 	@Test
 	public void testMapValueBeanKeyRegistersFamily1() throws Exception {
 		var result = new Helper.DependsResult();
-		Helper.dependsMap("string", BEAN_KEY, result);
+		Helper.dependsMap("string", BEAN_KEY, BEAN_KEY_LOADER, result);
 		Assertions.assertTrue(result.map1.contains(KVNotNull.create(String.class, BSeedKey.class)),
 				"beankey值map须落1族（PMap1/LogMap1）");
 		Assertions.assertTrue(result.map2.isEmpty());
@@ -39,7 +40,7 @@ public class TestBeanKeyCollectionFamily {
 	@Test
 	public void testSortedMapValueBeanKeyRegistersFamily1() throws Exception {
 		var result = new Helper.DependsResult();
-		Helper.dependsSortedMap("long", BEAN_KEY, result);
+		Helper.dependsSortedMap("long", BEAN_KEY, BEAN_KEY_LOADER, result);
 		Assertions.assertTrue(result.sortedMap1.contains(KVNotNull.create(Long.class, BSeedKey.class)),
 				"beankey值sortedMap须落1族（PSortedMap1/LogSortedMap1）");
 		Assertions.assertTrue(result.sortedMap2.isEmpty());
@@ -48,7 +49,7 @@ public class TestBeanKeyCollectionFamily {
 	@Test
 	public void testGTableValueBeanKeyRegistersFamily1() throws Exception {
 		var result = new Helper.DependsResult();
-		Helper.dependsGTable("string", "long", BEAN_KEY, result);
+		Helper.dependsGTable("string", "long", BEAN_KEY, BEAN_KEY_LOADER, result);
 		// GTable1的内层是BeanMap1（BmapMeta落map1Metas）；bean值时两个meta都落map2Metas。
 		Assertions.assertEquals(1, result.map1Metas.size(), "beankey值gtable的内层BmapMeta须落map1Metas");
 		Assertions.assertEquals(1, result.map2Metas.size(), "gtable外层PmapMeta恒落map2Metas");
