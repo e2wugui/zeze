@@ -102,38 +102,33 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (m instanceof PSortedMap2)
 			m = ((PSortedMap2<? extends K, ? extends V>)m).getMap(); // more stable
 
+		// 整批通过校验后再写 mapKey 或挂接 Bean。
+		for (var e : m.entrySet()) {
+			if (e.getKey() == null)
+				throw new IllegalArgumentException("null key");
+			var value = e.getValue();
+			if (value == null)
+				throw new IllegalArgumentException("null value");
+			DynamicField.checkValueOwner(meta.dynamicField, value);
+		}
+
 		if (isManaged()) {
-			// 先校验整批输入，避免中途失败时留下已挂接的 Bean。
-			for (var e : m.entrySet()) {
-				K k = e.getKey();
-				if (k == null)
-					throw new IllegalArgumentException("null key");
-				if (e.getValue() == null) // 对齐put与PMap1.putAll：null在托管分支的initRootInfoWithRedo处解引用NPE，先验拒绝
-					throw new IllegalArgumentException("null value");
-				DynamicField.checkValueOwner(meta.dynamicField, e.getValue());
-				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
-			}
 			assert parent() != null;
 			//noinspection unchecked
 			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				V v = e.getValue();
+				// 已受管项由 initRootInfoWithRedo 拒绝并中止事务。
 				v.initRootInfoWithRedo(rootInfo, this);
 				v.mapKey(k);
 			}
 			mapLog.putAll(m);
 		} else {
-			for (var e : m.entrySet()) {
-				K k = e.getKey();
-				if (k == null)
-					throw new IllegalArgumentException("null key");
-				if (e.getValue() == null) // null在非托管分支的mapKey处解引用NPE，先验拒绝
-					throw new IllegalArgumentException("null value");
-				DynamicField.checkValueOwner(meta.dynamicField, e.getValue());
-				e.getValue().mapKey(k);
-			}
-			map = map.plusAll(m);
+			var newMap = map.plusAll(m);
+			for (var e : m.entrySet())
+				e.getValue().mapKey(e.getKey());
+			map = newMap;
 		}
 	}
 
