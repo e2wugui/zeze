@@ -100,6 +100,10 @@ tasks.register('benchCore', Test) {
     systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
     if (findProperty('useVirtualThread') != null)
         systemProperty 'useVirtualThread', findProperty('useVirtualThread')
+    // 跨代对照口径旋钮：-PbenchUnlimited=true 显式跑生产无界 VT 形态
+    //（v1.6.3 基准默认 inJUnitTest→受限池；见 BENCHMARK.md 跨代口径注记）
+    if (findProperty('benchUnlimited') != null)
+        systemProperty 'useUnlimitedVirtualThread', findProperty('benchUnlimited').toString()
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
 }
 
