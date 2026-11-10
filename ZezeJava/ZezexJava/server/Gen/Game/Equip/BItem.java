@@ -12,6 +12,8 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     private int _Id;
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Extra;
+    private static final Zeze.Transaction.DynamicField dynamicField_Extra
+            = Zeze.Transaction.DynamicField.declare(BItem.class, TYPEID, 3, BItem::getSpecialTypeIdFromBean_3, BItem::createBeanFromSpecialTypeId_3, Game.Item.BHorseExtra.class, Game.Item.BFoodExtra.class, Game.Equip.BEquipExtra.class);
 
     public static final long DynamicTypeId_Extra_Game_Item_BHorseExtra = -6414823809446200925L;
 
@@ -20,7 +22,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     public static final long DynamicTypeId_Extra_Game_Equip_BEquipExtra = 1076067654005167423L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Extra() {
-        return new Zeze.Transaction.DynamicBean(3, BItem::getSpecialTypeIdFromBean_3, BItem::createBeanFromSpecialTypeId_3);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Extra);
     }
 
     public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean _b_) {

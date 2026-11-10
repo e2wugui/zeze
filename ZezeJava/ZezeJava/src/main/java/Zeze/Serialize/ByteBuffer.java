@@ -959,7 +959,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	public static int utf8Size(@Nullable String str) {
 		if (str == null)
 			return 0;
-		long bn = 0; // long累加：int回绕为负会走WriteString的bn<=0早退，静默编码为空串
+		long bn = 0; // UTF-8 长度可能超过 int 范围。
 		for (int i = 0, cn = str.length(); i < cn; i++) {
 			int c = str.charAt(i);
 			if (c < 0x80)
@@ -976,16 +976,15 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public void WriteString(@Nullable String str) {
-		int bn = utf8Size(str);
-		if (bn <= 0) {
+		if (str == null || str.isEmpty()) {
 			WriteByte(0);
 			return;
 		}
+		int bn = utf8Size(str);
 		WriteUInt(bn);
 		EnsureWrite(bn);
 		byte[] buf = Bytes;
 		int wi = WriteIndex;
-		//noinspection DataFlowIssue
 		int cn = str.length();
 		if (bn == cn) {
 			for (int i = 0; i < cn; i++)
@@ -1382,7 +1381,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			sb.setCharAt(j - 1, ']');
 	}
 
-	public static <TK, TV> void BuildSortedString(StringBuilder sb, @Nullable Map<TK, TV> map) {
+	public static <TK, TV extends @Nullable Object> void BuildSortedString(StringBuilder sb, @Nullable Map<TK, TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');

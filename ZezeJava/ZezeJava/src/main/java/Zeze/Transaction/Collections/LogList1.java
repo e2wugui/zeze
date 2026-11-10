@@ -26,13 +26,20 @@ public class LogList1<V> extends LogBean {
 			this.value = value;
 		}
 
-		static <V> OpLog<V> decode(IByteBuffer bb, @Nullable Function<IByteBuffer, V> valueDecoder) {
+		V requireValue() {
+			var item = value;
+			if (item == null)
+				throw new IllegalStateException("list operation " + op + " requires a value at index " + index);
+			return item;
+		}
+
+		static <V> OpLog<V> decode(IByteBuffer bb, Function<IByteBuffer, V> valueDecoder) {
 			int op = bb.ReadUInt();
 			if (op < OP_MODIFY || op > OP_CLEAR)
 				throw new IllegalStateException("invalid list operation: " + Integer.toUnsignedString(op));
 			int index = op < OP_CLEAR ? bb.ReadUIntPositive() : 0;
 			// A missing operation value does not make the list element type nullable.
-			//noinspection DataFlowIssue,Convert2Diamond
+			//noinspection Convert2Diamond
 			return new OpLog<V>(op, index, op < OP_REMOVE ? valueDecoder.apply(bb) : null);
 		}
 
@@ -42,10 +49,10 @@ public class LogList1<V> extends LogBean {
 		}
 	}
 
-	protected final Meta1<V> meta;
+	protected final List1Meta<V> meta;
 	protected final ArrayList<OpLog<V>> opLogs;
 
-	public LogList1(int varId, @Nullable Bean source, Meta1<V> meta, @Nullable ArrayList<OpLog<V>> operations) {
+	public LogList1(int varId, @Nullable Bean source, List1Meta<V> meta, @Nullable ArrayList<OpLog<V>> operations) {
 		super(varId, source);
 		this.meta = meta;
 		opLogs = operations != null ? operations : new ArrayList<>();
@@ -67,22 +74,20 @@ public class LogList1<V> extends LogBean {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var encoder = meta.valueEncoder;
+		var encoder = meta.valueCodec.encoder;
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
 			bb.WriteUInt(opLog.op);
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
-				if (opLog.op < OpLog.OP_REMOVE) {
-					//noinspection DataFlowIssue
-					encoder.accept(bb, opLog.value);
-				}
+				if (opLog.op < OpLog.OP_REMOVE)
+					encoder.accept(bb, opLog.requireValue());
 			}
 		}
 	}
 
 	private void read(IByteBuffer bb) {
-		var decoder = meta.valueDecoder;
+		var decoder = meta.valueCodec.decoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUIntPositive(); --logSize >= 0; )
 			opLogs.add(OpLog.decode(bb, decoder));
@@ -96,7 +101,7 @@ public class LogList1<V> extends LogBean {
 		return sb.toString();
 	}
 
-	public static <V> LogList1<V> decode(int varId, Meta1<V> meta, IByteBuffer bb) {
+	public static <V> LogList1<V> decode(int varId, List1Meta<V> meta, IByteBuffer bb) {
 		var log = new LogList1<>(varId, null, meta, null);
 		log.read(bb);
 		return log;

@@ -11,11 +11,16 @@ import Zeze.Transaction.Transaction;
 public final class Map2DeltaTestSupport {
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	public static LogBean decodeSorted(LogBean template, Zeze.Serialize.IByteBuffer input) {
-		if (template instanceof LogSortedMap2 map)
-			return LogSortedMap2.decode(map.getVariableId(), map.meta, map.comparator(), input);
+		if (template instanceof LogSortedMap2<?, ?> map)
+			return decodeSortedMap2(map, input);
 		var map = (LogSortedMap1)template;
 		var comparator = ((java.util.SortedMap)map.getModified()).comparator();
 		return LogSortedMap1.decode(map.getVariableId(), map.meta, comparator, input);
+	}
+
+	private static <K extends Comparable<K>, V extends Bean> LogSortedMap2<K, V> decodeSortedMap2(
+			LogSortedMap2<K, V> map, Zeze.Serialize.IByteBuffer input) {
+		return LogSortedMap2.decode(map.getVariableId(), map.meta, map.comparator(), input);
 	}
 
 	private Map2DeltaTestSupport() {

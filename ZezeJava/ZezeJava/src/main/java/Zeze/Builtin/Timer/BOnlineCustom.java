@@ -11,9 +11,11 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     public static final long TYPEID = 4804037996721232525L;
 
     private final Zeze.Transaction.DynamicBean _CustomData;
+    private static final Zeze.Transaction.DynamicField dynamicField_CustomData
+            = Zeze.Transaction.DynamicField.declare(BOnlineCustom.class, TYPEID, 1, Zeze.Component.Timer::getOnlineSpecialTypeIdFromBean, Zeze.Component.Timer::createOnlineBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {
-        return new Zeze.Transaction.DynamicBean(1, Zeze.Component.Timer::getOnlineSpecialTypeIdFromBean, Zeze.Component.Timer::createOnlineBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_CustomData);
     }
 
     public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean _b_) {

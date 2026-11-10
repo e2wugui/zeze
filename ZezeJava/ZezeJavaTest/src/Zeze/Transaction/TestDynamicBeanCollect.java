@@ -28,15 +28,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-/**
- * FND-T4-1回归：同一事务内"修改dynamic内部bean字段 + setBean换新bean"，
- * finalCommit的Collect树必须携带setBean信息（LogDynamic.value分支）。
- * 修复前Changes.collect对DynamicBean不查事务日志（与Collection分支不对称）：
- * collect迭代顺序为"内部字段日志先于setBean日志"时（LongHashMap桶序，由objectId
- * 分配决定，两种顺序都真实存在），新建value=null的LogDynamic占位，真正的setBean
- * 日志在父LogBean.variables的putIfAbsent中竞争失败被静默丢弃——History/Listener
- * 编码只剩内部bean字段日志，follower应用后typeId与bean替换永久丢失。
- */
+/** 同一事务先改内部字段再替换 Bean 时，收集顺序不能丢掉替换日志。 */
 @Fast
 @NullMarked
 public class TestDynamicBeanCollect {
@@ -75,7 +67,6 @@ public class TestDynamicBeanCollect {
 	}
 
 	private Application startApp() throws Exception {
-		Helper.registerLogs(); // decode侧需要日志工厂（真实follower环境由History注册）
 		var conf = new Config();
 		conf.setServiceManager("disable");
 		conf.setServerId(NextId.incrementAndGet());
@@ -88,6 +79,7 @@ public class TestDynamicBeanCollect {
 		// 生成的Module注册依赖完整demo.App（协议工厂等），这里直接注册本测试用到的表；
 		// 表注册必须在app.start()（打开数据库）之前完成。
 		app.addTable(requireNonNull(conf.getTableConf("demo_Module1_Table1")).getDatabaseName(), new Table1());
+		Helper.registerAllTableLogs(app);
 		app.start();
 		table1 = (Table1)app.getTable("demo_Module1_Table1");
 		Assertions.assertNotNull(table1);

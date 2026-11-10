@@ -27,6 +27,14 @@ public class TestUtf8SizeLongAccumulation {
 	}
 
 	@Test
+	public void nullAndEmptyStringsEncodeAsZeroLength() {
+		var bb = ByteBuffer.Allocate();
+		bb.WriteString(null);
+		bb.WriteString("");
+		Assertions.assertArrayEquals(new byte[]{0, 0}, bb.Copy());
+	}
+
+	@Test
 	public void testWriteStringRoundtripMatchesUtf8Size() {
 		var mixed = "aé中\uD83D\uDE00z";
 		var bb = ByteBuffer.Allocate();

@@ -1,74 +1,53 @@
 package Zeze.Transaction;
 
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.EmptyBean;
-import Zeze.Transaction.Collections.List2Meta;
 import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.SortedMap2Meta;
+import dynamicred.Demo.Order;
 import harness.Fast;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-/**
- * FND-T4-2 证据固化（升级待裁，本测试断言的是**缺陷现状**，升级修复后应同步翻转断言）：
- * dynamic 容器 Meta 的 logTypeId 不含工厂身份——任意两个 list&lt;dynamic&gt; 共享同一 typeId，
- * 同家族同 keyClass 的 map/map、sortedmap/sortedmap&lt;K,dynamic&gt; 共享同一 typeId。
- * （FND3-04 修复后 map 与 sortedmap 已分家到各自家族头哈希，此对不再碰撞。）
- * 配合 Log.register 先到先得（typeName 相同连 error 都不打），isHistory 重放端 Log.create
- * 只能拿到先注册变量的工厂，decode 第二个变量的值时错工厂返回 null，DynamicBean.newBean
- * 抛 IllegalStateException 中断重放。typeId 纳入工厂身份会改变 History/Raft 日志流的
- * 编码格式（升级条件 2），故当前不改；本测试不触碰全局 Log.factorys（无 register），
- * 避免污染其他测试的注册状态。
- */
+/** 动态集合的日志类型号描述日志家族和键类型，History 另用字段身份区分工厂。 */
 @Fast
 public class TestDynamicMetaTypeIdCollision {
-	// 与生成代码（BValue.createBeanFromSpecialTypeId_N）同构的最小工厂：只认 EmptyBean，其余返回 null。
-	private static long getSpecialTypeId(Bean b) {
-		return b.typeId() == EmptyBean.TYPEID ? EmptyBean.TYPEID : 1L;
+	private abstract static class Fields extends Bean {
 	}
 
-	private static @Nullable Bean createBean(long specialTypeId) {
-		return specialTypeId == EmptyBean.TYPEID ? new EmptyBean() : null;
+	private static DynamicField field(int fieldId, long specialId) {
+		return DynamicField.declare(Fields.class, Bean.hash64(Fields.class.getName()), fieldId,
+				b -> specialId, id -> null);
 	}
 
 	@Test
 	public final void testDynamicListSharesTypeId() {
-		var metaA = List2Meta.<Bean>createDynamic(TestDynamicMetaTypeIdCollision::getSpecialTypeId,
-				TestDynamicMetaTypeIdCollision::createBean);
-		var metaB = List2Meta.<Bean>createDynamic(
-				b -> 2L, // 不同工厂
-				t -> null);
-		// 现状：工厂不同 typeId 也相同——重放端无法区分（升级后应断言不同）
-		Assertions.assertEquals(metaA.logTypeId, metaB.logTypeId);
-		Assertions.assertEquals(metaA.name, metaB.name); // name 也不含工厂身份，Log.register 连 error 都不打
+		var order = new Order();
+		var amounts = order.getAmounts().createLogBean(null);
+		var quantities = order.getQuantities().createLogBean(null);
+		Assertions.assertEquals(Bean.hash32("Zeze.Transaction.Collections.LogList2<Zeze.Transaction.DynamicBean>"),
+				amounts.getTypeId());
+		Assertions.assertEquals(amounts.getTypeId(), quantities.getTypeId());
 	}
 
 	@Test
 	public final void testDynamicMapSharesTypeIdPerKeyClass() {
-		var metaA = Map2Meta.createDynamic(String.class,
-				TestDynamicMetaTypeIdCollision::getSpecialTypeId, TestDynamicMetaTypeIdCollision::createBean);
-		var metaB = Map2Meta.createDynamic(String.class,
-				b -> 2L, t -> null);
+		var metaA = Map2Meta.createDynamic(String.class, field(1, 1));
+		var metaB = Map2Meta.createDynamic(String.class, field(2, 2));
 		Assertions.assertEquals(metaA.logTypeId, metaB.logTypeId); // 只含 keyClass，不含工厂
 		Assertions.assertEquals(metaA.name, metaB.name);
 
-		var metaOtherKey = Map2Meta.createDynamic(Long.class, b -> 2L, t -> null);
+		var metaOtherKey = Map2Meta.createDynamic(Long.class, field(3, 2));
 		Assertions.assertNotEquals(metaA.logTypeId, metaOtherKey.logTypeId); // keyClass 不同则 typeId 不同
 	}
 
 	@Test
 	public final void testDynamicSortedMapSharesTypeIdPerKeyClass() {
-		var metaA = SortedMap2Meta.createDynamic(String.class,
-				TestDynamicMetaTypeIdCollision::getSpecialTypeId, TestDynamicMetaTypeIdCollision::createBean);
-		var metaB = SortedMap2Meta.createDynamic(String.class, b -> 2L, t -> null);
+		var metaA = SortedMap2Meta.createDynamic(String.class, field(4, 1));
+		var metaB = SortedMap2Meta.createDynamic(String.class, field(5, 2));
 		Assertions.assertEquals(metaA.logTypeId, metaB.logTypeId);
 	}
 
-	/**
-	 * 触发链末端：decode 时用错工厂（对方不认识本变量的 specialTypeId）→ newBean 抛异常中断重放。
-	 * 用生成的 demo 工厂模拟"先注册的工厂 decode 第二个变量的值"。
-	 */
+	/** 字段各自解释 specialTypeId。 */
 	@Test
 	public final void testWrongFactoryDecodeThrows() {
 		var factoryDynamic14 = demo.Module1.BValue.newDynamicBean_Dynamic14(); // 认 1L→demo.Bean1

@@ -38,3 +38,4 @@ audit-*
 /ZezeJava/ZezeJavaTest/src-jmh/generated
 /*.mp4
 soak-*/
+log/

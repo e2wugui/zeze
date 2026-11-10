@@ -1,21 +1,19 @@
 package Zeze.Transaction.Collections;
 
 import java.util.HashMap;
-import java.util.Map;
 
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import org.jspecify.annotations.Nullable;
 
 /** PMap2 的消费日志：结构变化与最终仍在容器中的值 Bean 原位修改。 */
-public class LogMap2<K, V extends Bean> extends LogMap2Base<K, V> {
-	/** Borrow final notes without retaining the transaction state. decode always creates a fresh payload. */
-	public LogMap2(int varId, @Nullable Bean self, Meta2<K, V> meta, @Nullable HashMap<K, V> modified) {
+public class LogMap2<K, V extends Bean> extends LogMap2Base<K, V, Map2Meta<K, V>> {
+	public LogMap2(int varId, @Nullable Bean self, Map2Meta<K, V> meta, @Nullable HashMap<K, @Nullable V> modified) {
 		super(varId, self, meta, modified);
 	}
 
 	@Override
-	<T> HashMap<K, T> newMap() {
+	<T extends @Nullable Object> HashMap<K, T> newMap() {
 		return new HashMap<>();
 	}
 
@@ -25,8 +23,8 @@ public class LogMap2<K, V extends Bean> extends LogMap2Base<K, V> {
 	}
 
 	@Override
-	public final HashMap<K, V> getModified() {
-		return (HashMap<K, V>)super.getModified();
+	public final HashMap<K, @Nullable V> getModified() {
+		return (HashMap<K, @Nullable V>)super.getModified();
 	}
 
 	@Override
@@ -34,7 +32,7 @@ public class LogMap2<K, V extends Bean> extends LogMap2Base<K, V> {
 		return (HashMap<K, LogBean>)super.getChangedWithKey();
 	}
 
-	public static <K, V extends Bean> LogMap2<K, V> decode(int varId, Meta2<K, V> meta, IByteBuffer bb) {
+	public static <K, V extends Bean> LogMap2<K, V> decode(int varId, Map2Meta<K, V> meta, IByteBuffer bb) {
 		var log = new LogMap2<>(varId, null, meta, null);
 		log.read(bb);
 		return log;

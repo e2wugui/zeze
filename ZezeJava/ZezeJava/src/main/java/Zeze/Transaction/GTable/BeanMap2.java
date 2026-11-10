@@ -36,15 +36,15 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 		return new Zeze.Transaction.Collections.PMap2ReadOnly<>(pMap2);
 	}
 
-	@SuppressWarnings("deprecation")
 	public BeanMap2(Class<C> colClass, Class<V> valueClass) {
 		pMap2 = new Zeze.Transaction.Collections.PMap2<>(colClass, valueClass);
+		//noinspection deprecation
 		pMap2.variableId(1);
 	}
 
-	@SuppressWarnings("deprecation")
 	public BeanMap2(Map2Meta<C, V> meta) {
 		pMap2 = new Zeze.Transaction.Collections.PMap2<>(meta);
+		//noinspection deprecation
 		pMap2.variableId(1);
 	}
 
@@ -59,11 +59,7 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 		//（对齐BeanMap1.assign经PMap1.assign先快照再清写的自赋值安全语义）。
 		if (this == _o_)
 			return;
-		pMap2.clear();
-		for (var _e_ : _o_.pMap2.entrySet()) {
-			@SuppressWarnings("unchecked") var v = (V)_e_.getValue().copy();
-			pMap2.put(_e_.getKey(), v);
-		}
+		pMap2.assign(_o_.pMap2);
 		_unknown_ = _o_._unknown_;
 	}
 
@@ -298,7 +294,6 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 			return;
 		for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
 			var _v_ = _i_.value();
-			//noinspection DataFlowIssue
 			switch (_v_.getVariableId()) {
 			case 1:
 				pMap2.followerApply(_v_);

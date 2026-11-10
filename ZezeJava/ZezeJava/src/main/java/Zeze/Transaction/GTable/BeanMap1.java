@@ -35,15 +35,15 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		return new Zeze.Transaction.Collections.PMap1ReadOnly<>(pMap1);
 	}
 
-	@SuppressWarnings("deprecation")
 	public BeanMap1(Class<C> colClass, Class<V> valueClass) {
 		pMap1 = new Zeze.Transaction.Collections.PMap1<>(colClass, valueClass);
+		//noinspection deprecation
 		pMap1.variableId(1);
 	}
 
-	@SuppressWarnings("deprecation")
 	public BeanMap1(Map1Meta<C, V> meta) {
 		pMap1 = new Zeze.Transaction.Collections.PMap1<>(meta);
+		//noinspection deprecation
 		pMap1.variableId(1);
 	}
 
@@ -139,11 +139,10 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 			int _n_ = _x_.size();
 			if (_n_ != 0) {
 				_i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-				_o_.WriteMapType(_n_, meta.keyEncodeType, meta.valueEncodeType);
+				_o_.WriteMapType(_n_, meta.keyEncodeType, meta.valueCodec.encodeType);
 				for (var _e_ : _x_.entrySet()) {
 					meta.keyEncoder.accept(_o_, _e_.getKey());
-					//noinspection DataFlowIssue
-					meta.valueEncoder.accept(_o_, _e_.getValue());
+					meta.valueCodec.encoder.accept(_o_, _e_.getValue());
 					_n_--;
 				}
 				if (_n_ != 0)
@@ -167,8 +166,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 				int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
 				for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
 					var _k_ = meta.keyDecoderWithType.apply(_o_, _s_);
-					//noinspection DataFlowIssue
-					var _v_ = meta.valueDecoderWithType.apply(_o_, _t_);
+					var _v_ = meta.valueCodec.decoderWithType.apply(_o_, _t_);
 					_x_.put(_k_, _v_);
 				}
 			} else
@@ -273,7 +271,6 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 			return;
 		for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
 			var _v_ = _i_.value();
-			//noinspection DataFlowIssue
 			switch (_v_.getVariableId()) {
 			case 1:
 				pMap1.followerApply(_v_);

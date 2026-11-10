@@ -36,7 +36,7 @@ public class TestJsonZeze {
 	public void testDynamicBean() throws ReflectiveOperationException {
 		{
 			BValue v = new BValue();
-			DynamicBean db = new DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
+			DynamicBean db = BValue.newDynamicBean_Map26();
 			BSimple s = new BSimple();
 			s.setInt_1(456);
 			db.setBean(s);

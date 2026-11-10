@@ -139,10 +139,11 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		HashMap<K, V> puts = null;
 		ArrayList<K> removes = null;
 		for (var e : modified.entrySet()) {
-			if (e.getValue() != null) {
+			var value = e.getValue();
+			if (value != null) {
 				if (puts == null)
 					puts = new HashMap<>(modified.size() * 2);
-				puts.put(e.getKey(), e.getValue());
+				puts.put(e.getKey(), value);
 			} else {
 				if (removes == null)
 					removes = new ArrayList<>(modified.size());
@@ -178,10 +179,9 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var keyEncoder = meta.keyEncoder;
-		var valueEncoder = meta.valueEncoder;
+		var valueEncoder = meta.valueCodec.encoder;
 		for (var e : tmp.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
-			//noinspection DataFlowIssue
 			valueEncoder.accept(bb, e.getValue());
 		}
 	}
@@ -190,10 +190,9 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	public void decode(IByteBuffer bb) {
 		clear();
 		var keyDecoder = meta.keyDecoder;
-		var valueDecoder = meta.valueDecoder;
+		var valueDecoder = meta.valueCodec.decoder;
 		for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 			K k = keyDecoder.apply(bb);
-			//noinspection DataFlowIssue
 			V v = valueDecoder.apply(bb);
 			put(k, v);
 		}

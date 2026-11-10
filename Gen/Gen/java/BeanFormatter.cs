@@ -180,9 +180,14 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Variable var, TypeDynamic type, bool isCollection)
+        private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Variable var, TypeDynamic type)
         {
-            if (false == isCollection)
+            var field = $"dynamicField{var.NamePrivate}";
+            var dependencies = string.Concat(type.RealBeans.Values.Select(b => b.FullName).Distinct()
+                .Select(name => $", {name}.class"));
+            sw.WriteLine($"{prefix}private static final Zeze.Transaction.DynamicField {field}");
+            sw.WriteLine($"{prefix}        = Zeze.Transaction.DynamicField.declare({bean.Name}.class, TYPEID, {var.Id}, {GetAndCreateDynamicBean(bean.Name, var.Id, type)}{dependencies});");
+            if (var.VariableType is TypeDynamic)
             {
                 foreach (var real in type.RealBeans)
                 {
@@ -197,19 +202,19 @@ namespace Zeze.Gen.java
                 if (vt is TypeCollection)
                 {
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.List2Meta<Zeze.Transaction.DynamicBean> meta1{var.NamePrivate}");
-                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.List2Meta.createDynamic({GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.List2Meta.createDynamic({field});");
                 }
                 else if (vt is TypeMap map)
                 {
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Map2Meta<{BoxingName.GetBoxingName(map.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
-                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Map2Meta.createDynamic({BoxingName.GetBoxingName(map.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Map2Meta.createDynamic({BoxingName.GetBoxingName(map.KeyType)}.class, {field});");
                 }
                 else if (vt is TypeSortedMap smap)
                 {
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.SortedMap2Meta<{BoxingName.GetBoxingName(smap.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
                     // sortedmap 必须用 SortedMap2Meta.createDynamic（sortedMap2 家族哈希），
                     // 与 PSortedMap2 动态构造器及读端注册对称；用 map2 家族会 typeId 永不匹配（FND3-04）。
-                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.SortedMap2Meta.createDynamic({BoxingName.GetBoxingName(smap.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.SortedMap2Meta.createDynamic({BoxingName.GetBoxingName(smap.KeyType)}.class, {field});");
                 }
                 else if (vt is TypeGTable gtable)
                 {
@@ -221,15 +226,12 @@ namespace Zeze.Gen.java
                     string rowKey = BoxingName.GetBoxingName(gtable.RowKeyType);
                     string colKey = BoxingName.GetBoxingName(gtable.ColKeyType);
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.GTable.GTable2.Factory<{rowKey}, {colKey}, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> factory{var.NamePrivate}");
-                    sw.WriteLine($"{prefix}        = Zeze.Transaction.GTable.GTable2.getFactory({rowKey}.class, {colKey}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.GTable.GTable2.getFactory({rowKey}.class, {colKey}.class, {field});");
                 }
             }
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBean newDynamicBean_{var.NameUpper1}() {{");
-            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, {bean.Name}::getSpecialTypeIdFromBean_{var.Id}, {bean.Name}::createBeanFromSpecialTypeId_{var.Id});");
-            else
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+            sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({field});");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Bean _b_) {{");
@@ -335,15 +337,15 @@ namespace Zeze.Gen.java
                 */
                 addBlankLine = false;
                 if (vt is TypeDynamic dy0)
-                    GenDynamicSpecialMethod(sw, "    ", v, dy0, false);
+                    GenDynamicSpecialMethod(sw, "    ", v, dy0);
                 else if (vt is TypeMap map && map.ValueType is TypeDynamic dy1)
-                    GenDynamicSpecialMethod(sw, "    ", v, dy1, true);
+                    GenDynamicSpecialMethod(sw, "    ", v, dy1);
                 else if (vt is TypeSortedMap smap && smap.ValueType is TypeDynamic dy3)
-                    GenDynamicSpecialMethod(sw, "    ", v, dy3, true);
+                    GenDynamicSpecialMethod(sw, "    ", v, dy3);
                 else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
-                    GenDynamicSpecialMethod(sw, "    ", v, dy2, true);
+                    GenDynamicSpecialMethod(sw, "    ", v, dy2);
                 else if (vt is TypeGTable gt && gt.ValueType is TypeDynamic dyG)
-                    GenDynamicSpecialMethod(sw, "    ", v, dyG, true);
+                    GenDynamicSpecialMethod(sw, "    ", v, dyG);
                 else if (vt is TypeCollection or TypeMap or TypeSortedMap or TypeGTable or Bean)
                     GenCollectionMetaDefine(sw, "    ", v);
                 else

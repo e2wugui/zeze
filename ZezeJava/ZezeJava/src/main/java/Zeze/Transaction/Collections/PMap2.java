@@ -3,13 +3,12 @@ package Zeze.Transaction.Collections;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.LongFunction;
 import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DynamicField;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
@@ -33,10 +32,6 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		meta = Map2Meta.create(keyClass, valueClass, valueCtor);
 	}
 
-	public PMap2(Class<K> keyClass, ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) { // only for DynamicBean value
-		meta = Map2Meta.createDynamic(keyClass, get, create);
-	}
-
 	public PMap2(Map2Meta<K, V> meta) {
 		this.meta = meta;
 	}
@@ -47,7 +42,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	public V createValue() {
 		try {
-			//noinspection DataFlowIssue,unchecked
+			//noinspection unchecked
 			return (V)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
@@ -71,6 +66,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException("null value");
+		meta.checkValue(value);
 
 		if (isManaged()) {
 			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
@@ -93,18 +89,16 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (m instanceof PMap2)
 			m = ((PMap2<? extends K, ? extends V>)m).getMap(); // more stable
 
+		// 整批通过校验后再写 mapKey 或挂接 Bean。已受管项由 initRootInfoWithRedo 拒绝并中止事务。
+		for (var e : m.entrySet()) {
+			if (e.getKey() == null)
+				throw new IllegalArgumentException("null key");
+			var value = e.getValue();
+			if (value == null)
+				throw new IllegalArgumentException("null value");
+			meta.checkValue(value);
+		}
 		if (isManaged()) {
-			// 双循环（对齐PMap1.putAll"先全量校验、后入日志"）：单循环"边验边改"时，靠后条目null
-			// 抛出前靠前bean的initRootInfoWithRedo/mapKey已改写——普通字段写不受事务回滚保护，
-			// 调用方catch后复用bean即携带脏归属。
-			for (var e : m.entrySet()) {
-				K k = e.getKey();
-				if (k == null)
-					throw new IllegalArgumentException("null key");
-				if (e.getValue() == null) // 对齐put与PMap1.putAll：null在托管分支的initRootInfoWithRedo处解引用NPE，先验拒绝
-					throw new IllegalArgumentException("null value");
-				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
-			}
 			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			for (var e : m.entrySet()) {
@@ -115,14 +109,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			}
 			mapLog.putAll(m);
 		} else {
-			for (var e : m.entrySet()) {
-				K k = e.getKey();
-				if (k == null)
-					throw new IllegalArgumentException("null key");
-				if (e.getValue() == null) // null在非托管分支的mapKey处解引用NPE，先验拒绝
-					throw new IllegalArgumentException("null value");
-				e.getValue().mapKey(k);
-			}
+			for (var e : m.entrySet())
+				e.getValue().mapKey(e.getKey());
 			map = map.plusAll(m);
 		}
 	}
@@ -174,6 +162,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void followerApply(Log _log) {
 		//noinspection unchecked
 		var log = (LogMap2<K, V>)_log;
+		DynamicField.checkTarget(log.dynamicField(), meta.dynamicField);
 		var tmp = map;
 		var modified = log.modifiedForRead();
 		HashMap<K, V> puts = null;
@@ -203,12 +192,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 		// apply changed
 		for (var e : log.changedForRead().entrySet()) {
-			// 正常重放下changed只含最终map存在的key（提交收集时已过滤
-			// removed/replaced），follower侧null即先行分歧（日志丢失/重复/交错应用）：直接递归
-			// 抛NPE，由驱动方裁决——raft路径Rocks.followerApply统一catch+fatalKill（镜像实现
-			// CollMap2同款）；History回放路径批中断而非warn+skip尽力而为。抛出只证明应用
-			// 路径无硬分歧，不证明最终数值一致（错位应用/历史缺失不抛异常），仍由
-			// Verify.verifyAndClear全量对账兜底。抛出时map未提交。
+			// 原位修改只针对最终仍存在的键。键缺失说明回放状态已分歧，应中断应用。
 			tmp.get(e.getKey()).followerApply(e.getValue());
 		}
 		map = tmp;
@@ -228,14 +212,16 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public PMap2<K, V> copy() {
-		// 深拷贝值Bean：浅拷贝共享原记录树内的受管活Bean，经ReadOnly.copy()交出的“副本”
-		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
-		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
-		var copy = new PMap2<>(meta);
+		return copy(meta);
+	}
+
+	private PMap2<K, V> copy(Map2Meta<K, V> targetMeta) {
+		// 深拷贝值，避免副本继续引用原记录的受管 Bean。
+		var copy = new PMap2<>(targetMeta);
 		var newMap = Persistents.<K, V>map();
 		for (var e : getMap().entrySet()) {
-			//noinspection unchecked
-			var value = (V)e.getValue().copy();
+			var value = DynamicField.copyValue(targetMeta.dynamicField, e.getValue());
+			targetMeta.checkValue(value);
 			// mapKey是瞬态容器归属，不由Bean.copy/assign复制；后续原位changed仍需定位该键。
 			value.mapKey(e.getKey());
 			newMap = newMap.plus(e.getKey(), value);
@@ -248,7 +234,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void assign(PMap2<K, V> pmap) {
 		if (this == pmap)
 			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
-		var copy = pmap.copy(); // 先备输入再发布：copy抛出时目标保持原值
+		// 使用目标映射校验和复制，成功后才清空。
+		var copy = pmap.copy(meta);
 		clear();
 		putAll(copy);
 	}
@@ -276,7 +263,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		try {
 			for (int i = n; i > 0; i--) {
 				K k = decoder.apply(bb);
-				//noinspection DataFlowIssue,unchecked
+				//noinspection unchecked
 				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
 				m.put(k, v);

@@ -50,7 +50,7 @@ public class LogOneValue<V extends Bean> extends LogBean {
 	private void read(IByteBuffer bb) {
 		if (bb.ReadBool()) { // hasValue
 			try {
-				//noinspection DataFlowIssue,unchecked
+				//noinspection unchecked
 				value = (V)meta.valueFactory.invoke();
 			} catch (Throwable e) { // MethodHandle.invoke
 				throw Task.forceThrow(e);

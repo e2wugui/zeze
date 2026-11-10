@@ -10,6 +10,8 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     public static final long TYPEID = -1770669781233931946L;
 
     private final Zeze.Transaction.DynamicBean _Subclass;
+    private static final Zeze.Transaction.DynamicField dynamicField_Subclass
+            = Zeze.Transaction.DynamicField.declare(BItem.class, TYPEID, 14, BItem::getSpecialTypeIdFromBean_14, BItem::createBeanFromSpecialTypeId_14, demo.Bean1.class, demo.Module1.BSimple.class, demo.Module1.BFood.class);
 
     public static final long DynamicTypeId_Subclass_demo_Bean1 = 1L;
 
@@ -18,7 +20,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     public static final long DynamicTypeId_Subclass_demo_Module1_BFood = 3L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Subclass() {
-        return new Zeze.Transaction.DynamicBean(14, BItem::getSpecialTypeIdFromBean_14, BItem::createBeanFromSpecialTypeId_14);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Subclass);
     }
 
     public static long getSpecialTypeIdFromBean_14(Zeze.Transaction.Bean _b_) {

@@ -1,6 +1,5 @@
 package Zeze.Collections;
 
-import java.util.Objects;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -10,7 +9,6 @@ import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.DynamicBean;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Action1;
 import Zeze.Util.OutLong;
@@ -334,7 +332,7 @@ public class DepartmentTree<
 	private TManager getOrAddRootManager(String account) {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		return (TManager)dRoot.getManagers().computeIfAbsent(account, key -> {
-			var value = new DynamicBean(0, bean -> getSpecialTypeIdFromBean(Objects.requireNonNull(bean)), DepartmentTree::createBeanFromSpecialTypeId);
+			var value = BDepartmentRoot.newDynamicBean_Managers();
 			value.setBean(beanFactory.createBeanFromSpecialTypeId(managerTypeId));
 			return value;
 		}).getBean();
@@ -351,7 +349,7 @@ public class DepartmentTree<
 		if (null == d)
 			throw new IllegalArgumentException("department not found: " + departmentId);
 		return (TManager)d.getManagers().computeIfAbsent(name, key -> {
-			var value = new DynamicBean(0, bean -> getSpecialTypeIdFromBean(Objects.requireNonNull(bean)), DepartmentTree::createBeanFromSpecialTypeId);
+			var value = BDepartmentTreeNode.newDynamicBean_Managers();
 			value.setBean(beanFactory.createBeanFromSpecialTypeId(managerTypeId));
 			return value;
 		}).getBean();

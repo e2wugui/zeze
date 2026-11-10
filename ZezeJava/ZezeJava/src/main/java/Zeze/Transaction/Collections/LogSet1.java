@@ -18,10 +18,10 @@ public class LogSet1<V> extends LogBean {
 	 */
 	public static final Object PRESENT = new Object();
 
-	protected final Meta1<V> meta;
-	private @Nullable HashMap<V, Object> modified;
+	protected final Set1Meta<V> meta;
+	private @Nullable HashMap<V, @Nullable Object> modified;
 
-	public LogSet1(int varId, @Nullable Bean source, Meta1<V> meta, @Nullable HashMap<V, Object> modified) {
+	public LogSet1(int varId, @Nullable Bean source, Set1Meta<V> meta, @Nullable HashMap<V, @Nullable Object> modified) {
 		super(varId, source);
 		this.meta = meta;
 		this.modified = modified;
@@ -37,14 +37,14 @@ public class LogSet1<V> extends LogBean {
 		return meta.name;
 	}
 
-	public final HashMap<V, Object> getModified() {
+	public final HashMap<V, @Nullable Object> getModified() {
 		return modified != null ? modified : (modified = new HashMap<>());
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var encoder = meta.valueEncoder;
-		Map<V, Object> m = modified != null ? modified : Collections.emptyMap();
+		var encoder = meta.valueCodec.encoder;
+		Map<V, @Nullable Object> m = modified != null ? modified : Collections.emptyMap();
 		// 两遍split编码（同LogMap1）：线格式与added/removed双容器时代逐字节一致。
 		int addedCount = 0;
 		for (var e : m.entrySet())
@@ -62,7 +62,7 @@ public class LogSet1<V> extends LogBean {
 	}
 
 	private void read(IByteBuffer bb) {
-		var decoder = meta.valueDecoder;
+		var decoder = meta.valueCodec.decoder;
 		var m = getModified();
 		for (int i = bb.ReadUIntPositive(); i > 0; i--)
 			m.put(decoder.apply(bb), PRESENT);
@@ -79,7 +79,7 @@ public class LogSet1<V> extends LogBean {
 		return sb.toString();
 	}
 
-	public static <V> LogSet1<V> decode(int varId, Meta1<V> meta, IByteBuffer bb) {
+	public static <V> LogSet1<V> decode(int varId, Set1Meta<V> meta, IByteBuffer bb) {
 		var log = new LogSet1<>(varId, null, meta, null);
 		log.read(bb);
 		return log;

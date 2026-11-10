@@ -3,12 +3,18 @@ package Zeze.Transaction;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 import Zeze.Transaction.Collections.BeanKeyMeta;
 import Zeze.Transaction.Collections.List1Meta;
 import Zeze.Transaction.Collections.List2Meta;
+import Zeze.Transaction.Collections.LogList1;
+import Zeze.Transaction.Collections.LogList2;
+import Zeze.Transaction.Collections.LogMap1;
+import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Transaction.Collections.LogOneMeta;
+import Zeze.Transaction.Collections.LogSet1;
+import Zeze.Transaction.Collections.LogSortedMap1;
+import Zeze.Transaction.Collections.LogSortedMap2;
 import Zeze.Transaction.Collections.Map1Meta;
 import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.Meta1;
@@ -23,30 +29,17 @@ import Zeze.Transaction.Collections.PSortedMap2;
 import Zeze.Transaction.Collections.Set1Meta;
 import Zeze.Transaction.Collections.SortedMap1Meta;
 import Zeze.Transaction.Collections.SortedMap2Meta;
+import Zeze.Transaction.GTable.GTable1;
+import Zeze.Transaction.GTable.GTable2;
 import demo.Module1.BValue;
+import dynamicred.Demo.Order;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-/**
- * Meta家族结构守卫：跨家族meta混用已由类型闭合（sealed+包私有构造器+容器构造器收子类型），
- * 负向用例无法用JUnit表达——本测试反射断言类型形状本身，防将来签名回宽（洞重开的充要条件）：
- * 1. 两个基类 sealed 且 permits 恰为预期封闭集（防悄悄扩容）；
- * 2. 容器公共构造器没有基类 Meta1/Meta2 参数（防签名回宽）；
- * 3. 基类构造器非 public（防闸门打开，包外无法继承造私家族）。
- * 附同家族正控（copy()/GTable 等生产路径形态不受影响）。
- */
+/** 校验容器和日志的元数据参数，以及元数据基类的构造器可见性。 */
 @Fast
 public class TestMetaFamilyStructure {
-
-	private static void assertPermits(Class<?> sealedBase, Class<?>... expected) {
-		Assertions.assertTrue(sealedBase.isSealed(), sealedBase.getSimpleName() + " 必须保持 sealed");
-		var permitted = sealedBase.getPermittedSubclasses();
-		Assertions.assertNotNull(permitted, sealedBase.getSimpleName() + " permits 不可为空");
-		Set<Class<?>> actual = new HashSet<>(Arrays.asList(permitted));
-		Set<Class<?>> want = new HashSet<>(Arrays.asList(expected));
-		Assertions.assertEquals(want, actual, sealedBase.getSimpleName() + " permits 必须恰为预期封闭集");
-	}
 
 	private static void assertNoBaseMetaParam(Class<?> container) {
 		for (Constructor<?> ctor : container.getConstructors()) {
@@ -59,10 +52,36 @@ public class TestMetaFamilyStructure {
 		}
 	}
 
+	private static void assertLogMeta(Class<?> logType, Class<?> metaType) {
+		for (var ctor : logType.getConstructors())
+			Assertions.assertTrue(Arrays.asList(ctor.getParameterTypes()).contains(metaType), ctor::toString);
+		for (var method : logType.getDeclaredMethods())
+			if (method.getName().equals("decode"))
+				Assertions.assertTrue(Arrays.asList(method.getParameterTypes()).contains(metaType), method::toString);
+	}
+
+	private static void assertPermits(Class<?> base, Class<?>... subclasses) {
+		Assertions.assertTrue(base.isSealed(), base::getName);
+		Assertions.assertEquals(Set.of(subclasses), Set.of(base.getPermittedSubclasses()), base::getName);
+	}
+
 	@Test
-	public void testSealedWithExactPermits() {
-		assertPermits(Meta2.class, Map1Meta.class, Map2Meta.class, SortedMap1Meta.class, SortedMap2Meta.class);
+	public void testMetaFamiliesAreSealed() {
+		var beanValueMapMeta = Map2Meta.class.getSuperclass();
 		assertPermits(Meta1.class, BeanKeyMeta.class, List1Meta.class, List2Meta.class, LogOneMeta.class, Set1Meta.class);
+		assertPermits(Meta2.class, Map1Meta.class, SortedMap1Meta.class, beanValueMapMeta);
+		assertPermits(beanValueMapMeta, Map2Meta.class, SortedMap2Meta.class);
+	}
+
+	@Test
+	public void testLogFactoriesTakeTheirOwnMeta() {
+		assertLogMeta(LogList1.class, List1Meta.class);
+		assertLogMeta(LogList2.class, List2Meta.class);
+		assertLogMeta(LogSet1.class, Set1Meta.class);
+		assertLogMeta(LogMap1.class, Map1Meta.class);
+		assertLogMeta(LogMap2.class, Map2Meta.class);
+		assertLogMeta(LogSortedMap1.class, SortedMap1Meta.class);
+		assertLogMeta(LogSortedMap2.class, SortedMap2Meta.class);
 	}
 
 	@Test
@@ -75,22 +94,30 @@ public class TestMetaFamilyStructure {
 	}
 
 	@Test
-	public void testBaseCtorsNotPublic() {
-		for (var base : new Class<?>[] {Meta1.class, Meta2.class})
+	public void testMetaAndGTableFactoryConstructorVisibility() {
+		int accessMask = Modifier.PUBLIC | Modifier.PROTECTED | Modifier.PRIVATE;
+		for (var base : new Class<?>[] {Meta1.class, Meta2.class, Map2Meta.class.getSuperclass()})
 			for (Constructor<?> ctor : base.getDeclaredConstructors())
-				Assertions.assertFalse(Modifier.isPublic(ctor.getModifiers()),
-						base.getSimpleName() + " 构造器必须保持包私有（家族由构造闭合的闸门）: " + ctor);
+				Assertions.assertEquals(0, ctor.getModifiers() & accessMask, ctor::toString);
+
+		for (var concrete : new Class<?>[] {
+				BeanKeyMeta.class, List1Meta.class, List2Meta.class, LogOneMeta.class, Set1Meta.class,
+				Map1Meta.class, Map2Meta.class, SortedMap1Meta.class, SortedMap2Meta.class,
+				GTable1.Factory.class, GTable2.Factory.class})
+			for (var ctor : concrete.getDeclaredConstructors())
+				Assertions.assertTrue(Modifier.isPrivate(ctor.getModifiers()), ctor::toString);
 	}
 
 	// 同家族正控：Meta构造器（copy()/GTable 等生产路径形态）不受影响。
 	@Test
 	public void testSameFamilyStillWork() {
+		var order = new Order();
 		Assertions.assertNotNull(new PMap2<>(Map2Meta.get(Long.class, BValue.class)).copy());
 		Assertions.assertNotNull(new PMap2<>(Map2Meta.create(Long.class, BValue.class, BValue::new)).copy());
-		Assertions.assertNotNull(new PMap2<>(Map2Meta.createDynamic(Long.class, b -> 0L, id -> new BValue())).copy());
+		Assertions.assertNotNull(order.getQuantityMap().copy());
 		Assertions.assertNotNull(new PSortedMap2<>(SortedMap2Meta.get(Long.class, BValue.class)).copy());
 		Assertions.assertNotNull(new PSortedMap2<>(SortedMap2Meta.create(Long.class, BValue.class, BValue::new)).copy());
-		Assertions.assertNotNull(new PSortedMap2<>(SortedMap2Meta.createDynamic(Long.class, b -> 0L, id -> new BValue())).copy());
+		Assertions.assertNotNull(order.getAmountSorted().copy());
 		Assertions.assertNotNull(new PMap1<>(Map1Meta.get(Long.class, String.class)).copy());
 		Assertions.assertNotNull(new PSortedMap1<>(SortedMap1Meta.get(Long.class, String.class)).copy());
 		Assertions.assertNotNull(new PList1<>(List1Meta.get(Long.class)).copy());

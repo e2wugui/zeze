@@ -11,9 +11,11 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
 
     private long _RoleId;
     private final Zeze.Transaction.DynamicBean _Dynamic;
+    private static final Zeze.Transaction.DynamicField dynamicField_Dynamic
+            = Zeze.Transaction.DynamicField.declare(BRankValue.class, TYPEID, 2, Zeze.Game.Rank::getSpecialTypeIdFromBean, Zeze.Game.Rank::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Dynamic() {
-        return new Zeze.Transaction.DynamicBean(2, Zeze.Game.Rank::getSpecialTypeIdFromBean, Zeze.Game.Rank::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Dynamic);
     }
 
     public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean _b_) {

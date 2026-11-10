@@ -11,9 +11,11 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
 
     private String _Id; // LinkedMap的Key转成字符串类型
     private final Zeze.Transaction.DynamicBean _Value;
+    private static final Zeze.Transaction.DynamicField dynamicField_Value
+            = Zeze.Transaction.DynamicField.declare(BLinkedMapNodeValue.class, TYPEID, 2, Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Value() {
-        return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Value);
     }
 
     public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean _b_) {

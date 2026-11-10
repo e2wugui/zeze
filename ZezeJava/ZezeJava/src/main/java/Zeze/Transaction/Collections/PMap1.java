@@ -125,10 +125,11 @@ public class PMap1<K, V> extends PMap<K, V> {
 		HashMap<K, V> puts = null;
 		ArrayList<K> removes = null;
 		for (var e : modified.entrySet()) {
-			if (e.getValue() != null) {
+			var value = e.getValue();
+			if (value != null) {
 				if (puts == null)
 					puts = new HashMap<>(modified.size() * 2);
-				puts.put(e.getKey(), e.getValue());
+				puts.put(e.getKey(), value);
 			} else {
 				if (removes == null)
 					removes = new ArrayList<>(modified.size());
@@ -164,10 +165,9 @@ public class PMap1<K, V> extends PMap<K, V> {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var keyEncoder = meta.keyEncoder;
-		var valueEncoder = meta.valueEncoder;
+		var valueEncoder = meta.valueCodec.encoder;
 		for (var e : tmp.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
-			//noinspection DataFlowIssue
 			valueEncoder.accept(bb, e.getValue());
 		}
 	}
@@ -176,7 +176,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	public void decode(IByteBuffer bb) {
 		clear();
 		var keyDecoder = meta.keyDecoder;
-		var valueDecoder = meta.valueDecoder;
+		var valueDecoder = meta.valueCodec.decoder;
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
 			return;
@@ -184,7 +184,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 		// ktt后端plusAll走builder批量构建。
 		var m = new HashMap<K, V>(((initialDecodeCapacity(n) + 2) / 3) * 4);
 		for (int i = n; i > 0; i--) {
-			//noinspection DataFlowIssue
 			m.put(keyDecoder.apply(bb), valueDecoder.apply(bb));
 		}
 		putAll(m);

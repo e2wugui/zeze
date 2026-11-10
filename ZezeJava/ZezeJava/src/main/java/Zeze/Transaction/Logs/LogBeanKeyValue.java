@@ -42,7 +42,6 @@ public class LogBeanKeyValue<T extends Serializable> extends Log {
 	public static <T extends Serializable> LogBeanKeyValue<T> decode(int varId, BeanKeyMeta<T> meta, IByteBuffer bb) {
 		T value;
 		try {
-			//noinspection DataFlowIssue
 			value = (T)meta.valueFactory.invoke();
 		} catch (Throwable e) {
 			throw Task.forceThrow(e);

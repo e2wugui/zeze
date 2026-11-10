@@ -12,13 +12,15 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     private String _TimerName; // 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
     private String _HandleName; // 用户实现Zeze.Component.TimerHandle接口的完整类名
     private final Zeze.Transaction.DynamicBean _TimerObj;
+    private static final Zeze.Transaction.DynamicField dynamicField_TimerObj
+            = Zeze.Transaction.DynamicField.declare(BTimer.class, TYPEID, 3, BTimer::getSpecialTypeIdFromBean_3, BTimer::createBeanFromSpecialTypeId_3, Zeze.Builtin.Timer.BCronTimer.class, Zeze.Builtin.Timer.BSimpleTimer.class);
 
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
 
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TimerObj() {
-        return new Zeze.Transaction.DynamicBean(3, BTimer::getSpecialTypeIdFromBean_3, BTimer::createBeanFromSpecialTypeId_3);
+        return new Zeze.Transaction.DynamicBean(dynamicField_TimerObj);
     }
 
     public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean _b_) {
@@ -43,9 +45,11 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     }
 
     private final Zeze.Transaction.DynamicBean _CustomData;
+    private static final Zeze.Transaction.DynamicField dynamicField_CustomData
+            = Zeze.Transaction.DynamicField.declare(BTimer.class, TYPEID, 4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {
-        return new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_CustomData);
     }
 
     public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean _b_) {

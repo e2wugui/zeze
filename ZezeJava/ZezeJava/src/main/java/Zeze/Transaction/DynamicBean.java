@@ -12,16 +12,33 @@ import org.jspecify.annotations.Nullable;
 
 /** 动态类型 Bean：运行时按 typeId 持有可替换的内部 bean，替换以 LogDynamic 日志参与事务与序列化。 */
 public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
+	private static final int VALUE_VARIABLE_ID = 1;
+
 	Bean bean = new EmptyBean();
 	long typeId = EmptyBean.TYPEID;
-	private transient final ToLongFunction<@Nullable Bean> getBean;
+	private transient final ToLongFunction<? super Bean> getBean;
 	private transient final LongFunction<@Nullable Bean> createBean;
 	private transient @Nullable Object mapKey;
+	private transient final @Nullable DynamicField field;
 
-	public DynamicBean(int variableId, ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) {
+	public DynamicBean(DynamicField field) {
+		this(field.id.fieldId(), field.get, field.create, field);
+	}
+
+	public DynamicBean(int variableId, ToLongFunction<? super Bean> get, LongFunction<@Nullable Bean> create) {
+		this(variableId, get, create, null);
+	}
+
+	private DynamicBean(int variableId, ToLongFunction<? super Bean> get, LongFunction<@Nullable Bean> create,
+						@Nullable DynamicField field) {
 		super(variableId);
+		this.field = field;
 		getBean = get;
 		createBean = create;
+	}
+
+	@Nullable DynamicField dynamicField() {
+		return field;
 	}
 
 	@Override
@@ -32,8 +49,8 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (txn == null)
 			return bean;
 		var log = (LogDynamic)txn.getLog(dynamicLogKey());
-		//noinspection DataFlowIssue
-		return log != null ? log.value : bean;
+		var replacement = log != null ? log.value : null;
+		return replacement != null ? replacement : bean;
 	}
 
 	public void setBean(@Nullable Bean bean) {
@@ -42,8 +59,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		setBeanWithSpecialTypeId(getBean.applyAsLong(bean), bean);
 	}
 
-	@SuppressWarnings("deprecation")
-	private void setBeanWithSpecialTypeId(long specialTypeId, Bean bean) {
+	static Bean unwrap(Bean bean) {
 		if (bean instanceof DynamicBean) // 不允许嵌套放入DynamicBean,否则序列化会输出错误的数据流
 			bean = ((DynamicBean)bean).getBean();
 		if (bean instanceof Collection) {
@@ -52,17 +68,23 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			else
 				throw new IllegalStateException("can not set Collection Bean into DynamicBean");
 		}
+		return bean;
+	}
+
+	private void setBeanWithSpecialTypeId(long specialTypeId, Bean bean) {
+		bean = unwrap(bean);
 		if (!isManaged()) {
 			typeId = specialTypeId;
 			this.bean = bean;
 			return;
 		}
-		// 先写校验后挂接：verifyWrite抛IllegalStateException（不在事务中/记录不受控）时，
-		// 新bean已受管却从未入日志（redo-only外的脏归属），此后复用必抛HasManagedException。
+		// 先校验宿主和写权限，避免失败时把新值留在受管状态。
+		var parent = requireLogParent();
 		var txn = Transaction.getCurrentVerifyWrite(this);
 		bean.initRootInfoWithRedo(rootInfo, this);
-		bean.variableId(1); // 只有一个变量
-		var log = (LogDynamic)txn.logGetOrAdd(dynamicLogKey(), () -> new LogDynamic(parent(), variableId(), this));
+		//noinspection deprecation
+		bean.variableId(VALUE_VARIABLE_ID);
+		var log = (LogDynamic)txn.logGetOrAdd(dynamicLogKey(parent), () -> new LogDynamic(parent, variableId(), this));
 		log.setValue(specialTypeId, bean);
 	}
 
@@ -73,21 +95,24 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		var txn = Transaction.getCurrentVerifyRead(this);
 		if (txn == null)
 			return typeId;
-		// 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
 		var log = (LogDynamic)txn.getLog(dynamicLogKey());
-		return log != null ? log.specialTypeId : typeId;
+		return log != null && log.value != null ? log.specialTypeId : typeId;
 	}
 
-	/**
-	 * 事务日志键。字段形态（宿主bean的变量）=宿主objectId+varId；集合元素形态（parent为
-	 * Collection）所有元素共用同一parent且variableId不参与唯一性（用户工厂元素恒为生成
-	 * varId、decode工厂元素恒为0），宿主公式在同组元素间完全碰撞，改用自身objectId：
-	 * objectId按{@link #OBJECT_ID_STEP}(4096)步长自增、低12位保留给varId，自身键落在
-	 * 自己号段的0槽位，与任何"宿主objectId+varId"键（宿主号段内非0槽位）互不重叠。
-	 */
-	@SuppressWarnings("DataFlowIssue")
 	long dynamicLogKey() {
-		return parent() instanceof Collection ? objectId() : parent().objectId() + variableId();
+		return dynamicLogKey(requireLogParent());
+	}
+
+	private long dynamicLogKey(Bean parent) {
+		// 同一集合的元素共享宿主和字段号，用自身 objectId 的零号槽避免碰撞。
+		return parent instanceof Collection ? objectId() : parent.objectId() + variableId();
+	}
+
+	private Bean requireLogParent() {
+		var parent = parent();
+		if (parent == null)
+			throw new IllegalStateException("DynamicBean has no parent for its transaction log");
+		return parent;
 	}
 
 	@Override
@@ -95,16 +120,12 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return getTypeId();
 	}
 
-	public ToLongFunction<@Nullable Bean> getGetBean() {
-		return getBean;
-	}
-
 	public LongFunction<@Nullable Bean> getCreateBean() {
 		return createBean;
 	}
 
 	public Bean newBean(long typeId) {
-		var bean = createBean.apply(typeId);
+		var bean = getCreateBean().apply(typeId);
 		if (bean == null) {
 			if (typeId == EmptyBean.TYPEID)
 				bean = new EmptyBean();
@@ -145,7 +166,8 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public DynamicBean copy() {
-		var copy = new DynamicBean(variableId(), getBean, createBean);
+		var copy = field != null ? new DynamicBean(field)
+			: new DynamicBean(variableId(), getBean, createBean);
 		copy.bean = getBean().copy();
 		copy.typeId = getTypeId();
 		return copy;
@@ -159,10 +181,9 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		// 由于可能在事务中执行，这里仅修改Bean
-		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
+		// 受管值的替换由 setBeanWithSpecialTypeId 写入事务日志。
 		var newTypeId = bb.ReadLong();
-		var newBean = createBean.apply(newTypeId);
+		var newBean = getCreateBean().apply(newTypeId);
 		if (newBean == null) {
 			if (ByteBuffer.IGNORE_INCOMPATIBLE_FIELD || newTypeId == EmptyBean.TYPEID) {
 				newTypeId = EmptyBean.TYPEID;
@@ -205,17 +226,16 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		this.mapKey = mapKey;
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
 	public void followerApply(Log log) {
 		var dLog = (LogDynamicValue)log;
 		if (dLog.value != null) {
+			dLog.checkField(field);
 			typeId = dLog.specialTypeId;
-			// dLog.value是decode反射新建的非受管bean，必须对齐写路径setBeanWithSpecialTypeId的
-			// 初始化集（initRootInfo+variableId(1)），与C-4(CollOne)/PMap2等全部同类实现一致。
-			// rootInfo为null（非受管）时initRootInfo内部保持子bean非受管，安全。
+			// 回放与写入使用相同的父 Bean 和内部字段号。
 			dLog.value.initRootInfo(rootInfo, this);
-			dLog.value.variableId(1); // 只有一个变量
+			//noinspection deprecation
+			dLog.value.variableId(VALUE_VARIABLE_ID);
 			bean = dLog.value;
 		} else if (dLog.logBean != null)
 			bean.followerApply(dLog.logBean);
@@ -223,7 +243,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
-		return finalLog != null ? (LogDynamic)finalLog : new LogDynamic(parent(), variableId(), this);
+		return finalLog != null ? (LogDynamic)finalLog : new LogDynamic(requireLogParent(), variableId(), this);
 	}
 
 	@Override

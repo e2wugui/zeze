@@ -2,72 +2,87 @@ package Zeze.Transaction.Collections;
 
 import org.jspecify.annotations.Nullable;
 
+import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.LongFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
 
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DynamicBean;
+import Zeze.Transaction.DynamicField;
+import Zeze.Util.Reflect;
 
-/**
- * LogMap2 家族（PMap2/GTable2）元数据：Bean 值受管，支持原位修改。
- */
-public final class Map2Meta<K, V> extends Meta2<K, V> {
-	// 线上typeId原料（hashLog输入），逐字保留，勿改。
-	static final String HEAD = "Zeze.Transaction.Collections.LogMap2<";
-	private static final long headHash = Bean.hash64(HEAD);
+/** PMap2 及 GTable 中以受管 Bean 为值的 Map 日志元数据。 */
+public final class Map2Meta<K, V extends Bean> extends BeanValueMapMeta<K, V> {
+	// 线上日志类型号的哈希前缀，须保持原样。
+	private static final long headHash = Bean.hash64("Zeze.Transaction.Collections.LogMap2<");
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Map2Meta<?, ?>>> metas
 		= new ConcurrentHashMap<>();
 
-	Map2Meta(Class<K> keyClass, Class<V> valueClass) {
-		super("LogMap2:", headHash, keyClass, valueClass);
+	public final int valueEncodeType;
+	private final @Nullable Consumer<? super V> valueValidator;
+
+	private Map2Meta(Class<K> keyClass, Class<V> valueClass) {
+		this(keyClass, valueClass, Reflect.getDefaultConstructor(valueClass));
 	}
 
-	Map2Meta(Class<K> keyClass, Class<V> valueClass, Supplier<V> valueCtor) {
-		super("LogMap2:", headHash, keyClass, valueClass, valueCtor);
+	private Map2Meta(Class<K> keyClass, Class<V> valueClass, Supplier<V> valueCtor) {
+		this(keyClass, valueClass, Reflect.supplierMH.bindTo(valueCtor));
 	}
 
-	Map2Meta(Class<K> keyClass, ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) {
-		super("LogMap2:", headHash, keyClass, get, create);
+	private Map2Meta(Class<K> keyClass, Class<V> valueClass, MethodHandle valueFactory) {
+		super("LogMap2:", headHash, keyClass, valueClass, valueFactory);
+		valueEncodeType = IByteBuffer.BEAN;
+		valueValidator = null;
 	}
 
-	// GTable外层专用。家族头/name前缀由调用方提供（GTable1/GTable2各自常量，
-	// 与PMap2的LogMap2命名空间分流），valueIdentity为完整列/值身份串。
-	Map2Meta(String familyHead, long familyHeadHash, String namePrefix,
-			 Class<K> keyClass, Class<V> valueClass,
-			 String valueIdentity, Supplier<V> valueCtor) {
-		super(namePrefix, familyHeadHash, keyClass, valueClass, valueIdentity, valueCtor);
+	private Map2Meta(long familyHeadHash, String namePrefix, Class<K> keyClass, Class<V> valueClass,
+					 String valueIdentity, Supplier<V> valueCtor, @Nullable DynamicField field,
+					 @Nullable Consumer<? super V> valueValidator) {
+		super(Bean.hashLog(familyHeadHash, Reflect.getStableName(keyClass), valueIdentity),
+				namePrefix + keyClass.getName() + ',' + valueIdentity, keyClass, valueClass,
+				Reflect.supplierMH.bindTo(valueCtor), field);
+		valueEncodeType = IByteBuffer.BEAN;
+		this.valueValidator = valueValidator;
 	}
 
-	/**
-	 * 获取（或首次创建并缓存）共享的 Map2 元数据。
-	 * 契约：{@link #create} 的自定义 valueCtor 与本方法的默认构造对同一
-	 * (keyClass, valueClass) 生成相同 logTypeId（typeId 由 head+两类名散列，与ctor无关），
-	 * LogRegistry.register 按 typeId 先到先得——ctor 产物若与默认构造产物不等价，后注册方的差异
-	 * 在日志反序列化（LogRegistry.decode 按 typeId 查表）中永远不生效。
-	 */
+	private Map2Meta(Class<K> keyClass, DynamicField field) {
+		super("LogMap2:", headHash, keyClass, field);
+		valueEncodeType = IByteBuffer.DYNAMIC;
+		valueValidator = null;
+	}
+
+	void checkValue(V value) {
+		DynamicField.checkValueOwner(dynamicField, value);
+		if (valueValidator != null)
+			valueValidator.accept(value);
+	}
+
+	public static <K> Map2Meta<K, DynamicBean> createDynamic(Class<K> keyClass, DynamicField field) {
+		checkNonBeanKey("LogMap2:", keyClass);
+		var meta = new Map2Meta<K, DynamicBean>(keyClass, field);
+		field.bindLog(meta.logTypeId, (varId, bb) -> LogMap2.decode(varId, meta, bb));
+		return meta;
+	}
+
+	/** 按键和值的类型获取共享元数据，值用默认构造器创建。 */
 	public static <K, V extends Bean> Map2Meta<K, V> get(Class<K> keyClass,
 														 Class<V> valueClass) {
 		var map = metas.computeIfAbsent(keyClass, kc -> {
 			checkNonBeanKey("PMap2/GTable2 (LogMap2)", kc);
 			return new ConcurrentHashMap<>();
 		});
-		var r = map.get(valueClass);
-		if (r != null) {
-			//noinspection unchecked
-			return (Map2Meta<K, V>)r;
-		}
+		var meta = map.get(valueClass);
+		if (meta == null)
+			meta = map.computeIfAbsent(valueClass, ignored -> new Map2Meta<>(keyClass, valueClass));
 		//noinspection unchecked
-		return (Map2Meta<K, V>)map.computeIfAbsent(valueClass,
-			vc -> new Map2Meta<>(keyClass, (Class<V>)vc));
+		return (Map2Meta<K, V>)meta;
 	}
 
 	/**
-	 * 用自定义 valueCtor 创建 Map2 元数据（不进共享缓存，调用方自行注册）。
-	 * 契约：valueCtor 产物必须与 valueClass 默认构造产物（new V()）等价——本方法与
-	 * {@link #get} 对同一 (keyClass, valueClass) 算出相同 logTypeId，注册进
-	 * Log 工厂表后 typeId 先到先得，两者不等价时后注册方的 ctor 被静默忽略，日志
-	 * 反序列化拿到错误构造的实例（如 History 增量回放数据损坏）。
+	 * 用自定义工厂创建独立元数据，由调用方注册。
+	 * 工厂产物须与默认构造等价。同一键值类型共用日志类型号，解码使用先注册的工厂。
 	 */
 	public static <K, V extends Bean> Map2Meta<K, V> create(Class<K> keyClass,
 															Class<V> valueClass,
@@ -76,25 +91,33 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 		return new Map2Meta<>(keyClass, valueClass, valueCtor);
 	}
 
-	public static <K, V extends Bean> Map2Meta<K, V> createDynamic(Class<K> keyClass,
-																   ToLongFunction<@Nullable Bean> get,
-																   LongFunction<@Nullable Bean> create) {
-		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
-		return new Map2Meta<>(keyClass, get, create);
-	}
-
 	/**
-	 * GTable外层meta构造：valueClass是擦除的共享类（BeanMap1/BeanMap2.class），
-	 * 真实列/值类型活在闭包——logTypeId/name由valueIdentity完整身份参与，同keyClass不同
-	 * 列/值类型的GTable不共享typeId（LogRegistry.register先到先得+解码端按typeId全局查表）。
-	 * 不进共享缓存，调用方按(row,col,val)自行缓存。wire兼容由调用方裁定（History无生产
-	 * 启用时可直接切换）。
+	 * 创建 GTable 外层元数据，由调用方缓存。
+	 * 日志类型号由 GTable 家族、行键类型和 {@code valueIdentity} 中的完整列值类型决定。
 	 */
 	public static <K, V extends Bean> Map2Meta<K, V> createWithFamily(
 		String familyHead, String namePrefix,
 		Class<K> keyClass, Class<V> valueClass,
 		String valueIdentity, Supplier<V> valueCtor) {
+		return createWithFamily(familyHead, namePrefix, keyClass, valueClass, valueIdentity, valueCtor, null);
+	}
+
+	public static <K, V extends Bean> Map2Meta<K, V> createWithFamily(
+		String familyHead, String namePrefix, Class<K> keyClass, Class<V> valueClass,
+		String valueIdentity, Supplier<V> valueCtor, @Nullable DynamicField field) {
+		return createWithFamily(familyHead, namePrefix, keyClass, valueClass, valueIdentity, valueCtor, field, null);
+	}
+
+	/** GTable 的外层 Map 在挂接前通过校验器核对行的内层 Meta。 */
+	public static <K, V extends Bean> Map2Meta<K, V> createWithFamily(
+		String familyHead, String namePrefix, Class<K> keyClass, Class<V> valueClass,
+		String valueIdentity, Supplier<V> valueCtor, @Nullable DynamicField field,
+		@Nullable Consumer<? super V> valueValidator) {
 		checkNonBeanKey("GTable outer (" + namePrefix + ")", keyClass);
-		return new Map2Meta<>(familyHead, Bean.hash64(familyHead), namePrefix, keyClass, valueClass, valueIdentity, valueCtor);
+		var meta = new Map2Meta<>(Bean.hash64(familyHead), namePrefix, keyClass, valueClass,
+			valueIdentity, valueCtor, field, valueValidator);
+		if (field != null)
+			field.bindLog(meta.logTypeId, (varId, bb) -> LogMap2.decode(varId, meta, bb));
+		return meta;
 	}
 }

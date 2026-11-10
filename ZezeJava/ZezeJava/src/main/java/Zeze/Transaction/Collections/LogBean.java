@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.DynamicField;
 import Zeze.Transaction.LogRegistry;
 import Zeze.Transaction.LogDynamicValue;
 import Zeze.Util.IntHashMap;
@@ -12,6 +13,12 @@ import org.jspecify.annotations.Nullable;
 /** Bean 自身的日志：聚合各成员变量的子日志，按 variableId 索引，随事务收集向上传递。 */
 public class LogBean extends Log {
 	public static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
+	private static final int NESTED_BEAN = 0;
+	private static final int NESTED_DYNAMIC = 1;
+
+	@Nullable DynamicField dynamicField() {
+		return null;
+	}
 
 	private final @Nullable Bean self;
 	private @Nullable IntHashMap<Log> variables;
@@ -50,8 +57,8 @@ public class LogBean extends Log {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
 				Log log = it.value();
-				bb.WriteInt4(log.getTypeId());
-				bb.WriteUInt(log.getVariableId());
+				var field = log instanceof LogBean beanLog ? beanLog.dynamicField() : null;
+				LogRegistry.encodeChildHeader(bb, log, field);
 				log.encode(bb);
 			}
 		} else
@@ -83,19 +90,16 @@ public class LogBean extends Log {
 	}
 
 	public static void encodeLogBean(ByteBuffer bb, LogBean logBean) {
-		// 使用byte，未来可能扩展其他LogBean子类。
-		if (logBean instanceof LogDynamicValue)
-			bb.WriteByte(1);
-		else // 全部都是LogBean子类，只能else。
-			bb.WriteByte(0);
+		bb.WriteByte(logBean instanceof LogDynamicValue ? NESTED_DYNAMIC : NESTED_BEAN);
 		logBean.encode(bb);
 	}
 
 	public static LogBean decodeLogBean(IByteBuffer bb) {
-		return switch (bb.ReadByte()) {
-			case 0 -> decode(0, bb);
-			case 1 -> LogDynamicValue.decode(0, bb);
-			default -> throw new IllegalArgumentException("unknown logBean subclass type");
+		int tag = bb.ReadByte();
+		return switch (tag) {
+			case NESTED_BEAN -> decode(0, bb);
+			case NESTED_DYNAMIC -> LogDynamicValue.decode(0, bb);
+			default -> throw new IllegalArgumentException("unknown nested log tag=" + tag);
 		};
 	}
 

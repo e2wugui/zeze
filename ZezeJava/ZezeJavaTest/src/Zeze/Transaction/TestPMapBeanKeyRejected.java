@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.PMap1;
 import Zeze.Transaction.Collections.PMap2;
 import demo.Module1.BValue;
@@ -38,11 +39,11 @@ public class TestPMapBeanKeyRejected {
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> new PMap2<>(MyBean.class, BValue.class, BValue::new),
 				"PMap2(Supplier)构造器同样必须拒绝（Supplier形态要求V extends Bean）");
-		// FND6-41残留补：第三个keyClass构造器（DynamicBean值专用）漏网——keyClass仅传
-		// Map2Meta.createDynamic的createCodec，对Bean子类正常成功，可无告警构建Bean key哈希map。
+		var field = DynamicField.declare(MyBean.class, Bean.hash64(MyBean.class.getName()), 1,
+				b -> 1, id -> id == 1 ? new BValue() : null, BValue.class);
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> new PMap2<>(MyBean.class, b -> 0L, id -> new BValue()),
-				"PMap2(DynamicBean值专用)构造器同样必须拒绝Bean key");
+				() -> new PMap2<>(Map2Meta.createDynamic(MyBean.class, field)),
+				"动态 PMap2 的 Meta 工厂同样必须拒绝 Bean key");
 	}
 
 	@Test

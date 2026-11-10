@@ -161,6 +161,16 @@ public class TestMap2UpsertProjection {
 	}
 
 	@Test
+	public void collectionRequiresSourceBeanAndKey() {
+		var source = new PMap2<Integer, BValue>(Integer.class, BValue.class);
+		var payload = Map2DeltaTestSupport.map(source, delta -> {});
+
+		assertThrows(IllegalStateException.class, () -> payload.addChild(source, new LogBean(0, null)));
+		assertThrows(IllegalStateException.class, () -> payload.addChild(source, fieldChange(bean(7))));
+		assertTrue(payload.getChangedWithKey().isEmpty());
+	}
+
+	@Test
 	public void mutableSourceMapRejectsInvalidEditsBeforeAnyAction() {
 		var source = new PMap2<Integer, BValue>(Integer.class, BValue.class);
 		var changedValue = bean(7);

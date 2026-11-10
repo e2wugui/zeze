@@ -37,6 +37,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
 
     private byte _byte13; // com aa
     private final Zeze.Transaction.DynamicBean _dynamic14;
+    private static final Zeze.Transaction.DynamicField dynamicField_dynamic14
+            = Zeze.Transaction.DynamicField.declare(BValue.class, TYPEID, 14, BValue::getSpecialTypeIdFromBean_14, BValue::createBeanFromSpecialTypeId_14, demo.Bean1.class, demo.Module1.BSimple.class, demo.Module1.BItem.class);
 
     public static final long DynamicTypeId_Dynamic14_demo_Bean1 = 1L;
 
@@ -45,7 +47,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     public static final long DynamicTypeId_Dynamic14_demo_Module1_BItem = 3L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Dynamic14() {
-        return new Zeze.Transaction.DynamicBean(14, BValue::getSpecialTypeIdFromBean_14, BValue::createBeanFromSpecialTypeId_14);
+        return new Zeze.Transaction.DynamicBean(dynamicField_dynamic14);
     }
 
     public static long getSpecialTypeIdFromBean_14(Zeze.Transaction.Bean _b_) {
@@ -88,9 +90,11 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     private Zeze.Serialize.Vector4 _vector4;
     private Zeze.Serialize.Quaternion _quaternion;
     private final Zeze.Transaction.DynamicBean _dynamic23;
+    private static final Zeze.Transaction.DynamicField dynamicField_dynamic23
+            = Zeze.Transaction.DynamicField.declare(BValue.class, TYPEID, 23, demo.Module1.ModuleModule1::getSpecialTypeIdFromBean, demo.Module1.ModuleModule1::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Dynamic23() {
-        return new Zeze.Transaction.DynamicBean(23, demo.Module1.ModuleModule1::getSpecialTypeIdFromBean, demo.Module1.ModuleModule1::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_dynamic23);
     }
 
     public static long getSpecialTypeIdFromBean_23(Zeze.Transaction.Bean _b_) {
@@ -110,11 +114,13 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             = Zeze.Transaction.Collections.Map2Meta.get(demo.Module1.Key.class, demo.Module1.BSimple.class);
 
     private final Zeze.Transaction.Collections.PMap2<demo.Module1.Key, Zeze.Transaction.DynamicBean> _map26;
+    private static final Zeze.Transaction.DynamicField dynamicField_map26
+            = Zeze.Transaction.DynamicField.declare(BValue.class, TYPEID, 26, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26, demo.Module1.BSimple.class);
     private static final Zeze.Transaction.Collections.Map2Meta<demo.Module1.Key, Zeze.Transaction.DynamicBean> meta2_map26
-            = Zeze.Transaction.Collections.Map2Meta.createDynamic(demo.Module1.Key.class, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
+            = Zeze.Transaction.Collections.Map2Meta.createDynamic(demo.Module1.Key.class, dynamicField_map26);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Map26() {
-        return new Zeze.Transaction.DynamicBean(26, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
+        return new Zeze.Transaction.DynamicBean(dynamicField_map26);
     }
 
     public static long getSpecialTypeIdFromBean_26(Zeze.Transaction.Bean _b_) {
@@ -135,11 +141,13 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     }
 
     private final Zeze.Transaction.DynamicBean _dynamic27;
+    private static final Zeze.Transaction.DynamicField dynamicField_dynamic27
+            = Zeze.Transaction.DynamicField.declare(BValue.class, TYPEID, 27, BValue::getSpecialTypeIdFromBean_27, BValue::createBeanFromSpecialTypeId_27, demo.Module1.BSimple.class);
 
     public static final long DynamicTypeId_Dynamic27_demo_Module1_BSimple = 4513771153805810055L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Dynamic27() {
-        return new Zeze.Transaction.DynamicBean(27, BValue::getSpecialTypeIdFromBean_27, BValue::createBeanFromSpecialTypeId_27);
+        return new Zeze.Transaction.DynamicBean(dynamicField_dynamic27);
     }
 
     public static long getSpecialTypeIdFromBean_27(Zeze.Transaction.Bean _b_) {
@@ -217,11 +225,13 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             = Zeze.Transaction.Collections.Map2Meta.get(Long.class, demo.Module1.BValue.class);
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Transaction.DynamicBean> _list43;
+    private static final Zeze.Transaction.DynamicField dynamicField_list43
+            = Zeze.Transaction.DynamicField.declare(BValue.class, TYPEID, 43, BValue::getSpecialTypeIdFromBean_43, BValue::createBeanFromSpecialTypeId_43, demo.Module1.BSimple.class);
     private static final Zeze.Transaction.Collections.List2Meta<Zeze.Transaction.DynamicBean> meta1_list43
-            = Zeze.Transaction.Collections.List2Meta.createDynamic(BValue::getSpecialTypeIdFromBean_43, BValue::createBeanFromSpecialTypeId_43);
+            = Zeze.Transaction.Collections.List2Meta.createDynamic(dynamicField_list43);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_List43() {
-        return new Zeze.Transaction.DynamicBean(43, BValue::getSpecialTypeIdFromBean_43, BValue::createBeanFromSpecialTypeId_43);
+        return new Zeze.Transaction.DynamicBean(dynamicField_list43);
     }
 
     public static long getSpecialTypeIdFromBean_43(Zeze.Transaction.Bean _b_) {
@@ -1389,7 +1399,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         }
         _map26.clear();
         for (var _e_ : _o_._map26.entrySet()) {
-            var _v_ = new Zeze.Transaction.DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
+            var _v_ = BValue.newDynamicBean_Map26();
             _v_.assign(_e_.getValue());
             _map26.put(_e_.getKey(), _v_);
         }
@@ -1433,7 +1443,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         }
         _list43.clear();
         for (var _e_ : _o_._list43) {
-            var _v_ = new Zeze.Transaction.DynamicBean(0, BValue::getSpecialTypeIdFromBean_43, BValue::createBeanFromSpecialTypeId_43);
+            var _v_ = BValue.newDynamicBean_List43();
             _v_.assign(_e_);
             _list43.add(_v_);
         }
@@ -2753,7 +2763,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadBean(new demo.Module1.Key(), _s_);
-                    var _v_ = new Zeze.Transaction.DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
+                    var _v_ = BValue.newDynamicBean_Map26();
                     _o_.ReadDynamic(_v_, _t_);
                     _x_.put(_k_, _v_);
                 }
@@ -2926,7 +2936,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--) {
-                    var _e_ = new Zeze.Transaction.DynamicBean(0, BValue::getSpecialTypeIdFromBean_43, BValue::createBeanFromSpecialTypeId_43);
+                    var _e_ = BValue.newDynamicBean_List43();
                     _o_.ReadDynamic(_e_, _t_);
                     _x_.add(_e_);
                 }

@@ -60,13 +60,13 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	@SuppressWarnings("ConstantConditions")
 	public boolean addAll(Collection<? extends V> c) {
 		if (c.isEmpty())
 			return false;
 		if (c instanceof PSet1)
 			c = ((PSet1<? extends V>)c).getSet(); // more stable
 		for (V v : c) {
+			//noinspection ConstantValue
 			if (v == null)
 				throw new IllegalArgumentException("null item");
 		}
@@ -168,9 +168,8 @@ public class PSet1<V> extends PSet<V> {
 	public void encode(ByteBuffer bb) {
 		var tmp = getSet();
 		bb.WriteUInt(tmp.size());
-		var encoder = meta.valueEncoder;
+		var encoder = meta.valueCodec.encoder;
 		for (V e : tmp) {
-			//noinspection DataFlowIssue
 			encoder.accept(bb, e);
 		}
 	}
@@ -178,14 +177,13 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public void decode(IByteBuffer bb) {
 		clear();
-		var decoder = meta.valueDecoder;
+		var decoder = meta.valueCodec.decoder;
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
 			return;
 		// JDK暂存+单发批量（语义等价，见PList1.decode注）。
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		for (int i = n; i > 0; i--) {
-			//noinspection DataFlowIssue
 			items.add(decoder.apply(bb));
 		}
 		addAll(items);

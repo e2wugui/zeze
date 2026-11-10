@@ -189,7 +189,7 @@ public final class SerializeHelper {
 		});
 	}
 
-	public static MethodHandle createDynamicFactory(ToLongFunction<@Nullable Bean> get,
+	public static MethodHandle createDynamicFactory(ToLongFunction<? super Bean> get,
 													LongFunction<@Nullable Bean> create) {
 		return Reflect.supplierMH.bindTo((Supplier<?>)() -> new DynamicBean(0, get, create));
 	}

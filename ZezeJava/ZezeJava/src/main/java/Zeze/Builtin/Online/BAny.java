@@ -10,9 +10,11 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     public static final long TYPEID = 5253251427600819301L;
 
     private final Zeze.Transaction.DynamicBean _Any;
+    private static final Zeze.Transaction.DynamicField dynamicField_Any
+            = Zeze.Transaction.DynamicField.declare(BAny.class, TYPEID, 1, Zeze.Arch.Online::getSpecialTypeIdFromBean, Zeze.Arch.Online::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Any() {
-        return new Zeze.Transaction.DynamicBean(1, Zeze.Arch.Online::getSpecialTypeIdFromBean, Zeze.Arch.Online::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Any);
     }
 
     public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean _b_) {

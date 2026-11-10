@@ -11,11 +11,13 @@ public final class BSkill extends Zeze.Transaction.Bean implements BSkillReadOnl
 
     private int _Id;
     private final Zeze.Transaction.DynamicBean _Extra;
+    private static final Zeze.Transaction.DynamicField dynamicField_Extra
+            = Zeze.Transaction.DynamicField.declare(BSkill.class, TYPEID, 2, BSkill::getSpecialTypeIdFromBean_2, BSkill::createBeanFromSpecialTypeId_2, Game.Skill.BSkillAttackExtra.class);
 
     public static final long DynamicTypeId_Extra_Game_Skill_BSkillAttackExtra = 5301582953788202231L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Extra() {
-        return new Zeze.Transaction.DynamicBean(2, BSkill::getSpecialTypeIdFromBean_2, BSkill::createBeanFromSpecialTypeId_2);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Extra);
     }
 
     public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean _b_) {

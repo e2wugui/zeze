@@ -12,9 +12,11 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     private int _Id;
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
+    private static final Zeze.Transaction.DynamicField dynamicField_Item
+            = Zeze.Transaction.DynamicField.declare(BItem.class, TYPEID, 3, Zeze.Game.Bag::getSpecialTypeIdFromBean, Zeze.Game.Bag::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Item() {
-        return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::getSpecialTypeIdFromBean, Zeze.Game.Bag::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Item);
     }
 
     public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean _b_) {

@@ -1,145 +1,66 @@
 package Zeze.Transaction.Collections;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodType;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.LongFunction;
-import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
-import Zeze.Util.Reflect;
-import Zeze.Util.Task;
-import org.jspecify.annotations.Nullable;
-import Zeze.Serialize.SerializeHelper.ObjectIntFunction;
 
-// 家族封闭：sealed+包私有构造器，子类各自硬编码家族头串（线上typeId原料，逐字保留）。
-// 容器层（P*）构造器只收对应子类型，日志层（Log*）与JSON等家族无关消费方收本基类；
-// 勿再引入收基类的容器构造器——跨家族meta借道对家typeId注册，复制端followerApply强转CCE。
-public sealed abstract class Meta2<K, V> permits Map1Meta, Map2Meta, SortedMap1Meta, SortedMap2Meta {
+/**
+ * 键值日志的公共元数据，保存日志身份、键值类型和键编解码器。
+ * <ul>
+ *   <li>{@link Map1Meta} 和 {@link SortedMap1Meta} 提供非 Bean 值的编解码。</li>
+ *   <li>{@link Map2Meta} 和 {@link SortedMap2Meta} 通过 {@link BeanValueMapMeta} 共用 Bean 工厂和动态字段绑定。</li>
+ *   <li>GTable 外层的值是行 Bean，因此使用 {@link Map2Meta}。行内按单元格的值类型选 Map1 或 Map2。</li>
+ * </ul>
+ */
+public sealed abstract class Meta2<K, V> permits Map1Meta, SortedMap1Meta, BeanValueMapMeta {
 	public final int logTypeId;
+	public final String name;
+	public final Class<?> keyClass;
+	public final Class<?> valueClass;
 	public final int keyEncodeType;
 	public final BiConsumer<ByteBuffer, K> keyEncoder;
 	public final Function<IByteBuffer, K> keyDecoder;
 	public final SerializeHelper.ObjectIntFunction<IByteBuffer, K> keyDecoderWithType;
-	public final int valueEncodeType;
-	public final @Nullable BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
-	public final @Nullable Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
-	public final @Nullable ObjectIntFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
-	public final @Nullable MethodHandle valueFactory; // 只用于Bean类型
-	public final String name; // 主要用于分析查错
-	// 实例的真实 key/value 类型，供 variables() 等元数据推导。
-	public final Class<?> keyClass;
-	public final Class<?> valueClass;
-
-	Meta2(String headStr, long headHash, Class<K> keyClass, Class<V> valueClass,
-		  @Nullable MethodHandle valueFactory) {
-		logTypeId = Bean.hashLog(headHash, keyClass, valueClass);
-		this.keyClass = keyClass;
-		this.valueClass = valueClass;
-		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		keyEncodeType = keyCodecFuncs.encodeType;
-		keyEncoder = keyCodecFuncs.encoder;
-		keyDecoder = keyCodecFuncs.decoder;
-		keyDecoderWithType = keyCodecFuncs.decoderWithType;
-		// 非Bean类型没有valueFactory，其codec已预注册，使用无ctor的重载。
-		var valueCodecFuncs = valueFactory != null
-				? SerializeHelper.createCodec(valueClass, valueFactory)
-				: SerializeHelper.createCodec(valueClass);
-		valueEncodeType = valueCodecFuncs.encodeType;
-		valueEncoder = valueCodecFuncs.encoder;
-		valueDecoder = valueCodecFuncs.decoder;
-		valueDecoderWithType = valueCodecFuncs.decoderWithType;
-		this.valueFactory = valueFactory;
-		name = headStr + keyClass.getName() + ',' + valueClass.getName();
-	}
-
-	Meta2(String headStr, long headHash, Class<K> keyClass, Class<V> valueClass,
-		  Supplier<V> ctor) {
-		this(headStr, headHash, keyClass, valueClass, toMethodHandle(ctor));
-	}
-
-	private static MethodHandle toMethodHandle(Supplier<?> ctor) {
-		try {
-			return Reflect.lookup.findVirtual(Supplier.class, "get", MethodType.methodType(Object.class)).bindTo(ctor);
-		} catch (ReflectiveOperationException e) {
-			throw Task.forceThrow(e);
-		}
-	}
 
 	Meta2(String headStr, long headHash, Class<K> keyClass, Class<V> valueClass) {
-		this(headStr, headHash, keyClass, valueClass,
-				Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null);
+		this(Bean.hashLog(headHash, keyClass, valueClass),
+			headStr + keyClass.getName() + ',' + valueClass.getName(), keyClass, valueClass);
 	}
 
-	// 身份构造：valueClass是擦除的共享类（GTable外层的BeanMap1/2.class）时，
-	// 真实列/值类型活在闭包——logTypeId/name改由valueIdentity完整身份串参与，否则
-	// 同keyClass的多个实例共享typeId，LogRegistry.register先到先得，解码端全局查表拿到别人的工厂。
-	// identity用getStableName原料（内置类型短名"int"/"string"，bean全名），与hashLog语义一致。
-	Meta2(String headStr, long headHash, Class<K> keyClass, Class<V> valueClass,
-		  String valueIdentity, Supplier<V> ctor) {
-		logTypeId = Bean.hashLog(headHash, Reflect.getStableName(keyClass), valueIdentity);
+	Meta2(int logTypeId, String name, Class<K> keyClass, Class<?> valueClass) {
+		this.logTypeId = logTypeId;
+		this.name = name;
 		this.keyClass = keyClass;
 		this.valueClass = valueClass;
-		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		keyEncodeType = keyCodecFuncs.encodeType;
-		keyEncoder = keyCodecFuncs.encoder;
-		keyDecoder = keyCodecFuncs.decoder;
-		keyDecoderWithType = keyCodecFuncs.decoderWithType;
-		var valueFactory = toMethodHandle(ctor);
-		var valueCodecFuncs = SerializeHelper.createCodec(valueClass, valueFactory);
-		valueEncodeType = valueCodecFuncs.encodeType;
-		valueEncoder = valueCodecFuncs.encoder;
-		valueDecoder = valueCodecFuncs.decoder;
-		valueDecoderWithType = valueCodecFuncs.decoderWithType;
-		this.valueFactory = valueFactory;
-		name = headStr + keyClass.getName() + ',' + valueIdentity;
+		var keyCodec = SerializeHelper.createCodec(keyClass);
+		keyEncodeType = keyCodec.encodeType;
+		keyEncoder = keyCodec.encoder;
+		keyDecoder = keyCodec.decoder;
+		keyDecoderWithType = keyCodec.decoderWithType;
 	}
 
-	Meta2(String headStr, long headHash, Class<K> keyClass, ToLongFunction<@Nullable Bean> get,
-		  LongFunction<@Nullable Bean> create) {
-		logTypeId = Bean.hashLog(headHash, keyClass, DynamicBean.class);
-		this.keyClass = keyClass;
-		this.valueClass = DynamicBean.class;
-		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		keyEncodeType = keyCodecFuncs.encodeType;
-		keyEncoder = keyCodecFuncs.encoder;
-		keyDecoder = keyCodecFuncs.decoder;
-		keyDecoderWithType = keyCodecFuncs.decoderWithType;
-		valueEncodeType = IByteBuffer.DYNAMIC;
-		valueEncoder = null;
-		valueDecoder = null;
-		valueDecoderWithType = null;
-		valueFactory = SerializeHelper.createDynamicFactory(get, create);
-		name = headStr + keyClass.getName() + ",DynamicBean";
-	}
-
-	// Bean key：值语义equals配身份hashCode，日志簿记, HashMap/HashSet静默漏命中，可致主从分歧。
-	// check在computeIfAbsent内按miss执行：被拒类型永不入缓存，每次调用皆重抛；不变量是
-	// "被拒类型永不在缓存中"——任何新的缓存插入路径必须经由本check，不允许绕过直插。
+	// Bean 的 equals 与 hashCode 语义不一致，会破坏日志的键查找。须在写入缓存前拒绝。
 	static void checkNonBeanKey(String family, Class<?> keyClass) {
 		if (Bean.class.isAssignableFrom(keyClass))
 			throw new IllegalArgumentException(
-					family + " does not support Bean key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
-							+ keyClass.getName());
+				family + " does not support Bean key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
+					+ keyClass.getName());
 	}
 
-	// Bean值（仅1系）：1系按值拷贝记账、不挂接rootInfo，装入的bean永不受管，原位修改静默丢失。
-	// 2系（LogMap2/LogSortedMap2）Bean值受管合法，不拦。执行位置同checkNonBeanKey的说明。
+	// 1 系不跟踪 Bean 的原位修改，须在写入缓存前拒绝。
 	static void checkNonBeanValue1(String family, String advice, Class<?> valueClass) {
 		if (Bean.class.isAssignableFrom(valueClass))
 			throw new IllegalArgumentException(
-					family + " does not support Bean value type (in-place modifications never managed, silently lost), "
-							+ advice + ": " + valueClass.getName());
+				family + " does not support Bean value type (in-place modifications never managed, silently lost), "
+					+ advice + ": " + valueClass.getName());
 	}
 
-	// Java Class → schema 类型名，与生成器（Gen/Types/Variable.GetTypeFullName）的输出对齐：
-	// 内建类型用 schema 关键字，bean/枚举用全名（生成约定 schema 全名 == Java 类名）。
-	// 供运行时从 Meta2.keyClass/valueClass 推导 variables() 等类型元数据。
+	// 为 variables() 推导 schema 类型名，命名与生成器的 Variable.GetTypeFullName 一致。
 	public static String schemaTypeName(Class<?> cls) {
 		if (cls == Boolean.class || cls == boolean.class)
 			return "bool";

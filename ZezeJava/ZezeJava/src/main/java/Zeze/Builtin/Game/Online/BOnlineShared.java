@@ -15,9 +15,11 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
     private long _LoginVersion; // 角色登录(包括重登录)时自增
     private long _LogoutVersion; // 登录和下线前会赋值为LoginVersion
     private final Zeze.Transaction.DynamicBean _UserData;
+    private static final Zeze.Transaction.DynamicField dynamicField_UserData
+            = Zeze.Transaction.DynamicField.declare(BOnlineShared.class, TYPEID, 5, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_UserData() {
-        return new Zeze.Transaction.DynamicBean(5, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_UserData);
     }
 
     public static long getSpecialTypeIdFromBean_5(Zeze.Transaction.Bean _b_) {

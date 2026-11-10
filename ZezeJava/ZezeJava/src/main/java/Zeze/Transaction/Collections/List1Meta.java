@@ -1,19 +1,20 @@
 package Zeze.Transaction.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 
-/**
- * LogList1 家族（PList1）元数据：非 Bean 值，按值拷贝记账。
- */
+/** PList1 的日志元数据，按值记录非 Bean 元素的变更。 */
 public final class List1Meta<V> extends Meta1<V> {
-	// 线上typeId原料（hashLog输入），逐字保留，勿改。
-	static final String HEAD = "Zeze.Transaction.Collections.LogList1<";
-	private static final long headHash = Bean.hash64(HEAD);
+	// 线上日志类型号的哈希前缀，须保持原样。
+	private static final long headHash = Bean.hash64("Zeze.Transaction.Collections.LogList1<");
 	private static final ConcurrentHashMap<Class<?>, List1Meta<?>> metas = new ConcurrentHashMap<>();
 
-	List1Meta(Class<V> valueClass) {
-		super("LogList1:", headHash, valueClass);
+	final SerializeHelper.CodecFuncs<V> valueCodec;
+
+	private List1Meta(Class<V> valueClass) {
+		super(Bean.hashLog(headHash, valueClass), "LogList1:" + valueClass.getName());
+		valueCodec = SerializeHelper.createCodec(valueClass);
 	}
 
 	public static <V> List1Meta<V> get(Class<V> valueClass) {
@@ -21,8 +22,7 @@ public final class List1Meta<V> extends Meta1<V> {
 		return (List1Meta<V>)metas.computeIfAbsent(valueClass, vc -> {
 			checkNonBeanValue("PList1 (LogList1)",
 					"(in-place modifications never managed, silently lost), use PList2", vc);
-			//noinspection unchecked
-			return new List1Meta<>((Class<V>)vc);
+			return new List1Meta<>(vc);
 		});
 	}
 }

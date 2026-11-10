@@ -9,6 +9,7 @@ import Zeze.Transaction.Collections.LogSortedMap1;
 import Zeze.Transaction.Collections.Map1Meta;
 import Zeze.Transaction.Collections.SortedMap1Meta;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.LogRegistry;
 import Zeze.Transaction.TableDynamic;
 import demo.Module1.BValue;
 import harness.Fast;
@@ -30,6 +31,13 @@ public class TestDynamicTableLogRegistry {
 
 	// 独立serverId+派生url：@Fast类并行时DatabaseMemory静态Map按url分桶互撞规避。
 	private static final int SERVER_ID = FastServerIds.TEST_DYNAMIC_TABLE_LOG_REGISTRY;
+
+	private static void assertDecodes(Log log) {
+		var bb = ByteBuffer.Allocate();
+		log.encode(bb);
+		Assertions.assertInstanceOf(log.getClass(), LogRegistry.decode(log.getTypeId(), log.getVariableId(), bb));
+		Assertions.assertEquals(0, bb.size());
+	}
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();
@@ -56,8 +64,8 @@ public class TestDynamicTableLogRegistry {
 		try {
 			app.start(); // 启动闭包注册完毕；不含 BValue（demo 模块未挂载）
 
-			var mapTypeId = new LogMap1<Long, Long>(0, null, Map1Meta.get(Long.class, Long.class), null).getTypeId();
-			var sortedMapTypeId = new LogSortedMap1<Integer, Integer>(0, null, null, SortedMap1Meta.get(Integer.class, Integer.class), null).getTypeId();
+			var mapLog = new LogMap1<>(0, null, Map1Meta.get(Long.class, Long.class), null);
+			var sortedMapLog = new LogSortedMap1<>(0, null, null, SortedMap1Meta.get(Integer.class, Integer.class), null);
 
 			// 运行期动态开表（TableDynamic 构造器内即 openDynamicTable）。
 			new TableDynamic<Long, BValue>(app, "TestDynamicTableLogRegistry_t1",
@@ -69,11 +77,8 @@ public class TestDynamicTableLogRegistry {
 				bb -> bb.ReadLong(),
 				BValue::new, false, null, Long.class, BValue.class);
 
-			Assertions.assertDoesNotThrow(() -> java.util.Objects.requireNonNull(Zeze.Transaction.LogRegistry.getRegistered(mapTypeId)),
-				"动态开表后其值bean的map<long,long>日志typeId必须已注册"
-					+ "（缺失则回放端unknown log typeId毒记录卡死游标）");
-			Assertions.assertDoesNotThrow(() -> java.util.Objects.requireNonNull(Zeze.Transaction.LogRegistry.getRegistered(sortedMapTypeId)),
-				"动态开表后其值bean的sortedmap<int,int>日志typeId必须已注册");
+			assertDecodes(mapLog);
+			assertDecodes(sortedMapLog);
 		} finally {
 			app.stop();
 		}

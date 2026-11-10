@@ -9,11 +9,11 @@ import Zeze.Transaction.Bean;
 import org.jspecify.annotations.Nullable;
 
 /** PSortedMap2 的消费日志：结构变化与最终仍在容器中的值 Bean 原位修改。 */
-public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogMap2Base<K, V> {
+public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogMap2Base<K, V, SortedMap2Meta<K, V>> {
 	private final @Nullable Comparator<? super K> comparator;
 
 	public LogSortedMap2(int varId, @Nullable Bean self,
-			@Nullable Comparator<? super K> comparator, Meta2<K, V> meta, @Nullable Map<K, V> modified) {
+			@Nullable Comparator<? super K> comparator, SortedMap2Meta<K, V> meta, @Nullable Map<K, @Nullable V> modified) {
 		super(varId, self, meta, modified);
 		this.comparator = comparator;
 	}
@@ -23,7 +23,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogM
 	}
 
 	@Override
-	<T> Map<K, T> newMap() {
+	<T extends @Nullable Object> Map<K, T> newMap() {
 		return new TreeMap<>(comparator);
 	}
 
@@ -34,12 +34,12 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogM
 	}
 
 	public static <K extends Comparable<K>, V extends Bean> LogSortedMap2<K, V> decode(
-			int varId, Meta2<K, V> meta, IByteBuffer bb) {
+			int varId, SortedMap2Meta<K, V> meta, IByteBuffer bb) {
 		return decode(varId, meta, null, bb);
 	}
 
 	public static <K extends Comparable<K>, V extends Bean> LogSortedMap2<K, V> decode(
-			int varId, Meta2<K, V> meta, @Nullable Comparator<? super K> comparator, IByteBuffer bb) {
+			int varId, SortedMap2Meta<K, V> meta, @Nullable Comparator<? super K> comparator, IByteBuffer bb) {
 		var log = new LogSortedMap2<>(varId, null, comparator, meta, null);
 		log.read(bb);
 		return log;

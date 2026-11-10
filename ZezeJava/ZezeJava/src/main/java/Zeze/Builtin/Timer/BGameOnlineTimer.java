@@ -12,13 +12,15 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
 
     private long _RoleId; // 所属的角色ID
     private final Zeze.Transaction.DynamicBean _TimerObj;
+    private static final Zeze.Transaction.DynamicField dynamicField_TimerObj
+            = Zeze.Transaction.DynamicField.declare(BGameOnlineTimer.class, TYPEID, 2, BGameOnlineTimer::getSpecialTypeIdFromBean_2, BGameOnlineTimer::createBeanFromSpecialTypeId_2, Zeze.Builtin.Timer.BCronTimer.class, Zeze.Builtin.Timer.BSimpleTimer.class);
 
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
 
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TimerObj() {
-        return new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_2, BGameOnlineTimer::createBeanFromSpecialTypeId_2);
+        return new Zeze.Transaction.DynamicBean(dynamicField_TimerObj);
     }
 
     public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean _b_) {

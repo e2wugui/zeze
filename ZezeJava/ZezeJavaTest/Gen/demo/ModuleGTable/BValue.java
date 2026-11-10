@@ -18,11 +18,13 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             = Zeze.Transaction.GTable.GTable1.getFactory(Integer.class, String.class, Integer.class);
 
     private final Zeze.Transaction.GTable.GTable2<Integer, Integer, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> _gTable3;
+    private static final Zeze.Transaction.DynamicField dynamicField_gTable3
+            = Zeze.Transaction.DynamicField.declare(BValue.class, TYPEID, 3, BValue::getSpecialTypeIdFromBean_3, BValue::createBeanFromSpecialTypeId_3, demo.ModuleGTable.Bean1.class);
     private static final Zeze.Transaction.GTable.GTable2.Factory<Integer, Integer, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> factory_gTable3
-            = Zeze.Transaction.GTable.GTable2.getFactory(Integer.class, Integer.class, BValue::getSpecialTypeIdFromBean_3, BValue::createBeanFromSpecialTypeId_3);
+            = Zeze.Transaction.GTable.GTable2.getFactory(Integer.class, Integer.class, dynamicField_gTable3);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_GTable3() {
-        return new Zeze.Transaction.DynamicBean(3, BValue::getSpecialTypeIdFromBean_3, BValue::createBeanFromSpecialTypeId_3);
+        return new Zeze.Transaction.DynamicBean(dynamicField_gTable3);
     }
 
     public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean _b_) {
@@ -43,11 +45,13 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     }
 
     private final Zeze.Transaction.GTable.GTable2<Integer, String, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> _gTable4;
+    private static final Zeze.Transaction.DynamicField dynamicField_gTable4
+            = Zeze.Transaction.DynamicField.declare(BValue.class, TYPEID, 4, BValue::getSpecialTypeIdFromBean_4, BValue::createBeanFromSpecialTypeId_4, demo.ModuleGTable.Bean1.class);
     private static final Zeze.Transaction.GTable.GTable2.Factory<Integer, String, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> factory_gTable4
-            = Zeze.Transaction.GTable.GTable2.getFactory(Integer.class, String.class, BValue::getSpecialTypeIdFromBean_4, BValue::createBeanFromSpecialTypeId_4);
+            = Zeze.Transaction.GTable.GTable2.getFactory(Integer.class, String.class, dynamicField_gTable4);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_GTable4() {
-        return new Zeze.Transaction.DynamicBean(4, BValue::getSpecialTypeIdFromBean_4, BValue::createBeanFromSpecialTypeId_4);
+        return new Zeze.Transaction.DynamicBean(dynamicField_gTable4);
     }
 
     public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean _b_) {

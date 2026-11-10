@@ -5,6 +5,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.PSortedMap1;
 import Zeze.Transaction.Collections.PSortedMap2;
+import Zeze.Transaction.Collections.SortedMap2Meta;
 import demo.Module1.BValue;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -44,8 +45,10 @@ public class TestSortedMapBeanKeyRejected {
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> new PSortedMap2<>(MyBean.class, BValue.class, BValue::new),
 				"PSortedMap2(Supplier)构造器同样必须拒绝");
+		var field = DynamicField.declare(MyBean.class, Bean.hash64(MyBean.class.getName()), 1,
+				b -> 1, id -> id == 1 ? new BValue() : null, BValue.class);
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> new PSortedMap2<>(MyBean.class, b -> 0L, id -> new BValue()),
+				() -> new PSortedMap2<>(SortedMap2Meta.createDynamic(MyBean.class, field)),
 				"PSortedMap2(DynamicBean值专用)构造器同样必须拒绝Bean key");
 	}
 

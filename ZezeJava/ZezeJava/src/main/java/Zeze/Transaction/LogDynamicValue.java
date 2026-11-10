@@ -4,40 +4,25 @@ import java.util.Objects;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Collections.CollOne;
-import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
-import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 
-/** DynamicBean change payload, independent of any local transaction target. */
+/** 可独立解码的 DynamicBean 增量。 */
 public class LogDynamicValue extends LogBean {
 	public static final int TYPE_ID = Bean.hash32("Zeze.Transaction.LogDynamic");
 
 	long specialTypeId;
 	@Nullable Bean value;
 	@Nullable LogBean logBean;
-	private final String parentTypeName;
-	private final int factoryVariableId;
+	private @Nullable DynamicField field;
 
 	protected LogDynamicValue(int varId, Bean self) {
 		super(varId, Objects.requireNonNull(self));
-		var dynamic = (DynamicBean)self;
-		var parent = dynamic.parent();
-		var factoryVarId = dynamic.variableId();
-		if (parent instanceof Collection) {
-			if (factoryVarId == 0)
-				factoryVarId = parent.variableId();
-			parent = parent.parent();
-		}
-		parentTypeName = Objects.requireNonNull(parent).getClass().getName();
-		factoryVariableId = factoryVarId;
+		field = ((DynamicBean)self).dynamicField();
 	}
 
 	private LogDynamicValue(int varId, IByteBuffer bb) {
 		super(varId, null);
-		parentTypeName = bb.ReadString();
-		factoryVariableId = bb.ReadUInt();
 		read(bb);
 	}
 
@@ -48,10 +33,12 @@ public class LogDynamicValue extends LogBean {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(parentTypeName); // use in decode reflect
-		bb.WriteUInt(factoryVariableId);
 		if (value != null) {
 			bb.WriteBool(true);
+			var mapping = field;
+			if (mapping == null)
+				throw new IllegalStateException("dynamic replacement requires a declared field");
+			mapping.encodeId(bb);
 			bb.WriteLong(specialTypeId);
 			value.encode(bb);
 		} else {
@@ -66,27 +53,24 @@ public class LogDynamicValue extends LogBean {
 
 	private void read(IByteBuffer bb) {
 		if (bb.ReadBool()) { // hasValue
+			var mapping = LogRegistry.requireDynamicField(DynamicField.Id.decode(bb));
+			field = mapping;
 			specialTypeId = bb.ReadLong();
-			try {
-				var parentType = Class.forName(parentTypeName);
-				var factory = parentType.getMethod("createBeanFromSpecialTypeId_" + factoryVariableId, long.class);
-				var bean = (Bean)factory.invoke(null, specialTypeId);
-				if (bean instanceof DynamicBean)
-					bean = ((DynamicBean)bean).getBean();
-				if (bean instanceof Collection) {
-					if (bean instanceof CollOne)
-						bean = ((CollOne<?>)bean).getValue();
-					else
-						throw new IllegalStateException("can not set Collection Bean into LogDynamic");
-				}
-				bean.decode(bb);
-				value = bean;
-			} catch (Exception e) {
-				throw Task.forceThrow(e);
-			}
+			var bean = mapping.create.apply(specialTypeId);
+			if (bean == null && specialTypeId == EmptyBean.TYPEID)
+				bean = new EmptyBean();
+			if (bean == null)
+				throw new IllegalStateException("unknown dynamic value " + specialTypeId + " for " + mapping.id);
+			bean = DynamicBean.unwrap(bean);
+			bean.decode(bb);
+			value = bean;
 		} else if (bb.ReadBool()) { // hasLogBean
 			logBean = LogBean.decode(0, bb);
 		}
+	}
+
+	void checkField(@Nullable DynamicField target) {
+		DynamicField.checkTarget(field, target);
 	}
 
 	public static LogDynamicValue decode(int varId, IByteBuffer bb) {

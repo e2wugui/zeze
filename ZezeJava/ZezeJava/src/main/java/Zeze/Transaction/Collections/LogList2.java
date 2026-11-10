@@ -12,6 +12,7 @@ import Zeze.Transaction.Collections.LogList1.OpLog;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DynamicField;
 import Zeze.Transaction.Log;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
@@ -20,7 +21,7 @@ import org.jspecify.annotations.Nullable;
 
 /** PList2 的变更日志：在 LogList1 的 OpLog 序列之外，另记 changed（元素 Bean 的原位修改日志及最终下标）。 */
 public class LogList2<V extends Bean> extends LogBean {
-	protected final Meta1<V> meta;
+	protected final List2Meta<V> meta;
 	private @Nullable ArrayList<OpLog<V>> opLogs;
 
 	public final ArrayList<OpLog<V>> getOpLogs() {
@@ -37,6 +38,11 @@ public class LogList2<V extends Bean> extends LogBean {
 	}
 
 	@Override
+	@Nullable DynamicField dynamicField() {
+		return meta.dynamicField;
+	}
+
+	@Override
 	public int getTypeId() {
 		return meta.logTypeId;
 	}
@@ -50,7 +56,7 @@ public class LogList2<V extends Bean> extends LogBean {
 	private @Nullable IdentityHashSet<V> addSet;
 	private @Nullable IdentityHashMap<Bean, Integer> indices;
 
-	public LogList2(int varId, @Nullable Bean source, Meta1<V> meta, @Nullable ArrayList<OpLog<V>> operations, @Nullable IdentityHashSet<V> added) {
+	public LogList2(int varId, @Nullable Bean source, List2Meta<V> meta, @Nullable ArrayList<OpLog<V>> operations, @Nullable IdentityHashSet<V> added) {
 		super(varId, source);
 		this.meta = meta;
 		opLogs = operations;
@@ -78,8 +84,7 @@ public class LogList2<V extends Bean> extends LogBean {
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
 				if (opLog.op < OpLog.OP_REMOVE)
-					//noinspection DataFlowIssue
-					opLog.value.encode(bb);
+					opLog.requireValue().encode(bb);
 			}
 		}
 	}
@@ -101,7 +106,7 @@ public class LogList2<V extends Bean> extends LogBean {
 
 	private V readValue(IByteBuffer bb) {
 		try {
-			//noinspection DataFlowIssue,unchecked
+			//noinspection unchecked
 			var value = (V)meta.valueFactory.invoke();
 			value.decode(bb);
 			return value;
@@ -137,7 +142,7 @@ public class LogList2<V extends Bean> extends LogBean {
 		return sb.toString();
 	}
 
-	public static <V extends Bean> LogList2<V> decode(int varId, Meta1<V> meta, IByteBuffer bb) {
+	public static <V extends Bean> LogList2<V> decode(int varId, List2Meta<V> meta, IByteBuffer bb) {
 		var log = new LogList2<>(varId, null, meta, null, null);
 		log.read(bb);
 		return log;

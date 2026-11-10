@@ -1,46 +1,40 @@
 package Zeze.Transaction;
 
-import org.jspecify.annotations.Nullable;
-
 import static java.util.Objects.requireNonNull;
 
-import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
-
-import Zeze.Builtin.HotDistribute.BVariable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.History.Helper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Util.Json;
+import dynamicred.Demo.Amount;
+import dynamicred.Demo.Order;
+import dynamicred.Demo.Quantity;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * FND8-33回归（A1/A3/A4）：GTable2对dynamic值无构造路径——getFactory对
- * DynamicBean深抛无信息的NoSuchMethodException（无无参构造器）；JSON解析的
- * DynamicBean parser不认BeanMap2容器（返回null撞PMap2.put的null value）；
- * History.dependsGTable的dynamic分支先调三参版getFactory必抛。
- * 修复：GTable2增加带get/create工厂的重载（对齐PMap2判例，不进按类缓存）；
- * 三参版对DynamicBean指名拒绝；Helper先取工厂再经重载构建；Json的DynamicBean
- * parser补BeanMap2 parent适配。
- * （A2——生成器侧gtable+dynamic的发射修复——需改C#生成器并再生产物，已记档上报。）
- * 纯单元：手写宿主直驱工厂/JSON往返/dependsGTable。
- */
+/** 验证手写 GTable2 的动态值工厂和 JSON 往返。 */
 @Fast
 public class TestGTable2Dynamic {
 
 	private static final long TYPE_MYBEAN = 101L;
-	private static final ToLongFunction<Bean> GET = b -> TYPE_MYBEAN;
-	private static final LongFunction<@Nullable Bean> CREATE = id -> id == TYPE_MYBEAN ? new MDynBean() : null;
+	private abstract static class Fields extends Bean {
+	}
+
+	private static final DynamicField FIELD = DynamicField.declare(Fields.class, Bean.hash64(Fields.class.getName()),
+			1, b -> TYPE_MYBEAN, id -> id == TYPE_MYBEAN ? new MDynBean() : null, MDynBean.class);
+	private static final GTable2.Factory<String, Long, DynamicBean, DynamicBean> FACTORY =
+			GTable2.getFactory(String.class, Long.class, FIELD);
 
 	/** 纯字段bean（无事务逻辑，未管理环境直接读写）。 */
 	public static final class MDynBean extends Bean {
@@ -58,22 +52,14 @@ public class TestGTable2Dynamic {
 	}
 
 	public static class HDyn {
-		final GTable2<String, Long, DynamicBean, DynamicBean> g =
-				new GTable2<>(GTable2.getFactory(String.class, Long.class, GET, CREATE));
-	}
-
-	/** dependsGTable反射查找的宿主形态（生成newDynamicBean_Xxx同形态）。 */
-	public static final class HostG {
-		public static DynamicBean newDynamicBean_Gtable() {
-			return new DynamicBean(1, GET, CREATE);
-		}
+		final GTable2<String, Long, DynamicBean, DynamicBean> g = new GTable2<>(FACTORY);
 	}
 
 	// A1：带工厂的重载可构造，put/get正常。
 	@Test
 	public void testDynamicFactoryOverload() {
 		var h = new HDyn();
-		var dyn = new DynamicBean(1, GET, CREATE);
+		var dyn = new DynamicBean(FIELD);
 		var bean = new MDynBean();
 		bean.v = 42;
 		dyn.setBean(bean);
@@ -90,7 +76,7 @@ public class TestGTable2Dynamic {
 		var e = assertThrows(IllegalArgumentException.class,
 				() -> GTable2.getFactory(String.class, Long.class, DynamicBean.class),
 				"三参版对DynamicBean必须指名拒绝");
-		assertTrue(e.getMessage().contains("DynamicBean") && e.getMessage().contains("get, create"),
+		assertTrue(e.getMessage().contains("DynamicBean") && e.getMessage().contains("dynamicField"),
 				"报错必须指名dynamic与工厂重载，实际: " + e.getMessage());
 	}
 
@@ -98,7 +84,7 @@ public class TestGTable2Dynamic {
 	@Test
 	public void testDynamicValueJsonRoundTrip() {
 		var h = new HDyn();
-		var dyn = new DynamicBean(1, GET, CREATE);
+		var dyn = new DynamicBean(FIELD);
 		var bean = new MDynBean();
 		bean.v = 7;
 		dyn.setBean(bean);
@@ -112,22 +98,33 @@ public class TestGTable2Dynamic {
 		assertEquals(7L, ((MDynBean)v.getBean()).v);
 	}
 
-	// A3：History.dependsGTable的dynamic分支先取工厂再经重载构建（原实现必抛）。
 	@Test
-	public void testDependsGTableDynamic() throws Exception {
-		var v = new BVariable.Data();
-		v.setId(1);
-		v.setName("gtable");
-		v.setType("gtable");
-		v.setKey("string,long");
-		v.setValue("dynamic");
+	public void rejectsForeignRowMetaBeforeChangingTheOuterMap() {
+		var order = new Order();
+		var amounts = order.getAmountGrid().getPMap2();
+		var quantities = order.getQuantityGrid().getPMap2();
+		var foreign = amounts.createValue();
+		var amount = Order.newDynamicBean_AmountGrid();
+		amount.setBean(new Amount(43));
+		foreign.put(1, amount);
+		assertThrows(IllegalArgumentException.class, () -> quantities.put(1, foreign));
+		assertNull(foreign.mapKey());
 
-		var result = new Helper.DependsResult();
-		assertDoesNotThrow(() -> Helper.dependsGTable(HostG.class, v, "string", "long", "dynamic", result),
-				"dependsGTable对dynamic值不得再抛（原实现三参版getFactory必抛）");
-		// hist-01外层收口：外层pmapMeta改走map2MetasDynamic决胜登记（不再进map2Metas的
-		// HashSet身份序——同(row,col)多dynamic变量胜者跨JVM翻转）。
-		assertEquals(1, result.map2MetasDynamic.size(), "外层pmapMeta必须登记（决胜结构）");
-		assertEquals(1, result.map2Dynamic.size(), "dynamic家族按(keyClass,DynamicBean)登记");
+		var valid = quantities.createValue();
+		var quantity = Order.newDynamicBean_QuantityGrid();
+		quantity.setBean(new Quantity(44));
+		valid.put(1, quantity);
+		var batch = new LinkedHashMap<>(Map.of(2, valid));
+		batch.put(3, foreign);
+		assertThrows(IllegalArgumentException.class, () -> quantities.putAll(batch));
+		assertTrue(quantities.isEmpty());
+		assertNull(valid.mapKey());
+		assertNull(foreign.mapKey());
+
+		quantities.put(2, valid);
+		amounts.put(3, foreign);
+		assertThrows(IllegalArgumentException.class, () -> quantities.assign(amounts));
+		assertEquals(1, quantities.size());
+		assertSame(valid, quantities.get(2));
 	}
 }

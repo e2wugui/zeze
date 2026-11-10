@@ -1,0 +1,48 @@
+<solution name="dynamicred" ModuleIdAllowRanges="101">
+    <module name="Demo" id="101">
+        <bean name="Amount">
+            <variable id="1" name="amount" type="int"/>
+        </bean>
+        <bean name="Quantity">
+            <variable id="1" name="quantity" type="int"/>
+        </bean>
+        <bean name="Line">
+            <variable id="2" name="Amounts" type="list" value="dynamic">
+                <value bean="Amount:7"/>
+            </variable>
+        </bean>
+        <bean name="Order" extendable="true">
+            <variable id="1" name="Amounts" type="list" value="dynamic">
+                <value bean="Amount:7"/>
+            </variable>
+            <variable id="2" name="Quantities" type="list" value="dynamic">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="3" name="Lines" type="list" value="dynamic">
+                <value bean="Line:11"/>
+            </variable>
+            <variable id="4" name="AmountGrid" type="gtable[int,int,dynamic]">
+                <value bean="Amount:7"/>
+            </variable>
+            <variable id="5" name="QuantityGrid" type="gtable[int,int,dynamic]">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="6" name="DirectAmount" type="dynamic">
+                <value bean="Amount:7"/>
+            </variable>
+            <variable id="7" name="DirectQuantity" type="dynamic">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="8" name="QuantityMap" type="map[int,dynamic]">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="9" name="AmountSorted" type="sortedmap[int,dynamic]">
+                <value bean="Amount:7"/>
+            </variable>
+            <variable id="10" name="QuantityGridSource" type="gtable[int,int,dynamic]">
+                <value bean="Quantity:7"/>
+            </variable>
+        </bean>
+    </module>
+</solution>
+

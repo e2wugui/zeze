@@ -1,8 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +12,7 @@ import Zeze.Transaction.GTable.BeanMap1;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Transaction.Log;
+import dynamicred.Demo.Order;
 import harness.Fast;
 
 /**
@@ -83,15 +81,6 @@ public class TestGTableOuterLogTypeIdIdentity {
 		var gB2 = GTable2.getFactory(long.class, String.class, B2.class);
 		Assertions.assertNotEquals(gB1.getPmapMeta().logTypeId, gB2.getPmapMeta().logTypeId,
 			"同row同col不同值bean的两个GTable2外层typeId必须分化");
-
-		// 双注册各得其所（模拟History.registerAllTableLogs→回放端LogRegistry.decode按typeId查表）
-		Helper.registerLogMap2Meta(fStr.getPmapMeta());
-		Helper.registerLogMap2Meta(fLongCol.getPmapMeta());
-		Assertions.assertEquals(fStr.getPmapMeta().logTypeId,
-			Zeze.Transaction.LogRegistry.getRegistered(fStr.getPmapMeta().logTypeId).typeId(),
-			"修复前第二个注册被先到先得吞掉，两typeId查表同工厂");
-		Assertions.assertEquals(fLongCol.getPmapMeta().logTypeId,
-			Zeze.Transaction.LogRegistry.getRegistered(fLongCol.getPmapMeta().logTypeId).typeId());
 	}
 
 	/** 构造整行替换日志（GTable外层PMap2的行写入形态）并编码。 */
@@ -145,24 +134,14 @@ public class TestGTableOuterLogTypeIdIdentity {
 
 	@Test
 	public void testDynamicOuterTypeIdSharedByDesign() {
-		// dynamic值身份固定DynamicBean（对齐Meta2.dynamic/FND8-30先例）：同(row,col)的两个
-		// dynamic变量共享外层typeId是已接受的风险现状而非安全契约——回放端LogRegistry.decode先到
-		// 先得、经首注册家族的create闭包解码（DynamicBean.decode非自描述），家族不同时默认
-		// 编号抛incompatible中断回放、显式Bean:id重叠静默解错，与FND8-30同构
-		// （putDynamicFamily warn兜底；FND8-30 ROOT落地时revisit）。真实值类型的三参版
-		// 则与dynamic分流。
-		var get1 = (ToLongFunction<Bean>)b -> 101L;
-		var create1 = (LongFunction<Bean>)id -> id == 101L ? new B1() : null;
-		var get2 = (ToLongFunction<Bean>)b -> 102L;
-		var create2 = (LongFunction<Bean>)id -> id == 102L ? new B2() : null;
-		var d1 = GTable2.getFactory(String.class, Long.class, get1, create1);
-		var d2 = GTable2.getFactory(String.class, Long.class, get2, create2);
-		Assertions.assertEquals(d1.getPmapMeta().logTypeId, d2.getPmapMeta().logTypeId,
-			"同(row,col)的dynamic变量外层typeId相同（值身份固定DynamicBean的接受现状）");
+		// 同一行列类型的动态 GTable 共享日志类型号，回放按字段身份选择 Meta。
+		var order = new Order();
+		var d1 = order.getAmountGrid().getPMap2().getMeta();
+		var d2 = order.getQuantityGrid().getPMap2().getMeta();
+		Assertions.assertEquals(d1.logTypeId, d2.logTypeId);
 
-		var real = GTable2.getFactory(String.class, Long.class, B1.class);
-		Assertions.assertNotEquals(real.getPmapMeta().logTypeId, d1.getPmapMeta().logTypeId,
+		var real = GTable2.getFactory(Integer.class, Integer.class, B1.class);
+		Assertions.assertNotEquals(real.getPmapMeta().logTypeId, d1.logTypeId,
 			"dynamic与真实值bean的外层typeId必须分流");
-		// dynamic值的行roundtrip属FND8-33钉板范围（TestGTable2Dynamic），此处只钉外层typeId契约。
 	}
 }

@@ -28,7 +28,15 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestMetaFactoryBeanRejected {
 
-	public static class MyBean extends Bean {
+	private static final DynamicField DYNAMIC = DynamicField.declare(MyBean.class, Bean.hash64(MyBean.class.getName()),
+			1, b -> 1, id -> id == 1 ? new BValue() : null, BValue.class);
+
+	public static class MyBean extends Bean implements Comparable<MyBean> {
+		@Override
+		public int compareTo(MyBean other) {
+			return 0;
+		}
+
 		@Override
 		public void encode(ByteBuffer bb) {
 		}
@@ -66,7 +74,7 @@ public class TestMetaFactoryBeanRejected {
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> Map2Meta.create(MyBean.class, BValue.class, BValue::new), "Map2Meta.create必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> Map2Meta.createDynamic(MyBean.class, b -> 0L, id -> new BValue()),
+				() -> Map2Meta.createDynamic(MyBean.class, DYNAMIC),
 				"Map2Meta.createDynamic必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> SortedMap2Meta.get(MyBean.class, BValue.class), "SortedMap2Meta.get必须拒绝Bean key");
@@ -74,7 +82,7 @@ public class TestMetaFactoryBeanRejected {
 				() -> SortedMap2Meta.create(MyBean.class, BValue.class, BValue::new),
 				"SortedMap2Meta.create必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> SortedMap2Meta.createDynamic(MyBean.class, b -> 0L, id -> new BValue()),
+				() -> SortedMap2Meta.createDynamic(MyBean.class, DYNAMIC),
 				"SortedMap2Meta.createDynamic必须拒绝Bean key");
 	}
 
@@ -83,7 +91,7 @@ public class TestMetaFactoryBeanRejected {
 		// 合法组合零变化：2系Bean值、BeanKey专用meta、1系标量、DynamicBean工厂。
 		Assertions.assertNotNull(Map2Meta.get(Long.class, BValue.class));
 		Assertions.assertNotNull(Map2Meta.create(Long.class, BValue.class, BValue::new));
-		Assertions.assertNotNull(Map2Meta.createDynamic(Long.class, b -> 0L, id -> new BValue()));
+		Assertions.assertNotNull(Map2Meta.createDynamic(Long.class, DYNAMIC));
 		Assertions.assertNotNull(Map1Meta.get(Long.class, Long.class));
 		Assertions.assertNotNull(SortedMap1Meta.get(Long.class, Long.class));
 		Assertions.assertNotNull(List2Meta.get(BValue.class));

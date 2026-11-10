@@ -11,9 +11,11 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
 
     private long _Timestamp;
     private final Zeze.Transaction.DynamicBean _Value;
+    private static final Zeze.Transaction.DynamicField dynamicField_Value
+            = Zeze.Transaction.DynamicField.declare(BQueueNodeValue.class, TYPEID, 2, Zeze.Collections.Queue::getSpecialTypeIdFromBean, Zeze.Collections.Queue::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Value() {
-        return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::getSpecialTypeIdFromBean, Zeze.Collections.Queue::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Value);
     }
 
     public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean _b_) {

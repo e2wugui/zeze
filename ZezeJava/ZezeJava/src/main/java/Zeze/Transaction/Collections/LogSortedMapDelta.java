@@ -52,17 +52,17 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	 * 结构增量单容器记账（同 LogMapDelta）：value 非 null 为替换项，null 为删除标记。
 	 * 使用源 Map 比较器维持键等价折叠语义。
 	 */
-	private @Nullable Map<K, V> modified;
+	private @Nullable Map<K, @Nullable V> modified;
 
 	protected LogSortedMapDelta(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
 		super(source, value);
 	}
 
-	public @Nullable Map<K, V> getModified() {
+	public @Nullable Map<K, @Nullable V> getModified() {
 		return modified;
 	}
 
-	private Map<K, V> modifiedForWrite() {
+	private Map<K, @Nullable V> modifiedForWrite() {
 		return modified != null ? modified : (modified = new TreeMap<>(getValue().comparator()));
 	}
 

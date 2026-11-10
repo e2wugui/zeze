@@ -14,11 +14,13 @@ public final class BBuf extends Zeze.Transaction.Bean implements BBufReadOnly {
     private long _AttachTime; // 加入时间
     private long _ContinueTime; // 持续时间
     private final Zeze.Transaction.DynamicBean _Extra;
+    private static final Zeze.Transaction.DynamicField dynamicField_Extra
+            = Zeze.Transaction.DynamicField.declare(BBuf.class, TYPEID, 4, BBuf::getSpecialTypeIdFromBean_4, BBuf::createBeanFromSpecialTypeId_4, Game.Buf.BBufExtra.class);
 
     public static final long DynamicTypeId_Extra_Game_Buf_BBufExtra = 7506982410669108623L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Extra() {
-        return new Zeze.Transaction.DynamicBean(4, BBuf::getSpecialTypeIdFromBean_4, BBuf::createBeanFromSpecialTypeId_4);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Extra);
     }
 
     public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean _b_) {

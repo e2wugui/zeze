@@ -2,6 +2,12 @@ package Zeze.Transaction.Collections;
 
 import static java.util.Objects.requireNonNull;
 
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.DynamicBean;
+import Zeze.Transaction.DynamicField;
+import Zeze.Transaction.GTable.GTable2;
+import demo.Module1.BSimple;
 import demo.Module1.BValue;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -84,6 +90,108 @@ public class TestCollection2AssignDeepCopy {
 		Assertions.assertEquals(11, requireNonNull(dst.get(1L)).getInt_1());
 		requireNonNull(dst.get(1L)).setInt_1(22);
 		Assertions.assertEquals(99, requireNonNull(src.get(1L)).getInt_1());
+	}
+
+	@Test
+	public void remapsSpecialIdAcrossCollectionFields() {
+		var sourceField = AssignmentFields.SOURCE;
+		var targetField = AssignmentFields.TARGET;
+
+		var sourceList = new PList2<>(AssignmentFields.SOURCE_LIST);
+		var targetList = new PList2<>(AssignmentFields.TARGET_LIST);
+		var sourceValue = dynamicValue(sourceField);
+		sourceList.add(sourceValue);
+		targetList.assign(sourceList);
+		assertRemapped(sourceValue, targetList.get(0));
+
+		var sourceMap = new PMap2<>(Map2Meta.createDynamic(Long.class, sourceField));
+		var targetMap = new PMap2<>(Map2Meta.createDynamic(Long.class, targetField));
+		sourceMap.put(1L, sourceValue.copy());
+		targetMap.assign(sourceMap);
+		assertRemapped(requireNonNull(sourceMap.get(1L)), requireNonNull(targetMap.get(1L)));
+
+		var sourceSorted = new PSortedMap2<>(SortedMap2Meta.createDynamic(Long.class, sourceField));
+		var targetSorted = new PSortedMap2<>(SortedMap2Meta.createDynamic(Long.class, targetField));
+		sourceSorted.put(1L, sourceValue.copy());
+		targetSorted.assign(sourceSorted);
+		assertRemapped(requireNonNull(sourceSorted.get(1L)), requireNonNull(targetSorted.get(1L)));
+
+		var sourceGrid = new GTable2<>(GTable2.getFactory(Integer.class, Integer.class, sourceField));
+		var targetGrid = new GTable2<>(GTable2.getFactory(Integer.class, Integer.class, targetField));
+		sourceGrid.put(1, 1, sourceValue.copy());
+		targetGrid.assign(sourceGrid);
+		assertRemapped(requireNonNull(sourceGrid.get(1, 1)), requireNonNull(targetGrid.get(1, 1)));
+	}
+
+	@Test
+	public void sameFieldAssignPreservesDecodedSpecialIdAndCrossFieldAssignKeepsEmptyValues() {
+		var source = new PList2<>(AssignmentFields.SOURCE_LIST);
+		var alias = source.createValue();
+		var bytes = ByteBuffer.Allocate();
+		bytes.WriteLong(10);
+		new BValue().encode(bytes);
+		alias.decode(bytes);
+		source.add(alias);
+		source.add(source.createValue());
+
+		var sameField = new PList2<>(AssignmentFields.SOURCE_LIST);
+		sameField.assign(source);
+		Assertions.assertEquals(10, sameField.get(0).getTypeId());
+
+		var target = new PList2<>(AssignmentFields.TARGET_LIST);
+		target.assign(source);
+		Assertions.assertEquals(7, target.get(0).getTypeId());
+		Assertions.assertTrue(target.get(1).isEmpty());
+	}
+
+	@Test
+	public void rejectsUnsupportedBeanBeforeReplacingTarget() {
+		var source = new PList2<>(AssignmentFields.SOURCE_LIST);
+		source.add(dynamicValue(AssignmentFields.SOURCE));
+		var unsupported = source.createValue();
+		unsupported.setBean(new BSimple());
+		source.add(unsupported);
+
+		var target = new PList2<>(AssignmentFields.TARGET_LIST);
+		var original = dynamicValue(AssignmentFields.TARGET);
+		target.add(original);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> target.assign(source));
+		Assertions.assertEquals(1, target.size());
+		Assertions.assertSame(original, target.get(0));
+	}
+
+	private abstract static class AssignmentFields extends Bean {
+		private static final long TYPE_ID = Bean.hash64(AssignmentFields.class.getName());
+		private static final DynamicField SOURCE = DynamicField.declare(AssignmentFields.class, TYPE_ID, 1,
+				bean -> bean instanceof BValue ? 8 : 9,
+				id -> {
+					if (id == 8 || id == 10)
+						return new BValue();
+					return id == 9 ? new BSimple() : null;
+				});
+		private static final DynamicField TARGET = DynamicField.declare(AssignmentFields.class, TYPE_ID, 2,
+				bean -> {
+					if (bean instanceof BValue)
+						return 7;
+					throw new IllegalArgumentException("target only accepts BValue");
+				}, id -> id == 7 ? new BValue() : null);
+		private static final List2Meta<DynamicBean> SOURCE_LIST = List2Meta.createDynamic(SOURCE);
+		private static final List2Meta<DynamicBean> TARGET_LIST = List2Meta.createDynamic(TARGET);
+	}
+
+	private static DynamicBean dynamicValue(DynamicField field) {
+		var value = new DynamicBean(field);
+		var bean = new BValue();
+		bean.setInt_1(11);
+		value.setBean(bean);
+		return value;
+	}
+
+	private static void assertRemapped(DynamicBean source, DynamicBean target) {
+		Assertions.assertEquals(8, source.getTypeId());
+		Assertions.assertEquals(7, target.getTypeId());
+		Assertions.assertNotSame(source.getBean(), target.getBean());
+		Assertions.assertEquals(11, ((BValue)target.getBean()).getInt_1());
 	}
 
 	/**

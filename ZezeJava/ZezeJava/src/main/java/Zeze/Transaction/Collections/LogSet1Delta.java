@@ -10,17 +10,17 @@ import org.jspecify.annotations.Nullable;
  * value 为 {@link LogSet1#PRESENT} 表示加入、null 表示删除（同 HashSet 底层 HashMap 惯例）。
  */
 final class LogSet1Delta<V> extends LogSet<V> {
-	private @Nullable HashMap<V, Object> modified;
+	private @Nullable HashMap<V, @Nullable Object> modified;
 
 	LogSet1Delta(PSet<V> source, org.pcollections.PSet<V> value) {
 		super(source, value);
 	}
 
-	@Nullable HashMap<V, Object> getModified() {
+	@Nullable HashMap<V, @Nullable Object> getModified() {
 		return modified;
 	}
 
-	private HashMap<V, Object> modifiedForWrite(int expectedSize) {
+	private HashMap<V, @Nullable Object> modifiedForWrite(int expectedSize) {
 		return modified != null ? modified : (modified = HashMap.newHashMap(expectedSize));
 	}
 

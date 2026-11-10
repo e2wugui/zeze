@@ -200,10 +200,8 @@ public class PList1<V> extends PList<V> {
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
 			tmp = switch (opLog.op) {
-				case LogList1.OpLog.OP_MODIFY -> //noinspection DataFlowIssue
-					tmp.with(opLog.index, opLog.value);
-				case LogList1.OpLog.OP_ADD -> //noinspection DataFlowIssue
-					tmp.plus(opLog.index, opLog.value);
+				case LogList1.OpLog.OP_MODIFY -> tmp.with(opLog.index, opLog.requireValue());
+				case LogList1.OpLog.OP_ADD -> tmp.plus(opLog.index, opLog.requireValue());
 				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);
 				case LogList1.OpLog.OP_CLEAR -> Persistents.vector();
 				default -> tmp;
@@ -234,9 +232,8 @@ public class PList1<V> extends PList<V> {
 	public void encode(ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
-		var encoder = meta.valueEncoder;
+		var encoder = meta.valueCodec.encoder;
 		for (var e : tmp) {
-			//noinspection DataFlowIssue
 			encoder.accept(bb, e);
 		}
 	}
@@ -244,14 +241,13 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public void decode(IByteBuffer bb) {
 		clear();
-		var decoder = meta.valueDecoder;
+		var decoder = meta.valueCodec.decoder;
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
 			return;
 		// JDK暂存+单发批量：clear后无中间可观测态，与逐条add等价；ktt后端plusAll走builder批量构建。
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		for (int i = n; i > 0; i--) {
-			//noinspection DataFlowIssue
 			items.add(decoder.apply(bb));
 		}
 		addAll(items);

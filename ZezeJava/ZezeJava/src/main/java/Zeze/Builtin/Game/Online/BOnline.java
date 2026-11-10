@@ -17,9 +17,11 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     private long _ReliableNotifyConfirmIndex; // 登录时赋值为0
     private long _ReliableNotifyIndex; // 登录时赋值为0,然后每次sendReliableNotify时自增
     private final Zeze.Transaction.DynamicBean _UserData;
+    private static final Zeze.Transaction.DynamicField dynamicField_UserData
+            = Zeze.Transaction.DynamicField.declare(BOnline.class, TYPEID, 5, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_UserData() {
-        return new Zeze.Transaction.DynamicBean(5, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_UserData);
     }
 
     public static long getSpecialTypeIdFromBean_5(Zeze.Transaction.Bean _b_) {

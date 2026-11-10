@@ -88,6 +88,29 @@ public class TestListLogStructure {
 	}
 
 	@Test
+	public void valueOperationsRejectMissingValues() {
+		var scalar = new PList1<>(Integer.class);
+		scalar.add(11);
+		var beans = new PList2<>(EmptyBean.class);
+		var bean = new EmptyBean();
+		beans.add(bean);
+		for (int op : new int[]{OpLog.OP_ADD, OpLog.OP_MODIFY}) {
+			var scalarLog = new LogList1<>(0, null, List1Meta.get(Integer.class), null);
+			scalarLog.getOpLogs().add(new OpLog<>(op, 0, null));
+			Assertions.assertThrows(IllegalStateException.class, () -> scalarLog.encode(ByteBuffer.Allocate()));
+			Assertions.assertThrows(IllegalStateException.class, () -> scalar.followerApply(scalarLog));
+			Assertions.assertEquals(java.util.List.of(11), new ArrayList<>(scalar));
+
+			var beanLog = new LogList2<>(0, null, List2Meta.get(EmptyBean.class), null, null);
+			beanLog.getOpLogs().add(new OpLog<>(op, 0, null));
+			Assertions.assertThrows(IllegalStateException.class, () -> beanLog.encode(ByteBuffer.Allocate()));
+			Assertions.assertThrows(IllegalStateException.class, () -> beans.followerApply(beanLog));
+			Assertions.assertEquals(1, beans.size());
+			Assertions.assertSame(bean, beans.getFirst());
+		}
+	}
+
+	@Test
 	public void validOperationSequenceKeepsItsWireEncodingAndReplay() {
 		var scalar = new LogList1<>(0, null, List1Meta.get(Integer.class), null);
 		scalar.getOpLogs().add(new OpLog<>(OpLog.OP_ADD, 0, 11));
@@ -98,7 +121,7 @@ public class TestListLogStructure {
 		scalar.getOpLogs().add(new OpLog<>(OpLog.OP_ADD, 0, 44));
 		var beans = new LogList2<>(0, null, List2Meta.get(EmptyBean.class), null, null);
 		for (var operation : scalar.getOpLogs())
-			beans.getOpLogs().add(new OpLog<>(operation.op, operation.index,
+			beans.getOpLogs().add(new OpLog<EmptyBean>(operation.op, operation.index,
 					operation.value != null ? new EmptyBean() : null));
 		for (boolean nio : new boolean[]{false, true}) {
 			var bytes = ByteBuffer.Allocate();

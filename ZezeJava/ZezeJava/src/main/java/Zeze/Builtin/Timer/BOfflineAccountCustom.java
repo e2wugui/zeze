@@ -16,9 +16,11 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     private long _LoginVersion; // 创建时从tlocal.LogoutVersion赋值, 用于触发时再与tonline.LogoutVersion验证是否一致
     private String _HandleName; // 用户实现Zeze.Component.TimerHandle接口的完整类名
     private final Zeze.Transaction.DynamicBean _CustomData;
+    private static final Zeze.Transaction.DynamicField dynamicField_CustomData
+            = Zeze.Transaction.DynamicField.declare(BOfflineAccountCustom.class, TYPEID, 6, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {
-        return new Zeze.Transaction.DynamicBean(6, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_CustomData);
     }
 
     public static long getSpecialTypeIdFromBean_6(Zeze.Transaction.Bean _b_) {

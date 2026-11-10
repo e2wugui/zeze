@@ -3,6 +3,7 @@
 <solution name="demo" ModuleIdAllowRanges="1-5,100">
 	<import file="demo2.xml"/>
 	<import file="taskExt.xml"/>
+	<import file="fixtures/dynamic-list-history/solution.xml"/>
 
 	<bean name="Bean1"> bean的注释
 		<enum name="Enum1" value="4"/> enum的注释
@@ -266,6 +267,7 @@
 	<project name="ZezeJavaTest" GenDir="Gen" SrcDir="src" platform="java" GenTables="" MappingClass="true">
 		<!-- L 场景 MMO-lite 游戏模拟的纯表模块（无协议），project 级引用 -->
 		<module ref="Game"/>
+		<bean ref="dynamicred.Demo.Order"/>
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		<module ref="Module2"/>

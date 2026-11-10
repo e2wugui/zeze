@@ -114,6 +114,12 @@ Map<ApplyTable<?, ?>, Set<Object>> affected = applyHelper.apply(1);
 | **Record.Put** | 写入完整的新记录 |
 | **Record.Edit** | 读取现有记录，通过 `followerApply` 应用增量日志后写回 |
 
+动态字段和动态集合的 `specialId` 由声明该字段的 Bean 和字段号确定作用域。保留 History 期间，升级时应保持已有 `specialId` 对应的 Bean 类型。动态增量采用字段描述符及新的日志标记，升级到此格式时应从新基线开始回放。
+
+声明了动态字段的集合在执行 `add`、`put` 等直接写入时，要求包装器由目标字段的 `newDynamicBean_*` 工厂创建。手写动态集合时，向 `List2Meta.createDynamic(field)`、`Map2Meta.createDynamic(keyClass, field)` 或 `SortedMap2Meta.createDynamic(keyClass, field)` 传入目标字段描述符，再用返回的 Meta 构造集合。手写动态 GTable 用 `GTable2.getFactory(rowClass, colClass, field)`。
+
+同字段 `assign` 保留原 `specialId`。跨字段 `assign` 深拷贝值，并用目标字段的映射确定新的 `specialId`。目标字段不接受该 Bean 类型时，赋值会在替换目标内容前失败。GTable 的底层行 Map 在直接写入时要求行由目标工厂创建，跨字段复制用 `GTable2.assign`。
+
 `ApplyTable` 内部使用 **LRU 缓存**（默认 4096 条）减少对 Apply 数据库的读取次数。
 
 ## IApplyDatabase 接口

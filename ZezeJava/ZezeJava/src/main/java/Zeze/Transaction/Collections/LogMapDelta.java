@@ -51,17 +51,17 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 	 * 结构增量单容器记账：value 非 null 为替换项，null 为删除标记。
 	 * 单槽位天然维持替换/删除互斥，取代双容器的交叉清理纪律。
 	 */
-	private @Nullable HashMap<K, V> modified;
+	private @Nullable HashMap<K, @Nullable V> modified;
 
 	protected LogMapDelta(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
 		super(source, value);
 	}
 
-	public @Nullable HashMap<K, V> getModified() {
+	public @Nullable HashMap<K, @Nullable V> getModified() {
 		return modified;
 	}
 
-	private HashMap<K, V> modifiedForWrite() {
+	private HashMap<K, @Nullable V> modifiedForWrite() {
 		return modified != null ? modified : (modified = new HashMap<>());
 	}
 

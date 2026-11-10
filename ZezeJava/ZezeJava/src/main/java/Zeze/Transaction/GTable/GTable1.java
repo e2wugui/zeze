@@ -3,6 +3,7 @@ package Zeze.Transaction.GTable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Map1Meta;
 import Zeze.Transaction.Collections.Map2Meta;
@@ -10,16 +11,13 @@ import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Record;
 import Zeze.Util.Json;
 import org.jspecify.annotations.Nullable;
+
 import static Zeze.Util.Json.ensureNotNull;
 
-/** 事务二维表（行键×列键→不可变值）：外层 PMap2 装 BeanMap1 行 Bean。
- * 键对象（R/C）须实际不可变：键按引用进入容器与日志（Binary 包装不复制底层
- * bytes），持有键引用再修改会导致哈希漂移与日志错位。 */
+/** 按值记录变更的事务二维表，外层 PMap2 保存 BeanMap1 行。行键和列键按引用保存，须不可变。 */
 @SuppressWarnings("unchecked")
 public class GTable1<R, C, V> extends StandardTable<R, C, V> {
-	// 外层logTypeId/name由(row,col,val)完整身份参与（GTable1专用家族头，与PMap2的
-	// LogMap2命名空间分流）——同row不同列/值类型的表不共享typeId，History回放端LogRegistry.decode
-	// 按typeId查表各得其所。身份原料用getStableName（内置类型短名"int"/"string"，bean全名）。
+	// 外层日志类型号包含表家族及行键、列键和值的类型。
 	static final String OUTER_HEAD = "Zeze.Transaction.GTable.GTable1<";
 	static final String OUTER_NAME_PREFIX = "GTable1:";
 
@@ -29,29 +27,21 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		private final Json.FieldMeta fm1;
 		private final Json.FieldMeta fm2;
 
-		Factory(Map2Meta<R, BeanMap1<C, V>> pmapMeta, Map1Meta<C, V> bmapMeta) {
+		private Factory(Map2Meta<R, BeanMap1<C, V>> pmapMeta, Map1Meta<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
-			// fm1/fm2在构造期一次性构建：惰性初始化只校验fm1且两写分离，
-			// 并发首次解析可观察到fm1已写、fm2未写的部分状态，parseMap0解引用null直接NPE。
-			// Factory经factories的ConcurrentHashMap发布，final字段+安全发布根除该类竞态。
-			// 类型实参取自metas的keyClass/valueClass：与解析期宿主字段fieldMeta.paramTypes
-			// 等价，且与factory::get实际创建的容器类型一致。
+			// 工厂发布前一次性初始化两层 JSON 元数据。
 			try {
 				var dummyField = GTable1.class.getDeclaredField("pMap2");
-				// keyParser经反射回退工厂：BeanKey/binary/decimal/vector等
-				// 非内建键不在keyReaderMap，裸取为null时首键解析即NPE。
 				fm1 = new Json.FieldMeta(0x3c, 0, "PMap2", BeanMap1.class, this::get,
-						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, pmapMeta.keyClass, "GTable1 row key"),
-						dummyField);
-				// fm2.klass用真实valueClass：TYPE_CUSTOM值按Object的
-				// ClassMeta解析会得到裸空Object（静默数据损坏），Binary等按真实类走
-				// 自定义parser/反射字段解析，与写侧对称。
+					Json.ClassMeta.getKeyReaderOrFallback(Json.instance, pmapMeta.keyClass, "GTable1 row key"),
+					dummyField);
+				// 自定义值按实际类型选择 JSON 解析器。
 				fm2 = new Json.FieldMeta(0x30 + Json.ClassMeta.getType(bmapMeta.valueClass),
-						0, "BeanMap1", bmapMeta.valueClass,
-						Json.ClassMeta.getDefCtor(bmapMeta.valueClass),
-						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, bmapMeta.keyClass, "GTable1 column key"),
-						dummyField);
+					0, "BeanMap1", bmapMeta.valueClass,
+					Json.ClassMeta.getDefCtor(bmapMeta.valueClass),
+					Json.ClassMeta.getKeyReaderOrFallback(Json.instance, bmapMeta.keyClass, "GTable1 column key"),
+					dummyField);
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(e);
 			}
@@ -76,7 +66,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 
 		json.getClassMeta(GTable1.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			if (obj == null || fieldMeta == null)
-				return null; // 不支持GTable1新构造和非字段的GTable1对象
+				return null; // 只解析已初始化的表字段。
 			obj.pMap2.clear();
 			var factory = (Factory<?, ?, ?>)obj.factory;
 			var fm1 = factory.fm1;
@@ -94,11 +84,11 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 			return obj;
 		});
 		json.getClassMeta(GTable1.class).setWriter((writer, classMeta, obj) ->
-				writer.write(json, obj != null ? obj.pMap2 : null));
+			writer.write(json, obj != null ? obj.pMap2 : null));
 	}
 
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Factory<?, ?, ?>>>>
-			factories = new ConcurrentHashMap<>();
+		factories = new ConcurrentHashMap<>();
 
 	private final PMap2<R, BeanMap1<C, V>> pMap2;
 
@@ -116,8 +106,6 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	}
 
 	public void assign(GTable1<R, C, V> other) {
-		// 自赋值守卫：clear()后遍历_o_（==this已清空）零次迭代，整表被静默清空并随事务提交
-		//（对齐BeanMap1.assign经PMap1.assign先快照再清写的自赋值安全语义）。
 		if (this == other)
 			return;
 		pMap2.clear();
@@ -149,37 +137,27 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		_s_.append(Zeze.Util.Str.indent(_l_)).append('}');
 	}
 
-	// Bean行/列键显式拒绝：工厂层已拦（Map1Meta/Map2Meta.checkNonBeanKey），但报错深在
-	// getFactory内部且为"LogMap2/LogMap1 ..."家族名——GTable1的行键走Map2Meta.create会误报
-	// "LogMap2"，不点名GTable也不指明行/列维度。Bean是值语义equals配身份hashCode，行/列任一
-	// Bean维度的哈希put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/
-	// TypeGTable.cs要求IsKeyable，Types.Bean的IsKeyable=false）。前置报错点名维度。
 	private static void checkNonBeanDimension(String dimension, Class<?> keyClass) {
 		if (Bean.class.isAssignableFrom(keyClass))
 			throw new IllegalArgumentException(
-					"GTable1 does not support Bean " + dimension + " key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
-							+ keyClass.getName());
+				"GTable1 does not support Bean " + dimension + " key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
+					+ keyClass.getName());
 	}
 
 	public GTable1(Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
 		checkNonBeanDimension("row", rowClass);
 		checkNonBeanDimension("column", colClass);
-		// Bean值不支持：GTable1为动态标量值
-		// 设计（bean值由GTable2的带valueClass路径承担），Bean值需要GTable2的BeanMap2
-		// 元数据机制才能正确解码。schema层bean值恒产GTable2（History.Helper.
-		// dependsGTable），仅手写可触发，显式失败优于静默数据错误。
 		if (Bean.class.isAssignableFrom(valClass))
 			throw new IllegalArgumentException(
-					"GTable1 does not support Bean value type (json parse yields bare empty Object), use GTable2: "
-							+ valClass.getName());
+				"GTable1 does not support Bean value type (json parse yields bare empty Object), use GTable2: "
+					+ valClass.getName());
 		var factory = getFactory(rowClass, colClass, valClass);
 		this.pMap2 = new PMap2<>(factory.pmapMeta);
 		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
 		super.factory = factory;
 	}
 
-	// Factory唯一来源是getFactory（meta经工厂层Bean拦截），不重复维度/值check。
-	// 供生成代码常量化（static final Factory + 本构造器），消除每实例化的三层缓存探测。
+	/** 复用工厂，省去实例化时的缓存查找。 */
 	public GTable1(Factory<R, C, V> factory) {
 		this.pMap2 = new PMap2<>(factory.pmapMeta);
 		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
@@ -187,25 +165,27 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	}
 
 	public static <R, C, V> Factory<R, C, V> getFactory(
-			Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
+		Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
 		var map = factories.computeIfAbsent(rowClass, __ -> new ConcurrentHashMap<>())
-				.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());
+			.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());
 		var factory = map.get(valClass);
 		if (factory == null) {
 			var bmapMeta = Map1Meta.get(colClass, valClass);
 			var pmapMeta = Map2Meta.createWithFamily(OUTER_HEAD, OUTER_NAME_PREFIX, rowClass,
-					(Class<BeanMap1<C, V>>)(Class<?>)BeanMap1.class,
-					Zeze.Util.Reflect.getStableName(colClass) + ", " + Zeze.Util.Reflect.getStableName(valClass),
-					() -> new BeanMap1<>(bmapMeta));
+				(Class<BeanMap1<C, V>>)(Class<?>)BeanMap1.class,
+				Zeze.Util.Reflect.getStableName(colClass) + ", " + Zeze.Util.Reflect.getStableName(valClass),
+				() -> new BeanMap1<>(bmapMeta), null, row -> {
+					if (row.getPMap1().getMeta() != bmapMeta)
+						throw new IllegalArgumentException("GTable1 row Meta does not match the target table");
+				});
 			factory = map.computeIfAbsent(valClass, __ -> new Factory<>(pmapMeta, bmapMeta));
 		}
 		return (Factory<R, C, V>)factory;
 	}
 
 	/**
-	 * 底层受管 Map 的公开出口：仅供生成代码回放（followerApply 需直接建行/清行）与
-	 * 框架内部使用。外部代码勿直接 put——空行（行存在但内层为空）违反 GTable 不变量，
-	 * 会破坏遍历与容量驱逐；常规读写走 Table API。
+	 * 供生成代码和框架使用的底层行 Map。写入的行须由目标工厂创建，并包含至少一个单元格。
+	 * 常规读写走 {@link Table}。
 	 */
 	public PMap2<R, BeanMap1<C, V>> getPMap2() {
 		return pMap2;

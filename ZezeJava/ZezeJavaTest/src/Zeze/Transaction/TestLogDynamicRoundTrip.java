@@ -9,13 +9,17 @@ import harness.Fast;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Fast
 public class TestLogDynamicRoundTrip {
 	static {
 		Helper.registerLogs();
+		// 先初始化生成类，再读取静态字段声明。
+		LogRegistry.registerDynamicFields(new BValue().getClass(), __ -> {}, __ -> {});
 	}
 
 	@Test
@@ -29,6 +33,26 @@ public class TestLogDynamicRoundTrip {
 		log.setValue(BValue.DynamicTypeId_Dynamic14_demo_Bean1, value);
 
 		assertRoundTrip(log);
+	}
+
+	@Test
+	public void usesTypeIdForFieldAndTagForNestedLog() {
+		var parent = new BValue();
+		var dynamic = BValue.newDynamicBean_Dynamic14();
+		var log = new LogDynamic(parent, 14, dynamic);
+		log.setValue(BValue.DynamicTypeId_Dynamic14_demo_Bean1, new demo.Bean1());
+
+		var parentLog = new LogBean(0, parent);
+		parentLog.getVariablesOrNew().put(14, log);
+		var fieldBytes = ByteBuffer.Wrap(encode(parentLog));
+		assertEquals(1, fieldBytes.ReadUInt());
+		assertEquals(Bean.hash32("Zeze.Transaction.LogDynamic"), fieldBytes.ReadInt4());
+		assertRoundTrip(parentLog);
+
+		var nestedBytes = ByteBuffer.Allocate();
+		LogBean.encodeLogBean(nestedBytes, log);
+		assertEquals(1, nestedBytes.Bytes[nestedBytes.ReadIndex]);
+		assertArrayEquals(encode(log), encode(LogBean.decodeLogBean(nestedBytes)));
 	}
 
 	@Test
@@ -58,13 +82,12 @@ public class TestLogDynamicRoundTrip {
 	@Test
 	public void testDecodedCollectionElementRoundTrip() {
 		var parent = new BValue();
-		var dynamic = BValue.newDynamicBean_List43();
-		dynamic.variableId(0);
+		var dynamic = parent.getList43().createValue();
 		parent.getList43().add(dynamic);
 		parent.initRootInfo(newRootInfo(), null);
 		var value = new BSimple();
 		value.setInt_1(43);
-		var log = new LogDynamic(parent.getList43(), 0, dynamic);
+		var log = new LogDynamic(parent.getList43(), dynamic.variableId(), dynamic);
 		log.setValue(BValue.getSpecialTypeIdFromBean_43(value), value);
 
 		assertRoundTrip(log);
@@ -87,8 +110,39 @@ public class TestLogDynamicRoundTrip {
 		var dynamic = BValue.newDynamicBean_Dynamic14();
 		dynamic.initRootInfo(newRootInfo(), parent);
 
+		// 直接传 null，验证构造器能拒绝绕过静态检查的调用。
 		assertThrows(NullPointerException.class, () -> new LogDynamic(null, 14, dynamic));
 		assertThrows(NullPointerException.class, () -> new LogDynamic(parent, 14, null));
+	}
+
+	@Test
+	public void testParentlessDynamicRejectsLogCreationAndReplacement() {
+		var dynamic = BValue.newDynamicBean_Dynamic14();
+		dynamic.initRootInfo(newRootInfo(), null);
+		var value = new demo.Bean1();
+
+		var error = assertThrows(IllegalStateException.class, () -> dynamic.setBean(value));
+		assertEquals("DynamicBean has no parent for its transaction log", error.getMessage());
+		assertFalse(value.isManaged());
+		assertThrows(IllegalStateException.class, () -> dynamic.createLogBean(null));
+	}
+
+	@Test
+	public void testLogWithoutReplacementKeepsBeanAndType() {
+		var parent = new BValue();
+		var dynamic = BValue.newDynamicBean_Dynamic14();
+		var value = new demo.Bean1();
+		dynamic.setBean(value);
+		dynamic.initRootInfo(newRootInfo(), parent);
+		var txn = Transaction.create(new Locks());
+		txn.begin();
+		try {
+			txn.putLog(new LogDynamic(parent, dynamic.variableId(), dynamic));
+			assertSame(value, dynamic.getBean());
+			assertEquals(BValue.DynamicTypeId_Dynamic14_demo_Bean1, dynamic.getTypeId());
+		} finally {
+			Transaction.destroy();
+		}
 	}
 
 	private static void assertRoundTrip(Log source) {

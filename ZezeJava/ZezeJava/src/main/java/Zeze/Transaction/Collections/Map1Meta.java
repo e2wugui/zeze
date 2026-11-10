@@ -2,20 +2,22 @@ package Zeze.Transaction.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 
-/**
- * LogMap1 家族（PMap1/GTable1 内层）元数据：非 Bean 值，按值拷贝记账。
- */
+/** PMap1 和 GTable1 行内 Map 的日志元数据，按值记录变更。 */
 public final class Map1Meta<K, V> extends Meta2<K, V> {
-	// 线上typeId原料（hashLog输入），逐字保留，勿改。
-	static final String HEAD = "Zeze.Transaction.Collections.LogMap1<";
-	private static final long headHash = Bean.hash64(HEAD);
+	// 线上日志类型号的哈希前缀，须保持原样。
+	private static final long headHash = Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
+
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Map1Meta<?, ?>>> metas
 		= new ConcurrentHashMap<>();
 
-	Map1Meta(Class<K> keyClass, Class<V> valueClass) {
+	public final SerializeHelper.CodecFuncs<V> valueCodec;
+
+	private Map1Meta(Class<K> keyClass, Class<V> valueClass) {
 		super("LogMap1:", headHash, keyClass, valueClass);
+		valueCodec = SerializeHelper.createCodec(valueClass);
 	}
 
 	public static <K, V> Map1Meta<K, V> get(Class<K> keyClass, Class<V> valueClass) {
@@ -23,16 +25,14 @@ public final class Map1Meta<K, V> extends Meta2<K, V> {
 			checkNonBeanKey("PMap1/GTable1 (LogMap1)", kc);
 			return new ConcurrentHashMap<>();
 		});
-		var r = map.get(valueClass);
-		if (r != null) {
-			//noinspection unchecked
-			return (Map1Meta<K, V>)r;
+		var meta = map.get(valueClass);
+		if (meta == null) {
+			meta = map.computeIfAbsent(valueClass, ignored -> {
+				checkNonBeanValue1("PMap1/GTable1 (LogMap1)", "use PMap2/GTable2", valueClass);
+				return new Map1Meta<>(keyClass, valueClass);
+			});
 		}
 		//noinspection unchecked
-		return (Map1Meta<K, V>)map.computeIfAbsent(valueClass, vc -> {
-			checkNonBeanValue1("PMap1/GTable1 (LogMap1)", "use PMap2/GTable2", vc);
-			//noinspection unchecked
-			return new Map1Meta<>(keyClass, (Class<V>)vc);
-		});
+		return (Map1Meta<K, V>)meta;
 	}
 }

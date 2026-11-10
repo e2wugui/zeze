@@ -3,13 +3,12 @@ package Zeze.Transaction.Collections;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DynamicField;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
@@ -29,17 +28,13 @@ public class PList2<V extends Bean> extends PList<V> {
 		meta = List2Meta.get(valueClass);
 	}
 
-	public PList2(ToLongFunction<@Nullable Bean> get, LongFunction<@Nullable Bean> create) { // only for DynamicBean value
-		meta = List2Meta.createDynamic(get, create);
-	}
-
 	public PList2(List2Meta<V> meta) {
 		this.meta = meta;
 	}
 
 	public V createValue() {
 		try {
-			//noinspection DataFlowIssue,unchecked
+			//noinspection unchecked
 			return (V)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
@@ -51,11 +46,10 @@ public class PList2<V extends Bean> extends PList<V> {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
+		DynamicField.checkValueOwner(meta.dynamicField, item);
 
 		if (isManaged()) {
-			// 先取写权限后挂接：无当前事务/记录不可写时getCurrentVerifyWrite抛出，
-			// 若先挂接（initRootInfoWithRedo改写bean归属，普通字段写不受回滚保护），
-			// 输入bean永久污染（isManaged=true，复用抛HasManagedException）。
+			// 先校验写权限，避免失败时把输入留在受管状态。
 			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			item.initRootInfoWithRedo(rootInfo, this);
@@ -97,12 +91,10 @@ public class PList2<V extends Bean> extends PList<V> {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
+		DynamicField.checkValueOwner(meta.dynamicField, item);
 
 		if (isManaged()) {
-			// initRootInfoWithRedo直接改写bean归属且不受事务回滚保护，越界IOOBE必须在挂接前
-			// 抛出（TreePVector.get/with的检查在listLog.set内、挂接之后），否则调用方catch后
-			// 复用bean携带脏归属——复用抛HasManagedException，原位字段修改的日志被encode期
-			// 静默丢弃。
+			// 挂接不会随事务回滚，须先校验索引。
 			var cur = getList();
 			if (index < 0 || index >= cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
@@ -121,10 +113,10 @@ public class PList2<V extends Bean> extends PList<V> {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
+		DynamicField.checkValueOwner(meta.dynamicField, item);
 
 		if (isManaged()) {
-			// 同set，先验界（add合法域0<=index<=size）后挂接，越界IOOBE不得
-			// 留下携带脏归属的bean。
+			// 先校验插入索引，避免越界时改动 Bean 的归属。
 			var cur = getList();
 			if (index < 0 || index > cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
@@ -155,13 +147,12 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (items instanceof PList2)
 			items = ((PList2<? extends V>)items).getList(); // more stable
 		if (isManaged()) {
-			// 双循环（对齐PList1.addAll"先全量校验、后入日志"）：单循环"边验边改"时，靠后null
-			// 抛出前靠前item的initRootInfoWithRedo已改写——普通字段写不受事务回滚保护，
-			// 调用方catch后复用bean即携带脏归属。
+			// 先校验整批输入，避免中途失败时留下已挂接的 Bean。
 			for (V v : items) {
 				//noinspection ConstantValue
 				if (v == null) // 对齐非托管分支与add/PList1：null在initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null item");
+				DynamicField.checkValueOwner(meta.dynamicField, v);
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
 			}
 			//noinspection unchecked
@@ -174,6 +165,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			//noinspection ConstantValue
 			if (v == null)
 				throw new IllegalArgumentException("null item");
+			DynamicField.checkValueOwner(meta.dynamicField, v);
 		}
 		list = list.plusAll(items);
 		return true;
@@ -209,10 +201,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			return;
 		var tmpList = new ArrayList<V>(size());
 		if (isManaged()) {
-			// 双循环（对齐PList1.replaceAll"先全量求值校验、后入日志"）：operator只应用一次；
-			// 单循环"边验边改"时，靠后null抛ISE前靠前newV的initRootInfoWithRedo已改写——
-			// 普通字段写不受事务回滚保护，调用方catch后复用bean即携带脏归属。
-			// origin快照只取一次，保证两轮循环元素配对（operator若改容器也不失配）。
+			// 对同一快照求值，每项只调用一次 operator。全部校验后才挂接。
 			var origin = getList();
 			for (V v : origin) {
 				V newV = operator.apply(v);
@@ -220,6 +209,7 @@ public class PList2<V extends Bean> extends PList<V> {
 				if (newV == null) // 对齐非托管分支：null在initRootInfoWithRedo或日志路径解引用NPE，先验拒绝
 					throw new IllegalStateException("null item");
 				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
+				DynamicField.checkValueOwner(meta.dynamicField, newV);
 				tmpList.add(newV);
 			}
 			//noinspection unchecked
@@ -238,6 +228,7 @@ public class PList2<V extends Bean> extends PList<V> {
 				//noinspection ConstantValue
 				if (v == null)
 					throw new IllegalStateException("null item");
+				DynamicField.checkValueOwner(meta.dynamicField, v);
 				tmpList.add(v);
 			}
 			list = Persistents.<V>vector().plusAll(tmpList);
@@ -263,18 +254,19 @@ public class PList2<V extends Bean> extends PList<V> {
 	public void followerApply(Log _log) {
 		//noinspection unchecked
 		var log = (LogList2<V>)_log;
+		DynamicField.checkTarget(log.dynamicField(), meta.dynamicField);
 		var tmp = list;
 		for (var opLog : log.operationsForRead()) {
 			tmp = switch (opLog.op) {
 				case LogList1.OpLog.OP_MODIFY -> {
-					//noinspection DataFlowIssue
-					opLog.value.initRootInfo(rootInfo, this);
-					yield tmp.with(opLog.index, opLog.value);
+					var value = opLog.requireValue();
+					value.initRootInfo(rootInfo, this);
+					yield tmp.with(opLog.index, value);
 				}
 				case LogList1.OpLog.OP_ADD -> {
-					//noinspection DataFlowIssue
-					opLog.value.initRootInfo(rootInfo, this);
-					yield tmp.plus(opLog.index, opLog.value);
+					var value = opLog.requireValue();
+					value.initRootInfo(rootInfo, this);
+					yield tmp.plus(opLog.index, value);
 				}
 				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);
 				case LogList1.OpLog.OP_CLEAR -> Persistents.vector();
@@ -284,12 +276,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 		// apply changed
 		for (var e : log.changesForRead().entrySet()) {
-			// 正常重放下index必在界内（LogList2.encode只保留最终列表中存在的bean并按最终列表计算index），
-			// 越界只能是先行分歧（日志丢失/重复/交错应用）：直接get抛IndexOutOfBoundsException，
-			// 由驱动方裁决——raft路径Rocks.followerApply统一catch+fatalKill（镜像实现CollList2同款）；
-			// History回放路径批中断而非warn+skip尽力而为。抛出只证明应用路径无硬分歧，
-			// 不证明最终数值一致：错位应用（stale index落在界内指向错误元素）不抛异常、
-			// 历史缺失不抛异常，仍由Verify.verifyAndClear全量对账兜底。抛出时list未提交，容器保持原状。
+			// 原位修改使用最终列表的索引。越界说明回放状态已分歧，应中断应用。
 			tmp.get(e.getValue().value).followerApply(e.getKey());
 		}
 		list = tmp;
@@ -309,14 +296,15 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public PList2<V> copy() {
-		// 深拷贝值Bean：浅拷贝共享原记录树内的受管活Bean，经ReadOnly.copy()交出的“副本”
-		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
-		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
-		var copy = new PList2<>(meta);
+		return copy(meta);
+	}
+
+	private PList2<V> copy(List2Meta<V> targetMeta) {
+		// 深拷贝值，避免副本继续引用原记录的受管 Bean。
+		var copy = new PList2<>(targetMeta);
 		var newList = Persistents.<V>vector();
 		for (var v : getList())
-			//noinspection unchecked
-			newList = newList.plus((V)v.copy());
+			newList = newList.plus(DynamicField.copyValue(targetMeta.dynamicField, v));
 		copy.list = newList;
 		return copy;
 	}
@@ -325,7 +313,8 @@ public class PList2<V extends Bean> extends PList<V> {
 	public void assign(PList2<V> plist) {
 		if (this == plist)
 			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
-		var copy = plist.copy(); // 先备输入再发布：copy抛出时目标保持原值
+		// 使用目标映射校验和复制，成功后才清空。
+		var copy = meta.dynamicField != null ? plist.copy(meta) : plist.copy();
 		clear();
 		addAll(copy);
 	}
@@ -348,7 +337,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		try {
 			for (int i = n; i > 0; i--) {
-				//noinspection unchecked,DataFlowIssue
+				//noinspection unchecked
 				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
 				items.add(v);

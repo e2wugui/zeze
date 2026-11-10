@@ -16,11 +16,13 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
 
     private String _Name;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> _Managers;
+    private static final Zeze.Transaction.DynamicField dynamicField_Managers
+            = Zeze.Transaction.DynamicField.declare(BDepartmentTreeNode.class, TYPEID, 4, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Transaction.DynamicBean> meta2_Managers
-            = Zeze.Transaction.Collections.Map2Meta.createDynamic(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+            = Zeze.Transaction.Collections.Map2Meta.createDynamic(String.class, dynamicField_Managers);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Managers() {
-        return new Zeze.Transaction.DynamicBean(4, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Managers);
     }
 
     public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean _b_) {
@@ -32,9 +34,11 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     private final Zeze.Transaction.DynamicBean _Data;
+    private static final Zeze.Transaction.DynamicField dynamicField_Data
+            = Zeze.Transaction.DynamicField.declare(BDepartmentTreeNode.class, TYPEID, 5, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Data() {
-        return new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Data);
     }
 
     public static long getSpecialTypeIdFromBean_5(Zeze.Transaction.Bean _b_) {
@@ -362,7 +366,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadString(_s_);
-                    var _v_ = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+                    var _v_ = BDepartmentTreeNode.newDynamicBean_Managers();
                     _o_.ReadDynamic(_v_, _t_);
                     _x_.put(_k_, _v_);
                 }
