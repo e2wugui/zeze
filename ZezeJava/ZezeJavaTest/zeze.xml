@@ -49,7 +49,8 @@
 		<Acceptor Ip="127.0.0.1" Port="7788"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Onz.Server">
-		<Acceptor Ip="127.0.0.1" Port="9000"/>
+		<!-- 9000 与本机 VS Code 常驻监听冲突（bind 失败），移到 19000；仅端口值，无行为差 -->
+		<Acceptor Ip="127.0.0.1" Port="19000"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.MQ.Master.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="6000"/>
