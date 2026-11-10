@@ -95,6 +95,11 @@ public final class FastServerIds {
 	public static final int TEST_CLEAR_FAIL_FAST = seg("TestClearFailFast", 762, 1);
 	public static final int TEST_BAG_MOVE_ZERO = seg("TestBagMoveZero", 770, 1);
 
+	// IT车道：TestDatabaseSelection 自建独立 Application（区别于测试间共享的 demo.App 单例），
+	// 独占号段=独占 zeze_cache_<id> 与 dbh2 本地提交目录 CommitRocks<id>（RocksDB目录锁，
+	// 与泄漏存活的 demo.App(serverId=0→CommitRocks0) 同JVM并存必需）。
+	public static final int TEST_DATABASE_SELECTION = seg("TestDatabaseSelection", 790, 1);
+
 	public static final int TEST_HOT_ROLLBACK_MEMORY_TABLE = seg("TestHotRollbackMemoryTable", 800, 1);
 	public static final int TEST_HOT_UPGRADE_INCOMPATIBLE_FAILFAST = seg("TestUpgradeIncompatibleFailFast", 810, 1);
 	public static final int TEST_GET_OR_ADD_IS_ADD_CONTRACT = seg("TestGetOrAddIsAddContract", 820, 1);

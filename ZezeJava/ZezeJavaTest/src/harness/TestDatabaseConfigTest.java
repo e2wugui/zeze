@@ -174,6 +174,66 @@ public class TestDatabaseConfigTest {
 	}
 
 	@Test
+	public void dbh2SelectionAppliesUrlFromZezeXml() {
+		var config = config();
+		config.setGlobalCacheManagerHostNameOrAddress("127.0.0.1");
+		var other = new Config.DatabaseConf();
+		other.setName("other");
+		config.getDatabaseConfMap().put("other", other);
+		assertSame(config, TestDatabaseConfig.apply(config, "Dbh2", null));
+		for (var db : config.getDatabaseConfMap().values()) {
+			assertEquals(Config.DbType.Dbh2, db.getDatabaseType());
+			// 漂移守卫：连接串唯一来源是ZezeJavaTest/zeze.xml，改xml须同步本断言。
+			assertEquals("dbh2://127.0.0.1:10999/dbh2_unittest", db.getDatabaseUrl());
+			assertNull(db.getDruidConf(), "Dbh2不动连接池配置");
+		}
+		// databaseName不被重定向触碰：fixture预置的保持预置值，未预置的保持DatabaseConf默认。
+		assertEquals("test_database", config.getDatabaseConfMap().get("shared").getDatabaseName());
+		assertEquals("127.0.0.1", config.getGlobalCacheManagerHostNameOrAddress(),
+				"Dbh2与GCM无互斥硬闸，Global保持（区别于RocksDb分支）");
+		// 已选后端不重复切换（对齐JDBC路径的空集早退语义）。
+		assertSame(config, TestDatabaseConfig.apply(config, "unsupported", null));
+	}
+
+	@Test
+	public void dbh2SelectionRejectsUrlAndDisabledServiceManager() {
+		var config = config();
+		assertThrows(IllegalStateException.class,
+				() -> TestDatabaseConfig.apply(config, "Dbh2", "dbh2://127.0.0.1:1/other"));
+		assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
+		assertEquals("", config.getDatabaseConfMap().get("shared").getDatabaseUrl());
+		config.setServiceManager("disable");
+		assertThrows(IllegalStateException.class, () -> TestDatabaseConfig.apply(config, "Dbh2", null));
+		assertEquals(Config.DbType.Memory, config.getDatabaseConfMap().get("shared").getDatabaseType());
+	}
+
+	@Test
+	public void dbh2UrlParserExtractsFromCommentAndFailsCleanly() throws Exception {
+		var dir = java.nio.file.Files.createTempDirectory("dbh2conf");
+		try {
+			var empty = java.nio.file.Files.writeString(dir.resolve("empty.xml"), "<zeze/>");
+			assertThrows(IllegalStateException.class, () -> TestDatabaseConfig.dbh2UrlFromZezeXml(empty));
+			// 条目在注释块内亦有效（按原文匹配）：zeze.xml现状即此形态。
+			var commented = java.nio.file.Files.writeString(dir.resolve("commented.xml"),
+					"<!--\n<DatabaseConf Name=\"\" DatabaseType=\"Dbh2\""
+							+ " DatabaseUrl=\"dbh2://127.0.0.1:10999/dbh2_unittest\"/>\n-->");
+			assertEquals("dbh2://127.0.0.1:10999/dbh2_unittest", TestDatabaseConfig.dbh2UrlFromZezeXml(commented));
+			// 非Dbh2条目不被误选。
+			var memoryOnly = java.nio.file.Files.writeString(dir.resolve("memory.xml"),
+					"<DatabaseConf Name=\"\" DatabaseType=\"Memory\" DatabaseUrl=\"\"/>");
+			assertThrows(IllegalStateException.class, () -> TestDatabaseConfig.dbh2UrlFromZezeXml(memoryOnly));
+			// 前缀错误立即失败。
+			var badPrefix = java.nio.file.Files.writeString(dir.resolve("bad.xml"),
+					"<DatabaseConf DatabaseType=\"Dbh2\" DatabaseUrl=\"http://127.0.0.1:10999/x\"/>");
+			assertThrows(IllegalStateException.class, () -> TestDatabaseConfig.dbh2UrlFromZezeXml(badPrefix));
+		} finally {
+			try (var walk = java.nio.file.Files.walk(dir)) {
+				walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+			}
+		}
+	}
+
+	@Test
 	public void keepOriginalExemptsRedirect() {
 		var config = config();
 		assertSame(config, TestDatabaseConfig.keepOriginal(config));

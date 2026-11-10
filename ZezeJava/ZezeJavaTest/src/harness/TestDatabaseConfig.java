@@ -16,6 +16,8 @@ import org.jspecify.annotations.Nullable;
  * Memory 语义测试直接使用 Config，不调用本助手；不要依赖 setter 调用历史区分配置。
  * RocksDb 目标为每个数据库生成独立目录（最贴近 Memory 的不共享状态语义），不接受 url；
  * 多 App 测试用 keepOriginal 豁免——RocksDb 目录锁不支持同进程多 App。
+ * Dbh2 目标连接外部已启动的服务器，连接串唯一来源是 ZezeJavaTest/zeze.xml（详见dbh2UrlFromZezeXml）；
+ * 本地提交CommitRocks{serverId}目录锁同 RocksDb 多 App 约束，沿用 keepOriginal 豁免。
  */
 public final class TestDatabaseConfig {
 
@@ -73,6 +75,26 @@ public final class TestDatabaseConfig {
 			}
 			return config;
 		}
+		if (Config.DbType.Dbh2.name().equals(backend)) {
+			// Dbh2非JDBC：连接串唯一来源是ZezeJavaTest/zeze.xml的Dbh2 DatabaseConf（外部dbh2服务器
+			// 须已启动；master直连url的ip:port，不经SM发现），不接受-P url。
+			// 不动druidConf；不摘Global（createDatabase的Dbh2分支无硬闸，可与GCM共存）；
+			// databaseName不触碰（共享库持久语义对齐JDBC/MongoDb批次）。
+			// 应用需要ServiceManager（Dbh2AgentManager的tidAutoKey）；本地提交CommitRocks{serverId}
+			// 是RocksDB目录锁，并发多App测试沿用keepOriginal豁免（同RocksDb惯例）。
+			if (url != null && !url.isBlank())
+				throw new IllegalStateException("zeze.test.database=Dbh2 不接受 zeze.test.database.url"
+						+ "：连接串以 ZezeJavaTest/zeze.xml 的 Dbh2 DatabaseConf 为准");
+			if ("disable".equals(config.getServiceManager()))
+				throw new IllegalStateException("zeze.test.database=Dbh2 需要 ServiceManager（tidAutoKey分配），"
+						+ "当前配置为 disable；多App测试请用 keepOriginal 豁免");
+			var dbh2Url = dbh2UrlFromZezeXml(Path.of("zeze.xml"));
+			for (var db : databases) {
+				db.setDatabaseType(Config.DbType.Dbh2);
+				db.setDatabaseUrl(dbh2Url);
+			}
+			return config;
+		}
 		for (var db : databases) {
 			var jdbc = jdbcConf(backend, url);
 			db.setDatabaseType(jdbc.getDatabaseType());
@@ -91,6 +113,35 @@ public final class TestDatabaseConfig {
 		} catch (IOException e) {
 			throw new IllegalStateException("create rocksdb test directory failed", e);
 		}
+	}
+
+	/**
+	 * 从测试配置zeze.xml提取Dbh2连接串（外部dbh2服务器的唯一事实来源）。
+	 * 条目位于注释块内亦有效（按原文正则匹配，不经XML解析器）：zeze.xml的注释块是"可用后端示例菜单"，
+	 * Dbh2行即当前部署的连接事实。
+	 */
+	static String dbh2UrlFromZezeXml(Path zezeXml) {
+		String text;
+		try {
+			text = Files.readString(zezeXml);
+		} catch (IOException e) {
+			throw new IllegalStateException("读取 " + zezeXml + " 失败：Dbh2连接串取自该文件", e);
+		}
+		var elementPattern = java.util.regex.Pattern.compile("<DatabaseConf\\b[^>]*>");
+		var urlPattern = java.util.regex.Pattern.compile("DatabaseUrl=\"([^\"]*)\"");
+		for (var elementMatcher = elementPattern.matcher(text); elementMatcher.find(); ) {
+			var element = elementMatcher.group();
+			if (!element.contains("DatabaseType=\"Dbh2\""))
+				continue;
+			var urlMatcher = urlPattern.matcher(element);
+			if (!urlMatcher.find())
+				throw new IllegalStateException(zezeXml + " 的 Dbh2 DatabaseConf 缺少 DatabaseUrl");
+			var value = urlMatcher.group(1);
+			if (!value.startsWith("dbh2://"))
+				throw new IllegalStateException(zezeXml + " 的 Dbh2 DatabaseUrl 需要 dbh2:// 前缀，当前: " + value);
+			return value;
+		}
+		throw new IllegalStateException(zezeXml + " 中未找到 DatabaseType=\"Dbh2\" 的 DatabaseConf（含DatabaseUrl）");
 	}
 
 	/** 直接测试数据库适配器时也使用同一选择；null表示未选择本后端，调用方须明确中止测试。 */
