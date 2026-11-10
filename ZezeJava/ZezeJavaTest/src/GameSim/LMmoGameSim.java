@@ -4,6 +4,7 @@ import harness.MacroBench;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -28,6 +29,8 @@ public class LMmoGameSim {
 	private static final long HarvestGraceMs = 2_000;
 
 	@Test
+	@Timeout(3600) // 对齐 master eea4d944c：大在线档窗口墙钟超 junit-platform.properties 全局 300s
+	// 护栏（test 车道防挂死），注解优先级最高、两车道通吃；全局护栏不动。
 	public void testBenchmark() throws Exception {
 		var cfg = new GameConfig();
 		OpRecorder.init(cfg.players);

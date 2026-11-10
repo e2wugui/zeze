@@ -9,7 +9,12 @@ import Zeze.Util.PropertiesHelper;
  * 休眠/周期处统一 ÷K 折算墙钟（K=时间缩放旋钮，K=1 即真人节奏档）。
  *
  * <p>旋钮经 system property 透传（gradle benchGame -PgamePlayers=… 映射为 game.players）：
- * game.players（默认 5000 在线）、game.k（默认 20）、game.minutes（每轮游戏分钟，默认 10）。
+ * game.players（默认 5000 在线）、game.k（默认 10）、game.minutes（每轮游戏分钟，默认 10）。
+ *
+ * <p>负载模型（对齐 master 2026-10-14 终版，K=10）：单用户高频的 redo 顾虑实证解除——同一玩家的
+ * 事务在其虚拟线程内串行（同步 call 返回才进下一步），不存在自我并发；redo 由全局密度
+ * ×共享行提交率决定，主源 rank 分片行已 512 化缓解。容量以在线数为主旋钮（-PgamePlayers），
+ * K 调整单玩家操作强度；旧 K=20/80/160 梯度容量档废弃不变。
  */
 public final class GameConfig {
 	// ===== 基准旋钮 =====
