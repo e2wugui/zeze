@@ -5,7 +5,7 @@
   - `gradlew.bat :ZezeJavaTest:test`：仅 `@Fast`。
   - `gradlew.bat :ZezeJavaTest:integrationTest`：排除 fast/bench。
   - `gradlew.bat :ZezeJavaTest:bench`：仅 `@Bench`。
-- `--tests` 用简单类名或通配符，如 `--tests "*TestToken.testToken"`；测试类标签须匹配任务。
+- `--tests` 用简单类名或通配符，如 `--tests "*TestToken.testToken"`；含包名的全限定写法（如 `Zeze.Services.TestToken`）在本仓库匹配不到任何测试（报 "No tests found"），勿用；测试类标签须匹配任务。
 - `@Fast` 须支持类级并行；serverId 与固定内存库 url 按 `harness/FastServerIds` 登记，禁止共享默认空 url。
 - 所有 ChangeListener 须在业务事务开始前注册，运行期间不得新增。
 - 测试类名使用描述性行为名，不带 bug、审计或轮次编号。
