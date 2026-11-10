@@ -57,6 +57,17 @@ Macro（D 与 L）。Matrix 使用明确的基准类过滤，不随新加入的 
 | K | KCheckpointUnderCommitFlood | 提交洪水下的刷盘竞争 |
 | L | GameSim.LMmoGameSim | 游戏模拟与容量 |
 
+## 2026-11-11 · v1.6.3 与 HEAD 对照（L 补齐与 B 池口径勘定）
+
+改动：backport 分支对齐 master 负载终版（K10/rank512/穿装备/fanout 微事务，`cc9df3bfd`、`1c7d656b6`）；
+同机同日 ABBA（16C/JDK21/4g/-ea）重测 A~J 与 L 四档（p5k@K160/320、p20k/p40k@K10），销"严格 4g/4g 复测"与
+"L 的 v1.6.3 倍数待回植"两笔欠账。
+性能：L 1.57~2.71×（p40k 4.5万→12.3万，v1.6.3 已过载倒退）；H 脏读 2.90×；E 合并刷盘 1.40×；E2 0.36×（sync 语义）。
+B 受限池口径 18×（1.28万→23.1万，复现 10-11 列）——`4f74b3e11` 起基准默认生产无界 VT 形态，B 无界下 3.9×
+（形态代价非引擎回退，`ed1bb420b`→`4f74b3e11` 单笔二分钉死）。详表与口径脚注见
+`docs/UPGRADE_PERFORMANCE.md`。
+归档：`bench-results/cross163-*`、`crosshead-*`、`cross163-vs-head-20261111/`（含二分链）。
+
 ## 2026-10-26 · 集合增量按需分配与 Onz 捕获解耦
 
 改动：监听器约定为所有业务开始前完成注册；仅 History 或表监听器要求集合 DELTA，
