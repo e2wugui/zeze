@@ -157,6 +157,20 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			return _open(name, valueClass, nodeSize);
 		}
 
+		/**
+		 * 打开按名称后缀派发变更的普通 LinkedMap。持久化名称为 owner + suffix。
+		 * suffix 包含开头的 '@'，监听器使用同一后缀注册。
+		 */
+		public <T extends Bean> LinkedMap<T> openWithListenerSuffix(String owner, String suffix,
+																  Class<T> valueClass, int nodeSize) {
+			if (owner.isEmpty() || owner.startsWith(concurrentLayoutPrefix))
+				throw new IllegalArgumentException("invalid LinkedMap owner: " + owner);
+			if (suffix.length() < 2 || suffix.charAt(0) != '@' || suffix.indexOf('@', 1) >= 0
+					|| suffix.substring(1).chars().allMatch(c -> c >= '0' && c <= '9'))
+				throw new IllegalArgumentException("invalid LinkedMap listener suffix: " + suffix);
+			return _open(owner + suffix, valueClass, nodeSize);
+		}
+
 		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass) {
 			return open(name, valueClass, 30);
 		}

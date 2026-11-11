@@ -270,6 +270,9 @@ namespace Zeze.Gen
                     Program.GetNamedObject<Types.BeanKey>(n).Depends(depends, parent);
                 }
 
+                if (Platform == "conf+cs+net")
+                    IncludeBeanBases(depends, parent);
+
                 foreach (Types.Type type in depends)
                 {
                     if (type.IsBean || type.IsRocks)
@@ -349,6 +352,54 @@ namespace Zeze.Gen
             return false;
         }
 
+        private static void IncludeBeanBases(HashSet<Types.Type> depends, string parent)
+        {
+            var pending = new Queue<Bean>();
+            foreach (var type in depends)
+            {
+                if (type is Bean bean)
+                    pending.Enqueue(bean);
+            }
+
+            while (pending.TryDequeue(out var bean))
+            {
+                if (bean.BaseBean is not Bean baseBean || depends.Contains(baseBean))
+                    continue;
+
+                var inherited = new HashSet<Types.Type>();
+                baseBean.Depends(inherited, parent);
+                foreach (var type in inherited)
+                {
+                    if (depends.Add(type) && type is Bean dependency)
+                        pending.Enqueue(dependency);
+                }
+            }
+        }
+
+        private static void ValidateFollowerFieldIds(HashSet<Types.Type> depends)
+        {
+            foreach (var type in depends)
+            {
+                if (type is not Bean bean || bean.BaseBean == null)
+                    continue;
+
+                // LogBean keys all field edits by variableId, including fields declared in a base bean.
+                var fields = new Dictionary<int, string>();
+                for (var declaring = bean; declaring != null; declaring = declaring.BaseBean)
+                {
+                    foreach (var variable in declaring.Variables)
+                    {
+                        if (variable.Transient)
+                            continue;
+                        var field = $"{declaring.FullName}.{variable.Name}";
+                        if (!fields.TryAdd(variable.Id, field))
+                            throw new InvalidOperationException(
+                                $"FollowerApply field id {variable.Id} is shared by {fields[variable.Id]} and {field}.");
+                    }
+                }
+            }
+        }
+
         protected virtual void MakePlatform()
         {
             switch (Platform)
@@ -402,6 +453,8 @@ namespace Zeze.Gen
                                 var bean = Program.GetNamedObject<Bean>(refBean);
                                 bean.Depends(dependsFollowerApplyTables, parent);
                             }
+                            IncludeBeanBases(dependsFollowerApplyTables, parent);
+                            ValidateFollowerFieldIds(dependsFollowerApplyTables);
                         }
 
                         // 警告，confcs.Maker为了简化，没有生成Gen目录，而是直接放到ProjectName下，这样和需要实现的代码混在一起，

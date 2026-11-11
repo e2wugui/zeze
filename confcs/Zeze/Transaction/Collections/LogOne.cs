@@ -1,4 +1,4 @@
-﻿using Zeze.Serialize;
+using Zeze.Serialize;
 using Zeze.Util;
 
 namespace Zeze.Transaction.Collections
@@ -27,7 +27,7 @@ namespace Zeze.Transaction.Collections
                 if (LogBean != null)
                 {
                     bb.WriteBool(true);
-                    LogBean.Encode(bb);
+                    EncodeLogBean(bb, LogBean);
                 }
                 else
                     bb.WriteBool(false);
@@ -36,21 +36,18 @@ namespace Zeze.Transaction.Collections
 
         public override void Decode(ByteBuffer bb)
         {
-            var hasValue = bb.ReadBool();
-            if (hasValue)
+            V value = null;
+            LogBean logBean = null;
+            if (bb.ReadBool())
             {
-                Value = new V();
-                Value.Decode(bb);
+                value = new V();
+                value.Decode(bb);
             }
-            else
-            {
-                var hasLogBean = bb.ReadBool();
-                if (hasLogBean)
-                {
-                    LogBean = new LogBean();
-                    LogBean.Decode(bb);
-                }
-            }
+            else if (bb.ReadBool())
+                logBean = DecodeLogBean(bb);
+
+            Value = value;
+            LogBean = logBean;
         }
 
         public override string ToString()

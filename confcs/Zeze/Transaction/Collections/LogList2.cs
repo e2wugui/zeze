@@ -6,12 +6,21 @@ using Zeze.Util;
 namespace Zeze.Transaction.Collections
 {
     public class LogList2<E> : LogList1<E>
-        where E : ConfBean, new()
+        where E : ConfBean
     {
         public new static readonly string StableName = Reflect.GetStableName(typeof(LogList2<E>));
         public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
+
+        public LogList2()
+        {
+        }
+
+        public LogList2(System.Func<ByteBuffer, E> readValue)
+            : base(readValue)
+        {
+        }
 
         public class OutInt
         {

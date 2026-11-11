@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -118,12 +118,24 @@ namespace Zeze.Gen.cs
             {
                 if (dep.IsCollection)
                 {
-                    tlogs.Add(GetCollectionLogTemplateName(dep));
+                    if (dep is not (TypeCollection { ValueType: TypeDynamic }
+                                    or TypeMap { ValueType: TypeDynamic }
+                                    or TypeSortedMap { ValueType: TypeDynamic }))
+                        tlogs.Add(GetCollectionLogTemplateName(dep));
                     continue;
                 }
                 if (dep is TypeDynamic)
                 {
                     tlogs.Add($"Zeze.Util.LogConfDynamic");
+                    continue;
+                }
+                if (dep is Bean bean)
+                {
+                    foreach (var variable in bean.Variables)
+                    {
+                        if (!variable.Transient && variable.VariableType is Bean member)
+                            tlogs.Add($"LogOne<{member.FullName}>");
+                    }
                     continue;
                 }
                 if (dep.IsNormalBeanOrRocks)
@@ -137,9 +149,45 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"            Log.Register<{tlog}>();");
             }
 
+            foreach (var dynamic in dependsFollowerApplyTables.OfType<TypeDynamic>()
+                         .Where(type => !type.Variable.Transient)
+                         .OrderBy(type => ((Bean)type.Variable.Bean).FullName, StringComparer.Ordinal)
+                         .ThenBy(type => type.Variable.Id))
+            {
+                var variable = dynamic.Variable;
+                var owner = ((Bean)variable.Bean).FullName;
+                var field = $"{owner}.TYPEID, {variable.Id}";
+                var factory = $"{owner}.CreateBeanFromSpecialTypeId_{variable.Id}";
+                sw.WriteLine($"            DynamicField.Register({field}, {factory});");
+
+                var value = confcs.TypeName.GetName(dynamic);
+                switch (variable.VariableType)
+                {
+                    case TypeList:
+                        WriteDynamicCollectionLog(sw, field, factory, value, "LogList2", null);
+                        break;
+                    case TypeMap map:
+                        WriteDynamicCollectionLog(sw, field, factory, value, "LogMap2", map.KeyType);
+                        break;
+                    case TypeSortedMap map:
+                        WriteDynamicCollectionLog(sw, field, factory, value, "LogSortedMap2", map.KeyType);
+                        break;
+                }
+            }
+
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");
+        }
+
+        private static void WriteDynamicCollectionLog(StreamWriter sw, string field, string factory,
+                                                      string value, string log, Types.Type key)
+        {
+            var keyName = key is BeanKey beanKey ? beanKey.FullName : key?.Name;
+            var keyPrefix = keyName == null ? "" : keyName + ", ";
+            var typeId = Util.FixedHash.Hash32($"Zeze.Transaction.Collections.{log}<{keyPrefix}Zeze.Transaction.DynamicBean>");
+            var arguments = key == null ? value : $"{confcs.TypeName.GetName(key)}, {value}";
+            sw.WriteLine($"            DynamicField.RegisterLog({field}, {typeId}, () => new {log}<{arguments}>(bb => DynamicField.ReadValue<{value}>(bb, {factory})));");
         }
 
         private string GetCollectionLogTemplateName(Types.Type type)

@@ -46,6 +46,15 @@ LinkedMap<Item> itemMap = linkedMapModule.open("playerItems", Item.class);
 LinkedMap<Item> itemMap = linkedMapModule.open("playerItems", Item.class, 50);
 ```
 
+需要按名称后缀分发变更时，在应用启动阶段以 `@Orders` 之类的后缀注册监听器，并用同一后缀打开集合。
+
+```java
+linkedMapModule.NodeListeners.put("@Orders", orderChangeListener);
+LinkedMap<Item> orderMap = linkedMapModule.openWithListenerSuffix(account, "@Orders", Item.class, 50);
+```
+
+这个入口使用 `account + "@Orders"` 作为持久化名称。账号可包含 `@`，后缀只包含开头的一个 `@`。纯数字后缀保留给 CHashMap 分桶。
+
 ### 3. 基本操作
 
 ```java

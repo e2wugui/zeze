@@ -17,6 +17,7 @@ namespace Zege
             Log.Register<LogList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue>>();
             Log.Register<LogMap1<string, string>>();
             Log.Register<Zeze.Util.LogConfDynamic>();
+            DynamicField.Register(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.TYPEID, 2, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.CreateBeanFromSpecialTypeId_2);
         }
     }
 }

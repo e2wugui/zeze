@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
 using Zeze.Util;
@@ -12,6 +12,18 @@ namespace Zeze.Transaction.Collections
 
         public override int TypeId => TypeId_;
 
+        private readonly System.Func<ByteBuffer, V> readValue;
+
+        public LogMap1()
+            : this(SerializeHelper<V>.Decode)
+        {
+        }
+
+        protected LogMap1(System.Func<ByteBuffer, V> readValue)
+        {
+            this.readValue = readValue;
+        }
+
         public readonly Dictionary<K, V> Replaced = new Dictionary<K, V>();
         public readonly ISet<K> Removed = new HashSet<K>();
 
@@ -21,7 +33,7 @@ namespace Zeze.Transaction.Collections
             for (int i = bb.ReadUInt(); i > 0; --i)
             {
                 var key = SerializeHelper<K>.Decode(bb);
-                var value = SerializeHelper<V>.Decode(bb);
+                var value = readValue(bb);
                 Replaced.Add(key, value);
             }
 

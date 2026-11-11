@@ -168,6 +168,8 @@ namespace Zeze.Gen.Types
 		public bool Extendable { get; private set; }
 		public bool GenEquals { get; private set; }
 		public string Base { get; }
+		internal Bean BaseBean => Base.Length != 0 && Program.NamedObjects.TryGetValue(Base.ToLower(), out var type)
+			? type as Bean : null;
 		public string Interface { get; private set; }
 		public List<string> Derives = new();
 		public string Version { get; }

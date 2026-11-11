@@ -32,7 +32,8 @@ public class ModuleNotify extends AbstractModule {
     }
 
     public LinkedMap<BNotify> getNotify(String owner) {
-        return App.LinkedMaps.open(owner + eNotifyLinkedMapNameEndsWith, BNotify.class, App.ZegeConfig.NotifyCountPerNode);
+        return App.LinkedMaps.openWithListenerSuffix(owner, eNotifyLinkedMapNameEndsWith,
+                BNotify.class, App.ZegeConfig.NotifyCountPerNode);
     }
 
     @Override

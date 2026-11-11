@@ -1,0 +1,19 @@
+gradle.projectsEvaluated {
+    def core = gradle.rootProject.project(':ZezeJava')
+    def fixture = gradle.rootProject.file('../confcs/tests/confcs-dynamic-logs')
+    def compile = core.tasks.register('compileConfCsChangesFixture', JavaCompile) {
+        source core.fileTree(new File(fixture, 'obj/java')) { include '**/*.java' }
+        source new File(fixture, 'WriteChanges.java'), new File(fixture, 'LogOneFixture.java')
+        classpath = core.sourceSets.main.runtimeClasspath
+        destinationDirectory = new File(fixture, 'obj/classes')
+        javaCompiler = core.tasks.compileJava.javaCompiler
+    }
+    core.tasks.register('writeConfCsChangesFixture', JavaExec) {
+        dependsOn compile
+        classpath = core.sourceSets.main.runtimeClasspath + core.files(compile.flatMap { it.destinationDirectory })
+        javaLauncher = core.javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+        mainClass = 'WriteChanges'
+        workingDir = new File(fixture, 'obj')
+        args workingDir.absolutePath
+    }
+}

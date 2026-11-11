@@ -59,11 +59,13 @@ public class ModuleFriend extends AbstractModule {
 	}
 
 	public LinkedMap<BFriend> getFriends(String owner) {
-		return App.LinkedMaps.open(owner + eFriendsLinkedMapNameEndsWith, BFriend.class, App.ZegeConfig.FriendCountPerNode);
+		return App.LinkedMaps.openWithListenerSuffix(owner, eFriendsLinkedMapNameEndsWith,
+				BFriend.class, App.ZegeConfig.FriendCountPerNode);
 	}
 
 	public LinkedMap<BFriend> getTopmosts(String owner) {
-		return App.LinkedMaps.open(owner + eTopmostLinkedMapNameEndsWith, BFriend.class, App.ZegeConfig.FriendCountPerNode);
+		return App.LinkedMaps.openWithListenerSuffix(owner, eTopmostLinkedMapNameEndsWith,
+				BFriend.class, App.ZegeConfig.FriendCountPerNode);
 	}
 
 	/*

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
 using Zeze.Util;
@@ -11,12 +11,21 @@ namespace Zeze.Transaction.Collections
     /// 由 <see cref="CollApply.ApplyMap2{K,V}(SortedDictionary{K,V},Log)"/> 应用。
     /// </summary>
     public class LogSortedMap2<K, V> : LogSortedMap1<K, V>
-        where V : ConfBean, new()
+        where V : ConfBean
     {
         public new static readonly string StableName = Reflect.GetStableName(typeof(LogSortedMap2<K, V>));
         public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
+
+        public LogSortedMap2()
+        {
+        }
+
+        public LogSortedMap2(System.Func<ByteBuffer, V> readValue)
+            : base(readValue)
+        {
+        }
 
         // changed V logs. using in collect.
         // ReSharper disable once CollectionNeverUpdated.Global

@@ -110,7 +110,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
                 switch (vlog.VariableId)
                 {
                     case 1: Id = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: Value.FollowerApply(vlog); break;
+                    case 2: Value = Zeze.Transaction.Collections.CollApply.ApplyDynamic(Value, vlog); break;
                 }
             }
         }

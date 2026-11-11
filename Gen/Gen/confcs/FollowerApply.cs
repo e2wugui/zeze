@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.confcs
@@ -14,9 +14,12 @@ namespace Zeze.Gen.confcs
             sw.WriteLine();
             sw.WriteLine(prefix + $"public override void FollowerApply(Zeze.Transaction.Log log)");
             sw.WriteLine(prefix + "{");
+            var hasSchemaBase = bean.BaseBean != null;
             if (bean.Variables.Count > 0)
             {
                 sw.WriteLine(prefix + "    var blog = (Zeze.Transaction.Collections.LogBean)log;");
+                if (hasSchemaBase)
+                    sw.WriteLine(prefix + "    Zeze.Transaction.Collections.LogBean inherited = null;");
                 sw.WriteLine(prefix + "    foreach (var vlog in blog.Variables.Values)");
                 sw.WriteLine(prefix + "    {");
                 sw.WriteLine(prefix + "        switch (vlog.VariableId)");
@@ -27,9 +30,22 @@ namespace Zeze.Gen.confcs
                         continue;
                     v.VariableType.Accept(new FollowerApply(v, sw, prefix + "        "));
                 }
+                if (hasSchemaBase)
+                {
+                    sw.WriteLine(prefix + "            default:");
+                    sw.WriteLine(prefix + "                (inherited ??= new Zeze.Transaction.Collections.LogBean()).Variables.Add(vlog.VariableId, vlog);");
+                    sw.WriteLine(prefix + "                break;");
+                }
                 sw.WriteLine(prefix + "        }");
                 sw.WriteLine(prefix + "    }");
+                if (hasSchemaBase)
+                {
+                    sw.WriteLine(prefix + "    if (inherited != null)");
+                    sw.WriteLine(prefix + "        base.FollowerApply(inherited);");
+                }
             }
+            else if (hasSchemaBase)
+                sw.WriteLine(prefix + "    base.FollowerApply(log);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -81,7 +97,7 @@ namespace Zeze.Gen.confcs
 
         public void Visit(Types.TypeList type)
         {
-            var v = type.ValueType.IsNormalBean ? "2" : "1";
+            var v = type.ValueType.IsNormalBean || type.ValueType is TypeDynamic ? "2" : "1";
             sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyList{v}({var.NameUpper1}, vlog); break;");
         }
 
@@ -92,13 +108,13 @@ namespace Zeze.Gen.confcs
 
         public void Visit(Types.TypeMap type)
         {
-            var v = type.ValueType.IsNormalBean ? "2" : "1";
+            var v = type.ValueType.IsNormalBean || type.ValueType is TypeDynamic ? "2" : "1";
             sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyMap{v}({var.NameUpper1}, vlog); break;");
         }
 
         public void Visit(Types.TypeSortedMap type)
         {
-            var v = type.ValueType.IsNormalBean ? "2" : "1";
+            var v = type.ValueType.IsNormalBean || type.ValueType is TypeDynamic ? "2" : "1";
             sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyMap{v}({var.NameUpper1}, vlog); break;");
         }
 
@@ -114,7 +130,7 @@ namespace Zeze.Gen.confcs
 
         public void Visit(Types.TypeDynamic type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = Zeze.Transaction.Collections.CollApply.ApplyDynamic({var.NameUpper1}, vlog); break;");
         }
 
         public void Visit(Types.TypeQuaternion type)

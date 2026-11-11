@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -176,11 +176,11 @@ namespace Zeze.Util
         public override void FollowerApply(Log log)
         {
             var dLog = (LogConfDynamic)log;
-            if (dLog.Value != null)
+            if (dLog.HasValue)
             {
                 // 内部Bean整个被替换。
                 _TypeId = dLog.SpecialTypeId;
-                _Bean = dLog.Value;
+                _Bean = dLog.Value ?? ConfEmptyBean.Instance;
             }
             else if (dLog.LogBean != null) // 安全写法，不检查应该是没问题的？
             {
@@ -203,6 +203,7 @@ namespace Zeze.Util
 
         public override int TypeId => TypeId_;
 
+        public bool HasValue { get; private set; }
         public long SpecialTypeId { get; private set; }
         public ConfBean Value { get; private set; }
         public LogBean LogBean { get; private set; }
@@ -214,26 +215,19 @@ namespace Zeze.Util
 
         public override void Decode(ByteBuffer bb)
         {
-            var parentTypeName = bb.ReadString();
-            var varId = bb.ReadInt();
-            var hasValue = bb.ReadBool();
-            if (hasValue)
+            HasValue = bb.ReadBool();
+            Value = null;
+            SpecialTypeId = ConfEmptyBean.TYPEID;
+            LogBean = null;
+            if (HasValue)
             {
-                SpecialTypeId = bb.ReadLong();
-                var parentType = Reflect.GetType(parentTypeName);
-                var factory = parentType.GetMethod("CreateBeanFromSpecialTypeId_" + varId, new[] { typeof(long) });
-                // ReSharper disable once PossibleNullReferenceException
-                Value = (ConfBean)factory.Invoke(null, new object[] { SpecialTypeId });
-                Value.Decode(bb);
+                Value = DynamicField.ReadReplacement(bb, out var specialTypeId);
+                SpecialTypeId = specialTypeId;
             }
-            else
+            else if (bb.ReadBool())
             {
-                var hasLogBean = bb.ReadBool();
-                if (hasLogBean)
-                {
-                    LogBean = new LogBean();
-                    LogBean.Decode(bb);
-                }
+                LogBean = new LogBean();
+                LogBean.Decode(bb);
             }
         }
     }

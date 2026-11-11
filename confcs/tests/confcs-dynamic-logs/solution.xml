@@ -1,0 +1,46 @@
+<solution name="ConfCsDynamicLogs" ModuleIdAllowRanges="1">
+    <module name="Demo" id="1">
+        <bean name="Amount">
+            <variable id="1" name="value" type="int"/>
+        </bean>
+        <bean name="Quantity">
+            <variable id="1" name="value" type="int"/>
+        </bean>
+        <bean name="Detail">
+            <variable id="1" name="payload" type="dynamic">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="2" name="revision" type="int"/>
+        </bean>
+        <bean name="Order" extendable="true">
+            <variable id="1" name="amounts" type="list" value="dynamic">
+                <value bean="Amount:7"/>
+            </variable>
+            <variable id="2" name="quantities" type="list" value="dynamic">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="7" name="directQuantity" type="dynamic">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="8" name="quantityMap" type="map[int,dynamic]">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="9" name="amountSorted" type="sortedmap[int,dynamic]">
+                <value bean="Amount:7"/>
+            </variable>
+            <variable id="10" name="detail" type="Detail"/>
+        </bean>
+        <bean name="DerivedOrder" base="Order">
+            <variable id="11" name="localRevision" type="int"/>
+        </bean>
+    </module>
+    <project name="Server" GenDir="obj/java" SrcDir="obj/java-src" platform="java">
+        <bean ref="ConfCsDynamicLogs.Demo.Order"/>
+    </project>
+    <project name="Client" GenDir="obj/csharp" SrcDir="obj/csharp-src" platform="conf+cs+net">
+        <bean ref="ConfCsDynamicLogs.Demo.DerivedOrder"/>
+        <FollowerApplyTables>
+            <bean ref="ConfCsDynamicLogs.Demo.DerivedOrder"/>
+        </FollowerApplyTables>
+    </project>
+</solution>

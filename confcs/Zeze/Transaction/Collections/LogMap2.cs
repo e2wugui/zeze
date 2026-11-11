@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
 using Zeze.Util;
@@ -6,12 +6,21 @@ using Zeze.Util;
 namespace Zeze.Transaction.Collections
 {
     public class LogMap2<K, V> : LogMap1<K, V>
-        where V : ConfBean, new()
+        where V : ConfBean
     {
         public new static readonly string StableName = Reflect.GetStableName(typeof(LogMap2<K, V>));
         public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
+
+        public LogMap2()
+        {
+        }
+
+        public LogMap2(System.Func<ByteBuffer, V> readValue)
+            : base(readValue)
+        {
+        }
 
         // changed V logs. using in collect.
         // ReSharper disable once CollectionNeverUpdated.Global

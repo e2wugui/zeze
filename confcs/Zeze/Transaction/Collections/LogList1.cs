@@ -12,6 +12,18 @@ namespace Zeze.Transaction.Collections
 
         public override int TypeId => TypeId_;
 
+        private readonly System.Func<ByteBuffer, E> readValue;
+
+        public LogList1()
+            : this(SerializeHelper<E>.Decode)
+        {
+        }
+
+        protected LogList1(System.Func<ByteBuffer, E> readValue)
+        {
+            this.readValue = readValue;
+        }
+
         public class OpLog
         {
             public const int OP_MODIFY = 0;
@@ -70,7 +82,7 @@ namespace Zeze.Transaction.Collections
                 int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
                 E value = default;
                 if (op < OpLog.OP_REMOVE)
-                    value = SerializeHelper<E>.Decode(bb);
+                    value = readValue(bb);
                 OpLogs.Add(new OpLog(op, index, value));
             }
         }

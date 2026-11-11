@@ -5,6 +5,21 @@ namespace Zeze.Transaction.Collections
     // for conf+cs+net
     public class CollApply
     {
+        public static V ApplyDynamic<V>(V value, Log log) where V : Util.ConfBean
+        {
+            if (value is Util.ConfDynamicBean wrapper)
+            {
+                wrapper.FollowerApply(log);
+                return value;
+            }
+            var dynamicLog = (Util.LogConfDynamic)log;
+            if (dynamicLog.HasValue)
+                return (V)dynamicLog.Value;
+            if (dynamicLog.LogBean != null)
+                value?.FollowerApply(dynamicLog.LogBean);
+            return value;
+        }
+
         public static void ApplyList1<E>(List<E> _list, Log _log)
         {
             var log = (LogList1<E>)_log;
@@ -29,33 +44,22 @@ namespace Zeze.Transaction.Collections
         }
 
         public static void ApplyList2<E>(List<E> _list, Log _log)
-            where E : Util.ConfBean, new()
+            where E : Util.ConfBean
         {
             var log = (LogList2<E>)_log;
-            foreach (var opLog in log.OpLogs)
-            {
-                switch (opLog.op)
-                {
-                    case LogList1<E>.OpLog.OP_MODIFY:
-                        _list[opLog.index] = opLog.value;
-                        break;
-                    case LogList1<E>.OpLog.OP_ADD:
-                        _list.Insert(opLog.index, opLog.value);
-                        break;
-                    case LogList1<E>.OpLog.OP_REMOVE:
-                        _list.RemoveAt(opLog.index);
-                        break;
-                    case LogList1<E>.OpLog.OP_CLEAR:
-                        _list.Clear();
-                        break;
-                }
-            }
+            ApplyList1(_list, log);
 
             // apply changed：Changed 的 index 是服务端最终列表坐标，且服务端 encode 侧已按
             // addSet 身份过滤结构 op 携带 bean 的冗余条目，这里直接全量应用。
             // （旧的 op 时 index 启发式 newest 与最终坐标系在位移/加删相消时错位，会误跳过丢编辑。）
             foreach (var e in log.Changed)
-                _list[e.Value.Value].FollowerApply(e.Key);
+            {
+                int index = e.Value.Value;
+                if (e.Key is Util.LogConfDynamic)
+                    _list[index] = ApplyDynamic(_list[index], e.Key);
+                else
+                    _list[index].FollowerApply(e.Key);
+            }
         }
 
         public static void ApplyMap1<K, V>(Dictionary<K, V> _map, Log _log)
@@ -68,7 +72,7 @@ namespace Zeze.Transaction.Collections
         }
 
         public static void ApplyMap2<K, V>(Dictionary<K, V> _map, Log _log)
-            where V : Util.ConfBean, new()
+            where V : Util.ConfBean
         {
             var log = (LogMap2<K, V>)_log;
 
@@ -81,7 +85,12 @@ namespace Zeze.Transaction.Collections
             foreach (var e in log.ChangedWithKey)
             {
                 if (_map.TryGetValue(e.Key, out var value))
-                    value.FollowerApply(e.Value);
+                {
+                    if (e.Value is Util.LogConfDynamic)
+                        _map[e.Key] = ApplyDynamic(value, e.Value);
+                    else
+                        value.FollowerApply(e.Value);
+                }
             }
         }
 
@@ -95,7 +104,7 @@ namespace Zeze.Transaction.Collections
         }
 
         public static void ApplyMap2<K, V>(SortedDictionary<K, V> _map, Log _log)
-            where V : Util.ConfBean, new()
+            where V : Util.ConfBean
         {
             var log = (LogSortedMap2<K, V>)_log;
 
@@ -108,7 +117,12 @@ namespace Zeze.Transaction.Collections
             foreach (var e in log.ChangedWithKey)
             {
                 if (_map.TryGetValue(e.Key, out var value))
-                    value.FollowerApply(e.Value);
+                {
+                    if (e.Value is Util.LogConfDynamic)
+                        _map[e.Key] = ApplyDynamic(value, e.Value);
+                    else
+                        value.FollowerApply(e.Value);
+                }
             }
         }
 

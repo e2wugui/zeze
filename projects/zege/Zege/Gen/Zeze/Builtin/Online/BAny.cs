@@ -93,7 +93,7 @@ namespace Zeze.Builtin.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: Any.FollowerApply(vlog); break;
+                    case 1: Any = Zeze.Transaction.Collections.CollApply.ApplyDynamic(Any, vlog); break;
                 }
             }
         }
