@@ -127,10 +127,21 @@ public class TestOnz {
 		assertPersistedCollections(zeze2, -1);
 	}
 
-	private static void assertPersistedCollections(App app, int value) {
+	// perform返回≠storage可读：Checkpoint.flushInternal先FlushReady-ack（perform放行）后writeTo落库
+	// （Checkpoint.java flushInternal的prepare段通知在落库段之前）——Memory写µs级窗口不可见；
+	// Dbh2写=开桶+raft 2pc百ms级（soak-20261111-1513批实证：读时桶才首次open+leader翻转），
+	// awaitOnzFlushSettled只观onz协议socket静默盖不住。有界轮询storage可见再断言：超时仍空
+	// =flush写真未达storage（2pc失败/降级），是诚实的红而非时序噪声；30s对齐flushTimeout口径。
+	private static void assertPersistedCollections(App app, int value) throws Exception {
 		var application = requireNonNull(app.Zeze);
 		var table = (tflush)application.getTable("demo_Module1_tflush");
-		var persisted = requireNonNull(requireNonNull(table).selectFromDatabase((long)application.getConfig().getServerId()));
+		var key = (long)application.getConfig().getServerId();
+		demo.Module1.BValue persisted;
+		var deadline = System.currentTimeMillis() + 30_000;
+		while ((persisted = requireNonNull(table).selectFromDatabase(key)) == null
+				&& System.currentTimeMillis() < deadline)
+			Thread.sleep(100);
+		requireNonNull(persisted);
 		Assertions.assertEquals((long)value, persisted.getMap15().get(1L));
 		Assertions.assertEquals(value, requireNonNull(persisted.getMap41().get(1L)).getInt_1());
 	}
