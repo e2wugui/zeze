@@ -48,19 +48,16 @@ public class LogBean extends Log {
 		return self;
 	}
 
-	// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
-
 	@Override
 	public void encode(ByteBuffer bb) {
 		var vars = variables;
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
-			for (var it = vars.iterator(); it.moveToNext(); ) {
-				Log log = it.value();
+			vars.foreach((key, log) -> {
 				var field = log instanceof LogBean beanLog ? beanLog.dynamicField() : null;
 				LogRegistry.encodeChildHeader(bb, log, field);
 				log.encode(bb);
-			}
+			});
 		} else
 			bb.WriteUInt(0);
 	}
@@ -79,8 +76,6 @@ public class LogBean extends Log {
 		} else if (variables != null)
 			variables.clear();
 	}
-
-	// 仅发生在事务执行期间。decode-Apply不会执行到这里。
 
 	@Override
 	public String toString() {

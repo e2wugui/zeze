@@ -18,6 +18,7 @@ namespace Zeze.Builtin.Online
         public const int ResultCodeOnlineDataNotFound = 5;
         public const int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
         public const int ResultCodeNotLogin = 7;
+        public const int ResultCodeLoginSuperseded = 8; // 登录过程中已被其他成功登录取代
         public const int eOffline = 0;
         public const int eLinkBroken = 1;
         public const int eLogined = 2;
