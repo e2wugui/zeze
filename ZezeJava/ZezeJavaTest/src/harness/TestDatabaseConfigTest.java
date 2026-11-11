@@ -187,12 +187,29 @@ public class TestDatabaseConfigTest {
 			assertEquals("dbh2://127.0.0.1:10999/dbh2_unittest", db.getDatabaseUrl());
 			assertNull(db.getDruidConf(), "Dbh2不动连接池配置");
 		}
+		// 远程提交模式：协调端点为环境内CommitServer，app无本地CommitService。
+		assertFalse(config.isDbh2LocalCommit());
+		var customize = config.getCustomizes().get("Dbh2Config");
+		assertNotNull(customize);
+		assertEquals(TestDatabaseConfig.COMMIT_SERVER_ADDRESS, customize.getAttribute("CommitServerAddress"));
 		// databaseName不被重定向触碰：fixture预置的保持预置值，未预置的保持DatabaseConf默认。
 		assertEquals("test_database", config.getDatabaseConfMap().get("shared").getDatabaseName());
 		assertEquals("127.0.0.1", config.getGlobalCacheManagerHostNameOrAddress(),
 				"Dbh2与GCM无互斥硬闸，Global保持（区别于RocksDb分支）");
 		// 已选后端不重复切换（对齐JDBC路径的空集早退语义）。
 		assertSame(config, TestDatabaseConfig.apply(config, "unsupported", null));
+	}
+
+	@Test
+	public void dbh2CommitServerAddressMatchesZezeXmlAcceptor() throws Exception {
+		// 三处同源漂移守卫：harness注入地址 == listener端口常量 == zeze.xml的Zeze.Dbh2.Commit Acceptor。
+		var text = java.nio.file.Files.readString(java.nio.file.Path.of("zeze.xml"));
+		var m = java.util.regex.Pattern.compile(
+				"<ServiceConf Name=\"Zeze\\.Dbh2\\.Commit\">\\s*<Acceptor Ip=\"([^\"]*)\" Port=\"(\\d+)\"\\s*/>")
+				.matcher(text);
+		assertTrue(m.find(), "zeze.xml须有Zeze.Dbh2.Commit的Acceptor（环境CommitServer绑定与app连接的事实来源）");
+		assertEquals(m.group(1) + ":" + m.group(2), TestDatabaseConfig.COMMIT_SERVER_ADDRESS);
+		assertEquals(7788, TestEnvLauncherListener.DBH2_COMMIT_SERVER_PORT);
 	}
 
 	@Test

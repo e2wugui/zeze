@@ -10,19 +10,20 @@ BATCH="$ROOT/soak-$(date +%Y%m%d-%H%M)"
 mkdir -p "$BATCH"
 XMLBASE="$ROOT/ZezeJava/ZezeJavaTest/build/test-results"
 
-summarize() { # $1=task dir name -> "tests/failures"
+summarize() { # $1=task dir name -> "tests/failures" 或 "SKIPPED"（车道未执行，无XML）
   TASK_DIR="$1" XMLBASE="$XMLBASE" python - <<'EOF'
 import sys, os, glob, re
 base, d = os.environ['XMLBASE'], os.environ['TASK_DIR']
 tests = fails = 0
-for f in glob.glob(os.path.join(base, d, 'TEST-*.xml')):
+files = glob.glob(os.path.join(base, d, 'TEST-*.xml'))
+for f in files:
     head = open(f, encoding='utf-8', errors='replace').read(2000)
     m = re.search(r'tests="(\d+)"', head)
     n = re.search(r'(?:failures|errors)="(\d+)"', head)
     if m:
         tests += int(m.group(1))
         fails += int(n.group(1)) if n else 0
-print(f"{tests}/{fails}f")
+print(f"{tests}/{fails}f" if files else "SKIPPED")
 EOF
 }
 
@@ -53,11 +54,26 @@ if [ -n "$zombie_ports" ]; then
 fi
 for i in $(seq "$START" "$ROUNDS"); do
   echo "=== round $i start $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$BATCH/master.log"
+  # 轮前清各车道XML结果目录：gradle跳过的车道（依赖失败）不会留旧XML，杜绝上轮结果被陈旧回读
+  # 当成本轮（soak-20261110-1938批7轮"216/3f"实为第1轮XML回声的实锤）。
+  rm -rf "$XMLBASE/test" "$XMLBASE/integrationTest" "$XMLBASE/extraTest" "$XMLBASE/bench"
   # SOAK_EXTRA_ARGS：附加gradle参数透传（如MySQL重定向 -PzezeTestDatabase=MySql -PzezeTestDatabaseUrl=...）
   ./gradlew :ZezeJavaTest:test :ZezeJavaTest:integrationTest :ZezeJavaTest:extraTest :ZezeJavaTest:bench --continue --rerun-tasks --console=plain ${SOAK_EXTRA_ARGS:-} > "$BATCH/round$i.log" 2>&1
+  # assembleHot竞态重试：test车道JVM退出后句柄释放滞后（Windows），紧随其后的assembleHot
+  # 换jar Files.move遇AccessDeniedException，IT/extra/bench被连带跳过（同批次实锤；批次结束后
+  # 单跑6s即成功）。只对这一已知瞬态重试一次，且在轮内重试（轮间sleep够不着这个间隙），
+  # 其他失败照旧上抛不掩盖。
+  if grep -q "assembleHot FAILED" "$BATCH/round$i.log"; then
+    echo "--- assembleHot retry after 10s ---" >> "$BATCH/round$i.log"
+    sleep 10
+    # 只补跑assembleHot及其下游车道：test车道首轮已完成且XML已在，不必重跑。
+    ./gradlew :ZezexJava:server:assembleHot :ZezeJavaTest:integrationTest :ZezeJavaTest:extraTest :ZezeJavaTest:bench --continue --rerun-tasks --console=plain ${SOAK_EXTRA_ARGS:-} >> "$BATCH/round$i.log" 2>&1
+  fi
   rc=$?
   line="round$i: test=$(summarize test) integrationTest=$(summarize integrationTest) extraTest=$(summarize extraTest) bench=$(summarize bench) rc=$rc"
   echo "$line" >> "$BATCH/master.log"
   echo "=== round $i end $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$BATCH/master.log"
+  # 轮间歇：上轮末尾JVM句柄/临时文件释放余量（Windows），8min轮次下零成本。
+  [ "$i" -lt "$ROUNDS" ] && sleep 10
 done
 echo "batch done $(date '+%Y-%m-%d %H:%M:%S')" >> "$BATCH/master.log"

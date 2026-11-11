@@ -3,8 +3,11 @@ package harness;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import java.util.HashSet;
+import Zeze.Application;
 import Zeze.Config;
+import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Services.GlobalCacheManagerAsyncServer;
+import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManagerServer;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -40,6 +43,9 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 	public static final int GLOBAL_CACHE_MANAGER_PORT = 5002;
 	public static final int SERVICE_MANAGER_PORT_2 = 5011;
 	public static final int GLOBAL_CACHE_MANAGER_PORT_2 = 5012;
+	// Dbh2远程提交模式的CommitServer端口：与ZezeJavaTest/zeze.xml的Zeze.Dbh2.Commit
+	// Acceptor一致（TestDatabaseConfigTest漂移守卫校验）。test/Dbh2部署集同款惯例。
+	public static final int DBH2_COMMIT_SERVER_PORT = 7788;
 
 	private static final Logger logger = LogManager.getLogger(TestEnvLauncherListener.class);
 
@@ -55,6 +61,12 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 	private static @Nullable ServiceManagerServer serviceManager2;
 	private static @Nullable GlobalCacheManagerAsyncServer globalCacheManager2;
 	private static boolean globalCacheManager2Started;
+	// Dbh2远程提交模式的进程内CommitServer（仅zeze.test.database=Dbh2时启动）：
+	// 协调端点常驻，被中断的2pc由其自治恢复；本地CommitRocks落cwd跨车道持久，
+	// 后继车道/批次start时redoTimer重放前任未决事务——跨生命周期自愈。
+	private static @Nullable Dbh2AgentManager dbh2CommitServer;
+	private static @Nullable AbstractAgent dbh2CommitServerAgent;
+	private static boolean dbh2CommitServerStarted;
 	private static boolean envStarted;
 
 	@Override
@@ -102,6 +114,19 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 				globalCacheManager.start(null, GLOBAL_CACHE_MANAGER_PORT, null);
 				globalCacheManagerStarted = true;
 			}
+			// Dbh2远程提交模式（-PzezeTestDatabase=Dbh2）：CommitServer加入环境——重定向app的
+			// 2pc协调端点（本地提交模式下app从不启动manager，7788无人监听，悬挂事务探测永远
+			// 超时→桶键锁死→后来者撞键红，soak两批次实锤）。端口被占即复用外部实例（同SM惯例）。
+			if ("Dbh2".equals(System.getProperty("zeze.test.database"))
+					&& !TestEnv.portReachable("127.0.0.1", DBH2_COMMIT_SERVER_PORT)) {
+				var agent = Application.createServiceManager(Config.load(), "Dbh2CommitServerEnv");
+				agent.start();
+				agent.waitReady();
+				dbh2CommitServerAgent = agent;
+				dbh2CommitServer = new Dbh2AgentManager(agent, null);
+				dbh2CommitServer.start();
+				dbh2CommitServerStarted = true;
+			}
 			// 第二对（独立集群，仅 Onz.TestOnz 需要，同样由本 listener 自动启动）：
 			// autokeys 目录必须与第一对分开（RocksDB 目录锁），故用 "autokeys2"。
 			if (!TestEnv.portReachable("127.0.0.1", SERVICE_MANAGER_PORT_2)) {
@@ -121,6 +146,24 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 
 	@Override
 	public void launcherSessionClosed(LauncherSession session) {
+		if (dbh2CommitServerStarted) {
+			dbh2CommitServerStarted = false;
+			try {
+				Objects.requireNonNull(dbh2CommitServer).stop();
+			} catch (Exception e) {
+				logger.error("close Dbh2CommitServer failed", e);
+			}
+			dbh2CommitServer = null;
+		}
+		if (dbh2CommitServerAgent != null) {
+			var agent = dbh2CommitServerAgent;
+			dbh2CommitServerAgent = null;
+			try {
+				agent.close();
+			} catch (Exception e) {
+				logger.error("close Dbh2CommitServer SM agent failed", e);
+			}
+		}
 		if (globalCacheManagerStarted) {
 			globalCacheManagerStarted = false;
 			try {

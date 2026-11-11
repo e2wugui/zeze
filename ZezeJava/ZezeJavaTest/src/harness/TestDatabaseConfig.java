@@ -21,6 +21,11 @@ import org.jspecify.annotations.Nullable;
  */
 public final class TestDatabaseConfig {
 
+	/** 远程提交模式的CommitServer直连地址：与TestEnvLauncherListener.DBH2_COMMIT_SERVER_PORT及
+	 * ZezeJavaTest/zeze.xml的Zeze.Dbh2.Commit Acceptor一致（自测漂移守卫校验三处同源）。 */
+	static final String COMMIT_SERVER_ADDRESS =
+			"127.0.0.1:" + TestEnvLauncherListener.DBH2_COMMIT_SERVER_PORT;
+
 	private TestDatabaseConfig() {
 	}
 
@@ -80,8 +85,11 @@ public final class TestDatabaseConfig {
 			// 须已启动；master直连url的ip:port，不经SM发现），不接受-P url。
 			// 不动druidConf；不摘Global（createDatabase的Dbh2分支无硬闸，可与GCM共存）；
 			// databaseName不触碰（共享库持久语义对齐JDBC/MongoDb批次）。
-			// 应用需要ServiceManager（Dbh2AgentManager的tidAutoKey）；本地提交CommitRocks{serverId}
-			// 是RocksDB目录锁，并发多App测试沿用keepOriginal豁免（同RocksDb惯例）。
+			// 应用需要ServiceManager（Dbh2AgentManager的tidAutoKey）；多App测试沿用keepOriginal豁免。
+			// 远程提交模式：2pc协调端点为环境内CommitServer（TestEnvLauncherListener按需启动或
+			// 复用外部，见COMMIT_SERVER_ADDRESS），app自身无CommitService与CommitRocks——被中断
+			// 的2pc由CommitServer自治恢复，桶侧悬挂事务探测有稳定目标（本地提交模式下app从不启动
+			// manager，探测端点无人监听→事务锁死桶键→后来者撞键红，soak两批次实锤）。
 			if (url != null && !url.isBlank())
 				throw new IllegalStateException("zeze.test.database=Dbh2 不接受 zeze.test.database.url"
 						+ "：连接串以 ZezeJavaTest/zeze.xml 的 Dbh2 DatabaseConf 为准");
@@ -93,6 +101,9 @@ public final class TestDatabaseConfig {
 				db.setDatabaseType(Config.DbType.Dbh2);
 				db.setDatabaseUrl(dbh2Url);
 			}
+			config.setDbh2LocalCommit(false);
+			config.getCustomizes().putIfAbsent("Dbh2Config",
+					dbh2CommitServerConf(COMMIT_SERVER_ADDRESS));
 			return config;
 		}
 		for (var db : databases) {
@@ -142,6 +153,19 @@ public final class TestDatabaseConfig {
 			return value;
 		}
 		throw new IllegalStateException(zezeXml + " 中未找到 DatabaseType=\"Dbh2\" 的 DatabaseConf（含DatabaseUrl）");
+	}
+
+	/** 合成Dbh2Config的CustomizeConf元素（CommitServerAddress），经getCustomizes注入，
+	 * Dbh2AgentManager构造期parseCustomize消费；配置文件中已有同名条目时不覆盖（putIfAbsent）。 */
+	private static org.w3c.dom.Element dbh2CommitServerConf(String address) {
+		try {
+			var xml = "<CustomizeConf Name=\"Dbh2Config\" CommitServerAddress=\"" + address + "\"/>";
+			var builder = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			var doc = builder.parse(new java.io.ByteArrayInputStream(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+			return doc.getDocumentElement();
+		} catch (Exception e) {
+			throw new IllegalStateException("create Dbh2Config CustomizeConf element failed", e);
+		}
 	}
 
 	/** 直接测试数据库适配器时也使用同一选择；null表示未选择本后端，调用方须明确中止测试。 */

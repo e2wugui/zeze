@@ -75,7 +75,19 @@ public final class Dbh2TestEnv {
 		serviceManager.start();
 		serviceManager.waitReady();
 
-		dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 100);
+		// 进程内Commit服务端口与部署集/环境CommitServer(7788)解耦：zeze.test.database=Dbh2时
+		// TestEnvLauncherListener常驻一个CommitServer在7788，本env的本地提交绑定独立端口才不冲突
+		//（commitServiceAcceptor读config的acceptor端口，端口唯一即发布的事实端点）。
+		var envConfig = Config.load();
+		var commitServiceConf = envConfig.getServiceConfMap().get("Zeze.Dbh2.Commit");
+		if (commitServiceConf != null) {
+			var port = 7790 + (int)(envCycle.get() % 64) * 8;
+			commitServiceConf.forEachAcceptor2(a -> {
+				a.setPort(port);
+				return false;
+			});
+		}
+		dbh2AgentManager = new Dbh2AgentManager(serviceManager, envConfig, 100);
 		try {
 			master.start();
 			for (int i = 0; i < 3; ++i)
