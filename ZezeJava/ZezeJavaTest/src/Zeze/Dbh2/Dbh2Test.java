@@ -11,7 +11,9 @@ import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Config;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Dbh2.Dbh2AgentManager;
+import Zeze.Net.Acceptor;
 import Zeze.Net.Binary;
+import Zeze.Net.ServiceConf;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.RocksDatabase;
@@ -88,7 +90,15 @@ public class Dbh2Test {
 		serviceManager.waitReady();
 		// CommitRocks home 重定向到临时目录（默认会落在cwd下CommitRocks{serverId}）。
 		System.setProperty("Dbh2CommitRocksHome", tempDir.resolve("CommitRocks").toString());
-		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 101);
+		// 让出7788给环境CommitServer（zeze.test.database=Dbh2 时 TestEnvLauncherListener 在进程内
+		// 先占7788，本测试自带的localCommit协调者再绑即确定性冲突，soak-20261111-1513批实锤）：
+		// 改绑独立口（Zezex server.xml本地Commit=7789同因先例，本测试顺延7791）。桶侧悬挂事务
+		// 查询地址由commitServiceAcceptor()从同一config的acceptor派生，随端口自动跟随，无第二处。
+		var managerConfig = Config.load();
+		var commitConf = new ServiceConf();
+		commitConf.addAcceptor(new Acceptor(7791, "127.0.0.1"));
+		managerConfig.getServiceConfMap().put("Zeze.Dbh2.Commit", commitConf);
+		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, managerConfig, 101);
 		try {
 			final var db = "database";
 			final var tb1 = "table1";
