@@ -35,11 +35,11 @@ import static Zeze.Onz.GcOnzFastStubSupport.*;
  */
 @Fast
 public class TestDecodeFailCompletesFuture {
-	// 892段：serverId=892，SM端口51893；桩参与方端口按测试方法错开（31894/31895/51896，
-	// 注册缺省"Onz"——两参构造器路径）：Service.stop()的解绑是异步的，同端口跨方法立即
-	// 重绑会撞TIME_WAIT窗口（FND20一脚手架每类一方法故未暴露）。
+	// 892段：serverId=892，SM端口由脚手架带外选口（原固定31893，SM UDP端口族根治时收编）；
+	// 桩参与方端口按测试方法错开（31894/31895/51896，注册缺省"Onz"——两参构造器路径）：
+	// Service.stop()的解绑是异步的，同端口跨方法立即重绑会撞TIME_WAIT窗口（FND20一脚手架
+	// 每类一方法故未暴露）。
 	private static final int ServerId = 892;
-	private static final int SmPort = 31893;
 	private static final String Cluster = "zeze892";
 	private static final String ProcedureName = "decodeFailProc";
 	private static final String SagaName = "decodeFailSaga";
@@ -47,7 +47,7 @@ public class TestDecodeFailCompletesFuture {
 	private GcOnzFastStubSupport.@Nullable OnzFixture fixture;
 
 	private void startFixture(int stubPort) throws Exception {
-		fixture = startNonSharedOnzServer(ServerId, SmPort, java.nio.file.Files.createTempDirectory("decodeFail"),
+		fixture = startNonSharedOnzServer(ServerId, java.nio.file.Files.createTempDirectory("decodeFail"),
 				Cluster, 891,
 				new StubSpec("Onz", "894", stubPort, TestDecodeFailCompletesFuture::installStubHandles));
 	}

@@ -43,10 +43,10 @@ import static Zeze.Onz.GcOnzFastStubSupport.startNonSharedOnzServer;
 @Fast
 @ResourceLock("onz-server-logger") // 共享log4j2 OnzServer logger操纵的测试类互斥（addAppender/setLevel竞态，FND22门禁插曲）
 public class TestRedoFailAgedSettle {
-	// 894段：FND21 Gc系已占890-893，本类错开（894/51897）；Commit桩51898（仅自愈用例单方法
-	// 使用，无跨方法重绑端口问题）、集群xml ServerId=895（C02的"894"只是桩identity字符串）。
+	// 894段：FND21 Gc系已占890-893，本类错开（894）；SM端口由脚手架带外选口（原固定31897，
+	// SM UDP端口族根治时收编）；Commit桩31898（仅自愈用例单方法使用，无跨方法重绑端口问题）、
+	// 集群xml ServerId=895（C02的"894"只是桩identity字符串）。
 	private static final int ServerId = 894;
-	private static final int SmPort = 31897;
 	private static final int CommitStubPort = 31898;
 	private static final int ClusterConfigServerId = 895;
 
@@ -67,7 +67,7 @@ public class TestRedoFailAgedSettle {
 	@Timeout(90)
 	public void testAgedRedoFailDiagnosedDedupThenSettled() throws Exception {
 		// 无通告zeze1（零桩）：getZezeInstance真实抛出（除名集群/无通告=第五类稳定成因）
-		try (var f = startNonSharedOnzServer(ServerId, SmPort, tempDir, "zeze1", ClusterConfigServerId)) {
+		try (var f = startNonSharedOnzServer(ServerId, tempDir, "zeze1", ClusterConfigServerId)) {
 			var commitIndex = tableOf(f.onzServer, "commitIndex");
 			var commitPoint = tableOf(f.onzServer, "commitPoint");
 			// 超龄eCommitting孤儿+procedure参与方"zeze1"：redo直入参与者解析即抛，年龄超1h门槛。
@@ -131,7 +131,7 @@ public class TestRedoFailAgedSettle {
 	@Test
 	@Timeout(90)
 	public void testYoungRedoFailKeepsFullLogUnregistered() throws Exception {
-		try (var f = startNonSharedOnzServer(ServerId, SmPort, tempDir, "zeze1", ClusterConfigServerId)) {
+		try (var f = startNonSharedOnzServer(ServerId, tempDir, "zeze1", ClusterConfigServerId)) {
 			var commitIndex = tableOf(f.onzServer, "commitIndex");
 			// 年龄60s（<1h门槛；eCommitting无ePreparing的120s年龄闸，redo立即执行）
 			writeAgedOrphan(f.onzServer, YoungTid, AbstractOnz.eCommitting, "zeze1", 60_000);
@@ -166,7 +166,7 @@ public class TestRedoFailAgedSettle {
 	@Test
 	@Timeout(90)
 	public void testTransientSelfHealRecyclesRedoFailTid() throws Exception {
-		try (var f = startNonSharedOnzServer(ServerId, SmPort, tempDir, "zeze1", ClusterConfigServerId)) {
+		try (var f = startNonSharedOnzServer(ServerId, tempDir, "zeze1", ClusterConfigServerId)) {
 			var commitIndex = tableOf(f.onzServer, "commitIndex");
 			var commitPoint = tableOf(f.onzServer, "commitPoint");
 			writeAgedOrphan(f.onzServer, SelfHealTid, AbstractOnz.eCommitting, "zeze1",
@@ -178,7 +178,7 @@ public class TestRedoFailAgedSettle {
 			var stub = startCommitStub();
 			Agent agent = null;
 			try {
-				agent = registerStubToSm("895", CommitStubPort);
+				agent = registerStubToSm(f.smPort, "895", CommitStubPort);
 				waitZezeInstanceReady(f.onzServer);
 				invokeRedoTimer(f.onzServer); // Commit应答0→removeOk
 				Assertions.assertEquals(0, count(commitIndex), "参与方恢复后redo收敛删除记录");
@@ -207,9 +207,9 @@ public class TestRedoFailAgedSettle {
 	}
 
 	/** 桩服务向fixture的进程内SM注册"Onz"服务（参与方地址发现走getZezeInstance真实路径）。 */
-	private static Agent registerStubToSm(String identity, int stubPort) throws Exception {
+	private static Agent registerStubToSm(int smPort, String identity, int stubPort) throws Exception {
 		var agent = new Agent(new Config());
-		agent.getClient().getConfig().addConnector(new Connector("127.0.0.1", SmPort));
+		agent.getClient().getConfig().addConnector(new Connector("127.0.0.1", smPort));
 		agent.start();
 		agent.waitReady();
 		agent.registerService(new BServiceInfo("Onz", identity, 0, "127.0.0.1", stubPort));

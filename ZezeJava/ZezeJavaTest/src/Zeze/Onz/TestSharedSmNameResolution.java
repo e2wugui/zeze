@@ -24,9 +24,9 @@ import static Zeze.Onz.GcOnzFastStubSupport.*;
 @Fast
 public class TestSharedSmNameResolution {
 	// 890段：serverId=890（协调者RocksDB目录CommitOnzServer890），共享配置xml ServerId=893，
-	// 桩端口31891/51892、SM端口51890——@Fast并行与其他类（含FND20的85x/5185x段）零冲突。
+	// 桩端口31891/31892、SM端口由脚手架带外选口（原固定31890，SM UDP端口族根治时收编）
+	// ——@Fast并行与其他类（含FND20的85x/3185x段）零冲突。
 	private static final int ServerId = 890;
-	private static final int SmPort = 31890;
 	private static final int SharedConfigServerId = 893;
 	private static final String NameA = "zeze890";
 	private static final String NameB = "zeze891";
@@ -41,7 +41,7 @@ public class TestSharedSmNameResolution {
 	@Test
 	@Timeout(90)
 	public void testSharedModeResolvesPerClusterName(@TempDir Path tempDir) throws Exception {
-		try (var fixture = startSharedOnzServer(ServerId, SmPort, tempDir, SharedConfigServerId,
+		try (var fixture = startSharedOnzServer(ServerId, tempDir, SharedConfigServerId,
 				NameA + ";" + NameB,
 				new StubSpec(NameA, "891", PortA, null),
 				new StubSpec(NameB, "892", PortB, null))) {
