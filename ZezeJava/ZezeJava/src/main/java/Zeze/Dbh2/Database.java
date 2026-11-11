@@ -374,6 +374,9 @@ public class Database extends Zeze.Transaction.Database {
 		// Procedure.Exception（-1）：master侧handler异常逃逸（createBucketRafts超时/建桶rpc失败等）
 		// 被noProcedure派发层统一翻成的码——扩容滚动窗口的现实暂时性失败，码面无法区分暂时/永久，
 		// 重试并以总预算兜底。
+		// Procedure.Timeout（-10）：客户端createTableAsync的60s rpc超时——只代表master建表慢
+		//（内层CreateBucket持table.lock含30s超时rpc，冷启动桶raft选主风暴可整体拖过60s，
+		// soak-20261111-1320实锤35连红），服务端幂等，超时重试安全。
 		private void createTableWithRetry(long retryDelayMs, long deadlineMs) {
 			dbh2AgentManager.createTableAsync(
 					Database.this.masterAgent, Database.this.masterName,
@@ -385,7 +388,8 @@ public class Database extends Zeze.Transaction.Database {
 							return;
 						}
 						if (rc != MasterAgent.eTableNotFound && rc != MasterAgent.eTooFewManager
-								&& rc != (int)Procedure.Exception) {
+								&& rc != (int)Procedure.Exception
+								&& rc != (int)Procedure.Timeout) {
 							ready.setException(new RuntimeException("rc=" + rc));
 							return;
 						}

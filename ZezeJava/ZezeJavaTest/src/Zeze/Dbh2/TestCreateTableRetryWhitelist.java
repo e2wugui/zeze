@@ -85,12 +85,36 @@ public class TestCreateTableRetryWhitelist {
 				return master;
 			}
 		};
+			try {
+				var table = openTable(manager);
+				table.waitReady(); // bug时第一次失败即抛
+				Assertions.assertEquals(3, master.attempts.get(),
+						"白名单码必须重试：前两次失败（1s+2s退避）第三次成功");
+				Assertions.assertTrue(table.isNew(), "成功回调的isNew必须传播");
+			} finally {
+				manager.stop();
+			}
+		}
+
+	@Timeout(60)
+	@Test
+	public void testTimeoutRetriedUntilSuccess(@TempDir Path tempDir) throws Exception {
+		// Procedure.Timeout(-10)=客户端60s rpc超时：master建表慢（冷启动桶raft选主风暴可拖过60s，
+		// soak-20261111-1320实锤），服务端幂等，必须按白名单重试而非立即判死。
+		Task.tryInitThreadPool();
+		var master = new ScriptedMasterAgent((int)Zeze.Transaction.Procedure.Timeout, 0);
+		var manager = new Dbh2AgentManager(new Dbh2AgentStubSupport.NullServiceAgent(),
+				Config.load(Dbh2AgentStubSupport.writeRemoteCommitConfig(tempDir).toString())) {
+			@Override
+			public MasterAgent openDatabase(String masterName, String databaseName) {
+				return master;
+			}
+		};
 		try {
 			var table = openTable(manager);
-			table.waitReady(); // bug时第一次失败即抛
-			Assertions.assertEquals(3, master.attempts.get(),
-					"白名单码必须重试：前两次失败（1s+2s退避）第三次成功");
-			Assertions.assertTrue(table.isNew(), "成功回调的isNew必须传播");
+			table.waitReady();
+			Assertions.assertEquals(2, master.attempts.get(), "Timeout必须重试：首次超时第二次成功");
+			Assertions.assertTrue(table.isNew());
 		} finally {
 			manager.stop();
 		}
