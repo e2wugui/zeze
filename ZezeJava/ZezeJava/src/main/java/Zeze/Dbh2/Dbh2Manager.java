@@ -236,8 +236,13 @@ public class Dbh2Manager {
 	// 不重发则choiceManagers的shadowReadyManager恒空——建表/分桶静默瘫痪（比
 	// eManagerNotFound更隐蔽的失败形态）。补齐缺失raft按master持久化主表对账本manager，
 	// createBucket幂等（dbh2s.computeIfAbsent），重复执行无副作用。
+	// synchronized单飞：首连时OnMasterConnected钩子的reRegister与start()本方法设计内并发
+	// （register RPC幂等），但createBucket的raft.xml落盘不幂等——并发双写同目标
+	// Files.move(ATOMIC_MOVE,REPLACE)互撞AccessDeniedException杀死main（2026-11-11两次
+	// 重启实锤：同毫秒双"miss rafts="日志，main与ZezeTaskPool各一线程）。串行化后第二个
+	// 进来者miss清单已空，只剩幂等的register/setDbh2Ready。
 	private volatile boolean masterRegisterReady = false;
-	private void registerToMaster() throws Exception {
+	private synchronized void registerToMaster() throws Exception {
 		// Register replaces the master's manager entry with ready=false on every retry.
 		// Only this registration's successful SetDbh2Ready may restore local readiness.
 		masterRegisterReady = false;
@@ -246,7 +251,12 @@ public class Dbh2Manager {
 		logger.info("{}, {} - rafts=\n{}\n{}", acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2sAtMaster, dbh2s.keySet());
 		var dbh2sAtMasterMiss = new HashMap<String, BDbh2Config.Data>();
 		for (var dbh2 : dbh2sAtMaster.getDbh2Configs()) {
-			if (!dbh2s.containsKey(dbh2.getRaftConfig()))
+			// 缺失判据须与dbh2s的键同型：dbh2s键=RaftConfig.getSortedNames()规范串
+			// （"-node1-node2-..."），master条目携带的是原始raft XML串——直接containsKey
+			// 恒false，miss清单=master全部桶（重启重写所有raft.xml并放大并发双写竞速，
+			// 2026-11-11重启连炸实锤）。
+			var sortedNames = RaftConfig.loadFromString(dbh2.getRaftConfig()).getSortedNames();
+			if (!dbh2s.containsKey(sortedNames))
 				dbh2sAtMasterMiss.put(dbh2.getRaftConfig(), dbh2);
 		}
 		// 保存并启动丢失的dbh2（一般是系统完全毁坏，重新找的新机器） ...
