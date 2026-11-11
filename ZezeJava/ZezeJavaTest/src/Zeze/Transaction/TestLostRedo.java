@@ -126,6 +126,11 @@ public class TestLostRedo {
 		for (var future : futures)
 			future.get();
 
+		// dbh2等网络后端：whileCommit（本地事务的2pc完成点）晚于过程返回——最后一笔计数在途，
+		// 有界轮询收敛后再断言（fresh库对照批soak-20261112-0322实锤999/1000）；超时仍不足=真提交丢失。
+		var deadline = System.currentTimeMillis() + 30_000;
+		while (insertOks.get() < count && System.currentTimeMillis() < deadline)
+			Thread.sleep(50);
 		Assertions.assertEquals(count, insertOks.get());
 		System.out.println("insert funTimes=" + runTimes.get());
 	}
