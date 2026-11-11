@@ -59,6 +59,7 @@ for i in $(seq "$START" "$ROUNDS"); do
   rm -rf "$XMLBASE/test" "$XMLBASE/integrationTest" "$XMLBASE/extraTest" "$XMLBASE/bench"
   # SOAK_EXTRA_ARGS：附加gradle参数透传（如MySQL重定向 -PzezeTestDatabase=MySql -PzezeTestDatabaseUrl=...）
   ./gradlew :ZezeJavaTest:test :ZezeJavaTest:integrationTest :ZezeJavaTest:extraTest :ZezeJavaTest:bench --continue --rerun-tasks --console=plain ${SOAK_EXTRA_ARGS:-} > "$BATCH/round$i.log" 2>&1
+  rc=$?
   # assembleHot竞态重试：test车道JVM退出后句柄释放滞后（Windows），紧随其后的assembleHot
   # 换jar Files.move遇AccessDeniedException，IT/extra/bench被连带跳过（同批次实锤；批次结束后
   # 单跑6s即成功）。只对这一已知瞬态重试一次，且在轮内重试（轮间sleep够不着这个间隙），
@@ -68,8 +69,8 @@ for i in $(seq "$START" "$ROUNDS"); do
     sleep 10
     # 只补跑assembleHot及其下游车道：test车道首轮已完成且XML已在，不必重跑。
     ./gradlew :ZezexJava:server:assembleHot :ZezeJavaTest:integrationTest :ZezeJavaTest:extraTest :ZezeJavaTest:bench --continue --rerun-tasks --console=plain ${SOAK_EXTRA_ARGS:-} >> "$BATCH/round$i.log" 2>&1
+    rc=$?
   fi
-  rc=$?
   line="round$i: test=$(summarize test) integrationTest=$(summarize integrationTest) extraTest=$(summarize extraTest) bench=$(summarize bench) rc=$rc"
   echo "$line" >> "$BATCH/master.log"
   echo "=== round $i end $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$BATCH/master.log"
