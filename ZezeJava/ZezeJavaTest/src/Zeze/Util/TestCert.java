@@ -56,7 +56,8 @@ public class TestCert {
 		var nowTime = System.currentTimeMillis();
 		certInfo.setValidity(new CertificateValidity(new Date(nowTime), new Date(nowTime + validDays * 86400_000L)));
 		certInfo.setKey(new CertificateX509Key(publicKey));
-		certInfo.setAlgorithmId(new CertificateAlgorithmId(new AlgorithmId(AlgorithmId.SHA256withRSA_oid)));
+		// AlgorithmId.get(标准名)：JDK27 移除了 SHA256withRSA_oid 公开常量，按名字解析跨版本稳定
+		certInfo.setAlgorithmId(new CertificateAlgorithmId(AlgorithmId.get("SHA256withRSA")));
 		return X509CertImpl.newSigned(certInfo, privateKeyForSign, "SHA256withRSA");
 	}
 
