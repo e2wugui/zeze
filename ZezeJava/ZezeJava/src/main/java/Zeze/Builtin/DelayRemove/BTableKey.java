@@ -224,15 +224,18 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         if (_i_ == 1) {
             setTableName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTableName("");
         if (_i_ == 2) {
             setEncodedKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setEncodedKey(Zeze.Net.Binary.Empty);
         if (_i_ == 3) {
             setEnqueueTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setEnqueueTime(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

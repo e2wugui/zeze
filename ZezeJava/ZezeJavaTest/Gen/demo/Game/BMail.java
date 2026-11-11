@@ -268,11 +268,13 @@ public final class BMail extends Zeze.Transaction.Bean implements BMailReadOnly 
         if (_i_ == 1) {
             setFrom(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFrom(0);
         if (_i_ == 2) {
             setMoney(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMoney(0);
         if (_i_ == 3) {
             var _x_ = _Items;
             _x_.clear();
@@ -286,11 +288,13 @@ public final class BMail extends Zeze.Transaction.Bean implements BMailReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Items.clear();
         if (_i_ == 4) {
             setClaimed(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setClaimed(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

@@ -341,23 +341,28 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         if (_i_ == 1) {
             setAccount(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAccount("");
         if (_i_ == 2) {
             setClientId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setClientId("");
         if (_i_ == 3) {
             _o_.ReadDynamic(_TimerObj, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TimerObj.reset();
         if (_i_ == 4) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLoginVersion(0);
         if (_i_ == 5) {
             setSerialId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSerialId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

@@ -101,15 +101,18 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
         if (_i_ == 1) {
             _LinkName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _LinkName = "";
         if (_i_ == 2) {
             _LinkSid = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _LinkSid = 0;
         if (_i_ == 3) {
             _State = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _State = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

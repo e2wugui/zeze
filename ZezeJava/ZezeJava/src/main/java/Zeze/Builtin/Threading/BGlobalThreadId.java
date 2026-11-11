@@ -81,11 +81,13 @@ public final class BGlobalThreadId implements Zeze.Transaction.BeanKey, Comparab
         if (_i_ == 1) {
             _ServerId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServerId = 0;
         if (_i_ == 2) {
             _ThreadId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ThreadId = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

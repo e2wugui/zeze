@@ -372,31 +372,38 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         if (_i_ == 1) {
             setTimerId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimerId("");
         if (_i_ == 2) {
             _o_.ReadBean(_SimpleTimer, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            getSimpleTimer().restoreOmittedFields(new Zeze.Builtin.Timer.BSimpleTimer());
         if (_i_ == 3) {
             setHandleClass(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHandleClass("");
         if (_i_ == 4) {
             setCustomClass(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCustomClass("");
         if (_i_ == 5) {
             setCustomBean(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCustomBean(Zeze.Net.Binary.Empty);
         if (_i_ == 6) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLoginVersion(0);
         if (_i_ == 7) {
             setHot(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHot(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

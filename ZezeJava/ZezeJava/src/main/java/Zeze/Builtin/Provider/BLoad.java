@@ -307,25 +307,39 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         if (_i_ == 1) {
             setOnline(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOnline(0);
         if (_i_ == 2) {
             setProposeMaxOnline(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProposeMaxOnline(0);
         if (_i_ == 3) {
             setOnlineNew(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOnlineNew(0);
         if (_i_ == 4) {
             setOverload(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOverload(0);
         if (_i_ == 5) {
             setMaxOnlineNew(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMaxOnlineNew(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    public void restoreOmittedFields(BLoad _defaults_) {
+        setOnline(_defaults_.getOnline());
+        setProposeMaxOnline(_defaults_.getProposeMaxOnline());
+        setOnlineNew(_defaults_.getOnlineNew());
+        setOverload(_defaults_.getOverload());
+        setMaxOnlineNew(_defaults_.getMaxOnlineNew());
+        _unknown_ = null;
     }
 
     @Override
@@ -617,27 +631,40 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Online = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Online = 0;
         if (_i_ == 2) {
             _ProposeMaxOnline = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ProposeMaxOnline = 0;
         if (_i_ == 3) {
             _OnlineNew = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _OnlineNew = 0;
         if (_i_ == 4) {
             _Overload = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Overload = 0;
         if (_i_ == 5) {
             _MaxOnlineNew = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _MaxOnlineNew = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    public void restoreOmittedFields(Data _defaults_) {
+        _Online = _defaults_._Online;
+        _ProposeMaxOnline = _defaults_._ProposeMaxOnline;
+        _OnlineNew = _defaults_._OnlineNew;
+        _Overload = _defaults_._Overload;
+        _MaxOnlineNew = _defaults_._MaxOnlineNew;
     }
 
     @Override

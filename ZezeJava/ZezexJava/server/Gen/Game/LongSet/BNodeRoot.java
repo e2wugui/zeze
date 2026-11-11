@@ -180,11 +180,13 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         if (_i_ == 1) {
             setHeadNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHeadNodeId(0);
         if (_i_ == 2) {
             setTailNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTailNodeId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

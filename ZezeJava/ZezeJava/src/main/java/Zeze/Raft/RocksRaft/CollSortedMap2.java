@@ -6,12 +6,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 
-import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Util.Reflect;
-import Zeze.Util.Task;
 
 /**
  * 与 {@link CollMap2} 完全对应，但底层使用 {@link org.pcollections.PSortedMap}，
@@ -20,17 +17,21 @@ import Zeze.Util.Task;
  */
 public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends CollSortedMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
-	private final MethodHandle valueFactory;
+	private final BeanValueFactory<V> valueFactory;
 	private final int logTypeId;
 
 	public CollSortedMap2(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogSortedMap2<"
-				+ Reflect.getStableName(keyClass) + ", " + Reflect.getStableName(valueClass) + '>');
+		valueFactory = BeanValueFactory.of(valueClass);
+		logTypeId = LogSortedMap2.typeId(keyClass, valueClass);
 	}
 
-	private CollSortedMap2(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
+	public static <K extends Comparable<K>> CollSortedMap2<K, DynamicBean> dynamic(Class<K> keyClass, DynamicField field) {
+		return new CollSortedMap2<>(LogSortedMap2.typeId(keyClass, DynamicBean.class),
+				SerializeHelper.createCodec(keyClass), field.values());
+	}
+
+	private CollSortedMap2(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, BeanValueFactory<V> valueFactory) {
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueFactory = valueFactory;
 		this.logTypeId = logTypeId;
@@ -43,6 +44,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 
 	@Override
 	public void put(K key, V value) {
+		valueFactory.checkValue(value);
 		if (isManaged()) {
 			// 对齐经典PMap2的顺序：initRootInfo成功后再mapKey。mapKey先写会在
 			// initRootInfo抛HasManagedException时毒化bean的mapKey（普通字段写不受事务回滚
@@ -50,9 +52,8 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 			// 被毒化的bean后续编辑会被静默剔除，follower分歧。
 			value.initRootInfo(rootInfo(), this);
 			value.mapKey(key);
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
+			//noinspection unchecked,DataFlowIssue
+			var mapLog = (LogSortedMap2<K, V>)Objects.requireNonNull(Transaction.getCurrent()).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else {
@@ -64,8 +65,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	@Override
 	public void remove(K key) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
@@ -76,8 +76,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	@Override
 	public void clear() {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
@@ -87,6 +86,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 
 	@Override
 	public void followerApply(Log _log) {
+		valueFactory.checkLog(_log);
 		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<K, V>)_log;
 		var tmp = map;
@@ -135,7 +135,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 
 	@Override
 	public LogBean createLogBean() {
-		var log = new LogSortedMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
+		var log = new LogSortedMap2<>(logTypeId, keyCodecFuncs, valueFactory);
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
@@ -151,7 +151,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 
 	@Override
 	public CollSortedMap2<K, V> copy() {
-		var copy = new CollSortedMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
+		var copy = new CollSortedMap2<>(logTypeId, keyCodecFuncs, valueFactory);
 		copy.map = getMap();
 		return copy;
 	}
@@ -167,20 +167,11 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(IByteBuffer bb) {
 		clear();
 		var decoder = keyCodecFuncs.decoder;
-		try {
-			for (int i = bb.ReadUInt(); i > 0; i--) {
-				var key = decoder.apply(bb);
-				V value = (V)valueFactory.invoke();
-				value.decode(bb);
-				put(key, value);
-			}
-		} catch (Throwable e) { // MethodHandle.invoke
-			throw Task.forceThrow(e);
-		}
+		for (int i = bb.ReadUInt(); i > 0; i--)
+			put(decoder.apply(bb), valueFactory.read(bb));
 	}
 }

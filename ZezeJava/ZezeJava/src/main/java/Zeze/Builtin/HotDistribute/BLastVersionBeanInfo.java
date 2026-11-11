@@ -225,7 +225,8 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
         if (_i_ == 1) {
             setName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setName("");
         if (_i_ == 2) {
             var _x_ = _Variables;
             _x_.clear();
@@ -235,7 +236,8 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Variables.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -491,7 +493,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Name = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Name = "";
         if (_i_ == 2) {
             var _x_ = _Variables;
             _x_.clear();
@@ -501,7 +504,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Variables.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

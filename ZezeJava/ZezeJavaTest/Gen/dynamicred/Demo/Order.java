@@ -779,7 +779,8 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Amounts.clear();
         if (_i_ == 2) {
             var _x_ = _Quantities;
             _x_.clear();
@@ -792,7 +793,8 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Quantities.clear();
         if (_i_ == 3) {
             var _x_ = _Lines;
             _x_.clear();
@@ -805,7 +807,8 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Lines.clear();
         if (_i_ == 4) {
             var _x_ = _AmountGrid;
             _x_.clear();
@@ -819,7 +822,8 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _AmountGrid.clear();
         if (_i_ == 5) {
             var _x_ = _QuantityGrid;
             _x_.clear();
@@ -833,15 +837,18 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _QuantityGrid.clear();
         if (_i_ == 6) {
             _o_.ReadDynamic(_DirectAmount, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _DirectAmount.reset();
         if (_i_ == 7) {
             _o_.ReadDynamic(_DirectQuantity, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _DirectQuantity.reset();
         if (_i_ == 8) {
             var _x_ = _QuantityMap;
             _x_.clear();
@@ -856,7 +863,8 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _QuantityMap.clear();
         if (_i_ == 9) {
             var _x_ = _AmountSorted;
             _x_.clear();
@@ -871,7 +879,8 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _AmountSorted.clear();
         if (_i_ == 10) {
             var _x_ = _QuantityGridSource;
             _x_.clear();
@@ -885,7 +894,8 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _QuantityGridSource.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

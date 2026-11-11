@@ -8,6 +8,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
+import org.pcollections.Empty;
+import org.pcollections.PSortedMap;
 
 /**
  * 与 {@link CollMap} 完全对应，但底层使用 {@link org.pcollections.PSortedMap}，
@@ -16,7 +18,7 @@ import Zeze.Serialize.ByteBuffer;
  */
 public abstract class CollSortedMap<K extends Comparable<K>, V> extends Collection
 		implements Iterable<Map.Entry<K, V>> {
-	public org.pcollections.PSortedMap<K, V> map = org.pcollections.Empty.sortedMap();
+	PSortedMap<K, V> map = Empty.sortedMap();
 
 	public final @Nullable V get(K key) {
 		return getMap().get(key);
@@ -34,7 +36,7 @@ public abstract class CollSortedMap<K extends Comparable<K>, V> extends Collecti
 		return getMap().entrySet();
 	}
 
-	protected final org.pcollections.PSortedMap<K, V> getMap() {
+	protected final PSortedMap<K, V> getMap() {
 		if (isManaged()) {
 			var t = Transaction.getCurrent();
 			if (t == null)

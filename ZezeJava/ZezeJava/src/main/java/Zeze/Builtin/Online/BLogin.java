@@ -152,7 +152,8 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         if (_i_ == 1) {
             setClientId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setClientId("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

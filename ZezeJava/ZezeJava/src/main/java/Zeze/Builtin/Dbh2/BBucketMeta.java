@@ -379,23 +379,28 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         if (_i_ == 1) {
             setDatabaseName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDatabaseName("");
         if (_i_ == 2) {
             setTableName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTableName("");
         if (_i_ == 3) {
             setKeyFirst(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setKeyFirst(Zeze.Net.Binary.Empty);
         if (_i_ == 4) {
             setKeyLast(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setKeyLast(Zeze.Net.Binary.Empty);
         if (_i_ == 5) {
             setRaftConfig(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRaftConfig("");
         if (_i_ == 6) {
             var _x_ = _Host2Raft;
             _x_.clear();
@@ -409,9 +414,20 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Host2Raft.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    public void restoreOmittedFields(BBucketMeta _defaults_) {
+        setDatabaseName(_defaults_.getDatabaseName());
+        setTableName(_defaults_.getTableName());
+        setKeyFirst(_defaults_.getKeyFirst());
+        setKeyLast(_defaults_.getKeyLast());
+        setRaftConfig(_defaults_.getRaftConfig());
+        _Host2Raft.clear();
+        _unknown_ = null;
     }
 
     @Override
@@ -782,23 +798,28 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _DatabaseName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _DatabaseName = "";
         if (_i_ == 2) {
             _TableName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TableName = "";
         if (_i_ == 3) {
             _KeyFirst = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _KeyFirst = Zeze.Net.Binary.Empty;
         if (_i_ == 4) {
             _KeyLast = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _KeyLast = Zeze.Net.Binary.Empty;
         if (_i_ == 5) {
             _RaftConfig = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _RaftConfig = "";
         if (_i_ == 6) {
             var _x_ = _Host2Raft;
             _x_.clear();
@@ -812,11 +833,22 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Host2Raft.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    public void restoreOmittedFields(Data _defaults_) {
+        _DatabaseName = _defaults_._DatabaseName;
+        _TableName = _defaults_._TableName;
+        _KeyFirst = _defaults_._KeyFirst;
+        _KeyLast = _defaults_._KeyLast;
+        _RaftConfig = _defaults_._RaftConfig;
+        _Host2Raft.clear();
+        _Host2Raft.putAll(_defaults_._Host2Raft);
     }
 
     @Override

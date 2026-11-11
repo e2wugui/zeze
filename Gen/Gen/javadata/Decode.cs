@@ -53,13 +53,7 @@ namespace Zeze.Gen.javadata
                 if (v.Id > 0)
                 {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    if (v.Initial.Length > 0)
-                    {
-                        sw.WriteLine(prefix + "    } else");
-                        sw.WriteLine(prefix + "        " + Initial(v) + ";");
-                    }
-                    else
-                        sw.WriteLine(prefix + "    }");
+                    java.Decode.WriteMissingField(v, sw, prefix, true);
                 }
                 else
                     sw.WriteLine(prefix + "    }");
@@ -116,13 +110,7 @@ namespace Zeze.Gen.javadata
                 if (v.Id > 0)
                 {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    if (v.Initial.Length > 0)
-                    {
-                        sw.WriteLine(prefix + "    } else");
-                        sw.WriteLine(prefix + "        " + Initial(v) + ";");
-                    }
-                    else
-                        sw.WriteLine(prefix + "    }");
+                    java.Decode.WriteMissingField(v, sw, prefix, true);
                 }
                 else
                     sw.WriteLine(prefix + "    }");
@@ -134,36 +122,6 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-        }
-
-        static string Initial(Variable var)
-        {
-            var type = var.VariableType;
-            switch (type)
-            {
-                case TypeBool:
-                    return $"{var.NamePrivate} = false";
-                case TypeByte:
-                case TypeShort:
-                case TypeInt:
-                case TypeLong:
-                case TypeFloat:
-                case TypeDouble:
-                    return $"{var.NamePrivate} = 0";
-                case TypeString:
-                    return $"{var.NamePrivate} = \"\"";
-                case Bean:
-                case BeanKey:
-                case TypeVector2:
-                case TypeVector2Int:
-                case TypeVector3:
-                case TypeVector3Int:
-                case TypeVector4:
-                case TypeQuaternion:
-                    return $"{var.NamePrivate} = {TypeName.GetName(type)}.ZERO";
-                default:
-                    throw new Exception("unsupported initial type: " + var.VariableType);
-            }
         }
 
         public Decode(Variable var, int id, string bufName, StreamWriter sw, string prefix)
@@ -428,8 +386,7 @@ namespace Zeze.Gen.javadata
                 throw new Exception("invalid variable.id");
             Types.Type kt = type.KeyType;
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "var _x_ = " + var.NamePrivate + ';');
-            sw.WriteLine(prefix + "_x_.clear();");
+            sw.WriteLine(prefix + $"var _x_ = new {TypeName.GetName(type)}();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufName + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufName + ".ReadUIntPositive(); _n_ > 0; _n_--) {");
@@ -455,6 +412,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "} else");
             sw.WriteLine(prefix + "    " + bufName + ".SkipUnknownFieldOrThrow(_t_, \"Map\");");
+            sw.WriteLine(prefix + $"{var.NamePrivate} = _x_;");
         }
 
         public void Visit(Bean type)
@@ -468,7 +426,7 @@ namespace Zeze.Gen.javadata
         public void Visit(BeanKey type)
         {
             if (id > 0)
-                sw.WriteLine(prefix + bufName + ".ReadBean(" + NamePrivate + ", _t_);");
+                sw.WriteLine(prefix + AssignText($"{bufName}.ReadBean(new {TypeName.GetName(type)}({var?.Initial}), {typeVarName})") + ';');
             else
                 sw.WriteLine(prefix + NamePrivate + ".decode(" + bufName + ");");
         }

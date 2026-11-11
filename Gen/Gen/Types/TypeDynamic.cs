@@ -63,9 +63,9 @@ namespace Zeze.Gen.Types
                 if (beanWithSpecialTypeIdArray.Length == 0)
                     continue;
                 Type type = Type.Compile(space, beanWithSpecialTypeIdArray[0], null, null, null);
-                if (false == type.IsNormalBean)
-                    throw new Exception("dynamic only support normal bean");
-                Bean bean = type as Bean;
+                if (type is not Bean bean || (var.Bean.IsRocks ? !bean.IsRocks : !bean.IsNormalBean))
+                    throw new Exception(var.Bean.IsRocks ? "RocksRaft dynamic requires a rocks bean"
+                        : "dynamic only supports normal beans");
                 long specialTypeId = bean.TypeId; // default
                 if (beanWithSpecialTypeIdArray.Length > 1)
                 {
@@ -74,6 +74,8 @@ namespace Zeze.Gen.Types
                     if (specialTypeId <= 0)
                         throw new Exception("SpecialTypeId <= 0 is reserved");
                 }
+                if (var.Bean.IsRocks && specialTypeId == 0)
+                    throw new Exception("RocksRaft reserves dynamic type 0 for an empty value.");
                 RealBeans.Add(specialTypeId, bean);
             }
 

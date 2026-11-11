@@ -91,11 +91,13 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceName = "";
         if (_i_ == 2) {
             _ServiceIdentity = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceIdentity = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

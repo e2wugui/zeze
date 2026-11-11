@@ -36,8 +36,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	@Override
 	public void add(K key, V value) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.add(key, value);
@@ -48,8 +47,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	@Override
 	public void put(K key, V value) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
@@ -60,8 +58,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	@Override
 	public void remove(K key) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
@@ -72,8 +69,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	@Override
 	public void clear() {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();

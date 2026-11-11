@@ -37,8 +37,7 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	@Override
 	public void add(K key, V value) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.add(key, value);
@@ -49,8 +48,7 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	@Override
 	public void put(K key, V value) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
@@ -61,8 +59,7 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	@Override
 	public void remove(K key) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.remove(key);
@@ -73,8 +70,7 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	@Override
 	public void clear() {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
-			//noinspection DataFlowIssue
+			//noinspection unchecked,DataFlowIssue
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();

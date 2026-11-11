@@ -180,11 +180,13 @@ public final class BTestSchemas extends Zeze.Transaction.Bean implements BTestSc
         if (_i_ == 1) {
             setVar1(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVar1(0);
         if (_i_ == 2) {
             setVar2(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVar2(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

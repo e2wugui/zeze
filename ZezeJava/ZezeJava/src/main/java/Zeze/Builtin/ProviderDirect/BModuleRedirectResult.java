@@ -182,19 +182,23 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ModuleId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ModuleId = 0;
         if (_i_ == 2) {
             _ServerId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServerId = 0;
         if (_i_ == 3) {
             _Params = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Params = Zeze.Net.Binary.Empty;
         if (_i_ == 4) {
             _NullParam = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _NullParam = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

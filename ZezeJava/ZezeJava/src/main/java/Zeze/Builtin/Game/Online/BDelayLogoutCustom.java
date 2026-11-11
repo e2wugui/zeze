@@ -259,19 +259,23 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         if (_i_ == 1) {
             setRoleId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRoleId(0);
         if (_i_ == 2) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLoginVersion(0);
         if (_i_ == 3) {
             setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOnlineSetName("");
         if (_i_ == 4) {
             setProjectName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProjectName("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

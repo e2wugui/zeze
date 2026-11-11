@@ -214,15 +214,18 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
         if (_i_ == 1) {
             setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerId(0);
         if (_i_ == 2) {
             setGlobalCacheManagerHashIndex(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setGlobalCacheManagerHashIndex(0);
         if (_i_ == 3) {
             setDebugMode(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDebugMode(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

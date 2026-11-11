@@ -219,15 +219,18 @@ public final class BTransmitCancelRoleTimer extends Zeze.Transaction.Bean implem
         if (_i_ == 1) {
             setTimerId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimerId("");
         if (_i_ == 2) {
             setRoleId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRoleId(0);
         if (_i_ == 3) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLoginVersion(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

@@ -338,11 +338,13 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         if (_i_ == 1) {
             setTimerName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimerName("");
         if (_i_ == 2) {
             setRoleId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRoleId(0);
         if (_i_ == 3) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -351,15 +353,18 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         if (_i_ == 4) {
             setHandleName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHandleName("");
         if (_i_ == 5) {
             _o_.ReadDynamic(_CustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _CustomData.reset();
         if (_i_ == 6) {
             setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOnlineSetName("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

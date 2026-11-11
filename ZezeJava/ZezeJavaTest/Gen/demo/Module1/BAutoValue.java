@@ -220,15 +220,18 @@ public final class BAutoValue extends Zeze.Transaction.Bean implements BAutoValu
         if (_i_ == 1) {
             setCurrent(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCurrent(0);
         if (_i_ == 2) {
             setName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setName("");
         if (_i_ == 3) {
             setLocalId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLocalId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

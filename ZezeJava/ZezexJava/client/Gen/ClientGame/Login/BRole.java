@@ -185,11 +185,13 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         if (_i_ == 1) {
             setId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setId(0);
         if (_i_ == 2) {
             setName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setName("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

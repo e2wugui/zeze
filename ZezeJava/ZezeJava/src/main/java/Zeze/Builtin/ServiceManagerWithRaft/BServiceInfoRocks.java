@@ -215,6 +215,8 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BServiceInfoRocks other) {
+        if (other == this)
+            return;
         setServiceName(other.getServiceName());
         setServiceIdentity(other.getServiceIdentity());
         setPassiveIp(other.getPassiveIp());
@@ -341,30 +343,44 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _ServiceName = "";
         }
         if (_i_ == 2) {
             _ServiceIdentity = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _ServiceIdentity = "";
         }
         if (_i_ == 3) {
             _PassiveIp = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _PassiveIp = "";
         }
         if (_i_ == 4) {
             _PassivePort = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _PassivePort = 0;
         }
         if (_i_ == 5) {
             _ExtraInfo = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _ExtraInfo = Zeze.Net.Binary.Empty;
         }
         if (_i_ == 6) {
             _SessionName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _SessionName = "";
         }
         if (_i_ == 7) {
             _Version = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Version = 0;
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

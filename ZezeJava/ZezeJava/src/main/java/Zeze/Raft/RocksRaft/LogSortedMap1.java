@@ -2,7 +2,6 @@ package Zeze.Raft.RocksRaft;
 
 import org.jspecify.annotations.Nullable;
 
-import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 import Zeze.Serialize.ByteBuffer;
@@ -18,48 +17,28 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs;
 
-	/** 单容器记账（同LogMap1），TreeMap保持源容器比较器的键等价折叠。 */
-	private Map<K, V> modified;
+	/** 结构增量按自然键序合并等价键。 */
+	private final Map<K, @Nullable V> modified = new TreeMap<>();
 
 	public LogSortedMap1(Class<K> keyClass, Class<V> valueClass) {
-		this(keyClass, valueClass, null);
-	}
-
-	/** 自定义比较器须在复制双方的日志工厂一致配置；wire不携带比较器。 */
-	public LogSortedMap1(Class<K> keyClass, Class<V> valueClass, @Nullable Comparator<? super K> comparator) {
-		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass, comparator);
+		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
 	}
 
 	LogSortedMap1(int typeId, Class<K> keyClass, Class<V> valueClass) {
-		this(typeId, keyClass, valueClass, null);
-	}
-
-	LogSortedMap1(int typeId, Class<K> keyClass, Class<V> valueClass, @Nullable Comparator<? super K> comparator) {
-		super(typeId, comparator);
-		modified = new TreeMap<>(comparator);
-		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
+		this(typeId, SerializeHelper.createCodec(keyClass), SerializeHelper.createCodec(valueClass));
 	}
 
 	LogSortedMap1(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs) {
 		super(typeId);
-		modified = new TreeMap<>();
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
 
-	public final Map<K, V> getModified() {
+	public final Map<K, @Nullable V> getModified() {
 		return modified;
 	}
 
-	@Override
-	protected void onComparatorChanged(@Nullable Comparator<? super K> comparator) {
-		var newModified = new TreeMap<K, V>(comparator);
-		newModified.putAll(modified);
-		modified = newModified;
-	}
-
-	public final V get(K key) {
+	public final @Nullable V get(K key) {
 		//noinspection DataFlowIssue
 		return getValue().get(key);
 	}
@@ -98,7 +77,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 				puttedCount++;
 		bb.WriteUInt(puttedCount);
 		for (var e : modified.entrySet()) {
-			V v = e.getValue();
+			var v = e.getValue();
 			if (v != null) {
 				keyEncoder.accept(bb, e.getKey());
 				valueEncoder.accept(bb, v);

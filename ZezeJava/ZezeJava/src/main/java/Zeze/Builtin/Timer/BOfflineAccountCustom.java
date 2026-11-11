@@ -342,15 +342,18 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         if (_i_ == 1) {
             setTimerName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimerName("");
         if (_i_ == 2) {
             setAccount(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAccount("");
         if (_i_ == 3) {
             setClientId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setClientId("");
         if (_i_ == 4) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -359,11 +362,13 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         if (_i_ == 5) {
             setHandleName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHandleName("");
         if (_i_ == 6) {
             _o_.ReadDynamic(_CustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _CustomData.reset();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

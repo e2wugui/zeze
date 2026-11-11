@@ -212,7 +212,8 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         if (_i_ == 1) {
             setState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setState(0);
         if (_i_ == 2) {
             var _x_ = _Buckets;
             _x_.clear();
@@ -222,7 +223,8 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Buckets.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -462,7 +464,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _State = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _State = 0;
         if (_i_ == 2) {
             var _x_ = _Buckets;
             _x_.clear();
@@ -472,7 +475,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Buckets.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

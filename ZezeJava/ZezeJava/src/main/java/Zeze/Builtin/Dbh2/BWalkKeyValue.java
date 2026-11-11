@@ -208,11 +208,13 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
         if (_i_ == 1) {
             setKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setKey(Zeze.Net.Binary.Empty);
         if (_i_ == 2) {
             setValue(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setValue(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -416,11 +418,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Key = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Key = Zeze.Net.Binary.Empty;
         if (_i_ == 2) {
             _Value = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Value = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

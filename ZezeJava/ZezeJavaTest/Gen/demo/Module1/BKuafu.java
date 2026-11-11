@@ -198,11 +198,13 @@ public final class BKuafu extends Zeze.Transaction.Bean implements BKuafuReadOnl
         if (_i_ == 1) {
             setAccount(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAccount(0);
         if (_i_ == 2) {
             setMoney(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMoney(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -405,11 +407,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Account = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Account = 0;
         if (_i_ == 2) {
             _Money = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Money = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

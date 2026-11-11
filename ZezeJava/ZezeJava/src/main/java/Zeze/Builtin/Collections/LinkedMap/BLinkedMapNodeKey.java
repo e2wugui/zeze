@@ -86,11 +86,13 @@ public final class BLinkedMapNodeKey implements Zeze.Transaction.BeanKey, Compar
         if (_i_ == 1) {
             _Name = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Name = "";
         if (_i_ == 2) {
             _NodeId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _NodeId = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

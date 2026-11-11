@@ -300,7 +300,8 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         if (_i_ == 1) {
             setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerId(0);
         if (_i_ == 2) {
             var _x_ = _ReliableNotifyMark;
             _x_.clear();
@@ -310,19 +311,23 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ReliableNotifyMark.clear();
         if (_i_ == 3) {
             setReliableNotifyConfirmIndex(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setReliableNotifyConfirmIndex(0);
         if (_i_ == 4) {
             setReliableNotifyIndex(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setReliableNotifyIndex(0);
         if (_i_ == 5) {
             _o_.ReadDynamic(_UserData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _UserData.reset();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

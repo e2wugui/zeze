@@ -253,19 +253,23 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         if (_i_ == 1) {
             setBagName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setBagName("");
         if (_i_ == 2) {
             setPositionFrom(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPositionFrom(0);
         if (_i_ == 3) {
             setPositionTo(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPositionTo(0);
         if (_i_ == 4) {
             setNumber(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNumber(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

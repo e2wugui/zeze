@@ -3,14 +3,12 @@ package Zeze.Raft.RocksRaft;
 import java.util.Objects;
 
 
-import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.HashSet;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Util.Reflect;
-import Zeze.Util.Task;
+import org.jspecify.annotations.Nullable;
 
 /**
  * 管理 Bean 的 Map 容器增量日志：结构操作记 modified（非null=put、null=remove），值 bean 的字段修改记 changedWithKey，
@@ -21,17 +19,26 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	private final HashSet<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
-	private final MethodHandle valueFactory;
+	private final BeanValueFactory<V> valueFactory;
 	private boolean decoded; // 解码后的索引是完整日志，不从旧的源Map重新构建。
 
-	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
-		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
+	static int typeId(Class<?> keyClass, Class<?> valueClass) {
+		return Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass);
 	}
 
-	LogMap2(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
+	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
+		super(typeId(keyClass, valueClass), keyClass, valueClass);
+		valueFactory = BeanValueFactory.of(valueClass);
+	}
+
+	LogMap2(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, BeanValueFactory<V> valueFactory) {
 		super(typeId, keyCodecFuncs, null);
 		this.valueFactory = valueFactory;
+	}
+
+	@Override
+	@Nullable DynamicField dynamicField() {
+		return valueFactory.field();
 	}
 
 	public final HashSet<LogBean> getChanged() {
@@ -44,7 +51,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public Log beginSavepoint() {
-		var dup = new LogMap2<K, V>(getTypeId(), keyCodecFuncs, valueFactory);
+		var dup = new LogMap2<>(getTypeId(), keyCodecFuncs, valueFactory);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -98,7 +105,6 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 				keyEncoder.accept(bb, e.getKey());
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(IByteBuffer bb) {
 		changed.clear();
@@ -106,8 +112,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
-			var value = new LogBean();
-			value.decode(bb);
+			var value = valueFactory.readEdit(bb);
 			changedWithKey.put(key, value);
 		}
 
@@ -116,14 +121,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		modified.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
-			V value;
-			try {
-				value = (V)valueFactory.invoke();
-			} catch (Throwable e) { // MethodHandle.invoke
-				throw Task.forceThrow(e);
-			}
-			value.decode(bb);
-			modified.put(key, value);
+			modified.put(key, valueFactory.read(bb));
 		}
 		for (int i = bb.ReadUInt(); i > 0; i--)
 			modified.put(keyDecoder.apply(bb), null);

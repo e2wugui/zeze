@@ -245,17 +245,20 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(getLockName(), _t_);
+            setLockName(_o_.ReadBean(new Zeze.Builtin.Threading.BLockName(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLockName(new Zeze.Builtin.Threading.BLockName());
         if (_i_ == 2) {
             setOperateType(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOperateType(0);
         if (_i_ == 3) {
             setTimeoutMs(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimeoutMs(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -499,17 +502,20 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(_LockName, _t_);
+            _LockName = _o_.ReadBean(new Zeze.Builtin.Threading.BLockName(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _LockName = new Zeze.Builtin.Threading.BLockName();
         if (_i_ == 2) {
             _OperateType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _OperateType = 0;
         if (_i_ == 3) {
             _TimeoutMs = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TimeoutMs = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

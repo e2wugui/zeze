@@ -14,7 +14,10 @@ public abstract class Log implements Serializable {
 	private static final LongConcurrentHashMap<Supplier<Log>> factorys = new LongConcurrentHashMap<>();
 
 	public static void register(Supplier<Log> s) {
-		factorys.put(s.get().getTypeId(), s);
+		var typeId = s.get().getTypeId();
+		if (typeId == LogBean.DYNAMIC_FIELD_LOG)
+			throw new IllegalArgumentException("reserved RocksRaft log typeId=" + typeId);
+		factorys.put(typeId, s);
 	}
 
 	public static Log create(int typeId) {

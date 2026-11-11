@@ -208,11 +208,13 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         if (_i_ == 1) {
             setDatabase(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDatabase("");
         if (_i_ == 2) {
             setTable(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTable("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -420,11 +422,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Database = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Database = "";
         if (_i_ == 2) {
             _Table = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Table = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

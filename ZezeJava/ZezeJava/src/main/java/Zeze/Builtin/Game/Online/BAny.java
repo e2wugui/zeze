@@ -148,7 +148,8 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         if (_i_ == 1) {
             _o_.ReadDynamic(_Any, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Any.reset();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

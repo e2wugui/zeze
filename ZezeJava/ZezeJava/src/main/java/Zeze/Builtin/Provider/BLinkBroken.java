@@ -278,19 +278,23 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         if (_i_ == 1) {
             setAccount(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAccount("");
         if (_i_ == 2) {
             setLinkSid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLinkSid(0);
         if (_i_ == 3) {
             setReason(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setReason(0);
         if (_i_ == 4) {
             _o_.ReadBean(_userState, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            getUserState().restoreOmittedFields(new Zeze.Builtin.Provider.BUserState());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -580,19 +584,23 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _account = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _account = "";
         if (_i_ == 2) {
             _linkSid = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _linkSid = 0;
         if (_i_ == 3) {
             _reason = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _reason = 0;
         if (_i_ == 4) {
             _o_.ReadBean(_userState, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _userState.restoreOmittedFields(new Zeze.Builtin.Provider.BUserState.Data());
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

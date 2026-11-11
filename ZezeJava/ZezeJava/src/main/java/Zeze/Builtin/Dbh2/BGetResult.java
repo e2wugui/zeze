@@ -203,11 +203,13 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         if (_i_ == 1) {
             setNull(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNull(false);
         if (_i_ == 2) {
             setValue(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setValue(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -406,11 +408,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Null = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Null = false;
         if (_i_ == 2) {
             _Value = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Value = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

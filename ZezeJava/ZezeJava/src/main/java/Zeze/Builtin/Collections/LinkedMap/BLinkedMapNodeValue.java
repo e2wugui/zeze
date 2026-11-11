@@ -189,11 +189,13 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         if (_i_ == 1) {
             setId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setId("");
         if (_i_ == 2) {
             _o_.ReadDynamic(_Value, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Value.reset();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

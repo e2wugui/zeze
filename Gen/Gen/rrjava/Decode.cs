@@ -49,13 +49,9 @@ namespace Zeze.Gen.rrjava
                 if (v.Id > 0)
                 {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    if (v.Initial.Length > 0)
-                    {
-                        sw.WriteLine(prefix + "    } else");
-                        sw.WriteLine(prefix + "        " + Initial(v) + ";");
-                    }
-                    else
-                        sw.WriteLine(prefix + "    }");
+                    sw.WriteLine(prefix + "    } else {");
+                    WriteMissingField(v, sw, prefix + "        ");
+                    sw.WriteLine(prefix + "    }");
                 }
                 else
                     sw.WriteLine(prefix + "    }");
@@ -67,6 +63,46 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+        }
+
+        private static void WriteMissingField(Variable variable, StreamWriter sw, string prefix)
+        {
+            var field = variable.NamePrivate;
+            var type = variable.VariableType;
+            // Encode omits zero, empty values and empty nested bean bodies, independent of constructor defaults.
+            switch (type)
+            {
+                case TypeBool:
+                    sw.WriteLine($"{prefix}{field} = false;");
+                    break;
+                case TypeByte or TypeShort or TypeInt or TypeLong or TypeFloat or TypeDouble:
+                    sw.WriteLine($"{prefix}{field} = 0;");
+                    break;
+                case TypeString:
+                    sw.WriteLine($"{prefix}{field} = \"\";");
+                    break;
+                case TypeBinary:
+                    sw.WriteLine($"{prefix}{field} = Zeze.Net.Binary.Empty;");
+                    break;
+                case TypeVector2 or TypeVector2Int or TypeVector3 or TypeVector3Int or TypeVector4 or TypeQuaternion:
+                    sw.WriteLine($"{prefix}{field} = {TypeName.GetName(type)}.ZERO;");
+                    break;
+                case TypeDecimal:
+                    // The encoder always writes decimal values, including zero.
+                    new Construct(sw, variable, prefix).Visit((TypeDecimal)type);
+                    break;
+                case TypeCollection or TypeMap or TypeSortedMap or TypeDynamic:
+                    sw.WriteLine($"{prefix}{field}.clear();");
+                    break;
+                case Bean child:
+                    sw.WriteLine($"{prefix}{java.RestoreOmittedBean.Missing(variable, child, false)};");
+                    break;
+                case BeanKey:
+                    var key = type is ExternalBeanKey && variable.Initial.Length > 0
+                        ? $"{TypeName.GetName(type)}.ZERO" : $"new {TypeName.GetName(type)}()";
+                    sw.WriteLine($"{prefix}{field} = {key};");
+                    break;
+            }
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
@@ -274,8 +310,9 @@ namespace Zeze.Gen.rrjava
                     return bufname + ".ReadString(" + typeVar + ')';
                 case Bean:
                 case BeanKey:
-                case TypeDynamic:
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case TypeDynamic:
+                    return $"newDynamicBean_{var.NameUpper1}().decodeTagged({bufname}, {typeVar})";
                 default:
                     throw new Exception("invalid collection element type: " + type);
             }
@@ -354,7 +391,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(BeanKey type)
         {
             if (id > 0)
-                sw.WriteLine(prefix + bufname + ".ReadBean(" + GetVarName() + ", _t_);");
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadBean(new {TypeName.GetName(type)}({var?.Initial}), _t_)") + ';');
             else
                 sw.WriteLine(prefix + GetVarName() + ".decode(" + bufname + ");");
         }
@@ -362,39 +399,45 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeDynamic type)
         {
             if (id > 0)
-                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + GetVarName() + ", _t_);");
+                sw.WriteLine(prefix + GetVarName() + $".decodeTagged({bufname}, _t_);");
             else
                 throw new Exception("invalid variable.id");
         }
 
+        private void DecodeVector(string typeName)
+        {
+            var tag = id > 0 ? "_t_" : "";
+            sw.WriteLine(prefix + AssignText($"{bufname}.Read{typeName}({tag})") + ';');
+        }
+
         public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine(prefix + AssignText($"{bufname}.ReadQuaternion({GetVarName()})") + ';');
+            DecodeVector("Quaternion");
         }
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2({GetVarName()})") + ';');
+            DecodeVector("Vector2");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2Int({GetVarName()})") + ';');
+            DecodeVector("Vector2Int");
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3({GetVarName()})") + ';');
+            DecodeVector("Vector3");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3Int({GetVarName()})") + ';');
+            DecodeVector("Vector3Int");
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4({GetVarName()})") + ';');
+            DecodeVector("Vector4");
         }
 
         public void Visit(TypeDecimal type)

@@ -185,11 +185,13 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         if (_i_ == 1) {
             setClientId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setClientId("");
         if (_i_ == 2) {
             setReliableNotifyConfirmIndex(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setReliableNotifyConfirmIndex(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

@@ -1,0 +1,83 @@
+<solution name="rocksdynamic" ModuleIdAllowRanges="102">
+    <module name="Fixture" id="102">
+        <bean name="Amount" kind="rocks">
+            <variable id="1" name="Number" type="int"/>
+            <variable id="2" name="Entries" type="list[int]"/>
+        </bean>
+        <bean name="Quantity" kind="rocks">
+            <variable id="1" name="Number" type="long"/>
+        </bean>
+        <bean name="CustomPayload" kind="rocks">
+            <variable id="1" name="Entries" type="list[long]"/>
+            <variable id="2" name="List" type="list[Quantity]"/>
+            <variable id="3" name="Map" type="map[int,Quantity]"/>
+            <variable id="4" name="SortedMap" type="sortedmap[int,Quantity]"/>
+        </bean>
+        <bean name="Nested" kind="rocks">
+            <variable id="1" name="Payload" type="dynamic">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="2" name="SortedNumbers" type="sortedmap[int,long]"/>
+            <variable id="3" name="ScratchNumber" type="int" transient="true"/>
+        </bean>
+        <bean name="Defaults" kind="rocks">
+            <variable id="1" name="Count" type="int" default="7"/>
+            <variable id="2" name="Enabled" type="bool" default="true"/>
+            <variable id="3" name="Label" type="string" default="schema"/>
+            <variable id="4" name="Position" type="vector2" default="1, 2"/>
+            <variable id="5" name="Override" type="Quantity" default="9"/>
+        </bean>
+        <bean name="Value" kind="rocks">
+            <variable id="1" name="Amount" type="dynamic">
+                <value bean="Amount:7"/>
+                <value bean="Quantity:8"/>
+            </variable>
+            <variable id="2" name="Quantity" type="dynamic">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="3" name="Amounts" type="list[dynamic]">
+                <value bean="Amount:7"/>
+                <value bean="CustomPayload:8"/>
+            </variable>
+            <variable id="4" name="Quantities" type="map[int,dynamic]">
+                <value bean="Quantity:7"/>
+            </variable>
+            <variable id="5" name="SortedAmounts" type="sortedmap[int,dynamic]">
+                <value bean="Amount:7"/>
+            </variable>
+            <variable id="6" name="Nested" type="Nested"/>
+            <variable id="7" name="Scratch" type="dynamic" transient="true">
+                <value bean="Amount:7"/>
+            </variable>
+            <variable id="8" name="Custom" type="dynamic">
+                <value bean="CustomPayload:7"/>
+                <GetSpecialTypeIdFromBean value="rocksdynamic.Fixture.DynamicFixture::identifyCustomPayload"/>
+                <CreateBeanFromSpecialTypeId value="rocksdynamic.Fixture.DynamicFixture::createCustomPayload"/>
+            </variable>
+            <variable id="9" name="Defaults" type="Defaults"/>
+        </bean>
+        <beankey name="LegacyDecodeKey">
+            <variable id="1" name="Number" type="int" default="3"/>
+        </beankey>
+        <bean name="LegacyDecodeChild" UseData="true">
+            <variable id="1" name="Number" type="int" default="7"/>
+            <variable id="2" name="Scratch" type="int" transient="true"/>
+            <variable id="3" name="Entries" type="list[int]"/>
+            <variable id="4" name="KeyValue" type="LegacyDecodeKey"/>
+        </bean>
+        <bean name="LegacyDecodeParent" UseData="true">
+            <variable id="1" name="Child" type="LegacyDecodeChild"/>
+        </bean>
+        <bean name="LegacyRocksDecodeChild" kind="rocks">
+            <variable id="1" name="Number" type="int" default="7"/>
+            <variable id="2" name="Scratch" type="int" transient="true"/>
+            <variable id="3" name="Entries" type="list[int]"/>
+        </bean>
+        <bean name="LegacyRocksDecodeParent" kind="rocks">
+            <variable id="1" name="Child" type="LegacyRocksDecodeChild"/>
+            <variable id="2" name="KeyValue" type="LegacyDecodeKey"/>
+        </bean>
+        <table name="DynamicValues" kind="rocks" key="int" value="Value"/>
+    </module>
+
+</solution>

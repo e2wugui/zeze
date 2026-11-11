@@ -2601,35 +2601,43 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         if (_i_ == 1) {
             setInt_1(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setInt_1(0);
         if (_i_ == 2) {
             setLong2(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLong2(0);
         if (_i_ == 3) {
             setString3(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setString3("");
         if (_i_ == 4) {
             setBool4(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setBool4(false);
         if (_i_ == 5) {
             setShort5(_o_.ReadShort(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setShort5((short)0);
         if (_i_ == 6) {
             setFloat6(_o_.ReadFloat(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFloat6(0);
         if (_i_ == 7) {
             setDouble7(_o_.ReadDouble(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDouble7(0);
         if (_i_ == 8) {
             setBytes8(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setBytes8(Zeze.Net.Binary.Empty);
         if (_i_ == 9) {
             var _x_ = _list9;
             _x_.clear();
@@ -2639,7 +2647,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list9.clear();
         if (_i_ == 10) {
             var _x_ = _set10;
             _x_.clear();
@@ -2649,7 +2658,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _set10.clear();
         if (_i_ == 11) {
             var _x_ = _map11;
             _x_.clear();
@@ -2663,19 +2673,23 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map11.clear();
         if (_i_ == 12) {
             _o_.ReadBean(_bean12, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            getBean12().restoreOmittedFields(new demo.Module1.BSimple());
         if (_i_ == 13) {
             setByte13(_o_.ReadByte(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setByte13((byte)0);
         if (_i_ == 14) {
             _o_.ReadDynamic(_dynamic14, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _dynamic14.reset();
         if (_i_ == 15) {
             var _x_ = _map15;
             _x_.clear();
@@ -2689,7 +2703,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map15.clear();
         if (_i_ == 16) {
             var _x_ = _map16;
             _x_.clear();
@@ -2703,35 +2718,43 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map16.clear();
         if (_i_ == 17) {
             setVector2(_o_.ReadVector2(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVector2(Zeze.Serialize.Vector2.ZERO);
         if (_i_ == 18) {
             setVector2Int(_o_.ReadVector2Int(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVector2Int(Zeze.Serialize.Vector2Int.ZERO);
         if (_i_ == 19) {
             setVector3(_o_.ReadVector3(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVector3(Zeze.Serialize.Vector3.ZERO);
         if (_i_ == 20) {
             setVector3Int(_o_.ReadVector3Int(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVector3Int(Zeze.Serialize.Vector3Int.ZERO);
         if (_i_ == 21) {
             setVector4(_o_.ReadVector4(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVector4(Zeze.Serialize.Vector4.ZERO);
         if (_i_ == 22) {
             setQuaternion(_o_.ReadQuaternion(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setQuaternion(Zeze.Serialize.Quaternion.ZERO);
         if (_i_ == 23) {
             _o_.ReadDynamic(_dynamic23, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _dynamic23.reset();
         if (_i_ == 24) {
             var _x_ = _listVector2Int;
             _x_.clear();
@@ -2741,7 +2764,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _listVector2Int.clear();
         if (_i_ == 25) {
             var _x_ = _map25;
             _x_.clear();
@@ -2755,7 +2779,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map25.clear();
         if (_i_ == 26) {
             var _x_ = _map26;
             _x_.clear();
@@ -2770,15 +2795,18 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map26.clear();
         if (_i_ == 27) {
             _o_.ReadDynamic(_dynamic27, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _dynamic27.reset();
         if (_i_ == 28) {
-            _o_.ReadBean(getKey28(), _t_);
+            setKey28(_o_.ReadBean(new demo.Module1.Key(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setKey28(new demo.Module1.Key());
         if (_i_ == 29) {
             var _x_ = _array29;
             _x_.clear();
@@ -2788,7 +2816,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _array29.clear();
         if (_i_ == 30) {
             var _x_ = _list30;
             _x_.clear();
@@ -2798,7 +2827,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list30.clear();
         if (_i_ == 31) {
             var _x_ = _list31;
             _x_.clear();
@@ -2808,7 +2838,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list31.clear();
         if (_i_ == 32) {
             var _x_ = _list32;
             _x_.clear();
@@ -2818,7 +2849,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list32.clear();
         if (_i_ == 33) {
             var _x_ = _list33;
             _x_.clear();
@@ -2828,7 +2860,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list33.clear();
         if (_i_ == 34) {
             var _x_ = _list34;
             _x_.clear();
@@ -2838,7 +2871,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list34.clear();
         if (_i_ == 35) {
             var _x_ = _list35;
             _x_.clear();
@@ -2848,7 +2882,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list35.clear();
         if (_i_ == 36) {
             var _x_ = _list36;
             _x_.clear();
@@ -2858,7 +2893,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list36.clear();
         if (_i_ == 37) {
             var _x_ = _list37;
             _x_.clear();
@@ -2868,7 +2904,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list37.clear();
         if (_i_ == 38) {
             var _x_ = _set38;
             _x_.clear();
@@ -2878,7 +2915,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _set38.clear();
         if (_i_ == 39) {
             var _x_ = _set39;
             _x_.clear();
@@ -2888,7 +2926,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _set39.clear();
         if (_i_ == 40) {
             var _x_ = _map40;
             _x_.clear();
@@ -2902,7 +2941,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map40.clear();
         if (_i_ == 41) {
             var _x_ = _map41;
             _x_.clear();
@@ -2916,7 +2956,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map41.clear();
         if (_i_ == 42) {
             var _x_ = _map42Recursive;
             _x_.clear();
@@ -2930,7 +2971,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map42Recursive.clear();
         if (_i_ == 43) {
             var _x_ = _list43;
             _x_.clear();
@@ -2943,19 +2985,23 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list43.clear();
         if (_i_ == 44) {
             setJsonObject(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setJsonObject("");
         if (_i_ == 45) {
             setJsonArray(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setJsonArray("");
         if (_i_ == 46) {
             setRelationalMappingAlter(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRelationalMappingAlter(0);
         if (_i_ == 47) {
             var _x_ = _sortedmap1;
             _x_.clear();
@@ -2969,7 +3015,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _sortedmap1.clear();
         if (_i_ == 48) {
             var _x_ = _sortedmap2;
             _x_.clear();
@@ -2983,7 +3030,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _sortedmap2.clear();
         while ((_t_ & 0xff) > 1 && _i_ < 50) {
             _u_ = _o_.readUnknownField(_i_, _t_, _u_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -2991,7 +3039,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         if (_i_ == 50) {
             setVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVersion(0);
         while ((_t_ & 0xff) > 1 && _i_ < 99) {
             _u_ = _o_.readUnknownField(_i_, _t_, _u_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -3005,7 +3054,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _LongList.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -5773,35 +5823,43 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
         if (_i_ == 1) {
             _int_1 = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _int_1 = 0;
         if (_i_ == 2) {
             _long2 = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _long2 = 0;
         if (_i_ == 3) {
             _string3 = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _string3 = "";
         if (_i_ == 4) {
             _bool4 = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _bool4 = false;
         if (_i_ == 5) {
             _short5 = _o_.ReadShort(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _short5 = (short)0;
         if (_i_ == 6) {
             _float6 = _o_.ReadFloat(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _float6 = 0;
         if (_i_ == 7) {
             _double7 = _o_.ReadDouble(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _double7 = 0;
         if (_i_ == 8) {
             _bytes8 = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _bytes8 = Zeze.Net.Binary.Empty;
         if (_i_ == 9) {
             var _x_ = _list9;
             _x_.clear();
@@ -5811,7 +5869,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list9.clear();
         if (_i_ == 10) {
             var _x_ = _set10;
             _x_.clear();
@@ -5821,7 +5880,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _set10.clear();
         if (_i_ == 11) {
             var _x_ = _map11;
             _x_.clear();
@@ -5835,19 +5895,23 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map11.clear();
         if (_i_ == 12) {
             _o_.ReadBean(_bean12, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _bean12.restoreOmittedFields(new demo.Module1.BSimple.Data());
         if (_i_ == 13) {
             _byte13 = _o_.ReadByte(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _byte13 = (byte)0;
         if (_i_ == 14) {
             _o_.ReadDynamic(_dynamic14, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _dynamic14.reset();
         if (_i_ == 15) {
             var _x_ = _map15;
             _x_.clear();
@@ -5861,7 +5925,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map15.clear();
         if (_i_ == 16) {
             var _x_ = _map16;
             _x_.clear();
@@ -5875,35 +5940,43 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map16.clear();
         if (_i_ == 17) {
             _vector2 = _o_.ReadVector2(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _vector2 = Zeze.Serialize.Vector2.ZERO;
         if (_i_ == 18) {
             _vector2Int = _o_.ReadVector2Int(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _vector2Int = Zeze.Serialize.Vector2Int.ZERO;
         if (_i_ == 19) {
             _vector3 = _o_.ReadVector3(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _vector3 = Zeze.Serialize.Vector3.ZERO;
         if (_i_ == 20) {
             _vector3Int = _o_.ReadVector3Int(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _vector3Int = Zeze.Serialize.Vector3Int.ZERO;
         if (_i_ == 21) {
             _vector4 = _o_.ReadVector4(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _vector4 = Zeze.Serialize.Vector4.ZERO;
         if (_i_ == 22) {
             _quaternion = _o_.ReadQuaternion(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _quaternion = Zeze.Serialize.Quaternion.ZERO;
         if (_i_ == 23) {
             _o_.ReadDynamic(_dynamic23, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _dynamic23.reset();
         if (_i_ == 24) {
             var _x_ = _listVector2Int;
             _x_.clear();
@@ -5913,7 +5986,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _listVector2Int.clear();
         if (_i_ == 25) {
             var _x_ = _map25;
             _x_.clear();
@@ -5927,7 +6001,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map25.clear();
         if (_i_ == 26) {
             var _x_ = _map26;
             _x_.clear();
@@ -5942,15 +6017,18 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map26.clear();
         if (_i_ == 27) {
             _o_.ReadDynamic(_dynamic27, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _dynamic27.reset();
         if (_i_ == 28) {
-            _o_.ReadBean(_key28, _t_);
+            _key28 = _o_.ReadBean(new demo.Module1.Key(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _key28 = new demo.Module1.Key();
         if (_i_ == 29) {
             var _x_ = _array29;
             _x_.clear();
@@ -5960,7 +6038,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _array29.clear();
         if (_i_ == 30) {
             var _x_ = _list30;
             _x_.clear();
@@ -5976,7 +6055,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list30.clear();
         if (_i_ == 31) {
             var _x_ = _list31;
             _x_.clear();
@@ -5992,7 +6072,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list31.clear();
         if (_i_ == 32) {
             var _x_ = _list32;
             _x_.clear();
@@ -6008,7 +6089,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list32.clear();
         if (_i_ == 33) {
             var _x_ = _list33;
             _x_.clear();
@@ -6024,7 +6106,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list33.clear();
         if (_i_ == 34) {
             var _x_ = _list34;
             _x_.clear();
@@ -6040,7 +6123,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list34.clear();
         if (_i_ == 35) {
             var _x_ = _list35;
             _x_.clear();
@@ -6056,7 +6140,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list35.clear();
         if (_i_ == 36) {
             var _x_ = _list36;
             _x_.clear();
@@ -6072,7 +6157,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list36.clear();
         if (_i_ == 37) {
             var _x_ = _list37;
             _x_.clear();
@@ -6088,7 +6174,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list37.clear();
         if (_i_ == 38) {
             var _x_ = _set38;
             _x_.clear();
@@ -6098,7 +6185,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _set38.clear();
         if (_i_ == 39) {
             var _x_ = _set39;
             _x_.clear();
@@ -6108,7 +6196,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _set39.clear();
         if (_i_ == 40) {
             var _x_ = _map40;
             _x_.clear();
@@ -6122,7 +6211,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map40.clear();
         if (_i_ == 41) {
             var _x_ = _map41;
             _x_.clear();
@@ -6136,7 +6226,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map41.clear();
         if (_i_ == 42) {
             var _x_ = _map42Recursive;
             _x_.clear();
@@ -6150,7 +6241,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _map42Recursive.clear();
         if (_i_ == 43) {
             var _x_ = _list43;
             _x_.clear();
@@ -6163,22 +6255,25 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _list43.clear();
         if (_i_ == 44) {
             _jsonObject = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _jsonObject = "";
         if (_i_ == 45) {
             _jsonArray = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _jsonArray = "";
         if (_i_ == 46) {
             _relationalMappingAlter = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _relationalMappingAlter = 0;
         if (_i_ == 47) {
-            var _x_ = _sortedmap1;
-            _x_.clear();
+            var _x_ = new java.util.TreeMap<Integer, Integer>();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
@@ -6188,11 +6283,12 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
                 }
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _sortedmap1 = _x_;
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _sortedmap1 = new java.util.TreeMap<>();
         if (_i_ == 48) {
-            var _x_ = _sortedmap2;
-            _x_.clear();
+            var _x_ = new java.util.TreeMap<Integer, demo.Module1.BSimple.Data>();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
@@ -6202,8 +6298,10 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
                 }
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _sortedmap2 = _x_;
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _sortedmap2 = new java.util.TreeMap<>();
         while ((_t_ & 0xff) > 1 && _i_ < 50) {
             _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -6211,7 +6309,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
         if (_i_ == 50) {
             _version = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _version = 0;
         while ((_t_ & 0xff) > 1 && _i_ < 99) {
             _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -6225,7 +6324,8 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _LongList.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

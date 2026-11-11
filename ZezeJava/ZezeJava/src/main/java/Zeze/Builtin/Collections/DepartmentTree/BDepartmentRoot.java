@@ -340,7 +340,8 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         if (_i_ == 1) {
             setRoot(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRoot("");
         if (_i_ == 2) {
             var _x_ = _Managers;
             _x_.clear();
@@ -355,11 +356,13 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Managers.clear();
         if (_i_ == 3) {
             setNextDepartmentId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNextDepartmentId(0);
         if (_i_ == 4) {
             var _x_ = _Children;
             _x_.clear();
@@ -373,11 +376,13 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Children.clear();
         if (_i_ == 5) {
             _o_.ReadDynamic(_Data, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Data.reset();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

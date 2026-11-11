@@ -314,23 +314,28 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         if (_i_ == 1) {
             setOnzTid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOnzTid(0);
         if (_i_ == 2) {
             setFuncName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFuncName("");
         if (_i_ == 3) {
             setFuncArgument(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFuncArgument(Zeze.Net.Binary.Empty);
         if (_i_ == 4) {
             setFlushMode(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFlushMode(0);
         if (_i_ == 5) {
             setFlushTimeout(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFlushTimeout(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -629,23 +634,28 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _OnzTid = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _OnzTid = 0;
         if (_i_ == 2) {
             _FuncName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FuncName = "";
         if (_i_ == 3) {
             _FuncArgument = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FuncArgument = Zeze.Net.Binary.Empty;
         if (_i_ == 4) {
             _FlushMode = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FlushMode = 0;
         if (_i_ == 5) {
             _FlushTimeout = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FlushTimeout = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

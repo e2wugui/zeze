@@ -247,7 +247,8 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         if (_i_ == 1) {
             setNextNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNextNodeId(0);
         if (_i_ == 2) {
             var _x_ = _Values;
             _x_.clear();
@@ -257,11 +258,13 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Values.clear();
         if (_i_ == 3) {
-            _o_.ReadBean(getNextNodeKey(), _t_);
+            setNextNodeKey(_o_.ReadBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNextNodeKey(new Zeze.Builtin.Collections.Queue.BQueueNodeKey());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

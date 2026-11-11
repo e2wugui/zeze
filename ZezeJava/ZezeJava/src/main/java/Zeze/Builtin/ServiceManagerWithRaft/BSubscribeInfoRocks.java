@@ -80,6 +80,8 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BSubscribeInfoRocks other) {
+        if (other == this)
+            return;
         setServiceName(other.getServiceName());
         setVersion(other.getVersion());
     }
@@ -161,10 +163,14 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _ServiceName = "";
         }
         if (_i_ == 2) {
             _Version = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Version = 0;
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

@@ -149,7 +149,8 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
         if (_i_ == 1) {
             _o_.ReadDynamic(_CustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _CustomData.reset();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

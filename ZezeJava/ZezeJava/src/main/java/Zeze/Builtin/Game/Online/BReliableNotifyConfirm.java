@@ -180,11 +180,13 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         if (_i_ == 1) {
             setReliableNotifyConfirmIndex(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setReliableNotifyConfirmIndex(0);
         if (_i_ == 2) {
             setSync(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSync(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

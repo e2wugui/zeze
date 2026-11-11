@@ -4,8 +4,6 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-import java.lang.invoke.MethodHandle;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -13,8 +11,6 @@ import java.util.TreeMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Util.Reflect;
-import Zeze.Util.Task;
 
 /**
  * 与 LogMap2 完全对应，只是继承自 LogSortedMap1，value 使用 PSortedMap。
@@ -23,24 +19,27 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogSortedMap2<");
 
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
-	private Map<K, LogBean> changedWithKey = new TreeMap<>(); // changed with key. using in encode/decode followerApply
-	private final MethodHandle valueFactory;
+	private final Map<K, LogBean> changedWithKey = new TreeMap<>(); // changed with key. using in encode/decode followerApply
+	private final BeanValueFactory<V> valueFactory;
 	private boolean decoded; // 解码后的索引是完整日志，不从旧的源Map重新构建。
 
+	static int typeId(Class<?> keyClass, Class<?> valueClass) {
+		return Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass);
+	}
+
 	public LogSortedMap2(Class<K> keyClass, Class<V> valueClass) {
-		this(keyClass, valueClass, null);
+		super(typeId(keyClass, valueClass), keyClass, valueClass);
+		valueFactory = BeanValueFactory.of(valueClass);
 	}
 
-	/** 自定义比较器须在复制双方的日志工厂一致配置；wire不携带比较器。 */
-	public LogSortedMap2(Class<K> keyClass, Class<V> valueClass, @Nullable Comparator<? super K> comparator) {
-		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass, comparator);
-		changedWithKey = new TreeMap<>(comparator);
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
-	}
-
-	LogSortedMap2(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
+	LogSortedMap2(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, BeanValueFactory<V> valueFactory) {
 		super(typeId, keyCodecFuncs, null);
 		this.valueFactory = valueFactory;
+	}
+
+	@Override
+	@Nullable DynamicField dynamicField() {
+		return valueFactory.field();
 	}
 
 	public final Set<LogBean> getChanged() {
@@ -52,16 +51,8 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	}
 
 	@Override
-	protected void onComparatorChanged(@Nullable Comparator<? super K> comparator) {
-		super.onComparatorChanged(comparator);
-		var newChangedWithKey = new TreeMap<K, LogBean>(comparator);
-		newChangedWithKey.putAll(changedWithKey);
-		changedWithKey = newChangedWithKey;
-	}
-
-	@Override
 	public Log beginSavepoint() {
-		var dup = new LogSortedMap2<K, V>(getTypeId(), keyCodecFuncs, valueFactory);
+		var dup = new LogSortedMap2<>(getTypeId(), keyCodecFuncs, valueFactory);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -115,7 +106,6 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 				keyEncoder.accept(bb, e.getKey());
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(IByteBuffer bb) {
 		changed.clear();
@@ -123,8 +113,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
-			var value = new LogBean();
-			value.decode(bb);
+			var value = valueFactory.readEdit(bb);
 			changedWithKey.put(key, value);
 		}
 
@@ -133,14 +122,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 		modified.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
-			V value;
-			try {
-				value = (V)valueFactory.invoke();
-			} catch (Throwable e) { // MethodHandle.invoke
-				throw Task.forceThrow(e);
-			}
-			value.decode(bb);
-			modified.put(key, value);
+			modified.put(key, valueFactory.read(bb));
 		}
 		for (int i = bb.ReadUInt(); i > 0; i--)
 			modified.put(keyDecoder.apply(bb), null);

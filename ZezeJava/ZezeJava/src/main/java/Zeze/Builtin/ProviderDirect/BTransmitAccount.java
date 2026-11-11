@@ -340,11 +340,13 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         if (_i_ == 1) {
             setActionName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setActionName("");
         if (_i_ == 2) {
             setParameter(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setParameter(Zeze.Net.Binary.Empty);
         if (_i_ == 3) {
             var _x_ = _Targets;
             _x_.clear();
@@ -354,15 +356,18 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Targets.clear();
         if (_i_ == 4) {
             setSenderAccount(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSenderAccount("");
         if (_i_ == 5) {
             setSenderClientId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSenderClientId("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -703,11 +708,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ActionName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ActionName = "";
         if (_i_ == 2) {
             _Parameter = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Parameter = Zeze.Net.Binary.Empty;
         if (_i_ == 3) {
             var _x_ = _Targets;
             _x_.clear();
@@ -717,15 +724,18 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Targets.clear();
         if (_i_ == 4) {
             _SenderAccount = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _SenderAccount = "";
         if (_i_ == 5) {
             _SenderClientId = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _SenderClientId = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

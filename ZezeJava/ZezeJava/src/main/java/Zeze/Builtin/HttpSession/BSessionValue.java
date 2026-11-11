@@ -229,11 +229,13 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
         if (_i_ == 1) {
             setCreateTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCreateTime(0);
         if (_i_ == 2) {
             setExpireTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExpireTime(0);
         if (_i_ == 3) {
             var _x_ = _Properties;
             _x_.clear();
@@ -247,7 +249,8 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Properties.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

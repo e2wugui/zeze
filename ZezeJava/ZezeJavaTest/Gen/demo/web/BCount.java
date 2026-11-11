@@ -163,7 +163,8 @@ public final class BCount extends Zeze.Transaction.Bean implements BCountReadOnl
         if (_i_ == 1) {
             setCount(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCount(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -337,7 +338,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Count = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Count = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

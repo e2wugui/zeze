@@ -127,13 +127,10 @@ public class TestSortedMapEquivalentKeysReplay {
 	}
 
 	@Test
-	public void customComparatorSurvivesClearSavepointAndReplay() {
-		var comparator = String.CASE_INSENSITIVE_ORDER;
+	public void naturalOrderSurvivesClearSavepointAndReplay() {
 		var leader = new CollSortedMap1<String, Integer>(String.class, Integer.class);
-		leader.map = TreePMap.empty(comparator);
 		leader.put("alpha", 10);
 		leader.clear();
-		assertSame(comparator, leader.map.comparator());
 		var log = new LogSortedMap1<String, Integer>(String.class, Integer.class);
 		log.setBelong(new BValue());
 		log.setValue(leader.map);
@@ -143,16 +140,17 @@ public class TestSortedMapEquivalentKeysReplay {
 		@SuppressWarnings("unchecked")
 		var nested = (LogSortedMap1<String, Integer>)log.beginSavepoint();
 		nested.clear();
-		assertSame(comparator, requireNonNull(nested.getValue()).comparator());
 		nested.put("ALPHA", 20);
+		nested.put("alpha", 30);
 		nested.endSavepoint(savepoint);
-		var decoded = new LogSortedMap1<String, Integer>(String.class, Integer.class, comparator);
+		var decoded = new LogSortedMap1<String, Integer>(String.class, Integer.class);
 		decoded.decode(encode(log));
 		var follower = new CollSortedMap1<String, Integer>(String.class, Integer.class);
-		follower.map = TreePMap.empty(comparator);
 		follower.followerApply(decoded);
-		assertEquals(1, follower.size());
-		assertEquals(20, follower.get("alpha"));
+		assertEquals(2, follower.size());
+		assertEquals(20, follower.get("ALPHA"));
+		assertEquals(30, follower.get("alpha"));
+		assertEquals("ALPHA", follower.keys().iterator().next());
 	}
 
 	@Test
@@ -189,41 +187,34 @@ public class TestSortedMapEquivalentKeysReplay {
 	}
 
 	@Test
-	public void comparatorFinerThanNaturalOrderSurvivesConfiguredDecode() {
-		var comparator = java.util.Comparator.comparing(BigDecimal::toString);
-		var log = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class, comparator);
-		log.setValue(TreePMap.empty(comparator));
+	public void naturalOrderFoldsEquivalentBeanKeysDuringReplay() {
+		var log = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		log.setValue(TreePMap.empty());
 		log.put(decimal("1.0"), new BValue(10));
 		log.put(decimal("1.00"), new BValue(20));
-		var decoded = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class, comparator);
+		var decoded = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
 		decoded.decode(encode(log));
 		var follower = new CollSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
-		follower.map = TreePMap.empty(comparator);
 		follower.followerApply(decoded);
-		assertEquals(2, follower.size());
-		assertEquals(10, requireNonNull(follower.get(decimal("1.0"))).value);
+		assertEquals(1, follower.size());
+		assertSame(follower.get(decimal("1.0")), follower.get(decimal("1.00")));
 		assertEquals(20, requireNonNull(follower.get(decimal("1.00"))).value);
-		follower.clear();
-		assertSame(comparator, follower.map.comparator());
 	}
 
 	@Test
-	public void managedCopyRetainsCurrentStructureAndComparator() {
-		var comparator = String.CASE_INSENSITIVE_ORDER;
+	public void managedCopyRetainsCurrentStructureAndNaturalOrder() {
 		var map = new CollSortedMap2<String, BValue>(String.class, BValue.class);
-		map.map = TreePMap.empty(comparator);
 		var parent = new BValue();
 		map.initRootInfo(new Record.RootInfo(null, new TableKey("Copy", 1)), parent);
 		var transaction = Transaction.create();
 		transaction.begin();
 		try {
 			map.put("alpha", new BValue(10));
-			map.remove("ALPHA");
 			map.put("Alpha", new BValue(20));
 			var copy = map.copy();
-			assertSame(comparator, copy.map.comparator());
-			assertEquals(1, copy.size());
-			assertEquals(20, requireNonNull(copy.get("ALPHA")).value);
+			assertEquals(2, copy.size());
+			assertEquals("Alpha", copy.keys().iterator().next());
+			assertEquals(20, requireNonNull(copy.get("Alpha")).value);
 			assertSame(map.get("alpha"), copy.get("alpha"), "保留已有Bean浅共享契约");
 		} finally {
 			Transaction.destroy();

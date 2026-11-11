@@ -306,23 +306,28 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         if (_i_ == 1) {
             setAccount(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAccount("");
         if (_i_ == 2) {
-            _o_.ReadBean(getLink(), _t_);
+            setLink(_o_.ReadBean(new Zeze.Builtin.Game.Online.BLink(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLink(new Zeze.Builtin.Game.Online.BLink());
         if (_i_ == 3) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLoginVersion(0);
         if (_i_ == 4) {
             setLogoutVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLogoutVersion(0);
         if (_i_ == 5) {
             _o_.ReadDynamic(_UserData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _UserData.reset();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

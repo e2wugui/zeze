@@ -248,15 +248,18 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         if (_i_ == 1) {
             setFrom(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFrom(0);
         if (_i_ == 2) {
             setCode(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCode(0);
         if (_i_ == 3) {
             setDesc(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDesc("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -503,15 +506,18 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _from = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _from = 0;
         if (_i_ == 2) {
             _code = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _code = 0;
         if (_i_ == 3) {
             _desc = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _desc = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

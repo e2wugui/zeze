@@ -147,7 +147,8 @@ public final class BEquipement extends Zeze.Transaction.Bean implements BEquipem
         if (_i_ == 1) {
             setBagPos(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setBagPos(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

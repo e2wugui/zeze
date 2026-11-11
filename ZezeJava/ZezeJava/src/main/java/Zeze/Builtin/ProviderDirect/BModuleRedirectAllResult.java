@@ -367,23 +367,28 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         if (_i_ == 1) {
             setModuleId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setModuleId(0);
         if (_i_ == 2) {
             setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerId(0);
         if (_i_ == 3) {
             setSourceProvider(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSourceProvider(0);
         if (_i_ == 4) {
             setMethodFullName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMethodFullName("");
         if (_i_ == 5) {
             setSessionId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSessionId(0);
         if (_i_ == 6) {
             var _x_ = _Hashes;
             _x_.clear();
@@ -397,7 +402,8 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Hashes.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -770,23 +776,28 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ModuleId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ModuleId = 0;
         if (_i_ == 2) {
             _ServerId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServerId = 0;
         if (_i_ == 3) {
             _SourceProvider = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _SourceProvider = 0;
         if (_i_ == 4) {
             _MethodFullName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _MethodFullName = "";
         if (_i_ == 5) {
             _SessionId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _SessionId = 0;
         if (_i_ == 6) {
             var _x_ = _Hashes;
             _x_.clear();
@@ -800,7 +811,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Hashes.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

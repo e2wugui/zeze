@@ -84,11 +84,13 @@ public final class BTableKey implements Zeze.Transaction.BeanKey, Comparable<BTa
         if (_i_ == 1) {
             _TableId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TableId = 0;
         if (_i_ == 2) {
             _KeyEncoded = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _KeyEncoded = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

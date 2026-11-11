@@ -4,6 +4,7 @@
 	<import file="demo2.xml"/>
 	<import file="taskExt.xml"/>
 	<import file="fixtures/dynamic-list-history/solution.xml"/>
+	<import file="fixtures/rocks-dynamic/solution.xml"/>
 
 	<bean name="Bean1"> bean的注释
 		<enum name="Enum1" value="4"/> enum的注释
@@ -282,6 +283,12 @@
 			<module ref="ModuleGTable"/>
 		</service>
 	</project>
+
+	<component name="DynamicFixture" GenDir="Gen" SrcDir="src" PackagePath="rocksdynamic/Fixture" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="rocksdynamic.Fixture"/>
+		</service>
+	</component>
 
 	<project name="CxxTest" GenDir="../../cxx/test/Gen" SrcDir="../../cxx/test" platform="cxx" GenTables="" ClientScript="true">
 		<service name="TestClient" handle="client,clientscript">

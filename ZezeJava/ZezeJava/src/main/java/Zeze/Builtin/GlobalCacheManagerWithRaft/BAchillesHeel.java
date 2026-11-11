@@ -219,15 +219,18 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         if (_i_ == 1) {
             setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerId(0);
         if (_i_ == 2) {
             setSecureKey(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSecureKey("");
         if (_i_ == 3) {
             setGlobalCacheManagerHashIndex(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setGlobalCacheManagerHashIndex(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

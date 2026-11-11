@@ -273,19 +273,23 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         if (_i_ == 1) {
             setProtocolType(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProtocolType(0);
         if (_i_ == 2) {
             setProtocolWholeData(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProtocolWholeData(Zeze.Net.Binary.Empty);
         if (_i_ == 3) {
             setTime(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTime(0);
         if (_i_ == 4) {
             setOnlySameVersion(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOnlySameVersion(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -547,19 +551,23 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _protocolType = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _protocolType = 0;
         if (_i_ == 2) {
             _protocolWholeData = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _protocolWholeData = Zeze.Net.Binary.Empty;
         if (_i_ == 3) {
             _time = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _time = 0;
         if (_i_ == 4) {
             _onlySameVersion = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _onlySameVersion = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

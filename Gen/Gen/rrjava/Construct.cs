@@ -118,10 +118,19 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + variable.NamePrivate + " = \"" + variable.Initial + "\";");
         }
 
+        private void ConstructCollection(Type type, Type valueType, Type keyType = null)
+        {
+            var keyArg = keyType != null ? $"{BoxingName.GetBoxingName(keyType)}.class, " : "";
+            var expression = valueType is TypeDynamic
+                ? $"{TypeName.GetNameOmitted(type)}.dynamic({keyArg}{BeanFormatter.DynamicFieldName(variable)})"
+                : $"new {TypeName.GetSimpleName(type)}({keyArg}{BoxingName.GetBoxingName(valueType)}.class)";
+            sw.WriteLine(prefix + variable.NamePrivate + $" = {expression};");
+            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
+        }
+
         public void Visit(TypeList type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {TypeName.GetSimpleName(type)}({BoxingName.GetBoxingName(type.ValueType)}.class);");
-            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
+            ConstructCollection(type, type.ValueType);
         }
 
         public void Visit(TypeSet type)
@@ -132,14 +141,12 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {TypeName.GetSimpleName(type)}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
-            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
+            ConstructCollection(type, type.ValueType, type.KeyType);
         }
 
         public void Visit(TypeSortedMap type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {TypeName.GetSimpleName(type)}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
-            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
+            ConstructCollection(type, type.ValueType, type.KeyType);
         }
 
         public void Visit(TypeFloat type)
@@ -154,8 +161,7 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Raft.RocksRaft.DynamicBean"
-                + $"({variable.Id}, getSpecialTypeIdFromBean_{variable.Id}, createBeanFromSpecialTypeId_{variable.Id});");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = {BeanFormatter.DynamicFieldName(variable)}.newValue();");
         }
 
         void InitialVector(Type type)

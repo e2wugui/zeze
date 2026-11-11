@@ -17,7 +17,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.@Nullable CodecFuncs<V> valueCodecFuncs;
 
-	private final HashMap<K, V> modified = new HashMap<>();
+	private final HashMap<K, @Nullable V> modified = new HashMap<>();
 
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
 		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
@@ -35,11 +35,11 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
 
-	public final HashMap<K, V> getModified() {
+	public final HashMap<K, @Nullable V> getModified() {
 		return modified;
 	}
 
-	public final V get(K key) {
+	public final @Nullable V get(K key) {
 		//noinspection DataFlowIssue
 		return getValue().get(key);
 	}
@@ -79,7 +79,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 				puttedCount++;
 		bb.WriteUInt(puttedCount);
 		for (var e : modified.entrySet()) {
-			V v = e.getValue();
+			var v = e.getValue();
 			if (v != null) {
 				keyEncoder.accept(bb, e.getKey());
 				valueEncoder.accept(bb, v);

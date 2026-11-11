@@ -398,31 +398,38 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         if (_i_ == 1) {
             setAppInstanceId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAppInstanceId("");
         if (_i_ == 2) {
             setTableName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTableName("");
         if (_i_ == 3) {
             setRecordKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRecordKey(Zeze.Net.Binary.Empty);
         if (_i_ == 4) {
             setLastKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLastKey(Zeze.Net.Binary.Empty);
         if (_i_ == 5) {
             setProposeLimit(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProposeLimit(0);
         if (_i_ == 6) {
             setJobClass(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setJobClass("");
         if (_i_ == 7) {
             setWorker(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setWorker(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -791,31 +798,38 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _AppInstanceId = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _AppInstanceId = "";
         if (_i_ == 2) {
             _TableName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TableName = "";
         if (_i_ == 3) {
             _RecordKey = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _RecordKey = Zeze.Net.Binary.Empty;
         if (_i_ == 4) {
             _LastKey = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _LastKey = Zeze.Net.Binary.Empty;
         if (_i_ == 5) {
             _ProposeLimit = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ProposeLimit = 0;
         if (_i_ == 6) {
             _JobClass = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _JobClass = "";
         if (_i_ == 7) {
             _Worker = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Worker = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

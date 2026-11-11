@@ -34,9 +34,11 @@ public final class BServiceInfosVersionRocks extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BServiceInfosVersionRocks other) {
+        if (other == this)
+            return;
         _ServiceInfos.clear();
         for (var e : other._ServiceInfos.entrySet())
-            _ServiceInfos.put(e.getKey(), e.getValue());
+            _ServiceInfos.put(e.getKey(), e.getValue().copy());
     }
 
     public BServiceInfosVersionRocks copyIfManaged() {
@@ -134,6 +136,8 @@ public final class BServiceInfosVersionRocks extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _ServiceInfos.clear();
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

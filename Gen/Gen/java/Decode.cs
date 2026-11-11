@@ -59,13 +59,7 @@ namespace Zeze.Gen.java
                 if (v.Id > 0)
                 {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    if (v.Initial.Length > 0)
-                    {
-                        sw.WriteLine(prefix + "    } else");
-                        sw.WriteLine(prefix + "        " + Initial(v) + ";");
-                    }
-                    else
-                        sw.WriteLine(prefix + "    }");
+                    WriteMissingField(v, sw, prefix, false);
                 }
                 else
                     sw.WriteLine(prefix + "    }");
@@ -132,13 +126,7 @@ namespace Zeze.Gen.java
                 if (v.Id > 0)
                 {
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    if (v.Initial.Length > 0)
-                    {
-                        sw.WriteLine(prefix + "    } else");
-                        sw.WriteLine(prefix + "        " + Initial(v) + ";");
-                    }
-                    else
-                        sw.WriteLine(prefix + "    }");
+                    WriteMissingField(v, sw, prefix, false);
                 }
                 else
                     sw.WriteLine(prefix + "    }");
@@ -152,35 +140,47 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        static string Initial(Variable var)
+        internal static void WriteMissingField(Variable var, StreamWriter sw, string prefix, bool isData)
         {
             var type = var.VariableType;
-            switch (type)
+            if (isData && type is TypeGTable)
             {
-                case TypeBool:
-                    return var.Bean.IsNormalBean ? var.Setter("false") : $"{var.NamePrivate} = false";
-                case TypeByte:
-                case TypeShort:
-                case TypeInt:
-                case TypeLong:
-                case TypeFloat:
-                case TypeDouble:
-                    return var.Bean.IsNormalBean ? var.Setter("0") : $"{var.NamePrivate} = 0";
-                case TypeString:
-                    return var.Bean.IsNormalBean ? var.Setter("") : $"{var.NamePrivate} = \"\"";
-                case Bean:
-                case BeanKey:
-                case TypeVector2:
-                case TypeVector2Int:
-                case TypeVector3:
-                case TypeVector3Int:
-                case TypeVector4:
-                case TypeQuaternion:
-                    return var.Bean.IsNormalBean
-                        ? var.Setter($"{TypeName.GetName(type)}.ZERO")
-                        : $"{var.NamePrivate} = {TypeName.GetName(type)}.ZERO";
-                default:
-                    throw new Exception("unsupported initial type: " + var.VariableType);
+                // GTable has no Data field or Data encoding.
+                sw.WriteLine(prefix + "    }");
+                return;
+            }
+
+            sw.WriteLine(prefix + "    } else");
+            if (isData && type is TypeSortedMap)
+                sw.WriteLine($"{prefix}        {var.NamePrivate} = new java.util.TreeMap<>();");
+            else if (type is TypeCollection or TypeMap or TypeSortedMap or TypeGTable)
+                sw.WriteLine($"{prefix}        {var.NamePrivate}.clear();");
+            else if (type is TypeDynamic)
+                sw.WriteLine($"{prefix}        {var.NamePrivate}.reset();");
+            else if (type is Bean child)
+                sw.WriteLine($"{prefix}        {RestoreOmittedBean.Missing(var, child, isData)};");
+            else
+            {
+                string FieldTypeName() => isData ? javadata.TypeName.GetName(type) : TypeName.GetName(type);
+                var value = type switch
+                {
+                    TypeBool => "false",
+                    TypeByte => "(byte)0",
+                    TypeShort => "(short)0",
+                    TypeInt or TypeLong or TypeFloat or TypeDouble => "0",
+                    TypeString => "\"\"",
+                    TypeBinary => "Zeze.Net.Binary.Empty",
+                    // A missing child tag left the freshly constructed child as-is in legacy readers.
+                    BeanKey when var.Initial.Length == 0 || type is not ExternalBeanKey => $"new {FieldTypeName()}()",
+                    BeanKey or TypeVector2 or TypeVector2Int or TypeVector3 or TypeVector3Int
+                        or TypeVector4 or TypeQuaternion => $"{FieldTypeName()}.ZERO",
+                    // Decimal is always written, even for zero. Older schemas may lack the field.
+                    TypeDecimal when var.Initial.Length == 0 => "java.math.BigDecimal.ZERO",
+                    TypeDecimal => $"new java.math.BigDecimal(\"{var.Initial}\", java.math.MathContext.DECIMAL128)",
+                    _ => throw new Exception("unsupported missing field type: " + type),
+                };
+                var statement = !isData && var.Bean.IsNormalBean ? var.Setter(value) : $"{var.NamePrivate} = {value}";
+                sw.WriteLine($"{prefix}        {statement};");
             }
         }
 
@@ -458,7 +458,7 @@ namespace Zeze.Gen.java
         public void Visit(BeanKey type)
         {
             if (id > 0)
-                sw.WriteLine(prefix + bufname + ".ReadBean(" + Getter + ", _t_);");
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadBean(new {TypeName.GetName(type)}({var?.Initial}), {typeVarName})") + ';');
             else
                 sw.WriteLine(prefix + Getter + ".decode(" + bufname + ");");
         }

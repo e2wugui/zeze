@@ -10,8 +10,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
-import Zeze.Util.Reflect;
-import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -26,17 +24,30 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	// 这些bean的最终状态由opLogs携带的value编码（提交时刻才encode，含后续编辑），其changed条目
 	// 是冗余的——follower侧全量应用changed，冗余条目会叠加应用两次（内部非幂等op双重执行）。
 	private @Nullable IdentityHashSet<V> addSet;
-	private final MethodHandle valueFactory;
+	private final BeanValueFactory<V> valueFactory;
 	private boolean decoded; // 解码后的下标来自wire，不能按无源Bean的身份重新计算。
 
+	static int typeId(Class<?> valueClass) {
+		return Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass);
+	}
+
 	public LogList2(Class<V> valueClass) {
-		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass), SerializeHelper.createCodec(valueClass));
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
+		super(typeId(valueClass), SerializeHelper.createCodec(valueClass));
+		valueFactory = BeanValueFactory.of(valueClass);
 	}
 
 	public LogList2(int typeId, MethodHandle valueFactory) {
+		this(typeId, BeanValueFactory.of(valueFactory));
+	}
+
+	LogList2(int typeId, BeanValueFactory<V> valueFactory) {
 		super(typeId, null);
 		this.valueFactory = valueFactory;
+	}
+
+	@Override
+	@Nullable DynamicField dynamicField() {
+		return valueFactory.field();
 	}
 
 	public final HashMap<LogBean, OutInt> getChanged() {
@@ -94,7 +105,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public Log beginSavepoint() {
-		var dup = new LogList2<V>(getTypeId(), valueFactory);
+		var dup = new LogList2<>(getTypeId(), valueFactory);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -175,14 +186,12 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(IByteBuffer bb) {
 		addSet = null;
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var value = new LogBean();
-			value.decode(bb);
+			var value = valueFactory.readEdit(bb);
 			var index = bb.ReadUInt();
 			changed.put(value, new OutInt(index));
 		}
@@ -193,14 +202,8 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			int op = bb.ReadUInt();
 			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
 			V value = null;
-			if (op < OpLog.OP_REMOVE) {
-				try {
-					value = (V)valueFactory.invoke();
-				} catch (Throwable e) { // MethodHandle.invoke
-					throw Task.forceThrow(e);
-				}
-				value.decode(bb);
-			}
+			if (op < OpLog.OP_REMOVE)
+				value = valueFactory.read(bb);
 			opLogs.add(new OpLog<>(op, index, value));
 		}
 		decoded = true;

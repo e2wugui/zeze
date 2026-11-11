@@ -287,7 +287,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _plist.clear();
         if (_i_ == 3) {
             var _x_ = _psortedmap;
             _x_.clear();
@@ -301,7 +302,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _psortedmap.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -619,10 +621,10 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _plist.clear();
         if (_i_ == 3) {
-            var _x_ = _psortedmap;
-            _x_.clear();
+            var _x_ = new java.util.TreeMap<Integer, Integer>();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
@@ -632,8 +634,10 @@ public static final class Data extends Zeze.Transaction.Data {
                 }
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _psortedmap = _x_;
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _psortedmap = new java.util.TreeMap<>();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

@@ -344,17 +344,20 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(getGlobalSerialId(), _t_);
+            setGlobalSerialId(_o_.ReadBean(new Zeze.Util.Id128(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setGlobalSerialId(new Zeze.Util.Id128());
         if (_i_ == 2) {
             setProtocolClassName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProtocolClassName("");
         if (_i_ == 3) {
             setProtocolArgument(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProtocolArgument(Zeze.Net.Binary.Empty);
         if (_i_ == 4) {
             var _x_ = _Changes;
             _x_.clear();
@@ -368,11 +371,13 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Changes.clear();
         if (_i_ == 5) {
             setTimestamp(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimestamp(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -720,17 +725,20 @@ public static class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(_GlobalSerialId, _t_);
+            _GlobalSerialId = _o_.ReadBean(new Zeze.Util.Id128(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _GlobalSerialId = new Zeze.Util.Id128();
         if (_i_ == 2) {
             _ProtocolClassName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ProtocolClassName = "";
         if (_i_ == 3) {
             _ProtocolArgument = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ProtocolArgument = Zeze.Net.Binary.Empty;
         if (_i_ == 4) {
             var _x_ = _Changes;
             _x_.clear();
@@ -744,11 +752,13 @@ public static class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Changes.clear();
         if (_i_ == 5) {
             _Timestamp = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Timestamp = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

@@ -361,7 +361,8 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Puts.clear();
         if (_i_ == 2) {
             var _x_ = _Deletes;
             _x_.clear();
@@ -371,21 +372,34 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Deletes.clear();
         if (_i_ == 3) {
             setQueryIp(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setQueryIp("");
         if (_i_ == 4) {
             setQueryPort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setQueryPort(0);
         if (_i_ == 5) {
             setTid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTid(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    public void restoreOmittedFields(BBatch _defaults_) {
+        _Puts.clear();
+        _Deletes.clear();
+        setQueryIp(_defaults_.getQueryIp());
+        setQueryPort(_defaults_.getQueryPort());
+        setTid(_defaults_.getTid());
+        _unknown_ = null;
     }
 
     @Override
@@ -753,7 +767,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Puts.clear();
         if (_i_ == 2) {
             var _x_ = _Deletes;
             _x_.clear();
@@ -763,23 +778,37 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Deletes.clear();
         if (_i_ == 3) {
             _QueryIp = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _QueryIp = "";
         if (_i_ == 4) {
             _QueryPort = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _QueryPort = 0;
         if (_i_ == 5) {
             _Tid = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Tid = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    public void restoreOmittedFields(Data _defaults_) {
+        _Puts.clear();
+        _Puts.putAll(_defaults_._Puts);
+        _Deletes.clear();
+        _Deletes.addAll(_defaults_._Deletes);
+        _QueryIp = _defaults_._QueryIp;
+        _QueryPort = _defaults_._QueryPort;
+        _Tid = _defaults_._Tid;
     }
 
     @Override

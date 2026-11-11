@@ -230,15 +230,18 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         if (_i_ == 1) {
             setId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setId(0);
         if (_i_ == 2) {
             setNumber(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNumber(0);
         if (_i_ == 3) {
             _o_.ReadDynamic(_Item, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Item.reset();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

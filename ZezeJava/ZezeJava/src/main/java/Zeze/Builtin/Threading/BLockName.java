@@ -7,7 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 @SuppressWarnings({"MethodMayBeStatic", "ConstantConditions", "ConstantValue", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLockName> {
-    private final Zeze.Builtin.Threading.BGlobalThreadId _GlobalThreadId;
+    private Zeze.Builtin.Threading.BGlobalThreadId _GlobalThreadId;
     private String _Name;
 
     // for decode only
@@ -92,13 +92,15 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(getGlobalThreadId(), _t_);
+            _GlobalThreadId = _o_.ReadBean(new Zeze.Builtin.Threading.BGlobalThreadId(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _GlobalThreadId = new Zeze.Builtin.Threading.BGlobalThreadId();
         if (_i_ == 2) {
             _Name = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Name = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

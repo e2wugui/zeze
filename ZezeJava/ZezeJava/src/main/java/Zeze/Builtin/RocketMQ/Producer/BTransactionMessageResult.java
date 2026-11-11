@@ -180,11 +180,13 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         if (_i_ == 1) {
             setResult(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setResult(false);
         if (_i_ == 2) {
             setTimestamp(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimestamp(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

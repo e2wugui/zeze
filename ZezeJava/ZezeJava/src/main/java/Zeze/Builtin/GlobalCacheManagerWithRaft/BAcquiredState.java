@@ -40,6 +40,8 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BAcquiredState other) {
+        if (other == this)
+            return;
         setState(other.getState());
     }
 
@@ -112,6 +114,8 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 1) {
             _State = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _State = 0;
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

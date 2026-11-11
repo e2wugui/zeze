@@ -180,11 +180,13 @@ public final class BTakeoverLease extends Zeze.Transaction.Bean implements BTake
         if (_i_ == 1) {
             setEpoch(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setEpoch(0);
         if (_i_ == 2) {
             setExpireAt(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExpireAt(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

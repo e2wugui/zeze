@@ -130,23 +130,28 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
         if (_i_ == 1) {
             _RankType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _RankType = 0;
         if (_i_ == 2) {
             _ConcurrentId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ConcurrentId = 0;
         if (_i_ == 3) {
             _TimeType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TimeType = 0;
         if (_i_ == 4) {
             _Year = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Year = 0;
         if (_i_ == 5) {
             _Offset = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Offset = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

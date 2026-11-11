@@ -91,11 +91,12 @@ public final class Key implements Zeze.Transaction.BeanKey, Comparable<Key> {
             _s = _o_.ReadShort(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _s = 0;
+            _s = (short)0;
         if (_i_ == 2) {
             _str = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _str = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

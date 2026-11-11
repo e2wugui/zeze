@@ -91,11 +91,13 @@ public final class BAccountClientId implements Zeze.Transaction.BeanKey, Compara
         if (_i_ == 1) {
             _Account = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Account = "";
         if (_i_ == 2) {
             _ClientId = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ClientId = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

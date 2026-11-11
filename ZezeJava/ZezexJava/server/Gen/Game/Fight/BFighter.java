@@ -181,11 +181,13 @@ public final class BFighter extends Zeze.Transaction.Bean implements BFighterRea
         if (_i_ == 1) {
             setAttack(_o_.ReadFloat(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAttack(0);
         if (_i_ == 2) {
             setDefence(_o_.ReadFloat(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDefence(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

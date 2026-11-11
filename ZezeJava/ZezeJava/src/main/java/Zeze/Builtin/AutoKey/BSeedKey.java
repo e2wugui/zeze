@@ -86,11 +86,13 @@ public final class BSeedKey implements Zeze.Transaction.BeanKey, Comparable<BSee
         if (_i_ == 1) {
             _ServerId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServerId = 0;
         if (_i_ == 2) {
             _KeyName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _KeyName = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

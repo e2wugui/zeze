@@ -181,11 +181,13 @@ public final class BMyTask01 extends Zeze.Transaction.Bean implements BMyTask01R
         if (_i_ == 1) {
             setPlaceholder(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPlaceholder(0);
         if (_i_ == 2) {
             setTaskNum(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskNum(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

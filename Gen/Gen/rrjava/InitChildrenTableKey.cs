@@ -11,9 +11,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.@Nullable RootInfo root) {");
             foreach (Variable v in bean.Variables)
             {
-                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfo(root, this);");
-                else if (v.VariableType is TypeDynamic)
+                if (!v.Transient && (v.VariableType is Bean or TypeDynamic || v.VariableType.IsCollection))
                     sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfo(root, this);");
             }
             sw.WriteLine(prefix + "}");

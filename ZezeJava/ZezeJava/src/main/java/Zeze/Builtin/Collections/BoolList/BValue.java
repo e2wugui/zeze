@@ -384,35 +384,43 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         if (_i_ == 1) {
             setItem0(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setItem0(0);
         if (_i_ == 2) {
             setItem1(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setItem1(0);
         if (_i_ == 3) {
             setItem2(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setItem2(0);
         if (_i_ == 4) {
             setItem3(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setItem3(0);
         if (_i_ == 5) {
             setItem4(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setItem4(0);
         if (_i_ == 6) {
             setItem5(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setItem5(0);
         if (_i_ == 7) {
             setItem6(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setItem6(0);
         if (_i_ == 8) {
             setItem7(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setItem7(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

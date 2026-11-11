@@ -214,7 +214,8 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
         if (_i_ == 1) {
             setFromTransaction(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFromTransaction(false);
         if (_i_ == 2) {
             var _x_ = _Puts;
             _x_.clear();
@@ -228,7 +229,8 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Puts.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -462,7 +464,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _fromTransaction = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _fromTransaction = false;
         if (_i_ == 2) {
             var _x_ = _Puts;
             _x_.clear();
@@ -476,7 +479,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Puts.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

@@ -219,11 +219,13 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         if (_i_ == 1) {
             setChoiceType(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setChoiceType(0);
         if (_i_ == 2) {
             setDynamic(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDynamic(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -433,11 +435,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ChoiceType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ChoiceType = 0;
         if (_i_ == 2) {
             _Dynamic = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Dynamic = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

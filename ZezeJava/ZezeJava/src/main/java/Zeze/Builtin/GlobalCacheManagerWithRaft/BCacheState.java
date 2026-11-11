@@ -61,6 +61,8 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BCacheState other) {
+        if (other == this)
+            return;
         setAcquireStatePending(other.getAcquireStatePending());
         setModify(other.getModify());
         _Share.clear();
@@ -162,8 +164,9 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 2) {
             _Modify = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        } else
+        } else {
             _Modify = 0;
+        }
         if (_i_ == 3) {
             var _x_ = getShare();
             _x_.clear();
@@ -173,6 +176,8 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Share.clear();
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

@@ -238,15 +238,18 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         if (_i_ == 1) {
             setDbh2RaftAcceptorName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDbh2RaftAcceptorName("");
         if (_i_ == 2) {
             setPort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPort(0);
         if (_i_ == 3) {
             setBucketCount(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setBucketCount(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -483,15 +486,18 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Dbh2RaftAcceptorName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Dbh2RaftAcceptorName = "";
         if (_i_ == 2) {
             _Port = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Port = 0;
         if (_i_ == 3) {
             _BucketCount = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _BucketCount = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

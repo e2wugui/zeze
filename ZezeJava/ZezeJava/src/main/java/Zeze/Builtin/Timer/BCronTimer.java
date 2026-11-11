@@ -429,41 +429,63 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         if (_i_ == 1) {
             setCronExpression(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCronExpression("");
         if (_i_ == 2) {
             setNextExpectedTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNextExpectedTime(0);
         if (_i_ == 3) {
             setExpectedTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExpectedTime(0);
         if (_i_ == 4) {
             setHappenTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHappenTime(0);
         if (_i_ == 5) {
             setRemainTimes(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRemainTimes(0);
         if (_i_ == 6) {
             setEndTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setEndTime(0);
         if (_i_ == 7) {
             setMissfirePolicy(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMissfirePolicy(0);
         if (_i_ == 8) {
             setOneByOneKey(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOneByOneKey("");
         if (_i_ == 9) {
             setHappenTimes(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHappenTimes(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    public void restoreOmittedFields(BCronTimer _defaults_) {
+        setCronExpression(_defaults_.getCronExpression());
+        setNextExpectedTime(_defaults_.getNextExpectedTime());
+        setExpectedTime(_defaults_.getExpectedTime());
+        setHappenTime(_defaults_.getHappenTime());
+        setRemainTimes(_defaults_.getRemainTimes());
+        setEndTime(_defaults_.getEndTime());
+        setMissfirePolicy(_defaults_.getMissfirePolicy());
+        setOneByOneKey(_defaults_.getOneByOneKey());
+        setHappenTimes(_defaults_.getHappenTimes());
+        _unknown_ = null;
     }
 
     @Override

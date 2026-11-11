@@ -25,7 +25,7 @@ namespace Zeze.Gen.rrjava
             var hasVar = false;
             foreach (var v in bean.Variables)
             {
-                if (v.Transient)
+                if (v.Transient || v.VariableType is Bean or TypeDynamic or TypeGTable)
                     continue;
                 if (!hasVar)
                 {
@@ -117,7 +117,7 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(Types.TypeDynamic type)
         {
-            throw new NotImplementedException();
+            // The replacement belongs to the DynamicBean wrapper and is applied there.
         }
 
         public void Visit(Types.TypeQuaternion type)

@@ -180,11 +180,13 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         if (_i_ == 1) {
             setNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNodeId(0);
         if (_i_ == 2) {
             setSerialNo(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSerialNo(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

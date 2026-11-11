@@ -135,6 +135,20 @@ Leader 通过 `AppendEntries` 将日志复制到所有 Follower：
 
 当日志被复制到多数节点后，Leader 将其标记为已提交（committed），并通过 `apply` 应用到状态机。
 
+### Java RocksRaft 动态字段
+
+RocksRaft 表的 `kind="rocks"` Bean 支持 `dynamic`、`list[dynamic]`、`map[K,dynamic]` 和 `sortedmap[K,dynamic]`。在字段的 `<value bean="Payload:7"/>` 中声明载荷类型和编号，载荷也须声明 `kind="rocks"`。编号属于字段，同一个编号可以在另一个字段映射到不同的类型。
+
+使用自定义类型映射时，仍须用 `<value>` 声明工厂可能返回的每个具体载荷类。生成器据此注册载荷内部的日志工厂。自定义映射可以指定实际使用的编号，正向和反向映射须对应同一具体载荷类。
+
+RocksRaft 的 `sortedmap` 和排序映射日志统一使用键类型的自然顺序。完整值和增量日志传输键值数据，各节点按相同的自然顺序构造和重放。
+
+复用生成的 RocksRaft Bean 解码完整值时，省略的标量和集合字段按原有编码规则恢复为零值或空值。例如 GCM 的 `BCacheState.Modify` 新建时为 `-1`，完整值中省略该字段时解码为 ServerId `0`。整个子 Bean 或 BeanKey 标签缺失时，持久化字段恢复为旧版解码到新对象时的值。子 Bean 原地更新并保留 `transient` 字段，BeanKey 使用新对象。
+
+用动态字段的 `setBean` 替换载荷，用 `clear` 清空。向动态集合插入元素时，先调用生成的 `newDynamicBean_字段名()` 创建该字段的包装器。用生成的 `RegisterRocksTables(rocks)` 注册表及其日志工厂，再启动 Raft server。手写表模板也须在启动前完成相同的注册。
+
+普通 RocksRaft 日志沿用原编码。启用动态字段写入前，先升级所有可能接收日志或恢复数据的节点，确保它们使用同一套字段映射。仍有日志、快照或表值使用旧映射期间，保留字段 ID 以及既有载荷编号和类型的对应关系。
+
 ## 快照机制
 
 当日志数量超过 `snapshotLogCount`（默认 1,000,000）时，Raft 触发快照：

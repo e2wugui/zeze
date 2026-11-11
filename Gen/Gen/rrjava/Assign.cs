@@ -12,7 +12,11 @@ namespace Zeze.Gen.rrjava
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             if (bean.Variables.Count > 0)
+            {
                 sw.WriteLine(prefix + "public void assign(" + bean.Name + " other) {");
+                sw.WriteLine(prefix + "    if (other == this)");
+                sw.WriteLine(prefix + "        return;");
+            }
             else
             {
                 sw.WriteLine(prefix + "@SuppressWarnings(\"EmptyMethod\")");
@@ -79,7 +83,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + var.NamePrivate + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.copy()" : "e";
+            string copyif = type.ValueType.IsNormalBeanOrRocks ? "e.copy()" : "e";
 
             sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ")");
             sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(" + copyif + ");");
@@ -97,7 +101,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeMap type)
         {
             sw.WriteLine(prefix + var.NamePrivate + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.getValue().copy()" : "e.getValue()";
+            string copyif = type.ValueType.IsNormalBeanOrRocks ? "e.getValue().copy()" : "e.getValue()";
 
             sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet())");
             sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), " + copyif + ");");
@@ -106,7 +110,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeSortedMap type)
         {
             sw.WriteLine(prefix + var.NamePrivate + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.getValue().copy()" : "e.getValue()";
+            string copyif = type.ValueType.IsNormalBeanOrRocks ? "e.getValue().copy()" : "e.getValue()";
 
             sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet())");
             sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), " + copyif + ");");

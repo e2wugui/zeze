@@ -298,19 +298,23 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         if (_i_ == 1) {
             setMaster(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMaster("");
         if (_i_ == 2) {
             setDatabase(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDatabase("");
         if (_i_ == 3) {
             setTable(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTable("");
         if (_i_ == 4) {
             _o_.ReadBean(_Batch, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            getBatch().restoreOmittedFields(new Zeze.Builtin.Dbh2.BBatch());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -610,19 +614,23 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Master = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Master = "";
         if (_i_ == 2) {
             _Database = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Database = "";
         if (_i_ == 3) {
             _Table = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Table = "";
         if (_i_ == 4) {
             _o_.ReadBean(_Batch, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Batch.restoreOmittedFields(new Zeze.Builtin.Dbh2.BBatch.Data());
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

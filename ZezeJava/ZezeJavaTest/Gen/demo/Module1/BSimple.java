@@ -288,21 +288,33 @@ public final class BSimple extends Zeze.Transaction.Bean implements BSimpleReadO
         if (_i_ == 1) {
             setInt_1(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setInt_1(0);
         if (_i_ == 2) {
             setLong2(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLong2(0);
         if (_i_ == 3) {
             setString3(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setString3("");
         if (_i_ == 4) {
             _o_.ReadBean(_removed, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            getRemoved().restoreOmittedFields(new demo.Module1.BRemoved2());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    public void restoreOmittedFields(BSimple _defaults_) {
+        setInt_1(_defaults_.getInt_1());
+        setLong2(_defaults_.getLong2());
+        setString3(_defaults_.getString3());
+        getRemoved().restoreOmittedFields(_defaults_.getRemoved());
+        _unknown_ = null;
     }
 
     @Override
@@ -601,23 +613,34 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _int_1 = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _int_1 = 0;
         if (_i_ == 2) {
             _long2 = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _long2 = 0;
         if (_i_ == 3) {
             _string3 = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _string3 = "";
         if (_i_ == 4) {
             _o_.ReadBean(_removed, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _removed.restoreOmittedFields(new demo.Module1.BRemoved2.Data());
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    public void restoreOmittedFields(Data _defaults_) {
+        _int_1 = _defaults_._int_1;
+        _long2 = _defaults_._long2;
+        _string3 = _defaults_._string3;
+        _removed.restoreOmittedFields(_defaults_._removed);
     }
 
     @Override

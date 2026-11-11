@@ -185,11 +185,13 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         if (_i_ == 1) {
             setBagName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setBagName("");
         if (_i_ == 2) {
             setPosition(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPosition(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

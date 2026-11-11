@@ -282,23 +282,28 @@ public final class BEnterWorldNow extends Zeze.Transaction.Bean implements BEnte
         if (_i_ == 1) {
             setMapInstanceId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMapInstanceId(0);
         if (_i_ == 2) {
             setX(_o_.ReadFloat(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setX(0);
         if (_i_ == 3) {
             setY(_o_.ReadFloat(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setY(0);
         if (_i_ == 4) {
             setZ(_o_.ReadFloat(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setZ(0);
         if (_i_ == 5) {
             setResouceId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setResouceId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

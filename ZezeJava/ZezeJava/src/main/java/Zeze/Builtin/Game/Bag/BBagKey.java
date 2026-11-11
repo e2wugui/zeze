@@ -86,11 +86,13 @@ public final class BBagKey implements Zeze.Transaction.BeanKey, Comparable<BBagK
         if (_i_ == 1) {
             _RoleId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _RoleId = 0;
         if (_i_ == 2) {
             _BagName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _BagName = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

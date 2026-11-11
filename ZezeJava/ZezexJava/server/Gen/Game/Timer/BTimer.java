@@ -299,23 +299,28 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         if (_i_ == 1) {
             setTimerId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimerId(0);
         if (_i_ == 2) {
             setName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setName("");
         if (_i_ == 3) {
             setDelay(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDelay(0);
         if (_i_ == 4) {
             setPeriod(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPeriod(0);
         if (_i_ == 5) {
             setRemainTimes(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRemainTimes(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

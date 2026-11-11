@@ -151,7 +151,8 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         if (_i_ == 1) {
             setFullEncodedProtocol(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFullEncodedProtocol(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

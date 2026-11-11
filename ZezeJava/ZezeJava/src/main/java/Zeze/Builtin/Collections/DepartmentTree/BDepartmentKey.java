@@ -86,11 +86,13 @@ public final class BDepartmentKey implements Zeze.Transaction.BeanKey, Comparabl
         if (_i_ == 1) {
             _Owner = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Owner = "";
         if (_i_ == 2) {
             _DepartmentId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _DepartmentId = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

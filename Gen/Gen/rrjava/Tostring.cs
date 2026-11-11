@@ -21,7 +21,7 @@ namespace Zeze.Gen.rrjava
             foreach (var var in vars)
             {
                 var varType = var.VariableType;
-                if (varType is TypeCollection or TypeMap)
+                if (varType is TypeCollection or TypeMap or TypeSortedMap)
                 {
                     maxLevel = 2;
                     break;
@@ -206,7 +206,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + $"_s_.append(_i{(subItem ? 2 : 1)}_).append(\"{varname}=\");");
-            sw.WriteLine(prefix + getter + ".getBean().buildString(_s_, _l_ + " + INDENT_SIZE * (subItem ? 3 : 2) + ");");
+            sw.WriteLine(prefix + getter + ".buildString(_s_, _l_ + " + INDENT_SIZE * (subItem ? 3 : 2) + ");");
             sw.WriteLine(prefix + (sep != 0 ? $"_s_.append(\"{sep}\\n\");" : "_s_.append('\\n');"));
         }
 

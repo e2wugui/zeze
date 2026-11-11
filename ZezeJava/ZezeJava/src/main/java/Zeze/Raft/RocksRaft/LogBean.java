@@ -10,6 +10,11 @@ import Zeze.Util.IntHashMap;
  */
 public class LogBean extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogBean");
+	static final int DYNAMIC_FIELD_LOG = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.DynamicFieldLog");
+
+	@Nullable DynamicField dynamicField() {
+		return null;
+	}
 
 	private @Nullable IntHashMap<Log> variables;
 	private @Nullable Bean self;
@@ -57,12 +62,17 @@ public class LogBean extends Log {
 		var vars = variables;
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
-			for (var it = vars.iterator(); it.moveToNext(); ) {
-				var log = it.value();
-				bb.WriteInt4(log.getTypeId());
-				bb.WriteUInt(log.getVariableId());
+			vars.foreach((key, log) -> {
+				var field = log instanceof LogBean child ? child.dynamicField() : null;
+				int variableId = log.getVariableId();
+				bb.WriteInt4(field != null ? DYNAMIC_FIELD_LOG : log.getTypeId());
+				bb.WriteUInt(variableId);
+				if (field != null) {
+					field.encodeOwner(bb, variableId);
+					bb.WriteInt4(log.getTypeId());
+				}
 				log.encode(bb);
-			}
+			});
 		} else
 			bb.WriteUInt(0);
 	}
@@ -75,9 +85,10 @@ public class LogBean extends Log {
 			variables.clear();
 			for (; n > 0; --n) {
 				var typeId = bb.ReadInt4();
-				var log = create(typeId);
-
 				var varId = bb.ReadUInt();
+				var log = typeId == DYNAMIC_FIELD_LOG
+						? DynamicField.newLog(bb.ReadLong(), varId, bb.ReadInt4())
+						: create(typeId);
 				log.setVariableId(varId);
 				log.decode(bb);
 

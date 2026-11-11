@@ -232,11 +232,13 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         if (_i_ == 1) {
             setPrevNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPrevNodeId(0);
         if (_i_ == 2) {
             setNextNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNextNodeId(0);
         if (_i_ == 3) {
             var _x_ = _Values;
             _x_.clear();
@@ -246,7 +248,8 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Values.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

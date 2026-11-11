@@ -146,7 +146,8 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
         if (_i_ == 1) {
             setNextId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNextId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

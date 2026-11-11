@@ -492,49 +492,75 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         if (_i_ == 1) {
             setDelay(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDelay(0);
         if (_i_ == 2) {
             setPeriod(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPeriod(0);
         if (_i_ == 3) {
             setRemainTimes(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRemainTimes(0);
         if (_i_ == 4) {
             setHappenTimes(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHappenTimes(0);
         if (_i_ == 5) {
             setStartTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setStartTime(0);
         if (_i_ == 6) {
             setEndTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setEndTime(0);
         if (_i_ == 7) {
             setNextExpectedTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNextExpectedTime(0);
         if (_i_ == 8) {
             setExpectedTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExpectedTime(0);
         if (_i_ == 9) {
             setHappenTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHappenTime(0);
         if (_i_ == 10) {
             setMissfirePolicy(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMissfirePolicy(0);
         if (_i_ == 11) {
             setOneByOneKey(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOneByOneKey("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    public void restoreOmittedFields(BSimpleTimer _defaults_) {
+        setDelay(_defaults_.getDelay());
+        setPeriod(_defaults_.getPeriod());
+        setRemainTimes(_defaults_.getRemainTimes());
+        setHappenTimes(_defaults_.getHappenTimes());
+        setStartTime(_defaults_.getStartTime());
+        setEndTime(_defaults_.getEndTime());
+        setNextExpectedTime(_defaults_.getNextExpectedTime());
+        setExpectedTime(_defaults_.getExpectedTime());
+        setHappenTime(_defaults_.getHappenTime());
+        setMissfirePolicy(_defaults_.getMissfirePolicy());
+        setOneByOneKey(_defaults_.getOneByOneKey());
+        _unknown_ = null;
     }
 
     @Override

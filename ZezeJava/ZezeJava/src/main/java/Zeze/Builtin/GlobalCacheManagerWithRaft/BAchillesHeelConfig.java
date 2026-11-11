@@ -214,15 +214,18 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         if (_i_ == 1) {
             setMaxNetPing(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMaxNetPing(0);
         if (_i_ == 2) {
             setServerProcessTime(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerProcessTime(0);
         if (_i_ == 3) {
             setServerReleaseTimeout(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerReleaseTimeout(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

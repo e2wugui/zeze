@@ -189,7 +189,8 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         if (_i_ == 1) {
             setHeadNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHeadNodeId(0);
         while ((_t_ & 0xff) > 1 && _i_ < 3) {
             _u_ = _o_.readUnknownField(_i_, _t_, _u_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -197,7 +198,8 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         if (_i_ == 3) {
             setLinkedMapName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLinkedMapName("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

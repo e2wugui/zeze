@@ -181,11 +181,13 @@ public final class BTConditionExploreWorld extends Zeze.Transaction.Bean impleme
         if (_i_ == 1) {
             setExploreRate(_o_.ReadDouble(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExploreRate(0);
         if (_i_ == 2) {
             setFinished(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFinished(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

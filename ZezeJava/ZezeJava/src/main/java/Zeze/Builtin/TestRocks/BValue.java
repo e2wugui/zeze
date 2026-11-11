@@ -242,6 +242,8 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BValue other) {
+        if (other == this)
+            return;
         setInt(other.getInt());
         setBool(other.isBool());
         setFloat(other.getFloat());
@@ -259,7 +261,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             _MapInt.put(e.getKey(), e.getValue());
         _MapBean.clear();
         for (var e : other._MapBean.entrySet())
-            _MapBean.put(e.getKey(), e.getValue());
+            _MapBean.put(e.getKey(), e.getValue().copy());
         setBeankey(other.getBeankey());
     }
 
@@ -470,26 +472,38 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 1) {
             _Int = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Int = 0;
         }
         if (_i_ == 2) {
             _Bool = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Bool = false;
         }
         if (_i_ == 3) {
             _Float = _o_.ReadFloat(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Float = 0;
         }
         if (_i_ == 4) {
             _double = _o_.ReadDouble(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _double = 0;
         }
         if (_i_ == 5) {
             _String = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _String = "";
         }
         if (_i_ == 6) {
             _Binary = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Binary = Zeze.Net.Binary.Empty;
         }
         if (_i_ == 7) {
             var _x_ = getSetInt();
@@ -500,6 +514,8 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _SetInt.clear();
         }
         if (_i_ == 8) {
             var _x_ = getSetBeankey();
@@ -510,6 +526,8 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _SetBeankey.clear();
         }
         if (_i_ == 9) {
             var _x_ = getMapInt();
@@ -524,6 +542,8 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _MapInt.clear();
         }
         if (_i_ == 10) {
             var _x_ = getMapBean();
@@ -538,10 +558,14 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _MapBean.clear();
         }
         if (_i_ == 11) {
-            _o_.ReadBean(_Beankey, _t_);
+            _Beankey = _o_.ReadBean(new Zeze.Builtin.TestRocks.BeanKey(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Beankey = new Zeze.Builtin.TestRocks.BeanKey();
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

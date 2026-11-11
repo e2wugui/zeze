@@ -393,31 +393,38 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         if (_i_ == 1) {
             setExclusiveStartKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExclusiveStartKey(Zeze.Net.Binary.Empty);
         if (_i_ == 2) {
             setProposeLimit(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProposeLimit(0);
         if (_i_ == 3) {
             setDesc(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDesc(false);
         if (_i_ == 4) {
             setPrefix(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPrefix(Zeze.Net.Binary.Empty);
         if (_i_ == 5) {
             setVerifyBucketMeta(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVerifyBucketMeta(false);
         if (_i_ == 6) {
             setExpectedKeyFirst(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExpectedKeyFirst(Zeze.Net.Binary.Empty);
         if (_i_ == 7) {
             setExpectedKeyLast(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExpectedKeyLast(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -773,31 +780,38 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ExclusiveStartKey = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ExclusiveStartKey = Zeze.Net.Binary.Empty;
         if (_i_ == 2) {
             _ProposeLimit = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ProposeLimit = 0;
         if (_i_ == 3) {
             _Desc = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Desc = false;
         if (_i_ == 4) {
             _Prefix = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Prefix = Zeze.Net.Binary.Empty;
         if (_i_ == 5) {
             _VerifyBucketMeta = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _VerifyBucketMeta = false;
         if (_i_ == 6) {
             _ExpectedKeyFirst = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ExpectedKeyFirst = Zeze.Net.Binary.Empty;
         if (_i_ == 7) {
             _ExpectedKeyLast = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ExpectedKeyLast = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

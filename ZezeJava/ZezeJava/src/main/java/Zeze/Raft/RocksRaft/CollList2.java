@@ -4,32 +4,35 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
-import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Util.Reflect;
-import Zeze.Util.Task;
 import Zeze.Collections.Persistents;
 
 /**
  * 管理 Bean 的 List 容器（值类型可变 bean）：结构操作记 LogList2 增量日志，值 bean 的字段修改记 changed。
  */
 public class CollList2<V extends Bean> extends CollList<V> {
-	private final MethodHandle valueFactory;
+	private final BeanValueFactory<V> valueFactory;
 	private final int logTypeId;
 
 	public CollList2(Class<V> valueClass) {
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogList2<" + Reflect.getStableName(valueClass) + '>');
+		valueFactory = BeanValueFactory.of(valueClass);
+		logTypeId = LogList2.typeId(valueClass);
 	}
 
-	private CollList2(int logTypeId, MethodHandle valueFactory) {
+	public static CollList2<DynamicBean> dynamic(DynamicField field) {
+		return new CollList2<>(LogList2.typeId(DynamicBean.class),
+				field.values());
+	}
+
+	private CollList2(int logTypeId, BeanValueFactory<V> valueFactory) {
 		this.valueFactory = valueFactory;
 		this.logTypeId = logTypeId;
 	}
 
 	@Override
 	public boolean add(V item) {
+		valueFactory.checkValue(item);
 		if (isManaged()) {
 			item.initRootInfo(rootInfo(), this);
 			//noinspection unchecked,DataFlowIssue
@@ -69,6 +72,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 	@Override
 	public V set(int index, V item) {
+		valueFactory.checkValue(item);
 		if (isManaged()) {
 			// 对齐经典PList2：越界IOOBE必须在挂接前抛出（LogList1.set经
 			// TreePVector.with的检查在挂接之后），否则调用方catch后复用bean携带脏归属——
@@ -89,6 +93,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 	@Override
 	public void add(int index, V item) {
+		valueFactory.checkValue(item);
 		if (isManaged()) {
 			// 同set，先验界（add合法域0<=index<=size）后挂接，越界IOOBE不得
 			// 留下携带脏归属的bean。
@@ -119,7 +124,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 	@Override
 	public LogBean createLogBean() {
-		var log = new LogList2<V>(logTypeId, valueFactory);
+		var log = new LogList2<>(logTypeId, valueFactory);
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
@@ -129,6 +134,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 	@Override
 	public void followerApply(Log _log) {
+		valueFactory.checkLog(_log);
 		@SuppressWarnings("unchecked")
 		var log = (LogList2<V>)_log;
 		var tmp = list;
@@ -177,7 +183,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 	@Override
 	public CollList2<V> copy() {
-		var copy = new CollList2<V>(logTypeId, valueFactory);
+		var copy = new CollList2<>(logTypeId, valueFactory);
 		copy.list = getList();
 		return copy;
 	}
@@ -190,18 +196,10 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			e.encode(bb);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(IByteBuffer bb) {
 		clear();
-		try {
-			for (int i = bb.ReadUInt(); i > 0; i--) {
-				V value = (V)valueFactory.invoke();
-				value.decode(bb);
-				add(value);
-			}
-		} catch (Throwable e) { // MethodHandle.invoke
-			throw Task.forceThrow(e);
-		}
+		for (int i = bb.ReadUInt(); i > 0; i--)
+			add(valueFactory.read(bb));
 	}
 }

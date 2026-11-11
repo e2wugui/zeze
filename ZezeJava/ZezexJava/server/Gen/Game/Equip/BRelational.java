@@ -146,7 +146,8 @@ public final class BRelational extends Zeze.Transaction.Bean implements BRelatio
         if (_i_ == 1) {
             setId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

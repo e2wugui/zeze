@@ -273,19 +273,23 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         if (_i_ == 1) {
             setNewCount(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNewCount(0);
         if (_i_ == 2) {
             setCurCount(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCurCount(0);
         if (_i_ == 3) {
             setConnectCount(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setConnectCount(0);
         if (_i_ == 4) {
             setPerfLog(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPerfLog("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -551,19 +555,23 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _newCount = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _newCount = 0;
         if (_i_ == 2) {
             _curCount = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _curCount = 0;
         if (_i_ == 3) {
             _connectCount = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _connectCount = 0;
         if (_i_ == 4) {
             _perfLog = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _perfLog = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

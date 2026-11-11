@@ -248,15 +248,18 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
         if (_i_ == 1) {
             setKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setKey(Zeze.Net.Binary.Empty);
         if (_i_ == 2) {
             setData(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setData(Zeze.Net.Binary.Empty);
         if (_i_ == 3) {
             setVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVersion(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -499,15 +502,18 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Key = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Key = Zeze.Net.Binary.Empty;
         if (_i_ == 2) {
             _Data = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Data = Zeze.Net.Binary.Empty;
         if (_i_ == 3) {
             _Version = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Version = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

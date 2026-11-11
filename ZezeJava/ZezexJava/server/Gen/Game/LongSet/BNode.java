@@ -233,11 +233,13 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         if (_i_ == 1) {
             setPrevNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPrevNodeId(0);
         if (_i_ == 2) {
             setNextNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setNextNodeId(0);
         if (_i_ == 3) {
             var _x_ = _Set;
             _x_.clear();
@@ -251,7 +253,8 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Set.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Zeze.Util;
 
 namespace Zeze.Gen.java
@@ -459,6 +460,13 @@ namespace Zeze.Gen.java
                 var version = tmap.ValueType.IsNormalBeanOrRocks ? "2" : "1";
                 return $"() -> new Zeze.Raft.RocksRaft.LogMap{version}<>({key}.class, {value}.class)";
             }
+            else if (type is Types.TypeSortedMap sortedMap)
+            {
+                string key = BoxingName.GetBoxingName(sortedMap.KeyType);
+                string value = BoxingName.GetBoxingName(sortedMap.ValueType);
+                var version = sortedMap.ValueType.IsNormalBeanOrRocks ? "2" : "1";
+                return $"() -> new Zeze.Raft.RocksRaft.LogSortedMap{version}<>({key}.class, {value}.class)";
+            }
             throw new Exception();
         }
 
@@ -478,13 +486,19 @@ namespace Zeze.Gen.java
             var logfactorys = new HashSet<string>();
             foreach (var dep in depends)
             {
-                if (dep.IsBean && dep.IsKeyable) // is beankey
+                if (dep is Types.BeanKey)
                 {
                     var depname = TypeName.GetName(dep);
                     logfactorys.Add($"() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>({depname}.class)");
                     continue;
                 }
-                if (dep.IsCollection)
+                if (dep is Types.Bean bean && bean.IsRocks
+                    && bean.Variables.Any(v => !v.Transient && rrjava.BeanFormatter.GetDynamicType(v.VariableType) != null))
+                {
+                    sw.WriteLine($"        {bean.FullName}.registerDynamicFields();");
+                    continue;
+                }
+                if (dep.IsCollection && rrjava.BeanFormatter.GetDynamicType(dep) == null)
                 {
                     logfactorys.Add(GetCollectionLogTemplateName(dep));
                     continue;

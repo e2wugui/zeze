@@ -124,7 +124,7 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(Types.TypeDynamic type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.TypeQuaternion type)

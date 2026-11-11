@@ -167,9 +167,15 @@ public final class BRemoved2 extends Zeze.Transaction.Bean implements BRemoved2R
         if (_i_ == 1) {
             setInt_1(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setInt_1(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    public void restoreOmittedFields(BRemoved2 _defaults_) {
+        setInt_1(_defaults_.getInt_1());
+        _unknown_ = null;
     }
 
     @Override
@@ -353,11 +359,16 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _int_1 = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _int_1 = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    public void restoreOmittedFields(Data _defaults_) {
+        _int_1 = _defaults_._int_1;
     }
 
     @Override

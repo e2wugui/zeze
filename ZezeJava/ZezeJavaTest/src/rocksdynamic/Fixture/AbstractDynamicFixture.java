@@ -1,0 +1,42 @@
+// auto-generated @formatter:off
+package rocksdynamic.Fixture;
+
+public abstract class AbstractDynamicFixture implements Zeze.IModule {
+    public static final int ModuleId = 102;
+    public static final String ModuleName = "DynamicFixture";
+    public static final String ModuleFullName = "rocksdynamic.Fixture.DynamicFixture";
+
+    @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
+    @Override public boolean isBuiltin() { return true; }
+
+    private transient final java.util.concurrent.locks.ReentrantLock __thisLock = new java.util.concurrent.locks.ReentrantLock();
+    @Override public void lock() { __thisLock.lock(); }
+    @Override public void unlock() { __thisLock.unlock(); }
+    @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
+
+    public void RegisterProtocols(Zeze.Net.Service service) {
+    }
+
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
+    }
+
+    public void RegisterZezeTables(Zeze.Application zeze) {
+    }
+
+    public void UnRegisterZezeTables(Zeze.Application zeze) {
+    }
+
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+        rocks.registerTableTemplate("DynamicValues", int.class, rocksdynamic.Fixture.Value.class);
+        rocksdynamic.Fixture.Value.registerDynamicFields();
+        rocksdynamic.Fixture.Nested.registerDynamicFields();
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogList1<>(Integer.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogList1<>(Long.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogList2<>(rocksdynamic.Fixture.Quantity.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogMap2<>(Integer.class, rocksdynamic.Fixture.Quantity.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogSortedMap2<>(Integer.class, rocksdynamic.Fixture.Quantity.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogSortedMap1<>(Integer.class, Long.class));
+    }
+}

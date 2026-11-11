@@ -276,19 +276,23 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
         if (_i_ == 1) {
             setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerId(0);
         if (_i_ == 2) {
             setServiceIp(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServiceIp("");
         if (_i_ == 3) {
             setServicePort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServicePort(0);
         if (_i_ == 4) {
             _o_.ReadBean(_Load, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            getLoad().restoreOmittedFields(new Zeze.Builtin.Provider.BLoad());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -578,19 +582,23 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ServerId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServerId = 0;
         if (_i_ == 2) {
             _ServiceIp = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceIp = "";
         if (_i_ == 3) {
             _ServicePort = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServicePort = 0;
         if (_i_ == 4) {
             _o_.ReadBean(_Load, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Load.restoreOmittedFields(new Zeze.Builtin.Provider.BLoad.Data());
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

@@ -186,11 +186,13 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
         if (_i_ == 1) {
             setGlobalKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setGlobalKey(Zeze.Net.Binary.Empty);
         if (_i_ == 2) {
             setState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setState(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

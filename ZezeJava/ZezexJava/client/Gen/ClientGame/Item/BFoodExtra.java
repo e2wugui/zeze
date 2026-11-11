@@ -146,7 +146,8 @@ public final class BFoodExtra extends Zeze.Transaction.Bean implements BFoodExtr
         if (_i_ == 1) {
             setAmmount(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAmmount(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

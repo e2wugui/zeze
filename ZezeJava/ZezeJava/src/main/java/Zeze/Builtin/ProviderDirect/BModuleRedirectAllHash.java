@@ -215,11 +215,13 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         if (_i_ == 1) {
             setReturnCode(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setReturnCode(0);
         if (_i_ == 2) {
             setParams(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setParams(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -425,11 +427,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ReturnCode = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ReturnCode = 0;
         if (_i_ == 2) {
             _Params = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Params = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

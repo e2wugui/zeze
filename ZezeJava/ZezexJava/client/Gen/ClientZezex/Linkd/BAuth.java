@@ -268,19 +268,23 @@ public final class BAuth extends Zeze.Transaction.Bean implements BAuthReadOnly 
         if (_i_ == 1) {
             setAccount(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAccount("");
         if (_i_ == 2) {
             setToken(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setToken("");
         if (_i_ == 3) {
             setAppVersion(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAppVersion("");
         if (_i_ == 4) {
             setLoginQueueToken(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLoginQueueToken(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

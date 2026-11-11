@@ -243,15 +243,18 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
         if (_i_ == 1) {
             setTopic(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTopic("");
         if (_i_ == 2) {
             setContent(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setContent(Zeze.Net.Binary.Empty);
         if (_i_ == 3) {
             setBroadcast(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setBroadcast(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -484,15 +487,18 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _topic = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _topic = "";
         if (_i_ == 2) {
             _content = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _content = Zeze.Net.Binary.Empty;
         if (_i_ == 3) {
             _broadcast = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _broadcast = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

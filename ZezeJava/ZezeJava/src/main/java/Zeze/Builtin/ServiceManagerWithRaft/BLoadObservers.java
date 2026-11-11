@@ -22,6 +22,8 @@ public final class BLoadObservers extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BLoadObservers other) {
+        if (other == this)
+            return;
         _Observers.clear();
         for (var e : other._Observers)
             _Observers.add(e);
@@ -114,6 +116,8 @@ public final class BLoadObservers extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Observers.clear();
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

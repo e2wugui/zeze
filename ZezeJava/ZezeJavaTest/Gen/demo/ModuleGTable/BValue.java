@@ -306,7 +306,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _gTable.clear();
         if (_i_ == 2) {
             var _x_ = _gTable2;
             _x_.clear();
@@ -320,7 +321,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _gTable2.clear();
         if (_i_ == 3) {
             var _x_ = _gTable3;
             _x_.clear();
@@ -334,7 +336,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _gTable3.clear();
         if (_i_ == 4) {
             var _x_ = _gTable4;
             _x_.clear();
@@ -348,7 +351,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _gTable4.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

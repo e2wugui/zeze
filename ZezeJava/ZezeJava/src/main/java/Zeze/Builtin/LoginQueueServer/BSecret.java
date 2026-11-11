@@ -208,11 +208,13 @@ public final class BSecret extends Zeze.Transaction.Bean implements BSecretReadO
         if (_i_ == 1) {
             setSecretKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSecretKey(Zeze.Net.Binary.Empty);
         if (_i_ == 2) {
             setSecretIv(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSecretIv(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -416,11 +418,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _SecretKey = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _SecretKey = Zeze.Net.Binary.Empty;
         if (_i_ == 2) {
             _SecretIv = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _SecretIv = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

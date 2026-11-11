@@ -214,17 +214,27 @@ public final class TestToServerResult extends Zeze.Transaction.Bean implements T
         if (_i_ == 1) {
             setResultCode(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setResultCode(0);
         if (_i_ == 2) {
             setOut(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOut(0);
         if (_i_ == 3) {
             setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
+    }
+
+    public void restoreOmittedFields(TestToServerResult _defaults_) {
+        setResultCode(_defaults_.getResultCode());
+        setOut(_defaults_.getOut());
+        setServerId(_defaults_.getServerId());
+        _unknown_ = null;
     }
 
     @Override

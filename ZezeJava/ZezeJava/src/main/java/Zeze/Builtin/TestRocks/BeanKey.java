@@ -86,11 +86,13 @@ public final class BeanKey implements Zeze.Transaction.BeanKey, Comparable<BeanK
         if (_i_ == 1) {
             _Id = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Id = 0;
         if (_i_ == 2) {
             _Name = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Name = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

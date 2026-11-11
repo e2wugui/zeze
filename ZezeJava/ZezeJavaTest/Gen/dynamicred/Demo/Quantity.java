@@ -146,7 +146,8 @@ public final class Quantity extends Zeze.Transaction.Bean implements QuantityRea
         if (_i_ == 1) {
             setQuantity(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setQuantity(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

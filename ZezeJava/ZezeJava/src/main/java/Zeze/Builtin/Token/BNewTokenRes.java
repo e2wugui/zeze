@@ -168,7 +168,8 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
         if (_i_ == 1) {
             setToken(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setToken("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -342,7 +343,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _token = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _token = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

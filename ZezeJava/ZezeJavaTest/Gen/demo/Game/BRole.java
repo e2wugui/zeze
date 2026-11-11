@@ -629,23 +629,28 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         if (_i_ == 1) {
             setLevel(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLevel(0);
         if (_i_ == 2) {
             setExp(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setExp(0);
         if (_i_ == 3) {
             setMoney(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMoney(0);
         if (_i_ == 4) {
             setHp(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHp(0);
         if (_i_ == 5) {
             setDamageTotal(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDamageTotal(0);
         if (_i_ == 6) {
             var _x_ = _Bag;
             _x_.clear();
@@ -659,7 +664,8 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Bag.clear();
         if (_i_ == 7) {
             var _x_ = _Equip;
             _x_.clear();
@@ -673,7 +679,8 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Equip.clear();
         if (_i_ == 8) {
             var _x_ = _Friends;
             _x_.clear();
@@ -687,7 +694,8 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Friends.clear();
         if (_i_ == 9) {
             var _x_ = _Tracks;
             _x_.clear();
@@ -697,7 +705,8 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Tracks.clear();
         if (_i_ == 10) {
             var _x_ = _QuestLog;
             _x_.clear();
@@ -707,7 +716,8 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _QuestLog.clear();
         if (_i_ == 11) {
             var _x_ = _GiftLog;
             _x_.clear();
@@ -717,7 +727,8 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _GiftLog.clear();
         if (_i_ == 12) {
             var _x_ = _Warehouse;
             _x_.clear();
@@ -727,7 +738,8 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Warehouse.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

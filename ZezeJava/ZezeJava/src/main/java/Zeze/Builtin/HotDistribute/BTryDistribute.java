@@ -198,11 +198,13 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         if (_i_ == 1) {
             setDistributeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDistributeId(0);
         if (_i_ == 2) {
             setAtomicAll(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAtomicAll(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -403,11 +405,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _DistributeId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _DistributeId = 0;
         if (_i_ == 2) {
             _AtomicAll = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _AtomicAll = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

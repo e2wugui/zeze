@@ -278,19 +278,23 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         if (_i_ == 1) {
             setContext(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setContext(Zeze.Net.Binary.Empty);
         if (_i_ == 2) {
             setCount(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCount(0);
         if (_i_ == 3) {
             setTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTime(0);
         if (_i_ == 4) {
             setAddr(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAddr("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -559,19 +563,23 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _context = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _context = Zeze.Net.Binary.Empty;
         if (_i_ == 2) {
             _count = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _count = 0;
         if (_i_ == 3) {
             _time = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _time = 0;
         if (_i_ == 4) {
             _addr = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _addr = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

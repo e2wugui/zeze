@@ -531,51 +531,63 @@ public final class TestHashResult extends Zeze.Transaction.Bean implements TestH
         if (_i_ == 1) {
             setHash(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHash(0);
         if (_i_ == 2) {
             setOut(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOut(0);
         if (_i_ == 3) {
             setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServerId(0);
         if (_i_ == 4) {
             setB_oolean(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setB_oolean(false);
         if (_i_ == 5) {
             setB_yte(_o_.ReadByte(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setB_yte((byte)0);
         if (_i_ == 6) {
             setS_hort(_o_.ReadShort(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setS_hort((short)0);
         if (_i_ == 7) {
             setF_loat(_o_.ReadFloat(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setF_loat(0);
         if (_i_ == 8) {
             setL_ong(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setL_ong(0);
         if (_i_ == 9) {
             setD_ouble(_o_.ReadDouble(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setD_ouble(0);
         if (_i_ == 10) {
             setS_tring(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setS_tring("");
         if (_i_ == 11) {
             setB_inary(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setB_inary(Zeze.Net.Binary.Empty);
         if (_i_ == 12) {
             _o_.ReadBean(_b_ean, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            getB_ean().restoreOmittedFields(new Game.Rank.TestToServerResult());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

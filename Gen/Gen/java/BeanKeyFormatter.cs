@@ -40,10 +40,7 @@ namespace Zeze.Gen.java
 
             // declare variables
             foreach (Variable v in beanKey.Variables)
-            {
-                string final = v.VariableType is BeanKey ? "final " : "";
-                sw.WriteLine($"    private {final}{TypeName.GetName(v.VariableType)} {v.NamePrivate};{v.Comment}");
-            }
+                sw.WriteLine($"    private {TypeName.GetName(v.VariableType)} {v.NamePrivate};{v.Comment}");
             if (beanKey.Variables.Count > 0)
                 sw.WriteLine();
 

@@ -292,23 +292,28 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         if (_i_ == 1) {
             setQueueName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setQueueName("");
         if (_i_ == 2) {
             setTaskType(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskType(0);
         if (_i_ == 3) {
             setTaskId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskId(0);
         if (_i_ == 4) {
             setTaskParam(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskParam(Zeze.Net.Binary.Empty);
         if (_i_ == 5) {
             setPrevTaskId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPrevTaskId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

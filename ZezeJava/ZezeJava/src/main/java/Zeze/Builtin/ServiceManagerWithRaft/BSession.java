@@ -59,13 +59,15 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BSession other) {
+        if (other == this)
+            return;
         setSessionId(other.getSessionId());
         _Registers.clear();
         for (var e : other._Registers.entrySet())
-            _Registers.put(e.getKey(), e.getValue());
+            _Registers.put(e.getKey(), e.getValue().copy());
         _Subscribes.clear();
         for (var e : other._Subscribes.entrySet())
-            _Subscribes.put(e.getKey(), e.getValue());
+            _Subscribes.put(e.getKey(), e.getValue().copy());
     }
 
     public BSession copyIfManaged() {
@@ -186,6 +188,8 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 1) {
             _SessionId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _SessionId = 0;
         }
         while (_t_ != 0 && _i_ < 4) {
             _o_.SkipUnknownField(_t_);
@@ -204,6 +208,8 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Registers.clear();
         }
         if (_i_ == 5) {
             var _x_ = getSubscribes();
@@ -218,6 +224,8 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Subscribes.clear();
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

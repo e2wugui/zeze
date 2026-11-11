@@ -201,11 +201,13 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         if (_i_ == 1) {
             setLinkSid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLinkSid(0);
         if (_i_ == 2) {
             _o_.ReadBean(_userState, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            getUserState().restoreOmittedFields(new Zeze.Builtin.Provider.BUserState());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -430,11 +432,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _linkSid = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _linkSid = 0;
         if (_i_ == 2) {
             _o_.ReadBean(_userState, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _userState.restoreOmittedFields(new Zeze.Builtin.Provider.BUserState.Data());
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

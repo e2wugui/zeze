@@ -354,27 +354,33 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         if (_i_ == 1) {
             setServiceNamePrefix(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServiceNamePrefix("");
         if (_i_ == 2) {
             setServiceIdentity(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServiceIdentity("");
         if (_i_ == 3) {
             setProviderDirectIp(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProviderDirectIp("");
         if (_i_ == 4) {
             setProviderDirectPort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setProviderDirectPort(0);
         if (_i_ == 5) {
             setAppVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAppVersion(0);
         if (_i_ == 6) {
             setDisableChoice(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDisableChoice(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -707,27 +713,33 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ServiceNamePrefix = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceNamePrefix = "";
         if (_i_ == 2) {
             _ServiceIdentity = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceIdentity = "";
         if (_i_ == 3) {
             _ProviderDirectIp = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ProviderDirectIp = "";
         if (_i_ == 4) {
             _ProviderDirectPort = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ProviderDirectPort = 0;
         if (_i_ == 5) {
             _AppVersion = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _AppVersion = 0;
         if (_i_ == 6) {
             _DisableChoice = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _DisableChoice = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

@@ -473,11 +473,13 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         if (_i_ == 1) {
             setModuleId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setModuleId(0);
         if (_i_ == 2) {
             setHashCodeConcurrentLevel(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHashCodeConcurrentLevel(0);
         if (_i_ == 3) {
             var _x_ = _HashCodes;
             _x_.clear();
@@ -487,31 +489,38 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _HashCodes.clear();
         if (_i_ == 4) {
             setSourceProvider(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSourceProvider(0);
         if (_i_ == 5) {
             setSessionId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSessionId(0);
         if (_i_ == 6) {
             setMethodFullName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMethodFullName("");
         if (_i_ == 7) {
             setParams(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setParams(Zeze.Net.Binary.Empty);
         if (_i_ == 8) {
             setServiceNamePrefix(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServiceNamePrefix("");
         if (_i_ == 9) {
             setVersion(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setVersion(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -970,11 +979,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ModuleId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ModuleId = 0;
         if (_i_ == 2) {
             _HashCodeConcurrentLevel = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _HashCodeConcurrentLevel = 0;
         if (_i_ == 3) {
             var _x_ = _HashCodes;
             _x_.clear();
@@ -984,31 +995,38 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _HashCodes.clear();
         if (_i_ == 4) {
             _SourceProvider = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _SourceProvider = 0;
         if (_i_ == 5) {
             _SessionId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _SessionId = 0;
         if (_i_ == 6) {
             _MethodFullName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _MethodFullName = "";
         if (_i_ == 7) {
             _Params = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Params = Zeze.Net.Binary.Empty;
         if (_i_ == 8) {
             _ServiceNamePrefix = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceNamePrefix = "";
         if (_i_ == 9) {
             _Version = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Version = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

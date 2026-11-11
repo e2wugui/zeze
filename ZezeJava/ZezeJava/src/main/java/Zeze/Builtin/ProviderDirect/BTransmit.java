@@ -333,7 +333,8 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         if (_i_ == 1) {
             setActionName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setActionName("");
         if (_i_ == 2) {
             var _x_ = _Roles;
             _x_.clear();
@@ -343,19 +344,23 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Roles.clear();
         if (_i_ == 3) {
             setSender(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSender(0);
         if (_i_ == 4) {
             setParameter(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setParameter(Zeze.Net.Binary.Empty);
         if (_i_ == 5) {
             setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOnlineSetName("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -698,7 +703,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ActionName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ActionName = "";
         if (_i_ == 2) {
             var _x_ = _Roles;
             _x_.clear();
@@ -708,19 +714,23 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Roles.clear();
         if (_i_ == 3) {
             _Sender = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Sender = 0;
         if (_i_ == 4) {
             _Parameter = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Parameter = Zeze.Net.Binary.Empty;
         if (_i_ == 5) {
             _OnlineSetName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _OnlineSetName = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

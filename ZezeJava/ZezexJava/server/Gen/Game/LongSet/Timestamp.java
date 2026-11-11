@@ -67,7 +67,8 @@ public final class Timestamp implements Zeze.Transaction.BeanKey, Comparable<Tim
         if (_i_ == 1) {
             _Time = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Time = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

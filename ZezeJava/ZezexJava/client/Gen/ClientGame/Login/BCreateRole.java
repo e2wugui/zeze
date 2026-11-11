@@ -151,7 +151,8 @@ public final class BCreateRole extends Zeze.Transaction.Bean implements BCreateR
         if (_i_ == 1) {
             setName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setName("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

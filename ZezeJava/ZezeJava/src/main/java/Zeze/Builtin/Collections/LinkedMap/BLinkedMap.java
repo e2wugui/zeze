@@ -282,23 +282,28 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         if (_i_ == 1) {
             setHeadNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setHeadNodeId(0);
         if (_i_ == 2) {
             setTailNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTailNodeId(0);
         if (_i_ == 3) {
             setCount(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setCount(0);
         if (_i_ == 4) {
             setLastNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLastNodeId(0);
         if (_i_ == 5) {
             setSerialNo(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setSerialNo(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

@@ -86,13 +86,15 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public void assign(BServerState other) {
+        if (other == this)
+            return;
         setServiceName(other.getServiceName());
         _ServiceInfosVersion.clear();
         for (var e : other._ServiceInfosVersion.entrySet())
-            _ServiceInfosVersion.put(e.getKey(), e.getValue());
+            _ServiceInfosVersion.put(e.getKey(), e.getValue().copy());
         _Simple.clear();
         for (var e : other._Simple.entrySet())
-            _Simple.put(e.getKey(), e.getValue());
+            _Simple.put(e.getKey(), e.getValue().copy());
         setSerialId(other.getSerialId());
     }
 
@@ -220,6 +222,8 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _ServiceName = "";
         }
         if (_i_ == 2) {
             var _x_ = getServiceInfosVersion();
@@ -234,6 +238,8 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _ServiceInfosVersion.clear();
         }
         if (_i_ == 3) {
             var _x_ = getSimple();
@@ -248,6 +254,8 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _Simple.clear();
         }
         while (_t_ != 0 && _i_ < 5) {
             _o_.SkipUnknownField(_t_);
@@ -256,6 +264,8 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 5) {
             _SerialId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        } else {
+            _SerialId = 0;
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

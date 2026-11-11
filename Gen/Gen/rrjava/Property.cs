@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.rrjava
@@ -42,7 +43,7 @@ namespace Zeze.Gen.rrjava
 
             foreach (Variable var in bean.Variables)
             {
-                if (var.Transient)
+                if (var.Transient && BeanFormatter.GetDynamicType(var.VariableType) == null)
                 {
                     var type = TypeName.GetName(var.VariableType);
                     sw.WriteLine($"{prefix}public {type} {var.Getter} {{");
@@ -235,11 +236,11 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine($"{prefix}    return {var.NamePrivate};");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            foreach (Bean real in type.RealBeans.Values)
+            foreach (Bean real in type.RealBeans.Values.Distinct())
             {
                 string rname = TypeName.GetName(real);
                 string pname = "get" + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + "()";
-                sw.WriteLine(prefix + "public " + rname + " " + pname + " {");
+                sw.WriteLine(prefix + "public " + java.JSpecify.NullableOnLastName(rname) + " " + pname + " {");
                 sw.WriteLine(prefix + "    return (" + rname + ")" + var.Getter + ".getBean();");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine(prefix + $"public void {var.Setter($"{rname} value")} {{");

@@ -207,6 +207,11 @@ namespace Zeze.Gen.Types
 		{
 			DynamicParams.Compile(space);
             VariableType = Types.Type.Compile(space, Type, Key, Value, this);
+			if (!Transient && VariableType is Bean child)
+			{
+				for (var type = child; type != null && !type.RestoreWhenOmitted; type = type.BaseBean)
+					type.RestoreWhenOmitted = true;
+			}
 			if (VariableType is TypeList list)
 			{
 				if (false == string.IsNullOrEmpty(FixSize))
