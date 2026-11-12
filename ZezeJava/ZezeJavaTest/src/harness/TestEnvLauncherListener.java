@@ -53,8 +53,11 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 
 	// 主SM实例访问器：测试用它做"Identify已在SM侧生效"的确定性同步（轮询会话identifyServerId，
 	// 对齐TestTakeoverIdentifySuspect的修法）——WaitReady只等TCP连接不够（30轮压测实证）。
-	public static ServiceManagerServer serviceManager() {
-		return Objects.requireNonNull(serviceManager);
+	// 复用外部SM形态（5001被占，本listener未自启）返回null：调用方（TestTakeoverTimerDemoApp
+	// .awaitIdentifyEffect）以assumeTrue跳过（2026-11-12 soak@dbh2复用外部SM批，原requireNonNull
+	// 在访问器内即抛NPE，跳过逻辑够不着）。
+	public static @Nullable ServiceManagerServer serviceManager() {
+		return serviceManager;
 	}
 	private static @Nullable GlobalCacheManagerAsyncServer globalCacheManager;
 	private static boolean globalCacheManagerStarted;

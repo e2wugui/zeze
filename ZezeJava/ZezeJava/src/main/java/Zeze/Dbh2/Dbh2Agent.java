@@ -96,6 +96,19 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 			if ((r.getResultCode() == errorCode(eBucketNotReady) || r.getResultCode() == Procedure.RaftRetry)
 					&& System.currentTimeMillis() < deadline) {
 				logger.info("get retry {}.{}, code={}", databaseName, tableName, IModule.getErrorCode(r.getResultCode()));
+				try {
+					// NotReady拒绝很快，无退避的busy-retry会紧密循环：单请求10s窗内数百次×并发，
+					// soak-20261112-1937批实测53382条retry日志打爆输出。退避100ms让单窗重试次数
+					// 收敛到两位数，仍远小于冷建组ready时延（3~8s）。
+					Thread.sleep(100);
+				} catch (InterruptedException ex) {
+					Thread.currentThread().interrupt();
+					// 中断（进程关闭类）：不再重试，落入下方失败路径快速返回。
+				}
+				if (Thread.currentThread().isInterrupted())
+					// 中断（进程关闭类）：不再重试，快速失败跳出（该次码为瞬时拒绝码，带上语境）。
+					throw new RuntimeException("get interrupted during retry: "
+							+ databaseName + '.' + tableName + ", code=" + IModule.getErrorCode(r.getResultCode()));
 				continue;
 			}
 
