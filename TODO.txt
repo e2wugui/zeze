@@ -1,11 +1,11 @@
 kotlinx-collections-immutable-jvm transient/builder 结合进事务 zeze-2.0.0 有项目正式采用后才修改。
-ScopedValue jdk25 zeze-3.0.0 之后启用。ArrayList + SpinLock 实现的Transaction对象池。对象池是否用需要先bench。
-
+ScopedValue jdk25 zeze-3.0.0 之后启用。ArrayList + SpinLock 实现的Transaction对象池。对象池是否有用需要先bench。
+Dbh2 sync write 问题。ai过于考虑安全性，把好几个地方的写改成sync write了。
+	table-meta可以sync write，其他事务都应该不需要。最好是可配置方式（可能已经有了）。
+	单机RocksDb也要看看，可能也被改了。
 History tid 分配方案，目前是锁内一次一个的分配，性能不行。
-
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
-
 Dbh2的error.log出现频繁的LeaderLostTimeout，感觉不大正常！
 Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。
 Dbh2 simulate.bat 启动比较慢，log断断续续的输出。
