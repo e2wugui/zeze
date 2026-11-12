@@ -6,7 +6,29 @@ Dbh2 sync write 问题。ai过于考虑安全性，把好几个地方的写改�
 History tid 分配方案，目前是锁内一次一个的分配，性能不行。
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
-Dbh2的error.log出现频繁的LeaderLostTimeout，感觉不大正常！
+Dbh2 （首事务撞未 ready 组、无重试）已改，需要观测到现象，落实结果。
+Dbh2 把“7788 集成形态不监听、探测端点失效”立为新案。
+Dbh2的error.log出现频繁的LeaderLostTimeout，感觉不大正常！【2026-11-12立案调查完毕，与第11行启动慢共因，见下】
+	清库对照实验+三Manager时间线对齐，因果链（全部量化在档）：
+	(1)参数先天紧：心跳2.2s(Idle算法) vs 选举超时2.3~3.3s，平均余量仅~600ms——凌晨空载也有零星超时。
+	(2)满载爆发：历史09:50窗口461条；稳定期反而近乎为零(2条/小时级)——"选主风暴"实为冷启动潮+满载窗，非常态。
+	(3)冷启动主凶=建组互联延迟：Master异步通知3 Manager建组时差~0.5s→首连必refused(169次实测)；
+	重连配置1s退避被CPU争用拖成实际p50=1.7~2.1s/p90=4.4s（8核机跑7个JVM，虚拟线程定时全被拉长）；
+	NodeReady gate等出站握手全齐才许PreVote→每组冷启动6~8s，全叠在App建表路径：清库首启App10=30s、5App=94s(旧库50s)。
+	(4)连接画像：每对raft节点双向2条(每组6条)，86组稳定态=每Manager 345条ESTABLISHED(3机共1035)，
+	全部压在单Selector线程(Selectors.getInstance()默认count=1)；86组×20ms onTimer=4300tick/s(虚拟线程)。
+	修复方向候选：建组就绪回执广播(消时差)/新建组快速重连(200ms级)/心跳余量(2.2s→1s或randomMax 1000→2000)/Selector池化/onTimer聚合。
 Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。
-Dbh2 simulate.bat 启动比较慢，log断断续续的输出。
+Dbh2 simulate.bat 启动比较慢，log断断续续的输出。【2026-11-12观察+两次立案，根因全链定位】
+	现象：旧库（组已建）每App~10-13s（5 App串行50s+）；清库首启更差（App10=30s、5App=94s）；日志一阵一阵。
+	===根因A：raftClient首发现系统性猜错（旧库50s的主凶）===
+	Agent.init的first leader=猜"配置第一个节点"（恰好都是manager0的节点）→86组leader均匀分布3台，2/3的组猜错→
+	首请求经proxy打到非leader节点→ProxyServer静默丢弃+回踢redirect（trySendLeaderIs有leaderId未知的静默分支）→
+	App等一次3s超时才修正（实测每组每App首访税≈3.1s；first leader→set leader间隔实锤）。43组×5App并行+模块串行首访再吃零星税
+	→每App 10-13s。跑批期断连重连反复重交（ProxyRequest timeout贯穿整轮）。修复方向：OnHandshakeDone无条件推LeaderIs
+	（现仅isReadyLeader推）/redirect去静默分支/Agent.init握手后主动查询真leader/leader视图跨App复用。
+	===根因B：冷启动建组互联延迟（清库94s的主凶，见第9行立案）===
+	建组时差0.5s首连必败+重连退避被CPU争用拖成p50=1.7~2s+NodeReady gate→每组冷启动6-8s叠App建表路径。
+	另：直跑环境三堵墙已修（Master.Agent端口10999/Dbh2 url豁免甄别/simulate.bat classpath+junit copyTestLib）。
+	复跑还见prepare error=-1×486（与第10行"prepare timeout提交失败"同族）。
 ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。

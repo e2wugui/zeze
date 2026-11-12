@@ -40,7 +40,11 @@ public class App {
 		// 整个测试JVM，IDEA表现为后续用例永久卡住）。Simulate自足集群，独占桶隔离。
 		if (exempt) {
 			var simDbConf = config.getDatabaseConfMap().get("");
-			if (simDbConf != null)
+			// 仅Memory形态才设独占桶：本目录zeze.xml曾是Memory（d5542621c改为Dbh2），直跑
+			// （未选zeze.test.database）时keepOriginal对backend==null恒豁免，若不甄别类型，
+			// Dbh2的url会被改成桶名"infinite_simulate_db"——URI解析出null_-1，Master连接
+			// 5秒超时直接失败。
+			if (simDbConf != null && simDbConf.getDatabaseType() == Config.DbType.Memory)
 				simDbConf.setDatabaseUrl("infinite_simulate_db");
 		}
 

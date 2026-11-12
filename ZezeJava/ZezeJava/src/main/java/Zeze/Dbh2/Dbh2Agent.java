@@ -17,6 +17,7 @@ import Zeze.Builtin.Dbh2.UndoBatch;
 import Zeze.Builtin.Dbh2.Walk;
 import Zeze.Builtin.Dbh2.WalkKey;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Raft.Agent;
@@ -40,6 +41,11 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	// 等待超时=rpcTimeout+本余量，仅在future完成路径整体失效（agent被并发close等）时兜底唤醒，
 	// 正常路径永远先由rpc超时/应答完成，不改变请求语义。
 	static final long SendForWaitGraceMs = 5_000;
+	// 瞬时拒绝码（eBucketNotReady/RaftRetry）的读路径限时重试上限：覆盖动态建组冷启动窗口
+	// （组ready实测3~8s），超过后照抛——不无限等，配置错误/持久故障仍快速失败。
+	static final long NotReadyRetryMaxMs = 10_000;
+	private static final org.apache.logging.log4j.Logger logger =
+			org.apache.logging.log4j.LogManager.getLogger(Dbh2Agent.class);
 	private final Agent raftClient;
 	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;
@@ -72,21 +78,33 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	}
 
 	public KV<Boolean, @Nullable ByteBuffer> get(String databaseName, String tableName, Binary key) {
-		var r = new Get();
-		r.Argument.setDatabase(databaseName);
-		r.Argument.setTable(tableName);
-		r.Argument.setKey(key);
-		r.setTimeout(config.getRpcTimeout());
-		raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
+		// 桶未就绪（动态建组/刚接管窗口）与not leader（首发现错向/leader切换中）是瞬时态：
+		// 读请求无tid可去重回放，直接重发新请求，限时（NotReadyRetryMaxMs）后照抛——首事务撞
+		// 冷建组窗口曾把App启动直接打死（2026-11-12，enableHttpSessionExpiredTimer等无重试路径）。
+		var deadline = System.currentTimeMillis() + NotReadyRetryMaxMs;
+		while (true) {
+			var r = new Get();
+			r.Argument.setDatabase(databaseName);
+			r.Argument.setTable(tableName);
+			r.Argument.setKey(key);
+			r.setTimeout(config.getRpcTimeout());
+			raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
 
-		if (r.getResultCode() == errorCode(eBucketMismatch))
-			return KV.create(false, null);
+			if (r.getResultCode() == errorCode(eBucketMismatch))
+				return KV.create(false, null);
 
-		if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
-			throw new RuntimeException("fail! code=" + r.getResultCode());
+			if ((r.getResultCode() == errorCode(eBucketNotReady) || r.getResultCode() == Procedure.RaftRetry)
+					&& System.currentTimeMillis() < deadline) {
+				logger.info("get retry {}.{}, code={}", databaseName, tableName, IModule.getErrorCode(r.getResultCode()));
+				continue;
+			}
 
-		var bb = r.Result.isNull() ? null : ByteBuffer.Wrap(r.Result.getValue());
-		return KV.create(true, bb);
+			if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
+				throw new RuntimeException("fail! code=" + r.getResultCode());
+
+			var bb = r.Result.isNull() ? null : ByteBuffer.Wrap(r.Result.getValue());
+			return KV.create(true, bb);
+		}
 	}
 
 	public TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>> prepareBatch(BPrepareBatch.Data batch) {

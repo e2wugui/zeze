@@ -32,6 +32,9 @@ import org.jspecify.annotations.Nullable;
 public final class RaftConfig {
 	public static final int DefaultAppendEntriesTimeout = 2000;
 	public static final int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 200;
+	// 选举超时基础余量：心跳(2200ms,Idle算法)实际间隔会被调度抖动/负载拉长，100ms余量下
+	// 凌晨空载也零星误超时(2026-11-12立案实测)，给到1000ms——超时窗口[3200,4200)ms。
+	public static final int ElectionTimeoutBase = 1000;
 
 	private final @Nullable Document xmlDocument;
 	private final @Nullable String xmlFileName;
@@ -47,7 +50,7 @@ public final class RaftConfig {
 	private @Nullable String dbHome;
 	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
 	private int leaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
-	private int electionRandomMax = 1000; // 默认给足抖动预算：heartbeat+100+rand(1000)，避免单次心跳抖动引发选举
+	private int electionRandomMax = 1000; // 默认给足抖动预算：heartbeat+ElectionTimeoutBase+rand(1000)，避免单次心跳抖动引发选举
 	private int maxAppendEntriesCount = 500; // 限制每次复制日志时打包的最大数量
 
 	private int snapshotLogCount = 100_0000; // -1 disable snapshot
@@ -167,11 +170,11 @@ public final class RaftConfig {
 	}
 
 	public int getElectionTimeout() {
-		return getLeaderHeartbeatTimer() + 100 + Random.getInstance().nextInt(getElectionRandomMax());
+		return getLeaderHeartbeatTimer() + ElectionTimeoutBase + Random.getInstance().nextInt(getElectionRandomMax());
 	}
 
 	public int getElectionTimeoutMax() {
-		return getLeaderHeartbeatTimer() + 100 + getElectionRandomMax() * 2;
+		return getLeaderHeartbeatTimer() + ElectionTimeoutBase + getElectionRandomMax() * 2;
 	}
 
 	public int getMaxAppendEntriesCount() {

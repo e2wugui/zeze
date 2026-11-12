@@ -26,7 +26,9 @@
 		<Acceptor Ip="127.0.0.1" Port="11000"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Master.Agent">
-		<Connector HostNameOrAddress="127.0.0.1" Port="11000"/>
+		<!-- 11000 是历史端口（d5542621c 时代布局），现行 allServer.bat 舰队 Master 监听 10999
+		     （test/Dbh2/zeze.xml）。对齐，否则 MasterAgent.startAndWaitConnectionReady 超时退出。 -->
+		<Connector HostNameOrAddress="127.0.0.1" Port="10999"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Raft.ProxyServer">
 		<Acceptor Ip="127.0.0.1" Port="0"/>

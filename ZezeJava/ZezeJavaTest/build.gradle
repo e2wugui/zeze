@@ -124,6 +124,16 @@ sourceSets {
     }
 }
 
+// simulate.bat 等直跑 bat 的运行时依赖同步：testRuntimeClasspath 全量（ZezeJava 主 jar + 测试依赖，
+// 含 Verify 阶段 Tasks.verify() 用到的 junit——缺失会 NoClassDefFoundError 令 main 退出而 JVM
+// 悬挂在非守护线程，无 ShutdownHook 不进第二轮，表面像挂死）。**必须全量**：Sync 是镜像语义，
+// from 若只挑子集会删光 lib 里其余 jar（2026-11-12 只挑 junit 两 jar 清掉整目录实锤）。
+// lib\* 是 gitignored 本地产物，新 clone 先跑 test/build.bat。
+tasks.register('copyTestLib', Sync) {
+    from configurations.testRuntimeClasspath
+    into 'lib'
+}
+
 // gradle test：只跑自包含测试（@Fast / @Tag("fast")），不依赖任何外部进程。
 // @Extra（不常用功能族：history/dbh2/rocketmq；zoker 与 log4jquery 族已随 ZokerManager
 // 迁至 projects/ZokerManager 自有构建；Zeze.MQ 模块整体删除 2026-10-16）被排除——它们由

@@ -768,8 +768,10 @@ public final class Raft {
 			case Leader -> false; // 自己就是Leader。
 			case Candidate -> true; // 自己也在选举中，说明Leader已经失联。
 			default -> // Follower：在最小选举超时内收到过Leader消息，视为Leader仍然活着。
+					// 最小沉默窗口与getElectionTimeout()下界同步（heartbeat+ElectionTimeoutBase），
+					// PreVote授票门槛同源同基（2026-11-12与选举超时Base 100→1000同步调整）。
 					System.currentTimeMillis() - logSequence.getLeaderActiveTime()
-							>= raftConfig.getLeaderHeartbeatTimer() + 100;
+							>= raftConfig.getLeaderHeartbeatTimer() + RaftConfig.ElectionTimeoutBase;
 		};
 	}
 

@@ -187,14 +187,30 @@ public class CommitRocks {
 		}
 	}
 
-	private ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> processPrepareFutures(
+	private ArrayList<Map.Entry<String, TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>> processPrepareFutures(
 			long tid, byte[] tidBytes, BTransactionState.Data state, String queryHost, int queryPort,
-			ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures) throws RocksDBException {
+			ArrayList<Map.Entry<String, TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>> futures)
+			throws RocksDBException {
 		var redirects = new ArrayList<Map.Entry<String, BPrepareBatch.Data>>();
+		// 可重试码的待重发集合（raftName+原batch）：raftClient的resend不覆盖已完成（失败码）的rpc，
+		// 须重新openBucket发新rpc；同tid重发服务端按tid去重，eDuplicateTid=前次投递已受理。
+		var retries = new ArrayList<Map.Entry<String, TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>>();
 		for (var e : futures) {
-			var r = e.getNonNull(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
-			if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
-				throw new RuntimeException("prepare error=" + IModule.getErrorCode(r.getResultCode()));
+			var r = e.getValue().getNonNull(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
+			var agent = manager.openBucket(e.getKey());
+			var code = r.getResultCode();
+			if (code == agent.errorCode(AbstractDbh2.eDuplicateTid))
+				continue; // 同tid前次投递已受理（本事务重试路径）：视为成功，后续commit/undo按tid推进。
+			if (code == agent.errorCode(AbstractDbh2.eBucketNotReady) || code == Procedure.RaftRetry) {
+				// eBucketNotReady=桶StateMachine未就绪（动态建组/刚接管窗口）；RaftRetry=not leader
+				// （首发现错向/切换中）。两者均为瞬时态：同tid重发原batch，循环顶prepareMaxTime熔断兜底。
+				logger.info("prepare retry {} code={} tid={} master={}", e.getKey(),
+						IModule.getErrorCode(code), tid, r.Argument.getMaster());
+				retries.add(Map.entry(e.getKey(), agent.prepareBatch(r.Argument)));
+				continue;
+			}
+			if (code != 0 && code != Procedure.RaftApplied)
+				throw new RuntimeException("prepare error=" + IModule.getErrorCode(code));
 			// 【dbh2 拒绝模式结果处理】
 			var refused = r.Result.getRefused();
 			if (!refused.isEmpty()) {
@@ -216,14 +232,21 @@ public class CommitRocks {
 				}
 			}
 		}
-		var futuresRedirect = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
+		if (!retries.isEmpty())
+			try {
+				Thread.sleep(200); // NotReady拒绝很快，节流重发轮次，避免空转打服务端。
+			} catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+			}
+		var futuresRedirect = new ArrayList<Map.Entry<String, TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>>();
 		if (!redirects.isEmpty()) {
 			// 先收集整轮目标并保存，再投递；任意投递失败时持久记录都能覆盖已发目标。
 			saveCommitPoint(tidBytes, state, Commit.ePreparing);
 			for (var redirect : redirects)
-				futuresRedirect.add(manager.openBucket(redirect.getKey()).prepareBatch(redirect.getValue()));
+				futuresRedirect.add(Map.entry(redirect.getKey(), manager.openBucket(redirect.getKey()).prepareBatch(redirect.getValue())));
 		}
-		return futuresRedirect;
+		retries.addAll(futuresRedirect);
+		return retries;
 	}
 
 	public long prepare(String queryHost, int queryPort, BTransactionState.Data state, BPrepareBatches.Data batches,
@@ -235,13 +258,13 @@ public class CommitRocks {
 		inFlightTids.add(tid); // 先登记再写ePreparing：redoTimer"先读索引、后查在途"的次序才无竞态
 		try {
 			saveCommitPoint(tidBytes, state, Commit.ePreparing);
-			var futures = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
+			var futures = new ArrayList<Map.Entry<String, TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>>();
 			for (var e : batches.getDatas().entrySet()) {
 				var batch = e.getValue();
 				batch.getBatch().setQueryIp(queryHost);
 				batch.getBatch().setQueryPort(queryPort);
 				batch.getBatch().setTid(tid);
-				futures.add(manager.openBucket(e.getKey()).prepareBatch(batch));
+				futures.add(Map.entry(e.getKey(), manager.openBucket(e.getKey()).prepareBatch(batch)));
 			}
 
 			// 处理prepare结果，碰到【拒绝模式重定向】的请求，需要循环处理。
