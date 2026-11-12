@@ -51,17 +51,16 @@ public class Commit extends AbstractCommit {
 	protected long ProcessCommitRequest(Zeze.Builtin.Dbh2.Commit.Commit r) throws Exception {
 		//noinspection DataFlowIssue
 		var query = rocks.getManager().commitServiceAcceptor();
-		// 应答与投递解绑：decide（prepare+saveCommitPoint(eCommitting)）同步完成后立即应答，
-		// 应答0 ⇔ eCommitting已持久化、事务终局为提交；commitBatch投递异步执行，
-		// 失败/超时由redoTimer兜底重发。
+		// 同步投递（2026-11-12 裁定，无条件取代065ea39f7的应答解绑）：decide（prepare+
+		// saveCommitPoint(eCommitting)）与deliver（commitBatch循环，桶侧应答点=状态机apply后）
+		// 串行完成后才应答——应答0不仅意味着eCommitting已持久化（终局为提交，065ea39f7的
+		// 假阴性不变量保持），通常还意味着数据已可读（commit/checkpointRun返回即find可见）。
+		// deliver失败/超时由commitDeliver自身吞掉、仍走应答0——不可因投递问题报确定失败
+		// （假阴性正是065ea39f7要消灭的形态），redoTimer兜底重发，仅该次应答不保证立即可见。
+		// 客户端超时相应扩容（见Dbh2Config.getCommitRpcTimeout）。
 		var decision = rocks.commitDecide(query.getKey(), query.getValue(), r.Argument);
+		rocks.commitDeliver(decision);
 		r.SendResult();
-		var pool = Zeze.Util.Task.getThreadPoolOrNull();
-		if (null != pool)
-			//noinspection DataFlowIssue
-			pool.execute(() -> rocks.commitDeliver(decision));
-		else
-			rocks.commitDeliver(decision); // 池不可用时同步兜底，投递必达
 		return 0;
 	}
 

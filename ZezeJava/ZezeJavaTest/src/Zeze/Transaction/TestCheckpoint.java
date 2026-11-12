@@ -68,57 +68,26 @@ public class TestCheckpoint {
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 
 		var table = demo.App.getInstance().demo_Module1.getTable1();
-		Assertions.assertNotNull(awaitFind(table, 2L));
-		Assertions.assertNotNull(awaitFind(table, 4L));
-		Assertions.assertNotNull(awaitFind(table, 3L));
+		var dbtable = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
+		Assertions.assertNotNull(dbtable.find(table, 2L));
+		Assertions.assertNotNull(dbtable.find(table, 4L));
+		Assertions.assertNotNull(dbtable.find(table, 3L));
 	}
 
+	// 严格断言（不轮询）：这是"checkpointRun()返回即storage可读"产品契约的回归守卫——
+	// dbh2远程提交自2026-11-12起CommitServer同步投递（decide+deliver串行后才应答），
+	// 若回退为异步投递，本测试将立刻读空/读旧而红。
 	@Test
 	public final void testCp() throws Exception {
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").call());
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").call());
 		demo.App.getInstance().Zeze.checkpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
+		var value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table, 56L);
+		Assertions.assertNotNull(value);
 		var bValueTrans = new BValue();
 		bValueTrans.decode(ByteBuffer.Wrap(bytesInTrans));
-		var want = bytesOf(resetVersion(bValueTrans));
-		// dbh2等网络后端：checkpointRun()返回时remove+put的2pc落库仍在途（Memory同步写无此窗口），
-		// 且共享库的key56常有他测残留行——"非空"不构成flush已落库的判据，须轮询至**内容收敛**
-		// （soak-20261111-1954八轮稳定读回残留行、fresh库批soak-20261112-0322读null，同窗两形态）。
-		// 超时未收敛=flush真失败/键被悬挂事务锁死，是诚实的红。
-		var dbtable = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
-		var deadline = System.currentTimeMillis() + 30_000;
-		byte[] got = null;
-		for (;;) {
-			var value = dbtable.find(table, 56L);
-			if (value != null) {
-				got = bytesOf(resetVersion(value));
-				if (java.util.Arrays.equals(want, got))
-					break;
-			}
-			if (System.currentTimeMillis() > deadline)
-				break;
-			Thread.sleep(100);
-		}
-		Assertions.assertArrayEquals(want, got);
-	}
-
-	/** resetVersion产物的紧凑字节视图（ByteBuffer首尾索引截取），供逐字节比较。 */
-	private static byte[] bytesOf(ByteBuffer bb) {
-		return java.util.Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.ReadIndex + bb.size());
-	}
-
-	/**
-	 * dbh2等网络后端：checkpointRun()返回时2pc落库仍在途（Memory同步写无此窗口）——
-	 * 直接storage读须有界轮询至可见。fresh库对照批soak-20261112-0322实锤find=null。
-	 */
-	private static BValue awaitFind(demo.Module1.Table1 table, long key) throws InterruptedException {
-		var dbtable = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
-		var deadline = System.currentTimeMillis() + 30_000;
-		BValue value;
-		while ((value = dbtable.find(table, key)) == null && System.currentTimeMillis() < deadline)
-			Thread.sleep(100);
-		return value;
+		Assertions.assertEquals(resetVersion(value), resetVersion(bValueTrans));
 	}
 
 	private static ByteBuffer resetVersion(BValue value) throws ReflectiveOperationException {

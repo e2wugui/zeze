@@ -49,11 +49,12 @@ import Zeze.Util.TaskCompletionSourceX;
  * ① prepare重定向循环必须在prepareMaxTime量级熔断——bug时循环无轮数/时长上限，
  * 总时长可远超rpcTimeout，客户端以rpcTimeout等待早判超时（确定失败语义）而
  * 服务端可能最终eCommitting提交成功（报失败实已提交）。
- * ② 应答解绑投递——ProcessCommitRequest在eCommitting持久化（decide）后必须立即
- * 应答；bug时同步等待commitBatch送达，应答被投递时延（rpcTimeout级）拖住甚至
- * 超时，客户端把"结果不确定"当确定失败。
- * ③ 客户端超时派生——远程分支Commit rpc超时必须=prepareMaxTime+rpcTimeout+5000
- * （覆盖服务端有界决策+应答），bug时传裸rpcTimeout（值级红）。
+ * ② 应答绑定投递（2026-11-12裁定同步化，翻转065ea39f7的解绑）——ProcessCommitRequest
+ * 在decide（eCommitting持久化）后同步等commitBatch投递完成才应答：应答返回时
+ * 数据已可读（commit/checkpointRun返回即find可见）；投递失败/超时仍应答0
+ * （eCommitting终局为提交，不可报确定失败），redoTimer兜底。
+ * ③ 客户端超时派生——远程分支Commit rpc超时必须=prepareMaxTime+2*rpcTimeout+
+ * SendForWaitGraceMs+5000（覆盖服务端决策+投递+应答），bug时传裸rpcTimeout（值级红）。
  * 形态对齐TestPrepareTimeoutUndoFailRemovesRecord（假agent桩+反射装表；
  * 本地提交模式CommitRocks落临时目录，System属性窗口只在构造期，
  * 不入@Fast并行车道）。
@@ -349,7 +350,7 @@ public class TestCommitServerTimeoutContract {
 		}
 	}
 
-	/** ②应答解绑：eCommitting落盘即应答，投递不阻塞处理器；投递由异步路径完成并清理记录。 */
+	/** ②应答绑定投递：decide后同步等commitBatch送达才返回——应答返回时投递已完成并清理记录。 */
 	@Test
 	public void testReplySentOnceCommitPointPersisted(@TempDir Path tempDir) throws Exception {
 		Zeze.Util.Task.tryInitThreadPool();
@@ -385,20 +386,24 @@ public class TestCommitServerTimeoutContract {
 			Assertions.assertNotNull(rocks.query(1L), "commitPoint必须落盘");
 			Assertions.assertEquals(Commit.eCommitting, requireNonNull(rocks.query(1L)).getState());
 
-			// eCommitting落盘后2秒内处理器必须返回（bug时同步等commitBatch投递，阻塞
-			// rpcAwaitTimeoutMs=rpcTimeout+5s）。
-			Assertions.assertTrue(handlerDone.await(2, TimeUnit.SECONDS),
-					"eCommitting落盘即应答，投递不得阻塞处理器");
-			Assertions.assertNull(handlerError.get(), "处理器必须正常完成");
+			// 同步投递契约：eCommitting落盘后、commitBatch未放行前，处理器必须仍在等投递
+			// （翻转065ea39f7的解绑断言——同步等待正是现在的正确行为）。
+			Assertions.assertFalse(handlerDone.await(2, TimeUnit.SECONDS),
+					"decide完成后处理器须同步等投递（应答绑定投递契约）");
+			Assertions.assertNull(handlerError.get(), "decide阶段不得异常");
 
-			// 放行投递：异步deliver完成commitBatch循环并清理事务记录。
 			var startDeadline = System.currentTimeMillis() + 10_000;
 			while (System.currentTimeMillis() < startDeadline && null == stub.commitFuture)
 				//noinspection BusyWait
-				Thread.sleep(20); // 等异步deliver发起commitBatch
+				Thread.sleep(20); // 等同步deliver发起commitBatch
 			var future = stub.commitFuture;
 			Assertions.assertNotNull(future, "commitBatch投递必须已发起");
+
+			// 放行投递：处理器随之完成（应答点=投递后），事务记录清理。
 			future.setResult(new Zeze.Builtin.Dbh2.CommitBatch());
+			Assertions.assertTrue(handlerDone.await(10, TimeUnit.SECONDS),
+					"投递完成后处理器必须返回（应答绑定投递契约）");
+			Assertions.assertNull(handlerError.get(), "处理器必须正常完成");
 			var removed = System.currentTimeMillis() + 10_000;
 			while (System.currentTimeMillis() < removed && null != rocks.query(1L))
 				//noinspection BusyWait
@@ -412,7 +417,7 @@ public class TestCommitServerTimeoutContract {
 		}
 	}
 
-	/** ③客户端超时派生：远程分支Commit超时必须=prepareMaxTime+rpcTimeout+5000。 */
+	/** ③客户端超时派生：远程分支Commit超时必须=prepareMaxTime+2*rpcTimeout+SendForWaitGraceMs+5000。 */
 	@Test
 	public void testRemoteCommitTimeoutDerived(@TempDir Path tempDir) throws Exception {
 		var xml = tempDir.resolve("remoteCommit.xml");
@@ -431,9 +436,9 @@ public class TestCommitServerTimeoutContract {
 		try {
 			manager.commit(singleBucketBatches());
 			var conf = manager.getDbh2Config();
-			var expected = conf.getPrepareMaxTime() + conf.getRpcTimeout() + 5_000L;
+			var expected = conf.getPrepareMaxTime() + 2L * conf.getRpcTimeout() + Dbh2Agent.SendForWaitGraceMs + 5_000L;
 			Assertions.assertEquals(expected, capturing.capturedTimeout,
-					"远程Commit超时必须覆盖服务端有界决策+应答（prepareMaxTime+rpcTimeout+5000）");
+					"远程Commit超时必须覆盖服务端同步全流程：决策+投递+应答（prepareMaxTime+2*rpcTimeout+grace+5000）");
 			Assertions.assertEquals(expected, conf.getCommitRpcTimeout(), "派生getter必须等于公式值");
 		} finally {
 			manager.stop();

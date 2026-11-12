@@ -80,12 +80,13 @@ public class Dbh2Config implements Config.ICustomize {
 		return prepareMaxTime;
 	}
 
-	// 远程提交模式的Commit rpc等待上界。不变量：须覆盖服务端有界决策（prepare重定向循环
-	// 按prepareMaxTime熔断，见CommitRocks.prepare）+应答往返——裸rpcTimeout（<prepareMaxTime）
-	// 会让慢决策在服务端已提交的同时被客户端判确定失败。
-	// 公式=prepareMaxTime+rpcTimeout+5000余量（应答编码/网络/调度抖动）。
+	// 远程提交模式的Commit rpc等待上界。不变量：须覆盖服务端同步全流程——decide（prepare
+	// 重定向循环按prepareMaxTime熔断，见CommitRocks.prepare）+deliver（2026-11-12起同步投递：
+	// 各桶commitBatch并行发送，等待上界rpcTimeout+SendForWaitGraceMs）+应答往返余量。
+	// deliver不推迟失败应答（失败仍答0，redo兜底），但成功路径应答时延=decide+deliver，
+	// 旧公式（prepareMaxTime+rpcTimeout+5000）盖不住deliver段——会把已投递事务判确定失败。
 	public long getCommitRpcTimeout() {
-		return prepareMaxTime + rpcTimeout + 5_000L;
+		return prepareMaxTime + 2L * rpcTimeout + Dbh2Agent.SendForWaitGraceMs + 5_000L;
 	}
 
 	public long getBucketMaxTime() {
