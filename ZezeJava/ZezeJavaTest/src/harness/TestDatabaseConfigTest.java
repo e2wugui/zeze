@@ -261,24 +261,25 @@ public class TestDatabaseConfigTest {
 	}
 
 	/** 条件豁免（Infinite.Simulate形态：仅RocksDb豁免，MySQL/PG/MongoDb/Dbh2共享库
-	 * 正是多App集群的生产拓扑放行重定向）。返回值=当前选择下是否实际豁免。 */
+	 * 正是多App集群的生产拓扑放行重定向）。只用显式backend实参断言apply行为——
+	 * keepOriginal重载的返回值取环境属性（zeze.test.database），重定向批下ambient≠null
+	 * 会使"未选择=豁免true"类断言翻红（六后端soak首验@Dbh2/@MySQL/@PG/@Mongo四批实锤，
+	 * RocksDb/Memory批ambient∈豁免集恰好为真——环境耦合红仅现于特定后端）。 */
 	@Test
 	public void conditionalKeepOriginalExemptsOnlyListedBackends() {
-		// 未选择后端（Memory形态）：豁免，返回true。
+		// 未选择后端（Memory形态）：豁免。
 		var config = config();
-		assertTrue(TestDatabaseConfig.keepOriginal(config, Config.DbType.RocksDb),
-				"未选择后端时按豁免处理");
+		TestDatabaseConfig.keepOriginal(config, Config.DbType.RocksDb);
 		assertSame(config, TestDatabaseConfig.apply(config, null, null));
 
 		// 所选∈集合：豁免。
 		var rocks = config();
-		assertTrue(TestDatabaseConfig.keepOriginal(rocks, Config.DbType.RocksDb));
+		TestDatabaseConfig.keepOriginal(rocks, Config.DbType.RocksDb);
 		assertSame(rocks, TestDatabaseConfig.apply(rocks, "RocksDb", null));
 
-		// 所选∉集合：放行重定向（Memory空url库被切换）。非豁免由apply行为证明
-		//（返回值取环境属性，本车道未选后端时恒true，不宜在此断言false）。
+		// 所选∉集合：放行重定向（Memory空url库被切换）。
 		var dbh2 = config();
-		assertTrue(TestDatabaseConfig.keepOriginal(dbh2, Config.DbType.RocksDb));
+		TestDatabaseConfig.keepOriginal(dbh2, Config.DbType.RocksDb);
 		var applied = TestDatabaseConfig.apply(dbh2, "Dbh2", null);
 		assertSame(dbh2, applied);
 		assertEquals(Config.DbType.Dbh2, dbh2.getDatabaseConfMap().get("shared").getDatabaseType());
