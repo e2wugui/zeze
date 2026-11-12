@@ -135,10 +135,6 @@ public final class Quantity extends Zeze.Raft.RocksRaft.Bean {
         }
     }
 
-    public void restoreOmittedFields(Quantity _defaults_) {
-        setNumber(_defaults_.getNumber());
-    }
-
     @Override
     protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.@Nullable RootInfo root) {
     }

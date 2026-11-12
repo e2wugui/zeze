@@ -179,7 +179,6 @@ namespace Zeze.Gen.javadata
             java.Tostring.Make(bean, sw, "    ", true);
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
-            java.RestoreOmittedBean.Make(bean, sw, "    ", true, false);
             java.Equal.Make(bean, sw, "    ", !bean.OnlyData);
             if (bean.GenEquals)
                 java.HashCode.Make(bean, sw, "    ", true);

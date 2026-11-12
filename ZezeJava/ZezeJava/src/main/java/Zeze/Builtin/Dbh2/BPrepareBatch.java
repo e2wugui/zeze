@@ -314,7 +314,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
             _o_.ReadBean(_Batch, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            getBatch().restoreOmittedFields(new Zeze.Builtin.Dbh2.BBatch());
+            ByteBuffer.decodeEmptyBean(getBatch());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -630,7 +630,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.ReadBean(_Batch, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _Batch.restoreOmittedFields(new Zeze.Builtin.Dbh2.BBatch.Data());
+            ByteBuffer.decodeEmptyBean(_Batch);
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

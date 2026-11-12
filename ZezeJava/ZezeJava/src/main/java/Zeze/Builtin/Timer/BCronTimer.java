@@ -475,19 +475,6 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
-    public void restoreOmittedFields(BCronTimer _defaults_) {
-        setCronExpression(_defaults_.getCronExpression());
-        setNextExpectedTime(_defaults_.getNextExpectedTime());
-        setExpectedTime(_defaults_.getExpectedTime());
-        setHappenTime(_defaults_.getHappenTime());
-        setRemainTimes(_defaults_.getRemainTimes());
-        setEndTime(_defaults_.getEndTime());
-        setMissfirePolicy(_defaults_.getMissfirePolicy());
-        setOneByOneKey(_defaults_.getOneByOneKey());
-        setHappenTimes(_defaults_.getHappenTimes());
-        _unknown_ = null;
-    }
-
     @Override
     public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)

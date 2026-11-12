@@ -420,16 +420,6 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
-    public void restoreOmittedFields(BBucketMeta _defaults_) {
-        setDatabaseName(_defaults_.getDatabaseName());
-        setTableName(_defaults_.getTableName());
-        setKeyFirst(_defaults_.getKeyFirst());
-        setKeyLast(_defaults_.getKeyLast());
-        setRaftConfig(_defaults_.getRaftConfig());
-        _Host2Raft.clear();
-        _unknown_ = null;
-    }
-
     @Override
     public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
@@ -839,16 +829,6 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-    }
-
-    public void restoreOmittedFields(Data _defaults_) {
-        _DatabaseName = _defaults_._DatabaseName;
-        _TableName = _defaults_._TableName;
-        _KeyFirst = _defaults_._KeyFirst;
-        _KeyLast = _defaults_._KeyLast;
-        _RaftConfig = _defaults_._RaftConfig;
-        _Host2Raft.clear();
-        _Host2Raft.putAll(_defaults_._Host2Raft);
     }
 
     @Override

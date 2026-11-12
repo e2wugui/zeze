@@ -2679,7 +2679,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             _o_.ReadBean(_bean12, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            getBean12().restoreOmittedFields(new demo.Module1.BSimple());
+            ByteBuffer.decodeEmptyBean(getBean12());
         if (_i_ == 13) {
             setByte13(_o_.ReadByte(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -2806,7 +2806,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             setKey28(_o_.ReadBean(new demo.Module1.Key(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setKey28(new demo.Module1.Key());
+            setKey28(ByteBuffer.decodeEmptyBean(new demo.Module1.Key()));
         if (_i_ == 29) {
             var _x_ = _array29;
             _x_.clear();
@@ -5901,7 +5901,7 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             _o_.ReadBean(_bean12, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _bean12.restoreOmittedFields(new demo.Module1.BSimple.Data());
+            ByteBuffer.decodeEmptyBean(_bean12);
         if (_i_ == 13) {
             _byte13 = _o_.ReadByte(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -6028,7 +6028,7 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             _key28 = _o_.ReadBean(new demo.Module1.Key(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _key28 = new demo.Module1.Key();
+            _key28 = ByteBuffer.decodeEmptyBean(new demo.Module1.Key());
         if (_i_ == 29) {
             var _x_ = _array29;
             _x_.clear();

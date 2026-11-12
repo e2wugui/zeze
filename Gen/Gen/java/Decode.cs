@@ -149,7 +149,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    }");
                 return;
             }
-
             sw.WriteLine(prefix + "    } else");
             if (isData && type is TypeSortedMap)
                 sw.WriteLine($"{prefix}        {var.NamePrivate} = new java.util.TreeMap<>();");
@@ -158,7 +157,7 @@ namespace Zeze.Gen.java
             else if (type is TypeDynamic)
                 sw.WriteLine($"{prefix}        {var.NamePrivate}.reset();");
             else if (type is Bean child)
-                sw.WriteLine($"{prefix}        {RestoreOmittedBean.Missing(var, child, isData)};");
+                sw.WriteLine($"{prefix}        {MissingBean(var, child, isData)};");
             else
             {
                 string FieldTypeName() => isData ? javadata.TypeName.GetName(type) : TypeName.GetName(type);
@@ -170,9 +169,8 @@ namespace Zeze.Gen.java
                     TypeInt or TypeLong or TypeFloat or TypeDouble => "0",
                     TypeString => "\"\"",
                     TypeBinary => "Zeze.Net.Binary.Empty",
-                    // A missing child tag left the freshly constructed child as-is in legacy readers.
-                    BeanKey when var.Initial.Length == 0 || type is not ExternalBeanKey => $"new {FieldTypeName()}()",
-                    BeanKey or TypeVector2 or TypeVector2Int or TypeVector3 or TypeVector3Int
+                    BeanKey => MissingBeanKey(var, FieldTypeName()),
+                    TypeVector2 or TypeVector2Int or TypeVector3 or TypeVector3Int
                         or TypeVector4 or TypeQuaternion => $"{FieldTypeName()}.ZERO",
                     // Decimal is always written, even for zero. Older schemas may lack the field.
                     TypeDecimal when var.Initial.Length == 0 => "java.math.BigDecimal.ZERO",
@@ -182,6 +180,25 @@ namespace Zeze.Gen.java
                 var statement = !isData && var.Bean.IsNormalBean ? var.Setter(value) : $"{var.NamePrivate} = {value}";
                 sw.WriteLine($"{prefix}        {statement};");
             }
+        }
+
+        internal static string MissingBean(Variable variable, Bean child, bool isData)
+        {
+            if (child is External)
+            {
+                var type = isData ? javadata.TypeName.GetName(child) : child.FullName;
+                var value = variable.Initial.Length > 0 ? $"{type}.ZERO" : $"new {type}()";
+                return isData ? $"{variable.NamePrivate} = {value}" : variable.Setter(value);
+            }
+            var target = isData || variable.Bean.IsRocks ? variable.NamePrivate : variable.Getter;
+            return $"ByteBuffer.decodeEmptyBean({target})";
+        }
+
+        internal static string MissingBeanKey(Variable variable, string typeName)
+        {
+            if (variable.VariableType is ExternalBeanKey)
+                return variable.Initial.Length > 0 ? $"{typeName}.ZERO" : $"new {typeName}()";
+            return $"ByteBuffer.decodeEmptyBean(new {typeName}())";
         }
 
         public Decode(Variable var, int id, string bufname, StreamWriter sw, string prefix, bool withUnknown)

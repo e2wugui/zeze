@@ -548,21 +548,6 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
-    public void restoreOmittedFields(BSimpleTimer _defaults_) {
-        setDelay(_defaults_.getDelay());
-        setPeriod(_defaults_.getPeriod());
-        setRemainTimes(_defaults_.getRemainTimes());
-        setHappenTimes(_defaults_.getHappenTimes());
-        setStartTime(_defaults_.getStartTime());
-        setEndTime(_defaults_.getEndTime());
-        setNextExpectedTime(_defaults_.getNextExpectedTime());
-        setExpectedTime(_defaults_.getExpectedTime());
-        setHappenTime(_defaults_.getHappenTime());
-        setMissfirePolicy(_defaults_.getMissfirePolicy());
-        setOneByOneKey(_defaults_.getOneByOneKey());
-        _unknown_ = null;
-    }
-
     @Override
     public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)

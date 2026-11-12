@@ -197,11 +197,6 @@ public final class Nested extends Zeze.Raft.RocksRaft.Bean {
         }
     }
 
-    public void restoreOmittedFields(Nested _defaults_) {
-        _Payload.assign(_defaults_._Payload);
-        _SortedNumbers.clear();
-    }
-
     @Override
     protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.@Nullable RootInfo root) {
         _Payload.initRootInfo(root, this);

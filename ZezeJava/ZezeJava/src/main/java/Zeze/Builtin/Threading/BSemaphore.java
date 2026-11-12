@@ -248,7 +248,7 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
             setLockName(_o_.ReadBean(new Zeze.Builtin.Threading.BLockName(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setLockName(new Zeze.Builtin.Threading.BLockName());
+            setLockName(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Threading.BLockName()));
         if (_i_ == 2) {
             setPermits(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -505,7 +505,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _LockName = _o_.ReadBean(new Zeze.Builtin.Threading.BLockName(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _LockName = new Zeze.Builtin.Threading.BLockName();
+            _LockName = ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Threading.BLockName());
         if (_i_ == 2) {
             _Permits = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

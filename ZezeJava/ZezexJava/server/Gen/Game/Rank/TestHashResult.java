@@ -587,7 +587,7 @@ public final class TestHashResult extends Zeze.Transaction.Bean implements TestH
             _o_.ReadBean(_b_ean, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            getB_ean().restoreOmittedFields(new Game.Rank.TestToServerResult());
+            ByteBuffer.decodeEmptyBean(getB_ean());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

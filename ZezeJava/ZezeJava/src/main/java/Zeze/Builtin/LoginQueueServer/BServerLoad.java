@@ -292,7 +292,7 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
             _o_.ReadBean(_Load, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            getLoad().restoreOmittedFields(new Zeze.Builtin.Provider.BLoad());
+            ByteBuffer.decodeEmptyBean(getLoad());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -598,7 +598,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.ReadBean(_Load, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _Load.restoreOmittedFields(new Zeze.Builtin.Provider.BLoad.Data());
+            ByteBuffer.decodeEmptyBean(_Load);
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

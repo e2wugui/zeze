@@ -378,7 +378,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
             _o_.ReadBean(_CronTimer, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            getCronTimer().restoreOmittedFields(new Zeze.Builtin.Timer.BCronTimer());
+            ByteBuffer.decodeEmptyBean(getCronTimer());
         if (_i_ == 3) {
             setHandleClass(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

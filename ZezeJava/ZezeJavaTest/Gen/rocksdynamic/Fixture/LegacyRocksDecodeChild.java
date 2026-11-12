@@ -184,11 +184,6 @@ public final class LegacyRocksDecodeChild extends Zeze.Raft.RocksRaft.Bean {
         }
     }
 
-    public void restoreOmittedFields(LegacyRocksDecodeChild _defaults_) {
-        setNumber(_defaults_.getNumber());
-        _Entries.clear();
-    }
-
     @Override
     protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.@Nullable RootInfo root) {
         _Entries.initRootInfo(root, this);

@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.TreeMap;
+import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector2;
@@ -27,6 +28,23 @@ public class TestFullValueDecode {
 	// Bytes captured with the legacy encoder. Field 12 contains only its long field.
 	private static final byte[] LEGACY_PARTIAL_VALUE = HexFormat.of().parseHex("102ab620050000");
 	private static final byte[] LEGACY_EMPTY_VALUE = {0};
+	private static final byte[] LEGACY_NESTED_NONZERO = HexFormat.of().parseHex("1610070000");
+
+	@Test
+	public void beanResetReachesNestedBeanThroughCollOne() {
+		var value = new BValue();
+		var simple = value.getBean12();
+		var removed = simple.getRemoved();
+		simple.setInt_1(7);
+		removed.setInt_1(9);
+
+		value.reset();
+
+		assertSame(simple, value.getBean12());
+		assertSame(removed, simple.getRemoved());
+		assertEquals(0, simple.getInt_1());
+		assertEquals(0, removed.getInt_1());
+	}
 
 	@Test
 	public void beanDecodeClearsOmittedFieldsAndNestedValues() {
@@ -53,7 +71,8 @@ public class TestFullValueDecode {
 		reused.getMap15().put(6L, 7L);
 		reused.getSortedmap2().put(8, new BSimple());
 		reused.getBean12().setString3("old child");
-		reused.getBean12().getRemoved().setInt_1(9);
+		var removed = reused.getBean12().getRemoved();
+		removed.setInt_1(9);
 
 		var fresh = new BValue();
 		fresh.decode(ByteBuffer.Wrap(LEGACY_PARTIAL_VALUE));
@@ -62,12 +81,18 @@ public class TestFullValueDecode {
 		assertEquals(5, fresh.getBean12().getLong2());
 		assertEquals("", fresh.getBean12().getString3());
 		assertEquals(0, fresh.getBean12().getRemoved().getInt_1());
-		assertEquals(new Key((short)1, ""), fresh.getKey28());
+		assertSame(removed, reused.getBean12().getRemoved());
+		assertEquals(new Key((short)0, ""), fresh.getKey28());
 		assertEquals(fresh, reused);
 
 		var empty = new BValue();
 		empty.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
+		var simple = reused.getBean12();
+		removed.setInt_1(11);
 		reused.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
+		assertSame(simple, reused.getBean12());
+		assertSame(removed, simple.getRemoved());
+		assertEquals(0, removed.getInt_1());
 		assertEquals(0, reused.getBean12().getLong2());
 		assertEquals(empty, reused);
 	}
@@ -95,7 +120,8 @@ public class TestFullValueDecode {
 		reused.getList30().add(10);
 		reused.getArray29().add(11.0f);
 		reused.getBean12().setString3("old child");
-		reused.getBean12().getRemoved().setInt_1(9);
+		var removed = reused.getBean12().getRemoved();
+		removed.setInt_1(9);
 
 		var fresh = new BValue.Data();
 		fresh.decode(ByteBuffer.Wrap(LEGACY_PARTIAL_VALUE));
@@ -104,14 +130,50 @@ public class TestFullValueDecode {
 		assertEquals(5, fresh.getBean12().getLong2());
 		assertEquals("", fresh.getBean12().getString3());
 		assertEquals(0, fresh.getBean12().getRemoved().getInt_1());
-		assertEquals(new Key((short)1, ""), fresh.getKey28());
+		assertSame(removed, reused.getBean12().getRemoved());
+		assertEquals(new Key((short)0, ""), fresh.getKey28());
 		assertEquals(fresh, reused);
 
 		var empty = new BValue.Data();
 		empty.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
+		var simple = reused.getBean12();
+		removed.setInt_1(11);
 		reused.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
+		assertSame(simple, reused.getBean12());
+		assertSame(removed, simple.getRemoved());
+		assertEquals(0, removed.getInt_1());
 		assertEquals(0, reused.getBean12().getLong2());
 		assertEquals(empty, reused);
+	}
+
+	@Test
+	public void omittedBatchResetsCollectionsInPlace() {
+		var key = new Binary(new byte[]{1});
+		var value = new Binary(new byte[]{2});
+		var bean = new BPrepareBatch();
+		var data = new BPrepareBatch.Data();
+		assertArrayEquals(LEGACY_EMPTY_VALUE, ByteBuffer.encode(bean).Copy());
+		assertArrayEquals(LEGACY_EMPTY_VALUE, ByteBuffer.encode(data).Copy());
+
+		var batch = bean.getBatch();
+		var batchData = data.getBatch();
+		batch.getPuts().put(key, value);
+		batch.getDeletes().add(key);
+		batch.setTid(99);
+		batchData.getPuts().put(key, value);
+		batchData.getDeletes().add(key);
+		batchData.setTid(99);
+		bean.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
+		data.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
+
+		assertSame(batch, bean.getBatch());
+		assertSame(batchData, data.getBatch());
+		assertTrue(batch.getPuts().isEmpty());
+		assertTrue(batch.getDeletes().isEmpty());
+		assertEquals(0, batch.getTid());
+		assertTrue(batchData.getPuts().isEmpty());
+		assertTrue(batchData.getDeletes().isEmpty());
+		assertEquals(0, batchData.getTid());
 	}
 
 	@Test
@@ -165,10 +227,13 @@ public class TestFullValueDecode {
 	}
 
 	@Test
-	public void omittedBeanRestoresLegacyValuesInPlace() {
+	public void omittedBeanDecodesWireDefaultsInPlace() {
 		var source = new LegacyDecodeParent();
-		source.getChild().setNumber(0);
+		assertEquals(7, source.getChild().getNumber());
+		assertEquals(new LegacyDecodeKey(3), source.getChild().getKeyValue());
 		source.getChild().setKeyValue(new LegacyDecodeKey(0));
+		assertArrayEquals(LEGACY_NESTED_NONZERO, ByteBuffer.encode(source).Copy());
+		source.getChild().setNumber(0);
 		assertArrayEquals(LEGACY_EMPTY_VALUE, ByteBuffer.encode(source).Copy());
 
 		var fresh = new LegacyDecodeParent();
@@ -185,21 +250,34 @@ public class TestFullValueDecode {
 		reused.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
 
 		assertSame(child, reused.getChild());
-		assertEquals(7, fresh.getChild().getNumber());
+		assertEquals(0, fresh.getChild().getNumber());
 		assertEquals(fresh.getChild().getNumber(), child.getNumber());
 		assertEquals(77, child.getScratch());
 		assertTrue(child.getEntries().isEmpty());
-		assertEquals(new LegacyDecodeKey(3), child.getKeyValue());
+		assertEquals(new LegacyDecodeKey(0), child.getKeyValue());
 		assertEquals(fresh.getChild().getKeyValue(), child.getKeyValue());
 		assertSame(shared, sibling.getChild().getKeyValue());
 		assertEquals(99, shared.getNumber());
+		assertArrayEquals(LEGACY_EMPTY_VALUE, ByteBuffer.encode(fresh).Copy());
+		assertArrayEquals(LEGACY_EMPTY_VALUE, ByteBuffer.encode(reused).Copy());
+
+		fresh.decode(ByteBuffer.Wrap(LEGACY_NESTED_NONZERO));
+		reused.decode(ByteBuffer.Wrap(LEGACY_NESTED_NONZERO));
+		assertSame(child, reused.getChild());
+		assertEquals(7, fresh.getChild().getNumber());
+		assertEquals(7, child.getNumber());
+		assertEquals(77, child.getScratch());
+		assertArrayEquals(LEGACY_NESTED_NONZERO, ByteBuffer.encode(reused).Copy());
 	}
 
 	@Test
-	public void omittedDataBeanRestoresLegacyValuesInPlace() {
+	public void omittedDataBeanDecodesWireDefaultsInPlace() {
 		var source = new LegacyDecodeParent.Data();
-		source.getChild().setNumber(0);
+		assertEquals(7, source.getChild().getNumber());
+		assertEquals(new LegacyDecodeKey(3), source.getChild().getKeyValue());
 		source.getChild().setKeyValue(new LegacyDecodeKey(0));
+		assertArrayEquals(LEGACY_NESTED_NONZERO, ByteBuffer.encode(source).Copy());
+		source.getChild().setNumber(0);
 		assertArrayEquals(LEGACY_EMPTY_VALUE, ByteBuffer.encode(source).Copy());
 
 		var fresh = new LegacyDecodeParent.Data();
@@ -216,14 +294,24 @@ public class TestFullValueDecode {
 		reused.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
 
 		assertSame(child, reused.getChild());
-		assertEquals(7, fresh.getChild().getNumber());
+		assertEquals(0, fresh.getChild().getNumber());
 		assertEquals(fresh.getChild().getNumber(), child.getNumber());
 		assertEquals(77, child.getScratch());
 		assertTrue(child.getEntries().isEmpty());
-		assertEquals(new LegacyDecodeKey(3), child.getKeyValue());
+		assertEquals(new LegacyDecodeKey(0), child.getKeyValue());
 		assertEquals(fresh.getChild().getKeyValue(), child.getKeyValue());
 		assertSame(shared, sibling.getChild().getKeyValue());
 		assertEquals(99, shared.getNumber());
+		assertArrayEquals(LEGACY_EMPTY_VALUE, ByteBuffer.encode(fresh).Copy());
+		assertArrayEquals(LEGACY_EMPTY_VALUE, ByteBuffer.encode(reused).Copy());
+
+		fresh.decode(ByteBuffer.Wrap(LEGACY_NESTED_NONZERO));
+		reused.decode(ByteBuffer.Wrap(LEGACY_NESTED_NONZERO));
+		assertSame(child, reused.getChild());
+		assertEquals(7, fresh.getChild().getNumber());
+		assertEquals(7, child.getNumber());
+		assertEquals(77, child.getScratch());
+		assertArrayEquals(LEGACY_NESTED_NONZERO, ByteBuffer.encode(reused).Copy());
 	}
 
 	@Test

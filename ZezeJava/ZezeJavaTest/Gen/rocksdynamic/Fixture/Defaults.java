@@ -270,20 +270,12 @@ public final class Defaults extends Zeze.Raft.RocksRaft.Bean {
             _o_.ReadBean(_Override, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else {
-            _Override.restoreOmittedFields(new rocksdynamic.Fixture.Quantity());
+            ByteBuffer.decodeEmptyBean(_Override);
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-    }
-
-    public void restoreOmittedFields(Defaults _defaults_) {
-        setCount(_defaults_.getCount());
-        setEnabled(_defaults_.isEnabled());
-        setLabel(_defaults_.getLabel());
-        setPosition(_defaults_.getPosition());
-        _Override.restoreOmittedFields(_defaults_._Override);
     }
 
     @Override

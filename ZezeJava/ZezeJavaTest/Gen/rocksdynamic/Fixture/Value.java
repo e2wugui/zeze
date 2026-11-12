@@ -502,7 +502,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             _o_.ReadBean(_Nested, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else {
-            _Nested.restoreOmittedFields(new rocksdynamic.Fixture.Nested());
+            ByteBuffer.decodeEmptyBean(_Nested);
         }
         while (_t_ != 0 && _i_ < 8) {
             _o_.SkipUnknownField(_t_);
@@ -518,7 +518,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             _o_.ReadBean(_Defaults, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else {
-            _Defaults.restoreOmittedFields(new rocksdynamic.Fixture.Defaults());
+            ByteBuffer.decodeEmptyBean(_Defaults);
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

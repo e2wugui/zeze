@@ -393,15 +393,6 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
-    public void restoreOmittedFields(BBatch _defaults_) {
-        _Puts.clear();
-        _Deletes.clear();
-        setQueryIp(_defaults_.getQueryIp());
-        setQueryPort(_defaults_.getQueryPort());
-        setTid(_defaults_.getTid());
-        _unknown_ = null;
-    }
-
     @Override
     public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
@@ -799,16 +790,6 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-    }
-
-    public void restoreOmittedFields(Data _defaults_) {
-        _Puts.clear();
-        _Puts.putAll(_defaults_._Puts);
-        _Deletes.clear();
-        _Deletes.addAll(_defaults_._Deletes);
-        _QueryIp = _defaults_._QueryIp;
-        _QueryPort = _defaults_._QueryPort;
-        _Tid = _defaults_._Tid;
     }
 
     @Override

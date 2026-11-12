@@ -312,7 +312,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             setLink(_o_.ReadBean(new Zeze.Builtin.Game.Online.BLink(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setLink(new Zeze.Builtin.Game.Online.BLink());
+            setLink(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Game.Online.BLink()));
         if (_i_ == 3) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

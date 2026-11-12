@@ -422,12 +422,12 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             setHeadNodeKey(_o_.ReadBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setHeadNodeKey(new Zeze.Builtin.Collections.Queue.BQueueNodeKey());
+            setHeadNodeKey(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey()));
         if (_i_ == 7) {
             setTailNodeKey(_o_.ReadBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setTailNodeKey(new Zeze.Builtin.Collections.Queue.BQueueNodeKey());
+            setTailNodeKey(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey()));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

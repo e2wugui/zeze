@@ -378,7 +378,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
             _o_.ReadBean(_SimpleTimer, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            getSimpleTimer().restoreOmittedFields(new Zeze.Builtin.Timer.BSimpleTimer());
+            ByteBuffer.decodeEmptyBean(getSimpleTimer());
         if (_i_ == 3) {
             setHandleClass(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

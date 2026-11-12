@@ -565,7 +565,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             _Beankey = _o_.ReadBean(new Zeze.Builtin.TestRocks.BeanKey(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else {
-            _Beankey = new Zeze.Builtin.TestRocks.BeanKey();
+            _Beankey = ByteBuffer.decodeEmptyBean(new Zeze.Builtin.TestRocks.BeanKey());
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

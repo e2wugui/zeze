@@ -83,6 +83,11 @@ public final class CollOne<V extends Bean> extends Collection {
 	}
 
 	@Override
+	public void reset() {
+		getValue().reset();
+	}
+
+	@Override
 	public void decode(IByteBuffer bb) {
 		getValue().decode(bb);
 	}

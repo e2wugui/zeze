@@ -53,7 +53,7 @@ public class TestBeanKeyFieldDecode {
 	}
 
 	@Test
-	public void omittedBeanKeyUsesLegacyFreshDecodeValue() {
+	public void omittedBeanKeyUsesWireZeroDespiteConstructorDefault() {
 		byte[] legacyBytes = {0};
 		var source = new BValue();
 		source.setKey28(new Key((short)0, ""));
@@ -66,10 +66,10 @@ public class TestBeanKeyFieldDecode {
 		reused.setKey28(oldKey);
 		reused.decode(ByteBuffer.Wrap(legacyBytes));
 
-		// The legacy fresh decode retained Key's constructor value of 1.
-		assertEquals(new Key((short)1, ""), fresh.getKey28());
+		assertEquals(new Key((short)0, ""), fresh.getKey28());
 		assertEquals(fresh.getKey28(), reused.getKey28());
 		assertEquals(new Key((short)9, "old"), oldKey);
+		assertArrayEquals(legacyBytes, ByteBuffer.encode(reused).Copy());
 	}
 
 	@Test
@@ -107,6 +107,6 @@ public class TestBeanKeyFieldDecode {
 		assertEquals(new Key((short)1, "old"), oldKey);
 
 		reused.decode(ByteBuffer.Wrap(new byte[1]));
-		assertEquals(new Key((short)1, ""), reused.getKey28());
+		assertEquals(new Key((short)0, ""), reused.getKey28());
 	}
 }

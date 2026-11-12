@@ -230,13 +230,6 @@ public final class TestToServerResult extends Zeze.Transaction.Bean implements T
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
-    public void restoreOmittedFields(TestToServerResult _defaults_) {
-        setResultCode(_defaults_.getResultCode());
-        setOut(_defaults_.getOut());
-        setServerId(_defaults_.getServerId());
-        _unknown_ = null;
-    }
-
     @Override
     public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)

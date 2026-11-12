@@ -264,7 +264,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             setNextNodeKey(_o_.ReadBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setNextNodeKey(new Zeze.Builtin.Collections.Queue.BQueueNodeKey());
+            setNextNodeKey(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey()));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

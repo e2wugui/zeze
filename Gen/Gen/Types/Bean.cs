@@ -176,7 +176,6 @@ namespace Zeze.Gen.Types
 		public bool MappingClass { get; }
 		public bool UseData { get; private set; }
 		public bool OnlyData { get; private set; }
-		internal bool RestoreWhenOmitted { get; set; }
 		public bool CustomTypeId { get; private set; }
 
 		private List<Variable> VariablesIdOrder_;

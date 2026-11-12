@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HexFormat;
 import java.util.List;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState;
 import Zeze.Builtin.TestRocks.BValue;
@@ -207,11 +208,15 @@ public class TestRocksDynamicLogReplay {
 	}
 
 	@Test
-	public void omittedRocksChildAndKeyUseLegacyFreshValues() {
+	public void omittedRocksChildAndKeyUseWireDefaults() {
 		byte[] legacyBytes = {0};
+		var legacyNonzero = HexFormat.of().parseHex("1610070000");
 		var source = new LegacyRocksDecodeParent();
-		source.getChild().setNumber(0);
+		assertEquals(7, source.getChild().getNumber());
+		assertEquals(new LegacyDecodeKey(3), source.getKeyValue());
 		source.setKeyValue(new LegacyDecodeKey(0));
+		assertArrayEquals(legacyNonzero, encode(source).Copy());
+		source.getChild().setNumber(0);
 		assertArrayEquals(legacyBytes, encode(source).Copy());
 
 		var fresh = new LegacyRocksDecodeParent();
@@ -228,14 +233,24 @@ public class TestRocksDynamicLogReplay {
 		reused.decode(ByteBuffer.Wrap(legacyBytes));
 
 		assertSame(child, reused.getChild());
-		assertEquals(7, fresh.getChild().getNumber());
+		assertEquals(0, fresh.getChild().getNumber());
 		assertEquals(fresh.getChild().getNumber(), child.getNumber());
 		assertEquals(77, child.getScratch());
 		assertEquals(0, child.getEntries().size());
-		assertEquals(new LegacyDecodeKey(3), fresh.getKeyValue());
+		assertEquals(new LegacyDecodeKey(0), fresh.getKeyValue());
 		assertEquals(fresh.getKeyValue(), reused.getKeyValue());
 		assertSame(shared, sibling.getKeyValue());
 		assertEquals(99, shared.getNumber());
+		assertArrayEquals(legacyBytes, encode(fresh).Copy());
+		assertArrayEquals(legacyBytes, encode(reused).Copy());
+
+		fresh.decode(ByteBuffer.Wrap(legacyNonzero));
+		reused.decode(ByteBuffer.Wrap(legacyNonzero));
+		assertSame(child, reused.getChild());
+		assertEquals(7, fresh.getChild().getNumber());
+		assertEquals(7, child.getNumber());
+		assertEquals(77, child.getScratch());
+		assertArrayEquals(legacyNonzero, encode(reused).Copy());
 	}
 
 	@Test

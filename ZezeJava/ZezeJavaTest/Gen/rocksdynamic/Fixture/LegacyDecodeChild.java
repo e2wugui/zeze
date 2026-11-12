@@ -316,16 +316,9 @@ public final class LegacyDecodeChild extends Zeze.Transaction.Bean implements Le
             setKeyValue(_o_.ReadBean(new rocksdynamic.Fixture.LegacyDecodeKey(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setKeyValue(new rocksdynamic.Fixture.LegacyDecodeKey());
+            setKeyValue(ByteBuffer.decodeEmptyBean(new rocksdynamic.Fixture.LegacyDecodeKey()));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
-    }
-
-    public void restoreOmittedFields(LegacyDecodeChild _defaults_) {
-        setNumber(_defaults_.getNumber());
-        _Entries.clear();
-        setKeyValue(_defaults_.getKeyValue());
-        _unknown_ = null;
     }
 
     @Override
@@ -651,18 +644,11 @@ public static final class Data extends Zeze.Transaction.Data {
             _KeyValue = _o_.ReadBean(new rocksdynamic.Fixture.LegacyDecodeKey(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _KeyValue = new rocksdynamic.Fixture.LegacyDecodeKey();
+            _KeyValue = ByteBuffer.decodeEmptyBean(new rocksdynamic.Fixture.LegacyDecodeKey());
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-    }
-
-    public void restoreOmittedFields(Data _defaults_) {
-        _Number = _defaults_._Number;
-        _Entries.clear();
-        _Entries.addAll(_defaults_._Entries);
-        _KeyValue = _defaults_._KeyValue;
     }
 
     @Override

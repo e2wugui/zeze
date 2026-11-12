@@ -30,6 +30,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	public static final VarHandle longLeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
 	public static final VarHandle longBeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
 	public static final byte[] Empty = new byte[0];
+	private static final byte[] EMPTY_BEAN_BODY = {0};
 
 	public byte [] Bytes;
 	public int ReadIndex;
@@ -1187,6 +1188,12 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		if (preAllocSize < bb.WriteIndex)
 			sa.preAllocSize(bb.WriteIndex);
 		return bb;
+	}
+
+	/** Decodes an omitted generated Bean or BeanKey. The decoder must treat the input bytes as read-only. */
+	public static <T extends Serializable> T decodeEmptyBean(T bean) {
+		bean.decode(Wrap(EMPTY_BEAN_BODY));
+		return bean;
 	}
 
 	public void encode(Collection<? extends Serializable> c) {

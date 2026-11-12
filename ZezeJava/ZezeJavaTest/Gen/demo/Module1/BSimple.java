@@ -304,17 +304,9 @@ public final class BSimple extends Zeze.Transaction.Bean implements BSimpleReadO
             _o_.ReadBean(_removed, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            getRemoved().restoreOmittedFields(new demo.Module1.BRemoved2());
+            ByteBuffer.decodeEmptyBean(getRemoved());
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
-    }
-
-    public void restoreOmittedFields(BSimple _defaults_) {
-        setInt_1(_defaults_.getInt_1());
-        setLong2(_defaults_.getLong2());
-        setString3(_defaults_.getString3());
-        getRemoved().restoreOmittedFields(_defaults_.getRemoved());
-        _unknown_ = null;
     }
 
     @Override
@@ -629,18 +621,11 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.ReadBean(_removed, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _removed.restoreOmittedFields(new demo.Module1.BRemoved2.Data());
+            ByteBuffer.decodeEmptyBean(_removed);
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-    }
-
-    public void restoreOmittedFields(Data _defaults_) {
-        _int_1 = _defaults_._int_1;
-        _long2 = _defaults_._long2;
-        _string3 = _defaults_._string3;
-        _removed.restoreOmittedFields(_defaults_._removed);
     }
 
     @Override

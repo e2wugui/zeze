@@ -391,7 +391,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             setLink(_o_.ReadBean(new Zeze.Builtin.Online.BLink(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setLink(new Zeze.Builtin.Online.BLink());
+            setLink(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Online.BLink()));
         if (_i_ == 2) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

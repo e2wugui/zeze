@@ -112,7 +112,6 @@ namespace Zeze.Gen.rrjava
             Tostring.Make(bean, sw, "    ");
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
-            java.RestoreOmittedBean.Make(bean, sw, "    ", false, false);
             InitChildrenTableKey.Make(bean, sw, "    ");
 
             LeaderApplyNoRecursive.Make(bean, sw, "    ");

@@ -269,7 +269,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
             setLink(_o_.ReadBean(new Zeze.Builtin.Game.Online.BLink(), _t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setLink(new Zeze.Builtin.Game.Online.BLink());
+            setLink(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Game.Online.BLink()));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }

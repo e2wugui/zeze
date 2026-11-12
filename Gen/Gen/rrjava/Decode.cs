@@ -95,11 +95,10 @@ namespace Zeze.Gen.rrjava
                     sw.WriteLine($"{prefix}{field}.clear();");
                     break;
                 case Bean child:
-                    sw.WriteLine($"{prefix}{java.RestoreOmittedBean.Missing(variable, child, false)};");
+                    sw.WriteLine($"{prefix}{java.Decode.MissingBean(variable, child, false)};");
                     break;
                 case BeanKey:
-                    var key = type is ExternalBeanKey && variable.Initial.Length > 0
-                        ? $"{TypeName.GetName(type)}.ZERO" : $"new {TypeName.GetName(type)}()";
+                    var key = java.Decode.MissingBeanKey(variable, TypeName.GetName(type));
                     sw.WriteLine($"{prefix}{field} = {key};");
                     break;
             }

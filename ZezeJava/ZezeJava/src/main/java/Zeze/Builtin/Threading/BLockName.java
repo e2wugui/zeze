@@ -95,7 +95,7 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
             _GlobalThreadId = _o_.ReadBean(new Zeze.Builtin.Threading.BGlobalThreadId(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _GlobalThreadId = new Zeze.Builtin.Threading.BGlobalThreadId();
+            _GlobalThreadId = ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Threading.BGlobalThreadId());
         if (_i_ == 2) {
             _Name = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
