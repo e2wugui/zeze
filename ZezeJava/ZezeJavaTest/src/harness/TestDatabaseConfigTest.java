@@ -260,6 +260,31 @@ public class TestDatabaseConfigTest {
 		assertEquals("", config.getDatabaseConfMap().get("shared").getDatabaseUrl());
 	}
 
+	/** 条件豁免（Infinite.Simulate形态：仅RocksDb豁免，MySQL/PG/MongoDb/Dbh2共享库
+	 * 正是多App集群的生产拓扑放行重定向）。返回值=当前选择下是否实际豁免。 */
+	@Test
+	public void conditionalKeepOriginalExemptsOnlyListedBackends() {
+		// 未选择后端（Memory形态）：豁免，返回true。
+		var config = config();
+		assertTrue(TestDatabaseConfig.keepOriginal(config, Config.DbType.RocksDb),
+				"未选择后端时按豁免处理");
+		assertSame(config, TestDatabaseConfig.apply(config, null, null));
+
+		// 所选∈集合：豁免。
+		var rocks = config();
+		assertTrue(TestDatabaseConfig.keepOriginal(rocks, Config.DbType.RocksDb));
+		assertSame(rocks, TestDatabaseConfig.apply(rocks, "RocksDb", null));
+
+		// 所选∉集合：放行重定向（Memory空url库被切换）。非豁免由apply行为证明
+		//（返回值取环境属性，本车道未选后端时恒true，不宜在此断言false）。
+		var dbh2 = config();
+		assertTrue(TestDatabaseConfig.keepOriginal(dbh2, Config.DbType.RocksDb));
+		var applied = TestDatabaseConfig.apply(dbh2, "Dbh2", null);
+		assertSame(dbh2, applied);
+		assertEquals(Config.DbType.Dbh2, dbh2.getDatabaseConfMap().get("shared").getDatabaseType());
+		assertEquals("dbh2://127.0.0.1:10999/dbh2_unittest", dbh2.getDatabaseConfMap().get("shared").getDatabaseUrl());
+	}
+
 	@ParameterizedTest
 	@MethodSource("backends")
 	void rejectsMissingUrlWithoutChangingConfiguration(Backend backend) {

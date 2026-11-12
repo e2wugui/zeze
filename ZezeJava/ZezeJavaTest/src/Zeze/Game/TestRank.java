@@ -34,18 +34,14 @@ public class TestRank {
 			disableTest = true;
 			return;
 		}
-		// 多App（APP_COUNT个SimpleApp集群）按裁定保持Memory：任何测试后端重定向（RocksDb等）下
-		// 自禁（对齐上方GlobalRaft自禁先例；config在SimpleApp内构建，无法逐config登记keepOriginal）。
-		if (System.getProperty("zeze.test.database") != null) {
-			System.out.println("Test Rank Disable On Backend Redirect.");
-			disableTest = true;
-			return;
-		}
-
+		// 多App（APP_COUNT个SimpleApp集群）：仅RocksDb豁免（SimpleApp新ctor带条件豁免——70ae3826c
+		// 自禁时的结构原因"config内建无法登记"已消除；selectDirty精确快照差异也是RocksDb专属，
+		// 100分片读37旧案）；MySQL/PG/MongoDb/Dbh2共享库=多App集群生产拓扑，放行重定向。
 		System.out.println("------ setUp begin");
 		try {
 			for (int i = 0; i < APP_COUNT; i++)
-				(apps[i] = new SimpleApp(SERVER_ID_BEGIN + i)).start();
+				(apps[i] = new SimpleApp(SERVER_ID_BEGIN + i, 20000 + SERVER_ID_BEGIN + i + 1, 20000,
+						new Zeze.Config.DbType[]{Zeze.Config.DbType.RocksDb})).start();
 
 			// 等待每个 app 的 ServiceManager 订阅推送看到全部 server 注册（Rank 按 serverId 重定向到其他 app），替代盲等 2s
 			for (var app : apps)

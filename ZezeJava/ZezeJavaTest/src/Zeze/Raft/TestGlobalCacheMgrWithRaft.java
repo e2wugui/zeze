@@ -102,9 +102,10 @@ public class TestGlobalCacheMgrWithRaft {
 		var conf1 = Config.load("zeze.xml");
 		var conf2 = Config.load("zeze.xml");
 		conf2.setServerId(conf1.getServerId() + 1);
-		// 双App保持原Memory后端：RocksDb等重定向目标不支持同进程多App（目录锁），豁免选择。
-		harness.TestDatabaseConfig.keepOriginal(conf1);
-		harness.TestDatabaseConfig.keepOriginal(conf2);
+		// 双App：仅RocksDb豁免（独立目录破坏共享集群语义+目录锁，且其重定向强制摘Global——本类测的
+		// 正是GlobalCacheManager语义）；MySQL/PG/MongoDb/Dbh2共享库=多App集群生产拓扑，放行重定向。
+		harness.TestDatabaseConfig.keepOriginal(conf1, Zeze.Config.DbType.RocksDb);
+		harness.TestDatabaseConfig.keepOriginal(conf2, Zeze.Config.DbType.RocksDb);
 
 		App1.Start(conf1);
 		App2.Start(conf2);

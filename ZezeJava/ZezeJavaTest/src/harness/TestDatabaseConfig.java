@@ -29,14 +29,44 @@ public final class TestDatabaseConfig {
 	private TestDatabaseConfig() {
 	}
 
-	/** 豁免重定向的Config登记：弱引用跟随Config生命周期，不阻碍回收。 */
-	private static final Set<Config> keepOriginals =
-			Collections.newSetFromMap(Collections.synchronizedMap(new WeakHashMap<>()));
+	/** 豁免重定向的Config登记：弱引用跟随Config生命周期，不阻碍回收。
+	 * 值=豁免后端集合：空集=无条件豁免（兼容形态）；非空=仅当所选后端∈集合时豁免
+	 * （如Infinite.Simulate仅RocksDb豁免——MySQL/PG/MongoDb/Dbh2共享库正是多App集群
+	 * 的生产拓扑，放行重定向）。 */
+	private static final WeakHashMap<Config, Set<Config.DbType>> keepOriginals = new WeakHashMap<>();
 
-	/** 多App测试豁免后端重定向：RocksDb 等后端不支持同进程多 App（目录锁），登记后保持原配置。 */
+	/** 多App测试豁免后端重定向（无条件形态）：RocksDb 等后端不支持同进程多 App（目录锁），登记后保持原配置。 */
 	public static Config keepOriginal(Config config) {
-		keepOriginals.add(config);
+		synchronized (keepOriginals) {
+			keepOriginals.put(config, Collections.emptySet());
+		}
 		return config;
+	}
+
+	/** 条件豁免：仅当所选后端∈onlyWhen（或未选择后端）时豁免。返回**当前选择下是否实际豁免**，
+	 * 调用方据此做配套决策——如Infinite.App仅在豁免（保持Memory）时设置独占Memory桶，
+	 * 放行重定向时保持空url让apply统一切换到目标后端共享库。 */
+	public static boolean keepOriginal(Config config, Config.DbType... onlyWhen) {
+		var backends = Set.of(onlyWhen);
+		synchronized (keepOriginals) {
+			keepOriginals.put(config, backends);
+		}
+		return isExempt(config, System.getProperty("zeze.test.database"));
+	}
+
+	private static boolean isExempt(Config config, @Nullable String backend) {
+		Set<Config.DbType> onlyWhen;
+		synchronized (keepOriginals) {
+			onlyWhen = keepOriginals.get(config);
+		}
+		if (onlyWhen == null)
+			return false;
+		if (onlyWhen.isEmpty() || backend == null)
+			return true; // 无条件登记，或未选择后端（Memory形态）
+		for (var t : onlyWhen)
+			if (t.name().equals(backend))
+				return true;
+		return false;
 	}
 
 	public static Config apply(Config config) {
@@ -44,7 +74,7 @@ public final class TestDatabaseConfig {
 	}
 
 	static Config apply(Config config, @Nullable String backend, @Nullable String url) {
-		if (backend == null || keepOriginals.contains(config))
+		if (backend == null || isExempt(config, backend))
 			return config;
 		var databases = config.getDatabaseConfMap().values().stream()
 				.filter(db -> db.getDatabaseType() == Config.DbType.Memory && db.getDatabaseUrl().isEmpty())

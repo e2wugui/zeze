@@ -24,9 +24,11 @@ public class App {
 
 	public App(int serverId, boolean history) {
 		config = Config.load("zeze.xml");
-		// Simulate起AppCount个App同进程双活：豁免后端重定向保持原Memory（RocksDb等目标
-		// 不支持同进程多App目录锁）；下方独占桶是数据隔离需要，不承担豁免职责。
-		harness.TestDatabaseConfig.keepOriginal(config);
+		// Simulate起AppCount个App同进程双活：仅RocksDb目标豁免重定向（每库独立目录=5 App
+		// 各自孤立存储破坏集群语义，且目录锁不支持同进程多App）；MySQL/PG/MongoDb/Dbh2
+		// 共享库正是zeze多App集群的生产拓扑（多实例共享存储+GCM缓存一致性），放行重定向。
+		// 豁免（保持Memory）时才设置独占Memory桶；放行时保持空url让apply统一切换。
+		var exempt = harness.TestDatabaseConfig.keepOriginal(config, Config.DbType.RocksDb);
 		config.setServerId(serverId);
 		config.setFastRedoWhenConflict(false);
 		config.setCheckpointPeriod(1000);
@@ -36,9 +38,11 @@ public class App {
 		// 其他App共享，Simulate批间清表会误清别的App的行（曾把常驻demo.App的Takeover租约
 		// 清掉，后续CsQueue构造stampScope读到行缺失被误判为被接管，System.exit(-1)杀掉
 		// 整个测试JVM，IDEA表现为后续用例永久卡住）。Simulate自足集群，独占桶隔离。
-		var simDbConf = config.getDatabaseConfMap().get("");
-		if (simDbConf != null)
-			simDbConf.setDatabaseUrl("infinite_simulate_db");
+		if (exempt) {
+			var simDbConf = config.getDatabaseConfMap().get("");
+			if (simDbConf != null)
+				simDbConf.setDatabaseUrl("infinite_simulate_db");
+		}
 
 		var tdef = config.getDefaultTableConf();
 		// 提高并发

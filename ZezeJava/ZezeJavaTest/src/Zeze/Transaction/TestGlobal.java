@@ -73,9 +73,10 @@ public class TestGlobal {
 		config2.getServiceConfMap().remove("TestServer");
 		config1.getServiceConfMap().remove("Zeze.Onz.Server");
 		config2.getServiceConfMap().remove("Zeze.Onz.Server");
-		// 双App保持原Memory后端：RocksDb等重定向目标不支持同进程多App（目录锁），豁免选择。
-		harness.TestDatabaseConfig.keepOriginal(config1);
-		harness.TestDatabaseConfig.keepOriginal(config2);
+		// 双App：仅RocksDb豁免（独立目录破坏共享集群语义+目录锁，且其重定向强制摘Global——本类测的
+		// 正是Global语义）；MySQL/PG/MongoDb/Dbh2共享库=多App集群生产拓扑，放行重定向。
+		harness.TestDatabaseConfig.keepOriginal(config1, Zeze.Config.DbType.RocksDb);
+		harness.TestDatabaseConfig.keepOriginal(config2, Zeze.Config.DbType.RocksDb);
 
 		app1.Start(config1);
 		app2.Start(config2);

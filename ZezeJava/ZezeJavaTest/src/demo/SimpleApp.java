@@ -25,10 +25,16 @@ public class SimpleApp extends AppBase {
 	public @Nullable Rank rank;
 
 	public SimpleApp(int serverId) throws Exception {
-		this(serverId, 20000 + serverId + 1, 20000);
+		this(serverId, 20000 + serverId + 1, 20000, null);
 	}
 
 	public SimpleApp(int serverId, int directPort, int cacheSize) throws Exception {
+		this(serverId, directPort, cacheSize, null);
+	}
+
+	/** redirectExempt：条件豁免的后端集合（keepOriginal(config, onlyWhen)语义），null=不豁免（默认放行重定向）。 */
+	public SimpleApp(int serverId, int directPort, int cacheSize,
+					 Config.DbType @Nullable [] redirectExempt) throws Exception {
 		var config = Config.load("server.xml");
 		var directConf = config.getServiceConfMap().get("ServerDirect");
 		directConf.forEachAcceptor2((a) -> {
@@ -40,6 +46,8 @@ public class SimpleApp extends AppBase {
 		tableConf.setCacheCapacity(cacheSize);
 		config.setDefaultTableConf(tableConf);
 		config.setServerId(serverId); // 设置Provider服务器ID
+		if (redirectExempt != null)
+			harness.TestDatabaseConfig.keepOriginal(config, redirectExempt);
 		zeze = new Application("SimpleApp", harness.TestDatabaseConfig.apply(config));
 	}
 
