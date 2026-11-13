@@ -7,7 +7,7 @@ History tid 分配方案，目前是锁内一次一个的分配，性能不行�
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 Dbh2 把“7788 集成形态不监听、探测端点失效”立为新案。
-Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。
+Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。【好像解决了，留观】
 Dbh2 simulate.bat 启动比较慢，log断断续续的输出。【2026-11-12观察+两次立案，根因全链定位】
 	现象：旧库（组已建）每App~10-13s（5 App串行50s+）；清库首启更差（App10=30s、5App=94s）；日志一阵一阵。
 	===根因A：raftClient首发现系统性猜错（旧库50s的主凶）===
