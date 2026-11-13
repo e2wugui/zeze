@@ -1,5 +1,5 @@
-local old_version = "2.0.6"
-local new_version = "2.0.7-SNAPSHOT"
+local old_version = "2.0.7-SNAPSHOT"
+local new_version = "2.0.7"
 
 local files = {
 	{ 1, "build.gradle" },
@@ -13,9 +13,9 @@ local files = {
 	{ 7, "test/Raft/raft.more.bat" },
 	{ 5, "test/Raft/raft.5x6node.bat" },
 	{ 2, "test/GlobalRaft/service&global_raft3.bat" },
-	{ 1, "test/InfiniteSimulate/simulate.bat" },
+--	{ 1, "test/InfiniteSimulate/simulate.bat" },
 	{ 1, "test/InfiniteSimulate/simulate - Bug.bat" },
-	{ 1, "test/InfiniteSimulate/simulate - ProcessDaemon.bat" },
+--	{ 1, "test/InfiniteSimulate/simulate - ProcessDaemon.bat" },
 	{ 2, "test/GlobalRaft/service&global_raft3.bat" },
 	{ 1, "test/GlobalCacheManagerWithRaft/global_raft.bat" },
 }
