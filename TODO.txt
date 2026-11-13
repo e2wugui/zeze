@@ -6,25 +6,7 @@ Dbh2 sync write 问题。ai过于考虑安全性，把好几个地方的写改�
 History tid 分配方案，目前是锁内一次一个的分配，性能不行。
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
-Dbh2 （首事务撞未 ready 组、无重试）已改，需要观测到现象，落实结果。【2026-11-13落实：soak-20261112-1937批8轮@Dbh2，
-	get retry(code=4)实测命中且零fail残留（退避前53382条/轮→加100ms退避后177条/4轮，300倍收敛）；prepare retry未触发。
-	同批LLT（第11行）在真实负载窗零复发；批内勿跑gradle编译（jar替换砸正在跑的车道，round4的27f实锤）。】
 Dbh2 把“7788 集成形态不监听、探测端点失效”立为新案。
-Dbh2的error.log出现频繁的LeaderLostTimeout，感觉不大正常！
-	【2026-11-12已修(ElectionTimeoutBase 1000+isLeaderSilent同步)：当日4轮满载+2热启1小时零复发；
-	2026-11-13 soak-20261112-1937批8轮@Dbh2终局背书：round2/3/5-8真实负载窗全程零复发，唯二爆发均为环境事件
-	（19:56笔记本休眠唤醒时钟假象、22:18批外gradle编译抢CPU+test车道建组风暴叠加）——"已修"在soak级负载下成立。
-	残留观察：bench极限压测窗偶发1条(20:25，leader侧pending gate压心跳的主段无包可刷，裁定不修——往忙碌follower灌包加剧拥塞)；过夜长跑继续观察。】
-	【2026-11-12立案调查完毕，与第11行启动慢共因，见下】
-	清库对照实验+三Manager时间线对齐，因果链（全部量化在档）：
-	(1)参数先天紧：心跳2.2s(Idle算法) vs 选举超时2.3~3.3s，平均余量仅~600ms——凌晨空载也有零星超时。
-	(2)满载爆发：历史09:50窗口461条；稳定期反而近乎为零(2条/小时级)——"选主风暴"实为冷启动潮+满载窗，非常态。
-	(3)冷启动主凶=建组互联延迟：Master异步通知3 Manager建组时差~0.5s→首连必refused(169次实测)；
-	重连配置1s退避被CPU争用拖成实际p50=1.7~2.1s/p90=4.4s（8核机跑7个JVM，虚拟线程定时全被拉长）；
-	NodeReady gate等出站握手全齐才许PreVote→每组冷启动6~8s，全叠在App建表路径：清库首启App10=30s、5App=94s(旧库50s)。
-	(4)连接画像：每对raft节点双向2条(每组6条)，86组稳定态=每Manager 345条ESTABLISHED(3机共1035)，
-	全部压在单Selector线程(Selectors.getInstance()默认count=1)；86组×20ms onTimer=4300tick/s(虚拟线程)。
-	修复方向候选：建组就绪回执广播(消时差)/新建组快速重连(200ms级)/心跳余量(2.2s→1s或randomMax 1000→2000)/Selector池化/onTimer聚合。
 Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。
 Dbh2 simulate.bat 启动比较慢，log断断续续的输出。【2026-11-12观察+两次立案，根因全链定位】
 	现象：旧库（组已建）每App~10-13s（5 App串行50s+）；清库首启更差（App10=30s、5App=94s）；日志一阵一阵。

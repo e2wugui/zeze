@@ -98,9 +98,11 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 				logger.info("get retry {}.{}, code={}", databaseName, tableName, IModule.getErrorCode(r.getResultCode()));
 				try {
 					// NotReady拒绝很快，无退避的busy-retry会紧密循环：单请求10s窗内数百次×并发，
-					// soak-20261112-1937批实测53382条retry日志打爆输出。退避100ms让单窗重试次数
-					// 收敛到两位数，仍远小于冷建组ready时延（3~8s）。
-					Thread.sleep(100);
+					// soak-20261112-1937批实测53382条retry日志打爆输出。退避200ms与写路径
+					// （processPrepareFutures节流）对称；参数衡量：sleep须远小于窗口典型时长
+					// （冷建组ready 3~8s、endSplit换代~3s/轮，200ms为窗口的1/15以上→窗口结束
+					// 后至多一个sleep即恢复），密度5次/s日志可观测（soak实测88条/轮→44条/轮）。
+					Thread.sleep(200);
 				} catch (InterruptedException ex) {
 					Thread.currentThread().interrupt();
 					// 中断（进程关闭类）：不再重试，落入下方失败路径快速返回。
