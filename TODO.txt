@@ -20,4 +20,5 @@ Dbh2 simulate.bat 启动比较慢，log断断续续的输出。【2026-11-12观�
 	建组时差0.5s首连必败+重连退避被CPU争用拖成p50=1.7~2s+NodeReady gate→每组冷启动6-8s叠App建表路径。
 	另：直跑环境三堵墙已修（Master.Agent端口10999/Dbh2 url豁免甄别/simulate.bat classpath+junit copyTestLib）。
 	复跑还见prepare error=-1×486（与第10行"prepare timeout提交失败"同族）。
+	【raftClient连接一连上（需要建立所有raft-node的连接），server端的leader主动发LeaderIs；raftClient等leader设置成功，最多等1秒】
 ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
