@@ -95,10 +95,7 @@ public final class Application extends ReentrantLock {
 	private @Nullable IGlobalAgent globalAgent;
 	private @Nullable AchillesHeelDaemon achillesHeelDaemon;
 	private @Nullable DeadlockBreaker deadlockBreaker;
-	// volatile——停机拒绝契约（perform轮次间/tryUpdateAndCheckpoint入口/落库点、
-	// TableX.flushWhenReduce）依赖事务线程及时读到stop()的置null；plain字段无happens-before，
-	// redo轮次里的检查可能长期读到旧引用，注册进已结束终检点的checkpoint（孤儿脏集=原bug复活）。
-	// 读频次每事务个位数，volatile代价可忽略。
+	// stop 置 null 后需立即对事务/Reduce 线程可见，防止终检点后继续登记脏集。
 	private volatile @Nullable Checkpoint checkpoint;
 	private @Nullable Future<?> flushWhenReduceTimerTask;
 	private @Nullable Schemas schemas;
@@ -106,11 +103,11 @@ public final class Application extends ReentrantLock {
 	private final ProcedureLockWatcher procedureLockWatcher;
 
 	public enum StartState {
-		eUninitialized, // 构造完成，从未start。
-		eStarting, // start()进行中（含中途崩溃遗留）。
-		eStarted, // 运行中。
-		eStopping, // stop()进行中（含中途崩溃遗留）。
-		eStopped, // stop()完成，终态：构造期组件已拆除且start不重建，实例不可复用。
+		eUninitialized,
+		eStarting,
+		eStarted,
+		eStopping,
+		eStopped, // 终态，构造期组件已拆除，实例不可复用。
 	}
 
 	private volatile StartState startState = StartState.eUninitialized;
@@ -136,7 +133,6 @@ public final class Application extends ReentrantLock {
 
 	private static final ConcurrentHashMap<String, Application> instances = new ConcurrentHashMap<>();
 
-	// 根据实例Id得到Application实例。
 	public static @Nullable Application getAppInstance(String projectName) {
 		return instances.get(projectName);
 	}
@@ -154,23 +150,20 @@ public final class Application extends ReentrantLock {
 	}
 
 	/**
-	 * 复用的caller遍历器，仅用于verifyCallerCold的调用方获取调用者class。
-	 * getCallerClass()必须在公开入口方法的直接方法体内调用，不能经由框架方法转发，
-	 * 否则得到的caller是Zeze内部类，校验失去意义。
+	 * 供 verifyCallerCold 的调用方获取 caller。
+	 * getCallerClass() 必须在公开入口内直接调用，经框架方法转发会误取到 Zeze 内部类。
 	 */
 	public static final StackWalker CALLER_WALKER =
 		StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 
 	/**
-	 * 是否配置了热更新模块。没有热更时调用者校验没有约束对象，调用方应先检查本方法，
-	 * 避免无谓的走栈开销。
+	 * 是否需要热更新调用者校验；调用方应先检查，避免无热更时的走栈开销。
 	 */
 	public boolean isHotVerifyEnabled() {
 		return hotManager != null;
 	}
 
-	// verifyCallerNotHot(jdk.internal.reflect.Reflection.getCallerClass());
-	// caller必须外部调用得到。
+	// caller 必须由公开入口直接获取。
 	public void verifyCallerCold(Class<?> caller) {
 		var callerCl = caller.getClassLoader();
 		// 只限制我们自己的HotModule，其他都允许。
@@ -221,9 +214,9 @@ public final class Application extends ReentrantLock {
 			throw new IllegalStateException("serverId too big. > 16383.");
 		procedureLockWatcher = new ProcedureLockWatcher(this);
 
-		Task.tryInitThreadPool(this.getConfig(), null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
+		Task.tryInitThreadPool(this.getConfig(), null, null); // 如需定制线程池，须在创建 Application 前初始化。
 
-		serviceManager = createServiceManager(conf, projectName); // 必须在createDatabase之前初始化。里面的Dbh2需要用到serviceManager
+		serviceManager = createServiceManager(conf, projectName); // Dbh2 建库依赖 serviceManager，须先初始化。
 		boolean databasesCreated = false;
 		try {
 			conf.createDatabase(this, databases);
@@ -231,7 +224,6 @@ public final class Application extends ReentrantLock {
 			ZezeCounter.tryInit();
 
 			if (!isNoDatabase()) {
-				// 自动初始化的组件。
 				autoKey = new AutoKey.Module(this);
 				queueModule = new Zeze.Collections.Queue.Module(this);
 				if (conf.isHistory())
@@ -315,12 +307,12 @@ public final class Application extends ReentrantLock {
 		return serviceManager;
 	}
 
-	// GCM 未启用（未注册 GlobalCacheManager 组件）时为 null，调用方须判空。
+	// 未启用 GCM 时返回 null。
 	public @Nullable IGlobalAgent getGlobalAgent() {
 		return globalAgent;
 	}
 
-	// 停机窗口（stop 后）为 null，调用方须判空（flushWhenReduce 等以其为 fail-safe 依据）。
+	// 未启动或停机时返回 null。
 	public @Nullable Checkpoint getCheckpoint() {
 		return checkpoint;
 	}
@@ -355,10 +347,8 @@ public final class Application extends ReentrantLock {
 
 	public Database addTable(String dbName, Table table) {
 		var db = getDatabase(dbName);
-		// 两道唯一性校验全部通过后再统一登记（异常路径原子化）：TableKey.tables.put与
-		// tables.putIfAbsent先于校验执行时，表名冲突抛异常后tables残留半注册幻影表（从未open），
-		// 重复id时还会先污染既有表的id→name映射。调用方均持Application锁（openDynamicTable）
-		// 或处于启动期单线程模块注册，check-then-put无新增并发窗口。
+		// 先通过 ID/名称唯一性校验再发布索引，避免失败时留下半注册状态。
+		// 调用方持 Application 锁或处于单线程启动期。
 		if (tables.containsKey(table.getId()))
 			throw new IllegalStateException("duplicate table id=" + table.getId());
 		if (tableNameMap.containsKey(table.getName()))
@@ -406,26 +396,19 @@ public final class Application extends ReentrantLock {
 		return hotUpgradeMemoryTables;
 	}
 
-	// 用于热更的时候替换Table.
-	// 热更不会调用addTable,removeTable。
+	// 热更通过此入口替换表，不调用 addTable/removeTable。
 	public Database replaceTable(String dbName, Table table) {
 		replaceTableRecent.add(table);
-		TableKey.tables.put(table.getId(), table.getName()); // always put
+		TableKey.tables.put(table.getId(), table.getName());
 		var exist = tables.put(table.getId(), table);
 		var db = getDatabase(dbName);
 		if (exist == table)
-			return db; // 热更回滚导致反复重新注册，如果存在的表就是自己，不再执行后面的操作。
+			return db; // 热更回滚可能重复注册同一表。
 		if (exist != null) {
-			// 1. exist.isMemory() || table.isMemory()
-			// 内存表配置发生改变，不会继承数据。【需要再次确认一下能不能重用这个处理流程，大概可以。】
-			// 2. !exist.isMemory() && !table.isMemory()
-			// 都是持久表，不需要继承数据。这个open跟第一次启动不一样，有一些状态从旧表得到。
-			// 3. exist.isMemory() && table.isMemory()
-			// 也需要走这个初始化。【需要再次确认一下。】
+			// 热更开表与首次启动不同，需要传入旧表以继承状态。
 			table.open(exist, this);
 
 			if (exist.isMemory() && table.isMemory()) {
-				// 内存表特殊处理。
 				hotUpgradeMemoryTables.add(new HotUpgradeMemoryTable(exist, table));
 				// exist.disable() 在升级之后调用。
 			} else {
@@ -433,11 +416,10 @@ public final class Application extends ReentrantLock {
 				exist.disable();
 			}
 		} else if (isStart()) {
-			// new table
 			var storage = table.open(this, db, null);
 			db.__add_storage__(storage);
 		}
-		tableNameMap.put(table.getName(), table); // always put, 操作在tables阶段完成。
+		tableNameMap.put(table.getName(), table);
 		db.replaceTable(table);
 		return db;
 	}
@@ -449,8 +431,7 @@ public final class Application extends ReentrantLock {
 	public void openDynamicTable(String dbName, Table table) {
 		lock();
 		try {
-			// 与启动期 atomicOpenDatabase 的顺序同构：先注册回放日志工厂再开表，
-			// 注册失败（bean 元数据异常）时 fail-loud 且不留半登记表。
+			// 先注册回放日志工厂再开表，避免注册失败时留下半登记表。
 			if (history != null) {
 				try {
 					history.registerLogs(Collections.singletonList(table));
@@ -568,14 +549,11 @@ public final class Application extends ReentrantLock {
 	}
 
 	public void endStart() {
-		// noDatabase模式不创建delayRemove（构造期跳过）：生命周期钩子对两种模式都要有
-		// 定义良好的行为——no-op（与无数据库语义一致）。
 		if (delayRemove != null)
 			delayRemove.continueJobs();
 	}
 
-	// 数据库Meta兼容检查，初始化。
-	// 包内可见：同包回归测试直接驱动检查/发布分界（元数据不得先于物理DDL发布）。
+	// 检查数据库元数据兼容性，暂不发布新元数据。
 	void schemasCompatible() throws Exception {
 		//noinspection DataFlowIssue
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
@@ -598,29 +576,24 @@ public final class Application extends ReentrantLock {
 				}
 				if (schemas.getAppVersion() < schemasPrevious.getAppVersion()) {
 					logger.info("OldAppVersion Skip.");
-					return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
+					return;
 				}
 
 				schemas.checkCompatible(schemasPrevious, this);
 			}
-			// schemasPrevious maybe null
-			// 不在此保存：元数据先于物理DDL发布会把目标状态提前当成"已完成"——
-			// 其后开表或ALTER临时失败、进程退出，重启读取的previous已是新版结构，
-			// 差分为空，升级被静默跳过（物理表仍旧结构，SQL按新列读写持续失败）。
-			// 保存延迟到开表与tryAlter成功之后，见publishSchemas。
+			// 元数据须在开表及 tryAlter 成功后发布，避免 DDL 失败重启时误认为升级已完成。
 		}
 	}
 
 	/**
-	 * 开表与tryAlter全部成功后发布Schemas元数据（CAS重试）。
-	 * 与schemasCompatible同一启动锁内执行；DDL成功、发布前崩溃的重启由
-	 * tryAlter按物理列目录的幂等过滤兜底（差分按information_schema实际列过滤）。
+	 * DDL 全部成功后以 CAS 发布元数据，与 schemasCompatible 共用启动锁。
+	 * DDL 成功但发布前崩溃时，tryAlter 根据物理列目录幂等重放。
 	 */
 	void publishSchemas() throws Exception {
 		if (schemas == null)
 			return;
 		if (schemasPrevious != null && schemas.getAppVersion() < schemasPrevious.getAppVersion())
-			return; // OldAppVersion Skip：不发布（与schemasCompatible判定一致）。
+			return;
 		//noinspection DataFlowIssue
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		var keyOfSchemas = ByteBuffer.Allocate(32);
@@ -643,8 +616,7 @@ public final class Application extends ReentrantLock {
 					logger.info("OldAppVersion Skip Publish.");
 					return;
 				}
-				// CAS冲突重读到的版本可能与检查时不同（启动锁之外的并发改动）：重检再发布。
-				// 仅重新验证：版本备份已在开表前执行，不能再次rename刚打开的新表。
+				// CAS 冲突后重检兼容性，但不能再次备份或 rename 已打开的新表。
 				schemas.checkCompatibleForPublish(schemasPrevious, this);
 				version = dataVersion.version;
 			}
@@ -663,18 +635,15 @@ public final class Application extends ReentrantLock {
 			//noinspection DataFlowIssue
 			if (!defaultDb.getDirectOperates().tryLock()) {
 				logger.info("lock default database fail. sleep and try again...");
-				// alter 可能很慢，这里多睡一下也行，但是为了兼容不是关系表，选一个合适的值吧。
 				//noinspection BusyWait
 				Thread.sleep(1000);
 				continue;
 			}
 			try {
-				// 由于有了flag，这里实际上就不再会并发了。当然原有的支持并发的代码可以保留。
 				schemasCompatible();
 				if (history != null)
 					history.registerLogs(tableNameMap.values());
 
-				// Open Databases
 				for (var e : databases.entrySet()) {
 					var timeBegin = System.nanoTime();
 					var db = e.getValue();
@@ -683,9 +652,8 @@ public final class Application extends ReentrantLock {
 						db.getTables().size(), e.getKey(), (System.nanoTime() - timeBegin) / 1_000_000);
 				}
 
-				// tHistory 物理归属校验：不同发号名的 gid 数值重叠，共享同一物理表经
-				// writeOnly replace 静默互覆——同库多 app 必须同一发号名或为 tHistory
-				// 分库，冲突（含换名重启，需显式迁移）fail-fast。
+				// 共享 tHistory 的应用须使用同一 gid 发号名，否则数值重叠会互相覆盖。
+				// 更换发号名需显式迁移，或为 tHistory 分库。
 				if (history != null)
 					history.afterOpen();
 
@@ -699,13 +667,11 @@ public final class Application extends ReentrantLock {
 					}
 				}
 
-				// DDL全部成功后才发布元数据：发布先于DDL的窗口里失败重启会拿到空差分，
-				// 升级被静默跳过；发布前的崩溃重启由tryAlter的物理列幂等过滤重放兜底。
 				publishSchemas();
 			} finally {
 				defaultDb.getDirectOperates().unlock();
 			}
-			break; // done
+			break;
 		}
 	}
 
@@ -751,7 +717,7 @@ public final class Application extends ReentrantLock {
 		lock();
 		try {
 			if (startState == StartState.eStarted)
-				return; // 幂等
+				return;
 			if (startState != StartState.eUninitialized)
 				throw new IllegalStateException("Application '" + getProjectName()
 					+ " startState = " + startState);
@@ -774,7 +740,6 @@ public final class Application extends ReentrantLock {
 			if (startState == StartState.eUninitialized || startState == StartState.eStopped)
 				return;
 
-			// 拆解全程处于eStopping。
 			startState = StartState.eStopping;
 
 			stopUnderLock();
@@ -798,7 +763,6 @@ public final class Application extends ReentrantLock {
 				conf.clearInUse(databases);
 			}
 
-			// Set Database InUse
 			for (var db : databases.values()) {
 				//noinspection DataFlowIssue
 				db.getDirectOperates().setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
@@ -812,18 +776,17 @@ public final class Application extends ReentrantLock {
 		}
 
 		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
-		// raft版SM的地址来自raftXml而非ServiceConf节点，按Agent服务名查serviceConfMap必为null，
-		// 旧门槛会跳过serviceManager.start()，raft版SM永不启动，subscribeService挂死在waitLoginReady。
+		// Raft SM 地址来自 raftXml，无 ServiceConf 节点时也需启动。
 		var isRaftServiceManager = "raft".equals(conf.getServiceManager());
 		if ((serviceManagerConf != null || isRaftServiceManager) && serviceManager != null) {
 			serviceManager.start();
 			try {
 				serviceManager.waitReady();
 			} catch (Exception ex) {
-				// raft 版第一次等待由于选择leader原因肯定会失败一次。
+				// Raft 首次选主可能导致等待失败，重试一次。
 				//noinspection ConstantValue
 				if (ex instanceof InterruptedException)
-					Thread.currentThread().interrupt(); // 恢复被底层清除的中断标志
+					Thread.currentThread().interrupt();
 				serviceManager.waitReady();
 			}
 		}
@@ -831,7 +794,6 @@ public final class Application extends ReentrantLock {
 		if (hasDatabase) {
 			atomicOpenDatabase();
 
-			// Open Global
 			var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
 			if (hosts.length > 0) {
 				var isRaft = hosts[0].endsWith(".xml");
@@ -849,17 +811,15 @@ public final class Application extends ReentrantLock {
 			}
 
 			deadlockBreaker = new DeadlockBreaker(this);
-			// Checkpoint
 			checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
 			//noinspection DataFlowIssue
-			checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+			checkpoint.start(conf.getCheckpointPeriod());
 
-			// start last
+			// 守护线程须在 checkpoint 就绪后启动。
 			if (achillesHeelDaemon != null)
 				achillesHeelDaemon.start();
 
-			// 接管租约：Application.start()返回前claim完成（需Checkpoint已建立），
-			// 此后Timer.start/startLast、CsQueue构造全走addScope晚注册stamp。
+			// 启动返回前完成租约 claim，依赖已建立的 Checkpoint；后续组件通过 addScope 注册。
 			if (takeover != null) {
 				//noinspection DataFlowIssue
 				takeover.start();
@@ -881,15 +841,11 @@ public final class Application extends ReentrantLock {
 	}
 
 	private void stopUnderLock() {
-		// 同名实例时putIfAbsent只保留先注册者，无条件remove会错删他人的注册，
-		// 导致幸存实例的Online.findOnline失效（延迟登出静默丢失）。remove(key,value)
-		// 只删属于自己的注册（Application按引用判等）。
+		// 只移除本实例的注册，避免删除同名实例。
 		instances.remove(getProjectName(), this);
 
 		if (null != checkpointFuture) {
-			// get()在检查点任务以异常完成时抛ExecutionException并从stop逃逸，
-			// startState滞留 eStopping、数据库未关，后续start()无法恢复。任务异常
-			// 已由Task框架记录，这里吞掉保证停机流程继续走完。
+			// 检查点任务失败不能中断后续停机步骤。
 			try {
 				checkpointFuture.get();
 			} catch (java.util.concurrent.ExecutionException e) {
@@ -921,12 +877,9 @@ public final class Application extends ReentrantLock {
 			achillesHeelDaemon = null;
 		}
 
-		// 先停事务生产组件（delayRemove/safeBatch/timer）并等待在途任务，再关闭提交
-		// 闸门并由checkpoint.stopAndJoin收尾终检点，最后才关globalAgent（组件事务在
-		// 闸门关闭前可能还需GCM申请锁）——保证"最后一个提交先于最后一次flush"且两者
-		// 都先于NormalClose撤权（见下方"关闸先于撤权"）。关闸后到达的提交由
-		// Transaction.perform/RelativeRecordSet.tryUpdateAndCheckpoint的停机拒绝转为
-		// Closed显式失败，不再静默丢弃（假成功）。
+		// 先停止事务生产组件并等待在途任务，再关提交闸门、完成终检点，最后撤销 GCM 权限。
+		// 组件停机事务仍可能需要 GCM；关闸后到达的提交返回 Closed。
+		// 最终 flush 必须先于 NormalClose，否则旧脏值可能覆盖其他进程接管后的新值。
 		if (delayRemove != null) {
 			stopStep("delayRemove.stop", delayRemove::stop);
 			delayRemove = null;
@@ -941,37 +894,23 @@ public final class Application extends ReentrantLock {
 			timer = null;
 		}
 
-		// 关闸先于撤权（durability-before-downgrade，TableX.reduceInvalid同款不变式）：
-		// NormalClose会让GCM立即释放本server全部记录锁，他进程随后可Acquire并从后台库
-		// 读旧值改写提交。若提交闸门在撤权后才关闭，撤权后到关闸前的在途事务仍能取得
-		// 提交使用权并登记脏数据，其flush发生在权限释放之后——旧脏值覆盖他进程新值
-		// （跨进程丢更新）。现在组件全停后：先冲刷一轮已注册脏集，再关闸排空在途提交
-		// 并完成终检点flush（全程权限仍有效），最后才NormalClose撤权。
 		if (globalAgent != null && checkpoint != null)
 			stopStep("checkpointRun before close commit gate", this::checkpointRun);
 
 		if (checkpoint != null) {
-			// 先撤销入口；stopAndJoin关闭提交使用权并等待已取得使用权的提交完成登记/落库，
-			// 此后终检点才运行，不会漏掉仍持有旧checkpoint引用的迟到登记。
+			// 先撤销入口，再由 stopAndJoin 关闸排空提交，避免终检点遗漏迟到的脏集。
 			var cp = Objects.requireNonNull(checkpoint);
 			checkpoint = null;
 			stopStep("checkpoint.stopAndJoin", () -> {
 				try {
 					cp.stopAndJoin();
 				} catch (Throwable ex) {
-					// stopAndJoin的join被中断（forceThrow）时
-					// 检查点线程仍存活（可能正要进入final flush），吞掉异常直接继续会在它
-					// 还要落库时关库——与在飞数据通路并发close是native UAF类。
-					// 有界忽略中断重join，超时告警继续（终态必达不变）。
+					// 中断后线程可能仍在 flush，关库前有界重等。
 					logger.error("checkpoint stopAndJoin interrupted/failed, bounded re-join before close", ex);
 					cp.joinIgnoreInterrupt(CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
 				}
 			});
-			// mid-flush halt窄窗——停机拒绝只拦新提交，不等待已过门的
-			// 在飞flush（Immediately模式业务线程的checkpoint.flush、Reduce降级flush、
-			// checkpointRun的runOnce）：它们已打开LocalRocksCacheDb事务，与随后的
-			// close+deleteDirectory并发同样是native UAF类。有界等待归零，
-			// 超时告警继续（30s上限，保证停机不因此永久挂起）。
+			// 同时等待业务线程和 Reduce 发起的 flush，避免关库与 RocksDB 事务并发。
 			if (!cp.waitNoActiveFlush(CHECKPOINT_DRAIN_TIMEOUT_MILLIS))
 				logger.error("checkpoint active flush not drained in {}ms, continue to close databases "
 					+ "(risk of close racing in-flight flush)", CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
@@ -986,9 +925,7 @@ public final class Application extends ReentrantLock {
 		if (globalAgent != null) {
 			var ga = globalAgent;
 			stopStep("globalAgent.stop", ga::stop);
-			// Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被stop
-			// 收编，其checkpointRun→flush与下方LocalRocksCacheDb.close+deleteDirectory并发
-			// 存在native UAF类窗口。关库前有界join，超时告警继续。
+			// Releaser 线程由 GCM 触发，关库前也需有界等待其 flush 结束。
 			stopStep("globalAgent.awaitReleaser", () -> ga.awaitReleaser(CHECKPOINT_DRAIN_TIMEOUT_MILLIS));
 			globalAgent = null;
 		}
@@ -1041,46 +978,53 @@ public final class Application extends ReentrantLock {
 		databasesInUse.clear();
 	}
 
-	// 停机步骤异常隔离——任一拆卸步骤抛出（Service.stop关连接的IO异常、
-	// stopAndJoin的join中断forceThrow等）只记日志继续，不得跳过其后步骤
-	// （db.close/clearInUse/各UnRegister），保证终态必达eStopped
-	// （对齐GlobalAgent.stop的per-agent兜底）。
+	// 隔离各停机步骤的异常，保证剩余资源仍能释放。
 	static void stopStep(String name, Action0 action) {
 		try {
 			action.run();
 		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt(); // 恢复中断标志，继续拆卸其余步骤
+			Thread.currentThread().interrupt();
 			logger.error("stop step '{}' interrupted, continue", name, e);
-		} catch (Throwable e) { // logger.error
+		} catch (Throwable e) {
 			logger.error("stop step '{}' exception, continue", name, e);
 		}
 	}
 
 	public void checkpointRun() {
-		// 同endStart：noDatabase模式不创建checkpoint。
-		// volatile单次快照读——判空后二次读字段，stop()持Application锁置null
-		// 恰好落在两条载入之间时解引用得null即NPE（本方法无锁，锁只约束stop与checkpointRunThread）。
+		// 单次快照读取，避免 stop 在判空与调用间清空字段。
 		var cp = checkpoint;
 		if (cp != null)
 			cp.runOnce();
 	}
 
+	private volatile boolean fatalStopping;
+
+	public boolean isFatalStopping() {
+		return fatalStopping;
+	}
+
 	/**
-	 * checkpoint尽力保存后无条件halt。三处共用（Transaction.perform的
-	 * finalCommit失败分支、AchillesHeelDaemon的ProcessDaemon/ThreadDaemon超时分支）——
-	 * checkpointRun/LogManager失败不得吞掉halt本身。fatal自身再包独立try，
-	 * 日志系统异常也不得拦下终态。
+	 * 在现有 GCM 权限预算内停止提交、排空并重试保存；watchdog 须先于锁与 I/O 启动。
+	 * 截止时间固定，不随心跳续期；不发送 NormalClose，由 Reduce 或 GCM 超时回收权限。
 	 */
 	public static void haltAfterCheckpoint(Application zeze, int exitCode) {
-		haltWithDeadline(HALT_DEADLINE_MS, () -> {
-			try {
-				zeze.checkpointRun();
-			} catch (Throwable ex) {
-				try {
-					logger.fatal("checkpointRun before halt({}) fail", exitCode, ex);
-				} catch (Throwable ignored) {
-				}
-			}
+		long remaining = HALT_DEADLINE_MS;
+		var global = zeze.getGlobalAgent();
+		if (global != null) {
+			long now = System.currentTimeMillis();
+			for (int i = 0; i < global.getAgentCount(); i++)
+				remaining = Math.min(remaining, global.getAgent(i).getFatalSaveDeadline() - now);
+		}
+		zeze.fatalStopping = true;
+		// 权限已过期时不得继续保存。
+		if (remaining <= 0) {
+			Runtime.getRuntime().halt(exitCode);
+			return;
+		}
+		haltWithDeadline(remaining, () -> {
+			var cp = zeze.getCheckpoint();
+			if (cp != null)
+				cp.saveBeforeFatalExit();
 			try {
 				LogManager.shutdown();
 			} catch (Throwable ignored) {
@@ -1088,16 +1032,10 @@ public final class Application extends ReentrantLock {
 		}, () -> Runtime.getRuntime().halt(exitCode));
 	}
 
-	/**
-	 * halt前的尽力保存截止时间：必须小于GCM回收本节点权限的余量。
-	 * 超时直接halt，宁可舍弃来不及保存的本地脏值——保存只是尽力，同步等它
-	 * 则阻塞的checkpoint（记录集锁被他人持有、后端IO不返回）可无限延后终止；
-	 * 延后期间他节点已接管权限，本进程继续存活会把旧脏数据刷入共享库。
-	 */
-	static final long HALT_DEADLINE_MS = 30_000;
+	/** 最终保存上限，包含在现有权限释放预算内。 */
+	public static final long HALT_DEADLINE_MS = 30_000;
 
-	/** 独立watchdog保证截止必达：主线程尽力保存后执行终止动作，超时由watchdog执行。
-	 * 终止动作最多执行一次（CAS仲裁；真实halt下进程随第一次执行退出，第二次本不可达）。 */
+	/** 主路径尽力保存，独立 watchdog 保证按时终止；CAS 保证终止动作至多执行一次。 */
 	static void haltWithDeadline(long deadlineMs, Action0 bestEffort, Runnable halt) {
 		var halted = new java.util.concurrent.atomic.AtomicBoolean();
 		Runnable haltOnce = () -> {
@@ -1122,7 +1060,7 @@ public final class Application extends ReentrantLock {
 			}
 		}
 		haltOnce.run();
-		watchdog.interrupt(); // 终止动作已由主路径执行（真实halt下进程已退出，此行不可达）
+		watchdog.interrupt(); // 主路径已完成终止动作。
 	}
 
 	public void checkpointRunThread() {
@@ -1131,10 +1069,8 @@ public final class Application extends ReentrantLock {
 		lock();
 		try {
 			var f = checkpointFuture;
-			// "在跑中"是字段的派生判据（非null且未完成），不由任务清零：
-			// pool.submit先入队后返回，任务可能在赋值前完成，任务内finally清空=白清，
-			// 迟到赋值会留下已完成的哨兵future，后续调用被永久阻断。
-			// 字段只由持锁者（本方法/stop）读写，任务不触碰。
+			// 任务可能在 submit 返回前完成，不能由任务清空字段。
+			// 持 Application 锁检查 Future 是否完成，判断是否可提交下一轮。
 			if (startState == StartState.eStarted && (f == null || f.isDone()))
 				//noinspection DataFlowIssue
 				checkpointFuture = TaskSpec.ofAction(checkpoint::runOnce)

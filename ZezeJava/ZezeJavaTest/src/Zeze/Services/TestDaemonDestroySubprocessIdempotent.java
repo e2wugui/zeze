@@ -88,6 +88,22 @@ public class TestDaemonDestroySubprocessIdempotent {
 	}
 
 	@Test
+	public void authorityDeadlineForcesTerminationBeforeAnyGracefulWait() throws Exception {
+		var fake = new FakeProcess();
+		var field = Daemon.class.getDeclaredField("subprocess");
+		field.setAccessible(true);
+		var method = Daemon.class.getDeclaredMethod("destroySubprocess", boolean.class);
+		method.setAccessible(true);
+		try {
+			field.set(null, fake);
+			method.invoke(null, true);
+			method.invoke(null, true);
+			assertEquals(1, fake.destroyForciblyCount);
+			assertEquals(0, fake.destroyCount, "authority deadline must not run graceful shutdown hooks");
+		} finally { field.set(null, null); }
+	}
+
+	@Test
 	public void testDestroySubprocessIdempotent() throws Exception {
 		// 场景：Monitor.run对同一快照多个global同轮超时连续两次destroySubprocess
 		//（多GCM部署下服务器hang时同步冻结是常态），第二次必须幂等返回而非NPE→fatalExit(halt)。

@@ -229,6 +229,13 @@ public final class FastServerIds {
 	public static final int TEST_APPLICATION_CONSTRUCTION_CLEANUP = seg("TestApplicationConstructionCleanup", 7910, 1);
 	public static final int TEST_APPLICATION_IN_USE_OWNERSHIP = seg("TestApplicationInUseOwnership", 7911, 1);
 	public static final int TEST_SAGA_REPLY_AFTER_COMMIT = seg("TestSagaReplyAfterCommit", 7912, 1);
+	public static final int TEST_SERIALIZABLE_COMMIT_HISTORIES = seg("TestSerializableCommitHistories", 7920, 10);
+	public static final int TEST_FORMAL_ROLLBACK = seg("TestFormalRollback", 7930, 20);
+	public static final int TEST_FORMAL_LOCK_PROTOCOL = seg("TestFormalLockProtocol", 7950, 20);
+	public static final int TEST_FORMAL_CHECKPOINT = seg("TestFormalCheckpoint", 7970, 20);
+	public static final int TEST_FORMAL_CACHE_COHERENCE = seg("TestFormalCacheCoherence", 8020, 20);
+	public static final int TEST_FORMAL_INTEGRATION = seg("TestSharedCacheCommitHandoff", 8040, 10);
+	public static final int TEST_GLOBAL_FATAL_HALT = seg("TestGlobalFatalSaveWindow", 8055, 10);
 
 	private FastServerIds() {
 	}

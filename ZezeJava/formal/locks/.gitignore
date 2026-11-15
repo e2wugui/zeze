@@ -1,0 +1,6 @@
+__pycache__/
+states/
+*_TTrace_*.tla
+*_TTrace_*.bin
+*_TTrace_*.cfg
+evidence/

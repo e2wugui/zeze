@@ -1,0 +1,11 @@
+// This invocation's reports must survive other chats running the shared test task.
+allprojects {
+    if (path == ':ZezeJavaTest') {
+        tasks.withType(Test).configureEach {
+            if (name == 'test') {
+                reports.junitXml.outputLocation = rootProject.layout.projectDirectory.dir('formal/locks/build/java-xml')
+                reports.html.outputLocation = rootProject.layout.projectDirectory.dir('formal/locks/build/java-html')
+            }
+        }
+    }
+}

@@ -56,7 +56,7 @@ import org.jspecify.annotations.Nullable;
  * 7. Server-AchillesHeel-Daemon
  * Server每秒扫描一遍Global，发现 now - Global.ActiveTime > ServerDaemonTimeout，启动本地释放锁线程。
  * a) ServerDaemonTimeout需要大于KeepAlive的空闲间隔 + 尝试重连的时间。
- * b) 本地释放锁必须在独立线程执行，守护线程等待释放完成，如果释放线程超过ServerReleaseTimeout还未完成，就自杀！【Important！】
+ * b) 本地释放锁在独立线程执行；守护线程巡检进度，并在原释放预算内预留最终保存窗口，截止仍未完成则退出。【Important！】
  * c) 守护线程一开始创建，做最简单的事情，确保需要的时候，最终的自杀能成功。【Important！】
  * <p>
  * 8. Timeout
@@ -66,22 +66,25 @@ import org.jspecify.annotations.Nullable;
  * <p>
  * 9. Timeout Config
  * a) 在Global配置三个参数：MaxNetPing=1000, ServerProcessTime=500, ServerReleaseTimeout=10*1000,
- * b) 其他Timeout配置全部从上面两个参数按一定比例计算得出。
+ * b) 其他Timeout配置全部从上面三个参数推导。
  * c) Gs不独立配置，Login的时候从Global得到配置。避免由于配置不一致导致问题。
  * d) Global多个实例允许不一样的配置，异构网络里面可能需要。简单起见，最好统一配置。
- * e) ServerReleaseTimeout 默认10秒，这个和Server.Cache.Capacity相关，而且会与应用事务竞争，可能需要长一些。
+ * e) ServerReleaseTimeout 默认60秒，这个和Server.Cache.Capacity相关，而且会与应用事务竞争，可能需要长一些。
  * <p>
  * 10. Timeout Compute
  * *) Reconnect.Timer = 1000;
  * a) ServerKeepAliveIdleTimeout = MaxNetPing;
  * b) ServerDaemonTimeout = Reconnect.Timer * 8; // 期间允许8次重连尝试
- * c) ServerReleaseTimeout = 10 * 1000; // From Global
+ * c) ServerReleaseTimeout = 60 * 1000; // From Global，可配置
  * d) GlobalDaemonTimeout = ServerDaemonTimeout + ServerReleaseTimeout + MaxNetPing * 2 + 1000;
  * e) Reduce.Timeout = MaxNetPing + ServerProcessTime;
  * f) Acquire.Timeout = Reduce.Timeout + MaxNetPing
  * g) KeepAlive.Timeout = MaxNetPing;
  * h) Server.FastErrorPeriod = ServerDaemonTimeout / 2; // Global请求失败一次即进入这个超时，期间所有的Acquire都本地马上失败。
  * i) Global.ForbidPeriod = ServerDaemonTimeout / 2; // Reduce失败一次即进入这个超时，期间所有的Reduce马上失败。
+ * j) ServerKillTimeout = ServerDaemonTimeout + ServerReleaseTimeout - 1000；通过GlobalOn原第二个超时字段下发外部Daemon。
+ * k) 本地最终保存截止 = ActiveTime + ServerKillTimeout - 1000；Release提前预留min(30000, ServerReleaseTimeout / 2)毫秒。
+ *    截止在Releaser创建时捕获，迟到心跳不能延长；fatal出口由Application启动独立截止守护后保存。
  * <p>
  * 11. 设计决策（相对基础思路的偏差）
  * a) Server发现Global断开连接时不马上释放本地资源，由AchillesHeelDaemon处理。
@@ -160,7 +163,7 @@ public class AchillesHeelDaemon {
 				var config = agent.getConfig();
 				Daemon.sendCommand(pd.udpSocket, pd.daemonSocketAddress,
 						new Daemon.GlobalOn(zeze.getConfig().getServerId(), agent.globalCacheManagerHashIndex,
-								config.serverDaemonTimeout, config.serverReleaseTimeout));
+								config.serverDaemonTimeout, config.serverKillTimeout));
 			} catch (IOException e) {
 				logger.error("", e);
 			}
@@ -182,7 +185,8 @@ public class AchillesHeelDaemon {
 		private final MappedByteBuffer mmap;
 		private final long[] lastReportTime = new long[agents.length];
 		private volatile boolean running = true;
-		private boolean shutdownUnregistered; // channelLock保护；注销后任何旧心跳都不得恢复监控槽。
+		// 由channelLock保护；注销后不能再发布心跳。
+		private boolean shutdownUnregistered;
 
 		public ProcessDaemon(int peer) throws Exception {
 			daemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
@@ -199,7 +203,6 @@ public class AchillesHeelDaemon {
 		}
 
 		public void setActiveTime(GlobalAgentBase agent, long value) {
-			// 注销判断、节流记录与实际发布同锁，迟到的旧时间戳不能倒退槽或恢复已注销槽。
 			channelLock.lock();
 			try {
 				if (shutdownUnregistered)
@@ -213,7 +216,7 @@ public class AchillesHeelDaemon {
 					mmap.position(index * 8);
 					mmap.put(bb.Bytes, 0, 8);
 					lastReportTime[index] = value;
-				} catch (Throwable ex) { // logger.error
+				} catch (Throwable ex) {
 					logger.error("setActiveTime", ex);
 				}
 			} finally {
@@ -221,11 +224,7 @@ public class AchillesHeelDaemon {
 			}
 		}
 
-		// 优雅停机注销标记：向所有心跳槽写-1，Monitor见到-1按已注销处理（不Release、
-		// 不destroy）——停机的终检点+关库可超过serverReleaseTimeout，旧语义下idle
-		// 超时即被外部进程destroySubprocess强杀，终检点半途被杀。滚动兼容：旧Monitor
-		// 不识别-1，按极大idle处理，行为与"心跳停止"相同（不劣化）；新Monitor配旧
-		// Server则永远见不到-1，语义不变。
+		// -1使外部Monitor停止监管此槽，避免正常关停保存被idle超时打断。
 		private void markShutdownUnregistered() {
 			var bb = ByteBuffer.Allocate(8);
 			bb.WriteLong8(-1);
@@ -237,7 +236,7 @@ public class AchillesHeelDaemon {
 						mmap.position(i * 8);
 						mmap.put(bb.Bytes, 0, 8);
 					}
-				} catch (Throwable ex) { // logger.error
+				} catch (Throwable ex) {
 					logger.error("markShutdownUnregistered", ex);
 				}
 			} finally {
@@ -253,12 +252,9 @@ public class AchillesHeelDaemon {
 					try {
 						cmd = Daemon.receiveCommand(udpSocket);
 					} catch (SocketTimeoutException ex) {
-						// skip
 						cmd = null;
 					} catch (Throwable ex) {
-						// 收到未知/截断/损坏的UDP报文（本地任意进程可向该随机端口发送）：
-						// 丢弃并继续，不能让非信任输入触发外层catch的halt杀掉整个进程。
-						// receiveCommand对未知命令号抛UnsupportedOperationException，坏包则解码异常。
+						// 坏报文不能触发外层的致命退出。
 						logger.error("ProcessDaemon.receiveCommand bad packet", ex);
 						cmd = null;
 					}
@@ -268,18 +264,13 @@ public class AchillesHeelDaemon {
 						case Daemon.Release.Command:
 							var r = (Daemon.Release)cmd;
 							logger.info("receiveCommand {}", r.globalIndex);
-							// Release解码不校验globalIndex（任意int），正常发送者（daemon进程）不会越界，
-							// 但本地任意进程可向该端口发送合法编码、语义越界的报文：
-							// 越界必须丢弃，不能让AIOOBE逃逸到外层catch的halt杀死整个进程。
+
 							if (r.globalIndex < 0 || r.globalIndex >= agents.length) {
 								logger.error("ProcessDaemon.receiveCommand Release bad globalIndex={}, agents.length={}",
 										r.globalIndex, agents.length);
 								break;
 							}
-							// 断点调试豁免（对齐下方本地兜底/ThreadDaemon的!Reflect.inDebugMode判定）：
-							// 调试停顿期间外部Daemon照常发来Release命令，startRelease会释放记录锁、
-							// 打断调试现场（与Login豁免语义一致）。仅跳过本命令处理，keepAlive心跳
-							// 不受影响——Daemon侧destroy按idle心跳判定，不因豁免Release而误杀。
+
 							if (Reflect.inDebugMode) {
 								logger.warn("ProcessDaemon Release command skipped in debug mode, globalIndex={}",
 										r.globalIndex);
@@ -290,41 +281,26 @@ public class AchillesHeelDaemon {
 								var config = agent.getConfig();
 								var rr = agent.checkReleaseTimeout(System.currentTimeMillis(), config.serverReleaseTimeout);
 								if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
-									// 本地发现超时，先自杀，不用等进程守护来杀。
 									haltOnReleaseTimeout(r.globalIndex);
 								}
 								if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
-									// 这个判断只能避免正在Releasing时不要启动新的Release。
-									// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
-									// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
-									// 在Agent中增加获得的计数是个方案，但挺烦的。
 									logger.warn("ProcessDaemon.startRelease ServerDaemonTimeout={}", config.serverDaemonTimeout);
 									agent.startRelease(zeze, null);
 								}
-							} catch (Throwable ex) { // logger.error
-								// Release处理体兜底：这里抛出的任何异常都会触发外层catch的halt，
-								// 而Release失败是可重试的（周期checkReleaseTimeout与下一个Release命令都会继续）。
+							} catch (Throwable ex) {
 								logger.error("ProcessDaemon.handle Release globalIndex={}", r.globalIndex, ex);
 							}
 							break;
 						}
 					}
-					// 执行KeepAlive
+
 					var now = System.currentTimeMillis();
 					for (int i = 0; i < agents.length; i++) {
-						// KeepAlive段局部兜底（对齐本文件坏包/越界/Release处理体的同类判例）：
-						// 单轮单agent的异常（关停竞态下schedule拒绝执行、endActions回调抛错等非致命事件）
-						// 记error后继续下一轮——逃逸到外层catch会halt(321321)整个进程。
-						// release超时的自杀halt在haltOnReleaseTimeout内无条件执行，不会被这里吞掉。
 						try {
 							var agent = agents[i];
 							var config = agent.getConfig();
-							// 周期检查Release状态（与ThreadDaemon一致）：
-							// 1. 已完成的Releaser必须及时清理，否则isReleasing永真导致acquire永久abort。
-							//    Release命令是checkReleaseTimeout唯一入口时，keepAlive恢复会刷新activeTime，
-							//    daemon不再发Release，已完成的releaser就永远没人清理。
-							// 2. Releaser超时自行处置，不等daemon的Release命令到达。
-							// 这里只观察已有Releaser的状态，不startRelease——开启新Release仍只能由Release命令触发。
+
+							// 此调用也收尾已完成的Release，不能仅在收到Release命令时执行。
 							var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
 							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
 								haltOnReleaseTimeout(i);
@@ -332,46 +308,36 @@ public class AchillesHeelDaemon {
 							if (idle > config.serverKeepAliveIdleTimeout) {
 								agent.keepAlive();
 							}
-							// 保守本地兜底（对齐ThreadDaemon的同款降级，阈值放大3倍）：外部
-							// Daemon进程死亡/失联时Release命令永不到达——GCM侧globalDaemonTimeout
-							// 后把锁授予他服，本进程仍持本地Modify事务进入静默双写窗口（需双重
-							// 故障）。idle远超serverDaemonTimeout即降级为本地startRelease自愈。
-							if (idle > config.serverDaemonTimeout * 3 && !Reflect.inDebugMode) {
+
+							// 外部Daemon失联时，本地仍须按时启动释放。
+							if (idle > config.serverDaemonTimeout && !Reflect.inDebugMode) {
 								if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
 									logger.warn("ProcessDaemon.local fallback startRelease, daemon unreachable. "
-											+ "idle={} > serverDaemonTimeout*3={}", idle, config.serverDaemonTimeout * 3);
+											+ "idle={} > serverDaemonTimeout={}", idle, config.serverDaemonTimeout);
 									agent.startRelease(zeze, null);
 								}
 							}
-						} catch (Throwable ex) { // logger.error
+						} catch (Throwable ex) {
 							logger.error("ProcessDaemon.keepAlive globalIndex={}", i, ex);
 						}
 					}
 				}
-			} catch (Throwable ex) { // halt
-				// 这个线程不准出错。除了里面应该忽略的。
+			} catch (Throwable ex) {
 				logger.fatal("ProcessDaemon.AchillesHeelDaemon ", ex);
 				haltAfterCheckpoint(321321);
 			}
 		}
 
-			// 数据安全停机：checkpoint尽力保存后无条件halt（KeepAlive段局部兜底后，
-			// haltOnReleaseTimeout被catch区覆盖，checkpoint/shutdown失败不得吞掉halt本身）。
-			// 实现统一收口到Application.haltAfterCheckpoint（与Transaction.perform、
-			// ThreadDaemon共用），本类不维护同形副本。
 		private void haltAfterCheckpoint(int exitCode) {
 			Application.haltAfterCheckpoint(zeze, exitCode);
 		}
 
-		// 本地发现Releaser超时，先自杀，不用等进程守护来杀（Release命令分支与周期检查共用）。
 		private void haltOnReleaseTimeout(int globalIndex) {
 			logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", globalIndex);
 			haltAfterCheckpoint(123123);
 		}
 
 		public void stopAndJoin() {
-			// 先写注销标记再停线程：心跳停止后Monitor若仍按idle判超时，终检点+关库
-			// 累计超serverReleaseTimeout即被destroySubprocess强杀（见markShutdownUnregistered）。
 			markShutdownUnregistered();
 			running = false;
 			try {
@@ -395,7 +361,7 @@ public class AchillesHeelDaemon {
 				logger.error("UdpSocket.close", e);
 			}
 			try {
-				Files.delete(Path.of(fileName)); // try delete
+				Files.delete(Path.of(fileName));
 			} catch (Exception ignored) {
 			}
 		}
@@ -420,9 +386,7 @@ public class AchillesHeelDaemon {
 						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
 						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 							logger.fatal("global release timeout. index={}", i);
-							// 不得内联checkpointRun/shutdown/halt且不加守护——
-							// checkpointRun双读NPE落进外层catch只记error继续循环，
-							// release-timeout的halt(123123)语义被吞。统一收口到共用助手。
+
 							Application.haltAfterCheckpoint(zeze, 123123);
 						}
 
@@ -433,21 +397,13 @@ public class AchillesHeelDaemon {
 
 						if (idle > config.serverDaemonTimeout && !Reflect.inDebugMode) {
 							if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
-								// 这个判断只能避免正在Releasing时不要启动新的Release。
-								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
-								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
-								// 在Agent中增加获得的计数是个方案，但挺烦的。
 								logger.warn("startRelease ServerDaemonTimeout={}", config.serverDaemonTimeout);
 								agent.startRelease(zeze, null);
 							}
 						}
 					}
 				} catch (Throwable ex) {
-					// 任何异常不得直接halt(321321)：测试关停全局线程池等基础设施事件也会
-					// 杀掉整个JVM（同会话其他测试全部中断，keepAlive的Rpc.Send在池null时抛
-					// IllegalStateException即触发）。守护线程的职责是持续存活：单轮异常记error
-					// 后继续下一轮，sleep在catch外保证异常时仍按1秒节拍，不致紧密循环刷日志。
-					// global release timeout 的主动halt是独立业务语义，不在此列。
+					// 单轮异常继续巡检；释放超时仍由上面的fatal出口处理。
 					logger.error("AchillesHeelDaemon loop exception", ex);
 				}
 				try {

@@ -39,9 +39,7 @@ public class Daemon {
 	public static final String propertyNameClearInUse = "Zeze.Database.ClearInUse";
 	private static final Logger logger = LogManager.getLogger(Daemon.class);
 
-	// Key Is ServerId。每个Server对应一个Monitor。
-	// 正常使用是一个Daemon对应一个Server。
-	// 写成支持多个Server是为了跑Simulate测试。
+	// 按 serverId 记录 Monitor，支持一个 Daemon 监管多个 Server。
 	private static final LongConcurrentHashMap<Monitor> monitors = new LongConcurrentHashMap<>();
 	private static @Nullable DatagramSocket udpSocket;
 	private static volatile @Nullable Process subprocess;
@@ -56,14 +54,10 @@ public class Daemon {
 	}
 
 	public static void main(String[] args) throws Exception {
-		// args为空时下方command.add(1,...)会越界，以意外IndexOutOfBoundsException
-		// 而非usage提示失败；无参启动直接给出用法。
 		if (args.length < 1) {
-			// args[0]是可执行程序（如java），主类在其后——usage必须按此格式给出。
 			System.err.println("usage: Daemon <java-executable> [jvm-args ...] <main-class> [args...]");
 			return;
 		}
-		// udp for subprocess register
 		udpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		udpSocket.setSoTimeout(200);
 		var minAliveTime = getLongProperty("MinAliveTime", 30 * 60 * 1000);
@@ -83,9 +77,7 @@ public class Daemon {
 				subprocess = pb.start();
 				var startTime = System.currentTimeMillis();
 				var exitCode = mainRun();
-				// 正常退出也必须停止Monitor：Monitor是非daemon线程，不join会令JVM挂死
-				// （GlobalOn未到达时超时判定被跳过，Monitor纯空转，永不退出）；
-				// stopAndJoin顺带关闭mmap临时文件句柄。
+				// Monitor 是非 daemon 线程，正常退出也须停止并回收 mmap 资源。
 				joinMonitors();
 				if (exitCode == 0)
 					break;
@@ -99,9 +91,7 @@ public class Daemon {
 		} catch (Throwable ex) {
 			logger.error("Daemon.main", ex);
 		} finally {
-			// 退出的时候，确保销毁服务进程。
-			// 仅destroy()即退出守护JVM，子进程不响应SIGTERM时无人强杀；
-			// 限时等待后强杀收尸，对齐reapDiagnosticProcess。
+			// 守护进程退出前限时等待子进程，超时强杀。
 			var subprocess = Daemon.subprocess;
 			if (subprocess != null) {
 				subprocess.destroy();
@@ -118,18 +108,13 @@ public class Daemon {
 				try {
 					cmd = receiveCommand(Objects.requireNonNull(udpSocket));
 				} catch (SocketTimeoutException ex) {
-					// skip
+					// 超时后检查子进程状态。
 				} catch (Throwable ex) {
-				// 收到未知/截断/损坏的UDP报文（本地任意进程可向该随机端口发送）：
-				// 丢弃并继续，非信任输入不得触发外层catch的
-					// fatalExit杀掉看门狗与被监管子进程。
+					// 坏报文仅丢弃，避免输入错误终止守护进程。
 					logger.error("Daemon.receiveCommand bad packet", ex);
 				}
 				if (cmd != null) {
-					// 统一弱校验兜底：Register以外的命令必须来自已注册Monitor的对端。
-					// 合法CommonResult与Release在本switch无分支无动作（Daemon只发不收），统一拦截
-					// 零副作用；任意本地进程伪造报文不得触达状态变更/销毁路径。
-					// 残余风险：对端地址校验可被"抢先自注册"满足（Register无发送者凭据）。
+					// 非注册命令仅接受已注册对端；Register 无凭据，此校验不能防止抢先注册。
 					if (cmd.command() != Register.Command && !isRegisteredPeer(Objects.requireNonNull(cmd.peer))) {
 						logger.error("Command {} rejected: unregistered peer={}", cmd.command(), cmd.peer);
 					} else
@@ -149,8 +134,7 @@ public class Daemon {
 								monitors.put(reg.serverId, monitor);
 								monitor.start();
 							} catch (Throwable ex) {
-								// Monitor打开mmap失败（校验后文件被删/被锁等）：拒绝本次注册，
-								// 不让异常逃逸到外层catch的fatalExit。
+								// mmap 可能在校验后失效，拒绝注册并保持守护循环。
 								logger.error("Register monitor failed", ex);
 								code = 2;
 							}
@@ -164,16 +148,12 @@ public class Daemon {
 						code = 0;
 						var monitor = monitors.get(on.serverId);
 						if (monitor != null && !monitor.peerSocketAddress.equals(on.peer)) {
-							// per-monitor强绑定：该serverId的配置只能由该serverId的注册者
-							// （同一子进程udpSocket，对端地址相同）改写——伪造合法编码的GlobalOn（可枚举
-							// serverId/globalIndex试错）改写超时配置可令Monitor反复销毁被监管子进程；
-							// 多Server共存（Simulate）场景同时消除跨Server改写。按未注册应答隐藏区分。
+							// 配置须来自对应 serverId 的注册对端，防止跨 Server 改写。
 							logger.error("GlobalOn rejected: serverId={} peer={} registered={}",
 									on.serverId, on.peer, monitor.peerSocketAddress);
 							code = 1;
 						} else if (monitor != null) {
 							if (on.globalIndex < 0 || on.globalIndex >= monitor.globalConfigs.length()) {
-							// 非信任输入边界校验：越界索引丢弃，AIOOBE不得逃逸到外层catch的fatalExit。
 								logger.error("GlobalOn bad globalIndex={}, count={}",
 										on.globalIndex, monitor.globalConfigs.length());
 								code = 2;
@@ -191,9 +171,6 @@ public class Daemon {
 						break;
 
 					case DeadlockReport.Command:
-						// 弱校验：DeadlockReport不带任何字段，子进程侧与Register
-						// 走同一个udpSocket（对端地址相同），仅接受已注册Monitor对端的报告——
-						// 任意本地进程伪造报文不得销毁被监管子进程并连带令守护整体退出。
 						if (!isRegisteredPeer(Objects.requireNonNull(cmd.peer))) {
 							logger.error("DeadlockReport rejected: peer={}", cmd.peer);
 							break;
@@ -203,25 +180,20 @@ public class Daemon {
 						break;
 					}
 				}
-				// subprocess 可能已被Monitor（idle超时）或DeadlockReport路径销毁并置null，此时返回非0让main重启子进程。
+				// Monitor 可能已销毁并清空子进程引用，返回非零以触发重启。
 				var subprocess = Daemon.subprocess;
 				if (subprocess == null || subprocess.waitFor(0, TimeUnit.MILLISECONDS))
 					return subprocess != null ? subprocess.exitValue() : 1;
-			} catch (Throwable ex) { // print stacktrace.
+			} catch (Throwable ex) {
 				logger.fatal("Daemon.mainRun", ex);
 				fatalExit();
-				return -1; // never run here
+				return -1;
 			}
 		}
 	}
 
-	// Register 校验：mmap文件由子进程createTempFile("zeze",".mmap")创建，
-	// 限定临时目录+前缀后缀白名单；copyMMap按globalCount*8布局读活跃时间戳，尺寸必须
-	// 吻合；globalCount上界防伪造巨值OOM（实际=进程内GCM实例数，个位数）。不满足即拒绝，
-	// 杜绝任意路径打开/任意尺寸映射及stopAndJoin的任意路径删除。
-	// 整体catch：Path.of对Windows非法路径字符抛InvalidPathException（合法
-	// 编码的Register报文即可携带），不包则逃逸到mainRun外层catch的fatalExit——单报文
-	// 仍可halt看门狗。非信任输入的解析异常一律按拒绝处理。
+	// 注册文件须为临时目录下 zeze*.mmap，且尺寸为 globalCount * 8；退出时会删除。
+	// 限制 globalCount 防止过量映射，路径/文件校验异常均拒绝注册。
 	private static boolean isValidRegister(Register reg) {
 		try {
 			if (reg.globalCount <= 0 || reg.globalCount > 1024)
@@ -250,7 +222,6 @@ public class Daemon {
 	}
 
 	private static void fatalExit() {
-		// destroy后限时等待并强杀收尸（对齐reapDiagnosticProcess），再halt。
 		var subprocess = Daemon.subprocess;
 		if (subprocess != null) {
 			subprocess.destroy();
@@ -266,14 +237,14 @@ public class Daemon {
 		monitors.clear();
 	}
 
-	// 锁职责=销毁仲裁：标记destroying后由唯一线程销毁，后来者幂等返回。
-	// subprocess仍指向旧进程，确认死亡后才清空，防止mainRun提前启动替代进程。
-	// jstack采样/destroy/joinMonitors全部在锁外：join若留在锁内，被join的Monitor
-	// 正阻塞在本锁的monitorenter上时，会形成"持锁者join等锁者"的循环死锁，看门狗
-	// 整体冻结且不可自愈。锁外join后，Monitor等锁者很快拿到锁、发现销毁已在途返回，再由
-	// stopAndJoin置running=false退出循环，join必然返回。
+	// Daemon.class 仅仲裁销毁，进程确认终止后才清空引用，防止提前重启。
+	// 诊断、销毁和 join 须在锁外执行，避免 join 等待正在争用此锁的 Monitor。
 	@SuppressWarnings("ConstantConditions") // 保留锁外对子进程快照的防御检查。
 	private static void destroySubprocess() throws InterruptedException {
+		destroySubprocess(false);
+	}
+
+	private static void destroySubprocess(boolean authorityExpired) throws InterruptedException {
 		Process p;
 		synchronized (Daemon.class) {
 			p = subprocess;
@@ -283,8 +254,8 @@ public class Daemon {
 		}
 		if (p == null)
 			return;
-		// run jstack
-		try {
+		// 权限过期后直接强杀，诊断和优雅退出不得延长保存窗口。
+		if (!authorityExpired) try {
 			var pid = String.valueOf(p.pid());
 			var cmd = new String[]{"jstack", "-e", "-l", pid};
 			captureDiagnostic(cmd, Path.of("jstack." + pid), 30_000);
@@ -292,13 +263,15 @@ public class Daemon {
 			logger.error("", ex);
 		}
 		try {
-			p.destroy();
+			if (authorityExpired)
+				p.destroyForcibly();
+			else
+				p.destroy();
 			if (!p.waitFor(30, TimeUnit.SECONDS)) {
 				p.destroyForcibly();
 				if (!p.waitFor(30, TimeUnit.SECONDS))
 					throw new IllegalStateException("subprocess did not terminate: " + p.pid());
 			}
-			// mainRun只能在旧进程已经终止后观察到null，从而允许启动下一代。
 			synchronized (Daemon.class) {
 				if (subprocess == p)
 					subprocess = null;
@@ -314,14 +287,13 @@ public class Daemon {
 	private static boolean destroyingSubprocess; // Daemon.class守护
 
 	static void captureDiagnostic(String[] command, Path output, long timeoutMillis) throws IOException {
-		// 输出直接由子进程写文件；不能先等待管道EOF，否则挂起的诊断进程会挡住超时收尾。
-		// redirectOutput默认覆盖旧文件，保留pid复用时记录最新现场的行为。
+		// 诊断输出直接写文件，避免等待管道 EOF 阻塞超时收尾。
 		var process = new ProcessBuilder(command).redirectErrorStream(true)
 				.redirectOutput(output.toFile()).start();
 		reapDiagnosticProcess(process, timeoutMillis);
 	}
 
-	/** 限时等待诊断子进程退出，超时或中断强杀收尸（防jstack孤儿；中断不吞根因异常）。 */
+	/** 限时等待诊断进程，超时或中断时强杀，保留中断标志。 */
 	private static void reapDiagnosticProcess(Process process) {
 		reapDiagnosticProcess(process, 30_000);
 	}
@@ -356,7 +328,6 @@ public class Daemon {
 			if (pendings.putIfAbsent(cmd.reliableSerialNo, new PendingPacket(socket, p)) != null)
 				throw new IllegalStateException("Duplicate ReliableSerialNo=" + cmd.reliableSerialNo);
 
-			// auto start Timer
 			if (timer == null) {
 				pendingsLock.lock();
 				try {
@@ -370,9 +341,7 @@ public class Daemon {
 									try {
 										pending.socket.send(pending.packet);
 									} catch (IOException e) {
-										// socket已关闭（如调用方收尾关闭sender）：重发永不可能成功，
-										// 摘除该pending。否则本定时器每秒对死socket send抛异常，
-										// 每秒刷一条error日志直到JVM退出。
+									// 发送失败后移除待重发项，避免对已关闭 socket 无限重试。
 										pendings.remove(it.key());
 									}
 								}
@@ -442,10 +411,7 @@ public class Daemon {
 			var tmpRaf = new RandomAccessFile(new File(Objects.requireNonNull(fileName)), "rw");
 			try {
 				var tmpChannel = tmpRaf.getChannel();
-				// 构造期复核尺寸：isValidRegister校验与本构造之间存在TOCTOU窗口，
-				// 文件被截断/替换后按当下channel.size()映射，容量!=globalCount*8会使copyMMap
-				// 稳定抛BufferUnderflowException逃逸到run的fatalExit。此处不匹配直接拒绝注册
-				// （由mainRun的catch转为code=2应答）。
+				// 校验与映射间文件可能变化，构造时须再次核对尺寸。
 				var size = tmpChannel.size();
 				if (size != (long)reg.globalCount * 8)
 					throw new IOException("mmap size mismatch: " + size + " != " + ((long)reg.globalCount * 8));
@@ -469,8 +435,7 @@ public class Daemon {
 			globalConfigs.set(index, config);
 		}
 
-		// 返回null表示本轮防御性丢弃（映射可读字节不足，运行期文件被外部篡改的兜底），
-		// 调用方跳过本轮即可，下轮重试；不得让BufferUnderflowException逃逸到run的fatalExit。
+		// 映射容量不足时返回 null，跳过本轮并重试。
 		private @Nullable ByteBuffer copyMMap() throws IOException {
 			channelLock.lock();
 			try {
@@ -509,37 +474,31 @@ public class Daemon {
 						var activeTime = bb.ReadLong8();
 						var config = getConfig(i);
 						if (config == null)
-							continue; // skip not ready global
+							continue;
 						if (activeTime < 0)
-							// 注销标记（优雅停机写入-1）：按已注销处理，不Release、不destroy——
-							// 停机的终检点+关库可超过serverReleaseTimeout，强杀会中断数据保存。
-							// 旧Server不写-1，此分支不可达，语义不变。
+							// 负时间戳表示已注销；终检点和关库可能较慢，不再触发 Release 或强杀。
 							continue;
 
 						var idle = now - activeTime;
 						if (idle > config.serverReleaseTimeout) {
 							logger.info("destroySubprocess {} - {} > {}", now, activeTime, config.serverReleaseTimeout);
-							destroySubprocess();
-							// daemon main will restart subprocess!
+							destroySubprocess(true);
 						} else if (idle > config.serverDaemonTimeout) {
 							logger.info("sendCommand Release-{} {} - {} > {}", i, now, activeTime, config.serverDaemonTimeout);
-							// 在Server执行Release期间，命令可能重复发送。
-							// 重复命令的处理由Server完成，
-							// 这里重发也是需要的，刚好解决Udp不可靠性。
+							// UDP 可能丢包，逐轮重发 Release，Server 须幂等处理。
 							try {
 								sendCommand(Objects.requireNonNull(udpSocket), peerSocketAddress, new Release(i));
 							} catch (IOException e) {
-								// Release为fire-and-forget且每轮重发：单次失败跳过本轮即可，不得让外层catch(Throwable)杀死看门狗。
+								// Release 会在下一轮重发，单次发送失败不终止监控。
 								logger.warn("sendCommand Release-{} failed, skip this round.", i, e);
 							}
 						}
 					}
-					// sleep在for外：放循环体内会把整轮扫描周期放大globalCount倍（每global各睡1s），
-					// Release重发仍为每轮一次，仅节奏变密（Server端幂等，无碍）
+					// 每轮扫描只等待一次，避免周期随 GCM 数量增长。
 					//noinspection BusyWait
 					Thread.sleep(1000);
 				}
-			} catch (Throwable ex) { // print stacktrace.
+			} catch (Throwable ex) {
 				logger.fatal("Monitor.run", ex);
 				fatalExit();
 			}
@@ -547,7 +506,7 @@ public class Daemon {
 
 		public void stopAndJoin() throws InterruptedException {
 			running = false;
-			if (Thread.currentThread() != this) // join自己会永久等待；Monitor.run会经由destroySubprocess->joinMonitors间接调用到这里
+			if (Thread.currentThread() != this) // 销毁路径可能由当前 Monitor 发起，不能 join 自己。
 				join();
 			try {
 				channel.close();
@@ -560,7 +519,7 @@ public class Daemon {
 				logger.error("File.close", e);
 			}
 			try {
-				Files.delete(Path.of(fileName)); // try delete
+				Files.delete(Path.of(fileName));
 			} catch (Exception ignored) {
 			}
 		}
@@ -597,7 +556,7 @@ public class Daemon {
 		}
 	}
 
-	// 精简版本配置。仅传递Daemon需要的参数过来。
+	// 仅传递监控所需的超时参数。
 	public static class AchillesHeelConfig implements Serializable {
 		public int serverDaemonTimeout;
 		public int serverReleaseTimeout;
@@ -626,7 +585,7 @@ public class Daemon {
 			this.serverId = serverId;
 			globalCount = c;
 			mmapFileName = name;
-			setReliableSerialNo(); // enable reliable
+			setReliableSerialNo();
 		}
 
 		public Register(ByteBuffer bb, SocketAddress peer) {
@@ -668,7 +627,7 @@ public class Daemon {
 			globalIndex = index;
 			globalConfig.serverDaemonTimeout = server;
 			globalConfig.serverReleaseTimeout = release;
-			setReliableSerialNo(); // enable reliable
+			setReliableSerialNo();
 		}
 
 		public GlobalOn(ByteBuffer bb, SocketAddress peer) {

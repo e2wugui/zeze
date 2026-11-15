@@ -66,6 +66,14 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 			daemon.onInitialize(this);
 	}
 
+	/** Leave 2s inside the existing GCM budget for timer dispatch and mmap heartbeat throttling.
+	 * Late heartbeats cannot extend a Releaser's captured deadline. */
+	public final long getFatalSaveDeadline() {
+		long deadline = activeTime + config.serverKillTimeout - 1000;
+		var r = releaser;
+		return r != null ? Math.min(deadline, r.saveDeadline) : deadline;
+	}
+
 	public enum CheckReleaseResult {
 		NoRelease,
 		Releasing,
@@ -87,7 +95,8 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 					drained = pendingEndActions.toArray(new Runnable[0]);
 					pendingEndActions.clear();
 				}
-			} else if (now - r.startTime > timeout)
+			} else if (now >= Math.min(r.saveDeadline, getFatalSaveDeadline())
+					- Math.min(Application.HALT_DEADLINE_MS, timeout / 2L))
 				return CheckReleaseResult.Timeout;
 			else
 				return CheckReleaseResult.Releasing;
@@ -112,13 +121,19 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		public final Application zeze;
 		public final int globalIndex;
 		public final long startTime = System.currentTimeMillis();
+		public final long saveDeadline;
 		private volatile boolean done;
 
 		public Releaser(Application zeze, int index) {
+			this(zeze, index, System.currentTimeMillis() + 60_000);
+		}
+
+		private Releaser(Application zeze, int index, long saveDeadline) {
 			super("Global.Releaser");
 			setDaemon(true);
 			this.zeze = zeze;
 			this.globalIndex = index;
+			this.saveDeadline = saveDeadline;
 			logger.info("Global.Releaser Start...");
 		}
 
@@ -155,7 +170,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 			// 完成状态无人观察。AchillesHeelDaemon的调用点均有rr!=Releasing判断，GlobalClient
 			// 的重连路径没有。
 			if (releaser == null) {
-				var r = new Releaser(zeze, globalCacheManagerHashIndex);
+				var r = new Releaser(zeze, globalCacheManagerHashIndex, getFatalSaveDeadline());
 				releaser = r;
 				r.start();
 			}

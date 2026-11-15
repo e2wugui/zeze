@@ -60,7 +60,7 @@ public final class Checkpoint {
 				var newValues = new ByteBuffer[capacity];
 				var newSqlKeys = new SQLStatement[capacity];
 				var newSqlValues = new SQLStatement[capacity];
-				// ArrayList 扩容时复制已有 Record 引用；全部成功后再发布编码列。
+				// 扩容全部成功后再发布编码列。
 				records.ensureCapacity(capacity);
 				keys = newKeys;
 				values = newValues;
@@ -91,7 +91,6 @@ public final class Checkpoint {
 		void writeTo(IdentityHashMap<Database, Database.Transaction> transactions, Database.Transaction local) {
 			for (int index = 0, size = records.size(); index < size; index++) {
 				var record = records.get(index);
-				// 编码回调可能重入并清脏，不能把旧快照覆盖到内层已提交的新值上。
 				if (!record.getDirty())
 					continue;
 				var table = record.getTable();
@@ -134,7 +133,6 @@ public final class Checkpoint {
 		}
 
 		void markClean() {
-			// 按下标遍历，批次复用时不创建 Iterator。
 			//noinspection ForLoopReplaceableByForEach
 			for (int index = 0, size = records.size(); index < size; index++)
 				records.get(index).setDirty(false);
@@ -160,8 +158,7 @@ public final class Checkpoint {
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 	// 仅缓存已清空的缓冲区；取出后归当前批次独占，并发/重入不会共享。
 	private static final int MAX_RETAINED_FLUSH_BATCHES = Math.max(1, Runtime.getRuntime().availableProcessors());
-	// 限制闲置数组容量，不限制单次 flush 条数；五个引用数组在压缩引用下每份约 320KiB。
-	// 超限批次归还时丢弃，避免偶发大批次长期占用缓存。
+	// 仅限制闲置数组容量；超限批次归还时丢弃，不限制单次 flush 条数。
 	private static final int MAX_RETAINED_FLUSH_RECORDS = 16_384;
 	// 预分配到缓存上限，借还不分配节点；monitor 只保护 deque，不覆盖编码或 I/O。
 	private final ArrayDeque<FlushBatch> flushBatches = new ArrayDeque<>(MAX_RETAINED_FLUSH_BATCHES);
@@ -184,32 +181,20 @@ public final class Checkpoint {
 		}
 	}
 
-	// 在飞flush计数（锁内inc/dec）——Application.stop在终检点后、LocalRocksCacheDb.close前
-	// 有界等待它归零。停机拒绝只拦"新提交"，不等待已过门的在飞flush（Immediately模式
-	// 业务线程的checkpoint.flush、Reduce降级flush、checkpointRun的runOnce）：它们已打开
-	// LocalRocksCacheDb事务，与close/deleteDirectory并发是native UAF类。
-	// monitor只在计数增减与等待处短暂持有，flush体内不持有——与rrs锁、Application锁无嵌套。
+	// 关库前等待已开始的 flush，避免关闭仍被事务使用的 RocksDB。
+	// monitor 仅保护计数、停收与等待；持有它时不执行 flush，也不获取 RRS/Application 锁。
 	private final Object activeFlushMonitor = new Object();
 	private int activeFlush; // guarded by activeFlushMonitor
 	private boolean acceptingFlushes = true; // guarded by activeFlushMonitor
 
-	// 提交使用权（在飞提交计数+停收门），位编码进单个AtomicInteger：符号位=门开（仍在收），
-	// 低31位=在飞计数。进入=一次getAndIncrement，退出=一次getAndDecrement——热路径全程
-	// 无monitor、无notify（此前monitor版每提交两次synchronized+无条件notifyAll，JDK21无
-	// 偏向锁下空事务内核循环实测-22%，平台线程高并发争用下更甚）。monitor只用于停机侧等待
-	// 与停收后归零退出的唤醒；归零退出可能发生在持rrs锁下（许可证随提交路径finally释放），
-	// 但monitor内只有notify不等待，且无人以相反顺序持锁，不成环。
-	// 唤醒无遗漏：停收CAS与计数增减线性一致地钉在同一字上——若某次退出的prev仍见门开，
-	// 停机线程的停收CAS必然晚于它，其停收后的读数已含这次退出，计数已见0不等待；
-	// 若prev见门已关，计数归零的那次退出负责进monitor notifyAll。
+	// 符号位表示仍接收提交，低 31 位为在途计数；热路径仅做原子增减。
+	// 停收与计数共用一个原子状态：关门前退出的计数由停机线程直接检查，关门后归零的退出负责唤醒。
+	// commitMonitor 仅用于停机等待及归零通知；持 RRS 锁的退出路径只通知、不等待。
 	private final AtomicInteger commitState = new AtomicInteger(Integer.MIN_VALUE);
 	private final Object commitMonitor = new Object();
 
 	boolean tryBeginCommit() {
-		// 先自增后验门：门开即成功——热路径恰好一次RMW（get+CAS的合成）。门关时误加的
-		// 计数立即回退（仅停机窗口内的罕见路径），回退若使计数归零同样要补唤醒（停机线程
-		// 可能正等到它）。自增不会把开位挤掉：门开时符号位=1，低31位计数加1不进位到符号位
-		// （2^31在飞提交不可达）。
+		// 先增计数再验门；停收后回退计数，归零时同样需要唤醒等待者。
 		int prev = commitState.getAndIncrement();
 		if (prev < 0)
 			return true;
@@ -224,7 +209,7 @@ public final class Checkpoint {
 	void endCommit() {
 		int prev = commitState.getAndDecrement();
 		if (prev < 0)
-			return; // 门仍开：不可能有等待者（停机线程必先关门，见stopAcceptingCommitsAndWait）
+			return; // 停机线程先关门再等待。
 		if ((prev & Integer.MAX_VALUE) == 1) { // 门已关且本次退出使计数归零
 			synchronized (commitMonitor) {
 				commitMonitor.notifyAll();
@@ -234,7 +219,7 @@ public final class Checkpoint {
 
 	private void stopAcceptingCommitsAndWait() {
 		boolean interrupted = false;
-		for (; ; ) { // 关门：清符号位（幂等，并发stop安全）
+		for (; ; ) { // 清符号位关门，允许并发重复调用。
 			int s = commitState.get();
 			if (s < 0) {
 				if (commitState.compareAndSet(s, s & Integer.MAX_VALUE))
@@ -245,7 +230,7 @@ public final class Checkpoint {
 		}
 		// 使用权覆盖日志应用至脏集登记/同步落库。终检点不能越过仍可能登记的提交。
 		synchronized (commitMonitor) {
-			while (commitState.get() != 0) { // 门已关，state即计数
+			while (commitState.get() != 0) {
 				try {
 					commitMonitor.wait();
 				} catch (InterruptedException e) {
@@ -282,8 +267,7 @@ public final class Checkpoint {
 	}
 
 	public Checkpoint add(Iterable<Database> databases) {
-		// 登记的databases集合从未被读取（flush按relativeRecordSetMap分组），
-		// 保留入口仅为兼容既有调用形态，不再存储。
+		// 兼容旧调用入口；flush 按 relativeRecordSetMap 分组，不保存 databases。
 		return this;
 	}
 
@@ -318,11 +302,9 @@ public final class Checkpoint {
 	}
 
 	/**
-	 * 有界忽略中断地join检查点线程——stopAndJoin的join被中断
-	 * （forceThrow）时线程仍存活（可能正要进入final flush），调用方继续关库会与它并发
-	 * （close与数据通路并发属native UAF类）。中断只恢复标志，join持续到deadline。
+	 * 有界等待检查点线程退出，避免关库与最终 flush 并发；中断不提前返回，退出时恢复标志。
 	 *
-	 * @param timeoutMillis 最长等待毫秒数，超时记error返回（调用方自行决定是否继续）
+	 * @param timeoutMillis 最长等待毫秒数，超时记录错误并返回
 	 */
 	public void joinIgnoreInterrupt(long timeoutMillis) {
 		var deadline = System.nanoTime() + timeoutMillis * 1_000_000L;
@@ -337,7 +319,7 @@ public final class Checkpoint {
 				try {
 					checkpointThread.join(remaining / 1_000_000L + 1);
 				} catch (InterruptedException e) {
-					interrupted = true; // 出口统一恢复标志；循环内保持清除以便后续join能真正等待
+					interrupted = true;
 				}
 			}
 		} finally {
@@ -347,9 +329,8 @@ public final class Checkpoint {
 	}
 
 	/**
-	 * 有界等待在飞flush归零（{@link #flush(Iterable, Set, IHistory.PendingHistory)}入口inc、finally dec）。
-	 * 停机序列在终检点后、LocalRocksCacheDb.close前调用，超时返回false由调用方告警继续。
-	 * 中断只恢复标志不提前返回：等待本身已有deadline兜底。
+	 * 关库前有界等待在途 flush 归零，超时返回 false。
+	 * 中断不提前返回，退出时恢复标志。
 	 */
 	public boolean waitNoActiveFlush(long timeoutMillis) {
 		var deadline = System.nanoTime() + timeoutMillis * 1_000_000L;
@@ -364,7 +345,7 @@ public final class Checkpoint {
 					try {
 						TimeUnit.NANOSECONDS.timedWait(activeFlushMonitor, remaining);
 					} catch (InterruptedException e) {
-						interrupted = true; // 出口统一恢复标志；循环内保持清除以便后续timedWait能真正等待
+						interrupted = true;
 					}
 				}
 				return true;
@@ -372,6 +353,31 @@ public final class Checkpoint {
 		} finally {
 			if (interrupted)
 				Thread.currentThread().interrupt();
+		}
+	}
+
+	/**
+	 * 致命退出前停止接收提交，等待已获准提交完成，再重试刷脏。
+	 * 调用方必须先启动独立 halt watchdog，为锁等待和保存重试提供截止时间。
+	 */
+	public void saveBeforeFatalExit() {
+		stopAcceptingCommitsAndWait();
+		while (true) {
+			try {
+				runOnce();
+			} catch (Throwable ex) {
+				logger.error("fatal checkpoint failed, retry within protected window", ex);
+			}
+			if (relativeRecordSetMap.isEmpty()) {
+				if (waitNoActiveFlush(Application.HALT_DEADLINE_MS))
+					return;
+			}
+			try {
+				//noinspection BusyWait
+				Thread.sleep(10);
+			} catch (InterruptedException ignored) {
+				// 保存时限由独立 halt watchdog 保证，中断不提前结束保存。
+			}
 		}
 	}
 
@@ -389,18 +395,14 @@ public final class Checkpoint {
 			RunOnceObserver.observe(System.nanoTime() - timeBegin);
 	}
 
-	// 常量键的统计句柄一次解析终身复用（对齐 Task.runTimeObservers 惯例；
-	// 观察者内部自带代际重绑）
+	// 复用统计句柄，代际重绑由观察者内部处理。
 	private static final ZezeCounter.LongObserver RunOnceObserver =
 		ZezeCounter.instance.getRunTimeObserver("Checkpoint.runOnce");
 
 	private void run() {
 		while (isRunning) {
 			try {
-				// 先等后刷：首轮同样受period保护。start()启动的本线程在负载下可能被延迟调度，
-				// 若立即执行首轮flush，会在任意时刻"补跑"一轮——被延迟的首轮把已提交未断言的
-				// 内存值提前刷进镜像，锁忙回退镜像读到新值（TestFlushUnitIsolation.walkMemory
-				// 因此约50%失败）。启动时relativeRecordSetMap通常为空，延迟首轮无实际影响。
+				// 首轮也等待 period，避免线程延迟启动时立即补刷。
 				lock.lock();
 				try {
 					//noinspection ResultOfMethodCallIgnored
@@ -419,8 +421,7 @@ public final class Checkpoint {
 				default:
 					break;
 				}
-			} catch (Throwable ex) { // logger.error
-				// thread worker.
+			} catch (Throwable ex) {
 				logger.error("Run Exception", ex);
 			}
 		}
@@ -428,17 +429,13 @@ public final class Checkpoint {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (mode) {
 		case Table:
-			// 终检点补轮——停机拒绝生效前已过检查的在途提交可能在终检点轮次进行中
-			// 或之后才注册rrs（_lock_等锁醒来），flush后map仍非空时补轮收敛迟到的脏集；
-			// 必须有界：flush失败的单元保留在map中，不设界会无限重试。
+			// 终检点有界补刷残留脏集；失败单元留在 map，不能无限重试。
 			for (int round = 0; round < 3; ++round) {
 				RelativeRecordSet.flushWhenCheckpoint(this);
 				if (relativeRecordSetMap.isEmpty())
 					break;
 			}
-			// 有界轮耗尽仍有残留脏集=持续落库失败（DB硬故障）：进程即将退出而脏数据
-			// 被静默丢弃。fatal告警残留规模与内容（含记录键），供运维定位；不阻止退出——
-			// 持续失败下无限等待只会把停机变成挂死。
+			// 残留脏集会随进程退出丢失，记录详细诊断后继续停机。
 			if (!relativeRecordSetMap.isEmpty())
 				logger.fatal("final checkpoint end with {} dirty record set(s) unresolved: {}",
 					relativeRecordSetMap.size(), relativeRecordSetMap);
@@ -467,8 +464,7 @@ public final class Checkpoint {
 
 	public void flush(Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
 					  @Nullable PendingHistory history) {
-		// 在飞计数从首个数据库触碰（LocalRocksCacheDb.beginTransaction）前开始，
-		// 覆盖整个落库过程——stop的waitNoActiveFlush据此等待后才能close/delete目录。
+		// 必须在创建数据库事务前登记在途 flush，供关库前等待。
 		synchronized (activeFlushMonitor) {
 			if (!acceptingFlushes)
 				throw new IllegalStateException("checkpoint flush rejected after drain started");
@@ -487,10 +483,9 @@ public final class Checkpoint {
 	private void flushInternal(Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
 							   IHistory.@Nullable PendingHistory history) {
 		FlushBatch batch = null;
-		// history.logChanges原子的和数据一起flush。
+		// History 与记录同批落库。
 		try {
-			// prepare段（一次性，重试不重复执行）：收集库集合、快照编码、Onz远端通知。
-			// 事务延迟到落库段按次新开——重试时以全新事务重放整批。
+			// 快照编码和 Onz 通知只执行一次；落库重试使用新事务重放整批。
 			var databases = new LinkedHashSet<Database>();
 			batch = acquireFlushBatch(rs);
 			for (var r : rs) {
@@ -507,17 +502,14 @@ public final class Checkpoint {
 			if (historyTable != null)
 				databases.add(historyTable.getDatabase());
 
-			// 编码
 			if (history != null)
 				history.encode0();
 
 			batch.encode();
 			OnzProcedure.sendFlushAndWait(onzProcedures);
 
-			// 落库段（可重试）：writeTo按键replace/remove幂等，全新事务重放安全；
-			// 重试双门=全部事务回滚干净（无半提交）+ 库判定为暂时性写冲突
-			// （如Mongo WriteConflict：WT乐观并发abort整事务，官方契约即客户端重放）。
-			// 回滚不干净（状态未知）或非暂时性失败仍原样上抛走halt路径（宁死不糊不变）。
+			// 仅在全部事务回滚成功且后端判定为暂时性写冲突时重试。
+			// writeTo 按键 replace/remove，重放整批幂等。
 			for (int attempt = 1; ; attempt++) {
 				var dts = new IdentityHashMap<Database, Database.Transaction>();
 				//noinspection DataFlowIssue
@@ -525,57 +517,52 @@ public final class Checkpoint {
 				try {
 					for (var database : databases)
 						dts.put(database, database.beginTransaction());
-					// 保存到数据库中
 					batch.writeTo(dts, localCacheTransaction);
 					if (history != null) {
 						var storage = historyTable.getStorage();
 						//noinspection DataFlowIssue
 						history.writeOnly(storage.getDatabaseTable(), dts.get(historyTable.getDatabase()));
 					}
-					// 提交。多库为逐库commit、本地不保证跨库原子：第二库失败时先提交的库已生效，
-					// 崩溃窗口由重启后的checkpoint重放收敛（脏标记未清除的记录重新flush）；
-					// 需要严格跨库原子应单库部署或引入外部协调者，框架不引入XA。
+					// 逐库 commit 不保证跨库原子；内存脏集仅能在进程存活时重刷，重启不保证恢复。
+					// 需要原子提交的数据应放在同一库，或使用外部协调者。
 					for (var t : dts.values())
 						t.commit();
 					localCacheTransaction.commit();
 					if (history != null)
-						history.onPersisted(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
-					// 保存成功，清除脏标记。
-					// Immediately 模式的记录不进入 RelativeRecordSet，这里是它唯一的清除点。
-					// Table 模式现在也在这里清除。
+						history.onPersisted(); // 持久化成功后才清容器，失败时保留供重试。
+					// Immediately 和 Table 模式均在全部保存成功后清脏。
 					batch.markClean();
 					return;
-				} catch (Throwable e) { // rethrow or retry
+				} catch (Throwable e) {
 					if (rollbackAllQuietly(dts, localCacheTransaction)
 							&& attempt < MAX_TRANSIENT_FLUSH_ATTEMPTS
 							&& isTransientWriteConflict(databases, e)) {
 						logger.warn("checkpoint flush attempt {} transient write conflict, retrying", attempt, e);
 						sleepBeforeRetry(attempt);
-						continue; // finally关闭本轮事务后以全新事务重放
+						continue;
 					}
 					throw e;
 				} finally {
 					for (var t : dts.values()) {
 						try {
 							t.close();
-						} catch (Throwable e) { // logger.error
+						} catch (Throwable e) {
 							logger.error("Flush close Exception transaction={}", t, e);
 						}
 					}
 					try {
 						localCacheTransaction.close();
-					} catch (Throwable e) { // logger.error
+					} catch (Throwable e) {
 						logger.error("Flush close Exception transaction={}", localCacheTransaction, e);
 					}
 				}
 			}
-		} catch (Throwable e) { // rethrow
-			// 诊断信息（表名清单）组装失败不得顶掉真正的flush失败原因（记录结构异常时
-			// extractTableNames可能再抛），退化为占位、原始异常保持为cause。
+		} catch (Throwable e) {
+			// 诊断信息组装失败不能覆盖原始 flush 异常。
 			String tableNames;
 			try {
 				tableNames = extractTableNames(rs, history);
-			} catch (Throwable diagEx) { // logger.error
+			} catch (Throwable diagEx) {
 				logger.error("extract table names for flush failure diagnostics failed", diagEx);
 				tableNames = "[table names unavailable]";
 			}
@@ -586,24 +573,23 @@ public final class Checkpoint {
 		}
 	}
 
-	/** 暂时性写冲突重试的总尝试次数上限（1次首发+重试）。 */
 	private static final int MAX_TRANSIENT_FLUSH_ATTEMPTS = 4;
 
-	/** 回滚全部事务；任一回滚失败返回false（存在半提交窗口，状态未知，不可重放）。 */
+	/** 任一事务回滚失败则返回 false，状态未知时禁止重放。 */
 	private static boolean rollbackAllQuietly(IdentityHashMap<Database, Database.Transaction> dts,
 											   Database.Transaction localCacheTransaction) {
 		boolean clean = true;
 		for (var t : dts.values()) {
 			try {
 				t.rollback();
-			} catch (Throwable ex) { // logger.error
+			} catch (Throwable ex) {
 				clean = false;
 				logger.error("Flush Rollback Exception", ex);
 			}
 		}
 		try {
 			localCacheTransaction.rollback();
-		} catch (Throwable ex) { // logger.error
+		} catch (Throwable ex) {
 			clean = false;
 			logger.error("Flush Rollback Exception", ex);
 		}
@@ -625,10 +611,9 @@ public final class Checkpoint {
 		}
 	}
 
-	// under lock(rs)
+	// 调用方须持有 rs 锁，并在外部确认 rs 未被合并。
 	public void flush(RelativeRecordSet rs) {
-		// rs.MergeTo == null &&  check outside
 		if (rs.getRecordSet() != null)
-			flush(rs.getRecordSet(), rs.getOnzProcedures(), rs.getHistory()); // 脏标记在 flush(Iterable) 保存成功后统一清除。
+			flush(rs.getRecordSet(), rs.getOnzProcedures(), rs.getHistory());
 	}
 }

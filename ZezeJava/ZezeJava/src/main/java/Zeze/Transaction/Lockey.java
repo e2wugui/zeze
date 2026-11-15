@@ -13,10 +13,6 @@ import org.jspecify.annotations.Nullable;
 public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	private final TableKey tableKey;
 	private @Nullable ReentrantReadWriteLock rwLock;
-	// 锁路径统计句柄缓存（对齐 ProcedureCounter"调用点缓存复用，热路径零名字解析"惯例）：
-	// tableCounter 每次调用要解析 (tableId,metric) → counter 的映射（PerfCounter 为 map 查找），
-	// 锁获取是每事务多次的最热路径之一，句柄在 alloc 时一次解析终身复用（同 tableId 的
-	// Lockey 实例由 Locks 去重，缓存按 key 摊销）。实现保证句柄稳定（Noop 返回单例）。
 	private ZezeCounter.@Nullable LongCounter readLockCounter;
 	private ZezeCounter.@Nullable LongCounter writeLockCounter;
 	private ZezeCounter.@Nullable LongCounter tryReadLockCounter;
@@ -43,7 +39,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	public Lockey alloc() {
 		// 非公平构造是取舍而非疏忽（对照Record.fairLock的公平锁）：记录锁读多写少、
 		// 持锁区间短，公平锁的排队唤醒开销在吞吐上不划算。代价是极端连续读下写者
-		// 排队较久（非公平锁固有）；若实测出现写者饥饿需公平化，应以基准数据支持再改。
+		// 排队较久（非公平锁固有）；
 		rwLock = new ReentrantReadWriteLock();
 		readLockCounter = ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.READ_LOCK);
 		writeLockCounter = ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.WRITE_LOCK);
@@ -123,14 +119,14 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 
 	/**
 	 * 根据参数进入读或写锁。
-	 * 进入写锁时如果已经获得读锁，会先释放，使用时注意竞争条件。
+	 * 不会自动释放已有读锁。读转写前，调用方必须先释放读锁，
+	 * 并按全局锁序重新获取所需锁；Transaction会先释放相应后缀。
 	 *
 	 * @param isWrite Write Lock Need.
 	 */
 	public void enterLock(boolean isWrite) {
 		if (isWrite) {
-			// 拥有 readLock 时，再次去锁 writeLock 会死锁，但 java 没有提供手段检测，
-			// zeze 需要保证不会发生这种情况。
+			// 持有读锁时不能直接等待写锁；调用方负责先释放读锁。
 			enterWriteLock();
 		} else {
 			enterReadLock();
@@ -150,7 +146,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		} else {
 			rwLock.readLock().unlock();
 		}
-		// java 没有提供判断是否拥有读锁的手段，此处不严格检查状态。
+		// 重入次数由调用方配对管理，此处按单一持有形态释放一次。
 	}
 
 	@Override

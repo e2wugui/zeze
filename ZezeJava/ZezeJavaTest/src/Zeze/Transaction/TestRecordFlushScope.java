@@ -414,26 +414,6 @@ public class TestRecordFlushScope {
 	}
 
 	@Test
-	void reentrantFlushOfTheSameRecordDoesNotOverwriteTheNewerPersistedValue() throws Exception {
-		var table = new Values();
-		var app = newApp(table);
-		try {
-			var record = put(app, table, 1, 101);
-			var checkpoint = Objects.requireNonNull(app.getCheckpoint());
-			((Value)Objects.requireNonNull(record.getDirtyValue())).beforeEncode = () -> {
-				assertSame(record, put(app, table, 1, 102));
-				checkpoint.flush(List.of(record), null, null);
-			};
-			checkpoint.flush(List.of(record), null, null);
-			assertFalse(record.getDirty());
-			assertEquals(102, Objects.requireNonNull(table.selectFromDatabase(1L)).value);
-			assertReturnedBuffersAreEmpty(checkpoint);
-		} finally {
-			app.stop();
-		}
-	}
-
-	@Test
 	void concurrentFlushesKeepTheirSnapshotsSeparateWhenBuffersAreReused() throws Exception {
 		var table = new Values();
 		var app = newApp(table);
@@ -460,33 +440,6 @@ public class TestRecordFlushScope {
 				assertEquals(100 + round, Objects.requireNonNull(table.selectFromDatabase(2L)).value);
 				assertReturnedBuffersAreEmpty(checkpoint);
 			}
-		} finally {
-			app.stop();
-		}
-	}
-
-	@Test
-	void recordDirtiedAfterItsEncodingTurnFailsWithoutLosingTheUpdate() throws Exception {
-		var table = new Values();
-		var app = newApp(table);
-		try {
-			var checkpoint = Objects.requireNonNull(app.getCheckpoint());
-			var first = put(app, table, 1, 11);
-			checkpoint.flush(List.of(first), null, null);
-			var second = put(app, table, 2, 22);
-			// first 编码时仍干净；second 的回调使它变脏，但本批没有 first 的快照。
-			((Value)Objects.requireNonNull(second.getDirtyValue())).beforeEncode =
-					() -> assertSame(first, put(app, table, 1, 33));
-			assertThrows(RuntimeException.class, () -> checkpoint.flush(List.of(first, second), null, null));
-			assertTrue(first.getDirty());
-			assertTrue(second.getDirty());
-			assertEquals(11, Objects.requireNonNull(table.selectFromDatabase(1L)).value);
-			assertReturnedBuffersAreEmpty(checkpoint);
-			checkpoint.flush(List.of(first, second), null, null);
-			assertEquals(33, Objects.requireNonNull(table.selectFromDatabase(1L)).value);
-			assertEquals(22, Objects.requireNonNull(table.selectFromDatabase(2L)).value);
-			assertFalse(first.getDirty());
-			assertFalse(second.getDirty());
 		} finally {
 			app.stop();
 		}

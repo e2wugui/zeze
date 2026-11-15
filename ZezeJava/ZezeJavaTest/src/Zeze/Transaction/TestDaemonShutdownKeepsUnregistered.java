@@ -23,6 +23,39 @@ import static org.junit.jupiter.api.Assertions.*;
 @Fast
 @Isolated
 public class TestDaemonShutdownKeepsUnregistered {
+    @Test
+    @Timeout(10)
+    public void globalOnUsesExistingWireFieldForTheWholeProtectedBudget() throws Exception {
+        var conf = new Config();
+        conf.setNoDatabase(true);
+        conf.setServiceManager("disable");
+        conf.setServerId(harness.FastServerIds.TEST_GLOBAL_FATAL_HALT + 9);
+        var app = new Application("FatalDaemonBudget", conf);
+        var agent = new GlobalAgentBase(app) {
+            @Override protected void cancelPending() { }
+            @Override public void keepAlive() { }
+        };
+        try (var peer = new DatagramSocket(0, InetAddress.getLoopbackAddress())) {
+            peer.setSoTimeout(2000);
+            var previous = System.setProperty(Daemon.propertyNamePort, Integer.toString(peer.getLocalPort()));
+            AchillesHeelDaemon daemon;
+            try { daemon = new AchillesHeelDaemon(app, new GlobalAgentBase[]{agent}); }
+            finally {
+                if (previous == null) System.clearProperty(Daemon.propertyNamePort);
+                else System.setProperty(Daemon.propertyNamePort, previous);
+            }
+            try {
+                assertInstanceOf(Daemon.Register.class, Daemon.receiveCommand(peer));
+                agent.initialize(100, 100, 60000);
+                daemon.onInitialize(agent);
+                // Decode through the unchanged external-Daemon command decoder.
+                var on = assertInstanceOf(Daemon.GlobalOn.class, Daemon.receiveCommand(peer));
+                assertEquals(8000, on.globalConfig.serverDaemonTimeout);
+                assertEquals(67000, on.globalConfig.serverReleaseTimeout);
+            } finally { daemon.stopAndJoin(); }
+        }
+    }
+
     private static Object field(Object target, String name) throws Exception {
         var f = target.getClass().getDeclaredField(name);
         f.setAccessible(true);
