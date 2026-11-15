@@ -17,6 +17,8 @@ public class AchillesHeelConfig {
 	// [Important!]
 	public final int serverDaemonTimeout;
 	public final int serverReleaseTimeout;
+	// External kill is an idle limit, with one scan tick reserved before the GCM budget.
+	public final int serverKillTimeout;
 	public final int globalDaemonTimeout;
 
 	// rpc timeout
@@ -33,6 +35,7 @@ public class AchillesHeelConfig {
 		serverKeepAliveIdleTimeout = maxNetPing;
 		serverDaemonTimeout = reconnectTimer * 8;
 		this.serverReleaseTimeout = serverReleaseTimeout;
+		serverKillTimeout = Math.addExact(serverDaemonTimeout, serverReleaseTimeout) - 1000;
 		globalDaemonTimeout = serverDaemonTimeout + this.serverReleaseTimeout + maxNetPing * 2 + 1000;
 
 		reduceTimeout = maxNetPing + serverProcessTime;

@@ -1,0 +1,59 @@
+// Archive evidence before the shared Gradle mutex is released and another test
+// task overwrites the common build/test-results directory.
+import groovy.json.JsonOutput
+import java.security.MessageDigest
+
+gradle.projectsEvaluated {
+    def project = gradle.rootProject.project(':ZezeJavaTest')
+    def dest = new File(gradle.rootProject.rootDir, 'formal/cache-coherence/build')
+    project.tasks.named('test', Test).configure { task ->
+        outputs.upToDateWhen { false }
+        def cases = Collections.synchronizedList([])
+        doFirst {
+            dest.mkdirs()
+            new File(dest, 'java-output.log').text = ''
+            def paths = [
+                'ZezeJava/src/main/java/Zeze/Application.java',
+                'ZezeJava/src/main/java/Zeze/Services/GlobalCacheManagerAsyncServer.java',
+                'ZezeJava/src/main/java/Zeze/Services/AchillesHeelConfig.java',
+                'ZezeJava/src/main/java/Zeze/Transaction/GlobalAgent.java',
+                'ZezeJava/src/main/java/Zeze/Transaction/GlobalClient.java',
+                'ZezeJava/src/main/java/Zeze/Transaction/AchillesHeelDaemon.java',
+                'ZezeJava/src/main/java/Zeze/Transaction/TableX.java',
+                'ZezeJava/src/main/java/Zeze/Transaction/Transaction.java',
+                'ZezeJavaTest/src/Zeze/Services/TestFormalCacheCoherence.java'
+            ]
+            def hashes = paths.collectEntries { name ->
+                [(name): MessageDigest.getInstance('SHA-256').digest(new File(gradle.rootProject.rootDir, name).bytes).encodeHex().toString()]
+            }
+            new File(dest, 'java-identity.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
+                javaVersion: System.getProperty('java.version'), sources: hashes
+            ]))
+        }
+        afterTest { descriptor, result ->
+            if (descriptor.className == 'Zeze.Services.TestFormalCacheCoherence')
+                cases.add([name: descriptor.name, result: result.resultType.toString(),
+                           milliseconds: result.endTime - result.startTime,
+                           errors: result.exceptions.collect { it.toString() }])
+        }
+        onOutput { descriptor, event ->
+            if (descriptor.className == 'Zeze.Services.TestFormalCacheCoherence')
+                synchronized (cases) { new File(dest, 'java-output.log').append(event.message, 'UTF-8') }
+        }
+        afterSuite { descriptor, result ->
+            if (descriptor.parent == null) {
+                new File(dest, 'java-results.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
+                    result: result.resultType.toString(), tests: result.testCount,
+                    succeeded: result.successfulTestCount, failed: result.failedTestCount,
+                    skipped: result.skippedTestCount, cases: cases
+                ]))
+            }
+        }
+        doLast {
+            def xml = new File(task.reports.junitXml.outputLocation.get().asFile,
+                'TEST-Zeze.Services.TestFormalCacheCoherence.xml')
+            if (xml.exists())
+                new File(dest, 'java-tests.xml').bytes = xml.bytes
+        }
+    }
+}

@@ -1,0 +1,10 @@
+// Keep this selection's reports independent of the ordinary Gradle output paths.
+gradle.projectsEvaluated {
+    def p = gradle.rootProject.findProject(':ZezeJavaTest')
+    ['test', 'integrationTest'].each { name ->
+        p.tasks.named(name) {
+            reports.junitXml.outputLocation = new File(p.rootDir, "formal/integration/build/java/${name}/xml")
+            reports.html.outputLocation = new File(p.rootDir, "formal/integration/build/java/${name}/html")
+        }
+    }
+}
