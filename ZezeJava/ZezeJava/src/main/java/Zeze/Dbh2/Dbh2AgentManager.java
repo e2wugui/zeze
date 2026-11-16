@@ -422,8 +422,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 				throw new IllegalStateException("Dbh2AgentManager stopped.");
 			// 与回收路径（reclaimIdleAgents/putBuckets/stop均持本锁先remove后close，dbh2-02）
 			// 原子互斥：不持锁时computeIfAbsent返回与并发回收交错会把已close的agent交给调用方，
-			// 其上sendForWait因resendTask已取消且await无超时兜底而永久悬挂。Dbh2Agent构造无
-			// 阻塞IO，持锁创建代价可忽略。
+			// 其上sendForWait因resendTask已取消且await无超时兜底而永久悬挂。Dbh2Agent构造含
+			// 变体A首发现（Agent.init并行GetLeader，有界1s：常态RTT级、负应答秒回、全静默
+			// 触发ProxyAgent免疫窗），持锁创建的代价有界。
 			agent = agents.computeIfAbsent(raftString, _raft -> {
 				logger.info("openBucket: new Dbh2Agent: {}", raftString);
 				try {

@@ -17,6 +17,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutObject;
+import Zeze.Util.TaskSpec;
 
 /**
  * Raft 代理服务端：进程内多个 raft 共用一个对外 Service，按 raftName 把代理请求派发到对应的 Raft 执行。
@@ -67,6 +68,21 @@ public class ProxyServer extends Service {
 			return Procedure.NotImplement;
 		var raftRpc = (RaftRpc<?, ?>)p;
 		raftRpc.setProxyRequest(r);
+
+		// 与 Raft.Server.dispatchProtocol 的预拦截对齐（直连路径有、proxy路径此前漏给）：
+		// 这三条协议定义成了普通的用户请求，但不需要自己是Leader也能工作，提前拦截派发，
+		// 不走下面的leader门槛——否则follower上的GetLeader被静默丢弃只剩redirect，
+		// Agent的首发现问询就只能撞上leader才有应答（变体A并行问询依赖任意节点可答：
+		// follower答它认知的leader，选举中快速回Unknown）。仍保留dispatchRaftRequest的
+		// one-by-one包装与RaftRetry错误路径；不走processRequest的唯一请求校验
+		// （Agent直发不填createTime，isUniqueRequestCreateTimeValid恒拒，同直连注释）。
+		var pTypeId = p.getTypeId();
+		if (pTypeId == GetLeader.TypeId_ || pTypeId == StartServerConnector.TypeId_ || pTypeId == StopServerConnector.TypeId_) {
+			server.dispatchRaftRequest(p, () -> TaskSpec.ofFunc(() -> p.handle(server, Objects.requireNonNull(outFactoryHandle.value)),
+							p, (__, code) -> p.trySendResultCode(code)).call(),
+					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), outFactoryHandle.value.Mode);
+			return 0;
+		}
 
 		// 下面的流程与 Raft.Server.dispatchProtocol 中的对应流程保持一致。
 		if (raft.isWorkingLeader()) {

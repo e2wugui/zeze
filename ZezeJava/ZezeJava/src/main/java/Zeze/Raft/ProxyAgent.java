@@ -103,6 +103,26 @@ public class ProxyAgent extends Service {
 
 	private final ConcurrentHashMap<String, Agent> agents = new ConcurrentHashMap<>();
 
+	// 变体A首发现（2026-11-16）的共享负结果免疫：发现轮完全无应答（连接建立但静默，
+	// 如对端假死/深GC窗）后短窗内跳过后续agent的发现轮——冷启动串行建桶
+	// （Dbh2AgentManager.openBucket持管理器锁）逐桶烧满预算的兜底。有应答但无leader
+	// （选举中，GetLeader快速回Unknown）不免疫：下个agent仍能RTT级快速再问。
+	// 窗口取选举收敛量级（electionTimeoutMax~3.3s+裕量）。权威应答到达即清除。
+	static final long discoverNoAnswerImmunityMs = 5000;
+	private volatile long discoverImmunityUntil;
+
+	boolean isDiscoverImmune() {
+		return System.currentTimeMillis() < discoverImmunityUntil;
+	}
+
+	void markDiscoverNoAnswer() {
+		discoverImmunityUntil = System.currentTimeMillis() + discoverNoAnswerImmunityMs;
+	}
+
+	void clearDiscoverImmunity() {
+		discoverImmunityUntil = 0;
+	}
+
 	public void addAgent(Agent agent) {
 		var raftConfig = agent.getRaftConfig();
 		for (var node : raftConfig.getNodes().values()) {

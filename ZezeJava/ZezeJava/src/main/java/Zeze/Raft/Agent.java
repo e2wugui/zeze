@@ -3,11 +3,13 @@ package Zeze.Raft;
 import java.util.Objects;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.ToLongFunction;
@@ -460,6 +462,14 @@ public final class Agent {
 			//noinspection DataFlowIssue
 			logger.info("proxy first leader {} {}_{}",
 					leader.getName(), leader.getConnector().getHostNameOrAddress(), leader.getConnector().getPort());
+			// 变体A（2026-11-16）：全量建立proxy连接（幂等，首个agent注册时一次建齐）。
+			// 此前只连首节点当初始leader猜测——猜错时首个业务rpc被ProxyServer静默丢弃（只剩
+			// redirect），要等resend节奏（AppendEntriesTimeout默认2s+扫描周期）才纠正；冷启动
+			// 旧库实测为App启动主凶。无proxy配置的节点getLeader返回null自然跳过。
+			// 首发现（discoverLeaderByGetLeader）延后到init末尾调用：GetLeader应答要在本client
+			// 上decode，必须先完成下面的AddFactoryHandle注册。
+			for (var node : raftConfig.getNodes().values())
+				proxyAgent.getLeader(node);
 		}
 
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
@@ -471,7 +481,97 @@ public final class Agent {
 				StartServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
 		this.client.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
 				StopServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
+		// 变体A首发现（仅代理模式）在注册完成后调用：GetLeader应答经ProxyRequest隧道在本client
+		// 上decode，factory必须先就位（首版在代理分支内调用，应答9ms到达即decode失败实证）。
+		if (proxyAgent != null)
+			discoverLeaderByGetLeader();
 		resendTask = TaskSpec.ofAction(this::resend).schedulePeriodNow(1000, 1000);
+	}
+
+	// 变体A首发现预算：任一节点权威应答即返回；全部快速负应答（选举中回Unknown）置哨兵
+	// 立即结束；预算耗尽仍无权威应答（连接静默/舰队不可达）则等满并在ProxyAgent标记短窗免疫。
+	private static final int proxyLeaderDiscoverTimeoutMs = 1000;
+
+	/**
+	 * 变体A首发现：向所有proxy连接并行发GetLeader（ProxyServer已预拦截对齐直连语义：
+	 * 任何节点可答——follower答它认知的leader，选举中快速回Unknown，不需要leader权限）。
+	 * 任一权威应答即切换leader，消灭首个业务rpc的"猜错→静默丢→resend节奏纠正"税；
+	 * 无权威应答时退回首节点猜测，既有纠错闭环（redirect+resend）原样保留兜底。
+	 * 调用点在Agent构造内（Dbh2AgentManager.openBucket持管理器锁串行建桶），预算必须有界。
+	 * 扫描-补发循环：全量建连刚发起时TCP未建立，未ready的节点留待后续轮次补发——
+	 * 首条连接ready有宽限（健康网络建连ms级），宽限内零ready（舰队不可达/重连退避）即止。
+	 */
+	private void discoverLeaderByGetLeader() {
+		if (proxyAgent.isDiscoverImmune())
+			return;
+		long deadline = System.currentTimeMillis() + proxyLeaderDiscoverTimeoutMs;
+		long firstSocketGrace = deadline - 700; // 首条ready连接宽限300ms（预算的尾段）
+		// 无权威应答哨兵（term<0）：全部节点问完仍无leader时置位，快速结束等待。
+		var noLeader = new LeaderIs();
+		noLeader.Argument.setTerm(-1);
+		var future = new TaskCompletionSource<LeaderIs>(); // 首个权威应答胜出；重复setResult被忽略
+		var queried = new HashSet<String>(); // 已发出问询的节点（无proxy配置的也计入，作"已处理"）
+		var pending = new AtomicInteger(); // 已发出未完成的问询
+		try {
+			while (true) {
+				for (var node : raftConfig.getNodes().values()) {
+					if (!queried.add(node.getName()))
+						continue;
+					var nodeProxy = proxyAgent.getLeader(node);
+					if (nodeProxy == null)
+						continue; // 无proxy配置的节点：留在queried里计入已处理
+					var socket = nodeProxy.getConnector().TryGetReadySocket();
+					if (socket == null) {
+						queried.remove(node.getName()); // 未ready未问：留待下轮补发
+						continue;
+					}
+					pending.incrementAndGet();
+					var get = new GetLeader();
+					get.setResponseHandle(p -> {
+						var g = (GetLeader)p; // 应答是ProxyRequest隧道解码出的新实例（非原get），从p读取
+						if (g.getResultCode() == Procedure.Success) {
+							var leaderId = g.Result.getLeaderId();
+							var leaderNode = leaderId == null || leaderId.isEmpty() ? null : raftConfig.getNodes().get(leaderId);
+							if (leaderNode != null) {
+								// GetLeader.Result即BLeaderIsArgument（含term），可完整合成LeaderIs
+								var r = new LeaderIs();
+								r.Argument.setTerm(g.Result.getTerm());
+								r.Argument.setLeaderId(leaderId);
+								r.Argument.setLeader(g.Result.isLeader());
+								future.setResult(r);
+							}
+						}
+						pending.decrementAndGet();
+						return 0;
+					});
+					ProxyAgent.send(client, proxyAgent, get, nodeProxy, socket);
+				}
+				var r = future.getNow(null);
+				if (r != null)
+					break;
+				if (queried.size() == raftConfig.getNodes().size() && pending.get() == 0) {
+					future.setResult(noLeader); // 全部问完无权威应答（选举中常态）：快速负结果
+					break;
+				}
+				var now = System.currentTimeMillis();
+				if (now >= deadline)
+					break;
+				if (pending.get() == 0 && now >= firstSocketGrace)
+					break; // 宽限内零可问连接（舰队不可达/重连退避中）：即止，不再空转扫描
+				future.await(20); // 有界小睡：权威应答到达即醒，否则20ms后再扫（补发新ready连接）
+			}
+			var r = future.getNow(null);
+			if (r == null || r.Argument.getTerm() < 0) {
+				if (r == null)
+					proxyAgent.markDiscoverNoAnswer(); // 预算耗尽无权威应答：短窗免疫避免后续agent逐个白等
+				return; // 哨兵=全部负应答（选举中）：保持首节点猜测，不免疫（下个agent还能RTT级再问）
+			}
+			var newLeader = proxyAgent.getLeader(Objects.requireNonNull(raftConfig.getNodes().get(r.Argument.getLeaderId())));
+			proxyAgent.clearDiscoverImmunity();
+			setLeader(r, newLeader); // 权威leader取代首节点猜测（setLeader自带切换日志）
+		} catch (Throwable e) { // 发现失败不影响可用性：退回首节点猜测，纠错闭环兜底
+			logger.warn("proxy leader discover fail. name={}", getName(), e);
+		}
 	}
 
 	private @Nullable Connector getRandomConnector(@Nullable Connector except) {
