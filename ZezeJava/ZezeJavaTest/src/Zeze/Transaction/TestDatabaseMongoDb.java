@@ -5,8 +5,11 @@ import org.jspecify.annotations.Nullable;
 
 import org.junit.jupiter.api.Test;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URI;
 import java.net.UnknownHostException;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
@@ -29,6 +32,24 @@ public class TestDatabaseMongoDb {
 		return null; // 默认不测试postgresql。
 	}
 
+	// 守卫：mongo 服务不在（如 WSL 未启动）时 assumeTrue 跳过（报 SKIPPED），
+	// 不再弹 30s MongoTimeoutException 环境红（soak-20261116-1329 R1 实锤，mongo/pg 未启动）。
+	// 兄弟类形态：Tikv/RocketMQ 静态 @Disabled、TestPostgreSqlResolvedRelation 系统属性门；
+	// 本类在个人机器上应保持服务在时自动真跑，故选可用性探针。
+	private static boolean serverReachable(String url) {
+		try {
+			var uri = new URI(url);
+			var host = uri.getHost() != null ? uri.getHost() : "127.0.0.1";
+			var port = uri.getPort() != -1 ? uri.getPort() : 27017;
+			try (var socket = new Socket()) {
+				socket.connect(new InetSocketAddress(host, port), 500);
+			}
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 	@Test
 	public final void test1() throws Exception {
 		String url = getPersonalUrl();
@@ -36,6 +57,7 @@ public class TestDatabaseMongoDb {
 			System.out.println("skip postgres test: not found url");
 			return;
 		}
+		assumeTrue(serverReachable(url), "mongodb server not running: " + url);
 		DatabaseConf databaseConf = new DatabaseConf();
 		databaseConf.setDatabaseType(DbType.MongoDb);
 		databaseConf.setDatabaseUrl(url);
