@@ -1,14 +1,11 @@
 package Zeze.Transaction;
 
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 import org.junit.jupiter.api.Test;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.net.UnknownHostException;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import Zeze.Config;
 import Zeze.Config.DatabaseConf;
@@ -17,20 +14,13 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMongoDb;
-import Zeze.Transaction.DatabasePostgreSQL;
 import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("CallToPrintStackTrace")
 @NullMarked
 public class TestDatabaseMongoDb {
-	private static @Nullable String getPersonalUrl() throws UnknownHostException {
-		var hostName = InetAddress.getLocalHost().getHostName();
-		System.out.println("hostName=" + hostName);
-		if (hostName.equals("doudouwang")) { // lichenghua's computer 2
-			return "mongodb://127.0.0.1:27017/?replicaSet=rs0";
-		}
-		return null; // 默认不测试postgresql。
-	}
+	// 固定本机url；服务不在由serverReachable守卫跳过（原个人电脑主机名门已随之退役）
+	private static final String DB_URL = "mongodb://127.0.0.1:27017/?replicaSet=rs0";
 
 	// 守卫：mongo 服务不在（如 WSL 未启动）时 assumeTrue 跳过（报 SKIPPED），
 	// 不再弹 30s MongoTimeoutException 环境红（soak-20261116-1329 R1 实锤，mongo/pg 未启动）。
@@ -52,15 +42,10 @@ public class TestDatabaseMongoDb {
 
 	@Test
 	public final void test1() throws Exception {
-		String url = getPersonalUrl();
-		if (url == null) {
-			System.out.println("skip postgres test: not found url");
-			return;
-		}
-		assumeTrue(serverReachable(url), "mongodb server not running: " + url);
+		assumeTrue(serverReachable(DB_URL), "mongodb server not running: " + DB_URL);
 		DatabaseConf databaseConf = new DatabaseConf();
 		databaseConf.setDatabaseType(DbType.MongoDb);
-		databaseConf.setDatabaseUrl(url);
+		databaseConf.setDatabaseUrl(DB_URL);
 		databaseConf.setName("mongodb");
 		//databaseConf.setDruidConf(new Config.DruidConf());
 
