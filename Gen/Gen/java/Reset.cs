@@ -116,7 +116,8 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
-            ResetValue("new " + type.FullName + "()");
+            var value = $"new {type.FullName}({var.Initial})";
+            sw.WriteLine(prefix + (isData ? $"{var.NamePrivate} = {value}" : var.Setter(value)) + ";");
         }
 
         public void Visit(TypeDynamic type)

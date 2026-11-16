@@ -245,10 +245,10 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setLockName(_o_.ReadBean(new Zeze.Builtin.Threading.BLockName(), _t_));
+            setLockName(_o_.ReadBeanKey(_t_, Zeze.Builtin.Threading.BLockName.class, Zeze.Builtin.Threading.BLockName::readFrom, Zeze.Builtin.Threading.BLockName::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setLockName(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Threading.BLockName()));
+            setLockName(ByteBuffer.readEmptyBean(Zeze.Builtin.Threading.BLockName::readFrom));
         if (_i_ == 2) {
             setPermits(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -310,8 +310,11 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
     @Override
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("LockName");
-        getLockName().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setLockName(Zeze.Builtin.Threading.BLockName.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setPermits(_r_.getInt(_pn_ + "Permits"));
         setTimeoutMs(_r_.getInt(_pn_ + "TimeoutMs"));
@@ -502,10 +505,10 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _LockName = _o_.ReadBean(new Zeze.Builtin.Threading.BLockName(), _t_);
+            _LockName = _o_.ReadBeanKey(_t_, Zeze.Builtin.Threading.BLockName.class, Zeze.Builtin.Threading.BLockName::readFrom, Zeze.Builtin.Threading.BLockName::new);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _LockName = ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Threading.BLockName());
+            _LockName = ByteBuffer.readEmptyBean(Zeze.Builtin.Threading.BLockName::readFrom);
         if (_i_ == 2) {
             _Permits = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

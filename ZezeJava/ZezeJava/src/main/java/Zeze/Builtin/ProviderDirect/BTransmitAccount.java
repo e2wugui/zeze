@@ -352,7 +352,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.ProviderDirect.BLoginKey(), _t_));
+                    _x_.add(_o_.ReadBeanKey(_t_, Zeze.Builtin.ProviderDirect.BLoginKey.class, Zeze.Builtin.ProviderDirect.BLoginKey::readFrom, Zeze.Builtin.ProviderDirect.BLoginKey::new));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -720,7 +720,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.ProviderDirect.BLoginKey(), _t_));
+                    _x_.add(_o_.ReadBeanKey(_t_, Zeze.Builtin.ProviderDirect.BLoginKey.class, Zeze.Builtin.ProviderDirect.BLoginKey::readFrom, Zeze.Builtin.ProviderDirect.BLoginKey::new));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

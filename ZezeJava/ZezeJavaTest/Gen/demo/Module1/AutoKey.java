@@ -80,8 +80,11 @@ public final class AutoKey implements Zeze.Transaction.BeanKey, Comparable<AutoK
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static AutoKey readFrom(IByteBuffer _o_) {
+        return new AutoKey(_o_);
+    }
+
+    private AutoKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -147,8 +150,11 @@ public final class AutoKey implements Zeze.Transaction.BeanKey, Comparable<AutoK
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static AutoKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new AutoKey(_p_, _r_);
+    }
+
+    private AutoKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Name = _r_.getString(_pn_ + "Name");
         if (_Name == null)

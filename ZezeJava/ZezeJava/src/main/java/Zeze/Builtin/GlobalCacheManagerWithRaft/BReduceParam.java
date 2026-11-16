@@ -241,10 +241,10 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         } else
             setState(0);
         if (_i_ == 3) {
-            setReduceTid(_o_.ReadBean(new Zeze.Util.Id128(), _t_));
+            setReduceTid(_o_.ReadBeanKey(_t_, Zeze.Util.Id128.class, Zeze.Util.Id128::readFrom, Zeze.Util.Id128::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setReduceTid(new Zeze.Util.Id128());
+            setReduceTid(ByteBuffer.readEmptyBean(Zeze.Util.Id128::readFrom));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -295,8 +295,11 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         setGlobalKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "GlobalKey")));
         setState(_r_.getInt(_pn_ + "State"));
         _p_.add("ReduceTid");
-        getReduceTid().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setReduceTid(Zeze.Util.Id128.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
     }
 
     @Override

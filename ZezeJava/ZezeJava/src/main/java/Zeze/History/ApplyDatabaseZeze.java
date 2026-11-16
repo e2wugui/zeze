@@ -101,8 +101,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		var value = cursorStorage.find(cursorKey());
 		if (null == value)
 			return null;
-		var id = new Id128();
-		id.decode(value);
+		var id = Id128.readFrom(value);
 		return id;
 	}
 

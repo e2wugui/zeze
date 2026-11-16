@@ -152,10 +152,10 @@ public final class LegacyRocksDecodeParent extends Zeze.Raft.RocksRaft.Bean {
             ByteBuffer.decodeEmptyBean(_Child);
         }
         if (_i_ == 2) {
-            _KeyValue = _o_.ReadBean(new rocksdynamic.Fixture.LegacyDecodeKey(), _t_);
+            _KeyValue = _o_.ReadBeanKey(_t_, rocksdynamic.Fixture.LegacyDecodeKey.class, rocksdynamic.Fixture.LegacyDecodeKey::readFrom, rocksdynamic.Fixture.LegacyDecodeKey::new);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else {
-            _KeyValue = ByteBuffer.decodeEmptyBean(new rocksdynamic.Fixture.LegacyDecodeKey());
+            _KeyValue = ByteBuffer.readEmptyBean(rocksdynamic.Fixture.LegacyDecodeKey::readFrom);
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

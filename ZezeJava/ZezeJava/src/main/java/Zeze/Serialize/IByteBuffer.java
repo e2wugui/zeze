@@ -4,8 +4,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Collection;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import Zeze.Net.Binary;
+import Zeze.Transaction.BeanKey;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.DynamicData;
 import Zeze.Util.Task;
@@ -621,19 +623,31 @@ public interface IByteBuffer {
 	}
 
 	default <T extends Serializable> T ReadBean(T bean, int tag) {
+		if (readBeanTag(tag, bean.getClass()))
+			bean.decode(this);
+		return bean;
+	}
+
+	/** Reads a new key from a tagged field, including legacy fields tagged as dynamic. */
+	default <T extends BeanKey> T ReadBeanKey(int tag, Class<?> keyClass, Function<IByteBuffer, T> reader,
+											 Supplier<? extends T> defaultKey) {
+		return readBeanTag(tag, keyClass) ? reader.apply(this) : defaultKey.get();
+	}
+
+	private boolean readBeanTag(int tag, Class<?> beanClass) {
 		int type = tag & TAG_MASK;
 		if (type == BEAN)
-			bean.decode(this);
-		else if (type == DYNAMIC) {
+			return true;
+		if (type == DYNAMIC) {
 			SkipLong();
-			bean.decode(this);
-		} else if (IGNORE_INCOMPATIBLE_FIELD)
-			SkipUnknownField(tag);
-		else {
-			throw new IllegalStateException("can not ReadBean(" + bean.getClass().getName() + ") for type=" + type
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
+			return true;
 		}
-		return bean;
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(tag);
+			return false;
+		}
+		throw new IllegalStateException("can not ReadBean(" + beanClass.getName() + ") for type=" + type
+				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
 	default DynamicBean ReadDynamic(DynamicBean dynBean, int tag) {

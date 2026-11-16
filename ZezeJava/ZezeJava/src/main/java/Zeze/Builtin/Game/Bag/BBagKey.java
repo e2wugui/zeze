@@ -79,8 +79,11 @@ public final class BBagKey implements Zeze.Transaction.BeanKey, Comparable<BBagK
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BBagKey readFrom(IByteBuffer _o_) {
+        return new BBagKey(_o_);
+    }
+
+    private BBagKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -146,8 +149,11 @@ public final class BBagKey implements Zeze.Transaction.BeanKey, Comparable<BBagK
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BBagKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BBagKey(_p_, _r_);
+    }
+
+    private BBagKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _RoleId = _r_.getLong(_pn_ + "RoleId");
         _BagName = _r_.getString(_pn_ + "BagName");

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Zeze.Gen.java;
 using Zeze.Gen.Types;
@@ -67,56 +67,6 @@ namespace Zeze.Gen.javadata
                 sw.WriteLine(prefix + "            return;");
                 sw.WriteLine(prefix + "        }");
             }
-            sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
-            sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-        }
-
-        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
-        {
-            sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decode(IByteBuffer _o_) {");
-            sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
-            if (bean.VariablesIdOrder.Count > 0)
-                sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
-            else
-                sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
-
-            int lastId = 0;
-            foreach (Variable v in bean.VariablesIdOrder)
-            {
-                if (v.Transient)
-                    continue;
-
-                if (v.Id > 0)
-                {
-                    if (v.Id <= lastId)
-                        throw new Exception("unordered var.id");
-                    if (v.Id - lastId > 1)
-                    {
-                        sw.WriteLine(prefix + "    while ((_t_ & 0xff) > 1 && _i_ < " + v.Id + ") {");
-                        sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
-                        sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                        sw.WriteLine(prefix + "    }");
-                    }
-                    lastId = v.Id;
-                    sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ") {");
-                }
-                else
-                    sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        "));
-                if (v.Id > 0)
-                {
-                    sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    java.Decode.WriteMissingField(v, sw, prefix, true);
-                }
-                else
-                    sw.WriteLine(prefix + "    }");
-            }
-
-            sw.WriteLine(prefix + "    while (_t_ != 0) {");
             sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
             sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
             sw.WriteLine(prefix + "    }");
@@ -248,8 +198,9 @@ namespace Zeze.Gen.javadata
                 case TypeString:
                     return bufName + ".ReadString(" + typeVar + ')';
                 case Bean:
-                case BeanKey:
                     return bufName + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case BeanKey:
+                    return java.Decode.ReadBeanKey(TypeName.GetName(type), bufName, typeVar);
                 case TypeDynamic:
                     return bufName + ".ReadDynamic(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeVector2:
@@ -425,10 +376,7 @@ namespace Zeze.Gen.javadata
 
         public void Visit(BeanKey type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufName}.ReadBean(new {TypeName.GetName(type)}({var?.Initial}), {typeVarName})") + ';');
-            else
-                sw.WriteLine(prefix + NamePrivate + ".decode(" + bufName + ");");
+            sw.WriteLine(prefix + AssignText(java.Decode.ReadBeanKey(TypeName.GetName(type), bufName, id > 0 ? typeVarName : null, var)) + ';');
         }
 
         public void Visit(TypeDynamic type)

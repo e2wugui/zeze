@@ -261,10 +261,10 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         } else
             _Values.clear();
         if (_i_ == 3) {
-            setNextNodeKey(_o_.ReadBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey(), _t_));
+            setNextNodeKey(_o_.ReadBeanKey(_t_, Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, Zeze.Builtin.Collections.Queue.BQueueNodeKey::readFrom, Zeze.Builtin.Collections.Queue.BQueueNodeKey::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setNextNodeKey(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey()));
+            setNextNodeKey(ByteBuffer.readEmptyBean(Zeze.Builtin.Collections.Queue.BQueueNodeKey::readFrom));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -331,8 +331,11 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         setNextNodeId(_r_.getLong(_pn_ + "NextNodeId"));
         Zeze.Serialize.Helper.decodeJsonList(_Values, Zeze.Builtin.Collections.Queue.BQueueNodeValue.class, _r_.getString(_pn_ + "Values"));
         _p_.add("NextNodeKey");
-        getNextNodeKey().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setNextNodeKey(Zeze.Builtin.Collections.Queue.BQueueNodeKey.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
     }
 
     @Override

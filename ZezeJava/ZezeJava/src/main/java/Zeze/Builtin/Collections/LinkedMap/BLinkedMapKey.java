@@ -84,8 +84,11 @@ public final class BLinkedMapKey implements Zeze.Transaction.BeanKey, Comparable
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BLinkedMapKey readFrom(IByteBuffer _o_) {
+        return new BLinkedMapKey(_o_);
+    }
+
+    private BLinkedMapKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -149,8 +152,11 @@ public final class BLinkedMapKey implements Zeze.Transaction.BeanKey, Comparable
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BLinkedMapKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BLinkedMapKey(_p_, _r_);
+    }
+
+    private BLinkedMapKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Name = _r_.getString(_pn_ + "Name");
         if (_Name == null)

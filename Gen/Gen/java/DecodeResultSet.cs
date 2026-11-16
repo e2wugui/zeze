@@ -22,8 +22,37 @@ namespace Zeze.Gen.java
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {");
+            var hasInitializedReader = bean.NeedsInitializedSqlReader && bean.Variables.Count > 0;
+            const string sqlParameters = "java.util.ArrayList<String> _p_, java.sql.ResultSet _r_";
+            const string throwsSql = "throws java.sql.SQLException";
+            sw.WriteLine($"{prefix}public static {bean.Name} readFromResultSet({sqlParameters}) {throwsSql} {{");
+            sw.WriteLine($"{prefix}    return new {bean.Name}(_p_, _r_);");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+            if (hasInitializedReader)
+            {
+                var parameters = ParamName.GetParamList(bean.Variables);
+                var arguments = string.Join(", ", bean.Variables.ConvertAll(v => v.NamePrivate + "_"));
+                sw.WriteLine($"{prefix}public static {bean.Name} readFromResultSet({sqlParameters}, {parameters}) {throwsSql} {{");
+                sw.WriteLine($"{prefix}    return new {bean.Name}(_p_, _r_, {arguments});");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}private {bean.Name}({sqlParameters}, {parameters}) {throwsSql} {{");
+                sw.WriteLine($"{prefix}    this({arguments});");
+                sw.WriteLine($"{prefix}    readSqlFields(_p_, _r_);");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+            }
+            sw.WriteLine($"{prefix}private {bean.Name}({sqlParameters}) {throwsSql} {{");
+            if (Decode.NeedsKeyDefaults(bean))
+                sw.WriteLine($"{prefix}    this();");
+            if (hasInitializedReader)
+            {
+                sw.WriteLine($"{prefix}    readSqlFields(_p_, _r_);");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}private void readSqlFields({sqlParameters}) {throwsSql} {{");
+            }
             var hasParentName = new bool[1];
             foreach (Variable v in bean.Variables)
             {
@@ -181,9 +210,14 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
+            var initial = type is ExternalBeanKey || string.IsNullOrEmpty(var?.Initial) ? "" : ", " + var.Initial;
+            var value = $"{TypeName.GetName(type)}.readFromResultSet(_p_, {bb}{initial})";
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{Getter}.decodeResultSet(_p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.removeLast();");
+            sw.WriteLine($"{prefix}try {{");
+            sw.WriteLine($"{prefix}    {AssignText(value)};");
+            sw.WriteLine($"{prefix}}} finally {{");
+            sw.WriteLine($"{prefix}    _p_.removeLast();");
+            sw.WriteLine($"{prefix}}}");
         }
 
         public void Visit(TypeDynamic type)

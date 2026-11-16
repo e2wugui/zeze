@@ -77,8 +77,11 @@ public final class BTableKey implements Zeze.Transaction.BeanKey, Comparable<BTa
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BTableKey readFrom(IByteBuffer _o_) {
+        return new BTableKey(_o_);
+    }
+
+    private BTableKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -144,8 +147,11 @@ public final class BTableKey implements Zeze.Transaction.BeanKey, Comparable<BTa
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BTableKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BTableKey(_p_, _r_);
+    }
+
+    private BTableKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _TableId = _r_.getInt(_pn_ + "TableId");
         _KeyEncoded = new Zeze.Net.Binary(_r_.getBytes(_pn_ + "KeyEncoded"));

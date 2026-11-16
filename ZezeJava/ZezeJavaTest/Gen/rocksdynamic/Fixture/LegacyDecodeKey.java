@@ -61,8 +61,25 @@ public final class LegacyDecodeKey implements Zeze.Transaction.BeanKey, Comparab
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static LegacyDecodeKey readFrom(IByteBuffer _o_) {
+        return new LegacyDecodeKey(_o_);
+    }
+
+    public static LegacyDecodeKey readFromInitialized(IByteBuffer input, int _Number_) {
+        return new LegacyDecodeKey(input, _Number_);
+    }
+
+    private LegacyDecodeKey(IByteBuffer input, int _Number_) {
+        this(_Number_);
+        readFields(input);
+    }
+
+    private LegacyDecodeKey(IByteBuffer _o_) {
+        this();
+        readFields(_o_);
+    }
+
+    private void readFields(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -117,8 +134,25 @@ public final class LegacyDecodeKey implements Zeze.Transaction.BeanKey, Comparab
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static LegacyDecodeKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new LegacyDecodeKey(_p_, _r_);
+    }
+
+    public static LegacyDecodeKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_, int _Number_) throws java.sql.SQLException {
+        return new LegacyDecodeKey(_p_, _r_, _Number_);
+    }
+
+    private LegacyDecodeKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_, int _Number_) throws java.sql.SQLException {
+        this(_Number_);
+        readSqlFields(_p_, _r_);
+    }
+
+    private LegacyDecodeKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        this();
+        readSqlFields(_p_, _r_);
+    }
+
+    private void readSqlFields(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Number = _r_.getInt(_pn_ + "Number");
     }

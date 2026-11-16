@@ -84,8 +84,11 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BServiceInfoKeyRocks readFrom(IByteBuffer _o_) {
+        return new BServiceInfoKeyRocks(_o_);
+    }
+
+    private BServiceInfoKeyRocks(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -149,8 +152,11 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BServiceInfoKeyRocks readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BServiceInfoKeyRocks(_p_, _r_);
+    }
+
+    private BServiceInfoKeyRocks(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _ServiceName = _r_.getString(_pn_ + "ServiceName");
         if (_ServiceName == null)

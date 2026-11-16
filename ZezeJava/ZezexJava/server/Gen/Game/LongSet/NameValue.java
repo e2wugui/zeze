@@ -79,8 +79,11 @@ public final class NameValue implements Zeze.Transaction.BeanKey, Comparable<Nam
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static NameValue readFrom(IByteBuffer _o_) {
+        return new NameValue(_o_);
+    }
+
+    private NameValue(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -146,8 +149,11 @@ public final class NameValue implements Zeze.Transaction.BeanKey, Comparable<Nam
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static NameValue readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new NameValue(_p_, _r_);
+    }
+
+    private NameValue(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Name = _r_.getString(_pn_ + "Name");
         if (_Name == null)

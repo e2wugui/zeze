@@ -123,8 +123,11 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BConcurrentKey readFrom(IByteBuffer _o_) {
+        return new BConcurrentKey(_o_);
+    }
+
+    private BConcurrentKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -231,8 +234,11 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BConcurrentKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BConcurrentKey(_p_, _r_);
+    }
+
+    private BConcurrentKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _RankType = _r_.getInt(_pn_ + "RankType");
         _ConcurrentId = _r_.getInt(_pn_ + "ConcurrentId");

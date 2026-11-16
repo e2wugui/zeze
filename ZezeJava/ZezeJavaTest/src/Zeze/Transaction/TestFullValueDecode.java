@@ -177,19 +177,13 @@ public class TestFullValueDecode {
 	}
 
 	@Test
-	public void standaloneBeanKeyDecodeClearsOmittedMembers() {
+	public void standaloneBeanKeyFactoryReadsOmittedMembersAsWireDefaults() {
 		var legacyKey = HexFormat.of().parseHex("23036b657900");
 		var source = new Key((short)0, "key");
 		assertArrayEquals(legacyKey, ByteBuffer.encode(source).Copy());
 
-		var fresh = new Key();
-		fresh.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
-		var reused = new Key();
-		reused.decode(ByteBuffer.Wrap(legacyKey));
-		assertEquals(source, reused);
-		reused.decode(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE));
-		assertEquals(new Key((short)0, ""), fresh);
-		assertEquals(fresh, reused);
+		assertEquals(source, Key.readFrom(ByteBuffer.Wrap(legacyKey)));
+		assertEquals(new Key((short)0, ""), Key.readFrom(ByteBuffer.Wrap(LEGACY_EMPTY_VALUE)));
 	}
 
 	@Test

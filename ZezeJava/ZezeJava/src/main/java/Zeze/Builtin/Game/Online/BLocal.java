@@ -266,10 +266,10 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         } else
             _Datas.clear();
         if (_i_ == 3) {
-            setLink(_o_.ReadBean(new Zeze.Builtin.Game.Online.BLink(), _t_));
+            setLink(_o_.ReadBeanKey(_t_, Zeze.Builtin.Game.Online.BLink.class, Zeze.Builtin.Game.Online.BLink::readFrom, Zeze.Builtin.Game.Online.BLink::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setLink(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Game.Online.BLink()));
+            setLink(ByteBuffer.readEmptyBean(Zeze.Builtin.Game.Online.BLink::readFrom));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -332,8 +332,11 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         setLoginVersion(_r_.getLong(_pn_ + "LoginVersion"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", _Datas, _r_.getString(_pn_ + "Datas"));
         _p_.add("Link");
-        getLink().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setLink(Zeze.Builtin.Game.Online.BLink.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
     }
 
     @Override

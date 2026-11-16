@@ -522,7 +522,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.TestRocks.BeanKey(), _t_));
+                    _x_.add(_o_.ReadBeanKey(_t_, Zeze.Builtin.TestRocks.BeanKey.class, Zeze.Builtin.TestRocks.BeanKey::readFrom, Zeze.Builtin.TestRocks.BeanKey::new));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -562,10 +562,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             _MapBean.clear();
         }
         if (_i_ == 11) {
-            _Beankey = _o_.ReadBean(new Zeze.Builtin.TestRocks.BeanKey(), _t_);
+            _Beankey = _o_.ReadBeanKey(_t_, Zeze.Builtin.TestRocks.BeanKey.class, Zeze.Builtin.TestRocks.BeanKey::readFrom, Zeze.Builtin.TestRocks.BeanKey::new);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else {
-            _Beankey = ByteBuffer.decodeEmptyBean(new Zeze.Builtin.TestRocks.BeanKey());
+            _Beankey = ByteBuffer.readEmptyBean(Zeze.Builtin.TestRocks.BeanKey::readFrom);
         }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);

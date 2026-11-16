@@ -2,14 +2,14 @@ package Zeze.Transaction.Logs;
 
 import java.lang.invoke.VarHandle;
 
-import Zeze.Serialize.Serializable;
+import Zeze.Serialize.Encodable;
 import Zeze.Transaction.Collections.BeanKeyMeta;
 
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TransactionLog;
 
 /** Local field write; the inherited value is also its complete change payload. */
-public class LogBeanKey<T extends Serializable> extends LogBeanKeyValue<T> implements TransactionLog {
+public class LogBeanKey<T extends Encodable> extends LogBeanKeyValue<T> implements TransactionLog {
 	private final Bean belong;
 	private final VarHandle vh;
 

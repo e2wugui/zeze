@@ -220,7 +220,7 @@ public class Id128UdpServer {
 				try {
 					var v = table != null ? table.get(k.bytesUnsafe()) : null;
 					if (v != null) {
-						ctx.max.decodeRaw(ByteBuffer.Wrap(v));
+						ctx.max.assign(Id128.readRawFrom(ByteBuffer.Wrap(v)));
 						ctx.current.assign(ctx.max);
 					}
 				} catch (RocksDBException e) {

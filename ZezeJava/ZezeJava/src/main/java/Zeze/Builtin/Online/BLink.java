@@ -94,8 +94,11 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BLink readFrom(IByteBuffer _o_) {
+        return new BLink(_o_);
+    }
+
+    private BLink(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -174,8 +177,11 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BLink readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BLink(_p_, _r_);
+    }
+
+    private BLink(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _LinkName = _r_.getString(_pn_ + "LinkName");
         if (_LinkName == null)

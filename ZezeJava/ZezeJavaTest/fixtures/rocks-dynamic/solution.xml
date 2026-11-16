@@ -1,4 +1,5 @@
 <solution name="rocksdynamic" ModuleIdAllowRanges="102">
+    <externalkey beankey="Zeze.Util.Id128"/>
     <module name="Fixture" id="102">
         <bean name="Amount" kind="rocks">
             <variable id="1" name="Number" type="int"/>
@@ -63,10 +64,16 @@
             <variable id="1" name="Number" type="int" default="7"/>
             <variable id="2" name="Scratch" type="int" transient="true"/>
             <variable id="3" name="Entries" type="list[int]"/>
-            <variable id="4" name="KeyValue" type="LegacyDecodeKey"/>
+            <variable id="4" name="KeyValue" type="LegacyDecodeKey" default="3"/>
         </bean>
         <bean name="LegacyDecodeParent" UseData="true">
             <variable id="1" name="Child" type="LegacyDecodeChild"/>
+        </bean>
+        <bean name="ExternalKeyDefaults" UseData="true">
+            <variable id="1" name="KeyValue" type="Zeze.Util.Id128" default="1L, 2L"/>
+        </bean>
+        <bean name="RocksExternalKeyDefaults" kind="rocks">
+            <variable id="1" name="KeyValue" type="Zeze.Util.Id128" default="1L, 2L"/>
         </bean>
         <bean name="LegacyRocksDecodeChild" kind="rocks">
             <variable id="1" name="Number" type="int" default="7"/>

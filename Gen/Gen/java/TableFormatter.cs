@@ -106,9 +106,14 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("    @Override");
             sw.WriteLine("    public " + keyboxing + " decodeKey(ByteBuffer _os_) {");
-            table.KeyType.Accept(new Define("_v_", sw, "        "));
-            table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "        ", false));
-            sw.WriteLine("        return _v_;");
+            if (table.KeyType is BeanKey)
+                sw.WriteLine($"        return {keyboxing}.readFrom(_os_);");
+            else
+            {
+                table.KeyType.Accept(new Define("_v_", sw, "        "));
+                table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "        ", false));
+                sw.WriteLine("        return _v_;");
+            }
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
@@ -126,7 +131,10 @@ namespace Zeze.Gen.java
             if (table.KeyType.IsBean)
                 sw.WriteLine("        var _p_ = new java.util.ArrayList<String>();");
             var hasParentName = new bool[1];
-            table.KeyType.Accept(new Define("_v_", sw, "        "));
+            if (table.KeyType is BeanKey)
+                sw.WriteLine($"        {keyboxing} _v_;");
+            else
+                table.KeyType.Accept(new Define("_v_", sw, "        "));
             table.KeyType.Accept(new DecodeResultSet("__key", "_v_", -1, "_s_", sw, "        ", hasParentName, true));
             sw.WriteLine("        return _v_;");
             sw.WriteLine("    }");

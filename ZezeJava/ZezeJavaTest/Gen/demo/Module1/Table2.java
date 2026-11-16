@@ -86,9 +86,7 @@ public final class Table2 extends TableX<demo.Module1.Key, demo.Module1.BValue>
 
     @Override
     public demo.Module1.Key decodeKey(ByteBuffer _os_) {
-        var _v_ = new demo.Module1.Key();
-        _v_.decode(_os_);
-        return _v_;
+        return demo.Module1.Key.readFrom(_os_);
     }
 
     @Override
@@ -101,10 +99,13 @@ public final class Table2 extends TableX<demo.Module1.Key, demo.Module1.BValue>
     @Override
     public demo.Module1.Key decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         var _p_ = new java.util.ArrayList<String>();
-        var _v_ = new demo.Module1.Key();
+        demo.Module1.Key _v_;
         _p_.add("__key");
-        _v_.decodeResultSet(_p_, _s_);
-        _p_.removeLast();
+        try {
+            _v_ = demo.Module1.Key.readFromResultSet(_p_, _s_);
+        } finally {
+            _p_.removeLast();
+        }
         return _v_;
     }
 

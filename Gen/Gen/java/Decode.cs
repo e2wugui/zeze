@@ -90,10 +90,42 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
+        internal static bool NeedsKeyDefaults(BeanKey bean)
+        {
+            return bean.Variables.Exists(v => v.Transient || !string.IsNullOrEmpty(v.Initial));
+        }
+
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decode(IByteBuffer _o_) {");
+            var hasInitializedReader = bean.NeedsInitializedBinaryReader && bean.Variables.Count > 0;
+            sw.WriteLine($"{prefix}public static {bean.Name} readFrom(IByteBuffer _o_) {{");
+            sw.WriteLine($"{prefix}    return new {bean.Name}(_o_);");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+            if (hasInitializedReader)
+            {
+                var parameters = ParamName.GetParamList(bean.Variables);
+                var arguments = string.Join(", ", bean.Variables.ConvertAll(v => v.NamePrivate + "_"));
+                sw.WriteLine($"{prefix}public static {bean.Name} readFromInitialized(IByteBuffer input, {parameters}) {{");
+                sw.WriteLine($"{prefix}    return new {bean.Name}(input, {arguments});");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}private {bean.Name}(IByteBuffer input, {parameters}) {{");
+                sw.WriteLine($"{prefix}    this({arguments});");
+                sw.WriteLine($"{prefix}    readFields(input);");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+            }
+            sw.WriteLine($"{prefix}private {bean.Name}(IByteBuffer _o_) {{");
+            if (NeedsKeyDefaults(bean))
+                sw.WriteLine($"{prefix}    this();");
+            if (hasInitializedReader)
+            {
+                sw.WriteLine($"{prefix}    readFields(_o_);");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}private void readFields(IByteBuffer _o_) {{");
+            }
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.VariablesIdOrder.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
@@ -169,7 +201,7 @@ namespace Zeze.Gen.java
                     TypeInt or TypeLong or TypeFloat or TypeDouble => "0",
                     TypeString => "\"\"",
                     TypeBinary => "Zeze.Net.Binary.Empty",
-                    BeanKey => MissingBeanKey(var, FieldTypeName()),
+                    BeanKey => MissingBeanKey(FieldTypeName()),
                     TypeVector2 or TypeVector2Int or TypeVector3 or TypeVector3Int
                         or TypeVector4 or TypeQuaternion => $"{FieldTypeName()}.ZERO",
                     // Decimal is always written, even for zero. Older schemas may lack the field.
@@ -194,11 +226,18 @@ namespace Zeze.Gen.java
             return $"ByteBuffer.decodeEmptyBean({target})";
         }
 
-        internal static string MissingBeanKey(Variable variable, string typeName)
+        internal static string MissingBeanKey(string typeName) => $"ByteBuffer.readEmptyBean({typeName}::readFrom)";
+
+        internal static string ReadBeanKey(string typeName, string buffer, string tag, Variable variable = null)
         {
-            if (variable.VariableType is ExternalBeanKey)
-                return variable.Initial.Length > 0 ? $"{typeName}.ZERO" : $"new {typeName}()";
-            return $"ByteBuffer.decodeEmptyBean(new {typeName}())";
+            var initial = variable?.Initial;
+            var hasInitial = !string.IsNullOrEmpty(initial);
+            var initialized = hasInitial && variable.VariableType is not ExternalBeanKey;
+            if (tag == null)
+                return initialized ? $"{typeName}.readFromInitialized({buffer}, {initial})" : $"{typeName}.readFrom({buffer})";
+            var reader = initialized ? $"_input_ -> {typeName}.readFromInitialized(_input_, {initial})" : $"{typeName}::readFrom";
+            var fallback = hasInitial ? $"() -> new {typeName}({initial})" : $"{typeName}::new";
+            return $"{buffer}.ReadBeanKey({tag}, {typeName}.class, {reader}, {fallback})";
         }
 
         public Decode(Variable var, int id, string bufname, StreamWriter sw, string prefix, bool withUnknown)
@@ -327,8 +366,9 @@ namespace Zeze.Gen.java
                 case TypeString:
                     return bufname + ".ReadString(" + typeVar + ')';
                 case Bean:
-                case BeanKey:
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case BeanKey:
+                    return ReadBeanKey(TypeName.GetName(type), bufname, typeVar);
                 case TypeDynamic:
                     return bufname + ".ReadDynamic(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeVector2:
@@ -474,10 +514,7 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadBean(new {TypeName.GetName(type)}({var?.Initial}), {typeVarName})") + ';');
-            else
-                sw.WriteLine(prefix + Getter + ".decode(" + bufname + ");");
+            sw.WriteLine(prefix + AssignText(ReadBeanKey(TypeName.GetName(type), bufname, id > 0 ? typeVarName : null, var)) + ';');
         }
 
         public void Visit(TypeDynamic type)

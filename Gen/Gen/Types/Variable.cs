@@ -207,6 +207,13 @@ namespace Zeze.Gen.Types
 		{
 			DynamicParams.Compile(space);
             VariableType = Types.Type.Compile(space, Type, Key, Value, this);
+			if (!Transient && !string.IsNullOrEmpty(Initial) && VariableType is BeanKey key && key is not ExternalBeanKey
+				&& Bean is not Types.Bean { RedirectResult: true })
+			{
+				key.NeedsInitializedBinaryReader = true;
+				if (Bean is BeanKey || Bean is Types.Bean owner && !owner.IsRocks && !owner.OnlyData)
+					key.NeedsInitializedSqlReader = true;
+			}
 			if (VariableType is TypeList list)
 			{
 				if (false == string.IsNullOrEmpty(FixSize))

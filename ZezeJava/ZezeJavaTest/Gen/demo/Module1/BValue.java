@@ -2711,7 +2711,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new demo.Module1.Key(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, demo.Module1.Key.class, demo.Module1.Key::readFrom, demo.Module1.Key::new);
                     var _v_ = _o_.ReadBean(new demo.Module1.BSimple(), _t_);
                     _x_.put(_k_, _v_);
                 }
@@ -2772,7 +2772,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new demo.Module1.Key(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, demo.Module1.Key.class, demo.Module1.Key::readFrom, demo.Module1.Key::new);
                     var _v_ = _o_.ReadBean(new demo.Module1.BSimple(), _t_);
                     _x_.put(_k_, _v_);
                 }
@@ -2787,7 +2787,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new demo.Module1.Key(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, demo.Module1.Key.class, demo.Module1.Key::readFrom, demo.Module1.Key::new);
                     var _v_ = BValue.newDynamicBean_Map26();
                     _o_.ReadDynamic(_v_, _t_);
                     _x_.put(_k_, _v_);
@@ -2803,10 +2803,10 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         } else
             _dynamic27.reset();
         if (_i_ == 28) {
-            setKey28(_o_.ReadBean(new demo.Module1.Key(), _t_));
+            setKey28(_o_.ReadBeanKey(_t_, demo.Module1.Key.class, demo.Module1.Key::readFrom, demo.Module1.Key::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setKey28(ByteBuffer.decodeEmptyBean(new demo.Module1.Key()));
+            setKey28(ByteBuffer.readEmptyBean(demo.Module1.Key::readFrom));
         if (_i_ == 29) {
             var _x_ = _array29;
             _x_.clear();
@@ -3495,8 +3495,11 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         Zeze.Serialize.Helper.decodeJsonMap(this, "map26", _map26, _r_.getString(_pn_ + "map26"));
         Zeze.Serialize.Helper.decodeJsonDynamic(_dynamic27, _r_.getString(_pn_ + "dynamic27"));
         _p_.add("key28");
-        getKey28().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setKey28(demo.Module1.Key.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
         Zeze.Serialize.Helper.decodeJsonList(_array29, Float.class, _r_.getString(_pn_ + "array29"));
         Zeze.Serialize.Helper.decodeJsonList(_list30, Integer.class, _r_.getString(_pn_ + "list30"));
         Zeze.Serialize.Helper.decodeJsonList(_list31, Long.class, _r_.getString(_pn_ + "list31"));
@@ -5933,7 +5936,7 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new demo.Module1.Key(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, demo.Module1.Key.class, demo.Module1.Key::readFrom, demo.Module1.Key::new);
                     var _v_ = _o_.ReadBean(new demo.Module1.BSimple.Data(), _t_);
                     _x_.put(_k_, _v_);
                 }
@@ -5994,7 +5997,7 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new demo.Module1.Key(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, demo.Module1.Key.class, demo.Module1.Key::readFrom, demo.Module1.Key::new);
                     var _v_ = _o_.ReadBean(new demo.Module1.BSimple.Data(), _t_);
                     _x_.put(_k_, _v_);
                 }
@@ -6009,7 +6012,7 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new demo.Module1.Key(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, demo.Module1.Key.class, demo.Module1.Key::readFrom, demo.Module1.Key::new);
                     var _v_ = new DynamicData_map26();
                     _o_.ReadDynamic(_v_, _t_);
                     _x_.put(_k_, _v_);
@@ -6025,10 +6028,10 @@ public static final class Data extends Zeze.Transaction.Data implements Zeze.ILo
         } else
             _dynamic27.reset();
         if (_i_ == 28) {
-            _key28 = _o_.ReadBean(new demo.Module1.Key(), _t_);
+            _key28 = _o_.ReadBeanKey(_t_, demo.Module1.Key.class, demo.Module1.Key::readFrom, demo.Module1.Key::new);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _key28 = ByteBuffer.decodeEmptyBean(new demo.Module1.Key());
+            _key28 = ByteBuffer.readEmptyBean(demo.Module1.Key::readFrom);
         if (_i_ == 29) {
             var _x_ = _array29;
             _x_.clear();

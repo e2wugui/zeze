@@ -144,6 +144,8 @@ namespace Zeze.Gen.Types
 		public string Comment { get; private set; }
 		public virtual string FullName => Space.Path(".", Name);
 		public long TypeId { get; }
+		internal bool NeedsInitializedBinaryReader { get; set; }
+		internal bool NeedsInitializedSqlReader { get; set; }
 
 		private List<Variable> VariablesIdOrder_;
 		public List<Variable> VariablesIdOrder

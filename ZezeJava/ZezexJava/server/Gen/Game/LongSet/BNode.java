@@ -246,8 +246,8 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new Game.LongSet.NameValue(), _s_);
-                    var _v_ = _o_.ReadBean(new Game.LongSet.Timestamp(), _t_);
+                    var _k_ = _o_.ReadBeanKey(_s_, Game.LongSet.NameValue.class, Game.LongSet.NameValue::readFrom, Game.LongSet.NameValue::new);
+                    var _v_ = _o_.ReadBeanKey(_t_, Game.LongSet.Timestamp.class, Game.LongSet.Timestamp::readFrom, Game.LongSet.Timestamp::new);
                     _x_.put(_k_, _v_);
                 }
             } else

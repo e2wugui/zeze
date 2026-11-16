@@ -84,8 +84,11 @@ public final class BLoginKey implements Zeze.Transaction.BeanKey, Comparable<BLo
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BLoginKey readFrom(IByteBuffer _o_) {
+        return new BLoginKey(_o_);
+    }
+
+    private BLoginKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -149,8 +152,11 @@ public final class BLoginKey implements Zeze.Transaction.BeanKey, Comparable<BLo
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BLoginKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BLoginKey(_p_, _r_);
+    }
+
+    private BLoginKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Account = _r_.getString(_pn_ + "Account");
         if (_Account == null)

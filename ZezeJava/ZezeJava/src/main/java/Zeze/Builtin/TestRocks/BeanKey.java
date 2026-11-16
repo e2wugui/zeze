@@ -79,8 +79,11 @@ public final class BeanKey implements Zeze.Transaction.BeanKey, Comparable<BeanK
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BeanKey readFrom(IByteBuffer _o_) {
+        return new BeanKey(_o_);
+    }
+
+    private BeanKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -146,8 +149,11 @@ public final class BeanKey implements Zeze.Transaction.BeanKey, Comparable<BeanK
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BeanKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BeanKey(_p_, _r_);
+    }
+
+    private BeanKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Id = _r_.getInt(_pn_ + "Id");
         _Name = _r_.getString(_pn_ + "Name");

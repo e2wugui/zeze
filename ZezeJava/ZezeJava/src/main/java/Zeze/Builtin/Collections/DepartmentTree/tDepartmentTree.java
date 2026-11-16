@@ -35,9 +35,7 @@ public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.Depar
 
     @Override
     public Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey decodeKey(ByteBuffer _os_) {
-        var _v_ = new Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey();
-        _v_.decode(_os_);
-        return _v_;
+        return Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey.readFrom(_os_);
     }
 
     @Override
@@ -50,10 +48,13 @@ public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.Depar
     @Override
     public Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         var _p_ = new java.util.ArrayList<String>();
-        var _v_ = new Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey();
+        Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey _v_;
         _p_.add("__key");
-        _v_.decodeResultSet(_p_, _s_);
-        _p_.removeLast();
+        try {
+            _v_ = Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey.readFromResultSet(_p_, _s_);
+        } finally {
+            _p_.removeLast();
+        }
         return _v_;
     }
 

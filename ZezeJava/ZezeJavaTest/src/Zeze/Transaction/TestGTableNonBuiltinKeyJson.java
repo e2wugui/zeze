@@ -72,10 +72,8 @@ public class TestGTableNonBuiltinKeyJson {
 			bb.WriteLong(deptId);
 		}
 
-		@Override
-		public void decode(IByteBuffer bb) {
-			owner = bb.ReadString();
-			deptId = bb.ReadLong();
+		public static BDeptKey readFrom(IByteBuffer bb) {
+			return new BDeptKey(bb.ReadString(), bb.ReadLong());
 		}
 	}
 

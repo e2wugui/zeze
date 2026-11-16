@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.BeanKey;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Util.Action3;
@@ -269,12 +270,18 @@ final class Gen {
 
 	// 形参/结果字段的编解码资格校验，encode/decode两侧共用；容器元素不满足
 	// Zeze编码谓词时走Java序列化兜底（元素须java.io.Serializable），统一在生成期拒绝。
+	static boolean isZezeValue(Class<?> type) {
+		return Serializable.class.isAssignableFrom(type) || BeanKey.class.isAssignableFrom(type);
+	}
+
 	private void checkGenElement(AnnotatedElement e, Class<?> cls, Type type,
 	                             boolean isField) {
 		if (cls.isPrimitive() || serializers.containsKey(cls))
 			return;
 		var where = describeGenElement(e, type);
-		if (Serializable.class.isAssignableFrom(cls)) {
+		if (BeanKey.class.isAssignableFrom(cls) && isAbstract(cls))
+			throw new UnsupportedOperationException("redirect requires a concrete BeanKey type: " + where);
+		if (isZezeValue(cls)) {
 			// 多态仅Bean/Data合法（typeId+工厂反建）；其余抽象Serializable decode无法反建实例。
 			if (cls != Bean.class && cls != Data.class && isAbstract(cls)) {
 				if (!isField)
@@ -307,7 +314,7 @@ final class Gen {
 	// 容器走Java序列化兜底时元素须java.io.Serializable，生成期拒绝。
 	private void checkGenContainerElement(Class<?> elemClass, String where, String role) {
 		var serializer = serializers.get(elemClass);
-		if (!(!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))))
+		if (!(!isAbstract(elemClass) && (serializer != null || isZezeValue(elemClass))))
 			throw new UnsupportedOperationException("redirect param unsupported " + role + " type: "
 					+ elemClass.getName() + " (container falls back to Java serialization; " + role
 					+ " must implement java.io.Serializable or be a concrete Zeze Serializable type), " + where);
@@ -359,7 +366,7 @@ final class Gen {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
 			if (elemType instanceof Class<?> elemClass) {
 				var serializer = serializers.get(elemClass);
-				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
+				if (!isAbstract(elemClass) && (serializer != null || isZezeValue(elemClass))) {
 					sb.appendLine("{}{}<{}> {};", prefix, getCollectionType(type).getTypeName().replace('$', '.'),
 							elemType.getTypeName().replace('$', '.'), name);
 					return;
@@ -372,8 +379,8 @@ final class Gen {
 			if (keyType instanceof Class<?> keyClass && valueType instanceof Class<?> valueClass) {
 				var keySerializer = serializers.get(keyClass);
 				var valueSerializer = serializers.get(valueClass);
-				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
-						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
+				if (!isAbstract(keyClass) && (keySerializer != null || isZezeValue(keyClass)) &&
+						!isAbstract(valueClass) && (valueSerializer != null || isZezeValue(valueClass))) {
 					sb.appendLine("{}{}<{}, {}> {};", prefix, getMapType(type).getTypeName().replace('$', '.'),
 							keyType.getTypeName().replace('$', '.'), valueType.getTypeName().replace('$', '.'), name);
 					return;
@@ -390,7 +397,7 @@ final class Gen {
 			kn.encoder.run(sb, prefix, varName, bbName);
 			return;
 		}
-		if (Serializable.class.isAssignableFrom(type)) {
+		if (isZezeValue(type)) {
 			// decode按typeId经工厂反建，encode必须对称先写typeId（Data漏写时decode把编码体
 			// 首字节当typeId消费，乱流或误导性异常）。
 			if (type == Bean.class || type == Data.class)
@@ -402,7 +409,7 @@ final class Gen {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
 			if (elemType instanceof Class<?> elemClass) {
 				var serializer = serializers.get(elemClass);
-				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
+				if (!isAbstract(elemClass) && (serializer != null || isZezeValue(elemClass))) {
 					sb.appendLine("{}{}.WriteUInt({}.size());", prefix, bbName, varName);
 					sb.appendLine("{}for (var _e_ : {})", prefix, varName);
 					if (serializer != null)
@@ -419,8 +426,8 @@ final class Gen {
 			if (keyType instanceof Class<?> keyClass && valueType instanceof Class<?> valueClass) {
 				var keySerializer = serializers.get(keyClass);
 				var valueSerializer = serializers.get(valueClass);
-				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
-						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
+				if (!isAbstract(keyClass) && (keySerializer != null || isZezeValue(keyClass)) &&
+						!isAbstract(valueClass) && (valueSerializer != null || isZezeValue(valueClass))) {
 					sb.appendLine("{}{}.WriteUInt({}.size());", prefix, bbName, varName);
 					sb.appendLine("{}for (var _e_ : {}.entrySet()) {", prefix, varName);
 					if (keySerializer != null)
@@ -446,11 +453,33 @@ final class Gen {
 		throw new UnsupportedOperationException("unsupported param type: " + type.getName());
 	}
 
+	private void genDecodeContainerElement(StringBuilderCs sb, String prefix, String bbName,
+										   Class<?> type, String varName) throws Exception {
+		var serializer = serializers.get(type);
+		if (serializer != null) {
+			serializer.definePrim.run(sb, prefix, varName);
+			serializer.decoder.run(sb, prefix, varName, bbName);
+		} else if (BeanKey.class.isAssignableFrom(type)) {
+			genReadBeanKey(sb, prefix, bbName, type, "var " + varName);
+		} else {
+			sb.appendLine("{}var {} = new {}();", prefix, varName, getTypeName(type));
+			sb.appendLine("{}{}.decode({});", prefix, varName, bbName);
+		}
+	}
+
+	private void genReadBeanKey(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String target) {
+		sb.appendLine("{}{} = {}.readFrom({});", prefix, target, getTypeName(type), bbName);
+	}
+
 	private void genDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType,
 	                       String varName, boolean isField) throws Exception {
 		var kn = serializers.get(type);
 		if (kn != null) {
 			kn.decoder.run(sb, prefix, varName, bbName);
+			return;
+		}
+		if (BeanKey.class.isAssignableFrom(type)) {
+			genReadBeanKey(sb, prefix, bbName, type, varName);
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
@@ -469,7 +498,7 @@ final class Gen {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
 			if (elemType instanceof Class<?> elemClass) {
 				var serializer = serializers.get(elemClass);
-				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
+				if (!isAbstract(elemClass) && (serializer != null || isZezeValue(elemClass))) {
 					if (!isAbstract(type) || !isField)
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
@@ -483,13 +512,7 @@ final class Gen {
 					}
 					sb.appendLine("{}for (int _n_ = {}.ReadUIntPositive(); _n_ > 0; _n_--) {", prefix, bbName);
 					var prefix1 = prefix + "    ";
-					if (serializer != null) {
-						serializer.definePrim.run(sb, prefix1, "_e_");
-						serializer.decoder.run(sb, prefix1, "_e_", bbName);
-					} else {
-						sb.appendLine("{}var _e_ = new {}();", prefix1, elemType.getTypeName().replace('$', '.'));
-						sb.appendLine("{}_e_.decode({});", prefix1, bbName);
-					}
+					genDecodeContainerElement(sb, prefix1, bbName, elemClass, "_e_");
 					sb.appendLine("{}{}.add(_e_);", prefix1, varName);
 					sb.appendLine("{}}", prefix);
 					return;
@@ -502,8 +525,8 @@ final class Gen {
 			if (keyType instanceof Class<?> keyClass && valueType instanceof Class<?> valueClass) {
 				var keySerializer = serializers.get(keyClass);
 				var valueSerializer = serializers.get(valueClass);
-				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
-						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
+				if (!isAbstract(keyClass) && (keySerializer != null || isZezeValue(keyClass)) &&
+						!isAbstract(valueClass) && (valueSerializer != null || isZezeValue(valueClass))) {
 					if (!isAbstract(type) || !isField)
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));
@@ -517,20 +540,8 @@ final class Gen {
 					}
 					sb.appendLine("{}for (int _n_ = {}.ReadUIntPositive(); _n_ > 0; _n_--) {", prefix, bbName);
 					var prefix1 = prefix + "    ";
-					if (keySerializer != null) {
-						keySerializer.definePrim.run(sb, prefix1, "_k_");
-						keySerializer.decoder.run(sb, prefix1, "_k_", bbName);
-					} else {
-						sb.appendLine("{}var _k_ = new {}();", prefix1, keyType.getTypeName().replace('$', '.'));
-						sb.appendLine("{}_k_.decode({});", prefix1, bbName);
-					}
-					if (valueSerializer != null) {
-						valueSerializer.definePrim.run(sb, prefix1, "_v_");
-						valueSerializer.decoder.run(sb, prefix1, "_v_", bbName);
-					} else {
-						sb.appendLine("{}var _v_ = new {}();", prefix1, valueType.getTypeName().replace('$', '.'));
-						sb.appendLine("{}_v_.decode({});", prefix1, bbName);
-					}
+					genDecodeContainerElement(sb, prefix1, bbName, keyClass, "_k_");
+					genDecodeContainerElement(sb, prefix1, bbName, valueClass, "_v_");
 					sb.appendLine("{}{}.put(_k_, _v_);", prefix1, varName);
 					sb.appendLine("{}}", prefix);
 					return;

@@ -18,7 +18,6 @@ import Zeze.Arch.RedirectKey;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
-import Zeze.Serialize.Serializable;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Reflect;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -154,7 +153,7 @@ final class MethodOverride {
 				// All路径的生成代码对Serializable结果不收集字段（resultFields为空），
 				// 接收端不编码、发起端不解码，分组结果全是空对象且无任何诊断；ToServer/Hash路径
 				// 支持Serializable，All独缺该分支。fail-fast拒绝该组合，对齐上面的签名硬校验。
-				if (Serializable.class.isAssignableFrom(resultClass)) {
+				if (Gen.isZezeValue(resultClass)) {
 					throw new IllegalStateException("RedirectAll Result Type Can Not Be Serializable: "
 							+ method.getDeclaringClass().getName() + "::" + method.getName());
 				}
@@ -196,7 +195,7 @@ final class MethodOverride {
 		else {
 			resultTypeName = Gen.instance.getTypeName(((AnnotatedParameterizedType)method.getAnnotatedReturnType())
 					.getAnnotatedActualTypeArguments()[0]);
-			if (!Serializable.class.isAssignableFrom(resultClass)) {
+			if (!Gen.isZezeValue(resultClass)) {
 				for (var field : resultClass.getFields()) {
 					if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) // 只允许public和可选的volatile
 						resultFields.add(field);

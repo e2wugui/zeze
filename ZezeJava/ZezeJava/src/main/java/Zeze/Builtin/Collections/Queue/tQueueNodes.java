@@ -33,9 +33,7 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
 
     @Override
     public Zeze.Builtin.Collections.Queue.BQueueNodeKey decodeKey(ByteBuffer _os_) {
-        var _v_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
-        _v_.decode(_os_);
-        return _v_;
+        return Zeze.Builtin.Collections.Queue.BQueueNodeKey.readFrom(_os_);
     }
 
     @Override
@@ -48,10 +46,13 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
     @Override
     public Zeze.Builtin.Collections.Queue.BQueueNodeKey decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         var _p_ = new java.util.ArrayList<String>();
-        var _v_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
+        Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_;
         _p_.add("__key");
-        _v_.decodeResultSet(_p_, _s_);
-        _p_.removeLast();
+        try {
+            _v_ = Zeze.Builtin.Collections.Queue.BQueueNodeKey.readFromResultSet(_p_, _s_);
+        } finally {
+            _p_.removeLast();
+        }
         return _v_;
     }
 

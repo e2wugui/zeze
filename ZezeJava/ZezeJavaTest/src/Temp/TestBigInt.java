@@ -64,8 +64,7 @@ public class TestBigInt {
 						bb1, bb2, id1.compareTo(id2), bb1.compareTo(bb2));
 				fail();
 			}
-			id2.decode(bb1);
-			assertEquals(id1, id2);
+			assertEquals(id1, Id128.readFrom(bb1));
 		}
 	}
 

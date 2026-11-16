@@ -19,7 +19,7 @@ import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Netty.HttpExchange;
 import Zeze.Netty.HttpServer;
-import Zeze.Serialize.Serializable;
+import Zeze.Serialize.Encodable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Table;
@@ -168,7 +168,7 @@ public class DbWeb extends AbstractDbWeb {
 			k = key;
 		else if (keyType == Binary.class)
 			k = new Binary(key);
-		else if (Serializable.class.isAssignableFrom(keyType)) // BeanKey
+		else if (Encodable.class.isAssignableFrom(keyType)) // BeanKey
 			k = Json.parse(key, keyType);
 		else
 			throw new IllegalStateException("ERROR: unsupported key of " + keyType + " for table " + table.getName());
@@ -207,7 +207,7 @@ public class DbWeb extends AbstractDbWeb {
 			// 多取一条试探：恰剩一页时原判定(lastKey!=null&&size>=count)会虚报hasMore=true，
 			// 第count+1条实际存在与否才是结尾的真判据
 			walkKey(table, key != null && !key.isEmpty() ? parseKey(table, key) : null, count + 1, k -> {
-				var ks = k instanceof Serializable ? toJsonForCompact(k) : k.toString();
+				var ks = k instanceof Encodable ? toJsonForCompact(k) : k.toString();
 				keys.add(ks);
 				return keys.size() <= count;
 			});

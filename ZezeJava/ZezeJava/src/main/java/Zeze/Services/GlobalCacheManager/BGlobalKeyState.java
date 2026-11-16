@@ -18,8 +18,7 @@ public class BGlobalKeyState implements Serializable {
 	public void decode(IByteBuffer bb) {
 		globalKey = bb.ReadBinary();
 		state = bb.ReadUInt();
-		reducedTid = new Id128();
-		reducedTid.decodeRaw(bb);
+		reducedTid = Id128.readRawFrom(bb);
 	}
 
 	@Override

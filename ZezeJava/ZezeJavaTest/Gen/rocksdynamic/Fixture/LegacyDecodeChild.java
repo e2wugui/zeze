@@ -112,7 +112,7 @@ public final class LegacyDecodeChild extends Zeze.Transaction.Bean implements Le
         _Number = 7;
         _Entries = new Zeze.Transaction.Collections.PList1<>(meta1_Entries);
         _Entries.variableId(3);
-        _KeyValue = new rocksdynamic.Fixture.LegacyDecodeKey();
+        _KeyValue = new rocksdynamic.Fixture.LegacyDecodeKey(3);
     }
 
     @SuppressWarnings("deprecation")
@@ -122,7 +122,7 @@ public final class LegacyDecodeChild extends Zeze.Transaction.Bean implements Le
         _Entries = new Zeze.Transaction.Collections.PList1<>(meta1_Entries);
         _Entries.variableId(3);
         if (_KeyValue_ == null)
-            _KeyValue_ = new rocksdynamic.Fixture.LegacyDecodeKey();
+            _KeyValue_ = new rocksdynamic.Fixture.LegacyDecodeKey(3);
         _KeyValue = _KeyValue_;
     }
 
@@ -131,7 +131,7 @@ public final class LegacyDecodeChild extends Zeze.Transaction.Bean implements Le
         setNumber(7);
         setScratch(0);
         _Entries.clear();
-        setKeyValue(new rocksdynamic.Fixture.LegacyDecodeKey());
+        setKeyValue(new rocksdynamic.Fixture.LegacyDecodeKey(3));
         _unknown_ = null;
     }
 
@@ -313,10 +313,10 @@ public final class LegacyDecodeChild extends Zeze.Transaction.Bean implements Le
         } else
             _Entries.clear();
         if (_i_ == 4) {
-            setKeyValue(_o_.ReadBean(new rocksdynamic.Fixture.LegacyDecodeKey(), _t_));
+            setKeyValue(_o_.ReadBeanKey(_t_, rocksdynamic.Fixture.LegacyDecodeKey.class, _input_ -> rocksdynamic.Fixture.LegacyDecodeKey.readFromInitialized(_input_, 3), () -> new rocksdynamic.Fixture.LegacyDecodeKey(3)));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setKeyValue(ByteBuffer.decodeEmptyBean(new rocksdynamic.Fixture.LegacyDecodeKey()));
+            setKeyValue(ByteBuffer.readEmptyBean(rocksdynamic.Fixture.LegacyDecodeKey::readFrom));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -387,8 +387,11 @@ public final class LegacyDecodeChild extends Zeze.Transaction.Bean implements Le
         setNumber(_r_.getInt(_pn_ + "Number"));
         Zeze.Serialize.Helper.decodeJsonList(_Entries, Integer.class, _r_.getString(_pn_ + "Entries"));
         _p_.add("KeyValue");
-        getKeyValue().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setKeyValue(rocksdynamic.Fixture.LegacyDecodeKey.readFromResultSet(_p_, _r_, 3));
+        } finally {
+            _p_.removeLast();
+        }
     }
 
     @Override
@@ -460,7 +463,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public Data() {
         _Number = 7;
         _Entries = new java.util.ArrayList<>();
-        _KeyValue = new rocksdynamic.Fixture.LegacyDecodeKey();
+        _KeyValue = new rocksdynamic.Fixture.LegacyDecodeKey(3);
     }
 
     @SuppressWarnings("deprecation")
@@ -471,7 +474,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _Entries_ = new java.util.ArrayList<>();
         _Entries = _Entries_;
         if (_KeyValue_ == null)
-            _KeyValue_ = new rocksdynamic.Fixture.LegacyDecodeKey();
+            _KeyValue_ = new rocksdynamic.Fixture.LegacyDecodeKey(3);
         _KeyValue = _KeyValue_;
     }
 
@@ -480,7 +483,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Number = 7;
         _Scratch = 0;
         _Entries.clear();
-        _KeyValue = new rocksdynamic.Fixture.LegacyDecodeKey();
+        _KeyValue = new rocksdynamic.Fixture.LegacyDecodeKey(3);
     }
 
     @Override
@@ -641,10 +644,10 @@ public static final class Data extends Zeze.Transaction.Data {
         } else
             _Entries.clear();
         if (_i_ == 4) {
-            _KeyValue = _o_.ReadBean(new rocksdynamic.Fixture.LegacyDecodeKey(), _t_);
+            _KeyValue = _o_.ReadBeanKey(_t_, rocksdynamic.Fixture.LegacyDecodeKey.class, _input_ -> rocksdynamic.Fixture.LegacyDecodeKey.readFromInitialized(_input_, 3), () -> new rocksdynamic.Fixture.LegacyDecodeKey(3));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _KeyValue = ByteBuffer.decodeEmptyBean(new rocksdynamic.Fixture.LegacyDecodeKey());
+            _KeyValue = ByteBuffer.readEmptyBean(rocksdynamic.Fixture.LegacyDecodeKey::readFrom);
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

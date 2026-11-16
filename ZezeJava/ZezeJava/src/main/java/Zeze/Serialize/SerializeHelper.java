@@ -3,6 +3,8 @@ package Zeze.Serialize;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import java.util.function.ToLongFunction;
 
 import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.BeanKey;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -43,6 +46,29 @@ public final class SerializeHelper {
 	}
 
 	private static final HashMap<Class<?>, CodecFuncs<?>> codecs = new HashMap<>();
+	private static final ClassValue<CodecFuncs<?>> beanKeyCodecs = new ClassValue<>() {
+		@Override
+		protected CodecFuncs<?> computeValue(Class<?> cls) {
+			MethodHandle factory;
+			try {
+				factory = MethodHandles.publicLookup().findStatic(cls, "readFrom", MethodType.methodType(cls, IByteBuffer.class));
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalArgumentException("missing BeanKey readFrom(IByteBuffer): " + cls.getName(), e);
+			}
+			Function<IByteBuffer, BeanKey> reader = bb -> readKey(factory, bb);
+			Supplier<BeanKey> defaultKey = () -> newObject(Reflect.getDefaultConstructor(cls));
+			return new CodecFuncs<>(IByteBuffer.BEAN, (bb, key) -> key.encode(bb), reader,
+					(bb, tag) -> bb.ReadBeanKey(tag, cls, reader, defaultKey));
+		}
+	};
+
+	private static BeanKey readKey(MethodHandle factory, IByteBuffer bb) {
+		try {
+			return (BeanKey)factory.invoke(bb);
+		} catch (Throwable e) { // MethodHandle.invoke
+			throw Task.forceThrow(e);
+		}
+	}
 
 	static {
 		var boolCodec = new CodecFuncs<>(IByteBuffer.INTEGER, ByteBuffer::WriteBool,
@@ -105,9 +131,9 @@ public final class SerializeHelper {
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
 			return codec.encoder;
-		if (!Serializable.class.isAssignableFrom(cls))
+		if (!Encodable.class.isAssignableFrom(cls))
 			throw new UnsupportedOperationException("unsupported encoder type: " + cls.getName());
-		return (bb, obj) -> ((Serializable)obj).encode(bb);
+		return (bb, obj) -> ((Encodable)obj).encode(bb);
 	}
 
 	private static <T> T newObject(Constructor<T> ctor) {
@@ -128,6 +154,8 @@ public final class SerializeHelper {
 	}
 
 	public static <T> Function<IByteBuffer, T> createDecodeFunc(Class<T> cls) {
+		if (BeanKey.class.isAssignableFrom(cls))
+			return keyCodec(cls).decoder;
 		//noinspection unchecked
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -148,6 +176,8 @@ public final class SerializeHelper {
 	}
 
 	public static <T> CodecFuncs<T> createCodec(Class<T> cls) {
+		if (BeanKey.class.isAssignableFrom(cls))
+			return keyCodec(cls);
 		//noinspection unchecked
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -172,6 +202,8 @@ public final class SerializeHelper {
 	}
 
 	public static <T> CodecFuncs<T> createCodec(Class<T> cls, MethodHandle ctor) {
+		if (BeanKey.class.isAssignableFrom(cls))
+			return keyCodec(cls);
 		//noinspection unchecked
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -187,6 +219,11 @@ public final class SerializeHelper {
 			bb.ReadBean((Serializable)obj, type);
 			return obj;
 		});
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> CodecFuncs<T> keyCodec(Class<T> cls) {
+		return (CodecFuncs<T>)beanKeyCodecs.get(cls);
 	}
 
 	public static MethodHandle createDynamicFactory(ToLongFunction<? super Bean> get,

@@ -78,8 +78,11 @@ public final class BFighterId implements Zeze.Transaction.BeanKey, Comparable<BF
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BFighterId readFrom(IByteBuffer _o_) {
+        return new BFighterId(_o_);
+    }
+
+    private BFighterId(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -147,8 +150,11 @@ public final class BFighterId implements Zeze.Transaction.BeanKey, Comparable<BF
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BFighterId readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BFighterId(_p_, _r_);
+    }
+
+    private BFighterId(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Type = _r_.getInt(_pn_ + "Type");
         _InstanceId = _r_.getLong(_pn_ + "InstanceId");

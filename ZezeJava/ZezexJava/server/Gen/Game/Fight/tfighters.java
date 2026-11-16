@@ -33,9 +33,7 @@ public final class tfighters extends TableX<Game.Fight.BFighterId, Game.Fight.BF
 
     @Override
     public Game.Fight.BFighterId decodeKey(ByteBuffer _os_) {
-        var _v_ = new Game.Fight.BFighterId();
-        _v_.decode(_os_);
-        return _v_;
+        return Game.Fight.BFighterId.readFrom(_os_);
     }
 
     @Override
@@ -48,10 +46,13 @@ public final class tfighters extends TableX<Game.Fight.BFighterId, Game.Fight.BF
     @Override
     public Game.Fight.BFighterId decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         var _p_ = new java.util.ArrayList<String>();
-        var _v_ = new Game.Fight.BFighterId();
+        Game.Fight.BFighterId _v_;
         _p_.add("__key");
-        _v_.decodeResultSet(_p_, _s_);
-        _p_.removeLast();
+        try {
+            _v_ = Game.Fight.BFighterId.readFromResultSet(_p_, _s_);
+        } finally {
+            _p_.removeLast();
+        }
         return _v_;
     }
 

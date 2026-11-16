@@ -32,9 +32,7 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
 
     @Override
     public Zeze.Builtin.Timer.BAccountClientId decodeKey(ByteBuffer _os_) {
-        var _v_ = new Zeze.Builtin.Timer.BAccountClientId();
-        _v_.decode(_os_);
-        return _v_;
+        return Zeze.Builtin.Timer.BAccountClientId.readFrom(_os_);
     }
 
     @Override
@@ -47,10 +45,13 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
     @Override
     public Zeze.Builtin.Timer.BAccountClientId decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         var _p_ = new java.util.ArrayList<String>();
-        var _v_ = new Zeze.Builtin.Timer.BAccountClientId();
+        Zeze.Builtin.Timer.BAccountClientId _v_;
         _p_.add("__key");
-        _v_.decodeResultSet(_p_, _s_);
-        _p_.removeLast();
+        try {
+            _v_ = Zeze.Builtin.Timer.BAccountClientId.readFromResultSet(_p_, _s_);
+        } finally {
+            _p_.removeLast();
+        }
         return _v_;
     }
 

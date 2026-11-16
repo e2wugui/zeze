@@ -112,8 +112,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                 var _b_ = _params_.Wrap();
                 var _m_ = _b_.ReadULong();
                 if ((_m_ & 0x1L) == 0) {
-                    keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
-                    keyHint.decode(_b_);
+                    keyHint = Zeze.Builtin.Game.Rank.BConcurrentKey.readFrom(_b_);
                 } else
                     throw new IllegalArgumentException("null redirect parameter: keyHint");
                 if ((_m_ & 0x2L) == 0) {
@@ -130,8 +129,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                 var _b_ = _params_.Wrap();
                 var _m_ = _b_.ReadULong();
                 if ((_m_ & 0x1L) == 0) {
-                    keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
-                    keyHint.decode(_b_);
+                    keyHint = Zeze.Builtin.Game.Rank.BConcurrentKey.readFrom(_b_);
                 } else
                     throw new IllegalArgumentException("null redirect parameter: keyHint");
                 if ((_m_ & 0x2L) == 0) {

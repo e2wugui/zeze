@@ -79,8 +79,11 @@ public final class BDepartmentKey implements Zeze.Transaction.BeanKey, Comparabl
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BDepartmentKey readFrom(IByteBuffer _o_) {
+        return new BDepartmentKey(_o_);
+    }
+
+    private BDepartmentKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -146,8 +149,11 @@ public final class BDepartmentKey implements Zeze.Transaction.BeanKey, Comparabl
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BDepartmentKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BDepartmentKey(_p_, _r_);
+    }
+
+    private BDepartmentKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Owner = _r_.getString(_pn_ + "Owner");
         if (_Owner == null)

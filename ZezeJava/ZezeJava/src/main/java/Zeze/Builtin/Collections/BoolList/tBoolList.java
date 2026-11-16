@@ -38,9 +38,7 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
 
     @Override
     public Zeze.Builtin.Collections.BoolList.BKey decodeKey(ByteBuffer _os_) {
-        var _v_ = new Zeze.Builtin.Collections.BoolList.BKey();
-        _v_.decode(_os_);
-        return _v_;
+        return Zeze.Builtin.Collections.BoolList.BKey.readFrom(_os_);
     }
 
     @Override
@@ -53,10 +51,13 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
     @Override
     public Zeze.Builtin.Collections.BoolList.BKey decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         var _p_ = new java.util.ArrayList<String>();
-        var _v_ = new Zeze.Builtin.Collections.BoolList.BKey();
+        Zeze.Builtin.Collections.BoolList.BKey _v_;
         _p_.add("__key");
-        _v_.decodeResultSet(_p_, _s_);
-        _p_.removeLast();
+        try {
+            _v_ = Zeze.Builtin.Collections.BoolList.BKey.readFromResultSet(_p_, _s_);
+        } finally {
+            _p_.removeLast();
+        }
         return _v_;
     }
 

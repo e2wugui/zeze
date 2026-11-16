@@ -201,7 +201,7 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks::readFrom, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks::new);
                     var _v_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks(), _t_);
                     _x_.put(_k_, _v_);
                 }

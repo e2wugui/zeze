@@ -309,10 +309,10 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         } else
             setAccount("");
         if (_i_ == 2) {
-            setLink(_o_.ReadBean(new Zeze.Builtin.Game.Online.BLink(), _t_));
+            setLink(_o_.ReadBeanKey(_t_, Zeze.Builtin.Game.Online.BLink.class, Zeze.Builtin.Game.Online.BLink::readFrom, Zeze.Builtin.Game.Online.BLink::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setLink(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Game.Online.BLink()));
+            setLink(ByteBuffer.readEmptyBean(Zeze.Builtin.Game.Online.BLink::readFrom));
         if (_i_ == 3) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -399,8 +399,11 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         if (getAccount() == null)
             setAccount("");
         _p_.add("Link");
-        getLink().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setLink(Zeze.Builtin.Game.Online.BLink.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
         setLoginVersion(_r_.getLong(_pn_ + "LoginVersion"));
         setLogoutVersion(_r_.getLong(_pn_ + "LogoutVersion"));
         Zeze.Serialize.Helper.decodeJsonDynamic(_UserData, _r_.getString(_pn_ + "UserData"));

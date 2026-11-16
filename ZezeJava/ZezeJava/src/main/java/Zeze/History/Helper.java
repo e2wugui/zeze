@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.HashSet;
 
 import Zeze.Application;
-import Zeze.Serialize.Serializable;
+import Zeze.Serialize.Encodable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.BeanKey;
 import Zeze.Transaction.Collections.BeanKeyMeta;
@@ -71,7 +71,7 @@ public class Helper {
 	static final class DependsResult {
 		final HashSet<Class<?>> allBeans = new HashSet<>();
 		final HashSet<Class<? extends Bean>> beans = new HashSet<>();
-		final HashSet<Class<? extends Serializable>> beanKeys = new HashSet<>();
+		final HashSet<Class<? extends BeanKey>> beanKeys = new HashSet<>();
 		final HashSet<Class<?>> list1 = new HashSet<>();
 		final HashSet<Class<? extends Bean>> list2 = new HashSet<>();
 		final HashSet<KVNotNull<Class<?>, Class<?>>> map1 = new HashSet<>();
@@ -105,8 +105,7 @@ public class Helper {
 
 	private static void dependsTable(Table table, DependsResult result) throws Exception {
 		var keyClass = table.getKeyClass();
-		if (Serializable.class.isAssignableFrom(keyClass)) {
-			// must be BeanKey.
+		if (Encodable.class.isAssignableFrom(keyClass)) {
 			dependsBean(keyClass, result);
 		}
 		var valueClass = table.getValueClass();
@@ -152,7 +151,7 @@ public class Helper {
 			var obj = ctor.newInstance();
 			var loader = beanClass.getClassLoader();
 			if (obj instanceof BeanKey beanKey) {
-				result.beanKeys.add((Class<? extends Serializable>)beanClass);
+				result.beanKeys.add(beanClass.asSubclass(BeanKey.class));
 				for (var v : beanKey.variables()) {
 					var type = v.getType();
 					if (!isBuiltinType(type))
@@ -342,7 +341,7 @@ public class Helper {
 	}
 
 	// 工厂闭包直接捕获meta：解码是热路径（follower复制/history回放），勿在lambda内重查XxxMeta.get。
-	public static <T extends Serializable> void registerLogBeanKey(Class<T> beanClass) {
+	public static <T extends Encodable> void registerLogBeanKey(Class<T> beanClass) {
 		var meta = BeanKeyMeta.get(beanClass);
 		LogRegistry.register(meta.logTypeId, meta.name, (varId, bb) -> LogBeanKeyValue.decode(varId, meta, bb));
 	}

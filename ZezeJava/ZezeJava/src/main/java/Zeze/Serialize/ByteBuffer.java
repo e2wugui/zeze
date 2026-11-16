@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Function;
 import Zeze.Net.Binary;
 import Zeze.Util.BitConverter;
 import Zeze.Util.IdentityHashSet;
@@ -1182,6 +1183,10 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public static ByteBuffer encode(Serializable sa) {
+		return encode((Encodable)sa);
+	}
+
+	public static ByteBuffer encode(Encodable sa) {
 		int preAllocSize = sa.preAllocSize();
 		ByteBuffer bb = Allocate(Math.min(preAllocSize, 65536));
 		sa.encode(bb);
@@ -1196,7 +1201,12 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return bean;
 	}
 
-	public void encode(Collection<? extends Serializable> c) {
+	/** Reads an omitted key by passing an empty Bean body to its factory. */
+	public static <T extends Encodable> T readEmptyBean(Function<IByteBuffer, T> reader) {
+		return reader.apply(Wrap(EMPTY_BEAN_BODY));
+	}
+
+	public void encode(Collection<? extends Encodable> c) {
 		WriteUInt(c.size());
 		for (var s : c)
 			s.encode(this);

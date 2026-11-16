@@ -16,7 +16,7 @@ import java.util.jar.JarFile;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.Quaternion;
-import Zeze.Serialize.Serializable;
+import Zeze.Serialize.Encodable;
 import Zeze.Serialize.Vector2;
 import Zeze.Serialize.Vector2Int;
 import Zeze.Serialize.Vector3;
@@ -136,7 +136,7 @@ public class Reflect {
 		var name = stableNameMap.get(cls);
 		if (name != null)
 			return name;
-		if (Serializable.class.isAssignableFrom(cls))
+		if (Encodable.class.isAssignableFrom(cls))
 			return cls.getName();
 		throw new UnsupportedOperationException("Unsupported type: " + cls.getName());
 	}

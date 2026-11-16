@@ -1,14 +1,15 @@
 package Zeze.Util;
 
 import java.math.BigInteger;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Serialize.Serializable;
 import Zeze.Transaction.BeanKey;
 import org.jspecify.annotations.Nullable;
 
-// 128 位复合 id（high+low 两个无符号 long）：BeanKey/Serializable，支持递增与比较
-public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneable {
+// 128 位复合 id（high+low 两个无符号 long），支持递增与比较。
+public class Id128 implements BeanKey, Comparable<Id128>, Cloneable {
 	public static final Id128 Zero = new Id128() {
 		@Override
 		public void assign(Id128 id128) {
@@ -25,15 +26,6 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 			throw new UnsupportedOperationException();
 		}
 
-		@Override
-		public void decodeRaw(IByteBuffer bb) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void decode(IByteBuffer bb) {
-			throw new UnsupportedOperationException();
-		}
 	};
 
 	private long low; // unsigned
@@ -106,9 +98,8 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		bb.WriteULong(low);
 	}
 
-	public void decodeRaw(IByteBuffer bb) {
-		high = bb.ReadULong();
-		low = bb.ReadULong();
+	public static Id128 readRawFrom(IByteBuffer bb) {
+		return new Id128(bb.ReadULong(), bb.ReadULong());
 	}
 
 	@Override
@@ -120,8 +111,9 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		bb.WriteByte(0); // end of bean
 	}
 
-	@Override
-	public void decode(IByteBuffer bb) {
+	public static Id128 readFrom(IByteBuffer bb) {
+		long high = 0;
+		long low = 0;
 		int t = bb.ReadByte();
 		if (bb.ReadTagSize(t) == 1) { // varId=1
 			t &= ByteBuffer.TAG_MASK; // type=LIST
@@ -139,6 +131,11 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 			bb.ReadTagSize(t = bb.ReadByte());
 		}
 		bb.skipAllUnknownFields(t);
+		return new Id128(high, low);
+	}
+
+	public static Id128 readFromResultSet(ArrayList<String> parents, ResultSet rs) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

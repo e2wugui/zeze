@@ -87,15 +87,18 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BLockName readFrom(IByteBuffer _o_) {
+        return new BLockName(_o_);
+    }
+
+    private BLockName(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _GlobalThreadId = _o_.ReadBean(new Zeze.Builtin.Threading.BGlobalThreadId(), _t_);
+            _GlobalThreadId = _o_.ReadBeanKey(_t_, Zeze.Builtin.Threading.BGlobalThreadId.class, Zeze.Builtin.Threading.BGlobalThreadId::readFrom, Zeze.Builtin.Threading.BGlobalThreadId::new);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _GlobalThreadId = ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Threading.BGlobalThreadId());
+            _GlobalThreadId = ByteBuffer.readEmptyBean(Zeze.Builtin.Threading.BGlobalThreadId::readFrom);
         if (_i_ == 2) {
             _Name = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -154,11 +157,17 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BLockName readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BLockName(_p_, _r_);
+    }
+
+    private BLockName(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("GlobalThreadId");
-        _GlobalThreadId.decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            _GlobalThreadId = Zeze.Builtin.Threading.BGlobalThreadId.readFromResultSet(_p_, _r_);
+        } finally {
+            _p_.removeLast();
+        }
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Name = _r_.getString(_pn_ + "Name");
         if (_Name == null)

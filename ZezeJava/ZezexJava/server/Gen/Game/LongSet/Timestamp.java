@@ -60,8 +60,11 @@ public final class Timestamp implements Zeze.Transaction.BeanKey, Comparable<Tim
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static Timestamp readFrom(IByteBuffer _o_) {
+        return new Timestamp(_o_);
+    }
+
+    private Timestamp(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -116,8 +119,11 @@ public final class Timestamp implements Zeze.Transaction.BeanKey, Comparable<Tim
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static Timestamp readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new Timestamp(_p_, _r_);
+    }
+
+    private Timestamp(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Time = _r_.getLong(_pn_ + "Time");
     }

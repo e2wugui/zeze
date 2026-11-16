@@ -344,10 +344,10 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setGlobalSerialId(_o_.ReadBean(new Zeze.Util.Id128(), _t_));
+            setGlobalSerialId(_o_.ReadBeanKey(_t_, Zeze.Util.Id128.class, Zeze.Util.Id128::readFrom, Zeze.Util.Id128::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setGlobalSerialId(new Zeze.Util.Id128());
+            setGlobalSerialId(ByteBuffer.readEmptyBean(Zeze.Util.Id128::readFrom));
         if (_i_ == 2) {
             setProtocolClassName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -364,7 +364,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new Zeze.Builtin.HistoryModule.BTableKey(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, Zeze.Builtin.HistoryModule.BTableKey.class, Zeze.Builtin.HistoryModule.BTableKey::readFrom, Zeze.Builtin.HistoryModule.BTableKey::new);
                     var _v_ = _o_.ReadBinary(_t_);
                     _x_.put(_k_, _v_);
                 }
@@ -441,8 +441,11 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     @Override
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("GlobalSerialId");
-        getGlobalSerialId().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setGlobalSerialId(Zeze.Util.Id128.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setProtocolClassName(_r_.getString(_pn_ + "ProtocolClassName"));
         if (getProtocolClassName() == null)
@@ -725,10 +728,10 @@ public static class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _GlobalSerialId = _o_.ReadBean(new Zeze.Util.Id128(), _t_);
+            _GlobalSerialId = _o_.ReadBeanKey(_t_, Zeze.Util.Id128.class, Zeze.Util.Id128::readFrom, Zeze.Util.Id128::new);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            _GlobalSerialId = new Zeze.Util.Id128();
+            _GlobalSerialId = ByteBuffer.readEmptyBean(Zeze.Util.Id128::readFrom);
         if (_i_ == 2) {
             _ProtocolClassName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -745,7 +748,7 @@ public static class Data extends Zeze.Transaction.Data {
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadBean(new Zeze.Builtin.HistoryModule.BTableKey(), _s_);
+                    var _k_ = _o_.ReadBeanKey(_s_, Zeze.Builtin.HistoryModule.BTableKey.class, Zeze.Builtin.HistoryModule.BTableKey::readFrom, Zeze.Builtin.HistoryModule.BTableKey::new);
                     var _v_ = _o_.ReadBinary(_t_);
                     _x_.put(_k_, _v_);
                 }

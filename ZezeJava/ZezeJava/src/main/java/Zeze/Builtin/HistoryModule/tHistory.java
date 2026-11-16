@@ -35,9 +35,7 @@ public final class tHistory extends TableX<Zeze.Util.Id128, Zeze.Builtin.History
 
     @Override
     public Zeze.Util.Id128 decodeKey(ByteBuffer _os_) {
-        var _v_ = new Zeze.Util.Id128();
-        _v_.decode(_os_);
-        return _v_;
+        return Zeze.Util.Id128.readFrom(_os_);
     }
 
     @Override
@@ -50,10 +48,13 @@ public final class tHistory extends TableX<Zeze.Util.Id128, Zeze.Builtin.History
     @Override
     public Zeze.Util.Id128 decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         var _p_ = new java.util.ArrayList<String>();
-        var _v_ = new Zeze.Util.Id128();
+        Zeze.Util.Id128 _v_;
         _p_.add("__key");
-        _v_.decodeResultSet(_p_, _s_);
-        _p_.removeLast();
+        try {
+            _v_ = Zeze.Util.Id128.readFromResultSet(_p_, _s_);
+        } finally {
+            _p_.removeLast();
+        }
         return _v_;
     }
 

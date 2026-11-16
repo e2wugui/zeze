@@ -79,8 +79,11 @@ public final class BQueueNodeKey implements Zeze.Transaction.BeanKey, Comparable
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static BQueueNodeKey readFrom(IByteBuffer _o_) {
+        return new BQueueNodeKey(_o_);
+    }
+
+    private BQueueNodeKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -146,8 +149,11 @@ public final class BQueueNodeKey implements Zeze.Transaction.BeanKey, Comparable
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static BQueueNodeKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new BQueueNodeKey(_p_, _r_);
+    }
+
+    private BQueueNodeKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Name = _r_.getString(_pn_ + "Name");
         if (_Name == null)

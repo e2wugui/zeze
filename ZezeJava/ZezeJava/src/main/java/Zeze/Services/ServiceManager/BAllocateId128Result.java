@@ -28,7 +28,7 @@ public final class BAllocateId128Result implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		startId.decodeRaw(bb);
+		startId = Id128.readRawFrom(bb);
 		count = bb.ReadInt();
 	}
 

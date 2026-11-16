@@ -64,6 +64,10 @@ public class TestRedirectAllResultFieldInit {
 		public AbstractResultBean good = new ConcreteResultBean();
 	}
 
+	public static class ResultWithAbstractKey extends RedirectResult {
+		public Zeze.Transaction.BeanKey key = Zeze.Util.Id128.Zero;
+	}
+
 	public static class AllModule {
 		public static final int ModuleId = 8841;
 		public static final String ModuleFullName = "TestRedirectAllResultFieldInit.AllModule";
@@ -116,6 +120,18 @@ public class TestRedirectAllResultFieldInit {
 	}
 
 	/** RedirectAll结果解码与RedirectHash/ToServer应答回调共用同一genDecode：生成产物内均须带守卫。 */
+	@Test
+	public void abstractBeanKeyFieldRequiresConcreteType() throws Exception {
+		var fields = fieldsOf(ResultWithAbstractKey.class);
+		var encodeError = Assertions.assertThrows(UnsupportedOperationException.class,
+				() -> Gen.instance.genEncode(new StringBuilderCs(), "", "_b_", "_m_", "_r_.", fields, null));
+		var decodeError = Assertions.assertThrows(UnsupportedOperationException.class,
+				() -> Gen.instance.genDecode(new StringBuilderCs(), "", "_b_", "_m_", "_r_.", fields));
+		Assertions.assertTrue(decodeError.getMessage().contains("concrete BeanKey type"));
+		Assertions.assertTrue(decodeError.getMessage().contains("field 'key'"));
+		Assertions.assertEquals(encodeError.getMessage(), decodeError.getMessage());
+	}
+
 	@Test
 	public void testGeneratedModuleDecoderHasGuard() throws Exception {
 		var dummyApp = new AppBase() {

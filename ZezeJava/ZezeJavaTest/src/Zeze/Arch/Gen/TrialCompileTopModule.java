@@ -1,7 +1,10 @@
 package Zeze.Arch.Gen;
 
 import Zeze.AppBase;
+import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
+import org.jspecify.annotations.Nullable;
 
 /**
  * FND8-83文件模式试编译fixture：顶层模块类。嵌套fixture类的二进制名（Outer$Inner）
@@ -31,5 +34,10 @@ public class TrialCompileTopModule implements Zeze.IModule {
 
 	@RedirectToServer
 	public void ping(int serverId) {
+	}
+
+	@RedirectToServer
+	public RedirectFuture<@Nullable BQueueNodeKey> fetchKey(int serverId) {
+		return new RedirectFuture<>();
 	}
 }

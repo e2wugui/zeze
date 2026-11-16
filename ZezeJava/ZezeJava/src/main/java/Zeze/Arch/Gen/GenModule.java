@@ -31,6 +31,7 @@ import Zeze.Collections.BeanFactory;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.BeanKey;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Util.AtomicOutputFile;
@@ -460,7 +461,10 @@ public final class GenModule extends ReentrantLock {
 						sb.appendLine("{}    if (_rpc_.Result.isNullParam())", prefix);
 						sb.appendLine("{}        _r_ = null;", prefix);
 						sb.appendLine("{}    else {", prefix);
-						if (Serializable.class.isAssignableFrom(Objects.requireNonNull(m.resultClass))) {
+						if (BeanKey.class.isAssignableFrom(Objects.requireNonNull(m.resultClass))) {
+							sb.appendLine("{}        _r_ = {}.readFrom(_rpc_.Result.getParams().Wrap());",
+									prefix, Gen.instance.getTypeName(m.resultClass));
+						} else if (Serializable.class.isAssignableFrom(m.resultClass)) {
 							sb.appendLine("{}        _r_ = new {}();", prefix, genericPat.matcher(m.resultTypeName).replaceAll("<>"));
 							sb.appendLine("{}        _r_.decode(_rpc_.Result.getParams().Wrap());", prefix);
 						} else {
@@ -512,7 +516,7 @@ public final class GenModule extends ReentrantLock {
 						sbHandles.appendLine("                //noinspection CodeBlock2Expr");
 					sbHandles.appendLine("                return super.{}(_hash_{}{});", methodNameHash, sep, normalCall);
 				}
-				if (m.resultType != null && Serializable.class.isAssignableFrom(Objects.requireNonNull(m.resultClass))) {
+				if (m.resultType != null && Gen.isZezeValue(Objects.requireNonNull(m.resultClass))) {
 					sbHandles.appendLine("            }, _result_ -> {");
 					sbHandles.appendLine("                if (_result_ == null)");
 					sbHandles.appendLine("                    return Zeze.Net.Binary.Empty;");

@@ -388,10 +388,10 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setLink(_o_.ReadBean(new Zeze.Builtin.Online.BLink(), _t_));
+            setLink(_o_.ReadBeanKey(_t_, Zeze.Builtin.Online.BLink.class, Zeze.Builtin.Online.BLink::readFrom, Zeze.Builtin.Online.BLink::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setLink(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Online.BLink()));
+            setLink(ByteBuffer.readEmptyBean(Zeze.Builtin.Online.BLink::readFrom));
         if (_i_ == 2) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -507,8 +507,11 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     @Override
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("Link");
-        getLink().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setLink(Zeze.Builtin.Online.BLink.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setLoginVersion(_r_.getLong(_pn_ + "LoginVersion"));
         Zeze.Serialize.Helper.decodeJsonSet(_ReliableNotifyMark, String.class, _r_.getString(_pn_ + "ReliableNotifyMark"));

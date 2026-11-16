@@ -41,8 +41,11 @@ public final class EmptyKey implements Zeze.Transaction.BeanKey, Comparable<Empt
         _o_.WriteByte(0);
     }
 
-    @Override
-    public void decode(IByteBuffer _o_) {
+    public static EmptyKey readFrom(IByteBuffer _o_) {
+        return new EmptyKey(_o_);
+    }
+
+    private EmptyKey(IByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         _o_.ReadTagSize(_t_);
         while (_t_ != 0) {
@@ -72,8 +75,11 @@ public final class EmptyKey implements Zeze.Transaction.BeanKey, Comparable<Empt
         return false;
     }
 
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+    public static EmptyKey readFromResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        return new EmptyKey(_p_, _r_);
+    }
+
+    private EmptyKey(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
     }
 
     @Override

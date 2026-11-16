@@ -419,15 +419,15 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         } else
             setLoadSerialNo(0);
         if (_i_ == 6) {
-            setHeadNodeKey(_o_.ReadBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey(), _t_));
+            setHeadNodeKey(_o_.ReadBeanKey(_t_, Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, Zeze.Builtin.Collections.Queue.BQueueNodeKey::readFrom, Zeze.Builtin.Collections.Queue.BQueueNodeKey::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setHeadNodeKey(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey()));
+            setHeadNodeKey(ByteBuffer.readEmptyBean(Zeze.Builtin.Collections.Queue.BQueueNodeKey::readFrom));
         if (_i_ == 7) {
-            setTailNodeKey(_o_.ReadBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey(), _t_));
+            setTailNodeKey(_o_.ReadBeanKey(_t_, Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, Zeze.Builtin.Collections.Queue.BQueueNodeKey::readFrom, Zeze.Builtin.Collections.Queue.BQueueNodeKey::new));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
-            setTailNodeKey(ByteBuffer.decodeEmptyBean(new Zeze.Builtin.Collections.Queue.BQueueNodeKey()));
+            setTailNodeKey(ByteBuffer.readEmptyBean(Zeze.Builtin.Collections.Queue.BQueueNodeKey::readFrom));
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -505,11 +505,17 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setLastNodeId(_r_.getLong(_pn_ + "LastNodeId"));
         setLoadSerialNo(_r_.getLong(_pn_ + "LoadSerialNo"));
         _p_.add("HeadNodeKey");
-        getHeadNodeKey().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setHeadNodeKey(Zeze.Builtin.Collections.Queue.BQueueNodeKey.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
         _p_.add("TailNodeKey");
-        getTailNodeKey().decodeResultSet(_p_, _r_);
-        _p_.removeLast();
+        try {
+            setTailNodeKey(Zeze.Builtin.Collections.Queue.BQueueNodeKey.readFromResultSet(_p_, _r_));
+        } finally {
+            _p_.removeLast();
+        }
     }
 
     @Override

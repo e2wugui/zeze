@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Zeze.Gen.Types;
 
@@ -98,84 +98,9 @@ namespace Zeze.Gen.rrjava
                     sw.WriteLine($"{prefix}{java.Decode.MissingBean(variable, child, false)};");
                     break;
                 case BeanKey:
-                    var key = java.Decode.MissingBeanKey(variable, TypeName.GetName(type));
+                    var key = java.Decode.MissingBeanKey(TypeName.GetName(type));
                     sw.WriteLine($"{prefix}{field} = {key};");
                     break;
-            }
-        }
-
-        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
-        {
-            sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decode(IByteBuffer _o_) {");
-            sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
-            if (bean.VariablesIdOrder.Count > 0)
-                sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
-            else
-                sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
-
-            foreach (Variable v in bean.VariablesIdOrder)
-            {
-                if (v.Transient)
-                    continue;
-
-                if (v.Id > 0)
-                    sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ") {");
-                else
-                    sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Decode(v, v.Id, "_o_", sw, prefix + "        "));
-                if (v.Id > 0)
-                {
-                    sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-                    if (v.Initial.Length > 0)
-                    {
-                        sw.WriteLine(prefix + "    } else");
-                        sw.WriteLine(prefix + "        " + Initial(v) + ";");
-                    }
-                    else
-                        sw.WriteLine(prefix + "    }");
-                }
-                else
-                    sw.WriteLine(prefix + "    }");
-            }
-
-            sw.WriteLine(prefix + "    while (_t_ != 0) {");
-            sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
-            sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-        }
-
-        static string Initial(Variable var)
-        {
-            var type = var.VariableType;
-            switch (type)
-            {
-                case TypeBool:
-                    return var.Bean.IsNormalBean ? var.Setter("false") : $"{var.NamePrivate} = false";
-                case TypeByte:
-                case TypeShort:
-                case TypeInt:
-                case TypeLong:
-                case TypeFloat:
-                case TypeDouble:
-                    return var.Bean.IsNormalBean ? var.Setter("0") : $"{var.NamePrivate} = 0";
-                case TypeString:
-                    return var.Bean.IsNormalBean ? var.Setter("") : $"{var.NamePrivate} = \"\"";
-                case Bean:
-                case BeanKey:
-                case TypeVector2:
-                case TypeVector2Int:
-                case TypeVector3:
-                case TypeVector3Int:
-                case TypeVector4:
-                case TypeQuaternion:
-                    return var.Bean.IsNormalBean
-                        ? var.Setter($"{TypeName.GetName(type)}.ZERO")
-                        : $"{var.NamePrivate} = {TypeName.GetName(type)}.ZERO";
-                default:
-                    throw new Exception("unsupported initial type: " + var.VariableType);
             }
         }
 
@@ -308,8 +233,9 @@ namespace Zeze.Gen.rrjava
                 case TypeString:
                     return bufname + ".ReadString(" + typeVar + ')';
                 case Bean:
-                case BeanKey:
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case BeanKey:
+                    return java.Decode.ReadBeanKey(TypeName.GetName(type), bufname, typeVar);
                 case TypeDynamic:
                     return $"newDynamicBean_{var.NameUpper1}().decodeTagged({bufname}, {typeVar})";
                 default:
@@ -389,10 +315,7 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(BeanKey type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadBean(new {TypeName.GetName(type)}({var?.Initial}), _t_)") + ';');
-            else
-                sw.WriteLine(prefix + GetVarName() + ".decode(" + bufname + ");");
+            sw.WriteLine(prefix + AssignText(java.Decode.ReadBeanKey(TypeName.GetName(type), bufname, id > 0 ? "_t_" : null, var)) + ';');
         }
 
         public void Visit(TypeDynamic type)

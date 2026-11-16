@@ -91,6 +91,10 @@ sidebar:
 
 `beankey` 的属性与 `bean` 基本一致。`beankey` 可以为空（如 `<beankey name="EmptyKey"/>`），此时用作占位键类型。
 
+Java 的生成键通过静态工厂 `KeyType.readFrom(buffer)` 或 `KeyType.readFromResultSet(parents, resultSet)` 解码。两个工厂都返回新键，表和集合会在读取成功后使用新对象。带标签的二进制字段由 `IByteBuffer` 处理标签后再调用工厂。持久化字段引用生成键并声明 `default` 构造参数时，生成器会为该键生成对应的初始化解码入口。
+
+手写 `externalkey` 实现 `BeanKey`。构造 Bean 和调用 `reset()` 时，字段的 `default` 用作键的构造参数。二进制解码由 `readFrom(buffer)` 完成。字段缺失时，生成代码将只含结束标记 `0` 的空 Bean 体传给工厂，外部键应返回相应的缺失值。迁移原先用 `ZERO` 表示缺失值的手写键时，请让工厂读取空 Bean 体后返回同等值。SQL 解码使用 `readFromResultSet(parents, resultSet)`，不支持关系映射的外部键可以抛出 `UnsupportedOperationException`，例如 `Id128`。
+
 ### variable 字段定义
 
 `variable` 是 `bean` / `beankey` 的子元素，定义一个字段。
