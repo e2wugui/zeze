@@ -33,6 +33,7 @@ public class TestWebsocketSendOverflowLimit {
 
 	public static final class CaptureService extends Service {
 		public volatile @Nullable Websocket lastHandshaked;
+		public final CountDownLatch handshaked = new CountDownLatch(1);
 
 		CaptureService(String name) {
 			super(name);
@@ -40,8 +41,10 @@ public class TestWebsocketSendOverflowLimit {
 
 		@Override
 		public void OnHandshakeDone(AsyncSocket so) throws Exception {
-			if (so instanceof Websocket ws)
+			if (so instanceof Websocket ws) {
 				lastHandshaked = ws;
+				handshaked.countDown();
+			}
 			super.OnHandshakeDone(so);
 		}
 	}
@@ -77,6 +80,10 @@ public class TestWebsocketSendOverflowLimit {
 					}).join();
 			try {
 				Assertions.assertTrue(opened.await(10, TimeUnit.SECONDS));
+				// 客户端onOpen（收到101）不保证服务端OnHandshakeDone已派发完成：Netty写101与
+				// Zeze握手注册链（onOpen→tryAccept）跨线程，负载下窗口放大（soak-20261116-1508
+				// R1实锤null）。等待服务端握手同步点再取会话。
+				Assertions.assertTrue(service.handshaked.await(10, TimeUnit.SECONDS), "服务端Websocket必须建立");
 				var serverSide = service.lastHandshaked;
 				Assertions.assertNotNull(serverSide, "服务端Websocket必须建立");
 				Assertions.assertFalse(serverSide.isClosed());

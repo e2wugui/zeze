@@ -138,15 +138,28 @@ public class TestRoleTimer {
 			namedBean.getFuture().get(30, TimeUnit.SECONDS);
 			Assertions.assertEquals(0, newNamedBean1.getTestValue());
 
-			// 在执行完后注册同名NamedTimer，应该成功
+			// 在执行完后注册同名NamedTimer，应该成功——future在最后一次触发的handle内完成，
+			// 而该次触发事务（含命名注册的清理）可能尚未提交：负载下窗口放大（R9孤例留观，
+			// 2026-11-16 soak-20261116-1508 R2二次实锤，res=false返回-1）。失败的事务已回滚
+			// 无副作用，有界重试直到名字释放（testRoleTimerCron1第六轮同款修法）。
 			TestBean newNamedBean2 = new TestBean();
 			newNamedBean2.resetFuture(5);
-			Assertions.assertEquals(Procedure.Success, server0.getZeze().newProcedure(() -> {
-				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, TestOnlineTimerHandle.class, newNamedBean2);
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
-					TimerSpec.ofDelay(1).period(1).times(5), TestOnlineTimerHandle.class, newNamedBean2);
-				return res ? Procedure.Success : Procedure.Exception;
-			}, "testOnlineWithBean").call());
+			boolean registered = false;
+			long deadline = System.currentTimeMillis() + 10_000;
+			while (System.currentTimeMillis() < deadline) {
+				if (server0.getZeze().newProcedure(() -> {
+					//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, TestOnlineTimerHandle.class, newNamedBean2);
+					var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
+						TimerSpec.ofDelay(1).period(1).times(5), TestOnlineTimerHandle.class, newNamedBean2);
+					return res ? Procedure.Success : Procedure.Exception;
+				}, "testOnlineWithBean").call() == Procedure.Success) {
+					registered = true;
+					break;
+				}
+				//noinspection BusyWait
+				Thread.sleep(50);
+			}
+			Assertions.assertTrue(registered, "执行完后注册同名NamedTimer应该成功");
 			newNamedBean2.getFuture().get(30, TimeUnit.SECONDS);
 			log("测试三通过");
 
