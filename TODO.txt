@@ -10,4 +10,5 @@ Dbh2 把“7788 集成形态不监听、探测端点失效”立为新案。
 Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。【好像解决了，留观】
 Dbh2 simulate.bat 启动比较慢，log断断续续的输出。【2026-11-12观察+两次立案，根因全链定位】
 	【raftClient连接一连上（需要建立所有raft-node的连接），server端的leader主动发LeaderIs；raftClient等leader设置成功，最多等1秒】
+	【由于ProxyAgent一开始只建立一条物理机的连接，分布在其他物理机的leader还是无法马上探测到，这个连接模式需要修改。】
 ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
