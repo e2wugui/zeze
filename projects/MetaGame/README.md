@@ -40,3 +40,5 @@ I* 是现有的interface。
 ## 安装教程
 
 ## 使用说明
+
+运行 `gen.bat` 生成代码。`gradle.properties` 中的 `zezeVersion` 同时指定 Java 框架依赖和生成器版本。脚本从本地 Git 标签（例如 `v2.0.4`）提取对应的 `Gen.exe`，并缓存到 `build/gen/<标签>/`。若本地缺少该标签，先运行 `git fetch origin tag v2.0.4`。升级时更新 `zezeVersion`，再用新版本重新生成代码。WorldDemo 使用同一个生成器版本。
