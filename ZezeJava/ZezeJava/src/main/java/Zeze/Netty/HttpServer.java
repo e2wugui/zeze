@@ -745,22 +745,31 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			// 会context.close()）；不再强制结束exchange丢弃响应。请求不完整、永远等不到剩余body的连接
 			// 由checkTimeout的读写空闲超时（默认30/60秒）兜底关闭。与下面ChannelInputShutdownReadComplete
 			// 分支的处置一致。
-			var x = exchanges.get(ctx.channel().id());
-			if (x != null)
-				x.willCloseConnection = true;
-			else if (!ctx.channel().closeFuture().isDone()) {
-				Netty.logger.info("disconnect: {}", ctx.channel().remoteAddress());
-				ctx.close();
-			}
+			closeAfterLastResponse(ctx);
 		} else if (evt == ChannelInputShutdownReadComplete.INSTANCE && !ctx.channel().closeFuture().isDone()) {
 			Netty.logger.info("inputClose: {}", ctx.channel().remoteAddress());
-			var x = exchanges.get(ctx.channel().id());
-			if (x != null)
-				x.willCloseConnection = true;
-			else
-				ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+			closeAfterLastResponse(ctx);
 		}
 		super.userEventTriggered(ctx, evt);
+	}
+
+	// 半关闭只结束输入：pipelining 后序响应可能已 close 并离开 exchanges，
+	// 但仍在序化器中等前序响应。必须让最后一个在途响应的写回执关闭连接，
+	// 不能因最新请求表为空而提前关闭，也不能把关闭意图挂在更早的响应上。
+	private void closeAfterLastResponse(ChannelHandlerContext ctx) {
+		var ch = ctx.channel();
+		HttpExchange last = exchanges.get(ch.id());
+		var seq = ch.attr(HttpExchange.responseOrderKey).get();
+		if (seq != null) {
+			for (var entry : seq.entries.values()) {
+				if (last == null || entry.x.responseOrderId > last.responseOrderId)
+					last = entry.x;
+			}
+		}
+		if (last != null)
+			last.willCloseConnection = true;
+		else if (!ch.closeFuture().isDone())
+			ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 	}
 
 	@Override
