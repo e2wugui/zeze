@@ -54,6 +54,9 @@ public class DatabaseRocksDb extends Database {
 
 	@Override
 	public void renameTable(String oldName, String newName) throws Exception {
+		// 列族相同意味着无需重命名；复制后删除会直接销毁源数据。
+		if (oldName.equals(newName))
+			return;
 		// RocksDB 不支持列族重命名：把旧表数据拷贝到备份列族后再删除原列族，
 		// 对齐其他后端（MySQL RENAME TABLE / PG ALTER TABLE RENAME / Mongo renameCollection）
 		// "版本升级时备份旧表"的语义。不得直接 drop——会销毁旧数据，升级后无任何恢复途径。
