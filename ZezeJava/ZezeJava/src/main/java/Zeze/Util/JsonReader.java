@@ -590,11 +590,19 @@ public final class JsonReader {
 		Parser<? super T> parser = classMeta.parser;
 		if (parser != null)
 			return (T)parser.parse0(this, classMeta, null, obj, null);
-		if (obj != null)
-			return parse0(obj, classMeta);
-		if (ClassMeta.isAbstract(classMeta.klass))
-			throw new InstantiationException("abstract class: " + classMeta.klass.getName());
-		return parse0((T)classMeta.ctor.create(), classMeta);
+		if (obj == null) {
+			if (ClassMeta.isAbstract(classMeta.klass))
+				throw new InstantiationException("abstract class: " + classMeta.klass.getName());
+			obj = (T)classMeta.ctor.create();
+		}
+		// 顶层容器与 write 的 Collection/Map 分派对应。按 Bean 字段反射会把数组
+		// 直接忽略、把 Map 条目当未知字段跳过，自己的输出读回后静默变成空容器。
+		// 无元素类型上下文时沿用显式 parseArray/parseMap 的通用值与追加/合并语义。
+		if (obj instanceof Collection<?>)
+			return (T)parseArray((Collection<@Nullable Object>)obj);
+		if (obj instanceof Map<?, ?>)
+			return (T)parseMap((Map<String, @Nullable Object>)obj);
+		return parse0(obj, classMeta);
 	}
 
 	public <T> T parse0(T obj, ClassMeta<?> classMeta) throws ReflectiveOperationException {
