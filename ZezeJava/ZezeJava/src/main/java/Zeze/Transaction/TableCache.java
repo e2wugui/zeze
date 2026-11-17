@@ -84,9 +84,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	public long walkKey(TableWalkKey<K> callback) throws Exception {
 		long cw = 0;
 		for (var k : dataMap.keySet()) {
+			++cw;
 			if (!callback.handle(k))
 				return callback.endWalk(cw);
-			++cw;
 		}
 		return callback.endWalk(cw);
 	}
