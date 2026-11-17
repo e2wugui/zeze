@@ -39,33 +39,41 @@ static BOOL WINAPI consoleHandler(DWORD event)
     case CTRL_CLOSE_EVENT:
     case CTRL_SHUTDOWN_EVENT:
         JavaVM* jvm = g_jvm;
-        jobject handler = g_handler;
-        jmethodID handlerMethdId = g_handlerMethdId;
-        if (jvm && handler && handlerMethdId)
+        if (jvm)
         {
             JNIEnv* jenv = 0;
             jint r = jvm->GetEnv((void**)&jenv, JNI_VERSION_1_1);
+            bool attached = false;
             if (r == JNI_EDETACHED)
             {
                 r = jvm->AttachCurrentThread((void**)&jenv, 0);
+                attached = r == JNI_OK;
                 if (r != JNI_OK || !jenv)
                     fprintf(stderr, "AttachCurrentThread failed: %d\n", (int)r);
             }
             if (jenv)
             {
-                g_lock.lock();
-                handler = g_handler;
-                handlerMethdId = g_handlerMethdId;
-                if (handler && handlerMethdId)
-                    handler = jenv->NewLocalRef(handler);
-                else
-                    handler = 0;
-                g_lock.unlock();
-                if (!handler)
-                    break;
-                // fprintf(stderr, "CallBooleanMethod: %p,%p,%p,%d\n", jenv, handler, handlerMethdId, (int)event);
-                BOOL b = (BOOL)jenv->CallBooleanMethod(handler, handlerMethdId, (jint)event);
-                // fprintf(stderr, "CallBooleanMethod result: %d\n", (int)b);
+                jobject handler;
+                jmethodID handlerMethdId;
+                {
+                    // 与 hookCloseConsole 的全局引用替换同步，局部引用使锁外回调期间对象存活。
+                    std::lock_guard<std::mutex> guard(g_lock);
+                    handlerMethdId = g_handlerMethdId;
+                    handler = g_handler && handlerMethdId ? jenv->NewLocalRef(g_handler) : 0;
+                }
+                BOOL b = handler ? (BOOL)jenv->CallBooleanMethod(handler, handlerMethdId, (jint)event) : FALSE;
+                if (jenv->ExceptionCheck())
+                {
+                    jenv->ExceptionDescribe();
+                    jenv->ExceptionClear();
+                    b = FALSE;
+                }
+                if (handler)
+                    jenv->DeleteLocalRef(handler);
+                // Windows 创建的控制台线程在回调返回后退出，必须撤销本次 attach。
+                // 已由 JVM 登记的线程归原调用方所有，不能 detach。
+                if (attached)
+                    jvm->DetachCurrentThread();
                 return b;
             }
             fprintf(stderr, "GetEnv failed: %d\n", (int)r);
