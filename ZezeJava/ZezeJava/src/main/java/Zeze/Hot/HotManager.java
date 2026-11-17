@@ -27,6 +27,7 @@ import java.util.zip.ZipEntry;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.Collections.BeanFactory;
 import Zeze.Config;
 import Zeze.IModule;
@@ -413,6 +414,7 @@ public class HotManager extends ClassLoader {
 
 				ArrayList<JarFile> hotJarFiles;
 				ArrayList<HotModule> newModules;
+				var newModuleConfigs = new HashMap<HotModule, BModule.Data>();
 				try {
 					// install
 					for (var namespace : namespaces) {
@@ -441,12 +443,13 @@ public class HotManager extends ClassLoader {
 						}
 					}
 
-					// 新模块jar必须含module.config（addHotModule注册要读），缺失在此抛出走rollback
-					// 恢复旧模块；打包侧Distribute.pack在缺-providerModuleBinds/-config参数时合法跳过
-					// 写入该文件，不预检则拖到commit后不可回滚区，NPE被catch(Throwable)升级为halt。
+					// 保留新模块必须携带配置的检查；有 Provider 时在可回滚阶段完整解码并复用结果，
+					// 防止截断/损坏配置在 commit 后触发 halt。无 Provider 的进程不消费配置内容。
 					for (var module : newModules) {
 						if (module.getJarFile().getEntry(HotModule.eModuleConfigName) == null)
 							throw new RuntimeException("module.config not found. jar=" + module.getName());
+						if (zeze.getProviderApp() != null)
+							newModuleConfigs.put(module, module.loadModuleConfig());
 					}
 
 					if (atomicAll)
@@ -522,7 +525,7 @@ public class HotManager extends ClassLoader {
 						for (var module : newModules) {
 							if (startErrors.contains(module))
 								continue;
-							var moduleConfig = module.loadModuleConfig();
+							var moduleConfig = newModuleConfigs.get(module);
 							providerApp.providerService.addHotModule((IModule)Objects.requireNonNull(module.getService()), moduleConfig);
 						}
 					}
