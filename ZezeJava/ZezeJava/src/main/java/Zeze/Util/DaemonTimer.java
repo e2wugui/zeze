@@ -19,6 +19,7 @@ import org.jspecify.annotations.Nullable;
  * 每轮看门狗超时timeoutMs可配（&lt;=0取{@link Task#defaultTimeout}），
  * stop等待预算=timeoutMs+5s（对齐每轮executeCore看门狗）。
  * 延迟策略二选一：常量periodMs，或LongSupplier逐轮续约时求值（每日锚点重对齐/自适应退避/随机抖动）
+	 * 每轮完成信号覆盖热更guard的获取/关闭和看门狗初始化；初始化失败仍收尾并续约。
  */
 public final class DaemonTimer {
 
@@ -41,7 +42,7 @@ public final class DaemonTimer {
 	private volatile @Nullable CompletableFuture<@Nullable Void> inFlight;
 	private @Nullable ScheduledFuture<?> pending; // 已排期未触发的下一次fire；fire触发时消费置null
 	private long generation; // gate 内递增；已取消的旧 tick 不得进入重新启动后的链。
-	// 在飞body的执行线程：fire清场、runBody入口置位、finishRound归属清除；stop据此识别body内自调。
+	// 在飞轮的执行线程：覆盖guard初始化到关闭，stop据此识别本轮内自调，避免等待自身。
 	private volatile @Nullable Thread bodyThread;
 
 	public DaemonTimer(String name, long periodMs, Action0 body) {
@@ -167,7 +168,9 @@ public final class DaemonTimer {
 			gate.unlock();
 		}
 		try {
-			TaskSpec.ofAction(() -> runBody(f)).name(name).timeout(timeoutMs).runNow();
+			// 本组件拥有整轮的完成信号；不能把收尾放在 Task 的业务回调里，
+			// 否则 hot guard/看门狗在回调前失败时，inFlight 永远无法完成和续约。
+			Task.poolOrThrow(false).execute(() -> runBody(f));
 		} catch (Throwable e) { // 派发失败（worker池关闭等）：守护链不得断裂，收尾并续约下轮
 			finishRound(f);
 			logger.error("DaemonTimer {} dispatch failed, rescheduled", name, e);
@@ -175,21 +178,26 @@ public final class DaemonTimer {
 	}
 
 	private void runBody(CompletableFuture<@Nullable Void> f) {
-		boolean obsolete;
-		gate.lock();
 		try {
-			obsolete = shutdown || inFlight != f;
-			if (!obsolete)
+			gate.lock();
+			try {
+				if (shutdown || inFlight != f)
+					return;
 				bodyThread = Thread.currentThread();
-		} finally {
-			gate.unlock();
-		}
-		if (obsolete) { // stop/restart 后排队的旧轮次不得执行新链的守护体。
-			finishRound(f); // 仍完成在飞信号：正在限时等待的stop立即醒来
-			return;
-		}
-		try {
-			body.run();
+			} finally {
+				gate.unlock();
+			}
+			// guard 的获取和关闭均属于本轮；无论在哪个阶段失败，都由外层 finally 收尾。
+			try (var ignoredHot = Task.hotGuard.create(); var ignored = TimeoutDiagnosable.create(timeoutMs)) {
+				gate.lock();
+				try {
+					if (shutdown || inFlight != f)
+						return; // 获取 guard 期间 stop/restart，旧轮不得进入业务体。
+				} finally {
+					gate.unlock();
+				}
+				Task.callCore(new TaskBody.OfAction(body), name);
+			}
 		} catch (Throwable e) { // 守护体异常不致命：记日志，链继续
 			logger.error("DaemonTimer {} body exception", name, e);
 		} finally {
@@ -233,7 +241,8 @@ public final class DaemonTimer {
 		}
 		try {
 			long expectedGeneration = generation;
-			pending = TaskSpec.ofAction(() -> fire(expectedGeneration)).name(name).scheduleNow(delay);
+			// tick 只管理排期并派发，不访问业务/热模块；其生命周期不能被外层 guard 初始化失败截断。
+			pending = Task.getScheduledThreadPool().schedule(() -> fire(expectedGeneration), delay, TimeUnit.MILLISECONDS);
 		} catch (Throwable e) { // 调度池已关（非瞬时故障）：关门让状态诚实，链断记error
 			shutdown = true;
 			logger.error("DaemonTimer {} reschedule failed, daemon terminated", name, e);
