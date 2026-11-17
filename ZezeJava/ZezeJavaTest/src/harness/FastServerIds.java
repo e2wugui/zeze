@@ -238,6 +238,7 @@ public final class FastServerIds {
 	public static final int TEST_GLOBAL_FATAL_HALT = seg("TestGlobalFatalSaveWindow", 8055, 10);
 
 	public static final int TEST_READ_ONLY_COMMIT_STOP_GATE = seg("TestReadOnlyCommitStopGate", 8070, 3);
+	public static final int TEST_STALE_LOCAL_OFFLINE_OWNERSHIP = seg("TestStaleLocalOfflineOwnership", 8090, 1);
 
 	private FastServerIds() {
 	}
