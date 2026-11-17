@@ -148,6 +148,9 @@ public class HandshakeBase extends Service {
 
 	private long processCHandshakeDone(CHandshakeDone p) {
 		try {
+			// 握手完成是连接生命周期的一次转移；重复通知不能重建业务会话或重复绑定。
+			if (Objects.requireNonNull(p.getSender()).isHandshakeDone())
+				return 0L;
 			//noinspection DataFlowIssue
 			(((TcpSocket)p.getSender())).verifySecurity();
 			OnHandshakeDone(p.getSender());

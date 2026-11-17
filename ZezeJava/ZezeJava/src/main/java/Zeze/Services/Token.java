@@ -355,7 +355,11 @@ public final class Token extends AbstractToken {
 		// 显式断连（否则是握手永不发生的静默挂起，可诊断性更好）。
 		@Override
 		public void OnHandshakeDone(AsyncSocket so) throws Exception {
+			// CHandshakeDone 可重复到达；已订阅的 Session 必须保持到连接销毁时统一退订。
+			if (so.isHandshakeDone())
+				return;
 			so.setUserState(new Session(so));
+			super.OnHandshakeDone(so);
 		}
 
 		@Override
