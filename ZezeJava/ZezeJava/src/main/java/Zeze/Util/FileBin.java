@@ -1,9 +1,5 @@
 package Zeze.Util;
 
-import java.util.Objects;
-
-import org.jspecify.annotations.Nullable;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -33,8 +29,8 @@ public class FileBin {
 	private final String relativeCanonicalFileName;
 	private final File canonicalFile;
 	private final RandomAccessFile randFile;
-	private OutputStream os;
-	private @Nullable MessageDigest md5;
+	private final OutputStream os;
+	private final MessageDigest md5;
 
 	public FileBin(String relativeCanonicalFileName, File baseDir, String path) {
 		this.relativeCanonicalFileName = relativeCanonicalFileName;
@@ -49,6 +45,7 @@ public class FileBin {
 				//noinspection ResultOfMethodCallIgnored
 				parent.mkdirs();
 			openRandFile = new RandomAccessFile(canonicalFile, "rw");
+			md5 = MessageDigest.getInstance("MD5");
 			md5CurrentData();
 			os = new BufferedOutputStream(new FileOutputStream(openRandFile.getFD()));
 		} catch (Exception ex) {
@@ -79,19 +76,20 @@ public class FileBin {
 		return randFile.getChannel().size();
 	}
 
+	/** 调整文件长度并同步摘要；后续 append/CloseFile 校验必须以截断后的内容为基准。 */
 	public synchronized void truncate(long offset) throws IOException {
+		os.flush();
 		randFile.seek(offset);
 		randFile.setLength(offset);
-		os = new BufferedOutputStream(new FileOutputStream(randFile.getFD()));
+		md5CurrentData();
 	}
 
-	private void md5CurrentData() throws IOException, NoSuchAlgorithmException {
-		md5 = MessageDigest.getInstance("MD5");
+	private void md5CurrentData() throws IOException {
+		md5.reset();
 		var buffer = new byte[16 * 1024];
 		try (var input = new BufferedInputStream(new FileInputStream(canonicalFile))) {
 			var len = 0;
 			while ((len = input.read(buffer)) >= 0) {
-				//noinspection DataFlowIssue
 				md5.update(buffer, 0, len);
 			}
 		}
@@ -99,7 +97,7 @@ public class FileBin {
 
 	public synchronized void append(long offset, Binary data) throws IOException, NoSuchAlgorithmException {
 		// 先flush缓冲数据再读channel长度：BufferedOutputStream对len<8192的写只进缓冲，
-		// 不flush时channel.size()滞后，后续小块append会误判offset越界，或truncate重建os丢弃未落盘的缓冲。
+		// 不flush时channel.size()滞后，后续小块append会误判offset越界。
 		os.flush();
 		var length = randFile.getChannel().size();
 		if (offset > length)
@@ -107,7 +105,6 @@ public class FileBin {
 		if (offset < length) {
 			truncate(offset);
 			length = randFile.getChannel().size(); // truncate will change length
-			md5CurrentData();
 		} else {
 			randFile.seek(offset);
 		}
@@ -115,7 +112,7 @@ public class FileBin {
 		if (newLength > length) {
 			var newDataLength = (int)(newLength - length);
 			// 只hash新增部分：是data的尾部newDataLength字节（data前面length-offset字节属于已存在的旧数据）。
-			Objects.requireNonNull(md5).update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
+			md5.update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
 		}
 		os.write(data.bytesUnsafe(), data.getOffset(), data.size());
 		// 写后也flush：append返回即数据在FD上，getLength()/md5()/后续append读到的长度恒一致
@@ -125,7 +122,6 @@ public class FileBin {
 
 	/** 惰性收口：digest() 终结化共享 digest，必须与 append 的 update 序化（在 close 之后调用也安全）。 */
 	public synchronized byte[] md5Digest() {
-		//noinspection DataFlowIssue
 		return md5.digest();
 	}
 
