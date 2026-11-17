@@ -252,7 +252,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 		// 纯读稳定性由记录锁保证，脏集由写者编组；无未注册脏记录和 Onz 时可跳过编组。
 		if (ReadFastPath && !hasDirtyWrite && !hasUnregisteredDirty && onzProcedure == null) {
-			commit.run(); // 保持 setNotFresh 和提交回调语义。
+			commitWithoutRecordSet(checkpoint, procedure, commit, null);
 			return;
 		}
 
@@ -302,13 +302,25 @@ public final class RelativeRecordSet extends ReentrantLock {
 				}
 			} else {
 				// 本次事务没有访问任何数据，也要执行提交，否则 whileCommit 回调会丢失。
-				commit.run();
-				// 空事务也须完成 Onz FlushReady 握手，否则协调者只能等待超时。
-				if (onzProcedure != null)
-					OnzProcedure.sendFlushAndWait(Set.of(onzProcedure));
+				commitWithoutRecordSet(checkpoint, procedure, commit, onzProcedure);
 			}
 		} finally {
 			locked.forEach(ReentrantLock::unlock);
+		}
+	}
+
+	/** 免关联集合锁的提交仍须取得使用权，不能绕过停机闸门。 */
+	private static void commitWithoutRecordSet(Checkpoint checkpoint, Procedure procedure,
+											 Runnable commit, @Nullable OnzProcedure onzProcedure) {
+		if (!checkpoint.tryBeginCommit())
+			throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
+		try {
+			commit.run();
+			// 空事务也须完成 Onz FlushReady 握手，否则协调者只能等待超时。
+			if (onzProcedure != null)
+				OnzProcedure.sendFlushAndWait(Set.of(onzProcedure));
+		} finally {
+			checkpoint.endCommit();
 		}
 	}
 
