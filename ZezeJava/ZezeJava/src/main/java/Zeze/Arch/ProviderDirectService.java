@@ -240,6 +240,8 @@ public class ProviderDirectService extends HandshakeBoth {
 	void setRelativeServiceReady(ProviderSession ps, @Nullable String ip, int port) {
 		lock();
 		try {
+			if (ps.directClosed)
+				return;
 			ps.serverLoadIp = ip;
 			ps.serverLoadPort = port;
 			// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
@@ -321,26 +323,34 @@ public class ProviderDirectService extends HandshakeBoth {
 	@Override
 	public void OnSocketClose(AsyncSocket socket, @Nullable Throwable ex) throws Exception {
 		var ps = (ProviderSession)socket.getUserState();
-		if (ps != null) {
-			for (var service : ps.ServiceReadyStates.entrySet()) {
-				//noinspection DataFlowIssue
-				var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
-				if (subs == null)
-					continue; // 服务已取消订阅（subscribeStates条目已移除）。不判空会在下面NPE，跳过后面的清理。
-				for (var stateEntry : service.getValue().entrySet()) {
-					// 条件删除：重连后的新会话可能已重新setReady覆盖该identity，
-					// 只清除仍属于当前关闭会话的localState，避免误删新会话的路由状态。
-					subs.getLocalStates().remove(stateEntry.getKey(), stateEntry.getValue());
+		// 与setRelativeServiceReady/addServer的发布保持全序：先发布则本次清理可见全部
+		// ReadyStates；先关闭则directClosed阻止迟到的握手/announce把死会话重新写回。
+		lock();
+		try {
+			if (ps != null) {
+				ps.directClosed = true;
+				for (var service : ps.ServiceReadyStates.entrySet()) {
+					//noinspection DataFlowIssue
+					var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
+					if (subs == null)
+						continue; // 服务已取消订阅（subscribeStates条目已移除）。不判空会在下面NPE，跳过后面的清理。
+					for (var stateEntry : service.getValue().entrySet()) {
+						// 条件删除：重连后的新会话可能已重新setReady覆盖该identity，
+						// 只清除仍属于当前关闭会话的localState，避免误删新会话的路由状态。
+						subs.getLocalStates().remove(stateEntry.getKey(), stateEntry.getValue());
+					}
 				}
+				// 条件删除：迟到的关闭事件不得误删同loadName/serverId的新会话注册
+				// （remove+add churn时新会话先完成握手，旧连接的关闭回调后到）。
+				providerByLoadName.remove(ps.getServerLoadName(), ps);
+				providerByServerId.remove(ps.getServerId(), ps);
+				// 会话终结：取消其TimeCounter的每秒discard周期任务，避免随会话更替无界泄漏。
+				ps.timeCounter.close();
 			}
-			// 条件删除：迟到的关闭事件不得误删同loadName/serverId的新会话注册
-			// （remove+add churn时新会话先完成握手，旧连接的关闭回调后到）。
-			providerByLoadName.remove(ps.getServerLoadName(), ps);
-			providerByServerId.remove(ps.getServerId(), ps);
-			// 会话终结：取消其TimeCounter的每秒discard周期任务，避免随会话更替无界泄漏。
-			ps.timeCounter.close();
+		} finally {
+			unlock();
+			super.OnSocketClose(socket, ex);
 		}
-		super.OnSocketClose(socket, ex);
 	}
 
 	@Override

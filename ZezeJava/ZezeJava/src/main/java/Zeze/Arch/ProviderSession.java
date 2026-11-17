@@ -20,6 +20,8 @@ public class ProviderSession {
 	protected volatile long appVersion;
 	protected volatile int serverLoadPort;
 	protected volatile boolean disableChoice = false;
+	// ProviderDirectService锁保护：关闭后拒绝迟到的握手/announce重新发布路由。
+	boolean directClosed;
 
 	/**
 	 * 下面维护和本Session相关的订阅Ready状态。在Session关闭时需要取消Ready状态。
