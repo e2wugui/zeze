@@ -803,7 +803,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (isAutoKey())
 			autoKey = app.getAutoKey(getName());
 
-		setTableConf(app.getConfig().getTableConf(getName()));
+		setTableConf(app.getConfig().getTableConf(getConfigName()));
 		cache = new TableCache<>(app, this);
 		//noinspection DataFlowIssue
 		relationalTable = isRelationalMapping() ? getZeze().getSchemas().newRelationalTable(getZeze(), this) : null;
@@ -813,6 +813,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//noinspection DataFlowIssue
 		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName(), getId());
 		return storage;
+	}
+
+	/** 动态表可使用模板配置；数据库选择与表运行配置须来自同一配置名。 */
+	protected String getConfigName() {
+		return getName();
 	}
 
 	@Override

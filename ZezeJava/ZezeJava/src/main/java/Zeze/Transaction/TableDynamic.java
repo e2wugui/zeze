@@ -19,6 +19,7 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	private final boolean isAutoKey;
 	private final Class<? extends Comparable<?>> keyClass;
 	private final Class<? extends Bean> valueClass;
+	private final String configName;
 
 	public TableDynamic(Application zeze, String tableName, TableX<K, V> template) {
 		this(zeze, tableName,
@@ -53,10 +54,14 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 		this.keyClass = keyClass;
 		this.valueClass = valueClass;
 
-		if (tplTableName == null)
-			tplTableName = tableName;
+		configName = tplTableName != null ? tplTableName : tableName;
 		//noinspection DataFlowIssue
-		zeze.openDynamicTable(zeze.getConfig().getTableConf(tplTableName).getDatabaseName(), this);
+		zeze.openDynamicTable(zeze.getConfig().getTableConf(configName).getDatabaseName(), this);
+	}
+
+	@Override
+	protected String getConfigName() {
+		return configName;
 	}
 
 	@Override
