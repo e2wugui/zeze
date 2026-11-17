@@ -155,6 +155,7 @@ public class HotDistribute extends AbstractHotDistribute {
         } finally {
             lock.unlock();
         }
+        r.SendResult();
         return 0;
     }
 
