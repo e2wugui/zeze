@@ -210,7 +210,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 				// cancel=settle：队列侧丢弃任务的三条路径都会执行task.cancel核销该key计数。
 				execute(key, new TaskOneByOneQueue.TaskBodyTask(
 						new TaskBody.OfAction(() -> batch.run(key, settle)), null, settle, mode));
-			} catch (RuntimeException ex) {
+			} catch (Throwable ex) {
 				// 提交失败：本key未入队或已被回滚清队核销（幂等防双重），未尝试的key
 				// 一次性核销——batchEnd不再永久悬挂。
 				settle.run();
@@ -234,7 +234,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			try {
 				execute(key, new TaskOneByOneQueue.TaskBodyTask(
 						new TaskBody.OfAction(() -> batch.run(key, settle)), null, settle, mode));
-			} catch (RuntimeException ex) {
+			} catch (Throwable ex) {
 				settle.run();
 				batch.abandon(remaining[0]);
 				throw ex;
