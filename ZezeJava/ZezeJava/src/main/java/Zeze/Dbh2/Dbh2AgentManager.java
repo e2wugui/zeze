@@ -19,6 +19,7 @@ import Zeze.Dbh2.Master.MasterTable;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
+import Zeze.Net.TcpSocket;
 import Zeze.Raft.ProxyAgent;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AbstractAgent;
@@ -154,7 +155,11 @@ public class Dbh2AgentManager extends ReentrantLock {
 		//noinspection DataFlowIssue
 		commit.getService().getConfig().forEachAcceptor2((a) -> {
 			ip[0] = a.getIp();
-			port[0] = a.getPort();
+			// 发布实际绑定端口：Port=0自动分配时（多App同JVM同配置各得唯一端口，如Simulate 5-App）
+			// 配置端口是0，必须回读活socket的真实端口，端点才成立；未启动回退配置端口（0由下方
+			// 校验拒绝——不允许发布未绑定的死端点）。绑定在service.start()内同步完成。
+			var local = a.getSocket() instanceof TcpSocket tcp ? tcp.getLocalInet() : null;
+			port[0] = local != null ? local.getPort() : a.getPort();
 			return false;
 		});
 		if (ip[0] == null || port[0] == 0)
@@ -187,6 +192,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 		if (config.isDbh2LocalCommit()) {
 			//noinspection DataFlowIssue
 			commit.start();
+			// 发布的探测端点落地成日志：Port=0自动分配时实际端口只在运行时存在，悬挂事务
+			// 运维（桶侧query目标）需要它可见。绑定已同步完成，此时必非0端口。
+			logger.info("Dbh2 local commit query endpoint: {}", commitServiceAcceptor());
 		} else {
 			//noinspection DataFlowIssue
 			commitAgent.startAndWaitConnectionReady();
@@ -695,21 +703,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 				(agent, bucket, exclusive, limit) -> {
 					var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 					// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
+					// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
+					// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
+					// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
 					if (r.getResultCode() != 0 && r.getResultCode() != Zeze.Transaction.Procedure.RaftApplied)
 						throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
 					var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
@@ -734,21 +730,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 			(agent, bucket, exclusive, limit) -> {
 				var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 				// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
+				// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
+				// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
+				// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
 				if (r.getResultCode() != 0 && r.getResultCode() != Zeze.Transaction.Procedure.RaftApplied)
 					throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
 				return deliverWalkPage(r, callback, Binary::copyIf);
@@ -768,21 +752,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 				(agent, bucket, exclusive, limit) -> {
 					var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 					// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
+					// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
+					// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
+					// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
 					if (r.getResultCode() != 0 && r.getResultCode() != Zeze.Transaction.Procedure.RaftApplied)
 						throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
 					var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
@@ -807,21 +779,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 			(agent, bucket, exclusive, limit) -> {
 				var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 				// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-	// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
+				// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
+				// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
+				// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
 				if (r.getResultCode() != 0 && r.getResultCode() != Zeze.Transaction.Procedure.RaftApplied)
 					throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
 				return deliverWalkPage(r, callback, Binary::copyIf);

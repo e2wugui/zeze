@@ -42,6 +42,8 @@ Master 知道所有数据库、所有表、所有桶的分布情况。提供表�
 
 单实例语义：事务的 commitPoint/commitIndex 集中在该 CommitServer 的 `CommitRocks` 库中，多实例部署时事务状态分散在不同服务器上、没有统一的 redo 视角，因此本配置只支持一个 CommitServer 实例（换地址需修改配置并重启应用）。
 
+本地提交模式（`Dbh2LocalCommit="true"`，默认）下，提交协调内嵌在应用进程中：`Application.start()` 随启动拉起 `Dbh2AgentManager`，其 Commit 服务监听 `Zeze.Dbh2.Commit` Acceptor——这个地址就是桶端悬挂事务回查（探测）端点，随事务 prepare 发布给各桶并持久化，必须真实可连。`Port="0"` 时自动分配唯一端口（适用多应用同机同配置部署，如 Simulate 多 App），实际端口在绑定后发布。
+
 ## Bucket 分桶机制
 
 Bucket 是 Dbh2 的核心数据单元，每个桶管理一张表在一个 Key 范围内的记录。

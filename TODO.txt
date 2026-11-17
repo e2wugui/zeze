@@ -1,11 +1,23 @@
 kotlinx-collections-immutable-jvm transient/builder 结合进事务 zeze-2.0.0 有项目正式采用后才修改。
 ScopedValue jdk25 zeze-3.0.0 之后启用。ArrayList + SpinLock 实现的Transaction对象池。对象池是否有用需要先bench。
+ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
+	🎯 首选方案：使用 VirtualThreadSchedulerMXBean (JDK 24+)
+	这是 JDK 官方提供的标准化监控接口，能让你以编程方式直接获取调度器的实时负载指标，非常适合集成到你的监控体系中。
+	关键指标与负载含义：
+	指标	方法	负载含义
+	排队虚拟线程数	getQueuedVirtualThreadCount()	最直接的压力信号。数值持续偏高，说明调度器忙不过来，大量虚拟线程在等待载体线程执行。
+	已挂载虚拟线程数	getMountedVirtualThreadCount()	当前正在载体线程上运行的虚拟线程估计值。与并行度对比，可判断载体线程是否被充分利用。
+	目标并行度	getParallelism()	调度器允许同时使用的载体线程数上限（默认等于 CPU 核心数）。
+	载体线程池大小	getPoolSize()	调度器当前已启动的载体线程数量。
+	QueueDepthRatio= getQueuedVirtualThreadCount() / getParallelism() < 1 健康； < 2 承压； > 2 告警；
+​
 Dbh2 sync write 问题。ai过于考虑安全性，把好几个地方的写改成sync write了。
 	table-meta可以sync write，其他事务都应该不需要。最好是可配置方式（可能已经有了）。
 	单机RocksDb也要看看，可能也被改了。
+
 History tid 分配方案，目前是锁内一次一个的分配，性能不行。
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
-Dbh2 把“7788 集成形态不监听、探测端点失效”立为新案。
+
 Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。【好像解决了，留观】
-ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
+

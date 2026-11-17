@@ -791,6 +791,13 @@ public final class Application extends ReentrantLock {
 			}
 		}
 
+		// Dbh2管理器随启动闭环（"7788集成形态不监听"立案）：本地提交的CommitService必须真实监听
+		// ——悬挂事务探测端点=Zeze.Dbh2.Commit Acceptor（commitServiceAcceptor发布），无人监听时
+		// 桶侧探测永远失败→事务锁死桶键→后来者撞键；redo守护同随start启用。远程提交分支只连接
+		// CommitServer不绑定。stop()早已对称调用manager.stop()。manager非null ⇔ 配置了Dbh2库。
+		if (dbh2AgentManager != null)
+			dbh2AgentManager.start();
+
 		if (hasDatabase) {
 			atomicOpenDatabase();
 
