@@ -122,10 +122,13 @@ public class TestLocalCacheDirectoryDeletion {
 
 	private static void awaitRetry(Thread worker) throws InterruptedException {
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-		while (worker.isAlive() && worker.getState() != Thread.State.TIMED_WAITING
-				&& System.nanoTime() < deadline)
+		while (worker.isAlive() && System.nanoTime() < deadline) {
+			// 一次观察到退避即满足前置条件；随后重新取状态可能已正常醒来。
+			if (worker.getState() == Thread.State.TIMED_WAITING)
+				return;
 			Thread.sleep(1);
-		assertEquals(Thread.State.TIMED_WAITING, worker.getState(), "delete should be waiting to retry");
+		}
+		fail("delete should be waiting to retry, state=" + worker.getState());
 	}
 
 	@Test
