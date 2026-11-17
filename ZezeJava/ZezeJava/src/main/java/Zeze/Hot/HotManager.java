@@ -643,7 +643,6 @@ public class HotManager extends ClassLoader {
 
 		if (!interfaceSrc.renameTo(interfaceDst))
 			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDst);
-		putJar(interfaceDst);
 		txn.whileRollback(() -> {
 			// 先释放putJar打开的句柄（含zipEntries索引清理）——Windows下
 			// rename打开着的文件必失败，回退就永远走不到；逆序执行时本动作先于旧interface
@@ -652,6 +651,9 @@ public class HotManager extends ClassLoader {
 			if (!interfaceDst.renameTo(interfaceSrc))
 				logger.error("uninstall interface {} -> {} fail", interfaceDst, interfaceSrc);
 		});
+		// 文件移动成功即登记补偿；putJar 打开损坏的 zip 也可能抛出，旧备份恢复前
+		// 必须先移走这个新文件（Windows renameTo 不覆盖已存在目标）。
+		putJar(interfaceDst);
 		throwIfMatch("install2");
 
 		// 安装 module
