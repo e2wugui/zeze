@@ -235,7 +235,7 @@
                 alert('请先等待当前记录加载完成');
                 return;
             }
-            if (!table || !key) {
+            if (!table || document.getElementById('keyList').selectedIndex < 0) {
                 alert('Please select a table and a key.');
                 return;
             }
