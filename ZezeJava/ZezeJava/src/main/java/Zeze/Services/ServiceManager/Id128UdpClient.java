@@ -264,8 +264,7 @@ public class Id128UdpClient {
 					continue;
 				}
 
-				// 1. 仅给当前的future报告错误,链表保持不变(残留),以后的设置结果和报错由future保证不会重复.
-				// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面代码刚好可以工作.
+				// 仅使本请求超时；其前驱仍可能由各自响应完成。扫描结束后统一摘除已完成节点。
 				var futureNode = r.getFutureNode();
 				//noinspection DataFlowIssue
 				if (futureNode.pending.get() > 0) {
@@ -273,6 +272,26 @@ public class Id128UdpClient {
 					futureNode.pending.set(0); // 用来标记futureNode已经设置过结果.
 				}
 				pendingRpc.remove(eIt.key());
+			}
+			// 超时/发送失败的节点也必须退出按名字保存的链，否则服务持续不可达时
+			// tailFuture会永久强引用全部历史请求。与allocateFuture的prepend使用同一
+			// compute锁；保留仍在途的节点，后续响应仍可完成它们。
+			for (var name : tailFuture.keySet()) {
+				tailFuture.computeIfPresent(name, (__, tail) -> {
+					while (tail != null && tail.pending.get() <= 0) {
+						var previous = tail.prev;
+						tail.prev = null;
+						tail = previous;
+					}
+					for (var node = tail; node != null; node = node.prev) {
+						while (node.prev != null && node.prev.pending.get() <= 0) {
+							var completed = node.prev;
+							node.prev = completed.prev;
+							completed.prev = null;
+						}
+					}
+					return tail;
+				});
 			}
 		}
 	}
