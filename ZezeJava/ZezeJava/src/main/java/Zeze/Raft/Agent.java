@@ -306,13 +306,14 @@ public final class Agent {
 	}
 
 	public void stop() throws Exception {
+		Future<?> toCancel = null;
 		mutex.lock(); // stop 不中断
 		try {
 			// 置位先于一切清理（含pending排空），与send/sendForWait注册后的检查共同封住
 			// "stop后注册、无人驱动"窗口（FND29 dbh2-02），见stopped字段注释。
 			stopped = true;
 			if (resendTask != null) {
-				resendTask.cancel(true);
+				toCancel = resendTask;
 				resendTask = null;
 			}
 			if (client == null)
@@ -357,6 +358,10 @@ public final class Agent {
 			}
 		} finally {
 			mutex.unlock();
+			// TimerFuture.cancel 等待在飞周期轮退出；resend 本身也获取 mutex。
+			// 必须先放锁，让已准入的 resend 观察 stopped 并退出，再排空周期任务。
+			if (toCancel != null)
+				toCancel.cancel(true);
 		}
 	}
 
