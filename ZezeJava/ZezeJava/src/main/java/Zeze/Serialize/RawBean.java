@@ -68,7 +68,9 @@ public class RawBean extends Bean {
 	@Override
 	public void decode(IByteBuffer bb) {
 		int i = bb.getReadIndex();
-		bb.skipAllUnknownFields(bb.ReadByte());
+		int tag = bb.ReadByte();
+		bb.ReadTagSize(tag);
+		bb.skipAllUnknownFields(tag);
 		rawData = new Binary(bb.getBytes(i, bb.getReadIndex() - i));
 	}
 
