@@ -441,6 +441,8 @@ public final class GenModule extends ReentrantLock {
 					sb.appendLine("{}_redirect_.sendVoid(_t_, _p_, \"{}:{}\");", prefix, moduleFullName, m.method.getName());
 				else {
 					sb.appendLine("{}if (!_p_.Send(_t_, _rpc_ -> {", prefix);
+					sb.appendLine("{}    try {", prefix);
+					prefix += "    ";
 					sb.appendLine("{}    if (_rpc_.isTimeout()) {", prefix);
 					sb.appendLine("{}        _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);", prefix);
 					sb.appendLine("{}        return Zeze.Transaction.Procedure.Success;", prefix);
@@ -475,6 +477,12 @@ public final class GenModule extends ReentrantLock {
 						sb.appendLine("{}    }", prefix);
 						sb.appendLine("{}    _f_.setResult(_r_);", prefix);
 					}
+					prefix = prefix.substring(0, prefix.length() - 4);
+					sb.appendLine("{}    } catch (Throwable _decodeError_) {", prefix);
+					sb.appendLine("{}        if (_f_.isDone())", prefix);
+					sb.appendLine("{}            throw Zeze.Util.Task.forceThrow(_decodeError_);", prefix);
+					sb.appendLine("{}        _f_.setException(_decodeError_);", prefix);
+					sb.appendLine("{}    }", prefix);
 					sb.appendLine("{}    return Zeze.Transaction.Procedure.Success;", prefix);
 					if (m.annotation instanceof RedirectHash)
 						sb.appendLine("{}}, {})) {", prefix, ((RedirectHash)m.annotation).timeout());

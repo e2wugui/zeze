@@ -32,16 +32,22 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             _a_.setParams(new Zeze.Net.Binary(_b_));
 
             if (!_p_.Send(_t_, _rpc_ -> {
-                if (_rpc_.isTimeout()) {
-                    _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);
-                    return Zeze.Transaction.Procedure.Success;
+                try {
+                    if (_rpc_.isTimeout()) {
+                        _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);
+                        return Zeze.Transaction.Procedure.Success;
+                    }
+                    var _c_ = _rpc_.getResultCode();
+                    if (_c_ != Zeze.Transaction.Procedure.Success) {
+                        _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, "resultCode=" + _c_));
+                        return Zeze.Transaction.Procedure.Success;
+                    }
+                    _f_.setResult(_rpc_.Result.isNullParam() ? null : Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Result.getParams()).ReadLong());
+                } catch (Throwable _decodeError_) {
+                    if (_f_.isDone())
+                        throw Zeze.Util.Task.forceThrow(_decodeError_);
+                    _f_.setException(_decodeError_);
                 }
-                var _c_ = _rpc_.getResultCode();
-                if (_c_ != Zeze.Transaction.Procedure.Success) {
-                    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, "resultCode=" + _c_));
-                    return Zeze.Transaction.Procedure.Success;
-                }
-                _f_.setResult(_rpc_.Result.isNullParam() ? null : Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Result.getParams()).ReadLong());
                 return Zeze.Transaction.Procedure.Success;
             }, 30000)) {
                 _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
@@ -80,16 +86,22 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             _a_.setParams(new Zeze.Net.Binary(_b_));
 
             if (!_p_.Send(_t_, _rpc_ -> {
-                if (_rpc_.isTimeout()) {
-                    _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);
-                    return Zeze.Transaction.Procedure.Success;
+                try {
+                    if (_rpc_.isTimeout()) {
+                        _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);
+                        return Zeze.Transaction.Procedure.Success;
+                    }
+                    var _c_ = _rpc_.getResultCode();
+                    if (_c_ != Zeze.Transaction.Procedure.Success) {
+                        _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, "resultCode=" + _c_));
+                        return Zeze.Transaction.Procedure.Success;
+                    }
+                    _f_.setResult(_rpc_.Result.isNullParam() ? null : Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Result.getParams()).ReadLong());
+                } catch (Throwable _decodeError_) {
+                    if (_f_.isDone())
+                        throw Zeze.Util.Task.forceThrow(_decodeError_);
+                    _f_.setException(_decodeError_);
                 }
-                var _c_ = _rpc_.getResultCode();
-                if (_c_ != Zeze.Transaction.Procedure.Success) {
-                    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, "resultCode=" + _c_));
-                    return Zeze.Transaction.Procedure.Success;
-                }
-                _f_.setResult(_rpc_.Result.isNullParam() ? null : Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Result.getParams()).ReadLong());
                 return Zeze.Transaction.Procedure.Success;
             }, 30000)) {
                 _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
