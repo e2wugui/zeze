@@ -20,7 +20,10 @@ import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
 import org.pcollections.TreePMap;
 
-/** 事务 SortedMap（2系）：Comparable 键，Bean 值受管。 */
+/**
+ * 事务 SortedMap（2系）：Comparable 键，Bean 值受管。
+ * 未受管 Map 可暂存受管值的引用；值仍归原容器所有，不能随临时 Map 再次挂接受管。
+ */
 public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSortedMap<K, V> {
 	protected final SortedMap2Meta<K, V> meta;
 
@@ -89,7 +92,9 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			assert parent() != null;
 			return mapLog.put(key, value);
 		}
-		value.mapKey(key);
+		// 未受管容器可以暂存引用，但不能改写其他受管容器拥有的定位信息。
+		if (!value.isManaged())
+			value.mapKey(key);
 		V oldV = map.get(key);
 		map = map.plus(key, value);
 		return oldV;
@@ -127,7 +132,8 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		} else {
 			var newMap = map.plusAll(m);
 			for (var e : m.entrySet())
-				e.getValue().mapKey(e.getKey());
+				if (!e.getValue().isManaged())
+					e.getValue().mapKey(e.getKey());
 			map = newMap;
 		}
 	}
@@ -220,14 +226,21 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 	@Override
 	protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-		for (V v : map.values())
-			v.initRootInfo(root, this);
+		for (var e : map.entrySet()) {
+			var value = e.getValue();
+			value.initRootInfo(root, this);
+			// 挂接前可能经过多个未受管容器，定位键以最终取得所有权的容器为准。
+			value.mapKey(e.getKey());
+		}
 	}
 
 	@Override
 	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
-		for (V v : map.values())
-			v.initRootInfoWithRedo(root, this);
+		for (var e : map.entrySet()) {
+			var value = e.getValue();
+			value.initRootInfoWithRedo(root, this);
+			value.mapKey(e.getKey());
+		}
 	}
 
 	@Override

@@ -20,7 +20,10 @@ import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
-/** 事务 Map（2系）：Bean 值受管，原位修改同样记账。 */
+/**
+ * 事务 Map（2系）：Bean 值受管，原位修改同样记账。
+ * 未受管 Map 可暂存受管值的引用；值仍归原容器所有，不能随临时 Map 再次挂接受管。
+ */
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	protected final Map2Meta<K, V> meta;
 
@@ -76,7 +79,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			value.mapKey(key);
 			return mapLog.put(key, value);
 		}
-		value.mapKey(key);
+		// 未受管容器可以暂存引用，但不能改写其他受管容器拥有的定位信息。
+		if (!value.isManaged())
+			value.mapKey(key);
 		V oldV = map.get(key);
 		map = map.plus(key, value);
 		return oldV;
@@ -110,7 +115,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			mapLog.putAll(m);
 		} else {
 			for (var e : m.entrySet())
-				e.getValue().mapKey(e.getKey());
+				if (!e.getValue().isManaged())
+					e.getValue().mapKey(e.getKey());
 			map = map.plusAll(m);
 		}
 	}
@@ -200,14 +206,21 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	protected void initChildrenRootInfo(Record.RootInfo root) {
-		for (V v : map.values())
-			v.initRootInfo(root, this);
+		for (var e : map.entrySet()) {
+			var value = e.getValue();
+			value.initRootInfo(root, this);
+			// 挂接前可能经过多个未受管容器，定位键以最终取得所有权的容器为准。
+			value.mapKey(e.getKey());
+		}
 	}
 
 	@Override
 	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
-		for (V v : map.values())
-			v.initRootInfoWithRedo(root, this);
+		for (var e : map.entrySet()) {
+			var value = e.getValue();
+			value.initRootInfoWithRedo(root, this);
+			value.mapKey(e.getKey());
+		}
 	}
 
 	@Override
