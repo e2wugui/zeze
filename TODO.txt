@@ -16,13 +16,13 @@ ai过于考虑安全性，原来审核时，把好几个RocksDb相关的地方�
 应该根据重要性，只有某些特别重要的sync write，其他的可配置。
 根据资料，混合写选项模式不是很好衡量，是否部分sync write，部分普通写，
 这个方案需要仔细考虑。现在需要对下面几个部分进行全面规划，是否采取这个方案：
-提供配置，所有写同一个选项。高安全应用选择sync write，普通要求高性能应用选择
-普通写，达到“操作系统缓冲区”级别的安全即可。
+提供配置，所有写同一个选项。高安全应用选择sync write，普通高性能应用选择普通写。
 0. Util.RocksDatabase 属于基本实现，无配置，api上提供写选项选择。
-1. DbType.RocksDb sync write 审核。可以配置。
+1. DbType.RocksDb sync write 审核。可以配置，url里面提供选项。
 2. Raft sync write 审核。可以配置。
 3. RocksRaft sync write 审核。可以配置。
 4. Dbh2 sync write 审核。可以配置。
+以上可配置的实现如果原来已有配置文件，可以在里面加选项，没有配置的考虑一下方案。
 
 History tid 分配方案，目前是锁内一次一个的分配，性能不行。
 DatabaseTikv.OperatesTikv
