@@ -13,7 +13,7 @@ HERE = Path(__file__).resolve().parent
 FORMAL = HERE.parent
 ROOT = FORMAL.parents[1]
 JAR = FORMAL / 'serializability/build/tools/tla2tools.jar'
-JAVA = Path(r'C:\Program Files\Eclipse Adoptium\jdk-21.0.13+9') / 'bin/java.exe'
+JAVA = Path(os.environ.get('JAVA_HOME', r'C:\Program Files\Eclipse Adoptium\jdk-21.0.13+9')) / 'bin/java.exe'
 SHA = '936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88'
 
 def digest(p):
