@@ -51,8 +51,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	/** close-safe 门：close 安全契约在资源层实现（见 {@link #close()} 的契约说明）。 */
 	private volatile boolean closing = false;
 	private final java.util.concurrent.atomic.LongAdder inflightOps = new java.util.concurrent.atomic.LongAdder();
-	// 登记在册迭代器（创建时登记；排空时按 isOwningHandle 剔除已关闭的——无法hook其close()，
-	// 泄漏未关的迭代器会使排空等到预算超时后告警继续，属既定ε口径）。
+	// 仅登记尚未关闭的迭代器；RegisteredIterator 在 native close 完成后注销，
+	// 避免长寿命数据库永久保留每次扫描的已关闭包装对象。
 	private final java.util.Set<RocksIterator> openIterators = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	private static final long CLOSE_DRAIN_BUDGET_MS = Long.getLong("rocksdb.closeDrainBudgetMs", 30_000);
 
@@ -615,7 +615,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	 *    {@link #destroyColumnFamily} 同一终结原语的①置标记段——使用方租约（mq fill 的批量
 	 *    迭代检查点）在下一个批量边界放弃，排空窗口从"整个 fill 批次"收窄到"当前批量边界"），
 	 *    锁外有界排空（默认30s，系统属性 rocksdb.closeDrainBudgetMs 可调）等待在飞计数归零
-	 *    +登记迭代器全部关闭（已关闭的迭代器按 isOwningHandle 剔除），然后才持锁释放句柄。
+	 *    +登记迭代器全部完成 native close 并注销，然后才持锁释放句柄。
 	 *    锁外等待的原因：在飞操作可能需要管理锁（borrowBatch等）才能退出，持锁等待会死锁。
 	 * 3. 残余ε（与全仓有界排空口径一致）：排空超预算则告警后继续释放，此时仍在飞的
 	 *    调用/未关闭迭代器的后续操作有崩溃风险；泄漏未 close 的迭代器会使每次 close
@@ -637,7 +637,6 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 		var deadline = System.currentTimeMillis() + CLOSE_DRAIN_BUDGET_MS;
 		while (System.currentTimeMillis() < deadline) {
-			openIterators.removeIf(it -> !it.isOwningHandle());
 			if (inflightOps.sum() == 0 && openIterators.isEmpty())
 				break;
 			try {
@@ -1043,15 +1042,16 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		public RocksIterator iterator() {
 			RocksDatabase.this.enterOp();
 			try {
-				var it = rocksDb.newIterator(cfHandle, defaultReadOptions);
+				var nativeIterator = rocksDb.newIterator(cfHandle, defaultReadOptions);
 				// 登记完成后才释放创建租约，close 的两种排空保护连续交接。
 				try {
+					var it = new RegisteredIterator(nativeIterator);
 					RocksDatabase.this.openIterators.add(it);
+					return it;
 				} catch (Throwable e) {
-					it.close();
+					nativeIterator.close();
 					throw e;
 				}
-				return it;
 			} finally {
 				RocksDatabase.this.exitOp();
 			}
@@ -1095,6 +1095,27 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			}
 		}
 
+	}
+
+	/** 保持 RocksIterator 返回类型；隐藏的原始包装器是 native 句柄的唯一释放出口。 */
+	private final class RegisteredIterator extends RocksIterator {
+		private final RocksIterator nativeIterator;
+
+		RegisteredIterator(RocksIterator nativeIterator) {
+			super(rocksDb, nativeIterator.getNativeHandle());
+			this.nativeIterator = nativeIterator;
+		}
+
+		@Override
+		protected void disposeInternal() {
+			try {
+				// 不调用 super.disposeInternal()，否则两个包装器会重复释放同一 native 句柄。
+				nativeIterator.close();
+			} finally {
+				// 不能在 owningHandle 变为 false 时提前摘除：此时 native close 可能仍在进行。
+				openIterators.remove(this);
+			}
+		}
 	}
 
 	public class Batch implements Closeable {
