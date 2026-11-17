@@ -111,8 +111,11 @@ public class DistributeServer {
 				loadBean(home, file);
 				continue;
 			}
-			var relative = home.relativize(file.toPath());
-			loadBean(relative.toString().replace('\\', '/').replace('/', '.'));
+			if (!file.getName().endsWith(".class"))
+				continue;
+			var relative = home.relativize(file.toPath()).toString();
+			loadBean(relative.substring(0, relative.length() - ".class".length())
+					.replace('\\', '/').replace('/', '.'));
 		}
 	}
 
