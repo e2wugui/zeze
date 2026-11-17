@@ -72,6 +72,8 @@ public final class ProviderModuleBinds {
 				case "ChoiceTypeHashRoleId" -> BModule.ChoiceTypeHashRoleId;
 				case "ChoiceTypeHashSourceAddress" -> BModule.ChoiceTypeHashSourceAddress;
 				case "ChoiceTypeFeedFullOneByOne" -> BModule.ChoiceTypeFeedFullOneByOne;
+				case "ChoiceTypeLoad" -> BModule.ChoiceTypeLoad;
+				case "ChoiceTypeRequest" -> BModule.ChoiceTypeRequest;
 				default -> BModule.ChoiceTypeDefault;
 			};
 		}
