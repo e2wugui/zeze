@@ -123,6 +123,8 @@ public class GlobalCacheManagerWithRaft
 		if (config == null)
 			config = Config.load();
 		config.parseCustomize(this.gcmConfig);
+		achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing,
+				gcmConfig.serverProcessTime, gcmConfig.serverReleaseTimeout);
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync);
 
 		RegisterRocksTables(rocks);
@@ -150,18 +152,25 @@ public class GlobalCacheManagerWithRaft
 
 		ZezeCounter.tryInit();
 
-		rocks.getRaft().getServer().start();
-
-		// perf 须在 server.start() 成功之后创建：构造中途失败时实例不可达、close() 永不可达，
-		// 先创建则 1s 周期任务泄漏；perf 在 start() 前无引用方，时序安全
+		// 请求处理会引用 perf 与安全期限配置，须全部就绪后才能开放监听。
 		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
 		achillesHeelDaemonTimer = new DaemonTimer("GlobalCacheManagerWithRaft.AchillesHeelDaemon", 5000,
 				this::achillesHeelDaemon);
-		achillesHeelDaemonTimer.start();
+		try {
+			rocks.getRaft().getServer().start();
+			achillesHeelDaemonTimer.start();
+		} catch (Throwable e) {
+			// 构造失败后调用方拿不到实例，必须在这里回收提前就绪的周期任务及监听资源。
+			try {
+				close();
+			} catch (Throwable cleanupError) {
+				e.addSuppressed(cleanupError);
+			}
+			throw e;
+		}
 	}
 
 	private void achillesHeelDaemon() {

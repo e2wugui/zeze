@@ -159,6 +159,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			if (config == null)
 				config = Config.load();
 			config.parseCustomize(gcmConfig);
+			// 所有请求依赖的配置须先于监听发布；Cleanup 也以非空配置作为禁用条件。
+			achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing,
+					gcmConfig.serverProcessTime, gcmConfig.serverReleaseTimeout);
 			lockExecutor = useSyncLock ? null : Task.getThreadPool();
 
 			sessions = new LongConcurrentHashMap<>(4096);
@@ -197,8 +200,6 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 						new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
 				// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-				achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing, gcmConfig.serverProcessTime,
-						gcmConfig.serverReleaseTimeout);
 				achillesHeelDaemonTimer.start(); // DaemonTimer幂等且支持restart
 			} catch (RuntimeException e) {
 				// 失败走stop()拆除部分态（可重入锁安全）：TcpSocket构造在bind前已对server懒启动
