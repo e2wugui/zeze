@@ -64,6 +64,13 @@ public class MasterAgent extends AbstractMasterAgent {
 			service.start();
 			service.getConfig().forEachConnector(Connector::WaitReady);
 		} catch (Exception e) {
+			// 启动/等待失败时尚未交给管理器持有，必须在本入口回收连接器和重连任务。
+			try {
+				service.stop();
+			} catch (Exception cleanupFailure) {
+				if (cleanupFailure != e)
+					e.addSuppressed(cleanupFailure);
+			}
 			throw new RuntimeException(e);
 		}
 	}
