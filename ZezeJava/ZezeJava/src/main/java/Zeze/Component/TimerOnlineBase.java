@@ -286,6 +286,8 @@ abstract class TimerOnlineBase<I> {
 					identityString(target), p.getTimerId(), p.getHandleClass());
 			return 0;
 		}
+		if (isTransmitTimerIdOccupied(p.getTimerId()))
+			return 0;
 		var custom = decodeCustom(p.getCustomClass(), p.getCustomBean());
 		@SuppressWarnings("unchecked")
 		var handleClass = (Class<TimerHandle>)HotHandle.findClass(zeze(), p.getHandleClass());
@@ -307,11 +309,23 @@ abstract class TimerOnlineBase<I> {
 					identityString(target), p.getTimerId(), p.getHandleClass());
 			return 0;
 		}
+		if (isTransmitTimerIdOccupied(p.getTimerId()))
+			return 0;
 		var custom = decodeCustom(p.getCustomClass(), p.getCustomBean());
 		@SuppressWarnings("unchecked")
 		var handleClass = (Class<TimerHandle>)HotHandle.findClass(zeze(), p.getHandleClass());
 		scheduleOnline(p.isHot(), target, p.getTimerId(), p.getCronTimer(), handleClass, custom, true);
 		return 0;
+	}
+
+	private boolean isTransmitTimerIdOccupied(String timerId) {
+		// 发送端检查与接收端注册不在同一事务。接收时须重验全部族，
+		// 否则转发途中创建的同名全局/离线定时器会被在线future覆盖。
+		// 自动分配的'@'名字也合法，不能使用命名入口的格式校验。
+		if (!timer().isNamedTimerIdOccupied(timerId))
+			return false;
+		logger.warn("transmit timer dropped: timerId already occupied. timerId={}", timerId);
+		return true;
 	}
 
 	final void onTransmitCancel(String timerId, I id, long loginVersion) {
