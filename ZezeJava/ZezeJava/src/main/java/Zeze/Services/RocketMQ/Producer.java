@@ -309,9 +309,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			return LocalTransactionState.COMMIT_MESSAGE;
 		if (r != 1) {
 			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
+				// 回查行与业务过程同批回滚。另一发送若使用相同 UNIQ_KEY 并已提交，
+				// 它的回查凭据必须保留；这里只回收本次发送单独预插的行。
 				_tSent.remove(txnId);
-				if (uniqKey != null)
-					_tSent.remove(uniqKey);
 				return 0;
 			}, "RocketMQ.executeLocalTransaction.rollback")).call();
 		}
