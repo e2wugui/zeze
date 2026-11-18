@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -456,31 +455,33 @@ public class OnzServer extends AbstractOnz {
 		var tid = rec.tid;
 		var zezeOnzs = new HashMap<String, Connector>();
 		try {
-			var futures = new ArrayList<TaskCompletionSource<?>>();
-			var rpcs = new ArrayList<Rpc<?, ?>>();
+			var deliveries = new ArrayList<RedoDelivery>();
+			Exception deliveryFailure = null;
 			for (var e : rec.savedCommits.getOnzs()) {
-				// saga参与方带前缀持久化，其余为procedure参与方（含旧版本ip_port格式）。
-				var sagaName = OnzTransaction.decodeSagaParticipant(e);
-				var zezeName = sagaName != null ? sagaName : e;
-				AsyncSocket socket;
-				if (zezes.containsKey(zezeName)) {
-					// 参与方按集群名持久化：现查当前地址——地址漂移后redo
-					// 不对死地址重试（连接器由instances缓存管理生命周期）。
-					socket = getZezeInstance(zezeName);
-				} else {
-					// 旧版本持久化的ip_port（升级窗口遗留的未决决策）：按地址建连兜底。
-					socket = openRedoConnection(zezeOnzs, zezeName).GetReadySocket();
+				try {
+					var sagaName = OnzTransaction.decodeSagaParticipant(e);
+					var zezeName = sagaName != null ? sagaName : e;
+					var socket = zezes.containsKey(zezeName)
+							? getZezeInstance(zezeName)
+							: openRedoConnection(zezeOnzs, zezeName).GetReadySocket();
+					deliveries.add(sendRedoDecision(socket, tid, sagaName, rec.commitDecision));
+				} catch (Exception ex) {
+					if (deliveryFailure == null)
+						deliveryFailure = ex;
 				}
-				rpcs.add(sendRedoDecision(socket, tid, sagaName, rec.commitDecision, futures));
 			}
-			for (var e : futures)
-				e.await();
-			// await只在异常完成（超时/发送失败，下面catch保留记录）时抛出；应答非0码是
-			// 正常完成（Rpc直接setResult），必须显式检查（对齐commit()）：参与方补偿失败
-			// 已按契约保留上下文等重发（Onz.ProcessFuncSagaEndRequest放回sagas），此处删
-			// 记录等于掐断唯一自动重试通道——已提交步骤永久未补偿。保留记录等下一轮幂等收敛。
-			var removeOk = true;
-			for (var rpc : rpcs) {
+			var removeOk = deliveryFailure == null;
+			for (var delivery : deliveries) {
+				try {
+					delivery.future.await();
+				} catch (Exception ex) {
+					removeOk = false;
+					if (deliveryFailure == null)
+						deliveryFailure = ex;
+					continue;
+				}
+				// 非零结果码也会正常完成 future，仍需检查参与方应答。
+				var rpc = delivery.rpc;
 				if (rpc.getResultCode() == 0)
 					continue;
 				// onz-01（FND25裁定）：参与方决策等待已超时自愈回滚，迟到的Commit/Rollback命中
@@ -548,6 +549,8 @@ public class OnzServer extends AbstractOnz {
 					logger.error("redo result error, keep record for retry. tid={}, resultCode={}",
 							tid, rpc.getResultCode());
 			}
+			if (deliveryFailure != null)
+				logRedoFail(tid, rec.stamp, deliveryFailure);
 			if (removeOk)
 				removeRedoRecordIfUnchanged(rec);
 		} catch (Throwable ex) {
@@ -637,19 +640,20 @@ public class OnzServer extends AbstractOnz {
 	// redo的发送分流（决策语义见redoRecord）：saga参与方发FuncSagaEnd（cancel取反决策，
 	// 等待超时见RedoSagaEndTimeoutMs），procedure参与方发Commit/Rollback。
 	// future入列供统一await，返回rpc供结果码检查。
-	private static Rpc<?, ?> sendRedoDecision(AsyncSocket socket, long tid,
-			@Nullable String sagaName, boolean commitDecision, List<TaskCompletionSource<?>> futures) {
+	private record RedoDelivery(Rpc<?, ?> rpc, TaskCompletionSource<?> future) {
+	}
+
+	private static RedoDelivery sendRedoDecision(AsyncSocket socket, long tid,
+			@Nullable String sagaName, boolean commitDecision) {
 		if (sagaName != null) {
 			var r = new FuncSagaEnd();
 			r.Argument.setOnzTid(tid);
 			r.Argument.setCancel(!commitDecision);
-			futures.add(r.SendForWait(socket, RedoSagaEndTimeoutMs));
-			return r;
+			return new RedoDelivery(r, r.SendForWait(socket, RedoSagaEndTimeoutMs));
 		}
 		Rpc<BCommit.Data, EmptyBean.Data> r = commitDecision ? new Commit() : new Rollback();
 		r.Argument.setOnzTid(tid);
-		futures.add(r.SendForWait(socket));
-		return r;
+		return new RedoDelivery(r, r.SendForWait(socket));
 	}
 
 	void saveCommitPoint(byte[] tidBytes, BSavedCommits.Data bState, int state) throws RocksDBException {
