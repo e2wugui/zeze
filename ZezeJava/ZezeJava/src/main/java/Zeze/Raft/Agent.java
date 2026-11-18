@@ -731,6 +731,7 @@ public final class Agent {
 		// 仍判死先于首次重发（双基准竞速），per-rpc取 min(间隔, 门槛-扫描周期)，
 		// 见 checkResendWindow 注释。
 		long timeout = raftConfig.getAppendEntriesTimeout();
+		boolean canSend = true;
 		for (var rpc : pending) {
 			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
 				var expired = pending.remove(rpc.getUnique().getRequestId());
@@ -742,14 +743,15 @@ public final class Agent {
 				continue;
 			}
 			long resendInterval = resendIntervalOf(timeout, rpc.getTimeout());
-			if ((immediately && now - rpc.getCreateTime() > resendInterval)
-					|| now - rpc.getSendTime() > resendInterval) {
+			if (canSend && ((immediately && now - rpc.getCreateTime() > resendInterval)
+					|| now - rpc.getSendTime() > resendInterval)) {
 				if (isDebugEnabled)
 					logger.debug("ReSend {}/{} {}", pending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
 				if (!ProxyAgent.send(client, proxyAgent, rpc, leader, leaderSocket)) {
 					logger.info("SendRequest failed {}", rpc);
-					break;
+					// 停止本轮发送，但继续回收后续已超时的请求。
+					canSend = false;
 				}
 			}
 		}
