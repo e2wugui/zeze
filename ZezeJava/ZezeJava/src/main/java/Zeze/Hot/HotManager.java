@@ -581,9 +581,8 @@ public class HotManager extends ClassLoader {
 
 	// 释放putJar打开的jar句柄并清理zipEntries中指向它的索引
 	// （残留索引的findClass会读到IllegalStateException("zip file closed")，对齐
-	// _install旧interface替换路径的清理语义）。回滚路径专用，close失败记日志不抛
-	// （rename回退比句柄释放更重要），无句柄时幂等no-op。
-	private void closeJar(File file) {
+	// _install旧interface替换路径的清理语义）。无句柄时幂等no-op。
+	private void closeJar(File file) throws IOException {
 		var jar = jars.remove(file);
 		if (jar == null)
 			return;
@@ -593,11 +592,7 @@ public class HotManager extends ClassLoader {
 			if (e.getValue().jar == jar)
 				zipEntries.remove(e.getKey(), e.getValue());
 		}
-		try {
-			jar.close();
-		} catch (java.io.IOException e) {
-			logger.error("close jar {} fail", file, e);
-		}
+		jar.close();
 	}
 
 	/**
@@ -613,35 +608,29 @@ public class HotManager extends ClassLoader {
 
 		// 安装 interface
 		var interfaceDst = Path.of(workingDir, "interfaces", namespace + ".interface.jar").toFile().getCanonicalFile();
-		{
-			var oldI = jars.remove(interfaceDst);
-			if (null != oldI) {
-				// 新jar中已删除的类名仍映射旧（即将close的）JarFile：先移除这些残留条目，
-				// 否则后续findClass读到的是IllegalStateException("zip file closed")而非ClassNotFoundException。
-				for (var e : zipEntries.entrySet()) {
-					if (e.getValue().jar == oldI)
-						zipEntries.remove(e.getKey(), e.getValue());
-				}
-				oldI.close();
-			}
-		}
 		var interfaceDstBackup = Path.of(workingDir, "interfaces", namespace + ".interface.jar.backup").toFile();
 		// 旧文件存在才备份：源不存在时renameTo必失败（新模块发布）；先清崩溃残留.backup
 		//（Windows上renameTo到已存在目标失败）。回滚/提交动作随之条件化。
 		if (interfaceDst.exists()) {
-			Files.deleteIfExists(interfaceDstBackup.toPath());
-			if (!interfaceDst.renameTo(interfaceDstBackup))
-				throw new RuntimeException("backup interface.jar fail. " + interfaceDst + " -> " + interfaceDstBackup);
-			// 从备份恢复，并且重新加载旧文件。
+			try {
+				closeJar(interfaceDst);
+				Files.deleteIfExists(interfaceDstBackup.toPath());
+				if (!interfaceDst.renameTo(interfaceDstBackup))
+					throw new IOException("backup interface.jar fail. " + interfaceDst + " -> " + interfaceDstBackup);
+			} catch (IOException | RuntimeException e) {
+				// 备份失败时旧文件仍在原位，旧模块恢复前必须先重建刚清掉的索引。
+				txn.whileRollback(() -> putJar(interfaceDst));
+				throw e;
+			}
 			txn.whileRollback(() -> {
-				if (interfaceDstBackup.renameTo(interfaceDst))
-					putJar(interfaceDst);
-				else
-					logger.error("restore interface backup fail {} -> {}", interfaceDstBackup, interfaceDst);
+				if (!interfaceDstBackup.renameTo(interfaceDst))
+					throw new IOException("restore interface backup fail " + interfaceDstBackup + " -> " + interfaceDst);
+				putJar(interfaceDst);
 			});
 			// 提交的时候删除备份
 			txn.whileCommit(() -> Files.deleteIfExists(interfaceDstBackup.toPath()));
-		}
+		} else
+			closeJar(interfaceDst);
 		throwIfMatch("install1");
 
 		if (!interfaceSrc.renameTo(interfaceDst))
@@ -650,7 +639,11 @@ public class HotManager extends ClassLoader {
 			// 先释放putJar打开的句柄（含zipEntries索引清理）——Windows下
 			// rename打开着的文件必失败，回退就永远走不到；逆序执行时本动作先于旧interface
 			// 备份回退，后者renameTo(interfaceDst)同样依赖句柄已释放。
-			closeJar(interfaceDst);
+			try {
+				closeJar(interfaceDst);
+			} catch (IOException e) {
+				logger.error("close jar {} fail", interfaceDst, e);
+			}
 			if (!interfaceDst.renameTo(interfaceSrc))
 				logger.error("uninstall interface {} -> {} fail", interfaceDst, interfaceSrc);
 		});
