@@ -62,7 +62,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	 */
 	public boolean contains(T node) {
 		int i = node.getQueueIndex();
-		return i < numNodes && nodes[i] == node;
+		return i >= 0 && i < numNodes && nodes[i] == node;
 	}
 
 	/**
