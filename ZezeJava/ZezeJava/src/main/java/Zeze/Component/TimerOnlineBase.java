@@ -152,7 +152,7 @@ abstract class TimerOnlineBase<I> {
 		// 一样尊重——否则共用key的定时器到期并发跑回调，用户按串行假设写的回调产生竞态。
 		var oneByOneKey = simpleTimer.getOneByOneKey();
 		if (hot)
-			scheduleOnlineSimpleHot(timerId, delay, handleClass, oneByOneKey);
+			scheduleOnlineSimpleHot(timerId, delay, handleClass.getName(), oneByOneKey);
 		else
 			scheduleOnlineSimple(timerId, delay, timer().findTimerHandle(handleClass.getName()), oneByOneKey);
 	}
@@ -200,7 +200,7 @@ abstract class TimerOnlineBase<I> {
 			timer().tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (hot)
-			scheduleOnlineCronHot(timerId, cronTimer, handleClass, cronTimer.getOneByOneKey());
+			scheduleOnlineCronHot(timerId, cronTimer, handleClass.getName(), cronTimer.getOneByOneKey());
 		else
 			scheduleOnlineCron(timerId, cronTimer, timer().findTimerHandle(handleClass.getName()),
 					cronTimer.getOneByOneKey());
@@ -389,7 +389,7 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	private void scheduleOnlineSimpleHot(String timerId, long delay,
-										 Class<? extends TimerHandle> handleClass,
+										 String handleClassName,
 										 @Nullable String oneByOneKey) {
 		//noinspection DataFlowIssue
 		var timerSerialId = getOnlineTimer(timerId).getSerialId();
@@ -399,7 +399,7 @@ abstract class TimerOnlineBase<I> {
 			var exist = timer().timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
 							() -> fireOnlineSimple(timerId, timerSerialId,
-									findTimerHandleSafely(handleClass.getName()), true)))
+									findTimerHandleSafely(handleClassName), true)))
 					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
@@ -417,11 +417,11 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	private void scheduleOnlineCronHot(String timerId, BCronTimer cron,
-									   Class<? extends TimerHandle> handleClass,
+									   String handleClassName,
 									   @Nullable String oneByOneKey) {
 		try {
 			scheduleOnlineCronNextHot(timerId,
-					Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1), handleClass, oneByOneKey);
+					Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1), handleClassName, oneByOneKey);
 		} catch (Exception ex) {
 			logger.error("scheduleOnlineCronHot exception:", ex);
 		}
@@ -444,7 +444,7 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	private void scheduleOnlineCronNextHot(String timerId, long delay,
-										   Class<? extends TimerHandle> handleClass,
+										   String handleClassName,
 										   @Nullable String oneByOneKey) {
 		//noinspection DataFlowIssue
 		var timerSerialId = getOnlineTimer(timerId).getSerialId();
@@ -454,7 +454,7 @@ abstract class TimerOnlineBase<I> {
 			var exist = timer().timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
 							() -> fireOnlineCron(timerId, timerSerialId,
-									findTimerHandleSafely(handleClass.getName()), true)))
+									findTimerHandleSafely(handleClassName), true)))
 					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
@@ -503,7 +503,7 @@ abstract class TimerOnlineBase<I> {
 				var delay = Math.max(cronTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
 				var oneByOneKey = cronTimer.getOneByOneKey();
 				if (hot)
-					scheduleOnlineCronNextHot(timerId, delay, handle.getClass(), oneByOneKey);
+					scheduleOnlineCronNextHot(timerId, delay, handle.getClass().getName(), oneByOneKey);
 				else
 					scheduleOnlineCronNext(timerId, delay, handle, oneByOneKey);
 			}
@@ -553,7 +553,7 @@ abstract class TimerOnlineBase<I> {
 				var delay = Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
 				var oneByOneKey = simpleTimer.getOneByOneKey();
 				if (hot)
-					scheduleOnlineSimpleHot(timerId, delay, handle.getClass(), oneByOneKey);
+					scheduleOnlineSimpleHot(timerId, delay, handle.getClass().getName(), oneByOneKey);
 				else
 					scheduleOnlineSimple(timerId, delay, handle, oneByOneKey);
 			}
