@@ -140,17 +140,13 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		public void close() {
 		}
 
-		// 快照buffer收编（CopyIf：恰满零拷贝）：Checkpoint.FlushBatch.writeTo 传入的快照为
-		// 单周期单用途（每次刷盘独立编码，从不原地修改），防御性整份拷贝
-		// 是纯浪费；两个长期持有者（本 batch→TableMemory.map、rocks镜像 WriteBatch）共享
-		// 同一只读数组，后者在 put 时自行拷入 native。空值经 CopyIf 可能返回共享的
-		// ByteBuffer.Empty，与 removed 哨兵（独立实例）不会混淆，commit 引用相等判删安全。
+		// 批次及提交后的表都会持有这些字节，调用方可以继续复用自己的缓冲区。
 		public void remove(String tableName, ByteBuffer key) {
-			batch.computeIfAbsent(tableName, __ -> new HashMap<>()).put(ByteBuffer.Wrap(key.CopyIf()), removed);
+			batch.computeIfAbsent(tableName, __ -> new HashMap<>()).put(ByteBuffer.Wrap(key.Copy()), removed);
 		}
 
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
-			batch.computeIfAbsent(tableName, __ -> new HashMap<>()).put(ByteBuffer.Wrap(key.CopyIf()), value.CopyIf());
+			batch.computeIfAbsent(tableName, __ -> new HashMap<>()).put(ByteBuffer.Wrap(key.Copy()), value.Copy());
 		}
 	}
 
