@@ -97,15 +97,15 @@ public class OnzProcedure implements FuncLong {
 	}
 
 	public void sendReadyAndWait() {
-		commitFuture = new TaskCompletionSource<>();
-		//noinspection DataFlowIssue
-		getStub().getOnz().markReadyProcedure(this);
-
 		var req = (FuncProcedure)Objects.requireNonNull(rpc);
 		var bbResult = ByteBuffer.Allocate();
 		//noinspection DataFlowIssue
 		getResult().encode(bbResult);
 		req.Result.setFuncResult(new Binary(bbResult));
+
+		commitFuture = new TaskCompletionSource<>();
+		//noinspection DataFlowIssue
+		getStub().getOnz().markReadyProcedure(this);
 		req.SendResult();
 
 		// 超时或中断时先置回滚哨兵；条目已被决策线程取走则等待其完成，防止迟到的Commit误报成功。
