@@ -79,7 +79,8 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	}
 
 	public static class Module extends AbstractQueue {
-		private final ConcurrentHashMap<String, Object> queues = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, Queue<?>> queues = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, CsQueue<?>> csQueues = new ConcurrentHashMap<>();
 		public final Zeze.Application zeze;
 
 		public Module(Zeze.Application zeze) {
@@ -120,12 +121,8 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 				throw new IllegalArgumentException("name is empty.");
 			if (nodeSize < 1)
 				throw new IllegalArgumentException("nodeSize < 1");
-			// 必须先注册内层键(name@serverId)再进外层computeIfAbsent：映射函数内构造CsQueue会
-			// 对同一个queues嵌套_open，两键同桶碰撞时JDK对ReservationNode抛Recursive update
-			// 且同名重试确定性复现（同型判例见LinkedMap.openConcurrent）。碰撞桶因先注册而
-			// 非空，嵌套查询走可重入的链遍历直接命中，不再触达ReservationNode路径。
-			_open(name + "@" + zeze.getConfig().getServerId(), valueClass, nodeSize);
-			return (CsQueue<T>)queues.computeIfAbsent(name,
+			// CsQueue 构造时会在 queues 中打开 name@serverId。独立缓存也允许普通队列使用同一 name。
+			return (CsQueue<T>)csQueues.computeIfAbsent(name,
 					key -> new CsQueue<>(this, key, zeze.getConfig().getServerId(), valueClass, nodeSize));
 		}
 
