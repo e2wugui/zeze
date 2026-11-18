@@ -80,10 +80,7 @@ public class BinaryPool {
 		}
 		int n = endIndex - beginIndex;
 		var bytes = new byte[n];
-		var p = bb.position();
-		bb.position(beginIndex);
-		bb.get(bytes, 0, n);
-		bb.position(p);
+		bb.get(beginIndex, bytes, 0, n);
 		b = new Binary(bytes);
 		wLock.lock();
 		try {
@@ -115,29 +112,24 @@ public class BinaryPool {
 		if (n != endIndex - beginIndex)
 			return false;
 		var bytes = b.bytesUnsafe();
-		// 字节序是 buffer 的共享可变状态：比较需要按小端读多字节值，改写后必须恢复
-		// ——否则调用方后续按默认 BIG_ENDIAN 的 getInt/getLong 静默读出错值，
-		// buffer 被共享时还是无同步的状态篡改。比较全程按绝对索引读取，不动 position。
-		var savedOrder = bb.order();
-		bb.order(ByteOrder.LITTLE_ENDIAN);
-		try {
-			int i = 0;
-			for (; i + 8 <= n; i += 8) {
-				if (ByteBuffer.ToLong(bytes, i) != bb.getLong(beginIndex + i))
-					return false;
-			}
-			if (i + 4 <= n) {
-				if (ByteBuffer.ToInt(bytes, i) != bb.getInt(beginIndex + i))
-					return false;
-				i += 4;
-			}
-			for (; i < n; i++) {
-				if (bytes[i] != bb.get(beginIndex + i))
-					return false;
-			}
-			return true;
-		} finally {
-			bb.order(savedOrder);
+		// 按调用方字节序读取，再归一为 Zeze ByteBuffer 的小端值。
+		boolean reverse = bb.order() == ByteOrder.BIG_ENDIAN;
+		int i = 0;
+		for (; i + 8 <= n; i += 8) {
+			long value = bb.getLong(beginIndex + i);
+			if (ByteBuffer.ToLong(bytes, i) != (reverse ? Long.reverseBytes(value) : value))
+				return false;
 		}
+		if (i + 4 <= n) {
+			int value = bb.getInt(beginIndex + i);
+			if (ByteBuffer.ToInt(bytes, i) != (reverse ? Integer.reverseBytes(value) : value))
+				return false;
+			i += 4;
+		}
+		for (; i < n; i++) {
+			if (bytes[i] != bb.get(beginIndex + i))
+				return false;
+		}
+		return true;
 	}
 }
