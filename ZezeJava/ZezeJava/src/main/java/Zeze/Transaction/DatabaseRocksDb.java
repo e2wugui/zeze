@@ -272,7 +272,11 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void replace(Transaction txn, ByteBuffer key, ByteBuffer value) {
-			checkKvKeyLength(table.getName(), key);
+			// 冷装载既有记录时也会写入镜像，镜像须能容纳读路径接受的存量键。
+			if (isLocalRocksCache)
+				checkKvKeyLengthForLegacyAccess(table.getName(), key);
+			else
+				checkKvKeyLength(table.getName(), key);
 			((RocksDbTrans)txn).put(key.CopyIf(), value.CopyIf(), table);
 		}
 
