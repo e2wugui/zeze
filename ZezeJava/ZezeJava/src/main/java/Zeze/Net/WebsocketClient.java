@@ -64,14 +64,13 @@ public class WebsocketClient extends AsyncSocket {
 
 			@Override
 			public void onOpen(WebSocket webSocket) {
-				// close恰在本检查与tryAccept之间完成时，迟到登记由addSocket置死互斥拒绝；
-				// 本检查仅省去对死连接的后续动作。不补调OnSocketClose（保"恰好一次"）。
-				if (isClosed()) { // 关闭先于握手完成（如Connector.stop）时废弃迟到的连接
+				// 发布传输句柄与置死互斥。发布先赢时 doClose 能取到句柄；
+				// 置死先赢时由握手回调直接释放迟到的句柄。
+				if (runIfOpen(() -> WebsocketClient.this.webSocket = webSocket) == null) {
 					webSocket.abort();
 					return;
 				}
 				webSocket.request(1);
-				WebsocketClient.this.webSocket = webSocket;
 				// HTTP升级即握手完成，连接已建立，纳入KeepAlive管理（对齐TcpSocket连接
 				// 成功时机）；addSocket前reset，checkKeepAlive不会观察到未管理的条目。
 				resetActiveSendRecvTime();
@@ -187,7 +186,7 @@ public class WebsocketClient extends AsyncSocket {
 	@Override
 	public boolean Send(byte[] bytes, int offset, int length) {
 		var ws = webSocket;
-		if (ws == null) // 握手未完成或已关闭
+		if (ws == null || isClosed()) // 握手未完成或已关闭
 			return false;
 		setActiveSendTime(); // 维护活跃时间（发送已被接受，直接发或按序入队）
 		var bb = ByteBuffer.wrap(bytes, offset, length);
