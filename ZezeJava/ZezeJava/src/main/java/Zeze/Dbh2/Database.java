@@ -200,6 +200,11 @@ public class Database extends Zeze.Transaction.Database {
 		}
 
 		@Override
+		public void waitReady() {
+			table.waitReady();
+		}
+
+		@Override
 		public Zeze.Transaction.Database getDatabase() {
 			return Database.this;
 		}
