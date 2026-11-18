@@ -385,9 +385,11 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 */
 	public void add(V value) {
 		var root = getOrAddRoot();
+		var empty = root.getHeadNodeKey().getNodeId() == 0;
 		var tailNodeKey = root.getTailNodeKey();
-		var tail = tailNodeKey.getNodeId() != 0 ? getNode(tailNodeKey) : null; // 比起直接访问快一些。
-		if (tail == null && root.getHeadNodeKey().getNodeId() != 0) {
+		// 旧版本排空后可能留下非零尾键。头键为零时应从新节点开始。
+		var tail = !empty && tailNodeKey.getNodeId() != 0 ? getNode(tailNodeKey) : null;
+		if (tail == null && !empty) {
 			// 尾键非0但尾行缺失且活链存在=真断链（正常序列里poll/pollNode排空时
 			// 已清尾键，head!=0时push/add都会维护尾键）。不能像原来那样零链接另立新尾（新值从
 			// head不可达，断链告警不阻止）：沿链重定位最后可达节点为真实尾并自愈尾指针；
@@ -416,7 +418,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			root.setLastNodeId(newNodeId);
 			var newNodeKey = new BQueueNodeKey(name, newNodeId);
 			root.setTailNodeKey(newNodeKey);
-			if (root.getHeadNodeKey().getNodeId() == 0)
+			if (empty)
 				root.setHeadNodeKey(newNodeKey);
 			if (tail != null)
 				tail.setNextNodeKey(newNodeKey);
@@ -441,7 +443,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			root.setLastNodeId(newNodeId);
 			var newNodeKey = new BQueueNodeKey(name, newNodeId);
 			root.setHeadNodeKey(newNodeKey);
-			if (root.getTailNodeKey().getNodeId() == 0)
+			if (headNodeKey.getNodeId() == 0 || root.getTailNodeKey().getNodeId() == 0)
 				root.setTailNodeKey(newNodeKey);
 			module._tQueueNodes.insert(newNodeKey, head = new BQueueNode());
 			if (headNodeKey.getNodeId() != 0)
