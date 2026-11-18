@@ -1673,6 +1673,9 @@ public class LogSequence {
 			trySendAppendEntries(connector, r); //resend. use new NextIndex。
 			return Procedure.Success;
 		} finally {
+			// 应答已消费；处理失败时也释放该请求占用的槽位，允许心跳重试。
+			if (connector.getPending() == r)
+				connector.setPending(null);
 			raft.unlock();
 		}
 	}
@@ -1715,14 +1718,13 @@ public class LogSequence {
 		if (prevLog == null) // Logs可能已经变成null了, 小概率事件
 			return;
 
-		connector.setPending(new AppendEntries());
-		//noinspection DataFlowIssue
-		connector.getPending().Argument.setTerm(term);
-		connector.getPending().Argument.setLeaderId(raft.getName());
-		connector.getPending().Argument.setLeaderCommit(commitIndex);
+		var request = new AppendEntries();
+		request.Argument.setTerm(term);
+		request.Argument.setLeaderId(raft.getName());
+		request.Argument.setLeaderCommit(commitIndex);
 
-		connector.getPending().Argument.setPrevLogIndex(prevLog.getIndex());
-		connector.getPending().Argument.setPrevLogTerm(prevLog.getTerm());
+		request.Argument.setPrevLogIndex(prevLog.getIndex());
+		request.Argument.setPrevLogTerm(prevLog.getTerm());
 
 		// 限制一次发送的日志数量，这个不是raft要求的。
 		int maxCount = raft.getRaftConfig().getMaxAppendEntriesCount();
@@ -1731,15 +1733,13 @@ public class LogSequence {
 			 maxCount > 0 && copyLog != null && copyLog.getIndex() <= lastIndex;
 			 copyLog = readLog(copyLog.getIndex() + 1), --maxCount) {
 			lastCopyLog = copyLog;
-			connector.getPending().Argument.getEntries().add(new Binary(copyLog.encode()));
+			request.Argument.getEntries().add(new Binary(copyLog.encode()));
 		}
-		connector.getPending().Argument.setLastEntryIndex(lastCopyLog.getIndex());
-		//noinspection DataFlowIssue
-		if (!connector.getPending().Send(socket, (p) ->
-				processAppendEntriesResult(connector, p), raft.getRaftConfig().getAppendEntriesTimeout())) {
-			connector.setPending(null);
-			// Heartbeat Will Retry
-		}
+		request.Argument.setLastEntryIndex(lastCopyLog.getIndex());
+		// 应答处理需要同一把 Raft 锁；只有发送成功的请求才占用槽位。
+		if (request.Send(socket, p -> processAppendEntriesResult(connector, p),
+				raft.getRaftConfig().getAppendEntriesTimeout()))
+			connector.setPending(request);
 	}
 
 	public RaftLog lastRaftLogTermIndex() throws RocksDBException {
