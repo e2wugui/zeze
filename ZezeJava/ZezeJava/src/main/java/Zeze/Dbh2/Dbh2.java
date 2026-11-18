@@ -1113,7 +1113,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	private long endSplit1(Protocol<?> p, boolean isMove) {
 		var r = (SetBucketMeta)p;
-		if (r.getResultCode() != 0) {
+		if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied) {
 			try {
 				startSplit(isMove);
 			} catch (Exception e) {

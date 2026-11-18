@@ -67,7 +67,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.Argument = meta;
 		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
-		if (r.getResultCode() != 0)
+		if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
 	}
 
