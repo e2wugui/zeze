@@ -55,7 +55,7 @@ final class TakeoverTestProcess {
 		var child = new ProcessBuilder(java.toString(), "@" + argumentFile.toAbsolutePath())
 				.directory(dir.toFile()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
 		try {
-			boolean completed = child.waitFor(30, TimeUnit.SECONDS);
+			boolean completed = child.waitFor(120, TimeUnit.SECONDS); // 满载soak下子JVM场景准备会饿死30s预算（soak-20261118-1009 R3实锤），4x裕度
 			if (!completed)
 				stopOwnChild(child);
 			var transcript = new String(Files.readAllBytes(log), StandardCharsets.UTF_8);
