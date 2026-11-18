@@ -58,6 +58,9 @@ public final class RaftConfig {
 	// 预投票：真正选举前先询问多数派，防止分区后term膨胀的节点回归时打断健康集群。
 	// 滚动升级期间新旧节点混布时旧节点不认识PreVote协议，会导致选不出Leader，此时应临时配置为false。
 	private boolean preVote = true;
+	// 同步写：raft日志与raft族状态机存储的写选项（true=sync write，写落盘才返回）。
+	// 默认普通写——raft的耐久性由多副本承继，高安全部署（如单副本）可配置为true。
+	private boolean syncWrite = false;
 	// snapshot时回退数量，某些系统不能任意截断日志，需要回退一定数量进行保护。回退现在用延时提交实现。
 	private int backgroundApplyCount = 500; // 需要的时间应小于LeaderHeartbeatTimer
 	private int uniqueRequestExpiredDays = 7;
@@ -201,6 +204,14 @@ public final class RaftConfig {
 		preVote = value;
 	}
 
+	public boolean isSyncWrite() {
+		return syncWrite;
+	}
+
+	public void setSyncWrite(boolean value) {
+		syncWrite = value;
+	}
+
 	public void setSnapshotLogCount(int value) {
 		snapshotLogCount = value;
 	}
@@ -262,6 +273,7 @@ public final class RaftConfig {
 		copy.snapshotLogCount = snapshotLogCount;
 		copy.snapshotCommitDelayed = snapshotCommitDelayed;
 		copy.preVote = preVote;
+		copy.syncWrite = syncWrite;
 		copy.backgroundApplyCount = backgroundApplyCount;
 		copy.uniqueRequestExpiredDays = uniqueRequestExpiredDays;
 		if (raftName != null && !raftName.isEmpty()) {
@@ -325,6 +337,9 @@ public final class RaftConfig {
 		attr = self.getAttribute("PreVote");
 		if (!attr.isEmpty())
 			preVote = Boolean.parseBoolean(attr);
+		attr = self.getAttribute("SyncWrite");
+		if (!attr.isEmpty())
+			syncWrite = Boolean.parseBoolean(attr);
 		attr = self.getAttribute("ElectionRandomMax");
 		if (!attr.isEmpty())
 			electionRandomMax = Integer.parseInt(attr);
@@ -384,6 +399,7 @@ public final class RaftConfig {
 		self.setAttribute("SnapshotLogCount", String.valueOf(snapshotLogCount));
 		self.setAttribute("SnapshotCommitDelayed", String.valueOf(snapshotCommitDelayed));
 		self.setAttribute("PreVote", String.valueOf(preVote));
+		self.setAttribute("SyncWrite", String.valueOf(syncWrite));
 		self.setAttribute("BackgroundApplyCount", String.valueOf(backgroundApplyCount));
 		self.setAttribute("UniqueRequestExpiredDays", String.valueOf(uniqueRequestExpiredDays));
 

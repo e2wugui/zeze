@@ -143,7 +143,7 @@ public class TestRaftTableLruLifecycle {
 
 	@Test
 	public void testResetAndCloseCancelOldLruTimers() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BEmptyBean.class);
 			var table = requireNonNull(rocks.<Integer, BEmptyBean>getTableTemplate(templateName)).openTable(0);
 

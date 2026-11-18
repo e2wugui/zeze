@@ -50,7 +50,7 @@ public class TestRaftServerManagementProtocolsReachable {
 	public void setUp() throws Exception {
 		Task.tryInitThreadPool();
 		LogSequence.deletedDirectoryAndCheck(new File(dbHome), 100);
-		rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false);
+		rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config());
 	}
 
 	@AfterEach

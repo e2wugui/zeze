@@ -113,7 +113,6 @@ public class TestInstallSnapshotSameBoundaryRegen {
 		var raft = new Raft(sm, raftName, newRaftConfig());
 		try {
 			var logSequence = raft.getLogSequence();
-			logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 			var leader = "127.0.0.1:17671";
 			long term = 1;
 

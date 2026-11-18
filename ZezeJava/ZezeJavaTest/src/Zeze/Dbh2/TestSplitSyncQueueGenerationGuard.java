@@ -82,7 +82,7 @@ public class TestSplitSyncQueueGenerationGuard {
 			var nodeConfig = raftConfigString.replaceFirst("<raft ",
 					"<raft DbHome=\"" + java.util.regex.Matcher.quoteReplacement(String.valueOf(tempDir.resolve(homePrefix + config.getName().replace(':', '_')))) + "\" ");
 			nodes.add(new Zeze.Dbh2.Dbh2(null, config.getName(), database,
-					RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne));
+					RaftConfig.loadFromString(nodeConfig), null, taskOneByOne));
 		}
 		return nodes;
 	}

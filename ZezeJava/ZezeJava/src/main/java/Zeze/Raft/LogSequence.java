@@ -86,7 +86,7 @@ public class LogSequence {
 
 	private long leaderActiveTime = System.currentTimeMillis(); // Leader, Follower
 
-	private WriteOptions writeOptions = RocksDatabase.getSyncWriteOptions();
+	private final WriteOptions writeOptions;
 	private @Nullable Table logs;
 	private @Nullable RocksDatabase database;
 	private final boolean sharedDatabase;
@@ -570,6 +570,10 @@ public class LogSequence {
 
 	public LogSequence(Raft raft, @Nullable RocksDatabase database) throws RocksDBException {
 		this.raft = raft;
+		// 写选项由RaftConfig.SyncWrite决定（默认普通写——耐久性由多副本承继），构造后不可变，
+		// 取代旧的"字段默认sync+wrapper调setWriteOptions降级"注入方式。
+		this.writeOptions = raft.getRaftConfig().isSyncWrite()
+				? RocksDatabase.getSyncWriteOptions() : RocksDatabase.getDefaultWriteOptions();
 		this.sharedDatabase = database != null;
 		this.database = database;
 		if (this.database == null)
@@ -829,10 +833,6 @@ public class LogSequence {
 
 	public WriteOptions getWriteOptions() {
 		return writeOptions;
-	}
-
-	public void setWriteOptions(WriteOptions value) {
-		writeOptions = value;
 	}
 
 	// package-private：headless单测直接落日志后驱动应用循环。

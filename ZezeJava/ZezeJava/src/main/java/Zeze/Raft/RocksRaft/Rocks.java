@@ -320,44 +320,42 @@ public final class Rocks extends StateMachine implements Closeable {
 	private final Lock mutex = new ReentrantLock();
 
 	public Rocks() throws Exception {
-		this(null, RocksMode.Pessimism, null, null, false);
+		this(null, RocksMode.Pessimism, null, null);
 	}
 
 	public Rocks(@Nullable String raftName) throws Exception {
-		this(raftName, RocksMode.Pessimism, null, null, false);
+		this(raftName, RocksMode.Pessimism, null, null);
 	}
 
 	public Rocks(@Nullable String raftName, @Nullable RaftConfig raftConfig) throws Exception {
-		this(raftName, RocksMode.Pessimism, raftConfig, null, false);
+		this(raftName, RocksMode.Pessimism, raftConfig, null);
 	}
 
 	public Rocks(@Nullable String raftName, @Nullable RaftConfig raftConfig, @Nullable Config config) throws Exception {
-		this(raftName, RocksMode.Pessimism, raftConfig, config, false);
+		this(raftName, RocksMode.Pessimism, raftConfig, config);
+	}
+
+	public Rocks(@Nullable String raftName, RocksMode mode, @Nullable RaftConfig raftConfig, @Nullable Config config) throws Exception {
+		this(raftName, mode, raftConfig, config, Server::new, new TaskOneByOneByKey());
 	}
 
 	public Rocks(@Nullable String raftName, RocksMode mode, @Nullable RaftConfig raftConfig, @Nullable Config config,
-				 boolean RocksDbWriteOptionSync) throws Exception {
-		this(raftName, mode, raftConfig, config, RocksDbWriteOptionSync, Server::new, new TaskOneByOneByKey());
-	}
-
-	public Rocks(@Nullable String raftName, RocksMode mode, @Nullable RaftConfig raftConfig, @Nullable Config config,
-				 boolean RocksDbWriteOptionSync, Func3<Raft, String, Config, Server> serverFactory,
+				 Func3<Raft, String, Config, Server> serverFactory,
 				 TaskOneByOneByKey taskOneByOne) throws Exception {
 		rocksMode = mode;
 
 		addFactory(Changes.TypeId_, () -> new Changes(this));
 
-		writeOptions = RocksDbWriteOptionSync
-				? RocksDatabase.getSyncWriteOptions()
-				: RocksDatabase.getDefaultWriteOptions();
 		// 这个赋值是不必要的，new Raft(...)内部会赋值。
 		setRaft(new Raft(this, raftName, raftConfig, config, "Zeze.Raft.Server", serverFactory, taskOneByOne));
+		// 状态机写选项与LogSequence同源（RaftConfig.SyncWrite，默认普通写）。
+		// 此时new Raft已返回，字段仅在flush(apply路径)使用，构造期回调够不着，构造后取值安全。
+		writeOptions = getRaft().getLogSequence().getWriteOptions();
 		//noinspection DataFlowIssue
 		getRaft().addAtFatalKill(() -> {
 			if (storage != null)
 				storage.close();
 		});
-		getRaft().getLogSequence().setWriteOptions(writeOptions);
 
 		// Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
 		// 如果Storage没有创建，需要主动打开。

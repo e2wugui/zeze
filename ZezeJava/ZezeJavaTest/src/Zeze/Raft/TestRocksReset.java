@@ -51,7 +51,7 @@ public class TestRocksReset {
 	}
 
 	private static Rocks newRocks() throws Exception {
-		return new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false);
+		return new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config());
 	}
 
 	private static byte @Nullable [] get(Rocks rocks) throws Exception {

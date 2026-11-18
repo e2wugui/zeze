@@ -84,7 +84,6 @@ public class TestInstallSnapshotFinalizing {
 
 	private Raft newRaft() throws Exception {
 		var raft = new Raft(new NoopStateMachine(), raftName, newRaftConfig());
-		raft.getLogSequence().setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 		return raft;
 	}
 

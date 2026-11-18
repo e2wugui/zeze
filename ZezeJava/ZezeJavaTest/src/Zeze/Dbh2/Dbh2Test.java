@@ -207,6 +207,6 @@ public class Dbh2Test {
 		var nodeConfig = config.replaceFirst("<raft ",
 				"<raft DbHome=\"" + java.util.regex.Matcher.quoteReplacement(String.valueOf(tempDir.resolve(raftName.replace(':', '_')))) + "\" ");
 		var raftConfig = RaftConfig.loadFromString(nodeConfig);
-		return new Zeze.Dbh2.Dbh2(null, raftName, database, raftConfig, null, false, taskOneByOne);
+		return new Zeze.Dbh2.Dbh2(null, raftName, database, raftConfig, null, taskOneByOne);
 	}
 }

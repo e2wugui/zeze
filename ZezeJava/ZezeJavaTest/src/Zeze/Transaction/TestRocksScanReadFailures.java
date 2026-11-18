@@ -71,7 +71,7 @@ public class TestRocksScanReadFailures {
 		var conf = new Config.DatabaseConf();
 		conf.setDatabaseUrl(directory.toString());
 		conf.setDisableOperates(true);
-		return new DatabaseRocksDb(null, conf, false);
+		return new DatabaseRocksDb(null, conf);
 	}
 
 	@ParameterizedTest

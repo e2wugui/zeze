@@ -68,7 +68,7 @@ public class TestEndReceiveInstallSnapshotStaleTerm {
 
 	@Test
 	public void testStaleTermAbortsDestructiveReset() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			var raft = rocks.getRaft();
 			var logSequence = requireNonNull(raft).getLogSequence();
 

@@ -32,7 +32,19 @@ order: 23
 | 属性 | 说明 |
 |------|------|
 | `DatabaseType` | 固定写 **`RocksDB`**（全大写，大小写敏感） |
-| `DatabaseUrl` | **本地目录路径**，RocksDB 数据文件存放位置，如 `/data/zeze/rocksdb` |
+| `DatabaseUrl` | **本地目录路径**，RocksDB 数据文件存放位置，如 `/data/zeze/rocksdb`；可追加 `?sync=true` 启用 sync 写（见下） |
+
+### 写选项（`?sync=true`）
+
+默认**普通写**：写先进 OS 页缓存即返回（进程崩溃可由 WAL 恢复，主机掉电丢 WAL 尾部），性能优先。高安全部署在 `DatabaseUrl` 追加 query 选项启用 **sync 写**（写落盘才返回）：
+
+```xml
+<DatabaseConf Name="default"
+              DatabaseType="RocksDB"
+              DatabaseUrl="/data/zeze/rocksdb?sync=true"/>
+```
+
+适用判断：`CheckpointWhenCommit` 表「提交即物理落库」的承诺、`AutoKey` 已发号水位等掉电不可丢的数据，需要 sync 写覆盖主机掉电场景；普通业务数据默认普通写即可（与 MySQL 缓存批量写同型的性能权衡）。本地缓存库（`zeze_cache_*`）url 自建、无 query，天然保持普通写。
 
 依赖：
 

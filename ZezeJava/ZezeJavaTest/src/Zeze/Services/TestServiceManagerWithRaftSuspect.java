@@ -57,7 +57,7 @@ public class TestServiceManagerWithRaftSuspect {
 		Files.writeString(raftXmlFile, raftXmlString);
 			for (var node : RaftConfig.loadFromString(raftXmlString).getNodes().values())
 				servers.add(new ServiceManagerWithRaft(node.getName(),
-						RaftConfig.loadFromString(raftXmlString), new Config(), false));
+						RaftConfig.loadFromString(raftXmlString), new Config()));
 	}
 
 	@AfterAll

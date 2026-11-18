@@ -81,7 +81,6 @@ public class TestAppendEntriesCommitUpToMatch {
 		var raft = new Raft(new MinimalStateMachine(), raftName, newRaftConfig());
 		try {
 			var logSequence = raft.getLogSequence();
-			logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 			raft.lock();
 			try {
 				// 旧leader(term2)留下的本地日志：公共前缀 1(t1)，未提交分叉后缀 2..3(t2)。

@@ -50,7 +50,7 @@ public class TestPrepareGateTotalOrder {
 			var nodeConfig = RAFT.replaceFirst("<raft ",
 					"<raft DbHome=\"" + java.util.regex.Matcher.quoteReplacement(String.valueOf(tempDir.resolve(config.getName().replace(':', '_')))) + "\" ");
 			nodes.add(new Dbh2(null, config.getName(), database,
-					RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne));
+					RaftConfig.loadFromString(nodeConfig), null, taskOneByOne));
 		}
 		return nodes;
 	}

@@ -98,7 +98,7 @@ public class TestLocalCacheResources {
 		var app = newApp(new LocalCacheResources.Operations() {
 			@Override
 			DatabaseRocksDb createDatabase(Application application, Config.DatabaseConf conf) {
-				return new DatabaseRocksDb(application, conf, true) {
+				return new DatabaseRocksDb(application, conf) {
 					@Override
 					public Zeze.Transaction.Database.Table[] openTables(String[] names, int[] ids) {
 						assertSame(this, application.getLocalRocksCacheDb());
@@ -125,7 +125,7 @@ public class TestLocalCacheResources {
 		var app = newApp(new LocalCacheResources.Operations() {
 			@Override
 			DatabaseRocksDb createDatabase(Application application, Config.DatabaseConf conf) {
-				return new DatabaseRocksDb(application, conf, true) {
+				return new DatabaseRocksDb(application, conf) {
 					@Override
 					public void close() {
 						assertSame(this, application.getLocalRocksCacheDb());

@@ -29,7 +29,7 @@ final class LocalCacheResources {
 	// 实例级 I/O 边界供故障测试替换，不改变 FileMutex 的真实互斥行为。
 	static class Operations {
 		DatabaseRocksDb createDatabase(Application application, Config.DatabaseConf conf) {
-			return new DatabaseRocksDb(application, conf, true);
+			return new DatabaseRocksDb(application, conf);
 		}
 
 		void deleteCacheDirectory(File directory) throws IOException, InterruptedException {

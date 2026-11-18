@@ -81,7 +81,7 @@ public class TestSnapshotResidualCleanup {
 		createResidual("checkpoint_1111111111111");
 		createResidual("checkpoint_2222222222222");
 
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			var tmpZip = Paths.get(dbHome, "snapshot.dat.tmp.zip");
 			var result = rocks.snapshot(tmpZip.toString());
 			assertTrue(result.success);
@@ -101,7 +101,7 @@ public class TestSnapshotResidualCleanup {
 		createResidual("checkpoint_3333333333333");
 		var locked = Paths.get(dbHome, "checkpoint_3333333333333", "locked.file").toFile();
 
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			// Windows：打开的文件句柄令File.delete()失败；Linux：删除直接成功，断言同样成立。
 			try (var out = new FileOutputStream(locked)) {
 				out.write(1);

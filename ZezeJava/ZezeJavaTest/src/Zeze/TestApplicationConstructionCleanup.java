@@ -30,7 +30,7 @@ public class TestApplicationConstructionCleanup {
 		dbConf.setDatabaseUrl(directory.resolve("database").toString());
 		conf.getDatabaseConfMap().put("", dbConf);
 		assertThrows(IllegalStateException.class, () -> new Application("ConstructionCleanup", conf));
-		var reopened = new DatabaseRocksDb(null, dbConf, false);
+		var reopened = new DatabaseRocksDb(null, dbConf);
 		reopened.close();
 	}
 
@@ -48,7 +48,7 @@ public class TestApplicationConstructionCleanup {
 				() -> new Application("ConstructionCleanupOrder", conf));
 		assertTrue(failure.getMessage().contains("TakeoverMode"));
 		for (var database : conf.getDatabaseConfMap().values()) {
-			var reopened = new DatabaseRocksDb(null, database, false);
+			var reopened = new DatabaseRocksDb(null, database);
 			reopened.close();
 		}
 	}

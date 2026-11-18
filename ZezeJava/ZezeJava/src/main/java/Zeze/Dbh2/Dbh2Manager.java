@@ -100,7 +100,7 @@ public class Dbh2Manager {
 		dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 			var dbh2 = new Dbh2(this, Objects.requireNonNull(raftConfig.getName()),
 					database, raftConfig,
-					null, false, taskOneByOne);
+					null, taskOneByOne);
 			proxyServer.addRaft(dbh2.getRaft());
 			logger.info("CreateBucket: add raftName = '{}'", dbh2.getRaft().getName());
 			return dbh2;
@@ -215,7 +215,7 @@ public class Dbh2Manager {
 				dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 					var dbh2 = new Dbh2(this, Objects.requireNonNull(raftConfig.getName()),
 							database, raftConfig,
-							null, false, taskOneByOne);
+							null, taskOneByOne);
 					proxyServer.addRaft(dbh2.getRaft());
 					logger.info("start: add raftName = '{}'", dbh2.getRaft().getName());
 					return dbh2;

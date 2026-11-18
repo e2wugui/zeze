@@ -183,7 +183,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	}
 
 	public Dbh2(@Nullable Dbh2Manager manager, String raftName, @Nullable RocksDatabase database,
-				RaftConfig raftConf, @Nullable Config config, boolean writeOptionSync,
+				RaftConfig raftConf, @Nullable Config config,
 				TaskOneByOneByKey taskOneByOne) {
 		this.manager = manager;
 
@@ -199,7 +199,9 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 		try {
 			stateMachine = new Dbh2StateMachine(this);
-			var writeOptions = writeOptionSync ? RocksDatabase.getSyncWriteOptions() : RocksDatabase.getDefaultWriteOptions();
+			// 桶存储写选项由RaftConfig.SyncWrite决定（默认普通写），与LogSequence同源同值。
+			var writeOptions = raftConf.isSyncWrite()
+					? RocksDatabase.getSyncWriteOptions() : RocksDatabase.getDefaultWriteOptions();
 			stateMachine.setWriteOptions(writeOptions);
 			raft = new Raft(stateMachine, raftName, database, raftConf, config,
 					"Zeze.Dbh2.Server", Dbh2RaftServer::new, taskOneByOne);
@@ -208,7 +210,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			raft.getRaftConfig().setSnapshotCommitDelayed(true);
 			logger.info("newRaft: {}", raft.getName());
 			stateMachine.openBucket();
-			raft.getLogSequence().setWriteOptions(writeOptions);
 
 			RegisterProtocols(raft.getServer());
 			raft.setOnLeaderReady(this::recoverSplitting);

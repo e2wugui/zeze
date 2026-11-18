@@ -107,25 +107,20 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	public GlobalCacheManagerWithRaft(String raftName) throws Exception {
-		this(raftName, null, null, false);
+		this(raftName, null, null);
 	}
 
 	public GlobalCacheManagerWithRaft(String raftName, @Nullable RaftConfig raftConf) throws Exception {
-		this(raftName, raftConf, null, false);
+		this(raftName, raftConf, null);
 	}
 
 	public GlobalCacheManagerWithRaft(String raftName, @Nullable RaftConfig raftConf, @Nullable Config config) throws Exception {
-		this(raftName, raftConf, config, false);
-	}
-
-	public GlobalCacheManagerWithRaft(String raftName, @Nullable RaftConfig raftConf, @Nullable Config config,
-									  boolean RocksDbWriteOptionSync) throws Exception {
 		if (config == null)
 			config = Config.load();
 		config.parseCustomize(this.gcmConfig);
 		achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing,
 				gcmConfig.serverProcessTime, gcmConfig.serverReleaseTimeout);
-		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync);
+		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config);
 
 		RegisterRocksTables(rocks);
 		//noinspection DataFlowIssue

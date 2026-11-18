@@ -72,7 +72,7 @@ public class TestClearInUseClosesCreatedDatabases {
 		// 修复后：finally关闭 → 目录锁随调用粒度释放 → 第二次open成功（绿）。
 		target.clearInUseAndIAmSureAppStopped(app);
 
-		var again = new DatabaseRocksDb(app, rocksConf("a2db", tempDir.resolve("a2db")), false);
+		var again = new DatabaseRocksDb(app, rocksConf("a2db", tempDir.resolve("a2db")));
 		again.close(); // open成功即证明锁已释放
 	}
 
@@ -81,7 +81,7 @@ public class TestClearInUseClosesCreatedDatabases {
 	public void testPartialBuildFailureClosesCreatedBatch() throws Exception {
 		// 外部持有的锁：占住"fail"目录，使createDatabase在它那里失败。
 		var heldDir = tempDir.resolve("a2_held");
-		var holder = new DatabaseRocksDb(app, rocksConf("fail", heldDir), false);
+		var holder = new DatabaseRocksDb(app, rocksConf("fail", heldDir));
 		try {
 			var okDir = tempDir.resolve("a2_ok");
 			var target = new Config();
@@ -95,7 +95,7 @@ public class TestClearInUseClosesCreatedDatabases {
 
 			// 修复前："ok"已建实例随异常路径泄漏（目录锁滞留，无法再开）；
 			// 修复后：增量建图+finally把已建的"ok"关掉，目录可再开。
-			var okAgain = new DatabaseRocksDb(app, rocksConf("ok", okDir), false);
+			var okAgain = new DatabaseRocksDb(app, rocksConf("ok", okDir));
 			okAgain.close(); // open成功即证明锁已释放
 		} finally {
 			holder.close();

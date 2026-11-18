@@ -181,11 +181,19 @@ public class MasterDatabase {
 	}
 
 	// 构建raft-config，基本的用于客户端，用于manager服务器的需要replace RaftName.
+	// Zeze.Dbh2.Master.SyncWrite=true 时给生成的raft.xml带上SyncWrite属性——桶的raft日志/
+	// 状态机存储启用sync写（默认普通写）。只影响新建桶；存量桶的raftConfig持久化于master库。
+	private static final boolean SYNC_WRITE_RAFT = Boolean.parseBoolean(
+			System.getProperty("Zeze.Dbh2.Master.SyncWrite", "false"));
+
 	private ArrayList<String> buildRaftConfig(BBucketMeta.Data bucket, ArrayList<Master.Manager> managers) throws RocksDBException {
 		var sbRaft = new StringBuilder();
 		sbRaft.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
 		sbRaft.append("\n");
-		sbRaft.append("<raft Name=\"RaftName\">\n");
+		sbRaft.append("<raft Name=\"RaftName\"");
+		if (SYNC_WRITE_RAFT)
+			sbRaft.append(" SyncWrite=\"true\"");
+		sbRaft.append(">\n");
 		var raftNames = new ArrayList<String>(managers.size());
 		for (var e : managers) {
 			sbRaft.append("    <node Host=\"");
@@ -416,7 +424,8 @@ public class MasterDatabase {
 						bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
 				rocksSplitting.put(batch, key, 0, key.length,
 						bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
-				batch.commit();
+				// 路由settle结果先于发布落盘（罕见路径）：与seedTable/saveRocks同族，显式sync。
+				batch.commit(RocksDatabase.getSyncWriteOptions());
 			} catch (RocksDBException ex) {
 				splitting.buckets.put(to.getKeyFirst(), settledSplitting);
 				if (null != oldTo)

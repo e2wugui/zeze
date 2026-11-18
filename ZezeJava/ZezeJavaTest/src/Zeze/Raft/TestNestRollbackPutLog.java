@@ -80,7 +80,7 @@ public class TestNestRollbackPutLog {
 				</raft>
 				""");
 		Zeze.Util.Task.tryInitThreadPool();
-		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConfig, new Config(), false);
+		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConfig, new Config());
 	}
 
 	@AfterEach

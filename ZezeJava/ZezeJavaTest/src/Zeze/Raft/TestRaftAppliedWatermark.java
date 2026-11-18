@@ -65,7 +65,7 @@ public class TestRaftAppliedWatermark {
 	@Test
 	public void testApplyCommitsWatermarkAndStubAtomically() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
+				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
@@ -113,7 +113,7 @@ public class TestRaftAppliedWatermark {
 	@Test
 	public void testSnapshotFenceConsistentAndRidesRestoreCycle() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
+				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
@@ -157,7 +157,7 @@ public class TestRaftAppliedWatermark {
 	@Test
 	public void testLegacyDeferWhenWatermarkRowAbsent() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
+				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20); // 直写存储：无apply，无水位行（旧格式库的等价形态）

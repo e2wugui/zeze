@@ -61,11 +61,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private final ServiceManagerServer.Conf conf = new ServiceManagerServer.Conf();
 
 	public ServiceManagerWithRaft(String raftName, @Nullable RaftConfig raftConf) throws Exception {
-		this(raftName, raftConf, Config.load(), false);
+		this(raftName, raftConf, Config.load());
 	}
 
-	public ServiceManagerWithRaft(String raftName, @Nullable RaftConfig raftConf, @Nullable Config config,
-								  boolean RocksDbWriteOptionSync) throws Exception {
+	public ServiceManagerWithRaft(String raftName, @Nullable RaftConfig raftConf, @Nullable Config config) throws Exception {
 		ZezeCounter.tryInit();
 		ServiceManagerServer.applyLogLevelProperty(); // 显式启动动作（仅显式指定logLevel属性才动配置）
 
@@ -73,7 +72,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			config = Config.load();
 		config.parseCustomize(conf);
 
-		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync,
+		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config,
 			SMServer::new, new TaskOneByOneByKey());
 
 		try {

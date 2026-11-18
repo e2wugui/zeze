@@ -84,7 +84,6 @@ public class TestExistLogRecovery {
 		var raft = new Raft(new RecordingStateMachine(), raftName, newRaftConfig());
 		try {
 			var logSequence = raft.getLogSequence();
-			logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 			raft.setLeaderId("127.0.0.1:17671");
 
 			// 模拟上次半途失败的收尾：边界日志 X=5 已 saveLog（term 0 与重装边界一致），
@@ -187,7 +186,6 @@ public class TestExistLogRecovery {
 			var raft = new Raft(new RecordingStateMachine(), raftName, newRaftConfig());
 			try {
 				var logSequence = raft.getLogSequence();
-				logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 				var installingPath = Paths.get(dbHome, LogSequence.snapshotFileName + ".installing.3");
 				Files.write(installingPath, new byte[]{1, 2, 3});
 				logSequence.commitSnapshot(installingPath.toString(), 3);

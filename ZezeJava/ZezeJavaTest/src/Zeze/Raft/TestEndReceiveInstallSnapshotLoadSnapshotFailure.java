@@ -78,7 +78,6 @@ public class TestEndReceiveInstallSnapshotLoadSnapshotFailure {
 		var raft = new Raft(new FailLoadSnapshotStateMachine(), raftName, newRaftConfig());
 		try {
 			var logSequence = raft.getLogSequence();
-			logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 			raft.addAtFatalKill(() -> {
 				assertTrue(raft.isShutdown, "fatalKill marks isShutdown");
 				assertEquals(5L, logSequence.getFirstIndex(),

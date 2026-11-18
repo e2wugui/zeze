@@ -332,7 +332,7 @@ public class TestStaleBeanRocks {
 
 	@Test
 	public void testMap2StaleRefEditFiltered() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			rocks.registerTableTemplate(mapTemplateName, Integer.class, BMapBean.class);
 			var table = requireNonNull(rocks.<Integer, BMapBean>getTableTemplate(mapTemplateName)).openTable(0);
 			seedEmptyRecord(table, 1);
@@ -385,7 +385,7 @@ public class TestStaleBeanRocks {
 
 	@Test
 	public void testSortedMap2StaleRefEditFiltered() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			rocks.registerTableTemplate(sortedTemplateName, Integer.class, BSortedMapBean.class);
 			var table = requireNonNull(rocks.<Integer, BSortedMapBean>getTableTemplate(sortedTemplateName)).openTable(0);
 			seedEmptyRecord(table, 1);

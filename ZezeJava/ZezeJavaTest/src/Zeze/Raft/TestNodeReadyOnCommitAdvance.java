@@ -80,7 +80,6 @@ public class TestNodeReadyOnCommitAdvance {
 	public void testCommitAdvanceSetsNodeReady() throws Exception {
 		raft = new Raft(new NullStateMachine(), raftName, newRaftConfig());
 		var logSequence = raft.getLogSequence();
-		logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 
 		// 新盘节点：nodeReady=false；日志仅有构造期哨兵（term=0, index=0）。
 		assertTrue(!logSequence.getNodeReady(), "正控：全新节点初始为 never-ready");

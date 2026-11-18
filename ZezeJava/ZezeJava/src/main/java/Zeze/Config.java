@@ -494,7 +494,7 @@ public final class Config {
 			case RocksDb -> {
 				if (zeze.getConfig().hasGlobal())
 					throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
-				yield new DatabaseRocksDb(zeze, conf, false);
+				yield new DatabaseRocksDb(zeze, conf);
 			}
 			case Dbh2 -> new Zeze.Dbh2.Database(zeze, zeze.tryNewDbh2AgentManager(), conf);
 			case Redis -> new Zeze.Transaction.DatabaseRedis(zeze, conf);

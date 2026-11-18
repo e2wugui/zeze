@@ -165,7 +165,7 @@ public class TestRocksDynamicReplication {
 			xml.append("<node Host=\"127.0.0.1\" Port=\"").append(port).append("\"/>");
 		var config = RaftConfig.loadFromString(xml.append("</raft>").toString());
 		config.setDbHome(directory.resolve("node-" + index).toString());
-		var rocks = new Rocks("127.0.0.1:" + ports[index], RocksMode.Pessimism, config, new Config(), false);
+		var rocks = new Rocks("127.0.0.1:" + ports[index], RocksMode.Pessimism, config, new Config());
 		try {
 			AbstractDynamicFixture.RegisterRocksTables(rocks);
 			table(rocks);

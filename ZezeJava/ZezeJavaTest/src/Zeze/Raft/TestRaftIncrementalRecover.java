@@ -64,7 +64,7 @@ public class TestRaftIncrementalRecover {
 		// run1：业务条目1后应用心跳2，水位停在1，快照边界必须允许是业务日志。
 		// 重启的构造期还没有注册表模板，边界检查不得解码业务内容。
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
+				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
@@ -88,7 +88,7 @@ public class TestRaftIncrementalRecover {
 		// run2：同DbHome重开=重启。水位有效必须增量恢复：跳过restore、lastApplied定位到
 		// 水位（legacy为firstIndex=1并整库重放）、盘上前缀内容存活。
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
+				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
@@ -110,7 +110,7 @@ public class TestRaftIncrementalRecover {
 	public void testNoWatermarkFallsBackToFullRecover() throws Exception {
 		// 无apply、无水位行（升级后首次重启/旧格式库的等价形态）：必须返回false走全量恢复。
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
+				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
@@ -121,7 +121,7 @@ public class TestRaftIncrementalRecover {
 
 	private void saveSnapshotAndApplySuffix() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false)) {
+				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			RaftHeadlessSupport.seedStorage(table, 1, 10, 20);
@@ -136,7 +136,7 @@ public class TestRaftIncrementalRecover {
 		var startingRaft = new AtomicReference<@Nullable Raft>();
 		try {
 			var rocks = new Rocks(raftName, RocksMode.Pessimism,
-					RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(), false,
+					RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome), new Config(),
 					(raft, name, config) -> {
 						startingRaft.set(raft);
 						return new Server(raft, name, config);

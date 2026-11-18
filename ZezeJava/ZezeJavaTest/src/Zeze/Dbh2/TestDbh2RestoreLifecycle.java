@@ -47,7 +47,8 @@ public class TestDbh2RestoreLifecycle {
 
 	private static Dbh2 start(Path home) {
 		var conf = config(home);
-		return new Dbh2(null, requireNonNull(conf.getName()), null, conf, new Config(), true, new TaskOneByOneByKey());
+		conf.setSyncWrite(true); // 取代已删除的writeOptionSync构造参数，sync语义经RaftConfig生效
+		return new Dbh2(null, requireNonNull(conf.getName()), null, conf, new Config(), new TaskOneByOneByKey());
 	}
 
 	private static void apply(Dbh2 dbh2, long index, Log log) throws Exception {
@@ -213,7 +214,8 @@ public class TestDbh2RestoreLifecycle {
 	public void dbh2EnablesDelayedSnapshotsOnRuntimeConfig(@TempDir Path home) throws Exception {
 		Task.tryInitThreadPool();
 		var conf = config(home);
-		try (var dbh2 = new Dbh2(null, requireNonNull(conf.getName()), null, conf, new Config(), true,
+		conf.setSyncWrite(true); // 对齐旧构造参数writeOptionSync=true的语义
+		try (var dbh2 = new Dbh2(null, requireNonNull(conf.getName()), null, conf, new Config(),
 				new TaskOneByOneByKey())) {
 			assertTrue(dbh2.getRaft().getRaftConfig().isSnapshotCommitDelayed(),
 					"Dbh2 must set the derived runtime configuration");

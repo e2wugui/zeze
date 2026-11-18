@@ -63,7 +63,6 @@ public class TestSnapshotManifestReconcile {
 
 	private Raft newRaft() throws Exception {
 		raft = new Raft(newSm(), raftName, newRaftConfig());
-		raft.getLogSequence().setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 		return raft;
 	}
 

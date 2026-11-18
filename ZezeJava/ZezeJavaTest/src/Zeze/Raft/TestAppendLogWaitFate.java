@@ -77,7 +77,7 @@ public class TestAppendLogWaitFate {
 	// 已应用（lastApplied >= index）：立即返回。初始库只有 index=0 的日志，lastApplied=0。
 	@Test
 	public void testAppliedReturnsImmediately() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 			assertTrue(logSequence.getLastApplied() >= 0);
 
@@ -90,7 +90,7 @@ public class TestAppendLogWaitFate {
 	// 已删除/不存在（readLog == null）：立即返回。截断后的条目同样走这条路径。
 	@Test
 	public void testMissingReturnsImmediately() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 
 			var begin = System.nanoTime();
@@ -103,7 +103,7 @@ public class TestAppendLogWaitFate {
 	// 也不能永久等待（集群选不出leader时业务线程会无限挂住）。
 	@Test
 	public void testPendingWaitsUntilBoundedTimeout() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			var logSequence = requireNonNull(rocks.getRaft()).getLogSequence();
 			var pendingIndex = logSequence.getLastIndex() + 1; // saveLog 不推进 lastIndex 字段
 			savePendingLog(logSequence, 1, pendingIndex);
@@ -119,7 +119,7 @@ public class TestAppendLogWaitFate {
 	// 未决但 raft 已 shutdown：立即返回（进程关闭时不再等待）。
 	@Test
 	public void testShutdownReturnsWhilePending() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			var raft = rocks.getRaft();
 			var logSequence = requireNonNull(raft).getLogSequence();
 			var pendingIndex = logSequence.getLastIndex() + 1; // saveLog 不推进 lastIndex 字段

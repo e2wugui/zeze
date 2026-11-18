@@ -22,7 +22,7 @@ public class TestRocksTableBackup {
 		var config = new Config.DatabaseConf();
 		config.setDatabaseType(Config.DbType.RocksDb);
 		config.setDatabaseUrl(directory.resolve("backup").toString());
-		return new DatabaseRocksDb(null, config, false);
+		return new DatabaseRocksDb(null, config);
 	}
 
 	private static RocksDatabase rocks(DatabaseRocksDb database) throws Exception {

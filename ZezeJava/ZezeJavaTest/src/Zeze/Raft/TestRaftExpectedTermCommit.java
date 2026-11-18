@@ -35,7 +35,7 @@ public class TestRaftExpectedTermCommit {
 				</raft>
 				""");
 		config.setDbHome(directory.resolve("raft").toString());
-		var rocks = new Rocks(null, RocksMode.Pessimism, config, new Config(), false);
+		var rocks = new Rocks(null, RocksMode.Pessimism, config, new Config());
 		try {
 			rocks.registerTableTemplate("ExpectedTerm", Integer.class, BAcquiredState.class);
 			var table = requireNonNull(rocks.<Integer, BAcquiredState>getTableTemplate("ExpectedTerm")).openTable();

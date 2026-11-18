@@ -47,7 +47,7 @@ public class TestRaftSnapshotRequestDedup {
 
 	private Rocks newRocks(int serverId, Path home) throws Exception {
 		var rocks = new Rocks(RaftHeadlessSupport.raftName(serverId), RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(serverId, home.toString()), new Config(), false);
+				RaftHeadlessSupport.newRaftConfig(serverId, home.toString()), new Config());
 		rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 		return rocks;
 	}

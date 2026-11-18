@@ -121,7 +121,7 @@ public class TestRaftUniqueNamesLimit {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
+			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config()));
 			dbHomes.add(nodeNames.get(i).replace(':', '_'));
 		}
 		waitStableLeader(); // 本机默认定时器下选举初期会抖动十余秒再收敛

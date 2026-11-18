@@ -59,7 +59,7 @@ final class SmRaftTestCluster implements AutoCloseable {
 				var conf = RaftConfig.loadFromString(xml.toString());
 				conf.setDbHome(directory.resolve("node-" + port).toString());
 				var server = new ServiceManagerWithRaft(
-						"127.0.0.1:" + port, conf, new Config(), false);
+						"127.0.0.1:" + port, conf, new Config());
 				servers.add(server);
 				rocks.add((Rocks)field.get(server));
 			}

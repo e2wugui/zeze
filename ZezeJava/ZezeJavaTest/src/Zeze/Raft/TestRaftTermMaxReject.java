@@ -57,7 +57,7 @@ public class TestRaftTermMaxReject {
 
 	@Test
 	public void testOversizedTermRejected() throws Exception {
-		var rocks = new Rocks("127.0.0.1:17650", RocksMode.Pessimism, newRaftConfig(), new Config(), false);
+		var rocks = new Rocks("127.0.0.1:17650", RocksMode.Pessimism, newRaftConfig(), new Config());
 		try {
 			var ls = requireNonNull(rocks.getRaft()).getLogSequence();
 
@@ -91,7 +91,7 @@ public class TestRaftTermMaxReject {
 
 	@Test
 	public void testRejectElectionAdvancesNextVoteTime() throws Exception {
-		var rocks = new Rocks("127.0.0.1:17650", RocksMode.Pessimism, newRaftConfig(), new Config(), false);
+		var rocks = new Rocks("127.0.0.1:17650", RocksMode.Pessimism, newRaftConfig(), new Config());
 		try {
 			var raft = rocks.getRaft();
 			var ls = requireNonNull(raft).getLogSequence();

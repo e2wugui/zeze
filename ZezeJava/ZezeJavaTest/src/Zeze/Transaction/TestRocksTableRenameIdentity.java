@@ -22,7 +22,7 @@ public class TestRocksTableRenameIdentity {
 		config.setDatabaseUrl(directory.resolve("database").toString());
 		var key = ByteBuffer.Wrap(new byte[]{1});
 		var value = new byte[]{2, 3};
-		var database = new DatabaseRocksDb(null, config, false);
+		var database = new DatabaseRocksDb(null, config);
 		try {
 			var table = (Database.AbstractKVTable)database.openTable("values", 0);
 			try (var transaction = database.beginTransaction()) {
@@ -36,7 +36,7 @@ public class TestRocksTableRenameIdentity {
 		} finally {
 			database.close();
 		}
-		database = new DatabaseRocksDb(null, config, false);
+		database = new DatabaseRocksDb(null, config);
 		try {
 			var table = (Database.AbstractKVTable)database.openTable("values", 0);
 			var found = table.find(key);

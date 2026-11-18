@@ -136,7 +136,7 @@ public class TestLeaderApplyFatalKill {
 	@Test
 	@ForkedJvm.ExpectHalt("leaderApply divergence, fatalKill")
 	public void testLeaderApplyThrowableFatalKills() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BThrowBean.class);
 			var raft = rocks.getRaft();
 			var table = requireNonNull(rocks.<Integer, BThrowBean>getTableTemplate(templateName)).openTable(0);

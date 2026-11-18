@@ -254,7 +254,7 @@ public class TestTableXMirrorMissFallback {
 		}
 
 		public BrokenMirrorDb(Application app, Path dir, @Nullable DatabaseRocksDb firstTransaction) {
-			super(app, brokenConf(dir), true);
+			super(app, brokenConf(dir));
 			this.firstTransaction = firstTransaction;
 		}
 

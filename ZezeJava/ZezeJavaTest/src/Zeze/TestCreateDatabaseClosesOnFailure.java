@@ -68,7 +68,7 @@ public class TestCreateDatabaseClosesOnFailure {
 	public void testPartialFailureClosesCreatedDatabases() throws Exception {
 		// 外部持有的锁：占住"fail"目录，使createDatabase在它那里失败。
 		var heldDir = tempDir.resolve("create_db_held");
-		var holder = new DatabaseRocksDb(app, rocksConf("fail", heldDir), false);
+		var holder = new DatabaseRocksDb(app, rocksConf("fail", heldDir));
 		try {
 			var okDir = tempDir.resolve("create_db_ok");
 			var target = new Config();
@@ -83,7 +83,7 @@ public class TestCreateDatabaseClosesOnFailure {
 
 			// 修复前："ok"已建实例随异常路径泄漏（目录锁滞留，无法再开）；
 			// 修复后：失败清理把"ok"关掉，目录可再开。
-			var okAgain = new DatabaseRocksDb(app, rocksConf("ok", okDir), false);
+			var okAgain = new DatabaseRocksDb(app, rocksConf("ok", okDir));
 			okAgain.close(); // open成功即证明锁已释放
 		} finally {
 			holder.close();
@@ -105,7 +105,7 @@ public class TestCreateDatabaseClosesOnFailure {
 
 		// 同目录再open必须失败（锁仍被map中的实例持有）——证明成功路径未误关。
 		assertThrows(Exception.class,
-				() -> new DatabaseRocksDb(app, rocksConf("ok2", okDir), false),
+				() -> new DatabaseRocksDb(app, rocksConf("ok2", okDir)),
 				"成功路径锁未释放，同目录open必须冲突");
 		created.close();
 	}

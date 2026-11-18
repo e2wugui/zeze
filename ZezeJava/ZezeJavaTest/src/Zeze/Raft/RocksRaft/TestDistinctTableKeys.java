@@ -27,7 +27,7 @@ public class TestDistinctTableKeys {
                 + home + "\"><node Host=\"127.0.0.1\" Port=\"24994\"/>"
                 + "<node Host=\"127.0.0.1\" Port=\"24995\"/>"
                 + "<node Host=\"127.0.0.1\" Port=\"24996\"/></raft>");
-        try (var rocks = new Rocks("127.0.0.1:24994", RocksMode.Pessimism, cfg, new Config(), false)) {
+        try (var rocks = new Rocks("127.0.0.1:24994", RocksMode.Pessimism, cfg, new Config())) {
             rocks.registerTableTemplate("DecimalKeys", BigDecimal.class, Zeze.Raft.RocksRaft.Test.Bean2.class);
             var table = requireNonNull(rocks.<BigDecimal, Zeze.Raft.RocksRaft.Test.Bean2>getTableTemplate("DecimalKeys")).openTable();
             var first = new BigDecimal("1.0");

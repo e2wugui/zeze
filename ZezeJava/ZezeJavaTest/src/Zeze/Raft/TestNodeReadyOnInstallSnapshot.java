@@ -113,7 +113,6 @@ public class TestNodeReadyOnInstallSnapshot {
 		var sm = new RecordingStateMachine();
 		raft = new Raft(sm, raftName, newRaftConfig());
 		var logSequence = raft.getLogSequence();
-		logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 		assertFalse(logSequence.getNodeReady(), "正控：全新节点初始为 never-ready");
 
 		// 本地无边界日志（仅有哨兵）：走"Discard the entire log"完整安装分支。
@@ -130,7 +129,6 @@ public class TestNodeReadyOnInstallSnapshot {
 		var sm = new RecordingStateMachine();
 		raft = new Raft(sm, raftName, newRaftConfig());
 		var logSequence = raft.getLogSequence();
-		logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 		assertFalse(logSequence.getNodeReady(), "正控：全新节点初始为 never-ready");
 
 		// 预置同边界（term=0, index=5）本地日志：走 ExistLog 重装分支

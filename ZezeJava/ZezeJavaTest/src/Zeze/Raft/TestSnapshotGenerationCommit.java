@@ -61,7 +61,6 @@ public class TestSnapshotGenerationCommit {
 		var conf = newRaftConfig();
 		conf.setSnapshotCommitDelayed(snapshotCommitDelayed);
 		raft = new Raft(newSm(), raftName, conf);
-		raft.getLogSequence().setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 		return raft;
 	}
 

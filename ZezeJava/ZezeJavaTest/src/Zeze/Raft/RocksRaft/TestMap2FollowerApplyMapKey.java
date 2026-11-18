@@ -206,7 +206,7 @@ public class TestMap2FollowerApplyMapKey {
 	}
 
 	private static Rocks newRocks() throws Exception {
-		var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false);
+		var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config());
 		rocks.registerTableTemplate(templateName, Integer.class, BMapBean.class);
 		return rocks;
 	}

@@ -1180,7 +1180,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		public void commit() throws RocksDBException {
-			commit(syncWriteOptions);
+			commit(defaultWriteOptions);
 		}
 
 		public void commit(WriteOptions options) throws RocksDBException {
@@ -1223,7 +1223,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		public void commit() throws RocksDBException {
-			commit(syncWriteOptions);
+			commit(defaultWriteOptions);
 		}
 
 		public void commit(WriteOptions options) throws RocksDBException {

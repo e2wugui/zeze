@@ -911,7 +911,6 @@ public class Test {
 				Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 
 				raft = new Raft(stateMachine, raftName, raftConfig);
-				raft.getLogSequence().setWriteOptions(RocksDatabase.getDefaultWriteOptions());
 				raft.getServer().AddFactoryHandle(AddCount.TypeId_,
 						new Service.ProtocolFactoryHandle<>(AddCount::new, this::processAddCount));
 				raft.getServer().AddFactoryHandle(GetCount.TypeId_,

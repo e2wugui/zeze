@@ -58,7 +58,7 @@ public class TestRecoveredAppliedPrefixProtection {
 
 	private Rocks openRocks() throws Exception {
 		return new Rocks(RAFT_NAME, RocksMode.Pessimism,
-				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome.toString()), new Config(), false);
+				RaftHeadlessSupport.newRaftConfig(SERVER_ID, dbHome.toString()), new Config());
 	}
 
 	private static Table<Integer, BListBean> openTable(Rocks rocks) {

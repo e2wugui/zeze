@@ -91,12 +91,11 @@ public class TestAppendLogAtomicBatch {
 
 	@Test
 	public void testStubAndLogCommitTogether() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			var raft = rocks.getRaft();
 			var logSequence = requireNonNull(raft).getLogSequence();
-			logSequence.setWriteOptions(Zeze.Util.RocksDatabase.getDefaultWriteOptions());
 
 			// 先收集（not leader纯收集：事务RaftRetry不触发appendLog），后置Leader——
 			// leader态下的收集procedure会真实走appendLog占掉index（广播失败但日志已留）。
@@ -123,12 +122,11 @@ public class TestAppendLogAtomicBatch {
 
 	@Test
 	public void testFailureBetweenStubAndLogLeavesNoOrphan() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			var raft = rocks.getRaft();
 			var logSequence = requireNonNull(raft).getLogSequence();
-			logSequence.setWriteOptions(Zeze.Util.RocksDatabase.getDefaultWriteOptions());
 
 			// 先收集（not leader），后置Leader——becomeLeader后的newProcedure会真实走
 			// appendLog（广播失败但日志已留，见LogSequence lastIndex注释），占用首个index。
@@ -179,12 +177,11 @@ public class TestAppendLogAtomicBatch {
 	// 证明孤儿存根的危害机制真实；用例2证明合批后该窗口不再产生。
 	@Test
 	public void testOrphanStubBlocksResend() throws Exception {
-		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config(), false)) {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Zeze.Config())) {
 			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
 			var table = requireNonNull(rocks.<Integer, BListBean>getTableTemplate(templateName)).openTable(0);
 			var raft = rocks.getRaft();
 			var logSequence = requireNonNull(raft).getLogSequence();
-			logSequence.setWriteOptions(Zeze.Util.RocksDatabase.getDefaultWriteOptions());
 
 			var changes = newUniqueChanges(rocks, table);
 			becomeLeader(raft);

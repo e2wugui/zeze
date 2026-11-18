@@ -70,7 +70,7 @@ public class TestProxyLeaderDiscovery {
 						"<raft DbHome=\"" + Matcher.quoteReplacement(
 								String.valueOf(tempDir.resolve(node.getName().replace(':', '_')))) + "\" ");
 				var dbh2 = new Dbh2(null, node.getName(), database,
-						RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne);
+						RaftConfig.loadFromString(nodeConfig), null, taskOneByOne);
 				nodes.add(dbh2);
 				proxyServer.addRaft(dbh2.getRaft());
 			}

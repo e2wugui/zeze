@@ -121,7 +121,7 @@ public class TestDatabaseRocksDB {
 		databaseConf.setName("RocksDB");
 		databaseConf.setDruidConf(new Config.DruidConf());
 
-		return new DatabaseRocksDb(null, databaseConf, false);
+		return new DatabaseRocksDb(null, databaseConf);
 	}
 
 	public static boolean PrintRecord(byte[] key, byte[] value) {

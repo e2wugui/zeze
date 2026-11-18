@@ -14,22 +14,36 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteOptions;
 import Zeze.Util.RocksDatabase.Batch;
 
 /** RocksDB 数据库后端：列族承载 KV 表，WAL 写入与 Operates 条件写；也用作本地镜像缓存库。 */
 public class DatabaseRocksDb extends Database {
 	private final RocksDatabase rocksDb;
-	// 由构造参数显式指定：Application 启动时为 LocalRocksCacheDb 传入 true，其余（含 XML 配置的主库）为 false。
-	// LocalRocksCacheDb 是纯本地缓存：每次启动前整目录删除重建，数据可随时从后端库重读，写路径不需要也不应付出 fsync 代价。
-	// 而主库的 flush 要求 WAL 落盘：CheckpointWhenCommit 表"提交即物理落库"的承诺必须覆盖掉电场景
-	// （非 sync 写只写 OS 页缓存，进程崩溃可由 WAL 恢复，主机掉电则丢失 WAL 尾部，如 AutoKey 水位回退重发已发出的号）。
-	private final boolean isLocalRocksCache;
+	// 写选项唯一来源=DatabaseUrl 的 ?sync=true。默认普通写（写先进 OS 页缓存，进程崩溃可由
+	// WAL 恢复，主机掉电丢 WAL 尾部）；"提交即物理落库"承诺须覆盖掉电的高安全部署（如
+	// CheckpointWhenCommit 表 + AutoKey 水位）追加该选项启用 sync 写。本地缓存库
+	// （LocalCacheResources，url 为 zeze_cache_<serverId> 自建、无 query）天然普通写。
+	private final WriteOptions writeOptions;
 
-	public DatabaseRocksDb(@Nullable Application zeze, Config.DatabaseConf conf, boolean localRocksCache) {
+	public DatabaseRocksDb(@Nullable Application zeze, Config.DatabaseConf conf) {
 		super(zeze, conf);
 
-		isLocalRocksCache = localRocksCache;
+		// DatabaseUrl 支持 ?sync=true：homePath/.lock 文件名不能带 query，用前剥离。
 		var homePath = getDatabaseUrl().isEmpty() ? "db" : getDatabaseUrl();
+		boolean syncWrite = false;
+		var queryIndex = homePath.indexOf('?');
+		if (queryIndex >= 0) {
+			for (var pair : homePath.substring(queryIndex + 1).split("&")) {
+				if (pair.equalsIgnoreCase("sync=true"))
+					syncWrite = true;
+				else if (!pair.isEmpty() && !pair.equalsIgnoreCase("sync=false"))
+					logger.warn("DatabaseUrl unknown option ignored: {}", pair);
+			}
+			homePath = homePath.substring(0, queryIndex);
+		}
+		writeOptions = syncWrite
+				? RocksDatabase.getSyncWriteOptions() : RocksDatabase.getDefaultWriteOptions();
 		try {
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			rocksDb = new RocksDatabase(homePath);
@@ -70,7 +84,7 @@ public class DatabaseRocksDb extends Database {
 				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 					newTable.put(batch, it.key(), it.value());
 					if (++n >= 10000) { // 分批提交，避免大表时单个 WriteBatch 无界增长
-						batch.commit();
+						batch.commit(RocksDatabase.getSyncWriteOptions());
 						batch.clear();
 						n = 0;
 					}
@@ -78,7 +92,7 @@ public class DatabaseRocksDb extends Database {
 				it.status(); // invalid也可能是扫描失败；确认正常EOF后才允许删除源表。
 			}
 			if (n > 0)
-				batch.commit();
+				batch.commit(RocksDatabase.getSyncWriteOptions());
 			// 拷贝中断（异常上抛）时旧表未被 drop，下次启动重跑本方法重新全量拷贝（put 幂等），自愈。
 			rocksDb.dropTable(oldName);
 		}
@@ -152,8 +166,8 @@ public class DatabaseRocksDb extends Database {
 			if (batch == null)
 				return;
 
-			// 主库 sync 写（见 isLocalRocksCache 注释），本地缓存库维持非 sync 的默认写。
-			var options = isLocalRocksCache ? RocksDatabase.getDefaultWriteOptions() : RocksDatabase.getSyncWriteOptions();
+			// 写选项由 DatabaseUrl 的 ?sync=true 决定（默认普通写），本地缓存库恒普通写。
+			var options = writeOptions;
 			if (verifyAction != null) {
 				lock();
 				try {
@@ -489,11 +503,8 @@ public class DatabaseRocksDb extends Database {
 				dv.data = data;
 				var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
 				dv.encode(value);
-				// 主库要求 WAL 落盘（对齐 RocksDbTrans.commit 的 sync 写）：schemas 版本记录掉电丢失
-				// 会让下次启动按全新库走兼容检查；本地缓存库（localRocksCache=true）维持默认非 sync 写。
-				var options = isLocalRocksCache
-						? RocksDatabase.getDefaultWriteOptions() : RocksDatabase.getSyncWriteOptions();
-				table.put(options, key.Bytes, key.ReadIndex, key.size(), value.Bytes, value.ReadIndex, value.size());
+				// schemas 版本记录与事务提交同选项（?sync=true 决定，默认普通写；见类头注释）。
+				table.put(writeOptions, key.Bytes, key.ReadIndex, key.size(), value.Bytes, value.ReadIndex, value.size());
 				return KV.create(version, true);
 			} catch (RocksDBException e) {
 				throw Task.forceThrow(e);

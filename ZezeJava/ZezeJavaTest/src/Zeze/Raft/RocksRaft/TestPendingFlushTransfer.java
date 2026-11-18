@@ -150,7 +150,7 @@ public class TestPendingFlushTransfer {
 	}
 
 	private static Rocks newRocks() throws Exception {
-		return new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false);
+		return new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config());
 	}
 
 	// 向storage的batchPool预投毒count个Batch（armed总开关共享），下次count次flush可控失败。
