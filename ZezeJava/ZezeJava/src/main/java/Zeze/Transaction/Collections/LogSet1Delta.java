@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -54,13 +55,24 @@ final class LogSet1Delta<V> extends LogSet<V> {
 
 	@Override
 	public boolean removeAll(Collection<? extends V> c) {
-		var old = getValue();
-		if (!super.removeAll(c))
+		var next = getValue();
+		ArrayList<V> removed = null;
+		for (V item : c) {
+			var updated = next.minus(item);
+			if (updated != next) {
+				if (removed == null)
+					removed = new ArrayList<>();
+				removed.add(item);
+				next = updated;
+			}
+		}
+		if (removed == null)
 			return false;
-		var m = modifiedForWrite(Math.min(c.size(), old.size()));
-		for (V item : c)
-			if (old.contains(item))
-				m.put(item, null);
+		// 输入可能是集合自身或其实时视图，发布新集合前须完成遍历。
+		var m = modifiedForWrite(removed.size());
+		for (V item : removed)
+			m.put(item, null);
+		setValue(next);
 		return true;
 	}
 
