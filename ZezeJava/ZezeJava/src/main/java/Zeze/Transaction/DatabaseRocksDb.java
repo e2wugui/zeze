@@ -221,6 +221,15 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
+	// 将主库已读出的存量记录回填到本地镜像，使用与读取一致的键长预算。
+	static void backfillMirror(Table mirror, Transaction txn, ByteBuffer key, ByteBuffer value) {
+		var target = (TableRocksDb)mirror;
+		if (!target.getDatabase().isLocalRocksCache)
+			throw new IllegalStateException("backfillMirror requires the local RocksDB cache");
+		checkKvKeyLengthForLegacyAccess(target.table.getName(), key);
+		target.put(txn, key, value);
+	}
+
 	private final class TableRocksDb extends Database.AbstractKVTable {
 		private final RocksDatabase.Table table;
 		private final boolean isNew;
@@ -272,11 +281,11 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void replace(Transaction txn, ByteBuffer key, ByteBuffer value) {
-			// 冷装载既有记录时也会写入镜像，镜像须能容纳读路径接受的存量键。
-			if (isLocalRocksCache)
-				checkKvKeyLengthForLegacyAccess(table.getName(), key);
-			else
-				checkKvKeyLength(table.getName(), key);
+			checkKvKeyLength(table.getName(), key);
+			put(txn, key, value);
+		}
+
+		private void put(Transaction txn, ByteBuffer key, ByteBuffer value) {
 			((RocksDbTrans)txn).put(key.CopyIf(), value.CopyIf(), table);
 		}
 

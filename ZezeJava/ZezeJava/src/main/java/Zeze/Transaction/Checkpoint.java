@@ -117,9 +117,6 @@ public final class Checkpoint {
 						databaseTable.remove(transaction, key);
 						oldTable = table.getOldTable();
 					}
-				} else if (value != null) {
-					// 内存表以本地镜像作为唯一存储，新写仍使用 KV 写入预算。
-					Database.checkKvKeyLength(table.getName(), key);
 				}
 				// 镜像按自己的二进制 value 决定更新/删除；旧表也始终使用二进制 key。
 				if (value != null)

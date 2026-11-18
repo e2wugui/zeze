@@ -169,7 +169,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	final void rocksCachePut(K key, V value) {
 		//noinspection DataFlowIssue
 		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
-			getLocalRocksCacheTable().replace(t, encodeKey(key), ByteBuffer.encode(value));
+			DatabaseRocksDb.backfillMirror(getLocalRocksCacheTable(), t, encodeKey(key), ByteBuffer.encode(value));
 			t.commit();
 		} catch (Exception e) {
 			throw new RuntimeException("rocksCachePut failed: " + this + " " + key, e);
