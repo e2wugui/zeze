@@ -24,6 +24,7 @@ import Zeze.Raft.ProxyAgent;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.Action2;
@@ -346,9 +347,16 @@ public class Dbh2AgentManager extends ReentrantLock {
 		logger.info("createTableAsync: db={}, table={}", databaseName, tableName);
 		Objects.requireNonNull(masterAgent).createTableAsync(databaseName, tableName, (rc, isNew, masterTable) -> {
 			if (rc == 0) {
-				putBuckets(Objects.requireNonNull(masterTable), masterName, databaseName, tableName);
-				for (var bucket : masterTable.buckets())
-					openBucket(bucket.getRaftConfig());
+				try {
+					putBuckets(Objects.requireNonNull(masterTable), masterName, databaseName, tableName);
+					for (var bucket : masterTable.buckets())
+						openBucket(bucket.getRaftConfig());
+				} catch (RuntimeException e) {
+					logger.warn("createTableAsync: preparing bucket agents failed. db={} table={}",
+							databaseName, tableName, e);
+					callback.run(stopped ? (int)Procedure.Closed : (int)Procedure.Exception, false);
+					return;
+				}
 			}
 			callback.run(rc, isNew);
 		});
@@ -535,6 +543,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 		String tableName) {
 		lock();
 		try {
+			if (stopped)
+				throw new IllegalStateException("Dbh2AgentManager stopped.");
 			var master = this.buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 			var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 			var table = database.get(tableName);
