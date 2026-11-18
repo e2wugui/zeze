@@ -176,8 +176,10 @@ public abstract class Database extends ReentrantLock {
 
 	public final void openDynamicTable(Application app, Zeze.Transaction.Table table) {
 		var storage = table.open(app, this, null);
-		if (storage != null)
+		if (storage != null) {
+			storage.getDatabaseTable().waitReady();
 			storages.add(storage);
+		}
 	}
 
 	public void close() {
