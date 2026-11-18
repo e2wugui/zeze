@@ -49,10 +49,16 @@ abstract class LogListDelta<V> extends LogList<V> {
 		int index = getValue().size();
 		if (!super.addAll(items))
 			return false;
-		opLogs.ensureCapacity(opLogs.size() + items.size());
-		for (V item : items)
-			opLogs.add(new OpLog<>(OpLog.OP_ADD, index++, item));
+		var list = getValue();
+		opLogs.ensureCapacity(opLogs.size() + list.size() - index);
+		// 输入可以是列表的实时视图，增量应以实际追加的区间为准。
+		for (var it = list.listIterator(index); it.hasNext(); ++index)
+			noteAppend(index, it.next());
 		return true;
+	}
+
+	protected void noteAppend(int index, V item) {
+		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 	}
 
 	@Override

@@ -1,7 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import java.util.Collection;
-
 import Zeze.Transaction.Collections.LogList1.OpLog;
 
 import Zeze.Transaction.Bean;
@@ -29,20 +27,11 @@ final class LogList2Delta<V extends Bean> extends LogListDelta<V> {
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends V> items) {
-		int addIndex = getValue().size();
-		var list = getValue().plusAll(items);
-		if (list == getValue())
-			return false;
-		setValue(list);
-		opLogs.ensureCapacity(opLogs.size() + items.size());
+	protected void noteAppend(int index, V item) {
+		super.noteAppend(index, item);
 		if (addSet == null)
 			addSet = new IdentityHashSet<>();
-		for (V item : items) {
-			opLogs.add(new OpLog<>(OpLog.OP_ADD, addIndex++, item));
-			addSet.add(item);
-		}
-		return true;
+		addSet.add(item);
 	}
 
 	@Override
