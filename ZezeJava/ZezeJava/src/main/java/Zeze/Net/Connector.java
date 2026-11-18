@@ -138,20 +138,20 @@ public class Connector extends ReentrantLock {
 	}
 
 	public final void setAutoReconnect(boolean value) {
-		isAutoReconnect = value;
-		if (isAutoReconnect) {
-			tryReconnect();
-		} else {
-			lock();
-			try {
+		lock();
+		try {
+			isAutoReconnect = value;
+			if (value)
+				tryReconnect();
+			else {
 				epoch++; // 撤销重连意图同样开新纪元：作废已派发、cancel(false)撤不回的任务（对齐stop）
 				if (reconnectTask != null) {
 					reconnectTask.cancel(false);
 					reconnectTask = null;
 				}
-			} finally {
-				unlock();
 			}
+		} finally {
+			unlock();
 		}
 	}
 
