@@ -413,11 +413,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long procedureOffline(Long roleId, BLocal local, boolean serverStart) throws Exception {
-		var onlineShared = getOrAddOnlineShared(roleId);
-		var account = onlineShared.getAccount();
+		var onlineShared = getOnlineShared(roleId);
+		var account = onlineShared != null ? onlineShared.getAccount() : "";
 
-		// 本机数据已经过时，马上删除。
-		if (local.getLoginVersion() != onlineShared.getLoginVersion()) {
+		// 共享会话已结束或已换代时，只清除本地残留。
+		if (onlineShared == null || onlineShared.getLink().getState() == eOffline
+				|| local.getLoginVersion() != onlineShared.getLoginVersion()) {
 			var ret = removeLocalAndTrigger(roleId, serverStart);
 			if (ret != 0) {
 				logger.info("processOffline({}): account={}, roleId={}, removeLocalAndTrigger={}",
