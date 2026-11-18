@@ -324,6 +324,9 @@ public class TestDynamicListHistoryReplay {
 				if (extended)
 					changeNestedValues(app, orders);
 
+				// tHistory行经checkpoint流水线落库（History两段管线：pending--flush-->库事务），
+				// 回放读表前必须同步刷一次，否则读到的是与flush赛跑的中间态（4条丢1条的3-vs-4形态）。
+				app.checkpointRun();
 				var replay = new ApplyHelper(app, history.getHistoryTable(), new ApplyDatabaseMemory(), 0, 0);
 				var applied = replay.apply(10);
 				assertEquals(new Id128(0, extended ? 4 : 2), replay.getExclusiveStartKey());
