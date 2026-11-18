@@ -509,13 +509,14 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (custom == null || custom.getRoleId() != roleId
 				|| !custom.getOnlineSetName().equals(online.getOnlineSetName()))
 			return false;
-		// 簿记先于timer.cancel清理：cancel的onTimerCancel钩子也会清簿记，
-		// 若r的判定放在钩子之后，remove将恒为null，对真实成功的取消误报false。
 		var bTimers = online._tRoleOfflineTimers().get(roleId);
-		var r = bTimers != null && bTimers.getOfflineTimers().remove(timerId) != null;
-		if (bTimers != null && bTimers.getOfflineTimers().isEmpty())
-			online._tRoleOfflineTimers().remove(roleId);
-		online.providerApp.zeze.getTimer().cancel(timerId);
+		if (bTimers != null) {
+			bTimers.getOfflineTimers().remove(timerId);
+			if (bTimers.getOfflineTimers().isEmpty())
+				online._tRoleOfflineTimers().remove(roleId);
+		}
+		// 簿记可能缺失，是否实际取消以持久化定时器为准。
+		var r = timer().cancel(timerId);
 		if (r)
 			logger.debug("cancel offline timer: timerId={}, roleId={}", timerId, roleId);
 		return r;
