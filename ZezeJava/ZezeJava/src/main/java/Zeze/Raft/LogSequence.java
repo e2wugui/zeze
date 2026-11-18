@@ -1326,7 +1326,7 @@ public class LogSequence {
 	public AppendLogResult appendLog(Log log, @Nullable Action2<RaftLog, Boolean> callback, long expectedTerm) throws Exception {
 		raft.lock();
 		try {
-			if (!raft.isLeader())
+			if (!raft.isWorkingLeader())
 				throw new RaftRetryException("not leader"); // 快速失败
 			// 业务层检查后仍可能换主再当选；只认生成本次操作时冻结的任期。
 			// 必须与日志构造/落库持同一把锁，拒绝不能留下日志或unique请求存根。
