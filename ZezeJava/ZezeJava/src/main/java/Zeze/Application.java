@@ -197,9 +197,11 @@ public final class Application extends ReentrantLock {
 															   String raftSessionNamePrefix) throws Exception {
 		return switch (conf.getServiceManager()) {
 			case "raft" -> {
-				//noinspection DataFlowIssue
-				if (conf.getServiceManagerConf().getSessionName().isEmpty())
-					conf.getServiceManagerConf().setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
+				var smConf = conf.getServiceManagerConf();
+				if (smConf == null)
+					throw new IllegalStateException("ServiceManager=raft requires a ServiceManagerConf node");
+				if (smConf.getSessionName().isEmpty())
+					smConf.setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
 				yield new ServiceManagerAgentWithRaft(conf);
 			}
 			case "disable" -> null;
