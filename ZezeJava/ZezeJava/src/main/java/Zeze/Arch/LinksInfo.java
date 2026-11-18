@@ -21,7 +21,7 @@ public class LinksInfo extends AbstractLinksInfo {
 	private final Netty netty = new Netty();
 	private final HttpServer httpServer;
 	private final AbstractAgent agent;
-	private @Nullable String defaultLinkServiceName;
+	private volatile @Nullable String defaultLinkServiceName;
 
 	public LinksInfo() throws Exception {
 		var conf = Config.load();
@@ -81,7 +81,7 @@ public class LinksInfo extends AbstractLinksInfo {
 		var version = PropertiesHelper.getInt(query, "version", 0);
 
 		var sb = new StringBuilder();
-		var subs = agent.getSubscribeStates().get(linkServiceName);
+		var subs = linkServiceName != null ? agent.getSubscribeStates().get(linkServiceName) : null;
 		if (null != subs) {
 			var infoVersion = subs.getServiceInfos(version);
 			if (null != infoVersion) {
