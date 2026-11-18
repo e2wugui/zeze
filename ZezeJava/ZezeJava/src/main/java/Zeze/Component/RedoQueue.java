@@ -153,8 +153,10 @@ public class RedoQueue extends HandshakeClient {
 				Arrays.copyOf(end.Bytes, end.WriteIndex));
 	}
 
-	private void tryStartSendNextTask(@Nullable BQueueTask add, @Nullable AsyncSocket socket) throws RocksDBException {
-		if (pending != null)
+	private void tryStartSendNextTask(@Nullable BQueueTask add, @Nullable AsyncSocket preferredSocket)
+			throws RocksDBException {
+		var taskQueue = tableTaskQueue;
+		if (pending != null || taskQueue == null)
 			return;
 
 		if (lastDoneTaskId < lastTaskId) {
@@ -166,8 +168,7 @@ public class RedoQueue extends HandshakeClient {
 				// 最近加入的不是要发送的，从Db中读取。
 				var key = ByteBuffer.Allocate(9);
 				key.WriteLong(taskId);
-				//noinspection DataFlowIssue
-				var value = tableTaskQueue.get(key.Bytes, 0, key.WriteIndex);
+				var value = taskQueue.get(key.Bytes, 0, key.WriteIndex);
 				if (value == null) {
 					// 水位下一跳任务在DB中不存在（历史put失败留下的空洞，或外部
 					// 删数据）。洞不会自愈：重启后lastTaskId从DB最大键恢复，水位之下的洞
@@ -178,15 +179,17 @@ public class RedoQueue extends HandshakeClient {
 				}
 				rpc.Argument.decode(ByteBuffer.Wrap(value));
 			}
-			if (this.socket == null) {
-				this.socket = socket;
-				if (this.socket == null) {
-					this.socket = GetSocket();
-					if (this.socket == null)
-						return;
+			var sendSocket = socket;
+			if (sendSocket == null || sendSocket.isClosed()) {
+				// 迟到的应答也可能携带已执行完 OnSocketClose 的连接。
+				sendSocket = preferredSocket != null && !preferredSocket.isClosed() ? preferredSocket : GetSocket();
+				if (sendSocket == null || sendSocket.isClosed()) {
+					socket = null;
+					return;
 				}
+				socket = sendSocket;
 			}
-			if (rpc.Send(this.socket, this::processRunTaskResult))
+			if (rpc.Send(sendSocket, this::processRunTaskResult))
 				pending = rpc;
 			else {
 				// Send=false（socket失效/输出背压丢包不断连）：无重连事件，复用单flight重试
@@ -270,7 +273,9 @@ public class RedoQueue extends HandshakeClient {
 		super.OnHandshakeDone(so);
 		lock();
 		try {
-			tryStartSendNextTask(null, so);
+			// 等待队列锁期间，旧连接可能已关闭，队列也可能已重启。
+			if (!so.isClosed())
+				tryStartSendNextTask(null, so);
 		} finally {
 			unlock();
 		}
