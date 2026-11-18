@@ -32,8 +32,6 @@ public class ExporterNginxConfig implements IExporter {
 			logger.info("ExporterNginxConfig: service '{}' has no identities to export, skip this round", serviceName);
 			return;
 		}
-		var lines = new ArrayList<String>();
-		var hasChanged = false;
 		var found = false;
 		Path path = Path.of(file);
 		var source = Files.readString(path, StandardCharsets.UTF_8);
@@ -75,25 +73,17 @@ public class ExporterNginxConfig implements IExporter {
 			found = true;
 		}
 		rewritten.append(source, copied, source.length());
-		if (found)
-			lines.add(rewritten.toString());
-		else
-			lines.add(source);
-
-		// 整文件未命中同名upstream块时恒不更新（hasChanged恒false）——新增服务
-		// 或首次部署未预置空块时该服务地址永不进nginx、无自愈无告警（未文档化的隐含契约）。
-		// 文件尾追加自产格式块，后续轮转可正常识别重写（空块态由入口的
-		// hasAnyExportableServer守卫跳过，不再产出）。
 		if (!found) {
-			exportToLines("", lines, serviceName, all);
+			if (!rewritten.isEmpty() && rewritten.charAt(rewritten.length() - 1) != '\n')
+				rewritten.append('\n');
+			var appended = new ArrayList<String>();
+			exportToLines("", appended, serviceName, all);
+			rewritten.append(String.join("\n", appended)).append('\n');
 			logger.info("ExporterNginxConfig: upstream block for '{}' not found, append to end of {}",
 					serviceName, file);
 		}
-		var sb = new StringBuilder();
-		for (var line : lines)
-			sb.append(line).append("\n");
 		// 原子换版；move失败由failedServices补偿重试。
-		AtomicOutputFile.writeAtomically(path, sb.toString().getBytes(StandardCharsets.UTF_8));
+		AtomicOutputFile.writeAtomically(path, rewritten.toString().getBytes(StandardCharsets.UTF_8));
 		reload();
 	}
 
