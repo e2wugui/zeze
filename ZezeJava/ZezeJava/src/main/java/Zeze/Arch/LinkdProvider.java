@@ -582,8 +582,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				if (CheckLinkSession.TypeId_ != r.Argument.getProtocolType()) {
 					if (socket.Send(pdata)) // 仅发送成功时计数。
 						countSendStream(pdata);
-					else
+					else {
+						r.Result.getErrorLinkSids().add(linkSid);
 						socket.close(sendException);
+					}
 					if (enableDump)
 						tryDump(socket, pdata);
 				}
