@@ -94,9 +94,6 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	public void start() throws Exception {
-		server.getService().start();
-		service.start();
-		allocateDaemon.start(); // tick随start/stop配对，幂等，stop后restart由组件重新武装
 		allocateLock.lock();
 		try {
 			// timeThrottle重置：stop关闭了旧实例（内部timer已cancel、计数永不清零），且
@@ -110,6 +107,10 @@ public class LoginQueue extends AbstractLoginQueue {
 		} finally {
 			allocateLock.unlock();
 		}
+		// 接受连接后负载上报即可重算限流。先初始化，避免覆盖已经收到的首轮负载。
+		server.getService().start();
+		service.start();
+		allocateDaemon.start(); // tick随start/stop配对，幂等，stop后restart由组件重新武装
 	}
 
 	public void stop() throws Exception {
