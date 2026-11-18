@@ -586,8 +586,8 @@ public class OnzServer extends AbstractOnz {
 				logger.warn("onz redo: 快照后决策记录已变化，保留待下轮分诊. tid={}", rec.tid);
 				return;
 			}
-			removeCommitRecord(rec.key); // dbLock可重入
-			recycleRedoWarnTids(rec.tid);
+			if (tryRemoveCommitRecord(rec.key)) // dbLock可重入
+				recycleRedoWarnTids(rec.tid);
 		} finally {
 			dbLock.unlock();
 		}
@@ -713,6 +713,10 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	void removeCommitRecord(byte[] tidBytes) {
+		tryRemoveCommitRecord(tidBytes);
+	}
+
+	private boolean tryRemoveCommitRecord(byte[] tidBytes) {
 		// 同saveCommitPoint纳入dbLock+锁内stopped双检：commit()两处调用
 		//（失败分支/成功路径）都跑在业务线程。redoRecord经removeRedoRecordIfUnchanged的
 		// 调用点与settleStuckRecord本就在dbLock域内（ReentrantLock可重入，行为不变）。
@@ -725,7 +729,7 @@ public class OnzServer extends AbstractOnz {
 			if (stopped) {
 				logger.error("OnzServer stopped: removeCommitRecord rejected, keep record for next-startup redo. tid={}",
 						ByteBuffer.ToLongBE(tidBytes, 0));
-				return;
+				return false;
 			}
 			try {
 				// 两表同key生命周期：索引删则点删，同一batch原子落地。
@@ -736,9 +740,11 @@ public class OnzServer extends AbstractOnz {
 					commitPoint.delete(batch, tidBytes);
 					batch.commit(writeOptions);
 				}
+				return true;
 			} catch (RocksDBException e) {
-				// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
-				logger.error("", e);
+				logger.error("onz decision cleanup failed; keep record for retry. tid={}",
+						ByteBuffer.ToLongBE(tidBytes, 0), e);
+				return false;
 			}
 		} finally {
 			dbLock.unlock();
@@ -770,7 +776,7 @@ public class OnzServer extends AbstractOnz {
 	 * 同形滞留四类）。
 	 *
 	 * @return true=记录已关闭（删除，或守卫通过后已不在库的幂等no-op）；false=拒绝
-	 * （tid未被报告滞留/服务器已停止），库与集合均不动。
+	 * （tid未被报告滞留/服务器已停止/删除失败），保留重试所需的状态。
 	 */
 	public boolean settleStuckRecord(long tid) {
 		// stopped前置检查对齐redoTimer头部：终态服务器先拒绝，不进守卫（getZezeInstance/
@@ -801,7 +807,8 @@ public class OnzServer extends AbstractOnz {
 			// 集合remove均为幂等no-op——无害路径，不在锁内复查守卫（四集合的分诊add与回收
 			// remove都只发生在dbLock域内，锁内复查只会迟到地看到"已被redo收敛"，与no-op等价）。
 			auditRetainedRecord(tid, tidBytes);
-			removeCommitRecord(tidBytes);
+			if (!tryRemoveCommitRecord(tidBytes))
+				return false;
 			agedNotFoundWarnedTids.remove(tid); // 记录关闭后回收告警去重项（对齐removeOk分支）
 			redoResultWarnedTids.remove(tid); // 同上
 			unknownStateWarnedTids.remove(tid); // 同上：本方法是该集合唯一的tid回收点
