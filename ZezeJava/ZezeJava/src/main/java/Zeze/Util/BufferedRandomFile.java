@@ -102,13 +102,17 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 	 * @throws IOException exception
 	 */
 	private boolean fillBuffer() throws IOException {
-		if (0 == buffer.remaining()) {
+		if (buffer.hasRemaining())
+			return true;
+		buffer.clear();
+		try {
+			return channel.read(buffer) > 0; // 从 channel.position 读并前移，与 seek 配对
+		} catch (IOException e) {
 			buffer.clear();
-			var rc = channel.read(buffer); // 位置读：从channel.position读并前移，与seek配对
+			throw e;
+		} finally {
 			buffer.flip();
-			return rc != -1;
 		}
-		return true;
 	}
 
 	private int peek() throws IOException {
@@ -167,6 +171,8 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 		try {
 			channel.close();
 		} finally {
+			buffer.clear();
+			buffer.flip();
 			unlock();
 		}
 	}
