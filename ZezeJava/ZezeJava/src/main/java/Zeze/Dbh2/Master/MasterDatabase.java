@@ -114,14 +114,9 @@ public class MasterDatabase {
 		outIsNew.value = false;
 		while (true) {
 			var table = tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-			if (table.created) {
-				logger.info("create table exist: {}.{}", databaseName, tableName);
-				return table;
-			}
-
 			table.lock();
 			try {
-				// 加锁后再次检查一次。
+				// created 也用于本次落盘的编码。持锁检查，确保写盘成功后才确认已有表。
 				if (table.created) {
 					logger.info("create table exist: {}.{}", databaseName, tableName);
 					return table;
