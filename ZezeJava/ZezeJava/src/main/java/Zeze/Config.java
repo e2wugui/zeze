@@ -507,7 +507,7 @@ public final class Config {
 		// add other database
 		// 逐库构造无失败清理时，先建库的原生句柄/LOCK随半成品Application不可达而泄漏，
 		// 进程内重试将永久"lock held by current process"——失败时逐个close已放入map的Database再重抛，
-		// 与clearInUseAndIAmSureAppStopped的finally-close形态对齐。
+		// 整批构造成功后才把关闭责任交给调用方。
 		try {
 			for (var db : getDatabaseConfMap().values())
 				map.put(db.name, createDatabase(zeze, db));
@@ -531,11 +531,10 @@ public final class Config {
 	}
 
 	public void clearInUseAndIAmSureAppStopped(Application zeze) throws Exception {
-		// 建的整批Database（连接池/RocksDB句柄等）用完必须close——增量建表：
-		// createDatabase中途失败已建实例也在finally被关；
+		// createDatabase 在构造失败时负责关闭已建的库；只有成功后才由此处接管。
 		var created = new HashMap<String, Database>();
+		createDatabase(zeze, created);
 		try {
-			createDatabase(zeze, created);
 			for (var db : created.values()) {
 				try {
 					//noinspection DataFlowIssue
