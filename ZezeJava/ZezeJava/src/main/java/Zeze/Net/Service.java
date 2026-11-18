@@ -435,10 +435,9 @@ public class Service extends ReentrantLock {
 			return;
 		for (var it = ctxSends.iterator(); it.moveToNext(); ) {
 			try {
-				var sid = it.key();
-				var rpc = removeRpcContext(sid);
-				if (rpc == null)
-					continue; // 已被应答/超时消费
+				var rpc = it.value();
+				if (!removeRpcContext(it.key(), rpc))
+					continue; // 快照中的上下文已被消费；同号的后续上下文仍归其发送连接。
 				rpc.setResultCode(Procedure.ErrorSendFail);
 				var future = rpc.getFuture();
 				if (future != null)
@@ -835,9 +834,9 @@ public class Service extends ReentrantLock {
 		var result = new LongHashMap<Rpc<?, ?>>(Math.max(rpcContexts.size(), 1024)); // 初始容量先别定太大,可能只过滤出一小部分
 		for (var it = rpcContexts.entryIterator(); it.moveToNext(); ) {
 			//noinspection DataFlowIssue
-			if (filter.test(it.value()))
-				//noinspection DataFlowIssue
-				result.put(it.key(), it.value());
+			var rpc = it.value();
+			if (filter.test(rpc))
+				result.put(it.key(), rpc);
 		}
 		return result;
 	}
