@@ -16,7 +16,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.DaemonTimer;
-import Zeze.Util.Func2;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Str;
@@ -82,29 +81,16 @@ public class CommitRocks {
 
 	private void redoTimer() throws RocksDBException {
 		try (var it = commitIndex.iterator()) {
-			for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
-				var value = it.value();
-				var state = ByteBuffer.Wrap(value).ReadUInt();
-				switch (state) {
-				case Commit.eCommitting:
-					redo(it.key(), Dbh2Agent::commitBatch);
-					break;
-				case Commit.ePreparing:
-					// 迭代值可能陈旧（事务此刻已推进到eCommitting甚至已完结）：在途集合的移除
-					// 只发生在记录删除之后，命中即可安全跳过；未命中时redo内重读commitPoint兜底。
-					if (inFlightTids.contains(ByteBuffer.ToLongBE(it.key(), 0)))
-						break;
-					redo(it.key(), Dbh2Agent::undoBatch);
-					break;
-				}
-			}
+			for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next())
+				redo(it.key());
 		}
 	}
 
-	private void redo(byte[] key, Func2<Dbh2Agent, Long, TaskCompletionSource<
-			RaftRpc<BBatchTid.Data, EmptyBean.Data>>> func) throws RocksDBException {
-
+	private void redo(byte[] key) throws RocksDBException {
 		var tid = ByteBuffer.ToLongBE(key, 0);
+		// 登记先于索引可见。先读取在途标志再读取决定，避免在观察到旧 ePreparing 后，
+		// 正常提交线程删记录失败并移除登记，使恢复误把已持久化的提交当成撤销。
+		var inFlight = inFlightTids.contains(tid);
 		var value = commitPoint.get(key);
 		if (null == value) {
 			// 索引迭代到redo执行的间隙记录可能已被并发删除（事务正常完结），非崩溃残留。
@@ -113,11 +99,15 @@ public class CommitRocks {
 		}
 		var state = new BTransactionState.Data();
 		state.decode(ByteBuffer.Wrap(value));
+		var committing = state.getState() == Commit.eCommitting;
+		if (!committing && (state.getState() != Commit.ePreparing || inFlight))
+			return;
 
 		try {
 			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>>();
 			for (var e : state.getBuckets()) {
-				futures.add(func.call(manager.openBucket(e), tid));
+				var agent = manager.openBucket(e);
+				futures.add(committing ? agent.commitBatch(tid) : agent.undoBatch(tid));
 			}
 			for (var e : futures) {
 				var r = e.getNonNull(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
