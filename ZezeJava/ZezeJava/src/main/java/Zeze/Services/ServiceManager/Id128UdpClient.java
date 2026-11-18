@@ -36,7 +36,6 @@ public class Id128UdpClient {
 	private final @Nullable AbstractAgent agent;
 	private final DatagramSocket udp = new DatagramSocket();
 	private final Thread worker = new Thread(this::run, "Id128UdpClient");
-	private boolean running = true;
 	private final ConcurrentHashMap<String, FutureNode> currentFuture = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, FutureNode> tailFuture = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<AllocateId128> pendingRpc = new LongConcurrentHashMap<>();
@@ -120,7 +119,6 @@ public class Id128UdpClient {
 	}
 
 	public void stop() throws Exception {
-		running = false;
 		udp.close();
 		worker.interrupt();
 		worker.join();
@@ -149,7 +147,7 @@ public class Id128UdpClient {
 		var buf = new byte[1472];
 		var p = new DatagramPacket(buf, buf.length);
 
-		while (running) {
+		while (!udp.isClosed()) {
 			try {
 				udp.receive(p);
 				var bb = ByteBuffer.Wrap(p.getData(), p.getOffset(), p.getLength());
