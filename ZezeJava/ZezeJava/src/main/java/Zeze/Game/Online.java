@@ -424,8 +424,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 						multiInstanceName, account, roleId, ret);
 				return ret;
 			}
-			// 旧代本地数据只能清理自身；新登录可复用同一 linkName/linkSid，
-			// 后面的链路比较不能证明本次清理仍拥有共享会话。
+			// 旧代本地数据只能清理自身；共享会话所有权以LoginVersion为凭证（此处已判不等），
+			// linkName/linkSid只是链路定位——即便相等也不能证明本次清理仍拥有共享会话。
 			return 0;
 		}
 
