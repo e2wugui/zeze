@@ -238,7 +238,9 @@ public class DatabaseRocksDb extends Database {
 	// 将主库已读出的存量记录回填到本地镜像，使用与读取一致的键长预算。
 	static void backfillMirror(Table mirror, Transaction txn, ByteBuffer key, ByteBuffer value) {
 		var target = (TableRocksDb)mirror;
-		if (!target.getDatabase().isLocalRocksCache)
+		// 镜像回填只允许打向本地缓存库：localRocksCache标志随写选项统一配置删除后，
+		// 按LocalCacheResources自建的url命名约定（zeze_cache_<serverId>）判别。
+		if (!target.getDatabase().getDatabaseUrl().startsWith("zeze_cache_"))
 			throw new IllegalStateException("backfillMirror requires the local RocksDB cache");
 		checkKvKeyLengthForLegacyAccess(target.table.getName(), key);
 		target.put(txn, key, value);
