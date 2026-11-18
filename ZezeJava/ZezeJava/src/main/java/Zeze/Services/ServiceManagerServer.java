@@ -107,7 +107,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	// 简单负载广播，
 	// 在registerService/updateService时自动订阅，会话关闭的时候删除。
-	// ProcessSetLoad时广播，本来不需要记录负载数据的，但为了以后可能的查询，保存一份。
+	// ProcessSetLoad 只向已登记的观察者广播。
 	private final ConcurrentHashMap<String, LoadObservers> loads = new ConcurrentHashMap<>();
 
 	private static final class LoadObservers extends FastLock {
@@ -686,8 +686,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private long processSetLoad(SetServerLoad setServerLoad) {
-		// loads键（name）客户端可控——长度校验（空行自愈已有：removeLoadObservers
-		// 在任意会话关闭时按isEmpty扫除）。
 		if (isOverUtf8Bytes(setServerLoad.Argument.getName(), SVC_NAME_MAX_BYTES)
 			|| isOverUtf8Bytes(setServerLoad.Argument.ip, SVC_IP_MAX_BYTES)) {
 			warnSvcRejected("setLoad field over size");
@@ -695,13 +693,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 		editLock.lock();
 		try {
-			// 迟到的SetLoad会为死会话重建零观察者地址行（绕过会话联动清理）；
-			// 判活与removeLoadObservers（onClose，editLock内）串行。SetServerLoad非Rpc，
-			// 死连接本就收不到应答，拒绝即静默丢弃。
+			// 判活与会话清理串行。上报本身没有观察者，也不保存历史负载。
 			if (!isSenderAlive(Objects.requireNonNull(setServerLoad.getSender())))
 				return 0;
-			loads.computeIfAbsent(setServerLoad.Argument.getName(), __ -> new LoadObservers(this))
-				.setLoad(setServerLoad.Argument);
+			var observers = loads.get(setServerLoad.Argument.getName());
+			if (observers != null)
+				observers.setLoad(setServerLoad.Argument);
 			return 0;
 		} finally {
 			editLock.unlock();
