@@ -11,19 +11,6 @@ ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是�
 	载体线程池大小	getPoolSize()	调度器当前已启动的载体线程数量。
 	QueueDepthRatio= getQueuedVirtualThreadCount() / getParallelism() < 1 健康； < 2 承压； > 2 告警；
 
-ai过于考虑安全性，原来审核时，把好几个RocksDb相关的地方改成sync write了。
-但是mysql也是支持缓存批量定时写的，这是权衡性能的选择。
-应该根据重要性，只有某些特别重要的sync write，其他的可配置。
-但是根据资料，混合写选项模式不是很好衡量，是否部分sync write，部分普通写，
-这个方案需要仔细考虑。现在需要对下面几个部分进行全面规划，是否采取这个方案：
-提供写选项配置，所有写同一个选项。高安全应用选择sync write，普通高性能应用选择普通写。
-0. Util.RocksDatabase 属于基本实现，无配置，api上提供写选项选择，默认普通写。
-1. DbType.RocksDb sync write 审核。可以配置，url里面提供选项(todo)。
-2. Raft sync write 审核。RaftConfig里面增加bool配置，去掉setWriteOptions方法。
-3. RocksRaft sync write 审核。由RaftConfig控制，去掉构造参数RocksDbWriteOptionSync。
-4. Dbh2 sync write 审核。由RaftConfig控制，去掉构造参数writeOptionSync。
-先审核上面内容，给出完整方案汇总。
-
 History tid 分配方案，目前是锁内一次一个的分配，性能不行。
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
