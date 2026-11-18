@@ -468,8 +468,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 		var loginVersion = bOnline.getLogins().getOrAdd(clientId);
 
-		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
-		tryRedirectRemoveLocal(loginVersion.getServerId(), account);
+		// 提交后通知旧服，让清理事务读到已提交的登出状态。
+		var oldServerId = loginVersion.getServerId();
+		Transaction.whileCommit(() -> tryRedirectRemoveLocal(oldServerId, account));
 
 		// 总是删除
 		var removeResult = removeLocalAndTrigger(account, clientId);

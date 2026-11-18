@@ -796,8 +796,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		onlineShared.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eOffline));
 		// local 在这个流程里面不需要setLink，如果是这个登录的，那么扇面已经删除（removeLocalAndTrigger），否则不需要修改。
 
-		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
-		tryRedirectRemoveLocal(multiInstanceName, getOrAddOnline(roleId).getServerId(), roleId);
+		// 提交后通知旧服，让清理事务读到已提交的登出状态。
+		var oldServerId = getOrAddOnline(roleId).getServerId();
+		Transaction.whileCommit(() -> tryRedirectRemoveLocal(multiInstanceName, oldServerId, roleId));
 		// 总是删除
 		var removeResult = removeLocalAndTrigger(roleId);
 		if (removeResult != 0)
