@@ -73,6 +73,8 @@ public final class BServiceInfos implements Serializable {
 		sortedIdentities.clear();
 		for (int c = bb.ReadUInt(); c > 0; --c)
 			sortedIdentities.add(new BServiceInfo(bb));
+		// 旧服务端的身份排序可能不同，后续增量和查找使用本地比较器。
+		sortedIdentities.sort(comparer);
 	}
 
 	@Override
