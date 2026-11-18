@@ -81,7 +81,17 @@ public class DatabaseRedis extends Database {
 
 		public RedisTransaction(JedisPool pool) {
 			jedis = pool.getResource();
-			jedisTrans = new redis.clients.jedis.Transaction(jedis);
+			try {
+				jedisTrans = new redis.clients.jedis.Transaction(jedis);
+			} catch (Throwable failure) {
+				try {
+					jedis.close();
+				} catch (Throwable closeFailure) {
+					if (failure != closeFailure)
+						failure.addSuppressed(closeFailure);
+				}
+				throw failure;
+			}
 		}
 
 		public void replace(byte [] table, byte [] key, byte [] value) {
@@ -124,8 +134,9 @@ public class DatabaseRedis extends Database {
 
 		@Override
 		public void close() {
-			jedisTrans.close();
-			jedis.close();
+			try (jedis) {
+				jedisTrans.close();
+			}
 		}
 	}
 
