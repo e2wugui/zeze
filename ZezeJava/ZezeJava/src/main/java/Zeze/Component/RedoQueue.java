@@ -84,6 +84,8 @@ public class RedoQueue extends HandshakeClient {
 	public void stop() throws Exception {
 		lock();
 		try {
+			pending = null;
+			socket = null;
 			if (retryTask != null) {
 				retryTask.cancel(false);
 				retryTask = null;
@@ -209,12 +211,10 @@ public class RedoQueue extends HandshakeClient {
 	private long processRunTaskResult(Rpc<BQueueTask, BTaskId> rpc) throws Exception {
 		lock();
 		try {
-			if (pending != rpc)
+			if (pending != rpc || tableTaskQueue == null)
 				return Procedure.LogicError;
 
 			pending = null;
-			if (null == tableTaskQueue)
-				return Procedure.LogicError; // stop与响应回调竞态：stop持锁清理时未清pending，表已置null（同scheduleRetry内的守卫）
 			if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
 				var doneTaskId = Math.max(lastDoneTaskId, rpc.Result.getTaskId());
 				// 服务端水位只能单向推进：ErrorRequestId回包携带的服务端进度在服务端状态回退
@@ -248,12 +248,13 @@ public class RedoQueue extends HandshakeClient {
 		if (retryTask != null)
 			return; // 单flight：已在途的重试足够驱动泵
 
+		var retryTable = tableTaskQueue;
 		retryTask = TaskSpec.ofAction(() -> {
 			lock();
 			try {
+				if (retryTable == null || retryTable != tableTaskQueue)
+					return; // 已开始的旧重试可能越过 stop/start，不能清理新一轮的重试句柄。
 				retryTask = null;
-				if (null == tableTaskQueue)
-					return; // stop与已触发的重试竞态：stop持锁先完成（cancel拦不住已启动的任务），db已关闭
 				tryStartSendNextTask(null, null);
 			} catch (RocksDBException e) {
 				scheduleRetry();
