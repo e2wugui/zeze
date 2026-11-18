@@ -200,11 +200,14 @@ public class Bag {
 		return 0;
 	}
 
-	// 返回未能堆叠的数量；中间总量可以超过 int，但合法的单堆数量不会。
+	// 旧堆可能超过当前上限（例如堆叠配置下调），保留旧堆并让其停止接收新物品。
 	private static int stackInto(BItem target, int number, int pileMax) {
-		long total = (long)target.getNumber() + number;
-		target.setNumber((int)Math.min(total, pileMax));
-		return (int)Math.max(total - pileMax, 0);
+		int current = target.getNumber();
+		if (current >= pileMax)
+			return number;
+		int added = (int)Math.min(number, (long)pileMax - current);
+		target.setNumber(current + added);
+		return number - added;
 	}
 
 	private int getEmptyPosition() {
