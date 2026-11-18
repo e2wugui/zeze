@@ -176,11 +176,20 @@ public class Distribute {
 		hotModuleJars.clear();
 
 		var hotAgents = new ArrayList<HotAgent>();
-		for (var hotManager : hotManagers) {
-			var hotAgent = new HotAgent(hotManager);
-			hotAgent.start(); // 构造器只登记连接器不建连（autoReconnect仅是断线重连意图）；start内置WaitReady
-			hotAgents.add(hotAgent);
+		try {
+			for (var hotManager : hotManagers) {
+				var hotAgent = new HotAgent(hotManager);
+				hotAgents.add(hotAgent); // WaitReady失败时也要停止已启动的连接器。
+				hotAgent.start();
+			}
+			distribute(hotAgents, schemasJarFile);
+		} finally {
+			for (var hotAgent : hotAgents)
+				hotAgent.stop();
 		}
+	}
+
+	private void distribute(ArrayList<HotAgent> hotAgents, File schemasJarFile) throws Exception {
 		// 开始发布准备阶段。
 		var distributeId = 817123; // 使用魔数。发布流程不并发，不需要动态多值，当然提供动态多值更加完善。
 		for (var hotAgent : hotAgents) {
