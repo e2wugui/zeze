@@ -153,8 +153,9 @@ public class DelayRemove extends AbstractDelayRemove {
 					it.remove();
 					continue;
 				}
+				var jobId = e.getKey();
 				var job = e.getValue();
-				startJob(e.getKey(), job.getJobHandleName(), job.getJobState());
+				Transaction.whileCommit(() -> startJob(jobId, job.getJobHandleName(), job.getJobState()));
 			}
 			return 0;
 		}, "DelayRemove.continueJobs").call();

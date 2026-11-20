@@ -2,9 +2,12 @@ package Zeze.Component;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import Zeze.Application;
 import Zeze.Builtin.DelayRemove.BJob;
 import Zeze.Builtin.DelayRemove.tJobs;
+import Zeze.Builtin.Game.Rank.BValueLong;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
@@ -26,6 +29,44 @@ import org.junit.jupiter.api.parallel.Isolated;
 @Fast
 @Isolated
 public class TestDelayRemoveZombieJobOnContinue {
+	@Test
+	void resumedJobSeesCommittedProgressAndIsNotDispatchedOnRollback() throws Exception {
+		var conf = TakeoverTestEnv.newConf("dryrun", 600_000, 600_000);
+		var app = new Application("TestDelayRemoveCommittedProgress", conf);
+		try {
+			app.start();
+			var dr = app.getDelayRemove();
+			var received = new LinkedBlockingQueue<Long>();
+			dr.register("resume", (delayRemove, jobId, jobState) -> {
+				var progress = new BValueLong();
+				progress.decode(ByteBuffer.Wrap(jobState));
+				received.add(progress.getValue());
+			});
+			var jobs = getJobsTable(dr);
+			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
+				var job = new BJob();
+				job.setJobHandleName("resume");
+				jobs.getOrAdd(conf.getServerId()).getJobs().put("job", job);
+				dr.setJobState("job", new BValueLong(1));
+				return Procedure.Success;
+			}, "seedJob").call());
+			Assertions.assertEquals(Procedure.LogicError, app.newProcedure(() -> {
+				dr.continueJobs();
+				dr.setJobState("job", new BValueLong(2));
+				return Procedure.LogicError;
+			}, "rollBackResume").call());
+			Assertions.assertNull(received.poll(200, TimeUnit.MILLISECONDS));
+			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
+				dr.continueJobs();
+				dr.setJobState("job", new BValueLong(3));
+				return Procedure.Success;
+			}, "commitResume").call());
+			Assertions.assertEquals(3L, received.poll(5, TimeUnit.SECONDS));
+			Assertions.assertNull(received.poll(200, TimeUnit.MILLISECONDS));
+		} finally {
+			app.stop();
+		}
+	}
 
 	// _tJobs是AbstractDelayRemove的protected字段，测试经反射注入存量行（同TestLateProtocolAfterClose口径）。
 	@SuppressWarnings("unchecked")
