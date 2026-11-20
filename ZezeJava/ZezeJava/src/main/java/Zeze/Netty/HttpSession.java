@@ -162,30 +162,24 @@ public class HttpSession extends AbstractHttpSession {
 		final var sessionId = new OutObject<String>();
 		FuncLong initAction = () -> {
 			needSetCookie.value = false; // 乐观锁 redo 整体重跑时重置 out 参数，避免沿用上一轮的陈旧结果。
-			// 新建会话的id永远由服务器随机生成——客户端提供的id只在表中已存在且未过期时
-			// 才被采用；未知/已过期的id一律丢弃再生。否则攻击者经cookie注入把自选ZEZESESSIONID植入
-			// 受害者（子域Domain注入/明文MITM等），受害者首访即以该id建全新会话，攻击者持同id并发
-			// 访问即获得其会话（含登录后写入的properties）；过期复活分支（旧行就地以旧主键复活）
-			// 同样封死。redo重跑时重新生成即可（回滚的插入随事务消失，行不会残留）。
-			sessionId.value = cookieSessionId;
-			if (sessionId.value != null) {
-				var existing = _tSession.get(sessionId.value);
-				if (existing == null || existing.getExpireTime() <= System.currentTimeMillis())
-					sessionId.value = makeSessionId();
-			} else
-				sessionId.value = makeSessionId();
-			var isAdd = new OutObject<>(false);
-			var value = _tSession.getOrAdd(sessionId.value, isAdd);
 			var now = System.currentTimeMillis();
-			var expire = httpSessionExpire;
-			//noinspection DataFlowIssue
-			if (isAdd.value || value.getExpireTime() <= now) {
-				// 初始化 HttpSession
-				value.setCreateTime(now);
-				value.setExpireTime(now + expire);
-				value.getProperties().clear();
-				needSetCookie.value = true;
+			if (cookieSessionId != null) {
+				var existing = _tSession.get(cookieSessionId);
+				if (existing != null && existing.getExpireTime() > now) {
+					sessionId.value = cookieSessionId;
+					return Procedure.Success;
+				}
 			}
+			// 新会话只使用服务器生成的未占用 ID。随机碰撞时重新生成，保留已有会话行。
+			var value = new BSessionValue();
+			value.setCreateTime(now);
+			value.setExpireTime(now + httpSessionExpire);
+			String id;
+			do {
+				id = makeSessionId();
+			} while (id.equals(cookieSessionId) || !_tSession.tryAdd(id, value));
+			sessionId.value = id;
+			needSetCookie.value = true;
 			return Procedure.Success;
 		};
 		// 本方法不由channelRead在EventLoop线程同步调用(DB事务阻塞IO线程,DB抖动期间该EventLoop上
