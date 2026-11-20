@@ -113,14 +113,16 @@ public class Exporter {
 	}
 
 	public void stop() throws IOException {
-		agent.close();
-		// 停机收尾：逐个释放exporter底层资源（如ExporterNginxHttp的HttpClient线程池），
-		// 防止进程停机线程泄漏；单个close失败仅记日志，不影响其余exporter与停机流程。
-		for (var ep : exports) {
-			try {
-				ep.close();
-			} catch (Throwable e) {
-				logger.error("exporter close fail. exporter={}", ep.getClass().getName(), e);
+		try {
+			agent.close();
+		} finally {
+			// agent关闭失败时也要释放各导出器的资源。
+			for (var ep : exports) {
+				try {
+					ep.close();
+				} catch (Throwable e) {
+					logger.error("exporter close fail. exporter={}", ep.getClass().getName(), e);
+				}
 			}
 		}
 	}
