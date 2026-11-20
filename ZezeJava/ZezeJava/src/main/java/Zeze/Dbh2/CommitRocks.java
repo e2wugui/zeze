@@ -243,7 +243,9 @@ public class CommitRocks {
 		var tid = manager.nextTransactionId();
 		var tidBytes = null != tidEncoded ? tidEncoded : new byte[8];
 		ByteBuffer.longBeHandler.set(tidBytes, 0, tid);
-		var prepareTime = System.currentTimeMillis();
+		// 桶侧也按单调钟计龄。协调者墙钟回拨不得延长 prepare 决策窗口。
+		var prepareStartNanos = System.nanoTime();
+		var prepareMaxTime = manager.getDbh2Config().getPrepareMaxTime();
 		inFlightTids.add(tid); // 先登记再写ePreparing：redoTimer"先读索引、后查在途"的次序才无竞态
 		try {
 			saveCommitPoint(tidBytes, state, Commit.ePreparing);
@@ -261,7 +263,7 @@ public class CommitRocks {
 				// 循环顶熔断：重定向轮数无上限，须在每轮顶检查elapsed，超prepareMaxTime即break，
 				// 交由循环后的既有超时分支统一undo+removeRecord——服务端决策时长由此有界，
 				// 客户端超时按prepareMaxTime+rpcTimeout派生覆盖（见Dbh2Config.getCommitRpcTimeout）。
-				if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime())
+				if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - prepareStartNanos) > prepareMaxTime)
 					break;
 				futures = processPrepareFutures(tid, tidBytes, state, queryHost, queryPort, futures);
 			}
@@ -271,9 +273,8 @@ public class CommitRocks {
 			throw new RuntimeException(ex);
 		}
 
-		if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
-			var ex = new RuntimeException(Str.format("max prepare time exceed. time={}",
-					manager.getDbh2Config().getPrepareMaxTime()));
+		if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - prepareStartNanos) > prepareMaxTime) {
+			var ex = new RuntimeException(Str.format("max prepare time exceed. time={}", prepareMaxTime));
 			rollbackPrepare(tid, tidBytes, state, ex);
 			throw ex;
 		}
