@@ -110,8 +110,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timerFutures = new ConcurrentHashMap<>();
 	private final HotHandle<TimerHandle> hotHandle = new HotHandle<>();
-	// volatile：stop()与fireSimple/fireCron尾部的周期重装（whileCommit在提交
-	// 线程异步执行）跨线程可见——stop后重装检查必须读到false，否则残留future停机后继续触发。
+	// 触发入口跨线程读取；安装与停止摘取句柄在 timerFutures 监视器下互斥。
 	private volatile boolean started;
 
 	// 在线定时器族（TimerOnlineBase）共用timerFutures与stop()语义，
@@ -213,14 +212,17 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			if (!started)
 				return;
 
-			// 尽早置false：下面的cancel等待期间（future.get）到达的周期重装会读它，
-			// 晚置会在等待窗口内继续put新future——这些future不再被cancel，停机后仍会触发回调。
-			started = false;
+			List<Future<?>> futures;
+			synchronized (timerFutures) {
+				started = false;
+				futures = List.copyOf(timerFutures.values());
+				timerFutures.clear();
+			}
 
 			// 停止当前正在调度的timer。
-			for (var future : timerFutures.values())
+			for (var future : futures)
 				future.cancel(false);
-			for (var future : timerFutures.values()) {
+			for (var future : futures) {
 				try {
 					future.get(1, TimeUnit.SECONDS);
 				} catch (InterruptedException e) {
@@ -230,8 +232,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					// ignored
 				}
 			}
-			timerFutures.clear();
-
 			var hotManager = getZeze().getHotManager();
 			if (hotManager != null) {
 				hotManager.removeHotBeanFactory(this);
@@ -1119,6 +1119,17 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		cancelFuture(timerId);
 	}
 
+	void installFuture(String timerId, long delay, boolean putIfAbsent, TaskSpec<Long> task) {
+		Future<?> previous;
+		synchronized (timerFutures) {
+			if (!started || (putIfAbsent && timerFutures.containsKey(timerId)))
+				return;
+			previous = timerFutures.put(timerId, task.scheduleNow(delay));
+		}
+		if (previous != null)
+			previous.cancel(false);
+	}
+
 	void cancelFuture(String timerId) {
 		var local = timerFutures.remove(timerId);
 		if (local != null)
@@ -1219,23 +1230,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private void scheduleSimple(long timerSerialId, int serverId, String timerId, long delay,
 	                            long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
-		Transaction.whileCommit(() -> {
-			if (!started)
-				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
-			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
-				var exist = timerFutures.put(timerId, TaskSpec.ofAction(() -> {
-					if (oneByOneKey == null || oneByOneKey.isEmpty())
-						fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false);
-					else {
-						TaskSpec.ofAction(
-										() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false))
-								.executeOneByOne(oneByOneKey);
-					}
-				}).scheduleNow(delay));
-				if (null != exist)
-					exist.cancel(false);
-			}
-		});
+		Transaction.whileCommit(() -> installFuture(timerId, delay, putIfAbsent,
+				TaskSpec.ofAction(() -> dispatchFire(oneByOneKey,
+						() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false)))));
 	}
 
 	private void cancelFailedTimer(String timerId, long timerSerialId) {
@@ -1252,7 +1249,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private void fireSimple(long timerSerialId, int serverId, String timerId, long concurrentSerialNo,
 	                        boolean missfire) {
 		if (!started)
-			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
+			return; // 已派发的任务可能在停机后才到达触发入口。
 		if (TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null)
@@ -1336,29 +1333,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private void scheduleCronNext(long timerSerialId, int serverId, String timerId, long delay,
 	                              long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
-		Transaction.whileCommit(() -> {
-			if (!started)
-				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
-			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
-				var exist = timerFutures.put(timerId, TaskSpec.ofAction(() -> {
-					if (oneByOneKey == null || oneByOneKey.isEmpty())
-						fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false);
-					else {
-						TaskSpec.ofAction(
-										() -> fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false))
-								.executeOneByOne(oneByOneKey);
-					}
-				}).scheduleNow(delay));
-				if (null != exist)
-					exist.cancel(false);
-			}
-		});
+		Transaction.whileCommit(() -> installFuture(timerId, delay, putIfAbsent,
+				TaskSpec.ofAction(() -> dispatchFire(oneByOneKey,
+						() -> fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false)))));
 	}
 
 	private void fireCron(long timerSerialId, int serverId, String timerId, long concurrentSerialNo,
 	                      boolean missfire) {
 		if (!started)
-			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
+			return; // 已派发的任务可能在停机后才到达触发入口。
 		if (TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null)

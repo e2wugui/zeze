@@ -363,15 +363,9 @@ abstract class TimerOnlineBase<I> {
 									  @Nullable String oneByOneKey) {
 		//noinspection DataFlowIssue
 		var timerSerialId = getOnlineTimer(timerId).getSerialId();
-		Transaction.whileCommit(() -> {
-			if (!timer().isStarted())
-				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
-			var exist = timer().timerFutures.put(timerId,
-					TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
-						() -> fireOnlineSimple(timerId, timerSerialId, handle, false))).scheduleNow(delay));
-			if (null != exist)
-				exist.cancel(false);
-		});
+		Transaction.whileCommit(() -> timer().installFuture(timerId, delay, false,
+				TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
+						() -> fireOnlineSimple(timerId, timerSerialId, handle, false)))));
 	}
 
 	// hot句柄解析必须发生在fireOnline保护路径之内。在实参位置直接
@@ -393,17 +387,9 @@ abstract class TimerOnlineBase<I> {
 										 @Nullable String oneByOneKey) {
 		//noinspection DataFlowIssue
 		var timerSerialId = getOnlineTimer(timerId).getSerialId();
-		Transaction.whileCommit(() -> {
-			if (!timer().isStarted())
-				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
-			var exist = timer().timerFutures.put(timerId, TaskSpec
-					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
-							() -> fireOnlineSimple(timerId, timerSerialId,
-									findTimerHandleSafely(handleClassName), true)))
-					.scheduleNow(delay));
-			if (null != exist)
-				exist.cancel(false);
-		});
+		Transaction.whileCommit(() -> timer().installFuture(timerId, delay, false,
+				TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
+						() -> fireOnlineSimple(timerId, timerSerialId, findTimerHandleSafely(handleClassName), true)))));
 	}
 
 	private void scheduleOnlineCron(String timerId, BCronTimer cron, @Nullable TimerHandle handle,
@@ -432,15 +418,9 @@ abstract class TimerOnlineBase<I> {
 										@Nullable String oneByOneKey) {
 		//noinspection DataFlowIssue
 		var timerSerialId = getOnlineTimer(timerId).getSerialId();
-		Transaction.whileCommit(() -> {
-			if (!timer().isStarted())
-				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
-			var exist = timer().timerFutures.put(timerId,
-					TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
-						() -> fireOnlineCron(timerId, timerSerialId, handle, false))).scheduleNow(delay));
-			if (null != exist)
-				exist.cancel(false);
-		});
+		Transaction.whileCommit(() -> timer().installFuture(timerId, delay, false,
+				TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
+						() -> fireOnlineCron(timerId, timerSerialId, handle, false)))));
 	}
 
 	private void scheduleOnlineCronNextHot(String timerId, long delay,
@@ -448,17 +428,9 @@ abstract class TimerOnlineBase<I> {
 										   @Nullable String oneByOneKey) {
 		//noinspection DataFlowIssue
 		var timerSerialId = getOnlineTimer(timerId).getSerialId();
-		Transaction.whileCommit(() -> {
-			if (!timer().isStarted())
-				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
-			var exist = timer().timerFutures.put(timerId, TaskSpec
-					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
-							() -> fireOnlineCron(timerId, timerSerialId,
-									findTimerHandleSafely(handleClassName), true)))
-					.scheduleNow(delay));
-			if (null != exist)
-				exist.cancel(false);
-		});
+		Transaction.whileCommit(() -> timer().installFuture(timerId, delay, false,
+				TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
+						() -> fireOnlineCron(timerId, timerSerialId, findTimerHandleSafely(handleClassName), true)))));
 	}
 
 	private void fireOnlineCron(String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot) {
@@ -571,7 +543,7 @@ abstract class TimerOnlineBase<I> {
 	private void fireOnline(String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot,
 							String kind, FireKind<I> fireKind) {
 		if (!timer().isStarted())
-			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
+			return; // 已派发的任务可能在停机后才到达触发入口。
 		var timer = timer();
 		var procSuffix = handle != null ? "." + handle.getClass().getName() : "";
 		var ret = TaskSpec.ofProcedure(zeze().newProcedure(() -> {
