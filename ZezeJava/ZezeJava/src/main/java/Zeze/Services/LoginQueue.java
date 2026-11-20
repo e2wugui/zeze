@@ -50,6 +50,8 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final ConcurrentLinkedQueue<AsyncSocket> queue = new ConcurrentLinkedQueue<>();
 	// 私有锁: 串行化tryOnAccept/drainQueue/tryResetTimeThrottle，不暴露实例监视器
 	private final ReentrantLock allocateLock = new ReentrantLock();
+	// 在 allocateLock 内维护，满载时允许接入线程在锁外快速拒绝。
+	private volatile int queuedCount;
 	// DaemonTimer内聚分配tick的start/stop配对、stop限时等待在飞一轮、restart重新武装。
 	// tick只做派发，drainQueue+万级广播搬入worker池执行，不占用调度线程。
 	private final DaemonTimer allocateDaemon = new DaemonTimer("LoginQueue.allocate", 1000, this::allocateTimer);
@@ -159,10 +161,11 @@ public class LoginQueue extends AbstractLoginQueue {
 			var allocate = 0;
 			// peek/poll 而非 for-each+poll：队头排队期间断开的连接直接清掉，不占本轮分配配额，
 			// 且不依赖分配是否成功（providerSize()==0 时 max==0，for-each 版本会什么都不做，
-			// closed 残留越积越多，虚高 queue.size 导致 tryOnAccept 误发 PutQueueFull）。
+			// closed 残留越积越多，虚高队列长度导致 tryOnAccept 误发 PutQueueFull）。
 			for (var e = queue.peek(); e != null; e = queue.peek()) {
 				if (e.isClosed()) {
 					queue.poll();
+					--queuedCount;
 					continue;
 				}
 				if (allocate >= max)
@@ -170,6 +173,7 @@ public class LoginQueue extends AbstractLoginQueue {
 				if (!tryAllocateServer(e))
 					break; // 分配失败
 				queue.poll();
+				--queuedCount;
 				++allocate;
 			}
 		} finally {
@@ -223,18 +227,21 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	boolean tryOnAccept(AsyncSocket so) throws Exception {
-		// 与drainQueue和其他accept串行化，保证容量检查与入队是同一次操作。
-		allocateLock.lock();
-		try {
-			//noinspection DataFlowIssue
-			if (queue.size() < so.getService().getConfig().getMaxConnections()) {
-				if (queue.isEmpty() && timeThrottle.checkNow(1) && tryAllocateServer(so))
-					return false; // 新连接已直接分配
-				queue.add(so);
-				return true;
+		//noinspection DataFlowIssue
+		var maxConnections = so.getService().getConfig().getMaxConnections();
+		if (queuedCount < maxConnections) {
+			allocateLock.lock();
+			try {
+				if (queuedCount < maxConnections) {
+					if (queuedCount == 0 && timeThrottle.checkNow(1) && tryAllocateServer(so))
+						return false; // 新连接已直接分配
+					queue.add(so);
+					++queuedCount;
+					return true;
+				}
+			} finally {
+				allocateLock.unlock();
 			}
-		} finally {
-			allocateLock.unlock();
 		}
 		new PutQueueFull().Send(so);
 		so.closeGracefully();
