@@ -145,16 +145,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	}
 
 	public GTable1(Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
-		checkNonBeanDimension("row", rowClass);
-		checkNonBeanDimension("column", colClass);
-		if (Bean.class.isAssignableFrom(valClass))
-			throw new IllegalArgumentException(
-				"GTable1 does not support Bean value type (json parse yields bare empty Object), use GTable2: "
-					+ valClass.getName());
-		var factory = getFactory(rowClass, colClass, valClass);
-		this.pMap2 = new PMap2<>(factory.pmapMeta);
-		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
-		super.factory = factory;
+		this(getFactory(rowClass, colClass, valClass));
 	}
 
 	/** 复用工厂，省去实例化时的缓存查找。 */
@@ -166,6 +157,12 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 
 	public static <R, C, V> Factory<R, C, V> getFactory(
 		Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
+		checkNonBeanDimension("row", rowClass);
+		checkNonBeanDimension("column", colClass);
+		if (Bean.class.isAssignableFrom(valClass))
+			throw new IllegalArgumentException(
+				"GTable1 does not support Bean value type (json parse yields bare empty Object), use GTable2: "
+					+ valClass.getName());
 		var map = factories.computeIfAbsent(rowClass, __ -> new ConcurrentHashMap<>())
 			.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());
 		var factory = map.get(valClass);

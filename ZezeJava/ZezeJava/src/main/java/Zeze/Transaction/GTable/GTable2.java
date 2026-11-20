@@ -153,12 +153,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	}
 
 	public GTable2(Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
-		checkNonBeanDimension("row", rowClass);
-		checkNonBeanDimension("column", colClass);
-		var factory = GTable2.<R, C, V, VReadOnly>getFactory(rowClass, colClass, valClass);
-		this.pMap2 = new PMap2<>(factory.pmapMeta);
-		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
-		super.factory = factory;
+		this(GTable2.<R, C, V, VReadOnly>getFactory(rowClass, colClass, valClass));
 	}
 
 	/** 复用工厂，省去实例化时的缓存查找。 */
@@ -170,6 +165,8 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 
 	public static <R, C, V extends Bean, VReadOnly> Factory<R, C, V, VReadOnly> getFactory(
 		Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
+		checkNonBeanDimension("row", rowClass);
+		checkNonBeanDimension("column", colClass);
 		if (valClass == Zeze.Transaction.DynamicBean.class)
 			throw new IllegalArgumentException(
 				"GTable2 does not support DynamicBean value via this overload (no default constructor),"
@@ -185,6 +182,8 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 
 	public static <R, C, VReadOnly> Factory<R, C, Zeze.Transaction.DynamicBean, VReadOnly> getFactory(
 		Class<R> rowClass, Class<C> colClass, DynamicField field) {
+		checkNonBeanDimension("row", rowClass);
+		checkNonBeanDimension("column", colClass);
 		return createFactory(rowClass, Map2Meta.createDynamic(colClass, field), field);
 	}
 
