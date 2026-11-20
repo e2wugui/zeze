@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.Objects;
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.locks.ReentrantLock;
@@ -94,7 +95,10 @@ public class GlobalCacheManagerWithRaft
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
-	private record Leadership(long term, long readyTime) {
+	record Leadership(long term, long readyNanos) {
+		boolean reconnectWindowElapsed(long currentTerm, long nowNanos, long timeoutMillis) {
+			return term == currentTerm && nowNanos - readyNanos > TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+		}
 	}
 
 	private volatile @Nullable Leadership leadership;
@@ -144,7 +148,7 @@ public class GlobalCacheManagerWithRaft
 		// 之前注册，保证不漏首次就任。
 		var raft = Objects.requireNonNull(rocks.getRaft());
 		raft.setOnLeaderReady(() -> {
-			leadership = new Leadership(raft.getLogSequence().getTerm(), System.currentTimeMillis());
+			leadership = new Leadership(raft.getLogSequence().getTerm(), System.nanoTime());
 			try {
 				rebuildSessionsFromStorage();
 			} catch (Throwable e) {
@@ -207,8 +211,8 @@ public class GlobalCacheManagerWithRaft
 			var currentLeadership = leadership;
 			// 再次就任时，旧 Holder 的 activeTime 可能停在上一个任期。和新重建的 Holder 一样，
 			// 先给客户端一个完整的重连窗口，避免客户端仍持有的权限被守护线程回收。
-			if (currentLeadership == null || currentLeadership.term() != fireTerm
-					|| now - currentLeadership.readyTime() <= achillesHeelConfig.globalDaemonTimeout)
+			if (currentLeadership == null || !currentLeadership.reconnectWindowElapsed(fireTerm,
+					System.nanoTime(), achillesHeelConfig.globalDaemonTimeout))
 				return;
 			sessions.forEach(session -> {
 				session.lock();
