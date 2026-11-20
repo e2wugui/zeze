@@ -568,6 +568,11 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
 
       @Override
+      public boolean removeAll(Collection<?> c) {
+        return removeFromColumnIf(Utils.in(c));
+      }
+
+      @Override
       public boolean retainAll(Collection<?> c) {
         return removeFromColumnIf(Utils.not(Utils.in(c)));
       }
@@ -637,6 +642,11 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       @Override
       public boolean remove(@Nullable Object obj) {
         return StandardTable.this.remove(obj, columnKey) != null;
+      }
+
+      @Override
+      public boolean removeAll(Collection<?> c) {
+        return removeFromColumnIf(Utils.keyPredicateOnEntries(Utils.in(c)));
       }
 
       @Override
