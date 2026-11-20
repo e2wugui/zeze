@@ -3,9 +3,9 @@ package Zeze.Dbh2;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Transaction.Database.AbstractKVTable;
-import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
@@ -27,19 +27,19 @@ public class TestBenchReleasesFailedBatchKeys {
 
 	private static void verifyFailure(boolean failCommit) throws Exception {
 		Task.tryInitThreadPool();
-		var running = new OutObject<>(true);
+		var running = new AtomicBoolean(true);
 		var database = mock(Database.class);
 		var transaction = mock(Zeze.Transaction.Database.Transaction.class);
 		var table = mock(AbstractKVTable.class);
 		when(database.beginTransaction()).thenReturn(transaction);
 		if (failCommit) {
 			doAnswer(call -> {
-				running.value = false;
+				running.set(false);
 				throw new IllegalStateException("commit failed");
 			}).when(transaction).commit();
 		} else {
 			doAnswer(call -> {
-				running.value = false;
+				running.set(false);
 				throw new IllegalStateException("write failed");
 			}).when(table).replace(any(), any(), any());
 		}

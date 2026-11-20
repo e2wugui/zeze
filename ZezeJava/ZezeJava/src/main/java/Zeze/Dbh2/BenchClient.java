@@ -5,13 +5,13 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.OutLong;
-import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
@@ -97,7 +97,7 @@ public class BenchClient {
 			for (var table : tables)
 				table.waitReady();
 
-			var running = new OutObject<>(true);
+			var running = new AtomicBoolean(true);
 			var futures = new ArrayList<Future<?>>();
 			var transCounter = new AtomicLong();
 			var benchClient = new BenchClient();
@@ -125,7 +125,7 @@ public class BenchClient {
 				if (line == null || line.equals("exit"))
 					break;
 			}
-			running.value = false;
+			running.set(false);
 			for (var future : futures)
 				future.get();
 			dbh2AgentManager.stop();
@@ -135,12 +135,12 @@ public class BenchClient {
 		}
 	}
 
-	static Future<?> startGetTask(OutObject<Boolean> running,
+	static Future<?> startGetTask(AtomicBoolean running,
 								  ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables,
 								  AtomicLong transCounter) {
 
 		return TaskSpec.ofAction(() -> {
-			while (Boolean.TRUE.equals(running.value)) {
+			while (running.get()) {
 				// 限制所有key的范围，防止服务器占用太大硬盘。
 				try {
 					var key = (Zeze.Util.Random.getInstance().nextLong() + 1) % 1000_00000;
@@ -197,7 +197,7 @@ public class BenchClient {
 		return result;
 	}
 
-	Future<?> startPutTask(OutObject<Boolean> running,
+	Future<?> startPutTask(AtomicBoolean running,
 						   Database database,
 						   int tableAccess,
 						   ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables,
@@ -205,7 +205,7 @@ public class BenchClient {
 						   AtomicLong transCounter) {
 		var value = ByteBuffer.Wrap(Zeze.Util.Random.nextBinary(valueSize));
 		return TaskSpec.ofAction(() -> {
-			while (Boolean.TRUE.equals(running.value)) {
+			while (running.get()) {
 				// 限制所有key的范围，防止服务器占用太大硬盘。
 				try (var trans = database.beginTransaction()) {
 					// 局部集合batchKeys不得遮蔽字段rrs——清理需对字段（跨轮去重表）操作，
