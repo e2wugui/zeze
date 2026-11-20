@@ -17,6 +17,7 @@
 package Zeze.Transaction.GTable;
 
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -569,7 +570,11 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
       @Override
       public boolean removeAll(Collection<?> c) {
-        return removeFromColumnIf(Utils.in(c));
+        if (c instanceof Set<?> && c.size() > backingMap.size()) {
+          return removeFromColumnIf(Utils.in(c));
+        }
+        // 参数也可能是同一张表的视图。先快照，避免删除时使参数迭代器失效。
+        return Utils.removeAllImpl(this, new ArrayList<>(c).iterator());
       }
 
       @Override
@@ -646,7 +651,10 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
       @Override
       public boolean removeAll(Collection<?> c) {
-        return removeFromColumnIf(Utils.keyPredicateOnEntries(Utils.in(c)));
+        if (c instanceof Set<?> && c.size() > backingMap.size()) {
+          return removeFromColumnIf(Utils.keyPredicateOnEntries(Utils.in(c)));
+        }
+        return Utils.removeAllImpl(this, new ArrayList<>(c).iterator());
       }
 
       @Override
