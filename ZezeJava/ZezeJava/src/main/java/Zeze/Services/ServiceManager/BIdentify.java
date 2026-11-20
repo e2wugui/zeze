@@ -21,7 +21,8 @@ public class BIdentify implements Serializable {
 	@Override
 	public void decode(IByteBuffer bb) {
 		serverId = bb.ReadInt();
-		version = bb.ReadLong();
+		// 旧版 Identify/Suspect 只有 serverId，按初始梯队版本 0 处理。
+		version = bb.isEmpty() ? 0 : bb.ReadLong();
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 24;
