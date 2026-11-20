@@ -219,15 +219,19 @@ public class RedoQueue extends HandshakeClient {
 
 			pending = null;
 			if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
-				var doneTaskId = Math.max(lastDoneTaskId, rpc.Result.getTaskId());
 				// 服务端水位只能单向推进：ErrorRequestId回包携带的服务端进度在服务端状态回退
 				//（换库/清数据/同名队列接新实例）时会小于本地水位，反向写小并持久化会让
-				// deleteDoneTasks删错区间、泵读已删区间命中hole停摆。钳制+告警。
+				// deleteDoneTasks删错区间、泵读已删区间命中hole停摆。
 				if (rpc.Result.getTaskId() < lastDoneTaskId) {
-					logger.warn("server watermark regressed, keep local. queue={}, local={}, server={}",
+					// 回退形态下续泵是无退避热循环：在途任务携带的prevTaskId永远对不上回退后的
+					// 服务端，重发必拒→同值persistCompletion（每轮RocksDB put+deleteRange写放大）
+					// →同步续泵再重发。服务端状态不会自愈、本地水位不可安全回写（删除区间失真），
+					// 对齐hole分支（宁停不错）：FATAL停摆，等运维重置本地水位或重放服务端状态。
+					logger.fatal("server watermark regressed, halt pump for ops. queue={}, local={}, server={}",
 							getName(), lastDoneTaskId, rpc.Result.getTaskId());
+					return 0L;
 				}
-				persistCompletion(doneTaskId);
+				persistCompletion(rpc.Result.getTaskId());
 				tryStartSendNextTask(null, rpc.getSender());
 				return 0L;
 			}
