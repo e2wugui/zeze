@@ -8,6 +8,7 @@ import java.util.Objects;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.HasManagedException;
 import Zeze.Serialize.SerializeHelper;
 
 /**
@@ -55,6 +56,8 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
 		} else {
+			if (value.isManaged())
+				throw new HasManagedException();
 			value.mapKey(key);
 			map = map.plus(key, value);
 		}

@@ -20,6 +20,7 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.CollList2;
 import Zeze.Raft.RocksRaft.CollMap2;
+import Zeze.Raft.RocksRaft.CollSortedMap2;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Raft.RocksRaft.Record;
 import Zeze.Raft.RocksRaft.Rocks;
@@ -216,6 +217,10 @@ public class TestRocksRaftCollPutPoisonGuard {
 			table.put(2, h2);
 			Assertions.assertThrows(HasManagedException.class, () -> h2.map2.put(99, leaf),
 					"已托管bean放入另一map必须抛HasManagedException");
+			var detachedMap = new CollMap2<>(Integer.class, BLeaf.class);
+			var detachedSortedMap = new CollSortedMap2<>(Integer.class, BLeaf.class);
+			Assertions.assertThrows(HasManagedException.class, () -> detachedMap.put(99, leaf));
+			Assertions.assertThrows(HasManagedException.class, () -> detachedSortedMap.put(99, leaf));
 			Assertions.assertEquals(77, leaf.mapKey(),
 					"HasManagedException路径不得毒化mapKey（修复前被改写为99，后续编辑被encode静默剔除）");
 			return -1L;
