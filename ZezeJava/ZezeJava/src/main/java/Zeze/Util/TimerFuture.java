@@ -124,6 +124,10 @@ public class TimerFuture<V extends @Nullable Object> extends ReentrantLock imple
 
 	@Override
 	public int compareTo(Delayed o) {
+		if (o == this)
+			return 0;
+		if (o instanceof TimerFuture<?> timer)
+			o = Objects.requireNonNull(timer.future, "timer is not scheduled");
 		return Objects.requireNonNull(future, "timer is not scheduled").compareTo(o);
 	}
 
