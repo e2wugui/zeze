@@ -14,11 +14,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * 带游标（exclusiveStartKey）的遍历必须在统一入口检查 key 长度预算：写预算900
- * （跨后端迁移上限）只约束新写，读/删/游标按存量预算2712放行（旧预算内的存量key
- * 必须可读可删可遍历定位，否则合法存量变成不可访问数据）。检查收敛在
- * AbstractKVTable 的 typed 分页门面与 TableX.walkDatabaseRaw，这里用 Memory 后端 +
- * 未开表的 tAutoKeyRandom（binary key）逐一验证入口（检查发生在触及 storage 之前）。
+ * 带游标（exclusiveStartKey）的遍历在统一入口按存量预算 2712 护栏（挡应用侧垃圾游标，
+ * 存量键全放行）；typed 读写执法在 TableX 入口按 900（见 Database.eMaxKeyLength 契约）。
+ * 检查收敛在 AbstractKVTable 的 typed 分页门面与 TableX.walkDatabaseRaw，这里用 Memory
+ * 后端 + 未开表的 tAutoKeyRandom（binary key）逐一验证入口（检查发生在触及 storage 之前）。
  */
 @Fast
 @NullMarked
@@ -86,8 +85,9 @@ public class TestKvKeyLengthPagedWalk {
 
 	@Test
 	public void testFindReplaceRemove() throws Exception {
-		// find/replace/remove 的执法点在各后端 raw 方法（写主路径 TableX.writeSnapshot 直呼 raw，
-		// 不经过 typed 门面）；写按900，读/删按存量预算2712。
+		// 执法分层（Database.eMaxKeyLength 契约）：typed 读写入口在 TableX 按 900；
+		// 后端 raw 的 find/remove 不检查（删除管线必须畅通），replace 保留 900 作为
+		// flush 兜底断言。这里直接打 raw 层，钉分层行为。
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_KV_KEY_LENGTH_PAGED_WALK);
 		var db = new DatabaseMemory(null, dbConf);
@@ -97,14 +97,13 @@ public class TestKvKeyLengthPagedWalk {
 		var tooBigKey = new Binary(new byte[Database.eMaxLegacyKeyLength + 1]);
 		var txn = db.beginTransaction();
 
-		// 存量预算内（901）可读可删；新写（replace）仍按900拒绝
-		Assertions.assertNull(rawTable.find(t, legacyKey), "存量预算内的key必须可读");
+		// 存量预算内（901）raw 层读/删不设限（拒绝发生在 typed 入口，事务成功之前）
+		Assertions.assertNull(rawTable.find(t, legacyKey), "raw 层读不检查");
 		rawTable.remove(txn, t.encodeKey(legacyKey)); // no-op，不得抛
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> rawTable.replace(txn, t.encodeKey(legacyKey), t.encodeKey(legacyKey)));
-		// 超存量预算（2713）读/删照旧拒绝
-		Assertions.assertThrows(IllegalArgumentException.class, () -> rawTable.find(t, tooBigKey));
-		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> rawTable.remove(txn, t.encodeKey(tooBigKey)));
+		// 超存量预算（2713）raw 读/删同样不抛：垃圾键防护在 typed 入口与游标护栏
+		Assertions.assertNull(rawTable.find(t, tooBigKey));
+		rawTable.remove(txn, t.encodeKey(tooBigKey)); // no-op，不得抛
 	}
 }

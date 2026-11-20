@@ -32,32 +32,43 @@ import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 public abstract class Database extends ReentrantLock {
 	protected static final Logger logger = LogManager.getLogger(Database.class);
 
-	// KV 表统一 key 长度预算，全后端一致执法（checkKvKeyLength）。取值 900：SqlServer 聚集索引键
-	// 上限 900 字节（行内 PRIMARY KEY 默认聚集），是最严格的真实限制；MySQL 8 索引前缀 3072、
-	// PostgreSQL btree 索引条目约 2704、MongoDB 索引键 1024，均宽于此值；Memory/Tikv/Redis/RocksDb
-	// 等无此物理限制，但统一预算让表可在后端间自由迁移。
-	// 预算只约束新写与跨后端迁移预检：读与删除按 eMaxLegacyKeyLength（旧预算上限）放行存量——
-	// 读/删也按900拦截会把存量901..2712的合法key变成不可访问数据，业务无法读取、清理或迁移。
+	// KV 表统一 key 长度预算。取值 900：SqlServer 聚集索引键上限 900 字节（行内 PRIMARY KEY 默认聚集），
+	// 是最严格的真实限制；MySQL 8 索引前缀 3072、PostgreSQL btree 索引条目约 2704、MongoDB 索引键 1024，
+	// 均宽于此值；Memory/Tikv/Redis/RocksDb 等无此物理限制，但统一预算让表可在后端间自由迁移。
+	//
+	// 超长键契约（存量 901..2712 按非法载荷处理）：
+	// - 读快速失败：TableX typed 入口（get 冷路径/select 族）抛 IllegalArgumentException，事务内安全中止；
+	// - 新写封死：put/getOrAdd/tryAdd 入口拦截——Zeze 写必先 load 冷记录，读门同时就是写门；
+	// - 删除不检查：remove 全管线（入口、内部 load、镜像回填 backfillMirror、flush 的主库/镜像 remove）
+	//   零键长检查，存量超长键可 walk 出来后删除——这是存量唯一的 remediation 通道；
+	// - walk 放行：遍历产出键不检查，仅游标入口按 eMaxLegacyKeyLength 护栏；
+	// - 后端 replace 保留本检查作为 checkpoint flush 的兜底断言：入口执法就位后正常路径不可达，
+	//   到达这里的超长 replace 意味着存在绕过 typed 入口的写路径。
+	// 历史教训：读/删按旧预算 2712 放行而 flush 按 900 执法的不对称窗口期，存量超长键"提交 Success
+	// 但 flush 永久重试"（Table 模式停机 fatal 丢脏、Immediately 模式 halt 543543）——拒绝非法载荷
+	// 必须发生在读/写入口（事务成功之前），而不是在落库终点拒绝已提交的事务。
 	public static final int eMaxKeyLength = 900;
 
-	// 存量读/删预算（旧上限）：从允许2712的版本升级后，超900的存量key必须保持可读可删。
+	// 遍历游标（exclusiveStartKey）的护栏预算（历史旧上限）：挡应用侧传入的垃圾游标在有索引后端
+	// 触发原生错误（MySQL 1406 / SqlServer 1946 等，多不含表名、毒化遍历批次）；存量键（≤2712）
+	// 全部放行。读/删路径不再使用本预算（见 eMaxKeyLength 契约）。
 	public static final int eMaxLegacyKeyLength = 2712;
 
-	// KV 表 key 的统一入口检查，两层执法：
-	// 1) 带游标（exclusiveStartKey）的遍历在 AbstractKVTable 的 typed 分页门面（encodeStartKeyChecked）
-	//    与 TableX.walkDatabaseRaw 统一检查，后端无需各自复制；
-	// 2) find/replace/remove 在各后端 raw 方法检查——写主路径 Checkpoint.FlushBatch.writeTo 直呼 raw
-	//    replace/remove，不经过 typed 门面，后端是这两者的唯一收口点。
-	// 有长度限制的后端超限 key 落库触发数据库原生错误（MySQL 1406 / SqlServer 1946 等，多不含表名、
-	// 毒化 flush 批次）；无限制的后端 get/remove 则静默无结果，掩盖业务侧 key 异常。
-	// 入口处统一抛带表名与长度的异常，两者兼治。
+	// 键长检查的执法点全景：
+	// 1) typed 入口（主执法层）：TableX.get(冷路径)/getOrAdd/tryAdd/put/selectCopy/selectDirty/
+	//    selectFromDatabase——后端 find/remove 不再检查；
+	// 2) 游标入口：AbstractKVTable.encodeStartKeyChecked 与 TableX.walkDatabaseRaw 带游标重载
+	//    统一检查，后端无需各自复制；
+	// 3) 后端 replace（兜底断言）：写主路径 Checkpoint.FlushBatch.writeTo 直呼 raw replace，
+	//    不经过 typed 门面，后端是 flush 的唯一收口点。
+	// 入口处统一抛带表名与长度的异常，超限在事务成功之前暴露（见 eMaxKeyLength 契约）。
 	protected static void checkKvKeyLength(String tableName, ByteBuffer key) {
 		if (key.size() > eMaxKeyLength)
 			throw new IllegalArgumentException(
 				"key too large for kv table '" + tableName + "': " + key.size() + " > " + eMaxKeyLength);
 	}
 
-	// 读/删路径的预算：放行旧预算内的存量key（新写仍按checkKvKeyLength的900执法）。
+	// 游标护栏：放行存量预算内的键，拒绝明显异常的垃圾游标。
 	protected static void checkKvKeyLengthForLegacyAccess(String tableName, ByteBuffer key) {
 		if (key.size() > eMaxLegacyKeyLength)
 			throw new IllegalArgumentException("key too large for kv table legacy access '" + tableName

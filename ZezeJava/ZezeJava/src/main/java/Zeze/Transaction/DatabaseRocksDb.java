@@ -248,14 +248,15 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
-	// 将主库已读出的存量记录回填到本地镜像，使用与读取一致的键长预算。
+	// 将主库已读出的存量记录回填到本地镜像。不检查键长：调用方（TableX.load/selectDirty）
+	// 只在入口检查之后才会到达这里，而 remove 管线的 load 拿到旧值后也要回填——
+	// 存量超长键必须能走完"load旧值→埋tombstone→flush删除"全程（见 Database.eMaxKeyLength 注释）。
 	static void backfillMirror(Table mirror, Transaction txn, ByteBuffer key, ByteBuffer value) {
 		var target = (TableRocksDb)mirror;
 		// 镜像回填只允许打向本地缓存库：localRocksCache标志随写选项统一配置删除后，
 		// 按LocalCacheResources自建的url命名约定（zeze_cache_<serverId>）判别。
 		if (!target.getDatabase().getDatabaseUrl().startsWith("zeze_cache_"))
 			throw new IllegalStateException("backfillMirror requires the local RocksDB cache");
-		checkKvKeyLengthForLegacyAccess(target.table.getName(), key);
 		target.put(txn, key, value);
 	}
 
@@ -293,7 +294,6 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer find(ByteBuffer key) {
-			checkKvKeyLengthForLegacyAccess(table.getName(), key);
 			try {
 				var value = table.get(key.Bytes, key.ReadIndex, key.size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
@@ -304,7 +304,6 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void remove(Transaction txn, ByteBuffer key) {
-			checkKvKeyLengthForLegacyAccess(table.getName(), key);
 			((RocksDbTrans)txn).remove(key.CopyIf(), table);
 		}
 

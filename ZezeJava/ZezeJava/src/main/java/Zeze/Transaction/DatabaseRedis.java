@@ -165,7 +165,6 @@ public class DatabaseRedis extends Database {
 
 		@Override
 		public @Nullable ByteBuffer find(ByteBuffer key) {
-			checkKvKeyLengthForLegacyAccess(name, key);
 			try (var jedis = pool.getResource()) {
 				var value = jedis.hget(keyOfSet, key.CopyIf());
 				return value != null ? ByteBuffer.Wrap(value) : null;
@@ -181,7 +180,6 @@ public class DatabaseRedis extends Database {
 
 		@Override
 		public void remove(Transaction t, ByteBuffer key) {
-			checkKvKeyLengthForLegacyAccess(name, key);
 			var redisT = (RedisTransaction)t;
 			redisT.remove(keyOfSet, key.CopyIf());
 		}

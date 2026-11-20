@@ -1459,7 +1459,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			if (dropped)
 				return null;
 
-			checkKvKeyLengthForLegacyAccess(name, key);
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			byte[] v = null;
@@ -1483,7 +1482,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			if (dropped)
 				return;
 
-			checkKvKeyLengthForLegacyAccess(name, key);
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sqlRemove)) {

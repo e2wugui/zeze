@@ -24,7 +24,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	// 私有哨兵：不能与 ByteBuffer.Empty 别名——bean 全默认值时编码结果是 0 字节，
 	// replace 里 value.Copy() 对 size==0 返回共享的 ByteBuffer.Empty，commit 以引用相等判删
 	// 会把"写入空编码值"误判成 remove，已提交记录静默丢失。独立实例切断该别名。
-	private static final byte[] removed = new byte[0];
+	private static final byte [] removed = new byte[0];
 	private static final HashMap<String, HashMap<String, TableData>> databaseTables = new HashMap<>();
 	private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -66,7 +66,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 				if (tableOldName.equals(target.renamedFrom))
 					return;
 				throw new IllegalStateException("table already exists: " + tableNewName);
-			}
+	}
 			// 搬迁行数据，给目标名分配新的表身份。即使日后改回原名，旧句柄仍然失效。
 			tables.put(tableNewName, new TableData(table.rows, tableOldName));
 			tables.remove(tableOldName);
@@ -113,7 +113,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	@Override
 	public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
-													 long version) {
+															  long version) {
 		// 同getDataWithVersion，静态写锁守卫共享dataWithVersions。
 		lock.writeLock().lock();
 		try {
@@ -208,7 +208,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 				table = tables != null ? tables.get(tableName) : null;
 			} finally {
 				lock.readLock().unlock();
-			}
+	}
 			stage(tableName, table, key, value);
 		}
 
@@ -228,13 +228,13 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	@Override
 	public Database.Table openTable(String name, int id) {
 		return new TableMemory(name);
-	}
+		}
 
 	// 仅支持从一个db原子的查询数据。
 
 	// 多表原子查询。
 	public HashMap<String, Map<ByteBuffer, @Nullable ByteBuffer>> finds(
-		Map<String, Set<ByteBuffer>> tableKeys) {
+			Map<String, Set<ByteBuffer>> tableKeys) {
 		var result = new HashMap<String, Map<ByteBuffer, @Nullable ByteBuffer>>(tableKeys.size());
 		for (var tks : tableKeys.entrySet())
 			result.put(tks.getKey(), new HashMap<>(tks.getValue().size()));
@@ -296,7 +296,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 				data = tables.computeIfAbsent(name, __ -> new TableData());
 			} finally {
 				lock.writeLock().unlock();
-			}
+		}
 		}
 
 		// 调用方持有数据库读锁或写锁。
@@ -322,7 +322,6 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public @Nullable ByteBuffer find(ByteBuffer key) {
-			checkKvKeyLengthForLegacyAccess(name, key);
 			lock.readLock().lock();
 			try {
 				checkCurrent();
@@ -335,7 +334,6 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public void remove(Transaction t, ByteBuffer key) {
-			checkKvKeyLengthForLegacyAccess(name, key);
 			((MemTrans)t).stage(name, data, key, removed);
 		}
 
@@ -476,8 +474,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 				checkCurrent();
 				var map = data.rows;
 				var it = exclusiveStartKey == null
-					? map.entrySet().iterator()
-					: map.tailMap(exclusiveStartKey).entrySet().iterator();
+						? map.entrySet().iterator()
+						: map.tailMap(exclusiveStartKey).entrySet().iterator();
 				if (it.hasNext()) {
 					var next = it.next();
 					if (!next.getKey().equals(exclusiveStartKey)) { // 第一个Item可能需要忽略
@@ -514,8 +512,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 				checkCurrent();
 				var map = data.rows;
 				var it = exclusiveStartKey == null
-					? map.keySet().iterator()
-					: map.tailMap(exclusiveStartKey).keySet().iterator();
+						? map.keySet().iterator()
+						: map.tailMap(exclusiveStartKey).keySet().iterator();
 				if (it.hasNext()) {
 					var key = it.next();
 					if (!key.equals(exclusiveStartKey)) { // 第一个Item可能需要忽略
@@ -549,8 +547,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 				checkCurrent();
 				var map = data.rows;
 				var it = exclusiveStartKey == null
-					? map.descendingMap().entrySet().iterator()
-					: map.descendingMap().tailMap(exclusiveStartKey).entrySet().iterator();
+						? map.descendingMap().entrySet().iterator()
+						: map.descendingMap().tailMap(exclusiveStartKey).entrySet().iterator();
 				if (it.hasNext()) {
 					var next = it.next();
 					if (!next.getKey().equals(exclusiveStartKey)) { // 第一个Item可能需要忽略
@@ -587,8 +585,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 				checkCurrent();
 				var map = data.rows;
 				var it = exclusiveStartKey == null
-					? map.descendingMap().keySet().iterator()
-					: map.descendingMap().tailMap(exclusiveStartKey).keySet().iterator();
+						? map.descendingMap().keySet().iterator()
+						: map.descendingMap().tailMap(exclusiveStartKey).keySet().iterator();
 				if (it.hasNext()) {
 					var key = it.next();
 					if (!key.equals(exclusiveStartKey)) { // 第一个Item可能需要忽略

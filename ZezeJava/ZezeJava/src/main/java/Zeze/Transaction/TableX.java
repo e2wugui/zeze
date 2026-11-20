@@ -644,6 +644,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	// 键长预算执法统一在 TableX typed 入口（后端 find/remove 不再检查，见 Database.eMaxKeyLength 注释）：
+	// 读入口只查冷路径——热路径的键在本事务先前访问中已过检查，get 保持零额外编码开销；
+	// 写入口（put/getOrAdd/tryAdd）在方法顶部检查，堵住 remove(超长键) 后同事务再写回的绕行。
+	// remove 与 walk 族不检查：存量超长键必须保持可 walk、可删除。
+	final void checkKeyLength(K key) {
+		Database.checkKvKeyLength(getName(), encodeKey(key));
+	}
+
 	public final @Nullable V get(K key) {
 		var currentT = Transaction.getCurrent();
 		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
@@ -661,6 +669,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			return r;
 		}
 
+		checkKeyLength(key); // 冷路径执法；热路径键已在前次访问中检查
 		var r = load(key);
 		var v = r.strongRef();
 		currentT.addRecordAccessed(r.record().createRootInfoIfNeed(tkey),
@@ -686,6 +695,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
 
+		checkKeyLength(key);
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
 		if (cr != null) {
@@ -723,6 +733,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException("value is null");
+		checkKeyLength(key); // 顶部执法：get 只查冷路径，remove 后同事务 tryAdd 会绕过
 		if (get(key) != null)
 			return false;
 
@@ -758,6 +769,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (value == null)
 			throw new IllegalArgumentException("value is null");
 
+		checkKeyLength(key); // 顶部执法，含事务内已访问的热路径（防 remove 后写回）
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
 		if (cr == null) {
@@ -1276,6 +1288,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
+		checkKeyLength(key);
 		var tkey = new TableKey(getId(), key);
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
@@ -1349,6 +1362,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
+		checkKeyLength(key);
 		var tkey = new TableKey(getId(), key);
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
@@ -1417,6 +1431,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var st = storage;
 		if (st == null)
 			throw new IllegalStateException("no database");
+		checkKeyLength(key);
 		return st.getDatabaseTable().find(this, key);
 	}
 
