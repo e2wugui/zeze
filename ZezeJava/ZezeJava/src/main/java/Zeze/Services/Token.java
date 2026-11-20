@@ -396,14 +396,14 @@ public final class Token extends AbstractToken {
 		long count; // 已访问次数. -1表示刚刚删除
 
 		TokenState(Token token, String key, @Nullable SocketAddress remoteAddr,
-				   Binary context, long ttl) {
+				   Binary context, long createTime, long endTime) {
 			super(new Object(), Token.refQueue);
 			this.token = token;
 			this.key = key;
 			this.remoteAddr = remoteAddr instanceof InetSocketAddress ? (InetSocketAddress)remoteAddr : null;
 			this.context = context;
-			this.createTime = System.currentTimeMillis();
-			this.endTime = createTime + ttl;
+			this.createTime = createTime;
+			this.endTime = endTime;
 		}
 
 		TokenState(Token token, String key, ByteBuffer bb) {
@@ -824,7 +824,8 @@ public final class Token extends AbstractToken {
 	private long newTokenLocked(Zeze.Builtin.Token.NewToken r) {
 		var arg = r.Argument;
 		var ttl = arg.getTtl();
-		if (ttl <= 0) {
+		var now = System.currentTimeMillis();
+		if (ttl <= 0 || ttl > Long.MAX_VALUE - now) {
 			r.SendResultCode(-1);
 			return Procedure.Success;
 		}
@@ -838,7 +839,7 @@ public final class Token extends AbstractToken {
 			// 这里严格来说应该再检查一下数据库里有没有这个token,但考虑到token含有秒时间戳,在tokenMap的软引用存活期不应该小于1秒
 			tokenMap.computeIfAbsent(token, t -> {
 				created.value = true;
-				return new TokenState(this, t, remoteAddr, arg.getContext(), ttl);
+				return new TokenState(this, t, remoteAddr, arg.getContext(), now, now + ttl);
 			});
 		} while (!created.value);
 		newCounter.increment();
