@@ -145,11 +145,16 @@ public class Procedure {
 				return result = currentT.perform(this);
 			} finally {
 				if (currentT != null) {
-					var curTime = System.nanoTime();
-					var runTime = curTime - timeBegin;
-					procedureCounter().end(result, runTime);
-					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
-					currentT.reuseTransaction();
+					try {
+						var curTime = System.nanoTime();
+						var runTime = curTime - timeBegin;
+						procedureCounter().end(result, runTime);
+						currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
+					} catch (Throwable e) { // logger.error
+						logger.error("Procedure diagnostics failed: {}", this, e);
+					} finally {
+						currentT.reuseTransaction();
+					}
 				}
 			}
 		}
