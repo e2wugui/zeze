@@ -293,8 +293,9 @@ public class CommitRocks {
 		}
 	}
 
-	// decide（同步）：prepare+saveCommitPoint(eCommitting，sync写)。完成即事务终局为提交，
-	// 调用方此刻就可应答——应答0 ⇔ eCommitting已持久化；投递由redoTimer兜底，不参与应答条件。
+	// decide（同步）：prepare+saveCommitPoint(eCommitting)。完成即事务终局为提交，调用方此刻就可
+	// 应答——eCommitting按当前writeOptions落盘（默认普通写，见类头2026-11-18裁定：进程崩溃级
+	// 持久，掉电窗口由部署权衡，sync可经setWriteOptions注入）；投递由redoTimer兜底，不参与应答条件。
 	public CommitDecision commitDecide(String queryHost, int queryPort, BPrepareBatches.Data batches) {
 		var state = buildTransactionState(batches);
 		var tidBytes = new byte[8];
