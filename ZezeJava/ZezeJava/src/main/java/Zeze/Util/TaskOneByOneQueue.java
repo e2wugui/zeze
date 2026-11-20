@@ -260,6 +260,9 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				// 期间pendingCancelCount挡住waitComplete，保证shutdown等待者观察到补偿已全部执行。
 				cancels = queue;
 				queue = new ArrayDeque<>();
+				batch.count = 0;
+				if (batch.tasks != null)
+					Arrays.fill(batch.tasks, null); // 补偿完成后，批量快照也不得持有未执行的任务。
 				pendingCancelCount++;
 			} else
 				batch.prepare();
