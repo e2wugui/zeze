@@ -89,6 +89,7 @@ public class Procedure {
 				Transaction.destroy();
 			}
 		}
+		currentT.bindRocks(rocks);
 		currentT.begin();
 		try {
 			var result = process();

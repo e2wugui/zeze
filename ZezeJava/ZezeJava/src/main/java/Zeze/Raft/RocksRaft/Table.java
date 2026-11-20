@@ -179,6 +179,7 @@ public final class Table<K, V extends Bean> {
 		if (currentT == null)
 			throw new IllegalStateException(
 					"no current transaction: RocksRaft table '" + name + "' requires rocks.newProcedure(...)");
+		currentT.bindRocks(rocks);
 		return currentT;
 	}
 
@@ -282,10 +283,11 @@ public final class Table<K, V extends Bean> {
 		return value;
 	}
 
+	/** 同实例的事务记录可覆盖存储读。其余调用直接读取目标存储的当前值。 */
 	@SuppressWarnings("unchecked")
 	public @Nullable V selectDirty(K key) {
 		Transaction currentT = Transaction.getCurrent();
-		if (currentT != null) {
+		if (currentT != null && currentT.ownsRocks(rocks)) {
 			var cr = currentT.getRecordAccessed(new TableKey(name, key));
 			if (cr != null)
 				return (V)cr.newestValue();

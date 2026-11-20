@@ -128,8 +128,21 @@ public final class Transaction {
 	private final HashMap<TableKey, RecordAccessed> accessedRecords = new HashMap<>();
 	private final ArrayList<Savepoint> savepoints = new ArrayList<>();
 	private final HashSet<PessimismLock> pessimismLocks = new HashSet<>();
+	private @Nullable Rocks rocks;
 	private @Nullable Changes changes;
 	private @Nullable List<Action0> lastRollbackActions;
+
+	void bindRocks(@Nullable Rocks instance) {
+		if (instance == null)
+			return;
+		if (rocks != null && rocks != instance)
+			throw new IllegalStateException("RocksRaft transaction cannot span multiple Rocks instances");
+		rocks = instance;
+	}
+
+	boolean ownsRocks(Rocks instance) {
+		return rocks == instance;
+	}
 
 	public @Nullable Changes getChanges() {
 		return changes;
