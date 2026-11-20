@@ -340,8 +340,8 @@ public final class Task {
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
 			threadPoolDbIo = newDbIoPool();
 			var tm = new TimeoutManager();
-			timeoutManager = tm;
 			tm.start();
+			timeoutManager = tm;
 		} finally {
 			taskLock.unlock();
 		}
@@ -395,8 +395,8 @@ public final class Task {
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
 			threadPoolDbIo = newDbIoPool();
 			var tm = new TimeoutManager();
-			timeoutManager = tm;
 			tm.start();
+			timeoutManager = tm;
 			return true;
 		} finally {
 			taskLock.unlock();

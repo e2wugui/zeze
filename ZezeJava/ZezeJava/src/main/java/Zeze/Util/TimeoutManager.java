@@ -17,13 +17,14 @@ public class TimeoutManager {
 	private final Concurrent[] concurrents = new Concurrent[16];
 	private @Nullable volatile Worker worker;
 
-	static class Concurrent extends ReentrantLock {
+	class Concurrent extends ReentrantLock {
 		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>(1024);
 		private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
 		// 单写者(Worker)每排水一桶后直设；写在锁外，锁的HB边盖不住，须volatile让schedule读者立刻可见。
 		private volatile int timeoutSetInitialCapacity = 1024;
 
-		Timeout schedule(Worker worker, long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
+		@Nullable Timeout schedule(Worker expectedWorker, long timeoutMs, Action0 action0,
+								   Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
 			// 公开入口的上界校验即溢出防线：365天×1e6 与 Long.MAX 有 292× 余量，
 			// 合法输入的乘法→加法→ceil 全链路不可能溢出。
 			// ceil 保证实际延迟 ≥ 请求值（只晚不早）；id 是纳秒秒界，回绕安全见 tick。
@@ -31,10 +32,13 @@ public class TimeoutManager {
 
 			lock();
 			try {
+				// stop()先撤下worker，再逐片清理。旧代不得在清理完成后插入新桶。
+				if (worker != expectedWorker)
+					return null;
 				var bucketSet = indexedMap.computeIfAbsent(indexId, (key) -> {
 					var set = new TimeoutSet(indexId, timeoutSetInitialCapacity);
 					bucketQueue.offer(set);
-					worker.wakeup();
+					expectedWorker.wakeup();
 					return set;
 				});
 				var timeout = timeoutFactory.call(bucketSet, action0);
@@ -178,11 +182,19 @@ public class TimeoutManager {
 	}
 
 	public Timeout schedule(long timeoutMs, Action0 action0, Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
+		var timeout = scheduleIfRunning(timeoutMs, action0, timeoutFactory);
+		if (timeout == null)
+			throw new IllegalStateException("worker has not been set");
+		return timeout;
+	}
+
+	@Nullable Timeout scheduleIfRunning(long timeoutMs, Action0 action0,
+									  Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
 		if (timeoutMs < 0 || timeoutMs > 365L * 24 * 3600 * 1000) // 最大超时允许一年。
 			throw new IllegalArgumentException("timeoutMs < 0 || timeoutMs > 365days");
 		Worker w = worker;
 		if (null == w)
-			throw new IllegalStateException("worker has not been set");
+			return null;
 		// unsigned mod % 16
 		return concurrents[(int)(Thread.currentThread().threadId() & 15)].schedule(w, timeoutMs, action0, timeoutFactory);
 	}

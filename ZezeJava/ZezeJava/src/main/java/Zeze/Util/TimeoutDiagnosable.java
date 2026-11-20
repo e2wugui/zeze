@@ -27,7 +27,7 @@ public class TimeoutDiagnosable extends Timeout {
 		var timeoutManager = Task.getTimeoutManagerOrNull();
 		if (timeoutManager == null)
 			return null; // shutdown 窗口（管理器先于池关闭）：降级为无看门狗，不抛错
-		return timeoutManager.schedule(timeoutMs, () -> {}, TimeoutDiagnosable::new);
+		return timeoutManager.scheduleIfRunning(timeoutMs, () -> {}, TimeoutDiagnosable::new);
 	}
 
 	TimeoutDiagnosable(TimeoutManager.TimeoutSet timeoutSet, Action0 action0) {
