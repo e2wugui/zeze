@@ -154,6 +154,7 @@ public class Procedure {
 			}
 		}
 
+		currentT.verifyRunning(); // 终局回调不能同步开启新的 Procedure。
 		currentT.begin();
 		currentT.getProcedureStack().add(this);
 		try {

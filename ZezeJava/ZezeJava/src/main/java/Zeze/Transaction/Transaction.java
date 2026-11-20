@@ -496,12 +496,12 @@ public final class Transaction {
 							logger.error("perform({}) {} exception. run count:{}", procedure, state, tryCount, e);
 						}
 						triggerRedoActions();
-					} finally {
-						// 正常与异常重试共用此处升级，必须先于 reuseTransactionForRedo 决定是否释放锁。
-						if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
-							checkResult = CheckResult.RedoAndReleaseLock;
-						reuseTransactionForRedo(checkResult);
 					}
+
+					// 正常与异常重试共用此处升级；终局路径由外层 finally 与 Procedure 清理。
+					if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
+						checkResult = CheckResult.RedoAndReleaseLock;
+					reuseTransactionForRedo(checkResult);
 
 					if (checkResult == CheckResult.RedoAndReleaseLock) {
 						procedure.procedureCounter().redoAndReleaseLock();
