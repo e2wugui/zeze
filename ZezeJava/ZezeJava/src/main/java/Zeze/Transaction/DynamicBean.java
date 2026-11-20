@@ -56,6 +56,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	public void setBean(@Nullable Bean bean) {
 		if (bean == null)
 			bean = new EmptyBean();
+		bean = unwrap(bean);
 		setBeanWithSpecialTypeId(getBean.applyAsLong(bean), bean);
 	}
 
@@ -72,7 +73,6 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	private void setBeanWithSpecialTypeId(long specialTypeId, Bean bean) {
-		bean = unwrap(bean);
 		if (!isManaged()) {
 			typeId = specialTypeId;
 			this.bean = bean;
@@ -133,7 +133,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 				throw new IllegalStateException("incompatible DynamicBean typeId=" + typeId);
 		} else if (typeId == EmptyBean.TYPEID && !(bean instanceof EmptyBean))
 			typeId = getBean.applyAsLong(bean); // 再确认一下真正的typeId
-		setBeanWithSpecialTypeId(typeId, bean);
+		setBeanWithSpecialTypeId(typeId, unwrap(bean));
 		return bean;
 	}
 
@@ -193,7 +193,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		} else if (newTypeId == EmptyBean.TYPEID && !(newBean instanceof EmptyBean))
 			newTypeId = getBean.applyAsLong(newBean); // 再确认一下真正的typeId
 		newBean.decode(bb);
-		setBeanWithSpecialTypeId(newTypeId, newBean);
+		setBeanWithSpecialTypeId(newTypeId, unwrap(newBean));
 	}
 
 	@Override
