@@ -363,9 +363,12 @@ public final class JsonReader {
 
 	public void skipQuot(int e) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
-		for (int b; (b = buffer[pos++]) != e; )
+		// 截断输入无闭引号：扫到EOF即收尾（pos钉len），残缺转义不越过末字节。
+		for (int b; pos < buffer.length && (b = buffer[pos++]) != e; )
 			if (b == '\\')
 				pos++;
+		if (pos > buffer.length)
+			pos = buffer.length; // 末字节为'\'时pos++越过len一格
 	}
 
 	public @Nullable Object parse() throws ReflectiveOperationException {
@@ -1152,11 +1155,17 @@ public final class JsonReader {
 					return false;
 				continue;
 			}
+			// 窗口界内守卫：截断/残缺转义不可能等于完整的字段名——返回false，不做越界重扫。
+			if (p >= end)
+				return false; // '\'是窗口末字节：转义体缺失
 			c = buffer[p++];
 			if (c == 'u') { // unicode转义：解码codepoint按UTF-8字节比对（代理对合并为4字节）
+				if (end - p < 4)
+					return false; // \\u不足4位hex（截断或终止符紧随）
 				c = parseHex4(buffer, p);
 				p += 4;
-				if (c >= 0xd800 && c < 0xdc00 && buffer[p] == '\\' && buffer[p + 1] == 'u') {
+				if (c >= 0xd800 && c < 0xdc00 && end - p >= 6
+						&& buffer[p] == '\\' && buffer[p + 1] == 'u') {
 					int c2 = parseHex4(buffer, p + 2);
 					if ((c2 & 0xfc00) == 0xdc00) { // utf-16 surrogate pair -> 4-bytes utf-8
 						p += 6;
@@ -1209,7 +1218,9 @@ public final class JsonReader {
 		final byte[] buffer = Objects.requireNonNull(jr.buf, "JSON input is not set");
 		boolean v;
 		if (b == '"' || b == '\'') {
-			v = buffer[++jr.pos] == 't';
+			if (++jr.pos >= buffer.length)
+				return false; // 截断于开引号：值不可判为true，宽容收尾
+			v = buffer[jr.pos] == 't';
 			jr.skipQuot(b);
 		} else {
 			// 同时用于键与 typed 值：停在冒号、容器分隔符或注释开头，交给外层消费。
@@ -1315,6 +1326,10 @@ public final class JsonReader {
 			return null;
 		final int begin = ++p;
 		for (; ; p++) {
+			if (p >= buffer.length) { // 截断于闭引号前：EOF即终结，宽容收尾
+				pos = p;
+				return Arrays.copyOfRange(buffer, begin, p);
+			}
 			if ((b = buffer[p]) == e) {
 				pos = p + 1; // lucky! finished the fast path
 				return Arrays.copyOfRange(buffer, begin, p);
@@ -1323,55 +1338,77 @@ public final class JsonReader {
 				break; // jump to the slow path below
 		}
 		int len = p - begin, n = len;
-		while ((b = buffer[p++]) != e) {
-			if (b == '\\' && buffer[p++] == 'u') {
-				b = parseHex4(buffer, p);
-				p += 4;
-				if (b >= 0x800) {
-					if ((b & 0xfc00) == 0xd800 && buffer[p] == '\\' && buffer[p + 1] == 'u'
-						&& (parseHex4(buffer, p + 2) & 0xfc00) == 0xdc00) {
-						p += 6;
-						len += 4;
-					} else
-						len += 3;
-				} else if (b >= 0x80)
-					len += 2;
-				else
-					len++;
-			} else
+		// 长度测定段与解码段逐case镜像（截断/残缺转义一律按字面量收尾），保证两段计数一致。
+		while (p < buffer.length && (b = buffer[p++]) != e) {
+			if (b != '\\') {
+				len++;
+				continue;
+			}
+			if (p >= buffer.length || buffer[p++] != 'u') { // '\'末字节或简写转义：2字节入1字节出
+				len++;
+				continue;
+			}
+			if (buffer.length - p < 4) { // 残缺\\u：'\''与'u'按字面量，余下hex由后续迭代按普通字节计
+				len += 2;
+				continue;
+			}
+			b = parseHex4(buffer, p);
+			p += 4;
+			if (b >= 0x800) {
+				if ((b & 0xfc00) == 0xd800 && p + 5 < buffer.length && buffer[p] == '\\' && buffer[p + 1] == 'u'
+					&& (parseHex4(buffer, p + 2) & 0xfc00) == 0xdc00) {
+					p += 6;
+					len += 4;
+				} else
+					len += 3;
+			} else if (b >= 0x80)
+				len += 2;
+			else
 				len++;
 		}
 		byte[] t = new byte[len];
 		System.arraycopy(buffer, begin, t, 0, n);
 		for (p = begin + n; ; ) {
+			if (p >= buffer.length) { // 截断：pos钉len
+				pos = p;
+				return t;
+			}
 			if ((b = buffer[p++]) == e) {
 				pos = p;
 				return t;
 			}
-			if (b == '\\') {
-				if ((b = buffer[p++]) == 'u') {
-					b = parseHex4(buffer, p);
-					p += 4;
-					if (b >= 0x800) {
-						if ((b & 0xfc00) == 0xd800 && buffer[p] == '\\' && buffer[p + 1] == 'u'
-							&& ((len = parseHex4(buffer, p + 2)) & 0xfc00) == 0xdc00) {
-							p += 6;
-							b = (b << 10) + len + (0x10000 - (0xd800 << 10) - 0xdc00);
-							t[n++] = (byte)(0xf0 + (b >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
-							t[n++] = (byte)(0x80 + ((b >> 12) & 0x3f));
-						} else
-							t[n++] = (byte)(0xe0 + (b >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
-						t[n++] = (byte)(0x80 + ((b >> 6) & 0x3f));
-						t[n++] = (byte)(0x80 + (b & 0x3f));
-					} else if (b >= 0x80) {
-						t[n++] = (byte)(0xc0 + (b >> 6)); // 110x xxxx  10xx xxxx
-						t[n++] = (byte)(0x80 + (b & 0x3f));
-					} else
-						t[n++] = (byte)b; // 0xxx xxxx
-				} else
-					t[n++] = b >= 0x20 ? ESCAPE[b - 0x20] : (byte)b;
-			} else
+			if (b != '\\') {
 				t[n++] = (byte)b;
+				continue;
+			}
+			if (p >= buffer.length || (b = buffer[p++]) != 'u') { // '\'末字节或简写转义
+				t[n++] = b >= 0x20 ? ESCAPE[b - 0x20] : (byte)b;
+				continue;
+			}
+			if (buffer.length - p < 4) { // 残缺\\u：字面量（与长度段一致）
+				t[n++] = '\\';
+				t[n++] = 'u';
+				continue;
+			}
+			b = parseHex4(buffer, p);
+			p += 4;
+			if (b >= 0x800) {
+				int c2;
+				if ((b & 0xfc00) == 0xd800 && p + 5 < buffer.length && buffer[p] == '\\' && buffer[p + 1] == 'u'
+					&& ((c2 = parseHex4(buffer, p + 2)) & 0xfc00) == 0xdc00) {
+					p += 6;
+					b = (b << 10) + c2 + (0x10000 - (0xd800 << 10) - 0xdc00);
+					t[n++] = (byte)(0xf0 + (b >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+					t[n++] = (byte)(0x80 + ((b >> 12) & 0x3f));
+				} else
+					t[n++] = (byte)(0xe0 + (b >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
+				t[n++] = (byte)(0x80 + ((b >> 6) & 0x3f));
+				t[n++] = (byte)(0x80 + (b & 0x3f));
+			} else if (b >= 0x80) {
+				t[n++] = (byte)(0xc0 + (b >> 6)); // 110x xxxx  10xx xxxx
+				t[n++] = (byte)(0x80 + (b & 0x3f));
+			} else
+				t[n++] = (byte)b; // 0xxx xxxx
 		}
 	}
 
@@ -1393,6 +1430,13 @@ public final class JsonReader {
 				}
 				if (b < 0) // 多字节UTF-8首字节：LATIN1直转静默乱码，转慢路径解码
 					return parseStringUnquotedSlow(begin);
+				if (p + 1 >= buffer.length) { // 截断：无引号值以EOF为终结（配置尾部无换行），宽容收尾
+					pos = buffer.length;
+					var end = pos;
+					if (begin < end && buffer[end - 1] == '\r')
+						end--;
+					return intern ? intern(buffer, begin, end) : newByteString(buffer, begin, end);
+				}
 			}
 		}
 		return parseString(b, intern);
@@ -1403,11 +1447,11 @@ public final class JsonReader {
 	private String parseStringUnquotedSlow(int begin) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int b, p;
-		for (p = begin; ; p++) {
+		for (p = begin; p < buffer.length; p++) {
 			b = buffer[p];
 			if (b == ',' || b == '\n' || (b | 0x20) == '}')
 				break;
-		}
+		} // 截断：p==len按终结收尾（pos钉len）
 		pos = p;
 		int end = p;
 		if (end > begin && buffer[end - 1] == '\r')
@@ -1484,7 +1528,8 @@ public final class JsonReader {
 
 	// 含转义字符串的慢路径解码体：[begin,end)按纯UTF-8分段解码，'\'转义（unicode转义与简写）
 	// 单独处理，段间共享t。end之后紧跟终止符，段内不含终止符（调用方扫描已排除）。
-	// 转义序列由调用方扫描保证完整落在[begin,end)内。
+	// 调用方扫描保证转义字节不出窗；\\u的4位hex在窗口内可能残缺（扫描刻意不吞终止符、
+	// 不越窗补齐），解码时按字面量收尾。
 	private String decodeStringSlow(int begin, int end) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		char[] t = tmp;
@@ -1499,8 +1544,16 @@ public final class JsonReader {
 			n = decodeUtf8(t, n, p, seg);
 			if ((p = seg) < end) { // buffer[p] == '\\'
 				if (buffer[++p] == 'u') {
-					t[n++] = (char)parseHex4(buffer, ++p);
-					p += 4;
+					if (end - p < 5) {
+						// \\u不足4位hex（截断或终止符紧随）：'\''与'u'按字面量收尾（p推进越过'u'，
+						// 余下hex字节由主循环按普通字节继续——对齐扫描段"残缺转义按2字节收尾"）。
+						t[n++] = '\\';
+						t[n++] = 'u';
+						p++;
+					} else {
+						t[n++] = (char)parseHex4(buffer, ++p);
+						p += 4;
+					}
 				} else {
 					b = buffer[p++];
 					// JSON5行续写：反斜杠后跟LF/CR（含CRLF）或U+2028/U+2029不产生字符，

@@ -43,4 +43,44 @@ public final class TestJsonTruncatedInputLenient {
 		assertNotNull(bean, "纯注释耗尽→默认对象（对齐空输入哨兵契约）");
 		assertEquals(0, bean.value);
 	}
+
+	/**
+	 * 字符串族扫描点的截断/残缺转义EOF守卫（skipQuot九扫描点修复后仍缺守卫的漏网点）：
+	 * unicode转义窗口（decodeStringSlow的parseHex4固定读4）、无引号值快/慢双路径、
+	 * skipQuot裸扫、parseByteString整方法、parseBooleanKey开引号裸读。
+	 */
+	@Test
+	public void testTruncatedStringScannersNoThrow() {
+		for (var s : new String[] {
+				"{\"k\":\"a\\u", "{\"k\":\"a\\u1", "{\"k\":\"a\\u12", // 值内unicode转义截断
+				"{\"k\":\"a\\u12\"}", // 闭引号紧随残缺转义（非截断输入同命中）
+				"{\"k\":abc", "{\"k\":a中", // 无引号值快/慢路径EOF
+				"{\"a\\u12"}) { // 键内unicode转义截断（keyEquals重扫描）
+			assertDoesNotThrow(() -> Json.parse(s, Bean.class), "输入[" + s + "]不得抛AIOOBE");
+			assertDoesNotThrow(() -> Json.parse(s, Object.class), "输入[" + s + "]泛型解析同");
+		}
+		// 叶解析器直打：parseByteString快路径截断/末字节'\'/残缺unicode转义（含代理对窥视边界）
+		for (var s : new String[] {"\"abc", "\"a\\", "\"a\\u", "\"a\\u1", "\"a\\u12",
+				"\"a\\uD83D", "\"a\\uD83D\\u" /* 代理对第二转义截断 */}) {
+			var jr = new JsonReader().buf(s);
+			assertDoesNotThrow(jr::parseByteString, "输入[" + s + "]不得抛AIOOBE");
+		}
+		// skipQuot截断（typed key收尾路径）与parseBooleanKey截断于开引号
+		assertDoesNotThrow(() -> JsonReader.parseIntegerKey(new JsonReader().buf("\"12"), '"'));
+		assertDoesNotThrow(() -> JsonReader.parseBooleanKey(new JsonReader().buf("\""), '"'));
+	}
+
+	/** 宽容收尾不改变良构输入的解码语义（正样本控制）。 */
+	@Test
+	public void testStringScannersPositiveControl() {
+		assertEquals("a中", Json.parse("{\"name\":\"a\\u4e2d\"}", Bean.class).name, "完整unicode转义照常解码");
+		assertEquals("a\\u12", Json.parse("{\"name\":\"a\\u12\"}", Bean.class).name,
+				"残缺unicode转义按字面量收尾（'a'+反斜杠+u+1+2）");
+		assertEquals("abc", Json.parse("{\"name\":abc", Bean.class).name,
+				"无引号值EOF按终结收尾（typed路径；泛型容器对无引号串值按约定返回null）");
+		assertArrayEquals(new byte[] {(byte)0x61, (byte)0xe4, (byte)0xb8, (byte)0xad},
+				new JsonReader().buf("\"a\\u4e2d\"").parseByteString(), "parseByteString完整转义→UTF-8三字节");
+		assertArrayEquals(new byte[] {(byte)0xf0, (byte)0x9f, (byte)0x98, (byte)0x80},
+				new JsonReader().buf("\"\\uD83D\\uDE00\"").parseByteString(), "parseByteString代理对→UTF-8四字节");
+	}
 }
