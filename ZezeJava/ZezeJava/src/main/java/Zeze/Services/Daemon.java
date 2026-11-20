@@ -276,7 +276,8 @@ public class Daemon {
 				if (subprocess == p)
 					subprocess = null;
 			}
-			joinMonitors();
+			// 由主循环统一停止并等待本代 Monitor。销毁可能由 Monitor 发起，
+			// 此处等待其他 Monitor 会与主循环并发清理同一批资源。
 		} finally {
 			synchronized (Daemon.class) {
 				destroyingSubprocess = false;
