@@ -1,7 +1,7 @@
 package Zeze.Transaction;
 
 
-/** 记录锁池：按 TableKey 获取/复用 Lockey，保证相同键全进程拿到同一把锁。 */
+/** 记录锁池：按 TableKey 获取/复用 Lockey，同一锁池内的相同键共享锁。 */
 public class Locks extends Zeze.Util.Locks<Lockey> {
 	public Lockey get(TableKey tKey) {
 		return super.get(new Lockey(tKey));
