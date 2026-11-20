@@ -358,7 +358,9 @@ public class DepartmentTree<
 	@SuppressWarnings("unchecked")
 	private @Nullable TManager deleteRootManager(String name) {
 		// 表key是树名(this.name)，managers的key是账号(参数name)。
-		var dRoot = module._tDepartment.getOrAdd(this.name);
+		var dRoot = module._tDepartment.get(this.name);
+		if (dRoot == null)
+			return null;
 		var m = dRoot.getManagers().remove(name);
 		if (null == m)
 			return null;
