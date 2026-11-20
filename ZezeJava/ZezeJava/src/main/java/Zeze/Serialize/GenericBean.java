@@ -89,7 +89,7 @@ public class GenericBean {
 			}
 			case ByteBuffer.MAP -> {
 				var t = bb.ReadByte();
-				var n = bb.ReadUInt();
+				var n = bb.ReadUIntPositive();
 				int tk = (t >> 4) & ByteBuffer.TAG_MASK;
 				t &= ByteBuffer.TAG_MASK;
 				var map = new HashMap<>(Math.min((int)Math.ceil(n / 0.75f), 0x10000));
