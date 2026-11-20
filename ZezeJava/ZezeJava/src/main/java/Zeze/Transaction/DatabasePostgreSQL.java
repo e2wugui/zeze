@@ -782,10 +782,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public long getSizeApproximation() {
-			// pg_class.reltuples 记录的是实际存储的表名：建表 DDL 未加引号时
-			// PG 把标识符折叠为小写（与 tryAlter 查询 information_schema 的写法一致），必须小写化再比较。
-			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT reltuples::bigint AS row_count FROM pg_class WHERE relname = '" + name.toLowerCase(java.util.Locale.ROOT) + "';");
+			return dropped ? -1 : queryEstimatedSize(name);
 		}
 
 		@Override
@@ -1432,9 +1429,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public long getSizeApproximation() {
-			// 同上：未加引号建表的标识符在 PG 中折叠为小写存储。
-			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT reltuples FROM pg_class WHERE relname = '" + name.toLowerCase(java.util.Locale.ROOT) + "';");
+			return dropped ? -1 : queryEstimatedSize(name);
 		}
 
 		@Override
@@ -1668,14 +1663,27 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 	}
 
+	private long queryEstimatedSize(String name) {
+		// 与实际查询按同一 search_path、限定名和引号规则解析物理表。
+		return queryLong1(dataSource, "SELECT reltuples FROM pg_catalog.pg_class WHERE oid = pg_catalog.to_regclass(?)", name);
+	}
+
 	public static long queryLong1(DruidDataSource dataSource, String sql) {
+		return queryLong1(dataSource, sql, null);
+	}
+
+	private static long queryLong1(DruidDataSource dataSource, String sql, @Nullable String parameter) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql); var rs = ps.executeQuery()) {
-			return rs.next() ? rs.getLong(1) : -1;
+		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+			if (parameter != null)
+				ps.setString(1, parameter);
+			try (var rs = ps.executeQuery()) {
+				return rs.next() ? rs.getLong(1) : -1;
+			}
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
 		} finally {
-			if (timeBegin != 0) // 统计禁用时零开销
+			if (timeBegin != 0)
 				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 		}
 	}
