@@ -42,7 +42,22 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	@Override
 	public void renameTable(String tableOldName, String tableNewName) throws Exception {
-		// not need
+		if (tableOldName.equals(tableNewName))
+			return;
+		lock.writeLock().lock();
+		try {
+			var tables = databaseTables.get(getDatabaseUrl());
+			if (tables == null)
+				return;
+			var rows = tables.get(tableOldName);
+			if (rows == null)
+				return;
+			if (tables.putIfAbsent(tableNewName, rows) != null)
+				throw new IllegalStateException("table already exists: " + tableNewName);
+			tables.remove(tableOldName);
+		} finally {
+			lock.writeLock().unlock();
+		}
 	}
 
 	public DatabaseMemory(@Nullable Application zeze, DatabaseConf conf) {
