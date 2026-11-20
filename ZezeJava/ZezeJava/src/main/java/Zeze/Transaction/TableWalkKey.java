@@ -5,10 +5,9 @@ package Zeze.Transaction;
 public interface TableWalkKey<K> {
 	boolean handle(K key) throws Exception;
 	/**
-	 * walk 结束时回调（含 handle 返回 false 中断后的提前结束），返回值即 walk 方法的返回值。
-	 * count 口径：全量 walkKey 传实际遍历条数，中断时为中断前条数；带游标分页形态
-	 * （exclusiveStartKey+proposeLimit）固定传 proposeLimit 上限，末页不传实数——
-	 * 分页调用方以返回的 lastKey 是否为 null 判断遍历结尾。详见 TableWalkHandle.endWalk。
+	 * 遍历结束时回调，包括 handle 返回 false 提前结束。全量遍历的 count 包括
+	 * 使遍历停止的记录和被缓存过滤的记录。正常分页请求的 count 为 proposeLimit，
+	 * 遍历方法返回续扫键，返回 null 表示遍历结束。详见 {@link TableWalkHandle#endWalk(long)}。
 	 */
 	default long endWalk(long count) {
 		return count;

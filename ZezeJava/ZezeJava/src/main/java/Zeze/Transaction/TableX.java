@@ -966,9 +966,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	/**
 	 * 事务外调用
-	 * 遍历表格。能看到记录的最新数据。
-	 * 【注意】这里看不到新增的但没有提交(checkpoint)的记录。实现这个有点麻烦。
-	 * 【并发】每个记录回调时加读锁，回调完成马上释放。
+	 * 从后端枚举已落库的键，按本地缓存状态补充值和过滤尚未落库的删除。
+	 * 缓存写锁繁忙时可读取最近一次落库的完整值。锁只保护取值和拷贝，回调在锁外执行。
+	 * 尚未落库的新增记录不在枚举范围。
 	 *
 	 * @param callback walk callback
 	 * @return count
@@ -1182,6 +1182,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		});
 	}
 
+	/** 热更搬运内存表专用。调用方须先完成检查点并暂停表的并发访问。 */
 	@Override
 	public void __direct_put_cache__(Object key, Bean value, int state) {
 		@SuppressWarnings("unchecked")
@@ -1265,6 +1266,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * a)已经访问过的记录，得到最新值的拷贝。不建议这种用法。
 	 * b)没有访问过的记录，从后台查询并拷贝，但不会加入RecordAccessed。
 	 * 3. 得到的结果一般不用于修改，应用传递时可以使用ReadOnly接口修饰保护一下。
+	 * 4. 无法立即取得记录读锁时，可能返回镜像中的最近一次落库值。
 	 *
 	 * @param key record key
 	 * @return record value
@@ -1338,7 +1340,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	/**
 	 * 通常用于事务外(包括whileCommit)访问记录,不需要从global服务获取权限,得到的值不保证一致性,有本地缓存但可控制其有效时间
 	 *
-	 * @param cacheTTL 可以接受读取本地缓存的有效时长(毫秒),避免读取过旧的值,0表示总是直接从数据库中取最新值,默认3秒
+	 * @param cacheTTL 无本地缓存权限且记录干净时，允许复用最近一次后台读取的时长（毫秒）。
+	 *                 0 表示该状态下每次重新读取，默认 3 秒。内存表、事务已访问的记录及
+	 *                 本地持有读写权限或脏数据的记录仍从相应缓存路径读取。
 	 */
 	@SuppressWarnings("unchecked")
 	public final @Nullable V selectDirty(K key, int cacheTTL) {
