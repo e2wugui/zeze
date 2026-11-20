@@ -349,6 +349,8 @@ public final class BeanFactory {
 
 		allMapWriteLock.lock();
 		try {
+			if (allClassNameMap.isEmpty())
+				loadAllClasses("", false);
 			var obj = allClassNameMap.get(typeId);
 			if (obj instanceof Class)
 				return (Class<? extends Bean>)obj;
@@ -368,8 +370,6 @@ public final class BeanFactory {
 					throw new IllegalStateException("load class failed: '" + obj + '\'', e);
 				}
 			}
-			if (allClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
-				return findClass(typeId);
 		} finally {
 			allMapWriteLock.unlock();
 		}
@@ -394,6 +394,8 @@ public final class BeanFactory {
 
 		allMapWriteLock.lock();
 		try {
+			if (allDataClassNameMap.isEmpty())
+				loadAllClasses("", false);
 			var obj = allDataClassNameMap.get(typeId);
 			if (obj instanceof Class)
 				return (Class<? extends Data>)obj;
@@ -413,8 +415,6 @@ public final class BeanFactory {
 					throw new IllegalStateException("load class failed: '" + obj + '\'', e);
 				}
 			}
-			if (allDataClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
-				return findDataClass(typeId);
 		} finally {
 			allMapWriteLock.unlock();
 		}
