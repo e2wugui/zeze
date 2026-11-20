@@ -109,7 +109,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
 		jobs.getJobs().put(jobId, bJob);
 
-		Transaction.whileCommit(() -> startJob(jobId, bJob));
+		Transaction.whileCommit(() -> startJob(jobId, bJob.getJobHandleName(), bJob.getJobState()));
 	}
 
 	/**
@@ -153,16 +153,17 @@ public class DelayRemove extends AbstractDelayRemove {
 					it.remove();
 					continue;
 				}
-				startJob(e.getKey(), e.getValue());
+				var job = e.getValue();
+				startJob(e.getKey(), job.getJobHandleName(), job.getJobState());
 			}
 			return 0;
 		}, "DelayRemove.continueJobs").call();
 	}
 
-	private void startJob(String jobId, BJob job) {
+	private void startJob(String jobId, String handleName, Binary jobState) {
 		TaskSpec.ofAction(() -> {
-			var handle = jobHandles.get(job.getJobHandleName());
-			handle.process(this, jobId, job.getJobState());
+			var handle = jobHandles.get(handleName);
+			handle.process(this, jobId, jobState);
 		}).name("DelayRemove.startJob").run();
 	}
 
