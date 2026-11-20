@@ -18,6 +18,7 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,10 +49,12 @@ public class MasterDatabase {
 	private final Master master;
 
 	public MasterDatabase(Master master, String databaseName) {
+		RocksDatabase opening = null;
 		try {
 			this.master = master;
 			this.databaseName = databaseName;
-			rocksDb = new RocksDatabase(Path.of(master.getHome(), databaseName).toString());
+			opening = new RocksDatabase(Path.of(master.getHome(), databaseName).toString());
+			rocksDb = opening;
 			rocksTables = rocksDb.getOrAddTable("tables");
 			rocksSplitting = rocksDb.getOrAddTable("splitting");
 			rocksSplittingAge = rocksDb.getOrAddTable("splittingAge");
@@ -81,8 +84,18 @@ public class MasterDatabase {
 					logger.info("bucket: {}", bTable);
 				}
 			}
-		} catch (RocksDBException ex) {
-			throw new RuntimeException(ex);
+		} catch (Throwable ex) {
+			// 半失败必须释放已打开的句柄（含decode抛出的非RocksDBException）：本构造器挂在
+			// ProcessCreateDatabaseRequest的computeIfAbsent运行时可重试路径上，泄漏的目录锁
+			// 会毒死同名库的后续CreateDatabase直到Master重启。对齐Bucket构造器的半失败清理纪律。
+			if (opening != null) {
+				try {
+					opening.close();
+				} catch (Throwable cleanup) {
+					ex.addSuppressed(cleanup);
+				}
+			}
+			throw Task.forceThrow(ex);
 		}
 	}
 
