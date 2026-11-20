@@ -24,7 +24,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	// replace 里 value.Copy() 对 size==0 返回共享的 ByteBuffer.Empty，commit 以引用相等判删
 	// 会把"写入空编码值"误判成 remove，已提交记录静默丢失。独立实例切断该别名。
 	private static final byte [] removed = new byte[0];
-	private static final HashMap<String, HashMap<String, TableMemory>> databaseTables = new HashMap<>();
+	private static final HashMap<String, HashMap<String, TreeMap<ByteBuffer, byte[]>>> databaseTables = new HashMap<>();
 	private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
 	public static void clear() {
@@ -116,7 +116,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			try {
 				var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
 				for (var e : batch.entrySet()) {
-					var map = db.computeIfAbsent(e.getKey(), TableMemory::new).map;
+					var map = db.computeIfAbsent(e.getKey(), __ -> new TreeMap<>(ByteBuffer::compareTo));
 					for (var r : e.getValue().entrySet()) {
 						if (r.getValue() == removed)
 							map.remove(r.getKey());
@@ -160,7 +160,9 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		lock.writeLock().lock();
 		try {
 			var tables = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
-			return tables.computeIfAbsent(name, TableMemory::new);
+			var rows = tables.computeIfAbsent(name, __ -> new TreeMap<>(ByteBuffer::compareTo));
+			// 同 URL 的实例共享行数据，各自持有表句柄及所属数据库。
+			return new TableMemory(name, rows);
 		} finally {
 			lock.writeLock().unlock();
 		}
@@ -179,8 +181,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			var db = databaseTables.get(getDatabaseUrl());
 			for (var tks : tableKeys.entrySet()) {
 				var tableName = tks.getKey();
-				var table = db != null ? db.get(tableName) : null;
-				var map = table != null ? table.map : null;
+				var map = db != null ? db.get(tableName) : null;
 				var tableFinds = result.get(tableName);
 				for (var key : tks.getValue()) {
 					ByteBuffer value = null;
@@ -204,8 +205,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		lock.readLock().lock();
 		try {
 			var db = databaseTables.get(getDatabaseUrl());
-			var table = db != null ? db.get(tableName) : null;
-			var map = table != null ? table.map : null;
+			var map = db != null ? db.get(tableName) : null;
 			for (var key : keys) {
 				ByteBuffer value = null;
 				if (map != null) {
@@ -223,10 +223,15 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	public final class TableMemory extends Database.AbstractKVTable {
 		private final String name;
-		private final TreeMap<ByteBuffer, byte[]> map = new TreeMap<>(ByteBuffer::compareTo);
+		private final TreeMap<ByteBuffer, byte[]> map;
 
 		public TableMemory(String name) {
+			this(name, new TreeMap<>(ByteBuffer::compareTo));
+		}
+
+		private TableMemory(String name, TreeMap<ByteBuffer, byte[]> map) {
 			this.name = name;
+			this.map = map;
 		}
 
 		@Override
