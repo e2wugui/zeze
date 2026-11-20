@@ -24,18 +24,24 @@ public interface IGlobalAgent {
 				return successResults[state];
 			}
 
+			/** 协商已完成。调用方还需核对返回的权限是否满足本次请求。 */
+			public boolean isSuccess() {
+				return resultCode == 0
+						|| (resultState == GlobalCacheManagerConst.StateModify
+						&& (resultCode == GlobalCacheManagerConst.AcquireShareAlreadyIsModify
+						|| resultCode == GlobalCacheManagerConst.AcquireModifyAlreadyIsModify));
+			}
+
 	}
 
 	/**
 	 * 向 GCM 协商记录权限。
 	 *
-	 * <p>结果码契约：resultCode==0 为成功，resultState 为协商后的状态
-	 * （GlobalCacheManagerConst.StateInvalid/StateShare/StateModify）；
+	 * <p>调用方通过 {@link AcquireResult#isSuccess()} 判断协商是否完成，并检查
+	 * resultState 是否满足请求。已持有 Modify 权限的应答保留协议原码。
 	 * {@link GlobalCacheManagerConst#AcquireShareFailed}/
 	 * {@link GlobalCacheManagerConst#AcquireModifyFailed} 为协商失败（实现方转为
-	 * throwAbort，不会以返回码形态到达调用方）；其余非零码为环境性失败。
-	 * 注意：各实现（GlobalAgent 与 raft 版）对非零失败码的分类不完全一致，
-	 * 调用方按"零成功、非零失败"处理，保留原始码记日志，勿按具体负值分支。
+	 * throwAbort，不会以返回码形态到达调用方）；其余失败码保留原值供诊断。
 	 * reducedTid 非空表示结果与该事务号的 reduce 相关，不适用为 null。
 	 */
 	@Nullable AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait);

@@ -278,15 +278,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				var acquire = r.acquire(StateShare, false, false);
 				//noinspection DataFlowIssue
-				r.setState(acquire.resultState());
-				if (r.getState() == StateInvalid) {
-					var msg = "Acquire Failed (Redo): " + r;
+				var acquiredState = acquire.resultState();
+				if (!acquire.isSuccess() || (acquiredState != StateShare && acquiredState != StateModify)) {
+					r.setState(StateInvalid);
+					var msg = "Acquire Failed (Redo): " + r + ", code=" + acquire.resultCode()
+							+ ", state=" + acquiredState;
 					var txn = Transaction.getCurrent();
 					if (txn == null || txn.isCompleted())
 						throw new GoBackZeze(msg);
 					txn.throwRedoAndReleaseLock(getId(), msg, null);
 					// never run here
 				}
+				r.setState(acquiredState);
 				try {
 					verifyGlobalRecordState(key, r.getState() == StateModify);
 
