@@ -12,6 +12,7 @@ import Zeze.Transaction.Data;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.TaskCompletionSource;
+import org.jspecify.annotations.Nullable;
 
 /** 协调者侧代理：维护在途OnzTransaction登记供redo过滤真残留，并提供远程procedure/saga调用的发送辅助。 */
 public class OnzAgent extends AbstractOnzAgent {
@@ -63,13 +64,16 @@ public class OnzAgent extends AbstractOnzAgent {
 	static final class CallAnsweredException extends RuntimeException {
 		@Serial
 		private static final long serialVersionUID = 1L;
+		final boolean participantSucceeded;
 
 		CallAnsweredException(String message) {
-			super(message);
+			this(message, null, false);
 		}
 
-		CallAnsweredException(String message, Throwable cause) {
+		CallAnsweredException(String message, @Nullable Throwable cause,
+							  boolean participantSucceeded) {
 			super(message, cause);
+			this.participantSucceeded = participantSucceeded;
 		}
 	}
 
@@ -178,9 +182,9 @@ public class OnzAgent extends AbstractOnzAgent {
 					result.decode(bbResult);
 					future.setResult(result);
 				} catch (Throwable ex) {
-					// 应答已到达（decode失败不影响"已应答"的判别），以CallAnsweredException完成。
+					// 成功应答仍证明步骤已提交，本地解码失败不改变补偿分诊。
 					future.setException(new CallAnsweredException(
-							"call result decode fail: " + onzProcedureName, ex));
+							"call result decode fail: " + onzProcedureName, ex, true));
 				}
 			} else if (r.isTimeout() || r.getResultCode() == Procedure.ErrorSendFail) {
 				// 未应答失败（超时，或socket dispose时被回调式派发置ErrorSendFail完成——

@@ -256,7 +256,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 	/** saga步骤的应答形态：cancelSaga对eSagaNotFound的分诊依据。 */
 	private enum SagaStepAnswer {
-		/** 已应答成功：协调者已收到成功应答——上下文存在过，其缺席非终态（成功步骤上下文的
+		/** 已应答成功（含结果解码失败）：上下文存在过，其缺席非终态（成功步骤上下文的
 		 * 唯一正常清理者是补偿自身；业务失败自清理只适用于失败步骤），NotFound按补偿丢失
 		 * 嫌疑保守保留。 */
 		ANSWERED_SUCCESS,
@@ -279,8 +279,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		// 等待已经发出的saga的结果（包括失败的），
 		// 因为saga可能异步发送，并且中途发生了错误，
 		// 此时需要继续把没得到的结果等到。
-		// 记录每个步骤的应答形态（三分类）：已应答成功/已应答业务失败（以OnzAgent.
-		// CallAnsweredException完成）/未应答失败（超时/发送失败，可能处于"FuncSagaEnd
+		// 记录每个步骤的应答形态（三分类）：已应答成功（含结果解码失败）/已应答业务失败/
+		// 未应答失败（超时/发送失败，可能处于"FuncSagaEnd
 		// 先于FuncSaga注册被处理"的乱序窗口——已应答步骤的FuncSaga已被参与方处理过，
 		// 注册必然先于任何FuncSagaEnd）。
 		var stepAnswers = new HashMap<String, SagaStepAnswer>();
@@ -291,9 +291,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				answer = SagaStepAnswer.ANSWERED_SUCCESS;
 			} catch (Exception ex) {
 				logger.error("await saga result.", ex);
-				answer = ex instanceof CompletionException
-						&& ex.getCause() instanceof OnzAgent.CallAnsweredException
-						? SagaStepAnswer.ANSWERED_FAIL : SagaStepAnswer.RPC_FAILED;
+				if (ex instanceof CompletionException && ex.getCause() instanceof OnzAgent.CallAnsweredException answered)
+					answer = answered.participantSucceeded ? SagaStepAnswer.ANSWERED_SUCCESS : SagaStepAnswer.ANSWERED_FAIL;
 			}
 			stepAnswers.put(e.getKey(), answer);
 		}
