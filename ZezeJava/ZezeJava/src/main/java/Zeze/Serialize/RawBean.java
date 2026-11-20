@@ -31,12 +31,12 @@ public class RawBean extends Bean {
 	}
 
 	public RawBean copyIfManaged() {
-		return this;
+		return isManaged() ? copy() : this;
 	}
 
 	@Override
 	public RawBean copy() {
-		return this;
+		return new RawBean(typeId, rawData);
 	}
 
 	@Override
