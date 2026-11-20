@@ -298,14 +298,17 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private @Nullable RunInfoWithSerial getRunInfoWithSerial(String name) {
 		if (excludeRunKeys.contains(name))
 			return null;
-		lock();
+		var alreadyLocked = isHeldByCurrentThread();
+		if (!alreadyLocked)
+			lock();
 		try {
 			// 与淘汰、重置同锁，避免给刚离开映射的条目盖上新代际，令旧观察句柄始终写到孤儿条目。
 			var ri = runInfoMap.computeIfAbsent(name, k -> new RunInfoWithSerial(k, clearSerial));
 			ri.serial = clearSerial;
 			return ri;
 		} finally {
-			unlock();
+			if (!alreadyLocked)
+				unlock();
 		}
 	}
 

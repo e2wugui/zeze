@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import Zeze.Util.PerfCounter;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -18,6 +20,31 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestPerfCounterClearSerialRebind {
+	@Test
+	void observerCanRegisterAndRebindWhileCallingThreadHoldsLock() throws Exception {
+		var completed = new FutureTask<>(() -> {
+			var pc = new PerfCounter();
+			ZezeCounter.LongObserver observer;
+			pc.lock();
+			try {
+				observer = pc.getRunTimeObserver("PerfClearSerial.locked");
+				Assertions.assertTrue(pc.isHeldByCurrentThread());
+			} finally {
+				pc.unlock();
+			}
+			pc.resetCounter();
+			pc.lock();
+			try {
+				observer.observe(300);
+				Assertions.assertTrue(pc.isHeldByCurrentThread());
+			} finally {
+				pc.unlock();
+			}
+			return pc.getLogAndReset();
+		});
+		Thread.ofPlatform().daemon().start(completed);
+		Assertions.assertTrue(completed.get(5, TimeUnit.SECONDS).contains("PerfClearSerial.locked: 0ms = 1 * 300ns"));
+	}
 
 	@Test
 	public void testRunTimeObserverRebindsAfterReset() {
