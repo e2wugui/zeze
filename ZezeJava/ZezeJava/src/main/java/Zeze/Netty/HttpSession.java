@@ -162,13 +162,12 @@ public class HttpSession extends AbstractHttpSession {
 		final var sessionId = new OutObject<String>();
 		FuncLong initAction = () -> {
 			needSetCookie.value = false; // 乐观锁 redo 整体重跑时重置 out 参数，避免沿用上一轮的陈旧结果。
+			var existing = cookieSessionId != null ? _tSession.get(cookieSessionId) : null;
+			// 读取可能等待记录锁或后端，按读取完成后的时间判断过期。
 			var now = System.currentTimeMillis();
-			if (cookieSessionId != null) {
-				var existing = _tSession.get(cookieSessionId);
-				if (existing != null && existing.getExpireTime() > now) {
-					sessionId.value = cookieSessionId;
-					return Procedure.Success;
-				}
+			if (existing != null && existing.getExpireTime() > now) {
+				sessionId.value = cookieSessionId;
+				return Procedure.Success;
 			}
 			// 新会话只使用服务器生成的未占用 ID。随机碰撞时重新生成，保留已有会话行。
 			var value = new BSessionValue();
