@@ -113,7 +113,7 @@ public class TestPrefixWalkDescCursorAboveRange {
 			agent.setBucketMeta(meta);
 
 			// 桶内：prefix(2)×2 + 边界key（恰等于prefixUpper，非前缀）+ prefix(3)×1（更上方的非前缀键）
-			put(agent, db, table, List.of(pkey(2, 0x0A), pkey(2, 0x0B), prefix2Upper, pkey(3, 0x0C)));
+			put(agent, db, table, List.of(pkey(1, 0x0D), pkey(2, 0x0A), pkey(2, 0x0B), prefix2Upper, pkey(3, 0x0C)));
 
 			// 游标1=上界+尾巴（seekForPrev落在边界key上）：修复前首循环判桶尾0条（缺行）；
 			// 修复后归一为上界定位（含等上界键跳过）交付prefix(2)全部2条。
@@ -139,7 +139,18 @@ public class TestPrefixWalkDescCursorAboveRange {
 			// 升序不受影响：越上界游标之后区间内无前缀键，正常0条结束（方向语义本就正确）。
 			var asc = agent.walk(new Binary(new byte[] {0x02, 0x00, 0x00, 0x01, 0x78}), 10, false, prefixOf(2));
 			Assertions.assertEquals(0, asc.getResultCode());
-			Assertions.assertEquals(0, asc.Result.getKeyValues().size(), "升序越上界游标正常0条（升序方向不动）");
+			Assertions.assertEquals(0, asc.Result.getKeyValues().size(), "升序越上界游标正常0条");
+
+			var ascBeforePrefix = agent.walk(pkey(1, 0), 10, false, prefixOf(2));
+			Assertions.assertEquals(0, ascBeforePrefix.getResultCode());
+			Assertions.assertEquals(List.of(pkey(2, 0x0A), pkey(2, 0x0B)),
+					ascBeforePrefix.Result.getKeyValues().stream().map(kv -> kv.getKey()).toList());
+
+			// 模拟 split 已发布新边界、旧数据仍在列族中的读窗口。
+			meta.setKeyFirst(pkey(2, 0x0B));
+			meta.setKeyLast(prefix2Upper);
+			agent.setBucketMeta(meta);
+			Assertions.assertEquals(List.of(pkey(2, 0x0B)), walkDesc(agent, Binary.Empty, new byte[0]));
 		} finally {
 			for (var dbh2 : nodes) {
 				dbh2.close();

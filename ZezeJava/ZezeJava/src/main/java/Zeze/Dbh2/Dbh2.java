@@ -409,49 +409,30 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return 0;
 	}
 
-	private boolean walkDesc(Binary exclusiveStartKey, int proposeLimit, Binary prefix,
-							 Action2<Binary, RocksIterator> fill) throws Exception {
-		//noinspection DataFlowIssue
-		try (var it = stateMachine.getBucket().getData().iterator()) {
-			if (exclusiveStartKey.size() > 0) {
-				// 越上界游标归一：游标高于前缀上界时seekForPrev(游标)落在非前缀键上会被
-				// 判桶尾，整段前缀键静默跳过——统一seekForPrev(prefixUpper)定位（等上界
-				// 键须再prev跳过）；全0xFF前缀无有限上界，不归一。
-				var prefixUpper = prefix.size() > 0 ? prefixUpperBound(prefix) : null;
-				if (prefixUpper != null && exclusiveStartKey.compareTo(prefixUpper) > 0) {
-					it.seekForPrev(prefixUpper.copyIf());
-					if (RocksDatabase.isValidOrThrow(it) && prefixUpper.contentEquals(it.key()))
-						it.prev();
-				} else {
-					it.seekForPrev(exclusiveStartKey.copyIf());
-				}
-			} else {
-				// 分桶过程中，可能存在Last之后的数据，必须根据Last的情况定位，不能直接使用seekToLast。
-				//noinspection DataFlowIssue
-				var lastKey = stateMachine.getBucket().getBucketMeta().getKeyLast();
-				// 定位与过滤一致：prefix时定位到目标前缀的结尾（与keyLast取更小者），否则桶内混存的
-				// 更大前缀key会让首个循环立即判定桶尾，本桶目标前缀的记录被静默跳过。
-				var prefixUpper = prefix.size() > 0 ? prefixUpperBound(prefix) : null;
-				if (prefixUpper != null && (lastKey.size() == 0 || prefixUpper.compareTo(lastKey) < 0))
-					it.seekForPrev(prefixUpper.copyIf());
-				else if (lastKey.size() > 0)
-					it.seekForPrev(lastKey.copyIf());
-				else
-					it.seekToLast();
-				// seekForPrev是闭语义（<=target）：桶内恰存在等于上界的key时迭代器落在其上（含
-				// prefixUpper==keyLast的分支），先跳过，否则首循环前缀过滤失败即误判桶尾，
-				// 本桶目标前缀的记录被静默跳过（与下方exclusiveStartKey同款跳过）。
-				if (RocksDatabase.isValidOrThrow(it) && prefixUpper != null && prefixUpper.contentEquals(it.key()))
+	private boolean walkDesc(Bucket bucket, BBucketMeta.Data meta, Binary exclusiveStartKey, int proposeLimit,
+							 Binary prefix, Action2<Binary, RocksIterator> fill) throws Exception {
+		try (var it = bucket.getData().iterator()) {
+			var upper = meta.getKeyLast();
+			if (exclusiveStartKey.size() > 0 && (upper.size() == 0 || exclusiveStartKey.compareTo(upper) < 0))
+				upper = exclusiveStartKey;
+			var prefixUpper = prefix.size() > 0 ? prefixUpperBound(prefix) : null;
+			if (prefixUpper != null && (upper.size() == 0 || prefixUpper.compareTo(upper) < 0))
+				upper = prefixUpper;
+			if (upper.size() == 0)
+				it.seekToLast();
+			else {
+				it.seekForPrev(upper.copyIf());
+				// 游标、桶尾与前缀上界均为排他边界，seekForPrev 会包含等值键。
+				if (RocksDatabase.isValidOrThrow(it) && upper.contentEquals(it.key()))
 					it.prev();
 			}
-			if (RocksDatabase.isValidOrThrow(it) && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
-				it.prev(); // skip exclusive key if need.
 
 			var count = proposeLimit;
 			var bucketEnd = false;
+			var lower = meta.getKeyFirst();
 			for (; RocksDatabase.isValidOrThrow(it) && count > 0; it.prev()) {
 				var key = new Binary(it.key());
-				if (prefix.size() > 0 && !key.startsWith(prefix)) {
+				if (key.compareTo(lower) < 0 || (prefix.size() > 0 && !key.startsWith(prefix))) {
 					bucketEnd = true;
 					break;
 				}
@@ -478,28 +459,29 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return null;
 	}
 
-	private boolean walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, Binary prefix,
-						 Action2<Binary, RocksIterator> fill) throws Exception {
+	private boolean walk(Bucket bucket, BBucketMeta.Data meta, Binary exclusiveStartKey, int proposeLimit,
+						 boolean desc, Binary prefix, Action2<Binary, RocksIterator> fill) throws Exception {
 		if (desc) {
-			return walkDesc(exclusiveStartKey, proposeLimit, prefix, fill);
+			return walkDesc(bucket, meta, exclusiveStartKey, proposeLimit, prefix, fill);
 		}
 
-		//noinspection DataFlowIssue
-		try (var it = stateMachine.getBucket().getData().iterator()) {
-			if (exclusiveStartKey.size() > 0)
-				it.seek(exclusiveStartKey.copyIf());
-			else if (prefix.size() > 0)
-				it.seek(prefix.copyIf()); // 定位与过滤一致：空游标时从前缀起始开始（见walkDesc同款注释）
-			else
+		try (var it = bucket.getData().iterator()) {
+			var lower = meta.getKeyFirst();
+			if (exclusiveStartKey.compareTo(lower) > 0)
+				lower = exclusiveStartKey;
+			if (prefix.compareTo(lower) > 0)
+				lower = prefix;
+			if (lower.size() == 0)
 				it.seekToFirst();
+			else
+				it.seek(lower.copyIf());
 
 			if (RocksDatabase.isValidOrThrow(it) && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
 				it.next(); // skip exclusive key if need.
 
 			var count = proposeLimit;
 			var bucketEnd = false;
-			//noinspection DataFlowIssue
-			var keyLast = stateMachine.getBucket().getBucketMeta().getKeyLast();
+			var keyLast = meta.getKeyLast();
 			for (; RocksDatabase.isValidOrThrow(it) && count > 0; it.next()) {
 				var key = new Binary(it.key());
 				if (keyLast.size() > 0 && key.compareTo(keyLast) >= 0) {
@@ -553,6 +535,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return 0;
 		}
 		var bucketEnd = walk(
+				bucket, metaOnCheck,
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
 				r.Argument.isDesc(),
@@ -585,6 +568,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return 0;
 		}
 		var bucketEnd = walk(
+				bucket, metaOnCheck,
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
 				r.Argument.isDesc(),
