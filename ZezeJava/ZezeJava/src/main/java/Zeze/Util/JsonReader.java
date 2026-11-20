@@ -1076,6 +1076,7 @@ public final class JsonReader {
 	int parseKeyHashNoQuot(int b) {
 		if (b == ':')
 			return 0;
+		b = (byte)b; // skipNext() 返回无符号字节；字段元数据按有符号 UTF-8 字节计算哈希。
 		// 解码转义并按解码后的 utf-8 字节计算 hash（与 parseKeyHash/parseStringNoQuot 的解码语义一致），
 		// 否则 {\u0061bc:1} 之类无引号转义 key 匹配不到字段 abc。
 		final int m = keyHashMultiplier;
