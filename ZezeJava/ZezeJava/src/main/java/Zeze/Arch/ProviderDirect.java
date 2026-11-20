@@ -244,6 +244,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		Objects.requireNonNull(ps).serverId = r.Argument.getServerId();
 		//noinspection DataFlowIssue
 		requireProviderApp().providerDirectService.setRelativeServiceReady(ps, r.Argument.getIp(), r.Argument.getPort());
-		return 0;
+		r.SendResult();
+		return Procedure.Success;
 	}
 }

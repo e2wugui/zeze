@@ -6,6 +6,7 @@ import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.TimeThrottle;
@@ -27,6 +28,9 @@ public class TestRedirectServerReconnect {
 		var app = ProviderDirectTestSupport.newAppWithFakeAgent("RedirectServerReady", config);
 		var service = new DirectService(app);
 		service.providerApp = new ProviderApp(app);
+		setField(service.providerApp, "providerDirectService", service);
+		var direct = new ProviderDirect();
+		direct.providerApp = service.providerApp;
 		var oldSession = service.newSession(REMOTE_SERVER_ID);
 		service.providerByServerId.put(REMOTE_SERVER_ID, oldSession); // socket已消失，OnSocketClose清理尚未执行。
 		var readyCalls = new AtomicInteger();
@@ -38,7 +42,13 @@ public class TestRedirectServerReconnect {
 			service.waitDirectServerReady(REMOTE_SERVER_ID, readyCalls::incrementAndGet);
 			assertEquals(0, readyCalls.get(), "旧会话登记存在，但socket不存在，不能误判就绪");
 			assertTrue(service.register(liveSocket));
-			service.setRelativeServiceReady(newSession, "127.0.0.1", 1);
+			var announce = new AnnounceProviderInfo();
+			announce.setSender(liveSocket);
+			announce.Argument.setServerId(REMOTE_SERVER_ID);
+			announce.Argument.setIp("127.0.0.1");
+			announce.Argument.setPort(1);
+			assertEquals(0L, direct.ProcessAnnounceProviderInfoRequest(announce));
+			assertTrue(announce.isSendResultDone(), "直连公告请求成功登记后必须应答");
 			assertEquals(1, readyCalls.get(), "活连接重新登记后才应通知就绪");
 		} finally {
 			liveSocket.close();
