@@ -66,13 +66,16 @@ public class DatabaseRocksDb extends Database {
 	@Override
 	public void close() {
 		logger.info("Close: {}", getDatabaseUrl());
-		super.close();
-		if (!rocksDb.isClosed()) {
-			try {
-				rocksDb.getRocksDb().syncWal();
-			} catch (RocksDBException ignored) {
+		try {
+			super.close();
+		} finally {
+			if (!rocksDb.isClosed()) {
+				try {
+					rocksDb.getRocksDb().syncWal();
+				} catch (RocksDBException ignored) {
+				}
+				rocksDb.close();
 			}
-			rocksDb.close();
 		}
 	}
 
