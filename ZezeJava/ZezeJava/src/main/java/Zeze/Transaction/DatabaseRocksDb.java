@@ -47,9 +47,19 @@ public class DatabaseRocksDb extends Database {
 		try {
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			rocksDb = new RocksDatabase(homePath);
-			setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesRocksDb());
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
+		}
+		try {
+			setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesRocksDb());
+		} catch (Throwable failure) {
+			try {
+				rocksDb.close();
+			} catch (Throwable closeFailure) {
+				if (closeFailure != failure)
+					failure.addSuppressed(closeFailure);
+			}
+			throw failure;
 		}
 	}
 
