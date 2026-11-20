@@ -310,6 +310,7 @@ public final class JsonReader {
 					else if (b == '/') { // skip comment
 						pos--;
 						skipComment();
+						pos++; // 越过块注释的结束 '/'，与外层分支保持一致。
 					}
 				}
 			} else if (b == '/') { // skip comment
