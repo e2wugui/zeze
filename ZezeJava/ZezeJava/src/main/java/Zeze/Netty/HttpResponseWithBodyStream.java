@@ -166,13 +166,16 @@ public final class HttpResponseWithBodyStream {
 		}
 
 		// 背压：outbound缓冲越过水位（writePendingLimit，慢客户端）时等待当前积压写出再继续。
-		// 等待手段：提交一个空buffer写并await其完成——空写不产生字节、不参与响应序（仅触发flush），
-		// 完成即积压已推向socket。EventLoop线程不得等待（会死锁）；超时视为对端过慢。
+		// 等待手段：提交一个空载体写并await其完成——空写不产生字节、不参与响应序（仅触发flush），
+		// 完成即积压已推向socket。h2流子通道只接受HttpObject族（AbstractHttp2StreamChannel对
+		// 非Http2StreamFrame直接fail promise），载体须用空HttpContent（经帧codec翻成0字节数据帧）；
+		// h1对非HttpObject直通0字节，空ByteBuf照旧。EventLoop线程不得等待（会死锁）；超时视为对端过慢。
 		private void awaitWritable() throws IOException {
 			var ch = x.channel();
 			if (ch.isWritable() || ch.eventLoop().inEventLoop())
 				return;
-			var f = ch.writeAndFlush(Unpooled.EMPTY_BUFFER);
+			var carrier = x.isH2() ? new DefaultHttpContent(Unpooled.EMPTY_BUFFER) : Unpooled.EMPTY_BUFFER;
+			var f = ch.writeAndFlush(carrier);
 			if (!f.awaitUninterruptibly(SlowPeerTimeoutMillis))
 				throw new IOException("peer too slow (write buffer saturated): " + ch.remoteAddress());
 			if (!f.isSuccess())
