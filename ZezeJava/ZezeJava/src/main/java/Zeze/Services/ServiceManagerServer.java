@@ -2,12 +2,15 @@ package Zeze.Services;
 
 import java.util.Objects;
 import java.io.Closeable;
+import java.util.Collection;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -510,6 +513,17 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return null;
 	}
 
+	static Collection<BServiceInfo> finalRegistrations(List<BServiceInfo> adds) {
+		if (adds.size() < 2)
+			return adds;
+		// 一批编辑只发布每个 name+identity 的最终版本。否则中间版本的订阅者可能
+		// 收到同一地址的 add 和 remove，按协议先删后加之后留下已不存在的地址。
+		var byIdentity = new LinkedHashMap<BServiceInfo, BServiceInfo>();
+		for (var info : adds)
+			byIdentity.putLast(info, info);
+		return byIdentity.values();
+	}
+
 	private long processEditService(EditService r) {
 		var add = r.Argument.getAdd();
 		var remove = r.Argument.getRemove();
@@ -532,6 +546,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		for (var info : r.Argument.getRemove())
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Procedure.ErrorRequestId;
+		var finalAdds = finalRegistrations(add);
 		//noinspection DataFlowIssue
 		var session = (Session)r.getSender().getUserState();
 		var notifies = new HashMap<AsyncSocket, EditService>();
@@ -547,9 +562,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			for (var info : session.registers)
 				finalRegisters.add(info);
 			remove.forEach(finalRegisters::remove);
-			finalRegisters.addAll(add);
+			finalRegisters.addAll(finalAdds);
 			var requestedNames = new HashSet<String>();
-			for (var info : add)
+			for (var info : finalAdds)
 				requestedNames.add(info.getServiceName());
 			var evictions = planServiceNames(requestedNames, new HashSet<>(remove), session.sessionId);
 			if (finalRegisters.size() > SVC_PER_SESSION_MAX || evictions == null) {
@@ -578,7 +593,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 			// step 2: add
 			// 允许重复登录，断线重连Agent不好原子实现重发。
-			for (var reg : r.Argument.getAdd()) {
+			for (var reg : finalAdds) {
 				if (session.registers.remove(reg) == null) { // 先删除再加入,确保key也更新成新的
 					logger.info("{}: Register {} version={} serverId={} ip={} port={}",
 						r.getSender(), reg.getServiceName(), reg.getVersion(), reg.getServiceIdentity(),

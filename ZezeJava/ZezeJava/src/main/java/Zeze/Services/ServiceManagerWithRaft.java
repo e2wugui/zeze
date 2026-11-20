@@ -887,6 +887,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				return Zeze.Transaction.Procedure.ErrorRequestId;
 			}
 		}
+		var finalAdds = ServiceManagerServer.finalRegistrations(r.Argument.getAdd());
 		var sessionRow = tableSession.get(netSession.name);
 		var finalRegisters = new HashSet<>(sessionRow.getRegisters().keys());
 		var removeKeys = new HashSet<BServiceInfoKeyRocks>();
@@ -896,7 +897,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			removeKeys.add(key);
 		}
 		var requestedNames = new HashSet<String>();
-		for (var info : r.Argument.getAdd()) {
+		for (var info : finalAdds) {
 			finalRegisters.add(toRocksKey(info));
 			requestedNames.add(info.getServiceName());
 		}
@@ -922,7 +923,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			tableServerState.remove(name);
 
 		// step 2: add
-		for (var reg : r.Argument.getAdd()) {
+		for (var reg : finalAdds) {
 			var session = tableSession.get(netSession.name);
 			// 允许重复登录，断线重连Agent不好原子实现重发。
 			//noinspection DataFlowIssue
