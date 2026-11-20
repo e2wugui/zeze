@@ -79,7 +79,7 @@ public abstract class AsyncSocket {
 		}
 	}
 
-	/** 登记临界区（addSocket专用）：置死互斥下执行action，已closed返回null。 */
+	/** 登记临界区：与连接置死互斥，已关闭时返回 null。锁内仅执行登记动作。 */
 	final <T> @Nullable T runIfOpen(Supplier<T> action) {
 		synchronized (lifecycleLock) {
 			if (lifecycleClosed)

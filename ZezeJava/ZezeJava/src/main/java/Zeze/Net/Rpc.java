@@ -169,7 +169,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	/**
 	 * 使用当前 rpc 中设置的参数发送。
-	 * 总是建立上下文，总是返回true。
+	 * 发送成功或请求已经被完成时返回 true，否则返回 false。
 	 * 这个方法是 Protocol 的重载。
 	 * 用于不需要处理结果的请求。
 	 * 本实例只能发送一次（含发送失败）；重试请新建实例（参见类注释）。
@@ -216,13 +216,25 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		this.responseHandle = responseHandle;
 		if (waitFuture != null)
 			future = waitFuture;
-		// 上下文入表前绑定连接，应答与断连处理不得看到尚未绑定的发送请求。
 		setSender(so);
-		//noinspection DataFlowIssue
-		sessionId = service.addRpcContext(this);
 		timeout = millisecondsTimeout;
 		isTimeout = false;
 		isRequest = true;
+
+		// 发号可能调用自定义生成器，留在生命周期锁外。登记与连接置死互斥，
+		// 且销毁回调只能看到 sessionId 等字段已初始化的请求。
+		while (true) {
+			//noinspection DataFlowIssue
+			long sid = service.nextSessionId();
+			var registered = so.runIfOpen(() -> {
+				sessionId = sid;
+				return service.tryAddRpcContext(sid, this);
+			});
+			if (registered == null)
+				return false;
+			if (registered)
+				break;
+		}
 
 		// 超时兜底先于编码/发送挂好——super.Send(so)内编码（写完sessionId后Argument.encode，
 		// 用户bean可抛）或传输层异常逃逸时，上下文仍有超时回收与回调，

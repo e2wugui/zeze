@@ -47,8 +47,9 @@ public class TestPreparingSnapshotPreservesSagaIntent {
 			set(server, "onzAgent", new OnzAgent());
 			set(server, "hangWarnedTids", ConcurrentHashMap.newKeySet());
 			doReturn(1L).when(server).nextOnzTid();
-			var socket = mock(AsyncSocket.class);
-			doReturn(new Service("preparing-snapshot")).when(socket).getService();
+			var service = new Service("preparing-snapshot");
+			var socket = mock(AsyncSocket.class, withSettings().useConstructor(service));
+			doReturn(service).when(socket).getService();
 			doReturn(socket).when(server).getZezeInstance(anyString());
 			var transaction = new Transaction();
 			transaction.setOnzServer(server);

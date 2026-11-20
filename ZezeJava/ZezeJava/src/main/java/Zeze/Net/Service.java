@@ -799,9 +799,13 @@ public class Service extends ReentrantLock {
 	public final long addRpcContext(Rpc<?, ?> rpc) {
 		while (true) {
 			long sessionId = nextSessionId();
-			if (rpcContexts.putIfAbsent(sessionId, rpc) == null)
+			if (tryAddRpcContext(sessionId, rpc))
 				return sessionId;
 		}
+	}
+
+	final boolean tryAddRpcContext(long sessionId, Rpc<?, ?> rpc) {
+		return rpcContexts.putIfAbsent(sessionId, rpc) == null;
 	}
 
 	public final @Nullable Rpc<?, ?> removeRpcContext(long sid) {
