@@ -594,7 +594,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					try {
 						if (v.tryEnterFairLock()) {
 							try {
-								// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
+								// 遍历快照取得记录后，驱逐可能已将其从缓存摘除。
+								if (v.getState() == StateRemoved)
+									return;
 								v.setState(StateInvalid);
 								// 脏记录必须先落库再降级（durability-before-downgrade）：
 								// 调用方Releaser在降级之后才执行全服checkpoint，如果降级不flush，
@@ -626,6 +628,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					var v = e.getValue();
 					v.enterFairLock();
 					try {
+						if (v.getState() == StateRemoved)
+							return;
 						v.setState(StateInvalid);
 						// 同上：脏记录先落库再降级。
 						if (v.getDirty())
