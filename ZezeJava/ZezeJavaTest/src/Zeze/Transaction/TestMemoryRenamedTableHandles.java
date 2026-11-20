@@ -90,4 +90,86 @@ public class TestMemoryRenamedTableHandles {
 			db.close();
 		}
 	}
+
+	@Test
+	public void rolledBackWritesByNameLeaveBackupNamesAvailable() throws Exception {
+		var db = newDatabase();
+		try {
+			var key = bytes(1);
+			var source = open(db, "RollbackSource");
+			put(db, source, key, 10);
+			try (var pending = (DatabaseMemory.MemTrans)db.beginTransaction()) {
+				pending.remove("RollbackRemoveBackup", key);
+				pending.replace("RollbackReplaceBackup", key, bytes(20));
+				pending.rollback();
+			}
+
+			db.renameTable("RollbackSource", "RollbackRemoveBackup");
+			db.renameTable("RollbackRemoveBackup", "RollbackReplaceBackup");
+			assertEquals(bytes(10), open(db, "RollbackReplaceBackup").find(key));
+		} finally {
+			db.close();
+		}
+	}
+
+	@Test
+	public void writesByNameCanCreateMissingTablesOnCommit() {
+		var db = newDatabase();
+		try {
+			var key = bytes(1);
+			try (var pending = (DatabaseMemory.MemTrans)db.beginTransaction()) {
+				pending.replace("CreateOnCommit", key, bytes(10));
+				pending.commit();
+			}
+			assertEquals(bytes(10), open(db, "CreateOnCommit").find(key));
+		} finally {
+			db.close();
+		}
+	}
+
+	@Test
+	public void writesStagedWhileTableWasMissingCannotModifyARenamedTable() throws Exception {
+		var db = newDatabase();
+		try {
+			var key = bytes(1);
+			var source = open(db, "SourceForPendingName");
+			var sibling = open(db, "SiblingForPendingName");
+			put(db, source, key, 10);
+			put(db, sibling, key, 30);
+			try (var pending = (DatabaseMemory.MemTrans)db.beginTransaction()) {
+				pending.replace("PendingRenameTarget", key, bytes(20));
+				sibling.replace(pending, key, bytes(40));
+				db.renameTable("SourceForPendingName", "PendingRenameTarget");
+				assertThrows(IllegalStateException.class, pending::commit);
+			}
+			assertEquals(bytes(10), open(db, "PendingRenameTarget").find(key));
+			assertEquals(bytes(30), sibling.find(key));
+		} finally {
+			db.close();
+		}
+	}
+
+	@Test
+	public void renamingBackDoesNotReviveOldHandlesOrWrites() throws Exception {
+		var db = newDatabase();
+		try {
+			var key = bytes(1);
+			var original = open(db, "RoundTripSource");
+			put(db, original, key, 10);
+			try (var pending = db.beginTransaction()) {
+				original.replace(pending, key, bytes(20));
+				db.renameTable("RoundTripSource", "RoundTripBackup");
+				var backup = open(db, "RoundTripBackup");
+				put(db, backup, key, 30);
+				db.renameTable("RoundTripBackup", "RoundTripSource");
+
+				assertThrows(IllegalStateException.class, pending::commit);
+				assertThrows(IllegalStateException.class, () -> original.find(key));
+				assertThrows(IllegalStateException.class, () -> backup.find(key));
+				assertEquals(bytes(30), open(db, "RoundTripSource").find(key));
+			}
+		} finally {
+			db.close();
+		}
+	}
 }
