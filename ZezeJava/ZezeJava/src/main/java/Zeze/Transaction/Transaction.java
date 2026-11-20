@@ -367,6 +367,8 @@ public final class Transaction {
 							try {
 								lockResult = lockAndCheck(procedure);
 							} catch (Throwable lcEx) {
+								if (state != TransactionState.Running)
+									throw lcEx; // 由外层按 Abort/Redo 状态处理。
 								logger.error("perform({}) lockAndCheck exception. run count:{}", procedure, tryCount, lcEx);
 								finalRollback(procedure);
 								return Procedure.Exception;
