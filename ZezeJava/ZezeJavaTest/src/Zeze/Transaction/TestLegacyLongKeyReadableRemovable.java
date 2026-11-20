@@ -1,8 +1,5 @@
 package Zeze.Transaction;
 
-import java.lang.reflect.Field;
-import java.util.TreeMap;
-
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import harness.Fast;
@@ -30,16 +27,14 @@ public class TestLegacyLongKeyReadableRemovable {
 		try {
 			var table = (DatabaseMemory.TableMemory)db.openTable("LegacyKeyTable", 1);
 
-			// 构造901字节存量key（旧预算内、新预算外），经反射种入原始存储
-			// （新写路径按900拒绝，无法经replace写入）。
+			// 通过底层批次种入 901 字节存量 key。表句柄的新写入口按 900 字节拒绝。
 			var legacyKey = ByteBuffer.Allocate(901);
 			legacyKey.WriteBytes(new byte[901]);
 			var legacyValue = new byte[]{7, 7, 7};
-			Field mapField = DatabaseMemory.TableMemory.class.getDeclaredField("map");
-			mapField.setAccessible(true);
-			@SuppressWarnings("unchecked")
-			var rawMap = (TreeMap<ByteBuffer, byte[]>)mapField.get(table);
-			rawMap.put(legacyKey, legacyValue);
+			try (var txn = (DatabaseMemory.MemTrans)db.beginTransaction()) {
+				txn.replace(table.getName(), legacyKey, ByteBuffer.Wrap(legacyValue));
+				txn.commit();
+			}
 
 			// 存量读：必须可读（修复前：901 > 900 抛异常）
 			var found = table.find(legacyKey);

@@ -55,6 +55,7 @@ public final class FastServerIds {
 	public static final String URL_TEST_CLEAR_IN_USE = memUrl("clear_in_use_memory");
 	public static final String URL_TEST_REDO_QUEUE_SERVER_DISPATCH = memUrl("redo_queue_server_dispatch_test");
 	public static final String URL_TEST_MEMORY_EMPTY_VALUE_REPLACE = memUrl("empty_value_replace");
+	public static final String URL_TEST_MEMORY_RENAMED_TABLE_HANDLES = memUrl("memory_renamed_table_handles");
 	public static final String URL_TEST_WALK_INTERRUPT_COUNT = memUrl("walk_interrupt_count");
 	public static final String URL_TEST_HOT_INSTALL_RESIDUE = memUrl("hot_install_residue_memory");
 	public static final String URL_TEST_HISTORY_HOT_INSTALL_EXCLUSION = memUrl("history_hot_install_exclusion");
