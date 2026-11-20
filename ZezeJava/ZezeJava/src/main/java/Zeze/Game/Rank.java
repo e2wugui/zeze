@@ -633,6 +633,17 @@ public class Rank extends AbstractRank {
 			if (segment != null)
 				datas.add(segment);
 		}
+		if (concurrentLevel > 1 && datas.size() == 1) {
+			var segment = datas.get(0);
+			var entries = segment.getRankList();
+			// 稀疏榜单只复制要返回的条目，含未知字段的段沿用原有复制路径。
+			if (segment.unknown() == null && countNeed >= 0 && entries.size() > countNeed) {
+				var result = new BRankList();
+				for (int i = 0; i < countNeed; ++i)
+					result.getRankList().add(entries.get(i).copy());
+				return result;
+			}
+		}
 		return merge(datas, countNeed);
 	}
 

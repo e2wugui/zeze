@@ -2,6 +2,7 @@ package Zeze.Game;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import harness.Fast;
 import harness.FastServerIds;
 import org.junit.jupiter.api.AfterEach;
@@ -12,8 +13,14 @@ import org.junit.jupiter.api.Test;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
+import Zeze.Builtin.Game.Rank.BConcurrentKey;
+import Zeze.Builtin.Game.Rank.BRankList;
+import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Builtin.Game.Rank.BValueLong;
 import Zeze.Config;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 
 /**
  * 多段榜单归并结果是独立快照：修改查询结果的元素不得改写表内数据。
@@ -124,6 +131,69 @@ public class TestRankMergeSnapshotIndependent {
 		Assertions.assertEquals(200L, ((BValueLong)oldEntry.getDynamicReadOnly().getBean()).getValue(),
 				"旧快照内容不得随表更新变化");
 		Assertions.assertEquals(88L, oldEntry.getRoleId());
+	}
+
+	@Test
+	public void sparseRankCopiesOnlyTheReturnedPrefix() {
+		rank.setFuncConcurrentLevel(t -> 4);
+		rank.setFuncRankSize(t -> 1);
+		Rank.register(CountedValue.class);
+		var hint = Rank.newRankKey(1, 9974L);
+		var copies = new AtomicInteger();
+		Assertions.assertEquals(0, zeze.newProcedure(() -> {
+			var segment = new BRankList();
+			var first = new BRankValue(77);
+			first.getDynamic().setBean(new BValueLong(100));
+			var tail = new BRankValue(88);
+			tail.getDynamic().setBean(new CountedValue(copies));
+			segment.getRankList().add(first);
+			segment.getRankList().add(tail);
+			rank._trank.put(shard(hint, 0), segment);
+			var result = rank.getRankDirect(hint);
+			Assertions.assertEquals(0, copies.get());
+			Assertions.assertEquals(1, result.getRankList().size());
+			Assertions.assertEquals(77, result.getRankList().get(0).getRoleId());
+			result.getRankList().get(0).setRoleId(99);
+			Assertions.assertEquals(77, first.getRoleId());
+			return 0;
+		}, "sparse-rank-prefix").call());
+		Assertions.assertEquals(0, zeze.newProcedure(() -> {
+			for (int shard = 1; shard < 4; ++shard)
+				Assertions.assertNull(rank._trank.get(shard(hint, shard)));
+			return 0;
+		}, "sparse-rank-shards").call());
+	}
+
+	private static BConcurrentKey shard(BConcurrentKey hint, int id) {
+		return new BConcurrentKey(hint.getRankType(), id, hint.getTimeType(), hint.getYear(), hint.getOffset());
+	}
+
+	public static final class CountedValue extends Bean {
+		private final AtomicInteger copies;
+
+		public CountedValue() {
+			this(new AtomicInteger());
+		}
+
+		private CountedValue(AtomicInteger copies) {
+			this.copies = copies;
+		}
+
+		@Override
+		public Bean copy() {
+			copies.incrementAndGet();
+			return new CountedValue(copies);
+		}
+
+		@Override
+		public void encode(ByteBuffer bb) {
+			bb.WriteByte(0);
+		}
+
+		@Override
+		public void decode(IByteBuffer bb) {
+			bb.ReadByte();
+		}
 	}
 
 	@Test
