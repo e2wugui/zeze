@@ -29,6 +29,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	private static final class TableData {
 		private final TreeMap<ByteBuffer, byte[]> rows = new TreeMap<>(ByteBuffer::compareTo);
+		private @Nullable String renamedFrom;
 	}
 
 	public static void clear() {
@@ -56,8 +57,15 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			var table = tables.get(tableOldName);
 			if (table == null)
 				return;
-			if (tables.putIfAbsent(tableNewName, table) != null)
+			var target = tables.get(tableNewName);
+			if (target != null) {
+				// 兼容检查可能重跑，此时原名下已经打开替代表。只接受实际由该源表改名的目标。
+				if (tableOldName.equals(target.renamedFrom))
+					return;
 				throw new IllegalStateException("table already exists: " + tableNewName);
+			}
+			table.renamedFrom = tableOldName;
+			tables.put(tableNewName, table);
 			tables.remove(tableOldName);
 		} finally {
 			lock.writeLock().unlock();
