@@ -234,8 +234,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		r.Argument.setCount(pool);
 		raftClient.sendForWait(r).await();
 		// 真错误码时Result携带的号段来自服务端回滚路径（提交前数据，服务端按错误码丢弃语义发送），
-		// 不可投入使用，抛错使AutoKey.next()的重试循环以异常退出而非无限重试；RaftApplied例外，
-		// 其Result是重发命中去重时服务端附带的原始已分配号段，直接投入使用。
+		// 不可投入使用，抛错使AutoKey.next()的重试循环以异常退出而非无限重试。
+		// 注：SM-raft服务端procedure不设置uniqueRequest（见RocksRaft.Procedure.uniqueRequest
+		// 契约），应答丢失后重发=重新执行——allocate重发会分配到新号段，旧号段弃成号洞（量级=count，
+		// 良性）；RaftApplied回放应答对SM当前不可达，若未来服务端接线唯一请求去重，其附带的
+		// 原始号段可在此直接投入使用。
 		checkResultCode(r);
 		setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
 	}
@@ -244,9 +247,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	 * 对齐非raft版SendAndWaitCheckResultCode契约：sendForWait的future只在超时/停止时异常完成，
 	 * 服务端错误码应答正常完成，必须显式检查；失败即抛错，防止editService/unSubscribeService
 	 * 假成功（本地状态与服务端分叉）及allocate静默失败触发AutoKey.next()无限循环。
-	 * RaftApplied放行为成功：应答丢失/超时后sendForWait重发，原请求已apply时服务端以
-	 * RaftApplied附原始结果应答（Raft.Server.processRequest去重命中），与Dbh2Agent等
-	 * raft调用方"rc==0||rc==RaftApplied"的成功判定一致；allocate据此拿回原号段。
+	 * RaftApplied放行为成功：与Dbh2Agent等"服务端已接线唯一请求去重"的raft调用方成功判定
+	 * 保持同一形态（rc==0||rc==RaftApplied）；SM服务端当前不设置uniqueRequest（重发=重执行，
+	 * handler幂等），该分支对SM为防御性保留、实际不可达。
 	 */
 	private static void checkResultCode(Rpc<?, ?> r) {
 		var rc = r.getResultCode();

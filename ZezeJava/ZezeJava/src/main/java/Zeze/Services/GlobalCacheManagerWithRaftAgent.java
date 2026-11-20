@@ -241,6 +241,9 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 
 		var rc = rpc.getResultCode();
+		// 注：GCM-raft服务端procedure不设置uniqueRequest（见RocksRaft.Procedure.uniqueRequest契约），
+		// 应答丢失后重发=重新执行，RaftApplied回放应答当前不可达。若未来服务端接线唯一请求去重，
+		// 此处必须为RaftApplied（负值）补豁免——回放附原始结果≠获取失败，否则会把回放当失败abort业务事务。
 		if (rc < 0 || rc == GlobalCacheManagerConst.AcquireModifyFailed
 				|| rc == GlobalCacheManagerConst.AcquireShareFailed) {
 			Transaction trans = Transaction.getCurrent();
