@@ -92,7 +92,7 @@ public class CommandConsole {
 		}
 	}
 
-	// 解析commandConsoleMaxLineSize——解析失败（NumberFormatException）或
+	// 解析commandConsoleMaxLineSize——格式错误、容量溢出或
 	// 非正值（0/负数无法parse由前者覆盖，0显式拒收：0上限使每次input都抛溢出）回落默认并warn；
 	// "max"（无上限）与一切正值为运维显式选择，原样生效。
 	@SuppressWarnings("SameParameterValue")
@@ -102,7 +102,7 @@ public class CommandConsole {
 		int v;
 		try {
 			v = Str.parseIntSize(propValue, defSize);
-		} catch (NumberFormatException e) {
+		} catch (NumberFormatException | IllegalStateException e) {
 			logger.warn("invalid -DcommandConsoleMaxLineSize='{}', fall back to default {}", propValue, defSize, e);
 			return defSize;
 		}
