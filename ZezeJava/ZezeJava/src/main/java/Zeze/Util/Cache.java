@@ -136,8 +136,8 @@ public class Cache {
 			if (System.currentTimeMillis() - nullCache.CreateTime < 5 * 60 * 1000) // 5 minutes
 				return null; // null cache 不会写入RocksDb，短时间内就会允许再次尝试。
 
-			// remove and try load，下面的流程会浪费一次RocksDb的查询。
-			lru.remove(id);
+			// 只淘汰本次观察到的占位，避免晚到的读者删掉同 id 已经装载的新对象。
+			lru.remove(id, nullCache);
 		}
 
 		// 当Lru不命中，并且同时多个线程并发执行到这里，会执行多次decoder/loader操作。
