@@ -29,7 +29,8 @@ class TestRocksTransactionOwnership {
 				</raft>
 				""");
 		config.setDbHome(dbHome.resolve(directory).toString());
-		return new Rocks(null, RocksMode.Pessimism, config, new Config(), false);
+		// 四参便捷构造器（bc45e3b63 删 writeOptionSync boolean 后的现签名，对齐 TestRaftExpectedTermCommit）
+		return new Rocks(null, RocksMode.Pessimism, config, new Config());
 	}
 
 	@Test

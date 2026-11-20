@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import Zeze.Application;
 import Zeze.Builtin.HistoryModule.tHistory;
 import Zeze.Config;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DatabaseMemory;
 import Zeze.Transaction.Table;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -43,9 +45,22 @@ public class TestApplyDatabaseAliasIsolation {
 		try {
 			var table = registerBusinessTable(app);
 			Assertions.assertNotSame(app.getDatabase(""), app.getDatabase("applyAlias"));
-			Assertions.assertSame(app.getDatabase("").openTable(table.getName(), table.getId()),
-					app.getDatabase("applyAlias").openTable(table.getName(), table.getId()),
-					"different configuration names resolve to the same physical table");
+			// 前提证明（写读互通）：Memory 后端按 URL 共享静态命名空间，不同配置名同 URL=同一物理桶。
+			// 旧断言钉 TableMemory 实例相等；表身份移到 TableData 世代（06e7980a7/72c41d9fc：
+			// openTable 每次新句柄、MemTrans 按世代校验）后实例必不相同，物理共享改由行为证明。
+			var probeKey = ByteBuffer.Wrap(new byte[] {1});
+			var applyTable = (DatabaseMemory.TableMemory)app.getDatabase("applyAlias")
+					.openTable(table.getName(), table.getId());
+			var businessTable = (DatabaseMemory.TableMemory)app.getDatabase("")
+					.openTable(table.getName(), table.getId());
+			try (var txn = app.getDatabase("applyAlias").beginTransaction()) {
+				applyTable.replace(txn, probeKey, ByteBuffer.Wrap(new byte[] {7}));
+				txn.commit();
+			}
+			var found = businessTable.find(probeKey);
+			Assertions.assertNotNull(found,
+					"different configuration names must resolve to the same physical table");
+			Assertions.assertEquals(7, found.Bytes[found.ReadIndex]);
 
 			Assertions.assertThrows(RuntimeException.class, () -> new ApplyDatabaseZeze(app, "applyAlias"),
 					"replay must reject a physical database alias before it can overwrite business tables");
