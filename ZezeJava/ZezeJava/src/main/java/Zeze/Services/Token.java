@@ -824,8 +824,7 @@ public final class Token extends AbstractToken {
 	private long newTokenLocked(Zeze.Builtin.Token.NewToken r) {
 		var arg = r.Argument;
 		var ttl = arg.getTtl();
-		var now = System.currentTimeMillis();
-		if (ttl <= 0 || ttl > Long.MAX_VALUE - now) {
+		if (ttl <= 0) {
 			r.SendResultCode(-1);
 			return Procedure.Success;
 		}
@@ -837,10 +836,17 @@ public final class Token extends AbstractToken {
 		do {
 			token = genToken();
 			// 这里严格来说应该再检查一下数据库里有没有这个token,但考虑到token含有秒时间戳,在tokenMap的软引用存活期不应该小于1秒
-			tokenMap.computeIfAbsent(token, t -> {
+			var state = tokenMap.computeIfAbsent(token, t -> {
+				var now = System.currentTimeMillis();
+				if (now > Long.MAX_VALUE - ttl)
+					return null;
 				created.value = true;
 				return new TokenState(this, t, remoteAddr, arg.getContext(), now, now + ttl);
 			});
+			if (state == null) {
+				r.SendResultCode(-1);
+				return Procedure.Success;
+			}
 		} while (!created.value);
 		newCounter.increment();
 		r.Result.setToken(token);
