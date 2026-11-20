@@ -231,13 +231,13 @@ public final class DumpRocksDb {
 			default -> DumpRocksDb::dumpRaw;
 		};
 		var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
-		try (var rocksDb = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles);
-			 var ro = new ReadOptions();
-			 var it = rocksDb.newIterator(outHandles.get(selectCfIndex), ro);
-			 var os = outputTxtFile.equals("-")
-					 ? System.out
-					 : new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
-			try {
+		try (var rocksDb = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles)) {
+			try (var ro = new ReadOptions();
+				 var it = rocksDb.newIterator(outHandles.get(selectCfIndex), ro);
+				 var file = outputTxtFile.equals("-")
+						 ? null
+						 : new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
+				var os = file != null ? file : System.out;
 				long n = 0;
 				var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 				var value = ByteBuffer.Wrap(ByteBuffer.Empty);
@@ -254,7 +254,7 @@ public final class DumpRocksDb {
 				os.flush();
 				System.err.println("INFO: dumped " + n + " records, " + (System.currentTimeMillis() - t) + " ms");
 			} finally {
-				closeHandles(outHandles); // db/迭代器/流由twr按逆序关闭，句柄在其前显式关
+				closeHandles(outHandles); // 迭代器用完后释放列族，随后关闭库。
 			}
 		}
 	}
