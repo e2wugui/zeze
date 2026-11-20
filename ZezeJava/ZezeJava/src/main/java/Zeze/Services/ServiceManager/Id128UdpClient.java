@@ -34,7 +34,7 @@ public class Id128UdpClient {
 	private static final int eRpcTimeout = 5000;
 
 	private final @Nullable AbstractAgent agent;
-	private final DatagramSocket udp = new DatagramSocket();
+	private final DatagramSocket udp;
 	private final Thread worker = new Thread(this::run, "Id128UdpClient");
 	private final ConcurrentHashMap<String, FutureNode> currentFuture = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, FutureNode> tailFuture = new ConcurrentHashMap<>();
@@ -48,12 +48,18 @@ public class Id128UdpClient {
 		this.agent = agent;
 		this.nextSessionIdFunc = nextSessionIdFunc;
 
-		udp.connect(InetAddress.getByName(ip), port);
-		udp.setSoTimeout(eSoTimeoutTick);
-
-		worker.setDaemon(true);
-		worker.setPriority(Thread.NORM_PRIORITY + 2);
-		worker.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
+		var address = InetAddress.getByName(ip);
+		udp = new DatagramSocket();
+		try {
+			udp.connect(address, port);
+			udp.setSoTimeout(eSoTimeoutTick);
+			worker.setDaemon(true);
+			worker.setPriority(Thread.NORM_PRIORITY + 2);
+			worker.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
+		} catch (IOException | RuntimeException | Error e) {
+			udp.close();
+			throw e;
+		}
 	}
 
 	public void start() {

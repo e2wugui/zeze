@@ -55,16 +55,25 @@ public class Id128UdpServer {
 
 	public Id128UdpServer(@Nullable Table table, @Nullable String host, int port) throws IOException {
 		this.table = table;
-		udpChannel = DatagramChannel.open();
-		udpChannel.configureBlocking(true);
-		udpChannel.bind(host == null || host.isBlank()
+		var address = host == null || host.isBlank()
 				? new InetSocketAddress(port)
-				: new InetSocketAddress(InetAddress.getByName(host), port));
-
-		worker = new Thread(this::run, "Id128UdpServer");
-		worker.setDaemon(true);
-		worker.setPriority(Thread.NORM_PRIORITY + 2);
-		worker.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception:", e));
+				: new InetSocketAddress(InetAddress.getByName(host), port);
+		udpChannel = DatagramChannel.open();
+		try {
+			udpChannel.configureBlocking(true);
+			udpChannel.bind(address);
+			worker = new Thread(this::run, "Id128UdpServer");
+			worker.setDaemon(true);
+			worker.setPriority(Thread.NORM_PRIORITY + 2);
+			worker.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception:", e));
+		} catch (IOException | RuntimeException | Error e) {
+			try {
+				udpChannel.close();
+			} catch (IOException closeError) {
+				e.addSuppressed(closeError);
+			}
+			throw e;
+		}
 	}
 
 	public int getLocalPort() throws IOException {
