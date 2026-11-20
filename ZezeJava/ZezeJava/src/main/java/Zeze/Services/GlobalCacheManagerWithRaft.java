@@ -94,6 +94,11 @@ public class GlobalCacheManagerWithRaft
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
+	private record Leadership(long term, long readyTime) {
+	}
+
+	private volatile @Nullable Leadership leadership;
+
 	// 会话表名前缀。TableTemplate.openTable(int serverId)生成的列族名为
 	// "name#id"，rebuildSessionsFromStorage据此从storage扫描已存在的Session表。
 	private static final String SessionTableNamePrefix = "Session#";
@@ -137,7 +142,9 @@ public class GlobalCacheManagerWithRaft
 		// tableMap的内存键集并putIfAbsent（幂等），异常兜底记日志。GCM独占自己的Raft实例
 		// （本rocks私有，Dbh2等注册的是各自实例），单槽回调无占用冲突。须在server.start()
 		// 之前注册，保证不漏首次就任。
-		rocks.getRaft().setOnLeaderReady(() -> {
+		var raft = Objects.requireNonNull(rocks.getRaft());
+		raft.setOnLeaderReady(() -> {
+			leadership = new Leadership(raft.getLogSequence().getTerm(), System.currentTimeMillis());
 			try {
 				rebuildSessionsFromStorage();
 			} catch (Throwable e) {
@@ -197,13 +204,20 @@ public class GlobalCacheManagerWithRaft
 			} catch (Throwable e) {
 				logger.error("RebuildSessionsFromStorage exception", e);
 			}
+			var currentLeadership = leadership;
+			// 再次就任时，旧 Holder 的 activeTime 可能停在上一个任期。和新重建的 Holder 一样，
+			// 先给客户端一个完整的重连窗口，避免客户端仍持有的权限被守护线程回收。
+			if (currentLeadership == null || currentLeadership.term() != fireTerm
+					|| now - currentLeadership.readyTime() <= achillesHeelConfig.globalDaemonTimeout)
+				return;
 			sessions.forEach(session -> {
 				session.lock();
 				try {
 					// 超时检查必须在锁内复查（理由同同步版）：检查在锁外时，同serverId新
 					// incarnation恰在"检查→加锁"窗口内Login（bind持锁刷新activeTime），daemon会
 					// kick新连接并回收其新获取的权限。
-					if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
+					if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode
+							&& raft.isLeader() && raft.getLogSequence().getTerm() == fireTerm) {
 						session.kick();
 						var fireGeneration = session.generation;
 						var Acquired = serverAcquiredTemplate.openTable(session.serverId);
