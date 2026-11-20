@@ -223,25 +223,22 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	boolean tryOnAccept(AsyncSocket so) throws Exception {
-		//noinspection DataFlowIssue
-		if (queue.size() >= so.getService().getConfig().getMaxConnections()) {
-			new PutQueueFull().Send(so);
-			so.closeGracefully();
-			return false;
-		}
-		// 与drainQueue同锁：accept线程与timer线程串行化，防同一排队连接被并发分配两次
-		//（online自增与负载上报的互斥由compute保证，见LoginQueueServer.choiceServer）。
+		// 与drainQueue和其他accept串行化，保证容量检查与入队是同一次操作。
 		allocateLock.lock();
 		try {
-			if (queue.isEmpty() && timeThrottle.checkNow(1)) {
-				if (tryAllocateServer(so))
-					return false; // 新连接，直接分配成功，done
+			//noinspection DataFlowIssue
+			if (queue.size() < so.getService().getConfig().getMaxConnections()) {
+				if (queue.isEmpty() && timeThrottle.checkNow(1) && tryAllocateServer(so))
+					return false; // 新连接已直接分配
+				queue.add(so);
+				return true;
 			}
-			queue.add(so);
-			return true;
 		} finally {
 			allocateLock.unlock();
 		}
+		new PutQueueFull().Send(so);
+		so.closeGracefully();
+		return false;
 	}
 
 	void onClose(AsyncSocket ignoredSo) {
