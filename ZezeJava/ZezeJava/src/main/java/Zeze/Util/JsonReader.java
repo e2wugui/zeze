@@ -236,8 +236,12 @@ public final class JsonReader {
 				} else
 					for (; pos < len; pos++) { // 行注释：LF/CR/CRLF/Unicode行终止符或EOF都结束
 						int c = buf[pos] & 0xff;
-						if (c == '\n' || c == '\r' || isUnicodeLineSeparator(pos))
+						if (c == '\n' || c == '\r')
 							break;
+						if (isUnicodeLineSeparator(pos, len)) {
+							pos += 2; // 外层循环越过最后一个 UTF-8 字节。
+							break;
+						}
 					}
 			}
 		return true;
@@ -335,18 +339,22 @@ public final class JsonReader {
 			}
 		}
 		// 行注释：LF/CR/CRLF/Unicode行终止符（U+2028/U+2029）或EOF都结束，
-		// 结束时pos停在线终止符上（与原LF语义一致，调用方按空白越过）；EOF按耗尽。
+		// 结束时pos停在线终止符的最后一个字节，调用方再越过该字节；EOF按耗尽。
 		for (; pos < buf.length; pos++) {
 			int b = buf[pos] & 0xff;
-			if (b == '\n' || b == '\r' || isUnicodeLineSeparator(pos))
+			if (b == '\n' || b == '\r')
 				return;
+			if (isUnicodeLineSeparator(pos, buf.length)) {
+				pos += 2;
+				return;
+			}
 		}
 	}
 
 	// U+2028/U+2029 的UTF-8编码（E2 80 A8/A9）
-	private boolean isUnicodeLineSeparator(int p) {
+	private boolean isUnicodeLineSeparator(int p, int limit) {
 		//noinspection DataFlowIssue
-		return p + 2 < buf.length && (buf[p] & 0xff) == 0xE2
+		return p + 2 < limit && (buf[p] & 0xff) == 0xE2
 			&& (buf[p + 1] & 0xff) == 0x80
 			&& (((buf[p + 2] & 0xff) == 0xA8) || ((buf[p + 2] & 0xff) == 0xA9));
 	}
