@@ -1,5 +1,3 @@
-AbstractModule.java 生成 table getter 返回 TableReadOnly<...>
-
 kotlinx-collections-immutable-jvm transient/builder 结合进事务 zeze-2.0.0 有项目正式采用后才修改。
 ScopedValue jdk25 zeze-3.0.0 之后启用。ArrayList + SpinLock 实现的Transaction对象池。对象池是否有用需要先bench。
 ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
