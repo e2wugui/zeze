@@ -74,10 +74,17 @@ Bean里面可以定义容器，要小心塞入太多数据。一般建议数量�
 ## Transaction.whileCommit
 zeze事务在冲突时会重做(redo)，此时事务内如果有发送协议，就会发送多次。为了解决这
 个问题，事务提供辅助函数whileCommit(action)，它的含义是在事务成功提交时调用
-action。常见的，除了发送协议，还有记录日志，但是日志具有实时性，也允许重复，所以
-可以不使用whileCommit，除了一些记账性质的日志需要用。
+action。常见的，除了发送协议，还有记录日志，但是日志具有实时性，也允许重复，一般
+不使用whileCommit，除了一些记账性质的日志需要用。
 
 ## TaskSpec
+这个辅助类用来启动一个任务。例子：TaskSpec.ofAction(()->{}).run();
+1. ofAction,ofFunc,ofProcedure... 按类型指定执行动作。
+2. call,run,runNow,schedule,scheduleNow,executeOneByOne(key)... 任务启动方式。
+3. TaskSpec.ofAction(()->{}).dispatchMode(mode)...run(); 任务创建和启动前可以设置参数。 
+*. 注意，上面带Now后缀的启动方式立即执行，其他的看是否在事务中，如果在事务中，
+自动使用whileCommit。
+
 ## OnlineSpec
 ## TimeSpec
 
