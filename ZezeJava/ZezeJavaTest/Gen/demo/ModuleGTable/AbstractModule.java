@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package demo.ModuleGTable;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 100;
@@ -20,6 +22,14 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final demo.ModuleGTable.tGTable2 _tGTable2;
 
     public final demo.App App;
+
+    public TableReadOnly<Long, demo.ModuleGTable.BValue, demo.ModuleGTable.BValueReadOnly> getTGTableReadOnly() {
+        return _tGTable;
+    }
+
+    public TableReadOnly<Long, demo.ModuleGTable.BValue2, demo.ModuleGTable.BValue2ReadOnly> getTGTable2ReadOnly() {
+        return _tGTable2;
+    }
 
     public AbstractModule(demo.App app) {
         _tGTable = new demo.ModuleGTable.tGTable();

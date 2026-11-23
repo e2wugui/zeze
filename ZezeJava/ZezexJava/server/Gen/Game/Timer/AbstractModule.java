@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package Game.Timer;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 11;
@@ -21,6 +23,18 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final Game.Timer.tNodes _tNodes;
 
     public final Game.App App;
+
+    public TableReadOnly<Long, Game.Timer.BIndex, Game.Timer.BIndexReadOnly> getTIndexsReadOnly() {
+        return _tIndexs;
+    }
+
+    public TableReadOnly<Integer, Game.Timer.BNodeRoot, Game.Timer.BNodeRootReadOnly> getTNodeRootReadOnly() {
+        return _tNodeRoot;
+    }
+
+    public TableReadOnly<Long, Game.Timer.BNode, Game.Timer.BNodeReadOnly> getTNodesReadOnly() {
+        return _tNodes;
+    }
 
     public AbstractModule(Game.App app) {
         _tIndexs = new Game.Timer.tIndexs();

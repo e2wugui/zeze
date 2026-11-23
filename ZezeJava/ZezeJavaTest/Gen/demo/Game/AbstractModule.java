@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package demo.Game;
 
+import Zeze.Transaction.TableReadOnly;
+
 /*
 L 场景（LMmoGameSim）MMO-lite 游戏模拟的持久世界 schema：大厅域事务落库；
 	     房间域战斗状态机在内存（GameSim 包内纯 Java），不经任何表。
@@ -25,6 +27,18 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final demo.Game.tSession _tSession;
 
     public final demo.App App;
+
+    public TableReadOnly<Long, demo.Game.BMail, demo.Game.BMailReadOnly> getTMailReadOnly() {
+        return _tMail;
+    }
+
+    public TableReadOnly<Long, demo.Game.BRole, demo.Game.BRoleReadOnly> getTRoleReadOnly() {
+        return _tRole;
+    }
+
+    public TableReadOnly<Long, demo.Game.BSession, demo.Game.BSessionReadOnly> getTSessionReadOnly() {
+        return _tSession;
+    }
 
     public AbstractModule(demo.App app) {
         _tMail = new demo.Game.tMail();

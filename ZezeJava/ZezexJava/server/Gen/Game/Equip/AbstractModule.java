@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package Game.Equip;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 7;
@@ -36,6 +38,34 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final Game.Equip.tRelationalTest _tRelationalTest;
 
     public final Game.App App;
+
+    public TableReadOnly<Long, Game.Equip.BEquips, Game.Equip.BEquipsReadOnly> getTequipReadOnly() {
+        return _tequip;
+    }
+
+    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTHotRemoveReadOnly() {
+        return _tHotRemove;
+    }
+
+    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTHotTestReadOnly() {
+        return _tHotTest;
+    }
+
+    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTMemoryRetreatReadOnly() {
+        return _tMemoryRetreat;
+    }
+
+    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTMemoryToNormalReadOnly() {
+        return _tMemoryToNormal;
+    }
+
+    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTNormalToMemoryReadOnly() {
+        return _tNormalToMemory;
+    }
+
+    public TableReadOnly<Long, Game.Equip.BRelational, Game.Equip.BRelationalReadOnly> getTRelationalTestReadOnly() {
+        return _tRelationalTest;
+    }
 
     public AbstractModule(Game.App app) {
         _tequip = new Game.Equip.tequip();

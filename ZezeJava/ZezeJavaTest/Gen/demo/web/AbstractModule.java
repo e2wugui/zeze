@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package demo.web;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 4;
@@ -22,6 +24,14 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final demo.web.tMap2Bean1 _tMap2Bean1;
 
     public final demo.App App;
+
+    public TableReadOnly<Long, demo.web.BCount, demo.web.BCountReadOnly> getTHelloCountReadOnly() {
+        return _tHelloCount;
+    }
+
+    public TableReadOnly<Long, demo.web.BMap2Bean1, demo.web.BMap2Bean1ReadOnly> getTMap2Bean1ReadOnly() {
+        return _tMap2Bean1;
+    }
 
     public AbstractModule(demo.App app) {
         _tHelloCount = new demo.web.tHelloCount("__1");

@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package ClientGame.Login;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 1;

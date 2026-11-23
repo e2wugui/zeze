@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package Game.Fight;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 4;
@@ -19,6 +21,10 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final Game.Fight.tfighters _tfighters;
 
     public final Game.App App;
+
+    public TableReadOnly<Game.Fight.BFighterId, Game.Fight.BFighter, Game.Fight.BFighterReadOnly> getTfightersReadOnly() {
+        return _tfighters;
+    }
 
     public AbstractModule(Game.App app) {
         _tfighters = new Game.Fight.tfighters();

@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package demo.Module1;
 
+import Zeze.Transaction.TableReadOnly;
+
 // module的注释
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
@@ -42,6 +44,58 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final demo.Module1.tWalkPage _tWalkPage;
 
     public final demo.App App;
+
+    public TableReadOnly<Long, demo.Module1.BValue, demo.Module1.BValueReadOnly> getTable1ReadOnly() {
+        return _Table1;
+    }
+
+    public TableReadOnly<demo.Module1.Key, demo.Module1.BValue, demo.Module1.BValueReadOnly> getTable2ReadOnly() {
+        return _Table2;
+    }
+
+    public TableReadOnly<Long, demo.Module1.BValue, demo.Module1.BValueReadOnly> getTable3ReadOnly() {
+        return _Table3;
+    }
+
+    public TableReadOnly<Long, demo.Module2.BValue, demo.Module2.BValueReadOnly> getTable5ReadOnly() {
+        return _Table5;
+    }
+
+    public TableReadOnly<Long, demo.Module1.BValue, demo.Module1.BValueReadOnly> getTableImportantReadOnly() {
+        return _TableImportant;
+    }
+
+    public TableReadOnly<demo.Module1.AutoKey, demo.Module1.BAutoValue, demo.Module1.BAutoValueReadOnly> getTAutokeyReadOnly() {
+        return _tAutokey;
+    }
+
+    public TableReadOnly<Zeze.Net.Binary, demo.Bean1, demo.Bean1ReadOnly> getTAutoKeyRandomReadOnly() {
+        return _tAutoKeyRandom;
+    }
+
+    public TableReadOnly<Long, demo.Module1.BValue, demo.Module1.BValueReadOnly> getTCoverHistoryReadOnly() {
+        return _tCoverHistory;
+    }
+
+    public TableReadOnly<Long, demo.Module1.BValue, demo.Module1.BValueReadOnly> getTflushReadOnly() {
+        return _tflush;
+    }
+
+    public TableReadOnly<Long, demo.Module1.BKuafu, demo.Module1.BKuafuReadOnly> getTKuafuReadOnly() {
+        return _tKuafu;
+    }
+
+    public TableReadOnly<Long, demo.Bean1, demo.Bean1ReadOnly> getTMemorySizeReadOnly() {
+        return _tMemorySize;
+    }
+
+    public TableReadOnly<Long, demo.Module1.BTestSchemas, demo.Module1.BTestSchemasReadOnly> getTTestSchemasReadOnly() {
+        return _tTestSchemas;
+    }
+
+    public TableReadOnly<Integer, demo.Bean1, demo.Bean1ReadOnly> getTWalkPageReadOnly() {
+        return _tWalkPage;
+    }
 
     public AbstractModule(demo.App app) {
         var appMainVersion = app.Zeze.getConfig().getAppMainVersion();

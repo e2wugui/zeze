@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package Game.Login;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 1;
@@ -26,6 +28,18 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final Game.Login.trolename _trolename;
 
     public final Game.App App;
+
+    public TableReadOnly<String, Game.Login.BAccount, Game.Login.BAccountReadOnly> getTaccountReadOnly() {
+        return _taccount;
+    }
+
+    public TableReadOnly<Long, Game.Login.BRole, Game.Login.BRoleReadOnly> getTroleReadOnly() {
+        return _trole;
+    }
+
+    public TableReadOnly<String, Game.Login.BRoleId, Game.Login.BRoleIdReadOnly> getTrolenameReadOnly() {
+        return _trolename;
+    }
 
     public AbstractModule(Game.App app) {
         _taccount = new Game.Login.taccount();

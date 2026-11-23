@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package Game.Buf;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 6;
@@ -19,6 +21,10 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final Game.Buf.tbufs _tbufs;
 
     public final Game.App App;
+
+    public TableReadOnly<Long, Game.Buf.BBufs, Game.Buf.BBufsReadOnly> getTbufsReadOnly() {
+        return _tbufs;
+    }
 
     public AbstractModule(Game.App app) {
         _tbufs = new Game.Buf.tbufs();

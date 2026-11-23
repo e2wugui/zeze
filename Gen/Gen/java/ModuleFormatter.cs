@@ -667,6 +667,21 @@ namespace Zeze.Gen.java
                 }
             }
         }
+        public void ReadOnlyGetterZezeTable(StreamWriter sw)
+        {
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
+                {
+                    var value = TypeName.GetName(table.ValueType);
+                    var keyboxing = BoxingName.GetBoxingName(table.KeyType);
+                    sw.WriteLine($"    public TableReadOnly<{keyboxing}, {value}, {value}ReadOnly> get{Program.Upper1(table.Name)}ReadOnly() {{");
+                    sw.WriteLine($"        return _{table.Name};");
+                    sw.WriteLine("    }");
+                    sw.WriteLine();
+                }
+            }
+        }
 
         void ModuleGen(StreamWriter sw)
         {
@@ -675,6 +690,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine($"    public final {project.Solution.Name}.App App;");
             sw.WriteLine();
+
+            ReadOnlyGetterZezeTable(sw);
 
             sw.WriteLine($"    public AbstractModule({project.Solution.Name}.App app) {{");
             CreateZezeTables(sw);
@@ -739,6 +756,11 @@ namespace Zeze.Gen.java
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + module.Path() + ";");
             sw.WriteLine();
+            if (module.Tables.Values.Count > 0) // 这个判断不严谨，忽略了Rocks表。
+            {
+                sw.WriteLine("import Zeze.Transaction.TableReadOnly;");
+                sw.WriteLine();
+            }
             if (module.Comment.Length > 0)
                 sw.WriteLine(module.Comment);
             var classBase = (!project.EnableBase || string.IsNullOrEmpty(module.ClassBase)) ? "" : $"extends {module.ClassBase} ";

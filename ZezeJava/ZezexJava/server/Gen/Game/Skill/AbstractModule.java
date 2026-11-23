@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package Game.Skill;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 5;
@@ -19,6 +21,10 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final Game.Skill.tskills _tskills;
 
     public final Game.App App;
+
+    public TableReadOnly<Long, Game.Skill.BSkills, Game.Skill.BSkillsReadOnly> getTskillsReadOnly() {
+        return _tskills;
+    }
 
     public AbstractModule(Game.App app) {
         _tskills = new Game.Skill.tskills();

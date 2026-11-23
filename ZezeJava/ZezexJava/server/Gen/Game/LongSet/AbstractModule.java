@@ -1,6 +1,8 @@
 // auto-generated @formatter:off
 package Game.LongSet;
 
+import Zeze.Transaction.TableReadOnly;
+
 @SuppressWarnings({"ConstantConditions", "ConstantValue", "RedundantSuppression", "RedundantThrows", "SameReturnValue"})
 public abstract class AbstractModule implements Zeze.IModule {
     public static final int ModuleId = 12;
@@ -21,6 +23,18 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected final Game.LongSet.tNodes _tNodes;
 
     public final Game.App App;
+
+    public TableReadOnly<String, Game.LongSet.BNodeId, Game.LongSet.BNodeIdReadOnly> getTIndexsReadOnly() {
+        return _tIndexs;
+    }
+
+    public TableReadOnly<String, Game.LongSet.BNodeRoot, Game.LongSet.BNodeRootReadOnly> getTNodeRootReadOnly() {
+        return _tNodeRoot;
+    }
+
+    public TableReadOnly<Long, Game.LongSet.BNode, Game.LongSet.BNodeReadOnly> getTNodesReadOnly() {
+        return _tNodes;
+    }
 
     public AbstractModule(Game.App app) {
         _tIndexs = new Game.LongSet.tIndexs();
