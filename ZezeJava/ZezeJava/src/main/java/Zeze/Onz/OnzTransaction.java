@@ -26,6 +26,7 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rocksdb.RocksDBException;
 
 /** 协调者侧的Onz分布式事务抽象：由业务实现perform，经callProcedure/callSaga驱动参与方，并负责Commit/Rollback决策与flush等待。 */
 public abstract class OnzTransaction<A extends Data, R extends Data> extends ReentrantLock {
@@ -92,6 +93,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	public void setOnzServer(OnzServer onzServer) {
 		this.onzServer = onzServer;
 		this.onzTid = onzServer.nextOnzTid();
+		this.commitDecided = false;
 	}
 
 	public int getFlushMode() {
@@ -267,8 +269,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		RPC_FAILED
 	}
 
-	// 本事务实例已成功投递cancel的步骤（rpc应答0）：rollback()可在同一实例上重入（commit()
-	// 失败路径抛出前自行rollback，perform的catch再rollback一次），第二轮对已补偿步骤的
+	// 本事务实例已成功投递cancel的步骤（rpc应答0）：rollback()重入时，第二轮对已补偿步骤的
 	// NotFound是良性重复，不得再次按"上下文消失"嫌疑登记（防双rollback噪声）。
 	private final Set<String> cancelDeliveredOk = ConcurrentHashMap.newKeySet();
 
@@ -465,6 +466,12 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		return bState;
 	}
 
+	private boolean commitDecided;
+
+	boolean isCommitDecided() {
+		return commitDecided;
+	}
+
 	void commit(byte[] tidBytes, BSavedCommits.Data state) {
 		// 对于saga，zezeProcedures都是空的。
 		// 持久化，并且在异常情况下，重发Commit。
@@ -476,15 +483,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 		try {
 			getOnzServer().saveCommitPoint(tidBytes, state, AbstractOnz.eCommitting);
-		} catch (Throwable ex) {
-			// rollback全部投递了结才删记录：补偿投递不确定（发送失败/超时）或致命应答时
-			// 保留ePreparing记录交redo补发收敛（对齐stopped拒删保记录的语义）——删了则未确认
-			// 的Rollback/FuncSagaEnd(cancel)失去唯一自动补发通道（saga参与方只能等TTL丢弃，
-			// 已提交步骤的补偿永久丢失）；单故障（仅持久化失败、rollback全成）时删记录避免redo空转。
-			if (rollback())
-				getOnzServer().removeCommitRecord(tidBytes);
+		} catch (RocksDBException ex) {
 			throw new RuntimeException(ex);
 		}
+		commitDecided = true;
 
 		// saveCommitPoint(eCommitting)成功以后，commit决策已持久化。
 		// 此后Commit/FuncSagaEnd应答超时或发送失败不能把异常抛出去转成rollback()

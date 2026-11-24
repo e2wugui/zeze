@@ -1243,6 +1243,10 @@ public class OnzServer extends AbstractOnz {
 			return rc;
 
 		} catch (Throwable ex) {
+			if (txn.isCommitDecided()) {
+				logger.error("onz perform failed after commit decision. tid={}", txn.getOnzTid(), ex);
+				return 0;
+			}
 			// 同rc!=0（onz-02同根）：异常路径的rollback同样先有界排空——txn.perform()抛出时
 			// 续作可能在途，且本路径可能尚无ePreparing记录（saveCommitPoint未到达或自身失败），
 			// cancelSaga的活表遍历是迟到注册唯一的补偿机会，排空让遍历尽量收全。
@@ -1252,9 +1256,6 @@ public class OnzServer extends AbstractOnz {
 			// ——已提交步骤永久失补偿且无对账通道。此处落记录使redo成为补发兜底。
 			// best-effort：落库失败（stopped拒绝/RocksDB错误）只记日志，不得吞掉/替换正在传播
 			// 的原始异常，也不得跳过下面的rollback（参与方此刻就靠它同步补偿）。
-			// commit()内部失败抛出前已自行rollback（幂等可重复），此处重存至多造成一次
-			// 记录重建+重投递的空转，无正确性影响；不会覆盖存活的eCommitting（commit()仅在
-			// saveCommitPoint(eCommitting)失败即未持久化时才抛出）。
 			var tidBytes = new byte[8];
 			ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
 			try {
