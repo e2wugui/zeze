@@ -493,8 +493,9 @@ public final class DumpRocksDb {
 				if (varId != 0)
 					os.write(',');
 				if (t == 1) {
-					dump(os, "P:"); // parent bean
-					continue;
+					dump(os, "P:");
+					dumpVar(os, bb, ByteBuffer.BEAN); // 基类有独立的字段编号和结束标记。
+					break;
 				}
 				varId += bb.ReadTagSize(t);
 				dump(os, "%d:", varId);
