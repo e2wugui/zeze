@@ -1,6 +1,6 @@
 package Zeze.Netty;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.agent.model.NewService;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -13,7 +13,10 @@ public class Consul {
 	// 这个path对所有的httpserver都一样。
 	private static final String PassiveKeepAlivePath = "/Zeze_Netty_Consul_PassiveKeepAlivePath";
 	private final ConsulClient client;
-	private final ConcurrentHashMap<HttpServer, String> services = new ConcurrentHashMap<>();
+	private final HashMap<HttpServer, Registration> services = new HashMap<>(); // guarded by this
+
+	private record Registration(String serviceId, HttpHandler handler) {
+	}
 
 	public Consul(String consulHost) {
 		this(new ConsulClient(consulHost));
@@ -28,12 +31,12 @@ public class Consul {
 		return client;
 	}
 
-	public void register(String serviceName, HttpServer httpServer) throws Exception {
+	public synchronized void register(String serviceName, HttpServer httpServer) throws Exception {
 		var ip = httpServer.getExportIp();
 		var port = httpServer.getPort();
 
 		var serviceId = "@" + ip + ":" + port + "@" + serviceName; // see todo below
-		if (null != services.putIfAbsent(httpServer, serviceId))
+		if (services.containsKey(httpServer))
 			throw new IllegalStateException("duplicate register " + serviceId);
 
 		var newService = new NewService();
@@ -65,27 +68,22 @@ public class Consul {
 			"timeout": "1s"
 			}
 		 */
-		boolean handlerAdded = false;
+		var handler = new HttpHandler(1024, null, null, Consul::passiveKeepAlive);
+		httpServer.addHandler(PassiveKeepAlivePath, handler);
 		try {
-			// 必须在try守护内：addHandler对重复path抛IllegalStateException时
-			// 走下方catch回滚services条目，若在try外抛出则条目泄漏，重试恒抛duplicate register。
-			httpServer.addHandler(PassiveKeepAlivePath, 1024, null, null, Consul::passiveKeepAlive);
-			handlerAdded = true;
-			client.agentServiceRegister(newService); // response value is void.
+			client.agentServiceRegister(newService);
 		} catch (RuntimeException e) {
-			// 回滚本地登记与handler——注册时consul瞬断（远端未注册）而本地残留时，
-			// 此后重试注册同server恒抛duplicate直到stop()。登记与远端状态配对。
-			services.remove(httpServer, serviceId);
-			if (handlerAdded)
-				httpServer.removeHandler(PassiveKeepAlivePath);
+			httpServer.removeHandler(PassiveKeepAlivePath, handler);
 			throw e;
 		}
+		services.put(httpServer, new Registration(serviceId, handler));
 	}
 
-	public void stop() {
+	public synchronized void stop() {
 		for (var e : services.entrySet()) {
 			var httpServer = e.getKey();
-			var serviceId = e.getValue();
+			var registration = e.getValue();
+			var serviceId = registration.serviceId();
 			try {
 				client.agentServiceDeregister(serviceId);
 			} catch (RuntimeException ex) {
@@ -93,7 +91,7 @@ public class Consul {
 				// consul条目永不注销（残留到consul TTL/运维清理）。
 				Netty.logger.error("consul deregister {}", serviceId, ex);
 			}
-			httpServer.removeHandler(PassiveKeepAlivePath);
+			httpServer.removeHandler(PassiveKeepAlivePath, registration.handler());
 		}
 		services.clear();
 	}

@@ -199,6 +199,37 @@ public class TestNettyConsulRegister {
 		}
 	}
 
+	@Test
+	public void cleanupPreservesAReplacementHealthRoute() throws Exception {
+		try (var httpServer = new HttpServer()) {
+			httpServer.start(requireNonNull(netty), 0).sync();
+			var replacement = new HttpHandler(1024, null, null, x -> { });
+			var failingClient = new ConsulClient("127.0.0.1") {
+				@Override
+				public Response<Void> agentServiceRegister(NewService service) {
+					httpServer.removeHandler(KeepAlivePath);
+					httpServer.addHandler(KeepAlivePath, replacement);
+					throw new IllegalStateException("registration failed");
+				}
+			};
+			var failedRegistration = new Consul(failingClient);
+			Assertions.assertThrows(IllegalStateException.class,
+					() -> failedRegistration.register("failed", httpServer));
+			Assertions.assertSame(replacement, httpServer.getHandler(KeepAlivePath));
+
+			httpServer.removeHandler(KeepAlivePath);
+			var client = new CapturingClient();
+			var activeRegistration = new Consul(client);
+			activeRegistration.register("active", httpServer);
+			httpServer.removeHandler(KeepAlivePath);
+			httpServer.addHandler(KeepAlivePath, replacement);
+			activeRegistration.stop();
+
+			Assertions.assertSame(replacement, httpServer.getHandler(KeepAlivePath));
+			Assertions.assertEquals(1, client.deregistered.size());
+		}
+	}
+
 	// FND6-17低成本覆盖:addHandler也在try守护内——保活path被占用时addHandler抛
 	// IllegalStateException(重复path),同样走catch回滚services条目后原样抛出。
 		// 回滚不能移除预占path的其他属主；该属主释放path后可重试，验证services条目已回滚。
