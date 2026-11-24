@@ -601,7 +601,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			// saga事务（或eFlushAsync）不计数等待：参与方首次flush早于FuncSagaEnd（setEnd），
 			// 按设计不发FlushReady，计数永不满足，等待只会固定挂满flushTimeout再降级。
 			// 开闸：此后到达的ready（saga重试flush等）一律立即应答。
-			flushGateOpen = true;
+			openFlushGate();
 			return;
 		}
 		try {
@@ -609,8 +609,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		} catch (Exception e) {
 			logger.warn("waitFlushDone", e);
 			// 马上回复现有的flushReady。允许它们继续flush。降为FlushAsync。
-			for (var ready : flushReadies)
-				replyReady(ready);
+			openFlushGate();
 			// 触发当前没有flushReady或者所有相关zeze的完整Checkpoint。
 			//  1. 安全起见是所有zeze，上面的ready.SendResult也可能丢失。
 			//  2. 需要完整Checkpoint的zeze不持久化，以后也不持续触发。
@@ -626,12 +625,6 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 					logger.fatal("waitFlushDone checkpoint fail. tid={}, zeze={}", onzTid, zeze, ex);
 				}
 			}
-		} finally {
-			// 开闸瞬间可能有ready正走进计数分支（读到旧闸值、计数未满足）而未被上面的降级应答
-			// 覆盖：补发应答。此后到达的由trySetFlushReady到达即应答。
-			flushGateOpen = true;
-			for (var ready : flushReadies)
-				replyReady(ready);
 		}
 	}
 
@@ -678,7 +671,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		logger.debug("FlushReady sender={} argument={}", r.Argument, r.getSender());
 
 		// saga事务不计数等待：重试flush的ready到达时协调者已越过等待点，立即应答。
-		if (flushGateOpen || !zezeSagas.isEmpty()) {
+		if (flushGateOpen || flushMode != Onz.eFlushImmediately || !zezeSagas.isEmpty()) {
 			replyReady(r);
 			return;
 		}
@@ -708,8 +701,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		// 见markParticipantFlushImpossible）。ready最早在Commit决策之后到达，那时
 		// zezeProcedures已定型；>=防并发add后单次检查跳过。
 		checkFlushGate();
-		// 计数未满足但闸已开（与waitFlushDone收尾/持有期限并发）：立即应答，等waitFlushDone的扫尾
-		// 应答覆盖本条会多等其剩余的checkpoint等待时长。
+		// 开闸扫描可能发生在本条登记前，登记后再检查一次。
 		if (flushGateOpen)
 			replyReady(r);
 	}
