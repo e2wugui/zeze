@@ -1248,7 +1248,14 @@ public class LogSequence {
 				future.cancel(false);
 		}, expectedTerm);
 		if (!future.await(raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
-			leaderAppendLogs.remove(result.index);
+			raft.lock();
+			try {
+				var pendingLog = leaderAppendLogs.get(result.index);
+				if (pendingLog != null && pendingLog.getTerm() == result.term)
+					leaderAppendLogs.remove(result.index, pendingLog);
+			} finally {
+				raft.unlock();
+			}
 			// 超时/取消后条目仍留在日志中（lastIndex不回退），命运未定：可能稍后被确认应用，
 			// 也可能被新leader截断。调用方将按失败返回并释放悲观锁；若在条目应用前放锁，
 			// 后续同key事务基于旧值提交新日志、本条目随后又被应用，造成丢失更新。
