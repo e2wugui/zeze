@@ -149,10 +149,9 @@ public final class Agent {
 			checkResendWindow(rpc);
 
 		rpc.handle = handle;
+		rpc.setResponseHandle(p -> sendHandle(p, rpc));
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
-
-		rpc.setResponseHandle(p -> sendHandle(p, rpc));
 		// FND29 dbh2-02：stop后注册进pending的rpc不再有任何驱动（resendTask已取消、client/leader
 		// 已置空，stop的排空先于本注册）——必须在此补完成（终局异常触发handle），否则静默滞留pending。
 		// 与stop的排空互斥：remove仅一方成功，不会双触发。
@@ -248,10 +247,9 @@ public final class Agent {
 
 		var future = new TaskCompletionSourceX<RaftRpc<TArgument, TResult>>();
 		rpc.future = future;
+		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
-
-		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
 		// 同send()的FND29 dbh2-02契约：stop后注册的future无驱动路径，立即以异常终局补完成，
 		// 等待者有界醒来（await得到RpcTimeoutException）而非永久悬挂；不再尝试底层发送。
 		if (stopped) {
