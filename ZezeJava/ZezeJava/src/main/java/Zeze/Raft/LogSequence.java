@@ -342,14 +342,15 @@ public class LogSequence {
 
 		// 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
 		TaskSpec.ofAction(() -> {
+			boolean reachedBoundary = false;
 			try {
 				try (var it = newLogsIterator()) {
 					it.seekToFirst();
 					while (logsAvailable && !raft.isShutdown && RocksDatabase.isValidOrThrow(it)) {
 						// 这里只需要log的Index，直接从key里面获取了。
 						if (ByteBuffer.Wrap(it.key()).ReadLong() >= index) {
-							future.setResult(true);
-							return;
+							reachedBoundary = true;
+							break;
 						}
 
 						var key = it.key();
@@ -364,7 +365,8 @@ public class LogSequence {
 			} finally {
 				// 只操作自己创建的future：无条件置null共享字段会误杀已被并发替换的future
 				// （初始化即启动本任务，收尾延迟时等待点可能已被外部重新赋值）。字段清除与创建同持raft锁配对。
-				future.setResult(false);
+				// 等待者可能关闭数据库或删除列族。先关闭原生迭代器，再发布完成。
+				future.setResult(reachedBoundary);
 				raft.lock();
 				try {
 					if (removeLogBeforeFuture == future)
