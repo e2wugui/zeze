@@ -176,6 +176,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 						n++;
 					}
 				}
+				batch.clear();
 			} finally {
 				lock.writeLock().unlock();
 				if (n >= 10000)
@@ -185,10 +186,12 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public void rollback() {
+			batch.clear();
 		}
 
 		@Override
 		public void close() {
+			batch.clear();
 		}
 
 		// 批次及提交后的表都会持有这些字节，调用方可以继续复用自己的缓冲区。

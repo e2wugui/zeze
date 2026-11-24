@@ -176,7 +176,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void commit() {
-			if (batch == null)
+			if (batch == null || batch.getCount() == 0)
 				return;
 
 			// 写选项由 DatabaseUrl 的 ?sync=true 决定（默认普通写），本地缓存库恒普通写。
@@ -197,10 +197,13 @@ public class DatabaseRocksDb extends Database {
 					throw Task.forceThrow(e);
 				}
 			}
+			batch.clear();
 		}
 
 		@Override
 		public void rollback() {
+			if (batch != null)
+				batch.clear();
 		}
 
 		@Override

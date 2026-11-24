@@ -184,11 +184,12 @@ public class DatabaseDynamoDb extends Database {
 				var items = writes.subList(begin, Math.min(begin + TRANSACT_WRITE_ITEMS_MAX, writes.size()));
 				dynamoDbClient.transactWriteItems(new TransactWriteItemsRequest().withTransactItems(items));
 			}
+			writes.clear();
 		}
 
 		@Override
 		public void rollback() {
-			// 不需要rollback。
+			writes.clear();
 		}
 
 		@Override
