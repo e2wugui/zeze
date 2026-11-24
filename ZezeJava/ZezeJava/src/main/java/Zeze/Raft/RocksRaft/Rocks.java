@@ -817,7 +817,6 @@ public final class Rocks extends StateMachine implements Closeable {
 		ShutdownHook.remove(this);
 		mutex.lock();
 		try {
-			pendingFlushApplies.clear(); // 关闭，不再有重试
 			try {
 				var raft = getRaft();
 				if (raft != null)
@@ -825,6 +824,8 @@ public final class Rocks extends StateMachine implements Closeable {
 			} catch (Exception e) {
 				throw Task.forceThrow(e);
 			} finally {
+				// Raft 排空 apply 前仍可能重试 flush，必须保留已应用的记录。
+				pendingFlushApplies.clear();
 				setRaft(null);
 				// 先关闭各表记录缓存的内建周期任务（热点轮转+cleanNow）：
 				// 不关的话Rocks实例关闭后旧任务永续执行并强引用缓存对象图（每表最多容量条
