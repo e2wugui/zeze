@@ -45,6 +45,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     // 永不回收）。锁内判活（GetSocket==sender）+锁内清理互相串行化后：判活通过⟹清理未开始
     // （NetServer.OnSocketClose先从socketMap摘除再回调onClose，摘除后判活必失败），
     // 本次put会被随后的清理收走；判活失败⟹会话已死，拒绝即不产生残留。
+    // 并且在同一临界区按登记结果重算限流，避免较早的规模覆盖较新的规模。
     private final ReentrantLock editLock = new ReentrantLock();
     private final LoginQueueService service;
     private final LoginQueue loginQueue;
@@ -215,10 +216,10 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 				return 0;
 			r.getSender().setUserState(providers);
 			providers.put(r.getSender(), r.Argument);
+			loginQueue.tryResetTimeThrottle(providers.size());
 		} finally {
 			editLock.unlock();
 		}
-		loginQueue.tryResetTimeThrottle(providers.size());
 		loginQueue.drainQueue(); // 上报可能让choiceProvider/choiceLink首次可用，立即给排队连接分配，不等1秒tick
 		return 0;
 	}
@@ -231,10 +232,10 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 				return 0;
 			r.getSender().setUserState(links);
 			links.put(r.getSender(), r.Argument);
+			loginQueue.tryResetTimeThrottle(providers.size());
 		} finally {
 			editLock.unlock();
 		}
-		loginQueue.tryResetTimeThrottle(providers.size());
 		loginQueue.drainQueue();
 		return 0;
 	}
