@@ -193,9 +193,11 @@ public class Cache {
 		key.WriteString(id);
 		resourceLock.lock();
 		try {
-			getOpenDatabase().put(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex,
-					bb.Bytes, 0, bb.WriteIndex);
+			var database = getOpenDatabase();
+			// 先登记退役：写清单失败时拒绝发布，否则后续读会命中数据库并跳过补登记。
 			appendToday(id);
+			database.put(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex,
+					bb.Bytes, 0, bb.WriteIndex);
 		} finally {
 			resourceLock.unlock();
 		}
