@@ -76,7 +76,12 @@ public class Id128UdpClient {
 		}
 	}
 
-	public FutureNode allocateFuture(String globalName, int allocateCount) {
+	public synchronized FutureNode allocateFuture(String globalName, int allocateCount) {
+		if (udp.isClosed()) {
+			var stopped = new FutureNode(allocateCount);
+			stopped.setException(new IllegalStateException("client stopped"));
+			return stopped;
+		}
 		// 多次请求的allocateCount不一样,只记住第一次的.
 		var outFuture = new OutObject<FutureNode>();
 		currentFuture.compute(globalName, (key, value) -> {
@@ -125,7 +130,10 @@ public class Id128UdpClient {
 	}
 
 	public void stop() throws Exception {
-		udp.close();
+		// 先关入队，再等worker和清理。关闭后allocateFuture不能再发布待处理节点。
+		synchronized (this) {
+			udp.close();
+		}
 		worker.interrupt();
 		worker.join();
 		// worker.join()后在途FutureNode的唯一定时完成者（processTick的超时检查器）
