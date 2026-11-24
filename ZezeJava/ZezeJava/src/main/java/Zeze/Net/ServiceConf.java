@@ -346,14 +346,6 @@ public final class ServiceConf extends ReentrantLock {
 		if (!attr.isBlank())
 			getHandshakeOptions().setKeepSendTimeout(Integer.parseInt(attr));
 
-		{
-			String name = getName();
-			if (name.isBlank()) {
-				conf.setDefaultServiceConf(this);
-			} else if (null != conf.getServiceConfMap().putIfAbsent(name, this)) {
-				throw new IllegalStateException("Duplicate ServiceConf " + getName());
-			}
-		}
 		if (self.hasAttribute("HaProxyKey"))
 			haProxyKey = self.getAttribute("HaProxyKey");
 
@@ -380,6 +372,12 @@ public final class ServiceConf extends ReentrantLock {
 				throw new IllegalStateException("unknown node name: " + e.getNodeName());
 			}
 		}
+
+		// Publish the configuration only after all children have been validated.
+		if (name.isBlank())
+			conf.setDefaultServiceConf(this);
+		else if (conf.getServiceConfMap().putIfAbsent(name, this) != null)
+			throw new IllegalStateException("Duplicate ServiceConf " + name);
 	}
 
 	public void start() {
