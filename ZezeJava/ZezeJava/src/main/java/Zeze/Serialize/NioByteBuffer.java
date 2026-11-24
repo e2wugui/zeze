@@ -2,6 +2,7 @@ package Zeze.Serialize;
 
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import Zeze.Net.Binary;
 import org.jspecify.annotations.Nullable;
 
@@ -143,7 +144,8 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public void ReadInt4s(int [] buf, int offset, int length) {
-		int n = length * 4;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Integer.BYTES);
 		ensureRead(n);
 		int readIndex = bb.position();
 		bb.position(readIndex + n);
@@ -161,7 +163,8 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public void ReadLong8s(long [] buf, int offset, int length) {
-		int n = length * 8;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Long.BYTES);
 		ensureRead(n);
 		int readIndex = bb.position();
 		bb.position(readIndex + n);
@@ -255,7 +258,8 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public void ReadFloats(float [] buf, int offset, int length) {
-		int n = length * 4;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Float.BYTES);
 		ensureRead(n);
 		int readIndex = bb.position();
 		bb.position(readIndex + n);
@@ -273,7 +277,8 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public void ReadDoubles(double [] buf, int offset, int length) {
-		int n = length * 8;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Double.BYTES);
 		ensureRead(n);
 		int readIndex = bb.position();
 		bb.position(readIndex + n);

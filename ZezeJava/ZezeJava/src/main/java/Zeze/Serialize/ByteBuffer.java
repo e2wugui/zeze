@@ -385,7 +385,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public void WriteInt4s(int [] buf, int offset, int length) {
-		int n = length * 4;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Integer.BYTES);
 		EnsureWrite(n);
 		int writeIndex = WriteIndex;
 		WriteIndex = writeIndex + n;
@@ -403,7 +404,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	@Override
 	public void ReadInt4s(int [] buf, int offset, int length) {
-		int n = length * 4;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Integer.BYTES);
 		ensureRead(n);
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + n;
@@ -434,7 +436,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public void WriteLong8s(long [] buf, int offset, int length) {
-		int n = length * 8;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Long.BYTES);
 		EnsureWrite(n);
 		int writeIndex = WriteIndex;
 		WriteIndex = writeIndex + n;
@@ -452,7 +455,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	@Override
 	public void ReadLong8s(long [] buf, int offset, int length) {
-		int n = length * 8;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Long.BYTES);
 		ensureRead(n);
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + n;
@@ -901,7 +905,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public void WriteFloats(float [] buf, int offset, int length) {
-		int n = length * 4;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Float.BYTES);
 		EnsureWrite(n);
 		int writeIndex = WriteIndex;
 		WriteIndex = writeIndex + n;
@@ -919,7 +924,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	@Override
 	public void ReadFloats(float [] buf, int offset, int length) {
-		int n = length * 4;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Float.BYTES);
 		ensureRead(n);
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + n;
@@ -932,7 +938,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public void WriteDoubles(double [] buf, int offset, int length) {
-		int n = length * 8;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Double.BYTES);
 		EnsureWrite(n);
 		int writeIndex = WriteIndex;
 		WriteIndex = writeIndex + n;
@@ -950,7 +957,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	@Override
 	public void ReadDoubles(double [] buf, int offset, int length) {
-		int n = length * 8;
+		Objects.checkFromIndexSize(offset, length, buf.length);
+		int n = Math.multiplyExact(length, Double.BYTES);
 		ensureRead(n);
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + n;
