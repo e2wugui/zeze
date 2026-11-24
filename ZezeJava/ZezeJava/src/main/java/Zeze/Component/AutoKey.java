@@ -99,10 +99,14 @@ public class AutoKey extends ReentrantLock {
 		if (serverId > 0)
 			size += ByteBuffer.WriteUIntSize(serverId);
 		var bb = ByteBuffer.Allocate(size);
+		writeId(bb, serverId, seed);
+		return bb;
+	}
+
+	private static void writeId(ByteBuffer bb, int serverId, long seed) {
 		if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
 			bb.WriteUInt(serverId);
 		bb.WriteULong(seed);
-		return bb;
 	}
 
 	// 从AutoKey.next|nextId()得到的ID中提取出serverId. 暂不支持serverId=0的情况
@@ -127,22 +131,27 @@ public class AutoKey extends ReentrantLock {
 		int serverId = module.zeze.getConfig().getServerId();
 		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
 			throw new IllegalStateException("AutoKey.setMinId: serverId(" + serverId + ") < 0");
-		if (serverId == 0)
-			return setSeed(minId); // WriteULong(minId)再ToLongBE得到的值一定不小于minId；其实还能选出符合条件的更小seed值，但serverId极少=0，不作优化
 		var bb = ByteBuffer.Allocate(8);
-		bb.WriteUInt(serverId);
-		bb.WriteULong(0);
-		long id = ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex);
-		long seed = 0;
-		while (id < minId) {
-			if ((id & 0xff80_0000_0000_0000L) != 0) {
-				throw new IllegalStateException("AutoKey.setMinId: minId(" + minId
-						+ ") is too large for serverId(" + serverId + ')');
-			}
-			id <<= 8;
-			seed = seed == 0 ? 0x80 : seed << 7; // 每多7位,WriteULong序列化就要多1字节
+		long low = 1;
+		long high = maxSeedForServerId();
+		if (encodeId(bb, serverId, high) < minId)
+			throw new IllegalStateException("AutoKey.setMinId: minId(" + minId
+					+ ") is too large for serverId(" + serverId + ')');
+		// 同一 serverId 的编码随 seed 单调递增，找首个达到目标的可发种子。
+		while (low < high) {
+			var mid = low + (high - low) / 2;
+			if (encodeId(bb, serverId, mid) < minId)
+				low = mid + 1;
+			else
+				high = mid;
 		}
-		return setSeed(seed);
+		return setSeed(low - 1); // 水位是已分配号段的末尾，下一号从水位 + 1 开始。
+	}
+
+	private static long encodeId(ByteBuffer bb, int serverId, long seed) {
+		bb.WriteIndex = 0;
+		writeId(bb, serverId, seed);
+		return ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex);
 	}
 
 	/**

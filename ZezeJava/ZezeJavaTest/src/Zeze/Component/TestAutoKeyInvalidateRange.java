@@ -186,6 +186,12 @@ public class TestAutoKeyInvalidateRange {
 		var autoKey = app.getAutoKey("test6");
 		var maxSeed = maxSeedFor(app.getConfig().getServerId());
 		Assertions.assertTrue(maxSeed > 1_000_000, "测试环境的serverId应留出足够的seed预算");
+		var minIdKey = app.getAutoKey("minIdAtCapacity");
+		var maxId = makeId(maxSeed);
+		Assertions.assertThrows(IllegalStateException.class, () -> minIdKey.setMinId(maxId + 1));
+		Assertions.assertTrue(minIdKey.setMinId(maxId));
+		Assertions.assertEquals(maxId, minIdKey.nextId(), "最高可编码 ID 必须仍能发出");
+		Assertions.assertThrows(IllegalStateException.class, minIdKey::nextId);
 		Assertions.assertThrows(IllegalStateException.class, () -> autoKey.setSeed(maxSeed + 1));
 		Assertions.assertThrows(IllegalStateException.class, () -> autoKey.setSeed(Long.MAX_VALUE));
 		var id1 = autoKey.nextId(); // 投毒被拒后发号应完全正常
