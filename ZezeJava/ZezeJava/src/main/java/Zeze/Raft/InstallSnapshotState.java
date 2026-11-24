@@ -174,10 +174,11 @@ class InstallSnapshotState {
 				return Procedure.Success; // break install
 			}
 
-			done = r.Argument.getDone();
 			resultCode = r.getResultCode();
+			done = resultCode == Procedure.Success && r.Argument.getDone();
 
-			if (!r.Argument.getDone() && r.Result.getOffset() >= 0) {
+			// NewOffset 可以应答最后一块；只有收到成功应答后才结束发送。
+			if (!done && r.Result.getOffset() >= 0) {
 				//noinspection DataFlowIssue
 				if (r.Result.getOffset() > file.length()) {
 					LogSequence.logger.error("InstallSnapshot.Result.Offset Too Big. {}/{}",
