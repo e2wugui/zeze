@@ -16,6 +16,7 @@ public class TimeoutDiagnosable extends Timeout {
 	// 且打断必须锁内执行——锁外打断与 close 的清标志存在先置位后清除的窗口。
 	private final ReentrantLock handshake = new ReentrantLock();
 	private @Nullable Thread thread = Thread.currentThread();
+	private boolean interruptedByTimeout;
 
 	public static @Nullable Timeout create(long timeoutMs) {
 		return create(timeoutMs, false);
@@ -39,7 +40,7 @@ public class TimeoutDiagnosable extends Timeout {
 		// 最多只会触发一次。thread 为 null = 已 close，不再打断（interruptThread 内部已判 null）。
 		handshake.lock();
 		try {
-			interruptThread(thread);
+			interruptedByTimeout |= tryInterruptThread(thread);
 		} finally {
 			handshake.unlock();
 		}
@@ -52,17 +53,18 @@ public class TimeoutDiagnosable extends Timeout {
 
 	@Override
 	public void cancel() {
+		boolean clearInterrupt;
 		handshake.lock();
 		try {
+			clearInterrupt = interruptedByTimeout && thread == Thread.currentThread();
 			thread = null;
 		} finally {
 			handshake.unlock();
 		}
 		super.cancel();
-		// 清除本线程残留的中断标志（锁外：若 run 正在锁内打断，这里等它完成后必清），
-		// 防止毒化池线程上的下一个任务。
-		//noinspection ResultOfMethodCallIgnored
-		Thread.interrupted();
+		// 仅清理本看门狗留在目标线程上的中断标志。
+		if (clearInterrupt)
+			Thread.interrupted();
 	}
 
 	public static void formatStackTrace(StackTraceElement [] stackTrace, StringBuilder sb) {
@@ -74,12 +76,18 @@ public class TimeoutDiagnosable extends Timeout {
 	}
 
 	public static void interruptThread(@Nullable Thread t) {
+		tryInterruptThread(t);
+	}
+
+	private static boolean tryInterruptThread(@Nullable Thread t) {
 		if (t != null && !t.isInterrupted() && t.isAlive()
 			&& t.getPriority() <= Thread.NORM_PRIORITY) {
 			var sb = new StringBuilder();
 			formatStackTrace(t.getStackTrace(), sb);
 			logger.warn("INTERRUPT thread '{}' for task timeout\n{}", t.getName(), sb.toString());
 			t.interrupt();
+			return true;
 		}
+		return false;
 	}
 }
