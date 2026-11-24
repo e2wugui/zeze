@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import java.net.URI;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
@@ -159,7 +160,12 @@ public class Database extends Zeze.Transaction.Database {
 		var idx = name.indexOf(special);
 		if (idx >= 0) {
 			var tableName = name.substring(idx + special.length());
-			return new Dbh2PrefixTable(tables.computeIfAbsent(tableName, __ -> new Dbh2Table(tableName, true)), id);
+			var table = tables.compute(tableName, (key, current) -> {
+				var shared = current != null ? current : new Dbh2Table(key, true);
+				shared.addRef();
+				return shared;
+			});
+			return new Dbh2PrefixTable(table, id, false);
 		}
 		// 这里不使用tables。
 		return new Dbh2Table(name, false);
@@ -182,10 +188,16 @@ public class Database extends Zeze.Transaction.Database {
 
 		private final Dbh2Table table;
 		private final byte[] prefix = new byte[TABLE_PREFIX];
+		private final AtomicBoolean closed = new AtomicBoolean();
 
 		public Dbh2PrefixTable(Dbh2Table table, int id) {
+			this(table, id, true);
+		}
+
+		private Dbh2PrefixTable(Dbh2Table table, int id, boolean addRef) {
 			this.table = table;
-			table.addRef();
+			if (addRef)
+				table.addRef();
 			ByteBuffer.intLeHandler.set(this.prefix, 0, id);
 		}
 
@@ -211,7 +223,8 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public void close() {
-			table.decRef();
+			if (closed.compareAndSet(false, true))
+				table.decRef();
 		}
 
 		private ByteBuffer addPrefix(@Nullable ByteBuffer key) {
@@ -357,9 +370,10 @@ public class Database extends Zeze.Transaction.Database {
 		}
 
 		public void decRef() {
-			if (ref.decrementAndGet() == 0) {
+			if (registered)
+				tables.compute(name, (__, current) -> ref.decrementAndGet() == 0 && current == this ? null : current);
+			else if (ref.decrementAndGet() == 0)
 				close();
-			}
 		}
 
 		// 建表重试总预算：非final便于测试收缩。master/manager空窗（重启、扩容、选举）以十秒计，
@@ -515,7 +529,7 @@ public class Database extends Zeze.Transaction.Database {
 		@Override
 		public void close() {
 			if (registered)
-				tables.remove(name);
+				tables.remove(name, this);
 		}
 	}
 
