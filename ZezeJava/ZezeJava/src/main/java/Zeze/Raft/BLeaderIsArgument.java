@@ -1,5 +1,6 @@
 package Zeze.Raft;
 
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 import Zeze.Serialize.ByteBuffer;
@@ -55,8 +56,7 @@ final class BLeaderIsArgument extends Bean {
 	@Override
 	public int hashCode() {
 		final int _prime_ = 31;
-		//noinspection DataFlowIssue
-		return Long.hashCode(term) * _prime_ + leaderId.hashCode();
+		return Long.hashCode(term) * _prime_ + Objects.hashCode(leaderId);
 	}
 
 	@Override
@@ -65,8 +65,7 @@ final class BLeaderIsArgument extends Bean {
 			return true;
 		if (!(obj instanceof BLeaderIsArgument other))
 			return false;
-		//noinspection DataFlowIssue
-		return term == other.term && leaderId.equals(other.leaderId);
+		return term == other.term && Objects.equals(leaderId, other.leaderId);
 	}
 
 	@Override
