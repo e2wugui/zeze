@@ -1302,9 +1302,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 				// 其他错误忽略
-				var nextExpectedTime = context.nextExpectedTimeMills;
-				simpleTimer.setNextExpectedTime(nextExpectedTime);
-				if (nextExpectedTime == 0) {
+				SimpleTimerSpec.applyCallbackNextTime(simpleTimer, context.nextExpectedTimeMills);
+				if (simpleTimer.getNextExpectedTime() == 0) {
 					cancel(serverId, timerId, nodeId, node, handle);
 					return 0;
 				}

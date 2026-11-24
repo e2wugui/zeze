@@ -165,4 +165,9 @@ public final class SimpleTimerSpec implements TimerSpec {
 		}
 		simpleTimer.setNextExpectedTime(nextExpectedTime);
 	}
+
+	static void applyCallbackNextTime(BSimpleTimer timer, long nextExpectedTime) {
+		var endTime = timer.getEndTime();
+		timer.setNextExpectedTime(endTime > 0 && nextExpectedTime > endTime ? 0 : nextExpectedTime);
+	}
 }

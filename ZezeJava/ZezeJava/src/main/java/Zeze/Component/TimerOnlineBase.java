@@ -508,7 +508,7 @@ abstract class TimerOnlineBase<I> {
 							simpleTimer.getNextExpectedTime());
 					fillContext(id, context);
 					handle.onTimer(context);
-					simpleTimer.setNextExpectedTime(context.nextExpectedTimeMills);
+					SimpleTimerSpec.applyCallbackNextTime(simpleTimer, context.nextExpectedTimeMills);
 					return Procedure.Success;
 				}, name() + ".fireOnlineSimple.inner")).call();
 			}
