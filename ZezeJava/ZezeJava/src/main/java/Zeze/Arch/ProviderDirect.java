@@ -135,15 +135,25 @@ public class ProviderDirect extends AbstractProviderDirect {
 	private void sendResultForAsync(ModuleRedirectAllRequest p, int hash, RedirectResult result,
 	                                RedirectHandle handle) throws Exception {
 		var res = newResult(p);
-		var resArg = res.Argument;
-
 		var hashResult = new BModuleRedirectAllHash.Data(Procedure.Success, null);
-		var re = handle.resultEncoder;
-		if (re != null)
-			hashResult.setParams(re.apply(result));
-		resArg.getHashes().put(hash, hashResult);
+		encodeAllHashResult(p, hash, result, handle, hashResult);
+		res.Argument.getHashes().put(hash, hashResult);
 		res.setResultCode(ModuleRedirect.ResultCodeSuccess);
 		sendResult(p.getSender(), res);
+	}
+
+	private static void encodeAllHashResult(ModuleRedirectAllRequest request, int hash, RedirectResult result,
+			RedirectHandle handle, BModuleRedirectAllHash.Data hashResult) {
+		var encoder = handle.resultEncoder;
+		if (encoder != null) {
+			try {
+				hashResult.setParams(encoder.apply(result));
+			} catch (Exception e) {
+				logger.error("RedirectAll result encode failed: method={}, hash={}",
+						request.Argument.getMethodFullName(), hash, e);
+				hashResult.setReturnCode(Procedure.Exception);
+			}
+		}
 	}
 
 	@Override
@@ -198,9 +208,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 			if (future == null)
 				resArg.getHashes().put(hash, hashResult);
 			else if (future.getClass() == RedirectAllFutureFinished.class) {
-				var re = handle.resultEncoder;
-				if (re != null)
-					hashResult.setParams(re.apply(((RedirectAllFutureFinished<?>)future).result()));
+				encodeAllHashResult(p, hash, ((RedirectAllFutureFinished<?>)future).result(), handle, hashResult);
 				resArg.getHashes().put(hash, hashResult);
 				if (isResultSizeExceed(res)) {
 					sendResult(p.getSender(), res);

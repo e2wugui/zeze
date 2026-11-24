@@ -17,6 +17,57 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Fast
 public class TestRedirectAllLocalResultSnapshot {
+	@Test
+	void encodingFailureCompletesOnlyTheAffectedHash() throws Exception {
+		var config = new Config();
+		config.setNoDatabase(true);
+		config.setServiceManager("disable");
+		var app = ProviderDirectTestSupport.newAppWithFakeAgent("RedirectAllResultEncoding", config);
+		var service = new DeferredService(app);
+		var providerApp = new ProviderApp(app);
+		service.providerApp = providerApp;
+		var serviceField = ProviderApp.class.getDeclaredField("providerDirectService");
+		serviceField.setAccessible(true);
+		serviceField.set(providerApp, service);
+		var direct = new ProviderDirect();
+		direct.providerApp = providerApp;
+		direct.RegisterProtocols(service);
+		var context = new RedirectAllContext<>(4, bytes -> new SizedResult(bytes == null ? -1 : bytes.size()));
+		long sessionId = service.addManualContextWithTimeout(context, 30_000);
+		try {
+			String method = "Encoding:collect";
+			var early = RedirectAllFuture.<SizedResult>async();
+			var late = RedirectAllFuture.<SizedResult>async();
+			early.asyncResult(new SizedResult(-1));
+			requireNonNull(app.redirect).handles.put(method, new RedirectHandle(TransactionLevel.None,
+					(hash, params) -> switch (hash) {
+						case 0 -> RedirectAllFuture.result(new SizedResult(-1));
+						case 1 -> early;
+						case 2 -> late;
+						default -> RedirectAllFuture.result(new SizedResult(3));
+					}, result -> new Binary(new byte[((SizedResult)result).size])));
+			var request = new ModuleRedirectAllRequest();
+			request.Argument.setMethodFullName(method);
+			request.Argument.setSessionId(sessionId);
+			request.Argument.setHashCodeConcurrentLevel(4);
+			for (int hash = 0; hash < 4; ++hash)
+				request.Argument.getHashCodes().add(hash);
+			assertEquals(Procedure.Success, direct.ProcessModuleRedirectAllRequest(request));
+			late.asyncResult(new SizedResult(-1));
+			for (var result : service.pending)
+				direct.ProcessModuleRedirectAllResult(result);
+			assertTrue(context.isCompleted());
+			for (int hash = 0; hash < 3; ++hash)
+				assertEquals(Procedure.Exception, requireNonNull(context.getAllResults().get(hash)).getResultCode());
+			var success = requireNonNull(context.getAllResults().get(3));
+			assertEquals(Procedure.Success, success.getResultCode());
+			assertEquals(3, success.size);
+		} finally {
+			service.tryRemoveManualContext(sessionId);
+			service.stop();
+			app.stop();
+		}
+	}
 
 	@Test
 	void delayedLocalDispatchRetainsFlushedAndRemainingResults() throws Exception {
