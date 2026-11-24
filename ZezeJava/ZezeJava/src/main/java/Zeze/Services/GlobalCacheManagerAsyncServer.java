@@ -1341,14 +1341,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		boolean tryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex, boolean login) {
 			lock();
 			try {
-				if (login) {
-					// login 相当于重置，允许再次Login。
-					isLoggedIn = true;
-				} else {
-					// relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
-					if (!isLoggedIn)
-						return false;
-				}
+				// ReLogin 要求同一 serverId 已完成过 Login 绑定，用来检测 GCM 重启。
+				if (!login && !isLoggedIn)
+					return false;
 				if (newSocket.getUserState() != null) {
 					logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}",
 							newSocket.getSessionId());
@@ -1365,6 +1360,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					generationUpdater.incrementAndGet(this); // 重绑即新世代：kick前在飞的release到此为止全部过期
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
+					if (login)
+						isLoggedIn = true;
 					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
 					// 绑定即刷新活跃时刻（持锁）：achillesHeelDaemon的锁内复查据此识别
 					// 新incarnation，避免旧超时判定kick掉刚Login的新连接。

@@ -1131,14 +1131,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		boolean tryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {
 			lock();
 			try {
-				if (login) {
-					// login 相当于重置，允许再次Login。
-					logined = true;
-				} else {
-					// relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
-					if (!logined)
-						return false;
-				}
+				// ReLogin 要求同一 serverId 已完成过 Login 绑定，用来检测 GCM 重启。
+				if (!login && !logined)
+					return false;
 				if (newSocket.getUserState() != null) {
 					logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}", newSocket.getSessionId());
 					return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
@@ -1153,6 +1148,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					// old socket not exist or has lost.
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
+					if (login)
+						logined = true;
 					globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 					// 绑定即刷新活跃时刻（持锁）：achillesHeelDaemon的锁内复查据此识别
 					// 新incarnation，避免旧超时判定kick掉刚Login的新连接。
