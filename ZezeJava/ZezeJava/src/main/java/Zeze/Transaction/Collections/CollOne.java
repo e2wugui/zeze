@@ -131,12 +131,12 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public void encodeSQLStatement(ArrayList<String> parents, SQLStatement st) {
-		value.encodeSQLStatement(parents, st);
+		getValue().encodeSQLStatement(parents, st);
 	}
 
 	@Override
 	public void decodeResultSet(ArrayList<String> parents, ResultSet rs) throws SQLException {
-		value.decodeResultSet(parents, rs);
+		getValue().decodeResultSet(parents, rs);
 	}
 
 	@Override
