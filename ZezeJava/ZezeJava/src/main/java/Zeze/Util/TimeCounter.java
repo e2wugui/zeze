@@ -87,20 +87,10 @@ public class TimeCounter extends ReentrantLock implements AutoCloseable {
 	public void discard(long nowSeconds) {
 		lock();
 		try {
-			var headIndex = lastIndex;
-
-			for (var i = 0; i < counters.length; ++i) {
-				if (++headIndex >= counters.length)
-					headIndex = 0;
-				var head = counters[headIndex];
-				if (nowSeconds - head.seconds <= counters.length)
-					break;
-
-				// reset
-				// 这个结合上面的if，会导致不必要的reset；这里用Long.MAX_VALUE，可以避免多余的reset，
-				// 但要求记住headIndex，不能从lastIndex+1开始判断。
-				head.seconds = 0;
-				head.counter = 0;
+			// 墙钟回拨后，环上的写入顺序不再等于时间顺序。
+			for (var bucket : counters) {
+				if (nowSeconds - bucket.seconds > counters.length)
+					bucket.counter = 0;
 			}
 		} finally {
 			unlock();
