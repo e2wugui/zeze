@@ -67,19 +67,22 @@ public class Test {
 		var cfhs = new ArrayList<org.rocksdb.ColumnFamilyHandle>(cfds.size());
 		try (var r1 = RocksDB.openReadOnly(RocksDatabase.getCommonDbOptions(), dbPath, cfds, cfhs)) {
 			var logsName = (raftName + ".logs").getBytes(StandardCharsets.UTF_8);
+			var raftsName = (raftName + ".rafts").getBytes(StandardCharsets.UTF_8);
 			org.rocksdb.ColumnFamilyHandle logsHandle = null;
+			org.rocksdb.ColumnFamilyHandle raftsHandle = null;
 			for (int i = 0; i < cfds.size(); i++) {
-				if (Arrays.equals(cfds.get(i).getName(), logsName)) {
+				var name = cfds.get(i).getName();
+				if (Arrays.equals(name, logsName))
 					logsHandle = cfhs.get(i);
-					break;
-				}
+				else if (Arrays.equals(name, raftsName))
+					raftsHandle = cfhs.get(i);
 			}
 			if (logsHandle == null)
 				throw new RocksDBException("column family not found: " + raftName + ".logs");
 			final var logs = logsHandle;
 			var StateMachine = new TestStateMachine();
-			// 代际化后快照不再叫snapshot.dat，固定名检查会静默跳过装载。
-			var snapshot = findDumpSnapshot(db);
+			var firstIndex = raftsHandle != null ? r1.get(raftsHandle, LogSequence.makeRaftsKey(2)) : null;
+			var snapshot = findDumpSnapshot(db, firstIndex != null ? ByteBuffer.Wrap(firstIndex).ReadLong() : -1);
 			if (snapshot != null)
 				StateMachine._loadSnapshot(snapshot.toString());
 			AtomicOutputFile.writeAtomically(Paths.get(db + ".txt"), dumpFile -> {
@@ -98,22 +101,13 @@ public class Test {
 		}
 	}
 
-	// dump装载源：最大index的gen快照（不持LogSequence实例无法问指针），回退legacy名。
-	private static @Nullable Path findDumpSnapshot(String dbHome) {
-		Path best = null;
-		long bestIndex = -1;
-		var files = new File(dbHome).listFiles();
-		if (files != null) {
-			for (var file : files) {
-				var index = LogSequence.parseGenSnapshotIndex(file);
-				if (index != null && index > bestIndex) {
-					bestIndex = index;
-					best = file.toPath();
-				}
-			}
+	// firstIndex 指认已提交代，目录中更大的代可能仍是延时提交候选。
+	static @Nullable Path findDumpSnapshot(String dbHome, long firstIndex) {
+		if (firstIndex >= 0) {
+			var committed = Paths.get(dbHome, LogSequence.snapshotFileName + "." + firstIndex);
+			if (Files.isRegularFile(committed))
+				return committed;
 		}
-		if (best != null)
-			return best;
 		var legacy = Paths.get(dbHome, LogSequence.snapshotFileName);
 		return Files.isRegularFile(legacy) ? legacy : null;
 	}
@@ -153,8 +147,10 @@ public class Test {
 		var raftConfigStart = RaftConfig.load(raftConfigFileName);
 
 		if (command.equals("RaftDump")) {
-			for (var node : raftConfigStart.getNodes().values())
-				logDump(String.format("%s_%d", node.getHost(), node.getPort()), Objects.requireNonNull(raftConfigStart.getName()));
+			for (var node : raftConfigStart.getNodes().values()) {
+				var name = node.getName().replace(':', '_');
+				logDump(name, name);
+			}
 			return;
 		}
 
