@@ -248,8 +248,8 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	public class SimulateThreads {
 		private final HashSet<SimulateThread> threads = new HashSet<>();
-		// activeTime由KeepAlive处理线程写、timeoutRelease定时器线程读，需要volatile保证可见性。
-		private volatile long activeTime = System.currentTimeMillis();
+		// 由模块锁保护，超时判定与释放入队必须在同一临界区。
+		private long activeTime = System.currentTimeMillis();
 		private final int serverId;
 		// lastAppSerial依赖"同连接的KeepAlive按接收序串行处理"（见ProcessKeepAlive的Direct注解）：
 		// IO线程内联执行保证同连接有序；volatile兜不同连接各自IO线程间的可见性。
@@ -318,13 +318,15 @@ public class ThreadingServer extends AbstractThreadingServer {
 	}
 
 	private void timeoutRelease() {
-		var now = System.currentTimeMillis();
 		for (var threads : simulateThreadsByServerId.values()) {
-			// 【30 minutes 没有联系】强制释放获得的所有资源。
-			// 这个时间可以看作异常情况下，Agent获得锁后的最长安全工作时间。
-			// 再超出，就没有锁定保证了。
-			if (now - threads.activeTime > conf.threadingReleaseTimeout)
-				threads.release();
+			lock();
+			try {
+				// 与 KeepAlive 串行化。已经续活或被新实例接管的资源不能按旧时间释放。
+				if (System.currentTimeMillis() - threads.activeTime > conf.threadingReleaseTimeout)
+					threads.release();
+			} finally {
+				unlock();
+			}
 		}
 	}
 
