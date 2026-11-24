@@ -873,12 +873,12 @@ public class Schemas implements Serializable {
 	}
 
 	public void addBean(Bean bean) {
-		if (beans.put(bean.name, bean) != null)
+		if (beans.putIfAbsent(bean.name, bean) != null)
 			throw new IllegalStateException("AddBean duplicate=" + bean.name);
 	}
 
 	public void addTable(Table table) {
-		if (tables.put(Objects.requireNonNull(table.name), table) != null)
+		if (tables.putIfAbsent(Objects.requireNonNull(table.name), table) != null)
 			throw new IllegalStateException("AddTable duplicate=" + table.name);
 	}
 
