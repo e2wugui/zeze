@@ -438,24 +438,37 @@ public final class Agent {
 
 		raftConfig = raftConf;
 		this.client = client;
+		try {
+			initClient();
+		} catch (Exception | Error e) {
+			try {
+				stop();
+			} catch (Exception | Error cleanup) {
+				e.addSuppressed(cleanup);
+			}
+			throw e;
+		}
+	}
 
-		if (this.client.getConfig().acceptorCount() != 0)
+	private void initClient() {
+		var client = Objects.requireNonNull(this.client);
+		if (client.getConfig().acceptorCount() != 0)
 			throw new IllegalStateException("Acceptor Found!");
-		if (this.client.getConfig().connectorCount() != 0)
+		if (client.getConfig().connectorCount() != 0)
 			throw new IllegalStateException("Connector Found!");
 
 		// 配置级一次性告警：未显式设超时的rpc走Rpc构造默认5000ms，门槛<=间隔时
 		// 判死先于首次重发成立（间隔已per-rpc收紧，此处仅提示重发节奏显著变密的部署形态）。
-		if (raftConf.getAppendEntriesTimeout() >= 5000)
+		if (raftConfig.getAppendEntriesTimeout() >= 5000)
 			logger.warn("AppendEntriesTimeout({}ms) >= Rpc default timeout(5000ms):"
 							+ " rpcs without explicit timeout resend at a tight interval"
 							+ " (timeout - {}ms) before their deadline.",
-					raftConf.getAppendEntriesTimeout(), resendScanPeriodMs);
+					raftConfig.getAppendEntriesTimeout(), resendScanPeriodMs);
 
 		if (proxyAgent == null) {
 			// 没有启用代理，按原始raft方式建立连接器。
 			for (var node : raftConfig.getNodes().values())
-				this.client.getConfig().addConnector(new Connector(node.getHost(), node.getPort()));
+				client.getConfig().addConnector(new Connector(node.getHost(), node.getPort()));
 		} else {
 			proxyAgent.addAgent(this);
 			leader = proxyAgent.getLeader(raftConfig.getNodes().values().iterator().next());
@@ -475,14 +488,14 @@ public final class Agent {
 				proxyAgent.getLeader(node);
 		}
 
-		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
 				LeaderIs::new, this::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Critical));
 
-		this.client.AddFactoryHandle(GetLeader.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(GetLeader.TypeId_, new Service.ProtocolFactoryHandle<>(
 				GetLeader::new, null, TransactionLevel.None, DispatchMode.Normal));
-		this.client.AddFactoryHandle(StartServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(StartServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
 				StartServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
-		this.client.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
 				StopServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
 		// 变体A首发现（仅代理模式）在注册完成后调用：GetLeader应答经ProxyRequest隧道在本client
 		// 上decode，factory必须先就位（首版在代理分支内调用，应答9ms到达即decode失败实证）。

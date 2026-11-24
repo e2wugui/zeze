@@ -1,7 +1,7 @@
 package Zeze.Raft;
 
+import java.util.List;
 import java.util.Objects;
-
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
 import Zeze.IModule;
@@ -124,10 +124,14 @@ public class ProxyAgent extends Service {
 	}
 
 	public void addAgent(Agent agent) {
-		var raftConfig = agent.getRaftConfig();
-		for (var node : raftConfig.getNodes().values()) {
-			if (null != agents.putIfAbsent(node.getName(), agent))
-				throw new RuntimeException("duplicate agent node " + node.getName());
+		var nodeNames = List.copyOf(agent.getRaftConfig().getNodes().keySet());
+		synchronized (agents) {
+			for (var nodeName : nodeNames) {
+				if (agents.containsKey(nodeName))
+					throw new RuntimeException("duplicate agent node " + nodeName);
+			}
+			for (var nodeName : nodeNames)
+				agents.put(nodeName, agent);
 		}
 	}
 
@@ -136,9 +140,10 @@ public class ProxyAgent extends Service {
 	 * 只移除属于该agent的注册，不影响后来者已接管的注册。
 	 */
 	public void removeAgent(Agent agent) {
-		var raftConfig = agent.getRaftConfig();
-		for (var node : raftConfig.getNodes().values())
-			agents.remove(node.getName(), agent);
+		synchronized (agents) {
+			for (var nodeName : agent.getRaftConfig().getNodes().keySet())
+				agents.remove(nodeName, agent);
+		}
 	}
 
 	/**
