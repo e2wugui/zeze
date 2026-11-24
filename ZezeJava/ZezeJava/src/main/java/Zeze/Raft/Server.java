@@ -293,7 +293,7 @@ public class Server extends HandshakeBoth {
 			}
 			// 防止重复的请求
 			// see Log.java::LogSequence.TryApply
-			dispatchRaftRequest((RaftRpc<?, ?>)raftRpc, () -> processRequest(p, factoryHandle),
+			dispatchRaftRequest(p, () -> processRequest(p, factoryHandle),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
