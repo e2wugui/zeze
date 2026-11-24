@@ -400,10 +400,11 @@ public final class Transaction {
 										}
 										finalRollback(procedure);
 										return Procedure.Closed;
-									} catch (AssertionError ae) {
-										// 提交已完成；回调断言失败直接向上传播。
-										throw ae;
 									} catch (Throwable ex) {
+										// 只有终局回调的断言可以传播给调用方。变更收集发生在数据应用后、
+											// Completed 前，失败仍须进入致命保存路径。
+										if (state == TransactionState.Completed && ex instanceof AssertionError assertion)
+											throw assertion;
 										logger.fatal("finalCommit exception:", ex);
 										// 先释放记录锁，避免最终保存被本事务阻塞。
 										holdLocks.forEach(Lockey::exitLock);
