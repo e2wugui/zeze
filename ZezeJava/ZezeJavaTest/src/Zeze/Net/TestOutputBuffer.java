@@ -106,6 +106,31 @@ public class TestOutputBuffer {
 	}
 
 	@Test
+	public void failedGrowthKeepsThePreviousTailAndCountsOnlyWrittenBytes() throws IOException {
+		var allocator = new Alloc(2) {
+			@Override
+			public ByteBuffer alloc() {
+				if (allocCount == 1)
+					throw new IllegalStateException("allocation failed");
+				return super.alloc();
+			}
+		};
+		try (var buffer = new OutputBuffer(allocator)) {
+			buffer.put((byte)1);
+			assertThrows(IllegalStateException.class, () -> buffer.put(new byte[]{2, 3, 4}));
+			assertEquals(2, buffer.size());
+			assertEquals(1, buffer.getBufferCount());
+			assertThrows(IllegalStateException.class, () -> buffer.put((byte)5));
+			assertEquals(2, buffer.size());
+			var channel = new Channel();
+			channel.setRemaining(2);
+			assertEquals(2, buffer.writeTo(channel));
+			assertArrayEquals(new byte[]{1, 2}, channel.getSink().Copy());
+		}
+		assertEquals(0, allocator.getInUseCount());
+	}
+
+	@Test
 	public void test() throws IOException {
 		long seed = System.currentTimeMillis();
 		System.out.println(getClass().getSimpleName() + ": seed = " + seed);

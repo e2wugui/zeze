@@ -65,39 +65,41 @@ public final class OutputBuffer implements Codec, Closeable {
 			var tail = this.tail;
 			if (tail == null)
 				this.tail = tail = allocator.alloc();
-			for (size += length; ; ) {
-				int left = tail.remaining();
-				if (left >= length) {
-					tail.put(src, offset, length);
-					break;
-				}
-				tail.put(src, offset, left);
+			while (true) {
+				int count = Math.min(tail.remaining(), length);
+				tail.put(src, offset, count);
+				size += count;
+				length -= count;
+				if (length == 0)
+					return;
+				offset += count;
 				tail = pushAndAllocTail();
-				offset += left;
-				length -= left;
 			}
 		}
 	}
 
 	public void put(byte b) {
-		size++;
 		var tail = this.tail;
 		if (tail == null)
 			this.tail = tail = allocator.alloc();
 		else if (tail.remaining() <= 0)
 			tail = pushAndAllocTail();
 		tail.put(b);
+		size++;
 	}
 
 	private ByteBuffer pushAndAllocTail() {
 		var tail = this.tail;
+		// Allocate first. If allocation fails, the old tail stays in write mode
+		// and has exactly one owner.
+		var next = allocator.alloc();
 		//noinspection DataFlowIssue
 		tail.limit(tail.position());
 		tail.position(tailPos);
 		buffers.addLast(tail);
-		this.tail = tail = allocator.alloc();
+		this.tail = next;
 		tailPos = 0;
-		return tail;
+		return next;
 	}
 
 	public long writeTo(GatheringByteChannel channel) throws IOException {
