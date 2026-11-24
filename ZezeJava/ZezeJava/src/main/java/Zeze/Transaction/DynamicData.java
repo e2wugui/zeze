@@ -18,7 +18,9 @@ public abstract class DynamicData extends Data {
 	}
 
 	public void setData(@Nullable Data data) {
-		if (data == null)
+		if (data instanceof DynamicData dynamic)
+			data = dynamic.data;
+		else if (data == null)
 			data = EmptyBean.Data.instance;
 		setDataWithSpecialTypeId(toTypeId(data), data);
 	}

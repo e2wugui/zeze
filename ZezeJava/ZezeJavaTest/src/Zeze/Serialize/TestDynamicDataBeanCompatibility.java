@@ -15,6 +15,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Fast
 public class TestDynamicDataBeanCompatibility {
+	@Test
+	public void assigningAnotherWrapperUsesTheDestinationPayloadType() {
+		var source = new TestDynamicData(false);
+		var payload = new ValueData();
+		payload.value = 42;
+		source.setData(payload);
+
+		var target = new TestDynamicData(false, 8);
+		target.setData(source);
+
+		assertEquals(7, source.getTypeId());
+		assertEquals(8, target.getTypeId());
+		assertSame(payload, target.getData());
+
+		var encoded = ByteBuffer.Allocate();
+		target.encode(encoded);
+		var decoded = new TestDynamicData(false, 8);
+		decoded.decode(encoded);
+		assertEquals(42, assertInstanceOf(ValueData.class, decoded.getData()).value);
+		assertTrue(encoded.isEmpty());
+	}
+
 
 	@Test
 	public void compatibleBeanInstallsItsDecodedDataAndActualType() {
@@ -47,19 +69,25 @@ public class TestDynamicDataBeanCompatibility {
 
 	private static final class TestDynamicData extends DynamicData {
 		private final boolean compatible;
+		private final long payloadType;
 
 		private TestDynamicData(boolean compatible) {
+			this(compatible, 7);
+		}
+
+		private TestDynamicData(boolean compatible, long payloadType) {
 			this.compatible = compatible;
+			this.payloadType = payloadType;
 		}
 
 		@Override
 		public long toTypeId(Data data) {
-			return data instanceof ValueData ? 7 : EmptyBean.TYPEID;
+			return data instanceof ValueData ? payloadType : EmptyBean.TYPEID;
 		}
 
 		@Override
 		public @Nullable Data toData(long typeId) {
-			return typeId == 7 || (compatible && typeId == 0) ? new ValueData() : null;
+			return typeId == payloadType || (compatible && typeId == 0) ? new ValueData() : null;
 		}
 	}
 
