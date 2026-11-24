@@ -1,10 +1,11 @@
 package Zeze.Util;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -168,10 +169,14 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	public void putAll(Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
-		var snapshot = new LinkedHashMap<K, V>(m);
+		// 保留源迭代中的每个条目，键是否相同由目标 TreeMap 的比较器判断。
+		var snapshot = new ArrayList<Entry<K, V>>(m.size());
+		for (var entry : m.entrySet())
+			snapshot.add(new AbstractMap.SimpleImmutableEntry<>(entry));
 		writeLock.lock();
 		try {
-			write.putAll(snapshot);
+			for (var entry : snapshot)
+				write.put(entry.getKey(), entry.getValue());
 		} finally {
 			read = null;
 			writeLock.unlock();
