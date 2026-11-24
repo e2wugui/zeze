@@ -59,10 +59,26 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 						+ "' is also the database of business table '" + t.getName()
 						+ "'. apply data and replay cursor must persist to a separate kv database.");
 		}
-		var storage = dbForApply.openTable(cursorTableName, Bean.hash32(cursorTableName));
-		if (!(storage instanceof Database.AbstractKVTable kvStorage))
-			throw new RuntimeException("apply database need a kv-table for cursor. name=" + applyDbName);
-		cursorStorage = kvStorage;
+		cursorStorage = openReadyTable(cursorTableName, Bean.hash32(cursorTableName));
+	}
+
+	private Database.AbstractKVTable openReadyTable(String tableName, int tableId) {
+		var storage = dbForApply.openTable(tableName, tableId);
+		try {
+			if (!(storage instanceof Database.AbstractKVTable kvStorage))
+				throw new IllegalStateException("apply database '" + applyDbName
+						+ "' requires a KV table: " + tableName);
+			kvStorage.waitReady();
+			return kvStorage;
+		} catch (Throwable failure) {
+			try {
+				storage.close();
+			} catch (Throwable cleanup) {
+				if (cleanup != failure)
+					failure.addSuppressed(cleanup);
+			}
+			throw failure;
+		}
 	}
 
 	private boolean isApplyDatabase(@Nullable Database database) {
@@ -214,10 +230,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 				throw new RuntimeException("apply table config conflict: business table '" + tableName
 						+ "' is hosted in the apply database '" + applyDbName
 						+ "'. apply data and replay cursor must persist to a separate kv database.");
-			var storage = dbForApply.openTable(tableName, table.getId());
-			if (!(storage instanceof Database.AbstractKVTable))
-				throw new RuntimeException("apply table need a kv-table.");
-			this.storage = (Database.AbstractKVTable)storage;
+			storage = openReadyTable(tableName, table.getId());
 		}
 
 		@Override
