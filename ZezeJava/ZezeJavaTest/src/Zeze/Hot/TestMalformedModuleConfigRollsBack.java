@@ -2,6 +2,7 @@ package Zeze.Hot;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -81,6 +82,9 @@ public class TestMalformedModuleConfigRollsBack {
 			assertTrue(Files.exists(staging.resolve("configRollback.Entry.jar")));
 			assertTrue(Files.exists(staging.resolve("configRollback.Entry.interface.jar")));
 			assertFalse(Files.exists(working.resolve("modules/configRollback.Entry.jar")));
+			// The installer catches exceptions from individual rollback actions. Run the
+			// same action directly to check that recovery also finishes without debug lines.
+			assertDoesNotThrow(() -> manager.new MainRollbackAction(app, new ArrayList<>(), app.getSchemas()).run());
 		} finally {
 			var jarsField = HotManager.class.getDeclaredField("jars");
 			jarsField.setAccessible(true);

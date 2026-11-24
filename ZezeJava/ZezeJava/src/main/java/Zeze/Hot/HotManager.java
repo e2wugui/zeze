@@ -303,8 +303,8 @@ public class HotManager extends ClassLoader {
 				continue;
 			modules.put(exist.getName(), exist);
 		}
-		//noinspection DataFlowIssue
-		if (!getReadyLines().isEmpty() && getReadyLines().getFirst().startsWith("stop")) {
+		var lines = getReadyLines();
+		if (lines != null && !lines.isEmpty() && lines.getFirst().startsWith("stop")) {
 			// 停止服务时，即使当前停止错误的模块也恢复。【调试代码】
 			if (reverseErrorIndex >= 0) {
 				var exist = exists.get(reverseErrorIndex);
@@ -857,8 +857,9 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void throwIfMatch(String step) {
-		if (null != getReadyLines() && !getReadyLines().isEmpty() && getReadyLines().getFirst().startsWith(step))
-			throw new RuntimeException("throwExceptionIfMatch " + step + ", " + getReadyLines().getFirst());
+		var lines = getReadyLines();
+		if (lines != null && !lines.isEmpty() && lines.getFirst().startsWith(step))
+			throw new RuntimeException("throwExceptionIfMatch " + step + ", " + lines.getFirst());
 	}
 
 	public void renameDistributes() {
