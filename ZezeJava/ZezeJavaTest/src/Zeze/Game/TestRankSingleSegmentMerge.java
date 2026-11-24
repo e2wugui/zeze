@@ -51,6 +51,43 @@ public class TestRankSingleSegmentMerge {
 	}
 
 	@Test
+	public void testSegmentTailKeepsNonDecreasingScore() throws Exception {
+		var app = newApp();
+		var rank = newRank(app);
+		rank.setFuncConcurrentLevel(t -> 1);
+		rank.setFuncRankSize(t -> 2);
+		rank.setFuncRankCacheTimeout(t -> 0);
+		app.start();
+		try {
+			var key = Rank.newRankKey(RANK_TYPE, 889L);
+			Assertions.assertEquals(0L, app.newProcedure(() -> {
+				rank.updateRank(0, key, 1, new BValueLong(30));
+				rank.updateRank(0, key, 2, new BValueLong(20));
+				rank.updateRank(0, key, 3, new BValueLong(10));
+				return 0L;
+			}, "seedSegment").call());
+
+			for (long score : new long[]{10, 15, 5}) {
+				Assertions.assertEquals(0L, app.newProcedure(() -> {
+					rank.updateRank(0, key, 3, new BValueLong(score));
+					return 0L;
+				}, "updateTail").call());
+				Assertions.assertEquals(0L, app.newProcedure(() -> {
+					var list = requireNonNull(rank.getRankTotal(key, 3).getTableValue()).getRankListReadOnly();
+					Assertions.assertEquals(score == 5 ? 2 : 3, list.size());
+					if (score != 5) {
+						Assertions.assertEquals(3L, list.get(2).getRoleId());
+						Assertions.assertEquals(score, ((BValueLong)list.get(2).getDynamicReadOnly().getBean()).getValue());
+					}
+					return 0L;
+				}, "readTail").call());
+			}
+		} finally {
+			app.stop();
+		}
+	}
+
+	@Test
 	public void testSingleSegmentTruncatedToCountNeed() throws Exception {
 		var app = newApp();
 		var rank = newRank(app);

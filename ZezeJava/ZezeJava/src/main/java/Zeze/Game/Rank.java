@@ -339,11 +339,11 @@ public class Rank extends AbstractRank {
 				return RedirectFuture.finish(0L);
 			}
 		}
-		// A: 如果排行的Value可能减少，那么当它原来存在，但现在处于队尾时，不要再进榜。
-		// 因为此时可能存在未进榜但比它大的Value。
-		// B: 但是在进榜玩家比榜单数量少的时候，如果不进榜，队尾的玩家更新还在队尾就会消失。
+		// 段尾分数下降时，未保留的候选人可能排在该角色前面。分数持平或上升时，
+		// 已保留的角色仍应留在候选列表，供跨段合并和更大 countNeed 的查询使用。
 		if (rank.getRankList().size() < getRankSize(keyHint.getRankType())
-				|| (rank.getRankList().size() < maxCount && null == outExist.value)) {
+				|| (rank.getRankList().size() < maxCount && (outExist.value == null
+				|| compactor.compare(outExist.value.getDynamic().getBean(), value) <= 0))) {
 			BRankValue tempVar2 = new BRankValue();
 			tempVar2.setRoleId(roleId);
 			tempVar2.getDynamic().setBean(value);
