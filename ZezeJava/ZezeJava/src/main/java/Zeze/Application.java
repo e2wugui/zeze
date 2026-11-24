@@ -282,7 +282,7 @@ public final class Application extends ReentrantLock {
 			appBase = app;
 			if (timer == null && !isNoDatabase() && redirect != null)
 				timer = Timer.create(app);
-			if (null != timer)
+			if (timer != null && safeBatch == null)
 				safeBatch = new SafeBatch(this);
 		} finally {
 			unlock();
