@@ -72,19 +72,24 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 	}
 
 	@Override
+	void onLongOffset() {
+		if (off != 0x1fff + 320)
+			return;
+		// Consume the escape at the token boundary, including when flush finishes a preceding MPPC tuple.
+		off = -1;
+		int buffered = rem;
+		int wholeBits = pos & ~7;
+		rem = 0;
+		pos = 0;
+		blockState = 0;
+		for (int shift = wholeBits - 8; shift >= 0; shift -= 8)
+			update((byte)(buffered >> shift));
+	}
+
+	@Override
 	public void update(byte c) throws CodecException {
 		if (blockState == -1) {
 			super.update(c);
-			if (off == 0x1fff + 320) { // enter block mode
-				off = -1;
-				int r = rem;
-				int p = pos;
-				rem = 0;
-				pos = 0;
-				blockState = 0;
-				for (p &= ~7; (p -= 8) >= 0; )
-					update((byte)(r >> p));
-			}
 		} else if (blockState == -2) {
 			srcBuf[srcBufLen++] = c;
 			if (srcBufLen == srcBuf.length)
@@ -114,20 +119,9 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 	@Override
 	public void update(byte [] data, int pos, int len) throws CodecException {
 		for (int end = pos + len; pos < end; ) {
-			if (blockState == -1) {
-				super.update(data[pos++]);
-				if (off == 0x1fff + 320) { // enter block mode
-					off = -1;
-					int r = rem;
-					int p = this.pos; // 参数pos是数组下标，遮蔽了基类位计数字段，这里必须用this.pos
-					rem = 0;
-					this.pos = 0;
-					blockState = 0;
-					for (p &= ~7; (p -= 8) >= 0; )
-						update((byte)(r >> p));
-					flushBufferedBlockData();
-				}
-			} else if (blockState == -2) {
+			if (blockState != -2) {
+				update(data[pos++]);
+			} else {
 				// 单字节入口留下的前缀必须先送入解压器，数组后缀不能越过它。
 				flushBufferedBlockData();
 				len = Math.min(blockSize, end - pos);
@@ -135,19 +129,6 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 					blockState = 0;
 				ds.decompress(data, pos, pos + len, sink);
 				pos += len;
-			} else if (blockState >= 0) {
-				int c = data[pos++];
-				if (c < 0) {
-					blockSize += (c & 0x7f) << blockState;
-					blockState += 7;
-					if (blockState >= 31)
-						throw new CodecException("blockSize overflow");
-				} else {
-					blockSize += c << blockState;
-					blockState = blockSize == 0 ? -1 : -2;
-				}
-				if (blockSize < 0)
-					throw new CodecException("blockSize overflow");
 			}
 		}
 	}
@@ -161,21 +142,9 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 
 	@Override
 	public void flush() throws CodecException {
-		if (blockState == -1) {
-			// 逃逸码恰在本读分段内完整到达时不能交给super.flush()：它会解出off=8511并把随后的
-			// 零填充位当作len=3元组输出垃圾（进块检查只挂在update路径上，flush路径需在此自查）。
-			// off<0守卫：off>=0表示正在等合法元组的len位，其位前缀可能恰好形如逃逸码。
-			if (off < 0 && pos >= 16 && ((rem << (32 - pos)) >>> 16) == (0xc000 + 0x1fff)) {
-				int r = rem;
-				int p = pos - 16; // 去掉逃逸码，剩余是填充位（正常此时无整字节，防御性重喂与update一致）
-				rem = 0;
-				pos = 0;
-				blockState = 0;
-				for (p &= ~7; (p -= 8) >= 0; )
-					update((byte)(r >> p));
-			} else
-				super.flush();
-		} else {
+		if (blockState == -1)
+			super.flush();
+		else {
 			flushBufferedBlockData();
 			sink.flush();
 		}

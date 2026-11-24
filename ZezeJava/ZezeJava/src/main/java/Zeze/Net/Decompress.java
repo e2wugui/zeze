@@ -97,6 +97,7 @@ public class Decompress implements Codec {
 			} else if (val < 0xe000_0000L) { // 110x xxxx xxxx xxxx
 				off = (((int)val >> 16) & 0x1fff) + 320;
 				pos -= 16;
+				onLongOffset();
 			} else if (val < 0xf000_0000L) { // 1110 xxxx xxxx
 				off = (((int)val >> 20) & 0xff) + 64;
 				pos -= 12;
@@ -149,6 +150,9 @@ public class Decompress implements Codec {
 			output(off, len);
 			off = -1;
 		}
+	}
+
+	void onLongOffset() {
 	}
 
 	@Override
