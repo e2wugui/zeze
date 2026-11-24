@@ -80,7 +80,8 @@ public class ProviderDirectService extends HandshakeBoth {
 			var ps = providerByLoadName.get(connName);
 			if (ps != null) {
 				// connection has ready.
-				var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
+				var prefix = Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix);
+				var mid = Integer.parseInt(pm.getServiceName().substring(prefix.length()));
 				// requireProviderApp().modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
 				// 锁序：PDS锁→providerApp锁，单向，无反向路径。只锁读取，setReady保持锁外。
 				BModule.Data m;
@@ -275,13 +276,14 @@ public class ProviderDirectService extends HandshakeBoth {
 			// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 			//noinspection DataFlowIssue
 			for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
-				if (ss.getServiceName().startsWith(Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix))) {
+				var prefix = Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix);
+				if (ss.getServiceName().startsWith(prefix)) {
 					// ps.appVersion 属于linkd侧会话（announce时设置），direct会话永远为0，
 					// 配置AppVersion后用0查版本桶会得到null导致setReady全部跳过，改用本机配置版本。
 					var infos = ss.getServiceInfos(getZeze().getConfig().getAppMainVersion());
 					if (infos == null)
 						continue;
-					var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
+					var mid = Integer.parseInt(ss.getServiceName().substring(prefix.length()));
 					// requireProviderApp().modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
 					BModule.Data m;
 					requireProviderApp().lock();

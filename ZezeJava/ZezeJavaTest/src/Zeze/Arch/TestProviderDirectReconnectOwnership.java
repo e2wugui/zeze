@@ -36,6 +36,19 @@ import static org.junit.jupiter.api.Assertions.*;
 @Fast
 @Isolated
 public class TestProviderDirectReconnectOwnership {
+	@Test
+	void configuredPrefixRoutesHandshakeAndLaterDiscovery() throws Exception {
+		try (var env = new Environment(true)) {
+			var socket = env.connect();
+			var states = env.subscription.getLocalStates();
+			assertEquals(socket.getSessionId(), assertInstanceOf(ProviderModuleState.class,
+					states.remove(Environment.REMOTE_ID_STRING)).sessionId);
+			env.client.addServer(new BServiceInfo(Environment.PREFIX + Environment.MODULE,
+					Environment.REMOTE_ID_STRING, 0, "127.0.0.1", env.port));
+			assertEquals(socket.getSessionId(), assertInstanceOf(ProviderModuleState.class,
+					states.get(Environment.REMOTE_ID_STRING)).sessionId);
+		}
+	}
 
 	@Test
 	void oldCloseKeepsTheReconnectedRoutes() throws Exception {
@@ -155,7 +168,7 @@ public class TestProviderDirectReconnectOwnership {
 	private static final class Environment implements AutoCloseable {
 		static final int REMOTE_ID = 99; // No database/app start; server IDs need no shared allocation.
 		static final String REMOTE_ID_STRING = "99";
-		static final String PREFIX = "DirectReconnect#";
+		static final String PREFIX = "Direct#Reconnect:";
 		static final int MODULE = 42;
 		final Application app;
 		final ControlledService client;
