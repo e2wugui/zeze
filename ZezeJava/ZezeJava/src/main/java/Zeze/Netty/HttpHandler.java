@@ -62,6 +62,11 @@ public class HttpHandler {
 		WebSocketHandle = webSocketHandle;
 	}
 
+	public HttpHandler(@Nullable TransactionLevel level, @Nullable DispatchMode mode,
+						   HttpWebSocketHandle webSocketHandle) {
+		this(64 * 1024, level, mode, webSocketHandle);
+	}
+
 	public final boolean isStreamMode() {
 		return BeginStreamHandle != null;
 	}

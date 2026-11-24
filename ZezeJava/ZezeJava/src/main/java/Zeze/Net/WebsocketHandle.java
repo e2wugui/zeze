@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Netty.HttpExchange;
+import Zeze.Netty.HttpHandler;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.HttpWebSocketHandle;
 import Zeze.Transaction.DispatchMode;
@@ -20,6 +21,7 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 	private final String path;
 	private @Nullable HttpServer httpServer;
 	private @Nullable Service service;
+	private @Nullable HttpHandler registeredHandler;
 	private final ConcurrentHashMap<HttpExchange, Websocket> websockets = new ConcurrentHashMap<>();
 
 	public WebsocketHandle(String path, HttpServer httpServer) {
@@ -31,18 +33,24 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 		this.path = e.getAttribute("Path");
 	}
 
-	public void start() {
+	public synchronized void start() {
 		if (null == httpServer)
 			//noinspection DataFlowIssue
 			httpServer = getService().getZeze().getAppBase().getHttpServer();
 		if (null == httpServer)
 			throw new IllegalStateException("httpServer not found.");
-		httpServer.addHandler(path, TransactionLevel.None, DispatchMode.Direct,this);
+		var handler = new HttpHandler(TransactionLevel.None, DispatchMode.Direct, this);
+		httpServer.addHandler(path, handler);
+		registeredHandler = handler;
 	}
 
-	public void stop() {
-		if (httpServer != null)
-			httpServer.removeHandler(path);
+	public synchronized void stop() {
+		var server = httpServer;
+		var handler = registeredHandler;
+		if (server != null && handler != null) {
+			server.removeHandler(path, handler);
+			registeredHandler = null;
+		}
 	}
 
 	@Override

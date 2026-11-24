@@ -516,7 +516,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	public void addHandler(String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
 						   HttpWebSocketHandle webSocketHandle) {
-		addHandler(path, new HttpHandler(64 * 1024, level, mode, webSocketHandle));
+		addHandler(path, new HttpHandler(level, mode, webSocketHandle));
 	}
 
 	public void addHandler(String path, HttpHandler handler) {
@@ -577,6 +577,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	public void removeHandler(String path) {
 		if (handlers.remove(path) != null)
+			Netty.logger.debug("removeHandler: {}", path);
+	}
+
+	/** Removes an exact-path registration if it still refers to the supplied handler. */
+	public void removeHandler(String path, HttpHandler handler) {
+		if (handlers.remove(path, handler))
 			Netty.logger.debug("removeHandler: {}", path);
 	}
 
