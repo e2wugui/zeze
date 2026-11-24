@@ -239,21 +239,27 @@ public class Daemon {
 
 	// Daemon.class 仅仲裁销毁，进程确认终止后才清空引用，防止提前重启。
 	// 诊断、销毁和 join 须在锁外执行，避免 join 等待正在争用此锁的 Monitor。
-	@SuppressWarnings("ConstantConditions") // 保留锁外对子进程快照的防御检查。
 	private static void destroySubprocess() throws InterruptedException {
 		destroySubprocess(false);
 	}
 
 	private static void destroySubprocess(boolean authorityExpired) throws InterruptedException {
 		Process p;
+		boolean alreadyDestroying;
 		synchronized (Daemon.class) {
 			p = subprocess;
-			if (p == null || destroyingSubprocess)
+			if (p == null)
 				return;
+			alreadyDestroying = destroyingSubprocess;
 			destroyingSubprocess = true;
 		}
-		if (p == null)
+		if (alreadyDestroying) {
+			// 普通销毁可能仍在采集诊断或等待优雅退出。权限到期必须立即强杀，
+			// 原销毁调用继续负责确认退出和清理子进程引用。
+			if (authorityExpired)
+				p.destroyForcibly();
 			return;
+		}
 		// 权限过期后直接强杀，诊断和优雅退出不得延长保存窗口。
 		if (!authorityExpired) try {
 			var pid = String.valueOf(p.pid());
