@@ -382,8 +382,12 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			if (null != stateMachine.getTransactions().putIfAbsent(tid, txn))
 				return errorCode(eDuplicateTid);
 
-			getRaft().appendLog(new LogPrepareBatch(r), r.Result,
-					(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
+			final var pendingTxn = txn;
+			getRaft().appendLog(new LogPrepareBatch(r), r.Result, (raftLog, result) -> {
+				if (!result && stateMachine.getTransactions().remove(tid, pendingTxn))
+					pendingTxn.close();
+				r.SendResultCode(result ? 0 : Procedure.CancelException);
+			});
 
 			// 操作成功，释放所有权。see finally.
 			txn = null;
