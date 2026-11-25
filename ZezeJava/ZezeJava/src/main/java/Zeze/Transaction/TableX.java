@@ -1324,7 +1324,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				return getLocalRocksCacheTable().find(this, key);
 			} catch (GoBackZeze e) {
-				if (currentT != null && currentT.isRunning() || tryCount >= 256)
+				if (currentT != null && !currentT.isCompleted() || tryCount >= 256)
 					throw e;
 			}
 			try {

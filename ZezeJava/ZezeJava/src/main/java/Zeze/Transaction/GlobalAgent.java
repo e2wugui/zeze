@@ -68,7 +68,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		@Contract("_, _ -> fail")
 		private static void throwException(String msg, @Nullable Throwable cause) {
 			var txn = Transaction.getCurrent();
-			if (txn != null)
+			if (txn != null && !txn.isCompleted())
 				txn.throwAbort(msg, cause);
 			throw new IllegalStateException(msg, cause);
 		}
@@ -185,7 +185,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		if (agent.isReleasing()) {
 			agent.setFastFail();
 			var trans = Transaction.getCurrent();
-			if (trans == null)
+			if (trans == null || trans.isCompleted())
 				throw new GoBackZeze("Acquire In Releasing");
 			trans.throwAbort("Acquire In Releasing", null);
 		}
@@ -206,7 +206,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		} catch (Throwable e) { // rethrow GoBackZeze
 			agent.setFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
 			var trans = Transaction.getCurrent();
-			if (trans == null)
+			if (trans == null || trans.isCompleted())
 				throw new GoBackZeze("Acquire Failed", e);
 			trans.throwAbort("Acquire Failed", e);
 			// never run here
@@ -219,7 +219,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 			var tableId = (int)ByteBuffer.ToLong(gkey.bytesUnsafe(), gkey.getOffset(), Math.min(4, gkey.size()));
 			var msg = "Acquire Failed: " + gkey + " tableId=" + tableId;
 			var trans = Transaction.getCurrent();
-			if (trans == null)
+			if (trans == null || trans.isCompleted())
 				throw new GoBackZeze(msg);
 			trans.throwAbort(msg, null);
 			// never run here
