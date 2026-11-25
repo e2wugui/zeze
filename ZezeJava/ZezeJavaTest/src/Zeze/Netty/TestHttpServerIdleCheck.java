@@ -87,6 +87,17 @@ public class TestHttpServerIdleCheck {
 		uploadServer.addHandler("/upload", 1024 * 1024, TransactionLevel.None, DispatchMode.Direct,
 				x -> x.sendPlainText(io.netty.handler.codec.http.HttpResponseStatus.OK,
 						Integer.toString(x.content().readableBytes())));
+		uploadServer.addHandler("/h2stream", 8192, TransactionLevel.None, DispatchMode.Normal, x -> {
+			var headers = HttpServer.setDate(new io.netty.handler.codec.http.DefaultHttpHeaders())
+					.set(io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=utf-8");
+			x.beginStream(io.netty.handler.codec.http.HttpResponseStatus.OK, headers);
+			for (int i = 0; i < 8; i++) {
+				//noinspection BusyWait
+				Thread.sleep(500);
+				x.sendStream(("chunk-" + i + "\n").getBytes(StandardCharsets.UTF_8));
+			}
+			x.endStream();
+		});
 		uploadPort = ((InetSocketAddress)uploadServer.start(netty, 0).sync().channel().localAddress()).getPort();
 	}
 
@@ -160,6 +171,21 @@ public class TestHttpServerIdleCheck {
 			for (var line = br.readLine(); line != null && !line.isEmpty(); line = br.readLine()) {
 				// 消化响应头
 			}
+		}
+	}
+
+	// HTTP/2 服务端单向持续写流（每500ms写一个小块持续4秒，超过read=2/write=3超时阈值，
+	// 期间客户端不发入站帧且未达窗口更新阈值）：H2ActivityMarker.write须更新写活跃标记，不得误杀。
+	@Test
+	public void testH2ActiveStreamWriteNotKilled() throws Exception {
+		try (var client = new H2TestClient()) {
+			client.connect(uploadPort);
+			var result = client.request(io.netty.handler.codec.http.HttpMethod.GET, "/h2stream", null).await();
+			Assertions.assertEquals(io.netty.handler.codec.http.HttpResponseStatus.OK, result.status());
+			var expected = new StringBuilder();
+			for (int i = 0; i < 8; i++)
+				expected.append("chunk-").append(i).append('\n');
+			Assertions.assertEquals(expected.toString(), result.bodyText());
 		}
 	}
 }

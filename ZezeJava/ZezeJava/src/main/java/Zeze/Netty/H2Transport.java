@@ -4,10 +4,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
@@ -127,7 +128,7 @@ public final class H2Transport {
 				pipeline.remove(server);
 				// HttpServer移出父管线后channelInactive不可达：挂closeFuture从channels收口。
 				ctx.channel().closeFuture().addListener(f -> server.channels.remove(ctx.channel()));
-				pipeline.addLast(new H2ReadActivityMarker());
+				pipeline.addLast(new H2ActivityMarker());
 				pipeline.addLast(createFrameCodec());
 				pipeline.addLast(new Http2MultiplexHandler(createStreamInitializer(server)));
 			}
@@ -135,15 +136,22 @@ public final class H2Transport {
 		}
 	}
 
-	// h2父连接的读活跃清零：h1下由HttpExchange.channelRead清idleTimeKey，h2换栈后父管线无
-	// HttpServer——上载方向活跃（服务端只收不发）会累计idle被checkTimeout误判CLOSE_TIMEOUT。
-	// 写方向的活跃检测不经此（checkTimeout0直读channel.unsafe().outboundBuffer的进度哈希，
-	// 帧写出同样改变它，天然覆盖h2）。
-	private static final class H2ReadActivityMarker extends ChannelInboundHandlerAdapter {
+	// h2父连接的读写活跃标记：h1下由HttpExchange.channelRead清idleTimeKey、HttpResponseEncoder.write
+	// 置outBufHashKey，h2换栈后父管线无二者——上载方向活跃（服务端只收不发）或单向持续推流（服务端
+	// 周期写小块迅速flush，checkTimeout0采样瞬间outboundBuffer.current()为null）都会累计idle被
+	// checkTimeout误判CLOSE_TIMEOUT。本handler位于Http2FrameCodec之前（靠近head），同时截获入站
+	// 读与出站写帧以维护父连接活跃状态。
+	private static final class H2ActivityMarker extends ChannelDuplexHandler {
 		@Override
 		public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 			ctx.channel().attr(HttpServer.idleTimeKey).set(null);
 			super.channelRead(ctx, msg);
+		}
+
+		@Override
+		public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+			HttpServer.onBeforeWrite(ctx.channel());
+			super.write(ctx, msg, promise);
 		}
 	}
 }
