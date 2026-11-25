@@ -137,7 +137,7 @@ public final class FastServerIds {
 	public static final int TEST_APPLICATION_RESTART_CONTRACT = seg("TestApplicationRestartContract", 7470, 1);
 	public static final int TEST_GAME_LINK_BROKEN_TRIGGER_RC = seg("TestGameLinkBrokenTriggerRc", 7480, 4);
 	public static final int TEST_CLEAR_TABLE_CACHE_TIMERS = seg("TestClearTableCacheTimers", 7490, 2);
-	public static final int TEST_HOT_UPGRADE_MEMORY_TABLE_DATA = seg("TestHotUpgradeMemoryTableData", 7500, 1);
+	public static final int TEST_HOT_UPGRADE_MEMORY_TABLE_DATA = seg("TestHotUpgradeMemoryTableData", 7500, 3);
 	public static final int TEST_LINKED_MAP_BROKEN_DATA = seg("TestLinkedMapBrokenData", 7510, 4);
 	public static final int TEST_HOT_REPLACE_TABLE_CACHE_CLOSE = seg("TestHotReplaceTableCacheClose", 7520, 2);
 	public static final int TEST_DELAY_REMOVE_ON_TIMER = seg("TestDelayRemoveOnTimer", 7530, 3);
@@ -242,9 +242,6 @@ public final class FastServerIds {
 	public static final int TEST_STALE_LOCAL_OFFLINE_OWNERSHIP = seg("TestStaleLocalOfflineOwnership", 8090, 1);
 	public static final int TEST_ROCKS_MIRROR_LEGACY_KEYS = seg("TestRocksMirrorLegacyKeys", 8091, 1);
 	public static final int TEST_TABLEX_KEY_LENGTH_POLICY = seg("TestTableXKeyLengthPolicy", 8092, 1);
-
-	private FastServerIds() {
-	}
 	public static final int TEST_CHECKPOINT_STOP_WAKEUP = seg("TestCheckpointStopWakeup", 8093, 1);
 	public static final int TEST_RECORD_VERSION_VISIBILITY = seg("TestRecordVersionVisibility", 8094, 1);
 	public static final int TEST_SELECT_COPY_GO_BACK_PROPAGATION = seg("TestSelectCopyGoBackPropagation", 8095, 1);
@@ -255,4 +252,7 @@ public final class FastServerIds {
 	public static final int TEST_QUEUE_REMOVE_UNREGISTERS_HOT_REFS = seg("TestQueueRemoveUnregistersHotRefs", 8105, 3);
 	public static final int TEST_GAME_ONLINE_CROSS_SERVER_LOGIN_LOCAL_REMOVE = seg("TestGameOnlineCrossServerLoginLocalRemove", 8110, 4);
 	public static final int TEST_GAME_ONLINE_SEND_RPC_CLEANUP = seg("TestGameOnlineSendRpcCleanup", 8115, 2);
+
+	private FastServerIds() {
+	}
 }
