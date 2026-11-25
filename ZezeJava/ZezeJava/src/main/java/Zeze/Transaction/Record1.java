@@ -147,19 +147,30 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	public void commit(RecordAccessed accessed) {
 		enterFairLock();
 		try {
+			var oldValue = accessed.atomicTupleRecord.strongRef();
 			var committedPutLog = accessed.committedPutLog;
+			@Nullable Bean newValue;
 			if (committedPutLog != null) {
-				setSoftValue(committedPutLog.getValue());
+				newValue = committedPutLog.getValue();
+				setSoftValue(newValue);
 				// 内存表启用了soft，不能马上删除，按正常逻辑执行。
 				// 计算内存表的大小。
 				if (table.isMemory()) {
-					if (accessed.atomicTupleRecord.strongRef() == null && committedPutLog.getValue() != null) // add
+					if (oldValue == null && newValue != null) // add
 						table.requireCache().getSizeCounter().increment();
-					else if (accessed.atomicTupleRecord.strongRef() != null && committedPutLog.getValue() == null) // remove
+					else if (oldValue != null && newValue == null) // remove
 						table.requireCache().getSizeCounter().decrement();
 				}
+			} else {
+				newValue = oldValue;
 			}
-			setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
+			if (newValue != null) {
+				// 删除后再次插入时，version 从 0 开始。
+				// 必须在 setTimestamp 和 exitFairLock 之前更新，确保并发读事务拿到新 timestamp 时可见新 version。
+				var oldVersion = oldValue != null ? oldValue.version() : 0;
+				newValue.version(oldVersion + 1);
+			}
+			setTimestamp(getNextTimestamp()); // 必须在 Value = 和 version 更新之后设置。防止出现新的事务得到新的Timestamp，但是数据或version是旧的。
 			setDirty();
 		} finally {
 			exitFairLock();

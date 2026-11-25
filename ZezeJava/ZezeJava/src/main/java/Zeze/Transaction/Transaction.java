@@ -607,16 +607,8 @@ public final class Transaction {
 				lastSp.commit();
 				for (var v : accessedRecords.values()) {
 					v.atomicTupleRecord.record().setNotFresh();
-					if (v.dirty) {
+					if (v.dirty)
 						v.atomicTupleRecord.record().commit(v);
-						var newValue = v.atomicTupleRecord.record().getSoftValue();
-						if (newValue != null) {
-							// 删除后再次插入时，version 从 0 开始。
-							var oldValue = v.atomicTupleRecord.strongRef();
-							var oldVersion = oldValue != null ? oldValue.version() : 0;
-							newValue.version(oldVersion + 1);
-						}
-					}
 				}
 			} catch (Throwable e) {
 				logger.fatal("finalCommit({}) exception:", proc, e);
