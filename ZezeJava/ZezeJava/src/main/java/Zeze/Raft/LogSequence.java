@@ -18,6 +18,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.zip.ZipFile;
@@ -459,6 +460,23 @@ public class LogSequence {
 			var key = ByteBuffer.Allocate(32);
 			//noinspection DataFlowIssue
 			log.getLog().getUnique().encode(key);
+			if (batch != null)
+				table.delete(batch, key.Bytes, 0, key.WriteIndex);
+			else
+				table.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
+		}
+
+		// 仅在日志库中对应存根仍为未应用态（!isApplied）时删除，避免误删非原子状态机的已应用存根。
+		public void removeIfNotApplied(UniqueRequestId unique, RocksDatabase.@Nullable Batch batch) throws RocksDBException {
+			var key = ByteBuffer.Allocate(32);
+			unique.encode(key);
+			var val = table.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
+			if (val == null)
+				return;
+			var state = new UniqueRequestState();
+			state.decode(ByteBuffer.Wrap(val));
+			if (state.isApplied())
+				return;
 			if (batch != null)
 				table.delete(batch, key.Bytes, 0, key.WriteIndex);
 			else
@@ -1559,13 +1577,22 @@ public class LogSequence {
 				// 所以最后一个trunk带上LastIncludedLog，接收者清除log后插入这条边界日志。
 				logger.info("endReceiveInstallSnapshot: close logs: {}", raft.getRaftConfig().getDbHome());
 				cancelPendingAppendLogFutures();
+				// logs.drop() 前采集所有未应用（index > lastApplied）的唯一请求键，避免被丢弃的未提交日志
+				// 在日志库中残留 !isApplied 存根，导致客户端后续以相同 UniqueRequestId 重试被永久 DuplicateRequest 拦截。
+				var uncommittedUniqueRequests = collectUncommittedUniqueRequests();
 				//noinspection DataFlowIssue
 				logs.drop();
 				//noinspection DataFlowIssue
 				logs = database.getOrAddTable(raft.getName() + ".logs");
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
-				saveLog(lastIncludedLog);
+				//noinspection DataFlowIssue
+				try (var batch = database.borrowBatch()) {
+					saveLog(lastIncludedLog, batch);
+					for (var stub : uncommittedUniqueRequests)
+						openUniqueRequests(stub.getKey()).removeIfNotApplied(stub.getValue(), batch);
+					batch.commit(writeOptions);
+				}
 				commitSnapshotNow(entry.path, lastIncludedLog.getIndex());
 
 				lastIndex = lastIncludedLog.getIndex();
@@ -1603,6 +1630,30 @@ public class LogSequence {
 			raft.receiveSnapshotting.removeIdentity(r.Argument.getLastIncludedIndex(), entry);
 			raft.unlock();
 		}
+	}
+
+	private ArrayList<Map.Entry<Long, UniqueRequestId>> collectUncommittedUniqueRequests() throws RocksDBException {
+		var uncommitted = new ArrayList<Map.Entry<Long, UniqueRequestId>>();
+		var startKey = ByteBuffer.Allocate(9);
+		startKey.WriteLong(lastApplied + 1);
+		//noinspection DataFlowIssue
+		try (var it = logs.iterator()) {
+			for (it.seek(startKey.CopyIf()); RocksDatabase.isValidOrThrow(it); it.next()) {
+				var index = ByteBuffer.Wrap(it.key()).ReadLong();
+				if (index <= lastApplied)
+					continue;
+				try {
+					var raftLog = RaftLog.decode(new Binary(it.value()), raft.getStateMachine()::logFactory);
+					var log = raftLog.getLog();
+					if (log != null && log.getUnique().getRequestId() > 0)
+						uncommitted.add(Map.entry(log.getCreateTime(), log.getUnique()));
+				} catch (Throwable e) {
+					logger.warn("{} collectUncommittedUniqueRequests decode log({}) failed, skip.",
+							raft.getName(), index, e);
+				}
+			}
+		}
+		return uncommitted;
 	}
 
 	public void snapshot() throws Exception {
