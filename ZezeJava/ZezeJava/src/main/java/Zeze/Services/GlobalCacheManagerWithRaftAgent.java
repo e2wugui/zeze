@@ -1,8 +1,10 @@
 package Zeze.Services;
 
 import java.util.Objects;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
+import Zeze.Config;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
@@ -19,8 +21,10 @@ import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Id128;
+import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -71,14 +75,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				//noinspection DataFlowIssue
 				agent.getRaftClient().getClient().start();
 
-			for (var agent : agents) {
-				try {
-					agent.waitLoginSuccess();
-				} catch (Exception ignored) {
-					// raft 登录需要选择leader，所以总是会起新的登录，第一次等待会失败，所以下面尝试两次。
-					agent.waitLoginSuccess();
-				}
-			}
+			for (var agent : agents)
+				agent.waitLoginSuccess();
 		} finally {
 			unlock();
 		}
@@ -263,11 +261,15 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	// 3. 【ReLogin】没有数据修改，完全允许重复，并且不判断唯一性。
 	// 4. Raft 高可用性，所以认为服务器永远不会关闭，就不需要处理服务器关闭时清理本地状态。
 	public static class RaftAgent extends GlobalAgentBase {
+		private static final long LOGIN_RETRY_MIN_DELAY_MS = 500;
+		private static final long LOGIN_RETRY_MAX_DELAY_MS = 1000;
+
 		private final GlobalCacheManagerWithRaftAgent globalCacheManagerWithRaftAgent;
 		private final Agent raftClient;
 		private final AtomicLong loginTimes = new AtomicLong();
 		private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
-		private boolean activeClose;
+		private @Nullable ScheduledFuture<?> loginRetryTask;
+		private volatile boolean activeClose;
 		private volatile long lastErrorTime;
 
 		void verifyFastFail() {
@@ -356,6 +358,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				if (activeClose)
 					return;
 				activeClose = true;
+				cancelLoginRetryTask();
+				loginFuture.cancel(true);
 			} finally {
 				unlock();
 			}
@@ -387,32 +391,88 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		public final void waitLoginSuccess() {
-			var volatileTmp = loginFuture;
-			if (volatileTmp.isDone()) {
-				if (volatileTmp.get())
-					return;
-				throw new IllegalStateException("login fail.");
+			var deadline = System.currentTimeMillis() + getConfig().loginTimeout;
+			for (; ; ) {
+				if (activeClose)
+					throw new IllegalStateException("GlobalCacheManagerWithRaftAgent closed.");
+				var volatileTmp = loginFuture;
+				if (volatileTmp.isDone() || volatileTmp.await(Math.max(1, deadline - System.currentTimeMillis()))) {
+					if (activeClose)
+						throw new IllegalStateException("GlobalCacheManagerWithRaftAgent closed.");
+					try {
+						if (Boolean.TRUE.equals(volatileTmp.get()))
+							return;
+						throw new IllegalStateException("login fail.");
+					} catch (IllegalStateException e) {
+						throw e;
+					} catch (Throwable ignored) {
+						// 等待期间raftOnSetLeader执行startNewLogin，cancel旧future并替换；
+						// 被替换不是失败，重读最新future继续等待至deadline。
+						if (volatileTmp == loginFuture)
+							throw new IllegalStateException("login canceled.");
+					}
+				}
+				if (activeClose)
+					throw new IllegalStateException("GlobalCacheManagerWithRaftAgent closed.");
+				if (System.currentTimeMillis() >= deadline)
+					throw new IllegalStateException("login timeout.");
 			}
-			if (!volatileTmp.await(getConfig().loginTimeout))
-				throw new IllegalStateException("login timeout.");
-			// 再次查看结果。
-			if (volatileTmp.isDone() && volatileTmp.get())
-				return;
-			// 只等待一次，不成功则失败。
-			throw new IllegalStateException("login timeout.");
 		}
 
-		private TaskCompletionSource<Boolean> startNewLogin() {
+		private void cancelLoginRetryTask() {
+			var task = loginRetryTask;
+			if (task != null) {
+				loginRetryTask = null;
+				task.cancel(false);
+			}
+		}
+
+		private @Nullable TaskCompletionSource<Boolean> startNewLogin() {
 			lock();
 			try {
-				loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
-				return loginFuture = new TaskCompletionSource<>();
+				cancelLoginRetryTask();
+				var old = loginFuture;
+				if (activeClose) {
+					old.cancel(true);
+					return null;
+				}
+				var next = new TaskCompletionSource<Boolean>();
+				loginFuture = next;
+				old.cancel(true); // 先发布新future再取消旧future，避免等待者误抛CancellationException触发FastFail。
+				return next;
+			} finally {
+				unlock();
+			}
+		}
+
+		private void scheduleLoginRetry(Agent agent, Config config, TaskCompletionSource<Boolean> future, int attempt) {
+			if (activeClose || future != loginFuture)
+				return;
+			long delayMs = attempt <= 1 ? LOGIN_RETRY_MIN_DELAY_MS : LOGIN_RETRY_MAX_DELAY_MS;
+			lock();
+			try {
+				if (activeClose || future != loginFuture)
+					return;
+				cancelLoginRetryTask();
+				loginRetryTask = TaskSpec.ofAction(() -> {
+					lock();
+					try {
+						if (activeClose || future != loginFuture)
+							return;
+						loginRetryTask = null;
+					} finally {
+						unlock();
+					}
+					sendLogin(agent, config, future, attempt + 1);
+				}).name("GlobalCacheManagerWithRaftAgent.LoginRetry").scheduleNow(delayMs);
 			} finally {
 				unlock();
 			}
 		}
 
 		private void raftOnSetLeader(Agent agent) {
+			if (activeClose)
+				return;
 			var client = agent.getClient();
 			if (client == null)
 				return;
@@ -421,17 +481,33 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				return;
 			var config = zeze.getConfig();
 			var future = startNewLogin();
+			if (future == null)
+				return;
+			sendLogin(agent, config, future, 1);
+		}
 
+		private void sendLogin(Agent agent, Config config, TaskCompletionSource<Boolean> future, int attempt) {
+			if (activeClose || future != loginFuture)
+				return;
 			if (loginTimes.get() == 0) {
 				var login = new Login();
 				login.Argument.setServerId(config.getServerId());
 				login.Argument.setGlobalCacheManagerHashIndex(globalCacheManagerHashIndex);
+				login.Argument.setDebugMode(Reflect.inDebugMode);
+				login.setTimeout(config.getGlobalCacheManagerLoginTimeout());
 
 				agent.send(login, p -> {
+					if (activeClose || future != loginFuture)
+						return 0;
 					var rpc = (Login)p;
-					if (rpc.isTimeout() || rpc.getResultCode() != 0) {
-						logger.error("Login Timeout Or ResultCode != 0. Code={}", rpc.getResultCode());
-						// 这里不记录future失败，等待raft通知新的Leader启动新的Login。让外面等待的线程一直等待。
+					var rc = rpc.getResultCode();
+					if (rpc.isTimeout() || rc != 0) {
+						logger.error("Login Timeout Or ResultCode != 0. isTimeout={}, Code={}",
+								rpc.isTimeout(), rc);
+						if (rpc.isTimeout() || rc == GlobalCacheManagerConst.LoginBindSocketFail
+								|| rc == Procedure.RaftRetry) {
+							scheduleLoginRetry(agent, config, future, attempt);
+						}
 					} else {
 						setActiveTime(System.currentTimeMillis());
 						loginTimes.getAndIncrement();
@@ -445,11 +521,21 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				var relogin = new ReLogin();
 				relogin.Argument.setServerId(config.getServerId());
 				relogin.Argument.setGlobalCacheManagerHashIndex(globalCacheManagerHashIndex);
+				relogin.Argument.setDebugMode(Reflect.inDebugMode);
+				relogin.setTimeout(config.getGlobalCacheManagerLoginTimeout());
+
 				agent.send(relogin, p -> {
+					if (activeClose || future != loginFuture)
+						return 0;
 					var rpc = (ReLogin)p;
-					if (rpc.isTimeout() || rpc.getResultCode() != 0) {
-						logger.error("ReLogin Timeout Or ResultCode != 0. Code={}", rpc.getResultCode());
-						// 这里不记录future失败，等待raft通知新的Leader启动新的Login。让外面等待的线程一直等待。
+					var rc = rpc.getResultCode();
+					if (rpc.isTimeout() || rc != 0) {
+						logger.error("ReLogin Timeout Or ResultCode != 0. isTimeout={}, Code={}",
+								rpc.isTimeout(), rc);
+						if (rpc.isTimeout() || rc == GlobalCacheManagerConst.ReLoginBindSocketFail
+								|| rc == Procedure.RaftRetry) {
+							scheduleLoginRetry(agent, config, future, attempt);
+						}
 					} else {
 						setActiveTime(System.currentTimeMillis());
 						loginTimes.getAndIncrement();
