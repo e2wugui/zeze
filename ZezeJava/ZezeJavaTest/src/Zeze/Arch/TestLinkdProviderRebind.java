@@ -11,12 +11,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import Zeze.Application;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
+import Zeze.Builtin.Provider.AnnounceProviderInfo;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
+import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
 import org.jspecify.annotations.Nullable;
@@ -140,6 +142,70 @@ public class TestLinkdProviderRebind {
 				close.join(5_000);
 				assertFalse(close.isAlive());
 			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static java.util.concurrent.ConcurrentHashMap<Integer, Zeze.Net.AsyncSocket> serverId2ProviderSocketOf(
+			LinkdProvider provider) throws Exception {
+		var f = LinkdProvider.class.getDeclaredField("serverId2ProviderSocket");
+		f.setAccessible(true);
+		return (java.util.concurrent.ConcurrentHashMap<Integer, Zeze.Net.AsyncSocket>)f.get(provider);
+	}
+
+	@Test
+	public void closedProviderAnnounceDoesNotLeakRoutesOrKickActiveReplacement() throws Exception {
+		Task.tryInitThreadPool();
+		try (var fixture = new Fixture(false)) {
+			var serverIdMap = serverId2ProviderSocketOf(fixture.providerModule);
+			var announceNew = new AnnounceProviderInfo();
+			announceNew.setSender(fixture.newProvider);
+			announceNew.Argument.setServiceNamePrefix("Server#");
+			announceNew.Argument.setServiceIdentity("7");
+			announceNew.Argument.setProviderDirectIp("127.0.0.1");
+			announceNew.Argument.setProviderDirectPort(20002);
+			fixture.providerModule.ProcessAnnounceProviderInfo(announceNew);
+
+			assertSame(fixture.newProvider, serverIdMap.get(7));
+			assertSame(fixture.newSession, fixture.providers.providerSessions.get("127.0.0.1_20002"));
+
+			// 旧连接先关闭，随后迟到的 AnnounceProviderInfo 不得写入路由表，更不得覆盖或踢掉活跃新连接。
+			fixture.oldProvider.close();
+			assertTrue(fixture.oldProvider.isClosed());
+
+			var announceOldSameServer = new AnnounceProviderInfo();
+			announceOldSameServer.setSender(fixture.oldProvider);
+			announceOldSameServer.Argument.setServiceNamePrefix("Server#");
+			announceOldSameServer.Argument.setServiceIdentity("7");
+			announceOldSameServer.Argument.setProviderDirectIp("127.0.0.1");
+			announceOldSameServer.Argument.setProviderDirectPort(20001);
+			fixture.providerModule.ProcessAnnounceProviderInfo(announceOldSameServer);
+
+			assertSame(fixture.newProvider, serverIdMap.get(7),
+					"closed provider announce must not overwrite active serverId route");
+			assertNull(fixture.providers.providerSessions.get("127.0.0.1_20001"),
+					"closed provider announce must not leak into providerSessions");
+			assertSame(fixture.newSession, fixture.providers.providerSessions.get("127.0.0.1_20002"));
+			assertFalse(fixture.newProvider.isClosed(),
+					"closed provider announce must not kick the active replacement connection");
+
+			var announceOldFreshServer = new AnnounceProviderInfo();
+			announceOldFreshServer.setSender(fixture.oldProvider);
+			announceOldFreshServer.Argument.setServiceNamePrefix("Server#");
+			announceOldFreshServer.Argument.setServiceIdentity("8");
+			announceOldFreshServer.Argument.setProviderDirectIp("127.0.0.1");
+			announceOldFreshServer.Argument.setProviderDirectPort(20003);
+			fixture.providerModule.ProcessAnnounceProviderInfo(announceOldFreshServer);
+
+			assertNull(serverIdMap.get(8),
+					"closed provider announce must not register a dead socket");
+			assertNull(fixture.providers.providerSessions.get("127.0.0.1_20003"),
+					"closed provider announce must not register a dead session");
+
+			// 活跃新连接后续正常关闭时，路由表必须按所有权清理干净。
+			fixture.newProvider.close();
+			assertNull(serverIdMap.get(7));
+			assertNull(fixture.providers.providerSessions.get("127.0.0.1_20002"));
 		}
 	}
 

@@ -299,19 +299,18 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		if (providerSession == null)
 			return;
 
-		// 条件删除：迟到的关闭事件不得误删同serverId的新会话注册
-		// （provider侧先发现半开连接并重连，新连接握手announce已put，旧连接的关闭回调后到）。
-		serverId2ProviderSocket.remove(providerSession.serverId, provider);
-		// providerSessions同样按所有权条件删除，避免直连ip/port改配或provider缩容时条目永久残留。
-		requireLinkdApp().linkdProviderService.providerSessions.remove(providerSession.getServerLoadName(), providerSession);
 		// 会话终结：取消其TimeCounter的每秒discard周期任务，避免随会话更替无界泄漏。
 		providerSession.timeCounter.close();
 
-		// unbind module
-		// 与ProcessBindRequest/ProcessSubscribeRequest的写入互斥（同一把monitor），
-		// 保证"bind写入"与"close清理"全序：要么bind先完成（这里能清到），
-		// 要么close先完成（bind在锁内发现isClosed跳过写入）。
+		// 与ProcessAnnounceProviderInfo/ProcessBindRequest/ProcessSubscribeRequest的写入互斥（同一把monitor），
+		// 保证"announce/bind写入"与"close清理"全序：要么写入先完成（这里能按所有权条件清到），
+		// 要么close先完成（写入路径在锁内发现isClosed跳过写入，避免死连接残留全局路由表或误踢活跃新连接）。
 		synchronized (providerSession.moduleBindsMonitor) {
+			// 条件删除：迟到的关闭事件不得误删同serverId的新会话注册
+			// （provider侧先发现半开连接并重连，新连接握手announce已put，旧连接的关闭回调后到）。
+			serverId2ProviderSocket.remove(providerSession.serverId, provider);
+			// providerSessions同样按所有权条件删除，避免直连ip/port改配或provider缩容时条目永久残留。
+			requireLinkdApp().linkdProviderService.providerSessions.remove(providerSession.getServerLoadName(), providerSession);
 			unBindModules(provider, providerSession.getStaticBinds().keySet(), true);
 			providerSession.getStaticBinds().clear();
 			// 动态模块（Subscribe注册的）同样清理：unBindModules内按sessionId条件移除，
@@ -671,26 +670,36 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		}
 
 		var session = Objects.requireNonNull((LinkdProviderSession)sender.getUserState());
-		session.setInfo(arg); // 全部记住
+		@Nullable AsyncSocket old;
+		int serverId;
+		synchronized (session.moduleBindsMonitor) {
+			if (sender.isClosed())
+				return Procedure.Success;
+			session.setInfo(arg); // 全部记住
 
-		// 下面再记录一份到其他需要的地方。这里有冗余。
-		serverServiceNamePrefix = arg.getServiceNamePrefix();
-		session.serverId = Integer.parseInt(arg.getServiceIdentity());
-		session.serverLoadIp = arg.getProviderDirectIp();
-		session.serverLoadPort = arg.getProviderDirectPort();
-		session.appVersion = arg.getAppVersion();
-		session.disableChoice = arg.isDisableChoice();
-		requireLinkdApp().linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
+			// 下面再记录一份到其他需要的地方。这里有冗余。
+			serverServiceNamePrefix = arg.getServiceNamePrefix();
+			serverId = Integer.parseInt(arg.getServiceIdentity());
+			session.serverId = serverId;
+			session.serverLoadIp = arg.getProviderDirectIp();
+			session.serverLoadPort = arg.getProviderDirectPort();
+			session.appVersion = arg.getAppVersion();
+			session.disableChoice = arg.isDisableChoice();
+			requireLinkdApp().linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
 
-		// 接管：同serverId只允许一条活跃连接，前任在宣布时终结，不依赖死亡检测
-		// （linkd对接受的连接不发keepalive，半开前任的检测滞后无上界）。
-		// 先put两张表再踢，读侧无空窗；被踢连接的onProviderClose按所有权条件清理，不会误删现任注册。
-		// 异步踢：close会在调用线程同步走完OnSocketClose→onProviderClose全链路
-		// （旧会话全部客户端的unbind与ReportError广播），不能在announce所在的io-thread上就地执行。
-		var old = serverId2ProviderSocket.put(session.serverId, sender);
-		if (old != null && old != sender)
-			TaskSpec.ofAction(() -> old.close(new IOException(
-					"superseded by new announce connection, serverId=" + session.serverId))).runNow();
+			// 接管：同serverId只允许一条活跃连接，前任在宣布时终结，不依赖死亡检测
+			// （linkd对接受的连接不发keepalive，半开前任的检测滞后无上界）。
+			// 先put两张表再踢，读侧无空窗；被踢连接的onProviderClose按所有权条件清理，不会误删现任注册。
+			// 异步踢：close会在调用线程同步走完OnSocketClose→onProviderClose全链路
+			// （旧会话全部客户端的unbind与ReportError广播），不能在announce所在的io-thread上就地执行。
+			old = serverId2ProviderSocket.put(serverId, sender);
+		}
+		if (old != null && old != sender) {
+			var finalOld = old;
+			var finalServerId = serverId;
+			TaskSpec.ofAction(() -> finalOld.close(new IOException(
+					"superseded by new announce connection, serverId=" + finalServerId))).runNow();
+		}
 		return Procedure.Success;
 	}
 
