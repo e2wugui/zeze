@@ -92,9 +92,10 @@ Game.Online是玩家角色在线管理器。OnlineSpec是给玩家发送协议�
 2. send,sendNow,... 发送方法。后缀Now的立即发送，其他的事务自适应：在事务
 场景下自动whileCommit。
 
-## TimerSpec
+## Timer
 Timer是个持久化定时器实现，会被调度到某一个GameServer执行，如果这个
 GameServer宕机，其他GameServer会接管。由于GameServer是多进程的，
 ScheduledThreadPool的本地timer有时不合适，需要Zeze-Timer。
-例子：TimerSpec.ofDelay(delay)...
-1. ofDelay,ofCron,ofMonth,ofWeek,ofDay... 
+例子：
+Timer.schedule(TimerSpec.ofDelay(delay)..., handle, customData)
+Timer.roles(roleId).online()...schedule();
