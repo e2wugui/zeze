@@ -1,16 +1,22 @@
 package Zeze.Netty;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import Zeze.Netty.HttpExchange;
+import Zeze.Netty.HttpFileUploadHandle;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpMethod;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -63,6 +69,60 @@ public class TestAbortedStreamCleanup {
 					break;
 				Assertions.assertTrue(System.currentTimeMillis() < deadline,
 						"中止流必须close exchange并从exchanges表移除: created=" + server.created.size()
+								+ " live=" + server.liveExchangeCount());
+				//noinspection BusyWait
+				Thread.sleep(20);
+			}
+		} finally {
+			server.close();
+			netty.close();
+		}
+	}
+
+	@Test
+	public void testServerCloseClosesInFlightH2Exchanges() throws Exception {
+		Task.tryInitThreadPool();
+		var netty = new Netty(1);
+		var server = new CollectingServer();
+		var hangEntered = new CountDownLatch(1);
+		var uploadEntered = new CountDownLatch(1);
+		var uploadChannel = new AtomicReference<@Nullable Channel>();
+
+		server.addHandler("/hang", 8192, TransactionLevel.None, DispatchMode.Normal, x -> {
+			x.detach();
+			hangEntered.countDown();
+		});
+		server.addHandler("/upload", TransactionLevel.None, DispatchMode.Normal, new HttpFileUploadHandle() {
+			@Override
+			public void onBeginStream(HttpExchange x, long from, long to, long size) throws Exception {
+				HttpFileUploadHandle.super.onBeginStream(x, from, to, size);
+				uploadChannel.set(x.channel());
+				uploadEntered.countDown();
+			}
+		});
+
+		try (var client = new H2TestClient()) {
+			var port = ((java.net.InetSocketAddress)server.start(netty, 0).sync().channel().localAddress()).getPort();
+			client.connect(port);
+
+			client.request(HttpMethod.GET, "/hang", null);
+			client.openPartialUploadStream(HttpMethod.POST, "/upload?filename=partial.bin", new byte[64]);
+
+			Assertions.assertTrue(hangEntered.await(10, TimeUnit.SECONDS), "挂起H2 handler须已进入");
+			Assertions.assertTrue(uploadEntered.await(10, TimeUnit.SECONDS), "流式上传H2 handler须已进入");
+
+			server.close();
+
+			var deadline = System.currentTimeMillis() + 10_000;
+			while (true) {
+				var upCh = uploadChannel.get();
+				var allClosed = server.created.size() == 2 && server.created.stream().allMatch(HttpExchange::isClosed);
+				var allReleased = server.created.stream().allMatch(x -> x.request() == null);
+				var uploadReleased = upCh != null && upCh.attr(HttpFileUploadHandle.fileUploadKey).get() == null;
+				if (allClosed && allReleased && uploadReleased && server.liveExchangeCount() == 0)
+					break;
+				Assertions.assertTrue(System.currentTimeMillis() < deadline,
+						"server.close()必须关闭全部在途H2 exchange并释放资源: created=" + server.created.size()
 								+ " live=" + server.liveExchangeCount());
 				//noinspection BusyWait
 				Thread.sleep(20);

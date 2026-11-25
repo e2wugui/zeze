@@ -411,8 +411,10 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			// 先关exchanges再shutdown派发队列：closeConnectionNow→closeInEventLoop→fireEndStreamHandle/
 			// fireWebSocket产生的收尾任务（onEndStream、retain的content/frame的release、multipart decoder
 			// destroy、上传临时文件清理）必须在队列置isShutdown之前进入队列，否则提交被丢弃/仅cancel补偿。
-			// janitor按channel遍历在途列表（pipelining下被覆盖出exchanges表的前序也要关）。
+			// janitor按channel遍历在途列表（pipelining下被覆盖出exchanges表的前序也要关）；
+			// HTTP/2子stream不登记responseOrderKey，须再遍历exchanges补关残留条目，避免在途H2 exchange泄漏。
 			channels.keySet().forEach(ch -> HttpExchange.closeInFlightExchanges(ch, HttpExchange.CLOSE_FORCE));
+			exchanges.values().forEach(HttpExchange::closeConnectionNow);
 			exchanges.clear();
 			// 空闲keep-alive连接（请求间隙，exchange已移除）也要关闭——否则停机后
 			// 客户端在旧连接发新请求，Normal处理器提交到已shutdown(true)的派发队列被静默丢弃，

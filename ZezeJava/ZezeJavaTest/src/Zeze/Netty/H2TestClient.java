@@ -104,6 +104,18 @@ final class H2TestClient implements AutoCloseable {
 		stream.close();
 	}
 
+	// 开stream发请求头与部分body但不发LastHttpContent（模拟在途流式上传）
+	Http2StreamChannel openPartialUploadStream(HttpMethod method, String path, byte [] firstChunk) throws Exception {
+		var stream = new Http2StreamChannelBootstrap(requireNonNull(connection)).open().sync().getNow();
+		stream.pipeline().addLast(new Http2StreamFrameToHttpObjectCodec(false));
+		var req = new io.netty.handler.codec.http.DefaultHttpRequest(HttpVersion.HTTP_1_1, method, path);
+		req.headers().set(HttpHeaderNames.HOST, "127.0.0.1");
+		req.headers().set(HttpHeaderNames.CONTENT_LENGTH, firstChunk.length * 4);
+		stream.write(req);
+		stream.writeAndFlush(new io.netty.handler.codec.http.DefaultHttpContent(Unpooled.wrappedBuffer(firstChunk))).sync();
+		return stream;
+	}
+
 	@Override
 	public void close() throws Exception {
 		if (connection != null)
