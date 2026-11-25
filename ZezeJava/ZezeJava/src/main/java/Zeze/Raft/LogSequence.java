@@ -1733,7 +1733,7 @@ public class LogSequence {
 
 			// 日志同步失败，调整NextIndex，再次尝试。
 			if (r.Result.getNextIndex() == 0)
-				connector.setNextIndex(connector.getNextIndex() - 1); // 默认的回退模式。
+				connector.setNextIndex(Math.max(firstIndex, connector.getNextIndex() - 1)); // 默认的回退模式，钳位到firstIndex。
 			else if (r.Result.getNextIndex() <= firstIndex) {
 				// leader snapshot，follower 完全没法匹配了，后续的 TrySendAppendEntries 将启动 InstallSnapshot。
 				connector.setNextIndex(firstIndex);
@@ -1776,10 +1776,11 @@ public class LogSequence {
 		if (connector.getNextIndex() > lastIndex)
 			return; // copy end.
 
-		if (connector.getNextIndex() == firstIndex) {
-			// 已经到了日志开头，此时不会有prev-log，无法复制日志了。
+		if (connector.getNextIndex() <= firstIndex) {
+			// 已经到了日志开头（或快照推进后 nextIndex < firstIndex），此时不会有prev-log，无法复制日志了。
 			// 这一般发生在Leader进行了Snapshot，但是Follower的日志还更老。
 			// 新起的Follower也一样。
+			connector.setNextIndex(firstIndex);
 			sendSnapshotting.start(connector);
 			return;
 		}
