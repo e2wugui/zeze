@@ -4,12 +4,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.lang.reflect.Field;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import Zeze.Builtin.RedoQueue.RunTask;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import harness.Fast;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.rocksdb.ColumnFamilyHandle;
@@ -111,6 +120,71 @@ public class TestRedoQueueServerWatermarkRegressed {
 			assertEquals(2L, field("lastDoneTaskId").getLong(queue));
 		} finally {
 			queue.stop();
+		}
+	}
+
+	@Test
+	void aheadReplyHaltsPumpWithoutPersistenceAndLogsFatal() throws Exception {
+		Task.tryInitThreadPool();
+		var queue = new RedoQueue(directory.resolve("queue-ahead").toString(), new Config());
+		try {
+			queue.start();
+			// 本地仅入队 taskId=1（lastDoneTaskId=0, lastTaskId=1）
+			queue.add(1, Zeze.Transaction.EmptyBean.instance);
+
+			// 模拟服务端水位超前于本地 lastTaskId（例如本地快照回滚或双客户端复用同名队列）
+			var rpc = new RunTask();
+			rpc.Argument.setTaskId(1);
+			rpc.setResultCode(Procedure.ErrorRequestId);
+			rpc.Result.setTaskId(100);
+			field("pending").set(queue, rpc);
+
+			var db = (RocksDatabase)field("db").get(queue);
+			var nativeField = RocksDatabase.class.getDeclaredField("rocksDb");
+			nativeField.setAccessible(true);
+			var original = db.getRocksDb();
+			var failing = new FailingRocks(original);
+			var callback = RedoQueue.class.getDeclaredMethod("processRunTaskResult", Zeze.Net.Rpc.class);
+			callback.setAccessible(true);
+
+			var coreLogger = (Logger)LogManager.getLogger(RedoQueue.class);
+			var appender = new RecordingAppender();
+			appender.start();
+			coreLogger.addAppender(appender);
+			nativeField.set(db, failing);
+			try {
+				assertEquals(0L, callback.invoke(queue, rpc));
+			} finally {
+				nativeField.set(db, original);
+				failing.releaseBorrowedHandle();
+				coreLogger.removeAppender(appender);
+				appender.stop();
+			}
+
+			var fatalLogged = appender.events.stream()
+					.anyMatch(e -> e.getLevel() == Level.FATAL
+							&& e.getMessage().getFormattedMessage().contains("server watermark out of range"));
+			assertTrue(fatalLogged, "服务端水位超前时必须输出 FATAL 日志");
+			assertEquals(0L, field("lastDoneTaskId").getLong(queue), "超前水位不得推进本地 lastDoneTaskId");
+			assertEquals(1L, field("lastTaskId").getLong(queue), "本地 lastTaskId 应保持不变");
+			assertNotNull(taskRow(queue, 1L), "服务端未执行过的本地任务 taskId=1 不得被误删");
+			assertNull(field("retryTask").get(queue), "停摆不得安排重试驱动");
+			assertNull(field("pending").get(queue));
+		} finally {
+			queue.stop();
+		}
+	}
+
+	private static final class RecordingAppender extends AbstractAppender {
+		final List<LogEvent> events = new CopyOnWriteArrayList<>();
+
+		RecordingAppender() {
+			super("redo-watermark-recorder", null, null, true, Property.EMPTY_ARRAY);
+		}
+
+		@Override
+		public void append(LogEvent event) {
+			events.add(event.toImmutable());
 		}
 	}
 
