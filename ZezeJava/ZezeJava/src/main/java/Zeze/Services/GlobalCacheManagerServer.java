@@ -510,10 +510,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						}
 					break;
 				case StateShare:
-					acquireShare(rpc); //await 方法内有等待
+					acquireShare(rpc, sender); //await 方法内有等待
 					break;
 				case StateModify:
-					acquireModify(rpc); //await 方法内有等待
+					acquireModify(rpc, sender); //await 方法内有等待
 					break;
 				default:
 					rpc.Result.state = StateInvalid;
@@ -593,9 +593,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 	}
 
-	private void acquireShare(Acquire rpc) throws InterruptedException {
-		//noinspection DataFlowIssue
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+	private void acquireShare(Acquire rpc, CacheHolder sender) throws InterruptedException {
 		var operationGlobal = getGlobal();
 		while (true) {
 			CacheState cs = operationGlobal.computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
@@ -694,15 +692,18 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						while (!reduceDone[0])
 							cs.await();
 					}
+					var oldModify = cs.modify;
 					switch (reduceResultState.value) {
 					case StateShare:
-						cs.modify.acquired.put(gKey, StateShare);
-						cs.share.add(cs.modify); // 降级成功。
+						cs.modify = null;
+						oldModify.acquired.put(gKey, StateShare);
+						cs.share.add(oldModify); // 降级成功。
 						break;
 
 					case StateInvalid:
 						// 降到了 Invalid，此时就不需要加入 Share 了。
-						cs.modify.acquired.remove(gKey);
+						cs.modify = null;
+						oldModify.acquired.remove(gKey);
 						break;
 
 					case StateReduceErrorFreshAcquire:
@@ -728,9 +729,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						return;
 					}
 
-					//noinspection DataFlowIssue
 					sender.acquired.put(gKey, StateShare);
-					cs.modify = null;
 					cs.share.add(sender);
 					cs.acquireStatePending = StateInvalid;
 					cs.signalAll(); //notify
@@ -762,9 +761,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 	}
 
-	private void acquireModify(Acquire rpc) throws InterruptedException {
-		//noinspection DataFlowIssue
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+	private void acquireModify(Acquire rpc, CacheHolder sender) throws InterruptedException {
 		var operationGlobal = getGlobal();
 		while (true) {
 			CacheState cs = operationGlobal.computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
@@ -862,9 +859,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							cs.await(); //await 等通知
 					}
 
+					var oldModify = cs.modify;
 					switch (reduceResultState.value) {
 					case StateInvalid:
-						cs.modify.acquired.remove(gKey);
+						cs.modify = null;
+						oldModify.acquired.remove(gKey);
 						break; // reduce success
 
 					case StateReduceErrorFreshAcquire:
@@ -889,7 +888,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						return;
 					}
 
-					//noinspection DataFlowIssue
 					sender.acquired.put(gKey, StateModify);
 					cs.modify = sender;
 					cs.share.remove(sender);

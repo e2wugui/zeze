@@ -353,9 +353,9 @@ public class GlobalCacheManagerWithRaft
 						rpc.setResultCode(0);
 						return 0;
 					case StateShare:
-						return acquireShare(rpc);
+						return acquireShare(rpc, sender);
 					case StateModify:
-						return acquireModify(rpc);
+						return acquireModify(rpc, sender);
 					default:
 						rpc.Result.setState(StateInvalid);
 						rpc.setResultCode(0);
@@ -397,9 +397,7 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	private long acquireShare(Acquire rpc) throws InterruptedException {
-		//noinspection DataFlowIssue
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+	private long acquireShare(Acquire rpc, CacheHolder sender) throws InterruptedException {
 		var globalTableKey = rpc.Argument.getGlobalKey();
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
@@ -566,9 +564,7 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	private long acquireModify(Acquire rpc) throws InterruptedException {
-		//noinspection DataFlowIssue
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+	private long acquireModify(Acquire rpc, CacheHolder sender) throws InterruptedException {
 		var globalTableKey = rpc.Argument.getGlobalKey();
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);

@@ -391,11 +391,13 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		request.Argument.setGlobalKey(key);
 		request.Argument.setState(requestedState);
 		request.setSender(requester);
+		var requesterHolder = requireNonNull(requester.getUserState());
 		var method = GlobalCacheManagerWithRaft.class.getDeclaredMethod(
-				requestedState == GlobalCacheManagerConst.StateShare ? "acquireShare" : "acquireModify", Acquire.class);
+				requestedState == GlobalCacheManagerConst.StateShare ? "acquireShare" : "acquireModify",
+				Acquire.class, requesterHolder.getClass());
 		method.setAccessible(true);
 		var result = new FutureTask<Long>(() -> requireNonNull(gcm).getRocks().newProcedure(
-				() -> (long)method.invoke(gcm, request)).call());
+				() -> (long)method.invoke(gcm, request, requesterHolder)).call());
 		var worker = new Thread(result, "test-raft-reduce-response");
 		worker.setDaemon(true);
 		worker.start();
@@ -470,10 +472,12 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		rpcB.Argument.setState(GlobalCacheManagerConst.StateShare);
 		rpcB.setSender(socketBOnServer); // sender.userState == B的CacheHolder
 
-		var acquireShare = GlobalCacheManagerWithRaft.class.getDeclaredMethod("acquireShare", Acquire.class);
+		var holderB = requireNonNull(socketBOnServer.getUserState());
+		var acquireShare = GlobalCacheManagerWithRaft.class.getDeclaredMethod(
+				"acquireShare", Acquire.class, holderB.getClass());
 		acquireShare.setAccessible(true);
 		var proc = requireNonNull(gcm).getRocks().newProcedure(() -> {
-			acquireShare.invoke(gcm, rpcB);
+			acquireShare.invoke(gcm, rpcB, holderB);
 			return 0L;
 		});
 
@@ -594,5 +598,65 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 			Thread.sleep(20);
 		}
 		Assertions.assertFalse(exists[0], "release后记录应被移除");
+	}
+
+	@Test
+	@Timeout(90)
+	public void testAcquireUsesCapturedSenderWhenSocketUserStateCleared() throws Exception {
+		var key = new Binary("UnitTest.RaftAcquireCapturedSender.Key".getBytes(StandardCharsets.UTF_8));
+		var owner = new Peer("CapturedSender.Owner");
+		var requester = new Peer("CapturedSender.Requester");
+		try {
+			var ownerSocket = owner.connect(leaderPort);
+			var requesterSocket = requester.connect(leaderPort);
+			sendLogin(ownerSocket, 9211);
+			sendLogin(requesterSocket, 9212);
+			Assertions.assertEquals(0, sendAcquire(ownerSocket, key, GlobalCacheManagerConst.StateModify).getResultCode());
+
+			var requesterOnServer = serverSocketOf(9212);
+			var holder = requireNonNull(requesterOnServer.getUserState());
+			// 模拟 ProcessAcquireRequest 捕获 sender 之后、进入 acquireShare 之前连接被 kick/解绑清空 userState
+			requesterOnServer.setUserState(null);
+
+			var rpc = new Acquire();
+			rpc.Argument.setGlobalKey(key);
+			rpc.Argument.setState(GlobalCacheManagerConst.StateShare);
+			rpc.setSender(requesterOnServer);
+
+			var acquireShare = GlobalCacheManagerWithRaft.class.getDeclaredMethod(
+					"acquireShare", Acquire.class, holder.getClass());
+			acquireShare.setAccessible(true);
+			var result = new FutureTask<Long>(() -> requireNonNull(gcm).getRocks().newProcedure(
+					() -> (long)acquireShare.invoke(gcm, rpc, holder)).call());
+			var worker = new Thread(result, "test-raft-captured-sender");
+			worker.setDaemon(true);
+			worker.start();
+			try {
+				var reduce = owner.reduces.poll(15, TimeUnit.SECONDS);
+				Assertions.assertNotNull(reduce, "owner must receive Reduce");
+				reduce.Result.setGlobalKey(reduce.Argument.getGlobalKey());
+				reduce.Result.setState(GlobalCacheManagerConst.StateShare);
+				reduce.SendResult();
+
+				long rc = result.get(15, TimeUnit.SECONDS);
+				Assertions.assertEquals(0L, rc, "acquireShare must complete with captured sender without NPE");
+				Assertions.assertEquals(0, gcm.getRocks().newProcedure(() -> {
+					var cs = requireNonNull(globalStates).get(key);
+					Assertions.assertNotNull(cs);
+					Assertions.assertEquals(-1, cs.getModify());
+					Assertions.assertTrue(cs.getShare().Contains(9211));
+					Assertions.assertTrue(cs.getShare().Contains(9212));
+					Assertions.assertEquals(GlobalCacheManagerConst.StateInvalid, cs.getAcquireStatePending());
+					return 0;
+				}).call());
+			} finally {
+				if (worker.isAlive())
+					worker.interrupt();
+				worker.join(5_000);
+			}
+		} finally {
+			owner.stop();
+			requester.stop();
+		}
 	}
 }
