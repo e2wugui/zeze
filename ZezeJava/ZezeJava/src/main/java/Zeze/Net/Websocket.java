@@ -97,15 +97,9 @@ public class Websocket extends AsyncSocket {
 
 	@Override
 	public boolean Send(byte [] bytes, int offset, int length) {
-		lock.lock();
-		try {
-			// 这里是多线程访问的。
-			super.sendCount++;
-			super.sendSize += length;
-			super.sendRawSize += length;
-		} finally {
-			lock.unlock();
-		}
+		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
+		if (isClosed())
+			return false;
 		// 发送堆积上限——websocket服务端连接不走TcpSocket.Send（checkOverflow原来唯一
 		// 的调用方），慢速客户端下outbound缓冲无界积压可OOM。以channel级在途
 		// 字节（totalPendingWriteBytes，HttpServer背压日志同口径）+本帧为newSize做同款上限检查，
@@ -119,24 +113,36 @@ public class Websocket extends AsyncSocket {
 			close(e);
 			return false;
 		}
+		if (isClosed())
+			return false;
 		// 检查写回执,不能恒返回true:写失败的帧(管线状态不符/连接已关等)不会到达对端。
 		// 在EventLoop上调用时future同步完成,失败立即close并返回false,调用方(Protocol/Rpc.Send)
 		// 能感知发送失败;非EventLoop线程调用时future异步完成,挂listener失败同样close,
 		// 不再静默丢帧。close的markClosed置死保证OnSocketClose等清理恰好一次。
-		setActiveSendTime(); // 维护活跃时间（发送已被接受进入发送管线）
 		var cf = x.sendWebSocket(bytes, offset, length);
 		if (cf.isDone()) {
 			var cause = cf.cause();
-			if (cause == null)
-				return true;
-			close(cause);
-			return false;
-		}
-		cf.addListener(f -> {
-			var cause = f.cause();
-			if (cause != null)
+			if (cause != null) {
 				close(cause);
-		});
+				return false;
+			}
+		} else {
+			cf.addListener(f -> {
+				var cause = f.cause();
+				if (cause != null)
+					close(cause);
+			});
+		}
+		setActiveSendTime(); // 维护活跃时间（发送已被接受进入发送管线）
+		lock.lock();
+		try {
+			// 这里是多线程访问的。
+			super.sendCount++;
+			super.sendSize += length;
+			super.sendRawSize += length;
+		} finally {
+			lock.unlock();
+		}
 		return true;
 	}
 
