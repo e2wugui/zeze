@@ -134,7 +134,19 @@ public final class StringChecker {
 					// 恢复后缀状态，否则构成重叠词的已消费字符(如词表{ab,bc}的b)永远没有机会
 					// 作为起点：命中词W的最长后缀状态next.fail继续匹配（其字符虽已被替换，
 					// 状态机只依赖状态不依赖字符）；后缀本身是完整词时已被替换区间覆盖。
-					for (int j = i + 1 - next.deep; j <= i; j++)
+					// 若此前存在挂起的积累区间[iLast, eLast)，先合并/刷新并清零，防止残留到后续失配分支。
+					int start = i + 1 - next.deep;
+					if (iLast < eLast) {
+						if (start >= eLast) {
+							do
+								chars[iLast++] = replaceChar;
+							while (iLast < eLast);
+						} else if (iLast < start) {
+							start = iLast;
+						}
+						iLast = eLast = 0;
+					}
+					for (int j = start; j <= i; j++)
 						chars[j] = replaceChar;
 					replaced = true;
 					trie = Objects.requireNonNull(next.fail);
@@ -160,17 +172,22 @@ public final class StringChecker {
 				trie = next;
 				++i;
 				if (wordLen > 0) {
-					// 覆盖积累区间前先 flush 与新区间不重叠（新区间起点不早于旧区间终点）的
-					// 旧积累区间，否则同一成功转移段内先前命中的词条被静默覆盖漏替换（如词表
-					// {ab,cde,abcdezq} 遇文本"abcdez"只替换 cde、ab 原样漏过）；新区间起点落在
-					// 旧区间内（重叠词）时不 flush，维持新词覆盖旧词的贪心最长匹配语义。
-					if (iLast < eLast && i - wordLen >= eLast) {
-						do
-							chars[iLast++] = replaceChar;
-						while (iLast < eLast);
-						replaced = true;
+					// 与旧积累区间不重叠（start >= eLast）时先 flush 旧区间再开启新区间；
+					// 重叠（start < eLast）时对两区间取并集，保留更早左边界，避免后缀词覆写丢弃前词前段。
+					int start = i - wordLen;
+					if (iLast < eLast) {
+						if (start >= eLast) {
+							do
+								chars[iLast++] = replaceChar;
+							while (iLast < eLast);
+							replaced = true;
+							iLast = start;
+						} else if (start < iLast) {
+							iLast = start;
+						}
+					} else {
+						iLast = start;
 					}
-					iLast = i - wordLen;
 					eLast = i;
 				}
 			}

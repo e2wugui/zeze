@@ -10,8 +10,8 @@ import java.io.IOException;
 /**
  * U5-F1：Trie.replace 贪心积累区间被无条件覆盖——同一成功转移段内先前命中的词条漏替换。
  * <p>
- * 修复：覆盖积累区间前先 flush 与新区间不重叠的旧区间；重叠（新词起点在旧区间内）时
- * 仍由新词覆盖，维持贪心最长匹配语义。
+ * 修复：与旧积累区间不重叠时先 flush 旧区间；重叠（新词起点落在旧区间内）时对两区间取并集，
+ * 保留更早左边界，确保前词前段与重叠后缀词全部被替换。
  */
 @Fast
 public class TestStringCheckerAccumulateFlush {
@@ -40,12 +40,43 @@ public class TestStringCheckerAccumulateFlush {
 	}
 
 	/**
-	 * 新词与旧积累区间重叠（新词起点在旧区间内）时不 flush：新词覆盖旧词，
-	 * 语义与修复前的重叠处理保持一致。
+	 * 新词与旧积累区间重叠（新词起点落在旧区间内）时取区间并集，全覆盖替换，
+	 * 与 TestStringCheckerOverlap 的重叠词全替换契约一致。
 	 */
 	@Test
 	public void testOverlapStillReplacedByLongerWord() throws IOException {
 		var c = of("ab", "bcde", "abcdeX");
-		Assertions.assertEquals("a****", c.replace("abcde", '*'));
+		Assertions.assertEquals("*****", c.replace("abcde", '*'));
+	}
+
+	/**
+	 * 重叠后缀命中不得丢弃已命中前词的前段：仅新增一条未命中的长词不能让原敏感词泄漏。
+	 */
+	@Test
+	public void testOverlappingSuffixPreservesEarlierPrefix() throws IOException {
+		var c = of("12345", "56", "1234567");
+		Assertions.assertEquals("******", c.replace("123456", '*'));
+		Assertions.assertEquals("x******y", c.replace("x123456y", '*'));
+
+		var c2 = of("abcdx", "ab", "bcd");
+		Assertions.assertEquals("z****n", c2.replace("zabcdn", '*'));
+
+		// 更大新词包住旧积累区间（start < iLast）同样全覆盖
+		var c3 = of("bc", "abcd", "abcdx");
+		Assertions.assertEquals("****", c3.replace("abcd", '*'));
+	}
+
+	/**
+	 * 纯叶子命中时清理已挂起的积累区间，避免残留区间延续影响后续匹配。
+	 */
+	@Test
+	public void testLeafHitClearsPendingAccumulatedRange() throws IOException {
+		var c = of("ab", "abc", "x");
+		Assertions.assertEquals("***z", c.replace("abcz", '*'));
+		Assertions.assertEquals("****", c.replace("abcx", '*'));
+		Assertions.assertEquals("***y*", c.replace("abcyx", '*'));
+
+		var c2 = of("ab", "abc", "bcd");
+		Assertions.assertEquals("****z", c2.replace("abcdz", '*'));
 	}
 }
