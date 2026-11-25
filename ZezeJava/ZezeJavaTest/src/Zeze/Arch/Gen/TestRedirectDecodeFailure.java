@@ -6,11 +6,14 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicReference;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.RedirectBase;
+import Zeze.Arch.RedirectException;
 import Zeze.Arch.RedirectFuture;
+import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.ProviderDirect.ModuleRedirect;
 import Zeze.Config;
@@ -19,6 +22,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
@@ -41,6 +45,16 @@ public class TestRedirectDecodeFailure implements IModule {
 	@RedirectToServer
 	public RedirectFuture<Long> readNumber(int serverId) {
 		return RedirectFuture.finish(7L);
+	}
+
+	@RedirectHash
+	public RedirectFuture<Long> readByHash(int hash) {
+		return RedirectFuture.finish(11L);
+	}
+
+	@RedirectToServer
+	public RedirectFuture<Long> readWithBean(int serverId, EmptyBean payload) {
+		return RedirectFuture.finish(13L);
 	}
 
 	@TempDir
@@ -120,6 +134,80 @@ public class TestRedirectDecodeFailure implements IModule {
 			assertSame(timeoutFailure, assertThrows(IllegalStateException.class,
 					() -> Objects.requireNonNull(timeoutRequest.getResponseHandle()).handle(timeoutRequest)));
 			assertTrue(timedOut.isCompletedExceptionally());
+		} finally {
+			socket.close();
+			service.stop();
+			app.stop();
+		}
+	}
+
+	@Test
+	void routingFailurePreservesServerNotFoundWhileEncodeFailureRemainsLocalExecution() throws Exception {
+		var config = new Config();
+		config.setNoDatabase(true);
+		config.setServiceManager("disable");
+		var app = new Application("RedirectExceptionCodePreservation", config);
+		var service = new Service("RedirectExceptionCodePreservation.transport", config);
+		var socket = new CaptureSocket(service);
+		try {
+			var provider = new ProviderApp(app);
+			var prefix = ProviderApp.class.getDeclaredField("serverServiceNamePrefix");
+			prefix.setAccessible(true);
+			prefix.set(provider, "test");
+			var serverMissing = new RedirectException(RedirectException.SERVER_NOT_FOUND, "missing target server");
+			var hashMissing = new RedirectException(RedirectException.SERVER_NOT_FOUND, "missing hash target");
+			app.redirect = new RedirectBase(provider) {
+				@Override
+				public AsyncSocket choiceServer(IModule module, int serverId, boolean orOtherServer) {
+					if (serverId == 404)
+						throw serverMissing;
+					return socket;
+				}
+
+				@Override
+				public AsyncSocket choiceHash(IModule module, int hash, int dataConcurrentLevel) {
+					throw hashMissing;
+				}
+			};
+			var appBase = new AppBase() {
+				@Override public Application getZeze() { return app; }
+			};
+			GenModule.instance.generateRedirectSources(directory.toString(), appBase,
+					new Class<?>[]{TestRedirectDecodeFailure.class}, false);
+			var name = GenModule.REDIRECT_PREFIX + getClass().getName().replace('.', '_');
+			var source = Files.readString(directory.resolve(name + ".java"));
+			var compiler = new InMemoryJavaCompiler(getClass().getClassLoader()).ignoreWarnings()
+					.useOptions("-classpath", System.getProperty("java.class.path"));
+			compiler.compileAllToByteCode(Map.of(name, source));
+			var module = (TestRedirectDecodeFailure)compiler.defineCompiled(name)
+					.getConstructor(AppBase.class).newInstance(appBase);
+
+			var onFailError = new AtomicReference<@Nullable Throwable>();
+			var serverFuture = module.readNumber(404).onFail(onFailError::set);
+			var serverEx = assertInstanceOf(RedirectException.class,
+					assertThrows(CompletionException.class, serverFuture::get).getCause());
+			assertEquals(RedirectException.SERVER_NOT_FOUND, serverEx.getCode());
+			assertSame(serverMissing, serverEx);
+			assertSame(serverMissing, onFailError.get());
+
+			var hashFuture = module.readByHash(7);
+			var hashEx = assertInstanceOf(RedirectException.class,
+					assertThrows(CompletionException.class, hashFuture::get).getCause());
+			assertEquals(RedirectException.SERVER_NOT_FOUND, hashEx.getCode());
+			assertSame(hashMissing, hashEx);
+
+			var encodeFailure = new IllegalStateException("param encode failed");
+			var badBean = new EmptyBean() {
+				@Override
+				public void encode(ByteBuffer bb) {
+					throw encodeFailure;
+				}
+			};
+			var encodeFuture = module.readWithBean(1, badBean);
+			var encodeEx = assertInstanceOf(RedirectException.class,
+					assertThrows(CompletionException.class, encodeFuture::get).getCause());
+			assertEquals(RedirectException.LOCAL_EXECUTION, encodeEx.getCode());
+			assertSame(encodeFailure, encodeEx.getCause());
 		} finally {
 			socket.close();
 			service.stop();

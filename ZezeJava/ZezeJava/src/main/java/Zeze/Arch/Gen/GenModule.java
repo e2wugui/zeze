@@ -494,6 +494,8 @@ public final class GenModule extends ReentrantLock {
 						sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, \"not found serverId=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
 					sb.appendLine("{}}", prefix);
 					prefix = "        ";
+					sb.appendLine("{}} catch (Zeze.Arch.RedirectException e) {", prefix);
+					sb.appendLine("{}    _f_.setException(e);", prefix);
 					sb.appendLine("{}} catch (Exception e) {", prefix);
 					sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.LOCAL_EXECUTION, e.getMessage(), e));", prefix);
 					sb.appendLine("{}}", prefix);

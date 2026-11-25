@@ -52,6 +52,8 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             }, 30000)) {
                 _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
             }
+        } catch (Zeze.Arch.RedirectException e) {
+            _f_.setException(e);
         } catch (Exception e) {
             _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.LOCAL_EXECUTION, e.getMessage(), e));
         }
@@ -106,6 +108,8 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             }, 30000)) {
                 _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
             }
+        } catch (Zeze.Arch.RedirectException e) {
+            _f_.setException(e);
         } catch (Exception e) {
             _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.LOCAL_EXECUTION, e.getMessage(), e));
         }
