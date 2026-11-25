@@ -101,14 +101,24 @@ public final class Table<K, V extends Bean> {
 	private boolean tryRemoveRecord(K key, Record<K> r) {
 		if (r.isAccessed())
 			return false;
-		var callback = lruTryRemoveCallback; // 使用方回调在保护之后执行
-		if (callback != null)
-			return callback.test(key, r);
 		if (!r.mutex.tryLock())
 			return false;
 		try {
-			if (r.isAccessed()) // 复查：beginAccess在r.mutex内，与此处互斥
+			if (r.isAccessed() || r.getRemoved()) // 复查：beginAccess/evict均在r.mutex内，与此处互斥
 				return false;
+			var callback = lruTryRemoveCallback;
+			if (callback != null) {
+				// 自定义回调（如 GlobalCacheManagerWithRaft.globalLruTryRemove，内部非阻塞 lockey.tryLock）
+				// 必须在持 r.mutex 并复查在用之后执行，返回 true 后立即置 removed=true 并幂等 pair-remove 兜底，
+				// 防止驱逐在用记录或未置 removed 导致并发 getOrLoad 产生分裂缓存。
+				if (!callback.test(key, r))
+					return false;
+				r.setRemoved(true);
+				var lru = lruCache;
+				if (lru != null)
+					lru.remove(key, r);
+				return true;
+			}
 			r.setRemoved(true);
 			//noinspection DataFlowIssue
 			return lruCache.remove(key, r); // pair-remove：仅当映射仍是本记录时删除
