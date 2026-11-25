@@ -77,22 +77,28 @@ public class ProviderDirect extends AbstractProviderDirect {
 		}
 		if (result instanceof RedirectFuture) {
 			((RedirectFuture<?>)result).onSuccess(r -> {
-				if (r instanceof Long) {
-					var v = (long)r;
-					var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(v));
-					bb.WriteLong(v);
-					rpc.Result.setParams(new Binary(bb));
-				} else if (r instanceof Binary)
-					rpc.Result.setParams((Binary)r);
-				else if (r instanceof String)
-					rpc.Result.setParams(new Binary((String)r));
-				else if (r != null) {
-					var re = handle.resultEncoder;
-					if (re != null)
-						rpc.Result.setParams(re.apply(r));
-					// rpc 成功了，具体handle结果还需要看ReturnCode。
-				} else
-					rpc.Result.setNullParam(true);
+				try {
+					if (r instanceof Long) {
+						var v = (long)r;
+						var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(v));
+						bb.WriteLong(v);
+						rpc.Result.setParams(new Binary(bb));
+					} else if (r instanceof Binary)
+						rpc.Result.setParams((Binary)r);
+					else if (r instanceof String)
+						rpc.Result.setParams(new Binary((String)r));
+					else if (r != null) {
+						var re = handle.resultEncoder;
+						if (re != null)
+							rpc.Result.setParams(re.apply(r));
+						// rpc 成功了，具体handle结果还需要看ReturnCode。
+					} else
+						rpc.Result.setNullParam(true);
+				} catch (Throwable e) {
+					logger.error("redirect result encode failed: method={}", rpcArg.getMethodFullName(), e);
+					rpc.SendResultCode(Procedure.Exception);
+					return;
+				}
 				rpc.SendResultCode(Procedure.Success);
 			}).onFail(e -> {
 				logger.error("call failed:", e);
