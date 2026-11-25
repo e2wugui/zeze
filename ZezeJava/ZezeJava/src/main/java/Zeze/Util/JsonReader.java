@@ -409,15 +409,19 @@ public final class JsonReader {
 	}
 
 	Collection<@Nullable Object> parseArray0(@Nullable Collection<@Nullable Object> c) throws ReflectiveOperationException {
-		if (++depth > maxDepth)
+		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
-		if (c == null)
-			c = new ArrayList<>();
-		for (int b = skipNext(); b != ']'; b = skipVar(']'))
-			c.add(parse(null, b));
-		pos++;
-		depth--;
-		return c;
+		depth++;
+		try {
+			if (c == null)
+				c = new ArrayList<>();
+			for (int b = skipNext(); b != ']'; b = skipVar(']'))
+				c.add(parse(null, b));
+			pos++;
+			return c;
+		} finally {
+			depth--;
+		}
 	}
 
 	/**
@@ -428,17 +432,21 @@ public final class JsonReader {
 	private @Nullable Object parseArrayField(Class<?> componentType, int b) throws ReflectiveOperationException {
 		if (b != '[')
 			return null;
-		if (++depth > maxDepth)
+		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
-		var list = new ArrayList<>();
-		for (int c = skipNext(); c != ']'; c = skipVar(']'))
-			list.add(parseArrayElement(componentType, c));
-		pos++;
-		depth--;
-		var array = java.lang.reflect.Array.newInstance(componentType, list.size());
-		for (int i = 0; i < list.size(); i++)
-			java.lang.reflect.Array.set(array, i, list.get(i));
-		return array;
+		depth++;
+		try {
+			var list = new ArrayList<>();
+			for (int c = skipNext(); c != ']'; c = skipVar(']'))
+				list.add(parseArrayElement(componentType, c));
+			pos++;
+			var array = java.lang.reflect.Array.newInstance(componentType, list.size());
+			for (int i = 0; i < list.size(); i++)
+				java.lang.reflect.Array.set(array, i, list.get(i));
+			return array;
+		} finally {
+			depth--;
+		}
 	}
 
 	private @Nullable Object parseArrayElement(Class<?> ct, int b) throws ReflectiveOperationException {
@@ -492,18 +500,22 @@ public final class JsonReader {
 															Class<T> elemClass) throws ReflectiveOperationException {
 		if (next() != '[')
 			return c;
-		if (++depth > maxDepth)
+		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
-		if (c == null)
-			c = new ArrayList<>();
-		ClassMeta<T> classMeta = json.getClassMeta(elemClass);
-		Parser<T> parser = classMeta.parser;
-		for (int b = skipNext(); b != ']'; b = skipVar(']'))
-			c.add(b == 'n' ? null : parser != null
-				? parser.parse(this, classMeta, null, null, null) : parse(json, null, classMeta));
-		pos++;
-		depth--;
-		return c;
+		depth++;
+		try {
+			if (c == null)
+				c = new ArrayList<>();
+			ClassMeta<T> classMeta = json.getClassMeta(elemClass);
+			Parser<T> parser = classMeta.parser;
+			for (int b = skipNext(); b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : parser != null
+					? parser.parse(this, classMeta, null, null, null) : parse(json, null, classMeta));
+			pos++;
+			return c;
+		} finally {
+			depth--;
+		}
 	}
 
 	public @Nullable Map<String, @Nullable Object> parseMap(@Nullable Map<String, @Nullable Object> m) throws ReflectiveOperationException {
@@ -511,17 +523,21 @@ public final class JsonReader {
 	}
 
 	Map<String, @Nullable Object> parseMap0(@Nullable Map<String, @Nullable Object> m) throws ReflectiveOperationException {
-		if (++depth > maxDepth)
+		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
-		if (m == null)
-			m = new HashMap<>();
-		for (int b = skipNext(); b != '}'; b = skipVar('}')) {
-			String k = parseStringKey(this, b);
-			m.put(k, parse(null, skipColon()));
+		depth++;
+		try {
+			if (m == null)
+				m = new HashMap<>();
+			for (int b = skipNext(); b != '}'; b = skipVar('}')) {
+				String k = parseStringKey(this, b);
+				m.put(k, parse(null, skipColon()));
+			}
+			pos++;
+			return m;
+		} finally {
+			depth--;
 		}
-		pos++;
-		depth--;
-		return m;
 	}
 
 	public <T> @Nullable T parse(@Nullable Class<T> klass) throws ReflectiveOperationException {
@@ -540,8 +556,9 @@ public final class JsonReader {
 	// 这条路径不经过 parse0/parseList0/parseMap0 等自带深度检查的容器函数，
 	// 嵌套声明（如 LongHashMap<LongHashMap<...>> 字段）配深嵌套输入仍可递归爆栈，这里补上深度计数。
 	@Nullable Object parseNested(@Nullable ClassMeta<?> classMeta) throws ReflectiveOperationException {
-		if (++depth > maxDepth)
+		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
+		depth++;
 		try {
 			return parse(classMeta);
 		} finally {
@@ -620,395 +637,407 @@ public final class JsonReader {
 	public <T> T parse0(T obj, ClassMeta<?> classMeta) throws ReflectiveOperationException {
 		if (next() != '{')
 			return obj;
-		if (++depth > maxDepth)
+		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
-		for (int b = skipNext(); b != '}'; b = skipVar('}')) {
-			boolean quot = b == '"' || b == '\'';
-			int keyBegin = pos + (quot ? 1 : 0);
-			FieldMeta fm = classMeta.get(quot ? parseKeyHash(b) : parseKeyHashNoQuot(b));
-			// 32位keyHash定向碰撞防护：命中后按解码语义与字段名UTF-8字节逐比对。
-			if (fm == null || !keyEquals(keyBegin, quot ? pos - 1 : pos, fm.name))
-				continue;
-			b = skipColon();
-			long offset = fm.offset;
-			int type = fm.type;
-			switch (type) {
-			case TYPE_BOOLEAN:
-				unsafe.putBoolean(obj, offset, b == 't');
-				break;
-			case TYPE_BYTE:
-				unsafe.putByte(obj, offset, (byte)parseInt());
-				break;
-			case TYPE_SHORT:
-				unsafe.putShort(obj, offset, (short)parseInt());
-				break;
-			case TYPE_CHAR:
-				unsafe.putChar(obj, offset, (char)parseInt());
-				break;
-			case TYPE_INT:
-				unsafe.putInt(obj, offset, parseInt());
-				break;
-			case TYPE_LONG:
-				unsafe.putLong(obj, offset, parseLong());
-				break;
-			case TYPE_FLOAT:
-				unsafe.putFloat(obj, offset, (float)parseDouble());
-				break;
-			case TYPE_DOUBLE:
-				unsafe.putDouble(obj, offset, parseDouble());
-				break;
-			case TYPE_STRING:
-				unsafe.putObject(obj, offset, b == 'n' ? null : parseString(false));
-				break;
-			case TYPE_OBJECT: {
-				if (b == 'n') { // null（与下方 WRAP 各分支的 b=='n' 判定一致）
-					unsafe.putObject(obj, offset, null);
+		depth++;
+		try {
+			for (int b = skipNext(); b != '}'; b = skipVar('}')) {
+				boolean quot = b == '"' || b == '\'';
+				int keyBegin = pos + (quot ? 1 : 0);
+				FieldMeta fm = classMeta.get(quot ? parseKeyHash(b) : parseKeyHashNoQuot(b));
+				// 32位keyHash定向碰撞防护：命中后按解码语义与字段名UTF-8字节逐比对。
+				if (fm == null || !keyEquals(keyBegin, quot ? pos - 1 : pos, fm.name))
+					continue;
+				b = skipColon();
+				long offset = fm.offset;
+				int type = fm.type;
+				switch (type) {
+				case TYPE_BOOLEAN:
+					unsafe.putBoolean(obj, offset, b == 't');
+					break;
+				case TYPE_BYTE:
+					unsafe.putByte(obj, offset, (byte)parseInt());
+					break;
+				case TYPE_SHORT:
+					unsafe.putShort(obj, offset, (short)parseInt());
+					break;
+				case TYPE_CHAR:
+					unsafe.putChar(obj, offset, (char)parseInt());
+					break;
+				case TYPE_INT:
+					unsafe.putInt(obj, offset, parseInt());
+					break;
+				case TYPE_LONG:
+					unsafe.putLong(obj, offset, parseLong());
+					break;
+				case TYPE_FLOAT:
+					unsafe.putFloat(obj, offset, (float)parseDouble());
+					break;
+				case TYPE_DOUBLE:
+					unsafe.putDouble(obj, offset, parseDouble());
+					break;
+				case TYPE_STRING:
+					unsafe.putObject(obj, offset, b == 'n' ? null : parseString(false));
+					break;
+				case TYPE_OBJECT: {
+					if (b == 'n') { // null（与下方 WRAP 各分支的 b=='n' 判定一致）
+						unsafe.putObject(obj, offset, null);
+						break;
+					}
+					// 与 typed 集合/Map 字段路径（c.clear()/m.clear()）保持一致：对同一对象重复解析时
+					// 先清空容器字段的旧内容，否则 Object 字段的 List 元素翻倍、Map 残留旧键。
+					Object oldObj = unsafe.getObject(obj, offset);
+					if (oldObj instanceof Collection<?>)
+						((Collection<?>)oldObj).clear();
+					else if (oldObj instanceof Map<?, ?>)
+						((Map<?, ?>)oldObj).clear();
+					unsafe.putObject(obj, offset, parse(oldObj, b));
 					break;
 				}
-				// 与 typed 集合/Map 字段路径（c.clear()/m.clear()）保持一致：对同一对象重复解析时
-				// 先清空容器字段的旧内容，否则 Object 字段的 List 元素翻倍、Map 残留旧键。
-				Object oldObj = unsafe.getObject(obj, offset);
-				if (oldObj instanceof Collection<?>)
-					((Collection<?>)oldObj).clear();
-				else if (oldObj instanceof Map<?, ?>)
-					((Map<?, ?>)oldObj).clear();
-				unsafe.putObject(obj, offset, parse(oldObj, b));
-				break;
-			}
-			case TYPE_POS:
-				Pos p = (Pos)unsafe.getObject(obj, offset);
-				if (p == null)
-					unsafe.putObject(obj, offset, p = new Pos());
-				p.pos = pos;
-				break;
-			case TYPE_ARRAY_FLAG + TYPE_BOOLEAN:
-			case TYPE_ARRAY_FLAG + TYPE_BYTE:
-			case TYPE_ARRAY_FLAG + TYPE_SHORT:
-			case TYPE_ARRAY_FLAG + TYPE_CHAR:
-			case TYPE_ARRAY_FLAG + TYPE_INT:
-			case TYPE_ARRAY_FLAG + TYPE_LONG:
-			case TYPE_ARRAY_FLAG + TYPE_FLOAT:
-			case TYPE_ARRAY_FLAG + TYPE_DOUBLE:
-			case TYPE_ARRAY_FLAG + TYPE_STRING:
-			case TYPE_ARRAY_FLAG + TYPE_OBJECT:
-				// 数组字段与写侧对称读入（此前TYPE_CUSTOM只收'{'，数组静默不更新）
-				if (b == 'n')
-					unsafe.putObject(obj, offset, null);
-				else
-					unsafe.putObject(obj, offset, parseArrayField(fm.klass, b));
-				break;
-			case TYPE_CUSTOM:
-				if (b == 'n') { // null（与TYPE_STRING/TYPE_OBJECT分支一致）
-					unsafe.putObject(obj, offset, null);
+				case TYPE_POS:
+					Pos p = (Pos)unsafe.getObject(obj, offset);
+					if (p == null)
+						unsafe.putObject(obj, offset, p = new Pos());
+					p.pos = pos;
 					break;
-				}
-				Object subObj = unsafe.getObject(obj, offset);
-				if (subObj != null) {
-					Class<?> subClass = subObj.getClass();
-					ClassMeta<?> subClassMeta;
-					if (subClass == fm.klass) {
-						subClassMeta = fm.classMeta;
+				case TYPE_ARRAY_FLAG + TYPE_BOOLEAN:
+				case TYPE_ARRAY_FLAG + TYPE_BYTE:
+				case TYPE_ARRAY_FLAG + TYPE_SHORT:
+				case TYPE_ARRAY_FLAG + TYPE_CHAR:
+				case TYPE_ARRAY_FLAG + TYPE_INT:
+				case TYPE_ARRAY_FLAG + TYPE_LONG:
+				case TYPE_ARRAY_FLAG + TYPE_FLOAT:
+				case TYPE_ARRAY_FLAG + TYPE_DOUBLE:
+				case TYPE_ARRAY_FLAG + TYPE_STRING:
+				case TYPE_ARRAY_FLAG + TYPE_OBJECT:
+					// 数组字段与写侧对称读入（此前TYPE_CUSTOM只收'{'，数组静默不更新）
+					if (b == 'n')
+						unsafe.putObject(obj, offset, null);
+					else
+						unsafe.putObject(obj, offset, parseArrayField(fm.klass, b));
+					break;
+				case TYPE_CUSTOM:
+					if (b == 'n') { // null（与TYPE_STRING/TYPE_OBJECT分支一致）
+						unsafe.putObject(obj, offset, null);
+						break;
+					}
+					Object subObj = unsafe.getObject(obj, offset);
+					if (subObj != null) {
+						Class<?> subClass = subObj.getClass();
+						ClassMeta<?> subClassMeta;
+						if (subClass == fm.klass) {
+							subClassMeta = fm.classMeta;
+							if (subClassMeta == null)
+								fm.classMeta = subClassMeta = classMeta.json.getClassMeta(subClass);
+						} else
+							subClassMeta = classMeta.json.getClassMeta(subClass);
+						Parser<?> parser = subClassMeta.parser;
+						if (parser != null) {
+							Object newSubObj = parser.parse0(this, subClassMeta, fm, subObj, obj);
+							if (newSubObj != subObj) {
+								if (newSubObj != null && !fm.klass.isAssignableFrom(newSubObj.getClass())) {
+									throw new InstantiationException("incompatible type(" + newSubObj.getClass()
+										+ ") for field: " + fm.getName() + " in " + classMeta.klass.getName());
+								}
+								unsafe.putObject(obj, offset, newSubObj);
+							}
+						} else
+							parse0(subObj, subClassMeta);
+					} else {
+						ClassMeta<?> subClassMeta = fm.classMeta;
 						if (subClassMeta == null)
-							fm.classMeta = subClassMeta = classMeta.json.getClassMeta(subClass);
-					} else
-						subClassMeta = classMeta.json.getClassMeta(subClass);
-					Parser<?> parser = subClassMeta.parser;
-					if (parser != null) {
-						Object newSubObj = parser.parse0(this, subClassMeta, fm, subObj, obj);
-						if (newSubObj != subObj) {
-							if (newSubObj != null && !fm.klass.isAssignableFrom(newSubObj.getClass())) {
-								throw new InstantiationException("incompatible type(" + newSubObj.getClass()
-									+ ") for field: " + fm.getName() + " in " + classMeta.klass.getName());
-							}
-							unsafe.putObject(obj, offset, newSubObj);
-						}
-					} else
-						parse0(subObj, subClassMeta);
-				} else {
-					ClassMeta<?> subClassMeta = fm.classMeta;
-					if (subClassMeta == null)
-						fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
-					Parser<?> parser = subClassMeta.parser;
-					if (parser != null)
-						subObj = parser.parse0(this, subClassMeta, fm, null, obj);
-					else {
-						if (ClassMeta.isAbstract(subClassMeta.klass)) {
-							throw new InstantiationException(
-								"abstract field: " + fm.getName() + " in " + classMeta.klass.getName());
-						}
-						subObj = parse0(subClassMeta.ctor.create(), subClassMeta);
-					}
-					unsafe.putObject(obj, offset, subObj);
-				}
-				break;
-			case TYPE_WRAP_FLAG + TYPE_BOOLEAN:
-				unsafe.putObject(obj, offset, b == 'n' ? null : b == 't');
-				break;
-			case TYPE_WRAP_FLAG + TYPE_BYTE:
-				unsafe.putObject(obj, offset, b == 'n' ? null : (byte)parseInt());
-				break;
-			case TYPE_WRAP_FLAG + TYPE_SHORT:
-				unsafe.putObject(obj, offset, b == 'n' ? null : (short)parseInt());
-				break;
-			case TYPE_WRAP_FLAG + TYPE_CHAR:
-				unsafe.putObject(obj, offset, b == 'n' ? null : (char)parseInt());
-				break;
-			case TYPE_WRAP_FLAG + TYPE_INT:
-				unsafe.putObject(obj, offset, b == 'n' ? null : parseInt());
-				break;
-			case TYPE_WRAP_FLAG + TYPE_LONG:
-				unsafe.putObject(obj, offset, b == 'n' ? null : parseLong());
-				break;
-			case TYPE_WRAP_FLAG + TYPE_FLOAT:
-				unsafe.putObject(obj, offset, b == 'n' ? null : (float)parseDouble());
-				break;
-			case TYPE_WRAP_FLAG + TYPE_DOUBLE:
-				unsafe.putObject(obj, offset, b == 'n' ? null : parseDouble());
-				break;
-			default:
-				int flag = type & 0xf0;
-				if (flag == TYPE_LIST_FLAG) {
-					if (b != '[') {
-						unsafe.putObject(obj, offset, null);
-						break;
-					}
-					@SuppressWarnings("unchecked")
-					Collection<@Nullable Object> c = (Collection<@Nullable Object>)unsafe.getObject(obj, offset);
-					if (c == null) {
-						Creator<?> ctor = fm.ctor;
-						if (ctor != null) {
-							@SuppressWarnings("unchecked")
-							Collection<@Nullable Object> c2 = ensureNotNull((Collection<@Nullable Object>)ctor.create());
-							unsafe.putObject(obj, offset, c = c2);
-						} else {
-							ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
-							Parser<?> parser = cm.parser;
-							if (parser == null) {
-								throw new InstantiationException("abstract Collection field: " + fm.getName() + " in "
-									+ classMeta.klass.getName());
-							}
-							Object c2 = parser.parse0(this, cm, fm, null, obj);
-							if (c2 != null && !fm.klass.isAssignableFrom(c2.getClass())) {
+							fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
+						Parser<?> parser = subClassMeta.parser;
+						if (parser != null)
+							subObj = parser.parse0(this, subClassMeta, fm, null, obj);
+						else {
+							if (ClassMeta.isAbstract(subClassMeta.klass)) {
 								throw new InstantiationException(
-									"incompatible type(" + c2.getClass() + ") for Collection field: " + fm.getName()
-										+ " in " + classMeta.klass.getName());
+									"abstract field: " + fm.getName() + " in " + classMeta.klass.getName());
 							}
-							unsafe.putObject(obj, offset, c2);
+							subObj = parse0(subClassMeta.ctor.create(), subClassMeta);
+						}
+						unsafe.putObject(obj, offset, subObj);
+					}
+					break;
+				case TYPE_WRAP_FLAG + TYPE_BOOLEAN:
+					unsafe.putObject(obj, offset, b == 'n' ? null : b == 't');
+					break;
+				case TYPE_WRAP_FLAG + TYPE_BYTE:
+					unsafe.putObject(obj, offset, b == 'n' ? null : (byte)parseInt());
+					break;
+				case TYPE_WRAP_FLAG + TYPE_SHORT:
+					unsafe.putObject(obj, offset, b == 'n' ? null : (short)parseInt());
+					break;
+				case TYPE_WRAP_FLAG + TYPE_CHAR:
+					unsafe.putObject(obj, offset, b == 'n' ? null : (char)parseInt());
+					break;
+				case TYPE_WRAP_FLAG + TYPE_INT:
+					unsafe.putObject(obj, offset, b == 'n' ? null : parseInt());
+					break;
+				case TYPE_WRAP_FLAG + TYPE_LONG:
+					unsafe.putObject(obj, offset, b == 'n' ? null : parseLong());
+					break;
+				case TYPE_WRAP_FLAG + TYPE_FLOAT:
+					unsafe.putObject(obj, offset, b == 'n' ? null : (float)parseDouble());
+					break;
+				case TYPE_WRAP_FLAG + TYPE_DOUBLE:
+					unsafe.putObject(obj, offset, b == 'n' ? null : parseDouble());
+					break;
+				default:
+					int flag = type & 0xf0;
+					if (flag == TYPE_LIST_FLAG) {
+						if (b != '[') {
+							unsafe.putObject(obj, offset, null);
 							break;
 						}
-					} else
-						c.clear();
-					parseList0(c, classMeta, fm);
-				} else if (flag == TYPE_MAP_FLAG) {
-					if (b != '{') {
-						unsafe.putObject(obj, offset, null);
-						break;
-					}
-					@SuppressWarnings("unchecked")
-					Map<Object, @Nullable Object> m = (Map<Object, @Nullable Object>)unsafe.getObject(obj, offset);
-					if (m == null) {
-						Creator<?> ctor = fm.ctor;
-						if (ctor != null) {
-							@SuppressWarnings("unchecked")
-							Map<Object, @Nullable Object> m2 = ensureNotNull((Map<Object, @Nullable Object>)ctor.create());
-							unsafe.putObject(obj, offset, m = m2);
-						} else {
-							ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
-							Parser<?> parser = cm.parser;
-							if (parser == null) {
-								throw new InstantiationException(
-									"abstract Map field: " + fm.getName() + " in " + classMeta.klass.getName());
+						@SuppressWarnings("unchecked")
+						Collection<@Nullable Object> c = (Collection<@Nullable Object>)unsafe.getObject(obj, offset);
+						if (c == null) {
+							Creator<?> ctor = fm.ctor;
+							if (ctor != null) {
+								@SuppressWarnings("unchecked")
+								Collection<@Nullable Object> c2 = ensureNotNull((Collection<@Nullable Object>)ctor.create());
+								unsafe.putObject(obj, offset, c = c2);
+							} else {
+								ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
+								Parser<?> parser = cm.parser;
+								if (parser == null) {
+									throw new InstantiationException("abstract Collection field: " + fm.getName() + " in "
+										+ classMeta.klass.getName());
+								}
+								Object c2 = parser.parse0(this, cm, fm, null, obj);
+								if (c2 != null && !fm.klass.isAssignableFrom(c2.getClass())) {
+									throw new InstantiationException(
+										"incompatible type(" + c2.getClass() + ") for Collection field: " + fm.getName()
+											+ " in " + classMeta.klass.getName());
+								}
+								unsafe.putObject(obj, offset, c2);
+								break;
 							}
-							Object m2 = parser.parse0(this, cm, fm, null, obj);
-							if (m2 != null && !fm.klass.isAssignableFrom(m2.getClass())) {
-								throw new InstantiationException("incompatible type(" + m2.getClass()
-									+ ") for Map field: " + fm.getName() + " in " + classMeta.klass.getName());
-							}
-							unsafe.putObject(obj, offset, m2);
+						} else
+							c.clear();
+						parseList0(c, classMeta, fm);
+					} else if (flag == TYPE_MAP_FLAG) {
+						if (b != '{') {
+							unsafe.putObject(obj, offset, null);
 							break;
 						}
-					} else
-						m.clear();
-					parseMap0(m, classMeta, fm);
+						@SuppressWarnings("unchecked")
+						Map<Object, @Nullable Object> m = (Map<Object, @Nullable Object>)unsafe.getObject(obj, offset);
+						if (m == null) {
+							Creator<?> ctor = fm.ctor;
+							if (ctor != null) {
+								@SuppressWarnings("unchecked")
+								Map<Object, @Nullable Object> m2 = ensureNotNull((Map<Object, @Nullable Object>)ctor.create());
+								unsafe.putObject(obj, offset, m = m2);
+							} else {
+								ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
+								Parser<?> parser = cm.parser;
+								if (parser == null) {
+									throw new InstantiationException(
+										"abstract Map field: " + fm.getName() + " in " + classMeta.klass.getName());
+								}
+								Object m2 = parser.parse0(this, cm, fm, null, obj);
+								if (m2 != null && !fm.klass.isAssignableFrom(m2.getClass())) {
+									throw new InstantiationException("incompatible type(" + m2.getClass()
+										+ ") for Map field: " + fm.getName() + " in " + classMeta.klass.getName());
+								}
+								unsafe.putObject(obj, offset, m2);
+								break;
+							}
+						} else
+							m.clear();
+						parseMap0(m, classMeta, fm);
+					}
 				}
 			}
+			pos++;
+			return obj;
+		} finally {
+			depth--;
 		}
-		pos++;
-		depth--;
-		return obj;
 	}
 
 	public void parseList0(Collection<@Nullable Object> c, ClassMeta<?> classMeta, FieldMeta fm)
 		throws ReflectiveOperationException {
-		if (++depth > maxDepth)
+		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
-		int b = skipNext();
-		switch (fm.type & 0xf) {
-		case TYPE_BOOLEAN:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : b == 't');
-			break;
-		case TYPE_BYTE:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : (byte)parseInt());
-			break;
-		case TYPE_SHORT:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : (short)parseInt());
-			break;
-		case TYPE_CHAR:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : (char)parseInt());
-			break;
-		case TYPE_INT:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : parseInt());
-			break;
-		case TYPE_LONG:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : parseLong());
-			break;
-		case TYPE_FLOAT:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : (float)parseDouble());
-			break;
-		case TYPE_DOUBLE:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : parseDouble());
-			break;
-		case TYPE_STRING:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : parseString(false));
-			break;
-		case TYPE_OBJECT:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(parse(null, b));
-			break;
-		case TYPE_POS:
-			for (; b != ']'; b = skipVar(']'))
-				c.add(new Pos(pos));
-			break;
-		case TYPE_CUSTOM:
-			ClassMeta<?> subClassMeta = fm.classMeta;
-			if (subClassMeta == null)
-				fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
-			Parser<?> parser = subClassMeta.parser;
-			if (parser != null) {
+		depth++;
+		try {
+			int b = skipNext();
+			switch (fm.type & 0xf) {
+			case TYPE_BOOLEAN:
 				for (; b != ']'; b = skipVar(']'))
-					c.add(b == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, c));
-			} else {
-				if (ClassMeta.isAbstract(subClassMeta.klass)) {
-					throw new InstantiationException(
-						"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
+					c.add(b == 'n' ? null : b == 't');
+				break;
+			case TYPE_BYTE:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(b == 'n' ? null : (byte)parseInt());
+				break;
+			case TYPE_SHORT:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(b == 'n' ? null : (short)parseInt());
+				break;
+			case TYPE_CHAR:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(b == 'n' ? null : (char)parseInt());
+				break;
+			case TYPE_INT:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(b == 'n' ? null : parseInt());
+				break;
+			case TYPE_LONG:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(b == 'n' ? null : parseLong());
+				break;
+			case TYPE_FLOAT:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(b == 'n' ? null : (float)parseDouble());
+				break;
+			case TYPE_DOUBLE:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(b == 'n' ? null : parseDouble());
+				break;
+			case TYPE_STRING:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(b == 'n' ? null : parseString(false));
+				break;
+			case TYPE_OBJECT:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(parse(null, b));
+				break;
+			case TYPE_POS:
+				for (; b != ']'; b = skipVar(']'))
+					c.add(new Pos(pos));
+				break;
+			case TYPE_CUSTOM:
+				ClassMeta<?> subClassMeta = fm.classMeta;
+				if (subClassMeta == null)
+					fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
+				Parser<?> parser = subClassMeta.parser;
+				if (parser != null) {
+					for (; b != ']'; b = skipVar(']'))
+						c.add(b == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, c));
+				} else {
+					if (ClassMeta.isAbstract(subClassMeta.klass)) {
+						throw new InstantiationException(
+							"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
+					}
+					for (; b != ']'; b = skipVar(']'))
+						c.add(b == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
 				}
-				for (; b != ']'; b = skipVar(']'))
-					c.add(b == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
+				break;
 			}
-			break;
+			pos++;
+		} finally {
+			depth--;
 		}
-		pos++;
-		depth--;
 	}
 
 	public void parseMap0(Map<Object, @Nullable Object> m, ClassMeta<?> classMeta, FieldMeta fm)
 		throws ReflectiveOperationException {
-		if (++depth > maxDepth)
+		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
-		int b = skipNext();
-		KeyReader keyParser = ensureNotNull(fm.keyParser);
-		switch (fm.type & 0xf) {
-		case TYPE_BOOLEAN:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				b = skipColon();
-				m.put(k, b == 'n' ? null : b == 't');
-			}
-			break;
-		case TYPE_BYTE:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, skipColon() == 'n' ? null : (byte)parseInt());
-			}
-			break;
-		case TYPE_SHORT:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, skipColon() == 'n' ? null : (short)parseInt());
-			}
-			break;
-		case TYPE_CHAR:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, skipColon() == 'n' ? null : (char)parseInt());
-			}
-			break;
-		case TYPE_INT:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, skipColon() == 'n' ? null : parseInt());
-			}
-			break;
-		case TYPE_LONG:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, skipColon() == 'n' ? null : parseLong());
-			}
-			break;
-		case TYPE_FLOAT:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, skipColon() == 'n' ? null : (float)parseDouble());
-			}
-			break;
-		case TYPE_DOUBLE:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, skipColon() == 'n' ? null : parseDouble());
-			}
-			break;
-		case TYPE_STRING:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, skipColon() == 'n' ? null : parseString(false));
-			}
-			break;
-		case TYPE_OBJECT:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				m.put(k, parse(null, skipColon()));
-			}
-			break;
-		case TYPE_POS:
-			for (; b != '}'; b = skipVar('}')) {
-				Object k = keyParser.parse(this, b);
-				skipColon();
-				m.put(k, new Pos(pos));
-			}
-			break;
-		case TYPE_CUSTOM:
-			ClassMeta<?> subClassMeta = fm.classMeta;
-			if (subClassMeta == null)
-				fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
-			Parser<?> parser = subClassMeta.parser;
-			if (parser != null) {
+		depth++;
+		try {
+			int b = skipNext();
+			KeyReader keyParser = ensureNotNull(fm.keyParser);
+			switch (fm.type & 0xf) {
+			case TYPE_BOOLEAN:
 				for (; b != '}'; b = skipVar('}')) {
 					Object k = keyParser.parse(this, b);
-					m.put(k, skipColon() == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, m));
+					b = skipColon();
+					m.put(k, b == 'n' ? null : b == 't');
 				}
-			} else {
-				if (ClassMeta.isAbstract(subClassMeta.klass)) {
-					throw new InstantiationException(
-						"abstract value class: " + fm.getName() + " in " + classMeta.klass.getName());
-				}
+				break;
+			case TYPE_BYTE:
 				for (; b != '}'; b = skipVar('}')) {
 					Object k = keyParser.parse(this, b);
-					m.put(k, skipColon() == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
+					m.put(k, skipColon() == 'n' ? null : (byte)parseInt());
 				}
+				break;
+			case TYPE_SHORT:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					m.put(k, skipColon() == 'n' ? null : (short)parseInt());
+				}
+				break;
+			case TYPE_CHAR:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					m.put(k, skipColon() == 'n' ? null : (char)parseInt());
+				}
+				break;
+			case TYPE_INT:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					m.put(k, skipColon() == 'n' ? null : parseInt());
+				}
+				break;
+			case TYPE_LONG:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					m.put(k, skipColon() == 'n' ? null : parseLong());
+				}
+				break;
+			case TYPE_FLOAT:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					m.put(k, skipColon() == 'n' ? null : (float)parseDouble());
+				}
+				break;
+			case TYPE_DOUBLE:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					m.put(k, skipColon() == 'n' ? null : parseDouble());
+				}
+				break;
+			case TYPE_STRING:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					m.put(k, skipColon() == 'n' ? null : parseString(false));
+				}
+				break;
+			case TYPE_OBJECT:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					m.put(k, parse(null, skipColon()));
+				}
+				break;
+			case TYPE_POS:
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					skipColon();
+					m.put(k, new Pos(pos));
+				}
+				break;
+			case TYPE_CUSTOM:
+				ClassMeta<?> subClassMeta = fm.classMeta;
+				if (subClassMeta == null)
+					fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
+				Parser<?> parser = subClassMeta.parser;
+				if (parser != null) {
+					for (; b != '}'; b = skipVar('}')) {
+						Object k = keyParser.parse(this, b);
+						m.put(k, skipColon() == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, m));
+					}
+				} else {
+					if (ClassMeta.isAbstract(subClassMeta.klass)) {
+						throw new InstantiationException(
+							"abstract value class: " + fm.getName() + " in " + classMeta.klass.getName());
+					}
+					for (; b != '}'; b = skipVar('}')) {
+						Object k = keyParser.parse(this, b);
+						m.put(k, skipColon() == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
+					}
+				}
+				break;
 			}
-			break;
+			pos++;
+		} finally {
+			depth--;
 		}
-		pos++;
-		depth--;
 	}
 
 	int parseKeyHash(int e) {
