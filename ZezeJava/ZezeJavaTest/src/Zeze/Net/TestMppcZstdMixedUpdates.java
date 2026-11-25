@@ -1,9 +1,11 @@
 package Zeze.Net;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Fast
 public class TestMppcZstdMixedUpdates {
@@ -71,5 +73,65 @@ public class TestMppcZstdMixedUpdates {
                 assertArrayEquals(data, decoded.Copy());
             }
         }
+    }
+
+    @Test
+    void blockSizeVarintFifthByteOverflowThrowsCodecException() {
+        for (byte fifthByte : new byte[] {0x08, 0x10, 0x11, 0x7f, (byte)0x80}) {
+            var decoded = new BufferCodec();
+            try (var decoder = new DecompressMppcZstd(decoded, 1024, 1024)) {
+                byte[] wire = new byte[] {
+                        (byte)0xdf, (byte)0xff, // MPPC block-mode escape (0xc000 + 0x1fff)
+                        (byte)0x80, (byte)0x80, (byte)0x80, (byte)0x80, fifthByte
+                };
+                assertThrows(CodecException.class, () -> {
+                    for (byte b : wire)
+                        decoder.update(b);
+                }, "fifthByte=0x" + Integer.toHexString(fifthByte & 0xff));
+            }
+        }
+    }
+
+    @Test
+    void zeroSrcBufSizeClampedToOneDoesNotThrow() {
+        var data = payload();
+        var wire = compress(data);
+        var decoded = new BufferCodec();
+        try (var decoder = new DecompressMppcZstd(decoded, 0, 1024)) {
+            for (byte b : wire)
+                decoder.update(b);
+            decoder.flush();
+            assertArrayEquals(data, decoded.Copy());
+        }
+    }
+
+    @Test
+    void flushBlockOutsideBlockModeAndRepeatedFlushBlockAreIdempotent() {
+        var prefix = "prefix-mppc-data-prefix-mppc-data-".getBytes(StandardCharsets.UTF_8);
+        var block = payload();
+        var suffix = "-suffix-mppc-data-suffix-mppc-data".getBytes(StandardCharsets.UTF_8);
+        var encoded = new BufferCodec();
+        try (var compressor = new CompressMppcZstd(encoded, 8192, 3, 0)) {
+            compressor.flushBlock(); // 非块态首调
+            compressor.update(prefix, 0, prefix.length);
+            compressor.flushBlock(); // 普通MPPC态中途调用不得注入原始0x00字节
+            compressor.updateBlock(block, 0, block.length);
+            compressor.flushBlock();
+            compressor.flushBlock(); // 块态结束后重复调用须幂等
+            compressor.update(suffix, 0, suffix.length);
+            compressor.flushBlock();
+            compressor.flush();
+        }
+        var decoded = new BufferCodec();
+        try (var decoder = new DecompressMppcZstd(decoded, 1024, 1024)) {
+            var wire = encoded.Copy();
+            decoder.update(wire, 0, wire.length);
+            decoder.flush();
+        }
+        var expected = new byte[prefix.length + block.length + suffix.length];
+        System.arraycopy(prefix, 0, expected, 0, prefix.length);
+        System.arraycopy(block, 0, expected, prefix.length, block.length);
+        System.arraycopy(suffix, 0, expected, prefix.length + block.length, suffix.length);
+        assertArrayEquals(expected, decoded.Copy());
     }
 }

@@ -67,7 +67,7 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 
 	public DecompressMppcZstd(Codec sink, int srcBufSize, int dstBufSize) {
 		super(sink);
-		srcBuf = new byte[srcBufSize];
+		srcBuf = new byte[Math.max(srcBufSize, 1)];
 		ds = ZstdFactory.newDecompressStream(dstBufSize);
 	}
 
@@ -103,16 +103,16 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 			}
 		} else {
 			if (c < 0) {
+				if (blockState >= 28)
+					throw new CodecException("blockSize overflow");
 				blockSize += (c & 0x7f) << blockState;
 				blockState += 7;
-				if (blockState >= 31)
-					throw new CodecException("blockSize overflow");
 			} else {
+				if (blockState == 28 && c > 7)
+					throw new CodecException("blockSize overflow");
 				blockSize += c << blockState;
 				blockState = blockSize == 0 ? -1 : -2;
 			}
-			if (blockSize < 0)
-				throw new CodecException("blockSize overflow");
 		}
 	}
 

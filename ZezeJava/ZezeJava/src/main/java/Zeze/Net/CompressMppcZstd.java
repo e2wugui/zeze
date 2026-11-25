@@ -86,6 +86,8 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 	}
 
 	public void flushBlock() {
+		if (!blockMode)
+			return;
 		blockMode = false;
 		cs.flush(sinkWrapper);
 	}
