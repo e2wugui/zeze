@@ -55,11 +55,11 @@ public class ConcurrentLruLike<K, V> {
 	private volatile ConcurrentHashMap<K, LruItem<K, V>> lruHot;
 	private final TimerFuture<?> newLruHotTimer;
 	private final TimerFuture<?> cleanTimer;
-	private int capacity;
-	private int lruInitialCapacity;
+	private volatile int capacity;
+	private volatile int lruInitialCapacity;
 	private int cleanPeriod;
-	private @Nullable BiPredicate<K, V> tryRemoveCallback;
-	private boolean continueWhenTryRemoveCallbackFail = true;
+	private volatile @Nullable BiPredicate<K, V> tryRemoveCallback;
+	private volatile boolean continueWhenTryRemoveCallbackFail = true;
 
 	public final int getCapacity() {
 		return capacity;
@@ -134,7 +134,9 @@ public class ConcurrentLruLike<K, V> {
 		// 保存句柄供close取消。schedulePeriodNow（不等事务提交）：
 		// 周期任务属于实例自身的生命周期，随构造注册，不应被事务回滚掉。
 		newLruHotTimer = TaskSpec.ofAction(() -> {
-			if (lruHot.size() > lruInitialCapacity / 2) // 访问很少的时候不创建新的热点
+			// 访问很少且未超容量时不创建新的热点；一旦超容且当前热点非空，必须轮转以便 cleanNow 驱逐旧项
+			int cap = capacity;
+			if (lruHot.size() > lruInitialCapacity / 2 || (cap > 0 && dataMap.size() > cap && !lruHot.isEmpty()))
 				newLruHot();
 		}).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
 		// 下面这个清理任务的执行时间可能很长；schedule(delay, period) 是固定延迟调度(scheduleWithFixedDelay)，

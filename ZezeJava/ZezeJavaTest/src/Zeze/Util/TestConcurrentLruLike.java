@@ -374,6 +374,26 @@ public class TestConcurrentLruLike {
 		Assertions.assertNotSame(r, rigged.get("k"), "被取代的条目不得迁移进队头");
 	}
 
+	@Test
+	public void testSmallCapacityWithLargeInitialCapacityStillRotatesAndEvicts() throws Exception {
+		// capacity=2 而 initialCapacity=1024（lruInitialCapacity=204，原轮转门槛 102）：
+		// 超容时热点必须自动轮转以便 cleanNow 驱逐旧项，而不是永久滞留在 lruHot。
+		var lru = new ConcurrentLruLike<String, Object>("smallCap", 2, null, 20, 40, 1024);
+		try {
+			lru.getOrAdd("k1", Object::new);
+			lru.getOrAdd("k2", Object::new);
+			lru.getOrAdd("k3", Object::new);
+			var dataMap = dataMapOf(lru);
+			var deadline = System.currentTimeMillis() + 3000;
+			while (dataMap.size() > 2 && System.currentTimeMillis() < deadline)
+				Thread.sleep(20);
+			Assertions.assertTrue(dataMap.size() <= 2,
+				"超容后热点应自动轮转并驱逐至容量以内，实际 size=" + dataMap.size());
+		} finally {
+			lru.close();
+		}
+	}
+
 	/** rigged 热点节点：首次 putIfAbsent 前执行 interleave，在挂起点注入并发交错。 */
 	@SuppressWarnings("serial")
 	private static final class InterleavingHot extends ConcurrentHashMap<Object, Object> {
