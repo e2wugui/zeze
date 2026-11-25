@@ -2172,6 +2172,20 @@ public final class JsonReader {
 			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
 					if (i >= 0xCCC_CCCC_CCCC_CCCCL && (i > 0xCCC_CCCC_CCCC_CCCCL || c > 7)) {
+						if (minus && i == 0xCCC_CCCC_CCCC_CCCCL && c == 8) {
+							i = Long.MIN_VALUE;
+							n++;
+							c = ((b = buffer[++p]) - '0') & 0xff;
+							if (c >= 10 && b != '.' && (b | 0x20) != 'e')
+								break;
+							d = 9223372036854775808.0; // -(double)Long.MIN_VALUE，避免后续 '.'/'e' 路径对负 d 二次取反
+							useDouble = 2;
+							while (c < 10) {
+								d = d * 10 + c;
+								c = ((b = buffer[++p]) - '0') & 0xff;
+							}
+							break;
+						}
 						d = i; // 0xCCC_CCCC_CCCC_CCCC * 10 = 0x7FFF_FFFF_FFFF_FFF8
 						useDouble = 2;
 						do

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
  * U3-F2：十进制转 double 的正确舍入。
@@ -90,5 +91,34 @@ public final class TestJsonDoubleCorrectRounding {
 	public void testDanglingExponentStillLenient() {
 		assertEquals(1.0, new JsonReader().buf("1e,").parseDouble());
 		assertEquals(1.0, new JsonReader().buf("1e").parseDouble());
+	}
+
+	@Test
+	public void testParseNumberLongMinValueExactLong() throws ReflectiveOperationException {
+		assertEquals(Long.valueOf(Long.MIN_VALUE), Json.parse("-9223372036854775808", Object.class));
+		assertEquals(Long.valueOf(Long.MIN_VALUE), new JsonReader().buf("-9223372036854775808").parseNumber());
+		var jr = new JsonReader().buf("-9223372036854775808,");
+		assertEquals(Long.valueOf(Long.MIN_VALUE), jr.parseNumber());
+		assertEquals(20, jr.pos());
+
+		// 紧凑序列化往返保持 Long 类型与值
+		String encoded = Json.toCompactString(Long.MIN_VALUE);
+		assertEquals(Long.valueOf(Long.MIN_VALUE), Json.parse(encoded, Object.class));
+
+		// 超出 Long.MIN_VALUE 或带小数/指数后缀仍返回正确符号的 Double
+		Double over = assertInstanceOf(Double.class, Json.parse("-92233720368547758080", Object.class));
+		assertEquals(Double.parseDouble("-92233720368547758080"), over);
+
+		Double frac = assertInstanceOf(Double.class, Json.parse("-9223372036854775808.5", Object.class));
+		assertEquals(Double.parseDouble("-9223372036854775808.5"), frac);
+
+		Double exp = assertInstanceOf(Double.class, Json.parse("-9223372036854775808e0", Object.class));
+		assertEquals(-9223372036854775808.0, exp);
+
+		Double danglingExp = assertInstanceOf(Double.class, new JsonReader().buf("-9223372036854775808e").parseNumber());
+		assertEquals(-9223372036854775808.0, danglingExp);
+
+		Double posOver = assertInstanceOf(Double.class, Json.parse("+9223372036854775808", Object.class));
+		assertEquals(9223372036854775808.0, posOver);
 	}
 }
