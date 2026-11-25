@@ -24,55 +24,56 @@ public class BinaryPool {
 	}
 
 	public Binary intern(byte [] bytes, int beginIndex, int endIndex) {
-		var hash64 = hash64(HASH_BASE, bytes, beginIndex, endIndex);
+		final var baseHash = hash64(HASH_BASE, bytes, beginIndex, endIndex);
+		var hash64 = baseHash;
+		int probeStep = 0;
 		Binary b;
 		rLock.lock();
 		try {
-			var h64 = hash64;
-			// i从1起：i=0的种子HASH_BASE+0与初值hash64相同，会把首槽探测两遍（32轮仅覆盖31槽）
-			for (int i = 1; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖
+			var h64 = baseHash;
+			for (int i = 0; ; ) { // 探测32槽（种子 HASH_BASE+0..31），超过32冲突极低，全满则覆盖首槽
 				b = pool.get(h64);
 				if (b == null) {
 					hash64 = h64;
+					probeStep = i;
 					break;
 				}
 				if (Arrays.equals(b.bytesUnsafe(), 0, b.size(), bytes, beginIndex, endIndex))
 					return b;
+				if (++i >= 32) {
+					probeStep = 32;
+					break;
+				}
 				h64 = hash64(HASH_BASE + i, bytes, beginIndex, endIndex);
 			}
 		} finally {
 			rLock.unlock();
 		}
 		b = new Binary(Arrays.copyOfRange(bytes, beginIndex, endIndex));
-		wLock.lock();
-		try {
-			// 探测与插入之间存在窗口：并发 intern 相同内容时后写者直接覆盖先写者，两个调用方拿到不同实例，
-			// 破坏“同一内容→同一引用”的 intern 契约。写入前复查，命中等值实例则复用。
-			var exist = pool.get(hash64);
-			if (exist != null && Arrays.equals(exist.bytesUnsafe(), 0, exist.size(), bytes, beginIndex, endIndex))
-				return exist;
-			pool.put(hash64, b);
-		} finally {
-			wLock.unlock();
-		}
-		return b;
+		return putUnderWriteLock(baseHash, hash64, probeStep, b);
 	}
 
 	public Binary intern(java.nio.ByteBuffer bb, int beginIndex, int endIndex) {
-		var hash64 = hash64(HASH_BASE, bb, beginIndex, endIndex);
+		final var baseHash = hash64(HASH_BASE, bb, beginIndex, endIndex);
+		var hash64 = baseHash;
+		int probeStep = 0;
 		Binary b;
 		rLock.lock();
 		try {
-			var h64 = hash64;
-			// i从1起：i=0的种子HASH_BASE+0与初值hash64相同，会把首槽探测两遍（32轮仅覆盖31槽）
-			for (int i = 1; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖
+			var h64 = baseHash;
+			for (int i = 0; ; ) { // 探测32槽（种子 HASH_BASE+0..31），超过32冲突极低，全满则覆盖首槽
 				b = pool.get(h64);
 				if (b == null) {
 					hash64 = h64;
+					probeStep = i;
 					break;
 				}
 				if (equals(b, bb, beginIndex, endIndex))
 					return b;
+				if (++i >= 32) {
+					probeStep = 32;
+					break;
+				}
 				h64 = hash64(HASH_BASE + i, bb, beginIndex, endIndex);
 			}
 		} finally {
@@ -82,12 +83,35 @@ public class BinaryPool {
 		var bytes = new byte[n];
 		bb.get(beginIndex, bytes, 0, n);
 		b = new Binary(bytes);
+		return putUnderWriteLock(baseHash, hash64, probeStep, b);
+	}
+
+	// package-private：供单测确定性覆盖读锁→写锁窗口的并发冲突探测路径
+	Binary putUnderWriteLock(long baseHash, long hash64, int probeStep, Binary b) {
+		var bytes = b.bytesUnsafe();
+		int len = b.size();
 		wLock.lock();
 		try {
-			// 同 byte[] 版：写入前复查，并发 intern 相同内容时复用先插入的实例，保证 intern 契约。
+			// 读锁释放到获取写锁期间可能有并发插入（相同内容或哈希冲突的不同内容）：
+			// 若目标槽已非空且内容不等，沿探测链继续检查后续槽位，命中等值实例则复用，找到空槽则写入，
+			// 仅 32 槽全满时按既有策略覆盖首槽（baseHash），避免直接覆写其他活条目。
 			var exist = pool.get(hash64);
-			if (exist != null && equals(exist, bb, beginIndex, endIndex))
-				return exist;
+			if (exist != null) {
+				if (Arrays.equals(exist.bytesUnsafe(), 0, exist.size(), bytes, 0, len))
+					return exist;
+				var targetHash = baseHash;
+				for (int i = probeStep + 1; i < 32; i++) {
+					var h64 = hash64(HASH_BASE + i, bytes, 0, len);
+					exist = pool.get(h64);
+					if (exist == null) {
+						targetHash = h64;
+						break;
+					}
+					if (Arrays.equals(exist.bytesUnsafe(), 0, exist.size(), bytes, 0, len))
+						return exist;
+				}
+				hash64 = targetHash;
+			}
 			pool.put(hash64, b);
 		} finally {
 			wLock.unlock();

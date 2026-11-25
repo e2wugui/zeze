@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Objects;
 
 import Zeze.Net.Binary;
 import Zeze.Util.BinaryPool;
@@ -55,5 +56,70 @@ public class TestBinaryPoolOrder {
 		Assertions.assertSame(b1, b2);
 		Assertions.assertEquals(ByteOrder.LITTLE_ENDIAN, bb.order(), "非默认order的buffer必须原样保留");
 		Assertions.assertEquals(value, bb.getLong(0));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testWriteLockRecheckProbesForwardOnHashCollision() throws Exception {
+		var pool = new BinaryPool();
+		var mapField = BinaryPool.class.getDeclaredField("pool");
+		mapField.setAccessible(true);
+		var map = (LongHashMap<Binary>)Objects.requireNonNull(mapField.get(pool));
+		var hashMethod = BinaryPool.class.getDeclaredMethod("hash64", long.class, byte[].class, int.class, int.class);
+		hashMethod.setAccessible(true);
+		var baseField = BinaryPool.class.getDeclaredField("HASH_BASE");
+		baseField.setAccessible(true);
+		long hashBase = baseField.getLong(null);
+
+		byte[] payload = new byte[] {1, 2, 3, 4, 5};
+		long h0 = (Long)Objects.requireNonNull(hashMethod.invoke(null, hashBase, payload, 0, payload.length));
+		long h1 = (Long)Objects.requireNonNull(hashMethod.invoke(null, hashBase + 1, payload, 0, payload.length));
+		var occupant = new Binary(new byte[] {9, 9, 9});
+		// 模拟 rLock→wLock 窗口内另一线程向 h0 写入了哈希冲突的不同条目
+		map.put(h0, occupant);
+
+		var candidate1 = new Binary(payload.clone());
+		var inserted = pool.putUnderWriteLock(h0, h0, 0, candidate1);
+		Assertions.assertSame(candidate1, inserted);
+		Assertions.assertSame(occupant, map.get(h0), "写锁遇到并发冲突时不得覆盖首槽既有条目");
+		Assertions.assertSame(candidate1, map.get(h1), "应继续探测并写入下一个空槽");
+		Assertions.assertSame(candidate1, pool.intern(payload));
+		Assertions.assertSame(candidate1, pool.intern(ByteBuffer.wrap(payload), 0, payload.length));
+
+		// 模拟窗口内首槽被冲突项占用且后续槽位已写入相同内容：写锁复查必须返回既有等值实例
+		var candidate2 = new Binary(payload.clone());
+		Assertions.assertSame(candidate1, pool.putUnderWriteLock(h0, h0, 0, candidate2));
+		Assertions.assertSame(occupant, map.get(h0));
+		Assertions.assertSame(candidate1, map.get(h1));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testProbeCoversAll32SlotsBeforeOverwrite() throws Exception {
+		var pool = new BinaryPool();
+		var mapField = BinaryPool.class.getDeclaredField("pool");
+		mapField.setAccessible(true);
+		var map = (LongHashMap<Binary>)Objects.requireNonNull(mapField.get(pool));
+		var hashMethod = BinaryPool.class.getDeclaredMethod("hash64", long.class, byte[].class, int.class, int.class);
+		hashMethod.setAccessible(true);
+		var baseField = BinaryPool.class.getDeclaredField("HASH_BASE");
+		baseField.setAccessible(true);
+		long hashBase = baseField.getLong(null);
+
+		byte[] payload = new byte[] {7, 8, 9, 10};
+		long[] hashes = new long[32];
+		for (int i = 0; i < 32; i++)
+			hashes[i] = (Long)Objects.requireNonNull(hashMethod.invoke(null, hashBase + i, payload, 0, payload.length));
+
+		// 占满前 31 槽（0..30），保留第 32 槽（index 31）为空
+		var firstOccupant = new Binary(new byte[] {0});
+		map.put(hashes[0], firstOccupant);
+		for (int i = 1; i < 31; i++)
+			map.put(hashes[i], new Binary(new byte[] {(byte)i}));
+
+		var inserted = pool.intern(payload);
+		Assertions.assertSame(firstOccupant, map.get(hashes[0]), "第 32 槽尚空时不得提前覆盖首槽");
+		Assertions.assertSame(inserted, map.get(hashes[31]), "应完整探测到第 32 槽（HASH_BASE+31）");
+		Assertions.assertSame(inserted, pool.intern(ByteBuffer.wrap(payload), 0, payload.length));
 	}
 }
