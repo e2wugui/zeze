@@ -39,6 +39,7 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Raft版服务管理器客户端Agent：经raft连接ServiceManagerWithRaft，注册/订阅断线重连后
@@ -47,6 +48,7 @@ import org.apache.logging.log4j.Logger;
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
 	private static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
 	private final Agent raftClient;
+	private volatile boolean closed;
 	private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	// 断线（换leader）重连后重放用：服务端行按name持久化，但flap时行可能已被onClose删除，
 	// 重放注册/订阅才能恢复服务端状态（对齐非raft版Agent.onConnected）。
@@ -86,18 +88,25 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	private void raftOnSetLeader(Agent agent) {
+		if (closed)
+			return;
 		// 直接使用自身持有的config。raftClient以Config构造（无Application），getClient().getZeze()为null，
 		// 经zeze round-trip取配置会在null检查处直接return，Login永远不发送。
 		var future = startNewLogin();
+		if (future == null)
+			return;
 		var login = new Login();
 		//noinspection DataFlowIssue
 		login.Argument.setSessionName(config.getServiceManagerConf().getSessionName());
 
 		agent.send(login, p -> {
+			if (closed)
+				return 0;
 			var rpc = (Login)p;
-			if (rpc.isTimeout())
-				raftOnSetLeader(agent);
-			else if (rpc.getResultCode() != 0 && rpc.getResultCode() != Procedure.RaftApplied) {
+			if (rpc.isTimeout()) {
+				if (future == loginFuture)
+					raftOnSetLeader(agent);
+			} else if (rpc.getResultCode() != 0 && rpc.getResultCode() != Procedure.RaftApplied) {
 				logger.error("Login Timeout Or ResultCode != 0. Code={}", rpc.getResultCode());
 			} else {
 				future.setResult(true);
@@ -261,28 +270,43 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		//noinspection DataFlowIssue
 		var deadline = System.currentTimeMillis() + super.config.getServiceManagerConf().getLoginTimeout();
 		for (; ; ) {
+			if (closed)
+				throw new IllegalStateException("ServiceManagerAgentWithRaft closed");
 			var volatileTmp = loginFuture;
 			// await超时或被取消都返回false，此时不能再调get()：未完成的future上get()会无限期park，
 			// 下面的deadline检查将不可达；被取消则重读最新loginFuture继续等。
 			if (volatileTmp.isDone() || volatileTmp.await(Math.max(1, deadline - System.currentTimeMillis()))) {
+				if (closed)
+					throw new IllegalStateException("ServiceManagerAgentWithRaft closed");
 				try {
 					if (Boolean.TRUE.equals(volatileTmp.get())) // 到这里future已完成，get()不会park。
 						return;
 				} catch (Throwable ignored) {
 					// 等待期间raftOnSetLeader执行startNewLogin，cancel旧future并替换；
 					// 被替换不是失败，重读最新future继续等。
+					if (volatileTmp == loginFuture)
+						throw new IllegalStateException("login canceled.");
 				}
 			}
+			if (closed)
+				throw new IllegalStateException("ServiceManagerAgentWithRaft closed");
 			if (System.currentTimeMillis() >= deadline)
 				throw new IllegalStateException("login timeout.");
 		}
 	}
 
-	private TaskCompletionSource<Boolean> startNewLogin() {
+	private @Nullable TaskCompletionSource<Boolean> startNewLogin() {
 		lock();
 		try {
-			loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
-			return loginFuture = new TaskCompletionSource<>();
+			var old = loginFuture;
+			if (closed) {
+				old.cancel(true);
+				return null;
+			}
+			var next = new TaskCompletionSource<Boolean>();
+			loginFuture = next;
+			old.cancel(true); // 先发布新future再取消旧future，避免等待者短暂重读已取消的旧future。
+			return next;
 		} finally {
 			unlock();
 		}
@@ -380,9 +404,15 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void close() {
+		closed = true;
 		replay.close();
 		try {
-			loginFuture.cancel(true);
+			lock();
+			try {
+				loginFuture.cancel(true);
+			} finally {
+				unlock();
+			}
 			raftClient.stop();
 		} catch (Throwable e) {
 			throw Task.forceThrow(e);

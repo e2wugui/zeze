@@ -146,4 +146,66 @@ public class TestServiceManagerWithRaftLoginTimeout {
 			agent.close();
 		}
 	}
+
+	@Test
+	@Timeout(60)
+	public void testCloseWithPendingLoginDoesNotRecurse() throws Exception {
+		var agent = newAgent(30_000);
+		try {
+			var raftClientField = ServiceManagerAgentWithRaft.class.getDeclaredField("raftClient");
+			raftClientField.setAccessible(true);
+			var raftClient = (Zeze.Raft.Agent)requireNonNull(raftClientField.get(agent));
+
+			var genField = Zeze.Raft.Agent.class.getDeclaredField("uniqueRequestIdGenerator");
+			genField.setAccessible(true);
+			var gen = (Zeze.Util.PersistentAtomicLong)requireNonNull(genField.get(raftClient));
+			long idBefore = gen.next();
+
+			var pendingField = Zeze.Raft.Agent.class.getDeclaredField("pending");
+			pendingField.setAccessible(true);
+			var pending = (Zeze.Util.ConcurrentHashMapOrdered<?, ?>)requireNonNull(pendingField.get(raftClient));
+
+			var onSetLeader = ServiceManagerAgentWithRaft.class.getDeclaredMethod("raftOnSetLeader", Zeze.Raft.Agent.class);
+			onSetLeader.setAccessible(true);
+			onSetLeader.invoke(agent, raftClient);
+			Assertions.assertEquals(1, pending.size(), "Login rpc must be pending before close");
+
+			// 修复前：close -> raftClient.stop 同步触发超时回调 -> raftOnSetLeader -> agent.send(stopped) 无限递归 StackOverflowError
+			Assertions.assertDoesNotThrow(agent::close);
+			Assertions.assertTrue(pending.isEmpty(), "pending must be drained on close");
+			long idAfter = gen.next();
+			Assertions.assertTrue(idAfter - idBefore <= 5,
+					"close must not recursively allocate requestIds, consumed=" + (idAfter - idBefore));
+		} finally {
+			agent.close();
+		}
+	}
+
+	@Test
+	@Timeout(60)
+	public void testCloseUnblocksWaitingCallerImmediately() throws Exception {
+		var agent = newAgent(30_000);
+		try {
+			var f = subscribeInWorker(agent);
+			try {
+				Thread.sleep(300);
+				long closeAt = System.currentTimeMillis();
+				agent.close();
+
+				var ex = f.get(15, TimeUnit.SECONDS);
+				long elapsedAfterClose = System.currentTimeMillis() - closeAt;
+				Assertions.assertNotNull(ex, "waiting caller must fail after close");
+				Assertions.assertInstanceOf(IllegalStateException.class, ex, "expect closed exception, but: " + ex);
+				Assertions.assertTrue(requireNonNull(ex.getMessage()).contains("closed"),
+						"expect closed message, but: " + ex.getMessage());
+				Assertions.assertTrue(elapsedAfterClose < 10_000,
+						"waitLoginReady must exit immediately on close instead of spinning until loginTimeout(30s), elapsed="
+								+ elapsedAfterClose);
+			} finally {
+				f.cancel(true);
+			}
+		} finally {
+			agent.close();
+		}
+	}
 }
