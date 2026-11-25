@@ -1293,20 +1293,13 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			var s = "SELECT * FROM " + name + orderBy;
 			var parents = new ArrayList<String>();
-			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					var key = table.decodeKeyResultSet(rs);
-					var value = table.newValue();
-					value.decodeResultSet(parents, rs);
-					parents.clear();
-					if (!callback.handle(key, value))
-						break;
-				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
+			var count = walkStreamed(s, rs -> {
+				var key = table.decodeKeyResultSet(rs);
+				var value = table.newValue();
+				value.decodeResultSet(parents, rs);
+				parents.clear();
+				return callback.handle(key, value);
+			});
 			return callback.endWalk(count);
 		}
 
@@ -1318,16 +1311,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			//noinspection DataFlowIssue
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + orderBy;
-			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!callback.handle(table.decodeKeyResultSet(rs)))
-						break;
-				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
+			var count = walkStreamed(s, rs -> callback.handle(table.decodeKeyResultSet(rs)));
 			return callback.endWalk(count);
 		}
 

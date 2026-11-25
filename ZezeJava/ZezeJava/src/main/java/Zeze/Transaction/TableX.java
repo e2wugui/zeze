@@ -941,6 +941,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable K walk(@Nullable K exclusiveStartKey, int proposeLimit,
 								  TableWalkHandle<K, V> callback) throws Exception {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -949,6 +951,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit,
 									  TableWalkHandle<K, V> callback) throws Exception {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -957,6 +961,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable K walkKey(@Nullable K exclusiveStartKey, int proposeLimit,
 									 TableWalkKey<K> callback) throws Exception {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -965,6 +971,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
 										 TableWalkKey<K> callback) throws Exception {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -981,6 +989,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long walk(TableWalkHandle<K, V> callback) throws Exception {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -988,6 +998,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long walkDesc(TableWalkHandle<K, V> callback) throws Exception {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -995,6 +1007,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long walkKey(TableWalkKey<K> callback) throws Exception {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1002,6 +1016,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long walkKeyDesc(TableWalkKey<K> callback) throws Exception {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
