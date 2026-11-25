@@ -620,8 +620,9 @@ public class LogSequence {
 				if (RocksDatabase.isValidOrThrow(itLast))
 					lastIndex = RaftLog.decodeTermIndex(itLast.value()).getIndex();
 				else {
-					// empty. add one for prev.
-					saveLog(new RaftLog(term, 0, new HeartbeatLog()));
+					// empty. add one for prev. index=0 哨兵代表空日志前缀，term 恒为 0，
+					// 不得写入当前 term，否则崩溃恢复后的空节点可凭高 term 击败持有真实日志的节点。
+					saveLog(new RaftLog(0, 0, new HeartbeatLog()));
 					lastIndex = 0;
 				}
 				logger.info("{}-{} {} LastIndex={} Count={}", raft.getName(), raft.isLeader(),
@@ -709,7 +710,8 @@ public class LogSequence {
 					throw Task.forceThrow(e);
 				}
 				logs = this.database.getOrAddTable(raft.getName() + ".logs"); // this.database：构造器参数database遮蔽字段
-				saveLog(new RaftLog(term, 0, new HeartbeatLog()));
+				// index=0 哨兵恒为 term=0，避免空日志节点在选举比较中击败已提交节点。
+				saveLog(new RaftLog(0, 0, new HeartbeatLog()));
 				lastIndex = 0;
 				saveFirstIndex(-1);
 				firstIndex = 0;
