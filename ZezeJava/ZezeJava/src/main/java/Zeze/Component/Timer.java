@@ -248,6 +248,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		return hotHandle.findHandle(getZeze(), handleClassName);
 	}
 
+	private @Nullable TimerHandle findTimerHandleOrNull(String handleClassName) {
+		try {
+			return findTimerHandle(handleClassName);
+		} catch (Throwable e) {
+			logger.error("findTimerHandle({}) exception:", handleClassName, e);
+			return null;
+		}
+	}
+
 	/**
 	 * TimerHandle.onTimerCancel 没有上下文参数，无状态handle到这里反查所属App。
 	 * 钩子总是在 {@code Timer.cancel} 的 fireTimerCancel 过程内同步执行，
@@ -978,14 +987,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			var node = _tNodes.get(nodeId);
 			if (node != null) {
 				var timer = node.getTimers().get(timerId);
-				if (timer != null) {
-					var handleName = timer.getHandleName();
-					try {
-						handle = findTimerHandle(handleName);
-					} catch (Exception e) {
-						logger.error("cancel: findTimerHandle({}) exception:", handleName, e);
-					}
-				}
+				if (timer != null)
+					handle = findTimerHandleOrNull(timer.getHandleName());
 			}
 			cancel(serverId, timerId, nodeId, node, handle);
 			return true;
@@ -1158,6 +1161,33 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		}
 	}
 
+	private void unlinkEmptyNode(int serverId, long nodeId, BNode node) {
+		var prevNodeId = node.getPrevNodeId();
+		var nextNodeId = node.getNextNodeId();
+		var prev = _tNodes.get(prevNodeId);
+		if (prev != null && prev.getNextNodeId() == nodeId)
+			prev.setNextNodeId(nextNodeId);
+		var next = _tNodes.get(nextNodeId);
+		if (next != null && next.getPrevNodeId() == nodeId)
+			next.setPrevNodeId(prevNodeId);
+		// 边界修正对index.serverId与本进程root各做一次（幂等：head/tail匹配才写）。
+		// 接管装载窗口内（transferAll已把死者链splice进本进程root、loadTimer逐节点重写
+		// index.serverId尚未完成），index.serverId仍=死者——只修死者root（墓碑head=0）会让
+		// 本进程root.tail悬挂指向刚摘除且已入GC队列的节点：之后schedule永久"tailNode is null"，
+		// 或GC物理删掉被复用的活节点。
+		var indexRoot = _tNodeRoot.get(serverId);
+		if (indexRoot != null)
+			checkTimerFence(serverId, indexRoot); // 仅当root属于本进程时校验：serverId可能是尚未重指向的死者
+		fixRootBoundary(indexRoot, nodeId, prevNodeId, nextNodeId);
+		var myRoot = _tNodeRoot.get(getZeze().getConfig().getServerId());
+		if (myRoot != indexRoot) // serverId==本进程时同一个root，不重复修
+			fixRootBoundary(myRoot, nodeId, prevNodeId, nextNodeId);
+		// 把当前空的Node加入垃圾回收。
+		// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
+		// 不删除的话就会在数据库留下垃圾。
+		_tNodes.delayRemove(nodeId);
+	}
+
 	private void cancel(int serverId, String timerId, long nodeId, @Nullable BNode node,
 	                    @Nullable TimerHandle handle) {
 		// 事务成功时，总是尝试cancel future
@@ -1166,32 +1196,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		if (node != null) {
 			var timers = node.getTimers();
 			var bTimer = timers.remove(timerId);
-			if (timers.isEmpty()) {
-				var prevNodeId = node.getPrevNodeId();
-				var nextNodeId = node.getNextNodeId();
-				var prev = _tNodes.get(prevNodeId);
-				if (prev != null && prev.getNextNodeId() == nodeId)
-					prev.setNextNodeId(nextNodeId);
-				var next = _tNodes.get(nextNodeId);
-				if (next != null && next.getPrevNodeId() == nodeId)
-					next.setPrevNodeId(prevNodeId);
-				// 边界修正对index.serverId与本进程root各做一次（幂等：head/tail匹配才写）。
-				// 接管装载窗口内（transferAll已把死者链splice进本进程root、loadTimer逐节点重写
-				// index.serverId尚未完成），index.serverId仍=死者——只修死者root（墓碑head=0）会让
-				// 本进程root.tail悬挂指向刚摘除且已入GC队列的节点：之后schedule永久"tailNode is null"，
-				// 或GC物理删掉被复用的活节点。
-				var indexRoot = _tNodeRoot.get(serverId);
-				if (indexRoot != null)
-					checkTimerFence(serverId, indexRoot); // 仅当root属于本进程时校验：serverId可能是尚未重指向的死者
-				fixRootBoundary(indexRoot, nodeId, prevNodeId, nextNodeId);
-				var myRoot = _tNodeRoot.get(getZeze().getConfig().getServerId());
-				if (myRoot != indexRoot) // serverId==本进程时同一个root，不重复修
-					fixRootBoundary(myRoot, nodeId, prevNodeId, nextNodeId);
-				// 把当前空的Node加入垃圾回收。
-				// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
-				// 不删除的话就会在数据库留下垃圾。
-				_tNodes.delayRemove(nodeId);
-			}
+			if (timers.isEmpty())
+				unlinkEmptyNode(serverId, nodeId, node);
 			if (handle != null && bTimer != null) {
 				var rc = TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
 					handle.onTimerCancel(bTimer);
@@ -1533,12 +1539,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			var now = System.currentTimeMillis();
 			var appVer = getZeze().getConfig().getAppVersion();
 			var serverId = getZeze().getConfig().getServerId();
+			var orphanRemoved = false;
+			var nodeUnlinked = false;
 			for (var it = node.getTimers().values().iterator(); it.hasNext(); ) {
 				var timer = it.next();
 				try {
 					var index = _tIndexs.get(timer.getTimerName());
 					if (index == null) {
 						it.remove();
+						orphanRemoved = true;
 						continue;
 					}
 					if (index.getVersion() > appVer) // 无法保证高版本定时器的处理,等待各模块启动后重建定时器
@@ -1577,7 +1586,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 								var period = simpleTimer.getPeriod();
 								if (period > Long.MAX_VALUE - now) {
 									cancel(serverId, timer.getTimerName(), nodeId.value, node,
-											findTimerHandle(timer.getHandleName()));
+											findTimerHandleOrNull(timer.getHandleName()));
+									if (node.getTimers().isEmpty())
+										nodeUnlinked = true;
 									continue; // 下个预定时刻不能表示，不能把回绕时间交给调度器。
 								}
 								simpleTimer.setNextExpectedTime(period > 0 ? now + period : now);
@@ -1639,9 +1650,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					logger.error("loadTimer: cancel exhausted/corrupted timer. nodeId={}, timerName={}, bean={}",
 							nodeId.value, timer.getTimerName(), timer.getTimerObj().getBean(), e);
 					cancel(serverId, timer.getTimerName(), nodeId.value, node,
-							findTimerHandle(timer.getHandleName()));
+							findTimerHandleOrNull(timer.getHandleName()));
+					if (node.getTimers().isEmpty())
+						nodeUnlinked = true;
 				}
 			}
+			if (orphanRemoved && !nodeUnlinked && node.getTimers().isEmpty())
+				unlinkEmptyNode(serverId, nodeId.value, node);
 		}
 
 	@Override

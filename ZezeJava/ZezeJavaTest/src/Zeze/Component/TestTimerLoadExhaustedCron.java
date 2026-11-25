@@ -4,14 +4,18 @@ import static java.util.Objects.requireNonNull;
 
 import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BNode;
+import Zeze.Builtin.Timer.BNodeRoot;
+import Zeze.Builtin.Timer.BSimpleTimer;
 import Zeze.Component.AbstractTimer;
 import Zeze.Component.Timer;
 import Zeze.Component.TimerHandle;
@@ -42,6 +46,7 @@ public class TestTimerLoadExhaustedCron {
 
 	// 独立serverId+url：@Fast类并行时避免本地库互撞（对齐TestTimerLoadMissfireAsync）。
 	private static final int ServerId = FastServerIds.TEST_TIMER_LOAD_EXHAUSTED_CRON;
+	private static final AtomicInteger DB_RUN_SEQ = new AtomicInteger();
 
 	private Application app;
 	private Timer timer;
@@ -53,7 +58,7 @@ public class TestTimerLoadExhaustedCron {
 		conf.setServerId(ServerId);
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("timer_load_exhausted_cron_" + ServerId);
+		dbConf.setDatabaseUrl("timer_load_exhausted_cron_" + ServerId + "_" + DB_RUN_SEQ.getAndIncrement());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		conf.setTakeoverMode("off");
 		app = new Application("TestTimerLoadExhaustedCron", conf);
@@ -130,6 +135,109 @@ public class TestTimerLoadExhaustedCron {
 		assertTrue(removedHolder[0], "耗尽cron的node内行必须摘除");
 	}
 
+	@Test
+	@Timeout(60)
+	public void testBadTimersWithMissingHandleClassRemovedOnLoad() throws Exception {
+		timer.start();
+		var cronTimerIdHolder = new String[1];
+		var simpleTimerIdHolder = new String[1];
+		var rc = app.newProcedure(() -> {
+			cronTimerIdHolder[0] = timer.schedule(
+					TimerSpec.ofCron("0 0 0 1 1 ? 2040")
+							.missfirePolicy(AbstractTimer.eMissfirePolicyNothing),
+					NoopHandle.class, null);
+			simpleTimerIdHolder[0] = timer.schedule(
+					TimerSpec.ofDelay(600_000).period(60_000)
+							.missfirePolicy(AbstractTimer.eMissfirePolicyNothing),
+					NoopHandle.class, null);
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.scheduleMissingHandle").call();
+		assertEquals(Procedure.Success, rc);
+		var cronTimerId = cronTimerIdHolder[0];
+		var simpleTimerId = simpleTimerIdHolder[0];
+
+		var nodeIdHolder = new long[1];
+		rc = app.newProcedure(() -> {
+			var cronIndex = requireNonNull(tIndexs().get(cronTimerId));
+			nodeIdHolder[0] = cronIndex.getNodeId();
+			var node = requireNonNull(tNodes().get(cronIndex.getNodeId()));
+
+			var cronBTimer = requireNonNull(node.getTimers().get(cronTimerId));
+			cronBTimer.setHandleName("non.existent.DeletedCronTimerHandle");
+			var cronTimer = (BCronTimer)cronBTimer.getTimerObj().getBean();
+			cronTimer.setCronExpression("0 0 0 1 1 ? 2020");
+			cronTimer.setNextExpectedTime(System.currentTimeMillis() - 60_000);
+
+			var simpleBTimer = requireNonNull(node.getTimers().get(simpleTimerId));
+			simpleBTimer.setHandleName("non.existent.DeletedSimpleTimerHandle");
+			var simpleTimer = (BSimpleTimer)simpleBTimer.getTimerObj().getBean();
+			simpleTimer.setPeriod(Long.MAX_VALUE);
+			simpleTimer.setNextExpectedTime(System.currentTimeMillis() - 60_000);
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.surgeryMissingHandle").call();
+		assertEquals(Procedure.Success, rc);
+
+		// 重启 Timer：坏行对应 handle 类已不存在时，loadTimer 不得因 ClassNotFoundException 中断启动
+		timer.stop();
+		timer.start();
+
+		rc = app.newProcedure(() -> {
+			assertNull(tIndexs().get(cronTimerId), "缺失 handle 的耗尽 cron 索引必须清除");
+			assertNull(tIndexs().get(simpleTimerId), "缺失 handle 的溢出 simple 索引必须清除");
+			var node = tNodes().get(nodeIdHolder[0]);
+			if (node != null) {
+				assertTrue(node.getTimers().isEmpty(), "坏定时器条目必须从节点中摘除");
+			}
+			var root = tNodeRoot().get(ServerId);
+			assertNotNull(root);
+			assertEquals(0L, root.getHeadNodeId(), "空节点摘链后 headNodeId 应归零");
+			assertEquals(0L, root.getTailNodeId(), "空节点摘链后 tailNodeId 应归零");
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.verifyMissingHandle").call();
+		assertEquals(Procedure.Success, rc);
+	}
+
+	@Test
+	@Timeout(60)
+	public void testOrphanTimerRemovedAndEmptyNodeUnlinkedOnLoad() throws Exception {
+		timer.start();
+		var timerIdHolder = new String[1];
+		var rc = app.newProcedure(() -> {
+			timerIdHolder[0] = timer.schedule(
+					TimerSpec.ofCron("0 0 0 1 1 ? 2040")
+							.missfirePolicy(AbstractTimer.eMissfirePolicyNothing),
+					NoopHandle.class, null);
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.scheduleOrphan").call();
+		assertEquals(Procedure.Success, rc);
+		var timerId = timerIdHolder[0];
+
+		var nodeIdHolder = new long[1];
+		rc = app.newProcedure(() -> {
+			var index = requireNonNull(tIndexs().get(timerId));
+			nodeIdHolder[0] = index.getNodeId();
+			// 仅删除 _tIndexs，在 _tNodes 中制造孤儿条目
+			tIndexs().remove(timerId);
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.removeIndexOnly").call();
+		assertEquals(Procedure.Success, rc);
+
+		timer.stop();
+		timer.start();
+
+		rc = app.newProcedure(() -> {
+			var node = tNodes().get(nodeIdHolder[0]);
+			if (node != null)
+				assertTrue(node.getTimers().isEmpty(), "孤儿条目必须从节点中移除");
+			var root = tNodeRoot().get(ServerId);
+			assertNotNull(root);
+			assertEquals(0L, root.getHeadNodeId(), "孤儿条目清空后的空节点必须摘链（head=0）");
+			assertEquals(0L, root.getTailNodeId(), "孤儿条目清空后的空节点必须摘链（tail=0）");
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.verifyOrphanUnlink").call();
+		assertEquals(Procedure.Success, rc);
+	}
+
 	@SuppressWarnings("unchecked")
 	private TableX<String, BIndex> tIndexs() {
 		var t = app.getTable("Zeze_Builtin_Timer_tIndexs");
@@ -142,5 +250,12 @@ public class TestTimerLoadExhaustedCron {
 		var t = app.getTable("Zeze_Builtin_Timer_tNodes");
 		assertTrue(t != null);
 		return (TableX<Long, BNode>)t;
+	}
+
+	@SuppressWarnings("unchecked")
+	private TableX<Integer, BNodeRoot> tNodeRoot() {
+		var t = app.getTable("Zeze_Builtin_Timer_tNodeRoot");
+		assertTrue(t != null);
+		return (TableX<Integer, BNodeRoot>)t;
 	}
 }
