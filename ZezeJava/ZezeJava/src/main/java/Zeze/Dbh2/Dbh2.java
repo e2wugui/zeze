@@ -335,48 +335,52 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
+		var tid = r.Argument.getBatch().getTid();
+		if (stateMachine.getTransactions().containsKey(tid))
+			return errorCode(eDuplicateTid);
+		var bucket = Objects.requireNonNull(stateMachine.getBucket());
+		if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
+			return errorCode(eBucketMismatch);
+
+		var refused = r.Result;
+		var splitHistory = bucket.getSplitMetaHistory();
+		for (var e : r.Argument.getBatch().getPuts().entrySet()) {
+			var key = e.getKey();
+			var value = e.getValue();
+			if (!bucket.inBucket(key)) {
+				var locate = splitHistory.locate(key);
+
+				if (null == locate || isLocateSelf(Objects.requireNonNull(bucket.getBucketMeta()), locate))
+					return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
+
+				var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
+				batches.getPuts().put(key, value);
+			}
+		}
+		for (var del : r.Argument.getBatch().getDeletes()) {
+			if (!bucket.inBucket(del)) {
+				var locate = splitHistory.locate(del);
+
+				if (null == locate || isLocateSelf(Objects.requireNonNull(bucket.getBucketMeta()), locate))
+					return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
+
+				var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
+				batches.getDeletes().add(del);
+			}
+		}
+
+		// 移除拒绝的数据。
+		for (var e : refused.getRefused().values()) {
+			for (var p : e.getPuts().entrySet())
+				r.Argument.getBatch().getPuts().remove(p.getKey());
+			for (var d : e.getDeletes())
+				r.Argument.getBatch().getDeletes().remove(d);
+		}
+
 		var txn = new Dbh2Transaction(this, r.Argument.getBatch());
 		try {
-			if (null != stateMachine.getTransactions().putIfAbsent(r.Argument.getBatch().getTid(), txn))
+			if (null != stateMachine.getTransactions().putIfAbsent(tid, txn))
 				return errorCode(eDuplicateTid);
-			//noinspection DataFlowIssue
-			if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
-				return errorCode(eBucketMismatch);
-
-			var refused = r.Result;
-			var splitHistory = stateMachine.getBucket().getSplitMetaHistory();
-			for (var e : r.Argument.getBatch().getPuts().entrySet()) {
-				var key = e.getKey();
-				var value = e.getValue();
-				if (!stateMachine.getBucket().inBucket(key)) {
-					var locate = splitHistory.locate(key);
-
-					if (null == locate || isLocateSelf(Objects.requireNonNull(stateMachine.getBucket().getBucketMeta()), locate))
-						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
-
-					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
-					batches.getPuts().put(key, value);
-				}
-			}
-			for (var del : r.Argument.getBatch().getDeletes()) {
-				if (!stateMachine.getBucket().inBucket(del)) {
-					var locate = splitHistory.locate(del);
-
-					if (null == locate || isLocateSelf(Objects.requireNonNull(stateMachine.getBucket().getBucketMeta()), locate))
-						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
-
-					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
-					batches.getDeletes().add(del);
-				}
-			}
-
-			// 移除拒绝的数据。
-			for (var e : refused.getRefused().values()) {
-				for (var p : e.getPuts().entrySet())
-					r.Argument.getBatch().getPuts().remove(p.getKey());
-				for (var d : e.getDeletes())
-					r.Argument.getBatch().getDeletes().remove(d);
-			}
 
 			getRaft().appendLog(new LogPrepareBatch(r), r.Result,
 					(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
@@ -388,7 +392,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				// 必须两参remove（仅当映射值是本次txn才删）：重复投递撞eDuplicateTid时，
 				// 表里是先到的存活事务，本txn从未入表，单参remove会误删别人的事务
 				//（commitBatch随后找不到事务，已决定提交的数据被静默丢弃）。
-				stateMachine.getTransactions().remove(r.Argument.getBatch().getTid(), txn);
+				stateMachine.getTransactions().remove(tid, txn);
 				txn.close();
 			}
 		}
