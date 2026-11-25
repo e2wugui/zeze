@@ -11,6 +11,9 @@ import java.io.InputStream;
 import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,7 +39,8 @@ java ...... -javaagent:zeze.jar ......
 注意: javac和Eclipse编译器二者的编译结果可能不兼容
 */
 public final class ClassReloader {
-	private static @Nullable Instrumentation inst;
+	private static volatile @Nullable Instrumentation inst;
+	private static int loadAgentCount;
 
 	private ClassReloader() {
 	}
@@ -69,13 +73,24 @@ public final class ClassReloader {
 	}
 
 	public static Instrumentation getInst() {
-		return inst != null ? inst : loadAgent();
+		Instrumentation current = inst;
+		return current != null ? current : loadAgent();
 	}
 
-	private static Instrumentation loadAgent() {
+	static synchronized int getLoadAgentCount() {
+		return loadAgentCount;
+	}
+
+	private static synchronized Instrumentation loadAgent() {
+		Instrumentation current = inst;
+		if (current != null)
+			return current;
+		loadAgentCount++;
+		File agentJar = null;
+		Process proc = null;
 		try {
 			String fullClassName = ClassReloader.class.getName();
-			File agentJar = File.createTempFile("agent", ".jar");
+			agentJar = File.createTempFile("agent", ".jar");
 			agentJar.deleteOnExit();
 			Manifest manifest = new Manifest();
 			Attributes attrs = manifest.getMainAttributes();
@@ -96,15 +111,30 @@ public final class ClassReloader {
 			String path = agentJar.getAbsolutePath();
 			String nameOfRunningVM = ManagementFactory.getRuntimeMXBean().getName();
 			String pid = nameOfRunningVM.substring(0, nameOfRunningVM.indexOf('@'));
-			Process proc = Runtime.getRuntime().exec(new String[]{"java", "-Djdk.attach.compat=true", "-cp", path, fullClassName, pid, path});
-			int r = proc.waitFor();
-			if (r != 0) {
-				throw new IllegalStateException("loadAgent process = " + r + '\n'
-						+ new String(proc.getErrorStream().readAllBytes(), System.getProperty("sun.jnu.encoding")));
+			String javaHome = System.getProperty("java.home");
+			Path javaExe = Path.of(javaHome, "bin", "java.exe");
+			String javaBin = (Files.isRegularFile(javaExe) ? javaExe : Path.of(javaHome, "bin", "java")).toString();
+			proc = new ProcessBuilder(javaBin, "-Djdk.attach.compat=true", "-cp", path, fullClassName, pid, path)
+					.redirectErrorStream(true)
+					.start();
+			String encoding = System.getProperty("sun.jnu.encoding");
+			Charset charset = encoding != null ? Charset.forName(encoding) : Charset.defaultCharset();
+			String output;
+			try (InputStream in = proc.getInputStream()) {
+				output = new String(in.readAllBytes(), charset);
 			}
-			System.out.println(new String(proc.getErrorStream().readAllBytes(), System.getProperty("sun.jnu.encoding")));
+			int r = proc.waitFor();
+			if (r != 0)
+				throw new IllegalStateException("loadAgent process = " + r + '\n' + output);
+			System.out.println(output);
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
+		} finally {
+			if (proc != null && proc.isAlive())
+				proc.destroyForcibly();
+			if (agentJar != null)
+				//noinspection ResultOfMethodCallIgnored
+				agentJar.delete();
 		}
 		return Objects.requireNonNull(inst);
 	}
