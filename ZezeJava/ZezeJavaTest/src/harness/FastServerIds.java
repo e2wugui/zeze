@@ -245,4 +245,5 @@ public final class FastServerIds {
 
 	private FastServerIds() {
 	}
+	public static final int TEST_CHECKPOINT_STOP_WAKEUP = seg("TestCheckpointStopWakeup", 8093, 1);
 }

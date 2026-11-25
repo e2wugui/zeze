@@ -405,6 +405,8 @@ public final class Checkpoint {
 				// 首轮也等待 period，避免线程延迟启动时立即补刷。
 				lock.lock();
 				try {
+					if (!isRunning)
+						break;
 					//noinspection ResultOfMethodCallIgnored
 					cond.await(period, TimeUnit.MILLISECONDS);
 				} finally {
