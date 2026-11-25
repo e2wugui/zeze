@@ -1633,7 +1633,9 @@ public final class JsonReader {
 	}
 
 	static double strtod(double d, int e) {
-		return e >= 0 ? d * EXP[e] : (e < -308 ? 0 : d / EXP[-e]);
+		return e >= 0
+			? (e > 308 ? (d == 0.0 ? d : d * Double.POSITIVE_INFINITY) : d * EXP[e])
+			: (e < -308 ? 0 : d / EXP[-e]);
 	}
 
 	// 十进制词失去正确舍入保证时回退 Double.parseDouble（正确舍入），两个触发条件：
@@ -1776,7 +1778,7 @@ public final class JsonReader {
 					while ((b = (buffer[++p] - '0') & 0xff) < 10) {
 						if ((exp = exp * 10 + b) > maxExp) {
 							do
-								b = buffer[++p];
+								b = ++p < buffer.length ? buffer[p] : 0;
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
@@ -1924,7 +1926,7 @@ public final class JsonReader {
 					while ((b = (buffer[++p] - '0') & 0xff) < 10) {
 						if ((exp = exp * 10 + b) > maxExp) {
 							do
-								b = buffer[++p];
+								b = ++p < buffer.length ? buffer[p] : 0;
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
@@ -2071,7 +2073,7 @@ public final class JsonReader {
 					while ((b = (buffer[++p] - '0') & 0xff) < 10) {
 						if ((exp = exp * 10 + b) > maxExp) {
 							do
-								b = buffer[++p];
+								b = ++p < buffer.length ? buffer[p] : 0;
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
@@ -2226,7 +2228,7 @@ public final class JsonReader {
 					while ((b = (buffer[++p] - '0') & 0xff) < 10) {
 						if ((exp = exp * 10 + b) > maxExp) {
 							do
-								b = buffer[++p];
+								b = ++p < buffer.length ? buffer[p] : 0;
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;

@@ -80,6 +80,26 @@ public final class TestJsonExpOverflow {
 	}
 
 	@Test
+	public void testExpOverflowAtBufferEndMatchesDelimited() throws ReflectiveOperationException {
+		// 指数溢出词法位于缓冲区末尾（无尾随定界符）时，不得跳过早退分支泄露 exp > 308 给 strtod 查表越界
+		for (var lit : new String[] {".e309", "1e++309", "0e++309", "-0e309", "1e999", "-1e999", "1e-9999999999"}) {
+			assertEquals(new JsonReader().buf(lit + ",").parseInt(), new JsonReader().buf(lit).parseInt(),
+				"parseInt: " + lit);
+			assertEquals(new JsonReader().buf(lit + ",").parseLong(), new JsonReader().buf(lit).parseLong(),
+				"parseLong: " + lit);
+			assertEquals(
+				Double.doubleToLongBits(new JsonReader().buf(lit + ",").parseDouble()),
+				Double.doubleToLongBits(new JsonReader().buf(lit).parseDouble()),
+				"parseDouble: " + lit);
+			assertEquals(new JsonReader().buf(lit + ",").parseNumber(), new JsonReader().buf(lit).parseNumber(),
+				"parseNumber: " + lit);
+		}
+		assertEquals(0.0, Json.parse(".e309", Object.class));
+		assertEquals(Double.POSITIVE_INFINITY, Json.parse("1e++309", Object.class));
+		assertEquals(0.0, Json.parse("0e++309", Object.class));
+	}
+
+	@Test
 	public void testNormalNumbersUnaffected() throws ReflectiveOperationException {
 		B b = Json.parse("{\"i\":123,\"l\":9007199254740993,\"d\":1.5e-3,\"e\":2.0e10,\"j\":-5,\"m\":6}", B.class);
 		assertNotNull(b);

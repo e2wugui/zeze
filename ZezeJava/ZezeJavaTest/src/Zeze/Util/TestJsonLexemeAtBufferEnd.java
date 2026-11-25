@@ -54,4 +54,23 @@ public final class TestJsonLexemeAtBufferEnd {
 		assertEquals(Double.POSITIVE_INFINITY, jr.parseDouble());
 		assertEquals(8, jr.pos(), "pos 停在定界符 ',' 上");
 	}
+
+	@Test
+	public void testExponentOverflowAtBufferEnd() {
+		var jr = new JsonReader().buf("1e999");
+		assertEquals(Double.POSITIVE_INFINITY, jr.parseDouble());
+		assertTrue(jr.end());
+
+		jr = new JsonReader().buf("-1e999");
+		assertEquals(Double.NEGATIVE_INFINITY, jr.parseDouble());
+		assertTrue(jr.end());
+
+		jr = new JsonReader().buf(".e309");
+		assertEquals(0.0, jr.parseDouble());
+		assertTrue(jr.end());
+
+		assertEquals(Integer.MAX_VALUE, new JsonReader().buf("1e++309").parseInt());
+		assertEquals(Long.MIN_VALUE, new JsonReader().buf("-1e999").parseLong());
+		assertEquals(0.0, new JsonReader().buf("0e++309").parseNumber());
+	}
 }
