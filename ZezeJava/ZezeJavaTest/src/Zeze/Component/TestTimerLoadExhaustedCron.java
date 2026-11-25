@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -24,7 +26,14 @@ import Zeze.Component.TimerSpec;
 import Zeze.Config;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import harness.Fast;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -236,6 +245,72 @@ public class TestTimerLoadExhaustedCron {
 			return Procedure.Success;
 		}, "TestTimerLoadExhaustedCron.verifyOrphanUnlink").call();
 		assertEquals(Procedure.Success, rc);
+	}
+
+	@Test
+	@Timeout(60)
+	public void testCancelRemoteServerTimerWithoutProviderAppDoesNotThrowNpe() throws Exception {
+		timer.start();
+		assertNull(app.getProviderApp(), "本测试环境未装配 ProviderApp");
+		var timerIdHolder = new String[1];
+		var rc = app.newProcedure(() -> {
+			timerIdHolder[0] = timer.schedule(
+					TimerSpec.ofDelay(600_000),
+					NoopHandle.class, null);
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.scheduleRemoteCancel").call();
+		assertEquals(Procedure.Success, rc);
+		var timerId = timerIdHolder[0];
+
+		// 模拟共享数据库中该定时器归属另一台 serverId
+		rc = app.newProcedure(() -> {
+			var index = requireNonNull(tIndexs().get(timerId));
+			index.setServerId(ServerId + 10_000);
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.setRemoteServerId").call();
+		assertEquals(Procedure.Success, rc);
+
+		var txnLogger = (Logger)LogManager.getLogger(Transaction.class);
+		var appender = new RecordingAppender();
+		appender.start();
+		txnLogger.addAppender(appender);
+		var canceledHolder = new boolean[1];
+		try {
+			rc = app.newProcedure(() -> {
+				canceledHolder[0] = timer.cancel(timerId);
+				return Procedure.Success;
+			}, "TestTimerLoadExhaustedCron.cancelRemoteTimer").call();
+		} finally {
+			txnLogger.removeAppender(appender);
+			appender.stop();
+		}
+		assertEquals(Procedure.Success, rc);
+		assertTrue(canceledHolder[0], "取消远端归属定时器应返回 true");
+
+		var npeEvents = appender.events.stream()
+				.filter(e -> e.getLevel().isMoreSpecificThan(Level.ERROR)
+						|| e.getThrown() instanceof NullPointerException)
+				.toList();
+		assertTrue(npeEvents.isEmpty(), "无 ProviderApp 时 tryRedirectCancel 不得抛 NullPointerException: " + npeEvents);
+
+		rc = app.newProcedure(() -> {
+			assertNull(tIndexs().get(timerId), "定时器索引应已删除");
+			return Procedure.Success;
+		}, "TestTimerLoadExhaustedCron.verifyRemoteCancel").call();
+		assertEquals(Procedure.Success, rc);
+	}
+
+	private static final class RecordingAppender extends AbstractAppender {
+		final List<LogEvent> events = new CopyOnWriteArrayList<>();
+
+		RecordingAppender() {
+			super("timer-txn-recorder", null, null, true, Property.EMPTY_ARRAY);
+		}
+
+		@Override
+		public void append(LogEvent event) {
+			events.add(event.toImmutable());
+		}
 	}
 
 	@SuppressWarnings("unchecked")
