@@ -254,4 +254,5 @@ public final class FastServerIds {
 	public static final int TEST_CHASHMAP_COMMIT_SIZE_SNAPSHOT = seg("TestCHashMapCommitSizeSnapshot", 8100, 3);
 	public static final int TEST_QUEUE_REMOVE_UNREGISTERS_HOT_REFS = seg("TestQueueRemoveUnregistersHotRefs", 8105, 3);
 	public static final int TEST_GAME_ONLINE_CROSS_SERVER_LOGIN_LOCAL_REMOVE = seg("TestGameOnlineCrossServerLoginLocalRemove", 8110, 4);
+	public static final int TEST_GAME_ONLINE_SEND_RPC_CLEANUP = seg("TestGameOnlineSendRpcCleanup", 8115, 2);
 }

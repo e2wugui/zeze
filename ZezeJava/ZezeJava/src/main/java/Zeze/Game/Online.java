@@ -1105,8 +1105,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		rpc.setRequest(true);
 		rpc.schedule(service, sessionId, timeoutMs);
 		var sent = sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), quietWhenAbsent);
-		if (!sent && rpc.getFuture() != null)
-			rpc.getFuture().setException(new IllegalStateException("sendRpc fail."));
+		if (!sent) {
+			if (!service.removeRpcContext(sessionId, rpc))
+				return true; // 已被并发应答或断连路径消费
+			if (rpc.getFuture() != null)
+				rpc.getFuture().setException(new IllegalStateException("sendRpc fail."));
+		}
 		return sent;
 	}
 
