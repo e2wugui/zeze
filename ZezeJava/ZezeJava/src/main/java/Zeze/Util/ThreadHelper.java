@@ -96,8 +96,9 @@ public class ThreadHelper extends Thread {
 					logger.trace("await {} ms timeout", ms);
 			}
 		} catch (InterruptedException ex) {
+			// 本线程基类由 running/shutdown/wakeup 控制生命周期，不恢复中断标志；
+			// 否则 while (isRunning()) { sleepIdle(...); } 下轮 await 会零等待立即再抛并进入自旋洪水。
 			logger.warn("{} sleepOut. ex:", getClass().getName(), ex);
-			Thread.currentThread().interrupt();
 		} finally {
 			idle = true;
 			thisLock.unlock();

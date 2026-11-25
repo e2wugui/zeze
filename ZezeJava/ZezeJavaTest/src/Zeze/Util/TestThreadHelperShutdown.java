@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
@@ -126,5 +127,45 @@ public class TestThreadHelperShutdown {
 		worker.join(3000);
 		assertFalse(worker.isAlive());
 		assertNull(failure.get());
+	}
+
+	@Test
+	public void externalInterruptDoesNotSpinSleepIdleLoop() throws Exception {
+		var firstIterationStarted = new CountDownLatch(1);
+		var secondIterationReached = new CountDownLatch(1);
+		var thirdIterationReached = new CountDownLatch(1);
+		var iterations = new AtomicInteger();
+		var worker = new ThreadHelper("interrupt-sleep-idle") {
+			@Override
+			public void run() {
+				while (isRunning()) {
+					int n = iterations.incrementAndGet();
+					if (n == 1)
+						firstIterationStarted.countDown();
+					else if (n == 2)
+						secondIterationReached.countDown();
+					else if (n >= 3)
+						thirdIterationReached.countDown();
+					sleepIdle(TimeUnit.MINUTES.toMillis(1));
+				}
+			}
+		};
+		worker.start();
+		try {
+			assertTrue(firstIterationStarted.await(3, TimeUnit.SECONDS));
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+			while (worker.getState() != Thread.State.TIMED_WAITING && System.nanoTime() < deadline)
+				Thread.onSpinWait();
+			assertEquals(Thread.State.TIMED_WAITING, worker.getState());
+
+			worker.interrupt();
+			assertTrue(secondIterationReached.await(3, TimeUnit.SECONDS), "interrupt should wake current sleepIdle");
+			assertFalse(thirdIterationReached.await(200, TimeUnit.MILLISECONDS),
+					"sleepIdle must consume interrupt flag and sleep again instead of spinning");
+			assertEquals(2, iterations.get());
+		} finally {
+			worker.shutdown();
+		}
+		assertFalse(worker.isAlive());
 	}
 }
