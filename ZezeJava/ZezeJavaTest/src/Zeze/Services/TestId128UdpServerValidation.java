@@ -4,20 +4,31 @@ import static java.util.Objects.requireNonNull;
 
 import org.jspecify.annotations.Nullable;
 
+import java.net.BindException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
+import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AllocateId128;
+import Zeze.Services.ServiceManager.Id128UdpClient;
 import Zeze.Services.ServiceManager.Id128UdpServer;
 import Zeze.Services.ServiceManager.Tid128Cache;
+import Zeze.Util.Id128;
+import Zeze.Util.Task;
 import harness.Fast;
 
 /**
@@ -178,5 +189,128 @@ public class TestId128UdpServerValidation {
 		// worker未被坏报文杀掉：后续正常分配照常工作。
 		var r = alloc(NAME, 1);
 		Assertions.assertEquals(1, r.Result.getCount());
+	}
+
+	@Test
+	public void testResponsePacketRejectedWithoutReusingPreviousArgument() throws Exception {
+		var name = "UnitTest.Id128ResponseDirection";
+		var r1 = alloc(name, 50);
+		Assertions.assertEquals(50, r1.Result.getCount());
+		var start1 = r1.Result.getStartId();
+
+		// 构造 FamilyClass.Response 报文发向服务端：修复前复用循环外 AllocateId128.Argument，
+		// 不会改写 Argument 却推进前一个合法 name 的号段并回包。
+		var forgedResponse = new AllocateId128();
+		forgedResponse.setSessionId(999_001);
+		forgedResponse.setRequest(false);
+		forgedResponse.Result.getStartId().assign(0, 1);
+		forgedResponse.Result.setCount(1);
+		var bb = ByteBuffer.Allocate();
+		forgedResponse.encode(bb);
+		requireNonNull(client).send(new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size(), requireNonNull(serverAddress)));
+		Assertions.assertThrows(SocketTimeoutException.class, TestId128UdpServerValidation::receiveOne,
+				"Response packet sent to Id128UdpServer must be rejected without reply");
+
+		// 紧随其后的合法请求必须严格顺延 r1，说明伪造 Response 未推进号段。
+		var r2 = alloc(name, 10);
+		Assertions.assertEquals(10, r2.Result.getCount());
+		Assertions.assertEquals(start1.add(50), r2.Result.getStartId(),
+				"forged Response packet must not advance allocator using stale Argument");
+	}
+
+	@Test
+	public void testClientIgnoresRequestPacketAndZeroCountResponse() throws Exception {
+		var sessionSeq = new AtomicLong(100);
+		try (var fakeServer = new DatagramSocket(0, InetAddress.getLoopbackAddress())) {
+			fakeServer.setSoTimeout(5_000);
+			var udpClient = new Id128UdpClient(null, "127.0.0.1", fakeServer.getLocalPort(), sessionSeq::incrementAndGet);
+			udpClient.start();
+			try {
+				var future = udpClient.allocateFuture("UnitTest.Id128ClientDirection", 16);
+
+				var recvBuf = new byte[1472];
+				var recvPacket = new DatagramPacket(recvBuf, recvBuf.length);
+				fakeServer.receive(recvPacket);
+				var req = new AllocateId128();
+				req.decode(ByteBuffer.Wrap(recvPacket.getData(), recvPacket.getOffset(), recvPacket.getLength()));
+				Assertions.assertTrue(req.isRequest());
+
+				// 1. 回发相同 sessionId 的 Request 报文：客户端必须忽略，不得产出 count=0 的畸形缓存
+				var echoedReq = new AllocateId128();
+				echoedReq.setSessionId(req.getSessionId());
+				echoedReq.Argument.setName(req.Argument.getName());
+				echoedReq.Argument.setCount(req.Argument.getCount());
+				var bbReq = ByteBuffer.Allocate();
+				echoedReq.encode(bbReq);
+				fakeServer.send(new DatagramPacket(bbReq.Bytes, bbReq.ReadIndex, bbReq.size(), recvPacket.getSocketAddress()));
+				Thread.sleep(80);
+				Assertions.assertFalse(future.isDone(), "client must ignore inbound Request packet");
+
+				// 2. 回发 count==0 的畸形 Response 报文：客户端必须忽略
+				var zeroResp = new AllocateId128();
+				zeroResp.setSessionId(req.getSessionId());
+				zeroResp.setRequest(false);
+				zeroResp.Result.setCount(0);
+				var bbZero = ByteBuffer.Allocate();
+				zeroResp.encode(bbZero);
+				fakeServer.send(new DatagramPacket(bbZero.Bytes, bbZero.ReadIndex, bbZero.size(), recvPacket.getSocketAddress()));
+				Thread.sleep(80);
+				Assertions.assertFalse(future.isDone(), "client must ignore Response with count <= 0");
+
+				// 3. 回发合法 Response：客户端正常完成 future
+				var validResp = new AllocateId128();
+				validResp.setSessionId(req.getSessionId());
+				validResp.setRequest(false);
+				validResp.Result.getStartId().assign(0, 100);
+				validResp.Result.setCount(16);
+				var bbValid = ByteBuffer.Allocate();
+				validResp.encode(bbValid);
+				fakeServer.send(new DatagramPacket(bbValid.Bytes, bbValid.ReadIndex, bbValid.size(), recvPacket.getSocketAddress()));
+
+				var cache = future.get(5, TimeUnit.SECONDS);
+				Assertions.assertEquals(new Id128(0, 100), cache.getStart());
+				Assertions.assertEquals(new Id128(0, 100), cache.next());
+			} finally {
+				udpClient.stop();
+			}
+		}
+	}
+
+	@Test
+	public void testServiceManagerServerBindsId128UdpToConfiguredAddress(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		var loop = InetAddress.getLoopbackAddress();
+		int port = -1;
+		for (int attempt = 0; attempt < 64; ++attempt) {
+			int candidate;
+			try (var tcp = new ServerSocket(0, 1, loop)) {
+				candidate = tcp.getLocalPort();
+			}
+			try (var udp = new DatagramSocket(new InetSocketAddress(loop, candidate));
+					var tcp = new ServerSocket(candidate, 1, loop)) {
+				port = candidate;
+				break;
+			} catch (BindException ignored) {
+			}
+		}
+		Assertions.assertTrue(port > 0, "failed to probe free dual-stack loopback port");
+
+		var conf = new Config();
+		var doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+		var el = doc.createElement("CustomizeConf");
+		el.setAttribute("DbHome", tempDir.toString());
+		conf.getCustomizes().put("Zeze.Services.ServiceManager", el);
+		var sm = new ServiceManagerServer(loop, port, conf, "autokeys");
+		try {
+			var id128Field = ServiceManagerServer.class.getDeclaredField("id128Server");
+			id128Field.setAccessible(true);
+			var id128 = (Id128UdpServer)requireNonNull(id128Field.get(sm));
+			var localAddr = id128.getLocalSocketAddress();
+			Assertions.assertTrue(localAddr.getAddress().isLoopbackAddress(),
+					"Id128UdpServer must bind to configured loopback address, actual=" + localAddr);
+			Assertions.assertEquals(port, localAddr.getPort());
+		} finally {
+			sm.close();
+		}
 	}
 }

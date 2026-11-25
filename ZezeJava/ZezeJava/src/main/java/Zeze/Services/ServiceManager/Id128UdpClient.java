@@ -168,6 +168,8 @@ public class Id128UdpClient {
 				while (!bb.isEmpty()) {
 					var rpc = new AllocateId128();
 					rpc.decode(bb); // rpc result.
+					if (rpc.isRequest() || rpc.Result.getCount() <= 0)
+						continue;
 					processResult(rpc);
 				}
 			} catch (SocketTimeoutException | SocketException ignored) {

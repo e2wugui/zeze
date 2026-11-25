@@ -125,6 +125,10 @@ public class Id128UdpServer {
 							warnRejected(e);
 							break;
 						}
+						if (!rpc.isRequest()) {
+							warnRejected(new IllegalArgumentException("AllocateId128 expected request"));
+							break;
+						}
 						process(rpc, bbTemp);
 						rpc.setRequest(false);
 						bbReply.Reset();

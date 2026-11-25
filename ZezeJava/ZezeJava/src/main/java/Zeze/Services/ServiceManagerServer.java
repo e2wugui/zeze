@@ -908,7 +908,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			localSocket = localServer.newServerSocket(ipaddress, port,
 				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 			localServer.start();
-			localId128 = new Id128UdpServer(id128Table, null, port); // todo 先使用和tcp一样的端口.自动选择下一步.
+			localId128 = new Id128UdpServer(id128Table, ipaddress != null ? ipaddress.getHostAddress() : null, port); // todo 先使用和tcp一样的端口.自动选择下一步.
 			localId128.start();
 
 			// 全部成功，发布完成态到字段
