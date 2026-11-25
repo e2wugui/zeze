@@ -29,7 +29,7 @@ public class OnzSagaStub<A extends Bean, R extends Bean, T extends Bean> extends
 	@Override
 	public OnzProcedure newProcedure(Rpc<?, ?> rpc, BFuncProcedure.Data funcArgument, IByteBuffer buffer) throws Exception {
 		var a = super.getArgumentClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
-		var r = super.getResultClass().getConstructor((Class<?>[])null).newInstance((Object[])null);
+		var r = newResult();
 		a.decode(buffer);
 		return new OnzSaga(rpc, funcArgument, this, a, r);
 	}

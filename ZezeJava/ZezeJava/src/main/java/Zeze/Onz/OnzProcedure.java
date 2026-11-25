@@ -24,7 +24,7 @@ public class OnzProcedure implements FuncLong {
 	private final @Nullable Data funcArgument;
 	private final @Nullable OnzProcedureStub<?, ?> stub;
 	private final @Nullable Bean argument;
-	private final @Nullable Bean result;
+	private volatile @Nullable Bean result;
 	private final @Nullable Rpc<?, ?> rpc;
 	private volatile @Nullable TaskCompletionSource<Boolean> commitFuture;
 
@@ -79,7 +79,11 @@ public class OnzProcedure implements FuncLong {
 		if (null == txn)
 			throw new RuntimeException("no transaction.");
 		txn.setOnzProcedure(this);
-		return Objects.requireNonNull(getStub()).call(this, Objects.requireNonNull(getArgument()), Objects.requireNonNull(getResult()));
+		var s = Objects.requireNonNull(getStub());
+		// 事务Redo时非受管输出result不会被回滚，每轮执行前重新构造干净实例，避免残留字段或集合重复追加。
+		var freshResult = s.newResult();
+		this.result = freshResult;
+		return s.call(this, Objects.requireNonNull(getArgument()), freshResult);
 	}
 
 	public String getName() {

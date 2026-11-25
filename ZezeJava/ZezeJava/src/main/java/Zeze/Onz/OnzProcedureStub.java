@@ -23,11 +23,15 @@ public class OnzProcedureStub<A extends Bean, R extends Bean> {
 		this.resultClass = resultClass;
 	}
 
+	public R newResult() throws Exception {
+		return resultClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
+	}
+
 	public OnzProcedure newProcedure(Rpc<?, ?> rpc, BFuncProcedure.Data funcArgument, IByteBuffer buffer) throws Exception {
 		var a = argumentClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
-		var r = resultClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
+		var r = newResult();
 		a.decode(buffer);
-		return new OnzProcedure(rpc, funcArgument,this, a, r);
+		return new OnzProcedure(rpc, funcArgument, this, a, r);
 	}
 
 	public Onz getOnz() {
