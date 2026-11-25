@@ -7,6 +7,7 @@ import java.util.Objects;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Collections.Persistents;
+import Zeze.Transaction.HasManagedException;
 
 /**
  * 管理 Bean 的 List 容器（值类型可变 bean）：结构操作记 LogList2 增量日志，值 bean 的字段修改记 changed。
@@ -39,8 +40,11 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.add(item);
-		} else
+		} else {
+			if (item.isManaged())
+				throw new HasManagedException();
 			list = list.plus(item);
+		}
 		return true;
 	}
 
@@ -86,6 +90,8 @@ public class CollList2<V extends Bean> extends CollList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.set(index, item);
 		}
+		if (item.isManaged())
+			throw new HasManagedException();
 		var old = list.get(index);
 		list = list.with(index, item);
 		return old;
@@ -105,8 +111,11 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.add(index, item);
-		} else
+		} else {
+			if (item.isManaged())
+				throw new HasManagedException();
 			list = list.plus(index, item);
+		}
 	}
 
 	@Override
