@@ -5,10 +5,14 @@ import org.jspecify.annotations.Nullable;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import Zeze.Application;
@@ -16,6 +20,7 @@ import Zeze.Config;
 import Zeze.Services.Daemon;
 import Zeze.Transaction.AchillesHeelDaemon;
 import Zeze.Transaction.GlobalAgentBase;
+import Zeze.Util.Reflect;
 
 /**
  * FND2-T1-1: ProcessDaemon 收到 Release 命令后直接 agents[r.globalIndex] 取 agent，
@@ -60,14 +65,20 @@ public class TestAchillesHeelDaemonReleaseRange {
 
 	@AfterEach
 	void tearDown() throws Exception {
-		if (daemon != null)
+		if (daemon != null) {
 			daemon.stopAndJoin();
-		if (oldPort != null)
+			daemon = null;
+		}
+		if (oldPort != null) {
 			System.setProperty(Daemon.propertyNamePort, oldPort);
-		else
+			oldPort = null;
+		} else {
 			System.clearProperty(Daemon.propertyNamePort);
-		if (peer != null)
+		}
+		if (peer != null) {
 			peer.close();
+			peer = null;
+		}
 	}
 
 	@Test
@@ -104,5 +115,108 @@ public class TestAchillesHeelDaemonReleaseRange {
 			Thread.sleep(200);
 			Assertions.assertTrue(pd.isAlive(), "ProcessDaemon 处理合法 Release 包后必须存活");
 		}
+	}
+
+	private static Application newNoDbApp(String name) throws Exception {
+		var config = new Config();
+		config.setServiceManager("disable");
+		config.setNoDatabase(true);
+		config.setServerId(7311);
+		return new Application(name, config);
+	}
+
+	private static GlobalAgentBase newStubAgent(Application app, boolean failKeepAlive,
+												boolean failCheckRelease, CountDownLatch releaseLatch,
+												AtomicInteger keepAliveCalls) {
+		var agent = new GlobalAgentBase(app) {
+			@Override
+			protected void cancelPending() {
+			}
+
+			@Override
+			public CheckReleaseResult checkReleaseTimeout(long now, int timeout) {
+				if (failCheckRelease)
+					throw new RuntimeException("simulated checkReleaseTimeout failure");
+				return CheckReleaseResult.NoRelease;
+			}
+
+			@Override
+			public void keepAlive() {
+				keepAliveCalls.incrementAndGet();
+				if (failKeepAlive)
+					throw new IllegalStateException("too many pending");
+			}
+
+			@Override
+			public void startRelease(Zeze.Application zeze, @Nullable Runnable endAction) {
+				releaseLatch.countDown();
+			}
+		};
+		agent.setActiveTime(0L);
+		return agent;
+	}
+
+	@Test
+	public void testThreadDaemonKeepAliveFailureDoesNotBlockStartReleaseOrOtherAgents() throws Exception {
+		Assumptions.assumeFalse(Reflect.inDebugMode, "debug mode skips idle startRelease");
+		oldPort = System.clearProperty(Daemon.propertyNamePort);
+		app = newNoDbApp("TestAchillesHeelDaemon.threadKeepAlive");
+		var release0 = new CountDownLatch(1);
+		var release1 = new CountDownLatch(1);
+		var ka0 = new AtomicInteger();
+		var ka1 = new AtomicInteger();
+		var agent0 = newStubAgent(app, true, false, release0, ka0);
+		var agent1 = newStubAgent(app, false, false, release1, ka1);
+
+		daemon = new AchillesHeelDaemon(app, new GlobalAgentBase[]{agent0, agent1});
+		daemon.start();
+
+		Assertions.assertTrue(release0.await(5, TimeUnit.SECONDS),
+				"ThreadDaemon 中 agent0.keepAlive 抛异常不得阻断 agent0.startRelease");
+		Assertions.assertTrue(release1.await(5, TimeUnit.SECONDS),
+				"ThreadDaemon 中 agent0.keepAlive 抛异常不得阻断 agent1.startRelease");
+		Assertions.assertTrue(ka0.get() > 0 && ka1.get() > 0, "两分片保活均应被继续尝试");
+	}
+
+	@Test
+	public void testThreadDaemonIsolatesPerAgentException() throws Exception {
+		Assumptions.assumeFalse(Reflect.inDebugMode, "debug mode skips idle startRelease");
+		oldPort = System.clearProperty(Daemon.propertyNamePort);
+		app = newNoDbApp("TestAchillesHeelDaemon.threadPerAgent");
+		var release0 = new CountDownLatch(1);
+		var release1 = new CountDownLatch(1);
+		var ka0 = new AtomicInteger();
+		var ka1 = new AtomicInteger();
+		var agent0 = newStubAgent(app, false, true, release0, ka0);
+		var agent1 = newStubAgent(app, false, false, release1, ka1);
+
+		daemon = new AchillesHeelDaemon(app, new GlobalAgentBase[]{agent0, agent1});
+		daemon.start();
+
+		Assertions.assertTrue(release1.await(5, TimeUnit.SECONDS),
+				"ThreadDaemon 中 agent0 异常不得跳过后续分片 agent1 的巡检与 startRelease");
+	}
+
+	@Test
+	public void testProcessDaemonKeepAliveFailureDoesNotBlockStartRelease() throws Exception {
+		Assumptions.assumeFalse(Reflect.inDebugMode, "debug mode skips idle startRelease");
+		peer = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+		oldPort = System.setProperty(Daemon.propertyNamePort, String.valueOf(peer.getLocalPort()));
+		app = newNoDbApp("TestAchillesHeelDaemon.processKeepAlive");
+		var release0 = new CountDownLatch(1);
+		var release1 = new CountDownLatch(1);
+		var ka0 = new AtomicInteger();
+		var ka1 = new AtomicInteger();
+		var agent0 = newStubAgent(app, true, false, release0, ka0);
+		var agent1 = newStubAgent(app, false, false, release1, ka1);
+
+		daemon = new AchillesHeelDaemon(app, new GlobalAgentBase[]{agent0, agent1});
+		daemon.start();
+
+		Assertions.assertTrue(release0.await(5, TimeUnit.SECONDS),
+				"ProcessDaemon 中 agent0.keepAlive 抛异常不得阻断 agent0.startRelease");
+		Assertions.assertTrue(release1.await(5, TimeUnit.SECONDS),
+				"ProcessDaemon 中 agent0.keepAlive 抛异常不得阻断 agent1.startRelease");
+		Assertions.assertTrue(ka0.get() > 0 && ka1.get() > 0, "两分片保活均应被继续尝试");
 	}
 }

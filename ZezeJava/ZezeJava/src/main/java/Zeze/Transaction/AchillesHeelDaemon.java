@@ -305,11 +305,9 @@ public class AchillesHeelDaemon {
 							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
 								haltOnReleaseTimeout(i);
 							var idle = now - agent.getActiveTime();
-							if (idle > config.serverKeepAliveIdleTimeout) {
-								agent.keepAlive();
-							}
 
-							// 外部Daemon失联时，本地仍须按时启动释放。
+							// 外部Daemon失联时，本地仍须按时启动释放；优先级高于保活，
+							// 避免 keepAlive 异常（如 Raft pending 满）阻断 startRelease。
 							if (idle > config.serverDaemonTimeout && !Reflect.inDebugMode) {
 								if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
 									logger.warn("ProcessDaemon.local fallback startRelease, daemon unreachable. "
@@ -317,8 +315,16 @@ public class AchillesHeelDaemon {
 									agent.startRelease(zeze, null);
 								}
 							}
+
+							if (idle > config.serverKeepAliveIdleTimeout) {
+								try {
+									agent.keepAlive();
+								} catch (Throwable ex) {
+									logger.error("ProcessDaemon.keepAlive globalIndex={}", i, ex);
+								}
+							}
 						} catch (Throwable ex) {
-							logger.error("ProcessDaemon.keepAlive globalIndex={}", i, ex);
+							logger.error("ProcessDaemon.check globalIndex={}", i, ex);
 						}
 					}
 				}
@@ -378,9 +384,9 @@ public class AchillesHeelDaemon {
 		@Override
 		public void run() {
 			while (running) {
-				try {
-					var now = System.currentTimeMillis();
-					for (int i = 0; i < agents.length; i++) {
+				var now = System.currentTimeMillis();
+				for (int i = 0; i < agents.length; i++) {
+					try {
 						var agent = agents[i];
 						var config = agent.getConfig();
 						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
@@ -391,20 +397,24 @@ public class AchillesHeelDaemon {
 						}
 
 						var idle = now - agent.getActiveTime();
-						if (idle > config.serverKeepAliveIdleTimeout) {
-							agent.keepAlive();
-						}
-
 						if (idle > config.serverDaemonTimeout && !Reflect.inDebugMode) {
 							if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
 								logger.warn("startRelease ServerDaemonTimeout={}", config.serverDaemonTimeout);
 								agent.startRelease(zeze, null);
 							}
 						}
+
+						if (idle > config.serverKeepAliveIdleTimeout) {
+							try {
+								agent.keepAlive();
+							} catch (Throwable ex) {
+								logger.error("AchillesHeelDaemon keepAlive exception. index={}", i, ex);
+							}
+						}
+					} catch (Throwable ex) {
+						// 单 agent 异常隔离并继续巡检其余 agent；释放超时仍由上面的 fatal 出口处理。
+						logger.error("AchillesHeelDaemon loop exception. index={}", i, ex);
 					}
-				} catch (Throwable ex) {
-					// 单轮异常继续巡检；释放超时仍由上面的fatal出口处理。
-					logger.error("AchillesHeelDaemon loop exception", ex);
 				}
 				try {
 					//noinspection BusyWait
