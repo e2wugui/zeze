@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
@@ -673,19 +674,22 @@ public final class RelativeRecordSet extends ReentrantLock {
 			} finally {
 				r.exitFairLock();
 			}
-			rrs = flushWhenReduce(rrs, checkpoint);
+			rrs = flushWhenReduce(r, rrs, checkpoint);
 		}
 	}
 
-	private static @Nullable RelativeRecordSet flushWhenReduce(RelativeRecordSet rrs,
+	private static @Nullable RelativeRecordSet flushWhenReduce(Record r, RelativeRecordSet rrs,
 															   Checkpoint checkpoint) {
 		lockFlush(rrs);
 		try {
 			var mergeTo = rrs.mergeTo;
 			if (mergeTo == null) {
-				if (rrs.recordSet != null) { // 孤立记录不用保存，肯定没有修改。
+				if (rrs.recordSet != null) {
 					checkpoint.flush(rrs);
 					rrs.delete();
+				} else if (r.getDirty()) {
+					// 防御兜底：孤立记录若意外带脏标记，降级前必须落库清脏，避免 Invalid+dirty 残留。
+					checkpoint.flush(Collections.singletonList(r), Set.of(), null);
 				}
 				return null;
 			}

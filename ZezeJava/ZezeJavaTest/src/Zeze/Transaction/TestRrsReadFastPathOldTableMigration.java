@@ -16,6 +16,7 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.CheckpointMode;
 import Zeze.Transaction.Procedure;
@@ -23,10 +24,9 @@ import Zeze.Transaction.TableX;
 import Zeze.Util.FuncLong;
 
 /**
- * readFastPath 回归：oldTable 倒库在读路径标脏（TableX.load，全仓读路径标脏仅此一处），
- * 记录孤立未注册，老路径纯读提交是它迁移落库的唯一通道。原谓词（!hasDirtyWrite）会让它
- * 走快路致迁移搁浅（新库永远查不到）；hasUnregisteredDirty（脏&&孤立组签名）修复。
- * 断言：纯读装载 → 提交 → checkpointRun → 新库必须查得到（selectFromDatabase 只读新库）。
+ * oldTable 倒库在所有 CheckpointMode 下统一由 TableX.load 通过 migrateOldRecord 同步迁入新主库与
+ * 本地镜像，不再对孤立记录标脏（避免 selectCopy/回滚/GCM reduce 时残留未注册脏标记导致跨进程丢更新或
+ * 缓存永久无法驱逐）；同时验证 RelativeRecordSet.flushWhenReduce 对孤立脏记录的防御兜底刷盘。
  */
 @Fast
 public class TestRrsReadFastPathOldTableMigration {
@@ -93,17 +93,118 @@ public class TestRrsReadFastPathOldTableMigration {
 			seedOldDatabase(KEY_OLD, 100);
 			Assertions.assertNull(requireNonNull(table).selectFromDatabase(KEY_OLD), "前置：倒库记录仅存旧库");
 
-			// 纯读装载：新库miss→oldTable命中→Table模式读路径setDirty（孤立未注册）。
+			// 纯读装载：新库 miss → oldTable 命中 → 统一在读路径同步迁移至新主库与本地镜像，不标脏。
 			var out = new long[1];
 			Assertions.assertEquals(Procedure.Success, read(KEY_OLD, out), "纯读装载必须成功");
 			Assertions.assertEquals(100, out[0], "读值来自旧库");
-			Assertions.assertNull(table.selectFromDatabase(KEY_OLD), "提交后checkpoint前：尚未落新库");
 
-			// 核心：注册通道必须在——修复前快路吞掉注册，checkpointRun 后新库仍为空。
+			var migratedImmediate = table.selectFromDatabase(KEY_OLD);
+			Assertions.assertNotNull(migratedImmediate, "纯读装载后新库必须立即可见已迁移记录");
+			Assertions.assertEquals(100, migratedImmediate.value, "立即迁移落库的值等于旧库值");
+			var cached = requireNonNull(requireNonNull(table.getCache()).get(KEY_OLD));
+			Assertions.assertFalse(cached.getDirty(), "统一同步迁移后缓存记录不得残留脏标记");
+
 			requireNonNull(app).checkpointRun();
 			var migrated = table.selectFromDatabase(KEY_OLD);
-			Assertions.assertNotNull(migrated, "纯读提交必须保留倒库记录的flush注册（readFastPath不得放过未注册脏）");
+			Assertions.assertNotNull(migrated, "checkpointRun 后新库记录保持完整");
 			Assertions.assertEquals(100, migrated.value, "迁移落库的值等于旧库值");
+		} finally {
+			requireNonNull(app).stop();
+		}
+	}
+
+	@Test
+	public void testSelectCopyAndRollbackMigrateWithoutDirtyLeak() throws Exception {
+		startAppWithOldTable();
+		try {
+			long keyCopy = 2L;
+			long keyRollback = 3L;
+			seedOldDatabase(keyCopy, 200);
+			seedOldDatabase(keyRollback, 300);
+
+			// 1. selectCopy 触发旧表装载：同步迁入新库且不留脏标记
+			var copied = requireNonNull(table).selectCopy(keyCopy);
+			Assertions.assertNotNull(copied);
+			Assertions.assertEquals(200, copied.value);
+			var migratedCopy = table.selectFromDatabase(keyCopy);
+			Assertions.assertNotNull(migratedCopy, "selectCopy 命中旧表后新库必须立即可见");
+			Assertions.assertEquals(200, migratedCopy.value);
+			var copyRecord = requireNonNull(requireNonNull(table.getCache()).get(keyCopy));
+			Assertions.assertFalse(copyRecord.getDirty(), "selectCopy 不得留下孤立脏记录");
+
+			// 2. 事务读旧表后回滚：同步迁入新库且不留脏标记
+			var rc = requireNonNull(app).newProcedure((FuncLong)() -> {
+				var v = table.get(keyRollback);
+				Assertions.assertNotNull(v);
+				Assertions.assertEquals(300, v.value);
+				return Procedure.LogicError; // 故意回滚
+			}, "TestOldTableMigration.rollback").call();
+			Assertions.assertEquals(Procedure.LogicError, rc);
+			var migratedRollback = table.selectFromDatabase(keyRollback);
+			Assertions.assertNotNull(migratedRollback, "回滚事务触发旧表装载后新库仍应完成迁移");
+			Assertions.assertEquals(300, migratedRollback.value);
+			var rollbackRecord = requireNonNull(requireNonNull(table.getCache()).get(keyRollback));
+			Assertions.assertFalse(rollbackRecord.getDirty(), "回滚事务不得留下孤立脏记录");
+		} finally {
+			requireNonNull(app).stop();
+		}
+	}
+
+	@Test
+	public void testReduceInvalidAfterOldTableLoadReadsRemoteUpdate() throws Exception {
+		startAppWithOldTable();
+		try {
+			long key = 4L;
+			seedOldDatabase(key, 100);
+
+			// S1 通过 selectCopy 触发旧表装载
+			var copied = requireNonNull(table).selectCopy(key);
+			Assertions.assertNotNull(copied);
+			Assertions.assertEquals(100, copied.value);
+			var record = requireNonNull(requireNonNull(table.getCache()).get(key));
+			Assertions.assertFalse(record.getDirty());
+
+			// 模拟 GCM 降级为 StateInvalid 且远端节点 S2 将新库更新为 200
+			record.setState(GlobalCacheManagerConst.StateInvalid);
+			var storage = requireNonNull(table.getStorage());
+			var remoteValue = new MigrateBean();
+			remoteValue.value = 200;
+			try (var t = storage.getDatabaseTable().getDatabase().beginTransaction()) {
+				storage.getDatabaseTable().replace(t, table.encodeKey(key), ByteBuffer.encode(remoteValue));
+				t.commit();
+			}
+
+			// S1 再次读取必须从新库读到 S2 的 200，不能被残留脏值遮蔽成旧值 100
+			var out = new long[1];
+			Assertions.assertEquals(Procedure.Success, read(key, out));
+			Assertions.assertEquals(200, out[0], "降级后重读必须看到远端最新值");
+		} finally {
+			requireNonNull(app).stop();
+		}
+	}
+
+	@Test
+	public void testFlushWhenReduceDefensivelyFlushesIsolatedDirtyRecord() throws Exception {
+		startAppWithOldTable();
+		try {
+			long key = 5L;
+			var out = new long[1];
+			Assertions.assertEquals(Procedure.Success, read(key, out)); // 缓存中建立孤立记录（rrs.recordSet == null）
+			var record = requireNonNull(requireNonNull(table).getCache()).get(key);
+			Assertions.assertNotNull(record);
+
+			var bean = new MigrateBean();
+			bean.value = 555;
+			record.setSoftValue(bean);
+			record.setDirty();
+			Assertions.assertTrue(record.getDirty());
+
+			RelativeRecordSet.flushWhenReduce(record, requireNonNull(requireNonNull(app).getCheckpoint()));
+
+			Assertions.assertFalse(record.getDirty(), "flushWhenReduce 必须刷盘并清除孤立脏记录的脏标记");
+			var persisted = table.selectFromDatabase(key);
+			Assertions.assertNotNull(persisted, "孤立脏记录降级前必须落库");
+			Assertions.assertEquals(555, persisted.value);
 		} finally {
 			requireNonNull(app).stop();
 		}

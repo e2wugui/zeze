@@ -326,17 +326,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							if (strongRef == null && oldTable != null) {
 								var old = oldTable.find(this, key);
 								if (old != null) {
+									// 所有 CheckpointMode 统一在读路径同步迁移至新主库与本地镜像，不标脏：
+									// 避免孤立记录（rrs.recordSet == null）在 selectCopy/回滚/GCM reduce 时
+									// 滞留未注册脏标记，导致跨进程丢更新或缓存永久无法驱逐。
+									migrateOldRecord(storage, key, old);
 									strongRef = old;
 									r.setSoftValue(strongRef);
-									if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
-										// Immediately 模式直接保存到当前主库与 RocksCache，
-										// 不设置脏标记（脏记录流程不会处理它，会永久滞留强引用）。
-										migrateOldRecord(storage, key, old);
-									} else {
-										// 从旧表装载时，马上设为脏，使得可以写入新表。
-										// 否则直到被修改前，都不会被保存到当前数据库中。
-										r.setDirty();
-									}
 								}
 							}
 							if (strongRef != null)
