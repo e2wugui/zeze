@@ -687,7 +687,7 @@ public class MasterDatabase {
 		return null != rec ? rec.createTimeMs() : null;
 	}
 
-	// 年龄+世代记录：[long创建时间戳][WriteString源桶raft身份]；仅8字节=旧格式/纯基线（无世代
+	// 年龄+世代记录：[varint创建时间戳][可选WriteString源桶raft身份]；无剩余字节=旧格式/纯基线（无世代
 	// 身份，判死退回INV1）。读取失败按无记录处理（下轮扫描重建基线）。
 	private record AgeRecord(long createTimeMs, @Nullable String sourceRaft) {
 	}
@@ -699,7 +699,7 @@ public class MasterDatabase {
 				return null;
 			var bb = ByteBuffer.Wrap(value);
 			var ts = bb.ReadLong();
-			return value.length > 8 ? new AgeRecord(ts, bb.ReadString()) : new AgeRecord(ts, null);
+			return bb.size() > 0 ? new AgeRecord(ts, bb.ReadString()) : new AgeRecord(ts, null);
 		} catch (RocksDBException ex) {
 			logger.error("readSplittingAge fail. database={} table={}", databaseName, tableName, ex);
 			return null;
