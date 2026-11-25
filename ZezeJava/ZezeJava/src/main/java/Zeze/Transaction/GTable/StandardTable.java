@@ -19,6 +19,7 @@ package Zeze.Transaction.GTable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -395,6 +396,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       }
       final Iterator<Entry<C, V>> iterator = backingRowMap.entrySet().iterator();
       return new Iterator<>() {
+        private @Nullable Entry<C, V> lastReturned;
+
         @Override
         public boolean hasNext() {
           return iterator.hasNext();
@@ -402,12 +405,20 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
         @Override
         public Entry<C, V> next() {
-          return wrapEntry(iterator.next());
+          return lastReturned = wrapEntry(iterator.next());
         }
 
         @Override
         public void remove() {
-          iterator.remove();
+          if (lastReturned == null) {
+            throw new IllegalStateException("iterator remove() before next()");
+          }
+          updateBackingRowMapField();
+          if (backingRowMap == null || backingRowMap.get(lastReturned.getKey()) != lastReturned.getValue()) {
+            throw new ConcurrentModificationException("structural modification during iteration");
+          }
+          backingRowMap.remove(lastReturned.getKey());
+          lastReturned = null;
           maintainEmptyInvariant();
         }
       };
