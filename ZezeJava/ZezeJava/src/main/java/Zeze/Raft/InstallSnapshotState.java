@@ -3,6 +3,7 @@ package Zeze.Raft;
 import org.jspecify.annotations.Nullable;
 
 import java.io.RandomAccessFile;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
@@ -17,6 +18,8 @@ class InstallSnapshotState {
 	private @Nullable RandomAccessFile file;
 	// 会话所属连接：SendSnapshotting.end收口的索引复位与续复制据此定位（入表前绑定）。
 	private Server.@Nullable ConnectorEx connector;
+	// 会话启动时绑定的 socket：断线异步回调据此校验归属，避免 super.OnSocketClose 置空 Connector.socket 后失配。
+	private @Nullable AsyncSocket socket;
 	private long offset;
 	private long term;
 	private String leaderId = "";
@@ -47,6 +50,14 @@ class InstallSnapshotState {
 
 	public void setConnector(Server.ConnectorEx value) {
 		connector = value;
+	}
+
+	public @Nullable AsyncSocket getSocket() {
+		return socket;
+	}
+
+	public void setSocket(@Nullable AsyncSocket value) {
+		socket = value;
 	}
 
 	public long getOffset() {
@@ -138,7 +149,8 @@ class InstallSnapshotState {
 
 			int timeout = ls.getRaft().getRaftConfig().getAppendEntriesTimeout();
 			resultCode = Procedure.ErrorSendFail;
-			if (!pending.Send(c.TryGetReadySocket(), p -> processResult(ls, c, p), timeout))
+			var sendSocket = socket != null ? socket : c.TryGetReadySocket();
+			if (!pending.Send(sendSocket, p -> processResult(ls, c, p), timeout))
 				ls.getSendSnapshotting().end(c, this);
 		} catch (Throwable e) {
 			// 异常会被上层任务记日志后吞掉，这里不收口的话该follower的安装将永久楔死

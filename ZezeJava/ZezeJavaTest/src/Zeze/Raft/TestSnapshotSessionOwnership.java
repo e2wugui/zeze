@@ -1,13 +1,21 @@
 package Zeze.Raft;
 
 import java.io.RandomAccessFile;
+import java.net.SocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import Zeze.Config;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
+import Zeze.Net.Service;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
+import Zeze.Util.TimeThrottle;
 import harness.Fast;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
@@ -165,6 +173,94 @@ public class TestSnapshotSessionOwnership {
 			assertFalse(f.currentFile.getFD().valid());
 			assertEquals(7, f.peer.getNextIndex());
 			assertEquals(6, f.peer.getMatchIndex());
+		}
+	}
+
+	private static final class StubSocket extends AsyncSocket {
+		StubSocket(Service service) {
+			super(service);
+		}
+
+		@Override
+		public Type getType() {
+			return Type.eClient;
+		}
+
+		@Override
+		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
+		}
+
+		@Override
+		public boolean Send(byte[] bytes, int offset, int length) {
+			return true;
+		}
+
+		@Override
+		public @Nullable TimeThrottle getTimeThrottle() {
+			return null;
+		}
+
+		@Override
+		public @Nullable SocketAddress getRemoteAddress() {
+			return null;
+		}
+	}
+
+	@Test
+	void socketCloseEndsMatchingSessionEvenAfterConnectorClearsSocket(@TempDir Path home) throws Exception {
+		try (var f = new Fixture(home)) {
+			f.peer.setAutoReconnect(false);
+			var socketA = new StubSocket(f.raft.getServer());
+			f.currentSession.setSocket(socketA);
+			var socketField = Connector.class.getDeclaredField("socket");
+			socketField.setAccessible(true);
+			socketField.set(f.peer, socketA);
+
+			// 持 raft 锁调用 OnSocketClose：强制异步任务在 super.OnSocketClose 置空 Connector.socket 后执行。
+			f.raft.lock();
+			try {
+				f.peer.OnSocketClose(socketA, null);
+				assertNull(f.peer.getSocket(), "super.OnSocketClose 必须已同步置空 Connector.socket");
+			} finally {
+				f.raft.unlock();
+			}
+
+			long deadline = System.currentTimeMillis() + 3000;
+			while ((f.logs.getSendSnapshotting().contains(f.peer.getName()) || f.currentFile.getFD().valid())
+					&& System.currentTimeMillis() < deadline) {
+				//noinspection BusyWait
+				Thread.sleep(10);
+			}
+			assertFalse(f.logs.getSendSnapshotting().contains(f.peer.getName()),
+					"断线后即使 Connector.socket 已置空，仍须按会话绑定 socket 立即终止 SendSnapshotting");
+			assertFalse(f.currentFile.getFD().valid());
+		}
+	}
+
+	@Test
+	void staleSocketCloseDoesNotEndNewerSession(@TempDir Path home) throws Exception {
+		try (var f = new Fixture(home)) {
+			f.peer.setAutoReconnect(false);
+			var socketA = new StubSocket(f.raft.getServer());
+			var socketB = new StubSocket(f.raft.getServer());
+			f.currentSession.setSocket(socketB);
+			var socketField = Connector.class.getDeclaredField("socket");
+			socketField.setAccessible(true);
+			socketField.set(f.peer, socketB);
+
+			// 旧 socketA 的关闭回调晚到时，不得误杀已绑定到新 socketB 的会话。
+			f.peer.OnSocketClose(socketA, null);
+			var barrier = new CountDownLatch(1);
+			Raft.executeImportantTask(() -> {
+				f.raft.lock();
+				try {
+					barrier.countDown();
+				} finally {
+					f.raft.unlock();
+				}
+			});
+			assertTrue(barrier.await(3, TimeUnit.SECONDS));
+			f.assertCurrentUntouched();
 		}
 	}
 }

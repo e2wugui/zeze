@@ -127,8 +127,8 @@ public class Server extends HandshakeBoth {
 				// avoid deadlock: lock(socket), lock (Raft).
 				raft.lock();
 				try {
-					if (getSocket() == closed) // check is owner
-						raft.getLogSequence().getSendSnapshotting().end(this);
+					if (!raft.isShutdown)
+						raft.getLogSequence().getSendSnapshotting().endIfSocket(this, closed);
 				} catch (Throwable ex) { // thread runner. logger.error
 					logger.error("Server.ConnectorEx.OnSocketClose", ex);
 				} finally {

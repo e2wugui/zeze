@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.RandomAccessFile;
 import java.util.concurrent.ConcurrentHashMap;
 
+import Zeze.Net.AsyncSocket;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,6 +66,14 @@ public final class SendSnapshotting {
 			closeSession(state);
 	}
 
+	// 断线异步回调收口：按会话启动时绑定的 socket 校验归属，避免 super.OnSocketClose 同步置空
+	// Connector.socket 后 getSocket() == closed 恒假，且不误删重连后新建的会话。调用者持 Raft 锁。
+	void endIfSocket(Server.ConnectorEx c, AsyncSocket closed) throws Exception {
+		var state = sessions.get(c.getName());
+		if (state != null && state.getSocket() == closed && sessions.remove(c.getName(), state))
+			closeSession(state);
+	}
+
 	// 会话收口：关文件；done且成功则复位索引并续复制。map移除由调用方完成。
 	private void closeSession(@Nullable InstallSnapshotState state) throws Exception {
 		if (state == null)
@@ -96,8 +105,12 @@ public final class SendSnapshotting {
 		// 如果 Snapshotting，此时不启动安装。
 		// 以后重试 AppendEntries 时会重新尝试 Install.
 		if ((new File(path)).isFile() && !logSequence.getSnapshotting()) {
+			var socket = c.TryGetReadySocket();
+			if (socket == null)
+				return;
 			var state = new InstallSnapshotState();
 			state.setConnector(c); // 入表前绑定会话所属连接（end收口据此定位）
+			state.setSocket(socket); // 入表前绑定当前连接 socket（断线异步回调据此校验归属）
 			if (sessions.putIfAbsent(c.getName(), state) != null)
 				throw new IllegalStateException("Impossible");
 
