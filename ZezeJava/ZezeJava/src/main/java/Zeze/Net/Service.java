@@ -848,7 +848,7 @@ public class Service extends ReentrantLock {
 	public static abstract class ManualContext {
 		private long sessionId;
 		private @Nullable Object userState;
-		private boolean isTimeout;
+		private volatile boolean isTimeout;
 		private @Nullable Service service;
 
 		public final long getSessionId() {

@@ -133,6 +133,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	private volatile @Nullable Action1<RedirectAllContext<R>> onAllDone;
 	private volatile @Nullable RedirectAllContext<R> ctx;
 	private volatile @Nullable IntHashSet finishedHashes; // lazy-init
+	private volatile boolean done;
 	private final Condition cond = newCondition();
 
 	private IntHashSet getFinishedHashes() {
@@ -259,6 +260,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		} finally {
 			lock();
 			try {
+				done = true;
 				cond.signalAll();
 			} finally {
 				unlock();
@@ -310,11 +312,11 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 
 	@Override
 	public RedirectAllFuture<R> await() {
-		var c = ctx;
-		if (c == null || !c.isCompleted()) {
-			// onResult回调在ctx锁内同步执行（生产者路径processResult持ctx锁调用result，
-			// 迟注册扫描路径同样在ctx锁内跑回调），此处挂起等待同一ctx只释放future自己的锁，
-			// ctx锁仍被本线程持有，后续processResult/onRemoved全部阻塞，future永不完成。
+		if (!done) {
+			var c = ctx;
+			// onResult/onAllDone回调在ctx锁内同步执行（生产者路径processResult/onRemoved持ctx锁
+			// 调用result/allDone，迟注册扫描路径同样在ctx锁内跑回调），此处挂起等待同一ctx只释放future
+			// 自己的锁，ctx锁仍被本线程持有，后续processResult/onRemoved全部阻塞，future永不完成。
 			// future完成必经ctx锁，“当前线程持有该ctx锁”即是死锁充要条件（嵌套回调下同样成立），
 			// 直接查锁拦截，无需ThreadLocal侧记——两条路径的回调均持ctx锁，均会被正确拦截。
 			// 对照sendRpcForWait事务内禁用的先例，防御性拒绝（已完成的future不受影响）。
@@ -325,7 +327,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			lock();
 			try {
 				try {
-					while ((c = ctx) == null || !c.isCompleted())
+					while (!done)
 						cond.await();
 				} catch (InterruptedException e) {
 					throw Task.forceThrow(e);

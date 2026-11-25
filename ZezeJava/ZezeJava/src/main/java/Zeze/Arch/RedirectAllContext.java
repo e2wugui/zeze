@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
 public final class RedirectAllContext<R extends RedirectResult> extends Service.ManualContext {
 	private final int concurrentLevel;
 	private final IntHashMap<R> hashResults = new IntHashMap<>(); // <hash, result>
+	private volatile int resultCount;
 	private final @Nullable Function<@Nullable Binary, R> resultDecoder;
 	private final @Nullable RedirectAllFutureImpl<R> future;
 	private final ReentrantLock lock = new ReentrantLock();
@@ -52,7 +53,7 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 	}
 
 	public boolean isCompleted() {
-		return hashResults.size() >= concurrentLevel || isTimeout();
+		return resultCount >= concurrentLevel || isTimeout();
 	}
 
 	@Override
@@ -81,12 +82,15 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 					result.setHash(hash);
 					result.setResultCode(resultCode);
 					if (hashResults.putIfAbsent(hash, result) == null) { // 不可能回复相同hash的多个结果,忽略掉后面的好了
+						resultCount = hashResults.size();
 						//noinspection DataFlowIssue
 						future.result(this, result);
 					}
-				} else
+				} else {
 					//noinspection DataFlowIssue
 					hashResults.put(hash, null);
+					resultCount = hashResults.size();
+				}
 			}
 			if (hashResults.size() >= concurrentLevel)
 				//noinspection DataFlowIssue
