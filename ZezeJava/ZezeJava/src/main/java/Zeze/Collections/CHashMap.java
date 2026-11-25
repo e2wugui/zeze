@@ -55,7 +55,8 @@ public class CHashMap<V extends Bean> {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.getOrAdd(key);
-		Transaction.whileCommit(() -> sizes.set(index, bucket.size()));
+		var newSize = bucket.size();
+		Transaction.whileCommit(() -> sizes.set(index, newSize));
 		return result;
 	}
 
@@ -63,7 +64,8 @@ public class CHashMap<V extends Bean> {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.put(key, value);
-		Transaction.whileCommit(() -> sizes.set(index, bucket.size()));
+		var newSize = bucket.size();
+		Transaction.whileCommit(() -> sizes.set(index, newSize));
 		return result;
 	}
 
@@ -71,7 +73,10 @@ public class CHashMap<V extends Bean> {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.remove(key);
-		Transaction.whileCommit(() -> sizes.set(index, bucket.size()));
+		if (result != null) {
+			var newSize = bucket.size();
+			Transaction.whileCommit(() -> sizes.set(index, newSize));
+		}
 		return result;
 	}
 
@@ -81,7 +86,7 @@ public class CHashMap<V extends Bean> {
 		// 与put/remove一致：分片计数缓存在提交时刷新（回滚则不变，与DB一致）
 		Transaction.whileCommit(() -> {
 			for (var i = 0; i < buckets.length; i++)
-				sizes.set(i, buckets[i].size());
+				sizes.set(i, 0L);
 		});
 	}
 
