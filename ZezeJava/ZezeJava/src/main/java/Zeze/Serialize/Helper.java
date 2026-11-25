@@ -224,7 +224,8 @@ public class Helper {
 		try {
 			@SuppressWarnings("unchecked")
 			var m = (Map<Object, Object>)map;
-			jr.buf(jsonStr).parseMap0(m, json.getClassMeta(map.getClass()), fm);
+			if (jr.buf(jsonStr).next() == '{')
+				jr.parseMap0(m, json.getClassMeta(map.getClass()), fm);
 		} catch (ReflectiveOperationException e) {
 			throw Task.forceThrow(e);
 		} finally {

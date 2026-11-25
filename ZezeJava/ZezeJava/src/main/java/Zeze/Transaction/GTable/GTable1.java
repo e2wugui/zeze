@@ -68,17 +68,20 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 			if (obj == null || fieldMeta == null)
 				return null; // 只解析已初始化的表字段。
 			obj.pMap2.clear();
+			if (reader.next() != '{')
+				return obj;
 			var factory = (Factory<?, ?, ?>)obj.factory;
 			var fm1 = factory.fm1;
 			var fm2 = factory.fm2;
 			var keyParser = ensureNotNull(fm1.keyParser);
 			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
 				var k = keyParser.parse(reader, b);
-				reader.skipColon();
-				var map = (BeanMap1<Object, Object>)ensureNotNull(fm1.ctor).create();
-				reader.parseMap0(map, classMeta, fm2);
-				if (!map.isEmpty())
-					obj.pMap2.put(k, map);
+				if (reader.skipColon() == '{') {
+					var map = (BeanMap1<Object, Object>)ensureNotNull(fm1.ctor).create();
+					reader.parseMap0(map, classMeta, fm2);
+					if (!map.isEmpty())
+						obj.pMap2.put(k, map);
+				}
 			}
 			reader.pos(reader.pos() + 1);
 			return obj;

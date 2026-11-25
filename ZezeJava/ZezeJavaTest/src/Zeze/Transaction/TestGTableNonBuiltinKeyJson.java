@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * FND8-31回归：GTable1/GTable2/decodeJsonTypedMap 手建FieldMeta的keyParser裸取
@@ -206,5 +207,68 @@ public class TestGTableNonBuiltinKeyJson {
 		var v = dst.get(new BDeptKey("alice", 5));
 		assertNotNull(v, "BeanMap的BeanKey键必须恢复");
 		assertEquals(42, v);
+	}
+
+	public static class GTable1BeanHolder extends Bean {
+		public final GTable1<String, String, Integer> g = new GTable1<>(String.class, String.class, Integer.class);
+
+		@Override
+		public void encode(ByteBuffer bb) {
+		}
+
+		@Override
+		public void decode(IByteBuffer bb) {
+		}
+	}
+
+	public static class GTable2BeanHolder extends Bean {
+		public final GTable2<String, String, MBean, MBean> g = new GTable2<>(String.class, String.class, MBean.class);
+
+		@Override
+		public void encode(ByteBuffer bb) {
+		}
+
+		@Override
+		public void decode(IByteBuffer bb) {
+		}
+	}
+
+	@Test
+	public void testGTableJsonLeadingWhitespaceNullRowAndEmptyOrNull() {
+		// GTable1: 前导空白、null 行值跳过及空/空白/非对象输入不写入幻影条目
+		var h1 = new GTable1BeanHolder();
+		Zeze.Serialize.Helper.decodeJsonGTable1(h1, "g", h1.g, " \n {\"r1\": {\"c1\": 1}}");
+		assertEquals(1, h1.g.size());
+		assertEquals(1, h1.g.get("r1", "c1"));
+
+		Zeze.Serialize.Helper.decodeJsonGTable1(h1, "g", h1.g, "{\"r1\": null, \"r2\": {\"c2\": 9}}");
+		assertEquals(1, h1.g.size());
+		assertEquals(9, h1.g.get("r2", "c2"));
+
+		for (var nonObject : new String[]{"", "   ", "123", "null"}) {
+			var holder = new GTable1BeanHolder();
+			var table = holder.g;
+			table.put("stale", "col", 7);
+			Zeze.Serialize.Helper.decodeJsonGTable1(holder, "g", table, nonObject);
+			assertTrue(table.isEmpty(), "GTable1 输入 '" + nonObject + "' 不得写入幻影条目");
+		}
+
+		// GTable2: 同型覆盖
+		var h2 = new GTable2BeanHolder();
+		Zeze.Serialize.Helper.decodeJsonGTable2(h2, "g", h2.g, " \n {\"r1\": {\"c1\": {\"v\": 11}}}");
+		assertEquals(1, h2.g.size());
+		assertEquals(11L, requireNonNull(h2.g.get("r1", "c1")).v);
+
+		Zeze.Serialize.Helper.decodeJsonGTable2(h2, "g", h2.g, "{\"r1\": null, \"r2\": {\"c2\": {\"v\": 22}}}");
+		assertEquals(1, h2.g.size());
+		assertEquals(22L, requireNonNull(h2.g.get("r2", "c2")).v);
+
+		for (var nonObject : new String[]{"", "   ", "123", "null"}) {
+			var holder = new GTable2BeanHolder();
+			var table = holder.g;
+			table.put("stale", "col", new MBean().set(5));
+			Zeze.Serialize.Helper.decodeJsonGTable2(holder, "g", table, nonObject);
+			assertTrue(table.isEmpty(), "GTable2 输入 '" + nonObject + "' 不得写入幻影条目");
+		}
 	}
 }

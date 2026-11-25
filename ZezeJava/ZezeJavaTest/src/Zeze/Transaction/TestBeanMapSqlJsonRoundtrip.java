@@ -143,4 +143,29 @@ public class TestBeanMapSqlJsonRoundtrip {
 		Assertions.assertEquals(1.5, dst.get("a"));
 		Assertions.assertEquals(2.5, dst.get("b"));
 	}
+
+	@Test
+	public void testDecodeJsonTypedMapLeadingWhitespaceAndEmptyOrNull() {
+		// 前导空白/换行的合法 JSON 对象必须正常定位 '{' 并还原键值。
+		var strMap = new BeanMap1<String, Integer>(String.class, Integer.class);
+		Helper.decodeJsonTypedMap(strMap.getPMap1(), strMap.getPMap1().getMeta(), "  {\"k\": 1}");
+		Assertions.assertEquals(1, strMap.size());
+		Assertions.assertEquals(1, strMap.get("k"));
+
+		var longMap = new BeanMap1<Long, Integer>(Long.class, Integer.class);
+		Helper.decodeJsonTypedMap(longMap.getPMap1(), longMap.getPMap1().getMeta(), "\n\t{\"7\": 42}");
+		Assertions.assertEquals(1, longMap.size());
+		Assertions.assertEquals(42, longMap.get(7L));
+
+		// 空串、纯空白与 "null" 必须清空目标且不得写入幻影条目。
+		for (var nonObject : new String[]{"", "   ", "null"}) {
+			strMap.put("stale", 9);
+			Helper.decodeJsonTypedMap(strMap.getPMap1(), strMap.getPMap1().getMeta(), nonObject);
+			Assertions.assertTrue(strMap.isEmpty(), "输入 '" + nonObject + "' 不得写入幻影条目");
+
+			longMap.put(9L, 9);
+			Helper.decodeJsonTypedMap(longMap.getPMap1(), longMap.getPMap1().getMeta(), nonObject);
+			Assertions.assertTrue(longMap.isEmpty(), "输入 '" + nonObject + "' 不得写入幻影条目");
+		}
+	}
 }
