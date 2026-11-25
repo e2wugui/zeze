@@ -17,8 +17,12 @@ public class HttpExchangeStreamWriter extends HttpExchangeUtf8Writer {
 
 	public HttpExchangeStreamWriter(HttpExchange x) {
 		this.x = x;
-		x.beginStream(HttpResponseStatus.OK, HttpServer.setDate(new DefaultHttpHeaders())
-				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
+		var headers = HttpServer.setDate(new DefaultHttpHeaders())
+				.set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=utf-8");
+		if (!x.isH2())
+			headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+		x.appendResponseHeaders(headers);
+		x.beginStream(HttpResponseStatus.OK, headers);
 	}
 
 	public int getContentLength() {

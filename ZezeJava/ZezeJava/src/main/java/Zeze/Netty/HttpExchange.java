@@ -366,6 +366,12 @@ public class HttpExchange {
 		return resHeaders != null ? new ArrayList<>(resHeaders) : new ArrayList<>();
 	}
 
+	void appendResponseHeaders(HttpHeaders headers) {
+		var extraHeaders = responseHeaders();
+		for (int i = 0, n = extraHeaders.size(); i < n; i += 2)
+			headers.add((CharSequence)extraHeaders.get(i), extraHeaders.get(i + 1));
+	}
+
 	public void addCookie(String name, String value) {
 		setCookie(name, value, null, null, -1);
 	}
@@ -1596,9 +1602,7 @@ public class HttpExchange {
 			headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 		if (contentType != null)
 			headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
-		var extraHeaders = responseHeaders();
-		for (int i = 0, n = extraHeaders.size(); i < n; i += 2)
-			headers.add((CharSequence)extraHeaders.get(i), extraHeaders.get(i + 1));
+		appendResponseHeaders(headers);
 		return writeResponse(res, true, null); // 响应经per-channel序化器，pipelining按请求序写出
 	}
 
