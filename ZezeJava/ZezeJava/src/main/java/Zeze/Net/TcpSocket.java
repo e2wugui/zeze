@@ -287,8 +287,16 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			close(e);
 			throw e;
 		}
-		addInterestOps(SelectionKey.OP_READ);
-		selector.wakeup();
+		if (!isClosed()) {
+			try {
+				addInterestOps(SelectionKey.OP_READ);
+			} catch (CancelledKeyException e) {
+				if (!isClosed())
+					throw e;
+				return;
+			}
+			selector.wakeup();
+		}
 	}
 
 	/**
@@ -302,7 +310,14 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		if (acceptorOrConnector instanceof Connector)
 			((Connector)acceptorOrConnector).OnSocketConnected(this);
 		getService().OnSocketConnected(this);
-		addInterestOps(SelectionKey.OP_READ);
+		if (!isClosed()) {
+			try {
+				addInterestOps(SelectionKey.OP_READ);
+			} catch (CancelledKeyException e) {
+				if (!isClosed())
+					throw e;
+			}
+		}
 	}
 
 	public TcpSocket(Service service, @Nullable String hostNameOrAddress, int port,
@@ -370,11 +385,24 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				SocketChannel sc = (SocketChannel)getChannel();
 				if (sc.connect(new InetSocketAddress(address, port))) // 马上成功时（回环），直接完成
 					doConnectSuccess(sc);
-				else
-					addInterestOps(SelectionKey.OP_CONNECT);
+				else if (!isClosed()) {
+					try {
+						addInterestOps(SelectionKey.OP_CONNECT);
+					} catch (CancelledKeyException e) {
+						if (!isClosed())
+							throw e;
+						return;
+					}
+				}
 				selector.wakeup();
 			} catch (Exception e) {
-				close(e); // 幂等（恰好一次，见markClosed）：已被stop关闭时静默返回
+				if (close(e)) { // 幂等（恰好一次，见markClosed）：仅本次失败终结连接时回调OnSocketConnectError
+					try {
+						getService().OnSocketConnectError(this, e);
+					} catch (Exception ex) {
+						logger.error("Service.OnSocketConnectError exception:", ex);
+					}
+				}
 			}
 		});
 	}
@@ -427,35 +455,46 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			// 可达千倍）会在此之前无上限膨胀输入缓冲。不压缩（仅加密或全disable）不扩展，保持原路径。
 			Codec chain = compressType == Constant.eCompressTypeDisable
 					? Objects.requireNonNull(inputBuffer) : new InputLimitCodec(this, Objects.requireNonNull(inputBuffer));
-			switch (compressType) {
-			case Constant.eCompressTypeDisable:
-				break;
-			case Constant.eCompressTypeMppc:
-				chain = new Decompress(chain);
-				break;
-			case Constant.eCompressTypeZstd:
-				chain = new DecompressZstd(chain, 128 * 1024, 128 * 1024);
-				break;
-			// 新增压缩算法支持这里加case
-			default:
-				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown compressType=" + compressType);
-			}
-			switch (encryptType) {
-			case Constant.eEncryptTypeDisable:
-				break;
-			case Constant.eEncryptTypeAesNoSecureIp:
-			case Constant.eEncryptTypeAes:
-				//noinspection DataFlowIssue
-				var keyMd5 = Digest.md5(encryptParam);
-				chain = new Decrypt2(chain, keyMd5, keyMd5);
-				break;
-			case Constant.eEncryptTypeRsaAes:
-				//noinspection DataFlowIssue
-				chain = new Decrypt2(chain, Arrays.copyOfRange(encryptParam, 16, 32), encryptParam);
-				break;
-			// 新增加密算法支持这里加case
-			default:
-				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown encryptType=" + encryptType);
+			try {
+				switch (compressType) {
+				case Constant.eCompressTypeDisable:
+					break;
+				case Constant.eCompressTypeMppc:
+					chain = new Decompress(chain);
+					break;
+				case Constant.eCompressTypeZstd:
+					chain = new DecompressZstd(chain, 128 * 1024, 128 * 1024);
+					break;
+				// 新增压缩算法支持这里加case
+				default:
+					throw new UnsupportedOperationException("SetInputSecurityCodec: unknown compressType=" + compressType);
+				}
+				switch (encryptType) {
+				case Constant.eEncryptTypeDisable:
+					break;
+				case Constant.eEncryptTypeAesNoSecureIp:
+				case Constant.eEncryptTypeAes:
+					//noinspection DataFlowIssue
+					var keyMd5 = Digest.md5(encryptParam);
+					chain = new Decrypt2(chain, keyMd5, keyMd5);
+					break;
+				case Constant.eEncryptTypeRsaAes:
+					//noinspection DataFlowIssue
+					chain = new Decrypt2(chain, Arrays.copyOfRange(encryptParam, 16, 32), encryptParam);
+					break;
+				// 新增加密算法支持这里加case
+				default:
+					throw new UnsupportedOperationException("SetInputSecurityCodec: unknown encryptType=" + encryptType);
+				}
+			} catch (Throwable e) {
+				if (chain != inputBuffer) {
+					try {
+						chain.close();
+					} catch (Throwable closeEx) {
+						e.addSuppressed(closeEx);
+					}
+				}
+				throw e;
 			}
 			inputCodecChain = chain;
 			securityCodecInstalled((byte)1);
