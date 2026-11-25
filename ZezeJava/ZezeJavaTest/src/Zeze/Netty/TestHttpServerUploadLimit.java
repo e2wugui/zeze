@@ -16,12 +16,22 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import Zeze.Netty.HttpExchange;
+import Zeze.Netty.HttpFileUploadHandle;
+import Zeze.Netty.HttpMultipartHandle;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
+import io.netty.channel.Channel;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.multipart.FileUpload;
+import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -63,7 +73,11 @@ public class TestHttpServerUploadLimit {
 
 	// 发送原始请求字节并读到服务器关闭连接(EOF)为止,返回收到的完整响应
 	private static String sendRawUntilClose(String raw) throws IOException {
-		try (var sock = connectWithRetry()) {
+		return sendRawUntilClose(port, raw);
+	}
+
+	private static String sendRawUntilClose(int targetPort, String raw) throws IOException {
+		try (var sock = connectWithRetry(targetPort)) {
 			sock.setSoTimeout(15000);
 			var os = sock.getOutputStream();
 			os.write(raw.getBytes(StandardCharsets.ISO_8859_1));
@@ -83,8 +97,8 @@ public class TestHttpServerUploadLimit {
 	// 两种超时形态都要接：SocketTimeoutException=java侧计时器先到；ConnectException(time out)=
 	// OS级ETIMEDOUT先到（第五轮round 41形态，原只接SocketTimeoutException漏过直穿）。
 	// connect失败后Socket不可复用，每次尝试用新Socket。
-	private static Socket connectWithRetry() throws IOException {
-		var target = new InetSocketAddress("127.0.0.1", port);
+	private static Socket connectWithRetry(int targetPort) throws IOException {
+		var target = new InetSocketAddress("127.0.0.1", targetPort);
 		for (int attempt = 1; ; ++attempt) {
 			var sock = new Socket();
 			try {
@@ -141,5 +155,174 @@ public class TestHttpServerUploadLimit {
 				+ "\r\n\r\n" + body;
 		var res = sendRawUntilClose(raw);
 		Assertions.assertTrue(res.startsWith("HTTP/1.1 413"), res);
+	}
+
+	@Test
+	public void testAbortedOverLimitFileUploadSkipsCompletionCallbacks() throws Exception {
+		var localNetty = new Netty(1);
+		var localServer = new HttpServer();
+		localServer.setCheckIdleInterval(1);
+		localServer.setReadIdleTimeout(1);
+		localServer.setWriteIdleTimeout(2);
+		localServer.setMaxUploadSize(4096);
+		var began = new CountDownLatch(1);
+		var ended = new CountDownLatch(1);
+		var channelRef = new AtomicReference<@Nullable Channel>();
+		var fileCompletedCount = new AtomicInteger();
+		var endRequestCount = new AtomicInteger();
+		localServer.addHandler("/file-limit", TransactionLevel.None, DispatchMode.Normal, new HttpFileUploadHandle() {
+			@Override
+			public void onBeginStream(HttpExchange x, long from, long to, long size) throws Exception {
+				HttpFileUploadHandle.super.onBeginStream(x, from, to, size);
+				channelRef.set(x.channel());
+				began.countDown();
+			}
+
+			@Override
+			public void onEndStream(HttpExchange x) throws Exception {
+				try {
+					HttpFileUploadHandle.super.onEndStream(x);
+				} finally {
+					ended.countDown();
+				}
+			}
+
+			@Override
+			public void onFileCompleted(HttpExchange x, FileUpload fileUpload) {
+				fileCompletedCount.incrementAndGet();
+			}
+
+			@Override
+			public void onEndRequest(HttpExchange x, InterfaceHttpPostRequestDecoder decoder) {
+				endRequestCount.incrementAndGet();
+			}
+		});
+		try {
+			int localPort = ((InetSocketAddress)localServer.start(localNetty, 0).sync().channel().localAddress()).getPort();
+			var body = new String(new char[4097]).replace('\0', 'a');
+			var raw = "POST /file-limit?filename=big.bin HTTP/1.1\r\nHost: a\r\nContent-Length: 8192\r\n\r\n" + body;
+			var res = sendRawUntilClose(localPort, raw);
+			Assertions.assertTrue(res.startsWith("HTTP/1.1 413"), res);
+			Assertions.assertTrue(began.await(10, TimeUnit.SECONDS), "onBeginStream须已执行");
+			Assertions.assertTrue(ended.await(10, TimeUnit.SECONDS), "onEndStream资源清理须已执行");
+			Assertions.assertEquals(0, fileCompletedCount.get(), "413中止上传不得触发onFileCompleted");
+			Assertions.assertEquals(0, endRequestCount.get(), "413中止上传不得触发onEndRequest");
+			var ch = requireNonNull(channelRef.get());
+			Assertions.assertNull(ch.attr(HttpFileUploadHandle.fileUploadKey).get(), "channel上的MixedFileUpload须已释放");
+		} finally {
+			localServer.close();
+			localNetty.close();
+		}
+	}
+
+	@Test
+	public void testClientDisconnectMidUploadSkipsCompletionCallbacks() throws Exception {
+		var localNetty = new Netty(1);
+		var localServer = new HttpServer();
+		localServer.setCheckIdleInterval(1);
+		localServer.setReadIdleTimeout(1);
+		localServer.setWriteIdleTimeout(2);
+		var rawBegan = new CountDownLatch(1);
+		var rawEnded = new CountDownLatch(1);
+		var rawChannel = new AtomicReference<@Nullable Channel>();
+		var rawCompleted = new AtomicInteger();
+		var rawEndRequest = new AtomicInteger();
+		localServer.addHandler("/raw-cut", TransactionLevel.None, DispatchMode.Normal, new HttpFileUploadHandle() {
+			@Override
+			public void onBeginStream(HttpExchange x, long from, long to, long size) throws Exception {
+				HttpFileUploadHandle.super.onBeginStream(x, from, to, size);
+				rawChannel.set(x.channel());
+				rawBegan.countDown();
+			}
+
+			@Override
+			public void onEndStream(HttpExchange x) throws Exception {
+				try {
+					HttpFileUploadHandle.super.onEndStream(x);
+				} finally {
+					rawEnded.countDown();
+				}
+			}
+
+			@Override
+			public void onFileCompleted(HttpExchange x, FileUpload fileUpload) {
+				rawCompleted.incrementAndGet();
+			}
+
+			@Override
+			public void onEndRequest(HttpExchange x, InterfaceHttpPostRequestDecoder decoder) {
+				rawEndRequest.incrementAndGet();
+			}
+		});
+
+		var mpBegan = new CountDownLatch(1);
+		var mpEnded = new CountDownLatch(1);
+		var mpChannel = new AtomicReference<@Nullable Channel>();
+		var mpCompleted = new AtomicInteger();
+		var mpEndRequest = new AtomicInteger();
+		localServer.addHandler("/mp-cut", TransactionLevel.None, DispatchMode.Normal, new HttpMultipartHandle() {
+			@Override
+			public void onBeginStream(HttpExchange x, long from, long to, long size) throws Exception {
+				HttpMultipartHandle.super.onBeginStream(x, from, to, size);
+				mpChannel.set(x.channel());
+				mpBegan.countDown();
+			}
+
+			@Override
+			public void onEndStream(HttpExchange x) throws Exception {
+				try {
+					HttpMultipartHandle.super.onEndStream(x);
+				} finally {
+					mpEnded.countDown();
+				}
+			}
+
+			@Override
+			public void onFileCompleted(HttpExchange x, FileUpload fileUpload) {
+				mpCompleted.incrementAndGet();
+			}
+
+			@Override
+			public void onEndRequest(HttpExchange x, InterfaceHttpPostRequestDecoder decoder) {
+				mpEndRequest.incrementAndGet();
+			}
+		});
+
+		try {
+			int localPort = ((InetSocketAddress)localServer.start(localNetty, 0).sync().channel().localAddress()).getPort();
+			try (var sock = connectWithRetry(localPort)) {
+				sock.setSoLinger(true, 0); // 强制 RST 模拟客户端异常断连（立即触发 channelInactive）
+				var os = sock.getOutputStream();
+				var partial = new String(new char[1000]).replace('\0', 'r');
+				os.write(("POST /raw-cut?filename=cut.bin HTTP/1.1\r\nHost: a\r\nContent-Length: 10000\r\n\r\n" + partial)
+						.getBytes(StandardCharsets.ISO_8859_1));
+				os.flush();
+				Assertions.assertTrue(rawBegan.await(10, TimeUnit.SECONDS), "raw onBeginStream须已执行");
+			}
+			Assertions.assertTrue(rawEnded.await(10, TimeUnit.SECONDS), "raw断连中止后须清理资源");
+			Assertions.assertEquals(0, rawCompleted.get(), "raw断连中止不得触发onFileCompleted");
+			Assertions.assertEquals(0, rawEndRequest.get(), "raw断连中止不得触发onEndRequest");
+			Assertions.assertNull(requireNonNull(rawChannel.get()).attr(HttpFileUploadHandle.fileUploadKey).get(),
+					"raw断连中止须清理fileUploadKey");
+
+			try (var sock = connectWithRetry(localPort)) {
+				var os = sock.getOutputStream();
+				var partialMp = "--B\r\nContent-Disposition: form-data; name=\"f\"; filename=\"cut.bin\"\r\n"
+						+ "Content-Type: application/octet-stream\r\n\r\n"
+						+ new String(new char[500]).replace('\0', 'm');
+				os.write(("POST /mp-cut HTTP/1.1\r\nHost: a\r\nContent-Type: multipart/form-data; boundary=B\r\n"
+						+ "Content-Length: 10000\r\n\r\n" + partialMp).getBytes(StandardCharsets.ISO_8859_1));
+				os.flush();
+				Assertions.assertTrue(mpBegan.await(10, TimeUnit.SECONDS), "multipart onBeginStream须已执行");
+			}
+			Assertions.assertTrue(mpEnded.await(10, TimeUnit.SECONDS), "multipart断连中止后须清理资源");
+			Assertions.assertEquals(0, mpCompleted.get(), "multipart断连中止不得触发onFileCompleted");
+			Assertions.assertEquals(0, mpEndRequest.get(), "multipart断连中止不得触发onEndRequest");
+			Assertions.assertNull(requireNonNull(mpChannel.get()).attr(HttpMultipartHandle.decoderKey).get(),
+					"multipart断连中止须清理decoderKey");
+		} finally {
+			localServer.close();
+			localNetty.close();
+		}
 	}
 }

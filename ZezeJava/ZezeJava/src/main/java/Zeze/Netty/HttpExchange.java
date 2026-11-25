@@ -230,6 +230,7 @@ public class HttpExchange {
 	private int streamTasks;
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
+	protected volatile boolean streamAborted; // 流模式在收到LastHttpContent前被中止（超限/断连/超时/畸形帧）
 	protected boolean isWebSocketTextContent;
 	protected long streamContentTotal; // 流模式累计收到的请求body字节数,server.maxUploadSize总量上限检查用
 	// WebSocket分片消息真实累计（checkWebSocketContentSize用）。websocket帧在channelRead
@@ -425,6 +426,10 @@ public class HttpExchange {
 
 	public boolean isClosed() {
 		return detached == 2;
+	}
+
+	public boolean isStreamAborted() {
+		return streamAborted;
 	}
 
 	/**
@@ -1452,8 +1457,10 @@ public class HttpExchange {
 					//noinspection ConstantConditions
 					fireWebSocketNotify("fireWebSocketClose", () -> handler.WebSocketHandle.onClose(
 							this, WebSocketCloseStatus.ABNORMAL_CLOSURE.code(), ""));
-				} else
+				} else {
+					streamAborted = true;
 					fireEndStreamHandle();
+				}
 			} catch (Exception e) {
 				throw Task.forceThrow(e);
 			}

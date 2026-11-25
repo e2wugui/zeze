@@ -113,6 +113,8 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 			HttpMultipartHandle.super.onEndStream(x);
 		else {
 			try {
+				if (x.isStreamAborted())
+					return;
 				try {
 					fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
 				} catch (IOException e) {

@@ -140,7 +140,8 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 		var decoder = getAndSetDecoder(x, null);
 		if (decoder != null) {
 			try {
-				onEndRequest(x, decoder);
+				if (!x.isStreamAborted())
+					onEndRequest(x, decoder);
 			} finally {
 				decoder.destroy();
 			}
