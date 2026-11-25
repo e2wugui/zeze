@@ -431,6 +431,9 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public int compareTo(NioByteBuffer nbb) {
-		return bb.compareTo(nbb.bb);
+		int i = bb.mismatch(nbb.bb);
+		if (i >= 0 && i < bb.remaining() && i < nbb.bb.remaining())
+			return Byte.compareUnsigned(bb.get(bb.position() + i), nbb.bb.get(nbb.bb.position() + i));
+		return Integer.compare(bb.remaining(), nbb.bb.remaining());
 	}
 }

@@ -2,6 +2,7 @@ package Zeze.Serialize;
 
 import java.util.HashSet;
 
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.NioByteBuffer;
 import harness.Fast;
@@ -56,5 +57,60 @@ public class TestByteBufferNioHashCode {
 		Assertions.assertEquals(ByteBuffer.Wrap(bytes).hashCode(), direct.hashCode(),
 				"direct路径必须与heap同一算法产出（FND5-46复审）");
 		Assertions.assertEquals(NioByteBuffer.Wrap(bytes).hashCode(), direct.hashCode());
+	}
+
+	@Test
+	public void testCompareToUnsignedMatchesByteBufferAndBinary() {
+		byte[][] samples = {
+				new byte[]{},
+				new byte[]{0x01},
+				new byte[]{0x01, 0x00},
+				new byte[]{0x7f},
+				new byte[]{(byte)0x80},
+				new byte[]{(byte)0x80, 0x01},
+				new byte[]{(byte)0xff},
+		};
+		for (var a : samples) {
+			for (var b : samples) {
+				int expectedBb = Integer.signum(ByteBuffer.Wrap(a).compareTo(ByteBuffer.Wrap(b)));
+				int expectedBin = Integer.signum(new Binary(a).compareTo(new Binary(b)));
+				Assertions.assertEquals(expectedBb, expectedBin);
+
+				// Heap NioByteBuffer（带非零 position 前缀偏移）
+				var paddedA = new byte[a.length + 2];
+				paddedA[0] = (byte)0xaa;
+				paddedA[1] = (byte)0xbb;
+				System.arraycopy(a, 0, paddedA, 2, a.length);
+				var nioA = NioByteBuffer.Wrap(paddedA);
+				nioA.setReadIndex(2);
+
+				var paddedB = new byte[b.length + 1];
+				paddedB[0] = (byte)0xcc;
+				System.arraycopy(b, 0, paddedB, 1, b.length);
+				var nioB = NioByteBuffer.Wrap(paddedB);
+				nioB.setReadIndex(1);
+
+				int posA = nioA.bb.position(), limA = nioA.bb.limit();
+				int posB = nioB.bb.position(), limB = nioB.bb.limit();
+				Assertions.assertEquals(expectedBb, Integer.signum(nioA.compareTo(nioB)),
+						"heap NioByteBuffer.compareTo 必须按无符号字典序与 ByteBuffer/Binary 一致");
+				Assertions.assertEquals(posA, nioA.bb.position());
+				Assertions.assertEquals(limA, nioA.bb.limit());
+				Assertions.assertEquals(posB, nioB.bb.position());
+				Assertions.assertEquals(limB, nioB.bb.limit());
+
+				// Direct NioByteBuffer
+				var dirA = NioByteBuffer.allocateDirect(a.length);
+				dirA.bb.put(a).flip();
+				var dirB = NioByteBuffer.allocateDirect(b.length);
+				dirB.bb.put(b).flip();
+				Assertions.assertEquals(expectedBb, Integer.signum(dirA.compareTo(dirB)),
+						"direct NioByteBuffer.compareTo 必须按无符号字典序与 ByteBuffer/Binary 一致");
+				Assertions.assertEquals(0, dirA.bb.position());
+				Assertions.assertEquals(a.length, dirA.bb.limit());
+				Assertions.assertEquals(0, dirB.bb.position());
+				Assertions.assertEquals(b.length, dirB.bb.limit());
+			}
+		}
 	}
 }
