@@ -49,6 +49,11 @@ public final class TestJsonReaudit {
 		var bean = parse("{\"s\":\"\\u12\",\"b\":1}");
 		assertNotNull(bean.s);
 		assertEquals(1, bean.b, "残缺unicode转义不得吞掉闭引号致后续结构错位");
+
+		// 残缺unicode转义后紧跟\"：扫描阶段不得把'\'吞成hex，避免将后续'"'误判为闭引号提前截断。
+		var bean2 = parse("{\"s\":\"a\\u12\\\"hello\",\"b\":1}");
+		assertNotNull(bean2.s);
+		assertEquals(1, bean2.b, "残缺unicode转义后接\\\"不得破坏外层JSON结构");
 	}
 
 	@Test

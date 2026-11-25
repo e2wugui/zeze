@@ -1496,9 +1496,10 @@ public final class JsonReader {
 					break; // 截断于转义序列：'\'排除在串外，由下方按[begin,end)收尾
 				end++;
 				if (buffer[end] == 'u') {
-					// hex不足4位即遇终止符时不跨越：残缺转义按2字节收尾，闭引号不被当hex吞掉
-					// （吞掉会使串内容与后续结构错位）
-					for (int j = 0; j < 4 && end + 1 < buffer.length && buffer[end + 1] != e; j++)
+					// hex不足4位即遇终止符或反斜杠时不跨越：残缺转义按2字节收尾，闭引号不被当hex吞掉，
+					// 后续'\'交由外层循环按独立转义处理（防\"被误判为闭引号或EOF处孤立'\'进入窗口）
+					for (int j = 0; j < 4 && end + 1 < buffer.length
+						&& buffer[end + 1] != e && buffer[end + 1] != '\\'; j++)
 						end++;
 				}
 			}
@@ -1525,9 +1526,10 @@ public final class JsonReader {
 					break; // 截断于转义序列：'\'排除在串外，由下方按[begin,end)收尾
 				end++;
 				if (buffer[end] == 'u') {
-					// 同parseString：hex不足4位遇键终止符（≤' '或':'）不跨越，残缺转义按2字节收尾
+					// 同parseString：hex不足4位遇键终止符（≤' '或':'）或反斜杠不跨越，残缺转义按2字节收尾
 					for (int j = 0; j < 4 && end + 1 < buffer.length
-						&& ((((buffer[end + 1] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0); j++)
+						&& ((((buffer[end + 1] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0)
+						&& buffer[end + 1] != '\\'; j++)
 						end++;
 				}
 			}
@@ -1553,7 +1555,9 @@ public final class JsonReader {
 				;
 			n = decodeUtf8(t, n, p, seg);
 			if ((p = seg) < end) { // buffer[p] == '\\'
-				if (buffer[++p] == 'u') {
+				if (++p >= end)
+					break;
+				if (buffer[p] == 'u') {
 					if (end - p < 5) {
 						// \\u不足4位hex（截断或终止符紧随）：'\''与'u'按字面量收尾（p推进越过'u'，
 						// 余下hex字节由主循环按普通字节继续——对齐扫描段"残缺转义按2字节收尾"）。

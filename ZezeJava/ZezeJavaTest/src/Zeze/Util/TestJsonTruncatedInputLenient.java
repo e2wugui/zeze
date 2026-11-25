@@ -53,12 +53,15 @@ public final class TestJsonTruncatedInputLenient {
 	public void testTruncatedStringScannersNoThrow() {
 		for (var s : new String[] {
 				"{\"k\":\"a\\u", "{\"k\":\"a\\u1", "{\"k\":\"a\\u12", // 值内unicode转义截断
+				"{\"k\":\"a\\u12\\", // 残缺unicode转义后紧接反斜杠到EOF
 				"{\"k\":\"a\\u12\"}", // 闭引号紧随残缺转义（非截断输入同命中）
 				"{\"k\":abc", "{\"k\":a中", // 无引号值快/慢路径EOF
 				"{\"a\\u12"}) { // 键内unicode转义截断（keyEquals重扫描）
 			assertDoesNotThrow(() -> Json.parse(s, Bean.class), "输入[" + s + "]不得抛AIOOBE");
 			assertDoesNotThrow(() -> Json.parse(s, Object.class), "输入[" + s + "]泛型解析同");
 		}
+		assertEquals("a\\u12", assertDoesNotThrow(() -> new JsonReader().buf("\"a\\u12\\").parseString()));
+		assertEquals("a\\u12", assertDoesNotThrow(() -> new JsonReader().buf("a\\u12\\").parseStringNoQuot()));
 		// 叶解析器直打：parseByteString快路径截断/末字节'\'/残缺unicode转义（含代理对窥视边界）
 		for (var s : new String[] {"\"abc", "\"a\\", "\"a\\u", "\"a\\u1", "\"a\\u12",
 				"\"a\\uD83D", "\"a\\uD83D\\u" /* 代理对第二转义截断 */}) {
