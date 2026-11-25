@@ -714,7 +714,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		final StringBuilder sb = new StringBuilder(32).append('{');
 		final char[] kt = keyTable;
 		final @Nullable V[] vt = valueTable;
-		final int n = Math.min(kt.length, 20);
+		final int n = kt.length;
 		int i = 0;
 		if (hasZeroValue)
 			sb.append("0=").append(zeroValue);
@@ -727,13 +727,16 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 				}
 			}
 		}
-		for (; i < n; i++) {
+		for (int left = 20; i < n; i++) { // 限制显示的键值对数量
 			final char k = kt[i];
-			if (k != 0)
+			if (k != 0) {
+				if (--left == 0) {
+					sb.append(",...");
+					break;
+				}
 				sb.append(',').append(k).append('=').append(vt[i]);
+			}
 		}
-		if (n != kt.length)
-			sb.append(",...");
 		return sb.append('}').toString();
 	}
 }

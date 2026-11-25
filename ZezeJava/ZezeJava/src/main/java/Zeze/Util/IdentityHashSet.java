@@ -303,18 +303,22 @@ public class IdentityHashSet<T> implements Cloneable {
 		StringBuilder sb = new StringBuilder(32).append('{');
 		@Nullable T[] kt = keyTable;
 		T k;
-		int i = 0, n = Math.min(kt.length, 20);
+		int i = 0, n = kt.length;
 		while (i < n) {
 			if ((k = kt[i++]) != null) {
 				sb.append(k);
 				break;
 			}
 		}
-		for (; i < n; i++)
-			if ((k = kt[i]) != null)
+		for (int left = 20; i < n; i++) { // 限制显示的键数量
+			if ((k = kt[i]) != null) {
+				if (--left == 0) {
+					sb.append(",...");
+					break;
+				}
 				sb.append(',').append(k);
-		if (n != kt.length)
-			sb.append(",...");
+			}
+		}
 		return sb.append('}').toString();
 	}
 }
