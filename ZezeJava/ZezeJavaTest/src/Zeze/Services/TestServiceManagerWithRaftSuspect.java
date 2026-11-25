@@ -8,12 +8,19 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.Timeout;
 
 import Zeze.Config;
@@ -36,6 +43,7 @@ import harness.ForkedJvm;
  */
 @Fast
 @ForkedJvm
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestServiceManagerWithRaftSuspect {
 
 	private static final String raftXmlString = """
@@ -90,6 +98,7 @@ public class TestServiceManagerWithRaftSuspect {
 	}
 
 	@Test
+	@Order(1)
 	@Timeout(120)
 	public void testSuspectBroadcastOnDisconnect() throws Exception {
 		var suspects = new ConcurrentLinkedQueue<Integer>();
@@ -116,6 +125,82 @@ public class TestServiceManagerWithRaftSuspect {
 			Assertions.assertNull(suspects.poll(), "no extra Suspect expected");
 		} finally {
 			watcher.close();
+		}
+	}
+
+	@Test
+	@Order(2)
+	@Timeout(120)
+	public void testCloseCancelsSuspectTiersAndSuppressesLateStart() throws Exception {
+		var watcherA = newAgent("UnitTest.S4.CloseA", 11);
+		var watcherB = newAgent("UnitTest.S4.CloseB", 12);
+		var dead = newAgent("UnitTest.S4.CloseDead", 13);
+		try {
+			watcherA.editService(new Zeze.Services.ServiceManager.BEditService());
+			watcherB.editService(new Zeze.Services.ServiceManager.BEditService());
+			dead.editService(new Zeze.Services.ServiceManager.BEditService());
+
+			var preShutdownSuspect = new LinkedBlockingQueue<Integer>();
+			watcherA.setOnSuspect(preShutdownSuspect::add);
+
+			// 断开 dead 在 leader 上创建一条活跃的 900s 升档定时器
+			dead.close();
+			Assertions.assertEquals(13, preShutdownSuspect.poll(15, TimeUnit.SECONDS),
+					"disconnecting dead agent must create suspect tier on leader");
+
+			var tiersField = ServiceManagerWithRaft.class.getDeclaredField("suspectTiers");
+			tiersField.setAccessible(true);
+			ServiceManagerWithRaft leader = null;
+			ConcurrentHashMap<Integer, Object> leaderTiers = null;
+			for (var sm : servers) {
+				@SuppressWarnings("unchecked")
+				var tiers = (ConcurrentHashMap<Integer, Object>)requireNonNull(tiersField.get(sm));
+				if (tiers.containsKey(13)) {
+					leader = sm;
+					leaderTiers = tiers;
+					break;
+				}
+			}
+			Assertions.assertNotNull(leader, "leader must hold active suspect tier for dead serverId=13");
+			var existingTier = requireNonNull(requireNonNull(leaderTiers).get(13));
+			var timerField = existingTier.getClass().getDeclaredField("timer");
+			timerField.setAccessible(true);
+			var existingTimer = (Future<?>)requireNonNull(timerField.get(existingTier));
+			Assertions.assertFalse(existingTimer.isCancelled());
+
+			var shutdownSuspects = new ConcurrentLinkedQueue<Integer>();
+			watcherA.setOnSuspect(shutdownSuspects::add);
+			watcherB.setOnSuspect(shutdownSuspects::add);
+
+			// 先关 leader 再关其余节点，避免切主后对 watcherA/watcherB 误报
+			var toClose = new ArrayList<ServiceManagerWithRaft>();
+			toClose.add(leader);
+			for (var sm : servers)
+				if (sm != leader)
+					toClose.add(sm);
+			servers.clear();
+			for (var sm : toClose)
+				sm.close();
+			Thread.sleep(200);
+
+			Assertions.assertTrue(existingTimer.isCancelled(),
+					"existing suspect tier timer must be cancelled on close");
+			Assertions.assertTrue(leaderTiers.isEmpty(),
+					"suspectTiers must be empty after close");
+			Assertions.assertTrue(shutdownSuspects.isEmpty(),
+					"shutdown must not broadcast Suspect for closing clients, got=" + shutdownSuspects);
+
+			// 停机后即便有迟到调用进入 startSuspectTier 也必须被 closed 闸门拦截，不得再插入定时器
+			var startSuspectTier = ServiceManagerWithRaft.class.getDeclaredMethod(
+					"startSuspectTier", int.class, long.class, long.class);
+			startSuspectTier.setAccessible(true);
+			startSuspectTier.invoke(leader, 999, 1L, 0L);
+			Assertions.assertTrue(leaderTiers.isEmpty(),
+					"closed ServiceManagerWithRaft must reject late startSuspectTier");
+		} finally {
+			dead.close();
+			watcherA.close();
+			watcherB.close();
 		}
 	}
 }

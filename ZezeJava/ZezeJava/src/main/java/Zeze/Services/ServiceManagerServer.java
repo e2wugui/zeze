@@ -750,15 +750,18 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private final ConcurrentHashMap<Integer, SuspectTier> suspectTiers = new ConcurrentHashMap<>();
+	private volatile boolean closed;
 
 	/** 梯队广播一档：只发 identifyVersion==tierVersion 的存活会话（死者会话排除）。 */
 	private void broadcastSuspectTier(int deadServerId, long deadSessionId, long deadVersion, long tierVersion) {
+		var srv = server;
+		if (closed || srv == null)
+			return;
 		var suspect = new Suspect();
 		suspect.Argument.serverId = deadServerId;
 		suspect.Argument.version = deadVersion;
 		try {
-			//noinspection DataFlowIssue
-			server.foreach(so -> {
+			srv.foreach(so -> {
 				if (so.getSessionId() == deadSessionId)
 					return; // 刚断线的会话本身不报信
 				var netSession = (Session)so.getUserState();
@@ -775,26 +778,38 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	/** onClose入口：广播首档（==死者version）并安排升档链。 */
 	private void startSuspectTier(int deadServerId, long deadSessionId, long deadVersion) {
+		if (closed)
+			return;
 		var tier = new SuspectTier(deadVersion, deadVersion);
 		var old = suspectTiers.put(deadServerId, tier);
 		if (old != null && old.timer != null)
 			//noinspection DataFlowIssue
 			old.timer.cancel(false); // 死者反复闪断：新周期覆盖旧升档链
+		if (closed) {
+			suspectTiers.remove(deadServerId, tier);
+			return;
+		}
 		broadcastSuspectTier(deadServerId, deadSessionId, deadVersion, deadVersion);
 		scheduleNextTier(deadServerId, deadSessionId, tier);
 	}
 
 	/** 档间超时：无回执升到"更高存活version的最小值"；没有更高档=放弃（scan兜底）。 */
 	private void scheduleNextTier(int deadServerId, long deadSessionId, SuspectTier tier) {
+		if (closed)
+			return;
 		tier.timer = TaskSpec.ofAction(() -> {
+			if (closed)
+				return;
 			var cur = suspectTiers.get(deadServerId);
 			if (cur != tier)
 				return; // 已被回执移除/被新周期覆盖
+			var srv = server;
+			if (srv == null)
+				return;
 			var next = new long[]{Long.MAX_VALUE};
 			final var deadSessionIdRef = deadSessionId;
 			try {
-				//noinspection DataFlowIssue
-				server.foreach(so -> {
+				srv.foreach(so -> {
 					if (so.getSessionId() == deadSessionIdRef)
 						return;
 					var netSession = (Session)so.getUserState();
@@ -807,6 +822,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			} catch (Exception e) {
 				logger.warn("Suspect tier scan for serverId={} failed", deadServerId, e);
 			}
+			if (closed)
+				return;
 			if (next[0] == Long.MAX_VALUE) {
 				suspectTiers.remove(deadServerId, cur); // 没有更高档：放弃升档
 				logger.info("Suspect tier exhausted for serverId={} lastTier={}", deadServerId, cur.tierVersion);
@@ -816,6 +833,21 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			broadcastSuspectTier(deadServerId, deadSessionIdRef, cur.deadVersion, next[0]);
 			scheduleNextTier(deadServerId, deadSessionIdRef, cur);
 		}).scheduleNow(conf.takeoverNotifyStepMs);
+		if (closed) {
+			var timer = tier.timer;
+			if (timer != null)
+				timer.cancel(false);
+			suspectTiers.remove(deadServerId, tier);
+		}
+	}
+
+	private void cancelSuspectTiers() {
+		for (var tier : suspectTiers.values()) {
+			var timer = tier.timer;
+			if (timer != null)
+				timer.cancel(false);
+		}
+		suspectTiers.clear();
 	}
 
 	// 只写session上字段（Direct派发内完成、无锁）。回执到达即整条梯队停止（需求④）。
@@ -833,12 +865,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	@Override
 	public void close() {
-		// 关停清理：取消全部Takeover梯队升档定时器（900s级长定时器挂着会拖死JVM收尾）。
-		for (var tier : suspectTiers.values())
-			if (tier.timer != null)
-				//noinspection DataFlowIssue
-				tier.timer.cancel(false);
-		suspectTiers.clear();
 		try {
 			stop();
 		} catch (Exception e) {
@@ -1071,14 +1097,20 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	public void stop() throws Exception {
+		closed = true;
 		lock();
 		try {
 			id128Server.stop();
-			if (server == null)
+			if (server == null) {
+				cancelSuspectTiers();
 				return;
+			}
 			serverSocket.close();
 			server.stop();
 			server = null;
+			// 关停清理置于server.stop()之后：此时全部连接已关闭且closed已屏蔽新startSuspectTier，
+			// 不会再向suspectTiers重插900s级升档定时器。
+			cancelSuspectTiers();
 			logger.info("closeDb: {}, autokeys", this.conf.dbHome);
 			autoKeysDb.close();
 			threading.close();
