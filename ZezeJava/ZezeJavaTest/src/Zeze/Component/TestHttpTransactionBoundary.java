@@ -3,16 +3,27 @@ package Zeze.Component;
 import static java.util.Objects.requireNonNull;
 
 import harness.Fast;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
+import Zeze.Netty.FreeMarker;
 import Zeze.Netty.HttpExchange;
 import Zeze.Netty.HttpHandler;
 import Zeze.Netty.HttpSession;
 import Zeze.Netty.HttpServer;
+import Zeze.Netty.Netty;
+import Zeze.Netty.Thymeleaf;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -35,6 +46,8 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.ReferenceCountUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.thymeleaf.context.Context;
 
 /** HTTP事务redo/终局失败与detach所有权的组合回归，使用真实Memory事务和Netty出站队列。 */
 @Fast
@@ -346,6 +359,97 @@ public class TestHttpTransactionBoundary {
 			x.closeConnectionNow();
 			channel.runPendingTasks();
 			Assertions.assertEquals(0, body.refCnt());
+		}
+	}
+
+	@Test
+	public void testTransactionalTemplateRenderingWithHeadersAndClose(@TempDir Path tempDir) throws Exception {
+		Files.writeString(tempDir.resolve("fm.ftlh"), "<p>fm:${msg}</p>");
+		Files.writeString(tempDir.resolve("thyme.html"), "<p th:text=\"${msg}\"></p>");
+		var freeMarker = new FreeMarker(tempDir.toFile());
+		var thymeleaf = new Thymeleaf(tempDir.toString());
+
+		try (var env = new Env()) {
+			var netty = new Netty(1);
+			var httpServer = new HttpServer(env.app) {
+				@Override
+				public HttpSession getHttpSession() {
+					return env.session;
+				}
+
+				@Override
+				public FreeMarker getFreeMarker() {
+					return freeMarker;
+				}
+
+				@Override
+				public Thymeleaf getThymeleaf() {
+					return thymeleaf;
+				}
+			};
+			var fmAttempts = new AtomicInteger();
+			var thymeCalls = new AtomicInteger();
+			httpServer.addHandler("/fm", 8192, TransactionLevel.Serializable, DispatchMode.Normal, x -> {
+				int attempt = fmAttempts.incrementAndGet();
+				x.addCookie("fm_attempt", Integer.toString(attempt));
+				var cs = x.getCookieSession();
+				Assertions.assertNotNull(cs);
+				cs.setProperty("attempt", Integer.toString(attempt));
+				x.sendFreeMarker(Map.of("msg", "try-" + attempt));
+				x.close(null);
+				if (attempt == 1)
+					requireNonNull(Transaction.getCurrent()).throwRedo(
+							requireNonNull(env.app.getTable("Zeze_Builtin_HttpSession_tSession")).getId(), "forced fm redo");
+			});
+			httpServer.addHandler("/thyme", 8192, TransactionLevel.Serializable, DispatchMode.Normal, x -> {
+				int n = thymeCalls.incrementAndGet();
+				x.addCookie("th_req", "r" + n);
+				var ctx = new Context();
+				ctx.setVariable("msg", "thyme-" + n);
+				x.sendThymeleaf(ctx);
+				x.close(null);
+			});
+
+			try {
+				int port = ((InetSocketAddress)httpServer.start(netty, 0).sync().channel().localAddress()).getPort();
+				var client = HttpClient.newHttpClient();
+
+				// 首次 FreeMarker（HttpExchangeStreamWriter + 事务 redo）
+				var fm1 = client.send(HttpRequest.newBuilder()
+						.uri(URI.create("http://127.0.0.1:" + port + "/fm")).GET().build(),
+						HttpResponse.BodyHandlers.ofString());
+				Assertions.assertEquals(200, fm1.statusCode());
+				Assertions.assertEquals("<p>fm:try-2</p>", fm1.body());
+				Assertions.assertEquals("text/html; charset=utf-8", fm1.headers().firstValue("content-type").orElse(""));
+				var fm1Cookies = fm1.headers().allValues("set-cookie");
+				Assertions.assertTrue(fm1Cookies.contains("fm_attempt=2"), "应含提交轮cookie: " + fm1Cookies);
+				Assertions.assertFalse(fm1Cookies.contains("fm_attempt=1"), "不得含redo轮cookie: " + fm1Cookies);
+				Assertions.assertTrue(fm1Cookies.stream().anyMatch(c -> c.startsWith("ZEZESESSIONID=")),
+						"首次流式模板渲染应带会话Set-Cookie: " + fm1Cookies);
+
+				// 第二次 FreeMarker（晋升为 HttpExchangeContentLengthWriter + close(null)）
+				var fm2 = client.send(HttpRequest.newBuilder()
+						.uri(URI.create("http://127.0.0.1:" + port + "/fm")).GET().build(),
+						HttpResponse.BodyHandlers.ofString());
+				Assertions.assertEquals(200, fm2.statusCode());
+				Assertions.assertEquals("<p>fm:try-3</p>", fm2.body());
+				Assertions.assertEquals("text/html; charset=utf-8", fm2.headers().firstValue("content-type").orElse(""));
+				Assertions.assertTrue(fm2.headers().allValues("set-cookie").contains("fm_attempt=3"));
+
+				// 首次与第二次 Thymeleaf（覆盖 StreamWriter 与 ContentLengthWriter 两条路径）
+				for (int i = 1; i <= 2; i++) {
+					var th = client.send(HttpRequest.newBuilder()
+							.uri(URI.create("http://127.0.0.1:" + port + "/thyme")).GET().build(),
+							HttpResponse.BodyHandlers.ofString());
+					Assertions.assertEquals(200, th.statusCode());
+					Assertions.assertEquals("<p>thyme-" + i + "</p>", th.body());
+					Assertions.assertEquals("text/html; charset=utf-8", th.headers().firstValue("content-type").orElse(""));
+					Assertions.assertTrue(th.headers().allValues("set-cookie").contains("th_req=r" + i));
+				}
+			} finally {
+				httpServer.close();
+				netty.close();
+			}
 		}
 	}
 }

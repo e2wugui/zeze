@@ -141,6 +141,7 @@ public class HttpExchange {
 		final ArrayList<Object> headers;
 		@Nullable String sessionCookie;
 		@Nullable DeferredResponse response;
+		@Nullable Action0 deferredAction;
 		@Nullable Integer closeMethod;
 		@Nullable ChannelFuture closeFuture;
 
@@ -154,6 +155,7 @@ public class HttpExchange {
 		public TransactionLog beginSavepoint() {
 			var copy = new HeadersLog(new ArrayList<>(headers), sessionCookie);
 			copy.response = response;
+			copy.deferredAction = deferredAction;
 			copy.closeMethod = closeMethod;
 			copy.closeFuture = closeFuture;
 			return copy;
@@ -207,11 +209,20 @@ public class HttpExchange {
 			promise.tryFailure(new IllegalStateException("HTTP response superseded by committed transaction"));
 		ChannelFuture future = log.closeFuture;
 		var response = log.response;
-		if (response != null)
-			future = writeResponse(new DefaultFullHttpResponse(response.version, response.status,
-					Unpooled.wrappedBuffer(response.body), response.headers, response.trailers), response.flush, response.promise);
-		if (log.closeMethod != null)
-			close(log.closeMethod, future);
+		var deferredAction = log.deferredAction;
+		try {
+			if (deferredAction != null) {
+				future = null;
+				deferredAction.run();
+			} else if (response != null)
+				future = writeResponse(new DefaultFullHttpResponse(response.version, response.status,
+						Unpooled.wrappedBuffer(response.body), response.headers, response.trailers), response.flush, response.promise);
+		} catch (Exception e) {
+			throw Task.forceThrow(e);
+		} finally {
+			if (log.closeMethod != null)
+				close(log.closeMethod, future);
+		}
 	}
 	protected @Nullable List<Cookie> cookies;
 	// volatile+锁双检：detach后允许多线程并发首调getCookieSession（detach文档"任意线程、任意时机"），
@@ -1064,7 +1075,9 @@ public class HttpExchange {
 			ReferenceCountUtil.release(response);
 		}
 		synchronized (this) {
-			headersLog(t).response = new DeferredResponse(version, status, body, headers, trailers, flush, promise);
+			var log = headersLog(t);
+			log.response = new DeferredResponse(version, status, body, headers, trailers, flush, promise);
+			log.deferredAction = null;
 			deferredResponsePromises.add(promise);
 		}
 		t.runWhileRollback(() -> {
@@ -1644,13 +1657,11 @@ public class HttpExchange {
 			throw new IllegalStateException("FreeMarker not available");
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> {
-				try {
-					freeMarker.sendResponse(this, model);
-				} catch (Exception e) {
-					throw Task.forceThrow(e);
-				}
-			});
+			synchronized (this) {
+				var log = headersLog(t);
+				log.response = null;
+				log.deferredAction = () -> freeMarker.sendResponse(this, model);
+			}
 		} else
 			freeMarker.sendResponse(this, model);
 	}
@@ -1670,13 +1681,11 @@ public class HttpExchange {
 			throw new IllegalStateException("Thymeleaf not available");
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> {
-				try {
-					thymeleaf.sendResponse(this, context);
-				} catch (Exception e) {
-					throw Task.forceThrow(e);
-				}
-			});
+			synchronized (this) {
+				var log = headersLog(t);
+				log.response = null;
+				log.deferredAction = () -> thymeleaf.sendResponse(this, context);
+			}
 		} else
 			thymeleaf.sendResponse(this, context);
 	}
