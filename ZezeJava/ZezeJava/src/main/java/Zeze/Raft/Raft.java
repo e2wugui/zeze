@@ -388,6 +388,8 @@ public final class Raft {
 	private long processAppendEntries(AppendEntries r) throws Exception {
 		lock();
 		try {
+			if (isShutdown)
+				return 0;
 			return logSequence.followerOnAppendEntries(r);
 		} finally {
 			unlock();
@@ -398,6 +400,8 @@ public final class Raft {
 		ReceiveSnapshotting.@Nullable Entry doneEntry;
 		lock();
 		try {
+			if (isShutdown)
+				return 0;
 			r.Result.setTerm(logSequence.getTerm());
 			if (r.Argument.getTerm() < logSequence.getTerm() || r.Argument.getTerm() > LogSequence.TERM_MAX) {
 				// 1. Reply immediately if term < currentTerm
@@ -665,6 +669,8 @@ public final class Raft {
 	private long processRequestVote(RequestVote r) throws Exception {
 		lock();
 		try {
+			if (isShutdown)
+				return 0;
 			if (logSequence.trySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer)
 				convertStateTo(RaftState.Follower); // new term found.
 			// else continue process
@@ -710,6 +716,8 @@ public final class Raft {
 
 		lock();
 		try {
+			if (isShutdown)
+				return 0;
 			// 旧选举的真实应答仍能报告更高任期，须先退位再过滤投票归属。
 			if (logSequence.trySetTerm(rpc.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
 				convertStateTo(RaftState.Follower);
@@ -747,6 +755,8 @@ public final class Raft {
 	private long processPreVote(PreVote r) throws Exception {
 		lock();
 		try {
+			if (isShutdown)
+				return 0;
 			// PreVote 接收者实现（raft 博士论文 §4.2.3）：
 			// 不修改 term/voteFor，不重置任何选举计时。
 			// 仅当候选者的"下一个term"更大、日志够新，
@@ -781,6 +791,8 @@ public final class Raft {
 
 		lock();
 		try {
+			if (isShutdown)
+				return 0;
 			// 旧选举的真实应答仍能报告更高任期，须先退位再过滤投票归属。
 			if (logSequence.trySetTerm(rpc.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
 				convertStateTo(RaftState.Follower);

@@ -1204,6 +1204,8 @@ public class LogSequence {
 
 				raft.lock();
 				try {
+					if (raft.isShutdown)
+						return 0;
 					if (raft.getLogSequence().trySetTerm(heartbeat.Result.getTerm()) == SetTermResult.Newer) {
 						// new term found.
 						raft.convertStateTo(Raft.RaftState.Follower);
@@ -1483,6 +1485,10 @@ public class LogSequence {
 		raft.lock();
 		try {
 			try {
+				if (raft.isShutdown) {
+					ReceiveSnapshotting.tryDelete(entry.path, "endReceiveInstallSnapshot");
+					return 0;
+				}
 				// 上面的await与本处raft.lock()都可能长时间等待，期间term可任意变化（写点全在Raft锁内）。
 				// 拿到锁后与进入时不一致即为旧term准备的重置，必须放弃：否则误触发下方fatalKill防御、
 				// logs.drop()丢弃新leader已复制的日志、抹掉等待期间的自投票。应答带回当前term，
@@ -1696,6 +1702,8 @@ public class LogSequence {
 		var r = (AppendEntries)p;
 		raft.lock();
 		try {
+			if (raft.isShutdown)
+				return Procedure.Success;
 			// 即使请求已经过期，真实应答携带的更高任期仍必须使本节点退位。
 			if (!r.isTimeout() && trySetTerm(r.Result.getTerm()) == SetTermResult.Newer) {
 				// new term found.

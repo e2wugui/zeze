@@ -156,6 +156,8 @@ class InstallSnapshotState {
 
 		ls.getRaft().lock();
 		try {
+			if (ls.getRaft().isShutdown)
+				return Procedure.Success;
 			if (!r.isTimeout() && ls.trySetTerm(r.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
 				// new term found.
 				ls.getRaft().convertStateTo(Raft.RaftState.Follower);
