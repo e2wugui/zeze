@@ -6,8 +6,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URI;
+import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessMode;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.CopyOption;
@@ -20,6 +26,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
@@ -34,7 +41,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Fast
 public class TestAtomicOutputAtomicMove {
@@ -58,11 +67,62 @@ public class TestAtomicOutputAtomicMove {
 		}
 	}
 
-	/** A real on-disk provider whose rename explicitly lacks atomic-move support. */
+	@Test
+	public void commitClosesChannelBeforeMovingTempToTarget(@TempDir Path dir) throws Exception {
+		var target = dir.resolve("state.bin");
+		Files.writeString(target, "OLD");
+		var provider = new NonAtomicProvider(true, false);
+		try (var output = new AtomicOutputFile(provider.fileSystem.wrap(target))) {
+			output.outputStream().write("NEW".getBytes(StandardCharsets.UTF_8));
+			output.commit();
+		}
+		assertEquals(1, provider.atomicMoves);
+		assertTrue(provider.sawReplaceExisting, "commit should pass REPLACE_EXISTING alongside ATOMIC_MOVE");
+		assertFalse(provider.channelOpenDuringMove, "temp FileChannel must be closed before Files.move executes");
+		assertEquals("NEW", Files.readString(target));
+		try (var files = Files.list(dir)) {
+			assertEquals(1, files.count(), "No temporary file should remain after commit");
+		}
+	}
+
+	@Test
+	public void channelCloseFailurePreventsMoveAndKeepsOldVersion(@TempDir Path dir) throws Exception {
+		var target = dir.resolve("state.bin");
+		Files.writeString(target, "OLD");
+		var provider = new NonAtomicProvider(true, true);
+		try (var output = new AtomicOutputFile(provider.fileSystem.wrap(target))) {
+			output.outputStream().write("NEW".getBytes(StandardCharsets.UTF_8));
+			var ex = assertThrows(IOException.class, output::commit);
+			assertEquals("simulated channel close failure", ex.getMessage());
+			assertEquals(0, provider.atomicMoves, "Files.move must not execute when channel.close() fails");
+			assertEquals(0, provider.nonAtomicMoves);
+			assertEquals("OLD", Files.readString(target), "target must keep OLD content when commit throws");
+			assertThrows(IOException.class, output::commit);
+		}
+		try (var files = Files.list(dir)) {
+			assertEquals(1, files.count(), "Failed commit must clean up its temporary file");
+		}
+	}
+
+	/** A real on-disk provider whose rename/channel behavior can be observed or made to fail. */
 	private static final class NonAtomicProvider extends FileSystemProvider {
 		private final WrappedFileSystem fileSystem = new WrappedFileSystem(this);
+		private final boolean supportAtomicMove;
+		private final boolean failOnChannelClose;
+		private @Nullable FileChannel lastWriteChannel;
+		private boolean channelOpenDuringMove;
+		private boolean sawReplaceExisting;
 		private int atomicMoves;
 		private int nonAtomicMoves;
+
+		private NonAtomicProvider() {
+			this(false, false);
+		}
+
+		private NonAtomicProvider(boolean supportAtomicMove, boolean failOnChannelClose) {
+			this.supportAtomicMove = supportAtomicMove;
+			this.failOnChannelClose = failOnChannelClose;
+		}
 
 		private static Path unwrap(Path path) {
 			return ((WrappedPath)Proxy.getInvocationHandler(path)).actual;
@@ -97,7 +157,13 @@ public class TestAtomicOutputAtomicMove {
 		@Override
 		public FileChannel newFileChannel(Path path, Set<? extends OpenOption> options,
 				FileAttribute<?>... attrs) throws IOException {
-			return FileChannel.open(unwrap(path), options, attrs);
+			var channel = FileChannel.open(unwrap(path), options, attrs);
+			if (options.contains(StandardOpenOption.WRITE)) {
+				if (failOnChannelClose)
+					channel = new FailingCloseFileChannel(channel);
+				lastWriteChannel = channel;
+			}
+			return channel;
 		}
 
 		@Override
@@ -122,13 +188,21 @@ public class TestAtomicOutputAtomicMove {
 
 		@Override
 		public void move(Path source, Path target, CopyOption... options) throws IOException {
+			channelOpenDuringMove = lastWriteChannel != null && lastWriteChannel.isOpen();
+			boolean isAtomic = false;
 			for (var option : options) {
-				if (option == StandardCopyOption.ATOMIC_MOVE) {
-					atomicMoves++;
-					throw new AtomicMoveNotSupportedException(source.toString(), target.toString(), "unsupported");
-				}
+				if (option == StandardCopyOption.ATOMIC_MOVE)
+					isAtomic = true;
+				else if (option == StandardCopyOption.REPLACE_EXISTING)
+					sawReplaceExisting = true;
 			}
-			nonAtomicMoves++;
+			if (isAtomic) {
+				atomicMoves++;
+				if (!supportAtomicMove)
+					throw new AtomicMoveNotSupportedException(source.toString(), target.toString(), "unsupported");
+			} else {
+				nonAtomicMoves++;
+			}
 			Files.move(unwrap(source), unwrap(target), options);
 		}
 
@@ -266,6 +340,102 @@ public class TestAtomicOutputAtomicMove {
 			} catch (InvocationTargetException e) {
 				throw e.getCause();
 			}
+		}
+	}
+
+	private static final class FailingCloseFileChannel extends FileChannel {
+		private final FileChannel delegate;
+
+		private FailingCloseFileChannel(FileChannel delegate) {
+			this.delegate = delegate;
+		}
+
+		@Override
+		public int read(ByteBuffer dst) throws IOException {
+			return delegate.read(dst);
+		}
+
+		@Override
+		public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
+			return delegate.read(dsts, offset, length);
+		}
+
+		@Override
+		public int write(ByteBuffer src) throws IOException {
+			return delegate.write(src);
+		}
+
+		@Override
+		public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
+			return delegate.write(srcs, offset, length);
+		}
+
+		@Override
+		public long position() throws IOException {
+			return delegate.position();
+		}
+
+		@Override
+		public FileChannel position(long newPosition) throws IOException {
+			delegate.position(newPosition);
+			return this;
+		}
+
+		@Override
+		public long size() throws IOException {
+			return delegate.size();
+		}
+
+		@Override
+		public FileChannel truncate(long size) throws IOException {
+			delegate.truncate(size);
+			return this;
+		}
+
+		@Override
+		public void force(boolean metaData) throws IOException {
+			delegate.force(metaData);
+		}
+
+		@Override
+		public long transferTo(long position, long count, WritableByteChannel target) throws IOException {
+			return delegate.transferTo(position, count, target);
+		}
+
+		@Override
+		public long transferFrom(ReadableByteChannel src, long position, long count) throws IOException {
+			return delegate.transferFrom(src, position, count);
+		}
+
+		@Override
+		public int read(ByteBuffer dst, long position) throws IOException {
+			return delegate.read(dst, position);
+		}
+
+		@Override
+		public int write(ByteBuffer src, long position) throws IOException {
+			return delegate.write(src, position);
+		}
+
+		@Override
+		public MappedByteBuffer map(MapMode mode, long position, long size) throws IOException {
+			return delegate.map(mode, position, size);
+		}
+
+		@Override
+		public FileLock lock(long position, long size, boolean shared) throws IOException {
+			return delegate.lock(position, size, shared);
+		}
+
+		@Override
+		public @Nullable FileLock tryLock(long position, long size, boolean shared) throws IOException {
+			return delegate.tryLock(position, size, shared);
+		}
+
+		@Override
+		protected void implCloseChannel() throws IOException {
+			delegate.close();
+			throw new IOException("simulated channel close failure");
 		}
 	}
 }

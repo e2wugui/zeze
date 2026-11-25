@@ -151,13 +151,15 @@ public final class AtomicOutputFile implements AutoCloseable {
 			return;
 		ensureOpen();
 		finished = true;
-		try (channel) {
-			if (writeFailed)
-				throw new IOException("AtomicOutputFile: write failed earlier, discard temp instead of publish: " + target);
-			buffered.flush();
-			channel.force(true);
+		try {
+			try (channel) {
+				if (writeFailed)
+					throw new IOException("AtomicOutputFile: write failed earlier, discard temp instead of publish: " + target);
+				buffered.flush();
+				channel.force(true);
+			}
 			inheritPosixAttributesBestEffort(target, temp);
-			Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE);
+			Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
 		} catch (Throwable failure) {
 			deleteTempBestEffort();
 			throw failure;
