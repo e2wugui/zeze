@@ -4,17 +4,20 @@ import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
 import java.sql.DriverPropertyInfo;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import Zeze.Config;
@@ -41,6 +44,10 @@ public class TestMysqlOperatesProceduresStamp {
 	private static final class StubDatabase {
 		final ConcurrentHashMap<String, byte[]> dataWithVersion = new ConcurrentHashMap<>();
 		final List<String> sqlLog = new ArrayList<>();
+		final AtomicInteger callAttempts = new AtomicInteger();
+		int failCallWithDeadlockCount;
+		@Nullable SQLException nextCallError;
+		int callOutRetValue;
 
 		/** 按语句前缀计数：CREATE PROCEDURE的过程体文本包含DELETE等字样，contains会误计。 */
 		long count(String prefix) {
@@ -147,6 +154,30 @@ public class TestMysqlOperatesProceduresStamp {
 				});
 	}
 
+	private static CallableStatement callableStatement(StubDatabase db, String sql) {
+		return (CallableStatement)Proxy.newProxyInstance(TestMysqlOperatesProceduresStamp.class.getClassLoader(),
+				new Class<?>[]{CallableStatement.class}, (p, m, a) -> {
+					return switch (m.getName()) {
+						case "executeUpdate" -> {
+							db.sqlLog.add(sql);
+							db.callAttempts.incrementAndGet();
+							if (db.nextCallError != null) {
+								var err = db.nextCallError;
+								db.nextCallError = null;
+								throw err;
+							}
+							if (db.failCallWithDeadlockCount > 0) {
+								db.failCallWithDeadlockCount--;
+								throw new SQLException("Deadlock found when trying to get lock; try restarting transaction");
+							}
+							yield 0;
+						}
+						case "getInt" -> db.callOutRetValue;
+						default -> defaultValue(m.getReturnType());
+					};
+				});
+	}
+
 	private static Connection connection(StubDatabase db) {
 		return (Connection)Proxy.newProxyInstance(TestMysqlOperatesProceduresStamp.class.getClassLoader(),
 				new Class<?>[]{Connection.class}, (p, m, a) -> {
@@ -156,6 +187,7 @@ public class TestMysqlOperatesProceduresStamp {
 						case "getTransactionIsolation" -> Connection.TRANSACTION_READ_COMMITTED;
 						case "getHoldability" -> ResultSet.CLOSE_CURSORS_AT_COMMIT;
 						case "prepareStatement" -> preparedStatement(db, (String)a[0]);
+						case "prepareCall" -> callableStatement(db, (String)a[0]);
 						case "createStatement" -> statement(db); // 返回null会被Druid包装成半初始化对象，close时NPE
 						case "getMetaData" -> Proxy.newProxyInstance(
 								TestMysqlOperatesProceduresStamp.class.getClassLoader(),
@@ -211,7 +243,7 @@ public class TestMysqlOperatesProceduresStamp {
 	}
 
 	/** 反射构造OperatesMySql（私有内部类），走真实构造器的DDL流程。 */
-	private static void runOperatesCtor(DatabaseMySql db) throws Exception {
+	private static Database.Operates runOperatesCtor(DatabaseMySql db) throws Exception {
 		Class<?> operatesClass = null;
 		for (var c : DatabaseMySql.class.getDeclaredClasses())
 			if (c.getSimpleName().equals("OperatesMySql"))
@@ -219,7 +251,7 @@ public class TestMysqlOperatesProceduresStamp {
 		Assertions.assertNotNull(operatesClass);
 		var ctor = operatesClass.getDeclaredConstructor(DatabaseMySql.class);
 		ctor.setAccessible(true);
-		ctor.newInstance(db);
+		return (Database.Operates)ctor.newInstance(db);
 	}
 
 	@Test
@@ -274,6 +306,107 @@ public class TestMysqlOperatesProceduresStamp {
 			Assertions.assertEquals(3, stub.count("DELETE FROM _ZezeDataWithVersion_"),
 					"重建轮drop同样清戳（幂等）");
 			Assertions.assertNotNull(stub.dataWithVersion.get(stampKey), "重建后重新写戳");
+		} finally {
+			db.close();
+		}
+	}
+
+	@Test
+	public void testInUseProceduresUseLockingReadsAndMatchStamp() throws Exception {
+		// _ZezeSetInUse_ 在 REPEATABLE READ 下必须对 _ZezeInstances_ 计数使用 FOR UPDATE 锁定读
+		Assertions.assertTrue(
+				DatabaseMySql.PROC_SET_IN_USE_SQL.contains(
+						"SELECT count(*) INTO instance_count FROM _ZezeInstances_ FOR UPDATE;"),
+				"PROC_SET_IN_USE_SQL 必须对 _ZezeInstances_ 计数使用 FOR UPDATE");
+
+		// _ZezeClearInUse_ 必须先锁定 empty_bin 再删除实例并用 FOR UPDATE 计数 _ZezeInstances_
+		var clearSql = DatabaseMySql.PROC_CLEAR_IN_USE_SQL;
+		int lockEmptyIdx = clearSql.indexOf(
+				"SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin FOR UPDATE;");
+		int deleteInstIdx = clearSql.indexOf("DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;");
+		int countInstIdx = clearSql.indexOf(
+				"SELECT count(*) INTO instance_count FROM _ZezeInstances_ FOR UPDATE;");
+		Assertions.assertTrue(lockEmptyIdx > 0, "PROC_CLEAR_IN_USE_SQL 必须锁定 empty_bin 行");
+		Assertions.assertTrue(deleteInstIdx > lockEmptyIdx, "必须先锁 empty_bin 再删除 _ZezeInstances_");
+		Assertions.assertTrue(countInstIdx > deleteInstIdx,
+				"PROC_CLEAR_IN_USE_SQL 必须对 _ZezeInstances_ 计数使用 FOR UPDATE");
+
+		// 版本戳必须是 64 位小写十六进制 SHA-256，并与 OperatesMySql 落库戳完全一致
+		var expectedStamp = DatabaseMySql.calcOperatesProceduresStamp();
+		Assertions.assertTrue(expectedStamp.matches("[0-9a-f]{64}"), "stamp=" + expectedStamp);
+
+		Task.tryInitThreadPool();
+		var stub = new StubDatabase();
+		var conf = new Config.DatabaseConf();
+		conf.setDisableOperates(true);
+		conf.setDatabaseUrl("jdbc:mysql://inuse-sql-test.invalid/dummy");
+		conf.setDruidConf(new Config.DruidConf());
+		conf.getDruidConf().initialSize = 0;
+		conf.getDruidConf().minIdle = 0;
+		conf.getDruidConf().maxActive = 1;
+		var db = new DatabaseMySql(null, conf);
+		try {
+			var field = DatabaseJdbc.class.getDeclaredField("dataSource");
+			field.setAccessible(true);
+			var pool = (DruidDataSource)field.get(db);
+			pool.setDriver(new StubDriver(stub));
+			pool.setTestOnBorrow(false);
+			pool.setTestWhileIdle(false);
+			pool.setPoolPreparedStatements(false);
+
+			runOperatesCtor(db);
+			var storedStamp = stub.dataWithVersion.get(keyOf(DatabaseMySql.keyOfOperatesProceduresStamp));
+			Assertions.assertNotNull(storedStamp);
+			Assertions.assertEquals(expectedStamp, keyOf(storedStamp));
+		} finally {
+			db.close();
+		}
+	}
+
+	@Test
+	public void testClearInUseRetriesDeadlockAndRethrowsOtherErrors() throws Exception {
+		Task.tryInitThreadPool();
+		var stub = new StubDatabase();
+		var conf = new Config.DatabaseConf();
+		conf.setDisableOperates(true);
+		conf.setDatabaseUrl("jdbc:mysql://clear-deadlock-test.invalid/dummy");
+		conf.setDruidConf(new Config.DruidConf());
+		conf.getDruidConf().initialSize = 0;
+		conf.getDruidConf().minIdle = 0;
+		conf.getDruidConf().maxActive = 1;
+		var db = new DatabaseMySql(null, conf);
+		try {
+			var field = DatabaseJdbc.class.getDeclaredField("dataSource");
+			field.setAccessible(true);
+			var pool = (DruidDataSource)field.get(db);
+			pool.setDriver(new StubDriver(stub));
+			pool.setTestOnBorrow(false);
+			pool.setTestWhileIdle(false);
+			pool.setPoolPreparedStatements(false);
+
+			var operates = runOperatesCtor(db);
+
+			// 连续 2 次 Deadlock 后第 3 次成功
+			stub.callAttempts.set(0);
+			stub.failCallWithDeadlockCount = 2;
+			stub.callOutRetValue = 0;
+			Assertions.assertEquals(0, operates.clearInUse(1, ""));
+			Assertions.assertEquals(3, stub.callAttempts.get(), "死锁后必须重试至成功");
+
+			// 64 次全部 Deadlock 必须抛出 clearInUse Deadlock
+			stub.callAttempts.set(0);
+			stub.failCallWithDeadlockCount = 100;
+			var ex = Assertions.assertThrows(IllegalStateException.class, () -> operates.clearInUse(1, ""));
+			Assertions.assertEquals("clearInUse Deadlock", ex.getMessage());
+			Assertions.assertEquals(64, stub.callAttempts.get(), "最多重试 64 次");
+
+			// 非 Deadlock SQLException 必须立即抛出，不重试
+			stub.callAttempts.set(0);
+			stub.failCallWithDeadlockCount = 0;
+			stub.nextCallError = new SQLException("Access denied");
+			var sqlEx = Assertions.assertThrows(SQLException.class, () -> operates.clearInUse(1, ""));
+			Assertions.assertEquals("Access denied", sqlEx.getMessage());
+			Assertions.assertEquals(1, stub.callAttempts.get(), "非死锁异常不得重试");
 		} finally {
 			db.close();
 		}

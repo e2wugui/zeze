@@ -241,7 +241,9 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			        END IF;
 			    END IF;
 			    SET instance_count=0;
-			    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+			    -- 锁定读取最新已提交实例数：REPEATABLE READ下普通读沿用事务初建的旧快照，
+			    -- 并发首启的无GCM两实例彼此不可见，会双双读到instance_count=1而通过校验。
+			    SELECT count(*) INTO instance_count FROM _ZezeInstances_ FOR UPDATE;
 			    IF instance_count = 1 THEN
 			        SET ret_value=0;
 			        COMMIT;
@@ -331,7 +333,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			    LEAVE return_label;
 			END;""".formatted(eMaxKeyLength);
 
-	private static final String PROC_CLEAR_IN_USE_SQL = """
+	static final String PROC_CLEAR_IN_USE_SQL = """
 			CREATE PROCEDURE _ZezeClearInUse_(
 			    IN  in_local_id int,
 			    IN  in_global LONGBLOB,
@@ -344,11 +346,14 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			    START TRANSACTION;
 			    SET ret_value=1;
+			    SET empty_bin = BINARY '';
+			    -- 先锁定 empty_bin 行串行化并发 clearInUse，并锁定计数 _ZezeInstances_，
+			    -- 避免最后两个实例在 REPEATABLE READ 快照读下各看到 instance_count=1 而残留 empty_bin。
+			    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin FOR UPDATE;
 			    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;
 			    SET instance_count=0;
-			    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+			    SELECT count(*) INTO instance_count FROM _ZezeInstances_ FOR UPDATE;
 			    IF instance_count = 0 THEN
-			        SET empty_bin = BINARY '';
 			        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
 			    END IF;
 			    SET ret_value=0;
@@ -359,7 +364,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			END;""";
 
 	// 版本戳=三个过程体SQL文本的SHA-256（hex）。过程体任何修改都改变戳，从而触发一次DROP+CREATE。
-	private static String calcOperatesProceduresStamp() {
+	static String calcOperatesProceduresStamp() {
 		var text = PROC_SAVE_DATA_WITH_SAME_VERSION_SQL + "\0" + PROC_SET_IN_USE_SQL + "\0" + PROC_CLEAR_IN_USE_SQL;
 		try {
 			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
@@ -579,18 +584,22 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 		@Override
 		public int clearInUse(int localId, String global) {
-			try (var conn = dataSource.getConnection()) {
-				conn.setAutoCommit(true);
-				try (var ps = conn.prepareCall("{CALL _ZezeClearInUse_(?,?,?)}")) {
-					ps.setInt(1, localId); // in_local_id
-					ps.setBytes(2, global.getBytes(StandardCharsets.UTF_8)); // in_global
-					ps.registerOutParameter(3, Types.INTEGER); // ret_value
-					ps.executeUpdate();
-					return ps.getInt(3); // Clear 不报告错误，直接返回。
+			for (int i = 0; i < 64; ++i) {
+				try (var conn = dataSource.getConnection()) {
+					conn.setAutoCommit(true);
+					try (var ps = conn.prepareCall("{CALL _ZezeClearInUse_(?,?,?)}")) {
+						ps.setInt(1, localId); // in_local_id
+						ps.setBytes(2, global.getBytes(StandardCharsets.UTF_8)); // in_global
+						ps.registerOutParameter(3, Types.INTEGER); // ret_value
+						ps.executeUpdate();
+						return ps.getInt(3); // Clear 不报告错误，直接返回。
+					}
+				} catch (SQLException e) {
+					if (!sqlMessageContains(e, "Deadlock"))
+						throw Task.forceThrow(e);
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
 			}
+			throw new IllegalStateException("clearInUse Deadlock");
 		}
 
 		@Override
