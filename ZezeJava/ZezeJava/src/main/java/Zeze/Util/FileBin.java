@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.function.UnaryOperator;
 import Zeze.Net.Binary;
 
 /**
@@ -17,11 +18,11 @@ import Zeze.Net.Binary;
  * RandomAccessFile 断点续传，边写边维护全量 md5 供 CloseFile 校验。
  *
  * <p><b>线程安全（zoker-04）</b>：实例可被多连接共享（open 幂等复用同一 FileBin），共享的可变状态
- * （os/randFile 的写指针、共享 MessageDigest——JDK 明示非线程安全）在并发 append/truncate/md5Digest/close
- * 交错下会使 seek/write 与 digest 累计搅乱（CloseFile 校验必失败触发删档重传）。四个方法以实例监视器序化：
+ * （os/randFile 的写指针、共享 MessageDigest——JDK 明示非线程安全）在并发 getLength/append/truncate/md5Digest/close
+ * 交错下会使 seek/write 与 digest 累计搅乱或暴露截断瞬态（CloseFile 校验必失败触发删档重传）。状态读写方法以实例监视器序化：
  * 交错要么完整串行（等值断点续传常态，md5 与写入同源一致）要么退化为先后到达（close 后 append 得
  * IOException→eAppendOffset，客户端重开重传）——消除交错中间态。监视器是叶子锁（方法内不再取其他锁），
- * 调用方的全部 append/close 均在各自的 files 锁外执行，无锁序交互。
+ * 调用方的全部 getLength/append/close 均在各自的 files 锁外执行，无锁序交互。
  * per-file 粒度：仅共享同一文件的连接互斥，阻塞窗口=单次 append（truncate 路径含全量 md5 重算，
  * 与该文件自身的续传代价同阶）。</p>
  */
@@ -33,6 +34,10 @@ public class FileBin {
 	private final MessageDigest md5;
 
 	public FileBin(String relativeCanonicalFileName, File baseDir, String path) {
+		this(relativeCanonicalFileName, baseDir, path, BufferedOutputStream::new);
+	}
+
+	FileBin(String relativeCanonicalFileName, File baseDir, String path, UnaryOperator<OutputStream> outputWrapper) {
 		this.relativeCanonicalFileName = relativeCanonicalFileName;
 		RandomAccessFile openRandFile = null;
 		try {
@@ -47,7 +52,7 @@ public class FileBin {
 			openRandFile = new RandomAccessFile(canonicalFile, "rw");
 			md5 = MessageDigest.getInstance("MD5");
 			md5CurrentData();
-			os = new BufferedOutputStream(new FileOutputStream(openRandFile.getFD()));
+			os = outputWrapper.apply(new FileOutputStream(openRandFile.getFD()));
 		} catch (Exception ex) {
 			// 构造失败必须关闭已打开的句柄：泄漏的RandomAccessFile在Windows上锁住
 			// distributes下的文件，后续commit的renameTo对该文件恒失败（直到GC/进程重启），
@@ -72,7 +77,7 @@ public class FileBin {
 		return canonicalFile;
 	}
 
-	public long getLength() throws IOException {
+	public synchronized long getLength() throws IOException {
 		return randFile.getChannel().size();
 	}
 
@@ -109,15 +114,15 @@ public class FileBin {
 			randFile.seek(offset);
 		}
 		var newLength = offset + data.size();
-		if (newLength > length) {
-			var newDataLength = (int)(newLength - length);
-			// 只hash新增部分：是data的尾部newDataLength字节（data前面length-offset字节属于已存在的旧数据）。
-			md5.update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
-		}
 		os.write(data.bytesUnsafe(), data.getOffset(), data.size());
 		// 写后也flush：append返回即数据在FD上，getLength()/md5()/后续append读到的长度恒一致
 		//（仅flush在读长一侧的话，最后一次小块append仍滞留缓冲，调用方立刻读文件会看到旧长度）。
 		os.flush();
+		if (newLength > length) {
+			var newDataLength = (int)(newLength - length);
+			// 只在磁盘写与flush成功后再更新增量md5，防止写盘抛IOException时污染md5、同offset重试重复hash。
+			md5.update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
+		}
 	}
 
 	/** 惰性收口：digest() 终结化共享 digest，必须与 append 的 update 序化（在 close 之后调用也安全）。 */
