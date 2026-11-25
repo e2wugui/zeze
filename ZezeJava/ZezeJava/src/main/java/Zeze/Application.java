@@ -400,29 +400,75 @@ public final class Application extends ReentrantLock {
 
 	// 热更通过此入口替换表，不调用 addTable/removeTable。
 	public Database replaceTable(String dbName, Table table) {
+		var db = getDatabase(dbName);
+		var exist = tables.get(table.getId());
+		if (exist == table) {
+			replaceTableRecent.add(table);
+			TableKey.tables.put(table.getId(), table.getName());
+			return db; // 热更回滚可能重复注册同一表。
+		}
+		var targetDb = exist != null ? exist.getDatabase() : db;
+		var previousTableKeyName = TableKey.tables.get(table.getId());
+		var previousTableByName = tableNameMap.get(table.getName());
+		var previousTargetDbTable = targetDb.getTable(table.getName());
+		var previousDbTable = targetDb != db ? db.getTable(table.getName()) : previousTargetDbTable;
+		var previousRecentSize = replaceTableRecent.size();
+
+		// 先注册索引再 open：关系映射表构造 Storage 时会回调 db.getTable(name) 读取新表。
 		replaceTableRecent.add(table);
 		TableKey.tables.put(table.getId(), table.getName());
-		var exist = tables.put(table.getId(), table);
-		var db = getDatabase(dbName);
-		if (exist == table)
-			return db; // 热更回滚可能重复注册同一表。
-		if (exist != null) {
-			// 热更开表与首次启动不同，需要传入旧表以继承状态。
-			table.open(exist, this);
-
-			if (exist.isMemory() && table.isMemory()) {
-				hotUpgradeMemoryTables.add(new HotUpgradeMemoryTable(exist, table));
-				// exist.disable() 在升级之后调用。
-			} else {
-				// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
-				exist.disable();
-			}
-		} else if (isStart()) {
-			var storage = table.open(this, db, null);
-			db.__add_storage__(storage);
-		}
+		tables.put(table.getId(), table);
 		tableNameMap.put(table.getName(), table);
-		db.replaceTable(table);
+		targetDb.replaceTable(table);
+		if (targetDb != db)
+			db.replaceTable(table);
+
+		try {
+			if (exist != null) {
+				// 热更开表与首次启动不同，需要传入旧表以继承状态。
+				table.open(exist, this);
+
+				if (exist.isMemory() && table.isMemory()) {
+					hotUpgradeMemoryTables.add(new HotUpgradeMemoryTable(exist, table));
+					// exist.disable() 在升级之后调用。
+				} else {
+					// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
+					exist.disable();
+				}
+			} else if (isStart()) {
+				var storage = table.open(this, db, null);
+				db.__add_storage__(storage);
+			}
+		} catch (Throwable failure) {
+			if (replaceTableRecent.size() > previousRecentSize)
+				replaceTableRecent.remove(replaceTableRecent.size() - 1);
+			if (exist != null)
+				tables.put(table.getId(), exist);
+			else
+				tables.remove(table.getId(), table);
+			if (previousTableKeyName != null)
+				TableKey.tables.replace(table.getId(), table.getName(), previousTableKeyName);
+			else
+				TableKey.tables.remove(table.getId(), table.getName());
+			if (previousTableByName != null)
+				tableNameMap.put(table.getName(), previousTableByName);
+			else
+				tableNameMap.remove(table.getName(), table);
+			if (previousTargetDbTable != null) {
+				if (!table.isMemory())
+					cleanupAfterFailure(failure, () -> targetDb.removeTable(table));
+				targetDb.replaceTable(previousTargetDbTable);
+			} else {
+				cleanupAfterFailure(failure, () -> targetDb.removeTable(table));
+			}
+			if (targetDb != db) {
+				if (previousDbTable != null)
+					db.replaceTable(previousDbTable);
+				else
+					cleanupAfterFailure(failure, () -> db.removeTable(table));
+			}
+			throw failure;
+		}
 		return db;
 	}
 
