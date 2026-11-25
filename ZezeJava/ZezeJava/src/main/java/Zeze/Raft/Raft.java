@@ -938,6 +938,7 @@ public final class Raft {
 				cex.start(); // 马上尝试连接。
 				cex.setNextIndex(nextIndex);
 				cex.setMatchIndex(0);
+				cex.setPending(null); // 清理旧任期残留单飞槽位，防止阻塞 SetLeaderReadyEvent 与心跳
 			});
 
 			// Upon election:
@@ -968,6 +969,7 @@ public final class Raft {
 		resetLeaderReadyAfterChangeState();
 		logSequence.getSendSnapshotting().cancelAll();
 		logSequence.cancelPendingAppendLogFutures();
+		server.getConfig().forEachConnector(c -> ((Server.ConnectorEx)c).setPending(null));
 
 		switch (newState) {
 		case Follower:
