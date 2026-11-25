@@ -79,7 +79,7 @@ public final class CollOne<V extends Bean> extends Collection {
 	@Override
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		//noinspection DataFlowIssue
-		return finalLog != null ? (LogOne<?>)finalLog : new LogOne<>(parent(), variableId(), this, value);
+		return finalLog != null ? (LogOne<?>)finalLog : new LogOne<>(parent(), variableId(), this);
 	}
 
 	@Override

@@ -15,6 +15,11 @@ public class LogOne<V extends Bean> extends LogOneValue<V> implements Transactio
 		this.value = value;
 	}
 
+	LogOne(Bean belong, int varId, CollOne<V> self) {
+		super(varId, self.meta, self);
+		this.belong = belong;
+	}
+
 	private static <V extends Bean> LogOneMeta<V> resolveMeta(Bean self, V value) {
 		// 声明类优先：装子类实例须按声明类建typeId，与读端注册对称。
 		if (self instanceof CollOne<?> collOne)
@@ -50,7 +55,10 @@ public class LogOne<V extends Bean> extends LogOneValue<V> implements Transactio
 	@Override
 	public boolean addChild(Bean recent, Log vlog) {
 		if (logBean == null) {
-			logBean = (LogBean)vlog;
+			var child = (LogBean)vlog;
+			if (child.getThis() != ((CollOne<?>)recent).value)
+				return true;
+			logBean = child;
 			return true;
 		}
 		return false;

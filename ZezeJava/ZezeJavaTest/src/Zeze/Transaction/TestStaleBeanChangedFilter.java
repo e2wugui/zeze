@@ -1,8 +1,11 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogMap2;
+import Zeze.Transaction.Collections.LogOne;
+import Zeze.Transaction.Collections.LogOneMeta;
 import Zeze.Transaction.Collections.LogSortedMap2;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Collections.PSortedMap2;
@@ -14,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -142,6 +146,37 @@ public class TestStaleBeanChangedFilter {
 		var decodedLive = LogDynamicValue.decode(0, encodeThenWrap(live));
 		assertNotNull(decodedLive.logBean, "当前内部bean的logBean不得误杀");
 		followerDyn.followerApply(decodedLive);
+		assertEquals(7, followerInner.getLong2());
+	}
+
+	@Test
+	public void testLogOneStaleLogBeanFiltered() {
+		Zeze.History.Helper.registerLogOne(BValue.class);
+		var parent = new BValue();
+		var staleInner = new BValue(); // 更早事务 setValue 替换掉的旧值
+		var currentInner = new BValue(); // 当前受管值
+		var collOne = new CollOne<>(currentInner, LogOneMeta.get(BValue.class));
+		collOne.initRootInfo(new Record.RootInfo(newStubRecord(), new TableKey(1, "StaleBeanCollOne")), parent);
+
+		// 仅修改陈旧引用：createLogBean(null) 产生增量节点，addChild 必须过滤非当前实例。
+		@SuppressWarnings("unchecked")
+		var log = (LogOne<BValue>)collOne.createLogBean(null);
+		assertTrue(log.addChild(collOne, newBeanLog(staleInner, 9)));
+		var decoded = LogRegistry.decode(log.getTypeId(), 0, encodeThenWrap(log));
+
+		var followerParent = new BValue();
+		var followerInner = new BValue();
+		var followerCollOne = new CollOne<>(followerInner, LogOneMeta.get(BValue.class));
+		followerCollOne.initRootInfo(new Record.RootInfo(newStubRecord(), new TableKey(1, "StaleBeanCollOneFollower")), followerParent);
+		followerCollOne.followerApply(decoded);
+		assertSame(followerInner, followerCollOne.getValue(), "陈旧增量不得替换follower当前bean");
+		assertEquals(0, followerInner.getLong2(), "follower当前内部bean不得被陈旧字段日志污染");
+
+		// 正控（且同节点先遇陈旧引用后遇当前引用）：陈旧引用不得占坑，当前内部bean的logBean必须保留并原位应用。
+		assertTrue(log.addChild(collOne, newBeanLog(currentInner, 7)));
+		var decodedLive = LogRegistry.decode(log.getTypeId(), 0, encodeThenWrap(log));
+		followerCollOne.followerApply(decodedLive);
+		assertSame(followerInner, followerCollOne.getValue(), "原位增量应保持follower当前bean身份");
 		assertEquals(7, followerInner.getLong2());
 	}
 

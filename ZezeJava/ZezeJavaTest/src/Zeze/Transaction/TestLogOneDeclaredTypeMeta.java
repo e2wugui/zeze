@@ -37,6 +37,17 @@ public class TestLogOneDeclaredTypeMeta {
 		}
 
 		@Override
+		public void followerApply(Log log) {
+			var vars = ((LogBean)log).getVariables();
+			if (vars == null)
+				return;
+			for (var it = vars.iterator(); it.moveToNext(); ) {
+				if (it.key() == 1)
+					x = it.value().intValue();
+			}
+		}
+
+		@Override
 		public Bean copy() {
 			var c = new BeanBase();
 			c.x = x;
@@ -87,13 +98,18 @@ public class TestLogOneDeclaredTypeMeta {
 		Assertions.assertTrue(collOne.isManaged());
 
 		@SuppressWarnings("unchecked")
-		var log = (LogOne<BeanBase>)collOne.createLogBean(null);
+		var log = (LogOne<BeanBase>)collOne.createLog(ChangeCaptureMode.DELTA);
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, log.getTypeId(),
 			"子类实例必须按声明类计算typeId（读端工厂按声明类注册）");
 
 		// 机制锁定：保存点副本不得回退到运行时类。
 		Assertions.assertEquals(log.getTypeId(), ((Log)log.beginSavepoint()).getTypeId(),
 			"beginSavepoint副本必须保持同一typeId");
+
+		@SuppressWarnings("unchecked")
+		var deltaLog = (LogOne<BeanBase>)collOne.createLogBean(null);
+		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, deltaLog.getTypeId(),
+			"增量归集LogOne同样按声明类计算typeId");
 	}
 
 	@Test
@@ -107,9 +123,9 @@ public class TestLogOneDeclaredTypeMeta {
 		var collOne = new CollOne<>((BeanBase)sub, LogOneMeta.get(BeanBase.class));
 		collOne.initRootInfo(newRootInfo(), parent);
 
-		// 写端编码，模拟复制通道：follower按typeId经LogRegistry.decode重建再decode。
+		// 整值替换写端编码，模拟复制通道：follower按typeId经LogRegistry.decode重建再decode。
 		@SuppressWarnings("unchecked")
-		var log = (LogOne<BeanBase>)collOne.createLogBean(null);
+		var log = (LogOne<BeanBase>)collOne.createLog(ChangeCaptureMode.DELTA);
 		var bb = ByteBuffer.Allocate();
 		log.encode(bb);
 		var expected = bb.getBytes(0, bb.size());
@@ -122,7 +138,48 @@ public class TestLogOneDeclaredTypeMeta {
 
 		Assertions.assertEquals(42, collOne.getValue().x, "声明类重建的值必须完成数据往返");
 		Assertions.assertSame(BeanBase.class, collOne.getValue().getClass(),
-			"decode按声明类工厂重建值实例");
+			"整值替换decode按声明类工厂重建值实例");
+	}
+
+	@Test
+	public void testDeltaLogBeanRoundTripPreservesSubclass() {
+		Helper.registerLogs();
+		Helper.registerLogOne(BeanBase.class);
+
+		var parent = new BeanBase();
+		var sub = new BeanSub();
+		sub.x = 10;
+		var collOne = new CollOne<>((BeanBase)sub, LogOneMeta.get(BeanBase.class));
+		collOne.initRootInfo(newRootInfo(), parent);
+
+		// 仅原位修改字段：finalLog=null 经 createLogBean(null) 生成增量 LogOne（value=null）。
+		@SuppressWarnings("unchecked")
+		var log = (LogOne<BeanBase>)collOne.createLogBean(null);
+		var childLog = new LogBean(0, sub);
+		childLog.getVariablesOrNew().put(1, Map2TestSupport.intLog(1, 99));
+		Assertions.assertTrue(log.addChild(collOne, childLog));
+
+		var bb = ByteBuffer.Allocate();
+		log.encode(bb);
+		var expected = bb.getBytes(0, bb.size());
+		Assertions.assertEquals(0, expected[0], "原位修改必须走 hasValue=false 增量格式");
+		Assertions.assertEquals(1, expected[1], "原位修改必须携带 hasLogBean=true 增量日志");
+		var decoded = LogRegistry.decode(log.getTypeId(), 0, bb);
+		var reencoded = ByteBuffer.Allocate();
+		decoded.encode(reencoded);
+		Assertions.assertArrayEquals(expected, reencoded.getBytes(0, reencoded.size()));
+		Assertions.assertFalse(decoded instanceof TransactionLog);
+
+		var followerParent = new BeanBase();
+		var followerSub = new BeanSub();
+		followerSub.x = 10;
+		var follower = new CollOne<>((BeanBase)followerSub, LogOneMeta.get(BeanBase.class));
+		follower.initRootInfo(newRootInfo(), followerParent);
+		follower.followerApply(decoded);
+
+		Assertions.assertSame(followerSub, follower.getValue(),
+			"原位增量回放必须保留原子类实例，不得重建或切片为基类");
+		Assertions.assertEquals(99, followerSub.x, "原位增量字段修改必须应用到子类实例");
 	}
 
 	@Test
