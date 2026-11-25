@@ -452,10 +452,17 @@ public class LogSequence {
 		}
 
 		public void remove(RaftLog log) throws RocksDBException {
+			remove(log, null);
+		}
+
+		public void remove(RaftLog log, RocksDatabase.@Nullable Batch batch) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			//noinspection DataFlowIssue
 			log.getLog().getUnique().encode(key);
-			table.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
+			if (batch != null)
+				table.delete(batch, key.Bytes, 0, key.WriteIndex);
+			else
+				table.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
 		}
 
 		public @Nullable UniqueRequestState getRequestState(IRaftRpc raftRpc) throws RocksDBException {
@@ -862,11 +869,15 @@ public class LogSequence {
 					log.getLog().getUnique().getRequestId(), log.getIndex(), getTestStateMachineCount());
 	}
 
-	private void saveLogRaw(long index, Binary rawValue) throws RocksDBException {
+	private void saveLogRaw(long index, Binary rawValue, RocksDatabase.@Nullable Batch batch) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(index);
-		Objects.requireNonNull(logs).put(writeOptions, key.Bytes, 0, key.WriteIndex,
-				rawValue.bytesUnsafe(), rawValue.getOffset(), rawValue.size());
+		if (batch != null)
+			Objects.requireNonNull(logs).put(batch, key.Bytes, 0, key.WriteIndex,
+					rawValue.bytesUnsafe(), rawValue.getOffset(), rawValue.size());
+		else
+			Objects.requireNonNull(logs).put(writeOptions, key.Bytes, 0, key.WriteIndex,
+					rawValue.bytesUnsafe(), rawValue.getOffset(), rawValue.size());
 
 		if (isDebugEnabled)
 			logger.debug("{}-{} RequestId=? Index={} Count={}",
@@ -1757,7 +1768,7 @@ public class LogSequence {
 		return RaftLog.decodeTermIndex(Objects.requireNonNull(readLogBytes(lastIndex)));
 	}
 
-	private void removeLogAndCancelStart(long startIndex, long endIndex) throws Exception {
+	private void cancelLeaderAppendLogs(long startIndex, long endIndex) throws Exception {
 		for (long index = startIndex; index <= endIndex; index++) {
 			RaftLog raftLog;
 			if (index > lastApplied && (raftLog = leaderAppendLogs.remove(index)) != null) {
@@ -1768,20 +1779,19 @@ public class LogSequence {
 				// Apply的时候已经TryRemove了，仅会成功一次。
 				raftLog.cancelCallback();
 			}
-			removeLog(index);
 		}
 	}
 
-	private void removeLog(long index) throws RocksDBException {
+	private void removeLog(long index, RocksDatabase.Batch batch) throws RocksDBException {
 		var raftLog = readLog(index);
 		if (raftLog != null) {
 			var key = ByteBuffer.Allocate(9);
 			key.WriteLong(index);
 			//noinspection DataFlowIssue
-			logs.delete(writeOptions, key.Bytes, 0, key.WriteIndex);
+			logs.delete(batch, key.Bytes, 0, key.WriteIndex);
 			//noinspection DataFlowIssue
 			if (raftLog.getLog().getUnique().getRequestId() > 0)
-				openUniqueRequests(raftLog.getLog().getCreateTime()).remove(raftLog);
+				openUniqueRequests(raftLog.getLog().getCreateTime()).remove(raftLog, batch);
 		}
 	}
 
@@ -1858,6 +1868,7 @@ public class LogSequence {
 
 		int entryIndex = 0;
 		var copyLogIndex = prevLog.getIndex() + 1;
+		long truncateStart = -1;
 		for (; entryIndex < r.Argument.getEntries().size(); ++entryIndex, ++copyLogIndex) {
 			RaftLog copyLog;
 			try {
@@ -1879,27 +1890,43 @@ public class LogSequence {
 			// 本地已经存在日志。
 			if (copyLog.getIndex() <= lastIndex) {
 				var conflictCheck = readLog(copyLog.getIndex());
-				if (conflictCheck == null || conflictCheck.getTerm() == copyLog.getTerm())
+				if (conflictCheck != null && conflictCheck.getTerm() == copyLog.getTerm())
 					continue;
 
 				// 3. If an existing entry conflicts
-				// with a new one (same index but different terms),
+				// with a new one (same index but different terms) or has a hole in [firstIndex, lastIndex],
 				// delete the existing entry and all that follow it(§5.3)
 				// raft.pdf 5.3
-				if (conflictCheck.getIndex() <= commitIndex) {
+				if (copyLog.getIndex() <= commitIndex) {
 					logger.fatal("{} truncate committed entries: {} <= {}", raft.getName(),
-							conflictCheck.getIndex(), commitIndex, new Exception());
+							copyLog.getIndex(), commitIndex, new Exception());
 					raft.fatalKill();
 				}
-				removeLogAndCancelStart(conflictCheck.getIndex(), lastIndex);
-				lastIndex = conflictCheck.getIndex() - 1;
+				truncateStart = copyLog.getIndex();
 			}
 			break;
 		}
-		// Append this and all following entries.
-		// 4. Append any new entries not already in the log
-		for (; entryIndex < r.Argument.getEntries().size(); ++entryIndex, ++copyLogIndex)
-			saveLogRaw(copyLogIndex, r.Argument.getEntries().get(entryIndex));
+		// 冲突截断（删旧日志 + 删对应 unique 存根）与新条目追加合并进同一 WriteBatch 原子提交，
+		// 仅在提交成功后更新内存 lastIndex 并取消旧 leaderAppendLogs 回调。
+		if (truncateStart >= 0 || entryIndex < r.Argument.getEntries().size()) {
+			long appendIndex = copyLogIndex;
+			//noinspection DataFlowIssue
+			try (var batch = database.borrowBatch()) {
+				if (truncateStart >= 0) {
+					for (long index = truncateStart; index <= lastIndex; index++)
+						removeLog(index, batch);
+				}
+				// 4. Append any new entries not already in the log
+				for (int i = entryIndex; i < r.Argument.getEntries().size(); ++i, ++appendIndex)
+					saveLogRaw(appendIndex, r.Argument.getEntries().get(i), batch);
+				batch.commit(writeOptions);
+			}
+			if (truncateStart >= 0) {
+				cancelLeaderAppendLogs(truncateStart, lastIndex);
+				lastIndex = truncateStart - 1;
+			}
+			copyLogIndex = appendIndex;
+		}
 
 		copyLogIndex--;
 		// 必须判断，防止本次AppendEntries都是旧的。
