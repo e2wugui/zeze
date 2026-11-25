@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 
 import harness.Fast;
@@ -91,5 +92,29 @@ public class TestStableRandomRangeOverflow {
 		for (var i = 0; i < 100; i++)
 			seen.add(r.nextLong(Long.MIN_VALUE, Long.MAX_VALUE));
 		Assertions.assertTrue(seen.size() > 10, "全宽不得退化为恒定值（修复前恒MIN），实际去重数=" + seen.size());
+	}
+
+	@Test
+	public void testRandSelectNonPositiveBounds() {
+		var r1 = new StableRandom(42);
+		var r2 = new StableRandom2(1, 2, 3, 4, 5);
+		var ret = new ArrayList<Integer>();
+
+		for (int[] pair : new int[][] {{10, 0}, {0, 0}, {10, -1}, {10, -3}, {-5, 3}, {0, 5}}) {
+			ret.clear();
+			r1.randSelect(pair[0], pair[1], ret);
+			Assertions.assertTrue(ret.isEmpty(), "StableRandom randSelect(" + pair[0] + "," + pair[1] + ") should be empty");
+			ret.clear();
+			r2.randSelect(pair[0], pair[1], ret);
+			Assertions.assertTrue(ret.isEmpty(), "StableRandom2 randSelect(" + pair[0] + "," + pair[1] + ") should be empty");
+		}
+
+		// 正常路径不受影响
+		ret.clear();
+		r1.randSelect(10, 3, ret);
+		Assertions.assertEquals(3, ret.size());
+		ret.clear();
+		r2.randSelect(10, 3, ret);
+		Assertions.assertEquals(3, ret.size());
 	}
 }

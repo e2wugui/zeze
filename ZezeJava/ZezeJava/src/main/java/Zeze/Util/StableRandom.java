@@ -236,6 +236,8 @@ public class StableRandom {
 	}
 
 	public void randSelect(int n, int m, List<Integer> ret) {
+		if (m <= 0 || n <= 0)
+			return;
 		if (m >= n) {
 			for (int j = 0; j < n; j++)
 				ret.add(j + 1);
