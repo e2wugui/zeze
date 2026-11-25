@@ -149,7 +149,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public void Replace(int writeIndex, byte [] src, int offset, int len) {
-		if (writeIndex < ReadIndex || writeIndex + len > WriteIndex) {
+		if (writeIndex < ReadIndex || len < 0 || len > WriteIndex - writeIndex) {
 			throw new IllegalStateException("Replace writeIndex=" + writeIndex + ", len=" + len
 					+ " at " + ReadIndex + '/' + WriteIndex);
 		}
@@ -164,11 +164,11 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public void EndWriteWithSize4(int saveSize) {
-		int oldWriteIndex = ReadIndex + saveSize;
-		if (oldWriteIndex + 4 > WriteIndex) {
+		if (saveSize < 0 || saveSize > WriteIndex - ReadIndex - 4) {
 			throw new IllegalStateException("EndWriteWithSize4 saveSize=" + saveSize
 					+ " at " + ReadIndex + '/' + WriteIndex);
 		}
+		int oldWriteIndex = ReadIndex + saveSize;
 		intLeHandler.set(Bytes, oldWriteIndex, WriteIndex - oldWriteIndex - 4);
 	}
 
@@ -311,8 +311,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public void EnsureWrite(int size) {
 		int newSize = WriteIndex + size;
-		if (newSize < 0 || newSize > Bytes.length) // 溢出回绕为负(或size为负)需落入toPower2的无符号上限检查抛ISE，静默跳过会让后续写抛无上下文的AIOOBE
-			growCapacity(newSize);
+		if ((size | newSize) < 0 || newSize > Bytes.length) // 溢出回绕为负或size为负需落入toPower2的无符号上限检查抛ISE，静默跳过会让后续写抛无上下文的AIOOBE
+			growCapacity(size < 0 ? size : newSize);
 	}
 
 	private void growCapacityNoCompact(int newSize) {
@@ -323,8 +323,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public void ensureWriteNoCompact(int size) {
 		int newSize = WriteIndex + size;
-		if (newSize < 0 || newSize > Bytes.length) // 同EnsureWrite：拦截溢出回绕/负size，统一由toPower2抛上限ISE
-			growCapacityNoCompact(newSize);
+		if ((size | newSize) < 0 || newSize > Bytes.length) // 同EnsureWrite：拦截溢出回绕/负size，统一由toPower2抛上限ISE
+			growCapacityNoCompact(size < 0 ? size : newSize);
 	}
 
 	@Override

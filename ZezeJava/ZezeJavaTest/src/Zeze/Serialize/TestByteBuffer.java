@@ -774,6 +774,45 @@ public class TestByteBuffer {
 		bb3.EnsureWrite(100);
 		assertTrue(bb3.Bytes.length >= 100);
 		assertEquals(0, bb3.WriteIndex);
+
+		// WriteIndex > 0 且 -WriteIndex <= size < 0：此前 WriteIndex + size 仍非负导致静默放行
+		var nonEmpty = ByteBuffer.Allocate();
+		nonEmpty.WriteInt4(1234);
+		var negEx = assertThrows(IllegalStateException.class, () -> nonEmpty.EnsureWrite(-1));
+		assertTrue(negEx.getMessage().contains("0/4"), negEx.getMessage());
+		assertThrows(IllegalStateException.class, () -> nonEmpty.EnsureWrite(-4));
+		assertThrows(IllegalStateException.class, () -> nonEmpty.ensureWriteNoCompact(-1));
+		assertThrows(IllegalStateException.class, () -> nonEmpty.Append(new byte[4], 0, -1));
+		assertEquals(4, nonEmpty.WriteIndex);
+	}
+
+	@Test
+	public void testReplaceAndEndWriteWithSize4Bounds() {
+		var bb = ByteBuffer.Allocate();
+		bb.WriteInt4(0x11223344);
+		bb.WriteInt4(0x55667788);
+		bb.ReadIndex = 2;
+
+		// Replace 拒绝负长度、整数溢出长度与越界起止
+		assertThrows(IllegalStateException.class, () -> bb.Replace(4, new byte[4], 0, -1));
+		assertThrows(IllegalStateException.class, () -> bb.Replace(4, new byte[4], 0, Integer.MAX_VALUE));
+		assertThrows(IllegalStateException.class, () -> bb.Replace(1, new byte[1], 0, 1));
+		assertThrows(IllegalStateException.class, () -> bb.Replace(9, new byte[0], 0, 0));
+		bb.Replace(4, new byte[]{1, 2}, 0, 2);
+		assertEquals(1, bb.Bytes[4]);
+		assertEquals(2, bb.Bytes[5]);
+
+		// EndWriteWithSize4 拒绝负 saveSize、溢出 saveSize 与不足 4 字节区间
+		var sized = ByteBuffer.Allocate();
+		sized.WriteInt4(0);
+		sized.ReadIndex = 2;
+		int save = sized.BeginWriteWithSize4();
+		sized.WriteByte((byte)7);
+		assertThrows(IllegalStateException.class, () -> sized.EndWriteWithSize4(-1));
+		assertThrows(IllegalStateException.class, () -> sized.EndWriteWithSize4(Integer.MAX_VALUE));
+		assertThrows(IllegalStateException.class, () -> sized.EndWriteWithSize4(sized.size() - 3));
+		sized.EndWriteWithSize4(save);
+		assertEquals(1, ByteBuffer.ToInt(sized.Bytes, sized.ReadIndex + save));
 	}
 
 	@Test
