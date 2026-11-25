@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import Zeze.Builtin.Online.BLink;
 import Zeze.Builtin.Online.Login;
 import Zeze.Builtin.Online.Logout;
 import Zeze.Builtin.Online.ReLogin;
@@ -116,6 +117,16 @@ public class TestOnlineLoginHandoff {
 	@Test
 	public void reloginRejectsCommitCallbackBeforeChangingSession() throws Exception {
 		verifyNestedRejection(true, true);
+	}
+
+	@Test
+	public void crossServerLoginDoesNotTriggerSpuriousLocalRemove() throws Exception {
+		verifyCrossServerHandoffNoSpuriousLocalRemove(false);
+	}
+
+	@Test
+	public void crossServerReloginDoesNotTriggerSpuriousLocalRemove() throws Exception {
+		verifyCrossServerHandoffNoSpuriousLocalRemove(true);
 	}
 
 	private static void verifyDirectLogin(boolean relogin) throws Exception {
@@ -322,6 +333,43 @@ public class TestOnlineLoginHandoff {
 			assertTrue(session.replies.isEmpty());
 			assertEquals(0, env.online.getLoginTimes());
 			assertActive(env, ArchOnlineTestEnv.CLIENT_ID, 1, 1);
+		}
+	}
+
+	private static void verifyCrossServerHandoffNoSpuriousLocalRemove(boolean relogin) throws Exception {
+		try (var env = new ArchOnlineTestEnv(NEXT_SERVER_ID.getAndIncrement())) {
+			var directService = new ProviderDirectService("ArchOnlineHandoff.direct", env.zeze);
+			var field = ProviderApp.class.getDeclaredField("providerDirectService");
+			field.setAccessible(true);
+			field.set(env.online.providerApp, directService);
+			try {
+				int remoteServerId = env.zeze.getConfig().getServerId() + 1000;
+				env.run("seedRemoteOnlineWithoutLocal", () -> {
+					var row = env.online.getOrAddOnline(ArchOnlineTestEnv.ACCOUNT);
+					row.setAccount(ArchOnlineTestEnv.ACCOUNT);
+					row.setLastLoginVersion(1);
+					var login = row.getLogins().getOrAdd(ArchOnlineTestEnv.CLIENT_ID);
+					login.setLoginVersion(1);
+					login.setServerId(remoteServerId);
+					login.setLink(new BLink(ArchOnlineTestEnv.LINK_NAME, 1L, AbstractOnline.eLogined));
+					return Procedure.Success;
+				});
+				var localRemoves = new AtomicInteger();
+				env.online.getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, (sender, arg) -> {
+					localRemoves.incrementAndGet();
+					return Procedure.Success;
+				});
+				var session = env.session(2, "");
+				var rpc = request(env, session, relogin, ArchOnlineTestEnv.CLIENT_ID);
+				assertEquals(Procedure.Success, invoke(env, rpc));
+				assertEquals(0, localRemoves.get(),
+						"Cross-server handoff must not fabricate local state or fire localRemoveEvents on the new server");
+				assertEquals(1, env.online.getLoginTimes());
+				assertEquals(1, session.replies.stream().filter(reply -> reply == rpc).count());
+				assertActive(env, ArchOnlineTestEnv.CLIENT_ID, 2, 2);
+			} finally {
+				directService.stop();
+			}
 		}
 	}
 

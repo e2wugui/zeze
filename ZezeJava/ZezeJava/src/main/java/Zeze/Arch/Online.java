@@ -1742,9 +1742,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			return errorCode(ResultCodeLoginSuperseded);
 
 		var online = getOrAddOnline(account);
-		var local = _tlocal.getOrAdd(account);
-		var loginLocal = local.getLogins().getOrAdd(clientId);
-		Transaction.whileCommit(() -> putLocalActiveTime(account));
 		var loginOnline = online.getLogins().getOrAdd(clientId);
 
 		var onlineAccount = online.getAccount();
@@ -1778,7 +1775,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			return Procedure.Success;
 		}
 
-		// 开始登录流程，先准备 link-state。
+		// 开始登录流程，先准备 link-state 与本服 local 记录（跨服补登出不得提前创建 _tlocal，避免误触发本服 localRemoveEvents）。
+		var local = _tlocal.getOrAdd(account);
+		var loginLocal = local.getLogins().getOrAdd(clientId);
+		Transaction.whileCommit(() -> putLocalActiveTime(account));
+
 		var loginVersionSerialId = online.getLastLoginVersion() + 1;
 		online.setLastLoginVersion(loginVersionSerialId);
 		loginOnline.setLoginVersion(loginVersionSerialId);
