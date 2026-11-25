@@ -261,21 +261,22 @@ public final class GenModule extends ReentrantLock {
 							continue;
 						} catch (ClassNotFoundException ignored) {
 						}
-					}
-					// ②冷装载：进程缓存或classpath上已存在的子类（热模块的子类在模块jar里，冷链不可见）。
-					Class<?> genClass = genClassMap.get(genClassName);
-					if (genClass == null) {
-						try {
-							genClass = Class.forName(genClassName);
-							genClassMap.put(genClassName, genClass);
-						} catch (ClassNotFoundException ignored) {
+					} else {
+						// ②冷装载：进程缓存或classpath上已存在的子类（热模块不走冷链，未命中jar直接进入③兜底编译）。
+						Class<?> genClass = genClassMap.get(genClassName);
+						if (genClass == null) {
+							try {
+								genClass = Class.forName(genClassName);
+								genClassMap.put(genClassName, genClass);
+							} catch (ClassNotFoundException ignored) {
+							}
 						}
-					}
-					if (genClass != null) {
-						// 冷类身份进程内不变，命中陈旧父类即装载器混用。
-						checkRedirectSuperclass(genClass, moduleClass, "cold cache");
-						genClasses[i] = genClass;
-						continue;
+						if (genClass != null) {
+							// 冷类身份进程内不变，命中陈旧父类即装载器混用。
+							checkRedirectSuperclass(genClass, moduleClass, "cold cache");
+							genClasses[i] = genClass;
+							continue;
+						}
 					}
 					// ③装载不命中：生成源码，收集待批量编译。
 					String code = genModuleCode(genClassName, moduleClass, overrides, userApp);

@@ -204,6 +204,49 @@ public class TestHotRedirectLoadFirst {
 		Assertions.assertNull(requireNonNull(v1).getField("marker").get(null), "旧版本实现不得再被执行");
 	}
 
+	/** 热模块jar未打包子类且冷缓存存在同名Redirect_条目时，热模块必须跳过冷缓存直接走兜底编译。 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testFallbackCompileIgnoresColdCacheEntry() throws Exception {
+		var cpDir = tempDir.resolve("cp-cold-cache");
+		var moduleBytes = compileModule("v-cold-cache", cpDir);
+		var workingDir = tempDir.resolve("work-cold-cache");
+		writeModuleJar(workingDir, Map.of("a1hot/Ahot1/ModuleAhot1.class", moduleBytes));
+		var manager = newHotManager(workingDir);
+		var hotModule = requireNonNull(manager.findHotModule(NS));
+		var moduleClass = requireNonNull(hotModule.getModuleClass());
+
+		var compiler = GenModule.instance.getCompiler();
+		compiler.useParentClassLoader(manager.getHotRedirect());
+		compiler.useOptions("-cp", cpDir + File.pathSeparator + System.getProperty("java.class.path"));
+
+		var cacheField = GenModule.class.getDeclaredField("genClassMap");
+		cacheField.setAccessible(true);
+		var genClassMap = (Map<String, Class<?>>)cacheField.get(GenModule.instance);
+		var previous = genClassMap.put(REDIRECT_CLASS, Object.class);
+		try {
+			var modules = GenModule.instance.createRedirectModules(requireNonNull(dummyApp), new Class<?>[]{moduleClass});
+			Assertions.assertNotNull(modules);
+			var service = modules[0];
+			Assertions.assertEquals(REDIRECT_CLASS, service.getClass().getName());
+			Assertions.assertSame(hotModule, service.getClass().getClassLoader(),
+					"热模块未命中jar时应直接走兜底编译并define进HotModule，不得落入冷缓存");
+			Assertions.assertSame(moduleClass, service.getClass().getSuperclass(),
+					"兜底编译的生成类必须extends热模块类");
+			Assertions.assertSame(Object.class, genClassMap.get(REDIRECT_CLASS),
+					"热模块兜底编译不得读写冷缓存");
+
+			var serverId = (int)requireNonNull(app).getConfig().getServerId();
+			service.getClass().getMethod("ping", int.class).invoke(service, serverId);
+			Assertions.assertEquals("v-cold-cache", moduleClass.getField("marker").get(null));
+		} finally {
+			if (previous == null)
+				genClassMap.remove(REDIRECT_CLASS);
+			else
+				genClassMap.put(REDIRECT_CLASS, previous);
+		}
+	}
+
 	/** 模块名是完整包前缀，不能认领仅字符串前缀相同的相邻包。 */
 	@Test
 	public void testNamespaceMatchRequiresAPackageBoundary() throws Exception {
