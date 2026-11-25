@@ -3,6 +3,8 @@ package Zeze.Transaction.Logs;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Quaternion;
+import Zeze.Serialize.Vector2;
+import Zeze.Serialize.Vector2Int;
 import Zeze.Serialize.Vector3;
 import Zeze.Serialize.Vector3Int;
 import Zeze.Serialize.Vector4;
@@ -41,13 +43,13 @@ public class LogVector3IntValue extends Log {
 	}
 
 	@Override
-	public Vector3 vector2Value() {
-		return new Vector3(value);
+	public Vector2 vector2Value() {
+		return new Vector2(value);
 	}
 
 	@Override
-	public Vector3Int vector2IntValue() {
-		return value;
+	public Vector2Int vector2IntValue() {
+		return new Vector2Int(value);
 	}
 
 	@Override

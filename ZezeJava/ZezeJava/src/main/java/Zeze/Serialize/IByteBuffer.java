@@ -471,13 +471,13 @@ public interface IByteBuffer {
 		if (type == VECTOR2)
 			return ReadVector2();
 		if (type == VECTOR3)
-			return ReadVector3();
+			return new Vector2(ReadVector3());
 		if (type == VECTOR4)
-			return ReadVector4();
+			return new Vector2(ReadVector4());
 		if (type == VECTOR2INT)
 			return new Vector2(ReadVector2Int());
 		if (type == VECTOR3INT)
-			return new Vector3(ReadVector3Int());
+			return new Vector2(ReadVector3Int());
 		if (type == FLOAT)
 			return new Vector2(ReadFloat(), 0);
 		if (type == DOUBLE)
@@ -499,7 +499,7 @@ public interface IByteBuffer {
 		if (type == VECTOR2)
 			return new Vector3(ReadVector2());
 		if (type == VECTOR4)
-			return ReadVector4();
+			return new Vector3(ReadVector4());
 		if (type == VECTOR3INT)
 			return new Vector3(ReadVector3Int());
 		if (type == VECTOR2INT)
@@ -575,13 +575,13 @@ public interface IByteBuffer {
 		if (type == VECTOR2INT)
 			return ReadVector2Int();
 		if (type == VECTOR3INT)
-			return ReadVector3Int();
+			return new Vector2Int(ReadVector3Int());
 		if (type == VECTOR2)
 			return new Vector2Int(ReadVector2());
 		if (type == VECTOR3)
-			return new Vector3Int(ReadVector3());
+			return new Vector2Int(ReadVector3());
 		if (type == VECTOR4)
-			return new Vector3Int(ReadVector4());
+			return new Vector2Int(ReadVector4());
 		if (type == INTEGER)
 			return new Vector2Int(ReadInt(), 0);
 		if (type == FLOAT)

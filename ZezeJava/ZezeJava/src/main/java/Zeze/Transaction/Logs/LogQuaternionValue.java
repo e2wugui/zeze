@@ -3,7 +3,11 @@ package Zeze.Transaction.Logs;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Quaternion;
+import Zeze.Serialize.Vector2;
+import Zeze.Serialize.Vector2Int;
+import Zeze.Serialize.Vector3;
 import Zeze.Serialize.Vector3Int;
+import Zeze.Serialize.Vector4;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 
@@ -39,18 +43,18 @@ public class LogQuaternionValue extends Log {
 	}
 
 	@Override
-	public Quaternion vector2Value() {
-		return value;
+	public Vector2 vector2Value() {
+		return new Vector2(value);
 	}
 
 	@Override
-	public Vector3Int vector2IntValue() {
-		return new Vector3Int(value);
+	public Vector2Int vector2IntValue() {
+		return new Vector2Int(value);
 	}
 
 	@Override
-	public Quaternion vector3Value() {
-		return value;
+	public Vector3 vector3Value() {
+		return new Vector3(value);
 	}
 
 	@Override
@@ -59,8 +63,8 @@ public class LogQuaternionValue extends Log {
 	}
 
 	@Override
-	public Quaternion vector4Value() {
-		return value;
+	public Vector4 vector4Value() {
+		return new Vector4(value);
 	}
 
 	@Override
