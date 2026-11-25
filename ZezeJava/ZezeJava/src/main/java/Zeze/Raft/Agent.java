@@ -4,7 +4,9 @@ import java.util.Objects;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -984,6 +986,72 @@ public final class Agent {
 		return future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
 	}
 
+	private void clearExcludedLeader(Set<String> excludeNames) {
+		mutex.lock();
+		try {
+			if (leader != null && excludeNames.contains(leader.getName()))
+				leader = null;
+		} finally {
+			mutex.unlock();
+		}
+	}
+
+	/**
+	 * 等待选出不在 {@code excludeNames} 中的新 Leader：
+	 * 先清除指向已排除节点的旧 leader 引用，优先由新 Leader 的 LeaderIs 广播经 onSetLeader 立即唤醒，
+	 * 同时以有界周期向未被排除的活跃节点探测 GetLeader 作为兜底，避免停连接后仍向旧 Leader 忙查。
+	 */
+	static @Nullable Connector waitForLeader(Agent agent, RaftConfig raftConfig,
+											 Set<String> excludeNames, long timeoutMs) {
+		if (timeoutMs <= 0) {
+			// PreVote引入后选举最坏情况多一轮，预算给两倍ElectionTimeoutMax。
+			timeoutMs = raftConfig.getLeaderHeartbeatTimer()
+					+ raftConfig.getElectionTimeoutMax() * 2L
+					+ raftConfig.getAppendEntriesTimeout();
+		}
+		var future = new TaskCompletionSource<@Nullable Connector>();
+		//noinspection DataFlowIssue
+		var netConfig = agent.getClient().getConfig();
+		agent.setOnSetLeader(_agent -> {
+			var current = _agent.getLeader();
+			if (current != null && !excludeNames.contains(current.getName()))
+				future.setResult(current.getConnector());
+		});
+		agent.clearExcludedLeader(excludeNames);
+
+		long deadline = System.currentTimeMillis() + timeoutMs;
+		int probeTimeout = (int)Math.min(raftConfig.getAppendEntriesTimeout(), 1000L);
+		while (true) {
+			if (future.isDone())
+				return future.getNow(null);
+			netConfig.forEachConnector(c -> {
+				if (excludeNames.contains(c.getName()))
+					return;
+				var socket = c.TryGetReadySocket();
+				if (socket == null)
+					return;
+				var get = new GetLeader();
+				get.Send(socket, p -> {
+					var g = (GetLeader)p;
+					if (!g.isTimeout() && g.getResultCode() == 0) {
+						var leaderId = g.Result.getLeaderId();
+						if (leaderId != null && !leaderId.isEmpty() && !excludeNames.contains(leaderId)) {
+							var found = netConfig.findConnector(leaderId);
+							if (found != null)
+								future.setResult(found);
+						}
+					}
+					return 0;
+				}, probeTimeout);
+			});
+			long remain = deadline - System.currentTimeMillis();
+			if (remain <= 0)
+				return future.getNow(null);
+			if (future.await(Math.min(remain, 500)))
+				return future.getNow(null);
+		}
+	}
+
 	public java.util.List<ConnectorProxy> getActiveSuggestMajorityConnectors() {
 		var result = new ArrayList<ConnectorProxy>();
 		for (var node : raftConfig.getNodes().values()) {
@@ -1005,12 +1073,15 @@ public final class Agent {
 	 */
 	public static @Nullable String driveOutNotSuggestMajorityLeader(RaftConfig raftConfig) {
 		var agentOut = new OutObject<Agent>();
-		var stoppeds = new ArrayList<Connector>();
+		var stoppeds = new LinkedHashSet<Connector>();
+		var stoppedNames = new HashSet<String>();
 		try {
 			var leader = waitForLeader(raftConfig, 0, agentOut);
 			if (null == leader)
 				return "no leader.";
 			var leaderNode = raftConfig.getNodes().get(leader.getName());
+			if (leaderNode == null)
+				return "unknown leader node: " + leader.getName();
 			if (leaderNode.isSuggestMajority())
 				return null;
 
@@ -1027,11 +1098,14 @@ public final class Agent {
 				if (stopServer.getResultCode() != 0)
 					return "stop server for " + leader.getName() + " error=" + IModule.getErrorCode(stopServer.getResultCode());
 				stoppeds.add(leader);
-				// 等待选举出新的Leader。
-				leader = waitForLeader(agentOut.value, raftConfig, 0);
+				stoppedNames.add(leader.getName());
+				// 等待选举出不在已停止集合内的新Leader，避免停连接后仍向旧Leader忙查。
+				leader = waitForLeader(agentOut.value, raftConfig, stoppedNames, 0);
 				if (null == leader)
 					return "no leader.";
 				leaderNode = raftConfig.getNodes().get(leader.getName());
+				if (leaderNode == null)
+					return "unknown leader node: " + leader.getName();
 			}
 			return null;
 		} catch (Exception ex) {
