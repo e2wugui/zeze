@@ -523,7 +523,8 @@ public final class Task {
 
 		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = TimeoutDiagnosable.create(timeout)) {
+			try (var ignoredHot = hotGuard.create();
+				 var ignored = TimeoutDiagnosable.create(timeout, mode == DispatchMode.Critical)) {
 				return body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
@@ -571,7 +572,8 @@ public final class Task {
 
 		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = TimeoutDiagnosable.create(timeout)) {
+			try (var ignoredHot = hotGuard.create();
+				 var ignored = TimeoutDiagnosable.create(timeout, mode == DispatchMode.Critical)) {
 				body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);

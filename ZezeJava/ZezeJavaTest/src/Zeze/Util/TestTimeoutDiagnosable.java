@@ -1,6 +1,9 @@
 package Zeze.Util;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import Zeze.Transaction.DispatchMode;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -68,5 +71,67 @@ public class TestTimeoutDiagnosable {
 		worker.join(10_000);
 		Assertions.assertFalse(worker.isAlive(), "worker必须在10秒内结束");
 		Assertions.assertFalse(worker.isInterrupted(), "close 后不得残留中断标志（毒化池线程）");
+	}
+
+	/** 端到端派发路径（submitNow/runNow）：Critical 任务必须豁免看门狗打断，Normal 对照组必须被打断。 */
+	@Test
+	public void testDispatchedCriticalExemptAndNormalInterrupted() throws Exception {
+		Task.tryInitThreadPool();
+		var criticalSubmitInterrupted = new AtomicBoolean();
+		var criticalRunInterrupted = new AtomicBoolean();
+		var criticalRunDone = new CountDownLatch(1);
+		var normalSubmitInterrupted = new AtomicBoolean();
+		var normalRunInterrupted = new AtomicBoolean();
+		var normalRunDone = new CountDownLatch(1);
+
+		var criticalFuture = TaskSpec.ofAction(() -> {
+			try {
+				for (int i = 0; i < 5; ++i)
+					Thread.sleep(500);
+			} catch (InterruptedException e) {
+				criticalSubmitInterrupted.set(true);
+			}
+		}).dispatchMode(DispatchMode.Critical).timeout(200).submitNow();
+
+		TaskSpec.ofAction(() -> {
+			try {
+				for (int i = 0; i < 5; ++i)
+					Thread.sleep(500);
+			} catch (InterruptedException e) {
+				criticalRunInterrupted.set(true);
+			} finally {
+				criticalRunDone.countDown();
+			}
+		}).dispatchMode(DispatchMode.Critical).timeout(200).runNow();
+
+		var normalFuture = TaskSpec.ofAction(() -> {
+			try {
+				for (int i = 0; i < 6; ++i)
+					Thread.sleep(500);
+			} catch (InterruptedException e) {
+				normalSubmitInterrupted.set(true);
+			}
+		}).dispatchMode(DispatchMode.Normal).timeout(200).submitNow();
+
+		TaskSpec.ofAction(() -> {
+			try {
+				for (int i = 0; i < 6; ++i)
+					Thread.sleep(500);
+			} catch (InterruptedException e) {
+				normalRunInterrupted.set(true);
+			} finally {
+				normalRunDone.countDown();
+			}
+		}).dispatchMode(DispatchMode.Normal).timeout(200).runNow();
+
+		criticalFuture.get(10, TimeUnit.SECONDS);
+		Assertions.assertTrue(criticalRunDone.await(10, TimeUnit.SECONDS), "Critical runNow 必须在10秒内结束");
+		normalFuture.get(10, TimeUnit.SECONDS);
+		Assertions.assertTrue(normalRunDone.await(10, TimeUnit.SECONDS), "Normal runNow 必须在10秒内结束");
+
+		Assertions.assertFalse(criticalSubmitInterrupted.get(), "Critical submitNow 超时不得被打断");
+		Assertions.assertFalse(criticalRunInterrupted.get(), "Critical runNow 超时不得被打断");
+		Assertions.assertTrue(normalSubmitInterrupted.get(), "Normal submitNow 超时必须被打断");
+		Assertions.assertTrue(normalRunInterrupted.get(), "Normal runNow 超时必须被打断");
 	}
 }
