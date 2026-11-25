@@ -874,6 +874,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				//noinspection DataFlowIssue
 				var newMeta = stateMachine.getBucket().getBucketMeta().copy();
 				newMeta.setRaftConfig("");
+				newMeta.getHost2Raft().clear();
 				if (!isMove)
 					newMeta.setKeyFirst(new Binary(locateIt.key()));
 				locateIt.close(); // 不跨rpc持有钉定视图

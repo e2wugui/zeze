@@ -200,6 +200,7 @@ public class MasterDatabase {
 			System.getProperty("Zeze.Dbh2.Master.SyncWrite", "false"));
 
 	private ArrayList<String> buildRaftConfig(BBucketMeta.Data bucket, ArrayList<Master.Manager> managers) throws RocksDBException {
+		bucket.getHost2Raft().clear();
 		var sbRaft = new StringBuilder();
 		sbRaft.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
 		sbRaft.append("\n");
