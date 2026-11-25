@@ -18,9 +18,14 @@ public class ProxyArgument implements Serializable {
 	public ProxyArgument() {
 	}
 
+	public ProxyArgument(String raftId, Binary rpc) {
+		this.raftId = raftId;
+		this.rpc = rpc;
+	}
+
 	public ProxyArgument(String raftId, Rpc<?, ?> rr) {
 		this.raftId = raftId;
-		this.rpc = new Binary(rr.encode());
+		this.rpc = new Binary(rr instanceof RaftRpc<?, ?> raftRpc ? raftRpc.encodeRequest() : rr.encode());
 	}
 
 	public @Nullable String getRaftName() {

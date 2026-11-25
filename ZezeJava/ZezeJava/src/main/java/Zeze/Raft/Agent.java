@@ -150,6 +150,7 @@ public final class Agent {
 
 		rpc.handle = handle;
 		rpc.setResponseHandle(p -> sendHandle(p, rpc));
+		rpc.freezeRequestState();
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 		// FND29 dbh2-02：stop后注册进pending的rpc不再有任何驱动（resendTask已取消、client/leader
@@ -248,6 +249,7 @@ public final class Agent {
 		var future = new TaskCompletionSourceX<RaftRpc<TArgument, TResult>>();
 		rpc.future = future;
 		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
+		rpc.freezeRequestState();
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 		// 同send()的FND29 dbh2-02契约：stop后注册的future无驱动路径，立即以异常终局补完成，

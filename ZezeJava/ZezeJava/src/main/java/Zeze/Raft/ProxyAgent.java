@@ -50,8 +50,9 @@ public class ProxyAgent extends Service {
 		if (null == agent)
 			return Procedure.ProviderNotExist;
 		var client = agent.getClient();
+		if (null == client)
+			return Procedure.ProviderNotExist;
 		var outFactoryHandle = new OutObject<Service.ProtocolFactoryHandle<?>>();
-		//noinspection DataFlowIssue
 		var p = Protocol.decode(client::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
 		if (null == p)
 			return Procedure.NotImplement;

@@ -20,6 +20,9 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	private long createTime;
 	private UniqueRequestId unique = new UniqueRequestId();
 	private long sendTime;
+	// 发送前冻结的初始请求码（如 AcquireFreshSource），与应答/超时线程原地回写的 resultCode/isRequest 隔离。
+	private long requestResultCode;
+	private boolean requestFrozen;
 
 	@Nullable TaskCompletionSource<RaftRpc<TArgument, TResult>> future;
 	@Nullable ToLongFunction<Protocol<?>> handle;
@@ -59,6 +62,41 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 		sendTime = value;
 	}
 
+	void freezeRequestState() {
+		requestResultCode = resultCode;
+		requestFrozen = true;
+	}
+
+	long getRequestResultCode() {
+		if (requestFrozen)
+			return requestResultCode;
+		return isRequest() && !isTimeout() ? resultCode : 0;
+	}
+
+	/**
+	 * 只读请求方向编码：始终写出 FamilyClass.RaftRequest + 请求初始码 + Argument，
+	 * 不读取会被应答/超时线程原地改写的 isRequest/resultCode/Result/resultEncoded 字段。
+	 */
+	public ByteBuffer encodeRequest() {
+		int preAllocSize = preAllocSize();
+		var bb = ByteBuffer.Allocate(Math.min(HEADER_SIZE + preAllocSize, 65536));
+		bb.WriteInt4s(getModuleId(), getProtocolId());
+		int saveSize = bb.BeginWriteWithSize4();
+		long reqCode = getRequestResultCode();
+		if (reqCode == 0)
+			bb.WriteUInt(FamilyClass.RaftRequest);
+		else {
+			bb.WriteUInt(FamilyClass.RaftRequest | FamilyClass.BitResultCode);
+			bb.WriteLong(reqCode);
+		}
+		bb.WriteLong(getSessionId());
+		unique.encode(bb);
+		bb.WriteLong(createTime);
+		Argument.encode(bb);
+		bb.EndWriteWithSize4(saveSize);
+		return bb;
+	}
+
 	@Override
 	public boolean Send(@Nullable AsyncSocket socket) {
 		// 1.
@@ -76,7 +114,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 		bridge.Argument = Argument;
 		bridge.setCreateTime(createTime);
 		bridge.setUnique(unique);
-		bridge.setResultCode(this.getResultCode());
+		bridge.setResultCode(getRequestResultCode());
 		return bridge.Send(socket, getResponseHandle(), getTimeout());
 	}
 

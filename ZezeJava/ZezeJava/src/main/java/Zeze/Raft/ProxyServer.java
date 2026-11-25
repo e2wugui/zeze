@@ -66,7 +66,10 @@ public class ProxyServer extends Service {
 		var p = Protocol.decode(server::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
 		if (null == p)
 			return Procedure.NotImplement;
-		var raftRpc = (RaftRpc<?, ?>)p;
+		if (!(p instanceof RaftRpc<?, ?> raftRpc) || !raftRpc.isRequest()) {
+			logger.warn("ProxyRequest: invalid inner protocol raftName={} protocol={}", r.Argument.getRaftName(), p);
+			return Procedure.LogicError;
+		}
 		raftRpc.setProxyRequest(r);
 
 		// 与 Raft.Server.dispatchProtocol 的预拦截对齐（直连路径有、proxy路径此前漏给）：
