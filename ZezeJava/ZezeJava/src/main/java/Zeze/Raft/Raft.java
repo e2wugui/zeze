@@ -929,6 +929,7 @@ public final class Raft {
 			logger.info("RaftState {}: Candidate->Leader", getName());
 			state = RaftState.Leader;
 			leaderId = getName(); // set to self
+			resetTimerTime();
 
 			// (Reinitialized after election)
 			var nextIndex = logSequence.getLastIndex() + 1;
@@ -970,6 +971,8 @@ public final class Raft {
 		logSequence.getSendSnapshotting().cancelAll();
 		logSequence.cancelPendingAppendLogFutures();
 		server.getConfig().forEachConnector(c -> ((Server.ConnectorEx)c).setPending(null));
+		// Leader 态期间不更新 leaderActiveTime，退位时必须刷新，避免下一个 20ms tick 立即误超时选举。
+		resetTimerTime();
 
 		switch (newState) {
 		case Follower:
@@ -985,7 +988,9 @@ public final class Raft {
 	}
 
 	public void convertStateTo(RaftState newState) throws Exception {
-		resetTimerTime();
+		// 不无条件重置 leaderActiveTime：仅 Leader->Follower 与 Candidate->Leader 重置；
+		// Follower/Candidate 收到更高任期但被拒的 RequestVote 时不得刷新选举计时，
+		// 有效 Leader 消息（AppendEntries/InstallSnapshot）与授票路径已显式刷新 leaderActiveTime。
 		// 按真值表处理所有情况。
 		switch (getState()) {
 		case Follower:
