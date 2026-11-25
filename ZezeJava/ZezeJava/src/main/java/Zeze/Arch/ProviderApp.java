@@ -201,13 +201,13 @@ public class ProviderApp extends ReentrantLock {
 			if (providerImplement instanceof ProviderWithOnline)
 				//noinspection DataFlowIssue
 				(((ProviderWithOnline)providerImplement).getOnline()).startAfter();
+			// 按启动前配置决定是否允许linkd选中（默认false即开启分配；调用过initDisableChoiceFromLinks(true)时保持禁用）。
+			setUserDisableChoice(providerService.isInitDisableChoice());
 			// 这个应该在Online.Start里面设置更合理。
 			// 但是Online有多个版本，而且跨包设置需要方法，就这里直接设置了。
 			// 是启动流程的一部分。
 			isOnlineReady = true;
 
-			// 开启link，默认开启。
-			setUserDisableChoice(false);
 			providerService.trySetLinkChoice();
 
 			startLoginQueueAgent();

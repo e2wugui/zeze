@@ -131,15 +131,19 @@ public class ProviderService extends HandshakeClient {
 		return links;
 	}
 
-	private volatile boolean disableChoice = false;
+	private volatile boolean initDisableChoice = false;
 
 	public void initDisableChoiceFromLinks(boolean value) {
 		lock();
 		try {
-			disableChoice = value;
+			initDisableChoice = value;
 		} finally {
 			unlock();
 		}
+	}
+
+	boolean isInitDisableChoice() {
+		return initDisableChoice;
 	}
 
 	public void setDisableChoiceFromLinks(boolean value) {
@@ -206,7 +210,7 @@ public class ProviderService extends HandshakeClient {
 		announce.Argument.setProviderDirectIp(Objects.requireNonNull(requireProviderApp().directIp));
 		announce.Argument.setProviderDirectPort(requireProviderApp().directPort);
 		announce.Argument.setAppVersion(requireProviderApp().zeze.getConfig().getAppVersion());
-		announce.Argument.setDisableChoice(disableChoice || requireProviderApp().isUserDisableChoice());
+		announce.Argument.setDisableChoice(!requireProviderApp().isOnlineReady() || requireProviderApp().isUserDisableChoice());
 
 		announce.Send(so);
 
