@@ -818,16 +818,24 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			var task = pollTask();
 			if (task == null)
 				return;
-			for (var mode = task.mode; ; queue.poll()) {
+			for (var mode = task.mode; ; ) {
 				if (!task.process())
 					return; // 稍后通过runNext继续执行
-				task = peekTask();
-				if (task == null)
+				var next = peekTask();
+				if (next == null)
 					return;
-				if (task.mode != mode) {
-					executeOrRollback(task, true);
+				if (next.mode != mode) {
+					executeOrRollback(next, true);
 					return;
 				}
+				// 所有权poll到后才处理：屏障完成续轮的runNext会在本驱动存活期创建第二个Dispatch
+				// （Dispatch的CAS只防同一票据重入，不防两票据并存），旧循环"loop-update盲目poll
+				// 丢弃结果+处理peek陈旧引用"在两驱动poll碰撞窗口下会双执行peek任务、永久丢失
+				// 被poll走却无人引用的头部任务（soak-20261125-1807 R4 bench挂死实锤：丢失的
+				// 屏障任务使计数永不归零）。poll返回null=并发驱动已取空并释放认领，安全退出。
+				task = pollTask();
+				if (task == null)
+					return;
 			}
 		}
 
