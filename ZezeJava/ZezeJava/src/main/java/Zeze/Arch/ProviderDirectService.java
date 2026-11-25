@@ -56,15 +56,17 @@ public class ProviderDirectService extends HandshakeBoth {
 				var conn = getConfig().findConnector(connName);
 				if (conn != null) {
 					conn.stop();
-					// 条件删除（与OnSocketClose同口径）：同serverId换地址滚动重启时，
-					// providerByServerId已指向新地址会话，无条件remove会误删新会话的注册，
+					// 条件删除（与OnSocketClose、LinkdProvider.unBindModules同口径）：同serverId换地址滚动重启时，
+					// providerByServerId与ss.localStates已指向新地址会话，无条件remove会误删新会话的路由状态，
 					// 缺失持续到下次重连。ps为null说明旧会话已自行清理，跳过即可。
 					var ps = providerByLoadName.get(connName);
 					if (ps != null) {
 						providerByLoadName.remove(connName, ps);
 						providerByServerId.remove(Integer.parseInt(pm.getServiceIdentity()), ps);
+						var oldSessionId = ps.getSessionId();
+						ss.getLocalStates().computeIfPresent(pm.getServiceIdentity(), (k, v) ->
+								v instanceof ProviderModuleState pms && pms.sessionId == oldSessionId ? null : v);
 					}
-					ss.setIdentityLocalState(pm.getServiceIdentity(), null);
 					getConfig().removeConnector(conn);
 				}
 			}

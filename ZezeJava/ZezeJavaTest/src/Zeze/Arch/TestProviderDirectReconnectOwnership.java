@@ -84,6 +84,56 @@ public class TestProviderDirectReconnectOwnership {
 	}
 
 	@Test
+	void removeOldAddressServerKeepsNewAddressLocalState() throws Exception {
+		try (var env = new Environment(true)) {
+			var first = env.connect();
+			var oldInfo = new BServiceInfo(Environment.PREFIX + Environment.MODULE,
+					Environment.REMOTE_ID_STRING, 0, "127.0.0.1", env.port);
+			assertEquals(first.getSessionId(), assertInstanceOf(ProviderModuleState.class,
+					env.subscription.getLocalStates().get(Environment.REMOTE_ID_STRING)).sessionId);
+
+			var peer2 = new HandshakeServer("DirectReconnect.peer2", (Config)null);
+			peer2.AddFactoryHandle(AnnounceProviderInfo.TypeId_, new Service.ProtocolFactoryHandle<>(
+					AnnounceProviderInfo::new, rpc -> { rpc.SendResult(); return 0; },
+					TransactionLevel.None, DispatchMode.Direct));
+			@Nullable Connector newConnector = null;
+			try {
+				var listener2 = (TcpSocket)peer2.newServerSocket("127.0.0.1", 0, null);
+				var port2 = requireNonNull(listener2.getLocalInet()).getPort();
+				var newInfo = new BServiceInfo(Environment.PREFIX + Environment.MODULE,
+						Environment.REMOTE_ID_STRING, 0, "127.0.0.1", port2);
+				env.subscription.onRegister(newInfo);
+				env.client.addServer(newInfo);
+				newConnector = requireNonNull(env.client.getConfig().findConnector("127.0.0.1_" + port2));
+				var replacement = env.nextHandshake();
+				var replacementSession = (ProviderSession)requireNonNull(replacement.getUserState());
+				assertEquals(replacement.getSessionId(), assertInstanceOf(ProviderModuleState.class,
+						env.subscription.getLocalStates().get(Environment.REMOTE_ID_STRING)).sessionId);
+
+				// 同serverId滚动重启到新端口后，旧端口下线通知不得无条件清除新会话的localState。
+				env.client.removeServer(oldInfo);
+				assertAll(
+						() -> assertFalse(replacement.isClosed(), "new address socket must stay alive"),
+						() -> assertSame(replacementSession,
+								env.client.providerByServerId.get(Environment.REMOTE_ID), "serverId route must remain"),
+						() -> assertEquals(replacement.getSessionId(), assertInstanceOf(ProviderModuleState.class,
+								env.subscription.getLocalStates().get(Environment.REMOTE_ID_STRING)).sessionId,
+								"new address localState must not be wiped by old address removeServer"));
+
+				// 当前活跃地址自身下线时，localState 仍应被正常清理。
+				env.client.removeServer(newInfo);
+				assertNull(env.subscription.getLocalStates().get(Environment.REMOTE_ID_STRING));
+			} finally {
+				if (newConnector != null) {
+					newConnector.setAutoReconnect(false);
+					newConnector.stop();
+				}
+				peer2.stop();
+			}
+		}
+	}
+
+	@Test
 	void normalReconnectGetsItsOwnSessionAndCounter() throws Exception {
 		try (var env = new Environment(true)) {
 			var first = env.connect();
