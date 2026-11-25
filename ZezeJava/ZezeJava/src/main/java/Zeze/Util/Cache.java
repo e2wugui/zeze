@@ -35,7 +35,7 @@ public class Cache {
 	private final Function<String, @Nullable CacheObject> loader;
 	private final BiFunction<String, ByteBuffer, @Nullable CacheObject> decoder;
 	private @Nullable RocksDB db;
-	private @Nullable ConcurrentLruLike<String, CacheObject> lru;
+	private volatile @Nullable ConcurrentLruLike<String, CacheObject> lru;
 	private final ScheduledFuture<?> cleanTimer;
 	// 保护原生句柄使用与关闭，以及当天清单状态；先在锁外调用用户loader/encoder，
 	// 再在锁内检查并使用DB，不能把字段快照当作句柄租约。close先在锁外排空清理timer。
@@ -240,7 +240,7 @@ public class Cache {
 
 	private void tryRemove() throws IOException, RocksDBException {
 		var lru = this.lru;
-		if (this.db == null || lru == null)
+		if (closed || lru == null)
 			return; // 已close（cancel与正在执行的任务之间的窗口），不再访问。
 		var prefix = "days_";
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
@@ -265,7 +265,16 @@ public class Cache {
 					// a month ago && not today。todayDays在锁外volatile读：陈旧无害，
 					// nowDays-days>30已排除近期文件，days!=todayDays只是对当天清单的额外保险。
 					if (nowDays - days > 30 && days != todayDays) {
-						var skipped = tryRemove(lru, file);
+						ArrayList<String> skipped;
+						try {
+							skipped = tryRemove(lru, file);
+						} catch (IllegalStateException e) {
+							return; // close 竞态：中止本轮清理，文件保留待下次重试
+						} catch (IOException e) {
+							// 单个损坏清单（如非法 Base64 行）记录日志后跳过，避免永久阻塞后续合法清单退役
+							logger.error("Cache {}: skip corrupted manifest file '{}'", name, file.getName(), e);
+							continue;
+						}
 						// 整个文件逐行处理成功后才删除清单文件，闭合其生命周期，免得已退役的清单
 						// 每天被重复读取、重复删除同一批key；若半途抛异常，异常直接冒泡到这里之上，
 						// 不会执行下面的删除，这批key的清理不会永久丢失。
@@ -296,8 +305,8 @@ public class Cache {
 						throw new IOException("invalid encoded cache manifest: " + file, e);
 					}
 				}
-				if (lru.get(id) != null) {
-					skipped.add(id); // 当前使用中的项不删除，交给调用方转移登记到当天的清单里。
+				if (lru.get(id, false) != null) {
+					skipped.add(id); // 当前使用中的项不删除，只读探查不刷新 LRU 热度，交给调用方转移登记到当天的清单里。
 					continue;
 				}
 				var key = ByteBuffer.Allocate(9);

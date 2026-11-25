@@ -61,6 +61,70 @@ public class TestCachePoisonManifest {
 		cache2.close();
 	}
 
+	@Test
+	public void testCorruptedBase64ManifestSkippedAndOtherManifestsRetired(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		var dir = tempDir.resolve("corrupted-b64-cache").toString();
+		var cache = newCache(dir, "v1");
+		try {
+			Assertions.assertNotNull(cache.get("key1"));
+			var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
+			var badDays = nowDays - 50;
+			var goodDays = nowDays - 40;
+			// 损坏的 .b64 清单（非法 Base64 行），文件名按字典序排在合法清单之前
+			Files.writeString(tempDir.resolve("corrupted-b64-cache").resolve("days_" + badDays + ".b64"),
+				"!!!not-valid-base64!!!\n");
+			Files.writeString(tempDir.resolve("corrupted-b64-cache").resolve("days_" + goodDays), "key1\n");
+			lruOf(cache).remove("key1");
+
+			Assertions.assertDoesNotThrow(() -> invokeTryRemove(cache),
+				"单个损坏 .b64 清单必须跳过，不得阻塞后续合法清单退役");
+			Assertions.assertFalse(Files.exists(tempDir.resolve("corrupted-b64-cache").resolve("days_" + goodDays)),
+				"合法过期清单必须被正常退役删除");
+			Assertions.assertTrue(Files.exists(tempDir.resolve("corrupted-b64-cache").resolve("days_" + badDays + ".b64")),
+				"损坏清单保留不删");
+		} finally {
+			cache.close();
+		}
+
+		var cache2 = newCache(dir, "v2");
+		try {
+			var obj = (Zeze.Util.TestCacheAppendTodayResume.Obj)cache2.get("key1");
+			Assertions.assertEquals("v2", requireNonNull(obj).value, "合法清单退役后 key 必须从 RocksDb 删除");
+		} finally {
+			cache2.close();
+		}
+	}
+
+	@Test
+	public void testTryRemoveDoesNotPromoteColdLruEntryToHot(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		var dir = tempDir.resolve("cold-lru-cache").toString();
+		var cache = newCache(dir, "v1");
+		try {
+			Assertions.assertNotNull(cache.get("coldKey"));
+			var lru = lruOf(cache);
+			// 手动轮转热点使 coldKey 进入非热点老节点
+			var newLruHot = ConcurrentLruLike.class.getDeclaredMethod("newLruHot");
+			newLruHot.setAccessible(true);
+			newLruHot.invoke(lru);
+			var hotBefore = TestConcurrentLruLike.lruHotOf(lru);
+			Assertions.assertFalse(hotBefore.containsKey("coldKey"), "轮转后 coldKey 应不在当前热点");
+
+			var oldDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000) - 40;
+			Files.writeString(tempDir.resolve("cold-lru-cache").resolve("days_" + oldDays), "coldKey\n");
+
+			invokeTryRemove(cache);
+
+			var hotAfter = TestConcurrentLruLike.lruHotOf(lru);
+			Assertions.assertFalse(hotAfter.containsKey("coldKey"),
+				"后台退役检查必须只读探查 LRU，不得把已冷却条目重新拉回 lruHot");
+			Assertions.assertNotNull(lru.get("coldKey", false), "内存中仍在用的条目不应被删除");
+		} finally {
+			cache.close();
+		}
+	}
+
 	/** 反射触发 private tryRemove()（等价 6:30 调度线程执行体）。 */
 	private static void invokeTryRemove(Cache cache) throws Exception {
 		var m = Cache.class.getDeclaredMethod("tryRemove");
