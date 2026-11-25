@@ -222,7 +222,7 @@ public class DatabaseMongoDb extends Database {
 		private final String name;
 		private final MongoCollection<Document> collection;
 		private final boolean isNew;
-		private boolean dropped;
+		private volatile boolean dropped;
 
 		public TableMongoDb(String name) {
 			this.name = name;

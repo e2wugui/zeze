@@ -461,7 +461,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	private final class TableSqlServer extends Database.AbstractKVTable {
 		private final String name;
 		private final boolean isNew;
-		private boolean dropped;
+		private volatile boolean dropped;
 
 		@Override
 		public DatabaseSqlServer getDatabase() {
