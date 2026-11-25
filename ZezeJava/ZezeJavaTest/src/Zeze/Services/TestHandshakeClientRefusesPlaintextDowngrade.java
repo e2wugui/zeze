@@ -1,7 +1,9 @@
 package Zeze.Services;
 
 import java.net.InetSocketAddress;
+import java.security.KeyPairGenerator;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -150,6 +152,186 @@ public class TestHandshakeClientRefusesPlaintextDowngrade {
 			}
 		} finally {
 			server.stop();
+		}
+	}
+
+	@Test
+	public void testRsaAesClientRefusesDowngradeToAnonymousDh() throws Exception {
+		Task.tryInitThreadPool();
+		var kpg = KeyPairGenerator.getInstance("RSA");
+		kpg.initialize(2048);
+		var kp = kpg.generateKeyPair();
+
+		// 服务端/MITM 下发匿名 DH 推荐（AesNoSecureIp）
+		var serverConf = new Config();
+		var ssconf = new Zeze.Net.ServiceConf();
+		ssconf.getHandshakeOptions().setEncryptType(Constant.eEncryptTypeAesNoSecureIp);
+		serverConf.getServiceConfMap().put("TestHsAnonDhServer", ssconf);
+		var server = new HandshakeServer("TestHsAnonDhServer", serverConf);
+		try {
+			var listener = (TcpSocket)server.newServerSocket(new InetSocketAddress("127.0.0.1", 0), null);
+			int port = java.util.Objects.requireNonNull(listener.getLocalInet()).getPort();
+			try {
+				final var closed = new TaskCompletionSource<@Nullable Throwable>();
+				final var handshakeDone = new AtomicBoolean();
+				// 客户端显式要求 RsaAes 认证加密
+				var clientConf = new Config();
+				var csconf = new Zeze.Net.ServiceConf();
+				csconf.getHandshakeOptions().setEncryptType(Constant.eEncryptTypeRsaAes);
+				csconf.getHandshakeOptions().setRsaPubKey(kp.getPublic());
+				clientConf.getServiceConfMap().put("TestHsRsaVictimClient", csconf);
+				var victim = new HandshakeClient("TestHsRsaVictimClient", clientConf) {
+					@Override
+					public void OnHandshakeDone(AsyncSocket so) throws Exception {
+						super.OnHandshakeDone(so);
+						handshakeDone.set(true);
+					}
+
+					@Override
+					public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
+						super.OnSocketClose(so, e);
+						closed.setResult(e);
+					}
+				};
+				try {
+					victim.newClientSocket("127.0.0.1", port, null, null);
+					var cause = closed.get(15, TimeUnit.SECONDS);
+					Assertions.assertNotNull(cause);
+					Assertions.assertTrue(chainMessage(cause).contains("authentication downgrade"),
+							() -> "expect RsaAes authentication downgrade refusal but: " + chainMessage(cause));
+					Assertions.assertFalse(handshakeDone.get(), "拒绝匿名DH降级时不得回调OnHandshakeDone");
+				} finally {
+					victim.stop();
+				}
+			} finally {
+				listener.close();
+			}
+		} finally {
+			server.stop();
+		}
+	}
+
+	@Test
+	public void testClientRefusesUnsupportedEncryptTypeRecommendation() throws Exception {
+		Task.tryInitThreadPool();
+		var serverConf = new Config();
+		var ssconf = new Zeze.Net.ServiceConf();
+		ssconf.getHandshakeOptions().setEncryptType(Constant.eEncryptTypeAesNoSecureIp);
+		serverConf.getServiceConfMap().put("TestHsUnsupportedServer", ssconf);
+		var server = new HandshakeServer("TestHsUnsupportedServer", serverConf);
+		try {
+			var listener = (TcpSocket)server.newServerSocket(new InetSocketAddress("127.0.0.1", 0), null);
+			int port = java.util.Objects.requireNonNull(listener.getLocalInet()).getPort();
+			try {
+				final var closed = new TaskCompletionSource<@Nullable Throwable>();
+				final var handshakeDone = new AtomicBoolean();
+				var clientConf = new Config();
+				var csconf = new Zeze.Net.ServiceConf();
+				csconf.getHandshakeOptions().getSupportedEncrypt().clear();
+				csconf.getHandshakeOptions().addSupportedEncrypt(Constant.eEncryptTypeRsaAes);
+				clientConf.getServiceConfMap().put("TestHsUnsupportedClient", csconf);
+				var client = new HandshakeClient("TestHsUnsupportedClient", clientConf) {
+					@Override
+					public void OnHandshakeDone(AsyncSocket so) throws Exception {
+						super.OnHandshakeDone(so);
+						handshakeDone.set(true);
+					}
+
+					@Override
+					public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
+						super.OnSocketClose(so, e);
+						closed.setResult(e);
+					}
+				};
+				try {
+					client.newClientSocket("127.0.0.1", port, null, null);
+					var cause = closed.get(15, TimeUnit.SECONDS);
+					Assertions.assertNotNull(cause);
+					Assertions.assertTrue(chainMessage(cause).contains("unsupported encryptType"),
+							() -> "expect unsupported encryptType refusal but: " + chainMessage(cause));
+					Assertions.assertFalse(handshakeDone.get());
+				} finally {
+					client.stop();
+				}
+			} finally {
+				listener.close();
+			}
+		} finally {
+			server.stop();
+		}
+	}
+
+	@Test
+	public void testDefaultDisableClientFollowsAesNoSecureIpAndRsaAes() throws Exception {
+		Task.tryInitThreadPool();
+		// 1. 默认 Disable 客户端协商 AesNoSecureIp
+		var dhServerConf = new Config();
+		var dhSconf = new Zeze.Net.ServiceConf();
+		dhSconf.getHandshakeOptions().setEncryptType(Constant.eEncryptTypeAesNoSecureIp);
+		dhServerConf.getServiceConfMap().put("TestHsCompatDhServer", dhSconf);
+		var dhServer = new HandshakeServer("TestHsCompatDhServer", dhServerConf);
+		try {
+			var listener = (TcpSocket)dhServer.newServerSocket(new InetSocketAddress("127.0.0.1", 0), null);
+			int port = java.util.Objects.requireNonNull(listener.getLocalInet()).getPort();
+			try {
+				var done = new TaskCompletionSource<Boolean>();
+				var client = new HandshakeClient("TestHsCompatDhClient", new Config()) {
+					@Override
+					public void OnHandshakeDone(AsyncSocket so) throws Exception {
+						super.OnHandshakeDone(so);
+						done.setResult(true);
+					}
+				};
+				try {
+					client.newClientSocket("127.0.0.1", port, null, null);
+					Assertions.assertTrue(done.get(15, TimeUnit.SECONDS));
+				} finally {
+					client.stop();
+				}
+			} finally {
+				listener.close();
+			}
+		} finally {
+			dhServer.stop();
+		}
+
+		// 2. 默认 Disable 客户端（配 RsaPubKey）协商 RsaAes
+		var kpg = KeyPairGenerator.getInstance("RSA");
+		kpg.initialize(2048);
+		var kp = kpg.generateKeyPair();
+		var rsaServerConf = new Config();
+		var rsaSconf = new Zeze.Net.ServiceConf();
+		rsaSconf.getHandshakeOptions().setEncryptType(Constant.eEncryptTypeRsaAes);
+		rsaSconf.getHandshakeOptions().setRsaPriKey(kp.getPrivate());
+		rsaServerConf.getServiceConfMap().put("TestHsCompatRsaServer", rsaSconf);
+		var rsaServer = new HandshakeServer("TestHsCompatRsaServer", rsaServerConf);
+		try {
+			var listener = (TcpSocket)rsaServer.newServerSocket(new InetSocketAddress("127.0.0.1", 0), null);
+			int port = java.util.Objects.requireNonNull(listener.getLocalInet()).getPort();
+			try {
+				var done = new TaskCompletionSource<Boolean>();
+				var clientConf = new Config();
+				var csconf = new Zeze.Net.ServiceConf();
+				csconf.getHandshakeOptions().setRsaPubKey(kp.getPublic());
+				clientConf.getServiceConfMap().put("TestHsCompatRsaClient", csconf);
+				var client = new HandshakeClient("TestHsCompatRsaClient", clientConf) {
+					@Override
+					public void OnHandshakeDone(AsyncSocket so) throws Exception {
+						super.OnHandshakeDone(so);
+						done.setResult(true);
+					}
+				};
+				try {
+					client.newClientSocket("127.0.0.1", port, null, null);
+					Assertions.assertTrue(done.get(15, TimeUnit.SECONDS));
+				} finally {
+					client.stop();
+				}
+			} finally {
+				listener.close();
+			}
+		} finally {
+			rsaServer.stop();
 		}
 	}
 }

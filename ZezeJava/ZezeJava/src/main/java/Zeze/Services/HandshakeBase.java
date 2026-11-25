@@ -274,6 +274,9 @@ public class HandshakeBase extends Service {
 			if (p.getSender() instanceof TcpSocket tcp && tcp.isSecurity())
 				throw new IllegalStateException("re-handshake on secured connection");
 
+			var options = getConfig().getHandshakeOptions();
+			var clientEncryptType = options.getEncryptType();
+			var serverEncryptType = p.Argument.encryptType;
 			// 服务端推荐的加密类型为Disable（明文）而客户端自身配置了
 			// 加密诉求（EncryptType!=Disable）时不得静默接受——否则"客户端要求加密"的配置被无声降级
 			// 为明文会话。检查必须在分支之前：仅压缩推荐（encryptType=Disable+compress非Disable）也走
@@ -281,12 +284,22 @@ public class HandshakeBase extends Service {
 			// 降级照样发生且全Disable分支的检查永远不触发。镜像服务端processCHandshake的回显一致性
 			// 校验（服务端拒绝encryptType不一致的CHandshake）：客户端拒绝被降级的推荐，
 			// 断连给出显式配置错误。
-			if (p.Argument.encryptType == Constant.eEncryptTypeDisable
-					&& getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable)
+			if (serverEncryptType == Constant.eEncryptTypeDisable
+					&& clientEncryptType != Constant.eEncryptTypeDisable)
 				throw new IllegalStateException(getName() + " server recommends plaintext (encryptType=Disable) but client "
-						+ "EncryptType=" + getConfig().getHandshakeOptions().getEncryptType()
+						+ "EncryptType=" + clientEncryptType
 						+ ", refusing silent downgrade (check client/server HandshakeOptions)");
-			if (p.Argument.encryptType != Constant.eEncryptTypeDisable
+			// RsaAes是唯一具备服务端身份认证的模式（用可信RsaPubKey加密会话密钥），
+			// 客户端显式要求RsaAes时不得接受匿名DH（Aes/AesNoSecureIp）或其他非RsaAes推荐，
+			// 防止主动MITM篡改SHandshake0绕过服务端认证。
+			if (clientEncryptType == Constant.eEncryptTypeRsaAes
+					&& serverEncryptType != Constant.eEncryptTypeRsaAes)
+				throw new IllegalStateException(getName() + " server recommends encryptType=" + serverEncryptType
+						+ " but client requires RsaAes, refusing authentication downgrade");
+			if (serverEncryptType != Constant.eEncryptTypeDisable
+					&& !options.isSupportedEncrypt(serverEncryptType))
+				throw new IllegalStateException(getName() + " server recommends unsupported encryptType=" + serverEncryptType);
+			if (serverEncryptType != Constant.eEncryptTypeDisable
 					|| p.Argument.compressS2c != Constant.eCompressTypeDisable
 					|| p.Argument.compressC2s != Constant.eCompressTypeDisable) {
 				startHandshake(p.Argument, Objects.requireNonNull(p.getSender()));
