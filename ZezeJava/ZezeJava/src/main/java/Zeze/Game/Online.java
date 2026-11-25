@@ -2091,12 +2091,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				&& !isPreparedLogin(roleId, session.getAccount(), expectedLogoutVersion))
 			return errorCode(ResultCodeLoginSuperseded);
 		var onlineShared = getOrAddOnlineShared(roleId);
-		var isAdd = new OutObject<>(false);
-		var local = _tlocal.getOrAdd(roleId, isAdd);
-		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
-		//noinspection DataFlowIssue
-		if (isAdd.value)
-			Transaction.whileCommit(verifyLocalCount::incrementAndGet);
 		var link = onlineShared.getLink();
 
 		var onlineAccount = onlineShared.getAccount();
@@ -2127,7 +2121,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return Procedure.Success;
 		}
 
-		// 开始登录流程，先准备 link-state。
+		// 开始登录流程，先准备本服 _tlocal 与 link-state。
+		var isAdd = new OutObject<>(false);
+		var local = _tlocal.getOrAdd(roleId, isAdd);
+		Transaction.whileCommit(() -> putLocalActiveTime(roleId));
+		//noinspection DataFlowIssue
+		if (isAdd.value)
+			Transaction.whileCommit(verifyLocalCount::incrementAndGet);
 		var loginVersion = onlineShared.getLoginVersion() + 1;
 		local.setLoginVersion(loginVersion);
 		onlineShared.setLoginVersion(loginVersion);
