@@ -2,6 +2,8 @@ package Zeze.Arch;
 
 import static java.util.Objects.requireNonNull;
 
+import java.net.SocketAddress;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.Online.BNotify;
 import Zeze.Builtin.Online.Logout;
@@ -9,13 +11,20 @@ import Zeze.Builtin.Online.ReLogin;
 import Zeze.Builtin.Online.ReliableNotifyConfirm;
 import Zeze.Builtin.Online.BLink;
 import Zeze.Builtin.Online.SReliableNotify;
+import Zeze.Builtin.Provider.Bind;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Connector;
+import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.TimeThrottle;
 import harness.Fast;
 import harness.FastServerIds;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -185,6 +194,65 @@ public class TestOnlineReliableLogout {
 				assertEquals(1, env.online.getOrAddOnline(ArchOnlineTestEnv.ACCOUNT).getLogins().size());
 				return 0;
 			});
+		}
+	}
+
+	@Test
+	public void bindDynamicRequiresLoginedState() throws Exception {
+		try (var env = new ArchOnlineTestEnv(FastServerIds.takeoverPoolNext())) {
+			var bindCount = new AtomicInteger();
+			var recordingSocket = new AsyncSocket(env.online.providerApp.providerService) {
+				@Override public Type getType() { return Type.eClient; }
+				@Override public boolean Send(Protocol<?> protocol) {
+					if (protocol instanceof Bind)
+						bindCount.incrementAndGet();
+					return true;
+				}
+				@Override public boolean Send(byte[] bytes, int offset, int length) { return true; }
+				@Override public @Nullable SocketAddress getRemoteAddress() { return null; }
+				@Override public @Nullable TimeThrottle getTimeThrottle() { return null; }
+				@Override protected void doClose(@Nullable Throwable ex, boolean gracefully) { }
+			};
+			var connector = new Connector("127.0.0.1", 0, false);
+			var socketField = Connector.class.getDeclaredField("socket");
+			socketField.setAccessible(true);
+			socketField.set(connector, recordingSocket);
+			env.online.providerApp.providerService.getLinks().put(ArchOnlineTestEnv.LINK_NAME, connector);
+
+			// 1. eLogined: 允许动态绑定并提交后下发 Bind。
+			env.seedLogin(1L, 0L, 0L);
+			var bound = new AtomicBoolean();
+			env.run("bindWhenLogined", () -> {
+				bound.set(env.online.bindDynamic(ArchOnlineTestEnv.ACCOUNT, ArchOnlineTestEnv.CLIENT_ID, 42));
+				return Procedure.Success;
+			});
+			assertTrue(bound.get(), "eLogined session must allow bindDynamic");
+			assertEquals(1, bindCount.get());
+
+			// 2. eLinkBroken: 断链会话不得返回 true 或下发 Bind。
+			env.run("linkBroken", () -> env.online.linkBroken(
+					ArchOnlineTestEnv.ACCOUNT, ArchOnlineTestEnv.CLIENT_ID, ArchOnlineTestEnv.LINK_NAME, 1L));
+			env.run("bindWhenLinkBroken", () -> {
+				assertEquals(AbstractOnline.eLinkBroken,
+						env.online.getState(ArchOnlineTestEnv.ACCOUNT, ArchOnlineTestEnv.CLIENT_ID));
+				bound.set(env.online.bindDynamic(ArchOnlineTestEnv.ACCOUNT, ArchOnlineTestEnv.CLIENT_ID, 42));
+				return Procedure.Success;
+			});
+			assertFalse(bound.get(), "eLinkBroken session must reject bindDynamic");
+			assertEquals(1, bindCount.get());
+
+			// 3. eOffline: 已登出会话不得返回 true 或下发 Bind。
+			env.seedLogin(2L, 0L, 0L);
+			var logout = env.attach(new Logout(), env.session(1L, ArchOnlineTestEnv.CLIENT_ID));
+			env.run("logout", () -> env.online.ProcessLogoutRequest(logout));
+			env.run("bindWhenOffline", () -> {
+				assertEquals(AbstractOnline.eOffline,
+						env.online.getState(ArchOnlineTestEnv.ACCOUNT, ArchOnlineTestEnv.CLIENT_ID));
+				bound.set(env.online.bindDynamic(ArchOnlineTestEnv.ACCOUNT, ArchOnlineTestEnv.CLIENT_ID, 42));
+				return Procedure.Success;
+			});
+			assertFalse(bound.get(), "eOffline session must reject bindDynamic");
+			assertEquals(1, bindCount.get());
 		}
 	}
 }

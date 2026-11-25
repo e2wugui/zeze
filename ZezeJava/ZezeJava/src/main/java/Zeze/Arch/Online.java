@@ -1927,10 +1927,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 * （与link miss同属"登记成功但未送达"的情形）。
 	 */
 	public boolean bindDynamic(String account, String clientId, int... moduleIds) {
-		var bean = getOnline(account);
-		if (null == bean)
-			return false;
-		var login = bean.getLogins().get(clientId);
+		var login = getLogin(account, clientId);
 		if (null == login)
 			return false;
 
