@@ -8,10 +8,14 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import harness.Fast;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import static org.junit.jupiter.api.Assertions.*;
@@ -94,6 +98,86 @@ public class TestFewModifyBulkBoundaries {
 				target.putAll(source);
 				assertEquals(Map.of(1, 1, 2, 2, 3, 3), target);
 			}
+		}
+	}
+
+	@Test
+	public void listRemoveIfAndSequencedRemovalsWorkAtomically() throws Exception {
+		var list = new FewModifyList<Integer>(List.of(1, 2, 3, 4, 5));
+		assertEquals(List.of(1, 2, 3, 4, 5), list.snapshot());
+		assertTrue(list.removeIf(v -> v % 2 == 0));
+		assertEquals(List.of(1, 3, 5), list.snapshot());
+		assertFalse(list.removeIf(v -> v > 10));
+
+		// 谓词中途抛异常后快照不陈旧
+		assertThrows(IllegalStateException.class, () -> list.removeIf(v -> {
+			if (v == 3)
+				throw new IllegalStateException("predicate boom");
+			return v == 1;
+		}));
+		assertEquals(List.of(1, 3, 5), list.snapshot());
+
+		assertEquals(1, list.removeFirst());
+		assertEquals(5, list.removeLast());
+		assertEquals(3, list.removeLast());
+		assertThrows(NoSuchElementException.class, list::removeFirst);
+		assertThrows(NoSuchElementException.class, list::removeLast);
+
+		// 并发 add/removeLast 仅抛 NoSuchElementException，不抛 IndexOutOfBoundsException
+		var concurrentList = new FewModifyList<Integer>();
+		var stop = new AtomicBoolean(false);
+		var unexpected = new AtomicReference<@Nullable Throwable>();
+		try (var pool = Executors.newFixedThreadPool(2)) {
+			var writer = pool.submit(() -> {
+				for (int i = 0; i < 4000 && !stop.get(); i++)
+					concurrentList.add(i);
+				stop.set(true);
+			});
+			var remover = pool.submit(() -> {
+				while (!stop.get()) {
+					try {
+						concurrentList.removeLast();
+					} catch (NoSuchElementException ignored) {
+						// empty race is valid
+					} catch (Throwable t) {
+						unexpected.compareAndSet(null, t);
+						stop.set(true);
+					}
+				}
+			});
+			writer.get(5, TimeUnit.SECONDS);
+			remover.get(5, TimeUnit.SECONDS);
+		}
+		assertNull(unexpected.get(), () -> "unexpected exception: " + unexpected.get());
+	}
+
+	@Test
+	public void mapGetOrDefaultReadsSingleConsistentSnapshotUnderConcurrentPut() throws Exception {
+		for (Map<String, String> map : List.<Map<String, String>>of(
+				new FewModifyMap<>(), new FewModifySortedMap<>())) {
+			var stop = new AtomicBoolean(false);
+			var torn = new AtomicReference<@Nullable String>();
+			try (var pool = Executors.newFixedThreadPool(2)) {
+				var writer = pool.submit(() -> {
+					for (int i = 0; i < 5000 && !stop.get(); i++) {
+						map.put("k", "val");
+						map.remove("k");
+					}
+					stop.set(true);
+				});
+				var reader = pool.submit(() -> {
+					while (!stop.get()) {
+						String v = map.getOrDefault("k", "default");
+						if (!"val".equals(v) && !"default".equals(v)) {
+							torn.compareAndSet(null, String.valueOf(v));
+							stop.set(true);
+						}
+					}
+				});
+				writer.get(5, TimeUnit.SECONDS);
+				reader.get(5, TimeUnit.SECONDS);
+			}
+			assertNull(torn.get(), () -> "getOrDefault observed torn value: " + torn.get());
 		}
 	}
 }

@@ -53,6 +53,29 @@ public class TestFewModifyNullSnapshot {
 	}
 
 	@Test
+	public void testListRemoveIfWithNullElements() {
+		var list = new FewModifyList<@Nullable String>();
+		list.add(null);
+		list.add("keep");
+		list.add(null);
+		list.add("drop");
+		Assertions.assertTrue(list.removeIf(e -> e == null || e.equals("drop")));
+		Assertions.assertEquals(java.util.List.of("keep"), list.snapshot());
+		Assertions.assertFalse(list.removeIf(e -> "missing".equals(e)));
+		Assertions.assertEquals(java.util.List.of("keep"), list.snapshot());
+	}
+
+	@Test
+	public void testMapGetOrDefaultWithNullValue() {
+		var map = new FewModifyMap<String, @Nullable String>();
+		map.put("kNull", null);
+		map.put("kVal", "v");
+		Assertions.assertNull(map.getOrDefault("kNull", "def"));
+		Assertions.assertEquals("v", map.getOrDefault("kVal", "def"));
+		Assertions.assertEquals("def", map.getOrDefault("absent", "def"));
+	}
+
+	@Test
 	public void testMapNullValueReadable() {
 		var map = new FewModifyMap<String, @Nullable String>();
 		map.put("k1", null);

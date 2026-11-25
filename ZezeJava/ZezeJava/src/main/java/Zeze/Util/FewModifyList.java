@@ -10,6 +10,7 @@ import java.util.ListIterator;
 import java.util.RandomAccess;
 import java.util.Spliterator;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import org.jspecify.annotations.Nullable;
 
@@ -91,6 +92,30 @@ public class FewModifyList<E extends @Nullable Object> implements List<E>, Rando
 		writeLock.lock();
 		try {
 			var prev = write.remove(index);
+			read = null;
+			return prev;
+		} finally {
+			writeLock.unlock();
+		}
+	}
+
+	@Override
+	public E removeFirst() {
+		writeLock.lock();
+		try {
+			var prev = write.removeFirst();
+			read = null;
+			return prev;
+		} finally {
+			writeLock.unlock();
+		}
+	}
+
+	@Override
+	public E removeLast() {
+		writeLock.lock();
+		try {
+			var prev = write.removeLast();
 			read = null;
 			return prev;
 		} finally {
@@ -231,6 +256,17 @@ public class FewModifyList<E extends @Nullable Object> implements List<E>, Rando
 		writeLock.lock();
 		try {
 			return write.retainAll(membership);
+		} finally {
+			read = null;
+			writeLock.unlock();
+		}
+	}
+
+	@Override
+	public boolean removeIf(Predicate<? super E> filter) {
+		writeLock.lock();
+		try {
+			return write.removeIf(filter);
 		} finally {
 			read = null;
 			writeLock.unlock();

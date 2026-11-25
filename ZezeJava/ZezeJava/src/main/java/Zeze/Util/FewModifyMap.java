@@ -87,6 +87,11 @@ public class FewModifyMap<K extends @Nullable Object, V extends @Nullable Object
 	}
 
 	@Override
+	public V getOrDefault(@Nullable Object key, V defaultValue) {
+		return prepareRead().getOrDefault(key, defaultValue);
+	}
+
+	@Override
 	public @Nullable V put(K key, V value) {
 		writeLock.lock();
 		try {
