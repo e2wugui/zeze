@@ -804,8 +804,11 @@ public final class Transaction {
 			}
 		}
 
-		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
+		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead) {
+			if (!holdLocks.isEmpty())
+				_unlock_start_(0, holdLocks.size());
 			return CheckResult.Success;
+		}
 
 		boolean conflict = false; // 冲突后仍继续加锁，供重试复用。
 		if (holdLocks.isEmpty()) {
@@ -884,6 +887,8 @@ public final class Transaction {
 			// 新增较小键的锁前，先释放当前及后续锁以维持锁序。
 			n = _unlock_start_(index, n);
 		}
+		if (index < n)
+			_unlock_start_(index, n);
 		return conflict ? CheckResult.Redo : CheckResult.Success;
 	}
 
