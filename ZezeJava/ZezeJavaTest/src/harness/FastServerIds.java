@@ -252,4 +252,5 @@ public final class FastServerIds {
 	public static final int TEST_REDO_SHRINK_HOLD_LOCKS_RELEASE = seg("TestRedoShrinkHoldLocksRelease", 8097, 1);
 	public static final int TEST_RELATIONAL_TABLE_WALK_GUARDS = seg("TestRelationalTableWalkGuardsAndStreaming", 8098, 1);
 	public static final int TEST_CHASHMAP_COMMIT_SIZE_SNAPSHOT = seg("TestCHashMapCommitSizeSnapshot", 8100, 3);
+	public static final int TEST_QUEUE_REMOVE_UNREGISTERS_HOT_REFS = seg("TestQueueRemoveUnregistersHotRefs", 8105, 3);
 }

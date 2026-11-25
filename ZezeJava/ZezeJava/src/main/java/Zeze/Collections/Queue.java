@@ -293,7 +293,17 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		//    重建/复用根行，均无数据损失；若已换成新包装则条件不匹配，不会误删。
 		// c) 在途调用方持有的旧Queue引用仍可用：根行不存在时读方法（poll/peek/pollNode/peekNode/
 		//    size/isEmpty/walk）一律安全返回null/0/空，add/push经getOrAddRoot重建根行。
-		Transaction.whileCommit(() -> module.queues.remove(name, this));
+		Transaction.whileCommit(() -> {
+			if (module.queues.remove(name, this)) {
+				var hotManager = module.zeze.getHotManager();
+				if (hotManager != null)
+					hotManager.removeHotBeanFactory(this);
+				for (var hotModule : hotModulesHaveDynamic) {
+					if (hotModulesHaveDynamic.remove(hotModule) != null)
+						hotModule.stopEvents.remove(onHotModuleStopRef);
+				}
+			}
+		});
 	}
 
 	/**
