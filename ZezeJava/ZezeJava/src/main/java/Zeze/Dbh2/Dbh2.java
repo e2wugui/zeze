@@ -96,6 +96,21 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			}
 		}
 
+		// 原子释放拦截队列并交由 raft 串行执行器排空：在释放 prepareQueueLock 之前提交
+		// executeUserTask，保证队列内旧请求严格先于解锁后新到的 PrepareBatch 串行执行，
+		// 且绝不在 raft.lock 线程上同步执行用户 RPC。
+		public void releasePrepareQueue() {
+			prepareQueueLock.lock();
+			try {
+				var tmp = prepareQueue;
+				prepareQueue = null;
+				if (null != tmp && !tmp.isEmpty())
+					raft.executeUserTask(() -> performPrepareQueue(tmp));
+			} finally {
+				prepareQueueLock.unlock();
+			}
+		}
+
 		@Override
 		public <P extends Protocol<?>> void dispatchRaftRpcResponse(P p, ProtocolHandle<P> responseHandle,
 																	ProtocolFactoryHandle<?> factoryHandle) {
@@ -667,6 +682,10 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		if (!raft.isLeader())
 			return;
 
+		// 换任兜底：上一任期失主前若在收尾门槛装过 prepareQueue / noTransactionHandle，
+		// 且期间已由新主完成收尾（splittingMeta==null），复选后必须释放残留屏障，防写请求永久挂死。
+		releasePrepareGate();
+
 		// 换主围栏锚点：本节点本次leader-ready时刻（driveSplitSync据此延迟replace语义的投递，
 		// 避免旧leader在途投递rpc迟到覆盖，见driveSplitSync注释）。
 		splitLeaderReadyTime = System.currentTimeMillis();
@@ -856,6 +875,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			//noinspection DataFlowIssue
 			var serialNo = manager.atomicSerialNo.incrementAndGet();
 			splitSerialNo = serialNo;
+			releasePrepareGate();
 			var bucket = Objects.requireNonNull(stateMachine.getBucket());
 			RocksIterator it = null;
 			try {
@@ -916,9 +936,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
 			}
 
-			var server = (Dbh2RaftServer)getRaft().getServer();
-			performPrepareQueue(server.takePrepareQueue());
-
 			// 同步先于复制视图（队列版不变量，dbh2-01）：事务同步的入队条件=splittingMeta!=null
 			// （apply序=日志序），复制迭代器必须在LogSetSplittingMeta apply之后钉定视图——否则
 			// （钉定,apply）窗口内apply的事务delete既不在视图（物理删除）也不在队列（meta仍null），
@@ -957,7 +974,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					Thread.sleep(20);
 				}
 				logger.info("splitting nothing to copy, go end. isMove={}", isMove);
-				blockPrepareUntilNoTransaction(isMove);
+				blockPrepareUntilNoTransaction(isMove, serialNo);
 				return;
 			}
 			if (bucket.getSplittingMeta() != null)
@@ -1021,7 +1038,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			if (puts.Argument.getPuts().isEmpty()) {
 				it.close();
 
-				blockPrepareUntilNoTransaction(isMove);
+				blockPrepareUntilNoTransaction(isMove, serialNo);
 				return 0; // split done.
 			}
 
@@ -1046,7 +1063,18 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return 0;
 	}
 
-	private void blockPrepareUntilNoTransaction(boolean isMove) {
+	private void releasePrepareGate() {
+		stateMachine.clearNoTransactionHandle();
+		((Dbh2RaftServer)getRaft().getServer()).releasePrepareQueue();
+	}
+
+	private void blockPrepareUntilNoTransaction(boolean isMove, long serialNo) {
+		if (!raft.isLeader()) {
+			releasePrepareGate();
+			return;
+		}
+		if (serialNo != splitSerialNo)
+			return;
 		//noinspection DataFlowIssue
 		var meta = stateMachine.getBucket().getBucketMeta();
 		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
@@ -1058,27 +1086,37 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		server.setupPrepareQueue();
 
 		// 设置一个超时，每秒放行一次。
-		TaskSpec.ofAction(() -> getRaft().executeUserTask(() -> consumePrepareAndBlockAgain(isMove))).scheduleNow(1000);
+		TaskSpec.ofAction(() -> getRaft().executeUserTask(() -> consumePrepareAndBlockAgain(isMove, serialNo))).scheduleNow(1000);
 
 		// 在队列中增加endSplit启动任务，先要处理完队列中的请求。
 		// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。
 		// setupHandleIfNoTransaction 将在没有进行中的事务时触发。
-		getRaft().executeUserTask(() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)));
+		getRaft().executeUserTask(() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove, serialNo)));
 	}
 
-	private void consumePrepareAndBlockAgain(boolean isMove) {
+	private void consumePrepareAndBlockAgain(boolean isMove, long serialNo) {
+		if (!raft.isLeader()) {
+			releasePrepareGate();
+			return;
+		}
+		if (serialNo != splitSerialNo)
+			return;
 		if (stateMachine.hasNoTransactionHandle()) {
 			// 还在等待事务清空，此时...
 			// 处理一下累积的Prepare请求，暂时放行一下。
 			var server = (Dbh2RaftServer)getRaft().getServer();
 			performPrepareQueue(server.takePrepareQueue());
-			blockPrepareUntilNoTransaction(isMove);
+			blockPrepareUntilNoTransaction(isMove, serialNo);
 		}
 	}
 
-	private void endSplit0(boolean isMove) {
-		if (!raft.isLeader())
-			return; // 掉主：重试链就此终止，新leader经recoverSplitting→startSplit续走全流程
+	private void endSplit0(boolean isMove, long serialNo) {
+		if (!raft.isLeader()) {
+			releasePrepareGate();
+			return; // 掉主：释放拦截队列并终止重试链，新leader经recoverSplitting→startSplit续走全流程
+		}
+		if (serialNo != splitSerialNo)
+			return;
 		//noinspection DataFlowIssue
 		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 		if (null == splittingMeta) {
@@ -1088,7 +1126,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			// 直接重排等于热自旋（已提交日志必会apply；未提交则换主后recoverSplitting自愈）。
 			logger.warn("endSplit0 wait splittingMeta apply. isMove={}", isMove);
 			TaskSpec.ofAction(() -> getRaft().executeUserTask(
-					() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)))).schedule(1000);
+					() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove, serialNo)))).schedule(1000);
 			return;
 		}
 		// 【endSplit前置条件·dbh2-01】事务同步队列必须全部送达（水位==序号）才能进入收尾：
@@ -1098,64 +1136,90 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		if (stateMachine.hasPendingSplitSync()) {
 			driveSplitSync();
 			TaskSpec.ofAction(() -> getRaft().executeUserTask(
-					() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)))).schedule(1000);
+					() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove, serialNo)))).schedule(1000);
+			return;
+		}
+		var splittingAgent = dbh2Splitting;
+		if (null == splittingAgent) {
+			releasePrepareGate();
 			return;
 		}
 		// 第一步，设置新桶的meta
-		Objects.requireNonNull(dbh2Splitting).setBucketMetaAsync(splittingMeta, (p) -> endSplit1(p, isMove));
+		splittingAgent.setBucketMetaAsync(splittingMeta, (p) -> endSplit1(p, isMove, serialNo));
 	}
 
-	private long endSplit1(Protocol<?> p, boolean isMove) {
+	private long endSplit1(Protocol<?> p, boolean isMove, long serialNo) {
+		if (!raft.isLeader()) {
+			releasePrepareGate();
+			return 0;
+		}
+		if (serialNo != splitSerialNo)
+			return 0;
+
 		var r = (SetBucketMeta)p;
 		if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied) {
 			try {
 				startSplit(isMove);
 			} catch (Exception e) {
 				logger.error("isMove={}", isMove, e);
+				releasePrepareGate();
 			}
 			return 0;
 		}
 
 		var bucket = Objects.requireNonNull(stateMachine.getBucket());
-		if (isMove) {
-			getRaft().appendLog(new LogEndMove(Objects.requireNonNull(bucket.getSplittingMeta())),
-					(raftLog, result) -> endSplit2(raftLog, result, true));
-		} else {
-			// 原子化设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
-			//noinspection DataFlowIssue
-			var from = bucket.getBucketMeta().copy();
-			var to = Objects.requireNonNull(bucket.getSplittingMeta());
-			from.setKeyLast(to.getKeyFirst());
-			getRaft().appendLog(new LogEndSplit(from, to),
-					(raftLog, result) -> endSplit2(raftLog, result, false));
+		var splittingMeta = bucket.getSplittingMeta();
+		if (null == splittingMeta) {
+			releasePrepareGate();
+			return 0;
+		}
+		try {
+			if (isMove) {
+				getRaft().appendLog(new LogEndMove(splittingMeta),
+						(raftLog, result) -> endSplit2(raftLog, result, true, serialNo));
+			} else {
+				// 原子化设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
+				//noinspection DataFlowIssue
+				var from = bucket.getBucketMeta().copy();
+				from.setKeyLast(splittingMeta.getKeyFirst());
+				getRaft().appendLog(new LogEndSplit(from, splittingMeta),
+						(raftLog, result) -> endSplit2(raftLog, result, false, serialNo));
+			}
+		} catch (Exception e) {
+			logger.warn("endSplit1 appendLog fail. isMove={}", isMove, e);
+			releasePrepareGate();
 		}
 		return 0;
 	}
 
-	private void endSplit2(RaftLog raftLog, Boolean result, boolean isMove) {
+	private void endSplit2(RaftLog raftLog, Boolean result, boolean isMove, long serialNo) {
 		if (!result) {
+			if (!raft.isLeader() || serialNo == splitSerialNo)
+				releasePrepareGate();
 			try {
 				// leaderCallback在持raft.mutex线程上执行（invokeCallback/cancelCallback），
 				// 禁止同步进入startSplit（锁序见startSplitAsync）。
-				startSplitAsync(isMove);
+				if (raft.isLeader() && serialNo == splitSerialNo)
+					startSplitAsync(isMove);
 			} catch (Exception e) {
 				logger.error("isMove={}", isMove, e);
 			}
 			return;
 		}
 
-		// 此时进入拒绝模式
-		var server = (Dbh2RaftServer)getRaft().getServer();
-		performPrepareQueue(server.takePrepareQueue());
+		// 此时进入拒绝模式：释放拦截队列并交由 executeUserTask 串行排空（不在 raft.lock 内执行用户 RPC）。
+		releasePrepareGate();
 
 		// 关闭到新桶连接。
-		try {
-			//noinspection DataFlowIssue
-			dbh2Splitting.close();
-		} catch (Exception ex) {
-			logger.error("", ex);
-		}
+		var splittingAgent = dbh2Splitting;
 		dbh2Splitting = null;
+		if (null != splittingAgent) {
+			try {
+				splittingAgent.close();
+			} catch (Exception ex) {
+				logger.error("", ex);
+			}
+		}
 
 		//noinspection DataFlowIssue
 		var meta = stateMachine.getBucket().getBucketMeta();

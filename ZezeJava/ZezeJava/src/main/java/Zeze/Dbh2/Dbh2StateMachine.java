@@ -292,6 +292,15 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
+	public void clearNoTransactionHandle() {
+		noTransactionLock.lock();
+		try {
+			noTransactionHandle = null;
+		} finally {
+			noTransactionLock.unlock();
+		}
+	}
+
 	// 门槛触发（commitBatch/undoBatch的apply尾部）：锁内摘handle后转投raft串行执行器
 	// 重新过闸（setupOneShotIfNoTransaction），不得在apply线程内联——全序化不变量：
 	// 所有门槛判定与所有PrepareBatch注册必须落在同一条FIFO序上（装载先于提交⇒拦截；
