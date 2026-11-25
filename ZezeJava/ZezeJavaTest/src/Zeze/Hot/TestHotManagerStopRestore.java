@@ -8,6 +8,12 @@ import harness.Fast;
 import harness.FastServerIds;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,8 +21,10 @@ import org.junit.jupiter.api.io.TempDir;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.Net.Service;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.CheckpointMode;
+import Zeze.Util.FewModifyMap;
 import Zeze.Util.Task;
 
 /**
@@ -127,6 +135,125 @@ public class TestHotManagerStopRestore {
 			manager.stop(); // 从未 start：无钩可撤，收尾无害
 			Assertions.assertSame(originalGuard, Task.hotGuard, "未登记者不得动全局钩");
 			manager.stop(); // 幂等
+		} finally {
+			manager.stop();
+			Task.hotGuard = originalGuard;
+		}
+	}
+
+	@Test
+	public void testStopAwaitsInFlightInstallBeforeRestoringHotGuard() throws Exception {
+		Task.tryInitThreadPool();
+		var originalGuard = Task.hotGuard;
+		var manager = newManager("drain-inflight");
+		var entered = new CountDownLatch(1);
+		var release = new CountDownLatch(1);
+		var stopError = new AtomicReference<@Nullable Throwable>();
+		try {
+			manager.start();
+			var execField = HotManager.class.getDeclaredField("installExecutor");
+			execField.setAccessible(true);
+			var installExecutor = (ExecutorService)execField.get(manager);
+			installExecutor.execute(() -> {
+				entered.countDown();
+				try {
+					release.await(10, TimeUnit.SECONDS);
+				} catch (InterruptedException ignored) {
+					Thread.currentThread().interrupt();
+				}
+			});
+			Assertions.assertTrue(entered.await(5, TimeUnit.SECONDS), "在途安装任务应已开始执行");
+
+			var stopThread = new Thread(() -> {
+				try {
+					manager.stop();
+				} catch (Throwable t) {
+					stopError.set(t);
+				}
+			}, "test-hot-stop");
+			stopThread.start();
+			Thread.sleep(150);
+
+			Assertions.assertTrue(stopThread.isAlive(), "在途安装未完成前 stop() 必须等待排空");
+			try (var guard = Task.hotGuard.create()) {
+				Assertions.assertNotSame(HotGuard.None, guard, "在途安装未排空前不得提前撤销 Task.hotGuard");
+			}
+
+			release.countDown();
+			stopThread.join(5000);
+			Assertions.assertFalse(stopThread.isAlive(), "在途安装结束后 stop() 应尽快返回");
+			Assertions.assertNull(stopError.get());
+			Assertions.assertSame(HotGuard.None, Task.hotGuard.create(), "排空完成后 Task.hotGuard 应复原为无操作哨兵");
+		} finally {
+			release.countDown();
+			manager.stop();
+			Task.hotGuard = originalGuard;
+		}
+	}
+
+	@Test
+	public void testStopClosesInterfaceJarsAndDistributeFiles() throws Exception {
+		Task.tryInitThreadPool();
+		var originalGuard = Task.hotGuard;
+		var workingDir = newHotDirs("close-jars");
+		var interfaceJar = workingDir.resolve("interfaces").resolve("Dummy.interface.jar");
+		try (var jarOut = new JarOutputStream(Files.newOutputStream(interfaceJar))) {
+			jarOut.putNextEntry(new JarEntry("dummy/InterfaceStub.class"));
+			jarOut.write(new byte[]{(byte)0xCA, (byte)0xFE, (byte)0xBA, (byte)0xBE});
+			jarOut.closeEntry();
+		}
+		var manager = new HotManager(requireNonNull(appBase), workingDir.toString(),
+				workingDir.resolve("distributes").toString());
+		try {
+			manager.start();
+			// 同时模拟一个尚未 closeAndVerify 的分布式上传文件句柄
+			manager.getDistributeManager().open("partial.bin");
+			var partialFile = workingDir.resolve("distributes").resolve("partial.bin");
+
+			var jarsField = HotManager.class.getDeclaredField("jars");
+			jarsField.setAccessible(true);
+			var jars = (FewModifyMap<?, ?>)jarsField.get(manager);
+			var entriesField = HotManager.class.getDeclaredField("zipEntries");
+			entriesField.setAccessible(true);
+			var zipEntries = (FewModifyMap<?, ?>)entriesField.get(manager);
+			Assertions.assertEquals(1, jars.size());
+			Assertions.assertEquals(1, zipEntries.size());
+
+			manager.stop();
+
+			Assertions.assertTrue(jars.isEmpty(), "stop() 后 jars 句柄缓存必须清空");
+			Assertions.assertTrue(zipEntries.isEmpty(), "stop() 后 zipEntries 索引必须清空");
+			// Windows 下若 JarFile 或 RandomAccessFile 未关闭，Files.delete 会抛 FileSystemException
+			Files.delete(interfaceJar);
+			Files.delete(partialFile);
+			Assertions.assertFalse(Files.exists(interfaceJar));
+			Assertions.assertFalse(Files.exists(partialFile));
+		} finally {
+			manager.stop();
+			Task.hotGuard = originalGuard;
+		}
+	}
+
+	@Test
+	public void testStopModuleDoesNotStopHotManagerService() throws Exception {
+		Task.tryInitThreadPool();
+		var originalGuard = Task.hotGuard;
+		var manager = newManager("stop-module-keeps-service");
+		try {
+			manager.start();
+			var serviceField = HotManager.class.getDeclaredField("hotManagerService");
+			serviceField.setAccessible(true);
+			var hotManagerService = (Service)serviceField.get(manager);
+			var stoppedField = Service.class.getDeclaredField("stopped");
+			stoppedField.setAccessible(true);
+
+			Assertions.assertFalse(stoppedField.getBoolean(hotManagerService), "start() 后发布服务应处于运行态");
+			manager.stopModule("NonExistentModule");
+			Assertions.assertFalse(stoppedField.getBoolean(hotManagerService),
+					"stopModule() 仅停止单个模块，不得误停全局 hotManagerService");
+
+			manager.stop();
+			Assertions.assertTrue(stoppedField.getBoolean(hotManagerService), "HotManager.stop() 应停止全局发布服务");
 		} finally {
 			manager.stop();
 			Task.hotGuard = originalGuard;

@@ -845,8 +845,32 @@ public class HotManager extends ClassLoader {
 			installTimer.cancel(false); // 掐断周期安装源
 		hotManagerService.stop(); // 断远程发布入口（submitInstall 的 rpc 来路）
 		installExecutor.shutdown(); // 有序排空在途/排队安装；不可 shutdownNow：安装含 checkpointRun 与回滚机制，不可安全中断
-		if (Task.hotGuard == taskHotGuard)
+		var drained = false;
+		try {
+			drained = installExecutor.awaitTermination(30, TimeUnit.SECONDS);
+			if (!drained)
+				logger.error("HotManager.stop: installExecutor did not terminate within 30s");
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			logger.warn("HotManager.stop: interrupted while awaiting installExecutor", e);
+		}
+		if (drained && Task.hotGuard == taskHotGuard)
 			Task.hotGuard = noopHotGuard;
+		distributeManager.closeAll();
+		for (var file : jars.keySet()) {
+			try {
+				closeJar(file);
+			} catch (IOException e) {
+				logger.error("HotManager.stop: closeJar {} fail", file, e);
+			}
+		}
+		for (var module : modules.values()) {
+			try {
+				module.close();
+			} catch (IOException e) {
+				logger.error("HotManager.stop: close module {} fail", module, e);
+			}
+		}
 	}
 
 	private volatile @Nullable List<String> readyLines;
@@ -910,7 +934,6 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void stopModule(String moduleName) throws Exception {
-		hotManagerService.stop();
 		var module = modules.get(moduleName);
 		if (null != module)
 			module.stop();
