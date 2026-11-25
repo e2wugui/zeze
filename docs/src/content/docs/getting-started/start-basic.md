@@ -81,10 +81,20 @@ action。常见的，除了发送协议，还有记录日志，但是日志具�
 这个辅助类用来启动一个任务。例子：TaskSpec.ofAction(()->{}).run();
 1. ofAction,ofFunc,ofProcedure... 按类型指定执行动作。
 2. call,run,runNow,schedule,scheduleNow,executeOneByOne(key)... 任务启动方式。
-3. TaskSpec.ofAction(()->{}).dispatchMode(mode)...run(); 任务创建和启动前可以设置参数。 
+3. TaskSpec.ofAction(()->{}).dispatchMode(mode)...run(); 创建和启动之间可以设置参数。 
 *. 注意，上面带Now后缀的启动方式立即执行，其他的看是否在事务中，如果在事务中，
 自动使用whileCommit。
 
 ## OnlineSpec
-## TimeSpec
+Game.Online是玩家角色在线管理器。OnlineSpec是给玩家发送协议的辅助类。
+例子：OnlineSpec.ofRole(roleId).send();
+1. ofRole,ofRoles,ofAllOnline,... 指定发送对象。
+2. send,sendNow,... 发送方法。后缀Now的立即发送，其他的事务自适应：在事务
+场景下自动whileCommit。
 
+## TimerSpec
+Timer是个持久化定时器实现，会被调度到某一个GameServer执行，如果这个
+GameServer宕机，其他GameServer会接管。由于GameServer是多进程的，
+ScheduledThreadPool的本地timer有时不合适，需要Zeze-Timer。
+例子：TimerSpec.ofDelay(delay)...
+1. ofDelay,ofCron,ofMonth,ofWeek,ofDay... 
