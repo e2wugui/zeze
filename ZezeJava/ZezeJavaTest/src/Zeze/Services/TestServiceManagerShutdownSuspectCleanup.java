@@ -17,6 +17,7 @@ import Zeze.Config;
 import Zeze.Net.Connector;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Util.Task;
+import harness.DualStackPortAllocator;
 import harness.Fast;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
@@ -34,18 +35,9 @@ import org.junit.jupiter.api.io.TempDir;
 public class TestServiceManagerShutdownSuspectCleanup {
 
 	private static int probeDualStackPort(InetAddress loop) throws Exception {
-		for (int attempt = 0; attempt < 64; ++attempt) {
-			int port;
-			try (var tcp = new ServerSocket(0, 1, loop)) {
-				port = tcp.getLocalPort();
-			}
-			try (var udp = new DatagramSocket(new InetSocketAddress(loop, port));
-					var tcp = new ServerSocket(port, 1, loop)) {
-				return port;
-			} catch (BindException ignored) {
-			}
-		}
-		throw new IllegalStateException("failed to probe free dual-stack loopback port");
+		// 发号制带外选口（harness.DualStackPortAllocator）：OS临时口派发在并行测试类高churn下
+		// 源端口同带狙击（soak-20261126-0519 R10两现，同TestId128UdpServerValidation族）。
+		return DualStackPortAllocator.probe(loop);
 	}
 
 	private static Agent newAgent(int port, int serverId, long appMainVersion) throws Exception {

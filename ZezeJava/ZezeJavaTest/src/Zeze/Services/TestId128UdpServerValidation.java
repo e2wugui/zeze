@@ -4,12 +4,10 @@ import static java.util.Objects.requireNonNull;
 
 import org.jspecify.annotations.Nullable;
 
-import java.net.BindException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +27,7 @@ import Zeze.Services.ServiceManager.Id128UdpServer;
 import Zeze.Services.ServiceManager.Tid128Cache;
 import Zeze.Util.Id128;
 import Zeze.Util.Task;
+import harness.DualStackPortAllocator;
 import harness.Fast;
 
 /**
@@ -280,20 +279,9 @@ public class TestId128UdpServerValidation {
 	public void testServiceManagerServerBindsId128UdpToConfiguredAddress(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
 		var loop = InetAddress.getLoopbackAddress();
-		int port = -1;
-		for (int attempt = 0; attempt < 64; ++attempt) {
-			int candidate;
-			try (var tcp = new ServerSocket(0, 1, loop)) {
-				candidate = tcp.getLocalPort();
-			}
-			try (var udp = new DatagramSocket(new InetSocketAddress(loop, candidate));
-					var tcp = new ServerSocket(candidate, 1, loop)) {
-				port = candidate;
-				break;
-			} catch (BindException ignored) {
-			}
-		}
-		Assertions.assertTrue(port > 0, "failed to probe free dual-stack loopback port");
+		// 发号制带外选口（harness.DualStackPortAllocator）：OS临时口派发在8路并行测试类
+		// 高churn下源端口同带狙击，64次重试全败（soak-20261125-1807 R7/20261126-0519 R2两现）。
+		int port = DualStackPortAllocator.probe(loop);
 
 		var conf = new Config();
 		var doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
