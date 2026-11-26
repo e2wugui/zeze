@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import Zeze.Builtin.Token.BGetTokenArg;
 import Zeze.Builtin.Token.BGetTokenRes;
@@ -63,8 +65,17 @@ import Zeze.Util.RocksDatabase.Table;
  * Token服务：生成/核销一次性令牌（内存SoftReference缓存+RocksDB落库），附带主题订阅广播。
  */
 public final class Token extends AbstractToken {
-	// 缓存缺失回载、迁移落库、核销删除必须共用稳定锁；TokenState锁随缓存条目更换，不能仲裁回载。
-	private final java.util.concurrent.locks.ReentrantLock tokenStoreLock = new java.util.concurrent.locks.ReentrantLock();
+	// 表级生命周期读写锁：运行期读写、迁移落库与分批清理持读锁并发执行（避免全表清理阻塞IO线程）；
+	// stop/saveDB/closeDb 持写锁排他收口，确保 native RocksDB 句柄在关闭前排空所有在飞访问。
+	private final ReentrantReadWriteLock tokenStoreLock = new ReentrantReadWriteLock();
+	// Key级分段加载锁：读锁并发下仲裁同一 token 的冷缓存回载（双检 tokenMap + DB 读取 + 回填），
+	// 防止并发 GetToken 同时回载同一 DB 副本导致一次性令牌重放核销；热路径与 NewToken 不碰本锁，
+	// 且永不与 state.lock 嵌套。
+	private static final int TOKEN_LOAD_LOCK_COUNT = 256;
+	private static final int TOKEN_LOAD_LOCK_MASK = TOKEN_LOAD_LOCK_COUNT - 1;
+	// 分批扫描与批删 RocksDB 过期行的每批上限：批间释放读锁与迭代器/WriteBatch，避免长时间阻塞停机写锁。
+	static final int CLEAN_TABLE_BATCH_SIZE = 1000;
+	private final FastLock[] tokenLoadLocks = createTokenLoadLocks();
 	private static final Logger logger = LogManager.getLogger(Token.class);
 	private static final int DEFAULT_PORT = 5003;
 	private static final int TOKEN_CHAR_USED = 62; // 10+26+26
@@ -465,20 +476,35 @@ public final class Token extends AbstractToken {
 		}
 	}
 
+	private static FastLock[] createTokenLoadLocks() {
+		var locks = new FastLock[TOKEN_LOAD_LOCK_COUNT];
+		for (int i = 0; i < locks.length; i++)
+			locks[i] = new FastLock();
+		return locks;
+	}
+
+	private FastLock tokenLoadLock(String token) {
+		int h = token.hashCode();
+		return tokenLoadLocks[(h ^ (h >>> 16)) & TOKEN_LOAD_LOCK_MASK];
+	}
+
 	private static boolean moveToDB(TokenState state, ByteBuffer bb, boolean waitLock) {
-		var storeLock = state.token.tokenStoreLock;
+		var readLock = state.token.tokenStoreLock.readLock();
 		if (waitLock)
-			storeLock.lock();
-		else if (!storeLock.tryLock())
+			readLock.lock();
+		else if (!readLock.tryLock())
 			return false;
 		try {
 			return moveToDBLocked(state, bb, waitLock);
 		} finally {
-			storeLock.unlock();
+			readLock.unlock();
 		}
 	}
 
 	private static boolean moveToDBLocked(TokenState state, ByteBuffer bb, boolean waitLock) {
+		var table = state.token.tokenMapTable;
+		if (table == null)
+			return true; // DB已关闭，放弃迁移且不再放回stateBuf重试
 		FastLock lock = null;
 		try {
 			var k = state.key.getBytes(StandardCharsets.UTF_8);
@@ -491,8 +517,7 @@ public final class Token extends AbstractToken {
 				if (System.currentTimeMillis() <= state.endTime) {
 					bb.Reset();
 					var v = state.encode(bb);
-					//noinspection DataFlowIssue
-					state.token.tokenMapTable.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+					table.put(k, 0, k.length, v.Bytes, 0, v.WriteIndex);
 				}
 				state.count = -1;
 				state.token.tokenMap.remove(state.key, state);
@@ -538,14 +563,16 @@ public final class Token extends AbstractToken {
 	// volatile：start/closeDb在锁内写，协议任务与cleanTokenMapTable线程无锁读。
 	private volatile @Nullable RocksDatabase rocksdb;
 	private volatile @Nullable Table tokenMapTable;
+	// stop()入口置位、start()清零：让分批RocksDB清理在当前批边界立即收尾，不阻塞停机等待与写锁。
+	private volatile boolean stopping;
 	private @Nullable TokenServer service;
 	// 周期守护：cleanTokenMap(1s内存扫描，state.tryLock非阻塞)进worker池；stop锁外有界等待
 	// 在飞一轮——模块锁不跨任何join（若用TimerFuture.cancel在Token锁内join，body变重后
 	// 会演化为持模块锁无界等）。
 	private final DaemonTimer cleanTokenMapDaemon = new DaemonTimer("Token.cleanTokenMap", 1000, this::cleanTokenMap);
-	// 周期守护：cleanTokenMapTableOnce(全表RocksDB迭代+批删)进worker池不占调度线程；
+	// 周期守护：cleanTokenMapTableOnce(分批RocksDB迭代+批删)进worker池不占调度线程；
 	// 逐轮delayUntilNextDaily(3,14)重对齐每日03:14（无漂移）；
-	// stop()锁外daemon.stop()有界等待在飞一轮，
+	// stop()置stopping并在锁外daemon.stop()有界等待在飞一轮（清理在当前批边界立即收尾），
 	// 超预算逃逸轮由body的catch容错（记日志，清理幂等：未删行下次03:14重扫）。
 	private final DaemonTimer cleanTokenMapTableDaemon = new DaemonTimer("Token.cleanTokenMapTable",
 			() -> Task.delayUntilNextDaily(3, 14), 0, this::cleanTokenMapTableOnce);
@@ -561,6 +588,7 @@ public final class Token extends AbstractToken {
 			if (service != null)
 				return this;
 
+			stopping = false;
 			rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "token_db"));
 			// getOrAddTable在下方回滚try块内：getOrAddTable失败时若rocksdb已赋值无人关闭，
 			// 后续每次start重复new RocksDatabase对同目录二次open——Windows下LOCK互斥每次必抛
@@ -607,6 +635,7 @@ public final class Token extends AbstractToken {
 				// 半途失败清空已建状态，否则重入检查把"未运行的服务"当已启动直接
 				// 返回this——二次start假成功，服务永不监听且清理任务未注册，
 				// getService()非null掩盖故障。
+				stopping = true;
 				cleanTokenMapDaemon.stop();
 				cleanTokenMapTableDaemon.stop();
 				if (service != null) {
@@ -637,6 +666,7 @@ public final class Token extends AbstractToken {
 	public void stop() throws Exception {
 		lock();
 		try {
+			stopping = true;
 			if (service != null) {
 				service.stop();
 				service = null;
@@ -650,7 +680,8 @@ public final class Token extends AbstractToken {
 		cleanTokenMapDaemon.stop();
 		cleanTokenMapTableDaemon.stop();
 		lock();
-		tokenStoreLock.lock();
+		var writeLock = tokenStoreLock.writeLock();
+		writeLock.lock();
 		try {
 			boolean saved = rocksdb != null || tokenMap.isEmpty();
 			if (rocksdb != null) {
@@ -662,28 +693,29 @@ public final class Token extends AbstractToken {
 				saved = saveDB();
 				if (!saved)
 					logger.error("Token.stop saveDB failed, in-memory token states may be lost.");
-				closeDb(); // 先saveDB后关库（closeDb置null两字段；可重入锁安全）
+				closeDb(); // 先saveDB后关库（closeDb置null两字段；可重入写锁安全）
 			}
 			if (saved)
 				tokenMap.clear(); // 保存失败保留内存态，后续start/stop可重试
 		} finally {
-			tokenStoreLock.unlock();
+			writeLock.unlock();
 			unlock();
 		}
 	}
 
 	public void closeDb() {
 		lock();
-		tokenStoreLock.lock();
+		var writeLock = tokenStoreLock.writeLock();
+		writeLock.lock();
 		try {
-			if (rocksdb != null) {
-				//noinspection DataFlowIssue
-				rocksdb.close();
+			var db = rocksdb;
+			if (db != null) {
+				db.close();
 				rocksdb = null;
 			}
 			tokenMapTable = null;
 		} finally {
-			tokenStoreLock.unlock();
+			writeLock.unlock();
 			unlock();
 		}
 	}
@@ -704,70 +736,119 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private void cleanTokenMapTableOnce() {
-		tokenStoreLock.lock();
-		try {
-			if (rocksdb == null || tokenMapTable == null)
-				return;
-			cleanTokenMapTableLocked();
-		} finally {
-			tokenStoreLock.unlock();
-		}
+	private record CleanBatchResult(int scanned, int deleted, byte @Nullable [] lastKey, boolean hasMore) {
 	}
 
-	private void cleanTokenMapTableLocked() {
+	private void cleanTokenMapTableOnce() {
+		cleanTokenMapTableOnce(CLEAN_TABLE_BATCH_SIZE);
+	}
+
+	void cleanTokenMapTableOnce(int batchSize) {
+		if (batchSize <= 0)
+			throw new IllegalArgumentException("batchSize <= 0: " + batchSize);
+		if (stopping || rocksdb == null || tokenMapTable == null)
+			return;
 		logger.info("cleanTokenMapTable: begin ...");
-		var now = System.currentTimeMillis();
+		var startTime = System.currentTimeMillis();
 		var bb = ByteBuffer.Wrap(ByteBuffer.Empty);
-		long n = 0, d = 0;
-		// newBatch用try-with-resources包住（对齐saveDB）——WriteBatch持有native内存，
-		// 不close的话周期任务逐次泄漏累积。
-		//noinspection DataFlowIssue
-		try (var batch = rocksdb.newBatch()) {
-			//noinspection DataFlowIssue
-			try (var it = tokenMapTable.iterator()) {
-				for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
-					try {
-						bb.wraps(it.value());
-						if (TokenState.decodeEndTime(bb) < now) {
-							//noinspection DataFlowIssue
-							tokenMapTable.delete(batch, it.key());
-							d++;
-						}
-						n++;
-					} catch (Exception e) {
-						logger.warn("cleanTokenMapTable exception:", e);
-					}
-					if (Thread.interrupted())
+		long scannedTotal = 0, deletedTotal = 0;
+		byte @Nullable [] resumeKey = null;
+		var readLock = tokenStoreLock.readLock();
+		try {
+			while (!stopping && !Thread.currentThread().isInterrupted()) {
+				readLock.lock();
+				try {
+					var db = rocksdb;
+					var table = tokenMapTable;
+					if (stopping || db == null || table == null || db.isClosing() || table.isDestroyPending())
 						break;
+					var result = cleanTokenMapTableBatch(db, table, bb, resumeKey, batchSize, System.currentTimeMillis());
+					scannedTotal += result.scanned;
+					deletedTotal += result.deleted;
+					if (!result.hasMore)
+						break;
+					resumeKey = result.lastKey;
+				} finally {
+					readLock.unlock();
 				}
-				batch.commit();
 			}
 		} catch (Exception e) {
 			logger.error("cleanTokenMapTable exception:", e);
 		} finally {
-			logger.info("cleanTokenMapTable: {} => {} ({} ms)", n, n - d, System.currentTimeMillis() - now);
+			logger.info("cleanTokenMapTable: {} => {} ({} ms)",
+					scannedTotal, scannedTotal - deletedTotal, System.currentTimeMillis() - startTime);
 		}
 	}
 
+	private CleanBatchResult cleanTokenMapTableBatch(RocksDatabase db, Table table, ByteBuffer bb,
+													 byte @Nullable [] resumeKey, int batchSize, long now)
+			throws Exception {
+		int scanned = 0;
+		int deleted = 0;
+		byte @Nullable [] lastKey = null;
+		boolean hasMore = false;
+		RocksDatabase.Batch batch = null;
+		try (var it = table.iterator()) {
+			if (resumeKey == null)
+				it.seekToFirst();
+			else {
+				it.seek(resumeKey);
+				if (RocksDatabase.isValidOrThrow(it) && Arrays.equals(it.key(), resumeKey))
+					it.next();
+			}
+			while (scanned < batchSize && RocksDatabase.isValidOrThrow(it)) {
+				var key = it.key();
+				lastKey = key;
+				try {
+					bb.wraps(it.value());
+					if (TokenState.decodeEndTime(bb) < now) {
+						if (batch == null)
+							batch = db.newBatch();
+						table.delete(batch, key);
+						deleted++;
+					}
+				} catch (Exception e) {
+					logger.warn("cleanTokenMapTable exception:", e);
+				}
+				scanned++;
+				it.next();
+				if (stopping || Thread.currentThread().isInterrupted())
+					break;
+			}
+			if (batch != null)
+				batch.commit();
+			if (scanned == batchSize && !stopping && !Thread.currentThread().isInterrupted()
+					&& RocksDatabase.isValidOrThrow(it))
+				hasMore = true;
+		} finally {
+			if (batch != null)
+				batch.close();
+		}
+		return new CleanBatchResult(scanned, deleted, lastKey, hasMore);
+	}
+
 	private boolean saveDB() {
-		tokenStoreLock.lock();
+		var writeLock = tokenStoreLock.writeLock();
+		writeLock.lock();
 		try {
 			return saveDBLocked();
 		} finally {
-			tokenStoreLock.unlock();
+			writeLock.unlock();
 		}
 	}
 
 	private boolean saveDBLocked() {
+		var db = rocksdb;
+		var table = tokenMapTable;
+		if (db == null || table == null)
+			return false;
 		logger.info("saveDB begin ...");
 		try {
 			var timeBegin = System.nanoTime();
 			long n = 0;
 			var saved = new java.util.ArrayList<TokenState>();
 			var bb = ByteBuffer.Allocate(32);
-			//noinspection DataFlowIssue
-			try (var batch = rocksdb.newBatch()) {
+			try (var batch = db.newBatch()) {
 				var now = System.currentTimeMillis();
 				for (var state : tokenMap.values()) {
 					var k = state.key.getBytes(StandardCharsets.UTF_8);
@@ -777,8 +858,7 @@ public final class Token extends AbstractToken {
 							if (now <= state.endTime) {
 								bb.Reset();
 								var v = state.encode(bb);
-								//noinspection DataFlowIssue
-								tokenMapTable.put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
+								table.put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
 							}
 							saved.add(state);
 							n++;
@@ -809,7 +889,8 @@ public final class Token extends AbstractToken {
 
 	@Override
 	protected long ProcessNewTokenRequest(Zeze.Builtin.Token.NewToken r) {
-		tokenStoreLock.lock();
+		var readLock = tokenStoreLock.readLock();
+		readLock.lock();
 		try {
 			if (tokenMapTable == null) {
 				r.SendResultCode(-1);
@@ -817,7 +898,7 @@ public final class Token extends AbstractToken {
 			}
 			return newTokenLocked(r);
 		} finally {
-			tokenStoreLock.unlock();
+			readLock.unlock();
 		}
 	}
 
@@ -856,18 +937,20 @@ public final class Token extends AbstractToken {
 
 	@Override
 	protected long ProcessGetTokenRequest(Zeze.Builtin.Token.GetToken r) {
-		tokenStoreLock.lock();
+		var readLock = tokenStoreLock.readLock();
+		readLock.lock();
 		try {
 			return getTokenLocked(r);
 		} finally {
-			tokenStoreLock.unlock();
+			readLock.unlock();
 		}
 	}
 
 	private long getTokenLocked(Zeze.Builtin.Token.GetToken r) {
 		var arg = r.Argument;
 		var res = r.Result;
-		if (tokenMapTable == null) {
+		var table = tokenMapTable;
+		if (table == null) {
 			res.setTime(-3);
 			r.SendResultCode(0);
 			return Procedure.Success;
@@ -877,17 +960,7 @@ public final class Token extends AbstractToken {
 		for (; ; ) {
 			var state = tokenMap.get(token);
 			if (state == null) {
-				try {
-					// tokenStoreLock把DB使用与closeDb串行；启动前/关闭后不访问native句柄。
-					var table = tokenMapTable;
-					if (table != null) {
-						var v = table.get(token.getBytes(StandardCharsets.UTF_8));
-						if (v != null)
-							state = tokenMap.computeIfAbsent(token, t -> new TokenState(this, t, ByteBuffer.Wrap(v)));
-					}
-				} catch (Exception e) {
-					logger.warn("tokenMapTable.get exception:", e);
-				}
+				state = loadTokenFromDbLocked(table, token);
 				if (state == null) {
 					res.setTime(-1);
 					r.SendResultCode(0);
@@ -907,28 +980,23 @@ public final class Token extends AbstractToken {
 					res.setTime(-2);
 				} else {
 					count++;
-					{
-						if (maxCount > 0 && count >= maxCount) {
-							// 删除成功后才发布核销结果；失败保留原计数，客户端可以重试，不能返回一次成功消费。
-							try {
-								var table = tokenMapTable;
-								if (table == null)
-									throw new IllegalStateException("token store closed");
-								table.delete(token.getBytes(StandardCharsets.UTF_8));
-							} catch (Exception e) {
-								logger.warn("tokenMapTable.delete on consume exception:", e);
-								res.setTime(-3);
-								r.SendResultCode(0);
-								return Procedure.Success;
-							}
-							state.count = -1;
-							tokenMap.remove(token, state);
-						} else
-							state.count = count;
-						res.setContext(state.context);
-						res.setCount(count);
-						res.setTime(time - state.createTime);
-					}
+					if (maxCount > 0 && count >= maxCount) {
+						// 删除成功后才发布核销结果；失败保留原计数，客户端可以重试，不能返回一次成功消费。
+						try {
+							table.delete(token.getBytes(StandardCharsets.UTF_8));
+						} catch (Exception e) {
+							logger.warn("tokenMapTable.delete on consume exception:", e);
+							res.setTime(-3);
+							r.SendResultCode(0);
+							return Procedure.Success;
+						}
+						state.count = -1;
+						tokenMap.remove(token, state);
+					} else
+						state.count = count;
+					res.setContext(state.context);
+					res.setCount(count);
+					res.setTime(time - state.createTime);
 				}
 			} finally {
 				state.lock.unlock();
@@ -936,6 +1004,27 @@ public final class Token extends AbstractToken {
 			res.setAddr(state.getRemoteAddr());
 			r.SendResultCode(0);
 			return Procedure.Success;
+		}
+	}
+
+	private @Nullable TokenState loadTokenFromDbLocked(Table table, String token) {
+		var loadLock = tokenLoadLock(token);
+		loadLock.lock();
+		try {
+			var state = tokenMap.get(token);
+			if (state != null) {
+				state.get(); // touch SoftReference
+				return state;
+			}
+			var v = table.get(token.getBytes(StandardCharsets.UTF_8));
+			if (v == null)
+				return null;
+			return tokenMap.computeIfAbsent(token, t -> new TokenState(this, t, ByteBuffer.Wrap(v)));
+		} catch (Exception e) {
+			logger.warn("tokenMapTable.get exception:", e);
+			return null;
+		} finally {
+			loadLock.unlock();
 		}
 	}
 
