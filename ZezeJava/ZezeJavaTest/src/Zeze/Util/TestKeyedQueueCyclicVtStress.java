@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import harness.Fast;
 import java.util.ArrayList;
 import java.util.List;
@@ -160,16 +161,25 @@ public class TestKeyedQueueCyclicVtStress {
 			stop.await(5, TimeUnit.SECONDS);
 			stop.countDown();
 			submitter.join(5000);
-			// 排空在飞任务：等计数稳定（连续两采样一致）
+			// 排空判据=队列清空+计数双稳定（soak-20261126-0519批R3/R4/R5红教训：百万级积压下
+			// 仅等计数稳定会在排空途中误断"丢失"——差距4%~63%波动即积压未排空假象）。
+			// 队列非空超时=真楔死（另一失败形态）；队列空但计数不等=真丢失/重复（产品侧红）。
 			long lastPlain = -1;
 			int lastBarrier = -1;
-			for (int i = 0; i < 100; i++) {
+			boolean drained = false;
+			for (int i = 0; i < 1200; i++) {
 				Thread.sleep(100);
-				if (plainExecuted.get() == lastPlain && barrierBodies.get() == lastBarrier)
+				var qs = queue.getQueueSize(0);
+				if (qs == 0 && plainExecuted.get() == lastPlain && barrierBodies.get() == lastBarrier) {
+					drained = true;
 					break;
+				}
 				lastPlain = plainExecuted.get();
 				lastBarrier = barrierBodies.get();
 			}
+			assertEquals(0, queue.getQueueSize(0), "queue not drained (wedged): residual="
+					+ queue.getQueueSize(0));
+			assertTrue(drained, "drain wait timed out");
 			assertEquals(plainSubmitted.get(), plainExecuted.get(), "plain tasks lost or duplicated");
 			assertEquals(barrierCalls.get(), barrierBodies.get(), "barrier bodies lost or duplicated");
 		} finally {
