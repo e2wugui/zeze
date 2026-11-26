@@ -125,6 +125,18 @@ public class TestAchillesHeelDaemonReleaseRange {
 		return new Application(name, config);
 	}
 
+	// 两分片保活计数等待式断言：daemon循环对同一agent先startRelease（开latch）后keepAlive（ka++），
+	// latch通过后立即读计数会落在两语句的调度间隙里（满载GC/抢占拉宽间隙，累计3现裸断言红）。
+	// 轮询至两分片均>0，有界超时；超时=真红（keepAlive每tick必调，1s tick下5s预算足够宽裕）。
+	private static void assertKeepAliveAttempted(AtomicInteger ka0, AtomicInteger ka1) throws InterruptedException {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		while (ka0.get() <= 0 || ka1.get() <= 0) {
+			if (System.nanoTime() - deadline > 0)
+				Assertions.fail("两分片保活均应被继续尝试 ka0=" + ka0.get() + " ka1=" + ka1.get());
+			Thread.sleep(50);
+		}
+	}
+
 	private static GlobalAgentBase newStubAgent(Application app, boolean failKeepAlive,
 												boolean failCheckRelease, CountDownLatch releaseLatch,
 												AtomicInteger keepAliveCalls) {
@@ -175,7 +187,7 @@ public class TestAchillesHeelDaemonReleaseRange {
 				"ThreadDaemon 中 agent0.keepAlive 抛异常不得阻断 agent0.startRelease");
 		Assertions.assertTrue(release1.await(5, TimeUnit.SECONDS),
 				"ThreadDaemon 中 agent0.keepAlive 抛异常不得阻断 agent1.startRelease");
-		Assertions.assertTrue(ka0.get() > 0 && ka1.get() > 0, "两分片保活均应被继续尝试");
+		assertKeepAliveAttempted(ka0, ka1);
 	}
 
 	@Test
@@ -217,6 +229,6 @@ public class TestAchillesHeelDaemonReleaseRange {
 				"ProcessDaemon 中 agent0.keepAlive 抛异常不得阻断 agent0.startRelease");
 		Assertions.assertTrue(release1.await(5, TimeUnit.SECONDS),
 				"ProcessDaemon 中 agent0.keepAlive 抛异常不得阻断 agent1.startRelease");
-		Assertions.assertTrue(ka0.get() > 0 && ka1.get() > 0, "两分片保活均应被继续尝试");
+		assertKeepAliveAttempted(ka0, ka1);
 	}
 }
