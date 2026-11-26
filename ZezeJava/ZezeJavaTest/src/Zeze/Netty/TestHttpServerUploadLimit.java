@@ -166,8 +166,12 @@ public class TestHttpServerUploadLimit {
 		localServer.setWriteIdleTimeout(2);
 		localServer.setMaxUploadSize(4096);
 		var began = new CountDownLatch(1);
-		var ended = new CountDownLatch(1);
+		var aborted = new CountDownLatch(1);
 		var channelRef = new AtomicReference<@Nullable Channel>();
+		var endStreamCount = new AtomicInteger();
+		var abortRequestCount = new AtomicInteger();
+		var abortSawAbortedFlag = new AtomicReference<@Nullable Boolean>();
+		var abortSawNullAttr = new AtomicReference<@Nullable Boolean>();
 		var fileCompletedCount = new AtomicInteger();
 		var endRequestCount = new AtomicInteger();
 		localServer.addHandler("/file-limit", TransactionLevel.None, DispatchMode.Normal, new HttpFileUploadHandle() {
@@ -180,11 +184,16 @@ public class TestHttpServerUploadLimit {
 
 			@Override
 			public void onEndStream(HttpExchange x) throws Exception {
-				try {
-					HttpFileUploadHandle.super.onEndStream(x);
-				} finally {
-					ended.countDown();
-				}
+				endStreamCount.incrementAndGet();
+				HttpFileUploadHandle.super.onEndStream(x);
+			}
+
+			@Override
+			public void onAbortRequest(HttpExchange x) {
+				abortSawAbortedFlag.set(x.isStreamAborted());
+				abortSawNullAttr.set(x.channel().attr(HttpFileUploadHandle.fileUploadKey).get() == null);
+				abortRequestCount.incrementAndGet();
+				aborted.countDown();
 			}
 
 			@Override
@@ -204,7 +213,11 @@ public class TestHttpServerUploadLimit {
 			var res = sendRawUntilClose(localPort, raw);
 			Assertions.assertTrue(res.startsWith("HTTP/1.1 413"), res);
 			Assertions.assertTrue(began.await(10, TimeUnit.SECONDS), "onBeginStream须已执行");
-			Assertions.assertTrue(ended.await(10, TimeUnit.SECONDS), "onEndStream资源清理须已执行");
+			Assertions.assertTrue(aborted.await(10, TimeUnit.SECONDS), "onAbortRequest资源清理须已执行");
+			Assertions.assertEquals(0, endStreamCount.get(), "413中止上传不得触发onEndStream");
+			Assertions.assertEquals(1, abortRequestCount.get(), "413中止上传须触发一次onAbortRequest");
+			Assertions.assertEquals(Boolean.TRUE, abortSawAbortedFlag.get(), "onAbortRequest时isStreamAborted须为true");
+			Assertions.assertEquals(Boolean.TRUE, abortSawNullAttr.get(), "onAbortRequest前须已释放MixedFileUpload");
 			Assertions.assertEquals(0, fileCompletedCount.get(), "413中止上传不得触发onFileCompleted");
 			Assertions.assertEquals(0, endRequestCount.get(), "413中止上传不得触发onEndRequest");
 			var ch = requireNonNull(channelRef.get());
@@ -223,8 +236,10 @@ public class TestHttpServerUploadLimit {
 		localServer.setReadIdleTimeout(1);
 		localServer.setWriteIdleTimeout(2);
 		var rawBegan = new CountDownLatch(1);
-		var rawEnded = new CountDownLatch(1);
+		var rawAborted = new CountDownLatch(1);
 		var rawChannel = new AtomicReference<@Nullable Channel>();
+		var rawEndStream = new AtomicInteger();
+		var rawAbortRequest = new AtomicInteger();
 		var rawCompleted = new AtomicInteger();
 		var rawEndRequest = new AtomicInteger();
 		localServer.addHandler("/raw-cut", TransactionLevel.None, DispatchMode.Normal, new HttpFileUploadHandle() {
@@ -237,11 +252,14 @@ public class TestHttpServerUploadLimit {
 
 			@Override
 			public void onEndStream(HttpExchange x) throws Exception {
-				try {
-					HttpFileUploadHandle.super.onEndStream(x);
-				} finally {
-					rawEnded.countDown();
-				}
+				rawEndStream.incrementAndGet();
+				HttpFileUploadHandle.super.onEndStream(x);
+			}
+
+			@Override
+			public void onAbortRequest(HttpExchange x) {
+				rawAbortRequest.incrementAndGet();
+				rawAborted.countDown();
 			}
 
 			@Override
@@ -256,8 +274,10 @@ public class TestHttpServerUploadLimit {
 		});
 
 		var mpBegan = new CountDownLatch(1);
-		var mpEnded = new CountDownLatch(1);
+		var mpAborted = new CountDownLatch(1);
 		var mpChannel = new AtomicReference<@Nullable Channel>();
+		var mpEndStream = new AtomicInteger();
+		var mpAbortRequest = new AtomicInteger();
 		var mpCompleted = new AtomicInteger();
 		var mpEndRequest = new AtomicInteger();
 		localServer.addHandler("/mp-cut", TransactionLevel.None, DispatchMode.Normal, new HttpMultipartHandle() {
@@ -270,11 +290,14 @@ public class TestHttpServerUploadLimit {
 
 			@Override
 			public void onEndStream(HttpExchange x) throws Exception {
-				try {
-					HttpMultipartHandle.super.onEndStream(x);
-				} finally {
-					mpEnded.countDown();
-				}
+				mpEndStream.incrementAndGet();
+				HttpMultipartHandle.super.onEndStream(x);
+			}
+
+			@Override
+			public void onAbortRequest(HttpExchange x) {
+				mpAbortRequest.incrementAndGet();
+				mpAborted.countDown();
 			}
 
 			@Override
@@ -299,7 +322,9 @@ public class TestHttpServerUploadLimit {
 				os.flush();
 				Assertions.assertTrue(rawBegan.await(10, TimeUnit.SECONDS), "raw onBeginStream须已执行");
 			}
-			Assertions.assertTrue(rawEnded.await(10, TimeUnit.SECONDS), "raw断连中止后须清理资源");
+			Assertions.assertTrue(rawAborted.await(10, TimeUnit.SECONDS), "raw断连中止后须触发onAbortRequest并清理资源");
+			Assertions.assertEquals(0, rawEndStream.get(), "raw断连中止不得触发onEndStream");
+			Assertions.assertEquals(1, rawAbortRequest.get(), "raw断连中止须触发一次onAbortRequest");
 			Assertions.assertEquals(0, rawCompleted.get(), "raw断连中止不得触发onFileCompleted");
 			Assertions.assertEquals(0, rawEndRequest.get(), "raw断连中止不得触发onEndRequest");
 			Assertions.assertNull(requireNonNull(rawChannel.get()).attr(HttpFileUploadHandle.fileUploadKey).get(),
@@ -315,7 +340,9 @@ public class TestHttpServerUploadLimit {
 				os.flush();
 				Assertions.assertTrue(mpBegan.await(10, TimeUnit.SECONDS), "multipart onBeginStream须已执行");
 			}
-			Assertions.assertTrue(mpEnded.await(10, TimeUnit.SECONDS), "multipart断连中止后须清理资源");
+			Assertions.assertTrue(mpAborted.await(10, TimeUnit.SECONDS), "multipart断连中止后须触发onAbortRequest并清理资源");
+			Assertions.assertEquals(0, mpEndStream.get(), "multipart断连中止不得触发onEndStream");
+			Assertions.assertEquals(1, mpAbortRequest.get(), "multipart断连中止须触发一次onAbortRequest");
 			Assertions.assertEquals(0, mpCompleted.get(), "multipart断连中止不得触发onFileCompleted");
 			Assertions.assertEquals(0, mpEndRequest.get(), "multipart断连中止不得触发onEndRequest");
 			Assertions.assertNull(requireNonNull(mpChannel.get()).attr(HttpMultipartHandle.decoderKey).get(),

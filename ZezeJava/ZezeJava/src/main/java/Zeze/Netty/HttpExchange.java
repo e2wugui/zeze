@@ -88,7 +88,7 @@ import Zeze.Netty.HttpSession.CookieSession;
  * handler派发、响应写出与资源回收。响应写的唯一入口是内部的writeResponse——HTTP/1.1
  * pipelining下按请求到达序写出，绕过它直写ctx的响应头会被出站tripwire拒绝。
  *
- * <p>生命周期：handler（onEndStream，流式为onBeginStream+onStreamContent）按DispatchMode派发——
+ * <p>生命周期：handler（非流为onEndStream，流式为onBeginStream+onStreamContent+onEndStream/onAbortStream）按DispatchMode派发——
  * Direct内联（EventLoop线程）或任务派发且同连接回调串行（executeOneByOne(channel.id)）。
  * handler正常返回且未{@link #detach()}时框架自动close；detach后由调用方在任意线程、任意时机
  * 补发响应并close。close族幂等（detached CAS保证）；悬挂的exchange由idle超时与janitor
@@ -445,6 +445,15 @@ public class HttpExchange {
 		return detached == 2;
 	}
 
+	/**
+	 * 返回流式请求是否在收到 {@code LastHttpContent} 之前被中止（超限 413、连接断开、空闲超时、解码失败、提前关闭或服务停机）。
+	 * <ul>
+	 *   <li>若处理器注册了 {@link HttpAbortStreamHandle}（含 {@link HttpMultipartHandle} / {@link HttpFileUploadHandle}），
+	 *       流中止时仅触发 {@code onAbortStream}（此时本方法返回 {@code true}），不会触发 {@code onEndStream}。</li>
+	 *   <li>若处理器未注册 {@link HttpAbortStreamHandle}（旧三参数流式构造），流中止时回退触发 {@code onEndStream}
+	 *       且本方法返回 {@code true}。</li>
+	 * </ul>
+	 */
 	public boolean isStreamAborted() {
 		return streamAborted;
 	}
@@ -697,6 +706,8 @@ public class HttpExchange {
 			}
 			if (handler.isStreamMode()) {
 				fireBeginStream(req);
+				if (isClosed())
+					return;
 				inStreamMode = true;
 			}
 			if (!(msg instanceof HttpContent)) {
@@ -743,6 +754,8 @@ public class HttpExchange {
 					return;
 				}
 				fireStreamContentHandle(c);
+				if (isClosed())
+					return;
 			} else {
 				if (content.readableBytes() + n > handler.MaxContentLength) {
 					Netty.logger.error("content size = {} + {} > {} from {}", content.readableBytes(), n,
@@ -756,8 +769,11 @@ public class HttpExchange {
 			}
 		}
 		// 空终结帧仍携带流结束语义（multipart decoder据此允许读取完整字段列表）。
-		if (n == 0 && c instanceof LastHttpContent && handler.isStreamMode())
+		if (n == 0 && c instanceof LastHttpContent && handler.isStreamMode()) {
 			fireStreamContentHandle(c);
+			if (isClosed())
+				return;
+		}
 		if (c instanceof LastHttpContent) {
 			inStreamMode = false;
 			fireEndStreamHandle(); // 流模式和非流模式通用
@@ -1185,7 +1201,7 @@ public class HttpExchange {
 		detachedHandle.setVolatile(this, 2);
 		server.exchanges.remove(context.channel().id(), this);
 		abandonDeferredResponses();
-		// No user onClose/onEndStream callback may run on this fallback thread.
+		// No user onClose/onEndStream/onAbortStream callback may run on this fallback thread.
 		inStreamMode = false;
 		if (!endStreamTaskPending)
 			releaseTerminal();
@@ -1268,34 +1284,39 @@ public class HttpExchange {
 				close(null);
 			// 回调已经结束，交还close的释放权；再复查关闭状态，覆盖close因pending而跳过释放的窗口。
 			// detached==1仍由用户持有，直到用户调用close才释放。
-			endStreamTaskPending = false;
-			if (detached == 2)
-				releaseTerminalFromAnyThread();
+			finishTerminalTask();
 		}
+	}
+
+	private void finishTerminalTask() {
+		endStreamTaskPending = false;
+		if (detached == 2)
+			releaseTerminalFromAnyThread();
+	}
+
+	// onCancel:HttpServer.close()的shutdown(true)清扫丢弃未运行任务（或提交命中已shutdown队列）时
+	// 补偿close（与任务finally一致），释放retain的request与累积的content（池化内存）——
+	// pipelining下本exchange可能已被channelRead的exchanges.put覆盖逐出，停机清扫扫不到它，
+	// 不补偿则永久泄漏。cancel与执行路径互斥（TaskOneByOneQueue保证），close幂等，不会双释放。
+	// 对照:fireStreamContentHandle/fireWebSocket的onCancel同因。
+	// close只释放exchange自身资源，channel attr上的流式上传状态（堆数据、临时文件、
+	// 未关fileChannel）须在此一并资源级销毁（不跑用户回调，对齐fireStreamContentHandle的补偿
+	// 哲学），否则永久驻留static工厂的requestFileDeleteMap、跨close→start重启累积无上界；
+	// 取走即销毁的幂等语义见属主接口destroyChannelDecoder/releaseChannelFileUpload。
+	// attr是channel级：停机时所有exchange一并终结，跨请求"取走"垂死请求的状态无害
+	//（对方自己的cancel只会拿到null）。
+	private void onTerminalTaskCancel() {
+		endStreamTaskPending = false; // 任务被清扫丢弃，不会再有人跑finally：释放权交还close路径
+		if (detached == 0)
+			close(null);
+		else if (detached == 2)
+			releaseTerminalFromAnyThread(); // 已被并发close（closeInEventLoop因pending跳过释放）：close(null)成no-op，这里兜底；detached==1用户拥有不碰
+		HttpMultipartHandle.destroyChannelDecoder(this);
+		HttpFileUploadHandle.releaseChannelFileUpload(this);
 	}
 
 	@SuppressWarnings("ConstantConditions")
 	protected void fireEndStreamHandle() {
-		// onCancel:HttpServer.close()的shutdown(true)清扫丢弃未运行任务（或提交命中已shutdown队列）时
-		// 补偿close（与任务finally一致），释放retain的request与累积的content（池化内存）——
-		// pipelining下本exchange可能已被channelRead的exchanges.put覆盖逐出，停机清扫扫不到它，
-		// 不补偿则永久泄漏。cancel与执行路径互斥（TaskOneByOneQueue保证），close幂等，不会双释放。
-		// 对照:fireStreamContentHandle/fireWebSocket的onCancel同因。
-		// close只释放exchange自身资源，channel attr上的流式上传状态（堆数据、临时文件、
-		// 未关fileChannel）须在此一并资源级销毁（不跑用户回调，对齐fireStreamContentHandle的补偿
-		// 哲学），否则永久驻留static工厂的requestFileDeleteMap、跨close→start重启累积无上界；
-		// 取走即销毁的幂等语义见属主接口destroyChannelDecoder/releaseChannelFileUpload。
-		// attr是channel级：停机时所有exchange一并终结，跨请求"取走"垂死请求的状态无害
-		//（对方自己的cancel只会拿到null）。
-		var cancel = (Action0)() -> {
-				endStreamTaskPending = false; // 任务被清扫丢弃，不会再有人跑finally：释放权交还close路径
-				if (detached == 0)
-					close(null);
-				else if (detached == 2)
-					releaseTerminalFromAnyThread(); // 已被并发close（closeInEventLoop因pending跳过释放）：close(null)成no-op，这里兜底；detached==1用户拥有不碰
-			HttpMultipartHandle.destroyChannelDecoder(this);
-			HttpFileUploadHandle.releaseChannelFileUpload(this);
-		};
 		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				var handle = handler.EndStreamHandle;
@@ -1318,11 +1339,9 @@ public class HttpExchange {
 					} finally {
 						if (detached == 0)
 							close(null);
-						endStreamTaskPending = false;
-						if (detached == 2)
-							releaseTerminalFromAnyThread();
+						finishTerminalTask();
 					}
-				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(cancel)
+				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(this::onTerminalTaskCancel)
 						.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
@@ -1330,7 +1349,50 @@ public class HttpExchange {
 		} else {
 			endStreamTaskPending = true;
 			TaskSpec.ofAction(this::invokeEndStream)
-					.name("fireEndStreamHandle").dispatchMode(handler.Mode).onCancel(cancel)
+					.name("fireEndStreamHandle").dispatchMode(handler.Mode).onCancel(this::onTerminalTaskCancel)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
+		}
+	}
+
+	@SuppressWarnings("ConstantConditions")
+	protected void fireAbortStreamHandle() {
+		if (handler == null)
+			return;
+		var handle = handler.AbortStreamHandle;
+		if (handle == null) {
+			// 向后兼容：未注册独立中止回调的旧流式handler仍回退调用onEndStream（此时isStreamAborted()==true）做资源清理
+			fireEndStreamHandle();
+			return;
+		}
+		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
+			var p = server.zeze.newProcedure(() -> {
+				handle.onAbortStream(this);
+				return Procedure.Success;
+			}, "fireAbortStreamHandle");
+			if (handler.Mode == DispatchMode.Direct) {
+				TaskSpec.ofProcedure(p).call();
+			} else {
+				endStreamTaskPending = true;
+				TaskSpec.ofFunc(() -> {
+					try {
+						return p.call();
+					} finally {
+						finishTerminalTask();
+					}
+				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(this::onTerminalTaskCancel)
+						.executeOneByOne(context.channel().id(), server.task11Executor);
+			}
+		} else if (handler.Mode == DispatchMode.Direct) {
+			TaskSpec.ofAction(() -> handle.onAbortStream(this)).name("fireAbortStreamHandle").call();
+		} else {
+			endStreamTaskPending = true;
+			TaskSpec.ofAction(() -> {
+				try {
+					handle.onAbortStream(this);
+				} finally {
+					finishTerminalTask();
+				}
+			}).name("fireAbortStreamHandle").dispatchMode(handler.Mode).onCancel(this::onTerminalTaskCancel)
 					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
@@ -1478,7 +1540,7 @@ public class HttpExchange {
 							this, WebSocketCloseStatus.ABNORMAL_CLOSURE.code(), ""));
 				} else {
 					streamAborted = true;
-					fireEndStreamHandle();
+					fireAbortStreamHandle();
 				}
 			} catch (Exception e) {
 				throw Task.forceThrow(e);

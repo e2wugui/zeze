@@ -16,16 +16,19 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * multipart/form-data 上传处理接口：基于 netty 解码器分发属性/文件字段回调。
+ * <p>正常收齐请求体后经 {@link #onEndStream(HttpExchange)} 回调 {@link #onEndRequest(HttpExchange, InterfaceHttpPostRequestDecoder)}；
+ * 请求流提前中止（超限 413、断连、超时、解码失败、停机等）时经 {@link #onAbortStream(HttpExchange)}
+ * 释放解码器与临时文件并回调 {@link #onAbortRequest(HttpExchange)}，与正常完成严格解耦。
  */
 @SuppressWarnings("RedundantThrows")
-public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamContentHandle, HttpEndStreamHandle {
+public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamContentHandle, HttpEndStreamHandle, HttpAbortStreamHandle {
 	AttributeKey<@Nullable InterfaceHttpPostRequestDecoder> decoderKey = AttributeKey.valueOf("HttpMultipartHandleContext");
 	HttpDataFactory defaultHttpDataFactory = newDefaultHttpDataFactory();
 
 	private static HttpDataFactory newDefaultHttpDataFactory() {
 		var factory = new DefaultHttpDataFactory();
 		// 可选加固：multipart溢出临时文件（>16KB落盘）的JVM退出兜底，对齐raw路径
-		// MixedFileUpload静态默认deleteOnExit=true的语义；JVM内驻留场景由fireEndStreamHandle
+		// MixedFileUpload静态默认deleteOnExit=true的语义；JVM内驻留场景由fireEndStreamHandle/fireAbortStreamHandle
 		// 的cancel补偿解决。代价是DeleteFileOnExitHook的路径集合驻留，可接受。
 		factory.setDeleteOnExit(true);
 		return factory;
@@ -45,11 +48,19 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	}
 
 	/**
-	 * 请求完成时的回调。可用 decoder.getBodyHttpDatas() 获取所有的Multipart字段。
+	 * 请求正常完成时的回调。可用 decoder.getBodyHttpDatas() 获取所有的Multipart字段。
 	 */
 	default void onEndRequest(HttpExchange x,
 							  InterfaceHttpPostRequestDecoder decoder) throws Exception {
 		x.close(x.sendPlainText(HttpResponseStatus.OK, (String)null));
+	}
+
+	/**
+	 * 请求流在正常完成前被中止时的回调（如超限 413、连接断开、空闲超时、解码失败或提前关闭）。
+	 * <p>调用前框架已完成 channel 上的 Netty 解码器与临时文件资源释放；子类可覆写此方法清理
+	 * 本次上传关联的业务状态，无需手动销毁 decoder。注意连接此时可能已关闭，不应假设仍可写响应。
+	 */
+	default void onAbortRequest(HttpExchange x) throws Exception {
 	}
 
 	default HttpDataFactory getHttpDataFactory(HttpExchange x) {
@@ -137,14 +148,24 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 
 	@Override
 	default void onEndStream(HttpExchange x) throws Exception {
+		if (x.isStreamAborted()) {
+			// 兼容手动通过旧三参数HttpHandler构造器接入且未显式绑定AbortStreamHandle的调用方
+			onAbortStream(x);
+			return;
+		}
 		var decoder = getAndSetDecoder(x, null);
 		if (decoder != null) {
 			try {
-				if (!x.isStreamAborted())
-					onEndRequest(x, decoder);
+				onEndRequest(x, decoder);
 			} finally {
 				decoder.destroy();
 			}
 		}
+	}
+
+	@Override
+	default void onAbortStream(HttpExchange x) throws Exception {
+		destroyDecoder(getAndSetDecoder(x, null));
+		onAbortRequest(x);
 	}
 }

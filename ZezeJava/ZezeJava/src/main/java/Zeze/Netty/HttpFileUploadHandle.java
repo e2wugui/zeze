@@ -18,6 +18,10 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * 文件上传处理接口：支持 multipart 与 raw（查询参数指定文件名）两种上传形态。
+ * <p>正常收齐请求体后触发 {@link #onFileCompleted(HttpExchange, FileUpload)} 与
+ * {@link #onEndRequest(HttpExchange, InterfaceHttpPostRequestDecoder)}；
+ * 上传流提前中止时由 {@link #onAbortStream(HttpExchange)} 释放 {@link MixedFileUpload} 与
+ * multipart 解码器资源并回调 {@link #onAbortRequest(HttpExchange)}，不触发完成回调。
  */
 public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	AttributeKey<@Nullable MixedFileUpload> fileUploadKey = AttributeKey.valueOf("HttpFileUploadHandleContext");
@@ -108,13 +112,16 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 
 	@Override
 	default void onEndStream(HttpExchange x) throws Exception {
+		if (x.isStreamAborted()) {
+			// 兼容手动通过旧三参数HttpHandler构造器接入且未显式绑定AbortStreamHandle的调用方
+			onAbortStream(x);
+			return;
+		}
 		var fileUpload = x.channel().attr(fileUploadKey).getAndSet(null);
 		if (fileUpload == null)
 			HttpMultipartHandle.super.onEndStream(x);
 		else {
 			try {
-				if (x.isStreamAborted())
-					return;
 				try {
 					fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
 				} catch (IOException e) {
@@ -206,5 +213,11 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 				fileUpload.release();
 			}
 		}
+	}
+
+	@Override
+	default void onAbortStream(HttpExchange x) throws Exception {
+		releaseFileUpload(x.channel().attr(fileUploadKey).getAndSet(null));
+		HttpMultipartHandle.super.onAbortStream(x);
 	}
 }

@@ -408,8 +408,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				if (ch != null)
 					ch.close();
 			}
-			// 先关exchanges再shutdown派发队列：closeConnectionNow→closeInEventLoop→fireEndStreamHandle/
-			// fireWebSocket产生的收尾任务（onEndStream、retain的content/frame的release、multipart decoder
+			// 先关exchanges再shutdown派发队列：closeConnectionNow→closeInEventLoop→fireAbortStreamHandle/
+			// fireWebSocket产生的收尾任务（onAbortStream/回退onEndStream、retain的content/frame的release、multipart decoder
 			// destroy、上传临时文件清理）必须在队列置isShutdown之前进入队列，否则提交被丢弃/仅cancel补偿。
 			// janitor按channel遍历在途列表（pipelining下被覆盖出exchanges表的前序也要关）；
 			// HTTP/2子stream不登记responseOrderKey，须再遍历exchanges补关残留条目，避免在途H2 exchange泄漏。
@@ -506,9 +506,22 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		addHandler(path, new HttpHandler(level, mode, beginStream, streamContent, endStream));
 	}
 
+	/**
+	 * 注册流式上传处理器，显式区分正常完成（{@code endStream}）与异常中止（{@code abortStream}）。
+	 * 当 {@code abortStream != null} 时，正常完成仅调用 {@code endStream}，流提前中止仅调用 {@code abortStream}。
+	 */
+	public void addHandler(String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
+						   HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
+						   HttpEndStreamHandle endStream, @Nullable HttpAbortStreamHandle abortStream) {
+		addHandler(path, new HttpHandler(level, mode, beginStream, streamContent, endStream, abortStream));
+	}
+
+	/**
+	 * 注册 multipart/文件上传流式处理器，自动接入 {@link HttpMultipartHandle#onAbortStream(HttpExchange)} 中止回调。
+	 */
 	public void addHandler(String path, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
 						   HttpMultipartHandle multipartHandle) {
-		addHandler(path, new HttpHandler(level, mode, multipartHandle, multipartHandle, multipartHandle));
+		addHandler(path, new HttpHandler(level, mode, multipartHandle));
 	}
 
 	public void addHandler(String path, int maxFrameLength, @Nullable TransactionLevel level,
