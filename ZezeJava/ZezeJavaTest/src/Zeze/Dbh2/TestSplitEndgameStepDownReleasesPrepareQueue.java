@@ -144,6 +144,16 @@ public class TestSplitEndgameStepDownReleasesPrepareQueue {
 			var serverA = (Dbh2.Dbh2RaftServer)leaderA.getRaft().getServer();
 			Assertions.assertNotNull(getPrepareQueue(serverA), "进入收尾门槛后 prepareQueue 应已装载");
 
+			// FIFO屏障：blockPrepareUntilNoTransaction经executeUserTask异步装载noTransactionHandle
+			// （tid=100在途⇒setupOneShotIfNoTransaction存储handle而非内联触发）。不等待它执行完，
+			// 掉主后的releasePrepareGate同步清空会与该FIFO任务乱序：清理先行、装载后至⇒handle复活，
+			// "失主后必须清空"误红（soak-20261126-0519 R4/20261126-1019 R9两现）。
+			// userTaskOneByOne单一key严格FIFO，队尾标记任务通过即证明装载任务已完成。
+			var setupBarrier = new CountDownLatch(1);
+			leaderA.getRaft().executeUserTask(setupBarrier::countDown);
+			Assertions.assertTrue(setupBarrier.await(5, TimeUnit.SECONDS),
+					"noTransactionHandle 装载任务必须先于掉主清场执行");
+
 			// 模拟 Leader A 掉主降级为 Follower。
 			leaderA.getRaft().lock();
 			try {
