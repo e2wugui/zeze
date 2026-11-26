@@ -218,17 +218,13 @@ public final class Transaction {
 	public long perform(Procedure procedure) throws Exception {
 		try {
 			var rc = procedure.call();
-			if (_lock_and_check_(/*TransactionLevel.Serializable*/)) {
-				if (rc == 0) {
-					_final_commit_(procedure);
-				} else {
-					procedure.setAutoResponseResultCode(rc);
-					_final_rollback_(procedure);
-				}
-				return rc;
+			if (rc == 0) {
+				markDirtyRecords();
+				_final_commit_(procedure);
+			} else {
+				procedure.setAutoResponseResultCode(rc);
+				_final_rollback_(procedure);
 			}
-			procedure.setAutoResponseResultCode(rc);
-			_final_rollback_(procedure); // 乐观锁，这里应该redo
 			return rc;
 		} catch (ThrowAgainException e) {
 			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
@@ -239,29 +235,23 @@ public final class Transaction {
 			logger.info("RocksRaft Retry", e);
 			_final_rollback_(procedure);
 			return Zeze.Transaction.Procedure.RaftRetry;
-		} catch (Throwable e) { // // rollback. 必须捕捉所有异常。logger.error, rethrow AssertionError
+		} catch (Throwable e) { // rollback. 必须捕捉所有异常。logger.error, rethrow AssertionError
 			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
 			logger.error("RocksRaft Call Exception", e);
-			if (e instanceof AssertionError) {
-				_final_rollback_(procedure);
+			_final_rollback_(procedure);
+			if (e instanceof AssertionError)
 				throw e;
-			}
-			if (_lock_and_check_(/*TransactionLevel.Serializable*/)) {
-				_final_rollback_(procedure);
-				return Zeze.Transaction.Procedure.Exception;
-			}
-			_final_rollback_(procedure); // 乐观锁，这里应该redo
 			return Zeze.Transaction.Procedure.Exception;
 		} finally {
 			for (var pLock : pessimismLocks)
 				pLock.unlock();
 			pessimismLocks.clear();
-				// 释放本事务访问记录的在用保护（驱逐允许）。正常路径leaderApply在
-				// appendLog等待期间（perform内）已完成应用与flush，此时释放安全；appendLog超时
-				// 未决的条目若已进入flush补偿（flush失败），由putPendingFlush登记继续持有在用，
-				// 直到重试成功或过期丢弃，迟到flush窗口内记录不可被驱逐。
-				for (var ar : accessedRecords.values())
-					ar.getOrigin().endAccess();
+			// 释放本事务访问记录的在用保护（驱逐允许）。正常路径leaderApply在
+			// appendLog等待期间（perform内）已完成应用与flush，此时释放安全；appendLog超时
+			// 未决的条目若已进入flush补偿（flush失败），由putPendingFlush登记继续持有在用，
+			// 直到重试成功或过期丢弃，迟到flush窗口内记录不可被驱逐。
+			for (var ar : accessedRecords.values())
+				ar.getOrigin().endAccess();
 		}
 	}
 
@@ -341,8 +331,12 @@ public final class Transaction {
 		lastSavepoint("runWhileRollback").addRollbackAction(action);
 	}
 
-	@SuppressWarnings("SameReturnValue")
-	private boolean _lock_and_check_(/*TransactionLevel level*/) {
+	/**
+	 * 根据最外层 savepoint 的修改日志标记脏记录。
+	 * RocksRaft 仅支持 {@link RocksMode#Pessimism}（不做乐观版本校验也无 redo 循环，
+	 * 同 key 并发隔离由调用方显式 {@link PessimismLock} 或外部串行化保证）。
+	 */
+	private void markDirtyRecords() {
 		var saveSize = savepoints.size();
 		if (saveSize > 0) {
 			var it = savepoints.get(saveSize - 1).logIterator();
@@ -363,7 +357,6 @@ public final class Transaction {
 				}
 			}
 		}
-		return true;
 	}
 
 	private void _final_commit_(Procedure procedure) {
@@ -430,7 +423,7 @@ public final class Transaction {
 		var rollbackActions = lastRollbackActions;
 		if (rollbackActions == null) {
 			// 过程成功返回（rc==0）但 _final_commit_ 失败（raft appendLog 抛 RaftRetry 等）
-			// 或乐观检查失败的路径不经过 rollback()，lastRollbackActions 不会被赋值；
+			// 的路径不经过 rollback()，lastRollbackActions 不会被赋值；
 			// 此时最外层savepoint仍完整保留（_final_commit_ 不弹出），直接取其回滚动作执行，
 			// 维持"未提交则已注册的回滚动作必执行"。
 			var saveSize = savepoints.size();

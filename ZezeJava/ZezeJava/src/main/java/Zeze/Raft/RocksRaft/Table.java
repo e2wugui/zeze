@@ -21,8 +21,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * RocksRaft 的表：{@link Record} 缓存（{@link ConcurrentLruLike}）+ RocksDB 存储的读写面。
  * 隔离契约：普通表（未接使用方串行化）没有同 key 并发隔离：多个并发事务对同一 key
- * 的读写交织在同一个缓存 Record/bean 上（无乐观冲突检测——{@code Transaction.
- * _lock_and_check_} 恒通过；无记录锁），后提交者的整值 flush 会覆盖并发方的修改，
+ * 的读写交织在同一个缓存 Record/bean 上（{@link RocksMode#Optimistic} 未实现且已废弃，
+ * 构造期直接拒绝；无乐观冲突检测也无记录锁），后提交者的整值 flush 会覆盖并发方的修改，
  * 回滚也不还原内存态（见 {@link Savepoint#rollback} 的契约声明）。同 key 串行化责任
  * 在使用方：GCM 的悲观锁是现成接线（{@code Transaction.addPessimismLock}，
  * 参考 {@code GlobalCacheManagerWithRaft.acquireShare} 持锁后再访问表的模式），

@@ -135,6 +135,12 @@ Leader 通过 `AppendEntries` 将日志复制到所有 Follower：
 
 当日志被复制到多数节点后，Leader 将其标记为已提交（committed），并通过 `apply` 应用到状态机。
 
+### Java RocksRaft 并发模式
+
+`Rocks` 状态机当前仅支持悲观模式（`RocksMode.Pessimism`），不会像经典 `Zeze.Transaction` 那样自动执行乐观版本校验与 redo 重试。多个并发事务访问同一 key 时，须由业务侧通过 `Transaction.addPessimismLock(PessimismLock)`（例如 `GlobalCacheManagerWithRaft` 的 `GlobalLockey`）或外部串行化机制保证隔离。
+
+`RocksMode.Optimistic` 已标注 `@Deprecated`，在 `Rocks` 构造器中会在初始化任何 Raft/RocksDB 资源前直接抛出 `UnsupportedOperationException`（传 `null` 抛出 `NullPointerException`），避免误用导致静默丢更新。
+
 ### Java RocksRaft 动态字段
 
 RocksRaft 表的 `kind="rocks"` Bean 支持 `dynamic`、`list[dynamic]`、`map[K,dynamic]` 和 `sortedmap[K,dynamic]`。在字段的 `<value bean="Payload:7"/>` 中声明载荷类型和编号，载荷也须声明 `kind="rocks"`。编号属于字段，同一个编号可以在另一个字段映射到不同的类型。

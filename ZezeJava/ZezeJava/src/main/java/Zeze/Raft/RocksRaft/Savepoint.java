@@ -95,7 +95,7 @@ public final class Savepoint {
 	/**
 	 * 撤销当前 savepoint。契约：apply 期内存态不可事务性回退。当前实现只丢弃日志栈
 	 * （putLog 收集的修改日志随 savepoint 弹出而不可见）并触发回滚回调，过程体内对
-	 * 缓存 Record 的 bean 的原位修改不会被还原——Log.Rollback 未实现。事务失败（rc!=0、乐观检查失败、RaftRetry 失去领导权等）后，这些
+	 * 缓存 Record 的 bean 的原位修改不会被还原——Log.Rollback 未实现。事务失败（rc!=0、RaftRetry 失去领导权等）后，这些
 	 * 修改残留在记录缓存中（污染 bean）：本节点后续访问该记录的读者可能读到未提交
 	 * 的修改，直到该记录被驱逐出缓存并从 storage 重载为止（驱逐路径见
 	 * {@code Table.tryRemoveRecord} 与 {@link Record#evictPolluted}；截断场景的

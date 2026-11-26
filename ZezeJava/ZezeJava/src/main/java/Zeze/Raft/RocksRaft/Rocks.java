@@ -335,14 +335,40 @@ public final class Rocks extends StateMachine implements Closeable {
 		this(raftName, RocksMode.Pessimism, raftConfig, config);
 	}
 
-	public Rocks(@Nullable String raftName, RocksMode mode, @Nullable RaftConfig raftConfig, @Nullable Config config) throws Exception {
-		this(raftName, mode, raftConfig, config, Server::new, new TaskOneByOneByKey());
+	private static RocksMode validateMode(@Nullable RocksMode mode) {
+		if (mode == RocksMode.Pessimism)
+			return mode;
+		if (mode == null)
+			throw new NullPointerException("RocksMode must not be null (only RocksMode.Pessimism is supported)");
+		throw new UnsupportedOperationException(
+				"RocksMode." + mode + " is not implemented and is deprecated; "
+						+ "use RocksMode.Pessimism with explicit PessimismLock (Transaction.addPessimismLock)");
 	}
 
+	/**
+	 * 使用指定并发模式创建 RocksRaft 状态机。
+	 *
+	 * @param mode 并发模式，当前仅支持 {@link RocksMode#Pessimism}
+	 * @throws NullPointerException {@code mode} 为 {@code null} 时在创建任何资源前立即抛出
+	 * @throws UnsupportedOperationException {@code mode} 不是 {@link RocksMode#Pessimism}（例如已废弃的
+	 *                                       {@link RocksMode#Optimistic}）时在创建任何资源前立即抛出
+	 */
+	public Rocks(@Nullable String raftName, RocksMode mode, @Nullable RaftConfig raftConfig, @Nullable Config config) throws Exception {
+		this(raftName, validateMode(mode), raftConfig, config, Server::new, new TaskOneByOneByKey());
+	}
+
+	/**
+	 * 使用指定并发模式、服务端工厂与按 key 串行调度器创建 RocksRaft 状态机。
+	 *
+	 * @param mode 并发模式，当前仅支持 {@link RocksMode#Pessimism}
+	 * @throws NullPointerException {@code mode} 为 {@code null} 时在创建任何资源前立即抛出
+	 * @throws UnsupportedOperationException {@code mode} 不是 {@link RocksMode#Pessimism}（例如已废弃的
+	 *                                       {@link RocksMode#Optimistic}）时在创建任何资源前立即抛出
+	 */
 	public Rocks(@Nullable String raftName, RocksMode mode, @Nullable RaftConfig raftConfig, @Nullable Config config,
 				 Func3<Raft, String, Config, Server> serverFactory,
 				 TaskOneByOneByKey taskOneByOne) throws Exception {
-		rocksMode = mode;
+		rocksMode = validateMode(mode);
 
 		addFactory(Changes.TypeId_, () -> new Changes(this));
 
