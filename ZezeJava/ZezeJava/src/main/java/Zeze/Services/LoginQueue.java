@@ -1,6 +1,8 @@
 package Zeze.Services;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.LoginQueue.BToken;
@@ -46,12 +48,40 @@ public class LoginQueue extends AbstractLoginQueue {
 		}
 	}
 
+	/**
+	 * 每连接排队占槽标记：true 表示仍占有一个 {@link #queuedCount} 槽位。
+	 * 入队时挂到 {@link AsyncSocket#setUserState(Object)}，{@link #onClose}、{@link #drainQueue}、
+	 * {@link #broadcastQueuePositions} 与 {@link #stop} 经 {@link #tryRelease()} 原子仲裁恰一次扣减。
+	 */
+	private static final class QueueSlot extends AtomicBoolean {
+		final AsyncSocket socket;
+
+		QueueSlot(AsyncSocket socket) {
+			super(true);
+			this.socket = socket;
+		}
+
+		boolean tryRelease() {
+			return compareAndSet(true, false);
+		}
+
+		boolean isAlive() {
+			return get() && !socket.isClosed();
+		}
+	}
+
+	private static final int BROADCAST_INTERVAL_TICKS = 3;
+	private static final int MAX_BROADCAST_POSITIONS = 10_000;
+
 	private final LoginQueueServer server;
-	private final ConcurrentLinkedQueue<AsyncSocket> queue = new ConcurrentLinkedQueue<>();
+	// 使用 ConcurrentLinkedDeque 以便 drainQueue 原子 pollFirst 后在分配失败时无竞态 addFirst 回队头，
+	// 避免 peek+poll 与 broadcastQueuePositions 的 Iterator.remove 并发错删后继活连接。
+	private final ConcurrentLinkedDeque<QueueSlot> queue = new ConcurrentLinkedDeque<>();
 	// 私有锁: 串行化tryOnAccept/drainQueue/tryResetTimeThrottle，不暴露实例监视器
 	private final ReentrantLock allocateLock = new ReentrantLock();
-	// 在 allocateLock 内维护，满载时允许接入线程在锁外快速拒绝。
-	private volatile int queuedCount;
+	// 活跃排队连接数：仅在 allocateLock 内递增，由 QueueSlot.tryRelease() 原子仲裁恰一次递减；
+	// 满载时允许接入线程在锁外快速拒绝，且断连时 O(1) 实时释放额度。
+	private final AtomicInteger queuedCount = new AtomicInteger();
 	// DaemonTimer内聚分配tick的start/stop配对、stop限时等待在飞一轮、restart重新武装。
 	// tick只做派发，drainQueue+万级广播搬入worker池执行，不占用调度线程。
 	private final DaemonTimer allocateDaemon = new DaemonTimer("LoginQueue.allocate", 1000, this::allocateTimer);
@@ -105,6 +135,7 @@ public class LoginQueue extends AbstractLoginQueue {
 			var old = timeThrottle;
 			timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 			providerSize = 0;
+			broadcastCount = 0;
 			old.close(); // 先更新引用再关闭，减小并发checkNow拿到已关闭实例的窗口
 		} finally {
 			allocateLock.unlock();
@@ -122,27 +153,62 @@ public class LoginQueue extends AbstractLoginQueue {
 		allocateDaemon.stop();
 		server.getService().stop();
 		service.stop();
+		clearQueue();
 		timeThrottle.close(); // 放在service.stop之后：关闭过程中onClose还可能触发tryResetTimeThrottle替换实例
 	}
 
-	private void allocateTimer() throws Exception {
+	private void clearQueue() {
+		allocateLock.lock();
+		try {
+			for (var slot = queue.pollFirst(); slot != null; slot = queue.pollFirst())
+				releaseSlot(slot);
+		} finally {
+			allocateLock.unlock();
+		}
+	}
+
+	private void releaseSlot(QueueSlot slot) {
+		if (slot.tryRelease())
+			queuedCount.decrementAndGet();
+	}
+
+	int getQueuedCount() {
+		return queuedCount.get();
+	}
+
+	void allocateTimer() throws Exception {
 		drainQueue();
 
 		// 比分配更长的间隔。每N次timer触发广播一次。
-		if (++broadcastCount >= 3) {
+		if (++broadcastCount >= BROADCAST_INTERVAL_TICKS) {
 			broadcastCount = 0;
-			// 给前10000个客户端广播队列长度。
-			var i = 0;
-			for (var e : queue) {
-				if (++i > 10000) // 最多广播10000个，客户端如果没有收到PutQueueSize，就显示>10000。
-					break;
-				if (e.isClosed()) // 队头之外的中部瞬时残留（drainQueue只清队头）：跳过发送，位置计数保持
-					continue;
-				var p = new PutQueuePosition();
-				p.Argument.setQueuePosition(i);
-				p.Send(e);
-			}
+			broadcastQueuePositions();
 		}
+	}
+
+	void broadcastQueuePositions() {
+		// 给前 MAX_BROADCAST_POSITIONS 个活跃客户端广播排队位置，并顺带通过 Iterator.remove() 清除中部已关闭僵尸节点。
+		var position = 0;
+		for (var it = queue.iterator(); it.hasNext(); ) {
+			var slot = it.next();
+			if (!slot.isAlive()) {
+				it.remove();
+				releaseSlot(slot);
+				continue;
+			}
+			if (++position > MAX_BROADCAST_POSITIONS) // 最多广播10000个活跃连接，客户端如果没有收到PutQueuePosition，就显示>10000。
+				break;
+			var p = new PutQueuePosition();
+			p.Argument.setQueuePosition(position);
+			p.Send(slot.socket);
+		}
+	}
+
+	private void requeueHeadIfAlive(QueueSlot slot) {
+		if (slot.isAlive())
+			queue.addFirst(slot);
+		else
+			releaseSlot(slot);
 	}
 
 	/**
@@ -159,21 +225,35 @@ public class LoginQueue extends AbstractLoginQueue {
 			if (half > 0)
 				max = half + Zeze.Util.Random.getInstance().nextInt(half);
 			var allocate = 0;
-			// peek/poll 而非 for-each+poll：队头排队期间断开的连接直接清掉，不占本轮分配配额，
-			// 且不依赖分配是否成功（providerSize()==0 时 max==0，for-each 版本会什么都不做，
-			// closed 残留越积越多，虚高队列长度导致 tryOnAccept 误发 PutQueueFull）。
-			for (var e = queue.peek(); e != null; e = queue.peek()) {
-				if (e.isClosed()) {
-					queue.poll();
-					--queuedCount;
+			// 队头已关闭/已释放节点即使在 max==0 时也直接清理；对需分配节点采用原子 pollFirst，
+			// 分配失败或异常时 addFirst 放回队头，避免 peek+poll 与 broadcastQueuePositions 的 Iterator.remove 竞态错删活连接。
+			for (;;) {
+				var head = queue.peekFirst();
+				if (head == null)
+					break;
+				if (allocate >= max && head.isAlive())
+					break;
+				var slot = queue.pollFirst();
+				if (slot == null)
+					break;
+				if (!slot.isAlive()) {
+					releaseSlot(slot);
 					continue;
 				}
-				if (allocate >= max)
-					break;
-				if (!tryAllocateServer(e))
+				if (allocate >= max) {
+					requeueHeadIfAlive(slot);
+					break; // 本轮配额耗尽
+				}
+				var allocated = false;
+				try {
+					allocated = tryAllocateServer(slot.socket);
+				} finally {
+					if (!allocated)
+						requeueHeadIfAlive(slot);
+				}
+				if (!allocated)
 					break; // 分配失败
-				queue.poll();
-				--queuedCount;
+				releaseSlot(slot);
 				++allocate;
 			}
 		} finally {
@@ -227,16 +307,30 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	boolean tryOnAccept(AsyncSocket so) throws Exception {
+		if (so.isClosed())
+			return false;
 		//noinspection DataFlowIssue
 		var maxConnections = so.getService().getConfig().getMaxConnections();
-		if (queuedCount < maxConnections) {
+		if (queuedCount.get() < maxConnections) {
 			allocateLock.lock();
 			try {
-				if (queuedCount < maxConnections) {
-					if (queuedCount == 0 && timeThrottle.checkNow(1) && tryAllocateServer(so))
+				if (so.isClosed())
+					return false;
+				var count = queuedCount.get();
+				if (count < maxConnections) {
+					if (count == 0 && timeThrottle.checkNow(1) && tryAllocateServer(so))
 						return false; // 新连接已直接分配
-					queue.add(so);
-					++queuedCount;
+					var slot = new QueueSlot(so);
+					// 先占计数再经 volatile userState 发布 slot，随后复查 volatile isClosed（Dekker 双检）：
+					// 1) 保证 queuedCount 永不为负（onClose 看到 slot 时 increment 已发生）；
+					// 2) 若 close 发生在 setUserState 之前导致 onClose 未见 slot，此处 isClosed 必见 true 并立即释放，永不泄漏。
+					queuedCount.incrementAndGet();
+					so.setUserState(slot);
+					if (so.isClosed()) {
+						releaseSlot(slot);
+						return false;
+					}
+					queue.addLast(slot);
 					return true;
 				}
 			} finally {
@@ -248,10 +342,11 @@ public class LoginQueue extends AbstractLoginQueue {
 		return false;
 	}
 
-	void onClose(AsyncSocket ignoredSo) {
-		// 不在这里 queue.remove(so)：remove 是 O(n)，且每次分配成功 putLoginToken 后的
-		// closeGracefully 也会触发 onClose（此时连接已出队，remove 是无效全量扫描），
-		// 高吞吐下退化为 O(n²)；排队期间断开的连接由 drainQueue 的队头清理统一负责。
+	void onClose(AsyncSocket so) {
+		// 不在这里 queue.remove(so)（O(n) 扫描），只通过连接绑定的 QueueSlot 原子 CAS 恰一次扣减 queuedCount（O(1) 无锁）；
+		// 队列中的已关闭僵尸节点由 drainQueue 队头清理及 broadcastQueuePositions 周期遍历顺带移除。
+		if (so.getUserState() instanceof QueueSlot slot)
+			releaseSlot(slot);
 	}
 
 	public static void main(String[] args) throws Exception {
