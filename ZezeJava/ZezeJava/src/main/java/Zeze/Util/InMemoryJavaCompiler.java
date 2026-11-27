@@ -124,21 +124,13 @@ public class InMemoryJavaCompiler {
 	}
 
 	// 同实例对已define名字的二次编译：defineCompiled直调findClass（不经loadClass的
-	// findLoadedClass缓存），重复defineClass必LinkageError，二次编译的字节码还与已
-	// 定义身份错配——编译入口fail-fast。redirect流程不会合法走到这里（热
-	// 产物define进各代HotModule，冷名字先被genClassMap/classpath装载拦截），命中即
-	// 装载器混用；换新实例或加载器仅适用于直接复用本工具类、确需新身份的场景。
+	// findLoadedClass缓存），重复defineClass必LinkageError——编译入口fail-fast。
 	private void checkNotDefined(String className) {
 		if (classLoader.isDefined(className))
 			throw new IllegalStateException("class already defined in this compiler instance: " + className);
 	}
 
-	/**
-	 * 批量编译并返回字节码（只在编译器装载器外传递，不在其中define）。
-	 * define去向由调用方决定：热模块经RedirectClassSink.defineRedirectClass进各模块
-	 * 装载器，冷模块经{@link #defineCompiled}进编译器装载器。
-	 */
-	public Map<String, byte[]> compileAllToByteCode(Map<String, String> classNameAndCodes) {
+	private void compileBatch(Map<String, String> classNameAndCodes) {
 		sourceCodes.clear();
 		for (Map.Entry<String, String> e : classNameAndCodes.entrySet()) {
 			checkNotDefined(e.getKey());
@@ -150,10 +142,32 @@ public class InMemoryJavaCompiler {
 		String exMsg = compileAll();
 		if (exMsg != null)
 			throw new IllegalStateException(exMsg);
+		for (String className : classNameAndCodes.keySet()) {
+			if (!classLoader.hasCode(className)) // 编译产物缺失：静默放行会把异常推迟到装载点，失去定位信息
+				throw new IllegalStateException("compiled class not found: " + className);
+		}
+	}
+
+	/**
+	 * 批量编译并在编译器装载器中直接 define 返回已装载的 Class。
+	 */
+	public Map<String, Class<?>> compileAll(Map<String, String> classNameAndCodes) throws ClassNotFoundException {
+		compileBatch(classNameAndCodes);
+		var classes = new HashMap<String, Class<?>>(classNameAndCodes.size());
+		for (String className : classNameAndCodes.keySet())
+			classes.put(className, defineCompiled(className));
+		return classes;
+	}
+
+	/**
+	 * 批量编译并返回字节码（只在编译器装载器外传递，不在其中 define；需要时可由调用方经 {@link #defineCompiled} 定义）。
+	 */
+	public Map<String, byte[]> compileAllToByteCode(Map<String, String> classNameAndCodes) {
+		compileBatch(classNameAndCodes);
 		var byteCodes = new HashMap<String, byte[]>(classNameAndCodes.size());
 		for (String className : classNameAndCodes.keySet()) {
 			var code = classLoader.getCode(className);
-			if (code == null) // 编译产物缺失：静默入map会把NPE推迟到装载点，失去定位信息
+			if (code == null)
 				throw new IllegalStateException("compiled class not found: " + className);
 			byteCodes.put(className, code);
 		}
@@ -161,8 +175,7 @@ public class InMemoryJavaCompiler {
 	}
 
 	/**
-	 * 在编译器装载器中define并返回compileAllToByteCode的产物。
-	 * 冷路径专用（无模块装载器可归属）；热路径产物define进各模块装载器。
+	 * 在编译器装载器中 define 并返回本实例最近一次批量编译的产物。
 	 */
 	public Class<?> defineCompiled(String className) throws ClassNotFoundException {
 		return classLoader.findClass(className);
@@ -214,6 +227,10 @@ public class InMemoryJavaCompiler {
 
 		void addCode(CompiledCode cc) {
 			customCompiledCode.put(cc.getName(), cc);
+		}
+
+		boolean hasCode(String name) {
+			return customCompiledCode.containsKey(name);
 		}
 
 		byte @Nullable [] getCode(String name) {

@@ -90,8 +90,8 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {{");
-                sw.WriteLine($"{prefix}    var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();");
+                sw.WriteLine($"{prefix}public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {{");
+                sw.WriteLine($"{prefix}    var vars = new java.util.ArrayList<Zeze.Transaction.VariableMeta>();");
                 foreach (var v in bean.VariablesIdOrder)
                 {
                     string type;
@@ -122,7 +122,7 @@ namespace Zeze.Gen.java
                             value = Variable.GetTypeFullName(set.ValueType);
                         }
                     }
-                    sw.WriteLine($"{prefix}    vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
+                    sw.WriteLine($"{prefix}    vars.add(new Zeze.Transaction.VariableMeta({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
                 }
                 sw.WriteLine($"{prefix}    return vars;");
                 sw.WriteLine($"{prefix}}}");

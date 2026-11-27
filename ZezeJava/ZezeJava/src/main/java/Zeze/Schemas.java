@@ -465,7 +465,7 @@ public class Schemas implements Serializable {
 		public boolean isCompatible(String parent, @Nullable Type other, Context context,
 									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
 			// 去重只认本次比较的Context（以previous/current对为键）：实例级缓存会跨比较保留，
-			// 失败的检查也置位，重试（调用方重试/热更失败重试/CAS重读）直接按已检查通过放行。
+			// 失败的检查也置位，重试（调用方重试/CAS重读）直接按已检查通过放行。
 			if (other == null) {
 				logger.error("other is null. parent={}, bean={}", parent, getName());
 				return false;

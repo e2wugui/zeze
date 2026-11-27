@@ -135,9 +135,9 @@ public final class Timestamp implements Zeze.Transaction.BeanKey, Comparable<Tim
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Time", "long", "", ""));
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
+        var vars = new java.util.ArrayList<Zeze.Transaction.VariableMeta>();
+        vars.add(new Zeze.Transaction.VariableMeta(1, "Time", "long", "", ""));
         return vars;
     }
 }

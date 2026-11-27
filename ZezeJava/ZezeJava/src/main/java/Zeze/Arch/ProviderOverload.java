@@ -26,7 +26,7 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 
 	// getOverload位于ProcessDispatch热路径且无锁遍历，而register/set（含close置null）
 	// 会结构性修改ArrayList——普通ArrayList无happens-before，无锁读侧可见旧数组。
-	// CopyOnWriteArrayList读无锁安全；写只发生在启动/热更期，复制成本可忽略。
+	// CopyOnWriteArrayList读无锁安全；写只发生在启动/停机期，复制成本可忽略。
 	private final CopyOnWriteArrayList<@Nullable ThreadPoolMonitor> threadPools = new CopyOnWriteArrayList<>();
 
 	public boolean register(ExecutorService threadPool, Config config) {

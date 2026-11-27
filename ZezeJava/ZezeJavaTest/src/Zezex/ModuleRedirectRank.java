@@ -74,12 +74,7 @@ public class ModuleRedirectRank {
 
 	public void testRedirect() throws Exception {
 		// RedirectToServer
-		/*
-		var context = app1.getZeze().getHotManager().getModuleContext("Game.Rank", IModuleRank.class);
-		var rank = context.getService();
-		/*/
 		var rank = app1.Game_Rank;
-		// */
 		Objects.requireNonNull(rank).TestToServer(30, 111).then(result -> {
 			assertEquals(111, Objects.requireNonNull(result).getOut());
 			assertEquals(30, result.getServerId());

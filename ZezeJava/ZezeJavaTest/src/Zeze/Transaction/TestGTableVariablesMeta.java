@@ -22,19 +22,19 @@ public class TestGTableVariablesMeta {
 	public void testBeanMap1ReportsRealTypes() {
 		var bm = new BeanMap1<>(Map1Meta.get(String.class, Long.class));
 		var d = bm.variables().get(0);
-		Assertions.assertEquals(1, d.getId());
-		Assertions.assertEquals("Map1", d.getName());
-		Assertions.assertEquals("map", d.getType());
-		Assertions.assertEquals("string", d.getKey());
-		Assertions.assertEquals("long", d.getValue());
+		Assertions.assertEquals(1, d.id());
+		Assertions.assertEquals("Map1", d.name());
+		Assertions.assertEquals("map", d.type());
+		Assertions.assertEquals("string", d.key());
+		Assertions.assertEquals("long", d.value());
 	}
 
 	@Test
 	public void testBeanMap2ReportsRealTypes() {
 		var bm = new BeanMap2<>(Map2Meta.get(Integer.class, Bean1.class));
 		var d = bm.variables().get(0);
-		Assertions.assertEquals("map", d.getType());
-		Assertions.assertEquals("int", d.getKey());
-		Assertions.assertEquals("demo.Bean1", d.getValue()); // bean 用 schema 全名（==Java 类名）
+		Assertions.assertEquals("map", d.type());
+		Assertions.assertEquals("int", d.key());
+		Assertions.assertEquals("demo.Bean1", d.value()); // bean 用 schema 全名（==Java 类名）
 	}
 }

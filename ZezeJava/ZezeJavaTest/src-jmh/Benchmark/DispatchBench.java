@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 // 派发路径微基准：拆解 submitNow 全路径的每任务成本构成。
 // 三个分量对比：full（TaskSpec.ofAction().submitNow().get()）vs raw（同线程数裸池 submit().get()）
-// vs direct（载荷直调）。full - raw = TaskSpec/Task 层开销（timeout/hotGuard/统计/日志），
+// vs direct（载荷直调）。full - raw = TaskSpec/Task 层开销（timeout/统计/日志），
 // raw - direct = 执行器交接成本（lambda/FutureTask/队列）。
 // 线程池形态对齐 Task 默认（固定数量虚拟线程）。
 @State(Scope.Benchmark)

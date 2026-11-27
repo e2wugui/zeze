@@ -17,7 +17,7 @@ public interface BSetUserStateReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     long getLinkSid();
     Zeze.Builtin.Provider.BUserStateReadOnly getUserStateReadOnly();

@@ -3,6 +3,7 @@ package metagame.builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 /*
 为了不污染根空间，改成Command了。
@@ -15,7 +16,7 @@ import Zeze.Serialize.IByteBuffer;
 			<protocol name="AoiOperate" argument="BAoiOperate" handle="client"/>
 			<protocol name="AoiLeave" argument="BAoiLeave" handle="client"/>
 */
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWorldReadOnly {
     public static final long TYPEID = 5049345430341027881L;
 
@@ -24,6 +25,8 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
     private Zeze.Serialize.Vector3 _Position;
     private Zeze.Serialize.Vector3 _Direct;
     private final Zeze.Transaction.Collections.PList2<metagame.builtin.World.BAoiOperates> _PriorityData; // 优先数据，服务器第一次进入的时候就跟随EnterWorld发送给客户端。
+    private static final Zeze.Transaction.Collections.List2Meta<metagame.builtin.World.BAoiOperates> meta1_PriorityData
+            = Zeze.Transaction.Collections.List2Meta.get(metagame.builtin.World.BAoiOperates.class);
 
     private static final java.lang.invoke.VarHandle vh_MapId;
     private static final java.lang.invoke.VarHandle vh_MapInstanceId;
@@ -139,12 +142,12 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
     public BEnterWorld() {
         _Position = Zeze.Serialize.Vector3.ZERO;
         _Direct = Zeze.Serialize.Vector3.ZERO;
-        _PriorityData = new Zeze.Transaction.Collections.PList2<>(metagame.builtin.World.BAoiOperates.class);
+        _PriorityData = new Zeze.Transaction.Collections.PList2<>(meta1_PriorityData);
         _PriorityData.variableId(5);
     }
 
     @SuppressWarnings("deprecation")
-    public BEnterWorld(int _MapId_, long _MapInstanceId_, Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_) {
+    public BEnterWorld(int _MapId_, long _MapInstanceId_, Zeze.Serialize.@Nullable Vector3 _Position_, Zeze.Serialize.@Nullable Vector3 _Direct_) {
         _MapId = _MapId_;
         _MapInstanceId = _MapInstanceId_;
         if (_Position_ == null)
@@ -153,7 +156,7 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         if (_Direct_ == null)
             _Direct_ = Zeze.Serialize.Vector3.ZERO;
         _Direct = _Direct_;
-        _PriorityData = new Zeze.Transaction.Collections.PList2<>(metagame.builtin.World.BAoiOperates.class);
+        _PriorityData = new Zeze.Transaction.Collections.PList2<>(meta1_PriorityData);
         _PriorityData.variableId(5);
     }
 
@@ -273,9 +276,9 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -343,19 +346,23 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         if (_i_ == 1) {
             setMapId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMapId(0);
         if (_i_ == 2) {
             setMapInstanceId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMapInstanceId(0);
         if (_i_ == 3) {
             setPosition(_o_.ReadVector3(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPosition(Zeze.Serialize.Vector3.ZERO);
         if (_i_ == 4) {
             setDirect(_o_.ReadVector3(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDirect(Zeze.Serialize.Vector3.ZERO);
         if (_i_ == 5) {
             var _x_ = _PriorityData;
             _x_.clear();
@@ -365,13 +372,14 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _PriorityData.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BEnterWorld))
@@ -461,13 +469,13 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "MapId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "MapInstanceId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Position", "vector3", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Direct", "vector3", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "PriorityData", "list", "", "metagame.builtin.World.BAoiOperates"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "MapId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "MapInstanceId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Position", "vector3", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Direct", "vector3", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "PriorityData", "list", "", "metagame.builtin.World.BAoiOperates"));
         return _v_;
     }
 
@@ -546,7 +554,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _MapId_, long _MapInstanceId_, Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, java.util.ArrayList<metagame.builtin.World.BAoiOperates.Data> _PriorityData_) {
+    public Data(int _MapId_, long _MapInstanceId_, Zeze.Serialize.@Nullable Vector3 _Position_, Zeze.Serialize.@Nullable Vector3 _Direct_, java.util.@Nullable ArrayList<metagame.builtin.World.BAoiOperates.Data> _PriorityData_) {
         _MapId = _MapId_;
         _MapInstanceId = _MapInstanceId_;
         if (_Position_ == null)
@@ -728,19 +736,23 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _MapId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _MapId = 0;
         if (_i_ == 2) {
             _MapInstanceId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _MapInstanceId = 0;
         if (_i_ == 3) {
             _Position = _o_.ReadVector3(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Position = Zeze.Serialize.Vector3.ZERO;
         if (_i_ == 4) {
             _Direct = _o_.ReadVector3(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Direct = Zeze.Serialize.Vector3.ZERO;
         if (_i_ == 5) {
             var _x_ = _PriorityData;
             _x_.clear();
@@ -750,7 +762,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _PriorityData.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -758,7 +771,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BEnterWorld.Data))

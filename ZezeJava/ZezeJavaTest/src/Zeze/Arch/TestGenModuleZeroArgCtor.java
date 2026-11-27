@@ -57,7 +57,7 @@ public class TestGenModuleZeroArgCtor {
 		var bytes = compiler.compileAllToByteCode(Map.of(MODULE_CLASS, MODULE_SRC)).get(MODULE_CLASS);
 		Assertions.assertNotNull(bytes);
 
-		// 独立装载器define（不落冷classpath，避免HotModule冷抢载语义干扰）。
+		// 独立装载器define（隔离临时编译类）。
 		var loader = new ClassLoader(ClassLoader.getSystemClassLoader()) {
 			@Override
 			protected Class<?> findClass(String name) {

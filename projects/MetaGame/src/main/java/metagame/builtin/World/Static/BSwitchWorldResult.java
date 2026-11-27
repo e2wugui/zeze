@@ -3,8 +3,9 @@ package metagame.builtin.World.Static;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements BSwitchWorldResultReadOnly {
     public static final long TYPEID = 2633234541044628412L;
 
@@ -127,9 +128,9 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -162,13 +163,14 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
         if (_i_ == 1) {
             setMapInstanceId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMapInstanceId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSwitchWorldResult))
@@ -214,9 +216,9 @@ public final class BSwitchWorldResult extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "MapInstanceId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "MapInstanceId", "long", "", ""));
         return _v_;
     }
 
@@ -336,7 +338,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _MapInstanceId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _MapInstanceId = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -344,7 +347,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BSwitchWorldResult.Data))

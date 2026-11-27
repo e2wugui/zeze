@@ -237,10 +237,10 @@ public final class BFighter extends Zeze.Transaction.Bean implements BFighterRea
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Attack", "float", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Defence", "float", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Attack", "float", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Defence", "float", "", ""));
         return _v_;
     }
 }

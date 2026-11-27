@@ -17,7 +17,7 @@ public interface BTransmitReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     String getActionName();
     Zeze.Transaction.Collections.PSet1ReadOnly<Long> getRolesReadOnly();

@@ -5,7 +5,6 @@ import java.util.Objects;
 import Zeze.Application;
 import Zeze.Builtin.SafeBatch.BBatch;
 import Zeze.Builtin.SafeBatch.BBatchReadOnly;
-import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
@@ -14,6 +13,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action0;
 import Zeze.Util.OutObject;
+import Zeze.Util.ReflectHandleCache;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,10 +32,10 @@ public class SafeBatch extends AbstractSafeBatch {
 	static final Logger logger = LogManager.getLogger(SafeBatch.class);
 	private final Application zeze;
 	private final ConcurrentHashMap<String, Future<?>> running = new ConcurrentHashMap<>();
-	private final HotHandle<WalkJobHandle> hotWalkJobHandles = new HotHandle<>();
+	private final ReflectHandleCache<WalkJobHandle> walkJobHandles = new ReflectHandleCache<>(WalkJobHandle.class);
 	private volatile boolean stopped = false;
 
-	// WalkJobHandle 保留为标记接口：HotHandle 反射加载、BBatch.jobClass 持久化使用此公共基类型。
+	// WalkJobHandle 保留为标记接口：ReflectHandleCache 反射加载、BBatch.jobClass 持久化使用此公共基类型。
 	// 真正的回调签名由下面三个子接口给出，分别对应三种 worker 语义。
 	public interface WalkJobHandle {
 	}
@@ -154,7 +154,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		if (!stopped) {
 			running.computeIfAbsent(timerId, (key) -> {
 				Worker worker = switch (batch.getWorker()) {
-					// HotHandle 反射加载路径：泛型已被擦除，只能用 raw type 构造。
+					// ReflectHandleCache 反射加载路径：泛型已被擦除，只能用 raw type 构造。
 					case eWorkerTable -> new TableBatchWorker(timerId,
 						(WalkTableJobHandle)jobHandle, batch.toData());
 					case eWorkerSortedMap -> new SortedMapWorker(timerId,
@@ -198,7 +198,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		if (null != existFuture) {
 			running.remove(timerId, existFuture);
 		}
-		var jobHandle = hotWalkJobHandles.findHandle(zeze, batch.getJobClass());
+		var jobHandle = walkJobHandles.findHandle(batch.getJobClass());
 		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, batch));
 	}
 

@@ -174,10 +174,10 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServiceIdentity", "string", "", ""));
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
+        var vars = new java.util.ArrayList<Zeze.Transaction.VariableMeta>();
+        vars.add(new Zeze.Transaction.VariableMeta(1, "ServiceName", "string", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(2, "ServiceIdentity", "string", "", ""));
         return vars;
     }
 }

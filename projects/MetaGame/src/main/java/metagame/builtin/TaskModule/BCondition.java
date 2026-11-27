@@ -3,8 +3,9 @@ package metagame.builtin.TaskModule;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BCondition extends Zeze.Transaction.Bean implements BConditionReadOnly {
     public static final long TYPEID = -2807495013121592461L;
 
@@ -75,7 +76,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     }
 
     @SuppressWarnings("deprecation")
-    public BCondition(String _ClassName_, Zeze.Net.Binary _Parameter_) {
+    public BCondition(@Nullable String _ClassName_, Zeze.Net.@Nullable Binary _Parameter_) {
         if (_ClassName_ == null)
             _ClassName_ = "";
         _ClassName = _ClassName_;
@@ -165,9 +166,9 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -207,17 +208,19 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         if (_i_ == 1) {
             setClassName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setClassName("");
         if (_i_ == 2) {
             setParameter(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setParameter(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BCondition))
@@ -263,10 +266,10 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ClassName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Parameter", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ClassName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Parameter", "binary", "", ""));
         return _v_;
     }
 
@@ -304,7 +307,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _ClassName_, Zeze.Net.Binary _Parameter_) {
+    public Data(@Nullable String _ClassName_, Zeze.Net.@Nullable Binary _Parameter_) {
         if (_ClassName_ == null)
             _ClassName_ = "";
         _ClassName = _ClassName_;
@@ -417,11 +420,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ClassName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ClassName = "";
         if (_i_ == 2) {
             _Parameter = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Parameter = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -429,7 +434,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BCondition.Data))

@@ -465,14 +465,14 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceNamePrefix", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServiceIdentity", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ProviderDirectIp", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ProviderDirectPort", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "AppVersion", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "DisableChoice", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ServiceNamePrefix", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ServiceIdentity", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "ProviderDirectIp", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "ProviderDirectPort", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "AppVersion", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "DisableChoice", "bool", "", ""));
         return _v_;
     }
 

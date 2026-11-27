@@ -216,10 +216,6 @@ Transaction.whileCommit(() -> {
 
 定时器触发时，回调在独立事务中执行。如果回调抛出异常，该定时器会被自动取消。
 
-## Hot Reload 支持
-
-Timer 支持热更新：通过 `scheduleOnlineHot` 系列方法注册的定时器，在热模块重新加载后会使用新的 Handle 类实例。非 Hot 版本的方法在热更新后仍使用旧的 Handle 实例。
-
 ## 与其他组件的关系
 
 - **AutoKey**（[自增 ID](./autokey.md)）：Timer 使用 AutoKey 生成 timerId、nodeId 和 serialId。

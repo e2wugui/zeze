@@ -163,7 +163,8 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
         if (_i_ == 1) {
             setId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -215,9 +216,9 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Id", "long", "", ""));
         return _v_;
     }
 
@@ -337,7 +338,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Id = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Id = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

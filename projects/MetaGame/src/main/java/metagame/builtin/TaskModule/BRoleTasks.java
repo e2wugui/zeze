@@ -3,12 +3,15 @@ package metagame.builtin.TaskModule;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTasksReadOnly {
     public static final long TYPEID = 6407437074489557446L;
 
     private final Zeze.Transaction.Collections.PMap2<Integer, metagame.builtin.TaskModule.BTask> _Tasks; // key是taskId，这种描述意味着相同的任务不能同时接多次。
+    private static final Zeze.Transaction.Collections.Map2Meta<Integer, metagame.builtin.TaskModule.BTask> meta2_Tasks
+            = Zeze.Transaction.Collections.Map2Meta.get(Integer.class, metagame.builtin.TaskModule.BTask.class);
 
     public Zeze.Transaction.Collections.PMap2<Integer, metagame.builtin.TaskModule.BTask> getTasks() {
         return _Tasks;
@@ -21,7 +24,7 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
 
     @SuppressWarnings("deprecation")
     public BRoleTasks() {
-        _Tasks = new Zeze.Transaction.Collections.PMap2<>(Integer.class, metagame.builtin.TaskModule.BTask.class);
+        _Tasks = new Zeze.Transaction.Collections.PMap2<>(meta2_Tasks);
         _Tasks.variableId(1);
     }
 
@@ -104,9 +107,9 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -157,13 +160,14 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Tasks.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BRoleTasks))
@@ -221,9 +225,9 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Tasks", "map", "int", "metagame.builtin.TaskModule.BTask"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Tasks", "map", "int", "metagame.builtin.TaskModule.BTask"));
         return _v_;
     }
 }

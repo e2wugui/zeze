@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
-import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.KV;
@@ -287,7 +286,7 @@ public abstract class Bean implements Serializable {
 		return this;
 	}
 
-	public ArrayList<BVariable.Data> variables() {
+	public ArrayList<VariableMeta> variables() {
 		return new ArrayList<>();
 	}
 

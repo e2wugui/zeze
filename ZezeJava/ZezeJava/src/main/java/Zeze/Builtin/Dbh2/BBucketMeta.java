@@ -501,14 +501,14 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "DatabaseName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TableName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "KeyFirst", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "KeyLast", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "RaftConfig", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Host2Raft", "map", "string", "string"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "DatabaseName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "TableName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "KeyFirst", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "KeyLast", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "RaftConfig", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "Host2Raft", "map", "string", "string"));
         return _v_;
     }
 

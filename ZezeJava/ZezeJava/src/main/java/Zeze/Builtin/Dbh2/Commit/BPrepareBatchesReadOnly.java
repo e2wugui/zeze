@@ -17,7 +17,7 @@ public interface BPrepareBatchesReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Dbh2.BPrepareBatch, Zeze.Builtin.Dbh2.BPrepareBatchReadOnly> getDatasReadOnly();
 }

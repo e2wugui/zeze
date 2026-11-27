@@ -105,13 +105,9 @@ namespace Zeze.Gen.java
 
             foreach (Module m in project.AllOrderDefineModules)
             {
-                if (false == project.Hot || false == m.Hot)
-                {
-                    // 非热更模块生成全局唯一变量。
-                    string moduleName = Program.Upper1(m.Name);
-                    var fullname = m.Path("_");
-                    sw.WriteLine($"    public {JSpecify.NullableOnLastName(m.Path(".", $"Module{moduleName}")).Replace("@Nullable", "@org.jspecify.annotations.Nullable")} {fullname};");
-                }
+                string moduleName = Program.Upper1(m.Name);
+                var fullname = m.Path("_");
+                sw.WriteLine($"    public {JSpecify.NullableOnLastName(m.Path(".", $"Module{moduleName}")).Replace("@Nullable", "@org.jspecify.annotations.Nullable")} {fullname};");
             }
             if (project.AllOrderDefineModules.Count > 0)
                 sw.WriteLine();
@@ -155,8 +151,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine("        return new Class[] {");
                 foreach (Module m in project.AllOrderDefineModules)
                 {
-                    if (false == project.Hot || false == m.Hot)
-                        sw.WriteLine("            " + m.Path(".", "Module" + Program.Upper1(m.Name)) + ".class,");
+                    sw.WriteLine("            " + m.Path(".", "Module" + Program.Upper1(m.Name)) + ".class,");
                 }
                 sw.WriteLine("        };");
                 sw.WriteLine("    }");
@@ -166,11 +161,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public void createModules() throws Exception {");
             sw.WriteLine("        lock();");
             sw.WriteLine("        try {");
-            if (project.Hot)
-                sw.WriteLine("            getZeze().setHotManager(new Zeze.Hot.HotManager(this, getZeze().getConfig().getHotWorkingDir(), getZeze().getConfig().getHotDistributeDir()));");
             sw.WriteLine("            getZeze().initialize(this);");
-            if (project.Hot)
-                sw.WriteLine("            java.util.Objects.requireNonNull(getZeze().getHotManager()).initialize(modules);");
 
             if (project.AllOrderDefineModules.Count > 0)
             {
@@ -179,17 +170,14 @@ namespace Zeze.Gen.java
                 int index = 0;
                 foreach (Module m in project.AllOrderDefineModules)
                 {
-                    if (false == project.Hot || false == m.Hot)
-                    {
-                        string className = m.Path(".", "Module" + Program.Upper1(m.Name));
-                        var fullname = m.Path("_");
-                        sw.WriteLine($"            {fullname} = ({className})_modules_[" + index + "];");
-                        sw.WriteLine($"            {fullname}.Initialize(this);");
-                        sw.WriteLine($"            if (modules.put({fullname}.getFullName(), {fullname}) != null)");
-                        sw.WriteLine($"                throw new IllegalStateException(\"duplicate module name: {fullname}\");");
-                        sw.WriteLine();
-                        index++;
-                    }
+                    string className = m.Path(".", "Module" + Program.Upper1(m.Name));
+                    var fullname = m.Path("_");
+                    sw.WriteLine($"            {fullname} = ({className})_modules_[" + index + "];");
+                    sw.WriteLine($"            {fullname}.Initialize(this);");
+                    sw.WriteLine($"            if (modules.put({fullname}.getFullName(), {fullname}) != null)");
+                    sw.WriteLine($"                throw new IllegalStateException(\"duplicate module name: {fullname}\");");
+                    sw.WriteLine();
+                    index++;
                 }
             }
             sw.WriteLine("            getZeze().setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
@@ -204,20 +192,8 @@ namespace Zeze.Gen.java
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
-                if (false == project.Hot || false == m.Hot)
-                {
-                    var fullname = m.Path("_");
-                    sw.WriteLine("            " + fullname + " = null;");
-                }
-            }
-            if (project.Hot)
-            {
-                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
-                sw.WriteLine("                var manager = java.util.Objects.requireNonNull(getZeze().getHotManager());");
-                sw.WriteLine("                manager.stop();");
-                sw.WriteLine("                manager.destroyModules();");
-                sw.WriteLine("                getZeze().setHotManager(null);");
-                sw.WriteLine("            }");
+                var fullname = m.Path("_");
+                sw.WriteLine("            " + fullname + " = null;");
             }
             sw.WriteLine("            modules.clear();");
             sw.WriteLine("        } finally {");
@@ -249,31 +225,12 @@ namespace Zeze.Gen.java
             sw.WriteLine("        try {");
             foreach (var m in project.ModuleStartOrder)
             {
-                if (false == project.Hot || false == m.Hot)
-                {
-                    sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").Start(this);");
-                }
-                else
-                {
-                    // hot module start
-                    sw.WriteLine($"            java.util.Objects.requireNonNull(getZeze().getHotManager()).startModule(\"{m.Path()}\");");
-                }
+                sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").Start(this);");
             }
             foreach (Module m in project.AllOrderDefineModules)
             {
-                if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
+                if (!project.ModuleStartOrder.Contains(m))
                     sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").Start(this);");
-            }
-            if (project.Hot)
-            {
-                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
-                sw.WriteLine("                var definedOrder = new java.util.HashSet<String>();");
-                foreach (var m in project.ModuleStartOrder)
-                {
-                    sw.WriteLine($"                definedOrder.add(\"{m.Path()}\");");
-                }
-                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).startModulesExcept(definedOrder);");
-                sw.WriteLine("            }");
             }
             sw.WriteLine("        } finally {");
             sw.WriteLine("            unlock();");
@@ -286,31 +243,12 @@ namespace Zeze.Gen.java
             sw.WriteLine("        try {");
             foreach (var m in project.ModuleStartOrder)
             {
-                if (false == project.Hot || false == m.Hot)
-                {
-                    sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").StartLast();");
-                }
-                else
-                {
-                    // hot module start
-                    sw.WriteLine($"            java.util.Objects.requireNonNull(getZeze().getHotManager()).startLastModule(\"{m.Path()}\");");
-                }
+                sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").StartLast();");
             }
             foreach (Module m in project.AllOrderDefineModules)
             {
-                if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
+                if (!project.ModuleStartOrder.Contains(m))
                     sw.WriteLine("            " + "java.util.Objects.requireNonNull(" + m.Path("_") + ").StartLast();");
-            }
-            if (project.Hot)
-            {
-                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
-                sw.WriteLine("                var definedOrder = new java.util.HashSet<String>();");
-                foreach (var m in project.ModuleStartOrder)
-                {
-                    sw.WriteLine($"                definedOrder.add(\"{m.Path()}\");");
-                }
-                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).startLastModulesExcept(definedOrder);");
-                sw.WriteLine("            }");
             }
             sw.WriteLine("        } finally {");
             sw.WriteLine("            unlock();");
@@ -325,38 +263,19 @@ namespace Zeze.Gen.java
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
-                if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
+                if (!project.ModuleStartOrder.Contains(m))
                 {
                     var name = m.Path("_");
                     sw.WriteLine("            if (" + name + " != null)");
                     sw.WriteLine("                " + name + ".Stop(this);");
                 }
-            }
-            if (project.Hot)
-            {
-                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
-                sw.WriteLine("                var definedOrder = new java.util.HashSet<String>();");
-                foreach (var m in project.ModuleStartOrder)
-                {
-                    sw.WriteLine($"                definedOrder.add(\"{m.Path()}\");");
-                }
-                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).stopModulesExcept(definedOrder);");
-                sw.WriteLine("            }");
             }
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
                 var m = project.ModuleStartOrder[i];
-                if (false == project.Hot || false == m.Hot)
-                {
-                    var name = m.Path("_");
-                    sw.WriteLine("            if (" + name + " != null)");
-                    sw.WriteLine("                " + name + ".Stop(this);");
-                }
-                else
-                {
-                    // hot module stop
-                    sw.WriteLine($"            java.util.Objects.requireNonNull(getZeze().getHotManager()).stopModule(\"{m.Path()}\");");
-                }
+                var name = m.Path("_");
+                sw.WriteLine("            if (" + name + " != null)");
+                sw.WriteLine("                " + name + ".Stop(this);");
             }
             sw.WriteLine("        } finally {");
             sw.WriteLine("            unlock();");
@@ -371,38 +290,19 @@ namespace Zeze.Gen.java
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
-                if (!project.ModuleStartOrder.Contains(m) && (false == project.Hot || false == m.Hot))
+                if (!project.ModuleStartOrder.Contains(m))
                 {
                     var name = m.Path("_");
                     sw.WriteLine("            if (" + name + " != null)");
                     sw.WriteLine("                " + name + ".StopBefore();");
                 }
-            }
-            if (project.Hot)
-            {
-                sw.WriteLine("            if (null != getZeze().getHotManager()) {");
-                sw.WriteLine("                var definedOrder = new java.util.HashSet<String>();");
-                foreach (var m in project.ModuleStartOrder)
-                {
-                    sw.WriteLine($"                definedOrder.add(\"{m.Path()}\");");
-                }
-                sw.WriteLine("                java.util.Objects.requireNonNull(getZeze().getHotManager()).stopBeforeModulesExcept(definedOrder);");
-                sw.WriteLine("            }");
             }
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
                 var m = project.ModuleStartOrder[i];
-                if (false == project.Hot || false == m.Hot)
-                {
-                    var name = m.Path("_");
-                    sw.WriteLine("            if (" + name + " != null)");
-                    sw.WriteLine("                " + name + ".StopBefore();");
-                }
-                else
-                {
-                    // hot module stop
-                    sw.WriteLine($"            java.util.Objects.requireNonNull(getZeze().getHotManager()).stopBeforeModule(\"{m.Path()}\");");
-                }
+                var name = m.Path("_");
+                sw.WriteLine("            if (" + name + " != null)");
+                sw.WriteLine("                " + name + ".StopBefore();");
             }
             sw.WriteLine("        } finally {");
             sw.WriteLine("            unlock();");
@@ -431,19 +331,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("            unlock();");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
-            if (project.Hot)
-            {
-                sw.WriteLine();
-                sw.WriteLine("    public static void distributeHot(Zeze.Hot.Distribute distribute) throws Exception {");
-                sw.WriteLine("        var hotModules = new java.util.HashSet<String>();");
-                foreach (Module m in project.AllOrderDefineModules)
-                {
-                    if (project.Hot && m.Hot)
-                        sw.WriteLine($"        hotModules.add(\"{m.Path()}\");");
-                }
-                sw.WriteLine($"        distribute.pack(hotModules, \"{project.Name}\", \"{project.Solution.Name}\");");
-                sw.WriteLine("    }");
-            }
         }
     }
 }

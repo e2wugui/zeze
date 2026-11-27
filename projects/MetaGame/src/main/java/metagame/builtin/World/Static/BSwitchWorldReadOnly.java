@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package metagame.builtin.World.Static;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 public interface BSwitchWorldReadOnly {
     long typeId();
     int preAllocSize();
@@ -12,9 +15,9 @@ public interface BSwitchWorldReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     int getMapId();
     int getFromMapId();

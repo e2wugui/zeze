@@ -24,8 +24,7 @@ import org.junit.jupiter.api.Test;
  * eLinkBroken状态、无延迟登出定时器），幽灵在线残留到verifyLocal（默认600s）。
  * 约定（镜像50e9520d5的getRoleId）：解析失败=非角色会话，返回null跳过，不抛。
  * 自包含（不依赖外部进程与数据库，不启动网络），标@Fast。
- * 本测试与被测类同包（Zeze.Game），可直接调用protected ProcessLinkBroken并注入
- * protected online字段（harness同TestOnlineHotStopEventRef）。
+ * 本测试与被测类同包（Zeze.Game），可直接调用protected ProcessLinkBroken并注入protected online字段。
  */
 @Fast
 public class TestProcessLinkBrokenNonRoleContext {

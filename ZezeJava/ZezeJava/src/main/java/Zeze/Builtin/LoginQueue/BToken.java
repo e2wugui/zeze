@@ -357,12 +357,12 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "SerialId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServerId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ExpireTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LinkServerId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "SerialId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ServerId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "ExpireTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "LinkServerId", "int", "", ""));
         return _v_;
     }
 

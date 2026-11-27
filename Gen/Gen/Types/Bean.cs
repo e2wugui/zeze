@@ -229,7 +229,7 @@ namespace Zeze.Gen.Types
 			if (string.IsNullOrEmpty(Kind))
 				Kind = "bean"; // default
 
-			Program.CheckReserveName(_name, space.Path(), false);
+			Program.CheckReserveName(_name, space.Path());
 			Type.Add(space, this);
 			space.Add(this);
 
@@ -241,10 +241,6 @@ namespace Zeze.Gen.Types
 				Base = Space.Path(".", Base);
             Interface = self.GetAttribute("interface").Trim();
             var hashTypeId = Util.FixedHash.Hash64(space.Path(".", _name));
-			// 这里的写法：hot bean 允许自定义TypeId，
-			// 但是java的Bean禁止了自定义功能，
-			// 而Hot目前仅用于java，
-			// 所以实际上还是不准自定义的。
 			TypeId = attr.Length > 0 ? int.Parse(attr) : hashTypeId;
 			CustomTypeId = TypeId != hashTypeId;
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))

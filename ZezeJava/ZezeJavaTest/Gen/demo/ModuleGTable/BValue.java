@@ -445,12 +445,12 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "gTable", "gtable", "int,int", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "gTable2", "gtable", "int,string", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "gTable3", "gtable", "int,int", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "gTable4", "gtable", "int,string", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "gTable", "gtable", "int,int", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "gTable2", "gtable", "int,string", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "gTable3", "gtable", "int,int", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "gTable4", "gtable", "int,string", "dynamic"));
         return _v_;
     }
 }

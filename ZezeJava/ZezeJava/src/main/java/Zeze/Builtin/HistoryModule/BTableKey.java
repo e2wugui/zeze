@@ -165,10 +165,10 @@ public final class BTableKey implements Zeze.Transaction.BeanKey, Comparable<BTa
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TableId", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "KeyEncoded", "binary", "", ""));
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
+        var vars = new java.util.ArrayList<Zeze.Transaction.VariableMeta>();
+        vars.add(new Zeze.Transaction.VariableMeta(1, "TableId", "int", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(2, "KeyEncoded", "binary", "", ""));
         return vars;
     }
 }

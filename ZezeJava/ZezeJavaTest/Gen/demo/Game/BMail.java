@@ -377,12 +377,12 @@ public final class BMail extends Zeze.Transaction.Bean implements BMailReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "From", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Money", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Items", "map", "int", "demo.Game.BItem"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Claimed", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "From", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Money", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Items", "map", "int", "demo.Game.BItem"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Claimed", "bool", "", ""));
         return _v_;
     }
 }

@@ -225,9 +225,9 @@ public final class BEquips extends Zeze.Transaction.Bean implements BEquipsReadO
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Items", "map", "int", "ClientGame.Equip.BItem"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Items", "map", "int", "ClientGame.Equip.BItem"));
         return _v_;
     }
 }

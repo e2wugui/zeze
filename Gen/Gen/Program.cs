@@ -38,11 +38,11 @@ namespace Zeze.Gen
             "virtual", "void", "volatile", "wchar_t", "while", "with", "xor", "xor_eq", "yield"
         };
 
-        public static void CheckReserveName(string name, string path, bool hot = false)
+        public static void CheckReserveName(string name, string path)
         {
             if (name.StartsWith("_"))
                 throw new Exception($"Name Can Not StartsWith '_': name='{name}' in '{path ?? ""}'");
-            if (name.EndsWith("_") && !hot) // allow hot bean
+            if (name.EndsWith("_"))
                 throw new Exception($"Name Can Not EndsWith '_': name='{name}' in '{path ?? ""}'");
             if (!namePattern.IsMatch(name))
                 throw new Exception($"Name Can Not Contains Invalid Chars: name='{name}' in '{path ?? ""}'");

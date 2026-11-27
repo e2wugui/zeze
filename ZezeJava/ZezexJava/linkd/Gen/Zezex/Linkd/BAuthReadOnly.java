@@ -16,7 +16,7 @@ public interface BAuthReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     String getAccount();
     String getToken();

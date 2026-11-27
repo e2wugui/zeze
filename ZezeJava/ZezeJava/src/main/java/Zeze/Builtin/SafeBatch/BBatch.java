@@ -519,15 +519,15 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "AppInstanceId", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TableName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "RecordKey", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LastKey", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ProposeLimit", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "JobClass", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Worker", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "AppInstanceId", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "TableName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "RecordKey", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "LastKey", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "ProposeLimit", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "JobClass", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "Worker", "int", "", ""));
         return _v_;
     }
 

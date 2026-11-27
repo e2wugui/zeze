@@ -40,8 +40,6 @@ Zeze 的配置通过 XML 文件（默认 `zeze.xml`）管理。除非特殊说�
     ProviderOverload="4000"
     ProcedureStatisticsReportPeriod="60000"
     TableStatisticsReportPeriod="60000"
-    HotWorkingDir=""
-    HotDistributeDir="distributes"
     DeadLockBreakerPeriod="60000"
     ProcedureLockWatcherMin="50"
     AppVersion=""
@@ -151,10 +149,6 @@ Zeze 的配置通过 XML 文件（默认 `zeze.xml`）管理。除非特殊说�
 #### ProviderThreshold / ProviderOverload
 
 Arch Provider 负载控制。任务延迟超过 Threshold（默认 2000ms）标记为忙碌，超过 Overload（默认 4000ms）标记为过载（熔断）。
-
-#### HotWorkingDir / HotDistributeDir
-
-热更新配置。`HotWorkingDir` 为工作目录，`HotDistributeDir` 为发布文件子目录名。
 
 #### DeadLockBreakerPeriod
 

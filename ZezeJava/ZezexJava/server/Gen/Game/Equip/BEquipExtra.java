@@ -11,18 +11,15 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
 
     private int _Attack;
     private int _Defence;
-    private int _HotRemoveVar; // 这个变量在新版热更模块会被删除。
 
     private static final java.lang.invoke.VarHandle vh_Attack;
     private static final java.lang.invoke.VarHandle vh_Defence;
-    private static final java.lang.invoke.VarHandle vh_HotRemoveVar;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
             vh_Attack = _l_.findVarHandle(BEquipExtra.class, "_Attack", int.class);
             vh_Defence = _l_.findVarHandle(BEquipExtra.class, "_Defence", int.class);
-            vh_HotRemoveVar = _l_.findVarHandle(BEquipExtra.class, "_HotRemoveVar", int.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -68,49 +65,26 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
         _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_Defence, _v_));
     }
 
-    @Override
-    public int getHotRemoveVar() {
-        if (!isManaged())
-            return _HotRemoveVar;
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (_t_ == null)
-            return _HotRemoveVar;
-        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _HotRemoveVar;
-    }
-
-    public void setHotRemoveVar(int _v_) {
-        if (!isManaged()) {
-            _HotRemoveVar = _v_;
-            return;
-        }
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 3, vh_HotRemoveVar, _v_));
-    }
-
     @SuppressWarnings("deprecation")
     public BEquipExtra() {
     }
 
     @SuppressWarnings("deprecation")
-    public BEquipExtra(int _Attack_, int _Defence_, int _HotRemoveVar_) {
+    public BEquipExtra(int _Attack_, int _Defence_) {
         _Attack = _Attack_;
         _Defence = _Defence_;
-        _HotRemoveVar = _HotRemoveVar_;
     }
 
     @Override
     public void reset() {
         setAttack(0);
         setDefence(0);
-        setHotRemoveVar(0);
         _unknown_ = null;
     }
 
     public void assign(BEquipExtra _o_) {
         setAttack(_o_.getAttack());
         setDefence(_o_.getDefence());
-        setHotRemoveVar(_o_.getHotRemoveVar());
         _unknown_ = _o_._unknown_;
     }
 
@@ -148,8 +122,7 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Game.Equip.BEquipExtra: {\n");
         _s_.append(_i1_).append("Attack=").append(getAttack()).append(",\n");
-        _s_.append(_i1_).append("Defence=").append(getDefence()).append(",\n");
-        _s_.append(_i1_).append("HotRemoveVar=").append(getHotRemoveVar()).append('\n');
+        _s_.append(_i1_).append("Defence=").append(getDefence()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -195,13 +168,6 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
                 _o_.WriteInt(_x_);
             }
         }
-        {
-            int _x_ = getHotRemoveVar();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -221,11 +187,6 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
             setDefence(0);
-        if (_i_ == 3) {
-            setHotRemoveVar(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        } else
-            setHotRemoveVar(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -242,8 +203,6 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
             return false;
         if (getDefence() != _b_.getDefence())
             return false;
-        if (getHotRemoveVar() != _b_.getHotRemoveVar())
-            return false;
         return true;
     }
 
@@ -252,8 +211,6 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
         if (getAttack() < 0)
             return true;
         if (getDefence() < 0)
-            return true;
-        if (getHotRemoveVar() < 0)
             return true;
         return false;
     }
@@ -269,7 +226,6 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
             switch (_v_.getVariableId()) {
                 case 1: _Attack = _v_.intValue(); break;
                 case 2: _Defence = _v_.intValue(); break;
-                case 3: _HotRemoveVar = _v_.intValue(); break;
             }
         }
     }
@@ -279,7 +235,6 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setAttack(_r_.getInt(_pn_ + "Attack"));
         setDefence(_r_.getInt(_pn_ + "Defence"));
-        setHotRemoveVar(_r_.getInt(_pn_ + "HotRemoveVar"));
     }
 
     @Override
@@ -287,15 +242,13 @@ public final class BEquipExtra extends Zeze.Transaction.Bean implements BEquipEx
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendInt(_pn_ + "Attack", getAttack());
         _s_.appendInt(_pn_ + "Defence", getDefence());
-        _s_.appendInt(_pn_ + "HotRemoveVar", getHotRemoveVar());
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Attack", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Defence", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "HotRemoveVar", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Attack", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Defence", "int", "", ""));
         return _v_;
     }
 }

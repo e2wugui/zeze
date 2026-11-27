@@ -323,11 +323,11 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "PrevNodeId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "NextNodeId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Values", "list", "", "Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "PrevNodeId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "NextNodeId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Values", "list", "", "Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue"));
         return _v_;
     }
 }

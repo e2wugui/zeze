@@ -17,7 +17,7 @@ public interface BRegisterResultReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Dbh2.Master.BDbh2Config, Zeze.Builtin.Dbh2.Master.BDbh2ConfigReadOnly> getDbh2ConfigsReadOnly();
 }

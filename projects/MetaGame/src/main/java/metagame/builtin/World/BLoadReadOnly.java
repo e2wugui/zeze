@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package metagame.builtin.World;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // 地图实例（线）的负载
 public interface BLoadReadOnly {
     long typeId();
@@ -13,9 +16,9 @@ public interface BLoadReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     int getPlayerCount();
     long getComputeCount();

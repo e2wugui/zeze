@@ -69,7 +69,6 @@ order: 1
 |------|------|------|
 | `name` | 是 | 模块名，用作生成代码的命名空间 |
 | `id` | 是 | 全局唯一模块 id，必须在 `ModuleIdAllowRanges` 范围内 |
-| `hot` | 否 | 热更新相关标记 |
 | `DefaultTransactionLevel` | 否 | 该模块默认事务级别（覆盖程序默认） |
 | `UseData` | 否 | 控制是否生成 Data 类 |
 
@@ -375,7 +374,6 @@ Bean 是结构化数据的基本单元，自动参与事务。详见 [Bean 数�
 | `GenDir` | 是 | 生成代码输出目录 |
 | `SrcDir` | 是 | 手写源码目录 |
 | `platform` | 是 | 目标平台（见下方取值表） |
-| `hot` | 否 | 热更新相关 |
 | `MappingClass` | 否 | 生成关系映射类 |
 | `ClientScript` | 否 | 客户端脚本配置 |
 | `GenTables` | 否 | 指定生成哪些表 |

@@ -318,11 +318,11 @@ public final class BLoginToken extends Zeze.Transaction.Bean implements BLoginTo
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Token", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LinkIp", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LinkPort", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Token", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "LinkIp", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "LinkPort", "int", "", ""));
         return _v_;
     }
 

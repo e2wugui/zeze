@@ -209,7 +209,6 @@ protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 | 请求来源 | Provider 通过 **Linkd** 接收客户端请求 |
 | 服务器直连 | `ProviderDirectService` 承载 Redirect 跨服调用 |
 | 事务安全 | 所有 Game 数据操作在 **Zeze 事务**内，自动乐观锁 |
-| 热更新 | 模块支持热更新（Online 实现 `HotUpgrade` / `HotBeanFactory`） |
 
 ---
 
@@ -222,4 +221,3 @@ protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 - [Provider-Linkd 架构](./arch-provider-linkd.md) — 前后端拆分架构
 - [Redirect 跨服调用](./arch-redirect.md) — 跨服调用三种注解
 - [分布式入门](../manual/05-going-distributed.md) — 走向分布式的概念讲解
-- [热更新](./advanced-hot-reload.md) — 在线模块热升级

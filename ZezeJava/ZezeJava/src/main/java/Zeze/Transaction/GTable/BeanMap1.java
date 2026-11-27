@@ -294,11 +294,11 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	}
 
 	@Override
-	public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+	public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
 		// 行 bean 的唯一变量是列 map（C→V），类型从 meta 推导，与 schema 声明一致。
 		var _v_ = super.variables();
 		var meta = pMap1.getMeta();
-		_v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Map1", "map",
+		_v_.add(new Zeze.Transaction.VariableMeta(1, "Map1", "map",
 				Zeze.Transaction.Collections.Meta2.schemaTypeName(meta.keyClass),
 				Zeze.Transaction.Collections.Meta2.schemaTypeName(meta.valueClass)));
 		return _v_;

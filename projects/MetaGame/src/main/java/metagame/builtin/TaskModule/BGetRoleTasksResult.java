@@ -3,12 +3,15 @@ package metagame.builtin.TaskModule;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BGetRoleTasksResult extends Zeze.Transaction.Bean implements BGetRoleTasksResultReadOnly {
     public static final long TYPEID = -1042808093293528717L;
 
     private final Zeze.Transaction.Collections.PMap2<Integer, metagame.builtin.TaskModule.BTaskDescription> _Tasks;
+    private static final Zeze.Transaction.Collections.Map2Meta<Integer, metagame.builtin.TaskModule.BTaskDescription> meta2_Tasks
+            = Zeze.Transaction.Collections.Map2Meta.get(Integer.class, metagame.builtin.TaskModule.BTaskDescription.class);
 
     public Zeze.Transaction.Collections.PMap2<Integer, metagame.builtin.TaskModule.BTaskDescription> getTasks() {
         return _Tasks;
@@ -21,7 +24,7 @@ public final class BGetRoleTasksResult extends Zeze.Transaction.Bean implements 
 
     @SuppressWarnings("deprecation")
     public BGetRoleTasksResult() {
-        _Tasks = new Zeze.Transaction.Collections.PMap2<>(Integer.class, metagame.builtin.TaskModule.BTaskDescription.class);
+        _Tasks = new Zeze.Transaction.Collections.PMap2<>(meta2_Tasks);
         _Tasks.variableId(1);
     }
 
@@ -104,9 +107,9 @@ public final class BGetRoleTasksResult extends Zeze.Transaction.Bean implements 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -157,13 +160,14 @@ public final class BGetRoleTasksResult extends Zeze.Transaction.Bean implements 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Tasks.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BGetRoleTasksResult))
@@ -221,9 +225,9 @@ public final class BGetRoleTasksResult extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Tasks", "map", "int", "metagame.builtin.TaskModule.BTaskDescription"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Tasks", "map", "int", "metagame.builtin.TaskModule.BTaskDescription"));
         return _v_;
     }
 }

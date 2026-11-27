@@ -1,7 +1,6 @@
 package Demo.MyWorld;
 
 import Zeze.AppBase;
-import Zeze.Hot.HotService;
 import metagame.World.World;
 
 public class ModuleMyWorld extends AbstractModule {

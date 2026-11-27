@@ -73,11 +73,11 @@ public abstract class AbstractTaskModule implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tRoleTasks.getName()).getDatabaseName(), _tRoleTasks);
+        zeze.addTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tRoleTasks.getName())).getDatabaseName(), _tRoleTasks);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tRoleTasks.getName()).getDatabaseName(), _tRoleTasks);
+        zeze.removeTable(java.util.Objects.requireNonNull(zeze.getConfig().getTableConf(_tRoleTasks.getName())).getDatabaseName(), _tRoleTasks);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

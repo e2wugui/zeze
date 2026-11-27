@@ -12,16 +12,14 @@ namespace Zeze.Gen.java
         public readonly Module module;
         readonly string genDir;
         readonly string srcDir;
-        readonly string hotSrcDir;
         readonly string moduleName;
 
-        public ModuleFormatter(Project project, Module module, string genDir, string srcDir, string hotSrcDir = null)
+        public ModuleFormatter(Project project, Module module, string genDir, string srcDir)
         {
             this.project = project;
             this.module = module;
             this.genDir = genDir;
             this.srcDir = srcDir;
-            this.hotSrcDir = hotSrcDir;
             moduleName = Program.Upper1(module.Name);
         }
 
@@ -110,22 +108,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
-        // 模块主类（用户码）的输出目录。热更模块（双hot，判定与表格注册的 replaceTable 一致）
-        // 归 HotSrcDir，冷侧源码树不含实现类。兼容：HotSrcDir 下没有而 SrcDir 下有旧文件时
-        // 保持原地维护并警告——不能两处各一份（冷热源集并存时热侧骨架会顶掉冷侧真身）。
         string GetUserCodeDir()
         {
-            if (project.Hot && module.Hot && !string.IsNullOrEmpty(hotSrcDir))
-            {
-                if (File.Exists(module.GetFullPath(hotSrcDir, $"Module{moduleName}.java")))
-                    return module.GetFullPath(hotSrcDir);
-                if (File.Exists(module.GetFullPath(srcDir, $"Module{moduleName}.java")))
-                {
-                    Console.WriteLine($"WARNING: hot module {module.Path()} Module{moduleName}.java exists in SrcDir '{srcDir}', maintaining in place; move it to HotSrcDir '{hotSrcDir}'.");
-                    return module.GetFullPath(srcDir);
-                }
-                return module.GetFullPath(hotSrcDir);
-            }
             return module.GetFullPath(srcDir);
         }
 
@@ -389,15 +373,7 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"{indent}if ({zezeVar} != null) {{");
                         indent += "    ";
                     }
-                    if (project.Hot && module.Hot)
-                    {
-                        //if (table.IsMemory) // 暂时禁掉。这是模块状态的一部分了，需要 upgrade 支持。【已经允许了】
-                        //    throw new Exception("hot module can not use memory table.");
-
-                        sw.WriteLine($"{indent}{zezeVar}.replaceTable(java.util.Objects.requireNonNull({zezeVar}.getConfig().getTableConf(_{table.Name}.getName())).getDatabaseName(), _{table.Name});");
-                    }
-                    else
-                        sw.WriteLine($"{indent}{zezeVar}.addTable(java.util.Objects.requireNonNull({zezeVar}.getConfig().getTableConf(_{table.Name}.getName())).getDatabaseName(), _{table.Name});");
+                    sw.WriteLine($"{indent}{zezeVar}.addTable(java.util.Objects.requireNonNull({zezeVar}.getConfig().getTableConf(_{table.Name}.getName())).getDatabaseName(), _{table.Name});");
                 }
             }
             if (!first)
@@ -434,8 +410,7 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    if (!module.Hot || !project.Hot)
-                        sw.WriteLine($"        {zezeVar}.removeTable(java.util.Objects.requireNonNull({zezeVar}.getConfig().getTableConf(_{table.Name}.getName())).getDatabaseName(), _{table.Name});");
+                    sw.WriteLine($"        {zezeVar}.removeTable(java.util.Objects.requireNonNull({zezeVar}.getConfig().getTableConf(_{table.Name}.getName())).getDatabaseName(), _{table.Name});");
                 }
             }
         }

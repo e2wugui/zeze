@@ -169,10 +169,10 @@ public final class BDepartmentKey implements Zeze.Transaction.BeanKey, Comparabl
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Owner", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "DepartmentId", "long", "", ""));
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
+        var vars = new java.util.ArrayList<Zeze.Transaction.VariableMeta>();
+        vars.add(new Zeze.Transaction.VariableMeta(1, "Owner", "string", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(2, "DepartmentId", "long", "", ""));
         return vars;
     }
 }

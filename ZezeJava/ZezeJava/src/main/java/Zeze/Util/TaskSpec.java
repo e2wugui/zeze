@@ -227,7 +227,7 @@ public final class TaskSpec<R extends @Nullable Object> {
 	}
 
 	/**
-	 * 当前线程同步执行完（≡ dispatchMode=Direct 的退化形态：不进池、不包 hotGuard、不包 timeout）。
+	 * 当前线程同步执行完（≡ dispatchMode=Direct 的退化形态：不进池、不包 timeout）。
 	 * ofAction 返回 0；ofFunc/ofProcedure 返回结果码；ofFunc0 返回值，异常直接抛给调用者。
 	 * 显式设置过 dispatchMode/timeout/onCancel 时抛 IllegalArgumentException。
 	 */

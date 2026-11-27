@@ -578,17 +578,17 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "CronExpression", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "NextExpectedTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ExpectedTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "HappenTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "RemainTimes", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "EndTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "MissfirePolicy", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "OneByOneKey", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "HappenTimes", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "CronExpression", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "NextExpectedTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "ExpectedTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "HappenTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "RemainTimes", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "EndTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "MissfirePolicy", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "OneByOneKey", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(9, "HappenTimes", "long", "", ""));
         return _v_;
     }
 }

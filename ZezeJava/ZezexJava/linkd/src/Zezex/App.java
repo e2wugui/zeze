@@ -13,7 +13,6 @@ import Zeze.Netty.Netty;
 import Zeze.Services.ReloadClassServer;
 import Zeze.Services.RunClassServer;
 import Zeze.Util.JsonReader;
-import Zeze.Util.TaskSpec;
 import static Zeze.Util.Args.requireInt;
 
 public final class App extends Zeze.AppBase {
@@ -97,8 +96,6 @@ public final class App extends Zeze.AppBase {
 		httpServer.start(netty, linkPort + 10000);
 		startService(); // 启动网络. after setSessionIdGenFunc
 		LinkdApp.registerService(null);
-
-		TaskSpec.ofAction(HotReloadTest::print).schedulePeriod(2000, 2000);
 	}
 
 	public void Stop() throws Exception {

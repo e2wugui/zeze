@@ -228,9 +228,9 @@ public final class BRemoved2 extends Zeze.Transaction.Bean implements BRemoved2R
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "int_1", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "int_1", "int", "", ""));
         return _v_;
     }
 

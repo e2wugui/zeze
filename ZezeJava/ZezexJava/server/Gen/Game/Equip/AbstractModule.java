@@ -26,15 +26,8 @@ public abstract class AbstractModule implements Zeze.IModule {
     protected abstract long ProcessEquipementRequest(Game.Equip.Equipement r) throws Exception;
     protected abstract long ProcessUnequipementRequest(Game.Equip.Unequipement r) throws Exception;
     protected abstract long ProcessReportLoginRequest(Game.Equip.ReportLogin r) throws Exception;
-    protected abstract long ProcessSendHotRequest(Game.Equip.SendHot r) throws Exception;
-    protected abstract long ProcessSendHotRemoveRequest(Game.Equip.SendHotRemove r) throws Exception;
 
     protected final Game.Equip.tequip _tequip;
-    protected final Game.Equip.tHotRemove _tHotRemove;
-    protected final Game.Equip.tHotTest _tHotTest;
-    protected final Game.Equip.tMemoryRetreat _tMemoryRetreat;
-    protected final Game.Equip.tMemoryToNormal _tMemoryToNormal;
-    protected final Game.Equip.tNormalToMemory _tNormalToMemory;
     protected final Game.Equip.tRelationalTest _tRelationalTest;
 
     public final Game.App App;
@@ -43,37 +36,12 @@ public abstract class AbstractModule implements Zeze.IModule {
         return _tequip;
     }
 
-    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTHotRemoveReadOnly() {
-        return _tHotRemove;
-    }
-
-    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTHotTestReadOnly() {
-        return _tHotTest;
-    }
-
-    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTMemoryRetreatReadOnly() {
-        return _tMemoryRetreat;
-    }
-
-    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTMemoryToNormalReadOnly() {
-        return _tMemoryToNormal;
-    }
-
-    public TableReadOnly<Long, Game.Equip.BEquipExtra, Game.Equip.BEquipExtraReadOnly> getTNormalToMemoryReadOnly() {
-        return _tNormalToMemory;
-    }
-
     public TableReadOnly<Long, Game.Equip.BRelational, Game.Equip.BRelationalReadOnly> getTRelationalTestReadOnly() {
         return _tRelationalTest;
     }
 
     public AbstractModule(Game.App app) {
         _tequip = new Game.Equip.tequip();
-        _tHotRemove = new Game.Equip.tHotRemove();
-        _tHotTest = new Game.Equip.tHotTest();
-        _tMemoryRetreat = new Game.Equip.tMemoryRetreat();
-        _tMemoryToNormal = new Game.Equip.tMemoryToNormal();
-        _tNormalToMemory = new Game.Equip.tNormalToMemory();
         _tRelationalTest = new Game.Equip.tRelationalTest();
         App = app;
         if (app != null)
@@ -108,31 +76,10 @@ public abstract class AbstractModule implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportLoginRequest", Zeze.Transaction.DispatchMode.Normal);
             App.Server.AddFactoryHandle(32195435014L, factoryHandle); // 7, 2130663942
         }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Game.Equip.SendHot.class, Game.Equip.SendHot.TypeId_);
-            factoryHandle.Factory = Game.Equip.SendHot::new;
-            factoryHandle.Handle = this::ProcessSendHotRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendHotRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendHotRequest", Zeze.Transaction.DispatchMode.Normal);
-            App.Server.AddFactoryHandle(30506682560L, factoryHandle); // 7, 441911488
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Game.Equip.SendHotRemove.class, Game.Equip.SendHotRemove.TypeId_);
-            factoryHandle.Factory = Game.Equip.SendHotRemove::new;
-            factoryHandle.Handle = this::ProcessSendHotRemoveRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendHotRemoveRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendHotRemoveRequest", Zeze.Transaction.DispatchMode.Normal);
-            App.Server.AddFactoryHandle(31688523471L, factoryHandle); // 7, 1623752399
-        }
         // register table
         if (App.Zeze != null) {
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tequip.getName())).getDatabaseName(), _tequip);
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tHotRemove.getName())).getDatabaseName(), _tHotRemove);
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tHotTest.getName())).getDatabaseName(), _tHotTest);
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tMemoryRetreat.getName())).getDatabaseName(), _tMemoryRetreat);
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tMemoryToNormal.getName())).getDatabaseName(), _tMemoryToNormal);
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tNormalToMemory.getName())).getDatabaseName(), _tNormalToMemory);
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tRelationalTest.getName())).getDatabaseName(), _tRelationalTest);
+            App.Zeze.addTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tequip.getName())).getDatabaseName(), _tequip);
+            App.Zeze.addTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tRelationalTest.getName())).getDatabaseName(), _tRelationalTest);
         }
         // register servlet
     }
@@ -143,9 +90,9 @@ public abstract class AbstractModule implements Zeze.IModule {
         App.Server.getFactorys().remove(32772485238L);
         App.Server.getFactorys().remove(30979741226L);
         App.Server.getFactorys().remove(32195435014L);
-        App.Server.getFactorys().remove(30506682560L);
-        App.Server.getFactorys().remove(31688523471L);
         // unregister table
+        App.Zeze.removeTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tequip.getName())).getDatabaseName(), _tequip);
+        App.Zeze.removeTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tRelationalTest.getName())).getDatabaseName(), _tRelationalTest);
         // unregister servlet
     }
 }

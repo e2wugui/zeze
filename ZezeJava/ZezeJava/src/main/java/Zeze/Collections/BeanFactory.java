@@ -4,22 +4,17 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import java.util.jar.JarFile;
-import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Hot.HotRedirect;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
-import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FastLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
@@ -29,7 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Bean/Data 的 typeId 注册表与工厂：支持热更重定向、懒加载与动态bean创建。
+ * Bean/Data 的 typeId 注册表与工厂：支持懒加载与动态 bean 创建。
  */
 public final class BeanFactory {
 	private static final Logger logger = LogManager.getLogger(BeanFactory.class);
@@ -40,7 +35,6 @@ public final class BeanFactory {
 	// 会形成 AB-BA 锁序反转, 在首次惰性加载并发时互等死锁.
 	private static final ReentrantReadWriteLock.ReadLock allMapReadLock;
 	private static final ReentrantReadWriteLock.WriteLock allMapWriteLock;
-	private static @Nullable Application zeze;
 	private static final Set<Class<? extends Bean>> runtimeBeanTypes =
 			Collections.newSetFromMap(new WeakHashMap<>());
 	private static @Nullable Consumer<Class<? extends Bean>> runtimeBeanTypeWatcher;
@@ -57,7 +51,6 @@ public final class BeanFactory {
 	private final LongHashMap<MethodHandle> writingDataFactory = new LongHashMap<>();
 	private final FastLock writingDataFactoryLock = new FastLock();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
-	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
 	private final ConcurrentHashMap<Class<?>, MethodHandle> registeredClasses = new ConcurrentHashMap<>();
 
 	/** 安装进程级观察者并返回已有类型快照。后续通知在值构造器发布前同步执行。 */
@@ -96,99 +89,11 @@ public final class BeanFactory {
 		}
 	}
 
-	public void registerWatch(Consumer<Class<?>> consumer) {
-		globalToLocalWatchers.add(consumer);
-	}
-
-	public void unregisterWatch(Consumer<Class<?>> consumer) {
-		globalToLocalWatchers.remove(consumer);
-	}
-
-	private void notifyAllWatcher(Class<?> cls) {
-		for (var consumer : globalToLocalWatchers)
-			consumer.accept(cls);
-	}
-
-	public static void setApplication(Application zeze) {
-		BeanFactory.zeze = zeze;
-	}
-
 	public static long typeId(Class<? extends Bean> beanClass) {
 		try {
 			return beanClass.getConstructor((Class<?>[])null).newInstance((Object[])null).typeId();
 		} catch (Exception ex) {
 			throw Task.forceThrow(ex);
-		}
-	}
-
-	/**
-	 * Hot热更的时候调用这个函数更新Bean信息。
-	 * 【Bean 只会修改或增加，不会删除，内部实现时采取put方式即可。】
-	 *
-	 * @param beanFactories 相关的 BeanFactories
-	 * @param hotModules    相关的 HotModule's JarFile
-	 * @param hotRedirect   调用方HotManager实例的重定向类加载器。
-	 *                      不经静态zeze.getHotManager()取回：该静态是JVM级、多Application周期
-	 *                      可被并行改写，取回为null时NPE会落入install不可回滚区halt(111222)
-	 *                      （本文件220/303/348行对null hotManager均有防御回退）。
-	 */
-	public static void resetHot(Map<BeanFactory, List<Class<?>>> beanFactories,
-								List<JarFile> hotModules,
-								HotRedirect hotRedirect) {
-		for (JarFile jf : hotModules)
-			reloadClassesFromJar(jf);
-
-		// hotRedirect 由调用方HotManager传入：静态zeze.getHotManager()在多Application并存的
-		// 进程（测试类级并行）里可指向别的实例（hotManager为null）——NPE落进install的不可回滚
-		// 区即halt(111222)杀死整个进程；生产单App下两者恒同一对象，行为等价。
-
-		for (var e : beanFactories.entrySet()) {
-			var bf = e.getKey();
-			var classes = e.getValue();
-			bf.writingBeanFactoryLock.lock();
-			try {
-				bf.writingBeanFactory.foreachUpdate((typeId, oldCtor) -> {
-					try {
-						//noinspection DataFlowIssue
-						var oldCls = oldCtor.type().returnType();
-						var newCls = hotRedirect.loadClass(oldCls.getName());
-						classes.add(newCls);
-						var ctor = Reflect.getDefaultConstructor(newCls);
-						if (oldCls != newCls) {
-							bf.registeredClasses.put(newCls, ctor);
-							bf.registeredClasses.remove(oldCls);
-						}
-						return ctor;
-					} catch (Throwable ex) { // MethodHandle.invoke
-						throw Task.forceThrow(ex);
-					}
-				});
-				bf.readingBeanFactory = null;
-			} finally {
-				bf.writingBeanFactoryLock.unlock();
-			}
-			bf.writingDataFactoryLock.lock();
-			try {
-				bf.writingDataFactory.foreachUpdate((typeId, oldCtor) -> {
-					try {
-						//noinspection DataFlowIssue
-						var oldCls = oldCtor.type().returnType();
-						var newCls = hotRedirect.loadClass(oldCls.getName());
-						classes.add(newCls);
-						var ctor = Reflect.getDefaultConstructor(newCls);
-						if (oldCls != newCls) {
-							bf.registeredClasses.put(newCls, ctor);
-							bf.registeredClasses.remove(oldCls);
-						}
-						return ctor;
-					} catch (Throwable ex) { // MethodHandle.invoke
-						throw Task.forceThrow(ex);
-					}
-				});
-				bf.readingDataFactory = null;
-			} finally {
-				bf.writingDataFactoryLock.unlock();
-			}
 		}
 	}
 
@@ -249,31 +154,12 @@ public final class BeanFactory {
 		return n;
 	}
 
-	public static int reloadClassesFromJar(JarFile jarFile) {
-		var timeBegin = System.nanoTime();
-		int n = 0;
-		allMapWriteLock.lock();
-		try {
-			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
-				reloadClassName(cn);
-				n++;
-			}
-		} finally {
-			allMapWriteLock.unlock();
-		}
-		logger.info("reloaded {} class names from jar '{}' ({} ms)",
-				n, jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
-		return n;
-	}
-
 	@SuppressWarnings("deprecation")
 	private static boolean loadClass(String className) {
 		try {
 			long typeId;
 			Object oldObj;
-			var cls = zeze == null || zeze.getHotManager() == null
-					? Class.forName(className)
-					: Class.forName(className, true, zeze.getHotManager().getHotRedirect());
+			var cls = Class.forName(className);
 			if (Bean.class.isAssignableFrom(cls)) {
 				typeId = ((Bean)cls.newInstance()).typeId();
 				oldObj = allClassNameMap.put(typeId, cls);
@@ -318,19 +204,6 @@ public final class BeanFactory {
 		return true;
 	}
 
-	private static void reloadClassName(String className) {
-		long typeId;
-		LongHashMap<Object> classNameMap;
-		if (className.endsWith("$Data")) {
-			typeId = Bean.hash64(className.substring(0, className.length() - 5));
-			classNameMap = allDataClassNameMap;
-		} else {
-			typeId = Bean.hash64(className);
-			classNameMap = allClassNameMap;
-		}
-		classNameMap.put(typeId, className);
-	}
-
 	/**
 	 * 获取指定typeId的Bean类,如果之前未用loadClasses加载过,会自动加载所有类路径中的所有类(不初始化类)
 	 */
@@ -356,9 +229,7 @@ public final class BeanFactory {
 				return (Class<? extends Bean>)obj;
 			if (obj instanceof String) {
 				try {
-					var cls = zeze == null || zeze.getHotManager() == null
-							? Class.forName((String)obj)
-							: Class.forName((String)obj, true, zeze.getHotManager().getHotRedirect());
+					var cls = Class.forName((String)obj);
 					if (Bean.class.isAssignableFrom(cls))
 						allClassNameMap.put(typeId, cls);
 					else {
@@ -401,9 +272,7 @@ public final class BeanFactory {
 				return (Class<? extends Data>)obj;
 			if (obj instanceof String) {
 				try {
-					var cls = zeze == null || zeze.getHotManager() == null
-							? Class.forName((String)obj)
-							: Class.forName((String)obj, true, zeze.getHotManager().getHotRedirect());
+					var cls = Class.forName((String)obj);
 					if (Data.class.isAssignableFrom(cls))
 						allDataClassNameMap.put(typeId, cls);
 					else {
@@ -557,7 +426,6 @@ public final class BeanFactory {
 			var beanTypeId = bean.typeId();
 			if (beanTypeId != typeId)
 				throw new UnsupportedOperationException("unmatched bean typeId: " + beanTypeId + " != " + typeId);
-			notifyAllWatcher(cls);
 			registerBean(cls, beanTypeId, ctor);
 			return bean;
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -605,7 +473,6 @@ public final class BeanFactory {
 			var dataTypeId = data.typeId();
 			if (dataTypeId != typeId)
 				throw new UnsupportedOperationException("unmatched data typeId: " + dataTypeId + " != " + typeId);
-			notifyAllWatcher(cls);
 			registerData(cls, dataTypeId, ctor);
 			return data;
 		} catch (Throwable e) { // MethodHandle.invoke

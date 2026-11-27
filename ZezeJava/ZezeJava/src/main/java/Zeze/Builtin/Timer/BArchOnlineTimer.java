@@ -452,13 +452,13 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Account", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ClientId", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimerObj", "dynamic", "", "Zeze.Builtin.Timer.BCronTimer,Zeze.Builtin.Timer.BSimpleTimer"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LoginVersion", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SerialId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Account", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ClientId", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "TimerObj", "dynamic", "", "Zeze.Builtin.Timer.BCronTimer,Zeze.Builtin.Timer.BSimpleTimer"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "LoginVersion", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "SerialId", "long", "", ""));
         return _v_;
     }
 }

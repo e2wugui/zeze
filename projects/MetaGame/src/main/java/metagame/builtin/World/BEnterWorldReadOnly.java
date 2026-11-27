@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package metagame.builtin.World;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 /*
 为了不污染根空间，改成Command了。
 			<protocol name="SwitchWorld" argument="BSwitchWorld" handle="server"/> mapId==-1，进入地图由服务器控制，此时仅仅表示客户端准备好进入地图了。
@@ -23,9 +26,9 @@ public interface BEnterWorldReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     int getMapId();
     long getMapInstanceId();

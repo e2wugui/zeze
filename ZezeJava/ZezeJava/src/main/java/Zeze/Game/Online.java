@@ -5,7 +5,6 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.nio.charset.StandardCharsets;
@@ -13,8 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Beans.BSend;
@@ -55,10 +52,6 @@ import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerRole;
 import Zeze.Component.TimerSpec;
-import Zeze.Hot.HotBeanFactory;
-import Zeze.Hot.HotManager;
-import Zeze.Hot.HotModule;
-import Zeze.Hot.HotUpgrade;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
@@ -72,8 +65,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.Action1;
-import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
@@ -93,7 +84,7 @@ import org.jspecify.annotations.Nullable;
  * Game 版角色在线模块（Arch.Online 的孪生实现，差异在各锚点注释标注）：维护角色两级在线状态、
  * 本地登录数据、可靠通知、transmit 分发与多 OnlineSet，并按 link 分组向客户端发送协议。
  */
-public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory {
+public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 	protected static final BeanFactory beanFactory = new BeanFactory();
 
@@ -107,17 +98,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final EventDispatcher localRemoveEvents;
 	private final EventDispatcher linkBrokenEvents;
 
-	// 缓存拥有Local数据的HotModule，用来优化。
-	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
-	private final AtomicBoolean freshStopModuleLocal = new AtomicBoolean();
-	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
-
-	// this::方法引用每次求值都产生新实例，而 ConcurrentHashSet（键=元素自身）按实例判等，
-	// 直接 add/remove 会导致 stopEvents 重复登记无界增长、remove 永远失败。
-	// 固定为实例字段只求值一次：同一 Online 的登记幂等，注销真正生效。
-	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
-	private final Consumer<Class<?>> tryRecordHotModuleRef = this::tryRecordHotModule;
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private static final long LOCAL_CHECK_PERIOD = 600 * 1000; // 检查间隔
 	// 周期守护：verifyLocal(walk+批事务)进worker池不占调度线程；stop有界等待在飞一轮，
@@ -152,107 +132,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		} finally {
 			unlock();
 		}
-	}
-
-	private void onHotModuleStop(HotModule hot) {
-		if (hotModulesHaveLocal.remove(hot) != null)
-			freshStopModuleLocal.set(true);
-		if (hotModulesHaveDynamic.remove(hot) != null)
-			freshStopModuleDynamic.set(true);
-	}
-
-	@Override
-	public boolean hasFreshStopModuleLocalOnce() {
-		return freshStopModuleLocal.getAndSet(false);
-	}
-
-	@Override
-	public boolean hasFreshStopModuleDynamicOnce() {
-		return freshStopModuleDynamic.getAndSet(false);
-	}
-
-	@Override
-	public void clearTableCache() {
-		_tOnline.__ClearTableCacheUnsafe__();
-		_tOnlineShared.__ClearTableCacheUnsafe__();
-	}
-
-	/**
-	 * 向 hotModule 登记本 Online 的模块停止回调。
-	 * 必须复用字段 onHotModuleStopRef：this::onHotModuleStop 每次求值都是新实例，
-	 * ConcurrentHashSet（键=元素自身）按实例判等，直接 add 会随调用次数无界增长，
-	 * 且模块停止时同一回调被重复执行多次。
-	 */
-	private void addHotModuleStopEvent(HotModule hotModule, ConcurrentHashSet<HotModule> hotModulesHave) {
-		hotModule.stopEvents.add(onHotModuleStopRef);
-		hotModulesHave.add(hotModule);
-	}
-
-	private void tryRecordHotModule(Class<?> customClass) {
-		var cl = customClass.getClassLoader();
-		if (HotManager.isHotModule(cl)) {
-			var hotModule = (HotModule)cl;
-			addHotModuleStopEvent(hotModule, hotModulesHaveDynamic);
-		}
-	}
-
-	@Override
-	public void processWithNewClasses(List<Class<?>> newClasses) {
-		for (var cls : newClasses)
-			tryRecordHotModule(cls);
-	}
-
-	@Override
-	public BeanFactory beanFactory() {
-		return beanFactory;
-	}
-
-	record Retreat(long roleId, String key, Bean bean) {
-	}
-
-	@Override
-	public void upgrade(Function<Bean, @Nullable Bean> retreatFunc) throws Exception {
-		// 如果需要，重建_tlocal内存表的用户设置的bean。
-		var retreats = new ArrayList<Retreat>();
-		_tlocal.walk((roleId, locals) -> {
-			for (var data : locals.getDatas()) {
-				var retreatBean = retreatFunc.apply(data.getValue().getAny().getBean());
-				if (retreatBean != null) {
-					beanFactory.register(retreatBean); // 覆盖beanFactory.
-					retreats.add(new Retreat(roleId, data.getKey(), retreatBean));
-					if (retreats.size() > 50) {
-						saveRetreats(retreats);
-						retreats.clear();
-					}
-				}
-			}
-			return true;
-		});
-		if (!retreats.isEmpty())
-			saveRetreats(retreats);
-	}
-
-	private void saveRetreats(ArrayList<Retreat> retreats) {
-		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用，避免去使用hotGuard。】
-		// 确认事务可以在更新流程中可以使用。
-		var rc = providerApp.zeze.newProcedure(() -> {
-			for (var r : retreats) {
-				// stale-local角色（LoginVersion落后于shared，角色已在别服重登，残留待verifyLocal
-				// 清理）跳过该角色。不检查则getLoginLocal抛IllegalStateException打断整批（最多50
-				// 个角色）——旧类加载器bean实例滞留内存钉住旧HotModule。
-				var bLocal = tryGetLoginLocal(r.roleId);
-				if (bLocal == null) {
-					logger.error("saveRetreats skip stale-local. roleId={}, key={}", r.roleId, r.key);
-					continue;
-				}
-				setLocalBean(bLocal, r.key, r.bean);
-			}
-			return 0;
-		}, "saveRetreats").call();
-		// rc!=0时整批回滚（stale-local跳过也已回滚）须可观测，
-		// 热更重登路径会重新save，这里记error即可。
-		if (rc != 0)
-			logger.error("saveRetreats failed: rc={}, count={}", rc, retreats.size());
 	}
 
 	@FunctionalInterface
@@ -302,11 +181,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		//noinspection DataFlowIssue
 		super("", app.getZeze().getConfig());
 		var zeze = app.getZeze();
-		loginEvents = new EventDispatcher(zeze, "Online.Login");
-		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
-		logoutEvents = new EventDispatcher(zeze, "Online.Logout");
-		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
-		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
+		loginEvents = new EventDispatcher("Online.Login");
+		reloginEvents = new EventDispatcher("Online.Relogin");
+		logoutEvents = new EventDispatcher("Online.Logout");
+		localRemoveEvents = new EventDispatcher("Online.Local.Remove");
+		linkBrokenEvents = new EventDispatcher("Online.LinkBroken");
 
 		//noinspection DataFlowIssue
 		providerApp = zeze.redirect.providerApp;
@@ -319,12 +198,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private Online(AppBase app, String name) {
 		//noinspection DataFlowIssue
 		super(name, app.getZeze().getConfig());
-		var zeze = app.getZeze();
-		loginEvents = new EventDispatcher(zeze, "Online.Login");
-		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
-		logoutEvents = new EventDispatcher(zeze, "Online.Logout");
-		localRemoveEvents = new EventDispatcher(zeze, "Online.Local.Remove");
-		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
+		loginEvents = new EventDispatcher("Online.Login");
+		reloginEvents = new EventDispatcher("Online.Relogin");
+		logoutEvents = new EventDispatcher("Online.Logout");
+		localRemoveEvents = new EventDispatcher("Online.Local.Remove");
+		linkBrokenEvents = new EventDispatcher("Online.LinkBroken");
 
 		//noinspection DataFlowIssue
 		providerApp = app.getZeze().redirect.providerApp;
@@ -380,26 +258,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 					online.start();
 			});
 		}
-		verifyLocalDaemon.start(); // 幂等：stop后重新start即重启周期检查（热更stop/start循环常客）
-		var hotManager = providerApp.zeze.getHotManager();
-		if (hotManager != null) {
-			hotManager.addHotUpgrade(this);
-			hotManager.addHotBeanFactory(this);
-			registerBeanFactoryWatch();
-		}
-	}
-
-	/**
-	 * 注册/注销必须复用同一 tryRecordHotModuleRef（this::每次求值都是新实例，
-	 * ConcurrentHashSet 按实例判等，remove 新实例永远失败）。
-	 * 提取为方法保证 start/stop 两侧对称。
-	 */
-	void registerBeanFactoryWatch() {
-		beanFactory.registerWatch(tryRecordHotModuleRef);
-	}
-
-	void unregisterBeanFactoryWatch() {
-		beanFactory.unregisterWatch(tryRecordHotModuleRef);
+		verifyLocalDaemon.start(); // 幂等：stop后重新start即重启周期检查
 	}
 
 	private boolean processOffline(Long roleId, BLocal local, boolean serverStart) {
@@ -499,13 +358,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public void stop() {
-		var hotManager = providerApp.zeze.getHotManager();
-		if (hotManager != null) {
-			hotManager.removeHotUpgrade(this);
-			hotManager.removeHotBeanFactory(this);
-			unregisterBeanFactoryWatch();
-		}
-
 		// default online 负责停止所有的online set。
 		if (getProviderWithOnline().getOnline() == this) {
 			getProviderWithOnline().foreachOnline(online -> {
@@ -589,11 +441,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public <T extends Bean> void setUserData(long roleId, T data) {
-		var cl = data.getClass().getClassLoader();
-		if (HotManager.isHotModule(cl)) {
-			var hotModule = (HotModule)cl;
-			Transaction.whileCommit(() -> addHotModuleStopEvent(hotModule, hotModulesHaveDynamic));
-		}
 		getOrAddOnline(roleId).getUserData().setBean(data);
 	}
 
@@ -685,10 +532,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
 		bLocal.getDatas().put(key, bAny);
-		if (HotManager.isHotModule(bean.getClass().getClassLoader())) {
-			var hotModule = (HotModule)bean.getClass().getClassLoader();
-			Transaction.whileCommit(() -> addHotModuleStopEvent(hotModule, hotModulesHaveLocal));
-		}
 	}
 
 	public void removeLocalBean(long roleId, String key) {
@@ -715,10 +558,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (data.getAny().getBean().typeId() == defaultHint.typeId())
 			return (T)data.getAny().getBean();
 		data.getAny().setBean(defaultHint);
-		if (HotManager.isHotModule(defaultHint.getClass().getClassLoader())) {
-			var hotModule = (HotModule)defaultHint.getClass().getClassLoader();
-			Transaction.whileCommit(() -> addHotModuleStopEvent(hotModule, hotModulesHaveLocal));
-		}
 		return defaultHint;
 	}
 

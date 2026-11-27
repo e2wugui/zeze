@@ -17,7 +17,7 @@ public interface BWalkKeyResultReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Net.Binary> getKeysReadOnly();
     boolean isBucketEnd();

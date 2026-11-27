@@ -4,7 +4,7 @@
 	<import file="solution.linkd.xml"/>
 	<import file="solution.xml"/>
 
-	<module name="Login" id="1" hot="true">
+	<module name="Login" id="1">
 		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
 
 		<bean name="BCreateRole">
@@ -37,7 +37,7 @@
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
 	</module>
 
-	<module name="Fight" id="4" hot="true">
+	<module name="Fight" id="4">
 		<bean name="BFighter"> 战斗相关属性，用于技能等。
 			<variable id="1" name="Attack" type="float"/>
 			<variable id="2" name="Defence" type="float"/>

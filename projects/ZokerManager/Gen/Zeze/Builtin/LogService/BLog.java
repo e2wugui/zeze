@@ -203,11 +203,13 @@ public final class BLog extends Zeze.Transaction.Bean implements BLogReadOnly {
         if (_i_ == 1) {
             setTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTime(0);
         if (_i_ == 2) {
             setLog(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLog("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -266,10 +268,10 @@ public final class BLog extends Zeze.Transaction.Bean implements BLogReadOnly {
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Time", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Log", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Time", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Log", "string", "", ""));
         return _v_;
     }
 
@@ -415,11 +417,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Time = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Time = 0;
         if (_i_ == 2) {
             _Log = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Log = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

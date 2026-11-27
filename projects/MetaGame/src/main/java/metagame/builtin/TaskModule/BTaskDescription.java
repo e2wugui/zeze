@@ -3,8 +3,9 @@ package metagame.builtin.TaskModule;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTaskDescription extends Zeze.Transaction.Bean implements BTaskDescriptionReadOnly {
     public static final long TYPEID = -7573750133683986473L;
 
@@ -12,15 +13,21 @@ public final class BTaskDescription extends Zeze.Transaction.Bean implements BTa
     private int _TaskState;
     private String _PhaseDescription;
     private final Zeze.Transaction.Collections.PList1<String> _PhaseConditions;
+    private static final Zeze.Transaction.Collections.List1Meta<String> meta1_PhaseConditions
+            = Zeze.Transaction.Collections.List1Meta.get(String.class);
+
     private final Zeze.Transaction.Collections.PList1<String> _Conditions;
+    private static final Zeze.Transaction.Collections.List1Meta<String> meta1_Conditions
+            = Zeze.Transaction.Collections.List1Meta.get(String.class);
+
     private int _RewardId; // 调试目的，客户端未用。
     private int _RewardType;
     private Zeze.Net.Binary _RewardParam;
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -195,23 +202,23 @@ public final class BTaskDescription extends Zeze.Transaction.Bean implements BTa
     @SuppressWarnings("deprecation")
     public BTaskDescription() {
         _PhaseDescription = "";
-        _PhaseConditions = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _PhaseConditions = new Zeze.Transaction.Collections.PList1<>(meta1_PhaseConditions);
         _PhaseConditions.variableId(4);
-        _Conditions = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _Conditions = new Zeze.Transaction.Collections.PList1<>(meta1_Conditions);
         _Conditions.variableId(5);
         _RewardParam = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskDescription(int _TaskId_, int _TaskState_, String _PhaseDescription_, int _RewardId_, int _RewardType_, Zeze.Net.Binary _RewardParam_) {
+    public BTaskDescription(int _TaskId_, int _TaskState_, @Nullable String _PhaseDescription_, int _RewardId_, int _RewardType_, Zeze.Net.@Nullable Binary _RewardParam_) {
         _TaskId = _TaskId_;
         _TaskState = _TaskState_;
         if (_PhaseDescription_ == null)
             _PhaseDescription_ = "";
         _PhaseDescription = _PhaseDescription_;
-        _PhaseConditions = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _PhaseConditions = new Zeze.Transaction.Collections.PList1<>(meta1_PhaseConditions);
         _PhaseConditions.variableId(4);
-        _Conditions = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _Conditions = new Zeze.Transaction.Collections.PList1<>(meta1_Conditions);
         _Conditions.variableId(5);
         _RewardId = _RewardId_;
         _RewardType = _RewardType_;
@@ -328,9 +335,9 @@ public final class BTaskDescription extends Zeze.Transaction.Bean implements BTa
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -426,15 +433,18 @@ public final class BTaskDescription extends Zeze.Transaction.Bean implements BTa
         if (_i_ == 1) {
             setTaskId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskId(0);
         if (_i_ == 2) {
             setTaskState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskState(0);
         if (_i_ == 3) {
             setPhaseDescription(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPhaseDescription("");
         if (_i_ == 4) {
             var _x_ = _PhaseConditions;
             _x_.clear();
@@ -444,7 +454,8 @@ public final class BTaskDescription extends Zeze.Transaction.Bean implements BTa
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _PhaseConditions.clear();
         if (_i_ == 5) {
             var _x_ = _Conditions;
             _x_.clear();
@@ -454,25 +465,29 @@ public final class BTaskDescription extends Zeze.Transaction.Bean implements BTa
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Conditions.clear();
         if (_i_ == 6) {
             setRewardId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRewardId(0);
         if (_i_ == 7) {
             setRewardType(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRewardType(0);
         if (_i_ == 8) {
             setRewardParam(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRewardParam(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTaskDescription))
@@ -573,16 +588,16 @@ public final class BTaskDescription extends Zeze.Transaction.Bean implements BTa
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TaskId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TaskState", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "PhaseDescription", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "PhaseConditions", "list", "", "string"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Conditions", "list", "", "string"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "RewardId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "RewardType", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "RewardParam", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "TaskId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "TaskState", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "PhaseDescription", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "PhaseConditions", "list", "", "string"));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "Conditions", "list", "", "string"));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "RewardId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "RewardType", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "RewardParam", "binary", "", ""));
         return _v_;
     }
 }

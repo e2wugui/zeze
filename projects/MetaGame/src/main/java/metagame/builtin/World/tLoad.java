@@ -4,9 +4,10 @@ package metagame.builtin.World;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
 // key is serverId，一台服务器一个记录。
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tLoad extends TableX<metagame.builtin.World.BServerMapKey, metagame.builtin.World.BLoadMap>
         implements TableReadOnly<metagame.builtin.World.BServerMapKey, metagame.builtin.World.BLoadMap, metagame.builtin.World.BLoadMapReadOnly> {
     public tLoad() {
@@ -33,9 +34,7 @@ public final class tLoad extends TableX<metagame.builtin.World.BServerMapKey, me
 
     @Override
     public metagame.builtin.World.BServerMapKey decodeKey(ByteBuffer _os_) {
-        var _v_ = new metagame.builtin.World.BServerMapKey();
-        _v_.decode(_os_);
-        return _v_;
+        return metagame.builtin.World.BServerMapKey.readFrom(_os_);
     }
 
     @Override
@@ -48,10 +47,13 @@ public final class tLoad extends TableX<metagame.builtin.World.BServerMapKey, me
     @Override
     public metagame.builtin.World.BServerMapKey decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         var _p_ = new java.util.ArrayList<String>();
-        var _v_ = new metagame.builtin.World.BServerMapKey();
+        metagame.builtin.World.BServerMapKey _v_;
         _p_.add("__key");
-        _v_.decodeResultSet(_p_, _s_);
-        _p_.removeLast();
+        try {
+            _v_ = metagame.builtin.World.BServerMapKey.readFromResultSet(_p_, _s_);
+        } finally {
+            _p_.removeLast();
+        }
         return _v_;
     }
 
@@ -69,7 +71,7 @@ public final class tLoad extends TableX<metagame.builtin.World.BServerMapKey, me
     }
 
     @Override
-    public metagame.builtin.World.BLoadMapReadOnly getReadOnly(metagame.builtin.World.BServerMapKey _k_) {
+    public @Nullable BLoadMapReadOnly getReadOnly(metagame.builtin.World.BServerMapKey _k_) {
         return get(_k_);
     }
 }

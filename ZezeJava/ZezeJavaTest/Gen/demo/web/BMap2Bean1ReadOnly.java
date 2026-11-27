@@ -16,7 +16,7 @@ public interface BMap2Bean1ReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PMap2ReadOnly<Integer, demo.Bean1, demo.Bean1ReadOnly> getMap2ReadOnly();
 }

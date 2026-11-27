@@ -229,7 +229,6 @@ bag.add(-1, item);  // 自动调用 Module.register 注册类型
 |------|------|
 | 自动注册 | `add` 时调用 `Module.register(item.getItem().getBean())` |
 | 持久化 | 注册的 Bean `ClassName` 被持久化，Module `start` 时自动装载 |
-| 热更新 | 配合 `BeanFactory` 支持类型热重载 |
 
 ---
 

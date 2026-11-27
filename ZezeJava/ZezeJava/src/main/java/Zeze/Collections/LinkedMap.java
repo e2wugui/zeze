@@ -1,7 +1,6 @@
 package Zeze.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.LinkedMap.BClearJobState;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMap;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey;
@@ -11,9 +10,6 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Component.DelayRemove;
-import Zeze.Hot.HotBeanFactory;
-import Zeze.Hot.HotManager;
-import Zeze.Hot.HotModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -22,8 +18,6 @@ import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.Action1;
 import Zeze.Util.OutLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,7 +26,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * 持久化链表 Map：按 id 访问的有序 map，节点分片存储、支持链表序分页读取与 O(1) clear。
  */
-public class LinkedMap<V extends Bean> implements HotBeanFactory {
+public class LinkedMap<V extends Bean> {
 	private static final Logger logger = LogManager.getLogger(LinkedMap.class);
 	public static final BeanFactory beanFactory = new BeanFactory();
 
@@ -42,48 +36,6 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
-	}
-
-	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	// this::方法引用每次求值都产生新实例，ConcurrentHashSet按实例判等：stopEvents.add
-	// 每次净增不可去重。固定为实例字段只求值一次，登记幂等（同Game.Online的Ref修复）。
-	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
-	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
-
-	private void onHotModuleStop(HotModule hot) {
-		if (hotModulesHaveDynamic.remove(hot) != null)
-			freshStopModuleDynamic.set(true);
-	}
-
-	private void tryRecordHotModule(Class<?> customClass) {
-		var cl = customClass.getClassLoader();
-		if (HotManager.isHotModule(cl)) {
-			var hotModule = (HotModule)cl;
-			hotModule.stopEvents.add(onHotModuleStopRef);
-			hotModulesHaveDynamic.add(hotModule);
-		}
-	}
-
-	@Override
-	public void processWithNewClasses(java.util.List<Class<?>> newClasses) {
-		for (var cls : newClasses) {
-			tryRecordHotModule(cls);
-		}
-	}
-
-	@Override
-	public boolean hasFreshStopModuleDynamicOnce() {
-		return freshStopModuleDynamic.getAndSet(false);
-	}
-
-	@Override
-	public void clearTableCache() {
-		module._tLinkedMapNodes.__ClearTableCacheUnsafe__();
-	}
-
-	@Override
-	public BeanFactory beanFactory() {
-		return beanFactory;
 	}
 
 	public static class Module extends AbstractLinkedMap {
@@ -332,12 +284,6 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	private final long valueTypeId;
 
 	private LinkedMap(Module module, String name, Class<V> valueClass, int nodeSize) {
-		var hotManager = module.zeze.getHotManager();
-		if (null != hotManager) {
-			hotManager.addHotBeanFactory(this);
-			tryRecordHotModule(valueClass);
-		}
-
 		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;

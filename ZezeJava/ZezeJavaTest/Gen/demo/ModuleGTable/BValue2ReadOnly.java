@@ -16,7 +16,7 @@ public interface BValue2ReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Transaction.GTable.BeanMap2<Integer, demo.ModuleGTable.Bean1, demo.ModuleGTable.Bean1ReadOnly>, Zeze.Transaction.GTable.BeanMap2ReadOnly<Integer, demo.ModuleGTable.Bean1, demo.ModuleGTable.Bean1ReadOnly>> getGTableReadOnly();
 }

@@ -6,9 +6,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
@@ -29,10 +27,6 @@ import Zeze.Builtin.Timer.tIndexs;
 import Zeze.Builtin.Timer.tNodes;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Online;
-import Zeze.Hot.HotBeanFactory;
-import Zeze.Hot.HotHandle;
-import Zeze.Hot.HotManager;
-import Zeze.Hot.HotModule;
 import Zeze.Serialize.RawBean;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
@@ -40,12 +34,11 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
 import Zeze.Util.Reflect;
-import Zeze.Util.Action1;
+import Zeze.Util.ReflectHandleCache;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
@@ -55,18 +48,11 @@ import org.jspecify.annotations.Nullable;
 /**
  * 持久化定时器组件：simple/cron 定时器的调度与触发、命名/账号/角色各族入口与接管（Takeover）。
  */
-public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
+public class Timer extends AbstractTimer implements TimerScope {
 	static final Logger logger = LogManager.getLogger(Timer.class);
 	private static int CountPerNode = Reflect.inDebugMode ? 1 : 3; // 调试状态下减少timer之间的影响,以免频繁redo
 	private static final BeanFactory beanFactory = new BeanFactory();
 	private static final LongConcurrentHashMap<AtomicLong> exceptCounter = new LongConcurrentHashMap<>();
-
-	// this::方法引用每次求值都产生新实例，而ConcurrentHashSet（键=元素自身）按实例判等：
-	// start/stop用不同实例registerWatch/unregisterWatch永远注销失败（static beanFactory
-	// 持有死Timer），stopEvents.add每次净增不可去重（条目持有this，热模块classloader无法
-	// 卸载）。固定为实例字段只求值一次：登记幂等，注销真正生效。同Game.Online的Ref修复。
-	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
-	private final Consumer<Class<?>> tryRecordHotModuleRef = this::tryRecordHotModule;
 
 	public static void setCountPerNode(int countPerNode) {
 		CountPerNode = Math.max(countPerNode, 1);
@@ -109,7 +95,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timerFutures = new ConcurrentHashMap<>();
-	private final HotHandle<TimerHandle> hotHandle = new HotHandle<>();
+	private final ReflectHandleCache<TimerHandle> timerHandles = new ReflectHandleCache<>(TimerHandle.class);
 	// 触发入口跨线程读取；安装与停止摘取句柄在 timerFutures 监视器下互斥。
 	private volatile boolean started;
 
@@ -121,9 +107,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private @Nullable TimerAccount timerAccount;
 	private @Nullable Online defaultOnline;
-
-	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
 
 	public Application getZeze() {
 		return Objects.requireNonNull(zeze, "timer application is not initialized");
@@ -139,7 +122,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			RegisterZezeTables(zeze);
 			// 接管作用域必须在构造期（claim之前）注册：Takeover.start()会对已注册scope补stamp。
 			// 若推迟到Timer.start()/loadTimer()（ProviderApp.startLast），startModules阶段
-			// （如hot模块ModuleEquip.Start里scheduleNamed）就会在未stamp的root上被checkFence
+			// （如ModuleEquip.Start里scheduleNamed）就会在未stamp的root上被checkFence
 			// 误判为已接管而致命退出（root.serial=0 != myEpoch）。
 			getZeze().getTakeover().addScope(timerTakeoverScope);
 		}
@@ -163,11 +146,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		try {
 			if (started)
 				return;
-			var hotManager = getZeze().getHotManager();
-			if (hotManager != null) {
-				hotManager.addHotBeanFactory(this);
-				beanFactory.registerWatch(tryRecordHotModuleRef);
-			}
 			// started必须先于loadTimer置位：loadTimer内的事务在本线程同步提交，提交时同步执行
 			// whileCommit装载（scheduleSimple/scheduleCronNext），此时若started仍为false，
 			// 安装闸门会把存量定时器的装载全部拒绝——重启后定时器静默停摆。
@@ -176,7 +154,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				loadTimer();
 			} catch (Exception e) {
 				try {
-					stop(); // 复用正常停止路径撤销此前节点已安装的future和热更观察者。
+					stop(); // 复用正常停止路径撤销此前节点已安装的future。
 				} catch (Exception cleanup) {
 					e.addSuppressed(cleanup);
 				}
@@ -232,11 +210,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					// ignored
 				}
 			}
-			var hotManager = getZeze().getHotManager();
-			if (hotManager != null) {
-				hotManager.removeHotBeanFactory(this);
-				beanFactory.unregisterWatch(tryRecordHotModuleRef);
-			}
 
 			// 不在此 UnRegisterZezeTables：表在构造时注册，stop时注销两者不匹配。
 		} finally {
@@ -245,7 +218,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	}
 
 	TimerHandle findTimerHandle(String handleClassName) {
-		return hotHandle.findHandle(getZeze(), handleClassName);
+		return timerHandles.findHandle(handleClassName);
 	}
 
 	private @Nullable TimerHandle findTimerHandleOrNull(String handleClassName) {
@@ -473,7 +446,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				if (customData != null) {
 					register(customData);
 					timer.getCustomData().setBean(customData);
-					tryRecordBeanHotModuleWhileCommit(customData);
 				}
 
 				scheduleSimple(serialId, serverId, timerId,
@@ -677,7 +649,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				if (customData != null) {
 					register(customData);
 					timer.getCustomData().setBean(customData);
-					tryRecordBeanHotModuleWhileCommit(customData);
 				}
 
 				scheduleCron(serialId, serverId, timerId, cronTimer, 0, false, cronTimer.getOneByOneKey());
@@ -1069,7 +1040,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	/**
 	 * 获取指定角色的定时器门面，默认onlineSet。
-	 * 通过返回对象的 online()/onlineHot()/offline() 选择定时器类型。
+	 * 通过返回对象的 online()/offline() 选择定时器类型。
 	 */
 	public RoleTimers roles(long roleId) {
 		return new RoleTimers(getRoleTimer(), roleId);
@@ -1077,7 +1048,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	/**
 	 * 获取指定角色的定时器门面，指定onlineSet。
-	 * 通过返回对象的 online()/onlineHot()/offline() 选择定时器类型。
+	 * 通过返回对象的 online()/offline() 选择定时器类型。
 	 */
 	public RoleTimers roles(String onlineSetName, long roleId) {
 		return new RoleTimers(getRoleTimer(onlineSetName), roleId);
@@ -1085,7 +1056,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	/**
 	 * 获取指定账号的定时器门面。
-	 * 通过返回对象的 online()/onlineHot()/offline() 选择定时器类型。
+	 * 通过返回对象的 online()/offline() 选择定时器类型。
 	 */
 	public AccountTimers accounts(String account, String clientId) {
 		return new AccountTimers(getAccountTimer(), account, clientId);
@@ -1659,50 +1630,4 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			if (orphanRemoved && !nodeUnlinked && node.getTimers().isEmpty())
 				unlinkEmptyNode(serverId, nodeId.value, node);
 		}
-
-	@Override
-	public void clearTableCache() {
-		_tNodes.__ClearTableCacheUnsafe__();
-	}
-
-	private void onHotModuleStop(HotModule hot) {
-		if (hotModulesHaveDynamic.remove(hot) != null)
-			freshStopModuleDynamic.set(true);
-	}
-
-	void tryRecordBeanHotModuleWhileCommit(Bean customData) {
-		var cl = customData.getClass().getClassLoader();
-		if (HotManager.isHotModule(cl)) {
-			var hotModule = (HotModule)cl;
-			Transaction.whileCommit(() -> {
-				hotModule.stopEvents.add(onHotModuleStopRef);
-				hotModulesHaveDynamic.add(hotModule);
-			});
-		}
-	}
-
-	private void tryRecordHotModule(Class<?> customClass) {
-		var cl = customClass.getClassLoader();
-		if (HotManager.isHotModule(cl)) {
-			var hotModule = (HotModule)cl;
-			hotModule.stopEvents.add(onHotModuleStopRef);
-			hotModulesHaveDynamic.add(hotModule);
-		}
-	}
-
-	@Override
-	public BeanFactory beanFactory() {
-		return beanFactory;
-	}
-
-	@Override
-	public boolean hasFreshStopModuleDynamicOnce() {
-		return freshStopModuleDynamic.getAndSet(false);
-	}
-
-	@Override
-	public void processWithNewClasses(List<Class<?>> newClasses) {
-		for (var cls : newClasses)
-			tryRecordHotModule(cls);
-	}
 }

@@ -16,7 +16,7 @@ public interface BTransmitCronTimerReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     String getTimerId();
     Zeze.Builtin.Timer.BCronTimerReadOnly getCronTimerReadOnly();
@@ -24,5 +24,4 @@ public interface BTransmitCronTimerReadOnly {
     String getCustomClass();
     Zeze.Net.Binary getCustomBean();
     long getLoginVersion();
-    boolean isHot();
 }

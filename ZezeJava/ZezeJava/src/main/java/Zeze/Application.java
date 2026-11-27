@@ -24,9 +24,6 @@ import Zeze.Component.SafeBatch;
 import Zeze.Component.Takeover;
 import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
-import Zeze.Hot.HotHandle;
-import Zeze.Hot.HotManager;
-import Zeze.Hot.HotUpgradeMemoryTable;
 import Zeze.Net.Binary;
 import Zeze.Onz.Onz;
 import Zeze.Serialize.ByteBuffer;
@@ -53,7 +50,6 @@ import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.DeadlockBreaker;
-import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
@@ -115,18 +111,12 @@ public final class Application extends ReentrantLock {
 
 	private @Nullable Onz onz;
 
-	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
-
 	private final LocalCacheResources localCache = new LocalCacheResources();
 
 	private @Nullable Dbh2AgentManager dbh2AgentManager;
-	private @Nullable HotManager hotManager;
 
 	private @Nullable AppBase appBase;
 	private @Nullable ProviderApp providerApp;
-
-	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
-	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
 
 	// 只由持锁者（checkpointRunThread/stop）读写；"checkpoint在跑中"=非null且未完成。
 	private @Nullable Future<?> checkpointFuture;
@@ -141,42 +131,8 @@ public final class Application extends ReentrantLock {
 		return procedureLockWatcher;
 	}
 
-	public HotHandle<EventDispatcher.EventHandle> getHotHandle() {
-		return hotHandle;
-	}
-
 	public @Nullable Onz getOnz() {
 		return onz;
-	}
-
-	/**
-	 * 供 verifyCallerCold 的调用方获取 caller。
-	 * getCallerClass() 必须在公开入口内直接调用，经框架方法转发会误取到 Zeze 内部类。
-	 */
-	public static final StackWalker CALLER_WALKER =
-		StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
-
-	/**
-	 * 是否需要热更新调用者校验；调用方应先检查，避免无热更时的走栈开销。
-	 */
-	public boolean isHotVerifyEnabled() {
-		return hotManager != null;
-	}
-
-	// caller 必须由公开入口直接获取。
-	public void verifyCallerCold(Class<?> caller) {
-		var callerCl = caller.getClassLoader();
-		// 只限制我们自己的HotModule，其他都允许。
-		if (hotManager != null && HotManager.isHotModule(callerCl))
-			throw new IllegalStateException("caller must not hot.");
-	}
-
-	public void setHotManager(@Nullable HotManager value) {
-		hotManager = value;
-	}
-
-	public @Nullable HotManager getHotManager() {
-		return hotManager;
 	}
 
 	public @Nullable Dbh2AgentManager getDbh2AgentManager() {
@@ -359,116 +315,6 @@ public final class Application extends ReentrantLock {
 		tables.put(table.getId(), table);
 		tableNameMap.put(table.getName(), table);
 		db.addTable(table);
-		return db;
-	}
-
-	// Hot Install 内部使用。
-	public void __install_prepare__() {
-		hotUpgradeMemoryTables.clear();
-		replaceTableRecent.clear();
-	}
-
-	public @Nullable Schemas __upgrade_schemas__(@Nullable Schemas schemas) throws Exception {
-		var current = this.schemas;
-		this.schemasPrevious = null;
-		this.schemas = schemas;
-		schemasCompatible();
-		return current;
-	}
-
-	public void __install_alter__() {
-		for (var table : replaceTableRecent) {
-			if (!(table.getDatabase() instanceof DatabaseRelationalMapping))
-				continue;
-			if (!table.isRelationalMapping())
-				continue;
-			logger.info("tryAlter {}", table.getName());
-			table.tryAlter();
-		}
-		replaceTableRecent.clear();
-		// 热更路径与启动路径同构：DDL成功后才发布元数据（__upgrade_schemas__只检查不保存）。
-		try {
-			publishSchemas();
-		} catch (Exception e) {
-			throw Task.forceThrow(e);
-		}
-	}
-
-	public ArrayList<HotUpgradeMemoryTable> __get_upgrade_memory_table__() {
-		return hotUpgradeMemoryTables;
-	}
-
-	// 热更通过此入口替换表，不调用 addTable/removeTable。
-	public Database replaceTable(String dbName, Table table) {
-		var db = getDatabase(dbName);
-		var exist = tables.get(table.getId());
-		if (exist == table) {
-			replaceTableRecent.add(table);
-			TableKey.tables.put(table.getId(), table.getName());
-			return db; // 热更回滚可能重复注册同一表。
-		}
-		var targetDb = exist != null ? exist.getDatabase() : db;
-		var previousTableKeyName = TableKey.tables.get(table.getId());
-		var previousTableByName = tableNameMap.get(table.getName());
-		var previousTargetDbTable = targetDb.getTable(table.getName());
-		var previousDbTable = targetDb != db ? db.getTable(table.getName()) : previousTargetDbTable;
-		var previousRecentSize = replaceTableRecent.size();
-
-		// 先注册索引再 open：关系映射表构造 Storage 时会回调 db.getTable(name) 读取新表。
-		replaceTableRecent.add(table);
-		TableKey.tables.put(table.getId(), table.getName());
-		tables.put(table.getId(), table);
-		tableNameMap.put(table.getName(), table);
-		targetDb.replaceTable(table);
-		if (targetDb != db)
-			db.replaceTable(table);
-
-		try {
-			if (exist != null) {
-				// 热更开表与首次启动不同，需要传入旧表以继承状态。
-				table.open(exist, this);
-
-				if (exist.isMemory() && table.isMemory()) {
-					hotUpgradeMemoryTables.add(new HotUpgradeMemoryTable(exist, table));
-					// exist.disable() 在升级之后调用。
-				} else {
-					// 旧表禁用。防止应用保留了旧表引用，还去使用导致错误。
-					exist.disable();
-				}
-			} else if (isStart()) {
-				var storage = table.open(this, db, null);
-				db.__add_storage__(storage);
-			}
-		} catch (Throwable failure) {
-			if (replaceTableRecent.size() > previousRecentSize)
-				replaceTableRecent.remove(replaceTableRecent.size() - 1);
-			if (exist != null)
-				tables.put(table.getId(), exist);
-			else
-				tables.remove(table.getId(), table);
-			if (previousTableKeyName != null)
-				TableKey.tables.replace(table.getId(), table.getName(), previousTableKeyName);
-			else
-				TableKey.tables.remove(table.getId(), table.getName());
-			if (previousTableByName != null)
-				tableNameMap.put(table.getName(), previousTableByName);
-			else
-				tableNameMap.remove(table.getName(), table);
-			if (previousTargetDbTable != null) {
-				if (!table.isMemory())
-					cleanupAfterFailure(failure, () -> targetDb.removeTable(table));
-				targetDb.replaceTable(previousTargetDbTable);
-			} else {
-				cleanupAfterFailure(failure, () -> targetDb.removeTable(table));
-			}
-			if (targetDb != db) {
-				if (previousDbTable != null)
-					db.replaceTable(previousDbTable);
-				else
-					cleanupAfterFailure(failure, () -> db.removeTable(table));
-			}
-			throw failure;
-		}
 		return db;
 	}
 

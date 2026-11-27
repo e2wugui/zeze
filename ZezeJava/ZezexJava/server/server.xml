@@ -10,8 +10,6 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	CheckpointPeriod="60000"
 	ServerId="0"
 	ServiceManager=""
-	HotWorkingDir="hot"
-	HotDistributeDir="hot/distributes"
 	>
 	<GlobalCacheManagersConf>
 		<host name="global.raft.xml"/>

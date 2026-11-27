@@ -23,8 +23,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 @NullMarked
 public class TestGetOrAddIsAddContract {
-	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（800段TestHotRollbackMemoryTable、
-	// 810段TestHot02UpgradeIncompatibleFailFast；810曾与本类撞段，同JVM并发FileMutex互斥失败）。
+	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试。
 	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_GET_OR_ADD_IS_ADD_CONTRACT);
 
 	private static Application newApp() throws Exception {

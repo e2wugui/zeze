@@ -17,7 +17,7 @@ public interface BModuleRedirectAllHashReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     long getReturnCode();
     Zeze.Net.Binary getParams();

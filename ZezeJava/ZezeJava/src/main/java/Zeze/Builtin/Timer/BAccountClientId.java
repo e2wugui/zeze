@@ -174,10 +174,10 @@ public final class BAccountClientId implements Zeze.Transaction.BeanKey, Compara
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Account", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ClientId", "string", "", ""));
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
+        var vars = new java.util.ArrayList<Zeze.Transaction.VariableMeta>();
+        vars.add(new Zeze.Transaction.VariableMeta(1, "Account", "string", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(2, "ClientId", "string", "", ""));
         return vars;
     }
 }

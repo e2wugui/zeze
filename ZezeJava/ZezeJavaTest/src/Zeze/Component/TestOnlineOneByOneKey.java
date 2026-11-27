@@ -54,7 +54,7 @@ public class TestOnlineOneByOneKey {
 			// A(200ms)先装：触发后进入回调并阻塞，占住oneByOne串行队列。
 			var specA = (SimpleTimerSpec)TimerSpec.ofDelay(200).oneByOneKey("onebyone_key");
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
-				stub.scheduleOnline(false, "u1", "@onebyoneA", specA.build(), BlockingHandle.class, null, false);
+				stub.scheduleOnline("u1", "@onebyoneA", specA.build(), BlockingHandle.class, null, false);
 				return Procedure.Success;
 			}, "OnlineOneByOneKey.scheduleOnlineA").call());
 
@@ -65,7 +65,7 @@ public class TestOnlineOneByOneKey {
 			Assertions.assertTrue(BlockingHandle.entered.await(10, TimeUnit.SECONDS), "timerA必须触发");
 			var specB = (SimpleTimerSpec)TimerSpec.ofDelay(700).oneByOneKey("onebyone_key");
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
-				stub.scheduleOnline(false, "u1", "@onebyoneB", specB.build(), CountingHandle.class, null, false);
+				stub.scheduleOnline("u1", "@onebyoneB", specB.build(), CountingHandle.class, null, false);
 				return Procedure.Success;
 			}, "OnlineOneByOneKey.scheduleOnlineB").call());
 
@@ -92,7 +92,7 @@ public class TestOnlineOneByOneKey {
 
 			var spec = (SimpleTimerSpec)TimerSpec.ofDelay(50);
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
-				stub.scheduleOnline(false, "u1", "@onebyoneC", spec.build(), CountingHandle.class, null, false);
+				stub.scheduleOnline("u1", "@onebyoneC", spec.build(), CountingHandle.class, null, false);
 				return Procedure.Success;
 			}, "OnlineOneByOneKey.scheduleOnlineNoKey").call());
 

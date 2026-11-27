@@ -379,12 +379,12 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServerId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServiceIp", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ServicePort", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Load", "Zeze.Builtin.Provider.BLoad", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ServerId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ServiceIp", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "ServicePort", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Load", "Zeze.Builtin.Provider.BLoad", "", ""));
         return _v_;
     }
 

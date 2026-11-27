@@ -3,20 +3,23 @@ package metagame.builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // 一个具体的操作。
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOperateReadOnly {
     public static final long TYPEID = -1047237435540817782L;
 
     private int _OperateId;
     private Zeze.Net.Binary _Param;
     private final Zeze.Transaction.Collections.PMap2<Long, metagame.builtin.World.BAoiOperate> _Children;
+    private static final Zeze.Transaction.Collections.Map2Meta<Long, metagame.builtin.World.BAoiOperate> meta2_Children
+            = Zeze.Transaction.Collections.Map2Meta.get(Long.class, metagame.builtin.World.BAoiOperate.class);
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -92,17 +95,17 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     @SuppressWarnings("deprecation")
     public BAoiOperate() {
         _Param = Zeze.Net.Binary.Empty;
-        _Children = new Zeze.Transaction.Collections.PMap2<>(Long.class, metagame.builtin.World.BAoiOperate.class);
+        _Children = new Zeze.Transaction.Collections.PMap2<>(meta2_Children);
         _Children.variableId(3);
     }
 
     @SuppressWarnings("deprecation")
-    public BAoiOperate(int _OperateId_, Zeze.Net.Binary _Param_) {
+    public BAoiOperate(int _OperateId_, Zeze.Net.@Nullable Binary _Param_) {
         _OperateId = _OperateId_;
         if (_Param_ == null)
             _Param_ = Zeze.Net.Binary.Empty;
         _Param = _Param_;
-        _Children = new Zeze.Transaction.Collections.PMap2<>(Long.class, metagame.builtin.World.BAoiOperate.class);
+        _Children = new Zeze.Transaction.Collections.PMap2<>(meta2_Children);
         _Children.variableId(3);
     }
 
@@ -215,9 +218,9 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -272,11 +275,13 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
         if (_i_ == 1) {
             setOperateId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOperateId(0);
         if (_i_ == 2) {
             setParam(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setParam(Zeze.Net.Binary.Empty);
         if (_i_ == 3) {
             var _x_ = _Children;
             _x_.clear();
@@ -290,13 +295,14 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Children.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BAoiOperate))
@@ -366,11 +372,11 @@ public final class BAoiOperate extends Zeze.Transaction.Bean implements BAoiOper
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OperateId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Param", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Children", "map", "long", "metagame.builtin.World.BAoiOperate"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "OperateId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Param", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Children", "map", "long", "metagame.builtin.World.BAoiOperate"));
         return _v_;
     }
 
@@ -418,7 +424,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _OperateId_, Zeze.Net.Binary _Param_, java.util.HashMap<Long, metagame.builtin.World.BAoiOperate.Data> _Children_) {
+    public Data(int _OperateId_, Zeze.Net.@Nullable Binary _Param_, java.util.@Nullable HashMap<Long, metagame.builtin.World.BAoiOperate.Data> _Children_) {
         _OperateId = _OperateId_;
         if (_Param_ == null)
             _Param_ = Zeze.Net.Binary.Empty;
@@ -575,11 +581,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _OperateId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _OperateId = 0;
         if (_i_ == 2) {
             _Param = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Param = Zeze.Net.Binary.Empty;
         if (_i_ == 3) {
             var _x_ = _Children;
             _x_.clear();
@@ -593,7 +601,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Children.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -601,7 +610,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BAoiOperate.Data))

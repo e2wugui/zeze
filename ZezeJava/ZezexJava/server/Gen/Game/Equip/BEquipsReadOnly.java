@@ -16,7 +16,7 @@ public interface BEquipsReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Game.Equip.BItem, Game.Equip.BItemReadOnly> getItemsReadOnly();
 }

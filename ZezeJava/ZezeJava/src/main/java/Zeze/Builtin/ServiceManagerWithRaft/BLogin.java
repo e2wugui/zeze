@@ -199,9 +199,9 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "SessionName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "SessionName", "string", "", ""));
         return _v_;
     }
 }

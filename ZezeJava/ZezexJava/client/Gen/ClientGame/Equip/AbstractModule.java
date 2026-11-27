@@ -66,27 +66,6 @@ public abstract class AbstractModule implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportLoginResponse", Zeze.Transaction.DispatchMode.Normal);
             App.ClientService.AddFactoryHandle(32195435014L, factoryHandle); // 7, 2130663942
         }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(ClientGame.Equip.SendHot.class, ClientGame.Equip.SendHot.TypeId_);
-            factoryHandle.Factory = ClientGame.Equip.SendHot::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendHotResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendHotResponse", Zeze.Transaction.DispatchMode.Normal);
-            App.ClientService.AddFactoryHandle(30506682560L, factoryHandle); // 7, 441911488
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(ClientGame.Equip.SendHotRemove.class, ClientGame.Equip.SendHotRemove.TypeId_);
-            factoryHandle.Factory = ClientGame.Equip.SendHotRemove::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendHotRemoveResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendHotRemoveResponse", Zeze.Transaction.DispatchMode.Normal);
-            App.ClientService.AddFactoryHandle(31688523471L, factoryHandle); // 7, 1623752399
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(ClientGame.Equip.SendHotAdd.class, ClientGame.Equip.SendHotAdd.TypeId_);
-            factoryHandle.Factory = ClientGame.Equip.SendHotAdd::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendHotAddResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendHotAddResponse", Zeze.Transaction.DispatchMode.Normal);
-            App.ClientService.AddFactoryHandle(30316107850L, factoryHandle); // 7, 251336778
-        }
         // register table
         // register servlet
     }
@@ -98,9 +77,6 @@ public abstract class AbstractModule implements Zeze.IModule {
         App.ClientService.getFactorys().remove(30979741226L);
         App.ClientService.getFactorys().remove(31296158603L);
         App.ClientService.getFactorys().remove(32195435014L);
-        App.ClientService.getFactorys().remove(30506682560L);
-        App.ClientService.getFactorys().remove(31688523471L);
-        App.ClientService.getFactorys().remove(30316107850L);
         // unregister table
         // unregister servlet
     }

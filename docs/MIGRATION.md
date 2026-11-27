@@ -1,8 +1,8 @@
 # ZezeJava v1.6.3 → v2.0.x 迁移指南
 
-面向使用 zeze-java 的应用工程，覆盖 v1.6.3 → v2.0.6（含 2.0.7-SNAPSHOT 已知事项）。逐版本变更明细见 [CHANGELOG.md](CHANGELOG.md)；本指南只讲"升级时你要做什么"。
+面向使用 zeze-java 的应用工程，覆盖 v1.6.3 → v2.0.6（含 2.1.0-SNAPSHOT 已知事项）。逐版本变更明细见 [CHANGELOG.md](CHANGELOG.md)；本指南只讲"升级时你要做什么"。
 
-按约定，热更（HotManager）、History 增量日志、Raft 领域的兼容性变化不在本指南范围。
+按约定，History 增量日志、Raft 领域的兼容性变化不在本指南范围。
 
 ## 1. 总览：断点在哪
 
@@ -22,6 +22,7 @@ v2.0.0 是主断点（JDK、依赖、API 家族、线格式），v2.0.x 各版�
 | HasManagedException 改 Abort 语义 | 2.0.4 | 行为 | §6 |
 | SM Identify wire 不兼容（SM 与 GS 须同版本） | 2.0.4 | 线格式 | §7 |
 | Onz 协调决策默认 sync WAL | 2.0.6 | 行为 | §6 |
+| 移除模块热更新子系统（Zeze.Hot / HotDistribute） | 2.1.0-SNAPSHOT | API / 配置（编译失败） | §3.2、§4 |
 
 建议直接升级到 2.0.6，按下面清单一次性核对。
 
@@ -138,6 +139,11 @@ OnlineSpec.ofRoles(online, List.of(id1, id2)).send(p); // 批量
 | Cube 六件 | 2.0.5 | — |
 | `ThreadDiagnosable` | 2.0.6 | `TimeoutDiagnosable`（+`getDispatchMode()`） |
 | Task 部分 `tryInitThreadPool` 重载 | 2.0.6 | 保留签名 |
+| `Zeze.Hot.*`、`Zeze.Builtin.HotDistribute`（11033） | 2.1.0-SNAPSHOT | 彻底移除；紧急类修复改用 `ClassReloader` / `ReloadClassServer` |
+| `Bean`/`BeanKey`/`*ReadOnly.variables()` 返回 `BVariable.Data` | 2.1.0-SNAPSHOT | 改返回 `ArrayList<Zeze.Transaction.VariableMeta>`；用新 Gen.exe 重生成 |
+| `EventDispatcher(Application, String)` / `addHot` | 2.1.0-SNAPSHOT | 改为 `EventDispatcher(String)` / `add(mode, handle)` |
+| `TimerRole`/`TimerAccount` `scheduleOnline*Hot`、`onlineHot()` | 2.1.0-SNAPSHOT | 改用 `scheduleOnline` / `scheduleOnlineNamed` / `online()` |
+| `Application.getHotManager`/`getHotHandle`/`replaceTable`/`verifyCallerCold`、`Database.replaceTable`、`Table.open(Table, Application)`/`disable`/`__direct_put_cache__`、`BeanFactory.setApplication`/`resetHot`/`reloadClassesFromJar`/`registerWatch`/`unregisterWatch`、`GenModule.RedirectClassSink`、`Task.hotGuard`、`ProviderService.addHotModule` | 2.1.0-SNAPSHOT | 移除调用；常规表注册走 `addTable`/`removeTable` |
 
 ## 4. 配置迁移（zeze.xml）
 
@@ -147,6 +153,7 @@ OnlineSpec.ofRoles(online, List.of(id1, id2)).send(p); // 批量
 - **`FastRedoWhenConflict` 缺省统一 false**（2.0.2，`2f40e963a`）：此前"有 zeze.xml 但未写该属性"隐式为 true；依赖旧行为的部署需显式写 `FastRedoWhenConflict="true"`。
 - **`ServerVersion` 属性删除**（2.0.4）：SM Identify 上报、Takeover 梯队判据改用 `appVersion` 高 16 位，确保正确填写应用主版本。
 - **Dbh2：`Dbh2LocalCommit="false"` 时必须配 `CommitServerAddress`**（2.0.3），否则构造期 fail-fast。
+- **`HotWorkingDir` / `HotDistributeDir` 属性删除**（2.1.0-SNAPSHOT）：`Config` 已移除相关字段与 getter/setter，zeze.xml 中可清理旧属性；solution.xml 中残留的 `hot` / `HotSrcDir` 属性将被 `Gen.exe` 静默忽略。
 
 新增可选项（按需）：`Config.EnableGlobalFastFail`（2.0.0，默认 false）、`zeze.collections.backend=pcollections|kt|ktt|myktt`（2.0.4 起，默认 2.0.5 起为 myktt；启动时定型）、Onz 协调决策 sync WAL 开关（2.0.6，默认开）。
 

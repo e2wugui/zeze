@@ -1,7 +1,6 @@
 package Zeze.Component;
 
 import java.util.List;
-import Zeze.Application;
 import Zeze.Builtin.Timer.BGameOnlineTimer;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BOfflineRoleCustom;
@@ -191,9 +190,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, String timerId, long delay, long period, long times,
 									   long endTime, Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
 	}
@@ -205,32 +201,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, String timerId, long delay, long period, long times,
 									   long endTime, Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData, String oneByOneKey) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
-				.endTime(endTime).oneByOneKey(oneByOneKey), handleClass, customData);
-	}
-
-	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(long, String, TimerSpec, Class, Bean)} 替代
-	 */
-	@Deprecated
-	public boolean scheduleOnlineNamedHot(long roleId, String timerId, long delay, long period, long times,
-										  long endTime, Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) {
-		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
-				.endTime(endTime), handleClass, customData);
-	}
-
-	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(long, String, TimerSpec, Class, Bean)} 替代
-	 */
-	@Deprecated
-	public boolean scheduleOnlineNamedHot(long roleId, String timerId, long delay, long period, long times,
-										  long endTime, Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData, String oneByOneKey) {
-		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
@@ -241,9 +212,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, String timerId, String cron, long times,
 									   long endTime, Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
@@ -255,33 +223,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, String timerId, String cron, long times,
 									   long endTime, Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData, String oneByOneKey) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
-				.oneByOneKey(oneByOneKey), handleClass, customData);
-	}
-
-	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(long, String, TimerSpec, Class, Bean)} 替代
-	 */
-	@Deprecated
-	public boolean scheduleOnlineNamedHot(long roleId, String timerId, String cron, long times,
-										  long endTime, Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) {
-		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofCron(cron).times(times)
-				.endTime(endTime), handleClass, customData);
-	}
-
-	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(long, String, TimerSpec, Class, Bean)} 替代
-	 */
-	@Deprecated
-	public boolean scheduleOnlineNamedHot(long roleId, String timerId, String cron, long times,
-										  long endTime, Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData,
-										  String oneByOneKey) {
-		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
@@ -295,9 +237,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
 										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime), handleClass, customData);
 	}
@@ -309,32 +248,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
 										  Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										  String oneByOneKey) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
-				.endTime(endTime).oneByOneKey(oneByOneKey), handleClass, customData);
-	}
-
-	/**
-	 * @deprecated 使用 {@link #scheduleOnlineHot(long, TimerSpec, Class, Bean)} 替代
-	 */
-	@Deprecated
-	public String scheduleOnlineHot(long roleId, long delay, long period, long times, long endTime,
-											 Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData) {
-		return scheduleOnlineHot(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
-				.endTime(endTime), handleClass, customData);
-	}
-
-	/**
-	 * @deprecated 使用 {@link #scheduleOnlineHot(long, TimerSpec, Class, Bean)} 替代
-	 */
-	@Deprecated
-	public String scheduleOnlineHot(long roleId, long delay, long period, long times, long endTime,
-											 Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData, String oneByOneKey) {
-		return scheduleOnlineHot(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
@@ -345,9 +259,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public String scheduleOnline(long roleId, String cron, long times, long endTime,
 										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
@@ -359,33 +270,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public String scheduleOnline(long roleId, String cron, long times, long endTime,
 										  Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										  String oneByOneKey) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
-				.oneByOneKey(oneByOneKey), handleClass, customData);
-	}
-
-	/**
-	 * @deprecated 使用 {@link #scheduleOnlineHot(long, TimerSpec, Class, Bean)} 替代
-	 */
-	@Deprecated
-	public String scheduleOnlineHot(long roleId, String cron, long times, long endTime,
-											 Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData) {
-		return scheduleOnlineHot(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
-				handleClass, customData);
-	}
-
-	/**
-	 * @deprecated 使用 {@link #scheduleOnlineHot(long, TimerSpec, Class, Bean)} 替代
-	 */
-	@Deprecated
-	public String scheduleOnlineHot(long roleId, String cron, long times, long endTime,
-											 Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData,
-											 String oneByOneKey) {
-		return scheduleOnlineHot(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
@@ -396,30 +281,10 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public String scheduleOnline(long roleId, TimerSpec spec,
 										  Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
-		return scheduleOnlineImpl(roleId, spec, handleClass, customData);
-	}
-
-	String scheduleOnlineImpl(long roleId, TimerSpec spec,
-									   Class<? extends TimerHandle> handleClass,
-									   @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
 		switch (spec) {
-		case SimpleTimerSpec s -> scheduleOnline(false, roleId, timerId, s.build(), handleClass, customData, false);
-		case CronTimerSpec c -> scheduleOnline(false, roleId, timerId, c.build(), handleClass, customData, false);
-		}
-		return timerId;
-	}
-
-	public String scheduleOnlineHot(long roleId, TimerSpec spec,
-											 Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData) {
-		var timerId = newAutoTimerId();
-		switch (spec) {
-		case SimpleTimerSpec s -> scheduleOnline(true, roleId, timerId, s.build(), handleClass, customData, false);
-		case CronTimerSpec c -> scheduleOnline(true, roleId, timerId, c.build(), handleClass, customData, false);
+		case SimpleTimerSpec s -> scheduleOnline(roleId, timerId, s.build(), handleClass, customData, false);
+		case CronTimerSpec c -> scheduleOnline(roleId, timerId, c.build(), handleClass, customData, false);
 		}
 		return timerId;
 	}
@@ -427,32 +292,11 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, String timerId, TimerSpec spec,
 									   Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
-		var zeze = online.providerApp.zeze;
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
-		return scheduleOnlineNamedImpl(roleId, timerId, spec, handleClass, customData);
-	}
-
-	boolean scheduleOnlineNamedImpl(long roleId, String timerId, TimerSpec spec,
-									Class<? extends TimerHandle> handleClass,
-									@Nullable Bean customData) {
 		if (isNamedTimerIdOccupied(timerId))
 			return false;
 		switch (spec) {
-		case SimpleTimerSpec s -> scheduleOnline(false, roleId, timerId, s.build(), handleClass, customData, false);
-		case CronTimerSpec c -> scheduleOnline(false, roleId, timerId, c.build(), handleClass, customData, false);
-		}
-		return true;
-	}
-
-	public boolean scheduleOnlineNamedHot(long roleId, String timerId, TimerSpec spec,
-										  Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) {
-		if (isNamedTimerIdOccupied(timerId))
-			return false;
-		switch (spec) {
-		case SimpleTimerSpec s -> scheduleOnline(true, roleId, timerId, s.build(), handleClass, customData, false);
-		case CronTimerSpec c -> scheduleOnline(true, roleId, timerId, c.build(), handleClass, customData, false);
+		case SimpleTimerSpec s -> scheduleOnline(roleId, timerId, s.build(), handleClass, customData, false);
+		case CronTimerSpec c -> scheduleOnline(roleId, timerId, c.build(), handleClass, customData, false);
 		}
 		return true;
 	}
@@ -562,7 +406,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		timer.schedule(timerId, builder.build(), OfflineHandle.class, custom);
 		var config = timer.getZeze().getConfig();
@@ -651,7 +494,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
-			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
 			if (timer.cronEquals(index, timerId, builder, OfflineHandle.class, custom))

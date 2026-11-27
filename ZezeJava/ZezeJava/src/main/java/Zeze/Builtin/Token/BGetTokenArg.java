@@ -268,10 +268,10 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "token", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "maxCount", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "token", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "maxCount", "long", "", ""));
         return _v_;
     }
 

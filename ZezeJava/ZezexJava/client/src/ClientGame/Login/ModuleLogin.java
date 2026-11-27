@@ -13,7 +13,7 @@ public class ModuleLogin extends AbstractModule {
 
     public void auth() throws InterruptedException {
         var r = new Auth();
-        r.Argument.setAccount("TestHot");
+        r.Argument.setAccount("TestAccount");
         r.SendForWait(Objects.requireNonNull(App.ClientService).GetSocket()).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("auth error=" + IModule.getErrorCode(r.getResultCode()));

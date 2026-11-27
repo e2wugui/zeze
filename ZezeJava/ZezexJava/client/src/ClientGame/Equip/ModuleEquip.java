@@ -1,52 +1,9 @@
 package ClientGame.Equip;
 
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.IModule;
-import Zeze.Util.TaskSpec;
 
 public class ModuleEquip extends AbstractModule {
-	final AtomicInteger sendHot = new AtomicInteger();
-
-	private void testSendHot() {
-		var r = new SendHot();
-		r.Argument.setAttack(sendHot.incrementAndGet());
-		r.Send(Objects.requireNonNull(App.ClientService).GetSocket(), (p) -> {
-			System.out.println("SendHot " + r.getResultCode() + " count=" + r.Argument.getAttack());
-			return 0;
-		});
-	}
-
-	private void testSendHotRemove() {
-		var r = new SendHotRemove();
-		r.Argument.setAttack(sendHot.incrementAndGet());
-		r.Send(Objects.requireNonNull(App.ClientService).GetSocket(), (p) -> {
-			System.out.println("SendHotRemove " + r.getResultCode() + " count=" + r.Argument.getAttack());
-			return 0;
-		});
-	}
-
-	private void testSendHotAdd() {
-		var r = new SendHotAdd();
-		r.Argument.setAttack(sendHot.incrementAndGet());
-		r.Send(Objects.requireNonNull(App.ClientService).GetSocket(), (p) -> {
-			System.out.println("SendHotAdd " + r.getResultCode() + " count=" + r.Argument.getAttack());
-			return 0;
-		});
-	}
-
-	@Nullable Future<?> timerSendHot;
-	@Nullable Future<?> timerSendHotRemove;
-	@Nullable Future<?> timerSendHotAdd;
-
-	public void startTimer() {
-		timerSendHot = TaskSpec.ofAction(this::testSendHot).schedulePeriodNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
-		timerSendHotRemove = TaskSpec.ofAction(this::testSendHotRemove).schedulePeriodNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
-		timerSendHotAdd = TaskSpec.ofAction(this::testSendHotAdd).schedulePeriodNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
-	}
-
 	public void reportLogin(long roleId) {
 		var r = new ReportLogin();
 		r.Argument.setRoleId(roleId);
@@ -59,18 +16,6 @@ public class ModuleEquip extends AbstractModule {
 	}
 
 	public void Stop(ClientGame.App app) throws Exception {
-		if (null != timerSendHot) {
-			timerSendHot.cancel(true);
-			timerSendHot = null;
-		}
-		if (null != timerSendHotRemove) {
-			timerSendHotRemove.cancel(true);
-			timerSendHotRemove = null;
-		}
-		if (null != timerSendHotAdd) {
-			timerSendHotAdd.cancel(true);
-			timerSendHotAdd = null;
-		}
 	}
 
 	@Override

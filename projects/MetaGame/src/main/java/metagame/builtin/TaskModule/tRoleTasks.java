@@ -4,8 +4,9 @@ package metagame.builtin.TaskModule;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
+@SuppressWarnings({"ConstantConditions", "ConstantValue", "DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tRoleTasks extends TableX<Long, metagame.builtin.TaskModule.BRoleTasks>
         implements TableReadOnly<Long, metagame.builtin.TaskModule.BRoleTasks, metagame.builtin.TaskModule.BRoleTasksReadOnly> {
     public tRoleTasks() {
@@ -60,7 +61,7 @@ public final class tRoleTasks extends TableX<Long, metagame.builtin.TaskModule.B
     }
 
     @Override
-    public metagame.builtin.TaskModule.BRoleTasksReadOnly getReadOnly(Long _k_) {
+    public @Nullable BRoleTasksReadOnly getReadOnly(Long _k_) {
         return get(_k_);
     }
 }

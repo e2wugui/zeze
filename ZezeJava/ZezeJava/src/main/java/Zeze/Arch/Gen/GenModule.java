@@ -56,7 +56,6 @@ public final class GenModule extends ReentrantLock {
 	private static final Pattern genericPat = Pattern.compile("<.+>");
 
 	private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
-	// 冷路径生成类缓存（热模块产物装载/定义进各HotModule，不进此表）。
 	private final HashMap<String, Class<?>> genClassMap = new HashMap<>();
 
 	public InMemoryJavaCompiler getCompiler() {
@@ -98,38 +97,9 @@ public final class GenModule extends ReentrantLock {
 		return className.startsWith(REDIRECT_PREFIX) ? className : REDIRECT_PREFIX + className.replace('.', '_');
 	}
 
-	/**
-	 * 热模块装载器契约：由HotModule实现（定义装载器即模块装载器，无需额外传参）。
-	 * 故意不依赖Zeze.Hot：依赖方向保持GenModule被Hot侧引用的单向。
-	 */
-	public interface RedirectClassSink {
-		/**
-		 * 只从本模块jar装载打包好的Redirect_子类（Distribute.pack产出），绕过双亲委派。
-		 *
-		 * @throws ClassNotFoundException 本jar不存在该子类
-		 */
-		Class<?> findRedirectClass(String className) throws ClassNotFoundException;
-
-		/**
-		 * 把运行时兜底编译的产物定义进本装载器：每模块版本一份，换代即隔离；
-		 * 同名define每装载器至多一次（findLoadedClass守卫）。
-		 */
-		Class<?> defineRedirectClass(String className, byte[] byteCode);
-	}
-
 	public static <T extends IModule> T createRedirectModule(Class<T> moduleClass, AppBase app) {
 		try {
-			Class<?> genClass;
-			// 热模块：只从模块jar装载打包子类（与批量路径同契约）；冷模块走classpath。
-			if (moduleClass.getClassLoader() instanceof RedirectClassSink sink) {
-				try {
-					genClass = sink.findRedirectClass(getRedirectClassName(moduleClass));
-				} catch (ClassNotFoundException e) {
-					throw new IllegalStateException("hot module redirect class not packaged in module jar: "
-						+ moduleClass.getName(), e);
-				}
-			} else
-				genClass = Class.forName(getRedirectClassName(moduleClass));
+			Class<?> genClass = Class.forName(getRedirectClassName(moduleClass));
 			return newModule(genClass, app);
 		} catch (ReflectiveOperationException e) {
 			throw Task.forceThrow(e);
@@ -219,24 +189,19 @@ public final class GenModule extends ReentrantLock {
 		System.out.println("New Source File Has Generate. Re-Compile Need.");
 	}
 
-	// ③装载不命中路径的待编译条目：源码与编译产物的归属装载器绑定（热模块为其
-	// HotModule；冷模块null=编译器装载器），同批收集后单次javac。
-	private record PendingCompile(String genClassName, String code, @Nullable RedirectClassSink sink) {
+	private record PendingCompile(String genClassName, String code) {
 	}
 
 	/**
-	 * 运行时装载Redirect_子类并实例化模块（构建期源码生成走{@link #generateRedirectSources}）。
-	 * 每个模块按序尝试：①热模块从模块jar装载打包好的子类（免编译）；②冷模块从进程缓存/
-	 * classpath装载已存在的子类；③装载不命中的生成源码，批量编译后按归属define（热模块
-	 * 进其HotModule，冷模块进编译器装载器）。无redirect方法的模块直接用原始模块类实例化。
+	 * 运行时装载 Redirect_ 子类并实例化模块（构建期源码生成走 {@link #generateRedirectSources}）。
+	 * 每个模块按序尝试：从进程缓存/classpath 装载已存在的子类，未命中的生成源码并批量编译后 define。
+	 * 无 redirect 方法的模块直接用原始模块类实例化。
 	 */
 	public IModule[] createRedirectModules(AppBase userApp,
 										   Class<?>[] moduleClasses) {
 		lock();
 		try {
 			int n = moduleClasses.length;
-			// 与moduleClasses索引对齐，同一下标互斥占用：就绪的子类（装载命中或编译后
-			// 回填）/待编译条目；两者皆null=该模块没有redirect方法。
 			var genClasses = new Class<?>[n];
 			var pending = new @Nullable PendingCompile[n];
 			for (var i = 0; i < n; i++) {
@@ -249,44 +214,26 @@ public final class GenModule extends ReentrantLock {
 						continue; // 没有需要重定向的方法。
 
 					var genClassName = getRedirectClassName(moduleClass);
-					// ①热模块装载优先：装载模块jar里打包好的子类（Distribute.pack产出，
-					// 与模块类同批构建），免运行时编译。findRedirectClass绕过双亲委派
-					// 只查本jar，冷classpath残留无法抢先。
-					var sink = moduleClass.getClassLoader() instanceof RedirectClassSink s ? s : null;
-					if (sink != null) {
+					Class<?> genClass = genClassMap.get(genClassName);
+					if (genClass == null) {
 						try {
-							var genClass = sink.findRedirectClass(genClassName);
-							checkRedirectSuperclass(genClass, moduleClass, "module jar");
-							genClasses[i] = genClass;
-							continue;
+							genClass = Class.forName(genClassName);
+							genClassMap.put(genClassName, genClass);
 						} catch (ClassNotFoundException ignored) {
 						}
-					} else {
-						// ②冷装载：进程缓存或classpath上已存在的子类（热模块不走冷链，未命中jar直接进入③兜底编译）。
-						Class<?> genClass = genClassMap.get(genClassName);
-						if (genClass == null) {
-							try {
-								genClass = Class.forName(genClassName);
-								genClassMap.put(genClassName, genClass);
-							} catch (ClassNotFoundException ignored) {
-							}
-						}
-						if (genClass != null) {
-							// 冷类身份进程内不变，命中陈旧父类即装载器混用。
-							checkRedirectSuperclass(genClass, moduleClass, "cold cache");
-							genClasses[i] = genClass;
-							continue;
-						}
 					}
-					// ③装载不命中：生成源码，收集待批量编译。
+					if (genClass != null) {
+						checkRedirectSuperclass(genClass, moduleClass, "cache");
+						genClasses[i] = genClass;
+						continue;
+					}
 					String code = genModuleCode(genClassName, moduleClass, overrides, userApp);
-					pending[i] = new PendingCompile(genClassName, code, sink);
+					pending[i] = new PendingCompile(genClassName, code);
 				} catch (Exception e) {
 					throw new IllegalStateException("module class: " + moduleClass.getName(), e);
 				}
 			}
 
-			// 批量编译（单次javac）：产物按归属define回填genClasses。
 			compilePending(pending, genClasses);
 
 			var modules = new IModule[n];
@@ -300,9 +247,6 @@ public final class GenModule extends ReentrantLock {
 		}
 	}
 
-	// 批量编译（单次javac）③的待编译条目，产物按归属define后回填genClasses：
-	// 热模块产物进其HotModule（每代隔离、失败安装零残留）；冷模块产物进编译器
-	// 装载器并写入genClassMap进程级缓存（冷类身份不变，下次直接装载）。
 	private void compilePending(@Nullable PendingCompile[] pending, Class<?>[] genClasses) throws ClassNotFoundException {
 		var codes = new HashMap<String, String>();
 		for (var p : pending)
@@ -310,23 +254,18 @@ public final class GenModule extends ReentrantLock {
 				codes.put(p.genClassName, p.code);
 		if (codes.isEmpty())
 			return;
-		var byteCodes = compiler.compileAllToByteCode(codes);
+		var compiled = compiler.compileAll(codes);
 		for (var i = 0; i < pending.length; i++) {
 			var p = pending[i];
 			if (p == null)
 				continue;
-			if (p.sink != null)
-				genClasses[i] = p.sink.defineRedirectClass(p.genClassName, byteCodes.get(p.genClassName));
-			else {
-				var cls = compiler.defineCompiled(p.genClassName);
-				genClassMap.put(p.genClassName, cls);
-				genClasses[i] = cls;
-			}
+			var cls = Objects.requireNonNull(compiled.get(p.genClassName));
+			genClassMap.put(p.genClassName, cls);
+			genClasses[i] = cls;
 		}
 	}
 
-	// 装载命中的生成类必须extends传入的moduleClass（身份自洽）：jar产物与模块类同批
-	// 构建、冷缓存类身份进程内不变——错配即手搓jar或装载器混用，fail-fast。
+	// 装载命中的生成类必须 extends 传入的 moduleClass（身份自洽）：错配即类加载器混用，fail-fast。
 	private static void checkRedirectSuperclass(Class<?> genClass, Class<?> moduleClass,
 												String source) {
 		if (genClass.getSuperclass() != moduleClass)

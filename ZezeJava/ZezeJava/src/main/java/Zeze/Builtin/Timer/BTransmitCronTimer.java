@@ -18,14 +18,12 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     private String _CustomClass;
     private Zeze.Net.Binary _CustomBean;
     private long _LoginVersion;
-    private boolean _Hot;
 
     private static final java.lang.invoke.VarHandle vh_TimerId;
     private static final java.lang.invoke.VarHandle vh_HandleClass;
     private static final java.lang.invoke.VarHandle vh_CustomClass;
     private static final java.lang.invoke.VarHandle vh_CustomBean;
     private static final java.lang.invoke.VarHandle vh_LoginVersion;
-    private static final java.lang.invoke.VarHandle vh_Hot;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
@@ -35,7 +33,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
             vh_CustomClass = _l_.findVarHandle(BTransmitCronTimer.class, "_CustomClass", String.class);
             vh_CustomBean = _l_.findVarHandle(BTransmitCronTimer.class, "_CustomBean", Zeze.Net.Binary.class);
             vh_LoginVersion = _l_.findVarHandle(BTransmitCronTimer.class, "_LoginVersion", long.class);
-            vh_Hot = _l_.findVarHandle(BTransmitCronTimer.class, "_Hot", boolean.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -162,26 +159,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 6, vh_LoginVersion, _v_));
     }
 
-    @Override
-    public boolean isHot() {
-        if (!isManaged())
-            return _Hot;
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (_t_ == null)
-            return _Hot;
-        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 7);
-        return log != null ? log.value : _Hot;
-    }
-
-    public void setHot(boolean _v_) {
-        if (!isManaged()) {
-            _Hot = _v_;
-            return;
-        }
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 7, vh_Hot, _v_));
-    }
-
     @SuppressWarnings("deprecation")
     public BTransmitCronTimer() {
         _TimerId = "";
@@ -193,7 +170,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     }
 
     @SuppressWarnings("deprecation")
-    public BTransmitCronTimer(@Nullable String _TimerId_, @Nullable String _HandleClass_, @Nullable String _CustomClass_, Zeze.Net.@Nullable Binary _CustomBean_, long _LoginVersion_, boolean _Hot_) {
+    public BTransmitCronTimer(@Nullable String _TimerId_, @Nullable String _HandleClass_, @Nullable String _CustomClass_, Zeze.Net.@Nullable Binary _CustomBean_, long _LoginVersion_) {
         if (_TimerId_ == null)
             _TimerId_ = "";
         _TimerId = _TimerId_;
@@ -209,7 +186,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
             _CustomBean_ = Zeze.Net.Binary.Empty;
         _CustomBean = _CustomBean_;
         _LoginVersion = _LoginVersion_;
-        _Hot = _Hot_;
     }
 
     @Override
@@ -220,7 +196,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         setCustomClass("");
         setCustomBean(Zeze.Net.Binary.Empty);
         setLoginVersion(0);
-        setHot(false);
         _unknown_ = null;
     }
 
@@ -231,7 +206,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         setCustomClass(_o_.getCustomClass());
         setCustomBean(_o_.getCustomBean());
         setLoginVersion(_o_.getLoginVersion());
-        setHot(_o_.isHot());
         _unknown_ = _o_._unknown_;
     }
 
@@ -275,8 +249,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         _s_.append(_i1_).append("HandleClass=").append(getHandleClass()).append(",\n");
         _s_.append(_i1_).append("CustomClass=").append(getCustomClass()).append(",\n");
         _s_.append(_i1_).append("CustomBean=").append(getCustomBean()).append(",\n");
-        _s_.append(_i1_).append("LoginVersion=").append(getLoginVersion()).append(",\n");
-        _s_.append(_i1_).append("Hot=").append(isHot()).append('\n');
+        _s_.append(_i1_).append("LoginVersion=").append(getLoginVersion()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -353,13 +326,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
                 _o_.WriteLong(_x_);
             }
         }
-        {
-            boolean _x_ = isHot();
-            if (_x_) {
-                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
-                _o_.WriteByte(1);
-            }
-        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -399,11 +365,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         } else
             setLoginVersion(0);
-        if (_i_ == 7) {
-            setHot(_o_.ReadBool(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        } else
-            setHot(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -427,8 +388,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         if (!getCustomBean().equals(_b_.getCustomBean()))
             return false;
         if (getLoginVersion() != _b_.getLoginVersion())
-            return false;
-        if (isHot() != _b_.isHot())
             return false;
         return true;
     }
@@ -467,7 +426,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
                 case 4: _CustomClass = _v_.stringValue(); break;
                 case 5: _CustomBean = _v_.binaryValue(); break;
                 case 6: _LoginVersion = _v_.longValue(); break;
-                case 7: _Hot = _v_.booleanValue(); break;
             }
         }
     }
@@ -489,7 +447,6 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
             setCustomClass("");
         setCustomBean(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "CustomBean")));
         setLoginVersion(_r_.getLong(_pn_ + "LoginVersion"));
-        setHot(_r_.getBoolean(_pn_ + "Hot"));
     }
 
     @Override
@@ -503,19 +460,17 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         _s_.appendString(_pn_ + "CustomClass", getCustomClass());
         _s_.appendBinary(_pn_ + "CustomBean", getCustomBean());
         _s_.appendLong(_pn_ + "LoginVersion", getLoginVersion());
-        _s_.appendBoolean(_pn_ + "Hot", isHot());
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerId", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "CronTimer", "Zeze.Builtin.Timer.BCronTimer", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "HandleClass", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "CustomClass", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "CustomBean", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "LoginVersion", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Hot", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "TimerId", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "CronTimer", "Zeze.Builtin.Timer.BCronTimer", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "HandleClass", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "CustomClass", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "CustomBean", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "LoginVersion", "long", "", ""));
         return _v_;
     }
 }

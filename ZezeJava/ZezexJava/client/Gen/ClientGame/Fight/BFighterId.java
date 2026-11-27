@@ -168,10 +168,10 @@ public final class BFighterId implements Zeze.Transaction.BeanKey, Comparable<BF
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Type", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "InstanceId", "long", "", ""));
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
+        var vars = new java.util.ArrayList<Zeze.Transaction.VariableMeta>();
+        vars.add(new Zeze.Transaction.VariableMeta(1, "Type", "int", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(2, "InstanceId", "long", "", ""));
         return vars;
     }
 }

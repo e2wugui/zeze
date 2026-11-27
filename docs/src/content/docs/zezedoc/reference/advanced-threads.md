@@ -29,7 +29,7 @@ Zeze 采用**多类专用线程 + 受控任务调度**的模型：业务逻辑�
 | 线程池 | 默认容量 | 用途 |
 |--------|----------|------|
 | 普通线程池 `WorkerThreads` | `max(配置值, availableProcessors * 30)` | 默认业务逻辑执行池 |
-| 调度线程池 `ScheduledThreads` | `max(配置值, availableProcessors)` | 定时/周期任务，如 Checkpoint 周期触发、热更监视 |
+| 调度线程池 `ScheduledThreads` | `max(配置值, availableProcessors)` | 定时/周期任务，如 Checkpoint 周期触发 |
 | Checkpoint 线程 | 单独的 daemon 线程 | 定期刷脏；优先级 `NORM_PRIORITY + 2` |
 | Raft 线程 | 由 Raft 组件管理 | 共识 |
 | IO 线程 | 自研 NIO（`Zeze.Net.Selector`） | 收发，不阻塞 |

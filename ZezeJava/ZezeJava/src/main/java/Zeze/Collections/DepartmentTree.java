@@ -2,15 +2,9 @@ package Zeze.Collections;
 
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.DepartmentTree.*;
-import Zeze.Hot.HotBeanFactory;
-import Zeze.Hot.HotManager;
-import Zeze.Hot.HotModule;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
-import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.Action1;
 import Zeze.Util.OutLong;
 import org.jspecify.annotations.Nullable;
 
@@ -22,7 +16,7 @@ public class DepartmentTree<
 		TMember extends Bean,
 		TDepartmentMember extends Bean,
 		TGroupData extends Bean,
-		TDepartmentData extends Bean> implements HotBeanFactory {
+		TDepartmentData extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(Serializable bean) {
@@ -31,49 +25,6 @@ public class DepartmentTree<
 
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
-	}
-
-	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	// this::方法引用每次求值都产生新实例，ConcurrentHashSet按实例判等：stopEvents.add
-	// 每次净增不可去重。固定为实例字段只求值一次，登记幂等（同Game.Online的Ref修复）。
-	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
-	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
-
-	private void onHotModuleStop(HotModule hot) {
-		if (hotModulesHaveDynamic.remove(hot) != null)
-			freshStopModuleDynamic.set(true);
-	}
-
-	private void tryRecordHotModule(Class<?> customClass) {
-		var cl = customClass.getClassLoader();
-		if (HotManager.isHotModule(cl)) {
-			var hotModule = (HotModule)cl;
-			hotModule.stopEvents.add(onHotModuleStopRef);
-			hotModulesHaveDynamic.add(hotModule);
-		}
-	}
-
-	@Override
-	public void processWithNewClasses(java.util.List<Class<?>> newClasses) {
-		for (var cls : newClasses) {
-			tryRecordHotModule(cls);
-		}
-	}
-
-	@Override
-	public boolean hasFreshStopModuleDynamicOnce() {
-		return freshStopModuleDynamic.getAndSet(false);
-	}
-
-	@Override
-	public void clearTableCache() {
-		module._tDepartment.__ClearTableCacheUnsafe__();
-		module._tDepartmentTree.__ClearTableCacheUnsafe__();
-	}
-
-	@Override
-	public BeanFactory beanFactory() {
-		return beanFactory;
 	}
 
 	public static class Module extends AbstractDepartmentTree {
@@ -142,17 +93,6 @@ public class DepartmentTree<
 						   Class<TDepartmentMember> departmentMemberClass,
 						   Class<TGroupData> groupDataClass,
 						   Class<TDepartmentData> departmentDataClass) {
-
-		var hotManager = module.zeze.getHotManager();
-		if (null != hotManager) {
-			hotManager.addHotBeanFactory(this);
-			tryRecordHotModule(managerClass);
-			tryRecordHotModule(memberClass);
-			tryRecordHotModule(departmentMemberClass);
-			tryRecordHotModule(groupDataClass);
-			tryRecordHotModule(departmentDataClass);
-		}
-
 		this.module = module;
 		this.name = name;
 

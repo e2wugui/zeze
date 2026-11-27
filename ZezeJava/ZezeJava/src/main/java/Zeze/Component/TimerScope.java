@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * 某个身份(角色/账号)下某一类定时器的统一入口。
  * 通过 {@link Timer#roles(long)}/{@link Timer#accounts(String, String)} 获取门面后，
- * 再用 online()/onlineHot()/offline() 选择本接口的具体实现。
+ * 再用 online()/offline() 选择本接口的具体实现。
  */
 public interface TimerScope {
 	/**

@@ -85,10 +85,6 @@ Raft 配置用 `<node>` 元素，属性是 `Host` 和 `Port`（**不是** `<host
 
 > 各节点的配置需要**包含相同的节点集合**（`sortedNames` 集合一致即可），但**不要求 XML 中书写的物理顺序完全一致**——框架按节点名排序后比较。只要集合相同，选举与日志复制即可正常工作。
 
-## 线程安全与热更新
-
-> `hotGuard` 是 Zeze 通用热更新机制的保护锁，**与 Raft 无直接关系**——它保护的是任意热更过程，而非 Raft 特有的并发。Raft 自身的线程安全由其内部实现保证。详见 [热更新](./advanced-hot-reload.md)。
-
 ## 相关文档
 
 - GlobalCacheManager：[./arch-global-cache-manager.md](./arch-global-cache-manager.md)

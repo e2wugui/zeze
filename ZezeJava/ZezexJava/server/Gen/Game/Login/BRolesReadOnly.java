@@ -16,7 +16,7 @@ public interface BRolesReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PList2ReadOnly<Game.Login.BRole, Game.Login.BRoleReadOnly> getRoleListReadOnly();
     long getLastLoginRoleId();

@@ -319,10 +319,10 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "modules", "map", "int", "Zeze.Builtin.Provider.BModule"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "linkSids", "set", "", "long"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "modules", "map", "int", "Zeze.Builtin.Provider.BModule"));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "linkSids", "set", "", "long"));
         return _v_;
     }
 

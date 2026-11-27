@@ -283,19 +283,23 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         if (_i_ == 1) {
             setServiceName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServiceName("");
         if (_i_ == 2) {
             setFileName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFileName("");
         if (_i_ == 3) {
             setOffset(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setOffset(0);
         if (_i_ == 4) {
             setChunk(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setChunk(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -366,12 +370,12 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "FileName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Offset", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Chunk", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ServiceName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "FileName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Offset", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Chunk", "binary", "", ""));
         return _v_;
     }
 
@@ -569,19 +573,23 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceName = "";
         if (_i_ == 2) {
             _FileName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FileName = "";
         if (_i_ == 3) {
             _Offset = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Offset = 0;
         if (_i_ == 4) {
             _Chunk = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Chunk = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

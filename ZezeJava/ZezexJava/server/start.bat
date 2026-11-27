@@ -2,18 +2,10 @@
 setlocal
 pushd %~dp0
 
-if not exist hot (
-	cd ..
-	call distribute.bat
-	cd server
-)
-if not exist hotrun (
-	move hot hotrun
-)
-
 set zeze_classes=../../ZezeJava/build/classes/java/main;../../ZezeJava/build/resources/main
 
-start "server" java -Dlogname=server -cp %zeze_classes%;./hotrun/server.jar;../../ZezeJavaTest/lib/* Program
+set server_classes=%zeze_classes%;./build/classes/java/main
+start "server" java -Dlogname=server -cp %server_classes%;../../ZezeJavaTest/lib/* Program
 
 set linkd_classes=%zeze_classes%;../linkd/build/classes/java/main
 start "linkd" java -Dlogname=linkd -cp %linkd_classes%;../../ZezeJavaTest/lib/jgrapht-core-1.5.2.jar;../../ZezeJava/lib/* Program

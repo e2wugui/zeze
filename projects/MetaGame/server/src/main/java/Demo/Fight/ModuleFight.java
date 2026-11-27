@@ -3,50 +3,44 @@ package Demo.Fight;
 import Zeze.Game.LoginArgument;
 import Zeze.Game.Online;
 import Zeze.Game.OnlineSpec;
-import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Demo.*;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 
-public final class ModuleFight extends AbstractModule implements IModuleFight {
+public final class ModuleFight extends AbstractModule {
 	private static final Logger logger = LogManager.getLogger(ModuleFight.class);
 	public TaskCompletionSource<Boolean> areYouFight = new TaskCompletionSource<>();
+	private EventDispatcher.Canceler loginEventCanceler;
 
-	@Override
 	public boolean isAreYouFightDone() {
 		return areYouFight.isDone();
 	}
 
-	@Override
 	public void setAreYouFightResult(boolean value) {
 		areYouFight.setResult(value);
 	}
 
-	public static class LoginEventHandle implements EventDispatcher.EventHandle {
-		@Override
-		public long invoke(@NotNull Object sender, EventDispatcher.EventArgument arg) throws Exception {
+	public void Start(App app) {
+		loginEventCanceler = app.Provider.getOnline().getLoginEvents().add(EventDispatcher.Mode.RunEmbed, (sender, arg) -> {
 			var online = (Online)sender;
 			var login = (LoginArgument)arg;
-			var context = online.providerApp.zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
-			var service = context.getService();
 			OnlineSpec.ofRole(online, login.roleId).sendRpc(new AreYouFight(), (p) -> {
 				logger.info("AreYouFight done.");
-				service.setAreYouFightResult(true);
+				setAreYouFightResult(true);
 				return 0;
 			});
 			return 0;
-		}
-	}
-
-	public void Start(App app) {
-		app.Provider.getOnline().getLoginEvents().addHot(EventDispatcher.Mode.RunEmbed, LoginEventHandle.class);
+		});
 	}
 
 	public void Stop(App app) {
+		if (loginEventCanceler != null) {
+			loginEventCanceler.cancel();
+			loginEventCanceler = null;
+		}
 	}
 
 	public Fighter GetFighter(BFighterId fighterId) {
@@ -61,26 +55,10 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 		return Procedure.Success;
 	}
 
-	@Override
 	public void StartCalculateFighter(long roleId) {
 		BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
 		Zeze.Util.TaskSpec.ofProcedure(Demo.App.getInstance().Zeze.newProcedure(() -> CalculateFighter(fighterId),
 				"CalculateFighter")).run();
-	}
-
-	@Override
-	public void start() throws Exception {
-		Start(App);
-	}
-
-	@Override
-	public void stop() throws Exception {
-		Stop(App);
-	}
-
-	@Override
-	public void upgrade(HotService old) throws Exception {
-
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

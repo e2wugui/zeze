@@ -24,26 +24,21 @@ public class EventDispatcher {
 		RunThread,
 	}
 
-	static class HandleClass {
-		final Object classNameOrHandle; // EventHandle handle || String className
+	// 每次注册独立槽位，按对象身份判等移除：同时保证重复 cancel 幂等、移除精确槽位、不受 handle.equals 影响。
+	private static final class Slot {
+		final EventHandle handle;
 
-		HandleClass(EventHandle handle) {
-			this.classNameOrHandle = handle;
-		}
-
-		HandleClass(String className) {
-			this.classNameOrHandle = className;
+		Slot(EventHandle handle) {
+			this.handle = handle;
 		}
 	}
 
-	private final Application zeze;
 	private final String name;
-	private final ConcurrentLinkedQueue<HandleClass> runEmbedEvents = new ConcurrentLinkedQueue<>();
-	private final ConcurrentLinkedQueue<HandleClass> runProcedureEvents = new ConcurrentLinkedQueue<>();
-	private final ConcurrentLinkedQueue<HandleClass> runThreadEvents = new ConcurrentLinkedQueue<>();
+	private final ConcurrentLinkedQueue<Slot> runEmbedEvents = new ConcurrentLinkedQueue<>();
+	private final ConcurrentLinkedQueue<Slot> runProcedureEvents = new ConcurrentLinkedQueue<>();
+	private final ConcurrentLinkedQueue<Slot> runThreadEvents = new ConcurrentLinkedQueue<>();
 
-	public EventDispatcher(Application zeze, String name) {
-		this.zeze = zeze;
+	public EventDispatcher(String name) {
 		this.name = name;
 	}
 
@@ -51,7 +46,7 @@ public class EventDispatcher {
 		return name;
 	}
 
-	private ConcurrentLinkedQueue<HandleClass> getQueue(Mode mode) {
+	private ConcurrentLinkedQueue<Slot> getQueue(Mode mode) {
 		return switch (mode) {
 			case RunEmbed -> runEmbedEvents;
 			case RunProcedure -> runProcedureEvents;
@@ -64,69 +59,38 @@ public class EventDispatcher {
 	 *
 	 * @return 如果需要取消注册，请保存返回值，并调用其cancel。
 	 */
-	public Canceler addHot(Mode mode, Class<? extends EventHandle> handleClass) {
+	public Canceler add(Mode mode, EventHandle handle) {
 		var events = getQueue(mode);
-		var handle = new HandleClass(handleClass.getName());
-		events.offer(handle);
-		return () -> events.remove(handle);
-	}
-
-	/**
-	 * 注册事件处理函数，如果在事件触发过程中执行注册,则等下次再触发
-	 *
-	 * @return 如果需要取消注册，请保存返回值，并调用其cancel。
-	 */
-	public Canceler add(Mode mode, EventHandle handle_) {
-		if (zeze.isHotVerifyEnabled())
-			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
-		var events = getQueue(mode);
-		var handle = new HandleClass(handle_);
-		events.offer(handle);
-		return () -> events.remove(handle);
+		var slot = new Slot(handle);
+		events.offer(slot);
+		return () -> events.remove(slot);
 	}
 
 	// 事件派发。需要触发者在明确的地方显式的调用。
 
 	// 启动新的线程执行。
 	public void triggerThread(Application app, Object sender, EventArgument arg, @Nullable Object oneByOneKey) {
-		var handles = runThreadEvents.toArray(HandleClass[]::new);
+		var slots = runThreadEvents.toArray(Slot[]::new);
 		if (oneByOneKey == null) {
-			for (var handle : handles) {
-				var classNameOrHandle = handle.classNameOrHandle;
-				if (classNameOrHandle instanceof EventHandle) {
-					var actionName = "EventDispatch." + name + ".runAsync." + classNameOrHandle.getClass().getName();
-					TaskSpec.ofProcedure(app.newProcedure(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName)).run();
-				} else {
-					var className = (String)classNameOrHandle;
-					var actionName = "EventDispatch." + name + ".runAsync." + className;
-					TaskSpec.ofProcedure(app.newProcedure(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName)).run();
-				}
+			for (var slot : slots) {
+				var handle = slot.handle;
+				var actionName = "EventDispatch." + name + ".runAsync." + handle.getClass().getName();
+				TaskSpec.ofProcedure(app.newProcedure(() -> handle.invoke(sender, arg), actionName)).run();
 			}
 		} else {
-			for (var handle : handles) {
-				var classNameOrHandle = handle.classNameOrHandle;
-				if (classNameOrHandle instanceof EventHandle) {
-					var actionName = "EventDispatch." + name + ".runAsync." + classNameOrHandle.getClass().getName();
-					TaskSpec.ofProcedure(app.newProcedure(
-							() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName)).executeOneByOne(oneByOneKey);
-				} else {
-					var className = (String)classNameOrHandle;
-					var actionName = "EventDispatch." + name + ".runAsync." + className;
-					TaskSpec.ofProcedure(app.newProcedure(
-							() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName))
-							.executeOneByOne(oneByOneKey);
-				}
+			for (var slot : slots) {
+				var handle = slot.handle;
+				var actionName = "EventDispatch." + name + ".runAsync." + handle.getClass().getName();
+				TaskSpec.ofProcedure(app.newProcedure(
+						() -> handle.invoke(sender, arg), actionName)).executeOneByOne(oneByOneKey);
 			}
 		}
 	}
 
 	// 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
 	public long triggerEmbed(Object sender, EventArgument arg) throws Exception {
-		for (var handle : runEmbedEvents.toArray(HandleClass[]::new)) {
-			var classNameOrHandle = handle.classNameOrHandle;
-			var ret = classNameOrHandle instanceof EventHandle
-					? ((EventHandle)classNameOrHandle).invoke(sender, arg)
-					: zeze.getHotHandle().findHandle(zeze, (String)classNameOrHandle).invoke(sender, arg);
+		for (var slot : runEmbedEvents.toArray(Slot[]::new)) {
+			var ret = slot.handle.invoke(sender, arg);
 			if (ret != 0)
 				return ret;
 		}
@@ -135,16 +99,10 @@ public class EventDispatcher {
 
 	// 在当前线程中，创建新的存储过程并嵌套执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
 	public void triggerProcedure(Application app, Object sender, EventArgument arg) {
-		for (var handle : runProcedureEvents.toArray(HandleClass[]::new)) {
-			var classNameOrHandle = handle.classNameOrHandle;
-			if (classNameOrHandle instanceof EventHandle) {
-				var actionName = "EventDispatcher." + name + ".triggerProcedure." + classNameOrHandle.getClass().getName();
-				TaskSpec.ofProcedure(app.newProcedure(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName)).call();
-			} else {
-				var className = (String)classNameOrHandle;
-				var actionName = "EventDispatcher." + name + ".triggerProcedure." + className;
-				TaskSpec.ofProcedure(app.newProcedure(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName)).call();
-			}
+		for (var slot : runProcedureEvents.toArray(Slot[]::new)) {
+			var handle = slot.handle;
+			var actionName = "EventDispatcher." + name + ".triggerProcedure." + handle.getClass().getName();
+			TaskSpec.ofProcedure(app.newProcedure(() -> handle.invoke(sender, arg), actionName)).call();
 		}
 	}
 }

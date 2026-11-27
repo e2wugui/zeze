@@ -6,7 +6,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
-import Zeze.Hot.HotGuard;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,8 +13,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @Fast
 public class TestDaemonTimerRoundLifecycle {
 	@Test
-	public void initializationFailureStillRenewsRound() throws Exception {
-		runIsolated("guard-failure");
+	public void bodyExceptionStillRenewsChain() throws Exception {
+		runIsolated("body-failure");
 	}
 
 	@Test
@@ -23,13 +22,8 @@ public class TestDaemonTimerRoundLifecycle {
 		runIsolated("timeout-failure");
 	}
 
-	@Test
-	public void stopWaitsForGuardClose() throws Exception {
-		runIsolated("guard-close");
-	}
-
 	private static void runIsolated(String scenario) throws Exception {
-		// Task 的执行器/guard 是进程全局状态；子进程隔离，支持 @Fast 类级并行。
+		// Task 的执行器是进程全局状态；子进程隔离，支持 @Fast 类级并行。
 		var child = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
 				"-DZezeCounter=null", "-Dzeze.test.env=off", "-cp", System.getProperty("java.class.path"),
 				TestDaemonTimerRoundLifecycle.class.getName(), scenario).inheritIO().start();
@@ -46,29 +40,26 @@ public class TestDaemonTimerRoundLifecycle {
 				Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "round-scheduler")));
 		try {
 			switch (args[0]) {
-				case "guard-failure" -> verifyGuardFailure();
+				case "body-failure" -> verifyBodyFailure();
 				case "timeout-failure" -> verifyTimeoutFailure();
-				case "guard-close" -> verifyGuardClose();
 				default -> throw new AssertionError(args[0]);
 			}
 		} finally {
-			Task.hotGuard = () -> HotGuard.None;
 			Task.shutdownNow(5_000);
 		}
 	}
 
-	private static void verifyGuardFailure() throws Exception {
-		var fail = new AtomicBoolean(true);
-		var entered = new CountDownLatch(1);
-		Task.hotGuard = () -> {
-			if (Thread.currentThread().getName().equals("round-worker") && fail.getAndSet(false))
-				throw new IllegalStateException("expected guard initialization failure");
-			return HotGuard.None;
-		};
-		var daemon = new DaemonTimer("round.guard.failure", 10, 100, entered::countDown);
+	private static void verifyBodyFailure() throws Exception {
+		var first = new AtomicBoolean(true);
+		var renewed = new CountDownLatch(1);
+		var daemon = new DaemonTimer("round.body.failure", 10, () -> {
+			if (first.getAndSet(false))
+				throw new IllegalStateException("expected first round body failure");
+			renewed.countDown();
+		});
 		try {
 			daemon.start();
-			assertTrue(entered.await(5, TimeUnit.SECONDS), "failed round must renew the chain");
+			assertTrue(renewed.await(5, TimeUnit.SECONDS), "failed round must settle inFlight and renew the chain");
 		} finally {
 			daemon.stop();
 		}
@@ -82,39 +73,6 @@ public class TestDaemonTimerRoundLifecycle {
 		await(daemon::isShutdown);
 		assertFalse(daemon.isBusy(), "initialization failure must settle inFlight");
 		daemon.stop();
-	}
-
-	private static void verifyGuardClose() throws Exception {
-		var closing = new CountDownLatch(1);
-		var release = new CountDownLatch(1);
-		Task.hotGuard = () -> Thread.currentThread().getName().equals("round-worker")
-				? new HotGuard(new java.util.concurrent.locks.ReentrantLock()) {
-			@Override
-			public void close() {
-				closing.countDown();
-				try {
-					assertTrue(release.await(5, TimeUnit.SECONDS));
-				} catch (InterruptedException e) {
-					throw new AssertionError(e);
-				} finally {
-					super.close();
-				}
-			}
-		} : HotGuard.None;
-		var daemon = new DaemonTimer("round.guard.close", 10, () -> {});
-		var stopper = Executors.newSingleThreadExecutor();
-		try {
-			daemon.start();
-			assertTrue(closing.await(5, TimeUnit.SECONDS));
-			var stopped = stopper.submit(daemon::stop);
-			assertThrows(java.util.concurrent.TimeoutException.class, () -> stopped.get(100, TimeUnit.MILLISECONDS));
-			release.countDown();
-			stopped.get(5, TimeUnit.SECONDS);
-		} finally {
-			release.countDown();
-			daemon.stop();
-			stopper.shutdownNow();
-		}
 	}
 
 	private static void await(BooleanSupplier condition) throws InterruptedException {

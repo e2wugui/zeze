@@ -164,15 +164,6 @@ Arch.Provider熔断定义。即测试任务延迟了5000ms以后就会把服务�
 Dbh2客户端使用的提交模式。Dbh2LocalCommit为true表示使用嵌入到本地进程
 的提交模式，false表示使用进程外独立的提交服务。
 
-* HotWorkingDir = ""
-
-启用了模块热更，配置程序的工作目录。默认是当前目录。
-
-* HotDistributeDir = "distributes"
-
-启用了模块热更，配置发布目录。热更系统会自动从这个目录装载升级新发布的模
-块。
-
 ## DatabaseConf
 ### 必要配置
 下面三个DatabaseConf参数必须配置。

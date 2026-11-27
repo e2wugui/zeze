@@ -17,7 +17,7 @@ public interface BSavedCommitsReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     int getState();
     Zeze.Transaction.Collections.PSet1ReadOnly<String> getOnzsReadOnly();

@@ -315,11 +315,11 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Dbh2RaftAcceptorName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Port", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "BucketCount", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Dbh2RaftAcceptorName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Port", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "BucketCount", "int", "", ""));
         return _v_;
     }
 

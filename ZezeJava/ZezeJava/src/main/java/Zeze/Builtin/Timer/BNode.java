@@ -333,11 +333,11 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "PrevNodeId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "NextNodeId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Timers", "map", "string", "Zeze.Builtin.Timer.BTimer"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "PrevNodeId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "NextNodeId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Timers", "map", "string", "Zeze.Builtin.Timer.BTimer"));
         return _v_;
     }
 }

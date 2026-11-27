@@ -311,11 +311,11 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OnzTid", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Cancel", "bool", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "FuncArgument", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "OnzTid", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Cancel", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "FuncArgument", "binary", "", ""));
         return _v_;
     }
 

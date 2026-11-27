@@ -227,11 +227,13 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Logs.clear();
         if (_i_ == 2) {
             setRemain(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRemain(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -300,10 +302,10 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logs", "list", "", "Zeze.Builtin.LogService.BLog"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Remain", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Logs", "list", "", "Zeze.Builtin.LogService.BLog"));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Remain", "bool", "", ""));
         return _v_;
     }
 
@@ -486,11 +488,13 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Logs.clear();
         if (_i_ == 2) {
             _Remain = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Remain = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
  * 每轮看门狗超时timeoutMs可配（&lt;=0取{@link Task#defaultTimeout}），
  * stop等待预算=timeoutMs+5s（对齐每轮executeCore看门狗）。
  * 延迟策略二选一：常量periodMs，或LongSupplier逐轮续约时求值（每日锚点重对齐/自适应退避/随机抖动）
-	 * 每轮完成信号覆盖热更guard的获取/关闭和看门狗初始化；初始化失败仍收尾并续约。
+ * 每轮完成信号覆盖看门狗初始化与关闭；初始化失败仍收尾并续约。
  */
 public final class DaemonTimer {
 
@@ -169,7 +169,7 @@ public final class DaemonTimer {
 		}
 		try {
 			// 本组件拥有整轮的完成信号；不能把收尾放在 Task 的业务回调里，
-			// 否则 hot guard/看门狗在回调前失败时，inFlight 永远无法完成和续约。
+			// 否则看门狗在回调前失败时，inFlight 永远无法完成和续约。
 			Task.poolOrThrow(false).execute(() -> runBody(f));
 		} catch (Throwable e) { // 派发失败（worker池关闭等）：守护链不得断裂，收尾并续约下轮
 			finishRound(f);
@@ -187,12 +187,12 @@ public final class DaemonTimer {
 			} finally {
 				gate.unlock();
 			}
-			// guard 的获取和关闭均属于本轮；无论在哪个阶段失败，都由外层 finally 收尾。
-			try (var ignoredHot = Task.hotGuard.create(); var ignored = TimeoutDiagnosable.create(timeoutMs)) {
+			// 看门狗的获取和关闭均属于本轮；无论在哪个阶段失败，都由外层 finally 收尾。
+			try (var ignored = TimeoutDiagnosable.create(timeoutMs)) {
 				gate.lock();
 				try {
 					if (shutdown || inFlight != f)
-						return; // 获取 guard 期间 stop/restart，旧轮不得进入业务体。
+						return; // 创建看门狗期间 stop/restart，旧轮不得进入业务体。
 				} finally {
 					gate.unlock();
 				}
@@ -241,7 +241,7 @@ public final class DaemonTimer {
 		}
 		try {
 			long expectedGeneration = generation;
-			// tick 只管理排期并派发，不访问业务/热模块；其生命周期不能被外层 guard 初始化失败截断。
+			// tick 只管理排期并派发，不访问业务；其生命周期不能被看门狗初始化失败截断。
 			pending = Task.getScheduledThreadPool().schedule(() -> fire(expectedGeneration), delay, TimeUnit.MILLISECONDS);
 		} catch (Throwable e) { // 调度池已关（非瞬时故障）：关门让状态诚实，链断记error
 			shutdown = true;

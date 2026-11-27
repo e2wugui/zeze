@@ -3,10 +3,7 @@ package Zeze.Game;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.IntUnaryOperator;
 
 import Zeze.Application;
@@ -17,13 +14,8 @@ import Zeze.Builtin.Game.Bag.BBagKey;
 import Zeze.Builtin.Game.Bag.BItem;
 import Zeze.Builtin.Game.Bag.tbag;
 import Zeze.Collections.BeanFactory;
-import Zeze.Hot.HotBeanFactory;
-import Zeze.Hot.HotManager;
-import Zeze.Hot.HotModule;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
-import Zeze.Util.Action1;
-import Zeze.Util.ConcurrentHashSet;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -34,8 +26,6 @@ public class Bag {
 	// 注册的Bean.ClassName会被持久化保存下来。
 	// Module.Start的时候自动装载注册的ClassName。
 	private static final BeanFactory beanFactory = new BeanFactory();
-	// 追踪当前已向 HotManager 注册的活跃 Bag.Module，供静态 Module.register(Bean) 转发热更模块登记。
-	private static final ConcurrentHashSet<Module> hotRegisteredModules = new ConcurrentHashSet<>();
 
 	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
@@ -320,18 +310,10 @@ public class Bag {
 		bean.getItems().putAll(sortMap); // use AddRange for performance
 	}
 
-	public static class Module extends AbstractBag implements HotBeanFactory {
+	public static class Module extends AbstractBag {
 		public @Nullable ProviderApp providerApp;
 		public final Application zeze;
 		public volatile @Nullable IntUnaryOperator funcItemPileMax;
-
-		private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-		private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
-		// this::方法引用每次求值都产生新实例，而 ConcurrentHashSet 按实例判等：
-		// 固定为实例字段，保证 stopEvents 与 beanFactory watch 的登记幂等、注销真正生效。
-		private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
-		private final Consumer<Class<?>> tryRecordHotModuleRef = this::tryRecordHotModule;
-		private volatile @Nullable HotManager registeredHotManager;
 
 		// 根据物品Id查询物品堆叠数量。不设置这个方法，全部max==1，都不能堆叠。
 
@@ -343,7 +325,6 @@ public class Bag {
 			RegisterZezeTables(zeze);
 			providerApp.builtinModules.put(this.getFullName(), this);
 			this.funcItemPileMax = funcItemPileMax;
-			registerHot();
 		}
 
 		public int getItemPileMax(int itemId) {
@@ -359,7 +340,6 @@ public class Bag {
 		@Override
 		@SuppressWarnings("ConstantConditions")
 		public void UnRegister() {
-			unregisterHot();
 			if (null != providerApp) {
 				UnRegisterProtocols(providerApp.providerService);
 			}
@@ -368,111 +348,10 @@ public class Bag {
 			}
 		}
 
-		@Override
-		public void UnRegisterZezeTables(Application zeze) {
-			unregisterHot();
-			super.UnRegisterZezeTables(zeze);
-		}
-
 		// 用于数据测试，测试不支持协议。
 		public Module(Application zeze) {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
-			registerHot();
-		}
-
-		private void registerHot() {
-			lock();
-			try {
-				var hotManager = zeze.getHotManager();
-				if (hotManager == null || registeredHotManager == hotManager)
-					return;
-				if (registeredHotManager != null)
-					unregisterHotLocked();
-				// 先发布 registeredHotManager 再开放 watch / hotRegisteredModules 入口，
-				// 避免并发观察者提前回调时因读到 null 而漏记 HotModule。
-				registeredHotManager = hotManager;
-				hotManager.addHotBeanFactory(this);
-				beanFactory.registerWatch(tryRecordHotModuleRef);
-				hotRegisteredModules.add(this);
-			} finally {
-				unlock();
-			}
-		}
-
-		private void unregisterHot() {
-			lock();
-			try {
-				unregisterHotLocked();
-			} finally {
-				unlock();
-			}
-		}
-
-		private void unregisterHotLocked() {
-			var hotManager = registeredHotManager;
-			registeredHotManager = null;
-			hotRegisteredModules.remove(this);
-			beanFactory.unregisterWatch(tryRecordHotModuleRef);
-			if (hotManager != null)
-				hotManager.removeHotBeanFactory(this);
-			for (var hotModule : hotModulesHaveDynamic) {
-				if (hotModulesHaveDynamic.remove(hotModule) != null)
-					hotModule.stopEvents.remove(onHotModuleStopRef);
-			}
-			freshStopModuleDynamic.set(false);
-		}
-
-		private static boolean belongsToHotManager(HotModule hotModule, @Nullable HotManager hotManager) {
-			if (hotManager == null)
-				return false;
-			var parent = hotModule.getParent();
-			return !(parent instanceof HotManager owner) || owner == hotManager;
-		}
-
-		private void onHotModuleStop(HotModule hot) {
-			if (hotModulesHaveDynamic.remove(hot) != null)
-				freshStopModuleDynamic.set(true);
-		}
-
-		private void tryRecordHotModule(Class<?> customClass) {
-			var cl = customClass.getClassLoader();
-			if (!HotManager.isHotModule(cl))
-				return;
-			var hotModule = (HotModule)cl;
-			if (!belongsToHotManager(hotModule, registeredHotManager) || hotModulesHaveDynamic.contains(hotModule))
-				return;
-			lock();
-			try {
-				if (!belongsToHotManager(hotModule, registeredHotManager) || hotModulesHaveDynamic.contains(hotModule))
-					return;
-				// 先入 hotModulesHaveDynamic 再挂 stopEvents，保证 stopInternal 回调到达时必能命中集合并置位。
-				hotModulesHaveDynamic.add(hotModule);
-				hotModule.stopEvents.add(onHotModuleStopRef);
-			} finally {
-				unlock();
-			}
-		}
-
-		@Override
-		public void clearTableCache() {
-			_tbag.__ClearTableCacheUnsafe__();
-		}
-
-		@Override
-		public BeanFactory beanFactory() {
-			return beanFactory;
-		}
-
-		@Override
-		public boolean hasFreshStopModuleDynamicOnce() {
-			return freshStopModuleDynamic.getAndSet(false);
-		}
-
-		@Override
-		public void processWithNewClasses(List<Class<?>> newClasses) {
-			for (var cls : newClasses)
-				tryRecordHotModule(cls);
 		}
 
 		public tbag getTable() {
@@ -497,32 +376,18 @@ public class Bag {
 
 		public static void register(Bean bean) {
 			beanFactory.register(bean);
-			var cls = bean.getClass();
-			if (HotManager.isHotModule(cls.getClassLoader())) {
-				for (var module : hotRegisteredModules)
-					module.tryRecordHotModule(cls);
-			}
 		}
 
-		/**
-		 * 启动背包模块：若已装配 {@link HotManager}，则向其注册 {@link HotBeanFactory} 并监听动态道具类加载。
-		 * 幂等，支持 {@link #stop()} 后重新启动；未启用 {@link HotManager} 时零额外开销。
-		 */
 		public void start() {
 			if (null != providerApp)
 				providerApp.builtinModules.put(this.getFullName(), this);
-			registerHot();
 		}
 
 		public void start(Application zeze) {
 			start();
 		}
 
-		/**
-		 * 停止背包模块：对称注销 {@link HotManager}、{@link BeanFactory} 监听及已订阅的 {@link HotModule#stopEvents}。
-		 */
 		public void stop() {
-			unregisterHot();
 		}
 
 		@Override

@@ -291,11 +291,11 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "MaxNetPing", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServerProcessTime", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ServerReleaseTimeout", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "MaxNetPing", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ServerProcessTime", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "ServerReleaseTimeout", "int", "", ""));
         return _v_;
     }
 }

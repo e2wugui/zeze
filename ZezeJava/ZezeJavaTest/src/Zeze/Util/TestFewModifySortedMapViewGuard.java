@@ -51,7 +51,7 @@ public class TestFewModifySortedMapViewGuard {
 		for (var i = 0; i < 10; i++)
 			m.put("k" + i, i);
 
-		// 只读消费面（仓内 HotManager/HttpServer 形态）不受包装影响。
+		// 只读消费面（仓内 HttpServer 等形态）不受包装影响。
 		Assertions.assertEquals(10, m.size());
 		Assertions.assertEquals(5, m.subMap("k2", true, "k6", true).size());
 		Assertions.assertEquals(10, m.keySet().size());

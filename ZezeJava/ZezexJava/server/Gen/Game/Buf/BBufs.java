@@ -225,9 +225,9 @@ public final class BBufs extends Zeze.Transaction.Bean implements BBufsReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Bufs", "map", "int", "Game.Buf.BBuf"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Bufs", "map", "int", "Game.Buf.BBuf"));
         return _v_;
     }
 }

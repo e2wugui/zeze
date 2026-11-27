@@ -136,7 +136,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 下面在发生LruHot变动+并发GetOrAdd时，哪个后执行，就调整到哪个node，不严格调整到真正的LruHot。
 		// 换块竞态（捕获引用在登记期间被timerNewHot换下）只造成LRU序统计偏差、不影响正确性；
 		// 曾尝试"重读当前块+不一致重登记"的自校正，会让新记录更快聚进当前热块，
-		// 逐出敏感场景（受限容量cleanNow/热更搬运）在高负载测试下时序失稳，收益不抵风险，不修。
+		// 逐出敏感场景（受限容量cleanNow）在高负载测试下时序失稳，收益不抵风险，不修。
 		if (result.getLruNode() != lruHot)
 			adjustLru(key, result, lruHot);
 		return result;

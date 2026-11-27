@@ -502,14 +502,14 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ModuleId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServerId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SourceProvider", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "MethodFullName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SessionId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Hashes", "map", "int", "Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ModuleId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ServerId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "SourceProvider", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "MethodFullName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "SessionId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "Hashes", "map", "int", "Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash"));
         return _v_;
     }
 

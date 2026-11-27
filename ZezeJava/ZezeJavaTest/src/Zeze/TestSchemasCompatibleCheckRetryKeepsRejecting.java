@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 兼容检查的去重状态只能属于一次比较：失败的检查之后，对同一 current
- 重新检查（调用方重试、热更失败重试、CAS 重读拿到不同 previous）必须重新执行判定。
+ * 重新检查（调用方重试、CAS 重读拿到不同 previous）必须重新执行判定。
  * 修复前 Bean 实例上的检查标记跨比较保留，失败也置位，第二次检查直接按
  * "已检查通过"放行，string→long 等禁止变更被静默接受。
  */

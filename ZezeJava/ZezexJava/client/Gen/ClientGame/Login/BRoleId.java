@@ -199,9 +199,9 @@ public final class BRoleId extends Zeze.Transaction.Bean implements BRoleIdReadO
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Id", "long", "", ""));
         return _v_;
     }
 }

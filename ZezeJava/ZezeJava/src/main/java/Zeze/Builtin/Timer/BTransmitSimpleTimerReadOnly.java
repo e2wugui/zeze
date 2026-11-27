@@ -16,7 +16,7 @@ public interface BTransmitSimpleTimerReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     String getTimerId();
     Zeze.Builtin.Timer.BSimpleTimerReadOnly getSimpleTimerReadOnly();
@@ -24,5 +24,4 @@ public interface BTransmitSimpleTimerReadOnly {
     String getCustomClass();
     Zeze.Net.Binary getCustomBean();
     long getLoginVersion();
-    boolean isHot();
 }

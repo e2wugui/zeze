@@ -197,9 +197,9 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "FullEncodedProtocol", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "FullEncodedProtocol", "binary", "", ""));
         return _v_;
     }
 }

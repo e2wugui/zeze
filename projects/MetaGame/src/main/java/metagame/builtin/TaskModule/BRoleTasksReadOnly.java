@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package metagame.builtin.TaskModule;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 public interface BRoleTasksReadOnly {
     long typeId();
     int preAllocSize();
@@ -11,9 +14,9 @@ public interface BRoleTasksReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PMap2ReadOnly<Integer, metagame.builtin.TaskModule.BTask, metagame.builtin.TaskModule.BTaskReadOnly> getTasksReadOnly();
 }

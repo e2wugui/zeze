@@ -3,20 +3,29 @@ package metagame.builtin.TaskModule;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskConfigReadOnly {
     public static final long TYPEID = -4064201956807660645L;
 
     private int _TaskId;
     private final Zeze.Transaction.Collections.PSet1<Integer> _PreposeTasks; // 前置任务
+    private static final Zeze.Transaction.Collections.Set1Meta<Integer> meta1_PreposeTasks
+            = Zeze.Transaction.Collections.Set1Meta.get(Integer.class);
+
     private final Zeze.Transaction.Collections.PSet1<Integer> _FollowTasks; // 后续任务
+    private static final Zeze.Transaction.Collections.Set1Meta<Integer> meta1_FollowTasks
+            = Zeze.Transaction.Collections.Set1Meta.get(Integer.class);
+
     private int _AcceptNpc; // 接受任务的NpcId
     private int _FinishNpc; // 完成任务的NpcId
     private final Zeze.Transaction.DynamicBean _ExtendData;
+    private static final Zeze.Transaction.DynamicField dynamicField_ExtendData
+            = Zeze.Transaction.DynamicField.declare(BTaskConfig.class, TYPEID, 6, metagame.Task.TaskModule::getSpecialTypeIdFromBean, metagame.Task.TaskModule::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_ExtendData() {
-        return new Zeze.Transaction.DynamicBean(6, metagame.Task.TaskModule::getSpecialTypeIdFromBean, metagame.Task.TaskModule::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_ExtendData);
     }
 
     public static long getSpecialTypeIdFromBean_6(Zeze.Transaction.Bean _b_) {
@@ -28,6 +37,9 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
     }
 
     private final Zeze.Transaction.Collections.CollOne<metagame.builtin.TaskModule.BTask> _TaskConditions; // 任务条件
+    private static final Zeze.Transaction.Collections.LogOneMeta<metagame.builtin.TaskModule.BTask> meta1_TaskConditions
+            = Zeze.Transaction.Collections.LogOneMeta.get(metagame.builtin.TaskModule.BTask.class);
+
     private int _PreposeRequired; // 需要的前置任务完成数量，0表示全部。
     private boolean _Repeatable; // 任务是否可重复完成
 
@@ -192,26 +204,26 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
 
     @SuppressWarnings("deprecation")
     public BTaskConfig() {
-        _PreposeTasks = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _PreposeTasks = new Zeze.Transaction.Collections.PSet1<>(meta1_PreposeTasks);
         _PreposeTasks.variableId(2);
-        _FollowTasks = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _FollowTasks = new Zeze.Transaction.Collections.PSet1<>(meta1_FollowTasks);
         _FollowTasks.variableId(3);
         _ExtendData = newDynamicBean_ExtendData();
-        _TaskConditions = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.TaskModule.BTask(), metagame.builtin.TaskModule.BTask.class);
+        _TaskConditions = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.TaskModule.BTask(), meta1_TaskConditions);
         _TaskConditions.variableId(7);
     }
 
     @SuppressWarnings("deprecation")
     public BTaskConfig(int _TaskId_, int _AcceptNpc_, int _FinishNpc_, int _PreposeRequired_, boolean _Repeatable_) {
         _TaskId = _TaskId_;
-        _PreposeTasks = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _PreposeTasks = new Zeze.Transaction.Collections.PSet1<>(meta1_PreposeTasks);
         _PreposeTasks.variableId(2);
-        _FollowTasks = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _FollowTasks = new Zeze.Transaction.Collections.PSet1<>(meta1_FollowTasks);
         _FollowTasks.variableId(3);
         _AcceptNpc = _AcceptNpc_;
         _FinishNpc = _FinishNpc_;
         _ExtendData = newDynamicBean_ExtendData();
-        _TaskConditions = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.TaskModule.BTask(), metagame.builtin.TaskModule.BTask.class);
+        _TaskConditions = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.TaskModule.BTask(), meta1_TaskConditions);
         _TaskConditions.variableId(7);
         _PreposeRequired = _PreposeRequired_;
         _Repeatable = _Repeatable_;
@@ -361,9 +373,9 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -469,7 +481,8 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         if (_i_ == 1) {
             setTaskId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskId(0);
         if (_i_ == 2) {
             var _x_ = _PreposeTasks;
             _x_.clear();
@@ -479,7 +492,8 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _PreposeTasks.clear();
         if (_i_ == 3) {
             var _x_ = _FollowTasks;
             _x_.clear();
@@ -489,37 +503,44 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FollowTasks.clear();
         if (_i_ == 4) {
             setAcceptNpc(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAcceptNpc(0);
         if (_i_ == 5) {
             setFinishNpc(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFinishNpc(0);
         if (_i_ == 6) {
             _o_.ReadDynamic(_ExtendData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ExtendData.reset();
         if (_i_ == 7) {
             _o_.ReadBean(_TaskConditions, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            ByteBuffer.decodeEmptyBean(getTaskConditions());
         if (_i_ == 8) {
             setPreposeRequired(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPreposeRequired(0);
         if (_i_ == 9) {
             setRepeatable(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRepeatable(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTaskConfig))
@@ -641,17 +662,17 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TaskId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "PreposeTasks", "set", "", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "FollowTasks", "set", "", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "AcceptNpc", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "FinishNpc", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ExtendData", "dynamic", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "TaskConditions", "metagame.builtin.TaskModule.BTask", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "PreposeRequired", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "Repeatable", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "TaskId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "PreposeTasks", "set", "", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "FollowTasks", "set", "", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "AcceptNpc", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "FinishNpc", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "ExtendData", "dynamic", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "TaskConditions", "metagame.builtin.TaskModule.BTask", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "PreposeRequired", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(9, "Repeatable", "bool", "", ""));
         return _v_;
     }
 
@@ -774,7 +795,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _TaskId_, java.util.HashSet<Integer> _PreposeTasks_, java.util.HashSet<Integer> _FollowTasks_, int _AcceptNpc_, int _FinishNpc_, DynamicData_ExtendData _ExtendData_, metagame.builtin.TaskModule.BTask.Data _TaskConditions_, int _PreposeRequired_, boolean _Repeatable_) {
+    public Data(int _TaskId_, java.util.@Nullable HashSet<Integer> _PreposeTasks_, java.util.@Nullable HashSet<Integer> _FollowTasks_, int _AcceptNpc_, int _FinishNpc_, @Nullable DynamicData_ExtendData _ExtendData_, metagame.builtin.TaskModule.BTask.@Nullable Data _TaskConditions_, int _PreposeRequired_, boolean _Repeatable_) {
         _TaskId = _TaskId_;
         if (_PreposeTasks_ == null)
             _PreposeTasks_ = new java.util.HashSet<>();
@@ -1027,7 +1048,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _TaskId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TaskId = 0;
         if (_i_ == 2) {
             var _x_ = _PreposeTasks;
             _x_.clear();
@@ -1037,7 +1059,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _PreposeTasks.clear();
         if (_i_ == 3) {
             var _x_ = _FollowTasks;
             _x_.clear();
@@ -1047,31 +1070,38 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FollowTasks.clear();
         if (_i_ == 4) {
             _AcceptNpc = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _AcceptNpc = 0;
         if (_i_ == 5) {
             _FinishNpc = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FinishNpc = 0;
         if (_i_ == 6) {
             _o_.ReadDynamic(_ExtendData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ExtendData.reset();
         if (_i_ == 7) {
             _o_.ReadBean(_TaskConditions, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            ByteBuffer.decodeEmptyBean(_TaskConditions);
         if (_i_ == 8) {
             _PreposeRequired = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _PreposeRequired = 0;
         if (_i_ == 9) {
             _Repeatable = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Repeatable = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -1079,7 +1109,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTaskConfig.Data))

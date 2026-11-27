@@ -3,9 +3,10 @@ package metagame.builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // MoveMmo
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly {
     public static final long TYPEID = 4435091272522095506L;
 
@@ -162,7 +163,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BMove(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _State_, int _Control_, long _Timestamp_) {
+    public BMove(Zeze.Serialize.@Nullable Vector3 _Position_, Zeze.Serialize.@Nullable Vector3 _Direct_, int _State_, int _Control_, long _Timestamp_) {
         if (_Position_ == null)
             _Position_ = Zeze.Serialize.Vector3.ZERO;
         _Position = _Position_;
@@ -267,9 +268,9 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -330,29 +331,34 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         if (_i_ == 1) {
             setPosition(_o_.ReadVector3(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPosition(Zeze.Serialize.Vector3.ZERO);
         if (_i_ == 2) {
             setDirect(_o_.ReadVector3(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setDirect(Zeze.Serialize.Vector3.ZERO);
         if (_i_ == 3) {
             setState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setState(0);
         if (_i_ == 4) {
             setControl(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setControl(0);
         if (_i_ == 5) {
             setTimestamp(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTimestamp(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BMove))
@@ -430,13 +436,13 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Position", "vector3", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Direct", "vector3", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "State", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Control", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Timestamp", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Position", "vector3", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Direct", "vector3", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "State", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Control", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "Timestamp", "long", "", ""));
         return _v_;
     }
 
@@ -519,7 +525,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Serialize.Vector3 _Position_, Zeze.Serialize.Vector3 _Direct_, int _State_, int _Control_, long _Timestamp_) {
+    public Data(Zeze.Serialize.@Nullable Vector3 _Position_, Zeze.Serialize.@Nullable Vector3 _Direct_, int _State_, int _Control_, long _Timestamp_) {
         if (_Position_ == null)
             _Position_ = Zeze.Serialize.Vector3.ZERO;
         _Position = _Position_;
@@ -668,23 +674,28 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _Position = _o_.ReadVector3(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Position = Zeze.Serialize.Vector3.ZERO;
         if (_i_ == 2) {
             _Direct = _o_.ReadVector3(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Direct = Zeze.Serialize.Vector3.ZERO;
         if (_i_ == 3) {
             _State = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _State = 0;
         if (_i_ == 4) {
             _Control = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Control = 0;
         if (_i_ == 5) {
             _Timestamp = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Timestamp = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -692,7 +703,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BMove.Data))

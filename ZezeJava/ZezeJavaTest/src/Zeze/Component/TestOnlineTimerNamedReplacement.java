@@ -35,25 +35,15 @@ public class TestOnlineTimerNamedReplacement {
 
 	@Test
 	public void recreatedOnlineTimerDiscardsQueuedSimpleFire() throws Exception {
-		assertReplacementFires(false, false);
-	}
-
-	@Test
-	public void recreatedOnlineTimerDiscardsQueuedHotSimpleFire() throws Exception {
-		assertReplacementFires(false, true);
+		assertReplacementFires(false);
 	}
 
 	@Test
 	public void recreatedOnlineTimerDiscardsQueuedCronFire() throws Exception {
-		assertReplacementFires(true, false);
+		assertReplacementFires(true);
 	}
 
-	@Test
-	public void recreatedOnlineTimerDiscardsQueuedHotCronFire() throws Exception {
-		assertReplacementFires(true, true);
-	}
-
-	private static void assertReplacementFires(boolean cron, boolean hot) throws Exception {
+	private static void assertReplacementFires(boolean cron) throws Exception {
 		OldCalls.set(0);
 		replacementFired = new CountDownLatch(1);
 		try (var env = new TimerTestEnv("TestOnlineTimerNamedReplacement", true);
@@ -72,15 +62,15 @@ public class TestOnlineTimerNamedReplacement {
 					? TimerSpec.ofCron("* * * * * ?").times(1).oneByOneKey(queue.key)
 					: TimerSpec.ofDelay(0).times(1).oneByOneKey(queue.key);
 			env.transaction(() -> {
-				Assertions.assertTrue(schedule(roleTimer, roleId, timerId, original, OldHandle.class, hot));
+				Assertions.assertTrue(roleTimer.scheduleOnlineNamed(roleId, timerId, original, OldHandle.class, null));
 				return 0L;
 			});
 			TimerTestEnv.awaitDispatch(env.timer.timerFutures.get(timerId));
 
 			env.transaction(() -> {
 				Assertions.assertTrue(roleTimer.cancelOnline(timerId, roleId));
-				Assertions.assertTrue(schedule(roleTimer, roleId, timerId,
-						TimerSpec.ofDelay(2_000).times(1).oneByOneKey(queue.key), ReplacementHandle.class, hot));
+				Assertions.assertTrue(roleTimer.scheduleOnlineNamed(roleId, timerId,
+						TimerSpec.ofDelay(2_000).times(1).oneByOneKey(queue.key), ReplacementHandle.class, null));
 				return 0L;
 			});
 			queue.drain();
@@ -89,11 +79,5 @@ public class TestOnlineTimerNamedReplacement {
 			Assertions.assertTrue(requireNonNull(replacementFired).await(5, TimeUnit.SECONDS),
 					"recreated online timer must execute its own handle");
 		}
-	}
-
-	private static boolean schedule(TimerRole timer, long roleId, String timerId, TimerSpec spec,
-			Class<? extends TimerHandle> handle, boolean hot) {
-		return hot ? timer.scheduleOnlineNamedHot(roleId, timerId, spec, handle, null)
-				: timer.scheduleOnlineNamed(roleId, timerId, spec, handle, null);
 	}
 }

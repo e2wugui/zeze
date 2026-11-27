@@ -80,9 +80,7 @@ public abstract class Database extends ReentrantLock {
 	}
 
 	private final ConcurrentHashMap<String, Zeze.Transaction.Table> tables = new ConcurrentHashMap<>();
-	// CopyOnWriteArrayList：注册（启动open/动态表openDynamicTable）与遍历之外，
-	// 热更路径replaceStorage可在运行期执行。此前裸ArrayList依赖"全部注册先于任何
-	// 遍历"的隐式时序约定；COW让遍历免锁快照消除该约定（遍历多写少，复制开销可忽略）。
+	// CopyOnWriteArrayList：启动 open 与运行期动态表 openDynamicTable 可并发注册，遍历免锁快照。
 	private final CopyOnWriteArrayList<Storage<?, ?>> storages = new CopyOnWriteArrayList<>();
 	private final DatabaseConf conf;
 	private final String databaseUrl;
@@ -100,24 +98,6 @@ public abstract class Database extends ReentrantLock {
 			storages.add(storage);
 	}
 
-	void replaceStorage(@Nullable Storage<?, ?> exist, @Nullable Storage<?, ?> replace) {
-		if (replace == null) {
-			for (var i = 0; i < storages.size(); ++i) {
-				if (storages.get(i) == exist) {
-					storages.remove(i);
-					break;
-				}
-			}
-		} else {
-			for (var i = 0; i < storages.size(); ++i) {
-				if (storages.get(i) == exist) {
-					storages.set(i, replace);
-					break;
-				}
-			}
-		}
-	}
-
 	public @Nullable Application getZeze() {
 		return zeze;
 	}
@@ -128,10 +108,6 @@ public abstract class Database extends ReentrantLock {
 
 	public final Zeze.Transaction.@Nullable Table getTable(String name) {
 		return tables.get(name);
-	}
-
-	public final void replaceTable(Zeze.Transaction.Table table) {
-		tables.put(table.getName(), table); // always put.
 	}
 
 	public final void addTable(Zeze.Transaction.Table table) {

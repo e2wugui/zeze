@@ -92,25 +92,6 @@ providerService.setDisableChoiceFromLinks(true);
 
 - **Redirect 推荐按"不可靠服务"来使用**——即调用者要能容忍失败、做好降级或重试。不要假设 Redirect 一定成功。
 
-## ☐ 热更新
-
-热更新允许你**不停服地更新业务逻辑**，它基于 Java Agent 的类重定义和一个自定义 ClassLoader。
-
-核心组件：
-
-- **ClassReloader**：Java Agent 入口。
-- **HotModule**：每个热更模块对应一个独立的 ClassLoader 实例。
-- **HotService**：生命周期接口，提供 `start` / `stop` / `upgrade`。
-- 此外还有 `HotManager`、`HotAgent`、`HotDistribute`，配合 `HotWorkingDir`、`HotDistributeDir` 等目录配置。
-
-使用注意：
-
-- **接口不能修改**：接口由父 ClassLoader 加载，不会被热更替换，所以接口签名一旦定下来就不要动。
-- **`upgrade` 方法要处理新旧数据兼容**：热更时可能存在旧版本留下的数据结构，需要做兼容转换。
-- **不建议频繁热更**：每次热更会产生新的 ClassLoader 实例，频繁热更可能导致 Metaspace 泄漏。
-
-热更新适合作为紧急修复手段，常规迭代仍建议走正常的滚动发布。详见 [advanced-hot-reload](../reference/advanced-hot-reload.md)。
-
 ## ☐ 启动与停止顺序
 
 多进程协同部署时，启停顺序很重要。
@@ -136,7 +117,6 @@ providerService.setDisableChoiceFromLinks(true);
 
 - 配置项全表：[configuration](../reference/configuration.md)
 - Provider 与 Linkd 架构：[arch-provider-linkd](../reference/arch-provider-linkd.md)
-- 热更新机制：[advanced-hot-reload](../reference/advanced-hot-reload.md)
 - 性能调优：[advanced-performance](../reference/advanced-performance.md)
 
 或者回到 [文档首页](../index.md) 看看还有什么感兴趣的。

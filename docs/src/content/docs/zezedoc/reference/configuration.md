@@ -37,8 +37,6 @@ order: 8
 | `OfflineTimerLimit` | `200` | |
 | `ProviderThreshold` | `2000` | |
 | `ProviderOverload` | `4000` | |
-| `HotWorkingDir` | `""`（空串，即当前目录） | 热更新工作目录 |
-| `HotDistributeDir` | `distributes` | 热更新分发目录 |
 | `DeadLockBreakerPeriod` | `60000` | |
 | `ProcedureLockWatcherMin` | `50` | |
 | `AppVersion` | — | 应用版本（表名后缀 `@AppMainVersion` 用到） |

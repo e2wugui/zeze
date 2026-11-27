@@ -474,13 +474,13 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Root", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Managers", "map", "string", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "NextDepartmentId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Children", "map", "string", "long"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Data", "dynamic", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Root", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Managers", "map", "string", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "NextDepartmentId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Children", "map", "string", "long"));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "Data", "dynamic", "", ""));
         return _v_;
     }
 }

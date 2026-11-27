@@ -70,4 +70,4 @@ public class MyApp extends AppBase {
 
 ## 与其他模块的关系
 
-Game 模块运行在 **ProviderApp** 之上，依赖 `Zeze.Application` 管理事务和数据表。Provider 通过 **Linkd** 接收客户端请求，通过 **ProviderDirectService** 进行服务器间直连通信。所有 Game 模块的数据操作都在 Zeze 事务内执行，自动获得乐观锁并发控制。模块支持热更新，详见 [热更新](../../advanced/hot-reload/)。
+Game 模块运行在 **ProviderApp** 之上，依赖 `Zeze.Application` 管理事务和数据表。Provider 通过 **Linkd** 接收客户端请求，通过 **ProviderDirectService** 进行服务器间直连通信。所有 Game 模块的数据操作都在 Zeze 事务内执行，自动获得乐观锁并发控制。

@@ -89,14 +89,6 @@ public class TestAddTableAtomicity {
 		}
 
 		@Override
-		public void open(Table exist, Application a) {
-		}
-
-		@Override
-		public void disable() {
-		}
-
-		@Override
 		@SuppressWarnings("DataFlowIssue") // 此 fake 只测表注册原子性，不访问本地 Rocks 缓存表。
 		public DatabaseRocksDb.Table getLocalRocksCacheTable() {
 			return null;
@@ -105,10 +97,6 @@ public class TestAddTableAtomicity {
 		@Override
 		public long walkMemoryAny(TableWalkHandle<Object, Bean> handle) {
 			return 0;
-		}
-
-		@Override
-		public void __direct_put_cache__(Object key, Bean value, int state) {
 		}
 
 		@Override

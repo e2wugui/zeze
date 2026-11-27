@@ -404,7 +404,7 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {{");
+                sw.WriteLine($"{prefix}public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {{");
                 sw.WriteLine($"{prefix}    var _v_ = super.variables();");
                 foreach (var v in bean.VariablesIdOrder)
                 {
@@ -447,7 +447,7 @@ namespace Zeze.Gen.java
                         // 该类 bean 的集合日志 typeId 永不注册，回放解码抛 unknown log typeId。
                         value = string.Join(",", dynamic.RealBeans.Values.Select(b => b.FullName));
                     }
-                    sw.WriteLine($"{prefix}    _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
+                    sw.WriteLine($"{prefix}    _v_.add(new Zeze.Transaction.VariableMeta({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
                 }
                 sw.WriteLine($"{prefix}    return _v_;");
                 sw.WriteLine($"{prefix}}}");

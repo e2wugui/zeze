@@ -38,7 +38,7 @@ public abstract class AbstractModule implements Zeze.IModule {
         // register protocol factory and handles
         // register table
         if (App.Zeze != null) {
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tskills.getName())).getDatabaseName(), _tskills);
+            App.Zeze.addTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tskills.getName())).getDatabaseName(), _tskills);
         }
         // register servlet
     }
@@ -47,6 +47,7 @@ public abstract class AbstractModule implements Zeze.IModule {
     public void UnRegister() {
         // unregister protocol factory and handles
         // unregister table
+        App.Zeze.removeTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tskills.getName())).getDatabaseName(), _tskills);
         // unregister servlet
     }
 }

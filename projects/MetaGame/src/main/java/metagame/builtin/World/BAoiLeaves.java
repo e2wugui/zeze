@@ -3,13 +3,16 @@ package metagame.builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
 // 命令 eAoiLeave 的参数。
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeavesReadOnly {
     public static final long TYPEID = -2399653502732429866L;
 
     private final Zeze.Transaction.Collections.PList1<Long> _Keys;
+    private static final Zeze.Transaction.Collections.List1Meta<Long> meta1_Keys
+            = Zeze.Transaction.Collections.List1Meta.get(Long.class);
 
     public Zeze.Transaction.Collections.PList1<Long> getKeys() {
         return _Keys;
@@ -22,7 +25,7 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
 
     @SuppressWarnings("deprecation")
     public BAoiLeaves() {
-        _Keys = new Zeze.Transaction.Collections.PList1<>(Long.class);
+        _Keys = new Zeze.Transaction.Collections.PList1<>(meta1_Keys);
         _Keys.variableId(1);
     }
 
@@ -118,9 +121,9 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -166,13 +169,14 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Keys.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BAoiLeaves))
@@ -230,9 +234,9 @@ public final class BAoiLeaves extends Zeze.Transaction.Bean implements BAoiLeave
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Keys", "list", "", "long"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Keys", "list", "", "long"));
         return _v_;
     }
 
@@ -259,7 +263,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Long> _Keys_) {
+    public Data(java.util.@Nullable ArrayList<Long> _Keys_) {
         if (_Keys_ == null)
             _Keys_ = new java.util.ArrayList<>();
         _Keys = _Keys_;
@@ -388,7 +392,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Keys.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -396,7 +401,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BAoiLeaves.Data))

@@ -109,18 +109,18 @@ public class App extends Zeze.AppBase {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public Demo.Server Server;
-    public Demo.ServerDirect ServerDirect;
+    public Demo.@org.jspecify.annotations.Nullable Server Server;
+    public Demo.@org.jspecify.annotations.Nullable ServerDirect ServerDirect;
 
-    public Demo.Login.ModuleLogin Demo_Login;
-    public Demo.Fight.ModuleFight Demo_Fight;
-    public Demo.MyWorld.ModuleMyWorld Demo_MyWorld;
+    public Demo.Login.@org.jspecify.annotations.Nullable ModuleLogin Demo_Login;
+    public Demo.Fight.@org.jspecify.annotations.Nullable ModuleFight Demo_Fight;
+    public Demo.MyWorld.@org.jspecify.annotations.Nullable ModuleMyWorld Demo_MyWorld;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -128,7 +128,7 @@ public class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -144,25 +144,27 @@ public class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            Server = new Demo.Server(Zeze);
-            ServerDirect = new Demo.ServerDirect(Zeze);
+            Server = new Demo.Server(getZeze());
+            ServerDirect = new Demo.ServerDirect(getZeze());
         } finally {
             unlock();
         }
+    }
+
+    public static Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            Demo.Login.ModuleLogin.class,
+            Demo.Fight.ModuleFight.class,
+            Demo.MyWorld.ModuleMyWorld.class,
+        };
     }
 
     @Override
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.initialize(this);
-            var _modules_ = createRedirectModules(new Class[] {
-                Demo.Login.ModuleLogin.class,
-                Demo.Fight.ModuleFight.class,
-                Demo.MyWorld.ModuleMyWorld.class,
-            });
-            if (_modules_ == null)
-                return;
+            getZeze().initialize(this);
+            var _modules_ = createRedirectModules(redirectModuleClasses());
 
             Demo_Login = (Demo.Login.ModuleLogin)_modules_[0];
             Demo_Login.Initialize(this);
@@ -179,7 +181,7 @@ public class App extends Zeze.AppBase {
             if (modules.put(Demo_MyWorld.getFullName(), Demo_MyWorld) != null)
                 throw new IllegalStateException("duplicate module name: Demo_MyWorld");
 
-            Zeze.setSchemas(new Demo.Schemas());
+            getZeze().setSchemas(new Demo.Schemas());
         } finally {
             unlock();
         }
@@ -219,9 +221,9 @@ public class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            Demo_Login.Start(this);
-            Demo_Fight.Start(this);
-            Demo_MyWorld.Start(this);
+            java.util.Objects.requireNonNull(Demo_Login).Start(this);
+            java.util.Objects.requireNonNull(Demo_Fight).Start(this);
+            java.util.Objects.requireNonNull(Demo_MyWorld).Start(this);
         } finally {
             unlock();
         }
@@ -231,9 +233,9 @@ public class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            Demo_Login.StartLast();
-            Demo_Fight.StartLast();
-            Demo_MyWorld.StartLast();
+            java.util.Objects.requireNonNull(Demo_Login).StartLast();
+            java.util.Objects.requireNonNull(Demo_Fight).StartLast();
+            java.util.Objects.requireNonNull(Demo_MyWorld).StartLast();
         } finally {
             unlock();
         }
@@ -274,8 +276,8 @@ public class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            Server.start();
-            ServerDirect.start();
+            java.util.Objects.requireNonNull(Server).start();
+            java.util.Objects.requireNonNull(ServerDirect).start();
         } finally {
             unlock();
         }

@@ -521,16 +521,16 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Item0", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Item1", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Item2", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Item3", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Item4", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Item5", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Item6", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "Item7", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Item0", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Item1", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Item2", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Item3", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "Item4", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "Item5", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "Item6", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "Item7", "long", "", ""));
         return _v_;
     }
 }

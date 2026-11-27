@@ -374,12 +374,12 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "linksid", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "code", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "desc", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "control", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "linksid", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "code", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "desc", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "control", "int", "", ""));
         return _v_;
     }
 

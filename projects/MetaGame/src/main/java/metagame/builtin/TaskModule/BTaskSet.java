@@ -3,12 +3,15 @@ package metagame.builtin.TaskModule;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BTaskSet extends Zeze.Transaction.Bean implements BTaskSetReadOnly {
     public static final long TYPEID = -6036686140257775455L;
 
     private final Zeze.Transaction.Collections.PSet1<Integer> _TaskIds;
+    private static final Zeze.Transaction.Collections.Set1Meta<Integer> meta1_TaskIds
+            = Zeze.Transaction.Collections.Set1Meta.get(Integer.class);
 
     public Zeze.Transaction.Collections.PSet1<Integer> getTaskIds() {
         return _TaskIds;
@@ -21,7 +24,7 @@ public final class BTaskSet extends Zeze.Transaction.Bean implements BTaskSetRea
 
     @SuppressWarnings("deprecation")
     public BTaskSet() {
-        _TaskIds = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _TaskIds = new Zeze.Transaction.Collections.PSet1<>(meta1_TaskIds);
         _TaskIds.variableId(1);
     }
 
@@ -117,9 +120,9 @@ public final class BTaskSet extends Zeze.Transaction.Bean implements BTaskSetRea
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -165,13 +168,14 @@ public final class BTaskSet extends Zeze.Transaction.Bean implements BTaskSetRea
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TaskIds.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTaskSet))
@@ -229,9 +233,9 @@ public final class BTaskSet extends Zeze.Transaction.Bean implements BTaskSetRea
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TaskIds", "set", "", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "TaskIds", "set", "", "int"));
         return _v_;
     }
 
@@ -257,7 +261,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.HashSet<Integer> _TaskIds_) {
+    public Data(java.util.@Nullable HashSet<Integer> _TaskIds_) {
         if (_TaskIds_ == null)
             _TaskIds_ = new java.util.HashSet<>();
         _TaskIds = _TaskIds_;
@@ -385,7 +389,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TaskIds.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -393,7 +398,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTaskSet.Data))

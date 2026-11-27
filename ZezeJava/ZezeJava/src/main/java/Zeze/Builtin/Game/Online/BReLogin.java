@@ -296,11 +296,11 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RoleId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyConfirmIndex", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OnlineSetName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "RoleId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ReliableNotifyConfirmIndex", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "OnlineSetName", "string", "", ""));
         return _v_;
     }
 }

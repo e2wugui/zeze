@@ -377,13 +377,13 @@ public final class BEnterWorldNow extends Zeze.Transaction.Bean implements BEnte
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "MapInstanceId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "x", "float", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "y", "float", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "z", "float", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ResouceId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "MapInstanceId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "x", "float", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "y", "float", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "z", "float", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "ResouceId", "int", "", ""));
         return _v_;
     }
 }

@@ -331,11 +331,11 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LockName", "Zeze.Builtin.Threading.BLockName", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "OperateType", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimeoutMs", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "LockName", "Zeze.Builtin.Threading.BLockName", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "OperateType", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "TimeoutMs", "int", "", ""));
         return _v_;
     }
 

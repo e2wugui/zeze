@@ -3,15 +3,18 @@ package metagame.builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BObject extends Zeze.Transaction.Bean implements BObjectReadOnly {
     public static final long TYPEID = -37733307457054924L;
 
     private final Zeze.Transaction.DynamicBean _Data;
+    private static final Zeze.Transaction.DynamicField dynamicField_Data
+            = Zeze.Transaction.DynamicField.declare(BObject.class, TYPEID, 1, metagame.World.World::getSpecialTypeIdFromBean, metagame.World.World::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Data() {
-        return new Zeze.Transaction.DynamicBean(1, metagame.World.World::getSpecialTypeIdFromBean, metagame.World.World::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(dynamicField_Data);
     }
 
     public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean _b_) {
@@ -23,6 +26,9 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     private final Zeze.Transaction.Collections.CollOne<metagame.builtin.World.BMove> _Moving;
+    private static final Zeze.Transaction.Collections.LogOneMeta<metagame.builtin.World.BMove> meta1_Moving
+            = Zeze.Transaction.Collections.LogOneMeta.get(metagame.builtin.World.BMove.class);
+
     private String _PlayerId;
     private String _LinkName;
     private long _LinkSid;
@@ -177,16 +183,16 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     @SuppressWarnings("deprecation")
     public BObject() {
         _Data = newDynamicBean_Data();
-        _Moving = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.World.BMove(), metagame.builtin.World.BMove.class);
+        _Moving = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.World.BMove(), meta1_Moving);
         _Moving.variableId(2);
         _PlayerId = "";
         _LinkName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BObject(String _PlayerId_, String _LinkName_, long _LinkSid_, int _Type_, int _ConfigId_) {
+    public BObject(@Nullable String _PlayerId_, @Nullable String _LinkName_, long _LinkSid_, int _Type_, int _ConfigId_) {
         _Data = newDynamicBean_Data();
-        _Moving = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.World.BMove(), metagame.builtin.World.BMove.class);
+        _Moving = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.World.BMove(), meta1_Moving);
         _Moving.variableId(2);
         if (_PlayerId_ == null)
             _PlayerId_ = "";
@@ -306,9 +312,9 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -386,37 +392,44 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         if (_i_ == 1) {
             _o_.ReadDynamic(_Data, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Data.reset();
         if (_i_ == 2) {
             _o_.ReadBean(_Moving, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            ByteBuffer.decodeEmptyBean(getMoving());
         if (_i_ == 3) {
             setPlayerId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPlayerId("");
         if (_i_ == 4) {
             setLinkName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLinkName("");
         if (_i_ == 5) {
             setLinkSid(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setLinkSid(0);
         if (_i_ == 6) {
             setType(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setType(0);
         if (_i_ == 7) {
             setConfigId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setConfigId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BObject))
@@ -518,15 +531,15 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Data", "dynamic", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Moving", "metagame.builtin.World.BMove", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "PlayerId", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LinkName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "LinkSid", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Type", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "ConfigId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Data", "dynamic", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Moving", "metagame.builtin.World.BMove", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "PlayerId", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "LinkName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "LinkSid", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "Type", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "ConfigId", "int", "", ""));
         return _v_;
     }
 
@@ -631,7 +644,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(DynamicData_Data _Data_, metagame.builtin.World.BMove.Data _Moving_, String _PlayerId_, String _LinkName_, long _LinkSid_, int _Type_, int _ConfigId_) {
+    public Data(@Nullable DynamicData_Data _Data_, metagame.builtin.World.BMove.@Nullable Data _Moving_, @Nullable String _PlayerId_, @Nullable String _LinkName_, long _LinkSid_, int _Type_, int _ConfigId_) {
         if (_Data_ == null)
             _Data_ = new DynamicData_Data();
         _Data = _Data_;
@@ -815,31 +828,38 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _o_.ReadDynamic(_Data, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Data.reset();
         if (_i_ == 2) {
             _o_.ReadBean(_Moving, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            ByteBuffer.decodeEmptyBean(_Moving);
         if (_i_ == 3) {
             _PlayerId = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _PlayerId = "";
         if (_i_ == 4) {
             _LinkName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _LinkName = "";
         if (_i_ == 5) {
             _LinkSid = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _LinkSid = 0;
         if (_i_ == 6) {
             _Type = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Type = 0;
         if (_i_ == 7) {
             _ConfigId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ConfigId = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -847,7 +867,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BObject.Data))

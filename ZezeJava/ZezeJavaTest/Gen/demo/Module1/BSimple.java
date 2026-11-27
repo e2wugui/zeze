@@ -402,12 +402,12 @@ public final class BSimple extends Zeze.Transaction.Bean implements BSimpleReadO
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "int_1", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "long2", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "string3", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "removed", "demo.Module1.BRemoved2", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "int_1", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "long2", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "string3", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "removed", "demo.Module1.BRemoved2", "", ""));
         return _v_;
     }
 

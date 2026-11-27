@@ -405,12 +405,12 @@ public final class LegacyDecodeChild extends Zeze.Transaction.Bean implements Le
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Number", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Scratch", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Entries", "list", "", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "KeyValue", "rocksdynamic.Fixture.LegacyDecodeKey", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Number", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Scratch", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Entries", "list", "", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "KeyValue", "rocksdynamic.Fixture.LegacyDecodeKey", "", ""));
         return _v_;
     }
 

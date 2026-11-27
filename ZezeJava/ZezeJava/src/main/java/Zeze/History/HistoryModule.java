@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Application;
 import Zeze.Builtin.HistoryModule.tHistory;
-import Zeze.Hot.HotInstallGate;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Transaction.Changes;
@@ -195,7 +194,6 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	}
 
 	public HistoryModule(Application zeze) {
-		HotInstallGate.blockForProcess("History");
 		this.zeze = zeze;
 		historyName = zeze.getConfig().getHistory();
 		RegisterZezeTables(zeze);

@@ -153,7 +153,7 @@ public class Helper {
 			if (obj instanceof BeanKey beanKey) {
 				result.beanKeys.add(beanClass.asSubclass(BeanKey.class));
 				for (var v : beanKey.variables()) {
-					var type = v.getType();
+					var type = v.type();
 					if (!isBuiltinType(type))
 						dependsBean(Class.forName(type, true, loader), result);
 				}
@@ -165,37 +165,37 @@ public class Helper {
 					dependsBean(dependency, result);
 				result.beans.add((Class<? extends Bean>)beanClass);
 				for (var v : bean.variables()) {
-					var type = v.getType();
-					if (declaredDynamic.contains(v.getId())) {
+					var type = v.type();
+					if (declaredDynamic.contains(v.id())) {
 						// 动态集合的键类型仍须注册。
-						for (var key : v.getKey().split(",")) {
+						for (var key : v.key().split(",")) {
 							if (!key.isBlank() && getBuiltinBoxingClass(key.trim()) == null)
 								dependsBean(Class.forName(key.trim(), true, loader), result);
 						}
 						continue;
 					}
-					if (type.equals("dynamic") || (v.getValue().equals("dynamic") && switch (type) {
+					if (type.equals("dynamic") || (v.value().equals("dynamic") && switch (type) {
 						case "list", "array", "map", "sortedmap", "gtable" -> true;
 						default -> false;
 					}))
-						throw new IllegalStateException("missing dynamic log field: " + beanClass.getName() + '#' + v.getName());
+						throw new IllegalStateException("missing dynamic log field: " + beanClass.getName() + '#' + v.name());
 					switch (type) {
 					case "list":
 					case "array":
-						dependsList(v.getValue(), loader, result);
+						dependsList(v.value(), loader, result);
 						break;
 					case "map":
-						dependsMap(v.getKey(), v.getValue(), loader, result);
+						dependsMap(v.key(), v.value(), loader, result);
 						break;
 					case "sortedmap":
-						dependsSortedMap(v.getKey(), v.getValue(), loader, result);
+						dependsSortedMap(v.key(), v.value(), loader, result);
 						break;
 					case "set":
-						dependsSet(v.getValue(), loader, result);
+						dependsSet(v.value(), loader, result);
 						break;
 					case "gtable":
-						var keys = v.getKey().split(",");
-						dependsGTable(keys[0].trim(), keys[1].trim(), v.getValue(), loader, result);
+						var keys = v.key().split(",");
+						dependsGTable(keys[0].trim(), keys[1].trim(), v.value(), loader, result);
 						break;
 					default:
 						if (!isBuiltinType(type))

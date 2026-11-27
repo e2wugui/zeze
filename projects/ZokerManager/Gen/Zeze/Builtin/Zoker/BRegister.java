@@ -168,7 +168,8 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         if (_i_ == 1) {
             setZokerName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setZokerName("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -215,9 +216,9 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ZokerName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ZokerName", "string", "", ""));
         return _v_;
     }
 
@@ -342,7 +343,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ZokerName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ZokerName = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

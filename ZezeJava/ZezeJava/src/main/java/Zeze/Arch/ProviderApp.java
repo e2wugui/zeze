@@ -36,10 +36,9 @@ public class ProviderApp extends ReentrantLock {
 
 	public final @Nullable ProviderDistribute distribute;
 
-	// 三个map均为非线程安全IntHashMap：所有写点（startLast、ProviderService.addHotModule）
-	// 与全部读点（ProviderService.OnHandshakeDone、ProviderDirectService.addServer/
-	// setRelativeServiceReady、ProviderImplement.registerModulesAndSubscribeLinkd）统一在
-	// providerApp锁（this）下进行，防止热更线程写与linkd重连握手线程读并发时resize撕裂。
+	// 三个map均为非线程安全IntHashMap：写点（startLast）与全部读点（ProviderService.OnHandshakeDone、
+	// ProviderDirectService.addServer/setRelativeServiceReady、ProviderImplement.registerModulesAndSubscribeLinkd）
+	// 统一在 providerApp 锁（this）下进行。
 	public final IntHashMap<BModule.Data> staticBinds = new IntHashMap<>();
 	public final IntHashMap<BModule.Data> dynamicModules = new IntHashMap<>();
 	public final IntHashMap<BModule.Data> modules = new IntHashMap<>();

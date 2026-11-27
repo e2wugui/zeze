@@ -210,8 +210,16 @@ public final class App extends Zeze.AppBase {
     public Game.@org.jspecify.annotations.Nullable Server Server;
     public Game.@org.jspecify.annotations.Nullable ServerDirect ServerDirect;
 
+    public Game.Login.@org.jspecify.annotations.Nullable ModuleLogin Game_Login;
+    public Game.Item.@org.jspecify.annotations.Nullable ModuleItem Game_Item;
+    public Game.Fight.@org.jspecify.annotations.Nullable ModuleFight Game_Fight;
+    public Game.Skill.@org.jspecify.annotations.Nullable ModuleSkill Game_Skill;
+    public Game.Buf.@org.jspecify.annotations.Nullable ModuleBuf Game_Buf;
+    public Game.Equip.@org.jspecify.annotations.Nullable ModuleEquip Game_Equip;
     public Game.Map.@org.jspecify.annotations.Nullable ModuleMap Game_Map;
     public Game.Rank.@org.jspecify.annotations.Nullable ModuleRank Game_Rank;
+    public Game.Timer.@org.jspecify.annotations.Nullable ModuleTimer Game_Timer;
+    public Game.LongSet.@org.jspecify.annotations.Nullable ModuleLongSet Game_LongSet;
 
     @Override
     public Zeze.Application getZeze() {
@@ -248,8 +256,16 @@ public final class App extends Zeze.AppBase {
 
     public static Class<?>[] redirectModuleClasses() {
         return new Class[] {
+            Game.Login.ModuleLogin.class,
+            Game.Item.ModuleItem.class,
+            Game.Fight.ModuleFight.class,
+            Game.Skill.ModuleSkill.class,
+            Game.Buf.ModuleBuf.class,
+            Game.Equip.ModuleEquip.class,
             Game.Map.ModuleMap.class,
             Game.Rank.ModuleRank.class,
+            Game.Timer.ModuleTimer.class,
+            Game.LongSet.ModuleLongSet.class,
         };
     }
 
@@ -257,20 +273,58 @@ public final class App extends Zeze.AppBase {
     public void createModules() throws Exception {
         lock();
         try {
-            getZeze().setHotManager(new Zeze.Hot.HotManager(this, getZeze().getConfig().getHotWorkingDir(), getZeze().getConfig().getHotDistributeDir()));
             getZeze().initialize(this);
-            java.util.Objects.requireNonNull(getZeze().getHotManager()).initialize(modules);
             var _modules_ = createRedirectModules(redirectModuleClasses());
 
-            Game_Map = (Game.Map.ModuleMap)_modules_[0];
+            Game_Login = (Game.Login.ModuleLogin)_modules_[0];
+            Game_Login.Initialize(this);
+            if (modules.put(Game_Login.getFullName(), Game_Login) != null)
+                throw new IllegalStateException("duplicate module name: Game_Login");
+
+            Game_Item = (Game.Item.ModuleItem)_modules_[1];
+            Game_Item.Initialize(this);
+            if (modules.put(Game_Item.getFullName(), Game_Item) != null)
+                throw new IllegalStateException("duplicate module name: Game_Item");
+
+            Game_Fight = (Game.Fight.ModuleFight)_modules_[2];
+            Game_Fight.Initialize(this);
+            if (modules.put(Game_Fight.getFullName(), Game_Fight) != null)
+                throw new IllegalStateException("duplicate module name: Game_Fight");
+
+            Game_Skill = (Game.Skill.ModuleSkill)_modules_[3];
+            Game_Skill.Initialize(this);
+            if (modules.put(Game_Skill.getFullName(), Game_Skill) != null)
+                throw new IllegalStateException("duplicate module name: Game_Skill");
+
+            Game_Buf = (Game.Buf.ModuleBuf)_modules_[4];
+            Game_Buf.Initialize(this);
+            if (modules.put(Game_Buf.getFullName(), Game_Buf) != null)
+                throw new IllegalStateException("duplicate module name: Game_Buf");
+
+            Game_Equip = (Game.Equip.ModuleEquip)_modules_[5];
+            Game_Equip.Initialize(this);
+            if (modules.put(Game_Equip.getFullName(), Game_Equip) != null)
+                throw new IllegalStateException("duplicate module name: Game_Equip");
+
+            Game_Map = (Game.Map.ModuleMap)_modules_[6];
             Game_Map.Initialize(this);
             if (modules.put(Game_Map.getFullName(), Game_Map) != null)
                 throw new IllegalStateException("duplicate module name: Game_Map");
 
-            Game_Rank = (Game.Rank.ModuleRank)_modules_[1];
+            Game_Rank = (Game.Rank.ModuleRank)_modules_[7];
             Game_Rank.Initialize(this);
             if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
                 throw new IllegalStateException("duplicate module name: Game_Rank");
+
+            Game_Timer = (Game.Timer.ModuleTimer)_modules_[8];
+            Game_Timer.Initialize(this);
+            if (modules.put(Game_Timer.getFullName(), Game_Timer) != null)
+                throw new IllegalStateException("duplicate module name: Game_Timer");
+
+            Game_LongSet = (Game.LongSet.ModuleLongSet)_modules_[9];
+            Game_LongSet.Initialize(this);
+            if (modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
+                throw new IllegalStateException("duplicate module name: Game_LongSet");
 
             getZeze().setSchemas(new Game.Schemas());
         } finally {
@@ -281,14 +335,16 @@ public final class App extends Zeze.AppBase {
     public void destroyModules() throws Exception {
         lock();
         try {
+            Game_LongSet = null;
+            Game_Timer = null;
             Game_Rank = null;
             Game_Map = null;
-            if (null != getZeze().getHotManager()) {
-                var manager = java.util.Objects.requireNonNull(getZeze().getHotManager());
-                manager.stop();
-                manager.destroyModules();
-                getZeze().setHotManager(null);
-            }
+            Game_Equip = null;
+            Game_Buf = null;
+            Game_Skill = null;
+            Game_Fight = null;
+            Game_Item = null;
+            Game_Login = null;
             modules.clear();
         } finally {
             unlock();
@@ -317,12 +373,16 @@ public final class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
+            java.util.Objects.requireNonNull(Game_Login).Start(this);
+            java.util.Objects.requireNonNull(Game_Item).Start(this);
+            java.util.Objects.requireNonNull(Game_Fight).Start(this);
+            java.util.Objects.requireNonNull(Game_Skill).Start(this);
+            java.util.Objects.requireNonNull(Game_Buf).Start(this);
+            java.util.Objects.requireNonNull(Game_Equip).Start(this);
             java.util.Objects.requireNonNull(Game_Map).Start(this);
             java.util.Objects.requireNonNull(Game_Rank).Start(this);
-            if (null != getZeze().getHotManager()) {
-                var definedOrder = new java.util.HashSet<String>();
-                java.util.Objects.requireNonNull(getZeze().getHotManager()).startModulesExcept(definedOrder);
-            }
+            java.util.Objects.requireNonNull(Game_Timer).Start(this);
+            java.util.Objects.requireNonNull(Game_LongSet).Start(this);
         } finally {
             unlock();
         }
@@ -332,12 +392,16 @@ public final class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
+            java.util.Objects.requireNonNull(Game_Login).StartLast();
+            java.util.Objects.requireNonNull(Game_Item).StartLast();
+            java.util.Objects.requireNonNull(Game_Fight).StartLast();
+            java.util.Objects.requireNonNull(Game_Skill).StartLast();
+            java.util.Objects.requireNonNull(Game_Buf).StartLast();
+            java.util.Objects.requireNonNull(Game_Equip).StartLast();
             java.util.Objects.requireNonNull(Game_Map).StartLast();
             java.util.Objects.requireNonNull(Game_Rank).StartLast();
-            if (null != getZeze().getHotManager()) {
-                var definedOrder = new java.util.HashSet<String>();
-                java.util.Objects.requireNonNull(getZeze().getHotManager()).startLastModulesExcept(definedOrder);
-            }
+            java.util.Objects.requireNonNull(Game_Timer).StartLast();
+            java.util.Objects.requireNonNull(Game_LongSet).StartLast();
         } finally {
             unlock();
         }
@@ -348,14 +412,26 @@ public final class App extends Zeze.AppBase {
         try {
             if (Zeze == null)
                 return;
+            if (Game_LongSet != null)
+                Game_LongSet.Stop(this);
+            if (Game_Timer != null)
+                Game_Timer.Stop(this);
             if (Game_Rank != null)
                 Game_Rank.Stop(this);
             if (Game_Map != null)
                 Game_Map.Stop(this);
-            if (null != getZeze().getHotManager()) {
-                var definedOrder = new java.util.HashSet<String>();
-                java.util.Objects.requireNonNull(getZeze().getHotManager()).stopModulesExcept(definedOrder);
-            }
+            if (Game_Equip != null)
+                Game_Equip.Stop(this);
+            if (Game_Buf != null)
+                Game_Buf.Stop(this);
+            if (Game_Skill != null)
+                Game_Skill.Stop(this);
+            if (Game_Fight != null)
+                Game_Fight.Stop(this);
+            if (Game_Item != null)
+                Game_Item.Stop(this);
+            if (Game_Login != null)
+                Game_Login.Stop(this);
         } finally {
             unlock();
         }
@@ -366,14 +442,26 @@ public final class App extends Zeze.AppBase {
         try {
             if (Zeze == null)
                 return;
+            if (Game_LongSet != null)
+                Game_LongSet.StopBefore();
+            if (Game_Timer != null)
+                Game_Timer.StopBefore();
             if (Game_Rank != null)
                 Game_Rank.StopBefore();
             if (Game_Map != null)
                 Game_Map.StopBefore();
-            if (null != getZeze().getHotManager()) {
-                var definedOrder = new java.util.HashSet<String>();
-                java.util.Objects.requireNonNull(getZeze().getHotManager()).stopBeforeModulesExcept(definedOrder);
-            }
+            if (Game_Equip != null)
+                Game_Equip.StopBefore();
+            if (Game_Buf != null)
+                Game_Buf.StopBefore();
+            if (Game_Skill != null)
+                Game_Skill.StopBefore();
+            if (Game_Fight != null)
+                Game_Fight.StopBefore();
+            if (Game_Item != null)
+                Game_Item.StopBefore();
+            if (Game_Login != null)
+                Game_Login.StopBefore();
         } finally {
             unlock();
         }
@@ -399,19 +487,6 @@ public final class App extends Zeze.AppBase {
         } finally {
             unlock();
         }
-    }
-
-    public static void distributeHot(Zeze.Hot.Distribute distribute) throws Exception {
-        var hotModules = new java.util.HashSet<String>();
-        hotModules.add("Game.Login");
-        hotModules.add("Game.Item");
-        hotModules.add("Game.Fight");
-        hotModules.add("Game.Skill");
-        hotModules.add("Game.Buf");
-        hotModules.add("Game.Equip");
-        hotModules.add("Game.Timer");
-        hotModules.add("Game.LongSet");
-        distribute.pack(hotModules, "server", "Game");
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

@@ -3,23 +3,33 @@ package metagame.builtin.TaskModule;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly {
     public static final long TYPEID = -8612100103636319395L;
 
     private int _TaskId;
     private final Zeze.Transaction.Collections.PList2<metagame.builtin.TaskModule.BPhase> _Phases;
+    private static final Zeze.Transaction.Collections.List2Meta<metagame.builtin.TaskModule.BPhase> meta1_Phases
+            = Zeze.Transaction.Collections.List2Meta.get(metagame.builtin.TaskModule.BPhase.class);
+
     private final Zeze.Transaction.Collections.PList2<metagame.builtin.TaskModule.BCondition> _Conditions;
+    private static final Zeze.Transaction.Collections.List2Meta<metagame.builtin.TaskModule.BCondition> meta1_Conditions
+            = Zeze.Transaction.Collections.List2Meta.get(metagame.builtin.TaskModule.BCondition.class);
+
     private final Zeze.Transaction.Collections.PSet1<Integer> _IndexSet;
+    private static final Zeze.Transaction.Collections.Set1Meta<Integer> meta1_IndexSet
+            = Zeze.Transaction.Collections.Set1Meta.get(Integer.class);
+
     private int _TaskState;
     private boolean _AutoFinish;
     private int _RewardId;
 
-    private transient Object __zeze_map_key__;
+    private transient @Nullable Object __zeze_map_key__;
 
     @Override
-    public Object mapKey() {
+    public @Nullable Object mapKey() {
         return __zeze_map_key__;
     }
 
@@ -154,22 +164,22 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
 
     @SuppressWarnings("deprecation")
     public BTask() {
-        _Phases = new Zeze.Transaction.Collections.PList2<>(metagame.builtin.TaskModule.BPhase.class);
+        _Phases = new Zeze.Transaction.Collections.PList2<>(meta1_Phases);
         _Phases.variableId(2);
-        _Conditions = new Zeze.Transaction.Collections.PList2<>(metagame.builtin.TaskModule.BCondition.class);
+        _Conditions = new Zeze.Transaction.Collections.PList2<>(meta1_Conditions);
         _Conditions.variableId(3);
-        _IndexSet = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _IndexSet = new Zeze.Transaction.Collections.PSet1<>(meta1_IndexSet);
         _IndexSet.variableId(4);
     }
 
     @SuppressWarnings("deprecation")
     public BTask(int _TaskId_, int _TaskState_, boolean _AutoFinish_, int _RewardId_) {
         _TaskId = _TaskId_;
-        _Phases = new Zeze.Transaction.Collections.PList2<>(metagame.builtin.TaskModule.BPhase.class);
+        _Phases = new Zeze.Transaction.Collections.PList2<>(meta1_Phases);
         _Phases.variableId(2);
-        _Conditions = new Zeze.Transaction.Collections.PList2<>(metagame.builtin.TaskModule.BCondition.class);
+        _Conditions = new Zeze.Transaction.Collections.PList2<>(meta1_Conditions);
         _Conditions.variableId(3);
-        _IndexSet = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _IndexSet = new Zeze.Transaction.Collections.PSet1<>(meta1_IndexSet);
         _IndexSet.variableId(4);
         _TaskState = _TaskState_;
         _AutoFinish = _AutoFinish_;
@@ -336,9 +346,9 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -434,7 +444,8 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         if (_i_ == 1) {
             setTaskId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskId(0);
         if (_i_ == 2) {
             var _x_ = _Phases;
             _x_.clear();
@@ -444,7 +455,8 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Phases.clear();
         if (_i_ == 3) {
             var _x_ = _Conditions;
             _x_.clear();
@@ -454,7 +466,8 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Conditions.clear();
         if (_i_ == 4) {
             var _x_ = _IndexSet;
             _x_.clear();
@@ -464,25 +477,29 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _IndexSet.clear();
         if (_i_ == 5) {
             setTaskState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setTaskState(0);
         if (_i_ == 6) {
             setAutoFinish(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setAutoFinish(false);
         if (_i_ == 7) {
             setRewardId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setRewardId(0);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTask))
@@ -584,15 +601,15 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TaskId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Phases", "list", "", "metagame.builtin.TaskModule.BPhase"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Conditions", "list", "", "metagame.builtin.TaskModule.BCondition"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "IndexSet", "set", "", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "TaskState", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "AutoFinish", "bool", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "RewardId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "TaskId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Phases", "list", "", "metagame.builtin.TaskModule.BPhase"));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Conditions", "list", "", "metagame.builtin.TaskModule.BCondition"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "IndexSet", "set", "", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "TaskState", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "AutoFinish", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "RewardId", "int", "", ""));
         return _v_;
     }
 
@@ -678,7 +695,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _TaskId_, java.util.ArrayList<metagame.builtin.TaskModule.BPhase.Data> _Phases_, java.util.ArrayList<metagame.builtin.TaskModule.BCondition.Data> _Conditions_, java.util.HashSet<Integer> _IndexSet_, int _TaskState_, boolean _AutoFinish_, int _RewardId_) {
+    public Data(int _TaskId_, java.util.@Nullable ArrayList<metagame.builtin.TaskModule.BPhase.Data> _Phases_, java.util.@Nullable ArrayList<metagame.builtin.TaskModule.BCondition.Data> _Conditions_, java.util.@Nullable HashSet<Integer> _IndexSet_, int _TaskState_, boolean _AutoFinish_, int _RewardId_) {
         _TaskId = _TaskId_;
         if (_Phases_ == null)
             _Phases_ = new java.util.ArrayList<>();
@@ -936,7 +953,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _TaskId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TaskId = 0;
         if (_i_ == 2) {
             var _x_ = _Phases;
             _x_.clear();
@@ -946,7 +964,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Phases.clear();
         if (_i_ == 3) {
             var _x_ = _Conditions;
             _x_.clear();
@@ -956,7 +975,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Conditions.clear();
         if (_i_ == 4) {
             var _x_ = _IndexSet;
             _x_.clear();
@@ -966,19 +986,23 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _IndexSet.clear();
         if (_i_ == 5) {
             _TaskState = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _TaskState = 0;
         if (_i_ == 6) {
             _AutoFinish = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _AutoFinish = false;
         if (_i_ == 7) {
             _RewardId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _RewardId = 0;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -986,7 +1010,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BTask.Data))

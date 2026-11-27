@@ -350,12 +350,12 @@ public final class BAuth extends Zeze.Transaction.Bean implements BAuthReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Account", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Token", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "AppVersion", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LoginQueueToken", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Account", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Token", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "AppVersion", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "LoginQueueToken", "binary", "", ""));
         return _v_;
     }
 }

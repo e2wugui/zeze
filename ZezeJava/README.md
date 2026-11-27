@@ -93,7 +93,6 @@ gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准(打印 M/s 观察,不
 
 - **不需要准备 MySQL/MongoDB/TiKV/RocketMQ 等任何外部依赖**:相关测试会自动跳过。
 - **不需要手工启动任何服务**:`integrationTest` 会在测试 JVM 内自动启动 ServiceManager(5001)与 GlobalCacheManagerAsyncServer(5002),以及第二对服务(5011/5012,仅 `Onz/TestOnz` 使用的独立集群),结束自动关闭。
-- **Zezex 系测试需要先发布一次 hot 模块**(新机器/清理过 `ZezexJava/server/hot` 时):在 `ZezexJava` 目录运行 `distribute.bat`。该目录是 gitignore 的构建产物,缺失时 Game.Login 等模块不加载,相关测试在 GetRoleList 等 RPC 上超时。
 - IDEA:打开 `ZezeJava` 目录,右键 `ZezeJavaTest/src` → "Run 'All Tests'"。
 
 ## 代码生成
@@ -111,4 +110,4 @@ gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准(打印 M/s 观察,不
 
 - [快速开始](https://e2wugui.github.io/zeze/getting-started/quick-start/) / [solution.xml](https://e2wugui.github.io/zeze/core/solution-xml/) / [事务](https://e2wugui.github.io/zeze/core/transaction/) / [表](https://e2wugui.github.io/zeze/core/table/)
 - 架构:Online / Provider / Redirect / 服务管理
-- 进阶:热更新 / Raft / 数据库映射 / 性能与指标
+- 进阶:Raft / 数据库映射 / 性能与指标

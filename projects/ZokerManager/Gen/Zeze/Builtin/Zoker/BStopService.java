@@ -203,11 +203,13 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
         if (_i_ == 1) {
             setServiceName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServiceName("");
         if (_i_ == 2) {
             setForce(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setForce(false);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -259,10 +261,10 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Force", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ServiceName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Force", "bool", "", ""));
         return _v_;
     }
 
@@ -408,11 +410,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceName = "";
         if (_i_ == 2) {
             _Force = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Force = false;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

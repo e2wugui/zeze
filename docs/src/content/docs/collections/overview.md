@@ -60,4 +60,3 @@ LinkedMap<Item> lm = linkedMapModule.open("myMap", Item.class);
 1. **事务要求** -- 所有读写操作必须在 `Procedure` 中执行
 2. **名称限制** -- 集合名称不能包含 `@` 字符（`@` 为内部保留分隔符）
 3. **值类型** -- 值必须继承 `Zeze.Transaction.Bean`
-4. **热更新** -- 所有集合均通过 `HotBeanFactory` 接口支持值类型的热重载

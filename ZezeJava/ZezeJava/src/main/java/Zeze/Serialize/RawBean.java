@@ -1,10 +1,10 @@
 package Zeze.Serialize;
 
 import java.util.ArrayList;
-import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.VariableMeta;
 import org.jspecify.annotations.Nullable;
 
 /** 未解码的原始 Bean：仅持有 typeId 与原始字节，编码时按透明字节原样转发。 */
@@ -96,9 +96,9 @@ public class RawBean extends Bean {
 	}
 
 	@Override
-	public ArrayList<BVariable.Data> variables() {
+	public ArrayList<VariableMeta> variables() {
 		var vs = super.variables();
-		vs.add(new BVariable.Data(1, "rawData", "binary", "", ""));
+		vs.add(new VariableMeta(1, "rawData", "binary", "", ""));
 		return vs;
 	}
 }

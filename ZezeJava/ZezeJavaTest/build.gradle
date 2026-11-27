@@ -1,15 +1,5 @@
 apply from: '../ZezeJava/build.gradle'
 
-// Temp热更demo的模块/接口类：独立源集，产物不进test运行classpath——
-// 模块类只允许存在于模块jar中（HotModule冷classpath抢载守卫的前提）。
-sourceSets {
-    hot {
-        java.srcDir 'src-hot'
-        compileClasspath += sourceSets.test.output
-        compileClasspath += sourceSets.test.compileClasspath
-    }
-}
-
 dependencies {
     implementation project(":ZezeJava")
     implementation project(":ZezexJava:client")
@@ -165,7 +155,6 @@ tasks.register('integrationTest', Test) {
     description = '全量功能测试（不含 @Bench 吞吐基准），需要（或自动创建）SM(5001)/Global(5002) 环境。'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    dependsOn ':ZezexJava:server:assembleHot'
     useJUnitPlatform {
         excludeTags 'bench','fast','extra','jdbc'
     }
@@ -200,7 +189,6 @@ tasks.register('extraTest', Test) {
     description = '不常用功能族附加测试（@Extra：history/dbh2/mq/rocketmq）。'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    dependsOn ':ZezexJava:server:assembleHot'
     useJUnitPlatform {
         includeTags 'extra'
     }
@@ -223,7 +211,6 @@ tasks.register('bench', Test) {
     systemProperty 'junit.jupiter.execution.timeout.default', '3600 s'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    dependsOn ':ZezexJava:server:assembleHot'
     useJUnitPlatform {
         includeTags 'bench'
     }
@@ -346,7 +333,7 @@ tasks.register('benchGame', Test) {
 
 // JMH 微基准源集：编译依赖 test 源集输出（demo/Gen 生成的 bean 与表）+ test 编译类路径。
 // 手动源集而非 me.champeau.jmh 插件：gradle 9.7 兼容性未验证，且仓库镜像源不含 gradle 插件门户。
-// 源码放 src-jmh（对齐 src-hot 先例）：test 源集 srcDirs=['src'] 递归包含子目录，放 src/ 下会被 test 编译误收。
+// 源码放 src-jmh：test 源集 srcDirs=['src'] 递归包含子目录，放 src/ 下会被 test 编译误收。
 sourceSets {
     jmh {
         java.srcDir 'src-jmh'

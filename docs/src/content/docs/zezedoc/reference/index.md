@@ -104,7 +104,6 @@ order: 0
 
 | 文档 | 说明 |
 |---|---|
-| [热更新](./advanced-hot-reload.md) | ClassReloader/HotModule/HotService，不停服更新 |
 | [线程模型](./advanced-threads.md) | 线程池分类、Checkpoint 线程、调度 |
 | [性能调优](./advanced-performance.md) | 缓存命中率、Checkpoint 策略、benchmark |
 | [Prometheus 监控](./advanced-metrics.md) | 指标暴露、Dashboard |

@@ -37,7 +37,7 @@ sidebar:
 **模块（Module）** 是 Zeze 组织 Bean、Table、Protocol、Rpc 的逻辑单元。模块在生成代码时提供命名空间。模块可以嵌套定义子模块。
 
 ```xml
-<module name="Login" id="1" hot="true">
+<module name="Login" id="1">
   <bean name="BRole">...</bean>
   <table name="trole" key="long" value="BRole"/>
   <rpc name="CreateRole" argument="BCreateRole" result="BRole" handle="server"/>
@@ -48,7 +48,6 @@ sidebar:
 |------|------|------|
 | **name** | 是 | 模块名称，作为生成代码中的类名或命名空间的一部分 |
 | **id** | 是 | 模块 ID，在整个系统中必须唯一，且必须在 `ModuleIdAllowRanges` 范围内 |
-| **hot** | 否 | 设为 `"true"` 表示该模块支持热更新 |
 | **DefaultTransactionLevel** | 否 | 该模块内协议/方法的默认事务级别，可选值：`None`、`Serializable` 等 |
 | **UseData** | 否 | 设为 `"true"` 表示使用 Data 层（区分只读和读写数据视图） |
 
@@ -371,7 +370,7 @@ Rpc 的 result Bean 中，如果包含名为 `resultCode` 且类型为 `long` �
 **Project** 定义一个代码生成目标，通常对应一个进程。一个 solution 可以有多个 project。
 
 ```xml
-<project name="server" hot="true" GenDir="server/Gen" SrcDir="server/src"
+<project name="server" GenDir="server/Gen" SrcDir="server/src"
          platform="java" GenTables="">
   <service name="Server" handle="server" base="Zeze.Arch.ProviderService">
     <module ref="Login"/>
@@ -387,7 +386,6 @@ Rpc 的 result Bean 中，如果包含名为 `resultCode` 且类型为 `long` �
 | **SrcDir** | 否 | 源代码目录 |
 | **platform** | 否 | 目标平台。可选值：`java`、`cs`、`cxx`、`ts` |
 | **GenTables** | 否 | 指定生成哪些 Table。为空时生成未配置 `gen` 属性的表。逗号分隔多个表名 |
-| **hot** | 否 | 设为 `"true"` 支持热更新 |
 | **MappingClass** | 否 | 设为 `"true"` 生成关系映射类 |
 | **ClientScript** | 否 | 设为 `"true"` 表示客户端脚本项目 |
 

@@ -273,10 +273,10 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Notifies", "list", "", "binary"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyIndex", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Notifies", "list", "", "binary"));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ReliableNotifyIndex", "long", "", ""));
         return _v_;
     }
 }

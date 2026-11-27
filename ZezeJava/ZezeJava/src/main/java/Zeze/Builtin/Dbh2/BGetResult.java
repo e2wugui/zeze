@@ -259,10 +259,10 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Null", "bool", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Value", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Null", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Value", "binary", "", ""));
         return _v_;
     }
 

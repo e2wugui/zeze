@@ -338,11 +338,11 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logins", "map", "string", "Zeze.Builtin.Online.BOnline"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LastLoginVersion", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Account", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Logins", "map", "string", "Zeze.Builtin.Online.BOnline"));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "LastLoginVersion", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Account", "string", "", ""));
         return _v_;
     }
 }

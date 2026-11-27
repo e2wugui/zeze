@@ -43,7 +43,6 @@ test.ks
 /ZezeJavaTest/Users*AppDataLocalTemp*
 /ZezeJavaTest/dbh2TestSimple
 /ZezeJavaTest/DiffLockAndNoLock
-/ZezeJavaTest/hot/distributes
 /ZezeJavaTest/manager*
 /ZezeJavaTest/master
 /ZezeJavaTest/mqmanager*
@@ -52,8 +51,6 @@ test.ks
 /ZezeJavaTest/testMmapFile*
 /ZezexJava/linkd/clazz
 /ZezexJava/linkd/upload
-/ZezexJava/server/hot
-/ZezexJava/server/hotrun
 /log4j2.xml
 /raft.xml
 /zeze.xml

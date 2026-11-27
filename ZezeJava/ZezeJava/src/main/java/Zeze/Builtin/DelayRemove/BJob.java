@@ -260,10 +260,10 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "JobHandleName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "JobState", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "JobHandleName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "JobState", "binary", "", ""));
         return _v_;
     }
 }

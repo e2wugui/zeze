@@ -383,13 +383,13 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "HeadNodeId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TailNodeId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Count", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LastNodeId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SerialNo", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "HeadNodeId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "TailNodeId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Count", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "LastNodeId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "SerialNo", "long", "", ""));
         return _v_;
     }
 }

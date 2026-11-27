@@ -3,20 +3,14 @@ package Zeze.Collections;
 import java.util.Objects;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.Queue.BQueue;
 import Zeze.Builtin.Collections.Queue.BQueueNode;
 import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
 import Zeze.Builtin.Collections.Queue.BQueueNodeValue;
-import Zeze.Hot.HotBeanFactory;
-import Zeze.Hot.HotManager;
-import Zeze.Hot.HotModule;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.Action1;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
@@ -24,7 +18,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * 持久化 FIFO 队列：节点分片存储，支持分批读取与断链诊断。
  */
-public class Queue<V extends Bean> implements HotBeanFactory {
+public class Queue<V extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 	private static final Logger logger = LogManager.getLogger(Queue.class);
 
@@ -34,48 +28,6 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
-	}
-
-	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	// this::方法引用每次求值都产生新实例，ConcurrentHashSet按实例判等：stopEvents.add
-	// 每次净增不可去重。固定为实例字段只求值一次，登记幂等（同Game.Online的Ref修复）。
-	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
-	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
-
-	private void onHotModuleStop(HotModule hot) {
-		if (hotModulesHaveDynamic.remove(hot) != null)
-			freshStopModuleDynamic.set(true);
-	}
-
-	private void tryRecordHotModule(Class<?> customClass) {
-		var cl = customClass.getClassLoader();
-		if (HotManager.isHotModule(cl)) {
-			var hotModule = (HotModule)cl;
-			hotModule.stopEvents.add(onHotModuleStopRef);
-			hotModulesHaveDynamic.add(hotModule);
-		}
-	}
-
-	@Override
-	public void processWithNewClasses(java.util.List<Class<?>> newClasses) {
-		for (var cls : newClasses) {
-			tryRecordHotModule(cls);
-		}
-	}
-
-	@Override
-	public void clearTableCache() {
-		module._tQueueNodes.__ClearTableCacheUnsafe__();
-	}
-
-	@Override
-	public BeanFactory beanFactory() {
-		return beanFactory;
-	}
-
-	@Override
-	public boolean hasFreshStopModuleDynamicOnce() {
-		return freshStopModuleDynamic.getAndSet(false);
 	}
 
 	public static class Module extends AbstractQueue {
@@ -140,12 +92,6 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		this.name = name;
 		this.nodeSize = nodeSize;
 		beanFactory.register(valueClass);
-
-		var hotManager = module.zeze.getHotManager();
-		if (null != hotManager) {
-			hotManager.addHotBeanFactory(this);
-			tryRecordHotModule(valueClass);
-		}
 	}
 
 	public String getName() {
@@ -293,17 +239,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		//    重建/复用根行，均无数据损失；若已换成新包装则条件不匹配，不会误删。
 		// c) 在途调用方持有的旧Queue引用仍可用：根行不存在时读方法（poll/peek/pollNode/peekNode/
 		//    size/isEmpty/walk）一律安全返回null/0/空，add/push经getOrAddRoot重建根行。
-		Transaction.whileCommit(() -> {
-			if (module.queues.remove(name, this)) {
-				var hotManager = module.zeze.getHotManager();
-				if (hotManager != null)
-					hotManager.removeHotBeanFactory(this);
-				for (var hotModule : hotModulesHaveDynamic) {
-					if (hotModulesHaveDynamic.remove(hotModule) != null)
-						hotModule.stopEvents.remove(onHotModuleStopRef);
-				}
-			}
-		});
+		Transaction.whileCommit(() -> module.queues.remove(name, this));
 	}
 
 	/**

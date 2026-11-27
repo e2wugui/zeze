@@ -9,10 +9,9 @@ public class Program {
 		App.getInstance().Start("127.0.0.1", 10000);
 		Objects.requireNonNull(App.getInstance().ClientGame_Login).auth();
 		try {
-			var role = Objects.requireNonNull(App.getInstance().ClientGame_Login).getOrCreateRole("HotTestRole");
+			var role = Objects.requireNonNull(App.getInstance().ClientGame_Login).getOrCreateRole("TestRole");
 			Objects.requireNonNull(App.getInstance().Zeze_Builtin_Game_Online).login(role.getId());
 			Objects.requireNonNull(App.getInstance().ClientGame_Equip).reportLogin(role.getId());
-			Objects.requireNonNull(App.getInstance().ClientGame_Equip).startTimer();
 			Program.class.wait();
 		} finally {
 			App.getInstance().Stop();

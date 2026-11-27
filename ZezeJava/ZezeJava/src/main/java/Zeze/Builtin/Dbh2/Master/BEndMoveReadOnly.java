@@ -17,7 +17,7 @@ public interface BEndMoveReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Builtin.Dbh2.BBucketMetaReadOnly getToReadOnly();
 }

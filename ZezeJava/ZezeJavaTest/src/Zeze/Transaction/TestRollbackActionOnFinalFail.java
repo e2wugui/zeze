@@ -22,7 +22,7 @@ import Zeze.Util.FuncLong;
 /**
  * FND-T1-1 回归：perform 的 Abort / ErrorSavepoint / TooManyTry 终局回滚必须触发 whileRollback 回调。
  * 修复前这些路径调用单参 finalRollback（executeRollbackAction=false），回调被静默丢弃——
- * Timer 恢复链的节点推进、HotManager 热更回滚、Online 回滚通知全部落空。
+ * Timer 恢复链的节点推进、Online 回滚通知全部落空。
  * TooManyTry 更进一步：每轮 redo 的 reuseTransactionForRedo 已清空回调，修复以
  * redoRollbackActions 暂存最近一轮的回调，终局失败时补触发（重做成功的轮次自然作废）。
  */

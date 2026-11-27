@@ -360,11 +360,11 @@ public final class BBufChanged extends Zeze.Transaction.Bean implements BBufChan
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Replace", "map", "int", "Game.Buf.BBuf"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Remove", "set", "", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ChangeTag", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Replace", "map", "int", "Game.Buf.BBuf"));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Remove", "set", "", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "ChangeTag", "int", "", ""));
         return _v_;
     }
 }

@@ -318,11 +318,11 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "context", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "contextx", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "onlineSetName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "context", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "contextx", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "onlineSetName", "string", "", ""));
         return _v_;
     }
 

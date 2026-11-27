@@ -665,19 +665,19 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Delay", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Period", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "RemainTimes", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "HappenTimes", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "StartTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "EndTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "NextExpectedTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "ExpectedTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "HappenTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "MissfirePolicy", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(11, "OneByOneKey", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Delay", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Period", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "RemainTimes", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "HappenTimes", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "StartTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "EndTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "NextExpectedTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "ExpectedTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(9, "HappenTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(10, "MissfirePolicy", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(11, "OneByOneKey", "string", "", ""));
         return _v_;
     }
 }

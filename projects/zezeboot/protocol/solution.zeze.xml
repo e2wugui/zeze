@@ -1027,7 +1027,7 @@
 				<variable id="4" name="CustomClass" type="string"/>
 				<variable id="5" name="CustomBean" type="binary"/>
 				<variable id="6" name="LoginVersion" type="long"/>
-				<variable id="7" name="Hot" type="bool"/>
+				<!-- reserved: id="7" removed Hot -->
 			</bean>
 			<bean name="BTransmitSimpleTimer">
 				<variable id="1" name="TimerId" type="string"/>
@@ -1036,7 +1036,7 @@
 				<variable id="4" name="CustomClass" type="string"/>
 				<variable id="5" name="CustomBean" type="binary"/>
 				<variable id="6" name="LoginVersion" type="long"/>
-				<variable id="7" name="Hot" type="bool"/>
+				<!-- reserved: id="7" removed Hot -->
 			</bean>
 			<bean name="BTransmitCancelRoleTimer">
 				<variable id="1" name="TimerId" type="string"/>
@@ -1581,80 +1581,7 @@
 			<rpc name="ReadWriteLockOperate" argument="BReadWriteLock" handle="server"/>
 		</module>
 
-		<module name="HotDistribute" id="11033" UseData="true" DefaultTransactionLevel="None">
-			<bean name="BVariable">
-				<variable id="1" name="Id" type="int"/>
-				<variable id="2" name="Name" type="string"/>
-				<variable id="3" name="Type" type="string"/>
-				<variable id="4" name="Key" type="string"/>
-				<variable id="5" name="Value" type="string"/>
-			</bean>
-			<bean name="BeanName">
-				<variable id="1" name="Name" type="string"/>
-			</bean>
-			<bean name="BLastVersionBeanInfo">
-				<variable id="1" name="Name" type="string"/>
-				<variable id="2" name="Variables" type="list[BVariable]"/>
-			</bean>
-			<rpc name="GetLastVersionBeanInfo" argument="BeanName" result="BLastVersionBeanInfo" handle="server"/>
-
-			<!--
-			发布更新文件基本操作，支持断点续传，MD5校验
-			-->
-			<enum name="eOpenError"       value="1"/> 打开文件发生了系统错误
-			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
-			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
-			<enum name="eMd5Mismatch"  value="4"/> 关闭文件时，验证md5失败
-			<enum name="eServiceOldExists"  value="5"/> 发布更新服务时，发现备份目录存在
-			<enum name="eMoveOldFail"  value="6"/> 发布更新服务时，备份失败
-
-			<!-- 作为错误码，同时也作为状态 -->
-			<enum name="eIdle"  value="0"/>
-			<enum name="ePrepare"  value="7"/>
-			<enum name="eTryDistribute"  value="8"/>
-			<enum name="eCommit"  value="9"/>
-			<enum name="eCommit2"  value="10"/>
-			<enum name="eDistributeIdMismatch"  value="11"/>
-			<enum name="eTryRollback"  value="12"/>
-			<enum name="eInstall"  value="13"/>
-
-			<bean name="BOpenFile">
-				<variable id="1" name="FileName" type="string"/>
-			</bean>
-			<bean name="BOpenFileResult">
-				<variable id="1" name="Offset" type="long"/>
-			</bean>
-			<bean name="BAppendFile">
-				<variable id="1" name="FileName" type="string"/>
-				<variable id="2" name="Offset" type="long"/>
-				<variable id="3" name="Chunk" type="binary"/>
-			</bean>
-			<bean name="BAppendFileResult">
-			</bean>
-			<bean name="BCloseFile">
-				<variable id="1" name="FileName" type="string"/>
-				<variable id="2" name="Md5" type="binary"/>
-			</bean>
-			<bean name="BCloseFileResult">
-			</bean>
-			<bean name="BDistributeId">
-				<variable id="1" name="DistributeId" type="long"/>
-			</bean>
-			<bean name="BTryDistribute">
-				<variable id="1" name="DistributeId" type="long"/>
-				<variable id="2" name="AtomicAll" type="bool"/>
-			</bean>
-
-			<rpc name="OpenFile" argument="BOpenFile" result="BOpenFileResult" handle="server"/>
-			<rpc name="AppendFile" argument="BAppendFile" result="BAppendFileResult"  handle="server"/>
-			<rpc name="CloseFile" argument="BCloseFile" result="BCloseFileResult"  handle="server"/>
-
-			<rpc name="PrepareDistribute" argument="BDistributeId" handle="server"/>
-			<rpc name="TryDistribute" argument="BTryDistribute" handle="server"/>
-			<rpc name="Commit" argument="BDistributeId" handle="server"/>
-			<rpc name="Commit2" argument="BDistributeId" handle="server"/>
-			<rpc name="TryRollback" argument="BDistributeId" handle="server"/>
-		</module>
+		<!-- reserved: module id="11033" removed HotDistribute -->
 
 		<module name="Onz" id="11038" UseData="true" DefaultTransactionLevel="None">
 			<enum name="eProcedureNotFound" value="1"/>
@@ -2061,24 +1988,6 @@
 		</service>
 	</component>
 
-
-	<component name="HotDistribute" 
-		GenDir="src/main/java"
-		SrcDir="src/main/java"
-		PackagePath="Zeze/Hot" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.HotDistribute"/>
-		</service>
-	</component>
-
-	<component name="HotAgent" 
-		GenDir="src/main/java"
-		SrcDir="src/main/java"
-		PackagePath="Zeze/Hot" platform="zeze+java">
-		<service name="" handle="client">
-			<module ref="Zeze.Builtin.HotDistribute"/>
-		</service>
-	</component>
 
 	<component name="Threading" 
 		GenDir="src/main/java"

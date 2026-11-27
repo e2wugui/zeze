@@ -286,9 +286,9 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(14, "Subclass", "dynamic", "", "demo.Bean1,demo.Module1.BSimple,demo.Module1.BFood"));
+        _v_.add(new Zeze.Transaction.VariableMeta(14, "Subclass", "dynamic", "", "demo.Bean1,demo.Module1.BSimple,demo.Module1.BFood"));
         return _v_;
     }
 

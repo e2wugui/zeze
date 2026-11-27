@@ -904,20 +904,20 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Level", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Exp", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Money", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Hp", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "DamageTotal", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Bag", "map", "int", "demo.Game.BItem"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Equip", "map", "int", "demo.Game.BItem"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "Friends", "map", "long", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "Tracks", "list", "", "long"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "QuestLog", "list", "", "long"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(11, "GiftLog", "list", "", "long"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(12, "Warehouse", "list", "", "demo.Game.BItem"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Level", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Exp", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Money", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Hp", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "DamageTotal", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "Bag", "map", "int", "demo.Game.BItem"));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "Equip", "map", "int", "demo.Game.BItem"));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "Friends", "map", "long", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(9, "Tracks", "list", "", "long"));
+        _v_.add(new Zeze.Transaction.VariableMeta(10, "QuestLog", "list", "", "long"));
+        _v_.add(new Zeze.Transaction.VariableMeta(11, "GiftLog", "list", "", "long"));
+        _v_.add(new Zeze.Transaction.VariableMeta(12, "Warehouse", "list", "", "demo.Game.BItem"));
         return _v_;
     }
 }

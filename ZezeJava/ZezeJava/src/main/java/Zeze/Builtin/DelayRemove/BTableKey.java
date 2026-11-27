@@ -299,11 +299,11 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TableName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "EncodedKey", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "EnqueueTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "TableName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "EncodedKey", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "EnqueueTime", "long", "", ""));
         return _v_;
     }
 }

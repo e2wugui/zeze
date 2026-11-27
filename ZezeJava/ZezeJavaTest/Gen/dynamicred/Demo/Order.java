@@ -1051,18 +1051,18 @@ public class Order extends Zeze.Transaction.Bean implements OrderReadOnly {
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Amounts", "list", "", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Quantities", "list", "", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Lines", "list", "", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "AmountGrid", "gtable", "int,int", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "QuantityGrid", "gtable", "int,int", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "DirectAmount", "dynamic", "", "dynamicred.Demo.Amount"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "DirectQuantity", "dynamic", "", "dynamicred.Demo.Quantity"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "QuantityMap", "map", "int", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "AmountSorted", "sortedmap", "int", "dynamic"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "QuantityGridSource", "gtable", "int,int", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "Amounts", "list", "", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Quantities", "list", "", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Lines", "list", "", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "AmountGrid", "gtable", "int,int", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "QuantityGrid", "gtable", "int,int", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "DirectAmount", "dynamic", "", "dynamicred.Demo.Amount"));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "DirectQuantity", "dynamic", "", "dynamicred.Demo.Quantity"));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "QuantityMap", "map", "int", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(9, "AmountSorted", "sortedmap", "int", "dynamic"));
+        _v_.add(new Zeze.Transaction.VariableMeta(10, "QuantityGridSource", "gtable", "int,int", "dynamic"));
         return _v_;
     }
 }

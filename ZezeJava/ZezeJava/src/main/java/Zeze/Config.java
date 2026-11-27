@@ -107,8 +107,6 @@ public final class Config {
 
 	private long procedureStatisticsReportPeriod = 60000;
 	private long tableStatisticsReportPeriod = 60000;
-	private String hotWorkingDir = "";
-	private String hotDistributeDir = "distributes";
 	private int deadLockBreakerPeriod = 60000;
 
 	private int procedureLockWatcherMin = 50;
@@ -180,22 +178,6 @@ public final class Config {
 
 	public void setProcedureLockWatcherMin(int procedureLockWatcherMin) {
 		this.procedureLockWatcherMin = procedureLockWatcherMin;
-	}
-
-	public String getHotWorkingDir() {
-		return hotWorkingDir;
-	}
-
-	public String getHotDistributeDir() {
-		return hotDistributeDir;
-	}
-
-	public void setHotWorkingDir(@Nullable String value) {
-		hotWorkingDir = value != null ? value : "";
-	}
-
-	public void setHotDistributeDir(@Nullable String value) {
-		hotDistributeDir = value != null ? value : "";
 	}
 
 	public int getDeadLockBreakerPeriod() {
@@ -783,11 +765,6 @@ public final class Config {
 		attr = self.getAttribute("TableStatisticsReportPeriod");
 		if (!attr.isBlank())
 			tableStatisticsReportPeriod = Long.parseLong(attr);
-
-		hotWorkingDir = self.getAttribute("HotWorkingDir");
-		attr = self.getAttribute("HotDistributeDir");
-		if (!attr.isBlank())
-			hotDistributeDir = attr;
 
 		attr = self.getAttribute("DeadLockBreakerPeriod");
 		if (!attr.isBlank())

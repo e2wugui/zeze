@@ -45,64 +45,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private DatabaseRocksDb.@Nullable Table localRocksCacheTable;
 
 	@Override
-	public void open(Table exist, Application app) {
-		if (getId() != exist.getId())
-			throw new IllegalStateException("hot table's id changed.");
-
-		// database 继承，实际上热更新表也没法读到新的database配置。
-		var database = exist.getDatabase();
-
-		// replaceTable允许重复调用，热更回滚需要能在旧表上重新打开。see cache init below
-		setZeze(app);
-		setDatabase(database);
-
-		if (isAutoKey()) // autoKey可以发生变化，重新读取。
-			autoKey = app.getAutoKey(getName());
-
-		setTableConf(exist.getTableConf()); // Old
-		if (!isMemory() || cache == null) { // 如果时内存表，并且是已经存在的表的回滚，保持cache不变。
-			// 防御：正常流程到这里cache为null（新表，或旧表已被disable）；
-			// 万一非null（重复open），必须关闭旧cache的定时器，防止热更泄漏。
-			var oldCache = cache;
-			cache = new TableCache<>(app, this); // New
-			if (oldCache != null)
-				oldCache.close();
-		}
-		//noinspection DataFlowIssue
-		relationalTable = isRelationalMapping() ? getZeze().getSchemas().newRelationalTable(getZeze(), this) : null;
-		storage = isMemory() ? null : new Storage<>(this, database, getName()); // New
-		database.replaceStorage(exist.getStorage(), storage);
-
-		oldTable = exist.getOldTable(); // Old
-		localRocksCacheTable = exist.getLocalRocksCacheTable();
-		// 内存表（新表与旧表都是内存表：升级或回滚）不能清除本地Rocks：
-		// 它是dataMap软引用被GC回收后的唯一恢复源（Record1.loadValue），
-		// 也是受限容量walkMemory的数据源，清除后记录永久丢失。
-		// 非内存表（或内存表配置改变）清除是安全的：数据在后台库，镜像可重新装载。
-		if (!isMemory() || !exist.isMemory())
-			getLocalRocksCacheTable().clear();
-	}
-
-	@Override
 	public DatabaseRocksDb.Table getLocalRocksCacheTable() {
 		var t = localRocksCacheTable;
 		if (t == null)
 			throw new IllegalStateException("table cache not opened: " + getName());
 		return t;
-	}
-
-	@Override
-	public void disable() {
-		// 去掉这些，应该所有的操作都无法完成了。
-		var c = cache;
-		if (c != null) {
-			// 关闭旧cache的周期定时器（newLruHot/cleanNow）：
-			// 否则定时任务闭包强引用旧cache的dataMap，整表缓存无法GC，
-			// 且旧cache的cleanNow仍会对旧记录执行无效操作。每次热更泄漏累积。
-			c.close();
-			cache = null;
-		}
-		this.storage = null; // 【这里不处理storage的关闭】
 	}
 
 	public TableX(int id, String name) {
@@ -164,7 +111,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	// 写全失败读全正常时系统性发生）。失败必须抛出：装载路径由load既有异常出口作废记录（requireCache().remove）
 	// 并上报（perform回滚返回Procedure.Exception，单次失败不自动redo）；flush路径本就抛出保dirty重试。
 	// 记录永远进不了"clean且靠镜像支撑"的状态，不变式由构造保证而非检测补救。信任只随整体重建恢复
-	// （启动deleteDirectory/热更clear），进程内逐条"自愈"无法证明全镜像健康。仿__direct_put_cache__
+	// （启动deleteDirectory），进程内逐条"自愈"无法证明全镜像健康。
 	// 包RuntimeException携带表/key上下文；异常由perform错误日志记录，抛出点不重复log。
 	final void rocksCachePut(K key, V value) {
 		//noinspection DataFlowIssue
@@ -1203,37 +1150,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				return handle.endWalk(count);
 			}
 		});
-	}
-
-	/** 热更搬运内存表专用。调用方须先完成检查点并暂停表的并发访问。 */
-	@Override
-	public void __direct_put_cache__(Object key, Bean value, int state) {
-		@SuppressWarnings("unchecked")
-		var kk = (K)key;
-		var tKey = new TableKey(getId(), key);
-		var r = requireCache().getOrAdd(kk, () -> new Record1<>(this, kk, null));
-		value.initRootInfo(r.createRootInfoIfNeed(tKey), null);
-		r.setState(state);
-		// 直写缓存必须同步维护sizeCounter，与Record1.commit的内存表记账同口径
-		// （无值→有值即increment）。热更为新表建全新TableCache后经此入口搬运全部记录，
-		// 不补计数则升级后size()恒0；且搬运记录softValue非null，后续事务删除时commit按
-		// strongRef!=null走decrement，计数永久漂移为负。同key重复直写不重复计数。
-		var hadValue = r.getSoftValue() != null;
-		r.setSoftValue(value);
-		if (isMemory() && !hadValue)
-			requireCache().getSizeCounter().increment();
-		r.setTimestamp(Record.getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-		// 直接写入本地Rocks镜像（walkMemory与软引用回收后loadValue恢复的数据源），不设置脏标记：
-		// 脏记录必须进入rrs才能被checkpoint flush，这里的记录不在任何rrs中，置脏后
-		// checkpoint永远flush不到它（数据永不落localRocks），受限容量时cleanNow也永远清不掉（死循环）。
-		// 写失败直接抛出中止热更，静默吞掉会丢失内存表的唯一持久副本。
-		//noinspection DataFlowIssue
-		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
-			getLocalRocksCacheTable().replace(t, encodeKey(kk), ByteBuffer.encode(value));
-			t.commit();
-		} catch (Exception e) {
-			throw new RuntimeException("__direct_put_cache__ write localRocks failed: " + this + " " + key, e);
-		}
 	}
 
 	/**

@@ -720,20 +720,20 @@ public final class TestHashResult extends Zeze.Transaction.Bean implements TestH
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "hash", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "out", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "serverId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "b_oolean", "bool", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "b_yte", "byte", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "s_hort", "short", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "f_loat", "float", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "l_ong", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "d_ouble", "double", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "s_tring", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(11, "b_inary", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(12, "b_ean", "Game.Rank.TestToServerResult", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "hash", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "out", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "serverId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "b_oolean", "bool", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "b_yte", "byte", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "s_hort", "short", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "f_loat", "float", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "l_ong", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(9, "d_ouble", "double", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(10, "s_tring", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(11, "b_inary", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(12, "b_ean", "Game.Rank.TestToServerResult", "", ""));
         return _v_;
     }
 }

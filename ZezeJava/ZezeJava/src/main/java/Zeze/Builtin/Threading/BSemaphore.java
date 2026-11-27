@@ -331,11 +331,11 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LockName", "Zeze.Builtin.Threading.BLockName", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Permits", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimeoutMs", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "LockName", "Zeze.Builtin.Threading.BLockName", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "Permits", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "TimeoutMs", "int", "", ""));
         return _v_;
     }
 

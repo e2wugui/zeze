@@ -5,11 +5,6 @@ public class Schemas extends Zeze.Schemas {
     public Schemas() {
         addTable(new Zeze.Schemas.Table("Game_Buf_tbufs", "long", "Game.Buf.BBufs", 0));
         addTable(new Zeze.Schemas.Table("Game_Equip_tequip", "long", "Game.Equip.BEquips", 0));
-        addTable(new Zeze.Schemas.Table("Game_Equip_tHotRemove", "long", "Game.Equip.BEquipExtra", 0));
-        addTable(new Zeze.Schemas.Table("Game_Equip_tHotTest", "long", "Game.Equip.BEquipExtra", 0));
-        addTable(new Zeze.Schemas.Table("Game_Equip_tMemoryRetreat", "long", "Game.Equip.BEquipExtra", 0));
-        addTable(new Zeze.Schemas.Table("Game_Equip_tMemoryToNormal", "long", "Game.Equip.BEquipExtra", 0));
-        addTable(new Zeze.Schemas.Table("Game_Equip_tNormalToMemory", "long", "Game.Equip.BEquipExtra", 0));
         addTable(new Zeze.Schemas.Table("Game_Equip_tRelationalTest", "long", "Game.Equip.BRelational", 0));
         addTable(new Zeze.Schemas.Table("Game_Fight_tfighters", "Game.Fight.BFighterId", "Game.Fight.BFighter", 0));
         addTable(new Zeze.Schemas.Table("Game_Login_taccount", "string", "Game.Login.BAccount", 0));
@@ -183,13 +178,6 @@ public class Schemas extends Zeze.Schemas {
             var var = new Zeze.Schemas.Variable();
             var.id = 2;
             var.name = "Defence";
-            var.typeName = "int";
-            bean.addVariable(var);
-        }
-        {
-            var var = new Zeze.Schemas.Variable();
-            var.id = 3;
-            var.name = "HotRemoveVar";
             var.typeName = "int";
             bean.addVariable(var);
         }

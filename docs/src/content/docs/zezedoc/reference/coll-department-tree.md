@@ -55,7 +55,6 @@ DepartmentTree<TManager, TMember, TDepartmentMember, TGroupData, TDepartmentData
 | **必须在 Procedure 中操作** | 所有读写必须在事务内 |
 | **名称不能含 `@`** | `@` 为内部保留分隔符 |
 | **值必须继承 Bean** | 并经 `BeanFactory` 注册 |
-| **支持值类型热重载** | 通过 `HotBeanFactory` 接口 |
 
 ## 相关文档
 

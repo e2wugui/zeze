@@ -296,11 +296,11 @@ public final class BTransmitCancelRoleTimer extends Zeze.Transaction.Bean implem
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerId", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "RoleId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LoginVersion", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "TimerId", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "RoleId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "LoginVersion", "long", "", ""));
         return _v_;
     }
 }

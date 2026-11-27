@@ -638,17 +638,17 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ModuleId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "HashCodeConcurrentLevel", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "HashCodes", "set", "", "int"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "SourceProvider", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SessionId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "MethodFullName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Params", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "ServiceNamePrefix", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "Version", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ModuleId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "HashCodeConcurrentLevel", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "HashCodes", "set", "", "int"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "SourceProvider", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "SessionId", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(6, "MethodFullName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(7, "Params", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(8, "ServiceNamePrefix", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(9, "Version", "int", "", ""));
         return _v_;
     }
 

@@ -66,7 +66,6 @@ Gen.exe -BeautifulVariableId solution.xml              :: 仅整理 XML 变量 i
 | `LuaUtilDir` | 否 | Lua 客户端的工具目录名，默认 `common`。 |
 | `BuiltinNG` | 否 | `true` 时不生成 `Zeze.Builtin.*` 模块的代码。 |
 | `SolutionName` | 否 | 生成时给非 `Zeze` 的 solution 名加该前缀（多 solution 区分用）。 |
-| `hot` | 否 | `true` 标记为热更新项目。 |
 | `DisableDeleteGen` | 否 | `true` 时不把 `GenDir` 加入陈旧文件清理范围。 |
 | `IsUnity` / `EnableBase` / `NoRecursiveModule` / `ClientScript` / `MacroEditor` / `PresentModuleFullName` | 否 | 其他生成开关，按字面语义使用。 |
 
@@ -115,4 +114,4 @@ Gen.exe -BeautifulVariableId solution.xml              :: 仅整理 XML 变量 i
 
 ## 命名约束
 
-生成的标识符在 Java/C#/C++/JS/TS/Lua **多语言保留字并集**中不能冲突，名字也不能以 `_` 开头或结尾（hot bean 的尾下划线例外）。定义命名时需顾及所有目标语言。
+生成的标识符在 Java/C#/C++/JS/TS/Lua **多语言保留字并集**中不能冲突，名字也不能以 `_` 开头或结尾。定义命名时需顾及所有目标语言。

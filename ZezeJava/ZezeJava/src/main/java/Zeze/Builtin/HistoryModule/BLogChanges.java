@@ -468,13 +468,13 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "GlobalSerialId", "Zeze.Util.Id128", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProtocolClassName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ProtocolArgument", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Changes", "map", "Zeze.Builtin.HistoryModule.BTableKey", "binary"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Timestamp", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "GlobalSerialId", "Zeze.Util.Id128", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "ProtocolClassName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "ProtocolArgument", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "Changes", "map", "Zeze.Builtin.HistoryModule.BTableKey", "binary"));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "Timestamp", "long", "", ""));
         return _v_;
     }
 

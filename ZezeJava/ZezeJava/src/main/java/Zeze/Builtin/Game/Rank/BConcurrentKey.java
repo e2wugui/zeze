@@ -258,13 +258,13 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RankType", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ConcurrentId", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimeType", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Year", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Offset", "long", "", ""));
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
+        var vars = new java.util.ArrayList<Zeze.Transaction.VariableMeta>();
+        vars.add(new Zeze.Transaction.VariableMeta(1, "RankType", "int", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(2, "ConcurrentId", "int", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(3, "TimeType", "int", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(4, "Year", "int", "", ""));
+        vars.add(new Zeze.Transaction.VariableMeta(5, "Offset", "long", "", ""));
         return vars;
     }
 }

@@ -210,9 +210,9 @@ public final class BValue2 extends Zeze.Transaction.Bean implements BValue2ReadO
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "gTable", "gtable", "int,int", "demo.ModuleGTable.Bean1"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "gTable", "gtable", "int,int", "demo.ModuleGTable.Bean1"));
         return _v_;
     }
 }

@@ -85,16 +85,16 @@ public final class App extends Zeze.AppBase {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
-    public Zeze.Application Zeze;
+    public Zeze.@org.jspecify.annotations.Nullable Application Zeze;
 
-    public Linkd.LinkdService LinkdService;
-    public Linkd.ProviderService ProviderService;
+    public Linkd.@org.jspecify.annotations.Nullable LinkdService LinkdService;
+    public Linkd.@org.jspecify.annotations.Nullable ProviderService ProviderService;
 
-    public Linkd.Linkd.ModuleLinkd Linkd_Linkd;
+    public Linkd.Linkd.@org.jspecify.annotations.Nullable ModuleLinkd Linkd_Linkd;
 
     @Override
     public Zeze.Application getZeze() {
-        return Zeze;
+        return java.util.Objects.requireNonNull(Zeze, "Zeze has not been created");
     }
 
     public void createZeze() throws Exception {
@@ -102,7 +102,7 @@ public final class App extends Zeze.AppBase {
     }
 
     @Override
-    public void createZeze(Zeze.Config config) throws Exception {
+    public void createZeze(Zeze.@org.jspecify.annotations.Nullable Config config) throws Exception {
         lock();
         try {
             if (Zeze != null)
@@ -118,30 +118,32 @@ public final class App extends Zeze.AppBase {
     public void createService() {
         lock();
         try {
-            LinkdService = new Linkd.LinkdService(Zeze);
-            ProviderService = new Linkd.ProviderService(Zeze);
+            LinkdService = new Linkd.LinkdService(getZeze());
+            ProviderService = new Linkd.ProviderService(getZeze());
         } finally {
             unlock();
         }
+    }
+
+    public static Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            Linkd.Linkd.ModuleLinkd.class,
+        };
     }
 
     @Override
     public void createModules() throws Exception {
         lock();
         try {
-            Zeze.initialize(this);
-            var _modules_ = createRedirectModules(new Class[] {
-                Linkd.Linkd.ModuleLinkd.class,
-            });
-            if (_modules_ == null)
-                return;
+            getZeze().initialize(this);
+            var _modules_ = createRedirectModules(redirectModuleClasses());
 
             Linkd_Linkd = (Linkd.Linkd.ModuleLinkd)_modules_[0];
             Linkd_Linkd.Initialize(this);
             if (modules.put(Linkd_Linkd.getFullName(), Linkd_Linkd) != null)
                 throw new IllegalStateException("duplicate module name: Linkd_Linkd");
 
-            Zeze.setSchemas(new Linkd.Schemas());
+            getZeze().setSchemas(new Linkd.Schemas());
         } finally {
             unlock();
         }
@@ -179,7 +181,7 @@ public final class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
-            Linkd_Linkd.Start(this);
+            java.util.Objects.requireNonNull(Linkd_Linkd).Start(this);
         } finally {
             unlock();
         }
@@ -189,7 +191,7 @@ public final class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
-            Linkd_Linkd.StartLast();
+            java.util.Objects.requireNonNull(Linkd_Linkd).StartLast();
         } finally {
             unlock();
         }
@@ -222,8 +224,8 @@ public final class App extends Zeze.AppBase {
     public void startService() throws Exception {
         lock();
         try {
-            LinkdService.start();
-            ProviderService.start();
+            java.util.Objects.requireNonNull(LinkdService).start();
+            java.util.Objects.requireNonNull(ProviderService).start();
         } finally {
             unlock();
         }

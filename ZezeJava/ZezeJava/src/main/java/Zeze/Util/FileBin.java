@@ -14,7 +14,7 @@ import java.util.function.UnaryOperator;
 import Zeze.Net.Binary;
 
 /**
- * 单个分发文件的传输载体（Zoker 的 DistributeManager 与 Hot 的 Zeze.Hot.DistributeManager 共用）：
+ * 单个分发文件的传输载体（供 Zoker 的 DistributeManager 使用）：
  * RandomAccessFile 断点续传，边写边维护全量 md5 供 CloseFile 校验。
  *
  * <p><b>线程安全（zoker-04）</b>：实例可被多连接共享（open 幂等复用同一 FileBin），共享的可变状态

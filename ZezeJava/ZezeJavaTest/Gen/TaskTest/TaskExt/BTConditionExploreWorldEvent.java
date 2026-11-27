@@ -192,9 +192,9 @@ public final class BTConditionExploreWorldEvent extends Zeze.Transaction.Bean im
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "exploreRate", "double", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "exploreRate", "double", "", ""));
         return _v_;
     }
 }

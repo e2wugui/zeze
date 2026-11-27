@@ -247,9 +247,9 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "modules", "map", "int", "Zeze.Builtin.Provider.BModule"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "modules", "map", "int", "Zeze.Builtin.Provider.BModule"));
         return _v_;
     }
 

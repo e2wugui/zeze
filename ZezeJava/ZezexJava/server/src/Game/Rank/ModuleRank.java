@@ -1,6 +1,5 @@
 package Game.Rank;
 
-import java.util.Objects;
 import java.util.List;
 import java.util.Map;
 import Game.App;
@@ -11,12 +10,10 @@ import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectKey;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
-import Zeze.Hot.HotService;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
@@ -29,7 +26,7 @@ import org.jspecify.annotations.Nullable;
  * 然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
  */
 @SuppressWarnings({"MethodMayBeStatic", "RedundantSuppression"})
-public class ModuleRank extends AbstractModule implements IModuleRank {
+public class ModuleRank extends AbstractModule {
 	private static final Logger logger = LogManager.getLogger(ModuleRank.class);
 
 	public final void Start(App app) {
@@ -38,24 +35,8 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	public final void Stop(App app) {
 	}
 
-	@Override
-	public void start() throws Exception {
-		Start(App);
-	}
-
-	@Override
-	public void stop() throws Exception {
-		Stop(App);
-	}
-
-	@Override
-	public void upgrade(HotService old) throws Exception {
-
-	}
-
 	/******************************** ModuleRedirect 测试 *****************************************/
 	// 单发给某个serverId执行(找不到或没连接会抛异常),可以是本服. 返回类型可以是void或RedirectFuture<自定义结果类型或Long(resultCode)>
-	@Override
 	@RedirectToServer(version = 1)
 	public RedirectFuture<TestToServerResult> TestToServer(int serverId, int in) { // 首个参数serverId是固定必要的特殊参数,后面是自定义输入参数
 		var result = new TestToServerResult();
@@ -65,7 +46,6 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	}
 
 	// 第一个参数hash是固定的特殊参数
-	@Override
 	@RedirectHash(version = 2) // 单发给某个hash值指定的server执行,可能是本服,找不到hash节点也会在本服执行. 返回类型同ToServer
 	public RedirectFuture<TestHashResult> TestHash(int hash, int in) { // 首个参数hash是固定必要的特殊参数,后面是自定义输入参数
 		var f = new RedirectFuture<TestHashResult>();
@@ -80,7 +60,6 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		return f;
 	}
 
-	@Override
 	@RedirectAll(version = 3) // 广播请求并获取所有回复结果
 	public RedirectAllFuture<TestToAllResult> TestToAll(int hash, int in) throws Exception { // 首个参数hash在发起方是hash总数,处理方是当前hash,后面是自定义参数列表
 		logger.info("TestToAll hash={}, in={}", hash, in);

@@ -327,11 +327,13 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         if (_i_ == 1) {
             setBeginTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setBeginTime(0);
         if (_i_ == 2) {
             setEndTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setEndTime(0);
         if (_i_ == 3) {
             var _x_ = _Words;
             _x_.clear();
@@ -341,15 +343,18 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Words.clear();
         if (_i_ == 4) {
             setContainsType(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setContainsType(0);
         if (_i_ == 5) {
             setPattern(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPattern("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -437,13 +442,13 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "BeginTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "EndTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Words", "list", "", "string"));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ContainsType", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Pattern", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "BeginTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "EndTime", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Words", "list", "", "string"));
+        _v_.add(new Zeze.Transaction.VariableMeta(4, "ContainsType", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(5, "Pattern", "string", "", ""));
         return _v_;
     }
 
@@ -685,11 +690,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _BeginTime = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _BeginTime = 0;
         if (_i_ == 2) {
             _EndTime = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _EndTime = 0;
         if (_i_ == 3) {
             var _x_ = _Words;
             _x_.clear();
@@ -699,15 +706,18 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Words.clear();
         if (_i_ == 4) {
             _ContainsType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ContainsType = 0;
         if (_i_ == 5) {
             _Pattern = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Pattern = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

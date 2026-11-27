@@ -249,15 +249,18 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         if (_i_ == 1) {
             setServiceName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServiceName("");
         if (_i_ == 2) {
             setState(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setState("");
         if (_i_ == 3) {
             setPs(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setPs("");
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -318,11 +321,11 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "State", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Ps", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ServiceName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "State", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Ps", "string", "", ""));
         return _v_;
     }
 
@@ -500,15 +503,18 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceName = "";
         if (_i_ == 2) {
             _State = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _State = "";
         if (_i_ == 3) {
             _Ps = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Ps = "";
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

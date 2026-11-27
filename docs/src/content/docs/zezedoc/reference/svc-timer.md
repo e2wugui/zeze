@@ -102,7 +102,7 @@ if (!ok) {
 
 ## Online / Offline Timer（绑定用户）
 
-这两类定时器**不在 `Timer` 类上**，而在 **`TimerAccount`** 类（通过 `timer.getAccountTimer()` 获取）。方法名是小写的 `scheduleOnline` / `scheduleOffline`（以及 `*Named` / `*Hot` 变体）：
+这两类定时器**不在 `Timer` 类上**，而在 **`TimerAccount`** 类（通过 `timer.getAccountTimer()` 获取）。方法名是小写的 `scheduleOnline` / `scheduleOffline`（以及 `*Named` 变体）：
 
 ```java
 TimerAccount accountTimer = timer.getAccountTimer();

@@ -2,7 +2,6 @@
 setlocal
 pushd %~dp0
 
-copy /Y server\ModuleEquip.java server\src-hot\Game\Equip\ModuleEquip.java
 rem ..\..\Gen\bin\Debug\net8.0\Gen.exe solution.xml
 rem ..\..\Gen\bin\Debug\net8.0\Gen.exe solution.linkd.xml
 ..\..\publish\Gen.exe solution.xml

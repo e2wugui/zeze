@@ -17,7 +17,7 @@ public interface BListServiceResultReadOnly {
     int variableId();
     @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Zoker.BService, Zeze.Builtin.Zoker.BServiceReadOnly> getServicesReadOnly();
 }

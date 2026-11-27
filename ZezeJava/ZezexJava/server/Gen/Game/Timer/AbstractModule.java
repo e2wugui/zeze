@@ -50,9 +50,9 @@ public abstract class AbstractModule implements Zeze.IModule {
         // register protocol factory and handles
         // register table
         if (App.Zeze != null) {
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tIndexs.getName())).getDatabaseName(), _tIndexs);
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tNodeRoot.getName())).getDatabaseName(), _tNodeRoot);
-            App.Zeze.replaceTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tNodes.getName())).getDatabaseName(), _tNodes);
+            App.Zeze.addTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tIndexs.getName())).getDatabaseName(), _tIndexs);
+            App.Zeze.addTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tNodeRoot.getName())).getDatabaseName(), _tNodeRoot);
+            App.Zeze.addTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tNodes.getName())).getDatabaseName(), _tNodes);
         }
         // register servlet
     }
@@ -61,6 +61,9 @@ public abstract class AbstractModule implements Zeze.IModule {
     public void UnRegister() {
         // unregister protocol factory and handles
         // unregister table
+        App.Zeze.removeTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tIndexs.getName())).getDatabaseName(), _tIndexs);
+        App.Zeze.removeTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tNodeRoot.getName())).getDatabaseName(), _tNodeRoot);
+        App.Zeze.removeTable(java.util.Objects.requireNonNull(App.Zeze.getConfig().getTableConf(_tNodes.getName())).getDatabaseName(), _tNodes);
         // unregister servlet
     }
 }

@@ -7,12 +7,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
-import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.SetDisableChoice;
 import Zeze.Builtin.Provider.Subscribe;
-import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
@@ -20,7 +18,6 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -215,8 +212,7 @@ public class ProviderService extends HandshakeClient {
 		announce.Send(so);
 
 		// static binds
-		// staticBinds/dynamicModules/modules为非线程安全IntHashMap：写点（startLast、addHotModule）
-		// 与全部读点统一providerApp锁，防止热更线程写与linkd重连握手线程读并发时resize撕裂。
+		// staticBinds/dynamicModules/modules为非线程安全IntHashMap：读写统一在providerApp锁下进行。
 		var bind = new Bind();
 		requireProviderApp().lock();
 		try {
@@ -265,64 +261,6 @@ public class ProviderService extends HandshakeClient {
 			return false;
 		}
 		return true;
-	}
-
-	// 热更新增模块。
-	// 1. 热更才会调用；
-	// 2. 只有新增模块才会调用；
-	public void addHotModule(IModule module, BModule.Data config) {
-		{
-			// 全局数据更新（providerApp锁内写三map，读写统一锁契约见OnHandshakeDone处注释）
-			requireProviderApp().lock();
-			try {
-				//noinspection DataFlowIssue
-				requireProviderApp().zeze.getAppBase().addModule(module);
-				requireProviderApp().modules.put(module.getId(), config);
-			} finally {
-				requireProviderApp().unlock();
-			}
-		}
-		{
-			// 注册订阅服务。
-			var sm = Objects.requireNonNull(requireProviderApp().zeze.getServiceManager());
-			var identity = String.valueOf(requireProviderApp().zeze.getConfig().getServerId());
-			sm.registerService(new BServiceInfo(
-					requireProviderApp().serverServiceNamePrefix + module.getId(), identity,
-					requireProviderApp().zeze.getConfig().getAppMainVersion(),
-					requireProviderApp().directIp, requireProviderApp().directPort));
-			sm.subscribeService(new BSubscribeInfo(requireProviderApp().serverServiceNamePrefix + module.getId(),
-					requireProviderApp().zeze.getConfig().getAppMainVersion()));
-		}
-
-		// 并通知所有links。
-		// Bind/Subscribe 是 Rpc，实例一次性（Send 后 sessionId 永久占用）：每个 link 各自 new
-		// 发送，对齐 OnHandshakeDone 的每连接新实例形态——复用单实例在 ≥2 条就绪连接时第二次
-		// Send 必抛 IllegalStateException，直落热更不可回滚区 halt。
-		if (!config.isDynamic()) {
-			requireProviderApp().lock();
-			try {
-				requireProviderApp().staticBinds.put(module.getId(), config);
-			} finally {
-				requireProviderApp().unlock();
-			}
-			for (var link : links.values()) {
-				var bind = new Bind();
-				bind.Argument.getModules().put(module.getId(), config);
-				bind.Send(link.TryGetReadySocket());
-			}
-		} else {
-			requireProviderApp().lock();
-			try {
-				requireProviderApp().dynamicModules.put(module.getId(), config);
-			} finally {
-				requireProviderApp().unlock();
-			}
-			for (var link : links.values()) {
-				var sub = new Subscribe();
-				sub.Argument.getModules().put(module.getId(), config);
-				sub.Send(link.TryGetReadySocket());
-			}
-		}
 	}
 
 	@SuppressWarnings("unchecked")

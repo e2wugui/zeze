@@ -278,10 +278,10 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "linkSid", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "userState", "Zeze.Builtin.Provider.BUserState", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "linkSid", "long", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "userState", "Zeze.Builtin.Provider.BUserState", "", ""));
         return _v_;
     }
 

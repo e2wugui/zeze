@@ -62,7 +62,7 @@ Zeze 用**内存事务 + 乐观锁 + 一致性缓存**把这三件事一次性�
 - **持久化集合**：[概览](./reference/coll-overview.md) · [Queue](./reference/coll-queue.md) · [LinkedMap](./reference/coll-linked-map.md) · [CHashMap](./reference/coll-chashmap.md) · [DepartmentTree](./reference/coll-department-tree.md) · [BoolList](./reference/coll-bool-list.md) · [DAG](./reference/coll-dag.md)
 - **游戏模块**：[总览](./reference/game-overview.md) · [背包](./reference/game-bag.md) · [排行榜](./reference/game-rank.md) · [登录队列](./reference/game-login-queue.md) · [任务](./reference/game-task.md)
 - **客户端接入**：[C#/Unity](./reference/client-csharp.md) · [C++](./reference/client-cpp.md) · [TypeScript](./reference/client-typescript.md)
-- **进阶**：[热更新](./reference/advanced-hot-reload.md) · [线程模型](./reference/advanced-threads.md) · [性能调优](./reference/advanced-performance.md) · [监控](./reference/advanced-metrics.md) · [消息队列](./reference/advanced-mq.md)
+- **进阶**：[线程模型](./reference/advanced-threads.md) · [性能调优](./reference/advanced-performance.md) · [监控](./reference/advanced-metrics.md) · [消息队列](./reference/advanced-mq.md)
 
 ---
 

@@ -57,13 +57,8 @@ public final class FastServerIds {
 	public static final String URL_TEST_MEMORY_EMPTY_VALUE_REPLACE = memUrl("empty_value_replace");
 	public static final String URL_TEST_MEMORY_RENAMED_TABLE_HANDLES = memUrl("memory_renamed_table_handles");
 	public static final String URL_TEST_WALK_INTERRUPT_COUNT = memUrl("walk_interrupt_count");
-	public static final String URL_TEST_HOT_INSTALL_RESIDUE = memUrl("hot_install_residue_memory");
-	public static final String URL_TEST_HISTORY_HOT_INSTALL_EXCLUSION = memUrl("history_hot_install_exclusion");
-	public static final String URL_TEST_HOT_TRY_DISTRIBUTE = memUrl("hot_try_distribute_memory");
 	public static final String URL_TEST_ADD_TABLE = memUrl("add_table_memory");
 	public static final String URL_TEST_HISTORY_FLUSH_COMMIT_BINDING = memUrl("history_commit_binding_unit");
-	public static final String URL_TEST_HOT_TRY_DISTRIBUTE_GUARD = memUrl("hot_trydistribute_test");
-	public static final String URL_TEST_HOT_MANAGER_STOP_RESTORE = memUrl("hot_manager_stop_restore");
 	public static final String URL_TEST_KV_KEY_LENGTH_PAGED_WALK = memUrl("kv_keylen_pagedwalk");
 	public static final String URL_TEST_DYNAMIC_BEAN_ELEMENT_LOG_KEY = memUrl("test_dynamic_elk_memory");
 
@@ -102,8 +97,6 @@ public final class FastServerIds {
 	// 与泄漏存活的 demo.App(serverId=0→CommitRocks0) 同JVM并存必需）。
 	public static final int TEST_DATABASE_SELECTION = seg("TestDatabaseSelection", 790, 1);
 
-	public static final int TEST_HOT_ROLLBACK_MEMORY_TABLE = seg("TestHotRollbackMemoryTable", 800, 1);
-	public static final int TEST_HOT_UPGRADE_INCOMPATIBLE_FAILFAST = seg("TestUpgradeIncompatibleFailFast", 810, 1);
 	public static final int TEST_GET_OR_ADD_IS_ADD_CONTRACT = seg("TestGetOrAddIsAddContract", 820, 1);
 
 	public static final int TEST_ONZ_REDO_ROTATION_CURSOR = seg("TestOnzRedoRotationCursor", 857, 2);
@@ -114,7 +107,6 @@ public final class FastServerIds {
 	public static final int TEST_SET_BULK_CHANGE_RETURN = seg("TestSetBulkChangeReturn", 7080, 1);
 	public static final int TEST_CHECKPOINT_IMMEDIATELY = seg("TestCheckpointImmediately", 7123, 1);
 	public static final int TEST_HISTORY_GID_FAIL_CLEAN = seg("TestHistoryGidFailClean", 7125, 1);
-	public static final int TEST_ONLINE_HOT_STOP_EVENT_REF = seg("TestOnlineHotStopEventRef", 7150, 3);
 	public static final int TEST_TIMER_STOP_START_RESTART = seg("TestTimerStopStartRestart", 7160, 2);
 	public static final int TEST_PROCESS_LINK_BROKEN_NON_ROLE_CONTEXT = seg("TestProcessLinkBrokenNonRoleContext", 7250, 3);
 	public static final int TEST_TRANSACTION_DECODE_FAIL_CLOSES = seg("TestTransactionDecodeFailCloses", 7300, 2);
@@ -137,9 +129,7 @@ public final class FastServerIds {
 	public static final int TEST_APPLICATION_RESTART_CONTRACT = seg("TestApplicationRestartContract", 7470, 1);
 	public static final int TEST_GAME_LINK_BROKEN_TRIGGER_RC = seg("TestGameLinkBrokenTriggerRc", 7480, 4);
 	public static final int TEST_CLEAR_TABLE_CACHE_TIMERS = seg("TestClearTableCacheTimers", 7490, 2);
-	public static final int TEST_HOT_UPGRADE_MEMORY_TABLE_DATA = seg("TestHotUpgradeMemoryTableData", 7500, 3);
 	public static final int TEST_LINKED_MAP_BROKEN_DATA = seg("TestLinkedMapBrokenData", 7510, 4);
-	public static final int TEST_HOT_REPLACE_TABLE_CACHE_CLOSE = seg("TestHotReplaceTableCacheClose", 7520, 2);
 	public static final int TEST_DELAY_REMOVE_ON_TIMER = seg("TestDelayRemoveOnTimer", 7530, 3);
 	public static final int TEST_REDUCE_INVALID_ALL_FLUSH = seg("TestReduceInvalidAllFlush", 7540, 1);
 	public static final int TEST_QUEUE_COMPATIBLE = seg("TestQueueCompatible", 7550, 3);
@@ -162,9 +152,6 @@ public final class FastServerIds {
 	public static final int TEST_ONLINE_RELIABLE_LOGOUT = seg("TestOnlineReliableLogout", 8810, 5);
 	public static final int TEST_ONLINE_LOGIN_VALIDATION = seg("TestOnlineLoginValidation", 8830, 2);
 
-	public static final int TEST_HOT_INSTALL_START_LAST_FILTER = seg("TestInstallStartLastFilter", 12810, 1);
-	public static final int TEST_HOT_TRY_DISTRIBUTE_SUCCESS_DELETE_FAIL = seg("TestTryDistributeSuccessDeleteFail", 12811, 1);
-	public static final int TEST_HISTORY_HOT_INSTALL_EXCLUSION = seg("TestHistoryHotInstallExclusion", 12812, 2);
 	public static final int TEST_COMMIT_PATH_SALVAGE = seg("TestCommitPathSalvage", 12818, 1);
 	public static final int TEST_CHECKPOINT_RUN_RACE = seg("TestCheckpointRunRace", 12821, 1);
 	public static final int TEST_RENAME_TABLE_AFTER_COMPAT_CHECK = seg("TestRenameTableAfterCompatCheck", 12822, 1);
@@ -192,7 +179,6 @@ public final class FastServerIds {
 	public static final int TEST_PRODUCER_MULTIPLE_INSTANCES_SHARE_PROCESS = seg("TestProducerMultipleInstancesShareProcess", 16241, 2);
 	public static final int TEST_PRODUCER_STOP_REBUILD_SAME_APPLICATION = seg("TestProducerStopRebuildSameApplication", 16243, 1);
 	public static final int TEST_DYNAMIC_BEAN_ELEMENT_LOG_KEY = seg("TestDynamicBeanElementLogKey", 16251, 4);
-	public static final int TEST_TIMER_HOT_WATCH_REF = seg("TestTimerHotWatchRef", 16261, 4);
 	public static final int TEST_SET_MAP_PARTIAL_CHANGE_PHANTOM_DELTA = seg("TestSetMapPartialChangePhantomDelta", 16271, 2);
 	public static final int TEST_GTABLE_STALE_PHANTOM_ROW = seg("TestGTableStaleRowAndPhantomRow", 16281, 2);
 	public static final int TEST_PMAP2_COPY_DEEP = seg("TestPMap2CopyDeep", 16291, 1);
@@ -222,8 +208,6 @@ public final class FastServerIds {
 	public static final int TEST_RAFT_SNAPSHOT_REQUEST_DEDUP = seg("TestRaftSnapshotRequestDedup", 7780, 2);
 	public static final int TEST_RECOVERED_APPLIED_PREFIX_PROTECTION = seg("TestRecoveredAppliedPrefixProtection", 7790, 1);
 	public static final int TEST_RRS_READ_FAST_PATH_OLD_TABLE = seg("TestRrsReadFastPathOldTableMigration", 7800, 1);
-	// 仅 manager-cycle child 构造一个未启动的 NoDatabase Application。
-	public static final int TEST_PERIODIC_TASK_HOT_GUARD_CANCELLATION = seg("TestPeriodicTaskHotGuardCancellation", 7850, 1);
 	public static final int TEST_APPLICATION_COMPONENT_ACCESS = seg("TestApplicationComponentAccess", 7860, 1);
 	public static final int TEST_ONLINE_LOGIN_HANDOFF = seg("TestOnlineLoginHandoff", 7870, 20);
 	public static final int TEST_GAME_ONLINE_LOGIN_HANDOFF = seg("TestGameOnlineLoginHandoff", 7890, 20);
@@ -245,14 +229,11 @@ public final class FastServerIds {
 	public static final int TEST_CHECKPOINT_STOP_WAKEUP = seg("TestCheckpointStopWakeup", 8093, 1);
 	public static final int TEST_RECORD_VERSION_VISIBILITY = seg("TestRecordVersionVisibility", 8094, 1);
 	public static final int TEST_SELECT_COPY_GO_BACK_PROPAGATION = seg("TestSelectCopyGoBackPropagation", 8095, 1);
-	public static final int TEST_REPLACE_RELATIONAL_TABLE_ORDER = seg("TestReplaceRelationalTableOrder", 8096, 1);
 	public static final int TEST_REDO_SHRINK_HOLD_LOCKS_RELEASE = seg("TestRedoShrinkHoldLocksRelease", 8097, 1);
 	public static final int TEST_RELATIONAL_TABLE_WALK_GUARDS = seg("TestRelationalTableWalkGuardsAndStreaming", 8098, 1);
 	public static final int TEST_CHASHMAP_COMMIT_SIZE_SNAPSHOT = seg("TestCHashMapCommitSizeSnapshot", 8100, 3);
-	public static final int TEST_QUEUE_REMOVE_UNREGISTERS_HOT_REFS = seg("TestQueueRemoveUnregistersHotRefs", 8105, 3);
 	public static final int TEST_GAME_ONLINE_CROSS_SERVER_LOGIN_LOCAL_REMOVE = seg("TestGameOnlineCrossServerLoginLocalRemove", 8110, 4);
 	public static final int TEST_GAME_ONLINE_SEND_RPC_CLEANUP = seg("TestGameOnlineSendRpcCleanup", 8115, 2);
-	public static final int TEST_BAG_HOT_BEAN_FACTORY = seg("TestBagHotBeanFactory", 8120, 8);
 
 	private FastServerIds() {
 	}

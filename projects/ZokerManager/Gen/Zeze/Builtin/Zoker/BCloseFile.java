@@ -248,15 +248,18 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         if (_i_ == 1) {
             setServiceName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setServiceName("");
         if (_i_ == 2) {
             setFileName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setFileName("");
         if (_i_ == 3) {
             setMd5(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMd5(Zeze.Net.Binary.Empty);
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -315,11 +318,11 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "FileName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Md5", "binary", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "ServiceName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "FileName", "string", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Md5", "binary", "", ""));
         return _v_;
     }
 
@@ -496,15 +499,18 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _ServiceName = "";
         if (_i_ == 2) {
             _FileName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _FileName = "";
         if (_i_ == 3) {
             _Md5 = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Md5 = Zeze.Net.Binary.Empty;
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

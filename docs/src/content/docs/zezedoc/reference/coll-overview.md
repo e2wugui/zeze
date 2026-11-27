@@ -52,8 +52,6 @@ public class Task extends Zeze.Transaction.Bean {
 }
 ```
 
-> 所有集合通过 **`HotBeanFactory`** 接口支持值类型的热重载，无需重启即可更新 Bean 结构。
-
 ## 与 Table 的关系
 
 每个集合 `Module` 在构造时调用 `RegisterZezeTables(zeze)` 注册其内部 Table。集合本身不绕过事务，而是使用标准 `Table` 接口，因此天然享受：
@@ -84,7 +82,6 @@ public class Task extends Zeze.Transaction.Bean {
 | **必须在 Procedure 中读写** | 所有集合的读写操作都必须在事务（Procedure）内执行 |
 | **名称不能包含 `@`** | `@` 是 Zeze 内部保留的分隔符，实例名中出现会导致冲突 |
 | **值必须继承 Bean** | 存入集合的值类型必须继承 `Zeze.Transaction.Bean` 并经 `BeanFactory` 注册 |
-| **支持值类型热重载** | 所有集合通过 `HotBeanFactory` 接口支持 Bean 结构的热更新 |
 
 事务机制详见 [./transaction.md](./transaction.md)。
 

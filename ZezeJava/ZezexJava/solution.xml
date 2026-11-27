@@ -4,7 +4,7 @@
 	<import file="solution.linkd.xml"/>
 	<import file="../ZezeJava/solution.zeze.xml"/>
 
-	<module name="Login" id="1" hot="true">
+	<module name="Login" id="1">
 		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
 
 		<bean name="BCreateRole">
@@ -37,7 +37,7 @@
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
 	</module>
 
-	<module name="Item" id="3" hot="true">
+	<module name="Item" id="3">
 		<bean name="BFoodExtra">
 			<variable id="1" name="Ammount" type="int"/>
 		</bean>
@@ -48,7 +48,7 @@
 		<!-- 不需要定义自己的 table，一般物品都存储在 Bag 中。 -->
 	</module>
 
-	<module name="Fight" id="4" hot="true">
+	<module name="Fight" id="4">
 		<bean name="BFighter"> 战斗相关属性，用于技能等。
 			<variable id="1" name="Attack" type="float"/>
 			<variable id="2" name="Defence" type="float"/>
@@ -67,7 +67,7 @@
 		<rpc name="AreYouFight" handle="client"/>
 	</module>
 
-	<module name="Skill" id="5" hot="true">
+	<module name="Skill" id="5">
 		<bean name="BSkill">
 			<variable id="1" name="Id" type="int"/>
 			<variable id="2" name="Extra" type="dynamic">
@@ -83,7 +83,7 @@
 		<table name="tskills" key="long" value="BSkills"/>
 	</module>
 
-	<module name="Buf" id="6" hot="true">
+	<module name="Buf" id="6">
 		<!-- buf 应该尽量通过配置控制：冲突，覆盖，增加属性，生命期等 -->
 		<bean name="BBuf">
 			<variable id="1" name="Id" type="int"/>
@@ -115,15 +115,11 @@
 		<protocol name="SChanged" argument="BBufChanged" handle="client"/> 所有的buf改变都通过这个协议发送，通过ChangeListener订阅。
 	</module>
 
-	<module name="Equip" id="7" hot="true">
+	<module name="Equip" id="7">
 		<enum name="ResultCodeCannotEquip"   value="1"/>
 		<enum name="ResultCodeItemNotFound"  value="2"/>
 		<enum name="ResultCodeBagIsFull"     value="3"/>
 		<enum name="ResultCodeEquipNotFound" value="4"/>
-		
-		<bean name="BRetreatTestLocal">
-			<variable id="1" name="VarInt1" type="int"/>
-		</bean>
 
 		<bean name="BEquipement"> 穿上装备
 			<variable id="1" name="BagPos" type="int"/>
@@ -158,27 +154,17 @@
 		<bean name="BEquipExtra">
 			<variable id="1" name="Attack" type="int"/>
 			<variable id="2" name="Defence" type="int"/>
-			<variable id="3" name="HotRemoveVar" type="int"/> 这个变量在新版热更模块会被删除。
 		</bean>
 
 		<bean name="BEquips">
 			<variable id="1" name="Items" type="map" key="int" value="BItem"/> key is equip position
 		</bean>
 		<table name="tequip" key="long" value="BEquips"/>
-		<table name="tHotTest" key="long" value="BEquipExtra"/> 新版热更模块修改这个这张表的Value结构定义。
-		<table name="tHotRemove" key="long" value="BEquipExtra"/> 新版热更模块删除这张表（zeze内的表并不会关闭，后端数据库的表更不会删除）
 
 		<bean name="BReportLogin">
 			<variable id="1" name="RoleId" type="long"/>
 		</bean>
 		<rpc name="ReportLogin" argument="BReportLogin" handle="server"/>
-
-		<rpc name="SendHot" argument="BEquipExtra" handle="server"/>
-		<rpc name="SendHotRemove" argument="BEquipExtra" handle="server"/>
-		
-		<table name="tMemoryToNormal" key="long" value="BEquipExtra" memory="true"/> 不会倒数据，清空，正常访问即可。
-		<table name="tNormalToMemory" key="long" value="BEquipExtra"/> 不会倒数据，清空，正常访问即可。
-		<table name="tMemoryRetreat" key="long" value="BEquipExtra" memory="true"/> 会重建bean
 
 		<bean name="BRelational">
 			<variable id="1" name="Id" type="long"/>
@@ -234,7 +220,7 @@
 		</bean>
 	</module>
 
-	<module name="Timer" id="11" hot="true">
+	<module name="Timer" id="11">
 		<bean name="BNodeRoot">
 			<variable id="1" name="HeadNodeId" type="long"/>
 			<variable id="2" name="TailNodeId" type="long"/>
@@ -267,7 +253,7 @@
 		<table name="tIndexs" key="long" value="BIndex" /> key is timerId
 	</module>
 
-	<module name="LongSet" id="12" hot="true">
+	<module name="LongSet" id="12">
 		<bean name="BNodeRoot">
 			<variable id="1" name="HeadNodeId" type="long"/>
 			<variable id="2" name="TailNodeId" type="long"/>
@@ -297,7 +283,7 @@
 	gendir 代码生成输出目录，默认是当前目录
 	GenTables 选择生成哪些表格（Table），如果为空，那就生成那些没有配置gen属性的table，可以用','分开指定多个名字
 	-->
-	<project name="server" hot="true" GenDir="server/Gen" SrcDir="server/src" HotSrcDir="server/src-hot" platform="java" GenTables="">
+	<project name="server" GenDir="server/Gen" SrcDir="server/src" platform="java" GenTables="">
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		<module ref="CommonModule"/>

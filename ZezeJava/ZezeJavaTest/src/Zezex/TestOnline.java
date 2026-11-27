@@ -25,20 +25,10 @@ public class TestOnline {
 	final static int ServerCount = 2;
 	final static int RoleCount = 2;
 
-	// IModuleFight 已随实现迁 src-hot（src/ 不留热模块文件），接口 Class 不在测试 classpath，
-	// 编译期引用与字节码常量池引用运行期都解析不到——跨装载器调用改反射：
-	// getModuleContext 的 Class 参数只是 contexts 的 key，用平台基类 HotService 即可；
-	// service 运行时对象是热装载器里的 ModuleFight，getClass().getMethod 反射调用不需要
-	// 本类类加载器解析 Game.Fight 类型。
-	// Method 必须按 receiver 的实际类解析：每个 server 独立 HotManager 各自 define 一份
-	// ModuleFight，同名不同 Class，跨 server 缓存复用同一 Method 会 IllegalArgumentException。
 	private void areYouFight() throws Exception {
 		while (true) {
 			for (var server : env.servers) {
-				var service = Objects.requireNonNull(Objects.requireNonNull(server.getZeze().getHotManager())
-						.getModuleContext("Game.Fight", Zeze.Hot.HotService.class)).getService();
-				var isDone = Objects.requireNonNull(service).getClass().getMethod("isAreYouFightDone");
-				if ((boolean)isDone.invoke(service))
+				if (Objects.requireNonNull(server.Game_Fight).isAreYouFightDone())
 					return;
 			}
 			//noinspection BusyWait

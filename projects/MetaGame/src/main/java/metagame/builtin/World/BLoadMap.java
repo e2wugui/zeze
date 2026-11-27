@@ -3,14 +3,20 @@ package metagame.builtin.World;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "ConstantConditions", "ConstantValue", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
 public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapReadOnly {
     public static final long TYPEID = -3569760113089794121L;
 
     private int _MapId; // 地图配置编号
     private final Zeze.Transaction.Collections.CollOne<metagame.builtin.World.BLoad> _LoadSum; // 所有地图实例的累计
+    private static final Zeze.Transaction.Collections.LogOneMeta<metagame.builtin.World.BLoad> meta1_LoadSum
+            = Zeze.Transaction.Collections.LogOneMeta.get(metagame.builtin.World.BLoad.class);
+
     private final Zeze.Transaction.Collections.PMap2<Long, metagame.builtin.World.BLoad> _Instances; // 地图实例（线）的负载
+    private static final Zeze.Transaction.Collections.Map2Meta<Long, metagame.builtin.World.BLoad> meta2_Instances
+            = Zeze.Transaction.Collections.Map2Meta.get(Long.class, metagame.builtin.World.BLoad.class);
 
     private static final java.lang.invoke.VarHandle vh_MapId;
 
@@ -67,18 +73,18 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
 
     @SuppressWarnings("deprecation")
     public BLoadMap() {
-        _LoadSum = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.World.BLoad(), metagame.builtin.World.BLoad.class);
+        _LoadSum = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.World.BLoad(), meta1_LoadSum);
         _LoadSum.variableId(2);
-        _Instances = new Zeze.Transaction.Collections.PMap2<>(Long.class, metagame.builtin.World.BLoad.class);
+        _Instances = new Zeze.Transaction.Collections.PMap2<>(meta2_Instances);
         _Instances.variableId(3);
     }
 
     @SuppressWarnings("deprecation")
     public BLoadMap(int _MapId_) {
         _MapId = _MapId_;
-        _LoadSum = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.World.BLoad(), metagame.builtin.World.BLoad.class);
+        _LoadSum = new Zeze.Transaction.Collections.CollOne<>(new metagame.builtin.World.BLoad(), meta1_LoadSum);
         _LoadSum.variableId(2);
-        _Instances = new Zeze.Transaction.Collections.PMap2<>(Long.class, metagame.builtin.World.BLoad.class);
+        _Instances = new Zeze.Transaction.Collections.PMap2<>(meta2_Instances);
         _Instances.variableId(3);
     }
 
@@ -195,9 +201,9 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
         _PRE_ALLOC_SIZE_ = _s_;
     }
 
-    private byte[] _unknown_;
+    private byte @Nullable [] _unknown_;
 
-    public byte[] unknown() {
+    public byte @Nullable [] unknown() {
         return _unknown_;
     }
 
@@ -255,11 +261,13 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
         if (_i_ == 1) {
             setMapId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            setMapId(0);
         if (_i_ == 2) {
             _o_.ReadBean(_LoadSum, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            ByteBuffer.decodeEmptyBean(getLoadSum());
         if (_i_ == 3) {
             var _x_ = _Instances;
             _x_.clear();
@@ -273,13 +281,14 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Instances.clear();
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLoadMap))
@@ -357,11 +366,11 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
     }
 
     @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+    public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "MapId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LoadSum", "metagame.builtin.World.BLoad", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Instances", "map", "long", "metagame.builtin.World.BLoad"));
+        _v_.add(new Zeze.Transaction.VariableMeta(1, "MapId", "int", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(2, "LoadSum", "metagame.builtin.World.BLoad", "", ""));
+        _v_.add(new Zeze.Transaction.VariableMeta(3, "Instances", "map", "long", "metagame.builtin.World.BLoad"));
         return _v_;
     }
 
@@ -408,7 +417,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _MapId_, metagame.builtin.World.BLoad.Data _LoadSum_, java.util.HashMap<Long, metagame.builtin.World.BLoad.Data> _Instances_) {
+    public Data(int _MapId_, metagame.builtin.World.BLoad.@Nullable Data _LoadSum_, java.util.@Nullable HashMap<Long, metagame.builtin.World.BLoad.Data> _Instances_) {
         _MapId = _MapId_;
         if (_LoadSum_ == null)
             _LoadSum_ = new metagame.builtin.World.BLoad.Data();
@@ -570,11 +579,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_i_ == 1) {
             _MapId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _MapId = 0;
         if (_i_ == 2) {
             _o_.ReadBean(_LoadSum, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            ByteBuffer.decodeEmptyBean(_LoadSum);
         if (_i_ == 3) {
             var _x_ = _Instances;
             _x_.clear();
@@ -588,7 +599,8 @@ public static final class Data extends Zeze.Transaction.Data {
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
+        } else
+            _Instances.clear();
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -596,7 +608,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public boolean equals(Object _o_) {
+    public boolean equals(@Nullable Object _o_) {
         if (_o_ == this)
             return true;
         if (!(_o_ instanceof BLoadMap.Data))

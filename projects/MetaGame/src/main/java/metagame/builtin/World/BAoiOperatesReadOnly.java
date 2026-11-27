@@ -1,6 +1,9 @@
 // auto-generated @formatter:off
 package metagame.builtin.World;
 
+import org.jspecify.annotations.Nullable;
+import Zeze.Transaction.TableKey;
+
 // 命令 eAoiEnter,eAoiOperate的参数。
 public interface BAoiOperatesReadOnly {
     long typeId();
@@ -13,9 +16,9 @@ public interface BAoiOperatesReadOnly {
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
-    Zeze.Transaction.TableKey tableKey();
+    @Nullable TableKey tableKey();
     boolean isManaged();
-    java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
+    java.util.ArrayList<Zeze.Transaction.VariableMeta> variables();
 
     Zeze.Transaction.Collections.PMap2ReadOnly<Long, metagame.builtin.World.BAoiOperate, metagame.builtin.World.BAoiOperateReadOnly> getOperatesReadOnly();
 }

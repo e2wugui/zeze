@@ -1,8 +1,19 @@
 # 变更日志（Changelog）
 
-覆盖范围：ZezeJava v1.6.3 → v2.0.6，含未发布 2.0.7-SNAPSHOT。条目末尾括号内为提交短哈希。
+覆盖范围：ZezeJava v1.6.3 → v2.0.6，含未发布 2.0.7-SNAPSHOT / 2.1.0-SNAPSHOT。条目末尾括号内为提交短哈希。
 
-按约定，热更（HotManager）、History 增量日志、Raft 领域的兼容性适配改动以及已移除组件的收尾改动不在本文件收录范围；这些领域内影响使用者的真实功能/行为变化仅保留简要条目。升级操作请配合 [MIGRATION.md](MIGRATION.md)。
+按约定，History 增量日志、Raft 领域的兼容性适配改动以及已移除组件的收尾改动不在本文件收录范围；这些领域内影响使用者的真实功能/行为变化仅保留简要条目。升级操作请配合 [MIGRATION.md](MIGRATION.md)。
+
+## [未发布] 2.1.0-SNAPSHOT
+
+### 破坏性变更
+
+- **彻底移除基于 ClassLoader 的模块热更新子系统**（保留基于 JVM Instrumentation 的 `ClassReloader` / `ReloadClassServer`）：
+  - 删除 `Zeze.Hot.*` 与内建协议模块 `Zeze.Builtin.HotDistribute`（moduleId `11033` 空缺不回收）；`BTransmitSimpleTimer` / `BTransmitCronTimer` 移除 `Hot` 字段（`id="7"` 保留不复用）。
+  - `Bean.variables()` / `BeanKey.variables()` / `*ReadOnly.variables()` 返回类型由 `ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>` 改为 `ArrayList<Zeze.Transaction.VariableMeta>`，下游需用新版 `Gen.exe` 重新生成代码。
+  - 删除 `Application.getHotManager`/`setHotManager`/`getHotHandle`/`isHotVerifyEnabled`/`replaceTable`/`verifyCallerCold`、`Config.getHotWorkingDir`/`getHotDistributeDir`、`ProviderService.addHotModule`、`GenModule.RedirectClassSink`、`BeanFactory.setApplication`/`resetHot`/`reloadClassesFromJar`/`registerWatch`/`unregisterWatch`、`Database.replaceTable`、`Table.open(Table, Application)`/`disable`/`__direct_put_cache__`、`Task.hotGuard`、`EventDispatcher.addHot`、`TimerRole`/`TimerAccount` 的 `scheduleOnlineHot`/`scheduleOnlineNamedHot`、`RoleTimers`/`AccountTimers` 的 `onlineHot()`。
+  - `EventDispatcher` 构造器由 `EventDispatcher(Application, String)` 简化为 `EventDispatcher(String)`。
+  - `Gen` 移除 `project`/`module` 的 `hot`、`HotSrcDir` 逻辑，旧 XML 残留属性静默忽略。
 
 ## [未发布] 2.0.7-SNAPSHOT
 

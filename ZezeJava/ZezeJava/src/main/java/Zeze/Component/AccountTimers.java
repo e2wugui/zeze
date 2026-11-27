@@ -1,11 +1,10 @@
 package Zeze.Component;
 
-import Zeze.Application;
 import Zeze.Transaction.Bean;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 账号定时器门面，把TimerAccount的三类定时器组织成统一入口。
+ * 账号定时器门面，把TimerAccount的两类定时器组织成统一入口。
  * 通过 {@link Timer#accounts(String, String)} 获取。
  *
  * <pre>{@code
@@ -32,19 +31,10 @@ public final class AccountTimers {
 	}
 
 	/**
-	 * 在线定时器(cold handle)：仅当账号登录在本服务器时触发，handle在调度时解析。
-	 * 不允许热更新模块调用。
+	 * 在线定时器：仅当账号登录在本服务器时触发。
 	 */
 	public TimerScope online() {
 		return new OnlineScope();
-	}
-
-	/**
-	 * 在线定时器(hot handle)：仅当账号登录在本服务器时触发，handle在触发时按名字解析。
-	 * 支持热更新模块调用。
-	 */
-	public TimerScope onlineHot() {
-		return new OnlineHotScope();
 	}
 
 	/**
@@ -63,58 +53,16 @@ public final class AccountTimers {
 
 	private final class OnlineScope implements TimerScope {
 		@Override
-		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass) {
-			var zeze = timerAccount.zeze();
-			if (zeze.isHotVerifyEnabled())
-				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
-			return timerAccount.scheduleOnlineImpl(account, clientId, spec, handleClass, null);
-		}
-
-		@Override
-		public boolean scheduleNamed(String timerId, TimerSpec spec, Class<? extends TimerHandle> handleClass) {
-			var zeze = timerAccount.zeze();
-			if (zeze.isHotVerifyEnabled())
-				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
-			return timerAccount.scheduleOnlineNamedImpl(account, clientId, timerId, spec, handleClass, null);
-		}
-
-		@Override
 		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
-			var zeze = timerAccount.zeze();
-			if (zeze.isHotVerifyEnabled())
-				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
-			return timerAccount.scheduleOnlineImpl(account, clientId, spec, handleClass, customData);
+			return timerAccount.scheduleOnline(account, clientId, spec, handleClass, customData);
 		}
 
 		@Override
 		public boolean scheduleNamed(String timerId, TimerSpec spec,
 									 Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
-			var zeze = timerAccount.zeze();
-			if (zeze.isHotVerifyEnabled())
-				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
-			return timerAccount.scheduleOnlineNamedImpl(account, clientId, timerId, spec, handleClass, customData);
-		}
-
-		@Override
-		public boolean cancel(@Nullable String timerId) {
-			return timerAccount.cancelOnline(timerId, account, clientId);
-		}
-	}
-
-	private final class OnlineHotScope implements TimerScope {
-		@Override
-		public String schedule(TimerSpec spec, Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) {
-			return timerAccount.scheduleOnlineHot(account, clientId, spec, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(String timerId, TimerSpec spec,
-									 Class<? extends TimerHandle> handleClass,
-									 @Nullable Bean customData) {
-			return timerAccount.scheduleOnlineNamedHot(account, clientId, timerId, spec, handleClass, customData);
+			return timerAccount.scheduleOnlineNamed(account, clientId, timerId, spec, handleClass, customData);
 		}
 
 		@Override

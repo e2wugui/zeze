@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import Zeze.Application;
 import Zeze.Config;
-import Zeze.Hot.HotGuard;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
@@ -43,10 +42,6 @@ public final class Task {
 	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = USE_VIRTUAL_THREAD
 		&& PropertiesHelper.getBool("useUnlimitedVirtualThread", true);
 
-	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
-	// 开启热更时，由App.HotManager初始化的时候设置。
-	@SuppressWarnings("CanBeFinal")
-	public static volatile Factory<HotGuard> hotGuard = () -> HotGuard.None;
 	private static final FastLock taskLock = new FastLock();
 	private static final TaskOneByOneByKey oneByOne = new TaskOneByOneByKey();
 	private static final TaskOneByOneByKey systemOneByOne = new TaskOneByOneByKey();
@@ -71,7 +66,7 @@ public final class Task {
 	// 数据库IO并行池：flush/reduce等阻塞DB操作退出ForkJoinPool.commonPool——commonPool面向CPU任务，
 	// 阻塞任务互抢可整体停摆并拖垮进程内其他parallelStream使用者。与三个默认池同生命周期。
 	private static volatile @Nullable ForkJoinPool threadPoolDbIo;
-	// volatile: 运行期可被替换（如热替换/应用层定制日志），需对读线程立即可见
+	// volatile: 运行期可被替换（如应用层定制日志），需对读线程立即可见
 	public static volatile @Nullable ILogAction logAction = Task::DefaultLogAction;
 
 	private static volatile int systemOneByOneConcurrency;
@@ -426,7 +421,7 @@ public final class Task {
 	}
 
 	// TaskBody 统一核心：载荷间差异（异常/结果策略、日志名、统计位置）由 TaskBody 实现封装，
-	// 各执行家族只保留一份样板（池选择/hotGuard/timeout/计数）。
+	// 各执行家族只保留一份样板（池选择/timeout/计数）。
 	static <R extends @Nullable Object> R callCore(TaskBody<R> body, @Nullable String name) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try {
@@ -523,8 +518,7 @@ public final class Task {
 
 		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create();
-				 var ignored = TimeoutDiagnosable.create(timeout, mode == DispatchMode.Critical)) {
+			try (var ignored = TimeoutDiagnosable.create(timeout, mode == DispatchMode.Critical)) {
 				return body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
@@ -572,8 +566,7 @@ public final class Task {
 
 		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create();
-				 var ignored = TimeoutDiagnosable.create(timeout, mode == DispatchMode.Critical)) {
+			try (var ignored = TimeoutDiagnosable.create(timeout, mode == DispatchMode.Critical)) {
 				body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
@@ -611,7 +604,7 @@ public final class Task {
 														@Nullable String name, long timeout) {
 		return scheduledPoolOrThrow().schedule(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			try (var ignoredHot = hotGuard.create(); var ignored = TimeoutDiagnosable.create(timeout)) {
+			try (var ignored = TimeoutDiagnosable.create(timeout)) {
 				return body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
@@ -635,29 +628,22 @@ public final class Task {
 	}
 
 	// 周期调度：周期任务无法携带返回值，结果丢弃，异常只记日志（不 rethrow，否则 ScheduledExecutor 会停掉后续周期）。
-	// 【锁契约】先取得 hot guard，再取得 future，与 HotManager 安装时 hot 写锁 -> future 的顺序一致。
-	// hotGuard.create（含自定义 factory）在 cancel 的排空边界之外；轮进入 future 后复查取消标志，
-	// 业务体、timeout 和已准入 guard.close 均在 future 内，迟到轮不得执行 body。统计仍在解锁后。
+	// 轮进入 future 后复查取消标志，业务体与 timeout 均在 future 锁内，迟到轮不得执行 body。统计仍在解锁后。
 	// cancel 调用方仍不得持有已运行任务体可能获取的业务锁（ABBA，见 TimerFuture.cancel 的 javadoc）。
 	static <R extends @Nullable Object> TimerFuture<R> schedulePeriodCore(long initialDelay, long period, TaskBody<R> body,
 														  @Nullable String name, long timeout) {
 		var future = new TimerFuture<R>(body.logName(name), timeout); // name+timeout供cancel挂死告警定位与阈值
 		future.setFuture(scheduledPoolOrThrow().scheduleWithFixedDelay(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			boolean locked = false;
-			try (var ignoredHot = hotGuard.create()) {
-				future.lock();
-				locked = true;
-				try (var ignored = TimeoutDiagnosable.create(timeout)) {
-					if (future.isCancelled())
-						return;
-					body.call(name);
-				}
+			future.lock();
+			try (var ignored = TimeoutDiagnosable.create(timeout)) {
+				if (future.isCancelled())
+					return;
+				body.call(name);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", body.logName(name), e);
 			} finally {
-				if (locked)
-					future.unlock();
+				future.unlock();
 				addTaskRunTime(body, name, timeBegin);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS));
