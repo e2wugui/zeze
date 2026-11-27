@@ -10,7 +10,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jspecify.annotations.Nullable;
 
-// int 基本类型动态数组：可比较/可克隆/可序列化
+/** int 基本类型动态数组：可比较/可克隆/可序列化。 */
 public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	public static final int[] EMPTY = new int[0];
 	public static final int DEFAULT_SIZE = 8;
@@ -159,7 +159,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 			for (cap = DEFAULT_SIZE; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
-			if (cap < 0) // count > 2^30：倍增 cap 溢出为负，原实现死循环
+			if (cap < 0) // count > 2^30 时倍增溢出为负
 				throw new OutOfMemoryError("IntList reserve count too large: " + count);
 			int[] buf = new int[cap];
 			int n = this.count;
@@ -175,7 +175,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 			for (cap = 8; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
-			if (cap < 0) // 同 reserve：防倍增溢出死循环
+			if (cap < 0) // count > 2^30 时倍增溢出为负
 				throw new OutOfMemoryError("IntList reserveSpace count too large: " + count);
 			buffer = new int[cap];
 		}
@@ -419,9 +419,9 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		for (int i = 0; i < n; i++) {
 			int a = buf[i], b = data[i];
 			if (a != b)
-				return a < b ? -1 : 1; // 不能用减法：极值对（如 2e9 与 -2e9）的差会 int 溢出反号
+				return a < b ? -1 : 1; // 避免减法溢出反号
 		}
-		return Integer.compare(n0, n1); // 同上，n0 - n1 在极值下溢出
+		return Integer.compare(n0, n1);
 	}
 
 	@Override
@@ -523,7 +523,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	public void decode(IByteBuffer bb, int n) {
-		if (n < 0) // 长度来自流内容（decode(bb) 用 ReadUInt 读入），负值会把 count 毒化成负数，此后 add 恒 AIOOBE
+		if (n < 0)
 			throw new IllegalArgumentException("negative count: " + n);
 		reserveSpace(n);
 		int[] buf = buffer;

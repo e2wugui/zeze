@@ -55,9 +55,7 @@ public final class Helper {
 		if (!isDHGroupSupported(group))
 			throw new IllegalArgumentException("unsupported DH group: " + group);
 		var p = dh_group[group];
-		// RFC 2409 (1,2) / RFC 3526 (5,14..18): p=2q+1, g=2.
-		// Exclude the only small-order elements (1 and p-1) and non-canonical residues.
-		// This also rejects negative values from the existing signed big-endian wire encoding.
+		// RFC 2409/3526 安全素数群（p=2q+1, g=2）：排除小阶元（1 与 p-1）、越界值及有符号编码负值
 		if (response.compareTo(BigInteger.ONE) <= 0 || response.compareTo(p.subtract(BigInteger.ONE)) >= 0)
 			throw new IllegalArgumentException("invalid DH public value for group " + group);
 		return response.modPow(rand, p);

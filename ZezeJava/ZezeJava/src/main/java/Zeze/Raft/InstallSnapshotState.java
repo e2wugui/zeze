@@ -12,13 +12,12 @@ import Zeze.Transaction.Procedure;
  * leader 侧一次 InstallSnapshot 发送会话的状态：快照文件句柄、边界信息与逐块发送/应答驱动。
  */
 class InstallSnapshotState {
-	// Rpc实例一次性（sessionId不可重用），跨块重用会在第二次Send时抛IllegalStateException，
-	// 之后所有块都发不出去：快照边界信息由state携带，每块new一个InstallSnapshot发送。
+	// Rpc 的 sessionId 不可重用，快照边界由本状态持有，每块新建 InstallSnapshot 发送。
 	private @Nullable RaftLog firstLog;
 	private @Nullable RandomAccessFile file;
-	// 会话所属连接：SendSnapshotting.end收口的索引复位与续复制据此定位（入表前绑定）。
+	// 会话所属连接，收口时用于复位索引与续复制。
 	private Server.@Nullable ConnectorEx connector;
-	// 会话启动时绑定的 socket：断线异步回调据此校验归属，避免 super.OnSocketClose 置空 Connector.socket 后失配。
+	// 启动时绑定的 socket，供断线异步回调校验归属。
 	private @Nullable AsyncSocket socket;
 	private long offset;
 	private long term;
@@ -112,26 +111,23 @@ class InstallSnapshotState {
 		ls.getRaft().lock();
 		try {
 			if (!ls.getSendSnapshotting().isCurrent(c, this))
-				return; // 安装取消了。
+				return; // 安装已取消
 
 			if (term != ls.getTerm() || done || ls.getRaft().isShutdown || !ls.getRaft().isLeader()) {
 				ls.getSendSnapshotting().end(c, this);
-				return; // install done
+				return; // 安装结束
 			}
 
 			c.setAppendLogActiveTime(System.currentTimeMillis());
 
 			var buffer = new byte[32 * 1024];
-			// RandomAccessFile.read契约允许短读：循环读满或读到EOF（n<0）再判定done，
-			// 否则NFS/FUSE类文件系统上的短读会把截断块当完成块（rc<len→done=true）静默发给
-			// follower。收尾语义不变：满块done=false；未满（含EOF前的最后一块）与EOF后的
-			// 0字节块done=true。
+			// 循环读满缓冲区或遇到 EOF 再判定 done，避免短读导致截断块提前结束安装。
 			int rc = 0;
 			while (rc < buffer.length) {
 				//noinspection DataFlowIssue
 				int n = file.read(buffer, rc, buffer.length - rc);
 				if (n < 0)
-					break; // EOF：rc为0时发0字节收尾块，完成协议
+					break; // EOF：rc 为 0 时发送 0 字节收尾块
 				rc += n;
 			}
 			var pending = new InstallSnapshot();
@@ -153,8 +149,7 @@ class InstallSnapshotState {
 			if (!pending.Send(sendSocket, p -> processResult(ls, c, p), timeout))
 				ls.getSendSnapshotting().end(c, this);
 		} catch (Throwable e) {
-			// 异常会被上层任务记日志后吞掉，这里不收口的话该follower的安装将永久楔死
-			// （installSnapshotting条目残留、文件不关、心跳与复制被拦截）。
+			// 异常时必须收口会话，避免条目残留和文件句柄泄漏导致该 follower 长期卡死。
 			LogSequence.logger.error("InstallSnapshotState trySend error. c={}", c.getName(), e);
 			ls.getSendSnapshotting().end(c, this);
 		} finally {
@@ -171,9 +166,8 @@ class InstallSnapshotState {
 			if (ls.getRaft().isShutdown)
 				return Procedure.Success;
 			if (!r.isTimeout() && ls.trySetTerm(r.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
-				// new term found.
 				ls.getRaft().convertStateTo(Raft.RaftState.Follower);
-				return Procedure.Success; // break install
+				return Procedure.Success; // 中断安装
 			}
 
 			if (!ls.getSendSnapshotting().isCurrent(c, this))
@@ -185,20 +179,20 @@ class InstallSnapshotState {
 
 			if (r.getResultCode() != Procedure.Success && r.getResultCode() != InstallSnapshot.ResultCodeNewOffset) {
 				ls.getSendSnapshotting().end(c, this);
-				return Procedure.Success; // break install
+				return Procedure.Success; // 中断安装
 			}
 
 			resultCode = r.getResultCode();
 			done = resultCode == Procedure.Success && r.Argument.getDone();
 
-			// NewOffset 可以应答最后一块；只有收到成功应答后才结束发送。
+			// NewOffset 可能应答最后一块，须收到成功应答后才结束发送。
 			if (!done && r.Result.getOffset() >= 0) {
 				//noinspection DataFlowIssue
 				if (r.Result.getOffset() > file.length()) {
 					LogSequence.logger.error("InstallSnapshot.Result.Offset Too Big. {}/{}",
 							r.Result.getOffset(), file.length());
 					ls.getSendSnapshotting().end(c, this);
-					return Procedure.Success; // 中断安装。
+					return Procedure.Success; // 中断安装
 				}
 				file.seek(offset = r.Result.getOffset());
 			}

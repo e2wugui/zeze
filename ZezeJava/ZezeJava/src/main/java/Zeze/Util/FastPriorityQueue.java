@@ -9,10 +9,10 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * An implementation of a min-Priority Queue using a heap.  Has O(1) .Contains()!
- * <a href="https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp/wiki/Getting-Started">for more information</a>
+ * 基于最小堆的优先级队列，支持 O(1) {@link #contains} 与 O(log n) 任意节点删除/优先级更新。
+ * 参考 <a href="https://github.com/BlueRaja/High-Speed-Priority-Queue-for-C-Sharp/wiki/Getting-Started">High-Speed-Priority-Queue</a>。
  *
- * @param <T> The values in the queue.  Must extend the FastPriorityQueueNode class
+ * @param <T> 队列节点类型，需实现 {@link FastPriorityQueueNode}
  */
 public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements Iterable<T> {
 	private final int maxCapacity;
@@ -20,9 +20,9 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	private @Nullable T[] nodes;
 
 	/**
-	 * Instantiate a new Priority Queue
+	 * 构造优先级队列。
 	 *
-	 * @param maxCapacity The max nodes ever allowed to be enqueued (going over this will cause undefined behavior)
+	 * @param maxCapacity 允许入队的最大节点数
 	 */
 	@SuppressWarnings("unchecked")
 	public FastPriorityQueue(int initialCapacity, int maxCapacity) {
@@ -32,45 +32,29 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 		nodes = (T[])new FastPriorityQueueNode[initialCapacity];
 	}
 
-	/**
-	 * Returns the number of nodes in the queue.  O(1)
-	 */
+	/** 返回当前队列中的节点数，O(1)。 */
 	public int count() {
 		return numNodes;
 	}
 
-	/**
-	 * Returns the maximum number of items that can be enqueued at once in this queue.
-	 * Once you hit this number (ie. once Count == MaxSize),
-	 * attempting to enqueue another item will cause undefined behavior.  O(1)
-	 */
+	/** 返回当前底层数组容量，O(1)。 */
 	public int maxSize() {
 		return nodes.length;
 	}
 
-	/**
-	 * Removes every node from the queue.
-	 * O(n) (So, don't do this often!)
-	 */
+	/** 清空队列中的所有节点，O(n)。 */
 	public void clear() {
 		Arrays.fill(nodes, 0, numNodes, null);
 		numNodes = 0;
 	}
 
-	/**
-	 * Returns (in O(1)!) whether the given node is in the queue.  O(1)
-	 */
+	/** 判断给定节点是否在队列中，O(1)。 */
 	public boolean contains(T node) {
 		int i = node.getQueueIndex();
 		return i >= 0 && i < numNodes && nodes[i] == node;
 	}
 
-	/**
-	 * Enqueue a node to the priority queue.  Lower values are placed in front. Ties are broken arbitrarily.
-	 * If the queue is full, the result is undefined.
-	 * If the node is already enqueued, the result is undefined.
-	 * O(log n)
-	 */
+	/** 入队节点（优先级高者靠前，不可重复入队），O(log n)。 */
 	public void enqueue(T node) {
 		int i = numNodes;
 		ensureCapacity(i + 1);
@@ -81,7 +65,6 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	}
 
 	private void cascadeUp(final T node) {
-		// aka Heapify-up
 		int i = node.getQueueIndex();
 		if (i <= 0)
 			return;
@@ -92,7 +75,6 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 			return;
 
 		do {
-			// Node has lower priority value, so move parent down the heap to make room
 			parentNode.setQueueIndex(i);
 			nodes[i] = parentNode;
 			i = parent;
@@ -108,22 +90,18 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 	}
 
 	private void cascadeDown(T node) {
-		// aka Heapify-down
 		int finalQueueIndex = node.getQueueIndex();
 		int childLeftIndex = (finalQueueIndex << 1) + 1;
 
-		// If leaf node, we're done
 		int numNodes = this.numNodes;
 		if (childLeftIndex >= numNodes)
 			return;
 
-		// Check if the left-child is higher-priority than the current node
 		@Nullable T[] nodes = this.nodes;
 		int childRightIndex = childLeftIndex + 1;
 		T childLeft = nodes[childLeftIndex];
 		//noinspection DataFlowIssue
 		if (childLeft.hasHigherPriority(node)) {
-			// Check if there is a right child. If not, swap and finish.
 			if (childRightIndex >= numNodes) {
 				node.setQueueIndex(childLeftIndex);
 				childLeft.setQueueIndex(finalQueueIndex);
@@ -132,47 +110,42 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 				return;
 			}
 
-			// Check if the left-child is higher-priority than the right-child
 			T childRight = Objects.requireNonNull(nodes[childRightIndex]);
-			if (childLeft.hasHigherPriority(childRight)) { // left is highest, move it up and continue
+			if (childLeft.hasHigherPriority(childRight)) {
 				childLeft.setQueueIndex(finalQueueIndex);
 				nodes[finalQueueIndex] = childLeft;
 				finalQueueIndex = childLeftIndex;
-			} else { // right is even higher, move it up and continue
+			} else {
 				childRight.setQueueIndex(finalQueueIndex);
 				nodes[finalQueueIndex] = childRight;
 				finalQueueIndex = childRightIndex;
 			}
-		} else if (childRightIndex >= numNodes) // Not swapping with left-child, does right-child exist?
+		} else if (childRightIndex >= numNodes)
 			return;
 		else {
-			// Check if the right-child is higher-priority than the current node
 			T childRight = nodes[childRightIndex];
 			//noinspection DataFlowIssue
 			if (childRight.hasHigherPriority(node)) {
 				childRight.setQueueIndex(finalQueueIndex);
 				nodes[finalQueueIndex] = childRight;
 				finalQueueIndex = childRightIndex;
-			} else // Neither child is higher-priority than current, so finish and stop.
+			} else
 				return;
 		}
 
 		for (; ; ) {
 			childLeftIndex = (finalQueueIndex << 1) + 1;
 
-			// If leaf node, we're done
 			if (childLeftIndex >= numNodes) {
 				node.setQueueIndex(finalQueueIndex);
 				nodes[finalQueueIndex] = node;
 				break;
 			}
 
-			// Check if the left-child is higher-priority than the current node
 			childRightIndex = childLeftIndex + 1;
 			childLeft = nodes[childLeftIndex];
 			//noinspection DataFlowIssue
 			if (childLeft.hasHigherPriority(node)) {
-				// Check if there is a right child. If not, swap and finish.
 				if (childRightIndex >= numNodes) {
 					node.setQueueIndex(childLeftIndex);
 					childLeft.setQueueIndex(finalQueueIndex);
@@ -181,29 +154,28 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 					break;
 				}
 
-				// Check if the left-child is higher-priority than the right-child
 				T childRight = Objects.requireNonNull(nodes[childRightIndex]);
-				if (childLeft.hasHigherPriority(childRight)) { // left is highest, move it up and continue
+				if (childLeft.hasHigherPriority(childRight)) {
 					childLeft.setQueueIndex(finalQueueIndex);
 					nodes[finalQueueIndex] = childLeft;
 					finalQueueIndex = childLeftIndex;
-				} else { // right is even higher, move it up and continue
+				} else {
 					childRight.setQueueIndex(finalQueueIndex);
 					nodes[finalQueueIndex] = childRight;
 					finalQueueIndex = childRightIndex;
 				}
-			} else if (childRightIndex >= numNodes) { // Not swapping with left-child, does right-child exist?
+			} else if (childRightIndex >= numNodes) {
 				node.setQueueIndex(finalQueueIndex);
 				nodes[finalQueueIndex] = node;
 				break;
-			} else { // Check if the right-child is higher-priority than the current node
+			} else {
 				T childRight = nodes[childRightIndex];
 				//noinspection DataFlowIssue
 				if (childRight.hasHigherPriority(node)) {
 					childRight.setQueueIndex(finalQueueIndex);
 					nodes[finalQueueIndex] = childRight;
 					finalQueueIndex = childRightIndex;
-				} else { // Neither child is higher-priority than current, so finish and stop.
+				} else {
 					node.setQueueIndex(finalQueueIndex);
 					nodes[finalQueueIndex] = node;
 					break;
@@ -212,37 +184,27 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 		}
 	}
 
-	/**
-	 * Removes the head of the queue and returns it.
-	 * If queue is empty, result is undefined
-	 * O(log n)
-	 */
+	/** 移除并返回队头节点（队列为空时行为未定义），O(log n)。 */
 	public T dequeue() {
 		@Nullable T[] nodes = this.nodes;
 		T returnMe = Objects.requireNonNull(nodes[0]);
 		int numNodes = this.numNodes;
 		this.numNodes = --numNodes;
-		if (numNodes == 0) // If the node is already the last node, we can remove it immediately
+		if (numNodes == 0)
 			nodes[0] = null;
 		else {
-			// Swap the node with the last node
 			T formerLastNode = nodes[numNodes];
 			//noinspection DataFlowIssue
 			formerLastNode.setQueueIndex(0);
 			nodes[0] = formerLastNode;
 			nodes[numNodes] = null;
 
-			// Now bubble formerLastNode (which is no longer the last node) down
 			cascadeDown(formerLastNode);
 		}
 		return returnMe;
 	}
 
-	/**
-	 * Resize the queue so it can accept more nodes.  All currently enqueued nodes are remain.
-	 * Attempting to decrease the queue size to a size too small to hold the existing nodes results in undefined behavior
-	 * O(n)
-	 */
+	/** 调整队列底层数组容量（不得小于当前节点数），O(n)。 */
 	public void resize(int maxNodes) {
 		nodes = Arrays.copyOf(nodes, maxNodes);
 	}
@@ -256,54 +218,38 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 		}
 	}
 
-	/**
-	 * Returns the head of the queue, without removing it (use Dequeue() for that).
-	 * If the queue is empty, behavior is undefined.
-	 * O(1)
-	 */
+	/** 返回队头节点但不移除（空队列返回 null），O(1)。 */
 	public @Nullable T first() {
 		return nodes[0];
 	}
 
-	/**
-	 * This method must be called on a node every time its priority changes while it is in the queue.
-	 * <b>Forgetting to call this method will result in a corrupted queue!</b>
-	 * Calling this method on a node not in the queue results in undefined behavior
-	 * O(log n)
-	 */
+	/** 节点在队列内优先级变化后必须调用此方法维护堆序，O(log n)。 */
 	public void updatePriority(T node) {
 		onNodeUpdated(node);
 	}
 
 	private void onNodeUpdated(T node) {
-		// Bubble the updated node up or down as appropriate
 		int parentIndex = (node.getQueueIndex() - 1) >> 1;
 		if (parentIndex >= 0 && node.hasHigherPriority(Objects.requireNonNull(nodes[parentIndex])))
 			cascadeUp(node);
-		else // Note that CascadeDown will be called if parentNode == node (that is, node is the root)
+		else
 			cascadeDown(node);
 	}
 
-	/**
-	 * Removes a node from the queue.  The node does not need to be the head of the queue.
-	 * If the node is not in the queue, the result is undefined.  If unsure, check Contains() first
-	 * O(log n)
-	 */
+	/** 移除队列中指定节点（调用前须确保节点在队列内），O(log n)。 */
 	public void remove(final T node) {
 		@Nullable T[] nodes = this.nodes;
 		int numNodes = this.numNodes;
 		this.numNodes = --numNodes;
 		int i = node.getQueueIndex();
-		if (i == numNodes) // If the node is already the last node, we can remove it immediately
+		if (i == numNodes)
 			nodes[numNodes] = null;
 		else {
-			// Swap the node with the last node
 			T formerLastNode = Objects.requireNonNull(nodes[numNodes]);
 			nodes[i] = formerLastNode;
 			formerLastNode.setQueueIndex(i);
 			nodes[numNodes] = null;
 
-			// Now bubble formerLastNode (which is no longer the last node) up or down as appropriate
 			onNodeUpdated(formerLastNode);
 		}
 	}
@@ -327,10 +273,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 		};
 	}
 
-	/**
-	 * <b>Should not be called in production code.</b>
-	 * Checks to make sure the queue is still in a valid state.  Used for testing/debugging the queue.
-	 */
+	/** 仅用于测试/调试：校验堆不变式是否成立。 */
 	public boolean isValidQueue() {
 		@Nullable T[] nodes = this.nodes;
 		int n = nodes.length;

@@ -9,18 +9,8 @@ import org.pcollections.PSet;
 import Zeze.Transaction.Collections.PersistentHashSet;
 
 /**
- * pcollections {@link PSet} 的自移植 PersistentHashSet（CHAMP）内核实现（myktt 档）。
- * 内核为仓库内从 kotlinx.collections.immutable 0.5.2 私有移植的
- * {@link PersistentHashSet}，适配层与 {@link KtSet} 同构（同一契约两副桥接，
- * 语义总述见 {@link MyKtMap}）。仅经 {@link Persistents#set()} 构建使用。
- *
- * <p>契约与 {@link KtSet} 逐位一致（回归测试同一套钉住）：
- * <ul>
- *   <li>no-op 引用恒等：add 已存在元素/remove 不存在元素/批量全 no-op 返回同一实例
- *       （PSet1.add/remove 等写路径 {@code !=} 判定依赖）；</li>
- *   <li>equals/hashCode/contains 走 JDK Set 契约（AbstractSet 白拿，contains 直达内核）；</li>
- *   <li>迭代顺序与 pcollections 同为无序。</li>
- * </ul>
+ * 基于自移植 {@link PersistentHashSet}（CHAMP）的 {@link PSet} 实现，经 {@link Persistents#set()} 构建。
+ * 契约与 {@link KtSet} 一致：无变化操作返回同一实例，迭代无序。
  */
 public final class MyKtSet<E> extends AbstractSet<E> implements PSet<E> {
 	private final PersistentHashSet<E> kt;

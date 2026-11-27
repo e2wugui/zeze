@@ -9,7 +9,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import org.jspecify.annotations.Nullable;
 
-/** Declared field identity and type mapping for RocksRaft values and replicated logs. */
+/** 动态字段的声明标识与类型映射，用于值编解码与复制日志解码路由。 */
 public final class DynamicField {
 	private record Id(long ownerSchemaId, int fieldId) {
 	}

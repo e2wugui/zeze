@@ -202,10 +202,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			return this; // 等有了result再处理
 		var hashes = getFinishedHashes();
 		var readyResults = new ArrayList<R>();
-		// 迟注册扫描路径的回调也必须在ctx锁内执行：生产者路径的回调是processResult持ctx锁
-		// 调用result()跑的，扫描路径锁外执行会与生产者路径并发同一回调，违反本文件声明的
-		// 串行契约。ctx锁可重入，锁序保持既有ctx→future；future自身的锁仍在回调前释放
-		// （上面内层lock只护hashes.add），与result()的纪律一致。
+		// 持 ctx 锁执行回调以与生产者路径（processResult）串行，锁序保持 ctx -> future。
 		c.lock();
 		try {
 			for (var it = c.getAllResults().iterator(); it.moveToNext(); ) {
@@ -280,9 +277,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			if ((c = ctx) == null || !c.isCompleted() || !ON_ALL_DONE.compareAndSet(this, onAllDone, null)) // 再次确认,避免并发窗口问题
 				return this;
 		}
-		// isCompleted()为真不等于写入结束（processResult越过完成阈值后仍在put，
-		// 或isTimeout置位而迟到结果仍在写），回调遍历hashResults须持ctx锁——与
-		// onRemoved→allDone锁内跑回调先例对齐；ctx锁可重入，锁序保持既有ctx→future。
+		// 持 ctx 锁遍历 hashResults，避免与并发写入竞争，锁序保持 ctx -> future。
 		c.lock();
 		try {
 			//noinspection DataFlowIssue
@@ -314,12 +309,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	public RedirectAllFuture<R> await() {
 		if (!done) {
 			var c = ctx;
-			// onResult/onAllDone回调在ctx锁内同步执行（生产者路径processResult/onRemoved持ctx锁
-			// 调用result/allDone，迟注册扫描路径同样在ctx锁内跑回调），此处挂起等待同一ctx只释放future
-			// 自己的锁，ctx锁仍被本线程持有，后续processResult/onRemoved全部阻塞，future永不完成。
-			// future完成必经ctx锁，“当前线程持有该ctx锁”即是死锁充要条件（嵌套回调下同样成立），
-			// 直接查锁拦截，无需ThreadLocal侧记——两条路径的回调均持ctx锁，均会被正确拦截。
-			// 对照sendRpcForWait事务内禁用的先例，防御性拒绝（已完成的future不受影响）。
+			// 回调在 ctx 锁内执行，挂起等待仅释放 future 锁会与生产者路径死锁，提前拦截。
 			if (c != null && c.isLockHeldByCurrentThread())
 				throw new IllegalStateException(
 						"RedirectAllFuture.await() cannot be called while holding this context's lock " +

@@ -19,9 +19,7 @@ import org.jspecify.annotations.Nullable;
 import Zeze.Raft.Agent.ConnectorProxy;
 
 /**
- * 当raft节点运行在一个进程内时，可以通过代理方式复用同一个连接。
- * 这个类在一个进程内只有一个实例，然后传入启用代理的Raft.Agent使用。
- * 另外，ProxyDispatch 的代码也写在这里，只是一个静态函数。
+ * Raft 客户端代理服务：进程内多个 Raft.Agent 共用同一实例以复用网络连接。
  */
 public class ProxyAgent extends Service {
 	public static final String eProxyAgentName = "Zeze.Raft.ProxyAgent";
@@ -40,11 +38,7 @@ public class ProxyAgent extends Service {
 		));
 	}
 
-	/**
-	 * 把代理请求派发到指定的raft中执行。
-	 *
-	 * @param r ProxyRequest
-	 */
+	/** 把代理请求派发到目标 Agent 的客户端中执行。 */
 	private long ProcessProxyRequest(ProxyRequest r) throws Exception {
 		var agent = agents.get(r.Argument.getRaftName());
 		if (null == agent)
@@ -81,12 +75,7 @@ public class ProxyAgent extends Service {
 			return proxys.computeIfAbsent(name, __ -> new Agent.ConnectorProxy(name, this));
 		}
 	}
-	/**
-	 * 获取Leader的ConnectorEx，
-	 *
-	 * @param node leader node config
-	 * @return Agent.ConnectorEx
-	 */
+	/** 获取目标 Leader 节点对应的代理连接器。 */
 	public @Nullable ConnectorProxy getLeader(RaftConfig.Node node) {
 		if (!node.getProxyHost().isBlank() && node.getProxyPort() != 0) {
 			var outConnector = new OutObject<Connector>();
@@ -104,11 +93,8 @@ public class ProxyAgent extends Service {
 
 	private final ConcurrentHashMap<String, Agent> agents = new ConcurrentHashMap<>();
 
-	// 变体A首发现（2026-11-16）的共享负结果免疫：发现轮完全无应答（连接建立但静默，
-	// 如对端假死/深GC窗）后短窗内跳过后续agent的发现轮——冷启动串行建桶
-	// （Dbh2AgentManager.openBucket持管理器锁）逐桶烧满预算的兜底。有应答但无leader
-	// （选举中，GetLeader快速回Unknown）不免疫：下个agent仍能RTT级快速再问。
-	// 窗口取选举收敛量级（electionTimeoutMax~3.3s+裕量）。权威应答到达即清除。
+	// 首发现整轮无应答后的共享退避窗口：短时间内跳过后续 Agent 的发现轮，避免连续空耗超时预算；
+	// 有应答但无 Leader（如选举中）不触发免疫，收到权威应答后立即清除。
 	static final long discoverNoAnswerImmunityMs = 5000;
 	private volatile long discoverImmunityUntil;
 
@@ -136,10 +122,7 @@ public class ProxyAgent extends Service {
 		}
 	}
 
-	/**
-	 * Agent.stop 时注销节点注册；同一JVM内重建同配置agent（环境重建/重跑）不再误报duplicate。
-	 * 只移除属于该agent的注册，不影响后来者已接管的注册。
-	 */
+	/** 注销属于该 Agent 的节点映射（按引用匹配，不误删后注册的新实例）。 */
 	public void removeAgent(Agent agent) {
 		synchronized (agents) {
 			for (var nodeName : agent.getRaftConfig().getNodes().keySet())
@@ -169,7 +152,7 @@ public class ProxyAgent extends Service {
 			if (null != leader) {
 				var proxyArgument = new ProxyArgument(leader.getName(), rpc);
 				var proxyRpc = new ProxyRequest(proxyArgument);
-				// leaderSocket 就是从leader中获取的，这里是为了在循环中发送的时候不用每次获取。
+				// 复用外层已获取的 leaderSocket，避免循环发送时重复查找。
 				return proxyRpc.Send(leaderSocket, (proxyRpcThis) -> {
 					if (proxyRpc.getResultCode() == 0) {
 						var outFh = new OutObject<Service.ProtocolFactoryHandle<?>>();
@@ -184,10 +167,7 @@ public class ProxyAgent extends Service {
 								var originHandle = (ProtocolHandle)rpc.getResponseHandle();
 								localService.dispatchRpcResponse(resultRpc, originHandle, Objects.requireNonNull(outFh.value));
 							} else if (rpc.getFuture() != null){
-							// 对齐 Agent.sendForWaitHandle 的收尾：结果（含ResultCode）
-							// 拷回原始rpc再完成future。只setRawResult(resultRpc.Result)会丢弃
-							// RaftRetry/DuplicateRequest等语义码，等待方把空Result当成功，
-							// 恰好绕开Agent的pending重发闭环。
+								// 将 ResultCode 与 Result 拷回原始 rpc 后再完成 future，保留语义码。
 								rpc.setResultCode(resultRpc.getResultCode());
 								//noinspection UnnecessaryLocalVariable,rawtypes
 								Rpc rawRpc = rpc, rawResultRpc = resultRpc;
@@ -207,10 +187,8 @@ public class ProxyAgent extends Service {
 					return 0;
 				}, proxyAgent.rpcTimeout);
 			}
-			// leader 还没有选出。
 			return false;
 		}
-		// 未启用代理时的直接raft访问发送方式。
 		return rpc.Send(leaderSocket);
 	}
 }

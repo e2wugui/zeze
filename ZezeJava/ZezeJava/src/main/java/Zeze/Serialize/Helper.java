@@ -170,11 +170,8 @@ public class Helper {
 	}
 
 	/**
-	 * 以 {fieldName:json} 包装走反射字段名匹配，把SQL列JSON解码进宿主bean的map变量。
-	 * 契约：fieldName必须等于宿主字段名经fieldNameFilter过滤后的结果（生成bean字段
-	 * 带下划线前缀_xxx，filter剥前缀得xxx，故生成代码传xxx）。错配时JsonReader对未知key
-	 * 静默跳过——整段JSON空转且前置map.clear()已清空现有数据，无任何报错。
-	 * 新增手写调用方若不确定字段名能否匹配，请优先使用decodeJsonTypedMap。
+	 * 以 {fieldName:json} 包装并通过反射字段名匹配，将 SQL 列 JSON 解码进宿主 bean 的 map 字段。
+	 * fieldName 须与 fieldNameFilter 过滤后的宿主字段名一致，否则 JsonReader 会静默跳过；不确定字段名时请用 decodeJsonTypedMap。
 	 */
 	@SuppressWarnings("unchecked")
 	public static void decodeJsonMap(Bean parentBean, String fieldName, Map<?, ?> map,
@@ -193,12 +190,7 @@ public class Helper {
 		}
 	}
 
-	// BeanMap1/BeanMap2的行map（C→V）按meta的keyClass/valueClass定型解码。
-	// decodeJsonMap以{fieldName:json}包装走反射字段名匹配：行bean的字段名经fieldNameFilter
-	// 后为pMap1/pMap2（无下划线前缀可剥），传入"Map1"/"Map2"查不到字段——整段JSON静默空转
-	// 且clear()清空现有数据；且行bean的泛型C/V在声明处是类型变量，反射路径退化为
-	// Map<String,Object>（键成String，类型化get全miss）。本方法按meta构建FieldMeta直接
-	// parseMap0（与GTable1/GTable2解析器同款模式），键值按真实类型解码；FieldMeta按meta缓存。
+	// 按 Meta2 的键值真实类型缓存 FieldMeta，直接解析 JSON map，避免反射字段名匹配失败或泛型擦除。
 	private static final ConcurrentHashMap<Meta2<?, ?>, Json.FieldMeta> jsonMapFieldMetas
 			= new ConcurrentHashMap<>();
 
@@ -209,9 +201,7 @@ public class Helper {
 			return;
 		var fm = jsonMapFieldMetas.computeIfAbsent(meta, __ -> {
 			try {
-				// dummyField仅填充FieldMeta.field（本解析路径不使用）。
-				// keyParser经反射回退工厂：BeanKey/binary等非内建键
-				// 不在keyReaderMap，裸取为null时首键解析即NPE。
+				// dummyField 仅占位 FieldMeta.field；非内建键类型经回退工厂获取 keyReader。
 				var dummyField = Helper.class.getDeclaredField("jsonMapFieldMetas");
 				return new Json.FieldMeta(0x30 + Json.ClassMeta.getType(meta.valueClass), 0, "Map",
 						meta.valueClass, Json.ClassMeta.getDefCtor(meta.valueClass),

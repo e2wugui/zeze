@@ -1,9 +1,8 @@
 package Zeze.Util;
 
 
-// 时间自适应配额：按消费间隔对 fund 倍增/减半（PersistentAtomicLong 按块分配预算用）
+/** 时间自适应配额：按消费间隔对配额倍增或减半（用于 PersistentAtomicLong 按块预分配）。 */
 public class TimeAdaptedFund {
-	// config
 	private final int fundMin;
 	private final int doublyMs;
 	private final int halveMs;

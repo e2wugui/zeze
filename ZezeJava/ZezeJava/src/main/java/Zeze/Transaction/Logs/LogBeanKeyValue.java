@@ -6,7 +6,7 @@ import Zeze.Serialize.Encodable;
 import Zeze.Transaction.Collections.BeanKeyMeta;
 import Zeze.Transaction.Log;
 
-/** Complete field change value, independent of any local transaction target. */
+/** BeanKey 字段变更值日志，独立于本地事务目标。 */
 public class LogBeanKeyValue<T extends Encodable> extends Log {
 	private final BeanKeyMeta<T> meta;
 	public T value;

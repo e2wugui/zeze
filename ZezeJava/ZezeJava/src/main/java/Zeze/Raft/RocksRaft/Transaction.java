@@ -45,8 +45,7 @@ public final class Transaction {
 		private final Record<?> origin;
 		private final long timestamp;
 		private boolean dirty;
-		// put/remove意图(LogBeanKey)的唯一事实源是所属事务的savepoint日志栈：
-		// 嵌套回滚随savepoint丢弃，读取自动回落到外层已提交意图或origin值。
+		// put/remove 意图（LogBeanKey）仅存于所属事务的 savepoint 日志栈，嵌套回滚时自动回落。
 		private final Transaction owner;
 
 		public RecordAccessed(Transaction owner, Record<?> origin) {
@@ -73,8 +72,7 @@ public final class Transaction {
 
 		@SuppressWarnings("unchecked")
 		public @Nullable LogBeanKey<Bean> getPutLog() {
-			// 从当前（最外层未弹出的）savepoint查put意图：嵌套回滚后查不到即正确回落。
-			// 查询键=LogBeanKey的belong(this).objectId()+variableId(0)（Log.getLogKey）。
+			// 查询当前 savepoint 中 key 为 belong(this).objectId() + variableId(0) 的 put/remove 日志。
 			var log = owner.getLog(objectId());
 			return log instanceof LogBeanKey<?> putLog ? (LogBeanKey<Bean>)putLog : null;
 		}
@@ -159,13 +157,7 @@ public final class Transaction {
 		return saveSize > 0 ? savepoints.get(saveSize - 1).getLog(logKey) : null;
 	}
 
-	/** 当前savepoint：savepoint的begin/commit/rollback均为public，业务在
-	 * process体内手动rollback多于begin后，putLog/leaderApply/_final_commit_等在空栈上
-	 * getLast()抛NoSuchElementException——该异常不属于FlushException/RocksDBException，
-	 * 不受followerApply的fatalKill兜底也不被tryApply捕获，沿tryCommit上抛到复制应答
-	 * 线程，lastApplied楔死且无统一终止。防御性收口：空栈抛带上下文的
-	 * IllegalStateException，业务误用从“apply线程未受控异常”变为带定位的明确失败；
-	 * 正常配对路径（Procedure.call严格配对）零变化。 */
+	/** 获取当前顶层 savepoint；栈空时抛带调用点定位的 {@link IllegalStateException}。 */
 	private Savepoint lastSavepoint(String where) {
 		if (savepoints.isEmpty())
 			throw new IllegalStateException("RocksRaft Transaction savepoints empty at " + where
@@ -235,7 +227,7 @@ public final class Transaction {
 			logger.info("RocksRaft Retry", e);
 			_final_rollback_(procedure);
 			return Zeze.Transaction.Procedure.RaftRetry;
-		} catch (Throwable e) { // rollback. 必须捕捉所有异常。logger.error, rethrow AssertionError
+		} catch (Throwable e) {
 			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
 			logger.error("RocksRaft Call Exception", e);
 			_final_rollback_(procedure);
@@ -246,10 +238,7 @@ public final class Transaction {
 			for (var pLock : pessimismLocks)
 				pLock.unlock();
 			pessimismLocks.clear();
-			// 释放本事务访问记录的在用保护（驱逐允许）。正常路径leaderApply在
-			// appendLog等待期间（perform内）已完成应用与flush，此时释放安全；appendLog超时
-			// 未决的条目若已进入flush补偿（flush失败），由putPendingFlush登记继续持有在用，
-			// 直到重试成功或过期丢弃，迟到flush窗口内记录不可被驱逐。
+			// 释放本事务访问记录的在用保护；已转入 pendingFlush 补偿的记录由补偿登记继续持有在用计数。
 			for (var ar : accessedRecords.values())
 				ar.getOrigin().endAccess();
 		}
@@ -260,16 +249,10 @@ public final class Transaction {
 		try {
 			leaderApplyInternal(changes, holder, rocks);
 		} catch (Rocks.FlushException e) {
-			// flush失败有补偿重试通道（pendingFlush），不是结构性分歧，放行给apply重试。
+			// flush 失败由 pendingFlush 补偿重试，放行给 apply 重试。
 			throw e;
 		} catch (Throwable e) {
-			// 对齐Rocks.followerApply的"宁死不糊"：leaderApply链路抛出非Flush
-			// 异常（生成leaderApplyNoRecursive的ClassCast/NPE、lastSavepoint的
-			// IllegalStateException等）时，后台apply线程的uncaughtHandler仅记日志，
-			// applyFuture在finally置null后同条目反复重入重抛——lastApplied永久楔死且
-			// 无fatalKill，leader持续复制提交并对外提供停在楔死点的过期读（静默落后），
-			// 换主后需要InstallSnapshot追赶。与follower路径对称：fatalKill把静默分歧
-			// 变成显性crash。FlushException的pendingFlush重试语义不变。
+			// 非 flush 异常表示状态机分歧，对齐 followerApply 直接 fatalKill，防止同条目反复重抛卡死 lastApplied。
 			//noinspection DataFlowIssue
 			logger.fatal("{} leaderApply divergence, fatalKill. logIndex={} term={}",
 					rocks.getRaft().getName(), holder.getIndex(), holder.getTerm(), e);
@@ -281,19 +264,15 @@ public final class Transaction {
 		var index = holder.getIndex();
 		var pending = rocks.takePendingFlush(index, holder.getTerm());
 		if (pending != null) {
-			// 上次leaderApply已完成内存变更但flush失败：内存已是最终状态，
-			// 只重试flush。不能重跑下面的日志迭代：业务线程超时回滚后savepoints可能已清空。
+			// 上次内存已应用但 flush 失败，仅重试 flush；不可重跑日志迭代（业务超时回滚后 savepoints 可能已清空）。
 			try {
 				rocks.flush(pending, changes, false, holder);
 			} catch (Rocks.FlushException e) {
-				// 重试再失败的重登记用转移语义（addReference=false）：补偿持有的
-				// 计数随消费原样移入新登记，在用保护横跨补偿生命周期不断档；原"先endAccess
-				// 再登记"的归零间隙内LRU驱逐+同key脏重载旧基线，增量日志应用在旧值上即分歧。
+				// 重试再失败时转移补偿持有的在用计数（addReference=false），避免计数归零间隙被驱逐。
 				rocks.putPendingFlush(index, holder.getTerm(), pending, false);
 				throw e;
 			}
-			// 重试flush成功：释放补偿登记持有的在用保护（业务计数若未随
-			// perform释放，由其finally释放）。
+			// 释放补偿登记持有的在用保护。
 			for (var r : pending)
 				r.endAccess();
 			return;
@@ -316,8 +295,7 @@ public final class Transaction {
 		try {
 			rocks.flush(rs, changes, false, holder);
 		} catch (Rocks.FlushException e) {
-			// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush，
-			// 避免重试经readLog解码走增量followerApply造成双重应用。
+			// 落盘失败时登记已应用记录，后续重试仅 flush，避免重放造成双重应用。
 			rocks.putPendingFlush(index, holder.getTerm(), rs);
 			throw e;
 		}
@@ -331,11 +309,7 @@ public final class Transaction {
 		lastSavepoint("runWhileRollback").addRollbackAction(action);
 	}
 
-	/**
-	 * 根据最外层 savepoint 的修改日志标记脏记录。
-	 * RocksRaft 仅支持 {@link RocksMode#Pessimism}（不做乐观版本校验也无 redo 循环，
-	 * 同 key 并发隔离由调用方显式 {@link PessimismLock} 或外部串行化保证）。
-	 */
+	/** 根据最外层 savepoint 的修改日志标记脏记录（RocksRaft 仅支持悲观模式，无乐观版本校验）。 */
 	private void markDirtyRecords() {
 		var saveSize = savepoints.size();
 		if (saveSize > 0) {
@@ -343,8 +317,7 @@ public final class Transaction {
 			if (it != null) {
 				while (it.moveToNext()) {
 					var log = it.value();
-					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
-					// 现在不会有这种情况，保留给未来扩展需要。
+					// 无 belong 的特殊日志不关联 Record，直接跳过。
 					if (log.getBelong() == null)
 						continue;
 
@@ -360,19 +333,17 @@ public final class Transaction {
 	}
 
 	private void _final_commit_(Procedure procedure) {
-		// Collect Changes
 		Savepoint sp = lastSavepoint("_final_commit_");
 		changes = new Changes(procedure.getRocks(), this, procedure.uniqueRequest);
 		var it = sp.logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
 				var log = it.value();
-				// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
+				// 没有 belong 的日志是特殊测试用途，直接忽略。
 				if (log.getBelong() == null)
 					continue;
 
-				// 当changes.Collect在日志往上一级传递时调用，
-				// 第一个参数Owner为null，表示bean属于record，到达root了。
+				// 向上归集日志树，belong 为 null 表示已到达 record 根节点。
 				changes.collect(Objects.requireNonNull(log.getBelong()), log);
 			}
 		}
@@ -382,7 +353,7 @@ public final class Transaction {
 				changes.collectRecord(ar);
 		}
 
-		if (!changes.getRecords().isEmpty()) { // has changes
+		if (!changes.getRecords().isEmpty()) {
 			//noinspection DataFlowIssue
 			procedure.getRocks().updateAtomicLongs(changes.getAtomicLongs());
 			var resultBean = null != procedure.uniqueRequest ? procedure.uniqueRequest.getResultBean() : null;
@@ -397,9 +368,7 @@ public final class Transaction {
 			try {
 				autoResponse.SendResult();
 			} catch (Throwable ex) {
-				// 决策点（appendLog成功）之后的应答发送失败只降级应答质量：
-				// 传播出去会让perform的catch在已提交事务上补跑_final_rollback_，
-				// 提交/回滚互斥的回调契约被破坏（提交动作已执行又叠回滚动作）。
+				// appendLog 成功后应答发送失败仅记日志，不可上抛触发 _final_rollback_ 破坏提交/回滚互斥契约。
 				logger.error("send auto response after commit fail", ex);
 			}
 		}
@@ -411,7 +380,7 @@ public final class Transaction {
 			for (var action : commitActions) {
 				try {
 					action.run();
-				} catch (Throwable ex) { // run handle. 必须捕捉所有异常。logger.error
+				} catch (Throwable ex) {
 					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}
@@ -422,10 +391,7 @@ public final class Transaction {
 	private void _final_rollback_(Procedure procedure) {
 		var rollbackActions = lastRollbackActions;
 		if (rollbackActions == null) {
-			// 过程成功返回（rc==0）但 _final_commit_ 失败（raft appendLog 抛 RaftRetry 等）
-			// 的路径不经过 rollback()，lastRollbackActions 不会被赋值；
-			// 此时最外层savepoint仍完整保留（_final_commit_ 不弹出），直接取其回滚动作执行，
-			// 维持"未提交则已注册的回滚动作必执行"。
+			// rc == 0 但 _final_commit_ 失败时不经过 rollback()，直接从最外层 savepoint 取出回滚动作执行。
 			var saveSize = savepoints.size();
 			if (saveSize > 0)
 				rollbackActions = savepoints.get(saveSize - 1).getRollbackActions();
@@ -434,7 +400,7 @@ public final class Transaction {
 			for (var action : rollbackActions) {
 				try {
 					action.run();
-				} catch (Throwable ex) { // run handle. 必须捕捉所有异常。logger.error
+				} catch (Throwable ex) {
 					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}

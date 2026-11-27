@@ -31,31 +31,9 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 /**
- * {@link Table} implementation backed by a map that associates row keys with column key / value
- * secondary maps. This class provides rapid access to records by the row key alone or by both keys,
- * but not by just the column key.
- *
- * <p>The views returned by {@link #column}, {@link #columnKeySet()}, and {@link #columnMap()} have
- * iterators that don't support {@code remove()}. Otherwise, all optional operations are supported.
- * Null row keys, columns keys, and values are not supported.
- *
- * <p>Lookups by row key are often faster than lookups by column key, because the data is stored in
- * a {@code Map<R, Map<C, V>>}. A method call like {@code column(columnKey).get(rowKey)} still runs
- * quickly, since the row key is provided. However, {@code column(columnKey).size()} takes longer,
- * since an iteration across all row keys occurs.
- *
- * <p>Note that this implementation is not synchronized. If multiple threads access this table
- * concurrently and one of the threads modifies the table, it must be synchronized externally.
- *
- * <p>与 Guava/JDK 的差异声明（移植偏离）：迭代为弱一致快照语义——并发结构性修改
- * 不抛 ConcurrentModificationException（迭代器 remove 仅做身份 fail-fast）；
- * null 参数按 NPE 拒绝（Utils.checkNotNull），受管 Map 族（PMap1 等）按 IAE 拒绝——
- * 异常类型不保证统一（NPE 或 IAE），按消息内容定位。
- *
- * <p>不实现 java.io.Serializable：Guava 移植的事务内脏（backingMap 指向的
- * PMap2 及其 Map2Meta/Factory 含 MethodHandle）不可 Java 序列化，声明恒不可满足，勿再引入。
- *
- * @author Jared Levy
+ * 基于「行键 -> (列键 -> 值)」两层 {@link Map} 的 {@link Table} 实现，不支持 {@code null} 键或值。
+ * <p>{@link #column}、{@link #columnKeySet()} 与 {@link #columnMap()} 的迭代器不支持 {@code remove()}。
+ * 底层采用弱一致快照迭代且非线程安全，不实现 {@code Serializable}。
  */
 class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   // 两个字段由 GTable1/GTable2 的所有构造器完成注入。
@@ -64,7 +42,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   @SuppressWarnings("NotNullFieldNotInitialized")
   Supplier<? extends Map<C, V>> factory;
 
-  // Accessors
+  // 查询
 
   @Override
   public boolean contains(@Nullable Object rowKey, @Nullable Object columnKey) {
@@ -119,7 +97,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     return size;
   }
 
-  // Mutators
+  // 修改
 
   @Override
   public void clear() {
@@ -132,9 +110,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     Utils.checkNotNull(rowKey);
     Utils.checkNotNull(columnKey);
     Utils.checkNotNull(value);
-    // 先写内层再挂外层：先建行（旧getOrCreate形态：空行put进外层容器，托管路径当场记LogMap2）后内层
-    // put抛异常（如值bean已受管的HasManagedException）时，catch后继续提交会残留并持久化
-    // 幻影空行——对齐PMap2.putAll“先全量校验后入日志”的防边改边记惯例。
+    // 新行先写入内层再挂入外层，避免内层写入抛异常后在外层残留空行。
     Map<C, V> map = backingMap.get(rowKey);
     if (map == null) {
       map = factory.get();
@@ -186,7 +162,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     return value != null && value.equals(get(rowKey, columnKey));
   }
 
-  /** Remove a row key / column key / value mapping, if present. */
+  /** 若存在匹配的（行键、列键、值）映射则移除并返回 {@code true}。 */
   private boolean removeMapping(
       @Nullable Object rowKey, @Nullable Object columnKey, @Nullable Object value) {
     if (containsMapping(rowKey, columnKey, value)) {
@@ -196,12 +172,9 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     return false;
   }
 
-  // Views
+  // 视图
 
-  /**
-   * Abstract set whose {@code isEmpty()} returns whether the table is empty and whose {@code
-   * clear()} clears all table mappings.
-   */
+  /** 以底层表是否为空作为 {@code isEmpty()}、以清空整表作为 {@code clear()} 的视图集合基类。 */
   private abstract class TableSet<T> extends Utils.ImprovedAbstractSet<T> {
     @Override
     public boolean isEmpty() {
@@ -216,12 +189,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
   /**
    * {@inheritDoc}
-   *
-   * <p>The set's iterator traverses the mappings for the first row, the mappings for the second
-   * row, and so on.
-   *
-   * <p>Each cell is an immutable snapshot of a row key / column key / value mapping, taken at the
-   * time the cell is returned by a method call to the set or its iterator.
+   * <p>按行顺序遍历单元格，每个返回的 {@link Cell} 为获取时刻的不可变快照。
    */
   @Override
   public Set<Cell<R, C, V>> cellSet() {
@@ -249,19 +217,6 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
         rowEntry = rowIterator.next();
         columnIterator = rowEntry.getValue().entrySet().iterator();
       }
-      /*
-       * requireNonNull is safe because:
-       *
-       * - columnIterator started off pointing to an empty iterator, so we must have entered the
-       *   `if` body above at least once. Thus, if we got this far, that `if` body initialized
-       *   rowEntry at least once.
-       *
-       * - The only case in which rowEntry is cleared (during remove() below) happens only if the
-       *   caller removed every element from columnIterator. During that process, we would have had
-       *   to iterate it to exhaustion. Then we can apply the logic above about an empty
-       *   columnIterator. (This assumes no concurrent modification, but behavior under concurrent
-       *   modification is undefined, anyway.)
-       */
       Utils.requireNonNull(rowEntry);
       Entry<C, V> columnEntry = columnIterator.next();
       return Utils.immutableCell(rowEntry.getKey(), columnEntry.getKey(), columnEntry.getValue());
@@ -270,16 +225,6 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     @Override
     public void remove() {
       columnIterator.remove();
-      /*
-       * requireNonNull is safe because:
-       *
-       * - columnIterator.remove() succeeded, so it must have returned a value, so it must have been
-       * initialized by next() -- which initializes rowEntry, too.
-       *
-       * - rowEntry isn't cleared except below. If it was cleared below, then either
-       *   columnIterator.remove() would have failed above (if the user hasn't called next() since
-       *   then) or rowEntry would have been initialized by next() (as discussed above).
-       */
       if (Utils.requireNonNull(rowEntry).getValue().isEmpty()) {
         rowIterator.remove();
         rowEntry = null;
@@ -315,7 +260,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     @Nullable Map<C, V> backingRowMap;
 
     final void updateBackingRowMapField() {
-      // The same row key can now refer to a different row after removal and reinsertion.
+      // 行被移除再重建后可能指向新实例，每次访问前刷新引用。
       backingRowMap = computeBackingRowMap();
     }
 
@@ -324,7 +269,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       return backingMap.get(rowKey);
     }
 
-    // Call this every time we perform a removal.
+    // 每次移除元素后调用，确保外层不保留空行。
     void maintainEmptyInvariant() {
       updateBackingRowMapField();
       if (backingRowMap != null && backingRowMap.isEmpty()) {
@@ -351,7 +296,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     public V put(C key, V value) {
       Utils.checkNotNull(value);
       if (backingRowMap != null && !backingRowMap.isEmpty()) {
-        // Bind to a recreated row, while retaining the guard for a row that is still absent.
+        // 若行已重建则重新绑定，若仍不存在则拒绝写入过期视图。
         Map<C, V> currentRowMap = computeBackingRowMap();
         if (currentRowMap == null)
           throw new IllegalStateException("stale row view: row " + rowKey + " has been removed from table");
@@ -435,8 +380,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
     Entry<C, V> wrapEntry(final Entry<C, V> entry) {
       return new ForwardingMapEntry<>() {
-        // 值快照：delegate是pcollections不可变entry，转发它的getValue会一直读到旧值——
-        // 调用方setValue成功后，本entry的getValue/equals/hashCode必须反映自己的修改结果。
+        // 缓存当前值，因为底层不可变 entry 不会随 setValue 更新。
         private V value = entry.getValue();
 
         @Override
@@ -451,8 +395,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
         @Override
         public V setValue(@Nullable V value) {
-          // delegate entry是pcollections不可变（setValue抛UOE）：改走Row.put的事务化put语义，
-          // 返回旧值。
+          // 底层 entry 不可变，通过 Row.put 执行事务化更新。
           var old = Row.this.put(entry.getKey(), Utils.checkNotNull(value));
           this.value = Utils.checkNotNull(value);
           return Utils.uncheckedCastNullableTToT(old);
@@ -474,8 +417,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
   /**
    * {@inheritDoc}
-   *
-   * <p>The returned map's views have iterators that don't support {@code remove()}.
+   * <p>返回视图的迭代器不支持 {@code remove()}。
    */
   @Override
   public Map<R, V> column(C columnKey) {
@@ -512,7 +454,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       return StandardTable.this.remove(key, columnKey);
     }
 
-    /** Removes all {@code Column} mappings whose row key and value satisfy the given predicate. */
+    /** 移除列视图中满足条件的全部映射。 */
     boolean removeFromColumnIf(Predicate<? super Entry<R, V>> predicate) {
       boolean changed = false;
       Iterator<Entry<R, Map<C, V>>> iterator = backingMap.entrySet().iterator();
@@ -616,20 +558,6 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
               @Override
               public V setValue(@Nullable V value) {
-                /*
-                 * The cast is safe because of the containsKey check above. (Well, it's possible for
-                 * the map to change between that call and this one. But if that happens, the
-                 * behavior is undefined because of the concurrent mutation.)
-                 *
-                 * (Our prototype checker happens to be "smart" enough to understand this for the
-                 * *get* call in getValue but not for the *put* call here.)
-                 *
-                 * (Arguably we should use requireNonNull rather than uncheckedCastNullableTToT: We
-                 * know that V is a non-null type because that's the only kind of value type that
-                 * StandardTable supports. Thus, requireNonNull is safe as long as the cell is still
-                 * present. (And if it's not present, behavior is undefined.) However, that's a
-                 * behavior change relative to the old code, so it didn't seem worth risking.)
-                 */
                 return Utils.uncheckedCastNullableTToT(entry.getValue().put(columnKey, Utils.checkNotNull(value)));
               }
             }
@@ -705,11 +633,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
   /**
    * {@inheritDoc}
-   *
-   * <p>The returned set has an iterator that does not support {@code remove()}.
-   *
-   * <p>The set's iterator traverses the columns of the first row, the columns of the second row,
-   * etc., skipping any columns that have appeared previously.
+   * <p>按行顺序去重遍历列键，迭代器不支持 {@code remove()}。
    */
   @Override
   public Set<C> columnKeySet() {
@@ -754,8 +678,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       Iterator<Map<C, V>> iterator = backingMap.values().iterator();
       while (iterator.hasNext()) {
         Map<C, V> map = iterator.next();
-        // map.keySet().removeAll(c) can throw a NPE when map is a TreeMap with
-        // natural ordering and c contains a null.
+        // 避免 c 含 null 时直接调用 map.keySet().removeAll(c) 触发 NPE。
         if (Utils.removeAll(map.keySet().iterator(), c)) {
           changed = true;
           if (map.isEmpty()) {
@@ -789,16 +712,13 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
   }
 
-  /** Creates an iterator that returns each column value with duplicates omitted. */
+  /** 创建去重遍历所有列键的迭代器。 */
   Iterator<C> createColumnKeyIterator() {
     return new ColumnKeyIterator();
   }
 
   private class ColumnKeyIterator extends AbstractIterator<C> {
-    // 去重表只存键（HashSet），与行map工厂解耦：factory.get()在GTable2下产出受管
-    // BeanMap2，seen.put(colKey, 活受管value)会对只读迭代中的value bean做mapKey
-    // 字段写并强引用全部唯一列bean。原"同型map"是Guava对comparator与equals不一致
-    // 的TreeMap去重语义保留；zeze的GTable键比较器与equals一致，HashSet语义等价。
+    // 使用 HashSet 仅记录列键去重，避免通过 factory.get() 创建行容器并误触受管 Bean 状态。
     final Set<C> seen = new java.util.HashSet<>();
     final Iterator<Map<C, V>> mapIterator = backingMap.values().iterator();
     Iterator<Entry<C, V>> entryIterator = Utils.emptyIterator();
@@ -824,9 +744,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
   /**
    * {@inheritDoc}
-   *
-   * <p>The collection's iterator traverses the values for the first row, the values for the second
-   * row, and so on.
+   * <p>按行顺序遍历全部值。
    */
   @Override
   public Collection<V> values() {
@@ -851,12 +769,10 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       return containsRow(key);
     }
 
-    // performing cast only when key is in backing map and has the correct type
     @SuppressWarnings("unchecked")
     @Override
     @Nullable
     public Map<C, V> get(@Nullable Object key) {
-      // requireNonNull is safe because of the containsRow check.
       return containsRow(key) ? row((R) Utils.requireNonNull(key)) : null;
     }
 
@@ -913,13 +829,10 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   }
 
   private class ColumnMap extends Utils.ViewCachingAbstractMap<C, Map<R, V>> {
-    // The cast to C occurs only when the key is in the map, implying that it
-    // has the correct type.
     @SuppressWarnings("unchecked")
     @Override
     @Nullable
     public Map<R, V> get(@Nullable Object key) {
-      // requireNonNull is safe because of the containsColumn check.
       return containsColumn(key) ? column((C) Utils.requireNonNull(key)) : null;
     }
 
@@ -964,7 +877,6 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       public boolean contains(@Nullable Object obj) {
         if (obj instanceof Entry<?, ?> entry) {
 			if (containsColumn(entry.getKey())) {
-            // requireNonNull is safe because of the containsColumn check.
             return Utils.requireNonNull(get(entry.getKey())).equals(entry.getValue());
           }
         }
@@ -973,10 +885,6 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
       @Override
       public boolean remove(@Nullable Object obj) {
-        /*
-         * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
-         * nullness checker.
-         */
         if (contains(obj) && obj instanceof Entry<?, ?> entry) {
 			removeColumn(entry.getKey());
           return true;
@@ -986,12 +894,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
       @Override
       public boolean removeAll(Collection<?> c) {
-        /*
-         * We can't inherit the normal implementation (which calls
-         * Sets.removeAllImpl(Set, *Collection*)) because, under some
-         * circumstances, it attempts to call columnKeySet().iterator().remove,
-         * which is unsupported.
-         */
+        // 不走父类的 removeAll，避免在部分情况下触发不支持的 columnKeySet().iterator().remove()。
         Utils.checkNotNull(c);
         return Utils.removeAllImpl(this, c.iterator());
       }

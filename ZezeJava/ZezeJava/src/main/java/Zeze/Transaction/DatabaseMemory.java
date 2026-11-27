@@ -14,16 +14,13 @@ import Zeze.Util.KV;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
+ * 内存数据库后端：按 DatabaseUrl 在进程内模拟 KV 表与 Operates，主要用于测试 checkpoint 流程。
+ * （表自身的内存表由 Table.storage == null 表示，与本后端不同。）
  */
 public final class DatabaseMemory extends Database implements Database.Operates {
-	// Operates 的 schemas 版本记录按 DatabaseUrl 分区（对齐下面的 databaseTables）：
-	// 静态共享时同一进程的多个 Memory 库实例互相串扰——库 A 的 schemas 保存让库 B 读到 A 的版本/前像，
-	// B 的兼容检查基于错误前像进行。
+	// 按 DatabaseUrl 分区，避免同进程多 Memory 库实例互相串扰 schemas 版本记录。
 	private static final HashMap<String, HashMap<ByteBuffer, DataWithVersion>> dataWithVersions = new HashMap<>();
-	// 私有哨兵：不能与 ByteBuffer.Empty 别名——bean 全默认值时编码结果是 0 字节，
-	// replace 里 value.Copy() 对 size==0 返回共享的 ByteBuffer.Empty，commit 以引用相等判删
-	// 会把"写入空编码值"误判成 remove，已提交记录静默丢失。独立实例切断该别名。
+	// 删除哨兵：必须为独立实例，避免与 0 字节编码值（ByteBuffer.Empty）别名碰撞。
 	private static final byte [] removed = new byte[0];
 	private static final HashMap<String, HashMap<String, TableData>> databaseTables = new HashMap<>();
 	private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -91,10 +88,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	@Override
 	public @Nullable DataWithVersion getDataWithVersion(ByteBuffer key) {
-		// dataWithVersions是静态共享结构（多Memory库实例按URL分区访问，见类头注释），
-		// 必须用静态读写锁守卫（对齐databaseTables的约定）。不得用实例锁——每实例一把：
-		// 跨实例并发get/computeIfAbsent/put可损坏HashMap（桶链断裂），且与静态clear()的
-		// 写锁不互斥，clear期间的put可在被清空的桶上重建出损坏结构。
+		// 静态共享 map 须由静态读写锁守卫，与 clear() 及跨实例访问互斥。
 		lock.readLock().lock();
 		try {
 			var db = dataWithVersions.get(getDatabaseUrl());

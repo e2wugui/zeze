@@ -32,10 +32,7 @@ public class LinkdProviderSession extends ProviderSession {
 	 */
 	protected final ConcurrentHashSet<Integer> staticBinds = new ConcurrentHashSet<>(); // <moduleId>
 
-	/**
-	 * 维护此Provider通过Subscribe注册的动态模块，用来在Provider关闭的时候清理localStates
-	 * （否则Subscribe写入的localStates在连接关闭后残留死sessionId状态）。
-	 */
+	/** 维护此 Provider 通过 Subscribe 注册的动态模块，供连接关闭时清理 localStates。 */
 	protected final ConcurrentHashSet<Integer> dynamicSubscribes = new ConcurrentHashSet<>(); // <moduleId>
 
 	public LinkdProviderSession(long ssid) {
@@ -76,15 +73,11 @@ public class LinkdProviderSession extends ProviderSession {
 		}
 	}
 
-	/**
-	 * 锁内换出整个map，O(1)临界区。onProviderClose后续的unbind与发送必须在锁外进行
-	 * （unbind会获取LinkdUserSession.bindsLock，与bind路径的锁序相反，持锁调用会死锁），
-	 * 因此这里只能换出快照，不能在锁内遍历处理。
-	 */
+	/** 锁内换出并关闭反向索引，供 onProviderClose 在锁外执行 unbind（避免与 LinkdUserSession.bindsLock 死锁）。 */
 	public IntHashMap<LongHashSet> swapLinkSessionIds() {
 		linkSessionIdsLock.lock();
 		try {
-			linkSessionsClosed = true; // 换出后不再准入，迟到的bind不能写入无人清理的新map。
+			linkSessionsClosed = true; // 禁止后续迟到的 bind 再写入
 			var old = linkSessionIds;
 			linkSessionIds = new IntHashMap<>();
 			return old;

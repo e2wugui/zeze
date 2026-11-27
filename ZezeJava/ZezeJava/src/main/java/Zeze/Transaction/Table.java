@@ -36,9 +36,7 @@ public abstract class Table {
 		this.name = name;
 		this.suffix = suffix != null ? suffix : "";
 
-		// AddTable不能在这里调用。
-		// 该调用移到Application.AddTable。
-		// 影响：允许Table.Id重复，只要它没有加入zeze-app。
+		// 表的注册由 Application.addTable 完成，未注册前允许 Table.Id 重复。
 	}
 
 	public final int getOriginalId() {
@@ -65,7 +63,7 @@ public abstract class Table {
 		return changeListenerMap;
 	}
 
-	// 生命周期注入字段：open() 前为 null，getter 以显式异常给出可诊断失败（房例同 TableX.getCache）。
+	// 以下字段在 open() 时注入，未打开前调用 getter 显式报错。
 	public final Application getZeze() {
 		var app = zeze;
 		if (app == null)

@@ -54,7 +54,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		if (m.isEmpty())
 			return;
 		if (m instanceof PMap1)
-			m = ((PMap1<? extends K, ? extends V>)m).getMap(); // more stable
+			m = ((PMap1<? extends K, ? extends V>)m).getMap(); // 捕获不可变快照
 		for (var e : m.entrySet()) {
 			if (e.getKey() == null)
 				throw new IllegalArgumentException("null key");
@@ -120,8 +120,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		var modified = log.getModified();
 		if (modified.isEmpty())
 			return;
-		// 单遍分区批量应用，等价旧 minusAll(removed).plusAll(replaced)：
-		// modified 单槽互斥，null 槽位归 minus 批、非 null 归 plus 批，无交叉键。
+		// 单遍按值是否为 null 分区为删除与替换两批，键互不相交。
 		HashMap<K, V> puts = null;
 		ArrayList<K> removes = null;
 		for (var e : modified.entrySet()) {
@@ -180,8 +179,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
 			return;
-		// JDK暂存+单发批量：clear后无中间可观测态，与逐条put等价（同键后写覆盖语义一致）；
-		// ktt后端plusAll走builder批量构建。
+		// 暂存后一次性批量写入，与逐条 put 语义等价（同键后写覆盖）。
 		var m = new HashMap<K, V>(((initialDecodeCapacity(n) + 2) / 3) * 4);
 		for (int i = n; i > 0; i--) {
 			m.put(keyDecoder.apply(bb), valueDecoder.apply(bb));

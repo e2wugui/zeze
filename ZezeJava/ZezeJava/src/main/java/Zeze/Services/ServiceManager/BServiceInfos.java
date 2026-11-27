@@ -30,14 +30,14 @@ public final class BServiceInfos implements Serializable {
 		return identity.isEmpty() || identity.charAt(0) == '#' ? 0 : identity.charAt(0) == '@' ? 2 : 1;
 	}
 
-	private final FewModifyList<BServiceInfo> sortedIdentities = new FewModifyList<>(); // sorted by ServiceIdentity
+	private final FewModifyList<BServiceInfo> sortedIdentities = new FewModifyList<>(); // 按 ServiceIdentity 排序
 
 	public FewModifyList<BServiceInfo> getSortedIdentities() {
 		return sortedIdentities;
 	}
 
 	/**
-	 * @return old BServiceInfo
+	 * @return 被替换的旧 BServiceInfo，不存在时返回 null
 	 */
 	public @Nullable BServiceInfo insert(BServiceInfo info) {
 		int index = Collections.binarySearch(sortedIdentities, info, comparer);

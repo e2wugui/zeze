@@ -268,11 +268,7 @@ public interface IByteBuffer {
 		}
 	}
 
-	/**
-	 * 读取集合长度等必为非负的无符号值：负数意味着无符号值落在[2^31,2^32)，
-	 * 不可能由encode正常产生（集合size()最大2^31-1），属于损坏/恶意流；
-	 * 静默解释为空集合会丢数据（decode先clear的场景），直接抛异常。
-	 */
+	/** 读取必为非负的无符号整数（如集合长度），高位溢出为负时直接抛出异常。 */
 	default int ReadUIntPositive() {
 		int n = ReadUInt();
 		if (n < 0)
@@ -285,7 +281,7 @@ public interface IByteBuffer {
 		int deltaId = (tagByte & ID_MASK) >> TAG_SHIFT;
 		if (deltaId < 0xf)
 			return deltaId;
-		long id = 0xfL + (ReadUInt() & 0xffff_ffffL); // ReadUInt()按无符号解释，直接int相加会溢出回绕为负idx
+		long id = 0xfL + (ReadUInt() & 0xffff_ffffL); // 按无符号整数累加，防 int 溢出回绕为负
 		if (id > Integer.MAX_VALUE) {
 			throw new IllegalStateException("ReadTagSize overflow: 0xf + " + (id - 0xf)
 					+ " at " + getReadIndex() + '/' + getWriteIndex());
@@ -628,7 +624,7 @@ public interface IByteBuffer {
 		return bean;
 	}
 
-	/** Reads a new key from a tagged field, including legacy fields tagged as dynamic. */
+	/** 从带 tag 的字段读取 BeanKey，兼容旧版标记为 dynamic 的字段。 */
 	default <T extends BeanKey> T ReadBeanKey(int tag, Class<?> keyClass, Function<IByteBuffer, T> reader,
 											 Supplier<? extends T> defaultKey) {
 		return readBeanTag(tag, keyClass) ? reader.apply(this) : defaultKey.get();
@@ -711,15 +707,14 @@ public interface IByteBuffer {
 		SkipUnknownField(type | 0x10); // ensure high bits not zero
 	}
 
-	// SkipUnknownField递归族(BEAN/LIST/MAP相互递归)的嵌套深度上限(对齐protobuf惯例)：
-	// 恶意深嵌套流(每层最少2-3字节)可让无界递归触发StackOverflowError穿透catch(Exception)
+	// SkipUnknownField 嵌套递归深度上限，防止深嵌套流触发 StackOverflowError。
 	int MAX_SKIP_UNKNOWN_FIELD_DEPTH = 100;
 
 	default void SkipUnknownField(int tag) {
 		skipUnknownField(tag, 1);
 	}
 
-	// 深度只属于本次跳过调用链，显式传递以免为每个(虚拟)线程建立ThreadLocal状态。
+	// 深度参数随调用栈传递，避免引入 ThreadLocal 状态。
 	private void skipUnknownField(int tag, int depth) {
 		if (depth > MAX_SKIP_UNKNOWN_FIELD_DEPTH) {
 			throw new IllegalStateException("SkipUnknownField: depth > " + MAX_SKIP_UNKNOWN_FIELD_DEPTH
@@ -765,7 +760,6 @@ public interface IByteBuffer {
 			return;
 		case MAP:
 			t = ReadByte();
-			// ReadUInt无符号语义可为负：负count让跳过循环零迭代，map体滞留导致读指针错位。
 			int keyTag = (t >> TAG_SHIFT) | 0x10; // ensure high bits not zero
 			t |= 0x10;
 			for (int n = ReadUIntPositive(); n > 0; n--) {

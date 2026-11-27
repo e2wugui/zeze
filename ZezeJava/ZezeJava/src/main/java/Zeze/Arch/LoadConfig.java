@@ -16,8 +16,6 @@ public class LoadConfig {
 	}
 
 	public final void setMaxOnlineNew(int value) {
-		// 0 会让 LoadBase.onTimerTask 的消化延迟除法除零断链（纵深防护已用 Math.max 兜底，此处再拒绝非法值）。
-		// "禁新增"语义由消费端 onlineNew>maxOnlineNew 门承担，应用以 1 表达近似语义。
 		if (value <= 0)
 			throw new IllegalArgumentException("maxOnlineNew must be > 0");
 		maxOnlineNew = value;
@@ -52,8 +50,6 @@ public class LoadConfig {
 	}
 
 	public final void setDigestionDelayExSeconds(int value) {
-		// <=0会使LoadBase的慢报累计+=0永不达阈值（负载上报静默停止），且finally resume(0)
-		// →scheduleNow(0)定时链即时自续空转。与setMaxOnlineNew同构拒绝非法值。
 		if (value <= 0)
 			throw new IllegalArgumentException("digestionDelayExSeconds must be > 0");
 		digestionDelayExSeconds = value;

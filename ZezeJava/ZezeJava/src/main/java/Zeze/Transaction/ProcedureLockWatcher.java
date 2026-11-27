@@ -39,12 +39,10 @@ public class ProcedureLockWatcher {
 	}
 
 	private static void log(Procedure p, TreeMap<TableKey, RecordAccessed> recordAccessed) {
-		// 统计表的锁数量。
 		var tableIdCount = new IntHashMap<OutInt>();
 		for (var tableKey : recordAccessed.keySet())
 			//noinspection DataFlowIssue
 			tableIdCount.computeIfAbsent(tableKey.getId(), __ -> new OutInt()).value++;
-		// 格式化log
 		var sb = new StringBuilder(64).append(p.getActionName()).append(": ");
 		for (var it = tableIdCount.iterator(); it.moveToNext(); )
 			sb.append(TableKey.tables.get(it.key())).append('=').append(it.value().value).append(',');

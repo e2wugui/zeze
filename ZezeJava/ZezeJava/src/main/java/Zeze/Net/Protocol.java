@@ -30,7 +30,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 	private transient @Nullable AsyncSocket sender; // AsyncSocket
 	private transient volatile @Nullable Object userState;
-	@SuppressWarnings("NotNullFieldNotInitialized") // Initialized by each concrete protocol constructor.
+	@SuppressWarnings("NotNullFieldNotInitialized") // 由具体协议子类构造器初始化
 	public TArgument Argument;
 	protected long resultCode;
 
@@ -244,9 +244,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		int size = singleEncodedProtocol.ReadInt4();
 		int beginReadIndex = singleEncodedProtocol.ReadIndex;
 		int endReadIndex = beginReadIndex + size;
-		// 帧头声明的size大于实际数据时，抬WriteIndex会让p.decode越过真实数据末端，
-		// 以裸ArrayIndexOutOfBoundsException爆栈（Raft代理转发损坏/恶意数据路径）。
-		// 这里提前给出干净的解码错误，调用方按异常处理（应答错误码）。
 		if (size < 0 || size > singleEncodedProtocol.WriteIndex - beginReadIndex)
 			throw new IllegalStateException("protocol decode: invalid size " + size + ", buffer "
 				+ (singleEncodedProtocol.WriteIndex - beginReadIndex)
@@ -277,22 +274,19 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 */
 	public static void decode(Service service, AsyncSocket so, ByteBuffer bb)
 		throws Exception {
-		// 每缓冲区读一次=快照：按接收时刻的准入状态逐帧判决，中途撤销不影响本缓冲区。null不设防。
-		var admission = so.getDecodeAdmission();
-		while (bb.size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
-			// 读取协议类型和大小
+		var admission = so.getDecodeAdmission(); // 本缓冲区按快照准入状态逐帧校验
+		while (bb.size() >= HEADER_SIZE) {
 			var bytes = bb.Bytes;
 			int beginReadIndex = bb.ReadIndex;
 			int moduleId = ByteBuffer.ToInt(bytes, beginReadIndex);
 			int protocolId = ByteBuffer.ToInt(bytes, beginReadIndex + 4);
 			int size = ByteBuffer.ToInt(bytes, beginReadIndex + 8);
 			var typeId = makeTypeId(moduleId, protocolId);
-			if (admission != null && !admission.test(typeId)) // 准入在完整性检查之前：帧头可见即判决
+			if (admission != null && !admission.test(typeId))
 				throw new IllegalStateException(service.getName() + " reject protocol before admission passed: moduleId="
 					+ moduleId + " protocolId=" + protocolId + " so=" + so);
 
-			// 不按type检查size是否太大；协议最大大小由总参数 SocketOptions.InputBufferMaxProtocolSize
-			// 统一限制。参考 AsyncSocket
+			// 协议最大大小由 SocketOptions.InputBufferMaxProtocolSize 统一限制
 			long longSize = size & 0xffff_ffffL;
 			if (HEADER_SIZE + longSize > bb.size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
@@ -305,8 +299,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 						String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d>%d too large!",
 							pName, service.getName(), moduleId, protocolId, longSize, maxSize));
 				}
-				// not enough data. try next time.
-				return;
+				return; // 数据不足，等下次继续
 			}
 			bb.ReadIndex = beginReadIndex += HEADER_SIZE;
 			int endReadIndex = beginReadIndex + size;
@@ -324,7 +317,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 						AsyncSocket.log("RECV", so.getSessionId(), moduleId, protocolId, bb);
 					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb);
 				}
-				if (timeBegin != 0) // 统计禁用时零开销
+				if (timeBegin != 0)
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle != null ? factoryHandle.Class : null,
 						HEADER_SIZE + size, System.nanoTime() - timeBegin);
 			}

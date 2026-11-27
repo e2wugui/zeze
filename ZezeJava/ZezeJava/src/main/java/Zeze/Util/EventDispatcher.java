@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Application;
 import org.jspecify.annotations.Nullable;
 
-// 事件分发器：按事件注册处理器，支持嵌入/存储过程/线程三种派发模式并聚合结果码
+/** 事件分发器：按事件注册处理器，支持嵌入/存储过程/线程三种派发模式并聚合结果码。 */
 public class EventDispatcher {
 	@FunctionalInterface
 	public interface EventHandle {

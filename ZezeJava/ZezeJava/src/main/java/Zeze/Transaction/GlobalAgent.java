@@ -181,7 +181,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 
 	@Override
 	public @Nullable AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
-		var agent = agents[getGlobalCacheManagerHashIndex(gkey)]; // hash
+		var agent = agents[getGlobalCacheManagerHashIndex(gkey)];
 		if (agent.isReleasing()) {
 			agent.setFastFail();
 			var trans = Transaction.getCurrent();
@@ -192,8 +192,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		if (getZeze().getConfig().getEnableGlobalFastFail())
 			agent.verifyFastFail();
 		var socket = agent.connect();
-		// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
-		// 一个请求异常不关闭连接，尝试继续工作。
+		// 单次请求失败只打断外层事务，不关闭连接。
 		var rpc = new Acquire(gkey, state);
 		if (fresh)
 			rpc.setResultCode(GlobalCacheManagerConst.AcquireFreshSource);
@@ -209,7 +208,6 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 			if (trans == null || trans.isCompleted())
 				throw new GoBackZeze("Acquire Failed", e);
 			trans.throwAbort("Acquire Failed", e);
-			// never run here
 		}
 		if (!rpc.isTimeout())
 			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
@@ -222,7 +220,6 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 			if (trans == null || trans.isCompleted())
 				throw new GoBackZeze(msg);
 			trans.throwAbort(msg, null);
-			// never run here
 		}
 		var rc = rpc.getResultCode();
 		state = rpc.Result.state;
@@ -296,8 +293,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 				try {
 					agent.close();
 				} catch (Exception e) { // logger.error
-					// 停机尽力语义：单个agent关闭失败只记日志，继续关闭其余agent，
-					// 避免异常上抛中止后续agent关闭，并中断Application.stop（startState卡在eStopping）。
+					// 尽力关闭每个 agent，单个失败不阻断其余 agent 与停机流程。
 					logger.error("GlobalAgent.Stop Agent={}",
 							agent.getGlobalCacheManagerHashIndex(), e);
 				}

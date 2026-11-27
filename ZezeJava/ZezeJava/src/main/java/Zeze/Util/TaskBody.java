@@ -6,18 +6,10 @@ import Zeze.Transaction.Procedure;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 任务载荷的统一抽象，{@link TaskSpec} 各工厂（Action0/FuncLong/Procedure/Func0 及协议版变体）的密封实现。
- * 载荷类型之间的差异只有三处，全部收敛到本接口：
- * <ul>
- * <li>异常/结果策略：见 {@link #call(String)}；</li>
- * <li>日志名解析：Procedure 系固定 getActionName()，OfProtocolFunc 为 name/协议类名优先，
- *     其余 name 优先、空则载荷类名，见 {@link #logName(String)}；</li>
- * <li>ZezeCounter 统计位置：Func/Procedure 系在 call 内部完成（statsName 返回 null，外层不再计数），
- *     OfAction/OfFunc0 由外层 core 按 {@link #statsName(String)} 计数。</li>
- * </ul>
- * Task 的各执行家族（call/submit/execute/schedule/scheduleAt）与 OneByOne 队列因此用一份代码处理所有载荷。
+ * 任务载荷的统一密封抽象（{@link TaskSpec} 工厂创建的 Action0/FuncLong/Procedure/Func0 及协议变体），
+ * 收敛异常/结果策略、日志名解析与统计归属三类差异，供 Task 执行家族与 OneByOne 队列统一调度。
  *
- * @param <R> 结果类型：OfAction/OfFunc/OfProcedure 归一为 Long；OfFunc0 携带真实返回值类型
+ * @param <R> 结果类型：Action0/FuncLong/Procedure 归一为 Long；Func0 携带真实返回值类型
  */
 public sealed interface TaskBody<R extends @Nullable Object> {
 	/**
@@ -69,7 +61,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		public Long call(@Nullable String name) {
 			try {
 				action.run();
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				Task.logger.error("{} exception:", logName(name), e);
 			}
 			return 0L;
@@ -100,7 +92,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		public Long call(@Nullable String name) {
 			try {
 				return Task.callFuncCore(func, null, null, name);
-			} catch (Throwable e) { // logger.error callFuncCore 自身异常的兜底（正常路径已翻错误码，不会到这里）
+			} catch (Throwable e) {
 				Task.logger.error("{} exception:", logName(name), e);
 				return Procedure.Exception;
 			}
@@ -168,7 +160,7 @@ public sealed interface TaskBody<R extends @Nullable Object> {
 		public Long call(@Nullable String name) {
 			try {
 				return Task.callProcCore(procedure, null, null);
-			} catch (Throwable e) { // logger.error callProcCore 自身异常的兜底（正常路径已翻错误码，不会到这里）
+			} catch (Throwable e) {
 				Task.logger.error("{} exception:", procedure, e);
 				return Procedure.Exception;
 			}

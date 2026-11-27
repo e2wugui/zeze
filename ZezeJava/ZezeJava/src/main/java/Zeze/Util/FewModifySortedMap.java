@@ -17,9 +17,10 @@ import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
 
-// K必须可比较：内部TreeMap默认按自然排序（Comparator构造器只覆盖排序方式，不豁免可比性）。
-// key和value按非空约束使用；查询及计算方法的可空返回值由@Nullable单独声明。
-// FewModifyMap/FewModifyList 为 HashMap/ArrayList 契约，允许 null key/value/元素。
+/**
+ * 写少读多的有序 Map：写侧 TreeMap 加锁修改，读侧走不可变快照（写后首次读重建）。
+ * key 需可比较且 key/value 按非空约束使用；视图方法均返回只读快照视图，写操作抛 {@link UnsupportedOperationException}。
+ */
 public class FewModifySortedMap<K extends Comparable<? super K>, V> implements NavigableMap<K, V> {
 	private transient volatile @Nullable NavigableMap<K, V> read;
 	private final TreeMap<K, V> write;
@@ -43,12 +44,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 			writeLock.lock();
 			try {
 				if ((r = read) == null) {
-					// 快照必须继承write的比较器：用Comparator构造的实例，
-					// 自然序快照会让所有序敏感读与comparator()返回值全部错乱。
-					// 快照统一unmodifiable包装（镜像FewModifyMap家族）——
-					// 本类的全部视图方法（subMap/keySet/descendingMap等）直通prepareRead，
-					// 裸返TreeMap时写视图会静默腐蚀共享快照并与权威写侧分叉（幻影条目：
-					// 读侧可见、write不知情、下次写重建后蒸发；且无同步并发读写CME）。
+					// 快照须继承 write 的比较器并做只读包装，避免通过视图修改共享快照。
 					var tree = new TreeMap<K, V>(write.comparator());
 					tree.putAll(write);
 					r = Collections.unmodifiableNavigableMap(tree);
@@ -61,7 +57,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return r;
 	}
 
-	// 只读快照：不受本Map后续写入影响，误写抛UnsupportedOperationException；key/value对象仍共享。
+	/** 只读快照：不受本 Map 后续写入影响；key/value 对象仍共享。 */
 	public NavigableMap<K, V> snapshot() {
 		return prepareRead();
 	}
@@ -219,19 +215,16 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return prepareRead().comparator();
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return prepareRead().subMap(fromKey, toKey);
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public SortedMap<K, V> headMap(K toKey) {
 		return prepareRead().headMap(toKey);
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public SortedMap<K, V> tailMap(K fromKey) {
 		return prepareRead().tailMap(fromKey);
@@ -247,19 +240,16 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return prepareRead().lastKey();
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public Set<K> keySet() {
 		return prepareRead().keySet();
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public Collection<V> values() {
 		return prepareRead().values();
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public Set<Entry<K, V>> entrySet() {
 		return prepareRead().entrySet();
@@ -315,9 +305,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return prepareRead().lastEntry();
 	}
 
-	// poll 是写操作：必须在 writeLock 内从真实数据 write 中取出并置空读快照缓存。
-	// 原实现直接 poll 共享只读快照 prepareRead()：真实数据不变（poll 语义未实现），
-	// 且所有后续读都看到被挖掉条目的损坏快照。
+	// poll 为写操作，在 writeLock 内修改 write 并失效读快照。
 	@Override
 	public @Nullable Entry<K, V> pollFirstEntry() {
 		writeLock.lock();
@@ -342,37 +330,31 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		}
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableMap<K, V> descendingMap() {
 		return prepareRead().descendingMap();
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableSet<K> navigableKeySet() {
 		return prepareRead().navigableKeySet();
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableSet<K> descendingKeySet() {
 		return prepareRead().descendingKeySet();
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
 		return prepareRead().subMap(fromKey, fromInclusive, toKey, toInclusive);
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
 		return prepareRead().headMap(toKey, inclusive);
 	}
 
-	// 返回只读快照视图；写操作抛UnsupportedOperationException。
 	@Override
 	public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
 		return prepareRead().tailMap(fromKey, inclusive);
@@ -431,9 +413,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return prepareRead().toString();
 	}
 
-	/** 相等性基于调用时刻快照做内容比较（与同内容任意Map相等，跨实现对称，
-	 * Map契约——NavigableMap未在Map之上追加equals条款）；hashCode随内容变化，
-	 * 本对象不应作HashMap/HashSet键；snapshot()固定容器结构，作为键时还须保证其中key/value的哈希值稳定。 */
+	/** 基于调用时刻快照比较内容；hashCode 随内容变化，勿直接作 Map/Set 键（需要稳定键请用 {@link #snapshot()}）。 */
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		return this == obj || obj instanceof Map && prepareRead().equals(obj);

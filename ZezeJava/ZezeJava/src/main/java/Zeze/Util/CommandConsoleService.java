@@ -6,7 +6,7 @@ import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import org.jspecify.annotations.Nullable;
 
-// 承载 CommandConsole 的 TCP 服务：接收行协议输入并回显命令结果
+/** 承载 CommandConsole 的 TCP 服务：接收行协议输入并回显命令结果。 */
 public class CommandConsoleService extends Service {
 	private volatile @Nullable CommandConsole cc;
 
@@ -30,12 +30,9 @@ public class CommandConsoleService extends Service {
 	public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
 		var cc = (CommandConsole)so.getUserState();
 		if (cc == null)
-			// 连接accept时setCommandConsole尚未调用（或被显式置null）——不能整块消费静默吞输入
-			// （客户端敲任何命令都无响应也无断开，不可观测）；显式抛错关闭连接并留痕，
-			// 客户端重连即得已就绪的控制台。
 			throw new IllegalStateException("CommandConsole not ready (setCommandConsole not called?)");
 		cc.input(so, input.Bytes, input.ReadIndex, input.size());
-		input.ReadIndex = input.WriteIndex; // all processed
+		input.ReadIndex = input.WriteIndex;
 		return true;
 	}
 }

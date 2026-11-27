@@ -40,31 +40,20 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	// 未覆写getKeyStringType()时string key列取默认"VARCHAR(256)"（DatabaseRelationalMapping）。
 	private static final int eMaxKeyStringLength = 256;
 
-	// SQLException.getMessage()无契约保证非null（驱动包装异常、本地化场景可为null），
-	// catch块内直接contains会NPE：本应幂等继续/死锁重试的路径变成启动失败且掩盖原始异常。
-	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径。
+	// 驱动异常消息可能为 null，统一做空安全子串匹配。
 	private static boolean sqlMessageContains(SQLException e, String token) {
 		var msg = e.getMessage();
 		return msg != null && msg.contains(token);
 	}
 
-	// CREATE TABLE并发竞态：虽有IF NOT EXISTS，对方恰好在检查与创建之间建同名表时
-	// 报duplicate_table(42P07)或pg_class唯一约束(23505)——"tuple concurrently updated"
-	// 令牌属于并发CREATE OR REPLACE FUNCTION，匹配不到会误把竞态当硬错误。
-	// 按SQLState判定，竞态视为表已存在（isNew=false）。
+	// 并发 CREATE TABLE IF NOT EXISTS 竞态（42P07 / 23505 / 并发 DDL 冲突）视为表已存在。
 	private static boolean isConcurrentCreateTableExists(SQLException e) {
 		var state = e.getSQLState();
 		return "42P07".equals(state) || "23505".equals(state)
 				|| sqlMessageContains(e, "tuple concurrently updated");
 	}
 
-	// 全表walk游标抓取：pgjdbc在autoCommit下忽略fetchSize一次拉全量，大表walk有OOM风险。
-	// 事务内setFetchSize启用游标分批；结束恢复autoCommit（Druid回收也会reset，双保险）。
-	// 四个walk族入口（typed/raw × walk/walkKey，分属两个内部表类）共用。
-	// 提前中断只需rs.close()：pgjdbc关闭portal，服务端立即停止发送，无MySQL流式的KILL善后。
-	// 游标分批下回调处理期间会话处于idle-in-transaction，若部署设置了
-	// idle_in_transaction_session_timeout（vanilla PG默认0，部分托管PG会设）会在批间断连，
-	// 用SET LOCAL在本事务内关闭（随commit自动失效，无需恢复）。
+	// 事务内 setFetchSize 启用游标分批防大表 OOM，并局部关闭 idle_in_transaction_session_timeout 避免慢回调断连。
 	private long walkCursor(String sql, JdbcWalkRow row) throws Exception {
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(false);
@@ -160,9 +149,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 	@Override
 	public void renameTable(String tableOldName, String tableNewName) throws Exception {
-		// 幂等重跑：Schemas.checkCompatible的rename序列非原子——部分成功后中断（或renames全部
-		// 成功但saveDataWithSameVersion未落库）时重启会对同一对名字再次rename，此时源已不存在、
-		// 目标已存在，视为上次已完成，no-op跳过；源目标都不存在是真正的异常，明确报错。
+		// 支持幂等重跑：源不存在而目标已存在视为已完成，均不存在则报错。
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(true);
 			if (!tableExists(conn, tableOldName)) {
@@ -202,8 +189,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	public void dropOperatesProcedures() {
-		// PG端为FUNCTION，DROP PROCEDURE删FUNCTION必错（原先全仓无调用故未暴露）；
-		// 按参数签名DROP FUNCTION。
+		// PG 端定义为 FUNCTION，须按参数签名 DROP FUNCTION。
 		String[] drops = {
 				"DROP FUNCTION IF EXISTS _ZezeSaveDataWithSameVersion_(BYTEA, BYTEA, BIGINT, INTEGER)",
 				"DROP FUNCTION IF EXISTS _ZezeSetInUse_(INTEGER, BYTEA, INTEGER)",
@@ -222,12 +208,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 	}
 
-	// 过程体由启动时 CREATE OR REPLACE 自动下发（见OperatesPostgreSQL构造器）。
-	// plpgsql块级EXCEPTION用于控制流：RAISE EXCEPTION 'ROLLBACK'借助子事务回滚撤销
-	// 本函数内的已写行并保留ret_value（调用方autoCommit，无外部事务可依赖）。
-	// 但WHEN OTHERS必须条件重抛：函数体内的真实错误（死锁40P01、约束违反、磁盘错误）
-	// 静默吞掉后函数以ret_value=1正常返回，Java侧只能抛"Unknown Error"，
-	// 依赖"deadlock detected"消息的64次重试循环永远不可达。
+	// 启动时 CREATE OR REPLACE 下发；内部以 RAISE EXCEPTION 'ROLLBACK' 触发子事务回滚，真实错误由 WHEN OTHERS 重抛。
 	static final String PROC_SAVE_DATA_WITH_SAME_VERSION_SQL = """
 			CREATE OR REPLACE FUNCTION _ZezeSaveDataWithSameVersion_(
 			    IN    in_id BYTEA,
@@ -387,9 +368,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			""";
 
 	private final class OperatesPostgreSQL implements Operates {
-		// 全局启动锁的租期，语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
-		// 持锁进程崩溃（kill -9/OOM/断电）后残留的锁最多存活一个租期，之后轮询的
-		// 实例自动接管，无需人工恢复。
+		// 全局启动锁租期（秒），到期自动可接管。
 		private static final int LOCK_LEASE_SECONDS = 600;
 
 		@Override
@@ -484,10 +463,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					return switch (ps.getInt(4)) {
 						case 0 -> KV.create(ps.getLong(3), true);
 						case 2 -> KV.create(0L, false);
-						// 3=版本条件的UPDATE未命中行：并发写者已抢先，映射false走CAS重读重试
+						// 3=并发更新版本未命中，4=并发首插重复键，均返回 false 供上层 CAS 重试
 						case 3 -> KV.create(0L, false);
-						// 4=首插路径撞并发重复键（ret_value := 4，他进程抢先认领）：败者回读胜者
-						// 走CAS重试（对齐Tikv/MongoDb契约），不得落default抛ISE中断启动
 						case 4 -> KV.create(0L, false);
 						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error");
 					};
@@ -535,14 +512,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public boolean tryLock() {
-			// 锁行version复用为租期到期时间戳（对齐DatabaseRedis.LOCK_LEASE_SECONDS的取舍）：
-			// 0=空闲，>0=持锁至该时刻（DB服务器时钟，单一时间来源避免各实例本地时钟漂移），
-			// 到期即可接管——version不得只在0/1间翻转：持锁进程硬崩溃后残留的1永不恢复，
-			// 所有后续实例启动永久挂死。租期须显著大于持锁窗口最坏耗时（atomicOpenDatabase全程，
-			// 含renameTable与大表tryAlter，分钟级）；不做续期与持有者校验（unlock无条件置0），
-			// 慢启动超过租期的误过期窗口是既定取舍（与Redis版一致）。
-			// 升级窗口注意：旧版本持有的version=1会被新代码立即视为已过期而接管，一次性
-			// 退化为无锁并发（schemasCompatible本就保留并发安全）。
+			// 锁行 version 存租期到期 Unix 秒数（DB 服务器时钟：0=空闲，>0=持锁至该时刻），到期即可接管。
 			var createRecordSql = "INSERT INTO _ZezeDataWithVersion_ VALUES(?,?,?) ON CONFLICT(id) DO NOTHING;";
 			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=EXTRACT(EPOCH FROM NOW())::bigint+" + LOCK_LEASE_SECONDS
 					+ " WHERE id=? AND version<=EXTRACT(EPOCH FROM NOW())::bigint;";
@@ -649,9 +619,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	 * 与ORDER BY的列序和方向一致。字符串/二进制仍使用SQLStatement收集的参数。
 	 */
 	static String pagedKeyWhere(String sql, boolean asc) {
-		// 复合key必须按元组字典序比较：游标(1,"zzz")之后是(2,"aaa")而非两者都大于。
-		// AND形式(col1>? AND col2>?)整块漏掉跨段数据；行值比较(col1,col2)>(v1,v2)与ORDER BY语义一致。
-		// 列值对为 col=?（参数）或 col=字面量（数值内联），按首个'='拆分，params占位符相对顺序不变。
+		// 复合 key 使用行值比较 (col1,col2) > (v1,v2)，与 ORDER BY 元组字典序一致。
 		if (!sql.contains(", "))
 			return " WHERE " + sql.replace('=', asc ? '>' : '<'); // 单列保持原样
 		var columns = new StringJoiner(", ");
@@ -833,9 +801,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				throw new IllegalStateException("not found table: " + name);
 			var r = Objects.requireNonNull(table.getRelationalTable());
 			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty()) {
-				// 元数据差分为空≠物理已迁移：meta可能领先物理（历史发布窗口失败/跨库拷贝等
-				// desync——PG devtest残库实锤：全库零sortedmap列但meta已含，盲return后SQL按
-				// 新列读写持续失败百万级）。以物理为ground-truth对账：current列物理缺失即自愈补列。
+				// 元数据无差分时仍与物理列对账，补齐物理缺失列。
 				try {
 					var physical = getPhysicalColumns();
 					for (var c : r.current)
@@ -850,10 +816,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 				logger.info("tryAlter heal {} : {} column(s) missing physically", name, r.add.size());
 			}
-			// 幂等重放：元数据发布延迟到DDL成功之后（Application.publishSchemas），
-			// DDL成功、发布前崩溃的重启会重算出同一差分——必须按物理列过滤已应用的部分，
-			// 否则ADD COLUMN撞已存在列失败。本实现的列变更+改名+主键重建在单事务内提交，
-			// 按表全有/全无，过滤后为空即整表已迁移。
+			// 按物理列过滤已应用的 DDL 变更，保证崩溃重启后幂等重放。
 			try {
 				var physical = getPhysicalColumns();
 				r.add.removeIf(c -> physical.contains(c.name.toLowerCase(java.util.Locale.ROOT)));
@@ -929,8 +892,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 							pkName = rs.getString(1);
 					}
 				}
-				// key列序未变且已有主键时不重建（整表重写代价）；key变化必然表现为列diff。
-				// 旧表无主键则必须补建：无PK的表后续ON CONFLICT upsert报错且远离根因。
+				// 主键列序未变且已有主键时不重建，避免整表重写；缺失主键时补建以支持 ON CONFLICT upsert。
 				//noinspection DataFlowIssue
 				if (pkName == null || !r.currentKeyColumns.equals(r.previousKeyColumns)) {
 					if (pkName != null) {
@@ -1010,13 +972,11 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
-			// 超长string key写入期拒绝：flush落库才触发22001（不含表名）会毒化整批——MySQL版判例。
+			// 写入期前置校验 string key 长度与非空 value 段，提前暴露带表名的错误。
 			for (var p : stKey.getParams())
 				if (p instanceof String s && s.length() > eMaxKeyStringLength)
 					throw new IllegalArgumentException("key string too long for postgresql relational table '" + name
 							+ "': " + s.length() + " > " + eMaxKeyStringLength);
-			// 同MySQL版判例：空value段（value bean零变量）拼出空列清单+空SET子句的非法
-			// INSERT..ON CONFLICT，毒化flush批次；fail-fast并指向表名。
 			if (stValue.getSql().isEmpty())
 				throw new IllegalStateException("postgresql relational table '" + name
 						+ "' replace with empty value statement");

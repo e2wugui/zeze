@@ -61,8 +61,7 @@ public class Tid128Cache extends FastLock {
 		lock();
 		try {
 			if (current.compareTo(end) < 0) {
-				// 先返回后自增（对齐TidCache）：按grant区间[start,end)全量发放；先增后返会发放
-				// [start+1,end]，全局仅首个号（首段start，即(0,0)）永不进入发放域
+				// 先返回后自增，保证按 [start, end) 全量发放。
 				var r = current;
 				current = current.add(1);
 				//noinspection NonAtomicOperationOnVolatileField
@@ -72,8 +71,7 @@ public class Tid128Cache extends FastLock {
 		} finally {
 			unlock();
 		}
-		// 段耗尽，同步分配新段并立即取号。HistoryAllocCount=1（多app部署）时，段请求时刻=取号时刻
-		// （调用方在rrs锁内、依赖已建立），SM按请求到达序发号 ⇒ gid序=提交序（History回放/审计的顺序保证）。
+		// 号段耗尽时同步申请新段；单步分配（HistoryAllocCount=1）时按请求到达序保证 gid 序与提交序一致。
 		//noinspection DataFlowIssue
 		return getAgent().allocateTid128CacheFuture(name, getAgent().config.getHistoryAllocCount()).getNonNull().next();
 	}

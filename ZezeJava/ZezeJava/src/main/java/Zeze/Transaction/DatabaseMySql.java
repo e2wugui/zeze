@@ -40,27 +40,16 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
-	// OperatesMySql三个过程体SQL文本的版本戳行key：data列存SHA-256 hex（见calcOperatesProceduresStamp），
-	// 戳一致时启动跳过过程DDL（见OperatesMySql构造器）。
+	// 三个 Operates 存储过程 SQL 文本的 SHA-256 版本戳行 key，戳一致时跳过重建。
 	public static final byte[] keyOfOperatesProceduresStamp =
 			("Zeze.OperatesMySql.Procedures.Stamp." + 7362541089214536742L).getBytes(StandardCharsets.UTF_8);
 
-	// 全表walk流式抓取：MySQL驱动默认把整个结果集缓冲进内存，大表walk有OOM风险。
-	// setFetchSize(Integer.MIN_VALUE)启用逐行流式（驱动约定，无需url参数）。
-	// 四个walk族入口（typed/raw × walk/walkKey，分属两个内部表类）共用。
-	// 流式带来两个必须善后的问题（非流式下不存在）：
-	// 1. 未读完就rs.close()时驱动会同步读完剩余所有行才能归还连接——中断/异常路径
-	//    需先KILL QUERY让服务端停止发送。Statement.cancel()不可用：executeQuery返回后
-	//    流式行消费期间statementExecuting已置false，cancel直接no-op（8.4.0验证）；
-	//    驱动自身的超时中止（CancelQueryTask）也是另开连接发KILL QUERY，此处同法。
-	// 2. 慢回调期间客户端停止读socket超过服务端net_write_timeout（默认60s）会被
-	//    服务端断连——会话级临时调大，结束恢复为全局值（Druid回收不重置会话变量）。
-	//    取值与驱动排空流式残余用的netTimeoutForStreamingResults默认值一致。
+	// 全表流式 walk 期间临时调大会话 net_write_timeout，防止慢回调期间服务端断连，结束后恢复默认。
 	private static final int WALK_NET_WRITE_TIMEOUT_SECONDS = 600;
 
 	private long walkStreamed(String sql, JdbcWalkRow row) throws Exception {
 		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
-			var connectionId = queryConnectionId(conn); // 连接号须在开始流式前取：流式读取期间该连接不能再执行语句
+			var connectionId = queryConnectionId(conn); // 须在流式读取开始前获取连接号
 			execSql(conn, "SET SESSION net_write_timeout=" + WALK_NET_WRITE_TIMEOUT_SECONDS);
 			try {
 				ps.setFetchSize(Integer.MIN_VALUE);
@@ -71,7 +60,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					while (rs.next()) {
 						count++;
 						if (!row.handle(rs)) {
-							abandoned = true; // walk契约：回调返回false中断
+							abandoned = true;
 							break;
 						}
 					}
@@ -80,9 +69,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					throw t;
 				} finally {
 					if (abandoned && !killQuery(connectionId))
-						// 控制通路失败（借取超时/KILL异常）时废弃物理连接：服务端看到TCP断开
-						// 即停止发送并中止查询，避免close同步排空剩余整表。后续rs/close的异常
-						// 属于连接已死，各处已有忽略路径；废弃不掩盖主流程异常。
+						// 控制通路失败时直接废弃物理连接，避免 rs.close() 同步排空剩余结果集。
 						try {
 							conn.abort(Runnable::run);
 						} catch (Throwable e) { // logger.warn
@@ -93,10 +80,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					} catch (SQLException e) {
 						if (!abandoned)
 							//noinspection ThrowFromFinallyBlock
-							throw e; // abandoned时KILL会让close收到1317中断包，异常不掩盖主流程
-						// kill成功但close仍抛=驱动可能未清除流式状态（MySQL探针批soak-20261023-1712
-						// 实锤：中断排空的close不保证置关闭标志，带毒连接归池后永久
-						// "streaming still active"风暴）——升级废弃物理连接，绝不归池。
+							throw e;
+						// 中断路径下 rs.close() 抛错时直接废弃物理连接，防止残留流式状态污染连接池。
 						try {
 							conn.abort(Runnable::run);
 						} catch (Throwable e2) {
@@ -109,7 +94,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				try {
 					execSql(conn, "SET SESSION net_write_timeout=DEFAULT");
 				} catch (SQLException e) {
-					// 恢复失败（连接已死）可忽略：服务端会话随之消亡，Druid校验会逐出坏连接
+					// 连接已失效时忽略，Druid 校验会逐出坏连接。
 				}
 			}
 		} catch (SQLException e) {
@@ -130,13 +115,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		}
 	}
 
-	// KILL QUERY只中止查询、连接仍可用；账号无需特权即可kill自己的线程。尽力而为：
-	// 失败时退回默认行为（close排空剩余行），不阻塞主流程；返回false表示控制通路失败，
-	// 调用方可据此升级到废弃物理连接（见walkStreamed）。
-	// 取消通路必须独立于业务池：业务池被并发walk占满时（maxWait默认-1无限等待），从同一池
-	// 借连接清理会形成互等——每个清理者等第二条连接，而被清理的walk连接必须等清理完成才
-	// 归还，池饱和即永久卡死（maxActive=1的合法配置一次walk即触发）。控制池与业务池容量
-	// 隔离、借取带期限；懒初始化，从未中断walk的库不建控制池。
+	// 中断流式查询使用独立的懒初始化控制连接池发送 KILL QUERY，避免业务池被并发 walk 占满时互等死锁。
 	private static final int KILL_CONTROL_MAX_ACTIVE = 2;
 	private static final long KILL_CONTROL_MAX_WAIT_MILLIS = 10_000;
 	private volatile @Nullable DruidDataSource killControlDataSource;
@@ -261,9 +240,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			    LEAVE return_label;
 			END;""";
 
-	// SQLException.getMessage()无契约保证非null（驱动包装异常、本地化场景可为null），
-	// catch块内直接contains会NPE：本应幂等继续/死锁重试的路径变成启动失败且掩盖原始异常。
-	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径。
+	// 驱动异常消息可能为 null，统一做空安全子串匹配。
 	private static boolean sqlMessageContains(SQLException e, String token) {
 		var msg = e.getMessage();
 		return msg != null && msg.contains(token);
@@ -434,12 +411,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 	@Override
 	public String getKeyStringType() {
-		// MySQL 出厂默认排序规则 utf8mb4_0900_ai_ci 大小写不敏感，string key 列做
-		// PRIMARY KEY 时大小写变体 key 被合并：REPLACE 冲突先删后插静默丢行、find/remove
-		// 命中错误行。显式二进制排序规则使等值匹配与 Zeze 缓存的字节比较语义一致。
-		// 必须同时显式 CHARACTER SET：COLLATE 不带字符集时继承库默认字符集，
-		// 默认字符集非 utf8mb4 的库上 CREATE TABLE 直接报错。
-		// 存量表的列排序规则不会被新配置改变，需按 docs（database/relational.md）手工 ALTER。
+		// 显式指定 utf8mb4 字符集与二进制排序规则，避免默认大小写不敏感合并不同大小写 key。
 		return "VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin";
 	}
 
@@ -465,9 +437,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 	@Override
 	public void renameTable(String tableOldName, String tableNewName) throws Exception {
-		// 幂等重跑：Schemas.checkCompatible的rename序列非原子——部分成功后中断（或renames全部
-		// 成功但saveDataWithSameVersion未落库）时重启会对同一对名字再次rename，此时源已不存在、
-		// 目标已存在，视为上次已完成，no-op跳过；源目标都不存在是真正的异常，明确报错。
+		// 支持幂等重跑：源不存在而目标已存在视为已完成，均不存在则报错。
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(true);
 			if (!tableExists(conn, tableOldName)) {
@@ -517,8 +487,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		}
 	}
 
-	// 在给定连接上drop三个过程并清版本戳。OperatesMySql构造器持连接调用——不得再向池借
-	// 第二条连接（maxActive=1的合法配置下两处互等即死锁）；运维入口经无参包装走独立事务。
+	// 复用调用方连接删除三个过程并清版本戳，避免在 maxActive=1 时嵌套借连接死锁。
 	private static void dropOperatesProcedures(Connection conn) throws SQLException {
 		try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
 			ps.executeUpdate();
@@ -529,8 +498,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
 			ps.executeUpdate();
 		}
-		// 版本戳一并清除：drop入口语义是"强制下次启动重建"（运维排障用），
-		// 留戳会让下次启动按戳跳过重建、过程持续缺失。表不存在（disableOperates库）时无需清。
+		// 同步清除版本戳，确保下次启动重新创建过程。
 		if (tableExists(conn, "_ZezeDataWithVersion_")) {
 			try (var ps = conn.prepareStatement("DELETE FROM _ZezeDataWithVersion_ WHERE id=?")) {
 				ps.setBytes(1, keyOfOperatesProceduresStamp);
@@ -540,9 +508,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	}
 
 	private final class OperatesMySql implements Operates {
-		// 全局启动锁的租期，语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
-		// 持锁进程崩溃（kill -9/OOM/断电）后残留的锁最多存活一个租期，之后轮询的
-		// 实例自动接管，无需人工恢复。
+		// 全局启动锁租期（秒），到期自动可接管。
 		private static final int LOCK_LEASE_SECONDS = 600;
 
 		@Override
@@ -641,11 +607,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					return switch (ps.getInt(4)) {
 						case 0 -> KV.create(ps.getLong(3), true);
 						case 2 -> KV.create(0L, false);
-						// 3=版本条件的UPDATE未命中行：并发写者已抢先，映射false走CAS重读重试
+						// 3=并发更新版本未命中，4=并发首插重复键，均返回 false 供上层 CAS 重试
 						case 3 -> KV.create(0L, false);
-						// 4=首插路径INSERT IGNORE撞并发重复键（他进程在SELECT与INSERT间抢先认领，
-						// 见过程体SET ret_value=4）：败者须回读真正胜者走CAS重试（对齐Tikv/MongoDb
-						// 同场景契约），此前落入default抛ISE会中断OwnerCheck/publishSchemas启动
 						case 4 -> KV.create(0L, false);
 						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error");
 					};
@@ -656,13 +619,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		}
 
 		public OperatesMySql() {
-			// MySQL无CREATE OR REPLACE PROCEDURE：过程体修复（重读校验、错误传播等）要下发
-			// 存量库只能DROP后CREATE。但无条件每次重建不可取：本DDL在构造器执行，先于启动锁
-			// （atomicOpenDatabase），多实例共享库时DROP与CREATE之间（含崩溃残留）的窗口
-			// 每次启动都出现，干扰正在调用过程的在跑实例。改为版本戳门控：三个过程体SQL文本
-			// 的SHA-256存_ZezeDataWithVersion_专用行，戳一致即跳过全部过程DDL——常态启动零
-			// 过程DDL，仅过程体随版本变更时重建一次（此时仍有短暂缺失窗口，属一次性升级代价）。
-			// 戳在三个CREATE全部成功后写入：中途崩溃留下旧戳/无戳，下次启动重建自愈。
+			// MySQL 无 CREATE OR REPLACE PROCEDURE，以三个过程体 SHA-256 版本戳门控，仅变化时重建。
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				var tableDataWithVersionSql = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_(" +
@@ -677,10 +634,10 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				}
 				var stamp = calcOperatesProceduresStamp();
 				if (stamp.equals(getOperatesProceduresStamp(conn)))
-					return; // 过程体未变，跳过重建（常态启动路径）
-				// 同一连接上完成drop+create+写戳：不再嵌套借连接（maxActive=1的合法配置下互等死锁）
+					return;
+				// 复用当前连接完成重建与写戳，避免 maxActive=1 时嵌套借连接死锁。
 				dropOperatesProcedures(conn);
-				// 并发首启动的间隙保护：CREATE撞"already exist"视为对方已建同版本，吞掉继续。
+				// 并发首启撞 "already exist" 视为对方已建同版本，忽略继续。
 				try (var ps = conn.prepareStatement(PROC_SAVE_DATA_WITH_SAME_VERSION_SQL)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
@@ -707,14 +664,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 		@Override
 		public boolean tryLock() {
-			// 锁行version复用为租期到期时间戳（对齐DatabaseRedis.LOCK_LEASE_SECONDS的取舍）：
-			// 0=空闲，>0=持锁至该时刻（DB服务器时钟，单一时间来源避免各实例本地时钟漂移），
-			// 到期即可接管——version不得只在0/1间翻转：持锁进程硬崩溃后残留的1永不恢复，
-			// 所有后续实例启动永久挂死。租期须显著大于持锁窗口最坏耗时（atomicOpenDatabase全程，
-			// 含renameTable与大表tryAlter，分钟级）；不做续期与持有者校验（unlock无条件置0），
-			// 慢启动超过租期的误过期窗口是既定取舍（与Redis版一致）。
-			// 升级窗口注意：旧版本持有的version=1会被新代码立即视为已过期而接管，一次性
-			// 退化为无锁并发（schemasCompatible本就保留并发安全）。
+			// 锁行 version 存租期到期 Unix 秒数（DB 服务器时钟：0=空闲，>0=持锁至该时刻），到期即可接管。
 			var createRecordSql = "INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(?,?,?)";
 			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=UNIX_TIMESTAMP()+" + LOCK_LEASE_SECONDS
 					+ " WHERE id=? AND version<=UNIX_TIMESTAMP()";
@@ -813,9 +763,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			return "";
 
 		table.encodeKeySQLStatement(st, exclusiveStartKey);
-		// 复合key必须按元组字典序比较：游标(1,"zzz")之后是(2,"aaa")而非两者都大于。
-		// AND形式(col1>? AND col2>?)整块漏掉跨段数据；行值比较(col1,col2)>(v1,v2)与ORDER BY语义一致。
-		// 列值对为 col=?（参数）或 col=字面量（数值内联），按首个'='拆分，params占位符相对顺序不变。
+		// 复合 key 使用行值比较 (col1,col2) > (v1,v2)，与 ORDER BY 元组字典序一致。
 		var sql = st.getSql().toString();
 		if (!sql.contains(", "))
 			return " WHERE " + sql.replace('=', asc ? '>' : '<'); // 单列保持原样
@@ -971,8 +919,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				throw new IllegalStateException("not found table: " + name);
 			var r = Objects.requireNonNull(table.getRelationalTable());
 			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty()) {
-				// 同PG（DatabasePostgreSQL.tryAlter）：元数据差分为空≠物理已迁移，
-				// meta领先物理的desync以物理对账自愈——current列物理缺失即补列。
+				// 元数据无差分时仍与物理列对账，补齐物理缺失列。
 				try {
 					var physical = getPhysicalColumns();
 					for (var c : r.current)
@@ -987,10 +934,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				}
 				logger.info("tryAlter heal {} : {} column(s) missing physically", name, r.add.size());
 			}
-			// 幂等重放：元数据发布延迟到DDL成功之后（Application.publishSchemas），
-			// DDL成功、发布前崩溃的重启会重算出同一差分——必须按物理列过滤已应用的部分，
-			// 否则ADD COLUMN撞已存在列失败，升级重启卡死。ALTER TABLE单语句原子，
-			// 按表全有/全无，过滤后为空即整表已迁移。
+			// 按物理列过滤已应用的 DDL 变更，保证崩溃重启后幂等重放。
 			try {
 				var physical = getPhysicalColumns();
 				r.add.removeIf(c -> physical.contains(c.name));
@@ -1031,8 +975,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				sb.append(" CHANGE COLUMN ").append(c.change.name).append(' ')
 						.append(c.name).append(' ').append(c.sqlType);
 			}
-			// key列序未变不重建主键：DROP+ADD PRIMARY KEY在InnoDB下是整表拷贝，
-			// 纯value列变更不应付出该代价。key变化必然表现为列diff（varIds排序决定列序）。
+			// 主键列序未变时不重建主键，避免 InnoDB 整表拷贝。
 			//noinspection DataFlowIssue
 			if (!r.currentKeyColumns.equals(r.previousKeyColumns))
 				sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
@@ -1108,15 +1051,11 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
-			// 超长 string key 不在写入期拒绝的话，flush 落库才触发 MySQL 1406 "Data too long"（不含表名），
-			// 毒化整个 flush 批次且难定位——与 KV 表超长 key 前置检查同型（见 TableMysql.replace）。
+			// 写入期前置校验 string key 长度与非空 value 段，提前暴露带表名的错误。
 			for (var p : stKey.getParams())
 				if (p instanceof String s && s.length() > eMaxKeyStringLength)
 					throw new IllegalArgumentException("key string too long for mysql relational table '" + name
 							+ "': " + s.length() + " > " + eMaxKeyStringLength);
-			// 空value段（value bean零变量）拼出"REPLACE t SET k=v, "尾逗号语法错误，毒化整个
-			// flush批次且不含表名；生成的关系表value bean至少有列（appendXXX逐变量无条件追加，
-			// 全默认值不产生空段），本守卫防御未来出现零变量bean的配置，fail-fast并指向表名。
 			if (stValue.getSql().isEmpty())
 				throw new IllegalStateException("mysql relational table '" + name + "' replace with empty value statement");
 			var sql = "REPLACE " + name + " SET " + stKey.getSql() + ", " + stValue.getSql();

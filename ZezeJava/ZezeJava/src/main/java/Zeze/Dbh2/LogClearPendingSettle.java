@@ -12,11 +12,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 /**
- * pending-settle标志清除日志。
- * settle重试链终局（rc==0，或eSplittingBucketNotFound=已结算证据的既有终局语义）时由
- * 源桶追加，apply内身份匹配清除标志（Bucket.clearPendingSettle）。不清除则标志永存，
- * 数个选举周期后可能把陈旧迁移重放进恰好同四元组在途的新世代条目上（跨世代倒灌）。
- * 滚动升级顺序约束：新日志类型对旧follower不可decode——升级窗口避免在途分桶或先升follower。
+ * 清除 pending-settle 标志的 Raft 日志：在迁移结算终局后由源桶追加，按身份匹配清除对应标志。
  */
 public class LogClearPendingSettle extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogClearPendingSettle.class.getName());

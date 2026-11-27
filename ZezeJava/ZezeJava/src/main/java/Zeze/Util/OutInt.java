@@ -2,7 +2,7 @@ package Zeze.Util;
 
 import org.jspecify.annotations.Nullable;
 
-// int 输出参数包装（模拟 C# out 参数）
+/** int 输出参数包装（模拟 C# out 参数）。 */
 public class OutInt {
 	public int value;
 

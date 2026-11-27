@@ -273,8 +273,7 @@ public class Vector3List extends FloatList {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 3);
-		// 完整末向量起点：count%K有余数时count-K不对齐（会把尾部余数当向量的一部分读取），
-		// 交换后余数保持在尾部（对齐removeVector的余数保留规则）。
+		// 取完整末向量起点并保留尾部余数
 		int lastIdx = (count / 3 - 1) * 3;
 		if (idx >= 0 && idx <= lastIdx) {
 			float[] buf = buffer;
@@ -359,8 +358,7 @@ public class Vector3List extends FloatList {
 
 	@Override
 	public void decode(IByteBuffer bb, int n) {
-		// n*K 的 int 溢出会绕过基类负长度防线：如 n=0x80000001 时 n*2==2，
-		// 毒长度按极小 count 静默解码、流位置错位。上限校验放在乘法之前。
+		// 乘法前校验上限，防止 n * 3 溢出绕过负长度检查
 		if (n < 0 || n > Integer.MAX_VALUE / 3)
 			throw new IllegalArgumentException("negative or overflow count: " + n);
 		super.decode(bb, n * 3);

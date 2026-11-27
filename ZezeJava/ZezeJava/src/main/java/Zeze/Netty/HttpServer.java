@@ -102,15 +102,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	protected final FewModifySortedMap<String, HttpHandler> prefixHandlers = new FewModifySortedMap<>();
 	protected final ConcurrentHashSet<Channel> channels = new ConcurrentHashSet<>();
 	protected final ConcurrentHashMap<ChannelId, HttpExchange> exchanges = new ConcurrentHashMap<>();
-	// close()的shutdown(true)不可逆:之后的submit被队列静默丢弃(不抛不记日志),非Direct请求全部无响应黑洞。
-	// start()检测task11ExecutorDown则重建,支持close→start重启。派发线程读取引用,须volatile。
-	protected volatile TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
-	protected boolean task11ExecutorDown; // close()置位,start()重建后复位;仅thisLock(start/close)内读写
-	// 停机拒绝标志:close()最前置位、start()重启时复位;channelRead在EventLoop线程上读,须volatile。
-	// 置位后已accept连接上到达的新HttpRequest回503并关连接(明确拒绝),不再进exchanges/派发handler。
-	protected volatile boolean shutdown;
-	protected int writePendingLimit = 64 * 1024; // 写缓冲高水位(字节)：越过触发writability事件（背压信号，见channelWritabilityChanged），持续拥塞由写空闲超时兜底
-	protected int maxUploadSize = 256 * 1024 * 1024; // 流模式上传(如multipart/raw文件上传)的请求body总量限制(字节),超过返回413并断开连接
+	protected volatile TaskOneByOneByKey task11Executor = new TaskOneByOneByKey(); // close 时关闭，重启时按需重建
+	protected boolean task11ExecutorDown; // 仅在 thisLock 内读写
+	protected volatile boolean shutdown; // 停机标志：置位后新请求直接返回 503 并关闭连接
+	protected int writePendingLimit = 64 * 1024; // 写缓冲高水位(字节)，越过触发背压日志，持续拥塞由写空闲超时关闭
+	protected int maxUploadSize = 256 * 1024 * 1024; // 流模式上传的请求 body 总量限制(字节)，超过返回 413 并断开连接
 	protected int checkIdleInterval = 5; // 检查超时的间隔(秒),只有以下两个超时时间都满足才会触发超时关闭,start之后修改无效
 	protected int readIdleTimeout = 30; // 服务端无接收的超时时间(秒)
 	protected int writeIdleTimeout = 60; // 服务端无发送的超时时间(秒)
@@ -121,9 +117,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	protected @Nullable HttpSession httpSession;
 	protected final boolean noProcedure;
 
-	// 各EventLoop/池线程并发调用：两个静态字段的检查-更新无同步时，读者可观察到
-	// 新lastSecond配旧lastDateStr（两写之间无happens-before），返回错位的Date串。
-	// 竞争窗口每秒一次、临界区为一次缓存比较，synchronized开销可忽略。
+	// 同步保护 lastSecond 与 lastDateStr 的成对更新
 	public static synchronized String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
 		var dateStr = lastDateStr;
@@ -181,16 +175,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			throw new IllegalStateException("zeze is null");
 		if (zeze.isNoDatabase())
 			throw new IllegalStateException("zeze is noDatabase");
-		// timer只在ProviderApp形态创建（Application.initialize要求redirect!=null）。
-		// 缺失时不在此fail-fast的话，HttpSession.start的scheduleNamed在null timer上NPE，
-		// 被Procedure转成"enableHttpSessionExpiredTimer error=..."错误码，无指向。
 		if (zeze.getTimerOrNull() == null)
 			throw new IllegalStateException("zeze.timer is null: http session requires ProviderApp "
 				+ "(Application creates Timer only when ProviderApp exists)");
 		if (httpSession != null)
 			return;
 		httpSession = new HttpSession(zeze);
-		// 注册会话表：不注册的话 _tSession 不属于任何Database，表访问必失败。
 		//noinspection DataFlowIssue
 		var dbName = zeze.getConfig().getTableConf(httpSession.tSession().getName()).getDatabaseName();
 		if (zeze.isStart())
@@ -267,25 +257,19 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		lock();
 
 		try {
-			// 必须在try内：HttpSession.start 可抛（newProcedure失败抛RuntimeException+
-			// ParseException），放在lock()与try之间时抛异常则unlock永不执行，thisLock被当前线程
-			// 永久持有，此后任何线程调close()/start()永久阻塞（同线程因可重入不易察觉）。
 			if (httpSession != null)
 				httpSession.start();
 
 			if (scheduler != null)
 				throw new IllegalStateException("already started");
 			if (task11ExecutorDown) {
-				// close→start重启:已shutdown的task11Executor无法复活,直接复用会让非Direct请求全部黑洞
 				task11Executor = new TaskOneByOneByKey();
 				task11ExecutorDown = false;
 			}
-			shutdown = false; // close→start重启配套:清除停机拒绝标志,重新接受新请求
+			shutdown = false;
 			var eventLoopGroup = netty.getEventLoopGroup();
 			var b = new ServerBootstrap();
-			// 4.2：组实现类换MultiThreadIoEventLoopGroup后instanceof旧类恒false，改用isIoType判定传输层。
-			// epoll/io_uring分支的SO_REUSEPORT同继承自UnixChannelOption（同一静态实例）；NIO不识别
-			// 该option（AbstractBootstrap.setChannelOption对未知option=warn+忽略），故仍按传输层门控。
+			// 仅 Epoll/IoUring 传输层支持 SO_REUSEPORT
 			if (eventLoopGroup instanceof IoEventLoopGroup ioGroup
 					&& (ioGroup.isIoType(EpollIoHandler.class) || ioGroup.isIoType(IoUringIoHandler.class)))
 				b = b.option(UnixChannelOption.SO_REUSEPORT, true);
@@ -310,9 +294,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				future = b.bind(port);
 				host = "any";
 			}
-			// scheduler注册在bind之后：bind同步失败（非法host/端口）时
-			// 定时任务不残留——否则再次start抛"already started"进入永久半启动态，
-			// 且每checkIdleInterval的checkTimeout对空channels永久空转。
+			// 绑定成功后再启动空闲检测，避免 bind 失败残留定时任务
 			scheduler = eventLoopGroup.scheduleWithFixedDelay(() -> channels.keySet().forEach(this::checkTimeout),
 				checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
 			channelFuture = future;
@@ -394,32 +376,19 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public void close() {
 		lock();
 		try {
-			// 最先置停机标志（在关监听channel/清扫exchanges之前）：已accept连接上随后到达的
-			// 新HttpRequest立即走503拒绝（见channelRead），不再进exchanges/派发handler——
-			// 否则这些请求要么提交到已shutdown(true)的派发队列被静默丢弃，要么落入清扫与
-			// shutdown之间的竞态黑洞。
+			// 先置停机标志并关闭监听，阻止新请求与新连接进入
 			shutdown = true;
-			// 最先关监听channel（必须在下方exchanges清扫与shutdown之前）：shutdown(true)内部
-			// waitComplete可阻塞秒级，若监听channel后关，阻塞窗口内新accept的连接加入channels时
-			// 清扫已过，残留连接黑洞。channelFuture为null（未start绑定）时此块为空操作。
 			if (channelFuture != null) {
 				var ch = channelFuture.channel();
 				channelFuture = null;
 				if (ch != null)
 					ch.close();
 			}
-			// 先关exchanges再shutdown派发队列：closeConnectionNow→closeInEventLoop→fireAbortStreamHandle/
-			// fireWebSocket产生的收尾任务（onAbortStream/回退onEndStream、retain的content/frame的release、multipart decoder
-			// destroy、上传临时文件清理）必须在队列置isShutdown之前进入队列，否则提交被丢弃/仅cancel补偿。
-			// janitor按channel遍历在途列表（pipelining下被覆盖出exchanges表的前序也要关）；
-			// HTTP/2子stream不登记responseOrderKey，须再遍历exchanges补关残留条目，避免在途H2 exchange泄漏。
+			// 先关闭所有在途 exchange（含 pipelining 与 HTTP/2 子流），再停派发队列以确保收尾任务入队
 			channels.keySet().forEach(ch -> HttpExchange.closeInFlightExchanges(ch, HttpExchange.CLOSE_FORCE));
 			exchanges.values().forEach(HttpExchange::closeConnectionNow);
 			exchanges.clear();
-			// 空闲keep-alive连接（请求间隙，exchange已移除）也要关闭——否则停机后
-			// 客户端在旧连接发新请求，Normal处理器提交到已shutdown(true)的派发队列被静默丢弃，
-			// 请求无响应、连接不断，挂到客户端超时；scheduler取消后idle检测也已停。在途exchange
-			// 的连接已由closeConnectionNow关闭，此处对已关连接的close幂等。
+			// 关闭剩余空闲 keep-alive 连接
 			channels.keySet().forEach(Channel::close);
 			task11Executor.shutdown(true);
 			task11ExecutorDown = true;
@@ -435,7 +404,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		}
 	}
 
-	// 这是一个低开销的检测空闲超时的方法,不准确但只会比预设的超时时间长,写超时可能会多出readIdleTimeout的时长
+	// 低开销空闲超时检测，实际超时时间可能略长于预设值
 	protected void checkTimeout(Channel channel) {
 		//noinspection resource
 		var eventLoop = channel.eventLoop();
@@ -443,12 +412,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			checkTimeout0(channel);
 			return;
 		}
-		// 检查主体必须在channel自己的EventLoop上执行：在调度线程上对
-		// idleTime做get→+interval→set读改写，channelRead（EventLoop）的清零set(null)落在
-		// get与set之间时被写回旧值——静默累计到超时边界的活跃连接（只收不发，如大上传）
-		// 被误判空闲而CLOSE_TIMEOUT关闭，违反“超时只长不短”契约。与清零同队列串行后，
-		// 检查必然观察到排队在它之前的所有读活动。EL已关停（整个Netty在关闭）时拒绝提交，
-		// 此时channel必然已关闭，忽略即可。
+		// 在 channel 所属 EventLoop 执行，避免与 channelRead 清零 idleTime 竞态
 		try {
 			eventLoop.execute(() -> checkTimeout0(channel));
 		} catch (RejectedExecutionException ignored) {
@@ -595,7 +559,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			Netty.logger.debug("removeHandler: {}", path);
 	}
 
-	/** Removes an exact-path registration if it still refers to the supplied handler. */
+	/** 仅当精确路径仍绑定到指定 handler 时移除注册。 */
 	public void removeHandler(String path, HttpHandler handler) {
 		if (handlers.remove(path, handler))
 			Netty.logger.debug("removeHandler: {}", path);
@@ -609,10 +573,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public @Nullable HttpHandler getHandler(String path) {
 		var handler = handlers.get(path);
 		if (handler == null) {
-			// 从字典序最大的候选(floorEntry(path))向下回退,第一个是path前缀的键即最长匹配前缀。
-			// 只查一次floorEntry不够:字典序落在真实前缀与请求路径之间的更长非前缀键会挡住匹配,
-			// 如注册"/a"和"/abc"后请求"/abd",floorEntry是"/abc"(不是前缀),必须继续回退才能命中"/a"。
-			// 回退不会错过更长的匹配:path的任意两个前缀键中,短的是长的真前缀,字典序必更小。
+			// 从 floorEntry 向前回退，首个前缀匹配的键即最长匹配前缀
 			var e = prefixHandlers.floorEntry(path);
 			while (e != null) {
 				if (path.startsWith(e.getKey()))
@@ -623,8 +584,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		return handler;
 	}
 
-	// 允许扩展HttpExchange类。返回null表示忽略处理：框架将代回503并关闭连接（含该连接上在途的
-	// exchange）；返回null前请勿自行写响应。使用恰当策略提前忽略可以避免同时接收太多请求数据导致OOM。
+	/** 扩展点：创建 HttpExchange；返回 null 时由框架回 503 并关闭连接（勿自行写响应）。 */
 	public @Nullable HttpExchange createHttpExchange(ChannelHandlerContext context) {
 		return new HttpExchange(this, context);
 	}
@@ -635,17 +595,16 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		var p = ch.pipeline();
 		if (sslCtx != null)
 			p.addLast(sslCtx.newHandler(ch.alloc()));
-		// h2c prior-knowledge探测（管线首位，首3字节判定）：h2换栈/ h1自移除透传。
-		// 见H2Transport.PrefaceDetector——协议翻译下沉管线层，本类与HttpExchange零改动复用。
+		// 管线首位探测 h2c prior-knowledge，命中则切 HTTP/2 栈，否则自移除透传
 		p.addLast(new H2Transport.PrefaceDetector(this));
 		p.addLast(new HttpResponseEncoder() {
 			@Override
 			public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
 				onBeforeWrite(ctx.channel());
 				try {
-					HttpExchange.checkResponseOrder(ctx.channel(), msg); // 出站tripwire：直写响应当场拒绝
+					HttpExchange.checkResponseOrder(ctx.channel(), msg);
 				} catch (IllegalStateException e) {
-					// Netty对出站写的同步异常只fail promise（写方不听则静默），必须显式走异常处置关连接
+					// 出站同步异常在 Netty 中默认仅 fail promise，须显式释放并走异常关闭
 					ReferenceCountUtil.release(msg);
 					promise.tryFailure(e);
 					ctx.fireExceptionCaught(e);
@@ -655,7 +614,6 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			}
 		});
 		p.addLast(new HttpRequestDecoder(decCfg));
-		// TLS文件输入先按可写性展开HttpContent，再经HTTP编码器交给SslHandler。
 		if (sslCtx != null)
 			p.addLast(new ChunkedWriteHandler());
 		p.addLast(this);
@@ -668,16 +626,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		var ch = ctx.channel();
 		Netty.logger.info("closed: {}", ch.remoteAddress());
 		channels.remove(ch);
-		// 兜底清理:连接已失活时在途exchange不会再有人close(异常路径或连接被强制关闭)，主动结束
-		// 并释放retain的request和累积的content,否则永久泄漏。close是幂等的,正常完成的早已自行移除。
-		// janitor关闭全部在途（pipelining下被覆盖出exchanges表的前序也要关），不只表内最新一个。
 		closeInFlightIncludingH2(ch, HttpExchange.CLOSE_PASSIVE);
 		super.channelInactive(ctx);
 	}
 
-	// janitor善后：h2子channel不经响应序化器（无responseOrderKey），closeInFlightExchanges
-	// 对其恒no-op——中止流（RST_STREAM关stream）的exchange永久滞留exchanges表（retain的request与
-	// content泄漏）。seq==null时按channel id取出exchange直接close（复用既有幂等机制）。
+	// HTTP/2 子流无响应序化器，按 channelId 补关残留 exchange
 	private void closeInFlightIncludingH2(Channel ch, int method) {
 		if (!HttpExchange.closeInFlightExchanges(ch, method)) {
 			var x = exchanges.remove(ch.id());
@@ -690,35 +643,28 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public void channelRead(ChannelHandlerContext ctx, @Nullable Object msg) {
 		try {
 			var channelId = ctx.channel().id();
-			// 拦截解码失败的消息(如畸形chunk size):Netty对此类错误不抛异常,而是产出带失败DecoderResult的
-			// 空LastHttpContent或invalid message,不拦截的话截断的body会被当成完整请求交给handler处理。
+			// 拦截解码失败的 HttpObject（Netty 解码失败不抛异常，仅置 DecoderResult）
 			if (msg instanceof HttpObject httpObj && httpObj.decoderResult().isFailure()) {
 				onDecodeFailure(ctx, httpObj);
 				return;
 			}
 			HttpExchange x;
 			if (msg instanceof HttpRequest) {
-				// 停机后到达的新请求：不创建exchange/不派发handler，按onDecodeFailure模式回
-				// 503 Service Unavailable并关连接，把close()期间的"静默丢弃"变为明确拒绝。
 				if (shutdown) {
 					Netty.logger.info("reject request from {} while shutdown", ctx.channel().remoteAddress());
 					rejectAndClose(ctx, HttpResponseStatus.SERVICE_UNAVAILABLE);
 					return;
 				}
 				if ((x = createHttpExchange(ctx)) == null) {
-					// 被拒请求不得裸return——其后续HttpContent/LastHttpContent帧会按channelId
-					// 路由进仍在表内的前一个pipelined exchange（body串包+二次派发onEndStream+重复响应）。
-					// 照搬停机503分支同构处置：框架代回503+关连接，同步善后在途exchange。
+					// 拒绝时须关闭连接，避免后续 body 帧串入前一个 pipelined exchange
 					Netty.logger.info("reject request from {} by createHttpExchange policy", ctx.channel().remoteAddress());
 					rejectAndClose(ctx, HttpResponseStatus.SERVICE_UNAVAILABLE);
 					return;
 				}
 				exchanges.put(channelId, x);
-				// 登记请求到达序（响应序化器的排队依据）。在此（EventLoop）先于任何响应写完成，
-				// Direct内联与非Direct派发的handler执行都晚于本登记。
-				// h2子channel跳过：每stream恒单在途，序化无意义（无登记即seq==null直写分支）。
+				// HTTP/1 登记请求到达序用于响应序化；HTTP/2 每流单在途无需序化
 				if (!isH2Channel(ctx.channel()) && !x.registerResponseOrder())
-					return; // 深度滥用已关连接：不再处理（retain会泄漏进已终结exchange），finally释放原始msg
+					return;
 			} else if ((x = exchanges.get(channelId)) == null)
 				return;
 			x.channelRead(msg);
@@ -727,10 +673,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		}
 	}
 
-	// 框架级拒绝：代回状态（400/503）并关闭连接，同步移除并善后该连接上在途的exchange
-	//（先移除,后续消息不再派发）——停机/创建策略拒绝与解码失败共用处置。
-	// 头部在途响应已开始写时直写会拼接进其响应体中途：只关连接不写响应（宁断连不错序，
-	// 诊断已由调用方记录；未开始写时的pipelining错位归属为已知限制）。
+	// 回状态码并关连接；若头部在途响应已开始流式写出则仅关连接，避免响应错位
 	private void rejectAndClose(ChannelHandlerContext ctx, HttpResponseStatus status) {
 		var ch = ctx.channel();
 		var seq = ch.attr(HttpExchange.responseOrderKey).get();
@@ -738,10 +681,10 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		if (head != null && head.started) {
 			Netty.logger.warn("suppress {} rejection to {}: response already streaming on connection, close only",
 					status, ch.remoteAddress());
-			ctx.close(); // channelInactive的janitor统一善后在途exchange
+			ctx.close();
 			return;
 		}
-		ch.attr(HttpExchange.responseOrderBypassKey).set(Boolean.TRUE); // tripwire豁免：框架直写，连接将亡
+		ch.attr(HttpExchange.responseOrderBypassKey).set(Boolean.TRUE);
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.EMPTY_BUFFER,
 			HttpExchange.headersFactory, HttpExchange.trailersFactory);
 		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
@@ -751,8 +694,6 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			prev.close(HttpExchange.CLOSE_ON_FLUSH, cf);
 	}
 
-	// 畸形http消息(非法chunk size/坏头等):解码器产出DecoderResult.failure的HttpObject而不是抛异常。
-	// 统一记录日志,回400并关闭连接;同时清理可能已半处理的exchange(release retain的request和已累积的content)。
 	protected void onDecodeFailure(ChannelHandlerContext ctx, HttpObject obj) {
 		Netty.logger.error("http decode failure from {}: {}", ctx.channel().remoteAddress(), obj.decoderResult().cause());
 		rejectAndClose(ctx, HttpResponseStatus.BAD_REQUEST);
@@ -761,11 +702,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	@Override
 	public void userEventTriggered(ChannelHandlerContext ctx, @Nullable Object evt) throws Exception {
 		if (evt == ChannelInputShutdownEvent.INSTANCE) {
-			// 客户端半关闭（发完请求即FIN，合法的HTTP半双工用法，childOption已开ALLOW_HALF_CLOSURE）：
-			// 只标记willCloseConnection，让在途handler的响应发送完再关连接（响应完成后closeInEventLoop
-			// 会context.close()）；不再强制结束exchange丢弃响应。请求不完整、永远等不到剩余body的连接
-			// 由checkTimeout的读写空闲超时（默认30/60秒）兜底关闭。与下面ChannelInputShutdownReadComplete
-			// 分支的处置一致。
+			// 客户端半关闭：等待在途响应写完后再关连接
 			closeAfterLastResponse(ctx);
 		} else if (evt == ChannelInputShutdownReadComplete.INSTANCE && !ctx.channel().closeFuture().isDone()) {
 			Netty.logger.info("inputClose: {}", ctx.channel().remoteAddress());
@@ -774,9 +711,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		super.userEventTriggered(ctx, evt);
 	}
 
-	// 半关闭只结束输入：pipelining 后序响应可能已 close 并离开 exchanges，
-	// 但仍在序化器中等前序响应。必须让最后一个在途响应的写回执关闭连接，
-	// 不能因最新请求表为空而提前关闭，也不能把关闭意图挂在更早的响应上。
+	// 找到序化队列中最后一个在途响应并标记写完后关闭连接
 	private void closeAfterLastResponse(ChannelHandlerContext ctx) {
 		var ch = ctx.channel();
 		HttpExchange last = exchanges.get(ch.id());
@@ -796,14 +731,9 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	@Override
 	public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
 		var ch = ctx.channel();
-		// 背压而非断连：越过水位（writePendingLimit）只记日志，由写方感知isWritable/等待积压排出
-		// （HttpResponseWithBodyStream已内置阻塞等待）。直接flush().close()杀连接会让
-		// 慢客户端+大响应（文件/流式）必然越过水位，合法流量被误杀；持续拥塞由checkTimeout0的
-		// 写空闲超时（outboundBuffer无进度）兜底关闭。
+		// 越过写缓冲水位仅记背压日志，持续拥塞由写空闲超时关闭
 		if (!ch.isWritable())
-			// 不解引用 unsafe().outboundBuffer()：h2子stream的channel没有TCP
-			// ChannelOutboundBuffer（返回null），日志表达式的NPE会被exceptionCaught
-			// 当协议异常关闭合法下载流。bytesBeforeWritable()对TCP与h2 stream语义一致。
+			// 使用 bytesBeforeWritable() 兼容 TCP 与 HTTP/2 子流
 			Netty.logger.info("write buffer saturated ~{} > {} from {}",
 					ch.bytesBeforeWritable(),
 					ch.config().getWriteBufferHighWaterMark(), ch.remoteAddress());
@@ -832,10 +762,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			}
 		} finally {
 			ctx.flush().close();
-			// 异常路径的exchange不会再有正常的close时机(如畸形uri解码抛出后无人移除)，这里结束全部
-			// 在途，释放retain的request和累积的content，避免池化内存泄漏（close幂等）。先关闭连接再清理:
-			// 即使清理过程中用户回调抛出异常,连接也已被关闭,close开头的exchanges.remove保证条目已删。
-			// h2子channel同样善后（closeInFlightIncludingH2）。
+			// 先关连接再清理在途 exchange，避免回调异常导致连接未关
 			closeInFlightIncludingH2(ctx.channel(), HttpExchange.CLOSE_PASSIVE);
 		}
 	}

@@ -268,8 +268,6 @@ final class Gen {
 		return klass;
 	}
 
-	// 形参/结果字段的编解码资格校验，encode/decode两侧共用；容器元素不满足
-	// Zeze编码谓词时走Java序列化兜底（元素须java.io.Serializable），统一在生成期拒绝。
 	static boolean isZezeValue(Class<?> type) {
 		return Serializable.class.isAssignableFrom(type) || BeanKey.class.isAssignableFrom(type);
 	}
@@ -282,13 +280,11 @@ final class Gen {
 		if (BeanKey.class.isAssignableFrom(cls) && isAbstract(cls))
 			throw new UnsupportedOperationException("redirect requires a concrete BeanKey type: " + where);
 		if (isZezeValue(cls)) {
-			// 多态仅Bean/Data合法（typeId+工厂反建）；其余抽象Serializable decode无法反建实例。
+			// 仅 Bean/Data 支持按 typeId 多态反建。
 			if (cls != Bean.class && cls != Data.class && isAbstract(cls)) {
 				if (!isField)
 					throw new UnsupportedOperationException("redirect param unsupported: abstract Zeze Serialize type "
 							+ cls.getName() + " (use Zeze.Transaction.Bean/Data static type for polymorphism), " + where);
-				// 抽象Serializable结果字段原位decode，未初始化即NPE且无法兜底，
-				// 探测初始化器，未初始化生成期拒绝。
 				if (!isFieldInitializerPresent(e))
 					throw new UnsupportedOperationException("redirect result field unsupported: abstract Zeze "
 							+ "Serialize type " + cls.getName() + " not initialized (decode writes into the existing "
@@ -311,7 +307,6 @@ final class Gen {
 		}
 	}
 
-	// 容器走Java序列化兜底时元素须java.io.Serializable，生成期拒绝。
 	private void checkGenContainerElement(Class<?> elemClass, String where, String role) {
 		var serializer = serializers.get(elemClass);
 		if (!(!isAbstract(elemClass) && (serializer != null || isZezeValue(elemClass))))
@@ -320,7 +315,7 @@ final class Gen {
 					+ " must implement java.io.Serializable or be a concrete Zeze Serializable type), " + where);
 	}
 
-	// 实例化探测字段初始化器（有实例化副作用）；探测失败视为未初始化。
+	// 实例化探测字段是否已有初始值，探测失败视为未初始化。
 	private static boolean isFieldInitializerPresent(AnnotatedElement e) {
 		if (e instanceof Field f) {
 			try {
@@ -398,8 +393,7 @@ final class Gen {
 			return;
 		}
 		if (isZezeValue(type)) {
-			// decode按typeId经工厂反建，encode必须对称先写typeId（Data漏写时decode把编码体
-			// 首字节当typeId消费，乱流或误导性异常）。
+			// Bean/Data 按 typeId 多态反建，编码前需先写 typeId。
 			if (type == Bean.class || type == Data.class)
 				sb.appendLine("{}{}.WriteLong({}.typeId());", prefix, bbName, varName);
 			sb.appendLine("{}{}.encode({});", prefix, varName, bbName);
@@ -483,8 +477,7 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
-			// beanFactory符号按"模块类父类链自带可访问静态beanFactory"惯例解析（IModule无
-			// 此契约），生成期由GenModule.checkBeanFactorySymbol校验。
+			// 模块类父类链需提供可访问静态 beanFactory（由 GenModule.checkBeanFactorySymbol 校验）。
 			if (type == Bean.class)
 				sb.appendLine("{}{} = beanFactory.createBeanFromSpecialTypeId({}.ReadLong());", prefix, varName, bbName);
 			else if (type == Data.class)

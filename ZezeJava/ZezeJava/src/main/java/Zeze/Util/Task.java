@@ -33,8 +33,8 @@ import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.Nullable;
 import java.util.concurrent.ForkJoinPool;
 
+/** 任务调度静态门面：默认线程池/调度池生命周期管理与任务执行核心（旧静态重载委托 {@link TaskSpec}）。 */
 @SuppressWarnings("resource")
-// 任务调度静态门面：默认线程池/调度池管理与 Action/Func/Procedure 载荷的 call/run/submit/schedule 执行家族（旧 API 委托 TaskSpec）
 public final class Task {
 	static final Logger logger = LogManager.getLogger(Task.class);
 	// 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
@@ -63,8 +63,7 @@ public final class Task {
 	private static volatile @Nullable ScheduledExecutorService threadPoolScheduled;
 	private static volatile @Nullable ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
 	private static volatile @Nullable TimeoutManager timeoutManager;
-	// 数据库IO并行池：flush/reduce等阻塞DB操作退出ForkJoinPool.commonPool——commonPool面向CPU任务，
-	// 阻塞任务互抢可整体停摆并拖垮进程内其他parallelStream使用者。与三个默认池同生命周期。
+	// 数据库 IO 并行池：将阻塞型 flush/reduce 操作与 ForkJoinPool.commonPool 隔离
 	private static volatile @Nullable ForkJoinPool threadPoolDbIo;
 	// volatile: 运行期可被替换（如应用层定制日志），需对读线程立即可见
 	public static volatile @Nullable ILogAction logAction = Task::DefaultLogAction;
@@ -150,8 +149,7 @@ public final class Task {
 		return Objects.requireNonNull(threadPoolDbIo, "Task dbIo thread pool is not initialized or has been shut down");
 	}
 
-	// 在数据库IO并行池中执行阻塞型并行流的终端操作：提交线程阻塞等待，
-	// 流的分裂发生在池内worker上（parallelStream默认走commonPool）。
+	// 在数据库 IO 并行池中执行阻塞型并行流终端操作，避免占用 ForkJoinPool.commonPool
 	public static void runInDbIoPool(Action0 action) {
 		var pool = threadPoolDbIo;
 		if (pool == null)
@@ -193,8 +191,7 @@ public final class Task {
 		shutdownPools(false, maxAwait);
 	}
 
-	// 与 tryInitThreadPool 同锁互斥：避免"读到旧池→并发初始化建新池→置null"竞态把新池引用抹掉却不关闭。
-	// 先置null再等待：等待期间新提交立即走 poolOrThrow 的明确失败路径，而不是进入已 shutdown 的池被静默拒绝。
+	// 与 tryInitThreadPool 同锁互斥；先置 null 再等待，使期间新提交明确失败
 	private static void shutdownPools(boolean now, long maxAwait) throws InterruptedException, TimeoutException {
 		ScheduledExecutorService scheduledTmp;
 		ExecutorService defaultTmp;
@@ -247,8 +244,7 @@ public final class Task {
 		}
 
 		if (now) {
-			// shutdownNow 可丢弃已接收而未运行的驱动（执行器也可将其包装）。按池登记结算，
-			// 不依赖返回的 Runnable 形态；补偿在 taskLock 外，允许回调重新初始化/提交。
+			// 锁外补偿被 shutdownNow 丢弃的 one-by-one 派发，允许回调重新初始化或提交
 			if (scheduledTmp != null) {
 				TaskOneByOneQueue.cancelPendingDispatches(scheduledTmp);
 				TaskOneByOneByKey2.cancelPendingDispatches(scheduledTmp);
@@ -276,9 +272,7 @@ public final class Task {
 			throw new TimeoutException(timeout);
 	}
 
-	// 提交/执行/调度路径的池选择：池未初始化或已 shutdown（字段为null）时抛明确异常，替代裸NPE。
-	// 不自动重建池：停机后的提交应显式失败，静默复活可能吞掉停机语义（如 ShutdownHook 内的 flush 任务派发）。
-	// 包内可见：one-by-one 队列引擎的入队前校验共用（入队后派发失败会把队列永久卡死）。
+	// 池未初始化或已停机时明确抛异常，不自动重建；供提交与 one-by-one 入队校验共用
 	static ExecutorService poolOrThrow(boolean critical) {
 		var pool = critical ? threadPoolCritical : threadPoolDefault;
 		if (pool == null)
@@ -404,8 +398,7 @@ public final class Task {
 		TaskSpec.ofAction(action).name(name).call();
 	}
 
-	// 按名称缓存观察者，避免逐笔查询后端；句柄内部自带代际重绑。
-	// shortcut: 名称和句柄长期保留，持续产生不同动态名称时需增加缓存淘汰。
+	// 按名称缓存观察者（句柄内部自带代际重绑）；持续产生不同动态名称时需引入淘汰
 	private static final ConcurrentHashMap<String, ZezeCounter.LongObserver> runTimeObservers = new ConcurrentHashMap<>();
 
 	private static ZezeCounter.LongObserver getTaskRunTimeObserver(String name) {
@@ -420,8 +413,7 @@ public final class Task {
 		}
 	}
 
-	// TaskBody 统一核心：载荷间差异（异常/结果策略、日志名、统计位置）由 TaskBody 实现封装，
-	// 各执行家族只保留一份样板（池选择/timeout/计数）。
+	// TaskBody 统一调用核心：统计耗时并委托载荷自身策略
 	static <R extends @Nullable Object> R callCore(TaskBody<R> body, @Nullable String name) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try {
@@ -627,12 +619,10 @@ public final class Task {
 		return TaskSpec.ofFunc0(func).timeout(timeout).scheduleNow(initialDelay);
 	}
 
-	// 周期调度：周期任务无法携带返回值，结果丢弃，异常只记日志（不 rethrow，否则 ScheduledExecutor 会停掉后续周期）。
-	// 轮进入 future 后复查取消标志，业务体与 timeout 均在 future 锁内，迟到轮不得执行 body。统计仍在解锁后。
-	// cancel 调用方仍不得持有已运行任务体可能获取的业务锁（ABBA，见 TimerFuture.cancel 的 javadoc）。
+	// 周期调度：异常仅记日志不重抛（防 ScheduledExecutor 中止后续周期）；future 锁内复查取消标志
 	static <R extends @Nullable Object> TimerFuture<R> schedulePeriodCore(long initialDelay, long period, TaskBody<R> body,
 														  @Nullable String name, long timeout) {
-		var future = new TimerFuture<R>(body.logName(name), timeout); // name+timeout供cancel挂死告警定位与阈值
+		var future = new TimerFuture<R>(body.logName(name), timeout);
 		future.setFuture(scheduledPoolOrThrow().scheduleWithFixedDelay(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			future.lock();
@@ -640,7 +630,7 @@ public final class Task {
 				if (future.isCancelled())
 					return;
 				body.call(name);
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("{} exception:", body.logName(name), e);
 			} finally {
 				future.unlock();
@@ -694,11 +684,9 @@ public final class Task {
 		firstTime.set(Calendar.MINUTE, minute);
 		firstTime.set(Calendar.SECOND, 0);
 		firstTime.set(Calendar.MILLISECOND, 0);
-		if (firstTime.before(Calendar.getInstance())) // 如果第一次的时间比当前时间早，推到明天。
-			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
-		// 返回值恒>=1ms：求值落在锚点毫秒（或before()与结尾两次取时刻跨过锚点）会算出
-		// 0/负数——DaemonTimer供应商模式把<=0定性为违约关门，钳到1ms保住"立即触发一轮"
-		// 的良性语义（对齐scheduleAtNow族对delay<=0的处理）。
+		if (firstTime.before(Calendar.getInstance()))
+			firstTime.add(Calendar.DAY_OF_MONTH, 1); // 已过今日锚点，推到明天
+		// 返回值钳位到 >=1ms，避免跨过锚点毫秒算出 0 或负数
 		return Math.max(1, firstTime.getTime().getTime() - System.currentTimeMillis());
 	}
 
@@ -809,7 +797,7 @@ public final class Task {
 			var c = e.getCause();
 			if (c == null)
 				return e;
-			if (depth >= 64) // 自引用cause环防护：链深超过合理上限按当前节点截断，避免死循环
+			if (depth >= 64) // 防止 cause 自引用成环导致死循环
 				return e;
 			e = c;
 		}
@@ -871,9 +859,6 @@ public final class Task {
 					: (protocol != null ? protocol : handle).getClass().getName(), e);
 		}
 	}
-
-	// 无协议路径已由 TaskBody.OfFunc/OfProcedure 与统一 core（callCore/submitCore/executeCore）覆盖；
-	// 协议感知路径同样由 TaskBody 协议版载荷路由到下方的 call core，无需独立的 submit/execute 协议 core。
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).run()}。 */
 	@Deprecated

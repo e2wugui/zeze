@@ -3,16 +3,8 @@ package Zeze.History;
 import Zeze.Net.Binary;
 
 /**
- * 单条tHistory记录级别的原子应用单元（记录级事务）。
- * <p>
- * ApplyHelper应用一条历史记录前 {@link IApplyDatabase#beginRecordTxn()} 开启本事务，
- * 记录内全部entry通过 {@link IApplyTable} 执行的put/remove都计入本事务（暂存或挂在
- * 同一底层事务上，不即时落库）；全部entry成功后 {@link #commit} 一次性生效；
- * 任一entry异常 {@link #rollback} 整条丢弃后原样重抛——保证重试整条记录时从干净
- * 状态完整重放，前缀entry不会被二次应用（Edit类非幂等日志如PList2的OP_ADD按索引
- * 插入，二次应用会产生重复元素）。
- * <p>
- * 事务由ApplyHelper.apply在其锁内单线程驱动，不支持嵌套开启；commit/rollback/close幂等。
+ * 单条 tHistory 记录级的原子应用事务：记录内所有 put/remove 随 {@link #commit()} 一次性生效，
+ * 任一条目失败时由 {@link #rollback()} 整体撤销以保证重试幂等；单线程驱动，commit/rollback/close 幂等。
  */
 public interface IApplyRecordTxn extends AutoCloseable {
 	/**

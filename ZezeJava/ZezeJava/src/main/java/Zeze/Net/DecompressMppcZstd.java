@@ -75,7 +75,7 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 	void onLongOffset() {
 		if (off != 0x1fff + 320)
 			return;
-		// Consume the escape at the token boundary, including when flush finishes a preceding MPPC tuple.
+		// 在 token 边界消费块模式逃逸码，并将剩余整字节喂给块头解析。
 		off = -1;
 		int buffered = rem;
 		int wholeBits = pos & ~7;
@@ -96,9 +96,7 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 				flushBufferedBlockData();
 			if (--blockSize == 0) {
 				blockState = 0;
-				// 块数据结束时srcBuf可能仍有未喂给zstd的残留（数组版路径块数据直达ds，无此问题）：
-				// 不在这里排空，后续回到常规MPPC段的输出会越过zstd流顺序，且流结束时（blockState==-1
-				// 走super.flush）残留彻底丢失。zstd流式解压接受任意部分输入，此处排空安全。
+				// 块结束时排空 srcBuf 残留，避免后续切换回常规 MPPC 段时乱序或丢失。
 				flushBufferedBlockData();
 			}
 		} else {

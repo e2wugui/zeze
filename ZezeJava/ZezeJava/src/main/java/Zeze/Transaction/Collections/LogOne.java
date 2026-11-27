@@ -21,7 +21,7 @@ public class LogOne<V extends Bean> extends LogOneValue<V> implements Transactio
 	}
 
 	private static <V extends Bean> LogOneMeta<V> resolveMeta(Bean self, V value) {
-		// 声明类优先：装子类实例须按声明类建typeId，与读端注册对称。
+		// 声明类优先：装子类实例须按声明类建 typeId，与读端注册对称。
 		if (self instanceof CollOne<?> collOne)
 			//noinspection unchecked
 			return (LogOneMeta<V>)collOne.meta;
@@ -48,7 +48,6 @@ public class LogOne<V extends Bean> extends LogOneValue<V> implements Transactio
 
 	@Override
 	public void endSavepoint(Savepoint currentSp) {
-		// 结束保存点，直接覆盖到当前的日志里面即可。
 		currentSp.putLog(this);
 	}
 

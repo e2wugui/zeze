@@ -18,7 +18,7 @@ import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
 /**
- * Netty EventLoopGroup 持有者（epoll 可用时优先，否则 nio）。
+ * Netty EventLoopGroup 持有者（按 io_uring → epoll → nio 顺序选择传输层）。
  */
 public class Netty implements Closeable {
 	static final Logger logger = LogManager.getLogger(Netty.class);
@@ -31,8 +31,7 @@ public class Netty implements Closeable {
 
 	public Netty(int nThreads) {
 		var threadFactory = new DefaultThreadFactory("ZezeNetty");
-		// 4.2：EventLoopGroup实现类已弃用，改用MultiThreadIoEventLoopGroup+IoHandler工厂显式选传输层（无自动探测）。
-		// io_uring优先（独立制品io_uring，内核5.1+/容器策略不支持时isAvailable()安全回落epoll/nio）。
+		// 按 io_uring → epoll → nio 优先级显式选择 IoHandler。
 		eventLoopGroup = new MultiThreadIoEventLoopGroup(nThreads, threadFactory,
 				IoUring.isAvailable() ? IoUringIoHandler.newFactory()
 						: Epoll.isAvailable() ? EpollIoHandler.newFactory()

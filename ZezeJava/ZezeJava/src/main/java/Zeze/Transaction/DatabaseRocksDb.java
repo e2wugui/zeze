@@ -20,10 +20,7 @@ import Zeze.Util.RocksDatabase.Batch;
 /** RocksDB 数据库后端：列族承载 KV 表，WAL 写入与 Operates 条件写；也用作本地镜像缓存库。 */
 public class DatabaseRocksDb extends Database {
 	private final RocksDatabase rocksDb;
-	// 写选项唯一来源=DatabaseUrl 的 ?sync=true。默认普通写（写先进 OS 页缓存，进程崩溃可由
-	// WAL 恢复，主机掉电丢 WAL 尾部）；"提交即物理落库"承诺须覆盖掉电的高安全部署（如
-	// CheckpointWhenCommit 表 + AutoKey 水位）追加该选项启用 sync 写。本地缓存库
-	// （LocalCacheResources，url 为 zeze_cache_<serverId> 自建、无 query）天然普通写。
+	// 写选项由 DatabaseUrl 的 ?sync=true 决定（默认普通写；本地镜像缓存库恒普通写）。
 	private final WriteOptions writeOptions;
 
 	public DatabaseRocksDb(@Nullable Application zeze, Config.DatabaseConf conf) {
@@ -84,9 +81,7 @@ public class DatabaseRocksDb extends Database {
 		// 列族相同意味着无需重命名；复制后删除会直接销毁源数据。
 		if (oldName.equals(newName))
 			return;
-		// RocksDB 不支持列族重命名：把旧表数据拷贝到备份列族后再删除原列族，
-		// 对齐其他后端（MySQL RENAME TABLE / PG ALTER TABLE RENAME / Mongo renameCollection）
-		// "版本升级时备份旧表"的语义。不得直接 drop——会销毁旧数据，升级后无任何恢复途径。
+		// RocksDB 不支持列族重命名：全量拷贝到新列族后再删除源列族（中断时可幂等重跑）。
 		var oldTable = rocksDb.getTable(oldName);
 		if (oldTable == null) // 不存在的表保持与 dropTable 相同的 no-op 行为
 			return;
@@ -251,13 +246,9 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
-	// 将主库已读出的存量记录回填到本地镜像。不检查键长：调用方（TableX.load/selectDirty）
-	// 只在入口检查之后才会到达这里，而 remove 管线的 load 拿到旧值后也要回填——
-	// 存量超长键必须能走完"load旧值→埋tombstone→flush删除"全程（见 Database.eMaxKeyLength 注释）。
+	// 将主库已读记录回填本地镜像；不检查键长以支持存量超长键完成 load→remove 清理。
 	static void backfillMirror(Table mirror, Transaction txn, ByteBuffer key, ByteBuffer value) {
 		var target = (TableRocksDb)mirror;
-		// 镜像回填只允许打向本地缓存库：localRocksCache标志随写选项统一配置删除后，
-		// 按LocalCacheResources自建的url命名约定（zeze_cache_<serverId>）判别。
 		if (!target.getDatabase().getDatabaseUrl().startsWith("zeze_cache_"))
 			throw new IllegalStateException("backfillMirror requires the local RocksDB cache");
 		target.put(txn, key, value);

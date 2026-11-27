@@ -3,7 +3,7 @@ package Zeze.Util;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
-// 对象输出参数包装（模拟 C# out 参数）
+/** 对象输出参数包装（模拟 C# out 参数）。 */
 public class OutObject<T extends @Nullable Object> {
 	public @Nullable T value;
 

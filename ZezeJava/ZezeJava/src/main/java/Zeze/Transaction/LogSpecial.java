@@ -2,7 +2,7 @@ package Zeze.Transaction;
 
 import org.jspecify.annotations.Nullable;
 
-/** Local-only value used by commit actions, such as RecordAccessed.PutLog. */
+/** 仅用于事务本地提交动作的特殊日志基类（如 RecordAccessed.PutLog），不参与序列化传输。 */
 public abstract class LogSpecial<TBean extends Bean, TValue> implements TransactionLog {
 	private final @Nullable TValue value;
 	private final Bean belong;

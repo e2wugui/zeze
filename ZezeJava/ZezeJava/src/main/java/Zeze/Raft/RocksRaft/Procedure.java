@@ -22,12 +22,8 @@ public class Procedure {
 	private long expectedTerm = -1;
 
 	/**
-	 * 唯一请求去重的应用侧接线点（API）：应用在raft存储过程内把携带Unique（requestId&gt;0）
-	 * 的RaftRpc赋给本字段，事务提交时其unique与Result随日志持久化——存根有效期内同号重发
-	 * 由服务端去重命中并以RaftApplied附原始结果应答，不重执行（存根写入门禁=requestId&gt;0，
-	 * 见LogSequence在途存根与Rocks终态存根）。
-	 * 不设置（默认null）时重发将作为新日志重新执行——走此模式的处理器必须幂等（框架内建
-	 * 服务如SM/GCM-raft均不设置，重发=重执行；Dbh2经appendLog(log, result)等效携带unique）。
+	 * 唯一请求去重绑定：赋入携带 {@code requestId > 0} 的 {@link RaftRpc} 后，事务提交时其 unique 与结果随日志持久化，
+	 * 存根有效期内同号重发直接返回原始结果；为 {@code null} 时不写存根，重发将重新执行（调用方需保证幂等）。
 	 */
 	public @Nullable RaftRpc<?, ?> uniqueRequest;
 	public @Nullable Protocol<?> autoResponse;
@@ -102,7 +98,7 @@ public class Procedure {
 		} catch (ThrowAgainException | RaftRetryException e) {
 			currentT.rollback();
 			throw e;
-		} catch (Throwable e) { // procedure . exception to return. rethrow AssertionError, logger.error
+		} catch (Throwable e) {
 			currentT.rollback();
 			if (e instanceof AssertionError)
 				throw e;

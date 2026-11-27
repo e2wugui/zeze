@@ -33,7 +33,6 @@ import org.jspecify.annotations.Nullable;
  * TCP 连接与监听实现：基于 Selector 的事件驱动收发、codec 链（加密/压缩）装配与优雅关闭。
  */
 public final class TcpSocket extends AsyncSocket implements SelectorHandle {
-	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
 	@Override
 	public Service getService() {
 		var service = super.getService();
@@ -47,8 +46,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final int MAX_OPERATES_PER_WRITE = 1024;
 	private static final IOException connectFailedException = new IOException("connect failed");
-	// DNS解析专用daemon线程：getByName同步且不可中断（可达5-30秒），不得占用selector/Task池线程；
-	// 在途解析数受连接器数约束（每连接器至多一条），cached即可。
+	// DNS 解析专用 daemon 池：同步解析不可中断，不得占用 selector 或 Task 线程池。
 	private static final ExecutorService dnsResolver = Executors.newCachedThreadPool(r -> {
 		var t = new Thread(r, "Zeze-Dns-Resolver");
 		t.setDaemon(true);
@@ -79,8 +77,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private @Nullable Codec outputCodecChain; // 只在selector线程访问
 	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
 
-	// 关闭后submitAction误用计数（前SEND_CLOSE_DETAIL_MAX次带堆栈）；realClose置
-	// REAL_CLOSED防递归。判死在基类。
+	// 关闭后 submitAction 误用日志计数；realClose 置 REAL_CLOSED 防递归。
 	@SuppressWarnings("unused")
 	private volatile byte closeDetail;
 	private volatile boolean closePending;
@@ -156,9 +153,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		return this.timeThrottle;
 	}
 
-	/**
-	 * for server socket
-	 */
+	/** 服务端监听 socket 构造。 */
 	public TcpSocket(Service service, @Nullable InetSocketAddress localEP, @Nullable Acceptor acceptor) {
 		super(service);
 
@@ -243,14 +238,12 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		close(e);
 	}
 
-	/**
-	 * use inner. create when accepted;
-	 */
+	/** 服务端接受新连接时内部构造。 */
 	private TcpSocket(Service service, SocketChannel sc, @Nullable Acceptor acceptor)
 			throws Exception {
 		super(service);
 
-		setDecodeAdmission(service.getConnectionDecodeAdmission()); // 连接级解码准入，早于一切输入
+		setDecodeAdmission(service.getConnectionDecodeAdmission());
 		this.acceptorOrConnector = acceptor;
 		this.type = Type.eServer;
 		resetActiveSendRecvTime();
@@ -280,10 +273,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		try {
 			service.OnSocketAccept(this);
 		} catch (Exception e) {
-			// OnSocketAccept 已被调用（哪怕抛出）就必须 close→OnSocketClose 恰一次：
-			// 否则已入 socketMap 的连接永不回调清理（条目滞留、统计不转移、子类状态泄漏，
-			// KeepCheckPeriod=0 时永久）。重抛给 doHandle 的 OP_ACCEPT catch：sc.close() 幂等 +
-			// OnSocketAcceptError 记日志。语义与 C# ProcessAccept 的 accepted?.Close(ce) 对齐。
+			// OnSocketAccept 抛异常时显式 close 触发 OnSocketClose 清理已登记状态，再重抛记录 accept 错误。
 			close(e);
 			throw e;
 		}
@@ -299,9 +289,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		}
 	}
 
-	/**
-	 * for client socket. connect
-	 */
+	/** 客户端连接建立成功后的回调处理。 */
 	private void doConnectSuccess(SocketChannel sc) throws Exception {
 		var socket = sc.socket();
 		remoteAddress = socket.getRemoteSocketAddress();
@@ -324,7 +312,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 					 @Nullable Object userState, @Nullable Connector connector) {
 		super(service);
 
-		setDecodeAdmission(service.getConnectionDecodeAdmission()); // 连接级解码准入，早于一切输入
+		setDecodeAdmission(service.getConnectionDecodeAdmission());
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
 		this.type = Type.eClient;
@@ -365,22 +353,17 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			}
 			throw Task.forceThrow(e);
 		}
-		// DNS与connect异步进行：构造保持非阻塞（可在Connector锁内调用），成败统一走close链
 		connectAsync(hostNameOrAddress, port);
 	}
 
-	/**
-	 * DNS解析（专用线程）→ 非阻塞connect。失败以close(cause)走OnSocketClose链回收，
-	 * 不从构造/调用方抛出（Connector.start仅同步抛配置/编程错误）；期间被close
-	 * （如Connector.stop）则在isClosed检查点放弃。
-	 */
+	// 专用线程异步解析 DNS 并发起非阻塞 connect，失败走 close + OnSocketConnectError。
 	private void connectAsync(@Nullable String hostNameOrAddress, int port) {
-		if (isClosed()) // stop可落在构造完成与本次调度之间
+		if (isClosed())
 			return;
 		dnsResolver.execute(() -> {
 			try {
 				InetAddress address = getService().resolveAddress(hostNameOrAddress);
-				if (isClosed()) // DNS期间被stop/close：放弃
+				if (isClosed())
 					return;
 				SocketChannel sc = (SocketChannel)getChannel();
 				if (sc.connect(new InetSocketAddress(address, port))) // 马上成功时（回环），直接完成
@@ -396,7 +379,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				}
 				selector.wakeup();
 			} catch (Exception e) {
-				if (close(e)) { // 幂等（恰好一次，见markClosed）：仅本次失败终结连接时回调OnSocketConnectError
+				if (close(e)) {
 					try {
 						getService().OnSocketConnectError(this, e);
 					} catch (Exception ex) {
@@ -419,10 +402,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		return security == (1 | 2);
 	}
 
-	// 同方向codec链只允许装配一次：重复握手/KeyExchange重放会以新链覆盖旧链，旧链（zstd为
-	// NoFinalizer变体，native上下文仅close()释放、无GC兜底）失引用后无人close——realClose只close
-	// 当前字段引用。必须在链字段被覆盖前判定，否则旧链已失引用照样泄漏。仅selector线程
-	// （submitAction串行）调用，volatile读无竞争。
+	// 同方向 codec 链只允许装配一次（仅 selector 线程调用），避免覆盖旧链导致 native 资源泄漏。
 	private boolean securityCodecReinstalled(byte bit) {
 		if ((security & bit) == 0)
 			return false;
@@ -430,10 +410,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		return true;
 	}
 
-	// 四个set{Input,Output}SecurityCodec变体在selector线程装好codec后调用：记security位
-	//（volatile上的|=非原子，仅submitAction串行内使用），双向codec装齐时撤销解码准入
-	//（密钥交换完成；不用isHandshakeDone标志判"完成"——会误杀codec装好后、回调执行前
-	// 到达的合法加密数据）。
+	// 仅在 selector 线程的 submitAction 中串行调用；双向 codec 装齐时撤销解码准入限制。
 	private void securityCodecInstalled(byte bit) {
 		//noinspection NonAtomicOperationOnVolatileField
 		security |= bit;
@@ -450,9 +427,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		submitAction(() -> { // 进selector线程调用
 			if (securityCodecReinstalled((byte)1))
 				return;
-			// 压缩开启时解压输出经 InputLimitCodec 流式检查增长上限：processReceive 的
-			// InputBufferMaxProtocolSize 检查发生在整个chunk解压完成之后，恶意压缩数据（放大率
-			// 可达千倍）会在此之前无上限膨胀输入缓冲。不压缩（仅加密或全disable）不扩展，保持原路径。
+			// 开启压缩时挂载 InputLimitCodec 流式限制解压输出，防压缩放大耗尽内存。
 			Codec chain = compressType == Constant.eCompressTypeDisable
 					? Objects.requireNonNull(inputBuffer) : new InputLimitCodec(this, Objects.requireNonNull(inputBuffer));
 			try {
@@ -503,12 +478,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	}
 
 	/**
-	 * 自定义输入codec链扩展点（如 KeyExchange 挂自定义解密）。
-	 * 【安全约束】creator 返回的链中若包含解压器（Decompress/DecompressZstd 等），必须自行施加
-	 * 流式输入增长上限（参考 {@link #setInputSecurityCodec(int, byte[], int)} 对
-	 * InputBufferMaxProtocolSize 的 sink 侧流式检查）：本变体签名收 BufferCodec，框架无法在
-	 * 解压输出侧替你插入 InputLimitCodec——恶意压缩数据可在此无上限膨胀（压缩放大）。
-	 * 仅解密（如 Decrypt2，1:1 不扩展）或纯透传的链无此要求。
+	 * 自定义输入 codec 链扩展点；若链中包含解压器，调用方需自行约束解压输出上限以防压缩放大。
 	 */
 	public void setInputSecurityCodec(BiFunction<AsyncSocket, BufferCodec, Codec> creator) {
 		submitAction(() -> { // 进selector线程调用
@@ -687,18 +657,14 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 						codecBuf.FreeInternalBuffer(); // 只在过大的缓冲区时释放内部bytes[], 避免频繁分配
 				} else {
 					int max = getService().getSocketOptions().getInputBufferMaxProtocolSize();
-					// max 语义=最大协议体大小（不含12字节帧头），帧级检查（Protocol.decode 的
-					// longSize > maxSize）用 > 允许恰等于 max。本处残留缓冲量纲含帧头：恰达限值的
-					// 未压缩协议跨多轮接收时残留最多 HEADER_SIZE+max，须同样允许到该值（用 >），
-					// 否则同文件内自相矛盾，body==max 的协议会被误杀。
+					// max 为最大协议体大小（不含帧头），此处残留含帧头，故允许至 HEADER_SIZE + max。
 					if (remain > Protocol.HEADER_SIZE + max)
 						throw new IllegalStateException(
 								"InputBufferMaxProtocolSize " + remain + " > " + (Protocol.HEADER_SIZE + max));
 					codecBuf.Compact();
 				}
 			} else if (bytesTransferred < 0) {
-				readAgain = false; // EOF分支是do-while三分支中唯一不赋值者——沿用上一轮满读标记，
-				// 在非关闭式OnSocketInputClosed覆写（javadoc允许）+pauseReceive下内层循环恒真，selector线程忙循环挂死
+				readAgain = false; // 避免保留上轮满读标记导致非关闭式 OnSocketInputClosed 忙循环
 				getService().OnSocketInputClosed(this);
 			} else
 				readAgain = false;
@@ -855,9 +821,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			} catch (Exception e) {
 				logger.error("service.OnSocketDisposed exception:", e);
 			} finally {
-				// codec.close 各自独立防护：zstd native 释放失败是编码在案的抛出路径
-				// （ZstdFactory mhFreeCStream 非零→IllegalStateException），input 抛出不得
-				// 令 output 永不关闭（第二个 native 上下文泄漏）。
+				// 独立关闭双向 codec，避免一侧释放失败阻断另一侧 native 资源回收。
 				Codec codec = inputCodecChain;
 				if (codec != null) {
 					inputCodecChain = null;
@@ -878,8 +842,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				}
 			}
 		});
-		// 非门控唤醒：dispose任务不依赖任何IO事件，被wakeup()的合并门控吞掉时
-		// 在空闲selector上会无限期延迟（buffer池滞留、OnSocketDisposed延迟）。
+		// 绕过合并门控直接唤醒，避免空闲 selector 上 dispose 任务无限期延迟。
 		selector.wakeupDirect();
 		if (timeThrottle != null)
 			timeThrottle.close();
@@ -908,25 +871,18 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			logger.error("Service.OnSocketClose exception:", e);
 		}
 
-		// 监听socket（ServerSocketChannel的validOps仅OP_ACCEPT）不走优雅路径——
-		// addInterestOps(OP_WRITE)抛IllegalArgumentException发生在兜底realClose注册之前：
-		// channel未关、置死已生效，后续close()直接返回，端口泄漏不可再关。
-		// 监听socket无输出缓冲，优雅语义本不适用，直接realClose。
+		// 监听 socket 无输出缓冲且不支持 OP_WRITE，直接 realClose。
 		if (gracefully && type != Type.eServerSocket) {
 			closePending = true;
 			try {
 				if (addInterestOps(SelectionKey.OP_WRITE))
 					selector.wakeup();
 			} catch (CancelledKeyException e) {
-				// key已被selector错误路径取消（key.channel().close()）：OP_WRITE事件永不触发，
-				// 异常上抛会跳过兜底注册——直接realClose保证善后（OnSocketDisposed、
-				// outputBuffer释放、codec链close）必达。上面的监听socket防护只防了
-				// IllegalArgumentException，本异常发生在其后的正常连接上。
+				// key 已取消不会再触发 OP_WRITE，直接 realClose 兜底回收。
 				realClose();
 				return;
 			}
-			// scheduleNow：置死已即时生效（closePending/OP_WRITE 已设置），兜底注册不能
-			// 随事务回滚丢弃，否则对端不读时 realClose 永不执行、连接永滞（与 Rpc 超时清理同型）。
+			// scheduleNow 不随事务回滚取消，确保超时兜底关闭。
 			TaskSpec.ofAction(this::realClose).scheduleNow(120 * 1000); // 最多给2分钟清空输出队列。
 		} else
 			realClose();

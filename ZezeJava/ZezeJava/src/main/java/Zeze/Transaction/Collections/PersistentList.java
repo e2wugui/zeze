@@ -33,27 +33,8 @@ import java.util.RandomAccess;
 import java.util.function.Predicate;
 
 /**
- * Immutable vector with 32-element leaves and a nonempty tail (unless empty).
- * Updates share unchanged trie nodes. Builders own mutable nodes through a token
- * in slot 32; build() freezes shared trie nodes by replacing the token, or copies
- * the tail for small lists, so later writes cannot change snapshots.
- * Elements themselves are not copied. Builders are not thread safe.
- *
- * <p>API inventory for PList, PList1/PList2 and LogList/LogList1/LogList2:
- * <ul>
- * <li>Factory: persistentListOf() becomes empty().</li>
- * <li>Persistent operations (7): adding, addingAt, addingAll, replacingAt,
- * removing, removingAt, builder.</li>
- * <li>Builder operations (8): build, add(E), add(int,E), addAll(Collection),
- * set, remove(int), removeAll(Collection), clear; iterator::remove is also used.</li>
- * <li>Shared List reads (12): size, isEmpty, get, contains, containsAll,
- * indexOf, lastIndexOf, iterator, toArray(), toArray(T[]), equals, hashCode.
- * Standard collection reads are inherited from the JDK.</li>
- * </ul>
- * Bulk operations copy runs within leaves and share complete immutable leaves.
- * Filtering creates a snapshot only after the first match and publishes its
- * result after callbacks finish. Iterators cache the current leaf.
- * Bidirectional iteration is inherited from AbstractList without a custom implementation.
+ * 不可变 32 叉持久化向量：叶节点宽 32 且非空时持有非空尾数组，更新共享未修改节点。
+ * <p>{@link Builder} 通过槽位 32 的所有权令牌控制写时复制，{@code build()} 轮换令牌或拷贝尾数组以冻结快照；Builder 非线程安全。
  */
 public final class PersistentList<E> extends AbstractList<E> implements RandomAccess {
 	private static final int BITS = 5;
@@ -273,7 +254,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 		private Object[] tail;
 		private int size;
 		private int rootShift;
-		private int bufferModCount; // Copying a leaf on set is not a structural modification (upstream PR #339).
+		private int bufferModCount; // set 引起的叶拷贝不属于结构性修改。
 
 		private Builder(PersistentList<E> vector) {
 			built = vector;
@@ -284,7 +265,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 		}
 
 		public PersistentList<E> build() {
-			if (built == null) { // Small snapshots copy the tail, so the builder can keep owning its buffer.
+			if (built == null) { // 小列表拷贝尾数组，使 Builder 可继续复用原缓冲区。
 				if (root != null)
 					ownership = new Object();
 				built = size == 0 ? empty()
@@ -384,7 +365,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 			return elements instanceof Builder<?> builder ? builder.build() : null;
 		}
 
-		// These append helpers operate on private construction state, without modCount updates.
+		// 仅操作私有构建状态，不更新 modCount。
 		@SuppressWarnings("unchecked")
 		private void appendRange(PersistentList<?> source, int from, int to) {
 			if (from == to)
@@ -433,7 +414,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 				size += copied;
 				offset += copied;
 				count -= copied;
-				shareLeaf = false; // After a partial copy, only a suffix of the source leaf remains.
+				shareLeaf = false; // 部分拷贝后剩余的只是源叶后缀，不能再整叶共享。
 			}
 		}
 
@@ -605,7 +586,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 			if (index >= rootSize(size)) {
 				int tailIndex = index & MASK;
 				E old = (E)tail[tailIndex];
-				if (old == element) // Identity matters: equal but distinct values must still replace the slot (PR #355).
+				if (old == element) // 按引用身份短路：equals 相等但不同实例仍须替换槽位。
 					return old;
 				var mutableTail = makeMutable(tail);
 				if (mutableTail != tail)
@@ -634,7 +615,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 				mutableRoot[bufferIndex] = element;
 				return mutableRoot;
 			}
-			// Descend before copying so a same-reference set leaves the entire path shared.
+			// 先下探再拷贝，使同引用 set 保持整条路径共享。
 			var child = setInRoot((Object[])root[bufferIndex], shift - BITS, index, element, carry);
 			if (carry.value == element)
 				return root;
@@ -685,7 +666,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 
 		@SuppressWarnings("unchecked")
 		private boolean filter(Predicate<? super E> predicate) {
-			// No snapshot, frozen buffers or construction state until the first match.
+			// 命中首个待删元素前不创建快照或构建状态。
 			int expectedModCount = modCount;
 			var iterator = iterator();
 			int index = 0;
@@ -725,8 +706,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 							result.appendBuffer(buffer, runStart, offset - runStart, runStart == 0 && offset == WIDTH);
 					}
 				}
-			} finally { // On failure retain the throwing element and untested suffix (PR #347).
-				// A structurally modifying callback owns the live state; never overwrite it with an old snapshot.
+			} finally { // 回调抛异常时保留触发元素及未测试后缀；若回调发生结构性修改则不覆盖实时状态。
 				if (modCount == expectedModCount) {
 					result.appendRange(source, index, source.size);
 					adopt(result);
@@ -745,7 +725,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 			rootShift = result.rootShift;
 		}
 
-		// Keep a prefix by trimming only the rightmost path, rather than removing its suffix one by one.
+		// 仅裁剪最右路径以保留前缀，避免逐个移除后缀。
 		private void truncate(int newSize) {
 			if (newSize == size)
 				return;
@@ -825,7 +805,7 @@ public final class PersistentList<E> extends AbstractList<E> implements RandomAc
 
 			@Override
 			public boolean hasNext() {
-				return cursor != size; // Leave a cursor beyond the live size for next() to report the CME (PR #337).
+				return cursor != size; // 游标越过当前 size 时留待 next() 抛出 CME。
 			}
 
 			@SuppressWarnings("unchecked")

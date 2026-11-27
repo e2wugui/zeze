@@ -32,9 +32,7 @@ final class HeartbeatLog extends Log {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (operate) {
 		case SetLeaderReadyEvent:
-			// 由于这个log会被存储到日志队列中，所以在leader选出来，apply历史日志时，就会触发这个调用。
-			// 但是这个调用真正产生效果，需要是最后一个 HeartbeatLog。
-			// 这个条件在setLeaderReady内部检测 leaderWaitReadyTerm，leaderWaitReadyIndex。
+			// 重放历史日志时也会触发，setLeaderReady 内部校验 leaderWaitReadyTerm/Index 过滤旧心跳。
 			//noinspection DataFlowIssue
 			stateMachine.getRaft().setLeaderReady(holder);
 			break;

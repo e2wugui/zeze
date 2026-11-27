@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 import org.jspecify.annotations.Nullable;
 import static Zeze.Util.Json.*;
 
-// JSON 输出序列化器：分块字节缓冲 + Grisu2 浮点最短表示，供 Json 反射序列化与手工写出
+/** JSON 输出序列化器：分块字节缓冲与 Grisu2 浮点最短表示，供 Json 反射序列化与手工写出。 */
 public final class JsonWriter {
 	//@formatter:off
 	private static final long DOUBLE_SIGN_MASK        = 0x8000_0000_0000_0000L;
@@ -132,12 +132,7 @@ public final class JsonWriter {
 	private int tabs; // current depth
 	boolean inUse; // Json 静态入口（toCompactString 等）的占用标记，用于嵌套重入检测
 
-	// 供 Json 静态入口的重入保护：writer 被 Json 静态入口占用，或已有半成品输出
-	// （直接使用 JsonWriter.local() 的调用方，如 DbWeb/AsyncSocket，序列化中途）。
-	// 此时嵌套调用 Json.toCompact* 必须改用独立实例，否则 clear() 会清掉外层半成品。
-	// free()后tail==null，实例视为永久占用：否则busy()恒false使
-	// acquireLocalWriter取回该实例，clear()首行tail.next即NPE，线程本地writer
-	// 一旦free即永久不可用。
+	// 重入保护：被静态入口占用、存在未完成输出或已 free()（tail==null）时，嵌套调用改用独立实例。
 	@SuppressWarnings({"null", "ConstantValue"})
 	boolean busy() {
 		return inUse || size != 0 || pos != 0 || tail == null;
@@ -166,9 +161,7 @@ public final class JsonWriter {
 		return flags >>> 16;
 	}
 
-	// 复杂Map键的子writer：继承深度相关flags并共享剩余深度预算——此前新writer
-	// 从零深度起且丢弃调用方flags，含循环的键图绕过FLAG_THROW_ON_DEPTH_LIMIT
-	// 直接StackOverflowError，超深复杂键也绕过调用方预算。
+	// 复杂 Map 键的子 writer：继承深度相关标志并共享剩余深度预算，避免循环引用绕过深度限制。
 	private byte [] writeComplexKey(Json json, Object k) {
 		return new JsonWriter()
 				.setFlags(flags & (FLAG_NO_QUOTE_KEY | FLAG_THROW_ON_DEPTH_LIMIT))
@@ -258,15 +251,8 @@ public final class JsonWriter {
 	}
 
 	/**
-	 * 释放全部块并把实例置入已释放终态（tail==null，{@link #busy()} 恒 true），同时从当前线程的
-	 * ThreadLocal 登记中摘除本实例（仅当本实例恰为当前线程的登记实例），此后 {@link #local()}
-	 * 自动新建实例。写路径可经 ensure() 重新分配块而复活，
-	 * 但 clear()/toString()/charSize() 等遍历路径对已释放实例会 NPE，free 后请勿继续使用。
-	 * <p>
-	 * 【线程封闭契约】JsonWriter 实例（含 ThreadLocal 登记实例）线程封闭，
-	 * free() 必须在登记线程调用：跨线程 free 他人登记的实例摘不掉目标线程的登记（ThreadLocal
-	 * 无跨线程移除途径），目标线程随后的 local() 仍会取回已释放实例，clear() 首行 tail.next
-	 * 即 NPE——该用法属线程封闭违约，本方法对此不设防。
+	 * 释放全部块并从当前线程的 ThreadLocal 中摘除本实例（此后 {@link #local()} 自动新建实例）。
+	 * 本类线程封闭，须在所属线程调用；释放后勿再对本实例调用 clear/toString 等遍历方法。
 	 */
 	public JsonWriter free() {
 		for (Block block = ensureNotNull(tail).next; ; block = block.next) {
@@ -280,10 +266,7 @@ public final class JsonWriter {
 		pos = 0;
 		size = 0;
 		tabs = 0;
-		// 摘除ThreadLocal登记——free()后若仍留在localWriters，
-		// JsonWriter.local()直取路径（DbWeb/AsyncSocket等序列化中途使用者）会拿到
-		// 已释放实例，clear()首行tail.next即NPE。摘除后local()自动新建实例；
-		// 非ThreadLocal登记的手写实例不受影响。busy()的tail==null检查保留作纵深防御。
+		// 仅当本实例为当前线程登记实例时摘除 ThreadLocal，避免后续 local() 取回已释放实例
 		if (localWriters.get() == this)
 			localWriters.remove();
 		return this;
@@ -476,7 +459,7 @@ public final class JsonWriter {
 			if (obj instanceof Collection) {
 				ensure(1);
 				buf[pos++] = '[';
-				tabs++;// 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
+				tabs++; // 紧凑模式也计深度以执行深度限制
 				if (wrapArray) {
 					for (Object o : (Collection<?>)obj) {
 						if (comma)
@@ -506,7 +489,7 @@ public final class JsonWriter {
 			if (klass.isArray()) {
 				ensure(1);
 				buf[pos++] = '[';
-				tabs++;// 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
+				tabs++; // 紧凑模式也计深度以执行深度限制
 				if (wrapArray) {
 					for (int i = 0, n = Array.getLength(obj); i < n; i++) {
 						if (comma)
@@ -537,7 +520,7 @@ public final class JsonWriter {
 				ensure(1);
 				buf[pos++] = '{';
 				if ((flags & FLAG_PRETTY_FORMAT) == 0) {
-					tabs++; // 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
+					tabs++; // 紧凑模式也计深度以执行深度限制
 					for (Entry<?, ?> e : ((Map<?, ?>)obj).entrySet()) {
 						Object value = e.getValue();
 						if (value == null && (flags & FLAG_WRITE_NULL) == 0)
@@ -546,7 +529,7 @@ public final class JsonWriter {
 							buf[pos++] = ',';
 						Object k = e.getKey();
 						if (k == null || Json.ClassMeta.isInKeyReaderMap(k.getClass())) {
-							// Character键输出码点数值：与parseCharKey的数值语义对齐（写字形往返必错）。
+							// Character 键输出码点数值，与 parseCharKey 对齐
 							s = k instanceof Character ? String.valueOf((int)(char)(Character)k) : String.valueOf(k);
 							ensure(s.length() * 6 + 3); // "xxxxxx":
 							write(s, noQuote && !needQuoteKey(s));
@@ -575,7 +558,7 @@ public final class JsonWriter {
 						writeNewLineTabs();
 						Object k = e.getKey();
 						if (k == null || Json.ClassMeta.isInKeyReaderMap(k.getClass())) {
-							// 同紧凑分支：Character键输出码点数值。
+							// Character 键输出码点数值，与 parseCharKey 对齐
 							s = k instanceof Character ? String.valueOf((int)(char)(Character)k) : String.valueOf(k);
 							ensure(s.length() * 6 + 4); // "xxxxxx":_
 							write(s, noQuote && !needQuoteKey(s));
@@ -608,16 +591,14 @@ public final class JsonWriter {
 				long offset = fieldMeta.offset;
 				if (type > TYPE_DOUBLE && (subObj = unsafe.getObject(obj, offset)) == null && !writeNull)
 					continue;
-				// Pos字段不输出。必须在写逗号/字段名之前判定：
-				// 若先写字段名再回退pos，写名字时恰好appendBlock换块，回退拿旧块偏移配新块buf，会拼出损坏的JSON。
+				// Pos 字段不输出，须在写逗号/字段名前跳过（写字段名可能触发换块，无法安全回退 pos）
 				if (type == TYPE_POS)
 					continue;
 				byte[] name = fieldMeta.name;
 				if (comma)
 					buf[pos++] = ',';
 				if (!prettyFormat) {
-					// 上界预留：write(noQuote)内部不ensure，转义每字节最多6输出；
-					// 字段名经fieldNameFilter可为任意串。对齐Map键/字符串值路径的6倍上界预留。
+					// 预留转义上界（每字节最多 6 字节输出），write 内部不再 ensure
 					ensure(name.length * 6 + 3); // "xxxxxx":
 					write(name, noQuote && !needQuoteKey(name));
 					buf[pos++] = ':';
@@ -1231,12 +1212,7 @@ public final class JsonWriter {
 		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1));
 	}
 
-	// NO_QUOTE_KEY 模式下键的强制加引号守卫：空串或含任一终止/歧义字符
-	// （≤0x20、':'、','、'}'、']'、'"'、'\''、'\\'、'/'）时必须加引号——写侧 ESCAPE 表
-	// 不转义空格/逗号/花括号/斜杠，读侧 parseStringNoQuot 在 ≤0x20 或 ':' 处截断、
-	// parseKeyHashNoQuot 在 '/' 处提前返回（为注释让路），裸写这些字符的键会产出
-	// 不可解析 JSON 且往返静默损坏。Map 的 String 键与 bean 字段名（fieldNameFilter
-	// 是 public BiFunction，可产出任意串）两条路径共用本守卫。
+	// NO_QUOTE_KEY 模式下，空串或含终止/歧义字符的键必须加引号，避免读侧截断或误判注释。
 	private static boolean needQuoteKey(int c) {
 		return c <= ' ' || c == ':' || c == ',' || c == '}' || c == ']' || c == '"' || c == '\'' || c == '\\' || c == '/';
 	}

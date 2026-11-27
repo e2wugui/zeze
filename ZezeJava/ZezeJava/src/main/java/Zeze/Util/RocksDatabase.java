@@ -22,7 +22,7 @@ import org.jspecify.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 import org.rocksdb.*;
 
-// RocksDB 封装：列族 Table 管理、Batch/Batch2 批量写、备份恢复与 close-safe 停机排空
+/** RocksDB 封装：列族 Table 管理、Batch/Batch2 批量写、备份恢复与 close-safe 停机排空。 */
 public class RocksDatabase extends ReentrantLock implements Closeable {
 	static {
 		RocksDB.loadLibrary();
@@ -35,12 +35,12 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	private static final Options commonOptions = new Options()
 		.setCreateIfMissing(true)
 		.setTableFormatConfig(tableCfg)
-		.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
-		.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
+		.setDbWriteBufferSize(dbBuffer) // 全部列族共享的写缓冲总字节数
+		.setKeepLogFileNum(5); // 保留的历史日志文件数量
 	private static final DBOptions commonDbOptions = new DBOptions()
 		.setCreateIfMissing(true)
-		.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
-		.setKeepLogFileNum(5) // reserve "LOG.old.*" file count
+		.setDbWriteBufferSize(dbBuffer) // 全部列族共享的写缓冲总字节数
+		.setKeepLogFileNum(5) // 保留的历史日志文件数量
 		.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
 	private static final ColumnFamilyOptions commonCfOptions = new ColumnFamilyOptions()
 		.setTableFormatConfig(tableCfg);
@@ -48,11 +48,10 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
 	private static final TransactionDBOptions transactionDbOptions = new TransactionDBOptions();
-	/** close-safe 门：close 安全契约在资源层实现（见 {@link #close()} 的契约说明）。 */
+	/** 关闭状态标记，供读写门控与停机排空协同（详见 {@link #close()}）。 */
 	private volatile boolean closing = false;
 	private final java.util.concurrent.atomic.LongAdder inflightOps = new java.util.concurrent.atomic.LongAdder();
-	// 仅登记尚未关闭的迭代器；RegisteredIterator 在 native close 完成后注销，
-	// 避免长寿命数据库永久保留每次扫描的已关闭包装对象。
+	// 仅登记尚未关闭的迭代器，在 native close 完成后注销
 	private final java.util.Set<RocksIterator> openIterators = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	private static final long CLOSE_DRAIN_BUDGET_MS = Long.getLong("rocksdb.closeDrainBudgetMs", 30_000);
 
@@ -129,10 +128,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		return syncWriteOptions;
 	}
 
-	/**
-	 * Accepts an invalid iterator as EOF only when its status is successful.
-	 * Status failures propagate through Task.forceThrow, including from count/walk APIs without checked exceptions.
-	 */
+	/** 仅当迭代器失效且 status 正常时视作 EOF；若 status 异常则通过 Task.forceThrow 抛出。 */
 	public static boolean isValidOrThrow(RocksIteratorInterface iterator) {
 		if (iterator.isValid())
 			return true;
@@ -157,8 +153,6 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 
 	private final ConcurrentHashMap<String, Table> tableMap = new ConcurrentHashMap<>();
 	private @Nullable Map<String, Table> tableMapView;
-	// 急切初始化（非懒）：borrowBatch 建池与 Batch.close 归还都无需 null 防护，
-	// 一个 ArrayList 的分配不值得三处 @Nullable。
 	private final ArrayList<Batch> batchPool = new ArrayList<>();
 
 	public RocksDatabase(String homePath) throws RocksDBException {
@@ -239,8 +233,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			try {
 				var rocksDb = realOpen(dbType, options, path, cfds, cfhs);
 				if (cfds.size() != cfhs.size()) {
-					// 句柄数不匹配（重试污染等）：销毁已创建句柄并关库后再抛，
-					// 否则成功打开的db与cfhs全部泄漏且调用方无引用可回收。
+					// 句柄数不匹配时先释放已创建句柄与库实例再抛出，防止泄漏
 					int cfhCount = cfhs.size();
 					for (var cfh : cfhs) {
 						try {
@@ -254,8 +247,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				}
 				return rocksDb;
 			} catch (RocksDBException e) {
-				// 失败尝试可能已创建部分句柄：销毁并清空后重试，避免句柄累积
-				// 并污染下一次尝试的cfhs。
+				// 释放失败尝试已创建的句柄并清空，避免污染下次重试
 				for (var cfh : cfhs) {
 					try {
 						cfh.close();
@@ -387,9 +379,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			if (n > 0) {
 				var cfhs = rocksDb.createColumnFamilies(commonCfOptions, newNames);
 				if (cfhs.size() != newNames.size()) {
-					// 句柄数不匹配（JNI重试/并发污染）：抛出前关闭已创建的
-					// native列族句柄，否则异常上抛后调用方无引用可回收，句柄泄漏累积
-					// 侵蚀进程句柄与RocksDB内部表。
+					// 句柄数不匹配时先释放已创建的列族句柄再抛出，防止泄漏
 					int cfhCount = cfhs.size();
 					for (var cfh : cfhs) {
 						try {
@@ -413,8 +403,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 	}
 
-	/** 在飞使用检查（终结原语的排空依据，mq-02）：返回仍持有该列族资源的在飞使用计数，
-	 * 0=可销毁。实现必须无锁无阻塞（排空期间被轮询调用，取任何使用方锁会与排空等待互阻）。 */
+	/** 在飞使用检查：返回仍持有该列族资源的在飞计数（0 表示可销毁），实现须无锁无阻塞。 */
 	@FunctionalInterface
 	public interface InFlight {
 		int inFlight();
@@ -425,23 +414,11 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	/**
-	 * 单一终结原语（mq-02，模式D收口）：列族销毁的唯一出口，三段协议——
-	 * ①原子除名+置 destroyPending（线性化点）；
-	 * ②锁外等待使用方在飞检查归零（无检查者立即通过）；
-	 * ③归零后 dropColumnFamily+destroyColumnFamilyHandle 释放。
-	 * <p>
-	 * 使用方租约契约（mq 的 fill 批量迭代）：进入（计数）严格先于查 destroyPending，本原语的
-	 * 置标记严格先于读计数——两个顺序都不能反，否则存在"查过标记-计数前"窗口让排空误判
-	 * 无在飞（与 {@link #enterOp}/{@link #close} 的双检互为同构）。置位后既有租约最迟在下一个
-	 * 批量边界释放，等待有限收敛，不设上限：单列族销毁与停机不同，没有"必须放行"的包络
-	 * （mq-02 正是排空超预算放行后 dropTable 与逃逸 fill 迭代器构成 native use-after-free）。
-	 * <p>
-	 * {@link #close()}（整库版同一协议：置标记→库级排空→释放）与 {@link #dropTable} 都收口
-	 * 到本形态，消除"一个出口有防护一个没有"的不对称。排空被中断时放弃本次 drop 并回滚
-	 * 除名/标记后上抛（正常返回 ⟺ 已 drop 或本就不存在；列族与句柄原样保留，由调用方语义
-	 * 重试——mq 删除链由 Master 对账重发自愈），不放行裸 drop。
+	 * 列族销毁统一入口：除名并置 {@code destroyPending} -> 锁外等待在飞检查归零 -> 删除列族并释放句柄。
+	 * 长期租约使用方须遵循“先计数后查标记”与本方法的“先置标记后读计数”配对。
+	 * 排空被中断时回滚除名与标记并抛出异常，保证正常返回即已完成销毁（或本就不存在）。
 	 *
-	 * @param inFlight 使用方注册的在飞检查；null=无长期租约使用方（行为与旧 dropTable 一致）
+	 * @param inFlight 使用方提供的在飞检查；null 表示无长期租约使用方
 	 */
 	public void destroyColumnFamily(String name, @Nullable InFlight inFlight) throws RocksDBException {
 		enterOp();
@@ -459,11 +436,11 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			table = tableMap.remove(name);
 			if (table == null)
 				return;
-			table.destroyPending = true; // ①线性化点：先于②的计数读，晚于使用方的进入计数
+			table.destroyPending = true; // 先置标记再读在飞计数，与使用方“先计数后查标记”对称
 		} finally {
 			unlock();
 		}
-		while (null != inFlight && inFlight.inFlight() != 0) { // ②锁外排空：在飞释放不依赖本锁
+		while (null != inFlight && inFlight.inFlight() != 0) { // 锁外排空，避免阻塞在飞释放路径
 			try {
 				//noinspection BusyWait
 				Thread.sleep(1);
@@ -472,25 +449,19 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				logger.warn("destroyColumnFamily drain interrupted, drop aborted and rollback. table={}", name);
 				lock();
 				try {
-					table.destroyPending = false; // 回滚：列族/句柄原样保留
-					// putIfAbsent 的竞态面不可达：列族仍注册期间 createColumnFamily(同名) 必失败，
-					// 除名窗口内不可能有新 Table 入表，本值必胜。
+					table.destroyPending = false; // 中断回滚，原样保留列族与句柄
 					tableMap.putIfAbsent(name, table);
 				} finally {
 					unlock();
 				}
-				// 上抛而非放行：drop 未执行，调用方按失败处置（保留文件/回报 Master 重试）；
-				// 正常返回契约=已 drop（或本就不存在）。
 				throw new IllegalStateException("destroyColumnFamily drain interrupted: " + name);
 			}
 		}
-		var cfh = table.getCfHandle(); // ③释放
+		var cfh = table.getCfHandle();
 		try {
 			rocksDb.dropColumnFamily(cfh);
 		} finally {
-			// drop 失败也必须关闭 native 列族句柄（对齐 open()/getOrAddTables 的既有模式）：
-			// remove 已把 table 除名，异常上抛后调用方无引用可回收——列族未删不妨碍事后按重启
-			// 重建句柄，句柄泄漏则不可自愈。销毁失败自身吞掉，不掩盖原始 drop 异常。
+			// 已从 tableMap 除名，即使 drop 失败也须销毁 native 句柄防泄漏
 			try {
 				rocksDb.destroyColumnFamilyHandle(cfh);
 			} catch (Throwable ignored) {
@@ -549,10 +520,10 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				RocksDatabase.this.lock();
 				try {
 					if (closing) {
-						super.close(); // 终结后迟到归还不能重新把native句柄放进已排空的池。
+						super.close(); // 关闭后不再回池，直接销毁 native 句柄
 						return;
 					}
-					if (!batchPool.contains(this)) { // 防止double-close导致同一Batch重复入池（承重判断，勿删）
+					if (!batchPool.contains(this)) { // 防止重复 close 导致同一 Batch 多次入池
 						clear();
 						batchPool.add(this);
 					}
@@ -590,10 +561,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	/**
-	 * 进入JNI数据通路（Table/Batch/Batch2/迭代器创建的统一门）：
-	 * 先计数后查旗标——与 close 的"先置旗标后读计数"互为双检，两个顺序都不能反，
-	 * 否则存在"查过旗标-计数前"窗口让close误判无在飞。
-	 * 迟到者（close已置位）抛 {@link IllegalStateException}（可捕获的Java异常，非JNI崩溃）。
+	 * 进入 JNI 数据通路的统一门控：先递增计数再检查 closing（与 close 的先置位后读计数对称），
+	 * 关闭后迟到调用抛出 {@link IllegalStateException}。
 	 */
 	void enterOp() {
 		inflightOps.increment();
@@ -608,26 +577,14 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	/**
-	 * 关闭契约（close-safe，不依赖"调用方先静默"）：
-	 * 1. close 后迟到的数据通路调用（Table.get/put/delete/deleteRange/事务写/Batch/
-	 *    Batch2/迭代器创建）立即抛 {@link IllegalStateException}——可捕获，非JNI崩溃。
-	 * 2. close 与在飞调用并发：先置 closing 并置全部表 destroyPending（与
-	 *    {@link #destroyColumnFamily} 同一终结原语的①置标记段——使用方租约（mq fill 的批量
-	 *    迭代检查点）在下一个批量边界放弃，排空窗口从"整个 fill 批次"收窄到"当前批量边界"），
-	 *    锁外有界排空（默认30s，系统属性 rocksdb.closeDrainBudgetMs 可调）等待在飞计数归零
-	 *    +登记迭代器全部完成 native close 并注销，然后才持锁释放句柄。
-	 *    锁外等待的原因：在飞操作可能需要管理锁（borrowBatch等）才能退出，持锁等待会死锁。
-	 * 3. 残余ε（与全仓有界排空口径一致）：排空超预算则告警后继续释放，此时仍在飞的
-	 *    调用/未关闭迭代器的后续操作有崩溃风险；泄漏未 close 的迭代器会使每次 close
-	 *    等满预算——迭代器须 try-with-resources（仓内纪律）。
-	 * 各模块自建的停机闸（stopped/入口拒绝/锁内双检）是语义清洁层（迟到提交
-	 * 以 Closed 码反馈客户端而非半处理），非 native 安全的必要条件。
+	 * close-safe 关闭：置 closing 与全部表 destroyPending 拒绝新调用并促使长租约尽快放弃，
+	 * 在锁外有界排空在飞操作与已登记迭代器（默认 30s，由 rocksdb.closeDrainBudgetMs 配置），
+	 * 最后持锁释放批量池、列族句柄与库句柄；若排空超时则告警后继续释放。
 	 */
 	@Override
 	public void close() {
 		closing = true;
-		// 整库终结的①置标记段（单一终结原语的整库版）：使用方在批量边界放弃租约，
-		// 加速②排空收敛。标记只被租约检查点消费（mq fill），其他使用方不受影响。
+		// 通知全部表的租约检查点尽快放弃，加速排空
 		lock();
 		try {
 			for (var table : tableMap.values())
@@ -655,9 +612,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			for (var b : batchPool)
 				b.batch.close();
 			batchPool.clear();
-			// 释放Table持有的列族句柄：tableMap.clear()直接丢弃会漏掉
-			// 堆外句柄（依赖GC滞后清理且不保证）。destroy须在db.close()前，
-			// 与dropTable的释放模式收口；只释放句柄不drop数据（close不删列族）。
+			// 在 db.close() 前逐个释放列族句柄（不删数据），防止堆外句柄泄漏
 			for (var table : tableMap.values()) {
 				try {
 					rocksDb.destroyColumnFamilyHandle(table.getCfHandle());
@@ -683,13 +638,10 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			 var backupOptions = new BackupEngineOptions(backupDir);
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
 			backup.createNewBackup(src, true);
-			// BackupEngine 按增量链追加，从不删除旧备份会随数据 churn 无界
-			// 增长（调用方 Rocks.snapshot/Dbh2StateMachine 都会把整个 backupDir 打成
-			// 快照 zip，多代备份没有消费方）；只保留最新一份。
+			// 仅保留最新一份备份，避免增量备份链无界增长
 			backup.purgeOldBackups(1);
 		} finally {
-			// realOpen产生的列族句柄随用随销：
-			// src关闭不会释放cfhs，泄漏量级为列族数。
+			// src.close() 不会自动释放列族句柄，需显式关闭
 			for (var cfh : cfhs) {
 				try {
 					cfh.close();
@@ -752,10 +704,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		private final String name;
 		private final ColumnFamilyHandle cfHandle;
 		private final int id;
-		// 终结标记（mq-02）：destroyColumnFamily 的①段置位（close 置全部表）。使用方租约
-		// 检查点（mq fill 的批量迭代前）读取——置位即放弃本轮，不再获取该列族迭代器。
-		// 只约束"长期租约"使用方；短生命周期 try-with-resources 使用方由 close 的
-		// inflightOps/openIterators 排空兜底。
+		// 终结标记：销毁列族或关库时置位，供长期租约检查点提前放弃
 		private volatile boolean destroyPending;
 
 		public Table(String name, ColumnFamilyHandle cfHandle) {
@@ -764,7 +713,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			id = cfHandle.getID();
 		}
 
-		/** 终结标记（mq-02）：true=该列族已在终结原语的销毁路径上，租约检查点应立即放弃。 */
+		/** 是否处于销毁/关库路径上，供长期租约检查点提前放弃。 */
 		public boolean isDestroyPending() {
 			return destroyPending;
 		}
@@ -1076,7 +1025,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 
 		public void clear() throws RocksDBException {
 			try (var it = iterator()) {
-				// 新建的迭代器未定位，isValid()恒false，不seek则deleteToEnd什么都不删（clear退化为no-op）。
+				// 新建迭代器未定位，须先 seekToFirst 再删至末尾
 				it.seekToFirst();
 				deleteToEnd(it);
 			}
@@ -1206,8 +1155,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 	}
 
-	// 在JVM堆内收集批量操作,只在提交时调用native方法,减少native调用的次数,批量多时性能会提高一些,但会多占用一些JVM堆
-	// 这里不提供put和delete方法,只能在Table内调用
+	/** 在 JVM 堆内序列化批量操作，提交时一次性构造 WriteBatch 写入以减少 JNI 调用；通过 Table 写入。 */
 	public class Batch2 {
 		private final ByteBuffer bb;
 		private int count;

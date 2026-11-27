@@ -4,10 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 
 /**
- * RocksRaft 下 SortedMap 的 Log 基类。
- * 与 LogMap 的唯一区别是 value 类型为 {@link org.pcollections.PSortedMap}。
- * 由于 pcollections 的 PSortedMap 要求 K 实现 Comparable，
- * 这里也把泛型约束 K extends Comparable&lt;K&gt; 加上。
+ * SortedMap 容器日志基类：在 LogBean 之上携带容器的当前值（{@link org.pcollections.PSortedMap}）。
  */
 public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogBean {
 	private org.pcollections.@Nullable PSortedMap<K, V> value;

@@ -20,19 +20,9 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
- * 当前包含以下兼容检测。
- * a) 对于每个 Variable.Id，Type不能修改。
- * b) 不能复用已经删除的 Variable.Id。
- * 但是允许"反悔"，也就是说可以重新使用已经删除的Variable.Id时，只要Type和原来一样，就允许。
- * 这是为了处理多人使用同一个数据库进行开发时的冲突（具体不解释了）。
- * c) beankey 被应用于map.Key或set.Value或table.Key以后就不能再删除变量了。
- * 当作key以后，如果删除变量，beankey.encode() 就可能不再唯一。
- * <p>
- * 2 通过查询类型信息，从数据转换到具体实例。合服可能需要。
- * 如果是通用合并的insert，应该在二进制接口上操作（目前还没有）。
- * 如果合并时需要处理冲突，此时应用是知道具体类型的。
- * 所以这个功能暂时先不提供了。
+ * 数据库 Schema 定义与兼容性校验器：在启动期校验当前代码定义与数据库已有结构的兼容性，
+ * 包括变量类型不可变更、已删除 Variable.Id 不可异型复用（允许同型恢复），以及用作键的 BeanKey 不可删减变量；
+ * 同时支持生成关系表列定义与变更差异。
  */
 public class Schemas implements Serializable {
 	private static final Logger logger = LogManager.getLogger(Schemas.class);
@@ -464,8 +454,7 @@ public class Schemas implements Serializable {
 		@Override
 		public boolean isCompatible(String parent, @Nullable Type other, Context context,
 									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
-			// 去重只认本次比较的Context（以previous/current对为键）：实例级缓存会跨比较保留，
-			// 失败的检查也置位，重试（调用方重试/CAS重读）直接按已检查通过放行。
+			// 按本次比较上下文去重，避免失败结果跨次污染重试。
 			if (other == null) {
 				logger.error("other is null. parent={}, bean={}", parent, getName());
 				return false;
@@ -710,10 +699,7 @@ public class Schemas implements Serializable {
 			var comparator = new ColumnComparator();
 			columns.sort(comparator);
 
-			// 列名查重（fail-fast）：'_'拼接路径下不同变量路径可能生成重复列名（如顶层int a_b与
-			// Bean a{int b}），原先要到关系库执行CREATE TABLE/ADD COLUMN报Duplicate column才失败，
-			// 且无法定位是哪两条变量路径撞名。不改分隔符——列名格式变更会使既有部署的previous/
-			// current列名全部失配，diff判为全表remove+add，触发大规模伪ALTER，风险远大于收益。
+			// 提前检测 '_' 拼接路径导致的列名冲突；不改分隔符以兼容既有部署的物理列名。
 			for (var i = 1; i < columns.size(); i++) {
 				for (var j = 0; j < i; j++) {
 					if (columns.get(i).name.equals(columns.get(j).name))
@@ -742,7 +728,7 @@ public class Schemas implements Serializable {
 		appVersion = version;
 	}
 
-	/** Checks compatibility and backs up versioned tables, before replacement tables are opened. */
+	/** 检查兼容性并在新表打开前备份版本号变更的表。 */
 	public void checkCompatible(@Nullable Schemas other, Application app) throws Exception {
 		var renames = new ArrayList<KVNotNull<Table, Table>>();
 		var context = prepareCompatibility(other, app, renames);
@@ -756,7 +742,7 @@ public class Schemas implements Serializable {
 		context.update();
 	}
 
-	// Publication may validate repeatedly after a CAS conflict, but the replacement tables are already open.
+	// CAS 冲突后发布阶段可能重检兼容性，此时替换表已打开，不再执行重命名备份。
 	void checkCompatibleForPublish(@Nullable Schemas other,
 								   Application app) {
 		prepareCompatibility(other, app, null).update();
@@ -1041,8 +1027,7 @@ public class Schemas implements Serializable {
 		var relational = new RelationalTable(Objects.requireNonNull(cur.name));
 		relational.currentKeyColumns = cur.buildRelationalColumns(relational.current, mapping);
 
-		// build other. prepare to alter.
-		// is null if new table
+		// 若存在旧表定义，则构建旧列并计算表结构变更差异。
 		logger.info("current.columns={}", relational.current);
 		if (other != null) {
 			relational.previousKeyColumns = other.buildRelationalColumns(relational.previous, mapping);

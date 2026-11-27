@@ -5,7 +5,9 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 
-/** Keeps UTF-16 characters intact across template writes, including flush boundaries. */
+/**
+ * 模板输出 UTF-8 编码基类：跨多次 write/flush 保持 UTF-16 代理对完整。
+ */
 abstract class HttpExchangeUtf8Writer extends Writer {
 	protected boolean closed;
 	private final OutputStreamWriter encoder = new OutputStreamWriter(new OutputStream() {
@@ -27,7 +29,7 @@ abstract class HttpExchangeUtf8Writer extends Writer {
 		if (closed)
 			throw new IOException("Writer closed");
 		encoder.write(chars, off, len);
-		// Publish complete characters promptly; flush retains an incomplete surrogate pair.
+		// 及时刷出已完整的字符，flush 会保留未成对的高代理等待下次写入。
 		encoder.flush();
 	}
 

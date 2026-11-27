@@ -311,7 +311,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public void EnsureWrite(int size) {
 		int newSize = WriteIndex + size;
-		if ((size | newSize) < 0 || newSize > Bytes.length) // 溢出回绕为负或size为负需落入toPower2的无符号上限检查抛ISE，静默跳过会让后续写抛无上下文的AIOOBE
+		if ((size | newSize) < 0 || newSize > Bytes.length) // 负 size 或加法溢出交由 toPower2 统一抛上限异常
 			growCapacity(size < 0 ? size : newSize);
 	}
 
@@ -323,13 +323,13 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public void ensureWriteNoCompact(int size) {
 		int newSize = WriteIndex + size;
-		if ((size | newSize) < 0 || newSize > Bytes.length) // 同EnsureWrite：拦截溢出回绕/负size，统一由toPower2抛上限ISE
+		if ((size | newSize) < 0 || newSize > Bytes.length) // 同 EnsureWrite，拦截负 size 与溢出回绕
 			growCapacityNoCompact(size < 0 ? size : newSize);
 	}
 
 	@Override
 	public void ensureRead(int size) {
-		// 溢出安全：ReadIndex+size会回绕为负(或size本身为负，如Skip(-1))，使旧检查不成立而静默放行
+		// 溢出安全校验：防止 ReadIndex + size 回绕或 size 为负。
 		if (size < 0 || size > WriteIndex - ReadIndex)
 			throwEnsureReadException(size);
 	}
@@ -980,7 +980,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			} else
 				bn += (c < 0x800 ? 2 : 3);
 		}
-		if (bn >= 1L << 31) // 与EnsureWrite/ReadString的溢出拦截策略一致：静默丢数据不如显式失败
+		if (bn >= 1L << 31)
 			throw new IllegalStateException("utf8Size overflow: " + bn + " (>= 2^31), string too large");
 		return (int)bn;
 	}
@@ -1014,8 +1014,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 							buf[wi++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
 							buf[wi++] = (byte)(0x80 + ((c >> 12) & 0x3f));
 						} else {
-							if ((c & 0xf800) == 0xd800) // 未配对代理(孤立高/低代理)无法编码为合法UTF-8，原样按3字节写出会产出CESU-8式的非法字节流
-								c = 0xfffd; // 替换为U+FFFD(恰3字节，与utf8Size记数一致)：输出永远是合法UTF-8且写读对称
+							if ((c & 0xf800) == 0xd800) // 孤立代理替换为 U+FFFD（3 字节，与 utf8Size 一致），保证输出合法 UTF-8
+								c = 0xfffd;
 							buf[wi++] = (byte)(0xe0 + (c >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
 						}
 						buf[wi++] = (byte)(0x80 + ((c >> 6) & 0x3f));
@@ -1127,9 +1127,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return false;
 	}
 
-	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
-	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
-	 * 会落错桶静默miss。 */
+	/** 与裸字节数组按内容比较（equals 不接受 byte[] 以维持 equals/hashCode 契约）。 */
 	public boolean contentEquals(byte [] other) {
 		return Arrays.equals(Bytes, ReadIndex, WriteIndex, other, 0, other.length);
 	}
@@ -1161,8 +1159,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return hash;
 	}
 
-	/** FNV：nio形态统一入口——heap走数组版本；direct无backing array，
-	 * duplicate遍历（不动position/limit）。算法仅此一份。 */
+	/** FNV 哈希统一入口：heap 缓冲走数组路径，direct 缓冲通过只读副本遍历。 */
 	public static int calc_hashnr(java.nio.ByteBuffer bb) {
 		if (bb.hasArray())
 			return calc_hashnr(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
@@ -1203,13 +1200,13 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return bb;
 	}
 
-	/** Decodes an omitted generated Bean or BeanKey. The decoder must treat the input bytes as read-only. */
+	/** 解码缺省的生成 Bean 或 BeanKey，解码器不得修改输入字节。 */
 	public static <T extends Serializable> T decodeEmptyBean(T bean) {
 		bean.decode(Wrap(EMPTY_BEAN_BODY));
 		return bean;
 	}
 
-	/** Reads an omitted key by passing an empty Bean body to its factory. */
+	/** 通过向工厂传入空 Bean 体读取缺省的 BeanKey。 */
 	public static <T extends Encodable> T readEmptyBean(Function<IByteBuffer, T> reader) {
 		return reader.apply(Wrap(EMPTY_BEAN_BODY));
 	}
@@ -1222,7 +1219,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public int WriteTag(int lastVarId, int varId, int type) {
 		int deltaId = varId - lastVarId;
-		if (deltaId <= 0) // 负delta降序id会写出高位为1的伪装tag字节；deltaId==0同样落入0x00-0x0f控制字节区
+		if (deltaId <= 0) // deltaId 必须为正，避免回绕或落入控制字节区
 			throw new IllegalStateException("WriteTag: varId " + varId + " <= lastVarId " + lastVarId);
 		if (deltaId < 0xf)
 			WriteByte((deltaId << TAG_SHIFT) + type);

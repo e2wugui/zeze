@@ -33,7 +33,6 @@ final class InstallSnapshot extends Rpc<BInstallSnapshotArgument, BInstallSnapsh
 	public static final int ResultCodeOldInstall = 2;
 	public static final int ResultCodeNewOffset = 3;
 	public static final int ResultCodeSnapshottingConflict = 4;
-	// 同边界安装正在收尾（done 已处理、finalizing 条目未摘除）时对新块的拒绝码；
-	// leader 侧与其他非 Success 码相同：SendSnapshotting.end，下个心跳重试。
+	// 同边界安装正在收尾时拒绝新块，leader 侧按失败收口并在下次心跳重试。
 	public static final int ResultCodeFinalizingConflict = 5;
 }

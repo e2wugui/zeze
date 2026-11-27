@@ -71,8 +71,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		return null;
 	}
 
-	// 非阻塞channel.send返回0表示数据报未发出（发送缓冲满时被丢），必须如实传播给调用方：
-	// 谎报成功会让上层Rpc白等超时、AsyncSocket的发送计数失真。返回true=已交给内核发出。
+	/** 非阻塞发送：返回 true 表示内核已接受数据报，false 表示发送缓冲满未发出。 */
 	public boolean sendTo(SocketAddress peer, java.nio.ByteBuffer bb) throws IOException {
 		return datagramChannel.send(bb, peer) > 0;
 	}
@@ -91,10 +90,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		return sendTo(peer, java.nio.ByteBuffer.wrap(bb.Bytes, 0, size));
 	}
 
-	// close后拒绝新建（close在锁内置空selectionKey，双侧同锁封死竞态——
-	// 否则快照后加入的会话不在任何关闭路径上：OnSocketClose永不触发、isClosed恒false）。
-	// 抛ISE对齐Service.OnSocketAccept判例；null保留给tokenId撞号语义。
-	// 仅在持有本锁的临界区内调用。
+	// 须在锁内调用：与 close() 互斥，已关闭时拒绝新建会话。
 	private void checkNotClosed() {
 		if (selectionKey == null)
 			throw new IllegalStateException("DatagramSocket closed: " + this);
@@ -148,7 +144,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 			if (source != null) {
 				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position());
 				if (bb.WriteIndex < 8)
-					return; // 短包连tokenId都不完整，丢弃（不读共享缓冲区陈旧字节）。会话级最小包长16/32由onProcessDatagram按是否加密检查
+					return; // 不足 tokenId 长度直接丢弃，避免读到共享缓冲残留字节
 				var ssid = ByteBuffer.ToLong(bb.Bytes, 0);
 				var ss = tokens.get(ssid);
 				if (null != ss)
@@ -181,8 +177,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		} catch (IOException e) {
 			logger.error("close channel({}) exception:", this, e);
 		}
-		// 级联关闭所有会话：清空tokens表并为每会话触发一次OnSocketClose
-		// （快照后关闭，避免回调过程中并发修改迭代；exactly-once由session.close的closed保证）
+		// 先快照再逐个关闭，避免回调修改 tokens 集合。
 		var sessions = new ArrayList<DatagramSession>();
 		for (DatagramSession token : tokens)
 			sessions.add(token);

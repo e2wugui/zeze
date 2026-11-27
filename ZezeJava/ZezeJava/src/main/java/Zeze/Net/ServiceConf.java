@@ -373,7 +373,7 @@ public final class ServiceConf extends ReentrantLock {
 			}
 		}
 
-		// Publish the configuration only after all children have been validated.
+		// 所有子节点校验通过后再发布配置。
 		if (name.isBlank())
 			conf.setDefaultServiceConf(this);
 		else if (conf.getServiceConfMap().putIfAbsent(name, this) != null)

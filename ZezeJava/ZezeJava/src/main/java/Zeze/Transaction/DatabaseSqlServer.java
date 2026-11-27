@@ -23,9 +23,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
-	// 存储过程 _ZezeSaveDataWithSameVersion_ 有 4 个参数（@id,@data,@version,@ReturnValue），
-	// 调用串占位符必须与之相同：registerOutParameter(4)/getInt(4) 操作第 4 个参数（@ReturnValue），
-	// 少一个占位符会导致参数索引越界（mssql-jdbc: "The index 4 is out of range"），带 schemas 启动即失败。
 	private static final String saveDataWithSameVersionCall = "{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?, ?)}";
 
 	public DatabaseSqlServer(@Nullable Application zeze, DatabaseConf conf) {
@@ -40,9 +37,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 	@Override
 	public void renameTable(String oldName, String newName) throws Exception {
-		// 幂等重跑：Schemas.checkCompatible的rename序列非原子——部分成功后中断（或renames全部
-		// 成功但saveDataWithSameVersion未落库）时重启会对同一对名字再次rename，此时源已不存在、
-		// 目标已存在，视为上次已完成，no-op跳过（sp_rename对两者都不报错，必须显式判定）。
+		// 支持幂等重跑：源不存在而目标已存在视为已完成，均不存在则报错。
 		try (var conn = dataSource.getConnection()) {
 			if (!tableExists(conn, oldName)) {
 				if (tableExists(conn, newName))
@@ -56,7 +51,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 	}
 
-	// renameTable幂等重跑的判定：OBJECT_ID按当前库解析对象名。
 	private boolean tableExists(Connection conn, String name) throws SQLException {
 		try (var ps = conn.prepareStatement("SELECT OBJECT_ID(?)")) {
 			ps.setString(1, name);
@@ -66,11 +60,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 	}
 
-	/**
-	 * 运维手动清理存储过程的入口（对齐 DatabaseMySql/DatabasePostgreSQL 同名方法）。
-	 * SqlServer 过程由启动时 Create or Alter 自动覆盖（无"存量不升级"问题），
-	 * 本方法仅供运维显式清场。SqlServer 的过程对象即 PROCEDURE，语法与MySQL相同。
-	 */
+	/** 运维手动清理 Operates 存储过程（正常启动由 Create or Alter 自动更新）。 */
 	public void dropOperatesProcedures() {
 		String[] drops = {
 				"DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_",
@@ -100,15 +90,12 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			= sqlserverObserverCreator.labelValues("replace");
 
 	private final class OperatesSqlServer implements Operates {
-		// 全局启动锁的租期，语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
-		// 持锁进程崩溃后残留的锁最多存活一个租期，之后轮询的实例自动接管。
+		// 全局启动锁租期（秒），到期自动可接管。
 		private static final int LOCK_LEASE_SECONDS = 600;
 
 		@Override
 		public boolean tryLock() {
-			// 条件写式互斥：锁行version复用为租期到期时间戳，0=空闲，>0=持锁至该时刻
-			// （DB服务器时钟UTC，单一时间来源），到期即可接管。与MySql/PG版同款，
-			// 误过期取舍同Redis版（不做续期与持有者校验）。
+			// 锁行 version 存租期到期 UTC 秒数（0=空闲，>0=持锁至该时刻），到期即可接管。
 			var createRecordSql = """
 					BEGIN TRY
 					    insert into _ZezeDataWithVersion_ values(?, ?, 0)
@@ -154,8 +141,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public void setInUse(int localId, String global) {
-			// 并发双实例首启：insert全局行与count(*)扫描互等成环（1205死锁）——对齐MySQL/PG
-			// 重试64次（SP整体事务，重试安全）。
+			// 并发首启可能触发 1205 死锁，有限次重试。
 			for (int i = 0; i < 64; ++i) {
 				try (var connection = dataSource.getConnection()) {
 					connection.setAutoCommit(true);
@@ -248,10 +234,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return switch (cmd.getInt(4)) {
 						case 0 -> KV.create(cmd.getLong(3), true);
 						case 2 -> KV.create(0L, false);
-						// 3=版本条件的UPDATE未命中行：并发写者已抢先，映射false走CAS重读重试
+						// 3=并发更新版本未命中，4=并发首插重复键，均返回 false 供上层 CAS 重试
 						case 3 -> KV.create(0L, false);
-						// 4=首插路径撞并发重复键（@ReturnValue=4，他进程抢先认领）：败者回读胜者
-						// 走CAS重试（对齐Tikv/MongoDb契约），不得落default抛ISE中断启动
 						case 4 -> KV.create(0L, false);
 						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error.");
 					};
@@ -273,8 +257,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 
-				// 插入路径：并发插入撞重复键（2627主键/2601唯一索引）按MySQL版INSERT IGNORE的
-				// 失败语义映射return 4，其他错误重抛。
+				// 并发首插撞重复键（2627/2601）返回 4，其他错误重抛。
 				String ProcSaveDataWithSameVersion = """
 						Create or Alter procedure _ZezeSaveDataWithSameVersion_
 						                        @id VARBINARY(Max),
@@ -338,10 +321,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 				// zeze_global 使用 _ZezeDataWithVersion_ 存储。
 
-				// localid插入并发撞重复键（2627/2601）映射return 3。
-				// global记录不存在则插入（最后一个实例退出时由_ZezeClearInUse_删除）；并发首启后到者
-				// 撞重复键（2627/2601）重读比较，相同继续（对齐MySQL版INSERT IGNORE），不同return 4；
-				// 对方必已提交（未提交的插入持键锁会先阻塞本方），重读必见已提交值。
+				// 并发插入 localid 撞重复键返回 3；并发插入 global 行撞重复键则重读比对（不一致返回 4）。
 				String ProcSetInUse = """
 						Create or Alter procedure _ZezeSetInUse_
 						                        @localid int,

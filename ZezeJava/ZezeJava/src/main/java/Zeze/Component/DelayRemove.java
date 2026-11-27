@@ -50,26 +50,24 @@ public class DelayRemove extends AbstractDelayRemove {
 		if (null != timer)
 			return;
 
-		// start timer to gc. onTimer 采用"先peekNode检查头节点、到期才pollNode出队"的策略。
-		// 根据配置的Timer的时间范围，按分钟精度随机出每天的开始时间，最后计算延迟，然后按24小时间隔执行。
+		// 根据配置时间窗随机生成每日首次执行时间，此后按 24 小时间隔执行 GC
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, zeze.getConfig().getDelayRemoveHourStart());
 		firstTime.set(Calendar.MINUTE, 0);
 		firstTime.set(Calendar.SECOND, 0);
 		firstTime.set(Calendar.MILLISECOND, 0);
 
-		// rand to end
 		var minutes = 60 * (zeze.getConfig().getDelayRemoveHourEnd() - zeze.getConfig().getDelayRemoveHourStart());
 		if (minutes <= 0)
 			minutes = 60;
 		minutes = Random.getInstance().nextInt(minutes);
 		firstTime.add(Calendar.MINUTE, minutes);
 
-		if (firstTime.before(Calendar.getInstance())) // 如果第一次的时间比当前时间早，推到明天。
-			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
+		if (firstTime.before(Calendar.getInstance()))
+			firstTime.add(Calendar.DAY_OF_MONTH, 1);
 
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
-		var period = 24 * 3600 * 1000; // 24 hours
+		var period = 24 * 3600 * 1000;
 		timer = TaskSpec.ofAction(this::onTimer).schedulePeriodNow(delay, period);
 		jobIdAutoKey = zeze.getAutoKey("__GCTableJobIdAutoKey");
 	}
@@ -87,14 +85,8 @@ public class DelayRemove extends AbstractDelayRemove {
 	}
 
 	public void addJob(String handleName, Bean state) {
-		// 生命周期契约显式化：jobIdAutoKey仅start()中赋值，装配顺序不当（start前
-		// addJob）时NPE无语义；对齐timer字段的防御习惯，入口状态检查。放在handleName检查
-		// 之前：未start是更根本的装配错误，先报它，排障信息才指向真根因。
 		if (jobIdAutoKey == null)
 			throw new IllegalStateException("DelayRemove not started. call start() before addJob().");
-		// handleName未注册时startJob的handle.process必NPE——异常被任务框架吞、
-		// tJobs行不清理，每次进程启动continueJobs重试再失败，僵尸条目与循环告警。
-		// 写持久化前显式拒绝（同上入口检查）。
 		if (!jobHandles.containsKey(handleName))
 			throw new IllegalStateException("JobHandle not registered: " + handleName);
 		var bJob = new BJob();
@@ -113,14 +105,13 @@ public class DelayRemove extends AbstractDelayRemove {
 	}
 
 	/**
-	 * set job state
+	 * 更新任务状态。
 	 *
-	 * @param jobId jobId
-	 * @param state state, null means job is done.
+	 * @param jobId 任务 ID
+	 * @param state 任务状态，为 null 表示任务已完成并移除记录
 	 */
 	public void setJobState(String jobId, @Nullable Bean state) {
 		if (null != state) {
-			// 修改数据表中的状态。
 			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
 			var bJob = jobs.getJobs().get(jobId);
 			if (bJob != null) {
@@ -138,15 +129,13 @@ public class DelayRemove extends AbstractDelayRemove {
 		jobs.getJobs().remove(jobId);
 	}
 
-	// 装载还没有完成的Job。需要在所有模块都start之后调用。
+	// 装载尚未完成的 Job，需在所有模块 start 之后调用
 	public void continueJobs() {
 		zeze.newProcedure(() -> {
 			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
 			for (var it = jobs.getJobs().entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
-				// 存量僵尸Job治理：addJob入口校验只防新增，未注册handleName的存量条目
-				// 加载后会走"startJob的NPE被任务框架吞→行不清理→每次启动重试
-				// 再失败"的死循环。装载期发现即删除Job行并告警根因，运维可见、循环终止。
+				// 清理未注册 handle 的存量僵尸 Job，避免每次重启重复失败
 				if (!jobHandles.containsKey(e.getValue().getJobHandleName())) {
 					logger.error("DelayRemove.continueJobs: JobHandle not registered, discard zombie job."
 							+ " jobId={}, handleName={}", e.getKey(), e.getValue().getJobHandleName());
@@ -183,10 +172,8 @@ public class DelayRemove extends AbstractDelayRemove {
 		return null != jobs ? jobs.getJobs().size() : 0;
 	}
 
-	// 包内可见：测试在确定位置同步驱动一轮GC（见ZezeJavaTest的TestDelayRemoveOnTimer）。
 	void onTimer() {
-		// delayRemove可能需要删除很多记录，不能在一个事务内完成全部删除。
-		// 这里按每个节点的记录的删除在一个事务中执行，节点间用不同的事务。
+		// 按队列节点分事务删除，避免单事务删除过多记录
 		var days = zeze.getConfig().getDelayRemoveDays();
 		if (days < 7)
 			days = 7; // 至少保留7天。
@@ -194,32 +181,27 @@ public class DelayRemove extends AbstractDelayRemove {
 		var removing = new OutObject<>(true);
 		while (java.util.Objects.requireNonNull(removing.value)) {
 			var rc = zeze.newProcedure(() -> {
-				var node = queue.peekNode(); // 先peek检查：未到期时节点不出队（pollNode会删行，事务提交后登记就脱离GC追踪）。
+				var node = queue.peekNode(); // 先 peek 检查到期再 pollNode，未到期不出队
 				if (node == null) {
 					removing.value = false;
 					return 0;
 				}
 
-				// 检查节点的第一个（最老的）项是否需要删除。
-				// 如果不需要，那么整个节点都不会删除，并且中断循环。
-				// 如果需要，那么整个节点都删除，即使中间有一些没有达到过期。
-				// 这是个不精确的删除过期的方法。
+				// 仅按节点首项（最老项）判定过期：未过期则整节点保留并结束，过期则整节点一并清理
 				if (!node.getValues().isEmpty()) {
 					var first = (BTableKey)node.getValues().getFirst().getValue().getBean();
 					if (diffMills > System.currentTimeMillis() - first.getEnqueueTime()) {
 						removing.value = false;
-						return 0; // 未到期：本事务无任何写，直接提交即可，节点仍留在队列里。
+						return 0;
 					}
 				}
 
-				queue.pollNode(); // 确认到期后才真正出队删除。同一事务内快照一致，peek看到的头节点即本次删除的节点。
+				queue.pollNode();
 
-				// node.getValues().isEmpty，这一项将保持0，循环后设置removing.value将基本是true。
-				// 即，空节点总是尝试继续删除。
+				// 空节点 maxTime 保持 0，会继续尝试清理下一节点
 				long maxTime = 0;
 				for (var value : node.getValues()) {
 					var tableKey = (BTableKey)value.getValue().getBean();
-					// queue是按时间顺序的，记住最后一条即可。
 					maxTime = tableKey.getEnqueueTime();
 					var table = zeze.getTable(tableKey.getTableName());
 					if (null != table)
@@ -229,15 +211,12 @@ public class DelayRemove extends AbstractDelayRemove {
 				return 0;
 			}, "DelayRemove.delayRemoveProcedure").call();
 			if (rc != Procedure.Success) {
-				// 失败的节点事务已回滚（队列无损）。确定性失败（如登记的EncodedKey损坏导致
-				// removeEncodedKey解码异常）立即重试是纯热循环：告警并退出本轮，
-				// 由固定延迟调度在下个周期整体重试（对比Timer.loadTimer的log+sleep(1s)重试，
-				// 这里一天才跑一轮，立即重试没有意义）。
+				// 节点事务失败已回滚，告警并退出本轮以避免确定性故障死循环，留待下个周期重试
 				logger.warn("DelayRemove.onTimer procedure failed: rc={}. " +
 						"Remaining nodes are deferred to the next period.", rc);
 				break;
 			}
-			if (Thread.currentThread().isInterrupted()) // stop()的cancel(true)：及时退出，剩余节点等下次调度。
+			if (Thread.currentThread().isInterrupted())
 				break;
 		}
 	}

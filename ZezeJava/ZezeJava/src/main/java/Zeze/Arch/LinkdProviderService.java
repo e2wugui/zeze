@@ -38,7 +38,7 @@ public class LinkdProviderService extends HandshakeServer {
 	protected final ConcurrentHashMap<String, ProviderSession> providerSessions = new ConcurrentHashMap<>();
 	protected @Nullable FileOutputStream dumpFile;
 	protected @Nullable AsyncSocket dumpSocket;
-	// 私有锁: 避免暴露this监视器,Service实例被外部广泛共享;锁内做文件IO,ReentrantLock避免虚拟线程持锁阻塞时pin载体(JDK21-23)
+	// 保护 dumpFile 懒初始化与并发写，使用 ReentrantLock 避免锁内文件 IO 阻塞虚拟线程载体。
 	private final ReentrantLock dumpLock = new ReentrantLock();
 	private boolean dumpClosed;
 
@@ -47,7 +47,6 @@ public class LinkdProviderService extends HandshakeServer {
 		setNoProcedure(true);
 	}
 
-	// dumpLock: 懒初始化存在check-then-act竞争,且多IO线程并发写需要串行化(仅调试属性开启时生效)
 	protected void tryDump(AsyncSocket s, ByteBuffer input) throws IOException {
 		dumpLock.lock();
 		try {
@@ -67,7 +66,7 @@ public class LinkdProviderService extends HandshakeServer {
 	@Override
 	public void stop() throws Exception {
 		super.stop();
-		// dumpClosed: 关闭后不再重建,重建的FileOutputStream会截断已dump的文件
+		// 标记关闭后不再重建，防止截断已写出的 dump 文件。
 		dumpLock.lock();
 		try {
 			dumpClosed = true;
@@ -92,7 +91,6 @@ public class LinkdProviderService extends HandshakeServer {
 		return super.OnSocketProcessInputBuffer(s, input);
 	}
 
-	// 重载需要的方法。
 	@Override
 	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) throws Exception {
 		// 不支持事务。
@@ -122,8 +120,7 @@ public class LinkdProviderService extends HandshakeServer {
 	@Override
 	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-		// 不支持事务。runNow捕获回调异常记日志（对齐基类Service与ProviderDirectService）——
-		// call()会把异常抛回IO解码路径，断整条provider连接（onProviderClose全链广播）。
+		// 不支持事务；runNow 内部捕获异常记日志，避免抛回 IO 线程断开 provider 连接。
 		TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
 	}
 

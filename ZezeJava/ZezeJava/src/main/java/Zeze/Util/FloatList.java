@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jspecify.annotations.Nullable;
 
-// float 基本类型动态数组：可比较/可克隆/可序列化（Vector*List 的基类）
+/** float 基本类型动态数组：可比较/可克隆/可序列化（Vector*List 的基类）。 */
 public class FloatList implements Comparable<FloatList>, Cloneable, Serializable {
 	public static final float[] EMPTY = new float[0];
 	public static final int DEFAULT_SIZE = 8;
@@ -157,7 +157,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 			for (cap = DEFAULT_SIZE; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
-			if (cap < 0) // count > 2^30：倍增 cap 溢出为负，原实现死循环
+			if (cap < 0) // count > 2^30 时倍增溢出为负
 				throw new OutOfMemoryError("FloatList reserve count too large: " + count);
 			float[] buf = new float[cap];
 			int n = this.count;
@@ -173,7 +173,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 			for (cap = 8; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
-			if (cap < 0) // 同 reserve：防倍增溢出死循环
+			if (cap < 0) // count > 2^30 时倍增溢出为负
 				throw new OutOfMemoryError("FloatList reserveSpace count too large: " + count);
 			buffer = new float[cap];
 		}
@@ -392,7 +392,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		int n = count;
 		long result = n;
-		// 整型累加+floatToIntBits：float算术会被NaN传染（结果恒0）且精度塌缩；bits规范化后与Float.hashCode一致
+		// 按 IEEE 754 位表示累加，与 Float.hashCode 一致
 		if (n <= 32) {
 			for (int i = 0; i < n; i++)
 				result = 31L * result + Float.floatToIntBits(buf[i]);
@@ -416,9 +416,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
-			// Float.compare（JDK定义的全序，NaN有确定位次）取代减法判序：Inf-Inf=NaN、含NaN的
-			// 差恒NaN使 c!=0 恒真恒返回1——相等元素比较为"大于"、违反反对称性。
-			// 对齐 IntList/LongList 的compare形态。
+			// 用 Float.compare 保证全序（NaN/Inf 行为一致）
 			int c = Float.compare(buf[i], data[i]);
 			if (c != 0)
 				return c;
@@ -438,8 +436,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
-			// Float.compare与compareTo对齐：原生!=下双方均NaN时判不等，与compareTo
-			// （compare==0）及JDK Float.equals（floatToIntBits）相反，equals/compareTo矛盾。
+			// 用 Float.compare 与 compareTo/Float.equals 对齐
 			if (Float.compare(buf[i], data[i]) != 0)
 				return false;
 		}
@@ -457,7 +454,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
-			if (Float.compare(buf[i], data[i]) != 0) // 同上：与compareTo对齐
+			if (Float.compare(buf[i], data[i]) != 0)
 				return false;
 		}
 		return true;
@@ -529,7 +526,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	}
 
 	public void decode(IByteBuffer bb, int n) {
-		if (n < 0) // 同 IntList.decode：负长度会把 count 毒化成负数
+		if (n < 0)
 			throw new IllegalArgumentException("negative count: " + n);
 		reserveSpace(n);
 		bb.ReadFloats(buffer, 0, n);

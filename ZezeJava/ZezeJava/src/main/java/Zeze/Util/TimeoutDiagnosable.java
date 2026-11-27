@@ -8,12 +8,10 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
+/** 可诊断超时看门狗：任务超时时记录目标线程堆栈并尝试中断，cancel 时确保不误伤复用线程的后续任务。 */
 public class TimeoutDiagnosable extends Timeout {
 	private static final Logger logger = LogManager.getLogger(TimeoutDiagnosable.class);
-	// 任务存活握手：close 先于派发执行时，中断动作不得落在池线程正在跑的下一个任务上
-	// （桶 poll 到派发执行之间任务可能已结束；派发车道积压时该窗口会被拉宽）。
-	// thread 置 null 即已 close（单一事实来源）：读写都必须在 handshake 锁内，
-	// 且打断必须锁内执行——锁外打断与 close 的清标志存在先置位后清除的窗口。
+	// 存活握手：thread 在 handshake 锁内读写并置 null，中断亦在锁内执行，避免误伤复用该线程的后续任务
 	private final ReentrantLock handshake = new ReentrantLock();
 	private @Nullable Thread thread = Thread.currentThread();
 	private boolean interruptedByTimeout;
@@ -37,7 +35,7 @@ public class TimeoutDiagnosable extends Timeout {
 
 	@Override
 	public void run() {
-		// 最多只会触发一次。thread 为 null = 已 close，不再打断（interruptThread 内部已判 null）。
+		// 最多触发一次；thread 为 null 表示已取消
 		handshake.lock();
 		try {
 			interruptedByTimeout |= tryInterruptThread(thread);

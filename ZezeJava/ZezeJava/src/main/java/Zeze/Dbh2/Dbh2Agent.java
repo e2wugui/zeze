@@ -37,12 +37,9 @@ import org.jspecify.annotations.Nullable;
  * Dbh2 客户端到单个桶 Raft 集群的代理连接，封装对桶的读写与事务 RPC。
  */
 public class Dbh2Agent extends AbstractDbh2Agent {
-	// sendForWait等待兜底余量（FND29 dbh2-02）：rpc判死由resend扫描驱动（1s粒度），
-	// 等待超时=rpcTimeout+本余量，仅在future完成路径整体失效（agent被并发close等）时兜底唤醒，
-	// 正常路径永远先由rpc超时/应答完成，不改变请求语义。
+	// sendForWait 兜底等待余量，避免极端竞态下 future 永不完成导致无界悬挂
 	static final long SendForWaitGraceMs = 5_000;
-	// 瞬时拒绝码（eBucketNotReady/RaftRetry）的读路径限时重试上限：覆盖动态建组冷启动窗口
-	// （组ready实测3~8s），超过后照抛——不无限等，配置错误/持久故障仍快速失败。
+	// 读路径瞬时拒绝码（eBucketNotReady/RaftRetry）的限时重试上限
 	static final long NotReadyRetryMaxMs = 10_000;
 	private static final org.apache.logging.log4j.Logger logger =
 			org.apache.logging.log4j.LogManager.getLogger(Dbh2Agent.class);
@@ -78,9 +75,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	}
 
 	public KV<Boolean, @Nullable ByteBuffer> get(String databaseName, String tableName, Binary key) {
-		// 桶未就绪（动态建组/刚接管窗口）与not leader（首发现错向/leader切换中）是瞬时态：
-		// 读请求无tid可去重回放，直接重发新请求，限时（NotReadyRetryMaxMs）后照抛——首事务撞
-		// 冷建组窗口曾把App启动直接打死（2026-11-12，enableHttpSessionExpiredTimer等无重试路径）。
+		// 桶未就绪或切主中属于瞬时态，在 NotReadyRetryMaxMs 内退避重试
 		var deadline = System.currentTimeMillis() + NotReadyRetryMaxMs;
 		while (true) {
 			var r = new Get();
@@ -97,18 +92,11 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 					&& System.currentTimeMillis() < deadline) {
 				logger.info("get retry {}.{}, code={}", databaseName, tableName, IModule.getErrorCode(r.getResultCode()));
 				try {
-					// NotReady拒绝很快，无退避的busy-retry会紧密循环：单请求10s窗内数百次×并发，
-					// soak-20261112-1937批实测53382条retry日志打爆输出。退避200ms与写路径
-					// （processPrepareFutures节流）对称；参数衡量：sleep须远小于窗口典型时长
-					// （冷建组ready 3~8s、endSplit换代~3s/轮，200ms为窗口的1/15以上→窗口结束
-					// 后至多一个sleep即恢复），密度5次/s日志可观测（soak实测88条/轮→44条/轮）。
 					Thread.sleep(200);
 				} catch (InterruptedException ex) {
 					Thread.currentThread().interrupt();
-					// 中断（进程关闭类）：不再重试，落入下方失败路径快速返回。
 				}
 				if (Thread.currentThread().isInterrupted())
-					// 中断（进程关闭类）：不再重试，快速失败跳出（该次码为瞬时拒绝码，带上语境）。
 					throw new RuntimeException("get interrupted during retry: "
 							+ databaseName + '.' + tableName + ", code=" + IModule.getErrorCode(r.getResultCode()));
 				continue;
@@ -156,12 +144,12 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 
 	public void keepAlive() {
 		if (loginFuture.isDone() && !loginFuture.isCompletedExceptionally() && !loginFuture.isCancelled())
-			return; // not login
+			return; // 未登录
 
 		var rpc = new KeepAlive();
 		raftClient.send(rpc, p -> {
 			if (!rpc.isTimeout() && (rpc.getResultCode() == 0 || rpc.getResultCode() == Procedure.RaftApplied))
-				activeTime = System.currentTimeMillis(); // KeepAlive.Response
+				activeTime = System.currentTimeMillis();
 			return 0;
 		});
 	}
@@ -215,9 +203,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return walk(exclusiveStartKey, proposeLimit, desc, prefix, null, null);
 	}
 
-	// expectedKeyFirst/expectedKeyLast非null时置位VerifyBucketMeta并回带缓存视图的
-	// 预期桶边界：服务端meta已收窄/置死（分裂/迁移完结）时不等即bucketRefuse，
-	// 调用方（walkPage）经既有refused路径reload重定位。null表示不校验（旧语义）。
+	// 预期边界非 null 时校验服务端桶元数据，不匹配则触发 bucketRefuse 供调用方刷新重定位
 	public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte @Nullable [] prefix,
 					  @Nullable Binary expectedKeyFirst, @Nullable Binary expectedKeyLast) {
 		var r = new Walk();

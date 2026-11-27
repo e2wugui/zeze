@@ -11,23 +11,13 @@ import Zeze.Serialize.Serializable;
  */
 public abstract class Log implements Serializable {
 	/**
-	 * 用于序列化，外部使用，实现类不用 decode、encode 这个变量。
-	 * 只读，常量即可。
-	 * 在一个StateMachine实现中唯一。
-	 * 不冲突的时候使用默认实现即可。
-	 * 注意：
-	 * 如果实现类的FullName发生了改变，需要更新所有的Raft-Node。
-	 * 如果不想跟名字相关，重载并提供一个编号。
-	 * Log的typeId只使用低32位
+	 * 日志类型标识（仅使用低 32 位），在同一 StateMachine 内唯一且不参与自身序列化。
+	 * 默认基于类名生成；如需避免类名变更影响兼容性，可重载返回固定编号。
 	 */
 	@Override
 	public abstract long typeId();
 
-	// 当前这个Log是哪个应用的Rpc请求引起的。
-	// Raft用来检测重复的请求。
-	// RaftConfig里面配置AutoKeyLocalStep开启这个功能。
-	// 启用这个功能要求应用的RpcSessionId持久化，并且全局唯一，对每个AutoKeyLocalStep递增。
-	// 注意：应用生成的Id必须大于0；0保留给内部；小于0未使用。
+	// 关联的唯一请求标识，用于去重（>0 为应用生成，0 保留内部使用）。
 	private UniqueRequestId unique = new UniqueRequestId();
 	private long createTime;
 	private Binary rpcResult = Binary.Empty;
@@ -59,9 +49,7 @@ public abstract class Log implements Serializable {
 		rpcResult = value;
 	}
 
-	/**
-	 * 最主要的实现接口。
-	 */
+	/** 将本条日志应用到状态机。 */
 	public abstract void apply(RaftLog holder, StateMachine stateMachine) throws Exception;
 
 	@Override

@@ -6,10 +6,7 @@ import java.util.HashMap;
 
 import org.jspecify.annotations.Nullable;
 
-/**
- * PSet1 的变更日志：以单容器 modified 记录事务内对持久化 Set 的修改，
- * value 为 {@link LogSet1#PRESENT} 表示加入、null 表示删除（同 HashSet 底层 HashMap 惯例）。
- */
+/** PSet1 的事务增量状态：modified 中 {@link LogSet1#PRESENT} 表示加入，null 表示删除。 */
 final class LogSet1Delta<V> extends LogSet<V> {
 	private @Nullable HashMap<V, @Nullable Object> modified;
 

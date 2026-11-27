@@ -76,13 +76,12 @@ public class BServiceInfosVersion implements Serializable {
 		}
 	}
 
-	// 按需计算，不缓存：订阅后的增量注册/注销（SubscribeState.onRegister/onUnRegister）只修改
-	// infosVersion，构造时机的快照永远看不到；调用方（SubscribeState）需持锁保证与修改互斥。
+	// 按需扫描而非缓存，以反映增量变更；调用方需持锁保证与修改互斥。
 	private @Nullable BServiceInfos findNewestInfos() {
 		BServiceInfos resultInfos = null;
 		var maxVersion = Long.MIN_VALUE;
 		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
-			// onUnRegister移空最后一个条目后空桶仍残留在map里，跳过，避免"最新版本"指向空列表。
+			// 跳过空桶，避免最新版本指向空列表。
 			if (!it.value().getSortedIdentities().isEmpty() && maxVersion <= it.key()) {
 				maxVersion = it.key();
 				resultInfos = it.value();

@@ -238,9 +238,7 @@ public class Bag {
 		if (null == itemFrom)
 			return Module.ResultCodeFromNotExist;
 
-		// number==0：钳制只修正<0与>from，0原样穿透到空格拆分路径会写入数量0的物品
-		// 占格并污染持久化（对齐getItemPileMax对number下界的防护判例）。-1=移动全部
-		// 是协议契约（solution.zeze.xml BMove），不在拒绝范围。
+		// 0 会写入数量 0 的占位物品，需拒绝；负数按协议语义表示移动全部。
 		if (number == 0)
 			return Module.ResultCodeNumberInvalid;
 
@@ -331,9 +329,7 @@ public class Bag {
 			var tmp = funcItemPileMax;
 			if (null == tmp)
 				return 1;
-			// 下界1：自定义函数返回0/负数（配置缺项映射成0是常见写法）时，
-			// add的堆叠循环条件number>pileMax恒真且每次扣减0，会把背包全部空格
-			// 填成number=0的物品堆并污染持久化数据。
+			// 下界为 1，避免自定义函数返回 <=0 导致 add 堆叠循环填入空物品。
 			return Math.max(1, tmp.applyAsInt(itemId));
 		}
 
@@ -365,10 +361,7 @@ public class Bag {
 			return new Bag(this, b, bagName);
 		}
 
-		// 需要在事务内使用。非建行：行不存在返回null。
-		// 供内建协议(Move/Destroy)使用——bagName虽来自客户端载荷，但表键roleId取自会话，
-		// 寻址被限制在本角色分区内（跨角色越权随BBagKey改造在键结构上关闭）；
-		// 不建行是因为destroy对空行恒成功，getOrAdd会让任意bagName的空行随事务提交落盘。
+		// 需要在事务内使用；不自动建行，避免内建 Move/Destroy 对不存在的 bagName 落盘空行。
 		public @Nullable Bag openOrNull(long roleId, String bagName) {
 			var b = _tbag.get(new BBagKey(roleId, bagName));
 			return null != b ? new Bag(this, b, bagName) : null;

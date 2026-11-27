@@ -12,17 +12,14 @@ import java.util.concurrent.Executors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/*
-curl -d "server 127.0.0.1:8089;server 127.0.0.1:8088;" 127.0.0.1:8081/upstream/dyhost
-*/
 /**
- * Nginx dyups HTTP导出器：把SM服务地址经HTTP POST写入dyups接口（用法见下方curl示例）。
+ * Nginx dyups HTTP 导出器：把 SM 服务地址经 HTTP POST 写入 dyups 接口。
+ * <p>等价示例：{@code curl -d "server 127.0.0.1:8089;server 127.0.0.1:8088;" 127.0.0.1:8081/upstream/dyhost}
  */
 public class ExporterNginxHttp implements IExporter {
 	private static final Logger logger = LogManager.getLogger(ExporterNginxHttp.class);
 
-	// 提为字段：HttpClient（jdk17）自身没有关闭接口，其executor线程若不显式关闭，
-	// 进程停机时线程泄漏（非守护线程阻止退出）。由close()统一关闭，Exporter.stop()触发。
+	// 显式持有 executor，便于 close() 停机释放非守护线程。
 	private final ExecutorService executor = Executors.newSingleThreadExecutor();
 	private final HttpClient httpClient = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
@@ -30,8 +27,7 @@ public class ExporterNginxHttp implements IExporter {
 			.build();
 	private final String url;
 	private final long version;
-	// 选桶不匹配只warn一次（事件风暴下不刷屏）；onEdit由one-by-one单worker串行
-	// 调用，volatile仅防御对调用线程模型的隐含依赖（对齐Exporter.failedServices风格）。
+	// 选桶为空告警只输出一次，避免事件高频触发时刷屏。
 	private volatile boolean versionBucketEmptyWarned;
 
 	/**
@@ -53,10 +49,7 @@ public class ExporterNginxHttp implements IExporter {
 	public void exportAll(String serviceName, BServiceInfosVersion all) throws Exception {
 		var ver0 = all.getInfos(version);
 		if (ver0 == null) {
-			// 可观测性：-version是选桶（SM按BServiceInfo注册时的version分桶，导出只取
-			// 指定桶），桶不匹配时导出被静默跳过、dyups配置停在旧值且无任何留痕。选定桶为空
-			// 且其他桶非空时warn一次（列出非空桶号）提示检查-version；全空（服务全部下线的
-			// 过渡态）保持静默，语义与NginxConfig路径"无可导出地址"的info日志一致。
+			// 仅在选定版本桶为空而其他桶非空时告警一次，提示检查 -version 配置。
 			if (!versionBucketEmptyWarned) {
 				var buckets = new StringBuilder();
 				for (var it = all.getInfosIterator(); it.moveToNext(); ) {
@@ -87,10 +80,7 @@ public class ExporterNginxHttp implements IExporter {
 		var post = sb.toString();
 
 		logger.info("HttpRequest: url={}, serviceName={}, post={}", url, serviceName, post);
-		// 同步+超时——sendAsync+whenComplete仅覆盖传输异常，dyups返回非2xx仍只有
-		// INFO日志，且无超时配置时future永不完成，更新静默丢失。exportAll运行于triggerOnChanged
-		// 的one-by-one后台worker（不在IO/RPC线程），可安全阻塞；失败（传输/超时/非2xx）抛异常，
-		// 由Exporter.onEdit既有的逐服务catch统一记录，本类不重复记error。
+		// 运行于独立后台 worker，采用带超时的同步发送，非 2xx/异常抛给上层统一记账与告警。
 		var request = HttpRequest.newBuilder().uri(URI.create(url + serviceName))
 				.timeout(Duration.ofSeconds(5))
 				.POST(HttpRequest.BodyPublishers.ofString(post, StandardCharsets.UTF_8)).build();
@@ -101,9 +91,7 @@ public class ExporterNginxHttp implements IExporter {
 
 	@Override
 	public void close() {
-		// 选shutdownNow而非shutdown+awaitTermination：停机路径不期望长等——在途请求可能正
-		// 卡在超时等待中，shutdownNow直接中断它（send抛InterruptedException，停机语义可接受），
-		// 线程立即释放，无需等待请求自然结束。
+		// 停机时立即中断在途请求并释放线程。
 		executor.shutdownNow();
 	}
 }

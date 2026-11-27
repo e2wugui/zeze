@@ -32,8 +32,7 @@ import org.jspecify.annotations.Nullable;
 public final class RaftConfig {
 	public static final int DefaultAppendEntriesTimeout = 2000;
 	public static final int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 200;
-	// 选举超时基础余量：心跳(2200ms,Idle算法)实际间隔会被调度抖动/负载拉长，100ms余量下
-	// 凌晨空载也零星误超时(2026-11-12立案实测)，给到1000ms——超时窗口[3200,4200)ms。
+	// 选举超时基础余量：预留心跳调度抖动空间，避免误触发选举。
 	public static final int ElectionTimeoutBase = 1000;
 
 	private final @Nullable Document xmlDocument;
@@ -46,23 +45,20 @@ public final class RaftConfig {
 	private final byte[] sortedNamesUtf8;
 	private final Binary sortedNamesBinary;
 
-	private @Nullable String name; // 这个参数不保存，可以在启动的时候从参数读取并设置
+	private @Nullable String name; // 不持久化，启动时可从参数覆盖
 	private @Nullable String dbHome;
-	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
-	private int leaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
-	private int electionRandomMax = 1000; // 默认给足抖动预算：heartbeat+ElectionTimeoutBase+rand(1000)，避免单次心跳抖动引发选举
-	private int maxAppendEntriesCount = 500; // 限制每次复制日志时打包的最大数量
+	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志及发送失败重试超时
+	private int leaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 心跳周期（Idle 估算）
+	private int electionRandomMax = 1000; // 选举随机超时上限，错开多节点同时发起选举
+	private int maxAppendEntriesCount = 500; // 单次日志复制打包的最大条数
 
-	private int snapshotLogCount = 100_0000; // -1 disable snapshot
-	private boolean snapshotCommitDelayed = false;
-	// 预投票：真正选举前先询问多数派，防止分区后term膨胀的节点回归时打断健康集群。
-	// 滚动升级期间新旧节点混布时旧节点不认识PreVote协议，会导致选不出Leader，此时应临时配置为false。
+	private int snapshotLogCount = 100_0000; // -1 表示禁用自动快照
+	private boolean snapshotCommitDelayed = false; // 延迟一代提交快照，保留上一代快照以保护日志回退窗口
+	// 预投票：选举前先向多数派探测，防止分区节点回归打断集群；滚动升级混布旧节点时可临时关闭。
 	private boolean preVote = true;
-	// 同步写：raft日志与raft族状态机存储的写选项（true=sync write，写落盘才返回）。
-	// 默认普通写——raft的耐久性由多副本承继，高安全部署（如单副本）可配置为true。
+	// 同步写：日志与状态机存储是否启用 sync write（默认 false，依赖多副本持久性）。
 	private boolean syncWrite = false;
-	// snapshot时回退数量，某些系统不能任意截断日志，需要回退一定数量进行保护。回退现在用延时提交实现。
-	private int backgroundApplyCount = 500; // 需要的时间应小于LeaderHeartbeatTimer
+	private int backgroundApplyCount = 500; // 单批后台 apply 日志数，耗时应小于 LeaderHeartbeatTimer
 	private int uniqueRequestExpiredDays = 7;
 
 	public @Nullable String getXmlFileName() {
@@ -256,11 +252,8 @@ public final class RaftConfig {
 		}
 	}
 
-	// 按RaftName派生私有副本：Raft构造器不得变异调用方传入的配置对象——
-	// 共享同一RaftConfig实例的多Raft（多库/多桶共用一份集群配置的便捷用法）会互相
-	// 污染Name/DbHome，getSnapshotFullName等路径错位造成跨实例数据覆盖。
-	// 派生副本共享不可变部分（xmlDocument/nodes条目/sortedNames），复制全部可变标量；
-	// 保留原联动语义：仅当DbHome与Name相关（未特别配置）时才跟随RaftName改写。
+	// 按 raftName 派生私有副本，避免多 Raft 共用配置时互相污染 Name/DbHome；
+	// 仅当 DbHome 未单独配置（与原 Name 一致）时跟随 raftName 联动更新。
 	RaftConfig derive(@Nullable String raftName) {
 		var copy = new RaftConfig(xmlDocument, xmlFileName, self, nodes,
 				sortedNames, sortedNamesUtf8, sortedNamesBinary);
@@ -277,8 +270,7 @@ public final class RaftConfig {
 		copy.backgroundApplyCount = backgroundApplyCount;
 		copy.uniqueRequestExpiredDays = uniqueRequestExpiredDays;
 		if (raftName != null && !raftName.isEmpty()) {
-			// 如果 DbHome 和 Name 相关，一般表示没有特别配置。
-			// 此处特别设置 Raft.Name 时，需要一起更新。
+			// DbHome 与 Name 一致时视为未单独配置，随 raftName 联动更新。
 			//noinspection DataFlowIssue
 			if (Objects.requireNonNull(copy.dbHome).equals(copy.name.replace(':', '_')))
 				copy.dbHome = raftName.replace(':', '_');
@@ -287,8 +279,7 @@ public final class RaftConfig {
 		return copy;
 	}
 
-	// derive的拷贝构造：共享只读的xml与节点（构造后不再变化），nodes
-	// 复制进自己的map（addNode只在装载期发生，条目本身全final不可变）。
+	// derive 拷贝构造：共享只读的 XML 与不可变节点对象，浅拷贝 nodes 映射。
 	private RaftConfig(@Nullable Document xmlDocument, @Nullable String xmlFileName, @Nullable Element self,
 					   ConcurrentHashMap<String, Node> nodes,
 					   String sortedNames, byte[] sortedNamesUtf8, Binary sortedNamesBinary) {
@@ -370,18 +361,10 @@ public final class RaftConfig {
 		if (leaderHeartbeatTimer < appendEntriesTimeout + 200)
 			throw new IllegalStateException("LeaderHeartbeatTimer < AppendEntriesTimeout + 200");
 		if (backgroundApplyCount < 1)
-			// 0/负数使后台apply的tryApply(count=0)一条不应用且退出条件永不成，
-			// 无限yield忙轮询、applyFuture永不完成、shutdown的await挂死。fail-fast对齐verify口径。
 			throw new IllegalStateException("BackgroundApplyCount < 1");
 		if (electionRandomMax < 1)
-			// getElectionTimeout的Random.nextInt(n<=0)抛IllegalArgumentException，
-			// 被定时器吞掉仅记日志——onTimer的Follower分支永不选举、followerOnAppendEntries的
-			// setLeaderActiveTime同抛致AppendEntries无应答，节点静默僵死只剩error日志。
 			throw new IllegalStateException("ElectionRandomMax < 1");
 		if (uniqueRequestExpiredDays < 1)
-			// isUniqueRequestCreateTimeValid对expiredDays<=0把所有请求判RaftExpired
-			// （0时(now-create)/86400_000>=0恒真，负数连未来时间也拒绝）——集群功能瘫痪但
-			// 无异常无日志（每请求确定性拒绝）。
 			throw new IllegalStateException("UniqueRequestExpiredDays < 1");
 		if (maxAppendEntriesCount < 100)
 			maxAppendEntriesCount = 100;
@@ -428,7 +411,7 @@ public final class RaftConfig {
 	public static RaftConfig load(String xmlFile) throws Exception {
 		if (new File(xmlFile).isFile()) {
 			var factory = DocumentBuilderFactory.newInstance();
-			// 与 save() 安全设置一致；合法配置不含 DOCTYPE，行为不变
+			// 禁用 DOCTYPE 防止 XXE，与 save() 安全配置一致
 			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 			Document doc = factory.newDocumentBuilder().parse(new File(xmlFile));
@@ -446,7 +429,7 @@ public final class RaftConfig {
 		try {
 			var is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 			var factory = DocumentBuilderFactory.newInstance();
-			// 与 save() 安全设置一致；合法配置不含 DOCTYPE，行为不变
+			// 禁用 DOCTYPE 防止 XXE，与 save() 安全配置一致
 			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 			var doc = factory.newDocumentBuilder().parse(is);
@@ -465,15 +448,11 @@ public final class RaftConfig {
 		private final String host;
 		private final int port;
 
-		// 当多个raft运行在一个进程内，可以设置Agent只链接这个进程，这几个raft共享连接。
-		// 这个需要一定的开发，这里仅提供基本的扩展配置点。
+		// 多 Raft 共用进程代理连接的地址配置。
 		private final String proxyHost;
 		private final int proxyPort;
 
-		// 多数。
-		// 当raft把节点分布到异地机房中，但是在主机房保留足够的多数派，推荐Leader都在主机房中产生。
-		// 这个配置用来区分是否主机房。
-		// 默认true，所有的节点都在主机房。
+		// 是否位于推荐产生 Leader 的主机房（默认 true）。
 		private final boolean suggestMajority;
 		private @Nullable Element self;
 

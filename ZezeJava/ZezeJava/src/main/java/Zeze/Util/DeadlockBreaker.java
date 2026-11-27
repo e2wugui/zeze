@@ -15,13 +15,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-// 死锁检测守护线程：monitor/AQS 死锁走 ThreadMXBean，FastLock 等待环（含虚拟线程）走登记表，报告并尝试打断
+/**
+ * 死锁检测守护线程：结合 ThreadMXBean 与 FastLock 等待登记表检测死锁环（含虚拟线程），报告并尝试打断。
+ */
 public class DeadlockBreaker extends ThreadHelper {
 	private static final Logger logger = LogManager.getLogger(DeadlockBreaker.class);
 
-	/**
-	 * @return root thread group
-	 */
+	/** 返回根线程组。 */
 	public static ThreadGroup getRootThreadGroup() {
 		ThreadGroup root = Thread.currentThread().getThreadGroup();
 		for (ThreadGroup p = root.getParent(); p != null; p = p.getParent())
@@ -33,9 +33,8 @@ public class DeadlockBreaker extends ThreadHelper {
 	 * 枚举指定线程组下的线程。
 	 *
 	 * @param group   线程组
-	 * @param recurse a flag indicating whether also to include threads in thread
-	 *                groups that are subgroups of the thread group.
-	 * @return thread in the group
+	 * @param recurse 是否递归包含子线程组
+	 * @return 线程 ID 到线程对象的映射
 	 */
 	public static Map<Long, Thread> enumerate(ThreadGroup group, boolean recurse) {
 		@Nullable Thread[] threads = new Thread[512];
@@ -77,11 +76,10 @@ public class DeadlockBreaker extends ThreadHelper {
 					sleepIdleMs = 2000;
 					detectCount++;
 					if (detectCount >= 3) {
-						// 单进程部署(未配置 GlobalCacheManager)时 achillesHeelDaemon 为 null，
-						// 裸调用抛 NPE 会跳过下面的 sleepIdle，导致检测线程零间隔自旋+FATAL 日志洪水。
+						// 单进程部署无 AchillesHeelDaemon，判空避免 NPE 跳过 sleepIdle
 						var daemon = zeze.getAchillesHeelDaemon();
 						if (daemon != null)
-							daemon.deadlockReport(); // 向 daemon 报告。
+							daemon.deadlockReport();
 						else
 							logger.error("deadlock detected but no AchillesHeelDaemon configured");
 					}
@@ -92,82 +90,60 @@ public class DeadlockBreaker extends ThreadHelper {
 						sleepIdleMs = zeze.getConfig().getDeadLockBreakerPeriod();
 				}
 				sleepIdle(sleepIdleMs);
-			} catch (Throwable ex) { // logger.error
+			} catch (Throwable ex) {
 				logger.error("angel run exception:", ex);
 			}
 		}
 	}
 
-	/**
-	 * ThreadInfo 最多只打印出8层的栈信息 see ThreadInfo.MAX_FRAMES
-	 */
+	/** ThreadInfo 默认最多打印 8 层栈信息（见 ThreadInfo.MAX_FRAMES）。 */
 	public static final int MAX_DEPTH = 255;
 
-	/**
-	 * 检测死锁，并尝试打破死锁环。
-	 */
+	/** 检测死锁并尝试打破死锁环。 */
 	private boolean detect() {
 		boolean found = false;
 
-		// 平台线程的 monitor/ownable-synchronizer 死锁（原路径保持不变）。
-		// 返回死锁的线程。 可能包含多个环。 以及等待环上的线程。
+		// 平台线程的 monitor / ownable-synchronizer 死锁
 		long[] deadlockedThreadIds = threadMXBean.findDeadlockedThreads();
 		if (deadlockedThreadIds != null) {
-			// 构建死锁线程信息映射。
 			var deadlockedThreads = new HashMap<Long, ThreadInfo>();
 			for (ThreadInfo tInfo : threadMXBean.getThreadInfo(deadlockedThreadIds,
 					threadMXBean.isObjectMonitorUsageSupported(), threadMXBean.isSynchronizerUsageSupported())) {
 				try {
-					// getLockOwnerId == -1。不在等待被其他线程拥有的锁. 肯定不是环的一部分。
-					// 这种情况按道理不可能发生在findDeadlockedThreads的结果中。
-					// 如果出现，一般是并发访问造成的，如线程被销毁了。这里简单的忽略掉。
+					// 并发下线程可能已退出或释放锁，忽略非等待节点
 					if (tInfo != null && tInfo.getLockOwnerId() != -1)
 						deadlockedThreads.put(tInfo.getThreadId(), tInfo);
 				} catch (Exception e) {
-					// 并发访问： 在构建过程中，线程发生了变动。忽略这种错误。
 					logger.debug("concurrent thread change", e);
 				}
 			}
 
-			/*
-			 * 所有的线程。用来提供ThreadId到Thread的转换，java不提供这种转换。 xdb.Worker
-			 * 可以转换，对于其他自建线程，需要枚举系统内的所有线程，用来进行中断等操作。
-			 * 在检测过程中，如果需要使用才初始化这个变量。由于线程本身动态创建和销毁的并发性，
-			 * 这个'所有的线程'仅在这一次检测中有效，并且不保证所有的转换查找都能成功。
-			 */
+			// 懒加载全线程快照以将 threadId 映射为 Thread（仅本轮检测有效）
 			Map<Long, Thread> allThreads = null;
 
-			// 检测死锁环，从环中随机挑选一个线程，尝试执行中断操作。
 			while (!deadlockedThreads.isEmpty()) {
 				var cycle = new HashMap<Long, ThreadInfo>();
 				ThreadInfo tInfo = deadlockedThreads.entrySet().iterator().next().getValue();
 				do {
 					if (cycle.put(tInfo.getThreadId(), tInfo) != null) {
-						// cycle found.
-
-						// dump interrupt info
 						StringBuilder sb = new StringBuilder("Angel.interrupt thread \"");
 						sb.append(tInfo.getThreadName()).append("\" Id=")
 								.append(tInfo.getThreadId());
 						sb.append(" in cycle:\n");
-						for (ThreadInfo info : cycle.values()) // 打印的时候把挂在环上的线程也打出来。
+						for (ThreadInfo info : cycle.values()) // 一并打印挂在环上的等待线程
 							dumpThreadInfoTo(info, sb);
 						logger.fatal(sb);
 
-						// interrupt thread
 						allThreads = interrupt(tInfo, allThreads);
-
-						// break and try to find another cycle
 						break;
 					}
 				} while ((tInfo = deadlockedThreads.get(tInfo.getLockOwnerId())) != null);
-				// 删除已经被处理的线程。cycle是完整的环，或者是那些等待的环已被打破剩下的孤立枝节。
+				// 删除本轮已处理的环及其孤立枝节
 				deadlockedThreads.keySet().removeAll(cycle.keySet());
 			}
 			found = true;
 		}
 
-		// FastLock 等待环（含虚拟线程）。
 		if (reportAndBreakLockWaitCycles())
 			found = true;
 
@@ -175,25 +151,12 @@ public class DeadlockBreaker extends ThreadHelper {
 	}
 
 	/**
-	 * 检测 FastLock 等待死锁环（含虚拟线程）。
-	 * JDK21：findDeadlockedThreads 不检测虚拟线程的 AQS 死锁，而 Task 默认线程池即虚拟线程；
-	 * 也没有公开 API 枚举 VT（ThreadGroup.enumerate 与 Thread.getAllStackTraces 均不含 VT）。
-	 * FastLock 慢路径在 waitingThreads 登记 等待线程→锁，锁的 getOwner() 给出持有者，
-	 * 构成 等待者→持有者 的等待边（每线程同一时刻最多一把，出边唯一），在函数图上找环。
-	 * 以 LockSupport.getBlocker 确认线程真 park 在该锁上（AQS park 以 synchronizer 自身为
-	 * blocker），排除登记窗口内已释放的瞬态。等待非 FastLock 的 AQS 锁（如 ReentrantLock）
-	 * 无法确定持有者，不参与检测。
-	 * <p>
-	 * 覆盖边界：登记点在 FastLock 的 lock/lockInterruptibly/tryLock(t,u) 慢路径，
-	 * ConditionObject.await 被唤醒后的锁重获取阻塞发生在条件对象内部、不经过登记点，经条件
-	 * 重获取构成的环不在检测范围（纯平台线程时可另由 findDeadlockedThreads 覆盖）。
-	 * 登记以等待者为键（每线程同一时刻最多等一把），与锁的获取路径无关：环成员必然处于
-	 * 阻塞等待、必然经慢路径登记，快路径无竞争获取的锁虽不上表但其 owner 可查，不漏检。
+	 * 基于 {@link FastLock#waitingThreads} 检测 FastLock 等待死锁环（覆盖虚拟线程，JDK ThreadMXBean 不含 VT）。
+	 * 以 {@link LockSupport#getBlocker} 确认阻塞状态后在函数图上找环；经 Condition 重获取锁构成的环不在登记范围。
 	 *
-	 * @return 本轮发现的死锁环（每环为构成环的线程列表）。
+	 * @return 本轮发现的死锁环（每环为构成环的线程列表）
 	 */
 	public static List<List<Thread>> findLockWaitDeadlockCycles() {
-		// 等待边：等待线程 -> 锁持有者。
 		var edges = new HashMap<Thread, Thread>();
 		for (var entry : FastLock.waitingThreads.entrySet()) {
 			var waiter = entry.getKey();
@@ -205,7 +168,7 @@ public class DeadlockBreaker extends ThreadHelper {
 				edges.put(waiter, owner); // owner==waiter 保留为自环（非重入锁重入误用）
 		}
 
-		// 函数图找环：沿唯一的出边走，遇到已在当前路径上的节点即成环。
+		// 函数图找环：沿唯一出边推进，遇到当前路径节点即成环
 		var cycles = new ArrayList<List<Thread>>();
 		var done = new HashSet<Thread>();
 		for (var start : edges.keySet()) {
@@ -227,11 +190,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	}
 
 	/**
-	 * 报告并尝试打断 FastLock 等待环；仅处理包含虚拟线程的环（纯平台线程的 FastLock 死锁
-	 * 已由 findDeadlockedThreads 路径覆盖，避免重复报告和打断）。查不到/无法打断的线程
-	 * 以含线程名的告警降级。
-	 *
-	 * @return 是否报告了环。
+	 * 报告并尝试打断包含虚拟线程的 FastLock 等待环（纯平台线程环已由 ThreadMXBean 路径处理）。
 	 */
 	private static boolean reportAndBreakLockWaitCycles() {
 		boolean reported = false;
@@ -326,12 +285,9 @@ public class DeadlockBreaker extends ThreadHelper {
 		sb.append('\n');
 	}
 
-	/**
-	 * 中断线程，吃掉所有错误。
-	 */
+	/** 中断目标线程，吞掉所有异常。 */
 	private @Nullable Map<Long, Thread> interrupt(ThreadInfo tInfo, @Nullable Map<Long, Thread> allThreads) {
 		try {
-			// 当死锁线程不是Worker时，查找系统内的所有线程，也尝试中断。
 			if (allThreads == null)
 				allThreads = enumerate(rootThreadGroup, true);
 
@@ -340,10 +296,8 @@ public class DeadlockBreaker extends ThreadHelper {
 				thread.interrupt();
 				return allThreads;
 			}
-			// 查不到目标线程（检测后线程已退出等）降级为含线程名的告警，
-			// 不再误报为可正常中断的info。
 			logger.warn("thread not found for interrupt (may have exited): {}", tInfo);
-		} catch (Throwable e) { // logger.fatal
+		} catch (Throwable e) {
 			logger.fatal(tInfo, e);
 		}
 		return allThreads;

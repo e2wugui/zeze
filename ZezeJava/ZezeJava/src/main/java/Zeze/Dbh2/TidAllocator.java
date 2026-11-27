@@ -20,9 +20,9 @@ public class TidAllocator extends ReentrantLock {
 		var diff = now - lastAllocateTime;
 		lastAllocateTime = now;
 		long newCount = allocateCount;
-		if (diff < 30 * 1000) // 30 seconds
+		if (diff < 30 * 1000)
 			newCount <<= 1;
-		else if (diff > 120 * 1000) // 120 seconds
+		else if (diff > 120 * 1000)
 			newCount >>= 1;
 		else
 			return;
@@ -35,7 +35,7 @@ public class TidAllocator extends ReentrantLock {
 			if (localRange != null) {
 				var next = localRange.tryNextId();
 				if (next != 0)
-					return next; // allocate in range success
+					return next;
 			}
 			lock();
 			try {

@@ -14,11 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 目标：
- * 1. 最终类，不接入java流接口。
- * 2. 支持seek
- * 3. 支持position
- * 4. 支持buffered
+ * 带读缓冲的随机只读文件封装：支持 seek/position/readLine，持自身锁保证并发安全。
  */
 public final class BufferedRandomFile extends ReentrantLock implements Closeable {
 	private final FileChannel channel;
@@ -32,20 +28,15 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 
 	public BufferedRandomFile(File file, Charset charset) throws IOException {
 		this.charset = charset;
-		// log4j-02（FND26）：NIO FileChannel 默认全共享打开（Windows 含 FILE_SHARE_DELETE），
-		// 查询/buildIndex 的分钟级读持有窗口内写方对 active 的 rename 型轮转不被阻断——
-		// RandomAccessFile 在 Windows 不带 FILE_SHARE_DELETE，持句柄期间写方轮转恒败
-		// （log4j2 报错回退、active 无界增长）。Linux 语义不变（O_RDONLY 下 rename/unlink 本合法）。
-		// 文件不存在保持 FileNotFoundException 契约：FileChannel.open 抛的 NoSuchFileException
-		// 不是 FileNotFoundException 子类，而调用方（Log4jFileSession 构造失败回收链、
-		// manager 装载路径）按 FileNotFoundException 捕获轮转竞态的条目消失。
+		// NIO FileChannel 在 Windows 下默认共享删除权限，避免阻塞日志轮转；
+		// 将 NoSuchFileException 转为 FileNotFoundException 以保持调用方异常契约。
 		try {
 			channel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
 		} catch (NoSuchFileException e) {
 			throw new FileNotFoundException(e.getMessage());
 		}
 		buffer = ByteBuffer.allocate(16 * 1024);
-		buffer.flip(); // ready for read out
+		buffer.flip();
 	}
 
 	public long getPosition() {
@@ -62,7 +53,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 		try {
 			channel.position(offset);
 			buffer.clear();
-			buffer.flip(); // ready for read out
+			buffer.flip();
 			pos = offset;
 		} finally {
 			unlock();
@@ -72,11 +63,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 	/**
 	 * 按字节读取。
 	 *
-	 * @param buf buf
-	 * @param off off
-	 * @param len len
-	 * @return n read bytes, -1 means eof.
-	 * @throws IOException exception
+	 * @return 实际读取字节数，到达文件尾返回 -1
 	 */
 	public int read(byte [] buf, int off, int len) throws IOException {
 		Objects.checkFromIndexSize(off, len, buf.length);
@@ -95,18 +82,13 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 		}
 	}
 
-	/**
-	 * 如果buffer没有数据，从文件中读取填入。
-	 *
-	 * @return true fill success; false eof
-	 * @throws IOException exception
-	 */
+	/** 缓冲耗尽时从文件填充；返回 false 表示到达文件尾。 */
 	private boolean fillBuffer() throws IOException {
 		if (buffer.hasRemaining())
 			return true;
 		buffer.clear();
 		try {
-			return channel.read(buffer) > 0; // 从 channel.position 读并前移，与 seek 配对
+			return channel.read(buffer) > 0;
 		} catch (IOException e) {
 			buffer.clear();
 			throw e;
@@ -145,7 +127,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 				case '\r':
 					eol = true;
 					if (peek() == '\n') {
-						read(); // 如果是换行，读走。
+						read();
 					}
 					break;
 				default:
@@ -165,8 +147,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 
 	@Override
 	public void close() throws IOException {
-		// 与其余公开方法一致持自身锁，保证持锁读（fillBuffer→channel.read）期间
-		// 文件状态稳定——并发close会使持锁读抛ClosedChannelException且buffer未消费数据作废。
+		// 持锁关闭，避免与并发读交错导致 ClosedChannelException。
 		lock();
 		try {
 			channel.close();

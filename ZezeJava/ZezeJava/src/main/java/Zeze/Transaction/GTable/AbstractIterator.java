@@ -3,62 +3,37 @@ package Zeze.Transaction.GTable;
 import java.util.NoSuchElementException;
 import org.jspecify.annotations.Nullable;
 
+/** 基于惰性状态机的不可修改迭代器骨架，子类实现 {@link #computeNext()} 产出元素并在结束时调用 {@link #endOfData()}。 */
 public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 	private State state = State.NOT_READY;
 
-	/** Constructor for use by subclasses. */
 	protected AbstractIterator() {}
 
 	private enum State {
-		/** We have computed the next element and haven't returned it yet. */
+		/** 已计算出下一个元素但尚未返回。 */
 		READY,
 
-		/** We haven't yet computed or have already returned the element. */
+		/** 尚未计算下一个元素，或上一元素已被返回。 */
 		NOT_READY,
 
-		/** We have reached the end of the data and are finished. */
+		/** 迭代已结束。 */
 		DONE,
 
-		/** We've suffered an exception and are kaput. */
+		/** 计算下一元素时发生异常，迭代器已失效。 */
 		FAILED,
 	}
 
 	@Nullable private T next;
 
 	/**
-	 * Returns the next element. <b>Note:</b> the implementation must call {@link #endOfData()} when
-	 * there are no elements left in the iteration. Failure to do so could result in an infinite loop.
-	 *
-	 * <p>The initial invocation of {@link #hasNext()} or {@link #next()} calls this method, as does
-	 * the first invocation of {@code hasNext} or {@code next} following each successful call to
-	 * {@code next}. Once the implementation either invokes {@code endOfData} or throws an exception,
-	 * {@code computeNext} is guaranteed to never be called again.
-	 *
-	 * <p>If this method throws an exception, it will propagate outward to the {@code hasNext} or
-	 * {@code next} invocation that invoked this method. Any further attempts to use the iterator will
-	 * result in an {@link IllegalStateException}.
-	 *
-	 * <p>The implementation of this method may not invoke the {@code hasNext}, {@code next}, or
-	 * {@link #peek()} methods on this instance; if it does, an {@code IllegalStateException} will
-	 * result.
-	 *
-	 * @return the next element if there was one. If {@code endOfData} was called during execution,
-	 *     the return value will be ignored.
-	 * @throws RuntimeException if any unrecoverable error happens. This exception will propagate
-	 *     outward to the {@code hasNext()}, {@code next()}, or {@code peek()} invocation that invoked
-	 *     this method. Any further attempts to use the iterator will result in an {@link
-	 *     IllegalStateException}.
+	 * 计算并返回下一个元素；无剩余元素时必须调用 {@link #endOfData()}。
+	 * <p>调用期间不可回调本实例的 {@link #hasNext()}、{@link #next()} 或 {@link #peek()}；
+	 * 若抛出异常，后续访问该迭代器将抛出 {@link IllegalStateException}。
 	 */
 	@Nullable
 	protected abstract T computeNext();
 
-	/**
-	 * Implementations of {@link #computeNext} <b>must</b> invoke this method when there are no
-	 * elements left in the iteration.
-	 *
-	 * @return {@code null}; a convenience so your {@code computeNext} implementation can use the
-	 *     simple statement {@code return endOfData();}
-	 */
+	/** 标记迭代结束并返回 {@code null}，便于 {@link #computeNext()} 直接 {@code return endOfData();}。 */
 	@Nullable
 	protected final T endOfData() {
 		state = State.DONE;
@@ -76,7 +51,7 @@ public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 	}
 
 	private boolean tryToComputeNext() {
-		state = State.FAILED; // temporary pessimism
+		state = State.FAILED; // 先置 FAILED，防止异常或重入后留下无效状态。
 		next = computeNext();
 		if (state != State.DONE) {
 			state = State.READY;
@@ -91,22 +66,18 @@ public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 			throw new NoSuchElementException();
 		}
 		state = State.NOT_READY;
-		// Safe because hasNext() ensures that tryToComputeNext() has put a T into `next`.
+		// hasNext() 已保证 next 写入了当前元素。
 		T result = Utils.uncheckedCastNullableTToT(next);
 		next = null;
 		return result;
 	}
 
-	/**
-	 * Returns the next element in the iteration without advancing the iteration, according to the
-	 *
-	 * <p>Implementations of {@code AbstractIterator} that wish to expose this functionality should
-	 */
+	/** 返回下一个元素但不推进迭代位置。 */
 	public final T peek() {
 		if (!hasNext()) {
 			throw new NoSuchElementException();
 		}
-		// Safe because hasNext() ensures that tryToComputeNext() has put a T into `next`.
+		// hasNext() 已保证 next 写入了当前元素。
 		return Utils.uncheckedCastNullableTToT(next);
 	}
 }

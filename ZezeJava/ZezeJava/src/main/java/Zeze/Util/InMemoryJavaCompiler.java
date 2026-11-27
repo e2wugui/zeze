@@ -22,8 +22,8 @@ import javax.tools.ToolProvider;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Compile Java sources in-memory (not thread safe for one instance)
- * from <a href="https://github.com/trung/InMemoryJavaCompiler">GitHub</a>
+ * 内存 Java 源码编译器（单实例非线程安全）。
+ * 源自 <a href="https://github.com/trung/InMemoryJavaCompiler">InMemoryJavaCompiler</a>。
  */
 public class InMemoryJavaCompiler {
 	private final JavaCompiler javac;
@@ -41,9 +41,7 @@ public class InMemoryJavaCompiler {
 		classLoader = new DynamicClassLoader(parent);
 	}
 
-	/**
-	 * @return the class loader used internally by the compiler
-	 */
+	/** 返回编译器内部使用的类加载器。 */
 	public ClassLoader getClassloader() {
 		return classLoader;
 	}
@@ -59,17 +57,13 @@ public class InMemoryJavaCompiler {
 		return this;
 	}
 
-	/**
-	 * Options used by the compiler, e.g. '-Xlint:unchecked'.
-	 */
+	/** 设置编译器参数，例如 {@code -Xlint:unchecked}。 */
 	public InMemoryJavaCompiler useOptions(String... options) {
 		this.options = Arrays.asList(options);
 		return this;
 	}
 
-	/**
-	 * Ignore non-critical compiler output, like unchecked/unsafe operation warnings.
-	 */
+	/** 忽略非致命编译告警（如 unchecked/unsafe 告警）。 */
 	public InMemoryJavaCompiler ignoreWarnings() {
 		ignoreWarningLevel = 4;
 		return this;
@@ -86,13 +80,14 @@ public class InMemoryJavaCompiler {
 	}
 
 	/**
-	 * @return warning/error message or null for compiling success
+	 * 编译已添加的全部源码。
+	 *
+	 * @return 失败或告警信息；编译成功返回 null
 	 */
 	public @Nullable String compileAll() {
 		if (sourceCodes.isEmpty())
 			return null;
 		DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
-		// try-with-resources 确保 close 释放（close 声明抛 IOException，需在此捕获）
 		try (var fm = new ExtendedJavaFileManager(
 				javac.getStandardFileManager(null, null, null), classLoader)) {
 			javac.getTask(null, fm, collector, options, null, sourceCodes).call();
@@ -123,8 +118,7 @@ public class InMemoryJavaCompiler {
 		return null;
 	}
 
-	// 同实例对已define名字的二次编译：defineCompiled直调findClass（不经loadClass的
-	// findLoadedClass缓存），重复defineClass必LinkageError——编译入口fail-fast。
+	// defineCompiled 直接调用 findClass，对已定义类名二次编译会 LinkageError，入口提前拦截。
 	private void checkNotDefined(String className) {
 		if (classLoader.isDefined(className))
 			throw new IllegalStateException("class already defined in this compiler instance: " + className);
@@ -136,14 +130,14 @@ public class InMemoryJavaCompiler {
 			checkNotDefined(e.getKey());
 			addSource(e.getKey(), e.getValue());
 		}
-		// 本轮未产出的请求类必须报缺失，不能命中上轮残留的字节码。
+		// 清除上轮残留字节码，确保本轮未产出的请求类能立即报错
 		for (String className : classNameAndCodes.keySet())
 			classLoader.customCompiledCode.remove(className);
 		String exMsg = compileAll();
 		if (exMsg != null)
 			throw new IllegalStateException(exMsg);
 		for (String className : classNameAndCodes.keySet()) {
-			if (!classLoader.hasCode(className)) // 编译产物缺失：静默放行会把异常推迟到装载点，失去定位信息
+			if (!classLoader.hasCode(className))
 				throw new IllegalStateException("compiled class not found: " + className);
 		}
 	}
@@ -238,7 +232,6 @@ public class InMemoryJavaCompiler {
 			return cc != null ? cc.getByteCode() : null;
 		}
 
-		// 本加载器是否已define该类（findLoadedClass为protected final，嵌套类内封装）
 		boolean isDefined(String name) {
 			return findLoadedClass(name) != null;
 		}
@@ -256,9 +249,6 @@ public class InMemoryJavaCompiler {
 	private static final class ExtendedJavaFileManager extends ForwardingJavaFileManager<JavaFileManager> {
 		private final DynamicClassLoader cl;
 
-		/**
-		 * @param fileManager delegate to this file manager
-		 */
 		ExtendedJavaFileManager(JavaFileManager fileManager, DynamicClassLoader cl) {
 			super(fileManager);
 			this.cl = cl;

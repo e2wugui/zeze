@@ -3,10 +3,7 @@ package Zeze.Util;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jspecify.annotations.Nullable;
 
-/**
- * 用于几秒内的计数，
- * 每秒删除队头的计数，
- */
+/** 秒级滑动窗口计数器：按秒轮转桶统计最近数秒内的计数。 */
 public class TimeCounter extends ReentrantLock implements AutoCloseable {
 	private final CounterSecond[] counters; // 5-10个。
 	private int lastIndex;
@@ -56,7 +53,6 @@ public class TimeCounter extends ReentrantLock implements AutoCloseable {
 		this(seconds, true);
 	}
 
-	// for debug
 	public TimeCounter(int seconds, boolean enableDiscardTask) {
 		if (seconds <= 0)
 			throw new IllegalArgumentException("seconds = " + seconds + " <= 0");
@@ -64,16 +60,13 @@ public class TimeCounter extends ReentrantLock implements AutoCloseable {
 		for (var i = 0; i < counters.length; ++i)
 			counters[i] = new CounterSecond();
 
-		// 目前这个用于provider，数量不会很多，简单起见，每个计数启用一个定时任务。
-		// 保存句柄供close取消：句柄直接丢弃则无取消途径，实例被丢弃后
-		// 任务仍每秒永久触发并强引用this，随会话更替无界泄漏。
+		// 保存定时任务句柄，供 close() 取消以防泄漏
 		discardTimer = enableDiscardTask
 				? TaskSpec.ofAction(this::discard).schedulePeriodNow(Random.getInstance().nextLong(1000), 1000)
 				: null;
 	}
 
-	/** 取消构造器注册的每秒 discard 周期任务；会话生命周期结束时必须关闭
-	 * （如 ProviderDirectService.OnSocketClose、LinkdProvider.onProviderClose）。 */
+	/** 取消每秒清理定时任务，实例生命周期结束时须调用。 */
 	@Override
 	public void close() {
 		if (discardTimer != null)

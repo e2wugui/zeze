@@ -43,10 +43,7 @@ import org.apache.logging.log4j.Logger;
 public class DbWeb extends AbstractDbWeb {
 	private static final Logger logger = LogManager.getLogger(DbWeb.class);
 
-	// token鉴权（用户裁决）：DbWeb暴露全库读/写/删/清表，挂载在
-	// 共享HttpServer上无法按端点绑地址（官方样例不传host即绑0.0.0.0），"内部网络纪律"不可
-	// 履行——强制token防误触（端口扫描/错端口curl）优先于防攻击。无参构造保持零配置可用：
-	// 自动生成随机token并打日志；Index页保持开放（静态外壳无数据），六个数据端点fail-closed。
+	// Index 页保持开放，数据端点强制 token 鉴权；未显式传入时自动生成随机 token 并记录日志
 	private static final String TOKEN_HEADER = "X-Zeze-Token";
 	private static final String TOKEN_QUERY_KEY = "token";
 	private final String token;
@@ -196,7 +193,7 @@ public class DbWeb extends AbstractDbWeb {
 			var key = qm.get("k");
 			var n = qm.get("n");
 			Objects.requireNonNull(tableName, "tableName");
-			// 下界钳制到1：n<=0时试探逻辑会退化为空页+hasMore=true（分页死循环）甚至remove(-1)回500
+			// 下界钳制为 1，防止分页死循环
 			var count = n != null ? Math.max(1, Math.min(Integer.parseInt(n), 1_000_000)) : 100;
 			var table = (TableX<?, ?>)requireZeze().getTable(tableName);
 			if (table == null) {
@@ -204,8 +201,7 @@ public class DbWeb extends AbstractDbWeb {
 				return;
 			}
 			List<String> keys = new ArrayList<>();
-			// 多取一条试探：恰剩一页时原判定(lastKey!=null&&size>=count)会虚报hasMore=true，
-			// 第count+1条实际存在与否才是结尾的真判据
+			// 多取一条试探，以第 count+1 条是否存在准确判断 hasMore
 			walkKey(table, key != null && !key.isEmpty() ? parseKey(table, key) : null, count + 1, k -> {
 				var ks = k instanceof Encodable ? toJsonForCompact(k) : k.toString();
 				keys.add(ks);
@@ -214,7 +210,7 @@ public class DbWeb extends AbstractDbWeb {
 
 			boolean hasMore = keys.size() > count;
 			if (hasMore)
-				keys.remove(keys.size() - 1); // 丢弃试探条，只返回请求页
+				keys.remove(keys.size() - 1); // 丢弃试探条
 
 			WalkTableResult res = new WalkTableResult();
 			res.keys = keys;
@@ -322,7 +318,6 @@ public class DbWeb extends AbstractDbWeb {
 		final var DELETE_BATCH_COUNT = 100;
 		K lastKey = null;
 		do {
-			// keys必须每轮重建：否则callback从第二轮起恒返回false，每轮只交付1个key且事务重删全部累积（O(n²)）。
 			var keys = new ArrayList<K>();
 			lastKey = table.walkKey(lastKey, DELETE_BATCH_COUNT, k -> {
 				keys.add(k);
@@ -333,9 +328,7 @@ public class DbWeb extends AbstractDbWeb {
 					table.remove(key);
 				return Procedure.Success;
 			}, "DbWeb.clearTable")).call();
-			// 删除批失败必须中止报错：lastKey游标已推进（排他），失败批被静默跳过
-			// 后clearTable仍输出"ClearTable done!"，数据静默残留。抛出后OnServletClearTable的
-			// catch把异常栈流式发给运维，可见后重跑即可（clearTable幂等）；不做批内重试。
+			// lastKey 游标已推进，批删除失败必须中止报错避免静默残留（幂等可重跑）
 			if (rc != Procedure.Success)
 				throw new RuntimeException("clearTable batch fail. table=" + table.getName()
 						+ ", batchSize=" + keys.size() + ", rc=" + rc);

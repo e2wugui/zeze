@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jspecify.annotations.Nullable;
 
-// 配置读取辅助：类型化 getProperty 与 "-key [value]" 串解析
+/** 配置读取辅助：类型化属性获取与 "-key [value]" 参数串解析。 */
 public final class PropertiesHelper {
 	private static final Logger logger = LogManager.getLogger(PropertiesHelper.class);
 	private static final Pattern PATTERN_SPACES = Pattern.compile("\\s+");
@@ -43,15 +43,15 @@ public final class PropertiesHelper {
 		props = props.trim();
 		if (props.isEmpty())
 			return result;
-		// trim+\\s+：容忍连续/首尾空白。split(" ") 会把连续空格产生的空 token 当作“无 -key 的 value”误报。
+		// 按空白分词，容忍首尾与连续空白
 		var args = PATTERN_SPACES.split(props);
 
 		for (var i = 0; i < args.length; ++i) {
 			if (args[i].startsWith("-")) {
-				var key = args[i]; // eat key
-				String value = ""; // default for no value
-				if (i + 1 < args.length && !args[i + 1].startsWith("-") /* peek next if is value */)
-					value = args[++i]; // eat value
+				var key = args[i];
+				String value = "";
+				if (i + 1 < args.length && !args[i + 1].startsWith("-"))
+					value = args[++i];
 				result.putIfAbsent(key, value);
 				continue;
 			}
@@ -76,8 +76,7 @@ public final class PropertiesHelper {
 		var value = System.getProperty(key);
 		if (value == null || (value = value.trim()).isEmpty())
 			return def;
-		// Boolean.parseBoolean 只识别忽略大小写的"true"、其余一律返回false且从不抛异常，
-		// 不能用try-catch(NumberFormatException)——那是死代码，垃圾值(-Dx=yes)会被静默当成false。
+		// 严格校验 true/false，避免 Boolean.parseBoolean 将非法值静默当作 false
 		if (value.equalsIgnoreCase("true"))
 			return true;
 		if (value.equalsIgnoreCase("false"))

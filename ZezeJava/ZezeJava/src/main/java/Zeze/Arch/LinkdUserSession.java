@@ -19,23 +19,13 @@ import org.jspecify.annotations.Nullable;
 public class LinkdUserSession {
 	protected static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
-	// 写者应用Auth处理（如Zezex ModuleLinkd.ProcessAuthRequest，跑在LinkdService客户端
-	// 连接EL），读者ProcessBindRequest动态分支日志（Task线程）跨线程，无happens-before时显示null/陈旧账号。
 	protected volatile @Nullable String account;
-	// 写者LinkdProvider.ProcessSetUserState跑在LinkdProviderService的IO线程，
-	// 读者LinkdService.createDispatch跑在LinkdService的IO线程（两套EventLoop），无volatile时
-	// 引用替换与读取之间无happens-before。对照ProviderSession.load等同场景字段均标volatile。
 	protected volatile BUserState.Data userState = new BUserState.Data();
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
-	// link会话关闭标志（onClose换出binds时置位，均在bindsLock写锁内）：动态bind派发在任务线程
-	// 与link IO线程的onClose真并发——换出后迟到的bind若继续登记，(moduleId→linkSessionId)
-	// 无人再调removeLinkSession（LinkBroken按旧快照已发完），条目永久泄漏到provider关闭。
+	// 会话关闭标志（在 bindsLock 写锁内随 binds 换出置位，拒绝迟到的 bind）。
 	protected boolean closed;
 	protected long sessionId; // Linkd.SessionId
-	// 写者Auth处理（客户端连接EL），读者ProcessBroadcast（provider连接EL），
-	// 两套EventLoop无同步边；读到陈旧0时checkAppVersion(server,0)==true（0表示不检查），
-	// onlySameVersion广播的版本过滤静默失效。同族字段：userState、authed。
 	protected volatile long clientAppVersion;
 	protected long lastReportUnbindDynamicModuleTime;
 	protected volatile boolean authed;
@@ -128,14 +118,12 @@ public class LinkdUserSession {
 		writeLock.lock();
 		try {
 			if (closed) {
-				// link已关闭（onClose完成换出并通告）：拒绝登记，闭环于共享锁内的一次状态判定。
 				logger.warn("bind after closed: account={}, link session={}", account, sessionId);
 				return;
 			}
 			for (var moduleId : moduleIds) {
 				var ps = (LinkdProviderSession)provider.getUserState();
-				// 先在provider索引锁下准入，再换正向归属。close先取快照则拒绝；登记先发生
-				// 则条目进入close快照，其锁外清理会等本bindsLock释放后核对当前归属。
+				// 先在 provider 反向索引准入再写 binds，与 onProviderClose 保持全序。
 				//noinspection DataFlowIssue
 				if (ps != null && !ps.tryAddLinkSession(moduleId, link.getSessionId()))
 					continue;
@@ -207,11 +195,7 @@ public class LinkdUserSession {
 	}
 
 	public void onClose(@Nullable LinkdProviderService linkdProviderService) {
-		// 未验证通过的不通告（LinkBroken），但closed置位与换出清理对两种形态一致必要：
-		// 公开API异步两段式认证形态下（setAuthed前choiceProvider，见LinkdProvider.choiceProvider
-		// 的static bind路径），bind可先于auth登记、link在auth前关闭——只置closed拒迟到bind而
-		// 不换出，已登记条目的provider侧linkSessionIds无人再调removeLinkSession，泄漏到provider
-		// 关闭。Arch自身路径bind晚于auth，未auth时binds必空，换出为空操作，行为不变。
+		// 未认证连接不发 LinkBroken，但仍需置 closed 并换出 binds 以清理可能已登记的反向索引。
 		var authed = isAuthed();
 		IntHashMap<Long> bindsSwap;
 		var writeLock = bindsLock.writeLock();

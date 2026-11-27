@@ -52,15 +52,8 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 			array[arrayIndex++] = e;
 	}
 
-	// ---- NavigableMap readonly view methods ----
-	// - 返回单个 Entry 的方法：用 ReadOnlyEntry 包装，把 V 强转 VReadOnly 局限在 getValue() 里，
-	//   并把 setValue() 堵掉，编译期就禁止破坏只读契约。
-	// - 返回 NavigableMap/SortedMap 的方法（subMap/headMap/tailMap/descendingMap）：
-	//   底层 pcollections 的子视图本身就是 unmodifiable 的，运行时任何 mutator 都会抛
-	//   UnsupportedOperationException；但泛型是不变的，没法把 NavigableMap<K,V> 安全转成
-	//   NavigableMap<K,VReadOnly>，只能借助 unchecked cast。安全性靠 pcollections 保证。
-	// - 返回 K 或 NavigableSet<K> 的方法：直接透传，无类型问题。
-	// - pollFirstEntry/pollLastEntry 是破坏性方法，不暴露。
+	// NavigableMap 只读视图：单条 Entry 经 ReadOnlyEntry 包装禁写；子视图由 pcollections 保证只读（泛型不变需强转），
+	// 键/键集直接透传，不暴露破坏性的 pollFirstEntry/pollLastEntry。
 
 	public @Nullable Entry<K, VReadOnly> lowerEntry(K key) {
 		return wrap(map.lowerEntry(key));
@@ -202,8 +195,7 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 			@Override
 			public Iterator<Map.Entry<K, VReadOnly>> iterator() {
 				return new Iterator<>() {
-					// PSortedMap.entrySet() 的 iterator.remove() 是可变的，这里包一层禁掉；
-					// 同时用 ReadOnlyEntry 把每个 Entry<K,V> 转成 Entry<K,VReadOnly>。
+					// 包装 entrySet 迭代器以禁止 remove 并暴露 ReadOnlyEntry。
 					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 
 					@Override
@@ -257,8 +249,6 @@ public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadO
 	public String toString() {
 		return map.toString();
 	}
-
-	// ---- helpers ----
 
 	private static <K, V, VReadOnly> @Nullable Entry<K, VReadOnly> wrap(@Nullable Entry<K, V> e) {
 		return e == null ? null : new ReadOnlyEntry<>(e);

@@ -145,15 +145,15 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (items.isEmpty())
 			return false;
 		if (items instanceof PList2)
-			items = ((PList2<? extends V>)items).getList(); // more stable
+			items = ((PList2<? extends V>)items).getList(); // 捕获不可变快照
 		if (isManaged()) {
 			// 先校验整批输入，避免中途失败时留下已挂接的 Bean。
 			for (V v : items) {
 				//noinspection ConstantValue
-				if (v == null) // 对齐非托管分支与add/PList1：null在initRootInfoWithRedo处解引用NPE，先验拒绝
+				if (v == null)
 					throw new IllegalArgumentException("null item");
 				DynamicField.checkValueOwner(meta.dynamicField, v);
-				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
+				// 已受管项在挂接阶段由 initRootInfoWithRedo 拒绝并中止事务。
 			}
 			//noinspection unchecked
 			var listLog = (LogList<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
@@ -181,9 +181,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			//noinspection unchecked
 			return listLog.removeAll((Collection<? extends V>)c);
 		}
-		// minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
-		// 与托管路径（LogList2继承LogList1的removeAll）行为对齐；从高索引往低删保持非命中元素顺序。
-		// 命中检测走线性equals：生成bean覆写equals但不覆写hashCode（值等哈希不等），HashSet漏命中。
+		// 从高索引往低删以移除全部匹配项并保序；线性 equals 兼容仅覆写 equals 的生成 Bean。
 		var hit = new ArrayList<>(c);
 		var newList = list;
 		for (var i = newList.size() - 1; i >= 0; i--)
@@ -206,9 +204,9 @@ public class PList2<V extends Bean> extends PList<V> {
 			for (V v : origin) {
 				V newV = operator.apply(v);
 				//noinspection ConstantValue
-				if (newV == null) // 对齐非托管分支：null在initRootInfoWithRedo或日志路径解引用NPE，先验拒绝
+				if (newV == null)
 					throw new IllegalStateException("null item");
-				// 已受管项不预检：挂接循环内经initRootInfoWithRedo→throwAbort整体中止（277e6e501 Abort契约）
+				// 已受管项在挂接阶段由 initRootInfoWithRedo 拒绝并中止事务。
 				DynamicField.checkValueOwner(meta.dynamicField, newV);
 				tmpList.add(newV);
 			}
@@ -274,7 +272,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			};
 		}
 
-		// apply changed
 		for (var e : log.changesForRead().entrySet()) {
 			// 原位修改使用最终列表的索引。越界说明回放状态已分歧，应中断应用。
 			tmp.get(e.getValue().value).followerApply(e.getKey());
@@ -309,10 +306,10 @@ public class PList2<V extends Bean> extends PList<V> {
 		return copy;
 	}
 
-	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
+	/** 深拷贝元素赋值：2 系值可变，避免两个容器共享同一 Bean 引用。 */
 	public void assign(PList2<V> plist) {
 		if (this == plist)
-			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
+			return; // 避免自赋值先 clear 导致原内容丢失
 		// 使用目标映射校验和复制，成功后才清空。
 		var copy = meta.dynamicField != null ? plist.copy(meta) : plist.copy();
 		clear();
@@ -333,7 +330,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
 			return;
-		// JDK暂存+单发批量（语义等价，见PList1.decode注）；try只包valueFactory的invoke。
+		// 暂存后一次性批量写入，try 仅包裹 valueFactory.invoke。
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		try {
 			for (int i = n; i > 0; i--) {

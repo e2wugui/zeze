@@ -5,7 +5,7 @@ import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.TransactionLog;
 import org.jspecify.annotations.Nullable;
 
-/** Transaction-only persistent collection state; change notes are optional. */
+/** 事务内持久化集合状态基类，变更增量按需记录。 */
 public abstract class LogCollection<S extends Collection> implements TransactionLog {
 	protected final S source;
 

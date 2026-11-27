@@ -21,17 +21,12 @@ import org.rocksdb.RocksDBException;
 import Zeze.Util.RocksDatabase.Table;
 
 /**
- * AllocateId128 server
+ * Id128 UDP 发号服务端：接收批量 AllocateId128 请求并按 name 递增分配号段，可选经 RocksDB 持久化水位。
  */
 public class Id128UdpServer {
 	private static final Logger logger = LogManager.getLogger(Id128UdpServer.class);
 
-	/**
-	 * 唯一name数量上限。该UDP端口无认证，攻击者以
-	 * 合法count+海量不同name可无界撑爆cache/RocksDB。合法部署的name数量=History集群名
-	 * 数量，量级极小，1024远高于任何合理用量；纯内存部署（table==null）超限拒绝整包，
-	 * 持久化部署（table!=null）逐出闲置条目自愈（见evictIdleContext）。
-	 */
+	/** 唯一 name 缓存上限：纯内存模式超限拒绝，持久化模式逐出闲置条目后按需从 RocksDB 恢复。 */
 	public static final int MAX_UNIQUE_NAMES = 1024;
 
 	private static class Id128Context extends FastLock {
@@ -46,11 +41,11 @@ public class Id128UdpServer {
 	private final Thread worker; // 工作线程，根据性能测试情况，以后可能多个
 
 	public Id128UdpServer() throws IOException {
-		this(null, null, 0); // any ip & auto port.
+		this(null, null, 0); // 任意地址与自动分配端口
 	}
 
 	public Id128UdpServer(@Nullable Table table) throws IOException {
-		this(table, null, 0); // any ip & auto port.
+		this(table, null, 0); // 任意地址与自动分配端口
 	}
 
 	public Id128UdpServer(@Nullable Table table, @Nullable String host, int port) throws IOException {
@@ -112,13 +107,7 @@ public class Id128UdpServer {
 				bbSend.Reset();
 				try {
 					while (!bbRecv.isEmpty()) {
-						// 解码异常单独隔离限频并丢弃剩余报文。纯垃圾报文走
-						// Rpc.decode的IllegalStateException（非IllegalArgumentException），
-						// 落入共享catch的全栈error会按包记录，入口防护在最易构造的攻击
-						// 向量上失效。不按异常类型放宽共享catch——那会把encode段内部故障
-						// （如RocksDB异常路径上的RuntimeException）也降级为限频单行，违背
-						// "全栈与告警留给内部故障"的意图；decode输入完全对端可控，
-						// 天然只覆盖攻击面。剩余报文不可信（帧边界已错乱），丢弃。
+						// 解码异常归为非法输入限频告警并丢弃当前报文的剩余帧，避免与内部处理故障混淆。
 						try {
 							rpc.decode(bbRecv);
 						} catch (RuntimeException e) {
@@ -142,9 +131,7 @@ public class Id128UdpServer {
 					}
 				} catch (Exception e) {
 					if (e instanceof IllegalArgumentException) {
-						// 入口校验拒绝（对端可控输入）限频记一条、不打栈——无认证
-						// 端口上高频非法包按包全栈error可耗尽日志盘/CPU（日志刷屏DoS），全栈与
-						// 告警留给内部故障（RocksDB异常等）。
+						// 入口校验拒绝限频告警不打栈，防高频非法包刷爆日志。
 						warnRejected(e);
 					} else {
 						logger.error("process exception:", e);
@@ -179,18 +166,13 @@ public class Id128UdpServer {
 		var now = System.currentTimeMillis();
 		var last = lastRejectLogMs;
 		if (now - last < 60_000)
-			return; // 限频窗口内静默拒绝（race下至多多记几条）
+			return; // 限频窗口内静默跳过
 		lastRejectLogMs = now;
 		logger.error("AllocateId128 rejected (possible attack or misbehaving client), cached names={}: {}",
 				cache.size(), e.toString());
 	}
 
-	/**
-	 * 逐出一个未持锁的cache条目腾出槽位（满员自愈）。在途分配持锁不可逐出；
-	 * max推进即在锁内table.put持久化，逐出后按需经computeIfAbsent从RocksDB恢复，
-	 * 语义等同进程重启加载（put失败即进程重启同样丢失，不引入新损失类别）。
-	 * 全部条目持锁（病态并发）时失败。
-	 */
+	/** 尝试逐出一个未持锁的缓存条目以腾出槽位；全员持锁时返回 false。 */
 	private boolean evictIdleContext() {
 		for (var e : cache.entrySet()) {
 			var context = e.getValue();
@@ -211,17 +193,12 @@ public class Id128UdpServer {
 		var res = rpc.Result;
 		var name = arg.getBinaryName();
 		var count = arg.getCount();
-		// 入口校验（count与name均为对端可控，该UDP端口无认证）：count<=0使号段回退→跨客户端重复tid；
-		// 巨量count或无界唯一name撑爆cache/RocksDB。非法抛出，由run()内层catch记日志丢弃整包
-		// （诚实客户端报文不与攻击报文共用报文段，不受影响）。
+		// 入口校验（无认证 UDP 端口）：限制非法 count、过长 name 及无界唯一 name。
 		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX)
 			throw new IllegalArgumentException("AllocateId128 invalid count=" + count + " name.size=" + name.size());
 		if (name.size() > 128)
 			throw new IllegalArgumentException("AllocateId128 name too long: size=" + name.size());
-		// 新name（cache未命中）满员时不一律拒绝——持久化部署逐出一个闲置条目
-		// 自愈（重启冷却后cache为空，谁先请求谁占槽，一律拒绝会把合法History name锁死在
-		// rocks外，rpc超时直击finalCommit主路径）；纯内存部署无恢复手段（逐出即丢状态），
-		// 维持拒绝。竞态窗口内可能略超上限（多线程同时computeIfAbsent），有界即可。
+		// 持久化模式满员时尝试逐出闲置条目自愈，纯内存模式直接拒绝。
 		if (!cache.containsKey(name) && cache.size() >= MAX_UNIQUE_NAMES
 				&& (table == null || !evictIdleContext()))
 			throw new IllegalArgumentException("AllocateId128 unique names exceeded " + MAX_UNIQUE_NAMES
@@ -244,12 +221,9 @@ public class Id128UdpServer {
 			c.lock();
 			if (cache.get(name) == c) {
 				context = c;
-				break; // 持锁且在册：逐出需tryLock本上下文，临界区内不会被逐出。
+				break; // 持锁且在册：逐出需 tryLock 本上下文，临界区内不会被逐出。
 			}
-			// （多worker前瞻）：computeIfAbsent插入后未首次上锁的窗口内，条目可被
-			// evictIdleContext逐出、并发同name请求从rocks重建新上下文——孤儿上下文放锁重试。
-			// 不闭环则双上下文各持独立current/max分配重叠号段，孤儿的table.put还可能把max
-			// 写回旧值导致重载重发已交付区间。当前单worker不可达（worker注释「以后可能多个」）。
+			// 若加锁前已被逐出并重建，释放孤儿锁并重试，防止双上下文发放重叠号段。
 			c.unlock();
 		}
 		try {
@@ -258,8 +232,7 @@ public class Id128UdpServer {
 			current.increment(count);
 			var max = context.max;
 			if (current.compareTo(max) > 0) {
-				// 先落库再推进内存max（同AutoKey）：新水位至少覆盖本次交付终点；put失败
-				// max原地不动（丢弃的响应形成无害号洞），成功响应的号段必被已持久化水位覆盖。
+				// 先持久化新水位再推进内存 max，确保已交付号段必被持久化水位覆盖。
 				var newMax = max.clone();
 				newMax.increment(Math.max(fund.next(), count));
 				if (newMax.compareTo(current) < 0)

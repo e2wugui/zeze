@@ -22,32 +22,21 @@ public class Verify {
 	private static final Logger logger = LogManager.getLogger(Verify.class);
 
 	/**
-	 * 校验历史回放与源表一致。前置：所有app已checkpoint且当前app已停写（如先
-	 * WaitAllRunningTasksAndClear 静默），否则并发提交窗口会误报 record miss——详见方法内注释。
-	 * <p>
-	 * 覆盖边界：只校验 tHistory 记录中出现过的表（applyTables 按记录内的 tableId 建立）——
-	 * 从未产生过 history 记录的表静默不校验；且要求被校验表的 history 覆盖其全生命周期：
-	 * history 启用前已有存量数据、启用后又有写入的表，verifyAndClear 的合并视图能看到存量
-	 * 记录而回放副本无对应 Put，将确定性误报 record miss（规避法见 Simulate 的 clearTables）。
+	 * 校验历史回放与源表一致。调用前须保证所有 app 已 checkpoint 且已停写，
+	 * 仅校验 tHistory 中出现过且历史覆盖全生命周期的表。
 	 */
 	public static void run(Application zeze) throws Exception {
 		var applyDb = new ApplyDatabaseMemory();
 		var applyTables = new ConcurrentHashMap<Integer, ApplyTable<?, ?>>();
-		// 【注意】如果存在多个app，需要所有app都checkpoint，这里只保证当前app提交。
-		// 且当前app必须已停写（如先 WaitAllRunningTasksAndClear 静默，见 Simulate 用法）：
-		// checkpoint 后新提交的记录对 tHistory 的 walkDatabase 不可见（Table 模式下最多延迟
-		// 一个 period 才 flush），而 verifyAndClear 的 originTable.walk 走 cache+db 合并视图
-		// 可见，将误报 record miss。
+		// 仅触发当前 app 的 checkpoint；多 app 或未停写时 walkDatabase 与 cache+db 合并视图不一致会误报缺失。
 		zeze.checkpointRun();
 		var counter = new AtomicLong();
 		var total = new AtomicLong();
-		// null哨兵：(0,0)是合法的首个gid（Tid128Cache对齐TidCache先返后增后，SM从零起grant的段首号
-		// 会真实发放），不能再用零值Id128充当"无前驱"，否则全新部署的首条记录即被误判乱序。
+		// 使用 null 哨兵而非零值 Id128，因 (0,0) 为合法首个 gid。
 		var lastK = new OutObject<Id128>();
 		HistoryModule.get(zeze).getHistoryTable().walkDatabase((key, value) -> {
 			if (lastK.value != null && lastK.value.compareTo(key) >= 0) {
 				logger.error("out of Id128 order: {}, {}", lastK.value, key);
-				// Id128全序是回放确定性前提（游标空洞检测依赖），前提破坏时校验结果不可信，必须中断。
 				throw new RuntimeException("out of Id128 order: " + lastK.value + ", " + key);
 			}
 			lastK.value = key;
@@ -58,9 +47,7 @@ public class Verify {
 					if (tableName == null)
 						throw new RuntimeException("table id not found. id=" + r.getKey().getTableId());
 					logger.info("history apply table {}", tableName);
-					// 与ApplyHelper一致用全库查表（zeze.getTable）：业务表配置在命名数据库
-					// （<DatabaseConf Name="xxx">）时，getDatabase("").getTable只查默认库
-					// 必然返回null，Verify全量校验确定性中断。
+					// 通过 zeze.getTable 全库查找，兼容配置在非默认命名数据库中的业务表。
 					var originTable = zeze.getTable(tableName);
 					if (originTable == null)
 						throw new RuntimeException("table not found. name=" + tableName);

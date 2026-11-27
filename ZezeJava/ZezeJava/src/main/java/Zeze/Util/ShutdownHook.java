@@ -7,11 +7,8 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * JVM停机回调栈，LIFO契约：后注册先执行（按add逆序执行）。
- * 由此推出的注册时序约定：资源用户（如Raft）须先于其owner（如Application.start的
- * 注册点）注册——这样owner的拆卸先执行（停掉入口、静默化产生者），用户的收尾后执行；
- * 动态创建的资源请保证在其owner的注册之前完成注册，否则用户动作会先于owner执行，
- * 与owner尚在运转的资源并发。
+ * JVM 停机回调栈，按注册逆序（LIFO）执行。
+ * 资源使用方应先于其宿主注册，以保证停机时宿主先停入口、使用方后收尾。
  */
 public final class ShutdownHook {
 	private static final Logger logger = LogManager.getLogger(ShutdownHook.class);
@@ -35,7 +32,7 @@ public final class ShutdownHook {
 					var entry = entries[i];
 					try {
 						entry.getValue().run();
-					} catch (Throwable e) { // run handle.
+					} catch (Throwable e) {
 						logger.error("action({}).run exception:", entry.getKey(), e);
 					}
 				}

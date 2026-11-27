@@ -12,10 +12,8 @@ import io.netty.handler.codec.http.*;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 完全构建于HttpExchange公开流式API（beginStream/sendStream/endStream）之上的OutputStream适配层，
- * 供Prometheus exporter-common等需要OutputStream语义的库使用。无同包特权通道：响应经序化器按
- * pipelining到达序写出，close即endStream（exchange随之终结，幂等，框架auto-close为no-op）。
- * 异常中止路径（Content-Length无法兑现）仍直写ctx并关连接——连接随即失效，无错序可观察。
+ * 基于 HttpExchange 流式 API（beginStream/sendStream/endStream）的 OutputStream 适配层，
+ * 支持固定长度、分块编码（含背压等待）与无响应体三种模式。
  */
 public final class HttpResponseWithBodyStream {
 	private static final NoBodyStream noBodyStream = new NoBodyStream();
@@ -92,13 +90,12 @@ public final class HttpResponseWithBodyStream {
 			if (buffer.writableBytes() > 0) {
 				int expected = buffer.capacity();
 				int actual = buffer.readableBytes();
-				buffer.release(); // 异常路径也要释放pooled ByteBuf
-				// Content-Length已承诺但写入不足：不发终结符也要关闭连接，
-				// 否则客户端按Content-Length等剩余字节，悬挂到服务端空闲超时（默认60秒级）才被掐断。
+				buffer.release();
+				// 已承诺 Content-Length 但写入不足，关闭连接避免客户端悬挂等待。
 				x.context().writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 				throw new IOException("Incomplete content: Expected " + expected + " bytes, actual " + actual);
 			}
-			x.sendStream(buffer); // 所有权转移；CL模式下endStream的空终结符不产生额外字节
+			x.sendStream(buffer);
 			x.endStream();
 		}
 
@@ -111,9 +108,8 @@ public final class HttpResponseWithBodyStream {
 		private void ensureCapacity(int len) {
 			if (buffer.writableBytes() < len) {
 				int remaining = buffer.writableBytes();
-				closed = true; // 溢出后流作废，后续write/close不再触碰已释放的buffer
+				closed = true;
 				buffer.release();
-				// 溢出同样意味着承诺的Content-Length无法兑现，关闭连接避免客户端悬挂（同close异常路径）。
 				x.context().writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 				throw new IllegalStateException("Overflow: Attempt to write " + len +
 						" bytes, remaining capacity " + remaining);
@@ -125,11 +121,7 @@ public final class HttpResponseWithBodyStream {
 	 * 分块编码模式（contentLength == 0）
 	 */
 	private static class ChunkedBodyStream extends OutputStream {
-		// 慢客户端等待上限。这个等待发生在handler的派发线程上（虚拟线程配置下无耗尽问题；
-		// 平台线程池为CPU×30固定大小），过长会放大慢客户端攻击面：N个不读的连接各占住一个
-		// worker直到超时。5s对合法慢客户端足够排空水位级积压（32KB@7KB/s），死连接由服务端
-		// 写空闲超时（writeIdleTimeout，60s级）兜底，此处只需约束线程占用时长。
-		private static final long SlowPeerTimeoutMillis = 5_000;
+		private static final long SlowPeerTimeoutMillis = 5_000; // 慢客户端背压等待上限，避免长期占用派发线程
 
 		private final HttpExchange x;
 		private boolean closed;
@@ -152,8 +144,7 @@ public final class HttpResponseWithBodyStream {
 			if (len == 0)
 				return;
 			awaitWritable();
-			// OutputStream契约：write返回后调用方即可复用缓冲（GZIPOutputStream的deflate循环
-			// 就复用内部buf逐块写出），sendStream是零拷贝包装——这里必须拷贝。
+			// OutputStream 允许 write 返回后复用入参数组，异步发送需拷贝。
 			x.sendStream(Arrays.copyOfRange(b, off, off + len));
 		}
 
@@ -162,14 +153,10 @@ public final class HttpResponseWithBodyStream {
 			if (closed)
 				return;
 			closed = true;
-			x.endStream(); // chunked终结符（0\r\n\r\n）+exchange终结（幂等）
+			x.endStream();
 		}
 
-		// 背压：outbound缓冲越过水位（writePendingLimit，慢客户端）时等待当前积压写出再继续。
-		// 等待手段：提交一个空载体写并await其完成——空写不产生字节、不参与响应序（仅触发flush），
-		// 完成即积压已推向socket。h2流子通道只接受HttpObject族（AbstractHttp2StreamChannel对
-		// 非Http2StreamFrame直接fail promise），载体须用空HttpContent（经帧codec翻成0字节数据帧）；
-		// h1对非HttpObject直通0字节，空ByteBuf照旧。EventLoop线程不得等待（会死锁）；超时视为对端过慢。
+		// outbound 越水位时发空载体并等待刷新完成（h2 子通道只接受 HttpObject）；EventLoop 线程跳过防死锁。
 		private void awaitWritable() throws IOException {
 			var ch = x.channel();
 			if (ch.isWritable() || ch.eventLoop().inEventLoop())

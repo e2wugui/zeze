@@ -81,8 +81,7 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Game 版角色在线模块（Arch.Online 的孪生实现，差异在各锚点注释标注）：维护角色两级在线状态、
- * 本地登录数据、可靠通知、transmit 分发与多 OnlineSet，并按 link 分组向客户端发送协议。
+ * Game 版角色在线模块：维护角色两级在线状态、本地登录数据、可靠通知、transmit 分发与多 OnlineSet，并按 link 分组向客户端发送协议。
  */
 public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
@@ -100,12 +99,8 @@ public class Online extends AbstractOnline {
 
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private static final long LOCAL_CHECK_PERIOD = 600 * 1000; // 检查间隔
-	// 周期守护：verifyLocal(walk+批事务)进worker池不占调度线程；stop有界等待在飞一轮，
-	// 链复活口由组件关门封死。周期经setLocalCheckPeriod调整，下一次续约生效。
 	private final DaemonTimer verifyLocalDaemon = new DaemonTimer("Game.Online.verifyLocal", LOCAL_CHECK_PERIOD, this::verifyLocal);
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
-	// 配置不变式告警一次性开关：OnlineLogoutDelay >= localActiveTimeout 时verifyLocal可能在
-	// 重连宽限窗口内提前登出（见start处的校验），重复start不重复告警。
 	private final AtomicBoolean logoutDelayConfigWarned = new AtomicBoolean();
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
@@ -243,9 +238,6 @@ public class Online extends AbstractOnline {
 	}
 
 	public void start() {
-		// 配置不变式：tryRemoveLocal对eLinkBroken残留重走tryLogout的"不误清"论证仅对
-		// OnlineLogoutDelay < localActiveTimeout成立（默认60s<600s）。若运维把延迟登出配得
-		// 不小于不活跃门槛，verifyLocal会切进延迟登出的重连宽限窗口强制登出可恢复的会话。
 		var logoutDelay = providerApp.zeze.getConfig().getOnlineLogoutDelay();
 		if (logoutDelay >= localActiveTimeout && logoutDelayConfigWarned.compareAndSet(false, true))
 			logger.warn("OnlineLogoutDelay({}ms) >= localActiveTimeout({}ms): "
@@ -262,8 +254,6 @@ public class Online extends AbstractOnline {
 	}
 
 	private boolean processOffline(Long roleId, BLocal local, boolean serverStart) {
-		// 清理事务失败静默（startAfter重启清stale/stopBefore停机清理逐角色路径），
-		// rc记error含roleId——verifyLocal路径可下轮自愈，重启路径依赖下次重启；不引入重试。
 		var rc = providerApp.zeze.newProcedure(() -> procedureOffline(roleId, local, serverStart), "procedureOffline").call();
 		if (rc != 0)
 			logger.error("procedureOffline failed: onlineSet={}, roleId={}, serverStart={}, rc={}",
@@ -284,8 +274,7 @@ public class Online extends AbstractOnline {
 						multiInstanceName, account, roleId, ret);
 				return ret;
 			}
-			// 旧代本地数据只能清理自身；共享会话所有权以LoginVersion为凭证（此处已判不等），
-			// linkName/linkSid只是链路定位——即便相等也不能证明本次清理仍拥有共享会话。
+			// 旧代本地数据仅清理自身，不修改已换代的共享会话。
 			return 0;
 		}
 
@@ -307,7 +296,7 @@ public class Online extends AbstractOnline {
 		// for shorter use
 		logger.info("processOffline({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret);
-		if (ret != 0) // 与removeLocalAndTrigger对齐——失败码外传整体回滚，不推进登出状态机。
+		if (ret != 0)
 			return ret;
 
 		// see tryLogout
@@ -499,8 +488,7 @@ public class Online extends AbstractOnline {
 		return bLocal;
 	}
 
-	// getLoginLocal的非抛异常版本：本地条目缺失或LoginVersion落后于shared（角色已在别服重登，
-	// 残留待verifyLocal清理）时返回null。用getOnlineShared普通读，不产生getOrAdd的空shared条目。
+	// 非抛异常且不建行的本地登录查询，版本号落后于 shared 时返回 null。
 	private @Nullable BLocal tryGetLoginLocal(long roleId) {
 		var bLocal = _tlocal.get(roleId);
 		if (bLocal == null)
@@ -650,15 +638,10 @@ public class Online extends AbstractOnline {
 			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(providerApp.zeze, this, arg, roleId));
-		// 最终登出后ReliableNotify队列不再需要（重连同步随会话终结；同roleId重登
-		// 时Login路径本就clear重建），根行（空链）随曾登角色数残留（慢泄漏），故删根行。
-		// 仅最终登出(LOGOUT)清理：重复登录流程中途以LOGIN/RE_LOGIN补登出时，随后的
-		// reliableNotifySync仍依赖存活队列补投未确认的notify，必须保持队列存活。
+		// 仅最终登出清理 ReliableNotify 队列根行；重登补登出需保留队列供后续 reliableNotifySync 使用。
 		if (logoutReason == LogoutReason.LOGOUT) {
 			openQueue(roleId).remove();
-			// 自洽性：_tOnline行（承载ReliableNotifyIndex/ConfirmIndex）无删除
-			// 路径、最终登出后保留；若索引非零而队列根行已删，形成"非零索引+空后备队列"窗口
-			// （随后的ReLogin不重置索引，reliableNotifySync的range校验误判）。同事务清零消除。
+			// 同步清零索引，避免后续 ReLogin 校验与已删队列不一致。
 			var online = getOnline(roleId);
 			if (online != null) {
 				online.setReliableNotifyConfirmIndex(0);
@@ -680,9 +663,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private long loginTrigger(String account, long roleId) throws Exception {
-		// 计数非幂等，裸递增在redo（锁冲突整体重跑）下一次登录多计一次，
-		// 虚增LoadBase的onlineNew负载上报。挂whileCommit仅最终提交执行一次
-		// （与Arch/Online同型）。
+		// 挂 whileCommit 计数，避免事务 redo 重复累加。
 		Transaction.whileCommit(loginTimes::incrementAndGet);
 		var arg = new LoginArgument(this, account, roleId);
 		var ret = loginEvents.triggerEmbed(this, arg);
@@ -694,7 +675,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private long reloginTrigger(String account, long roleId) throws Exception {
-		// 同loginTrigger，计数挂whileCommit防redo重复。
+		// 同 loginTrigger，挂 whileCommit 防 redo 重复计数。
 		Transaction.whileCommit(loginTimes::incrementAndGet);
 		var arg = new LoginArgument(this, account, roleId);
 		var ret = reloginEvents.triggerEmbed(this, arg);
@@ -764,8 +745,6 @@ public class Online extends AbstractOnline {
 			logout((BDelayLogoutCustom)context.customData);
 		}
 
-		// 仅timer上下文调用（onSendError是幂等标记器不登出；verifyLocal的eLinkBroken残留
-		// 收敛经tryLogout直调不经过这里），故整体采用timer语义。
 		public static void logout(BDelayLogoutCustom custom) throws Exception {
 			var defaultOnline = Online.findOnline(custom.getProjectName());
 			if (defaultOnline == null)
@@ -782,12 +761,7 @@ public class Online extends AbstractOnline {
 					"DelayLogout({}): roleId={}, loginVersion={}, tryLogout={}",
 					custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion(), ret);
 			if (ret != 0)
-				// timer上下文不能吞码——包裹本回调的Timer.fireSimpleUser对handler硬编码return 0，
-				// 记日志后正常返回会提交logoutTrigger的半程状态（setLink(eOffline)已写、后续事件
-				// 被跳过），重入时tryLogout的state守卫看到已提交的eOffline→空洞成功。throw使嵌套
-				// 过程连同半程状态整体回滚（异常被Timer框架捕获记日志并终结times(1)到点的timer）；
-				// eLinkBroken残留由verifyLocal的eLinkBroken分支最终收敛（见tryRemoveLocal），
-				// 失败场景的收敛延迟由OnlineLogoutDelay变为localActiveTimeout一档（默认600s）。
+				// 抛出异常使 Timer 嵌套过程连同半程写入整体回滚，残留状态由 verifyLocal 收敛。
 				throw new RuntimeException("DelayLogout tryLogout fail, rollback half-written state. ret=" + ret
 						+ ", roleId=" + custom.getRoleId() + ", loginVersion=" + custom.getLoginVersion());
 		}
@@ -795,25 +769,15 @@ public class Online extends AbstractOnline {
 
 	public long onSendError(String account, long roleId,
 							String linkName, long linkSid) {
-		// 幂等标记器契约（极简）：onSendError只做"当前link的首个失败报告"标记eLinkBroken，
-		// 不触发登出/事件/清理/调度，全部由既有驱动收敛：
-		//  - 登出：linkBroken的DelayLogout宽限timer；timer失败残留→verifyLocal的eLinkBroken
-		//    分支直接重走tryLogout（见tryRemoveLocal）
-		//  - 陈旧local（版本不匹配）：登出/重登链的logoutTrigger→tryRedirectRemoveLocal
-		//    主动驱动旧属主清理 + verifyLocal兜底（localActiveTimeout，默认600s）。
-		//    sendError顺带的removeLocalAndTrigger只是加速器，非正确性依赖
-		// 状态守卫三态：eLogined才标记（首报告）；eLinkBroken跳过（重复报告幂等）；eOffline
-		// 跳过（迟到的错误报告不得把已登出状态机回退成eLinkBroken——回退会让verifyLocal对
-		// 其重走tryLogout造成重复logout事件）。
-		// 先查后建（对齐Arch版判例）：善后路径不创建状态——getOrAddOnlineShared
-		// 对已登出角色的迟到错误报告会创建空行并随事务提交残留。
+		// 仅将当前 link 的 eLogined 状态幂等标记为 eLinkBroken（不建行、不触发登出）；
+		// 登出由 linkBroken 调度的 DelayLogout 与 verifyLocal 收敛。
 		var onlineShared = getOnlineShared(roleId);
 		if (onlineShared == null)
 			return 0;
 		var link = onlineShared.getLink();
 		if (link.getState() != eLogined)
 			return 0;
-		// skip not owner: 报告必须对应当前link——重登后新link的旧报告在此挡下（保护新登录）。
+		// 仅处理当前 link 的报告，忽略旧连接迟到事件。
 		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
 			logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
 					multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
@@ -828,19 +792,14 @@ public class Online extends AbstractOnline {
 
 	public long linkBroken(String account, long roleId,
 						   String linkName, long linkSid) throws Exception {
-		// 先查后建：善后路径不创建状态（对齐Arch版与onSendError判例）——
-		// getOrAddOnlineShared对迟到报告会创建空行并随事务提交残留。
+		// 不自动建行，忽略已登出或未知条目。
 		var onlineShared = getOnlineShared(roleId);
 		if (onlineShared == null || onlineShared.getLink().getState() == eOffline)
 			return 0;
 
 		var local = _tlocal.get(roleId);
 		if (local == null) {
-			// （Game同型，对齐Arch版）：provider崩溃/重启后_tlocal（内存表）丢失，
-			// 但_tOnlineShared行（BOnline.serverId=本机）仍归本机——直接早退让该角色永久
-			// eLogined幽灵在线（isOnline/getLogin误报，不重登则永存）。
-			// 先核对当前link再善后：重登换链后迟到的旧linkName/linkSid报告不得把当前
-			// 登录链改写成旧值并为其安排登出（与下方非ghost路径的owner核对同一守卫）。
+			// 崩溃重启后 _tlocal 丢失但仍归属本机且 link 匹配时，仍需推进 eLinkBroken 并调度延迟登出。
 			var link = onlineShared.getLink();
 			if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
 				logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
@@ -887,7 +846,7 @@ public class Online extends AbstractOnline {
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
 		logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
-		if (ret != 0) // 失败码外传整体回滚（对齐Arch版triggerLinkBroken判例），不再调度DelayLogout。
+		if (ret != 0)
 			return ret;
 		zeze.getTimer().schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 				multiInstanceName, zeze.getProjectName()));
@@ -1106,7 +1065,6 @@ public class Online extends AbstractOnline {
 		errorSids.foreach(linkSid -> {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
-			// rc记error（失败时onSendError的清理未生效，断链残留待CheckLinkSession/verifyLocal路径自愈）。
 			var rc = roleId != null
 					? providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
 					"Online.triggerLinkBroken").call()
@@ -1289,7 +1247,6 @@ public class Online extends AbstractOnline {
 			logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			// rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
 			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 				var rc = onSendError("", roleId, linkName, link.getLinkSid());
 				if (rc != 0)
@@ -1303,7 +1260,6 @@ public class Online extends AbstractOnline {
 			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			// rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
 			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 				var rc = onSendError("", roleId, linkName, link.getLinkSid());
 				if (rc != 0)
@@ -1319,7 +1275,6 @@ public class Online extends AbstractOnline {
 			logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			// rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
 			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 				var rc = onSendError("", roleId, linkName, link.getLinkSid());
 				if (rc != 0)
@@ -1338,7 +1293,6 @@ public class Online extends AbstractOnline {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 补发的linkBroken没有account上下文
-				// rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
 				var rc = providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 				if (rc != 0)
@@ -1478,7 +1432,6 @@ public class Online extends AbstractOnline {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
-				// rc记error（转发动作失败仅本角色受影响，不影响后续target）。
 				var rc = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
 						"Online.transmit: " + actionName)).call();
 				if (rc != 0)
@@ -1486,10 +1439,6 @@ public class Online extends AbstractOnline {
 							actionName, sender, target, rc);
 			}
 		} else {
-			// 远程目标服未注册该action（滚动升级版本偏斜/各OnlineSet注册不对称）时
-			// 不得静默丢弃——否则本源以为已路由、目标端无痕迹。对齐同handler未知onlineSetName先例
-			// 记error（Transmit为单向Protocol无错误码通道，抛异常在Task兜底下无增益）。
-			// roles可能是批量广播目标，按size计数+截断采样防日志洪水。
 			var sample = new ArrayList<Long>();
 			var size = 0;
 			for (var target : roleIds) {
@@ -1585,9 +1534,6 @@ public class Online extends AbstractOnline {
 			//noinspection DataFlowIssue
 			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
 			if (ps == null) {
-				// direct路由缺失：降级为本机执行——transmit契约是"在目标服
-				// 上下文执行"，依赖目标服local数据的action行为可能错误。等待/重试/显式失败
-				// 属产品决策，本处至少warn使降级可观测（不再静默）。
 				logger.warn("transmitEmbed: provider direct route missing, degrade to local. serverId={}, action={}, roles={}",
 						group.serverId, actionName, group.roles);
 				if (groupLocal == null)
@@ -1597,7 +1543,6 @@ public class Online extends AbstractOnline {
 			}
 			var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 			if (socket == null) {
-				// direct连接未就绪：同上，降级必须可观测。
 				logger.warn("transmitEmbed: provider direct socket not ready, degrade to local. serverId={}, action={}, roles={}",
 						group.serverId, actionName, group.roles);
 				if (groupLocal == null)
@@ -1707,7 +1652,7 @@ public class Online extends AbstractOnline {
 		var pdata = broadcast.encode();
 		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {
-			// 单次读取再判空使用：两次独立getSocket()在Connector.stop置空socket的窗口内TOCTOU NPE。
+			// 单次读取 socket 后判空，避免与 Connector.stop 并发导致 NPE。
 			var so = link.getSocket();
 			if (so != null && so.Send(pdata)) {
 				ZezeCounter.instance.addSendSize(Broadcast.TypeId_, pdata.size()); // wrapper归因
@@ -1765,10 +1710,7 @@ public class Online extends AbstractOnline {
 		void perform() {
 			if (!roleIds.isEmpty()) {
 				try {
-					// 批内tryRemoveLocal的rc必须传播（对齐Arch VerifyBatch）——
-					// 否则eLinkBroken分支tryLogout的半程失败（eOffline已写、事件被跳过）会随批提交，
-					// 下轮verifyLocal的state守卫判为已登出→空洞成功。rc!=0整批回滚并记error
-					//（探测照发，失败账号由CheckLinkSession应答路径继续驱动verify）。
+					// 传播 tryRemoveLocal 失败码使整批回滚，随后仍发 CheckLinkSession 探测驱动清理。
 					var rc = providerApp.zeze.newProcedure(() -> {
 						for (var roleId : roleIds) {
 							var rc2 = tryRemoveLocal(roleId, true);
@@ -1814,10 +1756,7 @@ public class Online extends AbstractOnline {
 				|| onlineShared.getLoginVersion() != local.getLoginVersion())
 			return removeLocalAndTrigger(roleId, notVerifyCount);
 		if (onlineShared.getLink().getState() == eLinkBroken) {
-			// eLinkBroken残留（DelayLogout失败回滚后无人驱动，镜像Arch）在此收敛——
-			// 重走tryLogout全链（state+版本双守卫内建：延迟期间同roleId重登则no-op）。verifyLocal的
-			// 入选门槛（localActiveTimeout，默认600s）需远超OnlineLogoutDelay（默认60s）才不会误清
-			// 延迟窗口内的可恢复会话（见start处的配置告警）。
+			// eLinkBroken 残留（如 DelayLogout 失败回滚后）在此重走 tryLogout 收敛。
 			return tryLogout(new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 					multiInstanceName, providerApp.zeze.getProjectName()));
 		}
@@ -1832,7 +1771,6 @@ public class Online extends AbstractOnline {
 			// 能收到redirect的肯定是defaultOnline，这里为了保险期间和代码更清楚，直接使用defaultOnline。
 			var onlineSet = defaultOnline.getOnline(instanceName);
 			if (onlineSet != null) {
-				// rc记error（失败时目标服的local行残留，待其verifyLocal周期自愈）。
 				var rc = providerApp.zeze.newProcedure(() -> onlineSet.tryRemoveLocal(roleId, false),
 						"Online.redirectRemoveLocal").call();
 				if (rc != 0)
@@ -2049,8 +1987,6 @@ public class Online extends AbstractOnline {
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);
 
-		// 失败码外传整体回滚（孪生，对齐Arch版），且respond移到判定之后——
-		// 失败回滚时不再发出成功应答（Rpc失败由框架trySendResultCode回发错误码）。
 		var ret = localLogout(session.getRoleId(), rpc.getSender(), session.getLinkSid());
 		if (ret != 0)
 			return ret;
@@ -2163,12 +2099,7 @@ public class Online extends AbstractOnline {
 	}
 
 	/**
-	 * 动态绑定模块。返回值语义：true 表示 login online 存在且已登记"提交后发送Bind"；
-	 * Bind是否实际送达以linkd侧为准——whileCommit在事务提交后才执行，
-	 * 同步返回值无法承载实际发送结果，link socket缺失或同步发送失败仅记warn，
-	 * 调用方不应据true判定送达成功。
-	 * 另：事务回滚时whileCommit不执行，Bind不会发出——true同样不覆盖该分支
-	 * （与link miss同属"登记成功但未送达"的情形）。
+	 * 动态绑定模块。返回 true 仅表示在线记录存在且已登记在事务提交后发送 Bind，不代表 linkd 已送达。
 	 */
 	public boolean bindDynamic(long roleId, int ... moduleIds) {
 		var bean = getLoginOnlineShared(roleId);
@@ -2180,7 +2111,6 @@ public class Online extends AbstractOnline {
 			var connector = providerApp.providerService.getLinks().get(link.getLinkName());
 			var socket = connector == null ? null : connector.getSocket();
 			if (socket == null) {
-				// linkd连接已不在（注销/断开），link会话已死，bind无意义；stale login由link broken机制清理。
 				logger.warn("bindDynamic: link miss. linkName={}, roleId={}, moduleIds={}",
 						link.getLinkName(), roleId, java.util.Arrays.toString(moduleIds));
 				return;
@@ -2191,8 +2121,7 @@ public class Online extends AbstractOnline {
 				bind.Argument.getModules().put(moduleId, new BModule.Data(
 						BModule.ChoiceTypeDefault, true));
 			}
-			// 同步失败（连接关闭等）时future已被置"Send Fail"异常——此刻即可告警；
-			// 发送成功后的超时/错误码属已发出的后续命运，不在此重复告警。
+			// 仅对同步发送失败（如连接关闭）记告警。
 			if (bind.SendForWait(socket).isCompletedExceptionally())
 				logger.warn("bindDynamic: send fail. linkName={}, roleId={}, moduleIds={}",
 						link.getLinkName(), roleId, java.util.Arrays.toString(moduleIds));

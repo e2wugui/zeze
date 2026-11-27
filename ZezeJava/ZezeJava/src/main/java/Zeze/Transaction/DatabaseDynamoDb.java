@@ -62,9 +62,6 @@ public class DatabaseDynamoDb extends Database {
 
 	private static AmazonDynamoDB createClient(Config.DatabaseConf conf) {
 		var dynamoConf = Objects.requireNonNull(conf.getDynamoConf());
-		// 证书经配置文件指定的profile解析；endpoint按region解析并启用discovery——
-		// 显式指定endpoint（便于测试指向本地模拟器）需扩展DynamoConf增加endpoint字段，
-		// 当前配置无该字段。
 		return AmazonDynamoDBClientBuilder.standard()
 				.withRegion(dynamoConf.region)
 				.enableEndpointDiscovery()
@@ -73,8 +70,7 @@ public class DatabaseDynamoDb extends Database {
 
 	@Override
 	public void close() {
-		// 客户端内含连接池与IdleConnectionReaper强引用，不shutdown即泄漏
-		// （SDK明示语义）。双段守卫：super抛错也必达shutdown，与stopStep异常隔离双保险。
+		// 分别捕获，确保 super.close() 异常时仍能 shutdown 客户端连接池。
 		try {
 			super.close();
 		} catch (Throwable e) { // logger.error
@@ -103,7 +99,7 @@ public class DatabaseDynamoDb extends Database {
 		public OperatesDynamoDb() {
 			var schemaTableName = "Zeze_OperatesDynamoDb_Schemas";
 			dataWithVersion = (TableDynamoDb)openTable(schemaTableName, Bean.hash32(schemaTableName));
-			// Schema compatibility reads this table before Database.open waits for user tables.
+			// schemas 兼容检查早于用户表 waitReady 读取该表，须在此就绪等待。
 			dataWithVersion.waitReady();
 		}
 
@@ -120,12 +116,7 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			// 读-判-写必须原子：多实例并发启动（tryLock 恒真的后端）同时进入 schemasCompatible 时，
-			// 读-判-写会丢失更新，级联出重复 renameTable 丢表数据。
-			// 这里用“完整旧值”做服务端条件写（PutItem + ConditionExpression）：
-			// value 是 DataWithVersion 的确定性编码（decode->encode 字节往返一致），
-			// 完整值相等蕴含 version 相等。并发修改/插入时条件失败抛
-			// ConditionalCheckFailedException，返回 false 让调用方(schemasCompatible)重读重试。
+			// 服务端条件写（完整旧值相等或键不存在），并发冲突由上层 schemasCompatible 重读重试。
 			var oldBb = dataWithVersion.find(key);
 			var oldBytes = oldBb != null ? oldBb.CopyIf() : null;
 			if (oldBytes != null && DataWithVersion.decode(oldBytes).version != version)
@@ -175,11 +166,7 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public void commit() {
-			// AWS TransactWriteItems 每请求最多100项，同一请求不能对同一表的同一键操作两次。
-			// 上层须控制关联记录集及聚批，不能依靠拆分一个业务事务/RRS来维持原子性。
-			// 现有切批只保证各请求内部原子：前批已提交、后批失败/进程退出会留下部分提交；
-			// checkpoint的整组幂等重试不能保证崩溃后的事务原子恢复。同键等服务端限制也可能
-			// 让checkpoint持续重试失败；这些后端容量限制需要上层约束，当前保留切批行为。
+			// TransactWriteItems 单请求上限 100 项，分批提交仅保证单批原子，需上层控制关联记录集规模。
 			for (var begin = 0; begin < writes.size(); begin += TRANSACT_WRITE_ITEMS_MAX) {
 				var items = writes.subList(begin, Math.min(begin + TRANSACT_WRITE_ITEMS_MAX, writes.size()));
 				dynamoDbClient.transactWriteItems(new TransactWriteItemsRequest().withTransactItems(items));
@@ -212,8 +199,7 @@ public class DatabaseDynamoDb extends Database {
 	}
 
 	private static final KeySchemaElement keySchema = new KeySchemaElement("key", KeyType.HASH);
-	// CreateTable 要求 AttributeDefinitions 与 KeySchema 的属性精确匹配，声明主键属性"key"的类型；
-	// 原来误写成"value"，表不存在时首次建表直接 ValidationException。
+	// AttributeDefinitions 必须与 KeySchema 主键属性名一致。
 	private static final AttributeDefinition keyAttribute = new AttributeDefinition("key", ScalarAttributeType.B);
 
 	private class TableDynamoDb extends Database.AbstractKVTable {
@@ -242,18 +228,12 @@ public class DatabaseDynamoDb extends Database {
 			return isNew;
 		}
 
-		/**
-		 * AWS createTable是异步的：CREATING期间任何读写抛ResourceNotFoundException。
-		 * open()的waitReady()默认空实现，不覆写则启动期schemasCompatible的首次GetItem
-		 * 直接启动失败（该循环不重试）、首批flush反复失败。轮询describeTable直到ACTIVE。
-		 */
+		/** createTable 为异步操作，轮询 describeTable 直至表进入 ACTIVE/UPDATING。 */
 		@Override
 		public void waitReady() {
-			// isNew=false（表已存在）时通常早已ACTIVE，一次describe即过，无额外启动延迟。
 			var deadline = System.currentTimeMillis() + 60_000;
 			while (true) {
 				var status = dynamoDbClient.describeTable(name).getTable().getTableStatus();
-				// SDK v1的getTableStatus()返回String（如"CREATING"/"ACTIVE"）
 				if (TableStatus.ACTIVE.toString().equals(status) || TableStatus.UPDATING.toString().equals(status))
 					return;
 				if (System.currentTimeMillis() > deadline)
@@ -277,8 +257,7 @@ public class DatabaseDynamoDb extends Database {
 			var keyPrimary = new HashMap<String, AttributeValue>();
 			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
 			var req = new GetItemRequest(name, keyPrimary);
-			// 强一致读（Dynamo 默认最终一致）：记录接管场景（flushWhenReduce 先 flush 后放权）下，
-			// 新持有者冷读时副本未追上会读到旧值甚至 ABSENT，基于旧值覆盖写丢失前一个进程的已提交更新。
+			// 必须使用强一致读，避免记录跨进程接管后冷读到过期副本。
 			req.setConsistentRead(true);
 			var item = dynamoDbClient.getItem(req).getItem();
 			if (item == null)
@@ -384,18 +363,12 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			// 主要是 SafeBatch 的问题：它把返回的游标持久化进 BBatch 供下一轮续扫，而 Scan 的
-			// ExclusiveStartKey 只是"从该 item 的扫描位置继续"的翻页书签——书签 item 可能已被
-			// 删除、表增长引发分区分裂后位置同样失效（AWS 只承诺回传 LastEvaluatedKey，自造
-			// 游标属未定义行为）。且 Scan 无 key 排序保证，History 回放/Verify 要求按
-			// GlobalSerialId 严格有序（Verify 有显式断言）。表只有 hash key 没有 sort key，
-			// 结构上给不出分页协议要求的 key 全序流，对齐 Redis/Tikv 显式声明不支持。
+			// 表仅有 hash key，Scan 无 key 全序且游标不支持跨轮持久化，不支持分页遍历。
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
-			// 同 walk：Scan 无 key 序且 SafeBatch 游标语义未定义。
 			throw new UnsupportedOperationException();
 		}
 

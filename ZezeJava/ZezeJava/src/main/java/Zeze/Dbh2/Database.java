@@ -120,9 +120,7 @@ public class Database extends Zeze.Transaction.Database {
 			var error = IModule.getErrorCode(r.getResultCode());
 			if (error == BGetDataWithVersion.eDataNotExists)
 				return null;
-			// 其他错误（超时/断连等瞬时故障）不能当作"无数据"返回null：
-			// 调用方（Application全局数据初始化）会把null当首次初始化并以version=0写回，
-			// 与Master端CAS叠加可把已存储的全局数据用默认值覆写。
+			// 瞬时错误必须抛异常，不得当作“无数据”返回 null 以免覆盖存量全局数据
 			if (r.getResultCode() != 0)
 				throw new RuntimeException("GetDataWithVersion error=" + error);
 			var result = new DataWithVersion();
@@ -299,9 +297,7 @@ public class Database extends Zeze.Transaction.Database {
 		@Override
 		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey,
 											 int proposeLimit, TableWalkHandleRaw callback) throws Exception {
-			// desc空起点游标必须传null（walkPage转Binary.Empty）：addPrefix(null)=裸4字节prefix，
-			// 服务端seekForPrev(裸prefix)落在目标前缀区间下方的异前缀key上，恒返回空。
-			// 非空游标照旧加前缀（服务端seekForPrev全键定位）。
+			// desc 空起点游标传 null（避免 addPrefix(null) 产生裸前缀定位到错误区间），非空游标加前缀
 			return removePrefix(dbh2AgentManager.walk(masterAgent, masterName, databaseName, table.getName(),
 					exclusiveStartKey != null ? addPrefix(exclusiveStartKey) : null, proposeLimit, callback, true, prefix));
 		}
@@ -309,7 +305,6 @@ public class Database extends Zeze.Transaction.Database {
 		@Override
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey,
 												int proposeLimit, TableWalkKeyRaw callback) throws Exception {
-			// 同walkDesc：desc空起点游标传null，不走裸prefix；非空游标照旧加前缀。
 			return removePrefix(dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, table.getName(),
 					exclusiveStartKey != null ? addPrefix(exclusiveStartKey) : null, proposeLimit, callback, true, prefix));
 		}
@@ -323,9 +318,7 @@ public class Database extends Zeze.Transaction.Database {
 			dbh2AgentManager.commit(batches);
 		}
 
-		// 约定（对齐 IApplyTable，2a99442ab）：传入的 key/value 放弃所有权——replace/remove 暂存
-		// Binary 直接引用缓冲内容；暂存要活到 raft apply，且键内容参与批次集合查找，
-		// 调用返回后不得再修改数组内容。
+		// 传入的 key/value 由内部直接引用直至提交，调用返回后不得再修改其底层数组
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
 			if (value.size() <= 0)
 				throw new RuntimeException("value.size <= 0.");
@@ -358,8 +351,7 @@ public class Database extends Zeze.Transaction.Database {
 
 	public class Dbh2Table extends Zeze.Transaction.Database.AbstractKVTable {
 		private final String name;
-		// 仅prefix路径通过tables.computeIfAbsent入表的实例为true；非prefix实例不入表，
-		// close()不能删共享map条目（否则误摘仍被prefix表持有的实例，引用计数与map错位级联）。
+		// 仅通过 prefix 路径登记到 tables 共享映射的实例为 true，decRef 时才可移除条目
 		private final boolean registered;
 		private boolean isNew;
 		private final TaskCompletionSource<Integer> ready = new TaskCompletionSource<>();
@@ -376,8 +368,7 @@ public class Database extends Zeze.Transaction.Database {
 				close();
 		}
 
-		// 建表重试总预算：非final便于测试收缩。master/manager空窗（重启、扩容、选举）以十秒计，
-		// 5分钟覆盖滚动重启窗口后仍有界。
+		// 建表重试总预算（覆盖 master/manager 重启与扩容空窗）
 		static volatile long createTableRetryBudgetMs = 5 * 60_000L;
 
 		public Dbh2Table(String tableName, boolean registered) {
@@ -387,15 +378,7 @@ public class Database extends Zeze.Transaction.Database {
 			createTableWithRetry(1_000, System.currentTimeMillis() + createTableRetryBudgetMs);
 		}
 
-		// 建表异步重试：eTableNotFound/eTooFewManager是master/manager空窗的暂时性失败
-		//（master侧createTable幂等：存在即返回，重试无重复建桶副作用），1s起指数退避封顶30s，
-		// 超总预算才setException；其他错误码（配置类，如eDatabaseNotFound）立即失败。
-		// Procedure.Exception（-1）：master侧handler异常逃逸（createBucketRafts超时/建桶rpc失败等）
-		// 被noProcedure派发层统一翻成的码——扩容滚动窗口的现实暂时性失败，码面无法区分暂时/永久，
-		// 重试并以总预算兜底。
-		// Procedure.Timeout（-10）：客户端createTableAsync的60s rpc超时——只代表master建表慢
-		//（内层CreateBucket持table.lock含30s超时rpc，冷启动桶raft选主风暴可整体拖过60s，
-		// soak-20261111-1320实锤35连红），服务端幂等，超时重试安全。
+		// 建表异步指数退避重试（上限 30s，总预算内）：仅对幂等可重试的暂时性失败码重试，其余错误立即失败
 		private void createTableWithRetry(long retryDelayMs, long deadlineMs) {
 			dbh2AgentManager.createTableAsync(
 					Database.this.masterAgent, Database.this.masterName,
@@ -454,7 +437,7 @@ public class Database extends Zeze.Transaction.Database {
 				if (kv.getKey())
 					return kv.getValue();
 
-				// miss match bucket
+				// 桶不匹配，刷新路由后重试
 				dbh2AgentManager.reload(
 						Database.this.masterAgent, Database.this.masterName,
 						Database.this.databaseName, name);

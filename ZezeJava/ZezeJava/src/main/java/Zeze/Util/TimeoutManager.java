@@ -8,10 +8,10 @@ import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
+/** 分片时间桶超时管理器：基于 System.nanoTime() 单调时钟按秒桶汇聚调度超时回调。 */
 public class TimeoutManager {
 	private static final Logger logger = LogManager.getLogger(TimeoutManager.class);
-	// 时基：System.nanoTime() 单调钟，免疫 NTP 步进校正与手动改钟（墙钟会带着在途桶集体漂移）。
-	// 桶粒度参数化：亚秒桶只改这一个常量并重跑验证（当前秒桶，量化语义 (timeout, timeout+1s]）。
+	// 基于 System.nanoTime() 单调时钟按秒分桶，免疫墙钟回拨
 	private static final long BUCKET_NS = 1_000_000_000L;
 
 	private final Concurrent[] concurrents = new Concurrent[16];
@@ -20,14 +20,12 @@ public class TimeoutManager {
 	class Concurrent extends ReentrantLock {
 		private final LongHashMap<TimeoutSet> indexedMap = new LongHashMap<>(1024);
 		private final PriorityQueue<TimeoutSet> bucketQueue = new PriorityQueue<>();
-		// 单写者(Worker)每排水一桶后直设；写在锁外，锁的HB边盖不住，须volatile让schedule读者立刻可见。
+		// Worker 锁外更新、schedule 线程读，需 volatile 保证可见性
 		private volatile int timeoutSetInitialCapacity = 1024;
 
 		@Nullable Timeout schedule(Worker expectedWorker, long timeoutMs, Action0 action0,
 								   Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
-			// 公开入口的上界校验即溢出防线：365天×1e6 与 Long.MAX 有 292× 余量，
-			// 合法输入的乘法→加法→ceil 全链路不可能溢出。
-			// ceil 保证实际延迟 ≥ 请求值（只晚不早）；id 是纳秒秒界，回绕安全见 tick。
+			// 向上取整到秒桶边界（只晚不早）；入口已限制超时上限，算术不会溢出
 			var indexId = Math.ceilDiv(System.nanoTime() + timeoutMs * 1_000_000L, BUCKET_NS) * BUCKET_NS;
 
 			lock();
@@ -60,20 +58,18 @@ public class TimeoutManager {
 					head = bucketQueue.peek();
 					if (null == head)
 						return Long.MAX_VALUE;
-					// 只做减法不做裸比较：long 模运算下天然回绕安全（nanoTime 原点任意且 ~292 年回绕）。
+					// 差值比较在 long 模运算下回绕安全
 					var remainingNs = head.id - nowNs;
 					if (remainingNs > 0)
-						return Math.ceilDiv(remainingNs, 1_000_000L); // 余量转 ms 向上取整：宁可晚醒不早醒
+						return Math.ceilDiv(remainingNs, 1_000_000L); // 向上取整转 ms：宁可晚醒不早醒
 					bucketQueue.poll();
 					indexedMap.remove(head.id);
 				} finally {
 					unlock();
 				}
-				var peak = head.run(); // 返回高水位：表容量由在场峰值决定（cancel缩不掉的历史峰）。
+				var peak = head.run();
 
-				// 负载因子0.75折算零rehash容量，按峰值一步到位（比例控制）：
-				// 桶粒度1s、负载自相关，上桶峰值即下桶估计；阶梯翻倍在突发桶上要log2秒爬坡，
-				// 期间每秒新桶都在add锁内反复rehash。long中转防溢出，clamp [1024,1M]。
+				// 按 0.75 负载因子由上桶峰值折算下桶初始容量，钳位到 [1024, 1M]
 				timeoutSetInitialCapacity = (int)Math.clamp(peak * 4L / 3 + 1, 1024L, 1024L * 1024L);
 			}
 		}
@@ -92,7 +88,7 @@ public class TimeoutManager {
 			lock();
 			try {
 				int total = 0;
-				for (var set : bucketQueue) // 迭代器全量访问活桶（无序）；LongHashMap 无 values() 故走堆
+				for (var set : bucketQueue)
 					total += set.size();
 				return total;
 			} finally {
@@ -112,10 +108,10 @@ public class TimeoutManager {
 			this.timeouts = new HashSet<>(timeoutSetInitialCapacity);
 		}
 
-		private int highWaterMark; // 锁内顺手维护在场峰值：容量需求的真实测量。
+		private int highWaterMark; // 锁内记录在场峰值，用于估算下桶初始容量
 
 		void add(Timeout t) {
-			// add和本类被poll互斥，这里不需要保护。
+			// add 与 poll 在 Concurrent 锁内互斥
 			lock.lock();
 			try {
 				timeouts.add(t);
@@ -127,7 +123,7 @@ public class TimeoutManager {
 		}
 
 		void remove(Timeout t) {
-			// remove和本类poll不互斥，需要加个状态保护。
+			// remove 与 poll 可并发，需持桶锁并检查 polled
 			lock.lock();
 			try {
 				if (!polled)
@@ -138,7 +134,7 @@ public class TimeoutManager {
 		}
 
 		int size() {
-			lock.lock(); // 桶锁内精确读：与add/remove互斥；调用方pendingSize先持分片锁，锁序stripe→set与schedule一致
+			lock.lock(); // 持桶锁精确读（锁序 stripe -> set，与 schedule 一致）
 			try {
 				return timeouts.size();
 			} finally {
@@ -151,11 +147,11 @@ public class TimeoutManager {
 			lock.lock();
 			try {
 				polled = true;
-				peak = highWaterMark; // 锁内取：与add/remove互斥，无脏读。
+				peak = highWaterMark;
 			} finally {
 				lock.unlock();
 			}
-			// 本集合已经摘除，而且是在Concurrent锁内摘除的，不会和add并发。remove并发是可能的。
+			// 本桶已在 Concurrent 锁内摘除，仅可能与 remove 并发（polled=true 已拦截修改）
 			for (var timeout : timeouts) {
 				TaskSpec.ofAction(timeout).dispatchMode(timeout.getDispatchMode()).executeSystemOneByOne();
 			}
@@ -165,8 +161,7 @@ public class TimeoutManager {
 
 		@Override
 		public int compareTo(TimeoutSet o) {
-			// 回绕减法取符号（非 Long.compare 的线性序）：对真实差 < ±146 年的值给出正确循环序，
-			// 与 tick 的减法判定一致贯彻"只做减法"铁律；活桶跨度 ≤ 最大超时一年，远在有效窗内。
+			// 差值符号比较，保证 nanoTime 回绕下的正确顺序
 			return Long.signum(id - o.id);
 		}
 	}
@@ -190,17 +185,15 @@ public class TimeoutManager {
 
 	@Nullable Timeout scheduleIfRunning(long timeoutMs, Action0 action0,
 									  Func2<TimeoutSet, Action0, Timeout> timeoutFactory) {
-		if (timeoutMs < 0 || timeoutMs > 365L * 24 * 3600 * 1000) // 最大超时允许一年。
+		if (timeoutMs < 0 || timeoutMs > 365L * 24 * 3600 * 1000) // 最大超时允许一年
 			throw new IllegalArgumentException("timeoutMs < 0 || timeoutMs > 365days");
 		Worker w = worker;
 		if (null == w)
 			return null;
-		// unsigned mod % 16
 		return concurrents[(int)(Thread.currentThread().threadId() & 15)].schedule(w, timeoutMs, action0, timeoutFactory);
 	}
 
-	/** 当前在桶内的超时条目总数。诊断/测试观测点：逐桶桶锁内精确读、逐分片分片锁内求和；
-	 * 跨桶/跨分片是不同时刻的读，非一致快照——总量对"等待回落"类断言必然可收敛。 */
+	/** 返回当前各分片桶内的超时条目总数（非跨分片一致快照）。 */
 	public int size() {
 		int total = 0;
 		for (var c : concurrents)
@@ -221,8 +214,7 @@ public class TimeoutManager {
 		var w = worker;
 		worker = null;
 		if (w != null) {
-			w.shutdown(); // shutdown 失败，但上面worker已置空，忽略这个问题。关机过程中的错误不严格处理。
-			// 下面不clear，下一次start，timeout还能继续工作，但这个有点奇怪，还是clear吧。
+			w.shutdown();
 			for (var c : concurrents) {
 				c.clear();
 			}

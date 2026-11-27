@@ -107,8 +107,7 @@ public abstract class DatabaseJdbc extends Database {
 			conn = dataSource.getConnection();
 			return new JdbcTrans(conn);
 		} catch (SQLException e) {
-			// 连接进入 JdbcTrans（其 close 负责归还）之前构造失败（如借出即坏连接 setAutoCommit 抛出），
-			// 此时连接无人关闭：Druid 默认 maxWait=-1，累积泄漏到 maxActive 后 getConnection 永久阻塞。
+			// JdbcTrans 构造失败时归还已借连接，防止连接池泄漏。
 			if (conn != null) {
 				try {
 					conn.close();

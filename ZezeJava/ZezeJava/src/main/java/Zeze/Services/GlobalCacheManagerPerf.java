@@ -68,9 +68,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 	void onAcquireEnd(Protocol<?> rpc, int state) {
 		var beginTime = acquires.remove(rpc);
 		if (beginTime != null) {
-			// 防御式上界检查（对齐onAcquireBegin）：begin只登记合法state的rpc，end与begin的
-			// state来自同一请求，正常不会越界；兜底防止未来调用点变化时totalAcquireCounts[state]
-			// 数组越界（AIOOBE）。remove必须在检查前完成（防条目泄漏）。
+			// 先移除再校验上界，避免异常 state 导致条目泄漏或数组越界
 			if (Integer.compareUnsigned(state, ACQUIRE_STATE_COUNT) >= 0)
 				return;
 			var time = System.nanoTime() - beginTime;
@@ -142,8 +140,8 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			var sb = new StringBuilder().append("SerialIds = ").append(serialIds).append('\n');
 			for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
 				long count = totalAcquireCounts0[i];
-				long totalAcquireTime = totalAcquireTimes[i].sumThenReset(); // 零计数轮也清零：残留会使下轮均值虚高
-				long maxAcquireTime = maxAcquireTimes[i].getAndSet(0); // 同上；onAcquireEnd无锁，与report存在count已入轮而max后落的撕裂窗口
+				long totalAcquireTime = totalAcquireTimes[i].sumThenReset(); // 零计数轮也清零，避免残留抬高下轮均值
+				long maxAcquireTime = maxAcquireTimes[i].getAndSet(0);
 				sb.append("Acquires.").append(ACQUIRE_STATE_NAMES[i]).append(" = ").append(count);
 				if (count > 0) {
 					sb.append(", ").append(totalAcquireTime / count / 1_000).append(" us/acquire, max: ")
@@ -155,8 +153,8 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 				sb.append('\n');
 			}
 			sb.append("Reduces          = ").append(totalReduceCountSum);
-			var totalReduceTimeSum = totalReduceTime.sumThenReset(); // 同acquires：零计数轮也清零
-			var maxReduceTime0 = maxReduceTime.getAndSet(0); // 同acquires的撕裂窗口
+			var totalReduceTimeSum = totalReduceTime.sumThenReset();
+			var maxReduceTime0 = maxReduceTime.getAndSet(0);
 			if (totalReduceCountSum > 0) {
 				sb.append(", ").append(totalReduceTimeSum / totalReduceCountSum / 1_000)
 						.append(" us/reduce, max: ").append(maxReduceTime0 / 1_000_000).append(" ms");

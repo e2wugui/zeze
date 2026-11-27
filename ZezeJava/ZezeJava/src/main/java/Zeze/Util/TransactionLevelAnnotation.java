@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import Zeze.Transaction.TransactionLevel;
 
-// 标注存储过程的事务级别（反射读取，供模块分发用）
+/** 标注协议处理方法的事务隔离级别，供框架反射读取。 */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TransactionLevelAnnotation {

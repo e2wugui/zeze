@@ -33,7 +33,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 		}
 
 		/**
-		 * @return 0:e加入到非头节点; 1:e加入到头节点; -1:已加过过相同节点
+		 * @return 0:e加入到非头节点; 1:e加入到头节点; -1:已加过相同节点
 		 */
 		private int addEntry(Entry<K, V> e) {
 			assert key.equals(e.key);
@@ -42,7 +42,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 				e.next = this;
 				return 1;
 			}
-			if (c == 0) // 链头完全重复（hash同且compareTo==0）：与链中c==0同判，返回-1让调用方不计size
+			if (c == 0) // 链头完全重复，返回 -1 不计入 size
 				return -1;
 			if (c < 0) {
 				for (var s = this; ; ) {
@@ -284,7 +284,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 								int r = lastE.addEntry(e);
 								if (r > 0) {
 									newElements.set(newElements.size() - 1, e);
-									lastE = e; // e成为链新头：lastE必须跟进，否则后续同键条目会挂到已出列的旧头上
+									lastE = e; // e 成为新链头时同步更新 lastE
 								} else if (r < 0)
 									size--;
 							} else {
@@ -316,7 +316,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 						int r = lastE.addEntry(e);
 						if (r > 0) {
 							newElements.set(newElements.size() - 1, e);
-							lastE = e; // 同上：e成为链新头时lastE必须跟进
+							lastE = e; // e 成为新链头时同步更新 lastE
 						} else if (r < 0)
 							size--;
 					} else {

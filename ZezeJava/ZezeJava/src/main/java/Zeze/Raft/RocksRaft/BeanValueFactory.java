@@ -7,7 +7,7 @@ import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 
-/** Constructs collection values and their edits using the same declared type. */
+/** 按统一声明类型构造集合元素值及其编辑日志。 */
 record BeanValueFactory<V extends Bean>(Supplier<V> create, @Nullable DynamicField field) {
 	private static final ClassValue<BeanValueFactory<?>> factories = new ClassValue<>() {
 		@Override

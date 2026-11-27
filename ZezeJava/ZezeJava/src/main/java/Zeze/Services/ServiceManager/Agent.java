@@ -67,11 +67,7 @@ public final class Agent extends AbstractAgent {
 		client.getConfig().forEachConnector(Connector::WaitReady);
 	}
 
-	// editService专用串行锁：把"发送-等待应答-更新本地registers"整个过程串行化。
-	// 同一socket上应答顺序==服务端处理顺序，串行化后"发送序==应答序==本地更新序"，
-	// 并发register/unregister交错产生的"本地registers与服务端分叉→onConnected重连重放
-	// 复活僵尸注册"不可能再发生。不复用agent的ReentrantLock：后者被
-	// allocateTid128CacheFuture（History finalCommit路径）使用，复用会把finalCommit挂在SM RTT上。
+	// 串行化 editService 的发送与本地 registers 更新，保证与服务端顺序一致；独立于 agent 锁以避免阻塞发号路径。
 	private final Object editServiceLock = new Object();
 
 	@Override
@@ -84,7 +80,6 @@ public final class Agent extends AbstractAgent {
 			var edit = new EditService(arg);
 			edit.SendAndWaitCheckResultCode(client.getSocket());
 
-			// 成功以后更新本地信息。
 			for (var unReg : arg.getRemove())
 				registers.remove(unReg);
 
@@ -188,8 +183,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	public void onConnected() {
-		// 先上报Identify：SM据此把serverId记在会话上，断线时广播Suspect。
-		// 重连重发=恢复提示资格（与正确性无关，正确性由租约裁决）。
+		// 先上报 Identify，供 SM 断线时广播 Suspect 提示。
 		try {
 			var identify = new Identify();
 			//noinspection DataFlowIssue

@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import org.jspecify.annotations.Nullable;
 
-/** List1 payload: borrows the final ordered operations for synchronous encoding and replay. */
+/** PList1 的变更日志载荷：借用最终有序操作序列用于同步编码与回放。 */
 public class LogList1<V> extends LogBean {
 	public static final class OpLog<V> {
 		public static final int OP_MODIFY = 0; // op+index+value
@@ -38,7 +38,7 @@ public class LogList1<V> extends LogBean {
 			if (op < OP_MODIFY || op > OP_CLEAR)
 				throw new IllegalStateException("invalid list operation: " + Integer.toUnsignedString(op));
 			int index = op < OP_CLEAR ? bb.ReadUIntPositive() : 0;
-			// A missing operation value does not make the list element type nullable.
+			// 操作本身无值并不意味着列表元素类型可为 null。
 			//noinspection Convert2Diamond
 			return new OpLog<V>(op, index, op < OP_REMOVE ? valueDecoder.apply(bb) : null);
 		}

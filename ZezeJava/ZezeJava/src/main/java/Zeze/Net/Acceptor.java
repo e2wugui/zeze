@@ -80,7 +80,7 @@ public class Acceptor extends ReentrantLock {
 	}
 
 	public final void start() {
-		Objects.requireNonNull(service, "Acceptor of '" + getName() + "' Service == null, 请先 SetService"); // 防御NPE：直接提示配置遗漏
+		Objects.requireNonNull(service, "Acceptor of '" + getName() + "' Service == null, 请先 SetService");
 		lock();
 		try {
 			if (socket == null) {

@@ -10,17 +10,9 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 跨进程文件互斥：对指定锁文件上 OS 排它锁（RandomAccessFile + tryLock），
- * 持有期间拒绝同 JVM 其他实例与跨进程获取者，{@link #close()} 释放。
- *
- * <p>典型用法：守护"启动即删除重建"的目录——锁文件放目录同级（放目录内会随
- * 目录被删），且释放后不删除（删除锁文件与后续获取者存在竞态）。同 JVM 撞号
- * 时 tryLock 抛 {@link OverlappingFileLockException}（FileLock 按 JVM 计），
- * 跨进程由 OS 文件锁拒绝（tryLock 返回 null），两者均转
- * {@link IllegalStateException} 即时 fail-fast；进程崩溃 OS 自动释放。
- *
- * <p>{@link #close()} 幂等；释放/关流异常只记日志不抛——调用点常处于停机
- * 路径，不得因锁释放失败中断后续清理步骤。
+ * 跨进程文件互斥锁（RandomAccessFile + OS 排它 {@link FileLock}）：持有期间拒绝同 JVM 其他实例与跨进程获取者，
+ * 冲突或 IO 异常均转为 {@link IllegalStateException}；进程退出后由 OS 自动释放。
+ * 锁文件应放于被守护目录同级且释放后不删除；{@link #close()} 幂等且异常只记日志不抛出。
  */
 public final class FileMutex implements AutoCloseable {
 	private static final Logger logger = LogManager.getLogger(FileMutex.class);
@@ -29,10 +21,9 @@ public final class FileMutex implements AutoCloseable {
 	private @Nullable FileLock fileLock;
 
 	/**
-	 * 获取失败即抛 IllegalStateException（同 JVM 撞号 / 跨进程占用 / IO 异常三态，
-	 * 消息含 ownerDesc 与锁文件绝对路径），成功返回持有句柄。
+	 * 获取文件排它锁；同 JVM 冲突、跨进程占用或 IO 异常均抛 {@link IllegalStateException}。
 	 *
-	 * @param ownerDesc 持有者描述，拼入失败消息供定位（如 "zeze_cache dir (serverId=N)"）
+	 * @param ownerDesc 持有者描述，拼入异常消息便于定位
 	 */
 	public static FileMutex acquire(String lockFilePath, String ownerDesc) {
 		var lockPath = new File(lockFilePath);

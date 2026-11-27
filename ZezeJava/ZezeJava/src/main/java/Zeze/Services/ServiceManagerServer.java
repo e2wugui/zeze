@@ -49,53 +49,12 @@ import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
 /**
- * 服务管理：注册和订阅
- * 【名词】
- * 动态服务(gs)
- * 动态服务器一般指启用cache-sync的逻辑服务器。比如gs。
- * 注册服务器（ServiceManager）
- * 支持更新服务器，这个服务一开始是为了启用cache-sync的服务器的查找。
- * 动态服务器列表使用者(linkd)
- * 当前使用动态服务的客户端主要是Game2/linkd，linkd在hash分配请求的时候需要一致动态服务器列表。
- * <p>
- * 【下面的流程都是用现有的服务名字（上面括号中的名字）】
- * <p>
- * 【本控制功能的目标】
- * 所有的linkd的可用动态服务列表的更新并不是原子的。
- * 1. 让所有的linkd的列表保持最新；
- * 2. 尽可能减少linkd上的服务列表不一致的时间（通过ready-commit机制）；
- * 3. 列表不一致时，分发请求可能引起cache不命中，但不影响正确性（cache-sync保证了正确性）；
- * <p>
- * 【主要事件和流程】
- * 1. gs停止时调用 registerService,unRegisterService 向ServiceManager声明自己服务状态。
- * 2. linkd启动时调用 subscribeService, unSubscribeService 向ServiceManager申请使用gs-list。
- * 3. ServiceManager在 registerService,unRegisterService 处理时发送 NotifyServiceList 给所有的 linkd。
- * 4. linkd收到NotifyServiceList先记录到本地，同时持续关注自己和gs之间的连接，
- * 当列表中的所有service都准备完成时调用 ReadyServiceList。
- * 5. ServiceManager收到所有的linkd的ReadyServiceList后，向所有的linkd广播 CommitServiceList。
- * 6. linkd 收到 CommitServiceList 时，启用新的服务列表。
- * <p>
- * 【特别规则和错误处理】
- * 1. linkd 异常停止，ServiceManager 按 unSubscribeService 处理，仅仅简单移除use-list。相当于减少了以后请求来源。
- * 2. gs 异常停止，ServiceManager 按 unRegisterService 处理，移除可用服务，并启动列表更新流程（NotifyServiceList）。
- * 3. linkd 处理 gs 关闭（在NotifyServiceList之前），仅仅更新本地服务列表状态，让该服务暂时不可用，但不改变列表。
- * linkd总是使用ServiceManager提交给他的服务列表，自己不主动增删。
- * linkd在NotifyServiceList的列表减少的处理：一般总是立即进入ready（因为其他gs都是可用状态）。
- * 4. ServiceManager 异常关闭：
- * a) 启用raft以后，新的master会有正确列表数据，但服务状态（连接）未知，此时等待gs的registerService一段时间,
- * 然后开启新的一轮NotifyServiceList，等待时间内没有再次注册的gs以后当作新的处理。
- * b) 启用raft的好处是raft的非master服务器会识别这种状态，并重定向请求到master，使得系统内只有一个master启用服务。
- * 实际上raft不需要维护相同数据状态（gs-list），从空的开始即可，启用raft的话仅使用他的选举功能。
- * #) Raft版实现见ServiceManagerWithRaft（main -raft启动）。
- * 5. ServiceManager开启一轮变更通告过程中，有新的gs启动停止，将开启新的通告(NotifyServiceList)。
- * ReadyServiceList时会检查ready中的列表是否和当前ServiceManagerList一致，不一致直接忽略。
- * 新的通告流程会促使linkd继续发送ready。
- * 另外为了更健壮的处理通告，通告加一个超时机制。超时没有全部ready，就启动一次新的通告。
- * 原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
+ * 服务管理器服务器（非 Raft 版）：提供动态服务注册/订阅与增量推送、负载转发、
+ * 全局 AutoKey 与 Id128 发号、Takeover 断线梯队通知及 Threading 协调服务；
+ * Raft 版见 {@link ServiceManagerWithRaft}。
  */
 public final class ServiceManagerServer extends ReentrantLock implements Closeable {
-	// 显式启动动作（构造器调用），仅当显式指定logLevel属性才重置root logger级别——
-	// 不在类加载时静默篡改全JVM日志配置（测试/工具/同JVM引用会受影响）。WithRaft版同源调用。
+	// 仅在显式配置 logLevel 系统属性时修改根日志级别，避免类加载期静默影响同 JVM 其他模块
 	static void applyLogLevelProperty() {
 		var levelProperty = System.getProperty("logLevel");
 		if (levelProperty != null)
@@ -154,8 +113,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		// 会话关闭联动剔除该会话登记的观察者（仅靠setLoad转发失败的惰性剔除，
-		// 死观察者会滞留到该地址下一次上报）。返回是否已空（地址行随之回收）。
+		// 移除指定会话的观察者，返回观察者集合是否已空以便回收地址条目
 		public boolean removeObserver(long sessionId) {
 			lock();
 			try {
@@ -178,10 +136,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	public static final class Conf implements Config.ICustomize {
 		public int keepAlivePeriod = -1;
-		// Takeover梯队通知的档间超时(毫秒)：当前档广播后等待TakeoverDone回执的窗口，
-		// 超时升到下一档（更高version中的最小）。默认900s=1.5×GS的TakeoverTtl默认值(600s)——
-		// 部署把GS的Ttl改小时此值应同比调整（对齐1.5倍，给"租约剩余+搬运"完整机会窗口，
-		// 偏小会让高版本提前进场与同版本分食scope）。
+		// Takeover 梯队通知的档间超时（毫秒），默认 900s（约 1.5 倍 GS TakeoverTtl），超时后升至下一更高版本档
 		public long takeoverNotifyStepMs = 900_000;
 		public int retryNotifyDelayWhenNotAllReady = 30 * 1000;
 		public String dbHome = ".";
@@ -248,10 +203,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		public void addAndCollectNotify(BServiceInfo info, HashMap<AsyncSocket, EditService> result) {
-			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-			// 更新以name+id为key（BEditService.add声明的语义）：同identity重注册到新版本时，
-			// 先从其他版本桶移除旧记录并通知其版本订阅者remove，
-			// 否则实例下线后旧版本桶残留幽灵地址（会话registers只保留最后一次注册）。
+			// AddOrUpdate 语义：同 identity 跨版本重注册时先从其他版本桶移除旧记录并通知其订阅者
 			for (var e : serviceInfos.entrySet()) {
 				if (e.getKey() == info.getVersion())
 					continue;
@@ -262,10 +214,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			serviceInfos.values().removeIf(HashMap::isEmpty);
 			serviceInfos.computeIfAbsent(info.getVersion(), __ -> new HashMap<>()).put(info.getServiceIdentity(), info);
 			collectNotify(info, true, result);
-			// 新注册实例同样要为现有订阅者登记负载观察者：addLoadObserver若只在订阅时
-			// 登记，观察者集合是订阅时刻的快照——订阅之后注册的实例，其负载上报永不
-			// 转发给订阅者（权重缺失直到重连重订阅）。simple的key即订阅者sessionId。
-			// 本方法与simple的修改都在editLock内，迭代安全。
+			// 为现有订阅者补登新注册实例的负载观察者（editLock 内迭代 simple 安全）
 			for (var it = simple.iterator(); it.moveToNext(); )
 				serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), it.key());
 		}
@@ -318,11 +267,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						if (s == null)
 							return; // 会话已关闭/已被清理，KeepAlive 无事可做
 						var r = new KeepAlive();
-						// 异步等待应答：SendAndWaitCheckResultCode在调度池线程上同步阻塞
-						// 等待，半开连接（无FIN）堆积时每个KeepAlive各占一个rpc超时时长，数百会话
-						// 即可耗尽调度池，拖停同JVM全部周期任务（含死会话检测本身，恶性循环）。
-						// 回调判活：超时/失败码在回调中关闭连接触发重连——对端假死检测语义
-						// 不变（只发不等同样测不出假死），调度线程不再被占用。
+						// 异步发送并在回调中判活关闭，避免在调度线程同步等待耗尽调度池
 						final var sock = s;
 						if (!r.Send(s, response -> {
 							if (response.isTimeout() || response.getResultCode() != KeepAlive.Success)
@@ -348,9 +293,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
 
-			// Suspect梯队广播（首档==死者version；档间超时升序逐档；低于死者version的永不通知；
-			// TakeoverDone回执即停）：立即、不取SM锁（避免锁序问题）。仅是提示，由租约表裁决：
-			// 未过期租约会被接收方安排到过期时刻精确重试。
+			// 不持 editLock 立即发起 Suspect 梯队广播（仅作提示，实际接管由租约表裁决）
 			var suspectServerId = identifyServerId;
 			if (suspectServerId >= 0) {
 				var deadVersion = identifyVersion >= 0 ? identifyVersion : 0; // 未上报version（旧客户端）按0
@@ -384,27 +327,20 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		addLoadObserver(ip, port, sender.getSessionId());
 	}
 
-	// 观察者按sessionId登记（sessionId在连接存活期内稳定；重连产生新id，死观察者由
-	// LoadObservers.setLoad转发失败时惰性剔除）。
+	// 观察者按 sessionId 登记，会话关闭时联动清理，转发失败时也会惰性剔除
 	private void addLoadObserver(String ip, int port, long sessionId) {
 		if (!ip.isEmpty() && port != 0)
 			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sessionId);
 	}
 
-	// 会话关闭联动清理该会话登记的全部负载观察者；地址行在观察者清空时移除——
-	// 仅靠转发失败惰性剔除，服务下线后该地址再无上报则观察者集合与地址行永久残留。
+	// 会话关闭时清理其登记的观察者，并回收已空的地址条目
 	private void removeLoadObservers(long sessionId) {
-		// 死地址回收
 		loads.entrySet().removeIf(entry -> entry.getValue().removeObserver(sessionId));
 	}
 
 	private final ReentrantLock editLock = new ReentrantLock(); // 整个edit使用一把锁。不并发了。
 
-	// Critical协议经oneByOne池执行，可能晚于OnSocketClose的会话清理到达（注册报文
-	// 与RST几乎同时到达是常态）。判活必须在editLock内调用：NetServer.OnSocketClose先从
-	// socketMap摘除再清理（清理持editLock），故锁内GetSocket==sender⟹摘除未发生⟹清理未开始，
-	// 本次处理的写入会被随后的清理收走；GetSocket!=sender⟹会话已死，拒绝即不产生死会话残留。
-	// sessionId由全局AtomicLong发号不复用，不存在同号新连接误判。
+	// 必须在 editLock 内调用：与 OnSocketClose 先摘除 socketMap 再持锁清理构成全序，防止迟到协议复活死会话状态
 	private boolean isSenderAlive(AsyncSocket sender) {
 		//noinspection DataFlowIssue
 		return server.GetSocket(sender.getSessionId()) == sender;
@@ -417,10 +353,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	// 服务端注册入口校验identity（对齐客户端AbstractAgent.verify与BServiceInfos.comparer的
-	// 排序前提）：非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧
-	// insert的binarySearch在Long.parseLong上抛NumberFormatException，打断同批全部合法
-	// 变更的处理。畸形请求整批拒绝（错误码经派发层onError应答，客户端SendAndWait感知失败）。
+	// 校验 identity 格式（非 '@'/'#' 前缀须可解析为 long），防止非法值破坏订阅端排序
 	private static boolean isLegalServiceIdentity(String identity) {
 		if (identity.startsWith("@") || identity.startsWith("#"))
 			return true;
@@ -433,12 +366,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	// 阈值：serviceName/identity 128B、
-	// passiveIp 64B、
-	// extraInfo 256B（合法形态最坏值余量充分）；
-	// 每请求批 128；
-	// 每会话 registers/subscribes 各 64（合法基数实证 1~3，防一条消息占满全局名额锁死合法订阅）；
-	// 全局唯一 serviceName 1024（复用Id128UdpServer.MAX_UNIQUE_NAMES）满员时逐出空壳行自愈（内容可由重发恢复）。
+	// 入口字段长度、单批条数与单会话上限（全局唯一 serviceName 上限复用 Id128UdpServer.MAX_UNIQUE_NAMES）
 	private static final int SVC_NAME_MAX_BYTES = 128;
 	private static final int SVC_IDENTITY_MAX_BYTES = 128;
 	private static final int SVC_IP_MAX_BYTES = 64;
@@ -450,22 +378,20 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return s != null && s.getBytes(StandardCharsets.UTF_8).length > maxBytes;
 	}
 
-	// 拒绝告警限频（同Id128UdpServer.warnRejected，60秒一条防日志刷屏DoS）。
+	// 拒绝告警限频（每 60 秒至多一条）
 	private volatile long lastSvcRejectLogMs;
 
 	private void warnSvcRejected(String reason) {
 		var now = System.currentTimeMillis();
 		var last = lastSvcRejectLogMs;
 		if (now - last < 60_000)
-			return; // 限频窗口内静默拒绝（race下至多多记几条）
+			return;
 		lastSvcRejectLogMs = now;
 		logger.error("SM edit/subscribe rejected (possible attack or misbehaving client), serviceStates={}: {}",
 			serviceStates.size(), reason);
 	}
 
-	// 满员时逐出一个空壳行（无注册无订阅）腾位。editLock内调用（Edit/Subscribe/清理
-	// 全序串行，无并发），excludeName为本请求正要使用的名字。非raft行是内存态、内容
-	// 可由客户端重发恢复，逐出无损。
+	// 满员时在 editLock 内逐出一个无注册无订阅的空壳行腾位
 	private boolean evictIdleServiceState(String excludeName) {
 		for (var it = serviceStates.entrySet().iterator(); it.hasNext(); ) {
 			var e = it.next();
@@ -733,12 +659,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return 0;
 	}
 
-	// ===== Takeover version 梯队通知 =====
-	// 需求：①优先与死者同version的server争抢；②该档全部失败（超时无回执）后按version升序逐档；
-	// ③永不通知低于死者version的server（数据降级防护）；④任一档收到TakeoverDone回执即停止。
-	// 失败界定=档间超时（广播模式下SM无逐GS结果，回执是唯一成功信号；超时可能误升档——
-	// 重复Suspect由已接管者tryTransfer幂等命中墓碑空转消化）。状态为内存态：SM重启即失，
-	// 丢通知由GS侧Takeover.scan周期兜底（Suspect本就只是加速器）。
+	// Takeover 版本梯队通知：优先通知同 version 节点，档间超时无 TakeoverDone 回执则按 version 升序推进，
+	// 永不通知低于死者 version 的节点；状态仅驻留内存，SM 重启后由 GS 侧定期扫描兜底。
 	private static final class SuspectTier {
 		final long deadVersion;
 		volatile long tierVersion; // 已广播到的档位
@@ -886,10 +808,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		applyLogLevelProperty(); // 显式启动动作（仅显式指定logLevel属性才动配置）
 		config.parseCustomize(this.conf);
 
-		// 全部资源先在局部变量上构造，失败按逆序清理；回调依赖的字段在端口监听前发布
-		// （见下方说明），其余成功后才发布到字段：构造失败（如UDP端口被占）时
-		// 调用方拿不到实例、无法调stop——遗留的TCP监听与RocksDB目录锁会让同进程重试永久
-		// 受阻（部分成功状态与实际服务状态分叉）。清理异常作suppressed保留。
+		// 资源先在局部变量上构造并在异常时逆序清理；回调依赖的字段须在端口监听前发布
 		var localServer = new NetServer(this, config);
 		var localThreading = new ThreadingServer(localServer, conf);
 		RocksDatabase localDb = null;
@@ -919,12 +838,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var localAutoKeyTable = localDb.getOrAddTable("autokey");
 			var id128Table = localDb.getOrAddTable("id128");
 
-			// 回调依赖的字段必须在端口监听前发布：newServerSocket内部bind+OP_ACCEPT即上线
-			// （selector线程是全局已运行的池），随后的网络回调——未认证TCP端口上Direct派发的
-			// processAllocateId读autoKeyTable、Critical派发的isSenderAlive读server、keepalive
-			// 定时器读server.GetSocket——若先于赋值到达即数据竞争/NPE。值尚未产生、仅stop()
-			// 消费的字段（serverSocket/id128Server）保持在末尾发布。ctor中途抛出时早发布字段
-			// 对外不可达（调用方拿不到实例），在跑的accept回调读到的是完成态，随后由逆序清理收尾。
+			// 在 newServerSocket 开放监听前发布网络回调依赖的字段，避免首包到达时读到 null
 			server = localServer;
 			threading = localThreading;
 			autoKeysDb = localDb;
@@ -996,10 +910,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		// 分配全程持锁（调用前提：已lock且通过"持锁且在册"复核，见processAllocateId）：
-		// 无锁CAS快路径与满员逐出（evictIdleAutoKey的tryLock）不相容——CAS推进不持锁，
-		// 逐出可越过在途分配移除条目，重建后current从持久max前移，与孤儿AutoKey的越界
-		// 慢路径交付重叠重号。持锁后读-推进线性化，CAS循环不再需要。
+		// 须在持锁且确认仍在册后调用，保证与满员逐出（tryLock）互斥，避免重号
 		public void allocateLocked(AllocateId rpc, int count) {
 			var c = current.get();
 			if (c + count > max) {
@@ -1022,10 +933,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private long processAllocateId(AllocateId r) {
 		var name = r.Argument.getName();
 		var count = r.Argument.getCount();
-		// 入口校验（同端口UDP面Id128UdpServer同口径）：该TCP端口
-		// 同样无认证（四种EncryptType均密钥协商，默认Disable明文帧直达），name/count
-		// 均对端可控。count<=0或超上限会巨幅烧号洞（慢路径count*10抬水位）；超长name
-		// 无界驻留CHM与RocksDB。非法返回错误码（诚实客户端按失败重试）。
+		// 校验分配数量与 name 长度上限，防止恶意大 count 烧号或超长 name 膨胀存储
 		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX) {
 			warnAllocateIdRejected("invalid count=" + count);
 			r.SendResultCode(Procedure.ErrorRequestId);
@@ -1037,9 +945,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			r.SendResultCode(Procedure.ErrorRequestId);
 			return Procedure.Success;
 		}
-		// 唯一名满员：逐出一个闲置条目自愈（RocksDB高水位行保留，重建安全，见
-		// evictIdleAutoKey）；全部条目持锁（病态并发）时拒绝。竞态窗口内可能略超
-		// 上限（多线程同时computeIfAbsent），有界即可。
+		// 唯一名满员时逐出闲置条目腾位（RocksDB 高水位保留，重建不会重号）
 		if (!autoKeys.containsKey(name) && autoKeys.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
 			&& !evictIdleAutoKey()) {
 			warnAllocateIdRejected("unique names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
@@ -1049,7 +955,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		for (; ; ) {
 			var autoKey = autoKeys.computeIfAbsent(name, key -> new AutoKey(key, this));
 			autoKey.lock();
-			if (autoKeys.get(name) == autoKey) { // 持锁且在册：临界区内逐出的tryLock拿不到本锁
+			if (autoKeys.get(name) == autoKey) { // 持锁且在册，阻止并发逐出
 				try {
 					autoKey.allocateLocked(r, count);
 				} finally {
@@ -1057,16 +963,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				}
 				break;
 			}
-			autoKey.unlock(); // 孤儿（逐出-重建竞态窗口内拿到的旧条目）：重取重试
+			autoKey.unlock(); // 已被逐出，重新获取
 		}
 		r.SendResult();
 		return 0;
 	}
 
-	// 满员自愈。逐出未持锁的闲置条目腾出槽位；RocksDB高水位行保留，重建
-	// （computeIfAbsent）时current向前重置到持久max——在途已分配区间烧成号洞而不
-	// 重发，与进程重启加载同一损失类别（同Id128UdpServer.evictIdleContext的论证）。
-	// 在途分配持锁不可逐出；全部持锁（病态并发）时失败。
+	// 逐出未持锁的闲置 AutoKey 条目腾位；RocksDB 持久高水位保留，重建安全
 	private boolean evictIdleAutoKey() {
 		for (var e : autoKeys.entrySet()) {
 			var autoKey = e.getValue();
@@ -1082,15 +985,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return false;
 	}
 
-	// 拒绝告警限频（同Id128UdpServer.warnRejected）：无认证端口上高频非法
-	// 请求按包记日志可耗尽日志盘/CPU（日志刷屏DoS），60秒一条。
+	// 拒绝告警限频（每 60 秒至多一条）
 	private volatile long lastAllocateIdRejectLogMs;
 
 	private void warnAllocateIdRejected(String reason) {
 		var now = System.currentTimeMillis();
 		var last = lastAllocateIdRejectLogMs;
 		if (now - last < 60_000)
-			return; // 限频窗口内静默拒绝（race下至多多记几条）
+			return;
 		lastAllocateIdRejectLogMs = now;
 		logger.error("AllocateId rejected (possible attack or misbehaving client), cached names={}: {}",
 			autoKeys.size(), reason);
@@ -1108,8 +1010,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			serverSocket.close();
 			server.stop();
 			server = null;
-			// 关停清理置于server.stop()之后：此时全部连接已关闭且closed已屏蔽新startSuspectTier，
-			// 不会再向suspectTiers重插900s级升档定时器。
+			// 置于 server.stop() 之后，确保断连回调不再插入新的升档定时器
 			cancelSuspectTiers();
 			logger.info("closeDb: {}, autokeys", this.conf.dbHome);
 			autoKeysDb.close();
@@ -1138,9 +1039,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		@Override
 		public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
 			logger.info("OnSocketClose: {} sessionId={}", so, so.getSessionId());
-			// 先经基类从socketMap摘除，再做会话清理——摘除成为关闭的第一可见步骤，
-			// process*的锁内判活（isSenderAlive）才有全序：判活通过⟹清理尚未开始（本次处理
-			// 的写入随后会被清理收走）；判活失败⟹拒绝，死会话状态不会复活。
+			// 先经基类从 socketMap 摘除再清理会话，确保锁内判活（isSenderAlive）具备严格先后序
 			super.OnSocketClose(so, e);
 			var session = (Session)so.getUserState();
 			if (session != null)

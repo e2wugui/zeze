@@ -116,10 +116,7 @@ public final class SerializeHelper {
 			IByteBuffer::ReadVector4, IByteBuffer::ReadVector4));
 		codecs.put(Quaternion.class, new CodecFuncs<>(IByteBuffer.VECTOR4, ByteBuffer::WriteQuaternion,
 			IByteBuffer::ReadQuaternion, IByteBuffer::ReadQuaternion));
-		// decimal：decimal是注册的内建schema类型且IsKeyable=true，gtable/map/
-		// list/set/sortedmap全标量集合家族都会把BigDecimal送进createCodec——不注册则
-		// 工厂层抛UnsupportedOperationException（生成器放行，bean类初始化即崩）。
-		// 格式与LogDecimal一致：全精度字符串严格双射，encodeType取BYTES（同String）。
+		// decimal 作为可键标量类型注册，按全精度字符串（BYTES）编解码以与 LogDecimal 一致。
 		codecs.put(BigDecimal.class, new CodecFuncs<>(IByteBuffer.BYTES,
 			(bb, obj) -> bb.WriteString(obj.toString()),
 			bb -> new BigDecimal(bb.ReadString()),

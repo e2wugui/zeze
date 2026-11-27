@@ -7,8 +7,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-// 统计接口：protocol/procedure/table/task 等维度的计数与耗时观察者，instance 按系统属性选择实现
-// 本接口不声明default方法，避免实现类初始化时反向触发全局实例创建。
+/**
+ * 统计接口：覆盖 protocol/procedure/table/task 维度的计数与耗时观察，{@link #instance} 按系统属性选择实现。
+ * 本接口不声明 default 方法，避免实现类初始化时反向触发全局实例创建。
+ */
 public interface ZezeCounter {
 	Logger logger = LogManager.getLogger("StatLog");
 
@@ -62,7 +64,7 @@ public interface ZezeCounter {
 		// 这两个统计用来观察cache清理的影响
 		TRY_READ_LOCK("tryReadLock"),
 		TRY_WRITE_LOCK("tryWriteLock"),
-		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
+		// global acquire 的次数，即使未开启 cache-sync 也会有少量计数（无竞争时总是成功）
 		ACQUIRE_SHARE("acquireShare"),
 		ACQUIRE_MODIFY("acquireModify"),
 		ACQUIRE_INVALID("acquireInvalid"),

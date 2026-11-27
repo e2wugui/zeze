@@ -48,10 +48,7 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 			array[arrayIndex++] = e;
 	}
 
-	// ---- NavigableMap readonly view methods ----
-	// 全部委托给底层 PSortedMap1，最终走到 org.pcollections.PSortedMap，
-	// pcollections 返回的 NavigableMap / NavigableSet 视图本身就是只读的，无需再包一层。
-	// 注意：pollFirstEntry / pollLastEntry 是破坏性方法，不暴露。
+	// 底层 pcollections 返回的 NavigableMap/NavigableSet 子视图本身只读，直接委托；不暴露破坏性的 poll* 方法。
 
 	public @Nullable Entry<K, V> lowerEntry(K key) {
 		return map.lowerEntry(key);

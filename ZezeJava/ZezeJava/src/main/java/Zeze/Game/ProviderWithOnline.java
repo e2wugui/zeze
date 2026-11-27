@@ -20,9 +20,7 @@ public class ProviderWithOnline extends ProviderImplement {
 	protected @Nullable Online online; // 默认的Online. 需要外面调用create方法创建并初始化。App.Start.
 	private @Nullable ProviderLoadWithOnline load;
 
-	// ConcurrentHashMap：getOnline/foreachOnline无锁读（登录等业务线程高频），
-	// stop()持lock执行clear——普通HashMap与停机clear无happens-before，停机窗口读侧
-	// 可见中间态。运行期只读，CHM读路径零额外成本。
+	// 运行期高频无锁读、stop() 持锁清空，用 ConcurrentHashMap 保证可见性。
 	protected final ConcurrentHashMap<String, Online> onlineSetMap = new ConcurrentHashMap<>(); // 所有创建过的Online,默认Online的key是空字符串. 需要外面调用默认Online.createOnlineSet创建
 
 	public @Nullable Online getOnline() {
@@ -49,15 +47,11 @@ public class ProviderWithOnline extends ProviderImplement {
 			logger.info("LinkBroken[{}]: {}", p.getSender().getSessionId(), AsyncSocket.toStr(p.Argument));
 		// 目前仅需设置online状态。
 		var online = this.online;
-		// context是登录身份槽：Game角色模式为roleId数字串；
-		// 混合装配下Arch账号模式登录（同进程Arch.Online）会写入clientId
-		// 任意字符串，解析失败（null）视为非角色会话跳过（getRoleId约定）。
+		// context 在角色模式下为 roleId，混合装配下账号模式为非数字 clientId，解析失败则跳过。
 		var roleId = parseRoleId(p.Argument.getUserState().getContext());
 		if (null != roleId && null != online) {
 			var onlineSet = online.getOnline(p.Argument.getUserState().getOnlineSetName());
 			if (null != onlineSet)
-				// 失败码外传整体回滚（对齐Online.linkBroken的内部外传契约及其余五入口），
-				// 否则事件链半触发时半程写入随Success提交。
 				return onlineSet.linkBroken(p.Argument.getAccount(), roleId,
 						ProviderService.getLinkName(Objects.requireNonNull(p.getSender())), p.Argument.getLinkSid());
 		}

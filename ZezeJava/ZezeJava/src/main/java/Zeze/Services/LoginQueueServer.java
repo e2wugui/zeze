@@ -26,9 +26,7 @@ import org.jspecify.annotations.Nullable;
  * 签发加密登录令牌供LoginQueue分配。
  */
 public class LoginQueueServer extends AbstractLoginQueueServer {
-    // 令牌防伪依赖secretKey/secretIv保密：必须CSPRNG——ThreadLocalRandom可被离线穷举后
-    // 伪造任意serverId/expireTime令牌。secret经AnnounceSecret分发给所有可达
-    // 内部对端（linkd与全部provider），保密边界是部署层端口可达性而非访问控制。
+    // 使用密码学安全随机数生成令牌密钥，防止被离线预测伪造
     private static final SecureRandom secureRandom = new SecureRandom();
 
     private static Binary nextSecretBinary() {
@@ -39,19 +37,12 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
     private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> providers = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> links = new ConcurrentHashMap<>();
-    // 负载登记与关闭清理的串行锁（对齐姊妹类ServiceManagerServer的editLock与判活纪律）。
-    // Report*经DispatchMode.Normal跑在worker线程，与IO线程的OnSocketClose竞态：
-    // 迟到的上报在清理remove之后重新put即产生永久幽灵条目（死服务器持续被choice分配且
-    // 永不回收）。锁内判活（GetSocket==sender）+锁内清理互相串行化后：判活通过⟹清理未开始
-    // （NetServer.OnSocketClose先从socketMap摘除再回调onClose，摘除后判活必失败），
-    // 本次put会被随后的清理收走；判活失败⟹会话已死，拒绝即不产生残留。
-    // 并且在同一临界区按登记结果重算限流，避免较早的规模覆盖较新的规模。
+    // 串行化负载登记、限流重算与断连清理，配合锁内判活防止迟到上报复活已断连条目
     private final ReentrantLock editLock = new ReentrantLock();
     private final LoginQueueService service;
     private final LoginQueue loginQueue;
 
-    /** 锁内判活（见editLock注释）。死会话的迟到上报静默丢弃（Report*非Rpc，
-     * 死连接本就收不到应答）。 */
+    /** 锁内判活：连接已从 socketMap 摘除则说明清理将执行或已完成，应丢弃迟到上报。 */
     private boolean isSenderAlive(AsyncSocket sender) {
         return service.GetSocket(sender.getSessionId()) == sender;
     }
@@ -101,8 +92,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     void onClose(AsyncSocket so) {
         editLock.lock();
         try {
-            // 同一socket上报过两种负载时userState只指向最后一张表：两表幂等remove，
-            // 不依赖userState指向（漏清的幽灵服务器永久参与权重选择）。
+            // 两表都幂等移除，不依赖 userState 指向，防止同连接上报过多种负载时漏清
             if (providers.remove(so) != null)
                 loginQueue.tryResetTimeThrottle(providers.size());
             if (links.remove(so) != null)
@@ -125,8 +115,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
 
     public static BToken.Data decodeToken(BSecret.Data secret, Binary token) {
-        // 双试探+语义校验（判别式见下方迁移注释）：先按新格式（IV=前16B）解并验
-        // BToken合法性与语义，失败再按旧格式（secretIv）解并验，均败则拒。
+        // 优先按随机 IV 前缀格式解码，失败再回退兼容固定 secretIv 旧格式
         var bytes = token.bytesUnsafe();
         var offset = token.getOffset();
         var size = token.size();
@@ -138,7 +127,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         return provider;
     }
 
-    /** 单格式解密+解码+语义校验，任一步失败返回null（供双试探判别）。 */
+    /** 单格式解密、解码并做基本语义校验，失败返回 null。 */
     private static BToken.@Nullable Data tryDecodeToken(BSecret.Data secret, byte[] bytes, int offset, int size,
                                                         boolean ivPrefixed) {
         try {
@@ -155,8 +144,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
             }
             var provider = new BToken.Data();
             provider.decode(ByteBuffer.Wrap(plain));
-            // 语义校验：expireTime由发放端固定为now+eLoginTokenExpireTime，恒为正；
-            // 新鲜度与linkServerId==本机的完整语义校验由调用方（LinkdProvider）执行。
+            // 过期时间恒为正，用于区分双试探误解；完整新鲜度与 linkServerId 校验由调用方执行
             if (provider.getExpireTime() <= 0)
                 return null;
             return provider;
@@ -165,25 +153,14 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         }
     }
 
-    // IV不随进程固定复用——固定IV的AES-CBC是确定性加密（IND-CPA不成立）。
-    // （具体的跨令牌泄露通道已证伪：BToken首字段是每令牌唯一递增的serialId，
-    // 任意两令牌首块明文必不同；本设计属密码学卫生。）
-    // 令牌格式为 IV(16字节)||AES-CBC-PKCS5(key,IV,明文)；弃AES-GCM（nonce复用后果
-    // 灾难性、无现成GCM管线，CBC+随机IV对本威胁模型已足够且是最小改动），弃"按天轮换IV"
-    // （需重发AnnounceSecret+linkd双IV窗口，同为linkd联动且天内仍复用，劣于per-token）。
-    // 迁移判别（BToken是变长编码，旧密文可为16B或32B，新格式总长=16+旧，
-    // 32B在双格式并存窗口二义，纯长度判别不成立）：解码端双试探+语义校验（见decodeToken），
-    // 误判只会落在已过期令牌上，由expireTime新鲜度+linkServerId==本机校验兜底；
-    // 旧格式全程可解（编码端可随时回退）。
-    // AnnounceSecret协议不变：secretKey仍16字节；secretIv在新格式下不参与编码，
-    // 迁移期保留供旧令牌解码，全部升级后可从BSecret移除。
+    // 令牌密文格式：IV(16字节) || AES-CBC-PKCS5(key, IV, 明文)；解码端同时兼容旧版固定 secretIv 格式
     private static final String AES_CBC_PKCS5 = "AES/CBC/PKCS5Padding";
     private static final int TOKEN_IV_SIZE = 16;
     private static final SecureRandom tokenIvRandom = new SecureRandom();
 
     public static byte[] encrypt(BSecret.Data secret, byte[] bytes, int offset, int size) throws Exception {
         var keySpec = new SecretKeySpec(secret.getSecretKey().bytesUnsafe(), "AES");
-        // per-token随机IV前缀：输出=IV||密文
+        // 每个令牌使用独立随机 IV 前缀，避免固定 IV 的确定性加密
         var iv = new byte[TOKEN_IV_SIZE];
         tokenIvRandom.nextBytes(iv);
 
@@ -197,7 +174,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         return out;
     }
 
-    /** 旧格式解密（固定secretIv）：仅剩迁移期解码用途（decodeToken双试探的旧分支）。 */
+    /** 兼容旧格式解密（使用固定 secretIv）。 */
     public static byte[] decrypt(BSecret.Data secret, byte[] bytes, int offset, int size) throws Exception {
         var keySpec = new SecretKeySpec(secret.getSecretKey().bytesUnsafe(), "AES");
         var ivSpec = new IvParameterSpec(secret.getSecretIv().bytesUnsafe());
@@ -294,9 +271,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     private record FreeServer(AsyncSocket socket, BServerLoad.Data data, long weight) {
     }
 
-    // online自增与ReportProviderLoad在editLock内整体替换Data（与allocateLock不相交）互斥：
-    // compute与put对同一key在CHM内原子，自增落在替换后的当前对象上，不丢更新也不写脱管旧对象。
-    // 分配路径之间的串行化仍由allocateLock保证（见LoginQueue.tryOnAccept）。
+    // 使用 CHM.compute 保证与 ReportProviderLoad 的整体替换互斥，避免更新丢失在旧对象上
     private static void incrementOnline(ConcurrentHashMap<AsyncSocket, BServerLoad.Data> servers,
                                         AsyncSocket socket) {
         servers.compute(socket, (k, data) -> {

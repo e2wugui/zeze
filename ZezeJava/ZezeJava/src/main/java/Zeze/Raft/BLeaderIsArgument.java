@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 /**
- * 下面是非标准的Raft-Rpc，辅助Agent用的。
+ * LeaderIs / GetLeader 协议参数：当前任期、Leader 标识及节点是否为 Leader。
  */
 final class BLeaderIsArgument extends Bean {
 	private long term;

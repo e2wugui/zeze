@@ -16,9 +16,7 @@ public class LogUndoBatch extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogUndoBatch.class.getName());
 
 	private long tid;
-	// undo 来源：true=终局确认的undo（协调者UndoBatch或墓碑超窗清扫），apply即物理删除；
-	// false=桶侧onTimer自主超时undo（决策未知，apply走未确认墓碑——迟到
-	// LogCommitBatch 可复活，协调者 UndoBatch 或墓碑窗超时才物理删除）。
+	// true=终局确认回滚（物理删除），false=桶侧自主超时回滚（记未确认墓碑，迟到 commit 可复活）
 	private boolean fromCoordinator;
 
 	public LogUndoBatch() {
@@ -65,8 +63,7 @@ public class LogUndoBatch extends Log {
 	public void decode(IByteBuffer bb) {
 		super.decode(bb);
 		tid = bb.ReadLong();
-		// 旧版本日志条目无来源位：剩余字节守卫（升级期 replay 的旧条目按自主 undo 处理；
-		// replay 时事务表为空，两条路径都落 not-found 分支，误分类无行为差异）。
+		// 兼容无来源位的旧格式日志，按自主 undo 处理
 		fromCoordinator = bb.getWriteIndex() - bb.getReadIndex() >= 1 && bb.ReadBool();
 	}
 }

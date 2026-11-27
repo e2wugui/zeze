@@ -67,7 +67,7 @@ public class LogSet1<V> extends LogSet<V> {
 	@Override
 	public void encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
-		// 两遍split编码：线格式与added/removed双容器时代逐字节一致。
+		// 按 add / remove 两段分别带长度前缀编码，保持既有线格式。
 		int addedCount = 0;
 		for (var e : modified.entrySet())
 			if (e.getValue() != null)
@@ -108,8 +108,6 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	private void merge(LogSet1<V> from) {
-		// 单容器putAll即last-writer-wins（add覆盖remove、remove覆盖add）：
-		// 例：this: add 1,3 remove 2,4; nest: add 2 remove 1 → 合并后 2,3=PRESENT、1,4=null。
 		modified.putAll(from.modified);
 	}
 

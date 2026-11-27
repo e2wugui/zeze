@@ -38,21 +38,14 @@ public class CommitRocks {
 	private final RocksDatabase database;
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
+	// 2PC 提交点默认非 sync 写以保吞吐，需掉电强持久可通过 setWriteOptions 注入 sync 写
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
-	// 2PC各档（含eCommitting决定点）默认普通写（2026-11-18裁定，回摆5cb372943）：
-	// 决定点是每事务一次fsync的热路径，性能影响最大。代价是协调者掉电重启后commit-point
-	// 随WAL丢失、桶侧query得eCommitNotExist会undo已确认事务——该掉电窗口由部署权衡，
-	// 高安全应用可用setWriteOptions注入sync写消除。
-	// 周期守护：redoTimer(RocksDB迭代+逐桶RPC get阻塞等待)进worker池不占调度线程；
-	// close有界等待在飞一轮
 	private final DaemonTimer redoDaemon = new DaemonTimer("CommitRocks.redoTimer", 60_000, this::redoTimer);
-	// 登记先于ePreparing落盘；准备结束且undo失败时也要释放登记，交现有redo重试。
-	// 命中=prepare仍在途，redo不能抢先undo；未命中=可由redo接手的残留。
+	// 在途 prepare 集合：登记先于 ePreparing 落盘，防止 redoTimer 抢先 undo 在途事务
 	private final Set<Long> inFlightTids = ConcurrentHashMap.newKeySet();
 
 	public CommitRocks(Dbh2AgentManager manager, int serverId) throws RocksDBException {
 		this.manager = manager;
-		// home前缀可配（默认cwd下CommitRocks{serverId}），测试重定向到临时目录。
 		database = new RocksDatabase(PropertiesHelper.getString("Dbh2CommitRocksHome", "CommitRocks") + serverId);
 		commitPoint = database.getOrAddTable("CommitPoint");
 		commitIndex = database.getOrAddTable("CommitIndex");
@@ -62,9 +55,7 @@ public class CommitRocks {
 		return manager;
 	}
 
-	// 2pc链路的rpc等待兜底（FND29 dbh2-02）：rpc判死门槛=rpcTimeout（resend扫描1s粒度驱动），
-	// 等待超时=rpcTimeout+余量。正常完成恒先于兜底；兜底仅在future完成路径整体失效
-	// （agent被并发close且注册竞态等极端窗口）时把无界悬挂转为可重试的超时异常。
+	// RPC 等待兜底超时，防止极端竞态下 future 永不完成导致无界悬挂
 	private long rpcAwaitTimeoutMs() {
 		return manager.getDbh2Config().getRpcTimeout() + Dbh2Agent.SendForWaitGraceMs;
 	}
@@ -87,12 +78,10 @@ public class CommitRocks {
 
 	private void redo(byte[] key) throws RocksDBException {
 		var tid = ByteBuffer.ToLongBE(key, 0);
-		// 登记先于索引可见。先读取在途标志再读取决定，避免在观察到旧 ePreparing 后，
-		// 正常提交线程删记录失败并移除登记，使恢复误把已持久化的提交当成撤销。
+		// 先读在途标志再读提交点，避免并发提交删记录后误判为待撤销
 		var inFlight = inFlightTids.contains(tid);
 		var value = commitPoint.get(key);
 		if (null == value) {
-			// 索引迭代到redo执行的间隙记录可能已被并发删除（事务正常完结），非崩溃残留。
 			logger.warn("redo but commit point not found. tid={}", tid);
 			return;
 		}
@@ -110,8 +99,7 @@ public class CommitRocks {
 			}
 			for (var e : futures) {
 				var r = e.getNonNull(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
-				// appendLog失败（丢leader/多数派未达成）时服务端以非零码正常回包（Dbh2.ProcessCommitBatchRequest），
-				// 不检查就删重做索引会使该桶的事务永久滞留在eCommitting，客户端却已拿到成功。对齐prepare路径的检查。
+				// appendLog 失败时服务端返回非零码，必须抛错保留重做索引
 				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 					throw new RuntimeException("redo error=" + IModule.getErrorCode(r.getResultCode()));
 			}
@@ -122,7 +110,7 @@ public class CommitRocks {
 	}
 
 	public void close() {
-		redoDaemon.stop(); // 有界等待在飞一轮；超预算逃逸轮撞已关database由body的catch容错（记日志）
+		redoDaemon.stop();
 		database.close();
 	}
 
@@ -181,18 +169,15 @@ public class CommitRocks {
 			ArrayList<Map.Entry<String, TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>> futures)
 			throws RocksDBException {
 		var redirects = new ArrayList<Map.Entry<String, BPrepareBatch.Data>>();
-		// 可重试码的待重发集合（raftName+原batch）：raftClient的resend不覆盖已完成（失败码）的rpc，
-		// 须重新openBucket发新rpc；同tid重发服务端按tid去重，eDuplicateTid=前次投递已受理。
+		// 瞬时拒绝码需重发新 RPC（同 tid 服务端去重）
 		var retries = new ArrayList<Map.Entry<String, TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>>();
 		for (var e : futures) {
 			var r = e.getValue().getNonNull(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
 			var agent = manager.openBucket(e.getKey());
 			var code = r.getResultCode();
 			if (code == agent.errorCode(AbstractDbh2.eDuplicateTid))
-				continue; // 同tid前次投递已受理（本事务重试路径）：视为成功，后续commit/undo按tid推进。
+				continue; // 同 tid 前次投递已受理，视为成功
 			if (code == agent.errorCode(AbstractDbh2.eBucketNotReady) || code == Procedure.RaftRetry) {
-				// eBucketNotReady=桶StateMachine未就绪（动态建组/刚接管窗口）；RaftRetry=not leader
-				// （首发现错向/切换中）。两者均为瞬时态：同tid重发原batch，循环顶prepareMaxTime熔断兜底。
 				logger.info("prepare retry {} code={} tid={} master={}", e.getKey(),
 						IModule.getErrorCode(code), tid, r.Argument.getMaster());
 				retries.add(Map.entry(e.getKey(), agent.prepareBatch(r.Argument)));
@@ -258,11 +243,9 @@ public class CommitRocks {
 				futures.add(Map.entry(e.getKey(), manager.openBucket(e.getKey()).prepareBatch(batch)));
 			}
 
-			// 处理prepare结果，碰到【拒绝模式重定向】的请求，需要循环处理。
+			// 处理 prepare 结果，含拒绝模式重定向循环
 			while (!futures.isEmpty()) {
-				// 循环顶熔断：重定向轮数无上限，须在每轮顶检查elapsed，超prepareMaxTime即break，
-				// 交由循环后的既有超时分支统一undo+removeRecord——服务端决策时长由此有界，
-				// 客户端超时按prepareMaxTime+rpcTimeout派生覆盖（见Dbh2Config.getCommitRpcTimeout）。
+				// 重定向轮数无上限，每轮顶按 prepareMaxTime 熔断交超时分支统一 undo
 				if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - prepareStartNanos) > prepareMaxTime)
 					break;
 				futures = processPrepareFutures(tid, tidBytes, state, queryHost, queryPort, futures);
@@ -294,9 +277,7 @@ public class CommitRocks {
 		}
 	}
 
-	// decide（同步）：prepare+saveCommitPoint(eCommitting)。完成即事务终局为提交，调用方此刻就可
-	// 应答——eCommitting按当前writeOptions落盘（默认普通写，见类头2026-11-18裁定：进程崩溃级
-	// 持久，掉电窗口由部署权衡，sync可经setWriteOptions注入）；投递由redoTimer兜底，不参与应答条件。
+	// 决定阶段：prepare 并落盘 eCommitting，成功后事务终局为提交，后续投递由 redoTimer 兜底
 	public CommitDecision commitDecide(String queryHost, int queryPort, BPrepareBatches.Data batches) {
 		var state = buildTransactionState(batches);
 		var tidBytes = new byte[8];
@@ -312,8 +293,7 @@ public class CommitRocks {
 		return new CommitDecision(tid, tidBytes, state);
 	}
 
-	// deliver（可异步）：commitBatch送达循环。removeTransactionRecord仅在全部future成功后
-	// （次序保持）；失败/异常只记日志——eCommitting已持久化，redoTimer按周期兜底重发直到完结。
+	// 投递阶段：向各参与桶发送 commitBatch，全部成功后删除提交点；失败仅记日志交 redoTimer 重试
 	public void commitDeliver(CommitDecision decision) {
 		try {
 			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>>();
@@ -322,7 +302,7 @@ public class CommitRocks {
 			}
 			for (var e : futures) {
 				var r = e.getNonNull(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
-				// 同redo：非零回包（raft appendLog失败）不抛异常但事务未apply，必须留给redoTimer重试
+				// 非零回包表示未 apply，保留提交点交 redoTimer 重试
 				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 					throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));
 			}
@@ -358,10 +338,7 @@ public class CommitRocks {
 		}
 	}
 
-	// 事务完结（commit/undo/prepare失败）即同时删除commitIndex与commitPoint，两者必须同批：
-	// 只删index会让commitPoint随事务总量无界增长（默认本地提交模式下每事务一条死记录）。
-	// 已完结事务无人再查询（桶侧onTimer只查map中存活事务；tid不复用），迟到query按
-	// eCommitNotExist处理（Commit.ProcessQueryRequest对null的映射）。
+	// 事务终结时同批删除 commitIndex 与 commitPoint，防止 commitPoint 无界增长
 	private void removeTransactionRecord(byte[] tidBytes) {
 		try {
 			try (var batch = database.borrowBatch()) {
@@ -370,11 +347,10 @@ public class CommitRocks {
 				batch.commit(writeOptions);
 			}
 		} catch (RocksDBException e) {
-			// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
+			// 仅记日志，未删除的索引由重启与 redoTimer 重试
 			logger.error("", e);
 		} finally {
-			// 移除在途登记必须在记录删除之后（含删除失败：残留index仍交由Timer重做，
-			// redo重发的undo与协调者终局路径已发的undo幂等）。
+			// 必须在删除记录之后移除在途登记，避免 redo 并发误判
 			inFlightTids.remove(ByteBuffer.ToLongBE(tidBytes, 0));
 		}
 	}

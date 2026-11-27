@@ -18,10 +18,10 @@ import Zeze.Serialize.SerializeHelper;
 public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogSortedMap1<K, V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogSortedMap2<");
 
-	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
-	private final Map<K, LogBean> changedWithKey = new TreeMap<>(); // changed with key. using in encode/decode followerApply
+	private final Set<LogBean> changed = new HashSet<>(); // 收集阶段记录值 bean 的字段修改日志
+	private final Map<K, LogBean> changedWithKey = new TreeMap<>(); // 按 key 索引的字段修改日志，用于编解码与 followerApply
 	private final BeanValueFactory<V> valueFactory;
-	private boolean decoded; // 解码后的索引是完整日志，不从旧的源Map重新构建。
+	private boolean decoded; // 解码日志已包含完整索引，不再按源 map 重建。
 
 	static int typeId(Class<?> keyClass, Class<?> valueClass) {
 		return Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass);
@@ -64,15 +64,11 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	@Override
 	public void encode(ByteBuffer bb) {
 		if (!decoded && getValue() != null) {
-			changedWithKey.clear(); // 重建最终视图，重复编码不能保留已删除/覆盖的旧changed。
+			changedWithKey.clear(); // 活日志重建最终视图，避免重复编码残留陈旧条目。
 			for (var c : changed) {
 				//noinspection DataFlowIssue
 				Object pkey = c.getThis().mapKey();
-				// 第三条过滤对齐Transaction.Collections.LogMap2Base.addChild：
-				// 编辑时bean已不在最终map（remove不detach，编辑已删bean的陈旧引用仍会被collect，
-				// 其key来自更早事务，modified单查找已拦住put/remove覆盖），不过滤则follower侧必取到null；
-				// 且必须是key当前值本身——put覆盖后旧bean同样不detach，陈旧引用的字段日志
-				// 不得应用到覆盖后的新值上。
+				// 过滤已被 modified 覆盖、已移出 map 或非当前引用的陈旧 bean，避免 follower 侧空指针或误应用到新值。
 				//noinspection SuspiciousMethodCalls
 				if (!getModified().containsKey(pkey) && c.getThis() == getValue().get(pkey))
 					changedWithKey.put((K)Objects.requireNonNull(pkey), c);
@@ -85,8 +81,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 			e.getValue().encode(bb);
 		}
 
-		// modified 手工编码（不走 super.encode）：put 项的 value 是 Bean，用 bean.encode 而非 codec。
-		// 两遍split：线格式与putted/removed双容器时代逐字节一致。
+		// put 项值为 Bean 需手工编码，按 put / remove 两段输出以保持既有线格式。
 		var modified = getModified();
 		int puttedCount = 0;
 		for (var e : modified.entrySet())

@@ -97,7 +97,7 @@ public class Id128UdpClient {
 			// 1.入队
 			var finalCurrent = current;
 			tailFuture.compute(globalName, (key2, value2) -> {
-				finalCurrent.prev = value2; // value maybe null. that is first node.
+				finalCurrent.prev = value2; // value2 为 null 表示首节点
 				return finalCurrent;
 			});
 
@@ -112,14 +112,12 @@ public class Id128UdpClient {
 					throw new RuntimeException("impossible!");
 				var bb = ByteBuffer.Allocate();
 				r.encode(bb);
-				// udp is connected.
+				// udp 已 connect，无需指定目标地址
 				var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 				udp.send(udpPacket);
 				} catch (Exception e) {
 					current.setException(e);
-					// 标记futureNode已设置过结果（对齐processResult/processTick的
-					// 既有约定），否则该节点残留"待设置"状态，最迟要到超时检查器
-					// （eRpcTimeout）碰它时才清理。
+					// 标记已完成，避免超时检查器重复处理。
 					current.pending.set(0);
 				}
 
@@ -136,10 +134,7 @@ public class Id128UdpClient {
 		}
 		worker.interrupt();
 		worker.join();
-		// worker.join()后在途FutureNode的唯一定时完成者（processTick的超时检查器）
-		// 已死，等待分配的线程将永久park（finalCommit链无超时等待）。对三张表内全部未完成
-		// 节点补setException并清空。pending.getAndSet(0)兼作"已设置结果"标记（既有约定），
-		// 已完成的节点（pending<=0）跳过不重复设置。
+		// worker 已停止，为所有在途节点补置异常以防调用方永久阻塞。
 		var stopped = new IllegalStateException("client stopped");
 		for (var futureNode : currentFuture.values())
 			completeIfPending(futureNode, stopped);
@@ -167,7 +162,7 @@ public class Id128UdpClient {
 				var bb = ByteBuffer.Wrap(p.getData(), p.getOffset(), p.getLength());
 				while (!bb.isEmpty()) {
 					var rpc = new AllocateId128();
-					rpc.decode(bb); // rpc result.
+					rpc.decode(bb);
 					if (rpc.isRequest() || rpc.Result.getCount() <= 0)
 						continue;
 					processResult(rpc);
@@ -199,16 +194,15 @@ public class Id128UdpClient {
 						r.Result.getStartId(), r.Result.getCount());
 				do {
 					var current = futureNode;
-					// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面代码刚好可以工作.
+					// 循环中再次检查以避开超时检查器已完成的节点。
 					if (current.pending.get() > 0) {
 						current.setResult(tid128Cache);
-						current.pending.set(0); // 用来标记futureNode已经设置过结果.
+						current.pending.set(0); // 标记已设置结果
 					}
 					futureNode = current.prev;
-					current.prev = null; // help gc.
+					current.prev = null; // 断开引用便于 GC
 				} while (futureNode != null);
-				// 设置完result以后才删除.却表中间异常,队列不会乱.
-				// 只需要执行一次,不用到循环里面判断,因为tail总是最后一个.
+				// 设置完 result 后再摘除尾节点，确保异常时队列一致。
 				tailFuture.compute(globalName, (key, value) -> value == futureContext ? null : value);
 			}
 		}
@@ -221,16 +215,12 @@ public class Id128UdpClient {
 			lastProcessTickTime = now;
 			var bb = ByteBuffer.Allocate();
 			var futureNodesGuard = new ArrayList<FutureNode>();
-			// 已成功发出的节点数（按发送边界分段记账）。若catch对guard表内全部节点
-			// setException——中途send失败把已成功发出的分片节点一并判死；经
-			// History.buildLogChanges→finalCommit的halt放大为进程级误杀。guard按节点入表顺序
-			// 与编码入包顺序一致，每次udp.send成功后置sentCount=表长，失败只对未确认发出的
-			// [sentCount, size)段报错。
+			// 记录已成功发出的节点边界，send 异常时仅对未发出的 [sentCount, size) 节点报错。
 			int sentCount = 0;
 			try {
 				for (var key : currentFuture.keySet()) {
 					var futureNode = currentFuture.remove(key);
-					if (futureNode != null) { // 并发删除, see allocateFuture
+					if (futureNode != null) { // 可能被 allocateFuture 并发删除
 						futureNodesGuard.add(futureNode);
 						var r = new AllocateId128(futureNode);
 						r.setSessionId(nextSessionIdFunc.call());
@@ -241,18 +231,15 @@ public class Id128UdpClient {
 							throw new RuntimeException("impossible!");
 						r.encode(bb);
 						if (bb.size() > eMaxUdpPacketSize) {
-							// udp is connected.
 							var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 							udp.send(udpPacket);
-							sentCount = futureNodesGuard.size(); // 本包覆盖至此的全部节点，已交OS
-							// clear
+							sentCount = futureNodesGuard.size(); // 推进已发送边界
 							bb.ReadIndex = 0;
 							bb.WriteIndex = 0;
 						}
 					}
 				}
 				if (!bb.isEmpty()) {
-					// udp is connected.
 					var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 					udp.send(udpPacket);
 					sentCount = futureNodesGuard.size();
@@ -261,7 +248,6 @@ public class Id128UdpClient {
 			} catch (Exception ex) {
 				for (var futureNode : futureNodesGuard.subList(sentCount, futureNodesGuard.size())) {
 					futureNode.setException(ex);
-					// 标记已设置过结果，超时检查器不再延迟清理该节点。
 					futureNode.pending.set(0);
 				}
 				logger.error("", ex);
@@ -283,13 +269,11 @@ public class Id128UdpClient {
 				//noinspection DataFlowIssue
 				if (futureNode.pending.get() > 0) {
 					futureNode.setException(new TimeoutException());
-					futureNode.pending.set(0); // 用来标记futureNode已经设置过结果.
+					futureNode.pending.set(0); // 标记已设置结果
 				}
 				pendingRpc.remove(eIt.key());
 			}
-			// 超时/发送失败的节点也必须退出按名字保存的链，否则服务持续不可达时
-			// tailFuture会永久强引用全部历史请求。与allocateFuture的prepend使用同一
-			// compute锁；保留仍在途的节点，后续响应仍可完成它们。
+			// 清理已超时/失败节点以防 tailFuture 无限累积，同时保留仍在途的节点。
 			for (var name : tailFuture.keySet()) {
 				tailFuture.computeIfPresent(name, (__, tail) -> {
 					while (tail != null && tail.pending.get() <= 0) {
@@ -313,7 +297,7 @@ public class Id128UdpClient {
 	public static void main(String[] args) throws Exception {
 		var nextSessionId = new AtomicLong();
 		var server = new Id128UdpServer();
-		server.start(); // must start first. server.getLocalPort() need.
+		server.start(); // 需先启动以绑定端口
 		var client = new Id128UdpClient(null, "127.0.0.1", server.getLocalPort(), nextSessionId::incrementAndGet);
 		client.start();
 		try {

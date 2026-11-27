@@ -30,8 +30,7 @@ import io.netty.util.AsciiString;
 import org.jspecify.annotations.Nullable;
 
 /**
- * HttpExchange静态文件服务的实现体（sendFile/sendPath的委托目标，从HttpExchange拆出）：
- * 条件请求（If-Modified-Since/Range）、缓存头、零拷贝FileRegion、目录列表。仅包内使用。
+ * 静态文件服务实现（供 HttpExchange.sendFile/sendPath 委托）：条件请求、Range、零拷贝与目录列表。
  */
 final class HttpFileService {
 	private HttpFileService() {
@@ -39,10 +38,9 @@ final class HttpFileService {
 
 	private static final Pattern rangePattern = Pattern.compile("[ =\\-/]");
 	private static final OpenOption[] readOnlyOpenOptions = new OpenOption[]{StandardOpenOption.READ};
-	// h2逐块完成写与TLS分块共用块大小，两条路径均按通道可写性推进。
 	private static final int FileChunkSize = 64 * 1024;
 
-	// 文件名来自磁盘（Linux允许CR/LF/引号入名），且headersFactory关闭了Netty头校验：CRLF直拼构成响应头注入，引号破坏quoted-string边界。
+	// 剥离 CR/LF 并转义引号，防止文件名在未开启 Netty 头校验时注入响应头。
 	private static String sanitizeFilenameForHeader(String fn) {
 		var sb = new StringBuilder(fn.length() + 16);
 		for (int i = 0, n = fn.length(); i < n; ++i) {
@@ -59,7 +57,7 @@ final class HttpFileService {
 
 	static void sendFile(HttpExchange x, File file, int fileCacheSeconds) throws Exception {
 		HttpExchange.requireNonTransactionalStreaming();
-		if (!file.isFile()) { // 缺失/非普通文件回404而非让FileChannel.open抛异常走500（对齐sendPath）
+		if (!file.isFile()) {
 			x.close(x.send404());
 			return;
 		}
@@ -73,54 +71,52 @@ final class HttpFileService {
 		var lastModified = file.lastModified() / 1000;
 		var ifModifiedSince = req.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
 		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == HttpServer.parseDate(ifModifiedSince)) {
-			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
+			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED,
 				Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
 			HttpServer.setDate(res.headers())
 				.set(HttpHeaderNames.CONTENT_LENGTH, 0);
-			if (!x.isH2()) // h2禁连接管理头
+			if (!x.isH2())
 				res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-			x.close(x.writeResponse(res, true, null)); // 经序化器：保活响应直写会在pipelining下先于前序响应上线
+			x.close(x.writeResponse(res, true, null));
 			return;
 		}
 
 		var fn = file.getName();
 		var fc = FileChannel.open(file.toPath(), readOnlyOpenOptions);
 		try {
-			// open成功到lastFuture的listener接管fc关闭之间（如fc.size()抛IO异常），fc由catch兜底关闭，
-			// 否则异常传播回handler后文件句柄泄漏。fc.close()幂等，与listener互斥安全。
 			var fsize = fc.size();
 			var rangeHeader = req.headers().get(HttpHeaderNames.RANGE);
-			// RFC 7233: 多段Range需multipart/byteranges（暂不支持），降级为200全量（服务器可忽略Range）
+			// 多段 Range 暂不支持，降级为 200 全量发送。
 			var r = rangeHeader != null && rangeHeader.indexOf(',') < 0 ? parseRange(req, HttpHeaderNames.RANGE) : null;
 
 			var from = 0L;
 			var to = fsize - 1L;
 			var partial = false;
-			if (r != null && (r[0] >= 0 || r[1] >= 0)) { // 语法有效的单段Range
+			if (r != null && (r[0] >= 0 || r[1] >= 0)) {
 				var satisfiable = false;
-				if (r[0] >= 0) { // bytes=from-[to]；可满足: from在文件内且(to缺失或to>=from)
+				if (r[0] >= 0) { // bytes=from-[to]
 					satisfiable = r[0] < fsize && (r[1] < 0 || r[1] >= r[0]);
 					if (satisfiable) {
 						from = r[0];
 						if (r[1] >= 0)
-							to = Math.min(r[1], fsize - 1); // to是inclusive右端点，超出文件尾按fsize-1截断
+							to = Math.min(r[1], fsize - 1);
 					}
-				} else { // 后缀形式 bytes=-N；可满足: N>0且文件非空（bytes=-0按RFC不可满足）
+				} else { // 后缀形式 bytes=-N
 					satisfiable = r[1] > 0 && fsize > 0;
 					if (satisfiable)
 						from = Math.max(fsize - r[1], 0);
 				}
-				if (!satisfiable) { // RFC要求416 + Content-Range: bytes */fsize（客户端据此检测远端文件截断）
+				if (!satisfiable) {
 					var res416 = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
 						HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
 						HttpExchange.headersFactory, HttpExchange.trailersFactory);
 					HttpServer.setDate(res416.headers())
 						.set(HttpHeaderNames.CONTENT_LENGTH, 0)
 						.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
-					if (!x.isH2()) // h2禁连接管理头
+					if (!x.isH2())
 						res416.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 					fc.close();
-					x.close(x.writeResponse(res416, true, null)); // 经序化器，同304分支
+					x.close(x.writeResponse(res416, true, null));
 					return;
 				}
 				partial = true;
@@ -136,22 +132,22 @@ final class HttpFileService {
 				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
 				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
 				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
-			if (!x.isH2()) // h2禁连接管理头
+			if (!x.isH2())
 				headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-			if (partial) // Content-Range只属于206/416，200不带
+			if (partial)
 				headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
-			x.writeResponse(res, false, x.context.voidPromise()); // 响应头经序化器（挂起时FileRegion同队保序）
+			x.writeResponse(res, false, x.context.voidPromise());
 
 			ChannelFuture lastFuture;
 			if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) {
 				if (x.isH2()) {
 					lastFuture = H2FileSender.send(x, fc, from, contentLen, FileChunkSize);
 				} else if (x.context.pipeline().<@Nullable SslHandler>get(SslHandler.class) != null) {
-					// SSL只接收ByteBuf；HttpChunkedInput包含最后的HttpContent，不能另加终结符。
+					// SSL 只接收 ByteBuf；HttpChunkedInput 自带终结帧，无需另写 EMPTY_LAST_CONTENT。
 					lastFuture = x.writeResponse(new HttpChunkedInput(new ChunkedNioFile(fc, from, contentLen,
 							FileChunkSize)), true, null);
 				} else {
-					// 发文件任务全部交给Netty（零拷贝），并且发送完毕时关闭。
+					// 零拷贝发送文件，完成后经 listener 关闭 FileChannel。
 					x.writeResponse(new DefaultFileRegion(fc, from, contentLen), false, x.context.voidPromise());
 					lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
 				}
@@ -160,7 +156,7 @@ final class HttpFileService {
 			lastFuture.addListener(__ -> fc.close());
 			x.close(lastFuture);
 		} catch (Throwable e) {
-			fc.close(); // 兜底：listener接管前的异常窗口；幂等，listener已关则无效果
+			fc.close(); // 兜底关闭，防 listener 挂接前异常泄漏 FD
 			throw e;
 		}
 	}
@@ -244,7 +240,7 @@ final class HttpFileService {
 		} else if (headerName == HttpHeaderNames.CONTENT_RANGE) { // 如果没找到content-range可能只用content-length大小上传
 			var len = headers.get(HttpHeaderNames.CONTENT_LENGTH);
 			if (len != null) {
-				var n = parse(len); // 复用容错解析：畸形或超int范围的值按无range处理
+				var n = parse(len);
 				if (n >= 0) {
 					r[0] = 0;
 					r[1] = n - 1;
@@ -265,8 +261,6 @@ final class HttpFileService {
 		}
 	}
 
-	// sendPath的目录列表把文件名/目录名直接拼进HTML的title/h1与<a href>属性：
-	// 含"、<、>、&等字符的文件名（目录内容或请求路径可被控制）可注入脚本。统一转义。
 	private static String htmlEscape(String s) {
 		var sb = new StringBuilder(s.length());
 		for (int i = 0; i < s.length(); i++) {

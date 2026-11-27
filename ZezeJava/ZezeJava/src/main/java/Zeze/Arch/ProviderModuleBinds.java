@@ -34,7 +34,7 @@ public final class ProviderModuleBinds {
 			db.setXIncludeAware(true);
 			db.setNamespaceAware(true);
 			try {
-				// 同Config.loadAndParse：parse(String)按URI解析，Windows绝对路径盘符成"协议名"，须走parse(File)。
+				// 使用 File 而非 String，避免 parse(String) 把 Windows 绝对路径盘符当成 URI 协议名。
 				Document doc = db.newDocumentBuilder().parse(new File(xmlFile));
 				return new ProviderModuleBinds(doc.getDocumentElement());
 			} catch (Exception ex) {
@@ -78,7 +78,6 @@ public final class ProviderModuleBinds {
 			};
 		}
 
-		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
 		public Module(Element self) {
 			if (!self.getAttribute("ConfigType").isEmpty())
 				throw new RuntimeException("use 'dynamic=\"true|false\"' instead.");

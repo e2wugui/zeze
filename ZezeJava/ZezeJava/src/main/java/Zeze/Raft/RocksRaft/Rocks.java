@@ -74,11 +74,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	/**
-	 * flush 落盘失败（RocksDBException 的包装）。
-	 * apply 流程是"先改内存、后flush"，flush 失败时内存已是最终状态而 lastApplied
-	 * 未推进，之后会重试。用专门的异常类型把"可重试的落盘失败"与
-	 * decode/结构性错误区分开：前者由 pendingFlushApplies 记录已应用的内存状态、
-	 * 重试时只重试flush；后者不可恢复。
+	 * flush 落盘失败（RocksDBException 的包装）：与不可恢复的解码/结构性错误区分，
+	 * 供调用方登记 {@link #pendingFlushApplies} 并在后续仅重试 flush。
 	 */
 	public static final class FlushException extends RuntimeException {
 		public FlushException(RocksDBException cause) {
@@ -91,34 +88,22 @@ public final class Rocks extends StateMachine implements Closeable {
 		}
 	}
 
-	// "内存已应用但flush失败"的日志条目（key=RaftLog.Index，value含条目term）。
-	// leaderApply/followerApply 的内存变更与flush非原子：flush失败时内存已变更而
-	// lastApplied未推进，重试若重新走增量日志重放（如list的OP_ADD按索引追加）会在
-	// 已应用的状态上双重应用并被后续提交复制出去。这里记录已应用的记录集合，
-	// 重试时跳过内存变更只重试flush；term不匹配说明同index已被新term条目复用
-	// （旧条目被截断），丢弃过期记录并驱逐其（可能已被截断条目污染的）缓存记录，
-	// 按全新条目应用。
-	// 仅存在于apply失败到重试成功之间的短窗口，reset/restore/close时清空。
-	// 注：批次未提交期间水位与内容同停于上一条已提交日志（见AppliedWatermark），
-	// 快照fence不受本表影响；本表只服务"重试不重放内存增量"。
+	// 内存已应用但 flush 失败的待补偿记录（key = RaftLog.Index）：重试时跳过内存增量仅重刷盘；
+	// 若同 index 的 term 变化（旧条目被截断），则丢弃并驱逐受污染缓存记录。
 	private final LongConcurrentHashMap<PendingFlush> pendingFlushApplies = new LongConcurrentHashMap<>();
 
 	record PendingFlush(long term, List<Record<?>> records) {
 	}
 
-	// 取出index对应的待补偿记录；没有或term不匹配（同index已被新term条目复用）返回null。
+	// 取出 index 对应的待补偿记录；不存在或 term 不匹配（旧条目被截断）时返回 null。
 	@Nullable List<Record<?>> takePendingFlush(long index, long term) {
 		var pending = pendingFlushApplies.remove(index);
 		if (pending != null && pending.term == term)
 			return pending.records;
 		if (pending != null) {
-			// term不匹配：补偿记录随截断条目作废，释放补偿登记持有的在用保护。
+			// term 不匹配：释放补偿持有的在用计数，并驱逐可能已被截断条目污染的缓存记录。
 			for (var r : pending.records) {
 				r.endAccess();
-				// 内存态可能已被截断条目应用过（flush失败的补偿窗口）：驱逐出
-				// 缓存，后续getOrLoad从storage重载截断前的干净基线；不驱逐则新条目的增量
-				// 日志在污染bean上叠加，双重应用被提交复制成静默分歧。在用时放弃本轮
-				// （理由与残余契约见Record.evictPolluted）。
 				r.evictPolluted();
 			}
 		}
@@ -130,33 +115,19 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	/**
-	 * addReference=false为转移语义——records已各持恰好一个归补偿所有的在用计数
-	 * （follower装载计数、或上一轮补偿登记的持有），登记不增不减。原调用方"先endAccess
-	 * 再登记"在两条语句之间计数归零，LRU驱逐恰落在间隙时同key重装载从storage拿到
-	 * flush前旧值，后续增量日志应用在旧基线上——节点静默永久分歧；转移语义使计数全程
-	 * ≥1，间隙与过/欠持有两个方向的偏差同时归零（调用方的endAccess直接删除）。
-	 * addReference=true为加计语义：leader首次失败时业务计数仍在appendLog等待中，
-	 * +1与业务超时释放配对（perform finally）。
-	 * 释放点不变：消费成功（leader/follower的pending分支flush成功）、过期丢弃
-	 * （takePendingFlush的term不匹配）。
+	 * 登记待重试 flush 的记录。
+	 * {@code addReference=false} 表示转移调用方已持有的在用计数（避免先释放再登记的归零间隙）；
+	 * {@code addReference=true} 表示额外加计（leader 首次失败时与 perform 收尾释放配对）。
 	 */
 	void putPendingFlush(long index, long term, List<Record<?>> records, boolean addReference) {
 		pendingFlushApplies.put(index, new PendingFlush(term, records));
-		// 补偿登记即持有在用：leader侧perform收尾会释放业务访问计数，若登记
-		// 不补记，迟到flush重试窗口内记录可被LRU驱逐——同key重装载从storage拿到flush
-		// 前旧值，后续在旧基线上的修改提交会整值覆盖已应用未flush的更新（丢失更新）。
-		// follower侧装载计数在转入补偿时先行释放（调用方catch），由这里统一接管。
 		if (addReference) {
 			for (var r : records)
 				r.beginAccess();
 		}
 	}
 
-	// 应用完成水位（index+term）：与该条日志的状态数据、unique终态存根同一个WriteBatch
-	// 提交，是"内容应用到哪"的自描述事实。快照fence读它（见checkpoint）——任意时刻的
-	// 物理拷贝内容与水位原子一致，不存在"内容超前fence"窗口；FlushException补偿窗口
-	// （内存已改、批次未提交）期间水位停在上一条已提交日志，内容同样停在上一条，仍一致。
-	// 行不存在=升级后首次apply前的理论窗口，checkpoint走legacy回退。
+	// 应用完成水位（index + term）的单行键：与业务数据及 unique 终态存根同批原子提交，供快照 fence 与增量恢复读取。
 	private static final byte[] appliedWatermarkKey = {0};
 
 	@Override
@@ -184,12 +155,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				value.Bytes, 0, value.WriteIndex);
 	}
 
-	// unique终态存根（已应用+rpcResult）：与数据同批提交，处于快照fence之内——恢复重放
-	// 跳过的条目，其去重/结果重放事实必须已随内容落盘，否则日志压缩后客户端重试同
-	// requestId查无存根被当新请求重新执行（重复发货/扣款）。按天建表，命名不能依赖节点名，
-	// 否则InstallSnapshot带来的发送节点存根在接收节点不可见。TTL由removeExpiredUniqueStubTables
-	// 清理。key=unique编码，value=UniqueRequestState(applied)。写入走getOrAddTable（首写建CF）；
-	// 查询走tableMap只读（miss不建空CF）。
+	// unique 终态存根按天分表的公共前缀（不依赖节点名以兼容 InstallSnapshot），与业务数据同批提交。
 	private static final String uniqueAppliedTablePrefix = "Zeze.Raft.RocksRaft.UniqueApplied";
 
 	private static String uniqueAppliedTableName(long createTime) {
@@ -197,8 +163,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				LogSequence.toUniqueRequestKey(new Date(createTime)));
 	}
 
-	// 升级开库及快照restore都会走这里：把任意旧节点前缀的终态存根迁到公共命名空间。
-	// 业务表有#templateId后缀，不会匹配严格日期；非法日期和其他内部表保持原样。
+	// 开库及快照恢复时，将旧节点前缀的终态存根表迁移到公共命名空间。
 	private void migrateUniqueAppliedTables() throws RocksDBException {
 		//noinspection DataFlowIssue
 		for (var tableName : new ArrayList<>(storage.getTableMap().keySet())) {
@@ -260,8 +225,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		return state;
 	}
 
-	// 状态机库终态存根表的过期清理（对齐LogSequence.removeExpiredUniqueRequestSet的
-	// 日期分桶TTL）：表名同规则解析，过期即drop整表。
+	// 按日期分桶 TTL 清理过期的终态存根表。
 	@Override
 	public void removeExpiredUniqueStubTables(long expired) throws Exception {
 		//noinspection DataFlowIssue
@@ -310,12 +274,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	private final RocksMode rocksMode;
 	private @Nullable RocksDatabase storage;
 	private RocksDatabase.@Nullable Table atomicLongsTable;
-	// 应用完成水位表（单行）：水位与每条日志的状态数据、unique终态存根同一个WriteBatch
-	// 提交——状态机库任意时刻的物理内容与水位原子一致，快照fence直接读水位（见checkpoint），
-	// 不再依赖内存lastApplied与收尾时序；重启时LogSequence.tryRecoverFromWatermark据此
-	// 增量恢复（跳过restore、仅重放水位之后），校验不过回退全量恢复。restore/reset路径
-	// 仍会被快照内容整体替换或清空；升级后首次apply前无水位行：checkpoint与增量恢复
-	// 各自回退legacy路径。
+	// 单行应用完成水位表，与业务数据及 unique 终态存根同批提交，供快照 fence 与重启增量恢复校验。
 	private RocksDatabase.@Nullable Table appliedWatermarkTable;
 	private final Lock mutex = new ReentrantLock();
 
@@ -374,8 +333,7 @@ public final class Rocks extends StateMachine implements Closeable {
 
 		// 这个赋值是不必要的，new Raft(...)内部会赋值。
 		setRaft(new Raft(this, raftName, raftConfig, config, "Zeze.Raft.Server", serverFactory, taskOneByOne));
-		// 状态机写选项与LogSequence同源（RaftConfig.SyncWrite，默认普通写）。
-		// 此时new Raft已返回，字段仅在flush(apply路径)使用，构造期回调够不着，构造后取值安全。
+		// 写选项与 LogSequence 同源（RaftConfig.SyncWrite），仅在构造完成后的 flush 路径使用。
 		writeOptions = getRaft().getLogSequence().getWriteOptions();
 		//noinspection DataFlowIssue
 		getRaft().addAtFatalKill(() -> {
@@ -446,10 +404,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	/**
-	 * 注册表模板。注意：value bean 含集合（CollList1/CollSet1/CollMap1/CollMap2等）时，
-	 * 还需为每个用到的集合类型调用 {@link #registerLog} 注册对应的日志解码工厂——生成
-	 * 代码在 RegisterRocksTables 中生成这些调用，手写表模板（测试/实验代码）必须手工
-	 * 注册，否则follower/重放侧解码到该集合的增量日志时按unknown typeId fatalKill。
+	 * 注册表模板。若 value bean 含集合字段，还需为各集合类型调用 {@link #registerLog} 注册解码工厂
+	 * （生成代码在 RegisterRocksTables 中自动注册，手写表模板需手动注册）。
 	 */
 	public <K, V extends Bean> void registerTableTemplate(String tableTemplateName,
 														  Class<K> keyClass, Class<V> valueClass) {
@@ -493,19 +449,14 @@ public final class Rocks extends StateMachine implements Closeable {
 			var index = holder.getIndex();
 			var pending = takePendingFlush(index, holder.getTerm());
 			if (pending != null) {
-				// 上次followerApply已完成内存变更但flush失败：内存已是最终状态。
-				// 增量日志重放不幂等（如list的OP_ADD按索引追加），重放会双重应用，
-				// 这里跳过内存变更，仅重试flush。
+				// 上次内存已应用但 flush 失败，增量日志不可重放，此处仅重试 flush。
 				try {
 					flush(pending, changes, true, holder);
 				} catch (FlushException e) {
-					// 重试再失败的重登记用转移语义（addReference=false）：装载计数
-					// 已归补偿所有，随消费原样移入新登记。原"先endAccess再登记"在两条语句之间
-					// 计数归零，LRU驱逐+同key脏重载旧基线后，增量日志应用在旧值上即永久分歧。
+					// 重试再失败时转移原补偿持有的在用计数（addReference=false），避免计数归零间隙被驱逐。
 					putPendingFlush(index, holder.getTerm(), pending, false);
 					throw e;
 				}
-				// 重试flush成功：释放在用保护。
 				for (var r : pending)
 					r.endAccess();
 				return;
@@ -516,26 +467,18 @@ public final class Rocks extends StateMachine implements Closeable {
 			try {
 				flush(rs, changes, true, holder);
 			} catch (FlushException e) {
-				// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush。
-				// 装载计数转入补偿登记用转移语义（addReference=false）：计数不增
-				// 不减，消灭原"先endAccess再登记"的归零间隙（间隙内LRU驱逐+同key脏重载
-				// 旧基线，增量日志应用在旧值上即节点永久分歧）。
+				// 落盘失败转入补偿队列，转移装载持有的在用计数（addReference=false），避免计数归零间隙被驱逐。
 				putPendingFlush(index, holder.getTerm(), rs, false);
 				throw e;
 			}
-			// 应用并落盘完成：释放followerApply装载时（Table.followerApply→
-			// getOrLoad）登记的在用保护。失败路径由putPendingFlush保留引用，重试成功或
-			// 过期丢弃（takePendingFlush）时释放。
+			// 释放 Table.followerApply 装载时登记的在用保护。
 			for (var r : rs)
 				r.endAccess();
 		} catch (FlushException e) {
-			// flush失败有补偿重试通道（pendingFlush），不是结构性分歧，放行给apply重试。
+			// flush 失败由 pendingFlush 补偿重试，放行给 apply 重试。
 			throw e;
 		} catch (Throwable e) {
-			// followerApply链路（Table/Bean/Coll容器）的异常=状态机先行分歧（宁死不糊）：
-			// 编码侧已保证合法日志不会missing/out-of-bounds（LogList2.encode重算index、
-			// LogMap2.buildChangedWithKey过滤），follower侧NPE/IOOBE即分歧，统一在此fatalKill，
-			// 各层不再内联防御。不catch则apply重试在同一条目反复抛出，lastApplied楔死死循环。
+			// 非 flush 异常表示状态机分歧，直接 fatalKill 防止同条目无限重试卡死 lastApplied。
 			//noinspection DataFlowIssue
 			Rocks.logger.fatal("{} followerApply divergence, fatalKill. logIndex={} term={}",
 					getRaft().getName(), holder.getIndex(), holder.getTerm(), e);
@@ -543,10 +486,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		}
 	}
 
-	// raftLog非null=apply管线调用：终态存根（unique条目）与应用完成水位随数据进入
-	// 同一个WriteBatch，一次commit即"这条日志应用完成"的全部事实（业务数据、去重/
-	// 结果存根、完成水位），崩溃只剩全有/全无，不存在"数据已落、存根/水位未落"的部分
-	// 完成状态。FlushException补偿重试路径同样传raftLog——重试批次幂等重建全套内容。
+	// raftLog 非 null 时，将业务数据、unique 终态存根与应用完成水位写入同一 WriteBatch 原子提交。
 	public void flush(Iterable<Record<?>> rs, Changes changes, boolean followerApply, @Nullable RaftLog raftLog) {
 		try {
 			//noinspection DataFlowIssue
@@ -575,23 +515,19 @@ public final class Rocks extends StateMachine implements Closeable {
 					batch.commit(writeOptions);
 			}
 		} catch (RocksDBException e) {
-			// 专门的异常类型：调用方（leaderApply/followerApply）据此记录已应用的内存状态，
-			// 重试时只重试flush，保证apply对flush失败幂等。
+			// 包装为 FlushException，通知调用方登记 pendingFlush 仅重试落盘。
 			throw new FlushException(e);
 		}
 	}
 
 	/**
-	 * fence优先读应用完成水位（与状态数据、终态存根同一个WriteBatch原子提交）：任意时刻的
-	 * 物理拷贝内容与水位必然一致——FlushException补偿窗口内水位与内容同停于上一条已提交
-	 * 日志，快照照常进行、fence仍准确。legacy回退（水位行不存在=升级后首次apply前的
-	 * 理论窗口）沿用旧fence路径：lastApplied日志解码，存在pending补偿登记（内容可能
-	 * 超前于lastApplied）时返回null推迟本次快照。
+	 * 创建 RocksDB checkpoint 并填写快照水位：优先读取与数据同批提交的 {@link AppliedWatermark}；
+	 * 若水位行不存在则回退到 lastApplied（存在未完成的 pendingFlush 时返回 {@code null} 推迟快照）。
 	 */
 	public @Nullable String checkpoint(SnapshotResult result) throws RocksDBException {
 		var checkpointDir = Paths.get(Objects.requireNonNull(getDbHome()), "checkpoint_" + System.currentTimeMillis()).toString();
 
-		// fast checkpoint, will stop application apply.
+		// 快速创建 checkpoint，期间阻塞 apply。
 		Raft raft = Objects.requireNonNull(getRaft());
 		raft.lock();
 		try {
@@ -600,7 +536,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				result.lastIncludedIndex = watermark.index();
 				result.lastIncludedTerm = watermark.term();
 			} else {
-				// legacy回退：checkpoint与tryApply同持raft锁，登记/清除pending的窗口与检查互斥。
+				// 无水位行回退：与 tryApply 同持 raft 锁，检查 pending 窗口互斥。
 				if (!pendingFlushApplies.isEmpty()) {
 					logger.info("snapshot deferred: {} pending apply(s) unfinished, storage may ahead of lastApplied={}",
 							pendingFlushApplies.size(), raft.getLogSequence().getLastApplied());
@@ -615,8 +551,7 @@ public final class Rocks extends StateMachine implements Closeable {
 			try (var cp = storage.newCheckpoint()) {
 				cp.createCheckpoint(checkpointDir);
 			} catch (Throwable e) {
-				// createCheckpoint中途失败也可能已创建部分目录，删除后再抛。
-				// 删除用重试+校验并告警（deleteDirectory忽略失败会静默残留）。
+				// 失败时清理可能已部分创建的 checkpoint 目录。
 				deleteCheckpointDir(checkpointDir);
 				throw e;
 			}
@@ -632,7 +567,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		try {
 			resetTransientState();
 			if (storage != null) {
-				storage.close(); // close current
+				storage.close();
 				storage = null;
 			}
 
@@ -643,7 +578,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				backup.restoreDbFromLatestBackup(dbName, dbName, restoreOptions);
 			}
 
-			openDb(); // reopen
+			openDb();
 		} finally {
 			getRaft().unlock();
 		}
@@ -691,23 +626,16 @@ public final class Rocks extends StateMachine implements Closeable {
 		return resolvedPath;
 	}
 
-	// checkpoint临时目录是状态机RocksDB的完整物理拷贝，文件多且可能被占用
-	//（Windows下杀毒/备份软件短暂锁定即令File.delete()返回false）。忽略失败的
-	// deleteDirectory会静默残留，快照失败重试时残留随轮累积渐进占满DbHome。
-	// 这里重试+校验删除；仍失败时记error告警（不抛出、不掩盖快照本身的成败语义），
-	// 残留由每次snapshot开始前的deleteResidualCheckpoints清扫兜底。
+	// 重试并校验删除 checkpoint 临时目录；失败仅记告警，留待下次 snapshot 前清扫。
 	private static void deleteCheckpointDir(String cpHome) {
 		try {
 			LogSequence.deletedDirectoryAndCheck(new File(cpHome));
-		} catch (Throwable e) { // logger.error
+		} catch (Throwable e) {
 			Rocks.logger.error("delete checkpoint dir failed, residual remains until next snapshot sweep: {}", cpHome, e);
 		}
 	}
 
-	// 每次快照开始前清扫DbHome下历史残留的checkpoint_*目录：上次快照失败/
-	// 删除失败留下的临时目录没有任何存在意义（本次快照会新建带新时间戳的目录），
-	// 留着只会在失败重试循环中渐进占满磁盘。当前快照目录在checkpoint()内才创建，
-	// 清扫时必然不存在，不会误删。单实例独占DbHome，无并发快照（snapshotting守卫）。
+	// 清扫上次失败残留的 checkpoint_* 目录（受 snapshotting 守卫保护，无并发快照）。
 	private void deleteResidualCheckpoints() {
 		var files = new File(Objects.requireNonNull(getDbHome())).listFiles();
 		if (files == null)
@@ -720,13 +648,12 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	@Override
 	public SnapshotResult snapshot(String path) throws RocksDBException, IOException {
-		deleteResidualCheckpoints(); // 先清扫历史残留，再生成新快照
+		deleteResidualCheckpoints();
 		long t0 = System.nanoTime();
 		SnapshotResult result = new SnapshotResult();
 		var cpHome = checkpoint(result);
 		if (cpHome == null) {
-			// checkpoint推迟（存在未收尾的pending应用窗口）：不产生快照文件、不commitSnapshot
-			// （firstIndex不推进），按未成功返回；推迟理由已在checkpoint内记录日志。
+			// checkpoint 推迟（存在未收尾的 pending 窗口），按未成功返回。
 			return result;
 		}
 
@@ -738,9 +665,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		try {
 			RocksDatabase.backup(cpHome, backupDir);
 		} catch (Throwable e) {
-			// backup失败（磁盘满/权限等）时清理checkpoint目录：
-			// checkpoint_<timestamp>是状态机RocksDB的完整物理拷贝，快照每次失败重试
-			// 都会新增一份，残留累积会渐进占满DbHome。成功路径的删除保持在下面原位。
+			// backup 失败时清理本次 checkpoint 临时目录，避免残留累积占满磁盘。
 			deleteCheckpointDir(cpHome);
 			throw e;
 		}
@@ -765,21 +690,15 @@ public final class Rocks extends StateMachine implements Closeable {
 	public void loadSnapshot(String path) throws RocksDBException, IOException {
 		var backupDir = Paths.get(Objects.requireNonNull(getDbHome()), "backup").toString();
 		var backupFile = new File(backupDir);
-		// 恢复源必须是"已提交快照"这个唯一事实: backupDir 里可能是更新一代的延时快照,
-		// 内容超前于 firstIndex, 直接restore会让随后重放(firstIndex,...]的增量被双重应用.
-		// 按mtime比较决定是否解压不可靠: backupDir的mtime会被loadSnapshot自己重建目录时刷新,
-		// 从第二次重启起就会跳过解压、恢复到超前的备份而静默损坏状态机.
+		// 总是从已提交快照全量解压恢复，避免复用可能超前于 firstIndex 的旧 backupDir 导致日志双重应用。
 		LogSequence.deletedDirectoryAndCheck(backupFile, 100);
 		extractZipToDirectory(path, backupDir);
 		restore(backupDir);
 	}
 
 	/**
-	 * 启动恢复（见StateMachine.recover）：增量恢复需要读状态机库的应用水位，而库在
-	 * Raft构造期尚未openDb——先开库再校验。水位有效（存在于[firstIndex, lastIndex]且
-	 * term与日志一致）时跳过loadSnapshot的O(库大小)解压+restore整库拷贝，仅重放
-	 * (水位, lastIndex]；校验不过（旧格式库无水位行、水位异常、非本raft的DbHome误拷）
-	 * 回退全量loadSnapshot——其restore内部重建库，此处openDb幂等无害。
+	 * 启动恢复：优先开库校验应用完成水位，有效时跳过快照解压仅增量重放后续日志；
+	 * 校验失败或本地库损坏时回退全量 {@link #loadSnapshot}。
 	 */
 	@Override
 	public void recover(@Nullable String snapshotFile) throws Exception {
@@ -799,11 +718,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	/**
-	 * 没有快照的时候，Raft 重启后会从头重放全部日志，状态机必须从空库开始，
-	 * 否则 list 等按索引增量 apply 的非幂等日志会在残留的旧数据上被重复应用。
-	 * 参考 loadSnapshot 的 restore+openDb 机械：关句柄→删数据→重开空库。
-	 * 注意：Raft 构造过程中（无快照）调用到这里时 storage==null（openDb 尚未执行），
-	 * 此时只删除旧数据库目录即可，随后的 openDb 会创建空库。
+	 * 重置为空库：无快照全量重放前必须清空旧库，避免非幂等增量日志重复应用。
 	 */
 	@Override
 	public void reset() {
@@ -812,12 +727,12 @@ public final class Rocks extends StateMachine implements Closeable {
 		try {
 			resetTransientState();
 			if (storage != null) {
-				storage.close(); // close current
+				storage.close();
 				storage = null;
 			}
 			LogSequence.deletedDirectoryAndCheck(
 					Paths.get(Objects.requireNonNull(getDbHome()), "statemachine").toFile(), 100);
-			openDb(); // reopen empty
+			openDb();
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
 		} finally {
@@ -825,21 +740,15 @@ public final class Rocks extends StateMachine implements Closeable {
 		}
 	}
 
-	/**
-	 * 状态机回退必清瞬态：reset（清库重放）与restore（InstallSnapshot回退）
-	 * 的重置集收口为唯一入口，对称性由结构保证。restore若残留旧atomicLongs/
-	 * lastUpdated水位，节点再当选leader时增量可能漏收集或写出回退值
-	 * （atomicLongs自增API已随死代码清理移除，路径失活，恢复该API时即成真缺陷）。
-	 * 调用方须持有raft锁。
-	 */
+	/** 清理 reset/restore 共用的状态机瞬态（调用方须持有 raft 锁）。 */
 	private void resetTransientState() {
-		pendingFlushApplies.clear(); // "已应用未flush"记录作废
+		pendingFlushApplies.clear();
 		atomicLongs.clear();
 		lastUpdated.clear();
 	}
 
 	@Override
-	public void close() { // 简单保护一下。
+	public void close() {
 		ShutdownHook.remove(this);
 		mutex.lock();
 		try {
@@ -853,10 +762,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				// Raft 排空 apply 前仍可能重试 flush，必须保留已应用的记录。
 				pendingFlushApplies.clear();
 				setRaft(null);
-				// 先关闭各表记录缓存的内建周期任务（热点轮转+cleanNow）：
-				// 不关的话Rocks实例关闭后旧任务永续执行并强引用缓存对象图（每表最多容量条
-				// Record/Bean）；放在Objects.requireNonNull(storage).close()之前，阻止关闭路径上的lazy load触碰
-				// 已关闭的存储句柄。
+				// 在关闭 storage 前先关闭各表缓存的周期任务，防止资源泄漏及访问已关闭存储。
 				for (var table : tables.values())
 					table.close();
 				if (storage != null) {

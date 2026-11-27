@@ -56,9 +56,7 @@ public class ProviderDirectService extends HandshakeBoth {
 				var conn = getConfig().findConnector(connName);
 				if (conn != null) {
 					conn.stop();
-					// 条件删除（与OnSocketClose、LinkdProvider.unBindModules同口径）：同serverId换地址滚动重启时，
-					// providerByServerId与ss.localStates已指向新地址会话，无条件remove会误删新会话的路由状态，
-					// 缺失持续到下次重连。ps为null说明旧会话已自行清理，跳过即可。
+					// 按所有权条件删除，避免同 serverId 换地址重启时误删新会话的路由状态。
 					var ps = providerByLoadName.get(connName);
 					if (ps != null) {
 						providerByLoadName.remove(connName, ps);
@@ -81,11 +79,9 @@ public class ProviderDirectService extends HandshakeBoth {
 			var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
 			var ps = providerByLoadName.get(connName);
 			if (ps != null) {
-				// connection has ready.
 				var prefix = Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix);
 				var mid = Integer.parseInt(pm.getServiceName().substring(prefix.length()));
-				// requireProviderApp().modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
-				// 锁序：PDS锁→providerApp锁，单向，无反向路径。只锁读取，setReady保持锁外。
+				// 锁序：PDS 锁 -> providerApp 锁，仅锁内读取 modules，setReady 放锁外。
 				BModule.Data m;
 				requireProviderApp().lock();
 				try {
@@ -140,13 +136,13 @@ public class ProviderDirectService extends HandshakeBoth {
 	@Override
 	public void OnSocketConnected(AsyncSocket so) {
 		if (so.getConnector() != null) {
-			// 每连接调用虚拟工厂，保留扩展初始化；Connector模板不再充当可变会话。
+			// 为每条连接新建会话，Connector 模板不充当可变会话。
 			var template = (ProviderSession)so.getUserState();
 			//noinspection DataFlowIssue
 			var session = newSession(template.getServerId());
 			session.sessionId = so.getSessionId();
 			so.setUserState(session);
-			// close可能先于以上替换读到模板；此时新会话不会再有关闭回调，须在发布后收敛。
+			// close 可能先于替换发生，此处补清理避免新会话残留。
 			if (so.isClosed()) {
 				session.timeCounter.close();
 				return;
@@ -158,8 +154,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	@Override
 	public void OnSocketAccept(AsyncSocket so) {
 		if (so.getConnector() == null) {
-			// 被动连接等待对方报告信息时再处理。
-			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
+			// 被动连接等待对方发送 AnnounceProviderInfo 后再设置就绪状态。
 			so.setUserState(newSession(so)); // acceptor
 		}
 		super.OnSocketAccept(so);
@@ -167,7 +162,6 @@ public class ProviderDirectService extends HandshakeBoth {
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket so) throws Exception {
-		// call base
 		super.OnHandshakeDone(so);
 
 		var c = so.getConnector();
@@ -252,22 +246,14 @@ public class ProviderDirectService extends HandshakeBoth {
 			if (old != null) {
 				if (old == ps)
 					return;
-				// 接管式注册：同loadName只允许一条活跃会话，新会话替换两张表并异步踢旧连接。
-				// 若putIfAbsent忽略新会话：旧会话迟到的OnSocketClose按所有权条件删除清空路由
-				// （新会话从未注册），且存活的新连接不再重连/announce——注册永久丢失无法自愈。
-				// 先put再踢，读侧无空窗；被踢会话的OnSocketClose条件删除因所有权已换而空转，
-				// 不会误删现任注册。
+				// 同 loadName 接管：先更新映射再异步关闭旧连接。
 				//noinspection DataFlowIssue
 				if (ps.getServerId() != getZeze().getConfig().getServerId())
 					logger.warn("setRelativeServiceReady: supersede old session {} with new {} for {}",
 							old, ps, ps.getServerLoadName());
 				providerByLoadName.put(ps.getServerLoadName(), ps);
-				// 被替换的旧会话在此终结：取消其TimeCounter每秒周期任务。本机合成会话（sessionId=0）
-				// 无连接可踢、永无OnSocketClose清理点，不关则随模块数/SM重订阅无界累积泄漏；
-				// 真会话随后OnSocketClose的close幂等（cancel二次调用无害），双关无害。
+				// 终结旧会话 TimeCounter（含无连接的本机合成会话），并异步关闭旧连接。
 				old.timeCounter.close();
-				// 本机合成会话（无连接，sessionId=0）被替换时无连接可踢；socket已死的由其
-				// OnSocketClose条件清理，map已被新会话接管，无残留影响。
 				var oldSocket = old.getSessionId() != 0 ? GetSocket(old.getSessionId()) : null;
 				if (oldSocket != null)
 					TaskSpec.ofAction(() -> oldSocket.close(new java.io.IOException(
@@ -280,13 +266,11 @@ public class ProviderDirectService extends HandshakeBoth {
 			for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
 				var prefix = Objects.requireNonNull(requireProviderApp().serverServiceNamePrefix);
 				if (ss.getServiceName().startsWith(prefix)) {
-					// ps.appVersion 属于linkd侧会话（announce时设置），direct会话永远为0，
-					// 配置AppVersion后用0查版本桶会得到null导致setReady全部跳过，改用本机配置版本。
+					// direct 会话不携带 appVersion，统一按本机主版本查询。
 					var infos = ss.getServiceInfos(getZeze().getConfig().getAppMainVersion());
 					if (infos == null)
 						continue;
 					var mid = Integer.parseInt(ss.getServiceName().substring(prefix.length()));
-					// requireProviderApp().modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
 					BModule.Data m;
 					requireProviderApp().lock();
 					try {
@@ -327,8 +311,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	@Override
 	public void OnSocketClose(AsyncSocket socket, @Nullable Throwable ex) throws Exception {
 		var ps = (ProviderSession)socket.getUserState();
-		// 与setRelativeServiceReady/addServer的发布保持全序：先发布则本次清理可见全部
-		// ReadyStates；先关闭则directClosed阻止迟到的握手/announce把死会话重新写回。
+		// 与 setRelativeServiceReady/addServer 互斥，防止已关闭会话被迟到的握手写回。
 		lock();
 		try {
 			if (ps != null) {
@@ -337,18 +320,16 @@ public class ProviderDirectService extends HandshakeBoth {
 					//noinspection DataFlowIssue
 					var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
 					if (subs == null)
-						continue; // 服务已取消订阅（subscribeStates条目已移除）。不判空会在下面NPE，跳过后面的清理。
+						continue; // 服务已取消订阅
 					for (var stateEntry : service.getValue().entrySet()) {
-						// 条件删除：重连后的新会话可能已重新setReady覆盖该identity，
-						// 只清除仍属于当前关闭会话的localState，避免误删新会话的路由状态。
+						// 仅移除仍属于当前会话的 localState，避免误删重连新会话。
 						subs.getLocalStates().remove(stateEntry.getKey(), stateEntry.getValue());
 					}
 				}
-				// 条件删除：迟到的关闭事件不得误删同loadName/serverId的新会话注册
-				// （remove+add churn时新会话先完成握手，旧连接的关闭回调后到）。
+				// 条件删除，避免迟到的关闭回调误删新会话注册。
 				providerByLoadName.remove(ps.getServerLoadName(), ps);
 				providerByServerId.remove(ps.getServerId(), ps);
-				// 会话终结：取消其TimeCounter的每秒discard周期任务，避免随会话更替无界泄漏。
+				// 取消 TimeCounter 周期任务，避免会话更替泄漏。
 				ps.timeCounter.close();
 			}
 		} finally {

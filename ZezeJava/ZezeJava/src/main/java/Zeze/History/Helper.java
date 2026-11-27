@@ -216,9 +216,7 @@ public class Helper {
 		}
 		valueClass = Class.forName(valueType, true, loader);
 		dependsBean(valueClass, result);
-		// 选族须与生成器一致（Gen/Gen/java/TypeName.cs：IsNormalBean ? '2' : '1'）：beankey
-		// 不是 normal bean，值集合生成"1"族（PList1/LogList1）；按"2"族注册的 typeId 线上
-		// 不出现，回放端解码抛 unknown log typeId。
+		// 与生成器选族一致：BeanKey 值生成 "1" 族（PList1/LogList1），普通 Bean 生成 "2" 族。
 		if (BeanKey.class.isAssignableFrom(valueClass))
 			result.list1.add(valueClass);
 		else

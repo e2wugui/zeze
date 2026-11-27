@@ -50,11 +50,7 @@ public class ProxyServer extends Service {
 		));
 	}
 
-	/**
-	 * 把代理请求派发到指定的raft中执行。
-	 *
-	 * @param r ProxyRequest
-	 */
+	/** 把代理请求派发到目标 Raft 实例执行。 */
 	private long ProcessProxyRequest(ProxyRequest r) throws Exception {
 		var raft = rafts.get(r.Argument.getRaftName());
 		if (null == raft) {
@@ -72,13 +68,7 @@ public class ProxyServer extends Service {
 		}
 		raftRpc.setProxyRequest(r);
 
-		// 与 Raft.Server.dispatchProtocol 的预拦截对齐（直连路径有、proxy路径此前漏给）：
-		// 这三条协议定义成了普通的用户请求，但不需要自己是Leader也能工作，提前拦截派发，
-		// 不走下面的leader门槛——否则follower上的GetLeader被静默丢弃只剩redirect，
-		// Agent的首发现问询就只能撞上leader才有应答（变体A并行问询依赖任意节点可答：
-		// follower答它认知的leader，选举中快速回Unknown）。仍保留dispatchRaftRequest的
-		// one-by-one包装与RaftRetry错误路径；不走processRequest的唯一请求校验
-		// （Agent直发不填createTime，isUniqueRequestCreateTimeValid恒拒，同直连注释）。
+		// 与 Server.dispatchProtocol 对齐：以下控制类请求无需 Leader 身份且不填 createTime，提前派发以跳过 Leader 门槛与去重校验。
 		var pTypeId = p.getTypeId();
 		if (pTypeId == GetLeader.TypeId_ || pTypeId == StartServerConnector.TypeId_ || pTypeId == StopServerConnector.TypeId_) {
 			server.dispatchRaftRequest(p, () -> TaskSpec.ofFunc(() -> p.handle(server, Objects.requireNonNull(outFactoryHandle.value)),
@@ -87,7 +77,7 @@ public class ProxyServer extends Service {
 			return 0;
 		}
 
-		// 下面的流程与 Raft.Server.dispatchProtocol 中的对应流程保持一致。
+		// 以下流程与 Server.dispatchProtocol 保持一致。
 		if (raft.isWorkingLeader()) {
 			if (raftRpc.getUnique().getRequestId() <= 0) {
 				p.SendResultCode(Procedure.ErrorRequestId);
@@ -103,8 +93,7 @@ public class ProxyServer extends Service {
 			return 0;
 		}
 
-		// else 如果不是leader，不处理请求，也不发送rpc的正常结果，以后Raft.Agent会resend。
-		// 但是会尝试报告一次真正的leader。
+		// 非 Leader 不处理请求（由 Agent 重发），尝试通告当前 Leader。
 		server.trySendLeaderIs(r.getSender());
 
 		return 0;
@@ -118,10 +107,7 @@ public class ProxyServer extends Service {
 		raft.getServer().setProxyServer(this);
 	}
 
-	/**
-	 * 摘除addRaft登记的raft（DestroyBucket销毁桶用）：此后代理请求按not-found拒绝。
-	 * 只在确属本实例登记时清除raft的proxyServer反向引用，不误伤后登记的其他实例。
-	 */
+	/** 注销指定的 Raft 实例，并按引用匹配清除其 proxyServer 引用。 */
 	public void removeRaft(Raft raft) {
 		if (rafts.remove(raft.getName(), raft))
 			raft.getServer().setProxyServer(null);
@@ -139,7 +125,7 @@ public class ProxyServer extends Service {
 	@SuppressWarnings("unchecked")
 	public static boolean send(Service localService, @Nullable ProxyServer proxyServer, Rpc<?, ?> rpc, String raftName, @Nullable AsyncSocket sender) {
 		if (null == sender)
-			return false; // 没有连接，直接失败。
+			return false;
 
 		if (null != proxyServer) {
 			var proxyArgument = new ProxyArgument(raftName, rpc);
@@ -157,16 +143,14 @@ public class ProxyServer extends Service {
 							var originHandle = (ProtocolHandle)rpc.getResponseHandle();
 							localService.dispatchRpcResponse(resultRpc, originHandle, Objects.requireNonNull(outFh.value));
 						} else if (rpc.getFuture() != null) {
-						// 补全future路径（与ProxyAgent.send对齐）：无responseHandle的结果如不处理
-						// 会被静默丢弃，future等待方永远等不到结果，只能等rpc超时；
-						// RaftRetry/DuplicateRequest等语义码同样丢失。
+							// 无 responseHandle 时按 future 路径回填 ResultCode 与 Result。
 							rpc.setResultCode(resultRpc.getResultCode());
 							//noinspection rawtypes,UnnecessaryLocalVariable
 							Rpc rawRpc = rpc, rawResultRpc = resultRpc;
 							rawRpc.Result = rawResultRpc.Result;
 							rpc.getFuture().setRawResult(rpc);
 						}
-						// 既无responseHandle也无future：调用方明确忽略应答（如Server.trySendLeaderIs），不处理。
+						// 既无 responseHandle 也无 future 时调用方忽略应答（如 trySendLeaderIs）。
 					} else {
 						logger.error("Server ProxyRequest({}) resultRpc decode not found.", proxyArgument.getRaftName());
 					}
@@ -179,7 +163,7 @@ public class ProxyServer extends Service {
 			}, proxyServer.rpcTimeout);
 		}
 
-		// 未启用代理时的直接raft访问发送方式。
-		return rpc.Send(sender); // ignore response
+		// 未启用代理时直接发送（忽略应答）。
+		return rpc.Send(sender);
 	}
 }

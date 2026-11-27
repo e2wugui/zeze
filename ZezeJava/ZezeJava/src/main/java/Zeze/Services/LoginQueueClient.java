@@ -19,11 +19,7 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
     }
 
     public void connect(String hostNameOrAddress, int port) {
-        // 停机屏障适配：ProcessPutLoginToken/ProcessPutQueueFull收到应答后自stop()
-        // （一次性登录队列连接），本类的生命周期契约是"再次connect即复用"。屏障只在
-        // Service.start()复位——对已停止服务建连会在addSocket被自查自关，autoReconnect
-        // 退避循环反复撞同一屏障，token永不到达，调用方await永久挂起且全程静默。
-        // connect前start()复活服务；幂等：首次connect时无acceptor/connector为空操作。
+        // 收到令牌或满员后会自 stop()，再次 connect 前需先 start() 复位服务停机屏障
         try {
             service.start();
         } catch (Exception e) {
@@ -84,11 +80,7 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
 
     @Override
     protected long ProcessPutLoginToken(Zeze.Builtin.LoginQueue.PutLoginToken p) throws Exception {
-        // stop必须先行：服务端putLoginToken推完即closeGracefully，若回调先行——回调内可能
-        // 阻塞等待（如ClientGame在回调里Connector.WaitReady等linkd连上，可长达数百ms）——
-        // close触发的autoReconnect在窗口内重拨5020二次排队，可能再领到绑另一linkd的token
-        // 并重跑回调，客户端同时挂两个linkd连接（GetSocket任取其一）→auth被choiceProvider拒r:2。
-        // 先置停机屏障并停掉queue connector，在途/迟到的重拨要么被取消要么撞屏障自查自关。
+        // 先停止连接器再触发回调，防止回调阻塞期间服务端断连触发 autoReconnect 二次排队
         stop();
         if (null != loginToken)
             loginToken.run(p.Argument);
@@ -97,7 +89,7 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
 
     @Override
     protected long ProcessPutQueueFull(Zeze.Builtin.LoginQueue.PutQueueFull p) throws Exception {
-        // 同ProcessPutLoginToken：stop先行，杜绝满员回调阻塞期间autoReconnect重拨二次排队
+        // 先停止连接器再触发回调，防止满员回调期间自动重连二次排队
         stop();
         if (null != queueFull)
             queueFull.run();

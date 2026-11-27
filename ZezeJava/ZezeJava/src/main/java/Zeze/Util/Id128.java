@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.BeanKey;
 import org.jspecify.annotations.Nullable;
 
-// 128 位复合 id（high+low 两个无符号 long），支持递增与比较。
+/** 128 位复合 ID（high/low 两个无符号 long），支持递增与无符号比较。 */
 public class Id128 implements BeanKey, Comparable<Id128>, Cloneable {
 	public static final Id128 Zero = new Id128() {
 		@Override
@@ -28,15 +28,15 @@ public class Id128 implements BeanKey, Comparable<Id128>, Cloneable {
 
 	};
 
-	private long low; // unsigned
-	private long high; // unsigned
+	private long low; // 无符号
+	private long high; // 无符号
 
 	public Id128() {
 	}
 
 	/**
-	 * @param low  low is unsigned
-	 * @param high high is unsigned
+	 * @param high 高 64 位（无符号）
+	 * @param low  低 64 位（无符号）
 	 */
 	public Id128(long high, long low) {
 		this.low = low;
@@ -62,9 +62,9 @@ public class Id128 implements BeanKey, Comparable<Id128>, Cloneable {
 	}
 
 	/**
-	 * 增加id的值。直接改变现有变量。
+	 * 原地增加 ID 值。
 	 *
-	 * @param num num is unsigned
+	 * @param num 增量（无符号）
 	 */
 	public void increment(long num) {
 		low += num;
@@ -73,10 +73,10 @@ public class Id128 implements BeanKey, Comparable<Id128>, Cloneable {
 	}
 
 	/**
-	 * 增加id的值，返回一个新对象。
+	 * 增加 ID 值并返回新对象。
 	 *
-	 * @param num num is unsigned
-	 * @return new Id128 instance that added.
+	 * @param num 增量（无符号）
+	 * @return 递增后的新 Id128 实例
 	 */
 	public Id128 add(long num) {
 		var result = new Id128(high, low);

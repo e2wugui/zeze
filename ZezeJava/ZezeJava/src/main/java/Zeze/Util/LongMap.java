@@ -3,41 +3,24 @@ package Zeze.Util;
 import java.util.function.LongFunction;
 import org.jspecify.annotations.Nullable;
 
-/** Same as 'java.util.Map' but uses primitive 'long' keys to minimise boxing (and GC) overhead. */
+/** 原始 {@code long} 键映射表接口（语义类似 {@code java.util.Map}，避免装箱与 GC 开销）。 */
 public interface LongMap<V extends @Nullable Object> extends Iterable<V> {
-	/** Returns the number of elements in this map. */
+	/** 返回映射表中的条目数。 */
 	int size();
 
-	/**
-	 * Returns whether this map is empty.
-	 *
-	 * @return {@code true} if this map has no elements, {@code false} otherwise.
-	 */
+	/** 返回映射表是否为空。 */
 	boolean isEmpty();
 
 	boolean containsKey(long key);
 
 	boolean containsValue(V value);
 
-	/**
-	 * Returns the value of the mapping with the specified key.
-	 *
-	 * @param key the key.
-	 * @return the value of the mapping with the specified key, or {@code null}
-	 * 		if no mapping for the specified key is found.
-	 */
+	/** 返回指定 key 对应的值，不存在时返回 {@code null}。 */
 	@Nullable V get(long key);
 
 	V getOrDefault(long key, V defaultValue);
 
-	/**
-	 * Maps the specified key to the specified value.
-	 *
-	 * @param key   the key.
-	 * @param value the value.
-	 * @return the value of any previous mapping with the specified key or
-	 *        {@code null} if there was no such mapping.
-	 */
+	/** 写入键值映射，返回该 key 原先关联的值（不存在时返回 {@code null}）。 */
 	@Nullable V put(long key, V value);
 
 	@Nullable V putIfAbsent(long key, V value);
@@ -48,17 +31,12 @@ public interface LongMap<V extends @Nullable Object> extends Iterable<V> {
 
 	@Nullable V computeIfAbsent(long key, LongFunction<? extends @Nullable V> mappingFunction);
 
-	/**
-	 * Removes the mapping from this map
-	 *
-	 * @param key to remove
-	 * @return value contained under this key, or null if value did not exist
-	 */
+	/** 移除指定 key 的映射，返回原先关联的值（不存在时返回 {@code null}）。 */
 	@Nullable V remove(long key);
 
 	boolean remove(long key, V value);
 
-	/** Removes all mappings from this hash map, leaving it empty. */
+	/** 清空所有映射。 */
 	void clear();
 
 	LongIterator keyIterator();
@@ -78,7 +56,7 @@ public interface LongMap<V extends @Nullable Object> extends Iterable<V> {
 
 		long key();
 
-		/** Returns the current entry's value after a successful {@link #moveToNext()}. */
+		/** 在 {@link #moveToNext()} 返回 true 后，返回当前条目的值。 */
 		V value();
 
 		void remove();

@@ -32,20 +32,18 @@ import sun.security.rsa.RSAUtil;
 import sun.security.util.DerValue;
 import sun.security.x509.X509CertImpl;
 
-// 生成KeyStore: keytool -genkeypair -keyalg RSA -keysize 2048 -keystore test.ks -storetype pkcs12 -storepass 123456 -alias test -validity 365 -dname "cn=CommonName, ou=OrgName, o=Org, c=Country"
-// 查看KeyStore: keytool -list -keystore test.ks -storepass 123456 -v
-// 导出PEM格式公钥证书: keytool -exportcert -keystore test.ks -storepass 123456 -alias test -rfc -file test.pem
-// 导出DER格式公钥证书: keytool -exportcert -keystore test.ks -storepass 123456 -alias test -file test.der
-// 以上两种格式都可以用.cer或.crt后缀名, PEM和DER两种编码格式可以用OpenSSL工具转换
-// 参考: https://docs.oracle.com/en/java/javase/11/tools/keytool.html
-// 参考: https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html
-// 编译时需要: --add-exports java.base/sun.security.x509=ALL-UNNAMED
-// 证书与密钥工具：自签证书/KeyPair 生成、KeyStore 加载保存与 SSLContext 配置
+/**
+ * 证书与密钥工具：KeyStore 加载、X509/RSA/EC 密钥编解码、签名验签及 RSA/AES 加解密。
+ * <p>
+ * 编译需 {@code --add-exports java.base/sun.security.x509=ALL-UNNAMED}；
+ * keytool 常用命令：生成 {@code keytool -genkeypair -keyalg RSA -keysize 2048 -keystore test.ks -storetype pkcs12}，
+ * 导出 PEM/DER 证书可用 {@code -exportcert [-rfc]}。
+ */
 public final class Cert {
 	static {
 		try {
 			var m = Module.class.getDeclaredMethod("implAddOpensToAllUnnamed", String.class);
-			Json.setAccessible(m); // force accessible
+			Json.setAccessible(m);
 			m.invoke(Certificate.class.getModule(), "sun.security.rsa"); // --add-opens java.base/sun.security.rsa=ALL-UNNAMED
 			m.invoke(Certificate.class.getModule(), "sun.security.util"); // --add-opens java.base/sun.security.util=ALL-UNNAMED
 			m.invoke(Certificate.class.getModule(), "sun.security.x509"); // --add-opens java.base/sun.security.x509=ALL-UNNAMED

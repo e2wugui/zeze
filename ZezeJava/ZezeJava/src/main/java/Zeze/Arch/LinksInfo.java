@@ -87,7 +87,7 @@ public class LinksInfo extends AbstractLinksInfo {
 			if (null != infoVersion) {
 				for (var info : infoVersion.getSortedIdentities()) {
 					if (info.getExtraInfo().size() == 0)
-						continue; // skip empty extra info
+						continue;
 					var extra = new BLinkInfo.Data();
 					extra.decode(ByteBuffer.Wrap(info.getExtraInfo()));
 					sb.append(extra.getIp()).append(':').append(extra.getPort()).append(sep);

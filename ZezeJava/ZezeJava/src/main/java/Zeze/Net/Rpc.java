@@ -34,15 +34,13 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		}
 	}
 
-	@SuppressWarnings("NotNullFieldNotInitialized") // Initialized by each concrete RPC constructor.
+	@SuppressWarnings("NotNullFieldNotInitialized") // 由具体 RPC 子类构造器初始化
 	public TResult Result;
 	protected transient @Nullable Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
 	private long sessionId;
 	private transient @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle;
 	private transient @Nullable TaskCompletionSource<TResult> future;
-	// 超时兜底定时器句柄：schedule 注册、上下文被消费时（应答到达/发送失败/socket销毁）经
-	// cancelTimeout 取消。不取消的话，定时器λ捕获this，成功应答的rpc全家桶会被钉在调度队列里
-	// 直到超时窗口耗尽——高吞吐下滞留量=速率×超时（soak 2026-10-31 bench OOM 实锤，1:1配对）。
+	// 超时兜底定时器，上下文被消费时经 cancelTimeout 取消以防滞留调度队列。
 	private volatile transient @Nullable Timeout timeoutTask;
 	private int timeout = 5000;
 	private int timeoutBroken = 30_000;
@@ -124,9 +122,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
 
+		// 使用非事务感知的时间轮同步注册，避免事务回滚撤销超时兜底。
 		timeoutTask = Task.getTimeoutManager().schedule(timeout, () -> {
-			// 实例一次性（禁止同实例重发）后，本定时器唯一对应自己的那次发送：
-			// 双参移除失败即条目已被应答消费，直接跳过。
 			if (!service.removeRpcContext(sessionId, this))
 				return; // 一般来说，此时结果已经返回。
 
@@ -141,24 +138,16 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 				var factoryHandle = service.findProtocolFactoryHandle(getTypeId());
 				if (factoryHandle != null)
 					service.dispatchRpcResponse(this, responseHandle, factoryHandle);
-				else // 工厂缺失时静默丢弃responseHandle排障无线索，warn对齐onRpcLostContext
+				else
 					logger.warn("rpc timeout: protocol factory not found, response handle skipped: {}", this);
 			}
-			// 超时清理必须同步立即注册（轮子入桶无事务感知）：此刻请求字节已发出，
-			// 即使所在事务随后回滚，应答仍会到来或永不到来，上下文必须有超时兜底；
-			// 事务感知的 schedule 会随回滚丢弃注册，导致 rpcContexts 条目永驻、SendForWait 永久挂起。
 		});
-		// 断连可能在 schedule 返回句柄前消费上下文，发布后复查以补偿错过的取消。
+		// 断连可能在 schedule 返回前已消费上下文，发布后复查补偿取消。
 		if (service.getRpcContext(sessionId) != this)
 			cancelTimeout();
 	}
 
-	/**
-	 * 取消超时兜底定时器。仅在上下文已被消费（应答到达/发送失败/socket销毁）时由
-	 * {@link Service#removeRpcContext} 收口调用——此时兜底已无意义。实例一次性
-	 * （每次发送唯一对应一个定时器），幂等；秒桶已触发（polled）后取消为 no-op，
-	 * 不打断可能正在执行的超时路径（在途派发由 action 内 removeRpcContext 裁决无害化）。
-	 */
+	/** 取消超时兜底定时器（上下文被消费时由 {@link Service#removeRpcContext} 调用，幂等）。 */
 	public void cancelTimeout() {
 		var task = timeoutTask;
 		if (task != null) {
@@ -207,7 +196,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			@Nullable TaskCompletionSource<TResult> waitFuture) {
 		if (so == null)
 			return false;
-		// 发送权先于任何请求状态写入；sessionId 尚在分配时也必须拒绝并发/重入发送。
+		// 先 CAS 占住发送权，拒绝并发或重入发送。
 		if (sessionId != 0 || !(boolean)REQUEST_SENT.compareAndSet(this, false, true))
 			throw new IllegalStateException("Rpc already sent (sessionId=" + sessionId
 					+ "); create a new instance to retry: " + this);
@@ -221,8 +210,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		isTimeout = false;
 		isRequest = true;
 
-		// 发号可能调用自定义生成器，留在生命周期锁外。登记与连接置死互斥，
-		// 且销毁回调只能看到 sessionId 等字段已初始化的请求。
+		// 发号在生命周期锁外执行；登记与连接置死互斥，确保销毁回调看到的请求字段已初始化。
 		while (true) {
 			//noinspection DataFlowIssue
 			long sid = service.nextSessionId();
@@ -236,18 +224,12 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 				break;
 		}
 
-		// 超时兜底先于编码/发送挂好——super.Send(so)内编码（写完sessionId后Argument.encode，
-		// 用户bean可抛）或传输层异常逃逸时，上下文仍有超时回收与回调，
-		// 发送返回false时下方双参remove先赢，超时定时器到期时remove(sessionId,this)必失败跳过，
-		// 无双重回调（LongConcurrentHashMap.remove(key,value)为原子条件删除）。
+		// 先挂超时再编码/发送，避免编码或传输层抛异常导致上下文失去超时兜底。
 		schedule(service, sessionId, millisecondsTimeout);
 		if (super.Send(so))
 			return true;
 
-		// 发送失败，一般是连接失效，此时删除上下文。
-		// 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
-		// 如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
-		// 实例不因失败解禁：失败重试同样请新建实例（保持一次性语义简单）。
+		// 发送失败删除上下文；若已被并发移除（已处理）则返回 true。
 		return !service.removeRpcContext(sessionId, this);
 	}
 
@@ -257,7 +239,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 *
 	 * @param so socket
 	 * @param responseHandle response handle
-\	 * @return true success, false fail.
+	 * @return true success, false fail.
 	 */
 	public boolean sendCallbackAlways(@Nullable AsyncSocket so,
 									  @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
@@ -329,10 +311,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			logger.warn("Rpc.SendResult Failed: {} {}", getSender(), this);
 	}
 
-	// sendResultDone的检查-设置必须原子：responseHandle回调线程与派发层onError兜底（trySendResultCode）
-	// 可能并发应答，两线程都过检查会双重发送Result，破坏"最多一次"语义。VarHandle CAS仲裁。
-	// mark先于resultCode等字段写：只有赢家写字段，输家不会污染赢家在途的encode；
-	// sendResultDone用于仲裁发送权；它不表示编码/发送已经完成。
+	// VarHandle CAS 保证 Result 最多发送一次；先占发送权再写 resultCode 等字段。
 	protected final boolean tryMarkSendResultDone() {
 		return (boolean)SEND_RESULT_DONE.compareAndSet(this, false, true);
 	}
@@ -380,15 +359,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
 	}
 
-	// 应答会合先校验后消费。sessionId 发号流全 JVM 共享且明文入帧、
-	// 顺序可枚举，而原会合仅按帧内号消费——任一同 Service 对端可伪造异协议 Response 帧
-	// 劫持他人在飞上下文（注入任意Result/回调CCE，真实应答沦为lost）。校验两层：
-	// ①typeId 一致（上下文协议==应答帧协议，伪造常携异协议 typeId）；②ctx.sender!=null
-	// 时应答必须从原发送连接到达（Raft/SM/GCM 全家原连接应答）。sender==null 的上下文
-	// （Online 经 linkd 转发的合法跨连接应答）仅受①保护——按 linkName 绑定的第三层
-	// 属独立设计。校验失败不消费上下文（真实应答或超时仍
-	// 可达），仅限频告警。
-	private static volatile long lastResponseMismatchLogMs; // 告警限频（60秒一条，防日志刷屏DoS）
+	// 应答会合先校验 typeId 与原发送连接（ctx.sender != null 时），不匹配则不消费上下文，仅限频告警。
+	private static volatile long lastResponseMismatchLogMs;
 
 	public static @Nullable Rpc<?, ?> removeRpcContextChecked(
 			Service service, long sid, Rpc<?, ?> response) {
@@ -440,14 +412,11 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (isRequest)
 			return super.handle(service, factoryHandle);
 
-		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
-		// 首轮解析并缓存到当前事务，重试直接复用。
+		// 事务 redo 时上下文只能消费一次：首轮解析并缓存到当前事务，重试直接复用。
 		var ctx = Transaction.resolveOnceOrApply(service, sessionId,
 				sid -> removeRpcContextChecked(service, sid, this));
 		if (ctx == null) {
 			service.onRpcLostContext(this);
-			// 上下文丢失（一般已被超时消费）：立即失败终止，不空转剩余重试、不以Success提交空事务。
 			return Procedure.Unknown;
 		}
 
@@ -501,10 +470,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public void preAllocSize(int size) {
-		// 扣最小保证字节（各变长字段按最少1B计），保留最坏-最小的16B差作稳态迟滞带：估算为静态
-		// per-class的high-water mark，实例尺寸天然抖动（变长字段/resultCode有无），带宽吸收小抖动
-		// 以免EnsureWrite扩容（toPower2跳变+全量arraycopy）；零冗余精确贴合反而每次尺寸上探都付
-		// 一次pow2扩容。对齐Protocol.preAllocSize(int)惯例（正向留10、反推扣1、带宽9B）。
+		// 扣最小头部字节，保留一定余量吸收变长字段抖动以减少扩容。
 		(isRequest ? Argument : Result).preAllocSize(size - 1 - 1 - 1);
 	}
 

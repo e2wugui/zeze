@@ -6,7 +6,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 
-/** CollOne change payload, independent of any local transaction target. */
+/** CollOne 的变更日志载荷，独立于本地事务目标。 */
 public class LogOneValue<V extends Bean> extends LogBean {
 	private final LogOneMeta<V> meta;
 	@Nullable V value;
@@ -38,7 +38,7 @@ public class LogOneValue<V extends Bean> extends LogBean {
 			bb.WriteBool(true);
 			value.encode(bb);
 		} else {
-			bb.WriteBool(false); // value tag
+			bb.WriteBool(false);
 			if (logBean != null) {
 				bb.WriteBool(true);
 				encodeLogBean(bb, logBean);
@@ -48,7 +48,7 @@ public class LogOneValue<V extends Bean> extends LogBean {
 	}
 
 	private void read(IByteBuffer bb) {
-		if (bb.ReadBool()) { // hasValue
+		if (bb.ReadBool()) {
 			try {
 				//noinspection unchecked
 				value = (V)meta.valueFactory.invoke();
@@ -56,7 +56,7 @@ public class LogOneValue<V extends Bean> extends LogBean {
 				throw Task.forceThrow(e);
 			}
 			value.decode(bb);
-		} else if (bb.ReadBool()) { // hasLogBean
+		} else if (bb.ReadBool()) {
 			logBean = decodeLogBean(bb);
 		}
 	}

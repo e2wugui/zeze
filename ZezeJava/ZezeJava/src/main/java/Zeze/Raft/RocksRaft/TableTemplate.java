@@ -51,8 +51,7 @@ public final class TableTemplate<K, V extends Bean> {
 	public Table<K, V> openTable(int templateId, @Nullable BiPredicate<K, Record<K>> callback) {
 		var t = (Table<K, V>)rocks.getTables().computeIfAbsent(name + "#" + templateId,
 				__ -> new Table<>(rocks, name, templateId, keyClass, valueClass, callback));
-		// 命中已存在表时callback参数不得被静默丢弃（否则带callback重载的存在意义即被废掉）：
-		// 补设回调，最后一次调用生效。
+		// 命中已存在表时仍更新回调，以最后一次调用为准。
 		if (callback != null)
 			t.setLruTryRemoveCallback(callback);
 		return t;

@@ -12,13 +12,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * leader侧InstallSnapshot发送会话登记表：每个落后到firstIndex的connector一个会话
- * （打开已提交gen快照、逐块发送，由InstallSnapshotState驱动）。
- * 会话存续期间该connector的心跳与日志复制被拦截（contains判断）；断线、换主、
- * 完成、异常都收口到end：移除会话、关文件、复位connector状态。
- * <p>
- * 构造仅可存引用：本表在LogSequence字段初始化期构造（this逃逸），彼时LogSequence
- * 尚未就绪——日志/快照文件/term一律延迟经logSequence读取，构造器中不得触碰。
+ * leader 侧 InstallSnapshot 发送会话登记表：为日志落后到 firstIndex 的 connector 维护分块发送会话。
+ * 会话存续期间拦截该 connector 的心跳与日志复制；断线、换主、完成或异常均经 end 收口。
+ * 在 LogSequence 构造期初始化，须延迟经 logSequence 访问运行期状态。
  */
 public final class SendSnapshotting {
 	private static final Logger logger = LogManager.getLogger(SendSnapshotting.class);
@@ -34,7 +30,7 @@ public final class SendSnapshotting {
 		return sessions.isEmpty();
 	}
 
-	// 该connector是否有发送会话（有则拦截其心跳与日志复制——发了也肯定失败，属优化）。
+	// 存在发送会话时拦截该 connector 的心跳与日志复制。
 	public boolean contains(String connectorName) {
 		return sessions.containsKey(connectorName);
 	}
@@ -43,38 +39,37 @@ public final class SendSnapshotting {
 		return sessions.get(c.getName()) == state;
 	}
 
-	void put(String connectorName, InstallSnapshotState state) { // 测试直接合成会话
+	void put(String connectorName, InstallSnapshotState state) {
 		sessions.put(connectorName, state);
 	}
 
 	public void cancelAll() throws Exception {
-		// 关句柄同时删条目：换主后残留条目永久拦截该connector的心跳/复制并禁用本地snapshot。
+		// 关句柄并移除条目，防止换主后残留条目阻塞心跳复制与本地快照。
 		for (var e : sessions.entrySet()) {
 			if (sessions.remove(e.getKey(), e.getValue()))
 				closeSession(e.getValue());
 		}
 	}
 
-	// 按connector收口（心跳/复制/断线路径持有connector）：移除会话并收口。
+	// 按 connector 移除并收口发送会话。
 	public void end(Server.ConnectorEx c) throws Exception {
 		closeSession(sessions.remove(c.getName()));
 	}
 
-	// 异步会话只能摘除自己；连接重试可能已登记同名的新会话。调用者持 Raft 锁。
+	// 按同一性摘除自身会话，避免误删重连后新建的同名会话（调用者持 Raft 锁）。
 	void end(Server.ConnectorEx c, InstallSnapshotState state) throws Exception {
 		if (sessions.remove(c.getName(), state))
 			closeSession(state);
 	}
 
-	// 断线异步回调收口：按会话启动时绑定的 socket 校验归属，避免 super.OnSocketClose 同步置空
-	// Connector.socket 后 getSocket() == closed 恒假，且不误删重连后新建的会话。调用者持 Raft 锁。
+	// 断线回调按启动时绑定的 socket 校验归属，避免误删重连后的新会话（调用者持 Raft 锁）。
 	void endIfSocket(Server.ConnectorEx c, AsyncSocket closed) throws Exception {
 		var state = sessions.get(c.getName());
 		if (state != null && state.getSocket() == closed && sessions.remove(c.getName(), state))
 			closeSession(state);
 	}
 
-	// 会话收口：关文件；done且成功则复位索引并续复制。map移除由调用方完成。
+	// 收口会话：关文件，成功完成时推进索引并继续日志复制（map 移除由调用方负责）。
 	private void closeSession(@Nullable InstallSnapshotState state) throws Exception {
 		if (state == null)
 			return;
@@ -82,40 +77,35 @@ public final class SendSnapshotting {
 		//noinspection DataFlowIssue
 		logger.info("{} InstallSnapshot LastIncludedIndex={} Done={} c={}", logSequence.getRaft().getName(),
 				state.getLastIncludedIndex(), state.getDone(), c.getName());
-		// 防御：start打开文件失败留下的会话file==null，原样NPE会沿shutdown路径的
-		// cancelAll打断后续logSequence.close。
+		// 容忍打开文件失败留下的 file==null，避免 cancelAll 抛 NPE 中断关闭流程。
 		if (state.getFile() != null)
 			state.getFile().close();
 		if (state.getDone() && state.getResultCode() == 0) {
 			c.setNextIndex(state.getLastIncludedIndex() + 1);
 
-			if (state.getLastIncludedIndex() > c.getMatchIndex()) // see EndReceiveInstallSnapshot 6.
+			if (state.getLastIncludedIndex() > c.getMatchIndex())
 				c.setMatchIndex(state.getLastIncludedIndex());
-			// start log copy
 			logSequence.trySendAppendEntries(c, null);
 		}
 	}
 
-	// follower日志落后到firstIndex（无prev-log可复制）时启动安装：发送firstIndex指认的
-	// 不可变gen文件，与本地提交/清扫不竞争。仅由trySendAppendEntries在raft锁内调用。
+	// follower 落后到 firstIndex 时启动快照安装（仅由 trySendAppendEntries 在 Raft 锁内调用）。
 	void start(Server.ConnectorEx c) throws Exception {
 		if (contains(c.getName()))
 			return;
 		var path = logSequence.getCommittedSnapshotFile();
-		// 如果 Snapshotting，此时不启动安装。
-		// 以后重试 AppendEntries 时会重新尝试 Install.
+		// 正在创建本地快照时暂不安装，等待后续重试。
 		if ((new File(path)).isFile() && !logSequence.getSnapshotting()) {
 			var socket = c.TryGetReadySocket();
 			if (socket == null)
 				return;
 			var state = new InstallSnapshotState();
-			state.setConnector(c); // 入表前绑定会话所属连接（end收口据此定位）
-			state.setSocket(socket); // 入表前绑定当前连接 socket（断线异步回调据此校验归属）
+			state.setConnector(c);
+			state.setSocket(socket);
 			if (sessions.putIfAbsent(c.getName(), state) != null)
 				throw new IllegalStateException("Impossible");
 
-			// putIfAbsent之后的初始化（open+readLog）失败时回收半初始化会话：残留会让
-			// 心跳/复制被拦截（end已加null防御）。
+			// 初始化失败时及时收口，防止半初始化条目阻塞心跳与复制。
 			try {
 				state.setFile(new RandomAccessFile(path, "r"));
 				state.setFirstLog(logSequence.readLog(logSequence.getFirstIndex()));
@@ -126,9 +116,7 @@ public final class SendSnapshotting {
 				return;
 			}
 			if (state.getFirstLog() == null) {
-				// firstIndex处没有边界日志（不变式破坏）：继续必然NPE，且异常被吞后connector停在
-				// 半初始化状态，心跳被拦截、复制永久楔死。取消本次安装，让本地新snapshot推进
-				// firstIndex后恢复。
+				// 缺失 firstIndex 边界日志时取消本次安装，等待新快照推进后恢复。
 				logger.error("{} startInstallSnapshot: no log at firstIndex={}, cancel install. c={}",
 						logSequence.getRaft().getName(), logSequence.getFirstIndex(), c.getName());
 				end(c);
@@ -143,8 +131,7 @@ public final class SendSnapshotting {
 					logSequence.getRaft().getName(), path, c.getName());
 			state.trySend(logSequence, c);
 		} else {
-			// 这一般的情况是snapshot文件被删除了。
-			// 内部会判断，不会启动多个snapshot。
+			// 快照文件缺失时触发一次本地快照（内部防重入）。
 			TaskSpec.ofAction(logSequence::snapshot).name("Snapshot").run();
 		}
 	}

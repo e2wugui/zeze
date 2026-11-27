@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import org.jspecify.annotations.Nullable;
 
-/** A dynamic replacement or an edit of the current payload. */
+/** 动态 Bean 的修改日志：记录整值替换或对当前载荷的字段编辑。 */
 final class LogDynamic extends LogBean {
 	static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogDynamic");
 
@@ -34,7 +34,7 @@ final class LogDynamic extends LogBean {
 
 	@Override
 	public Log beginSavepoint() {
-		// setBean creates a new replacement log at each write.
+		// 每次 setBean 都会创建新的替换日志。
 		return this;
 	}
 

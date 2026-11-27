@@ -78,9 +78,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	public V set(int index, V item) {
 		valueFactory.checkValue(item);
 		if (isManaged()) {
-			// 对齐经典PList2：越界IOOBE必须在挂接前抛出（LogList1.set经
-			// TreePVector.with的检查在挂接之后），否则调用方catch后复用bean携带脏归属——
-			// 复用抛HasManagedException，原位字段修改的日志被encode期静默丢弃。
+			// 先验界再挂接，避免越界抛异常后 item 残留脏归属。
 			var cur = getList();
 			if (index < 0 || index >= cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
@@ -101,8 +99,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	public void add(int index, V item) {
 		valueFactory.checkValue(item);
 		if (isManaged()) {
-			// 同set，先验界（add合法域0<=index<=size）后挂接，越界IOOBE不得
-			// 留下携带脏归属的bean。
+			// 先验界再挂接，避免越界抛异常后 item 残留脏归属。
 			var cur = getList();
 			if (index < 0 || index > cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
@@ -166,14 +163,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		}
 		list = tmp;
 
-		// apply changed：encode侧已按addSet身份过滤结构op携带bean的冗余条目（对齐
-		// 经典LogList2：op的value编码于提交时刻、已含最终状态，冗余增量再叠加会双重应用；
-		// 按op时index启发式取newest与changed最终坐标系错位，位移/加删相消时误跳过丢编辑）。
-		// changed 携带的 index 越过当前 list 边界（任何来源的先行分歧）时直接get
-		// 抛IndexOutOfBoundsException：正常重放下index必在界内（LogList2.encode只保留最终
-		// 列表中存在的bean并按最终列表计算index），越界即先行分歧。异常由Rocks.followerApply
-		// 统一catch并fatalKill（宁死不糊；不catch则apply重试同条目反复抛出、lastApplied
-		// 楔死），容器层不再内联防御。
+		// encode 侧已按最终列表过滤并重算下标，此处越界即状态机分歧，直接抛出由 Rocks.followerApply 统一 fatalKill。
 		for (var e : log.getChanged().entrySet())
 			list.get(e.getValue().value).followerApply(e.getKey());
 	}

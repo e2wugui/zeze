@@ -39,7 +39,7 @@ public class Profiler {
 
 	public static final class Context implements AutoCloseable {
 		private @Nullable Object name;
-		private @Nullable Throwable e; // only for stack
+		private @Nullable Throwable e; // 仅用于采集调用栈
 		private long timeBegin;
 		private long timeEnd;
 
@@ -65,8 +65,7 @@ public class Profiler {
 	}
 
 	public void reset() {
-		// 无条件复位：count==0 但 startTime!=0（onProcedureBegin 置位后全程无 Context）的残留
-		// 会随池化 Transaction 污染同线程下一个事务的诊断输出。清空本身幂等。
+		// 即使 count == 0 也须清零 startTime，防止池化 Transaction 复用时残留。
 		for (int i = 0; i < count; i++)
 			contexts.get(i).clearRef();
 		count = 0;
@@ -79,7 +78,7 @@ public class Profiler {
 			if (state == null)
 				break;
 			if (curTimeNs < state.timeEnd) {
-				startTime = curTimeNs; // enable profile
+				startTime = curTimeNs;
 				break;
 			}
 			if (enableProcMap.remove(procName, state))
@@ -140,9 +139,6 @@ public class Profiler {
 		c.name = name;
 		c.timeBegin = System.nanoTime();
 		c.timeEnd = 0;
-		// 必须推进count：toString/genInfo只迭代[0,count)，不推进则begin登记的上下文全部
-		// 不可见，同事务多次begin互相覆写同一槽位，onRedo再覆写begin占用的槽位
-		// （88aeceec1加timeEnd=0时误删此行，af6708415初版语义即有）。
 		count = n + 1;
 		return c;
 	}

@@ -15,9 +15,7 @@ import java.util.function.UnaryOperator;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 写少读多的List：写侧ArrayList加锁修改，读侧走不可变快照（写后首次读重建）。
- * null契约与ArrayList一致：允许null元素（快照为ArrayList拷贝，
- * 不因null元素建不成）。
+ * 写少读多的 List：写侧 ArrayList 加锁修改，读侧走不可变快照（写后首次读重建），允许 null 元素。
  */
 public class FewModifyList<E extends @Nullable Object> implements List<E>, RandomAccess, Cloneable {
 	private transient volatile @Nullable List<E> read;
@@ -42,9 +40,7 @@ public class FewModifyList<E extends @Nullable Object> implements List<E>, Rando
 			writeLock.lock();
 			try {
 				if ((r = read) == null) {
-					// ArrayList 拷贝允许 null 元素（对齐 FewModifySortedMap 的 TreeMap 快照）：
-					// List.copyOf 遇 null 抛 NPE 且快照建不成（read 恒 null），此后任意读方法
-					// 重复抛 NPE，读侧永久瘫痪。unmodifiable 包装保持快照只读契约不弱化。
+					// 用 ArrayList 拷贝而非 List.copyOf，以支持 null 元素并保持只读快照语义。
 					read = r = Collections.unmodifiableList(new ArrayList<>(write));
 				}
 			} finally {
@@ -326,9 +322,7 @@ public class FewModifyList<E extends @Nullable Object> implements List<E>, Rando
 		return prepareRead().toString();
 	}
 
-	/** 相等性基于调用时刻快照做内容比较（与同内容任意List相等，跨实现对称，
-	 * List契约）；hashCode随内容变化，严禁作HashMap/HashSet键；需要稳定键
-	 * 请用snapshot()固定容器结构，并保证其中元素的哈希值稳定；clone()返回的是可写浅拷贝。 */
+	/** 基于调用时刻快照比较内容；hashCode 随内容变化，勿直接作 Map/Set 键（需要稳定键请用 {@link #snapshot()}）。 */
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		return this == obj || obj instanceof List && prepareRead().equals(obj);

@@ -2,7 +2,7 @@ package Zeze.Serialize;
 
 import java.util.ArrayList;
 
-/** A value that can write its existing binary and SQL representations. */
+/** 可编码对象：支持写入自身的二进制与 SQL 表示。 */
 public interface Encodable {
 	void encode(ByteBuffer bb);
 

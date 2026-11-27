@@ -81,11 +81,7 @@ public class LinkdService extends HandshakeServer {
 		// 如果是 rpc.request 直接返回Procedure.Busy错误。
 		// see Zeze.Net.Rpc.decode/encode
 		var bb = ByteBuffer.Wrap(dispatch.Argument.getProtocolData());
-		// protocolData由客户端拼装、长度任意（可为0）。rpc帧布局为
-		// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。ReadUInt/SkipLong/
-		// ReadLong都是变长编码（各最多9字节，首字节决定），数字长度门卫不闭合（>=4/>=16/8的
-		// 长度门卫对首字节>=0xf0的构造包仍会越界抛异常），故整体try/catch：畸形帧跳过
-		// rpc应答部分（只发下面的ReportError），解析异常不再打断IO线程→断开该连接。
+		// 客户端可控字节流含变长编码，统一 try/catch 避免畸形帧解析异常断开连接。
 		AsyncSocket so = null;
 		var sessionId = 0L;
 		try {
@@ -97,7 +93,7 @@ public class LinkdService extends HandshakeServer {
 				so = GetSocket(dispatch.Argument.getLinkSid());
 			}
 		} catch (Exception e) {
-			// 畸形帧：跳过Busy应答。限频warn+计数：过载路径上畸形帧可能高频，每帧一条会刷日志。
+			// 畸形帧跳过 Busy 应答并限频告警。
 			busyParseFailures.increment();
 			var now = System.currentTimeMillis();
 			if (now - lastBusyParseWarnTime >= 1000) {
@@ -256,8 +252,7 @@ public class LinkdService extends HandshakeServer {
 				ps.timeCounter.increment();
 				return 0;
 			}
-			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
-			// 必须显式返回错误码：落到return r(=0)会让调用方当作已处理，协议被静默丢弃。
+			// 发送前连接关闭视作未找到，返回错误码避免协议静默丢弃。
 			return 102;
 		}
 		return r;
@@ -353,12 +348,12 @@ public class LinkdService extends HandshakeServer {
 		*/
 		var opt = getSocketOptions().getOverBandwidth();
 		if (opt == null)
-			return false; // discard no
+			return false;
 		var rate = (double)(curSendSpeed) / opt;
 
 		// 总控
 		if (rate > getSocketOptions().getOverBandwidthFusingRate()) // 1.0
-			return true; // 熔断: discard all，其他级别在回调中处理。
+			return true; // 熔断：全部丢弃，其余级别在回调中处理。
 		if (rate < getSocketOptions().getOverBandwidthNormalRate()) // 0.7
 			return false; // 整体负载小于0.7,全部不丢弃
 

@@ -1,7 +1,7 @@
 package Zeze.Util;
 
 
-// 布隆过滤器：LevelDB 式双哈希探测，位存储由可插拔 BitArray 提供
+/** 布隆过滤器：LevelDB 式双哈希探测，位存储由可插拔 BitArray 提供。 */
 public class BloomFilter {
 	public interface BitArray {
 		long getCapacity(); // maxIndex+1 如果是2的N次幂,性能会好很多
@@ -13,8 +13,8 @@ public class BloomFilter {
 
 	private final BitArray bitArray;
 	private final long capacity; // maxIndex+1
-	private final long mask; // capacity-1 if isPowerOfTwo(capacity) else 0
-	private final int bitsPerKey; // set/test bit count per key
+	private final long mask; // 2 的幂时为 capacity-1，否则为 0
+	private final int bitsPerKey; // 每个 key 的探测位数
 
 	public static int toPowerOfTwo(int v) {
 		return 1 << (32 - Integer.numberOfLeadingZeros(v - 1)); // 0,1,2,3,4,5,... => 1,1,2,4,4,8,...
@@ -34,8 +34,7 @@ public class BloomFilter {
 	public BloomFilter(BitArray bitArray, int bitsPerKey) {
 		capacity = bitArray.getCapacity();
 		if (capacity <= 0)
-			// isPowerOfTwo(0)==true会让mask=-1，keyHash&mask传出全范围64位索引，
-			// 违反BitArray的index:[0,capacity)契约。
+			// capacity<=0 时 isPowerOfTwo(0) 会算出 mask=-1 导致索引越界
 			throw new IllegalArgumentException("bitArray capacity must be positive: " + capacity);
 		this.bitArray = bitArray;
 		mask = isPowerOfTwo(capacity) ? capacity - 1 : 0;
@@ -48,7 +47,7 @@ public class BloomFilter {
 
 	public long getTotalBits() {
 		long n = 0;
-		for (long i = 0; i < capacity; i++) // capacity 是 long：int 循环变量在 >2^31 位容量下回绕为负，越界/死循环
+		for (long i = 0; i < capacity; i++)
 			if (bitArray.getBit(i))
 				n++;
 		return n;

@@ -2,10 +2,9 @@ package Zeze.Util;
 
 import java.util.Arrays;
 
-// 防重放窗口（可增长位图）：serialId 滑窗判定，窗口满时倍增扩容
+/** 防重放滑窗（byte 位图版）：基于环形位图记录窗口内已见 serialId。 */
 public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
-	// max哨兵保持0：改-1会把整个滑窗位图偏移一位（既有位图状态测试全部漂移）。
-	// max=0+position=0下replay(0)走后向分支（bit0未置→置位放行）即正确，仅需把<=0收窄为<0。
+	// 哨兵初值 0（配合 position=0）：serialId=0 走后向分支首次置位放行
 	private long max;
 	private final byte[] range;
 	private int position;
@@ -27,10 +26,7 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 	}
 
 	public ReplayAttackGrowRange(int limit) {
-		// 窗口 N=capacity*8 在 replay() 内全程按 int 计算：capacity<=2^27 时 N<=2^30 安全；
-		// capacity>=2^28 时 N 溢出(2^31→MIN_VALUE、2^32→0)，前向分支除零/取模失效，回退分支
-		// (int)grow 截断回绕还可能放行过期 serialId。故 limit 上限必须收紧到 2^27
-		// (2^27<limit<=2^28 时倍增出 capacity=2^28，旧的 1<<30 上限只防了倍增死循环没防这里)。
+		// 窗口位数 capacity*8 全程按 int 计算，限制 limit<=2^27 避免溢出
 		if (limit > (1 << 27))
 			throw new IllegalArgumentException("limit too large: " + limit);
 		int capacity = 1;
@@ -42,17 +38,16 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 	@Override
 	public boolean replay(long serialId) {
 		if (serialId < 0)
-			return true; // invalid id（契约：serialId应该≥0，0合法）
+			return true; // 非法 id（契约要求 serialId >= 0）
 		long grow = serialId - max;
 		if (grow > Integer.MAX_VALUE)
-			return true; // 跳的太远，拒绝掉。
-		if (grow > 0) { // grow clear
-			int increase = (int)grow; // grow <= Integer.MAX_VALUE，转换无损
+			return true; // 跳幅过大，拒绝
+		if (grow > 0) {
+			int increase = (int)grow;
 			if (increase >= range.length * 8) {
-				// clear all
 				Arrays.fill(range, (byte)0);
 			} else {
-				// clear bit(还可以优化）
+				// 逐位清理跳过的区间（可进一步按字节优化）
 				for (var i = 1; i < increase; ++i) {
 					var pos = (this.position + i) % (range.length * 8);
 					var index = pos / 8;
@@ -60,33 +55,32 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 					range[index] = (byte)(range[index] & ~bit);
 				}
 			}
-			long newPosition = (long)position + increase; // int 相加溢出会回绕成负下标
+			long newPosition = (long)position + increase; // 防 int 相加溢出回绕为负下标
 			if (newPosition >= range.length * 8L)
 				newPosition %= range.length * 8L;
 			position = (int)newPosition;
 
-			// set last bit
 			{
 				var index = position / 8;
 				var bit = 1 << (position % 8);
 				range[index] = (byte)(range[index] | bit);
 				max = serialId;
 			}
-			return false; // allow
+			return false;
 		}
-		// 过期判断必须用 long：大负 grow 经 (int) 截断会回绕成正数走到上面的前向分支放行（防重放绕过）。
+		// 过期判断必须按 long 比较，避免大负数截断回绕
 		if (grow <= -range.length * 8L)
-			return true; // 过期的，拒绝掉。
-		int increase = (int)grow; // grow > -(range.length * 8)，在int范围内，转换无损
+			return true; // 已过期，拒绝
+		int increase = (int)grow;
 
 		var pos = this.position + increase;
-		if (pos < 0) // 有范围检查，只需要加一次，否则用while
+		if (pos < 0) // 已做范围检查，补加一次窗口大小即可
 			pos += range.length * 8;
 
 		var index = pos / 8;
 		var bit = 1 << (pos % 8);
 		if ((range[index] & bit) != 0)
-			return true; // duplicate
+			return true; // 重复
 		range[index] = (byte)(range[index] | bit);
 		return false;
 	}

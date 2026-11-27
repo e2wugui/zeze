@@ -4,9 +4,8 @@ import Zeze.Net.Protocol;
 import Zeze.Transaction.Bean;
 
 /**
- * C→S fire-and-forget：客户端上报自己的serverId，SM记录在会话上（identifyServerId），
- * 断线时据此广播Suspect。替代OfflineRegister的注册语义：无状态簿记、无取消语义、
- * Direct派发无锁。重连时重发=恢复提示资格（与正确性无关，正确性由租约裁决）。
+ * Identify 协议（C→S，fire-and-forget）：客户端上报自身 serverId 与版本，
+ * SM 记录于会话并在断线时据此广播 Suspect。
  */
 public class Identify extends Protocol<BIdentify> {
 	public static final int ProtocolId_ = Bean.hash32(Identify.class.getName());

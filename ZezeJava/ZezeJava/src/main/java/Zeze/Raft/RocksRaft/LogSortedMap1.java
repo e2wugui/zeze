@@ -70,7 +70,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 		var keyEncoder = keyCodecFuncs.encoder;
 		//noinspection DataFlowIssue
 		var valueEncoder = valueCodecFuncs.encoder;
-		// 两遍split编码：线格式与putted/removed双容器时代逐字节一致。
+		// 按 put / remove 两段分别带长度前缀编码，保持既有线格式。
 		int puttedCount = 0;
 		for (var e : modified.entrySet())
 			if (e.getValue() != null)
@@ -116,7 +116,6 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	private void mergeChangeNote(LogSortedMap1<K, V> another) {
-		// 单容器putAll即last-writer-wins，双容器时代的Put/Remove顺序问题由单槽互斥消除。
 		modified.putAll(another.modified);
 	}
 

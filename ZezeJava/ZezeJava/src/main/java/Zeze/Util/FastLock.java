@@ -6,12 +6,9 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Lock;
 import org.jspecify.annotations.Nullable;
 
-// 利用AbstractQueuedSynchronizer实现简单高效的不可重入锁,性能比ReentrantLock略高一点,开启压缩指针时包括对象头共32字节
+/** 基于 AQS 的轻量级不可重入独占锁（开启压缩指针时含对象头 32 字节）。 */
 public class FastLock extends AbstractQueuedSynchronizer implements Lock {
-	// 锁等待登记表（等待线程→等待的锁）。JDK21没有公开API枚举虚拟线程
-	// （ThreadGroup.enumerate与Thread.getAllStackTraces均不含VT），findDeadlockedThreads
-	// 也不检测VT的AQS死锁；竞争失败进入慢路径（已是park级开销）的线程在此登记，
-	// DeadlockBreaker据此构建等待图。快路径CAS成功零额外开销。
+	// 慢路径等待登记表（等待线程 → 锁），供 DeadlockBreaker 检测含虚拟线程的死锁环；快路径无开销。
 	static final ConcurrentHashMap<Thread, FastLock> waitingThreads = new ConcurrentHashMap<>();
 
 	@Override
@@ -90,16 +87,15 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 	@Override
 	protected boolean tryRelease(int releases) {
 		if (getExclusiveOwnerThread() != Thread.currentThread())
-			throw new IllegalMonitorStateException(); // 非持有者放锁：失败可见，不静默释放他人持有的锁
-		setExclusiveOwnerThread(null); // 先清owner再放锁，避免“锁已空闲但owner还在”的观测窗口
+			throw new IllegalMonitorStateException();
+		setExclusiveOwnerThread(null); // 先清 owner 再放锁，避免锁已空闲但 owner 仍在的观测窗口
 		setState(0);
 		return true;
 	}
 
 	@Override
 	protected boolean isHeldExclusively() {
-		// owner判断：恒true会令未持锁线程的cond.await()/signal()静默走AQS
-		// 释放路径，把真正持有者的锁释放掉；改为owner判断后await/signal入口即抛IMSE。
+		// 必须校验持有者，确保未持锁调用 Condition.await/signal 立即抛 IMSE
 		return getExclusiveOwnerThread() == Thread.currentThread();
 	}
 

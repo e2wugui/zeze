@@ -36,13 +36,11 @@ import org.jspecify.annotations.Nullable;
 public class HandshakeBase extends Service {
 	private static final Logger logger = LogManager.getLogger(HandshakeBase.class);
 
-	// 是否承担握手服务端角色（接受CHandshake）：构造期由addHandshakeServerFactoryHandle置位，
-	// 必然早于start()里的checkAesSecureIp（告警仅服务角色）。
-	private boolean serverRole;
+	private boolean serverRole; // 构造期由 addHandshakeServerFactoryHandle 置位，区分服务端角色
 
 	static class Context {
 		final Object context;
-		final int encryptType; // 本次握手请求使用的加密类型（CHandshake.Argument.encryptType），用于校验SHandshake回显一致
+		final int encryptType; // 本次握手请求使用的加密类型，用于校验 SHandshake 回显一致
 		@Nullable Future<?> timeoutTask;
 
 		Context(Object context, int encryptType) {
@@ -51,7 +49,7 @@ public class HandshakeBase extends Service {
 		}
 	}
 
-	// For Client Only
+	// 仅客户端使用
 	private final LongConcurrentHashMap<Context> dhContext = new LongConcurrentHashMap<>();
 
 	public HandshakeBase(String name, @Nullable Config config) {
@@ -63,11 +61,7 @@ public class HandshakeBase extends Service {
 	}
 
 	/**
-	 * 连接数上限检查。
-	 * 覆写 OnSocketAccept 的握手服务子类（HandshakeServer/HandshakeBoth/TokenServer 等）不再走
-	 * Service.OnSocketAccept 的默认实现，会丢失其中的 maxConnections 检查；
-	 * 这些覆写点必须在第一行调用本方法恢复强制。超限时抛出 IllegalStateException，
-	 * 由 accept 流程（TcpSocket 构造的 catch）关闭新连接。
+	 * 连接数上限检查：覆写 OnSocketAccept 的子类须在入口调用本方法，超限时抛出 IllegalStateException 以关闭连接。
 	 */
 	protected final void checkMaxConnections() {
 		if (getSocketCount() >= getConfig().getMaxConnections())
@@ -75,19 +69,12 @@ public class HandshakeBase extends Service {
 	}
 
 	/**
-	 * Aes 模式会话密钥由连接地址参与派生——服务器取本端地址、客户端取对端地址
-	 * （见 processCHandshake/processSHandshake）。直连时两侧地址一致；NAT/端口映射下服务器视角
-	 * 是内网落地地址、客户端视角是公网拨入地址，两侧派生出不同密钥，该部署所有连接握手必然
-	 * 失败并反复重连。此处启动时显著告警；修复：服务器显式配置 SecureIp 为客户端实际拨入的
-	 * 地址（仅服务器侧读取），或改用 AesNoSecureIp/RsaAes。
+	 * 服务端启用 Aes 模式但未配置 SecureIp 时告警：NAT/端口映射下两侧地址不一致会导致密钥派生失配。
 	 */
 	private void checkAesSecureIp() {
 		var options = getConfig().getHandshakeOptions();
 		if (options.getEncryptType() == Constant.eEncryptTypeAes && options.getSecureIp() == null) {
-			// 仅服务角色（HandshakeServer/HandshakeBoth）告警。客户端侧密钥派生从不
-			// 读SecureIp（全仓唯一读取点就是本告警），纯客户端角色（HandshakeClient）启动即
-			// WARN属必然误报——协商值由服务器决定，服务器配SecureIp/直连时客户端完全正常。
-			// serverRole构造期确定（仅服务角色构造器注册CHandshake工厂），无懒注册时序漏判。
+			// 仅服务端告警（客户端密钥派生不读 SecureIp）
 			if (!serverRole)
 				return;
 			logger.warn("{} EncryptType=Aes without SecureIp: session key is derived from the connection "
@@ -104,17 +91,13 @@ public class HandshakeBase extends Service {
 		super.start();
 	}
 
-	// 握手协议族（闭集常量），按族判定、与角色无关：族内未注册的协议在本服务上无工厂，
-	// 到不了派发/门禁/Raft注册守卫的判定点。
 	@Override
 	public boolean isHandshakeProtocol(long typeId) {
 		return typeId == CHandshake.TypeId_ || typeId == SHandshake0.TypeId_ || typeId == SHandshake.TypeId_
 				|| typeId == CHandshakeDone.TypeId_ || typeId == KeepAlive.TypeId_;
 	}
 
-	// 握手协议登记——门禁白名单与工厂注册一体。EncryptType=Disable不
-	// 装配门禁：握手后无codec装齐事件，门禁永不撤销会误杀明文会话。已有同TypeId工厂时
-	// 保留既有注册（ServiceManagerServer等会自注册KeepAlive处理器）。
+	// 加密模式下同时装配解码准入门禁，已有同 TypeId 工厂则保留（如自定义 KeepAlive）
 	private void addHandshakeFactoryHandle(long typeId, Service.ProtocolFactoryHandle<? extends Protocol<?>> handle) {
 		if (getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable)
 			armDecodeAdmission(typeId);
@@ -185,13 +168,11 @@ public class HandshakeBase extends Service {
 	@SuppressWarnings("ConstantConditions") // 保留对解密实现返回值的防御检查。
 	private long processCHandshake(CHandshake p) {
 		try {
-			// 重复握手守卫：连接已进入安全态后再收CHandshake只可能是重放/畸形（正常流每连接握手一次）。
-			// 放行会重装配codec链，旧链（zstd native上下文）无人close永久泄漏。
+			// 拒绝已加密连接上的重复握手，防止重装编解码链泄漏旧资源
 			if (p.getSender() instanceof TcpSocket tcp && tcp.isSecurity())
 				throw new IllegalStateException("re-handshake on secured connection");
 
-			// 协商一致性检查：客户端上报的加密类型必须与服务器配置（即SHandshake0发出的推荐值）一致，
-			// 否则握手可能已被篡改（如RsaAes被降级成匿名DH），拒绝。
+			// 校验客户端上报的加密类型与服务端配置一致，防止降级篡改
 			if (p.Argument.encryptType != getConfig().getHandshakeOptions().getEncryptType())
 				throw new IllegalStateException("encryptType mismatch: " + p.Argument.encryptType
 						+ " expect " + getConfig().getHandshakeOptions().getEncryptType());
@@ -269,29 +250,20 @@ public class HandshakeBase extends Service {
 
 	private long processSHandshake0(SHandshake0 p) {
 		try {
-			// 重复握手守卫（镜像服务端processCHandshake）：已进入安全态的连接再收SHandshake0只可能是
-			// 恶意服务端驱动二次握手重装配codec链（客户端侧同型泄漏），拒绝。
+			// 拒绝已加密连接上的重复握手，防止重装编解码链泄漏旧资源
 			if (p.getSender() instanceof TcpSocket tcp && tcp.isSecurity())
 				throw new IllegalStateException("re-handshake on secured connection");
 
 			var options = getConfig().getHandshakeOptions();
 			var clientEncryptType = options.getEncryptType();
 			var serverEncryptType = p.Argument.encryptType;
-			// 服务端推荐的加密类型为Disable（明文）而客户端自身配置了
-			// 加密诉求（EncryptType!=Disable）时不得静默接受——否则"客户端要求加密"的配置被无声降级
-			// 为明文会话。检查必须在分支之前：仅压缩推荐（encryptType=Disable+compress非Disable）也走
-			// startHandshake路径，客户端只会回显服务端推荐（startHandshake不读自身EncryptType），
-			// 降级照样发生且全Disable分支的检查永远不触发。镜像服务端processCHandshake的回显一致性
-			// 校验（服务端拒绝encryptType不一致的CHandshake）：客户端拒绝被降级的推荐，
-			// 断连给出显式配置错误。
+			// 客户端要求加密时拒绝服务端推荐明文（含仅压缩场景），防止静默降级
 			if (serverEncryptType == Constant.eEncryptTypeDisable
 					&& clientEncryptType != Constant.eEncryptTypeDisable)
 				throw new IllegalStateException(getName() + " server recommends plaintext (encryptType=Disable) but client "
 						+ "EncryptType=" + clientEncryptType
 						+ ", refusing silent downgrade (check client/server HandshakeOptions)");
-			// RsaAes是唯一具备服务端身份认证的模式（用可信RsaPubKey加密会话密钥），
-			// 客户端显式要求RsaAes时不得接受匿名DH（Aes/AesNoSecureIp）或其他非RsaAes推荐，
-			// 防止主动MITM篡改SHandshake0绕过服务端认证。
+			// 客户端要求 RsaAes（服务端认证）时拒绝降级为匿名 DH 或其他模式
 			if (clientEncryptType == Constant.eEncryptTypeRsaAes
 					&& serverEncryptType != Constant.eEncryptTypeRsaAes)
 				throw new IllegalStateException(getName() + " server recommends encryptType=" + serverEncryptType
@@ -357,7 +329,7 @@ public class HandshakeBase extends Service {
 				((TcpSocket)p.getSender()).setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
 				((TcpSocket)p.getSender()).setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
 				CHandshakeDone.instance.Send(p.getSender());
-				((TcpSocket)Objects.requireNonNull(p.getSender())).submitAction(() -> OnHandshakeDone(Objects.requireNonNull(p.getSender()))); // must after SetInputSecurityCodec and SetOutputSecurityCodec
+				((TcpSocket)Objects.requireNonNull(p.getSender())).submitAction(() -> OnHandshakeDone(Objects.requireNonNull(p.getSender()))); // 须在设置输入输出安全编解码器之后调用
 				return 0;
 			}
 			p.getSender().close(new IllegalStateException("handshake lost context."));

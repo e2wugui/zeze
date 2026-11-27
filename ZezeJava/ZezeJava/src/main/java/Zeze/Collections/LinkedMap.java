@@ -42,8 +42,7 @@ public class LinkedMap<V extends Bean> {
 		private final ConcurrentHashMap<String, Object> linkedMaps = new ConcurrentHashMap<>();
 		public final Zeze.Application zeze;
 		public static final String eClearJobHandleName = "Zeze.Collections.LinkedMap.Clear";
-		// delayClearJob每个事务清理的节点数：事务数降为1/K（行删除日志只记key，K个节点的事务仍然小）。
-		// K越大，与"clear后立刻按旧id重建"的并发写冲突窗口越大（映射行读写交叉），失败整批回滚重试，自愈。
+		// delayClearJob 每事务批量清理的节点数。
 		public static final int clearJobBatchNodes = 16;
 		private static final int concurrentBuckets = 128;
 		// 公共名字禁止'@'，内部桶名以非空业务名字开头，所以该元数据名字不能与业务根/桶冲突。
@@ -178,10 +177,7 @@ public class LinkedMap<V extends Bean> {
 				throw new IllegalArgumentException("nodeSize < 1");
 
 			validateConcurrentName(name);
-			// CHashMap和LinkedMap共享一个名字空间，并且CHashMap内部还会创建一批LinkedMap。
-			// 不能在linkedMaps.computeIfAbsent的mapping function内构造CHashMap：
-			// 其构造函数会_open(name@i)对同一个map做嵌套computeIfAbsent，JDK抛Recursive update。
-			// 先get，未命中则构造后putIfAbsent竞速（构造幂等：分片_open与initSize都可重入）。
+			// CHashMap 构造时会嵌套打开分片 LinkedMap，避免在 computeIfAbsent 内递归更新，先 get 再 putIfAbsent。
 			var exist = linkedMaps.get(name);
 			if (exist instanceof CHashMap)
 				return (CHashMap<T>)exist;
@@ -232,20 +228,17 @@ public class LinkedMap<V extends Bean> {
 			}
 			while (state.getHeadNodeId() != 0) {
 				var result = zeze.newProcedure(() -> {
-					// lambda只做表操作，不改共享的内存state：perform的redo会重放lambda，
-					// 非DB副作用一律走whileCommit（仅在最终提交后执行，redo重放时被丢弃），
-					// 重放读到的head不变，天然幂等，不存在跳节点泄漏。
+					// 事务体仅操作表，内存 state 推进放在 whileCommit 以保持 redo 重放幂等。
 					var mapName = state.getLinkedMapName();
 					var nodeId = state.getHeadNodeId();
 					for (var processed = 0; nodeId != 0 && processed < clearJobBatchNodes; processed++) {
 						var node = _tLinkedMapNodes.get(new BLinkedMapNodeKey(mapName, nodeId));
 						if (null == node) {
-							nodeId = 0; // 链断（节点不存在）：结束job，否则会无限循环在缺失节点上
+							nodeId = 0; // 节点缺失时结束 job，避免死循环
 							break;
 						}
 
-						// 这里是清理已摘链的旧代节点：不调整count（clear已归零）、不动链表指针（已摘链），
-						// 只删数据行和仍指向本节点的旧映射——clear后用旧id重建的映射指向新节点，不能误删。
+						// 清理已摘链的旧代节点，只删除仍指向本节点的旧映射，避免误删重建的新映射。
 						for (var e : node.getValues()) {
 							var key = new BLinkedMapKey(mapName, e.getId());
 							var current = _tValueIdToNodeId.get(key);
@@ -257,12 +250,10 @@ public class LinkedMap<V extends Bean> {
 						_tLinkedMapNodes.remove(new BLinkedMapNodeKey(mapName, nodeId));
 						nodeId = node.getNextNodeId();
 					}
-					// 链走完删除job行：否则每次clear泄漏一行，重启时continueJobs还会空跑一遍
 					if (nodeId == 0) {
 						delayRemove.setJobState(jobId, null); // remove job
 					} else {
-						// job行必须在本事务内记录推进后的head（setJobState是即时序列化），
-						// 此时共享state还没推进，落库用副本，内存推进交给whileCommit。
+						// 落库写入推进后的副本，内存 state 在提交后再推进。
 						delayRemove.setJobState(jobId, new BClearJobState(nodeId, mapName));
 					}
 					final var next = nodeId;
@@ -270,8 +261,7 @@ public class LinkedMap<V extends Bean> {
 					return 0;
 				}, "LinkedMap.clear").call();
 				if (result != 0) {
-					// 失败即停：job行保留最后一次成功提交的状态，等重启continueJobs续跑。
-					// 内存state没被碰过（推进只发生在whileCommit），继续循环会在同一head上无限重试。
+					// 失败即停，保留上次提交的 job 状态交重启续跑，避免在同一 head 上死循环。
 					break;
 				}
 			}
@@ -296,19 +286,13 @@ public class LinkedMap<V extends Bean> {
 		return name;
 	}
 
-	// list
-	// NodeId是存储布局的内部细节（move会搬迁、clear会摘链、节点空了会被GC），只在当前事务内有意义。
-	// 常规增删查一律按id操作（put/get/remove...）；getNode/getFirstNode仅为分页读取协议（如zege的
-	// GetFriendNode系列）保留的只读入口，不承诺NodeId跨事务稳定，也不应基于返回的节点做写操作。
+	// list：NodeId 仅在当前事务内有效，getNode/getFirstNode 仅供分页读取协议只读使用。
 	private @Nullable BLinkedMap getRoot() {
 		return module._tLinkedMaps.get(name);
 	}
 
 	/**
-	 * 按NodeId读取节点行，仅供分页读取协议续读使用。找不到返回null。
-	 *
-	 * <p>【注意】NodeId只在当前事务内有意义；返回的是表内活bean（可变），调用方只应读取
-	 * （典型用法是序列化进rpc结果），不要修改。</p>
+	 * 按 NodeId 读取节点行，仅供分页读取协议续读使用；返回的活 bean 仅应读取，不可修改。
 	 */
 	private @Nullable BLinkedMapNode getNodePrivate(long nodeId) {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
@@ -330,9 +314,7 @@ public class LinkedMap<V extends Bean> {
 			return null;
 		var node = getNode(root.getHeadNodeId());
 		if (node == null)
-			// 头键非0但头行缺失=数据损坏（正常事务不会产生），静默返回null会向分页首发
-			// 谎报空链。仅记error留诊断线索，不抛ISE：并发删除交错下瞬时缺失是良性的
-			//（本事务提交时读集版本冲突自然回滚重试）。对齐Queue.peekNode同款判据。
+			// 仅记 error 不抛异常：并发删除下瞬时缺失会在提交时因读集冲突回滚重试。
 			logger.error("LinkedMap.getFirstNode: head node row missing (broken data?)."
 					+ " name={} headNodeId={} count={}", name, root.getHeadNodeId(), root.getCount());
 		return node;
@@ -363,13 +345,9 @@ public class LinkedMap<V extends Bean> {
 		var nodeIdLong = nodeId.getNodeId();
 		var node = getNodePrivate(nodeIdLong);
 		if (null == node)
-			// 索引有效（SerialNo匹配）但节点行缺失=数据损坏。同类异常统一为带语义的ISE，
-			// 而不是裸NPE——同函数对"节点在但值不在"已有ISE，排障时从异常形态分不清是哪层断。
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		var values = node.getValues();
 		if (values.isEmpty())
-			// 节点行在但Values为空是另一种形态的损坏。下面head/tail快路径的
-			// getFirst/getLast会抛NoSuchElementException，统一为同款带语义ISE。
 			throw new IllegalStateException("Node Exist But Values Empty. maybe broken data. id=" + id);
 
 		// activate。优化：这个操作比较多，已经在目标位置，不调整。
@@ -391,20 +369,17 @@ public class LinkedMap<V extends Bean> {
 				values.remove(i);
 				if (values.isEmpty())
 					removeNodeUnsafe(nodeId.getNodeId(), node);
-				// 不能直接搬value bean引用：受管bean跨容器移动抛HasManagedException。
-				// e.copy()深拷贝得到非受管副本；生成bean的copy()由生成器无条件实现（含DynamicBean内部经setBean保持typeId）。
+				// 受管 bean 不可直接跨容器搬移，深拷贝非受管副本后再插入新节点。
 				var newNodeValue = e.copy();
 				var newNodeId = ahead ? addHeadUnsafe(newNodeValue) : addTailUnsafe(newNodeValue);
-				nodeId.setNodeId(newNodeId); // 索引必须跟随搬迁指向新节点，否则get/remove找不到、put误判重复
+				nodeId.setNodeId(newNodeId);
 				return newNodeId;
 			}
 		}
 		throw new IllegalStateException("Node Exist But Value Not Found.");
 	}
 
-	// map
-	// 查索引并验代际：索引缺失或SerialNo与root不相等（clear前旧代映射）都返回null（当作不存在）。
-	// 必须在同一事务内读root验章：root进入read-set后与并发clear的提交冲突重试，消灭"事务跨clear窗口"的幽灵读。
+	// map：查索引并同事务读 root 校验代际号，确保并发 clear 触发读集冲突重试。
 	private @Nullable BLinkedMapNodeId getValidNodeId(String id) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (nodeId == null)
@@ -442,7 +417,6 @@ public class LinkedMap<V extends Bean> {
 		if (null != mappedNodeId && !stale) {
 			var node = getNodePrivate(mappedNodeId.getNodeId());
 			if (null == node)
-				// 映射有效（SerialNo匹配）但节点行缺失=数据损坏，带语义的ISE而非裸NPE（同move的防护）。
 				throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 			for (var e : node.getValues()) {
 				if (e.getId().equals(id)) {
@@ -455,7 +429,7 @@ public class LinkedMap<V extends Bean> {
 			throw new IllegalStateException("NodeId Exist. But Value Not Found.");
 		}
 
-		// 无映射或clear前旧代映射：当作不存在，全新插入，绝不复用已摘链的旧NodeId。
+		// 无映射或旧代映射时全新插入，不复用已摘链的旧 NodeId。
 		var newNodeValue = new BLinkedMapNodeValue();
 		newNodeValue.setId(id);
 		newNodeValue.getValue().setBean(value);
@@ -466,7 +440,7 @@ public class LinkedMap<V extends Bean> {
 			throw new IllegalStateException("root is null. maybe operate before create.");
 		newNodeId.setSerialNo(root.getSerialNo());
 		if (stale)
-			mappedNodeId.assign(newNodeId); // 旧映射行还在（延迟任务未删到），原地改写；insert会因key已存在抛异常
+			mappedNodeId.assign(newNodeId); // 延迟任务尚未删到旧映射行时原地覆写
 		else
 			module._tValueIdToNodeId.insert(nodeIdKey, newNodeId);
 		root.setCount(root.getCount() + 1);
@@ -484,7 +458,6 @@ public class LinkedMap<V extends Bean> {
 
 		var node = getNodePrivate(nodeId.getNodeId());
 		if (null == node)
-			// 索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		for (var e : node.getValues()) {
 			if (e.getId().equals(id)) {
@@ -503,13 +476,12 @@ public class LinkedMap<V extends Bean> {
 	@SuppressWarnings("unchecked")
 	public @Nullable V remove(String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
-		var nodeId = getValidNodeId(id); // 旧代映射当作不存在：不再把count减成负数、不再写已摘链节点
+		var nodeId = getValidNodeId(id);
 		if (nodeId == null)
 			return null;
 
 		var node = getNodePrivate(nodeId.getNodeId());
 		if (null == node)
-			// 索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		var values = node.getValues();
 		for (int i = 0, n = values.size(); i < n; i++) {
@@ -534,9 +506,7 @@ public class LinkedMap<V extends Bean> {
 		var root = module._tLinkedMaps.get(name);
 		if (null != root) {
 			var headerNodeId = root.getHeadNodeId();
-			// O(1) clear：递增代际号使全部旧映射整体失效（读侧按SerialNo验章识别旧代、当作不存在，
-			// 见getValidNodeId），节点行、bean数据、旧映射由delayClearJob逐节点分批删除。
-			// LastNodeId不重置：NodeId永不复用，delayClearJob按NodeId归属判断映射是否可删依赖这一点。
+			// O(1) clear：递增代际号使旧映射整体失效，旧节点由 delayClearJob 异步分批删除；LastNodeId 永不重置以保证 NodeId 唯一。
 			root.setSerialNo(root.getSerialNo() + 1);
 			root.setHeadNodeId(0);
 			root.setTailNodeId(0);
@@ -546,25 +516,22 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	/**
-	 * 并发删除导致的链断会从头重启遍历（已回调过的值会重复执行，调用方需自知；count每轮归零，
-	 * 只统计最后一轮，避免重复计数虚高）；同一缺失节点重启后仍缺失=持久断链（数据损坏），
-	 * 抛IllegalStateException终止而不是静默返回部分计数——与Queue.walk的"宁停不错"语义对齐。
+	 * 遍历全部元素。并发删除导致断链时会从头重启（可能重复回调，count 仅统计最后一轮）；
+	 * 重启后仍断在同一节点视为持久断链，抛出 IllegalStateException。
 	 */
 	@SuppressWarnings("unchecked")
 	public long walk(TableWalkHandle<String, V> func) throws Exception {
 		long count = 0L;
-		long missingNodeId = 0; // 上一次断链位置：重启后仍断在同一节点=持久断链（循环内nodeId恒非0）
+		long missingNodeId = 0; // 记录上次断链节点，用于识别持久断链
 		while (true) {
 			var root = module._tLinkedMaps.selectDirty(name);
 			if (null == root)
 				return func.endWalk(count); // map not created
 			var nodeId = root.getHeadNodeId();
-			count = 0L; // 重启从头重走，计数只保留最后一轮（回调重复执行见方法注释）
+			count = 0L;
 			while (nodeId != 0) {
 				var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
 				if (null == node) {
-					// 上一轮也断在同一个节点：重启拿到的仍是新鲜root，还指向这个缺失节点
-					// =持久断链（并发删除（clear+delayClearJob）的重启会绕过已删节点），宁停不错。
 					if (missingNodeId == nodeId)
 						throw new IllegalStateException("LinkedMap.walk broken chain at " + name + "#" + nodeId);
 					missingNodeId = nodeId;
@@ -589,9 +556,6 @@ public class LinkedMap<V extends Bean> {
 		var headNodeId = root.getHeadNodeId();
 		var head = headNodeId != 0 ? getNodePrivate(headNodeId) : null;
 		if (head == null && headNodeId != 0 && root.getTailNodeId() != 0)
-			// 活链存在（尾键非0）而头行缺失=真断链，静默绕过断头重建会把尚存活链整体
-			// 孤立。仅记error（不自行修复损坏，行为不变）；尾键也为0时头行缺失只可能是
-			// 根行自相矛盾的残留，不按断链告警。
 			logger.error("LinkedMap.addHeadUnsafe: head node row missing but chain not empty (broken data?)."
 					+ " name={} headNodeId={} tailNodeId={} count={}",
 					name, headNodeId, root.getTailNodeId(), root.getCount());
@@ -620,9 +584,6 @@ public class LinkedMap<V extends Bean> {
 		var tailNodeId = root.getTailNodeId();
 		var tail = tailNodeId != 0 ? getNodePrivate(tailNodeId) : null;
 		if (tail == null && tailNodeId != 0 && root.getHeadNodeId() != 0)
-			// 活链存在（头键非0）而尾行缺失=真断链，静默另立新尾会把尚存活链变成不可达
-			// 孤岛。仅记error（不自行修复损坏，行为不变）；头键也为0时尾行缺失是排空
-			// 残链的设计常态，不告警。
 			logger.error("LinkedMap.addTailUnsafe: tail node row missing but chain not empty (broken data?)."
 					+ " name={} tailNodeId={} headNodeId={} count={}",
 					name, tailNodeId, root.getHeadNodeId(), root.getCount());
@@ -653,8 +614,6 @@ public class LinkedMap<V extends Bean> {
 		var prevNodeId = node.getPrevNodeId();
 		var nextNodeId = node.getNextNodeId();
 
-		// 链上邻接节点行缺失=数据损坏。带语义ISE而非裸NPE，避免把半途事务
-		// 炸成不可诊断的空指针（调用方吞异常时事务整体回滚，无结构损坏）。
 		if (prevNodeId == 0) // is head
 			root.setHeadNodeId(nextNodeId);
 		else {

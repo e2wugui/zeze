@@ -5,7 +5,7 @@ import java.util.Collection;
 
 import Zeze.Collections.Persistents;
 
-/** Persistent list transaction state, without wire responsibilities. */
+/** 持久化 List 的事务状态，不承担编解码职责。 */
 public class LogList<V> extends LogCollection<PList<V>> {
 	private org.pcollections.PVector<V> value;
 
@@ -68,8 +68,7 @@ public class LogList<V> extends LogCollection<PList<V>> {
 	}
 
 	public boolean removeAll(Collection<? extends V> items) {
-		// Snapshot the input, and remove from high to low for stable replay indices.
-		// Linear equals also supports generated Beans whose hashCode uses identity.
+		// 快照输入并从高索引往低删以保持回放下标稳定；线性 equals 兼容仅覆写 equals 的生成 Bean。
 		var hit = new ArrayList<>(items);
 		var old = value;
 		boolean changed = false;

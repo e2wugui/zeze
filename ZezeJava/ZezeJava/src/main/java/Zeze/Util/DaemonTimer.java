@@ -13,36 +13,29 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 周期守护定时器：
- * 调度线程只派发、守护体进worker池、
- * stop三段式（关门→cancel→限时等待在飞一轮）；stop后已派发未启动的迟到轮在runBody入口作废。
- * 每轮看门狗超时timeoutMs可配（&lt;=0取{@link Task#defaultTimeout}），
- * stop等待预算=timeoutMs+5s（对齐每轮executeCore看门狗）。
- * 延迟策略二选一：常量periodMs，或LongSupplier逐轮续约时求值（每日锚点重对齐/自适应退避/随机抖动）
- * 每轮完成信号覆盖看门狗初始化与关闭；初始化失败仍收尾并续约。
+ * 周期守护定时器：调度线程仅派发、守护体在 worker 池运行，支持常量周期或逐轮动态延迟。
+ * {@link #stop()} 关门、取消待触发排期并限时等待在飞轮结束（等待预算 {@code timeoutMs + 5s}）。
  */
 public final class DaemonTimer {
 
 	private static final Logger logger = LogManager.getLogger(DaemonTimer.class);
 
 	private final String name;
-	// volatile：setPeriodMs运行期调整，下一次续约（rescheduleLocked）读取生效，已排期pending不重排
+	// volatile：setPeriodMs 运行期调整，下次续约生效，已排期 pending 不重排。
 	private volatile long periodMs;
-	// 逐轮延迟策略：null=常量周期（用periodMs）；非null=每次续约时求值（锚点重对齐/退避/抖动），
-	// 此模式periodMs不参与调度、setPeriodMs不可用
+	// 逐轮延迟策略；非 null 时每次续约求值，此时 periodMs 与 setPeriodMs 不可用。
 	private final @Nullable LongSupplier nextDelayMs;
-	// 每轮executeCore看门狗预算；stop等待预算=timeoutMs+5s。构造时快照，实例期内确定
+	// 每轮看门狗预算（stop 等待预算 = timeoutMs + 5s）。
 	private final long timeoutMs;
 	private final Action0 body;
-	// gate守护shutdown/pending/inFlight；gate内不做任何等待与阻塞调用。
+	// 保护 shutdown/pending/inFlight；持锁期间不做阻塞调用。
 	private final ReentrantLock gate = new ReentrantLock();
-	// volatile：runBody入口锁外复查作废迟到轮（与inFlight的处置一致），转换仍全在gate内
-	private volatile boolean shutdown = true; // 未启动即关门
-	// 在飞一轮的完成信号：fire派发前置位，一轮收尾时完成（无论成败）。stop据此限时等待。
+	private volatile boolean shutdown = true;
+	// 在飞轮完成信号：派发前置位、收尾时完成，供 stop 限时等待。
 	private volatile @Nullable CompletableFuture<@Nullable Void> inFlight;
-	private @Nullable ScheduledFuture<?> pending; // 已排期未触发的下一次fire；fire触发时消费置null
-	private long generation; // gate 内递增；已取消的旧 tick 不得进入重新启动后的链。
-	// 在飞轮的执行线程：覆盖guard初始化到关闭，stop据此识别本轮内自调，避免等待自身。
+	private @Nullable ScheduledFuture<?> pending; // 已排期的下一次触发，触发时置 null
+	private long generation; // gate 内递增，用于作废重启前的旧 tick
+	// 在飞轮执行线程，供 stop 识别自调避免等待自身。
 	private volatile @Nullable Thread bodyThread;
 
 	public DaemonTimer(String name, long periodMs, Action0 body) {
@@ -64,14 +57,9 @@ public final class DaemonTimer {
 	}
 
 	/**
-	 * @param nextDelayMs 每轮续约时求值的下一次延迟(毫秒)——每日锚点重对齐
-	 *                    （如{@code () -> Task.delayUntilNextDaily(3, 14)}，其返回值钳制
-	 *                    恒&gt;=1）、自适应退避、随机抖动等逐轮策略。求值&lt;=0或抛异常
-	 *                    均视为协议违约：关门并记error（&lt;=0防即时触发成busy环）。
-	 *                    此构造下{@link #setPeriodMs}抛
-	 *                    IllegalStateException（周期归供应商所有）。
-	 * @param timeoutMs 每轮看门狗超时(毫秒)，&lt;=0 时取 {@link Task#defaultTimeout}；
-	 *                  stop等待预算=timeoutMs+5s（构造时快照）
+	 * @param nextDelayMs 每轮续约时求值的下一次延迟(毫秒)；返回值 &lt;=0 或抛异常将终止定时器并记错。
+	 *                    此构造下调用 {@link #setPeriodMs} 抛 {@link IllegalStateException}。
+	 * @param timeoutMs   每轮看门狗超时(毫秒)，&lt;=0 时取 {@link Task#defaultTimeout}
 	 */
 	public DaemonTimer(String name, LongSupplier nextDelayMs, long timeoutMs, Action0 body) {
 		this.name = name;
@@ -81,7 +69,7 @@ public final class DaemonTimer {
 		this.body = body;
 	}
 
-	/** 启动（首轮在periodMs后触发）。幂等：运行中调用空转。stop后可再次start。 */
+	/** 启动（首轮在周期延迟后触发）。幂等，stop 后可再次 start。 */
 	public void start() {
 		gate.lock();
 		try {
@@ -95,8 +83,7 @@ public final class DaemonTimer {
 		}
 	}
 
-	/** 调整周期(毫秒)：下一次续约生效，已排期的pending不提前不延后（对齐旧自续链在续约时取值的语义）。
-	 * 仅常量周期构造可用；LongSupplier构造下周期归供应商所有，调用抛IllegalStateException。 */
+	/** 调整周期(毫秒)，下次续约生效（已排期的 pending 不重排）；仅常量周期构造可用。 */
 	public void setPeriodMs(long periodMs) {
 		if (nextDelayMs != null)
 			throw new IllegalStateException("period is owned by the nextDelayMs supplier");
@@ -106,9 +93,7 @@ public final class DaemonTimer {
 	}
 
 	/**
-	 * 停止：关门（不再触发/续约）、cancel已排期的下一次、限时等待在飞一轮结束。幂等。
-	 * body线程内自调跳过等待（等自己必超时），仅关门+cancel。
-	 * 超预算或中断仅告警返回——残余的晚到一轮由调用方的资源容错兜住（墓碑化等）。
+	 * 停止（幂等）：关门、取消已排期触发并限时等待在飞轮结束；body 线程内自调跳过等待。
 	 */
 	public void stop() {
 		ScheduledFuture<?> p;
@@ -128,10 +113,10 @@ public final class DaemonTimer {
 			gate.unlock();
 		}
 		if (p != null)
-			p.cancel(false); // 普通ScheduledFuture：cancel不经TimerFuture锁，无ABBA
+			p.cancel(false); // 普通 ScheduledFuture，cancel 不经 TimerFuture 锁，无死锁风险
 		if (f == null)
 			return;
-		if (t == Thread.currentThread()) { // body内自调stop：等自己必等满预算，跳过
+		if (t == Thread.currentThread()) { // body 内自调 stop，跳过等待避免自等超时
 			logger.warn("DaemonTimer {} stop called from body thread, skip waiting", name);
 			return;
 		}
@@ -153,25 +138,24 @@ public final class DaemonTimer {
 		}
 	}
 
-	// 调度线程上的tick入口：只判关门+置在飞+派发，微秒级，绝不内联执行守护体。
+	// 调度线程上的 tick 入口：仅判关门、置在飞并派发，不内联执行守护体。
 	private void fire(long expectedGeneration) {
 		final CompletableFuture<@Nullable Void> f;
 		gate.lock();
 		try {
 			if (shutdown || generation != expectedGeneration)
-				return; // stop()已关门：本次触发作废
-			pending = null; // 消费本次排期（链上恒至多一个pending）
+				return;
+			pending = null;
 			f = new CompletableFuture<>();
 			inFlight = f;
-			bodyThread = null; // 新一轮占链，body线程待runBody入口置位
+			bodyThread = null;
 		} finally {
 			gate.unlock();
 		}
 		try {
-			// 本组件拥有整轮的完成信号；不能把收尾放在 Task 的业务回调里，
-			// 否则看门狗在回调前失败时，inFlight 永远无法完成和续约。
+			// 收尾放在 runBody 外层 finally，确保看门狗初始化失败时仍完成 inFlight 并续约。
 			Task.poolOrThrow(false).execute(() -> runBody(f));
-		} catch (Throwable e) { // 派发失败（worker池关闭等）：守护链不得断裂，收尾并续约下轮
+		} catch (Throwable e) {
 			finishRound(f);
 			logger.error("DaemonTimer {} dispatch failed, rescheduled", name, e);
 		}
@@ -187,26 +171,24 @@ public final class DaemonTimer {
 			} finally {
 				gate.unlock();
 			}
-			// 看门狗的获取和关闭均属于本轮；无论在哪个阶段失败，都由外层 finally 收尾。
 			try (var ignored = TimeoutDiagnosable.create(timeoutMs)) {
 				gate.lock();
 				try {
 					if (shutdown || inFlight != f)
-						return; // 创建看门狗期间 stop/restart，旧轮不得进入业务体。
+						return; // 创建看门狗期间发生 stop/restart，旧轮不进入业务体
 				} finally {
 					gate.unlock();
 				}
 				Task.callCore(new TaskBody.OfAction(body), name);
 			}
-		} catch (Throwable e) { // 守护体异常不致命：记日志，链继续
+		} catch (Throwable e) {
 			logger.error("DaemonTimer {} body exception", name, e);
 		} finally {
 			finishRound(f);
 		}
 	}
 
-	// 一轮收尾：gate内清在飞归属+续约，锁外完成在飞信号（stop的等待线程醒来后不再触碰gate）。
-	// inFlight==f的归属检查挡掉stop超预算逃逸的晚到一轮——逃逸轮不占链，不得清新一轮的在飞标志。
+	// gate 内按 inFlight==f 归属清状态并续约，锁外完成信号（避免逃逸旧轮清除新轮状态）。
 	private void finishRound(CompletableFuture<@Nullable Void> f) {
 		gate.lock();
 		try {
@@ -221,43 +203,42 @@ public final class DaemonTimer {
 		f.complete(null);
 	}
 
-	// gate内。pending非null说明已有一条排期（如stop超预算逃逸的旧一轮结束又逢restart），
-	// 不再重复排期——保证任意时刻链上至多一个pending。
+	// 需在 gate 内调用；pending 非空时不重复排期，保证链上至多一个待触发项。
 	private void rescheduleLocked() {
 		if (shutdown || pending != null)
 			return;
 		long delay;
 		try {
 			delay = nextDelayMs != null ? nextDelayMs.getAsLong() : periodMs;
-		} catch (Throwable e) { // 供应商抛异常：与<=0同罪关门，否则链断而shutdown=false成僵尸守护
+		} catch (Throwable e) {
 			shutdown = true;
 			logger.error("DaemonTimer {} nextDelayMs supplier exception, daemon terminated", name, e);
 			return;
 		}
-		if (delay <= 0) { // 供应商违约：scheduleNow的<=0会即时触发成busy环，关门保持状态诚实
+		if (delay <= 0) {
 			shutdown = true;
 			logger.error("DaemonTimer {} nextDelayMs={} <= 0, daemon terminated", name, delay);
 			return;
 		}
 		try {
 			long expectedGeneration = generation;
-			// tick 只管理排期并派发，不访问业务；其生命周期不能被看门狗初始化失败截断。
+			// tick 仅管理排期和派发，不套用看门狗。
 			pending = Task.getScheduledThreadPool().schedule(() -> fire(expectedGeneration), delay, TimeUnit.MILLISECONDS);
-		} catch (Throwable e) { // 调度池已关（非瞬时故障）：关门让状态诚实，链断记error
+		} catch (Throwable e) {
 			shutdown = true;
 			logger.error("DaemonTimer {} reschedule failed, daemon terminated", name, e);
 		}
 	}
 
 	private void awaitIdle(CompletableFuture<@Nullable Void> f) {
-		var budget = Math.max(1, timeoutMs + 5_000); // 对齐每轮看门狗，超时即逃逸轮
+		var budget = Math.max(1, timeoutMs + 5_000);
 		try {
 			f.get(budget, TimeUnit.MILLISECONDS);
 		} catch (TimeoutException e) {
 			logger.warn("DaemonTimer {} body still running, skip waiting", name);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-		} catch (ExecutionException e) { // 不会发生：inFlight只以complete(null)完成
+		} catch (ExecutionException e) {
 			logger.error("DaemonTimer {} await error", name, e);
 		}
 	}

@@ -34,8 +34,7 @@ public class Connector extends ReentrantLock {
 	private volatile boolean isAutoReconnect; // isAutoReconnect()无锁读，需要可见性保证
 	private volatile boolean isConnected; // isConnected()无锁读，需要可见性保证
 	private @Nullable Future<?> reconnectTask;
-	// 意图代数（仅锁内读写）：start()/stop()各开新纪元，排程任务携带排程时代数、醒来不匹配
-	// 即弃——作废stop前已派发、cancel(false)撤不回的在途重连。
+	// 仅锁内读写：start()/stop()/关闭自动重连时递增，使已派发未执行的旧重连任务失效。
 	private long epoch;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
@@ -144,7 +143,7 @@ public class Connector extends ReentrantLock {
 			if (value)
 				tryReconnect();
 			else {
-				epoch++; // 撤销重连意图同样开新纪元：作废已派发、cancel(false)撤不回的任务（对齐stop）
+				epoch++; // 使在途重连任务失效
 				if (reconnectTask != null) {
 					reconnectTask.cancel(false);
 					reconnectTask = null;
@@ -200,11 +199,7 @@ public class Connector extends ReentrantLock {
 		}
 
 	}
-	/**
-	 * 契约：仅由 AsyncSocket 死亡流程（doClose，置死之后）调用——本方法持锁经 stop(e) 重入
-	 * as.close(e)，"socket==closed ⇒ 已置死"使其恒为no-op；否则doClose将在Connector锁内展开
-	 * （含取Service锁），违反Service锁→回调锁单向锁序（见Service.stop契约）。
-	 */
+	/** 仅由已置死的 AsyncSocket 在 doClose 中调用，确保经 stop(e) 重入 close 时为 no-op，维持单向锁序。 */
 	public void OnSocketClose(AsyncSocket closed, @Nullable Throwable e) throws Exception {
 		lock();
 		try {
@@ -221,7 +216,6 @@ public class Connector extends ReentrantLock {
 	public void OnSocketConnected(AsyncSocket so) {
 		lock();
 		try {
-			// socket!=so为stale回调（stop已置null或已被新一代取代）：不得置isConnected
 			if (socket != so)
 				return;
 			isConnected = true;
@@ -231,11 +225,9 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
-	// 重连引擎内部入口（setAutoReconnect/OnSocketClose/构造失败续排）：带退避排程start。
 	private void tryReconnect() {
 		lock();
 		try {
-			// socket!=null（含在途建连）即已有一次在途尝试
 			if (!isAutoReconnect || socket != null || reconnectTask != null)
 				return;
 			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
@@ -258,25 +250,22 @@ public class Connector extends ReentrantLock {
 		} finally {
 			unlock();
 		}
-		so.close(new Exception("not owner?")); // stale握手属已stop/已替换连接，防御性关闭（幂等）
+		so.close(new Exception("not owner?"));
 	}
 
-	// 不变量（异步建连）：socket所有权在start()锁段内随构造同步发布（构造微秒级非阻塞，
-	// DNS/connect异步进行），stop()恒有可立即close的已发布句柄，在途连接由channel关闭+
-	// resolver侧isClosed检查点回收；建连/解析失败统一走close→OnSocketClose链；
 	public void start() {
 		lock();
 		try {
-			if (service == null) // 未SetService即start：编程错误，快速失败（否则NPE进退避循环不可诊断）
+			if (service == null)
 				throw new IllegalStateException("Connector '" + getName() + "' start() before SetService()");
-			epoch++; // 新意图开启新纪元，作废在途调度任务
+			epoch++;
 			startInternal();
 		} finally {
 			unlock();
 		}
 	}
 
-	// 排程任务入口：仅当排程代数仍是当前代数（排程后未发生start()/stop()）才建连。
+	// 仅当排程代数未过期时才发起重连。
 	private void startIfFresh(long gen) {
 		lock();
 		try {
@@ -297,13 +286,13 @@ public class Connector extends ReentrantLock {
 		if (socket != null)
 			return;
 		try {
-			// 构造非阻塞：锁内同步发布所有权（不变量前提，见字段区注释）
+			// socket 构造非阻塞（DNS/connect 异步执行），锁内同步发布以便 stop() 可立即关闭。
 			//noinspection DataFlowIssue
 			socket = null == url || url.isBlank()
 					? getService().newClientSocket(hostNameOrAddress, port, userState, this)
 					: getService().newWebsocketClient(url, userState, this);
 		} catch (Exception e) {
-			tryReconnect(); // 同步构造失败（配置/编程错误）仍续排重试，保持原契约
+			tryReconnect();
 			throw e;
 		}
 	}
@@ -316,7 +305,7 @@ public class Connector extends ReentrantLock {
 		AsyncSocket as;
 		lock();
 		try {
-			epoch++; // 作废在途调度任务
+			epoch++;
 			// always try cancel reconnect task
 			if (reconnectTask != null) {
 				reconnectTask.cancel(false);
@@ -334,7 +323,6 @@ public class Connector extends ReentrantLock {
 		} finally {
 			unlock();
 		}
-		// 在途连接（含DNS/建连未完成）直接close，resolver侧isClosed检查点放弃
 		//noinspection DataFlowIssue
 		as.close(e);
 	}

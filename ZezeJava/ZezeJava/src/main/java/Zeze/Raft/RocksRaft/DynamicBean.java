@@ -6,7 +6,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.HasManagedException;
 import org.jspecify.annotations.Nullable;
 
-/** A field-bound wrapper for a replaceable RocksRaft Bean. */
+/** 绑定声明字段的可替换动态 Bean 包装器。 */
 public final class DynamicBean extends Bean {
 	private final DynamicField field;
 	private @Nullable Bean bean;

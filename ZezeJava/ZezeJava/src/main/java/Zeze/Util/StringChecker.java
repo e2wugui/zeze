@@ -20,33 +20,28 @@ import org.jspecify.annotations.Nullable;
 public final class StringChecker {
 	private static final Logger logger = LogManager.getLogger(StringChecker.class);
 
-	/** 词条长度上限：calFail按词条长度递归（每字符约3帧，栈深=词长），超长词条
-	 * （词库被污染/误粘整段文本）会以StackOverflowError击穿reload。实测4096字符在默认
- * 栈（512KB~1MB）已处SOE边缘，取1024留足余量；敏感词场景绰绰有余。 */
+	/** 词条长度上限，防止 calFail 深递归导致栈溢出。 */
 	private static final int MAX_WORD_LENGTH = 1024;
 	private static final class Trie extends CharHashMap<Trie> {
 		private int deep;
 		private @Nullable Trie fail;
-		private boolean end; // 词尾：root到此节点的路径是一个完整词条（终止状态显式化）
+		private boolean end; // 词尾标志
 		private int maxWordLen; // 仅根节点使用：已添加的最大词条长度
 
 		void add(String str, int i, int e) {
 			int len = e - i;
-			if (len > maxWordLen) // add总是从根节点进入，在根上跟踪最大词条长度
+			if (len > maxWordLen)
 				maxWordLen = len;
-			int start = i; // 进入时的快照：BOM行start=1。deep必须记录相对深度(i-start)，
-			// 若记录绝对下标i，BOM首行词条的replace区间[i-deep,i]会左扩1个字符(多censor一个无辜前导字符)。
+			int start = i; // 记录起点以计算相对深度，避免 BOM 首行导致替换区间偏移
 			for (Trie trie = this, next; ; trie = next) {
 				trie.deep = i - start;
 				char c = str.charAt(i);
 				next = trie.get(c);
 				if (++i >= e) {
-					// 词尾统一为真实节点+end标志：自引用叶(标记在父的边上)
-					// 让词尾不占状态，fail链上的输出检查在语义上无法成立——词条是另一词条
-					// 真后缀时，命中信号经由长词前缀路径的fail链到达，只查转移目标必然漏检。
+					// 词尾独立成节点并置 end，保证 fail 链可命中真后缀词条
 					if (next == null)
 						trie.put(c, next = new Trie());
-					next.deep = i - start; // 词尾节点深度=词长（replace区间计算依赖）
+					next.deep = i - start; // 词尾深度=词长，供 replace 计算区间
 					next.end = true;
 					return;
 				}
@@ -89,12 +84,11 @@ public final class StringChecker {
 				}
 				if (next.end)
 					return true;
-				// 成功转移后沿fail链检查输出：词条是另一词条真后缀时，
-				// 命中信号经由长词前缀路径的fail链到达，只查转移目标自身会漏检。
+				// 沿 fail 链检查后缀输出，避免漏检作为长词真后缀的短词
 				for (Trie t = Objects.requireNonNull(next.fail); ; t = Objects.requireNonNull(t.fail)) {
 					if (t.end)
 						return true;
-					if (t == t.fail) // root：后缀枚举完
+					if (t == t.fail) // 到达根节点
 						break;
 				}
 				trie = next;
@@ -112,9 +106,7 @@ public final class StringChecker {
 				Trie next = trie.get(chars[i]);
 				if (next == null) {
 					if (iLast < eLast) {
-						// 贪心长词失败，替换积累的短词区间。不回退i、不回到根：
-						// 沿fail保持积累词的后缀状态(此时尚未写入替换的chars[i]读取安全)，
-						// 否则重叠词(前词后缀=后词前缀)的后缀起点被消费丢失。
+						// 贪心长词失配：替换挂起短词后沿 fail 保留后缀状态，不丢失重叠词起点
 						do
 							chars[iLast++] = replaceChar;
 						while (iLast < eLast);
@@ -130,11 +122,7 @@ public final class StringChecker {
 					continue;
 				}
 				if (next.end && next.isEmpty()) {
-					// 纯词尾命中(词条无更长扩展)：词区间[i+1-deep, i]立即替换。替换后需要
-					// 恢复后缀状态，否则构成重叠词的已消费字符(如词表{ab,bc}的b)永远没有机会
-					// 作为起点：命中词W的最长后缀状态next.fail继续匹配（其字符虽已被替换，
-					// 状态机只依赖状态不依赖字符）；后缀本身是完整词时已被替换区间覆盖。
-					// 若此前存在挂起的积累区间[iLast, eLast)，先合并/刷新并清零，防止残留到后续失配分支。
+					// 纯词尾命中：合并/刷新挂起区间并替换当前词，沿 next.fail 保留重叠后缀状态
 					int start = i + 1 - next.deep;
 					if (iLast < eLast) {
 						if (start >= eLast) {
@@ -153,9 +141,7 @@ public final class StringChecker {
 					i++;
 					continue;
 				}
-				// 非纯词尾转移：计算当前位置命中的最长词（贪心积累，失配或更长词命中时消费）。
-				// 词尾在自身(next.end，非叶形态：还是更长词条的前缀)或在fail链上——
-				// fail链命中即真后缀词条场景：取链上首个end（最长后缀词）。
+				// 非纯词尾：取自身或 fail 链上命中的最长词做贪心积累
 				int wordLen = 0;
 				if (next.end)
 					wordLen = next.deep;
@@ -165,15 +151,14 @@ public final class StringChecker {
 							wordLen = t.deep;
 							break;
 						}
-						if (t == t.fail) // root
+						if (t == t.fail)
 							break;
 					}
 				}
 				trie = next;
 				++i;
 				if (wordLen > 0) {
-					// 与旧积累区间不重叠（start >= eLast）时先 flush 旧区间再开启新区间；
-					// 重叠（start < eLast）时对两区间取并集，保留更早左边界，避免后缀词覆写丢弃前词前段。
+					// 与挂起区间不重叠则先刷新旧区间，重叠则合并保留更早左边界
 					int start = i - wordLen;
 					if (iLast < eLast) {
 						if (start >= eLast) {
@@ -221,7 +206,7 @@ public final class StringChecker {
 					e, MAX_WORD_LENGTH, line.substring(0, 32));
 			return false;
 		}
-		int i = (line.charAt(0) == 0xfeff) ? 1 : 0; // remove BOM
+		int i = (line.charAt(0) == 0xfeff) ? 1 : 0; // 跳过 UTF-8 BOM
 		if (i >= e)
 			return false;
 		trie.add(line, i, e);

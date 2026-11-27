@@ -8,14 +8,11 @@ import org.w3c.dom.Element;
  * Dbh2 配置项：从 Config 自定义节解析 RPC 超时、分桶与提交模式等参数。
  */
 public class Dbh2Config implements Config.ICustomize {
-	// 桶侧undo定时相对prepare时限的强制安全余量下界（FND29 dbh2-03止血）：2PC超时围栏的安全性
-	// 建立在协调者与桶两侧墙钟读数一致上，余量必须覆盖最大允许钟差（NTP步进校正/VM暂停恢复的
-	// 阶跃预算，60s量级）。低于此余量的配置会让桶侧在协调者仍合法的prepare窗口内undo已决定
-	// 提交的事务（客户端确认成功而数据灭失），配置解析处fail-fast挡住。index fencing断根留池（独立裁定）。
+	// 桶侧 undo 超时相对 prepareMaxTime 的最小安全余量，避免桶侧抢先回滚仍在合法 prepare 窗口内的事务
 	public static final long MinBucketUndoMarginMs = 60_000;
 	private int rpcTimeout = 60_000;
-	private long prepareMaxTime = 80_000; // 一般大于rpcTimeout
-	// 必须 >= prepareMaxTime + MinBucketUndoMarginMs（默认值即满足），见MinBucketUndoMarginMs注释。
+	private long prepareMaxTime = 80_000; // 一般大于 rpcTimeout
+	// 必须 >= prepareMaxTime + MinBucketUndoMarginMs
 	private long bucketMaxTime = 140_000;
 	private int serverFastErrorPeriod = 5000;
 	private int splitPutCount = 100;
@@ -24,11 +21,9 @@ public class Dbh2Config implements Config.ICustomize {
 	private int raftClusterCount = 3;
 	private boolean serialize = true;
 	private int splitCleanCount = 200;
-	// splitting条目超龄告警阈值（默认10min量级）：master周期扫描，超龄error
-	// 告警。只观测不动作——超大桶拷贝可超过任何阈值，超龄自动删除会人为重演永久读失败。
+	// splitting 条目超龄告警阈值，仅观测与结构判死回收门槛（超大桶拷贝可超过此阈值）
 	private long splittingAgeWarnMs = 600_000;
-	// 远程提交模式（Dbh2LocalCommit=false）的CommitServer直连地址，属性CommitServerAddress="host:port"，可空。
-	// 单实例语义：commitPoint集中在该CommitServer的CommitRocks库，多实例时事务跨服务器无统一redo视角。
+	// 远程提交模式的单实例 CommitServer 地址（CommitServerAddress="host:port"），可空
 	private @Nullable String commitServerHost;
 	private int commitServerPort;
 
@@ -80,11 +75,7 @@ public class Dbh2Config implements Config.ICustomize {
 		return prepareMaxTime;
 	}
 
-	// 远程提交模式的Commit rpc等待上界。不变量：须覆盖服务端同步全流程——decide（prepare
-	// 重定向循环按prepareMaxTime熔断，见CommitRocks.prepare）+deliver（2026-11-12起同步投递：
-	// 各桶commitBatch并行发送，等待上界rpcTimeout+SendForWaitGraceMs）+应答往返余量。
-	// deliver不推迟失败应答（失败仍答0，redo兜底），但成功路径应答时延=decide+deliver，
-	// 旧公式（prepareMaxTime+rpcTimeout+5000）盖不住deliver段——会把已投递事务判确定失败。
+	// 远程提交 Commit RPC 等待上界，需同时覆盖服务端同步 decide 与 deliver 阶段及往返余量
 	public long getCommitRpcTimeout() {
 		return prepareMaxTime + 2L * rpcTimeout + Dbh2Agent.SendForWaitGraceMs + 5_000L;
 	}
@@ -132,9 +123,6 @@ public class Dbh2Config implements Config.ICustomize {
 		if (!attr.isBlank())
 			bucketMaxTime = Long.parseLong(attr);
 
-		// fail-fast（FND29 dbh2-03）：低余量误配直接报配置错误而非静默抬高——静默修正会掩盖
-		// "安全围栏依赖跨机墙钟一致"这一部署前提，低余量下桶时钟前跳越余量即undo已决定提交
-		// 的事务。错误信息带字段与要求值（对齐CommitServerAddress的校验惯例）。
 		if (bucketMaxTime - prepareMaxTime < MinBucketUndoMarginMs)
 			throw new RuntimeException("Dbh2Config BucketMaxTime must be >= PrepareMaxTime + "
 					+ MinBucketUndoMarginMs + " (bucket-undo fence safety margin over cross-machine clock skew),"

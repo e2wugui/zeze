@@ -1,10 +1,12 @@
 package Zeze.Util;
 
-// 改进的非标准雪花ID分配算法. 跟标准算法区别在不限制获取倒退的时间戳,也不在序列号超范围时等待,可能出现生成ID中的时间戳比当前值稍大
-// 64位ID格式: 0(1b) | timestampOffset(41b) | serverId(10b) | sequence(12b)
-// 缺点: 进程停止后的时间回拨可能导致分配重复的ID. 通常生产用途的服务器应该保证一定的时间准确性,不太可能出现回拨. 解决办法只能靠本地或数据库做点持久化
+/**
+ * 改进的非标准雪花 ID 生成器：允许时钟微退且序列号溢出时不阻塞等待，直接向未来时间戳借位。
+ * 64 位布局：{@code 0(1b) | timestampOffset(41b) | serverId(10b) | sequence(12b)}。
+ * 注意：进程重启期间若发生大幅时钟回拨，仍可能产生重复 ID。
+ */
 public final class SnowflakeId extends FastLock {
-	private static final long TIMESTAMP_BASE = 1693180800000L; // new Date("28 Aug 2023 00:00:00 UTC").getTime(); // 本类首次提交的日期
+	private static final long TIMESTAMP_BASE = 1693180800000L; // 2023-08-28 00:00:00 UTC
 	private static final int SERVERID_BITS = 10;
 	private static final int SEQUENCE_BITS = 12;
 	private static final long SERVERID_MAX = (1L << SERVERID_BITS) - 1;

@@ -13,7 +13,7 @@ public final class StringFuzzySearch {
 	private long sidCounter;
 	private final LongHashMap<String> strMap = new LongHashMap<>(); // key:sid
 	private final HashMap<String, Long> strSet = new HashMap<>(); // value:sid
-	private final IntHashMap<LongList> index1 = new IntHashMap<>(); // value: weight(high 16 bits) + sid (low 48 bits)
+	private final IntHashMap<LongList> index1 = new IntHashMap<>(); // value: 权重(高 16 位) + sid(低 48 位)
 	private final IntHashMap<LongList> index2 = new IntHashMap<>();
 	private final LongHashMap<LongList> index3 = new LongHashMap<>();
 	private final LongHashMap<LongList> index4 = new LongHashMap<>();
@@ -133,7 +133,7 @@ public final class StringFuzzySearch {
 				throw new IllegalStateException("Missing fuzzy-search score for id: " + it.key());
 			is[i++] = ((it.key() & 0xffff_ffff_ffffL) + (Math.min((score.value * f) >>> 32, 0xffff) << 48)) ^ Long.MIN_VALUE;
 		}
-		// 翻转符号位把unsigned packed(score16+sid48)顺序映射到signed long顺序，线内格式不变。
+		// 翻转符号位将无符号 packed(score16+sid48) 映射到有符号 long 排序
 		Arrays.sort(is);
 		for (i = 0; i < max && --e >= 0; i++) {
 			final var v = is[e] ^ Long.MIN_VALUE;

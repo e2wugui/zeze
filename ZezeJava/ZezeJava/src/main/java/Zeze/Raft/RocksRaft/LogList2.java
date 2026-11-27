@@ -19,13 +19,11 @@ import org.jspecify.annotations.Nullable;
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList2<");
 
-	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
-	// 本日志记录过的结构op携带的bean身份（对齐经典 Transaction.Collections.LogList2.addSet）：
-	// 这些bean的最终状态由opLogs携带的value编码（提交时刻才encode，含后续编辑），其changed条目
-	// 是冗余的——follower侧全量应用changed，冗余条目会叠加应用两次（内部非幂等op双重执行）。
+	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // 收集阶段记录值 bean 的字段修改日志
+	// 本日志结构操作携带的 bean 身份集合：这些 bean 已由 opLogs 编码最终状态，encode 时据此剔除冗余 changed。
 	private @Nullable IdentityHashSet<V> addSet;
 	private final BeanValueFactory<V> valueFactory;
-	private boolean decoded; // 解码后的下标来自wire，不能按无源Bean的身份重新计算。
+	private boolean decoded; // 解码后的下标来自日志流，不再按内存对象身份重算。
 
 	static int typeId(Class<?> valueClass) {
 		return Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass);
@@ -125,8 +123,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			currentSp.putLog(this);
 	}
 
-	// savepoint合并时opLogs与addSet一起传递：encode侧身份过滤依赖完整的addSet
-	// （本事务所有层级savepoint内结构op携带过的bean）。
+	// savepoint 合并时同步传递 addSet，保证 encode 侧身份过滤完整。
 	private void merge(LogList2<V> from) {
 		if (!from.opLogs.isEmpty()) {
 			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
@@ -148,10 +145,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
 				var logBean = e.getKey();
-				// 对齐经典Transaction.Collections.LogList2的身份扫描（v==bean）：
-				// indexOf的equals语义在覆写equals的V（经典迁移bean必然如此）下会错位——
-				// 与已删bean equals相等的存活bean会吃错下标（错位应用），已删bean因equals
-				// 命中存活条目而被误保留（死bean日志叠加应用）。对身份equals的bean行为不变。
+				// 按对象身份（v == bean）查找下标，避免自定义 equals 造成错位或误留已删 bean。
 				var bean = logBean.getThis();
 				int idxExist = 0;
 				for (var v : curList) {
@@ -159,8 +153,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 						break;
 					idxExist++;
 				}
-				// 不在最终列表（已被结构op移除）或∈addSet（由结构op携带最终状态）的
-				// 条目剔除：follower侧changed按最终index全量应用，冗余条目会双重应用。
+				// 剔除已移出列表或已在 opLogs 中携带最终状态的条目，防止 follower 侧双重应用。
 				if (idxExist >= curList.size() || addSet != null && addSet.contains(Objects.requireNonNull(bean)))
 					it.remove();
 				else

@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
-// 基于 ConcurrentHashMap 的并发 Set：元素本身兼作键与值（putIfAbsent 去重）
+/** 基于 ConcurrentHashMap 的并发 Set：元素本身兼作键与值（putIfAbsent 去重）。 */
 public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, T> implements Iterable<T> {
 	public boolean add(T e) {
 		return putIfAbsent(e, e) == null;

@@ -109,7 +109,7 @@ abstract class LogMap2Base<K, V extends Bean, M extends BeanValueMapMeta<K, V>> 
 			keyEncoder.accept(bb, e.getKey());
 			encodeLogBean(bb, e.getValue());
 		}
-		// 两遍split编码（同LogMap1）：线格式与replaced/removed双容器时代逐字节一致。
+		// 分替换段与删除段两遍编码，保持线格式兼容。
 		int replacedCount = 0;
 		for (var e : m.entrySet())
 			if (e.getValue() != null)

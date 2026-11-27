@@ -3,7 +3,7 @@ package Zeze.Util;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
-// 命名线程工厂：前缀+编号命名，支持优先级与虚拟线程，未捕获异常统一记日志
+/** 命名线程工厂：按前缀+序号命名，支持优先级与虚拟线程，未捕获异常统一记日志。 */
 public class ThreadFactoryWithName implements ThreadFactory {
 	private static final Thread.UncaughtExceptionHandler uncaughtHandler =
 			(__, e) -> Task.logger.error("uncaught exception:", e);

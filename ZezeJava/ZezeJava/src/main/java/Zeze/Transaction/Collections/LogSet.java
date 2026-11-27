@@ -4,7 +4,7 @@ import java.util.Collection;
 
 import Zeze.Collections.Persistents;
 
-/** Persistent set transaction state, without wire responsibilities. */
+/** 持久化 Set 的事务状态，不承担编解码职责。 */
 public class LogSet<V> extends LogCollection<PSet<V>> {
 	private org.pcollections.PSet<V> value;
 
@@ -51,7 +51,7 @@ public class LogSet<V> extends LogCollection<PSet<V>> {
 	}
 
 	public boolean addAll(Collection<? extends V> items) {
-		// MapPSet.plusAll always wraps: single-item plus preserves the no-change identity check.
+		// MapPSet.plusAll 恒创建新包装，逐项 plus 才能保留无变更时的同一实例判定。
 		var next = value;
 		for (V item : items)
 			next = next.plus(item);

@@ -42,9 +42,7 @@ public final class BAllocateId128Argument implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer ibb) {
-		// 直接拷贝bytes构造Binary，不做intern：name是对端可控数据，intern会把每个唯一name
-		// 永久驻留静态无界BinaryPool（向Id128端口发包即可无界撑堆）；Binary为内容等值语义，
-		// 消费方（Id128UdpServer.cache的computeIfAbsent、getName）不依赖引用同一性。
+		// 直接拷贝构造而不 intern，避免对端可控的 name 无限驻留 BinaryPool。
 		name = ibb.ReadBinary();
 		count = ibb.ReadInt();
 	}

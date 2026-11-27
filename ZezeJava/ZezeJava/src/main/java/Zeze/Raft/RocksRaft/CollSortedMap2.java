@@ -47,10 +47,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	public void put(K key, V value) {
 		valueFactory.checkValue(value);
 		if (isManaged()) {
-			// 对齐经典PMap2的顺序：initRootInfo成功后再mapKey。mapKey先写会在
-			// initRootInfo抛HasManagedException时毒化bean的mapKey（普通字段写不受事务回滚
-			// 保护），LogSortedMap2.encode以getThis()==getValue().get(pkey)过滤changed条目，
-			// 被毒化的bean后续编辑会被静默剔除，follower分歧。
+			// 先挂接再设 mapKey，避免 initRootInfo 失败时污染 bean 的 mapKey。
 			value.initRootInfo(rootInfo(), this);
 			value.mapKey(key);
 			//noinspection unchecked,DataFlowIssue
@@ -94,10 +91,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 		var log = (LogSortedMap2<K, V>)_log;
 		var tmp = map;
 		var modified = log.getModified();
-		// put 项安装前补 mapKey（对齐 put/decode 路径）：本节点
-		// failover 当选新 leader 后编辑该条目时，LogSortedMap2.encode 用 mapKey()
-		// 作为 changed 条目的 key，null 会让 Long key 拆箱 NPE（事务永久失败）或
-		// String key 编码成 ""（follower 静默丢编辑，状态机分歧）。
+		// 安装 put 项前补全 mapKey，确保本节点切主后编辑该值时能正确编码 changed 条目。
 		HashMap<K, V> puts = null;
 		ArrayList<K> removes = null;
 		for (var e : modified.entrySet()) {
@@ -114,17 +108,13 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 				removes.add(e.getKey());
 			}
 		}
-		// 单遍分区批量应用：等价旧 plusAll(putted).minusAll(removed)。
 		if (puts != null)
 			tmp = tmp.plusAll(puts);
 		if (removes != null)
 			tmp = tmp.minusAll(removes);
 
-		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
-			// 正常重放下changed只含最终map存在的key（encode已过滤modified覆盖/不存在key），
-			// follower侧null即先行分歧（任何来源）：直接递归抛NPE，由Rocks.followerApply统一
-			// catch并fatalKill（宁死不糊），容器层不再内联防御。
+			// encode 侧已过滤无效 key，此处缺失即状态机分歧，直接抛 NPE 由 Rocks.followerApply 统一 fatalKill。
 			tmp.get(e.getKey()).followerApply(e.getValue());
 		}
 		map = tmp;

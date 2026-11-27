@@ -13,7 +13,9 @@ import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.LastHttpContent;
 
-/** One file, one outstanding read/write. Stream advancement runs on the EventLoop; reads use the Task pool. */
+/**
+ * HTTP/2 流式文件发送器：单文件单在途分块读写，流推进在 EventLoop 执行，磁盘读取在任务池执行。
+ */
 final class H2FileSender extends ChannelInboundHandlerAdapter {
 	private final HttpExchange exchange;
 	private final FileChannel file;
@@ -117,8 +119,7 @@ final class H2FileSender extends ChannelInboundHandlerAdapter {
 							return;
 						}
 						try {
-							// A write can complete inline. Queue advancement to avoid recursive
-							// reads and to give writability / cancellation events a turn.
+							// 异步排入下一轮推进，避免同步写完成导致递归读并让出可写/取消事件
 							exchange.context.executor().execute(this::advance);
 						} catch (RejectedExecutionException e) {
 							fail(e);

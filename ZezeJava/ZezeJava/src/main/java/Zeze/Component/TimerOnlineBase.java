@@ -81,16 +81,14 @@ abstract class TimerOnlineBase<I> {
 		return timer().getZeze();
 	}
 
-	// 检查命名timerId格式合法（非法抛异常）且全局唯一：统一经Timer.isNamedTimerIdOccupied
-	// 查全局/离线索引+全部onlineSet的Role在线表+Account在线表。只查本表会让三套查重互不相通
-	// ——同名online/offline/global定时器并存并共用timerFutures相互覆盖。
+	// 校验命名 timerId 格式并在全局/离线/在线三族内查重，防止同名并存互相覆盖 timerFutures
 	final boolean isNamedTimerIdOccupied(String timerId) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		return timer().isNamedTimerIdOccupied(timerId);
 	}
 
-	// 供Timer.isOnlineTimerIdOccupied逐set查重：本onlineSet在线表是否已有该timerId。
+	// 供 Timer.isOnlineTimerIdOccupied 逐 set 查重
 	final boolean isOnlineTimerOccupied(String timerId) {
 		return getOnlineTimer(timerId) != null;
 	}
@@ -143,8 +141,6 @@ abstract class TimerOnlineBase<I> {
 			timerLocal.getCustomData().setBean(customData);
 		}
 		var delay = Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
-		// oneByOneKey是公开契约参数（随bean持久化），online族安装必须与全局/离线族
-		// 一样尊重——否则共用key的定时器到期并发跑回调，用户按串行假设写的回调产生竞态。
 		var oneByOneKey = simpleTimer.getOneByOneKey();
 		scheduleOnlineSimple(timerId, delay, timer().findTimerHandle(handleClass.getName()), oneByOneKey);
 	}
@@ -215,35 +211,26 @@ abstract class TimerOnlineBase<I> {
 		return cancelOnlineLocal(timerId, id);
 	}
 
-	// callerId非null时做归属校验（外部取消入口传入归属者）；null表示系统级清理
-	// （fireOnline的触发/异常/覆盖收尾、onLocalRemove），定时器与清理动作者天然同源。
+	// callerId 非 null 时执行归属校验（外部调用）；null 表示系统级内部清理
 	final boolean cancelOnlineLocal(@Nullable String timerId, @Nullable I callerId) {
 		if (timerId == null)
 			return true;
 
-		// remove online timer
-		var bTimer = getOnlineTimer(timerId); // table.remove现在不能返回旧值，只能这样写。
+		var bTimer = getOnlineTimer(timerId);
 		if (bTimer == null) {
-			// 查无本族记录不得投机cancelFuture——timerFutures三族共用同源timerId，
-			// 传入他族（如全局族）timerId会误杀其活future：记录在而future死，fireSimple尾部的
-			// 周期重装永不发生，停摆到进程重启。正常取消清理旧future，缺行fire直接返回。
+			// 查无本族记录不得取消 future，避免误杀共用 timerFutures 的他族同名定时器
 			return false;
 		}
 
-		// 归属校验：外部入口无校验时，timer.roles(A).cancelOnline(B的timerId)
-		// 可越权取消任意online timer并按B的真实归属误清B的本地行。归属不符即拒绝。
-		// 校验必须先于cancelFuture注册：无条件先注册时，越权取消虽返回false，
-		// 事务提交后仍会停摆他人future、表项残留成僵尸。
+		// 归属校验必须先于 cancelFuture 注册，避免越权取消停摆他人 future
 		if (callerId != null && !bTimer.identity().equals(callerId)) {
 			logger.warn("cancelOnlineLocal rejected: timer not owned by caller. timerId={}, owner={}, caller={}",
 					timerId, identityString(bTimer.identity()), identityString(callerId));
 			return false;
 		}
 
-		// always cancel future task，归属校验通过后注册。
 		Transaction.whileCommit(() -> timer().cancelFuture(timerId));
 
-		// remove online local
 		var id = bTimer.identity();
 		var onlineTimers = getLocalTimers(id);
 		if (onlineTimers != null) {
@@ -251,7 +238,6 @@ abstract class TimerOnlineBase<I> {
 			if (onlineTimers.getTimerIds().isEmpty())
 				removeLocalTimers(id);
 		}
-		// always remove from table
 		removeOnlineTimer(timerId);
 		logger.debug("cancel online timer: timerId={}, {}", timerId, identityString(id));
 		return true;
@@ -306,9 +292,7 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	private boolean isTransmitTimerIdOccupied(String timerId) {
-		// 发送端检查与接收端注册不在同一事务。接收时须重验全部族，
-		// 否则转发途中创建的同名全局/离线定时器会被在线future覆盖。
-		// 自动分配的'@'名字也合法，不能使用命名入口的格式校验。
+		// 跨服转发与注册分属不同事务，接收端须重验三族占位（允许自动生成的 '@' 前缀）
 		if (!timer().isNamedTimerIdOccupied(timerId))
 			return false;
 		logger.warn("transmit timer dropped: timerId already occupied. timerId={}", timerId);
@@ -337,13 +321,11 @@ abstract class TimerOnlineBase<I> {
 	// Online.Local删除时，取消这个用户所有的在线定时器。
 	final void onLocalRemove(BOnlineTimers timers) {
 		for (var timerId : timers.getTimerIds().keySet())
-			cancelOnlineLocal(timerId, null); // 系统级清理：timers行本身即归属者的本地行
+			cancelOnlineLocal(timerId, null);
 	}
 
 	// ///////////////////////////////////////////////////////////////
 	// 安装到ThreadPool与触发
-	// oneByOneKey非空时fire经Timer.dispatchFire包executeOneByOne（对齐全局族
-	// scheduleSimple/scheduleCronNext），共用key的online定时器回调按key串行。
 	private void scheduleOnlineSimple(String timerId, long delay, TimerHandle handle,
 									  @Nullable String oneByOneKey) {
 		//noinspection DataFlowIssue

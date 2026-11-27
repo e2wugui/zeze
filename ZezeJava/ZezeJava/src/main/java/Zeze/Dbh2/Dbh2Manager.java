@@ -53,7 +53,6 @@ public class Dbh2Manager {
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
-	// 周期守护：body(reportLoad阻塞RPC/tryStartSplit)进worker池，不占调度线程；stop有界等待在飞一轮
 	private final DaemonTimer loadMonitorTimer = new DaemonTimer("Dbh2Manager.loadMonitor", 120_000, this::loadMonitor);
 	final AtomicLong atomicSerialNo = new AtomicLong();
 	private final Dbh2Config dbh2Config = new Dbh2Config();
@@ -95,7 +94,6 @@ public class Dbh2Manager {
 		dbHome.mkdirs();
 		raftConfig.setDbHome(dbHome.toString());
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
-		// 原子落盘：Files.writeString默认截断，崩溃留半截xml。
 		AtomicOutputFile.writeAtomically(file.toPath(), raftConfigStr.getBytes(StandardCharsets.UTF_8));
 		dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 			var dbh2 = new Dbh2(this, Objects.requireNonNull(raftConfig.getName()),
@@ -114,9 +112,7 @@ public class Dbh2Manager {
 		return 0;
 	}
 
-	// 销毁本manager为该桶建的raft（DestroyBucket，建桶半失败回滚协议）：先摘proxyServer派发与
-	// dbh2s账目，再关raft（释放bucket端口），最后删桶目录——raft.xml残留会被start()的目录扫描
-	// 复活。幂等：raft不存在（从未建或已销毁）也删目录并成功返回。包内可见供同包测试直驱。
+	// 幂等销毁桶对应的 Raft 实例并清理桶目录
 	void destroyBucket(String databaseName, String tableName, String raftConfigStr) throws IOException {
 		var raftConfig = RaftConfig.loadFromString(raftConfigStr);
 		//noinspection DataFlowIssue
@@ -126,12 +122,11 @@ public class Dbh2Manager {
 		var dbh2 = dbh2s.remove(raftConfig.getSortedNames());
 		if (null != dbh2) {
 			proxyServer.removeRaft(dbh2.getRaft());
-			// close失败（RuntimeException）不删目录：对打开的rocksdb删目录会留坏库，
-			// 留着等下次销毁重试或人工核查。
+			// close 失败时不删目录，避免破坏仍打开的 RocksDB
 			dbh2.close();
 		} else
 			logger.info("DestroyBucket: raft not found (idempotent). raftName='{}'", raftConfig.getName());
-		// 失败重试后仍存在即抛（目录不存在时直通）：raft.xml残留会被start()扫描复活成幽灵raft。
+		// 确认目录已删，避免残留 raft.xml 在重启时被重新加载
 		LogSequence.deletedDirectoryAndCheck(bucketDir.toFile());
 	}
 
@@ -165,7 +160,7 @@ public class Dbh2Manager {
 			var m = manager;
 			if (null == m)
 				return;
-			// IO线程回调，不得同步等待rpc（register/setDbh2Ready为阻塞rpc），提交任务池异步重注册。
+			// IO 线程回调，异步提交重注册避免阻塞
 			TaskSpec.ofAction(m::reRegister).name("Dbh2Manager.reRegister").submitNow();
 		}
 
@@ -231,35 +226,21 @@ public class Dbh2Manager {
 		loadMonitorTimer.start();
 	}
 
-	// 注册三步（register→补齐缺失raft→setDbh2Ready）的单点：start()首注册与reRegister共用。
-	// setDbh2Ready不可省略：Master侧managers为纯内存，重启后重建条目的ready=false，
-	// 不重发则choiceManagers的shadowReadyManager恒空——建表/分桶静默瘫痪（比
-	// eManagerNotFound更隐蔽的失败形态）。补齐缺失raft按master持久化主表对账本manager，
-	// createBucket幂等（dbh2s.computeIfAbsent），重复执行无副作用。
-	// synchronized单飞：首连时OnMasterConnected钩子的reRegister与start()本方法设计内并发
-	// （register RPC幂等），但createBucket的raft.xml落盘不幂等——并发双写同目标
-	// Files.move(ATOMIC_MOVE,REPLACE)互撞AccessDeniedException杀死main（2026-11-11两次
-	// 重启实锤：同毫秒双"miss rafts="日志，main与ZezeTaskPool各一线程）。串行化后第二个
-	// 进来者miss清单已空，只剩幂等的register/setDbh2Ready。
 	private volatile boolean masterRegisterReady = false;
+
+	// 向 Master 注册、补建缺失桶并上报就绪；synchronized 串行化启动与重连并发，避免同时落盘 raft.xml
 	private synchronized void registerToMaster() throws Exception {
-		// Register replaces the master's manager entry with ready=false on every retry.
-		// Only this registration's successful SetDbh2Ready may restore local readiness.
 		masterRegisterReady = false;
 		var acceptorAddress = masterService.getAcceptorAddress();
 		var dbh2sAtMaster = masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2s.size());
 		logger.info("{}, {} - rafts=\n{}\n{}", acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2sAtMaster, dbh2s.keySet());
 		var dbh2sAtMasterMiss = new HashMap<String, BDbh2Config.Data>();
 		for (var dbh2 : dbh2sAtMaster.getDbh2Configs()) {
-			// 缺失判据须与dbh2s的键同型：dbh2s键=RaftConfig.getSortedNames()规范串
-			// （"-node1-node2-..."），master条目携带的是原始raft XML串——直接containsKey
-			// 恒false，miss清单=master全部桶（重启重写所有raft.xml并放大并发双写竞速，
-			// 2026-11-11重启连炸实锤）。
 			var sortedNames = RaftConfig.loadFromString(dbh2.getRaftConfig()).getSortedNames();
 			if (!dbh2s.containsKey(sortedNames))
 				dbh2sAtMasterMiss.put(dbh2.getRaftConfig(), dbh2);
 		}
-		// 保存并启动丢失的dbh2（一般是系统完全毁坏，重新找的新机器） ...
+		// 补建本地缺失的桶（如节点重建恢复）
 		logger.info("miss rafts={}", dbh2sAtMasterMiss.values());
 		for (var dbh2 : dbh2sAtMasterMiss.values()) {
 			createBucket(dbh2.getDatabase(), dbh2.getTable(), dbh2.getRaftConfig());
@@ -268,11 +249,6 @@ public class Dbh2Manager {
 		masterRegisterReady = true;
 	}
 
-	// Master重启丢失managers注册表后由连接建立钩子（OnMasterConnected）重发注册恢复；
-	// 失败仅记日志，等下次重连再试（Connector autoReconnect持续重连）。首连时与start()的
-	// registerToMaster各发一次——重复注册幂等推演：Master侧ProcessRegisterRequest按socket
-	// 与acceptor:port身份先摘同身份旧条目再入列（master锁内串行），任意次重发终态单条目；
-	// tryRemoveManager按socket摘除亦不多摘。
 	void reRegister() {
 		try {
 			registerToMaster();
@@ -282,12 +258,7 @@ public class Dbh2Manager {
 	}
 
 	private void loadMonitor() throws Exception {
-		// R1（FND27审视残余）：register成功而setDbh2Ready rpc失败（拥塞超时、连接未断）时，
-		// master侧条目停留ready=false且无事件再触发——OnMasterConnected只在（重）连接事件触发，
-		// 连接健在则永不重发：shadowReadyManager恒空、建表/分桶静默瘫痪正是本类要消灭的形态。
-		// 周期补触发完整重注册（register幂等：master按socket/acceptor:port先摘同身份旧条目
-		// 再入列，任意次重发终态单条目）；仍失败则跳过本轮负载上报与分桶决策（两者都依赖
-		// master侧注册就绪），等下一轮（120s）。
+		// 若上次注册未完成就绪，周期补发重注册
 		if (!masterRegisterReady) {
 			logger.warn("loadMonitor: master registration incomplete (register or setDbh2Ready failed), re-registering");
 			reRegister();
@@ -300,9 +271,7 @@ public class Dbh2Manager {
 		double maxLoad = 0.0f;
 		var hasSplitting = false;
 		for (var dbh2 : dbh2s.values()) {
-			// 快照恢复窗口（loadSnapshot→restore持raft锁：close置bucket=null，RocksDatabase.restore
-			// 大桶可长达秒~分钟期间保持null；loadMonitor不持raft锁）内该桶不参与本轮统计：
-			// null解引用（getSplittingMeta/load内getBucketMeta）会以NPE中止整轮loadMonitor链。
+			// 快照恢复期间 bucket 暂为 null，跳过本轮统计
 			var bucket = dbh2.getStateMachine().getBucket();
 			if (null == bucket)
 				continue;
@@ -333,13 +302,11 @@ public class Dbh2Manager {
 	}
 
 	public void stop() throws Exception {
-		loadMonitorTimer.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s），不interrupt池线程
+		loadMonitorTimer.stop();
 		ShutdownHook.remove(this);
 		proxyServer.stop();
 		masterAgent.stop();
-		// 逐桶独立捕获：某桶close失败（raft.shutdown RocksDB错误等）不得中断循环——
-		// 后续桶的句柄/定时任务将全部泄漏且database.close被跳过（Dbh2.close内部已保证
-		// stateMachine清理必然执行，此处只需保证每桶都得到close机会）。
+		// 逐桶捕获异常，避免单个桶关闭失败导致后续桶与底层库泄漏
 		for (var dbh2 : dbh2s.values()) {
 			try {
 				dbh2.close();

@@ -3,29 +3,18 @@ package Zeze.Services.RocketMQ;
 import org.apache.rocketmq.client.ClientConfig;
 
 /**
- * {@link ClientConfig} 的构造期透传：{@link Consumer}/{@link Producer} 构造器接收
- * ClientConfig 即把路由/身份字段透传给内部 consumer/producer——namespace 不透传=多租户
- * 形态下静默消息不可达，instanceName 不透传=同 JVM 同组多实例部署 start 时才报 clientId
- * 重复且报错远离根因。
- *
- * <p>DefaultMQPushConsumer/TransactionMQProducer 自身继承 ClientConfig，故按字段逐一复制。
- * 5.5.1 新增的 namespaceV2 不透传：运行时（4.9.x）无此 API，非跨版本稳定字段。
+ * RocketMQ {@link ClientConfig} 路由与身份字段复制辅助，供 {@link Consumer} 与 {@link Producer} 构造期透传配置。
  */
 final class ClientConfigs {
 	private ClientConfigs() {
 	}
 
 	/**
-	 * 把 src 的路由/身份字段复制到 dst（字符串字段 null/空不设置，保留 dst 同源默认值及
-	 * 懒推导语义——如 namespace 由 endpoint 形态 namesrvAddr 懒推导；布尔/枚举字段两端
-	 * 默认值相同，无条件复制为无害覆盖）。
+	 * 将 src 的路由与身份字段复制到 dst；空字符串不覆盖以保留 dst 默认值与懒推导语义。
 	 */
 	static void copyRoutingIdentity(ClientConfig src, ClientConfig dst) {
 		dst.setNamesrvAddr(src.getNamesrvAddr());
-		// namespace 与 namespaceV2 是 ClientConfig 的两个独立字段（5.x 里 V2 不是 V1 的
-		// 等价新名——0d4824c07"去idea警告"把 V1 改读 V2 曾致：用户 setNamespace("NS1")
-		// 被静默丢弃（读 V2 空）、TestClientConfigPassThrough 确定性红 ×39/40）。
-		// 透传语义=用户配了哪个传哪个，两字段独立复制。
+		// namespace 与 namespaceV2 在 ClientConfig 中相互独立，分别按非空透传
 		var namespace = src.getNamespace();
 		if (namespace != null && !namespace.isEmpty())
 			dst.setNamespace(namespace);

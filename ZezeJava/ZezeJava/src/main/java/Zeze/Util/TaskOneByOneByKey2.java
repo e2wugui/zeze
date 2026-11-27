@@ -18,9 +18,8 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 同TaskOneByOneByKey,只是用ConcurrentLinkedQueue代替ArrayDeque和锁.
- * 另外由于不用临界区,shutdown和加任务的并发很难做,所以不支持shutdown,也不支持cancel.
- * 例外：executeCyclicBarrier 的桶派发失败需要内部 canceled 收尾，见 Barrier。
+ * 按 key 分桶的无锁串行任务队列：与 {@link TaskOneByOneByKey} 类似，使用 {@link ConcurrentLinkedQueue}
+ * 替代锁与数组队列，不支持 shutdown 与外部 cancel。
  */
 public final class TaskOneByOneByKey2 extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
@@ -88,9 +87,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 		abstract void run() throws Exception;
 
-		// 锁内快照清空、锁外推进：run收尾与cancel的推进互斥由清空保证恰好一次（同刻只有
-		// 一方拿到非空快照）；runNext的派发失败（executeOrRollback回滚认领后重抛）与成功
-		// 路径同语义，不在此吞。
+		// 锁内快照清空保证仅推进一次，锁外调用 runNext
 		private void reachedRunNext() {
 			TaskOneByOne[] batches;
 			synchronized (this) {
@@ -114,10 +111,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				throw Zeze.Util.Task.forceThrow(failure);
 		}
 
-		/**
-		 * @return true 屏障已取消：任务照常消费，队列继续；false 认领已押给屏障
-		 * （集齐后由 reachedRunNext/cancel 解冻），process 返回 false 等待 runNext。
-		 */
+		/** @return true 表示屏障已取消可继续消费；false 表示挂起等待屏障放行 */
 		boolean reach(TaskOneByOne taskOneByOne, int sum) {
 			synchronized (this) {
 				if (state != State.Waiting)
@@ -126,28 +120,23 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				count -= sum;
 				if (count > 0)
 					return false;
-				state = State.Running; // 最后到达与取消在同一临界区选择唯一推进方。
+				state = State.Running;
 			}
 
 			try {
-				run(); // 锁外执行：body回调本实例提交新任务（外层lock）不构成barrier→outer逆序
+				run(); // 锁外执行，避免回调提交新任务引发锁序反转
 			} catch (Throwable ex) { // logger.error
 				logger.error("{} run exception:", getName(), ex);
 			} finally {
 				synchronized (this) {
 					state = State.Finished;
 				}
-				// 成功执行
-				// 1. 触发所有桶的runNext，
-				// 2. 自己也返回false，不再继续runNext。
 				reachedRunNext();
 			}
 			return false;
 		}
 
-		// 桶派发失败的补偿收尾（executeCyclicBarrier的catch调用）：此后在飞的屏障任务变为
-		// no-op继续消费队列；已reach押入认领的桶由reachedRunNext解冻。失败桶未入队无认领。
-		// 推进异常单独吞并记录：cancel自身运行在失败路径上，重抛会掩盖根因异常。
+		// 桶派发失败时取消屏障并解冻已到达的桶，不重抛以免掩盖原始异常
 		void cancel() {
 			synchronized (this) {
 				if (state != State.Waiting)
@@ -222,8 +211,6 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 					e.getKey().executeBarrier(barrier, sum, mode);
 				}
 			} catch (Throwable ex) {
-				// 桶派发失败（池未初始化ISE/自定义executor拒绝REE，任务确认未入队）：
-				// 取消屏障解冻已reach的桶（对齐base家族submitBarrierAndUnlock），重抛首个异常。
 				barrier.cancel();
 				throw ex;
 			}
@@ -252,7 +239,6 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 					e.getKey().executeBarrier(barrier, sum, mode);
 				}
 			} catch (Throwable ex) {
-				// 同Procedure版：桶派发失败时取消屏障解冻已reach的桶，重抛首个异常。
 				barrier.cancel();
 				throw ex;
 			}
@@ -272,8 +258,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			this.batchEnd = batchEnd;
 		}
 
-		/** 每key一次性核销：正常完成（run的finally）、入队前校验失败（notEnqueued回调）、
-		 * 提交循环中断（abandon）可能对同一key触发，CAS保证恰好核销一次。 */
+		/** 每个 key 至多核销一次（正常完成、未入队或批量中止共用）。 */
 		public final class Settle implements Action0 {
 			private final AtomicBoolean settled = new AtomicBoolean();
 
@@ -282,7 +267,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				if (!settled.compareAndSet(false, true))
 					return;
 				if (keysCount.decrementAndGet() == 0)
-					runBatchEndDirect(batchEnd); // batchEnd 的异常策略只有这一处实现，不能在这里裸调 batchEnd.run()。
+					runBatchEndDirect(batchEnd);
 			}
 		}
 
@@ -325,12 +310,8 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			remaining--;
 			var settle = batch.newSettle();
 			try {
-				// 入队前校验失败（任务未入队）经notEnqueued核销；派发失败任务保留队列、
-				// 运行时经run的finally核销——同一key恰好一次。
 				executeCore(key.hashCode(), new TaskBody.OfAction(() -> batch.run(key, settle)), null, mode, settle);
 			} catch (Throwable ex) {
-				// 提交失败：失败key若已入队（派发被拒、任务保留待重派发）由运行核销，
-				// 未尝试的key一次性核销——batchEnd不再永久悬挂。
 				batch.abandon(remaining);
 				throw ex;
 			}
@@ -357,8 +338,6 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		});
 	}
 
-	// 统一核心：所有 Execute 重载与 TaskSpec.executeOneByOne 最终都委托到这里。
-	// 载荷差异（调用形态/名字解析）由 TaskBody 封装，队列语义无返回值消费者。
 	void executeCore(int key, TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode) {
 		concurrency[hash(key) & hashMask].execute(body, name, mode);
 	}
@@ -565,15 +544,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		return sb.toString();
 	}
 
-	/**
-	 * Applies a supplemental hash function to a given hashCode, which defends
-	 * against poor quality hash functions. This is critical because HashMap uses
-	 * power-of-two length hash tables, that otherwise encounter collisions for
-	 * hashCodes that do not differ in lower bits. Note: Null keys always map to
-	 * hash 0, thus index 0.
-	 *
-	 * @see HashMap
-	 */
+	/** 扰动哈希，降低 2 的幂次桶数组低位冲突。 */
 	private static int hash(int _h) {
 		int h = _h;
 		h ^= (h >>> 20) ^ (h >>> 12);
@@ -604,10 +575,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		abstract boolean process();
 	}
 
-	/**
-	 * 统一载荷任务：用 {@link TaskBody} 覆盖 action/func/procedure/func0 四种载荷。
-	 * 队列语义无返回值消费者，callRaw 的结果丢弃；名字解析见 {@link TaskBody#logName}。
-	 */
+	/** 统一任务载荷封装，丢弃返回值。 */
 	static final class TaskBodyTask extends Task {
 		private final TaskBody<?> body;
 
@@ -640,7 +608,6 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 			@Override
 			boolean process() {
-				// canceled时true：屏障任务照常消费，队列继续，不再押认领等待。
 				return barrier.reach(TaskOneByOne.this, sum);
 			}
 		}
@@ -657,7 +624,6 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 			@Override
 			boolean process() {
-				// canceled时true：屏障任务照常消费，队列继续，不再押认领等待。
 				return barrier.reach(TaskOneByOne.this, sum);
 			}
 		}
@@ -686,10 +652,9 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			submit(task, null);
 		}
 
-		/** notEnqueued：入队前校验失败（任务确认未入队）时的核销回调，executeBatch用。 */
+		/** notEnqueued：入队前校验失败时的核销回调（executeBatch 用）。 */
 		private void submit(Task task, @Nullable Action0 notEnqueued) {
-			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败，不入队 doomed 任务
-			//（派发失败虽已有回滚认领兜底，见 executeOrRollback，但早失败更干净）。
+			// 入队前校验执行器可用性，避免无效任务入队
 			try {
 				getExecutor(task.mode);
 			} catch (Throwable e) {
@@ -720,7 +685,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			}
 		}
 
-		// Another producer may publish between the two reads of this concurrent queue.
+		// 并发生产者可能在两次读取之间入队
 		@SuppressWarnings("ConstantConditions")
 		private @Nullable Task peekTask() {
 			for (; ; ) {
@@ -744,14 +709,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				executeOrRollback(task, continuation);
 		}
 
-		/** 派发并处理失败：execute 抛异常或 Error（拒绝、全局池停机、线程创建失败等）时，
-		 * 认领（submitted==true）可能已置位而 run() 没进过池——
-		 * submitted 的唯一自愈复位在 pollTask/peekTask 的消费路径里，无人消费即永不复位：
-		 * 后续 submit 的 CAS 恒失败也不再派发，该桶（及其映射的所有 key）永久卡死。
-		 * 对齐 TaskOneByOneQueue.executeOrRollback 回滚认领后按原类型重抛：
-		 * submit 路径同步反馈调用方；run/barrier 路径异常会被 executor 吞掉，回滚内 warn 保证可诊断。
-		 * 队列保留不清：Key2 无 onCancel 补偿钩子，清队列会静默丢任务；积压任务由后续
-		 * submit 重新认领派发（executor 恢复后照常执行）。 */
+		/** 派发失败时回滚 submitted 认领并重抛，保留队列任务待后续提交重新驱动。 */
 		private void executeOrRollback(Task task, boolean continuation) {
 			Dispatch dispatch = null;
 			try {
@@ -777,7 +735,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 						queue.size(), name, failure);
 		}
 
-		// 每次派发独立票据；shutdownNow丢弃未运行驱动时只归还认领，保留noCancel任务。
+		// 单次派发票据，保证同一票据至多运行或回滚一次
 		private final class Dispatch extends TaskOneByOneDispatch {
 			private final String name;
 
@@ -828,11 +786,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 					executeOrRollback(next, true);
 					return;
 				}
-				// 所有权poll到后才处理：屏障完成续轮的runNext会在本驱动存活期创建第二个Dispatch
-				// （Dispatch的CAS只防同一票据重入，不防两票据并存），旧循环"loop-update盲目poll
-				// 丢弃结果+处理peek陈旧引用"在两驱动poll碰撞窗口下会双执行peek任务、永久丢失
-				// 被poll走却无人引用的头部任务（soak-20261125-1807 R4 bench挂死实锤：丢失的
-				// 屏障任务使计数永不归零）。poll返回null=并发驱动已取空并释放认领，安全退出。
+				// 必须先 poll 获取所有权再处理，避免与屏障续轮并发驱动碰撞导致重复或丢失任务
 				task = pollTask();
 				if (task == null)
 					return;

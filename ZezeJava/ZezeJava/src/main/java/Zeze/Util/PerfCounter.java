@@ -14,7 +14,7 @@ import Zeze.Net.Service;
 import Zeze.Transaction.TableKey;
 import org.jspecify.annotations.Nullable;
 
-// 性能计数器：按 protocol/procedure/table/runkey 维度聚合统计并周期输出日志（ZezeCounter 的主力实现）
+/** 性能计数器：按 protocol/procedure/table/runkey 维度聚合统计并周期输出日志。 */
 public final class PerfCounter extends FastLock implements ZezeCounter {
 	public static class LongAdderCounter extends LongAdder implements LongCounter {
 		@Override
@@ -72,12 +72,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
 
 		final String name;
-		// 热路径getOrAddResult无锁读写resultMap，getLogAndReset持锁换新——引用必须
-		// volatile发布，否则业务线程可无限期读旧引用，自增落在已消费的resultMapLast上丢统计。
+		// 热路径无锁读写、getLogAndReset 持锁换新，需 volatile 发布
 		volatile LongConcurrentHashMap<LongAdder> resultMap = new LongConcurrentHashMap<>();
-		// 锁内写（getLogAndReset），getResultMapLast()被定时器线程
-		// （ProcedureStatistics.Watcher）与HTTP查询线程无锁读——同样需要volatile发布，否则读者
-		// 可长期读到旧快照，watch的(total-last)增量恒为0导致回调永不触发。
+		// 锁内替换、外部查询与 Watcher 无锁读，需 volatile 发布
 		volatile LongConcurrentHashMap<LongAdder> resultMapLast = new LongConcurrentHashMap<>();
 		long totalCount;
 		int succRatio; // 成功率百分比
@@ -155,9 +152,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			return active;
 		}
 
-		/** resetCounter就地清零：保留TableInfo与计数句柄身份（tableCounter交出的
-		 * LongAdderCounter被调用方长期缓存复用，清tableInfoMap会让旧句柄的增量
-		 * 落在脱离收集的孤儿对象上，直到按ID重新查询才恢复统计）。 */
+		/** 就地清零计数并保留句柄身份，避免外部缓存的 LongAdderCounter 脱离收集。 */
 		void reset() {
 			for (var metric : TableMetric.values()) {
 				counters[metric.ordinal()].reset();
@@ -220,14 +215,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final ConcurrentHashMap<String, RunInfoWithSerial> runInfoMap = new ConcurrentHashMap<>(); // key: 统计名（归一化后）
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
-	// 句柄按 name 缓存复用：Procedure 实例每笔事务新建，其懒解析字段让 allocProcedureCounter
-	// 每事务执行一次；句柄本身线程安全（volatile bound 良性竞争 + LongAdder 聚合），
-	// 共享后 Bound 代际重绑也按 name 摊销。语义不变（契约本就是"同 name 聚合统计"）。
+	// 按 name 缓存共享句柄，避免热路径重复创建并摊销代际重绑
 	private final ConcurrentHashMap<String, ProcedureCounter> procedureCounterMap = new ConcurrentHashMap<>();
-	// 按名称的单调累计执行数（跨收集周期不轮换、不空闲回收）：速率差分
-	// （ProcedureStatistics.Watcher的(total-last)）必须用单调源——周期快照
-	// （getLastSnapshot().procedureResults()）每轮换新且只含上一周期计数，差分无意义
-	// （稳态恒0永不触发，收集边界恰好落入检查间隔时又把整周期计数当30s速率高估）。
+	// 按名称的单调累计执行数（跨收集周期不轮换），供速率差分使用
 	private final ConcurrentHashMap<String, LongAdder> procedureTotalMap = new ConcurrentHashMap<>(); // key: procedureName
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
 	private CountInfo[] countInfos = new CountInfo[0];
@@ -238,11 +228,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private volatile Snapshot lastSnapshot = Snapshot.EMPTY;
 	private long lastLogTime = System.currentTimeMillis();
 	private long lastCpuTime = PlatformMetrics.osBean.getProcessCpuTime();
-	// 锁内唯一写（resetCounter的clearSerial++）、锁外多读（getRunInfoWithSerial、
-	// observer闭包、PerfProcedureCounter.info）——必须volatile发布，否则锁外普通字段读
-	// 无happens-before，可被JIT提升出外层循环而长期读到旧代际，闭包绑定reset前已从map
-	// 移除的统计对象，自增落在无人收集的对象上丢统计（resultMap/resultMapLast/
-	// PerfProcedureCounter.bound均已volatile，本字段同族）。
+	// 代际版本号：锁内递增、锁外无锁读，volatile 保证缓存句柄及时感知重置与淘汰
 	private volatile int clearSerial;
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
@@ -394,8 +380,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		return procedureCounterMap.computeIfAbsent(name, PerfProcedureCounter::new);
 	}
 
-	// handle绑定的ProcedureInfo随resetCounter清空失效：按代际serial重绑（同getRunTimeObserver闭包模式）。
-	// redo保持原procedureRedo的语义：聚合到全局counter，不按name区分。
+	// 按 clearSerial 代际重绑 ProcedureInfo；redo 聚合到全局计数
 	private final class PerfProcedureCounter implements ProcedureCounter {
 		private final String name;
 		private volatile @Nullable Bound bound;
@@ -502,24 +487,19 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		} finally {
 			unlock();
 		}
-		// cancel 的调用方不得持有任务体可能获取的锁（TimerFuture.cancel 锁契约）：周期任务体在
-		// future.lock() 内执行且需本锁，持本锁调 cancel 构成 ABBA——本锁被毒化后全局统计全部挂死。
-		// 锁内只捕获句柄并置空，释放后再 cancel。
+		// 释放本锁后再 cancel，避免与定时任务体（TimerFuture 锁 -> 本锁）形成 ABBA 死锁
 		return f != null && f.cancel(false);
 	}
 
 	public void resetCounter() {
-		// 与getLogAndReset互斥：clearSerial代际推进与四个map清空
-		// 不是原子的，无锁并发reset会互相覆盖统计窗口。
+		// 与 getLogAndReset 互斥，保证清零与代际推进原子可见
 		lock();
 		try {
 			runInfoMap.clear();
 			protocolInfoMap.clear();
 			procedureInfoMap.clear();
-			procedureTotalMap.clear(); // 单调累计随代际清零重开（差分基准由使用方自建）
-			// tableInfoMap不清而就地清零：tableCounter交出的句柄直接指向TableInfo内的
-			// LongAdder并被调用方长期缓存（如Lockey的计数路径），清map后旧句柄增量
-			// 永久脱离收集，重新按ID取得的新句柄才被统计。
+			procedureTotalMap.clear(); // 单调累计随代际清零重开
+			// tableInfoMap 就地清零，保留外部长期缓存的计数句柄
 			for (var it = tableInfoMap.entryIterator(); it.moveToNext(); ) {
 				//noinspection DataFlowIssue
 				it.value().reset();
@@ -683,8 +663,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				pi.idleCount = 0;
 				prList.add(pi);
 			}
-			// 空闲淘汰必须推进代际：不推进则仍持有旧对象的缓存句柄（serial与clearSerial恒等）
-			// 永久写已脱离map的条目，该统计静默消失直到重启或resetCounter。
+			// 空闲淘汰需推进代际，促使缓存句柄下次重绑
 			if (evicted) {
 				//noinspection NonAtomicOperationOnVolatileField
 				clearSerial++;

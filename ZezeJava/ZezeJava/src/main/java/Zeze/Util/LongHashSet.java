@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.function.LongConsumer;
 import org.jspecify.annotations.Nullable;
 
-// long 基本类型开放寻址哈希 Set（0 键走特例槽），非线程安全
+/** long 基本类型开放寻址哈希 Set（0 键走特例槽），非线程安全。 */
 public class LongHashSet implements Cloneable {
 	private int size;
 	private long [] keyTable;

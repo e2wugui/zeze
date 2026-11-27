@@ -76,40 +76,11 @@ public abstract class StateMachine extends ReentrantLock {
 	public void removeExpiredUniqueStubTables(long expired) throws Exception {
 	}
 
-	// 把 StateMachine 里面的数据系列化到 path 指定的文件中。
-	// 需要自己访问的并发特性。返回快照建立时的Raft.LogSequence.Index。
-	// 原子性建议伪码如下：
-	// lock (Raft) // 这会阻止对 StateMachine 的写请求。
-	// {
-	//     var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
-	//     LastIncludedIndex = lastAppliedLog.Index;
-	//     LastIncludedTerm = lastAppliedLog.Term;
-	//     MyData.SerializeToFile(path);
-	//     Raft.LogSequence.CommitSnapshot(path, LastIncludedIndex);
-	// }
-	//
-	// 上面的问题是，数据很大时，SerializeToFile时间比较长，会导致服务不可用。
-	// 这时候需要自己优化并发。如下：
-	// lock (Raft)
-	// {
-	//     var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
-	//     LastIncludedIndex = lastAppliedLog.Index;
-	//     LastIncludedTerm = lastAppliedLog.Term;
-	//     // 设置状态，如果限制只允许一个snapshot进行，
-	//     // 新进的snapshot调用返回false。
-	//     MyData.StartSerializeToFile();
-	// }
-	// MyData.ConcurrentSerializeToFile(path);
-	// lock (Raft)
-	// {
-	//     // 清理一些状态。
-	//     MyData.EndSerializeToFile();
-	//     Raft.LogSequence.CommitSnapshot(path, LastIncludedIndex);
-	// }
-	//
-	// return true;
-	//
-	// 这样在保存数据到文件的过程中，服务可以继续进行。
+	/**
+	 * 将状态机数据序列化快照到 path 指定的文件，并返回快照包含的日志边界（lastIncludedIndex/Term）。
+	 * 需保证与日志应用的原子一致性：持有 Raft 锁获取 lastAppliedLog 边界并建立一致性视图，
+	 * 大数据量时可在锁外并发写出文件，完成后再持 Raft 锁调用 {@code LogSequence.commitSnapshot} 提交。
+	 */
 	public abstract SnapshotResult snapshot(String path) throws Exception;
 
 	public static final class SnapshotResult {
@@ -122,17 +93,12 @@ public abstract class StateMachine extends ReentrantLock {
 		public long totalNanoTime;
 	}
 
-	/**
-	 * 从上一个快照中重建 StateMachine。
-	 * Raft 处理 InstallSnapshot 到达最后一个数据时，调用这个方法。
-	 * 然后 Raft 会从 LastIncludedIndex 后面开始复制日志。进入正常的模式。
-	 */
+	/** 从指定快照文件重建状态机（InstallSnapshot 接收完成或启动恢复时调用）。 */
 	public abstract void loadSnapshot(String path) throws Exception;
 
 	/**
-	 * 启动恢复钩子：snapshotFile为null表示尚无已提交快照。默认从快照全量恢复，
-	 * 无快照时reset。支持应用水位的状态机先校验本地库，失败再走默认恢复。
-	 * InstallSnapshot的接收路径不走这里（语义不同：必须以传入快照为准）。
+	 * 启动恢复入口：有已提交快照时默认全量装载，否则执行 reset；支持应用水位的子类可先校验本地库。
+	 * InstallSnapshot 接收路径直接调用 {@link #loadSnapshot}，不经此方法。
 	 */
 	public void recover(@Nullable String snapshotFile) throws Exception {
 		if (snapshotFile != null)
@@ -141,19 +107,12 @@ public abstract class StateMachine extends ReentrantLock {
 			reset();
 	}
 
-	/**
-	 * 没有快照的时候，stateMachine可能需要重置。
-	 * 需要重置的重载这个方法。
-	 * 比如stateMachine使用RocksDB存储数据的，某些情况下逻辑操作和旧数据相关，需要从空的数据库开始时，重载这个方法先清空数据库。
-	 */
+	/** 无快照启动时重置状态机（持久化状态机如需从空库开始可重载此方法）。 */
 	public void reset() {
 
 	}
 
-	/**
-	 * 状态机自定义的观测计数，仅用于日志输出（leader ready、saveLog 等处的 Count 字段），
-	 * 默认 -1 表示无。主源码不instanceof测试壳类，需要观测的状态机重载本方法。
-	 */
+	/** 状态机自定义观测计数，用于日志输出；默认 -1 表示未提供。 */
 	public long getDebugCount() {
 		return -1;
 	}

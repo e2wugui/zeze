@@ -7,11 +7,9 @@ import java.util.concurrent.RejectedExecutionException;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 回调式异步锁，不支持重入。无竞争时直接执行，排队回调逐个交给构造时传入的执行器。
- * 执行器由调用方管理，必须保证已接受的任务最终执行且不静默丢弃；拒绝任务应抛出
- * {@link RejectedExecutionException}，此时本锁在提交线程上循环执行积压回调。
- * 调用方应先结束在途业务再关闭执行器。shutdownNow 丢弃任务后，本锁不负责补跑或恢复，
- * 也不会自动切换到新执行器。执行器在 execute 内直接运行任务时，同样采用内联循环。
+ * 回调式异步锁（不可重入）：无竞争时直接执行，排队回调逐个交给指定执行器。
+ * 执行器拒绝任务（抛出 {@link RejectedExecutionException}）或在 execute 内直接回调时，
+ * 退化为在当前线程内联循环推进队列。
  */
 public final class AsyncLock extends AbstractAsyncLock {
 	private static final VarHandle inlineDriverThreadHandle;
@@ -51,8 +49,7 @@ public final class AsyncLock extends AbstractAsyncLock {
 		}
 	}
 
-	// 只检测 execute 尚未返回时的同线程执行。普通单线程池稍后在提交线程上运行任务时，
-	// submitting 已是 false，仍保持逐回调派发。该字段只由 submitter 读写，无需 volatile。
+	// 仅检测 execute 尚未返回时的同线程内联执行；仅由 submitter 读写，无需 volatile。
 	private final class Dispatch implements Runnable {
 		private final Action0 onReady;
 		private final Thread submitter = Thread.currentThread();
@@ -79,8 +76,7 @@ public final class AsyncLock extends AbstractAsyncLock {
 		try {
 			executor.execute(dispatch);
 		} catch (RuntimeException e) {
-			// 拒绝按契约抛REE；其他未检异常=执行器自身缺陷（旧代码的广谱防御，2026-10-23审计恢复）：
-			// 保持派发权，不回滚入队；整条队列循环内联推进，锁不毒化。
+			// 执行器拒绝或抛未检异常时保持派发权，在当前线程内联推进队列避免锁毒化。
 			logger.warn("AsyncLock: dispatch exception, fallback inline run", e);
 			driveInline(onReady);
 		} finally {

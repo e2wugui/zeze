@@ -59,9 +59,7 @@ public class Test {
 
 	private static void logDump(String db, String raftName) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
-		// 日志布局为共享 <DbHome>/db 库内的 <raftName>.logs 列族
-		// （LogSequence：database.getOrAddTable(raft.getName()+".logs")），按 <DbHome>/logs
-		// 子目录 openReadOnly 会失败（目录不存在）。只读打开与生产路径同源。
+		// 只读打开 <DbHome>/db 中的 <raftName>.logs 与 <raftName>.rafts 列族。
 		var dbPath = Paths.get(db, "db").toString();
 		var cfds = RocksDatabase.getCfDescriptors(dbPath);
 		var cfhs = new ArrayList<org.rocksdb.ColumnFamilyHandle>(cfds.size());
@@ -156,7 +154,7 @@ public class Test {
 
 		var xmlFile = Paths.get(Objects.requireNonNull(raftConfigStart.getXmlFileName()));
 		for (var node : raftConfigStart.getNodes().values()) {
-			// every node need a private config-file.
+			// 每个节点使用独立的配置文件副本
 			var confPath = Files.createTempFile("", ".xml");
 			Files.copy(xmlFile, confPath, StandardCopyOption.REPLACE_EXISTING);
 			rafts.computeIfAbsent(node.getName(), nodeName -> new TestRaft(nodeName, confPath.toString()));
@@ -436,7 +434,7 @@ public class Test {
 			var leader = getLeader();
 			//noinspection DataFlowIssue
 			leader.raft.getServer().stop();
-			// delay for vote
+			// 等待触发重新选举
 			Thread.sleep(leader.raft.getRaftConfig().getElectionTimeoutMax());
 			leader.raft.getServer().start();
 		}));
@@ -470,11 +468,11 @@ public class Test {
 			//noinspection DataFlowIssue
 			var startVoteDelay = leader.raft.getRaftConfig().getElectionTimeoutMax();
 			leader.stopRaft();
-			// delay for vote
+			// 等待触发重新选举
 			Thread.sleep(startVoteDelay);
 			leader.startRaft();
 		}));
-		var InstallSnapshotCleanNode = rafts.values().iterator().next(); // 记住，否则Release版本，每次返回值可能会变。
+		var InstallSnapshotCleanNode = rafts.values().iterator().next(); // 固定清理目标节点
 		failActions.add(new FailAction("InstallSnapshot Clean One Node Data", () ->
 		{
 			for (var test : rafts.values()) {
@@ -482,7 +480,7 @@ public class Test {
 				test.startRaft(test == InstallSnapshotCleanNode);
 			}
 		}));
-		// Start Background FailActions
+		// 启动后台故障注入任务
 		TaskSpec.ofAction(this::randomTriggerFailActions).name("RandomTriggerFailActions").run();
 		var testName = "RealConcurrentDoRequest";
 		var lastExpectCount = expectCount.get();
@@ -546,7 +544,7 @@ public class Test {
 		}
 	}
 
-	@SuppressWarnings("ConstantConditions") // Preserve defensive lifecycle checks in the fault-injection harness.
+	@SuppressWarnings("ConstantConditions") // 保留故障注入测试中的防御性空检查
 	private void randomTriggerFailActions() throws Exception {
 		while (running) {
 			var fa = failActions.get(Random.getInstance().nextInt(failActions.size()));
@@ -693,7 +691,6 @@ public class Test {
 			return count;
 		}
 
-		// 日志输出用的观测计数（主源码不instanceof本类取count）。
 		@Override
 		public long getDebugCount() {
 			return count;
@@ -752,9 +749,9 @@ public class Test {
 			logger.info("{} LoadSnapshot Count={}", getRaft().getName(), count);
 		}
 
-		// 这里没有处理重入，调用者需要保证。
+		// 非重入，由调用者保证串行调用。
 		@Override
-		@SuppressWarnings("ConstantConditions") // Preserve defensive snapshot checks in the fault-injection harness.
+		@SuppressWarnings("ConstantConditions") // 保留故障注入测试中的防御性空检查
 		public SnapshotResult snapshot(String path) throws IOException, RocksDBException {
 			SnapshotResult result = new SnapshotResult();
 			getRaft().lock();
@@ -812,15 +809,10 @@ public class Test {
 			return raftName;
 		}
 
-		// 清理一个节点的Raft日志数据，用于故障注入（逼leader对该节点走InstallSnapshot）。
-		// Raft日志/状态存于<DbHome>/db共享库的列族（LogSequence构造：raft.getName()+".logs"/".rafts"），
-		// 只按目录删除会静默漏掉：<DbHome>/logs、<DbHome>/rafts独立目录已不存在，
-		// deletedDirectoryAndCheck静默通过等于没清理——节点带着旧日志/旧term重启，
-		// InstallSnapshot场景静默失效。按列族精确删除，保留unique存根列族（重复请求检测）
-		// 与statemachine状态机目录。须在raft停止（db已关）后调用。
+		// 清理节点的 Raft 日志与快照数据（须在节点停止后调用），用于故障注入触发 InstallSnapshot；
+		// 按列族精确删除 .logs/.rafts，保留 unique 去重表与状态机数据。
 		static void resetLogData(String dbHome, String raftName) throws Exception {
-			// 只删除日志相关数据。保留重复请求数据。快照文件按前缀清理整个家族
-			//（legacy/gen/.installing./.tmp/.commit.delayed）。
+			// 按前缀清理全部快照相关文件（含各代及临时文件）。
 			var dbHomeFiles = new File(dbHome).listFiles();
 			if (dbHomeFiles != null) {
 				for (var file : dbHomeFiles) {
@@ -835,7 +827,7 @@ public class Test {
 					db.dropTable(raftName + ".rafts");
 				}
 			}
-			// 旧版独立目录布局的升级残留（现行布局下不存在，no-op）。
+			// 兼容清理旧版独立目录（现行布局下为空操作）。
 			LogSequence.deletedDirectoryAndCheck(new File(dbHome, "logs"));
 			LogSequence.deletedDirectoryAndCheck(new File(dbHome, "rafts"));
 		}
@@ -920,7 +912,7 @@ public class Test {
 		private long processAddCount(AddCount r) {
 			//noinspection DataFlowIssue
 			if (!raft.isLeader())
-				return Procedure.RaftRetry; // fast fail
+				return Procedure.RaftRetry; // 快速失败
 
 			TestStateMachine sm = Objects.requireNonNull(stateMachine);
 			sm.lock();

@@ -8,11 +8,9 @@ import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import org.jspecify.annotations.Nullable;
 
-// char 键开放寻址哈希表（线性探测，0 键走特例槽），非线程安全
 /**
- * compute、computeIfAbsent 和 foreachUpdate 的回调不得增删本表键或调整容量。
- * 检测到结构重入时保留回调已完成的修改并抛出 ConcurrentModificationException，
- * 不应用该回调的返回值；查询及替换既有键的值不改变结构。
+ * char 键开放寻址哈希表（线性探测，0 键走特例槽），非线程安全。
+ * compute、computeIfAbsent 和 foreachUpdate 的回调不得增删本表键或调整容量，检测到结构重入时抛 {@link ConcurrentModificationException}。
  */
 public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 	private int size;
@@ -372,8 +370,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		if (key == 0) {
 			final V oldV = hasZeroValue ? zeroValue : null;
 			final V v = remap(key, oldV, op);
-			// 用“是否存在”而不是引用相等判定变更：既有条目的值为 null 时，remapping 返回 null
-			// 应删除条目（Map.compute 契约），引用相等 v==oldV==null 会误判为“无变化”而永久保留条目。
+			// 按存在性而非引用相等判定：值为 null 的既有条目映射返回 null 仍应删除（Map.compute 契约）
 			if (v == null) {
 				if (hasZeroValue) {
 					hasZeroValue = false;
@@ -593,12 +590,11 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		void accept(char key, V value);
 	}
 
-	// Called only for present keys. Nullable slots represent both absent keys and nullable V values.
+	// 仅对已存在键调用，消除值数组可空槽位的类型约束
 	private V valueForPresentKey(@Nullable V value) {
 		return value;
 	}
 
-	// A present key guarantees a V value; the nullable array component also represents empty slots.
 	public void foreach(CharObjectConsumer<? super V> consumer) {
 		if (hasZeroValue)
 			consumer.accept((char)0, valueForPresentKey(zeroValue));
@@ -632,7 +628,6 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		if (hasZeroValue) {
 			final V oldV = zeroValue;
 			final V v = remap((char)0, oldV, func);
-			// 与 compute 一致：用存在性判删除。null 值既有条目经 func->null 必须删除（原引用相等判定会保留）。
 			if (v == null) {
 				hasZeroValue = false;
 				zeroValue = null;
@@ -643,8 +638,7 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 		}
 		final char[] kt = keyTable;
 		final @Nullable V[] vt = valueTable;
-		// 两遍：第一遍只应用func（更新值、记录返回null的待删除key），第二遍用remove统一做结构删除。
-		// 原实现就地backward-shift删除会把同探测链的后续条目搬进已遍历区域，导致func跳过它们。
+		// 分两遍执行：先更新值并记录待删除键，再统一 remove，避免探测链回填跳过未遍历条目
 		char[] removedKeys = null;
 		int removedCount = 0;
 		for (int i = 0, n = kt.length; i < n; i++) {
@@ -653,7 +647,6 @@ public class CharHashMap<V extends @Nullable Object> implements Cloneable {
 				final V oldV = vt[i];
 				final V v = remap(k, oldV, func);
 				if (v == null) {
-					// 小容量起步+倍增：内存正比于删除条目数而不是map大小。
 					if (removedKeys == null)
 						removedKeys = new char[8];
 					else if (removedCount == removedKeys.length)

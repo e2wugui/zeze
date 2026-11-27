@@ -1,37 +1,26 @@
 package Zeze.Component;
 
 /**
- * Takeover 租约接管的作用域。每个需要参与“死者数据搬运”的组件实现一个scope：
- * CsQueue（每个命名队列一个）、Timer（进程一个）。
- * <p>
- * 生命周期约定：
- * <ul>
- * <li>owner存活期间通过 {@link #stamp} 把自己名下root行的loadSerialNo写成当前epoch
- *     （addScope晚注册时由 {@link Takeover} 在独立小事务内调用）；</li>
- * <li>owner死亡后，接管者对每个scope在独立zeze事务内（事务内重验租约过期）调用 {@link #transferAll}：
- *     执行时租约必已过期（复活者被重验拦截），链上有数据（头指针非0）即属于死者、应搬运——
- *     不以 {@code root.loadSerialNo == deadEpoch} 作前置：claim后stamp前的崩溃窗口会留下旧stamp
- *     数据，按epoch折叠会被误判为"已被搬走"，租约照常立碑后积压永久搁浅；</li>
- * <li>搬运成功后由 {@link #transferAll} 自己清空死者root链指针（幂等重入出口）并把loadSerialNo
- *     清0（墓碑，供复活者认领）。</li>
- * </ul>
+ * Takeover 租约接管作用域：各参与死者数据搬运的组件（如 CsQueue、Timer）实现本接口。
+ * 存活期通过 {@link #stamp} 写入当前 epoch；owner 租约过期后，接管者在事务内重验租约并调用
+ * 幂等的 {@link #transferAll} 搬运数据、清空死者链头与 loadSerialNo，提交后回调 {@link #afterTransfer}。
  */
 public interface TakeoverScope {
 	String name();
 
 	/**
-	 * 把epoch写进自己名下root行的loadSerialNo（epoch fence）。必须在事务内调用。
+	 * 将当前租约 epoch 写入本进程 root 行的 loadSerialNo（必须在事务内调用）。
 	 *
-	 * @param epoch 当前进程的租约epoch（Takeover.claim得到的myEpoch）
+	 * @param epoch 当前进程的租约 epoch
 	 */
 	void stamp(long epoch);
 
 	/**
-	 * 把deadServerId名下的数据搬运到自己名下。事务内、必须幂等。
+	 * 在事务内幂等搬运 deadServerId 名下的数据到本进程名下，并清空死者 root 链头与 loadSerialNo。
 	 *
-	 * @param deadServerId 死者serverId
-	 * @param deadEpoch    死者租约的epoch（诊断/日志用；搬运不再以root stamp对账epoch为前提）
-	 * @return 搬运数量（可为近似值，&gt;0表示发生了搬运）；-1=veto（不立租约墓碑，留给高版本/其他处理者）
+	 * @param deadServerId 死者 serverId
+	 * @param deadEpoch    死者租约 epoch（用于诊断与日志）
+	 * @return 搬运数量（&gt;0 表示发生了搬运）；-1 表示 veto（不立租约墓碑，留待其他处理者）
 	 */
 	long transferAll(int deadServerId, long deadEpoch);
 

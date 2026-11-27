@@ -28,16 +28,13 @@ import Zeze.Serialize.ByteBuffer;
 import com.sun.tools.attach.VirtualMachine;
 import org.jspecify.annotations.Nullable;
 
-/*
-MANIFEST.MF 需要定义以下2行("Premain-Class"可换成"Agent-Class"):
-Premain-Class: Zeze.Util.ClassReloader
-Can-Redefine-Classes: true
-
-运行参数:
-java ...... -javaagent:zeze.jar ......
-
-注意: javac和Eclipse编译器二者的编译结果可能不兼容
-*/
+/**
+ * 基于 Java Agent ({@link Instrumentation}) 的运行时类热更新工具。
+ * <p>
+ * MANIFEST.MF 需声明 {@code Premain-Class/Agent-Class: Zeze.Util.ClassReloader} 与
+ * {@code Can-Redefine-Classes: true}（运行参数 {@code -javaagent:zeze.jar}）；
+ * 注意 javac 与 Eclipse 编译器产物可能不兼容。
+ */
 public final class ClassReloader {
 	private static volatile @Nullable Instrumentation inst;
 	private static int loadAgentCount;
@@ -65,7 +62,7 @@ public final class ClassReloader {
 			VirtualMachine vm = VirtualMachine.attach(args[0]);
 			vm.loadAgent(args[1], null);
 			vm.detach();
-		} catch (Throwable e) { // exit
+		} catch (Throwable e) {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
 			System.exit(-2);
@@ -143,7 +140,7 @@ public final class ClassReloader {
 	@SuppressWarnings("ResultOfMethodCallIgnored")
 	public static String getClassPathFromData(byte [] classData) throws IOException {
 		DataInputStream dis = new DataInputStream(new ByteArrayInputStream(classData));
-		dis.readLong(); // skip magic[4] and version[4]
+		dis.readLong(); // 跳过 magic(4) 和 version(4)
 		int constCount = dis.readUnsignedShort() - 1;
 		int[] classes = new int[constCount];
 		String[] strings = new String[constCount];
@@ -177,7 +174,7 @@ public final class ClassReloader {
 				break;
 			}
 		}
-		dis.read(); // skip access flags
+		dis.read(); // 跳过访问标志
 		dis.read();
 		return strings[classes[dis.readUnsignedShort() - 1] - 1].replace('/', '.');
 	}

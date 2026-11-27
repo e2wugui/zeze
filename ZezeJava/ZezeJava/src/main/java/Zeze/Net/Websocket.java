@@ -15,7 +15,6 @@ import org.jspecify.annotations.Nullable;
  * 服务端 websocket 连接（基于 HttpExchange 的 AsyncSocket 适配）。
  */
 public class Websocket extends AsyncSocket {
-	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
 	@Override
 	public Service getService() {
 		var service = super.getService();
@@ -37,7 +36,7 @@ public class Websocket extends AsyncSocket {
 		this.x = x;
 		this.remote = x.channel().remoteAddress();
 		this.timeThrottle = TimeThrottle.create(getService().getSocketOptions());
-		resetActiveSendRecvTime(); // 升级完成连接已建立，纳入KeepAlive管理（对齐TcpSocket构造时机）
+		resetActiveSendRecvTime();
 	}
 
 	@Override
@@ -76,7 +75,7 @@ public class Websocket extends AsyncSocket {
 	}
 
 	void processInput(ByteBuf buf) {
-		setActiveRecvTime(); // 维护活跃时间，checkKeepAlive才能回收静默死链
+		setActiveRecvTime();
 		int n = buf.readableBytes();
 		super.recvCount++;
 		super.recvSize += n;
@@ -86,9 +85,6 @@ public class Websocket extends AsyncSocket {
 			input.WriteIndex += n;
 			getService().OnSocketProcessInputBuffer(this, input);
 		} catch (Exception e) {
-			// 解码异常对齐TcpSocket（异常上抛→doException→close）断连语义。
-			// 不关闭则连接存活、后续帧继续注入，且抛出路径跳过Compact——input无界增长，
-			// 远程可触发无界内存增长。
 			close(e);
 			return;
 		}
@@ -100,10 +96,7 @@ public class Websocket extends AsyncSocket {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 		if (isClosed())
 			return false;
-		// 发送堆积上限——websocket服务端连接不走TcpSocket.Send（checkOverflow原来唯一
-		// 的调用方），慢速客户端下outbound缓冲无界积压可OOM。以channel级在途
-		// 字节（totalPendingWriteBytes，HttpServer背压日志同口径）+本帧为newSize做同款上限检查，
-		// 超限返回false（与TcpSocket.Send语义对齐，调用方按发送失败感知）。
+		// 以 channel 级待写字节数检查发送缓冲堆积上限，避免慢客户端导致内存无界增长。
 		var outBuf = x.channel().unsafe().outboundBuffer();
 		var pending = outBuf != null ? outBuf.totalPendingWriteBytes() : 0;
 		try {
@@ -115,10 +108,7 @@ public class Websocket extends AsyncSocket {
 		}
 		if (isClosed())
 			return false;
-		// 检查写回执,不能恒返回true:写失败的帧(管线状态不符/连接已关等)不会到达对端。
-		// 在EventLoop上调用时future同步完成,失败立即close并返回false,调用方(Protocol/Rpc.Send)
-		// 能感知发送失败;非EventLoop线程调用时future异步完成,挂listener失败同样close,
-		// 不再静默丢帧。close的markClosed置死保证OnSocketClose等清理恰好一次。
+		// 检查写回执：同步失败直接 close 返回 false，异步失败在 listener 中 close。
 		var cf = x.sendWebSocket(bytes, offset, length);
 		if (cf.isDone()) {
 			var cause = cf.cause();
@@ -133,7 +123,7 @@ public class Websocket extends AsyncSocket {
 					close(cause);
 			});
 		}
-		setActiveSendTime(); // 维护活跃时间（发送已被接受进入发送管线）
+		setActiveSendTime();
 		lock.lock();
 		try {
 			// 这里是多线程访问的。

@@ -18,11 +18,8 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 【安全警示】任意字节码注入端点：上传的zip内class被ClassReloader直接替换进已加载类
- * （热更新），触达且持有token者即获得任意代码执行权（替换任意类），仍必须仅绑定回环/
- * 内网，绝不可暴露公网。token校验把"部署纪律"升级为代码不变量：构造时
- * 显式传入token，或传null由启动期自动生成随机token并打日志（零配置可用，运维从日志
- * 取token）；请求须以X-Zeze-Token头或"token"查询参数携带，常量时间比较，失配答403。
+ * HTTP 类热更新端点：接收上传的 zip 补丁包并经 {@link ClassReloader} 替换已加载类。
+ * 【安全警示】本端点等价于任意代码执行，必须仅绑定回环/内网并强制 token 鉴权（经 X-Zeze-Token 头或 token 参数传递）。
  */
 public class ReloadClassServer implements HttpFileUploadHandle {
 	private static final org.apache.logging.log4j.Logger logger =
@@ -95,15 +92,13 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 														String token, HttpExchange x,
 														InterfaceHttpPostRequestDecoder decoder,
 														String fileVarName) {
-		// 鉴权前置：失配403并记录来源，不进入热更/执行路径
+		// 鉴权失败直接回 403
 		if (!checkToken(token, x)) {
 			logger.warn("{}: reject unauthorized {} request from {}", owner, action, x.channel().remoteAddress());
 			x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, "forbidden"));
 			return null;
 		}
-		// 字段守卫：multipart可缺字段（getBodyHttpData返回null）或放同名文本字段（返回
-		// MemoryAttribute），无守卫直接强转会分别NPE/CCE且异常穿透后请求无应答挂起；
-		// instanceof模式匹配同时覆盖两形态，按400明确拒绝（与sanitize拒绝路径同口径）。
+		// 校验 multipart 文件字段类型，缺字段或为普通文本字段时回 400
 		var data = decoder.getBodyHttpData(fileVarName);
 		if (!(data instanceof FileUpload fileUpload)) {
 			logger.warn("Reject upload: missing or invalid file field '{}'", fileVarName);
@@ -151,11 +146,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 		//noinspection ResultOfMethodCallIgnored
 		destFile.delete(); // 只保存一份path_all; skip result.
 		if (fileUpload.renameTo(destFile)) {
-			// 热更失败路径若异常直接穿透——无HTTP应答（请求挂起）且坏补丁留盘毒化
-			// uploadDir，linkd启动链（start()对目录内唯一补丁无条件reloadClasses）下次必失败。
-			// catch须同时罩住ZipFile构造（非zip文件时构造即抛）与reloadClasses：失败回500并
-			// 删除destFile，维持uploadDir"只留可用补丁"不变式。redefineClasses单调用原子
-			// （失败不改任何类状态），删文件不会留下"半热更"状态。
+			// 热更或解压失败时删除坏补丁并回 500，保证目录内只留可用补丁（不阻断下次启动）
 			try (var zipFile = new ZipFile(destFile)) {
 				ClassReloader.reloadClasses(zipFile);
 			} catch (Throwable e) {
@@ -165,10 +156,8 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 				x.close(x.sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, "hot-reload failed"));
 				return;
 			}
-			// 维持"目录内唯一补丁"不变式（start()按文件数判定，不同文件名的历史补丁累积会使
-			// 下次重启抛too many patch file阻断启动链）。
+			// 维持目录内仅保留当前一份补丁，避免重启 start() 发现多份补丁失败
 			cleanupOtherPatchFiles(new File(uploadDir), destFile);
-			// 审计：每次成功使用的留痕
 			logger.info("ReloadClassServer: authorized hot-reload from {}, file='{}'",
 					x.channel().remoteAddress(), patchFileName);
 			x.close(x.sendPlainText(HttpResponseStatus.OK, ""));

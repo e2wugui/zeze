@@ -21,33 +21,17 @@ import io.netty.handler.codec.http2.Http2StreamFrameToHttpObjectCodec;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
 /**
- * HTTP/2传输栈工厂（明文h2c prior-knowledge/Upgrade与ALPN共用）。
- *
- * <p>架构：协议翻译全部下沉到管线层，交换层（HttpServer/HttpExchange）零改动复用——
- * {@code Http2FrameCodec}+{@code Http2MultiplexHandler}把每个stream呈现为独立子channel，
- * 子channel上{@link Http2StreamFrameToHttpObjectCodec}双向翻译：入站Http2HeadersFrame/DataFrame
- * →HttpRequest/HttpContent（现有channelRead状态机原样消费），出站HttpResponse/HttpContent
- * →:status头帧/DATA帧。每stream恒单在途请求：HttpExchange的响应序化器/出站tripwire在子channel上
- * 天然no-op（{@code responseOrderKey}无登记→{@code seq==null}直写分支）；h1专属语义
- * （Connection头/100-continue/WebSocket升级→501）由{@code HttpExchange.isH2()}分支跳过。
- *
- * <p>子channel装配顺序（头→尾）：帧翻译codec → {@link ChunkedWriteHandler} → HttpServer。
- * ChunkedWriteHandler供HttpFileService的h2分块路径消费HttpChunkedInput（EventLoop上非阻塞、
- * 按可写性背压）：出站从HttpServer流向头侧，先被ChunkedWriteHandler展开为逐个HttpContent，
- * 再经帧codec转DATA帧。
+ * HTTP/2 传输栈工厂：在管线层通过 {@link Http2FrameCodec}、{@link Http2MultiplexHandler} 与
+ * {@link Http2StreamFrameToHttpObjectCodec} 将每个 stream 适配为独立子 channel，复用 HttpServer/HttpExchange。
  */
 public final class H2Transport {
 	private H2Transport() {
 	}
 
-	// 显式保守默认（无配置开关=默认值即安全姿态，对齐h1侧口径）：
-	// maxConcurrentStreams对齐h1的MaxResponseOrderDepth=128（深度pipelining界）；
-	// 帧与头列表上限防单stream/单连接内存驻留。
 	public static final long MaxConcurrentStreams = 128;
 	public static final int MaxFrameSize = 1 << 16; // 64KB
 	public static final long MaxHeaderListSize = 1 << 20; // 1MB
 
-	// 连接级h2栈：帧codec+多路复用（每stream子channel走createStreamInitializer装配）
 	public static ChannelHandler createMultiplex(HttpServer server) {
 		return new Http2MultiplexHandler(createStreamInitializer(server));
 	}
@@ -62,8 +46,7 @@ public final class H2Transport {
 				.build();
 	}
 
-	// 每stream子channel装配：帧翻译→ChunkedWriteHandler→HttpServer(@Sharable复用)→h2标志。
-	// h2StreamKey置位后HttpExchange.isH2()为真，驱动各h1专属分支跳过。
+	// 子 channel 装配顺序（头→尾）：帧翻译 → ChunkedWriteHandler（供 h2 文件分块） → HttpServer。
 	private static ChannelHandler createStreamInitializer(HttpServer server) {
 		return new ChannelInitializer<Http2StreamChannel>() {
 			@Override
@@ -77,21 +60,12 @@ public final class H2Transport {
 	}
 
 	/**
-	 * 明文h2c prior-knowledge探测器（管线首位）："PRI * HTTP/2.0"是RFC专门保留给h2预言的
-	 * method，任何h1请求不可能以它开头——首3字节即无歧义判定。h2：换栈（帧codec+多路复用；
-	 * h1件与HttpServer本身移除——HttpServer由子channel的stream初始化器重新装配）；
-	 * h1：自移除透传（缓冲字节经ByteToMessageDecoder移除时的重放机制喂给后续h1解码器）。
-	 *
-	 * <p>范围：prior-knowledge（curl --http2-prior-knowledge/定制客户端）；h2c Upgrade（101
-	 * 升级舞步）与TLS+ALPN协商为后续扩展（CleartextHttp2ServerUpgradeHandler要求HttpServerCodec
-	 * 形态的源编解码器，与本服务的自定义encoder/decoder管线不合，需要适配层）。
+	 * 明文 h2c prior-knowledge 探测器：匹配 24 字节 HTTP/2 前言时切换为 h2 管线，否则自移除透传给 h1。
 	 */
 	static final class PrefaceDetector extends ByteToMessageDecoder {
 		private final HttpServer server;
 		private boolean resolved;
 
-		// 完整24字节魔数：裸"PRI"前缀会误判自定义PRI前缀方法（RFC 9110扩展方法token）；
-		// 字节不足继续累积，不匹配自移除回退h1。
 		private static final byte[] H2_PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".getBytes(StandardCharsets.US_ASCII);
 
 		PrefaceDetector(HttpServer server) {
@@ -102,12 +76,11 @@ public final class H2Transport {
 		protected void decode(ChannelHandlerContext ctx, ByteBuf in,
 							  List<Object> out) {
 			if (resolved)
-				return; // 已决议则等待移除（decodeLast重放兜底）
+				return;
 			var pipeline = ctx.pipeline();
 			var readerIndex = in.readerIndex();
 			var readable = Math.min(in.readableBytes(), H2_PREFACE.length);
-			// 增量比对已到字节：任何一位与魔数前缀不符即可判定为h1并自移除透传——总长不足
-			// 24字节的完整请求（极简HTTP/1.0、探活）不得被阻留到空闲超时零响应。
+			// 逐字节前缀比对，不匹配即刻回退 h1，避免短 HTTP 请求被阻留。
 			var matched = true;
 			for (int i = 0; i < readable; i++) {
 				if (in.getByte(readerIndex + i) != H2_PREFACE[i]) {
@@ -116,17 +89,14 @@ public final class H2Transport {
 				}
 			}
 			if (matched && readable < H2_PREFACE.length)
-				return; // 已到字节全部相符但未满24字节：继续累积（完整魔数判定防裸PRI前缀误判）
+				return;
 			resolved = true;
 			if (matched) {
-				// 顺序关键：必须先拆h1件再装h2栈——frameCodec的handlerAdded会同步写出服务器
-				// SETTINGS（附CLOSE_ON_FAILURE），若写路径上还残留h1件（HttpResponseEncoder等），
-				// 该原始ByteBuf写会同步失败，CLOSE_ON_FAILURE级联关闭整条连接（prior-knowledge
-				// 握手必死）。先拆后装后写路径干净[marker→head]，握手正常。
-				pipeline.remove(HttpResponseEncoder.class); // 匿名子类按类型匹配
+				// 必须先拆 h1 编解码器再装 h2 栈，否则 frameCodec.handlerAdded 同步写 SETTINGS 会被 h1 编码器拒绝。
+				pipeline.remove(HttpResponseEncoder.class);
 				pipeline.remove(HttpRequestDecoder.class);
 				pipeline.remove(server);
-				// HttpServer移出父管线后channelInactive不可达：挂closeFuture从channels收口。
+				// HttpServer 移出父管线后 channelInactive 不再触发，经 closeFuture 清理 channels。
 				ctx.channel().closeFuture().addListener(f -> server.channels.remove(ctx.channel()));
 				pipeline.addLast(new H2ActivityMarker());
 				pipeline.addLast(createFrameCodec());
@@ -136,11 +106,7 @@ public final class H2Transport {
 		}
 	}
 
-	// h2父连接的读写活跃标记：h1下由HttpExchange.channelRead清idleTimeKey、HttpResponseEncoder.write
-	// 置outBufHashKey，h2换栈后父管线无二者——上载方向活跃（服务端只收不发）或单向持续推流（服务端
-	// 周期写小块迅速flush，checkTimeout0采样瞬间outboundBuffer.current()为null）都会累计idle被
-	// checkTimeout误判CLOSE_TIMEOUT。本handler位于Http2FrameCodec之前（靠近head），同时截获入站
-	// 读与出站写帧以维护父连接活跃状态。
+	// 位于 Http2FrameCodec 之前，截获父连接入站读与出站写帧以维护空闲超时活跃状态。
 	private static final class H2ActivityMarker extends ChannelDuplexHandler {
 		@Override
 		public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {

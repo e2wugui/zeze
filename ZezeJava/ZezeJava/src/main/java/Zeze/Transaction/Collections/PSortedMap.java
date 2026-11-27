@@ -347,8 +347,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection 
 					public void remove() {
 						if (next == null)
 							throw new IllegalStateException("iterator remove() before next()");
-						// 身份fail-fast（对齐PList/PMap判例）：同键被外部移除/重put时，
-						// 按键删除会删错条目或静默no-op，不相等即响亮失败。
+						// 校验当前键值与迭代条目身份一致，防止外部结构性修改导致误删或静默失效。
 						var key = next.getKey();
 						if (getMap().get(key) != next.getValue())
 							throw new ConcurrentModificationException("structural modification during iteration");
@@ -433,7 +432,7 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection 
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		// 按Map接口内容比较（对称性，理由同PList）：getMap()的equals按Map契约（序无关）。
+		// 按 Map 接口契约比较内容（序无关），确保与标准 Map 之间的对称性。
 		return o instanceof java.util.Map && getMap().equals(o);
 	}
 

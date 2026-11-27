@@ -19,7 +19,7 @@ public interface IGlobalAgent {
 			}
 
 			public static AcquireResult getSuccessResult(int state) {
-				if (state < 0 || state >= successResults.length) // 越界state原为AIOOBE，此处给可诊断的参数错
+				if (state < 0 || state >= successResults.length)
 					throw new IllegalArgumentException("state=" + state + " not in [0," + successResults.length + ")");
 				return successResults[state];
 			}
@@ -52,13 +52,10 @@ public interface IGlobalAgent {
 
 	int getAgentCount();
 
-	// 停机拆除：尽力语义（实现内逐agent失败记日志继续）、可重入。不挂Closeable/AutoCloseable：
-	// 生命周期与Application同体，拆除是stop序列一环而非词法作用域退出（Service同形态）；
-	// Releaser不属网络资源，关库前另有界等待（见awaitReleaser）。
+	/** 停机拆除：尽力关闭各 agent（单个失败只记日志继续），可重入。 */
 	void stop() throws Exception;
 
-	// 停机关库前有界等待活跃Releaser——遍历内部GlobalAgentBase逐个有界等待，
-	// 等待逻辑见GlobalAgentBase.awaitReleaser。
+	/** 停机关库前逐个有界等待活跃 Releaser 退出。 */
 	default void awaitReleaser(long timeoutMillis) {
 		for (var i = 0; i < getAgentCount(); ++i)
 			getAgent(i).awaitReleaser(timeoutMillis);

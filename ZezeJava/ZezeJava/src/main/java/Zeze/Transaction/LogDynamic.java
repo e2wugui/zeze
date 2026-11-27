@@ -18,11 +18,7 @@ public class LogDynamic extends LogDynamicValue implements TransactionLog {
 		return belong;
 	}
 
-	/**
-	 * Savepoint存储键，必须与DynamicBean.getBean/getTypeId/setBean的查找键一致：
-	 * 集合元素形态（self.parent为Collection）下belong(集合)+varId在同组元素间碰撞，
-	 * 用self的dynamicLogKey（见该方法注释的号段论证）。
-	 */
+	/** Savepoint 存储键，与 DynamicBean 读写查找键一致（集合元素形态走 dynamicLogKey 避免碰撞）。 */
 	@Override
 	public long getLogKey() {
 		var self = getThis();

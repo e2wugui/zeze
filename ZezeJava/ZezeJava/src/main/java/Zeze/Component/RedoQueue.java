@@ -67,13 +67,9 @@ public class RedoQueue extends HandshakeClient {
 			var done = tableLastDoneTaskId.get(lastDoneTaskIdKey);
 			if (done != null)
 				lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
-			// 排空队列重启后的水位回绕：队列排空时tableTaskQueue已无条目，
-			// lastTaskId恢复为默认0，而lastDoneTaskId=N（水位表独立持久化）——水位"回绕"为
-			// lastDoneTaskId>lastTaskId：泵条件lastDoneTaskId<lastTaskId永假，新增任务静默滞留；
-			// 且新任务从id=1重新分配，落入水位之下的已删区间（下一次水位推进会连带误删）。
-			// 钳制对齐：以水位为下界恢复lastTaskId，新增任务从N+1继续。
+			// 排空队列重启时 tableTaskQueue 为空，须以独立持久化的完成水位为下界避免任务号回绕
 			lastTaskId = Math.max(lastTaskId, lastDoneTaskId);
-			deleteDoneTasks(); // 清理崩溃窗口残留（水位已推进但删除未执行）
+			deleteDoneTasks(); // 清理崩溃残留的已完成条目
 			super.start();
 		} finally {
 			unlock();
@@ -105,9 +101,7 @@ public class RedoQueue extends HandshakeClient {
 	public void add(int taskType, Serializable taskParam) {
 		lock();
 		try {
-			// 先落盘成功再推进内存lastTaskId：先++lastTaskId后put、put抛
-			// RocksDBException时内存已前进而盘上无此任务：后续泵读lastDoneTaskId+1命中空洞
-			// 永久停摆，重启后lastTaskId从DB最大键恢复，洞仍在，不可自愈。
+			// 先落盘成功再推进内存 lastTaskId，避免写失败留下任务号空洞
 			var newTaskId = lastTaskId + 1;
 			var key = ByteBuffer.Allocate(9);
 			key.WriteLong(newTaskId);
@@ -135,11 +129,7 @@ public class RedoQueue extends HandshakeClient {
 		}
 	}
 
-	// 删除水位（含）以下条目。重发只读lastDoneTaskId以上，以下条目（任务正文全量落盘）
-	// 永不清理=本地RocksDB无界增长。key为WriteLong变长编码（非负时字节序保序，非定长8字节大端），
-	// [key(0),key(lastDoneTaskId+1))即taskId<=lastDoneTaskId的全部；与水位推进同锁同线程，
-	// 重启时start()再补一次（清崩溃残留）。边界必须按WriteIndex截断后传入：deleteRange
-	// 按字节序整比较，未截断的enc(N+1)填充数组会把真前缀key(N+1)（下一跳待发任务）也括进区间。
+	// 删除已完成任务 [0, doneTaskId+1)；变长键须按 WriteIndex 截断再传入 deleteRange，避免误删前缀匹配的下一跳
 	private void deleteDoneTasks() throws RocksDBException {
 		deleteDoneTasks(lastDoneTaskId);
 	}
@@ -170,9 +160,7 @@ public class RedoQueue extends HandshakeClient {
 				key.WriteLong(taskId);
 				var value = taskQueue.get(key.Bytes, 0, key.WriteIndex);
 				if (value == null) {
-					// 水位下一跳任务在DB中不存在（历史put失败留下的空洞，或外部
-					// 删数据）。洞不会自愈：重启后lastTaskId从DB最大键恢复，水位之下的洞
-					// 保持，队列永久停摆且无任何日志。FATAL让运维介入（人工补洞或重置水位）。
+					// 下一跳任务缺失属于不可自愈空洞，记录 FATAL 停泵待运维介入
 					logger.fatal("task queue hole! queue={}, taskId={}, lastDoneTaskId={}, lastTaskId={}",
 							getName(), taskId, lastDoneTaskId, lastTaskId);
 					return;
@@ -192,8 +180,6 @@ public class RedoQueue extends HandshakeClient {
 			if (rpc.Send(sendSocket, this::processRunTaskResult))
 				pending = rpc;
 			else {
-				// Send=false（socket失效/输出背压丢包不断连）：无重连事件，复用单flight重试
-				// 驱动泵；error带queue/taskId归因（任务体超outputBufferMaxSize持续失败留运维补洞）。
 				logger.error("RunTask send fail, schedule retry. queue={}, taskId={}",
 						getName(), rpc.Argument.getTaskId());
 				scheduleRetry();
@@ -219,13 +205,9 @@ public class RedoQueue extends HandshakeClient {
 
 			pending = null;
 			if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
-				// 服务端水位必须落在本地有效区间 [lastDoneTaskId, lastTaskId] 内：
-				// 回退（< lastDoneTaskId）在服务端换库/清数据时出现，续泵会陷入无退避热循环写放大；
-				// 超前（> lastTaskId）在本地回滚旧快照或双客户端复用同名队列时出现，盲目采纳会
-				// 误删服务端从未执行过的本地任务并使 lastDoneTaskId > lastTaskId 导致泵静默停摆。
+				// 服务端水位须落在 [lastDoneTaskId, lastTaskId] 内，越界则 FATAL 停泵防热循环或误删未执行任务
 				var serverTaskId = rpc.Result.getTaskId();
 				if (serverTaskId < lastDoneTaskId || serverTaskId > lastTaskId) {
-					// 对齐hole分支（宁停不错）：FATAL停摆，等运维重置本地水位或重放服务端状态。
 					logger.fatal("server watermark out of range, halt pump for ops. queue={}, localDone={}, localLast={}, server={}",
 							getName(), lastDoneTaskId, lastTaskId, serverTaskId);
 					return 0L;
@@ -235,9 +217,7 @@ public class RedoQueue extends HandshakeClient {
 				return 0L;
 			}
 
-			// 失败或超时：连接仍在时没有事件再驱动泵（仅add/重连会），队列会永久停摆。
-			// 协议按prevTaskId幂等：超时后任务可能已被服务端应用，重发会得到ErrorRequestId并采纳服务端进度，安全。
-			// NotImplement等永久配置错误下持续重试并刷warn，运维修复后队列自动继续。
+			// 失败或超时时延迟重发，协议按 prevTaskId 幂等保证安全
 			logger.warn("task fail, schedule retry. queue={}, taskId={}, resultCode={}",
 					getName(), rpc.Argument.getTaskId(), rpc.getResultCode());
 			scheduleRetry();

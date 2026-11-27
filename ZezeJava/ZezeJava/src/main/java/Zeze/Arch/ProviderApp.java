@@ -36,9 +36,7 @@ public class ProviderApp extends ReentrantLock {
 
 	public final @Nullable ProviderDistribute distribute;
 
-	// 三个map均为非线程安全IntHashMap：写点（startLast）与全部读点（ProviderService.OnHandshakeDone、
-	// ProviderDirectService.addServer/setRelativeServiceReady、ProviderImplement.registerModulesAndSubscribeLinkd）
-	// 统一在 providerApp 锁（this）下进行。
+	// 三个非线程安全 map 的读写统一在 providerApp 锁（this）下进行。
 	public final IntHashMap<BModule.Data> staticBinds = new IntHashMap<>();
 	public final IntHashMap<BModule.Data> dynamicModules = new IntHashMap<>();
 	public final IntHashMap<BModule.Data> modules = new IntHashMap<>();
@@ -184,8 +182,6 @@ public class ProviderApp extends ReentrantLock {
 	public void startLast(ProviderModuleBinds binds, Map<String, IModule> modules) throws Exception {
 		lock();
 		try {
-			// 本方法恰好执行一次。ProviderApp没有stop、实例不可重启（对齐Application不可复用契约），
-			// 重入属编程错误，快速失败——否则二次调用会把模块绑定/订阅/timer/safeBatch全部重跑一遍。
 			if (startLast)
 				throw new IllegalStateException("ProviderApp.startLast() already called.");
 			buildProviderModuleBinds(binds, modules);
@@ -215,8 +211,6 @@ public class ProviderApp extends ReentrantLock {
 		}
 	}
 
-	// LoginQueueAgent启动：创建收口在LoadBase.ensureLoginQueueAgent——
-	// load没有且配置启用才建，预置/已建复用；不覆盖（覆盖即泄漏+同身份重复注册）。
 	private void startLoginQueueAgent() throws Exception {
 		//noinspection DataFlowIssue
 		var load = providerImplement.getLoad();

@@ -30,11 +30,7 @@ public class Thymeleaf {
 		return templateResolver;
 	}
 
-	/**
-	 * 模板名直接取解码后的请求路径（可含../），FileTemplateResolver无canonical检查，
-	 * 可越出模板目录读任意.html。合法模板名为不含..、:、反斜杠的相对根路径，
-	 * 越根即FORBIDDEN（同HttpServer.addFileHandler的防护）。
-	 */
+	/** 检查模板名是否包含路径穿越字符（..、:、\），防越出模板目录。 */
 	public static boolean isTraversalTemplateName(String url) {
 		return url.contains("..") || url.indexOf(':') >= 0 || url.indexOf('\\') >= 0;
 	}
@@ -50,7 +46,7 @@ public class Thymeleaf {
 				try {
 					templateEngine.process(url, context, out);
 				} catch (Throwable t) {
-						out.fail(); // 渲染异常：close不发200截断页
+						out.fail();
 					throw t;
 				}
 				if (out.getContentLength() > 64 * 1024)
@@ -61,9 +57,7 @@ public class Thymeleaf {
 				try {
 					templateEngine.process(url, context, out);
 				} catch (Throwable t) {
-					// 渲染异常：close改断连（200头已在线无法改写状态码，
-					// 不发终结符防截断页伪装完整200），并晋升到缓冲分支——重试走可发500的
-					// 可修复路径（否则首渲染即失败的模板会永远停留在流式分支）。
+					// 流式渲染失败改为断连，并切到缓冲分支使后续重试可返回 500。
 					out.fail();
 					withContentLength.add(url);
 					throw t;

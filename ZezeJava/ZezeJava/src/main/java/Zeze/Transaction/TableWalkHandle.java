@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 
+/** 表遍历回调接口（强类型键值）：handle 返回 true 继续遍历、false 中断。 */
 @FunctionalInterface
 public interface TableWalkHandle<K, V> {
 	boolean handle(K key, V value) throws Exception;
@@ -12,7 +13,6 @@ public interface TableWalkHandle<K, V> {
 	 * walk 返回续扫键，返回 null 表示遍历结束。
 	 */
 	default long endWalk(long count) throws Exception {
-		// walk调用完成。
-		return count; // 加count参数是为了简化return。
+		return count;
 	}
 }

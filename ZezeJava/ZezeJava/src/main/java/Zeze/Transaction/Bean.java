@@ -65,11 +65,7 @@ public abstract class Bean implements Serializable {
 	}
 
 	/**
-	 * 构建 ChangeListener 链。其中第一个KeyValuePair在调用前加入，这个由Log或者ChangeNote提供。
-	 * 每条路径元素为（父Bean, 当前层子Bean的variableId）：第1层是this在自己parent中的编号，
-	 * 更深层各取该层子Bean自己的编号（不得恒用this.variableId，层级≥2会取错）。
-	 *
-	 * @param path path
+	 * 构建 ChangeListener 路径（每项为父 Bean 与当前层子 Bean 的 variableId）；首项由调用方预先加入。
 	 */
 	public final void buildChangeListenerPath(ArrayList<KV<Bean, Integer>> path) {
 		for (Bean child = this, parent = this.parent; parent != null; child = parent, parent = parent.parent)
@@ -80,11 +76,7 @@ public abstract class Bean implements Serializable {
 		return rootInfo != null;
 	}
 
-	// 【bean所有权语义】bean加入受管容器（表记录/受管集合）即被事务占有（rootInfo在此登记，
-	// 经Transaction.whileRedo进redoBeans）：redo重试由triggerRedoActions统一resetRootInfo
-	// 后随重放重新登记；而最终回滚不解除占有（redoBeans仅在redo路径重置，终局回滚不触碰），
-	// redo-only是既定设计。复用被占有的bean（再次加入受管容器）将抛HasManagedException
-	// （下方入口检查），请重建实例或copy()。
+	// 加入受管容器即登记 rootInfo；仅 redo 路径重置所有权，终局回滚不解除（复用须重建或 copy）。
 	public final void initRootInfoWithRedo(@Nullable RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
 			Objects.requireNonNull(Transaction.getCurrent()).throwAbort("hasManaged", new HasManagedException());
@@ -168,20 +160,14 @@ public abstract class Bean implements Serializable {
 		sb.append(Str.indent(level)).append('{').append(this).append('}');
 	}
 
-	// Bean的类型Id，替换 ClassName，提高效率和存储空间
-	// 用来支持 dynamic 类型，或者以后的扩展。
-	// 默认实现是 ClassName.HashCode()，也可以手动指定一个值。
-	// Gen的时候会全局判断是否出现重复冲突。如果出现冲突，则手动指定一个。
-	// 这个方法在Gen的时候总是覆盖(override)，提供默认实现是为了方便内部Bean的实现。
+	// Bean 类型 Id（用于 dynamic 等场景）；生成类总是覆写，默认按类名哈希。
 	@Override
 	public long typeId() {
 		return hash64(getClass().getName());
 	}
 
-	// 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
-	// 算法已固化进 TypeId，不得变更，改了即数据不兼容。
+	// 持久化 TypeId 依赖此 Knuth 哈希算法，不得变更。
 	public static long hash64(long initial, String name, int n) {
-		// This is a Knuth hash
 		long hashedValue = initial;
 		for (int i = 0; i < n; i++)
 			hashedValue = (hashedValue + name.charAt(i)) * 3074457345618258799L;
@@ -201,7 +187,6 @@ public abstract class Bean implements Serializable {
 	}
 
 	public static long hash64(long initial, char c) {
-		// This is a Knuth hash
 		return (initial + c) * 3074457345618258799L;
 	}
 
@@ -236,8 +221,7 @@ public abstract class Bean implements Serializable {
 		return (int)(hash64 ^ (hash64 >> 32));
 	}
 
-	// 生成侧 mapKey() 在 __zeze_map_key__ 未设置前返回 null（集合放入时才写入），
-	// 契约跟生成侧 @Nullable 对齐；基类自身仍恒 throw。
+	// 生成子类在放入集合前返回 null，基类不支持。
 	public @Nullable Object mapKey() {
 		throw new UnsupportedOperationException(getClass().getName());
 	}
@@ -251,14 +235,13 @@ public abstract class Bean implements Serializable {
 	}
 
 	/**
-	 * Create one synchronous consumer node from the explicitly supplied final savepoint state.
-	 * Null means no structural log; a non-null untracked collection log must be rejected.
-	 * Borrowed Beans and note collections are valid while the committing record locks are held.
+	 * 基于最终保存点日志创建变更消费节点；null 表示无结构日志，借用的 Bean 与集合笔记仅在提交持锁期间有效。
 	 */
 	public LogBean createLogBean(@Nullable TransactionLog finalLog) {
 		return new LogBean(variableId, this);
 	}
-	// 当Bean放到Table中时，用来支持数据版本号。
+
+	// 表记录数据版本号，供子类覆写。
 	public long version() {
 		return 0;
 	}
@@ -267,9 +250,8 @@ public abstract class Bean implements Serializable {
 		return "";
 	}
 
-	// package use in Transaction.finalCommit
+	// 供同包 Transaction.finalCommit 更新版本号
 	protected void version(long newVersion) {
-		// 子类实现
 	}
 
 	public static String parentsToName(Collection<String> parents) {
@@ -290,7 +272,7 @@ public abstract class Bean implements Serializable {
 		return new ArrayList<>();
 	}
 
-	/** Zero means this source has no independent collection transaction log. */
+	/** 返回 0 表示无独立的集合事务日志。 */
 	public long changeLogKey() {
 		return 0;
 	}

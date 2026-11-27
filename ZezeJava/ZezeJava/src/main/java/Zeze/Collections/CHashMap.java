@@ -14,9 +14,7 @@ import Zeze.Util.TaskSpec;
  */
 public class CHashMap<V extends Bean> {
 	private final LinkedMap<V>[] buckets;
-	// AtomicLongArray：写在事务提交回调（提交线程），读在任意业务线程
-	//（size()/isEmpty）——普通long[]跨线程无happens-before；数组元素无法volatile，
-	// set/get是单次volatile读写，且写为绝对值快照，并发set按last-writer-wins语义无损。
+	// 各分片计数快照：在提交回调写入、业务线程读取，需 AtomicLongArray 保证跨线程可见性。
 	private final AtomicLongArray sizes;
 	private final String name;
 

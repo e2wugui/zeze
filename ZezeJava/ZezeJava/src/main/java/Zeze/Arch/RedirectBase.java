@@ -24,7 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 应用需要继承实现必要的方法，创建实例并保存。需要继承的可能性不大, 需要的话直接设置Application.Redirect
+ * 模块方法重定向的运行时基类：负责按 serverId/hash/all 路由与本地回环执行。
  */
 public class RedirectBase {
 	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
@@ -112,11 +112,7 @@ public class RedirectBase {
 		if (ps != null && (socket = service.GetSocket(ps.sessionId)) != null && !socket.isClosed())
 			return socket;
 
-		// conc<=1 的 @RedirectHash 语义即 orOtherServer（2026-10-20 owner 定谳）：按 hash 选中
-		// 归属服务器，不可达时尽力而为改投环上任意活 provider（551241edb 引入"尽可能返回一个
-		// 有效的socket"；RedirectToServer 的 orOtherServer 选项本就经 choiceHash(module, serverId, 1)
-		// 复用本块）。依赖服务器本地态（内存态/_tlocal）的方法应声明 conc>1——那条路径目标
-		// 不可达时显式抛 RedirectException，不做改投。
+		// conc<=1 时目标不可达则改投任意存活 provider；依赖本地态的方法应声明 conc>1 以显式失败。
 		if (dataConcurrentLevel <= 1) {
 			servers.lock();
 			try {
@@ -263,7 +259,7 @@ public class RedirectBase {
 		Transaction t;
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
-				// Func0 has a nullable bound, but this type argument is a non-null future; T describes its result.
+				// Func0 声明为可空边界，但此处调用方约定返回非空 future。
 				//noinspection DataFlowIssue
 				return func.call();
 			} catch (Exception e) {
@@ -312,12 +308,7 @@ public class RedirectBase {
 	}
 
 	/**
-	 * void redirect 的远程发送（fire-and-forget）。
-	 * <p>
-	 * void redirect 为 at-most-once 语义，Send 失败不重试。Rpc.Send 在 socket
-	 * 失效（null/已关闭/发送缓冲溢出背压）时不抛异常只返回false——若直接丢弃
-	 * 布尔值，socket层虽有error日志但无redirect归因（丢了哪个方法无从知晓），与本地回环
-	 * runVoid失败有日志不对称。失败时记带方法名的error日志；内建方法的既有自愈补偿不变。
+	 * void redirect 的远程发送（at-most-once，失败不重试并记录带方法名的错误日志）。
 	 */
 	@SuppressWarnings("MethodMayBeStatic")
 	public void sendVoid(@Nullable AsyncSocket so, Rpc<?, ?> p, String methodFullName) {

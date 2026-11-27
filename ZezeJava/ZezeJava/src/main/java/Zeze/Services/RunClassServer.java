@@ -16,12 +16,8 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 【安全警示】任意字节码执行端点：上传的class字节码被直接defineClass并实例化执行
- * （Runnable/Callable/main），触达且持有token者即获得服务器任意代码执行权，仍必须仅
- * 绑定回环/内网，绝不可暴露公网。token校验把"部署纪律"升级为代码不变量：
- * 构造时显式传入token，或传null由启动期自动生成随机token并打日志（零配置可用，运维
- * 从日志取token）；请求须以X-Zeze-Token头或"token"查询参数携带，常量时间比较，失配
- * 答403。
+ * HTTP 动态类执行端点：接收上传的 class 字节码并加载执行（Runnable/Callable/main）。
+ * 【安全警示】本端点等价于任意代码执行，必须仅绑定回环/内网并强制 token 鉴权（经 X-Zeze-Token 头或 token 参数传递）。
  */
 public class RunClassServer implements HttpFileUploadHandle {
 	private static final org.apache.logging.log4j.Logger logger =
@@ -97,10 +93,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 			var path = destFile.toPath();
 			var classBytes = Files.readAllBytes(path);
 			var result = "";
-			// 执行段三分支（Runnable/Callable/main）与defineClass若均无守卫——
-			// getMethod/实例化/invoke/解码失败异常穿透，请求无HTTP应答即断连（同方法其余
-			// 拒绝路径均有显式应答）。catch用Throwable而非Exception：defineClass对损坏
-			// 字节码抛ClassFormatError（Error子类），仅Exception盖不住最常见触发形态。
+			// 捕获 Throwable（含 defineClass 抛出的 ClassFormatError）确保异常时仍有 500 应答
 			try {
 				var classLoader = new BytecodeClassLoader();
 				var loadClass = classLoader.defineClass(classBytes);
@@ -120,7 +113,6 @@ public class RunClassServer implements HttpFileUploadHandle {
 				x.close(x.sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, "run failed: " + e));
 				return;
 			}
-			// 审计：每次成功使用的留痕
 			logger.info("RunClassServer: authorized run from {}, file='{}'",
 					x.channel().remoteAddress(), patchFileName);
 			x.close(x.sendPlainText(HttpResponseStatus.OK, result));

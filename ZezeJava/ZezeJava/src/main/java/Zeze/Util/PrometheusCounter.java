@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
 
-// ZezeCounter 的 Prometheus 实现：指标注册到 prometheus-client 并经 /metrics HTTP 暴露
+/** ZezeCounter 的 Prometheus 实现：注册指标并通过 /metrics HTTP 暴露。 */
 public class PrometheusCounter implements ZezeCounter {
 	private static final Logger logger = LogManager.getLogger(PrometheusCounter.class);
 
@@ -176,8 +176,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	private final ConcurrentHashMap<Long, LongCounter[]> tableCounterMap = new ConcurrentHashMap<>();
-	// handle按name缓存复用：协议等热路径每次执行都新建Procedure，不缓存则每次执行重复
-	// new PromProcedureCounter及其构造期的4次labelValues解析（DataPoint挂collector永不淘汰，长持无副作用）。
+	// 按 name 缓存复用句柄，避免热路径重复创建与 labelValues 解析
 	private final ConcurrentHashMap<String, ProcedureCounter> procedureCounterMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, LongObserver> runTimeMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, DistributionDataPoint> taskDurationMap = new ConcurrentHashMap<>();
@@ -269,8 +268,7 @@ public class PrometheusCounter implements ZezeCounter {
 		if (labelNames.length == 0) {
 			throw new IllegalArgumentException("labelNames empty");
 		}
-		// sanitizeMetricName：调用方传入的 name（如带点号的类名）含非法字符时，Prometheus 的
-		// MetricMetadata.validate() 会抛 IllegalArgumentException 进调用方热路径；这里统一替换非法字符。
+		// 规范化指标名，避免含非法字符（如点号）触发校验异常
 		Counter counter = Counter.builder().name(PrometheusNaming.sanitizeMetricName(name)).labelNames(labelNames).register();
 		return labels -> {
 			CounterDataPoint dp = counter.labelValues(labels);
@@ -292,10 +290,7 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public LongObserver getRunTimeObserver(String name) {
-		// 标签形态：task_duration_seconds{task="<键>"}——指标名承载语义、label承载维度，
-		// 跨任务聚合（histogram_quantile by task）与注册表规模（单一指标族）都优于逐键指标名。
-		// label 值无名字合法性约束，原 sanitize/prometheusName 规范化与指标名碰撞去重
-		// （U4-F3：register() 抛异常打穿静态初始化路径）随之整体消失。
+		// 以 task 标签承载名称维度，统一归入单一指标族且无指标名合法性约束
 		return fastGetOrAdd(runTimeMap, name, k -> amount
 			-> task_duration_seconds.labelValues(k).observe(Unit.nanosToSeconds(amount)));
 	}
@@ -327,7 +322,7 @@ public class PrometheusCounter implements ZezeCounter {
 		try {
 			String name = service.getName();
 			ServiceMetric metric = serviceMap.get(name);
-			if (metric != null) {// 按说不改有重名的，如果重名忽略后来的
+			if (metric != null) { // 重名时忽略后注册者
 				return;
 			}
 
@@ -348,11 +343,11 @@ public class PrometheusCounter implements ZezeCounter {
 		try {
 			String name = service.getName();
 			ServiceMetric metric = serviceMap.get(name);
-			if (metric == null) { // 不应该出现
+			if (metric == null) {
 				return;
 			}
 
-			if (service != metric.service) { //重名，并且是后来者
+			if (service != metric.service) { // 重名且为后注册者，忽略
 				return;
 			}
 
@@ -378,8 +373,7 @@ public class PrometheusCounter implements ZezeCounter {
 		return fastGetOrAdd(procedureCounterMap, name, PromProcedureCounter::new);
 	}
 
-	// 每name一次预绑定全部DataPoint；end的result_code维度在handle内按码缓存
-	// （基数被ResultCodeCap封顶，默认20+other），调用路径零labelValues解析零分配。
+	// 预绑定固定维度 DataPoint，result_code 维度按码缓存并受 ResultCodeCap 基数封顶
 	private final class PromProcedureCounter implements ProcedureCounter {
 		private final String name;
 		private final CounterDataPoint started;
@@ -508,7 +502,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	static <K, V> V fastGetOrAdd(ConcurrentHashMap<K, V> map, K key, Function<? super K, ? extends V> mappingFunction) {
-		// 若map的读取命中率极高（例如超过90%的get能直接命中）先get应该效率会高点
+		// 高命中率路径先无锁 get，减少 computeIfAbsent 开销
 		V v = map.get(key);
 		if (v != null) {
 			return v;

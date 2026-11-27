@@ -212,7 +212,6 @@ public class ProviderService extends HandshakeClient {
 		announce.Send(so);
 
 		// static binds
-		// staticBinds/dynamicModules/modules为非线程安全IntHashMap：读写统一在providerApp锁下进行。
 		var bind = new Bind();
 		requireProviderApp().lock();
 		try {
@@ -222,8 +221,7 @@ public class ProviderService extends HandshakeClient {
 		}
 		var linkName = getLinkName(so);
 		bind.Send(so, rpc -> {
-			// 超时/失败不得置位完成信号——该信号是应用层启动门禁API，
-			// 无条件setResult(true)等于谎报完成。见checkLinkdHandshakeResult。
+			// 仅在 Bind 成功时置位启动完成信号。
 			if (checkLinkdHandshakeResult(rpc, so, linkName, "Bind"))
 				providerStaticBindCompleted.setResult(true);
 			return 0;
@@ -246,11 +244,7 @@ public class ProviderService extends HandshakeClient {
 			trySetLinkChoice(c);
 	}
 
-	// Bind/Subscribe应答检查——超时或错误码时断连（Connector自动重连→重握手→
-	// OnHandshakeDone重发Bind/Subscribe；Rpc实例一次性，回调内自行重发会踩禁令，重连路径
-	// 天然以新实例重试），且失败不置位完成信号，由真实成功最终置位。对齐GlobalClient登录
-	// 失败so.close走重连、本文件sendDisableChoiceToLink检查isTimeout/resultCode的判例。
-	// 返回true表示应答成功；多link为first-wins语义。
+	// 检查 Bind/Subscribe 应答：超时或失败时关闭连接以触发重连重试，成功返回 true。
 	static boolean checkLinkdHandshakeResult(Rpc<?, ?> rpc, AsyncSocket so,
 	                                         String linkName, String what) {
 		if (rpc.isTimeout() || rpc.getResultCode() != 0) {

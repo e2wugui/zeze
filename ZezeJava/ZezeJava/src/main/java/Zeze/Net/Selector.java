@@ -252,11 +252,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	}
 
 	/**
-	 * 唤醒本 selector 线程的阻塞 select。
-	 * selectTimeout&gt;0 时为 no-op：select 循环至多一个超时周期自行返回，排入的任务最迟
-	 * 下轮被感知，无需（也不会）真正唤醒；仅 selectTimeout&lt;=0（无限阻塞 select）时生效。
-	 * selectTimeout&lt;0 时经由 WakeupThread 转发，其余情况直接 selector.wakeup()。
-	 * CAS(wakeupNotified) 合并处理窗口内的重复唤醒，语义细节见下方 wakeupDirect 的说明。
+	 * 唤醒阻塞的 select（仅 selectTimeout &lt;= 0 生效，经 wakeupNotified 合并重复唤醒）。
 	 */
 	public void wakeup() {
 		int selectTimeout = selectors.getSelectTimeout();
@@ -268,13 +264,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		}
 	}
 
-	/**
-	 * 非门控唤醒：绕过 wakeupNotified 的合并优化直接唤醒 selector。
-	 * wakeup() 在处理窗口（select 返回→动作处理→排空 taskQueue→下轮 set(0)）内 CAS(0,1)
-	 * 失败会静默吞掉本次唤醒，此后若该 selector 上再无 IO 事件，addTask 排入的任务
-	 * 将被无限期延迟（如 TcpSocket.realClose 的 dispose 任务）。本方法调用频率低，
-	 * 不影响 wakeup() 自身的合并优化语义。
-	 */
+	/** 绕过 wakeupNotified 合并门控直接唤醒 selector，避免无 IO 事件时纯队列任务被延迟。 */
 	public void wakeupDirect() {
 		selector.wakeup();
 	}
@@ -319,7 +309,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 					}
 				}, selectTimeout);
 				for (Runnable r; (r = taskQueue.poll()) != null; )
-					runTask(r); // 逐任务防护（对齐drainClosedTasks路径）：单任务异常不得中断本轮排空——其余连接的dispose任务（在飞Rpc失败/native上下文释放/buffer归还）将滞留到该selector下次活动
+					runTask(r); // 逐任务兜底，单任务异常不中断本轮排空
 			} catch (Throwable e) { // 必须捕捉所有异常。
 				logger.error("Selector.run exception:", e);
 			}

@@ -40,15 +40,8 @@ import Zeze.Util.StringBuilderCs;
 import Zeze.Util.Task;
 
 /**
- * 把模块的方法调用发送到其他服务器实例上执行。
- * 被重定向的方法用注解标明(RedirectToServer,RedirectHash,RedirectAll)。
- * 被重定向的方法需要是virtual的(非private非final非static的)。
- * <p>
- * 实现方案：
- * Game.App创建Module的时候调用回调。
- * 在回调中判断是否存在需要拦截的方法。
- * 如果需要就动态生成子类实现代码并编译并返回新的实例。
- * 可以提供和原来模块一致的接口。
+ * Redirect 子类生成器：扫描模块中标注 {@link RedirectToServer}/{@link RedirectHash}/{@link RedirectAll}
+ * 的非 private/final/static 方法，生成拦截子类源码并在构建期写盘或运行时编译装载。
  */
 public final class GenModule extends ReentrantLock {
 	public static final String REDIRECT_PREFIX = "Redirect_";
@@ -83,10 +76,6 @@ public final class GenModule extends ReentrantLock {
 	}
 
 	public static <T extends IModule> T newModule(Class<?> cls, AppBase app) throws ReflectiveOperationException {
-		// 0参构造器模块放行实例化。createRedirectModules对无redirect方法
-		// 的模块直接用原始类实例化（javadoc承诺），getCtor的0参回退（genModuleCode同为活
-		// 消费方）与IModule.Initialize(AppBase)后注入钩子均支持该形态——硬拒会使
-		// "仅0参构造器的合法模块"启动崩溃。
 		@SuppressWarnings("unchecked")
 		var ctor = (Constructor<T>)getCtor(cls, app);
 		return ctor.getParameterCount() == 1 ? ctor.newInstance(app) : ctor.newInstance();
@@ -106,10 +95,7 @@ public final class GenModule extends ReentrantLock {
 		}
 	}
 
-	// 沿类层级向上收集带注解方法（到IModule为止）。仅扫getDeclaredMethods时：基类声明的
-	// redirect方法既不生成拦截子类方法、也不注册redirect.handles，调用静默本地执行且远程
-	// 不可达、无任何告警，与方法签名非法时的fail-fast形成反差。同签名（名字+参数类型）去重，
-	// 派生类声明优先（覆盖者的注解生效）。空=没有需要重定向的方法。
+	// 沿父类链向上收集带 redirect 注解的方法（至 IModule 为止），同签名以派生类优先。
 	private static ArrayList<MethodOverride> collectOverrides(Class<?> moduleClass) {
 		var overridesBySignature = new LinkedHashMap<String, MethodOverride>();
 		for (var cls = moduleClass; cls != null && cls != IModule.class; cls = cls.getSuperclass()) {
@@ -265,7 +251,6 @@ public final class GenModule extends ReentrantLock {
 		}
 	}
 
-	// 装载命中的生成类必须 extends 传入的 moduleClass（身份自洽）：错配即类加载器混用，fail-fast。
 	private static void checkRedirectSuperclass(Class<?> genClass, Class<?> moduleClass,
 												String source) {
 		if (genClass.getSuperclass() != moduleClass)
@@ -273,9 +258,6 @@ public final class GenModule extends ReentrantLock {
 				+ ", superclass=" + genClass.getSuperclass().getName()
 				+ ", expect=" + moduleClass.getName());
 	}
-
-	// 方法去重键——同签名（名字+参数类型）视为同一个覆盖点，类层级收集中
-	// 用于"派生类声明优先、基类声明忽略"。
 
 	private static String genModuleCode(String genClassName, Class<?> moduleClass,
 										List<MethodOverride> overrides, AppBase userApp) throws Exception {
@@ -307,8 +289,6 @@ public final class GenModule extends ReentrantLock {
 				if (type == void.class)
 					returnName = "void";
 				else if (type == RedirectFuture.class) {
-					// 兜底：MethodOverride已对配对/raw泛型/非法实参fail-fast，这里到达时resultTypeName
-					// 理应非null；仍判空防止未来改动漏网时拼出非法源码RedirectFuture<null>（晦涩编译失败）。
 					if (m.resultTypeName == null)
 						throw new IllegalStateException("RedirectFuture<> missing result type: "
 							+ moduleClass.getName() + '.' + m.method.getName());
@@ -376,8 +356,6 @@ public final class GenModule extends ReentrantLock {
 				}
 				sb.appendLine();
 				if (returnName.equals("void"))
-					// Send失败（socket失效/背压）只返回false不抛异常，直接丢弃布尔值则无
-					// redirect归因——经sendVoid封装，失败记带方法名的error日志（at-most-once不变）。
 					sb.appendLine("{}_redirect_.sendVoid(_t_, _p_, \"{}:{}\");", prefix, moduleFullName, m.method.getName());
 				else {
 					sb.appendLine("{}if (!_p_.Send(_t_, _rpc_ -> {", prefix);
@@ -510,8 +488,7 @@ public final class GenModule extends ReentrantLock {
 		return sb.toString();
 	}
 
-	// decode生成引用未限定的beanFactory，按"模块类父类链自带可访问静态
-	// beanFactory"惯例解析（IModule无此契约）——生成期校验并给出修复提示。
+	// 校验模块父类链是否存在可访问静态 beanFactory，供 Bean/Data 多态 decode 使用。
 	private static void checkBeanFactorySymbol
 	(Class<?> moduleClass, List<MethodOverride> overrides) {
 		var methodsNeedingFactory = new ArrayList<String>();
@@ -536,7 +513,6 @@ public final class GenModule extends ReentrantLock {
 		}
 		if (methodsNeedingFactory.isEmpty())
 			return;
-		// getSuperclass()只走类不走接口，链条止于Object（IModule/AbstractModule无beanFactory）
 		for (var cls = moduleClass; cls != null; cls = cls.getSuperclass()) {
 			for (var field : cls.getDeclaredFields()) {
 				if (!field.getName().equals("beanFactory") || !Modifier.isStatic(field.getModifiers()))
@@ -549,7 +525,7 @@ public final class GenModule extends ReentrantLock {
 					throw new UnsupportedOperationException("redirect Bean/Data param unsupported: beanFactory field "
 						+ "must be public or protected (the generated subclass lives in the default package and "
 						+ "inherits across packages), module " + cls.getName() + ", methods " + methodsNeedingFactory);
-				return; // 父类链上找到可访问的静态beanFactory
+				return;
 			}
 		}
 		throw new UnsupportedOperationException("redirect Bean/Data param unsupported: module "
@@ -594,9 +570,7 @@ public final class GenModule extends ReentrantLock {
 			else {
 				sb.appendLine("_params_ -> {");
 				sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
-				// encoder把null结果映射为Binary.Empty，守卫必须同时判空缓冲（size()==0时decode
-				// 读空缓冲抛异常会冲出processResult的per-hash循环）；但_r_必须始终返回非null
-				// 空对象——processResult对返回值直接setHash，返回null会NPE。
+				// encoder 将 null 结果编码为 Binary.Empty，需判非空再 decode；同时返回非 null 实例供 processResult 设置 hash。
 				sb.appendLine("            if (_params_ != null && _params_.size() > 0) {");
 				sb.appendLine("                var _b_ = _params_.Wrap();");
 				Gen.instance.genDecode(sb, "                ", "_b_", "_m_", "_r_.", m.resultFields);

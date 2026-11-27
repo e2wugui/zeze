@@ -6,7 +6,7 @@ import Zeze.Transaction.Collections.LogList1.OpLog;
 
 import java.util.Collection;
 
-/** Transaction state with ordered structural notes, shared by List1 and List2. */
+/** 持有有序结构增量的 List 事务状态，由 List1 与 List2 共用。 */
 abstract class LogListDelta<V> extends LogList<V> {
 	/** List1 的有序结构增量。 */
 	static final class List1<V> extends LogListDelta<V> {
@@ -25,7 +25,7 @@ abstract class LogListDelta<V> extends LogList<V> {
 		return true;
 	}
 
-	// A field write normally produces one operation; bulk writes reserve their complete sequence below.
+	// 单次写入通常仅产生一条操作，批量写入按需预扩容。
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>(1);
 
 	LogListDelta(PList<V> source, org.pcollections.PVector<V> value) {

@@ -44,9 +44,9 @@ public class TimeThrottleQueue implements TimeThrottle {
 	}
 
 	/**
-	 * mark with current time
+	 * 记录当前请求并检查是否超过数量或带宽限制。
 	 *
-	 * @return false if overflow
+	 * @return true 表示放行，false 表示超限
 	 */
 	@Override
 	public boolean checkNow(int size) {

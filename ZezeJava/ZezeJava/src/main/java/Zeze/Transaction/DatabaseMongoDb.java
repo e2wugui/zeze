@@ -62,9 +62,7 @@ public class DatabaseMongoDb extends Database {
 
 	@Override
 	public void renameTable(String tableOldName, String tableNewName) {
-		// 幂等重跑（对齐关系库后端）：Schemas.checkCompatible的rename序列非原子——部分成功后
-		// 中断时重启会对同一对名字再次rename，源collection不存在而目标已存在视为上次已完成，
-		// no-op跳过；都不存在是真正的异常，明确报错。
+		// 支持幂等重跑：源不存在而目标已存在视为上次重命名已完成，两者均不存在则报错。
 		var exists = new java.util.HashSet<String>();
 		for (var n : mongoDatabase.listCollectionNames())
 			exists.add(n);
@@ -80,8 +78,7 @@ public class DatabaseMongoDb extends Database {
 
 	@Override
 	public boolean isTransientWriteConflict(Throwable e) {
-		// WT乐观并发冲突即abort整事务并标记TransientTransactionError（官方契约=客户端重放）；
-		// 112=WriteConflict。沿cause链找：写路径异常会被包装（如flush失败诊断RuntimeException）。
+		// 沿 cause 链检查 TransientTransactionError 标签或 112（WriteConflict），供上层重放事务。
 		for (Throwable t = e; t != null; t = t.getCause()) {
 			if (t instanceof MongoException me)
 				return me.hasErrorLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL) || me.getCode() == 112;
@@ -102,8 +99,7 @@ public class DatabaseMongoDb extends Database {
 
 	@Override
 	public void close() {
-		// 双段守卫（同DatabaseDynamoDb）：super.close()抛异常时mongoClient（连接池+后台线程）
-		// 仍需关闭，否则永久泄漏。
+		// 确保 super.close() 异常时仍关闭 mongoClient 释放连接池。
 		try {
 			super.close();
 		} finally {
@@ -132,11 +128,7 @@ public class DatabaseMongoDb extends Database {
 		@Override
 		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
 																	long version) {
-			// 读-判-写必须原子：多实例并发启动（tryLock 恒真的后端）同时进入 schemasCompatible 时，
-			// 读-判-写会丢失更新，级联出重复 renameTable 丢表数据。
-			// 这里用“完整旧值”做服务端条件写：value 字段是 DataWithVersion 的确定性编码
-			// （decode->encode 字节往返一致），完整值相等蕴含 version 相等；
-			// replaceOne 条件匹配/insertOne 均为单文档原子操作，不依赖副本集事务。
+			// 单文档原子条件写（按完整旧值匹配或 insertOne），不依赖副本集事务，冲突返回 false 供上层重试。
 			var keyBytes = key.CopyIf();
 			var oldValue = dataWithVersion.find(key);
 			var oldBytes = oldValue != null ? oldValue.CopyIf() : null;
@@ -289,9 +281,7 @@ public class DatabaseMongoDb extends Database {
 			if (dropped)
 				return 0;
 			var iterable = collection.find();
-			// 序差异声明：Mongo按_id（BSON BinData序：长度→子类型→字节）排序，与其余后端
-			// （MySql/Rocks/Memory的纯字节字典序）不同——变长key下walk序跨后端不一致。
-			// 严格字节序的消费者（如Verify要求严格有序）不应使用Mongo后端。
+			// 注意：BSON BinData 按长度→子类型→字节排序，变长 key 下与纯字节字典序不同。
 			iterable.sort(Sorts.ascending("_id"));
 			long countWalked = 0;
 			try (var cursor = iterable.iterator()) {

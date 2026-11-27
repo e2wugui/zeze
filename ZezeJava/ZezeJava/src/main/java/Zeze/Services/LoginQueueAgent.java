@@ -14,9 +14,7 @@ import Zeze.Net.Service;
  * 接收secret并周期上报自身负载。
  */
 public class LoginQueueAgent extends AbstractLoginQueueAgent {
-	/**
-	 * Connector service. 连接LoginQueueServer.
-	 */
+	/** 连接 LoginQueueServer 的客户端网络服务。 */
 	public static class LoginQueueAgentService extends Service {
 		public LoginQueueAgentService(Config config) {
 			super("LoginQueueAgent", config);

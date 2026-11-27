@@ -26,9 +26,7 @@ public class HaProxyHeader {
 	private final @Nullable String key;
 	private volatile @Nullable InetSocketAddress remoteAddress;
 	private volatile @Nullable InetSocketAddress targetAddress;
-	// v1 懒解析：decodeHeader 在 selector 线程调用，InetAddress.getByName 对非字面量主机名会
-	// 同步DNS解析（默认可达5-30秒），攻击者可用伪造的PROXY行卡死整个Selector线程上的所有连接。
-	// 因此v1的TCP4/TCP6地址只在这里记录主机名和端口，推迟到getter首次访问时再解析。
+	// v1 地址推迟到 getter 懒解析，避免在 selector 线程触发同步 DNS 阻塞。
 	private volatile @Nullable String remoteHost;
 	private volatile @Nullable String targetHost;
 	private int remotePort;
@@ -64,11 +62,8 @@ public class HaProxyHeader {
 
 	private static @Nullable InetSocketAddress resolve(String host, int port) {
 		try {
-			// 字面量IP不查DNS；主机名会同步解析，调用方线程需容忍可能的阻塞（但绝不能是selector线程）。
 			return new InetSocketAddress(InetAddress.getByName(host), port);
 		} catch (UnknownHostException | IllegalArgumentException e) {
-			// IllegalArgumentException（端口越界等）与DNS失败同型处理：log+null，
-			// 消除懒getter的未声明unchecked异常。
 			logger.warn("HaProxyHeader resolve failed: {}:{}", host, port, e);
 			return null;
 		}
@@ -91,8 +86,7 @@ public class HaProxyHeader {
 		return Arrays.equals(bb, offset, offset + v1sig.length, v1sig, 0, v1sig.length);
 	}
 
-	// null=尚未出现CRLF（等待更多数据）；""=CRLF紧跟前缀（空行，畸形头）。
-	// 两态必须区分：空行若走"等待"路径，连接将永久停在头解析态。
+	// 返回 null 表示尚未收到 CRLF；返回空串表示收到空行（畸形头）。
 	public static @Nullable String findV1Line(byte [] bytes, int offset, int end) {
 		end--;
 		for (int i = offset; i < end; i++) {
@@ -102,15 +96,12 @@ public class HaProxyHeader {
 		return null;
 	}
 
-	// v2头的length字段声明的是地址部分的实际长度：family要求的地址长度比声明的大时，
-	// 后续按固定offset读地址会越过本帧声明边界，读到同一累积缓冲区的陈旧字节当地址，
-	// 缓冲区数组恰好在边界时直接数组越界。按畸形协议拒绝（连接会被关闭）。
 	private static void checkV2AddressLength(int size, int addressLength) {
 		if (size - 16 < addressLength)
 			throw new RuntimeException("haproxy v2 address length " + (size - 16) + " < " + addressLength);
 	}
 
-	// 保留throws UnknownHostException仅为兼容既有调用方的catch；解析移到getter后本方法不抛出。
+	// 保留 throws UnknownHostException 仅用于兼容既有调用方签名。
 	public boolean decodeHeader(ByteBuffer bb) throws UnknownHostException {
 		if (done)
 			return true;
@@ -143,8 +134,6 @@ public class HaProxyHeader {
 					targetAddress = new InetSocketAddress(targetInet6Address, javaBb.getShort(bb.ReadIndex + 50) & 0xffff); // 端口是uint16
 					break;
 				default:
-					// 不支持的family（UDP4/UDP6/UNIX等）按畸形协议拒绝，对齐cmd非法值的处置；
-					// 静默消费会让连接按直连继续且地址为null。
 					throw new RuntimeException("haproxy not a supported transport family: "
 							+ Integer.toHexString(fam & 0xff));
 				}
@@ -163,36 +152,29 @@ public class HaProxyHeader {
 
 		if (bb.size() >= 8 && startWithV1sig(bb.Bytes, bb.ReadIndex)) { // PROXY ...\r\n
 			var line = findV1Line(bb.Bytes, bb.ReadIndex + v1sig.length, bb.WriteIndex);
-			if (line == null) { // 未出现CRLF：等待更多数据（真实LB连接建立瞬间都经过此部分行状态）
+			if (line == null) {
 				if (bb.size() > 107)
 					throw new RuntimeException("haproxy v1 line too long");
 				return false;
 			}
-			// 整行（含"PROXY "前缀与CRLF）按规范最长107字节：超长即断连，
-			// 不能只在"永远等不到CRLF"时才拒绝——任意垃圾后补CRLF的行会被原样接受。
-			if (v1sig.length + line.length() + 2 > 107)
+			if (v1sig.length + line.length() + 2 > 107) // 规范限定 v1 整行最长 107 字节
 				throw new RuntimeException("haproxy v1 line too long");
-			// 空行（"PROXY \r\n"）：规范要求无效头尽快断连；停留在等待态会让连接永久挂起占槽
 			if (line.isEmpty())
 				throw new RuntimeException("haproxy v1 empty line");
-			// parse the V1 header using favorite address parsers like inet_pton.
 			var tokens = line.split(" ");
 			if (tokens.length >= 5) {
 				switch (tokens[0]) {
 				case "TCP4":
 				case "TCP6":
-					// 两个协议都用InetAddress.getByName，实现内部会区分。
-					// 不在selector线程解析（见字段remoteHost处的说明），只记录，getter懒解析。
 					remotePort = parsePort(tokens[3]);
 					remoteHost = tokens[1];
 					targetPort = parsePort(tokens[4]);
 					targetHost = tokens[2];
 					break;
 				default:
-					// 家族出现但不被支持：对齐v2分支default的畸形拒绝，不能静默按直连放行
 					throw new RuntimeException("haproxy v1 unsupported family: " + tokens[0]);
 				}
-			} else if (!line.equals("UNKNOWN")) // 家族行字段缺失（如"PROXY TCP4\r\n"）：畸形头拒绝
+			} else if (!line.equals("UNKNOWN"))
 				throw new RuntimeException("haproxy v1 incomplete family line: " + line);
 			bb.ReadIndex += v1sig.length + line.length() + 2; // 跳过"PROXY "前缀、line和line后的CRLF
 			done = true;
@@ -204,8 +186,6 @@ public class HaProxyHeader {
 		return false;
 	}
 
-	// 端口为16位：畸形输入在解析处fail-fast断连（规范"不匹配即断连"），
-	// 不把越界值留到getter的InetSocketAddress构造再抛未捕获异常。
 	private static int parsePort(String token) {
 		int port;
 		try {

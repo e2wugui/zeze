@@ -33,14 +33,7 @@ public class Master extends AbstractMaster {
 	private static final Logger logger = LogManager.getLogger(Master.class);
 	public static final String MasterDbName = "__master__";
 
-	// 宽方向拒绝的可重试码：settleSplitting对from==null的主表陈旧宽拒绝
-	//（条目比主表新、仍活：本迁移之前另有settle丢失）专用。区别于终局码eSplittingBucketNotFound
-	//（MasterAgent重试端按"已settle"证据停重试+onSettled清标志），本码走"非终局码保留重试"
-	// 分支——pending-settle补发/在途settle链收敛主表后，30s重试自然通过（正是拒绝注释承诺的
-	// 契约）。终局语义只保留给幂等完成证据与死信消费（更窄方向）。
-	// 值8是模块错误码空闲位（生成侧1-7已用）。本常量定义在手写Master而非生成的AbstractMaster：
-	// 改solution.zeze.xml需全量重生成（gen_use_publish.bat）；下次协议重生成时应把
-	// eSplittingStaleMain=8迁入xml枚举（同值迁移）。
+	// 主表陈旧宽拒绝的可重试错误码（区别于终局码 eSplittingBucketNotFound），保留给 MasterAgent 重试链待主表收敛后重发
 	public static final int eSplittingStaleMain = 8;
 
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
@@ -67,9 +60,7 @@ public class Master extends AbstractMaster {
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private final Config zezeConfig;
 
-	// splitting年龄扫描（FND29 dbh2-04升格为回收）：周期扫描全部MasterDatabase的splitting条目，
-	// 超龄且结构判死（世代/INV1）的孤儿条目回收managers侧raft并tombstone；超龄但结构存活的
-	// 只error告警（判死永远结构驱动，防误杀在途split）。形态对齐Dbh2Manager.loadMonitor。
+	// 周期扫描 splitting 条目：超龄且结构判死的回收孤儿 raft，超龄但存活的仅告警
 	private final DaemonTimer splittingAgeMonitor = new DaemonTimer(
 			"Zeze.Dbh2.Master.splittingAge", 60_000, this::scanSplittingAges);
 
@@ -110,9 +101,7 @@ public class Master extends AbstractMaster {
 	}
 
 	/**
-	 * 启动splitting年龄观测扫描。生产入口Main.start()调用；构造期不
-	 * 自动启动（对齐Dbh2Manager.loadMonitor在start()启动的形态——嵌入式/测试直接构造
-	 * Master时无调度池依赖、零线程副作用，扫描可经MasterDatabase.scanSplittingAge直接驱动）。
+	 * 启动 splitting 年龄扫描与孤儿回收守护任务（由 Main.start() 调用，构造期不自动启动）。
 	 */
 	public void startSplittingAgeMonitor() {
 		splittingAgeMonitor.start();
@@ -209,7 +198,7 @@ public class Master extends AbstractMaster {
 		}
 	}
 
-	// small load & small bucket count
+	// 优先选择负载与桶数较小的 manager
 	public ArrayList<Manager> choiceManagers() {
 		lock();
 		try {
@@ -251,8 +240,7 @@ public class Master extends AbstractMaster {
 		var table = database.createTable(r.Argument.getTable(), outIsNew);
 		if (null == table)
 			return errorCode(eTableNotFound);
-		// 必须快照（对齐下方GetBuckets先例）：rpc序列化遍历live主表对象与分桶结算
-		// （endSplit/endMove结构性put/remove）并发会CME/应答失败。
+		// 返回快照，避免 RPC 序列化遍历与分桶写路径并发修改 TreeMap
 		r.Result = table.snapshot();
 		if (Boolean.TRUE.equals(outIsNew.value))
 			r.setResultCode(errorCode(eTableIsNew));
@@ -268,7 +256,7 @@ public class Master extends AbstractMaster {
 		var table = database.getTable(r.Argument.getTable());
 		if (null == table)
 			return errorCode(eTableNotFound);
-		r.Result = table.snapshot(); // 快照：rpc序列化遍历与分桶写入并发
+		r.Result = table.snapshot();
 		r.SendResult();
 		return 0;
 	}
@@ -281,12 +269,11 @@ public class Master extends AbstractMaster {
 		var table = database.getTable(r.Argument.getTable());
 		if (null == table)
 			return errorCode(eTableNotFound);
-		// floorEntry对并发写不是线程安全（红黑树重组中途读），持锁定位。
-		// 拿到的bucket引用不会被写路径原地修改（endSplit/endMove都是整体替换），锁外发送安全。
+		// 持锁定位；桶 meta 写路径均为整体替换，锁外发送安全
 		Zeze.Builtin.Dbh2.BBucketMeta.Data bucket;
 		table.lock();
 		try {
-			bucket = table.locate(r.Argument.getKey()); // 初始桶保证肯定找得到。
+			bucket = table.locate(r.Argument.getKey());
 		} finally {
 			table.unlock();
 		}
@@ -300,13 +287,7 @@ public class Master extends AbstractMaster {
 		var managerHostPort = r.Argument.getDbh2RaftAcceptorName() + "_" + r.Argument.getPort();
 		lock();
 		try {
-			// 幂等去重（对齐MQ Master.ProcessRegisterRequest形态）：重连/重注册会重复到达
-			//（首连时manager侧start()注册与连接建立钩子各一次；master重启后重连重注册），
-			// 且新连接的Register可能先于旧socket的OnSocketClose到达。同socket或同
-			// acceptor:port身份的旧条目必须替换再入列——裸add会产生同源重复条目
-			//（buildRaftConfig给同一manager分双端口建双节点raft），而tryRemoveManager只摘
-			// 首条匹配，重复条目中的死socket滞留被choiceManagers选中后CreateBucket恒失败，
-			// 建表/分桶永久瘫痪（半开连接的既有窗口一并闭口）。
+			// 按 socket 或 acceptor:port 幂等去重，替换旧条目防止断线重连后残留重复或死 socket
 			for (int i = 0; i < managers.size(); ++i) {
 				var e = managers.get(i);
 				if (e.socket == r.getSender()
@@ -319,12 +300,7 @@ public class Master extends AbstractMaster {
 		} finally {
 			unlock();
 		}
-		// 搜索所有的桶，返回在这个manager上的所有桶的配置。
-		// 逐表取快照必须在master.lock之外：master.lock内调用snapshot()（取table.lock）会与
-		// createTable的table.lock→master.choiceManagers()（取master.lock）构成AB-BA——Register(manager连接)
-		// 与CreateTable(app客户端)跨派发线程并发是常态，createTable持table.lock期间含30s超时rpc。
-		// databases/tables均为ConcurrentHashMap（弱一致遍历安全）；Data引用不被写路径替换，
-		// 锁外snapshot取到的是不早于注册时刻的状态，语义只增不减。
+		// 必须在 master 锁外逐表 snapshot()，避免与 createTable 的 table.lock → master.lock 构成 ABBA 死锁
 		for (var db : databases.values()) {
 			for (var table : db.getTables().entrySet()) {
 				for (var bucket : table.getValue().snapshot().getBuckets().values()) {
@@ -333,7 +309,6 @@ public class Master extends AbstractMaster {
 						var dbh2Config = new BDbh2Config.Data();
 						dbh2Config.setDatabase(db.getDatabaseName());
 						dbh2Config.setTable(table.getKey());
-						// 设置raftName
 						dbh2Config.setRaftConfig(bucket.getRaftConfig().replace("RaftName", raftName));
 						r.Result.getDbh2Configs().add(dbh2Config);
 					}
@@ -351,9 +326,7 @@ public class Master extends AbstractMaster {
 		return null;
 	}
 
-	// 按注册身份（acceptorName_port，与splitting条目host2Raft的key同构）查manager（FND29
-	// dbh2-04孤儿raft回收用）。master锁内串行（managers为普通ArrayList，对齐findManager的
-	// 调用形态）。
+	// 按注册身份（acceptorName_port）查找 manager，供孤儿 raft 回收使用
 	public @Nullable Manager findManagerByIdentity(String managerHostPort) {
 		lock();
 		try {
@@ -442,9 +415,7 @@ public class Master extends AbstractMaster {
 			// insert instance
 			var existInstance = zezeInstanceTable.get(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
 			if (null != existInstance) {
-				// 错误码保真：finally的SendResult抢在派发层之前发送
-				//（trySendResultCode输给发送CAS），早退路径必须预置resultCode，否则客户端收到的是
-				// 上一步预置码的变形（eDefaultError等）。返回值保持不变（直调断言不受影响）。
+				// finally 中直接 SendResult，早退路径须预置 resultCode 以确保发送准确错误码
 				r.setResultCode(errorCode(BSetInUse.eInstanceAlreadyExists));
 				return errorCode(BSetInUse.eInstanceAlreadyExists);
 			}
@@ -456,7 +427,7 @@ public class Master extends AbstractMaster {
 			var currentGlobal = zezeDataTable.get(emptyValue);
 			if (null != currentGlobal) {
 				if (0 != Arrays.compare(currentGlobal, r.Argument.getGlobal().getBytes(StandardCharsets.UTF_8))) {
-					r.setResultCode(errorCode(BSetInUse.eGlobalNotSame)); // 同上：错误码保真
+					r.setResultCode(errorCode(BSetInUse.eGlobalNotSame));
 					return errorCode(BSetInUse.eGlobalNotSame);
 				}
 			} else {
@@ -470,22 +441,18 @@ public class Master extends AbstractMaster {
 					var exist = it.key();
 					if (0 == Arrays.compare(bbKey.Bytes, bbKey.ReadIndex, bbKey.WriteIndex, exist, 0, exist.length))
 						continue;
-					// instance count 初始为1，需要计算事务中（上面的zezeInstanceTable.put）刚刚加入的instance。
-					// 上面的compare严格的忽略掉刚刚事务中加入的（实际上应该看不到）
-					// 这样到达这里instance count已经大于1，可以直接返回错误了。
-					// 这个流程请参考 DatabaseMySql procedure _ZezeSetInUse_。
+					// 忽略本事务新写入的 key；若仍发现其他实例，则实例数 > 1（参见 DatabaseMySql _ZezeSetInUse_）
 					if (r.Argument.getGlobal().isEmpty()) {
-						r.setResultCode(errorCode(BSetInUse.eTooManyInstanceWithoutGlobal)); // 同上：错误码保真
+						r.setResultCode(errorCode(BSetInUse.eTooManyInstanceWithoutGlobal));
 						return errorCode(BSetInUse.eTooManyInstanceWithoutGlobal);
 					}
 				}
 			}
-			// eSuccess必须在commit()之后置位：commit抛出（写冲突/IO错误）时finally发送的
-			// 是上一步预置的失败码；预置在前会把未提交的事务当作成功发给客户端。
+			// eSuccess 必须在 commit() 之后置位，防止提交异常时把失败事务误发为成功
 			trans.commit();
 			r.setResultCode(errorCode(BSetInUse.eSuccess));
 		} finally {
-			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+			r.SendResult(); // 错误码已预先填写，异常时也能发送对应结果
 			unlock();
 		}
 		return 0;
@@ -510,20 +477,18 @@ public class Master extends AbstractMaster {
 					var exist = it.key();
 					if (0 == Arrays.compare(bbKey.Bytes, bbKey.ReadIndex, bbKey.WriteIndex, exist, 0, exist.length))
 						continue;
-					// instance count 初始为1，需要忽略事务中（上面的zezeInstanceTable.delete(）刚刚删除的。
-					// 这样到达这里instance count表示有剩下的。可以直接返回结果了。
-					// 这个流程请参考 DatabaseMySql procedure _ZezeClearInUse_。
-					trans.commit(); // eSuccess在commit之后置位（见SetInUse注释）
+					// 忽略本事务删除的 key；仍有其他实例存在，保留 global 直接提交返回（参见 DatabaseMySql _ZezeClearInUse_）
+					trans.commit();
 					r.setResultCode(errorCode(BClearInUse.eSuccess));
 					return 0;
 				}
 			}
 			// 到达这里表示zezeInstanceTable为空或者只存在将被删除的key。
 			zezeDataTable.delete(trans, emptyValue);
-			trans.commit(); // eSuccess在commit之后置位（见SetInUse注释）
+			trans.commit();
 			r.setResultCode(errorCode(BClearInUse.eSuccess));
 		} finally {
-			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+			r.SendResult();
 			unlock();
 		}
 		return 0;
@@ -542,9 +507,6 @@ public class Master extends AbstractMaster {
 			if (null != exist) {
 				var dvExist = Database.DataWithVersion.decode(exist);
 				if (dvExist.version != r.Argument.getVersion()) {
-					// 错误码保真：变形=eVersionMismatch在客户端
-					// 收到eDefaultError（finally的SendResult发送预置码，派发层返回值输给发送CAS）。
-					// e2e钉死见TestFnd19GAMasterErrorCodeFidelity（Dbh2TestEnv真实rpc派发路径）。
 					r.setResultCode(errorCode(BSaveDataWithSameVersion.eVersionMismatch));
 					return errorCode(BSaveDataWithSameVersion.eVersionMismatch);
 				}
@@ -561,12 +523,12 @@ public class Master extends AbstractMaster {
 			r.setResultCode(errorCode(BSaveDataWithSameVersion.eUpdateError));
 			zezeDataTable.put(trans, id.bytesUnsafe(), id.getOffset(), id.size(),
 					bbData.Bytes, bbData.ReadIndex, bbData.size());
-			trans.commit(); // eSuccess在commit之后置位（见SetInUse注释）
+			trans.commit();
 			r.setResultCode(errorCode(BSaveDataWithSameVersion.eSuccess));
 			r.Result.setVersion(newVersion);
 			return 0;
 		} finally {
-			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
+			r.SendResult();
 			unlock();
 		}
 	}

@@ -155,26 +155,25 @@ public class AutoKey extends ReentrantLock {
 	}
 
 	/**
-	 * 设置当前serverId的种子，新种子必须比当前值大。
-	 * 契约：成功返回后，此后发起的nextId()保证大于等于新水位；与本次调用并发执行的nextId()
-	 * 可能取到旧段号（其消耗先于内部的失效发布），需要严格串行的场景应先静默发号再调用。
+	 * 设置当前 serverId 的种子，新种子必须比当前值大。
+	 * 成功返回后，此后发起的 nextId() 保证不小于新水位；与本次调用并发的 nextId() 可能仍取到旧段号。
 	 *
-	 * @param seed new seed.
-	 * @return true if success.
-	 * @throws IllegalStateException seed 超出当前serverId的id编码上限（见maxSeedForServerId）。
+	 * @param seed 新种子
+	 * @return 是否设置成功
+	 * @throws IllegalStateException seed 超出当前 serverId 的编码上限
 	 */
 	public boolean setSeed(long seed) {
-		if (seed > maxSeedForServerId()) // 拒绝把水位投毒到无法编码的区间：之后批段只能永久异常
+		if (seed > maxSeedForServerId())
 			throw new IllegalStateException("AutoKey.setSeed: seed(" + seed + ") too large for serverId("
 					+ module.zeze.getConfig().getServerId() + ')');
 		return raiseWatermark("AutoKey.setSeed", current -> seed > current ? seed : -1);
 	}
 
 	/**
-	 * 增加当前serverId的种子。只能增加，如果溢出或越过编码上限，返回失败。
+	 * 增加当前 serverId 的种子；若溢出或越过编码上限则返回 false。
 	 *
-	 * @param delta delta
-	 * @return true if success.
+	 * @param delta 增量
+	 * @return 是否增加成功
 	 */
 	public boolean increaseSeed(long delta) {
 		if (delta <= 0)
@@ -182,14 +181,14 @@ public class AutoKey extends ReentrantLock {
 		var maxSeed = maxSeedForServerId();
 		return raiseWatermark("AutoKey.increaseSeed", current -> {
 			var newSeed = current + delta;
-			return newSeed > 0 && newSeed <= maxSeed ? newSeed : -1; // 溢出（回绕为负）或越过编码上限：失败
+			return newSeed > 0 && newSeed <= maxSeed ? newSeed : -1;
 		});
 	}
 
 	/**
-	 * 返回当前serverId的种子。
+	 * 返回当前 serverId 的种子。
 	 *
-	 * @return seed
+	 * @return 当前种子
 	 */
 	public long getSeed() {
 		long ret;
@@ -209,11 +208,7 @@ public class AutoKey extends ReentrantLock {
 		throw new IllegalStateException("AutoKey.getSeed failed: " + ret);
 	}
 
-	// 抬表水位（setSeed/increaseSeed）必须持AutoKey实例锁穿越提交点，且失效发布先于事务提交：
-	// 若提交后再失效，存在“提交与失效之间”的窗口——快路径在缝里消耗旧段号并通过复核返回，
-	// 合服时与存量id重号。失效先于提交后：发布到提交期间慢路径等锁进不来，不会用
-	// 旧水位重装段；快路径复核必失败（消耗作废成空洞，转慢路径）。仅确定事务失败时恢复现役段；
-	// 等待中断须等任务结束再释放锁，异常结果不确定时丢弃余段（允许空洞，不允许重号）。
+	// 持实例锁抬高表水位，且先失效本地号段再提交事务（允许空洞，不允许重号）；仅确认事务失败时恢复旧段
 	private boolean raiseWatermark(String action, LongUnaryOperator raiser) {
 		boolean interrupted = false;
 		lock();
@@ -224,7 +219,7 @@ public class AutoKey extends ReentrantLock {
 				var future = TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 					var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 					var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
-					var newSeed = raiser.applyAsLong(bAutoKey.getNextId()); // 负数=不抬（失败）
+					var newSeed = raiser.applyAsLong(bAutoKey.getNextId()); // 负数表示不抬高（失败）
 					if (newSeed < 0)
 						return Procedure.LogicError;
 					bAutoKey.setNextId(newSeed);
@@ -236,7 +231,7 @@ public class AutoKey extends ReentrantLock {
 						result = future.get();
 						break;
 					} catch (InterruptedException e) {
-						// 等待中断不会取消写库任务；须持锁等其结束，才能恢复旧段或允许重新批段。
+						// 等待中断不会取消写库任务，须持锁等其结束后再决定恢复或重批
 						interrupted = true;
 					}
 				}
@@ -254,9 +249,7 @@ public class AutoKey extends ReentrantLock {
 		}
 	}
 
-	// 当前serverId下id编码（nextByteBuffer：serverId前缀+seed变长大端拼装，总长≤8字节，每字节
-	// 7位负载）可表达的seed上限。serverId==0或≥0x80时，8字节总长的首字节≥0x80，ToLongBE按
-	// 有符号大端读会得到负数，违反nextId“返回值一定为正”的约定，故再保守少用1字节。
+	// 当前 serverId 下大端拼接编码（总长≤8字节且保证非负）允许的最大 seed
 	private long maxSeedForServerId() {
 		int serverId = module.zeze.getConfig().getServerId();
 		int n = 8 - (serverId > 0 ? ByteBuffer.WriteUIntSize(serverId) : 0);
@@ -271,11 +264,10 @@ public class AutoKey extends ReentrantLock {
 			var localRange = range;
 			if (localRange != null) {
 				var next = localRange.tryNextId();
-				// 复核号段仍有效再返回：失效可能发生在读取引用与消耗之间，此时旧段号作废成空洞，
-				// 转慢路径按新表水位重新批段。
+				// 复核号段仍有效，防止与 raiseWatermark 失效并发返回旧段号
 				//noinspection NumberEquality
 				if (next != 0 && range == localRange)
-					return next; // allocate in range success
+					return next;
 			}
 
 			lock();
@@ -293,13 +285,11 @@ public class AutoKey extends ReentrantLock {
 						var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 						var key = module._tAutoKeys.getOrAdd(seedKey);
 						var start = key.getNextId();
-						// 水位越过编码上限（真耗尽）或为负（表被旧版本越界setSeed投毒）：明确报错，
-						// 不再批出无法编码的号段
 						if (start < 0 || start >= maxSeed) {
 							exhausted.value = true;
 							return Procedure.LogicError;
 						}
-						// allocateCount == 0 会死循环；段尾夹在编码预算内，同时杜绝 start+count 的long溢出
+						// 段尾限制在编码上限内，同时避免 start + count 溢出
 						var end = Math.min(start + fund.get(), maxSeed);
 						key.setNextId(end);
 						newRange.value = new Range(start, end);

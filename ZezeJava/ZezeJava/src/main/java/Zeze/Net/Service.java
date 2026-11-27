@@ -46,9 +46,7 @@ import org.jspecify.annotations.Nullable;
  */
 public class Service extends ReentrantLock {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
-	// 默认共享发号流随机63位基址——同JVM内全Service共享一条流保证不撞号，
-	// 随机基址使跨JVM/leader代碰撞概率2^-63量级（ServiceManagerWithRaft按sessionId判活，
-	// 固定从1起号跨代必撞）。
+	// 默认共享发号流使用随机 63 位基址，避免同 JVM 多 Service 或跨代重启撞号。
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(
 			(System.nanoTime() ^ new java.security.SecureRandom().nextLong()) & Long.MAX_VALUE);
 	private static final VarHandle closedRecvCountHandle, closedRecvSizeHandle;
@@ -91,14 +89,10 @@ public class Service extends ReentrantLock {
 
 	private @Nullable Selectors selectors;
 	private boolean noProcedure;
-	// volatile：tryStartKeepAliveCheckTimer的无锁快路径在Service锁外读它。
-	protected volatile @Nullable Future<?> keepCheckTimer;
-	// keepalive定时器随服务生命周期管理：start启动（keepCheckPeriod默认0禁用时无开销）、
-	// stop熔断。同时保留TcpSocket构造的兜底启动：Token/GlobalAgent/OnzServer等
-	// 手工connector路径不经过Service.start()，仍依赖懒启动。
-	private volatile boolean keepAliveCheckStopped;
+	protected volatile @Nullable Future<?> keepCheckTimer; // 无锁快路径在 Service 锁外读
+	private volatile boolean keepAliveCheckStopped; // stop 时置位以熔断保活定时器懒启动重试
 	private @Nullable ServiceStatisticLog servicePerf;
-	// 门禁白名单：非空即布防——未完成密钥交换的连接仅放行白名单内的协议。
+	// 门禁白名单：非空时未完成密钥交换的连接仅放行白名单内的协议。
 	private final LongHashSet decodeAdmissionWhitelist = new LongHashSet();
 
 	public String getInstanceName() {
@@ -109,8 +103,7 @@ public class Service extends ReentrantLock {
 		this.instanceName = instanceName;
 	}
 
-	// 停机屏障：stop最前置位、start复位；addSocket在登记成功后复查，
-	// 命中即自查自关——与stop的关闭循环两序either-way必被一方关闭，迟到连接不再泄漏。
+	// 停机屏障：stop 最前置位、start 复位，addSocket 登记后复查以防迟到连接泄漏。
 	private volatile boolean stopped;
 
 	public Service(String name) {
@@ -131,8 +124,6 @@ public class Service extends ReentrantLock {
 		this.config = initConfig(config);
 		socketOptions = this.config.getSocketOptions();
 		noProcedure = app == null || app.isNoDatabase();
-		// 模板仅在构造期取用一次（多Service共享同一supplier会撞号，模板语义
-		// 仅为兼容旧全局安装的单Service用法）。
 		var template = defaultSessionIdGenFunc;
 		if (template != null)
 			sessionIdGenerator = template;
@@ -140,13 +131,9 @@ public class Service extends ReentrantLock {
 		tryStartStatisticLog();
 	}
 
-	// 兼容旧全局安装AsyncSocket.setSessionIdGenFunc的模板入口——仅对之后
-	// 构造的Service生效。多Service共享同一supplier仍会撞号（Zezex linkd/Game.Server
-	// 拓扑即此形态），自定义发号请用实例级setSessionIdGenerator
-	// （须在创建任何socket之前调用，并保证进程内全局值域不重叠）。
 	private static volatile @Nullable LongSupplier defaultSessionIdGenFunc;
 
-	/** 兼容旧全局安装的模板入口：仅对之后构造的Service生效；多Service共享同一supplier仍会撞号。 */
+	/** 兼容全局发号安装的模板入口：仅对之后构造的 Service 生效，自定义发号请用 {@link #setSessionIdGenerator}。 */
 	public static void setDefaultSessionIdGenFunc(@Nullable LongSupplier seed) {
 		defaultSessionIdGenFunc = seed;
 	}
@@ -236,17 +223,16 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * 会话按sessionId登记入表（putIfAbsent，先注册者胜）。
-	 * 返回false=同号互撞或socket已close：撞号时打error日志并关闭新连接（保留先注册者），
-	 * 已close的迟到登记被拒；调用方不得再对该连接回调OnHandshakeDone。
+	 * 会话按 sessionId 登记入表（先注册者胜）；已关闭或撞号时返回 false（撞号关闭新连接），
+	 * 返回 false 时调用方不得继续回调 OnHandshakeDone。
 	 */
 	protected final boolean addSocket(AsyncSocket so) {
 		var existing = so.runIfOpen(() -> {
 			var e = socketMap.putIfAbsent(so.getSessionId(), so);
-			return e != null ? e : so; // 插入成功以so自身为哨兵，与runIfOpen的closed-null区分
+			return e != null ? e : so; // 插入成功以 so 自身区分 runIfOpen 的 closed-null
 		});
 		if (existing == null)
-			return false; // 已closed：迟到登记拒绝
+			return false;
 		if (existing != so) {
 			logger.error("addSocket: duplicate sessionId {} in service '{}': existing socket {} kept, "
 							+ "colliding socket {} closed. Usually caused by multiple apps in one JVM overriding "
@@ -256,9 +242,7 @@ public class Service extends ReentrantLock {
 			so.close(new IllegalStateException("duplicate session id: " + so.getSessionId()));
 			return false;
 		}
-		// 登记成功后复查停机屏障：stop最前置位后仍在飞的登记在此自查自关。
-		// 复查读到stopped==false时，put必然先于stop的关闭循环开始——循环遍历live的socketMap
-		// 必然看到已完成的put并关闭它；两序either-way必被一方关闭，无锁封死迟到连接泄漏。
+		// 登记后复查停机屏障：与 stop() 的置位+遍历形成双向兜底，避免迟到连接泄漏。
 		if (stopped) {
 			so.close(serviceStoppedException);
 			return false;
@@ -318,9 +302,7 @@ public class Service extends ReentrantLock {
 	}
 
 	public void start() throws Exception {
-		stopped = false; // 复位停机屏障：支持stop后再start
-		// keepalive定时器随服务启动（先于config.start()创建任何socket）；KeepCheckPeriod
-		// 默认0禁用时tryStartKeepAliveCheckTimer内部不创建任务，无开销。
+		stopped = false;
 		keepAliveCheckStopped = false;
 		tryStartKeepAliveCheckTimer();
 		config.start();
@@ -328,18 +310,12 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * 停止服务：关闭全部连接并熔断keepalive定时器与懒启动重试。
-	 * <p>
-	 * 【锁序契约】本方法持本Service锁逐个close连接，而 {@link AsyncSocket#close} 在关闭
-	 * 发起线程同步回调 {@link #OnSocketClose}（重入本Service锁安全）；回调同样发生在
-	 * selector线程与keepCheck的tick线程。因此OnSocketClose覆写可以重入本Service锁，但
-	 * 锁序恒为Service锁→回调内业务锁单向，不得反向阻塞；本方法锁内段不得等待"由
-	 * OnSocketClose（任意线程）持有的资源"——keepCheckTimer.cancel须先取TimerFuture锁
-	 * 并join在飞tick，而飞tick可能正同步停在子类OnSocketClose里等本Service锁，故锁内
-	 * 只捕获句柄置null，cancel移到锁外。
+	 * 停止服务：关闭全部连接并停止保活定时器。
+	 * 锁序：本方法持 Service 锁同步触发 {@link #OnSocketClose}，故锁序恒为 Service 锁 → 回调业务锁；
+	 * keepCheckTimer 的 cancel 在锁外执行，避免与在飞心跳回调死锁。
 	 */
 	public void stop() throws Exception {
-		stopped = true; // 停机屏障最前置位：先于关闭循环，addSocket登记后复查据此拒绝迟到连接
+		stopped = true;
 		config.stop();
 		Future<?> keepTimer;
 		lock();
@@ -347,19 +323,17 @@ public class Service extends ReentrantLock {
 			for (AsyncSocket as : socketMap)
 				as.close(serviceStoppedException); // remove in callback OnSocketClose
 
-			// 不清除_RpcContexts：让Rpc的TimerTask超时后照常触发回调；直接清除会卡死同步等待。
-			// 在飞Rpc的去留可由应用层OnSocketDisposed覆写决定。
+			// 不清除 rpcContexts：让 Rpc 超时或 OnSocketDisposed 正常收尾，避免卡死同步等待。
 
 			keepTimer = keepCheckTimer;
 			keepCheckTimer = null;
-			keepAliveCheckStopped = true; // 熔断tryStartKeepAliveCheckTimer的挂起重试
+			keepAliveCheckStopped = true;
 
 			ZezeCounter.instance.serviceStop(this);
 		} finally {
 			unlock();
 		}
-		// cancel须在Service锁外（见上锁序契约）：锁内只捕获句柄置null（保住与
-		// tryStartKeepAliveCheckTimer的互斥）；锁外cancel最多等一轮在飞tick，无死锁。
+		// 锁外 cancel 定时器，避免与正停在子类 OnSocketClose 的在飞心跳任务死锁。
 		if (keepTimer != null)
 			keepTimer.cancel(true);
 	}
@@ -387,12 +361,12 @@ public class Service extends ReentrantLock {
 		return new TcpSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
-	/** 客户端连接DNS解析点：TcpSocket在专用resolver线程上异步调用，允许阻塞；可覆写（测试门控/自定义resolver）。 */
+	/** 客户端连接 DNS 解析扩展点（由 TcpSocket 在专用解析线程上异步调用，允许阻塞）。 */
 	protected InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
 		return InetAddress.getByName(hostNameOrAddress);
 	}
 
-	// 契约：客户端socket构造微秒级非阻塞（可在Connector锁内调用），覆写不得阻塞
+	// 构造须保持非阻塞（可能在 Connector 锁内调用）。
 	public AsyncSocket newWebsocketClient(String url,
 												   @Nullable Object userState, @Nullable Connector connector) {
 		return new WebsocketClient(this, url, userState, connector);
@@ -415,17 +389,8 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * 连接销毁回调：默认实现对仍挂在本连接上的在飞Rpc上下文立即失败处置。
-	 * 在 OnSocketClose 之后调用，此时外面【必须】拿不到此 AsyncSocket 了（Socket已设
-	 * null）；对已持有的引用，使用时判断返回值，主要是 Send 返回 false。
-	 *
-	 * <p>
-	 * 默认实现：在飞Rpc上下文立即失败——future以 {@link RpcSocketDisposedException}
-	 * 失败（可诊断，区别于超时），handle以 {@link Procedure#ErrorSendFail} 立即派发
-	 * （上下文已移除，超时定时器不再触发，不派发则回调方永远等不到）。
-	 * 框架层没有"在飞Rpc随重连重发"机制（重连只重建socket；Rpc实例一次性，重发须新建
-	 * 实例并配合幂等/去重），故立即失败不丢失语义；跨连接迟到应答即使按sid命中，上下文
-	 * 已移除只走到 {@link #onRpcLostContext}。
+	 * 连接销毁回调（在 {@link #OnSocketClose} 之后触发）：默认使仍挂在本连接上的在飞 Rpc 立即失败
+	 * （future 置 {@link RpcSocketDisposedException}，回调以 {@link Procedure#ErrorSendFail} 派发）。
 	 *
 	 * @param so after socket closed. last callback.
 	 */
@@ -437,19 +402,19 @@ public class Service extends ReentrantLock {
 			try {
 				var rpc = it.value();
 				if (!removeRpcContext(it.key(), rpc))
-					continue; // 快照中的上下文已被消费；同号的后续上下文仍归其发送连接。
+					continue;
 				rpc.setResultCode(Procedure.ErrorSendFail);
 				var future = rpc.getFuture();
 				if (future != null)
 					future.setException(RpcSocketDisposedException.getInstance());
 				else {
-					@SuppressWarnings("unchecked") // responseHandle的参数化类型不可具体化，实际类型由注册侧保证
+					@SuppressWarnings("unchecked")
 					var handle = (ProtocolHandle<Rpc<?, ?>>)(ProtocolHandle<?>)rpc.getResponseHandle();
 					if (handle != null) {
 						var factoryHandle = findProtocolFactoryHandle(rpc.getTypeId());
 						if (factoryHandle != null)
 							dispatchRpcResponse(rpc, handle, factoryHandle);
-						else // 协议工厂缺失时静默丢弃responseHandle无线索，warn对齐onRpcLostContext
+						else
 							logger.warn("rpc disposed: protocol factory not found, response handle skipped: {}", rpc);
 					}
 				}
@@ -470,10 +435,8 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * 接受新连接的公共步骤：限流→haProxy→注册→OnHandshakeDone（TCP与websocket接受路径统一入口）。
-	 * 超限抛IllegalStateException，调用方负责捕获并关闭连接；addSocket返回false时直接返回，
-	 * 不回调OnHandshakeDone。推迟OnHandshakeDone的接受路径（Handshake家族/Token覆写）不走本方法，
-	 * 自行checkMaxConnections+setupHaProxyHeader+按addSocket返回值短路。
+	 * 接受新连接的公共流程：限流、安装 HaProxy 头解析器、登记入表并回调 {@link #OnHandshakeDone}。
+	 * 连接数超限时抛 {@link IllegalStateException}；登记失败时静默返回。
 	 */
 	protected final void tryAccept(AsyncSocket so) throws Exception {
 		if (socketMap.size() >= config.getMaxConnections()) // 这里可能有并发原子性问题,不能保证限制在max以内
@@ -490,15 +453,11 @@ public class Service extends ReentrantLock {
 	 * @param so new socket accepted.
 	 */
 	public void OnSocketAccept(AsyncSocket so) throws Exception {
-		tryAccept(so); // 超限抛出由accept流程catch关闭（既有契约）；撞号静默返回
+		tryAccept(so);
 	}
 
 	/**
-	 * 给新接受的连接安装 HaProxy 头解析器（ServiceConf 配置了 HaProxyKey 时）。
-	 * 覆写 OnSocketAccept 的服务子类（HandshakeServer/HandshakeBoth/TokenServer 等）不再走
-	 * Service.OnSocketAccept 的默认实现，会丢失这里的安装：LB 的 "PROXY ..." 头
-	 * 会被当作协议帧头解码成未知协议，所有连接被拒且零告警。覆写点必须在收到任何数据前
-	 * 调用本方法恢复（对齐 HandshakeBase.checkMaxConnections 的判例）。
+	 * 按配置给新接受的连接安装 HaProxy 头解析器；覆写 {@link #OnSocketAccept} 的子类须在收包前调用。
 	 */
 	protected final void setupHaProxyHeader(AsyncSocket so) {
 		if (config.getHaProxyKey() != null && so instanceof TcpSocket tcp)
@@ -563,20 +522,12 @@ public class Service extends ReentrantLock {
 		return true;
 	}
 
-	/**
-	 * 登记门禁白名单协议：白名单非空即布防——未完成密钥交换的连接仅放行白名单内的协议，
-	 * 其余明文帧解码即断连。须在建立连接前调用：既有连接不回溯装配，且集合非线程安全，
-	 * 连接存在期间不得追加。
-	 */
+	/** 登记门禁白名单协议：须在建立连接前调用（非线程安全），非空时未完成密钥交换的连接仅放行白名单协议。 */
 	public void armDecodeAdmission(long typeId) {
 		decodeAdmissionWhitelist.add(typeId);
 	}
 
-	/**
-	 * 连接级解码准入：由 TcpSocket 连接构造器调用（唯一调用方），返回的谓词在
-	 * {@link Protocol#decode} 逐帧生效（帧头解析后、完整性检查前），返回 false 即断连；
-	 * 白名单非空时以其为准入，双向 codec 装齐撤销。null 表示不设防。
-	 */
+	/** 返回连接级解码准入谓词（供 TcpSocket 构造装配，双向安全 codec 装齐时撤销）；null 表示不限制。 */
 	public @Nullable LongPredicate getConnectionDecodeAdmission() {
 		if (!decodeAdmissionWhitelist.isEmpty())
 			return decodeAdmissionWhitelist::contains;
@@ -688,10 +639,7 @@ public class Service extends ReentrantLock {
 						protocolClassName, new Binary(bytesCopy));
 			} else
 				proc = app.newProcedure(action, protocolClassName, factoryHandle.Level);
-			// p==null当且仅当action内decodeProtocol抛出（outProtocol.value未赋值），
-			// 方法引用(protocol, code) -> Objects.requireNonNull(protocol).trySendResultCode(code)不容忍null会NPE吞掉错误处置。此时对齐非事务
-			// 分支（decode异常上抛即断连）的语义close连接——Rpc.Send经连接关闭路径感知
-			// （OnSocketDisposed对在飞上下文立即失败），不再干等超时。
+			// p == null 说明 decodeProtocol 抛异常，直接关闭连接以对齐非事务分支的断连语义。
 			TaskSpec.ofProcedureOut(proc, outProtocol, (p, code) -> {
 				if (p != null)
 					p.trySendResultCode(code);
@@ -811,12 +759,11 @@ public class Service extends ReentrantLock {
 	public final @Nullable Rpc<?, ?> removeRpcContext(long sid) {
 		var rpc = rpcContexts.remove(sid);
 		if (rpc != null)
-			rpc.cancelTimeout(); // 上下文已消费（socket销毁等）：兜底定时器随之取消，防滞留
+			rpc.cancelTimeout();
 		return rpc;
 	}
 
-	// 应答会合校验用的非消费读（先校验后消费，伪造帧不触碰map，
-	// 真实应答或超时仍可达）。
+	// 应答会合校验用的非消费读（先校验再移除）。
 	public final @Nullable Rpc<?, ?> getRpcContext(long sid) {
 		return rpcContexts.get(sid);
 	}
@@ -824,9 +771,7 @@ public class Service extends ReentrantLock {
 	public final boolean removeRpcContext(long sid, Rpc<?, ?> ctx) {
 		if (!rpcContexts.remove(sid, ctx))
 			return false;
-		ctx.cancelTimeout(); // 上下文已消费（应答到达/发送失败/超时自身）：取消兜底定时器；
-		// 不取消则定时器λ捕获的rpc滞留到超时窗口耗尽（2026-11-01 soak bench OOM 根因）。
-		// 超时路径自身赢移除时，cancel 对运行中的任务是 no-op。
+		ctx.cancelTimeout();
 		return true;
 	}
 
@@ -898,8 +843,7 @@ public class Service extends ReentrantLock {
 			if (manualContexts.putIfAbsent(sessionId, context) == null) {
 				context.setSessionId(sessionId);
 				context.setService(this);
-				// 超时清理必须立即注册（scheduleNow）：上面的 putIfAbsent 注册不随事务回滚撤销，
-				// 回滚后条目仍需超时兜底移除并回调 onRemoved；事务感知的 schedule 会随回滚丢弃注册，导致 manualContexts 条目永驻。
+				// putIfAbsent 不随事务回滚撤销，须用 scheduleNow 注册超时兜底。
 				TaskSpec.ofAction(() -> tryRemoveManualContext(sessionId, true)).scheduleNow(timeout);
 				return sessionId;
 			}
@@ -1029,14 +973,9 @@ public class Service extends ReentrantLock {
 	}
 
 	public void tryStartKeepAliveCheckTimer() {
-		// 无锁快路径：定时器已启动（服务start时eager启动，主路径）或服务已停时，
-		// 每条TcpSocket构造只花一次volatile读，不碰Service锁。
 		if (keepCheckTimer != null || keepAliveCheckStopped)
 			return;
-		// 兜底路径（手工connector等服务未经start()的懒启动）：tryLock+延迟补偿——
-		// 本方法可能与Service锁的长期持有者（如SMServer.closeSession持锁提交raft事务）并发；
-		// 阻塞等锁会与 Raft锁→Service锁 的调用路径互喂成ABBA死锁。定时器启动可以推迟：
-		// 抢锁失败挂1s后重试（链式，同时刻至多一个）。
+		// 使用 tryLock + 延迟重试，避免与持 Service 锁的长操作形成锁序死锁。
 		if (!tryLock()) {
 			TaskSpec.ofAction(this::tryStartKeepAliveCheckTimer).scheduleNow(1000);
 			return;
@@ -1058,14 +997,9 @@ public class Service extends ReentrantLock {
 		var conf = getConfig().getHandshakeOptions();
 		var keepRecvTimeout = conf.getKeepRecvTimeout() > 0 ? conf.getKeepRecvTimeout() : Integer.MAX_VALUE;
 		var keepSendTimeout = conf.getKeepSendTimeout() > 0 ? conf.getKeepSendTimeout() : Integer.MAX_VALUE;
-		// long秒：与AsyncSocket.activeRecvTime/activeSendTime的long存储配套，int截断会在
-		// 时间源越过2^31秒后使差值变大负数，超时判定恒false（静默死连接永不回收）。
 		long now = GlobalTimer.getCurrentSeconds();
 		foreach(socket -> {
-			// 覆盖判据是"活跃时间曾被更新"（不限instanceof TcpSocket）：
-			// Websocket/WebsocketClient建立时reset、收发路径更新，同样被回收/探测，
-			// 静默死链不泄漏；从不更新活跃时间的连接类型（如未适配的自定义AsyncSocket）
-			// 保持豁免，避免activeRecvTime==0被当作超时立即误杀。
+			// 仅检查曾维护活跃时间的连接，未适配活跃时间的自定义连接保持豁免。
 			if (socket.getActiveRecvTime() > 0 || socket.getActiveSendTime() > 0) {
 				long recvTime = now - socket.getActiveRecvTime();
 				if (recvTime > keepRecvTimeout) {

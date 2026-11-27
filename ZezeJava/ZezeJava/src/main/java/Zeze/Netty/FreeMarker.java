@@ -22,7 +22,6 @@ public class FreeMarker {
 	public FreeMarker(File templateDir) throws Exception {
 		freeMarker.setDirectoryForTemplateLoading(templateDir);
 
-		// Recommended settings for new projects:
 		freeMarker.setDefaultEncoding(HttpServer.defaultCharset.name());
 		freeMarker.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
 		freeMarker.setLogTemplateExceptions(false);
@@ -30,7 +29,7 @@ public class FreeMarker {
 		freeMarker.setFallbackOnNullLoopVariable(false);
 		freeMarker.setSQLDateAndTimeTimeZone(TimeZone.getDefault());
 
-		freeMarker.setTemplateUpdateDelayMilliseconds(5000); // 5 seconds
+		freeMarker.setTemplateUpdateDelayMilliseconds(5000);
 	}
 
 	public Configuration getConfiguration() {
@@ -49,11 +48,7 @@ public class FreeMarker {
 		try {
 			tmpl = freeMarker.getTemplate(url);
 		} catch (Throwable t) {
-			// 模板缺失/读取异常发生在Writer创建之前，不经过fail()/close路径——默认事务路径下
-			// 异常被triggerActions吞掉，生命周期close(null)是CLOSE_FINISH（不发响应不断连），
-			// 客户端挂到idle超时后零字节关闭。此刻exchange未写出任何字节，直接单发500干净
-			// 合法（与HttpExchangeContentLengthWriter失败收尾同形态）；随后生命周期close(null)
-			// 先摘除exchange，上层异常传播路径不会产生第二个响应。
+			// 此时尚未写出任何响应，直接发 500 避免事务路径吞异常后客户端挂起到超时。
 			logger.error("FreeMarker getTemplate failed: {}", url, t);
 			x.send500("internal server error: template not found: " + url);
 			throw t;
@@ -63,7 +58,7 @@ public class FreeMarker {
 				try {
 					tmpl.process(modelBean, out);
 				} catch (Throwable t) {
-					out.fail(); // 渲染异常：close不发200截断页
+					out.fail();
 					throw t;
 				}
 				if (out.getContentLength() > 64 * 1024)
@@ -74,9 +69,7 @@ public class FreeMarker {
 				try {
 					tmpl.process(modelBean, out);
 				} catch (Throwable t) {
-					// 渲染异常：close改断连（200头已在线无法改写状态码，
-					// 不发终结符防截断页伪装完整200），并晋升到缓冲分支——重试走可发500的
-					// 可修复路径（否则首渲染即失败的模板会永远停留在流式分支）。
+					// 流式渲染失败改为断连，并切到缓冲分支使后续重试可返回 500。
 					out.fail();
 					withContentLength.add(url);
 					throw t;

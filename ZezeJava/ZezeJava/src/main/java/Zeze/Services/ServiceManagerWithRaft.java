@@ -47,10 +47,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private static final Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
 	private final Rocks rocks;
-	// 会话清理对账周期守护：body进worker池不占调度线程，close时有界等待在飞一轮。
 	private final DaemonTimer reconcileDaemon = new DaemonTimer("ServiceManagerWithRaft.reconcileSessions", 60_000, this::reconcileSessions);
-	// close标记：置位后，SM锁串行的raft侧任务体（dispatchRaftRequest/RpcResponse、closeSession、
-	// reconcileSessions）在锁内首查即退出，不再触碰rocks。与close()的锁屏障配合，见close()。
+	// 停机标记：SM 锁内的 Raft 任务体首查此位，置位后直接退出不再访问 rocks
 	private volatile boolean closed;
 	private final Table<String, BAutoKey> tableAutoKey;
 	private final Table<String, BSession> tableSession;
@@ -106,17 +104,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	@Override
 	public void close() {
 		closed = true;
-		reconcileDaemon.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s）；超预算逃逸轮由closed+锁屏障挡
-		// SM锁是raft侧所有存储过程体的串行点且全程持有：先置closed再过一次锁屏障——拿到锁时
-		// 已无过程体在执行，此后排定的任务体在锁内见closed直接退出。否则rocks.close()释放的
-		// 原生句柄可与在途的walk/iterator竞争，librocksdbjni段错误直接杀死整个JVM（fast套件
-		// 偶发崩溃的根因：closeSession退避重试排定在全局critical池上，最多12.8s后才跑）。
-		// 屏障后不持锁调rocks.close()：close路径内raft.shutdown要停网络，若有IO线程正阻塞在
-		// SM锁上（响应派发），持锁等待可能与停机互等。
+		reconcileDaemon.stop();
+		// 先置 closed 再过 SM 锁屏障确保无在飞过程体访问 rocks，锁外关闭 rocks 以免与网络停机互等
 		lock();
 		unlock();
-		// 关停清理：在closed置位并过锁屏障后取消全部Takeover梯队升档定时器（900s级长定时器
-		// 挂着会拖死JVM收尾），避免在飞closeSession逃逸向suspectTiers重插新定时器。
+		// 取消 Takeover 升档定时器（rocks.close 前后各清一次，避免关停期间新插入残留）
 		cancelSuspectTiers();
 		rocks.close();
 		cancelSuspectTiers();
@@ -126,10 +118,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private Procedure newProcedure(FuncLong action) {
 		var procedure = rocks.newProcedure(action);
 		procedure.setFunc(() -> {
-			// appendLog超时返回RaftRetry不代表日志已被丢弃。若继续按旧缓存生成增量，
-			// 迟到提交的前一条日志可能已删除增量依赖的Bean，follower顺序重放即分歧。
-			// SM锁串行化业务事务，但不阻塞Raft复制/apply；未追平时快速重试，待已有日志
-			// 应用或被新leader截断后恢复。复制、选举等内部协议仍由Raft专用路径处理。
+			// Leader 尚未应用完整日志前缀时返回 RaftRetry，防止基于旧缓存生成与迟到日志冲突的增量
 			var raft = rocks.getRaft();
 			//noinspection DataFlowIssue
 			raft.lock();
@@ -147,18 +136,12 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return procedure;
 	}
 
-	// leader周期对账：清理"连接已死但清理事务未落地"的残留会话行。
-	// closeSession的退避重试只覆盖"断连节点恢复多数派/重新当选"的场景；leader切换后，
-	// 断连风暴的清理在旧leader上永远RaftRetry，进程崩溃则内存待办全丢——对账在现任
-	// leader上周期收敛这两类残余（死agent的注册/订阅行、订阅方的幽灵地址）。
-	// SM锁内执行，与Login/OnSocketClose串行；walk快照与清理事务之间行被新连接接管时，
-	// cleanupSessionRow的归属校验兜底，不会误清。对账事务失败仅记error，下轮周期自带重试。
+	// Leader 周期对账：在 SM 锁内扫描并清理连接已断但尚未落库清理的残留会话行
 	private void reconcileSessions() throws Exception {
 		var raft = rocks.getRaft();
 		lock();
 		try {
-			// closed与isWorkingLeader同在锁内：closed先于close()锁屏障置位，屏障后获取锁的
-			// 轮次见closed即退出——isWorkingLeader在锁外先摸rocks会撞"过墓碑后关库"的竞态窗口。
+			// closed 检查与 rocks 访问同在 SM 锁内，与 close() 锁屏障互斥
 			if (closed)
 				return;
 			//noinspection DataFlowIssue
@@ -188,42 +171,31 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 	}
 
-	// 行清理（raft事务内执行，幂等）：退订/注销跨版本桶/发remove通知/删行。
-	// 行不存在或已被新连接接管（sessionId不匹配）时空转。
-	// 两个入口：Session.onClose（刚断连，随SMServer.closeSession退避重试落地）与
-	// reconcileSessions周期对账（死连接残留行的最终收敛）。
+	// 幂等清理指定会话行（事务内执行）：校验 sessionId 归属后退订、跨版本注销、清理观察者并删行
 	private void cleanupSessionRow(String name, long sessionId) {
 		var session = tableSession.get(name);
-		// 清理的执行可能晚于同名新连接的Login（keepalive超时、对账竞态等），此时行已被
-		// 新连接接管，校验归属后跳过清理，否则新连接的注册/订阅被误清并删行，其后续请求NPE。
+		// 已被同名新连接接管时跳过清理，避免误删新会话状态
 		if (null != session && session.getSessionId() != sessionId)
 			return;
 		if (null != session) {
 			for (var info : session.getSubscribes().values())
 				unSubscribeNow(name, info.getServiceName());
 
-			// 注销跨全部版本桶（会话registers以name+id为key只保留最后一次注册，
-			// 若按unReg.getVersion()单桶删，跨版本重注册后旧版本桶残留幽灵地址）。
+			// 跨全部版本桶注销，防止跨版本重注册后旧版本桶残留
 			var notifies = new HashMap<AsyncSocket, Edit>();
 			for (var unReg : session.getRegisters().values()) {
 				var state = tableServerState.get(unReg.getServiceName());
 				if (state != null)
 					removeAndCollectNotifyAllVersions(state, unReg.getServiceIdentity(), name, notifies);
 			}
-			// remove通知必须raft提交成功后发出：appendLog之前发送时，closeSession/reconcileSessions的
-			// RaftRetry重跑每试一次就重发一批Edit(remove)（订阅者端过滤为无害但成噪声），
-			// 8连败终败则订阅者已删而tServerState残留（新旧订阅者视图分叉窗口）。提交后发送
-			// 维持"订阅者视图⊆已提交的服务端状态"。非事务上下文（不应发生）保持立即发送。
+			// remove 通知须在 Raft 提交成功后发出，避免提交失败重跑或回滚导致订阅者视图分叉
 			var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 			if (t != null)
 				t.runWhileCommit(() -> sendNotifies(notifies));
 			else
 				sendNotifies(notifies);
 		}
-		// 会话关闭联动清理该会话登记的负载观察者：仅靠setLoad转发失败时的惰性剔除，
-		// 停止上报的地址行（raft持久表）与死观察者会永久残留（无界增长）。observers清空即删地址行。
-		// walk返回detached解码拷贝（RocksRaft.Table.walk不附着事务），对拷贝的remove不落库：
-		// 只收集命中key，修改必须经getOrAdd拿事务附着bean再remove。
+		// 联动清理该会话登记的负载观察者并删空行；walk 返回游离拷贝，须先收集 key 再经事务 getOrAdd 修改
 		var observedRows = new ArrayList<String>();
 		try {
 			tableLoadObservers.walk((key, row) -> {
@@ -262,9 +234,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					return; // 服务已关闭：响应不再落地（连接随raft停机关闭）
 				if (logger.isDebugEnabled())
 					logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
-				// 应答上下文已被Rpc消费，不能因业务日志未追平而跳过完成回调（例如
-				// KeepAlive超时关闭死连接）。回调处理本地完成事件，不隐式开启写表事务；
-				// 复制状态的修改仍须经受newProcedure门禁保护的业务入口提交。
+				// 完成回调不走业务日志追平门禁，确保 KeepAlive 超时等本地收口事件及时执行
 				TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).call();
 			} finally {
 				unlock();
@@ -274,11 +244,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		@Override
 		public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 										DispatchMode mode) {
-			// 不能在调用线程（Selector IO 线程）上内联执行：raft 提交的 appendLog 等待期间
-			// 该 IO 线程被冻结，心跳与 AppendEntries 应答处理停摆，负载/抖动下引发选主动摇；
-			// 且 TaskCompletionSource.get 对 Selector 线程有防御断言（测试 JVM 默认 -ea），
-			// 等待即 AssertionError 被包装成 RaftRetry(-15)。按传入的 mode 派发到线程池执行
-			// （对齐 Raft.Server 基类实现），SM 锁移入任务内，保持单写者串行语义不变。
+			// 派发到线程池并在任务内持 SM 锁，避免在 IO 线程上等待 Raft appendLog 阻塞心跳与复制
 			TaskSpec.ofFunc(() -> {
 					lock();
 					try {
@@ -290,8 +256,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 							var ssName = null != netSession ? netSession.name : "";
 							logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
 						}
-						// Server已将这三条管理协议与业务请求分流；它们不生成Bean增量，
-						// 查询和恢复复制连接不应依赖业务日志追平，也不需要RocksRaft事务。
+						// 管理协议不涉及 Bean 增量，不经过业务日志追平门禁与 RocksRaft 事务
 						if (p instanceof GetLeader || p instanceof StartServerConnector || p instanceof StopServerConnector)
 							return TaskSpec.ofFunc(func, p, (__, code) -> p.SendResultCode(code)).call();
 						var procedure = newProcedure(func);
@@ -312,21 +277,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			super.OnSocketClose(so, e);
 		}
 
-		// 会话清理的raft提交结果必须闭环：RaftRetry是返回码不是异常
-		// （RocksRaft Transaction.perform捕获RaftRetryException后返回Procedure.RaftRetry），
-		// 曾经的procedure.call()返回码被忽略——leader切换既造成agent断连风暴（旧leader上
-		// OnSocketClose批量触发）又恰使旧leader的appendLog失败，回滚后的清理
-		// （注销/退订/删行/发remove通知）不重试不告警，死agent的注册与订阅在raft表中
-		// 永久残留，订阅方持有幽灵地址持续分发。onClose幂等（归属校验后清理、
-		// 不存在即no-op、Suspect为提示性重发），失败退避重试，上限后fatal留观测。
-		// 残余缺口=进程崩溃窗口内的清理丢失（无持久化待办），周期对账兜底另立项。
+		// 在后台线程池执行幂等会话清理，提交失败时指数退避重试（最终未收敛的残留行由周期对账清理）
 		private void closeSession(Session netSession, int retry) {
-			// 取消KeepAlive定时器先于closed门禁——close()置closed后本方法
-			// 的清理事务不再落地（重启由对账收敛），但定时器若不取消，rocks.close()的
-			// setRaft(null)后任务体每tick对其裸解引用NPE（周期任务显式吞异常永续，对齐
-			// 非raft版OnSocketClose同步取消的语义）。cancelKeepAlive幂等，重复调用无害。
+			// 先于 closed 检查同步取消心跳定时器，防止关库后定时任务访问已关闭的 Raft
 			netSession.cancelKeepAlive();
-			// 同 dispatchRaftRequest：清理的raft提交不能在 IO 线程上等待。
 			Raft.executeImportantTask(() -> {
 				lock();
 				try {
@@ -379,16 +333,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				keepAliveTimerTask = TaskSpec.ofAction(() -> {
 					//noinspection DataFlowIssue
 					var s = rocks.getRaft().getServer().GetSocket(sessionId);
-					// socket已不存在（会话断开，GetSocket返回null）：正常断开态而非错误，
-					// 无从发送也无需关闭，会话清理由OnSocketClose负责；null穿透到Send失败
-					// 分支的sock.close直接NPE，被外层catch吞成周期性error日志。
 					if (s == null)
 						return;
 					try {
 						var r = new KeepAlive();
-						// 异步等待应答（对齐非raft版）：SendAndWaitCheckResultCode在
-						// 调度池线程上同步阻塞，半开连接堆积时可耗尽调度池拖停全部周期任务。
-						// 回调判活：超时/失败码在回调中关闭连接触发重连。
+						// 异步发送并在回调中判活关闭，避免在调度线程同步等待耗尽调度池
 						if (!r.Send(s, response -> {
 							if (response.isTimeout() || response.getResultCode() != 0)
 								s.close(new java.io.IOException("KeepAlive fail: " + response));
@@ -405,8 +354,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				keepAliveTimerTask = null;
 		}
 
-		// 取消keepAlive周期任务。除onClose外，重复Login覆盖socket的userState前也必须调用：
-		// 被覆盖的旧Session的onClose永不执行，其定时器永不取消。
+		// 取消心跳任务（onClose 及重复 Login 覆盖旧 Session 时均须调用）
 		public void cancelKeepAlive() {
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
@@ -415,10 +363,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		public void onClose() {
 			cancelKeepAlive();
 
-			// Suspect梯队广播（首档==死者version；档间超时升序逐档；低于死者version的永不通知；
-			// TakeoverDone回执即停）。仅是提示（hint），接收方转化为takeover.tryTransfer，由租约表
-			// 裁决；未过期租约会被安排到过期时刻精确重试。短暂掉线误判不存在：接管前租约必须
-			// 过期，死者重启会claim新epoch。
+			// 发起 Suspect 梯队广播（仅作加速提示，实际接管由租约表裁决）
 			var suspectServerId = identifyServerId;
 			if (suspectServerId >= 0) {
 				var deadVersion = identifyVersion >= 0 ? identifyVersion : 0; // 未上报version（旧客户端）按0
@@ -434,10 +379,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 已解码排队的 Login 可能晚于断连清理和同名新连接的 Login，不能重新接管新行。
 		if (!isSenderAlive(r.getSender()))
 			return ErrorNotLogin;
-		// sessionName是tSession主键兼会话归属凭证，空白名（<ServiceManagerConf>
-		// 漏配sessionName属性时Config解析为空串）会使多个server共享同一会话行互相接管——
-		// 推送错乱、断连连带注销对方注册订阅，表现为服务闪断。非空为部署硬约束（唯一性
-		// 仍为部署契约，见Config.ServiceManagerConf），拒绝时不得产生会话行/userState副作用。
+		// 拒绝空白 sessionName，避免多个未配置节点共享同一会话行互相接管
 		if (r.Argument.getSessionName().isBlank())
 			return ErrorSessionName;
 		var session = tableSession.getOrAdd(r.Argument.getSessionName());
@@ -476,9 +418,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	protected long ProcessAllocateIdRequest(AllocateId r) throws Exception {
 		var count = r.Argument.getCount();
 		var name = r.Argument.getName();
-		// 入口校验（同非raft版ServiceManagerServer与UDP面Id128UdpServer口径）：
-		// 该端口无认证（raft对等端口同时服务应用协议，四种EncryptType均密钥协商），name/count
-		// 均对端可控，无界唯一name直接成为tAutoKey持久键并经共识复制放大到全节点。
+		// 校验分配数量与 name 长度上限，防止恶意大 count 或超长 key 放大 Raft 持久状态
 		//noinspection DataFlowIssue
 		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX
 			|| name.getBytes(StandardCharsets.UTF_8).length > 128) {
@@ -486,10 +426,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			warnAllocateIdRejected("invalid count=" + count + " name.chars=" + name.length());
 			return Zeze.Transaction.Procedure.ErrorRequestId;
 		}
-		// 唯一名上限。raft表逐出不可移植：BAutoKey.Current是已交付位置（无独立
-		// 高水位），删行重建会从默认值重发已交付号段——超限只能拒绝。运维出口：确认攻击后
-		// 清理tAutoKey表攻击行。满员会暂时锁死新合法name（仓内合法基数个位到两位数，
-		// 1024上限余量充分）。walk计数O(表行数)，表行数被上限封顶，可接受。
+		// tAutoKey 存已交付游标不可删行逐出（删行会重号），超唯一名上限直接拒绝
 		if (tableAutoKey.get(name) == null) {
 			var names = new int[1];
 			tableAutoKey.walkKey(k -> {
@@ -508,11 +445,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		autoKey.setCurrent(current);
 		r.Result.setCount(count);
 
-		// 号段必须raft提交成功后再应答：appendLog失败（失主RaftRetry/复制异常）会回滚current，
-		// 提交前应答会让客户端把已回滚的号段投入使用，下一次AllocateId重复发放同一号段。
-		// 对齐GCM-raft的proc.autoResponse（响应由_final_commit_在appendLog之后发出）；
-		// result已填的startId/count在回滚路径随错误码一起发送，客户端按resultCode!=0丢弃。
-		// 非事务上下文（不应发生）保持立即应答。
+		// 须在 Raft 提交成功后应答，避免回滚后重发同一号段
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
@@ -521,21 +454,19 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	// 拒绝告警限频（同Id128UdpServer.warnRejected）：无认证端口上高频非法
-	// 请求按包记日志可耗尽日志盘/CPU（日志刷屏DoS），60秒一条。
+	// 拒绝告警限频（每 60 秒至多一条）
 	private volatile long lastAllocateIdRejectLogMs;
 
 	private void warnAllocateIdRejected(String reason) {
 		var now = System.currentTimeMillis();
 		var last = lastAllocateIdRejectLogMs;
 		if (now - last < 60_000)
-			return; // 限频窗口内静默拒绝（race下至多多记几条）
+			return;
 		lastAllocateIdRejectLogMs = now;
 		logger.error("AllocateId(raft) rejected (possible attack or misbehaving client): {}", reason);
 	}
 
-	// Edit/Subscribe/SetServerLoad入口上限常量与helper，
-	// 阈值与非raft版一致（见ServiceManagerServer同名常量注释）。
+	// 入口字段长度、单批条数与单会话上限（与 ServiceManagerServer 一致）
 	private static final int SVC_NAME_MAX_BYTES = 128;
 	private static final int SVC_IDENTITY_MAX_BYTES = 128;
 	private static final int SVC_IP_MAX_BYTES = 64;
@@ -553,17 +484,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var now = System.currentTimeMillis();
 		var last = lastSvcRejectLogMs;
 		if (now - last < 60_000)
-			return; // 限频窗口内静默拒绝（race下至多多记几条）
+			return;
 		lastSvcRejectLogMs = now;
 		logger.error("SM(raft) edit/subscribe rejected (possible attack or misbehaving client): {}", reason);
 	}
 
 	/**
-	 * 全局唯一serviceName上限（事务内调用，raft单写者串行）。行不存在且计数达
-	 * 上限时先扫除空壳行（无注册无订阅——内容可由客户端重发恢复，非发号器状态删行
-	 * 安全，区别于tAutoKey的只拒不删）腾位；无空壳可扫才拒绝。walk返回detached解码
-	 * 拷贝（RocksRaft.Table.walk不附着事务），只收集key、修改经remove落库——
-	 * 同cleanupSessionRow的负载观察者清理。
+	 * 检查全局唯一 serviceName 上限：满员时先清理无注册无订阅的空壳行腾位，无空壳可清则拒绝。
 	 */
 	private boolean checkUniqueServiceName(String name) {
 		var plan = planUniqueServiceNames(Set.of(name), Set.of(), "");
@@ -614,8 +541,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return new ArrayList<>(idleKeys.subList(0, Math.max(deficit, 0)));
 	}
 
-	// 只写session上一个int（对齐非raft版：无状态簿记、无取消语义）。虽然走raft请求通道，
-	// 但不写rocks表，不产生共识复制；换leader后agent重新Login时会重发Identify。
+	// 仅更新内存 Session 字段，不写 Raft 表；换主后客户端重连会自动重发 Identify
 	@Override
 	protected long ProcessIdentifyRequest(Identify r) {
 		//noinspection DataFlowIssue
@@ -629,11 +555,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	// ===== Takeover version 梯队通知（语义与实现要点对齐非raft版 ServiceManagerServer） =====
-	// ①首档==死者version；②档间超时无TakeoverDone回执升到更高存活version的最小值；③低于
-	// 死者version的永不通知；④回执即停。失败界定=超时（重复Suspect由已接管者幂等空转消化）；
-	// 内存态：leader切换/进程重启即失，由GS侧Takeover.scan周期兜底。
-	// 档间超时(毫秒)：默认900s=1.5×GS的TakeoverTtl默认值(600s)，GS的Ttl改小时应同比调整。
+	// Takeover 版本梯队通知（语义同 ServiceManagerServer）：档间超时默认 900s，状态仅驻留内存，切主/重启由 GS 扫描兜底
 	public volatile long takeoverNotifyStepMs = 900_000;
 
 	private static final class SuspectTier {
@@ -768,10 +690,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessSetServerLoadRequest(SetServerLoad r) {
-		// SetServerLoad需Login门禁与ip长度校验：未认证可达即可用任意ip+port建
-		// tLoadObservers持久行，空observers行永不命中cleanupSessionRow的Contains清理。
-		// get化——无观察者行则忽略本次上报（零状态变更，行创建权收归Login后的
-		// addLoadObserver闭环），不产生新空行。
+		// 仅向已登记观察者的地址转发，无观察者行时直接忽略不建新行
 		if (isOverUtf8Bytes(r.Argument.ip, SVC_IP_MAX_BYTES)) {
 			warnSvcRejected("setLoad ip over size");
 			return Zeze.Transaction.Procedure.ErrorRequestId;
@@ -806,8 +725,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			for (var remove : removed)
 				observers.remove(remove);
 		}
-		// 应答必须raft提交成功后发出：observers的死条目清理依赖raft提交，提交前应答在复制失败回滚后客户端已拿到成功码。
-		// set.Send的负载转发是对观察者的数据推送（无状态语义），保持在handler内立即发送。
+		// 死观察者移除依赖 Raft 提交，应答延迟到提交后发出；负载转发直接推送即可
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
@@ -822,9 +740,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			sessionName, serverInfo.getVersion());
 	}
 
-	// 对齐非raft版ServiceManagerServer.isLegalServiceIdentity：
-	// 非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧BServiceInfos.comparer
-	// 在排序上抛NumberFormatException，打断同批全部合法变更的处理。
+	// 校验 identity 格式（非 '@'/'#' 前缀须可解析为 long），防止非法值破坏订阅端排序
 	private static boolean isLegalServiceIdentity(String identity) {
 		if (identity.startsWith("@") || identity.startsWith("#"))
 			return true;
@@ -885,9 +801,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	@Override
 	@SuppressWarnings("ConstantConditions") // 保留非空 extraInfo 契约之外的防御判断。
 	protected long ProcessEditRequest(Edit r) {
-		// 服务端注册入口校验identity（对齐非raft版isLegalServiceIdentity）：
-		// 非法identity会令订阅者侧BServiceInfos.comparer的Long.parseLong抛NumberFormatException，
-		// 打断同批全部合法变更的处理。畸形请求整批拒绝（错误码经派发层onError应答）。
 		for (var info : r.Argument.getAdd())
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Zeze.Transaction.Procedure.ErrorRequestId;
@@ -899,10 +812,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			return 0; // 未Login已应答ErrorNotLogin
 		var notifies = new HashMap<AsyncSocket, Edit>();
 
-		// 字段长度/批/每会话/全局唯一名上限（raft侧经共识复制放大到
-		// 全节点+WAL，tServerState行壳跨重启永不清理）。阈值与非raft版一致；raft行
-		// 虽是持久表但内容（注册/订阅）可由客户端重发恢复——满员时事务内扫除空壳行
-		// 腾位（非发号器状态，删行安全，区别于tAutoKey的只拒不删），无空壳才拒绝。
+		// 校验批大小、字段长度、单会话上限与全局唯一名上限（满员时事务内清理空壳行腾位）
 		if (r.Argument.getAdd().size() + r.Argument.getRemove().size() > SVC_EDIT_BATCH_MAX) {
 			warnSvcRejected("edit batch exceeded " + SVC_EDIT_BATCH_MAX);
 			return Zeze.Transaction.Procedure.ErrorRequestId;
@@ -963,9 +873,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			addAndCollectNotify(state, reg, netSession.name, notifies);
 		}
 
-		// 应答与订阅者通知必须raft提交成功后发出：appendLog之前发送，raft复制失败回滚时
-		// 客户端已拿到成功码、订阅者已收到幽灵add/remove推送，而服务端状态回滚（提交前
-		// 应答，状态不一致）。非事务上下文（不应发生）保持立即应答。
+		// 应答与增量通知须在 Raft 提交成功后发出，避免回滚后客户端与订阅者视图不一致
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null) {
 			t.runWhileCommit(() -> {
@@ -981,13 +889,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private void addAndCollectNotify(BServerState state, BServiceInfo info, String sessionName,
 									 HashMap<AsyncSocket, Edit> notifies) {
-		// BEditService.add声明AddOrUpdate以name+id为key：同identity重注册到新版本时，
-		// 先从其他版本桶移除旧记录并通知其版本订阅者remove（对齐非raft版ServiceManagerServer），
-		// 否则实例下线后旧版本桶残留幽灵地址（会话registers以name+id为key只保留最后一次注册）。
+		// AddOrUpdate 语义：同 identity 跨版本重注册时先从其他版本桶移除旧记录并通知其订阅者
 		for (var e : state.getServiceInfosVersion().entrySet()) {
 			if (e.getKey() == info.getVersion())
 				continue;
-			// CollMap2.remove 返回 void：先取旧值再移除，有旧值才通知其版本订阅者。
+			// CollMap2.remove 返回 void，须先取旧值再移除以发送 remove 通知
 			var old = e.getValue().getServiceInfos().get(info.getServiceIdentity());
 			if (old != null) {
 				e.getValue().getServiceInfos().remove(info.getServiceIdentity());
@@ -1001,10 +907,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		versions.getServiceInfos().put(info.getServiceIdentity(), toRocks(info, sessionName));
 		collectNotify(state, info, true, notifies);
-		// 新注册实例同样要为现有订阅者登记负载观察者：addLoadObserver若只在订阅时登记，
-		// 观察者集合是订阅时刻的快照——订阅之后注册的实例，其负载上报永不转发
-		// 给订阅者（权重缺失直到重连重订阅）。getSimple的key即订阅会话名；本方法在
-		// ProcessEditRequest事务内，与订阅/退订的simple修改经raft单写者串行，迭代安全。
+		// 为现有订阅者补登新注册实例的负载观察者
 		for (var observer : state.getSimple().keys())
 			addLoadObserver(info.getPassiveIp(), info.getPassivePort(), observer);
 	}
@@ -1073,9 +976,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				state.setServiceName(info.getServiceName());
 			subscribeAndCollect(state, r, info, netSession.name);
 		}
-		// 应答必须raft提交成功后发出：会话subscribes与state.simple的写入、Result.map的快照依赖raft提交，
-		// 提交前应答在复制失败回滚后客户端已拿到成功码与快照（假成功），订阅未生效将收不到增量推送。
-		// 回滚路径Result已填的map随错误码一起发送，客户端按resultCode!=0丢弃。
+		// 须在 Raft 提交成功后应答，避免回滚后客户端误以为订阅已生效
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
@@ -1094,8 +995,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		collectNotify(state, info, false, notifies);
 	}
 
-	// 注销以name+id为key跨全部版本桶收敛（与addAndCollectNotify、非raft版onClose一致）：
-	// 仅移除属于本会话的记录；归属不符时不删不通知（新会话的AddOrUpdate注册不被静默删除）。
+	// 跨全部版本桶注销属于本会话的记录，归属不符时跳过以免误删新会话的注册
 	private void removeAndCollectNotifyAllVersions(BServerState state, String serviceIdentity, String sessionName,
 												   HashMap<AsyncSocket, Edit> notifies) {
 		for (var e : state.getServiceInfosVersion().entrySet()) {
@@ -1134,8 +1034,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				unSubscribeNow(netSession.name, serviceName);
 			}
 		}
-		// 应答必须raft提交成功后发出：会话subscribes与state.simple的移除依赖raft提交，提交前应答在
-		// 复制失败回滚后客户端已拿到成功码（假成功），实际订阅仍生效。
+		// 须在 Raft 提交成功后应答，避免回滚后客户端误以为退订已生效
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);

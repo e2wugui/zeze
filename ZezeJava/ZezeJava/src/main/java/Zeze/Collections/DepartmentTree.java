@@ -235,22 +235,16 @@ public class DepartmentTree<
 	}
 
 	/**
-	 * 销毁整棵部门树：必须与deleteDepartment的递归删除对称——
-	 * 只删根行会残留全部子部门行（_tDepartmentTree）与成员数据；且重建同名树时
-	 * NextDepartmentId归零、新部门从dId=1重新分配，按(name,dId)命中旧残留行，
-	 * 新旧数据混串，无清理路径覆盖孤儿。根级group成员map（"0@"+name）不在任何
-	 * 子部门的dId空间内（deleteDepartment的参数不可能为0），必须单独清理，
-	 * 否则重建同名树时旧成员全部"复活"。
+	 * 销毁整棵部门树：递归删除所有子部门及成员数据，单独清理根级成员后删除根行，避免重建同名树时命中残留记录。
 	 */
 	public void destroy() {
 		var root = module._tDepartment.get(name);
 		if (root != null) {
-			// 先递归删除全部一级子部门（连带各自子树与成员）。dId快照后逐个删除，
-			// deleteDepartment的parent==0分支会从root.Children摘除（遍历中修改防护）。
+			// 快照一级子部门 id 后逐个递归删除，避免删除过程中修改 root.Children。
 			for (var dId : root.getChildren().values().toArray(new Long[0]))
 				deleteDepartment(dId, true);
 		}
-		getGroupMembers().clear(); // 根级成员map与子部门dId空间不相交，删除根行前单独清理
+		getGroupMembers().clear(); // 根级成员不在子部门 dId 空间内，需单独清理
 		module._tDepartment.remove(name);
 	}
 
@@ -284,8 +278,6 @@ public class DepartmentTree<
 			return getOrAddRootManager(name);
 
 		var d = getDepartmentTreeNode(departmentId);
-		// 部门行缺失（并发已删/调用方传错id）时d==null会裸NPE。
-		// 抛带语义异常（与getDepartmentMembers的not found处理对齐）。
 		if (null == d)
 			throw new IllegalArgumentException("department not found: " + departmentId);
 		return (TManager)d.getManagers().computeIfAbsent(name, key -> {
@@ -314,8 +306,6 @@ public class DepartmentTree<
 
 		var d = getDepartmentTreeNode(departmentId);
 		if (null == d)
-			// 部门行缺失时按"没有这个管理员"处理返回null，不抛（删除语义幂等，
-			// 与deleteDepartment对旧父行缺失的宽容处理对齐）。
 			return null;
 		var m = d.getManagers().remove(name);
 		return m != null ? (TManager)m.getBean() : null;
@@ -333,7 +323,7 @@ public class DepartmentTree<
 		} else {
 			var parent = getDepartmentTreeNode(departmentParent);
 			if (null == parent)
-				return module.errorCode(Module.ErrorDepartmentParentNotExist); // 对齐moveDepartment的同类检查：缺失会直接NPE
+				return module.errorCode(Module.ErrorDepartmentParentNotExist);
 			if (parent.getChildren().size() >= childrenLimit)
 				return module.errorCode(Module.ErrorTooManyChildren);
 			if (null != parent.getChildren().putIfAbsent(dName, dId))

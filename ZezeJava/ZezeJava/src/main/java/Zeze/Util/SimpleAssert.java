@@ -4,7 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
-// 轻量断言辅助：失败抛 ThrowAgainException（框架不捕获，用于测试）
+/** 轻量断言工具：失败抛出框架不捕获的 ThrowAgainException，主要用于测试。 */
 public final class SimpleAssert {
 	public static void isTrue(boolean c) {
 		if (!c)

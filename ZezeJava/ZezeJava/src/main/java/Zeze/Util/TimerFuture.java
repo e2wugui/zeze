@@ -13,18 +13,12 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 周期任务句柄（{@link Task#schedulePeriodCore} 创建，TaskSpec.schedulePeriodNow 返回）。
- * 目的：补 JDK ScheduledFuture.cancel 的缺口——它只阻断后续触发，对已开始的当前轮既不阻止
- * 也不可等待，调用方"cancel 后即拆资源"会与在飞一轮竞态。
- * 机制：先发布取消标志并向底层 Future 发送取消/中断，再取周期门锁等待已准入轮退出。
- * 周期轮取本锁并复查取消；业务体和 timeout 均在本锁内。
- * 其他线程 cancel 返回后已准入轮已排空，迟到轮不再调用业务体。同线程自 cancel 利用重入返回，当前调用栈自行收尾。
- * 代价：cancel 成为阻塞原语，受 {@link #cancel} 的 ABBA 调用约束；等锁超过任务自身的看门狗
- * 预算+{@link #CANCEL_HANG_MARGIN_MS} 时发出双栈告警（无声挂死→有声，契约不变）。
+ * 周期任务句柄（由 {@link Task#schedulePeriodCore} 创建）：补足 JDK ScheduledFuture.cancel 不等待在飞轮退出的缺口。
+ * {@link #cancel} 先发布取消标志并取消底层 Future，再取本锁等待已准入的当前轮退出（同线程自 cancel 重入返回）；
+ * 等锁超过看门狗预算 + {@link #CANCEL_HANG_MARGIN_MS} 时输出双栈告警。
  */
 public class TimerFuture<V extends @Nullable Object> extends ReentrantLock implements ScheduledFuture<V> {
-	// 告警阈值的余量：任务看门狗按超时+秒桶量化（最多+1s，见 TimeoutDiagnosable）打断超时体，
-	// 到达阈值即"合法长体应已被看门狗打断仍未结束"——告警近乎确诊而非噪音。volatile：测试可调短。
+	// 挂死告警余量（叠加任务超时作为检测阈值）
 	public static volatile long CANCEL_HANG_MARGIN_MS = 35_000;
 
 	private static final Logger logger = LogManager.getLogger(TimerFuture.class);
@@ -51,19 +45,9 @@ public class TimerFuture<V extends @Nullable Object> extends ReentrantLock imple
 	}
 
 	/**
-	 * 取消并 join：先发布取消并通知底层 Future，再取本对象锁等待已通过周期门的轮退出。
-	 * 排空范围包括业务体和 timeout 关闭；锁内复查取消标志保证迟到轮不再调用业务体。
-	 * 同线程从业务体自 cancel 以重入返回，不等待自己的当前调用栈。
-	 * future.cancel(mayInterruptIfRunning) 传 true 时先中断在飞线程；false 不请求中断，仍等待排空。
-	 * 【调用约束】不得持有任务体执行期间可能获取的任何锁，否则与在飞任务体互等（ABBA）永久挂起；
-	 * 需与停机门禁互斥时，锁内只置关门标志并捕获句柄，释放锁后再 cancel。周期守护的停机
-	 * 请优先用 DaemonTimer——它把"关门→cancel→限时等待在飞"内聚为组件，cancel对象为
-	 * 普通JDK ScheduledFuture，本约束对其不适用。
-	 * <p>
-	 * 挂死告警：先 tryLock 等待 timeoutMs+{@link #CANCEL_HANG_MARGIN_MS}——到达即超出了任务体
-	 * 自身的看门狗预算，大概率是上述ABBA约束被违反或任务体不可中断阻塞——未获取则告警
-	 * 持锁线程与当前线程双栈后继续无界等待（契约不变，仅把无声挂死变成有声）。
-	 * 等待期间被中断时保留中断标志并直接进入无界等待，不告警（"等满阈值"的前提不成立）。
+	 * 取消并等待已准入的当前轮退出（同线程自 cancel 重入返回）。
+	 * 【锁序约束】调用方不得持有任务体可能获取的锁，否则会与在飞轮形成 ABBA 死锁；
+	 * 等锁超时（{@code timeoutMs + CANCEL_HANG_MARGIN_MS}）时告警双栈后继续等待。
 	 */
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
@@ -78,13 +62,13 @@ public class TimerFuture<V extends @Nullable Object> extends ReentrantLock imple
 		try {
 			acquired = tryLock(timeoutMs + CANCEL_HANG_MARGIN_MS, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt(); // 保留标志：被中断仍继续无界等待，不吞中断
+			Thread.currentThread().interrupt(); // 保留中断标志，继续等待排空
 			interrupted = true;
 		}
 		if (!acquired) {
 			if (!interrupted)
 				warnHang();
-			lock(); // 契约不变：无界等到获取为止（!acquired时此处才持锁一次，避免重入计数多一）
+			lock(); // 维持排空契约，继续阻塞直到获取锁
 		}
 		try {
 			return result;
@@ -93,8 +77,7 @@ public class TimerFuture<V extends @Nullable Object> extends ReentrantLock imple
 		}
 	}
 
-	// 挂死告警：dump持锁线程（在飞任务体线程）与当前取消线程的双栈。诊断性质，绝不向外抛；
-	// 竞态下owner可能已释放（null），措辞用"可能"对冲。
+	// 诊断告警：打印持锁线程与当前取消线程双栈，异常不外抛
 	private void warnHang() {
 		try {
 			var owner = getOwner();

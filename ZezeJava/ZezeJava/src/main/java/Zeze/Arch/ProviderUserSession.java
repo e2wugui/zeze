@@ -54,8 +54,7 @@ public class ProviderUserSession {
 	}
 
 	public boolean isLogin() {
-		// 全仓约定 context 非空 == 已登录（getRoleId、LinkdProvider 广播、ProviderWithOnline.LinkBroken、
-		// sendOnline 同向）；Arch.Online.ProcessLogoutRequest 是唯一调用点，反转使已登录用户的 Logout 永远被拒。
+		// 约定 context 非空表示已登录。
 		return !getContext().isEmpty();
 	}
 
@@ -90,9 +89,8 @@ public class ProviderUserSession {
 	}
 
 	// ---------------- respond 家族 ----------------
-	// 词汇表与 OnlineSpec 同构：无标记=事务感知（运行中的事务内延迟到 commit 发送，回滚不发；无事务立即发送）；
-	// Now=立即发送；WhileRollback=事务回滚时发送。除 fireAndForget 外均经 Online 失败记账（onSendError）
-	// ——幂等标记eLinkBroken，登出由linkBroken的DelayLogout宽限timer或verifyLocal收敛，不立即下线。
+	// 无标记=事务感知（事务内延迟到 commit 发送，无事务立即发送）；Now=立即发送；WhileRollback=回滚时发送。
+	// 除 fireAndForget 外均经 Online 失败记账（onSendError）。
 
 	/** 事务感知发送响应/推送：运行中的事务内延迟到 commit 发送（回滚不发），否则立即发送。 */
 	public void respond(Protocol<?> p) {
@@ -111,10 +109,7 @@ public class ProviderUserSession {
 		Transaction.whileRollback(() -> respondNow(p));
 	}
 
-	/**
-	 * 事务感知发送 rpc 响应，fire-and-forget：绕过 Online 失败记账，发送失败静默丢弃，不触发 onSendError 下线流程。
-	 * 下线感知主路径是 LinkBroken 协议，记账只是加速/兜底。适用：Rpc 响应 ack、高频推送等不需要失败追责的场景。
-	 */
+	/** 事务感知发送 rpc 响应，绕过 Online 失败记账（发送失败静默丢弃，不触发 onSendError）。 */
 	public void respondFireAndForget(Rpc<?, ?> rpc) {
 		Task.runTxnAware(() -> sendFireAndForgetReal(rpc));
 	}

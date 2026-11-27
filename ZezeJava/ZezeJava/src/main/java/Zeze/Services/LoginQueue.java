@@ -74,16 +74,11 @@ public class LoginQueue extends AbstractLoginQueue {
 	private static final int MAX_BROADCAST_POSITIONS = 10_000;
 
 	private final LoginQueueServer server;
-	// 使用 ConcurrentLinkedDeque 以便 drainQueue 原子 pollFirst 后在分配失败时无竞态 addFirst 回队头，
-	// 避免 peek+poll 与 broadcastQueuePositions 的 Iterator.remove 并发错删后继活连接。
+	// 使用 ConcurrentLinkedDeque 以便分配失败时原子放回队头，避免与遍历清理竞态
 	private final ConcurrentLinkedDeque<QueueSlot> queue = new ConcurrentLinkedDeque<>();
-	// 私有锁: 串行化tryOnAccept/drainQueue/tryResetTimeThrottle，不暴露实例监视器
-	private final ReentrantLock allocateLock = new ReentrantLock();
-	// 活跃排队连接数：仅在 allocateLock 内递增，由 QueueSlot.tryRelease() 原子仲裁恰一次递减；
-	// 满载时允许接入线程在锁外快速拒绝，且断连时 O(1) 实时释放额度。
+	private final ReentrantLock allocateLock = new ReentrantLock(); // 串行化入队、出队分配与限流重置
+	// 活跃排队连接数：allocateLock 内递增，由 QueueSlot.tryRelease() 原子仲裁恰一次递减
 	private final AtomicInteger queuedCount = new AtomicInteger();
-	// DaemonTimer内聚分配tick的start/stop配对、stop限时等待在飞一轮、restart重新武装。
-	// tick只做派发，drainQueue+万级广播搬入worker池执行，不占用调度线程。
 	private final DaemonTimer allocateDaemon = new DaemonTimer("LoginQueue.allocate", 1000, this::allocateTimer);
 	private int broadcastCount;
 	private final int maxOnlineNew;
@@ -128,10 +123,7 @@ public class LoginQueue extends AbstractLoginQueue {
 	public void start() throws Exception {
 		allocateLock.lock();
 		try {
-			// timeThrottle重置：stop关闭了旧实例（内部timer已cancel、计数永不清零），且
-			// provider全部掉线时tryResetTimeThrottle会重建limit=0的实例——不重置则
-			// restart后直到provider重新上报前checkNow恒false，直通分配也被禁。
-			// 重置回首次start的默认状态。
+			// 重置限流器为初始状态，确保 stop 后重启不受旧实例已关闭或空载限流影响
 			var old = timeThrottle;
 			timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 			providerSize = 0;
@@ -143,18 +135,16 @@ public class LoginQueue extends AbstractLoginQueue {
 		// 接受连接后负载上报即可重算限流。先初始化，避免覆盖已经收到的首轮负载。
 		server.getService().start();
 		service.start();
-		allocateDaemon.start(); // tick随start/stop配对，幂等，stop后restart由组件重新武装
+		allocateDaemon.start();
 	}
 
 	public void stop() throws Exception {
-		// 组件内聚两段式：关门→cancel已排期→限时等待在飞一轮（drainQueue持allocateLock，
-		// 此处不持锁调用）。cancel对象为普通JDK ScheduledFuture，不经TimerFuture锁——
-		// "cancel必须出锁"的调用纪律由结构保证，无ABBA可能。
+		// 锁外停止定时器（drainQueue 持有 allocateLock，避免持锁等待在飞轮次）
 		allocateDaemon.stop();
 		server.getService().stop();
 		service.stop();
 		clearQueue();
-		timeThrottle.close(); // 放在service.stop之后：关闭过程中onClose还可能触发tryResetTimeThrottle替换实例
+		timeThrottle.close(); // 放在 service.stop 之后，防止关闭期间 onClose 重建限流器
 	}
 
 	private void clearQueue() {
@@ -212,9 +202,7 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	/**
-	 * 给排队连接分配server。timer周期调用；LoginQueueServer收到provider/link上报时也立即调用，
-	 * 让刚变得可分配的排队连接不用等下一个1秒tick。
-	 * allocateLock：两个调用方在不同线程，串行化避免同一排队连接被并发分配（putLoginToken+closeGracefully）两次。
+	 * 为排队连接分配服务器（定时器和负载上报均可触发，经 allocateLock 串行化）。
 	 */
 	void drainQueue() throws Exception {
 		allocateLock.lock();
@@ -225,8 +213,7 @@ public class LoginQueue extends AbstractLoginQueue {
 			if (half > 0)
 				max = half + Zeze.Util.Random.getInstance().nextInt(half);
 			var allocate = 0;
-			// 队头已关闭/已释放节点即使在 max==0 时也直接清理；对需分配节点采用原子 pollFirst，
-			// 分配失败或异常时 addFirst 放回队头，避免 peek+poll 与 broadcastQueuePositions 的 Iterator.remove 竞态错删活连接。
+			// 队头死节点无视配额直接清理；活跃节点原子出队，分配失败再放回队头
 			for (;;) {
 				var head = queue.peekFirst();
 				if (head == null)
@@ -321,9 +308,7 @@ public class LoginQueue extends AbstractLoginQueue {
 					if (count == 0 && timeThrottle.checkNow(1) && tryAllocateServer(so))
 						return false; // 新连接已直接分配
 					var slot = new QueueSlot(so);
-					// 先占计数再经 volatile userState 发布 slot，随后复查 volatile isClosed（Dekker 双检）：
-					// 1) 保证 queuedCount 永不为负（onClose 看到 slot 时 increment 已发生）；
-					// 2) 若 close 发生在 setUserState 之前导致 onClose 未见 slot，此处 isClosed 必见 true 并立即释放，永不泄漏。
+					// 先增计数再发布 slot，随后复查 isClosed（Dekker 双检），保证计数不负且不泄漏
 					queuedCount.incrementAndGet();
 					so.setUserState(slot);
 					if (so.isClosed()) {
@@ -343,8 +328,7 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	void onClose(AsyncSocket so) {
-		// 不在这里 queue.remove(so)（O(n) 扫描），只通过连接绑定的 QueueSlot 原子 CAS 恰一次扣减 queuedCount（O(1) 无锁）；
-		// 队列中的已关闭僵尸节点由 drainQueue 队头清理及 broadcastQueuePositions 周期遍历顺带移除。
+		// 仅 O(1) 释放计数，队列中残留的死节点由 drainQueue 和 broadcastQueuePositions 惰性移除
 		if (so.getUserState() instanceof QueueSlot slot)
 			releaseSlot(slot);
 	}

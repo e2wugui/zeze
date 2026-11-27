@@ -60,7 +60,7 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 		return getSet().containsAll(c);
 	}
 
-	@Deprecated // unsupported
+	@Deprecated
 	@Override
 	public boolean retainAll(java.util.Collection<?> c) {
 		throw new UnsupportedOperationException();
@@ -101,9 +101,7 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 			public void remove() {
 				if (next == null)
 					throw new IllegalStateException("iterator remove() before next()");
-				// 身份fail-fast（对齐PList判例）：next()返回的元素在迭代期间被外部移除时，
-				// remove退化为静默no-op（错位信号被吞）；contains不相等即响亮失败。
-				// equals相等的不同实例仍可删（集合内容等价，删除语义无害）。
+				// 校验元素仍在当前集合中，避免外部移除后退化为静默 no-op。
 				if (!getSet().contains(next))
 					throw new ConcurrentModificationException("structural modification during iteration");
 				PSet.this.remove(next);
@@ -119,7 +117,7 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		// 按Set接口内容比较（对称性，理由同PList）：getSet()的equals按Set契约。
+		// 按 Set 接口契约比较内容，确保与标准 Set 之间的对称性。
 		return o instanceof java.util.Set && getSet().equals(o);
 	}
 

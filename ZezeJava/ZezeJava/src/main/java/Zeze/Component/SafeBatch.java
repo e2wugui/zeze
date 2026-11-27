@@ -172,17 +172,14 @@ public class SafeBatch extends AbstractSafeBatch {
 
 	void checkBatch(String timerId, @Nullable BBatch batch) {
 		if (stopped)
-			return; // stopping skip.
+			return;
 
 		if (null == batch) {
 			_stopBatch(timerId);
 			return;
 		}
 
-		// 批处理存续期间表被改名/删除（schema演进、模块下线）后，zeze.getTable
-		// 返回null——继续构造worker会在run()首轮walkDatabase即NPE死亡，future已done
-		// 使看门狗每tick重建，形成“僵尸批处理+NPE错误日志”的永久循环（无任何路径清理）。
-		// 表不存在时批处理永远无法推进，与batch==null同款处理：停止并清理记录。
+		// 批处理期间目标表已被删除或改名时无法推进，直接停止并清理记录避免看门狗空转报错
 		if (null == zeze.getTable(batch.getTableName())) {
 			logger.error("SafeBatch.checkBatch: table not found, stop batch. timerId={}, tableName={}",
 				timerId, batch.getTableName());
@@ -192,9 +189,8 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		var existFuture = running.get(timerId);
 		if (null != existFuture && !existFuture.isCancelled() && !existFuture.isDone()) {
-			return; // already running
+			return;
 		}
-		// reset
 		if (null != existFuture) {
 			running.remove(timerId, existFuture);
 		}

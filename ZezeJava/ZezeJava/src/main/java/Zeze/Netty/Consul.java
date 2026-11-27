@@ -22,7 +22,6 @@ public class Consul {
 		this(new ConsulClient(consulHost));
 	}
 
-	// 复用外部构建的client(也便于测试注入mock)
 	public Consul(ConsulClient client) {
 		this.client = client;
 	}
@@ -42,18 +41,15 @@ public class Consul {
 		var newService = new NewService();
 		newService.setAddress(ip);
 		newService.setPort(port);
-		newService.setId(serviceId); // consul服务Id须唯一：由ip:port+serviceName构成，重复注册被putIfAbsent拒绝。
+		newService.setId(serviceId);
 		newService.setName(serviceName); // todo 这是服务名，一个服务名下有多个Id？
 
-		// Consul健康检查的http URL必须是标准形式"schema://host[:port]/path":host只能是ip或主机名,
-		// 不能把serviceId拼进去(host部分非法则探活必然失败,服务持续被判不健康)。
-		// IPv6字面量地址在URL里必须加方括号。
+		// 健康检查 URL 仅含标准 host[:port]/path，IPv6 字面量需加方括号。
 		var host = ip.contains(":") ? "[" + ip + "]" : ip;
 		var checker = new NewService.Check();
 		checker.setHttp((httpServer.sslCtx != null ? "https://" : "http://") + host + ":" + port + PassiveKeepAlivePath);
-		// 进程消亡后探活持续失败，critical服务自动注销——兜底stop失败/超时反转产生的孤儿注册。
 		checker.setInterval("10s");
-		checker.setDeregisterCriticalServiceAfter("5m");
+		checker.setDeregisterCriticalServiceAfter("5m"); // 进程失联后自动注销，兜底残留注册
 		newService.setCheck(checker);
 		/* NewService.Check 其余可选配置项示例（摘自 Consul 文档，按需设置）：
 			{
@@ -87,8 +83,7 @@ public class Consul {
 			try {
 				client.agentServiceDeregister(serviceId);
 			} catch (RuntimeException ex) {
-				// 逐个尽力清理——单个deregister网络异常中断循环会让剩余server的
-				// consul条目永不注销（残留到consul TTL/运维清理）。
+				// 逐个尽力注销，单个失败不中断其余清理。
 				Netty.logger.error("consul deregister {}", serviceId, ex);
 			}
 			httpServer.removeHandler(PassiveKeepAlivePath, registration.handler());

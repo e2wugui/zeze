@@ -4,11 +4,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
-// Cache 缓存对象接口：cacheId 为缓存键（NullCache 哨兵表示负缓存占位）
+/** Cache 缓存对象接口：cacheId 为缓存键，NullCache 哨兵表示负缓存占位。 */
 public interface CacheObject extends Serializable {
-	/**
-	 * 系列化时不包括cacheId。
-	 */
+	/** 序列化时不包括 cacheId。 */
 	String cacheId();
 
 	static boolean isNull(CacheObject object) {

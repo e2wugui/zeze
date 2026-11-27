@@ -20,11 +20,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import org.jspecify.annotations.Nullable;
 
-/**
- * An immutable {@code Map.Entry}, used both by
- * com.google.common.collect.Maps#immutableEntry(Object, Object) and by other parts of {@code
- * common.collect} as a superclass.
- */
+/** 不可变的 {@code Map.Entry} 实现，调用 {@link #setValue} 将抛出 {@link UnsupportedOperationException}。 */
 class ImmutableEntry<K, V> extends AbstractMapEntry<K, V> implements Serializable {
 	final K key;
 	final V value;

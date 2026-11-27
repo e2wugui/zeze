@@ -25,17 +25,10 @@ import static Zeze.Transaction.Bean.hash32;
 import static Zeze.Util.BitConverter.num2Hex;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-/*
-导出RocksDB的所有记录到文本文件的工具, 可指定column(table)名, 默认是"default"
-只提供数据库目录参数时会列出所有的column名
-默认的导出方式输出转换为ASCII字符串的二进制key-value数据
-可指定key和value的解码方法(long,string,bean,raftLog),输出更加可读的信息
-
-附带列出数据库meta信息(所有在用的sst文件列表)功能(-meta)
-附带压缩整理数据库功能(只有此功能会写数据库,其它均为只读), 可指定column(table)名, 默认是所有的column
-其中有两种压缩方法, 一种是compactRange(-compact), 另一种是compactFiles(-compact1)
-二者都整理log文件到sst中, 后者还会把0级文件整理合并到1级文件
-*/
+/**
+ * RocksDB 离线导出与维护工具：列出列族、导出键值记录（支持 long/string/bean/raftLog 解码）、
+ * 查看 SST 元数据（{@code -meta}）及执行全量/L0→L1 压缩（{@code -compact}/{@code -compact1}，仅压缩会写库）。
+ */
 public final class DumpRocksDb {
 	public static void main(String[] args) throws Exception {
 		int argCount = args.length;
@@ -66,9 +59,7 @@ public final class DumpRocksDb {
 		var inputDbPath = args[0];
 		var columnFamilyName = argCount > 2 ? args[1] : null;
 		var outputTxtFile = argCount == 1 ? null : argCount == 2 ? args[1] : args[2];
-		// DBOptions/ColumnFamilyOptions（含compact1的CompactionOptions与listColumnFamilies的
-		// Options）都是rocksjava的native对象，必须close释放；各分支open返回的ColumnFamilyHandle
-		// 同样由调用方负责close（在db.close之前，与RocksDatabase.close的释放顺序一致）。
+		// Options 与 ColumnFamilyHandle 均为原生对象，ColumnFamilyHandle 必须在 db.close 之前释放。
 		try (var cfOptions = new ColumnFamilyOptions();
 			 var dbOptions = new DBOptions()) {
 			run(inputDbPath, columnFamilyName, outputTxtFile, cfOptions, dbOptions);
@@ -259,8 +250,7 @@ public final class DumpRocksDb {
 		}
 	}
 
-	// open(...,outHandles)返回的ColumnFamilyHandle是调用方负责的native对象，
-	// 须在db.close之前逐个close（与RocksDatabase.close的destroy顺序一致）；容错吞二次异常。
+	// ColumnFamilyHandle 为原生对象，须在 db.close 之前释放。
 	private static void closeHandles(Iterable<ColumnFamilyHandle> handles) {
 		for (var h : handles) {
 			try {
@@ -270,8 +260,7 @@ public final class DumpRocksDb {
 		}
 	}
 
-	// 部分RocksDB版本的getLiveFilesMetaData().fileName带前导'/'，compactFiles要求
-	// 相对db目录的文件名——meta与compact1两个分支统一剥离（不剥离时file not found）。
+	// 部分 RocksDB 版本的 fileName 带前导 '/'，compactFiles 要求相对路径，统一剥离。
 	private static String stripLeadingSlash(String fileName) {
 		return fileName.startsWith("/") ? fileName.substring(1) : fileName;
 	}
@@ -357,7 +346,7 @@ public final class DumpRocksDb {
 
 	private static void dumpString(OutputStream os, byte [] bytes) throws IOException {
 		for (var b : bytes) {
-			if (b == '"' || b == '\\') // escape
+			if (b == '"' || b == '\\')
 				os.write('\\');
 			os.write(b);
 		}
@@ -365,8 +354,8 @@ public final class DumpRocksDb {
 
 	private static void dumpBytes(OutputStream os, byte [] bytes) throws IOException {
 		for (var b : bytes) {
-			if (b >= 0x20 && b <= 0x7e) { // printable
-				if (b == '\'' || b == '\\') // escape
+			if (b >= 0x20 && b <= 0x7e) { // 可打印 ASCII
+				if (b == '\'' || b == '\\')
 					os.write('\\');
 				os.write(b);
 			} else {
@@ -380,8 +369,8 @@ public final class DumpRocksDb {
 	private static String toStr(byte [] bytes) {
 		var sb = new StringBuilder(bytes.length * 3);
 		for (int b : bytes) {
-			if (b >= 0x20 && b <= 0x7e) { // printable
-				if (b == '\'' || b == '\\') // escape
+			if (b >= 0x20 && b <= 0x7e) { // 可打印 ASCII
+				if (b == '\'' || b == '\\')
 					sb.append('\\');
 				sb.append((char)b);
 			} else {
@@ -397,14 +386,13 @@ public final class DumpRocksDb {
 		for (int i = 0, n = bytes.length; i < n; i++) {
 			int b = bytes[i];
 			if (b >= 0) { // 0xxx xxxx
-				if (b < 0x20 || b == 0x7f) // not printable
+				if (b < 0x20 || b == 0x7f) // 不可打印 ASCII
 					return false;
 			} else {
 				b &= 0xff;
-				if (b < 0xc2 || b > 0xf4) // 0xc0|0xc1仅能构成过长编码；0xf5起不是合法引导字节
+				if (b < 0xc2 || b > 0xf4) // 排除过长编码引导字节及非法字节
 					return false;
-				// 连续字节数由引导字节决定（0xC2-0xDF跟1个、0xE0-0xEF跟2个、0xF0-0xF4
-				// 跟3个，含emoji等4字节字符——游戏聊天数据常见）；续字节掩码为0x80（10xx xxxx）。
+				// 按 UTF-8 引导字节确定续字节数（1~3 个，含 4 字节字符）
 				int continuations = b < 0xe0 ? 1 : b < 0xf0 ? 2 : 3;
 					int codePoint = b & (continuations == 1 ? 0x1f : continuations == 2 ? 0xf : 7);
 				for (var j = 0; j < continuations; ++j) {

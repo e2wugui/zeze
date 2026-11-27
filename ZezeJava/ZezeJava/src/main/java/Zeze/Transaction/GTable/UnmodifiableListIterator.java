@@ -18,21 +18,15 @@ package Zeze.Transaction.GTable;
 
 import java.util.ListIterator;
 
-/**
- * A list iterator that does not support {@link #remove}, {@link #add}, or {@link #set}.
- *
- * @since 7.0
- * @author Louis Wasserman
- */
+/** 不支持 {@link #remove}、{@link #add} 和 {@link #set} 操作的列表迭代器基类。 */
 public abstract class UnmodifiableListIterator<E> extends UnmodifiableIterator<E> implements ListIterator<E> {
-	/** Constructor for use by subclasses. */
 	protected UnmodifiableListIterator() {}
 
 	/**
-	 * Guaranteed to throw an exception and leave the underlying data unmodified.
+	 * 始终抛出 {@link UnsupportedOperationException}，不修改底层数据。
 	 *
-	 * @throws UnsupportedOperationException always
-	 * @deprecated Unsupported operation.
+	 * @throws UnsupportedOperationException 始终抛出
+	 * @deprecated 不支持此操作。
 	 */
 	@Deprecated
 	@Override
@@ -41,10 +35,10 @@ public abstract class UnmodifiableListIterator<E> extends UnmodifiableIterator<E
 	}
 
 	/**
-	 * Guaranteed to throw an exception and leave the underlying data unmodified.
+	 * 始终抛出 {@link UnsupportedOperationException}，不修改底层数据。
 	 *
-	 * @throws UnsupportedOperationException always
-	 * @deprecated Unsupported operation.
+	 * @throws UnsupportedOperationException 始终抛出
+	 * @deprecated 不支持此操作。
 	 */
 	@Deprecated
 	@Override

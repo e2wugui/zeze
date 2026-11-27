@@ -74,8 +74,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	/**
-	 * 只读请求方向编码：始终写出 FamilyClass.RaftRequest + 请求初始码 + Argument，
-	 * 不读取会被应答/超时线程原地改写的 isRequest/resultCode/Result/resultEncoded 字段。
+	 * 只读请求方向编码：始终按请求头与冻结的初始请求码写出，避免与应答/超时线程原地改写字段竞争。
 	 */
 	public ByteBuffer encodeRequest() {
 		int preAllocSize = preAllocSize();
@@ -99,17 +98,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 
 	@Override
 	public boolean Send(@Nullable AsyncSocket socket) {
-		// 1.
-		// 通过原始raft连接方式发送请求。
-		// 由于每次发送需要新的rpc.sessionId，所以这里新建了一个桥接类发送，
-		// 并不会真正发送原始的RaftRpc。
-		// 2.
-		// 通过Proxy发送的时候，ProxyRequest已经是一个新的请求，所有的dispatch特别处理，
-		// 不会使用这个方法发送请求了。
-		// 3.
-		// Rpc.SendResult 针对上面两个发送方式，也有两个路径。
-		// 3.1 原始方式通过SessionId找到本地存根并最终找到本RaftRpc.ResponseHandle把结果派发出去。
-		// 3.2 Proxy方式由ProxyRequest的嵌套ResponseHandle派发出去。其中SendResult需要拦截。see 本类。
+		// 直连发送每次需要独立 sessionId，故通过 RaftRpcBridge 桥接发送并回派应答；代理路径由 ProxyRequest 封装，不经此方法。
 		var bridge = new RaftRpcBridge<>(this);
 		bridge.Argument = Argument;
 		bridge.setCreateTime(createTime);
@@ -135,9 +124,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 		if (isRequest())
 			Argument.encode(bb);
 		else if (resultEncoded != null)
-			// 对齐基类Rpc.encode：应答优先使用已编码结果（RaftApplied重试应答经
-			// SendResultCode(code,result)设置resultEncoded后发出）；固定Result.encode时，
-			// 接收侧实例的Result从未解码、发出的是空bean编码，客户端拿到静默错误数据。
+			// 优先写出已编码应答（如 RaftApplied 重试回放路径）。
 			bb.Append(resultEncoded.bytesUnsafe(), resultEncoded.getOffset(), resultEncoded.size());
 		else
 			Result.encode(bb);

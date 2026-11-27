@@ -4,10 +4,8 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 /**
- * LeaderIs 的发送时机
- * 0. Agent 刚连上来时，如果Node是当前Leader，它马上这个Rpc给Agent。
- * 1. Node 收到应用请求时，发现自己不是Leader，发送重定向。此时Node不处理请求（也不返回结果）。
- * 2. 选举结束时也给Agent广播选举结果。
+ * Raft 节点向 Agent 通告当前 Leader 的 Rpc：
+ * 连接建立且自身为 Leader、非 Leader 收到请求需重定向、或选举结束广播时发送。
  */
 public final class LeaderIs extends ProxyableRpc<BLeaderIsArgument, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(LeaderIs.class.getName());

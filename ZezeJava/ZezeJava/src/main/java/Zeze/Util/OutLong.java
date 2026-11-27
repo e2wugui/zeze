@@ -2,7 +2,7 @@ package Zeze.Util;
 
 import org.jspecify.annotations.Nullable;
 
-// long 输出参数包装（模拟 C# out 参数）
+/** long 输出参数包装（模拟 C# out 参数）。 */
 public class OutLong {
 	public long value;
 

@@ -10,7 +10,7 @@ import Zeze.Transaction.Bean;
 final class BAppendEntriesResult extends Bean {
 	private long term;
 	private boolean success;
-	private long nextIndex; // for fast locate when mismatch
+	private long nextIndex; // 日志失配时用于快速定位
 
 	public long getTerm() {
 		return term;

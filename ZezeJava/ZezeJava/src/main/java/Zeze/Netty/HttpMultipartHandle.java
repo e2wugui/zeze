@@ -15,10 +15,8 @@ import io.netty.util.AttributeKey;
 import org.jspecify.annotations.Nullable;
 
 /**
- * multipart/form-data 上传处理接口：基于 netty 解码器分发属性/文件字段回调。
- * <p>正常收齐请求体后经 {@link #onEndStream(HttpExchange)} 回调 {@link #onEndRequest(HttpExchange, InterfaceHttpPostRequestDecoder)}；
- * 请求流提前中止（超限 413、断连、超时、解码失败、停机等）时经 {@link #onAbortStream(HttpExchange)}
- * 释放解码器与临时文件并回调 {@link #onAbortRequest(HttpExchange)}，与正常完成严格解耦。
+ * multipart/form-data 上传处理接口：基于 Netty 解码器分发属性与文件字段回调。
+ * 正常结束回调 {@link #onEndRequest}；提前中止由 {@link #onAbortStream} 释放解码器并回调 {@link #onAbortRequest}。
  */
 @SuppressWarnings("RedundantThrows")
 public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamContentHandle, HttpEndStreamHandle, HttpAbortStreamHandle {
@@ -27,10 +25,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 
 	private static HttpDataFactory newDefaultHttpDataFactory() {
 		var factory = new DefaultHttpDataFactory();
-		// 可选加固：multipart溢出临时文件（>16KB落盘）的JVM退出兜底，对齐raw路径
-		// MixedFileUpload静态默认deleteOnExit=true的语义；JVM内驻留场景由fireEndStreamHandle/fireAbortStreamHandle
-		// 的cancel补偿解决。代价是DeleteFileOnExitHook的路径集合驻留，可接受。
-		factory.setDeleteOnExit(true);
+		factory.setDeleteOnExit(true); // 溢出临时文件的 JVM 退出兜底清理
 		return factory;
 	}
 
@@ -55,11 +50,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 		x.close(x.sendPlainText(HttpResponseStatus.OK, (String)null));
 	}
 
-	/**
-	 * 请求流在正常完成前被中止时的回调（如超限 413、连接断开、空闲超时、解码失败或提前关闭）。
-	 * <p>调用前框架已完成 channel 上的 Netty 解码器与临时文件资源释放；子类可覆写此方法清理
-	 * 本次上传关联的业务状态，无需手动销毁 decoder。注意连接此时可能已关闭，不应假设仍可写响应。
-	 */
+	/** 请求流提前中止时的业务清理回调（调用前框架已销毁 decoder，连接此时可能已关闭）。 */
 	default void onAbortRequest(HttpExchange x) throws Exception {
 	}
 
@@ -81,11 +72,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 		return x.channel().attr(decoderKey).getAndSet(decoder);
 	}
 
-	/**
-	 * 取走即负责：安全销毁已从attr取走的解码器。null容忍；防御性清理（cancel补偿/
-	 * 防残留分支）不得打断调用路径，异常吞并记日志。netty destroy()非幂等，
-	 * 同一实例只允许经"取走"（getAndSet）交入一次，不得二次调用。
-	 */
+	/** 安全销毁已从 attr 取走的解码器（null 容忍，异常记日志；Netty destroy 非幂等，不可重复调用）。 */
 	static void destroyDecoder(@Nullable InterfaceHttpPostRequestDecoder decoder) {
 		if (decoder == null)
 			return;
@@ -96,7 +83,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 		}
 	}
 
-	/** channel attr取走即销毁（"取走即负责"幂等语义），attr无值时no-op。 */
+	/** 从 channel attr 取出并销毁解码器（幂等）。 */
 	static void destroyChannelDecoder(HttpExchange x) {
 		destroyDecoder(x.channel().attr(decoderKey).getAndSet(null));
 	}
@@ -104,7 +91,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	@Override
 	default void onBeginStream(HttpExchange x, long from, long to, long size) throws Exception {
 		var oldDecoder = getAndSetDecoder(x, newDecoder(x));
-		destroyDecoder(oldDecoder); // 以防万一：attr残留旧解码器时销毁
+		destroyDecoder(oldDecoder);
 	}
 
 	@Override
@@ -119,7 +106,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 				try {
 					data = decoder.next();
 				} catch (EndOfDataDecoderException ignored) {
-					break; // 最后字段之后的正常终态，不能当成畸形上传回400。
+					break; // 正常读到末尾
 				}
 				if (data == null)
 					break;
@@ -135,10 +122,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 				}
 			}
 		} catch (Exception e) {
-			// 解码/回调异常被任务框架吞掉（fireStreamContentHandle仅记日志），不立即处置
-			// 则onEndStream无条件进onEndRequest默认发200——静默数据丢失。立即取走销毁decoder
-			//（后续畸形chunk不再进解码器，onEndStream因attr已空自然跳过200，无需跨任务状态位），
-			// 回400并断连。
+			// 立即取出销毁 decoder（后续 onEndStream 见空跳过 200），回 400 并断连。
 			destroyDecoder(getAndSetDecoder(x, null));
 			Netty.logger.error("multipart decode failed from {}", x.channel().remoteAddress(), e);
 			x.closeConnectionOnFlush(x.send(HttpResponseStatus.BAD_REQUEST, "text/plain; charset=utf-8",
@@ -149,7 +133,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	@Override
 	default void onEndStream(HttpExchange x) throws Exception {
 		if (x.isStreamAborted()) {
-			// 兼容手动通过旧三参数HttpHandler构造器接入且未显式绑定AbortStreamHandle的调用方
+			// 兼容未显式绑定 AbortStreamHandle 的流式处理器构造路径。
 			onAbortStream(x);
 			return;
 		}

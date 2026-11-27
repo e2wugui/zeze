@@ -23,11 +23,7 @@ public class ExporterNginxConfig implements IExporter {
 
 	@Override
 	public void exportAll(String serviceName, BServiceInfosVersion all) throws Exception {
-		// 服务暂无任何可导出地址（无identity或passiveIp全空）时整体跳过、不产出
-		// 配置——空upstream块会让nginx reload报[emerg] no servers are inside upstream，整个
-		// reload失败波及同文件其他服务的地址更新（且reload不查退出码时完全静默）。追加路径
-		// 跳过不破坏自愈（有地址后的下一轮照常追加）；已存在块路径保持原块不动（下线地址由
-		// nginx自行502，实例重新上线后恢复重写）。
+		// 无可导出地址时跳过，避免生成空 upstream 块导致 nginx reload 失败。
 		if (!hasAnyExportableServer(all)) {
 			logger.info("ExporterNginxConfig: service '{}' has no identities to export, skip this round", serviceName);
 			return;
@@ -176,13 +172,8 @@ public class ExporterNginxConfig implements IExporter {
 		if (null == reload || reload.isBlank())
 			return;
 
-		// reload失败不静默——不查退出码时配置错误（如nginx -t不过）无任何
-		// 可见性，波及同文件其他服务的地址更新。
-		// 本方法运行在Exporter.onEdit的one-by-one单worker：输出DISCARD丢弃（无人读管道时
-		// 输出填满OS缓冲会让命令自身死锁）、有界等待+超时强杀（命令挂起不得冻结worker，
-		// 否则所有后续SM事件停摆、failedServices补偿同worker永不运行）。
-		// Runtime.exec(String)按空白切分，ProcessBuilder不切——显式split保持带参命令
-		// （如"nginx -s reload"）语义不变。
+		// 丢弃子进程输出并设超时，避免管道满或命令挂起阻塞导出 worker；
+		// 显式按空白拆分以兼容带参命令（如 "nginx -s reload"）。
 		var p = new ProcessBuilder(reload.split("\\s+"))
 				.redirectOutput(ProcessBuilder.Redirect.DISCARD)
 				.redirectError(ProcessBuilder.Redirect.DISCARD)

@@ -1,6 +1,6 @@
 package Zeze.Util;
 
-// 框架不会捕捉这个异常，用来测试或者特别框架。
+/** 框架不捕获的 Error 异常，用于测试断言或特殊控制流穿透。 */
 public class ThrowAgainException extends Error {
 	public ThrowAgainException() {
 	}

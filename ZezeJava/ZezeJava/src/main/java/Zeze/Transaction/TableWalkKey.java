@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 
+/** 表键遍历回调接口（强类型键）：handle 返回 true 继续遍历、false 中断。 */
 @FunctionalInterface
 public interface TableWalkKey<K> {
 	boolean handle(K key) throws Exception;

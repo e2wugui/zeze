@@ -11,17 +11,17 @@ public class AchillesHeelConfig {
 	// 所以如果raft.agent的网络配置的重连时间太长，那相当于只要网络断开，最后都会引起Release操作，而没有尝试重连。不会造成致命问题。
 	public static final int reconnectTimer = 1000;
 
-	// keep alive
+	// 心跳保活
 	public final int serverKeepAliveIdleTimeout;
 
-	// [Important!]
+	// 看门狗与释放超时（核心时限）
 	public final int serverDaemonTimeout;
 	public final int serverReleaseTimeout;
-	// External kill is an idle limit, with one scan tick reserved before the GCM budget.
+	// 外部强杀空闲上限：相对 GCM 超时预留一个扫描周期
 	public final int serverKillTimeout;
 	public final int globalDaemonTimeout;
 
-	// rpc timeout
+	// RPC 超时
 	public final int reduceTimeout;
 	public final int acquireTimeout;
 	public final int keepAliveTimeout;

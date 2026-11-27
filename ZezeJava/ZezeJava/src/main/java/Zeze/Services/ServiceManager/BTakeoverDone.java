@@ -5,9 +5,8 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 /**
- * TakeoverDone 参数：接管完成回执（GS→SM，fire-and-forget）。
- * GS 的 tryTransfer 全部 scope 搬运完成（立墓碑）后上报，SM 据此停止 version 梯队升档。
- * 回执丢失由梯队超时升档的重复 Suspect 兜底：已接管者 tryTransfer 幂等命中墓碑空转。
+ * TakeoverDone 协议参数：GS 完成全部 scope 接管后向 SM 上报的回执（fire-and-forget），
+ * 供 SM 停止 version 梯队升档。
  */
 public class BTakeoverDone implements Serializable {
 	public int deadServerId;

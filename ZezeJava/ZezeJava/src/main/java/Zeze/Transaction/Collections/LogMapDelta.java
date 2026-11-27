@@ -47,10 +47,7 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		return true;
 	}
 
-	/**
-	 * 结构增量单容器记账：value 非 null 为替换项，null 为删除标记。
-	 * 单槽位天然维持替换/删除互斥，取代双容器的交叉清理纪律。
-	 */
+	/** 结构增量：value 非 null 为替换项，null 为删除标记，单槽位天然保持互斥。 */
 	private @Nullable HashMap<K, @Nullable V> modified;
 
 	protected LogMapDelta(PMap<K, V> source, org.pcollections.PMap<K, V> value) {
@@ -76,8 +73,7 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 		super.putAll(m);
 		var newMap = getValue();
 		if (newMap != old) {
-			// 只记值真实变化的键：值未变的键混入modified是幻影增量，误导增量驱动的监听器。
-			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogMap2）。
+			// 仅记录值实际变化的键，避免无变更项触发监听；判定语义由各子类覆写。
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				noteReplacement(k, e.getValue(), old.get(k));
@@ -98,9 +94,6 @@ public abstract class LogMapDelta<K, V> extends LogMap<K, V> {
 	}
 
 	public boolean remove(K key, V value) {
-		// 空值防御对齐非托管分支（PMap1/PMap2/PSortedMap1/2 的 exist!=null && exist.equals(v)）：
-		// value==null 时旧形态 NPE 炸事务、非托管分支同输入安静返回 false——同输入两分支
-		// 行为必须一致（20261020-06，对抗验证定谳为理论缺陷，防御对齐修法）。
 		if (super.remove(key, value)) {
 			modifiedForWrite().put(key, null);
 			return true;

@@ -45,8 +45,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		RegisterProtocols(service);
 	}
 
-	// handle参数为Master→Manager方向rpc（CreateBucket/DestroyBucket）在manager侧的处理器；
-	// 纯客户端（Dbh2AgentManager等）用上面的构造器，handle为null时按NotImplement拒绝。
+	// manager 侧构造器：注册 Master→Manager 方向的 CreateBucket/DestroyBucket 处理器（纯客户端传 null 按 NotImplement 拒绝）
 	public MasterAgent(Config config, ProtocolHandle<CreateBucket> handle,
 					   ProtocolHandle<DestroyBucket> destroyHandle, Service service) {
 		this.service = service;
@@ -107,9 +106,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		var r = new CreateTable();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);
-		// Send失败（连接空窗GetSocket()==null）不建rpc上下文、不派发回调：必须显式回调暂时性失败码，
-		// 否则Dbh2Table.ready永不完成，waitReady永久挂起（旁路createTableWithRetry的预算）。
-		// eTooFewManager=资源暂时不足类码：走白名单重试，autoReconnect恢复后照常建表。
+		// Send 失败时不派发回调，须显式回调暂时性失败码（eTooFewManager）触发调用方重试
 		if (!r.Send(service.GetSocket(), (p) -> {
 			var rc = r.getResultCode();
 			if (rc == 0) {
@@ -189,9 +186,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		}
 
 		/**
-		 * 连向Master的连接（含断线重连）建立完成。在IO线程回调，实现不得同步等待rpc。
-		 * Master重启即丢失managers注册表（纯内存，databases/tables才落盘），子类需在此
-		 * 重发Register（Master端按socket与acceptor:port身份幂等去重，对齐MQ Master先例）。
+		 * 连向 Master 的连接（含断线重连）建立完成时在 IO 线程回调，实现不得同步等待 RPC；子类可在此重发 Register。
 		 */
 		protected void OnMasterConnected(@SuppressWarnings("unused") AsyncSocket so) throws Exception {
 		}
@@ -222,7 +217,6 @@ public class MasterAgent extends AbstractMasterAgent {
 			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 
-	// end重试间隔（对齐createTableRetryBudgetMs形态）：非final便于测试收缩。
 	static volatile long endRetryDelayMs = 30_000L;
 
 	public void endMoveWithRetryAsync(BBucketMeta.Data to) {
@@ -230,18 +224,14 @@ public class MasterAgent extends AbstractMasterAgent {
 	}
 
 	/**
-	 * @param onSettled settle终局回调（rc==0成功，或eSplittingBucketNotFound=已结算证据），
-	 *                  至多执行一次；null=无回调（原语义）。源桶Dbh2借此追加
-	 *                  pending-settle清除日志（LogClearPendingSettle），进程在终局前死亡则
-	 *                  标志留存，下轮leader-ready补发终局后同样清除。
+	 * 异步通知 Master 结束迁移并按间隔重试，结算终局（rc==0 或 eSplittingBucketNotFound）时至多执行一次 onSettled。
 	 */
 	public void endMoveWithRetryAsync(BBucketMeta.Data to, @Nullable Action0 onSettled) {
 		var r = new EndMove();
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
 			if (p.getResultCode() != 0) {
-				// eSplittingBucketNotFound=首次settle已成功、仅响应丢失（重发时splitting表中已无该桶）：
-				// 幂等完成的证据，视为成功停止重试。
+				// eSplittingBucketNotFound 表示此前已结算成功，停止重试
 				if (IModule.getErrorCode(p.getResultCode()) != eSplittingBucketNotFound) {
 					logger.warn("endMove fail, retry later. error={} to={}",
 							IModule.getErrorCode(p.getResultCode()), to);
@@ -262,14 +252,14 @@ public class MasterAgent extends AbstractMasterAgent {
 		endSplitWithRetryAsync(from, to, null);
 	}
 
-	/** 同{@link #endMoveWithRetryAsync(BBucketMeta.Data, Action0)}的onSettled形态。 */
+	/** 异步通知 Master 结束分裂并重试，onSettled 语义同 {@link #endMoveWithRetryAsync(BBucketMeta.Data, Action0)}。 */
 	public void endSplitWithRetryAsync(BBucketMeta.Data from, BBucketMeta.Data to, @Nullable Action0 onSettled) {
 		var r = new EndSplit();
 		r.Argument.setFrom(from);
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
 			if (p.getResultCode() != 0) {
-				// 同endMove：eSplittingBucketNotFound是幂等完成的证据，停止重试。
+				// eSplittingBucketNotFound 表示此前已结算成功，停止重试
 				if (IModule.getErrorCode(p.getResultCode()) != eSplittingBucketNotFound) {
 					logger.warn("endSplit fail, retry later. error={} from={} to={}",
 							IModule.getErrorCode(p.getResultCode()), from, to);

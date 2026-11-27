@@ -10,12 +10,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
-/** Set1 payload: borrows the final modified set for synchronous encoding and replay. */
+/** PSet1 的变更日志载荷：借用最终增量集合用于同步编码与回放。 */
 public class LogSet1<V> extends LogBean {
-	/**
-	 * 加入项的哑值（同 HashSet 底层 HashMap 的 PRESENT 惯例）：set 无值语义，
-	 * value 槽只作判别位——非 null（PRESENT）为加入，null 为删除标记。
-	 */
+	/** 加入项的哑值：非 null（PRESENT）表示加入，null 表示删除。 */
 	public static final Object PRESENT = new Object();
 
 	protected final Set1Meta<V> meta;
@@ -45,7 +42,7 @@ public class LogSet1<V> extends LogBean {
 	public void encode(ByteBuffer bb) {
 		var encoder = meta.valueCodec.encoder;
 		Map<V, @Nullable Object> m = modified != null ? modified : Collections.emptyMap();
-		// 两遍split编码（同LogMap1）：线格式与added/removed双容器时代逐字节一致。
+		// 分新增段与删除段两遍编码，保持线格式兼容。
 		int addedCount = 0;
 		for (var e : m.entrySet())
 			if (e.getValue() != null)

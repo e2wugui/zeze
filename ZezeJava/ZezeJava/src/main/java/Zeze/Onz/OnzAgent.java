@@ -57,10 +57,10 @@ public class OnzAgent extends AbstractOnzAgent {
 		return transactions.containsKey(onzTid);
 	}
 
-	/** 参与方已应答的调用失败（业务非0结果码，或应答载荷decode失败）——应答到达即
-	 * FuncSaga已被参与方处理过，注册必然先于任何FuncSagaEnd。与"未应答"的失败
-	 * （超时/发送失败，可能处于FuncSagaEnd先于FuncSaga注册被处理的乱序窗口）区分：
-	 * cancelSaga仅对未应答失败的步骤做eSagaNotFound的单次延迟重试（见OnzTransaction.cancelSaga）。 */
+	/**
+	 * 参与方已应答的调用失败（非 0 结果码或应答载荷解码失败），用于与超时/发送失败区分：
+	 * 已应答说明 FuncSaga 已先于 FuncSagaEnd 完成注册，cancelSaga 无需对 NotFound 做乱序重试。
+	 */
 	static final class CallAnsweredException extends RuntimeException {
 		@Serial
 		private static final long serialVersionUID = 1L;
@@ -81,12 +81,7 @@ public class OnzAgent extends AbstractOnzAgent {
 	protected long ProcessFlushReadyRequest(FlushReady r) {
 		var pending = transactions.get(r.Argument.getOnzTid());
 		if (null == pending) {
-			// 迟到的FlushReady：参与方能走到flush阶段，说明它已收到Commit决策
-			// （sendReadyAndWait已返回）。这里事务不存在说明协调者侧perform已结束
-			// （finally已removeTransaction，含waitFlushDone超时降级路径——降级本来就会
-			// 放行已收到的FlushReady并对参与方主动checkpoint）。
-			// 如果回错误码，参与方sendFlushReady会判定失败，异常上抛进finalCommit
-			// 最终halt(543543)整个进程。幂等放行，允许参与方继续落库。
+			// 事务已结束或已降级时幂等放行迟到的 FlushReady，避免参与方提交阶段异常停机。
 			r.SendResult();
 			return 0;
 		}
@@ -106,23 +101,16 @@ public class OnzAgent extends AbstractOnzAgent {
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
 		r.Argument.setFlushTimeout(pending.getFlushTimeout());
-		// rpc超时不使用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
-		// 步骤业务+网络往返超过5s时固定超时把仍会成功的调用判为失败，触发不必要的回滚。
+		// 复用事务 flushTimeout 作为 RPC 超时，避免长步骤被固定 5s 误判失败。
 		r.setTimeout(pending.getFlushTimeout());
 		var bbArgument = ByteBuffer.Allocate();
 		argument.encode(bbArgument);
 		r.Argument.setFuncArgument(new Binary(bbArgument));
 
-		// Send false（socket断开窗口）时回调不注册、无超时调度，future必须完成，否则perform的future.get()永久挂起
+		// Send 返回 false 时不会触发回调，必须显式完成 future 防止调用方永久等待。
 		if (!r.Send(zezeOnzInstance, (p) ->{
 			if (r.getResultCode() == 0) {
-				// 回调式发送没有框架future，本局部TCS的唯一完成者是这条回调；
-				// 真实应答消费rpc上下文后，超时兜底的双参remove必失败直接return（Rpc.schedule），
-				// 不会重放回调——decode抛出（载荷结构性损坏/空载荷decode不足1字节）若发生在
-				// setResult之前，异常冲出回调被派发框架吞掉，future永pending，业务的future.get()
-				// 无超时永久挂起且零可观测性。对齐sendFlushReady"失败路径必须完成future"与Rpc.handle
-				// "resultCode先于future"的先立结果形态：decode失败同样以异常完成future，业务走正常
-				// rollback/补偿链而不是无声挂死。
+				// 回调是 future 的唯一完成者，解码异常必须以异常完成 future 防止调用方永久挂起。
 				try {
 					var bbResult = ByteBuffer.Wrap(r.Result.getFuncResult());
 					result.decode(bbResult);
@@ -162,21 +150,15 @@ public class OnzAgent extends AbstractOnzAgent {
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
 		r.Argument.setFlushTimeout(pending.getFlushTimeout());
-		// rpc超时不使用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
-		// saga参与方在本地提交后发送结果，固定5s超时把实际会提交
-		// 的步骤判为失败，若该步骤未被cancel补偿则写入永久残留（部分提交
-		// 的静默分歧）。
+		// 复用事务 flushTimeout 作为 RPC 超时，避免已本地提交的慢步骤被过早判为超时。
 		r.setTimeout(pending.getFlushTimeout());
 		var bbArgument = ByteBuffer.Allocate();
 		argument.encode(bbArgument);
 		r.Argument.setFuncArgument(new Binary(bbArgument));
 
-		// 同上：Send false必须完成future
 		if (!r.Send(zezeOnzInstance, (p) ->{
 			if (r.getResultCode() == 0) {
-				// 同callProcedureAsync：回调是TCS唯一完成者，超时兜底被真实
-				// 应答短路不重放——decode抛出必须以异常完成future，否则cancelSaga的无超时
-				// saga.get()（await saga result）在协调者线程上永久挂起，补偿链无人触发。
+				// 解码异常同样须完成 future，防止 cancelSaga 等待结果时永久挂起。
 				try {
 					var bbResult = ByteBuffer.Wrap(r.Result.getFuncResult());
 					result.decode(bbResult);
@@ -187,14 +169,11 @@ public class OnzAgent extends AbstractOnzAgent {
 							"call result decode fail: " + onzProcedureName, ex, true));
 				}
 			} else if (r.isTimeout() || r.getResultCode() == Procedure.ErrorSendFail) {
-				// 未应答失败（超时，或socket dispose时被回调式派发置ErrorSendFail完成——
-				// 请求从未到达对端）：保持泛型异常形态，cancelSaga归入乱序窗口类；
-				// 误归"已应答"会让乱序窗口内迟到注册的步骤失去补偿（静默部分提交）。
+				// 未应答失败（超时或发送失败）保持普通异常，供 cancelSaga 按乱序窗口处理。
 				future.setException(new RuntimeException(
 						"call error: " + onzProcedureName
 								+ " code=" + r.getResultCode()));
 			} else {
-				// 已应答的业务失败（非0结果码），以CallAnsweredException完成。
 				future.setException(new CallAnsweredException(
 						"call error: " + onzProcedureName
 								+ " code=" + r.getResultCode()));

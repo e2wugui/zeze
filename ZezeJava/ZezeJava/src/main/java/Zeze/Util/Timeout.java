@@ -4,6 +4,7 @@ import Zeze.Transaction.DispatchMode;
 
 import java.util.concurrent.locks.ReentrantLock;
 
+/** 超时回调句柄：由 {@link TimeoutManager} 调度，支持通过 cancel/close 取消。 */
 public class Timeout implements AutoCloseable, Action0 {
 	private final TimeoutManager.TimeoutSet timeoutSet;
 	private final Action0 action0;

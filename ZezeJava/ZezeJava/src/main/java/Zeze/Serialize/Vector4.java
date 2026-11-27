@@ -66,7 +66,6 @@ public class Vector4 extends Vector3 {
 
 	@Override
 	public float sqrMagnitude() {
-		// 含w²：与magnitude()/normalized()的4分量口径对齐（Quaternion继承本类自然正确）。
 		return (float)((double)x * x + (double)y * y + (double)z * z + (double)w * w);
 	}
 
@@ -87,13 +86,10 @@ public class Vector4 extends Vector3 {
 
 	@Override
 	public Vector4 multiply(float m) {
-		// 补上w：继承的三分量口径会静默丢w且结果降维（Quaternion继承本类自然正确）。
 		return new Vector4(x * m, y * m, z * m, w * m);
 	}
 
-	// 四维加减重载（不覆写三维签名）：继承的add/sub/subtract(Vector3)只运算x/y/z并
-	// 返回Vector3，丢w且降维。新增重载让静态类型为Vector4的实参绑定四维路径；
-	// Vector4实参经Vector3静态类型调用时保持旧三维语义（二进制兼容，见提交说明）。
+	// 四维加减重载；保留父类 Vector3 签名以维持二进制兼容。
 	public Vector4 add(Vector4 b) {
 		return new Vector4(x + b.x, y + b.y, z + b.z, w + b.w);
 	}

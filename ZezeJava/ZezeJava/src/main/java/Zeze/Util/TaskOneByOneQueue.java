@@ -16,7 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-// 单桶串行任务队列（按 key 分桶后每桶一个）：批量调度、屏障任务、shutdown(true) 补偿与 waitComplete
+/** 单桶串行任务队列：支持批量调度、屏障任务、shutdown 取消补偿与 waitComplete 等待。 */
 public class TaskOneByOneQueue extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneQueue.class);
 	private static final ConcurrentHashMap<Dispatch, Executor> pendingDispatches = new ConcurrentHashMap<>();
@@ -26,9 +26,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	private final @Nullable Executor executor;
 	private volatile boolean isShutdown;
 	private boolean shutdownCancel; // shutdown(cancel) 的模式，runNext 收尾判断用；锁内读写
-	// 锁外正在执行的收尾补偿计数；锁内读写。用计数而非布尔：持续拒绝的自定义 executor 下，
-	// runNext 的 shutdown-cancel 路径与 rollbackRejectedDispatch 的两条回滚可交错（一方锁外
-	// runCancel 期间另一方又置位），布尔互相覆盖会提前放行 waitComplete。
+	// 锁外执行中的取消补偿计数（锁内读写），防止多路补偿交错提前放行 waitComplete
 	private int pendingCancelCount;
 	private boolean removed;
 
@@ -67,7 +65,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			if (!queue.isEmpty()) {
 				var max = Math.min(queue.size(), 1000);
 				if (tasks == null || max > tasks.length || max < tasks.length / 2)
-					// 增长：批量变大时扩容；收缩(需求小于现容量一半)：空闲后释放峰值内存，避免长期驻留。
+					// 批量增大时扩容，需求不足半容时收缩以释放峰值内存
 					tasks = new Task[max];
 				mode = queue.peekFirst().mode;
 				var i = 0;
@@ -94,8 +92,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				if (!task.process(this))
 					return; // 任务调度终端，当前任务以后完成的时候会触发runNext;
 				if (isShutdown)
-					// shutdown后批量内后续任务不再连续执行：shutdown(true)时队列剩余(均未运行)由runNext收尾补偿；
-					// shutdown(false)时任务仍在队列，由下面的runNext重新prepare逐个调度执行。
+					// shutdown 后中止当前批量连续执行，交由 runNext 决定收尾补偿或逐个续跑
 					break;
 			}
 			TaskOneByOneQueue.this.runNext(processedCount);
@@ -113,14 +110,12 @@ public class TaskOneByOneQueue extends ReentrantLock {
 
 	public @Nullable Runnable submit(Task task) {
 		if (!isShutdown) {
-			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败——
-			// 任务入队后派发抛异常会让队列非空且再无派发点（后续 submit 全走 size!=1 分支），
-			// 该桶永久卡死，shutdown 的 waitComplete 在 cond 上永等。
+			// 入队前校验执行器可用，避免入队后派发失败导致桶永久卡死
 			getExecutor(task.mode);
 
 			queue.addLast(task);
 			if (queue.size() != 1)
-				return null; // 有任务正在执行,不需要进一步调度.
+				return null; // 已有任务在执行，无需再次派发
 			batch.prepare();
 			return () -> executeOrRollback(task.mode, false);
 		}
@@ -128,7 +123,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			return () -> {
 				try {
 					task.cancel.run();
-				} catch (Throwable e) { // logger.error
+				} catch (Throwable e) {
 					logger.error("CancelAction={}", task.name, e);
 				}
 			};
@@ -136,11 +131,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		return null;
 	}
 
-	/** 派发并处理失败：execute在锁外与停机（Task.shutdownPools先置null再
-	 * shutdownNow）或自定义池拒绝并发时抛RejectedExecutionException，池已置null时
-	 * poolOrThrow抛IllegalStateException——任务已入队且已认领（size==1分支），直接抛回
-	 * 会让队列非空且再无派发点（后续submit全走size!=1分支），该桶永久卡死、
-	 * waitComplete永等。回滚认领后重抛：队列回到未派发状态。 */
+	/** 锁外派发并在池不可用或拒绝时回滚未启动认领，防止桶永久卡死。 */
 	private void executeOrRollback(@Nullable DispatchMode mode, boolean continuation) {
 		Dispatch dispatch = null;
 		try {
@@ -149,8 +140,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			pendingDispatches.put(dispatch, target);
 			dispatch.submit(continuation);
 		} catch (Throwable e) {
-			// 池不可用、拒绝以及执行器 Error 均须回滚未启动的认领；内联执行已经
-			// 启动的派发由 CAS 排除，不能回滚其业务或后续批次。清理失败不覆盖原异常。
+			// 仅回滚未启动的认领（已内联启动的由 CAS 排除）；清理异常不覆盖原异常
 			rollbackFailedDispatch(dispatch, e);
 			throw e;
 		}
@@ -208,8 +198,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
-	/** 回滚未启动的认领，整队回收补偿并唤醒等待者。
-	 * 提交方与runNext派发共用（runNext尾部的锁外execute同型，姊妹点一并收口）。 */
+	/** 回滚未启动的认领，整队执行取消补偿并唤醒等待者。 */
 	private void rollbackRejectedDispatch(Throwable cause) {
 		ArrayDeque<Task> cancels;
 		int cancelCount;
@@ -222,17 +211,13 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			queue = new ArrayDeque<>();
 			batch.count = 0; // 认领作废
 			if (batch.tasks != null)
-				Arrays.fill(batch.tasks, null); // 未运行驱动已作废，不保留旧任务/闭包的资源图。
-			// pendingCancelCount挡住waitComplete直到补偿执行完（对齐runNext的
-			// shutdown-cancel路径）——否则signalAll后等待者即放行，停机流程可能在补偿
-			// （onCancel承担重复发货/重复扣款类二次处理的守护语义）完成前推进甚至退出进程。
+				Arrays.fill(batch.tasks, null); // 释放未运行驱动持有的任务引用
+			// 递增 pendingCancelCount，确保 waitComplete 在锁外补偿完成后才放行
 			pendingCancelCount++;
 			cond.signalAll();
 		} finally {
 			unlock();
 		}
-		// 整队补偿零日志不可接受：回滚承担onCancel守护语义（重复发货/扣款类二次处理）却运维不可见，
-		// warn列出被补偿任务名与原因（cancels已脱离队列，锁外遍历安全）。
 		try {
 			var names = new StringBuilder();
 			for (var task : cancels)
@@ -240,7 +225,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			logger.warn("TaskOneByOneQueue: dispatch rejected, rollback & compensate {} task(s): [{}]",
 					cancelCount, names, cause);
 		} finally {
-			runCancelAndSignal(cancels); // 日志故障也不能跳过补偿与 pending 核销。
+			runCancelAndSignal(cancels); // 日志故障也不能跳过补偿与 pending 核销
 		}
 	}
 
@@ -255,14 +240,12 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				return;
 			}
 			if (isShutdown && shutdownCancel) {
-				// shutdown(true)收尾：此时队列剩余的任务(在飞批量认领区内未执行的部分+认领后新提交的部分)
-				// 均未运行，逐个补偿。补偿回调可能触发其他桶的runNext，必须在锁外执行；
-				// 期间pendingCancelCount挡住waitComplete，保证shutdown等待者观察到补偿已全部执行。
+				// shutdown(true) 收尾：锁外补偿剩余未执行任务，pendingCancelCount 挡住 waitComplete
 				cancels = queue;
 				queue = new ArrayDeque<>();
 				batch.count = 0;
 				if (batch.tasks != null)
-					Arrays.fill(batch.tasks, null); // 补偿完成后，批量快照也不得持有未执行的任务。
+					Arrays.fill(batch.tasks, null);
 				pendingCancelCount++;
 			} else
 				batch.prepare();
@@ -281,7 +264,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			if (task.cancel != null) {
 				try {
 					task.cancel.run();
-				} catch (Throwable e) { // logger.error
+				} catch (Throwable e) {
 					logger.error("CancelAction={}", task.name, e);
 				}
 			}
@@ -312,30 +295,27 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			shutdownCancel = cancel;
 			if (!cancel)
 				return;
-			// 补偿边界：只取消"尚未被在飞批量认领"的任务。认领区(队头batch.count个，含已完成未出队与
-			// 正在执行的)必须保留——对已执行成功的任务跑onCancel会造成重复发货/重复扣款类二次处理。
-			// batch.count的写入(prepare)全部发生在queue锁内(submit的0->1转变与runNext)，锁内读取可见。
-			// 保留的认领区由runNext按processedCount对齐出队，未执行部分在那里收尾补偿。
+			// 仅取消未被在飞批量认领的尾部任务；队头已认领区留给 runNext 按 processedCount 精确对齐
 			oldQueue = queue;
-			queue = new ArrayDeque<>(); // clear
+			queue = new ArrayDeque<>();
 			int keep = Math.min(batch.count, oldQueue.size());
 			for (int i = 0; i < keep; i++)
 				//noinspection DataFlowIssue
 				queue.addLast(oldQueue.pollFirst());
 			if (oldQueue.isEmpty())
 				return;
-			pendingCancelCount++; // 摘出队列的补偿也属于 waitComplete 等待范围。
+			pendingCancelCount++; // 摘出队列的补偿也计入 waitComplete 等待范围
 		} finally {
 			unlock();
 		}
-		runCancelAndSignal(oldQueue); // 未认领的任务：未运行，立即补偿
+		runCancelAndSignal(oldQueue); // 未认领任务立即补偿
 	}
 
 	public void waitComplete() throws InterruptedException {
 		lock();
 		try {
 			while (!queue.isEmpty() || pendingCancelCount > 0)
-				cond.await(); // wait running task
+				cond.await(); // 等待运行中任务与取消补偿完成
 		} finally {
 			unlock();
 		}
@@ -395,7 +375,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		public boolean process(BatchTask batch) {
 			try {
 				body.callRaw();
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("TaskOneByOne: {}", name, e);
 			}
 			return true;
@@ -461,10 +441,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 
 		public abstract void run() throws Exception;
 
-		// 锁内快照清空、锁外推进：runNext尾部的派发失败回滚（停机先置空池/自定义执行器拒绝）
-		// 会对整队任务执行cancel补偿，队内其他屏障任务的cancel即对方屏障锁——持本屏障锁推进
-		// 构成barrier→barrier反向互等（两线程互等永久死锁）。正确用法（各任务sum之和恰为
-		// count）下run与cancel恰一方带内容触发推进，快照清空后无并发重叠。
+		// 锁内快照清空、锁外推进：避免持本屏障锁触发其他桶回滚时形成 barrier 间反向死锁
 		private void reachedRunNext() {
 			BatchTask[] batches;
 			lock();
@@ -510,8 +487,8 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				unlock();
 			}
 			try {
-				run(); // 外部回调不持有屏障锁，允许提交新任务。
-			} catch (Throwable ex) { // logger.error
+				run(); // 外部回调不持有屏障锁，允许提交新任务
+			} catch (Throwable ex) {
 				logger.error("{} run exception", getName(), ex);
 			} finally {
 				lock();
@@ -537,7 +514,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			try {
 				if (cancelAction != null)
 					cancelAction.run();
-			} catch (Throwable ex) { // logger.error
+			} catch (Throwable ex) {
 				logger.error("{} cancel exception", getName(), ex);
 			} finally {
 				lock();

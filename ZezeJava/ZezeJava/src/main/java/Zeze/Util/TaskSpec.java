@@ -12,46 +12,13 @@ import Zeze.Transaction.Transaction;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 任务提交参数的统一描述，用来替代 {@link Task} 与 TaskOneByOne 家族的大量重载。
- * 工厂收载荷，setter 收任务属性，终结方法定执行方式：
- *
- * <pre>
- * TaskSpec.ofAction(() -> doSomething())              // 载荷（含协议版工厂）
- *         .name("MyTask")                             // 任务属性（链式 setter）
- *         .dispatchMode(DispatchMode.Critical)
- *         .run();                                     // 执行方式（终结方法）
- * TaskSpec.ofAction(this::logout).executeOneByOne(account, oneByOne); // key+queue 是终结方法参数
- * </pre>
- * <p>
- * 载荷与异常策略（载荷类型见 {@link TaskBody} 的密封实现）：
+ * 任务提交参数的统一描述：工厂收载荷（{@link TaskBody}），链式 setter 设属性，终结方法定执行方式。
  * <ul>
- * <li>ofAction：Action0，异常吞掉只记日志，结果归一为 Long(0)；</li>
- * <li>ofFunc：FuncLong，返回 long 结果，异常翻错误码并走结果日志；
- *     协议版重载 ofFunc(func, p[, onError]) 额外携带关联协议（日志、统计与结果非 0 时的错误回发）；</li>
- * <li>ofProcedure：Procedure，同 ofFunc，日志名固定使用 procedure.getActionName()（{@link #name} 对它无效）；
- *     协议版重载 ofProcedure(procedure, from[, onError]) 额外携带触发协议；</li>
- * <li>ofProcedureOut：Procedure + OutObject，协议由过程内部解码并带出（支持 redo 时重新解码），必带 onError 目标；</li>
- * <li>ofFunc0：Func0&lt;R&gt;，返回值与异常都经 Future 传播（call() 时直接抛给调用者）。</li>
- * </ul>
- * <p>
- * 动词约定：无标记动词 = 事务感知（在运行中的事务内延迟到提交后执行/注册，rollback 不执行）；
- * Now 后缀 = 不等事务提交，立即入池/注册（scheduleNow 的 "now" 指注册不等提交，delayMs 后触发照旧）；
- * Period 后缀 = 固定延迟周期调度（上次执行结束到下次开始），periodMs 必须 &gt; 0，否则抛 IllegalArgumentException。
- * OneByOne 天然立即语义，故 executeOneByOne 无事务感知变体。
- *
- * <p>spec 实例是一次性的、非线程安全：任何终结方法执行后实例失效，再调 setter/终结方法抛
- * {@link IllegalStateException}。
- *
- * <p>fail-fast 校验（终结方法执行时）：
- * <ul>
- * <li>{@link #call} 显式设置过 dispatchMode/timeout/onCancel → IllegalArgumentException；</li>
-	 * <li>{@link #run} 在运行中的事务内且 Procedure 系载荷 + dispatchMode(Direct) → IllegalArgumentException
- *     （Direct 延迟时在 commit 回调中同步执行，无法再开事务）；</li>
- * <li>run 族（{@link #run}/{@link #runNow}/{@link #submitNow}）显式设置过 onCancel → IllegalArgumentException；</li>
- * <li>schedule 族显式设置过 dispatchMode/onCancel → IllegalArgumentException；
- *     Period 后缀方法 periodMs &lt;= 0 → IllegalArgumentException；</li>
- * <li>executeOneByOne 显式设置过 timeout → IllegalArgumentException；
- *     onCancel 仅 base 家族（含全局队列）支持，Key2 + onCancel → IllegalArgumentException。</li>
+ * <li>动词约定：无后缀 = 事务感知（运行中事务内延迟到提交后执行，rollback 不执行）；
+ *     {@code Now} = 立即入池/注册；{@code Period} = 固定延迟周期调度（{@code periodMs > 0}）；
+ *     {@code executeOneByOne} 天然立即语义。</li>
+ * <li>生命周期：一次性使用、非线程安全，终结方法消费后再次调用抛 {@link IllegalStateException}。</li>
+ * <li>参数校验：终结方法执行前对不支持的属性组合 fail-fast 抛 {@link IllegalArgumentException}。</li>
  * </ul>
  */
 public final class TaskSpec<R extends @Nullable Object> {
@@ -232,7 +199,7 @@ public final class TaskSpec<R extends @Nullable Object> {
 	 * 显式设置过 dispatchMode/timeout/onCancel 时抛 IllegalArgumentException。
 	 */
 	public R call() {
-		// 与 consumeSchedule 家族对齐：先校验后消费，抛错后实例未失效，仍可换 runNow() 等补救调用（见类 javadoc）。
+		// 先校验后消费，参数非法时不使实例失效
 		if (dispatchModeSet || timeoutSet || onCancelSet)
 			throw new IllegalArgumentException("call() does not consume dispatchMode/timeout/onCancel");
 		consume();
@@ -300,22 +267,8 @@ public final class TaskSpec<R extends @Nullable Object> {
 	}
 
 	/**
-	 * 事务感知注册固定延迟周期调度(毫秒)。periodMs &lt;= 0 时抛 IllegalArgumentException。
-	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
-	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
-	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消——常驻周期
-	 * 任务会随注册者存活整个进程期（需要取消请用 {@link #schedulePeriodNow}）。
-	 * <p>
-	 * 【设计约束：事务感知族不返回占位句柄代理】runTxnAware 若返回提交期占位 TimerFuture 代理
-	 * （commit 回调内 setFuture，redo 重注册复用同一代理）不可行：①{@link TimerFuture} 的 future
-	 * 空窗目前外部不可观测（schedulePeriodCore 同步闭合后才发布），发布占位代理则
-	 * cancel/get/getDelay/isDone 在 setFuture 前调用会 NPE 或语义未定，需要在刚稳定的 cancel
-	 * 锁契约（ABBA 调用约束）上再加固；②事务 rollback 无回调钩子（runWhileCommit 只挂提交侧），
-	 * 回滚后占位句柄成僵尸（isCancelled 恒 false、isDone NPE），要成语义须扩展 Transaction
-	 * 生命周期 API；③redo 时注册方过程整体重跑、TaskSpec 一次性消费，调用方句柄天然换代，
-	 * "复用同一代理"无从锚定；④需要生命周期的场景已有 {@link #schedulePeriodNow}
-	 * （返回句柄并支持 close 生命周期管理），仓内 schedulePeriod 唯一调用方为 demo
-	 * （Zezex App.start，刻意进程期常驻）。
+	 * 事务感知注册固定延迟周期调度(毫秒)。{@code periodMs <= 0} 或设置过 dispatchMode/onCancel 时抛异常。
+	 * 周期任务不返回结果；事务内延迟到提交后注册且不返回句柄（需取消请用 {@link #schedulePeriodNow}）。
 	 */
 	public void schedulePeriod(long delayMs, long periodMs) {
 		consumeSchedulePeriod(periodMs);

@@ -11,23 +11,15 @@ import java.util.function.BiConsumer;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 使用ConcurrentHashMap和ConcurrentLinkedQueue包装实现的简单Map实现，
- * 【它会记住映射项第一次加入的顺序，并一直保持不变。】
- * 【需要定时遍历，以从Queue中回收被删除的项。】
- * 与 ConcurrentHashMap 一样拒绝 null key/value；null 用于表示查找未命中及迭代器尚未就绪。
+ * 基于 ConcurrentHashMap 与 ConcurrentLinkedQueue 的有序并发 Map：
+ * 保持键首次插入顺序，遍历时懒惰回收已删除的队列节点；拒绝 null key/value。
  *
- * @param <K> key
- * @param <V> value
+ * @param <K> 键类型
+ * @param <V> 值类型
  */
 public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
-	/**
-	 * queue/map/size 三组件的整体快照：clear 以原子替换 state 完成，三组件间永不出中间态。
-	 * clear 三步分离（queue.clear/map.clear/size.set(0)）与并发 put 交错时 increment 会被
-	 * set(0) 永久覆盖——map 有条目而 size()==0/isEmpty()，后续 remove 再减成负数。整体替换后，
-	 * clear 竞态期间迟到 put 的增量落在废弃 state 上（对齐 CHM 自身 clear 的弱一致语义：并发更新
-	 * 下 clear 与 put 的胜负本就未定义），新 state 的计数与内容恒一致。
-	 */
+	/** queue/map/size 组合快照；clear 通过原子替换整个 State 避免并发交错下的计数漂移。 */
 	private static final class State<K, V> {
 		final ConcurrentHashMap<K, Entry<K, V>> map;
 		final ConcurrentLinkedQueue<Entry<K, V>> queue = new ConcurrentLinkedQueue<>();
@@ -38,14 +30,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		}
 	}
 
-	/**
-	 * 队列节点持有带身份的条目（key+value+dead），与map的发布解耦：
-	 * put在compute内先入队后发布到map，清理者据map.get(key)==null无法区分
-	 * "未发布"与"已删除"（裸key共用null哨兵时会把发布窗口内的key当已删除永久摘出队列，
-	 * map有条目而遍历永久漏项）。以条目自身状态判定：只有dead条目（remove路径在map的
-	 * bin锁内置位）可被摘出队列；未发布的条目保持在线，遍历弱一致地提前可见或留待下轮。
-	 * 同key删除重插产生新代条目与新的队列节点，旧节点按自身dead身份摘除，不会误杀新一代。
-	 */
+	/** 队列与 map 共享的条目节点；以 dead 标记区分已删除与尚未发布，避免遍历清理误摘新条目。 */
 	private static final class Entry<K, V> {
 		final K key;
 		volatile V value;
@@ -215,7 +200,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		var removed = new boolean[1];
 		s.map.computeIfPresent(key, (k, entry) -> {
 			if (entry.dead)
-				return null; // 防御：死亡条目不该残留map，见Entry注释
+				return null; // 已死亡条目不重复计数
 			if (!Objects.equals(entry.value, value))
 				return entry;
 			entry.dead = true;

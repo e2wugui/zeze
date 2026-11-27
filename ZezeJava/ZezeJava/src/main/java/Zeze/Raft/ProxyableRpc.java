@@ -18,7 +18,6 @@ public abstract class ProxyableRpc<A extends Serializable, R extends Serializabl
 	@Override
 	public void SendResult(@Nullable Binary result) {
 		if (proxyRequest == null) {
-			// 原始raft连接方式。
 			super.SendResult(result);
 			return;
 		}
@@ -30,17 +29,14 @@ public abstract class ProxyableRpc<A extends Serializable, R extends Serializabl
 		resultEncoded = result;
 		setRequest(false);
 
-		// 填写proxyRequest.Result并发送。
 		proxyRequest.Result.setData(new Binary(this.encode()));
 		proxyRequest.SendResult();
 	}
 
-	// Protocol的两个SendResultCode和Rpc.trySendResultCode共用这个多态入口。
-	// 代理内层通常没有sender，不能直接发送；先取得CAS发送权，再改字段并走代理。
+	// 代理模式下内层无独立 sender，需先取得 CAS 发送权，再经 proxyRequest 应答。
 	@Override
 	protected boolean sendResultCode(long code, @Nullable Binary result) {
 		if (proxyRequest == null) {
-			// 原始raft连接方式。
 			return super.sendResultCode(code, result);
 		}
 
@@ -50,7 +46,6 @@ public abstract class ProxyableRpc<A extends Serializable, R extends Serializabl
 		resultEncoded = result;
 		setRequest(false);
 
-		// 填写proxyRequest.Result并发送。Rpc.encode 带 BitResultCode，解码侧码可达。
 		proxyRequest.Result.setData(new Binary(this.encode()));
 		proxyRequest.SendResult();
 		return true;

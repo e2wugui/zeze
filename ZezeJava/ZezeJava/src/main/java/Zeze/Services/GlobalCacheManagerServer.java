@@ -66,32 +66,18 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		return instance;
 	}
 
-	// 墓碑化：start赋值后永不置null，stop只停止对象不杀引用——在飞协议/晚到守护读到的
-	// 已停止Service上GetSocket安全返回null；引用置null会重新引入"拆依赖窗口NPE"。open才是活/死闸门。
+	// stop 仅停止对象而不置 null，避免在飞协议或晚到守护解引用 NPE；open 作为活/死闸门
 	private volatile @Nullable ServerService server;
 	private @Nullable AsyncSocket serverSocket;
 	private @Nullable ConcurrentHashMap<Binary, CacheState> global;
 	private final AtomicLong serialIdGenerator = new AtomicLong();
-	/*
-	 * 会话。
-	 * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
-	 * 在连接建立后收到的Login Or ReLogin 中设置。
-	 * 每个会话记住分配给自己的GlobalTableKey，用来在正常退出的时候释放。
-	 * 每个会话还需要记录该会话的Socket.SessionId。在连接重新建立时更新。
-	 * 总是GetOrAdd，不删除。按现在的cache-sync设计，
-	 * ServerId 是及其有限的。不会一直增长。
-	 * 简化实现。
-	 */
+	// 会话表：key 为 ServerId，Login/ReLogin 时按需创建且不删除（ServerId 数量有限）
 	private @Nullable LongConcurrentHashMap<CacheHolder> sessions;
 	private final GCMConfig gcmConfig = new GCMConfig();
 	private @Nullable AchillesHeelConfig achillesHeelConfig;
-	// DaemonTimer内聚"调度线程只派发、扫描体进worker池、stop两段式（关门→cancel→
-	// 限时等待在飞一轮）"，避免该模式手抄到GCM三版与LoginQueue后拷贝过期成缺陷。
 	private final DaemonTimer achillesHeelDaemonTimer =
 			new DaemonTimer("GlobalCacheManager.AchillesHeelDaemon", 5000, this::achillesHeelDaemon);
-	// open=受理业务闸门（CacheHolder.tryBindSocket据此拒绝停机后的新绑定，无锁读故volatile）；
-	// stopping=拆除在飞（仅实例锁内）：挡住stop两段之间start()重入——否则start重建的
-	// server/serverSocket会被在飞stop的拆除段误杀。
+	// open 为受理新绑定的闸门；stopping 仅在实例锁内维护，防止 stop 两段之间 start() 重入
 	private volatile boolean open;
 	private boolean stopping;
 	private @Nullable GlobalCacheManagerPerf perf;
@@ -207,25 +193,18 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			getServer().AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 					KeepAlive::new, GlobalCacheManagerServer::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 
-			// 闸门在端口监听前开：tryBindSocket依赖的server与协议handler已全部就位，协议此刻
-			// 还进不来（零误拒窗口）；若开在newServerSocket之后，启动瞬间到达的Login会踩到
-			// "端口已监听但open仍false"的窗口被干净拒绝。启动段失败必须复位open：
-			// 残留true时重试start()被幂等早退吞掉，服务永不监听。
+			// 在开放端口监听前打开闸门，避免启动瞬间到达的 Login 被误拒；后续失败经 stop() 复位
 			open = true;
 			try {
-				// perf 须在 open 之后创建：pre-open 失败路径 stop() 以 !open 早退跳过 close，
-				// 先创建则 1s 周期任务泄漏
+				// perf 须在 open 之后创建，确保启动失败走 stop() 时能正确关闭其周期任务
 				if (ENABLE_PERF)
 					perf = new GlobalCacheManagerPerf("", serialIdGenerator);
 				serverSocket = getServer().newServerSocket(ipaddress, port,
 						new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
-				// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-				achillesHeelDaemonTimer.start(); // DaemonTimer幂等且支持restart
+				achillesHeelDaemonTimer.start();
 			} catch (RuntimeException e) {
-				// 失败走stop()拆除部分态（可重入锁安全）：TcpSocket构造在bind前已对server懒启动
-				// keepCheckTimer须由server.stop()取消，且open的复位应在拆除中完成（残留true时
-				// 重试start被幂等早退吞掉）。拆除失败不得掩盖原始启动异常。
+				// 失败时经 stop() 拆除已建资源并复位 open，清理异常不掩盖原始异常
 				try {
 					stop();
 				} catch (Throwable ex) {
@@ -244,23 +223,19 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		getSessions().forEach(session -> {
 			session.lock();
 			try {
-				// 超时检查必须在锁内复查：检查在锁外时，同serverId新incarnation恰在"检查→加锁"
-				// 窗口内Login（tryBindSocket持锁绑定并刷新activeTime），daemon会kick新连接并回收
-				// 其新获取的权限（双Modify窗口）。锁内复查与bind内的activeTime
-				// 更新构成同锁全序：bind完成后daemon必读到新值而跳过。
+				// 必须在锁内复查超时，防止踢掉刚在检查与加锁之间完成重连的新连接
 				if (now - session.getActiveTime() > getAchillesHeelConfig().globalDaemonTimeout && !session.debugMode) {
 					session.kick();
 					if (!session.acquired.isEmpty()) {
 						var releaseCount = 0L;
 						for (var k : session.acquired.keySet()) {
-							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 							try {
 								release(session, k, false);
 								++releaseCount;
 							} catch (InterruptedException ex) {
 								Thread.currentThread().interrupt();
 								logger.warn("achillesHeelDaemon interrupted, abort remaining release. session={} key={}", session, k, ex);
-								return; // 看门狗中断超时任务，退出本轮；DaemonTimer的finally照常续约下轮
+								return; // 本轮被中断，退出由下轮继续
 							}
 						}
 						session.setActiveTime(System.currentTimeMillis());
@@ -278,26 +253,23 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		lock();
 		try {
 			if (!open)
-				return; // 未启动或已在停：拆除由首个进入者完成，并发stop不等待直接返回
-			open = false; // 先落业务闸门：停机后的新绑定被tryBindSocket干净拒绝
-			stopping = true; // 挡住本方法两段之间start()重入（防新server被下方拆除段误杀）
+				return; // 未启动或已在停机中
+			open = false; // 先关闸门拒绝新绑定
+			stopping = true; // 阻止停机两段之间 start() 重入
 		} finally {
 			unlock();
 		}
-		// 先停使用者再拆被使用者（对齐Raft版顺序）：daemon经CacheHolder.kick访问
-		// server.GetSocket。组件内聚两段式：关门→cancel已排期→限时等待在飞一轮。
-		// 不持实例锁等待：扫描体持session锁，持锁等待会与之互等。
+		// 锁外先停守护定时器，避免持实例锁等待持 session 锁的扫描体
 		achillesHeelDaemonTimer.stop();
 		lock();
 		try {
-			// server保留为墓碑不置null：晚到的守护扫描/在飞协议读到已停止的Service，
-			// GetSocket安全返回null，不存在解引用null的NPE窗口。
+			// server 与 perf 保留引用不置 null，避免晚到扫描或并发派发解引用 NPE
 			if (serverSocket != null) {
 				serverSocket.close();
 				serverSocket = null;
 			}
 			getServer().stop();
-			if (perf != null) // 不置null：极端情况下并发的协议派发还会引用perf对象
+			if (perf != null)
 				getPerf().close();
 		} finally {
 			stopping = false;
@@ -364,12 +336,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		return 0;
 	}
 
-	/*
-	 * 客户端契约：必须在收到本Login的成功应答之后才允许发送Acquire/Release。
-	 * 应答发出前到达的乐观Acquire（Acquire走Normal池，可与本Critical池的Login并发派发）
-	 * 会被下方"先快照再逐个释放"的旧权限回收错误回收——框架随附GlobalClient保证此顺序
-	 * （仅在Login成功回调后发Acquire），自定义客户端必须遵守同样约束。
-	 */
+	// 客户端契约：须收到 Login 成功应答后才发送 Acquire/Release，否则预发请求可能被旧权限回收误伤
 	private long processLogin(Login rpc) throws Exception {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = getSessions().computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
@@ -389,11 +356,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		} finally {
 			session.unlock();
 		}
-		// new login, 比如逻辑服务器重启。release old acquired.
-		// 先快照再逐个释放：应答发出前，同会话乐观预发的Acquire（Acquire走Normal池，可与本Critical池
-		// 的Login并发）会写入acquired，弱一致迭代器会看到并错误回收新获取的权限。
+		// 新登录（如逻辑服重启）：仅释放绑定时刻快照到的旧权限
 		for (var k : releaseKeys) {
-			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			release(session, k, false, fireGeneration);
 		}
 		rpc.Result.maxNetPing = gcmConfig.maxNetPing;
@@ -426,16 +390,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
 		}
-		/*
-		 * 释放集合必须在解绑之前快照：tryUnBindSocket 把 sessionId 置 0 后，同 serverId 的新进程
-		 * 即可 Login 并 Acquire 新权限（写入同一张 acquired）。而 release(session,k,false) 在
-		 * pending 上等待可阻塞数秒（Reduce超时），弱一致迭代器随后会看到新 incarnation 刚获取的
-		 * key 并错误回收——GCM 从未向新进程发 Reduce，其本地仍持 Modify，第三方再获 Modify 形成双写。
-		 * 快照关闭迭代面：旧连接未解绑时新进程无法绑定（tryBindSocket 失败），故快照内不可能出现
-		 * 新 incarnation 的权限；解绑后才到达的旧进程在途 acquire 留下的悬挂条目，由后续争用者的
-		 * Reduce 自愈（agent 对未缓存记录应答降级成功）。快照内旧 key 被新 incarnation 重取后再被
-		 * 本循环延迟 release 回收的面，由 CacheHolder.generation 的发射世代守卫关闭（见release）。
-		 */
+		// 解绑前在锁内快照待释放集合与世代号，避免解绑后同 serverId 新连接写入的新权限被误回收
 		ArrayList<Binary> releaseKeys;
 		long fireGeneration;
 		session.lock();
@@ -450,11 +405,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		} finally {
 			session.unlock();
 		}
-		// 循环级发射世代：整个释放循环共用解绑时刻的世代。release在阻塞循环中串行进入，
-		// 若各自捕获，重绑后才进入的key以新世代自证通过守卫，多key快照第2..n个key的
-		// 误杀面重新打开（A2攻防R1-I01）。
+		// 整个释放循环共用解绑时刻的世代号，防止重绑后后续 key 绕过世代守卫误杀新所有权
 		for (var k : releaseKeys) {
-			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			release(session, k, false, fireGeneration);
 		}
 		rpc.SendResultCode(0);
@@ -567,9 +519,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				if (cs.acquireStatePending == StateRemoved)
 					continue;
 				if (sender.generation != fireGeneration) {
-					// 发射后世代已更替（kick/重绑）：本release针对旧世代，跳过移除——
-					// 移除会误杀新incarnation已成功获取的所有权（详见CacheHolder.generation）。
-					// 应答按实际持有状态（对齐异步版mismatch分支），不谎报已释放。
+					// 世代已更替，跳过旧世代释放并按实际持有状态应答
 					return cs.getSenderCacheState(sender);
 				}
 				cs.acquireStatePending = StateRemoving;
@@ -597,8 +547,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		var operationGlobal = getGlobal();
 		while (true) {
 			CacheState cs = operationGlobal.computeIfAbsent(Objects.requireNonNull(rpc.Argument.globalKey), CacheState::new);
-			// 申请位占住后异常逃逸（await上的中断等，由processAcquireRequest的catch接走）不复位的话，
-			// 该key上所有后续acquire/release永久等待（key冻结）；finally兜底复位。
+			// 异常逃逸时由 finally 兜底复位占住的申请位，防止该 key 永久冻结
 			var ownsPending = false;
 			cs.lock();
 			try { //await 等锁
@@ -687,8 +636,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					})) {
 						if (isDebugEnabled)
 							logger.debug("5 {} {} {}", sender, StateShare, cs);
-						// Condition契约允许伪唤醒——裸await醒来不复查完成谓词，
-						// 直接按默认StateReduceNetError走失败分支而reduce仍在途。谓词循环复查。
+						// 循环复查完成谓词，防止 Condition 伪唤醒提前走失败分支
 						while (!reduceDone[0])
 							cs.await();
 					}
@@ -977,10 +925,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						errorFreshAcquire.value = freshAcquire;
 						cs.lock();
 						try {
-							// 完成标志锁内置位：主线程谓词循环复查，伪唤醒不得提前
-							// 读取runNow仍在并发填充的reduceSucceed/errorFreshAcquire（锁发布快照）。
 							waitReduceDone[0] = true;
-							// 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
 							cs.signalAll(); //notify
 						} finally {
 							cs.unlock();
@@ -988,8 +933,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					}).name("GlobalCacheManager.AcquireModify.WaitReduce").runNow();
 					if (isDebugEnabled)
 						logger.debug("7 {} {} {}", sender, StateModify, cs);
-					// Condition契约允许伪唤醒——裸await醒来不复查即读取非线程安全的
-					// reduceSucceed构成数据竞争。谓词循环复查完成标志。
+					// 循环复查完成谓词，防止 Condition 伪唤醒提前读取并发填充中的 reduceSucceed
 					while (!waitReduceDone[0])
 						cs.await(); //await 等通知
 				}
@@ -1087,20 +1031,13 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		private volatile long lastErrorTime;
 		private boolean logined = false;
 		private volatile boolean debugMode;
-		// 世代号：kick与成功重绑（tryBindSocket）各递增一次（递增点均在session锁内，单写者）。
-		// 会话按serverId常驻复用同一holder：新incarnation经Login+Acquire写入的所有权记录
-		// 与旧世代共用（cs.modify==sender恒命中），release在进入时捕获、移除段前复查，
-		// 不匹配说明本release针对的世代已被kick/重绑——照常移除即误杀（客户端持成功应答
-		// 却被撤销，第三方再获Modify即双写）。跳过方向fail-closed：宁保留可收敛
-		// （daemon/后续争用者Reduce自愈），不误杀。对齐异步版CacheHolder.generation。
+		// 世代号：kick 与重绑均在 session 锁内递增；release 进入时捕获、移除前复查，不匹配则跳过以防误杀新连接所有权
 		private volatile long generation;
 
 		// 与绑定共用session锁，代次递增不会丢失。
 		void kick() {
 			lock();
 			try {
-				// 墓碑化后裸解引用安全：server引用稳定（stop只停止对象不杀引用），已停止Service的
-				// GetSocket返回null即跳过；不存在读到null引用的NPE窗口。
 				var peer = instance.getServer().GetSocket(sessionId);
 				if (null != peer) {
 					peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
@@ -1108,7 +1045,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				}
 				sessionId = 0; // 清除网络状态。
 				//noinspection NonAtomicOperationOnVolatileField
-				++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
+				++generation; // 推进世代，使在飞的旧 release 失效
 			} finally {
 				unlock();
 			}
@@ -1137,23 +1074,20 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 				}
 
-				// 停机闸门：stop落open=false后拒绝新绑定（干净失败）；
-				// 墓碑化后server引用稳定，此处不存在NPE窗口。
 				if (!instance.open)
 					return false;
 				var socket = instance.getServer().GetSocket(sessionId);
 				if (socket == null) {
-					// old socket not exist or has lost.
+					// 旧连接已不存在或已断开
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
 					if (login)
 						logined = true;
 					globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-					// 绑定即刷新活跃时刻（持锁）：achillesHeelDaemon的锁内复查据此识别
-					// 新incarnation，避免旧超时判定kick掉刚Login的新连接。
+					// 锁内刷新活跃时间，避免守护线程按旧超时踢掉刚登录的新连接
 					activeTime = System.currentTimeMillis();
 					//noinspection NonAtomicOperationOnVolatileField
-					++generation; // 重绑即新世代：解绑/kick前在飞的release到此为止全部过期
+					++generation; // 重绑推进新世代，使之前在飞的 release 失效
 					return true;
 				}
 				// 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
@@ -1172,8 +1106,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				if (oldSocket.getUserState() != this)
 					return false; // not bind to this
 
-				// 解绑是收口操作，墓碑化后天然安全无需闸门：server引用稳定，已停止Service的
-				// GetSocket返回null——"not same socket"检查通过，解绑正常完成。
 				var current = instance.getServer().GetSocket(sessionId);
 				if (current != null && current != oldSocket)
 					return false; // not same socket

@@ -26,7 +26,7 @@ final class LocalCacheResources {
 	private static final boolean WINDOWS = File.separatorChar == '\\';
 	private static final long DELETE_RETRY_NANOS = TimeUnit.SECONDS.toNanos(10);
 
-	// 实例级 I/O 边界供故障测试替换，不改变 FileMutex 的真实互斥行为。
+	// 本地缓存库及目录删除的 I/O 操作边界，保持 FileMutex 互斥语义。
 	static class Operations {
 		DatabaseRocksDb createDatabase(Application application, Config.DatabaseConf conf) {
 			return new DatabaseRocksDb(application, conf);
@@ -115,14 +115,13 @@ final class LocalCacheResources {
 
 				@Override
 				public FileVisitResult visitFileFailed(Path file, IOException error) throws IOException {
-					// A broken/inaccessible junction fails when the walker opens its target directory.
-					// Read the entry itself before treating NoSuchFileException as an absent path.
+					// 失效或不可访问的目录联接在打开目标时会触发遍历失败；先检查条目自身再将 NoSuchFileException 视为不存在。
 					if (WINDOWS) {
 						BasicFileAttributes attrs = null;
 						try {
 							attrs = Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 						} catch (IOException ignored) {
-							// Keep the walker's original failure if the entry cannot be inspected.
+							// 无法检查条目时保留遍历器的原始异常。
 						}
 						if (attrs != null && isDirectoryLink(attrs)) {
 							deletePath(file, deadline);
@@ -140,12 +139,11 @@ final class LocalCacheResources {
 	}
 
 	private static boolean isDirectoryLink(BasicFileAttributes attrs) {
-		// The Windows provider marks junctions as both directory and other, not symbolic link.
+		// Windows 目录联接同时标记为 directory 和 other，而非 symbolic link。
 		return WINDOWS && attrs.isDirectory() && attrs.isOther();
 	}
 
-	// Windows 的共享句柄或 delete-pending 文件会暂时拒绝删除。只在删除失败后退避，
-	// 10→20→40→80→100ms；整棵目录树共用重试期限，避免每个文件各等十秒。
+	// Windows 共享句柄或 delete-pending 文件可能暂时拒绝删除，整棵目录树共用重试期限退避重试。
 	private static void deletePath(Path path, long deadline) throws IOException {
 		for (long delayMillis = 10; ; delayMillis = Math.min(delayMillis * 2, 100)) {
 			try {

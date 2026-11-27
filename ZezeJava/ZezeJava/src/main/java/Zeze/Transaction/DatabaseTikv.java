@@ -58,11 +58,7 @@ public class DatabaseTikv extends Database {
 			}
 		} else {
 			config = TiConfiguration.createRawDefault(getDatabaseUrl());
-			// compareAndSet/putIfAbsent 入口门禁：未启用时 raw client 方法体开头即抛
-			// IllegalArgumentException（tikv-client 3.3.5 字节码实证），schemasCompatible
-			// 首次 CAS 必炸启动。注意：开启后本客户端所有 raw 写（put/batchPut/delete/batchDelete，
-			// 含 TikvTrans.commit 的事务 flush）都带 for_cas=true 走更昂贵的 TiKV atomic 路径
-			// （get/scan 不受影响），这是 TiKV 对 CAS 线性一致的硬性要求，并非只影响 CAS 操作。
+			// compareAndSet 要求开启 atomic-for-CAS（会使该客户端所有 raw 写走 atomic 路径，get/scan 不受影响）。
 			config.setEnableAtomicForCAS(true);
 			logger.info("DatabaseTikv({}): enable_atomic_for_cas 已开启，raw 写均走 atomic 路径（get/scan 不受影响），要求 TiKV >= 5.0。", getDatabaseUrl());
 			session = TiSession.create(config);
@@ -70,7 +66,7 @@ public class DatabaseTikv extends Database {
 				client = session.createRawClient();
 			} catch (RuntimeException e) {
 				try {
-					session.close(); // 构造中途失败必须关session（PD连接+线程池），否则每失败一次泄漏一个
+					session.close();
 				} catch (Exception ignored) {
 				}
 				throw e;
@@ -129,11 +125,7 @@ public class DatabaseTikv extends Database {
 			}
 		}
 
-		// raw 模式：读-判-写必须是服务端原子条件写（对齐 Mongo 判例）：不得 find 后
-		// 直接 batchPut 裸写——tryLock 又默认恒真，同 serverId 双进程并发 schemasCompatible 时都基于
-		// 版本 N 写 N+1，后写覆盖前写，checkCompatible 在陈旧快照上重复 renameTable 丢表。
-		// compareAndSet 以完整旧值为条件原子替换（旧值null=仅键不存在时写入），冲突返回 false
-		// 交给 Application.schemasCompatible 既有 CAS 重试环路。
+		// raw 模式：以完整旧值做服务端原子 compareAndSet，冲突返回 false 供上层重试。
 		private KV<Long, Boolean> saveDataWithSameVersionRaw(
 				ByteBuffer key, ByteBuffer data, long version) {
 			var keyBs = table.prefixedKey(key);
@@ -161,10 +153,7 @@ public class DatabaseTikv extends Database {
 			return KV.create(dv.version, true);
 		}
 
-		// distTxn 模式：读必须与提交共用同一 start_ts：TiKV 乐观事务的冲突检测
-		// 只覆盖事务 start_ts 内读过的 key，读不得用独立快照而提交另取新
-		// start_ts——并发提交发生在两次取 ts 之间时 prewrite 检测不到，照样覆盖丢更新。
-		// 这里 start_ts → 同 ts 快照读 → 同 start_ts 两阶段提交，标准 OCC。
+		// distTxn 模式：快照读与 2PC 提交共用同一 start_ts 实现乐观并发控制（OCC）。
 		private KV<Long, Boolean> saveDataWithSameVersionDistTxn(
 				ByteBuffer key, ByteBuffer data, long version) {
 			var keyBs = table.prefixedKey(key);
@@ -188,11 +177,7 @@ public class DatabaseTikv extends Database {
 				table.replace(txn, key, bb);
 				txn.commit(startTs);
 			} catch (Exception e) {
-				// 失败重读诊断（fresh TSO）：版本已变=并发 CAS 输家（含 primary 已提交、secondary
-				// 应答丢失的半成情形），返回 false 由上层环路重读收敛；版本未变=瞬态/未知错误，
-				// 维持抛出不吞真实故障。不按异常类型区分：2PC 冲突异常的包归属跨客户端版本不稳。
-				// 诊断重读自身失败（TiKV持续不可达）不得替换原始提交异常——排障时
-				// 看到的必须是真正的提交错误；suppress后照常抛原始异常。
+				// 失败后现取 TSO 重读：版本已变说明并发 CAS 输家（返回 false 重试），未变则重抛原始异常。
 				try {
 					var current = txnClient.get(keyBs, session.getTimestamp().getVersion());
 					var curDv = new DataWithVersion();
@@ -263,17 +248,13 @@ public class DatabaseTikv extends Database {
 		@Override
 		public @Nullable ByteBuffer find(ByteBuffer key) {
 			if (distTxn) {
-				// 快照读必须现取 TSO 时间戳：本进程缓存的快照永远看不到其他进程已提交的数据
-				// （多进程接管记录时 cache miss 读到旧值，之后基于旧值覆盖写会丢失对方的更新）。
-				// find 仅在本地 cache miss、记录失效重载、selectFromDatabase 时被调用，
-				// 一次 TSO 往返（PD get_tso，无批量，约一次小 RPC）的代价换取读到最新已提交数据。
+				// 现取 TSO 快照以读取其他进程最新已提交数据；distTxn 空值表示删除标记。
 				ByteString value = Objects.requireNonNull(txnClient).get(addKeyPrefixBS(key), session.getTimestamp().getVersion());
 				if (value == null)
 					return null;
-				// distTxn 空值=删除标记（TwoPhaseCommitter 对 empty 一律按 Op.Del 提交，无法写入空值）
 				return value.isEmpty() ? null : ByteBuffer.Wrap(value.toByteArray());
 			}
-			// raw 模式 0 字节值是合法数据（zeze 契约允许，如全默认值记录），只把 key 不存在映射为 null
+			// raw 模式 0 字节值是合法数据，仅键不存在时返回 null。
 			var result = Objects.requireNonNull(client).get(addKeyPrefixBS(key));
 			return result.isEmpty() ? null : ByteBuffer.Wrap(result.get().toByteArray());
 		}
@@ -290,8 +271,7 @@ public class DatabaseTikv extends Database {
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			checkKvKeyLength(name, key);
 			if (distTxn) {
-				// distTxn 的 TwoPhaseCommitter 对空值一律按 Op.Del 提交：0字节value的replace
-				// 会静默变成删除（记录丢失）。zeze 契约允许 0 字节值，显式拒绝而不是丢数据。
+				// TwoPhaseCommitter 将空值按 Op.Del 提交，显式拒绝 0 字节写入避免静默删除。
 				if (value.size() == 0)
 					throw new IllegalStateException("tikv distTxn cannot write empty value. table=" + name);
 				((TikvDistTrans)t).put(addKeyPrefixBB(key), value);
@@ -428,8 +408,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		public void delete(ByteString key) {
-			// 不写EMPTY占位：raw模式0字节值是合法数据，占位写会把删除伪装成空值写入；
-			// batchDelete直删即可。同key先put后delete时移除put，保持删除终态。
+			// raw 模式 0 字节值是合法数据，不能用空值占位，直接 batchDelete 并清除同 key 的待写项。
 			getDeleteKeys().add(key);
 			if (datas != null)
 				datas.remove(key);
@@ -443,10 +422,7 @@ public class DatabaseTikv extends Database {
 				datas.clear();
 			}
 			if (deleteKeys != null && !deleteKeys.isEmpty()) {
-				// 崩溃窗口声明：raw模式batchPut与batchDelete是两次独立RPC（跨region的
-				// batchPut本身也不原子），进程在两者之间崩溃会留下"put已落、delete丢失"，
-				// 重启后已删记录复活；异常路径安全（保脏重试幂等）。
-				// 需要原子性的部署应使用distTxn模式。
+				// raw 模式 batchPut 与 batchDelete 为两次独立 RPC（无跨操作原子性），强原子需求应使用 distTxn。
 				//noinspection ConstantConditions
 				client.batchDelete(deleteKeys);
 				deleteKeys.clear();
@@ -489,19 +465,14 @@ public class DatabaseTikv extends Database {
 			commit(session.getTimestamp().getVersion());
 		}
 
-		// startTs 由调用方提供时必须是刚从 TSO 现取的（OperatesTikv 的快照读与提交
-		// 共用同一 start_ts，冲突检测才覆盖该读）；无参 commit() 维持内部现取的既有语义。
+		// startTs 必须为当前事务独占的刚取 TSO（供 OperatesTikv 复用读快照 start_ts）。
 		void commit(long startTs) {
 			if (datas == null || datas.isEmpty())
 				return;
-			var es = datas.entrySet(); // 注意要求对es两次遍历的顺序一致
+			var es = datas.entrySet(); // 两次遍历顺序须一致
 			var it = es.iterator();
 			if (!it.hasNext())
 				return;
-			// start_ts 必须每个事务从 TSO 现取（全局唯一），不能使用共享的 version：
-			// 并发 flush（MultiThreadMerge+parallelStream）下两个事务会拿到同一个 start_ts，
-			// TiKV 以 start_ts 标识事务（MVCC 可见性、resolveLock 锁归属），共用会导致
-			// 跨事务写入被混同甚至被另一事务的锁恢复误回滚，原子性破坏。
 			long ver = startTs;
 			try (var tpc = new TwoPhaseCommitter(session, ver)) {
 				var bo = ConcreteBackOffer.newCustomBackOff(1000);

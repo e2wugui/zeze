@@ -11,7 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-/** Protocol registration and construction of complete decoded change values. */
+/** 变更日志解码器与动态字段注册表：按 typeId 注册并反序列化完整的 Log 载荷。 */
 public final class LogRegistry {
 	private LogRegistry() {
 	}
@@ -57,7 +57,7 @@ public final class LogRegistry {
 
 	@FunctionalInterface
 	public interface LogDecoder {
-		/** Return a fresh complete value; failed decoding must not mutate a published source payload. */
+		/** 返回全新的完整解码值，解码失败不得修改已发布的源载荷。 */
 		Log decode(int variableId, IByteBuffer input);
 	}
 

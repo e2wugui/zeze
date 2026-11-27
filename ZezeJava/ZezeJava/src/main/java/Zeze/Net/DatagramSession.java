@@ -23,7 +23,6 @@ import org.jspecify.annotations.Nullable;
  * UDP 会话：以 tokenId 标识的单条 UDP 虚拟连接（AsyncSocket 的数据报适配）。
  */
 public class DatagramSession extends AsyncSocket {
-	// Concrete socket constructors require an attached service; only the abstract test adapters allow null.
 	@Override
 	public Service getService() {
 		return Objects.requireNonNull(super.getService());
@@ -31,9 +30,7 @@ public class DatagramSession extends AsyncSocket {
 
 	private static final Logger logger = LogManager.getLogger(DatagramSession.class);
 	private final DatagramSocket socket;
-	// 跨线程可见性——selector线程在processDatagram写（NAT重绑），Send可在任意业务线程读；
-	// 无happens-before边时应答持续发往失效地址。单引用读写无复合操作，volatile即可。
-	private volatile InetSocketAddress remote;
+	private volatile InetSocketAddress remote; // selector 线程更新（NAT 重绑），业务线程并发读
 	private final long tokenId;
 	private final AtomicLong serialIdGen = new AtomicLong();
 	private final @Nullable Encrypt2 encrypt;
@@ -89,7 +86,7 @@ public class DatagramSession extends AsyncSocket {
 	// [8]tokenId | [8]serialId | encrypt{ packet | [8]tokenId | [8]serialId }
 	@Override
 	public boolean Send(byte [] packet, int offset, int size) {
-		if (isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
+		if (isClosed())
 			return false;
 		var serialId = serialIdGen.incrementAndGet();
 		ByteBuffer bb;
@@ -101,7 +98,7 @@ public class DatagramSession extends AsyncSocket {
 			var bc = new BufferCodec(8 + 8 + 8 + size);
 			bc.WriteLong8s(tokenId, serialId);
 			// 下面的数据需要加密
-			synchronized (encrypt) { // Encrypt2有可变状态且非线程安全，而Send允许并发调用
+			synchronized (encrypt) { // Encrypt2 非线程安全，Send 允许并发调用
 				encrypt.reset(bc, bc.Bytes);
 				encrypt.update(packet, offset, size);
 				encrypt.update(bc.Bytes, 0, 16); // [8]tokenId | [8]serialId
@@ -112,12 +109,8 @@ public class DatagramSession extends AsyncSocket {
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送；UDP 语义下不保证发送顺序。
 		try {
 			if (!socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex))
-				return false; // 非阻塞send返回0：发送缓冲满，数据报未发出。通道仍健康，不close，区别于IOException
+				return false; // 发送缓冲满，通道仍健康，不 close
 		} catch (IOException e) {
-			// 履行AsyncSocket布尔契约（对齐TcpSocket）：IO失败close并返回false，
-			// 不抛RuntimeException——否则上层Rpc.Send在addRpcContext之后、清理之前被异常
-			// 穿透，rpcContexts条目永久泄漏（无超时定时器兜底）。UDP非阻塞send的现实IOException
-			// 基本只有ClosedChannelException（会话随channel生死），close不过激。
 			close(e);
 			return false;
 		}
@@ -128,7 +121,7 @@ public class DatagramSession extends AsyncSocket {
 	// [8]tokenId | [8]serialId | encrypt{ [4]moduleId | [4]protocolId | [4]size | protocolData | [8]tokenId | [8]serialId }
 	@Override
 	public boolean Send(Protocol<?> p) {
-		if (isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
+		if (isClosed())
 			return false;
 		int preAllocSize = p.preAllocSize();
 		var serialId = serialIdGen.incrementAndGet();
@@ -142,7 +135,7 @@ public class DatagramSession extends AsyncSocket {
 			var bc = new BufferCodec(Math.min(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
 			bc.WriteLong8s(tokenId, serialId);
 			// 下面的数据需要加密
-			synchronized (encrypt) { // Encrypt2有可变状态且非线程安全，而Send允许并发调用
+			synchronized (encrypt) { // Encrypt2 非线程安全，Send 允许并发调用
 				encrypt.reset(bc, bc.Bytes);
 				var tmp = ByteBuffer.Allocate(Math.min(Protocol.HEADER_SIZE + preAllocSize, 65536));
 				p.encodeWithHead(tmp);
@@ -156,9 +149,9 @@ public class DatagramSession extends AsyncSocket {
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送；UDP 语义下不保证发送顺序。
 		try {
 			if (!socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex))
-				return false; // 同Send(byte[],int,int)：缓冲满未发出，如实返回false
+				return false;
 		} catch (IOException e) {
-			close(e); // 同Send(byte[],int,int)：布尔契约，不抛RuntimeException
+			close(e);
 			return false;
 		}
 		return true;
@@ -168,8 +161,7 @@ public class DatagramSession extends AsyncSocket {
 	 * @param bb 有效数据范围:[0,WriteIndex]. 方法外绝对不能持有bb.Bytes的引用! 也就是只能在方法内访问bb.
 	 */
 	public void onProcessDatagram(InetSocketAddress remote, ByteBuffer bb) {
-		// 畸形包（解密CodecException/协议decode异常等）按包捕获：数据报独立成帧、无流失步，
-		// 丢包即可；异常抛到Selector会强制关闭整个channel（全部会话陪葬）。限频warn+计数防日志洪水。
+		// 畸形包按包捕获丢弃并限频记日志，避免异常抛到 Selector 关闭共享的 UDP channel。
 		try {
 			processDatagram(remote, bb);
 		} catch (Exception e) {
@@ -212,17 +204,12 @@ public class DatagramSession extends AsyncSocket {
 		socket.getService().OnSocketProcessInputBuffer(this, bb);
 	}
 
-	// UDP cannot retain a partial frame for a later read. Validate every frame and known
-	// protocol body before publishing receive state or dispatching any earlier frame.
-	// Decode into fresh, unmanaged protocol objects only; dispatch still uses the existing
-	// Service path so transaction retries, throttle and handler modes keep their semantics.
+	// UDP 不保留半包：更新接收状态或派发前先整包校验所有协议帧头与长度。
 	private void validateDatagram(ByteBuffer input) {
 		var data = ByteBuffer.Wrap(input.Bytes, input.ReadIndex, input.size());
 		while (!data.isEmpty()) {
 			if (data.size() < Protocol.HEADER_SIZE)
 				throw new IllegalStateException("incomplete datagram protocol header");
-			// The common complete-frame decoder checks the declared body size and
-			// restricts each protocol decoder to that frame's actual byte range.
 			Protocol.decode(getService(), data);
 		}
 	}
@@ -236,12 +223,10 @@ public class DatagramSession extends AsyncSocket {
 	protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 		socket.removeSession(this);
 		try {
-			getService().OnSocketClose(this, ex); // 对齐TcpSocket/WebsocketClient家族的关闭契约
+			getService().OnSocketClose(this, ex);
 		} catch (Exception e) {
 			logger.error("OnSocketClose exception:", e);
 		}
-		// 对齐TcpSocket.realClose：会话销毁后将在飞Rpc上下文立即失败处置
-		// ——否则等待方只能干等Rpc超时，且OnSocketDisposed覆写永不触发。
 		fireOnSocketDisposed();
 	}
 

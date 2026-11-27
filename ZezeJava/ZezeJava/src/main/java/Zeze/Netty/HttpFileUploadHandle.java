@@ -17,26 +17,17 @@ import io.netty.util.AttributeKey;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 文件上传处理接口：支持 multipart 与 raw（查询参数指定文件名）两种上传形态。
- * <p>正常收齐请求体后触发 {@link #onFileCompleted(HttpExchange, FileUpload)} 与
- * {@link #onEndRequest(HttpExchange, InterfaceHttpPostRequestDecoder)}；
- * 上传流提前中止时由 {@link #onAbortStream(HttpExchange)} 释放 {@link MixedFileUpload} 与
- * multipart 解码器资源并回调 {@link #onAbortRequest(HttpExchange)}，不触发完成回调。
+ * 文件上传处理接口：支持 multipart 与 raw（查询参数指定文件名）两种上传方式。
+ * 正常完成触发 {@link #onFileCompleted}/{@link #onEndRequest}；提前中止由 {@link #onAbortStream} 释放资源并回调 {@link #onAbortRequest}。
  */
 public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	AttributeKey<@Nullable MixedFileUpload> fileUploadKey = AttributeKey.valueOf("HttpFileUploadHandleContext");
 	int MemoryBufSize = 16 * 1024;
 
-	/**
-	 * 净化客户端可控的上传文件名并解析落盘目标：仅保留basename（'/'与'\'都视为
-	 * 分隔符）且canonical路径必须落在uploadDir内，双保险拦截"../"穿越——直接
-	 * new File(uploadDir, filename)并先delete会以JVM工作目录为基准越权删除/覆盖任意文件
-	 * （可覆盖启动脚本/jar，结合重启形成RCE链）。非法名抛IllegalArgumentException，
-	 * 调用方应答400。
-	 */
+	/** 净化客户端上传文件名并解析落盘路径：仅保留 basename 且校验 canonical 路径位于 uploadDir 内，非法抛 IllegalArgumentException。 */
 	static File sanitizeDestFile(File uploadDir, String clientFileName) throws IOException {
 		var name = clientFileName.replace('\\', '/');
-		name = name.substring(name.lastIndexOf('/') + 1); // 仅留basename，剥掉全部目录成分
+		name = name.substring(name.lastIndexOf('/') + 1);
 		var destFile = new File(uploadDir, name);
 		if (!destFile.getCanonicalPath().startsWith(uploadDir.getCanonicalPath() + File.separator))
 			throw new IllegalArgumentException("illegal upload filename: " + clientFileName);
@@ -51,11 +42,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 		return "upload";
 	}
 
-	/**
-	 * 取走即负责：安全释放已从attr取走的上传缓冲（堆数据/临时文件）。null容忍；
-	 * 防御性清理（cancel补偿/防残留分支）不得打断调用路径，异常吞并记日志。
-	 * 同一实例只允许经"取走"（getAndSet）交入一次，不得二次调用。
-	 */
+	/** 安全释放已从 attr 取走的上传缓冲（null 容忍，异常记日志；同一实例不可重复调用）。 */
 	static void releaseFileUpload(@Nullable MixedFileUpload fileUpload) {
 		if (fileUpload == null)
 			return;
@@ -66,7 +53,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 		}
 	}
 
-	/** channel attr取走即释放（"取走即负责"幂等语义），attr无值时no-op。 */
+	/** 从 channel attr 取出并释放上传缓冲（幂等）。 */
 	static void releaseChannelFileUpload(HttpExchange x) {
 		releaseFileUpload(x.channel().attr(fileUploadKey).getAndSet(null));
 	}
@@ -83,9 +70,9 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 				fileName = getDefaultFileName();
 			var oldFileUpload = x.channel().attr(fileUploadKey).getAndSet(new MixedFileUpload(fileNameKey, fileName,
 					"application/octet-stream", "binary", StandardCharsets.UTF_8,
-					// size=-1是"未声明长度"（chunked上传）：钳成0会变成零上限，任何数据必413。
+					// size < 0 表示未声明长度（如 chunked 上传），按无固定上限处理。
 					size >= 0 ? size : Long.MAX_VALUE, MemoryBufSize));
-			releaseFileUpload(oldFileUpload); // 以防万一：attr残留旧上传缓冲时释放
+			releaseFileUpload(oldFileUpload);
 		}
 	}
 
@@ -98,10 +85,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 			try {
 				fileUpload.addContent(content.content().retain(), false);
 			} catch (IOException e) {
-				// raw上传超过声明大小时addContent抛IOException且被任务框架吞掉，
-				// onEndRequest永不执行、invokeEndStream的close(null)空写无响应体——客户端零字节
-				// 挂到空闲超时。对齐HttpExchange的streamContentTotal超限处置：回413并断连，
-				// 同时取走释放attr上的上传缓冲（取走即负责，后续LastHttpContent因exchange已终结不再路由进来）。
+				// 超过声明大小时立即释放缓冲、回 413 并断连，避免客户端悬挂。
 				HttpFileUploadHandle.releaseFileUpload(x.channel().attr(fileUploadKey).getAndSet(null));
 				Netty.logger.error("upload size exceeds defined size from {}", x.channel().remoteAddress(), e);
 				x.closeConnectionOnFlush(x.send(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
@@ -113,7 +97,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	@Override
 	default void onEndStream(HttpExchange x) throws Exception {
 		if (x.isStreamAborted()) {
-			// 兼容手动通过旧三参数HttpHandler构造器接入且未显式绑定AbortStreamHandle的调用方
+			// 兼容未显式绑定 AbortStreamHandle 的流式处理器构造路径。
 			onAbortStream(x);
 			return;
 		}
@@ -125,7 +109,6 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 				try {
 					fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
 				} catch (IOException e) {
-					// 终结帧同样可能越过声明大小，处置同onStreamContent（413+断连，跳过onFileCompleted/onEndRequest）。
 					Netty.logger.error("upload size exceeds defined size from {}", x.channel().remoteAddress(), e);
 					x.closeConnectionOnFlush(x.send(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
 							"text/plain; charset=utf-8", "upload too large"));

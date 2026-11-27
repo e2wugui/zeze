@@ -39,8 +39,7 @@ public class TimeThrottleCounter implements TimeThrottle {
 		try {
 			++counter;
 			bandwidth += size;
-			// 与Queue版对齐——第limit个包计入本窗口并放行、第limit+1个拒绝
-			// （不用counter<limit，同配置切换实现名断连临界点会差1）。
+			// 与 Queue 版语义对齐：第 limit 个放行、第 limit+1 个拒绝
 			return counter <= limit && Long.compareUnsigned(bandwidth, bandwidthLimit) < 0;
 		} finally {
 			mutex.unlock();

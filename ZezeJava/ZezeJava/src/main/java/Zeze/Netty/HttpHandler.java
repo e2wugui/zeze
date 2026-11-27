@@ -32,22 +32,14 @@ public class HttpHandler {
 		WebSocketHandle = null;
 	}
 
-	/**
-	 * 构造流式上传处理器（无独立中止回调）。
-	 * 流在收到 {@code LastHttpContent} 前中止时，将回退调用 {@code endStream}（此时 {@link HttpExchange#isStreamAborted()} 为 {@code true}）。
-	 * 建议优先使用带 {@link HttpAbortStreamHandle} 的重载，从 API 层分离正常完成与异常清理。
-	 */
+	/** 构造流式上传处理器（无独立中止回调时，中止回退调用 endStream 且 isStreamAborted 为 true）。 */
 	public HttpHandler(@Nullable TransactionLevel level, @Nullable DispatchMode mode,
 					   HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
 					   HttpEndStreamHandle endStream) {
 		this(level, mode, beginStream, streamContent, endStream, null);
 	}
 
-	/**
-	 * 构造流式上传处理器，显式区分正常完成（{@code endStream}）与异常中止（{@code abortStream}）。
-	 * 当 {@code abortStream != null} 时，正常收齐 {@code LastHttpContent} 仅调用 {@code endStream}，
-	 * 流提前中止仅调用 {@code abortStream}，二者严格互斥。
-	 */
+	/** 构造流式上传处理器：abortStream 非空时，正常完成调 endStream、提前中止调 abortStream，二者互斥。 */
 	public HttpHandler(@Nullable TransactionLevel level, @Nullable DispatchMode mode,
 					   HttpBeginStreamHandle beginStream, @Nullable HttpStreamContentHandle streamContent,
 					   HttpEndStreamHandle endStream, @Nullable HttpAbortStreamHandle abortStream) {
@@ -67,9 +59,7 @@ public class HttpHandler {
 		WebSocketHandle = null;
 	}
 
-	/**
-	 * 构造 multipart/文件上传流式处理器，自动接入 {@link HttpMultipartHandle#onAbortStream(HttpExchange)} 中止回调。
-	 */
+	/** 构造 multipart/文件上传流式处理器，自动接入中止清理回调。 */
 	public HttpHandler(@Nullable TransactionLevel level, @Nullable DispatchMode mode,
 					   HttpMultipartHandle multipartHandle) {
 		this(level, mode, checkMultipartHandle(multipartHandle), multipartHandle, multipartHandle, multipartHandle);

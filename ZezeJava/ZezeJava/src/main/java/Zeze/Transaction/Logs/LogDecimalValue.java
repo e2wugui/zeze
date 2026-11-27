@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 
-/** Complete field change value, independent of any local transaction target. */
+/** BigDecimal 字段变更值日志，独立于本地事务目标。 */
 public class LogDecimalValue extends Log {
 	public static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<decimal>");
 
@@ -55,7 +55,7 @@ public class LogDecimalValue extends Log {
 	}
 
 	public static LogDecimalValue decode(int varId, IByteBuffer bb) {
-		// Preserve every decimal digit written by encode.
+		// 完整保留编码写入的全部十进制有效数字。
 		return new LogDecimalValue(varId, new BigDecimal(bb.ReadString()));
 	}
 }

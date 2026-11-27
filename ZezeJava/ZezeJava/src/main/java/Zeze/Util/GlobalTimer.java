@@ -3,9 +3,9 @@ package Zeze.Util;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
-// 全局低精度时钟：后台任务每秒采样 epoch 时间缓存，热路径 opaque 读免系统调用
+/** 全局低精度时钟：后台任务每秒采样 epoch 时间缓存，热路径 opaque 读免系统调用。 */
 public final class GlobalTimer {
-	// 当前的秒级时间戳,由定时器更新,为了性能用opaque方式读写而不用volatile,多数CPU都能让所有线程及时看到最新值
+	// 当前时间戳由定时器每秒更新，为性能使用 opaque 读写而非 volatile
 	@SuppressWarnings("unused")
 	private static long curMs, curSec;
 	private static final VarHandle vhCurMs, vhCurSec;
@@ -19,10 +19,7 @@ public final class GlobalTimer {
 			throw new ExceptionInInitializerError(e);
 		}
 
-		// 两个 getter 同源（epoch），秒值由毫秒值派生：curSec 不用 nanoTime
-		// ——那是任意原点的单调秒，与 getCurrentMillis 相差可达数年，同名族隐含的
-		// getCurrentMillis()/1000 == getCurrentSeconds() 契约会不成立；用 epoch 放弃
-		// 单调性，NTP回拨期间超时判定/滑窗清零延迟、可自愈，对秒级超时场景可忽略。
+		// 秒值与毫秒值同源（epoch），保证 getCurrentMillis()/1000 与 getCurrentSeconds() 一致。
 		refresh();
 		TaskSpec.ofAction(GlobalTimer::refresh).schedulePeriodNow(1000, 1000);
 	}
@@ -33,13 +30,12 @@ public final class GlobalTimer {
 		vhCurSec.setOpaque(now / 1000);
 	}
 
-	/** epoch毫秒，由1秒周期任务采样缓存（精度只有1秒）。 */
+	/** epoch 毫秒，由 1 秒周期任务采样缓存（精度 1 秒）。 */
 	public static long getCurrentMillis() {
 		return (long)vhCurMs.getOpaque();
 	}
 
-	/** epoch秒，与getCurrentMillis()同源同周期采样，getCurrentMillis()/1000与
-	 * 本值相差0~1秒属正常（采样周期所致）。 */
+	/** epoch 秒，与 {@link #getCurrentMillis()} 同源同周期采样（精度 1 秒）。 */
 	public static long getCurrentSeconds() {
 		return (long)vhCurSec.getOpaque();
 	}

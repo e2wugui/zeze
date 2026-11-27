@@ -3,13 +3,9 @@ package Zeze.Util;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 字符串零拷贝视图（string + offset + length），避免substring分配。
- *
- * 跨类型互查契约：equals/compareTo与String的单向互查是蓄意设计——
- * 本类实例可作String键容器（HashMap&lt;String,String&gt;等）的查询参数（hashCode与
- * String保持一致，get/contains走本类equals命中String键）；但String.equals不认本类，
- * 反向不成立：禁止将本类实例作为哈希容器key存入后再以等值String查询/删除——
- * 哈希桶命中而equals静默miss。compareTo对异类恒返-1，同为单向。
+ * 字符串零拷贝视图（string + offset + length），避免 substring 分配。
+ * 注意：hashCode 与 String 一致，equals/compareTo 仅支持单向跨类型查询（可用本类查询 String 键容器，
+ * 禁止将本类作为键存入后再用 String 查询）。
  */
 public class StringSpan implements Comparable<Object> {
 	private String string;

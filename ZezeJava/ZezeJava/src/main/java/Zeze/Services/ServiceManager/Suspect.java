@@ -4,9 +4,8 @@ import Zeze.Net.Protocol;
 import Zeze.Transaction.Bean;
 
 /**
- * S→C fire-and-forget 广播：SM在会话关闭时立即（不延迟、不挑选、不取SM锁）向所有
- * 已Identify会话之外的全部会话广播疑似死者的serverId。仅是提示（hint）：
- * 接收方转化为takeover.tryTransfer，由租约表裁决，未过期租约会被安排精确重试。
+ * Suspect 协议（S→C，fire-and-forget）：SM 在会话断开时广播疑似失效节点的 serverId 与版本，
+ * 仅作接管提示，最终由租约表裁决。
  */
 public class Suspect extends Protocol<BIdentify> {
 	public static final int ProtocolId_ = Bean.hash32(Suspect.class.getName());

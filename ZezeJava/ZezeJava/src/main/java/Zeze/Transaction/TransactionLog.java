@@ -3,9 +3,8 @@ package Zeze.Transaction;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Local state owned by a savepoint. Collection implementations never enter the wire tree.
- * Atomic field logs may also be Log values, because their new value is already the complete payload.
- * Changes collects Log payloads and collection state; other implementations remain local to the transaction.
+ * 保存点持有的本地事务日志接口：集合日志仅用于本地提交不直接上树，
+ * 原子字段日志同时实现 Log 作为完整变更载荷，Changes 统一采集可消费载荷。
  */
 public interface TransactionLog {
 	@Nullable Bean getBelong();

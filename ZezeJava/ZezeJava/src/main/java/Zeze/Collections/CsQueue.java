@@ -13,10 +13,8 @@ import Zeze.Util.TaskSpec;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Concurrent Server Queue.
- * 每个server拥有自己私有的队列，只能操作自己的队列。
- * server宕机的时候，其他server会接管它的队列数据（接管裁决走Takeover租约：see TakeoverScope）。
- * @param <V>
+ * 并发服务器队列（Concurrent Server Queue）：每个 server 仅操作自有队列，
+ * 宕机后由其他 server 通过 {@link TakeoverScope} 租约接管其队列数据。
  */
 public class CsQueue<V extends Bean> {
 	private final Queue<V> queue;
@@ -25,24 +23,21 @@ public class CsQueue<V extends Bean> {
 	private final CsQueueTakeoverScope takeoverScope;
 
 	/**
-	 * 为了测试公开这个方法，应用应该去使用Queue.Module.open.
+	 * 供内部及外部直接构造；应用常规应通过 Queue.Module.open 创建。
 	 */
 	public CsQueue(Queue.Module module, String name, int serverId, Class<V> valueClass, int nodeSize) {
 		this.module = module;
 		this.name = name;
 		this.queue = module._open(name + "@" + serverId, valueClass, nodeSize);
 
-		// 接管租约注册：claim/晚注册时stamp自己root行的epoch（替代旧offlineRegister的bump serial），
-		// 死者数据由takeover.tryTransfer在同一事务内裁决+搬运（附带修复：SM=disable时原ctor NPE）。
-		// scope存为成员：写路径checkFence需要它向Takeover对账scoped登记状态。
+		// 注册接管作用域：claim/晚注册时写入 root.epoch，写路径 checkFence 据此核对归属。
 		var takeover = module.zeze.getTakeover();
 		takeoverScope = new CsQueueTakeoverScope();
 		takeover.addScope(takeoverScope);
 	}
 
 	/**
-	 * 本队列的接管作用域：scope.name=队列名；数据行=tQueues[name@serverId]。
-	 * stamp写root.loadSerialNo=epoch（fence对账值）；transferAll搬运死者整条链并给死者root立墓碑stamp=0。
+	 * 队列接管作用域：stamp 写入 root.loadSerialNo=epoch，transferAll 搬运故障节点链表并置墓碑 stamp=0。
 	 */
 	private final class CsQueueTakeoverScope implements TakeoverScope {
 		@Override
@@ -60,12 +55,9 @@ public class CsQueue<V extends Bean> {
 			var srcName = name + "@" + deadServerId;
 			var src = Queue.compatible(module._tQueues.get(srcName), srcName);
 			if (null == src || src.getHeadNodeKey().getNodeId() == 0 || src.getTailNodeKey().getNodeId() == 0)
-				return 0; // 死者没有这个队列/空队列/已被搬走（成功搬运后头尾必为0，幂等出口）。
+				return 0; // 队列不存在、为空或已搬空（幂等出口）
 
-			// 不核对stamp==deadEpoch。调用点（Takeover.transferScope）已在同一事务内
-			// 重验租约过期，复活者被NotExpired拦截；而"stamp≠epoch但链上有数据"只可能是死者
-			// claim后、stamp前崩溃（或双跳崩溃留下上一代stamp）——数据仍属于死者，必须搬走。
-			// 在这里return 0会让外层照常立租约墓碑（scanOnce永久跳过墓碑），积压被永久封存。
+			// 外层已同事务复验租约过期，此处不核对 stamp==deadEpoch，避免 claim 后 stamp 前崩溃导致数据遗留。
 
 			// splice 单向链表，新接管的数据拼到开头。
 			var dstName = name + "@" + module.zeze.getConfig().getServerId();
@@ -76,20 +68,20 @@ public class CsQueue<V extends Bean> {
 				throw new IllegalStateException("maybe operate before entry created.");
 
 			srcTail.setNextNodeKey(dstRoot.getHeadNodeKey());
-			if (dstRoot.getHeadNodeKey().getNodeId() == 0) // dst是空队列：接管后链尾就是src的尾，否则后续add产生不可达的孤岛节点。
+			if (dstRoot.getHeadNodeKey().getNodeId() == 0) // 目标为空时同步更新尾指针，防止后续 add 形成孤岛
 				dstRoot.setTailNodeKey(srcTailNodeKey);
 			dstRoot.setHeadNodeKey(src.getHeadNodeKey());
 			var count = src.getCount();
-			dstRoot.setCount(dstRoot.getCount() + count); // 接管过来的值计入dst。
+			dstRoot.setCount(dstRoot.getCount() + count);
 			// clear src
 			var nullKey = new BQueueNodeKey();
 			src.setHeadNodeKey(nullKey);
 			src.setTailNodeKey(nullKey);
-			// 清空时同步清零废弃long字段：空名key+陈旧id并存会让死者重启时compatible复活头指针。
+			// 同步清零废弃的 long 指针，防止重启时 compatible 复活旧头尾。
 			src.setHeadNodeId(0);
 			src.setTailNodeId(0);
 			src.setCount(0);
-			src.setLoadSerialNo(0); // 死者root清账stamp=0（墓碑）：幂等重入由上面头尾==0短路；复活者醒来scoped后认领继续写。
+			src.setLoadSerialNo(0); // 置墓碑 stamp=0，供原节点复活重新 scoped 后认领
 			return count;
 		}
 	}
@@ -163,21 +155,15 @@ public class CsQueue<V extends Bean> {
 		return queue.isEmpty();
 	}
 
-	// 写路径fence：root行本就在事务工作集内，零额外IO。被接管（root.epoch != myEpoch）→致命退出。
-	// 未完成stamp登记（stamp瞬态失败等）→NotStartException拒绝：不认领数据行、不致命，
-	// renew周期补stamp后恢复；root.stamp==0（无主新行/外部清表重建/被接管后的墓碑）仅scoped后
-	// 认领（stamp=myEpoch）而非致命：被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀
-	// 同serverId双进程/外部篡改（stamp为别人的epoch）。
+	// 写路径 fence：未完成 scope 登记则拒绝写；stamp==0 的无主/墓碑行在 mode=on 时认领为 myEpoch，否则校验归属一致。
 	private void checkFence() {
 		var takeover = module.zeze.getTakeoverOrNull();
 		if (takeover == null)
 			return;
-		takeover.requireScoped(takeoverScope); // 未登记：拒绝写，且不认领数据行
+		takeover.requireScoped(takeoverScope);
 		var root = queue.getOrAddRoot();
 		var stamp = root.getLoadSerialNo();
-		// 认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
-		// 前置一致。dryrun必须守住"纯簿记不动数据行"的灰度契约；off避免0→0冗余写。
-		// 不认领时stamp保持0，checkFence对mode!=on恒通过，不影响早退路径。
+		// 仅 mode=on 时写 stamp，确保 dryrun 不修改数据行、off 不产生冗余写。
 		if (stamp == 0 && Takeover.ModeOn.equals(takeover.getMode())) {
 			stamp = takeover.getMyEpoch();
 			root.setLoadSerialNo(stamp);

@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 import static java.lang.Math.max;
 
+/** 为 {@link Table} 视图提供 {@code map} 与 {@code flatMap} 能力的 {@link Spliterator} 工具类。 */
 public class CollectSpliterators2 {
 	static <InElementT, OutElementT>
 	Spliterator<OutElementT> map(
@@ -70,7 +71,7 @@ public class CollectSpliterators2 {
 		OutElementT,
 		OutSpliteratorT extends Spliterator<OutElementT>>
 		implements Spliterator<OutElementT> {
-		/** Factory for constructing {@link FlatMapSpliterator} instances. */
+		/** {@link FlatMapSpliterator} 实例构造工厂。 */
 		@FunctionalInterface
 		interface Factory<InElementT, OutSpliteratorT extends Spliterator<?>> {
 			OutSpliteratorT newFlatMapSpliterator(
@@ -102,13 +103,6 @@ public class CollectSpliterators2 {
 			this.characteristics = characteristics;
 			this.estimatedSize = estimatedSize;
 		}
-
-		/*
-		 * The tryAdvance and forEachRemaining in FlatMapSpliteratorOfPrimitive are overloads of these
-		 * methods, not overrides. They are annotated @Override because they implement methods from
-		 * Spliterator.OfPrimitive (and override default implementations from Spliterator.OfPrimitive or
-		 * a subtype like Spliterator.OfInt).
-		 */
 
 		@Override
 		public final boolean tryAdvance(Consumer<? super OutElementT> action) {

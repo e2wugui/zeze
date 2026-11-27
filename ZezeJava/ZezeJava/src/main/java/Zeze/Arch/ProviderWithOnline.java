@@ -28,7 +28,6 @@ public class ProviderWithOnline extends ProviderImplement {
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getUserState().getContext().isEmpty()) {
-			// 失败码外传整体回滚（对齐Online.linkBroken的内部外传契约与Game版入口）。
 			return Objects.requireNonNull(online).linkBroken(p.Argument.getAccount(), p.Argument.getUserState().getContext(),
 					ProviderService.getLinkName(Objects.requireNonNull(p.getSender())), p.Argument.getLinkSid());
 		}

@@ -9,93 +9,56 @@ import java.util.function.LongFunction;
 import org.jspecify.annotations.Nullable;
 import sun.misc.Unsafe;
 
+/**
+ * 原始 {@code long} 键高并发哈希表（移植自 JDK ConcurrentHashMap，避免装箱开销；不支持 null 值）。
+ */
 public final class LongConcurrentHashMap<V> implements LongMap<V> {
-	/**
-	 * The largest possible table capacity.  This value must be
-	 * exactly 1<<30 to stay within Java array allocation and indexing
-	 * bounds for power of two table sizes, and is further required
-	 * because the top two bits of 32bit hash fields are used for
-	 * control purposes.
-	 */
+	/** 最大表容量（1<<30，高 2 位保留作控制位）。 */
 	private static final int MAXIMUM_CAPACITY = 1 << 30;
 
-	/**
-	 * The default initial table capacity.  Must be a power of 2
-	 * (i.e., at least 1) and at most MAXIMUM_CAPACITY.
-	 */
+	/** 默认初始容量（须为 2 的幂）。 */
 	private static final int DEFAULT_CAPACITY = 16;
 
-	/**
-	 * Minimum number of rebinnings per transfer step. Ranges are
-	 * subdivided to allow multiple resizer threads.  This value
-	 * serves as a lower bound to avoid resizers encountering
-	 * excessive memory contention.  The value should be at least
-	 * DEFAULT_CAPACITY.
-	 */
+	/** 扩容迁移时每个线程每次认领的最小桶数步长。 */
 	private static final int MIN_TRANSFER_STRIDE = 16;
 
-	/**
-	 * The number of bits used for generation stamp in sizeCtl.
-	 * Must be at least 6 for 32bit arrays.
-	 */
+	/** sizeCtl 中用于记录扩容代际戳的位数。 */
 	private static final int RESIZE_STAMP_BITS = 16;
 
-	/**
-	 * The maximum number of threads that can help resize.
-	 * Must fit in 32 - RESIZE_STAMP_BITS bits.
-	 */
+	/** 可并发协助扩容的最大线程数。 */
 	private static final int MAX_RESIZERS = (1 << (32 - RESIZE_STAMP_BITS)) - 1;
 
-	/** The bit shift for recording size stamp in sizeCtl. */
+	/** sizeCtl 中扩容代际戳的位偏移。 */
 	private static final int RESIZE_STAMP_SHIFT = 32 - RESIZE_STAMP_BITS;
 
-	/** Number of CPUS, to place bounds on some sizings */
+	/** 可用 CPU 核心数，用于扩容步长等界限。 */
 	private static final int NCPU = Runtime.getRuntime().availableProcessors();
 
-	/**
-	 * The array of bins. Lazily initialized upon first insertion.
-	 * Size is always a power of two. Accessed directly by iterators.
-	 */
+	/** 哈希桶数组（首次插入时懒初始化，长度恒为 2 的幂）。 */
 	private volatile @Nullable Node<V> @Nullable [] table;
 
-	/** The next table to use; non-null only while resizing. */
+	/** 扩容目标表，仅在扩容期间非空。 */
 	private volatile @Nullable Node<V> @Nullable [] nextTable;
 
-	/**
-	 * Base counter value, used mainly when there is no contention,
-	 * but also as a fallback during table initialization
-	 * races. Updated via CAS.
-	 */
+	/** 基础计数（无竞争时直接 CAS 更新，竞争时分摊至 counterCells）。 */
 	@SuppressWarnings("unused")
 	private volatile long baseCount;
 
 	/**
-	 * Table initialization and resizing control.  When negative, the
-	 * table is being initialized or resized: -1 for initialization,
-	 * else -(1 + the number of active resizing threads).  Otherwise,
-	 * when table is null, holds the initial table size to use upon
-	 * creation, or 0 for default. After initialization, holds the
-	 * next element count value upon which to resize the table.
+	 * 初始化与扩容控制字：负值表示初始化(-1)或扩容中；表未建时保存初始容量；建成后保存下次扩容阈值。
 	 */
 	private volatile int sizeCtl;
 
-	/** The next table index (plus one) to split while resizing. */
+	/** 扩容迁移时的下一个待分配桶索引上界。 */
 	private volatile int transferIndex;
 
-	/** Spinlock (locked via CAS) used when resizing and/or creating CounterCells. */
+	/** 扩容或创建 CounterCells 时的 CAS 自旋锁。 */
 	private volatile int cellsBusy;
 
-	/** Table of counter cells. When non-null, size is a power of 2. */
+	/** 分段计数槽数组，非空时长度为 2 的幂。 */
 	private volatile @Nullable CounterCell @Nullable [] counterCells;
 
-	/**
-	 * Key-value entry.  This class is never exported out as a
-	 * user-mutable Map.Entry (i.e., one supporting setValue; see
-	 * MapEntry below), but can be used for read-only traversals used
-	 * in bulk tasks.  Subclasses of Node with a negative hash field
-	 * are special, and contain null keys and values (but are never
-	 * exported).  Otherwise, keys and vals are never null.
-	 */
+	/** 键值节点；ForwardingNode 等特殊子类的 val 为 null，常规节点 val 恒非空。 */
 	private static class Node<V> {
 		private final long key;
 		private volatile @Nullable V val;
@@ -108,7 +71,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		}
 	}
 
-	/** A node inserted at head of bins during transfer operations. */
+	/** 扩容迁移期间放在已迁移桶头部的转发节点。 */
 	private static final class ForwardingNode<V> extends Node<V> {
 		final @Nullable Node<V>[] nextTable;
 
@@ -119,7 +82,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 
 		@SuppressWarnings("ConstantConditions")
 	@Nullable Node<V> find(int h, long k) {
-			// loop to avoid arbitrarily deep recursion on forwarding nodes
+			// 循环推进，避免连续转发导致深层递归
 			for (@Nullable Node<V>[] tab = nextTable; ; ) {
 				Node<V> e;
 				int n;
@@ -139,35 +102,13 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		}
 	}
 
-	/**
-	 * Spreads (XORs) higher bits of hash to lower and also forces top
-	 * bit to 0. Because the table uses power-of-two masking, sets of
-	 * hashes that vary only in bits above the current mask will
-	 * always collide. (Among known examples are sets of Float keys
-	 * holding consecutive whole numbers in small tables.)  So we
-	 * apply a transform that spreads the impact of higher bits
-	 * downward. There is a tradeoff between speed, utility, and
-	 * quality of bit-spreading. Because many common sets of hashes
-	 * are already reasonably distributed (so don't benefit from
-	 * spreading), and because we use trees to handle large sets of
-	 * collisions in bins, we just XOR some shifted bits in the
-	 * cheapest possible way to reduce systematic lossage, as well as
-	 * to incorporate impact of the highest bits that would otherwise
-	 * never be used in index calculations because of table bounds.
-	 */
+	/** 折叠 64 位 key 的高低 32 位并做高位扩散，避免仅高 32 位不同的键聚集在同一桶。 */
 	private static int spread(long key) {
-		// 【热路径例外，上轮FIX-PLAN指定欠账】先折叠高32位(对齐Long.hashCode)再套JDK CHM位扩散：
-		// 实际键型 typeId=(moduleId<<32)|protocolId(Net/Protocol.protocolClasses、Net/Service.factorys)，
-		// 原先仅取低32位时同protocolId跨moduleId的条目永久落在同一bin(resize不可分离)，
-		// 协议派发热路径每次get都走长度≈模块数的链。行为影响仅桶分布，查找/迁移语义不变。
 		int h = Long.hashCode(key);
-		return (h ^ (h >>> 16)) & 0x7fffffff; // 高位置0保持JDK CHM习惯(本移植以val==null识别MOVED，非必需但同构)
+		return (h ^ (h >>> 16)) & 0x7fffffff;
 	}
 
-	/**
-	 * Returns a power of two table size for the given desired capacity.
-	 * See Hackers Delight, sec 3.2
-	 */
+	/** 返回不小于期望容量的最小 2 的幂。 */
 	private static int tableSizeFor(int n) {
 		n--;
 		n |= n >>> 1;
@@ -178,21 +119,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return n < 0 ? 1 : (n >= MAXIMUM_CAPACITY ? MAXIMUM_CAPACITY : n + 1);
 	}
 
-	/*
-	 * Volatile access methods are used for table elements as well as
-	 * elements of in-progress next table while resizing.  All uses of
-	 * the tab arguments must be null checked by callers.  All callers
-	 * also paranoically precheck that tab's length is not zero (or an
-	 * equivalent check), thus ensuring that any index argument taking
-	 * the form of a hash value anded with (length - 1) is a valid
-	 * index.  Note that, to be correct wrt arbitrary concurrency
-	 * errors by users, these checks must operate on local variables,
-	 * which accounts for some odd-looking inline assignments below.
-	 * Note that calls to setTabAt always occur within locked regions,
-	 * and so in principle require only release ordering, not
-	 * full volatile semantics, but are currently coded as volatile
-	 * writes to be conservative.
-	 */
+	// 表元素与扩容目标表的 volatile 访问方法；调用方须在局部变量上判空和检查长度。
 
 	@SuppressWarnings("unchecked")
 	private static <V> @Nullable Node<V> tabAt(@Nullable Node<V>[] tab, int i) {
@@ -207,74 +134,33 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		U.putObjectVolatile(tab, ((long)i << ASHIFT) + ABASE, v);
 	}
 
-	/**
-	 * Returns the stamp bits for resizing a table of size n.
-	 * Must be negative when shifted left by RESIZE_STAMP_SHIFT.
-	 */
+	/** 返回容量为 n 的表扩容代际戳（左移 RESIZE_STAMP_SHIFT 后必为负）。 */
 	private static int resizeStamp(int n) {
 		return Integer.numberOfLeadingZeros(n) | (1 << (RESIZE_STAMP_BITS - 1));
 	}
 
-	/** Creates a new, empty map with the default initial table size (16). */
+	/** 创建默认初始容量（16）的空表。 */
 	public LongConcurrentHashMap() {
 	}
 
-	/**
-	 * Creates a new, empty map with an initial table size
-	 * accommodating the specified number of elements without the need
-	 * to dynamically resize.
-	 *
-	 * @param initialCapacity The implementation performs internal
-	 *                        sizing to accommodate this many elements.
-	 * @throws IllegalArgumentException if the initial capacity of
-	 *                                  elements is negative
-	 */
+	/** 按指定初始容量创建空表。 */
 	public LongConcurrentHashMap(int initialCapacity) {
 		if (initialCapacity < 0)
 			throw new IllegalArgumentException();
 		sizeCtl = ((initialCapacity >= (MAXIMUM_CAPACITY >>> 1)) ? MAXIMUM_CAPACITY : tableSizeFor(initialCapacity + (initialCapacity >>> 1) + 1));
 	}
 
-	/**
-	 * Creates a new, empty map with an initial table size based on
-	 * the given number of elements ({@code initialCapacity}) and
-	 * initial table density ({@code loadFactor}).
-	 *
-	 * @param initialCapacity the initial capacity. The implementation
-	 *                        performs internal sizing to accommodate this many elements,
-	 *                        given the specified load factor.
-	 * @param loadFactor      the load factor (table density) for
-	 *                        establishing the initial table size
-	 * @throws IllegalArgumentException if the initial capacity of
-	 *                                  elements is negative or the load factor is nonpositive
-	 */
+	/** 按初始容量和负载因子创建空表。 */
 	public LongConcurrentHashMap(int initialCapacity, float loadFactor) {
 		this(initialCapacity, loadFactor, 1);
 	}
 
-	/**
-	 * Creates a new, empty map with an initial table size based on
-	 * the given number of elements ({@code initialCapacity}), table
-	 * density ({@code loadFactor}), and number of concurrently
-	 * updating threads ({@code concurrencyLevel}).
-	 *
-	 * @param initialCapacity  the initial capacity. The implementation
-	 *                         performs internal sizing to accommodate this many elements,
-	 *                         given the specified load factor.
-	 * @param loadFactor       the load factor (table density) for
-	 *                         establishing the initial table size
-	 * @param concurrencyLevel the estimated number of concurrently
-	 *                         updating threads. The implementation may use this value as
-	 *                         a sizing hint.
-	 * @throws IllegalArgumentException if the initial capacity is
-	 *                                  negative or the load factor or concurrencyLevel are
-	 *                                  nonpositive
-	 */
+	/** 按初始容量、负载因子和预估并发更新线程数创建空表。 */
 	public LongConcurrentHashMap(int initialCapacity, float loadFactor, int concurrencyLevel) {
 		if (loadFactor <= 0.0f || initialCapacity < 0 || concurrencyLevel <= 0)
 			throw new IllegalArgumentException();
-		if (initialCapacity < concurrencyLevel) // Use at least as many bins
-			initialCapacity = concurrencyLevel; // as estimated threads
+		if (initialCapacity < concurrencyLevel)
+			initialCapacity = concurrencyLevel;
 		long size = (long)(1.0 + initialCapacity / loadFactor);
 		sizeCtl = (size >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : tableSizeFor((int)size);
 	}
@@ -287,20 +173,9 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 
 	@Override
 	public boolean isEmpty() {
-		return sumCount() <= 0L; // ignore transient negative values
+		return sumCount() <= 0L; // 忽略瞬态负值
 	}
 
-	/**
-	 * Returns the value to which the specified key is mapped,
-	 * or {@code null} if this map contains no mapping for the key.
-	 *
-	 * <p>More formally, if this map contains a mapping from a key
-	 * {@code k} to a value {@code v} such that {@code key.equals(k)},
-	 * then this method returns {@code v}; otherwise it returns
-	 * {@code null}.  (There can be at most one such mapping.)
-	 *
-	 * @throws NullPointerException if the specified key is null
-	 */
 	@Override
 	public @Nullable V get(long key) {
 		@Nullable Node<V>[] tab;
@@ -320,30 +195,11 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return null;
 	}
 
-	/**
-	 * Tests if the specified object is a key in this table.
-	 *
-	 * @param key possible key
-	 * @return {@code true} if and only if the specified object
-	 * 		is a key in this table, as determined by the
-	 *        {@code equals} method; {@code false} otherwise
-	 * @throws NullPointerException if the specified key is null
-	 */
 	@Override
 	public boolean containsKey(long key) {
 		return get(key) != null;
 	}
 
-	/**
-	 * Returns {@code true} if this map maps one or more keys to the
-	 * specified value. Note: This method may require a full traversal
-	 * of the map, and is much slower than method {@code containsKey}.
-	 *
-	 * @param value value whose presence in this map is to be tested
-	 * @return {@code true} if this map maps one or more keys to the
-	 * 		specified value
-	 * @throws NullPointerException if the specified value is null
-	 */
 	@Override
 	@SuppressWarnings("ConstantConditions")
 	public boolean containsValue(V value) {
@@ -362,25 +218,12 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return false;
 	}
 
-	/**
-	 * Maps the specified key to the specified value in this table.
-	 * Neither the key nor the value can be null.
-	 *
-	 * <p>The value can be retrieved by calling the {@code get} method
-	 * with a key that is equal to the original key.
-	 *
-	 * @param key   key with which the specified value is to be associated
-	 * @param value value to be associated with the specified key
-	 * @return the previous value associated with {@code key}, or
-	 *        {@code null} if there was no mapping for {@code key}
-	 * @throws NullPointerException if the specified key or value is null
-	 */
 	@Override
 	public @Nullable V put(long key, V value) {
 		return putVal(key, value, false);
 	}
 
-	/** Implementation for put and putIfAbsent */
+	/** put 与 putIfAbsent 的公共实现。 */
 	@SuppressWarnings("ConstantConditions")
 	private @Nullable V putVal(long key, V value, boolean onlyIfAbsent) {
 		if (value == null)
@@ -394,7 +237,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				tab = initTable();
 			else if ((f = tabAt(tab, i = hash & (n - 1))) == null) {
 				if (casTabAt(tab, i, new Node<>(key, value, null)))
-					break; // no lock when adding to empty bin
+					break; // 空桶无锁 CAS 插入
 			} else if (f.val == null) // MOVED
 				tab = helpTransfer(tab, f);
 			else {
@@ -441,25 +284,12 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return oldValue != null ? oldValue : value;
 	}
 
-	/**
-	 * Removes the key (and its corresponding value) from this map.
-	 * This method does nothing if the key is not in the map.
-	 *
-	 * @param key the key that needs to be removed
-	 * @return the previous value associated with {@code key}, or
-	 *        {@code null} if there was no mapping for {@code key}
-	 * @throws NullPointerException if the specified key is null
-	 */
 	@Override
 	public @Nullable V remove(long key) {
 		return replaceNode(key, null, null);
 	}
 
-	/**
-	 * Implementation for the four public remove/replace methods:
-	 * Replaces node value with v, conditional upon match of cv if
-	 * non-null.  If resulting value is null, delete.
-	 */
+	/** remove/replace 公共实现：若 cv 非空则匹配后替换，新值为 null 则删除节点。 */
 	private @Nullable V replaceNode(long key, @Nullable V value, @Nullable Object cv) {
 		int hash = spread(key);
 		for (@Nullable Node<V>[] tab = table; ; ) {
@@ -509,10 +339,9 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return null;
 	}
 
-	/** Removes all of the mappings from this map. */
 	@Override
 	public void clear() {
-		long delta = 0L; // negative number of deletions
+		long delta = 0L; // 累计删除数（负值）
 		int i = 0;
 		@Nullable Node<V>[] tab = table;
 		while (tab != null && i < tab.length) {
@@ -521,7 +350,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				++i;
 			else if (f.val == null) { // MOVED
 				tab = helpTransfer(tab, f);
-				i = 0; // restart
+				i = 0;
 			} else {
 				synchronized (f) {
 					if (tabAt(tab, i) == f) {
@@ -539,17 +368,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 			addCount(delta, -1);
 	}
 
-	/**
-	 * Returns a string representation of this map.  The string
-	 * representation consists of a list of key-value mappings (in no
-	 * particular order) enclosed in braces ("{@code {}}").  Adjacent
-	 * mappings are separated by the characters {@code ", "} (comma
-	 * and space).  Each key-value mapping is rendered as the key
-	 * followed by an equals sign ("{@code =}") followed by the
-	 * associated value.
-	 *
-	 * @return a string representation of this map
-	 */
 	@Override
 	public String toString() {
 		@Nullable Node<V>[] t;
@@ -573,27 +391,18 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return sb.append('}').toString();
 	}
 
-	// ConcurrentMap methods
-
-	/**
-	 * @return the previous value associated with the specified key,
-	 * 		or {@code null} if there was no mapping for the key
-	 * @throws NullPointerException if the specified key or value is null
-	 */
 	@Override
 	@SuppressWarnings("ConstantConditions")
 	public @Nullable V putIfAbsent(long key, V value) {
 		return putVal(key, value, true);
 	}
 
-	/** @throws NullPointerException if the specified key is null */
 	@Override
 	@SuppressWarnings("ConstantConditions")
 	public boolean remove(long key, Object value) {
 		return value != null && replaceNode(key, null, value) != null;
 	}
 
-	/** @throws NullPointerException if any of the arguments are null */
 	@Override
 	@SuppressWarnings("ConstantConditions")
 	public boolean replace(long key, V oldValue, V newValue) {
@@ -602,11 +411,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return replaceNode(key, newValue, oldValue) != null;
 	}
 
-	/**
-	 * @return the previous value associated with the specified key,
-	 * 		or {@code null} if there was no mapping for the key
-	 * @throws NullPointerException if the specified key or value is null
-	 */
 	@Override
 	@SuppressWarnings("ConstantConditions")
 	public @Nullable V replace(long key, V value) {
@@ -615,43 +419,24 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return replaceNode(key, value, null);
 	}
 
-	/**
-	 * Returns the value to which the specified key is mapped, or the
-	 * given default value if this map contains no mapping for the
-	 * key.
-	 *
-	 * @param key          the key whose associated value is to be returned
-	 * @param defaultValue the value to return if this map contains
-	 *                     no mapping for the given key
-	 * @return the mapping for the key, if present; else the default value
-	 * @throws NullPointerException if the specified key is null
-	 */
 	@Override
 	public V getOrDefault(long key, V defaultValue) {
 		V v;
 		return (v = get(key)) == null ? defaultValue : v;
 	}
 
-	/**
-	 * Returns the number of mappings. This method should be used
-	 * instead of {@link #size} because a LongConcurrentHashMap may
-	 * contain more mappings than can be represented as an int. The
-	 * value returned is an estimate; the actual count may differ if
-	 * there are concurrent insertions or removals.
-	 *
-	 * @return the number of mappings
-	 */
+	/** 返回映射条数的估算值（支持超过 Integer.MAX_VALUE）。 */
 	public long mappingCount() {
-		return Math.max(sumCount(), 0L); // ignore transient negative values
+		return Math.max(sumCount(), 0L); // 忽略瞬态负值
 	}
 
-	/** Initializes table, using the size recorded in sizeCtl. */
+	/** 按 sizeCtl 中记录的容量懒初始化哈希桶数组。 */
 	private @Nullable Node<V>[] initTable() {
 		@Nullable Node<V>[] tab;
 		int sc;
 		while ((tab = table) == null || tab.length == 0) {
 			if ((sc = sizeCtl) < 0)
-				Thread.yield(); // lost initialization race; just spin
+				Thread.yield();
 			else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
 				try {
 					if ((tab = table) == null || tab.length == 0) {
@@ -701,14 +486,10 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	}
 
 	/**
-	 * Adds to count, and if table is too small and not already
-	 * resizing, initiates transfer. If already resizing, helps
-	 * perform transfer if work is available.  Rechecks occupancy
-	 * after a transfer to see if another resize is already needed
-	 * because resizings are lagging additions.
+	 * 更新元素计数并在需要时发起或协助扩容迁移。
 	 *
-	 * @param x     the count to add
-	 * @param check if <0, don't check resize, if <= 1 only check if uncontended
+	 * @param x     计数增量
+	 * @param check &lt;0 不检查扩容，&lt;=1 仅无竞争时检查
 	 */
 	private void addCount(long x, int check) {
 		@Nullable CounterCell[] as;
@@ -748,7 +529,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		}
 	}
 
-	/** Helps transfer if a resize is in progress. */
+	/** 若正在扩容则协助迁移桶节点。 */
 	@SuppressWarnings("ConstantConditions")
 	private @Nullable Node<V> @Nullable [] helpTransfer(@Nullable Node<V> @Nullable [] tab, Node<V> f) {
 		@Nullable Node<V>[] nextTab;
@@ -771,20 +552,17 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return table;
 	}
 
-	/**
-	 * Moves and/or copies the nodes in each bin to new table. See
-	 * above for explanation.
-	 */
+	/** 将旧表各桶节点迁移或拷贝到扩容后的新表。 */
 	private void transfer(@Nullable Node<V>[] tab, @Nullable Node<V> @Nullable [] nextTab) {
 		int n = tab.length, stride;
 		if ((stride = (NCPU > 1) ? (n >>> 3) / NCPU : n) < MIN_TRANSFER_STRIDE)
-			stride = MIN_TRANSFER_STRIDE; // subdivide range
-		if (nextTab == null) { // initiating
+			stride = MIN_TRANSFER_STRIDE;
+		if (nextTab == null) {
 			try {
 				@SuppressWarnings("unchecked")
 				@Nullable Node<V>[] nt = (@Nullable Node<V>[])new Node<?>[n << 1];
 				nextTab = nt;
-			} catch (Throwable ex) { // try to cope with OOME
+			} catch (Throwable ex) { // OOME 兜底
 				sizeCtl = Integer.MAX_VALUE;
 				return;
 			}
@@ -794,7 +572,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		int nextn = nextTab.length;
 		ForwardingNode<V> fwd = new ForwardingNode<>(nextTab);
 		boolean advance = true;
-		boolean finishing = false; // to ensure sweep before committing nextTab
+		boolean finishing = false; // 提交 nextTab 前做一次全表复查
 		for (int i = 0, bound = 0; ; ) {
 			Node<V> f;
 			while (advance) {
@@ -822,12 +600,12 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 					if ((sc - 2) != resizeStamp(n) << RESIZE_STAMP_SHIFT)
 						return;
 					finishing = advance = true;
-					i = n; // recheck before commit
+					i = n; // 提交前复查全表
 				}
 			} else if ((f = tabAt(tab, i)) == null)
 				advance = casTabAt(tab, i, fwd);
 			else if (f.val == null) // MOVED
-				advance = true; // already processed
+				advance = true;
 			else {
 				synchronized (f) {
 					if (tabAt(tab, i) == f) {
@@ -868,10 +646,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		}
 	}
 
-	/**
-	 * A padded cell for distributing counts.  Adapted from LongAdder
-	 * and Striped64.  See their internal docs for explanation.
-	 */
+	/** 缓存行填充的分段计数单元（参考 Striped64）。 */
 	// @sun.misc.Contended
 	private static final class CounterCell {
 		@SuppressWarnings("unused")
@@ -992,11 +767,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		return new EntryIterator<>(t, f);
 	}
 
-	/**
-	 * Records the table, its length, and current traversal index for a
-	 * traverser that must process a region of a forwarded table before
-	 * proceeding with current table.
-	 */
+	/** 遍历遇到转发节点时保存的旧表遍历上下文栈节点。 */
 	private static final class TableStack<V> {
 		private int length;
 		private int index;
@@ -1004,48 +775,28 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		private @Nullable TableStack<V> next;
 	}
 
-	/**
-	 * Encapsulates traversal for methods such as containsValue; also
-	 * serves as a base class for other iterators and spliterators.
-	 * <p>
-	 * Method advance visits once each still-valid node that was
-	 * reachable upon iterator construction. It might miss some that
-	 * were added to a bin after the bin was visited, which is OK wrt
-	 * consistency guarantees. Maintaining this property in the face
-	 * of possible ongoing resizes requires a fair amount of
-	 * bookkeeping state that is difficult to optimize away amidst
-	 * volatile accesses.  Even so, traversal maintains reasonable
-	 * throughput.
-	 * <p>
-	 * Normally, iteration proceeds bin-by-bin traversing lists.
-	 * However, if the table has been resized, then all future steps
-	 * must traverse both the bin at the current index as well as at
-	 * (index + baseSize); and so on for further resizings. To
-	 * paranoically cope with potential sharing by users of iterators
-	 * across threads, iteration terminates if a bounds checks fails
-	 * for a table read.
-	 */
+	/** 弱一致遍历器基类：支持遍历期间并发扩容（通过 TableStack 回溯转发前的表区间）。 */
 	private static class Traverser<V> {
-		private @Nullable Node<V> @Nullable [] tab; // current table; updated if resized
-		protected @Nullable Node<V> next; // the next entry to use
-		private @Nullable TableStack<V> stack, spare; // to save/restore on ForwardingNodes
-		private int index; // index of bin to use next
-		private int baseIndex; // current index of initial table
-		private final int baseSize; // initial table size
+		private @Nullable Node<V> @Nullable [] tab; // 当前遍历表（扩容时切换）
+		protected @Nullable Node<V> next; // 下一个待返回节点
+		private @Nullable TableStack<V> stack, spare; // 遇到 ForwardingNode 时压栈/复用
+		private int index; // 下一个访问的桶下标
+		private int baseIndex; // 初始表当前桶下标
+		private final int baseSize; // 初始表容量
 
 		private Traverser(@Nullable Node<V> @Nullable [] tab, int size) {
 			this.tab = tab;
 			baseSize = size;
 		}
 
-		/** Advances if possible, returning next valid node, or null if none. */
+		/** 前进到下一个有效节点，遍历结束返回 null。 */
 		protected final @Nullable Node<V> advance() {
 			Node<V> e = next;
 			if (e != null)
 				e = e.next;
 			for (; ; ) {
 				@Nullable Node<V>[] t;
-				int i, n; // must use locals in checks
+				int i, n;
 				if (e != null)
 					return next = e;
 				if (baseIndex >= baseSize || (t = tab) == null || (n = t.length) <= (i = index) || i < 0)
@@ -1059,13 +810,13 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				if (stack != null)
 					recoverState(n);
 				else if ((index = i + baseSize) >= n)
-					index = ++baseIndex; // visit upper slots if present
+					index = ++baseIndex;
 			}
 		}
 
-		/** Saves traversal state upon encountering a forwarding node. */
+		/** 遇到转发节点时压栈保存当前表遍历状态。 */
 		private void pushState(@Nullable Node<V>[] t, int i, int n) {
-			TableStack<V> s = spare; // reuse if possible
+			TableStack<V> s = spare;
 			if (s != null)
 				spare = s.next;
 			else
@@ -1077,11 +828,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 			stack = s;
 		}
 
-		/**
-		 * Possibly pops traversal state.
-		 *
-		 * @param n length of current table
-		 */
+		/** 当前转发区间遍历完毕后弹栈恢复外层表状态。 */
 		private void recoverState(int n) {
 			TableStack<V> s;
 			int len;
@@ -1091,7 +838,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				tab = s.tab;
 				s.tab = null;
 				TableStack<V> next2 = s.next;
-				s.next = spare; // save for reuse
+				s.next = spare;
 				stack = next2;
 				spare = s;
 			}
@@ -1100,10 +847,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		}
 	}
 
-	/**
-	 * Base of key, value, and entry Iterators. Adds fields to
-	 * Traverser to support iterator.remove.
-	 */
+	/** Key/Value/Entry 迭代器基类。 */
 	private abstract static class BaseIterator<V> extends Traverser<V> {
 		private BaseIterator(@Nullable Node<V> @Nullable [] tab, int size) {
 			super(tab, size);
@@ -1185,7 +929,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		}
 	}
 
-	// Unsafe mechanics
+	// Unsafe 字段偏移量
 	private static final Unsafe U;
 	private static final long SIZECTL;
 	private static final long TRANSFERINDEX;
@@ -1195,12 +939,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	private static final long ABASE;
 	private static final int ASHIFT;
 
-	/**
-	 * Returns a sun.misc.Unsafe.  Suitable for use in a 3rd party package.
-	 * Replace with a simple call to Unsafe.getUnsafe when integrating into a jdk.
-	 *
-	 * @return a sun.misc.Unsafe
-	 */
 	private static Unsafe getUnsafe() throws IllegalAccessException {
 		Class<Unsafe> k = Unsafe.class;
 		for (Field f : k.getDeclaredFields()) {

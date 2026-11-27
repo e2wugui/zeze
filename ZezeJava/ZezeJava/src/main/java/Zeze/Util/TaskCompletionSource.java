@@ -12,7 +12,7 @@ import Zeze.Transaction.Profiler;
 import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
-// 可手动完成（setResult/setException）的 Future 实现：CAS 单槽结果 + 无锁等待线程栈
+/** 可手动完成（setResult/setException）的 Future 实现：CAS 单槽结果 + 无锁等待线程栈。 */
 public class TaskCompletionSource<R extends @Nullable Object> implements Future<R> {
 	private static final VarHandle RESULT, WAIT_HEAD;
 	protected static final AltResult NULL_RESULT = new AltResult(null);
@@ -254,9 +254,7 @@ public class TaskCompletionSource<R extends @Nullable Object> implements Future<
 		return this;
 	}
 
-	// 带超时的await（FND29 dbh2-02）：超时抛TimeoutException（同get(timeout,unit)的既有形态，
-	// 经forceThrow以未检查异常传播）。rpc等待等"future完成路径可能整体失效"（如发送容器已关闭）
-	// 的场景必须用带超时版本兜底，不得使用无参await无界悬挂。返回this保持链式（await()同款）。
+	/** 带超时的等待，超时经 forceThrow 抛出 TimeoutException；返回 this 便于链式调用。 */
 	public TaskCompletionSource<R> await(long timeout, TimeUnit unit) { // throws InterruptedException, TimeoutException, CompletionException, CancellationException
 		get(timeout, unit);
 		return this;

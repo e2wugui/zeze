@@ -49,16 +49,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private long tidRangeEnd;
 	private final ConcurrentHashMap<Long, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
 
-	// 分桶事务同步持久队列（dbh2-01）：复用bucket的meta列族，key首字节区分用途（既有meta键
-	// {1}..{4}与空键不冲突）：5+BE seq=队列记录（value=BSplitPut(fromTransaction=true)编码，
-	// delete编码为Binary.Empty墓碑put）；{6}=入队序号计数器；{7}=已投递水位。与bucket同库：
-	// 随checkpoint快照、随raft日志apply确定重放——任何副本（含换主后的新leader）apply后即持有
-	// 同一队列，事务同步义务不随leader死亡灭失。
-	// 写线程约束：记录/计数器只在raft apply线程写（enqueue/clear，与既有apply串行）；水位只在
-	// 投递回调线程写（单rpc在途，Dbh2.driveSplitSync的CAS串行）。volatile供对端线程读到最新值。
-	// splitSyncGeneration=队列世代号（clearSplitSyncQueue换新时递增）：seq在换代后从1重新分配，
-	// 旧世代迟到的投递ACK若按seq推进水位，会把新世代未投递的记录误标为已送达（endSplit0门槛
-	// 假通、源桶deleteToEnd灭失数据）——advanceSplitSyncWatermark按世代戳拒绝陈旧ACK。
+	// 分桶事务同步持久队列（复用 meta 列族：5+BE seq=记录，{6}=序号，{7}=水位），随桶快照与日志复制；
+	// 换代递增 generation 以拒绝旧世代迟到 ACK；splitSyncLock 为叶子锁，保障 advance 与 clear 互斥。
 	private static final byte SplitSyncRecordPrefix = 5;
 	private static final byte[] SplitSyncSeqKey = {6};
 	private static final byte[] SplitSyncWatermarkKey = {7};
@@ -66,33 +58,20 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private volatile long splitSyncSeq;
 	private volatile long splitSyncWatermark;
 	private long splitSyncGeneration;
-	// advance与clear互斥：世代守卫是check-then-act（读世代→写水位→持久化{7}），不互斥时apply线程
-	// 的clear可插进守卫与写之间——陈旧ACK把旧世代seq写回水位并复活磁盘{7}（重启经openBucket复活），
-	// hasPendingSplitSync假通使endSplit0门槛失守、deleteToEnd灭失未投递记录。叶子锁：apply线程在
-	// raft.mutex下取本锁，投递回调线程只取本锁（锁内仅rocksdb写，不回取raft锁），单向无ABBA。
 	private final ReentrantLock splitSyncLock = new ReentrantLock();
 
 	private static byte[] splitSyncRecordKey(long seq) {
-		var bb = ByteBuffer.Allocate(9); // 1前缀+8BE long：BE序=数值序（seq单调非负），键序即投递序
+		var bb = ByteBuffer.Allocate(9); // 1 前缀 + 8 字节大端 seq，保证键序即投递序
 		bb.WriteByte(SplitSyncRecordPrefix);
 		bb.WriteLong8BE(seq);
 		return bb.Bytes;
 	}
 
-	// eCommitting悬挂告警阈值=10×bucketMaxTime（默认1000s）。推导：正常redo收敛时间=redoDaemon周期
-	//（60s）+目标桶raft可用时间，bucketMaxTime(100s)>prepareMaxTime(80s)的既有排序已覆盖协调周期；
-	// 10×（默认1000s，约16个redo周期）远超任何正常收敛时间仍停在此状态，才认定"协调者已决定提交
-	// 但长期不redo"的灾难形态（CommitRocks损坏/redo永久失败）。
+	// eCommitting 悬挂告警阈值倍数（10 * bucketMaxTime），每 tid 仅告警一次
 	private static final int CommittingHangWarnFactor = 10;
-	// 告警去重（对齐OnzServer.hangWarnedTids形态）：每tid只error一次；事务完结（commit/undo）即回收，
-	// 集合有界于悬挂事务数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> committingHangWarnedTids = ConcurrentHashMap.newKeySet();
 
-	// ----- 自主 undo 未确认墓碑（兜底层）-----
-	// 桶侧 onTimer 自主超时 undo 时协调者决策未知：锁释放、trans blob 保留并入本表；
-	// 墓碑态以 trans 列族 marker 键持久化（见 Dbh2Transaction），loadSnapshot 据此分态
-	// 重建。收敛：迟到 LogCommitBatch 在墓碑窗内复活提交；协调者 UndoBatch 或超窗清扫
-	// （经 raft 日志，全副本一致）物理删除并 error 告警。年龄判据用单调钟（elapsedMillis）。
+	// 桶侧自主超时 undo 产生的未确认墓碑：释放锁并保留 blob+marker，供迟到 commit 复活或协调者/超窗清扫物理删除
 	private static final class UndonePending {
 		final Dbh2Transaction txn;
 		final long tombstoneNanos;
@@ -105,23 +84,18 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	private final ConcurrentHashMap<Long, UndonePending> undonePending = new ConcurrentHashMap<>();
 
-	// 包内可见供确定性测试观测墓碑表（重启装载分态重建的断言锚点）。
 	boolean isTombstonedPending(long tid) {
 		return undonePending.containsKey(tid);
 	}
 
-	/** 墓碑窗（毫秒）：prepare 最迟 commit 决策 + CommitBatch 在途（rpcTimeout）+ 余量。
-	 * 超窗迟到 commit 经同一 raft 日志序全网一致删除；协调者冻结后解冻补 decide 的数据
-	 * 仍灭失——2PC 超时终局的固有取舍（error 可见 + 窗口可配，见 expireDueTombstones）。 */
+	/** 墓碑保留窗口（毫秒）：覆盖 prepare 最迟决策、CommitBatch 在途耗时与安全余量。 */
 	long undoResurrectGraceMillis() {
 		//noinspection DataFlowIssue
 		var conf = dbh2.getDbh2Config();
 		return conf.getRpcTimeout() + conf.getPrepareMaxTime() + 30_000L;
 	}
 
-	/** 墓碑超窗清扫（包内可见供确定性测试）：超窗未决的墓碑经 raft 日志终局删除
-	 * （全副本一致）并响亮告警。条目保留至日志apply（apply路径摘墓碑+物理删blob与marker）；
-	 * 单条隔离：掉主等异常只推迟本条到下轮重试。 */
+	/** 清扫超窗未决墓碑：通过终局 LogUndoBatch 在全副本按日志序一致物理删除并告警。 */
 	void expireDueTombstones(long graceMillis) {
 		//noinspection DataFlowIssue
 		expireDueTombstones(graceMillis, getRaft().getLogSequence().getTerm());
@@ -133,9 +107,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			if (System.nanoTime() - e.getValue().tombstoneNanos < graceNanos)
 				continue;
 			try {
-				// 墓碑终局删除必须经raft日志：本地直删会与迟到LogCommitBatch跨副本apply
-				// 分歧（follower复活落盘、leader快照安装可抹掉）。复用终局undo日志的apply
-				// 路径（undonePending.remove命中→物理删blob+marker），全副本同一日志序收敛。
+				// 必须经 Raft 日志终局删除，保证与迟到 LogCommitBatch 在各副本按同一日志序收敛
 				if (!tryAppendTimerLog(new LogUndoBatch(e.getKey(), true), expectedTerm))
 					continue;
 				logger.error("undo tombstone expired without coordinator resolution: tid={} (expiry undo"
@@ -191,8 +163,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		loadLock.lock();
 		try {
 			var now = System.currentTimeMillis();
-			// 除零守卫：loadMonitor周期与setLoadSwitch的强制报告同毫秒先后进入时elapse==0，
-			// 速率=Infinity会误触发分桶决策并污染master负载排序。最小分母1ms（时钟回拨的负值同样钳制）。
+			// 下限 1ms 防同毫秒并发调用除零或时钟回拨产生异常速率
 			var elapse = Math.max((now - lastReportTime) / 1000.0f, 0.001f);
 			lastReportTime = now;
 
@@ -301,11 +272,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// 门槛触发（commitBatch/undoBatch的apply尾部）：锁内摘handle后转投raft串行执行器
-	// 重新过闸（setupOneShotIfNoTransaction），不得在apply线程内联——全序化不变量：
-	// 所有门槛判定与所有PrepareBatch注册必须落在同一条FIFO序上（装载先于提交⇒拦截；
-	// 提交先于装载⇒先注册⇒过闸看到非空事务而推迟），内联运行会破坏该序，晚注册事务
-	// 落入迁出键域的写入被收尾deleteToEnd静默丢弃。
+	// 摘除 handle 后转投 raft 串行执行器重新过闸，确保门槛判定与 PrepareBatch 注册处于同一 FIFO 序
 	private void triggerNoTransactionIf() {
 		if (requireBucket().isApplying()) {
 			triggerNoTransactionAfterApply = true;
@@ -454,13 +421,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		if (!raft.isLeader())
 			return;
 
-		// 年龄判据用单调钟（FND29 dbh2-03 断根）：墙钟步进（NTP步进/VM恢复）可把仍在协调者
-		// 合法 prepare 窗口内的事务误判超时，误 undo 已决定提交的事务=客户端确认成功而
-		// 数据灭失；elapsedMillis（nanoTime）对步进免疫，两机真实速率漂移远小于配置余量。
+		// 按单调钟计龄规避墙钟跳变；逐条 try-catch 防止单次查询失败阻塞后续事务检查
 		for (var e : transactions.entrySet()) {
 			var tid = e.getKey();
-			// 单条隔离：CommitAgent.query对CommitServer短暂不可达抛RuntimeException，不隔离会
-			// 中止本轮剩余悬挂事务的超时检查（不可达查询卡住遍历首位，同轮后续undo判定逐轮推迟）。
 			try {
 				var t = e.getValue();
 				//noinspection DataFlowIssue
@@ -475,9 +438,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				} else if (Commit.eCommitting == state.getState()
 						&& t.elapsedMillis() >= dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
 						&& committingHangWarnedTids.add(tid)) {
-					// 2PC语义：协调者已保存commitPoint(eCommitting)，桶侧无信息安全终局（误undo=跨桶
-					// 部分提交），只告警不自动终局；恢复依赖协调者CommitRocks存活，灾难场景重建协调者
-					// 进程即收敛（见docs dbh2.md）。
+					// 协调者已进入 eCommitting，桶侧不可擅自回滚，仅告警等待协调者重做收敛
 					logger.error("eCommitting transaction hang: tid={} query={}:{} age={}ms; "
 									+ "coordinator commit-point exists but redo not arriving",
 							tid, t.getQueryIp(), t.getQueryPort(), t.elapsedMillis());
@@ -519,8 +480,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void setSplittingMeta(BBucketMeta.Data argument) {
 		try {
 			requireBucket().setSplittingMeta(argument);
-			// 新分桶世代起点：防御清零（正常上一世代已在EndSplit/EndMove apply时清空；本apply
-			// 在日志序上先于任何入队，清零不吞记录——快照恢复的副本不会重放本日志）。
+			// 新分桶世代起点防御清零，日志序上早于后续入队
 			clearSplitSyncQueue();
 		} catch (RocksDBException e) {
 			logger.error("", e);
@@ -529,7 +489,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// LogClearPendingSettle.apply入口：身份匹配清除标志，不匹配为陈旧世代日志，no-op。
+	// LogClearPendingSettle.apply 入口：仅在身份匹配时清除标志
 	public void clearPendingSettle(BBucketMeta.Data to) {
 		try {
 			requireBucket().clearPendingSettle(to);
@@ -542,23 +502,18 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endMove(BBucketMeta.Data to) {
 		try (var it = requireBucket().getData().iterator()) {
-			// 写序不变量："meta不再声明的键域才允许物理删除"——meta先置死、deleteToEnd
-			// 后行，消除"数据已删、meta未切"窗口内并发Get把仍存在的键假报"不存在"（反转
-			// 后窗口内Get以死桶meta被拒，客户端重路由）。apply内同一日志原子重放。
+			// 先置死 meta 再 deleteToEnd，防止并发 Get 读到已删数据而误报“不存在”
 			//noinspection DataFlowIssue
 			var emptyMeta = requireBucket().getBucketMeta().copy();
 			emptyMeta.setKeyFirst(Bucket.DeadBucketMetaBound);
 			emptyMeta.setKeyLast(Bucket.DeadBucketMetaBound);
-			// 被移走的桶Meta置空（使用相同的非空key），拒绝所有对这个桶的访问。
 			requireBucket().setBucketMeta(emptyMeta);
 			requireBucket().addMoveMetaHistory(to);
-			// pending-settle标志：与既有meta写入同一apply内落盘（派生状态，随raft
-			// 复制/快照）——迁移已在源桶commit的持久证据，leader-ready据此幂等补发settle通知。
 			requireBucket().setPendingSettle(null, to);
 			requireBucket().deleteSplittingMeta();
-			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
+			clearSplitSyncQueue();
 
-			it.seekToFirst(); // meta已死，安全回收全部数据
+			it.seekToFirst();
 			requireBucket().deleteToEnd(it);
 		} catch (RocksDBException e) {
 			logger.error("", e);
@@ -569,16 +524,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try (var it = requireBucket().getData().iterator()) {
-			// 写序不变量：同endMove——meta先收窄（[from.keyLast,∞)出声明）、deleteToEnd
-			// 后行，消除"数据已删、meta未切"的可读窗口。
+			// 先收窄 meta 再 deleteToEnd，防止并发 Get 读到已删数据而误报“不存在”
 			requireBucket().setBucketMeta(from);
 			requireBucket().addSplitMetaHistory(from, to);
-			// 同endMove：pending-settle标志随迁移commit在apply内落盘。
 			requireBucket().setPendingSettle(from, to);
 			requireBucket().deleteSplittingMeta();
-			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
+			clearSplitSyncQueue();
 
-			it.seek(from.getKeyLast().copyIf()); // meta已收窄，安全回收[M,∞)
+			it.seek(from.getKeyLast().copyIf());
 			requireBucket().deleteToEnd(it);
 		} catch (RocksDBException e) {
 			logger.error("", e);
@@ -613,9 +566,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return transactions.computeIfAbsent(batch.getTid(),
 				_tid -> {
 					try {
-						// dbh2 可空是设计内（快照/墓碑生命周期测试脱离真实 Dbh2 直驱状态机）：
-						// 空 batch 的 puts/deletes 遍历为空、不触键锁，null 被天然容忍；
-						// 真正的解引用点在 Dbh2Transaction.acquire（非空 batch 才到达）。
 						//noinspection DataFlowIssue
 						return new Dbh2Transaction(dbh2, batch);
 					} catch (Exception e) {
@@ -647,29 +597,20 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void commitBatch(long tid) {
 		try (var txn = transactions.remove(tid)) {
 			counterCommitBatch.incrementAndGet();
-			committingHangWarnedTids.remove(tid); // 悬挂告警集合随事务完结回收（有界性）
+			committingHangWarnedTids.remove(tid);
 			if (null != txn) {
-				// 分桶中的事务同步：入队（持久、可靠重投）替代原急切rpc（dbh2-01）。入队先于本地
-				// 落盘：队列与数据、事务终局、水位在外层apply批次原子提交。
+				// 分桶中事务同步入队先于本地落盘，外层 apply 批次原子提交
 				enqueueSplitSync(txn.getBatch());
 				txn.commitBatch(requireBucket());
 			} else {
 				var pending = undonePending.remove(tid);
 				if (null != pending) {
-					// 围栏冲突复活（FND29 dbh2-03）：undo 已落日志但协调者已持久化 eCommitting
-					//（commitPoint 存在，客户端将收到/已收到成功）——迟到的 LogCommitBatch 以
-					// 提交为终局：数据落盘、blob 清除，成功应答变真而非静默灭失；error 留痕供对账。
-					// 复活的 txn 在墓碑化时已释放锁，commitBatch(bucket) 只触存储不触锁。
+					// 自主超时 undo 后收到迟到 LogCommitBatch，以提交为终局复活落盘并记 error
 					logger.error("commitBatch resurrects tombstoned transaction (undo/commit fence conflict):"
 							+ " tid={} (undo applied first but coordinator commit-point exists)", tid);
 					enqueueSplitSync(pending.txn.getBatch());
 					pending.txn.commitBatch(requireBucket());
 				} else
-					// 对齐Onz同构竞态的分级（Onz.java "duplicate after commit -- normal idempotent redo"）
-					// 与本状态机重复undoBatch的warn口径（见下方undoBatch null分支）：redo×redo/
-					// deliver×redo的重复投递是部分故障期间的常规副产物（rpcTimeout默认60s≥redo周期
-					// 60s，单桶满超时即确定性重叠，卡桶期间每轮对全部桶重发），数据幂等安全；
-					// true divergence子类已由上方undonePending复活分支单独error留痕，不因降级丢失。
 					logger.warn("commitBatch but transaction not found. tid={}"
 							+ " (duplicate delivery after commit -- normal idempotent redo, or late"
 							+ " commit after expiry finalize; unknown tid repeating warrants manual check)", tid);
@@ -682,29 +623,24 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	/** Raft 日志 apply 入口（{@link LogUndoBatch}）。fromCoordinator：true=终局确认的undo
-	 * （协调者 UndoBatch 或墓碑超窗清扫，apply 即物理删除，全副本同一日志序）；false=桶侧
-	 * onTimer 自主超时 undo（未确认墓碑，迟到 commit 可复活，见 undonePending 注释）。 */
+	/** Raft 日志 apply 入口（{@link LogUndoBatch}）：fromCoordinator=true 物理删除，false 记未确认墓碑。 */
 	public void undoBatch(long tid, boolean fromCoordinator) {
 		try (var txn = transactions.remove(tid)) {
 			counterUndoBatch.incrementAndGet();
-			committingHangWarnedTids.remove(tid); // 悬挂告警集合随事务完结回收（有界性）
+			committingHangWarnedTids.remove(tid);
 			if (null != txn) {
 				if (fromCoordinator)
-					txn.undoBatch(requireBucket()); // 协调者终局：决策与删除同源，无围栏冲突窗口
+					txn.undoBatch(requireBucket());
 				else {
-					// 墓碑marker随墓碑化落盘（put幂等，apply重放安全），loadSnapshot据此分态重建。
 					txn.markTombstoned(requireBucket());
-					undonePending.put(tid, new UndonePending(txn)); // 自主undo：锁随try块释放，blob待终局
+					undonePending.put(tid, new UndonePending(txn));
 				}
 			} else {
-				// 自主撤销可以在 append 超时未决后重复落日志；重复不代表终局确认。
-				// 保留原墓碑及其年龄，只有协调者确认或超窗清扫才允许物理删除。
+				// 重复的自主撤销不视为终局确认，仅协调者确认或超窗清扫才物理删除墓碑
 				var pending = fromCoordinator ? undonePending.remove(tid) : undonePending.get(tid);
 				if (pending == null)
 					logger.warn("undoBatch but transaction not found. tid={}", tid);
 				else if (fromCoordinator)
-					// 协调者 UndoBatch 追认自主 undo：undo 终局确认，物理删除。
 					pending.txn.undoBatch(requireBucket());
 			}
 			triggerNoTransactionIf();
@@ -715,10 +651,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// 分桶事务同步入队（dbh2-01）：入队条件=splittingMeta!=null——LogSetSplittingMeta的apply序
-	// 即日志序边界，全副本确定一致；边界后提交的事务要么入队（可靠重投，见Dbh2.driveSplitSync），
-	// 要么在复制迭代器视图内（迭代器在meta apply之后才创建，见Dbh2.startSplit），无第三种去向。
-	// delete编码为Binary.Empty墓碑put（目标侧applySplitPut的fromTransaction分支原样落盘）。
+	// 分桶中事务同步入队（以 splittingMeta!=null 为日志序边界）；delete 编码为 Binary.Empty 墓碑 put
 	private void enqueueSplitSync(BBatch.Data batch) throws RocksDBException {
 		var splitting = requireBucket().getSplittingMeta();
 		if (null == splitting)
@@ -730,11 +663,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 		for (var del : batch.getDeletes()) {
 			if (splitting.getKeyFirst().compareTo(del) <= 0)
-				puts.put(del, Binary.Empty); // 同批put+delete同key时delete后写覆盖——与txn.commitBatch先put后delete的落盘序一致
+				puts.put(del, Binary.Empty); // 同批先 put 后 delete 时以墓碑覆盖，与 commitBatch 顺序一致
 		}
 		if (puts.isEmpty())
 			return;
-		// 记录与计数器加入同一apply批次，提交后才唤醒投递链。
+		// 记录与计数器加入同一 apply 批次，提交后才唤醒投递链
 		var seq = splitSyncSeq + 1;
 		var bb = ByteBuffer.Allocate();
 		new BSplitPut.Data(true, puts).encode(bb);
@@ -744,7 +677,6 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		var seqBb = ByteBuffer.Allocate(8);
 		seqBb.WriteLong8BE(seq);
 		requireBucket().put(Objects.requireNonNull(splitSyncTable), SplitSyncSeqKey, 0, SplitSyncSeqKey.length, seqBb.Bytes, 0, 8);
-		// 唤醒投递链（非阻塞；直发还是围栏延迟由Dbh2.driveSplitSync自决）。
 		if (requireBucket().isApplying())
 			driveSplitSyncAfterApply = true;
 		else
@@ -764,11 +696,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// 取一批待投递记录（水位+1起至多maxCount条，按seq序合并为一个puts——后写覆盖先写=提交序，
-	// 重复键保留最后值）。只读不推进：水位推进仅在投递ACK后（advanceSplitSyncWatermark）。
-	// 调用方串行约束：仅Dbh2.driveSplitSync（CAS单飞）调用。
-	// 世代戳在读取任何队列状态之前快照：与并发clear（apply线程）的交错中，旧世代记录要么
-	// 携旧戳（ACK被拒，见advanceSplitSyncWatermark）要么已不可见（迭代器晚于删除创建，返回空）。
+	// 按 seq 序合并取一批待投递记录（只读不推水位），供 Dbh2.driveSplitSync 单飞调用
 	public @Nullable SplitSyncBatch pollSplitSync(int maxCount) {
 		splitSyncLock.lock();
 		try {
@@ -798,10 +726,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// 投递ACK后推进水位。世代失配=本批取自已清空换代的旧队列（EndSplit/EndMove/SetSplittingMeta
-	// apply清空后seq重新分配）：拒绝推进——旧批的送达事实属于已消亡的世代，按其seq推进会跳过
-	// 新世代尚未投递的同号记录。拒绝不抛错：投递链照常续投（下批读当前世代）。
-	// 守卫与写水位、持久化同在splitSyncLock临界区内：与clear的交错中关死check-then-act窗口。
+	// 投递 ACK 后在锁内校验世代并推进水位，拒绝已换代旧队列的迟到 ACK
 	public void advanceSplitSyncWatermark(SplitSyncBatch batch) throws RocksDBException {
 		splitSyncLock.lock();
 		try {
@@ -813,8 +738,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// 投递ACK后推进水位（只前进）并持久化：同进程重启/复选续投免重放；其余副本水位为旧值，换主后
-	// 从旧水位FIFO重投——重复投递幂等（replace同值），有序重放收敛无害。
+	// 单调推进并持久化投递水位（换主后副本从各自旧水位幂等重投）
 	public void advanceSplitSyncWatermark(long seq) throws RocksDBException {
 		splitSyncLock.lock();
 		try {
@@ -829,13 +753,12 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// endSplit前置门槛（Dbh2.endSplit0）：false=全部事务同步已送达目标。
+	// endSplit 前置门槛：false 表示全部事务同步已送达目标桶
 	public boolean hasPendingSplitSync() {
 		return splitSyncWatermark < splitSyncSeq;
 	}
 
-	// 清空队列：EndSplit/EndMove apply=迁移完结、义务已全部送达（endSplit0门槛保证）；SetSplittingMeta
-	// apply=新世代起点防御清零。全副本按apply序确定性执行，崩溃重放幂等。
+	// 清空事务同步队列并递增世代号（EndSplit/EndMove 完结或 SetSplittingMeta 新世代起点调用）
 	private void clearSplitSyncQueue() throws RocksDBException {
 		splitSyncLock.lock();
 		try {
@@ -874,9 +797,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		SnapshotResult result = new SnapshotResult();
 		var cpHome = checkpoint(result);
 
-		// cpHome必须在所有离开路径上删除（try-finally）：backup及其后任一步抛出时遗留的
-		// checkpoint_<ts>目录无回收路径（目录名含时间戳不复用），持续故障（备份盘满/IO错误）下
-		// 随失败次数无界累积。deleteDirectory为best-effort不抛，不会掩盖try内原始异常。
+		// 必须在 finally 中删除临时 checkpoint 目录，防止异常路径泄漏目录
 		try {
 			long t1 = System.nanoTime();
 			var backupDir = Paths.get(Objects.requireNonNull(getDbHome()), "backup").toString();
@@ -1006,10 +927,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	private void loadTransactions() throws RocksDBException {
-		// load exist transaction
-		// 分态重建：第一遍收集墓碑marker的tid集（trans键形态见Dbh2Transaction），第二遍
-		// 逐blob重建——marker命中走无锁墓碑重建（墓碑窗自装载时刻保守重启，复活能力跨
-		// 重启保留），未命中走既有持锁重建。
+		// 两遍分态重建：先收集墓碑 marker 的 tid，再逐 blob 重建为无锁墓碑或持锁存活事务
 		var tombstoned = new HashSet<Long>();
 		try (var it = requireBucket().getTrans().iterator()) {
 			for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
@@ -1022,7 +940,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try (var it = requireBucket().getTrans().iterator()) {
 			for (it.seekToFirst(); RocksDatabase.isValidOrThrow(it); it.next()) {
 				if (null != Dbh2Transaction.decodeTombstoneMarkerTid(it.key()))
-					continue; // marker已在第一遍消费
+					continue;
 				var batch = new BBatch.Data();
 				batch.decode(ByteBuffer.Wrap(it.value()));
 				var tid = batch.getTid();
@@ -1032,9 +950,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					try {
 						getOrAddTransaction(batch);
 					} catch (RuntimeException ex) {
-						// 兼容升级前已落盘的无marker重叠blob：撞锁输者降级为墓碑（error留痕）
-						// 而非装载失败——serialize=true下live重叠不可能，撞锁必含遗留墓碑
-						// blob，且两方向终局等价（commit均落数据、undo均删blob）。
+						// 兼容旧版无 marker 的重叠 blob：锁冲突输者降级为墓碑而非中止装载
 						logger.error("loadSnapshot live rebuild lock conflict, degrade loser to tombstone."
 								+ " tid={} (legacy overlapping blobs without marker; winner stays live)", tid, ex);
 						undonePending.put(tid, new UndonePending(new Dbh2Transaction(batch)));
@@ -1048,7 +964,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public String checkpoint(SnapshotResult result) throws RocksDBException {
 		var checkpointDir = Paths.get(Objects.requireNonNull(getDbHome()), "checkpoint_" + System.currentTimeMillis()).toString();
 
-		// fast checkpoint, will stop application apply.
+		// 快速 checkpoint，持 raft 锁暂停 apply
 		Raft raft = Objects.requireNonNull(getRaft());
 		raft.lock();
 		try {
@@ -1078,7 +994,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			close();
 			var dbName = Paths.get(Objects.requireNonNull(getDbHome()), "statemachine").toString();
 			RocksDatabase.restore(backupDir, dbName);
-			openBucket(); // reopen
+			openBucket();
 		} finally {
 			getRaft().unlock();
 		}
@@ -1088,30 +1004,22 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try {
 			var table = requireBucket().getData();
 			if (puts.isFromTransaction()) {
-				// 事务同步流程：分桶期间的delete被编码为Binary.Empty的put（入队见enqueueSplitSync，
-				// 投递见Dbh2.driveSplitSync的队列重投）。
-				// 空值必须作为墓碑标记原样落盘，不能解码成硬delete：复制流（fromTransaction=false，
-				// 钉定T0视图、可能仍含旧值）晚于墓碑到达时，putIfAbsent靠"get非null"被标记挡住；
-				// 硬delete会使get返回null而复活旧值（已删记录在新桶以旧值重现）。
-				// 读路径（get/walk/walkKey）统一把空值当不存在（客户端replace本就禁止空value，
-				// 存储不变量：空value==墓碑标记）。
+				// 事务同步流：直接覆盖写入，空值作为墓碑原样落盘以拦截迟到的复制流 putIfAbsent（读路径视空值为不存在）
 				for (var e : puts.getPuts().entrySet()) {
 					var key = e.getKey();
 					var value = e.getValue();
 
-					// replace（空值=墓碑标记）
 					requireBucket().put(table, key.bytesUnsafe(), key.getOffset(), key.size(),
 							value.bytesUnsafe(), value.getOffset(), value.size());
 				}
 				return;
 			}
 
-			// 数据复制流程
+			// 数据复制流：putIfAbsent，墓碑非 null 可自然阻止复活已删键
 			for (var e : puts.getPuts().entrySet()) {
 				var key = e.getKey();
 				var value = e.getValue();
 
-				// putIfAbsent（墓碑标记非null，恰好阻止迟到的复制复活已删key）
 				if (table.get(key.bytesUnsafe(), key.getOffset(), key.size()) == null) {
 					requireBucket().put(table, key.bytesUnsafe(), key.getOffset(), key.size(),
 							value.bytesUnsafe(), value.getOffset(), value.size());

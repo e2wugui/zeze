@@ -218,7 +218,7 @@ public final class Transaction {
 		var sourceRecord = root.record();
 		assert sourceRecord != null;
 		var table = sourceRecord.getTable();
-		// Onz coordinates commit/flush of whole records; it does not consume collection deltas.
+		// Onz 按整条记录协调提交与落库，不消费集合级增量。
 		boolean capture = table.getZeze().getHistory() != null
 			|| table.getChangeListenerMap().hasListener();
 		var created = source.createLog(capture ? ChangeCaptureMode.DELTA : ChangeCaptureMode.NONE);
@@ -576,7 +576,7 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
-	/** Onz binding is independent of History/listener delta capture. */
+	/** Onz 绑定独立于 History/监听器的增量采集。 */
 	public void setOnzProcedure(@Nullable OnzProcedure onzProcedure) {
 		this.onzProcedure = onzProcedure;
 	}

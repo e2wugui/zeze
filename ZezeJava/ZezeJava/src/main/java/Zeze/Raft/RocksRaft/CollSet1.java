@@ -88,7 +88,6 @@ public class CollSet1<V> extends CollSet<V> {
 		var modified = log.getModified();
 		if (modified.isEmpty())
 			return;
-		// 单遍分区批量应用：等价旧 plusAll(added).minusAll(removed)。
 		ArrayList<V> adds = null;
 		ArrayList<V> removes = null;
 		for (var e : modified.entrySet()) {

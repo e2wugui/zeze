@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-// 可停循环线程基类：isRunning/sleepIdle 控制生命周期，派生类实现 run 主体
+/** 可停止的循环线程基类：通过 isRunning/sleepIdle/wakeup 控制生命周期，派生类实现 run 主体。 */
 public class ThreadHelper extends Thread {
 	private static final Logger logger = LogManager.getLogger(ThreadHelper.class);
 
@@ -96,8 +96,7 @@ public class ThreadHelper extends Thread {
 					logger.trace("await {} ms timeout", ms);
 			}
 		} catch (InterruptedException ex) {
-			// 本线程基类由 running/shutdown/wakeup 控制生命周期，不恢复中断标志；
-			// 否则 while (isRunning()) { sleepIdle(...); } 下轮 await 会零等待立即再抛并进入自旋洪水。
+			// 由 running/shutdown/wakeup 控制生命周期，不恢复中断标志，避免循环内 await 持续立即抛出
 			logger.warn("{} sleepOut. ex:", getClass().getName(), ex);
 		} finally {
 			idle = true;

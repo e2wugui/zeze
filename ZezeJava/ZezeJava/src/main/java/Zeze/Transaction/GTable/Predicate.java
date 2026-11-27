@@ -16,52 +16,13 @@ package Zeze.Transaction.GTable;
 
 import org.jspecify.annotations.Nullable;
 
-/**
- * Legacy version of {@link java.util.function.Predicate java.util.function.Predicate}. Determines a
- * true or false value for a given input.
- *
- * <p>As this interface extends {@code java.util.function.Predicate}, an instance of this type may
- * be used as a {@code Predicate} directly. To use a {@code java.util.function.Predicate} where a
- * {@code com.google.common.base.Predicate} is expected, use the method reference {@code
- * predicate::test}.
- *
- * <p>This interface is now a legacy type. Use {@code java.util.function.Predicate} (or the
- * appropriate primitive specialization such as {@code IntPredicate}) instead whenever possible.
- * Otherwise, at least reduce <i>explicit</i> dependencies on this type by using lambda expressions
- * or method references instead of classes, leaving your code easier to migrate in the future.
- *
- * <p>See the Guava User Guide article on <a
- * href="https://github.com/google/guava/wiki/FunctionalExplained">the use of {@code Predicate}</a>.
- *
- * @author Kevin Bourrillion
- * @since 2.0
- */
+/** 布尔判定函数式接口，继承自 {@link java.util.function.Predicate}。 */
 @FunctionalInterface
 public interface Predicate<T> extends java.util.function.Predicate<T> {
-	/**
-	 * Returns the result of applying this predicate to {@code input} (Java 8+ users, see notes in the
-	 * class documentation above). This method is <i>generally expected</i>, but not absolutely
-	 * required, to have the following properties:
-	 *
-	 * <ul>
-	 *   <li>Its execution does not cause any observable side effects.
-	 * </ul>
-	 *
-	 * @throws NullPointerException if {@code input} is null and this predicate does not accept null
-	 *     arguments
-	 */
+	/** 对输入值执行判定并返回结果。 */
 	boolean apply(T input);
 
-	/**
-	 * Indicates whether another object is equal to this predicate.
-	 *
-	 * <p>Most implementations will have no reason to override the behavior of {@link Object#equals}.
-	 * However, an implementation may also choose to return {@code true} whenever {@code object} is a
-	 * com.google.common.base.Predicate that it considers <i>interchangeable</i> with this one. "Interchangeable"
-	 * <i>typically</i> means that {@code this.apply(t) == that.apply(t)} for all {@code t} of type
-	 * {@code T}). Note that a {@code false} result from this method does not imply that the
-	 * predicates are known <i>not</i> to be interchangeable.
-	 */
+	/** 判断另一对象是否与当前判定等价。 */
 	@Override
 	boolean equals(@Nullable Object object);
 

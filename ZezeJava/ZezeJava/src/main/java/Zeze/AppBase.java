@@ -18,7 +18,7 @@ public abstract class AppBase extends ReentrantLock {
 		return GenModule.instance.createRedirectModules(this, moduleClasses);
 	}
 
-	// protected（曾为public）：模块表由框架管理。
+	// 模块表由框架管理。
 	protected final ConcurrentHashMap<String, Zeze.IModule> modules = new ConcurrentHashMap<>();
 
 	public ConcurrentMap<String, IModule> getModules() {

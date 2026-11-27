@@ -18,10 +18,7 @@ public interface IExporter {
 
 	}
 
-	/**
-	 * 停机释放：关闭实现持有的底层资源（线程池等）。Exporter.stop()停机时逐个调用；
-	 * 默认空实现，无资源可释放的实现（如ExporterNginxConfig）不必覆盖。
-	 */
+	/** 停机时释放导出器持有的底层资源（如线程池），默认空实现。 */
 	default void close() {
 
 	}

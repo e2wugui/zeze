@@ -16,7 +16,7 @@ import Zeze.Util.Reflect;
 public class LogBeanKey<T extends Encodable> extends Log {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.Log<");
 
-	// Cache the reader by class while retaining the historical log type id.
+	// 按类型缓存解码器，同时保持既有的日志 typeId 计算规则。
 	private record TypeInfo(int logTypeId, Function<IByteBuffer, ?> valueDecoder) {
 		private static final ConcurrentHashMap<Class<?>, TypeInfo> typeInfos = new ConcurrentHashMap<>();
 

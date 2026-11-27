@@ -143,12 +143,9 @@ public class Mimes {
 
 	static {
 		try {
-			// load default
 			load(new StringReader(mimes));
-			// try load config
 			var file = new File("mimes.properties");
 			if (file.exists()) {
-				// try-with-resources关掉FileReader——否则mimes.properties存在时每次JVM泄漏一个FD。
 				try (var reader = new FileReader(file, StandardCharsets.UTF_8)) {
 					load(reader);
 				}
@@ -160,7 +157,6 @@ public class Mimes {
 
 	// 注意：扩展名不包含字符'.'
 	public static String fromFileExtension(Object extName) {
-		// 键全小写，查找前归一化——大写扩展名（Windows环境常见，如LOGO.PNG）不得回落text/plain。
 		var mime = mimesMap.get(String.valueOf(extName).toLowerCase(Locale.ROOT));
 		return mime != null ? mime : mimeDefault;
 	}

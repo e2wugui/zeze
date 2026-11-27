@@ -9,6 +9,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Map1Meta;
 import org.jspecify.annotations.Nullable;
 
+/** {@link GTable1} 的行容器 Bean，封装列键到值类型单元格的事务 {@code PMap1}。 */
 @SuppressWarnings({"EqualsAndHashcode", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<C, V> {
 	public static final long TYPEID = -105464877273786005L;
@@ -242,14 +243,12 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	public boolean equals(Object _o_) {
 		if (_o_ == this)
 			return true;
-		// 按Map接口内容比较（对称性，理由同PMap族判例）：收窄到BeanMap家族时，
-		// JDK Map反方向按内容相等，HashSet去重/HashMap键命中依赖比较方向。
+		// 遵循 Map 契约按内容比较，保证与普通 Map 互比的对称性。
 		return _o_ instanceof Map && pMap1.equals(_o_);
 	}
 
 	@Override
 	public int hashCode() {
-		// equals内容化后hashCode必须同步内容化（Map契约），否则哈希容器行为未定义。
 		return pMap1.hashCode();
 	}
 
@@ -282,8 +281,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	@Override
 	public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
 		var _pn_ = Bean.parentsToName(_p_);
-		// decodeJsonMap按"Map1"反射匹配不到字段pMap1（fieldNameFilter只剥_前缀，
-		// 详见Helper.decodeJsonTypedMap），改按meta定型解码。
+		// SQL 列名 "Map1" 与字段名 pMap1 不一致，直接按 meta 定型解码 JSON。
 		Zeze.Serialize.Helper.decodeJsonTypedMap(pMap1, pMap1.getMeta(), _r_.getString(_pn_ + "Map1"));
 	}
 
@@ -295,7 +293,6 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 
 	@Override
 	public java.util.ArrayList<Zeze.Transaction.VariableMeta> variables() {
-		// 行 bean 的唯一变量是列 map（C→V），类型从 meta 推导，与 schema 声明一致。
 		var _v_ = super.variables();
 		var meta = pMap1.getMeta();
 		_v_.add(new Zeze.Transaction.VariableMeta(1, "Map1", "map",

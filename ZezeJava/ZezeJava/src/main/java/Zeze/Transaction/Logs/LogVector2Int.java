@@ -7,7 +7,7 @@ import Zeze.Serialize.Vector2Int;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TransactionLog;
 
-/** Local field write; the inherited value is also its complete change payload. */
+/** Vector2Int 字段本地写入事务日志，提交时将继承的新值写回所属 Bean。 */
 public class LogVector2Int extends LogVector2IntValue implements TransactionLog {
 	private final Bean belong;
 	private final VarHandle vh;

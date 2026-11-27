@@ -55,7 +55,7 @@ public class Threading extends AbstractThreading {
 		// 这里使用Agent.ServiceName联合serverId当作进程名字，目前足够区分不同的进程。
 		this.appSerialId = PersistentAtomicLong.getOrAdd(service.getName() + "." + serverId).next();
 
-		keepAlive(); // first keepAlive
+		keepAlive();
 		keepAliveTask = TaskSpec.ofAction(this::keepAlive).schedulePeriodNow(10_000, 10_000);
 	}
 
@@ -75,24 +75,14 @@ public class Threading extends AbstractThreading {
 		return Thread.currentThread().getId();
 	}
 
-	// 信号量补偿的本地持有计数门控。补偿必须可归因，但协议无逐次获取标识，
-	// 无法区分服务端semaphoreRefs条目来自"本次未知获取"还是"先前持有的获取"——信号量
-	// 持有者无获取优先权，持有中再获取会真实失败，此时无条件补偿必然误释放先前许可、
-	// 虚增容量（容量1即双持有）。以静态表按(配置服务域,serverId,threadId,name)集中计数（同进程多
-	// Threading实例/多Semaphore对象共享名字时联动）：成功应答加、显式release成功减，
-	// 补偿仅在计数==0（服务端条目至多来自本次未知获取）时发送；计数>0时放弃补偿并告警，
-	// 把"误释放（无界、静默破坏容量）"换成"许可悬挂（有界：进程死亡后由timeoutRelease清算）"。
-	// 漂移安全侧：release未决时本地不减（多计→少补→漏）；进程重启map清零与服务端
-	// appSerialId接管全量释放天然对齐。
+	// 信号量本地持有计数：仅在计数为 0 时对超时 tryAcquire 补发补偿 release，避免误释放先前已持有的许可
 	private static final ConcurrentHashMap<SemaphoreHoldKey, AtomicInteger> semaphoreLocalHolds = new ConcurrentHashMap<>();
 
 	private SemaphoreHoldKey semaphoreHoldKey(String name) {
 		return new SemaphoreHoldKey(serviceDomain, serverId, curThreadId(), name);
 	}
 
-	/** 客户端rpc超时=max(timeoutMs+1000, 5000)：long运算防timeoutMs+1000
-	 * 回绕为负被max取走下限（客户端5秒假超时，服务端仍持锁30分钟）；SendForWait超时
-	 * 参数为int，钳制上限。 */
+	/** 客户端 RPC 超时：使用 long 计算 max(timeoutMs + 1000, 5000) 并钳制到 int 上限防溢出回绕。 */
 	private static int rpcTimeoutMs(int timeoutMs) {
 		//noinspection MathClampMigration
 		return (int)Math.min(Math.max((long)timeoutMs + 1000, 5000), Integer.MAX_VALUE);
@@ -121,12 +111,7 @@ public class Threading extends AbstractThreading {
 			try {
 				r.SendForWait(service.GetSocket(), timeout).await();
 			} catch (CompletionException e) {
-				// 客户端rpc超时＝应答迟到或丢失，服务端可能已授予该锁。只要客户端进程
-				// 活着，keepAlive每10s刷新服务端activeTime，timeoutRelease永不触发——授予的锁
-				// 无人unlock，无限期悬挂（同globalThreadId重试还会holdCount累积）。按未获锁继续，
-				// 并对同lockName补发unlock（fire-and-forget）：补偿与tryLock同连接，服务端
-				// SimulateThread串行处理，必在tryLock决策之后执行；未真获锁时服务端对无条目
-				// 幂等应答0（ThreadingServer.ProcessMutexUnlockRequest），无害。
+				// RPC 超时时服务端可能已授锁；同连接补发幂等 unlock 防止进程存活期间锁永久悬挂
 				if (!r.isTimeout())
 					throw e;
 				var un = new MutexUnlock();
@@ -183,21 +168,10 @@ public class Threading extends AbstractThreading {
 			try {
 				r.SendForWait(service.GetSocket(), timeout).await();
 			} catch (CompletionException e) {
-				// 客户端rpc超时＝应答迟到或丢失，服务端可能已发放permits
-				// （semaphoreRefs记账+信号量真实扣减）。只要客户端进程活着，keepAlive每10s刷新
-				// 服务端activeTime，timeoutRelease永不触发——已发放的许可无人release，永久短缺。
-				// 按未获取继续，并对同lockName补发release（fire-and-forget）：与tryAcquire同连接，
-				// 服务端SimulateThread串行处理必在acquire决策之后；未真获取时服务端对无条目
-				// 幂等应答0（ThreadingServer.ProcessSemaphoreReleaseRequest），无害。
-				// permits<=0被服务端入队前校验立即拒绝（ResultCodeInvalidArgument），不存在
-				// "已发放"形态，且release(<=0)本身非法，不补偿。
+				// RPC 超时时服务端可能已发放许可；仅 permits>0 且本地持有计数为 0 时补发幂等 release，避免误释已有许可
 				if (!r.isTimeout())
 					throw e;
 				if (permits > 0) {
-					// 超时只说明结果未知。本地持有计数>0时，服务端semaphoreRefs条目
-					// 可能来自先前持有的获取（信号量持有者无获取优先权，持有中再获取会真实
-					// 失败）——此时补发必然误释放先前许可，虚增真实余量。仅计数==0（条目至多
-					// 来自本次未知获取）才补发；否则放弃并告警，悬挂许可交给timeoutRelease清算。
 					var holds = semaphoreLocalHolds.get(semaphoreHoldKey(name));
 					if (holds == null || holds.get() == 0) {
 						var un = new SemaphoreRelease();
@@ -232,21 +206,18 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
 			r.SendForWait(service.GetSocket()).await();
-			// 结果码约定：0=成功且无持有者，>0=成功后剩余持有量，-1=参数非法（重复release也可能得到负持有量）。
+			// 结果码约定：0=成功且无持有者，>0=剩余持有量，-1=参数非法
 			var rc = r.getResultCode();
 			if (rc < 0)
 				logger.error("release error={}", IModule.getErrorCode(rc));
 			else {
-				// 服务端确认释放才减本地持有计数（未决/失败不减，漂移向"多计→少补"安全侧）。
+				// 服务端确认释放后才扣减本地计数；归零时条件删除防静态 map 累积泄漏
 				var key = semaphoreHoldKey(name);
 				var holds = semaphoreLocalHolds.get(key);
-				// 归零即删（两参条件删防误删并发重建的计数）：静态map只增不减会令
-				// 动态/虚拟线程场景按(serverId,threadId,name)无界滞留。key含threadId，同key的
-				// acquire/release/补偿读全在同一线程串行，条件删足够安全。
 				if (holds != null && holds.updateAndGet(v -> Math.max(0, v - permits)) == 0)
 					semaphoreLocalHolds.remove(key, holds);
 				if (rc == 0)
-					logger.info("release success, {} permits=0", lockName); // 无持有者
+					logger.info("release success, {} permits=0", lockName);
 				else
 					logger.info("release success, {} permits={}", lockName, rc);
 			}
@@ -265,14 +236,11 @@ public class Threading extends AbstractThreading {
 	}
 
 	/**
-	 * 创建信号量。
-	 * 其中参数permits只有第一次创建的时候才会被使用。
-	 * 比较建议的使用方式是只使用 createSemaphore 初始化一次，然后共享返回的变量。
-	 * 如果不保存返回值，后面建议使用 openSemaphore 继续访问这个信号量。
+	 * 创建信号量（permits 仅首次创建生效）；建议创建后共享引用，否则后续使用 openSemaphore 访问。
 	 *
-	 * @param name    semaphore name
-	 * @param permits initial permits
-	 * @return created semaphore
+	 * @param name    信号量名称
+	 * @param permits 初始许可数
+	 * @return 信号量句柄
 	 */
 	public Semaphore createSemaphore(String name, int permits) {
 		var semaphore = new Semaphore(name);
@@ -302,13 +270,7 @@ public class Threading extends AbstractThreading {
 			try {
 				r.SendForWait(service.GetSocket(), timeout).await();
 			} catch (CompletionException e) {
-				// 客户端rpc超时＝应答迟到或丢失，服务端可能已enter成功
-				// （rwLockRefs记账+读写锁真实持有）。只要客户端进程活着，keepAlive每10s刷新
-				// 服务端activeTime，timeoutRelease永不触发——持有的读/写锁无人exit，永久悬挂。
-				// 按未进入继续，并对同lockName补发同模式exit（fire-and-forget）：与enter同连接，
-				// 服务端SimulateThread串行处理必在enter决策之后；未真进入时服务端对无条目
-				// 幂等应答0（ThreadingServer.ProcessReadWriteLockOperateRequest），无害。
-				// tryOperate仅由tryEnterRead/tryEnterWrite调用，补偿按进入模式对称映射exit。
+				// RPC 超时时服务端可能已加锁；同连接补发对称的幂等 exit 防止锁悬挂
 				if (!r.isTimeout())
 					throw e;
 				var un = new ReadWriteLockOperate();
@@ -345,8 +307,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setOperateType(operateType);
 			r.SendForWait(service.GetSocket()).await();
 			if (r.getResultCode() != 0)
-				// 如实标注为结果码。
-				// 结果码语义见ThreadingServer：>0=exit后剩余hold计数，-1=参数/模式不匹配等错误。
+				// 结果码：>0 表示剩余持有计数，-1 表示参数或模式不匹配
 				logger.debug("exit {} result code={}", operateType, IModule.getErrorCode(r.getResultCode()));
 		}
 

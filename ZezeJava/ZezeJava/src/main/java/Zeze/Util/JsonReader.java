@@ -13,29 +13,16 @@ import org.jspecify.annotations.Nullable;
 
 import static Zeze.Util.Json.*;
 
-/*
-JSON5 additional features:
- YES : Object keys may be an ECMAScript 5.1 IdentifierName.
- YES : Objects may have a single trailing comma.
- YES : Arrays may have a single trailing comma.
- YES : Strings may be single quoted.
- YES : Strings may span multiple lines by escaping new line characters.
- YES : Strings may include character escapes.
- YES : Numbers may be hexadecimal. 0xdecaf,-0XC0FFEE
- YES : Numbers may have a leading or trailing decimal point.
- YES : Numbers may be IEEE 754 "Infinity", "-Infinity", and "NaN".
- YES : Numbers may begin with an explicit plus sign.
- YES : Single and multi-line comments are allowed.
-PART : Additional white space characters are allowed: \t,\n,\v(\x0b),\f(\x0c),\r, (\x20),\xa0,\u2028,\u2029,\uFEFF
-*/
-// 流式 JSON(JSON5) 读取解析器：直接操作 UTF-8 字节缓冲，供 Json 反射解析与手工调用
+/**
+ * 流式 JSON / JSON5 读取解析器：直接操作 UTF-8 字节缓冲，供 {@link Json} 反射解析与手工调用。
+ * 支持 JSON5 扩展：无引号标识符键、单尾随逗号、单引号与跨行续写字符串、十六进制与前导/尾随小数点数值、
+ * {@code Infinity}/{@code NaN}、显式 {@code +} 号及单行/多行注释。
+ */
 public final class JsonReader {
 	private static final Double NEGATIVE_INFINITY = Double.NEGATIVE_INFINITY;
 	private static final Double POSITIVE_INFINITY = Double.POSITIVE_INFINITY;
 
-	// 写侧 JsonWriter 默认深度限制为 16，读取上限必须远大于它（应用可用 setMaxDepth 配合更大的写侧深度）；
-	// 同时每层容器递归约 2~3 个栈帧，1024 层距默认线程栈的 StackOverflowError 阈值有一个数量级以上的安全余量，
-	// 与主流解析器（Jackson 默认 1000）同量级。
+	// 默认嵌套深度上限（1024），远大于 JsonWriter 默认上限 16 且避免深嵌套递归栈溢出。
 	public static final int DEFAULT_MAX_DEPTH = 1024;
 
 	private static final byte[] ESCAPE = { // @formatter:off
@@ -222,24 +209,23 @@ public final class JsonReader {
 		for (int b; pos < len; pos++)
 			//noinspection DataFlowIssue
 			if ((b = buf[pos] & 0xff) > ' ') {
-				if (b != '/') // check comment
+				if (b != '/')
 					return false;
 				if (pos + 1 >= len)
-					return true; // 尾部孤立'/'：未终结的行注释到EOF，按耗尽处理（对齐下方块注释EOF口径）
+					return true; // 尾部孤立 '/' 按未终结行注释至 EOF 处理
 				if (buf[++pos] == '*') {
 					for (pos++; pos < len; pos++)
 						if (buf[pos] == '*' && pos + 1 < len && buf[pos + 1] == '/') {
-							pos++; // 停在'/'上，外层pos++越过
+							pos++; // 停在 '/' 上，由外层 pos++ 越过
 							break;
 						}
-					// 未终结的块注释到EOF：按耗尽处理（返回true=纯注释空白），不用越界代替
 				} else
-					for (; pos < len; pos++) { // 行注释：LF/CR/CRLF/Unicode行终止符或EOF都结束
+					for (; pos < len; pos++) {
 						int c = buf[pos] & 0xff;
 						if (c == '\n' || c == '\r')
 							break;
 						if (isUnicodeLineSeparator(pos, len)) {
-							pos += 2; // 外层循环越过最后一个 UTF-8 字节。
+							pos += 2; // 外层循环越过最后一个 UTF-8 字节
 							break;
 						}
 					}
@@ -251,13 +237,9 @@ public final class JsonReader {
 		for (int b; ; pos++) {
 			//noinspection DataFlowIssue
 			if (pos >= buf.length)
-				return 0; // 输入耗尽（空/全空白/纯注释）：NUL哨兵——实字节0x00本被当空白跳过，
-			// 永不为真实token，无碰撞。调用面全是"期待定界符否则宽容回退"形态
-			//（parse0:next()!='{'返回默认对象、parseArray0/parseMap0同理），
-			// 耗尽回0统一走回退；此前buf[pos]直接AIOOBE——空body请求打进
-			// /api/search即500（应答器catch兜成system error，ERROR日志+栈）。
+				return 0; // 输入耗尽返回 NUL 哨兵（实字节 0x00 已被视为空白跳过，不会碰撞）
 			if ((b = buf[pos] & 0xff) > ' ') {
-				if (b != '/') // check comment
+				if (b != '/')
 					return b;
 				skipComment();
 			}
@@ -268,9 +250,9 @@ public final class JsonReader {
 		for (int b; ; ) {
 			//noinspection DataFlowIssue
 			if (++pos >= buf.length)
-				return 0; // 输入耗尽：NUL哨兵（语义同next()，见其注释）；此前buf[++pos]直接AIOOBE
+				return 0; // 输入耗尽返回 NUL 哨兵
 			if ((b = buf[pos] & 0xff) > ' ') {
-				if (b != '/') // check comment
+				if (b != '/')
 					return b;
 				skipComment();
 			}
@@ -281,13 +263,13 @@ public final class JsonReader {
 		for (int b, c; ; ) {
 			//noinspection DataFlowIssue
 			if (pos >= buf.length)
-				return e; // 输入耗尽：按遇到闭合定界符宽容收尾（对齐next()哨兵的耗尽回退哲学）
+				return e; // 输入耗尽按遇到闭合定界符宽容收尾
 			if ((b = buf[pos]) == ',' || b == '\n')
 				for (; ; ) {
 					if (++pos >= buf.length)
-						return e; // 截断于分隔符后：同上
+						return e;
 					if (((((b = buf[pos]) & 0xff) - ' ' - 1) ^ (',' - ' ' - 1)) > 0) { // (b & 0xff) > ' ' && b != ','
-						if (b != '/') // check comment
+						if (b != '/')
 							return b;
 						skipComment();
 					}
@@ -295,15 +277,14 @@ public final class JsonReader {
 			if (b == e)
 				return b;
 			pos++;
-			if (b < '"') // fast path
+			if (b < '"')
 				continue;
 			if (b == '"' || b == '\'') {
 				while (pos < buf.length && (c = buf[pos++]) != b)
 					if (c == '\\')
-						pos++; // 反斜杠在末字节：pos越len一位由循环条件拦截
-			} else if ((b | 0x20) == '{') { // [:0x5B | 0x20 = {:0x7B
-				// 引号按原始字节判定：0x02|0x20、0x07|0x20分别伪装成'"'、'\''；
-				// [/{、]/}的|0x20混计仅用于嵌套层级配对
+						pos++; // 反斜杠在末字节时 pos 越界一位，由循环条件拦截
+			} else if ((b | 0x20) == '{') { // '['(0x5B) | 0x20 == '{'(0x7B)
+				// 引号须按原始字节判定；[/{ 与 ]/} 仅作嵌套层级配对
 				for (int level = 0; pos < buf.length && ((b = buf[pos++]) != '}' && b != ']' || --level >= 0); ) {
 					if (b == '"' || b == '\'') {
 						while (pos < buf.length && (c = buf[pos++]) != b)
@@ -311,17 +292,16 @@ public final class JsonReader {
 								pos++;
 					} else if (b == '{' || b == '[')
 						level++;
-					else if (b == '/') { // skip comment
+					else if (b == '/') {
 						pos--;
 						skipComment();
-						pos++; // 越过块注释的结束 '/'，与外层分支保持一致。
+						pos++; // 越过块注释结束 '/'
 					}
 				}
-			} else if (b == '/') { // skip comment
+			} else if (b == '/') {
 				pos--;
 				skipComment();
-				pos++; // skipComment 返回时 pos 停在块注释的关闭 '/' 上，而外层循环头
-				// 不推进 pos，该 '/' 会被再次当作注释起点（误走行注释分支吞掉注释后的同行内容）。
+				pos++; // skipComment 停在块注释结束 '/' 上，外层循环不自增 pos，须手动越过
 			}
 		}
 	}
@@ -329,17 +309,16 @@ public final class JsonReader {
 	private void skipComment() {
 		//noinspection DataFlowIssue
 		if (pos + 1 >= buf.length)
-			return; // 尾部孤立'/'：注释到EOF按耗尽处理（对齐下方未终结块注释口径），此前首读越界
+			return;
 		if (buf[++pos] == '*') {
 			for (pos++; ; ) {
 				if (pos >= buf.length)
-					return; // 未终结的块注释到EOF：按耗尽处理，后续next()走NUL哨兵
+					return;
 				if (buf[pos++] == '*' && pos < buf.length && buf[pos] == '/')
-					return; // pos停在关闭'/'上（调用方约定，见skipVar的'/'分支）
+					return; // pos 停在关闭 '/' 上（调用方负责越过）
 			}
 		}
-		// 行注释：LF/CR/CRLF/Unicode行终止符（U+2028/U+2029）或EOF都结束，
-		// 结束时pos停在线终止符的最后一个字节，调用方再越过该字节；EOF按耗尽。
+		// 行注释结束于 LF/CR/CRLF/U+2028/U+2029 或 EOF，pos 停在行终止符末字节
 		for (; pos < buf.length; pos++) {
 			int b = buf[pos] & 0xff;
 			if (b == '\n' || b == '\r')
@@ -351,7 +330,7 @@ public final class JsonReader {
 		}
 	}
 
-	// U+2028/U+2029 的UTF-8编码（E2 80 A8/A9）
+	// U+2028/U+2029 的 UTF-8 编码（E2 80 A8/A9）
 	private boolean isUnicodeLineSeparator(int p, int limit) {
 		//noinspection DataFlowIssue
 		return p + 2 < limit && (buf[p] & 0xff) == 0xE2
@@ -359,8 +338,7 @@ public final class JsonReader {
 			&& (((buf[p + 2] & 0xff) == 0xA8) || ((buf[p + 2] & 0xff) == 0xA9));
 	}
 
-	// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：四个数值解析
-	// 实现的溢出分支只看指数不看尾数，会把零词静默变成饱和值/Infinity。
+	// 尾数为零时溢出指数仍为零，避免溢出分支将 0e999 误判为饱和值/Infinity
 	private static boolean isZeroMantissa(long i, double d) {
 		return i == 0 && d == 0.0;
 	}
@@ -372,12 +350,11 @@ public final class JsonReader {
 
 	public void skipQuot(int e) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
-		// 截断输入无闭引号：扫到EOF即收尾（pos钉len），残缺转义不越过末字节。
 		for (int b; pos < buffer.length && (b = buffer[pos++]) != e; )
 			if (b == '\\')
 				pos++;
 		if (pos > buffer.length)
-			pos = buffer.length; // 末字节为'\'时pos++越过len一格
+			pos = buffer.length; // 末字节为 '\' 时防越界
 	}
 
 	public @Nullable Object parse() throws ReflectiveOperationException {
@@ -394,10 +371,7 @@ public final class JsonReader {
 		case '0': case '1': case '2': case '3': case '4': case '5': case '6':
 		case '7': case '8': case '9': case '-': case '+': case '.':
 		case 'I': case 'i': case 'N': return parseNumber();
-		// 值位置的小写 'n' 一律 null token：写侧约定 JsonWriter 对字符串值恒加引号、对
-		// null 写小写 null、对非有限 double 恒写大写 NaN/Infinity（走上面的 'N' 分支），
-		// null 与 NaN 首字符大小写即区分，无引号字符串值超出约定，不为其保留二字符判据。
-		case 'n': return null;
+		case 'n': return null; // 写侧恒写小写 null 与大写 NaN/Infinity，首字符即可区分
 		case 'f': case 'F': return false;
 		case 't': case 'T': return true;
 		} //@formatter:on
@@ -424,11 +398,7 @@ public final class JsonReader {
 		}
 	}
 
-	/**
-	 * 数组字段读入：按元素类型逐个解析，返回新数组替换字段（与写侧的数组输出对称）。
-	 * 元素null按类型默认值收（原始类型不可存null）；非'['起始宽容返回null
-	 * （对齐parse(Object,int)未知token→null的契约）。
-	 */
+	/** 按元素类型解析数组字段；元素 null 按类型默认值处理，非 '[' 起始返回 null。 */
 	private @Nullable Object parseArrayField(Class<?> componentType, int b) throws ReflectiveOperationException {
 		if (b != '[')
 			return null;
@@ -468,10 +438,7 @@ public final class JsonReader {
 			return b == 'n' ? (char)0 : (char)parseInt();
 		if (ct == String.class)
 			return b == 'n' ? null : parseString(false);
-		// 包装类型数组组件：元数据(typeMap)接受包装类型，编码与原始数组相同（Json侧
-		// v&0xf抹掉WRAP标志），元素解析须与字段级TYPE_WRAP分支同语义——null保留、
-		// 数值转换同原始类型。修复前落入通用Object解析（得到Long/Double等不兼容
-		// 对象），Array.set报array element type mismatch，自己的Writer输出读不回。
+		// 包装类型数组组件：保留 null，数值转换与原始类型一致
 		if (ct == Integer.class)
 			return b == 'n' ? null : parseInt();
 		if (ct == Long.class)
@@ -552,9 +519,7 @@ public final class JsonReader {
 		return parse((T)null, classMeta);
 	}
 
-	// Json 注册的容器 parser（IntHashMap/LongHashMap/LongConcurrentHashMap）的 value 递归解析入口：
-	// 这条路径不经过 parse0/parseList0/parseMap0 等自带深度检查的容器函数，
-	// 嵌套声明（如 LongHashMap<LongHashMap<...>> 字段）配深嵌套输入仍可递归爆栈，这里补上深度计数。
+	// 供自定义容器 parser 递归解析 value 时计入嵌套深度限制
 	@Nullable Object parseNested(@Nullable ClassMeta<?> classMeta) throws ReflectiveOperationException {
 		if (depth >= maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
@@ -607,10 +572,7 @@ public final class JsonReader {
 			KeyReader kr = ClassMeta.getKeyReader(classMeta.klass);
 			if (kr != null) {
 				int b = next();
-				// 0=输入耗尽哨兵（见next()）：keyed类型（String/Integer/Object——Json.java
-				// keyReaderMap把Object.class注册为parseStringKey）无token可读，回退null，
-				// 对齐parse(Object,int)未知token→null的宽容契约。不挡则哨兵流进
-				// parseStringKey按"非引号裸串"直读buffer，空输入AIOOBE原样复发。
+				// b==0 为输入耗尽哨兵，直接回退 null，避免传入 KeyReader 越界读
 				return (T)(b == 0 ? null : kr.parse(this, b));
 			}
 		}
@@ -624,9 +586,7 @@ public final class JsonReader {
 				throw new InstantiationException("abstract class: " + classMeta.klass.getName());
 			obj = (T)classMeta.ctor.create();
 		}
-		// 顶层容器与 write 的 Collection/Map 分派对应。按 Bean 字段反射会把数组
-		// 直接忽略、把 Map 条目当未知字段跳过，自己的输出读回后静默变成空容器。
-		// 无元素类型上下文时沿用显式 parseArray/parseMap 的通用值与追加/合并语义。
+		// 顶层 Collection/Map 直接走数组/Map 解析，与写侧对称
 		if (obj instanceof Collection<?>)
 			return (T)parseArray((Collection<@Nullable Object>)obj);
 		if (obj instanceof Map<?, ?>)
@@ -645,7 +605,7 @@ public final class JsonReader {
 				boolean quot = b == '"' || b == '\'';
 				int keyBegin = pos + (quot ? 1 : 0);
 				FieldMeta fm = classMeta.get(quot ? parseKeyHash(b) : parseKeyHashNoQuot(b));
-				// 32位keyHash定向碰撞防护：命中后按解码语义与字段名UTF-8字节逐比对。
+				// 32 位哈希命中后按解码字节比对字段名，防哈希碰撞
 				if (fm == null || !keyEquals(keyBegin, quot ? pos - 1 : pos, fm.name))
 					continue;
 				b = skipColon();
@@ -680,12 +640,11 @@ public final class JsonReader {
 					unsafe.putObject(obj, offset, b == 'n' ? null : parseString(false));
 					break;
 				case TYPE_OBJECT: {
-					if (b == 'n') { // null（与下方 WRAP 各分支的 b=='n' 判定一致）
+					if (b == 'n') {
 						unsafe.putObject(obj, offset, null);
 						break;
 					}
-					// 与 typed 集合/Map 字段路径（c.clear()/m.clear()）保持一致：对同一对象重复解析时
-					// 先清空容器字段的旧内容，否则 Object 字段的 List 元素翻倍、Map 残留旧键。
+					// 与强类型容器字段一致，复用对象重复解析前先清空旧容器内容
 					Object oldObj = unsafe.getObject(obj, offset);
 					if (oldObj instanceof Collection<?>)
 						((Collection<?>)oldObj).clear();
@@ -710,14 +669,13 @@ public final class JsonReader {
 				case TYPE_ARRAY_FLAG + TYPE_DOUBLE:
 				case TYPE_ARRAY_FLAG + TYPE_STRING:
 				case TYPE_ARRAY_FLAG + TYPE_OBJECT:
-					// 数组字段与写侧对称读入（此前TYPE_CUSTOM只收'{'，数组静默不更新）
 					if (b == 'n')
 						unsafe.putObject(obj, offset, null);
 					else
 						unsafe.putObject(obj, offset, parseArrayField(fm.klass, b));
 					break;
 				case TYPE_CUSTOM:
-					if (b == 'n') { // null（与TYPE_STRING/TYPE_OBJECT分支一致）
+					if (b == 'n') {
 						unsafe.putObject(obj, offset, null);
 						break;
 					}
@@ -1042,51 +1000,50 @@ public final class JsonReader {
 
 	int parseKeyHash(int e) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
-		pos++; // skip the first '"' or '\''
+		pos++; // 跳过开引号
 		if (pos >= buffer.length)
-			return 0; // 截断于开引号后：空键，对齐b==e返回0
+			return 0;
 		int b = buffer[pos++];
 		if (b == e)
 			return 0;
 		final int m = keyHashMultiplier;
 		int h = 0;
 		for (; ; ) {
-			if (b == '\\') { // decode escapes and hash the decoded utf-8 bytes, so that the hash matches
-				// getKeyHash() over the raw utf-8 bytes of the field name (same decoding as parseString)
+			if (b == '\\') { // 解码转义并按解码后的 UTF-8 字节算哈希，以匹配字段名 getKeyHash()
 				if (pos >= buffer.length)
-					return h; // 截断于转义序列：键到EOF按终结处理（对齐noQuot版口径）
+					return h;
 				int c = buffer[pos++];
 				if (c == 'u') {
 					if (pos + 4 > buffer.length)
-						return h; // 截断于unicode转义中段：同上
+						return h;
 					c = parseHex4(buffer, pos);
 					pos += 4;
 					if (c >= 0xd800 && c < 0xdc00 && pos + 6 <= buffer.length && buffer[pos] == '\\' && buffer[pos + 1] == 'u') {
 						int c2 = parseHex4(buffer, pos + 2);
-						if ((c2 & 0xfc00) == 0xdc00) { // utf-16 surrogate pair -> 4-bytes utf-8
+						if ((c2 & 0xfc00) == 0xdc00) { // UTF-16 代理对 -> 4 字节 UTF-8
 							pos += 6;
 							c = (c << 10) + c2 + (0x10000 - (0xd800 << 10) - 0xdc00);
 							h = h * m + (byte)(0xf0 + (c >> 18));
 							h = h * m + (byte)(0x80 + ((c >> 12) & 0x3f));
 							h = h * m + (byte)(0x80 + ((c >> 6) & 0x3f));
 							h = h * m + (byte)(0x80 + (c & 0x3f));
-							c = -1; // all bytes hashed
+							c = -1;
 						}
 					}
 					if (c >= 0) {
-						if (c >= 0x800) { // 3-bytes utf-8 (incl. lone surrogate)
+						if (c >= 0x800) { // 3 字节 UTF-8（含孤立代理）
 							h = h * m + (byte)(0xe0 + (c >> 12));
 							h = h * m + (byte)(0x80 + ((c >> 6) & 0x3f));
 							h = h * m + (byte)(0x80 + (c & 0x3f));
-						} else if (c >= 0x80) { // 2-bytes utf-8
+						} else if (c >= 0x80) { // 2 字节 UTF-8
 							h = h * m + (byte)(0xc0 + (c >> 6));
 							h = h * m + (byte)(0x80 + (c & 0x3f));
-						} else // 1-byte
+						} else
 							h = h * m + (byte)c;
 					}
 				} else {
 					c = c >= 0x20 ? ESCAPE[c - 0x20] : (c & 0xff);
-					if (c >= 0x80) { // same lenient decoding as parseString(): U+0080..U+00FF -> 2-bytes utf-8
+					if (c >= 0x80) { // U+0080..U+00FF -> 2 字节 UTF-8
 						h = h * m + (byte)(0xc0 + (c >> 6));
 						h = h * m + (byte)(0x80 + (c & 0x3f));
 					} else
@@ -1095,7 +1052,7 @@ public final class JsonReader {
 			} else
 				h = h * m + b;
 			if (pos >= buffer.length)
-				return h; // 截断：键到EOF按终结处理，此前buffer[pos++]直接AIOOBE
+				return h;
 			if ((b = buffer[pos++]) == e)
 				return h;
 		}
@@ -1105,59 +1062,55 @@ public final class JsonReader {
 	int parseKeyHashNoQuot(int b) {
 		if (b == ':')
 			return 0;
-		b = (byte)b; // skipNext() 返回无符号字节；字段元数据按有符号 UTF-8 字节计算哈希。
-		// 解码转义并按解码后的 utf-8 字节计算 hash（与 parseKeyHash/parseStringNoQuot 的解码语义一致），
-		// 否则 {\u0061bc:1} 之类无引号转义 key 匹配不到字段 abc。
+		b = (byte)b; // skipNext() 返回无符号字节，字段元数据按有符号 UTF-8 字节算哈希
 		final int m = keyHashMultiplier;
 		int h = 0;
 		for (; ; ) {
 			if (b == '\\') {
 				//noinspection DataFlowIssue
 				if (pos + 1 >= buf.length)
-					return h; // 截断于转义序列：键到EOF按终结处理（对齐':'/空白/注释终结口径）
-				int c = buf[++pos]; // c 为转义字符，pos 停在它上面
+					return h;
+				int c = buf[++pos];
 				if (c == 'u') {
 					if (pos + 4 >= buf.length)
-						return h; // 截断于unicode转义中段：同上
-					c = parseHex4(buf, pos + 1); // 4 个 hex 从 'u' 之后开始（对齐 parseKeyHash 的 pos++ 语义）
-					pos += 5; // 'u' + 4 hex，pos 停在转义序列后的第一个字符
+						return h;
+					c = parseHex4(buf, pos + 1);
+					pos += 5; // 跳过 'u' + 4 位 hex，pos 停在下一未读字节
 					if (c >= 0xd800 && c < 0xdc00 && pos + 6 < buf.length && buf[pos] == '\\' && buf[pos + 1] == 'u') {
 						int c2 = parseHex4(buf, pos + 2);
-						if ((c2 & 0xfc00) == 0xdc00) { // utf-16 代理对 -> 4字节 utf-8
+						if ((c2 & 0xfc00) == 0xdc00) { // UTF-16 代理对 -> 4 字节 UTF-8
 							pos += 6;
 							c = (c << 10) + c2 + (0x10000 - (0xd800 << 10) - 0xdc00);
 							h = h * m + (byte)(0xf0 + (c >> 18));
 							h = h * m + (byte)(0x80 + ((c >> 12) & 0x3f));
 							h = h * m + (byte)(0x80 + ((c >> 6) & 0x3f));
 							h = h * m + (byte)(0x80 + (c & 0x3f));
-							c = -1; // 所有字节已掺入 hash
+							c = -1;
 						}
 					}
 					if (c >= 0) {
-						if (c >= 0x800) { // 3字节 utf-8（含孤立代理，lenient）
+						if (c >= 0x800) { // 3 字节 UTF-8（含孤立代理）
 							h = h * m + (byte)(0xe0 + (c >> 12));
 							h = h * m + (byte)(0x80 + ((c >> 6) & 0x3f));
 							h = h * m + (byte)(0x80 + (c & 0x3f));
-						} else if (c >= 0x80) { // 2字节 utf-8
+						} else if (c >= 0x80) { // 2 字节 UTF-8
 							h = h * m + (byte)(0xc0 + (c >> 6));
 							h = h * m + (byte)(0x80 + (c & 0x3f));
-						} else // 1字节
+						} else
 							h = h * m + (byte)c;
 					}
 				} else {
 					c = c >= 0x20 ? ESCAPE[c - 0x20] : (c & 0xff);
-					if (c >= 0x80) { // 与 parseString() 一致的 lenient 解码：U+0080..U+00FF -> 2字节 utf-8
+					if (c >= 0x80) { // U+0080..U+00FF -> 2 字节 UTF-8
 						h = h * m + (byte)(0xc0 + (c >> 6));
 						h = h * m + (byte)(0x80 + (c & 0x3f));
 					} else
 						h = h * m + (byte)c;
-					pos++; // 转义字母已消费：pos 前进到下一未读字符，与 'u' 路径 pos+=5 的不变式对齐；
-					// 否则下方 buf[pos] 把转义字母再读一次，回循环顶被二次掺入 hash
+					pos++; // 前进到下一未读字节，与 'u' 路径保持一致
 				}
-				// 转义解码后 pos 已停在"下一个未读字符"：读取它但不前进（下一轮哈希或
-				// 继续识别转义）；直接走循环尾部的 buf[++pos] 会跳过该字符漏哈希。
+				// 转义解码后 pos 已在下一未读字节，直接读取而不走循环尾部的 ++pos
 				if (pos >= buf.length)
-					return h; // 截断于转义后：键终结，同上
+					return h;
 				b = buf[pos];
 				if (((((b & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) || b == '/')
 					return h;
@@ -1166,24 +1119,22 @@ public final class JsonReader {
 				h = h * m + b;
 			//noinspection DataFlowIssue
 			if (pos + 1 >= buf.length)
-				return h; // 截断：键到EOF按终结处理，此前buf[++pos]直接AIOOBE
+				return h;
 			if (((((b = buf[++pos]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
 				return h;
-			if (b == '/') // check comment
+			if (b == '/')
 				return h;
 		}
 	}
 
-	/** hash命中后的key内容校验：按与parseKeyHash/parseKeyHashNoQuot一致的
-	 * 解码语义——原始字节、简写转义与unicode转义按解码后codepoint的UTF-8字节——重走
-	 * [begin,end)与字段名UTF-8字节逐比对，防32位keyHash定向碰撞注入。无转义走快比对。 */
+	/** 哈希命中后的键内容逐字节校验（解码语义与 parseKeyHash 一致，无转义走快路径）。 */
 	boolean keyEquals(int begin, int end, byte[] name) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p, b, c;
 		for (p = begin; p < end; p++)
 			if (buffer[p] == '\\')
 				break;
-		if (p == end) // 无转义：原始区间即解码结果
+		if (p == end)
 			return end - begin == name.length && Arrays.equals(buffer, begin, end, name, 0, name.length);
 		final int len = name.length;
 		int n = 0;
@@ -1194,19 +1145,18 @@ public final class JsonReader {
 					return false;
 				continue;
 			}
-			// 窗口界内守卫：截断/残缺转义不可能等于完整的字段名——返回false，不做越界重扫。
 			if (p >= end)
-				return false; // '\'是窗口末字节：转义体缺失
+				return false;
 			c = buffer[p++];
-			if (c == 'u') { // unicode转义：解码codepoint按UTF-8字节比对（代理对合并为4字节）
+			if (c == 'u') {
 				if (end - p < 4)
-					return false; // \\u不足4位hex（截断或终止符紧随）
+					return false;
 				c = parseHex4(buffer, p);
 				p += 4;
 				if (c >= 0xd800 && c < 0xdc00 && end - p >= 6
 						&& buffer[p] == '\\' && buffer[p + 1] == 'u') {
 					int c2 = parseHex4(buffer, p + 2);
-					if ((c2 & 0xfc00) == 0xdc00) { // utf-16 surrogate pair -> 4-bytes utf-8
+					if ((c2 & 0xfc00) == 0xdc00) {
 						p += 6;
 						c = (c << 10) + c2 + (0x10000 - (0xd800 << 10) - 0xdc00);
 						if (n + 4 > len
@@ -1219,24 +1169,24 @@ public final class JsonReader {
 						continue;
 					}
 				}
-				if (c >= 0x800) { // 3-bytes utf-8（含孤立代理）
+				if (c >= 0x800) {
 					if (n + 3 > len
 						|| name[n] != (byte)(0xe0 + (c >> 12))
 						|| name[n + 1] != (byte)(0x80 + ((c >> 6) & 0x3f))
 						|| name[n + 2] != (byte)(0x80 + (c & 0x3f)))
 						return false;
 					n += 3;
-				} else if (c >= 0x80) { // 2-bytes utf-8
+				} else if (c >= 0x80) {
 					if (n + 2 > len
 						|| name[n] != (byte)(0xc0 + (c >> 6))
 						|| name[n + 1] != (byte)(0x80 + (c & 0x3f)))
 						return false;
 					n += 2;
-				} else if (n >= len || name[n++] != (byte)c) // 1-byte
+				} else if (n >= len || name[n++] != (byte)c)
 					return false;
-			} else { // 简写转义：与parseKeyHash一致，c>=0x20查ESCAPE否则取原始低8位，再按UTF-8
+			} else {
 				c = c >= 0x20 ? ESCAPE[c - 0x20] : (c & 0xff);
-				if (c >= 0x80) { // U+0080..U+00FF -> 2-bytes utf-8
+				if (c >= 0x80) {
 					if (n + 2 > len
 						|| name[n] != (byte)(0xc0 + (c >> 6))
 						|| name[n + 1] != (byte)(0x80 + (c & 0x3f)))
@@ -1258,11 +1208,11 @@ public final class JsonReader {
 		boolean v;
 		if (b == '"' || b == '\'') {
 			if (++jr.pos >= buffer.length)
-				return false; // 截断于开引号：值不可判为true，宽容收尾
+				return false;
 			v = buffer[jr.pos] == 't';
 			jr.skipQuot(b);
 		} else {
-			// 同时用于键与 typed 值：停在冒号、容器分隔符或注释开头，交给外层消费。
+			// 同时用于键与 typed 值：停在冒号、容器分隔符或注释开头，交给外层消费
 			v = buffer[jr.pos] == 't';
 			// noinspection StatementWithEmptyBody
 			for (int c; jr.pos < buffer.length && (c = buffer[jr.pos] & 0xff) > ' '
@@ -1467,9 +1417,9 @@ public final class JsonReader {
 						p--;
 					return intern ? intern(buffer, begin, p) : newByteString(buffer, begin, p);
 				}
-				if (b < 0) // 多字节UTF-8首字节：LATIN1直转静默乱码，转慢路径解码
+				if (b < 0) // 多字节 UTF-8 首字节转慢路径解码
 					return parseStringUnquotedSlow(begin);
-				if (p + 1 >= buffer.length) { // 截断：无引号值以EOF为终结（配置尾部无换行），宽容收尾
+				if (p + 1 >= buffer.length) {
 					pos = buffer.length;
 					var end = pos;
 					if (begin < end && buffer[end - 1] == '\r')
@@ -1481,8 +1431,7 @@ public final class JsonReader {
 		return parseString(b, intern);
 	}
 
-	// 无引号值慢路径：无引号值无转义语义（反斜杠为字面量），整段纯UTF-8一次解码；
-	// 终止符与末尾\r剥离对齐快路径；intern与同族慢路径一致忽略。
+	// 无引号值慢路径：反斜杠按字面量处理，整段纯 UTF-8 一次解码
 	private String parseStringUnquotedSlow(int begin) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int b, p;
@@ -1490,7 +1439,7 @@ public final class JsonReader {
 			b = buffer[p];
 			if (b == ',' || b == '\n' || (b | 0x20) == '}')
 				break;
-		} // 截断：p==len按终结收尾（pos钉len）
+		}
 		pos = p;
 		int end = p;
 		if (end > begin && buffer[end - 1] == '\r')
@@ -1506,34 +1455,32 @@ public final class JsonReader {
 		int p = pos, b;
 		final int begin = ++p;
 		for (; ; p++) {
-			if (p >= buffer.length) { // 截断：串到EOF按闭引号宽容收尾，此前buffer[p]直接AIOOBE
+			if (p >= buffer.length) {
 				pos = p;
 				return intern ? intern(buffer, begin, p) : newByteString(buffer, begin, p);
 			}
 			if ((b = buffer[p]) == e) {
-				pos = p + 1; // lucky! finished the fast path
+				pos = p + 1;
 				return intern ? intern(buffer, begin, p) : newByteString(buffer, begin, p);
 			}
-			if ((b ^ '\\') < 1) // '\\' or multibyte char
-				break; // jump to the slow path below
+			if ((b ^ '\\') < 1) // '\\' 或多字节 UTF-8 字符
+				break;
 		}
-		// 慢路径：定位终止符——'\'转义取后续一字节（含\"，不误终止），unicode转义整体跨越。
+		// 慢路径扫描终止符：跨越转义序列，残缺 \\u 不越过终止符或反斜杠
 		int end;
 		for (end = p; end < buffer.length && (b = buffer[end]) != e; end++) {
 			if (b == '\\') {
 				if (end + 1 >= buffer.length)
-					break; // 截断于转义序列：'\'排除在串外，由下方按[begin,end)收尾
+					break;
 				end++;
 				if (buffer[end] == 'u') {
-					// hex不足4位即遇终止符或反斜杠时不跨越：残缺转义按2字节收尾，闭引号不被当hex吞掉，
-					// 后续'\'交由外层循环按独立转义处理（防\"被误判为闭引号或EOF处孤立'\'进入窗口）
 					for (int j = 0; j < 4 && end + 1 < buffer.length
 						&& buffer[end + 1] != e && buffer[end + 1] != '\\'; j++)
 						end++;
 				}
 			}
 		}
-		pos = end < buffer.length ? end + 1 : end; // EOF：pos钉在len，不越界+1
+		pos = end < buffer.length ? end + 1 : end;
 		return decodeStringSlow(begin, end);
 	}
 
@@ -1542,20 +1489,18 @@ public final class JsonReader {
 		int p = pos, b;
 		final int begin = p;
 		for (; ; p++) {
-			if (p >= buffer.length || (((((b = buffer[p]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) || b == '/') // 空白、冒号、注释或EOF结束裸键
-				return intern(buffer, begin, pos = p); // lucky! finished the fast path（EOF：键串按终结收尾）
-			if ((b ^ '\\') < 1) // '\\' or multibyte char
-				break; // jump to the slow path below
+			if (p >= buffer.length || (((((b = buffer[p]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) || b == '/')
+				return intern(buffer, begin, pos = p);
+			if ((b ^ '\\') < 1) // '\\' 或多字节 UTF-8 字符
+				break;
 		}
-		// 慢路径：定位终止符——转义跨越同parseString(e,intern)，谓词为键终止符。
 		int end;
 		for (end = p; end < buffer.length && ((((b = buffer[end]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0 && b != '/'; end++) {
 			if (b == '\\') {
 				if (end + 1 >= buffer.length)
-					break; // 截断于转义序列：'\'排除在串外，由下方按[begin,end)收尾
+					break;
 				end++;
 				if (buffer[end] == 'u') {
-					// 同parseString：hex不足4位遇键终止符（≤' '或':'）或反斜杠不跨越，残缺转义按2字节收尾
 					for (int j = 0; j < 4 && end + 1 < buffer.length
 						&& ((((buffer[end + 1] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0)
 						&& buffer[end + 1] != '\\'; j++)
@@ -1563,14 +1508,11 @@ public final class JsonReader {
 				}
 			}
 		}
-		pos = end; // 定界符留给skipColon/next消费，注释的开头'/'也必须保留。
+		pos = end; // 定界符或注释开头 '/' 留给外层消费
 		return decodeStringSlow(begin, end);
 	}
 
-	// 含转义字符串的慢路径解码体：[begin,end)按纯UTF-8分段解码，'\'转义（unicode转义与简写）
-	// 单独处理，段间共享t。end之后紧跟终止符，段内不含终止符（调用方扫描已排除）。
-	// 调用方扫描保证转义字节不出窗；\\u的4位hex在窗口内可能残缺（扫描刻意不吞终止符、
-	// 不越窗补齐），解码时按字面量收尾。
+	// 含转义字符串的慢路径解码：[begin, end) 按纯 UTF-8 分段解码，单独处理 '\' 转义（残缺 \\u 按字面量收尾）。
 	private String decodeStringSlow(int begin, int end) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		char[] t = tmp;
@@ -1588,8 +1530,7 @@ public final class JsonReader {
 					break;
 				if (buffer[p] == 'u') {
 					if (end - p < 5) {
-						// \\u不足4位hex（截断或终止符紧随）：'\''与'u'按字面量收尾（p推进越过'u'，
-						// 余下hex字节由主循环按普通字节继续——对齐扫描段"残缺转义按2字节收尾"）。
+						// 残缺 \\u 按字面量输出
 						t[n++] = '\\';
 						t[n++] = 'u';
 						p++;
@@ -1599,17 +1540,15 @@ public final class JsonReader {
 					}
 				} else {
 					b = buffer[p++];
-					// JSON5行续写：反斜杠后跟LF/CR（含CRLF）或U+2028/U+2029不产生字符，
-					// 消费换行继续字符串（声明支持JSON5；旧实现把换行原样放进结果，
-					// 跨行配置串被静默插入LF）。
+					// JSON5 行续写：反斜杠后跟 LF/CR/CRLF 或 U+2028/U+2029 不产生字符
 					if (b == '\n' || b == '\r') {
 						if (b == '\r' && p < end && buffer[p] == '\n')
-							p++; // CRLF按一个换行消费
+							p++; // CRLF
 					} else if ((b & 0xff) == 0xE2 && p + 1 < end && (buffer[p] & 0xff) == 0x80
 						&& (((buffer[p + 1] & 0xff) == 0xA8) || ((buffer[p + 1] & 0xff) == 0xA9))) {
-						p += 2; // U+2028/U+2029按一个换行消费
+						p += 2; // U+2028/U+2029
 					} else {
-						// b为未掩码byte，转义字符≥0x80时符号扩展成U+FFxx，补掩码与parseKeyHashNoQuot对齐
+						// 无符号掩码避免 >=0x80 符号扩展为 U+FFxx
 						t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff);
 					}
 				}
@@ -1618,8 +1557,7 @@ public final class JsonReader {
 		return new String(t, 0, n);
 	}
 
-	/** 解码[begin,end)的纯UTF-8段写入t（从下标n起），malformed按单字节LATIN1容忍。
-	 * 段内不含转义与终止符（均为ASCII）；续字节校验保证读取不越过end。返回写入后的下标。 */
+	/** 解码 [begin, end) 的纯 UTF-8 段写入 t[n..]，非法字节按单字节 LATIN1 容忍，返回写入后下标。 */
 	private int decodeUtf8(char[] t, int n, int begin, int end) {
 		final byte[] buffer = Objects.requireNonNull(buf, "JSON input is not set");
 		int p = begin;
@@ -1654,7 +1592,7 @@ public final class JsonReader {
 					continue;
 				}
 			}
-			// 失败仅消费当前字节，不读取或吞掉片段外的引号、转义及后续有效序列。
+			// 非法序列仅消费当前字节，保留后续字节
 			t[n++] = (char)b;
 			p++;
 		}
@@ -1667,23 +1605,17 @@ public final class JsonReader {
 			: (e < -308 ? 0 : d / EXP[-e]);
 	}
 
-	// 十进制词失去正确舍入保证时回退 Double.parseDouble（正确舍入），两个触发条件：
-	// (1) 有效数字 ≥16 位：整数/小数 d=d*10+c 累加链逐步舍入；(2) 合成十进制指数 |expTotal|>15：
-	// EXP 查表的 1e±16 起非精确表示，d×fl(1e±e)/d÷fl(1e±e) 出现双舍入（即 strtod 的 d*EXP[e] 路径，
-	// 15位有效数字配大指数同样偏差 1 ULP）。两者均不满足时快速路径可证精确（≤15位有效数字且
-	// |指数|≤15 时乘除的 1e±k 均为 <2^53 的精确整数，单次舍入即正确舍入）。
-	// 返回 null 表示无需回退或无法回退（词法不完整的垃圾容忍输入，如尾随 'e' 的 "1e"，
-	// parseDouble 不接受），调用方走原快速路径。[from,to) 覆盖整个词（含符号/小数点/指数），
-	// 故返回值已带符号。
+	// 有效数字 >=16 位或 |expTotal|>15 时快路径可能双舍入，回退 Double.parseDouble 保证正确舍入；
+	// 无需或无法回退时返回 null（[from, to) 含符号，返回值已带符号）。
 	private static @Nullable Double parseDoubleRounded(byte[] buffer, int from, int to, int expTotal) {
 		int digits = 0;
-		boolean mantissa = true; // 'e'/'E' 之后的指数数字不计有效数字
+		boolean mantissa = true; // 指数部分不计有效数字
 		for (int i = from; i < to; i++) {
 			byte b = buffer[i];
 			if (b == 'e' || b == 'E')
 				mantissa = false;
 			else if (mantissa && b >= '0' && b <= '9' && (digits > 0 || b > '0'))
-				digits++; // 跳过前导零：0.000123 的有效数字是 3
+				digits++; // 跳过前导零
 		}
 		if (digits < 16 && expTotal >= -15 && expTotal <= 15)
 			return null;
@@ -1709,18 +1641,16 @@ public final class JsonReader {
 			} else if (b == '+')
 				b = buffer[++p];
 			c = b | 0x20;
-			if (c == 'i' || c == 'n') { // Infinity/NaN 词法：消费整个词（pos 停在词尾），值按 (int)double 强转的饱和语义取值
+			if (c == 'i' || c == 'n') { // Infinity/NaN，按 (int)double 饱和语义取值
 				do
 					b = ++p < buffer.length ? buffer[p] : 0;
-				while ((((b | 0x20) - 'a') & 0xff) < 26); // 词恰在缓冲区末尾时按词尾收尾（越界读的AIOOBE会被方法级catch吞掉后静默返回0）
+				while ((((b | 0x20) - 'a') & 0xff) < 26); // 防止词尾恰在缓冲区末尾时越界
 				pos = p;
 				return c == 'n' ? 0 : minus ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 			}
 			if (b == '0') {
 				b = buffer[++p];
-				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5）。hex是整数词法：非hex字节即词终止，
-					// 不落入十进制小数分支（词法终止语义对齐parseDouble）；溢出用double
-					// 累计、(int)强转饱和，对齐十进制/Infinity策略
+				if ((b | 0x20) == 'x') { // JSON5 0x 十六进制（溢出转 double 饱和强转）
 					boolean useD = false;
 					for (; ; ) {
 						b = ++p < buffer.length ? buffer[p] : 0;
@@ -1815,7 +1745,7 @@ public final class JsonReader {
 									return 0;
 								return minus ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 							}
-							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
+							break; // p 指向首个非数字字符
 						}
 					}
 				}
@@ -1825,13 +1755,12 @@ public final class JsonReader {
 				d = i;
 		}
 		pos = p;
-		// 非数字首字符零消费不得静默返回0，与parseNumber零消费守卫对齐。
 		if (p == startPos)
 			throw new NumberFormatException("empty number");
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
-			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac); // 词含符号，正确舍入后直接饱和强转
+			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac);
 			if (rounded != null)
 				return (int)(double)rounded;
 			exp += expFrac;
@@ -1858,24 +1787,23 @@ public final class JsonReader {
 			} else if (b == '+')
 				b = buffer[++p];
 			c = b | 0x20;
-			if (c == 'i' || c == 'n') { // Infinity/NaN 词法：消费整个词（pos 停在词尾），值按 (long)double 强转的饱和语义取值
+			if (c == 'i' || c == 'n') { // Infinity/NaN，按 (long)double 饱和语义取值
 				do
 					b = ++p < buffer.length ? buffer[p] : 0;
-				while ((((b | 0x20) - 'a') & 0xff) < 26); // 同parseInt——词尾恰为缓冲区末尾时按词尾收尾，防AIOOBE被吞后静默返回0
+				while ((((b | 0x20) - 'a') & 0xff) < 26);
 				pos = p;
 				return c == 'n' ? 0L : minus ? Long.MIN_VALUE : Long.MAX_VALUE;
 			}
 			if (b == '0') {
 				b = buffer[++p];
-				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5）。语义同parseInt：整数词法、
-					// 溢出double累计+(long)强转饱和
+				if ((b | 0x20) == 'x') { // JSON5 0x 十六进制（溢出转 double 饱和强转）
 					boolean useD = false;
 					for (; ; ) {
 						b = ++p < buffer.length ? buffer[p] : 0;
 						if ((c = (b - '0') & 0xff) < 10) {
 							if (useD)
 								d = d * 16 + c;
-							else if (i >= 0x0800_0000_0000_0000L) { // 0x0800..*16+15恰溢出long
+							else if (i >= 0x0800_0000_0000_0000L) { // 0x0800..*16+15 恰溢出 long
 								useD = true;
 								d = (double)i * 16 + c;
 							} else
@@ -1963,7 +1891,7 @@ public final class JsonReader {
 									return 0L;
 								return minus ? Long.MIN_VALUE : Long.MAX_VALUE;
 							}
-							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
+							break;
 						}
 					}
 				}
@@ -1973,13 +1901,12 @@ public final class JsonReader {
 				d = i;
 		}
 		pos = p;
-		// 非数字首字符零消费不得静默返回0，与parseNumber零消费守卫对齐。
 		if (p == startPos)
 			throw new NumberFormatException("empty number");
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
-			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac); // 词含符号，正确舍入后直接饱和强转
+			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac);
 			if (rounded != null)
 				return (long)(double)rounded;
 			exp += expFrac;
@@ -2006,18 +1933,16 @@ public final class JsonReader {
 			} else if (b == '+')
 				b = buffer[++p];
 			c = b | 0x20;
-			if (c == 'i' || c == 'n') { // Infinity NaN (same as parseNumber; JsonWriter writes them for non-finite doubles)
+			if (c == 'i' || c == 'n') { // Infinity / NaN
 				do
 					b = ++p < buffer.length ? buffer[p] : 0;
-				while ((((b | 0x20) - 'a') & 0xff) < 26); // 同parseInt——词尾恰为缓冲区末尾时按词尾收尾，防AIOOBE被吞后静默返回0
+				while ((((b | 0x20) - 'a') & 0xff) < 26);
 				pos = p;
 				return c == 'n' ? Double.NaN : minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 			}
 			if (b == '0') {
 				b = buffer[++p];
-				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5；与 parseInt/parseLong/parseNumber 对齐）。
-					// hex是整数词法（无frac/exp），消费完词尾即返回（pos不变式：指向词后首字符）。
-					// 超long也按double累计（不环绕）
+				if ((b | 0x20) == 'x') { // JSON5 0x 十六进制（超 long 按 double 累计）
 					boolean useD = false;
 					for (; ; ) {
 						b = ++p < buffer.length ? buffer[p] : 0;
@@ -2110,7 +2035,7 @@ public final class JsonReader {
 									return minus ? -0.0 : 0.0;
 								return minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 							}
-							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
+							break;
 						}
 					}
 				}
@@ -2120,13 +2045,12 @@ public final class JsonReader {
 				d = i;
 		}
 		pos = p;
-		// 非数字首字符零消费不得静默返回0.0，与parseNumber零消费守卫对齐。
 		if (p == startPos)
 			throw new NumberFormatException("empty number");
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
-			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac); // 词含符号，直接返回正确舍入结果
+			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac);
 			if (rounded != null)
 				return rounded;
 			exp += expFrac;
@@ -2134,7 +2058,7 @@ public final class JsonReader {
 			if (minus)
 				d = -d;
 		} else
-			// 整数词也可表示浮点负零；先转为double再取负，避免long的-0丢失符号。
+			// 先转 double 再取负，保留 -0.0 符号
 			d = minus ? -(double)i : (double)i;
 		return d;
 	}
@@ -2156,18 +2080,17 @@ public final class JsonReader {
 				} else if (b == '+')
 					b = buffer[++p];
 				c = b | 0x20;
-				if (c == 'i' || c == 'n') { // Infinity NaN
+				if (c == 'i' || c == 'n') { // Infinity / NaN
 					do
 						b = ++p < buffer.length ? buffer[p] : 0;
-					while ((((b | 0x20) - 'a') & 0xff) < 26); // 同parseInt——词尾恰为缓冲区末尾时按词尾收尾，防AIOOBE被吞后静默返回0
-					pos = p; // 与 parseDouble 对应分支的“解析结束 pos 指向词后首字符”不变式对齐
+					while ((((b | 0x20) - 'a') & 0xff) < 26);
+					pos = p;
 					return c == 'n' ? Double.NaN : minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 				}
 			}
 			if (b == '0') {
 				b = buffer[++p];
-				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5）。语义同parseInt/parseLong：整数词法、
-					// 溢出double累计；返回类型沿尾部约定（int装得下给Integer，否则Long/Double）
+				if ((b | 0x20) == 'x') { // JSON5 0x 十六进制（按范围返回 Integer/Long/Double）
 					boolean useD = false;
 					for (; ; ) {
 						b = ++p < buffer.length ? buffer[p] : 0;
@@ -2279,7 +2202,7 @@ public final class JsonReader {
 									return minus ? -0.0 : 0.0;
 								return minus ? NEGATIVE_INFINITY : POSITIVE_INFINITY;
 							}
-							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
+							break;
 						}
 					}
 				}
@@ -2289,15 +2212,12 @@ public final class JsonReader {
 				d = i;
 		}
 		pos = p;
-		// 空数字串（仅间隔符/终结符）零消费即抛错——否则 Str.parseLongSize/parseIntSize
-		// 的空值/纯单位配置会被吞成0静默生效。解析数字的契约是至少消费一个数字字符，
-		// Infinity/NaN 词在方法前部已提前返回，不受此守卫影响。
 		if (p == startPos)
 			throw new NumberFormatException("empty number");
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
-			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac); // 词含符号，直接返回正确舍入结果
+			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac);
 			if (rounded != null)
 				return rounded;
 			exp += expFrac;

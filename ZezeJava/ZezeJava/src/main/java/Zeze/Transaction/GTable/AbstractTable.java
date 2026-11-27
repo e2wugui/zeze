@@ -23,11 +23,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Skeletal, implementation-agnostic implementation of the {@link Table} interface.
- *
- * @author Louis Wasserman
- */
+/** {@link Table} 接口的骨架实现。 */
 abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
   @Override
   public boolean containsRow(@Nullable Object rowKey) {
@@ -227,7 +223,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
     return cellSet().hashCode();
   }
 
-  /** Returns the string representation {@code rowMap().toString()}. */
+  /** 返回 {@code rowMap().toString()} 字符串表示。 */
   @Override
   public String toString() {
     return rowMap().toString();

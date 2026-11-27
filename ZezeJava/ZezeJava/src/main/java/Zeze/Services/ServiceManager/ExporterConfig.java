@@ -8,14 +8,7 @@ import org.jspecify.annotations.Nullable;
  * 导出器参数配置：共享Properties叠加-private私有参数，统一参数名分配与读取。
  */
 public class ExporterConfig {
-	// 已经实现的参数都写在这里，统一分配名字。
-	// 分散的话，名字冲突不容易管理。
-	// 这里还做了一些基本校验。更多校验可能在实现中。
-
-	/** -version 选桶语义：SM按服务注册时的version（BServiceInfo.version）分桶
-	 * 保存地址，导出器只导出指定桶（BServiceInfosVersion.getInfos(version)），桶不存在时跳过
-	 * 该服务（NginxHttp路径选桶空且其他桶非空会warn一次）——ver必须与服务注册使用的version
-	 * 一致，默认0只匹配注册version=0的服务。 */
+	/** 读取 -version 选桶版本，默认 0，仅导出与注册 version 一致的服务桶。 */
 	public long getVersion() {
 		return getLong("-version", 0L);
 	}
@@ -38,8 +31,6 @@ public class ExporterConfig {
 		return getString("-reload", null);
 	}
 
-	////////////////////////////////////////////////////////////////////////////
-	// 下面是实现。
 	private final Properties share;
 	private final @Nullable Properties privates;
 

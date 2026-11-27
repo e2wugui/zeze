@@ -67,9 +67,7 @@ public final class SQLStatement {
 		sql.append(columnName).append('=').append(value);
 	}
 
-	// NaN/Infinity没有跨库可往返的SQL字面量：MySQL/SqlServer的FLOAT/DOUBLE列本身存不了这两种值；
-	// 写NULL读回(JDBC ResultSet.getXxx对NULL返回0)会把NaN静默篡改成0.0，且key列=NULL破坏行身份。
-	// 因此在生成语句处即抛明确异常，fail-fast并指向具体列，而不是产出非法SQL在数据库端反复失败。
+	// 关系库 FLOAT/DOUBLE 无法可靠往返 NaN/Infinity，生成语句前提前拒绝。
 	private static IllegalStateException notFinite(String columnName, double value) {
 		return new IllegalStateException("SQLStatement: column '" + columnName
 				+ "' value " + value + " is NaN/Infinity, not representable as SQL literal");

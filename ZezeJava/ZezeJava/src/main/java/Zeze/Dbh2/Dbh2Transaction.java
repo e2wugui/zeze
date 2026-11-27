@@ -16,10 +16,7 @@ public class Dbh2Transaction implements Closeable {
 	private final HashMap<Lockey, Lockey> locks = new HashMap<>();
 	private final BBatch.Data batch;
 	private final long createTime;
-	// 单调钟年龄基准（FND29 dbh2-03）：onTimer 超时围栏的判据。墙钟（createTime）在 NTP
-	// 步进/VM 恢复下可前跳越配置余量，把仍在协调者合法 prepare 窗口内的事务误判超时
-	//（误 undo 已决定提交的事务=客户端确认成功而数据灭失）；nanoTime 不受步进影响，
-	// 两机真实速率漂移（ppm 级）远小于配置余量。createTime 保留供日志展示。
+	// 单调钟年龄基准，作为 onTimer 超时判据以规避墙钟跳变；createTime 仅用于日志展示
 	private final long createNanos = System.nanoTime();
 
 	public BBatch.Data getBatch() {
@@ -43,15 +40,12 @@ public class Dbh2Transaction implements Closeable {
 		return createTime;
 	}
 
-	/** 单调钟年龄（毫秒），onTimer 超时围栏判据（见 createNanos 注释）。 */
+	/** 单调钟年龄（毫秒），作为 onTimer 超时判据。 */
 	public long elapsedMillis() {
 		return (System.nanoTime() - createNanos) / 1_000_000L;
 	}
 
-	// trans列族键形态：blob=varint(tid)→BBatch编码；墓碑marker=varint(tid)+0x01尾字节
-	//→空值（varint终结字节<0x80，0x01尾字节不可能被并入varint，形态无歧义）。marker
-	// 仅在墓碑化apply写入、终局与blob同批删除，loadSnapshot据此分态重建。
-	// 包内可见供确定性测试直接构造/检查键。
+	// trans 列族键格式：blob 为 varint(tid)，墓碑 marker 为 varint(tid)+0x01 尾字节（空值），供 loadSnapshot 区分状态
 	static final byte TransTombstoneMarker = 1;
 
 	static byte[] transBlobKey(long tid) {
@@ -75,9 +69,9 @@ public class Dbh2Transaction implements Closeable {
 	}
 
 	/**
-	 * 锁住输入batch中的所有记录。
+	 * 锁住输入 batch 中的所有记录。
 	 *
-	 * @param batch batch parameter
+	 * @param batch 事务批次数据
 	 */
 	public Dbh2Transaction(Dbh2 dbh2, BBatch.Data batch) throws InterruptedException {
 		this.batch = batch;
@@ -89,18 +83,13 @@ public class Dbh2Transaction implements Closeable {
 			for (var del : batch.getDeletes())
 				acquire(dbh2, del);
 		} catch (RuntimeException | InterruptedException e) {
-			// serialize模式下中途键冲突抛出时必须释放已获取的锁，否则泄漏的锁会让
-			// 该键的事务在GC清理WeakHashSet之前全部prepare失败。map中只含成功获取的
-			// 条目（见acquire），失败键不触持有者的共享实例。
+			// 中途加锁失败必须释放已获取的锁，避免泄漏
 			close();
 			throw e;
 		}
 	}
 
-	// 成功获取后才入map：Lockey是Locks按值去重的共享canonical实例，失败键若留在map，
-	// close()按locked标志release时放掉的是持有者的信号量（locked=true为持有者所置）——
-	// 互斥破坏+permit凭空膨胀（unlock不复位），热键无自愈。先判重复再加锁，同batch重复
-	// 键（puts/deletes交叠）只锁一次。
+	// 同 batch 重复键去重且仅在加锁成功后保留在 locks 中，防止 close() 误释他事务持有的共享 Lockey
 	private void acquire(Dbh2 dbh2, Binary key) throws InterruptedException {
 		var lock = dbh2.getLocks().get(key);
 		if (null != locks.putIfAbsent(lock, lock))
@@ -113,17 +102,16 @@ public class Dbh2Transaction implements Closeable {
 		}
 	}
 
-	/** 无锁重建（loadSnapshot墓碑路径）：墓碑的锁在墓碑化时已释放，装载时刻无并发
-	 * 持锁者，直接以持久化blob构造内存对象。 */
+	/** loadSnapshot 墓碑路径无锁重建（墓碑化时已释放锁）。 */
 	Dbh2Transaction(BBatch.Data batch) {
 		this.batch = batch;
 		this.createTime = System.currentTimeMillis();
 	}
 
 	/**
-	 * 把batch数据写入db，并且构造出undo logs。
+	 * 把 batch 数据写入 trans 表，供后续提交或回滚使用。
 	 *
-	 * @param bucket bucket
+	 * @param bucket 目标桶
 	 */
 	public void prepareBatch(Bucket bucket) throws RocksDBException {
 		var value = ByteBuffer.encode(batch);
@@ -131,8 +119,7 @@ public class Dbh2Transaction implements Closeable {
 		bucket.put(bucket.getTrans(), tidBytes, 0, tidBytes.length, value.Bytes, value.ReadIndex, value.WriteIndex);
 	}
 
-	/** 墓碑marker落盘：空值put幂等（apply重放/重复墓碑化安全），与blob共存于trans列族，
-	 * loadSnapshot据此分态重建。 */
+	/** 写入墓碑 marker（幂等），与 blob 共存于 trans 列族供 loadSnapshot 分态重建。 */
 	public void markTombstoned(Bucket bucket) throws RocksDBException {
 		var marker = transTombstoneMarkerKey(batch.getTid());
 		bucket.put(bucket.getTrans(), marker, 0, marker.length, ByteBuffer.Empty, 0, 0);

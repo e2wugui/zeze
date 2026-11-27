@@ -42,10 +42,7 @@ public class OnzSagaStub<A extends Bean, R extends Bean, T extends Bean> extends
 
 	public Bean decodeCancelArgument(@Nullable Binary argument) throws Exception {
 		var bean = cancelClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
-		// 协调者cancelSaga/endSaga不填充FuncArgument（协调侧不知道参与方的补偿
-		// bean类型），到达这里是空Binary——任何Bean.decode都要求至少1个字节（结尾tag），
-		// 空Buffer直接ensureRead抛出，补偿函数得不到执行。空载荷按"无参数补偿"处理：
-		// 使用默认构造的bean，不decode。
+		// 协调者不填充补偿载荷，空 Binary 时直接使用默认构造的空 bean，跳过 decode。
 		if (argument != null && argument.size() > 0)
 			bean.decode(ByteBuffer.Wrap(argument));
 		return bean;

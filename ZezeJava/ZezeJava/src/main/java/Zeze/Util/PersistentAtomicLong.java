@@ -8,10 +8,9 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-// 持久化原子递增 id 发生器：按块预分配水位，崩溃安全地落到定宽水位文件
+/** 持久化原子递增 ID 生成器：按块预分配水位并定宽落盘以保证崩溃安全。 */
 public class PersistentAtomicLong {
-	// 水位文件定宽：20字节（long最大19位数字+至少1个空格）。覆盖写长度恒定，
-	// i-size不参与落盘，数据与元数据没有先后顺序窗口。
+	// 水位文件定宽 20 字节（long 最长 19 位 + 至少 1 空格），覆盖写不改变文件长度
 	private static final int VALUE_WIDTH = 20;
 
 	private volatile Range range;
@@ -52,7 +51,6 @@ public class PersistentAtomicLong {
 	 */
 	public static PersistentAtomicLong getOrAdd(String ProgramInstanceName) {
 		var name = ProgramInstanceName.replace(':', '.');
-		// 这样写，不小心重名也能工作。
 		return pals.computeIfAbsent(name, PersistentAtomicLong::new);
 	}
 
@@ -142,7 +140,7 @@ public class PersistentAtomicLong {
 					try (var ignored = channel.lock()) {
 							var oldRange = range;
 							if (oldRange.end - oldRange.get() >= count)
-							return; // has allocated. concurrent. 其他线程分配的预算已足够覆盖本次count。
+							return; // 其他线程并发分配的区间已足够覆盖本次 count
 						var last = readWatermark(fs);
 							long allocateSize = fund.next();
 						if (allocateSize < count)
@@ -153,9 +151,7 @@ public class PersistentAtomicLong {
 							newLast = allocateSize;
 						var fileLen = fs.length();
 						if (fileLen != 0 && fileLen < VALUE_WIDTH) {
-							// 旧格式（变长数字）一次性迁移：先在尾部追加空格扩展到定宽并force。
-							// 空格会被读取时的trim去掉，数值不变，迁移过程中任何崩溃点
-							// 解析出来的都仍是完整旧值（追加数字会把数值放大，不可行）。
+							// 兼容旧变长格式：先在尾部补空格扩展至定宽并 force，确保迁移中崩溃仍可完整读出旧值
 							var pads = new byte[(int) (VALUE_WIDTH - fileLen)];
 							Arrays.fill(pads, (byte) ' ');
 							fs.seek(fileLen);
@@ -163,10 +159,9 @@ public class PersistentAtomicLong {
 							channel.force(false);
 						}
 						fs.seek(0);
-						fs.write(toFixedWidthBytes(newLast)); // 定宽覆盖写不改变文件长度，崩溃点只可能是完整旧值或完整新值
+						fs.write(toFixedWidthBytes(newLast)); // 定宽覆盖写不改变文件长度，崩溃安全
 						channel.force(false);
-							// 冻结旧号段后再发布新边界：旧快路径的在途CAS只能失败或已被计入current。
-							// 同进程连续扩容可接上未消耗尾部；其他进程已分配的区间必须跳过。
+							// 冻结旧号段后再发布新边界；同进程续接未消耗尾部，跨进程则跳过已被占用的区间
 							var current = oldRange.getAndSet(oldRange.end);
 							var start = reset ? 0 : last == oldRange.end ? current : last;
 							range = new Range(start, newLast);
@@ -181,11 +176,7 @@ public class PersistentAtomicLong {
 		}
 	}
 
-	/**
-	 * 读取水位，兼容两种格式：旧格式为变长十进制数字，新格式为右对齐、
-	 * 空格补齐到VALUE_WIDTH字节的定宽数字。trim后统一解析；
-	 * 空文件或纯空白（新文件首次定宽写未完成时的前缀状态）解析为0。
-	 */
+	/** 读取水位（兼容旧变长格式与定宽右对齐格式）；空文件或纯空白返回 0。 */
 	private static long readWatermark(RandomAccessFile fs) throws IOException {
 		fs.seek(0);
 		var line = fs.readLine();
@@ -195,7 +186,6 @@ public class PersistentAtomicLong {
 		return line.isEmpty() ? 0 : Long.parseLong(line);
 	}
 
-	// 值>=0时数字最长19位，宽度20保证至少1个空格；宽度与VALUE_WIDTH由构造保证同步。
 	private static byte[] toFixedWidthBytes(long value) {
 		var digits = String.valueOf(value).getBytes(StandardCharsets.UTF_8);
 		var bytes = new byte[VALUE_WIDTH];

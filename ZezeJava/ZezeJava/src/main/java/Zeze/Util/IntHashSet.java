@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.function.IntConsumer;
 import org.jspecify.annotations.Nullable;
 
-// int 基本类型开放寻址哈希 Set（0 键走特例槽），非线程安全
+/** int 基本类型开放寻址哈希 Set（0 键走特例槽），非线程安全。 */
 public class IntHashSet implements Cloneable {
 	private int size;
 	private int [] keyTable;

@@ -25,13 +25,9 @@ import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.params.SetParams;
 
 /**
- * Redis 数据库后端：以 hash 承载 KV 表，MULTI/EXEC 批量事务落库，
- * 并提供带租期的全局启动锁与 InUse 登记。
+ * Redis 数据库后端：以 hash 承载 KV 表，MULTI/EXEC 批量事务落库，并提供带租期的全局启动锁与 InUse 登记。
+ * 需要 Redis 2.8+ / Kvrocks 2.02+ / Pika 3.5.2+（支持 get/set nx ex/del/hget/hset/hdel/hscan/multi/exec/discard）。
  */
-// 需要redis支持以下命令(Redis 2.8+, Kvrocks 2.02+, Pika 3.5.2+)
-// get, set(含 set key value nx ex), del
-// hget, hset, hdel, hscan
-// multi, exec, discard
 public class DatabaseRedis extends Database {
 	private static final Logger logger = LogManager.getLogger(DatabaseRedis.class);
 
@@ -108,16 +104,9 @@ public class DatabaseRedis extends Database {
 		public void commit() {
 			if (n >= 10000)
 				logger.warn("RedisTransaction commit too many records: {}", n);
-			// MULTI/EXEC 中命令级错误（WRONGTYPE、内存超限等）不打断 exec，
-			// 而是作为异常元素出现在 exec 的返回列表里（已核 Jedis 5.2.0 Transaction.exec 源码）。
-			// 丢弃返回值会让部分写失败被静默吞掉：checkpoint 误判 flush 成功并清除脏标记，已提交数据无声丢失。
-			// 抛出让 checkpoint 走失败重试（hset/hdel 幂等，重放安全）。
+			// MULTI/EXEC 的命令级错误以异常元素返回，入队期错误返回 null；均须抛出以触发 checkpoint 重试。
 			var results = jedisTrans.exec();
 			if (results == null) {
-				// exec 返回 null（已核 Jedis 5.2.0 Transaction.exec 源码）：RESP2 下服务端因入队期错误
-				// （如 maxmemory 时对 hset/hdel 回错误而非 +QUEUED）中止整个事务，EXEC 回 nil——
-				// 本批命令一条都没有执行。当作成功会让 checkpoint 清除脏标记，整批已提交数据永久丢失。
-				// 本批为空（n==0）时无数据可丢，无需重试。
 				if (n > 0)
 					throw new JedisDataException("redis transaction aborted (queue-time error), n=" + n);
 				return;
@@ -280,10 +269,7 @@ public class DatabaseRedis extends Database {
 		private static final byte [] keyDataVersion = "_ZezeDataWithVersion_".getBytes(StandardCharsets.UTF_8);
 		private static final byte [] keyInUse = "_ZezeInstances_".getBytes(StandardCharsets.UTF_8);
 		private static final String lockKey = "_Zeze_Redis_Global_Lock_";
-		// 全局锁的租期：必须显著大于持锁窗口的最坏耗时（atomicOpenDatabase 全程，含 renameTable
-		// 与大表 tryAlter，分钟级），避免正常启动期间锁被误过期导致两实例并发进入 schemasCompatible；
-		// 同时给崩溃（kill -9/OOM/断电）后残留的锁一个自动恢复上限：调用方 atomicOpenDatabase
-		// 每秒轮询 tryLock，锁到期后自动获取，无需再人工 redis-cli DEL。
+		// 全局启动锁租期（秒），兼顾启动期表迁移耗时与崩溃后自动过期恢复。
 		private static final int LOCK_LEASE_SECONDS = 600;
 
 		private final JedisPool pool;
@@ -326,14 +312,7 @@ public class DatabaseRedis extends Database {
 			throw new IllegalStateException("setInUse tryLock fail.");
 		}
 
-		// 对齐 setInUse 的 64 次上限：不得无界自旋
-		// ——停机路径无守卫，阻塞使 stop() 持 Application 锁无界；Daemon 形态放大：
-		// achillesHeelDaemon 先停→Monitor 判死→SIGTERM 对 hook 内自旋无效→重启同 serverId
-		// 短暂双开+旧进程 RMW 可能删新注册。放弃=不执行 RMW，残留与 kill -9 崩溃残留
-		// 同构（锁租期 600s 后自愈；重启路径有 -DZeze.Database.ClearInUse 属性通道，
-		// 见 Application.start 与 Daemon.main）。已知取舍：崩溃后 600s 内的
-		// Daemon 自动重启，clearInUse 将 64 次（约 9.6s）耗尽失败→启动短命退出→
-		// Daemon 按 MinAliveTime 判定终结守护，需人工重启——响亮失败优于无界停摆。
+		// 有界重试（与 setInUse 一致），防止停机路径持锁无界自旋阻塞。
 		@Override
 		public int clearInUse(int localId, String global) {
 			for (int i = 0; i < 64; ++i) {
@@ -369,10 +348,7 @@ public class DatabaseRedis extends Database {
 			if (lockHelper.tryLock())
 				return true;
 			try (var jedis = pool.getResource()) {
-				// set nx ex：获取锁的同时设置租期。持锁进程在持锁窗口内崩溃后，
-				// 锁最多残留 LOCK_LEASE_SECONDS，后续实例不会再无限挂死。
-				// 注：不做续期与持有者校验（unlock 直接 del），慢启动超过租期时存在
-				// 锁误过期与误删他人锁的理论窗口。
+				// 带租期互斥加锁（不做续期与持有者校验），防止持锁进程崩溃导致死锁。
 				var success = "OK".equals(jedis.set(lockKey, "1",
 						SetParams.setParams().nx().ex(LOCK_LEASE_SECONDS)));
 				if (success)
@@ -418,9 +394,7 @@ public class DatabaseRedis extends Database {
 					return KV.create(version, false);
 				var dv = new DataWithVersion();
 				dv.data = data;
-				// 版本必须递增（对齐 RocksDb/Mongo/Dynamo 实现）：publishSchemas 的重读重试环
-				// 依赖“读到陈旧数据时 exist.version != version 返回 false”这一防线；
-				// 原样写回会让存储的 version 永远停在首次值，版本冲突检测名存实亡。
+				// 递增版本号以支持 publishSchemas 的 CAS 冲突检测。
 				dv.version = version + 1;
 				var dvBb = ByteBuffer.Allocate();
 				dv.encode(dvBb);

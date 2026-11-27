@@ -9,10 +9,10 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import org.jspecify.annotations.Nullable;
 
-/** Encodable Map1 change payload, independent from transaction state. */
+/** 可编解码的 PMap1 变更日志载荷，独立于事务状态。 */
 public class LogMap1<K, V> extends LogBean {
 	protected final Map1Meta<K, V> meta;
-	/** 结构增量单容器：value 非 null 为替换项，null 为删除标记（1系值域非null，tombstone无歧义）。 */
+	/** 结构增量：value 非 null 为替换项，null 为删除标记。 */
 	private @Nullable HashMap<K, @Nullable V> modified;
 
 	public LogMap1(int varId, @Nullable Bean source, Map1Meta<K, V> meta, @Nullable HashMap<K, @Nullable V> modified) {
@@ -40,8 +40,7 @@ public class LogMap1<K, V> extends LogBean {
 		Map<K, @Nullable V> m = modified != null ? modified : Collections.emptyMap();
 		var keyEncoder = meta.keyEncoder;
 		var valueEncoder = meta.valueCodec.encoder;
-		// 两遍split编码：线格式与replaced/removed双容器时代逐字节一致（两个size前缀段），
-		// 旧journal回放与混版本集群无感；非null=替换段(键+值)，null=删除段(仅键)。
+		// 分替换段（键+值）与删除段（仅键）两遍编码，保持线格式兼容。
 		int replacedCount = 0;
 		for (var e : m.entrySet())
 			if (e.getValue() != null)

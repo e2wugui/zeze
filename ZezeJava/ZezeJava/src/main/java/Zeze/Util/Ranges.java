@@ -2,7 +2,7 @@ package Zeze.Util;
 
 import java.util.ArrayList;
 
-// 整数区间集合（内部半开 [first,last)，字符串形如 "1-5,7"），支持包含与冲突检查
+/** 整数区间集合（内部半开 [first, last)，字符串形如 "1-5,7"），支持包含与冲突检查。 */
 public final class Ranges {
 	public static final class Range {
 		private final int first; // [first, last)
@@ -32,8 +32,7 @@ public final class Ranges {
 			if (first + 1 == last) {
 				return String.valueOf(first);
 			}
-			// 打印闭端点（last-1）与解析对称（解析按闭区间 +1 转半开），
-			// 保证 parse(toString(r)) == r，往返不漂移。
+			// 输出闭区间端点（last - 1），与解析对称
 			return first + "-" + (last - 1);
 		}
 
@@ -78,7 +77,7 @@ public final class Ranges {
 	}
 
 	public boolean include(Ranges rs) {
-		// 全包含语义（rs ⊆ this），与assertInclude(Ranges)一致，而非"任一命中即真"。
+		// 全包含语义（rs ⊆ this），与 assertInclude 一致
 		for (Range r : rs.ranges) {
 			if (!include(r))
 				return false;
@@ -108,8 +107,7 @@ public final class Ranges {
 		assertInclude(new Range(type, type + 1));
 	}
 
-	// 逗号分隔的闭区间串，与构造解析同构：parse(toString(rs)) == rs，
-	// 同时让 checkAdd/assertInclude 的冲突消息可读。
+	// 逗号分隔的闭区间串，与构造解析对称
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();

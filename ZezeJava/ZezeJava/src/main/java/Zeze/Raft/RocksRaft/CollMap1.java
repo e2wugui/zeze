@@ -84,7 +84,6 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 		var modified = log.getModified();
 		if (modified.isEmpty())
 			return;
-		// 单遍分区批量应用：等价旧 plusAll(putted).minusAll(removed)。
 		HashMap<K, V> puts = null;
 		ArrayList<K> removes = null;
 		for (var e : modified.entrySet()) {

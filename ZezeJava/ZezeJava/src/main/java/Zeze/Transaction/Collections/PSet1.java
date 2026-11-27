@@ -21,7 +21,7 @@ public class PSet1<V> extends PSet<V> {
 		meta = Set1Meta.get(valueClass);
 	}
 
-	// meta须来自Set1Meta工厂（公开唯一构建入口，已过Bean拦截），供生成代码常量化/调用点静态持有。
+	// meta 须来自 Set1Meta 工厂（已拦截 Bean 类型），供生成代码静态持有。
 	public PSet1(Set1Meta<V> meta) {
 		this.meta = meta;
 	}
@@ -64,7 +64,7 @@ public class PSet1<V> extends PSet<V> {
 		if (c.isEmpty())
 			return false;
 		if (c instanceof PSet1)
-			c = ((PSet1<? extends V>)c).getSet(); // more stable
+			c = ((PSet1<? extends V>)c).getSet(); // 捕获不可变快照
 		for (V v : c) {
 			//noinspection ConstantValue
 			if (v == null)
@@ -76,8 +76,7 @@ public class PSet1<V> extends PSet<V> {
 			var setLog = (LogSet<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			return setLog.addAll(c);
 		}
-		// MapPSet.plusAll恒新建包装（same-instance前提不成立），逐项plus判定真实变化：
-		// 单项plus无变化时返回同一实例，全已存在时正确返回false。
+		// MapPSet.plusAll 恒创建新包装，逐项 plus 才能准确判断是否有实际变更。
 		var newSet = set;
 		for (V v : c)
 			newSet = newSet.plus(v);
@@ -97,7 +96,7 @@ public class PSet1<V> extends PSet<V> {
 			//noinspection unchecked
 			return setLog.removeAll((Collection<? extends V>)c);
 		}
-		// 同addAll：MapPSet.minusAll恒新建包装，逐项minus判定真实变化。
+		// MapPSet.minusAll 恒创建新包装，逐项 minus 才能准确判断是否有实际变更。
 		var newSet = set;
 		for (Object v : c)
 			newSet = newSet.minus(v);
@@ -126,7 +125,7 @@ public class PSet1<V> extends PSet<V> {
 		var modified = log.getModified();
 		if (modified.isEmpty())
 			return;
-		// 单遍分区批量应用（同PMap1.followerApply）：PRESENT槽位归plus批，null槽位归minus批。
+		// 单遍按值是否为 null 分区为新增与删除两批，键互不相交。
 		ArrayList<V> adds = null;
 		ArrayList<V> removes = null;
 		for (var e : modified.entrySet()) {
@@ -181,7 +180,7 @@ public class PSet1<V> extends PSet<V> {
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
 			return;
-		// JDK暂存+单发批量（语义等价，见PList1.decode注）。
+		// 暂存后一次性批量写入，与逐条 add 语义等价。
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		for (int i = n; i > 0; i--) {
 			items.add(decoder.apply(bb));

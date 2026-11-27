@@ -15,9 +15,7 @@ public class BEditService implements Serializable {
 	private List<BServiceInfo> remove = empty; // 注销，删除，忽略不存在的。只以name和id为准
 	private List<BServiceInfo> add = empty; // 注册，增加或更新。更新时以name和id为key
 
-	// 处理顺序：remove,add。
-	// 当不同的集合中存在相同的服务时，要注意这个处理顺序。
-	// 也就是说 add 等级更高，服务优先能找到。
+	// 处理顺序为先 remove 后 add，同一服务同时存在时以 add 为准。
 
 	public List<BServiceInfo> getRemove() {
 		return remove == empty ? (remove = new ArrayList<>()) : remove;

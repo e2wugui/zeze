@@ -12,7 +12,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-// 分段式并发 LRU：热点 ConcurrentHashMap 按周期轮转入队，后台周期清理到容量并收缩节点队列
+/**
+ * 分段式并发近似 LRU 缓存：按周期轮转热点表入队，后台定期按容量驱逐并收缩节点队列。
+ */
 public class ConcurrentLruLike<K, V> {
 	private static final Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
@@ -131,16 +133,13 @@ public class ConcurrentLruLike<K, V> {
 		tryRemoveCallback = tryRemove;
 		newLruHot();
 
-		// 保存句柄供close取消。schedulePeriodNow（不等事务提交）：
-		// 周期任务属于实例自身的生命周期，随构造注册，不应被事务回滚掉。
+		// 周期任务随构造即刻注册（不依赖事务提交），并在 close() 中取消
 		newLruHotTimer = TaskSpec.ofAction(() -> {
-			// 访问很少且未超容量时不创建新的热点；一旦超容且当前热点非空，必须轮转以便 cleanNow 驱逐旧项
+			// 访问稀疏且未超容时不轮转；超容且热点非空时强制轮转以触发驱逐
 			int cap = capacity;
 			if (lruHot.size() > lruInitialCapacity / 2 || (cap > 0 && dataMap.size() > cap && !lruHot.isEmpty()))
 				newLruHot();
 		}).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
-		// 下面这个清理任务的执行时间可能很长；schedule(delay, period) 是固定延迟调度(scheduleWithFixedDelay)，
-		// 本次执行完才开始计时下一次，执行时间长只会推迟后续执行，不会并发重入或堆积。
 		try {
 			cleanTimer = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(this.cleanPeriod, this.cleanPeriod);
 		} catch (Throwable failure) {
@@ -150,15 +149,7 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	/**
-	 * 取消构造器注册的两个常驻周期任务（热点轮转与cleanNow），此后实例不再被任务强引用，可被整体回收。
-	 * 构造即启动生命周期：不close的实例任务永续执行，连同其dataMap缓存的对象图一起泄漏
-	 * （如 Raft restore/reset 重开 Table、Cache.close 后的旧实例），重建/关闭处必须close旧实例。
-	 * <p>
-	 * 【close语义】对"构造即启动"契约的兼容：不调用close即任务随进程常驻，
-	 * close是新增的清理点而非开关。close后实例即终结：热点轮转与过期清理
-	 * 停止，继续get/put虽可运行但缓存不再自洁（容量上溢不受控），调用方不得在close后继续使用
-	 * 本实例。周期任务改用 schedulePeriodNow 随构造即刻注册（不等事务提交）：事务内构造后回滚
-	 * 的实例由构造方负责close（仓内构造点均在事务外）。
+	 * 取消构造时注册的周期任务以释放强引用。调用后实例不再执行热点轮转与过期清理，不应继续使用。
 	 */
 	public void close() {
 		newLruHotTimer.cancel(false);
@@ -201,15 +192,11 @@ public class ConcurrentLruLike<K, V> {
 		}
 	}
 
-	/**
-	 * 契约：factory 必须非阻塞。产 null 即违约
-	 * （Factory.create() 契约，requireNonNull 强制）。
-	 */
+	/** 获取或创建缓存项；{@code factory} 须非阻塞且不得返回 null。 */
 	public final V getOrAdd(K key, Factory<V> factory) {
 		var lruItem = dataMap.get(key);
 		if (lruItem == null) { // slow-path
 			lruItem = dataMap.computeIfAbsent(key, k -> {
-				// factory产null即违约（Factory.create()契约）：fail-fast且不登记——注解配运行时强制才是承诺。
 				return new LruItem<>(Objects.requireNonNull(factory.create()), null);
 			});
 		}
@@ -247,13 +234,12 @@ public class ConcurrentLruLike<K, V> {
 		return lruItemRemoved.value;
 	}
 
-	// 仅当key当前映射的值与expectedValue是同一个对象(引用相等)时才删除，返回是否删除成功。
-	// 用于并发场景避免误删同key的新映射(如TaskOneByOneByKeyLru淘汰残留旧队列时，同名key可能已建有活跃的新队列)。
+	/** 仅当当前映射值与 expectedValue 引用相同时删除，避免误删并发重建的新映射。 */
 	public final boolean remove(K key, V expectedValue) {
 		var item = dataMap.get(key);
 		if (item == null || item.value != expectedValue)
 			return false;
-		if (!dataMap.remove(key, item)) // 原子删除，失败说明映射已被并发改变
+		if (!dataMap.remove(key, item))
 			return false;
 		removeLruRecord(key, item);
 		return true;
@@ -295,8 +281,7 @@ public class ConcurrentLruLike<K, V> {
 					if (!r.compareAndSetLruNodeNull(poll))
 						continue; // 并发访问导致这个记录已经被迁移走。
 					var key = e.getKey();
-					// 仅迁移仍是dataMap活映射的条目；死条目随poll节点一起废弃，
-					// 否则迁移目标head将滞留永久清不掉的条目（并发的remove可能已跳过摘除）。
+					// 仅迁移仍是 dataMap 活映射的条目，避免滞留死条目
 					while (dataMap.get(key) == r) {
 						var prev = head.putIfAbsent(key, r);
 						if (prev == null) {
@@ -304,11 +289,9 @@ public class ConcurrentLruLike<K, V> {
 							if (dataMap.get(key) == r)
 								recordCount++;
 							else
-								head.remove(key, r); // 登记过程中被并发remove：回滚
+								head.remove(key, r); // 登记过程中被并发 remove，回滚
 							break;
 						}
-						// 同adjustLru的占坑协议：占坑者是当前活映射就不摘（防御性：当前结构下重建只登记进
-						// 当前热点、必新于head，此分支不可达；防未来结构变化）；确定过期才摘除后重试。
 						if (dataMap.get(key) == prev)
 							break;
 						head.remove(key, prev);
@@ -325,12 +308,8 @@ public class ConcurrentLruLike<K, V> {
 		if (capacity > 0) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
-			// 在用保护（Record.accessors）与使用方回调拒绝会让节点常驻
-			// 非空——这是保护机制的正常工作状态，不是异常：按周期聚合为一条带实例名与
-			// 规模的warn（避免容量压力下每2s刷屏），保留信号（可据此发现计数泄漏导致的永久超容量）。
 			int remainNodeCount = 0, remainRecordCount = 0;
-			// 从最老到最新逐个node尝试驱逐。不对最老node忙等：回调失败（如队列忙）时继续尝试下一个node，
-			// 遍历完仍超容量的等下一次周期调度重试（scheduleWithFixedDelay本身就是重试机制）。
+			// 从最老节点起逐个驱逐，回调失败时继续尝试后续节点
 			for (var node : lruQueue) {
 				if (dataMap.size() <= capacity)
 					break;
@@ -342,8 +321,7 @@ public class ConcurrentLruLike<K, V> {
 					var strictFail = false;
 					for (var e : node.entrySet()) {
 						if (dataMap.get(e.getKey()) != e.getValue()) {
-							// 过期登记（并发remove/迁移竞态的残留）：不属于权威存储，
-							// 不对它执行回调（否则每轮clean都对死值反复回调且节点永不为空），直接摘除。
+							// 清理已过期的节点残留，不触发回调
 							node.remove(e.getKey(), e.getValue());
 							continue;
 						}
@@ -353,15 +331,14 @@ public class ConcurrentLruLike<K, V> {
 							break;
 						}
 						if (removed)
-							recordCount++; // 只统计成功删除的，回调失败(队列忙)时不计数。
+							recordCount++;
 					}
 					if (strictFail)
-						break; // 严格模式：任何回调失败即终止本轮清理。
+						break;
 				} else {
 					for (var e : node.entrySet()) {
 						var k = e.getKey();
 						if (dataMap.get(k) != e.getValue()) {
-							// 过期登记：dataMap已无此映射，remove(k)会直接返回且不摘节点条目，这里直接清。
 							node.remove(k, e.getValue());
 						} else if (dataMap.remove(k, e.getValue())) {
 							removeLruRecord(k, e.getValue());

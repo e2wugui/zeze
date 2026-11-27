@@ -2,9 +2,9 @@ package Zeze.Util;
 
 import java.util.Arrays;
 
-// 防重放窗口（long 位图版）：环形位图记录 maxSerialId 回溯窗口内的已见 id
+/** 防重放滑窗（long 位图版）：基于环形位图记录 maxSerialId 回溯窗口内的已见 serialId。 */
 public class ReplayAttackGrowRange2 extends FastLock implements ReplayAttack {
-	private static final int BITS_SHIFT = 6; // 1 << 6 = 64 (bit count for long)
+	private static final int BITS_SHIFT = 6; // 1 << 6 = 64（long 位数）
 	private static final int BITS_MASK = (1 << BITS_SHIFT) - 1; // 63
 
 	private final long[] bits;
@@ -19,9 +19,8 @@ public class ReplayAttackGrowRange2 extends FastLock implements ReplayAttack {
 	public ReplayAttackGrowRange2(int windowSize) {
 		if (windowSize <= 0)
 			throw new IllegalArgumentException("windowSize <= 0: " + windowSize);
-		// 中间量用 long 计算：windowSize 接近 Integer.MAX_VALUE 时 windowSize+BITS_MASK-1 会 int 溢出为负，
-		// 导致 nlz=0、capacity=1<<32==1<<0==1，窗口声称极大而实际只有 64 位（静默语义错误）。
-		int capacity = 1 << (64 - Long.numberOfLeadingZeros(((long)windowSize + BITS_MASK - 1) >> BITS_SHIFT)); // 严格大于ceil(windowSize/64)的最小2的幂：w=1~64=>2, 65~192=>4, 193~448=>8, …
+		// 中间量按 long 计算防止 int 溢出；capacity 取严格大于 ceil(windowSize/64) 的最小 2 的幂
+		int capacity = 1 << (64 - Long.numberOfLeadingZeros(((long)windowSize + BITS_MASK - 1) >> BITS_SHIFT));
 		bits = new long[capacity];
 		indexMask = capacity - 1;
 		this.windowSize = windowSize;
@@ -30,13 +29,13 @@ public class ReplayAttackGrowRange2 extends FastLock implements ReplayAttack {
 	@Override
 	public boolean replay(long serialId) {
 		if (serialId < 0)
-			return true; // invalid
+			return true; // 非法 id
 		long delta = maxSerialId - serialId;
-		if (delta < 0) { // forward
+		if (delta < 0) { // 前向推进
 			long i = maxSerialId >> BITS_SHIFT, j = serialId >> BITS_SHIFT;
 			if (i != j) {
 				if (j - i > indexMask)
-					Arrays.fill(bits, 0); // 向前跳得太远,就全部清掉
+					Arrays.fill(bits, 0); // 向前跳得太远，全部清空
 				else {
 					do
 						bits[((int)++i & indexMask)] = 0;
@@ -48,12 +47,12 @@ public class ReplayAttackGrowRange2 extends FastLock implements ReplayAttack {
 			return false;
 		}
 		if (delta >= windowSize)
-			return true; // too old
+			return true; // 已过期
 		int serialIdInt = (int)serialId;
 		int index = (serialIdInt >> BITS_SHIFT) & indexMask;
 		long bit = 1L << (serialIdInt & BITS_MASK);
 		if ((bits[index] & bit) != 0)
-			return true; // replay
+			return true; // 重放
 		bits[index] |= bit;
 		return false;
 	}

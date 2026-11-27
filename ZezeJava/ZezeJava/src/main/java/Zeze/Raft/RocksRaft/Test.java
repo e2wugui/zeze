@@ -429,10 +429,7 @@ public final class Test {
 		}
 	}
 
-	// getLeader轮询的isLeader()在state置位即真，而最后一条日志要等新leader的
-	// SetLeaderReadyEvent获多数、tryApply推进lastApplied后才落RocksDB：只读过程无任何屏障，
-	// 负载高时verifyData会读到滞后状态而偶发断言失败。轮询lastApplied>=lastIndex消除竞态
-	// （新leader追加SetLeaderReadyEvent并提交应用后两值相等且不再变动）。
+	// 等待新 leader 将全部已提交日志应用到 RocksDB，避免只读查询读到滞后状态。
 	private static void waitLeaderCatchUp(Rocks leader) throws InterruptedException {
 		//noinspection DataFlowIssue
 		var logSequence = leader.getRaft().getLogSequence();

@@ -26,7 +26,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import org.jspecify.annotations.Nullable;
 
-// 反射工具集：调试模式探测、MethodHandle/StackWalker 便捷方法与类型名稳定化
+/** 反射工具集：调试模式探测、MethodHandle/StackWalker 封装、类路径扫描与类型名稳定化。 */
 public class Reflect {
 	public static final boolean inDebugMode = !"true".equalsIgnoreCase(System.getProperty("noDebugMode")) &&
 			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
@@ -86,8 +86,7 @@ public class Reflect {
 	public Reflect(Class<?> cls) {
 		for (var c = cls; c != null; c = c.getSuperclass()) {
 			for (var method : c.getDeclaredMethods()) {
-				// 只有协议处理函数能配置TransactionLevel
-				// 其实这里还不是足够严谨, 手动写了同名方法,都只有1个Protocol子类类型的参数,就可能不生效,除非都加上一样的注解
+				// 仅收集协议处理方法（Process* 且单参数为 Protocol 子类），用于读取事务与派发注解
 				if (method.getName().startsWith("Process") && method.getParameterCount() == 1
 						&& Protocol.class.isAssignableFrom(method.getParameters()[0].getType()))
 					methods.putIfAbsent(method.getName(), method);

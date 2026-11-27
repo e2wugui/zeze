@@ -7,7 +7,7 @@ import Zeze.Util.IdentityHashSet;
 import org.jspecify.annotations.Nullable;
 import org.pcollections.PVector;
 
-/** List2 transaction state: ordered structural notes and identities represented by complete added values. */
+/** PList2 的事务增量状态：记录有序结构操作及已以完整值新增的 Bean 身份。 */
 final class LogList2Delta<V extends Bean> extends LogListDelta<V> {
 
 	private @Nullable IdentityHashSet<V> addSet;

@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
-/** Persistent SortedMap state used by both tracked and untracked transactions. */
+/** 持久化 SortedMap 的事务状态，供追踪与非追踪事务共用。 */
 public class LogSortedMap<K extends Comparable<K>, V> extends LogCollection<PSortedMap<K, V>> {
 	private org.pcollections.PSortedMap<K, V> value;
 

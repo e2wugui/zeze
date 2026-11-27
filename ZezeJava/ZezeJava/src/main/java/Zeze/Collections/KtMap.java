@@ -11,19 +11,8 @@ import org.jspecify.annotations.Nullable;
 import org.pcollections.PMap;
 
 /**
- * pcollections {@link PMap} 的 kotlinx PersistentHashMap（CHAMP）内核实现。
- * 仅经 {@link Persistents#map()} 构建使用，替换动机是内存（pcollections HashTreePMap 的
- * IntTree 二叉树每条目摊 60-80B+，CHAMP 内核省数倍）。
- *
- * <p>契约对齐 pcollections（回归测试钉住）：
- * <ul>
- *   <li>no-op 引用恒等：put 同值/删不存在 key/批量全 no-op 返回同一实例
- *       （LogMap1.putAll 等写路径 {@code !=} 判定依赖）；ktt 批量路径以 builder 返回值做
- *       变更跟踪，全 no-op 时不提交新实例；</li>
- *   <li>equals/hashCode/entrySet/keySet/values 走 JDK Map 契约（AbstractMap 白拿），
- *       entrySet 为内核只读视图，条目不支持 setValue；</li>
- *   <li>迭代顺序与 pcollections 同为无序（编码排序由 ByteBuffer.BuildSortedString 兜底）。</li>
- * </ul>
+ * 基于 kotlinx PersistentHashMap（CHAMP）的 {@link PMap} 实现，经 {@link Persistents#map()} 构建。
+ * 写路径保证无变化操作返回同一实例（支持写日志 {@code !=} 变更检测），迭代无序，entrySet 只读。
  */
 public final class KtMap<K, V extends @Nullable Object> extends AbstractMap<K, V> implements PMap<K, V> {
 	private final PersistentMap<K, V> kt;
@@ -72,10 +61,7 @@ public final class KtMap<K, V extends @Nullable Object> extends AbstractMap<K, V
 
 	@Override
 	public PMap<K, V> plus(K key, V value) {
-		// 同实例 put 跳过（纯优化，对 pcollections 基线不可观测）。守卫用身份不用 equals：
-		// PMap2/LogMap2 是可变 bean 值、按身份判等（LogMap2.isValueChanged 用 ==），
-		// 内容相等的不同 bean 实例必须真实入核（与 pcollections 逐位一致——其 plus 同值
-		// 亦恒新实例，LogMap1.putAll 的 newMap != old 判定在基线上恒真）。
+		// 按引用身份判等（不用 equals）：PMap2/LogMap2 依赖可变 bean 实例身份追踪变更，不同实例须入核。
 		if (kt.get(key) == value && (value != null || kt.containsKey(key)))
 			return this;
 		return new KtMap<>(kt.putting(key, value));

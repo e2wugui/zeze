@@ -304,10 +304,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	// ///////////////////////////////////////////////////////////////
 	// 取消
 	public boolean cancel(@Nullable String timerId, long roleId) {
-		// offline也走带归属校验的入口：单参cancelOffline(timerId)自推导
-		// 真实归属后即取消，无调用者身份校验，timer.roles(A).cancel(B的offline timerId)可越权
-		// 取消B的定时器（对齐TimerAccount复合入口）。
-		// 在线取消可能仅完成跨服转发；仍须尝试本地持久化的离线记录。
+		// 在线与离线取消均校验归属；在线取消可能仅转发跨服，仍须尝试取消本地离线记录
 		return cancelOnline(timerId, roleId) | cancelOffline(timerId, roleId);
 	}
 
@@ -562,8 +559,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return timerId;
 	}
 
-	// 查timerId当前登记的角色offline timer归属，查表路径仿cancelOffline：
-	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
+	// 查询 timerId 对应的角色 offline 自定义数据；非本族返回 null
 	private static @Nullable BOfflineRoleCustom getRoleOfflineCustom(Timer timer, String timerId) {
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
@@ -583,15 +579,11 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
 		if (timer.isOnlineTimerIdOccupied(timerId))
-			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
+			return false; // 同名已被在线族占用
 		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
-		// 族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
-		// 恒false（cancelOnline查在线表为null，cancelOffline因customData非本族拒绝）；
-		// 本族异主（他角色遗留的同名offline timer）cancelOffline因roleId不符也恒false。
-		// 都会让随后scheduleOffline的_tIndexs.insert撞已存在键抛IAE中断调用方整个事务，
-		// 对齐签名契约直接返回false；仅本族同主放行，走下面cancel+重建。
+		// 仅允许本服本族同角色重建；撞全局族或他角色同名定时器返回 false
 		if (index != null) {
 			var custom = getRoleOfflineCustom(timer, timerId);
 			if (custom == null || custom.getRoleId() != roleId
@@ -612,9 +604,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	/// ///////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
-		// timer终止的每条路径（打完/回调异常/显式cancel）都经Timer.cancel的
-		// onTimerCancel钩子同步清簿记，与onLoginEvent一致，杜绝"index已删簿记残留"
-		// 使同名重调度putIfAbsent撞残留抛IllegalStateException。
+		// 各类终止路径统一经 onTimerCancel 同步清理离线簿记，避免残留阻塞同名重调度
 		@Override
 		public void onTimerCancel(BTimer bTimer) {
 			if (!(bTimer.getCustomData().getBean() instanceof BOfflineRoleCustom custom))

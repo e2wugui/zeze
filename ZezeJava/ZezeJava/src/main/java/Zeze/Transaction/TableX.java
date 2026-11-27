@@ -104,15 +104,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return c != null ? (int)c.size() : 0;
 	}
 
-	// 镜像写失败不得吞。镜像不变式（clean+Share记录 ⇒ 镜像条目存在且==storage真相）
-	// 是softValue被GC后快路径正确性的唯一依托：吞掉写失败会让记录以clean状态失去/背离镜像备份——
-	// 缺失方向把存量记录读成"不存在"（续写覆盖丢数据）；陈旧方向在租约间隙（驱逐/GCM reduce释放后
-	// 其他进程改storage，本进程驱逐remove与重装载put相继被吞）后返回旧值或复活已删记录（磁盘满=
-	// 写全失败读全正常时系统性发生）。失败必须抛出：装载路径由load既有异常出口作废记录（requireCache().remove）
-	// 并上报（perform回滚返回Procedure.Exception，单次失败不自动redo）；flush路径本就抛出保dirty重试。
-	// 记录永远进不了"clean且靠镜像支撑"的状态，不变式由构造保证而非检测补救。信任只随整体重建恢复
-	// （启动deleteDirectory），进程内逐条"自愈"无法证明全镜像健康。
-	// 包RuntimeException携带表/key上下文；异常由perform错误日志记录，抛出点不重复log。
+	// 镜像写失败必须抛出，维持 clean 记录与本地镜像一致的不变式（由 load 异常出口作废记录或 flush 保脏重试）。
 	final void rocksCachePut(K key, V value) {
 		//noinspection DataFlowIssue
 		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
@@ -135,7 +127,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	private void migrateOldRecord(Storage<K, V> destination, K key, V value) {
 		var target = destination.getDatabaseTable();
-		// The old database is only a source. Publish the primary copy before its disposable mirror.
+		// 旧表仅作来源：先提交主库副本，再提交本地镜像。
 		//noinspection DataFlowIssue
 		try (var transaction = target.getDatabase().beginTransaction();
 			 var local = getZeze().getLocalRocksCacheDb().beginTransaction()) {
@@ -213,10 +205,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 							r.setSoftValue(strongRef);
 						}
-						// 镜像miss=不存在：镜像写失败从不被吞（rocksCachePut/Remove抛出，记录进不了
-						// clean态除非镜像写成功），故clean+Share记录的镜像条目必等于storage真相。
-						// 残余风险仅为进程运行中的镜像静默损坏（无异常可捕获），与storage库损坏同级
-						// 属运维域，且镜像生命周期=进程uptime（启动deleteDirectory整体重建）。
+						// 镜像写失败从不被吞，clean+Share 记录镜像未命中即代表记录不存在。
 					}
 					if (storage != null)
 						ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.CACHE_GET).increment();
@@ -234,7 +223,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (txn == null || txn.isCompleted())
 						throw new GoBackZeze(msg);
 					txn.throwRedoAndReleaseLock(getId(), msg, null);
-					// never run here
 				}
 				r.setState(acquiredState);
 				try {
@@ -246,14 +234,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					var storage = this.storage;
 					if (storage != null) {
-						// 先取脏值快照再判脏：若先判脏后取脏值，清脏（flush成功后，不持记录
-						// fairLock）交错其间会拿到null当作"记录不存在"，已提交未读出的内存
-						// 脏数据被静默丢弃。先读快照：非null即内存脏值直接用；
-						// null且此刻不脏才读storage（清脏发生在两读之间时flush已完成，storage也是
-						// 新值）；null且仍脏=脏删除，strongRef保持null（记录不存在）。
-						// GCM reduce的flush失败或Releaser降级窗口会留下Invalid+dirty的记录，
-						// 后台库中还是旧值（脏数据尚未checkpoint），装载会覆盖丢失内存中已提交的修改。
-						// see Record1.loadValue 的dirty检查。
+						// 先读脏值快照再判脏（防无锁清脏交错丢数据）；Invalid+dirty 记录也不得被旧 storage 覆盖。
 						//noinspection unchecked
 						var dirtyValue = (V)r.getDirtyValue();
 						if (dirtyValue != null) {
@@ -266,16 +247,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							else
 								rocksCacheRemove(key);
 							r.setSoftValue(strongRef); // r.Value still maybe null
-							// 【注意】这个变量不管 OldTable 中是否存在的情况。
-
-							// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-							// see Checkpoint.FlushBatch.writeTo
+							// 删除记录时须同步删除 oldTable（见 Checkpoint.FlushBatch.writeTo），否则会再次读出。
 							if (strongRef == null && oldTable != null) {
 								var old = oldTable.find(this, key);
 								if (old != null) {
-									// 所有 CheckpointMode 统一在读路径同步迁移至新主库与本地镜像，不标脏：
-									// 避免孤立记录（rrs.recordSet == null）在 selectCopy/回滚/GCM reduce 时
-									// 滞留未注册脏标记，导致跨进程丢更新或缓存永久无法驱逐。
+									// 读路径同步迁移至新主库与本地镜像且不标脏，避免孤立脏记录滞留。
 									migrateOldRecord(storage, key, old);
 									strongRef = old;
 									r.setSoftValue(strongRef);
@@ -401,10 +377,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		case Table: {
 			var checkpoint = getZeze().getCheckpoint();
 			if (checkpoint == null)
-				// 停机窗口（终检点已过）无法履行durability-before-downgrade。
-				// 抛出让Reduce以默认StateReduceException fail-safe应答（对端acquire失败
-				// 重试），并保住本地脏记录状态：静默跳过flush会把降级当成功应答——GCM把
-				// 权限授予其他进程后，本进程未落库的脏值会跨进程丢失更新。
+				// 检查点已停时无法保证降级前落库，抛错使 Reduce 返回 StateReduceException 避免跨进程丢更新。
 				throw new IllegalStateException("flushWhenReduce: checkpoint stopped. table="
 					+ getName() + ", record=" + r);
 			RelativeRecordSet.flushWhenReduce(r, checkpoint);
@@ -526,7 +499,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		// 第一轮parallelStream的多个worker会并发add拿锁失败的记录，必须线程安全。
 		var remain = Collections.synchronizedList(new ArrayList<KVNotNull<Lockey, Record1<K, V>>>(requireCache().getDataMap().size()));
 		logger.info("ReduceInvalidAllLocalOnly Table={} CacheSize={}", getName(), requireCache().getDataMap().size());
-		// 专用dbIo池：reduce/flush走阻塞DB IO，退出commonPool（阻塞任务互抢可整体停摆）。
+		// 专用 dbIo 池执行阻塞 reduce/flush，避免占用 commonPool。
 		Zeze.Util.Task.runInDbIoPool(() -> requireCache().getDataMap().entrySet().parallelStream().forEach((e) -> {
 			var k = e.getKey();
 			var v = e.getValue();
@@ -540,10 +513,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 								if (v.getState() == StateRemoved)
 									return;
 								v.setState(StateInvalid);
-								// 脏记录必须先落库再降级（durability-before-downgrade）：
-								// 调用方Releaser在降级之后才执行全服checkpoint，如果降级不flush，
-								// GCM可能已把权限授予其他进程，本进程稍后的checkpoint会用
-								// 旧事务的脏值覆盖别人的修改（跨进程丢更新）。see reduceInvalid。
+								// 脏记录须先落库再降级，避免 GCM 放权后本进程后续 checkpoint 覆盖其他进程的写入。
 								if (v.getDirty())
 									flushWhenReduce(v);
 							} finally {
@@ -586,17 +556,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	// 键长预算执法统一在 TableX typed 入口（后端 find/remove 不再检查，见 Database.eMaxKeyLength 注释）：
-	// 读入口只查冷路径——热路径的键在本事务先前访问中已过检查，get 保持零额外编码开销；
-	// 写入口（put/getOrAdd/tryAdd）在方法顶部检查，堵住 remove(超长键) 后同事务再写回的绕行。
-	// remove 与 walk 族不检查：存量超长键必须保持可 walk、可删除。
+	// 读入口在冷路径检查键长，写入口在顶部检查（防 remove 后同事务写回）；remove/walk 不检查以支持清理存量超长键。
 	final void checkKeyLength(K key) {
 		Database.checkKvKeyLength(getName(), encodeKey(key));
 	}
 
 	public final @Nullable V get(K key) {
 		var currentT = Transaction.getCurrent();
-		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
 			throw new IllegalStateException("no current transaction. table=" + getName());
 		//noinspection ConstantValue
@@ -611,7 +577,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			return r;
 		}
 
-		checkKeyLength(key); // 冷路径执法；热路径键已在前次访问中检查
+		checkKeyLength(key);
 		var r = load(key);
 		var v = r.strongRef();
 		currentT.addRecordAccessed(r.record().createRootInfoIfNeed(tkey),
@@ -630,7 +596,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final V getOrAdd(K key, @Nullable OutObject<Boolean> isAdd) {
 		var currentT = Transaction.getCurrent();
-		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
 			throw new IllegalStateException("no current transaction. table=" + getName());
 		//noinspection ConstantValue
@@ -644,8 +609,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			@SuppressWarnings("unchecked")
 			V crv = (V)cr.newestValue();
 			if (crv != null) {
-				// 已存在路径必须赋false——不赋值时isAdd保持null，调用方
-				// if(isAdd.value)拆箱NPE埋雷（对齐RocksDatabase.getOrAddTable家族惯例）。
 				if (isAdd != null)
 					isAdd.value = false;
 				return crv;
@@ -658,7 +621,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			currentT.addRecordAccessed(r.record().createRootInfoIfNeed(tkey), cr, v == null && isMemory());
 			if (v != null) {
 				if (isAdd != null)
-					isAdd.value = false; // 同上，已存在路径双向赋值。
+					isAdd.value = false;
 				return v;
 			}
 			// add
@@ -675,12 +638,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException("value is null");
-		checkKeyLength(key); // 顶部执法：get 只查冷路径，remove 后同事务 tryAdd 会绕过
+		checkKeyLength(key);
 		if (get(key) != null)
 			return false;
 
 		var currentT = Transaction.getCurrent();
-		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
 			throw new IllegalStateException("no current transaction. table=" + getName());
 
@@ -701,7 +663,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final void put(K key, V value) {
 		var currentT = Transaction.getCurrent();
-		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
 			throw new IllegalStateException("no current transaction. table=" + getName());
 		//noinspection ConstantValue
@@ -711,7 +672,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (value == null)
 			throw new IllegalArgumentException("value is null");
 
-		checkKeyLength(key); // 顶部执法，含事务内已访问的热路径（防 remove 后写回）
+		checkKeyLength(key);
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
 		if (cr == null) {
@@ -732,7 +693,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	// 逻辑几乎和Put一样，故意保持独立实现。
 	public final void remove(K key) {
 		var currentT = Transaction.getCurrent();
-		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
 		if (currentT == null)
 			throw new IllegalStateException("no current transaction. table=" + getName());
 		//noinspection ConstantValue
@@ -1184,12 +1144,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private @Nullable V cacheCopy(Record1<K, V> r) {
 		r.enterFairLock();
 		try {
-			// 这个条件表示本地拥有读或写状态的才能遍历到。对于内存表，能看到全部。
+			// 本地拥有读/写状态的记录才可见（内存表全可见）；通过 copyValue 避免读到事务中间态。
 			if (r.getState() == StateShare || r.getState() == StateModify) {
-				// 拷贝段复用copyValue：事务修改的字段setter通过VarHandle立即应用（仅savepoint存undo），
-				// 只持fairLock挡不住并发事务，直接copy会拷到"字段X已改、字段Y未改"的撕裂中间态。
-				// copyValue在fairLock内先lockey.tryEnterReadLock(0)，成功才copy（与事务写锁互斥）；
-				// 锁忙回退最后落库镜像（可能旧，但完整），与walk()/selectCopy语义对齐。
 				return r.copyValue();
 			}
 			return null;
@@ -1321,9 +1277,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getState() == StateInvalid) {
 						var now = System.currentTimeMillis();
 						var ts = r.getTimestamp();
-						// Invalid+dirty的记录（GCM reduce的flush失败或Releaser降级窗口遗留）：
-						// 后台库中还是旧值（脏数据尚未checkpoint），装载会覆盖丢失内存中已提交的修改。
-						// see TableX.load 的dirty检查。
+						// Invalid+dirty 记录不得用后台旧值覆盖内存未落库修改。
 						if (!r.getDirty() && (ts >= 0 || now + ts >= cacheTTL)) { // 距上次selectDirty超过cacheTTL则从数据库里加载最新值
 							ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.STORAGE_GET).increment();
 							V strongRef = storage.getDatabaseTable().find(this, key);
@@ -1402,7 +1356,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var oldCache = cache;
 		cache = new TableCache<>(getZeze(), this);
 		if (oldCache != null)
-			oldCache.close(); // 关闭旧cache的周期定时器（newLruHot/cleanNow），否则定时任务泄漏且强引用旧dataMap无法GC。
+			oldCache.close(); // 关闭旧 cache 定时器，避免定时任务与旧 dataMap 泄漏
 	}
 
 }

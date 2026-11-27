@@ -22,8 +22,8 @@ import Zeze.Util.LongHashMap;
  */
 public final class Changes extends Zeze.Raft.Log {
 	private final @Nullable Rocks rocks;
-	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
-	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
+	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时记录所有 Bean 修改，键为 Bean.objectId
+	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集待序列化传输的记录修改
 	private final IntHashMap<Long> atomicLongs = new IntHashMap<>();
 	private @Nullable Transaction transaction;
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(Changes.class.getName());
@@ -70,7 +70,7 @@ public final class Changes extends Zeze.Raft.Log {
 		private int state;
 		private @Nullable Bean putValue;
 		private final Set<LogBean> logBean = new HashSet<>();
-		// 所有的日志修改树，key is Record.Value。不会被序列化。
+		// 所有的日志修改树，键为 Record.Value，不参与序列化。
 		private final IdentityHashMap<Bean, LogBean> logBeans = new IdentityHashMap<>();
 		public @Nullable Table<?, ?> table;
 
@@ -115,7 +115,7 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 
 		public void collect(Transaction.RecordAccessed ar) {
-			if (ar.getPutLog() != null) { // put or remove
+			if (ar.getPutLog() != null) {
 				putValue = ar.getPutLog().value;
 				state = putValue == null ? Remove : Put;
 				return;
@@ -124,7 +124,7 @@ public final class Changes extends Zeze.Raft.Log {
 			state = Edit;
 			var logBean = logBeans.get(ar.getOrigin().getValue());
 			if (logBean != null)
-				this.logBean.add(logBean); // edit
+				this.logBean.add(logBean);
 		}
 
 		public void encode(ByteBuffer bb) {
@@ -176,7 +176,7 @@ public final class Changes extends Zeze.Raft.Log {
 	public void collect(Bean recent, Log log) {
 		Bean belong = log.getBelong();
 		if (belong == null) {
-			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
+			// 记录可能存在多个修改日志树，收集阶段全部保留，提交时再筛选。
 			var r = records.get(recent.tableKey());
 			if (r == null) {
 				r = new Record();
@@ -187,7 +187,7 @@ public final class Changes extends Zeze.Raft.Log {
 				records.put(Objects.requireNonNull(recent.tableKey()), r);
 			}
 			r.getLogBeans().put(recent, (LogBean)log);
-			return; // root
+			return;
 		}
 
 		var logBean = beans.get(belong.objectId());
@@ -209,7 +209,6 @@ public final class Changes extends Zeze.Raft.Log {
 		var tkey = ar.tableKey();
 		var r = records.get(tkey);
 		if (r == null) {
-			// put record only
 			r = new Record();
 			var table = Objects.requireNonNull(ar.getOrigin().getTable());
 			r.setTableTemplateId(table.getTemplateId());
@@ -236,23 +235,18 @@ public final class Changes extends Zeze.Raft.Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		// Log基类字段（unique/createTime/rpcResult）必须随日志持久化（对齐HeartbeatLog等
-		// 全部子类）：否则解码侧恒为requestId==0，follower/重放侧不写unique应用存根——
-		// 唯一请求的"恰好一次"退化为按leader任期（换主+重发重新执行、结果重放丢失）。
+		// 持久化基类字段（unique/createTime/rpcResult），确保 follower 重放时写入唯一请求终态存根。
 		super.encode(bb);
 		bb.WriteUInt(records.size());
 		for (var r : records.entrySet()) {
-			// encode TableTemplate
 			bb.WriteUInt(r.getValue().tableTemplateId);
 			bb.WriteString(r.getValue().getTableTemplateName());
 
-			// encode TableKey
 			r.getValue().setTableByName(this, Objects.requireNonNull(r.getValue().getTableTemplateName()));
 			bb.WriteString(r.getKey().name);
 			//noinspection unchecked,DataFlowIssue
 			((Table<Object, Bean>)r.getValue().table).encodeKey(bb, Objects.requireNonNull(r.getKey().key));
 
-			// encode record
 			r.getValue().encode(bb);
 		}
 		bb.WriteUInt(atomicLongs.size());

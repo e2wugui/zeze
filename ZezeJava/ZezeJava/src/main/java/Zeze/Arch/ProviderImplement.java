@@ -62,14 +62,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	/**
-	 * 注册所有支持的模块服务。
-	 * 包括静态动态。
-	 * 注册的模块时带上用于Provider之间连接的ip，port。
-	 * <p>
-	 * 订阅Linkd服务。
-	 * Provider主动连接Linkd。
-	 * 【须在providerApp锁内调用】（唯一调用点ProviderApp.startLast已满足）：
-	 * 迭代staticBinds/dynamicModules/modules属三map读写统一锁契约（见ProviderApp字段注释）。
+	 * 注册本 Provider 的静/动态模块服务（携带直连地址），并订阅 Linkd 与直连发现服务（须在 providerApp 锁内调用）。
 	 */
 	public void registerModulesAndSubscribeLinkd() {
 		var sm = requireProviderApp().zeze.getServiceManager();
@@ -141,11 +134,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				if (overload == BLoad.eThreshold && factoryHandle.CriticalLevel == Protocol.eSheddable ||
 					overload == BLoad.eOverload && factoryHandle.CriticalLevel != Protocol.eCriticalPlus) {
 					var pdata = arg.getProtocolData();
-					// protocolData是Dispatch透传的客户端可控字节，长度任意。rpc帧布局为
-						// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。ReadUInt/SkipLong/
-						// ReadLong都是变长编码（各最多9字节，首字节决定），数字长度门卫不闭合
-						// （>=4/>=16/8的长度门卫对首字节>=0xf0的构造包仍会越界抛异常），故整体try/catch：
-						// 畸形帧跳过Busy应答（过载本就丢弃该协议），解析异常不再刷oneByOne池线程错误日志。
+					// 客户端可控字节流含变长编码，统一 try/catch 避免畸形帧解析异常刷错。
 					var sessionId = 0L;
 					var replyBusy = false;
 					try {
@@ -158,7 +147,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 							replyBusy = true;
 						}
 					} catch (Exception e) {
-						// 畸形帧：跳过Busy应答。限频warn+计数：过载路径上畸形帧可能高频，每帧一条会刷日志。
+						// 畸形帧跳过 Busy 应答并限频告警。
 						busyParseFailures.increment();
 						var now = System.currentTimeMillis();
 						if (now - lastBusyParseWarnTime >= 1000) {
@@ -198,8 +187,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var txn = Transaction.getCurrent();
 			if (txn == null && zeze != null && factoryHandle.Level != TransactionLevel.None) {
 				var outProtocol = new OutObject<Protocol<?>>();
-				// 过程名一次给足：协议类名 + 响应族后缀。FamilyClass位从protocolData首uint窥出，
-				// 与Rpc.decode的isRequest判定一致；名字自创建恒定，统计handle一次解析。
+				// 从协议头首 uint 区分响应族以确定过程名。
 				var header = ByteBuffer.Wrap(arg.getProtocolData()).ReadUInt();
 				var procName = factoryHandle.Class.getName()
 						+ ((header & FamilyClass.FamilyClassMask) == FamilyClass.Response ? ":Response" : "");
@@ -226,10 +214,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 						return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 					}, procName, factoryHandle.Level), outProtocol, (from, code) -> {
-					// decode在procedure内抛异常时被Procedure.call吞成错误码，outProtocol.value为null，
-					// tryRespondErrorNow(null)什么都不发——客户端既无kick也无错误应答，只能等自身rpc超时。
-					// from==null即decode阶段失败：回退用Dispatch的linkSid发ErrorDecode kick（与外层
-					// catch的sendKick形态对称）。
+					// from==null 说明 decode 阶段失败，回退发 ErrorDecode kick。
 					if (from != null)
 						session.tryRespondErrorNow(from, code);
 					else
@@ -281,16 +266,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	private long processRpcResponse(Protocol<?> p3) throws Exception {
 		var res = (Rpc<?, ?>)p3;
 		var service = requireProviderApp().providerService;
-		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
-		// 首轮解析并缓存到当前事务（含null判定），重试直接复用，与 Rpc.handle 同一约定。
-		// 会合前校验typeId一致+原连接绑定（见Rpc.removeRpcContextChecked）。
+		// 事务 redo 时上下文消费只执行一次，首轮结果缓存到当前事务并校验 typeId 与原连接。
 		var txn = Transaction.getCurrent();
 		Rpc<?, ?> context = txn != null
 			? txn.resolveOnce(service, res.getSessionId(),
 				sid -> Rpc.removeRpcContextChecked(service, sid, res))
 			: Rpc.removeRpcContextChecked(service, res.getSessionId(), res);
 		if (context == null) {
-			// 上下文可能丢失（一般已被超时消费或校验拒绝——后者上下文留存给真实应答）：立即失败终止。
 			logger.warn("rpc response: lost context, maybe timeout. {}", p3);
 			return Procedure.Unknown;
 		}

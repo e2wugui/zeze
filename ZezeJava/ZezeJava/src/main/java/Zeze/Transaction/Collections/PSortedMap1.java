@@ -66,7 +66,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (m.isEmpty())
 			return;
 		if (m instanceof PSortedMap1)
-			m = ((PSortedMap1<? extends K, ? extends V>)m).getMap(); // more stable
+			m = ((PSortedMap1<? extends K, ? extends V>)m).getMap(); // 捕获不可变快照
 
 		for (var e : m.entrySet()) {
 			if (e.getKey() == null)
@@ -135,7 +135,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		var modified = log.getModified();
 		if (modified.isEmpty())
 			return;
-		// 单遍分区批量应用（同PMap1.followerApply）：等价旧 minusAll(removed).plusAll(replaced)。
+		// 单遍按值是否为 null 分区为删除与替换两批，键互不相交。
 		HashMap<K, V> puts = null;
 		ArrayList<K> removes = null;
 		for (var e : modified.entrySet()) {

@@ -6,14 +6,8 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 对每个相同的key，最多只提交一个 Task.Run。
- * <p>
- * 说明：
- * 严格的来说应该对每个key建立一个队列，但是key可能很多，就需要很多队列。
- * 如果队列为空，需要回收队列，会产生很多垃圾回收对象。
- * 具体的实现对于相同的key.hash使用相同的队列。
- * 固定总的队列数，不回收队列。
- * 构造的时候，可以通过参数控制总的队列数量。
+ * 基于固定数量哈希分桶的 one-by-one 队列调度器：相同 key 哈希映射到同一队列串行执行，不回收队列。
+ * 构造时可通过 concurrencyLevel 控制总桶数（向上取 2 的幂）。
  */
 public final class TaskOneByOneByKey extends TaskOneByOneBase {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey.class);
@@ -109,11 +103,7 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 	}
 
 	/**
-	 * Applies a supplemental hash function to a given hashCode, which defends
-	 * against poor quality hash functions. This is critical because HashMap uses
-	 * power-of-two length hash tables, that otherwise encounter collisions for
-	 * hashCodes that do not differ in lower bits. Note: Null keys always map to
-	 * hash 0, thus index 0.
+	 * 对 hashCode 做二次扰动，降低 2 的幂次桶表下的低位碰撞。
 	 *
 	 * @see java.util.HashMap
 	 */

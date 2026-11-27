@@ -2,7 +2,7 @@ package Zeze.Util;
 
 import java.util.function.IntPredicate;
 
-// Windows 控制台关闭事件的 native 回调桥接（需当前目录存在 WinConsole.dll）
+/** Windows 控制台关闭事件的 native 回调桥接（需加载 WinConsole.dll）。 */
 public final class WinConsole {
 	public static final int CTRL_C_EVENT = 0; // 命令行窗口中按Ctrl+C
 	public static final int CTRL_BREAK_EVENT = 1; // 命令行窗口中按Ctrl+Break
@@ -56,7 +56,7 @@ public final class WinConsole {
 		var r = hookCloseConsole(event -> {
 			System.out.println("hook event " + event + " in thread: " + Thread.currentThread().getName());
 			if (event != CTRL_C_EVENT && event != CTRL_BREAK_EVENT)
-				System.exit(event); // call shutdownHook then halt
+				System.exit(event); // 触发 shutdownHook 后退出
 			return false;
 		});
 		System.out.println("hook result: " + r);

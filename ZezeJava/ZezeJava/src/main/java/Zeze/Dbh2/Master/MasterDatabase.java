@@ -41,10 +41,7 @@ public class MasterDatabase {
 	// tables 包含分桶目标。
 	private final ConcurrentHashMap<String, MasterTable.Data> splitting = new ConcurrentHashMap<>();
 	private final RocksDatabase.Table rocksSplitting;
-	// splitting条目年龄+世代副表：key=tableName+keyFirst→[创建时间戳,源桶raft身份]。
-	// 独立副表不动MasterTable.Data手写编码格式（旧数据decode兼容零成本）。年龄只做观测与
-	// 回收门槛（阈值Dbh2Config.SplittingAgeWarnMs），判死永远结构驱动（世代/INV1，见
-	// scanSplittingAge）；旧格式仅8字节时间戳（无世代身份，判死退回INV1）。
+	// splitting 条目年龄与世代副表（key=tableName+keyFirst → [时间戳, 可选源桶 raft 身份]），不改动 MasterTable 编码格式
 	private final RocksDatabase.Table rocksSplittingAge;
 	private final Master master;
 
@@ -85,9 +82,7 @@ public class MasterDatabase {
 				}
 			}
 		} catch (Throwable ex) {
-			// 半失败必须释放已打开的句柄（含decode抛出的非RocksDBException）：本构造器挂在
-			// ProcessCreateDatabaseRequest的computeIfAbsent运行时可重试路径上，泄漏的目录锁
-			// 会毒死同名库的后续CreateDatabase直到Master重启。对齐Bucket构造器的半失败清理纪律。
+			// 半失败必须释放已打开的 RocksDB 句柄，避免目录锁泄漏阻塞后续同名库创建
 			if (opening != null) {
 				try {
 					opening.close();
@@ -134,9 +129,7 @@ public class MasterDatabase {
 					logger.info("create table exist: {}.{}", databaseName, tableName);
 					return table;
 				}
-				// 失败路径（见下方两处tables.remove两参调用）会摘除自己放入map的空条目：持陈旧引用的
-				// 并发创建者必须在此重检身份，失配即弃锁重试新条目——否则在未映射实例上建表成功但对
-				// getTable不可见，且与新条目的并发创建各建一套raft。身份检查与摘除同持本锁，互斥成立。
+				// 并发建表失败时会摘除旧空条目，持锁后须确认当前实例仍在 tables 中，失配则重试
 				if (tables.get(tableName) != table)
 					continue;
 
@@ -148,26 +141,17 @@ public class MasterDatabase {
 				bucket.setKeyFirst(Binary.Empty);
 				bucket.setKeyLast(Binary.Empty);
 
-				// allocate first bucket service and setup table
+				// 分配首个桶服务并初始化表
 				var managers = master.choiceManagers();
 				if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
 					logger.warn("managers.size({}) < raftClusterCount({})",
 							managers.size(), master.getDbh2Config().getRaftClusterCount());
-					// 摘除本次新建的空表（两参remove仅当映射仍为本实例）：残留的created=false空表让
-					// GetBuckets返回rc=0空桶表，客户端/服务端locate的floorEntry==null以NPE面目取代
-					// 可重试的eTableNotFound（getTable为null的既有路径）。
+					// 摘除新建空条目，避免 GetBuckets 返回空桶快照
 					tables.remove(tableName, table);
 					return null;
 				}
 
-				// 持久化滞后窗口（次序约束，非可随意对调）：saveRocks必须排在
-				// createBucketRafts/setBucketMeta成功之后——提前落盘会把未经 rpc 验证可用
-				// 的raft发布进主表（窗口内崩溃重启后created=true但桶未初始化/半建，客户端
-				// 路由到坏桶且无重建路径，劣于孤儿）。现序的残余窗口：三者成功而saveRocks
-				// 未完成时崩溃，重启后created=false走重建——choiceManagers分配新端口建全
-				// 新raft，旧raft成为无主孤儿（manager扫描raft.xml仍加载，仅占端口/内存/
-				// 磁盘目录，无数据丢失），需人工清理。孤儿收养（重入时查询manager既有
-				// raftName幂等复用）或Register对账回收需跨进程协议，不在本处内联。
+				// 须先建桶并初始化元数据成功后再 saveRocks，避免持久化未就绪的主表条目
 				var raftNames = buildRaftConfig(bucket, managers);
 				table.buckets.put(bucket.getKeyFirst(), bucket);
 				try {
@@ -176,11 +160,9 @@ public class MasterDatabase {
 					table.created = true;
 					saveRocks(rocksTables, tableName, table);
 				} catch (Exception e) {
-					// 失败回滚：摘内存表并请各manager销毁刚建的raft——只回滚内存会留下永久孤儿
-					//（进程/端口/磁盘）。
+					// 失败回滚内存条目并通知各 manager 销毁已建 raft
 					table.buckets.remove(bucket.getKeyFirst());
 					table.created = false;
-					// 同上：摘除空表条目，不留locate-NPE窗口（重试经computeIfAbsent重建）。
 					tables.remove(tableName, table);
 					destroyBucketRafts(managers, bucket, raftNames);
 					throw e;
@@ -193,9 +175,7 @@ public class MasterDatabase {
 		}
 	}
 
-	// 构建raft-config，基本的用于客户端，用于manager服务器的需要replace RaftName.
-	// Zeze.Dbh2.Master.SyncWrite=true 时给生成的raft.xml带上SyncWrite属性——桶的raft日志/
-	// 状态机存储启用sync写（默认普通写）。只影响新建桶；存量桶的raftConfig持久化于master库。
+	// Zeze.Dbh2.Master.SyncWrite=true 时为新建桶生成的 raft.xml 启用 SyncWrite（仅影响新建桶）
 	private static final boolean SYNC_WRITE_RAFT = Boolean.parseBoolean(
 			System.getProperty("Zeze.Dbh2.Master.SyncWrite", "false"));
 
@@ -254,9 +234,7 @@ public class MasterDatabase {
 		}
 	}
 
-	// 建桶半失败的尽力回收：对配置内全部manager发DestroyBucket（幂等，未建过即成功；与
-	// CreateBucket同socket且派发串行，销毁必在建之后处理）。只记日志不上抛——回收失败不得
-	// 掩盖原始异常，残留raft依赖人工核查。
+	// 建桶半失败时尽力向各 manager 发送幂等 DestroyBucket，仅记日志不上抛以免掩盖原始异常
 	private static void destroyBucketRafts(ArrayList<Master.Manager> managers,
 										   BBucketMeta.Data bucket, ArrayList<String> raftNames) {
 		var rpcs = new ArrayList<DestroyBucket>();
@@ -265,7 +243,7 @@ public class MasterDatabase {
 		for (var e : managers) {
 			var r = new DestroyBucket();
 			r.Argument.assign(bucket);
-			// 与createBucketRafts同款：发给该manager的配置须替换成它的raftName（manager按名字解析portId）。
+			// 替换为该 manager 的 raftName
 			//noinspection DynamicRegexReplaceableByCompiledPattern
 			r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
 			rpcs.add(r);
@@ -328,47 +306,25 @@ public class MasterDatabase {
 		}
 	}
 
-	// 确认splitting桶与决策一致后原子搬迁（endMove/endSplit的公共主体）：新桶移出splitting、
-	// 入主表，from非null时替换主表源桶（endSplit分裂后源桶边界收窄；endMove传null），
-	// 双表同批落库。splitting的TreeMap必须持它自己的锁访问：createSplitBucket持splitting锁
-	// get/put，只持主表锁remove/encode的话两锁互不互斥，TreeMap并发读写可CME/死循环。
-	// 锁序固定主表→splitting（createSplitBucket碰撞判定按同序两阶段，无环）。
-	// 调用方须已持主表锁；新桶不在splitting或四元组不等值时不动任何状态，返回错误码。
+	// endMove/endSplit 公共结算入口：校验 splitting 身份与主表单调收窄不变式，原子迁入主表并同步落盘。
+	// 调用方须已持主表锁，锁序固定为主表→splitting。
 	private long settleSplitting(MasterTable.Data table, MasterTable.Data splitting, String tableName,
 								 BBucketMeta.Data to, BBucketMeta.@Nullable Data from, Rpc<?, ?> r) throws Exception {
 		splitting.lock();
 		try {
 			var bucket = splitting.buckets.get(to.getKeyFirst());
-			// 结算携带完整目标身份；同区间重建后的新目标不能被旧目标的迟到结算消费。
+			// 结算须匹配完整目标身份，防止旧目标迟到结算消费同区间重建的新目标
 			if (bucket == null || !sameBucketMeta(bucket, to) || !bucket.getRaftConfig().equals(to.getRaftConfig()))
 				return master.errorCode(Master.eSplittingBucketNotFound);
 
 			var exist = table.buckets.get(to.getKeyFirst());
-			// already-settled守卫：主表同keyFirst现存条目与to
-			// 四元组+raftConfig全等 = 本迁移已结算过（重试/leader-ready补发的幂等重复，或settle
-			// 成功而响应丢失后的重发）。返回已结算终局码且**不消费splitting条目**：此刻表内的
-			// 条目可能是在途的新世代条目（同四元组、不同raftConfig——master重启/补发间隙内
-			// createSplitBucket重建），被旧迁移的补发抢占消费会让新迁移永不settle。raftConfig
-			// 全等比较在此合法：两侧都是master已知的完整meta（与resume场景请求方raftConfig=""
-			// 不同）。
+			// 主表已有全等条目说明本次迁移已结算过，返回终局码且不消费可能属于新世代的 splitting 条目
 			if (null != exist && sameBucketMeta(exist, to) && exist.getRaftConfig().equals(to.getRaftConfig())) {
 				logger.info("settleSplitting already settled, keep in-flight entry. to={}", to);
 				return master.errorCode(Master.eSplittingBucketNotFound);
 			}
 
-			// 迟到settle守卫：from==null即endMove。
-			// 不变式：主表只会收窄不会变宽，合法的move settle时刻主表同keyFirst现存条目只能是
-			// 同边界旧raft源桶（move在主表只改写raftConfig），keyLast必相等。不等按方向分治：
-			//  - 更窄（INV1死信）：更晚的settle已越过该keyFirst收窄主表——to的宽边界是过期快照，
-			//    put会覆盖收窄后的主表（宣称已deleteToEnd的键域仍归本桶），永久元数据谎言。拒绝
-			//    且**同步消费死信条目**（remove+落盘）：该条目永远不可能再合法settle，滞留只会被
-			//    后续同边界操作收养或永久拒绝（变体）。
-			//  - 更宽：本迁移**之前**另有settle丢失、主表陈旧（条目比主表新，仍活）——拒绝不消费，
-			//    pending-settle补发或在途settle链收敛主表后重试可过。
-			// 错误码按方向分离：死信与幂等完成证据用终局码eSplittingBucketNotFound
-			//（MasterAgent重试端按"已settle"停止重试+onSettled清标志）；宽方向用**可重试码**
-			// eSplittingStaleMain——仍活的迁移不得被终局码杀死（停重试+清标志后条目虽保留却无人
-			// 再结算，[F,L)键域永久失联），非终局码让30s重试链存活，"收敛后重试可过"由此成立。
+			// endMove 迟到守卫：主表只会收窄；现存条目更窄属过期死信（消费并返回终局码），更宽属主表陈旧（返回可重试码待收敛）
 			if (from == null && null != exist) {
 				var cmp = compareKeyLast(exist.getKeyLast(), to.getKeyLast());
 				if (cmp < 0) {
@@ -381,50 +337,29 @@ public class MasterDatabase {
 							exist, to);
 					return master.errorCode(Master.eSplittingStaleMain);
 				}
-				// cmp==0：同边界旧raft源桶——正常move settle。
 			}
 
-			// endSplit to侧变宽守卫（INV1）：同款单调性
-			// 论证对from!=null成立：主表现存同keyFirst条目比to更窄 = 更晚的settle已越过，to的
-			// put会重新变宽主表——本迁移的目标键域已被后续世代接管，整笔拒绝且消费死信。
+			// endSplit to 侧守卫：主表现存条目更窄说明该区间已被后续世代接管，拒绝并消费死信
 			if (from != null && null != exist && compareKeyLast(exist.getKeyLast(), to.getKeyLast()) < 0) {
 				logger.error("settleSplitting late endSplit refused, dead entry consumed (INV1). exist={} to={}",
 						exist, to);
 				return consumeDeadSplitting(splitting, tableName, to.getKeyFirst());
 			}
 
-			// 内存先行、磁盘后写的失败回滚：下面的remove/put先于batch.commit执行，commit抛出
-			//（磁盘错误）时内存已是"已结算"形态而磁盘是旧值——重试按已修改的内存返回
-			// eSplittingBucketNotFound，重试端按"已结算终局证据"停链并触发源桶清除补发源
-			//（appendClearPendingSettle），master若在此刻崩溃重启，磁盘splitting条目复活且
-			// 无人消费（主表旧边界指向已deleteToEnd的源桶，键域失联）。捕获后按捕获的旧值
-			// 精确还原内存再上抛：持主表+splitting双锁期间无并发写者（全部写路径同序持锁），
-			// 回滚即还原到guard判定时的状态，重试按未结算语义正常进行。
+			// 先改内存再落盘，若 commit 失败须按旧值精确还原内存，防止后续重试误判为已结算
 			var settledSplitting = splitting.buckets.remove(to.getKeyFirst());
 			var oldTo = table.buckets.put(to.getKeyFirst(), to);
 			var fromReplaced = false;
 			BBucketMeta.Data oldFrom = null;
-			// 不变量：合法split恒from.keyFirst<to.keyFirst（locateMiddle取的中位key严格大于源桶首key）。
-			// >=仅出现在move被recoverSplitting的data[0]==keyFirst启发式误判为split时
-			//（from=[M,M)空区间，to即move目标）：此时按endMove语义不put from——to的put已是
-			// move完成的正确终态，from的put会把刚发布的新桶覆盖回死源桶，[M,L)键域在master表永久丢失。
+			// 合法 split 满足 from.keyFirst < to.keyFirst；否则跳过 from 写入避免覆盖已发布的新桶
 			if (from != null && from.getKeyFirst().compareTo(to.getKeyFirst()) < 0) {
-				// from侧对称守卫：主表现存from.keyFirst条目比from更窄 = 更晚的
-				// settle已收窄（本from是过期快照），put会重新变宽主表（宣称源桶仍持有已迁走/已删
-				// 的键域，键域静默失联）。只跳过from的put：to的put仍是正确发布——迟到settle的to桶
-				// 确持有该键域数据（典型形态：split1的settle丢失→split2先行settle→迟到split1补发，
-				// 跳过from1、发布to1，主表恰补齐[M1,L)缺口）。settle成功，条目正常消费。
-				// 宽/等界维持put：更宽=正常split settle的必经形态（主表
-				// [F,L2)收窄为from[F,L)），跳过即破坏一切正常split发布；堆叠形态（源桶已被move
-				// 置死、迟到split settle发布死源桶）的发布是暂态——move侧重试链（宽方向改可重试码
-				// 后存活）在≤30s内以同界to替换之；等界不同raft的主表形态经推演不可达（需settle
-				// 终局后重复迟到，而终局即停链+清标志），不为此加防御分支。
+				// 主表现存 from 条目更窄时跳过 from 覆盖，仅发布 to 以补齐目标区间
 				var existFrom = table.buckets.get(from.getKeyFirst());
 				if (null != existFrom && compareKeyLast(existFrom.getKeyLast(), from.getKeyLast()) < 0)
 					logger.error("settleSplitting late from skipped (main narrower). existFrom={} from={}",
 							existFrom, from);
 				else {
-					oldFrom = table.buckets.put(from.getKeyFirst(), from); // replace
+					oldFrom = table.buckets.put(from.getKeyFirst(), from);
 					fromReplaced = true;
 				}
 			} else if (from != null)
@@ -438,7 +373,6 @@ public class MasterDatabase {
 						bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
 				rocksSplitting.put(batch, key, 0, key.length,
 						bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
-				// 路由settle结果先于发布落盘（罕见路径）：与seedTable/saveRocks同族，显式sync。
 				batch.commit(RocksDatabase.getSyncWriteOptions());
 			} catch (RocksDBException ex) {
 				splitting.buckets.put(to.getKeyFirst(), settledSplitting);
@@ -462,17 +396,13 @@ public class MasterDatabase {
 		}
 	}
 
-	// 死信条目消费（INV1）：remove+落盘+年龄记录回收，返回终局错误码。调用方须已持主表锁
-	//（endMove/endSplit路径）与splitting锁。
+	// 消费死信 splitting 条目（调用方须已持主表锁与 splitting 锁），落盘失败还原内存
 	private long consumeDeadSplitting(MasterTable.Data splitting, String tableName, Binary keyFirst)
 			throws RocksDBException {
 		var dead = splitting.buckets.remove(keyFirst);
 		try {
 			saveRocks(rocksSplitting, tableName, splitting);
 		} catch (RocksDBException ex) {
-			// 同settleSplitting的失败回滚：save失败时磁盘仍是旧值，内存先行不还原会让重试按
-			// 已修改的内存误判"已消费"（get返回null→eSplittingBucketNotFound终局停链），master
-			// 崩溃重启后磁盘条目复活无人消费。
 			if (null != dead)
 				splitting.buckets.put(keyFirst, dead);
 			throw ex;
@@ -481,8 +411,7 @@ public class MasterDatabase {
 		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
 
-	// 桶身份四元组等值：endMove/endSplit确认splitting桶与决策一致、createSplitBucket
-	// 幂等重试识别同一桶用的同一判据。
+	// 桶身份四元组等值判据
 	private static boolean sameBucketMeta(BBucketMeta.Data a, BBucketMeta.Data b) {
 		return a.getDatabaseName().equals(b.getDatabaseName())
 				&& a.getTableName().equals(b.getTableName())
@@ -490,8 +419,7 @@ public class MasterDatabase {
 				&& a.getKeyLast().equals(b.getKeyLast());
 	}
 
-	// keyLast的域序：Binary.Empty表示+∞（无上界），其余按字典序。主表边界比较的统一序
-	//（"主表只会收窄"的单调性在此序上成立）。
+	// keyLast 比较序：Binary.Empty 表示 +∞，其余按字典序
 	private static int compareKeyLast(Binary a, Binary b) {
 		if (a.size() == 0)
 			return b.size() == 0 ? 0 : 1;
@@ -517,7 +445,7 @@ public class MasterDatabase {
 			try {
 				var exist = table.buckets.get(bucket.getKeyFirst());
 				if (exist == null) {
-					// allocate first bucket service and setup table
+					// 分配分桶目标并落盘
 					var managers = master.choiceSmallLoadManagers();
 					if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
 						logger.info("too few small load manager. database={} table={}", databaseName, tableName);
@@ -530,28 +458,24 @@ public class MasterDatabase {
 						createBucketRafts(managers, bucket, raftNames);
 						saveRocks(rocksSplitting, tableName, table);
 					} catch (Exception e) {
-						// 失败回滚内存表并销毁manager侧刚建的raft：脏entry让之后所有重试被
-						// eSplittingBucketExist拒绝分桶卡死，孤儿raft永占进程/端口/磁盘。
+						// 失败回滚内存条目并销毁刚建的 raft
 						table.buckets.remove(bucket.getKeyFirst());
 						destroyBucketRafts(managers, bucket, raftNames);
 						throw e;
 					}
-					// 基线（仅时间戳）先立：世代登记需要主表锁（锁序主表→splitting，不能在下方
-					// splitting锁内嵌套取），若登记前崩溃，扫描侧按无身份条目保守处理（仅INV1判据）。
+					// 先立时间戳基线，出 splitting 锁后再按主表→splitting 锁序补写源桶世代
 					splittingAgeWriteQuietly(tableName, bucket.getKeyFirst(), null);
 
 					r.Result = bucket;
 					r.SendResult();
 					created = bucket;
-					break; // 出循环（splitting锁已释放）后再做世代登记
+					break;
 				}
 				if (sameBucketMeta(exist, bucket)) {
-					// 同边界也可能属于已经收窄的旧源桶。放锁后按主表→splitting复查世代，
-					// 防新源桶收养旧目标后被年龄扫描销毁，也不能复用其中的旧数据副本。
+					// 同边界也可能属于已收窄的旧源桶，放锁后按主表→splitting 复查世代
 					resume = true;
 				}
-				// 同keyFirst四元组不等（碰撞）。持splitting锁期间不能嵌套取主表锁判INV1（锁序
-				// 固定主表→splitting）——放锁后按序两阶段复查（consumeDeadSplittingOnCollision）。
+				// 同 keyFirst 四元组不等时放锁后按主表→splitting 锁序两阶段复查死信
 			} finally {
 				table.unlock();
 			}
@@ -562,14 +486,14 @@ public class MasterDatabase {
 					try {
 						var exist = table.buckets.get(bucket.getKeyFirst());
 						if (exist == null || !sameBucketMeta(exist, bucket))
-							continue; // 放锁期间已被消费或重建，交回创建/碰撞流程。
+							continue; // 放锁期间已被消费或重建，交回主循环处理
 						var age = readSplittingAge(tableName, exist.getKeyFirst());
 						if (isDeadSplittingEntry(mainTable, exist, age != null ? age.sourceRaft() : null)) {
 							logger.warn("bucket exist but source generation is obsolete, await recycling."
 									+ " database={} table={}", databaseName, tableName);
 							return master.errorCode(Master.eSplittingBucketExist);
 						}
-						// 同源在途条目的幂等重试仍返回原目标；旧世代由扫描先销毁raft再摘元数据。
+						// 同源在途条目的幂等重试返回原目标
 						logger.info("bucket exist, resume. database={} table={}", databaseName, tableName);
 						r.Result = exist;
 						r.SendResult();
@@ -585,29 +509,14 @@ public class MasterDatabase {
 				logger.info("bucket exist but mismatch (in-flight). database={} table={}", databaseName, tableName);
 				return master.errorCode(Master.eSplittingBucketExist);
 			}
-			// 死信已消费（或条目已消失/已变）：循环重查——另一并发creator可能在两阶段间隙
-			// 重建了条目，重查按同四元组resume或再碰撞（真在途则维持拒绝）。每轮不返回即
-			// 必消费一条死信，循环有进展保证。
 		}
-		// 世代登记（FND29 dbh2-04）：记录"谁的孩子"（创建时刻+源桶raft身份），供年龄扫描对
-		// 中位键漂移产生的旧世代孤儿做结构性判死（见isDeadSplittingEntry）。登记失败只记日志
-		// （quietly语义）：无身份条目判死退回INV1，保守不误杀。
 		registerSplittingGeneration(tableName, created);
 		return 0;
 	}
 
 	/**
-	 * 碰撞条目的INV1死信判定与消费。判死依据（不变式INV1）：条目[k,K)活⟺
-	 * 主表floor(k).keyLast==K——主表只会收窄不会变宽、splitting消费与主表收窄同批落盘，
-	 * keyLast不等且**更窄**的唯一构造路径是"更晚的settle已越过该keyFirst收窄主表"=死信
-	 * （变体的eSplittingBucketExist永久拒绝由此转一次自愈：删除后按新请求重建）。
-	 * 更宽方向不判死：那是本迁移之前另有settle丢失、主表陈旧（条目比主表新，仍活），
-	 * 留给pending-settle补发收敛；floor不存在（生产不可达：主表首桶keyFirst=Empty
-	 * 覆盖一切key）也不判死——结构证明不足时保守拒绝，不为不可达形态引入误删面。
-	 * 锁序固定主表→splitting（settleSplitting同款）：两阶段复查防消费窗口内条目被并发
-	 * 消费/重建。
-	 * @return true=条目已消费，或已消失/已变为本请求的幂等重试形态（调用方重查）；
-	 *         false=真在途，维持eSplittingBucketExist。
+	 * 碰撞条目的死信判定与消费（锁序固定主表→splitting）：当主表 floor 区间比条目更窄时，
+	 * 说明条目已被更晚的结算越过成为死信，删除落盘后返回 true 供主循环重查；否则返回 false。
 	 */
 	private boolean consumeDeadSplittingOnCollision(String tableName, MasterTable.Data mainTable,
 													MasterTable.Data splittingTable, BBucketMeta.Data request)
@@ -618,17 +527,16 @@ public class MasterDatabase {
 			try {
 				var exist = splittingTable.buckets.get(request.getKeyFirst());
 				if (null == exist || sameBucketMeta(exist, request))
-					return true; // 条目已消失，或并发下已变为本请求的同四元组——交回主流程按原语义处理
+					return true;
 				var floor = mainTable.buckets.floorEntry(request.getKeyFirst());
 				if (null == floor || compareKeyLast(floor.getValue().getKeyLast(), exist.getKeyLast()) >= 0)
-					return false; // 结构证明不足或真在途：维持拒绝
+					return false;
 				logger.error("dead splitting entry consumed on collision (INV1): database={} table={} entry={}",
 						databaseName, tableName, exist);
 				var dead = splittingTable.buckets.remove(request.getKeyFirst());
 				try {
 					saveRocks(rocksSplitting, tableName, splittingTable);
 				} catch (RocksDBException ex) {
-					// 同settleSplitting的失败回滚（save失败内存还原，重试按未消费语义进行）。
 					if (null != dead)
 						splittingTable.buckets.put(request.getKeyFirst(), dead);
 					throw ex;
@@ -643,7 +551,7 @@ public class MasterDatabase {
 		}
 	}
 
-	// 年龄副表key：长度前缀tableName + keyFirst（同表内条目唯一）。
+	// 年龄副表 key：4 字节大端 tableName 长度 + tableName + keyFirst
 	private static byte[] splittingAgeKey(String tableName, Binary keyFirst) {
 		var tn = tableName.getBytes(StandardCharsets.UTF_8);
 		var key = new byte[4 + tn.length + keyFirst.size()];
@@ -656,8 +564,7 @@ public class MasterDatabase {
 		return key;
 	}
 
-	// 观测专用写入：失败只记error不阻断协议路径——年龄基线在下一轮扫描按首扫起点重建。
-	// sourceRaft非null时写为带世代形态（时间戳+源桶raft身份），null=仅时间戳（基线/旧格式）。
+	// 写入年龄/世代副表（失败仅记日志不阻断主路径）；sourceRaft 为 null 时仅写时间戳基线
 	private void splittingAgeWriteQuietly(String tableName, Binary keyFirst, @Nullable String sourceRaft) {
 		try {
 			var key = splittingAgeKey(tableName, keyFirst);
@@ -676,19 +583,17 @@ public class MasterDatabase {
 			var key = splittingAgeKey(tableName, keyFirst);
 			rocksSplittingAge.delete(key, 0, key.length);
 		} catch (RocksDBException ex) {
-			// 残留记录只多占空间，不被扫描读取（扫描以splitting现存条目为驱动），无正确性影响。
 			logger.error("splittingAgeRemove fail (observation only). database={} table={}", databaseName, tableName, ex);
 		}
 	}
 
-	/** 条目创建时间戳（年龄观测用）；无记录（存量条目未立基线）返回null。 */
+	/** 返回条目创建时间戳（毫秒）；无记录返回 null。 */
 	public @Nullable Long getSplittingAgeCreateTime(String tableName, Binary keyFirst) {
 		var rec = readSplittingAge(tableName, keyFirst);
 		return null != rec ? rec.createTimeMs() : null;
 	}
 
-	// 年龄+世代记录：[varint创建时间戳][可选WriteString源桶raft身份]；无剩余字节=旧格式/纯基线（无世代
-	// 身份，判死退回INV1）。读取失败按无记录处理（下轮扫描重建基线）。
+	// 年龄与世代记录：[时间戳][可选源桶 raft 身份]
 	private record AgeRecord(long createTimeMs, @Nullable String sourceRaft) {
 	}
 
@@ -706,8 +611,7 @@ public class MasterDatabase {
 		}
 	}
 
-	// 桶的raft集群身份：raftConfig解析出的sortedNames（库内 raft 身份判据的既有先例：
-	// Dbh2Manager.dbh2s、Dbh2.isSelfReference）。解析失败返回null——无身份不参与世代判死（保守）。
+	// 解析桶的 raft 集群身份（sortedNames）；解析失败返回 null
 	private static @Nullable String raftIdentityOf(BBucketMeta.Data bucket) {
 		try {
 			return RaftConfig.loadFromString(bucket.getRaftConfig()).getSortedNames();
@@ -716,7 +620,7 @@ public class MasterDatabase {
 		}
 	}
 
-	// 区间包含（keyLast的Empty=+∞，序同compareKeyLast）：inner ⊆ outer。
+	// 判断区间包含关系（inner ⊆ outer），keyLast 为空表示 +∞
 	private static boolean rangeContains(Binary outerFirst, Binary outerLast, Binary innerFirst, Binary innerLast) {
 		if (innerFirst.compareTo(outerFirst) < 0)
 			return false;
@@ -725,9 +629,7 @@ public class MasterDatabase {
 		return innerLast.size() > 0 && innerLast.compareTo(outerLast) <= 0;
 	}
 
-	// 世代登记（FND29 dbh2-04）：年龄记录补写源桶身份（"谁的孩子"）。源桶=主表floor(entry.keyFirst)
-	// 且现行区间完整包含条目区间（创建时刻恒成立；不成立=条目已死或登记过晚，保守不登记——无身份
-	// 条目判死退回INV1）。取主表锁，必须在splitting锁外调用（锁序主表→splitting不可反取）。
+	// 按主表→splitting 锁序为 splitting 条目补登记源桶 raft 身份（必须在 splitting 锁外调用）
 	private void registerSplittingGeneration(String tableName, BBucketMeta.Data entry) {
 		var mainTable = tables.get(tableName);
 		var splittingTable = splitting.get(tableName);
@@ -737,7 +639,7 @@ public class MasterDatabase {
 		try {
 			splittingTable.lock();
 			try {
-				// 登记可晚于应答/扫描；旧目标的登记不得覆写同区间新目标的世代。
+				// 防止迟到登记覆写同区间已重建的新目标
 				var current = splittingTable.buckets.get(entry.getKeyFirst());
 				if (current == null || !sameBucketMeta(current, entry)
 						|| !current.getRaftConfig().equals(entry.getRaftConfig()))
@@ -757,15 +659,7 @@ public class MasterDatabase {
 		}
 	}
 
-	// 结构判死（FND29 dbh2-04）。判死证据永远结构驱动，年龄只是回收门槛（双保险防误杀在途split）：
-	//  - 有世代身份：源桶（登记的raft身份）的现行主表区间必须完整包含条目区间。主表区间只会
-	//    收窄（INV1），一旦条目区间越出源桶现行区间，源桶任何后续meta都不再覆盖该区间；而条目
-	//    只能由其源桶settle（endSplit/endMove恒来自源桶，且源桶单slot只可能持有最新一次
-	//    createSplitBucket返回的meta）——中位键漂移的旧世代条目结构上不可达=死。源桶raft已不在
-	//    主表（被move替换等）同理必死。
-	//  - 无世代身份（存量/登记失败）：退回INV1判据——floor比条目更窄=更晚的settle已收窄
-	//    （与consumeDeadSplittingOnCollision同判据）。
-	// 调用方须已持该表主表锁。
+	// 结构判死（调用方须已持主表锁）：有源桶世代时要求源桶仍在主表且覆盖条目区间，无世代时退回主表 floor 收窄判据
 	private boolean isDeadSplittingEntry(MasterTable.Data mainTable, BBucketMeta.Data entry,
 										 @Nullable String sourceRaft) {
 		if (null != sourceRaft) {
@@ -782,12 +676,7 @@ public class MasterDatabase {
 		return null != floor && compareKeyLast(floor.getValue().getKeyLast(), entry.getKeyLast()) < 0;
 	}
 
-	// 孤儿raft回收（FND29 dbh2-04）：对条目host2Raft登记的各manager发DestroyBucket（幂等：
-	// manager侧未建/已销毁都成功，并删除桶目录——目录残留会被Dbh2Manager.start()目录扫描复活；
-	// master的Register应答只含主表桶，孤儿splitting raft不会被registerToMaster对账重建）。
-	// 任一manager未注册/未确认返回false：条目保留（未tombstone），下一轮扫描重试——回收幂等。
-	// 回收调用方持主表→splitting锁，防止校验后目标被结算发布或同区间重建。
-	// 内含30s阻塞rpc；回收期间该表元数据操作等待，不能靠锁外二次检查撤销已发出的销毁。
+	// 向孤儿 splitting 条目的各 manager 发送幂等 DestroyBucket（调用方须持主表→splitting 锁）；任一未确认则返回 false 留待下轮重试
 	private boolean destroyOrphanRafts(String tableName, BBucketMeta.Data dead) {
 		var allAcked = true;
 		for (var e : dead.getHost2Raft().entrySet()) {
@@ -801,7 +690,6 @@ public class MasterDatabase {
 			}
 			var r = new DestroyBucket();
 			r.Argument.assign(dead);
-			// host2Raft.value是该manager侧的raftName，配置内占位符按它替换（对齐destroyBucketRafts）。
 			r.Argument.setRaftConfig(dead.getRaftConfig().replace("RaftName", e.getValue()));
 			try {
 				r.SendForWait(manager.socket, 30_000).await();
@@ -824,12 +712,10 @@ public class MasterDatabase {
 	private record AgedEntry(BBucketMeta.Data entry, long ageMs, @Nullable String sourceRaft) {
 	}
 
-	// 首扫无记录的存量条目：锁内立时间戳基线，锁外（需主表锁）补世代登记。
 	private record MissingBaseline(String tableName, BBucketMeta.Data entry) {
 	}
 
-	// aged仅是扫描快照，不能直接授予销毁权限。锁内确认同一目标世代仍在splitting，
-	// 再判死、销毁和摘除；整个过程与settle/create互斥，年龄副表清理也在同一锁区间。
+	// 按主表→splitting 锁序二次确认条目仍存在且结构判死后，销毁孤儿 raft 并摘除 splitting 记录
 	private boolean recycleDeadSplitting(String tableName, AgedEntry a) {
 		var mainTable = tables.get(tableName);
 		if (null == mainTable)
@@ -844,19 +730,17 @@ public class MasterDatabase {
 				var exist = splittingTable.buckets.get(a.entry().getKeyFirst());
 				if (null == exist || !sameBucketMeta(exist, a.entry())
 						|| !exist.getRaftConfig().equals(a.entry().getRaftConfig()))
-					return true; // 已settle/消费/重建，旧快照无权触碰目标或新条目。
+					return true;
 				if (!isDeadSplittingEntry(mainTable, exist, a.sourceRaft()))
 					return false;
 				logger.error("splitting entry aged ({}ms >= {}ms) and structurally dead, recycle. database={} table={} entry={}",
 						a.ageMs(), master.getDbh2Config().getSplittingAgeWarnMs(), databaseName, tableName, exist);
-				// manager未确认时保留条目，下轮重试。使用锁内现行meta，避免扫描后host映射变化。
 				if (!destroyOrphanRafts(tableName, exist))
 					return false;
 				try {
 					splittingTable.buckets.remove(a.entry().getKeyFirst());
 					saveRocks(rocksSplitting, tableName, splittingTable);
 				} catch (RocksDBException ex) {
-					// 同既有回滚：save失败还原内存（磁盘仍是旧值），重试按未消费语义进行。
 					splittingTable.buckets.put(a.entry().getKeyFirst(), exist);
 					logger.error("recycleDeadSplitting saveRocks fail, keep entry for retry."
 							+ " database={} table={}", databaseName, tableName, ex);
@@ -873,15 +757,8 @@ public class MasterDatabase {
 	}
 
 	/**
-	 * splitting年龄扫描+孤儿回收（FND29 dbh2-04升格：原只观测）：
-	 *  - 超龄且**结构判死**（世代/INV1双保险，isDeadSplittingEntry）：destroyOrphanRafts回收
-	 *    managers侧孤儿raft（gracefulStop+删目录）后tombstone条目；manager未确认则保留条目
-	 *    下轮重试（回收幂等）。
-	 *  - 超龄但结构存活（典型：超大桶在途拷贝可超过任何阈值）**只告警不动作**——判死永远结构
-	 *    驱动，年龄仅是回收门槛（阈值不变：SplittingAgeWarnMs，默认10min量级）。
-	 *  - 无时间戳的存量条目按首次扫描起点立基线（首扫只立基线不告警），基线同轮补登记世代身份。
-	 * 返回超龄条数（告警+回收）。
-		 * 锁序：splitting锁内取扫描快照，放锁后登记世代或按主表→splitting锁序回收。
+	 * 扫描 splitting 条目年龄：超龄且结构判死的回收孤儿 raft 并删除条目，超龄仍存活的仅告警，
+	 * 无时间戳的存量条目建立基线并补登记世代。返回本次发现的超龄条目数。
 	 */
 	public int scanSplittingAge() {
 		var now = System.currentTimeMillis();
@@ -891,13 +768,13 @@ public class MasterDatabase {
 		for (var e : splitting.entrySet()) {
 			var tableName = e.getKey();
 			var splittingTable = e.getValue();
-			splittingTable.lock(); // 与settle/createSplitBucket/死信消费的splitting写互斥
+			splittingTable.lock();
 			try {
 				for (var b : splittingTable.buckets.entrySet()) {
 					var keyFirst = b.getKey();
 					var rec = readSplittingAge(tableName, keyFirst);
 					if (null == rec) {
-						splittingAgeWriteQuietly(tableName, keyFirst, null); // 先立时间戳基线（防登记前崩溃）
+						splittingAgeWriteQuietly(tableName, keyFirst, null);
 						baselines.add(new MissingBaseline(tableName, b.getValue().copy()));
 						continue;
 					}

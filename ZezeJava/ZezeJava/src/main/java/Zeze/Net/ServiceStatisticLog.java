@@ -11,11 +11,11 @@ import org.jspecify.annotations.Nullable;
 
 /** 每Service的网络收发统计周期日志（select/recv/send速率与发送缓冲积压）。 */
 public final class ServiceStatisticLog implements Action0 {
-	private static final Logger logger = LogManager.getLogger("StatLog"); // 沿用统计日志通道
+	private static final Logger logger = LogManager.getLogger("StatLog");
 	private final Service service;
 	private @Nullable ScheduledFuture<?> statisticLogFuture;
 	private int periodSec;
-	private final long[] lastSizes = new long[]{-1, 0, 0, 0, 0, 0}; // [0]=-1哨兵：跳过首轮速率计算，见run()
+	private final long[] lastSizes = new long[]{-1, 0, 0, 0, 0, 0}; // [0]=-1 表示跳过首轮速率计算
 
 	public ServiceStatisticLog(Service service) {
 		this.service = service;
@@ -28,7 +28,7 @@ public final class ServiceStatisticLog implements Action0 {
 		if (f != null && !f.isCancelled())
 			cancelStartStatisticLog();
 		this.periodSec = periodSec;
-		lastSizes[0] = -1; // 换周期首轮跳过速率计算：lastSizes仍是旧周期计数，直接算会失真
+		lastSizes[0] = -1; // 换周期后首轮跳过速率计算
 		f = TaskSpec.ofAction(this).schedulePeriodNow(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L);
 		statisticLogFuture = f;
 		return f;

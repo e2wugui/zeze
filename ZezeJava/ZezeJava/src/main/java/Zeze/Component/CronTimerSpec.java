@@ -6,11 +6,8 @@ import Zeze.Builtin.Timer.BCronTimer;
 import org.apache.logging.log4j.core.util.CronExpression;
 
 /**
- * BCronTimer 的调度参数描述，同时持有 BCronTimer 的运行时推进逻辑（cron 解析与下次触发时间计算）。
- * 生成的 bean 类无法持有手写逻辑，本类是其唯一的手写伴生类。
- * cron表达式在构造时立即解析校验，非法表达式直接抛出 IllegalArgumentException。
- * 本类只是调度参数的描述，build() 时才捕获当前时间并生成真正可调度的 bean。
- * 注意：不要缓存复用 build() 的产物，每次调度都应重新 build（schedule 入口内部自动完成）。
+ * BCronTimer 的调度参数描述与运行时推进逻辑（cron 解析及下次触发时间计算）。
+ * 构造时立即校验表达式，build() 时捕获当前时间生成可调度 bean（不可缓存复用）。
  *
  * <pre>
  * var timerId = timer.schedule(TimerSpec.ofCron("0 0 4 * * ?")
@@ -118,8 +115,7 @@ public final class CronTimerSpec implements TimerSpec {
 		return cronNextTimeAfter(cronExpression, time);
 	}
 
-	// getNextValidTimeAfter对无可行后续时间（如过期年份表达式"0 0 0 1 1 ? 2020"）返回null
-	// （Quartz系文档行为），直接.getTime()会在深处NPE——入口显式拒绝。
+	// 无后续可行触发时间时返回 null，入口显式拒绝
 	private static long cronNextTimeAfter(CronExpression cronExpression, long time) {
 		var next = cronExpression.getNextValidTimeAfter(new Date(time));
 		if (next == null)
@@ -140,7 +136,7 @@ public final class CronTimerSpec implements TimerSpec {
 		var now = System.currentTimeMillis();
 		cronTimer.setHappenTime(now);
 
-		// check remain times
+		// 检查剩余次数
 		var remainTimes = cronTimer.getRemainTimes();
 		if (remainTimes >= 0) {
 			if (remainTimes > 0)
@@ -151,24 +147,21 @@ public final class CronTimerSpec implements TimerSpec {
 
 		long baseTime;
 		if (missfire && cronTimer.getMissfirePolicy() == AbstractTimer.eMissfirePolicyRunOnce) {
-			// 装载期补触发：loadTimer对任何迟到都dispatch（missfire=true），此策略以当前时间为基准重设，
-			// 定时器将在新的开始时间之后按原来的间隔执行。
+			// 装载期补触发：此策略以当前时间为基准重设
 			// cronTimer.setStartTime(now);
 			baseTime = now;
 		} else
 			baseTime = nextExpectedTime;
 		nextExpectedTime = nextCronTimeOrZero(cronTimer.getCronExpression(), baseTime);
 		if (nextExpectedTime != 0 && nextExpectedTime <= now) {
-			// 迟到超过一个整触发槽（下一个触发点仍在过去；判据避开毫秒级抖动，运行期与装载期
-			// 一致，不依赖missfire标志）：追赶终止。cron触发点是绝对时间，从now重算即未来
-			// 最近的定点——OldNext保持对齐，其余策略等价于以当前时间重设。
+			// 迟到超过一个整触发槽时终止追赶，直接从 now 重算未来最近定点
 			nextExpectedTime = nextCronTimeOrZero(cronTimer.getCronExpression(), now);
 		}
 		cronTimer.setNextExpectedTime(nextExpectedTime);
 		if (nextExpectedTime == 0)
-			return false; // 自然耗尽只终止续调；当前合法时刻的回调仍由调用者执行。
+			return false; // 自然耗尽只终止续调；当前回调仍由调用者执行
 
-		// check endTime
+		// 检查结束时间
 		var endTime = cronTimer.getEndTime();
 		return endTime <= 0 || nextExpectedTime <= endTime;
 	}

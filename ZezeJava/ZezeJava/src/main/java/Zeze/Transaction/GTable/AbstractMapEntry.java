@@ -4,12 +4,7 @@ package Zeze.Transaction.GTable;
 import java.util.Map.Entry;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Implementation of the {@code equals}, {@code hashCode}, and {@code toString} methods of {@code
- * Entry}.
- *
- * @author Jared Levy
- */
+/** {@code Map.Entry} 骨架实现，提供标准的 {@code equals}、{@code hashCode} 与 {@code toString}。 */
 abstract class AbstractMapEntry<K extends @Nullable Object, V extends @Nullable Object> implements Entry<K, V> {
 	@Override
 	public abstract K getKey();
@@ -38,7 +33,7 @@ abstract class AbstractMapEntry<K extends @Nullable Object, V extends @Nullable 
 		return ((k == null) ? 0 : k.hashCode()) ^ ((v == null) ? 0 : v.hashCode());
 	}
 
-	/** Returns a string representation of the form {@code {key}={value}}. */
+	/** 返回 {@code {key}={value}} 格式的字符串表示。 */
 	@Override
 	public String toString() {
 		return getKey() + "=" + getValue();

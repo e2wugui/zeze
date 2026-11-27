@@ -95,11 +95,7 @@ public class ProviderDistribute extends ReentrantLock {
 	public @Nullable BServiceInfo choiceHash(Agent.SubscribeState providers, int hash,
 											 int dataConcurrentLevel) {
 		var consistentHash = consistentHashes.get(providers.getServiceName());
-		// 订阅状态先于一致性哈希环构建可见（Agent同步更新serviceInfos，
-		// onChanged→applyOnChanged→addServer异步排队），窗口期内环可能尚未建好；此时
-		// 返回null与Request/Load/FeedFull路径的“未找到”语义一致：linkd侧choiceBindSend
-		// 走错误码→ReportError(NoProvider)通告客户端（自愈），而非抛IllegalStateException
-		// 落回TcpSocket读循环→doException→close断开无辜客户端连接。
+		// 订阅状态可能先于一致性哈希环构建可见，未就绪时返回 null 走常规无可用节点路径。
 		if (consistentHash == null)
 			return null;
 		if (dataConcurrentLevel < 1)
@@ -194,7 +190,6 @@ public class ProviderDistribute extends ReentrantLock {
 			provider.value = all.get(Random.getInstance().nextInt(all.size())).getSessionId();
 			return true;
 		}
-		// no providers
 		return false;
 	}
 
@@ -258,7 +253,6 @@ public class ProviderDistribute extends ReentrantLock {
 			provider.value = all.get(Random.getInstance().nextInt(all.size())).getSessionId();
 			return true;
 		}
-		// no providers
 		return false;
 	}
 

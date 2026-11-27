@@ -28,17 +28,14 @@ import java.util.List;
 import java.util.Map.Entry;
 import Zeze.Services.ServiceManager.Id128UdpClient.FutureNode;
 
-/*
- * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
- * EditService		给订阅者广播Edit				onChanged
- * Subscribe		给发起者回复BSubscribeResult	onChanged
- * UnSubscribe		无								无
+/**
+ * 服务管理器客户端抽象基类：管理服务订阅状态与增量回调、断线重连重放、
+ * Suspect/TakeoverDone 通知以及 AutoKey/TidCache/Tid128Cache 号段分配。
  */
 public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	static final Logger logger = LogManager.getLogger(AbstractAgent.class);
 
-	// key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
-	// ServiceName ->
+	// key 为 ServiceName；每个 Agent 对同一服务只保留一个订阅。
 	protected final ConcurrentHashMap<String, Agent.SubscribeState> subscribeStates = new ConcurrentHashMap<>();
 
 	protected @Nullable Config config;
@@ -49,17 +46,14 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	protected @Nullable Action1<BEditService> onChanged;
 	protected @Nullable Action1<BServerLoad> onSetServerLoad;
 
-	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
-	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
+	// SM 定时发送 KeepAlive 并等待结果，应用可在此执行健康检测（如测试事务）。
 	protected @Nullable Runnable onKeepAlive;
-	// SM Suspect提示回调：参数=疑似死者的serverId。应用转化为takeover.tryTransfer。
+	// SM Suspect 提示回调，参数为疑似失效节点的 serverId。
 	protected volatile @Nullable Action1<Integer> onSuspect;
 	private volatile @Nullable TaskCompletionSource<TidCache> lastTidCacheFuture;
-	// 按globalName记录最近一次分配的tid128 future：原agent级单槽不区分名字，多名字使用时
-	// getUsableTid128CacheFuture(B)会返回为A分配的future，跨名号段串用（静默发错号）。
+	// 按 globalName 缓存最近一次 tid128 分配 future，避免多名字号段混用。
 	private final ConcurrentHashMap<String, Id128UdpClient.FutureNode> tid128CacheFutures = new ConcurrentHashMap<>();
-	// 最近一次分配的future（无论名字）：仅作为无参getLastTid128CacheFuture()的兼容镜像（供测试/诊断），
-	// 正确性路径一律按名字存取，不读它。
+	// 无参 getLastTid128CacheFuture() 的兼容镜像，仅供测试/诊断，正确性路径按 globalName 存取。
 	private volatile @Nullable FutureNode lastTid128CacheFuture;
 	protected @Nullable Id128UdpClient tid128UdpClient; // 子类初始化。
 
@@ -76,9 +70,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	/**
-	 * Takeover全部scope搬运完成（立墓碑）后上报SM：SM据此停止version梯队升档。
-	 * fire-and-forget：丢失由梯队超时升档的重复Suspect兜底（已接管者tryTransfer幂等空转，
-	 * 并经此路径补发回执自愈）。默认空实现（无SM连接时）；子类按所连SM版型发对应协议。
+	 * Takeover 全部 scope 搬运完成后向 SM 上报回执（fire-and-forget），供 SM 停止 version 梯队升档；
+	 * 默认空实现，子类按对应协议发送。
 	 */
 	public void sendTakeoverDone(int deadServerId) {
 	}
@@ -159,8 +152,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		private final Action0 registerAction;
 		private final String taskName;
 		private final Level failureLevel;
-		private @Nullable Future<?> retryTask; // guarded by this，绝不持此锁等待 RPC
-		private boolean closed; // guarded by this
+		private @Nullable Future<?> retryTask; // 由 this 保护，绝不持锁等待 RPC
+		private boolean closed; // 由 this 保护
 
 		public ServiceReplay(Action0 registerAction, String taskName) {
 			this(registerAction, taskName, Level.WARN);
@@ -234,11 +227,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			var lastFuture = lastTidCacheFuture;
 			var allocateCount = TidCache.ALLOCATE_COUNT_MIN;
 			if (lastFuture != null) {
-				// 锁内只做非阻塞探测（FND3-39）：等待未完成的future需要它的完成回调先拿本锁
-				// （回调在IO线程内联），互相等待即死锁并冻结selector。未完成时退用默认档位
-				// 立即分配——档位只是优化参数，号段允许并发分配，各自future各自消费。
+				// 锁内仅非阻塞探测：完成回调在 IO 线程内联需获取本锁，等待未完成 future 会死锁；未完成或异常时回退默认档位。
 				if (lastFuture.isCompletedExceptionally()) {
-					// 上一次分配异常完成（如发送失败）：以默认档位重新分配并替换（自愈）。
 					logger.warn("allocateTidCacheFuture('{}'): last future failed, re-allocate with default count",
 							globalName);
 				} else {
@@ -286,11 +276,10 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	/**
-	 * 分配一段id并缓存到tid128CacheFutures（按globalName），段耗尽后由Tid128Cache.next()递归调用本方法换新段。
-	 * @param globalName 全局history名字
-	 * @param allocateCount 一次分配的个数，&lt;=0 表示自适应（上次档位/最小档位）；
-	 *                      &gt;0（如多app部署的1）时每次按该个数分配。
-	 * @return 可等待的future，到达后get()得到Tid128Cache号段。
+	 * 按 globalName 分配一段 Id128 并缓存，号段耗尽后由 {@link Tid128Cache#next()} 递归换段。
+	 * @param globalName 全局 history 名称
+	 * @param allocateCount 单次分配个数；&lt;=0 表示自适应，&gt;0 按指定数量分配
+	 * @return 分配结果的 future
 	 */
 	public Id128UdpClient.FutureNode allocateTid128CacheFuture(String globalName, int allocateCount) {
 		lock();
@@ -299,12 +288,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			if (allocateCount <= 0) {
 				allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
 				if (future != null) {
-					// 锁内只做非阻塞探测（FND3-39衍生，与32位路径统一锁纪律）：本路径完成虽在
-					// UDP接收线程、不经agent锁（无死锁），但等待未完成future会把锁占住剩余RTT，
-					// 丢包时要等重传超时检查（eRpcTimeout=5s）毒化才跳出，期间其他分配调用者
-					// 全被卡。未完成退用默认档位立即分配——档位只是优化参数。
+					// 锁内仅非阻塞探测，避免持锁等待网络 RTT/超时阻塞其他分配调用；未完成或异常时回退默认档位。
 					if (future.isCompletedExceptionally()) {
-						// 上一次分配异常完成（如Udp超时）：以默认档位重新分配并替换（自愈）。
 						logger.warn("allocateTid128CacheFuture('{}'): last future failed, re-allocate with default count",
 								globalName);
 					} else {
@@ -314,14 +299,12 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 					}
 				}
 			}
-			// raft版SM不初始化tid128UdpClient（不支持Id128 UDP发号）：这里给出明确的
-			// 错误而不是裸NPE；该组合应在子类构造时被fail-fast拦截（见ServiceManagerAgentWithRaft）。
 			if (tid128UdpClient == null)
 				throw new IllegalStateException("tid128UdpClient is not available (unsupported combination, " +
 						"e.g. ServiceManager=raft): allocateTid128CacheFuture('" + globalName + "')");
 			future = tid128UdpClient.allocateFuture(globalName, allocateCount);
 			tid128CacheFutures.put(globalName, future);
-			lastTid128CacheFuture = future; // 无参getLastTid128CacheFuture()的兼容镜像
+			lastTid128CacheFuture = future;
 			return future;
 		} finally {
 			unlock();
@@ -329,9 +312,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	/**
-	 * finalCommit等只读入口使用：返回可用的tid128分配future。
-	 * 上一次分配异常完成（Udp超时等毒化状态）或尚未分配过时，发起新分配并替换（自愈），
-	 * 避免读取毒化的future后get()抛异常，导致finalCommit失败halt。
+	 * 返回指定 globalName 可用的 tid128 分配 future；未分配或上次异常完成时重新分配替换。
 	 */
 	public Id128UdpClient.FutureNode getUsableTid128CacheFuture(String globalName) {
 		var future = getLastTid128CacheFuture(globalName);
@@ -357,22 +338,21 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 					if (onChanged != null) {
 						onChanged.run(edit);
 					}
-				} catch (Throwable e) { // logger.error
+				} catch (Throwable e) {
 					logger.error("", e);
 				}
 			}).executeOneByOne(SMCallbackOneByOneKey, Task.getOneByOne());
 		}
 	}
 
-	// 【警告】
-	// 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
-	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
-	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
+	/**
+	 * 单个服务的本地订阅状态：缓存各版本地址列表与本地附着状态，供断线重连重放与变更查询。
+	 */
 	public static final class SubscribeState extends ReentrantLock {
 		private volatile BSubscribeInfo subscribeInfo;
 		private volatile BServiceInfosVersion serviceInfos = new BServiceInfosVersion();
 
-		// 服务准备好。
+		// 按 identity 保存本地就绪状态。
 		private final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
 		private @Nullable Iterator<Map.Entry<String, Object>> localStatesIterator;
 
@@ -400,9 +380,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			return subscribeInfo;
 		}
 
-		// 同名重订阅时同步本地过滤版本（FND-S2-8）：请求subs里携带的是新version，服务器simple表
-		// 已被本次请求覆盖，但computeIfAbsent命中旧state保留旧subscribeInfo——断线重连的
-		// onConnected会用它重放，把服务器订阅过滤回退到旧版本桶（灰度切换被重连悄悄回滚）。
+		/** 同名重订阅时更新本地订阅信息，确保断线重连按新过滤版本重放。 */
 		public void updateSubscribeInfo(BSubscribeInfo info) {
 			lock();
 			try {
@@ -430,9 +408,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		/**
-		 * @return 只读, 禁止修改。持锁get（FND-S2-5）：LongHashMap.get与getOrAddInfos的
-		 * 结构性插入/扩容并发时无保护，get必须在锁内完成；返回的BServiceInfos读为
-		 * copy-on-read快照，锁外读安全。
+		 * @return 只读地址列表（禁止修改）；持锁查询以避开底层表扩容并发。
 		 */
 		public @Nullable BServiceInfos getServiceInfos(long version) {
 			lock();
@@ -473,7 +449,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			return findServiceInfoByIdentity(String.valueOf(serverId));
 		}
 
-		// NOT UNDER LOCK
+		// 以下方法不加锁
 
 		public ConcurrentHashMap<String, Object> getLocalStates() {
 			return localStates;
@@ -492,9 +468,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public @Nullable BServiceInfo onRegister(BServiceInfo info) {
 			lock();
 			try {
-				// BEditService.add声明AddOrUpdate以name+id为key：同identity重注册到新版本时，
-				// 先从其他版本桶移除旧记录，保证一个identity最多存在于一个版本桶，
-				// 否则实例下线后旧版本桶残留幽灵地址（与服务端addAndCollectNotify一致）。
+				// 以 name+id 为键，跨版本重注册时先移除其他版本桶中的旧记录，避免残留旧地址。
 				BServiceInfo oldNotSame = null;
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
 					if (it.key() == info.getVersion())
@@ -517,8 +491,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public boolean onUnRegister(BServiceInfo info) {
 			lock();
 			try {
-				// 注销同样以name+id为key跨全部版本桶收敛（与onRegister、服务端removeAndCollectNotify
-				// 一致），移除同identity的全部残留，避免死地址留存在任何版本桶里。
+				// 以 name+id 为键跨全部版本桶移除，避免残留旧地址。
 				var removed = false;
 				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
 					if (it.value().remove(info) != null)

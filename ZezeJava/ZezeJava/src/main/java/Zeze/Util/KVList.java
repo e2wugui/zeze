@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.jspecify.annotations.Nullable;
 
-// 平行数组的键值对列表（keys/values 同下标成对），可克隆
+/** 平行数组的键值对列表（keys/values 同下标成对），可克隆。 */
 public class KVList<K extends @Nullable Object, V extends @Nullable Object> implements Cloneable {
 	public static final @Nullable Object[] EMPTY = new Object[0];
 	public static final int DEFAULT_SIZE = 8;
@@ -18,7 +18,7 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 	private @Nullable Object [] values = EMPTY;
 	private int count;
 
-	// Called only within count; nullable backing slots outside the live prefix do not constrain K or V.
+	// 仅对有效下标 [0, count) 调用，消除后备数组可空槽位类型约束
 	private K keyForPresentIndex(@Nullable K key) {
 		return key;
 	}
@@ -182,7 +182,7 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 			for (cap = DEFAULT_SIZE; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
-			if (cap < 0) // count > 2^30：倍增 cap 溢出为负，原实现死循环
+			if (cap < 0) // count > 2^30 时倍增溢出为负
 				throw new OutOfMemoryError("KVList reserve count too large: " + count);
 			@Nullable Object[] buffer = keys;
 			if (count > buffer.length) {
@@ -209,7 +209,7 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 			for (cap = 8; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
-			if (cap < 0) // 同 reserve：防倍增溢出死循环
+			if (cap < 0) // count > 2^30 时倍增溢出为负
 				throw new OutOfMemoryError("KVList reserveSpace count too large: " + count);
 			if (count > keys.length)
 				keys = new Object[cap];
@@ -229,7 +229,7 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 	private void copyPairs(@Nullable Object[] keys, @Nullable Object[] values, int fromIdx, int toIdx, int count) {
 		int valuesFromIdx = fromIdx;
 		if (values == this.keys) {
-			// Writing keys must not destroy values still needed from a cross-aliased source.
+			// 防止 keys 与 values 交叉别名时先写 keys 破坏待读 values
 			values = Arrays.copyOfRange(values, fromIdx, fromIdx + count);
 			valuesFromIdx = 0;
 		}
@@ -318,7 +318,7 @@ public class KVList<K extends @Nullable Object, V extends @Nullable Object> impl
 	}
 
 	public KVList<K, V> addAll(Collection<K> keys, Collection<V> values) {
-		// Collection views can share either backing column too; capture both before writing.
+		// 集合视图可能共享底层数组，先拷贝再写入
 		int size = Math.min(keys.size(), values.size());
 		var keyCopy = new @Nullable Object[size];
 		var valueCopy = new @Nullable Object[size];

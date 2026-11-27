@@ -685,10 +685,7 @@ public final class Application extends ReentrantLock {
 			}
 		}
 
-		// Dbh2管理器随启动闭环（"7788集成形态不监听"立案）：本地提交的CommitService必须真实监听
-		// ——悬挂事务探测端点=Zeze.Dbh2.Commit Acceptor（commitServiceAcceptor发布），无人监听时
-		// 桶侧探测永远失败→事务锁死桶键→后来者撞键；redo守护同随start启用。远程提交分支只连接
-		// CommitServer不绑定。stop()早已对称调用manager.stop()。manager非null ⇔ 配置了Dbh2库。
+		// 配置了 Dbh2 库时，本地提交模式需启动 CommitService 监听以响应桶侧悬挂事务探测。
 		if (dbh2AgentManager != null)
 			dbh2AgentManager.start();
 
@@ -724,7 +721,7 @@ public final class Application extends ReentrantLock {
 			if (takeover != null) {
 				//noinspection DataFlowIssue
 				takeover.start();
-				// SM Suspect提示→tryTransfer（非raft与raft版SM都会在会话断开时广播Suspect）。
+				// 会话断开时 SM 广播 Suspect，触发故障接管。
 				if (serviceManager != null)
 					//noinspection DataFlowIssue
 					serviceManager.setOnSuspect(deadServerId -> takeover.tryTransfer(deadServerId));

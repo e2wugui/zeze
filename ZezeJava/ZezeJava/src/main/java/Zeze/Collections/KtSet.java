@@ -9,19 +9,8 @@ import kotlinx.collections.immutable.PersistentSet;
 import org.pcollections.PSet;
 
 /**
- * pcollections {@link PSet} 的 kotlinx PersistentHashSet（CHAMP）内核实现。
- * 仅经 {@link Persistents#set()} 构建使用，替换动机是内存（pcollections MapPSet 基于
- * HashTreePMap 的 IntTree 二叉树，每元素摊 60-80B+，CHAMP 内核省数倍）。
- *
- * <p>契约对齐 pcollections（回归测试钉住）：
- * <ul>
- *   <li>no-op 引用恒等：add 已存在元素/remove 不存在元素/批量全 no-op 返回同一实例
- *       （PSet1.add/remove 等写路径 {@code !=} 判定依赖；历史注记：pcollections MapPSet 的
- *       plusAll/minusAll 恒新建包装曾迫使调用点绕行——本实现批量路径亦保恒等，绕行不再是
- *       必要但保持现状不追改）；</li>
- *   <li>equals/hashCode/contains 走 JDK Set 契约（AbstractSet 白拿，contains 直达内核）；</li>
- *   <li>迭代顺序与 pcollections 同为无序。</li>
- * </ul>
+ * 基于 kotlinx PersistentHashSet（CHAMP）的 {@link PSet} 实现，经 {@link Persistents#set()} 构建。
+ * 写路径保证无变化操作返回同一实例（支持写日志 {@code !=} 变更检测），迭代无序。
  */
 public final class KtSet<E> extends AbstractSet<E> implements PSet<E> {
 	private final PersistentSet<E> kt;

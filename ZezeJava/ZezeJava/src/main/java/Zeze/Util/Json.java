@@ -22,8 +22,10 @@ import Zeze.Transaction.GTable.BeanMap2;
 import org.jspecify.annotations.Nullable;
 import sun.misc.Unsafe;
 
-// Compile with JDK11+; Run with JDK8+ (JDK9+ is recommended); Android is NOT supported
-// 高性能 JSON 解析/序列化：反射+Unsafe 缓存字段布局，内建 Zeze 容器与可扩展 Parser/Writer 的静态入口
+/**
+ * 高性能 JSON 解析与序列化入口：基于反射与 Unsafe 缓存字段布局，内置 Zeze 容器并支持自定义 Parser/Writer。
+ * 需 JDK11+ 编译、JDK8+ 运行（不支持 Android）。
+ */
 public final class Json implements Cloneable {
 	static final int TYPE_BOOLEAN = 1; // boolean, Boolean
 	static final int TYPE_BYTE = 2; // byte, Byte
@@ -158,8 +160,7 @@ public final class Json implements Cloneable {
 			keyReaderMap.put(Double.class, JsonReader::parseDoubleKey);
 			keyReaderMap.put(String.class, JsonReader::parseStringKey);
 			keyReaderMap.put(Object.class, JsonReader::parseStringKey);
-			// decimal：toString/new BigDecimal(String)全精度双射，
-			// 写侧走isInKeyReaderMap的String.valueOf(k)带引号串，对称。
+			// BigDecimal 键按全精度字符串读写，与写侧对称
 			keyReaderMap.put(BigDecimal.class, (jr, b) -> new BigDecimal(JsonReader.parseStringKey(jr, b)));
 		}
 
@@ -171,10 +172,7 @@ public final class Json implements Cloneable {
 			return keyReaderMap.get(klass);
 		}
 
-		// 键不在keyReaderMap时的反射回退KeyReader：读回键串再JSON解析进键对象，
-		// 与写侧（JsonWriter对非内建键整体序列化为带引号JSON串）往返对称。
-		// 手建FieldMeta处（GTable1/GTable2/Helper.decodeJsonTypedMap）与ClassMeta
-		// 构造器一律经本工厂取keyParser，避免两份回退逻辑漂移。
+		// 非内建键类型统一经带引号 JSON 串往返，供 ClassMeta 与手建 FieldMeta 共用
 		public static KeyReader getKeyReaderOrFallback(Json json, Class<?> keyClass,
 													   String where) {
 			var keyReader = keyReaderMap.get(keyClass);
@@ -356,10 +354,7 @@ public final class Json implements Cloneable {
 						}
 					} else if (fieldClass.isArray() && fieldClass != byte[].class
 							&& (v = typeMap.get(fieldClass.getComponentType())) != null) {
-						// 普通数组（原始类型/String/Object元素）：写侧输出数组格式，读侧建立
-						// 对称适配（此前TYPE_CUSTOM只收'{'，数组字段静默不读入，null字段还
-						// 报abstract field）。byte[]有专门的字符串codec（getClassMeta(byte[].class)
-						// 注册的parser/writer），保持既有路径；自定义元素数组维持TYPE_CUSTOM。
+						// 原始/包装/String/Object 数组走数组格式；byte[] 走专用字符串 codec，自定义元素数组保持 TYPE_CUSTOM
 						fieldClass = fieldClass.getComponentType();
 						type = TYPE_ARRAY_FLAG + (v & 0xf);
 					} else
@@ -451,13 +446,11 @@ public final class Json implements Cloneable {
 	public @Nullable BiFunction<Class<?>, Field, @Nullable String> fieldNameFilter;
 
 	/**
-	 * 克隆共享全部 ClassMeta 实例（浅拷贝），语义易踩坑：
-	 * 对克隆的 getClassMeta(...).setParser/setWriter 修改的是同一个 ClassMeta 对象，
-	 * 双向穿透到原实例（反之亦然）；克隆上改 fieldNameFilter 只影响此后新注册的类，
-	 * 已共享的 meta 字段布局不变（filter 在 ClassMeta 构造时固化）。
-	 * 仓内零调用者。需要独立配置请显式 new Json() 重建。
+	 * 浅拷贝克隆（共享全部 ClassMeta 实例，修改 parser/writer 会互相影响）。
+	 *
+	 * @deprecated ClassMeta 共享语义易误用，需要独立配置请直接 {@code new Json()}
 	 */
-	@Deprecated // ClassMeta共享语义易误用，复用请显式new Json()
+	@Deprecated
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
 	public Json clone() {
@@ -573,12 +566,10 @@ public final class Json implements Cloneable {
 		classMetas.clear();
 	}
 
-	// ThreadLocal 实例复用的重入保护：外层解析/序列化进行中时，嵌套调用静态入口（典型场景：自定义
-	// Parser/Writer 内部再调 Json.parse/toCompactString）会通过同一个 ThreadLocal 实例的
-	// buf()/reset()/clear() 覆盖或清空外层状态，导致外层 NPE/输出损坏。此时改用独立实例。
+	// 重入保护：外层解析/序列化进行中时嵌套调用静态入口改用独立实例，避免覆盖 ThreadLocal 状态
 	private static JsonReader acquireLocalReader() {
 		JsonReader jr = JsonReader.local();
-		return jr.buf() != null ? new JsonReader() : jr; // buf 非空 = 外层解析进行中
+		return jr.buf() != null ? new JsonReader() : jr;
 	}
 
 	private static JsonWriter acquireLocalWriter() {
@@ -655,7 +646,7 @@ public final class Json implements Cloneable {
 	public static String toCompactString(@Nullable Object obj) {
 		JsonWriter jw = acquireLocalWriter();
 		try {
-			jw.inUse = true; // 标记占用：嵌套静态入口会通过 busy() 检测并改用独立实例
+			jw.inUse = true; // 标记占用，供嵌套静态入口检测重入
 			return jw.clear().setFlagsAndDepthLimit(0, 16).write(obj).toString();
 		} finally {
 			jw.inUse = false;
@@ -691,7 +682,7 @@ public final class Json implements Cloneable {
 		json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			final byte[] data = reader.parseByteString();
 			if (data == null)
-				return null; // json null 保持 null（与 byte[] 及包装类型字段的语义一致）
+				return null;
 			if (obj == null)
 				return ByteBuffer.Wrap(data);
 			obj.wraps(data);
@@ -729,11 +720,10 @@ public final class Json implements Cloneable {
 			}
 		});
 
-		// decimal：decimal键/值集合的JSON导入导出。键读回直接构造
-		// （keyReaderMap条目），值与bean字段走本自定义读写对（带引号全精度字符串）。
+		// BigDecimal 按带引号全精度字符串读写
 		json.getClassMeta(BigDecimal.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			if (reader.next() == 'n')
-				return null; // json null
+				return null;
 			return new BigDecimal(reader.parseString(false));
 		});
 		json.getClassMeta(BigDecimal.class).setWriter((writer, classMeta, obj) -> {
@@ -753,8 +743,7 @@ public final class Json implements Cloneable {
 				else if (parent instanceof PMap2)
 					obj = (DynamicBean)((PMap2<?, ?>)parent).createValue();
 				else if (parent instanceof BeanMap2)
-					// GTable2的dynamic值容器是BeanMap2（内嵌PMap2），
-					// 不适配则返回null，撞PMap2.put的null value。
+					// GTable2 的 dynamic 值容器为 BeanMap2（内嵌 PMap2）
 					obj = (DynamicBean)((BeanMap2<?, ?, ?>)parent).getPMap2().createValue();
 				if (obj == null)
 					return null;
@@ -1111,16 +1100,12 @@ public final class Json implements Cloneable {
 				obj.clear();
 			Class<?> valueClass;
 			if (fieldMeta != null) {
-				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
-				// paramTypes[0] 不是 Class：显式报告字段与类名，避免无上下文的 NPE/CCE。
 				Type[] params = fieldMeta.paramTypes;
 				if (params == null || params.length == 0 || !(params[0] instanceof Class<?>))
 					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
 							+ " in " + classMeta.klass.getName());
 				valueClass = (Class<?>)params[0];
 			} else
-				// 顶层直接 parse（如 Json.parse(s, IntHashMap.class)）没有字段上下文可取值类型：
-				// fail-fast 显式抛错，不产出全 null 的错误结果。
 				throw new InstantiationException("top-level parse of " + classMeta.klass.getName()
 						+ " without concrete value type");
 			ClassMeta<?> valueMeta = instance.getClassMeta(valueClass);

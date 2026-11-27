@@ -4,30 +4,20 @@ package Zeze.Transaction.GTable;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
-/**
- * This class provides a skeletal implementation of the {@link ListIterator} interface across a
- * fixed number of elements that may be retrieved by position. It does not support {@link #remove},
- * {@link #set}, or {@link #add}.
- *
- * @author Jared Levy
- */
+/** 按下标访问定长序列的不可修改 {@link ListIterator} 骨架实现，不支持 {@link #remove}、{@link #set} 和 {@link #add}。 */
 @SuppressWarnings("deprecation")
 abstract class AbstractIndexedListIterator<E> extends UnmodifiableListIterator<E> {
 	private final int size;
 	private int position;
 
-	/** Returns the element with the specified index. This method is called by {@link #next()}. */
+	/** 返回指定下标的元素，供 {@link #next()} 和 {@link #previous()} 调用。 */
 	protected abstract E get(int index);
 
 	/**
-	 * Constructs an iterator across a sequence of the given size with the given initial position.
-	 * That is, the first call to {@link #nextIndex()} will return {@code position}, and the first
-	 * call to {@link #next()} will return the element at that index, if available. Calls to {@link
-	 * #previous()} can retrieve the preceding {@code position} elements.
+	 * 构造指定长度与初始位置的列表迭代器。
 	 *
-	 * @throws IndexOutOfBoundsException if {@code position} is negative or is greater than {@code
-	 *     size}
-	 * @throws IllegalArgumentException if {@code size} is negative
+	 * @throws IndexOutOfBoundsException {@code position} 为负或大于 {@code size} 时抛出
+	 * @throws IllegalArgumentException  {@code size} 为负时抛出
 	 */
 	protected AbstractIndexedListIterator(int size, int position) {
 		Utils.checkPositionIndex(position, size);

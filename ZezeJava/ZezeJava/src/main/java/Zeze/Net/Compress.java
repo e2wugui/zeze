@@ -89,10 +89,7 @@ public class Compress implements Codec {
 		flushed = true;
 	}
 
-	/**
-	 * 落盘挂起的MPPC输出（literal/match）。子类在切换输出模式（如块模式）前必须调用：
-	 * 挂起数据须先于模式切换标记与块数据到达下游，否则构成纯流重排，解码端必然失败。
-	 */
+	/** 落盘挂起的 MPPC 输出，供子类在切换块模式前保序调用。 */
 	protected void flushPending() throws CodecException {
 		if (!flushed)
 			_flush();

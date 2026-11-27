@@ -29,20 +29,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 
 /**
- * Immutable 32-way hash trie with one bitmap and a compact mixed element/node
- * buffer. Full hash collisions occupy a flat leaf beyond bit 30. Updates share
- * unchanged nodes and preserve the receiver's equal element instance.
- *
- * <p>API needed by PSet/PSet1 and LogSet/LogSet1: empty, adding, addingAll,
- * removing, removingAll, builder; Builder.build/add/addAll/remove/removeAll/clear
- * and Set reads. Standard reads, equality and hashing come from AbstractSet.
- * Persistent mutators and iterator.remove are unsupported via the JDK defaults;
- * no-op mutators may return normally. Builder iterators are read-only snapshots,
- * so inherited retainAll/removeIf cannot remove elements through an iterator.
- *
- * <p>Builders edit only nodes tagged with their ownership token. build() changes
- * that token before further writes. Elements themselves are shared, including
- * null (PSet still rejects null). Builders are not thread safe.
+ * 不可变 32 叉哈希前缀树集合：单一位图索引混合元素/子节点缓冲区，全哈希冲突退化为平铺叶节点。
+ * <p>{@link Builder} 仅就地修改持有自身所有权令牌的节点，{@code build()} 通过轮换令牌冻结快照；Builder 非线程安全。
  */
 public final class PersistentHashSet<E> extends AbstractSet<E> {
 	private static final int BITS = 5;
@@ -163,8 +151,7 @@ public final class PersistentHashSet<E> extends AbstractSet<E> {
 			if (elements instanceof PersistentHashSet<?> set && (root.bitmap & set.root.bitmap) == 0) {
 				if (set.size == 0)
 					return false;
-				// Disjoint first hash segments cannot contain equal elements. Reuse
-				// their immutable subtries without equality/hash callbacks or rehashing.
+				// 首段哈希位图不相交，可直接复用不可变子树而无需哈希或判等。
 				root = root.unionDisjoint(set.root, ownership);
 				size += set.size;
 				builtSet = null;
@@ -323,7 +310,7 @@ public final class PersistentHashSet<E> extends AbstractSet<E> {
 				}
 				if (Objects.equals(element, stored))
 					return this;
-				// #374: hashCode of the stored element may throw. Count only after it succeeds.
+				// 已存元素的 hashCode 可能抛异常，构造子树成功后再递增 size。
 				var newNode = makeNode(Objects.hashCode(stored), stored, hash, element, shift + BITS, owner);
 				result = cell(i, newNode, owner);
 			}

@@ -41,22 +41,14 @@ public class Bucket {
 	private final byte[] metaSplitKeyHistory = new byte[]{3};
 	private final byte[] metaPendingSettleKey = new byte[]{4};
 
-	// splitMetaHistory保留量（键数上界，含首键条目）：本桶每次分裂净增一条（from在首键原地刷新、
-	// to新增；迁移的to同键覆盖首键条目不增长），世代序=键序（本桶连续分裂的边界严格递减，最老世代
-	// =最大keyFirst）。超限裁掉最老世代：落入被裁区间的locate改为floor到次新条目，经目标桶自身
-	// 历史链式重定向仍收敛；仅客户端路由缓存陈旧超过保留代数的prepare会失败一次（其首个refuse已
-	// 触发master表刷新，重试收敛）。上界同时约束每次分裂的全量重编码落盘与meta常驻内存。
+	// splitMetaHistory 上限：本桶连续分裂边界严格递减，超限时淘汰最老世代（最大 keyFirst）
 	private static final int SplitMetaHistoryMaxEntries = 64;
 
 	/**
-	 * pending-settle标志：最近一次已commit迁移（LogEndSplit/LogEndMove
-	 * 的apply）的完整from/to meta。它是**派生状态**（从raft日志参数派生，不新增日志schema），
-	 * 天然随raft复制、随快照持久化——commit过的日志在多数派上，任何后来当选的leader
-	 * apply后即持有标志。它是settle通知的持久载体，leader-ready时
-	 * 据此幂等补发。from为null即move。
+	 * 待结算迁移标志：由 LogEndSplit/LogEndMove 的 apply 派生并随快照持久化，供 leader-ready 幂等补发 settle；from 为 null 表示 move。
 	 */
 	public static final class PendingSettle {
-		private final @Nullable Data from; // null=move
+		private final @Nullable Data from; // null 表示 move
 		private final BBucketMeta.Data to;
 
 		PendingSettle(@Nullable Data from, BBucketMeta.Data to) {
@@ -73,9 +65,7 @@ public class Bucket {
 		}
 	}
 
-	// 置死桶meta哨兵（endMove写入keyFirst=keyLast={1}）：死桶不再声明任何键域，
-	// Get/PrepareBatch经inBucket天然拒绝，walk也以此识别死桶（见Dbh2.isWalkBucketRefuse）。
-	// 活桶边界不可能同时为{1}（首桶keyFirst=Empty）。
+	// 死桶 meta 哨兵（endMove 将 keyFirst/keyLast 均置为 {1}），活桶边界不可能同时为此值
 	public static final Binary DeadBucketMetaBound = new Binary(new byte[]{1});
 
 	private volatile @Nullable PendingSettle pendingSettle;
@@ -247,16 +237,7 @@ public class Bucket {
 		return pendingSettle;
 	}
 
-	// 与既有meta写入同批（同一apply内顺序落盘），标志在LogEndSplit/LogEndMove的apply里设置。
-	// 条件覆写：旧标志未清且属不同迁移（to身份不等，判据与clearPendingSettle
-	// 同源）时不覆写：旧标志在=旧迁移的settle未到终局=其补发源仍被需要——单槽无条件覆盖会灭失
-	// 旧迁移唯一的死亡恢复源（进程死后recoverSplitting只补发槽内标志，旧迁移永不结算，其to键域
-	// 主表无主、读写永久失败）。保留旧标志的代价是新迁移失去标志载体，其settle在进程存活期内由
-	// 内存30s重试链兜底；两害相权取其旧：旧迁移的settle已滞留更久，且保留旧标志不劣于覆写：堆叠死亡
-	// 链中旧键域经补发可收敛，新迁移键域两者同样失联（受害者互换）。
-	// 同身份重设幂等放行（raft日志每节点恰apply一次，仅防御）。堆叠窗口已由tryStartSplit对
-	// pending!=null加闸闭口（新迁移不再于旧标志未清时启动，见Dbh2.tryStartSplit），本条件
-	// 覆写保留为闸失效时的防御层。
+	// 仅在无旧标志或同迁移重设时写入，避免覆写未结算旧迁移的持久化恢复源
 	public void setPendingSettle(@Nullable Data from, BBucketMeta.Data to) throws RocksDBException {
 		var current = pendingSettle;
 		if (null != current && !sameMeta(current.getTo(), to)) {
@@ -273,9 +254,7 @@ public class Bucket {
 		pendingSettle = new PendingSettle(from, to);
 	}
 
-	// 身份匹配才清除（四元组+raftConfig全等，两侧都是完整meta——与resume场景请求方
-	// raftConfig=""不同，全等比较在此合法）：陈旧世代的清除日志不得
-	// 清掉新世代的标志（跨世代倒灌防护：旧迁移终局时新迁移可能已apply了自己的标志）。
+	// 仅在完整 meta 身份匹配时清除，防止陈旧清除日志误清新一代标志
 	public void clearPendingSettle(BBucketMeta.Data to) throws RocksDBException {
 		var current = pendingSettle;
 		if (null == current || !sameMeta(current.getTo(), to))
@@ -309,8 +288,7 @@ public class Bucket {
 		try {
 			this.splitMetaHistory.getBuckets().put(from.getKeyFirst(), from);
 			this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
-			// 保留量裁剪：裁最大keyFirst的最老世代；首键条目（from/迁移目标）恒为最小键，不会被裁。
-			// 只依赖map内容（同一日志序在各副本确定性演化），不引入世代计数状态。
+			// 超限时按最大 keyFirst 淘汰最老世代，保证各副本确定性裁剪
 			while (this.splitMetaHistory.getBuckets().size() > SplitMetaHistoryMaxEntries)
 				this.splitMetaHistory.getBuckets().pollLastEntry();
 			var bb = ByteBuffer.Allocate();
@@ -347,8 +325,7 @@ public class Bucket {
 		data.delete(batch, key);
 	}
 
-	// meta参数化重载：查询路径的"快照→校验→读数据→复核"须对同一份meta快照判定——
-	// bucketMeta是volatile，跨语句两次读取可能分属新旧两代（收尾apply整体替换、从不原地改写）。
+	// 使用指定 meta 快照判定，供查询路径的“快照→校验→读数据→复核”共享同一份视图
 	public boolean inBucket(BBucketMeta.Data meta, Binary key) {
 		return key.compareTo(meta.getKeyFirst()) >= 0
 				&& (meta.getKeyLast().size() == 0 || key.compareTo(meta.getKeyLast()) < 0);

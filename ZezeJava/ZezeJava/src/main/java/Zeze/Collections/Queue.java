@@ -111,9 +111,7 @@ public class Queue<V extends Bean> {
 			var tailNodeId = root.getTailNodeId();
 			root.setHeadNodeKey(new BQueueNodeKey(name, headNodeId));
 			root.setTailNodeKey(new BQueueNodeKey(name, tailNodeId));
-			// 迁移严格一次性：用完即清零废弃long字段。否则清空路径写回空名key后
-			// （CsQueue.transferAll/splice用nullKey清空死者root），陈旧的非零id会让
-			// 死者重启时的compatible重建出指向已删除/已被接管节点的头尾指针。
+			// 迁移后清零废弃的 long 指针，防止清空置空名键时再次复活旧指针。
 			root.setHeadNodeId(0);
 			root.setTailNodeId(0);
 		}
@@ -170,10 +168,7 @@ public class Queue<V extends Bean> {
 		return root == null || root.getHeadNodeKey().getNodeId() == 0;
 	}
 
-	// 根声明链非空但头节点行缺失=断链诊断（pollNode/peekNode/poll/peek共用）。
-	// 持久断链（数据损坏/外部篡改，正常事务不会产生）时静默返空会使size>0却永远取不出
-	//（消费者空转、积压封存且无迹可寻）。不照搬walk的无条件ISE：乐观并发重试交错下的
-	// 瞬时行缺失是良性的（本事务commit时会因root读集冲突回滚重试），纯诊断记error性价比更高。
+	// 仅记 error 不抛异常：乐观并发重试交错下的瞬时头行缺失会在提交时因读集冲突回滚。
 	private void logBrokenHeadChain(String where, BQueue root, BQueueNodeKey headKey) {
 		logger.error("queue {}: broken chain, name={}, count={}, headKey={}",
 				where, name, root.getCount(), headKey);
@@ -202,8 +197,7 @@ public class Queue<V extends Bean> {
 		root.setHeadNodeKey(head.getNextNodeKey());
 		root.setCount(root.getCount() - head.getValues().size());
 		module._tQueueNodes.remove(headKey);
-		// 同poll——被取走的头节点同时是尾节点（单节点队列排空）时同步清尾键，
-		// 避免排空残尾。用带队列名、nodeId=0的键（空名键会让compatible复活旧指针）。
+		// 单节点队列排空时同步清尾键（保留队列名避免 compatible 复活旧指针）。
 		if (root.getTailNodeKey().equals(headKey))
 			root.setTailNodeKey(new BQueueNodeKey(name, 0));
 		return head;
@@ -216,29 +210,15 @@ public class Queue<V extends Bean> {
 	}
 
 	/**
-	 * 清空并删除队列根行：{@link #clear()} 只清节点链，tQueues根行（空链）会
-	 * 永久残留。仅队列所有者在确定不再使用该队列时调用（最终登出等终结语义）；删除与
-	 * 节点清理同事务，回滚时整体还原；再次使用（add/getRoot）会自动重建。
-	 * 删除随事务提交成功后，同步逐出 Module.queues 内存缓存中的本包装对象（P3：根行已删
-	 * 而包装常驻缓存，随登出角色数累积，慢泄漏）。
+	 * 清空节点链并删除队列根行（同事务，回滚时整体还原），事务提交后同步逐出 Module.queues 缓存。
+	 * 仅在确认不再使用该队列时调用；后续再次读写会自动重建根行。
 	 */
 	public void remove() {
 		clear();
-		// clear()不删根行，此处get()非空即根行确实存在并被随后的remove删掉（TableX.remove返回
-		// void，只能先读后删）。记录已被clear()读入事务工作集，这里命中快路径，无额外IO。
-		// 根行本就不存在（从未写入或已删）则无可删，也不注册逐出，缓存保持现状。
 		if (module._tQueues.get(name) == null)
 			return;
 		module._tQueues.remove(name);
-		// 仅删除随事务提交成功后逐出（whileCommit语义）：
-		// a) 回滚不执行——整体回滚时COMMIT动作不触发；嵌套savepoint回滚时该动作随savepoint丢弃；
-		//    redo重做时本轮回调被丢弃、remove()重执行时重新注册。缓存保留旧包装，与持久行一致。
-		// b) 并发窗口容忍：若另一事务在逐出前open命中同一缓存对象并add重建根行（或逐出后重新
-		//    open缓存了新包装），两参remove(key,this)只在缓存仍映射到本对象时才摘除——包装无状态
-		//    （仅module/name/nodeSize），摘除后后续open经computeIfAbsent重建包装、add经getOrAddRoot
-		//    重建/复用根行，均无数据损失；若已换成新包装则条件不匹配，不会误删。
-		// c) 在途调用方持有的旧Queue引用仍可用：根行不存在时读方法（poll/peek/pollNode/peekNode/
-		//    size/isEmpty/walk）一律安全返回null/0/空，add/push经getOrAddRoot重建根行。
+		// 仅提交成功后按引用匹配逐出缓存，避免回滚误删或删掉并发重建的新包装。
 		Transaction.whileCommit(() -> module.queues.remove(name, this));
 	}
 
@@ -287,9 +267,7 @@ public class Queue<V extends Bean> {
 		if (nodeValues.isEmpty()) {
 			root.setHeadNodeKey(head.getNextNodeKey());
 			module._tQueueNodes.remove(headKey);
-			// 取空的节点同时是尾节点时同步清尾键——排空残尾与push的tail修复
-			// 条件（仅tail.nodeId==0才修）失配，此后push再add会产生零链接尾节点：add的值从
-			// head不可达（永久丢失）且count虚高。带队列名、nodeId=0的键。
+			// 单节点队列排空时同步清尾键，避免后续 push/add 断链。
 			if (root.getTailNodeKey().equals(headKey))
 				root.setTailNodeKey(new BQueueNodeKey(name, 0));
 		}
@@ -333,14 +311,10 @@ public class Queue<V extends Bean> {
 		var root = getOrAddRoot();
 		var empty = root.getHeadNodeKey().getNodeId() == 0;
 		var tailNodeKey = root.getTailNodeKey();
-		// 旧版本排空后可能留下非零尾键。头键为零时应从新节点开始。
+		// 头键为零时按空队列重新建节点，忽略可能残留的尾键。
 		var tail = !empty && tailNodeKey.getNodeId() != 0 ? getNode(tailNodeKey) : null;
 		if (tail == null && !empty) {
-			// 尾键非0但尾行缺失且活链存在=真断链（正常序列里poll/pollNode排空时
-			// 已清尾键，head!=0时push/add都会维护尾键）。不能像原来那样零链接另立新尾（新值从
-			// head不可达，断链告警不阻止）：沿链重定位最后可达节点为真实尾并自愈尾指针；
-			// 链中途断（断点后数据已不可达，数据损坏）用断点前节点，口径同上"诊断告警、
-			// 不中断服务"；头节点行也缺失（tail保持null）则回落原行为另立新尾。
+			// 尾节点缺失时沿头链重定位最后可达节点并修复尾指针，避免新尾节点不可达。
 			logger.error("queue add: broken tail, relocate real tail by walking. name={}, count={}, tailKey={}",
 					name, root.getCount(), tailNodeKey);
 			var curKey = root.getHeadNodeKey();
@@ -414,26 +388,23 @@ public class Queue<V extends Bean> {
 	// foreach
 
 	/**
-	 * func 第一个参数是当前Value所在的Node.Id。
-	 * 并发删除导致的链断会从头重启遍历（已回调过的值会重复执行，教程已声明；count每轮归零，
-	 * 只统计最后一轮，避免重复计数虚高）；同一缺失节点重启后仍缺失=持久断链（数据损坏），
-	 * 抛IllegalStateException终止而不是无限忙转。
+	 * 遍历全部元素，func 首参为当前元素所在节点键。
+	 * 并发删除导致断链时会从头重启（可能重复回调，count 仅统计最后一轮）；
+	 * 重启后仍断在同一节点视为持久断链，抛出 IllegalStateException。
 	 */
 	@SuppressWarnings("unchecked")
 	public long walk(TableWalkHandle<BQueueNodeKey, V> func) throws Exception {
 		long count = 0L;
-		BQueueNodeKey missingKey = null; // 上一次断链位置：重启后仍断在同一节点=持久断链
+		BQueueNodeKey missingKey = null; // 记录上次断链位置，用于识别持久断链
 		while (true) {
 			var root = compatibleDirty(module._tQueues.selectDirty(name), name);
 			if (null == root)
 				return func.endWalk(count); // error break
 			var nodeKey = root.getHeadNodeKey();
-			count = 0L; // 重启从头重走，计数只保留最后一轮（回调重复执行见方法注释）
+			count = 0L;
 			while (nodeKey.getNodeId() != 0) {
 				var node = compatibleDirty(nodeKey, module._tQueueNodes.selectDirty(nodeKey));
 				if (null == node) {
-					// 上一轮也断在同一个节点：重启后拿到的仍是新鲜root/前驱，还指向这个缺失节点
-					// =持久断链（并发删除的重启会绕过已删节点，走不到这里），宁停不错。
 					if (nodeKey.equals(missingKey))
 						throw new IllegalStateException("Queue.walk broken chain at " + nodeKey);
 					missingKey = nodeKey;

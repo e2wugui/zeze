@@ -1,17 +1,12 @@
 package Zeze.Util;
 
-// FastPriorityQueue 的节点接口：维护队列内下标与优先级比较
+/** {@link FastPriorityQueue} 的节点接口：维护队列内下标与优先级比较。 */
 public interface FastPriorityQueueNode<T> {
-	/**
-	 * Represents the current position in the queue
-	 */
+	/** 返回当前节点在队列中的下标。 */
 	int getQueueIndex();
 
 	void setQueueIndex(int index);
 
-	/**
-	 * Returns true if 'this' has higher priority than 'lower', false otherwise.
-	 * Note that calling node.hasHigherPriority(node) (ie. both arguments the same node) will return false
-	 */
+	/** 返回当前节点是否比 {@code lower} 优先级更高（同节点比较应返回 false）。 */
 	boolean hasHigherPriority(T lower);
 }

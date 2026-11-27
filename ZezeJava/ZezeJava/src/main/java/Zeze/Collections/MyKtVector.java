@@ -9,21 +9,8 @@ import org.pcollections.PVector;
 import Zeze.Transaction.Collections.PersistentList;
 
 /**
- * pcollections {@link PVector} 的自移植 PersistentList（32 扇出 trie）内核实现（myktt 档）。
- * 内核为仓库内从 kotlinx.collections.immutable 0.5.2 私有移植的 {@link PersistentList}，
- * 适配层与 {@link KtVector} 同构（同一契约两副桥接，语义总述见 {@link MyKtMap}）。
- * 仅经 {@link Persistents#vector()} 构建使用。
- *
- * <p>契约与 {@link KtVector} 逐位一致（回归测试同一套钉住）：
- * <ul>
- *   <li>no-op 引用恒等：{@code minus(不存在元素)}/{@code minusAll(全不存在)} 返回同一实例
- *       （Zeze 写路径 {@code !=} 判定依赖）；追加/按下标 op 恒产生变更，天然新实例；</li>
- *   <li>{@code plus(int)}/{@code with}/{@code minus(int)} 越界由内核按 JDK 时机抛 IOOBE，
- *       持久化语义下不存在"部分修改"；</li>
- *   <li>equals/hashCode/迭代走 JDK List 契约（AbstractList 白拿）。</li>
- * </ul>
- *
- * <p>{@link #subList(int, int)} 不支持（Zeze 事务 PList 层本就拒绝 subList，无消费方）。
+ * 基于自移植 {@link PersistentList}（32 扇出 trie）的 {@link PVector} 实现，经 {@link Persistents#vector()} 构建。
+ * 契约与 {@link KtVector} 一致：无变化删除返回同一实例；不支持 {@link #subList(int, int)}。
  */
 public final class MyKtVector<E> extends AbstractList<E> implements PVector<E> {
 	private final PersistentList<E> kt;
@@ -131,8 +118,7 @@ public final class MyKtVector<E> extends AbstractList<E> implements PVector<E> {
 		}
 		var b = kt.builder();
 		boolean changed = false;
-		// 逐个 remove 而非 removeAll：pcollections 契约是"每个元素删首个匹配"（重复元素
-		// 按 c 中出现次数逐个消），removeAll 是含即全删，二者对重复元素结果不同。
+		// 按 pcollections 契约逐个删除首个匹配项（removeAll 会删掉全部重复元素）。
 		for (var e : c)
 			changed |= b.remove(e);
 		return changed ? new MyKtVector<>(b.build()) : this;

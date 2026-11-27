@@ -14,16 +14,9 @@ import Zeze.Util.Id128;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 一个事务关联集合（rrs）的tHistory变更缓冲，两段流水线：
- * logChanges（原始对象）--encode0--&gt; encoded（编码字节）--writeOnly--&gt; tHistory库事务。
- * 不变量：构造完成后，容器只在 rrs 锁内合并、编码和核销；条目
- * 离开 logChanges 前必已进 encoded；encoded 只能由 onPersisted 清空——它在数据库事务全部
- * 提交成功后由 Checkpoint.flush 调用，失败回滚后容器保留，重试按系列号幂等重写。
- * mergeFrom 用于事务路径的合并，只改接收者；snapshot 为 FlushSet 创建独立容器，
- * 后续成员合并到该快照。快照的写入/核销集合恒等于本轮成员集合，失败轮不污染成员。
- * <p>
- * 表和 {@link PendingGidLedger} 在创建时绑定，快照保留绑定；合并必须属于同一实例和表，
- * 防止跨 Application 写库或核销数值重叠的 gid。
+ * 事务关联集合（rrs）的 tHistory 变更缓冲，按 logChanges → encode0 → encoded → writeOnly 两段流水线落库。
+ * 合并、编码与核销均在 rrs 锁内执行，encoded 仅在数据库事务提交后由 {@link #onPersisted()} 清空并核销 {@link PendingGidLedger}。
+ * 缓冲与所属表及账本绑定，{@link #snapshot()} 保留绑定以隔离失败轮次。
  */
 public class History implements IHistory.PendingHistory {
 	private final Table table;
@@ -74,8 +67,7 @@ public class History implements IHistory.PendingHistory {
 		}
 	}
 
-	/** 数据库事务全部提交成功后调用：tHistory 行已持久化，容器可以安全清空。
-	 * 清空前按 gid 核销对账账本（Application 实例维度）：同一数值 gid 在不同 app 间互不干扰。 */
+	/** 数据库事务全部提交成功后核销对账账本并清空缓冲。 */
 	@Override
 	public void onPersisted() {
 		for (var k : encoded.keySet())
@@ -103,9 +95,7 @@ public class History implements IHistory.PendingHistory {
 		return copy;
 	}
 
-	/** 用已解析的 gid 编码日志变更。gid 必须在日志应用前解析并登记对账账本（调用方
-	 * HistoryModule.prepareCommit：取号失败=数据未应用即干净失败；成功即入账，此后任何失败
-	 * 都留下账本痕迹），tHistory 行随数据库事务提交成功由 onPersisted 核销。 */
+	/** 使用已在应用数据前解析并入账的 gid 编码日志变更；落库成功后由 onPersisted 核销。 */
 	@SuppressWarnings("ConstantConditions")
 	public static BLogChanges.Data buildLogChanges(Id128 globalSerialId,
 												   Changes changes,

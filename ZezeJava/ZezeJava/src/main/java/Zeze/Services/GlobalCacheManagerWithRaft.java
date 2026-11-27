@@ -74,23 +74,13 @@ public class GlobalCacheManagerWithRaft
 	 * 这是个Table模板，使用的时候根据ServerId打开真正的存储表。
 	 */
 	private final TableTemplate<Binary, BAcquiredState> serverAcquiredTemplate;
-	/*
-	 * 会话。
-	 * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
-	 * 在连接建立后收到的Login Or ReLogin 中设置。
-	 * 每个会话还需要记录该会话的Socket.SessionId。在连接重新建立时更新。
-	 * 总是GetOrAdd，不删除。按现在的cache-sync设计，
-	 * ServerId 是及其有限的。不会一直增长。
-	 * 简化实现。
-	 */
+	// 会话表：key 为 ServerId，Login/ReLogin 时按需创建且不删除（ServerId 数量有限）
 	private final LongConcurrentHashMap<CacheHolder> sessions = new LongConcurrentHashMap<>();
 
 	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private final AchillesHeelConfig achillesHeelConfig;
-	// DaemonTimer内聚"调度线程只派发、扫描体进worker池、close两段式（关门→cancel→限时等待
-	// 在飞一轮）"，避免该模式手抄到GCM三版与LoginQueue后拷贝过期成缺陷。
 	private final DaemonTimer achillesHeelDaemonTimer;
-	// close标记：daemon轮次在模块锁内首查即退出，不再触碰rocks（对齐ServiceManagerWithRaft）
+	// 停机标记：daemon 在模块锁内首查，置位后立即退出不再触碰 rocks
 	private volatile boolean closed;
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
@@ -103,12 +93,9 @@ public class GlobalCacheManagerWithRaft
 
 	private volatile @Nullable Leadership leadership;
 
-	// 会话表名前缀。TableTemplate.openTable(int serverId)生成的列族名为
-	// "name#id"，rebuildSessionsFromStorage据此从storage扫描已存在的Session表。
+	// Session 表名前缀（TableTemplate.openTable 生成 "Session#<serverId>"）
 	private static final String SessionTableNamePrefix = "Session#";
-	// rebuildSessionsFromStorage的storage==null防御分支只告警一次（daemon每5s一tick，
-	// 每tick刷error会刷屏）。volatile：daemon线程与onLeaderReady的raft apply线程都可能调用。
-	private volatile boolean warnedStorageNull;
+	private volatile boolean warnedStorageNull; // storage==null 仅告警一次，避免每轮刷屏
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
 	public GlobalCacheManagerServer.GCMConfig getGcmConfig() {
@@ -141,11 +128,7 @@ public class GlobalCacheManagerWithRaft
 		globalStates = globalTemplate.openTable(0);
 		serverAcquiredTemplate = Objects.requireNonNull(rocks.getTableTemplate("Session"));
 
-		// 就任即刻重建会话视图，消除daemon首个tick最多5s的盲窗。onLeaderReady在
-		// raft的apply路径内执行（持Raft锁），回调必须快且不得抛异常——重建只遍历storage
-		// tableMap的内存键集并putIfAbsent（幂等），异常兜底记日志。GCM独占自己的Raft实例
-		// （本rocks私有，Dbh2等注册的是各自实例），单槽回调无占用冲突。须在server.start()
-		// 之前注册，保证不漏首次就任。
+		// 须在 server.start() 前注册：就任主节点时即刻从 storage 重建内存 sessions 视图（回调运行在 Raft apply 路径，必须快且不抛异常）
 		var raft = Objects.requireNonNull(rocks.getRaft());
 		raft.setOnLeaderReady(() -> {
 			leadership = new Leadership(raft.getLogSequence().getTerm(), System.nanoTime());
@@ -182,10 +165,7 @@ public class GlobalCacheManagerWithRaft
 	private void achillesHeelDaemon() {
 		lock();
 		try {
-			// closed与rocks首次触碰(getRaft().isLeader)同在本模块锁内（对齐ServiceManagerWithRaft）：
-			// close()先置closed再过锁屏障，屏障后进入的轮次见closed即退出——rocks.close()
-			// 不与在飞/逃逸轮的rocks访问并发：锁外先摸rocks时，getRaft拿到引用后native句柄被
-			// 释放即段错误，判空挡不住TOCTOU窗口。模块锁无其他使用者，无既有锁序约束。
+			// closed 检查与后续 rocks 访问均在模块锁内，与 close() 锁屏障互斥，避免关库后访问原生句柄
 			if (closed)
 				return;
 			achillesHeelDaemonLocked(System.currentTimeMillis());
@@ -199,27 +179,21 @@ public class GlobalCacheManagerWithRaft
 		var leader = raft != null && raft.isLeader();
 		if (leader) {
 			var fireTerm = raft.getLogSequence().getTerm();
-			// 电平触发对账——leader期间每tick重建（putIfAbsent幂等、对已有Holder
-			// 零影响、仅扫storage tableMap的内存键集，成本可忽略）：单次重建异常
-			// 无需等下次leader切换才重跑，下个tick自动重试，自纠错。
-			// 单独兜底，避免重建异常跳过本tick的会话超时检查。
+			// Leader 期间每轮幂等对账重建会话视图，异常独立兜底以免跳过超时检查
 			try {
 				rebuildSessionsFromStorage();
 			} catch (Throwable e) {
 				logger.error("RebuildSessionsFromStorage exception", e);
 			}
 			var currentLeadership = leadership;
-			// 再次就任时，旧 Holder 的 activeTime 可能停在上一个任期。和新重建的 Holder 一样，
-			// 先给客户端一个完整的重连窗口，避免客户端仍持有的权限被守护线程回收。
+			// 新任期先给客户端一个完整的重连窗口，避免旧 activeTime 导致误回收仍存活会话的权限
 			if (currentLeadership == null || !currentLeadership.reconnectWindowElapsed(fireTerm,
 					System.nanoTime(), achillesHeelConfig.globalDaemonTimeout))
 				return;
 			sessions.forEach(session -> {
 				session.lock();
 				try {
-					// 超时检查必须在锁内复查（理由同同步版）：检查在锁外时，同serverId新
-					// incarnation恰在"检查→加锁"窗口内Login（bind持锁刷新activeTime），daemon会
-					// kick新连接并回收其新获取的权限。
+					// 必须在锁内复查超时，防止踢掉刚在检查与加锁之间完成重连的新连接
 					if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode
 							&& raft.isLeader() && raft.getLogSequence().getTerm() == fireTerm) {
 						session.kick();
@@ -268,21 +242,11 @@ public class GlobalCacheManagerWithRaft
 		return acquiredState;
 	}
 
-	// sessions为进程内存态（不随raft复制），leader切换后新leader仅含本进程
-	// 登录过的serverId——死serverId的CacheHolder缺失：第三方acquire其持有的modify键
-	// 时reduce路径get==null恒false（AcquireModifyFailed重试同败），daemon因无Holder
-	// 不可及（Cleanup恒禁用），稳定新主下wedge无期限。遍历storage已存在的Session表
-	// （每个serverId一张列族表，RocksDatabase构造时全量装载tableMap）重建Holder。
-	// 仅补内存视图、不碰rocks数据；已在的Holder不动（活会话不受影响）。
-	// activeTime用构造默认now而非置零：leader切换到Agent ReLogin存在窗口，置零会在
-	// 窗口内按stale释放仍存活会话的权限；now给一个完整daemon超时窗口，与"刚登录后
-	// 失联"的既有超时语义一致，死serverId照样在超时后释放。
-	// 触发时机双保险：onLeaderReady就任即刻执行（消盲窗）+daemon每tick电平对账（自纠错）。
+	// 从 storage 已存在的 Session#<serverId> 列族表重建内存 sessions 视图（不修改已有 Holder），
+	// 使新 Leader 能触达并超时回收切主前已失联 serverId 的锁权限
 	private void rebuildSessionsFromStorage() {
 		var storage = rocks.getStorage();
 		if (storage == null) {
-			// 防御性死分支：Rocks构造内即openDb（构造返回后storage恒非null），正常不可达。
-			// 只warn一次不刷屏（daemon每5s一tick都会进来）。
 			if (!warnedStorageNull) {
 				warnedStorageNull = true;
 				logger.warn("RebuildSessionsFromStorage storage == null, skip rebuild");
@@ -299,9 +263,6 @@ public class GlobalCacheManagerWithRaft
 			} catch (NumberFormatException e) {
 				continue;
 			}
-			// 防御性死分支：表名由TableTemplate.openTable(int serverId)生成（"Session#"+int），
-			// serverId源自Config.ServerId（int，恒在[0,Integer.MAX_VALUE]），正常不可能越界；
-			// 仅防御手工创建/损坏的列族名。
 			if (serverId < 0 || serverId > Integer.MAX_VALUE)
 				continue;
 			if (sessions.putIfAbsent(serverId, new CacheHolder(this, (int)serverId)) == null)
@@ -368,8 +329,7 @@ public class GlobalCacheManagerWithRaft
 				result = proc.call();
 			}
 		} finally {
-			// proc.call()可抛（ThrowAgainException/AssertionError等）：onAcquireEnd不执行会
-			// 导致perf.acquires条目泄漏（rpc持socket引用，恶意/异常可放大）与计数丢失。
+			// 始终收尾性能统计，避免 proc.call() 抛异常导致 acquires 映射泄漏
 			if (ENABLE_PERF)
 				perf.onAcquireEnd(rpc, acquireState);
 		}
@@ -449,11 +409,7 @@ public class GlobalCacheManagerWithRaft
 				continue; // concurrent release.
 
 			cs.setAcquireStatePending(StateShare);
-			// AcquireStatePending是transient（无事务日志），未提交路径（过程异常回滚、
-			// _final_commit_失败的回滚）不复位它的话，共享bean的申请位会永久滞留：
-			// 该key上后续acquire要么IllegalStateException要么在await()上永久park，
-			// daemon的release也会永久await并停摆整个守护。统一注册回滚动作复位；
-			// _final_rollback_在pessimism锁释放之前执行，pulseAll合法。
+			// AcquireStatePending 为瞬态字段无事务日志，注册回滚动作复位并在释放悲观锁前唤醒等待者
 			Transaction.getCurrent().runWhileRollback(() -> {
 				if (cs.getAcquireStatePending() == StateShare) {
 					cs.setAcquireStatePending(StateInvalid);
@@ -503,8 +459,7 @@ public class GlobalCacheManagerWithRaft
 				})) {
 					if (isDebugEnabled)
 						logger.debug("5 {} {} {}", sender, StateShare, cs);
-					// Condition契约允许伪唤醒——裸await醒来不复查完成谓词，
-					// 直接按默认StateReduceNetError走失败分支而reduce仍在途。谓词循环复查。
+					// 循环复查完成谓词，防止 Condition 伪唤醒提前走失败分支
 					while (!reduceDone[0])
 						lockey.await();
 				}
@@ -616,8 +571,7 @@ public class GlobalCacheManagerWithRaft
 				continue; // concurrent release
 
 			cs.setAcquireStatePending(StateModify);
-			// AcquireStatePending是transient（无事务日志），未提交路径不复位的话申请位永久滞留
-			// （理由同acquireShare）：统一注册回滚动作复位，_final_rollback_在锁释放前执行。
+			// AcquireStatePending 为瞬态字段无事务日志，注册回滚动作复位并唤醒等待者
 			Transaction.getCurrent().runWhileRollback(() -> {
 				if (cs.getAcquireStatePending() == StateModify) {
 					cs.setAcquireStatePending(StateInvalid);
@@ -789,8 +743,6 @@ public class GlobalCacheManagerWithRaft
 					lockey.enter();
 					try {
 						errorFreshAcquire.value = freshAcquire;
-						// 完成标志锁内置位：主线程谓词循环复查，伪唤醒不得提前
-						// 读取runNow仍在并发填充的reduceSucceed（锁发布快照）。
 						waitReduceDone[0] = true;
 						lockey.pulseAll();
 					} finally {
@@ -799,8 +751,7 @@ public class GlobalCacheManagerWithRaft
 				}).name("GlobalCacheManagerWithRaft.AcquireModify.WaitReduce").runNow();
 				if (isDebugEnabled)
 					logger.debug("7 {} {} {}", sender, StateModify, cs);
-				// Condition契约允许伪唤醒——裸await醒来不复查即读取非线程安全的
-				// reduceSucceed构成数据竞争。谓词循环复查完成标志。
+				// 循环复查完成谓词，防止 Condition 伪唤醒提前读取并发填充中的 reduceSucceed
 				while (!waitReduceDone[0])
 					lockey.await();
 			}
@@ -884,9 +835,6 @@ public class GlobalCacheManagerWithRaft
 			var lockey = Objects.requireNonNull(Transaction.getCurrent()).addPessimismLock(locks.get(gkey));
 
 			BCacheState cs = globalStates.getOrAdd(gkey);
-			// 正常不可达（有Release请求意味着有持有者，不会进入StateRemoved）；提交失败回滚会把
-			// 持有者复原、占位却滞留StateRemoved（transient无日志），届时在这里自旋——
-			// 由下面的回滚动作复位保证不发生。
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue;
 
@@ -908,15 +856,12 @@ public class GlobalCacheManagerWithRaft
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue;
 			var raft = rocks.getRaft();
-			// 代次只守护本进程绑定；term另行关闭旧leader工作逃逸到再次就任后的窗口。
-			// 持有key的悲观锁直到事务提交，新Acquire不能在检查与移除之间发布新的权限。
+			// 代次守护本进程绑定，term 守护跨任期逃逸；悲观锁保持至提交前，防止新 Acquire 插入
 			if (sender.generation != generation || raft == null || !raft.isLeader()
 					|| raft.getLogSequence().getTerm() != term)
 				return getSenderCacheState(cs, sender);
 			cs.setAcquireStatePending(StateRemoving);
-			// StateRemoving是transient（无事务日志），未提交路径不复位的话该key上所有后续
-			// acquire/release进入无超时await（key永久冻结、procedure线程与守护停摆）；
-			// 注册回滚动作复位（理由同acquireShare），_final_rollback_在锁释放前执行。
+			// StateRemoving 为瞬态字段无事务日志，回滚时复位并唤醒等待者
 			Transaction.getCurrent().runWhileRollback(() -> {
 				if (cs.getAcquireStatePending() == StateRemoving) {
 					cs.setAcquireStatePending(StateInvalid);
@@ -930,14 +875,10 @@ public class GlobalCacheManagerWithRaft
 			serverAcquiredTemplate.openTable(sender.serverId).remove(gkey);
 
 			if (cs.getModify() == -1 && cs.getShare().size() == 0) {
-				// 1. 安全的从global中删除，没有并发问题。
+				// 安全的从global中删除，没有并发问题。
 				cs.setAcquireStatePending(StateRemoved);
 				globalStates.remove(gkey);
-				// StateRemoved把"记录已删除"当作瞬时状态提前发布，但remove要走raft提交：
-				// _final_commit_失败（raft重试等）回滚后持有者被事务日志复原，占位却不会自动
-				// 复位——该key上所有后续acquire/release进入无await的continue忙自旋，且
-				// globalLruTryRemove只放行Invalid，毒化bean永不逐出缓存。
-				// 注册回滚动作复位，与StateRemoving同一个机制。
+				// remove 走 Raft 提交，失败回滚时复位瞬态 StateRemoved，防止后续访问忙自旋或无法逐出缓存
 				Transaction.getCurrent().runWhileRollback(() -> {
 					if (cs.getAcquireStatePending() == StateRemoved) {
 						cs.setAcquireStatePending(StateInvalid);
@@ -984,11 +925,7 @@ public class GlobalCacheManagerWithRaft
 		} finally {
 			session.unlock();
 		}
-		// new login, 比如逻辑服务器重启。release old acquired.
-		// 先快照再逐个释放（对齐同步/异步版）：release可阻塞等待，边遍历边
-		// 释放期间，同会话乐观预发的Acquire经raft提交apply写入同一表，会被迭代器看到并
-		// 错误回收——第三方再获Modify形成双写。快照使窗口由结构关闭，不依赖
-		// "raft提交慢于本地迭代"的时序巧合。
+		// 新登录（如逻辑服重启）：先快照再逐个释放，防止迭代期间新到达的 Acquire 被误回收
 		var releaseResult = releaseKeys(session, releaseKeys, generation, term);
 		if (releaseResult != 0) {
 			rpc.SendResultCode(releaseResult);
@@ -1028,13 +965,7 @@ public class GlobalCacheManagerWithRaft
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
 		}
-		/*
-		 * 快照在解绑之前（理由同同步/异步版processNormalClose）：
-		 * tryUnBindSocket后同serverId的新进程即可Login并Acquire新权限（raft apply写入
-		 * 同一张表），随后的释放迭代会看到新incarnation刚获取的key并错误回收——其本地
-		 * 仍持Modify，第三方再获Modify形成双写。旧连接未解绑时新进程无法绑定
-		 * （tryBindSocket失败），故快照内不可能出现新incarnation的权限。
-		 */
+		// 解绑前在锁内快照待释放集合与世代/任期，避免解绑后同 serverId 新连接写入的新权限被误回收
 		var releaseKeys = new ArrayList<Binary>();
 		long generation;
 		long term;
@@ -1130,14 +1061,11 @@ public class GlobalCacheManagerWithRaft
 	@Override
 	public void close() {
 		try {
-			// 先停守护再关rocks：在飞扫描持session锁逐key跑raft procedure，rocks.close()
-			// 释放原生句柄后与在飞walk/iterator竞争会段错误杀死JVM
-			// （对齐ServiceManagerWithRaft.close的锁屏障）。daemon轮次全程持模块锁且锁内
-			// 首查closed：closed先于锁屏障置位，屏障后进入的轮次直接退出，逃逸轮不再触碰已关rocks。
+			// 先置 closed 并停守护，再过模块锁屏障确保在飞扫描已退出，避免关库后并发访问 RocksDB 原生句柄
 			closed = true;
 			achillesHeelDaemonTimer.stop();
 			lock();
-			unlock(); // 模块锁屏障：与daemon轮次的锁内段互斥
+			unlock();
 			perf.close();
 			rocks.close();
 		} catch (Exception e) {
@@ -1203,22 +1131,18 @@ public class GlobalCacheManagerWithRaft
 				if (newSocket.getUserState() != null && newSocket.getUserState() != this)
 					return false; // 允许重复login|relogin，但不允许切换ServerId。
 
-				// 对齐kick()判空——close()后getRaft()为null，裸链式取getServer()即NPE，
-				// 中断在飞会话协议的绑定链。
 				var raft = globalRaft.getRocks().getRaft();
 				if (raft == null)
 					return false;
 				var socket = raft.getServer().GetSocket(sessionId);
 				if (socket == null || socket == newSocket) {
-					// old socket not exist or has lost.
-					// 同一socket重复Login也开启新的清理轮次；ReLogin只恢复连接，不清理权限。
+					// 同一 socket 重复 Login 开启新清理代次；ReLogin 仅恢复连接不清理权限
 					if (newLogin || sessionId != newSocket.getSessionId())
 						generationUpdater.incrementAndGet(this);
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
 					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
-					// 绑定即刷新活跃时刻（持锁）：achillesHeelDaemon的锁内复查据此识别
-					// 新incarnation，避免旧超时判定kick掉刚Login的新连接。
+					// 锁内刷新活跃时间，避免守护线程按旧超时踢掉刚登录的新连接
 					activeTime = System.currentTimeMillis();
 					return true;
 				}
@@ -1237,7 +1161,6 @@ public class GlobalCacheManagerWithRaft
 				if (oldSocket.getUserState() != this)
 					return false; // not bind to this
 
-				// 对齐kick()判空（raft==null直接失败），close后在飞解绑不NPE。
 				var raft = globalRaft.getRocks().getRaft();
 				if (raft == null)
 					return false;
@@ -1263,9 +1186,6 @@ public class GlobalCacheManagerWithRaft
 							  ProtocolHandle<Rpc<BReduceParam, BReduceParam>> response) {
 			var session = sessions.get(serverId);
 			if (session == null) {
-				// 独立标签：missing-holder正是wedge的前置条件（daemon因无Holder不可及、
-				// Cleanup恒禁用，见rebuildSessionsFromStorage的说明）——通用
-				// "Reduce invalid"日志无法与普通失败区分，标签化便于检索与告警。
 				logger.error("ReduceMissingHolder serverId={}", serverId);
 				return false;
 			}

@@ -46,19 +46,13 @@ public class HttpSession extends AbstractHttpSession {
 			return _tSession.get(cookieSessionId) != null;
 		}
 
-		// @Get/@Post 默认 TransactionLevel.None，无事务上下文时 TableX.get 内
-		// Transaction.getCurrent() 为 null（assert 运行期禁用）必 NPE。同 getCookieSession
-		// 的处理：有运行事务时直接同事务访问表，否则包短 Procedure。
-		// 无事务路径下 action 异常经 actionError 穿出 Procedure.call 作 IllegalStateException
-		// 的 cause（真实原因不被错误码吞掉）。
+		// 有运行事务时直接同事务访问表，否则包短 Procedure；action 异常经 actionError 透传。
 		private <R extends @Nullable Object> R accessTable(String opName, Function<BSessionValue, R> action) {
 			return accessTable(opName, action, null);
 		}
 
 		/**
-		 * @param noTxResult 无事务路径（短Procedure）下对 action 结果的转换器，在短Procedure事务内执行
-		 *                   （读取走事务一致视图），如 getProperties 拷贝快照；null 表示不转换。
-		 *                   有事务路径不经过此转换，直接返回活引用（随事务语义）。
+		 * @param noTxResult 无事务路径下在短 Procedure 内对结果的转换器（如拷贝快照），null 表示不转换。
 		 */
 		private <R extends @Nullable Object> R accessTable(String opName, Function<BSessionValue, R> action,
 								  @Nullable UnaryOperator<R> noTxResult) {
@@ -70,10 +64,10 @@ public class HttpSession extends AbstractHttpSession {
 				return action.apply(value);
 			}
 			var result = new OutObject<R>();
-			var actionError = new OutObject<RuntimeException>(); // 无事务路径action真实异常带出（有事务路径action在调用线程直接抛出）
+			var actionError = new OutObject<RuntimeException>();
 			var exists = new OutObject<>(false);
 			var rc = zeze.newProcedure(() -> {
-				exists.value = false; // 乐观锁 redo 整体重跑时重置 out 参数，避免沿用上一轮的陈旧结果。
+				exists.value = false; // redo 重跑时重置 out 参数
 				actionError.value = null;
 				var value = _tSession.get(cookieSessionId);
 				if (value != null) {
@@ -81,11 +75,10 @@ public class HttpSession extends AbstractHttpSession {
 					try {
 						R computed = action.apply(value);
 						result.value = computed;
-						if (noTxResult != null) // 在事务内完成转换（如快照拷贝），带出事务后安全。
+						if (noTxResult != null)
 							result.value = noTxResult.apply(computed);
 					} catch (RuntimeException e) {
-						// 捕获仅为穿过Procedure.call（吞异常只回错误码），原样重抛保回滚；
-						// rc!=0时作IllegalStateException的cause，不再吞掉真实原因。
+						// 记录真实异常后再重抛以触发回滚，避免被 Procedure.call 错误码吞掉。
 						actionError.value = e;
 						throw e;
 					}
@@ -98,7 +91,6 @@ public class HttpSession extends AbstractHttpSession {
 			//noinspection DataFlowIssue
 			if (!exists.value)
 				throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
-			// 成功且会话存在时，结果由 action（或 noTxResult）赋值，可空性由 R 保留。
 			return result.value;
 		}
 
@@ -114,10 +106,7 @@ public class HttpSession extends AbstractHttpSession {
 		}
 
 		/**
-		 * 读取全部会话属性。有事务调用返回活的 PMap1 引用，修改随当前事务提交（事务语义）。
-	 * 无事务调用（如 TransactionLevel.None 的 handler）返回快照副本：活引用带出短 Procedure 后
-	 * put/remove 抛 IllegalStateException（managed bean 要求事务上下文），API 不对称且报错
-	 * 不指向真因，故拷贝快照；对快照的修改不会持久化，写属性请走 setProperty。
+		 * 读取全部会话属性：有事务时返回受管 PMap1 引用；无事务时返回快照副本（写属性请走 {@link #setProperty}）。
 		 */
 		public Map<String, String> getProperties() {
 			return accessTable("getProperties", BSessionValue::getProperties, props -> {
@@ -156,20 +145,20 @@ public class HttpSession extends AbstractHttpSession {
 	}
 
 	public CookieSession getCookieSession(HttpExchange x) throws Exception {
-		// 这个不缓存了，也不共享，http请求结束就可以释放。
+		// 不缓存也不共享，请求结束即可释放。
 		var cookieSessionId = x.getCookie(ZEZE_SESSION_ID_NAME);
 		final var needSetCookie = new OutObject<>(false);
 		final var sessionId = new OutObject<String>();
 		FuncLong initAction = () -> {
-			needSetCookie.value = false; // 乐观锁 redo 整体重跑时重置 out 参数，避免沿用上一轮的陈旧结果。
+			needSetCookie.value = false; // redo 重跑时重置 out 参数
 			var existing = cookieSessionId != null ? _tSession.get(cookieSessionId) : null;
-			// 读取可能等待记录锁或后端，按读取完成后的时间判断过期。
+			// 读取可能等待锁或后端，按读取完成后的时间判断过期。
 			var now = System.currentTimeMillis();
 			if (existing != null && existing.getExpireTime() > now) {
 				sessionId.value = cookieSessionId;
 				return Procedure.Success;
 			}
-			// 新会话只使用服务器生成的未占用 ID。随机碰撞时重新生成，保留已有会话行。
+			// 新会话只使用服务器生成的未占用 ID，冲突时重试。
 			var value = new BSessionValue();
 			value.setCreateTime(now);
 			value.setExpireTime(now + httpSessionExpire);
@@ -181,10 +170,7 @@ public class HttpSession extends AbstractHttpSession {
 			needSetCookie.value = true;
 			return Procedure.Success;
 		};
-		// 本方法不由channelRead在EventLoop线程同步调用(DB事务阻塞IO线程,DB抖动期间该EventLoop上
-		// 所有连接的读写全部停摆),而是延迟到用户handler内首次调用HttpExchange.getCookieSession()时执行:
-		// 此时通常已运行在派发到池的用户事务里,直接同事务访问表(连独立事务的开销都省了);
-		// 无事务上下文时(Level=None的处理器等)在调用线程包一个短Procedure。
+		// 延迟到业务线程首次访问时执行，避免在 EventLoop 阻塞 DB 事务。
 		var t = Transaction.getCurrent();
 		long rc;
 		if (t != null && t.isRunning()) {
@@ -196,9 +182,7 @@ public class HttpSession extends AbstractHttpSession {
 			throw new RuntimeException("initCookieSession error=" + IModule.getErrorCode(rc));
 		//noinspection DataFlowIssue
 		if (needSetCookie.value) {
-			// 配套硬化：会话cookie补HttpOnly/SameSite=Lax——注入cookie难以驻留/上送
-			// （XSS不可窃取、跨站不随行），消除id再生后受害者会话无法跨请求保持的残余降级。
-			// netty 4.1的Cookie接口无SameSite属性，编码后拼接属性段。
+			// Netty Cookie 接口无 SameSite 属性，编码后手动追加。
 			var cookie = new DefaultCookie(ZEZE_SESSION_ID_NAME, sessionId.value);
 			cookie.setHttpOnly(true);
 			cookie.setMaxAge(httpSessionExpire / 1000);
@@ -214,14 +198,10 @@ public class HttpSession extends AbstractHttpSession {
 	}
 
 	public void start() throws ParseException {
-		// 幂等登记（AppBase.addModule为put，重复调用安全）——stop()的"停止即注销"
-		// 语义保留，但close→start同实例重启后模块须回到注册表，否则ExpiredTimer查不到模块、
-		// 过期会话清理失效。
+		// 幂等补登模块，支持 stop 后重启时 ExpiredTimer 仍能查到本模块。
 		//noinspection DataFlowIssue
 		zeze.getAppBase().addModule(this);
-		// 全局一个timer实例，会忽略重复注册调用。
-		// 不取消。
-		// scheduleNamed 是表操作，需要在事务内执行；HttpServer.start 调用时没有事务，这里包一个短Procedure。
+		// 全局唯一命名定时器（忽略重复注册），scheduleNamed 为表操作需在短 Procedure 内执行。
 		var rc = zeze.newProcedure(() -> {
 			zeze.getTimer().scheduleNamed(GlobalHttpSessionExpiredTimer,
 					TimerSpec.ofCron("0 0 5 * * ?"),
@@ -244,13 +224,10 @@ public class HttpSession extends AbstractHttpSession {
 	public static class ExpiredTimer implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
-			// 模块表登记键是短名（AppBase.addModule按getName()=ModuleName登记），
-			// 按全名ModuleFullName查恒null——过期会话清理永不执行。
+			// AppBase.addModule 按短名 ModuleName 登记。
 			//noinspection DataFlowIssue
 			var httpSession = (HttpSession)context.timer.zeze.getAppBase().getModules().get(HttpSession.ModuleName);
 			if (null != httpSession) {
-				// 扫描语义使用单一cutoff（同一批内一致）；
-				// 删除事务内按cutoff重验（见RemoveBatch）。
 				var now = System.currentTimeMillis();
 				var batch = new RemoveBatch(httpSession.tSession(), now);
 				httpSession.tSession().walk((key, value) -> {
@@ -263,7 +240,6 @@ public class HttpSession extends AbstractHttpSession {
 		}
 	}
 
-	// 包内可见：同包回归测试直接驱动"扫描→续期→删除"的竞态窗口。
 	static class RemoveBatch {
 		private final Zeze.Builtin.HttpSession.tSession tSession;
 		private final long cutoff;
@@ -284,8 +260,7 @@ public class HttpSession extends AbstractHttpSession {
 			if (!keys.isEmpty()) {
 				tSession.getZeze().newProcedure(() -> {
 					for (var key : keys) {
-						// 删除事务内重验：扫描快照与删除之间被合法续期（expireTime推进到
-						// cutoff之后）的会话不得删除；redo每轮重新读取判定。
+						// 事务内重验过期时间，避免误删扫描后刚被续期的会话。
 						var session = tSession.get(key);
 						if (session != null && session.getExpireTime() <= cutoff)
 							tSession.remove(key);

@@ -42,7 +42,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 	@Override
 	public abstract boolean removeAll(java.util.Collection<?> c);
 
-	@Deprecated // unsupported
+	@Deprecated
 	@Override
 	public boolean retainAll(java.util.Collection<?> c) {
 		throw new UnsupportedOperationException();
@@ -134,12 +134,8 @@ public abstract class PList<V> extends Collection implements List<V> {
 			public void remove() {
 				int i = index;
 				if (i <= 0)
-					throw new IllegalStateException(); // removed or not next
-				// index是当前列表坐标系的1-based游标：迭代器自身的remove()引起左移后，下一次next()
-				// 的+1恰好补偿，链式删除下依然正确。因此不能拿快照同下标比较（先期删除后快照与当前
-				// 列表错位，第二次remove必抛假阳性CME）。改用next()记录的返回引用做身份比较：
-				// current[i-1]==lastReturned是"按下标删除不会删错元素"的充分条件；不相等说明迭代
-				// 期间发生过外部结构性修改，fail-fast（对齐JDK迭代器惯例）。
+					throw new IllegalStateException(); // 已删除或未调用 next
+				// 以 1-based 当前坐标配合 lastReturned 做身份校验：连续 remove 引起左移不影响，外部结构性修改则抛 CME。
 				var current = getList();
 				if (i > current.size() || current.get(--i) != lastReturned)
 					throw new ConcurrentModificationException("structural modification during iteration");
@@ -217,10 +213,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 				int i = lastRet;
 				if (i < 0)
 					throw new IllegalStateException();
-				// 同iterator()的身份fail-fast：lastReturned是next()/previous()
-				// 记录的返回引用，current[i]==lastReturned是"按下标删除不会删错元素"的充分
-				// 条件；不相等说明迭代期间发生过外部结构性修改，错位时静默删错元素，
-				// 对齐JDK迭代器惯例抛CME。
+				// 校验当前下标元素与 lastReturned 身份一致，防止外部结构性修改导致误删。
 				var current = getList();
 				if (i >= current.size() || current.get(i) != lastReturned)
 					throw new ConcurrentModificationException("structural modification during iteration");
@@ -240,13 +233,13 @@ public abstract class PList<V> extends Collection implements List<V> {
 				int i = lastRet;
 				if (i < 0)
 					throw new IllegalStateException();
-				// 同remove()的身份校验：错位时set会静默改错元素，fail-fast。
+				// 校验当前下标元素与 lastReturned 身份一致，防止外部结构性修改导致误改。
 				var current = getList();
 				if (i >= current.size() || current.get(i) != lastReturned)
 					throw new ConcurrentModificationException("structural modification during iteration");
 				try {
 					PList.this.set(i, v);
-					lastReturned = v; // 允许连续set（JDK契约）：更新身份校验基准
+					lastReturned = v; // 更新身份校验基准以支持连续 set
 				} catch (IndexOutOfBoundsException e) {
 					throw new ConcurrentModificationException();
 				}
@@ -273,9 +266,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		// 按List接口内容比较（对称性）：收窄到PList家族时，与ArrayList等同内容对象
-		// 比较会出现 p.equals(j)==false 而 j.equals(p)==true，HashSet去重/HashMap键
-		// 命中随比较方向（插入顺序）漂移。getList()（pcollections）的equals按List契约。
+		// 按 List 接口契约比较内容，确保与标准 List 之间的对称性。
 		return o instanceof java.util.List && getList().equals(o);
 	}
 
@@ -292,13 +283,13 @@ public abstract class PList<V> extends Collection implements List<V> {
 		return getList().containsAll(c);
 	}
 
-	@Deprecated // unsupported
+	@Deprecated
 	@Override
 	public boolean addAll(int index, java.util.Collection<? extends V> c) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Deprecated // unsupported
+	@Deprecated
 	@Override
 	public List<V> subList(int fromIndex, int toIndex) {
 		throw new UnsupportedOperationException();

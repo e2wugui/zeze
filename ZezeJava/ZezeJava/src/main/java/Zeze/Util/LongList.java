@@ -10,7 +10,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jspecify.annotations.Nullable;
 
-// long 基本类型动态数组：可比较/可克隆/可序列化
+/** long 基本类型动态数组：可比较/可克隆/可序列化。 */
 public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	public static final long[] EMPTY = new long[0];
 	public static final int DEFAULT_SIZE = 8;
@@ -372,7 +372,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public int indexOf(long value, int fromIdx) {
-		fromIdx = Math.max(fromIdx, 0); // 负起点按0处理（对齐构造器的count清洗惯例），替代原先的AIOOBE
+		fromIdx = Math.max(fromIdx, 0);
 		long[] buf = buffer;
 		int n = count;
 		for (int i = fromIdx; i < n; i++) {

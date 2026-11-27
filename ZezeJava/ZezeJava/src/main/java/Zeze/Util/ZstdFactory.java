@@ -14,7 +14,7 @@ import com.github.luben.zstd.ZstdInputStreamNoFinalizer;
 import com.github.luben.zstd.ZstdOutputStreamNoFinalizer;
 import org.jspecify.annotations.Nullable;
 
-// zstd-jni 无 finalizer 流式压缩/解压封装：直接驱动 native stream 上下文，封死 InputStream/OutputStream 多态面
+/** zstd-jni 无 finalizer 流式压缩/解压封装：直接驱动 native stream 上下文，禁用 InputStream/OutputStream 多态入口。 */
 public final class ZstdFactory {
 	private static final Field fCStream, fCSrcPos, fCDstPos;
 	private static final Field fDStream, fDSrcPos, fDDstPos;
@@ -111,10 +111,7 @@ public final class ZstdFactory {
 				ctxPtr = fCStream.getLong(this);
 				if (ctxPtr == 0)
 					throw new IllegalStateException("ctxPtr = 0");
-				if (dstBufSize == 0) // dstBufSize==0（new byte[0]静默接受）时压缩主循环/flush循环
-					// 0输出0消耗永久自旋，归一为默认尺寸（对齐解压侧"<=0当默认值"的语义中真正有害的==0）。
-					// 负值保持既有契约：new byte[负数]抛NegativeArraySizeException（fail-fast，
-					// 构造失败走ctx释放路径），无挂死风险，不吞。
+				if (dstBufSize == 0) // 0 长度缓冲会导致压缩循环空转，归一为默认尺寸；负值保持抛 NegativeArraySizeException
 					dstBufSize = DEFAULT_DST_BUF_SIZE;
 				dstBuf = new byte[dstBufSize];
 				//noinspection resource
@@ -124,10 +121,8 @@ public final class ZstdFactory {
 				int r = (int)mhResetCStream.invokeExact((ZstdOutputStreamNoFinalizer)this, ctxPtr);
 				if (r != 0)
 					throw new IllegalStateException("mhResetCStream = " + r);
-			} catch (Throwable e) { // MethodHandle.invoke
-				// super构造已建native cstream（ZstdOutputStreamNoFinalizer构造调createCStream），
-				// 构造失败则对象不可达、close()永不会被调用——catch中显式释放ctxPtr再重抛，
-				// 否则越界level/windowLog等配置错误每次泄漏一个native压缩上下文。
+			} catch (Throwable e) {
+				// super 构造已创建 native cstream，构造失败须显式释放防泄漏
 				long ptr = ctxPtr;
 				ctxPtr = 0;
 				if (ptr != 0) {
@@ -323,9 +318,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		// OutputStream多态面封死为响亮失败：继承实现走DummyBufferPool的0长缓冲配静态
-		// dstSize的native写（越过数组末端的堆越界写）；本类只经compress/flush(输出到
-		// 调用方dst)与close使用（TcpSocket装链全程selector单线程）。
+		// 禁用 OutputStream 多态入口（避免经 DummyBufferPool 触发越界写），仅通过 compress/flush/close 使用
 		@Override
 		public void write(int b) {
 			throw new UnsupportedOperationException("use compress(...) instead");
@@ -348,9 +341,7 @@ public final class ZstdFactory {
 
 		@Override
 		public synchronized void close() {
-			// 不能调基类close()：它会往DummyBufferPool的0长缓冲写帧尾字节（越过数组末端的native写），
-			// 再经OutputStream.write的边界检查抛IndexOutOfBoundsException；本包装的输出都走调用方
-			// 传入的dst，close只负责释放native上下文。帧不收尾是既有线格式，流式解码端兼容。
+			// 不调基类 close()（避免往 DummyBufferPool 写帧尾越界），仅释放 native 上下文
 			long ptr = ctxPtr;
 			if (ptr == 0)
 				return; // 幂等
@@ -383,11 +374,8 @@ public final class ZstdFactory {
 					throw new IllegalStateException("ctxPtr = 0");
 				if (dstBufSize > 0)
 					dstBuf = new byte[dstBufSize];
-			} catch (Throwable e) { // 反射字段访问及dstBuf分配的OutOfMemoryError（超大dstBufSize）
-				// super构造已建native dstream（ZstdInputStreamNoFinalizer构造
-				// 调createDStream），构造失败则对象不可达、close()永不会被调用——catch中显式释放ctxPtr
-				// 再重抛，否则dstBuf分配OOM等失败路径每次泄漏一个native解压上下文（负dstBufSize
-				// 被上面的>0守卫跳过，可达路径为超大值的OOM）。
+			} catch (Throwable e) {
+				// super 构造已创建 native dstream，构造失败须显式释放防泄漏
 				long ptr = ctxPtr;
 				ctxPtr = 0;
 				if (ptr != 0) {
@@ -501,11 +489,7 @@ public final class ZstdFactory {
 					dst.update(dstBuf, 0, (int)fDDstPos.getLong(this));
 					srcPos = (int)fDSrcPos.getLong(this);
 				}
-				// 输入耗尽时，native 上下文内可能滞留最多一个 dstBuf 的已解压输出（dstBuf 满载时
-				// 写不下的部分留在上下文里，仅当再次调用时才吐出）。空输入（srcPos==srcEnd）继续
-				// 调用直到无产出，否则解压流尾部最后一批（≤dstBufSize）会在流结束/flush 时静默丢失
-				// ——压缩开启的连接表现为尾部协议帧丢失或后续帧字节错位。官方
-				// ZstdInputStreamNoFinalizer.readInternal 的 while 循环同样以"无进展"退出覆盖此场景。
+				// 排空 native 上下文中滞留的尾部解压输出，直到无产出为止
 				fDSrcPos.set(this, srcEnd);
 				while (true) {
 					fDDstPos.set(this, 0);
@@ -523,8 +507,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		// InputStream多态面对称封死（压缩侧同因）：继承实现读DummyInputStream的EOF，
-		// 误用=静默空数据；本类只经decompress/close使用。
+		// 禁用 InputStream 多态入口，仅通过 decompress/close 使用
 		@Override
 		public int read() {
 			throw new UnsupportedOperationException("use decompress(...) instead");
@@ -547,8 +530,7 @@ public final class ZstdFactory {
 
 		@Override
 		public synchronized void close() {
-			// 与压缩侧同理：基类close()会调 in.close()（DummyInputStream共享单例）和池release，
-			// 这些都是被架空的内部管线，安全性依赖Dummy组件的偶然实现；这里只释放native上下文。
+			// 不调基类 close()，仅释放 native 上下文
 			long ptr = ctxPtr;
 			if (ptr == 0)
 				return; // 幂等

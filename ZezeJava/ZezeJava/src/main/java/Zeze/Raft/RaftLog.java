@@ -19,7 +19,7 @@ public final class RaftLog implements Serializable {
 	private long index;
 	private @Nullable Log log;
 
-	private transient @Nullable IntFunction<@Nullable Log> logFactory; // 不会被序列化。Local Only.
+	private transient @Nullable IntFunction<@Nullable Log> logFactory; // 仅本地反序列化使用
 	private transient @Nullable Action2<RaftLog, Boolean> leaderCallback;
 
 	public RaftLog(long term, long index, @Nullable Log log) {
@@ -98,8 +98,8 @@ public final class RaftLog implements Serializable {
 
 	public static RaftLog decodeTermIndex(byte[] bytes) {
 		var bb = ByteBuffer.Wrap(bytes);
-		var term = bb.ReadLong(); // term
-		var index = bb.ReadLong(); // index
+		var term = bb.ReadLong();
+		var index = bb.ReadLong();
 		return new RaftLog(term, index, null);
 	}
 

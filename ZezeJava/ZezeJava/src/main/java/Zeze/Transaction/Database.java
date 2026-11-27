@@ -26,49 +26,25 @@ import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
 /**
- * 数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
- * 所以数据库层就不要求很高的效率。马马虎虎就可以了。
+ * 数据库后端抽象基类：管理表集合与事务生命周期，提供 KV 表公共遍历封装与 Operates 契约。
  */
 public abstract class Database extends ReentrantLock {
 	protected static final Logger logger = LogManager.getLogger(Database.class);
 
-	// KV 表统一 key 长度预算。取值 900：SqlServer 聚集索引键上限 900 字节（行内 PRIMARY KEY 默认聚集），
-	// 是最严格的真实限制；MySQL 8 索引前缀 3072、PostgreSQL btree 索引条目约 2704、MongoDB 索引键 1024，
-	// 均宽于此值；Memory/Tikv/Redis/RocksDb 等无此物理限制，但统一预算让表可在后端间自由迁移。
-	//
-	// 超长键契约（存量 901..2712 按非法载荷处理）：
-	// - 读快速失败：TableX typed 入口（get 冷路径/select 族）抛 IllegalArgumentException，事务内安全中止；
-	// - 新写封死：put/getOrAdd/tryAdd 入口拦截——Zeze 写必先 load 冷记录，读门同时就是写门；
-	// - 删除不检查：remove 全管线（入口、内部 load、镜像回填 backfillMirror、flush 的主库/镜像 remove）
-	//   零键长检查，存量超长键可 walk 出来后删除——这是存量唯一的 remediation 通道；
-	// - walk 放行：遍历产出键不检查，仅游标入口按 eMaxLegacyKeyLength 护栏；
-	// - 后端 replace 保留本检查作为 checkpoint flush 的兜底断言：入口执法就位后正常路径不可达，
-	//   到达这里的超长 replace 意味着存在绕过 typed 入口的写路径。
-	// 历史教训：读/删按旧预算 2712 放行而 flush 按 900 执法的不对称窗口期，存量超长键"提交 Success
-	// 但 flush 永久重试"（Table 模式停机 fatal 丢脏、Immediately 模式 halt 543543）——拒绝非法载荷
-	// 必须发生在读/写入口（事务成功之前），而不是在落库终点拒绝已提交的事务。
+	// KV 表统一 key 长度上限（取 SqlServer 聚集索引键限制 900 字节），便于表跨后端迁移。
 	public static final int eMaxKeyLength = 900;
 
-	// 遍历游标（exclusiveStartKey）的护栏预算（历史旧上限）：挡应用侧传入的垃圾游标在有索引后端
-	// 触发原生错误（MySQL 1406 / SqlServer 1946 等，多不含表名、毒化遍历批次）；存量键（≤2712）
-	// 全部放行。读/删路径不再使用本预算（见 eMaxKeyLength 契约）。
+	// 遍历游标（exclusiveStartKey）的长度上限，放行存量超长键并拦截异常游标。
 	public static final int eMaxLegacyKeyLength = 2712;
 
-	// 键长检查的执法点全景：
-	// 1) typed 入口（主执法层）：TableX.get(冷路径)/getOrAdd/tryAdd/put/selectCopy/selectDirty/
-	//    selectFromDatabase——后端 find/remove 不再检查；
-	// 2) 游标入口：AbstractKVTable.encodeStartKeyChecked 与 TableX.walkDatabaseRaw 带游标重载
-	//    统一检查，后端无需各自复制；
-	// 3) 后端 replace（兜底断言）：写主路径 Checkpoint.FlushBatch.writeTo 直呼 raw replace，
-	//    不经过 typed 门面，后端是 flush 的唯一收口点。
-	// 入口处统一抛带表名与长度的异常，超限在事务成功之前暴露（见 eMaxKeyLength 契约）。
+	// 在 TableX 读写入口及后端 replace 兜底检查，超限在事务提交前拒绝。
 	protected static void checkKvKeyLength(String tableName, ByteBuffer key) {
 		if (key.size() > eMaxKeyLength)
 			throw new IllegalArgumentException(
 				"key too large for kv table '" + tableName + "': " + key.size() + " > " + eMaxKeyLength);
 	}
 
-	// 游标护栏：放行存量预算内的键，拒绝明显异常的垃圾游标。
+	// 游标长度护栏，放行存量上限内的键。
 	protected static void checkKvKeyLengthForLegacyAccess(String tableName, ByteBuffer key) {
 		if (key.size() > eMaxLegacyKeyLength)
 			throw new IllegalArgumentException("key too large for kv table legacy access '" + tableName
@@ -430,8 +406,7 @@ public abstract class Database extends ReentrantLock {
 			return callback.handle(k);
 		}
 
-		// 带游标遍历统一在此编码并检查 key 长度预算（不得依赖后端手工复制执法：
-		// walkKey/walkDesc 家族曾在 MySql/SqlServer 整批遗漏、DatabaseMemory 一处都没有）。
+		// 带游标遍历统一在此编码并检查游标长度上限。
 		private static <K extends Comparable<K>, V extends Bean> @Nullable ByteBuffer encodeStartKeyChecked(
 			TableX<K, V> table, @Nullable K exclusiveStartKey) {
 			if (exclusiveStartKey == null)
@@ -627,9 +602,7 @@ public abstract class Database extends ReentrantLock {
 	public abstract Transaction beginTransaction();
 
 	/**
-	 * 本库是否把该写失败判定为暂时性写冲突（如Mongo WriteConflict）。
-	 * checkpoint落库段据此决定是否以全新事务重放整批（回滚干净前提）；
-	 * 默认false——非暂时性失败照旧上抛走halt路径。
+	 * 判定写失败是否为可重放的暂时性写冲突（如 Mongo WriteConflict），默认 false。
 	 */
 	public boolean isTransientWriteConflict(Throwable e) {
 		return false;
@@ -710,14 +683,8 @@ public abstract class Database extends ReentrantLock {
 		*/
 
 		/**
-		 * 保存数据（按版本条件更新），返回&lt;版本, 是否成功保存&gt;。
-		 * true 包含成功插入和成功更新；false 表示版本条件或并发竞争未满足。
-		 * 仅成功时使用返回版本，失败时应重新读取，不能依赖各后端返回的版本占位值。
-		 *
-		 * <p>版本读回契约（已知漂移，同库混用/迁移后端时注意）：插入路径的返回版本依后端而异——
-		 * JDBC系（MySql/PostgreSQL/SqlServer，存储过程实现）返回入参version原值；
-		 * RocksDb/Mongo/Redis/Tikv/Dynamo返回入参+1（CAS重试依赖递增语义）。
-		 * 统一属迁移级改动（需动JDBC存储过程），当前以本声明承载契约。
+		 * 按版本条件保存数据，返回 &lt;版本, 是否成功&gt;（true 含插入与更新，false 表示版本冲突）。
+		 * 失败时须重新读取；注意首次插入时 JDBC 存储过程返回入参 version，其余后端返回 version + 1。
 		 */
 		@Nullable KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data,
 															long version);

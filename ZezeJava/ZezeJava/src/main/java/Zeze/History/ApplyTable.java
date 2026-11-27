@@ -71,8 +71,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 		case Changes.Record.Edit:
 			var value = get(key);
-			// value==null即先行分歧（编辑目标不存在）：直接递归抛NPE中断回放批，不得静默忽略
-			// （不得newValue()重建或跳过）。logBean为null是合法的空编辑，保留判空。
+			// 目标行缺失时由后续调用直接抛 NPE 中断回放批，不静默新建或跳过；log 为 null 是合法空编辑。
 			var log = logRecord.getLogBean();
 			if (log != null)
 				//noinspection DataFlowIssue
@@ -82,9 +81,6 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 			break;
 
 		default:
-			// 未知state（坏数据，或前向兼容的新版写端扩展）不得静默跳过：游标照常推进=
-			// 该entry无声丢失，与模块“分歧必须中断”的哲学（Edit目标缺失即抛）冲突。
-			// fail-loud中断本批，游标停在本记录前，人工排查该tHistory记录。
 			throw new RuntimeException("unknown Changes.Record state=" + logRecord.getState()
 					+ ", table=" + originTable.getName());
 		}
@@ -105,13 +101,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		table.remove(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
 	}
 
-	/**
-	 * 记录级回滚支持：丢弃该键在LRU中的缓存值。
-	 * apply的写路径先更新LRU后写存储（put/remove均如此，Edit失败前也可能已把
-	 * get加载的bean原地改了一半），记录级事务回滚只撤销存储侧的未提交写入，
-	 * LRU中残留的脏值必须同步失效——否则重试同条记录时get命中脏缓存，
-	 * 相当于对已回滚的entry二次应用（非幂等日志会叠加出重复元素）。
-	 */
+	/** 失效指定键的 LRU 缓存，供记录级事务回滚时清理已写入或被原地修改的脏缓存。 */
 	public void invalidate(BTableKey tableKey) {
 		lru.remove(originTable.decodeKey(ByteBuffer.Wrap(tableKey.getKeyEncoded())));
 	}
@@ -135,8 +125,6 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 		var sb = new StringBuilder();
 		for (; i <= aEnd && i <= bEnd; ++i)
-			// 行长超过50时钳到0：不向Str.indent传负数（当前实现对n<=0返回空串，此处显式收敛到
-			// 合法参数域，不依赖实现内部防护）
 			sb.append(a[i]).append(Str.indent(Math.max(0, 50 - a[i].length()))).append(b[i]).append('\n');
 		if (aEnd > bEnd) {
 			for (; i <= aEnd; ++i)

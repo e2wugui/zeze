@@ -23,7 +23,7 @@ public class PList1<V> extends PList<V> {
 		meta = List1Meta.get(valueClass);
 	}
 
-	// meta须来自List1Meta工厂（公开唯一构建入口，已过Bean拦截），供生成代码常量化/调用点静态持有。
+	// meta 须来自 List1Meta 工厂（已拦截 Bean 类型），供生成代码静态持有。
 	public PList1(List1Meta<V> meta) {
 		this.meta = meta;
 	}
@@ -117,7 +117,7 @@ public class PList1<V> extends PList<V> {
 		if (items.isEmpty())
 			return false;
 		if (items instanceof PList1)
-			items = ((PList1<? extends V>)items).getList(); // more stable
+			items = ((PList1<? extends V>)items).getList(); // 捕获不可变快照
 		for (V v : items) {
 			//noinspection ConstantValue
 			if (v == null)
@@ -143,9 +143,7 @@ public class PList1<V> extends PList<V> {
 			//noinspection unchecked
 			return listLog.removeAll((Collection<V>)c);
 		}
-		// minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
-		// 与托管路径（LogList1.removeAll）行为对齐；从高索引往低删保持非命中元素顺序。
-		// 命中检测走线性equals：生成bean覆写equals但不覆写hashCode，HashSet漏命中。
+		// 从高索引往低删以移除全部匹配项并保序；线性 equals 兼容仅覆写 equals 的生成 Bean。
 		var hit = new ArrayList<>(c);
 		var newList = list;
 		for (var i = newList.size() - 1; i >= 0; i--)
@@ -245,7 +243,7 @@ public class PList1<V> extends PList<V> {
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
 			return;
-		// JDK暂存+单发批量：clear后无中间可观测态，与逐条add等价；ktt后端plusAll走builder批量构建。
+		// 暂存后一次性批量写入，与逐条 add 语义等价且避免中间状态。
 		var items = new ArrayList<V>(initialDecodeCapacity(n));
 		for (int i = n; i > 0; i--) {
 			items.add(decoder.apply(bb));

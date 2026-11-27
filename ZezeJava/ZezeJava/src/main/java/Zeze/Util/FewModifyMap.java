@@ -12,10 +12,7 @@ import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 写少读多的Map：写侧HashMap加锁修改，读侧走不可变快照（写后首次读重建）。
- * null契约与HashMap一致：允许null key与null value，快照可区分null value与absent
- * （快照为HashMap拷贝，不因null建不成）。需拒绝null key请用
- * {@link FewModifySortedMap}（TreeMap契约，key不允许null、需可比较）。
+ * 写少读多的 Map：写侧 HashMap 加锁修改，读侧走不可变快照（写后首次读重建），允许 null key/value。
  */
 public class FewModifyMap<K extends @Nullable Object, V extends @Nullable Object> implements Map<K, V>, Cloneable {
 	private transient volatile @Nullable Map<K, V> read;
@@ -44,9 +41,7 @@ public class FewModifyMap<K extends @Nullable Object, V extends @Nullable Object
 			writeLock.lock();
 			try {
 				if ((r = read) == null) {
-					// HashMap 拷贝允许 null value（对齐 FewModifySortedMap 的 TreeMap 快照）：
-					// Map.copyOf 遇 null value/key 抛 NPE 且快照建不成（read 恒 null），此后任意读
-					// 方法重复抛 NPE，读侧永久瘫痪。unmodifiable 包装保持快照只读契约不弱化。
+					// 用 HashMap 拷贝而非 Map.copyOf，以支持 null key/value 并保持只读快照语义。
 					read = r = Collections.unmodifiableMap(new HashMap<>(write));
 				}
 			} finally {
@@ -282,9 +277,7 @@ public class FewModifyMap<K extends @Nullable Object, V extends @Nullable Object
 		return prepareRead().toString();
 	}
 
-	/** 相等性基于调用时刻快照做内容比较（与同内容任意Map相等，跨实现对称，
-	 * Map契约）；hashCode随内容变化，严禁作HashMap/HashSet键；需要稳定键
-	 * 请用snapshot()固定容器结构，并保证其中key/value的哈希值稳定；clone()返回的是可写浅拷贝。 */
+	/** 基于调用时刻快照比较内容；hashCode 随内容变化，勿直接作 Map/Set 键（需要稳定键请用 {@link #snapshot()}）。 */
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		return this == obj || obj instanceof Map && prepareRead().equals(obj);

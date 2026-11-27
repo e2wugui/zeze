@@ -24,6 +24,7 @@ import org.jspecify.annotations.Nullable;
 import static java.lang.Math.ceil;
 import static java.util.logging.Level.WARNING;
 
+/** {@code GTable} 内部集合视图、断言与迭代器工具类。 */
 public class Utils {
 	public static <T> boolean addAll(Collection<T> addTo, Iterator<? extends T> iterator) {
 		checkNotNull(addTo);
@@ -173,7 +174,7 @@ public class Utils {
 
 		@Serial private static final long serialVersionUID = 0;
 
-		@SuppressWarnings("unchecked") // safe contravariant cast
+		@SuppressWarnings("unchecked")
 		<T> Predicate<T> withNarrowedType() {
 			return (Predicate<T>) this;
 		}
@@ -272,7 +273,7 @@ public class Utils {
 			}
 		};
 
-		@SuppressWarnings("unchecked") // safe contravariant cast
+		@SuppressWarnings("unchecked")
 		<T> Predicate<T> withNarrowedType() {
 			return (Predicate<T>) this;
 		}
@@ -294,10 +295,8 @@ public class Utils {
 		try {
 			return o.toString();
 		} catch (Exception e) {
-			// Default toString() behavior - see Object.toString()
 			String objectToString =
 					o.getClass().getName() + '@' + Integer.toHexString(System.identityHashCode(o));
-			// Logger is created inline with fixed name to avoid forcing Proguard to create another class.
 			Logger.getLogger("com.google.common.base.Strings")
 					.log(WARNING, "Exception during lenientFormat for " + objectToString, e);
 			return "<" + objectToString + " threw " + e.getClass().getName() + ">";
@@ -306,19 +305,18 @@ public class Utils {
 
 	public static String lenientFormat(
 			@Nullable String template, @Nullable Object @Nullable ... args) {
-		template = String.valueOf(template); // null -> "null"
+		template = String.valueOf(template);
 
 		if (args == null) {
 			args = new Object[] {"(Object[])null"};
 		} else {
-			// Own the scratch array: callers may retain it or pass a covariant array such as Integer[].
+			// 复制数组，避免修改调用方数组或向协变数组写入 String 抛出 ArrayStoreException。
 			args = Arrays.copyOf(args, args.length, Object[].class);
 			for (int i = 0; i < args.length; i++) {
 				args[i] = lenientToString(args[i]);
 			}
 		}
 
-		// start substituting the arguments into the '%s' placeholders
 		StringBuilder builder = new StringBuilder(template.length() + 16 * args.length);
 		int templateStart = 0;
 		int i = 0;
@@ -333,7 +331,6 @@ public class Utils {
 		}
 		builder.append(template, templateStart, template.length());
 
-		// if we run out of placeholders, append the extra args in square braces
 		if (i < args.length) {
 			builder.append(" [");
 			builder.append(args[i++]);
@@ -362,12 +359,10 @@ public class Utils {
 		if (size < 0) {
 			throw new IllegalArgumentException("negative size: " + size);
 		}
-		// index > size
 		return lenientFormat("%s (%s) must not be greater than size (%s)", desc, index, size);
 	}
 
 	public static int checkPositionIndex(int index, int size, String desc) {
-		// Carefully optimized for execution by hotspot (explanatory comment above)
 		if (index < 0 || index > size) {
 			throw new IndexOutOfBoundsException(badPositionIndex(index, size, desc));
 		}
@@ -483,10 +478,7 @@ public class Utils {
 	}
 
 	abstract static class ViewCachingAbstractMap<K, V> extends AbstractMap<K, V> {
-		/**
-		 * Creates the entry set to be returned by {@link #entrySet()}. This method is invoked at most
-		 * once on a given map, at the time when {@code entrySet} is first called.
-		 */
+		/** 首次调用 {@link #entrySet()} 时创建并缓存 entrySet 视图。 */
 		abstract Set<Entry<K, V>> createEntrySet();
 
 		@Nullable private transient Set<Entry<K, V>> entrySet;
@@ -523,14 +515,8 @@ public class Utils {
 	}
 
 	static boolean removeAllImpl(Set<?> set, Collection<?> collection) {
-		checkNotNull(collection); // for GWT
-		/*
-		 * AbstractSet.removeAll(List) has quadratic behavior if the list size
-		 * is just more than the set's size.  We augment the test by
-		 * assuming that sets have fast contains() performance, and other
-		 * collections don't.  See
-		 * http://code.google.com/p/guava-libraries/issues/detail?id=1013
-		 */
+		checkNotNull(collection);
+		// 仅在 collection 为更大的 Set 时遍历本集合，避免 AbstractSet.removeAll(List) 退化为 O(n²)。
 		if (collection instanceof Set && collection.size() > set.size()) {
 			return removeAll(set.iterator(), collection);
 		}
@@ -637,7 +623,7 @@ public class Utils {
 
 		@Override
 		public boolean retainAll(Collection<?> c) {
-			return super.retainAll(checkNotNull(c)); // GWT compatibility
+			return super.retainAll(checkNotNull(c));
 		}
 	}
 
@@ -670,7 +656,7 @@ public class Utils {
 		@Override
 		public void forEach(Consumer<? super K> action) {
 			checkNotNull(action);
-			// avoids entry allocation for those maps that allocate entries on iteration
+			// 直接走 map.forEach，避免为迭代分配临时 Entry。
 			map.forEach((k, v) -> action.accept(k));
 		}
 
@@ -733,21 +719,10 @@ public class Utils {
 			return expectedSize + 1;
 		}
 		if (expectedSize < MAX_POWER_OF_TWO) {
-			// This seems to be consistent across JDKs. The capacity argument to HashMap and LinkedHashMap
-			// ends up being used to compute a "threshold" size, beyond which the internal table
-			// will be resized. That threshold is ceilingPowerOfTwo(capacity*loadFactor), where
-			// loadFactor is 0.75 by default. So with the calculation here we ensure that the
-			// threshold is equal to ceilingPowerOfTwo(expectedSize). There is a separate code
-			// path when the first operation on the new map is putAll(otherMap). There, prior to
-			// https://github.com/openjdk/jdk/commit/3e393047e12147a81e2899784b943923fc34da8e, a bug
-			// meant that sometimes a too-large threshold is calculated. However, this new threshold is
-			// independent of the initial capacity, except that it won't be lower than the threshold
-			// computed from that capacity. Because the internal table is only allocated on the first
-			// write, we won't see copying because of the new threshold. So it is always OK to use the
-			// calculation here.
+			// 按默认负载因子 0.75 反算初始容量，避免插入 expectedSize 个元素时触发扩容。
 			return (int) ceil(expectedSize / 0.75);
 		}
-		return Integer.MAX_VALUE; // any large value
+		return Integer.MAX_VALUE;
 	}
 
 	public static <E> HashSet<E> newHashSetWithExpectedSize(int expectedSize) {
@@ -773,7 +748,7 @@ public class Utils {
 		@Override
 		public void forEach(Consumer<? super V> action) {
 			checkNotNull(action);
-			// avoids allocation of entries for those maps that generate fresh entries on iteration
+			// 直接走 map.forEach，避免为迭代分配临时 Entry。
 			map.forEach((k, v) -> action.accept(v));
 		}
 
@@ -875,10 +850,6 @@ public class Utils {
 
 		@Override
 		public boolean remove(@Nullable Object o) {
-			/*
-			 * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
-			 * nullness checker.
-			 */
 			if (contains(o) && o instanceof Map.Entry<?, ?> entry) {
 				return map().remove(entry.getKey()) != null;
 			}
@@ -890,7 +861,7 @@ public class Utils {
 			try {
 				return super.removeAll(checkNotNull(c));
 			} catch (UnsupportedOperationException e) {
-				// if the iterators don't support remove
+				// 迭代器不支持 remove 时回退处理。
 				return removeAllImpl(this, c.iterator());
 			}
 		}
@@ -900,13 +871,9 @@ public class Utils {
 			try {
 				return super.retainAll(checkNotNull(c));
 			} catch (UnsupportedOperationException e) {
-				// if the iterators don't support remove
+				// 迭代器不支持 remove 时回退处理。
 				Set<Object> keys = newHashSetWithExpectedSize(c.size());
 				for (Object o : c) {
-					/*
-					 * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
-					 * nullness checker.
-					 */
 					if (contains(o) && o instanceof Map.Entry<?, ?> entry) {
 						keys.add(entry.getKey());
 					}
@@ -990,7 +957,7 @@ public class Utils {
 	}
 
 	abstract static class AbstractCell<R, C, V> implements Table.Cell<R, C, V> {
-		// needed for serialization
+		// 供序列化使用。
 		AbstractCell() {}
 
 		@Override
@@ -1020,15 +987,7 @@ public class Utils {
 	public static int hashCode(@Nullable Object... objects) {
 		return Arrays.hashCode(objects);
 	}
-	/**
-	 * Returns an immutable cell with the specified row key, column key, and value.
-	 *
-	 * <p>The returned cell is serializable.
-	 *
-	 * @param rowKey the row key to be associated with the returned cell
-	 * @param columnKey the column key to be associated with the returned cell
-	 * @param value the value to be associated with the returned cell
-	 */
+	/** 返回指定行键、列键和值的不可变（可序列化）单元格。 */
 	public static <R, C, V> Table.Cell<R, C, V> immutableCell(R rowKey, C columnKey, V value) {
 		return new ImmutableCell<>(rowKey, columnKey, value);
 	}

@@ -17,7 +17,7 @@ import Zeze.Serialize.Serializable;
  */
 public class MasterTable {
 	public static class Data extends ReentrantLock implements Serializable {
-		final TreeMap<Binary, BBucketMeta.Data> buckets = new TreeMap<>(); // key is meta.first
+		final TreeMap<Binary, BBucketMeta.Data> buckets = new TreeMap<>(); // key 为 meta.keyFirst
 		volatile boolean created = false;
 
 		public Collection<BBucketMeta.Data> buckets() {
@@ -28,8 +28,7 @@ public class MasterTable {
 			return buckets;
 		}
 
-		// 持锁深拷贝快照：Master读路径（GetBuckets/LocateBucket/Register）返回或遍历快照，
-		// 避免rpc序列化遍历TreeMap与endSplit/endMove的持锁写并发（CME/脏结构）。
+		// 持锁深拷贝快照，供 Master 读路径安全遍历或序列化，避免与持锁写并发
 		public Data snapshot() {
 			lock();
 			try {
@@ -43,11 +42,7 @@ public class MasterTable {
 			}
 		}
 
-		// floorEntry对并发写不是线程安全（红黑树重组中途读）。Dbh2分桶历史（Bucket.splitMetaHistory）
-		// 的写在raft apply线程、读在user-task线程，内部持锁保护；Master调用方已持锁，可重入无副作用。
-		// 空表/小于首桶first的越界键返回null（FND28 F1）：调用方（Dbh2.ProcessPrepareBatchRequest
-		// 的拒绝路径、tailMap）以null判"无覆盖桶"——此前floorEntry==null时对lower.getValue()直接
-		// NPE，Dbh2侧的null检查是死代码，异常面目替代可判定错误码eBucketNotFound。
+		// 持锁 floor 查找（与 raft apply 写互斥）；空表或小于首桶起始键时返回 null
 		public BBucketMeta.@Nullable Data locate(Binary key) {
 			lock();
 			try {
@@ -58,9 +53,7 @@ public class MasterTable {
 			}
 		}
 
-		// 返回的是live视图：仅Dbh2AgentManager使用，其操作的实例是rpc返回的快照拷贝，无并发写。
-		// 越界键（无floor，FND28 F1）：从key自身起tail——小于全部桶first的键等价于整表视图，
-		// 与"定位到覆盖-or-前驱桶再tail"的窗口语义一致（此前locate对空表NPE）。
+		// 返回子视图（仅用于只读快照拷贝）；无前驱桶时从 key 起向后覆盖全表
 		public SortedMap<Binary, BBucketMeta.Data> tailMap(Binary key) {
 			var bucket = locate(key);
 			lock();

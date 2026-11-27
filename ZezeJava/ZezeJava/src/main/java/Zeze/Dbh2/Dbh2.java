@@ -50,7 +50,6 @@ import org.jspecify.annotations.Nullable;
 public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private static final Logger logger = LogManager.getLogger(Dbh2.class);
 	private final Dbh2Config dbh2Config = new Dbh2Config();
-	// 非final：构造半失败的catch清理需null检查后引用（blank final在catch中读取不通过确定赋值检查）。
 	private Raft raft;
 	private Dbh2StateMachine stateMachine;
 	private final @Nullable Dbh2Manager manager;
@@ -60,7 +59,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return locks;
 	}
 
-	// 性能统计。
 	public static String formatMeta(@Nullable Data meta) {
 		return meta == null ? "" : meta.getDatabaseName() + '.' + meta.getTableName() +
 				'[' + meta.getKeyFirst() + ',' + meta.getKeyLast() + ']';
@@ -132,11 +130,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				return;
 			}
 
-			// 全序化不变量：非query请求（含PrepareBatch）的"拦截检查"与"提交raft串行执行器"
-			// 必须在prepareQueueLock临界区内原子完成——与装载（setupPrepareQueue，同锁）任一先后
-			// 都安全；分离则存在"判空后、提交前被装载+one-shot抢先"的窗口，晚注册事务落入迁出
-			// 键域的写入被收尾deleteToEnd静默丢弃。提交仅短暂持per-key队列锁（非阻塞），
-			// prepareQueueLock→队列锁单向无环。
+			// 拦截检查与提交串行执行器必须在 prepareQueueLock 内原子完成，确保不晚于 setupPrepareQueue 漏入迁出写入
 			prepareQueueLock.lock();
 			try {
 				if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
@@ -160,10 +154,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return typeId == PrepareBatch.TypeId_;
 	}
 
-	// PrepareBatch自指守卫判据：死桶（keyFirst==keyLast==DeadBucketMetaBound哨兵）不拥有
-	// 键域，locate命中必指向他桶，恒按refused重定向自愈——哨兵与真实单字节keyFirst字节
-	// 相等，死桶参与keyFirst判等会把重定向误判自指成终局eBucketNotFound，客户端只对
-	// refused刷新路由，写入持续失败。活桶首键条目恒指向本桶，等值判等保持原语义。
+	// 死桶不拥有键域，始终允许重定向，避免与单字节哨兵键误判自指
 	private static boolean isLocateSelf(BBucketMeta.Data bucketMeta, BBucketMeta.Data locate) {
 		if (Bucket.DeadBucketMetaBound.equals(bucketMeta.getKeyFirst())
 				&& Bucket.DeadBucketMetaBound.equals(bucketMeta.getKeyLast()))
@@ -171,11 +162,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return locate.getKeyFirst().equals(bucketMeta.getKeyFirst());
 	}
 
-	// meta-less守卫：新raft在SetBucketMeta（桶协议第一条）之前
-	// bucketMeta==null，此前Get/Walk/WalkKey/PrepareBatch入口经inBucket对meta的解引用以
-	// 框架层NPE面目出现；显式判定返回专用错误码eBucketNotReady，孤儿收养
-	// 路径可辨识、可重试。SetBucketMeta/SplitPut不拦——前者即初始化入口，后者是目标桶
-	// 在meta就位前的数据灌入通道。
+	// 新建桶在 SetBucketMeta 生效前无元数据，查询与事务入口返回 eBucketNotReady 供调用方重试
 	private boolean isBucketNotReady() {
 		//noinspection DataFlowIssue
 		return stateMachine.getBucket().getBucketMeta() == null;
@@ -231,10 +218,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			raft.setOnFollowerReceiveKeepAlive(this::onFollowerReceiveKeepAlive);
 			raft.getServer().start();
 		} catch (Exception ex) {
-			// 半失败逆序清理（次序与分段捕获对齐close()先例）：Raft构造成功即已启动timerTask、
-			// 注册ShutdownHook，openBucket已打开桶独立rocksdb句柄——不清理则句柄钉死桶目录
-			//（Windows），master侧建桶回滚的DestroyBucket删目录失败。清理异常addSuppressed，
-			// 不掩盖原始失败原因。
+			// 半失败逆序清理已初始化的 raft 与状态机句柄，避免目录被占用
 			if (null != raft) {
 				try {
 					raft.shutdown();
@@ -263,10 +247,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return;
 		closed = true;
 		logger.info("closeRaft: {}", raft.getName());
-		// 生命周期不变量：stateMachine.close()（bucket的rocksdb句柄/onTimer/commitAgent）必须无条件
-		// 执行——raft.shutdown()抛异常时跳过它会把句柄泄漏到进程存续期；destroyBucket重试走幂等
-		// 分支（条目已摘除）不再close，泄漏句柄钉死目录删除（Windows），销毁回滚永久卡死。
-		// 分别捕获，首个异常在全部清理执行完后重抛（保持close失败不删目录的调用方语义）。
+		// 逐项独立清理并在结束后重抛首个异常，确保 raft 失败时仍释放 stateMachine 与分桶代理句柄
 		Exception first = null;
 		try {
 			raft.shutdown();
@@ -281,12 +262,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			if (null == first)
 				first = e;
 		}
-		// 分桶进行中停止：dbh2Splitting不清理则agent的resend任务/连接器/pending表残留至进程结束
-		//（嵌入式/测试反复建销毁桶逐次累积）。先摘引用再close（对齐endSplit2的清理形态）。
-		// 置于raft.shutdown之后：shutdown已convertStateTo(Follower)——stop触发的pending终局以
-		// Timeout码直接调用用户handle（Agent.trigger不经sendHandle，其早退只覆盖应答到达路径），
-		// 落入splitPutNext的hasError/失配分支，其startSplit重入被isLeader(false)门控拒绝；
-		// 迟到的用户任务回调同样经身份检查不再重入；driveSplitSync以closed守卫收敛。
+		// 必须在 raft.shutdown 之后关闭分桶代理，避免超时回调以 leader 身份重入 startSplit
 		var splittingAgent = dbh2Splitting;
 		dbh2Splitting = null;
 		if (null != splittingAgent) {
@@ -306,7 +282,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	protected long ProcessSetBucketMetaRequest(SetBucketMeta r) {
 		var log = new LogSetBucketMeta(r);
 		raft.appendLog(log, r.Result, (raftLog, result)
-				-> r.SendResultCode(result ? 0 : Procedure.CancelException)); // result is empty
+				-> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}
 
@@ -317,16 +293,12 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		stateMachine.counterGet.incrementAndGet();
 		// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
 		var bucket = Objects.requireNonNull(stateMachine.getBucket());
-		// 正向交错复核（seqlock式）：查询与raft apply的收尾（endSplit/endMove：meta先整体
-		// 替换、deleteToEnd后行）并发，miss可能是apply在"meta校验通过"与"读数据"之间跨骑
-		// 所致（已迁往新桶的键读到已删状态）。miss时重读meta复核：身份不等（整体替换、
-		// 无ABA）或键出新界→eBucketMismatch走KV(false)重路由，不得当权威"不存在"；
-		// 身份相等即权威miss（deleteToEnd后于替换，读到删除效果⟹复核必见新meta）。
+		// 读前快照 meta；miss 时复核引用，若期间发生收尾换代则返回 eBucketMismatch 重路由（endSplit/endMove 先切 meta 后 deleteToEnd）
 		var metaOnCheck = Objects.requireNonNull(bucket.getBucketMeta());
 		if (!bucket.inBucket(metaOnCheck, r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
 			return errorCode(eBucketMismatch);
 		var value = bucket.get(r.Argument.getKey());
-		if (null == value || value.size() == 0) { // 空值是分桶墓碑标记，逻辑上不存在（存储不变量：空value==墓碑）
+		if (null == value || value.size() == 0) { // 空值为分桶墓碑标记，视为不存在
 			var metaOnMiss = bucket.getBucketMeta();
 			if (metaOnMiss != metaOnCheck
 					|| !bucket.inBucket(metaOnMiss, r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
@@ -408,9 +380,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			txn = null;
 		} finally {
 			if (null != txn) {
-				// 必须两参remove（仅当映射值是本次txn才删）：重复投递撞eDuplicateTid时，
-				// 表里是先到的存活事务，本txn从未入表，单参remove会误删别人的事务
-				//（commitBatch随后找不到事务，已决定提交的数据被静默丢弃）。
+				// 仅当映射值仍为本事务时才删除，防止重复投递时误删已存活的同名 tid 事务
 				stateMachine.getTransactions().remove(tid, txn);
 				txn.close();
 			}
@@ -459,8 +429,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					bucketEnd = true;
 					break;
 				}
-				if (it.value().length == 0) // 分桶墓碑标记，逻辑上不存在（walkKey也跳过：标记key等于已删除）
-					continue; // 不消耗页配额：整页墓碑若计数退出会以0条+非桶尾返回，客户端walkPage将跳桶丢数据
+				if (it.value().length == 0) // 空值为分桶墓碑标记，跳过且不消耗页配额
+					continue;
 				fill.run(key, it);
 				count--;
 			}
@@ -469,10 +439,9 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
-	// prefix的上界（大于一切以prefix开头的key的最小byte串）：从后往前找首个非0xFF字节加一截断；
-	// 全0xFF时无有限上界返回null（该前缀即最大可能前缀，桶内最大key就是目标前缀的结尾，走keyLast/seekToLast定位）。
+	// 计算大于所有 prefix 开头键的最小字节串上界；全 0xFF 无有限上界返回 null
 	private static @Nullable Binary prefixUpperBound(Binary prefix) {
-		var bytes = prefix.toBytes(); // 必须副本：原地加一会改掉调用方的prefix
+		var bytes = prefix.toBytes(); // 副本，避免原地修改入参
 		for (var i = bytes.length - 1; i >= 0; --i) {
 			if (bytes[i] != -1) {
 				++bytes[i];
@@ -500,7 +469,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				it.seek(lower.copyIf());
 
 			if (RocksDatabase.isValidOrThrow(it) && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
-				it.next(); // skip exclusive key if need.
+				it.next(); // 跳过排他起始键
 
 			var count = proposeLimit;
 			var bucketEnd = false;
@@ -517,8 +486,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					bucketEnd = true;
 					break;
 				}
-				if (it.value().length == 0) // 分桶墓碑标记，逻辑上不存在（walkKey也跳过：标记key等于已删除）
-					continue; // 不消耗页配额：整页墓碑若计数退出会以0条+非桶尾返回，客户端walkPage将跳桶丢数据
+				if (it.value().length == 0) // 空值为分桶墓碑标记，跳过且不消耗页配额
+					continue;
 				fill.run(key, it);
 				count--;
 			}
@@ -527,12 +496,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
-	// walk陈旧视图检测——桶收窄（分裂/迁移完结）或置死后不得按正常桶尾应答，否则客户端
-	// 按陈旧视图推进迭代器会静默跳过新桶键域。拒绝条件：置死桶（{1},{1}哨兵meta）无条件
-	// 拒；非空游标出界拒；VerifyBucketMeta置位时缓存视图预期界与权威meta不等即拒（收窄后
-	// 的桶对新鲜客户端是合法遍历目标，服务端无法单方面识别陈旧，预期界须客户端回带）。
-	// 客户端收bucketRefuse即reload重定位（与Get的eBucketMismatch自愈同构）；master侧表
-	// 长期陈旧的连续拒绝由walkPage既有256上限兜底。
+	// 检测死桶、越界游标或客户端陈旧边界，拒绝后由客户端刷新路由重定位
 	private boolean isWalkBucketRefuse(BWalk.Data argument, BBucketMeta.Data meta) {
 		if (Bucket.DeadBucketMetaBound.equals(meta.getKeyFirst())
 				&& Bucket.DeadBucketMetaBound.equals(meta.getKeyLast()))
@@ -564,10 +528,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				r.Argument.isDesc(),
 				r.Argument.getPrefix(),
 				(key, it) -> r.Result.getKeyValues().add(new BWalkKeyValue.Data(key, new Binary(it.value()))));
-		// 正向交错复核（与Get的miss-recheck同构）：迭代期间收尾apply完整执行（meta收窄/
-		// 置死+deleteToEnd）后桶尾语义已失效，按正常bucketEnd应答会让客户端陈旧视图静默跳过
-		// 新桶键域。meta身份不等即拒（整体替换、无ABA），客户端走既有refused路径reload
-		// 重定位，已收集行随refuse丢弃；不依赖VerifyBucketMeta（旧客户端也受保护）。
+		// 迭代期间若发生收尾换代，丢弃结果并返回 bucketRefuse 触发客户端重定位
 		if (bucket.getBucketMeta() != metaOnCheck) {
 			r.Result.getKeyValues().clear();
 			r.Result.setBucketRefuse(true);
@@ -656,14 +617,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return; // splitting
 		}
 
-		// pending-settle闸（堆叠窗口闭口，setPendingSettle注释自认的二期缺口）：上一笔迁移
-		// 已commit（LogEndSplit/LogEndMove apply落下标志）但settle未终局（30s内存重试链在途/
-		// master不可达）时不得启动新迁移——否则新迁移完结时setPendingSettle撞上残留旧标志被
-		// 跳过不落盘（单槽保留旧者），进程死亡后recoverSplitting只补发槽内旧迁移，新迁移的
-		// to键域在主表无主、读写永久失败。闸只拦决策入口（loadMonitor路径），recoverSplitting
-		// 的resume不走此处；settle终局（appendClearPendingSettle的apply清除标志）后下一轮
-		// loadMonitor（120s）自然重试。代价：标志滞留期间本桶不分桶/迁移——可用性换正确性，
-		// 恰是"等旧迁移结算"的本意。
+		// 上一笔迁移的 pending-settle 标志未清前不启动新迁移，避免单槽覆盖丢失结算恢复源
 		var pendingSettle = bucket.getPendingSettle();
 		if (null != pendingSettle) {
 			logger.info("start split but pending settle not cleared. to={}", formatMeta(pendingSettle.getTo()));
@@ -682,51 +636,25 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		if (!raft.isLeader())
 			return;
 
-		// 换任兜底：上一任期失主前若在收尾门槛装过 prepareQueue / noTransactionHandle，
-		// 且期间已由新主完成收尾（splittingMeta==null），复选后必须释放残留屏障，防写请求永久挂死。
+		// 释放上一任期可能残留的拦截队列，防止新主复选后写请求挂死
 		releasePrepareGate();
 
-		// 换主围栏锚点：本节点本次leader-ready时刻（driveSplitSync据此延迟replace语义的投递，
-		// 避免旧leader在途投递rpc迟到覆盖，见driveSplitSync注释）。
+		// 换主围栏锚点，供 driveSplitSync 延迟 replace 投递以避开旧 leader 在途 RPC
 		splitLeaderReadyTime = System.currentTimeMillis();
 		stateMachine.setLoadSwitch(true);
 		var bucket = Objects.requireNonNull(stateMachine.getBucket());
 		var splitting = bucket.getSplittingMeta();
 		if (null != splitting) {
-			// move/split身份=纯元数据判别不变式（startSplit准备段构造splitting时成立，
-			// splitting期间保持成立，恢复时刻可直接依赖）：
-			//  - move：splitting是源桶meta的副本（copy后仅清raftConfig），恒同keyFirst同keyLast；
-			//  - split：splitting.keyFirst=locateMiddle取的中位key，位于第keyNumbers/2>=1个
-			//    位置，恒严格大于源keyFirst（空keyFirst小于一切key，首桶move同样被等值覆盖），
-			//    keyLast恒同源（copy不改）。源桶meta在splitting期间边界稳定：只有
-			//    LogEndSplit/LogEndMove收尾会改写，而两者apply的同时删除splitting。
-			// 故"splitting与源meta同keyFirst且同keyLast"即move，否则（keyFirst严格更大）为split。
-			// 判别只读meta、不受拷贝窗口内数据增删影响，同时消灭两个误判方向：
-			//  ① split误判为move（“data[0]==keyFirst”启发式的误判方向）：源桶事务delete是物理删除
-			//    （commitBatch直接WriteBatch delete，无墓碑），[F,M)左半段清空后data[0]右移到
-			//    分界key M——move收尾endMove从apply时刻的data[0]删到尾且源桶置死桶meta{1},{1}，
-			//    [F,M)窗口写入被静默物理删除、键域永久失联且无自愈，master侧settle守卫对
-			//    from==null的LogEndMove路径结构性不触发；
-			//  ② move误判为split（边界key被删/空桶时data[0]>keyFirst）：master侧终态由
-			//    MasterDatabase.settleSplitting守卫兜底（from.keyFirst>=to.keyFirst不put from），
-			//    保留为防御层。
-			// 不改raft日志schema：判别信息本来就在LogSetSplittingMeta持久化的meta边界里。
+			// 仅按元数据边界判别 move/split：move 与源桶同边界，split 的 keyFirst 为严格更大的中位键
 			var bucketMeta = Objects.requireNonNull(bucket.getBucketMeta());
 			boolean isMove = splitting.getKeyFirst().compareTo(bucketMeta.getKeyFirst()) == 0
 					&& splitting.getKeyLast().compareTo(bucketMeta.getKeyLast()) == 0;
-			// onLeaderReady在持raft.mutex的apply线程上执行，禁止同步进入startSplit（锁序见startSplitAsync）。
+			// onLeaderReady 在持 raft.mutex 线程执行，须异步转投用户任务池避免 ABBA 死锁
 			startSplitAsync(isMove);
 			return;
 		}
 
-		// pending-settle补发：splittingMeta==null且标志非空 = 迁移已在本桶
-		// raft上commit并apply（LogEndSplit/LogEndMove），但settle通知未达master——
-		// 原append节点在commit→apply→invokeCallback之间死亡，endSplit2的内存重试链随进程
-		// 消失，master侧splitting条目与旧主表条目永存。标志是apply派生状态、随raft复制/快照，
-		// 任何后来当选的leader都持有它——此处幂等补发（复用既有endSplit/endMoveWithRetryAsync）：
-		//  - master已结算：splitting条目已消费 → eSplittingBucketNotFound（既有终局语义）；
-		//  - master未结算：settle照常生效。
-		// 两方向终局都触发onSettled回调追加标志清除日志，收敛闭环。
+		// splittingMeta 已清空但 pendingSettle 仍在：迁移已 commit 但结算未终局，幂等补发结算通知
 		var pending = bucket.getPendingSettle();
 		if (null != pending) {
 			logger.info("recoverSplitting pending-settle reissue. isMove={} from={} to={}",
@@ -743,9 +671,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
-	// settle终局清除标志：追加清除日志，apply侧身份匹配清除。非leader窗口
-	// appendLog抛RaftRetryException——不清除仅意味着标志多活到下一轮leader-ready补发的
-	// 终局，幂等收敛，无害。
+	// 结算终局后追加清除日志；非 leader 时失败无害，待下轮 leader-ready 补发收敛
 	private void appendClearPendingSettle(BBucketMeta.Data to) {
 		try {
 			getRaft().appendLog(new LogClearPendingSettle(to));
@@ -757,8 +683,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	private volatile long splitSerialNo;
 	private volatile @Nullable Dbh2Agent dbh2Splitting;
-	// 事务同步投递链状态（持久队列在Dbh2StateMachine.splitSync*，dbh2-01）。inFlight保证同一时刻
-	// 至多一个投递rpc在途（提交序FIFO）；leaderReadyTime是换主围栏锚点（见driveSplitSync注释）。
+	// 事务同步投递状态：单 RPC 在途（FIFO），splitLeaderReadyTime 为换主围栏锚点
 	private final AtomicBoolean splitSyncInFlight = new AtomicBoolean();
 	private volatile long splitLeaderReadyTime;
 
@@ -777,9 +702,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return null;
 	}
 
-	// 解析返回条目raftConfig的sortedNames与本桶全等即自指（manager本地同款解析先例：
-	// Dbh2Manager.createBucket）。解析失败不是自指形态，走原路径（后续对目标的连接/写入
-	// 自会暴露问题）。
+	// 比较目标 raftConfig 的 sortedNames 是否与本桶一致（自指守卫）
 	private boolean isSelfReference(BBucketMeta.Data splitting) {
 		try {
 			return raft.getRaftConfig().getSortedNames()
@@ -846,15 +769,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
-	// 锁序约束：raft回调（onLeaderReady；appendLog的leaderCallback经invokeCallback/cancelCallback）
-	// 在持raft.mutex的线程上同步执行，该线程禁止获取Dbh2模块锁——startSplit持Dbh2锁内的
-	// performPrepareQueue→processRequest→waitLeaderReady会再取raft.mutex，反向嵌套构成ABBA死锁。
-	// 故凡从raft回调进入startSplit的入口统一转投用户任务池（按raft名串行；入队只短暂持有队列锁、
-	// 池派发不阻塞，均无取raft锁的路径），回调线程只入队不等待结果。延迟窗口由startSplit既有守卫
-	// 幂等收敛：isLeader失配即no-op；resume重读splittingMeta，窗口内其值不变（LogSet/EndSplit/
-	// EndMove的append均源自排在本次任务之后的同队列续链），窗口内新提交事务被重拷贝迭代器的
-	// 后建视图覆盖（复制迭代器在splittingMeta apply之后才创建，见startSplit内注释；meta apply
-	// 后提交的事务则进同步队列，两者并集无遗漏）。
+	// Raft 回调在持 raft.mutex 线程执行，禁止同步获取 Dbh2 锁（避免与 waitLeaderReady 构成 ABBA 死锁），统一转投用户任务池
 	private void startSplitAsync(boolean isMove) {
 		getRaft().executeUserTask(() -> {
 			try {
@@ -882,7 +797,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			var splitting = bucket.getSplittingMeta(); // 对于timer，这个会调用两次。
 			if (null == splitting) {
 				// 第一次开始分桶，准备阶段。
-				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
 				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
 				if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
 					logger.warn("splitting not enough free manager. isMove={}", isMove);
@@ -891,13 +805,11 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				// 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
 				bucket.getData().compact();
 
-				// 定位middle只用临时迭代器，取到key立即关闭：迭代器钉定创建时刻的视图，
-				// 跨createSplitBucket rpc（分钟级）持有的话，rpc期间提交的事务会落在
-				// 复制视图之外（详见下面"同步先于复制视图"的注释）。
+				// 仅临时定位分界 key，用后立即关闭，避免跨 RPC 钉定陈旧快照视图
 				var locateIt = isMove ? locateFirst() : locateMiddle();
 				if (null == locateIt) {
 					logger.info("splitting break start: it is null. isMove={}", isMove);
-					return; // empty？不需要执行后续操作。break progress.
+					return;
 				}
 				//noinspection DataFlowIssue
 				var newMeta = stateMachine.getBucket().getBucketMeta().copy();
@@ -905,18 +817,11 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				newMeta.getHost2Raft().clear();
 				if (!isMove)
 					newMeta.setKeyFirst(new Binary(locateIt.key()));
-				locateIt.close(); // 不跨rpc持有钉定视图
+				locateIt.close();
 
 				splitting = manager.getMasterAgent().createSplitBucket(newMeta);
 
-				// 自指守卫：resume撞上指向自身的陈旧splitting条目——自搬运
-				// 形态：move1(A→B)完成而endMove未达master，B的loadMonitor再决策move，同四元组
-				// resume命中指向B自身的条目，随后B对自身putIfAbsent拷贝（无错）、endMove把源桶
-				// 数据从data[0]删到尾并置死桶——数据物理灭失。判据：返回条目raftConfig的
-				// sortedNames与本桶全等（新建条目恒为新端口新raft，全等只在自指时出现）。
-				// 身份只在请求方本地持有（raftConfig不能经rpc进入身份判据），故拦截位在
-				// 请求方。中止本轮：不发LogSetSplittingMeta，桶保持完整服务；条目由源桶
-				// leader-ready补发或master侧死信消费收敛，每120s一轮的重试噪声是正确的拒绝。
+				// 防止 resume 命中指向自身的陈旧 splitting 条目导致自搬运并删空本桶数据
 				if (isSelfReference(splitting)) {
 					logger.error("startSplit self-reference refused, abort this round. self={} entry={}",
 							raft.getRaftConfig().getSortedNames(), splitting.getRaftConfig());
@@ -936,39 +841,26 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
 			}
 
-			// 同步先于复制视图（队列版不变量，dbh2-01）：事务同步的入队条件=splittingMeta!=null
-			// （apply序=日志序），复制迭代器必须在LogSetSplittingMeta apply之后钉定视图——否则
-			// （钉定,apply）窗口内apply的事务delete既不在视图（物理删除）也不在队列（meta仍null），
-			// 永久丢失。resume路径meta已apply，立即通过。等待仅阻塞其它startSplit重入（Dbh2.lock
-			// 不被raft apply路径持有），不影响正常读写。
+			// 须等 LogSetSplittingMeta apply 生效（开启事务同步入队）后再创建复制迭代器，确保视图与队列并集无遗漏
 			var waitApplyCount = 0;
 			while (null == bucket.getSplittingMeta()) {
-				if (++waitApplyCount > 1500) { // 30s：apply需多数派往返，正常毫秒级；超时属raft异常
+				if (++waitApplyCount > 1500) {
 					logger.warn("splitting wait splittingMeta apply before copy. isMove={}", isMove);
-					return; // 放弃本轮，桶保持可写；换主后recoverSplitting自愈
+					return;
 				}
 				//noinspection BusyWait
 				Thread.sleep(20);
 			}
-			// 唤醒队列投递：此后提交的事务开始入队；agent刚就位（就位前入队的条目无人投递）或
-			// 前一轮驱动停摆的积压在此统一唤醒。
 			driveSplitSync();
 
-			// 复制迭代器总是同步就位之后新建（首轮也走这里，不复用定位middle的旧迭代器）。
 			it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
 			if (null == it) {
-				// 无可复制数据（如定位与重定位之间分界key及以右被全部删除）：
-				// 复制空完成，走splitPutNext同款收尾路径（不能return——tryStartSplit对
-				// splitting!=null早退，无人重试会永久卡住分桶）。
-				// 必须先等LogSetSplittingMeta apply：本分支无网络往返，append到收尾仅毫秒级，
-				// 未apply就进endSplit0会读到splittingMeta==null（setBucketMetaAsync(null)必NPE，
-				// 且one-shot被消耗后prepare队列永久积压）。等待期间仅阻塞其它startSplit重入
-				// （Dbh2.lock不被raft apply路径持有），不影响正常读写。
+				// 无可复制数据时直接进入收尾流程（先等 splittingMeta apply 生效）
 				var waitCount = 0;
 				while (null == stateMachine.getBucket().getSplittingMeta()) {
-					if (++waitCount > 1500) { // 30s：apply需多数派往返，正常毫秒级；超时属raft异常
+					if (++waitCount > 1500) {
 						logger.warn("splitting wait splittingMeta apply timeout. isMove={}", isMove);
-						return; // 放弃本轮，桶保持可写；换主后recoverSplitting自愈
+						return;
 					}
 					//noinspection BusyWait
 					Thread.sleep(20);
@@ -1008,28 +900,18 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	public long splitPutNext(boolean isMove, SplitPut r, RocksIterator it, long serialNo) {
 		try {
-			// RaftApplied豁免为成功（FND28 F2，对齐Dbh2Agent.get/CommitRocks四处的既有先例）：
-			// SplitPut应答丢失→Agent 1s重发→服务端unique-request重放回RaftApplied——页面已
-			// 落盘（apply已发生），按错误重入startSplit会从分界键整段重拷贝（目标侧putIfAbsent
-			// 幂等，纯扰动/带宽浪费）。
+			// 重发命中去重存根返回 RaftApplied，视为成功
 			var hasError = r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied;
 			if (!raft.isLeader() || dbh2Splitting == null || serialNo != splitSerialNo) {
 				it.close();
-				// 身份失配不重试：重试的前提是回调仍代表当前轮（本机leader且serialNo未失配），
-				// 对齐下面hasError分支"本机仍leader才重试"的本意。失配分支的经典来源：新轮启动后
-				// （recoverSplitting重入），endSplit2的Objects.requireNonNull(dbh2Splitting).close()以
-				// Procedure.Timeout同步触发旧轮悬挂中的SplitPut回调——此时要么已有更新的轮次接管
-				// （重试职责属于它），要么分桶已完结（是否再分桶交还loadMonitor决策）。以陈旧上下文
-				// 无差别重试startSplit，会在无人决策的情况下发起一轮全新的分桶：再建桶、全量拷贝、
-				// 再走完整收尾（可能携与当下负载条件不符的陈旧isMove），并在新轮进行中时提前drain
-				// 正在阻塞的prepareQueue，扩大扰动。
+				// 仅在本机仍为 leader 且回调属于当前轮次时重试，避免陈旧轮次回调触发新一轮分桶
 				if (hasError && raft.isLeader() && serialNo == splitSerialNo)
-					startSplit(isMove); // 失配仅因dbh2Splitting==null：本轮上下文仍有效，按原语义重试
+					startSplit(isMove);
 				return 0;
 			}
 
 			if (hasError) {
-				it.close(); // 目标桶错误但本机仍leader：先释放钉定的迭代器再重试，避免泄漏
+				it.close();
 				startSplit(isMove);
 				return 0;
 			}
@@ -1039,19 +921,15 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				it.close();
 
 				blockPrepareUntilNoTransaction(isMove, serialNo);
-				return 0; // split done.
+				return 0;
 			}
 
 			//noinspection DataFlowIssue
 			Objects.requireNonNull(dbh2Splitting.getRaftAgent()).send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, it, serialNo));
 		} catch (Exception ex) {
-			it.close(); // 异常路径统一释放迭代器；close幂等，前面分支已关闭过时安全
+			it.close();
 			logger.error("isMove={}", isMove, ex);
-			// 异常吞掉即断页面拷贝链：同leader任期内tryStartSplit对splitting!=null早退、recoverSplitting
-			// 只在换主触发，分桶悬挂。对齐hasError分支重入startSplit续走resume，重入条件同失配分支的
-			// 特例线（本机仍leader且serialNo未失配，覆盖catch内两类来源：正常路径异常与嵌套startSplit
-			// 自身的失败重试）。resume从分界key重建迭代器重拷贝，目标侧putIfAbsent幂等；新serialNo作废
-			// 本轮陈旧回调。重入自身失败只记日志，留待换主recoverSplitting自愈。
+			// 本轮仍有效时重入 startSplit 续走 resume，防止同任期内分桶悬挂
 			if (raft.isLeader() && serialNo == splitSerialNo) {
 				try {
 					startSplit(isMove);
@@ -1120,19 +998,13 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		//noinspection DataFlowIssue
 		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 		if (null == splittingMeta) {
-			// 安全网：任何路径在LogSetSplittingMeta apply前触达这里都不能带null继续——
-			// setBucketMetaAsync(null)必NPE，且one-shot已被消耗、prepare队列永久积压。
-			// 延迟重试而非直接重排：transactions为空时setupOneShotIfNoTransaction会立即内联执行，
-			// 直接重排等于热自旋（已提交日志必会apply；未提交则换主后recoverSplitting自愈）。
+			// LogSetSplittingMeta 尚未 apply：延迟重试，避免 transactions 为空时立即内联热自旋
 			logger.warn("endSplit0 wait splittingMeta apply. isMove={}", isMove);
 			TaskSpec.ofAction(() -> getRaft().executeUserTask(
 					() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove, serialNo)))).schedule(1000);
 			return;
 		}
-		// 【endSplit前置条件·dbh2-01】事务同步队列必须全部送达（水位==序号）才能进入收尾：
-		// 此刻无在途事务（one-shot保证）且prepare已被拦截，队列不再增长；未清空先尝试投递，
-		// 1s后经one-shot重查（防热自旋，与上面null-meta分支同机制）。不得越过本门槛——
-		// setBucketMeta/EndSplit随后的源桶deleteToEnd会物理销毁[M,∞)，未送达的写与墓碑将无处可寻。
+		// 必须等事务同步队列全部送达后再收尾，否则后续源桶 deleteToEnd 会丢失未送达写入
 		if (stateMachine.hasPendingSplitSync()) {
 			driveSplitSync();
 			TaskSpec.ofAction(() -> getRaft().executeUserTask(
@@ -1197,8 +1069,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			if (!raft.isLeader() || serialNo == splitSerialNo)
 				releasePrepareGate();
 			try {
-				// leaderCallback在持raft.mutex线程上执行（invokeCallback/cancelCallback），
-				// 禁止同步进入startSplit（锁序见startSplitAsync）。
+				// leaderCallback 在持 raft.mutex 线程执行，禁止同步进入 startSplit
 				if (raft.isLeader() && serialNo == splitSerialNo)
 					startSplitAsync(isMove);
 			} catch (Exception e) {
@@ -1225,9 +1096,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		var meta = stateMachine.getBucket().getBucketMeta();
 		if (isMove) {
 			var endMove = (LogEndMove)raftLog.getLog();
-			// onSettled终局回调：settle成功（rc==0）或eSplittingBucketNotFound
-			// （已结算证据）时追加标志清除日志——apply侧随LogEndMove落下的pending-settle
-			// 标志由此收回；进程在终局前死亡则标志留存，下轮leader-ready补发终局后同样清除。
 			//noinspection DataFlowIssue
 			manager.getMasterAgent().endMoveWithRetryAsync(Objects.requireNonNull(endMove.getTo()),
 					() -> appendClearPendingSettle(Objects.requireNonNull(endMove.getTo())));
@@ -1241,57 +1109,46 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		logger.info("splitting end done. isMove={} {}", isMove, formatMeta(meta));
 	}
 
-	// 分桶事务同步投递链（dbh2-01）：持久队列（Dbh2StateMachine.splitSync*）按seq序合并取批、
-	// 单rpc在途（inFlight的CAS串行，全调用源非阻塞）、ACK 0推进水位后续投、终局失败不推进水位
-	// 1s后重投——条目留队列直到送达，无"发出但结果不明"的中间态。与页面拷贝链互不干扰：页面
-	// putIfAbsent只增（对非null含墓碑跳过），投递replace覆盖且队列FIFO后缀必然覆盖一切旧值，
-	// 两类rpc任意乱序到达目标桶都收敛到提交序终值。
-	// 换主围栏：replace语义的投递rpc迟到落盘会以旧值覆盖新值（跨leader打破FIFO）。旧leader在途
-	// 投递rpc的最迟重发时刻=创建+AgentTimeout，而其创建早于本节点leaderReady——故本任期内首个
-	// 投递不得早于leaderReadyTime+AgentTimeout+裕量。页面拷贝不受此限（只增语义，迟到旧页面无害）。
-	// 调用源：enqueue（apply线程）、startSplit/endSplit0（user task）、ACK回调、失败重试定时。
+	// 驱动分桶事务同步持久队列投递：CAS 单飞 FIFO，ACK 后推进水位，失败 1s 后重投；
+	// 换主后延迟超过旧 leader RPC 超时围栏再发 replace，避免旧 leader 迟到包覆盖新值。
 	public void driveSplitSync() {
 		if (!splitSyncInFlight.compareAndSet(false, true))
-			return; // 已有在途投递，其回调会续链
+			return;
 		try {
-			var agent = dbh2Splitting; // 快照：与endSplit2置null的并发窗口内不产生NPE噪声
+			var agent = dbh2Splitting;
 			if (closed || !raft.isLeader() || null == agent) {
 				splitSyncInFlight.set(false);
-				return; // 条目留队列：leader-ready恢复（recoverSplitting→startSplit）或endSplit0门槛再驱动
+				return;
 			}
 			var delay = splitLeaderReadyTime + splitSyncFenceDelayMs(agent) - System.currentTimeMillis();
 			if (delay > 0) {
-				splitSyncInFlight.set(false); // 先放行再调度：调度任务重新CAS进入
+				splitSyncInFlight.set(false);
 				TaskSpec.ofAction(this::driveSplitSync).schedule(delay);
 				return;
 			}
 			var batch = stateMachine.pollSplitSync(dbh2Config.getSplitPutCount());
 			if (null == batch) {
 				splitSyncInFlight.set(false);
-				return; // 队列空：等待下一次enqueue或门槛驱动
+				return;
 			}
 			var r = new SplitPut(batch.data);
 			agent.getRaftAgent().send(r, (p) -> {
-				// 回调在user-task线程（RaftAgentNetClient.dispatchRpcResponse→executeUserTask按raft名串行）
-				// RaftApplied豁免（FND28 F2，对齐splitPutNext/Dbh2Agent.get先例）：应答丢失重发被
-				// 服务端unique-request重放回RaftApplied=批次已落盘，照常推进水位续投；不豁免则
-				// 不推水位、1s后重投同批（replace幂等，一轮收敛的纯扰动）。
+				// 重发命中去重存根返回 RaftApplied，视为已落盘
 				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied) {
 					splitSyncInFlight.set(false);
-					// 终局失败（超时/非重试错误）：不推进水位，条目留队列定时重投——目标桶恢复即送达
 					TaskSpec.ofAction(this::driveSplitSync).schedule(1000);
 					return 0;
 				}
 				try {
-					stateMachine.advanceSplitSyncWatermark(batch); // ACK=目标raft已commit并apply，送达成立（世代失配=旧队列迟到ACK，内部拒绝）
+					stateMachine.advanceSplitSyncWatermark(batch);
 				} catch (Exception ex) {
 					logger.error("advanceSplitSyncWatermark", ex);
 					splitSyncInFlight.set(false);
-					TaskSpec.ofAction(this::driveSplitSync).schedule(1000); // 水位未推进：重投（幂等）
+					TaskSpec.ofAction(this::driveSplitSync).schedule(1000);
 					return 0;
 				}
 				splitSyncInFlight.set(false);
-				driveSplitSync(); // 续投下一批（CAS重入）
+				driveSplitSync();
 				return 0;
 			});
 		} catch (Exception ex) {
@@ -1302,8 +1159,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	}
 
 	private static long splitSyncFenceDelayMs(Dbh2Agent agent) {
-		// AgentTimeout=投递rpc判死门槛（不设显式超时，走Agent默认）：旧leader的rpc在创建+
-		// AgentTimeout后从pending移除、不再重发；+2000为1s重发扫描周期与调度抖动裕量。
+		// 覆盖旧 leader 在途 RPC 的 AgentTimeout 与重发扫描抖动裕量
 		return agent.getRaftAgent().getRaftConfig().getAgentTimeout() + 2000L;
 	}
 

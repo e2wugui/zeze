@@ -21,13 +21,9 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 /**
- * # 本地持久化只读缓存（内存Lru + RocksDb + 定期退役）
- * 面向装载后不再修改的参照数据（配置、id映射、资源索引等）：
- * - **查询顺序**：Lru → RocksDb → loader。装载成功即写RocksDb并登记当天days_清单，之后重启也只读RocksDb。
- * - **只读假设**：get返回Lru中的共享实例，无写回API；调用方修改不落库、不同步，淘汰或退役后即丢失。
- * - **刷新**：唯一途径是写入约30天后被每天6:30的清理任务退役（见dbSave/tryRemove），下次get重走loader，即接受最长约30天陈旧。
- * - **并发**：同id的get无互斥，decoder/loader可能重复执行，仅装载开销重复；getOrAdd保证Lru只有一个条目。
- * - **null cache**：loader返回null时放5分钟NullCache占位（不落RocksDb），防止对不存在的id反复穿透。
+ * 本地持久化只读缓存（内存 LRU + RocksDB + 约 30 天定期退役）。
+ * 查询顺序：LRU → RocksDB → loader；loader 返回 null 时放 5 分钟 NullCache 占位防穿透。
+ * 同 id 并发 get 不互斥，由 getOrAdd 保证 LRU 中仅保留一个共享实例。
  */
 public class Cache {
 	private static final Logger logger = LogManager.getLogger(Cache.class);
@@ -37,15 +33,13 @@ public class Cache {
 	private @Nullable RocksDB db;
 	private volatile @Nullable ConcurrentLruLike<String, CacheObject> lru;
 	private final ScheduledFuture<?> cleanTimer;
-	// 保护原生句柄使用与关闭，以及当天清单状态；先在锁外调用用户loader/encoder，
-	// 再在锁内检查并使用DB，不能把字段快照当作句柄租约。close先在锁外排空清理timer。
+	// 保护 RocksDB 句柄与当日清单状态；锁外执行 loader/encoder，锁内检查并使用原生句柄。
 	private final ReentrantLock resourceLock = new ReentrantLock();
-	// tryRemove 的清理筛选在锁外读（见那里的说明），保持 volatile。
+	// tryRemove 在锁外读取，保持 volatile。
 	private volatile long todayDays;
-	// 只在持有 resourceLock 时访问。
+	// 仅在 resourceLock 内访问。
 	private @Nullable FileOutputStream todayFile;
-	// 终态标志：在 close() 的 resourceLock 临界区内置位，appendToday 在同一锁下检查，
-	// 密闭地拦住"close后写当日清单"——null流NPE与关后重开新流泄漏两种形态一并消灭。
+	// 在 close() 的 resourceLock 内置位，与 appendToday 串行化以拦住关后写入。
 	private volatile boolean closed;
 
 	/**
@@ -89,18 +83,18 @@ public class Cache {
 	}
 
 	public void close() throws IOException {
-		cleanTimer.cancel(false); // 幂等：已取消时为no-op
+		cleanTimer.cancel(false);
 		resourceLock.lock();
 		try {
-			closed = true; // 先立终态再关流：appendToday在同一临界区检查，此后不可能再触碰流
+			closed = true; // 先置终态再关流，拦住并发 appendToday
 			if (todayFile != null) {
 				try {
 					todayFile.close();
 				} catch (IOException e) {
-					// 首段关流失败不得中断后续释放（db/lru段在其后，跳过即泄漏）。
+					// 关流失败不中断后续 db/lru 释放
 					logger.error("Cache.close todayFile exception: {}", name, e);
 				}
-				todayFile = null; // 置null后重入不再触碰已关流
+				todayFile = null;
 			}
 			var db = this.db;
 			if (db == null)
@@ -111,8 +105,7 @@ public class Cache {
 			resourceLock.unlock();
 		}
 
-		// 级联取消LRU构造器内建的两个周期任务：只置null不清任务的话，
-		// 任务仍每200ms/2s永续执行并强引用整个缓存对象图，"关闭"语义不成立。
+		// 级联取消 LRU 内建的后台周期任务
 		var lru = this.lru;
 		this.lru = null;
 		if (lru != null)
@@ -125,7 +118,7 @@ public class Cache {
 
 		var lru = this.lru;
 		if (closed || lru == null)
-			throw new IllegalStateException("cache is closed: " + name); // 对齐 tryRemove 的快照防御；close 后继续 get 是使用错误
+			throw new IllegalStateException("cache is closed: " + name);
 
 		var value = lru.get(id);
 		if (value != null) {
@@ -133,15 +126,12 @@ public class Cache {
 				return value;
 
 			var nullCache = (CacheObject.NullCache)value;
-			if (System.currentTimeMillis() - nullCache.CreateTime < 5 * 60 * 1000) // 5 minutes
-				return null; // null cache 不会写入RocksDb，短时间内就会允许再次尝试。
+			if (System.currentTimeMillis() - nullCache.CreateTime < 5 * 60 * 1000)
+				return null; // 5 分钟负缓存不落 RocksDB
 
-			// 只淘汰本次观察到的占位，避免晚到的读者删掉同 id 已经装载的新对象。
+			// 只移除本次观察到的占位，避免误删并发新装载的对象
 			lru.remove(id, nullCache);
 		}
-
-		// 当Lru不命中，并且同时多个线程并发执行到这里，会执行多次decoder/loader操作。
-		// 也就是说同一个进程对同一个数据的decoder/loader没有互斥。
 
 		var key = ByteBuffer.Allocate(128);
 		key.WriteString(id);
@@ -153,31 +143,25 @@ public class Cache {
 			resourceLock.unlock();
 		}
 		if (bytes != null) {
-			// decoder
 			var bb = ByteBuffer.Wrap(bytes);
-			bb.ReadString(); // skip cacheId.
-			// 当出现并发get重复从db读取时，这里的getOrAdd会忽略后面读到的value，返回已经存在的。
-			// decoder产null入NullCache哨兵（getOrAdd要求Factory<@NotNull V>）：负缓存语义与loader路径对称。
+			bb.ReadString(); // 跳过 cacheId
+			// decoder 返回 null 时用 NullCache 哨兵占位（getOrAdd 要求非空）
 			var decoded = lru.getOrAdd(id, () -> {
 				var v = decoder.apply(id, bb);
 				return v != null ? v : new CacheObject.NullCache();
 			});
-			return CacheObject.isNull(decoded) ? null : decoded; // 哨兵不得裸返（见loader路径注释）
+			return CacheObject.isNull(decoded) ? null : decoded; // 哨兵对象不对外返回
 		}
 
-		// do user loader to load object.
 		value = loader.apply(id);
 		if (value != null)
 			dbSave(value);
 		else
 			value = new CacheObject.NullCache();
 
-		// 当出现并发get重复从db读取时，这里的getOrAdd会忽略后面读到的value，返回已经存在的。
 		var tmpLambda = value;
 		var loaded = lru.getOrAdd(id, () -> tmpLambda);
-		// NullCache占位负缓存防穿透（5分钟内get短路返回null），但哨兵本身不得返回给调用方：
-		// 首次miss与窗口内重复get必须同为null，cacheId()==""/encode抛UOE的哨兵泄漏即契约破坏。
-		return CacheObject.isNull(loaded) ? null : loaded;
+		return CacheObject.isNull(loaded) ? null : loaded; // 哨兵对象不对外返回
 	}
 
 	private void dbSave(CacheObject value) throws RocksDBException, IOException {
@@ -211,18 +195,15 @@ public class Cache {
 		return db;
 	}
 
-	// 当天清单的唯一写入口：取流（含跨天滚动开新流、关旧流）与写流同处一个临界区。
-	// 该key当天的清单条目一旦丢失，它的db记录从此再没有退役记录。
+	// 当天清单唯一写入口：跨天滚动开关流与写入同处一个临界区。
 	private void appendToday(String id) throws IOException {
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
 		resourceLock.lock();
 		try {
 			if (closed)
-				throw new IllegalStateException("cache is closed: " + name); // close的置位同在此临界区：检查密闭，关后不再写流/重开流
+				throw new IllegalStateException("cache is closed: " + name);
 			if (todayDays != nowDays) {
-				// 第一次执行时如果nowDays等于0（todayDays的初始值），不会走到这里，这种情况不处理。
-				// 追加模式：同日重启（新实例todayDays初始0必进此分支）打开已存在的当天清单，
-				// 截断会把前次运行登记的条目清掉——这些key的RocksDb记录从此再没有退役记录。
+				// 追加模式打开当天清单，避免同日重启截断已登记条目。
 				var oldFile = todayFile;
 				todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays + ".b64").toFile(), true);
 				todayDays = nowDays;
@@ -241,17 +222,14 @@ public class Cache {
 	private void tryRemove() throws IOException, RocksDBException {
 		var lru = this.lru;
 		if (closed || lru == null)
-			return; // 已close（cancel与正在执行的任务之间的窗口），不再访问。
+			return;
 		var prefix = "days_";
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
 		var files = new File(name).listFiles();
 		if (files != null) {
 			for (var file : files) {
 				if (file.getName().startsWith(prefix)) {
-					// 单文件解析包try/catch：days_前缀+非数字后缀的畸形文件（运维残留、
-					// 复制/崩溃半成品）会让parseLong抛NumberFormatException穿透整个循环——
-					// 毒文件位于delete之前永不会被删，次日起每天在同一文件上复发，排在它后面的
-					// 合法清单从此永远不被退役。跳过畸形文件继续处理其余清单。
+					// 跳过畸形文件名，避免单文件异常阻断后续合法清单退役
 					long days;
 					try {
 						String suffix = file.getName().substring(prefix.length());
@@ -262,8 +240,7 @@ public class Cache {
 						logger.warn("Cache {}: skip malformed manifest file '{}'", name, file.getName());
 						continue;
 					}
-					// a month ago && not today。todayDays在锁外volatile读：陈旧无害，
-					// nowDays-days>30已排除近期文件，days!=todayDays只是对当天清单的额外保险。
+					// 超过 30 天且非当天清单（todayDays 锁外 volatile 读，nowDays - days > 30 已排除近期文件）
 					if (nowDays - days > 30 && days != todayDays) {
 						ArrayList<String> skipped;
 						try {
@@ -271,15 +248,11 @@ public class Cache {
 						} catch (IllegalStateException e) {
 							return; // close 竞态：中止本轮清理，文件保留待下次重试
 						} catch (IOException e) {
-							// 单个损坏清单（如非法 Base64 行）记录日志后跳过，避免永久阻塞后续合法清单退役
+							// 跳过损坏清单，避免阻断后续清单退役
 							logger.error("Cache {}: skip corrupted manifest file '{}'", name, file.getName(), e);
 							continue;
 						}
-						// 整个文件逐行处理成功后才删除清单文件，闭合其生命周期，免得已退役的清单
-						// 每天被重复读取、重复删除同一批key；若半途抛异常，异常直接冒泡到这里之上，
-						// 不会执行下面的删除，这批key的清理不会永久丢失。
-						// 因"当前使用中"被跳过的id必须转移登记到当天的清单里（下个月再试），
-						// 否则删掉文件就永久失去它们的退役记录，RocksDB里的记录再没人清理。
+						// 逐行处理成功后才删除清单文件；仍在 LRU 使用中的 id 转登记到当天清单延后退役
 						if (!skipped.isEmpty()) {
 							for (var id : skipped)
 								appendToday(id);
@@ -306,22 +279,20 @@ public class Cache {
 					}
 				}
 				if (lru.get(id, false) != null) {
-					skipped.add(id); // 当前使用中的项不删除，只读探查不刷新 LRU 热度，交给调用方转移登记到当天的清单里。
+					skipped.add(id); // 仍在使用中（不刷新 LRU 热度），延后到当天清单
 					continue;
 				}
 				var key = ByteBuffer.Allocate(9);
 				key.WriteString(id);
 				if (!deleteUnderLock(key))
-					// close与本轮清理交叠：中止本清单（清单文件不删，见调用方注释），次日重试。
-					// native delete必须在锁内重取句柄：close只cancel(false)不排空在飞清理，
-					// 锁外快照会把已释放句柄送进JNI（633e21af4修掉的同一形态，本入口当时漏改）。
+					// close 与清理交叠时中止本轮，保留清单文件待下次重试
 					throw new IllegalStateException("Cache closed during clean: " + name);
 			}
 		}
 		return skipped;
 	}
 
-	/** 原生delete在resourceLock内重取句柄使用；返回false=已close，调用方中止本轮清理。 */
+	/** 在 resourceLock 内重取 db 句柄执行删除；已关闭时返回 false。 */
 	private boolean deleteUnderLock(ByteBuffer key) throws RocksDBException {
 		resourceLock.lock();
 		try {

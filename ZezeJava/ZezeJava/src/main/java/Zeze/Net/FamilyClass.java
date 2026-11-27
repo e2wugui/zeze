@@ -18,9 +18,7 @@ public class FamilyClass {
 	}
 
 	public static boolean isRaftRpc(int familyClass) {
-		// 枚举相等判定：与isRpc的严格性对齐——宽松的>=会把非法familyClass(5..31)
-		// 当合法Raft应答接受，RaftRpc.decode的setRequest恒false按Response静误解，
-		// 排障信号从invalid-header退化为lost-context/bean解码错。
+		// 严格枚举相等，避免非法值（5..31）被误判为 Raft 协议。
 		return familyClass == RaftResponse || familyClass == RaftRequest;
 	}
 }

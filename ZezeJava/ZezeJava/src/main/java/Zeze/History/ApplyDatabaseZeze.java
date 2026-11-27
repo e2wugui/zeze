@@ -32,16 +32,11 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	}
 
 	private final Database dbForApply;
-	// 仅用于误配报错指认配置名（构造期校验见构造器）；openTable不需要名字。
 	private final String applyDbName;
 	private final Database.AbstractKVTable cursorStorage;
 	private final ConcurrentHashMap<String, ApplyTableZeze> tables = new ConcurrentHashMap<>();
-	// 当前打开的记录级事务。apply在ApplyHelper锁内单线程驱动，同一时刻至多一个。
+	// 当前打开的记录级事务及驱动线程；apply 在 ApplyHelper 锁内单线程驱动，用于 fail-fast 检测并发误用。
 	private @Nullable IApplyRecordTxn activeRecordTxn;
-	// 记录级事务的驱动线程（hist-03断言式守卫）：activeRecordTxn活跃期间，其他线程经
-	// IApplyTable的put/remove会被静默路由进该事务的底层dbTxn（commit时随别人一起生效/回滚）。
-	// begin时记录驱动线程，路由处核对当前线程——fail-fast暴露并发误用。非同步字段：
-	// 断言式防御不引入锁，最坏漏检（可见性），不误报。
 	private @Nullable Thread recordTxnOwner;
 
 	public ApplyDatabaseZeze(Application zeze, String applyDbName) {
@@ -49,10 +44,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			throw new RuntimeException("apply database must have a name.");
 		dbForApply = zeze.getDatabase(applyDbName);
 		this.applyDbName = applyDbName;
-		// 误配fail-fast：apply库与业务库是同一对象，或Memory库用不同配置名指向同一URL时，
-		// openTable(业务表名,业务表id)返回业务表同一个存储对象，
-		// 回放写入与游标直落业务表——静默数据损坏。apply库不得承载任何已注册业务表；
-		// 构造之后才注册/打开的表由ApplyTableZeze构造器按同判据兜底。
+		// apply 库必须独立于业务表所在库，防止回放写入与游标覆盖业务表数据；后注册表在 ApplyTableZeze 构造期兜底校验。
 		for (var t : zeze.getTables().values()) {
 			if (isApplyDatabase(t.getDatabase()))
 				throw new RuntimeException("apply database config conflict: '" + applyDbName
@@ -97,14 +89,13 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	@Override
 	public IApplyRecordTxn beginRecordTxn() {
 		if (activeRecordTxn != null)
-			throw new IllegalStateException("record txn already begun."); // 防御：apply单线程，不应嵌套/泄漏
+			throw new IllegalStateException("record txn already begun.");
 		var txn = new RecordTxn();
 		activeRecordTxn = txn;
 		recordTxnOwner = Thread.currentThread();
 		return txn;
 	}
 
-	// 单线程契约守卫（见recordTxnOwner注释）：路由进活跃记录级事务的写入只应来自驱动线程。
 	private void checkRecordTxnOwner() {
 		if (Thread.currentThread() != recordTxnOwner)
 			throw new IllegalStateException("apply record txn is driven by a single thread: concurrent "
@@ -123,8 +114,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 
 	@Override
 	public void saveCursor(Id128 key, IApplyRecordTxn txn) {
-		// 必须走当前记录级事务的底层dbTxn：游标与记录数据同事务提交，杜绝
-		// "数据持久而进度丢失"的错配（重启后游标归零整段重放，Edit非幂等即污染）。
+		// 游标与记录数据共用底层事务提交，保证数据与进度原子一致。
 		if (!(txn instanceof RecordTxn recordTxn) || txn != activeRecordTxn)
 			throw new IllegalStateException("saveCursor requires the active RecordTxn of this database.");
 		checkRecordTxnOwner();
@@ -134,10 +124,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	}
 
 	/**
-	 * 记录级事务（Zeze实现）：put/remove本就是每次独立开事务逐条提交（见ApplyTableZeze），
-	 * 并非天然原子——第i个entry失败时前i-1个entry已各自提交落库。故记录级事务期间
-	 * 全部写入共用同一个底层Database.Transaction，由commit统一提交，实现“单条tHistory
-	 * 记录=原子单元”；任一entry异常rollback整个底层事务，前缀entry的写入一并撤销。
+	 * 记录级事务 Zeze 实现：单条 tHistory 记录内的全部写入共用同一底层 Database.Transaction 原子提交或回滚。
 	 */
 	private class RecordTxn implements IApplyRecordTxn {
 		private final Database.Transaction dbTxn = dbForApply.beginTransaction();
@@ -162,11 +149,10 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			try {
 				dbTxn.commit();
 			} catch (Exception ex) {
-				rollback(); // 契约：不抛出，不掩盖原始提交异常
+				rollback();
 				throw Task.forceThrow(ex);
 			}
-			// commit 已成功：数据与持久游标均已生效，此后任何失败都不得让调用方按未提交处理
-			// （重试整条重放，Edit 非幂等会叠加重复元素）；close 失败仅记录。
+			// 提交已生效，后续 close 失败不得上抛以免调用方误判为未提交而重复回放。
 			finish();
 			closeQuietly();
 		}
@@ -178,9 +164,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			try {
 				dbTxn.rollback();
 			} catch (Exception e) {
-				// 契约（IApplyRecordTxn）：不抛出，不得掩盖正在传播的原始 apply 异常；
-				// 回滚失败按回滚完成收尾，写入撤销与否不确定，由 ApplyHelper.finally 的
-				// LRU 失效兜底（否则重试命中脏缓存，等价对已回滚记录二次应用）。
+				// 不上抛以免掩盖原始 apply 异常；缓存一致性由调用方 LRU 失效兜底。
 				logger.warn("record txn rollback failed", e);
 			} finally {
 				closeQuietly();
@@ -190,11 +174,9 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 
 		@Override
 		public void close() {
-			rollback(); // 幂等：未commit则按回滚收尾
+			rollback();
 		}
 
-		// dbTxn.close() 不能抛出：回滚路径会掩盖正在传播的原始 apply 异常；提交成功路径
-		// close 失败不得让调用方按未提交处理。失败仅记录，后果限于底层资源清理。
 		private void closeQuietly() {
 			try {
 				dbTxn.close();
@@ -223,9 +205,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			var table = dbForApply.getZeze().getTable(tableName);
 			if (null == table)
 				throw new RuntimeException("table not exist in zeze. name=" + tableName);
-			// 兜底判据（同构造器，hist-02）：本表在apply库中打开，业务表却登记在apply库上
-			// ——同库同名同id时openTable返回业务表同一存储对象，回放写入直落业务表。
-			// 晚于ApplyDatabaseZeze构造注册/打开的表只能在此处核对。
+			// 对晚于 ApplyDatabaseZeze 构造注册的业务表兜底校验库隔离。
 			if (isApplyDatabase(table.getDatabase()))
 				throw new RuntimeException("apply table config conflict: business table '" + tableName
 						+ "' is hosted in the apply database '" + applyDbName
@@ -250,9 +230,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		public void put(byte [] key, int keyOffset, int keyLength, byte [] value, int valueOffset, int valueLength) throws Exception {
 			var recordTxn = activeRecordTxn;
 			if (recordTxn != null) {
-				// 单线程契约守卫：事务内写入只应来自驱动线程，其他线程的写入立即暴露而非静默错挂
 				checkRecordTxnOwner();
-				// 记录级事务内：写入共享底层事务，由RecordTxn.commit统一提交，保证单条记录原子
 				recordTxn.put(tableName, new Binary(key, keyOffset, keyLength),
 						new Binary(value, valueOffset, valueLength));
 				return;
@@ -274,7 +252,6 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			var recordTxn = activeRecordTxn;
 			if (recordTxn != null) {
 				checkRecordTxnOwner();
-				// 记录级事务内：写入共享底层事务，由RecordTxn.rollback可整体撤销
 				recordTxn.remove(tableName, new Binary(key, offset, length));
 				return;
 			}

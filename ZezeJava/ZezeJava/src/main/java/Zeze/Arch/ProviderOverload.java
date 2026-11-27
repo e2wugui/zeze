@@ -24,9 +24,7 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 	private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
 			new ThreadFactoryWithName("ZezeLoadThread", Thread.MAX_PRIORITY));
 
-	// getOverload位于ProcessDispatch热路径且无锁遍历，而register/set（含close置null）
-	// 会结构性修改ArrayList——普通ArrayList无happens-before，无锁读侧可见旧数组。
-	// CopyOnWriteArrayList读无锁安全；写只发生在启动/停机期，复制成本可忽略。
+	// getOverload 在热路径无锁遍历，register/close 仅在启停期修改，用 CopyOnWriteArrayList 保证可见性。
 	private final CopyOnWriteArrayList<@Nullable ThreadPoolMonitor> threadPools = new CopyOnWriteArrayList<>();
 
 	public boolean register(ExecutorService threadPool, Config config) {
@@ -122,9 +120,7 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 			overload.updateAndGet(previous -> (previous & 3) | startTime); // 保留低2位保存的上次负载状态
 
 			// todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
-			// 检测体异常不得跳过尾部重排（否则断链后overload()按起始时间戳
-			// 持续计算、永久判过载，且零日志）；池已关闭等提交失败时任务未入队、finally轮不到，
-			// 链终止但留下痕迹。
+			// 统一在 finally 重排探测，避免异常中断监测链。
 			try {
 				threadPool.execute(() -> {
 					try {

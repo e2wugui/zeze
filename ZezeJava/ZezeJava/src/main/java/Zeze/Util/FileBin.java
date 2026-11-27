@@ -14,17 +14,8 @@ import java.util.function.UnaryOperator;
 import Zeze.Net.Binary;
 
 /**
- * 单个分发文件的传输载体（供 Zoker 的 DistributeManager 使用）：
- * RandomAccessFile 断点续传，边写边维护全量 md5 供 CloseFile 校验。
- *
- * <p><b>线程安全（zoker-04）</b>：实例可被多连接共享（open 幂等复用同一 FileBin），共享的可变状态
- * （os/randFile 的写指针、共享 MessageDigest——JDK 明示非线程安全）在并发 getLength/append/truncate/md5Digest/close
- * 交错下会使 seek/write 与 digest 累计搅乱或暴露截断瞬态（CloseFile 校验必失败触发删档重传）。状态读写方法以实例监视器序化：
- * 交错要么完整串行（等值断点续传常态，md5 与写入同源一致）要么退化为先后到达（close 后 append 得
- * IOException→eAppendOffset，客户端重开重传）——消除交错中间态。监视器是叶子锁（方法内不再取其他锁），
- * 调用方的全部 getLength/append/close 均在各自的 files 锁外执行，无锁序交互。
- * per-file 粒度：仅共享同一文件的连接互斥，阻塞窗口=单次 append（truncate 路径含全量 md5 重算，
- * 与该文件自身的续传代价同阶）。</p>
+ * 单个分发文件的传输载体（供 Zoker DistributeManager 使用）：基于 RandomAccessFile 支持断点续传，
+ * 边写边维护全量 MD5 供校验。所有状态读写方法以实例锁串行化（叶子锁），支持多连接安全共享。
  */
 public class FileBin {
 	private final String relativeCanonicalFileName;
@@ -41,9 +32,7 @@ public class FileBin {
 		this.relativeCanonicalFileName = relativeCanonicalFileName;
 		RandomAccessFile openRandFile = null;
 		try {
-			// 先确保文件存在（含创建父目录）再计算md5：md5CurrentData对不存在的文件必抛
-			// FileNotFoundException，全新文件的首次OpenFile会直接失败；而嵌套路径
-			// （如server/lib/x.jar）的父目录RandomAccessFile("rw")也不会创建。
+			// 先确保父目录与文件存在再计算初始 MD5
 			canonicalFile = new File(baseDir, path).getCanonicalFile();
 			var parent = canonicalFile.getParentFile();
 			if (parent != null)
@@ -54,9 +43,7 @@ public class FileBin {
 			md5CurrentData();
 			os = outputWrapper.apply(new FileOutputStream(openRandFile.getFD()));
 		} catch (Exception ex) {
-			// 构造失败必须关闭已打开的句柄：泄漏的RandomAccessFile在Windows上锁住
-			// distributes下的文件，后续commit的renameTo对该文件恒失败（直到GC/进程重启），
-			// 调用方每次重试再泄一个。
+			// 构造失败立即关闭句柄，避免 Windows 下长期锁住文件导致后续 rename 失败
 			if (null != openRandFile) {
 				try {
 					openRandFile.close();
@@ -101,26 +88,24 @@ public class FileBin {
 	}
 
 	public synchronized void append(long offset, Binary data) throws IOException, NoSuchAlgorithmException {
-		// 先flush缓冲数据再读channel长度：BufferedOutputStream对len<8192的写只进缓冲，
-		// 不flush时channel.size()滞后，后续小块append会误判offset越界。
+		// 先 flush 缓冲再读 channel 长度，避免小块写入滞留缓冲导致 size 滞后
 		os.flush();
 		var length = randFile.getChannel().size();
 		if (offset > length)
 			throw new IOException("append out of range. " + offset + " " + length);
 		if (offset < length) {
 			truncate(offset);
-			length = randFile.getChannel().size(); // truncate will change length
+			length = randFile.getChannel().size();
 		} else {
 			randFile.seek(offset);
 		}
 		var newLength = offset + data.size();
 		os.write(data.bytesUnsafe(), data.getOffset(), data.size());
-		// 写后也flush：append返回即数据在FD上，getLength()/md5()/后续append读到的长度恒一致
-		//（仅flush在读长一侧的话，最后一次小块append仍滞留缓冲，调用方立刻读文件会看到旧长度）。
+		// 写后立即 flush，确保 getLength/md5/后续 append 看到一致长度
 		os.flush();
 		if (newLength > length) {
 			var newDataLength = (int)(newLength - length);
-			// 只在磁盘写与flush成功后再更新增量md5，防止写盘抛IOException时污染md5、同offset重试重复hash。
+			// 写盘与 flush 成功后再更新增量 MD5
 			md5.update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
 		}
 	}
@@ -131,13 +116,10 @@ public class FileBin {
 	}
 
 	public synchronized void close() throws IOException {
-		// 分段收尾（构造器同款）：os.close()抛IOException（缓冲flush落盘失败等）时randFile.close()
-		// 仍须执行——泄漏的RandomAccessFile在Windows上锁住distributes下的文件，后续commit的
-		// renameTo恒败且无自愈（调用方全部捕获-记日志-放弃，无人补关）。randFile失败添为suppressed，
-		// 首个异常清理完后重抛。
+		// os.close() 失败时仍须关闭 randFile，避免 Windows 句柄泄漏
 		IOException primary = null;
 		try {
-			os.close(); // 关闭前flush缓冲数据
+			os.close();
 		} catch (IOException ex) {
 			primary = ex;
 		}

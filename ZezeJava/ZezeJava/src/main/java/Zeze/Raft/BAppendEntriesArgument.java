@@ -19,8 +19,7 @@ final class BAppendEntriesArgument extends Bean {
 	private final ArrayList<Binary> entries = new ArrayList<>();
 	private long leaderCommit;
 
-	// Leader发送AppendEntries时，从这里快速得到Entries的最后一个日志的Index
-	// 不会序列化。
+	// Leader 发送时快速获取 entries 的最后一条日志索引（不参与序列化）。
 	private long lastEntryIndex;
 
 	public long getTerm() {

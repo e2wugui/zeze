@@ -48,10 +48,7 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 		return true;
 	}
 
-	/**
-	 * 结构增量单容器记账（同 LogMapDelta）：value 非 null 为替换项，null 为删除标记。
-	 * 使用源 Map 比较器维持键等价折叠语义。
-	 */
+	/** 结构增量：value 非 null 为替换项，null 为删除标记；沿用源 Map 比较器折叠等价键。 */
 	private @Nullable Map<K, @Nullable V> modified;
 
 	protected LogSortedMapDelta(PSortedMap<K, V> source, org.pcollections.PSortedMap<K, V> value) {
@@ -77,8 +74,7 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 		super.putAll(m);
 		var newMap = getValue();
 		if (newMap != old) {
-			// 输入可能包含多个比较器等价的键，必须记最终值而非中间输入值。
-			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogSortedMap2）。
+			// 输入可能含比较器等价键，须按最终值记录；变化判定由子类覆写。
 			for (K k : m.keySet()) {
 				V v = newMap.get(k);
 				noteReplacement(k, v, old.get(k));
@@ -99,7 +95,6 @@ public abstract class LogSortedMapDelta<K extends Comparable<K>, V> extends LogS
 	}
 
 	public boolean remove(K key, V value) {
-		// 空值防御对齐非托管分支（同 LogMap1.remove(K,V)，20261020-06）。
 		if (super.remove(key, value)) {
 			modifiedForWrite().put(key, null);
 			return true;

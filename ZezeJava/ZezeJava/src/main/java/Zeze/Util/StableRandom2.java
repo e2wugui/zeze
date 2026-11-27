@@ -55,7 +55,7 @@ public class StableRandom2 {
 	}
 
 	public StableRandom2 setSeed(long s1, long s2, long s3, long s4, long s5) {
-		bits = 0; // 清空位缓存(nextBits/nextBits64的剩余位)，保证重置种子后输出与全新实例一致，不依赖对象历史
+		bits = 0; // 清空位缓存，确保重置种子后输出与全新实例一致
 		this.s1 = ensureLarger(s1, 1);
 		this.s2 = ensureLarger(s2, 0x1ff);
 		this.s3 = ensureLarger(s3, 0xfff);
@@ -116,12 +116,10 @@ public class StableRandom2 {
 			min = max;
 			max = t;
 		}
-		// 闭区间元素个数可达2^32，int正跨度表示不了：跨度一律long运算。旧的int乘法在
-		// 跨度>=2^31时溢出为负——[0,INT_MAX]产生区间外负数，全宽跨度为0恒返回MIN。
-		// delta<=2^31-1（旧有效范围）时数值与旧算术逐位一致，种子序列不变。
+		// 闭区间跨度可达 2^32，按 long 计算防溢出；全宽直接返回 32 位随机值
 		long delta = (long)max - min + 1;
 		if (delta == 0x1_0000_0000L)
-			return next(); // 全宽[INT_MIN,INT_MAX]：32位原始值即均匀覆盖
+			return next();
 		return (int)(((next() & 0xffff_ffffL) * delta >> 32) + min);
 	}
 
@@ -189,17 +187,15 @@ public class StableRandom2 {
 			min = max;
 			max = t;
 		}
-		// 闭区间元素个数可达2^64：跨度long有符号表示不了。delta<=0即无符号跨度>=2^63
-		// （0为全宽）——旧的long算术此时溢出：[0,LONG_MAX]的跨度2^63成负数走进32位
-		// 乘法产生区间外值，全宽跨度为0恒返回MIN。正跨度路径与旧算术一致，种子序列不变。
+		// 闭区间跨度可达 2^64：delta==0 为全宽，delta<0 为超过 2^63 的无符号跨度
 		long delta = max - min + 1L;
 		if (delta == 0L)
-			return next64(); // 全宽[LONG_MIN,LONG_MAX]：64位原始值即均匀覆盖
+			return next64();
 		if (delta > 0L)
 			return (delta <= Integer.MAX_VALUE)
 					? (((next() & 0xffff_ffffL) * delta) >> 32) + min
 					: nextLong() % delta + min;
-		// 无符号跨度(2^63,2^64)：63位的nextLong()覆盖不了，取全64位原始值做无符号取模。
+		// 无符号跨度在 (2^63, 2^64) 时取全 64 位做无符号取模
 		return Long.remainderUnsigned(next64(), delta) + min;
 	}
 
@@ -223,7 +219,7 @@ public class StableRandom2 {
 	public float nextFloat(float max) {
 		int random = nextInt();
 		float product = random * max;
-		// 仅中间乘法溢出时重排，保留正常路径的历史舍入和随机状态消耗。
+		// 仅在中间乘法溢出时重排运算顺序，保持常规路径舍入一致
 		return Float.isInfinite(product) && Float.isFinite(max)
 				? random * (1f / Integer.MAX_VALUE) * max : product * (1f / Integer.MAX_VALUE);
 	}

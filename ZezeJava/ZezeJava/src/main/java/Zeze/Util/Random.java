@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Net.Binary;
 
-// 随机数工具集：ThreadLocalRandom 入口与 byte/Binary 等随机填充
+/** 随机数工具集：ThreadLocalRandom 入口、随机字节/Binary 填充与洗牌。 */
 public final class Random {
 	public static ThreadLocalRandom getInstance() {
 		return ThreadLocalRandom.current();

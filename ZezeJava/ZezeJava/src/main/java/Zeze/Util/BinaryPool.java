@@ -6,7 +6,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 
-// Binary 内容去重池（intern）：同一内容返回同一引用，读写锁分护探测与插入
+/**
+ * Binary 内容去重池（intern）：相同字节内容复用同一实例，读写锁分离探测与写入。
+ */
 public class BinaryPool {
 	private static final long HASH_BASE = 3074457345618258791L;
 	private final LongHashMap<Binary> pool = new LongHashMap<>();
@@ -86,15 +88,12 @@ public class BinaryPool {
 		return putUnderWriteLock(baseHash, hash64, probeStep, b);
 	}
 
-	// package-private：供单测确定性覆盖读锁→写锁窗口的并发冲突探测路径
 	Binary putUnderWriteLock(long baseHash, long hash64, int probeStep, Binary b) {
 		var bytes = b.bytesUnsafe();
 		int len = b.size();
 		wLock.lock();
 		try {
-			// 读锁释放到获取写锁期间可能有并发插入（相同内容或哈希冲突的不同内容）：
-			// 若目标槽已非空且内容不等，沿探测链继续检查后续槽位，命中等值实例则复用，找到空槽则写入，
-			// 仅 32 槽全满时按既有策略覆盖首槽（baseHash），避免直接覆写其他活条目。
+			// 读锁到写锁窗口内可能已有并发插入，冲突时沿探测链继续查找，32 槽全满则覆盖首槽
 			var exist = pool.get(hash64);
 			if (exist != null) {
 				if (Arrays.equals(exist.bytesUnsafe(), 0, exist.size(), bytes, 0, len))

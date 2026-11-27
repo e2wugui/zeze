@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
-/** Persistent Map state used by both tracked and untracked transactions. */
+/** 持久化 Map 的事务状态，供追踪与非追踪事务共用。 */
 public class LogMap<K, V> extends LogCollection<PMap<K, V>> {
 	private org.pcollections.PMap<K, V> value;
 

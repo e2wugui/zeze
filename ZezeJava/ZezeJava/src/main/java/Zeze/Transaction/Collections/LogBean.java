@@ -98,7 +98,7 @@ public class LogBean extends Log {
 		};
 	}
 
-	/** Return whether the node must be attached to its parent. No upward traversal here. */
+	/** 返回是否需将当前节点挂接到父节点，不向上遍历。 */
 	public boolean addChild(Bean source, Log child) {
 		return getVariablesOrNew().putIfAbsent(child.getVariableId(), child) == null;
 	}
@@ -109,7 +109,7 @@ public class LogBean extends Log {
 		return log;
 	}
 
-	/** Release temporary construction indexes after the whole tree has been collected. */
+	/** 整棵日志树收集完成后释放临时构建索引。 */
 	public void finishCollect() {
 	}
 }

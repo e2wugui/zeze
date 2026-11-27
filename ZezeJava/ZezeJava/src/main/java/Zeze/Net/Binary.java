@@ -145,9 +145,7 @@ public final class Binary implements Comparable<Binary> {
 		return false;
 	}
 
-	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
-	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
-	 * 会落错桶静默miss。跨类型内容比较走本方法（对齐String.contentEquals惯例）。 */
+	/** 与裸 byte[] 做内容比较（equals 为保持与 hashCode 契约一致不接受 byte[]）。 */
 	public boolean contentEquals(byte [] other) {
 		return Arrays.equals(bytes, offset, offset + count, other, 0, other.length);
 	}

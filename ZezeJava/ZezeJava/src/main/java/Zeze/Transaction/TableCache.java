@@ -18,24 +18,17 @@ import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 
 /**
- * 普通Lru一般把最新访问的放在列表一端，这直接导致并发上不去。
- * 基本思路是按块（用ConcurrentHashMap）保存最近访问。
- * 定时添加新块。
- * 访问需要访问1~3次ConcurrentHashMap。
- * <p>
- * 通用类的写法需要在V外面包装一层。这里直接使用Record来达到这个目的。
- * 这样，这个类就不通用了。通用类需要包装，多创建一个对象，还需要包装接口。
+ * 表记录分块近似 LRU 缓存：用定时轮换的 ConcurrentHashMap 热点块替代全局链表以提高并发，
+ * 直接持有 Record1 避免额外包装层，并负责超容量清理与过期块收缩。
  */
 public class TableCache<K extends Comparable<K>, V extends Bean> {
-	// 常量键的统计句柄一次解析终身复用（对齐 Task.runTimeObservers 惯例；观察者内部自带代际重绑）
 	private static final Zeze.Util.ZezeCounter.LongObserver evictAcquireObserver =
 			Zeze.Util.ZezeCounter.instance.getRunTimeObserver("TableCache.evictAcquire");
 
 	private static final Logger logger = LogManager.getLogger(TableCache.class);
-	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
-	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
-	// cleanNow超容量循环的单次执行时界（CacheCleanPeriod的倍数）：超界即break，剩余留给下一轮调度。
-	private static final int CLEAN_TIME_LIMIT_PERIODS = 3;
+	private static final int MAX_NODE_COUNT = 8640; // LRU 节点数上限，超出触发 shrink
+	private static final int SHRINK_NODE_COUNT = 8000; // shrink 目标节点数
+	private static final int CLEAN_TIME_LIMIT_PERIODS = 3; // 单次 cleanNow 时界（CacheCleanPeriod 的倍数）
 
 	private final TableX<K, V> table;
 	private final ConcurrentHashMap<K, Record1<K, V>> dataMap;
@@ -64,8 +57,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		try {
 			timerClean = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(cleanPeriod, cleanPeriod);
 		} catch (Throwable e) {
-			// 第二个周期注册失败（如CacheCleanPeriod<=0抛IllegalArgumentException）时，
-			// 已注册的timerNewHot无引用可cancel，闭包持有整个TableCache/table永久泄漏。
+			// 第二个定时器注册失败时取消已注册的 timerNewHot，防止缓存对象泄漏。
 			timerNewHot.cancel(false);
 			throw e;
 		}
@@ -104,12 +96,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 	/** timerNewHot 周期体：热点块轮换 + lruQueue 收缩。 */
 	void onTimerNewHot() {
-		// 访问很少的时候不创建新的热点。
 		if (lruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
 			newLruHot();
-		// 队列节点此前只在cleanNow尾部收缩：两次cleanNow之间节点持续堆积（低流量表/
-		// 长清理周期配置下瞬时内存高于必要值）。这里同样触发收缩；cleanNow正在执行时
-		// 跳过本轮（tryLock不阻塞定时线程，下一拍重试，最终总有一个入口完成收缩）。
+		// 不阻塞定时线程：cleanNow 持锁时跳过，下一拍重试。
 		if (cleanNowLock.tryLock()) {
 			try {
 				tryPollLruQueue();
@@ -124,50 +113,36 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		var result = dataMap.get(key);
 		if (result == null) { // slow-path
 			result = dataMap.computeIfAbsent(key, k -> {
-				// factory产null即违约（Factory.create()契约）：fail-fast且不登记（对齐Util.ConcurrentLruLike.getOrAdd）。
 				var r = Objects.requireNonNull(valueFactory.create());
-				lruHot.put(k, r); // replace: add or update see this.Remove
+				lruHot.put(k, r); // 覆盖可能残留的旧登记，见 remove()
 				r.setLruNode(lruHot);
 				return r;
 			});
 		}
 
-		// 旧纪录 && 优化热点执行调整
-		// 下面在发生LruHot变动+并发GetOrAdd时，哪个后执行，就调整到哪个node，不严格调整到真正的LruHot。
-		// 换块竞态（捕获引用在登记期间被timerNewHot换下）只造成LRU序统计偏差、不影响正确性；
-		// 曾尝试"重读当前块+不一致重登记"的自校正，会让新记录更快聚进当前热块，
-		// 逐出敏感场景（受限容量cleanNow）在高负载测试下时序失稳，收益不抵风险，不修。
+		// 并发换块时按捕获到的 lruHot 调整，允许轻微统计偏差。
 		if (result.getLruNode() != lruHot)
 			adjustLru(key, result, lruHot);
 		return result;
 	}
 
-	// 登记协议与Util.ConcurrentLruLike.adjustLru一致：dataMap同key只有唯一映射，
-	// 仅当key仍映射到result（活记录）时才登记进热点块。
-	// 并发Remove可能在getOrAdd读取dataMap之后完成：死记录登记进块将永久滞留
-	//（Remove的摘除可能读到null的lruNode而跳过），cleanNow反复对它加锁尝试且节点永不为空。
+	// 仅在 dataMap 仍映射到 result 时登记进热点块，防止已删除记录滞留导致节点永不为空。
 	private void adjustLru(K key, Record1<K, V> result,
 						   ConcurrentHashMap<K, Record1<K, V>> curLruHot) {
 		var oldNode = result.getAndSetLruNodeNull();
 		if (oldNode == null)
 			return;
-		// 必须使用 Pair：result可能是并发删除后留下的过期引用，
-		// 此时oldNode里面可能已经是并发新建的记录。see this.Remove
+		// 必须按 (key, result) 摘除，防止误删并发新建的同键记录。
 		oldNode.remove(key, result);
 		while (dataMap.get(key) == result) {
 			var prev = curLruHot.putIfAbsent(key, result);
 			if (prev == null) {
 				result.setLruNode(curLruHot);
 				if (dataMap.get(key) != result)
-					curLruHot.remove(key, result); // 登记过程中被并发Remove：回滚，不让死记录滞留块
+					curLruHot.remove(key, result); // 登记期间被并发删除则回滚
 				return;
 			}
-			// 坑位被占。存活检查（循环条件）与putIfAbsent之间可能发生Remove+重建：
-			// 重建走getOrAdd的computeIfAbsent并【无条件put登记】进当前热点（MUST replace），
-			// 占坑的prev可能是活记录——盲摘会让它脱管（lruNode指向热点块但登记被摘，
-			// 容量驱逐与cleanNow都看不见，兜底无法收敛）。占坑者身份不会复活（dataMap同key只有唯一映射）：
-			// 是当前活映射就让位放弃登记（此时本记录已非映射，不登记也正确）；
-			// 确定过期才摘除重试，放任会让本记录永久脱离所有块、无法被容量驱逐。
+			// 槽位被占时：若占坑者仍是当前活映射则让位，否则摘除过期占位后重试。
 			if (dataMap.get(key) == prev)
 				return;
 			curLruHot.remove(key, prev);
@@ -208,8 +183,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				if (!r.compareAndSetLruNodeNull(poll))
 					continue; // 并发访问导致这个记录已经被迁移走。
 				var key = e.getKey();
-				// 仅迁移仍是dataMap活映射的记录；死记录随poll节点一起废弃，
-				// 否则迁移目标head将滞留永久清不掉的条目（并发的remove可能已跳过摘除）。
+				// 仅迁移仍在 dataMap 中的活记录，避免死记录滞留 head。
 				while (dataMap.get(key) == r) {
 					var prev = head.putIfAbsent(key, r);
 					if (prev == null) {
@@ -217,11 +191,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 						if (dataMap.get(key) == r)
 							recordCount++;
 						else
-							head.remove(key, r); // 登记过程中被并发remove：回滚
+							head.remove(key, r); // 登记期间被并发删除则回滚
 						break;
 					}
-					// 同adjustLru的占坑协议：占坑者是当前活映射就不摘（防御性：当前结构下重建只登记进
-					// 当前热点、必新于head，此分支不可达；防未来结构变化）；确定过期才摘除后重试。
 					if (dataMap.get(key) == prev)
 						break;
 					head.remove(key, prev);
@@ -236,17 +208,10 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	public void cleanNow() throws Exception {
 		cleanNowLock.lock();
 		try {
-			// 这个任务的执行时间可能很长，
-			// 不直接使用 Scheduler 的定时任务，
-			// 每次执行完重新调度。
 			var capacity = table.getTableConf().getRealCacheCapacity();
 			if (capacity >= 0) {
 				var timeBegin = System.nanoTime();
-				// 单次执行时界：本方法实际由ZezeScheduledPool的周期任务直接执行（timerClean），
-				// 超容量循环在最老块持续清不掉（freshAcquire/脏/记录被并发事务占用）时是while+sleep的
-				// 长期循环，不设界会逐表占满调度池线程（线程数=CPU数），拖停全进程的定时任务。
-				// 超过CacheCleanPeriod的倍数即break，剩余留给下一轮调度（固定延迟周期，下一轮在下一次
-				// 调度点继续）。循环内的sleep会使实际超界至多多一个sleep周期，有界。
+				// 单次清理设时界，避免最老块持续无法驱逐时占满调度池线程，剩余留待下轮。
 				var cleanPeriod = table.getTableConf().getCacheCleanPeriod();
 				long timeLimitMs = Math.max(cleanPeriod, 1) * (long)CLEAN_TIME_LIMIT_PERIODS;
 				long deadline = System.currentTimeMillis() + timeLimitMs;
@@ -265,8 +230,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 					for (var e : node.entrySet()) {
 						if (dataMap.get(e.getKey()) != e.getValue()) {
-							// 过期登记（并发remove/迁移竞态的残留）：不属于权威存储，
-							// 不走加锁删除流程（否则节点永不为空），直接摘除。
+							// 过期残留直接摘除，避免节点永不为空。
 							node.remove(e.getKey(), e.getValue());
 							continue;
 						}
@@ -317,41 +281,26 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	// 实际锁契约：
-	// 调用方至少持有 record.fairLock；lockey 写锁不是本方法的前提——
-	// - load异常出口（TableX.load 的 catch）：仅持 fairLock，不持 lockey 写锁；
-	// - cleanNow/容量驱逐（tryRemoveRecord）：另持 lockey 写锁（与并发事务互斥）及 rrs 锁。
-	// 不持 lockey 的路径依赖 fairLock 的记录级全序 + StateRemoved 自愈：
-	// 并发访问者见到 StateRemoved 即重走 GetOrAdd 建新记录（TableX.load/GetOrAdd 的
-	// StateRemoved continue 分支），不会观察到删除中间态。
+	// 调用方须持有 r.fairLock（驱逐路径还持 lockey 写锁与 rrs 锁）；并发读见 StateRemoved 会重走 getOrAdd。
 	void remove(K k, Record1<K, V> r, boolean removeLocalRocks) {
-		// 镜像清理必须先于摘除 dataMap：本方法持有 r.fairLock，映射仍在时同键
-		// load 会等待旧记录；若先摘映射，新 load 可建新记录并写好镜像，随后被旧
-		// 记录的清理删掉，软引用回收后新记录就会把镜像 miss 当成不存在。
-		// 过期记录不清理镜像，避免删除当前映射的副本。
+		// 镜像清理须先于摘除 dataMap，防止新 load 写入镜像后被旧记录清理误删；过期记录不删镜像。
 		if (removeLocalRocks && dataMap.get(k) == r) {
 			try {
 				table.rocksCacheRemove(k);
 			} catch (Throwable e) { // logger.error
-				// 清理失败仍作废缓存记录；新记录必须经 load 刷新镜像，写失败会抛出，
-				// 不会以 clean 状态信任残余条目。这里保留原异常并继续本轮容量清理。
+				// 清理失败仍作废缓存记录，新记录会经 load 刷新镜像。
 				logger.error("TableCache.remove localRocks cleanup failed (harmless, reload enforces):", e);
 			}
 		}
 		if (dataMap.remove(k, r)) {
-			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
-			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
-			// see GetOrAdd
 			r.setState(StateRemoved);
-			// 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
+			// 按 (k, r) 摘除，防止误删并发新建的同键记录。
 			var oldNode = r.getLruNode();
 			if (oldNode != null)
 				oldNode.remove(k, r);
 		} else {
-			r.setState(StateRemoved); // 也确保已删除状态
-			// dataMap中该key已经不是r（并发删除后新建，see GetOrAdd迁移路径），
-			// r的条目可能滞留在Lru块里面，不摘除的话块永不为空，会导致cleanNow死循环。
-			// 必须使用 Pair，防止误删Lru块里面并发新建的记录。
+			r.setState(StateRemoved);
+			// r 已非当前映射时仍须按 (k, r) 摘除，防止死记录滞留 LRU 块。
 			var oldNode = r.getLruNode();
 			if (oldNode != null)
 				oldNode.remove(k, r);
@@ -360,22 +309,12 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 	private boolean tryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
 		if (table.isMemory()) {
-			// 容量回收：timerClean对内存表同样调度，超容量即到达本分支。
-			// 仅回收非脏驻留（数据在localRocks，重载经TableX.load以非null strongRef返回，commit不会重复计数）。
-			// sizeCounter是commit记账的逻辑条目数（put加/remove减），与dataMap驻留数解耦——
-			// 回收驻留不减计数是有意语义，消费方（如Online.getLocalCount在线数）需要的正是逻辑口径。
+			// 内存表仅回收非脏驻留（数据在 localRocks），不减逻辑条目计数 sizeCounter。
 			if (p.getValue().getDirty())
 				return false;
 			remove(p.getKey(), p.getValue(), false);
 			return true;
 		}
-
-		// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
-		// case CheckpointMode.Immediately
-		// 永远不会为false。记录Commit的时候就Flush到数据库。
-		// case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
-		// （修改为true的时也在记录锁（lockey）下）。
-		// 这里只是读取，就不加锁了。
 
 		var record = p.getValue();
 		if (record.getDirty())
@@ -385,21 +324,16 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			return false;
 
 		if (record.getState() != StateInvalid) {
-			record.setState(StateInvalid); // 先本地改成Invalid,避免TableX.VerifyGlobalRecordState验证失败
+			record.setState(StateInvalid); // 先改本地状态，避免 VerifyGlobalRecordState 误报
 			try {
-				// noWait=true时只能连接async版GlobalServer, 而连sync和raft版会出现VerifyGlobalRecordState验证失败
-				// 可能原因是lockey特别容易乱序, sync和raft版需要用队列保证顺序
-				// 此acquire是持三重锁（lockey写锁→fairLock→rrs，外层cleanNowLock）的同步GCM往返：
-				// 每驱逐一条等一个RPC，同键前台事务在lockey上stall。锁内仅做资格判定摘候选、放锁后
-				// 批量acquire的重排涉及协议改动，先度量acquire等待时长暴露stall规模。
+				// sync/raft 版 GlobalServer 需同步等待以保证 lockey 顺序，此处记录同步 acquire 耗时。
 				var evictBegin = Zeze.Util.ZezeCounter.ENABLE ? System.nanoTime() : 0;
 				record.acquire(StateInvalid, false, false);
-				if (evictBegin != 0) // 统计禁用时零开销
+				if (evictBegin != 0)
 					evictAcquireObserver.observe(System.nanoTime() - evictBegin);
 			} catch (Throwable e) { // logger.error
-				// 降低这个日志级别，因为fastError或者其他原因，会导致大量的日志。而此时这里的错误是可以忽略的。
 				logger.debug("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
-				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
+				// 服务端可能已置 StateInvalid，本地保持 Invalid 保证安全。
 			}
 		}
 

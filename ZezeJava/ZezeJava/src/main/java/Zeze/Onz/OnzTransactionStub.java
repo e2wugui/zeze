@@ -4,10 +4,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Data;
 
 /**
- * 独立进程方式运行OnzServer时，需要注册Stub.
- *
- * @param <A>
- * @param <R>
+ * 独立进程运行 OnzServer 时注册的事务存根：按参数类型解码请求并实例化对应的 {@link OnzTransaction}。
  */
 class OnzTransactionStub<A extends Data, R extends Data> {
 	private final OnzServer onzServer;

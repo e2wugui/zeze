@@ -9,20 +9,8 @@ import kotlinx.collections.immutable.PersistentList;
 import org.pcollections.PVector;
 
 /**
- * pcollections {@link PVector} 的 kotlinx PersistentList（32 扇出 trie）内核实现。
- * 仅经 {@link Persistents#vector()} 构建使用，替换动机是内存（pcollections TreePVector 的
- * IntTree 二叉树每元素摊 60-80B+，trie 内核省数倍）。
- *
- * <p>契约对齐 pcollections（回归测试钉住）：
- * <ul>
- *   <li>no-op 引用恒等：{@code minus(不存在元素)}/{@code minusAll(全不存在)} 返回同一实例
- *       （Zeze 写路径 {@code !=} 判定依赖）；追加/按下标 op 恒产生变更，天然新实例；</li>
- *   <li>{@code plus(int)}/{@code with}/{@code minus(int)} 越界由内核按 JDK 时机抛 IOOBE，
- *       持久化语义下不存在"部分修改"；</li>
- *   <li>equals/hashCode/迭代走 JDK List 契约（AbstractList 白拿）。</li>
- * </ul>
- *
- * <p>{@link #subList(int, int)} 不支持（Zeze 事务 PList 层本就拒绝 subList，无消费方）。
+ * 基于 kotlinx PersistentList（32 扇出 trie）的 {@link PVector} 实现，经 {@link Persistents#vector()} 构建。
+ * 写路径保证无变化删除返回同一实例（支持写日志 {@code !=} 变更检测）；不支持 {@link #subList(int, int)}。
  */
 public final class KtVector<E> extends AbstractList<E> implements PVector<E> {
 	private final PersistentList<E> kt;

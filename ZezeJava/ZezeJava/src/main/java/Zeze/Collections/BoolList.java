@@ -186,9 +186,7 @@ public class BoolList {
 						table.remove(key);
 					return 0;
 				}, "remove some").call();
-				// 删除批失败必须抛出：walkKey游标在call前已推进且排他，返回码被
-				// 忽略时失败批被静默跳过——clearAll正常返回但get()仍见true。抛出让调用方感知
-				// 后整体重跑（clearAll幂等）即收敛。
+				// walkKey 游标已推进，批删失败须抛出异常由调用方重跑（clearAll 幂等）。
 				if (rc != 0)
 					throw new RuntimeException("clearAll remove batch fail. name=" + name
 							+ ", batchSize=" + batch.size() + ", rc=" + rc);

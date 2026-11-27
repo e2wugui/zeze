@@ -49,13 +49,11 @@ public abstract class AsyncSocket {
 
 	private final @Nullable Service service;
 
-	// 生命周期状态机的置死/登记互斥锁（不变式见构造器后）；remove不经本锁（虚回调链，
-	// 纳入成锁序边）；锁内只做标志转移与登记动作。
+	// 置死与登记互斥锁；锁内仅做状态转移与登记动作，不调用外部回调。
 	private final Object lifecycleLock = new Object();
-	private volatile boolean lifecycleClosed; // volatile供isClosed无锁读（Send等热路径）
+	private volatile boolean lifecycleClosed;
 
-	// 测试桩等少数路径以null service构造（@NotNull之外的事实用法），发号保底走
-	// 共享随机基址流（与Service默认流同为随机63位基址，两流独立也互不重叠）。
+	// service 为 null 时（如测试桩）的保底发号流。
 	private static final java.util.concurrent.atomic.AtomicLong nullServiceSessionIdGen =
 			new java.util.concurrent.atomic.AtomicLong(
 					(System.nanoTime() ^ new java.security.SecureRandom().nextLong()) & Long.MAX_VALUE);
@@ -65,11 +63,7 @@ public abstract class AsyncSocket {
 		this.sessionId = service != null ? service.nextSessionId() : nullServiceSessionIdGen.getAndIncrement();
 	}
 
-	// —— 生命周期状态机：不变式"socketMap ⊆ 活socket" ——
-	// 置死（final close()经markClosed）与登记（addSocket经runIfOpen）互斥：登记先于置死
-	// 则条目由close链的remove核销，迟于则拒绝。
-
-	/** 置死转移（恰好一次）：false=已死（重入/迟到close）。 */
+	/** 置死转移（恰好一次），已关闭时返回 false。 */
 	private boolean markClosed() {
 		synchronized (lifecycleLock) {
 			if (lifecycleClosed)
@@ -79,7 +73,7 @@ public abstract class AsyncSocket {
 		}
 	}
 
-	/** 登记临界区：与连接置死互斥，已关闭时返回 null。锁内仅执行登记动作。 */
+	/** 登记临界区：与连接置死互斥，已关闭时返回 null；锁内仅执行登记动作。 */
 	final <T> @Nullable T runIfOpen(Supplier<T> action) {
 		synchronized (lifecycleLock) {
 			if (lifecycleClosed)
@@ -96,25 +90,18 @@ public abstract class AsyncSocket {
 		return service;
 	}
 
-	/**
-	 * 连接级解码准入谓词：TcpSocket 连接构造器装配，双向 security codec 装齐时撤销；
-	 * 只在 selector 线程访问。{@link Protocol#decode} 每缓冲区读一次作快照，中途撤销
-	 * 不影响已开始的判决；谓词返回 false 即断连。null 表示不设防。
-	 */
+	/** 连接级解码准入谓词（仅 selector 线程访问）：未完成安全 codec 装配前限制可解码协议，null 表示不限制。 */
 	private @Nullable LongPredicate decodeAdmission;
 
 	public @Nullable LongPredicate getDecodeAdmission() {
 		return decodeAdmission;
 	}
 
-	// 仅 Zeze.Net 内写（TcpSocket 装配 / 撤销）。
 	void setDecodeAdmission(@Nullable LongPredicate admission) {
 		this.decodeAdmission = admission;
 	}
 
-	// close收尾时通知服务销毁会话（在飞Rpc上下文立即失败处置）。与各close实现里
-	// OnSocketClose回调的try/catch同款防护：回调异常只记日志不外抛。
-	// DatagramSession/Websocket/WebsocketClient共用。
+	// close 收尾通知服务销毁会话；回调异常仅记日志不外抛。
 	protected final void fireOnSocketDisposed() {
 		try {
 			//noinspection DataFlowIssue
@@ -137,12 +124,8 @@ public abstract class AsyncSocket {
 	}
 
 	/**
-	 * @deprecated 全局静态发号在同JVM多App拓扑下互踩（Zezex linkd与Game.Server各自的
-	 * 		PersistentAtomicLong值域重叠且全局共享，SM服务端socket表按sessionId索引必撞号，
-	 * 		GetSocket(sessionId)把同号新连接误判为旧会话）。sessionId发号由Service实例负责
-	 * 		（随机63位基址）。本方法保留兼容，等价于{@link Service#setDefaultSessionIdGenFunc}
-	 * 		——仅作为之后构造的Service的默认模板，多个Service共享同一supplier仍会撞号，
-	 * 		仅单Service进程安全；自定义发号请改用Service实例级setSessionIdGenFunc。
+	 * @deprecated 全局共享发号在同 JVM 多 Service 拓扑下会撞号，请改用实例级 {@link Service#setSessionIdGenerator}。
+	 * 		本方法保留兼容，等价于 {@link Service#setDefaultSessionIdGenFunc}。
 	 */
 	@Deprecated
 	public static void setSessionIdGenFunc(@Nullable LongSupplier seed) {
@@ -155,10 +138,7 @@ public abstract class AsyncSocket {
 		eServerSocket,
 	}
 
-	// selector线程写（processReceive/Send），KeepAlive定时任务线程读（Service.checkKeepAlive）：
-	// 无volatile时按JMM读者可无限期读到陈旧值，活连接被心跳误判KeepRecvTimeout超时。
-	// 用long秒存储：int秒在时间源超过2^31秒后回绕，checkKeepAlive的 now-activeTime 变大负数，
-	// 超时判定恒false，静默死连接永不回收、永不探测。
+	// selector 线程写、KeepAlive 定时线程读；用 long 秒避免 int 回绕。
 	private volatile long activeRecvTime; // 上次接收的时间戳(秒)
 	private volatile long activeSendTime; // 上次发送的时间戳(秒)
 
@@ -184,9 +164,6 @@ public abstract class AsyncSocket {
 		activeSendTime = activeRecvTime = GlobalTimer.getCurrentSeconds();
 	}
 
-	// sessionId从所属Service实例发号（随机63位基址+实例内递增）——跨JVM与
-	// 同JVM多App（Zezex linkd/Game.Server拓扑，全局静态发号互踩会致SM服务端socket表撞号）
-	// 均唯一。自定义发号用Service实例级setSessionIdGenFunc。
 	private final long sessionId;
 
 	public long getSessionId() {
@@ -206,7 +183,7 @@ public abstract class AsyncSocket {
 		close(null);
 	}
 
-	/** 关闭模板：置死恰好一次后执行子类死亡流程；final令置死不可绕过（不变式见生命周期状态机）。 */
+	/** 置死恰好一次后执行子类关闭流程；final 保证置死不可绕过。 */
 	public final boolean close(@Nullable Throwable ex, boolean gracefully) {
 		if (!markClosed())
 			return false;
@@ -214,7 +191,7 @@ public abstract class AsyncSocket {
 		return true;
 	}
 
-	/** 子类死亡流程（回调与资源释放）；重入已由close()的markClosed挡住，无需自查。 */
+	/** 子类关闭与资源释放；重入已由 {@link #close(Throwable, boolean)} 拦截。 */
 	protected abstract void doClose(@Nullable Throwable ex, boolean gracefully);
 
 	public abstract boolean Send(byte [] bytes, int offset, int length);
@@ -223,9 +200,9 @@ public abstract class AsyncSocket {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", getSessionId(), p);
 		var bb = p.encode();
-		var size = bb.size(); // Send交接后bb不可再动，先取计数所需值
+		var size = bb.size(); // Send 交接后 bb 不可再访问，先取计数所需值
 		var r = Send(bb);
-		if (r) // 仅发送被接受时计数，时机与TcpSocket在selector线程内的计数一致
+		if (r)
 			ZezeCounter.instance.addSendSize(p.getTypeId(), size);
 		return r;
 	}

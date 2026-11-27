@@ -9,16 +9,13 @@ import Zeze.Services.Handshake.Helper;
 import Zeze.Util.IntHashSet;
 
 /**
- * 使用dh算法交换密匙把连接加密。
- * 如果dh交换失败，现在依赖加密压缩实现以及后面的协议解析的错误检查来发现。
- * 有没有好的安全的dh交换失败的检测手段。
- * 服务器客户端定义在一起
+ * 握手加密与压缩选项配置（服务端与客户端共用），包含 DH 群、RSA 密钥、加密/压缩类型及保活超时参数。
  */
 public class HandshakeOptions {
-	private IntHashSet dhGroups = new IntHashSet(); // for HandshakeServer
-	private byte @Nullable [] secureIp; // for eEncryptTypeAes
-	private @Nullable PublicKey rsaPubKey; // for eEncryptTypeRsaAes client
-	private @Nullable PrivateKey rsaPriKey; // for eEncryptTypeRsaAes server
+	private IntHashSet dhGroups = new IntHashSet(); // 服务端使用的 DH 群集合
+	private byte @Nullable [] secureIp; // eEncryptTypeAes 模式使用的安全 IP
+	private @Nullable PublicKey rsaPubKey; // eEncryptTypeRsaAes 客户端使用的 RSA 公钥
+	private @Nullable PrivateKey rsaPriKey; // eEncryptTypeRsaAes 服务端使用的 RSA 私钥
 	private int compressS2c = Constant.eCompressTypeDisable;
 	private int compressC2s = Constant.eCompressTypeDisable;
 	private int encryptType = Constant.eEncryptTypeDisable;

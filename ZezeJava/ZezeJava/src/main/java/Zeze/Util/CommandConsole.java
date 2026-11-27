@@ -11,21 +11,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-// 命令行控制台：按 '\n' 分帧的行协议解析、引号分词与命令注册分发
+/** 命令行控制台：按 '\n' 分帧的行协议解析、引号分词与命令注册分发。 */
 public class CommandConsole {
 	private static final Logger logger = LogManager.getLogger(CommandConsole.class);
 
-	// 控制台行协议按'\n'分帧，未终结行的行缓冲必须有上界（默认64K，可用系统属性
-	// commandConsoleMaxLineSize调整）。命令行控制台无鉴权，Acceptor默认全网卡监听，
-	// 任意客户端发送无换行字节流即可把无界的行缓冲当累积点耗尽进程堆。
-	// 该属性是调优旋钮而非安全上限本身，畸形/非正值静默回落默认并warn
-	// （fail-open）——NumberFormatException炸掉<clinit>（ExceptionInInitializerError）
-	// 会使控制台类整体不可用，而默认值本身就是安全值，笔误不值得瘫痪控制台。
+	// 未终结行缓冲上限（默认 64K，-DcommandConsoleMaxLineSize 可配），防止无换行流耗尽堆内存。
 	public static final int MAX_LINE_BUFFER_SIZE =
 			resolveMaxLineBufferSize(System.getProperty("commandConsoleMaxLineSize"), 64 * 1024);
 
-	// 行缓冲按字节累积（非String）：读块边界可能切在多字节UTF-8字符中间，
-	// 按块独立解码会产出U+FFFD替换字符——仅在完整行边界做一次UTF-8解码。
+	// 按字节累积并在完整行边界做一次 UTF-8 解码，避免读块切分多字节字符。
 	private final ByteBuffer buffer = ByteBuffer.Allocate(128);
 	private final HashMap<String, Command> commands = new HashMap<>();
 
@@ -92,9 +86,7 @@ public class CommandConsole {
 		}
 	}
 
-	// 解析commandConsoleMaxLineSize——格式错误、容量溢出或
-	// 非正值（0/负数无法parse由前者覆盖，0显式拒收：0上限使每次input都抛溢出）回落默认并warn；
-	// "max"（无上限）与一切正值为运维显式选择，原样生效。
+	// 解析 commandConsoleMaxLineSize；非法或非正值记告警并回落默认值。
 	@SuppressWarnings("SameParameterValue")
 	static int resolveMaxLineBufferSize(@Nullable String propValue, int defSize) {
 		if (propValue == null)
@@ -130,23 +122,14 @@ public class CommandConsole {
 	}
 
 	public void input(@Nullable AsyncSocket sender, String str) {
-		// String直驱路径经UTF-8编码进入字节行缓冲（与socket读块同
-		// 路径，受同一上限约束）。孤立代理项字符（unpaired surrogate）被编码器
-		// 替换为'?'；合法BMP/增补字符（含emoji）不变。
 		input(sender, str.getBytes(StandardCharsets.UTF_8));
 	}
 
-	// 检查消费完整行之后的残留（未终结行）。量纲与TcpSocket.processReceive的
-	// remain检查一致（CommandConsoleService总是整块消费使后者永不触发，防线移到这里）；
-	// 瞬态上界=上限+单读块大小。超限抛错沿OnSocketProcessInputBuffer→processReceive→
-	// doException→close关闭连接。
+	// 检查消费完整行后的未终结残留长度，超限抛错由网络层关闭连接。
 	private void checkLineBufferLimit() {
 		if (buffer.size() > MAX_LINE_BUFFER_SIZE) {
 			var len = buffer.size();
-			buffer.Reset(); // 抛错前清空：捕获异常继续使用的调用方（进程内驱动sender==null）不至于永久饱和
-			// 运维粘贴大命令（如大JSON参数）被64K默认上限断连时，异常消息必须
-			// 自带调高旋钮（含max逃生门），否则误伤合法用法却无从自救——属性仅在代码注释
-			// 成文，运维看不到源码。
+			buffer.Reset(); // 抛错前清空，避免进程内复用方持续溢出
 			throw new IllegalStateException("CommandConsole line buffer overflow: " + len
 					+ " > " + MAX_LINE_BUFFER_SIZE
 					+ " (unterminated line? raise -DcommandConsoleMaxLineSize, e.g. 1M or max)");
@@ -156,8 +139,7 @@ public class CommandConsole {
 	public void tryParseLine(@Nullable AsyncSocket sender) {
 		for (var lineEnd = indexOfNewline(); lineEnd >= 0; lineEnd = indexOfNewline()) {
 			var line = new String(buffer.Bytes, buffer.ReadIndex, lineEnd - buffer.ReadIndex, StandardCharsets.UTF_8);
-			buffer.ReadIndex = lineEnd + 1; // remove the consumed line before parsing,
-			// otherwise a malformed line (unclosed quote) will keep throwing and poison the buffer permanently
+			buffer.ReadIndex = lineEnd + 1; // 先推进读游标再解析，避免畸形行永久阻塞缓冲
 
 			runLine(sender, line);
 		}
@@ -176,25 +158,24 @@ public class CommandConsole {
 		ArrayList<String> words;
 		try {
 			words = parseWords(line);
-		} catch (IllegalStateException ex) { // unclosed quote
+		} catch (IllegalStateException ex) {
 			if (sender != null)
 				sender.Send("error command format: " + line + "\r\n");
 			return;
 		}
 
-		// run command
 		if (words.isEmpty())
 			return;
 		var cmd = commands.get(words.getFirst());
 		if (cmd == null) {
-			if (sender != null) // sender 可为 null（如类内 main 以 cc.input(null, ...) 驱动）
+			if (sender != null)
 				sender.Send("unknown command: " + words.getFirst() + "\r\n");
 			return;
 		}
 		try {
 			cmd.run(sender, words.subList(1, words.size()));
-		} catch (Throwable ex) { // print stacktrace.
-			if (sender != null) { // 同上：与上面的判空保持一致
+		} catch (Throwable ex) {
+			if (sender != null) {
 				sender.Send(Str.stacktrace(ex));
 				sender.Send("\r\n" + line + "\r\n");
 			}

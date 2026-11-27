@@ -14,7 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-// one-by-one 队列引擎抽象基类：按 key 取桶队列（getAndLockQueue）、屏障与批量聚合提交，旧 Execute 委托 TaskSpec
+/** one-by-one 队列引擎抽象基类：按 key 锁桶队列、屏障同步与批量聚合提交。 */
 public abstract class TaskOneByOneBase extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneBase.class);
 
@@ -153,9 +153,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			this.batchEnd = batchEnd;
 		}
 
-		/** 每key一次性核销：正常完成（run的finally）、队列侧丢弃（TaskBodyTask的cancel，覆盖
-		 * submit的isShutdown静默丢、rollbackRejectedDispatch清队、shutdown(cancel)）、提交失败
-		 * （executeBatch的catch）可能对同一key触发，CAS保证恰好核销一次。 */
+		/** 每 key 一次性核销（覆盖正常完成、队列丢弃与提交失败路径），CAS 保证恰好核销一次。 */
 		public final class Settle implements Action0 {
 			private final AtomicBoolean settled = new AtomicBoolean();
 
@@ -190,7 +188,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	private static void runBatchEndDirect(Action0 batchEnd) {
 		try {
 			batchEnd.run();
-		} catch (Throwable e) { // logger.error
+		} catch (Throwable e) {
 			logger.error("executeBatch: batchEnd exception", e);
 		}
 	}
@@ -207,12 +205,10 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			remaining--;
 			var settle = batch.newSettle();
 			try {
-				// cancel=settle：队列侧丢弃任务的三条路径都会执行task.cancel核销该key计数。
 				execute(key, new TaskOneByOneQueue.TaskBodyTask(
 						new TaskBody.OfAction(() -> batch.run(key, settle)), null, settle, mode));
 			} catch (Throwable ex) {
-				// 提交失败：本key未入队或已被回滚清队核销（幂等防双重），未尝试的key
-				// 一次性核销——batchEnd不再永久悬挂。
+				// 幂等核销当前与剩余未尝试的 key，防止 batchEnd 永久悬挂
 				settle.run();
 				batch.abandon(remaining);
 				throw ex;

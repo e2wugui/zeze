@@ -11,7 +11,7 @@ import Zeze.Serialize.Vector4;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 
-/** Complete field change value, independent of any local transaction target. */
+/** Vector3 字段变更值日志，独立于本地事务目标。 */
 public class LogVector3Value extends Log {
 	public static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<vector3>");
 

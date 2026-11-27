@@ -9,8 +9,7 @@ import Zeze.Util.Task;
  * 摘要工具（MD5/HmacMD5）。
  */
 public final class Digest {
-	// 刻意不缓存：调用点全在每连接握手/建codec路径，getInstance 开销无关紧要；
-	// ThreadLocal 缓存在虚拟线程下实例驻留随线程数无界放大（每线程一 MD5 + 一 Mac）。
+	// 不做 ThreadLocal 缓存：握手/建 codec 路径频次低，避免虚拟线程下实例驻留随线程数膨胀。
 	public static byte [] md5(byte [] message) {
 		return md5(message, 0, message.length);
 	}

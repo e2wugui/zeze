@@ -18,21 +18,15 @@ package Zeze.Transaction.GTable;
 
 import java.util.Iterator;
 
-/**
- * An iterator that does not support {@link #remove}.
- *
- * @author Jared Levy
- * @since 2.0
- */
+/** 不支持 {@link #remove} 操作的迭代器基类。 */
 public abstract class UnmodifiableIterator<E> implements Iterator<E> {
-	/** Constructor for use by subclasses. */
 	protected UnmodifiableIterator() {}
 
 	/**
-	 * Guaranteed to throw an exception and leave the underlying data unmodified.
+	 * 始终抛出 {@link UnsupportedOperationException}，不修改底层数据。
 	 *
-	 * @throws UnsupportedOperationException always
-	 * @deprecated Unsupported operation.
+	 * @throws UnsupportedOperationException 始终抛出
+	 * @deprecated 不支持此操作。
 	 */
 	@Deprecated
 	@Override

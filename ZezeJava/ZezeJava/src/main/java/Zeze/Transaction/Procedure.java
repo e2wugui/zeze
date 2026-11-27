@@ -88,7 +88,7 @@ public class Procedure {
 	public Procedure(Application app, @Nullable FuncLong action, @Nullable String actionName,
 					 @Nullable TransactionLevel level) {
 		zeze = app;
-		this.level = level != null ? level : TransactionLevel.Serializable; // null归一为enum默认级，参数保持@Nullable兼容既有调用点
+		this.level = level != null ? level : TransactionLevel.Serializable;
 		this.action = action;
 		this.actionName = actionName != null && !actionName.isEmpty()
 				? actionName
@@ -141,7 +141,7 @@ public class Procedure {
 				currentT.getProcedureStack().add(this); // 在栈底加一层root procedure对象,在事务执行的其它阶段也能获取到
 				currentT.profiler.onProcedureBegin(actionName, timeBegin);
 				procedureCounter().start();
-				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
+				// 事务主循环在 Transaction.perform 中，perform 会回调本方法执行嵌套保存点。
 				return result = currentT.perform(this);
 			} finally {
 				if (currentT != null) {
@@ -188,7 +188,6 @@ public class Procedure {
 			logger.info("GoBackZeze({}): {}", goBackZeze.getMessage(), this);
 			throw goBackZeze;
 		} catch (Throwable e) { // logger, rethrow AssertionError
-			// rollback.
 			currentT.rollback();
 			currentT.addLogAction(() -> {
 				var tmpLogAction = logAction;

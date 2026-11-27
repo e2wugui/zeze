@@ -11,7 +11,7 @@ import Zeze.Serialize.Vector3;
 import Zeze.Serialize.Vector3Int;
 import Zeze.Serialize.Vector4;
 
-/** A field change value or a container change payload. Encoding never applies a transaction. */
+/** 字段变更值或容器变更载荷基类：仅承载可序列化的变更数据，编码本身不应用事务。 */
 public abstract class Log {
 	private final int varId;
 

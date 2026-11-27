@@ -79,9 +79,7 @@ public final class Config {
 	public @Nullable ServiceManagerConf serviceManagerConf;
 
 	private int globalCacheManagerPort;
-	// GCM Login/ReLogin 的RPC超时（毫秒）。默认5000与RPC全局默认一致：GCM端
-	// processLogin应答前逐key release无界，实例多时应答可能超过5s——客户端超时
-	// 触发重连风暴而服务端其实还在处理，此场景可调大本值。
+	// GCM Login/ReLogin 的 RPC 超时（毫秒）；实例较多时服务端逐 key release 可能耗时较长。
 	private int globalCacheManagerLoginTimeout = 5000;
 	private final ConcurrentHashMap<String, TableConf> tableConfMap = new ConcurrentHashMap<>();
 	private @Nullable TableConf defaultTableConf;
@@ -273,8 +271,7 @@ public final class Config {
 	}
 
 	public void setCheckpointPeriod(int value) {
-		// 下界夹紧（对齐XML路径parse的下界校验语义）：0/负数使检查点线程await(非正时长)
-		// 立即返回、主循环无sleep忙转（CPU 100%）。程序化配置warn+夹紧到安全下界，不抛出。
+		// 夹紧下界，避免检查点线程无休眠忙转。
 		if (value < 1000) {
 			logger.warn("CheckpointPeriod {} is too small, clamp to 1000 ms", value);
 			value = 1000;
@@ -486,10 +483,7 @@ public final class Config {
 	}
 
 	public void createDatabase(Application zeze, HashMap<String, Database> map) throws Exception {
-		// add other database
-		// 逐库构造无失败清理时，先建库的原生句柄/LOCK随半成品Application不可达而泄漏，
-		// 进程内重试将永久"lock held by current process"——失败时逐个close已放入map的Database再重抛，
-		// 整批构造成功后才把关闭责任交给调用方。
+		// 任一库构造失败时关闭已建库，避免句柄或目录锁泄漏。
 		try {
 			for (var db : getDatabaseConfMap().values())
 				map.put(db.name, createDatabase(zeze, db));
@@ -549,7 +543,7 @@ public final class Config {
 		}
 	}
 
-	/** 运维手动清理SqlServer存储过程的入口，形态对齐dropMysqlOperatesProcedures。 */
+	/** 运维手动清理 SqlServer 存储过程。 */
 	public void dropSqlServerOperatesProcedures() {
 		for (var conf : getDatabaseConfMap().values()) {
 			if (conf.databaseType == DbType.SqlServer) {
@@ -567,7 +561,7 @@ public final class Config {
 		//noinspection DataFlowIssue
 		var databaseName = getDefaultTableConf().getDatabaseName();
 		var defDbConf = getDatabaseConfMap().get(databaseName);
-		if (defDbConf == null) // 对齐Application.getDatabase判例：失配带名报错而非裸NPE
+		if (defDbConf == null)
 			throw new IllegalStateException("database not exist name=" + databaseName);
 		if (defDbConf.databaseType == DbType.MySql) {
 			var db = new DatabaseMySql(null, defDbConf);
@@ -615,8 +609,7 @@ public final class Config {
 			db.setXIncludeAware(true);
 			db.setNamespaceAware(true);
 			try {
-				// parse(String)把参数当URI解析，Windows绝对路径的盘符会被当成协议名
-				// （unknown protocol: c）——必须走parse(File)按文件解析。RaftConfig同款先例。
+				// 走 parse(File) 按文件解析，避免 Windows 盘符被 parse(String) 误判为 URI 协议名。
 				Document doc = db.newDocumentBuilder().parse(new File(xmlFile));
 				parse(doc.getDocumentElement());
 			} catch (Exception ex) {
@@ -641,7 +634,6 @@ public final class Config {
 		String attr = self.getAttribute("CheckpointPeriod");
 		if (!attr.isBlank()) {
 			checkpointPeriod = Integer.parseInt(attr);
-			// 下界校验：0/负数使检查点线程await(非正时长)立即返回，主循环无sleep忙转。
 			if (checkpointPeriod <= 0)
 				throw new IllegalStateException("CheckpointPeriod must > 0: " + attr);
 		}
@@ -713,7 +705,7 @@ public final class Config {
 		allowSchemasReuseVariableIdWithSameType = attr.isBlank() || Boolean.parseBoolean(attr);
 
 		attr = self.getAttribute("FastRedoWhenConflict");
-		// 缺省必须与字段声明默认false一致；attr.isBlank()||parse会让无zeze.xml属性时翻转成true。
+		// 缺省保持 false，空属性不翻转默认值。
 		fastRedoWhenConflict = !attr.isBlank() && Boolean.parseBoolean(attr);
 
 		attr = self.getAttribute("CheckpointMode");
@@ -824,16 +816,10 @@ public final class Config {
 			}
 		}
 		if (globalCacheManagerHostNameOrAddress.equals("GlobalCacheManagersConf")) {
-			// 配置了特殊值但缺少<GlobalCacheManagersConf>子节点时须带名报错，
-			// 不得裸NPE无诊断（对照同文件其它配置错误均抛带名异常）。
 			if (globalCacheManagers == null)
 				throw new IllegalStateException("GlobalCacheManagersConf node missing");
 			var parsed = globalCacheManagers.toString();
-			// isBlank不够——>=2个空白<host name=""/>时toString()==";"非blank，
-			// 会静默降级为无GCM模式并绕过hasGlobal与setInUse两道下游检查（连主流后端的
-			// 启动期互斥兜底也被绕过）。按消费语义（Str.trim(split(";"))）过滤后判空：
-			// 写了特殊值=显式opt-in，空结果只能是漏写host，必须fail-fast；直接属性写空串
-			// （单机模式标准写法）不走本分支，维持原默认语义。
+			// 显式启用多节点配置时按分号切分后不能为空，避免静默退化为无 GCM 模式。
 			if (Str.trim(parsed.split(";")).length == 0)
 				throw new IllegalStateException("GlobalCacheManagersConf has no non-blank <host> children");
 			globalCacheManagerHostNameOrAddress = parsed;
@@ -841,12 +827,7 @@ public final class Config {
 	}
 
 	public static final class ServiceManagerConf {
-		// 部署契约：sessionName是raft版ServiceManager（ServiceManagerWithRaft）
-		// 会话表tSession的主键兼会话归属凭证，必须非空且在同一SM集群内全局唯一——同名会话
-		// 互相接管（推送错乱、断连连带注销对方注册订阅，服务闪断）。漏配本属性时解析为空串：
-		// 经Application+ServiceManager=raft启动会默认为projectName#serverId（serverId仍需唯一），
-		// 直接构造ServiceManagerAgentWithRaft时空名fail-fast；服务端Login对空白名一律拒绝（-21）。
-		// 唯一性由部署侧保证，服务端不校验重复名。
+		// Raft SM 会话表主键，同一集群内须非空且全局唯一（缺省由 Application 填为 projectName#serverId）。
 		private String sessionName;
 		private String raftXml;
 		private long loginTimeout = 12000;
@@ -943,7 +924,7 @@ public final class Config {
 	public static final class DruidConf {
 		public @Nullable String driverClassName;
 		public @Nullable String userName;
-		/** Nonempty XML passwords retain all decoded characters; a missing or empty attribute uses the URL fallback. */
+		/** 非空 XML 密码原样保留；缺省或为空时回退使用 URL 中的密码。 */
 		public @Nullable String password;
 		public @Nullable Integer initialSize;
 		public @Nullable Integer minIdle;
@@ -993,8 +974,8 @@ public final class Config {
 		private String databaseName = "zeze_mongodb";
 		private DbType databaseType = DbType.Memory;
 		private String databaseUrl = "";
-		private @Nullable DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
-		private @Nullable DynamoConf dynamoConf; // only valid when dynamodb
+		private @Nullable DruidConf druidConf; // 仅 jdbc (mysql/sqlserver) 有效
+		private @Nullable DynamoConf dynamoConf; // 仅 dynamodb 有效
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 		private boolean disableOperates;
 

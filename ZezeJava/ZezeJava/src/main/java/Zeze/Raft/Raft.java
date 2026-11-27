@@ -51,9 +51,7 @@ public final class Raft {
 
 	private final StateMachine stateMachine;
 	public volatile boolean isShutdown = false;
-	// follower侧接收中的安装登记表：条目=对.installing文件的所有权
-	// token（文件唯一命名、finalizing收尾占位、gc/清理不变式见ReceiveSnapshotting）。
-	// 锁序：raft→本表（收尾侧持raft锁调get/removeIdentity，与gc/snapshot既有方向一致）。
+	// follower 侧快照接收登记表（锁序：raft -> receiveSnapshotting）。
 	final ReceiveSnapshotting receiveSnapshotting = new ReceiveSnapshotting(this);
 	private volatile RaftState state = RaftState.Follower;
 	private @Nullable Future<?> timerTask;
@@ -64,19 +62,18 @@ public final class Raft {
 	// Candidate
 	private final ConcurrentHashSet<RequestVote> requestVotes = new ConcurrentHashSet<>();
 	private final ConcurrentHashSet<PreVote> preVotes = new ConcurrentHashSet<>();
-	private boolean preVoting; // 处于预投票阶段（term还没有增加）。
-	private long nextVoteTime; // 等待当前轮选举结果超时；用来启动下一次选举。
+	private boolean preVoting; // 处于预投票阶段（term 尚未递增）
+	private long nextVoteTime; // 当前轮选举超时时间，超时后重启选举
 
 	// Leader
 	private long leaderWaitReadyTerm;
 	private long leaderWaitReadyIndex;
 	private volatile TaskCompletionSource<Boolean> leaderReadyFuture = new TaskCompletionSource<>();
 
-	// Follower
 	private final Lock mutex = new ReentrantLock();
 	private final Condition condition = mutex.newCondition();
 
-	private @Nullable Action0 onLeaderReady; // isLeader & isReady
+	private @Nullable Action0 onLeaderReady; // Leader 就绪回调
 	@Nullable Action0 onFollowerReceiveKeepAlive;
 
 	public void setOnLeaderReady(@Nullable Action0 action) {
@@ -187,7 +184,7 @@ public final class Raft {
 			for (Action0 action : atFatalKills) {
 				try {
 					action.run();
-				} catch (Throwable e) { // kill self. 必须捕捉所有异常。logger.error
+				} catch (Throwable e) { // 致命终止前兜底捕获所有异常
 					logger.error("FatalKill", e);
 				}
 			}
@@ -246,7 +243,7 @@ public final class Raft {
 		}
 	}
 
-	// 是否有InstallSnapshot正在接收中（follower侧，含finalizing收尾占位）。本地snapshot需要避开。
+	// 是否有正在接收或收尾中的 InstallSnapshot，本地 snapshot 需避开。
 	public boolean isReceivingSnapshot() {
 		return !receiveSnapshotting.isEmpty();
 	}
@@ -255,8 +252,7 @@ public final class Raft {
 		boolean firstCaller;
 		lock();
 		try {
-			// 拆库段只做一次（首调用者独占），但并发后续调用者不得早退越过排空——
-			// "shutdown返回⟹本地快照已结束"（50cd6df9b）须对每个调用者成立。
+			// 拆库段仅由首调用者执行，但所有并发调用者均须等待本地快照及后台任务排空后再返回。
 			firstCaller = !isShutdown;
 			isShutdown = true;
 		} finally {
@@ -267,9 +263,7 @@ public final class Raft {
 			server.stop();
 		}
 
-		// 本地快照在 apply 之外执行，仍持有状态机/备份目录，且收尾可提交并启动日志裁剪。
-		// 先在同一锁域关准入并排空快照，再读取裁剪 future；条件等待释放锁供快照完成。
-		// 不可因中断提前关库（Dbh2.close 随后必关状态机），保留中断标志到排空完成。
+		// 不可中断地排空本地快照（避免提前关闭状态机），随后再等待日志裁剪与后台 apply 完成。
 		lock();
 		try {
 			while (logSequence.getSnapshotting())
@@ -286,7 +280,7 @@ public final class Raft {
 			applyFuture.await();
 
 		if (!firstCaller)
-			return; // 排空与future等待已过；拆库段（timer/cancelAll/close）由首调用者独占
+			return; // 排空与等待已完成，拆库段由首调用者独占
 
 		if (timerTask != null) {
 			timerTask.cancel(false);
@@ -339,14 +333,13 @@ public final class Raft {
 		raftConf.verify();
 
 		this.taskOneByOne = taskOneByOne;
-		// userTaskOneByOneKey沿用改名前的配置名（历史语义，不动）。
+		// userTaskOneByOneKey 沿用原始配置名。
 		userTaskOneByOneKey = "Zeze.Raft.UserTaskOneByOneKey." + raftConf.getName();
 		sm.setRaft(this);
 		stateMachine = sm;
 
 		if (RaftName != null && !RaftName.isEmpty()) {
-			// 改名/联动DbHome在私有副本上执行，不变异调用方传入的配置对象：
-			// 共享同一RaftConfig的多Raft会互相污染Name/DbHome（快照路径错位、跨实例覆盖）。
+			// 派生私有副本改名并联动 DbHome，避免修改调用方传入的配置对象。
 			raftConf = raftConf.derive(RaftName);
 		}
 		raftConfig = raftConf;
@@ -396,7 +389,7 @@ public final class Raft {
 		}
 	}
 
-	long processInstallSnapshot(InstallSnapshot r) throws Exception { // package-private：测试直调合成rpc
+	long processInstallSnapshot(InstallSnapshot r) throws Exception {
 		ReceiveSnapshotting.@Nullable Entry doneEntry;
 		lock();
 		try {
@@ -404,9 +397,7 @@ public final class Raft {
 				return 0;
 			r.Result.setTerm(logSequence.getTerm());
 			if (r.Argument.getTerm() < logSequence.getTerm() || r.Argument.getTerm() > LogSequence.TERM_MAX) {
-				// 1. Reply immediately if term < currentTerm
-				// 超过TERM_MAX的term非法（trySetTerm拒绝采纳），同样按term错误
-				// 提前返回，不得落穿后续处理接受非法Leader的快照。
+				// term 过旧或超出 TERM_MAX 上界时直接拒绝。
 				r.SendResultCode(InstallSnapshot.ResultCodeTermError);
 				return 0;
 			}
@@ -414,10 +405,9 @@ public final class Raft {
 			var setTermResult = logSequence.trySetTerm(r.Argument.getTerm());
 			if (setTermResult == LogSequence.SetTermResult.Newer) {
 				r.Result.setTerm(logSequence.getTerm());
-				// new term found.
 				convertStateTo(RaftState.Follower);
 			} else if (setTermResult == LogSequence.SetTermResult.Same) {
-				// 与 followerOnAppendEntries 的同term处理对齐。
+				// 同 term 处理与 followerOnAppendEntries 对齐。
 				switch (getState()) {
 				case Candidate:
 					// 同term已经存在合法Leader，让位。
@@ -433,52 +423,42 @@ public final class Raft {
 			leaderId = r.Argument.getLeaderId();
 			logSequence.setLeaderActiveTime(System.currentTimeMillis());
 
-			// 已提交或已应用前缀内的旧快照只需确认，接收安装会回退状态或截断提交日志。
-			// 等于两者上界仍允许重装：同边界失败恢复及去重快照再生成均依赖它。
+			// 已提交或已应用前缀内的旧快照直接确认（等于上界仍允许重装）。
 			if (logSequence.isSnapshotStale(r.Argument.getLastIncludedIndex())) {
 				receiveSnapshotting.discard(r.Argument.getLastIncludedIndex());
 				r.SendResultCode(0);
 				return 0;
 			}
 
-			// 本地快照进行中（重阶段在锁外写 backupDir）时拒绝新安装的首块：
-			// 接收完成后的状态机重置会与本地快照并发操作同一 backupDir，失败不可自愈。
-			// 应答冲突码让 leader 中断本次安装（InstallSnapshotState.processResult 对非
-			// Success/非 NewOffset 码即 SendSnapshotting.end），下个心跳自动重试。
-			// 传输中途才开始本地快照的情形由 endReceiveInstallSnapshot 内的兜底检查拦截。
+			// 本地快照进行中拒绝新安装首块，避免并发操作状态机备份目录（传输中途的冲突由收尾阶段兜底拦截）。
 			if (r.Argument.getOffset() == 0 && logSequence.getSnapshotting()) {
 				r.SendResultCode(InstallSnapshot.ResultCodeSnapshottingConflict);
 				return 0;
 			}
-			// 准入与写块/丢弃旧条目必须同持Raft锁：放锁后排队的旧请求可能在
-			// 新term的收尾通过所有权复核后删掉其源文件，留下已drop日志的半安装。
+			// 准入校验与写块须同持 Raft 锁，避免过期请求在锁外误删新任期快照文件。
 			doneEntry = receiveSnapshotting.process(r);
 		} finally {
 			unlock();
 		}
 
-		// 收尾可能等待后台裁剪，必须在外层Raft锁释放后执行；收尾内部重新复核归属。
+		// 收尾可能等待后台裁剪，须在释放 Raft 锁后执行（内部重新复核归属）。
 		if (doneEntry != null)
 			r.SendResultCode(logSequence.endReceiveInstallSnapshot(doneEntry, r));
 		return Procedure.Success;
 	}
 
-	// 清理残留的接收条目（follower 侧）：周期驱动，具体不变式见
-	// ReceiveSnapshotting.gc。
+	// 周期清理残留接收条目（锁序：raft -> receiveSnapshotting），确保归属读取与删除原子一致。
 	void gcReceiveSnapshotting(long now) {
-		lock(); // term/leaderId 的写点都在 raft 锁内；锁顺序 raft→receiveSnapshotting，
-		try {   // 与 processInstallSnapshot 一致（无反向嵌套路径）。
-			// term/leader读取与实际删除同锁域，旧一轮GC不得删新term的收尾源文件。
+		lock();
+		try {
 			receiveSnapshotting.gc(now, logSequence.getTerm(), getLeaderId(), receiveSnapshottingTimeout());
 		} finally {
 			unlock();
 		}
 	}
 
-	long receiveSnapshottingTimeout() { // package-private：测试按公式合成超时，不硬编码
-		// 合法安装的单 chunk 往返必然 <= AppendEntriesTimeout（超时即中断，中断后下个
-		// 心跳重来），最坏合法空闲 ≈ AppendEntriesTimeout + LeaderHeartbeatTimer；
-		// 取 4/2 倍留足余量，避免误杀慢速但合法的安装。
+	long receiveSnapshottingTimeout() {
+		// 留足单块超时与心跳重试余量，避免误杀慢速合法安装。
 		return raftConfig.getAppendEntriesTimeout() * 4L + raftConfig.getLeaderHeartbeatTimer() * 2L;
 	}
 
@@ -519,7 +499,7 @@ public final class Raft {
 				break;
 			case Candidate:
 				if (now > nextVoteTime)
-					convertStateTo(RaftState.Candidate); // vote timeout. restart
+					convertStateTo(RaftState.Candidate); // 选举超时，重新发起
 				break;
 			case Leader:
 				server.getConfig().forEachConnector(c -> {
@@ -532,10 +512,7 @@ public final class Raft {
 			if (++lowPrecisionTimer > 1000) {
 				lowPrecisionTimer = 0;
 				onLowPrecisionTimer();
-				// 重连复查必须在Raft锁内：shutdown的isShutdown置位在同锁内，锁内复查
-				// 彻底关死"检查过后才shutdown"的TOCTOU窗口——锁外重连会为已停Raft重建连接，
-				// epoch一致使重连引擎永久运转。Raft→Service→Connector为既定单向锁序，start()
-				// 构造链非阻塞，锁内调用安全。
+				// 在 Raft 锁内复查 isShutdown 后再触发重连（锁序 Raft -> Service -> Connector），避免已停节点重建连接。
 				if (!isShutdown)
 					server.getConfig().forEachConnector(Connector::start);
 			}
@@ -545,19 +522,14 @@ public final class Raft {
 	}
 
 	private void onLowPrecisionTimer() throws Exception {
-		// Connector重连在onTimer的Raft锁内复查isShutdown后执行（见上）；本方法仅LogSequence清理。
 		logSequence.removeExpiredUniqueRequestSet();
-		gcReceiveSnapshotting(System.currentTimeMillis()); // 残留接收条目周期清理
-		logSequence.drainPendingDeleteGenFiles(); // gen清扫重试名单周期冲刷
+		gcReceiveSnapshotting(System.currentTimeMillis());
+		logSequence.drainPendingDeleteGenFiles();
 	}
 
-	/**
-	 * true，IsLeader && LeaderReady;
-	 * false, !IsLeader，或等待超时（仍是not-ready的Leader，见内部注释）。
-	 */
+	/** 等待当前 Leader 就绪；非 Leader 或等待超时时返回 false。 */
 	boolean waitLeaderReady() {
-		// 等待预算为一个完整的选举周期（与Agent.waitForLeader的默认超时同公式：
-		// PreVote引入后选举最坏情况多一轮）。
+		// 等待预算为一个完整选举周期（含 PreVote 轮次）。
 		long waitMs = raftConfig.getLeaderHeartbeatTimer()
 				+ raftConfig.getElectionTimeoutMax() * 2L
 				+ raftConfig.getAppendEntriesTimeout();
@@ -568,11 +540,7 @@ public final class Raft {
 			while (isLeader()) {
 				if (volatileTmp.isDone())
 					return volatileTmp.get();
-				// 多数派失联的分区场景下，SetLeaderReadyEvent永远无法提交，
-				// 且没有更高term的消息到达（不会有signalAll唤醒），无期限的await()会让
-				// 派发进来的请求任务无限堆积（每请求占一个unique串行桶+一个线程）。
-				// 等待超出一个选举周期后放弃并返回false：processRequest会走
-				// trySendLeaderIs路径，请求最终由客户端rpc超时/Agent重发闭环处理。
+				// 多数派失联时 SetLeaderReadyEvent 无法提交，限时等待避免请求任务无限堆积。
 				var remain = deadline - System.nanoTime();
 				if (remain <= 0)
 					break;
@@ -596,15 +564,13 @@ public final class Raft {
 
 	void resetLeaderReadyAfterChangeState() {
 		leaderReadyFuture.setResult(false);
-		leaderReadyFuture = new TaskCompletionSource<>(); // prepare for next leader
-		signalAll(); // has under lock(this)
+		leaderReadyFuture = new TaskCompletionSource<>(); // 为下一任 Leader 重置
+		signalAll(); // 调用方已持有 Raft 锁
 	}
 
 	void setLeaderReady(RaftLog heart) throws Exception {
 		if (isLeader()) {
-			// 是否过期First-Heartbeat。
-			// 使用 LeaderReadyFuture 可以更加精确的识别。
-			// 但是，由于RaftLog不是常驻内存的，保存不了进程级别的变量。
+			// 过滤历史重放的旧心跳，仅匹配当前任期等待就绪的索引。
 			if (heart.getTerm() != leaderWaitReadyTerm || heart.getIndex() != leaderWaitReadyIndex)
 				return;
 
@@ -615,20 +581,16 @@ public final class Raft {
 					logSequence.getLastIndex(), logSequence.getTestStateMachineCount());
 
 			leaderReadyFuture.setResult(true);
-			signalAll(); // has under lock(this)
+			signalAll(); // 调用方已持有 Raft 锁
 
 			server.foreach(allSocket -> {
-				// 本来这个通告发给Agent(client)即可，
-				// 但是现在没有区分是来自Raft的连接还是来自Agent，
-				// 全部发送。
-				// 另外Raft之间有两个连接，会收到多次，Raft不处理这个通告。
-				// 由于Raft数量不多，不会造成大的浪费，不做处理了。
+				// 向全部已握手连接广播 LeaderIs（Raft 节点间连接收到后忽略）。
 				if (allSocket.isHandshakeDone()) {
 					var r = new LeaderIs();
 					r.Argument.setTerm(logSequence.getTerm());
 					r.Argument.setLeaderId(Objects.requireNonNull(leaderId));
 					r.Argument.setLeader(isLeader());
-					r.Send(allSocket); // skip response.
+					r.Send(allSocket);
 				}
 			});
 			if (onLeaderReady != null)
@@ -645,9 +607,7 @@ public final class Raft {
 		var last = logSequence.lastRaftLogTermIndex();
 		if (!logSequence.getNodeReady()) {
 			if (!candidate.getNodeReady()) {
-				// 整个Raft集群第一次启动时，允许给初始节点投票。此时所有的初始节点形成多数派。任何一个当选都是可以的。
-				// 以后由于机器更换再次启动而处于初始状态的节点肯定是少数派，即使它们之间互相投票，也不能成功。
-				// 如果违背了这点，意味着违背了Raft的可用原则，已经不在Raft的处理范围内了。
+				// 集群首次启动允许未就绪节点互投产生初始 Leader；运行期新增空节点占少数派无法当选。
 				return isLastLogUpToDate(last, candidate);
 			}
 
@@ -672,15 +632,9 @@ public final class Raft {
 			if (isShutdown)
 				return 0;
 			if (logSequence.trySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer)
-				convertStateTo(RaftState.Follower); // new term found.
-			// else continue process
+				convertStateTo(RaftState.Follower);
 
-			// RequestVote RPC
-			// Receiver implementation:
-			// 1.Reply false if term < currentTerm(§5.1)
-			// 2.If votedFor is null or candidateId, and candidate's log is at
-			// least as up - to - date as receiver's log, grant vote(§5.2, §5.4)
-
+			// Raft RequestVote 接收规则：term 匹配、未投票或已投给该候选者且日志不旧于本地时授票。
 			r.Result.setTerm(logSequence.getTerm());
 			r.Result.setVoteGranted(r.Argument.getTerm() == logSequence.getTerm() &&
 					logSequence.canVoteFor(r.Argument.getCandidateId()) && isLastLogUpToDate(r.Argument));
@@ -703,16 +657,14 @@ public final class Raft {
 
 	@SuppressWarnings("SameReturnValue")
 	private static long processLeaderIs(LeaderIs r) {
-		// 这个协议是发送给Agent(Client)的，
-		// 为了简单，不做区分。
-		// Raft也会收到，忽略。
+		// 仅 Agent 处理 LeaderIs，Raft 节点收到直接忽略。
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}
 
 	private long processRequestVoteResult(RequestVote rpc, @SuppressWarnings("unused") Connector c) throws Exception {
 		if (rpc.isTimeout() || rpc.getResultCode() != 0)
-			return 0; // skip error. re-vote later.
+			return 0; // 忽略失败应答，等待下轮重选
 
 		lock();
 		try {
@@ -757,10 +709,7 @@ public final class Raft {
 		try {
 			if (isShutdown)
 				return 0;
-			// PreVote 接收者实现（raft 博士论文 §4.2.3）：
-			// 不修改 term/voteFor，不重置任何选举计时。
-			// 仅当候选者的"下一个term"更大、日志够新，
-			// 且本节点近期没有听得到有效Leader时授予。
+			// PreVote 不修改 term/voteFor 或选举计时；仅在候选者任期更新、日志足够新且近期未收到有效 Leader 消息时授票。
 			r.Result.setTerm(logSequence.getTerm());
 			r.Result.setVoteGranted(r.Argument.getTerm() > logSequence.getTerm()
 					&& isLeaderSilent() && isLastLogUpToDate(r.Argument));
@@ -775,11 +724,9 @@ public final class Raft {
 
 	private boolean isLeaderSilent() {
 		return switch (getState()) {
-			case Leader -> false; // 自己就是Leader。
-			case Candidate -> true; // 自己也在选举中，说明Leader已经失联。
-			default -> // Follower：在最小选举超时内收到过Leader消息，视为Leader仍然活着。
-					// 最小沉默窗口与getElectionTimeout()下界同步（heartbeat+ElectionTimeoutBase），
-					// PreVote授票门槛同源同基（2026-11-12与选举超时Base 100→1000同步调整）。
+			case Leader -> false;
+			case Candidate -> true;
+			default -> // 最小沉默窗口与选举超时下界一致（heartbeat + ElectionTimeoutBase）。
 					System.currentTimeMillis() - logSequence.getLeaderActiveTime()
 							>= raftConfig.getLeaderHeartbeatTimer() + RaftConfig.ElectionTimeoutBase;
 		};
@@ -787,7 +734,7 @@ public final class Raft {
 
 	private long processPreVoteResult(PreVote rpc, @SuppressWarnings("unused") Connector c) throws Exception {
 		if (rpc.isTimeout() || rpc.getResultCode() != 0)
-			return 0; // skip error. re-vote later.
+			return 0; // 忽略失败应答，等待下轮重选
 
 		lock();
 		try {
@@ -832,11 +779,7 @@ public final class Raft {
 		}
 	}
 
-	/**
-	 * term 达到上界时拒绝发起选举。term+1 溢出回绕为负值会被 trySetTerm 判 Older，
-	 * 选举永久冻结；且预投票携带的回绕term会传染。仅在库被旧版本投毒后可达，
-	 * 需人工清理 rocks rafts 表的 term 后才能恢复。
-	 */
+	/** term 达到上界时拒绝发起选举，避免 term+1 溢出回绕；需人工重置 rafts 表中的 term 后恢复。 */
 	private boolean checkTermCanElect() {
 		if (logSequence.getTerm() < LogSequence.TERM_MAX)
 			return true;
@@ -847,16 +790,15 @@ public final class Raft {
 	}
 
 	private void sendPreVote() throws RocksDBException {
-		// 拒绝选举也要推进nextVoteTime，否则onTimer的Candidate分支(now>nextVoteTime恒真)
-		// 每 tick 重进，20ms一条fatal刷日志。
+		// 拒绝选举时同样推进 nextVoteTime，避免 onTimer 每 tick 重复触发 fatal 日志。
 		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 		if (!checkTermCanElect())
 			return;
-		preVotes.clear(); // 每次预投票开始清除。
+		preVotes.clear();
 		preVoting = true;
 
 		var arg = new BRequestVoteArgument();
-		arg.setTerm(logSequence.getTerm() + 1); // 预投票携带"下一个term"，不修改自身term。
+		arg.setTerm(logSequence.getTerm() + 1); // 预投票携带下一任期，不修改自身 term
 		arg.setCandidateId(getName());
 		var log = logSequence.lastRaftLogTermIndex();
 		arg.setLastLogIndex(log.getIndex());
@@ -874,13 +816,13 @@ public final class Raft {
 	}
 
 	private void sendRequestVote() throws RocksDBException {
-		// 同sendPreVote——拒绝选举也推进nextVoteTime防onTimer每tick重进刷fatal。
+		// 拒绝选举时同样推进 nextVoteTime，避免 onTimer 每 tick 重复触发 fatal 日志。
 		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 		if (!checkTermCanElect())
 			return;
-		requestVotes.clear(); // 每次选举开始清除。
+		requestVotes.clear();
 		logSequence.trySetTerm(logSequence.getTerm() + 1);
-		logSequence.setVoteFor(getName()); // 先投给自己。
+		logSequence.setVoteFor(getName()); // 先投给自己
 
 		var arg = new BRequestVoteArgument();
 		arg.setTerm(logSequence.getTerm());
@@ -940,37 +882,28 @@ public final class Raft {
 
 			logger.info("RaftState {}: Candidate->Leader", getName());
 			state = RaftState.Leader;
-			leaderId = getName(); // set to self
+			leaderId = getName();
 			resetTimerTime();
 
-			// (Reinitialized after election)
+			// 选举后重置各 follower 复制进度
 			var nextIndex = logSequence.getLastIndex() + 1;
 
 			server.getConfig().forEachConnector(c -> {
 				var cex = (Server.ConnectorEx)c;
-				cex.start(); // 马上尝试连接。
+				cex.start();
 				cex.setNextIndex(nextIndex);
 				cex.setMatchIndex(0);
 				cex.setPending(null); // 清理旧任期残留单飞槽位，防止阻塞 SetLeaderReadyEvent 与心跳
 			});
 
-			// Upon election:
-			// send initial empty AppendEntries RPCs
-			// (heartbeat)to each server; repeat during
-			// idle periods to prevent election timeouts(§5.2)
-			// 先于appendLog登记等待条件：appendLog（RocksDB写）失败时state已是Leader，
-			// 事后登记永远不会执行，setLeaderReady的唯一匹配条件（index/term）永不命中，产生
-			// 永不ready的活Leader且无自愈（心跳照发压制重选举，磁盘恢复也不能自愈）。
-			// Raft锁内nextIndex==lastIndex+1即appendLog将写入的index，term即logSequence.getTerm()，
-			// 预登记与事后登记的值完全一致。
+			// 先预登记 leaderWaitReadyIndex/Term，再追加心跳日志作为就绪见证；
+			// 避免 appendLog 失败导致已切 Leader 但匹配条件未登记而永久卡在非 ready 状态。
 			leaderWaitReadyIndex = nextIndex;
 			leaderWaitReadyTerm = logSequence.getTerm();
 			try {
 				logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), null);
 			} catch (Throwable ex) {
-				// appendLog同步写失败（磁盘满/IO故障等）时state已是Leader且只初始化一半，退位路径
-				// 会再次触碰半初始化状态；按"宁死勿僵尸"整进程终止，多数派仍在时集群只是少一节点，
-				// 由外部拉起重启自愈。
+				// 当选后首条心跳日志落盘失败时节点处于半初始化 Leader 态，直接致命退出由外部拉起恢复。
 				logger.error("append SetLeaderReadyEvent fail on become leader, fatalKill.", ex);
 				fatalKill();
 			}
@@ -1036,7 +969,6 @@ public final class Raft {
 	}
 
 	private long processGetLeader(GetLeader r) {
-		// see Server::trySendLeaderIs
 		String leaderId = getLeaderId();
 		if (leaderId == null || leaderId.isEmpty())
 			return Procedure.Unknown;
@@ -1044,9 +976,8 @@ public final class Raft {
 		if (getName().equals(leaderId) && !isLeader())
 			return Procedure.Unknown;
 
-		// redirect
 		r.Result.setTerm(getLogSequence().getTerm());
-		r.Result.setLeaderId(Objects.requireNonNull(leaderId)); // maybe empty
+		r.Result.setLeaderId(Objects.requireNonNull(leaderId));
 		r.Result.setLeader(isLeader());
 		r.trySendResultCode(Procedure.Success);
 		return 0;

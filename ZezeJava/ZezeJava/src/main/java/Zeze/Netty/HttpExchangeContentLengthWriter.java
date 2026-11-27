@@ -10,15 +10,14 @@ import io.netty.handler.codec.http.HttpResponseStatus;
  */
 public class HttpExchangeContentLengthWriter extends HttpExchangeUtf8Writer {
 	private final HttpExchange x;
-	// 4.2默认分配器对齐：AdaptiveByteBufAllocator（生命周期/释放语义与Pooled一致，常驻64KB无碍）
 	private final ByteBuf html = AdaptiveByteBufAllocator.DEFAULT.buffer(64 * 1024);
-	private boolean failed; // 渲染中途异常由调用方置位：close不得把半截页面按200+完整ContentLength发出
+	private boolean failed;
 
 	public HttpExchangeContentLengthWriter(HttpExchange x) {
 		this.x = x;
 	}
 
-	/** 模板process抛异常时调用方置位，close改走失败收尾（不发半截内容，缓冲自释放）。 */
+	/** 标记渲染失败：close 时释放缓冲并改发 500，不发出截断内容。 */
 	public void fail() {
 		failed = true;
 	}
@@ -38,11 +37,6 @@ public class HttpExchangeContentLengthWriter extends HttpExchangeUtf8Writer {
 			return;
 		closed = true;
 		if (failed) {
-			// 半截页面不是成功响应：丢弃缓冲（未send则所有权未转移，自释放防泄漏）。
-			// 此刻exchange未写出任何字节（头也未发出），单发一个带ContentLength的500干净
-			// 合法；随后生命周期close(null)先从exchanges摘除本exchange，上层异常传播路径
-			// 的exceptionCaught/send500不会产生第二个响应。只release不发会让客户端得到
-			// 零字节空回复或挂起到idle超时。
 			html.release();
 			x.send500("internal server error: template render failed");
 			return;

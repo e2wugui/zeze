@@ -31,11 +31,10 @@ import Zeze.Util.Cert;
 import Zeze.Util.Task;
 import org.jspecify.annotations.Nullable;
 
-// TCP连接成功后,主动连接方(客户端)先发密钥交换请求(KeyExchange)给被动连接方(服务器). 收到回复后,后续通信用双方各自随机生成的key做双向对称加密(己方生成的key用于对方加密发送,己方接收解密)
-// 客户端 === KeyExchange(明文请求) ==> 服务器 (客户端用服务器公钥加密客户端生成的key给服务器,可选提供客户端公钥)
-// 客户端 <== KeyExchange(明文回复) === 服务器 (服务器用服务器私钥解密得到客户端的key,再生成服务器key,二者做异或回复给客户端,或者用客户端公钥加密服务器key回给客户端——公钥模式仅在服务器经addHandler重载注册可信公钥校验且验证通过时进行,验证失败回ErrorUnknownClientPubKey并断连;两种方法都能让客户端得到服务器key)
-// 客户端 === 其它协议(使用服务器生成的key加密) ==> 服务器 (密钥交换后,需要由客户端先发起协议,方便客户端确定何时开始解密)
-// 客户端 <== 其它协议(使用客户端生成的key加密) === 服务器
+/**
+ * RSA/AES 双向对称密钥交换 RPC：客户端明文发起并以服务端公钥加密客户端密钥（可选附带客户端公钥），
+ * 服务端解密后生成服务端密钥并以异或或客户端公钥加密返回；双方随后切入双向 AES-128-CFB 加密通信。
+ */
 public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	public static final int ModuleId = 0;
 	public static final int ProtocolId = Bean.hash32(KeyExchange.class.getName()); // 571437512 0x220F71C8
@@ -191,8 +190,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 				((TcpSocket)r.getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, clientKey, clientIv));
 				return 0;
 			} catch (Throwable ex) {
-				// 与HandshakeBase对齐——密钥交换异常不能只回错误码留活连接
-				// （可能已切部分codec成半开状态），断连。
+				// 密钥交换异常可能已切换部分编解码器，直接断连
 				//noinspection DataFlowIssue
 				r.getSender().close(ex);
 				return Res.ErrorDecryptFailed;
@@ -202,18 +200,10 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 	public long processKeyExchangeRequest(PrivateKey priKey, byte @Nullable [] pubKeyMd5,
 										  @Nullable Predicate<byte []> clientPubKeyAcceptor) {
-		// KeyExchange.TypeId不在handshakeProtocols中（走Service.dispatchProtocol普通路径，
-		// Direct派发的callFuncCore仅trySendResultCode回错误码、连接保持）——恶意/损坏encIvKey
-		// 抛GeneralSecurityException后可在单条连接上无限刷RSA私钥解密（CPU消耗）；伪造
-		// clientPubKey路径更发生在setInputSecurityCodec之后，留下已切codec的半开连接。
-		// 与HandshakeBase各握手handler的「握手错误不能忽略」纪律对齐：异常断连。
 		try {
-			// 可信客户端公钥校验在任何状态变更（含codec切换）之前——失败时连接零状态
-			// 变更，回码给合法客户端诊断信息并断连防半开。注册acceptor即要求客户端公钥认证，
-			// clientPubKey为空（未提供身份）同样拒绝。此刻无任何codec已切换、无半开风险，
-			// 优雅关闭让错误码先冲刷到对端再断连（close(ex)非优雅会连错误响应一起丢掉）。
+			// 先校验客户端公钥再变更连接状态，失败时优雅关闭以确保错误码先刷出
 			if (clientPubKeyAcceptor != null) {
-				var clientPubKey = stripLeadingZeros(Objects.requireNonNull(Argument.clientPubKey)); // 与getPubKeyMd5相同的前导零归一
+				var clientPubKey = stripLeadingZeros(Objects.requireNonNull(Argument.clientPubKey));
 				if (clientPubKey.length == 0 || !clientPubKeyAcceptor.test(clientPubKey)) {
 					trySendResultCode(Res.ErrorUnknownClientPubKey);
 					//noinspection DataFlowIssue
@@ -241,7 +231,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 			//noinspection DataFlowIssue
 			if (Argument.clientPubKey.length > 0) {
-				Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey); // 已过acceptor认证
+				Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey);
 			} else {
 				for (int i = 0; i < 32; i++)
 					serverIvKey[i] ^= clientIvKey[i];
@@ -253,7 +243,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
 			((TcpSocket)getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
 			return 0;
-		} catch (Throwable ex) { // 这个握手错误不能忽略（对齐HandshakeBase）。
+		} catch (Throwable ex) { // 握手错误必须断连，防止半开或滥用私钥解密
 			//noinspection DataFlowIssue
 			getSender().close(ex);
 			return 0;
@@ -261,26 +251,15 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	}
 
 	/**
-	 * 注册KeyExchange处理器（无客户端公钥认证模式）：clientPubKey仅作为回程密钥的加密目标，
-	 * 服务器不校验它。
-	 * <p>
-	 * 同时给目标Service装配明文门禁：armed后未完成密钥交换（双向codec未装齐）
-	 * 的连接上，除KeyExchange本身外的明文协议帧解码即断连——封死"不握手全程明文"直连与
-	 * 握手完成前的明文注入窗口。本服务上的全部TcpSocket连接自此必须先完成KeyExchange。
-	 * 门禁经连接级解码准入生效（TcpSocket连接构造器装配），须在建立连接前调用本方法。
+	 * 注册 KeyExchange 处理器（不校验客户端公钥）并为目标 Service 装配未握手明文门禁；须在建立连接前调用。
 	 */
 	public static void addHandler(Service service, PrivateKey serverPriKey) {
 		addHandler(service, serverPriKey, null);
 	}
 
 	/**
-	 * 注册KeyExchange处理器并启用客户端公钥认证：clientPubKey非空且被acceptor
-	 * 接受才继续握手，否则回 {@link Res#ErrorUnknownClientPubKey} 并断连；clientPubKey为空
-	 * （未提供身份）同样拒绝。acceptor收到与getPubKeyMd5相同方式归一前导零后的公钥
-	 * （BigInteger.toByteArray可能带符号位前导0），可直接与配置的N比较或经getPubKeyMd5比对。
-	 * 认证边界：本认证=客户端的发送能力等价于私钥持有——冒用他人（白名单内）公钥者解不出
-	 * clientIvKey、发不出合法加密流量，但能收到以其自生成密钥加密的服务器下推；
-	 * 服务器主动下推型业务需自行加密钥确认（如首个合法解密帧后才置已认证态）。
+	 * 注册 KeyExchange 处理器、装配未握手明文门禁，并启用客户端公钥校验（传入已去前导零的模数 N）。
+	 * 未提供公钥或校验失败时回复 {@link Res#ErrorUnknownClientPubKey} 并断连；须在建立连接前调用。
 	 */
 	public static void addHandler(Service service, PrivateKey serverPriKey,
 								  @Nullable Predicate<byte []> clientPubKeyAcceptor) {

@@ -90,8 +90,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				try {
 					agent.close();
 				} catch (Exception e) {
-					// 停机尽力语义：单个agent关闭失败只记日志，继续关闭其余agent，
-					// 避免异常上抛中止后续agent关闭，并中断Application.stop（startState卡在eStopping）。
+					// 单个分片关闭失败仅记日志并继续，避免中断其余分片与应用停机
 					logger.error("GlobalCacheManagerWithRaftAgent.Stop Agent={}",
 							agent.getGlobalCacheManagerHashIndex(), e);
 				}
@@ -134,12 +133,9 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		private void forwardResult(@Nullable Binary result) {
 			real.Result.setGlobalKey(real.Argument.getGlobalKey()); // no change
 			real.Result.setState(Result.state);
-			// 补转发被降级方tid——TableX在bridge（sync族Result）上设置reducedTid，
-			// 桥接原本只转state与resultCode，该字段在Raft链路恒为默认值（同步/异步版服务器
-			// 均中继真实值），协议契约静默断裂。
+			// 同步转发被降级方 tid，保持与非 Raft 链路协议一致
 			var reducedTid = Result.reducedTid;
 			real.Result.setReduceTid(reducedTid != null ? reducedTid : Id128.Zero);
-			// real也先CAS再设置code；代理路径继续由ProxyableRpc的hook路由。
 			real.SendResultCode(getResultCode(), result);
 		}
 	}
@@ -239,9 +235,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 
 		var rc = rpc.getResultCode();
-		// 注：GCM-raft服务端procedure不设置uniqueRequest（见RocksRaft.Procedure.uniqueRequest契约），
-		// 应答丢失后重发=重新执行，RaftApplied回放应答当前不可达。若未来服务端接线唯一请求去重，
-		// 此处必须为RaftApplied（负值）补豁免——回放附原始结果≠获取失败，否则会把回放当失败abort业务事务。
+		// GCM-raft 服务端不启用 uniqueRequest（重发即重执行）；若后续接入去重，需为 RaftApplied 放行
 		if (rc < 0 || rc == GlobalCacheManagerConst.AcquireModifyFailed
 				|| rc == GlobalCacheManagerConst.AcquireShareFailed) {
 			Transaction trans = Transaction.getCurrent();
@@ -325,8 +319,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 			raftClient = new Agent("global.raft", zeze, Objects.requireNonNull(raftConf), Agent.NetClient::new);
 			raftClient.setOnSetLeader(this::raftOnSetLeader);
-			// Reduce处理（table.reduceInvalid/reduceShare）会等待本地锁，必须入池执行；
-			// Direct优先规则（Agent.NetClient.dispatchProtocol）不影响本Agent——注册协议全为Normal。
+			// Reduce 处理会等待本地锁，必须派发到工作线程池执行
 			raftClient.dispatchProtocolToInternalThreadPool = true;
 			getGlobalCacheManagerWithRaftAgent().RegisterProtocols(Objects.requireNonNull(raftClient.getClient()));
 		}
@@ -367,18 +360,13 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				if (loginTimes.get() > 0)
 					raftClient.sendForWait(new NormalClose()).await(10 * 1000); // 10s
 			} catch (Exception e) {
-				// GCM端ProcessNormalClose在应答前逐key release（可阻塞等待reduce，
-				// 键多或争用时轻易超10s）或直接超时——future异常完成后await对CompletionException
-				// 重抛。记日志继续，不中断停机流程；raftClient.stop()放到finally，
-				// 保证无论NormalClose是否发送/成功都总是执行，停机尽力语义。
+				// NormalClose 超时或异常不中断停机，确保 finally 中始终停止 raftClient
 				logger.error("NormalClose await fail", e);
 			} finally {
 				try {
 					raftClient.stop();
 				} catch (Exception e) {
-					// stop失败（如内部client.stop抛出）：前置位的activeClose会短路后续重试
-					// （Agent.stop本身对client==null幂等早退，本就支持重入）。记日志后在锁内
-					// 复位activeClose，使上层stop()的重试可达；锁内仅复位标志，无耗时操作。
+					// stop 失败时复位 activeClose，允许上层重试
 					logger.error("RaftClient Stop Fail Agent={}", globalCacheManagerHashIndex, e);
 					lock();
 					try {

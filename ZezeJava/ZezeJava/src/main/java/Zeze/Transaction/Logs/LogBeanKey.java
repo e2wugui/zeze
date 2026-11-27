@@ -8,7 +8,7 @@ import Zeze.Transaction.Collections.BeanKeyMeta;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TransactionLog;
 
-/** Local field write; the inherited value is also its complete change payload. */
+/** BeanKey 字段本地写入事务日志，提交时将继承的新值写回所属 Bean。 */
 public class LogBeanKey<T extends Encodable> extends LogBeanKeyValue<T> implements TransactionLog {
 	private final Bean belong;
 	private final VarHandle vh;

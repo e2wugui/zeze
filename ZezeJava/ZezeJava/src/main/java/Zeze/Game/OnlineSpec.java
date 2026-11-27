@@ -69,7 +69,7 @@ public class OnlineSpec {
 
 	// ---------------- 选项 ----------------
 
-	/** 目标缺席（不在线/查无此登录/未登录完成）时是否静默跳过（不记缺席日志）；默认 false 记 info/debug 日志便于排障。Arch 的 reliable 目标忽略此选项。 */
+	/** 目标缺席（不在线/未登录完成）时是否静默跳过（不记缺席日志）；默认 false 便于排障。reliable 目标忽略此选项。 */
 	public OnlineSpec quietWhenAbsent(boolean quietWhenAbsent) {
 		this.quietWhenAbsent = quietWhenAbsent;
 		return this;

@@ -21,13 +21,8 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 同时配置 Acceptor 和 Connector。
- * 逻辑上主要使用 Connector。
- * 两个Raft之间会有两个连接。
- * 为了简化配置，应用可以注册协议到Server，使用同一个Acceptor进行连接。
- * 注册的应用协议必须是 RaftRpc/IRaftRpc 族（raft复制与唯一请求去重依赖
- * UniqueRequestId，非IRaftRpc注册在启动期被拒绝）；到达的非IRaftRpc流量按普通
- * 协议派发（不参与raft复制，不中断连接）。
+ * Raft 节点通信服务：同时承载节点间 Acceptor/Connector 与应用接入。
+ * 节点间逻辑上主要使用 Connector；注册的应用协议须为 IRaftRpc 族，以支持复制与唯一请求去重。
  */
 public class Server extends HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(Server.class);
@@ -53,7 +48,7 @@ public class Server extends HandshakeBoth {
 		return raft;
 	}
 
-	// 多个Raft实例才需要自定义配置名字，否则使用默认名字就可以了。
+	// 仅多 Raft 实例部署时需要自定义配置名。
 	public Server(Raft raft, String name, Config config) {
 		super(name, config);
 		this.raft = raft;
@@ -61,14 +56,13 @@ public class Server extends HandshakeBoth {
 	}
 
 	public static class ConnectorEx extends Connector {
-		// Volatile state on leaders: (Reinitialized after election)
-		// for each server, index of the next log entry to send to that server(initialized to leader last log index + 1)
+		// Leader 易失状态（选举后重置）：待发送给该节点的下一条日志索引
 		private long nextIndex;
 
-		// for each server, index of highest log entry known to be replicated on server (initialized to 0, increases monotonically)
+		// Leader 易失状态：已知已复制到该节点的最高日志索引（单调递增）
 		private long matchIndex;
 
-		// 每个连接只允许存在一个AppendEntries。
+		// 每个连接同时仅允许一个在途 AppendEntries。
 		private @Nullable AppendEntries pending;
 
 		private long appendLogActiveTime = System.currentTimeMillis();
@@ -124,12 +118,12 @@ public class Server extends HandshakeBoth {
 			//noinspection DataFlowIssue
 			Raft raft = (((Server)closed.getService())).getRaft();
 			Raft.executeImportantTask(() -> {
-				// avoid deadlock: lock(socket), lock (Raft).
+				// 异步切线程避免 lock(socket) -> lock(Raft) 死锁。
 				raft.lock();
 				try {
 					if (!raft.isShutdown)
 						raft.getLogSequence().getSendSnapshotting().endIfSocket(this, closed);
-				} catch (Throwable ex) { // thread runner. logger.error
+				} catch (Throwable ex) {
 					logger.error("Server.ConnectorEx.OnSocketClose", ex);
 				} finally {
 					raft.unlock();
@@ -158,7 +152,7 @@ public class Server extends HandshakeBoth {
 		for (var node : raftConf.getNodes().values()) {
 			//noinspection DataFlowIssue
 			if (raftConf.getName().equals(node.getName()))
-				continue; // skip self.
+				continue; // 跳过自身
 			service.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
 		}
 	}
@@ -171,7 +165,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	private boolean isImportantProtocol(long typeId) {
-		return isHandshakeProtocol(typeId) // 下面这些模块的Id总是为0。
+		return isHandshakeProtocol(typeId) // 内部核心协议（模块 ID 均为 0）
 				|| typeId == PreVote.TypeId_
 				|| typeId == RequestVote.TypeId_
 				|| typeId == AppendEntries.TypeId_
@@ -179,9 +173,7 @@ public class Server extends HandshakeBoth {
 				|| typeId == LeaderIs.TypeId_;
 	}
 
-	// 注册期守卫：Raft复制语义（UniqueRequestId去重/RaftApplied回放）要求
-	// 应用协议为IRaftRpc族；内部Raft协议与握手协议（自身不是IRaftRpc）白名单放行，
-	// 误注册拦在启动期，而非Leader态强转杀连接。
+	// 注册期校验：应用协议必须实现 IRaftRpc，仅对内部 Raft/握手/代理协议放行。
 	@Override
 	public void AddFactoryHandle(long type, ProtocolFactoryHandle<? extends Protocol<?>> factory) {
 		if (!IRaftRpc.class.isAssignableFrom(factory.Class)
@@ -196,7 +188,7 @@ public class Server extends HandshakeBoth {
 	public <P extends Protocol<?>> void dispatchRpcResponse(P p, ProtocolHandle<P> responseHandle,
 															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
-			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
+			// 内部重要协议走专用线程池，避免被业务任务阻塞。
 			try {
 				Raft.executeImportantTask(() -> TaskSpec.ofFunc(() -> responseHandle.handle(p), p).call());
 			} catch (RejectedExecutionException e) {
@@ -244,7 +236,6 @@ public class Server extends HandshakeBoth {
 	@Override
 	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so)
 			throws Exception {
-		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		p.dispatch(this, factoryHandle);
 	}
@@ -252,8 +243,7 @@ public class Server extends HandshakeBoth {
 	@Override
 	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
-			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
-			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
+			// 内部协议走专用线程池，依赖明确返回值或超时，不使用框架自动回错。
 			Raft.executeImportantTask(() ->
 					TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p).call());
 			return;
@@ -261,27 +251,15 @@ public class Server extends HandshakeBoth {
 
 		var pTypeId = p.getTypeId();
 		if (pTypeId == GetLeader.TypeId_ || pTypeId == StartServerConnector.TypeId_ || pTypeId == StopServerConnector.TypeId_) {
-			// 这几条协议定义成了普通的用户请求，
-			// 但是这条协议不需要自己是Leader也能工作，
-			// 所以提前拦截，派发处理。see Raft::processGetLeader
-			// 直接派发p.handle：转processRequest会强制leader-ready门槛+
-			// 唯一请求createTime校验，而Agent直发不填createTime（=0），
-			// isUniqueRequestCreateTimeValid恒拒→RaftExpired，processGetLeader/processStartServer/
-			// processStopServer在唯一发送路径上不可达；保留dispatchRaftRequest包装、错误码回发
-			// 与RaftRetry错误路径（与processRequest内的包装同构，仅去掉门槛与去重校验）。
+			// 控制类请求无需 Leader 身份，且 Agent 直发不填 createTime，提前拦截派发以跳过 Leader 门槛与去重校验。
 			dispatchRaftRequest(p, () -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle),
 							p, (__, code) -> p.trySendResultCode(code)).call(),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
 
-		// User Request
 		if (!(p instanceof IRaftRpc raftRpc)) {
-			// 非IRaftRpc协议（误注册/误发）：不裸强转——Leader态CCE从IO线程
-			// 一路抛出杀掉整个连接（含其上全部Raft流量）。按普通协议经基类派发：
-			// TaskSpec尊重注册的DispatchMode（不在IO线程跑handle），setNoProcedure(true)
-			// 走非事务分支；处理失败时Rpc族由trySendResultCode回错误码（普通Protocol
-			// 无应答通道，仅日志），连接不中断。
+			// 非 IRaftRpc 流量按普通协议派发，不参与 Raft 复制，避免强转异常中断连接。
 			logger.warn("Raft.Server dispatch non-IRaftRpc protocol as plain: {}", p);
 			super.dispatchProtocol(p, factoryHandle);
 			return;
@@ -291,17 +269,14 @@ public class Server extends HandshakeBoth {
 				p.SendResultCode(Procedure.ErrorRequestId);
 				return;
 			}
-			// 防止重复的请求
-			// see Log.java::LogSequence.TryApply
+			// 经 processRequest 执行唯一请求去重
 			dispatchRaftRequest(p, () -> processRequest(p, factoryHandle),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
 
+		// 非 Leader 或选举中：尝试重定向，不处理应用请求。
 		trySendLeaderIs(p.getSender());
-
-		// 选举中
-		// DO NOT process application request.
 	}
 
 	@SuppressWarnings("RedundantThrows")
@@ -317,10 +292,9 @@ public class Server extends HandshakeBoth {
 			return;
 		if (raft.getName().equals(leaderId) && !raft.isLeader())
 			return;
-		// redirect
 		var redirect = new LeaderIs();
 		redirect.Argument.setTerm(raft.getLogSequence().getTerm());
-		redirect.Argument.setLeaderId(leaderId); // maybe empty
+		redirect.Argument.setLeaderId(leaderId);
 		redirect.Argument.setLeader(raft.isLeader());
 		ProxyServer.send(this, proxyServer, redirect, raft.getName(), sender);
 	}
@@ -329,7 +303,7 @@ public class Server extends HandshakeBoth {
 	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 
-		// 没有判断是否和其他Raft-Node的连接。
+		// 连接握手完成时若自身为就绪 Leader 则主动通告（不区分是否节点间连接）。
 		TaskSpec.ofAction(() -> {
 			raft.lock();
 			try {

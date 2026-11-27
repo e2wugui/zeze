@@ -90,8 +90,7 @@ public final class OutputBuffer implements Codec, Closeable {
 
 	private ByteBuffer pushAndAllocTail() {
 		var tail = this.tail;
-		// Allocate first. If allocation fails, the old tail stays in write mode
-		// and has exactly one owner.
+		// 先分配新缓冲，避免分配失败时旧 tail 已切到读模式或所有权不清。
 		var next = allocator.alloc();
 		//noinspection DataFlowIssue
 		tail.limit(tail.position());

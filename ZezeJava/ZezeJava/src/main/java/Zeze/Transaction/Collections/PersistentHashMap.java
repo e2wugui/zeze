@@ -33,22 +33,8 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Immutable 32-way hash trie. Entries occupy the front of each node buffer;
- * child nodes occupy its end in reverse bitmap order. Beyond the 32 hash bits,
- * equal-hash keys are stored in a flat collision buffer.
- *
- * <p>Only the API used by PMap/PMap1/PMap2 and LogMap/LogMap1/LogMap2 is ported:
- * empty, putting, puttingAll, removing, builder; Builder.build/put/putAll/remove/
- * clear and standard Map reads. Read views and entries are unmodifiable, including
- * builder views (iteration takes a snapshot). JDK AbstractMap supplies remaining
- * reads, equality and hashing. Null keys/values are supported by the trie;
- * PMap continues to reject them.
- * Key and value views (keySet/keys and values) traverse trie buffers directly,
- * without allocating intermediate entries. All view iterators use the same order.
- *
- * <p>Builders edit only nodes carrying their ownership token. build() changes
- * that token before further writes, protecting all previously built snapshots.
- * Keys and values themselves are shared. Builders are not thread safe.
+ * 不可变 32 叉哈希前缀树（HAMT）：节点前端存键值对，尾端按位图逆序存子节点，32 位哈希冲突退化为平铺叶节点。
+ * <p>{@link Builder} 仅就地修改持有自身所有权令牌的节点，{@code build()} 通过轮换令牌冻结快照；Builder 非线程安全。
  */
 public final class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 	private static final int BITS = 5;
@@ -182,8 +168,7 @@ public final class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 		}
 	}
 
-	// One object, as in Kotlin's PersistentHashMapEntries. Keep the snapshot map
-	// rather than capturing root/size and allocating a second unmodifiable wrapper.
+	// 直接持有快照 Map，避免重复捕获 root/size 或额外套一层只读包装。
 	private static final class Entries<K, V> extends AbstractSet<Entry<K, V>> {
 		private final PersistentHashMap<K, V> map;
 
@@ -352,7 +337,7 @@ public final class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 			return buffer.length == 2 && nodeMap == 0;
 		}
 
-		// Test key presence independently of its value, including present-null values.
+		// 独立检测键是否存在，以区分键缺失与值为 null。
 		private boolean containsKey(int hash, Object key, int shift) {
 			if (shift > MAX_SHIFT) {
 				for (int i = 0; i < buffer.length; i += 2) {
@@ -386,7 +371,7 @@ public final class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 		}
 
 		private boolean containsValue(Object value) {
-			// A collision leaf has no bitmap; all of its buffer consists of entries.
+			// 冲突叶无位图，整个缓冲区均为键值对。
 			int dataSize = nodeMap == 0 ? buffer.length : Integer.bitCount(dataMap) * 2;
 			for (int i = 1; i < dataSize; i += 2) {
 				if (Objects.equals(value, buffer[i]))
@@ -412,8 +397,7 @@ public final class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 			return this;
 		}
 
-		// Root slots are disjoint: merge entries in ascending bitmap order and
-		// child nodes in reverse order. Only immutable source subtrees are shared.
+		// 根槽位互不相交：条目按位图升序、子节点按位图逆序归并，仅共享不可变源子树。
 		private Node unionDisjoint(Node other, Object owner) {
 			int data = dataMap | other.dataMap;
 			int nodes = nodeMap | other.nodeMap;
@@ -492,11 +476,10 @@ public final class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 					builder.size++;
 					return withBuffer(0, 0, insert(buffer, 0, key, value), owner);
 				}
-				// #374: hashing the stored key can throw. Prepare the whole replacement
-				// before publishing any size/change metadata or modifying owned nodes.
+				// 已存键的 hashCode 可能抛异常，须先构造替换子树再更新 size/changed 或改写节点。
 				var node = makeNode(Objects.hashCode(buffer[i]), buffer[i], buffer[i + 1],
 						hash, key, value, shift + BITS, owner);
-				// Remove the entry and insert its subtrie into the reversed node area.
+				// 移除原条目并将新子树插入尾端逆序子节点区。
 				int nodeIndex = nodeIndex(bit) - 1;
 				var newBuffer = new Object[buffer.length - 1];
 				System.arraycopy(buffer, 0, newBuffer, 0, i);
@@ -553,7 +536,7 @@ public final class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 						: withBuffer(dataMap, nodeMap ^ bit, delete(buffer, index, 1), owner);
 			}
 			if (node.singleEntry()) {
-				// Promote the last entry, including a collision node that shrank to one.
+				// 提升仅剩的单个条目（含收缩到单条目的冲突节点）。
 				if (buffer.length == 1)
 					return new Node(bit, 0, node.buffer, owner);
 				int i = entryIndex(bit);
@@ -572,8 +555,7 @@ public final class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 		}
 	}
 
-	// All three iterators traverse exactly the same buffers and order. Key/value
-	// projections return the stored object directly without constructing an Entry.
+	// 三种视图迭代器遍历同一缓冲区与顺序；键/值投影直接返回对象，不构造 Entry。
 	private abstract static class TrieIterator<T> implements Iterator<T> {
 		private final Node[] path = new Node[8];
 		private final int[] indices = new int[8];

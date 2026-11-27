@@ -19,10 +19,9 @@ import org.jspecify.annotations.Nullable;
 public final class Changes {
 	private static final Logger logger = LogManager.getLogger(Changes.class);
 
-	// 无 History、无监听者的提交不创建 Changes；有消费者但无字段日志（如整条 Put）
-	// 时仍无须分配 beans。getBeans 保持返回非空容器的契约。
-	private @Nullable LongHashMap<LogBean> beans; // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
-	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
+	// 按需分配（无字段日志的整条 Put 不分配），getBeans 保证返回非空。
+	private @Nullable LongHashMap<LogBean> beans; // 收集日志时记录所有 Bean 修改，key 为 Bean.objectId
+	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录级修改，用于监听通知与序列化传输
 	private final @Nullable IdentityHashMap<Table, Set<ChangeListener>> listeners;
 	private final boolean collectAll;
 	private final Savepoint finalSavepoint;
@@ -261,7 +260,6 @@ public final class Changes {
 	}
 
 	void collectRecord(RecordAccessed ar) {
-		// is table has listener
 		var table = ar.atomicTupleRecord.record().getTable();
 		if (!collectAll && (listeners == null || listeners.get(table) == null))
 			return;
@@ -293,15 +291,11 @@ public final class Changes {
 					try {
 						l.OnChanged(k.getKey(), v);
 					} catch (Throwable ex) { // logger.error
-						// run handle.
 						logger.error("NotifyListener exception:", ex);
 					}
 				}
 			}
-			// 这里面记录的日志量可能比较多，超过实际使用，包含了废弃的。
-			// 通知完以后不再需要。
-			// 【注意】history引用了其他部分，不能清除。
-			// help gc
+			// 通知后释放废弃日志引用；History 仍引用其余字段，仅清理 logBeans。
 			if (v.logBeans != null)
 				v.logBeans.clear();
 		}

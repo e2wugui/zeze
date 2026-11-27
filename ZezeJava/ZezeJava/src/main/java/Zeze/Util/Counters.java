@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jspecify.annotations.Nullable;
 
-// 简单命名计数器集合：周期输出各计数与增量报告
+/** 简单命名计数器集合：周期输出各计数与增量报告。 */
 public class Counters extends ReentrantLock {
 	private static volatile boolean enable;
 

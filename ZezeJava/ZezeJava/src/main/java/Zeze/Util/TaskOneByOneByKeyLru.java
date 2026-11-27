@@ -5,38 +5,9 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.Executor;
 
-/*
- * 每个任务关联一个Key,每一个Key的任务是一个队列,最多只有一个任务在执行.
- * 最终某个Key相关的任务顺序一个接一个的执行.
- *
- * 1. TaskOneByOneByKey(旧的)
- * 固定concurrency级别,每个concurrency一个队列,
- * executeTask(key, task) {
- *     index=hash(key)%concurrency.length;
- *     queue=concurrency[index];
- *     queue.execute(task);
- * }
- * 这个实现符合上面的功能定义,
- * 优点: concurrency不需要很大,默认1024,内存少,稳定.
- * 缺点: 多个key会被映射到相同的队列,
- * 未来: 以后virtual-thread可以增加concurrency.
- *
- * 2. TaskOneByOneByKeyLru(This File)
- * ConcurrentLruLike<key, Queue> queues;
- * executeTask(key, task) {
- *     queue = queues.computeIfAbsent(key, Queue::new);
- *     queue.execute(task);
- * }
- *
- * 这个实现符合上面的功能定义,
- * 优点: 每个key有自己独立的队列,更符合需求.
- * 缺点: a)内存占用较大,默认capacity=10_0000;
- *      b)对需求有限制,同时存在的Key数量不能超过capacity.
- *      [当然]对于一台服务器来说,把capacity设置为100万,基本可以确定不会超出容量了.
- *      写这个第一需求就是为了把用户请求按账号排队.
- *      而一台服务器同时存在的需要执行的任务数量是有限的,
- *      受最大在线数量限制.
- * 未来: 以后virtual-thread不需要调整,默认size够大了.
+/**
+ * 基于 {@link ConcurrentLruLike} 的按 key 独立队列调度器：每个 key 拥有独立串行队列，
+ * 空闲时由 LRU 淘汰回收；并发活跃 key 数受 capacity 上限约束。
  */
 public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 	private final ConcurrentLruLike<Object, TaskOneByOneQueue> queues;
@@ -68,7 +39,7 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 		try {
 			if (queue.sizeUnderLock() == 0) {
 				queue.setRemoved();
-				// 按值条件删除：并发下同key可能已建有活跃的新队列，仅当映射仍指向本队列才删除，否则视为不淘汰。
+				// 条件删除：仅当映射仍指向本队列时移除，避免误删并发新建的同名队列
 				return queues.remove(key, queue);
 			}
 			return false;

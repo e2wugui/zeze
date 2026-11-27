@@ -6,19 +6,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * tHistory 物理表归属校验：gid 数值空间绑定 history 发号名（Config.getHistory），不同
- * 发号名的 gid 数值重叠，而 tHistory 主键裸用 gid——两个不同发号名的 app 解析到同一物理
- * 存储时，History.writeOnly 的 replace 会以数值相等的 gid 静默互覆（历史行丢失，回放端
- * 与账本双双无感）。
- *
- * 收口为启动期部署契约校验（不改盘上格式）：在 tHistory 所属数据库的 DirectOperates 区
- * 写归属标记（键 {@link #OWNER_KEY}，值为发号名），Application 启动时校验——同库多 app
- * 必须同一发号名（同名 gid 从同一 SM 取号天然不重叠）或为 tHistory 显式分库；换名重启
- * 同样拒绝（新名从零发号，对存量行即"他名覆盖"，须显式迁移：清理旧名数据并删除标记）。
- *
- * 并发首启先以 version=0 认领，再用同版本 CAS 把匹配的归属推进到非零版本并回读。
- * 成功校验前必须封存归属，拒绝随后携带旧空读的 version=0 认领覆盖。
- * disableOperates（NullOperates）读不到标记，校验跳过（info 留痕）。
+ * tHistory 物理表归属校验：在 tHistory 所属库的 DirectOperates 中记录并校验发号名（{@link #OWNER_KEY}），
+ * 防止不同 history 发号名共享同一物理表导致 gid 数值重叠而静默互覆；并发首启通过版本推进封存归属。
  */
 public final class OwnerCheck {
 	private static final Logger logger = LogManager.getLogger(OwnerCheck.class);
@@ -35,19 +24,18 @@ public final class OwnerCheck {
 
 	@SuppressWarnings("ConstantConditions")
 	static void verify(HistoryModule module) {
-		// 经表的实际注册解析数据库（Table.getDatabase）：tHistory 可能被改挂到非配置库
-		//（如测试的 FlakyDatabase），归属检测必须锚定实际物理存储而非配置名。
+		// 锚定表的实际物理存储库而非配置名。
 		var table = (Zeze.Transaction.Table)module.getHistoryTable();
 		var db = table.getDatabase();
 		if (db == null)
-			return; // 表未注册到任何库（防御）：无可检面。
+			return;
 		var name = module.getHistoryName();
 		var key = ByteBuffer.Allocate(64);
 		key.WriteString(OWNER_KEY);
 		var ops = db.getDirectOperates();
 		var exist = ops.getDataWithVersion(key);
 		if (exist == null || exist.data == null) {
-			// 首见：认领（version=0 插入）。此版本仍能被旧空读覆盖，尚不能返回成功。
+			// 首见以 version=0 认领，后续需再推进版本封存，避免被携带旧空读的并发认领覆盖。
 			ops.saveDataWithSameVersion(key, encodeName(name), 0);
 			exist = ops.getDataWithVersion(key);
 			if (exist == null || exist.data == null) {
@@ -58,8 +46,7 @@ public final class OwnerCheck {
 		}
 		var owner = exist.data.ReadString();
 		if (owner.equals(name) && exist.version == 0) {
-			// 首次插入保存版本0，已有同名标记也可能正处于这个窗口。
-			// 更新成功会推进版本，后续旧空读仍以0认领便不能覆盖；失败时回读真正胜者。
+			// 推进 version 脱离 0 态并回读，确保并发空读无法再以 version=0 覆写。
 			ops.saveDataWithSameVersion(key, encodeName(name), 0);
 			exist = ops.getDataWithVersion(key);
 			if (exist == null || exist.data == null || exist.version == 0)

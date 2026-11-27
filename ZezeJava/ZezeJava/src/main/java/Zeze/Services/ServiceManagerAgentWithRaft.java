@@ -50,8 +50,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	private final Agent raftClient;
 	private volatile boolean closed;
 	private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
-	// 断线（换leader）重连后重放用：服务端行按name持久化，但flap时行可能已被onClose删除，
-	// 重放注册/订阅才能恢复服务端状态（对齐非raft版Agent.onConnected）。
+	// 断线或换主重连后重放已注册服务，恢复服务端可能被 onClose 清理的状态
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
 
 	@Override
@@ -60,18 +59,12 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	public ServiceManagerAgentWithRaft(Config config) throws Exception {
-		// raft版不支持Id128 UDP发号（tid128UdpClient不初始化），而开启History的事务在
-		// finalCommit（getUsableTid128CacheFuture）/Tid128Cache.next两个入口都依赖它：
-		// 该组合下写事务全量NPE失败、热事务finalCommit失败直接halt(543543)。
-		// 不支持的组合在构造时明确报错（fail-fast），而非运行期以NPE/halt形态失败。
+		// Raft 版不支持 Id128 UDP 发号，开启 History 时构造期立即拒绝
 		if (config.isHistory())
 			throw new IllegalStateException("ServiceManager=raft does not support Id128 allocate: " +
 					"History('" + config.getHistory() + "') requires it. " +
 					"Use a non-raft ServiceManager or disable History.");
-		// 空白sessionName（漏配sessionName属性时解析为空串）会与其它同样漏配的
-		// server共享会话行互相接管（服务闪断，见ServiceManagerWithRaft.ProcessLoginRequest）。
-		// 经Application+ServiceManager=raft启动已默认为projectName#serverId；直接构造要求显式
-		// 配置非空名字——启动即失败优于连上后被服务端拒绝或与同名者互踩。
+		// 禁止空白 sessionName，避免多个未配置节点共享同一会话行互相接管
 		var smConf = config.getServiceManagerConf();
 		if (smConf == null || smConf.getSessionName().isBlank())
 			throw new IllegalStateException("ServiceManagerConf.sessionName must not be blank " +
@@ -84,14 +77,12 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
 		RegisterProtocols(Objects.requireNonNull(raftClient.getClient()));
-		// 不初始化tid128UdpClient（raft版不支持Id128 UDP发号）：不支持组合已在构造fail-fast拦截。
 	}
 
 	private void raftOnSetLeader(Agent agent) {
 		if (closed)
 			return;
-		// 直接使用自身持有的config。raftClient以Config构造（无Application），getClient().getZeze()为null，
-		// 经zeze round-trip取配置会在null检查处直接return，Login永远不发送。
+		// raftClient 由 Config 直接构造（无 Application），需直接读取自身 config
 		var future = startNewLogin();
 		if (future == null)
 			return;
@@ -122,8 +113,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	 * 服务端幂等（AddOrUpdate、允许重复注册），重复重放无害。
 	 */
 	private void replayRegisters() {
-		// 先上报Identify：SM据此把serverId记在会话上，断线时广播Suspect（对齐非raft版onConnected）。
-		// 重发=恢复提示资格（与正确性无关，正确性由Takeover租约裁决）。
+		// 先上报 Identify 让服务端记录 serverId，便于断线时广播 Suspect 提示
 		try {
 			var identify = new Identify();
 			//noinspection DataFlowIssue
@@ -178,10 +168,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		}
 	}
 
-	// Direct：Edit推送与Subscribe应答（dispatchRpcResponse内联）同在IO线程按TCP接收序串行应用，
-	// 对齐非raft版Agent的Direct注册。Edit增量无序号，乱序应用会令订阅状态与注册表永久分叉
-	// ；本handler体内全为非阻塞操作（CHM、SubscribeState锁、SendResult异步发、
-	// triggerOnChanged投oneByOne池），内联执行不阻塞IO线程。
+	// Direct 派发：与 Subscribe 应答同在 IO 线程按 TCP 接收序串行应用，防止无序号增量乱序分叉
 	@Override
 	@DispatchModeAnnotation(mode = DispatchMode.Direct)
 	protected long ProcessEditRequest(Edit r) {
@@ -242,23 +229,13 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		r.Argument.setName(autoKey.getName());
 		r.Argument.setCount(pool);
 		raftClient.sendForWait(r).await();
-		// 真错误码时Result携带的号段来自服务端回滚路径（提交前数据，服务端按错误码丢弃语义发送），
-		// 不可投入使用，抛错使AutoKey.next()的重试循环以异常退出而非无限重试。
-		// 注：SM-raft服务端procedure不设置uniqueRequest（见RocksRaft.Procedure.uniqueRequest
-		// 契约），应答丢失后重发=重新执行——allocate重发会分配到新号段，旧号段弃成号洞（量级=count，
-		// 良性）；RaftApplied回放应答对SM当前不可达，若未来服务端接线唯一请求去重，其附带的
-		// 原始号段可在此直接投入使用。
+		// 显式检查返回码：失败应答携带的是服务端回滚前数据，不可使用
 		checkResultCode(r);
 		setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
 	}
 
 	/**
-	 * 对齐非raft版SendAndWaitCheckResultCode契约：sendForWait的future只在超时/停止时异常完成，
-	 * 服务端错误码应答正常完成，必须显式检查；失败即抛错，防止editService/unSubscribeService
-	 * 假成功（本地状态与服务端分叉）及allocate静默失败触发AutoKey.next()无限循环。
-	 * RaftApplied放行为成功：与Dbh2Agent等"服务端已接线唯一请求去重"的raft调用方成功判定
-	 * 保持同一形态（rc==0||rc==RaftApplied）；SM服务端当前不设置uniqueRequest（重发=重执行，
-	 * handler幂等），该分支对SM为防御性保留、实际不可达。
+	 * 检查 RPC 返回码（仅 0 或 RaftApplied 视为成功），防止错误应答被当作成功导致本地与服务端状态分叉。
 	 */
 	private static void checkResultCode(Rpc<?, ?> r) {
 		var rc = r.getResultCode();
@@ -273,17 +250,15 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			if (closed)
 				throw new IllegalStateException("ServiceManagerAgentWithRaft closed");
 			var volatileTmp = loginFuture;
-			// await超时或被取消都返回false，此时不能再调get()：未完成的future上get()会无限期park，
-			// 下面的deadline检查将不可达；被取消则重读最新loginFuture继续等。
+			// 仅在已完成或 await 返回 true 时调用 get()，避免超时未完成时无限期阻塞
 			if (volatileTmp.isDone() || volatileTmp.await(Math.max(1, deadline - System.currentTimeMillis()))) {
 				if (closed)
 					throw new IllegalStateException("ServiceManagerAgentWithRaft closed");
 				try {
-					if (Boolean.TRUE.equals(volatileTmp.get())) // 到这里future已完成，get()不会park。
+					if (Boolean.TRUE.equals(volatileTmp.get()))
 						return;
 				} catch (Throwable ignored) {
-					// 等待期间raftOnSetLeader执行startNewLogin，cancel旧future并替换；
-					// 被替换不是失败，重读最新future继续等。
+					// 换主期间旧 future 会被新 loginFuture 替换取消，重读最新 future 继续等
 					if (volatileTmp == loginFuture)
 						throw new IllegalStateException("login canceled.");
 				}

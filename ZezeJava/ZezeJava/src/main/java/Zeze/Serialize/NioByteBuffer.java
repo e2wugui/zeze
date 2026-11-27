@@ -112,7 +112,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public void ensureRead(int size) {
-		// 溢出安全：position()+size会回绕为负(或size本身为负，如Skip(-1))，使旧检查不成立而静默放行
+		// 溢出安全校验：防止 position() + size 回绕或 size 为负。
 		if (size < 0 || size > bb.limit() - bb.position())
 			throwEnsureReadException(size);
 	}
@@ -349,9 +349,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 		return false;
 	}
 
-	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
-	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
-	 * 会落错桶静默miss。 */
+	/** 与裸字节数组按内容比较（equals 不接受 byte[] 以维持 equals/hashCode 契约）。 */
 	public boolean contentEquals(byte [] other) {
 		return bb.equals(java.nio.ByteBuffer.wrap(other));
 	}
@@ -362,9 +360,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public int hashCode() {
-		// 与ByteBuffer统一算法——两者equals按内容跨类型互等，用java.nio内部
-		// hash必然不等，违反"equals相等则hashCode相等"契约，混装同一HashMap/HashSet后
-		// 互相查找失败。纯委托calc_hashnr（heap/direct由其内部分派），算法不在此复制。
+		// 与 ByteBuffer 共用 calc_hashnr 算法，保证跨类型 equals/hashCode 契约一致。
 		return ByteBuffer.calc_hashnr(bb);
 	}
 

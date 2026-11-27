@@ -49,12 +49,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 		buckets = new ConcurrentHashMap<>();
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
-	// 死桶重定向agent的闲置回收（dbh2-06）：putBuckets只回收"离开主表"的raft，经splitHistory链式
-	// 重定向打开的死桶agent不在任何主表缓存里，既有路径永不回收（连接器+每实例1s resend任务+
-	// pending表单调泄漏）。弱生命周期：openBucket刷新活跃时刻；周期扫描回收"不在任何已知主表
-	// 缓存&&闲置超阈值"的agent。误杀防护见reclaimIdleAgents。
+	// 记录各桶 agent 最近活跃时间，供周期任务回收不在主表缓存中且超期闲置的死桶重定向 agent
 	private final ConcurrentHashMap<String, Long> agentActiveTimes = new ConcurrentHashMap<>();
-	private static final long IdleAgentReclaimTimeoutMs = 10 * 60_000L; // >>rpcTimeout(默认60s)：正常在飞请求不可能跨越阈值窗口
+	private static final long IdleAgentReclaimTimeoutMs = 10 * 60_000L; // 远大于 rpcTimeout
 	private static final long IdleAgentReclaimPeriodMs = 60_000L;
 	private volatile @Nullable Future<?> idleReclaimTask;
 
@@ -64,8 +61,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	private @Nullable Commit commit;
 	private @Nullable CommitAgent commitAgent;
 	private @Nullable Future<?> refreshMasterTableTask;
-	// stop后置位且不可复位（本类无重启路径）。后台刷新任务体整体持本管理器锁与stop串行：
-	// stopped的检查-执行与stop的清理互斥，锁外检查会让stop在检查后清理前重建MasterAgent并回填buckets。
+	// stop 后置位且不可复位；后台刷新任务体持管理器锁与 stop 互斥
 	private volatile boolean stopped;
 	private final AbstractAgent serviceManager;
 	private final AutoKey tidAutoKey;
@@ -79,7 +75,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 				return;
 
 			refreshMasterTableTask = TaskSpec.ofAction(() -> {
-				// 整体持锁与stop串行：stopped检查到openMasterAgent/reload之间不允许插入stop。
 				lock();
 				try {
 					if (stopped)
@@ -87,17 +82,11 @@ public class Dbh2AgentManager extends ReentrantLock {
 					try {
 						reload(openMasterAgent(masterName), masterName, databaseName, tableName);
 					} catch (Exception e) {
-						// 刷新失败可容忍：下次PrepareBatch拒绝会重新触发本刷新，自愈。
 						logger.warn("refresh master table fail. master={} database={} table={}",
 							masterName, databaseName, tableName, e);
 					}
 				} finally {
-					// 失败也必须复位：置null不能只在reload成功路径执行：reload抛异常
-					//（getBuckets对master短暂不可达即抛）时任务体异常完结，下面的复位若被跳过，
-					// startRefreshMasterTable的门槛if(null!=refreshMasterTableTask)对一个早已
-					// 完结的Future永久成立，之后所有拒绝触发的刷新成为no-op直到进程重启——
-					// 路由缓存陈旧（每笔多付一轮refused→redirect）且死桶agent不再回收。
-					// 置null与startRefreshMasterTable的检查-调度同锁原子，避免与重新调度交错。
+					// 无论成败均须在锁内复位，避免异常后永久阻塞后续刷新调度
 					refreshMasterTableTask = null;
 					unlock();
 				}
@@ -134,8 +123,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 				commit = new Commit(this, config);
 			}
 		} else {
-			// fail-fast：远程提交模式必须显式配置Dbh2Config的CommitServerAddress（单实例），
-			// 构造期报配置错误，不等第一次commit才失败。
 			if (null == dbh2Config.getCommitServerHost())
 				throw new RuntimeException("Dbh2LocalCommit=false but Dbh2Config CommitServerAddress not configured.");
 			if (null == commitAgent) {
@@ -150,15 +137,12 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public KVNotNull<String, Integer> commitServiceAcceptor() {
-		// KV.key构造后不变：累积首个acceptor后create，不再setKey。
 		var ip = new String[1];
 		var port = new int[1];
 		//noinspection DataFlowIssue
 		commit.getService().getConfig().forEachAcceptor2((a) -> {
 			ip[0] = a.getIp();
-			// 发布实际绑定端口：Port=0自动分配时（多App同JVM同配置各得唯一端口，如Simulate 5-App）
-			// 配置端口是0，必须回读活socket的真实端口，端点才成立；未启动回退配置端口（0由下方
-			// 校验拒绝——不允许发布未绑定的死端点）。绑定在service.start()内同步完成。
+			// Port=0 自动分配时回读活 socket 的实际绑定端口
 			var local = a.getSocket() instanceof TcpSocket tcp ? tcp.getLocalInet() : null;
 			port[0] = local != null ? local.getPort() : a.getPort();
 			return false;
@@ -169,7 +153,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	private KVNotNull<String, Integer> choiceCommitServer() {
-		// 配置直连：Dbh2Config的CommitServerAddress，单实例；构造期已fail-fast校验过配置存在。
 		return KVNotNull.create(Objects.requireNonNull(dbh2Config.getCommitServerHost()), dbh2Config.getCommitServerPort());
 	}
 
@@ -181,8 +164,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			return;
 		}
 		var query = choiceCommitServer();
-		// 超时须覆盖服务端同步全流程：决策+投递+应答（见Dbh2Config.getCommitRpcTimeout）——
-		// 裸rpcTimeout会把服务端已提交的事务判成确定失败。
+		// 超时须覆盖服务端同步 decide 与 deliver 全流程，避免误判已提交事务失败
 		//noinspection DataFlowIssue
 		commitAgent.commit(query.getKey(), query.getValue(), batches, (int)dbh2Config.getCommitRpcTimeout());
 	}
@@ -193,8 +175,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 		if (config.isDbh2LocalCommit()) {
 			//noinspection DataFlowIssue
 			commit.start();
-			// 发布的探测端点落地成日志：Port=0自动分配时实际端口只在运行时存在，悬挂事务
-			// 运维（桶侧query目标）需要它可见。绑定已同步完成，此时必非0端口。
 			logger.info("Dbh2 local commit query endpoint: {}", commitServiceAcceptor());
 		} else {
 			//noinspection DataFlowIssue
@@ -210,13 +190,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 			stopped = true;
 			var task = refreshMasterTableTask;
 			if (null != task)
-				task.cancel(false); // 未启动的直接作废；已启动的在途轮由任务体锁内的stopped检查兜底
+				task.cancel(false);
 			refreshMasterTableTask = null;
 			ShutdownHook.remove(this);
-			// 逐项独立捕获+收尾重抛首个异常（对齐Dbh2Manager.stop逐桶close形态）：任一环节
-			// 失败不得中断其余清理——未stop的MasterAgent保留连接器与重连，未close的Dbh2Agent
-			// 保留1s周期resend任务、连接器与pending rpc表（嵌入式/测试反复create-stop累积泄漏）。
-			// 首个异常在全部清理完成后重抛，保留stop失败的调用方可见性。
+			// 逐项独立清理并在全部结束后重抛首个异常，避免单步失败导致其余连接或任务泄漏
 			Exception first = null;
 			try {
 				try {
@@ -227,7 +204,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 				}
 				var reclaim = idleReclaimTask;
 				if (null != reclaim)
-					reclaim.cancel(false); // 在途轮由任务体锁内的stopped检查兜底
+					reclaim.cancel(false);
 				idleReclaimTask = null;
 				for (var ma : masterAgent.values()) {
 					try {
@@ -266,9 +243,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 					}
 				}
 			} finally {
-				// 兜底清账（Error级逃逸也必须执行）：masterAgent/agents/agentActiveTimes残留
-				// 已停条目，buckets清空路由缓存——stop后masterAgent已关，locateBucket不得
-				// 命中陈旧缓存免rpc。
 				masterAgent.clear();
 				agents.clear();
 				agentActiveTimes.clear();
@@ -287,10 +261,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		var m = masterAgent.get(masterName);
 		if (null != m)
 			return m;
-		// stopped门禁（对齐openBucket）：stop清理后本类不可重启，此后新建的MasterAgent（连接器+
-		// 重连）无人回收必泄漏。构造与连接等待仍在锁外（对齐locateBucket自立的约束：阻塞的连接
-		// 等待不能持管理器锁，会阻塞同锁的其他操作，最长约READY_TIMEOUT），故构造前先查一次，
-		// putIfAbsent前在锁内复查：构造期间发生stop则回收自建agent并失败。
+		// 锁外建连避免持锁阻塞，构造前后各检查一次 stopped 防止 stop 后泄漏新连接
 		lock();
 		try {
 			if (stopped)
@@ -308,12 +279,12 @@ public class Dbh2AgentManager extends ReentrantLock {
 		lock();
 		try {
 			if (stopped) {
-				newAgent.stop(); // 构造期间已stop：回收自建agent（连接器+重连），不得泄漏
+				newAgent.stop();
 				throw new IllegalStateException("Dbh2AgentManager stopped.");
 			}
 			var old = masterAgent.putIfAbsent(masterName, newAgent);
 			if (null != old) {
-				newAgent.stop(); // 竞态败者：已启动的连接器必须回收，不得泄漏
+				newAgent.stop();
 				return old;
 			}
 			return newAgent;
@@ -368,17 +339,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 			System.out.println(e);
 	}
 
-	// Database.Table中缓存MasterTableDaTa，减少map查找。
-	//  逐表缓存取快照：miss时GetBuckets拉取。建表进行中窗口（createTable的computeIfAbsent
-	// 先入映射、created=false、0桶）返回rc=0空表快照——空快照不缓存（落缓存则该表定位
-	// 持续以NPE面目失败，直到本实例建表流程putBuckets覆盖），每次重新拉取，建表完成即恢复。
+	// 按表缓存 MasterTable 快照；建表窗口期返回的空快照不入缓存，待建表完成后再拉取
 	private MasterTable.Data getBucketsCached(
 		@Nullable MasterAgent masterAgent, ConcurrentHashMap<String, MasterTable.Data> database,
 		String databaseName, String tableName) {
 		var table = database.get(tableName);
 		if (null != table)
 			return table;
-		// getBuckets是阻塞RPC，不能放进computeIfAbsent的映射函数（持bin锁会阻塞同bin其他键的访问）；重复RPC幂等无害。
+		// getBuckets 为阻塞 RPC，避免放入 computeIfAbsent 持桶锁
 		//noinspection DataFlowIssue
 		table = masterAgent.getBuckets(databaseName, tableName);
 		if (!table.getBuckets().isEmpty()) {
@@ -389,8 +357,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 		return table;
 	}
 
-	// 空表快照=建表进行中，调用方（事务replace/remove、find、walk）按可重试错误失败；
-	// NPE无错误语义，静默空迭代（walk零行）是错果。
 	private static RuntimeException tableNotReady(String databaseName, String tableName) {
 		return new RuntimeException("locateBucket: table not ready (empty buckets snapshot): "
 			+ databaseName + '.' + tableName);
@@ -403,7 +369,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
 		var table = getBucketsCached(masterAgent, database, databaseName, tableName);
-		// locate空契约（空表/越界键返回null）：就绪表首桶keyFirst=Empty覆盖全键域，null即空表。
 		var bucket = table.locate(key);
 		if (null == bucket)
 			throw tableNotReady(databaseName, tableName);
@@ -419,8 +384,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		var table = getBucketsCached(masterAgent, database, databaseName, tableName);
 		if (table.getBuckets().isEmpty())
 			throw tableNotReady(databaseName, tableName);
-		// 从key所在桶（含）开始迭代：asc向后（keyFirst递增），desc向前（keyFirst递减）。
-		// desc且key为空表示从表尾开始：直接全表降序。
+		// 从 key 所在桶（含）开始迭代：asc 向后，desc 向前（空 key 表示全表降序）
 		if (desc)
 			return key.size() == 0
 				? table.getBuckets().descendingMap().values().iterator()
@@ -430,17 +394,11 @@ public class Dbh2AgentManager extends ReentrantLock {
 
 	public Dbh2Agent openBucket(String raftString) {
 		Dbh2Agent agent;
-		// 整体持管理器锁（与stop互斥，dbh2-04）：stop已清理agents并停止回收任务，此后新建的
-		// agent（每秒resend任务+连接器）无人回收，必须拒绝。
+		// 整体持管理器锁，与 stop 及回收路径互斥，防止返回已关闭的 agent 或 stop 后泄漏新实例
 		lock();
 		try {
 			if (stopped)
 				throw new IllegalStateException("Dbh2AgentManager stopped.");
-			// 与回收路径（reclaimIdleAgents/putBuckets/stop均持本锁先remove后close，dbh2-02）
-			// 原子互斥：不持锁时computeIfAbsent返回与并发回收交错会把已close的agent交给调用方，
-			// 其上sendForWait因resendTask已取消且await无超时兜底而永久悬挂。Dbh2Agent构造含
-			// 变体A首发现（Agent.init并行GetLeader，有界1s：常态RTT级、负应答秒回、全静默
-			// 触发ProxyAgent免疫窗），持锁创建的代价有界。
 			agent = agents.computeIfAbsent(raftString, _raft -> {
 				logger.info("openBucket: new Dbh2Agent: {}", raftString);
 				try {
@@ -449,9 +407,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 					throw new RuntimeException(e);
 				}
 			});
-			// 闲置回收的活跃刷新（与回收同锁原子，不留孤儿条目）：每次使用（含复用命中）都更新。
-			// 本管理器全部使用方（walkPage、CommitRocks的prepare/commit/undo/redirect、Database.find）
-			// 均按次经openBucket取agent、无跨长时间持有agent引用的路径——"最近用过"的agent必然未超闲置阈值。
 			agentActiveTimes.put(raftString, System.currentTimeMillis());
 		} finally {
 			unlock();
@@ -460,7 +415,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		return agent;
 	}
 
-	// 周期回收惰性启动：无agent即无扫描任务（首个openBucket启动）；stop取消。
+	// 周期回收惰性启动，stop 时取消
 	private void startIdleReclaim() {
 		if (null != idleReclaimTask)
 			return;
@@ -474,19 +429,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 		}
 	}
 
-	// 误杀防护（三重）：
-	//  1) 主表成员永不回收——主表缓存内全部raft的并集视为在役，其存续由putBuckets的旧raft回收
-	//     路径负责（与迁移联动，语义不变）；
-	//  2) 在用保护——openBucket刷新活跃时刻，阈值(10min)内使用过的agent不回收；且无跨长时间
-	//     持有agent的调用方（见openBucket注释），"闲置超10min"即"确无使用"；
-	//  3) 在飞兜底——即使极端交错下回收了仍有pending的agent：Dbh2Agent.close→Agent.stop对
-	//     pending rpc以RpcTimeoutException终局触发，await方得到异常而非悬挂，事务按既有失败
-	//     路径重试并经openBucket重开（同raft串重建agent），最坏代价是一笔在飞请求失败重试。
-	// 本地表陈旧时重定向目标（仍是活桶）可能暂不在主表缓存：闲置10min后被回收属正确弱生命周期
-	// （下次使用重建，仅多一次建连）；链式迁移的已死中间桶则被永久回收，不再泄漏。
+	// 回收不在主表缓存中且闲置超过阈值的死桶重定向 agent（仅跳过在役主表成员与近期活跃实例）
 	private void reclaimIdleAgents() {
-		// stop 持本锁 cancel 并 join 回收 timer，任务体不得反向等待本锁。
-		// 此私有入口仅由周期任务调用；锁忙保留全部 agent，下一轮继续回收。
+		// stop 持本锁取消并等待回收任务，任务体使用 tryLock 避免死锁
 		if (!tryLock())
 			return;
 		try {
@@ -511,7 +456,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 					agentActiveTimes.remove(raft);
 					logger.info("reclaim idle dead-bucket agent: {} idleMs={}", raft, now - active);
 					try {
-						agent.close(); // Agent.stop取消resendTask、触发pending终局、回收连接器（只读核对过）
+						agent.close();
 					} catch (Exception ex) {
 						logger.error("reclaim idle agent close fail: {}", raft, ex);
 					}
@@ -652,16 +597,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 			return null;
 		var bucket = bucketIt.next();
 		var limit = proposeLimit;
-		// refused重定向上限256次（bf8923edc自2放宽；Dbh2Table.find仍为2的先例形态）：master侧表
-		// 长期陈旧时reload不收敛，无上限会永久自旋占线程与rpc配额。计数只累计连续refused，
-		// fetch成功即清零——长遍历中途多次真实分桶各自获得新预算，不受累计误伤。
+		// 连续 refused 重定向上限 256 次，fetch 成功即清零，防止表路由长期陈旧导致死循环
 		var refusedCount = 0;
 		while (true) {
 			var exclusiveForBucket = bucketExclusive(exclusiveKey, bucket, desc);
 			if (exclusiveForBucket == null) {
 				// 桶整体已在游标走过的范围：跳过。
 				if (!bucketIt.hasNext())
-					return null; // no more bucket
+					return null;
 				bucket = bucketIt.next();
 				continue;
 			}
@@ -671,14 +614,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 					throw new RuntimeException("walkPage bucket refused too many redirect: master="
 						+ masterName + " database=" + databaseName + " table=" + tableName
 						+ " refusedCount=" + refusedCount);
-				// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
+				// 分桶后本地路由过期，重新装载并重定位
 				reload(masterAgent, masterName, databaseName, tableName);
 				bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey, desc);
 				if (bucketIt.hasNext()) {
 					bucket = bucketIt.next();
-					continue; // refused and redirect success.
+					continue;
 				}
-				return null; // no more bucket
+				return null;
 			}
 			refusedCount = 0;
 			if (result.stopped)
@@ -695,7 +638,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			}
 			// 桶尾或空页：推进到下一个桶继续填页，全部桶走完才算表尾。
 			if (!bucketIt.hasNext())
-				return null; // no more bucket
+				return null;
 			bucket = bucketIt.next();
 		}
 	}
@@ -712,10 +655,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			var cursor = walkPage(masterAgent, masterName, databaseName, tableName, exclusiveKey, 5000, desc, prefix,
 				(agent, bucket, exclusive, limit) -> {
 					var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
-					// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-					// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-					// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-					// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
+					// 重发命中服务端去重存根返回 RaftApplied，结果完整可直接交付
 					if (r.getResultCode() != 0 && r.getResultCode() != Zeze.Transaction.Procedure.RaftApplied)
 						throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
 					var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
@@ -739,10 +679,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
 			(agent, bucket, exclusive, limit) -> {
 				var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
-				// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-				// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-				// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-				// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
+				// 重发命中服务端去重存根返回 RaftApplied，结果完整可直接交付
 				if (r.getResultCode() != 0 && r.getResultCode() != Zeze.Transaction.Procedure.RaftApplied)
 					throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
 				return deliverWalkPage(r, callback, Binary::copyIf);
@@ -761,10 +698,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			var cursor = walkPage(masterAgent, masterName, databaseName, tableName, exclusiveKey, 5000, desc, prefix,
 				(agent, bucket, exclusive, limit) -> {
 					var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
-					// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-					// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-					// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-					// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
+					// 重发命中服务端去重存根返回 RaftApplied，结果完整可直接交付
 					if (r.getResultCode() != 0 && r.getResultCode() != Zeze.Transaction.Procedure.RaftApplied)
 						throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
 					var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
@@ -788,10 +722,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
 			(agent, bucket, exclusive, limit) -> {
 				var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
-				// RaftApplied豁免（FND28 F2家族，对齐Dbh2Agent.get/splitPut/CommitRocks先例）：
-				// 应答丢失→Agent 1s重发→服务端unique-request终态存根回放RaftApplied并携带原应答
-				// （Server.processRequest: SendResultCode(RaftApplied, rpcResult)），数据完整可直接交付。
-				// 2026-11-11 @Dbh2批TestOnz.clearDbTable实锤walkKey重发即炸。
+				// 重发命中服务端去重存根返回 RaftApplied，结果完整可直接交付
 				if (r.getResultCode() != 0 && r.getResultCode() != Zeze.Transaction.Procedure.RaftApplied)
 					throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
 				return deliverWalkPage(r, callback, Binary::copyIf);

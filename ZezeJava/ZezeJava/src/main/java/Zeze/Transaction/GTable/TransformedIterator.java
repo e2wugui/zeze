@@ -2,12 +2,7 @@ package Zeze.Transaction.GTable;
 
 import java.util.Iterator;
 
-/**
- * An iterator that transforms a backing iterator; for internal use. This avoids the object overhead
- * of constructing a com.google.common.base.Function Function for internal methods.
- *
- * @author Louis Wasserman
- */
+/** 对底层迭代器元素按需转换的内部迭代器基类。 */
 abstract class TransformedIterator<F, T> implements Iterator<T> {
 	final Iterator<? extends F> backingIterator;
 

@@ -3,54 +3,27 @@ package Zeze.Util;
 import java.lang.ref.WeakReference;
 import org.jspecify.annotations.Nullable;
 
-// 弱引用元素 Set：条目随元素被 GC 自动清除（派生自 WeakHashMap 的设计）
+/** 弱引用元素 Set（非线程安全）：条目随元素被 GC 回收自动清除。 */
 public final class WeakHashSet<K> {
-	/**
-	 * The default initial capacity -- MUST be a power of two.
-	 */
+	/** 默认初始容量（必须为 2 的幂）。 */
 	private static final int DEFAULT_INITIAL_CAPACITY = 1 << 8;
 
-	/**
-	 * The maximum capacity, used if a higher value is implicitly specified by
-	 * either of the constructors with arguments. MUST be a power of two <= 1<<30.
-	 */
+	/** 最大容量（必须为不超过 1<<30 的 2 的幂）。 */
 	private static final int MAXIMUM_CAPACITY = 1 << 30;
 
-	/**
-	 * The load fast used when none specified in constructor.
-	 */
+	/** 默认负载因子。 */
 	private static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
-	/**
-	 * The table, resized as necessary. Length MUST Always be a power of two.
-	 */
+	/** 哈希桶表，长度始终为 2 的幂。 */
 	@SuppressWarnings("rawtypes")
 	private @Nullable Entry[] table;
 
-	/**
-	 * The number of key-value mappings contained in this weak hash map.
-	 */
 	private int size;
-
-	/**
-	 * The next size value at which to resize (capacity * load factor).
-	 */
+	/** 下次扩容阈值（capacity * loadFactor）。 */
 	private int threshold;
-
-	/**
-	 * The load factor for the hash table.
-	 */
 	private final float loadFactor;
 
-	/**
-	 * Constructs a new, empty <tt>WeakHashSet</tt> with the given initial capacity
-	 * and the given load factor.
-	 *
-	 * @param initialCapacity The initial capacity of the <tt>WeakHashSet</tt>
-	 * @param loadFactor      The load factor of the <tt>WeakHashSet</tt>
-	 * @throws IllegalArgumentException if the initial capacity is negative, or if
-	 *                                  the load factor is non-positive.
-	 */
+	/** 按指定初始容量和负载因子构造空的 WeakHashSet。 */
 	public WeakHashSet(int initialCapacity, float loadFactor) {
 		if (initialCapacity < 0)
 			throw new IllegalArgumentException("Illegal Initial Capacity: " + initialCapacity);
@@ -67,52 +40,29 @@ public final class WeakHashSet<K> {
 		threshold = (int)(capacity * loadFactor);
 	}
 
-	/**
-	 * Constructs a new, empty <tt>WeakHashSet</tt> with the given initial capacity
-	 * and the default load factor (0.75).
-	 *
-	 * @param initialCapacity The initial capacity of the <tt>WeakHashSet</tt>
-	 * @throws IllegalArgumentException if the initial capacity is negative
-	 */
+	/** 按指定初始容量和默认负载因子（0.75）构造空的 WeakHashSet。 */
 	public WeakHashSet(int initialCapacity) {
 		this(initialCapacity, DEFAULT_LOAD_FACTOR);
 	}
 
-	/**
-	 * Constructs a new, empty <tt>WeakHashSet</tt> with the default initial
-	 * capacity (16) and load factor (0.75).
-	 */
+	/** 按默认初始容量（256）和负载因子（0.75）构造空的 WeakHashSet。 */
 	public WeakHashSet() {
 		this.loadFactor = DEFAULT_LOAD_FACTOR;
 		threshold = DEFAULT_INITIAL_CAPACITY;
 		table = new Entry[DEFAULT_INITIAL_CAPACITY];
 	}
 
-	/**
-	 * Applies a supplemental hash function to a given hashCode, which defends
-	 * against poor quality hash functions. This is critical because HashMap uses
-	 * power-of-two length hash tables, that otherwise encounter collisions for
-	 * hashCodes that do not differ in lower bits. Note: Null keys always map to
-	 * hash 0, thus index 0.
-	 */
+	/** 对 hashCode 做二次扰动，降低 2 的幂次桶表下的低位碰撞。 */
 	private static int hash(int h) {
-		// This function ensures that hashCodes that differ only by
-		// constant multiples at each bit position have a bounded
-		// number of collisions (approximately 8 at default load factor).
 		h ^= (h >>> 20) ^ (h >>> 12);
 		return h ^ (h >>> 7) ^ (h >>> 4);
 	}
 
-	/**
-	 * Returns index for hash code h.
-	 */
 	private static int indexFor(int h, int length) {
 		return h & (length - 1);
 	}
 
-	/**
-	 * Expunges stale entries from the table.
-	 */
+	/** 清理表内已被 GC 回收的过期条目。 */
 	@SuppressWarnings("unchecked")
 	private void expungeStaleEntries() {
 		int n = table.length;
@@ -129,7 +79,7 @@ public final class WeakHashSet<K> {
 						table[i] = next;
 					else
 						prev.next = next;
-					e.next = null; // Help GC
+					e.next = null; // 协助 GC
 					--size;
 				} else {
 					prev = e;
@@ -139,20 +89,12 @@ public final class WeakHashSet<K> {
 		}
 	}
 
-	/**
-	 * Returns the number of key-value mappings in this map. This result is a
-	 * snapshot, and may not reflect unprocessed entries that will be removed before
-	 * next attempted access because they are no longer referenced.
-	 */
+	/** 返回当前条目数快照（可能包含尚未清理的已回收弱引用条目）。 */
 	public int size() {
 		return size;
 	}
 
-	/**
-	 * Returns the key stored in the set NOT THREAD SAFE
-	 *
-	 * @see #add(Object)
-	 */
+	/** 查找并返回集合中已存的等值元素（非线程安全），不存在则返回 null。 */
 	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	public @Nullable K get(final K k) {
 		if (k == null)
@@ -166,8 +108,7 @@ public final class WeakHashSet<K> {
 			Entry<K> next = e.next;
 			if (_k == null) {
 				--size;
-				e.next = null; // Help GC
-				// remove e
+				e.next = null; // 协助 GC
 				if (prev == null)
 					table[i] = next;
 				else
@@ -183,14 +124,9 @@ public final class WeakHashSet<K> {
 	}
 
 	/**
-	 * Adds the specified element to this set if it is not already present. More
-	 * formally, adds the specified element <tt>e</tt> to this set if this set
-	 * contains no element <tt>e2</tt> such that
-	 * <tt>(e==null&nbsp;?&nbsp;e2==null&nbsp;:&nbsp;e.equals(e2))</tt>. If this set
-	 * already contains the element, the call leaves the set unchanged and returns
-	 * the old value.
+	 * 若集合中尚无等值元素则加入并返回之；若已存在则不修改集合并返回旧元素。
 	 *
-	 * @return the added element or the old element if an equal one exists
+	 * @return 新加入的元素，或已存在的等值旧元素
 	 */
 	@SuppressWarnings({"unchecked", "ConstantConditions"})
 	public K add(final K k) {
@@ -205,8 +141,7 @@ public final class WeakHashSet<K> {
 			Entry<K> next = e.next;
 			if (_k == null) {
 				--size;
-				e.next = null; // Help GC
-				// remove e
+				e.next = null; // 协助 GC
 				if (prev == null)
 					table[i] = next;
 				else
@@ -228,15 +163,7 @@ public final class WeakHashSet<K> {
 		return k;
 	}
 
-	/**
-	 * Rehashes the contents of this set into a new array with a larger capacity.
-	 * This method is called automatically when the number of keys in this set
-	 * reaches its threshold.
-	 * <p>
-	 * If current capacity is MAXIMUM_CAPACITY, this method does not resize the set,
-	 * but sets threshold to Integer.MAX_VALUE. This has the effect of preventing
-	 * future calls.
-	 */
+	/** 扩容并重哈希（达到 MAXIMUM_CAPACITY 后不再扩容，将阈值设为 Integer.MAX_VALUE）。 */
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	private void resize() {
 		int n = table.length;
@@ -246,14 +173,13 @@ public final class WeakHashSet<K> {
 		}
 		int n2 = n + n;
 		@Nullable Entry[] dest = new Entry[n2];
-		/* Transfers all entries from table to dest tables */
 		for (Entry<K> entry : table) {
 			Entry<K> e = entry;
 			while (e != null) {
 				Entry<K> next = e.next;
 				K key = e.get();
 				if (key == null) {
-					e.next = null; // Help GC
+					e.next = null; // 协助 GC
 					--size;
 				} else {
 					int i = indexFor(e.hash, n2);
@@ -267,17 +193,11 @@ public final class WeakHashSet<K> {
 		threshold = (int)(n2 * loadFactor);
 	}
 
-	/**
-	 * The entries in this hash set extend WeakReference using its main ref field as
-	 * the key
-	 */
+	/** 以 WeakReference 主引用作为键的哈希链节点。 */
 	private static final class Entry<K> extends WeakReference<K> {
 		private final int hash;
 		private @Nullable Entry<K> next;
 
-		/**
-		 * Creates new entry.
-		 */
 		Entry(K key, int hash, @Nullable Entry<K> next) {
 			super(key);
 			this.hash = hash;

@@ -57,8 +57,7 @@ public class LogList1<V> extends LogList<V> {
 		return opLogs;
 	}
 
-	// 可变方法非final：LogList2覆写它们同步维护addSet（encode侧身份过滤依赖，
-	// 对齐经典 Transaction.Collections.LogList1/LogList2 的结构）。
+	// 可变方法非 final，供 LogList2 覆写以同步维护 addSet。
 	@SuppressWarnings("ConstantConditions")
 	public void add(V item) {
 		if (item == null)

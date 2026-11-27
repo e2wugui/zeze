@@ -20,13 +20,10 @@ public abstract class LoadBase {
 	private int reportDelaySeconds;
 	private int timeoutDelaySeconds;
 	private @Nullable Future<?> timerTask;
-	// 停机标志。定时器是onTimerTask自续的链条：stop置位后，已排定的下一次触发进门即返回、不再重排，
-	// 链最多多醒一次即自然终止，stop无需与重排竞争取消。volatile保证定时线程醒来即见。
+	// 停机标志：置位后已排定的下次 onTimerTask 直接返回并终止自续链。
 	private volatile boolean stopped;
 	private final Application zeze;
 	private final ProviderOverload overload = new ProviderOverload();
-	// volatile：setup线程写一次（ensureLoginQueueAgent或应用预置），定时线程(report)、
-	// 停机线程(stop)、choiceProvider等多线程读，无锁发布。
 	private volatile @Nullable LoginQueueAgent loginQueueAgent;
 
 	public Application getZeze() {
@@ -47,12 +44,7 @@ public abstract class LoadBase {
 		return loginQueueAgent;
 	}
 
-	/**
-	 * LoginQueueAgent的唯一创建点：已有（预置或已创建）则复用；没有且配置启用
-	 * （存在"LoginQueueAgent"服务节）才创建；未启用返回null。不得在别处new后覆盖——
-	 * 已启动的agent被覆盖即泄漏，并以相同(serverId,ip,port)向LoginQueueServer重复注册。
-	 * 创建原料（config/serverId/serviceIp/servicePort）全是load自身状态与抽象，配方收口在所有者。
-	 */
+	/** 获取或按需创建 LoginQueueAgent（已存在则复用，未配置 "LoginQueueAgent" 服务节时返回 null）。 */
 	public final synchronized @Nullable LoginQueueAgent ensureLoginQueueAgent() {
 		if (loginQueueAgent == null && zeze.getConfig().getServiceConf("LoginQueueAgent") != null)
 			setLoginQueueAgent(new LoginQueueAgent(zeze.getConfig(), zeze.getConfig().getServerId(),
@@ -69,13 +61,11 @@ public abstract class LoadBase {
 	}
 
 	public final synchronized void start(int delaySeconds) {
-		stopped = false; // 先复位标志再重排，支持stop后重启。仅外部显式重启允许复位stopped。
+		stopped = false; // 先复位标志再重排，支持 stop 后重启。
 		resume(delaySeconds);
 	}
 
-	// onTimerTask进门检查通过后、尾部重排前，stop()可能并发置位stopped；链内重排若走
-	// start()会把stopped复位为false，链条复活且此后永不停（停机后定时链泄漏）。链内改走本方法：
-	// 不复位stopped，重排的下次触发进门即返回，链自然终止。start()的复位语义保留给外部stop后重启。
+	// 链内重排不复位 stopped，确保 stop() 并发置位后定时链自然终止。
 	private synchronized void resume(int delaySeconds) {
 		timeoutDelaySeconds = delaySeconds;
 		if (null != timerTask)
@@ -84,7 +74,7 @@ public abstract class LoadBase {
 	}
 
 	public final void stop() throws Exception {
-		// 零锁：不与onTimerTask的重排竞争，靠stopped让链条自灭。停机后最多多醒一次（进门即返回）。
+		// 靠 stopped 标志让自续定时链自然终止，避免与重排竞争。
 		stopped = true;
 		overload.close();
 		var agent = loginQueueAgent;
@@ -102,7 +92,7 @@ public abstract class LoadBase {
 
 	public abstract int getServicePort();
 
-	/** 立即上报一次负载。agent连上LoginQueue时回调（否则首次上报要等reportDelaySeconds的定期上报，默认2秒+分配tick）；也用于reconnect后重新宣告。 */
+	/** 立即上报一次负载（如 LoginQueueAgent 建连或重连后触发）。 */
 	public final synchronized void reportNow() {
 		int online = getOnlineLocalCount();
 		long loginTimes = getOnlineLoginTimes();
@@ -113,11 +103,8 @@ public abstract class LoadBase {
 
 	private synchronized void onTimerTask() {
 		if (stopped)
-			return; // 链在此断开：不再重排。
-		// 自续链的重排不得被方法体异常跳过（任何运行时异常=链永久断、负载上报静默
-		// 停止到进程重启），对齐Online.verifyLocal的try/finally形态。各分支只决定下一次延迟，
-		// 重排统一收口到finally（异常路径兜底用默认消化延迟）；与resume同锁（可重入），净效果
-		// 恒为恰好一个在途任务。
+			return;
+		// 统一在 finally 重排，避免异常中断自续上报链。
 		var nextDelaySeconds = 0;
 		try {
 			var overload = this.overload.getOverload();
@@ -125,10 +112,10 @@ public abstract class LoadBase {
 			long loginTimes = getOnlineLoginTimes();
 			int onlineNew = (int)(loginTimes - lastLoginTime);
 			lastLoginTime = loginTimes;
-			int onlineNewPerSecond = onlineNew / Math.max(1, timeoutDelaySeconds); // 除零防护，对齐reportNow
+			int onlineNewPerSecond = onlineNew / Math.max(1, timeoutDelaySeconds);
 			var config = getLoadConfig();
 			if (overload != BLoad.eWorkFine) {
-				// fast report
+				// 快速上报
 				report(overload, online, onlineNewPerSecond);
 				nextDelaySeconds = config.getDigestionDelayExSeconds();
 				return;
@@ -136,7 +123,7 @@ public abstract class LoadBase {
 			if (onlineNewPerSecond > config.getMaxOnlineNew()) {
 				// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 				report(overload, online, onlineNewPerSecond);
-				// new delay for digestion（Math.max除零防护，与reportNow同一惯用法，纵深防御）
+				// 计算消化延迟
 				nextDelaySeconds = onlineNewPerSecond / Math.max(1, config.getMaxOnlineNew())
 						+ config.getDigestionDelayExSeconds();
 				// 消化完后，下一次强迫报告Load。
@@ -151,7 +138,7 @@ public abstract class LoadBase {
 				reportDelaySeconds = config.getReportDelaySeconds();
 				return;
 			}
-			// slow report
+			// 慢速上报
 			reportDelaySeconds += timeoutDelaySeconds;
 			if (reportDelaySeconds >= config.getReportDelaySeconds()) {
 				reportDelaySeconds = 0;
@@ -165,7 +152,7 @@ public abstract class LoadBase {
 
 	public void report(int overload, int online, int onlineNew) {
 		if (stopped)
-			return; // 停机窗口内不再上报（向已停的ServiceManager/LoginQueue发送只会刷错误日志）。
+			return;
 		var load = new BLoad.Data();
 
 		load.setOverload(overload);

@@ -10,15 +10,11 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import org.jspecify.annotations.Nullable;
 
-/** Encodable SortedMap1 change payload, independent from transaction state. */
+/** 可编解码的 PSortedMap1 变更日志载荷，独立于事务状态。 */
 public class LogSortedMap1<K extends Comparable<K>, V> extends LogBean {
 	protected final SortedMap1Meta<K, V> meta;
 	private final @Nullable Comparator<? super K> comparator;
-	/**
-	 * 结构增量单容器：value 非 null 为替换项，null 为删除标记。
-	 * 使用源容器比较器：比较器等价键（equals不同但compare==0）折叠进同一槽位，
-	 * 键等价语义与双容器时代的TreeMap+TreeSet一致。
-	 */
+	/** 结构增量：value 非 null 为替换项，null 为删除标记；沿用源比较器折叠等价键。 */
 	private @Nullable Map<K, @Nullable V> modified;
 
 	public LogSortedMap1(int varId, @Nullable Bean source, @Nullable Comparator<? super K> comparator,
@@ -48,7 +44,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogBean {
 		Map<K, @Nullable V> m = modified != null ? modified : Collections.emptyMap();
 		var keyEncoder = meta.keyEncoder;
 		var valueEncoder = meta.valueCodec.encoder;
-		// 两遍split编码（同LogMap1）：线格式与双容器时代逐字节一致。
+		// 分替换段与删除段两遍编码，保持线格式兼容。
 		int replacedCount = 0;
 		for (var e : m.entrySet())
 			if (e.getValue() != null)

@@ -16,9 +16,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 回放消费链为实验特性：内存后端、不跨重启、仅进程内演示。
- * 持久化后端机制（ApplyDatabaseZeze，含游标/记录级原子单元）保留但未接线——
- * 接线需要配置通道与affects输出契约设计。
+ * tHistory 历史记录模块：管理 tHistory 持久化表、提交前 gid 分配与对账账本，以及实验性的内存回放分析服务。
  */
 public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	private final Application zeze;
@@ -142,11 +140,7 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	}
 
 	/**
-	 * 起回放分析端点（WalkPage）并<b>同步确认bind结果</b>：HttpServer.start对b.bind的
-	 * ChannelFuture不同步不记日志，不同步确认则bind失败（端口占用/坏地址）端点静默缺失。
-	 * 失败时回收半启动server后抛含cause的IllegalStateException（对齐Netty.java的.sync()
-	 * 规范）；httpServer字段只在成功后发布，失败不闩死幂等分支，修复后重调即进入。
-	 * netty为调用方持有，不在此回收。
+	 * 启动回放分析 HTTP 服务并同步确认端口绑定结果；失败时回收半启动服务并抛出异常（不关闭调用方持有的 netty）。
 	 */
 	public void startHttpServer(Netty netty, @Nullable String host, int port) throws Exception {
 		lock();
@@ -265,13 +259,12 @@ public class HistoryModule extends AbstractHistoryModule implements IHistory {
 			try {
 				countValue = Integer.parseInt(count);
 			} catch (NumberFormatException e) {
-				// 非法count参数按默认值1处理。
+				// 非法 count 按默认值 1 处理
 			}
-			// 0/负数与非法格式同等按默认值1处理：底层walk对count<=0不遍历直接返回null，空批OK应答与无记录不可区分。
+			// 夹紧下界为 1，避免底层 walk 对 count<=0 直接跳过。
 			countValue = Math.max(1, countValue);
 		}
 
-		// 实验边界：本批affects（受影响表与键）丢弃，恒答OK——回放链不承诺增量输出契约。
 		apply(countValue);
 
 		x.sendPlainText(HttpResponseStatus.OK, "OK");

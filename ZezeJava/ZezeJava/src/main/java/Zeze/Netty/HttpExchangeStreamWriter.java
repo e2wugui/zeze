@@ -13,7 +13,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 public class HttpExchangeStreamWriter extends HttpExchangeUtf8Writer {
 	private final HttpExchange x;
 	private int contentLength;
-	private boolean failed; // 渲染中途异常由调用方置位：close不得把截断页面按正常终结符收尾
+	private boolean failed;
 
 	public HttpExchangeStreamWriter(HttpExchange x) {
 		this.x = x;
@@ -29,7 +29,7 @@ public class HttpExchangeStreamWriter extends HttpExchangeUtf8Writer {
 		return contentLength;
 	}
 
-	/** 模板process抛异常时调用方置位，close改走失败收尾（断连使客户端可检测截断）。 */
+	/** 标记渲染失败：close 时不发终结符而直接断连，使客户端感知响应截断。 */
 	public void fail() {
 		failed = true;
 	}
@@ -37,7 +37,7 @@ public class HttpExchangeStreamWriter extends HttpExchangeUtf8Writer {
 	@Override
 	protected void writeBytes(byte[] bytes, int off, int len) {
 		contentLength += len;
-		// The encoder reuses its byte buffer after this call; the asynchronous response owns a copy.
+		// 编码器返回后会复用内部字节数组，异步发送需拷贝。
 		x.sendStream(Arrays.copyOfRange(bytes, off, off + len));
 	}
 
@@ -47,9 +47,7 @@ public class HttpExchangeStreamWriter extends HttpExchangeUtf8Writer {
 			return;
 		closed = true;
 		if (failed) {
-			// 200头与半截内容已在线，状态码无法改写：不发LastHttpContent终结符（那会把截断
-			// 页面伪装成完整200+keep-alive），直接断连——curl报18(transfer closed)、浏览器
-			// 报网络错误，客户端可检测到截断。
+			// 200 头已发出无法改写状态码，不发终结符直接断连，避免截断页被当成完整响应。
 			x.closeConnectionOnFlush(null);
 			return;
 		}

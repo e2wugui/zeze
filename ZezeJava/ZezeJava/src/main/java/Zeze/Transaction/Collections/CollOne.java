@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
 /** 单值 Bean 容器：普通 bean 字段的宿主，受管后修改经 LogOne 记账。 */
 public final class CollOne<V extends Bean> extends Collection {
 	V value;
-	// 按声明类预建的meta，与读端日志工厂注册对称。
+	// 按声明类预建的 meta，与读端日志工厂注册对称。
 	final LogOneMeta<V> meta;
 
 	public CollOne(V value, LogOneMeta<V> meta) {
@@ -46,7 +46,7 @@ public final class CollOne<V extends Bean> extends Collection {
 			throw new NullPointerException("value");
 
 		if (isManaged()) {
-			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
+			// 先取写权限再挂接，避免拒绝路径污染输入 Bean 归属。
 			//noinspection unchecked,DataFlowIssue
 			var log = (LogOne<V>)Transaction.getCurrentVerifyWrite(this)
 				.logGetOrAdd(parent().objectId() + variableId(), () -> createLog(ChangeCaptureMode.DELTA));
@@ -112,7 +112,7 @@ public final class CollOne<V extends Bean> extends Collection {
 		//noinspection unchecked
 		var log = (LogOneValue<V>)_log;
 		if (log.value != null) {
-			log.value.initRootInfo(rootInfo, this); // 与PList2/PMap2等全部同类实现保持一致
+			log.value.initRootInfo(rootInfo, this);
 			value = log.value;
 		} else if (log.logBean != null)
 			value.followerApply(log.logBean);
@@ -121,7 +121,7 @@ public final class CollOne<V extends Bean> extends Collection {
 	@Override
 	public CollOne<V> copy() {
 		//noinspection unchecked
-		return new CollOne<>((V)getValue().copy(), meta); // 声明类型meta随副本传递
+		return new CollOne<>((V)getValue().copy(), meta);
 	}
 
 	@Override

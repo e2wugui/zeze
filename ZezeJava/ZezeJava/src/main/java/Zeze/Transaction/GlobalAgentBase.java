@@ -16,9 +16,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(GlobalAgentBase.class);
 
 	public final Application zeze;
-	// IO线程initialize()替换、daemon/业务线程读取，无共同锁——volatile保证可见性，
-	// 避免daemon持续读到默认serverReleaseTimeout(60s)破坏安全不等式
-	//（ServerDaemonTimeout+ServerReleaseTimeout<GlobalDaemonTimeout）。
+	// IO 线程 initialize() 写入、daemon/业务线程无锁读取，须 volatile 保证可见性。
 	private volatile AchillesHeelConfig config = new AchillesHeelConfig(1500, 10000, 60 * 1000);
 	private volatile long activeTime = System.currentTimeMillis();
 	protected int globalCacheManagerHashIndex;
@@ -32,12 +30,9 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		return config;
 	}
 
-	// release完成回调队列（GlobalClient重连收尾等）。startRelease统一入队（含首个Releaser的发起者），
-	// Releaser完成后由checkReleaseTimeout取出在锁外执行。仅在本对象ReentrantLock内访问。
+	// Releaser 完成回调队列（在锁内入队，由 checkReleaseTimeout 在锁外执行）。
 	private final ArrayDeque<Runnable> pendingEndActions = new ArrayDeque<>();
 
-	// checkReleaseTimeout的drained哨兵初值：避免可空局部变量（@Nullable Runnable[]会让元素
-	// 被TYPE_USE语义推断为可空，action.run()报警告），空数组循环为no-op，无需null分支。
 	private static final Runnable[] emptyEndActions = new Runnable[0];
 
 	public final long getActiveTime() {
@@ -46,9 +41,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	public final void setActiveTime(long value) {
 		activeTime = value;
-		// 停机窗口判空：Application.stop先stopAndJoin并置null daemon，之后才globalAgent.stop
-		//（其间组件事务仍可能GCM申请锁、IO线程Login/KeepAlive应答回调仍会到），窗口内解引用
-		// 会把NPE打进事务/IO线程——本可提交的事务假性失败。daemon已停时刷新无意义，跳过。
+		// 停机窗口内 daemon 可能已置空，跳过上报。
 		var daemon = zeze.getAchillesHeelDaemon();
 		if (daemon != null)
 			daemon.setProcessDaemonActiveTime(this, value);
@@ -60,14 +53,13 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	public final void initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
-		// Login responses can arrive after stop has detached the daemon.
+		// Login 应答可能到达于停机卸载 daemon 之后。
 		var daemon = zeze.getAchillesHeelDaemon();
 		if (daemon != null)
 			daemon.onInitialize(this);
 	}
 
-	/** Leave 2s inside the existing GCM budget for timer dispatch and mmap heartbeat throttling.
-	 * Late heartbeats cannot extend a Releaser's captured deadline. */
+	/** 计算最终保存截止时间（预留 2s 余量）；迟到心跳不得延长已捕获的 Releaser 截止时间。 */
 	public final long getFatalSaveDeadline() {
 		long deadline = activeTime + config.serverKillTimeout - 1000;
 		var r = releaser;
@@ -103,10 +95,8 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		} finally {
 			unlock();
 		}
-		// 每次成功Release，设置一次活动时间，阻止AchillesHeelDaemon马上再次触发Release。
-		// 必须先于endAction：start()不得同步阻塞上报（曾因同步DNS拖延被Daemon.Monitor误判idle杀进程，现非阻塞，防御保留）
+		// 刷新活动时间须先于 endAction，防止守护线程立刻重触发 Release；回调在锁外执行避免持锁阻塞。
 		setActiveTime(System.currentTimeMillis());
-		// 排队的endAction在锁外执行（如GlobalClient的连接重启，不持锁等待网络相关操作）。
 		for (var action : drained) {
 			try {
 				action.run();
@@ -137,15 +127,13 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 			logger.info("Global.Releaser Start...");
 		}
 
-		// 纯状态读，无副作用：完成回调统一走pendingEndActions（checkReleaseTimeout锁外执行），
-		// 不挂在Releaser上——挂载式回调会产生锁内执行、回调裸异常逃逸、并发重复执行三类问题。
 		public final boolean isCompletedSuccessfully() {
 			return done;
 		}
 
 		@Override
 		public void run() {
-			// 专用dbIo池：reduce含阻塞DB IO，退出commonPool。
+			// 专用 dbIo 池：reduce 含阻塞 DB IO，避免占用 commonPool。
 			Zeze.Util.Task.runInDbIoPool(() -> zeze.getDatabases().values().parallelStream().forEach(database ->
 					database.getTables().parallelStream().forEach(table -> {
 						if (!table.isMemory())
@@ -158,24 +146,16 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		}
 	}
 
-	// 开始释放本地锁。
-	// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
-	// 2. 超时没有释放完成，程序中止。see tryHalt。
-	// 3. 每个Global服务一个Releaser.
+	// 启动本地锁释放（每个 Global 服务同一时刻仅允许一个 Releaser，超时由守护线程中止进程）。
 	public void startRelease(Application zeze, @Nullable Runnable endAction) {
 		lock();
 		try {
-			// 防重入：已有Releaser在运行（可能由守护线程的Release命令先启动）时不重复启动——
-			// 双Releaser并发执行reduce/checkpoint无设计保证，且releaser字段被覆盖后先启动者的
-			// 完成状态无人观察。AchillesHeelDaemon的调用点均有rr!=Releasing判断，GlobalClient
-			// 的重连路径没有。
 			if (releaser == null) {
 				var r = new Releaser(zeze, globalCacheManagerHashIndex, getFatalSaveDeadline());
 				releaser = r;
 				r.start();
 			}
-			// endAction统一排队，不挂在Releaser上：完成回调与由哪个Releaser兑现无关，由
-			// checkReleaseTimeout在完成后锁外执行——新建/重叠两条路径合流，回调无锁内执行路径。
+			// 完成回调统一入队，由 checkReleaseTimeout 在锁外执行。
 			if (endAction != null)
 				pendingEndActions.add(endAction);
 		} finally {
@@ -186,10 +166,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	protected abstract void cancelPending();
 
-	// 停机关库前有界等待活跃Releaser。Releaser不被任何stop/join收编，其
-	// checkpointRun→flush与LocalRocksCacheDb.close+deleteDirectory并发属
-	// native UAF类窗口（activeFlush计数看不见"已过判空未入闸"者）。join不持锁：Releaser
-	// 不取本锁；超时告警继续，与stopStep语义一致。
+	// 停机关库前锁外有界等待活跃 Releaser 退出，避免其 checkpoint 与关库并发。
 	public void awaitReleaser(long timeoutMillis) {
 		Releaser r;
 		lock();

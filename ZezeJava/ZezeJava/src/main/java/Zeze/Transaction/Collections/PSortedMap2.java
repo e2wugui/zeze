@@ -84,7 +84,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		DynamicField.checkValueOwner(meta.dynamicField, value);
 
 		if (isManaged()) {
-			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
+			// 先取写权限再挂接，避免拒绝路径污染输入 Bean 归属。
 			//noinspection unchecked
 			var mapLog = (LogSortedMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			value.initRootInfoWithRedo(rootInfo, this);
@@ -105,7 +105,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		if (m.isEmpty())
 			return;
 		if (m instanceof PSortedMap2)
-			m = ((PSortedMap2<? extends K, ? extends V>)m).getMap(); // more stable
+			m = ((PSortedMap2<? extends K, ? extends V>)m).getMap(); // 捕获不可变快照
 
 		// 整批通过校验后再写 mapKey 或挂接 Bean。
 		for (var e : m.entrySet()) {
@@ -198,7 +198,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		for (var e : modified.entrySet()) {
 			var v = e.getValue();
 			if (v != null) {
-				// 对齐put/decode/putAllData全部写路径：进map的bean必须带mapKey（同PMap2.followerApply）。
+				// 写入容器的 Bean 须绑定 mapKey，供后续本地修改收集定位。
 				v.initRootInfo(rootInfo, this);
 				v.mapKey(e.getKey());
 				if (puts == null)
@@ -210,13 +210,11 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 				removes.add(e.getKey());
 			}
 		}
-		// 单遍分区批量应用（同PMap2.followerApply）：等价旧 minusAll(removed).plusAll(replaced)。
 		if (removes != null)
 			tmp = tmp.minusAll(removes);
 		if (puts != null)
 			tmp = tmp.plusAll(puts);
 
-		// apply changed
 		for (var e : log.changedForRead().entrySet()) {
 			// 原位修改只针对最终仍存在的键。键缺失说明回放状态已分歧，应中断应用。
 			tmp.get(e.getKey()).followerApply(e.getValue());
@@ -264,10 +262,10 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		return copy;
 	}
 
-	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
+	/** 深拷贝元素赋值：2 系值可变，避免两个容器共享同一 Bean 引用。 */
 	public void assign(PSortedMap2<K, V> pmap) {
 		if (this == pmap)
-			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
+			return; // 避免自赋值先 clear 导致原内容丢失
 		// 使用目标映射校验和复制，成功后才清空。
 		var copy = meta.dynamicField != null ? pmap.copy(meta) : pmap.copy();
 		clear();

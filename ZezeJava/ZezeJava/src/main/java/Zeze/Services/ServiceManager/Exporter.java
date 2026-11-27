@@ -13,22 +13,13 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 【独立后台进程】
- * <p>
- * 订阅sm，并输出结果到其他系统。
- * 当前需求是：nginx-config-file, nginx-config-http
+ * 独立后台进程：订阅 ServiceManager 服务变更并导出到外部系统（如 Nginx 配置或 HTTP 接口）。
  */
 public class Exporter {
 	private static final Logger logger = LogManager.getLogger(Exporter.class);
 	private final AbstractAgent agent;
 	private final java.util.List<IExporter> exports = new ArrayList<>();
-	// 失败待补偿记账：按（导出器,服务名）二元组登记——若全体eAll导出器共享
-	// 一个服务名集合，混合成败时（如NginxConfig磁盘满+NginxHttp正常）后位成功者会无条件
-	// remove洗掉前位失败者的记账，被洗的导出器进程内永不再补偿、配置无限期陈旧。
-	// 每个导出器只记自己欠的、只清自己还的；eEdit按整个BEditService导出（粒度非单服务，
-	// 二元组键不匹配），失败仅记日志、无补偿记账（现库唯一实现ExporterPrint无失败面）。
-	// onEdit串行运行于triggerOnChanged的one-by-one后台worker，理论无并发访问；
-	// 仍用并发集合以降低对调用线程模型的隐含依赖。
+	// 按导出器分别记录 eAll 失败服务，供后续事件补偿重导，避免不同导出器成败互相覆盖。
 	private final java.util.Map<IExporter, java.util.Set<String>> failedServices = new java.util.concurrent.ConcurrentHashMap<>();
 
 	public Exporter() throws Exception {
@@ -52,59 +43,44 @@ public class Exporter {
 				switch (ep.getType()) {
 				case eAll:
 					if (null == editNames) {
-						// 收集不同的服务名字（各eAll导出器共用一份，只提取一次）。
 						editNames = new HashSet<>();
 						for (var e : edit.getRemove())
 							editNames.add(e.getServiceName());
 						for (var e : edit.getAdd())
 							editNames.add(e.getServiceName());
 					}
-					// 每个导出器遍历"本次事件服务名 ∪ 自己的失败集"：
-					// 补偿只重导自己欠的，成败记账互不覆盖；已成功的导出器不重复补偿导出。
+					// 合并本次变更与本导出器的待补偿失败集。
 					var epFailed = failedServices.computeIfAbsent(ep, k -> java.util.concurrent.ConcurrentHashMap.newKeySet());
 					var serviceSet = new HashSet<String>(editNames);
 					serviceSet.addAll(epFailed);
 					for (var serviceName : serviceSet) {
-						// 与退订竞态：triggerOnChanged经executeOneByOne异步排队，期间
-						// unSubscribeService已remove该服务的subscribeStates——跳过为正确语义（已不
-						// 关心）；直接解引用NPE只会被triggerOnChanged捕获记日志，同批其余服务的导出整体丢失。
+						// 异步回调期间可能已退订，跳过并清理各导出器中残留的失败记账。
 						var state = agent.getSubscribeStates().get(serviceName);
 						if (state == null) {
-							// 已退订（不再关心）：同步清除失败记账（所有导出器中该服务条目），
-							// 避免残留空条目随每次事件反复空转。
 							for (var fs : failedServices.values())
 								fs.remove(serviceName);
 							continue;
 						}
 						try {
 							ep.exportAll(serviceName, state.getServiceInfosVersion());
-							// 导出成功：解除本导出器的失败记账（remove幂等，未登记时无副作用）。
 							epFailed.remove(serviceName);
 						} catch (Exception e) {
-							// 逐服务隔离——单服务导出失败记错继续，同批其余服务不受影响。
 							logger.error("exportAll fail. exporter={}, service={}", ep.getClass().getName(), serviceName, e);
-							// 失败记账：首次登记（add返回true）记warn说明补偿机制；
-							// 之后任一后续事件都会带上该服务自动重导。
 							if (epFailed.add(serviceName))
 								logger.warn("exportAll failed, will re-export on next event. exporter={}, service={}",
 										ep.getClass().getName(), serviceName);
-							// 中断卫生：恢复中断标志，避免吞掉one-by-one worker的中断状态。
 							if (e instanceof InterruptedException)
 								Thread.currentThread().interrupt();
 						}
 					}
 					break;
 				case eEdit:
-					// eEdit失败无补偿记账（粒度为整个edit，见failedServices注释）。
 					ep.exportEdit(edit);
 					break;
 				}
 			} catch (Exception e) {
-			// 逐exporter隔离——任一exporter抛异常（文件IO失败、Runtime.exec失败等）若
-			// 中断整个onEdit，同批其余exporter与其余服务的导出全部跳过且无重试，nginx配置
-			// 持续陈旧直到下一事件。
+				// 隔离单个导出器异常，避免影响同批其他导出器。
 				logger.error("export fail. exporter={}", ep.getClass().getName(), e);
-				// 中断卫生：恢复中断标志，避免吞掉one-by-one worker的中断状态。
 				//noinspection ConstantValue
 				if (e instanceof InterruptedException)
 					Thread.currentThread().interrupt();
@@ -139,8 +115,6 @@ public class Exporter {
 			exports.add(new ExporterPrint(null));
 			break;
 		default:
-			// 未知导出器名（拼写错误等）静默忽略会让部署配置错误零反馈——
-			// fail-fast启动失败并提示合法值。
 			throw new IllegalArgumentException("unknown exporter '" + name + "', valid: NginxConfig | NginxHttp | Print");
 		}
 	}
@@ -152,9 +126,6 @@ public class Exporter {
 		agent.subscribeServices(sub);
 	}
 
-	// 命令行边界统一为既有错误形态（Usage+IllegalArgumentException）。三处边界：
-	// 1) -e为末尾token时args[++i]抛AIOOBE；2) -private为末尾token时peek通过但i+=2越界；
-	// 3) -private后紧跟顶层开关（如"-private -s Bar"）把开关吞为参数值。抽出为可测的静态方法。
 	static void parseArgs(String [] args, Properties shared,
 						   java.util.List<String> services,
 						   java.util.List<KV<String, @Nullable String>> exporters) {
@@ -163,17 +134,15 @@ public class Exporter {
 				if (i + 1 >= args.length)
 					throw usageError("'-e' requires a class name argument");
 				var className = args[++i];
-				// 如果还有参数，看看是不是跟随的-private，如果是，读取私有参数。
 				String privateParam = null;
 				if (i + 1 < args.length && args[i + 1].equals("-private") /* peek */) {
 					if (i + 2 >= args.length)
 						throw usageError("'-private' requires an options argument");
 					var next = args[i + 2];
-					// -private的参数是选项串（如"-file x.cfg"），可以以'-'开头；但恰为某个顶层
-					// 开关本身时必是漏写了参数值（开关不可能单独构成合法选项串），按缺失拒绝。
+					// -private 参数允许以 '-' 开头，但不能直接是顶层开关本身。
 					if (next.equals("-e") || next.equals("-s") || next.equals("-d") || next.equals("-private"))
 						throw usageError("'-private' requires an options argument, got top-level switch '" + next + "'");
-					privateParam = args[i += 2]; // move i to private param
+					privateParam = args[i += 2];
 				}
 				exporters.add(KV.create(className, privateParam));
 			} else if (args[i].equals("-s")) {
@@ -183,12 +152,11 @@ public class Exporter {
 			} else if (args[i].equals("-d")) {
 				exporters.add(KV.create("Print", null));
 			} else if (args[i].startsWith("-")) {
-				// shared options
-				// 先看有没有value。
-				var key = args[i]; // eat key and next
-				String value = ""; // default for no value
+				// 共享选项
+				var key = args[i];
+				String value = "";
 				if (i + 1 < args.length && !args[i + 1].startsWith("-") /* peek next if is value */)
-					value = args[++i]; // eat value
+					value = args[++i];
 				shared.put(key, value);
 			} else {
 				throw usageError("unknown argument: '" + args[i] + "'");

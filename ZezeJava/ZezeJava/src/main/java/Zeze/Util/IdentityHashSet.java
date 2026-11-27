@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
-// 引用相等（identity）语义的开放寻址哈希 Set：System.identityHashCode 探测，非线程安全
+/** 引用相等（identity）语义的开放寻址哈希 Set：System.identityHashCode 探测，非线程安全。 */
 public class IdentityHashSet<T> implements Cloneable {
 	private int size;
 	private @Nullable T [] keyTable;
@@ -90,8 +90,7 @@ public class IdentityHashSet<T> implements Cloneable {
 
 	public boolean containsAll(Collection<?> c) {
 		for (Object e : c)
-			if (e == null || !contains(e)) // 本集合契约上永不含null（add参数即@NotNull），
-				// null元素按 JDK Set.containsAll 语义返回"不包含"
+			if (e == null || !contains(e)) // 本集合不含 null
 				return false;
 		return true;
 	}

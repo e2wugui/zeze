@@ -14,10 +14,10 @@ import Zeze.Transaction.Transaction;
 import org.jspecify.annotations.Nullable;
 import Zeze.Collections.Persistents;
 
-/** 事务 Map 基类：基于 pcollections 持久化映射的 Map 视图，托管下的修改经 LogMap 记账。
- * 迭代为快照语义（迭代器创建时捕获底层视图，容器后续修改不影响本轮迭代），
- * 不抛 ConcurrentModificationException——与 JDK fail-fast 迭代器不同，从 JDK
- * 迁移的代码勿依赖 CME 探测并发修改；迭代器 remove 仅做身份 fail-fast。 */
+/**
+ * 事务 Map 基类：基于 pcollections 持久化映射的 Map 视图，托管下的修改经 LogMap 记账。
+ * 迭代采用创建时刻快照语义，不因容器后续修改抛 CME；仅迭代器 {@code remove()} 做身份 fail-fast 校验。
+ */
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
 	org.pcollections.PMap<K, V> map = Persistents.map();
 
@@ -168,9 +168,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 					public void remove() {
 						if (next == null)
 							throw new IllegalStateException("iterator remove() before next()");
-						// 身份fail-fast（对齐PList判例）：next()返回的条目在迭代期间被外部结构性
-						// 修改（同键移除/重put成不同值）时，按键删除会删错条目或静默no-op，
-						// 不相等（含键已不存在）即响亮失败。
+						// 校验当前键值与迭代条目身份一致，防止外部结构性修改导致误删或静默失效。
 						var key = next.getKey();
 						if (getMap().get(key) != next.getValue())
 							throw new ConcurrentModificationException("structural modification during iteration");
@@ -199,7 +197,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		// 按Map接口内容比较（对称性，理由同PList）：getMap()的equals按Map契约。
+		// 按 Map 接口契约比较内容，确保与标准 Map 之间的对称性。
 		return o instanceof java.util.Map && getMap().equals(o);
 	}
 

@@ -30,9 +30,7 @@ public final class BeanFactory {
 	private static final Logger logger = LogManager.getLogger(BeanFactory.class);
 	private static final LongHashMap<Object> allClassNameMap = new LongHashMap<>();
 	private static final LongHashMap<Object> allDataClassNameMap = new LongHashMap<>();
-	// 两张map是同一个"类名/typeId注册表"的两个方向, 加载器必须同时持有两者,
-	// 所以只用一把读写锁: 否则 findClass(先Bean后Data) 与 findDataClass(先Data后Bean)
-	// 会形成 AB-BA 锁序反转, 在首次惰性加载并发时互等死锁.
+	// Bean 与 Data 注册表共用同一读写锁，避免 findClass 与 findDataClass 并发加载时锁序反转死锁。
 	private static final ReentrantReadWriteLock.ReadLock allMapReadLock;
 	private static final ReentrantReadWriteLock.WriteLock allMapWriteLock;
 	private static final Set<Class<? extends Bean>> runtimeBeanTypes =
@@ -401,10 +399,7 @@ public final class BeanFactory {
 			var ctor = factory.get(typeId);
 			if (ctor != null)
 				return (Bean)ctor.invoke();
-			// volatile读快照竞态——并发register(put+置空readingBeanFactory)之前
-			// 已读到的旧快照miss不等于未注册。锁内重克隆刷新快照并从权威writing表再查一次
-			// （与上面factory==null分支同款），仍miss才走findClass：瞬时竞态不会以
-			// unknown typeId炸掉无辜事务（错误形态误导指向类型缺失）。
+			// 快照未命中时可能与并发 register 竞态，加锁刷新快照并在 writing 表复查后再走 findClass。
 			writingBeanFactoryLock.lock();
 			try {
 				if (readingBeanFactory == null)
@@ -449,8 +444,7 @@ public final class BeanFactory {
 			var ctor = factory.get(typeId);
 			if (ctor != null)
 				return (Data)ctor.invoke();
-			// 同createBeanFromSpecialTypeId——miss后锁内重克隆刷新快照并从权威
-			// writing表再查一次，仍miss才走findDataClass。
+			// 快照未命中时加锁刷新并在 writing 表复查，避免与并发 register 竞态。
 			writingDataFactoryLock.lock();
 			try {
 				if (readingDataFactory == null)

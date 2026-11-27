@@ -22,257 +22,119 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A collection that associates an ordered pair of keys, called a row key and a column key, with a
- * single value. A table may be sparse, with only a small fraction of row key / column key pairs
- * possessing a corresponding value.
+ * 二维稀疏映射表接口，将有序键对（行键、列键）映射到单个值。
+ * <p>所有返回集合或 {@link Map} 的方法均返回底层表的实时视图，视图修改与表内容双向联动。
  *
- * <p>The mappings corresponding to a given row key may be viewed as a {@link Map} whose keys are
- * the columns. The reverse is also available, associating a column with a row key / value map. Note
- * that, in some implementations, data access by column key may have fewer supported operations or
- * worse performance than data access by row key.
- *
- * <p>The methods returning collections or maps always return views of the underlying table.
- * Updating the table can change the contents of those collections, and updating the collections
- * will change the table.
- *
- * <p>All methods that modify the table are optional, and the views returned by the table may or may
- * not be modifiable. When modification isn't supported, those methods will throw an {@link
- * UnsupportedOperationException}.
- *
- * <h3>Implementations</h3>
- *
- * <ul>
- * </ul>
- *
- * <p>See the Guava User Guide article on <a href=
- * "https://github.com/google/guava/wiki/NewCollectionTypesExplained#table">{@code Table}</a>.
- *
- * @author Jared Levy
- * @param <R> the type of the table row keys
- * @param <C> the type of the table column keys
- * @param <V> the type of the mapped values
- * @since 7.0
+ * @param <R> 行键类型
+ * @param <C> 列键类型
+ * @param <V> 值类型
  */
 public interface Table<R, C, V> {
-  // Accessors
+  // 查询
 
-  /**
-   * Returns {@code true} if the table contains a mapping with the specified row and column keys.
-   *
-   * @param rowKey key of row to search for
-   * @param columnKey key of column to search for
-   */
+  /** 返回是否包含指定行键和列键的映射。 */
   boolean contains(
       @Nullable Object rowKey,
       @Nullable Object columnKey);
 
-  /**
-   * Returns {@code true} if the table contains a mapping with the specified row key.
-   *
-   * @param rowKey key of row to search for
-   */
+  /** 返回是否包含指定行键的映射。 */
   boolean containsRow(@Nullable Object rowKey);
 
-  /**
-   * Returns {@code true} if the table contains a mapping with the specified column.
-   *
-   * @param columnKey key of column to search for
-   */
+  /** 返回是否包含指定列键的映射。 */
   boolean containsColumn(@Nullable Object columnKey);
 
-  /**
-   * Returns {@code true} if the table contains a mapping with the specified value.
-   *
-   * @param value value to search for
-   */
+  /** 返回是否包含指定值的映射。 */
   boolean containsValue(@Nullable Object value);
 
-  /**
-   * Returns the value corresponding to the given row and column keys, or {@code null} if no such
-   * mapping exists.
-   *
-   * @param rowKey key of row to search for
-   * @param columnKey key of column to search for
-   */
+  /** 返回指定行键和列键对应的值，不存在时返回 {@code null}。 */
   @Nullable
   V get(
       @Nullable Object rowKey,
       @Nullable Object columnKey);
 
-  /** Returns {@code true} if the table contains no mappings. */
+  /** 返回表是否为空。 */
   boolean isEmpty();
 
-  /** Returns the number of row key / column key / value mappings in the table. */
+  /** 返回表中单元格映射的总数。 */
   int size();
 
-  /**
-   * Compares the specified object with this table for equality. Two tables are equal when their
-   * cell views, as returned by {@link #cellSet}, are equal.
-   */
+  /** 比较两表是否相等（等价于 {@link #cellSet()} 集合相等）。 */
   @Override
   boolean equals(@Nullable Object obj);
 
   /**
-   * Returns the hash code for this table.
-   *
-   * <p><b>移植偏离声明</b>：本移植不实现Guava原版"表的哈希码=其cell视图哈希码"的契约——
-   * GTable2（Bean值）的Bean使用全类身份哈希（既定设计），内容相等的两表equals为true
-   * 而hashCode几乎必异。不要把GTable作为哈希容器键使用。
+   * 返回此表的哈希码。
+   * <p>注意：{@link GTable2} 中 Bean 值按引用身份计算哈希，内容相等的表可能哈希码不同，勿作为哈希容器键使用。
    */
   @Override
   int hashCode();
 
-  // Mutators
+  // 修改
 
-  /** Removes all mappings from the table. */
+  /** 清空表中的所有映射。 */
   void clear();
 
-  /**
-   * Associates the specified value with the specified keys. If the table already contained a
-   * mapping for those keys, the old value is replaced with the specified value.
-   *
-   * @param rowKey row key that the value should be associated with
-   * @param columnKey column key that the value should be associated with
-   * @param value value to be associated with the specified keys
-   * @return the value previously associated with the keys, or {@code null} if no mapping existed
-   *     for the keys
-   */
+  /** 将指定值关联到给定的行键与列键，返回旧值（若先前不存在则返回 {@code null}）。 */
   @Nullable
   V put(R rowKey, C columnKey, V value);
 
-  /**
-   * Copies all mappings from the specified table to this table. The effect is equivalent to calling
-   * {@link #put} with each row key / column key / value mapping in {@code table}.
-   *
-   * @param table the table to add to this table
-   */
+  /** 将指定表的所有单元格映射复制到本表。 */
   void putAll(Table<? extends R, ? extends C, ? extends V> table);
 
-  /**
-   * Removes the mapping, if any, associated with the given keys.
-   *
-   * @param rowKey row key of mapping to be removed
-   * @param columnKey column key of mapping to be removed
-   * @return the value previously associated with the keys, or {@code null} if no such value existed
-   */
+  /** 移除指定行键与列键对应的映射，返回旧值（不存在则返回 {@code null}）。 */
   @Nullable
   V remove(
       @Nullable Object rowKey,
       @Nullable Object columnKey);
 
-  // Views
+  // 视图
 
-  /**
-   * Returns a view of all mappings that have the given row key. For each row key / column key /
-   * value mapping in the table with that row key, the returned map associates the column key with
-   * the value. If no mappings in the table have the provided row key, an empty map is returned.
-   *
-   * <p>Changes to the returned map will update the underlying table, and vice versa.
-   *
-   * @param rowKey key of row to search for in the table
-   * @return the corresponding map from column keys to values
-   */
+  /** 返回指定行键下「列键 -> 值」的实时视图；若行不存在则返回空视图。 */
   Map<C, V> row(R rowKey);
 
-  /**
-   * Returns a view of all mappings that have the given column key. For each row key / column key /
-   * value mapping in the table with that column key, the returned map associates the row key with
-   * the value. If no mappings in the table have the provided column key, an empty map is returned.
-   *
-   * <p>Changes to the returned map will update the underlying table, and vice versa.
-   *
-   * @param columnKey key of column to search for in the table
-   * @return the corresponding map from row keys to values
-   */
+  /** 返回指定列键下「行键 -> 值」的实时视图；若列不存在则返回空视图。 */
   Map<R, V> column(C columnKey);
 
-  /**
-   * Returns a set of all row key / column key / value triplets. Changes to the returned set will
-   * update the underlying table, and vice versa. The cell set does not support the {@code add} or
-   * {@code addAll} methods.
-   *
-   * @return set of table cells consisting of row key / column key / value triplets
-   */
+  /** 返回所有单元格（行键、列键、值）三元组的实时视图，不支持 {@code add}/{@code addAll}。 */
   Set<Cell<R, C, V>> cellSet();
 
-  /**
-   * Returns a set of row keys that have one or more values in the table. Changes to the set will
-   * update the underlying table, and vice versa.
-   *
-   * @return set of row keys
-   */
+  /** 返回所有非空行键的实时视图。 */
   Set<R> rowKeySet();
 
-  /**
-   * Returns a set of column keys that have one or more values in the table. Changes to the set will
-   * update the underlying table, and vice versa.
-   *
-   * @return set of column keys
-   */
+  /** 返回所有非空列键的实时视图。 */
   Set<C> columnKeySet();
 
-  /**
-   * Returns a collection of all values, which may contain duplicates. Changes to the returned
-   * collection will update the underlying table, and vice versa.
-   *
-   * @return collection of values
-   */
+  /** 返回所有值的实时视图（可能包含重复值）。 */
   Collection<V> values();
 
   /**
-   * Returns a view that associates each row key with the corresponding map from column keys to
-   * values. Changes to the returned map will update this table. The returned map does not support
-   * {@code put()} or {@code putAll()}, or {@code setValue()} on its entries.
-   *
-   * <p>In contrast, the maps returned by {@code rowMap().get()} have the same behavior as those
-   * returned by {@link #row}. Those maps may support {@code setValue()}, {@code put()}, and {@code
-   * putAll()}.
-   *
-   * @return a map view from each row key to a secondary map from column keys to values
+   * 返回「行键 -> 行映射」的实时视图。外层视图不支持 {@code put}/{@code putAll}/{@code setValue}，
+   * 但 {@code rowMap().get(r)} 返回的行映射与 {@link #row} 行为一致。
    */
   Map<R, Map<C, V>> rowMap();
 
   /**
-   * Returns a view that associates each column key with the corresponding map from row keys to
-   * values. Changes to the returned map will update this table. The returned map does not support
-   * {@code put()} or {@code putAll()}, or {@code setValue()} on its entries.
-   *
-   * <p>In contrast, the maps returned by {@code columnMap().get()} have the same behavior as those
-   * returned by {@link #column}. Those maps may support {@code setValue()}, {@code put()}, and
-   * {@code putAll()}.
-   *
-   * @return a map view from each column key to a secondary map from row keys to values
+   * 返回「列键 -> 列映射」的实时视图。外层视图不支持 {@code put}/{@code putAll}/{@code setValue}，
+   * 但 {@code columnMap().get(c)} 返回的列映射与 {@link #column} 行为一致。
    */
   Map<C, Map<R, V>> columnMap();
 
-  /**
-   * Row key / column key / value triplet corresponding to a mapping in a table.
-   *
-   * @since 7.0
-   */
+  /** 表示表中单个映射的（行键、列键、值）三元组。 */
   interface Cell<R, C, V> {
-    /** Returns the row key of this cell. */
+    /** 返回单元格的行键。 */
     R getRowKey();
 
-    /** Returns the column key of this cell. */
+    /** 返回单元格的列键。 */
     C getColumnKey();
 
-    /** Returns the value of this cell. */
+    /** 返回单元格的值。 */
     V getValue();
 
-    /**
-     * Compares the specified object with this cell for equality. Two cells are equal when they have
-     * equal row keys, column keys, and values.
-     */
+    /** 当且仅当两单元格的行键、列键和值均相等时返回 {@code true}。 */
     @Override
     boolean equals(@Nullable Object obj);
 
-    /**
-     * Returns the hash code of this cell.
-     *
-     * <p>The hash code of a table cell is equal to {}{@code (e.getRowKey(),
-     * e.getColumnKey(), e.getValue())}.
-     */
+    /** 返回单元格的哈希码（由行键、列键和值共同计算）。 */
     @Override
     int hashCode();
   }

@@ -72,7 +72,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		meta.checkValue(value);
 
 		if (isManaged()) {
-			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
+			// 先取写权限再挂接，避免拒绝路径污染输入 Bean 归属。
 			//noinspection unchecked
 			var mapLog = (LogMap<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(this);
 			value.initRootInfoWithRedo(rootInfo, this);
@@ -92,7 +92,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (m.isEmpty())
 			return;
 		if (m instanceof PMap2)
-			m = ((PMap2<? extends K, ? extends V>)m).getMap(); // more stable
+			m = ((PMap2<? extends K, ? extends V>)m).getMap(); // 捕获不可变快照
 
 		// 整批通过校验后再写 mapKey 或挂接 Bean。已受管项由 initRootInfoWithRedo 拒绝并中止事务。
 		for (var e : m.entrySet()) {
@@ -176,9 +176,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		for (var e : modified.entrySet()) {
 			var v = e.getValue();
 			if (v != null) {
-				// 对齐put/decode/putAllData全部写路径：进map的bean必须带mapKey。
-				// followerApply加入的replaced bean若不带，后续本地事务修改collect时
-				// 后续提交收集仍需要由 mapKey 定位该值。
+				// 写入容器的 Bean 须绑定 mapKey，供后续本地修改收集定位。
 				v.initRootInfo(rootInfo, this);
 				v.mapKey(e.getKey());
 				if (puts == null)
@@ -190,13 +188,11 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				removes.add(e.getKey());
 			}
 		}
-		// 单遍分区批量应用（同PMap1.followerApply）：等价旧 minusAll(removed).plusAll(replaced)。
 		if (removes != null)
 			tmp = tmp.minusAll(removes);
 		if (puts != null)
 			tmp = tmp.plusAll(puts);
 
-		// apply changed
 		for (var e : log.changedForRead().entrySet()) {
 			// 原位修改只针对最终仍存在的键。键缺失说明回放状态已分歧，应中断应用。
 			tmp.get(e.getKey()).followerApply(e.getValue());
@@ -235,7 +231,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		for (var e : getMap().entrySet()) {
 			var value = DynamicField.copyValue(targetMeta.dynamicField, e.getValue());
 			targetMeta.checkValue(value);
-			// mapKey是瞬态容器归属，不由Bean.copy/assign复制；后续原位changed仍需定位该键。
+			// mapKey 属瞬态容器定位信息，不由 Bean.copy 复制，须重新绑定。
 			value.mapKey(e.getKey());
 			newMap = newMap.plus(e.getKey(), value);
 		}
@@ -243,10 +239,10 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		return copy;
 	}
 
-	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
+	/** 深拷贝元素赋值：2 系值可变，避免两个容器共享同一 Bean 引用。 */
 	public void assign(PMap2<K, V> pmap) {
 		if (this == pmap)
-			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
+			return; // 避免自赋值先 clear 导致原内容丢失
 		// 使用目标映射校验和复制，成功后才清空。
 		var copy = pmap.copy(meta);
 		clear();
@@ -271,7 +267,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		int n = bb.ReadUIntPositive();
 		if (n == 0)
 			return;
-		// JDK暂存+单发批量（语义等价，见PMap1.decode注）；try只包valueFactory的invoke。
+		// 暂存后一次性批量写入，try 仅包裹 valueFactory.invoke。
 		var m = new HashMap<K, V>(((initialDecodeCapacity(n) + 2) / 3) * 4);
 		try {
 			for (int i = n; i > 0; i--) {

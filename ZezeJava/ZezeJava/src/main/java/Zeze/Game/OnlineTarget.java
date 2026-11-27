@@ -6,27 +6,21 @@ import java.util.Set;
 import Zeze.Net.Binary;
 
 /**
- * 在线发送目的地（包私有实现细节，OnlineSpec 的唯一变化点）。
- * 每种目的地只负责一件事：把编码好的协议投递到自己（立即语义；事务时机由 OnlineSpec 决定）。
+ * 在线发送目标：负责将已编码协议立即投递到指定目标（事务时机由 {@link OnlineSpec} 控制）。
  */
 sealed interface OnlineTarget {
 
-	/** 把编码好的协议投递到本目标，立即执行。返回发送数（OnlineSpec.sendNow 透传给调用方；空目标 0，AllRoles 恒 -1）。 */
+	/** 立即投递协议到本目标，返回发送数（空目标返回 0，AllRoles 恒返回 -1）。 */
 	int send(Online online, long typeId, Binary data, boolean quietWhenAbsent);
 
-	/** 协议日志标识。需要 online 是因为日志包含 onlineSetName。 */
+	/** 返回用于日志输出的投递目标描述。 */
 	String describe(Online online);
 
-	/** 空目标：OnlineSpec 在编码前短路（空集合直接返回、不编码）。 */
+	/** 是否为空目标（调用方可在编码前短路跳过）。 */
 	default boolean isEmpty() {
 		return false;
 	}
 
-	/**
-	 * 0/1/N 分派，Roles 与 AllRoles 共用，全包唯一一份。
-	 * 前置条件：roleIds 是不可变快照（各 record 规范构造器 Set.copyOf 保证），
-	 * 因此 size==1 时必有元素，无需防御空迭代器。
-	 */
 	static int dispatch(Online online, Collection<Long> roleIds, long typeId,
 						Binary data, boolean quietWhenAbsent) {
 		var size = roleIds.size();
@@ -50,10 +44,10 @@ sealed interface OnlineTarget {
 		}
 	}
 
-	/** 多个角色。构造时快照（去重）。 */
+	/** 多个角色（构造时去重并快照）。 */
 	record Roles(Collection<Long> roleIds) implements OnlineTarget {
-		public Roles { // 接口内嵌套类型隐式 public，规范构造器必须显式 public
-			roleIds = Set.copyOf(roleIds); // 快照：发送（可能在 commit 时）不受调用方后续改集合影响
+		public Roles {
+			roleIds = Set.copyOf(roleIds); // 快照避免延迟提交发送时受外部修改影响
 		}
 
 		@Override
@@ -72,19 +66,16 @@ sealed interface OnlineTarget {
 		}
 	}
 
-	/** 跨所有 OnlineSet 广播。构造时快照（去重）。 */
+	/** 跨所有 OnlineSet 广播（构造时去重并快照）。 */
 	record AllRoles(Collection<Long> roleIds) implements OnlineTarget {
-		public AllRoles { // 接口内嵌套类型隐式 public，规范构造器必须显式 public
+		public AllRoles {
 			roleIds = Set.copyOf(roleIds);
 		}
 
 		@Override
 		public int send(Online online, long typeId, Binary data, boolean quietWhenAbsent) {
-			// P0 回归点：必须用 lambda 参数 o 投递，禁止引用外层任何名为 online 的引用。
-			// 历史 bug（原 AbstractOnlineSpec.sendAll(Collection)）：lambda 遮蔽后误用 this，
-			// 导致 N 个 OnlineSet 下同一实例重复发 N 次、其它 set 收不到。
 			online.getProviderWithOnline().foreachOnline(o -> dispatch(o, roleIds, typeId, data, quietWhenAbsent));
-			return -1; // 跨集合发送数无意义
+			return -1;
 		}
 
 		@Override
@@ -94,11 +85,11 @@ sealed interface OnlineTarget {
 
 		@Override
 		public String describe(Online online) {
-			return joinIds(roleIds) + "@*"; // @* 表示全 OnlineSet 广播
+			return joinIds(roleIds) + "@*";
 		}
 	}
 
-	/** 可靠通知（Game 底层 sendReliableNotifyDirect 支持 quietWhenAbsent：缺席是否静默）。 */
+	/** 可靠通知目标。 */
 	record Reliable(long roleId, String listenerName) implements OnlineTarget {
 		@Override
 		public int send(Online online, long typeId, Binary data, boolean quietWhenAbsent) {

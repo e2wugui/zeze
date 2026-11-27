@@ -31,9 +31,7 @@ import org.jspecify.annotations.Nullable;
 public class ThreadingServer extends AbstractThreadingServer {
 	private static final Logger logger = LogManager.getLogger(ThreadingServer.class);
 
-	// 锁操作rpc的结果码约定为非负小整数（0=成功，1=失败/未持有，2=超时未获取）。
-	// 参数非法或操作类型未知时用-1应答：客户端getResultCode()!=0按false处理（exit类走debug日志），
-	// 不再无应答挂满超时（≥5s后以CompletionException抛出，错误形态不可诊断）。
+	// 锁操作 RPC 非法参数或未知操作类型统一返回 -1（正常结果码为非负整数）
 	public static final int ResultCodeInvalidArgument = -1;
 
 	private final Service service;
@@ -41,9 +39,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	private final HashMap<BGlobalThreadId, SimulateThread> simulateThreads = new HashMap<>();
 	private final ConcurrentHashMap<Integer, SimulateThreads> simulateThreadsByServerId = new ConcurrentHashMap<>();
 
-	// 每种锁一个命名空间。
-	// 其他可做的优化【暂不考虑】。
-	// WeakRef SimulateThread记住自己拥有的所有资源，当SimulateThread退出时，这里自动回收。
+	// 每种锁一个命名空间；SimulateThread 持有自身资源引用并在退出时释放
 	private final ConcurrentHashMap<String, ReentrantLock> mutexes = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Semaphore> semaphores = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, ReentrantReadWriteLock> rwLocks = new ConcurrentHashMap<>();
@@ -68,7 +64,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			unlock();
 		}
 		for (var thread : threads)
-			thread.interrupt(); // Interrupt timed acquisitions; release must run on the owning thread.
+			thread.interrupt(); // 中断带超时的等待获取；锁释放由所属模拟线程自身执行
 		awaitTermination(threads);
 	}
 
@@ -102,8 +98,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 	}
 
-	// 动作队列元素：携带发起该动作的rpc句柄，供SimulateThread.runAction()在动作异常时统一补应答。
-	// rpc允许为null：内部动作（如超时release）没有对应的客户端请求，异常时只记日志不补应答。
+	// 动作队列元素：rpc 非 null 时在异常或关闭兜底补发 ResultCodeInvalidArgument
 	private record SimulateThreadAction(@Nullable Rpc<?, ?> rpc, Action1<SimulateThread> action) {
 		void reject() {
 			if (rpc != null)
@@ -125,28 +120,23 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 
 		private boolean acquireNothing() {
-			// 增加其他类型的同步机制，需要修改这里。
-			// 漏检会导致持锁的模拟线程被判空闲退出：锁悬挂且无法释放（release只能offer给已退出的线程）。
+			// 新增同步原语须同步加入此处检查，避免持锁线程被误判空闲退出导致锁悬挂
 			return mutexRefs.isEmpty() && semaphoreRefs.isEmpty() && rwLockRefs.isEmpty();
 		}
 
 		public ReentrantLock getMutex(String name) {
-			// ref cache
 			var mutex = mutexRefs.get(name);
 			if (null != mutex)
 				return mutex;
 
-			// alloc
 			return mutexes.computeIfAbsent(name, (k) -> new ReentrantLock());
 		}
 
 		@Nullable SemaphoreAcquired getSemaphore(String name) {
-			// ref cache
 			var semaphoreAcq = semaphoreRefs.get(name);
 			if (null != semaphoreAcq)
 				return semaphoreAcq;
 
-			// ref global
 			var semaphore = semaphores.get(name);
 			if (null != semaphore)
 				return new SemaphoreAcquired(semaphore);
@@ -154,12 +144,10 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 
 		public ReentrantReadWriteLock getReadWriteLock(String name) {
-			// ref cache
 			var rwLock = rwLockRefs.get(name);
 			if (null != rwLock)
 				return rwLock;
 
-			// getOrAdd global
 			return rwLocks.computeIfAbsent(name, (key) -> new ReentrantReadWriteLock());
 		}
 
@@ -168,22 +156,20 @@ public class ThreadingServer extends AbstractThreadingServer {
 			try {
 				while (!closed) {
 					try {
-						// 持有资源期间也必须带超时等待，否则无超时poll会空转占满CPU。
 						var action = actions.poll(200, TimeUnit.MILLISECONDS);
 						if (null != action) {
 							runAction(action);
 						}
 
 						if (acquireNothing()) {
-							// 没有已分配资源的时候，延时200ms，准备退出。
+							// 无已分配资源时延时 200ms 准备退出
 							action = actions.poll(200, TimeUnit.MILLISECONDS);
 							if (null != action) {
 								runAction(action);
-								continue; // 发现新任务，继续工作，中断退出。
+								continue;
 							}
 							if (simulateThreadExit(id, this))
-								break; // 真正退出...
-							// else continue
+								break;
 						}
 					} catch (Exception e) {
 						if (!closed)
@@ -200,12 +186,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			}
 		}
 
-		// 【通用兜底】动作统一在此包装执行：动作内任何新增可抛路径都会补发结果码-1，
-		// 不再重演"catch(Exception)只记日志、客户端挂满rpc超时（≥5s以CompletionException呈现）"，
-		// 也不再依赖逐点补丁（各处catch保留为快速失败路径）。
-		// 双发防护：handler正常路径已自行SendResultCode应答、之后动作又抛异常时，兜底不能二次发送。
-		// Rpc.trySendResultCode（Zeze.Net.Rpc）先经tryMarkSendResultDone做VarHandle CAS仲裁，
-		// 已应答（sendResultDone=true）则CAS失败直接返回false不发送，天然防双发，无需额外AtomicBoolean。
+		// 统一执行动作并在异常或关闭时补发错误码（Rpc.trySendResultCode 内部 CAS 防重复发送）
 		private void runAction(SimulateThreadAction a) {
 			try {
 				if (closed) {
@@ -248,11 +229,9 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	public class SimulateThreads {
 		private final HashSet<SimulateThread> threads = new HashSet<>();
-		// 由模块锁保护，超时判定与释放入队必须在同一临界区。
+		// 由模块锁保护，超时判定与释放入队必须在同一临界区
 		private long activeTime = System.currentTimeMillis();
 		private final int serverId;
-		// lastAppSerial依赖"同连接的KeepAlive按接收序串行处理"（见ProcessKeepAlive的Direct注解）：
-		// IO线程内联执行保证同连接有序；volatile兜不同连接各自IO线程间的可见性。
 		private volatile BKeepAlive.@Nullable Data lastAppSerial;
 
 		public SimulateThreads(int serverId) {
@@ -276,31 +255,21 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 	}
 
-		// Direct：lastAppSerial的"同连接KeepAlive有序处理"前提（见字段注释）要求IO线程按TCP
-		// 接收序内联串行；Normal经共享线程池派发既不保证同连接顺序也不保证跨连接顺序——迟到的
-			// 旧实例KeepAlive可在新实例接管并持锁后再次触发release，强制释放新实例持有的全部锁。
-			// 处理体轻量（CHM查改+volatile写+非阻塞offer），内联执行不阻塞IO线程。
+		// Direct 模式保证同连接 KeepAlive 按接收序处理，配合模块锁保护 lastAppSerial 单调递增接管
 		@Override
 		@Zeze.Util.DispatchModeAnnotation(mode = Zeze.Transaction.DispatchMode.Direct)
 		protected long ProcessKeepAlive(KeepAlive p) {
 		var threads = simulateThreadsByServerId.computeIfAbsent(p.Argument.getServerId(), SimulateThreads::new);
-		// 串行化serial的check-then-act：多selector线程部署下不同连接的KeepAlive在各自IO线程
-		// 并发到达，"读lastAppSerial→比较→release→写回"非原子——同serverId双实例交错时双双通过
-		// 单调判据、双release（合法新owner的锁被误释放），且低serial后写覆盖高serial触发下轮再释放。
-		// 模块锁可重入（SimulateThreads.release同锁），KeepAlive频率低（10s周期）无争用顾虑。
 		lock();
 		try {
 			if (null == threads.lastAppSerial) {
 				threads.lastAppSerial = p.Argument;
 				threads.activeTime = System.currentTimeMillis();
-				return 0; // first keepAlive。record only。
+				return 0;
 			}
 			//noinspection DataFlowIssue
 			if (threads.lastAppSerial.getAppSerialId() != p.Argument.getAppSerialId()) {
-				// serial无单调性判据——同serverId双实例（重建窗口内旧keepAliveTask在途、
-				// 或错误配置双客户端）时两个appSerialId交替到达，10秒一轮互解，正常持锁者被持续
-				// 强制释放。appSerialId为PersistentAtomicLong单调递增：仅更高的serial接管（release
-				// 旧资源），更低的视为旧实例迟到，忽略不release。
+				// 仅更大 appSerialId 的新实例接管并释放旧资源，忽略迟到的旧实例心跳
 				//noinspection DataFlowIssue
 				if (p.Argument.getAppSerialId() > threads.lastAppSerial.getAppSerialId()) {
 					threads.release();
@@ -309,7 +278,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 				}
 				return 0;
 			}
-			// same app serialId. done.
 			threads.activeTime = System.currentTimeMillis();
 			return 0;
 		} finally {
@@ -378,9 +346,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 				r.Argument.getLockName().getGlobalThreadId().getServerId(),
 				r.Argument.getLockName().getGlobalThreadId().getThreadId(),
 				r.Argument.getLockName().getName());
-		// tryLock(timeoutMs<0)按JDK契约抛IllegalArgumentException，若在SimulateThread
-		// 动作内抛出会被run()吞掉且不再补发结果码（客户端挂满超时后以异常呈现）。入队前校验
-		// 直接应答（结果码ResultCodeInvalidArgument）。
 		if (r.Argument.getTimeoutMs() < 0) {
 			r.SendResultCode(ResultCodeInvalidArgument);
 			return 0;
@@ -426,8 +391,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessReadWriteLockOperateRequest(ReadWriteLockOperate r) {
-		// eEnterRead/eEnterWrite的动作内tryLock(timeoutMs<0)抛IllegalArgumentException
-		// 会被SimulateThread.run()吞掉且不补发结果码。入队前校验直接应答。
 		if ((r.Argument.getOperateType() == Threading.eEnterRead
 				|| r.Argument.getOperateType() == Threading.eEnterWrite)
 				&& r.Argument.getTimeoutMs() < 0) {
@@ -477,10 +440,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 							try {
 								rwLock.readLock().unlock();
 							} catch (IllegalMonitorStateException e) {
-								// enter/exit模式不对称（如enterWrite后exitRead）时unlock抛
-								// IllegalMonitorStateException，动作在SimulateThread内抛出会被run()
-								// 吞掉且不补发结果码——客户端挂满rpc超时。对齐参数校验系列
-								// 立即应答错误码。
 								logger.error("RWLock.exitRead mode mismatch (thread=({}, {}), name={})",
 										r.Argument.getLockName().getGlobalThreadId().getServerId(),
 										r.Argument.getLockName().getGlobalThreadId().getThreadId(),
@@ -489,10 +448,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 								return;
 							}
 							var hold = rwLock.getReadHoldCount();
-							// rwLockRefs按锁名共享一个条目，读写计数分开持有
-							// （JDK支持写→读降级）。只看本模式计数清零即删条目会让另一模式的持有
-							// 脱离跟踪：之后exit无应答即返回、模拟线程持锁被判空闲退出、
-							// timeoutRelease也遍历不到——锁永久悬挂直到进程重启。双计数都为零才删。
+							// 读写锁共享条目（支持写→读降级），须双计数均归零才移除引用
 							if (hold == 0 && rwLock.getWriteHoldCount() == 0)
 								This.rwLockRefs.remove(r.Argument.getLockName().getName());
 							logger.info("RWLock.exitRead(thread=({}, {}), name={} hold={})",
@@ -516,7 +472,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 							try {
 								rwLock.writeLock().unlock();
 							} catch (IllegalMonitorStateException e) {
-								// 对称场景（enterRead后exitWrite），同eExitRead。
 								logger.error("RWLock.exitWrite mode mismatch (thread=({}, {}), name={})",
 										r.Argument.getLockName().getGlobalThreadId().getServerId(),
 										r.Argument.getLockName().getGlobalThreadId().getThreadId(),
@@ -525,8 +480,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 								return;
 							}
 							var hold = rwLock.getWriteHoldCount();
-							// 双计数都为零才删（对称场景：先exitRead时writeHold仍>0，
-							// 提前删条目=写锁悬挂、所有写者永久饥饿）。
 							if (hold == 0 && rwLock.getReadHoldCount() == 0)
 								This.rwLockRefs.remove(r.Argument.getLockName().getName());
 
@@ -536,15 +489,13 @@ public class ThreadingServer extends AbstractThreadingServer {
 									r.Argument.getLockName().getName(),
 									hold);
 							r.SendResultCode(hold);
-							return; // done
+							return;
 						}
 						r.SendResultCode(0);
 					});
 			break;
 
 		default:
-			// 未知OperateType（buggy客户端/异版本/恶意包）不能无应答，
-			// 否则客户端等满rpc超时后以CompletionException抛出。
 			logger.error("ReadWriteLockOperate: unknown operateType={} (thread=({}, {}), name={})",
 					r.Argument.getOperateType(),
 					r.Argument.getLockName().getGlobalThreadId().getServerId(),
@@ -566,9 +517,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessSemaphoreReleaseRequest(SemaphoreRelease r) {
-		// release(permits<=0)按JDK契约抛IllegalArgumentException，动作在SimulateThread内
-		// 抛出会被run()吞掉且不补发结果码（客户端挂满rpc超时后以CompletionException呈现）。
-		// 入队前校验直接应答（TryAcquire家族已有同型防护）。
 		if (r.Argument.getPermits() <= 0) {
 			r.SendResultCode(ResultCodeInvalidArgument);
 			return 0;
@@ -577,14 +525,11 @@ public class ThreadingServer extends AbstractThreadingServer {
 				(This) -> {
 					var semaphoreAcq = This.semaphoreRefs.get(r.Argument.getLockName().getName());
 					if (null != semaphoreAcq) {
-						// 钳制到入账持有量：客户端bug/恶意输入的超量release会直接膨胀JDK信号量
-						// 真实容量（账面负值删条目、膨胀永久保留），信号量的并发约束被静默击穿。
+						// 钳制到本线程实际持有量，防止超量 release 虚增信号量容量
 						int actual = Math.min(r.Argument.getPermits(), semaphoreAcq.permits);
 						semaphoreAcq.semaphore.release(actual);
 						semaphoreAcq.permits -= actual;
 						if (semaphoreAcq.permits <= 0) {
-							// 马上要删除了，这个值本来不需要重置。如果下一次申请继续使用这个对象，必须设为0。
-							// 现在不清除它（permits = 0），让后面的日志和结果能反应更多信息。
 							This.semaphoreRefs.remove(r.Argument.getLockName().getName());
 						}
 						logger.info("semaphore.release(thread=({}, {}), name={}) permits={}",
@@ -593,7 +538,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 								r.Argument.getLockName().getName(),
 								semaphoreAcq.permits);
 						r.SendResultCode(semaphoreAcq.permits);
-						return; // done
+						return;
 					}
 					r.SendResultCode(0);
 				});
@@ -602,8 +547,6 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessSemaphoreTryAcquireRequest(SemaphoreTryAcquire r) {
-		// tryAcquire(permits<=0)按JDK契约抛IllegalArgumentException，动作内抛出会被
-		// SimulateThread.run()吞掉且不补发结果码。入队前校验直接应答。
 		if (r.Argument.getPermits() <= 0 || r.Argument.getTimeoutMs() < 0) {
 			r.SendResultCode(ResultCodeInvalidArgument);
 			return 0;
@@ -613,7 +556,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 					var semaphoreAcq = This.getSemaphore(r.Argument.getLockName().getName());
 					if (null == semaphoreAcq) {
 						r.SendResultCode(1);
-						return; // done
+						return;
 					}
 					var acquired = semaphoreAcq.semaphore.tryAcquire(r.Argument.getPermits(),
 							r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
