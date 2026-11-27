@@ -137,13 +137,12 @@ public class ProviderDistribute extends ReentrantLock {
 
 		var list = serviceInfos.getSortedIdentities();
 		var frees = new ArrayList<KVNotNull<ProviderSession, Integer>>(list.size());
-		var all = new ArrayList<ProviderSession>(list.size());
+		//var all = new ArrayList<ProviderSession>(list.size());
 		long TotalWeight = 0;
 
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
-			//noinspection DataFlowIssue
 			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
 					serviceInfo.getServiceIdentity());
 			if (providerModuleState == null) {
@@ -162,7 +161,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (!checkAppVersion(ps.appVersion, appVersion))
 				continue;
 
-			all.add(ps);
+			//all.add(ps);
 
 			if (ps.load.getOnlineNew() > ps.load.getMaxOnlineNew())
 				continue;
@@ -186,10 +185,10 @@ public class ProviderDistribute extends ReentrantLock {
 			}
 		}
 		// 选择失败，一般是都满载了，随机选择一个。
-		if (!all.isEmpty()) {
-			provider.value = all.get(Random.getInstance().nextInt(all.size())).getSessionId();
-			return true;
-		}
+		//if (!all.isEmpty()) {
+		//	provider.value = all.get(Random.getInstance().nextInt(all.size())).getSessionId();
+		//	return true;
+		//}
 		return false;
 	}
 
