@@ -16,6 +16,7 @@ import Zeze.Net.Acceptor;
 import Zeze.Net.ServiceConf;
 import Zeze.Services.Token;
 import Zeze.Util.Task;
+import harness.DualStackPortAllocator;
 import harness.Fast;
 
 /**
@@ -32,10 +33,10 @@ import harness.Fast;
 public class TestTokenStartStopsHalfService {
 
 	private static int freePort() throws Exception {
-		try (var s = new ServerSocket()) {
-			s.bind(new InetSocketAddress("127.0.0.1", 0));
-			return s.getLocalPort();
-		}
+		// 发号制带外选口（harness.DualStackPortAllocator）：连续两次freePort探测会拿到同一口
+		// （OS愿复用刚释放口，soak-20261128-0204 R6实锤：Duplicate Acceptor=127.0.0.1_54153），
+		// 发号保证同JVM永不复用。
+		return DualStackPortAllocator.probe(InetAddress.getLoopbackAddress());
 	}
 
 	// bind验证有界重试（test30-3 round17实证:79假红）：freePort的TOCTOU抢占/service.stop的
